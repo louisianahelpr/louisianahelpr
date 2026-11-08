@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { shopsErrorMessage } from "@/lib/shops/errors";
 import {
   DIGITAL_FILE_ACCEPT,
   DIGITAL_MAX_FILES,
@@ -26,18 +27,18 @@ export default function ShopDigitalFiles({ itemId }: { itemId: string }) {
   const add = useMutation({
     mutationFn: (f: File) => uploadDigitalFile(itemId, f),
     onSuccess: () => toast.success("File added."),
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again."),
+    onError: (err) => toast.error(shopsErrorMessage(err)),
     onSettled: refresh,
   });
   const remove = useMutation({
     mutationFn: (fileId: string) => removeDigitalFile(fileId),
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again."),
+    onError: (err) => toast.error(shopsErrorMessage(err)),
     onSettled: refresh,
   });
   const open = useMutation({
     mutationFn: (fileId: string) => digitalDownloadUrl(fileId),
     onSuccess: (url) => window.open(url, "_blank", "noopener"),
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again."),
+    onError: (err) => toast.error(shopsErrorMessage(err)),
   });
 
   const list = (files.data ?? []).filter((f) => f.checked_at);

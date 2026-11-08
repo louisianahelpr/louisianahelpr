@@ -50,7 +50,7 @@ function BuyerFiles({ order }: { order: ShopOrder }) {
     mutationFn: (fileId: string) => digitalDownloadUrl(fileId),
     // A fresh link each tap: it starts the download in the browser (or the share sheet in the app).
     onSuccess: (url) => window.open(url, "_blank", "noopener"),
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again."),
+    onError: (err) => toast.error(shopsErrorMessage(err)),
   });
   const hoursLeft = digitalReportHoursLeft(order.captured_at);
   const [reporting, setReporting] = useState(false);

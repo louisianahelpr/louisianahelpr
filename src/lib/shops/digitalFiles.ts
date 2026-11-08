@@ -33,6 +33,13 @@ export async function fetchMyDigitalFiles(itemId: string): Promise<ShopDigitalFi
   return unwrap(res) as ShopDigitalFile[];
 }
 
+/** A refusal shopsErrorMessage can read: the code as the message, the server's own plain words as userMessage. */
+function digitalError(code: string, hint: string | null = null): Error {
+  const e = new Error(code) as Error & { userMessage?: string };
+  if (hint) e.userMessage = hint;
+  return e;
+}
+
 async function invokeShopDigital(body: Record<string, unknown>): Promise<Record<string, unknown>> {
   const { data, error } = await supabase.functions.invoke("shop-digital", { body });
   if (error) {
@@ -44,9 +51,8 @@ async function invokeShopDigital(body: Record<string, unknown>): Promise<Record<
           return null;
         })
       : null;
-    const refusal = new Error(typeof parsed?.hint === "string" && parsed.hint ? parsed.hint
-      : typeof parsed?.error === "string" && parsed.error ? parsed.error : "Something went wrong. Please try again.");
-    throw refusal;
+    throw digitalError(typeof parsed?.error === "string" && parsed.error ? parsed.error : "payment_unavailable",
+      typeof parsed?.hint === "string" ? parsed.hint : null);
   }
   return (data ?? {}) as Record<string, unknown>;
 }
@@ -68,19 +74,19 @@ function digitalFileProblem(file: File): string | null {
 
 export async function uploadDigitalFile(itemId: string, file: File): Promise<void> {
   const problem = digitalFileProblem(file);
-  if (problem) throw new Error(problem);
+  if (problem) throw digitalError("file_not_allowed", problem);
   const begun = await invokeShopDigital({ action: "upload_url", item_id: itemId, file_name: file.name, byte_size: file.size });
   const fileId = String(begun.file_id ?? "");
   const path = String(begun.path ?? "");
   const token = String(begun.token ?? "");
-  if (!fileId || !path || !token) throw new Error("Something went wrong. Please try again.");
+  if (!fileId || !path || !token) throw digitalError("upload_missing");
   const up = await supabase.storage.from(BUCKET).uploadToSignedUrl(path, token, file, { contentType: file.type || undefined });
   if (up.error) {
     // The waiting row would block publishing: take it back, then report the upload's own failure.
     await invokeShopDigital({ action: "remove", file_id: fileId }).catch((e: unknown) => {
       console.warn("[shops] waiting file row not removed after a failed upload", e);
     });
-    throw new Error("The upload did not finish. Please try again.");
+    throw digitalError("upload_missing");
   }
   await invokeShopDigital({ action: "confirm", file_id: fileId });
 }
@@ -93,7 +99,7 @@ export async function removeDigitalFile(fileId: string): Promise<void> {
 export async function digitalDownloadUrl(fileId: string): Promise<string> {
   const data = await invokeShopDigital({ action: "download", file_id: fileId });
   const url = String(data.url ?? "");
-  if (!url) throw new Error("Something went wrong. Please try again.");
+  if (!url) throw digitalError("file_not_found");
   return url;
 }
 

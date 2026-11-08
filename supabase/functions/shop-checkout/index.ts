@@ -708,7 +708,7 @@ async function buyDigital(body: Record<string, unknown>, user: { id: string; ema
     return json({ error: TRY_AGAIN }, 503);
   }
   const o = row as { id: string; seller_id: string; items_cents: number; premium_cents: number; setup_fee_cents: number; is_digital: boolean; status: string } | null;
-  if (!o || !o.is_digital || o.status !== "awaiting_hold" || o.seller_id !== item.owner_id
+  if (!o || o.is_digital !== true || o.status !== "awaiting_hold" || o.seller_id !== item.owner_id
       || o.items_cents !== frozen.items_cents || o.premium_cents !== frozen.premium_cents) {
     console.error(`[shop-checkout] digital order ${frozen.order_id} does not match what was frozen`);
     await close("a mismatch");

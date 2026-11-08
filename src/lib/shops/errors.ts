@@ -298,6 +298,15 @@ const SHOP_CHECKOUT_COPY: Record<string, string> = {
   digital_on_website: "Downloads are bought on louisianahelpr.com. Open the shop there to buy it.",
   invalid_billing_address: "Enter your billing street, city, two-letter state and 5-digit ZIP code.",
   billing_address_unusable: "We couldn't figure the sales tax for that address. Check the street, city, state and ZIP code.",
+  // shop-digital's own answers (a download's files).
+  upload_missing: "The upload didn't finish. Try adding the file again.",
+  file_unreadable: "We couldn't read that file. Try adding it again.",
+  file_does_not_match_type: "That file isn't really the type its name says. Upload a real PDF, ZIP, PNG or JPG.",
+  zip_unreadable: "We couldn't read that ZIP file. Make it again and upload it.",
+  zip_empty: "That ZIP file is empty. Add the files to it and upload it again.",
+  zip_has_program: "That ZIP file has a program or script inside. Take it out and upload the ZIP again.",
+  file_not_allowed: "Upload a PDF, ZIP, PNG or JPG file up to 100 MB.",
+  file_not_found: "We couldn't find that file. Reload the page and try again.",
 };
 
 /** The AI helper's own answers (the declutter-ai-draft edge function, target 'shop_item'): not RPC codes. */

@@ -18404,6 +18404,14 @@ export type Database = {
         Args: { p_device_id?: string; p_item_id: string }
         Returns: undefined
       }
+      declutter_funnel_event: {
+        Args: { p_detail?: string; p_device_id?: string; p_item_id?: string; p_order_id?: string; p_step: string }
+        Returns: undefined
+      }
+      declutter_funnel_counts: {
+        Args: { p_days?: number }
+        Returns: { detail: string | null; events: number; people: number; step: string }[]
+      }
       declutter_my_item_view_counts: {
         Args: never
         Returns: {

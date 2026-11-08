@@ -41,6 +41,7 @@ import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { queueEmail } from "../../_shared/resend.ts";
 import { declutterEmailParts, emailSeller } from "../../_shared/declutterSellerEmail.ts";
+import { recordDeclutterFunnel } from "./_declutterFunnel.ts";
 import { recordDeclutterCardAsWalletDefault, recordDeclutterOrderCardAsWalletDefault } from "./_walletDefaultCard.ts";
 import { storedStripeCustomer } from "../../_shared/stripeCustomer.ts";
 import { tipChargeBreakdown } from "../../_shared/tipFees.ts";
@@ -488,6 +489,8 @@ async function settleOrder(
     });
     return;
   }
+  // H3 (audit 11-08): the funnel's paid step, once per order (a redelivery answers already_paid). Never throws.
+  if (answer.result === "paid") await recordDeclutterFunnel(ctx, "paid", orderId);
   // A held payment cannot be partly refunded (nothing was taken): a setup fee owed back is settled at capture (S5).
   if (answer.result === "already_paid" && shipHeld) {
     await saveOrderCard(event, session.id, paymentIntentId, meta.buyer_id, ctx);

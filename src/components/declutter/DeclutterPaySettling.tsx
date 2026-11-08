@@ -15,6 +15,7 @@
  *     most a minute.
  */
 import { useEffect, useState } from "react";
+import { trackStripeReturn } from "@/lib/declutter/stripeReturn";
 import { useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
@@ -77,6 +78,8 @@ export function usePaySettling(): PaySettling {
   // Latched: closing the "What next" sheet drops ?paid=1, but the cart must still catch up.
   const [returnedAt, setReturnedAt] = useState<number | null>(() => (paid ? Date.now() : null));
   const [sellerId, setSellerId] = useState<string | null>(() => (paid ? payingSeller() : null));
+  // H3 (audit 11-08): the buyer is back from Stripe's page, paid or not (cancel_url carries back=1).
+  useEffect(() => { trackStripeReturn(location.search); }, [location.search]);
   useEffect(() => {
     if (paid && returnedAt === null) {
       setReturnedAt(Date.now());

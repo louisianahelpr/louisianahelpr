@@ -31,6 +31,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BoughtWhatNext, justPaidOrder } from "@/components/declutter/BoughtWhatNext";
 import type { CartLine } from "@/lib/declutter/api";
 
+// H3 (audit 11-08): the buy funnel is fire-and-forget telemetry; this spec never reaches Supabase for it.
+vi.mock("@/lib/declutter/funnel", () => ({ trackFunnel: () => {} }));
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 let cart: Partial<CartLine>[] = [];
 vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => cart }));

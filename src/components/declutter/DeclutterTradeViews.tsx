@@ -60,6 +60,7 @@ import { SalesWaiting } from "./DeclutterSalesWaiting";
 import { RemoveFromCart } from "./DeclutterCartRemove";
 import { invalidateTrades } from "./declutterLightActions";
 import { usePageRestored } from "@/hooks/usePageRestored";
+import { trackFunnel } from "@/lib/declutter/funnel";
 import { cartSectionWords, CheckoutCardHead } from "./DeclutterCartWords";
 import { firstPhotos } from "./DeclutterItemCard";
 import { squarePhotoUrl, THUMB_PHOTO_PX } from "@/lib/declutter/photoSizes";
@@ -147,7 +148,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const chosen = picked && offered.includes(picked) ? picked : offered[0];
   const [opening, setOpening] = useState(false);
   // M2 (audit 11-08): Back from Stripe's page restores this page from the back-forward cache; Pay must not stay "Opening…".
-  usePageRestored(() => { setOpening(false); invalidateTrades(qc); });
+  usePageRestored(() => { setOpening(false); invalidateTrades(qc); trackFunnel("returned_from_stripe", { detail: "back" }); });
   const [address, setAddress] = useState("");
   const [quote, setQuote] = useState<DeliveryQuote | null>(null);
   const sizeIds = [...itemIds].sort();

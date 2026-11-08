@@ -20343,6 +20343,9 @@ export type Database = {
         }
         Returns: undefined
       }
+      current_terms_version: { Args: never; Returns: string }
+      terms_version_rank: { Args: { p_version: string }; Returns: number }
+      terms_accepted_is_current: { Args: { p_user_id: string }; Returns: boolean }
       identity_check_exempt: { Args: { p_user_id: string }; Returns: boolean }
       idv_review_waiting_since: { Args: { p_user_id: string }; Returns: string }
       is_late_cancellation: {

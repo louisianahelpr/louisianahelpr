@@ -1227,6 +1227,9 @@ export const RPC_ERROR_COPY = {
     // declutter_free_claim_gate (20261031211922), behind identity_check.
     identity_required_to_claim: DC.identity_required_to_claim,
     setup_fee_required_to_claim: DC.setup_fee_required_to_claim,
+    // Trades fixes (20261108195151): an all-trade checkout runs only the ID half (declutter_identity_gate).
+    identity_required_to_buy: DC.identity_required_to_buy,
+    identity_required_to_list: DC.identity_required_to_list,
     account_restricted: DC.account_restricted,
     cart_empty: DC.cart_empty,
     checkout_page_open: DC.checkout_page_open,

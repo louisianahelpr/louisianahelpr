@@ -24,8 +24,8 @@
  * @mutate src/components/sections/InlineListSearch.tsx |           if (!value.trim()) close(false, false); |           void value;
  * @mutate src/components/sections/InlineListSearch.tsx |     if (clear && value) onChange(""); |     void clear;
  * @mutate src/components/sections/jobsToolbar.ts | export const JOBS_TOOLBAR_ROW = "flex min-h-[46px] min-w-0 items-center gap-2"; | export const JOBS_TOOLBAR_ROW = "flex min-h-[40px] min-w-0 items-center gap-2 px-4";
- * @mutate src/pages/home/Dashboard.tsx | embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes \|\| feedShowingLoadError ? undefined : headerCount } : { search: phoneBrowseSearch }) | embeddedHeader(isWebDesktop ? undefined : { search: phoneBrowseSearch })
- * @mutate src/pages/home/Dashboard.tsx | : { search: phoneBrowseSearch })}\n    </div> | : { search: phoneBrowseSearch })}\n      {!isWebDesktop && <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>search</div>}\n    </div>
+ * @mutate src/pages/home/Dashboard.tsx | embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes \|\| feedShowingLoadError ? undefined : headerCount } : { search: phoneBrowseSearch, chips: phoneBrowseChips }) | embeddedHeader(isWebDesktop ? undefined : { search: phoneBrowseSearch, chips: phoneBrowseChips })
+ * @mutate src/pages/home/Dashboard.tsx | : { search: phoneBrowseSearch, chips: phoneBrowseChips })}\n    </div> | : { search: phoneBrowseSearch, chips: phoneBrowseChips })}\n      {!isWebDesktop && <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>search</div>}\n    </div>
  * @mutate src/components/job-card/embeddedActivity.tsx |       <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}> |       <div data-jobs-toolbar="" className="flex">
  * @mutate src/components/job-card/embeddedActivity.tsx | <InlineListSearch value={search} onChange={onSearch} | <InlineListSearch value="" onChange={() => {}}
  */
@@ -169,7 +169,7 @@ describe("Browse, Posted and Working draw the same row box and the same hairline
   });
 
   it("desktop: Browse draws no row of its own; count beside Browse, controls at the tabs row's end", () => {
-    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes || feedShowingLoadError ? undefined : headerCount } : { search: phoneBrowseSearch })");
+    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes || feedShowingLoadError ? undefined : headerCount } : { search: phoneBrowseSearch, chips: phoneBrowseChips })");
     expect(dash).not.toMatch(/JOBS_TOOLBAR_LINE_CLASS/);
     const jobs = read("src/pages/jobs/JobsSection.tsx");
     expect(jobs).toContain("browseCount={browse?.count}");

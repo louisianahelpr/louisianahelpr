@@ -18,7 +18,7 @@
  *    badges are --alert (#B3261E).
  *
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |   const shown = parts.filter(([n]) => n > 0) |   const shown = parts.filter(() => true)
- * @mutate src/pages/home/HomeDashboard.tsx |               const line = summary.tiles[s.key] ?? SECTION_INVITE[s.key]; |               const line = summary.tiles[s.key] ?? "0";
+ * @mutate src/pages/home/HomeDashboard.tsx |                 const line = summary.tiles[s.key]; |                 const line = summary.tiles[s.key] ?? "0";
  * @mutate src/components/sections/AppTopBar.tsx |         <HelprMark size="sm" emblemOnly to="/home" /> |         <HelprMark size="sm" to="/home" />
  * @mutate src/components/MobileNav.tsx |                 background: "hsl(var(--alert))", |                 background: "hsl(var(--burnt-sienna))",
  * @mutate src/components/notificationPanel/NotificationTrigger.tsx | style={{ background: "hsl(var(--alert))", color: "#fff" }} | style={{ background: "hsl(var(--burnt-sienna))", color: "#fff" }}
@@ -103,7 +103,7 @@ describe("1. Home section cards never show a 0 (spec v2 §1.5/§5.5, board 19)",
     expect(countLine([[3, "property", "properties"]])).toBe("3 properties");
   });
 
-  it("nothing real -> null, and the card shows the both-sides invitation", () => {
+  it("nothing real -> null; the section chip then shows its name alone (design audit A D4, 11-08), the invitation stays in Customize", () => {
     expect(countLine([[0, "need you"], [0, "in progress"]])).toBeNull();
     expect(SECTION_INVITE).toEqual({
       jobs: "Hire help or find work",
@@ -112,7 +112,8 @@ describe("1. Home section cards never show a 0 (spec v2 §1.5/§5.5, board 19)",
       homes: "Find a place or list one",
     });
     const home = code("src/pages/home/HomeDashboard.tsx");
-    expect(home).toContain("const line = summary.tiles[s.key] ?? SECTION_INVITE[s.key];");
+    expect(home).toContain("const line = summary.tiles[s.key];\n");
+    expect(home).toContain('{line && <span data-tile-line className="font-normal text-muted-foreground"> · {line}</span>}');
     // The old big-number slot is gone: no tile prints a bare count.
     expect(home).not.toMatch(/\{on \? tile\.n : /);
   });

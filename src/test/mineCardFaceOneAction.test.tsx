@@ -16,7 +16,7 @@
  * Q1816 (axe 4.14 label-content-name-mismatch, WCAG 2.5.3): the face link's name holds every word it shows, in order.
  * @mutate src/components/job-card/MineJobFace.tsx | aria-label={[`Open ${title}`, money, when].filter(Boolean).join(", ")} | aria-label={`Open ${title}`}
  * @mutate src/components/job-card/MineJobFace.tsx |             {when && " "}\n |
- * @mutate src/pages/home/HomeDashboard.tsx |                     {" "}\n |
+ * @mutate src/pages/home/HomeDashboard.tsx | className="font-normal text-muted-foreground"> · {line}</span>} | className="font-normal text-muted-foreground">{line}</span>}
  * @mutate src/components/DesktopSidebarNav.tsx |                   {soon && " "}\n |
  * @mutate src/components/job-card/MineJobFace.tsx | to={`/jobs/${encodeURIComponent(jobId)}`} | to="/posts"
  * @mutate src/pages/posts/PostedJobCard.tsx | action={isExpanded ? null : continueDayAnswer.faceAction ?? faceAction} | action={continueDayAnswer.faceAction ?? faceAction}
@@ -148,7 +148,9 @@ describe("the Posted card face (board 14)", () => {
     expect(seen.length).toBeGreaterThan(2);
     expect(name.join(" ")).toContain(seen.join(" "));
     // The Home tile and the rail's closed section keep their two labels apart the same way (a space text node).
-    expect(blankComments(readFileSync(resolve(__dirname, "../pages/home/HomeDashboard.tsx"), "utf8"))).toMatch(/\{s\.label\}<\/span>\s+(?:\{\s*\}\s+)*\{" "\}\s+(?:\{\s*\}\s+)*<span data-tile-line/);
+    // Home's section chip (design audit A D4, 11-08): the count line starts with its own " · ", so the name and the line
+    // never run together.
+    expect(blankComments(readFileSync(resolve(__dirname, "../pages/home/HomeDashboard.tsx"), "utf8"))).toMatch(/\{s\.label\}\s+\{line && <span data-tile-line[^>]*> · \{line\}<\/span>\}/);
     expect(blankComments(readFileSync(resolve(__dirname, "../components/DesktopSidebarNav.tsx"), "utf8"))).toMatch(/\{soon && " "\}\s+(?:\{\s*\}\s+)*\{soon && <SoonPill/);
   });
 

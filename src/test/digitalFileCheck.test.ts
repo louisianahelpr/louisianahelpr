@@ -72,7 +72,7 @@ describe("digital download file check", () => {
     const z = zip(["a.pdf", "b.pdf"]);
     const dir = findZipDirectory(z, z.length);
     expect(dir?.entries).toBe(2);
-    // The directory says 3 entries but holds 2.
+    // The directory claims one more entry than it holds.
     expect(zipProgramEntry(z.subarray(dir!.cdOffset, dir!.cdOffset + dir!.cdSize), 3)).toBe("unreadable");
     // A directory cut short.
     expect(zipProgramEntry(z.subarray(dir!.cdOffset, dir!.cdOffset + 20), 2)).toBe("unreadable");

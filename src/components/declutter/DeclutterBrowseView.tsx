@@ -440,10 +440,10 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
           // The shared empty state every Browse wears (owner, 2026-10-19: Homes' style, same place).
           <BrowseEmptyState
             icon={Sofa}
-            title={q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_LABEL[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : others.length === 0 ? "Nothing for sale near you yet." : "Nothing for sale this close."}
+            title={q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.tradesOnly && filterCount === 1 ? "No listings open to trades right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_LABEL[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : others.length === 0 ? "Nothing for sale near you yet." : "Nothing for sale this close."}
             // The category line no longer says "tap it again": the category chips left Browse for the filter sheet
             // (owner 2026-10-21); the Clear button below is the way back to everything.
-            body={q ? "Try another word." : filters.freeOnly && filterCount === 1 ? "Check back soon, or give something away yourself." : filters.category && filterCount === 1 ? "Try another category." : filterCount > 0 ? "Try fewer filters." : others.length === 0 ? "New items show up here as people list them." : "Try a bigger distance."}
+            body={q ? "Try another word." : filters.freeOnly && filterCount === 1 ? "Check back soon, or give something away yourself." : filters.tradesOnly && filterCount === 1 ? "Check back soon, or open your own listings to trades." : filters.category && filterCount === 1 ? "Try another category." : filterCount > 0 ? "Try fewer filters." : others.length === 0 ? "New items show up here as people list them." : "Try a bigger distance."}
             action={
               // Owner 2026-10-30 (via the lead): nothing for sale at all is a real empty state for everyone who has
               // Declutter, never "Opens soon": Sell something, and Post what you're looking for (NothingForSaleActions).

@@ -38,6 +38,8 @@ export interface DeclutterFilters {
   dropsOnly: boolean;
   /** The Free section (20261027170717): only items given away free (current_price_cents = 0). */
   freeOnly: boolean;
+  /** Trades audit 11-08 #3: only listings Open to trades (accepts_trades). */
+  tradesOnly: boolean;
 }
 
 export const NO_FILTERS: DeclutterFilters = {
@@ -50,6 +52,7 @@ export const NO_FILTERS: DeclutterFilters = {
   ways: [],
   dropsOnly: false,
   freeOnly: false,
+  tradesOnly: false,
 };
 
 export const SORT_LABEL: Record<DeclutterSort, string> = {
@@ -67,6 +70,7 @@ interface BrowseItem {
   condition_stars: number;
   current_price_cents: number;
   porch_ok: boolean;
+  accepts_trades?: boolean;
   live_at: string | null;
   created_at: string;
 }
@@ -109,7 +113,7 @@ export function browseStateFromParams(p: URLSearchParams): BrowseState {
   return {
     query: p.get("q") ?? "",
     filters: { ...NO_FILTERS, category: p.get("cat") || null, minDollars: positive(p.get("min")), maxDollars: positive(p.get("max")),
-      freeOnly: p.get("free") === "1", porchOnly: p.get("porch") === "1", dropsOnly: p.get("drops") === "1",
+      freeOnly: p.get("free") === "1", tradesOnly: p.get("trades") === "1", porchOnly: p.get("porch") === "1", dropsOnly: p.get("drops") === "1",
       ways: OTHER_WAYS.filter((w) => (p.get("ways") ?? "").split(",").includes(w)),
       sort: sort && SORTS.includes(sort) ? sort : NO_FILTERS.sort,
       conditions: (p.get("cond") ?? "").split(",").map(Number).filter((n) => Number.isInteger(n) && n >= 1 && n <= 5) },
@@ -163,6 +167,7 @@ export function browseStateInParams(current: URLSearchParams, s: BrowseState): U
   put("max", s.filters.maxDollars);
   put("mi", s.maxMiles);
   put("free", s.filters.freeOnly ? "1" : null);
+  put("trades", s.filters.tradesOnly ? "1" : null);
   put("porch", s.filters.porchOnly ? "1" : null);
   put("ways", s.filters.ways.length ? s.filters.ways.join(",") : null);
   put("drops", s.filters.dropsOnly ? "1" : null);
@@ -181,6 +186,7 @@ export function activeFilterCount(f: DeclutterFilters, maxMiles: number | null):
     + (f.porchOnly || f.ways.length > 0 ? 1 : 0)
     + (f.dropsOnly ? 1 : 0)
     + (f.freeOnly ? 1 : 0)
+    + (f.tradesOnly ? 1 : 0)
   );
 }
 
@@ -228,6 +234,7 @@ export function applyBrowseFilters<T extends BrowseItem & { id: string; title: s
     if (f.conditions.length > 0 && !f.conditions.includes(item.condition_stars)) return false;
     if (failsWays(item, f, ways)) return false;
     if (f.freeOnly && item.current_price_cents !== 0) return false;
+    if (f.tradesOnly && item.accepts_trades !== true) return false;
     if (f.dropsOnly && !dropOutlook(item, drops?.get(item.id), now).planned) return false;
     return true;
   });

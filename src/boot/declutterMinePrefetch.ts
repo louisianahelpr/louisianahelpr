@@ -21,7 +21,7 @@ export const DECLUTTER_MINE_PREFETCH_KEY = "__lhDeclutterMinePrefetch";
 
 /** Copy of `${ITEM_COLUMNS}, handovers`, fetchMyItems's select (src/lib/declutter/api.ts; the test holds them equal). */
 export const MY_ITEMS_SELECT =
-  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok, accepts_offers, handovers";
+  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok, accepts_offers, accepts_trades, handovers";
 
 /** The REST URLs supabase-js sends for the three reads (see the test). */
 export function declutterMineUrls(supabaseUrl: string, userId: string): { cart: string; offers: string; items: string } {

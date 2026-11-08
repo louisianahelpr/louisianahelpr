@@ -19,11 +19,13 @@
 // @mutate supabase/functions/_shared/shopTaxCodes.ts |     return laborTaxCode(null, taxKind ?? null); |     return laborTaxCode(null, null);
 // @mutate supabase/functions/_shared/shopTaxCodes.ts |   if (taxKind != null) throw new Error(`a ${kind} line carries no tax answer (${taxKind})`);\n |
 // @mutate supabase/functions/_shared/shopTaxCodes.ts |     const code = shopTaxCode(l.kind, l.tax_kind); |     const code = shopTaxCode(l.kind);
+// @mutate supabase/functions/_shared/shopTaxCodes.ts |   digital_art: DIGITAL_ART_TAX_CODE, |   digital_art: DIGITAL_BOOK_TAX_CODE,
+// @mutate supabase/functions/_shared/salesTax.ts | export const DIGITAL_BOOK_TAX_CODE = "txcd_10302000"; | export const DIGITAL_BOOK_TAX_CODE = "txcd_10302001";
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
-import { SHOP_KIND_TAX_CODE, SHOP_SERVICE_TAX_KINDS, shopTaxCode, splitBuyerFeeByTaxCode } from "../../supabase/functions/_shared/shopTaxCodes";
+import { SHOP_DIGITAL_TAX_CODE, SHOP_KIND_TAX_CODE, SHOP_SERVICE_TAX_KINDS, shopTaxCode, splitBuyerFeeByTaxCode } from "../../supabase/functions/_shared/shopTaxCodes";
 
 const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");
@@ -32,7 +34,8 @@ const MIG_DIR = join(ROOT, "supabase/migrations");
 // txcd_40040000 read 2026-10-18 (GET /v1/tax_codes/txcd_40040000: "Food for Non-Immediate Consumption").
 // Shops H8 (20261105235833): a service takes Jobs' labor codes, each read in Stripe's list for salesTax.ts
 // (txcd_00000000, txcd_20080005, txcd_20090024, txcd_20090002, txcd_20090004; see its comments for the dates).
-const CONFIRMED_IN_STRIPE_LIST = new Set(["txcd_99999999", "txcd_40040000", "txcd_00000000", "txcd_20080005", "txcd_20090024", "txcd_20090002", "txcd_20090004"]);
+// Digital downloads (20261108182917): txcd_10302000 and txcd_10505001 read in Stripe's list 2026-11-08 (docs.stripe.com/tax/tax-codes).
+const CONFIRMED_IN_STRIPE_LIST = new Set(["txcd_99999999", "txcd_40040000", "txcd_00000000", "txcd_20080005", "txcd_20090024", "txcd_20090002", "txcd_20090004", "txcd_10302000", "txcd_10505001"]);
 
 /** The kinds the newest shop_order_lines kind CHECK allows: the CREATE TABLE's, or a later ADD CONSTRAINT's. */
 function orderLineKinds(): string[] {
@@ -56,9 +59,9 @@ describe("Shops tax codes: one table, every kind mapped (owner O1, lead 2026-10-
   });
 
   it("every kind an order line can carry has a code in the table, and the table has no stray kind", () => {
-    // A service's code comes from its tax answer (laborTaxCode), so it is the one kind not in the table.
-    expect([...Object.keys(SHOP_KIND_TAX_CODE), "service"].sort()).toEqual([...kinds].sort());
-    for (const k of kinds) expect(shopTaxCode(k), k).toMatch(/^txcd_\d{8}$/);
+    // A service's and a download's code come from the line's tax answer, so they are the kinds not in the table.
+    expect([...Object.keys(SHOP_KIND_TAX_CODE), "service", "digital"].sort()).toEqual([...kinds].sort());
+    for (const k of kinds) expect(shopTaxCode(k, k === "digital" ? "digital_book" : null), k).toMatch(/^txcd_\d{8}$/);
   });
 
   it("food for home (every cottage home_food subtype, eggs and whole produce) is on the food code; made goods are general goods (tax memo Q2)", () => {
@@ -80,6 +83,19 @@ describe("Shops tax codes: one table, every kind mapped (owner O1, lead 2026-10-
     const sql = blankSqlComments(readFileSync(join(MIG_DIR, "20261105235833_shops_every_category_sells.sql"), "utf8"));
     const m = /shop_order_lines_tax_kind_valid\s+CHECK\s*\(tax_kind IS NULL OR \(kind = 'service' AND tax_kind IN \(([^)]*)\)/.exec(sql);
     expect([...(m?.[1] ?? "").matchAll(/'([a-z_]+)'/g)].map((x) => x[1]).sort()).toEqual([...SHOP_SERVICE_TAX_KINDS].sort());
+  });
+
+  it("a download is a digital product (La. Acts 2024 3rd Ex. Sess. No. 10): books and art, permanent rights", () => {
+    expect(shopTaxCode("digital", "digital_book")).toBe("txcd_10302000");
+    expect(shopTaxCode("digital", "digital_art")).toBe("txcd_10505001");
+    for (const t of Object.keys(SHOP_DIGITAL_TAX_CODE)) expect(CONFIRMED_IN_STRIPE_LIST.has(shopTaxCode("digital", t)), t).toBe(true);
+    // A download with no answer, or one the list does not have, fails closed (never taxed at a guessed rate).
+    expect(() => shopTaxCode("digital", null)).toThrow(/no tax code/);
+    expect(() => shopTaxCode("digital", "item_repair")).toThrow(/no tax code/);
+    // The SQL's digital answers (the newest shop_order_lines_tax_kind_valid) are exactly the code's.
+    const sql = blankSqlComments(readFileSync(join(MIG_DIR, "20261108182917_shops_digital_downloads.sql"), "utf8"));
+    const m = /shop_order_lines_tax_kind_valid[\s\S]*?kind = 'digital' AND tax_kind IN \(([^)]*)\)/.exec(sql);
+    expect([...(m?.[1] ?? "").matchAll(/'([a-z_]+)'/g)].map((x) => x[1]).sort()).toEqual(Object.keys(SHOP_DIGITAL_TAX_CODE).sort());
   });
 
   it("a tax answer the service list does not have, or one on a non-service line, fails closed", () => {

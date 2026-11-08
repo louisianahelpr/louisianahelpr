@@ -68,8 +68,9 @@ export function SectionScreen({
   const barSearch = slotted ? <div ref={setSlotEl} data-header-search-slot="" className="min-w-0" /> : search;
   return (
     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top">
-      {/* Declutter's Vinted header (owner 11-08) sits on 16px gutters; every other section keeps 20px. */}
-      <div className={`container mx-auto ${barSearch !== undefined ? "px-4" : "px-5"} lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden`}>
+      {/* A bar holding its section's search (the Vinted header, owner 11-08) sits on 16px gutters; every other screen
+          keeps 20px, Dashboard's searchless `search={null}` bar included (DashboardRouteSkeleton draws px-5). */}
+      <div className={`container mx-auto ${barSearch ? "px-4" : "px-5"} lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden`}>
         {section && (
           // py/gap = JobsSection's header stack (section-shell-alignment): the bar, 4px, the tabs, 4px, the search.
           <div data-explore-header="" className="explore-header page-measure w-full shrink-0 flex flex-col gap-1">

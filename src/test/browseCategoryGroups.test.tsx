@@ -25,8 +25,10 @@
  * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |       <FilterSheet | <div role="group" aria-label="Job groups"><button type="button">Home</button></div>\n      <FilterSheet
  * @mutate src/components/dashboard/FilterSheet.tsx |         <div data-filter-sheet-body="" className="min-h-0 flex-1 overflow-y-auto overscroll-contain"> |         <div data-filter-sheet-body="" className="min-h-0 flex-1">
  * @mutate src/components/dashboard/FilterSheet.tsx | max-h-[85dvh] flex flex-col overflow-hidden p-0 | max-h-[85dvh] overflow-y-auto p-0
- * @mutate src/components/shops/ShopsHomeView.tsx | globalSearch={tab !== "browse"} | globalSearch={true}
- * @mutate src/components/rentals/RentalsHomeView.tsx | tabs={tabs} globalSearch={false}> | tabs={tabs}>
+ * @mutate src/components/shops/ShopsHomeView.tsx | globalSearch={desktop && tab !== "browse"} | globalSearch={true}
+ * @mutate src/components/shops/ShopsHomeView.tsx | searchSlot={tab === "browse"} | searchSlot={false}
+ * @mutate src/components/rentals/RentalsHomeView.tsx | tabs={tabs} globalSearch={false} {...phone}> | tabs={tabs} {...phone}>
+ * @mutate src/components/rentals/RentalsHomeView.tsx |     searchSlot: tab === "browse", |     searchSlot: false,
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";

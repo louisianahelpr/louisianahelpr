@@ -25,15 +25,15 @@
  * (78 PASS; NEW_MIGRATION=skip and planted defects red; bbeb5d877's migration, which still had the shop's
  * "Picked up", fails 4, and a planted shop RPC finishing via 'auto' fails 4, measured 2026-10-18 ~21:40Z).
  */
-// @mutate supabase/migrations/20261105190034_shops_handover_notes.sql |          OR (o.handover_mode = 'porch' AND h.ready_photo_path IS NOT NULL\n |          OR (o.handover_mode = 'porch'\n
+// @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |          OR (o.handover_mode = 'porch' AND h.ready_photo_path IS NOT NULL\n |          OR (o.handover_mode = 'porch'\n
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | REVOKE ALL ON FUNCTION public.shop_payouts_due(integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shop_payouts_due(integer) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261106212437_shops_custom_deposit_split.sql |   v_due := public.shop_order_shop_cents(o); |   v_due := o.items_cents;
 // @mutate supabase/migrations/20261106212437_shops_custom_deposit_split.sql |   VALUES (o.id, v_due, v_debt, |   VALUES (o.id, o.total_cents, v_debt,
 // @mutate supabase/migrations/20261106212437_shops_custom_deposit_split.sql | o.id::text,\n                                              v_due); | o.id::text,\n                                              o.items_cents);
 // @mutate supabase/migrations/20261106212437_shops_custom_deposit_split.sql |   RETURN v_due - v_debt; |   RETURN o.items_cents - v_debt;
 // @mutate supabase/migrations/20261106212437_shops_custom_deposit_split.sql |               ELSE o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END END; |               ELSE o.items_cents END;
-// @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql |   IF p_how <> 'admin' AND EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN |   IF false THEN
-// @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'auto', 'admin') THEN |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'shop', 'auto', 'admin') THEN
+// @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |   IF p_how <> 'admin' AND EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN |   IF false THEN
+// @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'auto', 'admin') THEN |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'shop', 'auto', 'admin') THEN
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | confirmed_how IN ('buyer', 'auto', 'admin')), | confirmed_how IN ('buyer', 'shop', 'auto', 'admin')),
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | DROP FUNCTION IF EXISTS public.shops_mark_picked_up(uuid); | SELECT 1;
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | REVOKE ALL ON FUNCTION public.shops_confirm_pickup(uuid) FROM PUBLIC, anon; | CREATE OR REPLACE FUNCTION public.shops_mark_picked_up(p uuid) RETURNS jsonb LANGUAGE sql AS $m$ SELECT public.shop_complete_handover(p, 'auto') $m$; REVOKE ALL ON FUNCTION public.shops_confirm_pickup(uuid) FROM PUBLIC, anon;

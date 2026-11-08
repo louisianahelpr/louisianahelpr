@@ -32,7 +32,12 @@
 // - a SERVICE is taxed exactly as Jobs taxes labor (salesTax.ts laborTaxCode; R.S. 47:301.3, the enumerated list):
 //   untaxed unless its type is a repair of a movable item, carpet/furniture cleaning, clothes cleaning or
 //   alterations, which the order line carries as tax_kind (snapshotted from the item's type at the order).
-import { FOOD_FOR_HOME_TAX_CODE, GENERAL_TANGIBLE_GOODS_TAX_CODE, laborTaxCode } from "./salesTax.ts";
+// Digital downloads (owner 11-08; migration 20261108182917): like a service, the code comes from the line's tax answer,
+// which the item's type carries ('digital_book' or 'digital_art', snapshotted onto the order line). A digital line
+// with no answer fails closed. Codes and the Louisiana law are cited in salesTax.ts.
+import {
+  DIGITAL_ART_TAX_CODE, DIGITAL_BOOK_TAX_CODE, FOOD_FOR_HOME_TAX_CODE, GENERAL_TANGIBLE_GOODS_TAX_CODE, laborTaxCode,
+} from "./salesTax.ts";
 
 export const SHOP_KIND_TAX_CODE: Readonly<Record<"made" | "home_food" | "farm" | "rental", string>> = {
   made: GENERAL_TANGIBLE_GOODS_TAX_CODE,
@@ -44,11 +49,22 @@ export const SHOP_KIND_TAX_CODE: Readonly<Record<"made" | "home_food" | "farm" |
 /** The four service answers an order line may carry (shop_order_lines.tax_kind, the jobs.tax_kind words). */
 export const SHOP_SERVICE_TAX_KINDS: ReadonlySet<string> = new Set(["item_repair", "fabric_cleaning", "clothes_cleaning", "clothing_alterations"]);
 
+/** The two digital answers an order line may carry, and their codes. */
+export const SHOP_DIGITAL_TAX_CODE: Readonly<Record<string, string>> = {
+  digital_book: DIGITAL_BOOK_TAX_CODE,
+  digital_art: DIGITAL_ART_TAX_CODE,
+};
+
 /**
  * The code for a line's kind (and, for a service, its tax answer). An unknown kind, or a tax answer that is not one of
  * the four, fails closed (throws) so nothing is charged at a guessed rate.
  */
 export function shopTaxCode(kind: string, taxKind?: string | null): string {
+  if (kind === "digital") {
+    const code = taxKind == null ? undefined : SHOP_DIGITAL_TAX_CODE[taxKind];
+    if (!code) throw new Error(`no tax code for shop digital answer ${taxKind ?? "(none)"}`);
+    return code;
+  }
   if (kind === "service") {
     if (taxKind != null && !SHOP_SERVICE_TAX_KINDS.has(taxKind)) throw new Error(`no tax code for shop service answer ${taxKind}`);
     return laborTaxCode(null, taxKind ?? null);

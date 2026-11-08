@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-08T19:54Z",
+  "measured_at": "2026-11-08T22:19Z",
   "issues": {
     "readable": true,
     "open": [
@@ -116,14 +116,14 @@
         "number": 4245,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42513734683",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42526155521",
         "runTruncated": false
       },
       {
-        "number": 4247,
-        "title": "nightly-red: main: Supabase Edge Functions Deploy",
+        "number": 4253,
+        "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42513734796",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42523978457",
         "runTruncated": false
       }
     ]
@@ -463,7 +463,7 @@
     "issue #4222": "Q1816",
     "issue #4242": "Q2775",
     "issue #4245": "Q1816",
-    "issue #4247": "Q1816",
+    "issue #4253": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",

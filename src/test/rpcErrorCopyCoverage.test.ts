@@ -181,6 +181,9 @@ const UNREACHABLE: Allowlist = {
   // Board 191 (shell 1j): the admin funnel. The admin console is behind
   // AdminRoute, and the client only ever sends jobs/declutter and 7/30/90; any
   // error shows the card's own "Couldn't load the funnel" with Try again.
+  declutter_funnel_counts: {
+    not_allowed: { reason: "unreachable from the client: DeclutterFunnelCard mounts only inside the admin console's settings (FeatureSwitchesCard, AdminRoute); any error shows the card's own failure state" },
+  },
   admin_section_funnel: {
     not_authorized: { reason: "unreachable from the client: SectionFunnel mounts only inside the admin console (AdminRoute); any error shows the card's own failure state" },
     invalid_window: { reason: "unreachable from the client: SectionFunnel sends only 7, 30 or 90 days" },

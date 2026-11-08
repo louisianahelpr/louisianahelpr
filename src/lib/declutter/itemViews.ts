@@ -13,22 +13,9 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchMyItemViewCounts, sendItemViewRpc } from "@/lib/declutter/api";
 import { whenPageSettled } from "@/lib/routePrefetch";
 import { resetSentItemViews, sent } from "@/lib/declutter/itemViewsSent";
+import { viewerDeviceId } from "@/lib/declutter/viewerDevice";
+import { trackFunnel } from "@/lib/declutter/funnel";
 
-const DEVICE_KEY = "lh.declutter.viewer";
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** The guest's random device id, made once and kept; null where storage is blocked (the view is then not counted). */
-function viewerDeviceId(): string | null {
-  try {
-    const kept = window.localStorage.getItem(DEVICE_KEY);
-    if (kept && UUID.test(kept)) return kept;
-    const made = crypto.randomUUID();
-    window.localStorage.setItem(DEVICE_KEY, made);
-    return made;
-  } catch {
-    return null; // private mode or blocked storage: a guest view simply goes uncounted
-  }
-}
 
 /** Sends the view itself. Never throws: a view that fails to record is not something the viewer should ever see. */
 async function sendItemView(itemId: string, signedIn: boolean): Promise<void> {
@@ -49,6 +36,7 @@ export function recordItemView(itemId: string, signedIn: boolean): () => void {
     if (sent.has(key)) return;
     sent.add(key);
     void sendItemView(itemId, signedIn);
+    trackFunnel("item_view", { itemId }); // H3 (audit 11-08): the funnel's first step, same once-per-session rule
   });
 }
 

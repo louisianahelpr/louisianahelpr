@@ -3,6 +3,7 @@ import type { WebhookContext } from "../context.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { rpcNotDeployed } from "../../_shared/rpcNotDeployed.ts";
+import { recordDeclutterFunnel } from "./_declutterFunnel.ts";
 
 /**
  * The payment states that say "the poster's money is here". A failure event
@@ -546,6 +547,13 @@ export async function handlePaymentIntentPaymentFailed(
   // a card decline never lands there. Use metadata.job_id (stamped unconditionally
   // by create-payment, create-boost-payment, etc.) to find the job instead.
   // Tips and boosts are not the job's own payment — do not mark the job failed.
+  // H3 (Declutter buy audit 11-08): a failed try on a Declutter order page is recorded (the order's decline columns
+  // and a funnel row), then acked: the order is not a job and the Checkout page lets the buyer try again.
+  if (pi.metadata?.kind === "declutter_order") {
+    const err = (pi as { last_payment_error?: { code?: string | null; decline_code?: string | null } | null }).last_payment_error;
+    await recordDeclutterFunnel(ctx, "payment_failed", pi.metadata?.order_id, err?.code ?? null, err?.decline_code ?? null);
+    return;
+  }
   if (pi.metadata?.type === "tip") return;
   if (pi.metadata?.kind === "job_boost") return;
   // Q2399: a hold or charge card-hold-sweep / create-payment placed OFF-session

@@ -18,6 +18,7 @@ import { AI_DRAFT_PHOTOS } from "@/lib/declutter/photoRules";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { offerPushAfterAction } from "@/hooks/useNotificationPermissionPrompt";
+import { trackFunnel } from "@/lib/declutter/funnel";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { freeClaimFeeRefusal, openFreeClaimFirstTime, promptAccountSetupFee, setupFeeRefusal } from "@/lib/declutter/setupFee";
 import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles";
@@ -1429,6 +1430,7 @@ export async function checkoutFree(sellerId: string, handover: "pickup_home" | "
 }
 
 export async function buyNow(itemId: string, seenPriceCents: number): Promise<string> {
+  trackFunnel("buy_now_tap", { itemId }); // H3 (audit 11-08)
   const held = rpcData(
     await supabase.rpc("declutter_buy_now", { p_item_id: itemId, p_expected_price_cents: seenPriceCents }),
     (e) => rpcErrorMessage("declutter_buy_now", e),
@@ -1520,6 +1522,8 @@ export async function startCheckoutPayment(sellerId: string, handover: Handover,
     // gift that covers it all answers paid:true with no page.
     ...(giftCardId ? { gift_card_id: giftCardId } : {}),
   });
+  // H3 (audit 11-08): Stripe's page is about to open for this order.
+  if (typeof data.url === "string") trackFunnel("checkout_opened", { orderId: typeof data.order_id === "string" ? data.order_id : null });
   return { url: typeof data.url === "string" ? data.url : null, paid: data.paid === true,
     giftCents: typeof data.gift_cents === "number" && Number.isInteger(data.gift_cents) ? data.gift_cents : 0 };
 }

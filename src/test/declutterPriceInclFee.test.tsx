@@ -10,11 +10,11 @@
  * right before it with the base price small and grey after), unless the file is in NOT_A_BUYER_PRICE below with why (seller's own screens, share text, a
  * screen-reader label). That list is exact both ways.
  *
- * @mutate src/components/declutter/PriceInclFee.tsx | {exactDollars(buyNowTotalCents(priceCents))} {INCL_FEE_WORDS} | {exactDollars(priceCents)} {INCL_FEE_WORDS}
+ * @mutate src/components/declutter/PriceInclFee.tsx | {exactDollars(buyNowTotalCents(priceCents))}{" "} | {exactDollars(priceCents)}{" "}
  * @mutate src/components/declutter/PriceInclFee.tsx |   if (!(priceCents > 0)) return null; |   if (priceCents < 0) return null;
  * @mutate src/components/declutter/DeclutterItemCard.tsx | <PriceInclFee priceCents={item.current_price_cents} className="text-ds-16 | <PriceInclFee priceCents={item.price_cents} className="text-ds-16
  * @mutate src/components/declutter/DeclutterItemView.tsx |             <PriceInclFee priceCents={it.current_price_cents} | {null}            <PriceInclFee priceCents={0}
- * @mutate src/components/declutter/MovingSaleBanner.tsx |                 <PriceInclFee priceCents={it.current_price_cents} /> | {null}
+ * @mutate src/components/declutter/MovingSaleBanner.tsx | <PriceInclFee priceCents={it.current_price_cents} className="block text-ds-15 font-bold tabular-nums text-foreground" /> | {null}
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";

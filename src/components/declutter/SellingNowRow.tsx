@@ -68,8 +68,9 @@ export function SellingNowRow({ sellerId }: { sellerId: string }) {
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-ds-14 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(it.current_price_cents)}</p>
-                <PriceInclFee priceCents={it.current_price_cents} />
+                {/* Owner pick 2 (11-08): the incl.-fee price is the bold one; the base price small and grey. */}
+                <PriceInclFee priceCents={it.current_price_cents} className="block text-ds-14 font-bold tabular-nums text-foreground" />
+                <p className="text-ds-12 font-medium tabular-nums text-muted-foreground">{itemPriceLabel(it.current_price_cents)}</p>
                 <p className="text-ds-13 truncate" title={it.title}>{it.title}</p>
               </div>
             </Link>

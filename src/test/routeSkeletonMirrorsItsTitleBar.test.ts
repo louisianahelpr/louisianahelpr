@@ -82,17 +82,17 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(bar).toContain(' : tr("nav.profile"), profile?.full_name)}');
   });
 
-  it("then Home's body: greeting, the Next up card, Coming up, the 2x2 section tiles (board 7)", () => {
+  it("then Home's body: greeting, the Next up card, Coming up, the section chips (board 7; design audit A D4)", () => {
     // Home: the Next up card (2026-10-20, it replaced the three stat boxes); the skeleton draws the same card.
     // The card measures and holds its own height while to-dos load (ref + a reserved minHeight style), so match
     // the tag's shell classes, not the whole tag.
     expect(home).toMatch(/<section (?:ref=\{nextUpRef\} )?data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1\.5"[ >]/);
     expect(skeleton).toContain('<div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton-part="next-up">');
     expect(skeleton).toMatch(/data-skeleton-part="next-up">[\s\S]*?<Skeleton className="h-11 w-36 mt-2 rounded-full" \/>/);
-    // 2x2 tiles, same grid.
-    expect(home).toContain('<div className="grid grid-cols-2 gap-3">');
-    expect(skeleton).toContain('<div className="grid grid-cols-2 gap-3" data-skeleton-part="tiles">');
-    expect(skeleton).toMatch(/\[0, 1, 2, 3\]\.map\(\(i\) => \(\s*<div key=\{i\} className="liquid-glass p-card/);
+    // The section chips (owner 11-08): the same wrapping row, 44px pills (Button size sm is h-11).
+    expect(home).toContain('<div data-section-chips="" className="flex flex-wrap gap-2">');
+    expect(skeleton).toContain('<div className="flex flex-wrap gap-2" data-skeleton-part="tiles">');
+    expect(skeleton).toMatch(/<Skeleton key=\{i\} className="h-11 w-32 rounded-full" \/>/);
     // Board 7: Coming up sits ABOVE the sections in both.
     expect(home.lastIndexOf('title="Coming up"')).toBeGreaterThan(0);
     expect(home.lastIndexOf('title="Coming up"')).toBeLessThan(home.indexOf('aria-label="Your sections"'));

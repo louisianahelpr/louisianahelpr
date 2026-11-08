@@ -94,7 +94,9 @@ describe("the database refuses a commitment from a member behind on the Terms", 
     expect(def, "function missing").toBeTruthy();
     const body = bodyOf(def!.stmt);
     expect(body).toMatch(/v_uid\s+uuid\s*:=\s*auth\.uid\(\)/);
-    expect(body).toMatch(/IF\s+v_uid\s+IS\s+NULL\s+THEN\s+RETURN\s+NEW;/);
+    // Only a trusted server write skips the check; a bare NULL uid (anon) does not (null-uid-trust, 20260915101102).
+    expect(blankSqlComments(body)).toMatch(/IF\s+v_uid\s+IS\s+NULL\s+AND\s+public\.is_server_context\(\)\s+THEN\s+RETURN\s+NEW;/);
+    expect(blankSqlComments(body)).not.toMatch(/IF\s+v_uid\s+IS\s+NULL\s+THEN/);
     expect(body).toMatch(/IF\s+NOT\s+public\.terms_accepted_is_current\(v_uid\)\s+THEN\s+RAISE\s+EXCEPTION\s+'terms_not_accepted'\s+USING\s+ERRCODE\s*=\s*'42501'/);
     expect(def!.stmt).toMatch(/SECURITY\s+DEFINER/i);
     expect(def!.stmt).toMatch(/SET\s+search_path\s+TO\s+public,\s*pg_temp/i);
@@ -117,7 +119,7 @@ describe("the database refuses a commitment from a member behind on the Terms", 
       const name = fn.replace(/\(.*$/, "");
       const defining = files.filter((f) => new RegExp(`FUNCTION\\s+public\\.${name}\\b`).test(sqlOf(f)));
       const sql = blankSqlComments(sqlOf(defining[defining.length - 1]));
-      const esc = fn.replace(/[()]/g, "\\$&");
+      const esc = fn.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // every regex special (CodeQL #564)
       expect(sql, fn).toMatch(new RegExp(`REVOKE\\s+ALL\\s+ON\\s+FUNCTION\\s+public\\.${esc}\\s+FROM\\s+PUBLIC,\\s*anon,\\s*authenticated`, "i"));
     }
   });

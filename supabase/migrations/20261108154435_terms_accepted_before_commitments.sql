@@ -98,7 +98,9 @@ AS $fn$
 DECLARE
   v_uid uuid := auth.uid();
 BEGIN
-  IF v_uid IS NULL THEN
+  -- A trusted server write (cron, webhooks, service-role edge writes) has no member to check. A bare NULL uid is
+  -- not one: anon has a NULL uid too (20260915101102), and falls through to the check, which is false for NULL.
+  IF v_uid IS NULL AND public.is_server_context() THEN
     RETURN NEW;
   END IF;
   IF NOT public.terms_accepted_is_current(v_uid) THEN

@@ -60,6 +60,15 @@ GRANT USAGE ON SCHEMA auth, public TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 GRANT EXECUTE ON FUNCTION auth.uid() TO anon, authenticated, service_role;
+-- Supabase's auth.role() (the role claim) and the newest is_server_context() (20260915101102), verbatim: the trigger
+-- skips only a trusted server write, never a bare NULL uid (anon has one too).
+CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.role', true), '')::text $$;
+GRANT EXECUTE ON FUNCTION auth.role() TO anon, authenticated, service_role;
+CREATE FUNCTION public.is_server_context() RETURNS boolean LANGUAGE sql STABLE SET search_path TO '' AS $$
+  SELECT auth.uid() IS NULL
+     AND coalesce(auth.role(), '') NOT IN ('anon', 'authenticated')
+     AND coalesce(current_setting('role', true), 'none') NOT IN ('anon', 'authenticated') $$;
+GRANT EXECUTE ON FUNCTION public.is_server_context() TO anon, authenticated, service_role;
 CREATE TYPE public.application_status AS ENUM ('pending', 'accepted', 'rejected');
 CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, terms_version_accepted text DEFAULT '', terms_accepted_at timestamptz);
 GRANT SELECT, UPDATE ON public.profiles TO authenticated;
@@ -67,7 +76,7 @@ GRANT SELECT, UPDATE ON public.profiles TO authenticated;
 for (const [t, col] of Object.entries(TABLES)) {
   const extra = t === "applications" ? ", status public.application_status NOT NULL DEFAULT 'pending'" : "";
   await db.exec(`CREATE TABLE public.${t} (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), ${col} uuid${extra});
-    GRANT SELECT, INSERT, UPDATE ON public.${t} TO authenticated, service_role;`);
+    GRANT SELECT, INSERT, UPDATE ON public.${t} TO anon, authenticated, service_role;`);
 }
 // The hire, as accept_application writes it: a SECURITY DEFINER RPC run by the poster.
 await db.exec(`
@@ -131,6 +140,11 @@ check(!noteEdit.error, `T3 an UPDATE that does not change status to accepted is 
 for (const t of Object.keys(TABLES)) {
   const r = await as("service_role", null, `INSERT INTO public.${t} (${TABLES[t]}) VALUES ($1) RETURNING id`, [STALE]);
   check(!r.error, `T4 no caller (service role) INSERT ${t} not refused${r.error ? ` (${r.error})` : ""}`);
+}
+// T4b: a bare NULL uid is not a server write: anon (no uid) is refused, as a member who never accepted would be.
+for (const t of Object.keys(TABLES)) {
+  const r = await as("anon", null, `INSERT INTO public.${t} (${TABLES[t]}) VALUES ($1) RETURNING id`, [STALE]);
+  check(/terms_not_accepted/.test(r.error ?? ""), `T4b anon (NULL uid, not a server) INSERT ${t} refused terms_not_accepted (got ${r.error ?? "allowed"})`);
 }
 // T6
 const read = await as("authenticated", STALE, "SELECT count(*)::int n FROM public.jobs");

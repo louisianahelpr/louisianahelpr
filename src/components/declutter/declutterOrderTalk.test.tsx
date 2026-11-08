@@ -11,7 +11,7 @@
  *   5. Manager mode: a message the seller's manager wrote says "Dana (helping Kaci)", to the buyer and to the seller.
  *
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |   const orderId = params.get("order_talk"); |   const orderId = params.get("talk");
- * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {side === "buyer" ? "Message the seller" : "Message the buyer"} | {"Message the seller"}
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx | : side === "buyer" ? "Message the seller" : "Message the buyer"} | : "Message the seller"}
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | (m.mine ? "You" : `The ${other}`) | (m.mine ? `The ${other}` : "You")
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {labels.data?.get(m.id) ?? (m.mine ? "You" | {(m.mine ? "You"
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |   const labels = useManagerLabels("order_talk", (talk.data?.messages ?? []).map((m) => m.id)); |   const labels = useManagerLabels("order_talk", []);

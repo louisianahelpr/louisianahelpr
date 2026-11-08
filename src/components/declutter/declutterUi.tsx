@@ -37,7 +37,9 @@ const STATUS_LABEL: Record<DeclutterStatus, string> = {
  * free item read "Sold" before anyone had picked it up): declutter_claim_free reserves it, declutter_checkout_free
  * moves it to 'sold' with nothing paid, and only the handover makes it 'completed'.
  */
-export function sellerStatusLabel(item: { status: DeclutterStatus; current_price_cents: number }): string {
+export function sellerStatusLabel(item: { status: DeclutterStatus; current_price_cents: number }, tradedFor?: string | null): string {
+  // Lead 11-08: a listing that went in a trade says what it was traded for, never "Someone is buying it".
+  if (tradedFor && (item.status === "reserved" || item.status === "sold" || item.status === "completed")) return `Traded for ${tradedFor}`;
   if (item.current_price_cents === 0 && item.status === "reserved") return "Claimed";
   if (item.current_price_cents === 0 && item.status === "sold") return "Claimed · waiting for pickup";
   return STATUS_LABEL[item.status];

@@ -131,3 +131,19 @@ export function tradeStatusWords(t: Pick<MyTrade, "status" | "my_side">): string
     default: return assertNever(t.status);
   }
 }
+
+/**
+ * Lead 11-08 (trade wording on the order card and the listing row): for each accepted or finished trade, the viewer's
+ * OWN listing's id -> the title of the item they get for it ("Traded for <item>", "Your trade: <item>"). The seller's
+ * own listing is the trade's item and they get the offered one; the buyer's own listing is the offered one.
+ */
+export function tradedForMyItems(trades: readonly Pick<MyTrade, "status" | "my_side" | "item" | "offered">[]): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const t of trades) {
+    if (t.status !== "accepted" && t.status !== "completed") continue;
+    const mine = t.my_side === "seller" ? t.item : t.offered;
+    const theirs = t.my_side === "seller" ? t.offered : t.item;
+    if (mine?.id && theirs?.title) out.set(mine.id, theirs.title);
+  }
+  return out;
+}

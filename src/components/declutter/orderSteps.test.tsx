@@ -6,7 +6,7 @@
  * never goes backwards as the order moves on, exactly one chip from ORDER_BUCKETS, and a free order never says "Paid".
  *
  * @mutate src/components/declutter/OrderSteps.tsx |       return f.pickedUp ? 3 : f.out ? 2 : f.booked ? 1 : 0; |       return f.pickedUp ? 3 : f.booked ? 2 : f.out ? 1 : 0;
- * @mutate src/components/declutter/OrderSteps.tsx |   return f.free ? ["Claimed", ...s.slice(1)] : s; |   return s;
+ * @mutate src/components/declutter/OrderSteps.tsx | : f.free ? ["Claimed", ...s.slice(1)] : s; | : s;
  * @mutate src/components/declutter/OrderSteps.tsx |       return buyer ? !f.booked \|\| (!!f.out && !f.pickedUp) : f.booked && !f.out; |       return buyer ? !f.booked : f.booked && !f.out;
  * @mutate src/components/declutter/OrderSteps.tsx |   if (f.cancelled) return "cancelled"; |   if (false) return "cancelled";
  * @mutate src/components/declutter/OrderSteps.tsx |   return f.booked && !f.pickedUp && !f.delivered ? "upcoming" : "waiting"; |   return f.booked ? "upcoming" : "waiting";

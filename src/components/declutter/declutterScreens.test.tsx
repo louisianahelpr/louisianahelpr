@@ -16,7 +16,7 @@
  * Owner 2026-10-19: back from Stripe's card page, the member returns to the item and carries on.
  * @mutate src/pages/declutter/DeclutterPage.tsx | afterCardReturnState(cardReturn === "saved", next) | afterCardReturnState(false, next)
  * @mutate src/pages/declutter/DeclutterPage.tsx |     navigate(afterCardPath(next.itemId), { replace: true, state: afterCardReturnState(cardReturn === "saved", next) }); |     void afterCardReturnState;
- * @mutate src/components/declutter/DeclutterItemView.tsx | : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} footer={deliveredLine} onAskSeller={preview ? null : askSeller} />)} | : null)}
+ * @mutate src/components/declutter/DeclutterItemView.tsx | : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} footer={deliveredLine} />)} | : null)}
  */
 import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -365,15 +365,15 @@ describe("Declutter screens", () => {
     expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("Exact address after you pay");
     expect(screen.getByRole("button", { name: "Save this item" })).toBeInTheDocument();
     // Owner 2026-10-19: the two actions show with no saved card (Marketplace / OfferUp / Mercari).
-    const buyNow = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
+    const buyNow = await screen.findByRole("button", { name: "Buy now" });
     // AUD31-15: the Questions hint has its own "Make an offer"; this is the panel's.
-    expect(within(document.querySelector<HTMLElement>("[aria-label='Buy or make an offer']")!).getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
+    expect(within(document.querySelector<HTMLElement>("[aria-label='Buy or make an offer']")!).getByRole("button", { name: "Make offer" })).toBeInTheDocument();
     // LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31): no reassurance lines under the buttons.
     expect(screen.queryByText("You're only charged when you buy.")).toBeNull();
     await waitFor(() => expect(buyNow).toBeEnabled());
     // Owner 11-07 (ONE Stripe page): only an offer asks for a card first; Buy now's pay page saves it.
     const panelEl = document.querySelector<HTMLElement>("[aria-label='Buy or make an offer']")!;
-    fireEvent.click(within(panelEl).getByRole("button", { name: "Make an offer" }));
+    fireEvent.click(within(panelEl).getByRole("button", { name: "Make offer" }));
     fireEvent.change(await screen.findByLabelText("Your offer"), { target: { value: "30" } });
     await waitFor(() => expect(screen.getByRole("button", { name: "Send offer" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
@@ -490,7 +490,7 @@ describe("Declutter screens", () => {
       state.item = { ...ITEM, id: ID, seller_id: "u2", status: "live" };
       rememberAfterCard(ID, "offer");
       returnTo("/declutter?card=cancelled");
-      expect(await screen.findByRole("button", { name: "Buy now · $42.70 total" })).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: "Buy now" })).toBeInTheDocument();
       expect(screen.queryByLabelText("Your offer")).toBeNull();
       expect(screen.queryByText("Checking for your card…")).toBeNull();
     });

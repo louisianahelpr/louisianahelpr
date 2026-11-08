@@ -17,11 +17,20 @@
  * and the search row must be the one shared row (magnifier + "Search ..." /
  * "City or ZIP" field + filter button inside). Read-only: page loads only.
  *
+ * Then the Vinted header (owner 11-08): on a phone every section's bar IS its
+ * search (Jobs and Declutter: SectionSearchBar; Shops and Homes: their own
+ * SectionSearchRow drawn into the bar's slot), with the bell and the photo,
+ * no visible title (a hidden h1) and no tabs row (the lists live in "My …").
+ * So this reads the bar, the search field inside it (the same box in all
+ * four), and the first block under the bar. Declutter's category chips sit
+ * between its bar and its grid by design (owner 11-08), so its first block's
+ * top is its own; its left edge still matches.
+ *
  * Proven red 2026-10-19 on the mutations below (the old Jobs inset; a section
  * that adds an extra row under its toggle; the old Jobs gap under the bar).
  *
  * @mutate src/pages/jobs/JobsSection.tsx | className="explore-header flex flex-col gap-1"> | className="explore-header flex flex-col gap-1 px-1">
- * @mutate src/pages/jobs/JobsSection.tsx | className="explore-header flex flex-col gap-1"> | className="explore-header flex flex-col gap-3">
+ * @mutate src/components/sections/SectionScreen.tsx | ${barSearch ? "px-4" : "px-5"} | ${barSearch ? "px-5" : "px-5"}
  * @mutate src/components/shops/ShopsHomeView.tsx |       <SectionSearchRow\n        value={query} |       <div className="h-10" />\n      <SectionSearchRow\n        value={query}
  */
 import { test, expect, type Browser } from "../prodTest";
@@ -35,7 +44,7 @@ if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 
 const SECTIONS = [
   { name: "jobs", url: "/jobs", h1: "Jobs", search: /^Search jobs$/ },
-  { name: "declutter", url: "/declutter", h1: "Declutter", search: /^Search items$/ },
+  { name: "declutter", url: "/declutter", h1: "Declutter", search: /^Search Declutter$/ },
   { name: "shops", url: "/shops", h1: "Shops", search: /^Search shops$/ },
   { name: "homes", url: "/rentals", h1: "Homes", search: /^City or ZIP$/ },
 ] as const;
@@ -43,7 +52,9 @@ const WIDTHS = [320, 375] as const;
 const TOL = 1;
 
 type Box = { x: number; y: number; w: number; h: number };
-type Shell = { bar: Box | null; title: Box | null; tabs: Box | null; search: Box | null; searchField: string | null; searchFilter: boolean; first: Box | null; firstWhat: string | null };
+type Shell = { bar: Box | null; hiddenTitle: boolean; tabs: Box | null; search: Box | null; searchField: string | null; searchFilter: boolean; first: Box | null; firstWhat: string | null };
+/** The bar's search: Jobs' and Declutter's SectionSearchBar, or Shops' and Homes' SectionSearchRow in the bar's slot. */
+const BAR_SEARCH = ".app-top-bar [data-section-search-bar], .app-top-bar [data-section-search][data-in-header]";
 
 let poster: Session;
 test.beforeAll(async ({ request }) => {
@@ -81,8 +92,9 @@ function readShell(): Shell {
     return { x: r.left, y: r.top, w: r.width, h: r.height };
   };
   const bar = document.querySelector(".app-top-bar");
-  const search = document.querySelector("[data-section-search]");
-  const sb = search?.getBoundingClientRect();
+  const search = document.querySelector(".app-top-bar [data-section-search-bar], .app-top-bar [data-section-search][data-in-header]");
+  // The first block is the first painted one under the BAR (the search is inside it).
+  const sb = bar?.getBoundingClientRect();
   let first: Element | null = null;
   let firstTop = Infinity;
   if (sb) {
@@ -106,7 +118,7 @@ function readShell(): Shell {
   }
   return {
     bar: box(bar),
-    title: box(bar?.querySelector("h1")),
+    hiddenTitle: !!bar?.querySelector("h1.sr-only"),
     tabs: box(document.querySelector('[role="tablist"]')),
     search: box(search),
     searchField: search?.querySelector('input[type="search"]')?.getAttribute("aria-label") ?? null,
@@ -129,7 +141,7 @@ for (const vw of WIDTHS) {
       const { ctx, page } = await authedPage(browser, vw, baseURL);
       await page.goto(s.url, { waitUntil: "domcontentloaded" });
       await expect(page.locator(".app-top-bar h1"), `${s.name}@${vw}: the section's own screen never rendered`).toHaveText(s.h1, { timeout: 45_000 });
-      await expect(page.locator("[data-section-search]"), `${s.name}@${vw}: no shared search row`).toBeVisible({ timeout: 45_000 });
+      await expect(page.locator(BAR_SEARCH), `${s.name}@${vw}: no search in the bar`).toBeVisible({ timeout: 45_000 });
       // Let the list (or its empty state) settle under the row.
       await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => undefined);
       await page.waitForTimeout(1_200);
@@ -141,27 +153,29 @@ for (const vw of WIDTHS) {
     const r = (b: Box | null) => (b ? `${Math.round(b.x * 10) / 10},${Math.round(b.y * 10) / 10} ${Math.round(b.w)}x${Math.round(b.h)}` : "-");
     for (const s of SECTIONS) {
       const m = got[s.name];
-      console.log(`[section-shell] ${s.name}@${vw} bar=${r(m.bar)} title=${r(m.title)} tabs=${r(m.tabs)} search=${r(m.search)} first=${r(m.first)} (${m.firstWhat})`);
+      console.log(`[section-shell] ${s.name}@${vw} bar=${r(m.bar)} tabs=${r(m.tabs)} search=${r(m.search)} first=${r(m.first)} (${m.firstWhat})`);
     }
 
     for (const s of SECTIONS) {
       const m = got[s.name];
-      for (const k of ["bar", "title", "tabs", "search", "first"] as const) {
+      for (const k of ["bar", "search", "first"] as const) {
         expect(m[k], `${s.name}@${vw}: no ${k} (${m.firstWhat ?? "-"})`).not.toBeNull();
       }
+      expect(m.tabs, `${s.name}@${vw}: a phone header draws no tabs row (owner 11-08)`).toBeNull();
+      expect(m.hiddenTitle, `${s.name}@${vw}: the bar names the page with a hidden h1`).toBe(true);
       expect(m.searchField ?? "", `${s.name}@${vw}: the search field`).toMatch(s.search);
       expect(m.searchFilter, `${s.name}@${vw}: no filter button inside the search row`).toBe(true);
     }
     const ref = got.jobs;
     for (const s of SECTIONS.slice(1)) {
       const m = got[s.name];
-      for (const k of ["bar", "title", "tabs", "search", "first"] as const) {
+      for (const k of ["bar", "search", "first"] as const) {
         const a = ref[k]!, b = m[k]!;
         expect(Math.abs(b.x - a.x), `${s.name}@${vw}: ${k} left ${b.x} vs Jobs ${a.x}`).toBeLessThanOrEqual(TOL);
-        // Widths that are the section's own: the title's word, and the first block (Declutter's
-        // first card is half a 2-column grid). Their left edge and top still must match.
-        if (k !== "first" && k !== "title") expect(Math.abs(b.x + b.w - (a.x + a.w)), `${s.name}@${vw}: ${k} right ${b.x + b.w} vs Jobs ${a.x + a.w}`).toBeLessThanOrEqual(TOL);
-        expect(Math.abs(b.y - a.y), `${s.name}@${vw}: ${k} top ${b.y} vs Jobs ${a.y} (${m.firstWhat})`).toBeLessThanOrEqual(TOL);
+        // The first block's width is the section's own (Declutter's first card is half a 2-column grid); its left
+        // edge still must match. Declutter's chips sit between its bar and its grid (owner 11-08): its top is its own.
+        if (k !== "first") expect(Math.abs(b.x + b.w - (a.x + a.w)), `${s.name}@${vw}: ${k} right ${b.x + b.w} vs Jobs ${a.x + a.w}`).toBeLessThanOrEqual(TOL);
+        if (!(k === "first" && s.name === "declutter")) expect(Math.abs(b.y - a.y), `${s.name}@${vw}: ${k} top ${b.y} vs Jobs ${a.y} (${m.firstWhat})`).toBeLessThanOrEqual(TOL);
         if (k !== "first") expect(Math.abs(b.h - a.h), `${s.name}@${vw}: ${k} height ${b.h} vs Jobs ${a.h}`).toBeLessThanOrEqual(TOL);
       }
     }

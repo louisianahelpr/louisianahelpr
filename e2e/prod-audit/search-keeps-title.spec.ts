@@ -36,7 +36,8 @@ test.beforeAll(async ({ request }) => {
 /** Every OPENING search (a field that appears on a press) whose screen carries a page title. */
 const SURFACES: { name: string; file: string; url: string; trigger: string; field: string; minWidth?: number; maxWidth?: number }[] = [
   // jobs (/jobs, My Jobs), posts (/posts, My Posts) and browse-phone (/home) left 2026-10-19 (Q2205) with the old
-  // screens. Jobs > Browse's phone search opens in place in the tabs row since owner 2026-10-28 (jobs-browse-phone).
+  // screens. Jobs > Browse's and Posted's phone search is the top bar's always-open field since the Vinted header
+  // (owner 11-08; SectionSearchBar, nothing opens), so jobs-browse-phone left and jobs-posted-search runs at 900+.
   // The inbox opens a header search only on the one-pane web desktop, 900-1139 (Q2231 / board 38: the phone and the
   // two-pane list at 1140+ wear the permanent MessagesSearchRow, nothing opens). So it runs at BAND_VW alone.
   { name: "messages", file: "src/components/messages/ConversationList.tsx", url: "/messages", trigger: "[data-search-trigger]", field: 'input[aria-label="Search conversations"]', minWidth: 900, maxWidth: 1139 },
@@ -47,19 +48,13 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: 'input[aria-label="Search saved Helprs"]',
   },
   { name: "legal", file: "src/pages/info/Legal.tsx", url: "/legal", trigger: 'button[aria-label="Search all policies"]', field: 'input[aria-label="Search all policies"]' },
-  {
-    name: "jobs-browse-phone", file: "src/components/sections/InlineListSearch.tsx",
-    url: "/jobs",
-    trigger: '[data-browse-phone-controls] button[aria-label="Search jobs"]',
-    field: '[data-browse-phone-controls] input[aria-label="Search jobs"]',
-    maxWidth: 899,
-  },
-  // Jobs > Posted / Working: the search opens in place in the status chip row (owner 2026-10-27, InlineListSearch).
+  // Jobs > Posted / Working on the desktop website: the icon beside the gear opens in place (InlineListSearch).
   {
     name: "jobs-posted-search", file: "src/components/sections/InlineListSearch.tsx",
     url: "/jobs?tab=posted",
     trigger: 'button[aria-label="Search posted jobs"]',
     field: 'input[aria-label="Search posted jobs"]',
+    minWidth: 900,
   },
   {
     name: "browse-desktop-strip", file: "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",

@@ -90,6 +90,9 @@ const DESKTOP_ONLY: Record<string, string> = {
   // left with the old Home feed; its one caller is Jobs > Browse's desktop feed
   // strip (Dashboard renders the strip only when isWebDesktop).
   "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx": "desktop feed strip only; phone uses the compact row",
+  // Owner 11-08 (the Vinted header): every phone section search is the top bar's open field (SectionSearchBar); the icon
+  // that opens in place is left only in the desktop website's rows (Jobs > Posted / Working by the gear, Declutter's strip).
+  "src/components/sections/InlineListSearch.tsx": "desktop rows only since the Vinted header (owner 11-08); a phone searches from the top bar's field",
 };
 
 /** Every press-spec SURFACE whose screen exists only on one side of a breakpoint, by surface name, with the bounds
@@ -97,9 +100,11 @@ const DESKTOP_ONLY: Record<string, string> = {
  * phone-only search cannot quietly start pressing at 1440 (where it is not rendered and would wait 45 s and go red)
  * and a shared file's surface cannot lose its width. A surface not listed must state no bound at all. */
 const SURFACE_BOUNDS: Record<string, { minWidth?: number; maxWidth?: number; why: string }> = {
-  // Owner 2026-10-28: Jobs > Browse's and Declutter's phone search sits at the tabs row's end
-  // ([data-browse-phone-controls]); at 900+ the desktop feed strip / section row carries search instead.
-  "jobs-browse-phone": { maxWidth: 899, why: "phone tabs row search only below 900" },
+  // Owner 11-08 (the Vinted header): Jobs' and Declutter's phone search is the top bar's field ([data-section-search-bar]);
+  // at 900+ the desktop feed strip / section row carries search instead.
+  "jobs-browse-phone": { maxWidth: 899, why: "phone header's Search jobs bar only below 900 (owner 11-08)" },
+  "jobs-posted-phone": { maxWidth: 899, why: "phone header's Search posted jobs bar only below 900 (owner 11-08)" },
+  "jobs-posted-search": { minWidth: 900, why: "the icon beside the gear is the desktop tabs row's (owner 11-08)" },
   "declutter-browse-phone": { maxWidth: 899, why: "phone header's Search Declutter bar only below 900 (owner 11-08)" },
   "browse-desktop-strip": { minWidth: 900, why: "desktop feed strip only (isWebDesktop)" },
   "messages-one-pane": { minWidth: 900, maxWidth: 1139, why: "one-pane web desktop only (TWO_PANE_MIN_WIDTH 1140)" },

@@ -90,14 +90,14 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
   // The section dashboards (owner, 2026-10-19): every Browse (Jobs, Declutter,
   // Shops, Homes) opens on the ONE shared permanent search row (SectionSearchRow),
   // so the field is the trigger and the ✕ clears. Pressed in each section.
-  // Jobs > Browse on a phone (owner 2026-10-28: "search and filter should be next to gear"): a search icon at
-  // the tabs row's end that opens in place (InlineListSearch), like Posted / Working's.
+  // Jobs > Browse on a phone (owner 11-08, the Vinted header): the top bar's "Search jobs" field, always open, with
+  // Filters inside it; its ✕ clears the words (it was an icon at the tabs row's end from 2026-10-28).
   {
-    name: "jobs-browse-phone", file: "src/components/sections/InlineListSearch.tsx",
+    name: "jobs-browse-phone", file: "src/components/sections/SectionSearchBar.tsx",
     url: "/jobs",
-    trigger: '[data-browse-phone-controls] button[aria-label="Search jobs"]',
-    field: '[data-browse-phone-controls] input[aria-label="Search jobs"]',
-    close: `[data-browse-phone-controls] ${CLOSE}`,
+    trigger: '[data-section-search-bar] input[aria-label="Search jobs"]',
+    field: '[data-section-search-bar] input[aria-label="Search jobs"]',
+    close: `[data-section-search-bar] ${CLEAR}`,
     maxWidth: 899,
   },
   {
@@ -124,12 +124,23 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     close: `[data-feed-strip] ${CLOSE}`,
     minWidth: 900,
   },
+  // Posted on the desktop website: the icon beside the gear opens in place (InlineListSearch). On a phone (owner 11-08)
+  // the tab's search is the top bar's open field instead: jobs-posted-phone.
   {
     name: "jobs-posted-search", file: "src/components/sections/InlineListSearch.tsx",
     url: "/jobs?tab=posted",
     trigger: 'button[aria-label="Search posted jobs"]',
     field: 'input[aria-label="Search posted jobs"]',
     close: CLOSE,
+    minWidth: 900,
+  },
+  {
+    name: "jobs-posted-phone", file: "src/components/sections/SectionSearchBar.tsx",
+    url: "/jobs?tab=posted",
+    trigger: '[data-section-search-bar] input[aria-label="Search posted jobs"]',
+    field: '[data-section-search-bar] input[aria-label="Search posted jobs"]',
+    close: `[data-section-search-bar] ${CLEAR}`,
+    maxWidth: 899,
   },
   {
     name: "legal", file: "src/pages/info/Legal.tsx",

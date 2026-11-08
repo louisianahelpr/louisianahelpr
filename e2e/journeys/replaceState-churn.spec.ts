@@ -86,8 +86,8 @@ async function churnSearchInput(page: Page, count: number, prefix: string): Prom
   // useDashboardFilters); Posted / Working have status boxes and no search box.
   const openSearch = page.getByRole("button", { name: "Search jobs" });
   if (await openSearch.count()) await openSearch.click();
-  // The phone's search icon opens its field in place, in the tabs row (owner 2026-10-28).
-  const input = page.locator('[data-browse-phone-controls] input[type="search"][aria-label="Search jobs"]');
+  // The phone's search is the top bar's always-open field (the Vinted header, owner 11-08).
+  const input = page.locator('[data-section-search-bar] input[type="search"][aria-label="Search jobs"]');
   await expect(input).toBeVisible();
 
   await input.evaluate(

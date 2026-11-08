@@ -22,6 +22,8 @@
  * declutter-checkout, shop-checkout, instant-payout, cash-out-credits.
  * Guard: src/test/termsAcceptedBeforeCommitments.test.ts.
  */
+import { caughtMessage } from "./caughtMessage.ts";
+
 const TERMS_NOT_ACCEPTED = "terms_not_accepted";
 const TERMS_NOT_ACCEPTED_MESSAGE = "Please agree to the updated Terms of Service to continue.";
 const TERMS_CHECK_FAILED_MESSAGE = "We couldn't check your account just now. Please try again.";
@@ -57,7 +59,7 @@ export async function refuseStaleTerms(
     }
     data = res.data;
   } catch (err) {
-    console.error(`[requireCurrentTerms] terms_accepted_is_current threw: ${err instanceof Error ? err.message : String(err)}`);
+    console.error(`[requireCurrentTerms] terms_accepted_is_current threw: ${caughtMessage(err)}`);
     return json({ error: TERMS_CHECK_FAILED_MESSAGE, code: "terms_check_failed" }, 503, headers);
   }
   if (data === true) return null;

@@ -117,14 +117,19 @@ vi.mock("@/components/AppPage", () => ({
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/components/sections/SectionScreen", () => ({
   // The section's tabs are the Explore header's second row (SectionScreen `tabs`, owner 2026-10-22).
-  SectionScreen: ({ title, children, tabs }: { title: string; children: React.ReactNode; tabs?: React.ReactNode }) => (
+  // A phone (the Vinted header, owner 11-08) also hands it "My …" under the photo: drawn as plain links here.
+  SectionScreen: ({ title, children, tabs, mine }: { title: string; children: React.ReactNode; tabs?: React.ReactNode; mine?: { title: string; items: { key: string; label: string; to: string }[] } }) => (
     <main>
       <h1>{title}</h1>
+      {mine && <nav aria-label={mine.title}>{mine.items.map((i) => <a key={i.key} href={i.to}>{i.label}</a>)}</nav>}
       {tabs}
       {children}
     </main>
   ),
 }));
+// The section tabs row is the desktop website's; a phone reaches the lists from "My …" (owner 11-08). Phone by default.
+const desktop = vi.hoisted(() => ({ on: false }));
+vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => desktop.on }));
 vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }));
 // The rent record has its own screen tests (RentPanel.test.tsx); here it is a marker per tenancy.
 vi.mock("./RentPanel", () => ({ RentPanel: ({ tenancyId }: { tenancyId: string }) => <p data-testid="rent-panel">rent {tenancyId}</p> }));
@@ -225,6 +230,7 @@ const REQ = {
 };
 
 beforeEach(() => {
+  desktop.on = false;
   state.feature = true;
   state.switchSettled = true;
   state.requestReads = 0;
@@ -425,7 +431,8 @@ describe("Rentals screens", () => {
       await screen.findByText("Own a rental?");
       expect(screen.getAllByRole("button", { name: "Add a property" })).toHaveLength(1);
     });
-    it("picking Buy then Rent in the filter sheet swaps the list and keeps the section tabs", async () => {
+    it("desktop: picking Buy then Rent in the filter sheet swaps the list and keeps the section tabs", async () => {
+      desktop.on = true;
       renderAt("/rentals");
       await screen.findByText(/No homes for rent match yet/);
       expect(screen.getByRole("tab", { name: "Renting" })).toBeTruthy();
@@ -876,7 +883,23 @@ describe("Rentals screens", () => {
 
   // @mutate src/components/sections/SectionTabs.tsx | { value: BROWSE as string, label: "Browse" }, ...tabs.map | ...tabs.map
   describe("Homes section dashboard (owner, 2026-10-19)", () => {
-    it("opens on Browse, leftmost, with one-word tabs; Browse needs no rental data", async () => {
+    it("phone: opens on Browse with no tabs row; Renting and Owning are in My Homes, and a list names itself with the way back (the Vinted header, owner 11-08)", async () => {
+      state.homeLoads = false;
+      renderAt("/rentals");
+      expect(await screen.findByText(/No homes for rent match yet/)).toBeTruthy();
+      expect(screen.queryByRole("tablist")).toBeNull();
+      const mine = screen.getByRole("navigation", { name: "My Homes" });
+      expect(within(mine).getAllByRole("link").map((a) => [a.textContent, a.getAttribute("href")])).toEqual([["Renting", "/rentals?tab=rent"], ["Owning", "/rentals?tab=own"]]);
+    });
+    it("phone: a list (Owning) names itself under the bar with the way back to Browse", async () => {
+      renderAt("/rentals?tab=own");
+      const back = await waitFor(() => { const el = document.querySelector<HTMLElement>("[data-section-list-back]"); if (!el) throw new Error("no back row"); return el; });
+      expect(within(back).getByRole("heading", { level: 2 }).textContent).toBe("Owning");
+      fireEvent.click(within(back).getByRole("button", { name: "Back to Browse" }));
+      expect(await screen.findByText(/No homes for rent match yet/)).toBeTruthy();
+    });
+    it("desktop: opens on Browse, leftmost, with one-word tabs; Browse needs no rental data", async () => {
+      desktop.on = true;
       state.homeLoads = false;
       renderAt("/rentals");
       // The SECTION toggle (Rent or Buy is a choice in Browse's filter sheet, HomesBrowse.tsx).

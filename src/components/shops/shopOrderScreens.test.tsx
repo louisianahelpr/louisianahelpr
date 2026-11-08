@@ -55,7 +55,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -82,14 +82,19 @@ vi.mock("@/components/AppPage", () => ({
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/components/sections/SectionScreen", () => ({
   // The section's tabs are the Explore header's second row (SectionScreen `tabs`, owner 2026-10-22).
-  SectionScreen: ({ title, children, tabs }: { title: string; children: ReactNode; tabs?: ReactNode }) => (
+  // A phone (the Vinted header, owner 11-08) also hands it "My …" under the photo: drawn as plain links here.
+  SectionScreen: ({ title, children, tabs, mine }: { title: string; children: ReactNode; tabs?: ReactNode; mine?: { title: string; items: { key: string; label: string; to: string }[] } }) => (
     <main>
       <h1>{title}</h1>
+      {mine && <nav aria-label={mine.title}>{mine.items.map((i) => <a key={i.key} href={i.to}>{i.label}</a>)}</nav>}
       {tabs}
       {children}
     </main>
   ),
 }));
+// The section tabs row is the desktop website's; a phone reaches the lists from "My …" (owner 11-08). Phone by default.
+const desktop = vi.hoisted(() => ({ on: false }));
+vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => desktop.on }));
 vi.mock("./ShopItemsList", () => ({ default: () => <p>Items list</p> }));
 vi.mock("./ShopFaqs", () => ({ default: () => null }));
 vi.mock("./ShopPolicies", () => ({ default: () => null }));
@@ -194,6 +199,7 @@ function renderAt(path: string, route: string, el: ReactNode) {
 }
 
 beforeEach(() => {
+  desktop.on = false;
   vi.clearAllMocks();
   api.fetchShop.mockResolvedValue(page());
   api.fetchMyShopId.mockResolvedValue(null);
@@ -448,7 +454,20 @@ describe("the handover: the buyer confirms, the shop never finishes its own orde
 
 describe("the dashboard entries", () => {
   // @mutate src/components/sections/SectionTabs.tsx | { value: BROWSE as string, label: "Browse" }, ...tabs.map | ...tabs.map
-  it("Shops opens on Browse, leftmost, with one-word tabs (owner, 2026-10-19)", async () => {
+  it("phone: Shops opens on Browse with no tabs row; Orders and Shop are in My Shops, and a list names itself with the way back (the Vinted header, owner 11-08)", async () => {
+    api.fetchMyShopId.mockResolvedValue("s1");
+    renderAt("/shops", "/shops", <ShopsPage />);
+    const mine = await screen.findByRole("navigation", { name: "My Shops" });
+    expect(within(mine).getAllByRole("link").map((a) => [a.textContent, a.getAttribute("href")])).toEqual([["Orders", "/shops?tab=orders"], ["Shop", "/shops?tab=shop"]]);
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(document.querySelector("[data-section-list-back]")).toBeNull();
+    cleanup();
+    renderAt("/shops?tab=orders", "/shops", <ShopsPage />);
+    const back = await waitFor(() => { const el = document.querySelector<HTMLElement>("[data-section-list-back]"); if (!el) throw new Error("no back row"); return el; });
+    expect(within(back).getByRole("heading", { level: 2 }).textContent).toBe("Orders");
+  });
+  it("desktop: Shops opens on Browse, leftmost, with one-word tabs (owner, 2026-10-19)", async () => {
+    desktop.on = true;
     api.fetchMyShopId.mockResolvedValue("s1");
     renderAt("/shops", "/shops", <ShopsPage />);
     const tabs = await screen.findAllByRole("tab");

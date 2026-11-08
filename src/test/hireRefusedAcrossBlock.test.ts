@@ -67,6 +67,17 @@ const INTERNAL_HIRES: Record<string, string[]> = {
 };
 
 /**
+ * Hire functions the Stripe WEBHOOK runs, never a member: a RAISE there would leave the card hold neither used nor
+ * released, so each refuses a blocked pair by returning 'cancel_hold' (the webhook releases the hold, nothing is
+ * charged) BEFORE its first hiring write. Two-way with the inventory, like EXPECTED.
+ */
+const CANCEL_HOLD_HIRES: Record<string, string> = {
+  // 20261108184654 (Shops preorders): a paid preorder is accepted at the hold (the shop said yes when it opened the
+  // preorder); a block made while the buyer was paying sends the hold back instead (service_role only).
+  shop_mark_order_held: "accepts a preorder at the hold; a blocked pair gets cancel_hold",
+};
+
+/**
  * Functions whose body matches HIRE_WRITE but hire nobody, with why. Two-way:
  * each must still match (else it is stale here).
  */
@@ -118,12 +129,14 @@ describe("Q345: every hire RPC refuses across a block", () => {
   }
   const hireFns = new Map<string, string>();
   const notHiresSeen = new Set<string>();
+  const cancelHoldSeen = new Map<string, string>();
   for (const [name, def] of defs) {
     const dropped = droppedAfter.get(name);
     if (dropped && dropped > def.file) continue;
     const body = blankSqlComments(def.stmt);
     if (HIRE_WRITE.test(body)) {
       if (NOT_HIRES[name]) notHiresSeen.add(name);
+      else if (CANCEL_HOLD_HIRES[name]) cancelHoldSeen.set(name, body);
       else hireFns.set(name, body);
     }
   }
@@ -137,7 +150,21 @@ describe("Q345: every hire RPC refuses across a block", () => {
   it("the hire-RPC inventory is exact", () => {
     expect([...notHiresSeen].sort(), "a NOT_HIRES entry no longer matches HIRE_WRITE").toEqual(Object.keys(NOT_HIRES).sort());
     expect([...hireFns.keys()].sort()).toEqual(EXPECTED);
+    expect([...cancelHoldSeen.keys()].sort(), "a CANCEL_HOLD_HIRES entry no longer matches HIRE_WRITE").toEqual(Object.keys(CANCEL_HOLD_HIRES).sort());
   });
+
+  for (const name of Object.keys(CANCEL_HOLD_HIRES)) {
+    it(`${name} returns cancel_hold on are_users_blocked before its first hiring write, and only service_role runs it`, () => {
+      const body = cancelHoldSeen.get(name) ?? "";
+      const check = body.search(/if\s+(public\.)?are_users_blocked\s*\([^;]*\)\s+then\s+update\s+public\.shop_orders\s+set\s+status\s*=\s*'expired'[\s\S]{0,600}?return\s+jsonb_build_object\('result',\s*'cancel_hold'/i);
+      const write = body.search(HIRE_WRITE);
+      expect(check, `${name} has no block check`).toBeGreaterThan(-1);
+      expect(check).toBeLessThan(write);
+      const file = defs.get(name)?.file ?? "";
+      const sql = blankSqlComments(readFileSync(join(MIG_DIR, file), "utf8"));
+      expect(sql).toMatch(new RegExp(`REVOKE ALL ON FUNCTION public\\.${name}\\([^)]*\\) FROM PUBLIC, anon, authenticated;`));
+    });
+  }
 
   for (const name of [...hireFns.keys()].sort()) {
     it(`${name} raises applicant_blocked on are_users_blocked before its first hiring write`, () => {
@@ -192,6 +219,7 @@ describe("Q345: every hire RPC refuses across a block", () => {
 });
 
 // Each hire RPC's check removed, one at a time.
+// @mutate supabase/migrations/20261108184654_shops_preorders.sql |     IF public.are_users_blocked(o.buyer_id, o.seller_id) THEN\n      UPDATE public.shop_orders SET status = 'expired' |     IF false THEN\n      UPDATE public.shop_orders SET status = 'expired'
 // @mutate supabase/migrations/20261103032330_series_claim_takes_helpr_schedule_lock.sql |   IF public.are_users_blocked(v_job.customer_id, v_uid) THEN\n    RAISE EXCEPTION 'applicant_blocked'; |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked';
 // @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql | IF public.are_users_blocked(v_helper_id, v_job_customer) THEN | IF false THEN
 // @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql | IF public.are_users_blocked(v_job_customer, v_helper_id) THEN | IF false THEN

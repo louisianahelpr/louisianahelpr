@@ -319,6 +319,25 @@ await svc(`UPDATE public.shop_orders SET handover_mode = 'porch', ready_date = '
 const nophoto = one(await svc(`SELECT public.shop_refund_sweep() AS r`));
 ok(nophoto?.no_ready_photo_refunded === 0 && (await refundOf(porch.id)) === undefined, "the porch no-photo clock skips preorders");
 
+// --- 6c. Q345: a preorder is never accepted across a block made while the buyer was paying; the hold goes back.
+const it9 = await newItem();
+await as(SELLER, `SELECT public.shops_set_item_preorder('${it9}', '${plus(20)}', NULL, NULL, NULL)`);
+await svc(`CREATE OR REPLACE FUNCTION public.are_users_blocked(uuid, uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT true $$`);
+const bl = await preorder(B[0], it9, 1, { capture: false });
+await svc(`CREATE OR REPLACE FUNCTION public.are_users_blocked(uuid, uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$`);
+ok(bl.error?.includes("shop_not_found") || bl.held?.result === "cancel_hold", `a block before the hold: refused or the hold goes back (${JSON.stringify(bl)})`);
+const it10 = await newItem();
+await as(SELLER, `SELECT public.shops_set_item_preorder('${it10}', '${plus(20)}', NULL, NULL, NULL)`);
+const rq = one(await as(B[1], `SELECT public.shops_request_preorder('${SHOP}', '${it10}', 1, '') AS r`));
+await svc(`UPDATE public.shop_orders SET stripe_checkout_session_id = 'cs_test_blk' WHERE id = '${rq.order_id}'`);
+const tot = (await row(rq.order_id)).total_cents;
+await svc(`CREATE OR REPLACE FUNCTION public.are_users_blocked(uuid, uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT true $$`);
+const heldBl = one(await svc(`SELECT public.shop_mark_order_held('cs_test_blk', 'pi_blk', ${tot}, 0, false) AS r`));
+await svc(`CREATE OR REPLACE FUNCTION public.are_users_blocked(uuid, uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$`);
+const ob = await row(rq.order_id);
+ok(heldBl?.result === "cancel_hold" && ob.status === "expired" && ob.accepted_at === null,
+  `a block while paying: never accepted, the hold goes back (${JSON.stringify(heldBl)}, ${ob.status})`);
+
 // --- 6b. Money review 11-08 (3): a buyer's cancel after the sweep's own trigger is filed as the sweep would file it
 //         (the shop pays the card fee), never as the buyer's own cancel.
 const it6 = await newItem();

@@ -27,6 +27,7 @@
 --      shop_handovers: preorder_not_ready_yet), and a preorder item is never on an ordinary order (trigger on
 --      shop_order_lines: preorder_use_preorder_checkout). shops_cancel_preorder files a cancel made after the
 --      goal-missed stamp or after ready-by + 7 as preorder_goal_missed / preorder_shop_late (the shop pays the fee).
+--      shop_mark_order_held never accepts a preorder across a block (Q345): the hold goes back instead.
 -- Refund rows are sent by declutter-money's shop_refunds_due like every other Shops refund (_shared/shopRefunds.ts:
 -- reconcile, then key shop-refund-<row id>); the tax is reversed per PaymentIntent by the existing webhook path.
 -- MONEY: yes (lh-money-escrow). AUTHZ: owner/buyer RPCs check auth.uid(); the sweep is service-only.
@@ -774,6 +775,18 @@ BEGIN
         'This preorder filled up or closed while you were paying, so nothing was charged and the hold on your card is released.',
         '/shops/' || o.shop_id::text, o.seller_id);
       RETURN jsonb_build_object('result', 'cancel_hold', 'reason', 'preorder_closed', 'order_id', o.id);
+    END IF;
+    -- Q345: a block between the buyer and the shop since the preorder was asked for: never accepted (accepting it is
+    -- the shop's yes), the hold goes back at no cost, and the words say nothing of who blocked whom. A refusal, not a
+    -- RAISE: this runs in the webhook, where the hold must still be released (hireRefusedAcrossBlock: CANCEL_HOLD_HIRES).
+    IF public.are_users_blocked(o.buyer_id, o.seller_id) THEN
+      UPDATE public.shop_orders SET status = 'expired', close_reason = 'order_closed', closed_at = now(),
+                                    stripe_payment_intent_id = p_payment_intent_id, payment_livemode = p_livemode
+       WHERE id = o.id;
+      PERFORM public.declutter_notify(o.buyer_id, 'info', 'Preorder closed',
+        'This preorder can''t go through, so nothing was charged and the hold on your card is released.',
+        '/shops/orders', o.seller_id);
+      RETURN jsonb_build_object('result', 'cancel_hold', 'reason', 'order_closed', 'order_id', o.id);
     END IF;
   END IF;
   -- H4-fee: the one-winner claim. Lost (the account paid the fee elsewhere while the buyer was on the page): the hold

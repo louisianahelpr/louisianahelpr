@@ -43,7 +43,13 @@ const KEY = "anon.key";
 
 /** The inline script that names the early slot (comments in the HTML are not part of any script). */
 function earlyScript(html: string): string {
-  const scripts = [...html.replace(/<!--[\s\S]*?-->/g, "").matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+  // Comments dropped until none are left (a single pass can leave a "<!--" behind), script tags matched case-blind.
+  let bare = html;
+  for (let prev = ""; prev !== bare; ) {
+    prev = bare;
+    bare = bare.replace(/<!--[\s\S]*?-->/g, "");
+  }
+  const scripts = [...bare.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)].map((m) => m[1]);
   const hits = scripts.filter((s) => s.includes(GUEST_DECLUTTER_EARLY_KEY));
   expect(hits).toHaveLength(1);
   return hits[0];

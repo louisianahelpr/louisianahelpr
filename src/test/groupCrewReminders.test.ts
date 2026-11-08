@@ -36,16 +36,16 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |       OR (j.is_group_job IS TRUE AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id)) |       OR (false AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id))
 // @mutate supabase/migrations/20261102070622_late_cancel_notice_whole_dollars.sql |         OR (j.is_group_job IS TRUE\n            AND j.status::text IN ('completed', 'cancelled') |         OR (false\n            AND j.status::text IN ('completed', 'cancelled')
 
-// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |          OR (j.customer_id = p_blocked AND g.helper_id = v_user) |          OR false
-// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |     DELETE FROM public.group_job_helpers WHERE id = v_crew.slot_id; |     PERFORM 1;
-// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |           p_violation_type            => 'cancel_with_helper',\n          p_description               => 'Removed |           p_violation_type            => 'x',\n          p_description               => 'Removed
-// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |       ELSIF v_member_fee > 0 THEN |       ELSIF false THEN
+// @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |          OR (j.customer_id = p_blocked AND g.helper_id = v_user) |          OR false
+// @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |     DELETE FROM public.group_job_helpers WHERE id = v_crew.slot_id; |     PERFORM 1;
+// @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |           p_violation_type            => 'cancel_with_helper',\n          p_description               => 'Removed |           p_violation_type            => 'x',\n          p_description               => 'Removed
+// @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |       ELSIF v_member_fee > 0 THEN |       ELSIF false THEN
 // @mutate supabase/migrations/20261104050109_notices_name_the_person.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
 // @mutate supabase/migrations/20261104050109_notices_name_the_person.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
 // @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql |      SET response_deadline = v_crew_deadline |      SET response_deadline = NULL
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'proof_after_urls',\n    'response_deadline'\n  ]; |     'proof_after_urls'\n  ];
 // @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql | v_crew_deadline := LEAST(GREATEST(LEAST(COALESCE(p_deadline, now() + interval '48 hours'), now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | v_crew_deadline := p_deadline;
-// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |        WHERE r.role = 'admin'\n         AND v_new_block; |        WHERE r.role = 'admin';
+// @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |        WHERE r.role = 'admin'\n         AND v_new_block;\n      v_settled := v_settled \|\| jsonb_build_object('job_id', v_crew.id |        WHERE r.role = 'admin';\n      v_settled := v_settled \|\| jsonb_build_object('job_id', v_crew.id
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |   IF v_row.helper_confirmed_at IS NULL THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.'; |   IF false THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.';
 // @mutate supabase/functions/auto-expire-jobs/index.ts |       .not("is_group_job", "is", true)\n      .lte("date_needed", tomorrow) |       .lte("date_needed", tomorrow)
 const root = resolve(__dirname, "../..");
@@ -204,7 +204,7 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
     // accept_group_application with the Helpr schedule lock.
     // 20261012124103 (Q1380) restates block_user_and_settle once more. 20261102131745 (Q2675/Q2692) restates it again, crew path unchanged.
     expect(EFFECTIVE.get("accept_group_application")?.file, "accept_group_application is not the newest crew-aware definition").toBe("20261103025348_crew_seat_takes_helpr_schedule_lock.sql");
-    expect(EFFECTIVE.get("block_user_and_settle")?.file, "block_user_and_settle is not the newest crew-aware definition").toBe("20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql");
+    expect(EFFECTIVE.get("block_user_and_settle")?.file, "block_user_and_settle is not the newest crew-aware definition").toBe("20261108200000_poster_cancel_refused_once_work_started.sql");
     // 20261006022526 (the money review of Q1378) restates the sweep once more:
     // its crew pass also covers a started crew. 20261012184444 (Q1281: no
     // strike for an unanswered offer) restates it again; the crew rules hold.

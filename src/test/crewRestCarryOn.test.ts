@@ -25,7 +25,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  */
 
 // @mutate supabase/migrations/20261031013445_helper_cancel_says_why.sql |     IF v_job.status::text = 'accepted' AND v_remaining = 0 THEN | IF v_job.status::text = 'accepted' AND v_remaining < COALESCE(v_job.helpers_needed, 1) THEN
-// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql | ELSIF v_crew.status = 'accepted' AND v_remaining = 0 THEN | ELSIF v_crew.status = 'accepted' AND v_remaining < COALESCE(v_crew.helpers_needed, 1) THEN
+// @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql | ELSIF v_crew.status = 'accepted' AND v_remaining = 0 THEN | ELSIF v_crew.status = 'accepted' AND v_remaining < COALESCE(v_crew.helpers_needed, 1) THEN
 // @mutate supabase/migrations/20261104050109_notices_name_the_person.sql |       IF v_cjob.status = 'accepted' AND v_remaining = 0 THEN |       IF v_cjob.status = 'accepted' AND v_remaining < COALESCE(v_cjob.helpers_needed, 1) THEN
 // @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql |   IF v_job_status IS NULL OR v_job_status NOT IN ('open', 'accepted') THEN |   IF v_job_status IS DISTINCT FROM 'open' THEN
 // @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql |    WHERE id = v_job_id\n     -- A refill of a booked crew (Q1378) leaves it booked, full or not.\n     AND v_job_status = 'open'; |    WHERE id = v_job_id;
@@ -56,7 +56,7 @@ const RACE = "20261006031350_crew_completion_rechecks_after_closing_spots.sql";
 const NEWEST: Record<string, string> = {
   helper_cancel_booking: "20261031013445_helper_cancel_says_why.sql", // JOBS-21 restated it; the crew rules hold there.
   // Q1380 restated it (the slotless hire-order fallback); the crew rules hold there.
-  block_user_and_settle: "20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql",
+  block_user_and_settle: "20261108200000_poster_cancel_refused_once_work_started.sql",
   expire_unanswered_offers: OFFER_WORDS,
 };
 

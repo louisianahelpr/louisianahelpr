@@ -11,7 +11,9 @@
  * Checks:
  *   W1 a single job in progress with the Helpr on site: refused work_started, the job untouched, nobody told
  *      (RED before: cancelled, the poster got half the budget back for worked-on work)
- *   W1b in progress with no arrival stamp: refused (a no-show is reported, not cancelled)
+ *   W1b auto-started in progress, nobody on site: still cancels (in_progress alone is not work)
+ *   W1c tracker 'working': refused    W1d being fixed: refused    W4b a frozen Helpr who never came: free cancel kept
+ *   B1 a poster's block mid-job: block stands, job untouched, admins alerted once   B2/B3 controls: a block still settles
  *   W2 accepted but the Helpr arrived (stamp kept): refused        W3 accepted, the poster confirmed the arrival: refused
  *   W4 in progress on an agreed continue day (done cleared): refused
  *   W5 crew in progress with a member still on it: refused         W6 crew in progress, roster empty: cancels, fee 0
@@ -31,16 +33,22 @@ const THIS = "20261108200000_poster_cancel_refused_once_work_started.sql";
 const skip = process.env.NEW_MIGRATION === "skip";
 const MUTANT = process.env.MUTANT ?? "";
 const MUTANTS = {
-  // In progress is cancellable again.
-  inProgress: ["       v_job.status::text IN ('in_progress', 'revision_requested')\n       OR v_job.helper_arrived_at", "       false\n       OR v_job.helper_arrived_at"],
+  // 'in_progress' alone counts as work again (the auto-started no-show job is refused).
+  inProgressAlone: ["OR j.status::text = 'revision_requested'))", "OR j.status::text IN ('revision_requested', 'in_progress')))"],
   // An arrival stamp no longer counts.
-  arrived: ["       OR v_job.helper_arrived_at IS NOT NULL\n", "\n"],
+  arrived: ["(j.helper_arrived_at IS NOT NULL OR j.poster_confirmed_arrival_at", "(false OR j.poster_confirmed_arrival_at"],
   // The poster's confirm of the arrival no longer counts.
-  posterConfirmed: ["       OR v_job.poster_confirmed_arrival_at IS NOT NULL\n", "\n"],
+  posterConfirmed: ["OR j.poster_confirmed_arrival_at IS NOT NULL\n", "\n"],
+  // The tracker no longer counts.
+  tracking: ["WHERE t.job_id = p_job_id AND t.status IN ('arrived', 'working', 'done'))", "WHERE false)"],
+  // An agreed continue day no longer counts.
+  continueDay: ["WHERE c.job_id = p_job_id AND c.status = 'set')", "WHERE false)"],
   // The crew rule is dropped.
-  crew: ["         AND (g.helper_arrived_at IS NOT NULL OR v_job.status::text IN ('in_progress', 'revision_requested'))", "         AND false"],
-  // The empty-roster crew exit is closed too (the single-job rule applied to every crew).
-  crewEmpty: ["  IF v_job.is_group_job IS NOT TRUE AND (\n", "  IF (\n"],
+  crew: ["         AND (g.helper_arrived_at IS NOT NULL OR g.poster_confirmed_arrival_at IS NOT NULL", "         AND false AND (g.helper_arrived_at IS NOT NULL OR g.poster_confirmed_arrival_at IS NOT NULL"],
+  // The empty-roster crew exit is closed (the single-job rule applied to every crew, with in_progress as work).
+  crewEmpty: ["  IF v_job.is_group_job IS NOT TRUE AND public.job_work_started(v_job.id) THEN", "  IF public.job_work_started(v_job.id) OR v_job.status::text = 'in_progress' THEN"],
+  // A block settles a worked-on job again.
+  block: ["    IF public.job_work_started(v_job.id) THEN\n      INSERT INTO public.notifications", "    IF false THEN\n      INSERT INTO public.notifications"],
   // The no-money notice is a System alert again.
   noticeType: ["CASE WHEN v_helper_cut > 0 THEN 'payment' ELSE 'job_updates' END,\n      '/jobs?job=' || v_job.id::text,\n      v_job.id", "CASE WHEN v_helper_cut > 0 THEN 'payment' ELSE 'warning' END,\n      '/jobs?job=' || v_job.id::text,\n      v_job.id"],
   // The SMS kind is lost for the retyped cancel.
@@ -104,7 +112,9 @@ CREATE TABLE public.jobs (id uuid PRIMARY KEY, title text, budget numeric, date_
   direct_offer_expires_at timestamptz, is_seed boolean DEFAULT false, disputed_by uuid, disputed_at timestamptz, dispute_reason text, dispute_status text,
   poster_confirmed_arrival_at timestamptz);
 CREATE TABLE public.job_continue_days (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, status text, new_date date, new_start_time time);
-CREATE TABLE public.group_job_helpers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, helper_id uuid, joined_at timestamptz, share_cents bigint,
+CREATE TABLE public.user_blocks (blocker_id uuid, blocked_id uuid, reason text, PRIMARY KEY (blocker_id, blocked_id));
+CREATE FUNCTION public.is_caller_banned() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+CREATE TABLE public.group_job_helpers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, helper_id uuid, joined_at timestamptz, share_cents bigint, slot_no int,
   helper_confirmed_at timestamptz, helper_dayof_confirmed_at timestamptz, helper_completed_at timestamptz, helper_on_the_way_at timestamptz, helper_arrived_at timestamptz,
   helper_arrival_verified_at timestamptz, helper_arrival_near_miss_at timestamptz, helper_arrival_near_miss_ft numeric, poster_confirmed_arrival_at timestamptz,
   poster_confirmed_working_at timestamptz, poster_confirmed_completion_at timestamptz, proof_before_urls text[], proof_after_urls text[], response_deadline timestamptz);
@@ -177,6 +187,14 @@ for (const fn of ["is_server_context", "job_posted_by_seed", "ban_settlement_act
 await db.exec(mig("20261031220849_id_check_asked_when_hired_restated.sql"));
 await db.exec(mig("20261102070622_late_cancel_notice_whole_dollars.sql"));
 await db.exec(mig(BASE));
+// The live block_user_and_settle (20261102131745), so NEW_MIGRATION=skip is the live state for B1-B3.
+{
+  const f = mig("20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql");
+  const at = f.indexOf("CREATE OR REPLACE FUNCTION public.block_user_and_settle(");
+  const open = /\bAS\s+(\$\w*\$)/i.exec(f.slice(at));
+  const start = at + open.index + open[0].length;
+  await db.exec(f.slice(at, f.indexOf(open[1], start) + open[1].length) + ";");
+}
 if (!skip) {
   let sql = mig(THIS);
   if (MUTANT) {
@@ -231,6 +249,10 @@ const job = async (j = JOB) => (await rows(`SELECT status::text AS status, cance
 const notices = async () => Number((await rows(`SELECT count(*) AS n FROM public.notifications`))[0].n);
 const refusedStarted = (r) => r.error != null && /work_started/.test(r.error);
 
+const ADMIN = id(9);
+await db.exec(`INSERT INTO public.user_roles VALUES ('${ADMIN}', 'admin');`);
+const tracking = (status) => `INSERT INTO public.job_tracking (job_id, helper_id, status) VALUES ('${JOB}', '${HELPR}', '${status}');`;
+
 // W1: in progress, the Helpr arrived 3 h ago and is working, not marked done.
 await solo("in_progress", "-3 hours", `UPDATE public.jobs SET helper_on_the_way_at = now() - interval '4 hours', helper_arrived_at = now() - interval '3 hours' WHERE id = '${JOB}';`);
 const w1 = await cancel(JOB);
@@ -238,10 +260,21 @@ const j1 = await job();
 ok("W1 in progress with the Helpr on site: refused work_started", refusedStarted(w1), JSON.stringify({ w1, j1 }));
 ok("W1 the job is untouched and nobody is told", j1.status === "in_progress" && j1.cancellation_fee == null && (await notices()) === 0, JSON.stringify(j1));
 
-// W1b: in progress with no arrival (set out, or auto-started at the start time): the no-show report is the way out.
-await solo("in_progress", "-1 hours", `UPDATE public.jobs SET helper_on_the_way_at = now() - interval '2 hours' WHERE id = '${JOB}';`);
+// W1b: auto-started at the start time with nobody on site (auto_start_due_jobs): NOT work, the cancel still runs.
+await solo("in_progress", "-1 hours", `DELETE FROM public.job_tracking;`);
 const w1b = await cancel(JOB);
-ok("W1b in progress with no arrival: refused work_started", refusedStarted(w1b) && (await job()).status === "in_progress", JSON.stringify(w1b));
+const j1b = await job();
+ok("W1b in progress with no arrival or tracker step (auto-started): cancels on the ladder (50%)", w1b.error == null && j1b.status === "cancelled" && Number(j1b.cancellation_fee) === 50, JSON.stringify({ w1b, j1b }));
+
+// W1c: the tracker says working (no arrival stamp).
+await solo("in_progress", "-1 hours", `DELETE FROM public.job_tracking; ${tracking("working")}`);
+const w1c = await cancel(JOB);
+ok("W1c the tracker says working: refused work_started", refusedStarted(w1c), JSON.stringify(w1c));
+await db.exec(`DELETE FROM public.job_tracking`);
+
+// W1d: being fixed.
+await solo("revision_requested", "-1 days");
+ok("W1d being fixed (revision_requested): refused work_started", refusedStarted(await cancel(JOB)));
 
 // W2: still 'accepted' but the arrival stamp is set.
 await solo("accepted", "-1 hours", `UPDATE public.jobs SET helper_arrived_at = now() - interval '1 hour' WHERE id = '${JOB}';`);
@@ -253,21 +286,56 @@ await solo("accepted", "-1 hours", `UPDATE public.jobs SET poster_confirmed_arri
 const w3 = await cancel(JOB);
 ok("W3 accepted with the poster's confirm of the arrival: refused work_started", refusedStarted(w3), JSON.stringify(w3));
 
-// W4: a continue day agreed (the done cleared, so helper_completed_at is NULL), Helpr not marked done yet.
+// W4: a continue day agreed (the done cleared; this fixture's day-1 stamps omitted to isolate the rule).
 await solo("in_progress", "-7 days", `INSERT INTO public.job_continue_days (job_id, status, new_date, new_start_time) VALUES ('${JOB}', 'set', current_date - 2, '15:15');`);
 const w4 = await cancel(JOB);
 ok("W4 in progress on an agreed continue day: refused work_started", refusedStarted(w4), JSON.stringify(w4));
 
-// W5: a crew under way with a member still on it.
+// W4b: the frozen-payee free exit is kept for a no-arrival job: Helpr under a ban review, auto-started, never came.
+await solo("in_progress", "-1 hours");
+await db.exec(`INSERT INTO public.ban_settlement_queue (user_id) VALUES ('${HELPR}')`);
+const w4b = await cancel(JOB);
+const j4b = await job();
+ok("W4b a frozen Helpr who never arrived: the cancel is free and strike-free", w4b.error == null && j4b.status === "cancelled" && Number(j4b.cancellation_fee) === 0 && w4b.rows[0]?.r?.late_cancellation === false, JSON.stringify({ w4b, j4b }));
+await db.exec(`DELETE FROM public.ban_settlement_queue`);
+
+// W5: a crew with a member on site.
 await crew("in_progress", true);
+await db.exec(`UPDATE public.group_job_helpers SET helper_arrived_at = now() - interval '2 hours' WHERE job_id = '${CREW}'`);
 const w5 = await cancel(CREW);
-ok("W5 crew in progress with a member on it: refused work_started", refusedStarted(w5) && (await job(CREW)).status === "in_progress", JSON.stringify(w5));
+ok("W5 crew with a member on site: refused work_started", refusedStarted(w5) && (await job(CREW)).status === "in_progress", JSON.stringify(w5));
+
+// W5b: a crew in progress with a member set out but never arrived: not work, cancels on the ladder.
+await crew("in_progress", true);
+const w5b = await cancel(CREW);
+ok("W5b crew in progress, nobody on site: cancels (the member's share priced)", w5b.error == null && (await job(CREW)).status === "cancelled", JSON.stringify(w5b));
 
 // W6: a crew under way whose every member was reported a no-show (empty roster): the full-refund exit stays.
 await crew("in_progress", false);
 const w6 = await cancel(CREW);
 const j6 = await job(CREW);
 ok("W6 crew in progress with an empty roster: cancels, fee 0", w6.error == null && j6.status === "cancelled" && Number(j6.cancellation_fee) === 0, JSON.stringify({ w6, j6 }));
+
+// B1-B3: block_user_and_settle.
+const block = (who, whom) => as(who, `SELECT public.block_user_and_settle('${whom}') AS r`);
+const blocks = async () => Number((await rows(`SELECT count(*) AS n FROM public.user_blocks`))[0].n);
+const adminAlerts = async () => (await rows(`SELECT title FROM public.notifications WHERE user_id = '${ADMIN}'`)).map((r) => r.title);
+await db.exec(`DELETE FROM public.user_blocks`);
+await solo("in_progress", "-3 hours", `UPDATE public.jobs SET helper_arrived_at = now() - interval '3 hours' WHERE id = '${JOB}';`);
+const b1 = await block(POSTER, HELPR);
+const jb1 = await job();
+ok("B1 a poster who blocks the Helpr mid-job: the block stands, the job is not cancelled or priced", b1.error == null && (await blocks()) === 1 && jb1.status === "in_progress" && jb1.cancellation_fee == null, JSON.stringify({ b1, jb1 }));
+ok("B1 the admins decide: one alert, and the answer says admin_review", JSON.stringify(await adminAlerts()) === JSON.stringify(["Block on a started job"]) && b1.rows[0]?.r?.settled?.[0]?.action === "admin_review", JSON.stringify({ a: await adminAlerts(), b1 }));
+const b1again = await block(POSTER, HELPR);
+ok("B1 blocking again does not re-alert", b1again.error == null && (await adminAlerts()).length === 1);
+await db.exec(`DELETE FROM public.user_blocks`);
+await solo("accepted", "30 hours");
+const b2 = await block(POSTER, HELPR);
+ok("B2 control: a block before any work still settles (cancelled, no fee 30 h out)", b2.error == null && (await job()).status === "cancelled", JSON.stringify(b2));
+await db.exec(`DELETE FROM public.user_blocks`);
+await solo("in_progress", "-1 hours");
+const b3 = await block(POSTER, HELPR);
+ok("B3 an auto-started job nobody came to still settles on the block", b3.error == null && (await job()).status === "cancelled", JSON.stringify(b3));
 
 // W7: control, accepted 30 h out, nobody set out: cancels, no fee.
 await solo("accepted", "30 hours");

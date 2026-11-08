@@ -20411,6 +20411,8 @@ export type Database = {
       }
       is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
       is_identity_verified: { Args: { p_user_id: string }; Returns: boolean }
+      job_work_started: { Args: { p_job_id: string }; Returns: boolean }
+      jobs_notice_email_type: { Args: { p_title: string; p_type: string }; Returns: string }
       send_notice_email: {
         Args: {
           p_job_id: string

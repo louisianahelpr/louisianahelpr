@@ -759,7 +759,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // 'declutter_refunds' only as a NOTICE KIND (which refund-request reminders count as "needs you"). They write
       // sms_messages status/due_at only; no refund row, amount or fee.
       sms_claim_due: "20261102034632_sms_needs_you_step_done.sql c1a41f8e65f5dc47",
-      sms_kind_for: "20261102002011_needs_you_deadline_reminders.sql 4c2a804834d2c32e",
+      // 20261108200000 (Jobs audit 11-08, lander read): only adds work_status / job_updates to two SMS kind rows; no amount or fee.
+      sms_kind_for: "20261108200000_poster_cancel_refused_once_work_started.sql 85f98656374b6661",
       // A3-85 (20261102002011, read by Builder 151): deadline reminders for an open offer or refund request; reads the
       // request's answer-by times, writes needs_you_reminder_sends and sends a notice of kind 'declutter_refunds'. No
       // refund row, amount or fee is read or written.

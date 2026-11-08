@@ -12,6 +12,7 @@
  * @mutate supabase/functions/_shared/continueDay.ts |   return heldByContinueDay(read, jobId) \|\| lapsedContinueDay(read, jobId)?.status === "proposed"; |   return heldByContinueDay(read, jobId);
  * @mutate supabase/functions/_shared/continueDay.ts |   return !read.ok \|\| read.jobs.has(jobId); |   return read.ok && read.jobs.has(jobId);
  * @mutate supabase/functions/_shared/continueDay.ts | const CONTINUE_DAY_ACTIVE_STATUSES = ["proposed", "set"] as const; | const CONTINUE_DAY_ACTIVE_STATUSES = ["set"] as const;
+ * @mutate supabase/functions/_shared/continueDay.ts |       jobs.add(row.job_id); // reported missed: held until an admin acts |       void 0;
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -139,8 +140,15 @@ describe("auto-release-payment: an active continue day stops the approval clock"
   });
 });
 
+/** A two-table fake: job_continue_days answers `res`; job_missed_returns (owner #4) answers `missed`. */
+const fakeDb = (res: unknown, missed: unknown = { data: [], error: null }) => ({
+  from: (t: string) => t === "job_missed_returns"
+    ? { select: () => ({ in: () => ({ is: async () => missed }) }) }
+    : { select: () => ({ in: () => ({ in: async () => res }) }) },
+});
+
 describe("_shared/continueDay.ts", () => {
-  const db = (res: unknown) => ({ from: () => ({ select: () => ({ in: () => ({ in: async () => res }) }) }) });
+  const db = (res: unknown) => fakeDb(res);
   it("holds proposed and set days, fails closed on an error, holds nothing when the table is not deployed", async () => {
     const r = await loadContinuingJobs(db({ data: [{ job_id: "a", status: "proposed" }, { job_id: "b", status: "set" }, { job_id: "c", status: "finished" }], error: null }), ["a", "b", "c"]);
     expect(r.ok && [...r.jobs].sort()).toEqual(["a", "b"]);
@@ -187,7 +195,7 @@ describe("owner 11-08 (audit F1): the hold ends with the day", () => {
   });
 
   it("_shared: lapsed vs held, by the day's start in Central time", async () => {
-    const db = (res: unknown) => ({ from: () => ({ select: () => ({ in: () => ({ in: async () => res }) }) }) });
+    const db = (res: unknown) => fakeDb(res);
     const r = await loadContinuingJobs(db({ data: [
       { job_id: "old", status: "set", ...dayHoursAgo(CONTINUE_DAY_HOLD_GRACE_HOURS + 2) },
       { job_id: "today", status: "set", ...dayHoursAgo(CONTINUE_DAY_HOLD_GRACE_HOURS - 2) },
@@ -200,6 +208,34 @@ describe("owner 11-08 (audit F1): the hold ends with the day", () => {
     expect(heldByContinueDay(r, "noday")).toBe(true);
     expect(heldForInstantRelease(r, "asked")).toBe(true);
     expect(heldForInstantRelease(r, "old")).toBe(false);
+  });
+});
+
+describe("owner #4 (11-08): a reported missed continue day holds the job until an admin acts", () => {
+  it("_shared: an open report holds the job (and it is no longer 'lapsed'); a read error fails closed; no table holds none", async () => {
+    const days = { data: [{ job_id: "old", status: "set", ...dayHoursAgo(CONTINUE_DAY_HOLD_GRACE_HOURS + 2) }], error: null };
+    const r = await loadContinuingJobs(fakeDb({ data: [], error: null }, { data: [{ job_id: "gone" }], error: null }), ["gone", "other"]);
+    expect(heldByContinueDay(r, "gone")).toBe(true);
+    expect(heldForInstantRelease(r, "gone")).toBe(true);
+    expect(heldByContinueDay(r, "other")).toBe(false);
+    const both = await loadContinuingJobs(fakeDb(days, { data: [{ job_id: "old" }], error: null }), ["old"]);
+    expect(heldByContinueDay(both, "old")).toBe(true);
+    expect(lapsedContinueDay(both, "old")).toBeNull();
+    const bad = await loadContinuingJobs(fakeDb({ data: [], error: null }, { data: null, error: { message: "boom", code: "08006" } }), ["a"]);
+    expect(bad.ok).toBe(false);
+    const missing = await loadContinuingJobs(fakeDb({ data: [], error: null }, { data: null, error: { message: "no table", code: "42P01" } }), ["a"]);
+    expect(missing.ok && missing.jobs.size).toBe(0);
+  });
+
+  it("auto-release: a done job with an open report is neither escalated nor instant-released", async () => {
+    seedDoneJob(false);
+    (scenario.reads.jobs as { rows: Array<Record<string, unknown>> }).rows[0].helper_completed_at = new Date(Date.now() - 3600e3).toISOString();
+    scenario.reads.profiles = { rows: [{ user_id: POSTER }] };
+    scenario.reads.job_missed_returns = { rows: [{ job_id: "job-1", resolved_at: null }] };
+    const body = await json(await autoRelease());
+    expect(escalations()).toHaveLength(0);
+    expect(toPayoutPending()).toHaveLength(0);
+    expect(JSON.stringify(body)).toContain("continuing");
   });
 });
 

@@ -80,6 +80,24 @@ export async function loadContinuingJobs(
       jobs.add(row.job_id); // not yet over, or no readable day: held
     }
   }
+  // Owner #4 (11-08, 20261108214605): a missed continue day reported ("Didn't come back" / "Can't come back") holds the
+  // job until an admin acts: no escalation, no instant release, no stalled nudge, no approve ask. Same fail-closed rule.
+  let missed: { data: Array<{ job_id: string }> | null; error: { message?: string; code?: string } | null };
+  try {
+    missed = await db.from("job_missed_returns").select("job_id").in("job_id", ids).is("resolved_at", null);
+  } catch (err) {
+    // Not silent: the failure goes back to the caller as { ok: false, message }, which reports it.
+    return { ok: false, message: caughtMessage(err) };
+  }
+  if (missed.error) {
+    if (!tableMissing(missed.error)) return { ok: false, message: missed.error.message ?? "missed return read failed" };
+  } else {
+    for (const row of missed.data ?? []) {
+      if (!row || !ids.includes(row.job_id)) continue;
+      jobs.add(row.job_id); // reported missed: held until an admin acts
+      lapsed.delete(row.job_id);
+    }
+  }
   return { ok: true, jobs, lapsed };
 }
 

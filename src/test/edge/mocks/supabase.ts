@@ -323,6 +323,10 @@ function freshScenario(): SupabaseScenario {
       // src/test/edge/stripeConnectNeedsHire.test.ts sets it false to prove
       // the refusal.
       payout_setup_hire_allowed: true,
+      // Current Terms (owner 2026-11-08): the member has accepted them, the
+      // neutral answer. src/test/edge/termsNotAcceptedRefused.test.ts sets it
+      // false (and an error) to prove the refusals.
+      terms_accepted_is_current: true,
     },
     rpcErrors: {},
     rpcCalls: [],

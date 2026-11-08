@@ -9,6 +9,8 @@
 //   1. supabase/functions/_shared/legalVersions.ts (edge)
 //   2. this file (client)
 //   3. src/pages/info/legal/legalSections.ts LAST_UPDATED[key] (rendered date)
+//   4. public.current_terms_version() in a new migration (the server refuses a
+//      commitment from a member behind it; termsAcceptedBeforeCommitments.test.ts)
 // The parity test at legalVersions.parity.test.ts guards drift.
 
 // Always "Mon YYYY", the month it is published, and only ever later than the

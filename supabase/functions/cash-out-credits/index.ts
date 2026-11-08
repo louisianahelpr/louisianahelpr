@@ -1,5 +1,6 @@
 import { serve } from "../_shared/buildStamp.ts";
 import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
+import { refuseStaleTerms } from "../_shared/requireCurrentTerms.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
@@ -69,6 +70,10 @@ serve(async (req) => {
     // the table (that gate cannot see the caller behind a service-role write).
     const unconfirmedEmail = refuseUnconfirmedEmail(userData.user, corsHeaders);
     if (unconfirmedEmail) return unconfirmedEmail;
+    // A cash-out moves money: the caller must have accepted the current Terms
+    // (_shared/requireCurrentTerms.ts).
+    const staleTerms = await refuseStaleTerms(supabase, userData.user, corsHeaders);
+    if (staleTerms) return staleTerms;
 
     // Stable per-attempt id supplied by the client (a UUID it generates once per
     // cash-out and REUSES across retries of the same attempt). This is what the

@@ -1,7 +1,7 @@
 import {
   Briefcase, MessageSquare, DollarSign, Star, Megaphone,
   Navigation, CheckCircle2, Users, RefreshCw, Receipt, ShieldAlert, Sparkles,
-  Tag, HandCoins, MessageCircleQuestion, ShoppingBag, CalendarClock, Undo2, TrendingDown, Search,
+  Tag, HandCoins, MessageCircleQuestion, ShoppingBag, CalendarClock, Undo2, TrendingDown, Search, Store, Info,
 } from "lucide-react";
 import type { Prefs, Row } from "./types";
 
@@ -25,6 +25,8 @@ export const defaultPrefs: Prefs = {
   declutter_listings: true, email_declutter_listings: true,
   declutter_offers: true, email_declutter_offers: true,
   declutter_questions: true, email_declutter_questions: true,
+  shops_orders: true, email_shops_orders: true, shops_messages: true, email_shops_messages: true,
+  shops_updates: true, email_shops_updates: true,
   declutter_sales: true, email_declutter_sales: true,
   declutter_pickups: true, email_declutter_pickups: true,
   declutter_refunds: true, email_declutter_refunds: true,
@@ -144,4 +146,14 @@ export const declutterRows: Row[] = [
   { key: "declutter_refunds", emailKey: "email_declutter_refunds", label: "Refunds", description: "Refund requests, reported problems and strikes. Refund receipts are always emailed.", icon: <Undo2 className="w-3.5 h-3.5" /> },
   { key: "declutter_price_drops", emailKey: "email_declutter_price_drops", label: "Price drops", description: "An item you watch got cheaper or free.", icon: <TrendingDown className="w-3.5 h-3.5" /> },
   { key: "declutter_wanted", emailKey: "email_declutter_wanted", label: "Wanted matches", description: "Your Wanted posts and saved Declutter searches.", icon: <Search className="w-3.5 h-3.5" /> },
+];
+
+// ── The "Shops" group (shops audit 11-08 #6, 20261108201153) ──
+// One row per shops_* notification type, all ON by default. Until then every Shops notice rode a Jobs switch, so a
+// shop owner who turned off "Job offers" lost new orders. Only orders send email (new order, accepted, ready, refunded,
+// payout sent); messages and updates are in the app only.
+export const shopsRows: Row[] = [
+  { key: "shops_orders", emailKey: "email_shops_orders", label: "Orders", description: "New orders, accepts, ready and handovers, payments, refunds and custom orders.", icon: <Store className="w-3.5 h-3.5" /> },
+  { key: "shops_messages", emailKey: "email_shops_messages", label: "Shop messages", description: "New messages in a shop chat.", icon: <MessageSquare className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
+  { key: "shops_updates", emailKey: "email_shops_updates", label: "Shop updates", description: "Your shop's settings and Shops strikes.", icon: <Info className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
 ];

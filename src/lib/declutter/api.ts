@@ -460,11 +460,15 @@ export const CARD_PHOTO_PX = 480;
  * 200 that day (it 403'd on 2026-08-31, src/lib/imageUrl.ts), so a card falls back to photoPublicUrl when it fails.
  * The item page shows its own resized photo (src/lib/declutter/pagePhoto.ts), its viewer the original. Guard:
  * src/test/declutterCardsLoadThumbnails.test.tsx.
+ * Quality 55, not 70 (lead 11-08, guest /declutter LCP 2,060 ms live against the 2 s rule, the first card photo): the
+ * 340 square of the two first-row live photos measured 18.1 + 11.3 KB WebP at 70 and 15.2 + 8.9 KB at 55 (curl, the
+ * same day), with no difference to see at card size. Every copy of the card URL (squarePhotoUrl, declutterPrefetch.ts,
+ * declutterFirstPhotos.mjs, index.html's guest script) asks for the same quality, so one download serves them all.
  */
 export function photoCardUrl(path: string): string {
   return supabase.storage
     .from(DECLUTTER_PHOTO_BUCKET)
-    .getPublicUrl(path, { transform: { width: CARD_PHOTO_PX, height: CARD_PHOTO_PX, resize: "cover", quality: 70 } }).data.publicUrl;
+    .getPublicUrl(path, { transform: { width: CARD_PHOTO_PX, height: CARD_PHOTO_PX, resize: "cover", quality: 55 } }).data.publicUrl;
 }
 
 /** The seller's shared star rating (the jobs' public aggregate, row 45). */

@@ -14,8 +14,12 @@
 // @mutate index.html |             if (name.slice(0, 3) === "sb-" && /-auth-token$/.test(name)) return;\n            if (name.indexOf("helpr_section_prefs:") === 0) prefs = true; |             if (name.indexOf("helpr_section_prefs:") === 0) prefs = true;
 // @mutate index.html |           return fetch(base + "/rest/v1/rpc/" + fn + "?apikey=" + encodeURIComponent(key)) |           return fetch(base + "/rest/v1/rpc/" + fn, { method: "POST", headers: { apikey: key } })
 // @mutate index.html |           if (!isOpen(a[0]) \|\| !p \|\| | if (!p \|\|
+// @mutate index.html |       [data-lh-app-shell="declutter"] #boot-loader .boot-h {\n        background-image: none; |       [data-lh-app-shell="declutter"] #boot-loader .boot-h {\n        background-image: url("/boot-h.webp");
+// @mutate index.html |           early = true;\n          document.documentElement.setAttribute("data-lh-app-shell", "declutter"); |           early = true;
+// @mutate index.html | typeof p.photos.length !== "number") return unshow(); | typeof p.photos.length !== "number") return;
+// @mutate index.html |               else unshow(); | 
 // @mutate index.html |            (s < 2 ? row : later).push({ img: img, path: paths[s] }); |            row.push({ img: img, path: paths[s] });
-// @mutate index.html |             return root + path + "?width=" + px + "&height=" + px + "&resize=cover&quality=70"; |             return root + path + "?width=" + px + "&height=" + px + "&resize=cover&quality=75";
+// @mutate index.html |             return root + path + "?width=" + px + "&height=" + px + "&resize=cover&quality=55"; |             return root + path + "?width=" + px + "&height=" + px + "&resize=cover&quality=75";
 // @mutate index.html |         if (location.search \|\| location.hash \|\| window.innerWidth >= 900 \|\| prefs) return; |         if (location.hash \|\| prefs) return;
 // @mutate index.html |             if (mark && mark !== "declutter") return; |
 // @mutate src/boot/guestDeclutterPrefetch.ts |   const early = takeEarlyGuestReads(); |   const early = null as ReturnType<typeof takeEarlyGuestReads>;
@@ -23,7 +27,7 @@
 // @mutate src/boot/guestDeclutterPrefetch.ts |     if (document.documentElement.getAttribute("data-lh-app-shell") === "declutter") return; |
 // @mutate src/lib/declutterFirstPhotos.mjs |   return typeof path === "string" && path.indexOf("/") > 0 && !path.includes("..") && PATH_RE.test(path); |   return typeof path === "string";
 // @mutate src/lib/declutterFirstPhotos.mjs |     .slice(0, FIRST_ROW) |     .slice(0, 4)
-// @mutate src/lib/declutterFirstPhotos.mjs |   const url = (px) => `${root}${path}?width=${px}&height=${px}&resize=cover&quality=70`; |   const url = (px) => `${root}${path}?width=${px}&height=${px}&resize=cover`;
+// @mutate src/lib/declutterFirstPhotos.mjs |   const url = (px) => `${root}${path}?width=${px}&height=${px}&resize=cover&quality=55`; |   const url = (px) => `${root}${path}?width=${px}&height=${px}&resize=cover`;
 // @mutate api/share.ts |         return respond(page, DECLUTTER_PAGE_CDN_CACHE, 200, meta.noindexHeader === true, preload ? { Link: preload } : {}); |         return respond(page, DECLUTTER_PAGE_CDN_CACHE, 200, meta.noindexHeader === true);
 // @mutate api/share.ts | const DECLUTTER_PAGE_CDN_CACHE = "public, s-maxage=60, stale-while-revalidate=3600"; | const DECLUTTER_PAGE_CDN_CACHE = "public, s-maxage=300, stale-while-revalidate=86400";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -166,7 +170,8 @@ describe("index.html's guest /declutter script (Q2705, 11-08)", () => {
     const r = setup();
     await flush();
     expect(r.imgs(), "nothing before Declutter is known to be open").toHaveLength(0);
-    expect(r.shown()).toBeNull();
+    // The skeleton shows at once (lead 11-08), so the boot loader's H under it is never fetched.
+    expect(r.shown()).toBe("declutter");
     r.openNow();
     await flush();
     expect(r.shown()).toBe("declutter");
@@ -189,6 +194,26 @@ describe("index.html's guest /declutter script (Q2705, 11-08)", () => {
     imgs[1].dispatchEvent(new Event("error"));
     expect([imgs[2].getAttribute("src"), imgs[2].getAttribute("srcset")]).toEqual([want[2].href, want[2].srcset]);
     expect(imgs[2].getAttribute("fetchpriority")).toBeNull();
+  });
+
+  it("takes the skeleton away again when the preview is unusable", async () => {
+    for (const preview of [{ nope: true }, { items: [], photos: [], more: false }, { items: ITEMS }]) {
+      const r = setup({ preview });
+      expect(r.shown()).toBe("declutter");
+      r.openNow();
+      await flush();
+      expect(r.shown(), JSON.stringify(preview)).toBeNull();
+      expect(r.imgs()).toHaveLength(0);
+    }
+  });
+
+  it("fetches no boot-loader H while the /declutter skeleton covers it (lead 11-08)", () => {
+    // The rule in index.html's boot styles: the H is a CSS background, so with none it is never requested.
+    const css = INDEX;
+    const rule = /\[data-lh-app-shell="declutter"\]\s+#boot-loader\s+\.boot-h\s*\{([^}]*)\}/.exec(css);
+    expect(rule?.[1]).toMatch(/background-image:\s*none/);
+    // After the dark theme's H, so it wins there too (same specificity).
+    expect(css.indexOf(rule![0])).toBeGreaterThan(css.indexOf('[data-theme="dark"] #boot-loader .boot-h'));
   });
 
   it("never shows the shell while Declutter is not open to everyone", async () => {

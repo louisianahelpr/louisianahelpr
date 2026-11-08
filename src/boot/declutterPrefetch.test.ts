@@ -273,7 +273,7 @@ describe("the first cards' photos start from the entry's answer (B96, Q2705/Q270
     await new Promise((r) => setTimeout(r, 0));
     const links = [...document.head.querySelectorAll<HTMLLinkElement>('link[rel="preload"][as="image"]')];
     try {
-      expect(links.map((l) => l.href)).toEqual([`${BASE}/storage/v1/render/image/public/job-photos/u/a.jpg?width=480&height=480&resize=cover&quality=70`, `${BASE}/storage/v1/render/image/public/job-photos/u/b.jpg?width=480&height=480&resize=cover&quality=70`]);
+      expect(links.map((l) => l.href)).toEqual([`${BASE}/storage/v1/render/image/public/job-photos/u/a.jpg?width=480&height=480&resize=cover&quality=55`, `${BASE}/storage/v1/render/image/public/job-photos/u/b.jpg?width=480&height=480&resize=cover&quality=55`]);
       for (const l of links) expect([l.getAttribute("imagesizes"), l.getAttribute("fetchpriority")]).toEqual(["(min-width: 640px) 250px, calc(50vw - 26px)", "high"]);
     } finally {
       links.forEach((l) => l.remove());

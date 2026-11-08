@@ -33,7 +33,7 @@ describe("lazyStorage (the build's storage-js stand-in)", () => {
       ["declutter-photos", "x/y z/ü.jpg", { download: true }],
       ["quote-photos", "q/1.jpg", { download: "named.jpg", cacheNonce: 3 }],
       // Hotfix 11-01: Declutter's resized photos call getPublicUrl with a transform (render/image).
-      ["job-photos", "u1/d/item/p.jpg", { transform: { width: 340, height: 340, resize: "cover", quality: 70 } }],
+      ["job-photos", "u1/d/item/p.jpg", { transform: { width: 340, height: 340, resize: "cover", quality: 55 } }],
       ["job-photos", "u1/d/item/p.jpg", { transform: { width: 160, format: "origin" }, download: true }],
       ["job-photos", "u1/d/item/p.jpg", { transform: {} }],
     ];

@@ -6,6 +6,7 @@
 // balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
+import { shopDigitalDisputeEvent } from "./_shopDigitalDispute.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../../_shared/adminIds.ts";
 import {
@@ -61,6 +62,10 @@ export async function handleChargeDisputeClosed(
   // below is blind to it. Report-only — see alertGiftDisputeClosed for why a
   // "won" dispute does not auto-restore the credit.
   await alertGiftDisputeClosed(supabase, closedPiId, outcome, logStep);
+
+  // Shops digital downloads (20261108185110): a lost chargeback keeps the download stopped; a won one gives it back.
+  const digitalEvent = ({ lost: "lost", won: "won" } as const)[closedDispute.status as "lost" | "won"];
+  if (digitalEvent) await shopDigitalDisputeEvent(supabase, closedPiId, digitalEvent, logStep);
 
   // Q1724: a LOST chargeback returned the money with no refund event, so a
   // taxed recurring visit's Stripe Tax transaction is reversed here (the

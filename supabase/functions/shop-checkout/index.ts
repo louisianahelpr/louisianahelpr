@@ -221,6 +221,8 @@ function addressRefused(e: unknown): boolean {
 async function shopOrderTax(
   stripe: Stripe, orderId: string, address: PickupTaxAddress,
   lines: Array<{ kind: string; tax_kind: string | null; line_cents: number }>, feeParts: Array<{ tax_code: string; cents: number }>,
+  // Digital downloads (20261108185110): a download is sourced to the buyer's billing address, not a pickup point.
+  addressSource: "shipping" | "billing" = "shipping",
 ): Promise<{ calculationId: string; cents: number }> {
   const calc = await stripe.tax.calculations.create({
     currency: "usd",
@@ -228,7 +230,7 @@ async function shopOrderTax(
       ...lines.map((l, i) => ({ amount: l.line_cents, reference: `line_${i + 1}`, tax_behavior: "exclusive" as const, tax_code: shopTaxCode(l.kind, l.tax_kind) })),
       ...feeParts.map((p, i) => ({ amount: p.cents, reference: `service_fee_${i + 1}`, tax_behavior: "exclusive" as const, tax_code: p.tax_code })),
     ],
-    customer_details: { address, address_source: "shipping" },
+    customer_details: { address, address_source: addressSource },
   }, { idempotencyKey: `shop-tax-${orderId}` });
   // A missing figure is never read as $0 (Number(null) is 0: an untaxed charge).
   const cents = typeof calc.tax_amount_exclusive === "number" ? calc.tax_amount_exclusive : NaN;
@@ -631,6 +633,168 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   if (session.amount_subtotal !== chargedCents) {
     await expirePage(session.id);
     console.error(`[shop-checkout] Stripe subtotal ${session.amount_subtotal} != order ${chargedCents}`);
+    return json({ error: TRY_AGAIN }, 500);
+  }
+  const { error: attachErr } = await admin.rpc("shop_attach_checkout_session", { p_order_id: o.id, p_session_id: session.id });
+  if (attachErr) {
+    await expirePage(session.id);
+    return json({ error: TRY_AGAIN }, 409);
+  }
+  return json({ url: session.url, order_id: o.id });
+}
+
+const US_STATES = new Set(("AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC " +
+  "ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY").split(" "));
+
+/** The buyer's billing address for a download's tax (any US state), or "invalid". */
+function parseBillingAddress(v: unknown): PickupTaxAddress | "invalid" {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return "invalid";
+  const a = v as Record<string, unknown>;
+  const line1 = typeof a.line1 === "string" ? a.line1.trim() : "";
+  const city = typeof a.city === "string" ? a.city.trim() : "";
+  const state = typeof a.state === "string" ? a.state.trim().toUpperCase() : "";
+  const zip = typeof a.postal_code === "string" ? a.postal_code.trim() : "";
+  if (line1.length < 3 || line1.length > 120 || city.length < 2 || city.length > 60 || !US_STATES.has(state) || !/^\d{5}$/.test(zip)) {
+    return "invalid";
+  }
+  return { line1, city, state, postal_code: zip, country: "US" };
+}
+
+/**
+ * DIGITAL DOWNLOADS (owner 11-08; migrations 20261108182917 + 20261108185110): buy one download.
+ *   buy_digital { item_id, billing: {line1, city, state, postal_code} }  THE BUYER.
+ * shops_request_digital_order runs AS THE BUYER (every rule is SQL's, including the ID check at the first purchase
+ * and the one-time setup fee, both INSERT triggers). The page is a card HOLD like every Shops page; stripe-webhook
+ * marks it paid (shop_digital_mark_paid) and captures it at once, so the buyer can download as soon as the charge is
+ * taken. The tax is figured at the buyer's billing address (a digital product is sourced to the purchaser: La.
+ * Acts 2024 3rd Ex. Sess. No. 10; codes in salesTax.ts) and committed at capture as every Shops order is.
+ * On the iPhone this page is only ever opened on the website (the app's Buy button links out; App Review
+ * Guideline 3.1.1(a) / 3.1.3, US storefront), so a native request is refused here.
+ */
+/** The same page key as an ordinary order (one page per order; a replaced wallet retries once with ":new-wallet"). */
+const digitalPageKey = (orderId: string, retry: boolean) => `shop-order-${orderId}${retry ? ":new-wallet" : ""}`;
+
+async function buyDigital(body: Record<string, unknown>, user: { id: string; email?: string }, asBuyer: Db, admin: Db) {
+  const itemId = typeof body.item_id === "string" ? body.item_id : "";
+  if (!UUID_RE.test(itemId)) return json({ error: "item_unavailable" }, 404);
+  if (isNativeRequest(body)) return json({ error: "digital_on_website" }, 409);
+  const billing = parseBillingAddress(body.billing);
+  if (billing === "invalid") return json({ error: "invalid_billing_address" }, 400);
+  // The shop and its owner (for the Stripe mode) are read first; the SQL refuses a caller in its own words below.
+  const { data: itemRow, error: itemErr } = await admin.from("shop_items").select("shop_id, owner_id, kind").eq("id", itemId).maybeSingle();
+  if (itemErr) {
+    console.error(`[shop-checkout] digital item read failed: ${itemErr.message}`);
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  const item = itemRow as { shop_id?: string; owner_id?: string; kind?: string } | null;
+  if (!item?.owner_id || !item.shop_id || item.kind !== "digital") return json({ error: "item_unavailable" }, 404);
+  const mode = await stripeModeForParties(admin, [user.id, item.owner_id], { caller: user.id });
+
+  const { data, error } = await asBuyer.rpc("shops_request_digital_order", { p_item_id: itemId });
+  if (error) return rpcRefusal(error);
+  const frozen = data as { order_id?: string; items_cents?: number; premium_cents?: number; superseded_session_id?: string | null } | null;
+  if (!frozen?.order_id) return json({ error: TRY_AGAIN }, 500);
+  const supersededPage = frozen.superseded_session_id;
+  if (supersededPage) await expirePage(supersededPage);
+  const close = async (why: string) => {
+    const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });
+    if (closeErr) console.error(`[shop-checkout] digital order ${frozen.order_id} not closed after ${why}: ${closeErr.message}`);
+  };
+
+  const { data: row, error: readErr } = await admin.from("shop_orders")
+    .select("id, seller_id, items_cents, premium_cents, setup_fee_cents, is_digital, status").eq("id", frozen.order_id).maybeSingle();
+  if (readErr) {
+    console.error(`[shop-checkout] digital order read failed: ${readErr.message}`);
+    await close("its read failed");
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  const o = row as { id: string; seller_id: string; items_cents: number; premium_cents: number; setup_fee_cents: number; is_digital: boolean; status: string } | null;
+  if (!o || o.is_digital !== true || o.status !== "awaiting_hold" || o.seller_id !== item.owner_id
+      || o.items_cents !== frozen.items_cents || o.premium_cents !== frozen.premium_cents) {
+    console.error(`[shop-checkout] digital order ${frozen.order_id} does not match what was frozen`);
+    await close("a mismatch");
+    return json({ error: TRY_AGAIN }, 500);
+  }
+  const { data: lineRows, error: linesErr } = await admin.from("shop_order_lines")
+    .select("title, kind, tax_kind, unit_cents, quantity, line_cents").eq("order_id", o.id);
+  const lines = (lineRows ?? []) as Array<{ title: string; kind: string; tax_kind: string | null; unit_cents: number; quantity: number; line_cents: number }>;
+  if (linesErr || lines.length !== 1 || lines[0].kind !== "digital" || lines[0].line_cents !== o.items_cents) {
+    console.error(`[shop-checkout] digital order ${o.id} lines unreadable or wrong`);
+    await close("its lines were wrong");
+    return json({ error: TRY_AGAIN }, 500);
+  }
+  const stripe = stripeFor(mode);
+  const feeParts = splitBuyerFeeByTaxCode(lines, o.premium_cents);
+  let tax: { calculationId: string; cents: number };
+  try {
+    tax = await shopOrderTax(stripe, o.id, billing, lines, feeParts, "billing");
+  } catch (e) {
+    const unusable = addressRefused(e);
+    console.error(JSON.stringify({ event: unusable ? "shop_billing_address_unusable" : "shop_tax_calculation_failed", order: o.id, mode, detail: caughtMessage(e).slice(0, 200) }));
+    await close("its tax failed");
+    if (unusable) return json({ error: "billing_address_unusable" }, 409);
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  let customerId: string | undefined;
+  try {
+    const storedWallet = await storedStripeCustomer(admin, user.id, mode);
+    customerId = storedWallet ?? undefined;
+  } catch (e) {
+    console.error(`[shop-checkout] ${caughtMessage(e)}`);
+    await close("the wallet read failed");
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  const taxed = (name: string, taxCode: string) => ({ name, tax_code: taxCode });
+  const meta: Record<string, string> = {
+    kind: "shop_order", digital: "1", order_id: o.id, buyer_id: user.id, payer_id: user.id, seller_id: o.seller_id,
+    tax_calculation_id: tax.calculationId, job_tax_cents: String(tax.cents),
+    // Review 11-08: the state and ZIP the tax was figured at. stripe-webhook compares them with the card page's
+    // billing address and releases the hold when they differ, so the address that pays is the one taxed.
+    billing_state: billing.state, billing_zip: billing.postal_code,
+  };
+  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [{
+    quantity: 1,
+    price_data: { currency: "usd", unit_amount: lines[0].unit_cents, tax_behavior: "exclusive",
+      product_data: taxed(`${lines[0].title.slice(0, 100)} (download)`, shopTaxCode(lines[0].kind, lines[0].tax_kind)) },
+  }];
+  for (const part of feeParts) {
+    lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: part.cents, tax_behavior: "exclusive",
+      product_data: taxed("Service fee (5% + $0.70)", part.tax_code) } });
+  }
+  const setupFeeCents = Number(o.setup_fee_cents ?? 0);
+  if (!Number.isInteger(setupFeeCents) || setupFeeCents < 0) {
+    await close("a bad setup fee");
+    return json({ error: TRY_AGAIN }, 500);
+  }
+  if (setupFeeCents > 0) {
+    lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: setupFeeCents, tax_behavior: "exclusive",
+      product_data: taxed("One-time account setup fee", NONTAXABLE_TAX_CODE) } });
+  }
+  if (tax.cents > 0) lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: tax.cents, tax_behavior: "exclusive",
+    product_data: { name: "Sales tax", description: "Sales tax where you live (your billing address)", tax_code: NONTAXABLE_TAX_CODE } } });
+  const chargedCents = o.items_cents + o.premium_cents + setupFeeCents + tax.cents;
+  const session = await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (walletPayer, isRetry) => stripe.checkout.sessions.create(
+    {
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: lineItems,
+      billing_address_collection: "required" as const,
+      ...(walletPayer ? { customer: walletPayer, customer_update: { address: "auto" } } : { customer_email: user.email ?? undefined }),
+      client_reference_id: o.id,
+      metadata: meta,
+      payment_intent_data: { metadata: meta, capture_method: "manual", transfer_group: `shop_order_${o.id}` },
+      custom_text: { submit: { message: "Your download is ready in Shops > My orders as soon as the payment goes through." } },
+      payment_method_options: threeDSecureOptions(chargedCents),
+      expires_at: Math.floor(Date.now() / 1000) + PAGE_LIFETIME_S,
+      success_url: buildRedirectUrl("/shops/orders?bought=1", false),
+      cancel_url: buildRedirectUrl(`/shops/${item.shop_id}?item=${itemId}`, false),
+    },
+    { idempotencyKey: digitalPageKey(o.id, isRetry) },
+  ));
+  if (chargedCents !== session.amount_subtotal) {
+    await expirePage(session.id);
+    await close("a Stripe subtotal mismatch");
+    console.error(`[shop-checkout] Stripe subtotal ${session.amount_subtotal} != digital order ${chargedCents}`);
     return json({ error: TRY_AGAIN }, 500);
   }
   const { error: attachErr } = await admin.rpc("shop_attach_checkout_session", { p_order_id: o.id, p_session_id: session.id });
@@ -1157,6 +1321,7 @@ serve(async (req) => {
       if (staleTerms) return staleTerms;
     }
     if (body.action === "order") return await order(body, user, asMember, admin);
+    if (body.action === "buy_digital") return await buyDigital(body, user, asMember, admin);
     if (body.action === "helpr_quote") return await helprQuote(body, asMember, admin);
     if (body.action === "pickup_point") return await pickupPoint(user, asMember, admin);
     if (body.action === "accept") return await accept(body, asMember, admin);

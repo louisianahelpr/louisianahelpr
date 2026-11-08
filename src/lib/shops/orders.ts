@@ -130,6 +130,8 @@ export interface ShopOrder {
   balance_captured_at?: string | null;
   /** The saved card did not take the rest (or none was saved): the buyer pays it from the order. */
   balance_failed_at?: string | null;
+  /** Digital downloads (20261108185110): one download, no ready date, pickup or handover. */
+  is_digital?: boolean;
   shop_order_lines: OrderLine[];
   /** The shop's name (buyer list only); null once the shop is gone or hidden from the buyer. */
   shops?: { name: string } | null;
@@ -150,7 +152,7 @@ export interface OrderTerms {
 const ORDER_COLUMNS =
   "id, buyer_id, seller_id, shop_id, status, close_reason, ready_date, cancel_policy, ready_tap_cancel, note, decline_reason, items_cents, " +
   "premium_cents, tax_cents, total_cents, created_at, held_at, accept_by, accepted_at, captured_at, closed_at, handover_mode, fulfillment, delivery_cents, helpr_unfilled_at, handed_over_at, " +
-  "payment_plan, deposit_cents, balance_cents, balance_captured_at, balance_failed_at, " +
+  "payment_plan, deposit_cents, balance_cents, balance_captured_at, balance_failed_at, is_digital, " +
   "shop_order_lines (id, item_id, title, kind, unit_cents, quantity, line_cents, at_buyer)";
 
 /** The member's orders as a buyer (newest first); a page that was never paid is not an order to show. */
@@ -443,8 +445,14 @@ const CLOSE_WORDS: Record<string, { buyer: string; shop: string }> = {
 };
 
 /** "Waiting for the shop", "Accepted", ... in the buyer's (or the shop's) words. */
-export function orderStatusLabel(o: Pick<ShopOrder, "status" | "close_reason" | "captured_at">, side: "buyer" | "shop" = "buyer"): string {
+export function orderStatusLabel(o: Pick<ShopOrder, "status" | "close_reason" | "captured_at"> & { is_digital?: boolean }, side: "buyer" | "shop" = "buyer"): string {
   const closed = o.close_reason ? CLOSE_WORDS[o.close_reason] : undefined;
+  // Digital downloads (20261108185110): paid means delivered; nothing is picked up.
+  if (o.is_digital && o.status === "accepted") {
+    if (!o.captured_at) return side === "buyer" ? "Paid (finishing your payment)" : "Sold (the payment is going through)";
+    return side === "buyer" ? "Paid. Ready to download" : "Sold. Paid out 72 hours after the sale";
+  }
+  if (o.is_digital && o.status === "handed_over") return side === "buyer" ? "Paid. Yours to keep" : "Sold and paid out";
   if (closed && o.status === "partially_refunded") {
     return side === "buyer" ? "Partly refunded by Louisiana Helpr" : "Partly refunded to the buyer by Louisiana Helpr";
   }
@@ -515,4 +523,12 @@ export function firstOpenReadyDate(
     if (readyDateProblem(d, terms, leadDays) === null) return d;
   }
   return null;
+}
+
+/** Digital downloads (20261108185110): the Stripe page for one download, priced at the buyer's billing address. */
+export async function requestDigitalPurchase(itemId: string, billing: { line1: string; city: string; state: string; postal_code: string }): Promise<string> {
+  const data = await invokeShopCheckout({ action: "buy_digital", item_id: itemId, billing });
+  const url = typeof data.url === "string" ? data.url : "";
+  if (!url) throw new Error("payment_unavailable");
+  return url;
 }

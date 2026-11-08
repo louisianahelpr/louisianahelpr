@@ -16,9 +16,21 @@
 // THROWS, so stripe-webhook rolls back its dedupe row and Stripe redelivers.
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
-import { releaseShopHold } from "../../_shared/shopHolds.ts";
+import { captureShopHold, releaseShopHold } from "../../_shared/shopHolds.ts";
 import { sessionJobTaxCents } from "../../_shared/jobTaxAddress.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+
+/**
+ * Digital downloads (review 11-08): the card page's billing address is the one the tax was figured at. A download is
+ * taxed where the buyer lives (shop-checkout figures it at the billing state and ZIP typed in the app and puts them
+ * in the metadata); a card whose billing address is in another state or ZIP would pay a tax figured somewhere else.
+ */
+function digitalBillingMatches(session: { customer_details?: { address?: { country?: string | null; state?: string | null; postal_code?: string | null } | null } | null }, meta: Record<string, string>): boolean {
+  const a = session.customer_details?.address;
+  const state = (a?.state ?? "").trim().toUpperCase();
+  const zip = (a?.postal_code ?? "").trim().slice(0, 5);
+  return a?.country === "US" && !!meta.billing_state && !!meta.billing_zip && state === meta.billing_state && zip === meta.billing_zip;
+}
 
 /** True for a Checkout Session shop-checkout created. */
 export function isShopSession(session: { metadata?: unknown } | null | undefined): boolean {
@@ -73,6 +85,35 @@ export async function settleShopSession(
   // job_tax_cents). A page opened before H6 still reads Stripe's figure. shop_mark_order_held checks the total
   // against items + fee + this tax (+ the setup fee), so a wrong figure cancels the hold.
   const taxCents = sessionJobTaxCents(session) ?? 0;
+  // DIGITAL DOWNLOADS (20261108185110): nobody accepts a download. shop_digital_mark_paid makes the same amount and
+  // setup-fee checks as shop_mark_order_held and records the order accepted; the hold is captured here at once with
+  // the reviewed captureShopHold (a capture that does not answer is retried by declutter-money's shop_captures_due).
+  // The SQL refuses a non-digital order, so the metadata flag alone never routes a normal order here.
+  if (meta.digital === "1") {
+    const { data: paid, error: paidErr } = await supabase.rpc("shop_digital_mark_paid", {
+      p_session_id: session.id,
+      p_payment_intent_id: piId,
+      p_amount_total: session.amount_total,
+      p_tax_cents: taxCents,
+      p_livemode: event.livemode === true,
+      p_billing_matches: digitalBillingMatches(session, meta),
+    });
+    if (paidErr) throw new Error(`shop_digital_mark_paid failed: ${paidErr.message}`);
+    const ans = paid as { result?: string; order_id?: string; captured?: boolean; capture_attempts?: number; reason?: string } | null;
+    if (!ans?.result) throw new Error(`shop_digital_mark_paid returned nothing for ${session.id}`);
+    if (ans.result === "accepted" || ans.result === "already_accepted") {
+      if (ans.captured || !ans.order_id) return;
+      const outcome = await captureShopHold(stripe, supabase, ans.order_id, piId, Number(ans.capture_attempts ?? 0));
+      logStep("Shop download captured", { order: ans.order_id, outcome });
+      return;
+    }
+    const releasedDigital = await releaseShopHold(stripe, supabase, {
+      order_id: ans.order_id ?? meta.order_id, buyer_id: meta.buyer_id ?? null, seller_id: meta.seller_id ?? null,
+      payment_intent_id: piId, livemode: event.livemode === true, checkout_session_id: session.id,
+    });
+    logStep("Shop download hold cancelled", { order: ans.order_id ?? null, reason: ans.reason ?? null, released: releasedDigital });
+    return;
+  }
   const { data, error } = await supabase.rpc("shop_mark_order_held", {
     p_session_id: session.id,
     p_payment_intent_id: piId,

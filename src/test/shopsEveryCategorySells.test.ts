@@ -3,11 +3,11 @@
  * services and rentals are kinds that sell. Reads the EFFECTIVE (newest) definitions and the app's lists; behaviour on
  * a real database is src/test/pglite/shopsEveryCategorySells.pglite.mjs (3x, 12 planted defects each RED).
  *
- * @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |   IF p_kind IS NULL OR p_kind NOT IN ('made', 'home_food', 'farm', 'service', 'rental') THEN |   IF p_kind IS NULL OR p_kind NOT IN ('made', 'home_food', 'farm') THEN
- * @mutate supabase/migrations/20261106194243_shops_option_words_checked.sql |   IF v_item.kind NOT IN ('made', 'home_food', 'farm', 'service', 'rental') THEN\n    RAISE EXCEPTION 'invalid_kind' |   IF v_item.kind NOT IN ('made', 'home_food', 'farm') THEN\n    RAISE EXCEPTION 'invalid_kind'
+ * @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |   IF p_kind IS NULL OR p_kind NOT IN ('made', 'home_food', 'farm', 'service', 'rental', 'digital') THEN |   IF p_kind IS NULL OR p_kind NOT IN ('made', 'home_food', 'farm', 'digital') THEN
+ * @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |   IF v_item.kind NOT IN ('made', 'home_food', 'farm', 'service', 'rental', 'digital') THEN\n    RAISE EXCEPTION 'invalid_kind' |   IF v_item.kind NOT IN ('made', 'home_food', 'farm', 'digital') THEN\n    RAISE EXCEPTION 'invalid_kind'
  * @mutate supabase/migrations/20261106165310_shops_item_variants.sql |     IF v_item.kind NOT IN ('made', 'home_food', 'farm', 'service', 'rental') THEN\n      RAISE EXCEPTION 'item_unavailable' |     IF v_item.kind NOT IN ('made', 'home_food', 'farm') THEN\n      RAISE EXCEPTION 'item_unavailable'
  * @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql | CREATE TRIGGER shop_order_lines_snapshot_tax_kind BEFORE INSERT ON public.shop_order_lines | CREATE TRIGGER shop_order_lines_snapshot_tax_kind AFTER INSERT ON public.shop_order_lines
- * @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |   IF p_price_cents IS NULL OR p_price_cents NOT BETWEEN 100 AND 500000 THEN |   IF p_price_cents IS NULL OR p_price_cents NOT BETWEEN 100 AND 100000 THEN
+ * @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |   IF p_price_cents IS NULL OR p_price_cents NOT BETWEEN 100 AND 500000 THEN |   IF p_price_cents IS NULL OR p_price_cents NOT BETWEEN 100 AND 100000 THEN
  * @mutate supabase/functions/declutter-ai-draft/shopItemSanitize.ts |   rental: ["equipment_rental", "party_rental"],\n |
  * @mutate src/lib/shops/items.ts | ["item_repair", "fabric_cleaning", "clothes_cleaning", "clothing_alterations"]; | ["item_repair", "fabric_cleaning", "clothes_cleaning", "clothing_alterations", "home_service"];
  * @mutate src/lib/shops/items.ts |   return kind === "service" && !SHOP_TAXED_SERVICE_TYPES.includes(subtype) ? SERVICE_TYPE_HINT : null; |   return !SHOP_TAXED_SERVICE_TYPES.includes(subtype) ? SERVICE_TYPE_HINT : null;
@@ -25,7 +25,8 @@ const MIG = "20261105235833_shops_every_category_sells.sql";
 const DEFS = effectiveDefs(resolve(ROOT, "supabase/migrations"));
 const flat = (name: string) => blankSqlComments(DEFS.get(name)?.stmt ?? "").replace(/\s+/g, " ");
 const SQL = blankSqlComments(readFileSync(resolve(ROOT, "supabase/migrations", MIG), "utf8"));
-const SELL = "('made', 'home_food', 'farm', 'service', 'rental')";
+// Digital downloads (20261108182917) add a sixth kind after these five; the five still sell.
+const SELL = "('made', 'home_food', 'farm', 'service', 'rental'";
 
 describe("Shops H8: every category sells (services and rentals, with a price)", () => {
   it("reads the newest definitions, and they are this migration's (floor)", () => {

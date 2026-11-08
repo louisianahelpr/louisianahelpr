@@ -71,6 +71,10 @@ const INTERNAL_HIRES: Record<string, string[]> = {
  * each must still match (else it is stale here).
  */
 const NOT_HIRES: Record<string, string> = {
+  // 20261108185110 (Shops digital downloads): sets a paid download's shop_orders.status = 'accepted' (nobody accepts a
+  // file). It hires no one and writes no application or roster row; a block between buyer and shop already refuses
+  // the order at shops_request_digital_order (are_users_blocked -> shop_not_found).
+  shop_digital_mark_paid: "a paid Shops download's order row, not a hire",
   // 20261007113957 (Q1254): sets job_detail_change_requests.status =
   // 'accepted' (the outcome of an agreed change to a booked job's details);
   // it hires no one and writes no application or roster row.

@@ -3192,8 +3192,44 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_funnel_events: {
+        Row: {
+          created_at: string
+          detail: string | null
+          device_id: string | null
+          id: number
+          item_id: string | null
+          member_id: string | null
+          order_id: string | null
+          step: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          device_id?: string | null
+          id?: number
+          item_id?: string | null
+          member_id?: string | null
+          order_id?: string | null
+          step: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          device_id?: string | null
+          id?: number
+          item_id?: string | null
+          member_id?: string | null
+          order_id?: string | null
+          step?: string
+        }
+        Relationships: []
+      }
       declutter_orders: {
         Row: {
+          last_decline_code: string | null
+          last_payment_error_code: string | null
+          last_payment_failed_at: string | null
           gift_card_id: string | null
           gift_cents: number
           book_by: string | null
@@ -3232,6 +3268,9 @@ export type Database = {
           total_cents: number
         }
         Insert: {
+          last_decline_code?: string | null
+          last_payment_error_code?: string | null
+          last_payment_failed_at?: string | null
           gift_card_id?: string | null
           gift_cents?: number
           book_by?: string | null
@@ -3268,6 +3307,9 @@ export type Database = {
           total_cents: number
         }
         Update: {
+          last_decline_code?: string | null
+          last_payment_error_code?: string | null
+          last_payment_failed_at?: string | null
           gift_card_id?: string | null
           gift_cents?: number
           book_by?: string | null
@@ -18406,6 +18448,10 @@ export type Database = {
       }
       declutter_funnel_event: {
         Args: { p_detail?: string; p_device_id?: string; p_item_id?: string; p_order_id?: string; p_step: string }
+        Returns: undefined
+      }
+      declutter_funnel_server_event: {
+        Args: { p_decline_code?: string; p_error_code?: string; p_order_id: string; p_step: string }
         Returns: undefined
       }
       declutter_funnel_counts: {

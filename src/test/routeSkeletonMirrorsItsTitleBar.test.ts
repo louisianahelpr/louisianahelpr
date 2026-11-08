@@ -46,34 +46,40 @@ const classOf = (el: string) => el.match(/className="([^"]*)"/)?.[1] ?? "";
 describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
   it("is not vacuous: every file was read", () => {
     for (const s of [skeleton, bar, frame, home]) expect(s.length).toBeGreaterThan(500);
-    expect(home).toMatch(/<SectionScreen>/);
+    expect(home).toMatch(/<SectionScreen search=\{null\} fab=\{<SectionCreateFab \/>\}>/);
   });
 
   it("wears SectionScreen's frame: the same AppShell props and column classes", () => {
     expect(call(skeleton, "AppShell")).toBe(call(frame, "AppShell"));
     expect(skeleton).toContain('className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden"');
-    expect(frame).toContain('className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden"');
-    expect(frame).toContain('<div className="flex min-h-full flex-col gap-4 pt-1 pb-6">');
+    // The frame's gutter: 16px only beside a bar that holds a search; Dashboard's bar has none (search={null}), so 20px.
+    expect(frame).toContain('className={`container mx-auto ${barSearch ? "px-4" : "px-5"} lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden`}');
+    // Dashboard's floating "+ Create" (owner 11-08) adds room under the last row (pb-20); the skeleton does not scroll.
+    expect(frame).toContain('<div className={`flex min-h-full flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>');
     expect(skeleton).toContain('<div className="flex min-h-full flex-col gap-4 pt-1 pb-6">');
   });
 
-  it("draws Dashboard's top bar: the same box, the same emblem size, then the bell, Messages, the round '+' and the avatar", () => {
+  it("draws Dashboard's top bar: the same box, the same emblem size, then the bell (which holds Messages) and the avatar", () => {
     expect(classOf(call(skeleton, "div className=\"app-top-bar"))).toBe(classOf(call(bar, "header")));
     const size = (s: string) => call(s, "HelprMark").match(/size="(\w+)"/)?.[1];
     expect(size(bar)).toBeTruthy();
     expect(size(skeleton)).toBe(size(bar));
     expect(call(skeleton, "HelprMark")).toContain("emblemOnly");
-    // The right cluster: the bar's gap classes, and on Dashboard four 44px controls (nav redesign, owner 2026-11-06:
-    // the bell, Messages, the round "+" as one round bone, the avatar; every one is a 44x44 iconCompact box).
-    expect(bar).toContain('className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0"');
-    const cluster = skeleton.slice(skeleton.indexOf('className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0"'));
+    // The right cluster: the bar's slim gap (Dashboard's bar is search={null}, the Vinted header, owner 11-08), and two
+    // 44px controls: the bell (which holds Messages) and the avatar ("+ Create" floats over the page).
+    expect(home).toContain("<SectionScreen search={null}");
+    expect(bar).toContain('const slim = search !== undefined;');
+    expect(bar).toContain('className={`flex items-center shrink-0 ${slim ? "gap-0.5" : "gap-1 min-[360px]:gap-1.5"}`}');
+    const cluster = skeleton.slice(skeleton.indexOf('className="flex items-center gap-0.5 shrink-0"'));
     expect(cluster.length).toBeGreaterThan(100);
     const right = cluster.slice(0, cluster.indexOf("</div>"));
     const boxes = right.match(/<span className="h-1[01] w-1[01]|<Skeleton className="h-11 w-11 shrink-0 rounded-full" \/>/g) ?? [];
-    expect(boxes).toEqual(['<span className="h-11 w-11', '<span className="h-11 w-11', '<Skeleton className="h-11 w-11 shrink-0 rounded-full" />', '<span className="h-11 w-11']);
+    expect(boxes).toEqual(['<span className="h-11 w-11', '<span className="h-11 w-11']);
     expect(bar).toMatch(/NotificationPanel triggerClassName="h-11 w-11/);
     expect(bar.match(/size="iconCompact"/g)?.length, "Messages, the +, the avatar: 44px iconCompact").toBe(3);
-    expect(bar).toMatch(/variant="ghost"\s+size="iconCompact"\s+aria-label=\{avatarButtonLabel\(tr\("nav\.profile"\), profile\?\.full_name\)\}/);
+    // A screen with no "My …" menu (Dashboard) names the avatar after the profile, as before.
+    expect(bar).toMatch(/variant="ghost"\s+size="iconCompact"\s+aria-label=\{mine \? /);
+    expect(bar).toContain(' : avatarButtonLabel(tr("nav.profile"), profile?.full_name)}');
   });
 
   it("then Home's body: greeting, the Next up card, Coming up, the 2x2 section tiles (board 7)", () => {
@@ -106,6 +112,8 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
 // @mutate src/components/DashboardRouteSkeleton.tsx | <HelprMark to={null} size="sm" emblemOnly className="shrink-0" /> | <HelprMark to={null} size="md" emblemOnly className="shrink-0" />
 // @mutate src/components/DashboardRouteSkeleton.tsx | data-skeleton-part="next-up"> | data-skeleton-part="stats">
 // @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="h-11 w-36 mt-2 rounded-full" /> |
-// @mutate src/components/DashboardRouteSkeleton.tsx |               <Skeleton className="h-11 w-11 shrink-0 rounded-full" />\n |
+// @mutate src/components/DashboardRouteSkeleton.tsx |               <span className="h-11 w-11 flex items-center justify-center">\n                <Skeleton className="h-6 w-6 rounded-full" />\n              </span>\n |
+// @mutate src/components/DashboardRouteSkeleton.tsx |             <div className="flex items-center gap-0.5 shrink-0"> |             <div className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0">
+// @mutate src/components/sections/SectionScreen.tsx | ${barSearch ? "px-4" : "px-5"} | ${barSearch !== undefined ? "px-4" : "px-5"}
 // @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="w-9 h-9 rounded-full" />\n              </span> |                 <Skeleton className="w-9 h-9 rounded-full" />\n              </span>\n              <span className="h-10 w-10" />
 // @mutate src/components/DashboardRouteSkeleton.tsx |     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top"> |     <AppShell scrollable={false} className="bg-premium-page pt-safe-top">

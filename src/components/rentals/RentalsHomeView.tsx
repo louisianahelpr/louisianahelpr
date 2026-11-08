@@ -16,7 +16,7 @@ import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import { SectionListBack } from "@/components/sections/SectionListBack";
-import type { SectionMineMenu } from "@/components/sections/sectionMine";
+import { HOMES_TABS, HOMES_TAB_VALUES, MY_HOMES, OWN_GROUPS, RENT_GROUPS, requestGroup } from "./homesTabs";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { StatusBoxes, useStatusFilter } from "@/components/sections/StatusBoxes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -359,17 +359,6 @@ function PropertyCard({
     </div>
   );
 }
-
-/** One word each, Browse always first (owner, 2026-10-19). */
-const HOMES_TABS = [
-  { value: "rent", label: "Renting" },
-  { value: "own", label: "Owning" },
-] as const;
-const HOMES_TAB_VALUES = HOMES_TABS.map((t) => t.value);
-const MY_HOMES: SectionMineMenu = { title: "My Homes", items: HOMES_TABS.map((t) => ({ key: t.value, label: t.label, to: `/rentals?tab=${t.value}` })) };
-const RENT_GROUPS = ["waiting", "approved", "closed"] as const;
-const OWN_GROUPS = ["needs", "repairs", "properties"] as const;
-const requestGroup = (r: MaintenanceRequest) => (r.status === "submitted" ? "waiting" : r.status === "approved" ? "approved" : "closed");
 
 export default function RentalsHomeView() {
   const [tab, setTab] = useSectionTab(HOMES_TAB_VALUES);

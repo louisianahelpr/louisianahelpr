@@ -14,6 +14,7 @@
  * @mutate supabase/migrations/20261108202000_no_show_notice_server_side.sql |     CASE WHEN v_result->>'action' = 'pending_ban_review' THEN 'warning' ELSE 'job_updates' END, |     'warning',
  * @mutate supabase/functions/_shared/notification-templates.ts |         type: legacyBanned \|\| restricted ? "warning" : "job_updates", |         type: "warning",
  * @mutate supabase/migrations/20261108202000_no_show_notice_server_side.sql |   IF v_parent_job_id IS NOT NULL THEN\n    v_released | IF false THEN\n    v_released
+ * @mutate supabase/migrations/20261108202000_no_show_notice_server_side.sql |                     WHEN p_reason = 'no_show'\n |                     WHEN false\n
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -58,5 +59,10 @@ describe("the solo no-show notice is the server's (Jobs audit 11-08 #7)", () => 
   it("a recurring visit's date goes back to the series for the no-show Helpr (#12)", () => {
     expect(rns).toMatch(/IF v_parent_job_id IS NOT NULL THEN v_released := public\.series_release_dates\(v_parent_job_id, v_helper_id, ARRAY\[v_date_needed\], 'no_show'/);
     expect(rns.indexOf("series_release_dates(")).toBeGreaterThan(rns.indexOf("UPDATE public.jobs SET status = 'open'"));
+  });
+  it("the poster reads that the Helpr didn't show up for the date, not that they gave it up", () => {
+    const s = blankSqlComments(defs.get("series_release_dates")?.stmt ?? "").replace(/\s+/g, " ");
+    expect(defs.get("series_release_dates")?.file).toMatch(/^20261108202000_/);
+    expect(s).toContain("WHEN p_reason = 'no_show' THEN '%6$s didn''t show up for %1$s on \"%2$s\"%3$s.");
   });
 });

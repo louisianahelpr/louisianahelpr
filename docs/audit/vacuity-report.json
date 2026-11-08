@@ -1,8 +1,10 @@
 {
-  "generated": "2026-11-08T21:00:23.511Z",
-  "guards": 3713,
-  "registered": 3713,
-  "unregistered": [],
+  "generated": "2026-11-08T21:40:24.986Z",
+  "guards": 3716,
+  "registered": 3715,
+  "unregistered": [
+    "src/lib/shops/preorders.test.ts"
+  ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],

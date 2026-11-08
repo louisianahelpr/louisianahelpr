@@ -41,7 +41,7 @@
 // @mutate src/index.css | input[type="search"]::-webkit-search-cancel-button, | input[type="search"]::-webkit-search-cancelled,
 // @mutate src/components/admin/AdminUsers.tsx | aria-label="Clear search" | aria-label="Clear"
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: `[data-browse-phone-controls] ${CLOSE}`,\n    maxWidth: 899, | close: `[data-browse-phone-controls] ${CLOSE}`,
-// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | field: '[data-declutter-search-bar] input[aria-label="Search Declutter"]',\n    maxWidth: 899, | field: '[data-declutter-search-bar] input[aria-label="Search Declutter"]',
+// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | field: '[data-section-search-bar] input[aria-label="Search Declutter"]',\n    maxWidth: 899, | field: '[data-section-search-bar] input[aria-label="Search Declutter"]',
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: CLOSE,\n    minWidth: 900,\n    maxWidth: 1139, | close: CLOSE,\n    minWidth: 900,
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | if ((vw === BAND_VW) !== bandOnly(s)) continue; | if (vw === BAND_VW && !bandOnly(s)) continue;
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | name: "messages-one-pane", file: "src/components/messages/ConversationList.tsx", | name: "messages-one-pane", file: "src/components/messages/MessagesSearchRow.tsx",
@@ -79,7 +79,7 @@ const NO_X: Record<string, string> = {
 // whose ✕ is also pressed at 1440 (Declutter, Shops, Homes show it at every width).
 const PHONE_ONLY: Record<string, string> = {
   // Owner 11-08 (the Vinted header): the phone's "Search Declutter" bar; the desktop website keeps its row's search.
-  "src/components/declutter/DeclutterSearchBar.tsx": "Declutter's phone header only; desktop keeps the tabs row's search",
+  "src/components/sections/SectionSearchBar.tsx": "the phone section header's search bar only (owner 11-08); desktop keeps each section's own search",
 };
 
 /** ✕ files that render ONLY at the desktop breakpoint, so the press spec
@@ -237,7 +237,7 @@ describe("every search field is driven in a real browser (inventory minus checke
     // (ConversationList keeps its one-pane desktop field, so both files count).
     // 2026-11-07 (owner, Vinted review): +1, the Sell form's category drill-down (CategoryDrillDown), a permanent
     // field with a "Clear search" ✕.
-    // 2026-11-08 (owner, Vinted header): +1, Declutter's phone "Search Declutter" bar (DeclutterSearchBar), a permanent
+    // 2026-11-08 (owner, Vinted header): +1, Declutter's phone "Search Declutter" bar (SectionSearchBar), a permanent
     // field with a "Clear search" ✕ (Declutter's phone InlineListSearch left; the file still serves desktop and Jobs).
     expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(17);
     expect(X_FILES, "files rendering a search ✕").toEqual([
@@ -248,12 +248,12 @@ describe("every search field is driven in a real browser (inventory minus checke
       "src/components/admin/settings/AdminUserSearchField.tsx",
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
       "src/components/declutter/CategoryDrillDown.tsx",
-      "src/components/declutter/DeclutterSearchBar.tsx",
       "src/components/messages/ConversationList.tsx",
       "src/components/messages/MessagesSearchRow.tsx",
       "src/components/postjob/JobCategoryGroups.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
       "src/components/sections/InlineListSearch.tsx",
+      "src/components/sections/SectionSearchBar.tsx",
       "src/components/sections/SectionSearchRow.tsx",
       "src/pages/info/Legal.tsx",
       "src/pages/search/SearchPage.tsx",

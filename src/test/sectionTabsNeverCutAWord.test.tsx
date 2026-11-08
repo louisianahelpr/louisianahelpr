@@ -158,7 +158,7 @@ describe("Declutter Browse follows Jobs' row", () => {
     expect(TABS.length).toBeGreaterThan(4);
   });
 
-  // Owner 11-08 (the Vinted header): Declutter's phone search left the tabs row for its own bar (DeclutterSearchBar,
+  // Owner 11-08 (the Vinted header): Declutter's phone search left the tabs row for its own bar (SectionSearchBar,
   // src/test/declutterHeaderVinted.test.tsx); Jobs keeps the search that opens in the row.
   it("Jobs gives the row to an open search, with the slot held and the field filling it", () => {
     expect(code("src/pages/home/Dashboard.tsx")).toMatch(/<InlineListSearch[^>]*onOpenChange=\{[^}]+\} fill \/>\s*\{\w+ && <SearchTriggerSlot width="40px" \/>\}/);

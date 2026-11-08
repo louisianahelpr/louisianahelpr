@@ -44,7 +44,7 @@ import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 import { DeclutterMilesFrom } from "./DeclutterMilesFrom";
 import { declutterFilterSections } from "./DeclutterFilterPanel";
 import { DeclutterFilterSheet } from "./DeclutterBrowseBar";
-import { DeclutterSearchBar } from "./DeclutterSearchBar";
+import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { mapFillHeight } from "@/lib/declutter/mapFillHeight";
@@ -360,7 +360,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
         // Phone (owner 11-08, the Vinted header): "Search Declutter" is its own full-width bar with Filters inside its
         // right end; the tabs row under it carries only the tabs.
         search: (
-          <DeclutterSearchBar value={query} onChange={setQuery}
+          <SectionSearchBar noun="Declutter" home="/declutter" value={query} onChange={setQuery}
             filter={<FiltersIconButton open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen(true)} />} />
         ),
         // 8px under the chips + the column's 4px = 12px to the first cards.

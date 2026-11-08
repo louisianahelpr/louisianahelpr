@@ -193,7 +193,7 @@ export function AppTopBar({
    * THE SEARCH BAR (owner 11-08, the Vinted header): on a phone the bar IS the section's search, with only the bell
    * and the photo beside it. No visible title (the page keeps a visually hidden h1 for screen readers). Messages moves
    * INTO the bell (its panel opens on a Messages row; its badge counts both) and the section's create is a floating
-   * pill (DeclutterSellFab). Guard: src/test/declutterHeaderVinted.test.tsx.
+   * pill (SectionCreateFab). Guard: src/test/declutterHeaderVinted.test.tsx.
    */
   search?: ReactNode;
   /** The section's "My …" menu, opened from the photo (which wears a dot while any row has a to-do). */

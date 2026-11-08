@@ -46,8 +46,8 @@ import { TabletSellRow } from "./TabletSellRow";
 import { ItemViewsCount } from "./ItemViewsCount";
 import { SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { DeclutterSearchBar } from "./DeclutterSearchBar";
-import { DeclutterSellFab } from "./DeclutterSellFab";
+import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
+import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import type { DeclutterBrowseHeader, DeclutterChrome } from "./DeclutterBrowseView";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
 import { DeclutterGuestBrowseJoin } from "./DeclutterGuest";
@@ -560,11 +560,11 @@ function DeclutterMemberHome() {
       />
     ),
   } : {
-    search: browse?.search ?? <DeclutterSearchBar />,
+    search: browse?.search ?? <SectionSearchBar noun="Declutter" home="/declutter" />,
     mine,
     tabs: browse ? browse.chips : <DeclutterListBack label={lists.find((l) => l.value === view)?.label ?? "Declutter"} onBack={() => goTab("browse")} />,
   };
-  const fab = desktop ? undefined : <DeclutterSellFab />;
+  const fab = desktop ? undefined : <SectionCreateFab section="declutter" text="Sell" />;
   // Browse draws its own section screen, so its header can carry its search, filters, chips, map toggle and count.
   if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} chrome={chrome} top={<StrikeCount userId={user.id} />} fab={fab} /></Suspense>;
   const head = chrome(desktop ? { end: <ExploreSearchEntry variant="icon" /> } : undefined);

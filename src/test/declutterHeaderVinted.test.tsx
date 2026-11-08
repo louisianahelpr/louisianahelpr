@@ -24,10 +24,10 @@
  * @mutate src/components/notificationPanel/useBellMessagesUnread.ts |   return on ? n : 0; |   return 0;
  * @mutate src/components/NotificationPanelView.tsx | unreadCount={unreadCount + messagesUnread} | unreadCount={unreadCount}
  * @mutate src/components/NotificationPanelView.tsx |         {withMessages && ( |         {false && (
- * @mutate src/components/declutter/DeclutterSellFab.tsx |       className="fixed bottom-safe-nav right-4 | className="fixed bottom-0 right-4
- * @mutate src/components/declutter/DeclutterSellFab.tsx |   if (desktop \|\| typeof document === "undefined") return null; |   if (typeof document === "undefined") return null;
- * @mutate src/components/declutter/DeclutterSearchBar.tsx |       {filter && <span data-search-bar-filter="" | {false && <span data-search-bar-filter=""
- * @mutate src/components/declutter/DeclutterSearchBar.tsx |         onClick={() => navigate("/declutter", { state: FOCUS_SEARCH_STATE })} |         onClick={() => navigate("/search")}
+ * @mutate src/components/sections/SectionCreateFab.tsx |       className="fixed bottom-safe-nav right-4 | className="fixed bottom-0 right-4
+ * @mutate src/components/sections/SectionCreateFab.tsx |   if (desktop \|\| typeof document === "undefined") return null; |   if (typeof document === "undefined") return null;
+ * @mutate src/components/sections/SectionSearchBar.tsx |       {filter && <span data-search-bar-filter="" | {false && <span data-search-bar-filter=""
+ * @mutate src/components/sections/SectionSearchBar.tsx |         onClick={() => navigate(home, { state: FOCUS_SEARCH_STATE })} |         onClick={() => navigate("/search")}
  * @mutate src/components/sections/SectionScreen.tsx | ${fab ? "pb-20" : "pb-6"} | pb-6
  * @mutate src/components/declutter/DeclutterHomeView.tsx | <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search} mine={head.mine} | <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search}
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         {desktop && itemsPhase !== "offline-empty" && rows.length > 0 && <DeclutterMilesFrom ask={ask} />} |         {itemsPhase !== "offline-empty" && rows.length > 0 && <DeclutterMilesFrom ask={ask} />}
@@ -54,8 +54,8 @@ import { AppTopBar } from "@/components/sections/AppTopBar";
 import NotificationBell from "@/components/notificationPanel/NotificationBell";
 import { setNotificationUser, setUnreadTotal, __resetNotificationStore } from "@/components/notificationPanel/notificationStore";
 import { stores, notifyUnreadWatchers } from "@/components/mobileNav/navUnreadStore";
-import { DeclutterSellFab } from "@/components/declutter/DeclutterSellFab";
-import { DeclutterSearchBar } from "@/components/declutter/DeclutterSearchBar";
+import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
+import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
 
@@ -148,7 +148,7 @@ describe("row 1: the search, the bell and the photo; the page's name is a hidden
 describe("the Search Declutter bar", () => {
   it("on Browse it is the field, with Filters inside its right end", () => {
     const onChange = vi.fn();
-    render(<MemoryRouter><DeclutterSearchBar value="" onChange={onChange} filter={<button type="button">Filters</button>} /></MemoryRouter>);
+    render(<MemoryRouter><SectionSearchBar noun="Declutter" home="/declutter" value="" onChange={onChange} filter={<button type="button">Filters</button>} /></MemoryRouter>);
     const bar = screen.getByRole("search", { name: "Search Declutter" });
     fireEvent.change(screen.getByRole("searchbox", { name: "Search Declutter" }), { target: { value: "lamp" } });
     expect(onChange).toHaveBeenCalledWith("lamp");
@@ -157,7 +157,7 @@ describe("the Search Declutter bar", () => {
   });
 
   it("on every other list it takes the member to Browse's field", () => {
-    render(<MemoryRouter initialEntries={["/declutter?tab=selling"]}><Routes><Route path="*" element={<><DeclutterSearchBar /><Where /></>} /></Routes></MemoryRouter>);
+    render(<MemoryRouter initialEntries={["/declutter?tab=selling"]}><Routes><Route path="*" element={<><SectionSearchBar noun="Declutter" home="/declutter" /><Where /></>} /></Routes></MemoryRouter>);
     fireEvent.click(screen.getByRole("button", { name: /^Search/ }));
     expect(screen.getByTestId("where").textContent).toBe("/declutter");
   });
@@ -165,7 +165,7 @@ describe("the Search Declutter bar", () => {
 
 describe("Sell: the floating + Sell pill", () => {
   it("phone: one pill over the page, above the bottom bar on the shared clearance; it opens the sell chooser", () => {
-    render(<MemoryRouter><Routes><Route path="*" element={<><DeclutterSellFab /><Where /></>} /></Routes></MemoryRouter>);
+    render(<MemoryRouter><Routes><Route path="*" element={<><SectionCreateFab section="declutter" text="Sell" /><Where /></>} /></Routes></MemoryRouter>);
     const sell = screen.getByRole("button", { name: "Sell an item" });
     expect(sell.textContent).toBe("Sell");
     expect(sell.parentElement).toBe(document.body);
@@ -176,7 +176,7 @@ describe("Sell: the floating + Sell pill", () => {
 
   it("desktop website: no pill (the bar keeps '+ Sell an item')", () => {
     view.desktop = true;
-    render(<MemoryRouter><DeclutterSellFab /></MemoryRouter>);
+    render(<MemoryRouter><SectionCreateFab section="declutter" text="Sell" /></MemoryRouter>);
     expect(screen.queryByRole("button", { name: "Sell an item" })).toBeNull();
   });
 

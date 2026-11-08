@@ -102,12 +102,12 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
   },
   {
     // Owner 11-08 (the Vinted header): the phone's "Search Declutter" field is always open; its ✕ clears the words.
-    name: "declutter-browse-phone", file: "src/components/declutter/DeclutterSearchBar.tsx",
+    name: "declutter-browse-phone", file: "src/components/sections/SectionSearchBar.tsx",
     url: "/declutter",
-    trigger: '[data-declutter-search-bar] input[aria-label="Search Declutter"]',
-    field: '[data-declutter-search-bar] input[aria-label="Search Declutter"]',
+    trigger: '[data-section-search-bar] input[aria-label="Search Declutter"]',
+    field: '[data-section-search-bar] input[aria-label="Search Declutter"]',
     maxWidth: 899,
-    close: `[data-declutter-search-bar] ${CLEAR}`,
+    close: `[data-section-search-bar] ${CLEAR}`,
   },
   {
     name: "shops-browse-row", file: "src/components/sections/SectionSearchRow.tsx",

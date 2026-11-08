@@ -1,0 +1,46 @@
+import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
+import { Plus } from "lucide-react";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { useAgeGate } from "@/hooks/useAgeGate";
+import { hapticMedium } from "@/lib/haptics";
+import { sectionByKey, type SectionKey } from "@/components/sections/sectionsConfig";
+import { Button } from "@/components/ui/button";
+
+/**
+ * THE SECTION'S CREATE PILL (owner 11-08, the Vinted header): the top bar's green "+" became this floating pill,
+ * bottom-right, 16px above the bottom bar on the shared clearance (`bottom-safe-nav`: the home-indicator inset + the
+ * dock + 1rem), so it never covers the dock. "+ Sell" on Declutter, "+ Post a job" on Jobs (behind the same age gate
+ * as every Post a job), the section's own create elsewhere; it goes where the bar's "+" went (sectionsConfig `add`).
+ * Portaled to document.body: a fixed element inside the page is not viewport-relative (CLAUDE.md, fixed containing
+ * block). SectionScreen's `fab` adds room under the last row so the pill never sits on the last row at rest.
+ * Phone only: the desktop website keeps the bar's soft "+ Post a job" (etc.). Guard: src/test/declutterHeaderVinted.test.tsx.
+ */
+export function SectionCreateFab({ section, text }: { section: SectionKey; text: string }) {
+  const navigate = useNavigate();
+  const desktop = useIsWebDesktop();
+  const gate = useAgeGate();
+  if (desktop || typeof document === "undefined") return null;
+  const add = sectionByKey(section).add;
+  if (!add) return null;
+  const isPost = add.path === "/post-job";
+  const go = () => { hapticMedium(); navigate(add.path); };
+  return createPortal(
+    <Button
+      type="button"
+      variant="primary"
+      size="md"
+      data-testid="section-create-fab"
+      data-create-section={section}
+      aria-label={add.label}
+      onClick={isPost ? gate.gate("post", go) : go}
+      {...(isPost ? gate.gatedProps("post") : {})}
+      className="fixed bottom-safe-nav right-4 z-40 gap-1.5 rounded-full pl-4 pr-5 font-semibold shadow-lg [&>svg]:h-5 [&>svg]:w-5"
+      style={{ marginRight: "var(--safe-area-right, 0px)" }}
+    >
+      <Plus aria-hidden />
+      {text}
+    </Button>,
+    document.body,
+  );
+}

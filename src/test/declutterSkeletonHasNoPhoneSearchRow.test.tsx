@@ -41,7 +41,7 @@ describe("Q1695: /declutter's loading frame draws the page's own phone header ro
 
   it("the real phone Browse header hands the bar its search and puts the chips under it (the premise above)", () => {
     const view = blankComments(readFileSync(resolve(__dirname, "../components/declutter/DeclutterBrowseView.tsx"), "utf8"));
-    expect(view).toMatch(/search: \(\s*<DeclutterSearchBar /);
+    expect(view).toMatch(/search: \(\s*<SectionSearchBar /);
     expect(view).toMatch(/chips: chipRow && /);
     expect(view).toMatch(/search=\{head\.search\}[^>]*tabs=\{head\.tabs\}/);
   });

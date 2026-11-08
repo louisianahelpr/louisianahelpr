@@ -2,62 +2,68 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Search, X } from "lucide-react";
 
-/** Router state that asks Browse's field to take focus (a tap on another tab's bar). */
-const FOCUS_SEARCH_STATE = { focusDeclutterSearch: true } as const;
+/** Router state that asks a section's Browse field to take focus (a tap on another tab's bar). */
+const FOCUS_SEARCH_STATE = { focusSectionSearch: true } as const;
 
 /**
- * The bar's words, never cut (senior-mode-no-silent-cut): "Search Declutter", or "Search" alone below 360px, where
- * the bell and the photo leave the field about 100px (320: "Search Dec" was cut at the Filters edge). Drawn as a span
- * over the empty field, since a placeholder cannot change its words by width.
+ * The bar's words, never cut (senior-mode-no-silent-cut): "Search Declutter" (etc.), or "Search" alone below 360px,
+ * where the bell and the photo leave the field about 100px (320: "Search Dec" was cut at the Filters edge). Drawn as a
+ * span over the empty field, since a placeholder cannot change its words by width.
  */
-function Words() {
-  return <>Search<span className="max-[359px]:hidden"> Declutter</span></>;
+function Words({ noun }: { noun: string }) {
+  return <>Search<span className="max-[359px]:hidden"> {noun}</span></>;
 }
 
 const BAR = "flex h-11 w-full min-w-0 items-center gap-2 rounded-full border border-border bg-card pl-4 pr-1";
 
+type FieldProps = { value: string; onChange: (v: string) => void; filter?: ReactNode };
+type LinkProps = { value?: undefined; onChange?: undefined; filter?: undefined };
+
 /**
- * THE SEARCH BAR (owner 11-08, Declutter's Vinted header): its own full-width rounded row under the title, "Search
- * Declutter", with the Filters button inside its right end. On Browse it IS the field (it filters the feed, as the
- * old search square did, kept in ?q=). On Buying, Selling and the other tabs it is a button that takes the member
- * to Browse with the field focused. Guard: src/test/declutterHeaderVinted.test.tsx.
+ * THE SECTION SEARCH BAR (owner 11-08, the Vinted header): the phone top bar's rounded field, "Search <noun>", with
+ * the Filters button inside its right end where the section has filters. Where the list it searches is on screen it
+ * IS the field (Declutter's Browse: the feed, kept in ?q=). Elsewhere it is a button that takes the member to `home`
+ * (the section's Browse) with the field focused. Guard: src/test/declutterHeaderVinted.test.tsx.
  */
-export function DeclutterSearchBar(props: { value: string; onChange: (v: string) => void; filter?: ReactNode } | { value?: undefined; onChange?: undefined; filter?: undefined }) {
+export function SectionSearchBar(props: { noun: string; home: string } & (FieldProps | LinkProps)) {
+  const { noun, home } = props;
   const navigate = useNavigate();
   const location = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
-  const focusAsked = !!(location.state as { focusDeclutterSearch?: boolean } | null)?.focusDeclutterSearch;
+  const focusAsked = !!(location.state as { focusSectionSearch?: boolean } | null)?.focusSectionSearch;
   useEffect(() => {
     if (focusAsked) inputRef.current?.focus({ preventScroll: true });
   }, [focusAsked]);
+  const label = `Search ${noun}`;
 
   if (props.onChange === undefined) {
     return (
       <button
         type="button"
-        data-declutter-search-bar=""
-        onClick={() => navigate("/declutter", { state: FOCUS_SEARCH_STATE })}
+        aria-label={label}
+        data-section-search-bar=""
+        onClick={() => navigate(home, { state: FOCUS_SEARCH_STATE })}
         className={`${BAR} pr-4 text-left text-muted-foreground ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
       >
         <Search className="h-[18px] w-[18px] shrink-0" aria-hidden />
-        <span className="min-w-0 whitespace-nowrap text-ds-16"><Words /></span>
+        <span aria-hidden className="min-w-0 whitespace-nowrap text-ds-16"><Words noun={noun} /></span>
       </button>
     );
   }
   const { value, onChange, filter } = props;
   return (
-    <form role="search" aria-label="Search Declutter" data-declutter-search-bar="" data-open="" onSubmit={(e) => e.preventDefault()}
+    <form role="search" aria-label={label} data-section-search-bar="" data-open="" onSubmit={(e) => e.preventDefault()}
       className={`${BAR} focus-within:ring-2 focus-within:ring-ring`}>
       <Search className="h-[18px] w-[18px] shrink-0 text-muted-foreground" aria-hidden />
       <span className="relative flex min-w-0 flex-1 items-center">
-      {!value && <span aria-hidden className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 whitespace-nowrap text-ds-16 text-muted-foreground"><Words /></span>}
+      {!value && <span aria-hidden className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 whitespace-nowrap text-ds-16 text-muted-foreground"><Words noun={noun} /></span>}
       <input
         ref={inputRef}
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Escape" && value) { e.preventDefault(); onChange(""); } }}
-        aria-label="Search Declutter"
+        aria-label={label}
         enterKeyHint="search"
         className="w-full min-w-0 bg-transparent text-ds-16 text-foreground outline-none [&::-webkit-search-cancel-button]:hidden"
       />

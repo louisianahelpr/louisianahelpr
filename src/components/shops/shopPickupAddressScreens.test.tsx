@@ -13,7 +13,8 @@
  *  3. ShopEditView mounts the form for an existing shop.
  *
  * @mutate src/components/shops/ShopOrderCard.tsx | const PICKUP_VISIBLE = new Set(["accepted"]); | const PICKUP_VISIBLE = new Set(["held", "accepted", "handed_over"]);
- * @mutate src/components/shops/ShopOrderCard.tsx |       {side === "buyer" && !delivered && !byHelpr && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />} |       {!delivered && !byHelpr && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />}
+ * @mutate src/components/shops/ShopOrderCard.tsx |       {side === "buyer" && !delivered && !byHelpr && !atBuyer && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />} |       {!delivered && !byHelpr && !atBuyer && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />}
+ * @mutate src/components/shops/ShopOrderCard.tsx |   const atBuyer = order.shop_order_lines.some((l) => l.at_buyer); |   const atBuyer = false;
  * @mutate src/components/shops/ShopPickupAddressSection.tsx |     if (!isLouisianaZip5(zip.trim())) { |     if (false) {
  * @mutate src/lib/shops/pickupAddress.ts |   return /^[0-9]{5}$/.test(zip) && isLouisianaZip(zip); |   return /^7[01][0-9]{3}$/.test(zip);
  * @mutate src/components/shops/ShopPickupAddressSection.tsx |     mutationFn: () => saveMyPickupAddress({ line1, line2, city, postal_code: zip.trim() }), |     mutationFn: async () => undefined,
@@ -82,6 +83,15 @@ describe("the buyer sees where to pick up only once the shop accepted", () => {
 
   it.each(["held", "handed_over", "declined", "expired", "cancelled"] as const)("%s: never asked for, never shown", async (status) => {
     wrap(<ul><ShopOrderCard order={order(status)} side="buyer" heading="Bayou Bakes" /></ul>);
+    await screen.findByText("Bayou Bakes");
+    expect(screen.queryByTestId("shop-order-pickup-address")).toBeNull();
+    expect(api.fetchOrderPickupAddress).not.toHaveBeenCalled();
+  });
+
+  it("work at the buyer's place never shows the shop's address (shops audit 11-08 #2)", async () => {
+    const o = order("accepted");
+    o.shop_order_lines = [{ ...o.shop_order_lines[0], at_buyer: true } as ShopOrder["shop_order_lines"][number]];
+    wrap(<ul><ShopOrderCard order={o} side="buyer" heading="Bayou Bakes" /></ul>);
     await screen.findByText("Bayou Bakes");
     expect(screen.queryByTestId("shop-order-pickup-address")).toBeNull();
     expect(api.fetchOrderPickupAddress).not.toHaveBeenCalled();

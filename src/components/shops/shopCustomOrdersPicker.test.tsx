@@ -1,17 +1,19 @@
 /**
- * Custom orders (20261106202917): the shop's setting on its dashboard. Reads shops.custom_orders, shows the three
+ * Custom orders (20261106202917): the shop's setting on its dashboard. Reads shops.custom_orders, shows the open
  * choices with the saved one pressed, and saves through shops_set_custom_orders (the caller's own shop only, in SQL:
  * src/test/pglite/shopsCustomRequests.pglite.mjs). A refusal reads in plain words.
  *
  * @mutate src/lib/shops/orders.ts |   const { data, error } = await supabase.rpc("shops_set_custom_orders", { p_mode: mode }); |   const { data, error } = await supabase.rpc("shops_set_custom_orders", { p_mode: "off" });
  * @mutate src/components/shops/ShopCustomOrdersPicker.tsx |                 onClick={() => { if (!on) save.mutate(m); }} |                 onClick={() => { save.mutate(m); }}
  * @mutate src/lib/shops/orders.ts |   return (CUSTOM_ORDER_MODES as readonly string[]).includes(v ?? "") ? (v as CustomOrderMode) : "off"; |   return "off";
+ * @mutate src/lib/shops/orders.ts | export const PICKABLE_CUSTOM_ORDER_MODES: readonly CustomOrderMode[] = ["off", "full_hold"]; | export const PICKABLE_CUSTOM_ORDER_MODES: readonly CustomOrderMode[] = CUSTOM_ORDER_MODES;
+ * @mutate src/components/shops/ShopCustomOrdersPicker.tsx |             const on = (choice.data === "deposit_50" ? "full_hold" : choice.data) === m; |             const on = choice.data === m;
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const db = vi.hoisted(() => ({ row: { custom_orders: "deposit_50" } as Record<string, unknown> | null, rpc: vi.fn() }));
+const db = vi.hoisted(() => ({ row: { custom_orders: "full_hold" } as Record<string, unknown> | null, rpc: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: db.row, error: null }) }) }) }),
@@ -29,19 +31,28 @@ function show() {
 }
 
 beforeEach(() => {
-  db.row = { custom_orders: "deposit_50" };
+  db.row = { custom_orders: "full_hold" };
   db.rpc.mockReset();
   toast.success.mockClear();
   toast.error.mockClear();
 });
 
 describe("the shop's custom orders setting", () => {
-  it("shows the three choices with the saved one pressed", async () => {
+  it("shows the two open choices with the saved one pressed, and never offers half up front (shops audit 11-08 #1)", async () => {
     show();
-    const half = await screen.findByRole("button", { name: /Custom orders, half up front/ });
-    expect(half.getAttribute("aria-pressed")).toBe("true");
+    const full = await screen.findByRole("button", { name: /Custom orders, paid in full/ });
+    expect(full.getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("button", { name: /No custom orders/ }).getAttribute("aria-pressed")).toBe("false");
-    expect(screen.getByRole("button", { name: /Custom orders, paid in full/ }).getAttribute("aria-pressed")).toBe("false");
+    expect(screen.queryByRole("button", { name: /half up front/i })).toBeNull();
+    expect(screen.getAllByRole("button")).toHaveLength(2);
+  });
+
+  it("a shop still on half up front reads as paid in full, with a plain note", async () => {
+    db.row = { custom_orders: "deposit_50" };
+    show();
+    expect((await screen.findByRole("button", { name: /Custom orders, paid in full/ })).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("note").textContent).toBe("Half up front isn't open yet, so your custom orders are paid in full for now.");
+    expect(screen.queryByRole("button", { name: /half up front/i })).toBeNull();
   });
 
   it("a shop with no setting yet reads as off", async () => {
@@ -51,9 +62,10 @@ describe("the shop's custom orders setting", () => {
   });
 
   it("tapping another choice saves exactly it; tapping the pressed one saves nothing", async () => {
+    db.row = { custom_orders: "off" };
     db.rpc.mockResolvedValue({ data: "full_hold", error: null });
     show();
-    fireEvent.click(await screen.findByRole("button", { name: /Custom orders, half up front/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /No custom orders/ }));
     expect(db.rpc).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: /Custom orders, paid in full/ }));
     await waitFor(() => expect(db.rpc).toHaveBeenCalledTimes(1));

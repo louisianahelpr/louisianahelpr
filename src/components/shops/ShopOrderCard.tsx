@@ -185,6 +185,9 @@ export function ShopOrderCard({
   const delivered = order.fulfillment === "shop_delivers";
   // Helpr delivery (20261106194913): a Helpr picks up at the shop; if none took it, it became a pickup.
   const byHelpr = order.fulfillment === "helpr_delivers" && !order.helpr_unfilled_at;
+  // Work done at the buyer's place never needs the shop's private pickup address (shops audit 11-08 #2; the server
+  // read, shops_order_pickup_address, refuses it too).
+  const atBuyer = order.shop_order_lines.some((l) => l.at_buyer);
   // The shop is paid its items and its own delivery fee (shop_complete_handover, 20261106180902); a Helpr
   // delivery's price is the Helpr's, never the shop's.
   const deliveryCents = order.delivery_cents ?? 0;
@@ -213,7 +216,7 @@ export function ShopOrderCard({
       </ul>
       {order.note && <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">Note: {order.note}</p>}
       {order.decline_reason && <p className="text-sm [overflow-wrap:anywhere]">Shop's reason: {order.decline_reason}</p>}
-      {side === "buyer" && !delivered && !byHelpr && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />}
+      {side === "buyer" && !delivered && !byHelpr && !atBuyer && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />}
       {order.shop_order_lines.some((l) => l.at_buyer) && (side === "buyer" || SERVICE_VISIBLE_TO_SHOP.has(order.status)) && (
         <ServiceAddress orderId={order.id} />
       )}

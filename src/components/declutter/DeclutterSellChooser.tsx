@@ -90,8 +90,9 @@ export default function DeclutterSellChooser() {
             <ChoiceCard data-sell-choice="one" to={SELL_ONE_PATH} icon={<Package className={ICON} />} title="One item" line="Photos first; we write the listing." />
             <ChoiceCard data-sell-choice="bunch" to={SELL_BUNCH_PATH} icon={<Images className={ICON} />} title="Several at once" line="Photos of everything; we write each one." />
             <ChoiceCard data-sell-choice="free" to={SELL_FREE_PATH} icon={<Gift className={ICON} />} title="Give away free" line="Someone nearby picks it up." />
-            <nav aria-label="More ways" data-sell-other="" className="flex flex-wrap items-center gap-x-1 gap-y-1 pt-1 text-ds-13 text-muted-foreground">
-              <span className="font-semibold">More ways:</span>
+            <nav aria-label="More ways" data-sell-other="" className="flex flex-wrap items-center gap-x-1.5 pt-1 text-ds-13 text-muted-foreground">
+              {/* The label on its own line, so the three links share one row at 375 (measured: they wrapped one off). */}
+              <span className="w-full font-semibold">More ways:</span>
               {movingOut && <Link data-sell-choice="move" to={SELL_MOVE_PATH} className={MORE_LINK}>Moving sale</Link>}
               {movingOut && <span aria-hidden>·</span>}
               <button type="button" data-sell-choice="helpr" onClick={() => setExplaining(true)} className={MORE_LINK}>A Helpr lists it</button>

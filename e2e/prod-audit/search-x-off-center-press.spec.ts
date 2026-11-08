@@ -194,6 +194,16 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     close: CLEAR,
   },
   {
+    // Owner 11-07: the Sell form's category drill-down has a permanent search box with its own "Clear search" ✕
+    // (Q913). ?free=1 opens the one-screen form behind the shorter setup gate (pickup place and times only); the
+    // Category row opens with one press.
+    name: "declutter-sell-category-search", file: "src/components/declutter/CategoryDrillDown.tsx",
+    url: "/declutter/sell?free=1",
+    trigger: '[data-sell-row="category"] button[aria-expanded]',
+    field: '[data-category-drilldown] input[type="search"]',
+    close: `[data-category-drilldown] ${CLEAR}`,
+  },
+  {
     name: "search-page", file: "src/pages/search/SearchPage.tsx",
     url: "/search?q=chair",
     trigger: "",

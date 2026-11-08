@@ -120,7 +120,8 @@ describe("a resumed draft", () => {
     // The seller's own title stays; the empty details and the "Other" category are Claude's.
     expect(await screen.findByLabelText("Title")).toHaveValue("Oak rocking chair");
     expect(screen.getByLabelText(/Anything else/)).toHaveValue(DRAFT.description);
-    expect(screen.getByRole("radio", { name: "Furniture" })).toHaveAttribute("aria-checked", "true");
+    // The category picker is a drill-down (b2 vinted-category-drilldown): its top level names the chosen leaf on its heading.
+    expect(screen.getByText("Chosen: Furniture")).toBeInTheDocument();
     // The saved price is the seller's: Claude's suggestion never replaces it.
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(await screen.findByLabelText("Price")).toHaveValue("40");
@@ -134,7 +135,8 @@ describe("a resumed draft", () => {
     await screen.findByText("We wrote your listing. Check it before you post");
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(await screen.findByLabelText(/Anything else/)).toHaveValue(DRAFT.description);
-    expect(screen.getByRole("radio", { name: "Kitchen" })).toHaveAttribute("aria-checked", "true");
+    // The category picker is a drill-down (b2 vinted-category-drilldown): its top level names the chosen leaf on its heading.
+    expect(screen.getByText("Chosen: Kitchen")).toBeInTheDocument();
   });
 
   it("already filled in: nothing runs by itself, the button still offers it", async () => {

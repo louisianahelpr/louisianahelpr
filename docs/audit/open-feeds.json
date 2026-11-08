@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-08T06:55Z",
+  "measured_at": "2026-11-08T07:13Z",
   "issues": {
     "readable": true,
     "open": [
@@ -468,7 +468,6 @@
     "ledger 42a784cb226e": "Q1816",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4aa239aefeb6": "Q1816",
-    "ledger 54ef0bfdcec3": "Q2774",
     "ledger 5a28db44e912": "Q2410",
     "ledger 60298a019ea3": "Q1776",
     "ledger 6205197429d4": "Q1816",

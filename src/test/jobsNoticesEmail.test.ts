@@ -49,7 +49,8 @@ const ALL_SQL = [...defs.entries()].filter(([n]) => n !== "jobs_notice_email_typ
 describe("Jobs notices email (Jobs audit 11-08 #2)", () => {
   it("the matcher lists a real set", () => {
     expect(listed.length).toBeGreaterThan(20);
-    expect(defs.get("jobs_notice_email_type")?.file).toMatch(/^20261108201000_/);
+    // Newest definition: 20261108214605 adds the missed continue day titles (owner #4) to the 20261108201000 set.
+    expect(defs.get("jobs_notice_email_type")?.file).toMatch(/^20261108214605_/);
   });
   it("every listed title is written by a live sender (SQL or edge)", () => {
     const missing = listed.filter((t) => !ALL_SQL.includes(`'${t.replace(/'/g, "''")}'`) && !EDGE.includes(`"${t}"`));

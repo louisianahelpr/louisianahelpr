@@ -13,7 +13,7 @@
  * @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |   IF o.is_digital AND NOT COALESCE(p_allow_problem, false) THEN |   IF false THEN
  * @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |   IF o.is_digital AND p_how = 'auto' AND o.captured_at + interval '72 hours' > now() THEN |   IF false THEN
  * @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |          OR (o.is_digital AND o.captured_at + interval '72 hours' <= now())) |          OR (o.is_digital AND o.captured_at + interval '24 hours' <= now()))
- * @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |                AND o.status IN ('accepted', 'handed_over')\n               AND o.captured_at IS NOT NULL)); |                AND o.status IN ('accepted', 'handed_over', 'refunded')\n               AND o.captured_at IS NOT NULL));
+ * @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |                AND o.status IN ('accepted', 'handed_over')\n               AND o.captured_at IS NOT NULL)); |                AND o.status IN ('accepted', 'handed_over', 'refunded')\n               AND o.captured_at IS NOT NULL));
  *
  * Slice 2 (checkout) behaviour: src/test/pglite/shopsDigitalCheckout.pglite.mjs (3x; NEW_MIGRATION=skip RED; planted
  * "a member cancel refunds a download", "a download takes a day slot", "a refund keeps the download" and "nudge a

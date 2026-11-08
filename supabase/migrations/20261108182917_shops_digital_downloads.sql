@@ -16,8 +16,9 @@
 -- 3. A PRIVATE storage bucket 'shop-digital' with NO storage.objects policy for it: every prod storage.objects policy
 --    that names no bucket is RESTRICTIVE (read 2026-11-08: the unconfirmed-email and ban gates), so no member can
 --    read, list, write or delete in it. Only the service role (shop-digital) signs upload and download links.
--- 4. shop_digital_download_path(file, user): service role only. The seller of the item, or a buyer whose order for it
---    is complete (handed_over) and not refunded. Access never expires while the account exists.
+-- 4. shop_digital_download_path(file, user): service role only. The seller of the item, or a buyer of a download
+--    order for it from the charge on (accepted + captured, then handed_over); a refund ends it. Access never expires
+--    while the account exists. shop_orders.is_digital (added here) marks a download order.
 -- 5. Restated with only the digital lines changed: shops_check_item_fields (no stock, no lead time),
 --    shop_item_required_statements (rights + file matches), shop_item_text_flag (a file is never "used", a
 --    children's product, a skin product, a plant or a live animal: a kids' coloring book is fine) and
@@ -251,8 +252,12 @@ $fn$;
 REVOKE ALL ON FUNCTION public.shop_digital_file_remove(uuid, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_digital_file_remove(uuid, uuid) TO service_role;
 
--- 4. Who may download a file: its seller, or a buyer whose order for its item is complete and not refunded.
---    Service role only (shop-digital signs a 10-minute link with the path it returns). NULL = no access.
+-- 4. Who may download a file: its seller, or a buyer of a download order for its item from the moment the charge is
+--    taken ('accepted' + captured) and while it is final ('handed_over'); a refund ('refunded', 'partially_refunded')
+--    or any other end takes it away. Service role only (shop-digital signs a 10-minute link with the path it
+--    returns). NULL = no access. shop_orders.is_digital marks a download order (the buying RPCs are slice 2).
+ALTER TABLE public.shop_orders ADD COLUMN IF NOT EXISTS is_digital boolean NOT NULL DEFAULT false;
+GRANT SELECT (is_digital) ON TABLE public.shop_orders TO authenticated;
 CREATE OR REPLACE FUNCTION public.shop_digital_download_path(p_file_id uuid, p_user uuid)
 RETURNS jsonb
 LANGUAGE sql
@@ -271,8 +276,9 @@ AS $fn$
               JOIN public.shop_orders o ON o.id = l.order_id
              WHERE l.item_id = f.item_id
                AND l.kind = 'digital'
+               AND o.is_digital
                AND o.buyer_id = p_user
-               AND o.status = 'handed_over'
+               AND o.status IN ('accepted', 'handed_over')
                AND o.captured_at IS NOT NULL));
 $fn$;
 REVOKE ALL ON FUNCTION public.shop_digital_download_path(uuid, uuid) FROM PUBLIC, anon, authenticated;

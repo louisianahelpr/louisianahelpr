@@ -84,7 +84,7 @@ export default function ShopDigitalBuy({ shopId }: { shopId: string }) {
               <p className="truncate text-sm font-medium">{d.title}</p>
               <p className="text-xs text-muted-foreground">Digital download · yours to keep</p>
             </div>
-            <Button type="button" className="btn-grad-primary min-h-11" onClick={() => tapBuy(d)} disabled={opening}>
+            <Button type="button" className="btn-grad-primary" onClick={() => tapBuy(d)} disabled={opening}>
               Buy · {formatItemPrice(d.price_cents)}
             </Button>
           </li>
@@ -116,10 +116,10 @@ export default function ShopDigitalBuy({ shopId }: { shopId: string }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" className="btn-grad-primary min-h-11" onClick={() => void pay()} disabled={opening}>
+            <Button type="button" className="btn-grad-primary" onClick={() => void pay()} disabled={opening}>
               {opening ? "Opening…" : "Continue to payment"}
             </Button>
-            <Button type="button" variant="ghost" className="min-h-11" onClick={() => setPicked(null)} disabled={opening}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={() => setPicked(null)} disabled={opening}>Cancel</Button>
           </div>
         </div>
       )}

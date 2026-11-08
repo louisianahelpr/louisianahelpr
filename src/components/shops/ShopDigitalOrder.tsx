@@ -82,7 +82,7 @@ function BuyerFiles({ order }: { order: ShopOrder }) {
             <FileDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
             <span className="min-w-0 flex-1 truncate text-sm">{f.file_name}</span>
             <span className="text-xs text-muted-foreground">{fileSizeLabel(f.byte_size)}</span>
-            <Button type="button" size="sm" className="btn-grad-primary min-h-11" disabled={open.isPending} onClick={() => open.mutate(f.file_id)}>
+            <Button type="button" size="sm" className="btn-grad-primary" disabled={open.isPending} onClick={() => open.mutate(f.file_id)}>
               Download
             </Button>
           </li>

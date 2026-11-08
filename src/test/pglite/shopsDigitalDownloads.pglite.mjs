@@ -335,8 +335,8 @@ const path = async (uid) => one(await svc(`SELECT public.shop_digital_download_p
 ok((await path(OWNER))?.storage_path === b1?.storage_path, "the seller may download their own file");
 ok(await path(FAN) == null, "a member who has not bought it may not");
 ok(await path(null) == null, "no caller, no file");
-const order = one(await svc(`INSERT INTO public.shop_orders (buyer_id, seller_id, shop_id, ready_date, cancel_policy, items_cents, premium_cents, tax_cents, total_cents)
-  VALUES ('${FAN}', '${OWNER}', '${shopA}', current_date, 'until_accept', 1200, 130, 0, 1330) RETURNING id`));
+const order = one(await svc(`INSERT INTO public.shop_orders (buyer_id, seller_id, shop_id, ready_date, cancel_policy, items_cents, premium_cents, tax_cents, total_cents, is_digital)
+  VALUES ('${FAN}', '${OWNER}', '${shopA}', current_date, 'until_accept', 1200, 130, 0, 1330, true) RETURNING id`));
 await svc(`INSERT INTO public.shop_order_lines (order_id, item_id, title, kind, unit_cents, quantity, line_cents)
   VALUES ('${order}', '${dig}', 'Bayou coloring book', 'digital', 1200, 1, 1200)`);
 ok(one(await svc(`SELECT tax_kind FROM public.shop_order_lines WHERE order_id = '${order}'`)) === "digital_book", "the order line keeps the type's tax answer (digital_book)");

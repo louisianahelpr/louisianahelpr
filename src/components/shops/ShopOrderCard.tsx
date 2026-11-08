@@ -261,8 +261,8 @@ function DigitalOrderCard({ order, heading, side }: { order: ShopOrder; heading:
         ))}
       </ul>
       <ShopDigitalOrder order={order} side={side} />
-      {order.buyer_id && <ShopOrderMessageButton orderId={order.id} side={side} />}
-      <ShopOrderReview orderId={order.id} handedOver={!!order.handed_over_at} />
+      {order.buyer_id ? <ShopOrderMessageButton orderId={order.id} side={side} /> : null}
+      <ShopOrderReview handedOver={!!order.handed_over_at} orderId={order.id} />
     </li>
   );
 }

@@ -59,7 +59,7 @@ export function fileSizeLabel(bytes: number): string {
 }
 
 /** Why a picked file is refused before any upload, or null. The server checks again from the bytes. */
-export function digitalFileProblem(file: File): string | null {
+function digitalFileProblem(file: File): string | null {
   if (!digitalExtFromName(file.name)) return "Upload a PDF, ZIP, PNG or JPG file.";
   if (file.size < 1) return "That file is empty.";
   if (file.size > DIGITAL_MAX_BYTES) return "Each file can be up to 100 MB.";
@@ -119,7 +119,7 @@ export function billingAddressProblem(a: BillingAddress): string | null {
  * opens this page on louisianahelpr.com (App Review Guideline 3.1.1(a) and 3.1.3, as revised after the 2025 Epic v.
  * Apple injunction: apps on the United States storefront may include buttons and links to other purchase methods).
  */
-export const DIGITAL_BUY_ORIGIN = "https://www.louisianahelpr.com";
+const DIGITAL_BUY_ORIGIN = "https://www.louisianahelpr.com";
 export function digitalBuyUrl(shopId: string, itemId: string): string {
   return `${DIGITAL_BUY_ORIGIN}/shops/${encodeURIComponent(shopId)}?buy=${encodeURIComponent(itemId)}`;
 }

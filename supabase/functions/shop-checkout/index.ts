@@ -670,6 +670,9 @@ function parseBillingAddress(v: unknown): PickupTaxAddress | "invalid" {
  * On the iPhone this page is only ever opened on the website (the app's Buy button links out; App Review
  * Guideline 3.1.1(a) / 3.1.3, US storefront), so a native request is refused here.
  */
+/** The same page key as an ordinary order (one page per order; a replaced wallet retries once with ":new-wallet"). */
+const digitalPageKey = (orderId: string, retry: boolean) => `shop-order-${orderId}${retry ? ":new-wallet" : ""}`;
+
 async function buyDigital(body: Record<string, unknown>, user: { id: string; email?: string }, asBuyer: Db, admin: Db) {
   const itemId = typeof body.item_id === "string" ? body.item_id : "";
   if (!UUID_RE.test(itemId)) return json({ error: "item_unavailable" }, 404);
@@ -690,7 +693,8 @@ async function buyDigital(body: Record<string, unknown>, user: { id: string; ema
   if (error) return rpcRefusal(error);
   const frozen = data as { order_id?: string; items_cents?: number; premium_cents?: number; superseded_session_id?: string | null } | null;
   if (!frozen?.order_id) return json({ error: TRY_AGAIN }, 500);
-  if (frozen.superseded_session_id) await expirePage(frozen.superseded_session_id);
+  const supersededPage = frozen.superseded_session_id;
+  if (supersededPage) await expirePage(supersededPage);
   const close = async (why: string) => {
     const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });
     if (closeErr) console.error(`[shop-checkout] digital order ${frozen.order_id} not closed after ${why}: ${closeErr.message}`);
@@ -732,7 +736,8 @@ async function buyDigital(body: Record<string, unknown>, user: { id: string; ema
   }
   let customerId: string | undefined;
   try {
-    customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined;
+    const storedWallet = await storedStripeCustomer(admin, user.id, mode);
+    customerId = storedWallet ?? undefined;
   } catch (e) {
     console.error(`[shop-checkout] ${caughtMessage(e)}`);
     await close("the wallet read failed");
@@ -761,18 +766,16 @@ async function buyDigital(body: Record<string, unknown>, user: { id: string; ema
     lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: setupFeeCents, tax_behavior: "exclusive",
       product_data: taxed("One-time account setup fee", NONTAXABLE_TAX_CODE) } });
   }
-  if (tax.cents > 0) {
-    lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: tax.cents, tax_behavior: "exclusive",
-      product_data: { name: "Sales tax", description: "Sales tax where you live (your billing address)", tax_code: NONTAXABLE_TAX_CODE } } });
-  }
+  if (tax.cents > 0) lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: tax.cents, tax_behavior: "exclusive",
+    product_data: { name: "Sales tax", description: "Sales tax where you live (your billing address)", tax_code: NONTAXABLE_TAX_CODE } } });
   const chargedCents = o.items_cents + o.premium_cents + setupFeeCents + tax.cents;
-  const session = await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => stripe.checkout.sessions.create(
+  const session = await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (walletPayer, isRetry) => stripe.checkout.sessions.create(
     {
       mode: "payment",
       payment_method_types: ["card"],
       line_items: lineItems,
-      billing_address_collection: "required",
-      ...(payer ? { customer: payer, customer_update: { address: "auto" } } : { customer_email: user.email ?? undefined }),
+      billing_address_collection: "required" as const,
+      ...(walletPayer ? { customer: walletPayer, customer_update: { address: "auto" } } : { customer_email: user.email ?? undefined }),
       client_reference_id: o.id,
       metadata: meta,
       payment_intent_data: { metadata: meta, capture_method: "manual", transfer_group: `shop_order_${o.id}` },
@@ -782,9 +785,9 @@ async function buyDigital(body: Record<string, unknown>, user: { id: string; ema
       success_url: buildRedirectUrl("/shops/orders?bought=1", false),
       cancel_url: buildRedirectUrl(`/shops/${item.shop_id}?item=${itemId}`, false),
     },
-    { idempotencyKey: `shop-order-${o.id}${walletRetry ? ":new-wallet" : ""}` },
+    { idempotencyKey: digitalPageKey(o.id, isRetry) },
   ));
-  if (session.amount_subtotal !== chargedCents) {
+  if (chargedCents !== session.amount_subtotal) {
     await expirePage(session.id);
     await close("a Stripe subtotal mismatch");
     console.error(`[shop-checkout] Stripe subtotal ${session.amount_subtotal} != digital order ${chargedCents}`);

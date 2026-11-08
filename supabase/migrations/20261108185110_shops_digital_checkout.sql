@@ -30,9 +30,6 @@
 -- Replay-safe: ADD COLUMN IF NOT EXISTS, CREATE OR REPLACE.
 -- Proof: src/test/pglite/shopsDigitalCheckout.pglite.mjs.
 
-ALTER TABLE public.shop_orders ADD COLUMN IF NOT EXISTS is_digital boolean NOT NULL DEFAULT false;
-GRANT SELECT (is_digital) ON TABLE public.shop_orders TO authenticated;
-
 -- 1. The buyer asks for one download.
 CREATE OR REPLACE FUNCTION public.shops_request_digital_order(p_item_id uuid)
 RETURNS jsonb
@@ -348,35 +345,6 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shops_report_digital_problem(uuid, text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.shops_report_digital_problem(uuid, text, text) TO authenticated, service_role;
-
--- 3b. RESTATED from 20261108182917_shops_digital_downloads.sql: the buyer may download from the moment the charge is
---     taken ('accepted' + captured) and while the order is final; a refund ('refunded', 'partially_refunded') or any
---     other end takes it away.
-CREATE OR REPLACE FUNCTION public.shop_digital_download_path(p_file_id uuid, p_user uuid)
-RETURNS jsonb
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path TO 'public', 'pg_temp'
-AS $fn$
-  SELECT jsonb_build_object('storage_path', f.storage_path, 'file_name', f.file_name)
-    FROM public.shop_item_files f
-   WHERE f.id = p_file_id
-     AND p_user IS NOT NULL
-     AND f.checked_at IS NOT NULL
-     AND (f.owner_id = p_user
-          OR EXISTS (
-            SELECT 1 FROM public.shop_order_lines l
-              JOIN public.shop_orders o ON o.id = l.order_id
-             WHERE l.item_id = f.item_id
-               AND l.kind = 'digital'
-               AND o.is_digital
-               AND o.buyer_id = p_user
-               AND o.status IN ('accepted', 'handed_over')
-               AND o.captured_at IS NOT NULL));
-$fn$;
-REVOKE ALL ON FUNCTION public.shop_digital_download_path(uuid, uuid) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.shop_digital_download_path(uuid, uuid) TO service_role;
 
 -- The buyer's own download list: the files of every download they may download now (names only, never a path).
 CREATE OR REPLACE FUNCTION public.shops_my_digital_files(p_order_id uuid)

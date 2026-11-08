@@ -34,7 +34,7 @@
  * @mutate supabase/functions/shop-checkout/index.ts |     if (addr === "missing") return json({ error: "pickup_address_missing" }, 409); |
  * @mutate supabase/functions/shop-checkout/index.ts |   if (!mode \|\| !taxAddress \|\| o.seller_id !== ownerId) { |   if (!mode \|\| !taxAddress) {
  * H6 (tax at capture, not at the hold):
- * @mutate supabase/functions/shop-checkout/index.ts |    customer_details: { address, address_source: "shipping" }, |    customer_details: { address: { ...address, postal_code: "70112" }, address_source: "shipping" },
+ * @mutate supabase/functions/shop-checkout/index.ts |    customer_details: { address, address_source: addressSource }, |    customer_details: { address: { ...address, postal_code: "70112" }, address_source: addressSource },
  * @mutate supabase/functions/shop-checkout/index.ts |  }, { idempotencyKey: `shop-tax-${orderId}` }); |  });
  * @mutate supabase/functions/shop-checkout/index.ts |  meta.tax_calculation_id = tax.calculationId; |
  * @mutate supabase/functions/shop-checkout/index.ts |  meta.job_tax_cents = String(tax.cents); |

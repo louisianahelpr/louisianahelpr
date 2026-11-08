@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { report } from "@/lib/errorLogger";
+import { shouldRetryQuery } from "@/lib/queryRetry";
 import { takeGuestSectionsOpen } from "@/lib/declutter/guestBootPrefetch";
 
 /**
@@ -73,7 +74,8 @@ function useSectionsOpenQuery(start: boolean) {
     staleTime: 5 * 60_000,
     // H2 (Declutter buy audit 11-08): one dropped request (Facebook's in-app browser on a phone signal) sent a guest
     // on a public item link to the login wall. Two retries with backoff (0.6 s, then 1.2 s) before it settles failed.
-    retry: SECTIONS_OPEN_RETRIES,
+    // A refused (4xx) read is never resent (Q1164): the shared policy decides, with this hook's two retries.
+    retry: (count, err) => shouldRetryQuery(count, err, SECTIONS_OPEN_RETRIES),
     retryDelay: sectionsOpenRetryDelay,
     meta: { persist: false, reportsItself: true },
   });

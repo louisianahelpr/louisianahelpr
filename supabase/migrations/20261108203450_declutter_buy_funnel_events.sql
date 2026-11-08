@@ -49,6 +49,14 @@ CREATE INDEX IF NOT EXISTS declutter_funnel_events_member ON public.declutter_fu
 ALTER TABLE public.declutter_funnel_events ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.declutter_funnel_events FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.declutter_funnel_events TO service_role;
+-- Q807: an unconfirmed email cannot write the new table either (the same guarded call as 20261106202917).
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gate$;
 REVOKE ALL ON SEQUENCE public.declutter_funnel_events_id_seq FROM PUBLIC, anon, authenticated;
 
 ALTER TABLE public.declutter_orders ADD COLUMN IF NOT EXISTS last_payment_error_code text;

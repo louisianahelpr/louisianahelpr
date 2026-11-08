@@ -42,6 +42,7 @@ const DROPS = /withoutTestRows\(|withoutTestPeople\(|fetchSeedUserIds\(|realUser
 /** Files that read but cannot put a test account's row on a real admin screen, and why. */
 const NO_TEST_ROWS: Record<string, string> = {
   [`${A}adminAnalytics/SectionFunnel.tsx`]: "admin_section_funnel drops is_seed members on the server (20261021091636)",
+  [`${A}settings/DeclutterFunnelCard.tsx`]: "declutter_funnel_counts leaves test members out on the server (is_test_member, 20261108203450); the funnel writers never record a test listing or order",
   [`${A}adminAnalytics/SignupLeadsCard.tsx`]: "admin_list_signup_leads drops test data on the server (20261030015205_test_data_never_counts)",
   [`${A}adminAnalytics/SignupSources.tsx`]: "admin_signup_source_report drops is_seed members on the server (20261031220447)",
   [`${A}adminHealth/useFillRate.ts`]: "get_fill_rate_stats leaves test jobs out on the server (20261012201528_fill_rate_leaves_test_jobs_out)",

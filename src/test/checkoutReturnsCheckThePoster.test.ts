@@ -67,7 +67,9 @@ const OWNER_CHECK: Record<string, RegExp> = {
   // A declutter order: resolved only among the viewer's own buyer lines (justPaidOrder). BUY-30's notice link
   // (useLinkedOrder, ?tab=...&order=) is not a checkout return: it reads nothing when ?paid= is there, and only
   // ever picks among the viewer's own order cards, so it makes no payment claim.
-  order: /my_side === "buyer"|if \(params\.get\("paid"\)\) return null;/,
+  // H3 (20261108203450): stripeReturn.ts only counts the return as a funnel step (trackFunnel); declutter_funnel_event
+  // records an order id only when o.buyer_id = auth.uid(), so it claims nothing for anyone else.
+  order: /my_side === "buyer"|if \(params\.get\("paid"\)\) return null;|trackFunnel\("returned_from_stripe"/,
 };
 const ownerCheck = (param: string) => OWNER_CHECK[param] ?? /\bisJobPoster\(/;
 

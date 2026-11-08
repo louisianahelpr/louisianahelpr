@@ -17436,6 +17436,11 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: number
       }
+      shop_preorder_sweep: { Args: never; Returns: Json }
+      shop_preorder_units: {
+        Args: { p_item_id: string; p_paid_only: boolean }
+        Returns: number
+      }
       shop_report_helpr_no_show: {
         Args: { p_order_id: string }
         Returns: Json
@@ -17448,12 +17453,46 @@ export type Database = {
         Args: { p_expect_line1: string; p_expect_postal_code: string; p_lat: number; p_lng: number; p_owner: string; p_shop_id: string }
         Returns: Json
       }
+      shops_cancel_preorder: { Args: { p_order_id: string }; Returns: Json }
+      shops_item_preorders: {
+        Args: { p_shop_id: string }
+        Returns: {
+          cap: number
+          goal: number
+          goal_by: string
+          goal_met: boolean
+          goal_missed: boolean
+          item_id: string
+          moved: boolean
+          open: boolean
+          ordered: number
+          ready_by: string
+        }[]
+      }
       shops_item_variants: { Args: { p_shop_id: string }; Returns: Json }
+      shops_push_preorder_date: {
+        Args: { p_item_id: string; p_new_ready_by: string }
+        Returns: Json
+      }
+      shops_request_preorder: {
+        Args: { p_item_id: string; p_note: string; p_quantity: number; p_shop_id: string }
+        Returns: Json
+      }
       shops_set_helpr_delivery: {
         Args: { p_on: boolean }
         Returns: Json
       }
       shops_order_helpr_task: { Args: { p_order_id: string }; Returns: string }
+      shops_set_item_preorder: {
+        Args: {
+          p_cap: number
+          p_goal: number
+          p_goal_by: string
+          p_item_id: string
+          p_ready_by: string
+        }
+        Returns: Json
+      }
       shops_set_item_variants: {
         Args: { p_item_id: string; p_option_names: string[]; p_variants: Json }
         Returns: Json

@@ -35,6 +35,7 @@ import {
   type ShopOrder,
 } from "@/lib/shops/orders";
 import { fetchHandovers } from "@/lib/shops/handover";
+import { cancelPreorder, preorderCancelText } from "@/lib/shops/preorders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 
 const REASON_MAX = 200;
@@ -126,6 +127,51 @@ export function BuyerCancelOrder({ order }: { order: ShopOrder }) {
           </p>
         )}
       </BrandConfirmDialog>
+    </>
+  );
+}
+
+/**
+ * Preorders (20261108184654): the buyer cancels a paid preorder until the shop marks it ready (shop-checkout
+ * 'preorder_cancel', which runs shops_cancel_preorder and sends the refund). The dialog says what comes back: after a
+ * pushed date or past the late time, everything; otherwise what they paid less the card-processing cost and its tax.
+ */
+export function BuyerCancelPreorder({ order }: { order: ShopOrder }) {
+  const qc = useQueryClient();
+  const [asking, setAsking] = useState(false);
+  const { cancellable, markedReady } = useOpenOrder(order);
+  const cancel = useMutation({
+    mutationFn: () => cancelPreorder(order.id),
+    onSuccess: ({ refundCents }) => {
+      toast.success(refundCents != null
+        ? `Preorder cancelled. ${formatCents(refundCents)} is on its way back to your card.`
+        : "Preorder cancelled. Your refund is on its way back to your card.");
+      setAsking(false);
+      void qc.invalidateQueries({ queryKey: ["shops", "my-orders"] });
+    },
+    onError: (err) => {
+      toast.error(shopsErrorMessage(err));
+      setAsking(false);
+      void qc.invalidateQueries({ queryKey: ["shops", "my-orders"] });
+    },
+  });
+  if (!cancellable || markedReady) return null;
+  return (
+    <>
+      <Button type="button" size="sm" variant="outline" onClick={() => setAsking(true)}>Cancel preorder</Button>
+      <BrandConfirmDialog
+        open={asking}
+        onOpenChange={(o) => { if (!o) setAsking(false); }}
+        title="Cancel this preorder?"
+        description={preorderCancelText(order, louisianaToday())}
+        primaryLabel={cancel.isPending ? "Cancelling…" : "Cancel preorder"}
+        primaryDisabled={cancel.isPending}
+        onPrimary={(e) => {
+          e.preventDefault();
+          cancel.mutate();
+        }}
+        secondaryLabel="Keep it"
+      />
     </>
   );
 }

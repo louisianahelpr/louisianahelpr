@@ -61,6 +61,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/lib/needsYouStore.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks (the counts carry their account id; a reader for another id gets zero)" },
   "src/components/mobileNav/navUnreadStore.ts:stores": { kind: "keyed-by-user-id" },
   "src/components/mobileNav/navUnreadStore.ts:watchers": { kind: "not-user-data", why: "re-render callbacks of the read-only unread readers (the phone top bar's Messages button, nav redesign 2026-11-06); holds no count or id" },
+  "src/components/sections/createFabHidden.tsx:listeners": { kind: "not-user-data", why: "re-render callbacks of the floating create pill's hidden state (an empty state shows its own create, owner 11-08); a count of mounted empty states, nothing about the account" },
   "src/components/mobileNav/createSheetStore.ts:listeners": { kind: "not-user-data", why: "re-render callbacks of the Create sheet's open state (the top bar's + opens the sheet MobileNav mounts, nav redesign 2026-11-06); a yes or no, nothing about the account" },
   "src/components/job-card/useCardExpansion.ts:NONE_OPEN": { kind: "not-user-data", why: "an empty ReadonlySet, the default 'no card open' value; nothing writes to it" },
   "src/components/sections/useSectionPrefs.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks" },

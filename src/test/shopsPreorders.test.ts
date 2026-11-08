@@ -12,17 +12,26 @@
  *      the day cap and the porch no-photo clock skip preorders.
  *   5. The edge: shop-checkout runs shops_cancel_preorder BEFORE it sends the refund; the webhook captures a preorder
  *      at the hold; declutter-money runs the sweep before shop_refunds_due sends.
+ *   6. Money review 11-08: a preorder's ready tap counts only from ready-by - 14 days (trigger on shop_handovers); a
+ *      preorder item can never be on an ordinary order (trigger on shop_order_lines: shops_request_order would skip
+ *      the cap, the goal and the refunds); a buyer's cancel after the goal-missed stamp or after ready-by + 7 is filed
+ *      as the sweep would file it (the shop pays the card fee).
  *
- * Behaviour (red/green, 3x replay): src/test/pglite/shopsPreorders.pglite.mjs (49 checks; red without the migration).
+ * Behaviour (red/green, 3x replay): src/test/pglite/shopsPreorders.pglite.mjs (59 checks; red without the migration).
  *
  * @mutate supabase/migrations/20261108184654_shops_preorders.sql |   preorder_ready_by IS NULL OR preorder_ready_by - preorder_set_on <= 150); |   preorder_ready_by IS NULL OR preorder_ready_by - preorder_set_on <= 200);
  * @mutate supabase/migrations/20261108184654_shops_preorders.sql |     WHEN p_reason IN ('preorder_shop_late', 'preorder_date_moved', 'preorder_goal_missed') THEN 'full_shop_pays_fee' |     WHEN p_reason IN ('preorder_shop_late', 'preorder_date_moved', 'preorder_goal_missed') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261108184654_shops_preorders.sql |       AND NOT EXISTS (SELECT 1 FROM public.shop_refunds x WHERE x.order_id = so.id)\n     ORDER BY so.id LIMIT 200\n  LOOP\n    BEGIN\n      o := public.shop_lock_open_charged_order(c.id, false);\n      UPDATE public.shop_orders SET status = 'refunded', close_reason = 'preorder_goal_missed' |       AND NOT EXISTS (SELECT 1 FROM public.shop_refunds x WHERE x.order_id = so.id)\n     ORDER BY so.id LIMIT 200\n  LOOP\n    BEGIN\n      UPDATE public.shop_orders SET status = 'refunded', close_reason = 'preorder_goal_missed'
  * @mutate supabase/functions/shop-checkout/index.ts |   const { data, error } = await asBuyer.rpc("shops_cancel_preorder", { p_order_id: orderId });\n  if (error) return rpcRefusal(error);\n  const d = data as { refund_id?: string; refund_cents?: number } \| null;\n  const refund = await sendRefundNow(admin, orderId, d?.refund_id); |   const refund = await sendRefundNow(admin, orderId, null);\n  const { data, error } = await asBuyer.rpc("shops_cancel_preorder", { p_order_id: orderId });\n  if (error) return rpcRefusal(error);\n  const d = data as { refund_id?: string; refund_cents?: number } \| null;
  * @mutate supabase/functions/stripe-webhook/handlers/shopCheckout.ts |         const done = await captureShopHold(stripe, supabase, answer.order_id, piId, 0); |         const done = "skipped";
+ * @mutate supabase/migrations/20261108184654_shops_preorders.sql |   IF v_ready IS NOT NULL AND public.shop_local_today() < v_ready - 14 THEN | IF v_ready IS NOT NULL AND public.shop_local_today() < v_ready - 140 THEN
+ * @mutate supabase/migrations/20261108184654_shops_preorders.sql |     AND NOT EXISTS (SELECT 1 FROM public.shop_orders o WHERE o.id = NEW.order_id AND o.preorder_item_id = NEW.item_id) THEN |     AND NOT EXISTS (SELECT 1 FROM public.shop_orders o WHERE o.id = NEW.order_id) THEN
+ * @mutate supabase/migrations/20261108184654_shops_preorders.sql |     WHEN ((o.ready_date + 8)::timestamp AT TIME ZONE 'America/Chicago') <= now() THEN 'preorder_shop_late'\n | \n
+ * @mutate supabase/migrations/20261108184654_shops_preorders.sql |       THEN 'preorder_goal_missed'\n    WHEN ((o.ready_date + 8) |       THEN 'buyer_cancelled'\n    WHEN ((o.ready_date + 8)
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -36,6 +45,7 @@ const body = (name: string) => {
   const m = /\bAS\s+\$\w*\$/i.exec(stmt);
   return m ? stmt.slice(m.index) : "";
 };
+const flat = (t: string) => t.replace(/\s+/g, " ");
 const src = (p: string) => blankComments(readFileSync(join(ROOT, p), "utf8"));
 const fnSlice = (code: string, name: string) => {
   const start = code.indexOf(`async function ${name}(`);
@@ -78,7 +88,27 @@ describe("Shops preorders: card age, fee policy, row locks, auto-accept", () => 
     const policy = body("shop_refund_fee_policy");
     expect(policy).toMatch(/WHEN p_reason IN \('preorder_shop_late', 'preorder_date_moved', 'preorder_goal_missed'\) THEN 'full_shop_pays_fee'/);
     expect(policy).not.toMatch(/preorder_[a-z_]+'\)? THEN 'full_platform_absorbs'/);
-    expect(body("shops_cancel_preorder")).toMatch(/CASE WHEN o\.preorder_moved_at IS NOT NULL THEN 'preorder_date_moved' ELSE 'buyer_cancelled' END/);
+    const cancel = flat(body("shops_cancel_preorder"));
+    // Money review 11-08 (3): the sweep's own triggers first (the shop pays), then a pushed date, then the buyer's own.
+    expect(cancel).toContain("v_reason := CASE WHEN EXISTS (SELECT 1 FROM public.shop_items i WHERE i.id = o.preorder_item_id AND i.preorder_goal_missed_at IS NOT NULL) THEN 'preorder_goal_missed' "
+      + "WHEN ((o.ready_date + 8)::timestamp AT TIME ZONE 'America/Chicago') <= now() THEN 'preorder_shop_late' "
+      + "WHEN o.preorder_moved_at IS NOT NULL THEN 'preorder_date_moved' ELSE 'buyer_cancelled' END;");
+    // The late time is the sweep's own (ready-by + 7, end of day).
+    expect(flat(body("shop_preorder_sweep"))).toContain("AND ((so.ready_date + 8)::timestamp AT TIME ZONE 'America/Chicago') <= now()");
+  });
+
+  it("money review 11-08: no early ready tap on a preorder, no preorder item on an ordinary order", () => {
+    const ready = flat(body("shop_handovers_preorder_ready_guard"));
+    expect(ready).toContain("IF v_ready IS NOT NULL AND public.shop_local_today() < v_ready - 14 THEN RAISE EXCEPTION 'preorder_not_ready_yet'");
+    expect(MIG).toMatch(/CREATE TRIGGER trg_shop_handovers_preorder_ready_guard\s+BEFORE INSERT OR UPDATE OF ready_at ON public\.shop_handovers/);
+    const lines = flat(body("shop_order_lines_preorder_guard"));
+    expect(lines).toContain("AND NOT EXISTS (SELECT 1 FROM public.shop_orders o WHERE o.id = NEW.order_id AND o.preorder_item_id = NEW.item_id) THEN RAISE EXCEPTION 'preorder_use_preorder_checkout'");
+    expect(MIG).toMatch(/CREATE TRIGGER trg_shop_order_lines_preorder_guard\s+BEFORE INSERT OR UPDATE OF item_id, order_id ON public\.shop_order_lines/);
+    // No later migration drops either trigger.
+    for (const f of readdirSync(MIG_DIR).filter((x) => x > "20261108184654_shops_preorders.sql" && x.endsWith(".sql"))) {
+      const later = blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8"));
+      expect(later, f).not.toMatch(/DROP TRIGGER[^;]*trg_shop_(handovers_preorder_ready|order_lines_preorder)_guard/);
+    }
   });
 
   it("every preorder refund path locks the order before it writes, and never calls the network", () => {

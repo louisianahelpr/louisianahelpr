@@ -218,9 +218,34 @@ ok(c1?.result === "cancelled" && rb?.reason === "buyer_cancelled" && rb.kept_cen
   `buyer cancel: refunded less the card fee (${JSON.stringify(c1)}, kept ${rb?.kept_cents})`);
 ok((await item(it1)).preorder_goal_met_at !== null && one(await svc(`SELECT public.shop_preorder_sweep() AS r`))?.goal_missed === 0, "the goal stays met after the cancel");
 ok((await as(B[0], `SELECT public.shops_cancel_preorder('${b.id}')`))?.error?.includes("order_not_found"), "another buyer cannot cancel it");
-await svc(`INSERT INTO public.shop_handovers (order_id, ready_at) VALUES ('${a.id}', now())`);
+// Money review 11-08 (1): the ready tap counts only from ready-by - 14 days (a's ready-by is +30).
+const early = await svc(`INSERT INTO public.shop_handovers (order_id, ready_at) VALUES ('${a.id}', now())`);
+ok(early?.error?.includes("preorder_not_ready_yet") && (await svc(`SELECT 1 FROM public.shop_handovers WHERE order_id = '${a.id}'`)).length === 0,
+  `a ready tap 30 days before ready-by is refused (${early?.error})`);
+await svc(`INSERT INTO public.shop_handovers (order_id) VALUES ('${a.id}')`);
+ok((await svc(`UPDATE public.shop_handovers SET ready_at = now() WHERE order_id = '${a.id}'`))?.error?.includes("preorder_not_ready_yet"),
+  "...on an existing handover row too (the held-nudge sweep's empty row)");
+await svc(`UPDATE public.today SET d = '${plus(16)}'`);
+const onTime = await svc(`INSERT INTO public.shop_handovers (order_id, ready_at) VALUES ('${a.id}', now())
+  ON CONFLICT (order_id) DO UPDATE SET ready_at = COALESCE(public.shop_handovers.ready_at, EXCLUDED.ready_at)`);
+ok(!onTime?.error && (await svc(`SELECT ready_at FROM public.shop_handovers WHERE order_id = '${a.id}'`))[0]?.ready_at != null,
+  `from ready-by - 14 the ready tap is accepted (${onTime?.error ?? "ok"})`);
+await svc(`UPDATE public.today SET d = '${today}'`);
+ok(!(await svc(`INSERT INTO public.shop_handovers (order_id, ready_at) VALUES ('${a.id}', now())
+  ON CONFLICT (order_id) DO UPDATE SET ready_photo_path = 'retake'`))?.error, "a retake of an order already marked ready is left alone");
 ok((await as(B[0], `SELECT public.shops_cancel_preorder('${a.id}')`))?.error?.includes("preorder_ready"), "no cancel once the shop marked it ready");
-
+// Money review 11-08 (2): an ordinary order's line can never name a preorder item (shops_request_order skips the cap,
+// the goal and the refunds); the preorder's own order can, and an ordinary item is unaffected.
+const plain = await newItem();
+const ord = one(await svc(`INSERT INTO public.shop_orders (buyer_id, seller_id, shop_id, items_cents, premium_cents, total_cents)
+  VALUES ('${B[2]}', '${SELLER}', '${SHOP}', 2000, 170, 2170) RETURNING id`));
+const viaOrdinary = await svc(`INSERT INTO public.shop_order_lines (order_id, item_id, title, kind, unit_cents, quantity, line_cents)
+  VALUES ('${ord}', '${it1}', 'King cake', 'made', 2000, 1, 2000)`);
+ok(viaOrdinary?.error?.includes("preorder_use_preorder_checkout"), `an ordinary order of a preorder item is refused (${viaOrdinary?.error})`);
+ok(!(await svc(`INSERT INTO public.shop_order_lines (order_id, item_id, title, kind, unit_cents, quantity, line_cents)
+  VALUES ('${ord}', '${plain}', 'Plain', 'made', 2000, 1, 2000)`))?.error, "an ordinary item on an ordinary order is unaffected");
+ok((await svc(`UPDATE public.shop_order_lines SET item_id = '${it1}' WHERE order_id = '${ord}'`))?.error?.includes("preorder_use_preorder_checkout"),
+  "moving a line onto a preorder item is refused too");
 // --- 4. goal missed: every paid preorder refunded IN FULL (buyer fee included; the shop carries the card fee), once
 const it2 = await newItem();
 await as(SELLER, `SELECT public.shops_set_item_preorder('${it2}', '${plus(40)}', 5, '${plus(2)}', NULL)`);
@@ -293,6 +318,35 @@ const porch = await preorder(B[2], it5, 1);
 await svc(`UPDATE public.shop_orders SET handover_mode = 'porch', ready_date = '${plus(-5)}' WHERE id = '${porch.id}'`);
 const nophoto = one(await svc(`SELECT public.shop_refund_sweep() AS r`));
 ok(nophoto?.no_ready_photo_refunded === 0 && (await refundOf(porch.id)) === undefined, "the porch no-photo clock skips preorders");
+
+// --- 6b. Money review 11-08 (3): a buyer's cancel after the sweep's own trigger is filed as the sweep would file it
+//         (the shop pays the card fee), never as the buyer's own cancel.
+const it6 = await newItem();
+await as(SELLER, `SELECT public.shops_set_item_preorder('${it6}', '${plus(40)}', 5, '${plus(5)}', NULL)`);
+const g1 = await preorder(B[0], it6, 1);
+await svc(`UPDATE public.shop_items SET preorder_goal_missed_at = now() WHERE id = '${it6}'`);  // stamped; refunds not sent yet
+one(await as(B[0], `SELECT public.shops_cancel_preorder('${g1.id}') AS r`));
+const rg = await refundOf(g1.id);
+ok(rg?.reason === "preorder_goal_missed" && rg.fee_policy === "full_shop_pays_fee" && rg.kept_cents === 0
+   && (await row(g1.id)).close_reason === "preorder_goal_missed",
+  `a cancel after the goal-missed stamp: filed as goal missed, full refund, the shop pays the fee (${rg?.reason}, kept ${rg?.kept_cents})`);
+const it7 = await newItem();
+await as(SELLER, `SELECT public.shops_set_item_preorder('${it7}', '${plus(10)}', NULL, NULL, NULL)`);
+const lt = await preorder(B[1], it7, 1);
+await svc(`UPDATE public.shop_items SET preorder_set_on = '${plus(-30)}', preorder_ready_by = '${plus(-8)}' WHERE id = '${it7}'`);
+await svc(`UPDATE public.shop_orders SET ready_date = '${plus(-8)}' WHERE id = '${lt.id}'`);
+one(await as(B[1], `SELECT public.shops_cancel_preorder('${lt.id}') AS r`));
+const rlt = await refundOf(lt.id);
+ok(rlt?.reason === "preorder_shop_late" && rlt.fee_policy === "full_shop_pays_fee" && rlt.kept_cents === 0
+   && (await row(lt.id)).close_reason === "preorder_shop_late",
+  `a cancel after ready-by + 7: filed as late, full refund, the shop pays the fee (${rlt?.reason}, kept ${rlt?.kept_cents})`);
+const it8 = await newItem();
+await as(SELLER, `SELECT public.shops_set_item_preorder('${it8}', '${plus(10)}', NULL, NULL, NULL)`);
+const ot = await preorder(B[2], it8, 1);
+await svc(`UPDATE public.shop_items SET preorder_set_on = '${plus(-30)}', preorder_ready_by = '${plus(-6)}' WHERE id = '${it8}'`);
+await svc(`UPDATE public.shop_orders SET ready_date = '${plus(-6)}' WHERE id = '${ot.id}'`);
+one(await as(B[2], `SELECT public.shops_cancel_preorder('${ot.id}') AS r`));
+ok((await refundOf(ot.id))?.reason === "buyer_cancelled", "before the late time (ready-by + 6) the buyer's own cancel keeps the card fee");
 
 // --- 7. grants
 const grants = await svc(`SELECT p.proname, has_function_privilege('authenticated', p.oid, 'EXECUTE') AS m,

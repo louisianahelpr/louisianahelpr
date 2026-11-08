@@ -23,6 +23,10 @@
 --   6. shop_mark_order_held RESTATED: a preorder's hold is accepted at once (the webhook captures it), the cap and the
 --      campaign are re-checked under the item lock; shop_refund_sweep RESTATED: the porch no-photo clock skips
 --      preorders (they run on the 7-days-after-ready-by clock).
+--   7. Money review 11-08: a preorder's ready tap counts only from 14 days before its ready-by (trigger on
+--      shop_handovers: preorder_not_ready_yet), and a preorder item is never on an ordinary order (trigger on
+--      shop_order_lines: preorder_use_preorder_checkout). shops_cancel_preorder files a cancel made after the
+--      goal-missed stamp or after ready-by + 7 as preorder_goal_missed / preorder_shop_late (the shop pays the fee).
 -- Refund rows are sent by declutter-money's shop_refunds_due like every other Shops refund (_shared/shopRefunds.ts:
 -- reconcile, then key shop-refund-<row id>); the tax is reversed per PaymentIntent by the existing webhook path.
 -- MONEY: yes (lh-money-escrow). AUTHZ: owner/buyer RPCs check auth.uid(); the sweep is service-only.
@@ -442,9 +446,17 @@ BEGIN
     RAISE EXCEPTION 'preorder_ready' USING ERRCODE = '55000',
       HINT = 'The shop already marked this order ready, so it can no longer be cancelled.';
   END IF;
-  v_reason := CASE WHEN o.preorder_moved_at IS NOT NULL THEN 'preorder_date_moved' ELSE 'buyer_cancelled' END;
+  -- Money review 11-08: a cancel that lands after the sweep's own trigger is filed as the sweep would file it, so the
+  -- shop carries the card fee: the goal-missed stamp is set (the sweep refunds every paid order of the item), or the
+  -- late refund time (end of ready-by + 7, Louisiana time) has passed. Then a pushed date; else the buyer's own cancel.
+  v_reason := CASE
+    WHEN EXISTS (SELECT 1 FROM public.shop_items i WHERE i.id = o.preorder_item_id AND i.preorder_goal_missed_at IS NOT NULL)
+      THEN 'preorder_goal_missed'
+    WHEN ((o.ready_date + 8)::timestamp AT TIME ZONE 'America/Chicago') <= now() THEN 'preorder_shop_late'
+    WHEN o.preorder_moved_at IS NOT NULL THEN 'preorder_date_moved'
+    ELSE 'buyer_cancelled' END;
   UPDATE public.shop_orders SET status = 'refunded',
-         close_reason = CASE WHEN v_reason = 'preorder_date_moved' THEN 'preorder_date_moved' ELSE 'preorder_cancelled' END,
+         close_reason = CASE WHEN v_reason = 'buyer_cancelled' THEN 'preorder_cancelled' ELSE v_reason END,
          closed_at = now()
    WHERE id = o.id AND status = 'accepted';
   r := public.shop_write_refund(o.id, v_reason, NULL);
@@ -872,3 +884,66 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shop_refund_sweep() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_refund_sweep() TO service_role;
+
+-- 7. Money review 11-08 (1): the shop's ready tap on a preorder counts only from 14 days before its ready-by date
+--    (Louisiana date). A tap months early would end the buyer's cancel (shops_cancel_preorder: preorder_ready) and
+--    the late refund (the sweep skips an order marked ready) for an item that is not made. A trigger on the one table
+--    every ready tap writes (shops_mark_ready, 20261105190034, and any later restatement of it), so no path skips it.
+--    A retake of an order already marked ready is left alone (the first ready time never moves).
+CREATE OR REPLACE FUNCTION public.shop_handovers_preorder_ready_guard()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_ready date;
+BEGIN
+  IF NEW.ready_at IS NULL THEN
+    RETURN NEW;
+  END IF;
+  IF TG_OP = 'UPDATE' AND OLD.ready_at IS NOT NULL THEN
+    RETURN NEW;
+  END IF;
+  IF TG_OP = 'INSERT' AND EXISTS (SELECT 1 FROM public.shop_handovers h
+                                   WHERE h.order_id = NEW.order_id AND h.ready_at IS NOT NULL) THEN
+    RETURN NEW;  -- shops_mark_ready's retake: ON CONFLICT keeps the first ready time
+  END IF;
+  SELECT o.ready_date INTO v_ready FROM public.shop_orders o
+   WHERE o.id = NEW.order_id AND o.preorder_item_id IS NOT NULL;
+  IF v_ready IS NOT NULL AND public.shop_local_today() < v_ready - 14 THEN
+    RAISE EXCEPTION 'preorder_not_ready_yet' USING ERRCODE = '55000',
+      HINT = format('You can mark this preorder ready from %s.', to_char(v_ready - 14, 'FMMonth FMDD'));
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.shop_handovers_preorder_ready_guard() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_shop_handovers_preorder_ready_guard ON public.shop_handovers;
+CREATE TRIGGER trg_shop_handovers_preorder_ready_guard
+  BEFORE INSERT OR UPDATE OF ready_at ON public.shop_handovers
+  FOR EACH ROW EXECUTE FUNCTION public.shop_handovers_preorder_ready_guard();
+
+-- 8. Money review 11-08 (2): a preorder item is ordered ONLY through shops_request_preorder. An ordinary order
+--    (shops_request_order, newest 20261106165310) of it would skip the cap, the goal and the automatic refunds, and
+--    run on the 24-hour hold. A trigger on the order lines, so every order path is covered: a line naming an item
+--    that is a preorder is refused unless its order is that item's preorder.
+CREATE OR REPLACE FUNCTION public.shop_order_lines_preorder_guard()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  IF NEW.item_id IS NOT NULL
+     AND EXISTS (SELECT 1 FROM public.shop_items i WHERE i.id = NEW.item_id AND i.preorder_ready_by IS NOT NULL)
+     AND NOT EXISTS (SELECT 1 FROM public.shop_orders o WHERE o.id = NEW.order_id AND o.preorder_item_id = NEW.item_id) THEN
+    RAISE EXCEPTION 'preorder_use_preorder_checkout' USING ERRCODE = '55000',
+      HINT = 'This item is a preorder. Order it on its own as a preorder.';
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.shop_order_lines_preorder_guard() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_shop_order_lines_preorder_guard ON public.shop_order_lines;
+CREATE TRIGGER trg_shop_order_lines_preorder_guard
+  BEFORE INSERT OR UPDATE OF item_id, order_id ON public.shop_order_lines
+  FOR EACH ROW EXECUTE FUNCTION public.shop_order_lines_preorder_guard();

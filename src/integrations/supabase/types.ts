@@ -13730,6 +13730,15 @@ export type Database = {
           live_at: string | null
           option_names: string[]
           owner_id: string
+          preorder_cap: number | null
+          preorder_goal: number | null
+          preorder_goal_by: string | null
+          preorder_goal_met_at: string | null
+          preorder_goal_missed_at: string | null
+          preorder_late_warned_at: string | null
+          preorder_moved_at: string | null
+          preorder_ready_by: string | null
+          preorder_set_on: string | null
           price_cents: number
           shop_id: string
           status: string
@@ -13751,6 +13760,15 @@ export type Database = {
           live_at?: string | null
           option_names?: string[]
           owner_id: string
+          preorder_cap?: number | null
+          preorder_goal?: number | null
+          preorder_goal_by?: string | null
+          preorder_goal_met_at?: string | null
+          preorder_goal_missed_at?: string | null
+          preorder_late_warned_at?: string | null
+          preorder_moved_at?: string | null
+          preorder_ready_by?: string | null
+          preorder_set_on?: string | null
           price_cents: number
           shop_id: string
           status?: string
@@ -13772,6 +13790,15 @@ export type Database = {
           live_at?: string | null
           option_names?: string[]
           owner_id?: string
+          preorder_cap?: number | null
+          preorder_goal?: number | null
+          preorder_goal_by?: string | null
+          preorder_goal_met_at?: string | null
+          preorder_goal_missed_at?: string | null
+          preorder_late_warned_at?: string | null
+          preorder_moved_at?: string | null
+          preorder_ready_by?: string | null
+          preorder_set_on?: string | null
           price_cents?: number
           shop_id?: string
           status?: string
@@ -14000,6 +14027,8 @@ export type Database = {
           payment_livemode: boolean | null
           payment_plan: string
           premium_cents: number
+          preorder_item_id: string | null
+          preorder_moved_at: string | null
           ready_date: string
           ready_tap_cancel: string
           seller_id: string | null
@@ -14056,6 +14085,8 @@ export type Database = {
           payment_livemode?: boolean | null
           payment_plan?: string
           premium_cents: number
+          preorder_item_id?: string | null
+          preorder_moved_at?: string | null
           ready_date: string
           ready_tap_cancel?: string
           seller_id?: string | null
@@ -14112,6 +14143,8 @@ export type Database = {
           payment_livemode?: boolean | null
           payment_plan?: string
           premium_cents?: number
+          preorder_item_id?: string | null
+          preorder_moved_at?: string | null
           ready_date?: string
           ready_tap_cancel?: string
           seller_id?: string | null

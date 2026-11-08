@@ -43,6 +43,8 @@ const orders = vi.hoisted(() => ({ fetchOrderTerms: vi.fn(), requestOrder: vi.fn
 vi.mock("@/lib/shops/orders", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/orders")>()), ...orders }));
 const variants = vi.hoisted(() => ({ fetchItemOptions: vi.fn(), saveItemOptions: vi.fn() }));
 vi.mock("@/lib/shops/variants", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/variants")>()), ...variants }));
+// Preorders (20261108184654): none here (shopOrderScreens.test.tsx covers them).
+vi.mock("@/lib/shops/preorders", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/preorders")>()), fetchItemPreorders: async () => new Map() }));
 vi.mock("@/lib/shops/handover", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/handover")>()), fetchHandoverMode: async () => "in_person" }));
 
 import ShopOrderSheet from "./ShopOrderSheet";

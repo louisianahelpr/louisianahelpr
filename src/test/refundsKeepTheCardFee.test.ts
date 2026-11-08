@@ -1081,8 +1081,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_refund_fee_policy: "20261108184654_shops_preorders.sql 20e58bc1965172e1", // Custom orders 2b: + unpaid_close_tax under keep_card_fee. Preorders (money review owed): + preorder_shop_late / preorder_date_moved / preorder_goal_missed under full_shop_pays_fee; every other reason unchanged
       // Preorders (money review owed): goal missed / 7 days late -> shop_write_refund under full_shop_pays_fee, each order under its lock.
       shop_preorder_sweep: "20261108184654_shops_preorders.sql 93d94daec1ecb61e",
-      // Preorders (money review owed): the buyer's cancel -> buyer_cancelled (keep_card_fee), or preorder_date_moved after a push.
-      shops_cancel_preorder: "20261108184654_shops_preorders.sql 1a47aaf550c230a0",
+      // Preorders: the buyer's cancel -> buyer_cancelled (keep_card_fee); preorder_goal_missed / preorder_shop_late / preorder_date_moved (the shop pays) after the sweep's own trigger or a push (money review 11-08).
+      shops_cancel_preorder: "20261108184654_shops_preorders.sql 8a7b284cc64cb193",
       // Custom orders 2b (money review owed): writes the deposit's tax back as the order's unpaid_close_tax row (keep_card_fee, card fee 0: the
       // deposit's whole card fee is already kept), once, after Stripe Tax's full reversal.
       // 11-07 (20261107170121, money review owed): + the deposit's half of a shop-delivers order's delivery (LEAD 11-07); still

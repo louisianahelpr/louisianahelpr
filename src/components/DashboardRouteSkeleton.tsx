@@ -1,6 +1,5 @@
 import AppShell from "@/components/AppShell";
 import { Skeleton } from "@/components/ui/skeleton";
-import HelprMark from "@/components/HelprMark";
 
 /**
  * Suspense / auth-pending fallback for the `/home` route, which is the Home
@@ -9,8 +8,8 @@ import HelprMark from "@/components/HelprMark";
  * It mirrors src/pages/home/HomeDashboard.tsx the way JobsSectionSkeleton
  * mirrors Jobs (Q2214): the same SectionScreen frame (AppShell, the container,
  * the page-measure scroll column), the same top bar on Home (AppTopBar: the
- * emblem on the left, the bell, the profile avatar at the far right; no "+"),
- * then the greeting, the Next up card, the "Your sections" 2x2 tiles and
+ * search bar on the left, the bell, the profile avatar at the far right; no "+"),
+ * then the one-line greeting, the Next up card, the "Your sections" 2x2 tiles and
  * Coming up, so a cold /home goes bones -> content with nothing moving. The
  * old version drew the retired feed's title bar (emblem + search, filters,
  * bell), so a cold /home showed one shape and then another.
@@ -28,12 +27,12 @@ const DashboardRouteSkeleton = () => (
     <span className="sr-only">Loading…</span>
     {/* SectionScreen's frame, class for class. */}
     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top">
-      <div className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden" aria-hidden>
+      <div className="container mx-auto px-4 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden" aria-hidden>
         <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-hidden px-3 -mx-3 pb-safe-nav">
-          {/* AppTopBar on Dashboard (the Vinted header, owner 11-08): emblem left; the bell (which holds Messages) and the
-              avatar right, each a 44px control ("+ Create" floats over the page). */}
+          {/* AppTopBar on Dashboard (the Vinted header, owner 11-08; design audit A D1): the search bar left; the bell (which
+              holds Messages) and the avatar right, each a 44px control ("+ Create" floats over the page). */}
           <div className="app-top-bar flex items-center justify-between gap-2 h-16">
-            <HelprMark to={null} size="sm" emblemOnly className="shrink-0" />
+            <Skeleton className="h-11 min-w-0 flex-1 rounded-full" />
             <div className="flex items-center gap-0.5 shrink-0">
               <span className="h-11 w-11 flex items-center justify-center">
                 <Skeleton className="h-6 w-6 rounded-full" />
@@ -45,11 +44,10 @@ const DashboardRouteSkeleton = () => (
           </div>
           <div className="flex min-h-full flex-col gap-4 pt-1 pb-6">
             <div className="flex flex-col gap-section">
-              {/* Greeting (text-page-title) + the date line. On a cold signed-in phone /home, index.html's inline script
-                  draws the real greeting into this slot of the HTML copy (#lh-home-shell; homeGreetingShell.mjs, Q1158). */}
+              {/* The one-line greeting (20px, leading-tight: 25px). On a cold signed-in phone /home, index.html's inline
+                  script draws the real greeting into this slot of the HTML copy (#lh-home-shell; homeGreetingShell.mjs). */}
               <div data-skeleton-part="greeting">
-                <Skeleton className="h-8 w-56 max-w-full rounded-ds-md" />
-                <Skeleton className="h-4 w-32 mt-1.5 rounded-ds-md" />
+                <Skeleton className="h-[25px] w-56 max-w-full rounded-ds-md" />
               </div>
               {/* The Next up card: label, title, one line, the action pill. */}
               <div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton-part="next-up">

@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 497,
+      "literal": 496,
       "template": 107,
-      "dynamic": 645,
+      "dynamic": 646,
       "jsx": 0
     }
   },
@@ -4555,17 +4555,27 @@
     },
     {
       "file": "src/components/declutter/DeclutterCartRemove.tsx",
-      "line": 22,
+      "line": 24,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Removed from your cart. It's back on sale."
+        "form": "dynamic",
+        "text": "trade ? \"You backed out of the trade. Both items are back up.\" : \"Removed from your cart. It's back on sale.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "You backed out of the trade. Both items are back up."
+          },
+          {
+            "form": "literal",
+            "text": "Removed from your cart. It's back on sale."
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterCartRemove.tsx",
-      "line": 25,
+      "line": 27,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5306,7 +5316,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferTrade.tsx",
-      "line": 36,
+      "line": 35,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5316,7 +5326,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferTrade.tsx",
-      "line": 41,
+      "line": 40,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5902,7 +5912,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeOffers.tsx",
-      "line": 59,
+      "line": 73,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5932,7 +5942,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeOffers.tsx",
-      "line": 64,
+      "line": 78,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -78,7 +78,7 @@ function DeclutterGuestTopBar() {
 
 /** In place of Buy now / Make an offer (or Ask for it) for a guest: sign up, or log in, and come back to this item.
  *  AUD31-68: a listing that takes no offers (accepts_offers false, Buy now only) never mentions an offer. */
-export function DeclutterGuestJoin({ free, offers = true }: { free: boolean; offers?: boolean }) {
+export function DeclutterGuestJoin({ free, offers = true, trades = false }: { free: boolean; offers?: boolean; trades?: boolean }) {
   const location = useLocation();
   // AUD31-67 follow-up (lead 10-31): at desktop width the guest top bar already carries the logo, Log in and Sign up,
   // so the panel keeps only its item-specific message there. Phone widths have no bar and keep everything.
@@ -103,6 +103,8 @@ export function DeclutterGuestJoin({ free, offers = true }: { free: boolean; off
         </div>
       )}
       <p className="text-xs text-muted-foreground">It's free. You come back to this item after.</p>
+      {/* Trades audit 11-08 #3: a trade is one of the member's own listings, so a guest needs both. */}
+      {trades && <p data-guest-trades="" className="text-xs text-muted-foreground">Sign in and list an item to offer a trade.</p>}
     </section>
   );
 }

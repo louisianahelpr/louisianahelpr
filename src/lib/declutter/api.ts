@@ -98,6 +98,8 @@ export interface DeclutterItem {
   porch_ok: boolean;
   /** Smart offers (20261029162620): false = Buy only, the item page shows no "Make an offer". Absent = on (older fixtures, other reads). */
   accepts_offers?: boolean;
+  /** Trades (20261106163703): the listing takes one of the buyer's own listings in trade ("Trades OK"). Absent = off. */
+  accepts_trades?: boolean;
   /** The ways the seller ticked (20261028235247); read only on the seller's own list (fetchMyItems). */
   handovers?: SellerHandover[] | null;
 }

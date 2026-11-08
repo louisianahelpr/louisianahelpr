@@ -336,6 +336,10 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
  * does). Kept apart so the two-way check against the migrations stays exact.
  */
 export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
+  // Trades audit 11-08 #8: Pay on a seller's card checkout while a trade line from them still waits for its pickup
+  // choice. Raised by the trigger declutter_cart_items_swap_free_only (20261108195151, a trades migration, so outside
+  // declutterErrorCopy.test.ts's DECLUTTER_FILES), it reaches the app only as declutter-checkout's refusal code.
+  trade_checkout_first: "Choose your trade pickup first, then check out the rest.",
   // The address lookup (src/lib/addressLookup.ts): the lookup itself failed, so this is never about what was typed.
   address_lookup_unavailable: "We can't look up addresses just now. Your address may be fine, so try again in a minute.",
   // Found the area but not the house: AddressNeedsExactSpot under the address says what to do.

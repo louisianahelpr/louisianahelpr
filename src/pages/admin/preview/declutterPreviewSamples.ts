@@ -43,6 +43,13 @@ export const DECLUTTER_PREVIEW_STAGES = [
   { key: "free_asked", label: "Free item asked for (giver to pick)" },
   { key: "free_picked", label: "Free item picked (to confirm)" },
   { key: "free_missed", label: "Free pickup missed (paused)" },
+  // Trades audit 11-08 #12: a trade from offer to its end (side "seller" owns the chair; side "buyer" offered the lamp).
+  { key: "trade_offer_open", label: "Trade offered (seller to answer)" },
+  { key: "trade_accepted", label: "Trade accepted (both choose a pickup)" },
+  { key: "trade_one_checked_out", label: "Trade: one side chose its pickup" },
+  { key: "trade_completed", label: "Trade done" },
+  { key: "trade_lapsed", label: "Trade ended (a pickup wasn't chosen)" },
+  { key: "trade_voided", label: "Trade offer closed (item gone)" },
 ] as const;
 
 export type DeclutterPreviewStage = (typeof DECLUTTER_PREVIEW_STAGES)[number]["key"];
@@ -85,6 +92,8 @@ const LINE2_ID = "00000000-0000-4000-d000-000000000031";
 const OFFER_ID = "00000000-0000-4000-d000-000000000070";
 const REFUND_ID = "00000000-0000-4000-d000-000000000080";
 const FREE_ASK_ID = "00000000-0000-4000-d000-000000000090";
+const TRADE_ID = "00000000-0000-4000-d000-0000000000a0";
+const ORDER2_ID = "00000000-0000-4000-d000-000000000021";
 
 const hoursFrom = (now: number, h: number) => new Date(now + h * 3_600_000).toISOString();
 
@@ -148,6 +157,8 @@ function baseTables(buyerId: string, sellerId: string, now: number, slot: { star
     declutter_handover_talks: [],
     declutter_payouts: [],
     declutter_questions: [],
+    // Trades (#12): no trade on the order stages.
+    declutter_swap_offers: [],
   };
 }
 
@@ -344,10 +355,73 @@ export function declutterPreviewSample(stage: DeclutterPreviewStage, side: Declu
         cart: [freeLine({ status: "missed", closed_at: hoursFrom(now, -6) })] },
         { declutter_my_free_pause: side === "buyer" ? hoursFrom(now, 24 * 29) : null });
     }
+    case "trade_offer_open":
+    case "trade_accepted":
+    case "trade_one_checked_out":
+    case "trade_completed":
+    case "trade_lapsed":
+    case "trade_voided":
+      return tradeSample(stage, base, sellerId, now);
     case "donated":
       // The donation job is done: the receipt (the item, the date, the charity; never a value).
       return { ...base, cart: [], paidCents: [], items: side === "seller" ? [item(sellerId, now, { status: "withdrawn" })] : [],
         donations: side === "seller" ? [{ item_id: ITEM_ID, item_title: "Oak rocking chair (sample)", partner_name: "St. Vincent de Paul (sample)",
           partner_address: "220 St Vincent St, Baton Rouge", chosen_at: hoursFrom(now, -72), donated_at: hoursFrom(now, -20), receipt: true }] : [] };
   }
+}
+
+type TradeStage = Extract<DeclutterPreviewStage, `trade_${string}`>;
+type TradeLineState = "none" | "in_cart" | "paid" | "handed_over" | "missed";
+
+/**
+ * Trades audit 11-08 #12: one trade, the seller's chair for the buyer's lamp. Each side gets the other's item as a $0
+ * cart line (source "swap"); the trade row (declutter_swap_offers, as fetchMyTrades reads it) carries both lines.
+ * buyer_line: the trade buyer gets the chair (ORDER_ID once checked out); seller_line: the seller gets the lamp (ORDER2_ID).
+ * The cart carries only the chair's line, from the side shown (an admin stands in on ONE side: adminDeclutterPreviewIsInert).
+ */
+function tradeSample(stage: TradeStage, base: DeclutterPreviewSample, sellerId: string, now: number): DeclutterPreviewSample {
+  const side = base.side;
+  const [status, buyerGets, sellerGets]: [string, TradeLineState, TradeLineState] =
+    stage === "trade_offer_open" ? ["open", "none", "none"]
+      : stage === "trade_accepted" ? ["accepted", "in_cart", "in_cart"]
+        : stage === "trade_one_checked_out" ? ["accepted", "paid", "in_cart"]
+          : stage === "trade_completed" ? ["completed", "handed_over", "handed_over"]
+            : stage === "trade_lapsed" ? ["lapsed", "missed", "missed"]
+              : ["voided", "none", "none"];
+  const chair = { id: ITEM_ID, title: "Oak rocking chair (sample)", current_price_cents: 4000 };
+  const lamp = { id: ITEM2_ID, title: "Brass floor lamp (sample)", current_price_cents: 3500 };
+  const lineRef = (st: TradeLineState, orderId: string) =>
+    st === "none" ? null : { status: st === "handed_over" ? "paid" : st, order_id: st === "paid" || st === "handed_over" ? orderId : null };
+  const trade = { id: TRADE_ID, status, respond_by: hoursFrom(now, 30), created_at: hoursFrom(now, -18), item: chair, offered: lamp,
+    buyer_line: lineRef(buyerGets, ORDER_ID), seller_line: lineRef(sellerGets, ORDER2_ID) };
+  const other = side === "seller" ? base.profiles[0].id : sellerId;
+  // The chair's $0 line (the trade buyer gets it), seen from the side shown, like every stage: the buyer's cart line,
+  // or the seller's "Traded, they're choosing a pickup" / sale to hand over. The lamp's line lives on the trade row.
+  const st = buyerGets;
+  const done = st === "paid" || st === "handed_over";
+  const cart: CartLine[] = st === "none" ? [] : [{
+    line_id: LINE_ID, item_id: chair.id, item_title: chair.title, my_side: side, seller_id: sellerId,
+    price_cents: 0, status: st === "handed_over" ? "paid" : st, checkout_by: hoursFrom(now, 30),
+    order_id: done ? ORDER_ID : null, order_status: st === "paid" ? "paid" : st === "handed_over" ? "handed_over" : null,
+    handover: done ? "porch" : null, premium_cents: null, total_cents: done ? 0 : null,
+    porch_ok: true, handovers: ["porch"], delivery_cents: 0, delivery_task_id: null, source: "swap",
+    closed_at: st === "missed" ? hoursFrom(now, -2) : null,
+  }];
+  const paidOrders = cart.filter((l) => l.order_id);
+  const myItem = side === "seller"
+    ? item(sellerId, now, { accepts_trades: true, handovers: ["porch"], status: st === "in_cart" ? "reserved" : done ? "sold" : "live" })
+    : item(base.userId, now, { id: ITEM2_ID, title: lamp.title, price_cents: 3500, current_price_cents: 3500, handovers: ["porch"],
+      status: sellerGets === "in_cart" ? "reserved" : sellerGets === "handed_over" ? "sold" : "live" });
+  const orderRow = (l: CartLine) => ({ id: l.order_id, buyer_id: side === "buyer" ? base.userId : other, seller_id: sellerId,
+    status: l.order_status, total_cents: 0, paid_at: hoursFrom(now, -3), book_by: hoursFrom(now, 45), pickup_slot_start: null, pickup_slot_end: null });
+  return {
+    ...base, cart, offers: [], items: [myItem],
+    paidCents: paidOrders.map((l) => ({ order_id: l.order_id as string, paid_cents: 0 })),
+    handovers: Object.fromEntries(paidOrders.map((l) => [l.order_id as string, { order_id: l.order_id as string, status: l.order_status as string,
+      side: l.my_side, confirmed_at: l.order_status === "handed_over" ? hoursFrom(now, -1) : null, set_out_at: null, set_out_photo_path: null,
+      picked_up_at: l.order_status === "handed_over" ? hoursFrom(now, -1) : null }])) as Record<string, MyHandover>,
+    reads: { ...base.reads, ...(buyerGets === "handed_over" ? { declutter_i_reviewed: false } : {}) },
+    tables: { ...base.tables, declutter_swap_offers: [trade], declutter_orders: paidOrders.map(orderRow),
+      declutter_cart_items: cart.map((l) => ({ order_id: l.order_id, item_id: l.item_id, item_title: l.item_title, created_at: hoursFrom(now, -18) })) },
+  };
 }

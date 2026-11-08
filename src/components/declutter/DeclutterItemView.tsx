@@ -186,7 +186,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
     {/* Declutter trades (owner 10-31): a listing Open to trades also takes one of the buyer's own listings in trade. */}
     {canAct && user && !free && it.status === "live" && <Suspense fallback={null}><OfferTradeButton item={it} userId={user.id} /></Suspense>}
     {/* BUY-16: a guest signs up (or logs in) to buy, offer or ask, and comes back here. */}
-    {canAct && !user && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} />}
+    {canAct && !user && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} trades={!free && it.accepts_trades === true} />}
   </>);
   const urls = (photos.data ?? []).map((p) => photoPublicUrl(p.storage_path));
   // B67 (DECL-ITEM-SPEED): the frame shows a resized WebP (462 -> 124 KB measured on a live photo), the viewer the original.
@@ -258,6 +258,10 @@ export default function ItemView({ itemId }: { itemId: string }) {
               <ConditionChip stars={it.condition_stars} />
               {/* Owner 11-07 (Vinted review): how fresh the listing is, beside the condition. */}
               {forSale && listedAgo(it.live_at) && <span data-item-listed="" className="text-sm text-muted-foreground">{listedAgo(it.live_at)}</span>}
+              {/* Trades audit 11-08 #3: a listing Open to trades says so up front, for guests too. */}
+              {it.accepts_trades === true && !free && (
+                <span data-item-trades="" className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-ds-13 font-medium text-foreground">Trades OK</span>
+              )}
             </div>
             {/* Owner 11-07 (Vinted review): what the buyer pays with the fee, under the price. */}
             <PriceInclFee priceCents={it.current_price_cents} className="-mt-1 block text-ds-14 font-medium tabular-nums text-muted-foreground" />

@@ -12,14 +12,16 @@ import { removeCartItem, type CartLine } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 
-export function RemoveFromCart({ line }: { line: Pick<CartLine, "line_id" | "item_title"> }) {
+export function RemoveFromCart({ line }: { line: Pick<CartLine, "line_id" | "item_title"> & { source?: CartLine["source"] } }) {
+  // Trades (lead 11-08): removing a trade line backs out of the whole trade at once (declutter_remove_cart_item ends it).
+  const trade = line.source === "swap";
   const qc = useQueryClient();
   const [asking, setAsking] = useState(false);
   const remove = useMutation({
     mutationFn: () => removeCartItem(line.line_id),
     onSettled: () => setAsking(false),
     onSuccess: () => {
-      toast("Removed from your cart. It's back on sale.");
+      toast(trade ? "You backed out of the trade. Both items are back up." : "Removed from your cart. It's back on sale.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -30,9 +32,12 @@ export function RemoveFromCart({ line }: { line: Pick<CartLine, "line_id" | "ite
         aria-label={`Remove ${line.item_title} from your cart`} disabled={remove.isPending} onClick={() => setAsking(true)}>
         Remove
       </Button>
-      <ConfirmSheet open={asking} title="Remove it from your cart?" confirmLabel="Remove" cancelLabel="Keep it" pending={remove.isPending}
+      <ConfirmSheet open={asking} title={trade ? "Back out of this trade?" : "Remove it from your cart?"} confirmLabel={trade ? "Back out" : "Remove"}
+        cancelLabel={trade ? "Keep the trade" : "Keep it"} pending={remove.isPending}
         testId="declutter-remove-cart-line" onConfirm={() => remove.mutate()} onClose={() => setAsking(false)}>
-        &quot;{line.item_title}&quot; goes back on sale for everyone. Nothing is charged, and you get no strike.
+        {trade
+          ? <>The trade ends now: &quot;{line.item_title}&quot; and your item both go back up. Nothing changes hands, and nobody gets a strike.</>
+          : <>&quot;{line.item_title}&quot; goes back on sale for everyone. Nothing is charged, and you get no strike.</>}
       </ConfirmSheet>
     </>
   );

@@ -160,8 +160,14 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
           )}
         </span>
       </span>
-      {/* D-NEW12 (lead 2026-10-30): the seller has a bundle discount on. Under the text, never a second photo tag. */}
-      {bundle && <Badge variant="sienna" data-card-bundle="" className="ml-0.5 mt-1 w-fit text-ds-11 leading-none">Bundle deal</Badge>}
+      {/* D-NEW12 (lead 2026-10-30): the seller has a bundle discount on. Under the text, never a second photo tag.
+          Trades audit 11-08 #3: a listing Open to trades says "Trades OK" on the same line (guests see it too). */}
+      {(bundle || item.accepts_trades === true) && (
+        <span className="ml-0.5 mt-1 flex flex-wrap gap-1">
+          {bundle && <Badge variant="sienna" data-card-bundle="" className="w-fit text-ds-11 leading-none">Bundle deal</Badge>}
+          {item.accepts_trades === true && <Badge variant="outline" data-card-trades="" className="w-fit text-ds-11 leading-none">Trades OK</Badge>}
+        </span>
+      )}
     </Link>
   );
   const savesText = savesWord(saves);

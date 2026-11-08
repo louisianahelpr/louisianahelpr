@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchGuestSellerFirstName } from "@/lib/declutter/api";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { HelprMark } from "@/components/HelprMark";
 import { useSectionsOpen } from "@/components/landing/useSectionsOpen";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -76,33 +77,40 @@ function DeclutterGuestTopBar() {
   );
 }
 
-/** In place of Buy now / Make an offer (or Ask for it) for a guest: sign up, or log in, and come back to this item.
- *  AUD31-68: a listing that takes no offers (accepts_offers false, Buy now only) never mentions an offer. */
+/**
+ * A guest's Buy now / Make an offer (or Ask for it). Owner pick 1 (11-08, design audit B §5.6): a visitor from a
+ * Facebook link sees the REAL buttons in the same sticky bar as a member; a tap goes to sign up and comes back to this
+ * item (?redirect). Before, a sign-up card stood where the Buy button should be. One quiet line under the price block
+ * says joining is free, with a Log in link for members on another device.
+ * AUD31-68: a listing that takes no offers (accepts_offers false, Buy now only) never mentions an offer.
+ */
 export function DeclutterGuestJoin({ free, offers = true, trades = false }: { free: boolean; offers?: boolean; trades?: boolean }) {
   const location = useLocation();
-  // AUD31-67 follow-up (lead 10-31): at desktop width the guest top bar already carries the logo, Log in and Sign up,
-  // so the panel keeps only its item-specific message there. Phone widths have no bar and keep everything.
+  // AUD31-67 follow-up (lead 10-31): at desktop width the guest top bar already carries the logo, so the brand shows
+  // only on a phone.
   const barShown = useIsWebDesktop();
   const label = free ? "Ask for this item" : offers ? "Buy or make an offer" : "Buy this item";
+  const signup = `/signup?redirect=${here(location)}`;
   return (
-    <section data-guest-join="" aria-label={label} className="rounded-2xl border border-border bg-card p-4 space-y-3">
+    <section data-guest-join="" aria-label={label} className="space-y-3">
+      <StickyActionBar label={label} spacer={false} data-guest-buttons="">
+        {!free && offers && (
+          <Button asChild variant="outline" size="wrap" className="rounded-full px-3 font-semibold">
+            <Link to={signup} data-guest-offer="">Make offer</Link>
+          </Button>
+        )}
+        <Button asChild size="wrap" className="rounded-full px-3">
+          <Link to={signup} data-guest-buy="">{free ? "Ask for it" : "Buy now"}</Link>
+        </Button>
+      </StickyActionBar>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold">{free ? "Sign up to ask for it." : offers ? "Sign up to buy it or make an offer." : "Sign up to buy it."}</p>
+        <p className="text-xs text-muted-foreground">
+          Free to join. You come back here after.
+          {/* The desktop guest bar already has Log in (AUD31-67 follow-up): only a phone gets it here. */}
+          {!barShown && <>{" "}<Link to={`/login?redirect=${here(location)}`} className="font-semibold text-foreground underline underline-offset-2">Log in</Link></>}
+        </p>
         {!barShown && <GuestBrand />}
       </div>
-      {!barShown && (
-        // Q2581 (audit 1102a): the same pair, in the same order, as Browse's guest card and the guest top bar: Log in
-        // (outline) then Sign up (filled) in one row. It was Sign up over Log in here.
-        <div className="flex gap-2" data-guest-buttons="">
-          <Button asChild variant="outline" className="flex-1 rounded-full">
-            <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
-          </Button>
-          <Button asChild className="flex-1 rounded-full">
-            <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
-          </Button>
-        </div>
-      )}
-      <p className="text-xs text-muted-foreground">It's free. You come back to this item after.</p>
       {/* Trades audit 11-08 #3: a trade is one of the member's own listings, so a guest needs both. */}
       {trades && <p data-guest-trades="" className="text-xs text-muted-foreground">Sign in and list an item to offer a trade.</p>}
     </section>

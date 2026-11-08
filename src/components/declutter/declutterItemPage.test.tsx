@@ -16,8 +16,8 @@
  * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {reviews > 0 && (\n              <span data-seller-rating | {true && (\n              <span data-seller-rating
  * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {joined && <span className="block text-xs text-muted-foreground">{joined}</span>} |
  * @mutate src/components/declutter/DeclutterShareCard.tsx |   void shareNative({ title: it.title, text: shareText(it), url: listingLink(it.id) }); |   void shareNative({ title: it.title, text: shareText(it), url: getPublicOrigin() });
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const barShown = useOffScreen(buttons); |   const barShown = false;
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   useDockYield(barShown && !underAge && item.status === "live"); |   void underAge;
+ * @mutate src/components/ui/StickyActionBar.tsx | className="fixed inset-x-0 bottom-0 z-40 border-t | className="inset-x-0 bottom-0 z-40 border-t
+ * @mutate src/components/ui/StickyActionBar.tsx |   useDockYield(active && phone); |   void phone;
  * @mutate src/lib/declutter/api.ts |   const row = pickRequestedProfile(rows, sellerId) | const row = rows[0]
  * @mutate src/components/declutter/DeclutterItemView.tsx |       phoneHidesTitle\n |
  * @mutate src/components/PageHeader.tsx | phoneHidesTitle ? " max-sm:sr-only" : ""} | phoneHidesTitle ? "" : ""}
@@ -250,7 +250,7 @@ describe("the photo-first Declutter item page", () => {
   });
 
   it("A3-48 (owner 11-01 11:49 AM): Helpr delivery priced BY SIZE, this item's size marked, never an all-in total; never on a free item or your own", async () => {
-    // @mutate src/components/declutter/DeclutterItemView.tsx | askSignal={offerAsk} footer={deliveredLine} onAskSeller={preview ? null : askSeller} /> | askSignal={offerAsk} onAskSeller={preview ? null : askSeller} />
+    // @mutate src/components/declutter/DeclutterItemView.tsx | askSignal={offerAsk} footer={deliveredLine} /> | askSignal={offerAsk} />
     // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       {footer}\n |
     // @mutate src/components/declutter/DeclutterItemView.tsx |       <DeliveryPriceList quote={null} size={it.delivery_size} /> |       <DeliveryPriceList quote={null} />
     // @mutate src/components/declutter/DeliveryPriceList.tsx |           const mine = (quote?.size ?? size) === r.size; |           const mine = quote?.size === r.size;
@@ -325,7 +325,7 @@ describe("the photo-first Declutter item page", () => {
       expect(b).not.toBeNull();
       return b!;
     });
-    const panelButton = () => within(screen.getByRole("region", { name: "Buy or make an offer" })).getByRole("button", { name: "Make an offer" });
+    const panelButton = () => within(screen.getByRole("region", { name: "Buy or make an offer" })).getByRole("button", { name: "Make offer" });
     await waitFor(() => expect(panelButton()).toBeEnabled());
     expect(panelButton()).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(hint);
@@ -335,24 +335,28 @@ describe("the photo-first Declutter item page", () => {
   it("one filled button on a buyer's item page: Buy now (Ask is an outline beside its question box)", async () => {
     // @mutate src/components/declutter/DeclutterQuestions.tsx | <Button type="submit" variant="outline" className="h-auto shrink-0" | <Button type="submit" className="h-auto shrink-0"
     // Counted by the filled class inside the page (jsdom draws no CSS; the 375/1440 WebKit shots measured the same:
-    // ~/.lh-shots/declutter-audit-1028/measure-*.json "primaries"). The phone's portaled buy bar repeats Buy now when the
-    // in-page one scrolls away, so it is outside the page and not counted.
+    // ~/.lh-shots/declutter-audit-1028/measure-*.json "primaries"). Owner pick 1 (11-08): the sticky bar is the one place
+    // Buy now shows (in the page at this width, fixed on a phone), never a second copy.
     state.item = { ...ITEM };
     const { container } = open();
     await screen.findByRole("button", { name: /^Buy now/ });
     await screen.findByRole("button", { name: "Ask" });
     const filled = [...container.querySelectorAll("button.btn-grad-primary, a.btn-grad-primary")].map((b) => (b.textContent ?? "").trim());
     expect(filled.length, JSON.stringify(filled)).toBe(1);
-    expect(filled[0]).toMatch(/^Buy now ·/);
+    expect(filled[0]).toBe("Buy now");
   });
 
-  // Owner 11-07 (lead: no new messaging path; Declutter has no messaging before a sale): the third stacked button,
-  // "Ask the seller", focuses the public Questions box on the same page.
+  // Owner 11-07 (lead: no new messaging path; Declutter has no messaging before a sale): asking the seller focuses the
+  // public Questions box on the same page. Owner pick 1 (11-08): that Message button moved to the seller row.
   // @mutate src/components/declutter/DeclutterItemView.tsx |     box?.focus({ preventScroll: true }); |     void box;
-  it("owner 11-07: Ask the seller focuses the public Questions box", async () => {
+  // @mutate src/components/declutter/DeclutterSellerCard.tsx |   return <div data-seller-row="" className="flex items-center gap-2">{link}{action}</div>; |   return link;
+  it("owner pick 1 (11-08): Message sits on the seller row and focuses the public Questions box", async () => {
     state.item = { ...ITEM };
     open();
-    const ask = await screen.findByRole("button", { name: "Ask the seller" });
+    const ask = await screen.findByRole("button", { name: "Message the seller" });
+    expect(ask.closest("[data-seller-row]")).not.toBeNull();
+    expect(ask.closest("a")).toBeNull();
+    expect(ask.closest("[data-declutter-buybar]")).toBeNull();
     await screen.findByRole("button", { name: "Ask" });
     fireEvent.click(ask);
     expect(document.activeElement?.id).toBe("declutter-question");
@@ -406,8 +410,9 @@ describe("the photo-first Declutter item page", () => {
     expect(await screen.findByText("Dana R.")).toBeInTheDocument();
     expect(document.querySelector("[data-seller-rating]")).toBeNull();
     expect(screen.queryByText(/No reviews yet/)).toBeNull();
-    // Messages open after checkout: no pre-purchase "Message seller".
-    expect(screen.queryByRole("button", { name: /message/i })).toBeNull();
+    // Messages open after checkout: the one pre-purchase "Message the seller" (owner pick 1, 11-08) is a button that
+    // opens the PUBLIC Questions box, never a link into private messages.
+    expect(screen.getAllByRole("button", { name: /message/i }).map((b) => b.getAttribute("aria-label"))).toEqual(["Message the seller"]);
     expect(screen.queryByRole("link", { name: /message/i })).toBeNull();
   });
 
@@ -427,35 +432,32 @@ describe("the photo-first Declutter item page", () => {
     expect((shared[0] as { text: string }).text).toContain("$40");
   });
 
-  it("phone: while the in-page Buy now / Make an offer are off screen, the same two ride in a bar on the bottom edge and the dock steps aside", async () => {
-    vi.stubGlobal(
-      "IntersectionObserver",
-      class {
-        constructor(private cb: (e: { isIntersecting: boolean }[]) => void) {}
-        observe() { this.cb([{ isIntersecting: false }]); }
-        disconnect() {}
-      },
-    );
-    open();
-    await screen.findAllByRole("button", { name: "Buy now · $42.70 total" });
-    // The bar mounts from the observer's callback, in the panel's passive
-    // effect, which can flush AFTER the in-page buttons are found: Vitest run
-    // 39464962938 (main, 2026-10-20, CI's threads pool) read null here while a
-    // local run saw it. Wait for it rather than read it on the same tick; the
-    // mutation (barShown = false) still fails, since it never mounts.
-    const bar = await waitFor(() => {
-      const el = document.body.querySelector("[data-declutter-buybar]") as HTMLElement | null;
-      expect(el).not.toBeNull();
-      return el as HTMLElement;
-    });
-    expect(bar.className).toContain("bottom-0");
-    // The dock yields the strip to the bar (fixedBottomBarsClearTheDock, Q1646).
-    await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
-    expect(within(bar).getByRole("button", { name: "Buy now · $42.70 total" })).toBeInTheDocument();
-    // A3-7: the bar and the panel use the same words for the same button.
-    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | data-offer-label="">Offer</span>\n                  <span className="sr-only">Make an offer</span> | data-offer-label="">Offer</span>\n                  <span className="sr-only">Make offer</span>
-    expect(within(bar).getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
-    expect(within(bar).queryByRole("button", { name: "Make offer" })).toBeNull();
+  // Owner pick 1 (11-08): on a phone Make offer and Buy now ride in ONE bar fixed on the bottom edge, from the first
+  // screen (no inline copy above it, no wait for the buttons to scroll away), and the dock steps aside.
+  // @mutate src/components/ui/StickyActionBar.tsx |   useDockYield(active && phone); |   useDockYield(false);
+  // @mutate src/components/ui/StickyActionBar.tsx |   if (!phone) { |   if (true) {
+  it("phone: Make offer and Buy now ride in one bar on the bottom edge from the first screen, and the dock steps aside", async () => {
+    const real = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ ...real(query), matches: query.includes("max-width: 639px") })) as typeof window.matchMedia;
+    try {
+      const { container } = open();
+      const bar = await waitFor(() => {
+        const el = document.body.querySelector("[data-declutter-buybar]") as HTMLElement | null;
+        expect(el).not.toBeNull();
+        return el as HTMLElement;
+      });
+      expect(bar.className).toContain("bottom-0");
+      expect(bar.className).toContain("fixed");
+      // Portaled to <body>: outside the page, so no transformed ancestor places it.
+      expect(container.contains(bar)).toBe(false);
+      await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
+      expect(within(bar).getByRole("button", { name: "Buy now" })).toBeInTheDocument();
+      expect(within(bar).getByRole("button", { name: "Make offer" })).toBeInTheDocument();
+      // ONE set of buttons: none left in the page.
+      expect(screen.getAllByRole("button", { name: "Buy now" })).toHaveLength(1);
+    } finally {
+      window.matchMedia = real;
+    }
   });
   // Q2560 (Auditor 1, audit 1102a): a free item gets the same pinned bar, with its one "Ask for it" button.
   // @mutate src/components/declutter/DeclutterFreeClaim.tsx |   const askBarShown = useOffScreen(askButton) && item.status === "live" && !underAge && !myAsk; |   const askBarShown = false;
@@ -489,7 +491,7 @@ describe("the photo-first Declutter item page", () => {
   // 827-900 with the dock hidden; ~/.lh-shots/b96/db14).
   // @mutate src/components/declutter/useOffScreen.ts |       { rootMargin: `0px 0px -${dockCoverPx()}px 0px`, threshold: [0, 0.99] }, |       { threshold: [0, 0.99] },
   // @mutate src/components/declutter/useOffScreen.ts |       ([entry]) => setOff(!entry.isIntersecting \|\| (entry.intersectionRatio ?? 1) < 0.99), |       ([entry]) => setOff(!entry.isIntersecting),
-  it("DB-14: the strip behind the dock does not count as on screen, and buttons only partly clear of it still get the bar", async () => {
+  it("DB-14: the strip behind the dock does not count as on screen, and a button only partly clear of it still gets the bar (free item's Ask for it; a paid item's bar is always shown since owner pick 1, 11-08)", async () => {
     const dock = document.createElement("div");
     dock.className = "mobile-nav-frame";
     dock.getBoundingClientRect = () => ({ top: window.innerHeight - 64, bottom: window.innerHeight, height: 64, left: 0, right: 375, width: 375, x: 0, y: window.innerHeight - 64, toJSON: () => ({}) });
@@ -504,10 +506,11 @@ describe("the photo-first Declutter item page", () => {
         disconnect() {}
       },
     );
+    state.item = { ...ITEM, price_cents: 0, current_price_cents: 0 };
     try {
       open();
-      await screen.findAllByRole("button", { name: "Buy now · $42.70 total" });
-      await waitFor(() => expect(document.body.querySelector("[data-declutter-buybar]")).not.toBeNull());
+      await screen.findAllByRole("button", { name: "Ask for it" });
+      await waitFor(() => expect(document.body.querySelector("[data-declutter-askbar]")).not.toBeNull());
       await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
       expect(seen[seen.length - 1]?.rootMargin).toBe("0px 0px -64px 0px");
     } finally {
@@ -777,8 +780,8 @@ describe("the photo-first Declutter item page", () => {
 
   // Audit BUY-3: on an item the seller offers only delivered, "Buy now · $42.70 total" was a figure nobody can pay
   // (the line above said "Or from $X delivered") and the bundle row promised "one pickup".
-  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const delivered = way === "none"; |   const delivered = false;
-  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |           addCents={delivered ? deliveryPriceCents(1, [size]) : 0} |           addCents={0}
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |   if (way !== "none") return | if (true) return
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |         addCents={deliveryPriceCents(1, [size])} |         addCents={0}
   // @mutate src/components/declutter/DeclutterBundleRow.tsx |   const pickup = noDeliveryWay(ways.data) !== "none"; |   const pickup = true;
   it("BUY-3: a delivery-only item's Buy now names the least it costs delivered, and the bundle row promises no pickup", async () => {
     const { buyNowTotalCents } = await import("@/lib/declutter/money");
@@ -800,7 +803,7 @@ describe("the photo-first Declutter item page", () => {
     // A seller who offers the porch too: the pickup total and "one pickup" as before.
     state.handovers = ["porch", "delivery"];
     open();
-    expect((await screen.findAllByRole("button", { name: "Buy now · $42.70 total" })).length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole("button", { name: "Buy now" })).length).toBeGreaterThan(0);
     expect(await screen.findByText(/^1 more item · check out together, one pickup$/)).toBeInTheDocument();
   });
 
@@ -808,30 +811,28 @@ describe("the photo-first Declutter item page", () => {
   // @mutate src/components/declutter/declutterUi.tsx |   if (!user) return <DeclutterGuestGate skeleton={skeleton}>{children}</DeclutterGuestGate>; |
   // @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && !user && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} />} |
   // @mutate src/components/declutter/DeclutterItemView.tsx | <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} /> | <DeclutterGuestJoin free={free} />
-  // @mutate src/components/declutter/DeclutterGuest.tsx |  : offers ? "Sign up to buy it or make an offer." : "Sign up to buy it."} |  : "Sign up to buy it or make an offer."}
+  // @mutate src/components/declutter/DeclutterGuest.tsx |         {!free && offers && ( |         {!free && (
   // @mutate src/components/declutter/DeclutterGuest.tsx |         {!barShown && <GuestBrand />}\n      </div> |       </div>
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && (\n            <DeclutterSellerCard |           {!isSeller && (\n            <DeclutterSellerCard
   // @mutate src/components/declutter/DeclutterGuest.tsx |   if (open?.has("declutter")) return <><DeclutterGuestTopBar />{children}</>; |   return <><DeclutterGuestTopBar />{children}</>;
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!user && <DeclutterGuestSeller itemId={it.id} />} |
   // @mutate src/lib/declutter/api.ts |   const res = await supabase.rpc("declutter_guest_seller_first_name", { p_item_id: itemId }); |   const res = await supabase.rpc("get_safe_profiles", { user_ids: [itemId] });
-  it("BUY-16: a guest reads a shared listing and is asked to sign up to buy; no seller name; the wall while Declutter isn't open", async () => {
+  it("BUY-16 + owner pick 1 (11-08): a guest sees the REAL Make offer / Buy now, each going to sign up and back; no seller name; the wall while Declutter isn't open", async () => {
     guest.on = true;
     state.item = { ...ITEM, live_at: new Date(Date.now() - 60_000).toISOString() };
     const first = open();
     expect(await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 })).toBeInTheDocument();
     expect(document.querySelector("[data-item-price]")?.textContent).toContain("$40");
     const join = document.querySelector("[data-guest-join]") as HTMLElement;
-    expect(join).toHaveTextContent("Sign up to buy it or make an offer.");
+    expect(join).toHaveTextContent("Free to join. You come back here after.");
     const back = encodeURIComponent(`/declutter/item/${ID}`);
-    expect(within(join).getByRole("link", { name: "Sign up" })).toHaveAttribute("href", `/signup?redirect=${back}`);
-    expect(within(join).getByRole("link", { name: "Log in" })).toHaveAttribute("href", `/login?redirect=${back}`);
-    // Q2581 (audit 1102a): Log in then Sign up in one row, as on Browse's guest card (it was Sign up over Log in).
-    // @mutate src/components/declutter/DeclutterGuest.tsx |         <div className="flex gap-2" data-guest-buttons=""> |         <div className="grid gap-2" data-guest-buttons="">
+    // The real pair, in the member's order (Make offer, then the one filled Buy now), each to sign up and back here.
+    // @mutate src/components/declutter/DeclutterGuest.tsx |           <Link to={signup} data-guest-buy="">{free ? "Ask for it" : "Buy now"}</Link> |           <Link to="/signup" data-guest-buy="">{free ? "Ask for it" : "Buy now"}</Link>
     const pair = join.querySelector("[data-guest-buttons]")!;
-    expect(Array.from(pair.querySelectorAll("a")).map((a) => a.textContent)).toEqual(["Log in", "Sign up"]);
-    expect(pair.className.split(/\s+/)).toContain("flex");
-    const browsePair = Array.from(document.querySelectorAll("[data-guest-join='browse'] a")).map((a) => a.textContent);
-    if (browsePair.length) expect(browsePair).toEqual(["Log in", "Sign up"]);
+    expect(Array.from(pair.querySelectorAll("a")).map((a) => a.textContent)).toEqual(["Make offer", "Buy now"]);
+    for (const a of pair.querySelectorAll("a")) expect(a).toHaveAttribute("href", `/signup?redirect=${back}`);
+    expect(within(join).getByRole("link", { name: "Log in" })).toHaveAttribute("href", `/login?redirect=${back}`);
+    // No member action runs for a guest: these are links to sign up, never the Buy now button that holds the item.
     expect(screen.queryByRole("button", { name: /Buy now/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Save this item" })).toBeNull();
     // AUD31-67: the guest has the brand and a way to the rest of Louisiana Helpr.
@@ -849,7 +850,7 @@ describe("the photo-first Declutter item page", () => {
     const noOffers = open();
     await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
     const joinNoOffers = document.querySelector("[data-guest-join]") as HTMLElement;
-    expect(joinNoOffers).toHaveTextContent("Sign up to buy it.");
+    expect(within(joinNoOffers).getByRole("link", { name: "Buy now" })).toBeInTheDocument();
     expect(joinNoOffers.textContent).not.toMatch(/offer/i);
     expect(joinNoOffers).toHaveAttribute("aria-label", "Buy this item");
     noOffers.unmount();

@@ -8,7 +8,7 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 
 import { useQuery } from "@tanstack/react-query";
-import { Heart, Share2 } from "lucide-react";
+import { Heart, MessageCircle, Share2 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,7 @@ import { pagePhoto } from "@/lib/declutter/pagePhoto";
 import { recordItemView } from "@/lib/declutter/itemViews";
 import { ItemViewsCount } from "./ItemViewsCount";
 import { PriceInclFee } from "./PriceInclFee";
+import { PRICE_PAID, TYPE } from "@/components/ui/designScale";
 import { SellerTrustBadges } from "./SellerTrustBadges";
 import { useAfterPaint } from "./useAfterPaint";
 import { listedAgo } from "@/lib/declutter/sellerBadges";
@@ -182,7 +183,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const actions = (<>
     {/* Owner mockup 11-01: Make an offer (left) and Buy now (right) sit right under the price and place. */}
     {/* The Free section (20261027170717): a free item is claimed, never bought or offered on, and has no price hint. */}
-    {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} footer={deliveredLine} onAskSeller={preview ? null : askSeller} />)}
+    {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} footer={deliveredLine} />)}
     {/* Declutter trades (owner 10-31): a listing Open to trades also takes one of the buyer's own listings in trade. */}
     {canAct && user && !free && it.status === "live" && <Suspense fallback={null}><OfferTradeButton item={it} userId={user.id} /></Suspense>}
     {/* BUY-16: a guest signs up (or logs in) to buy, offer or ask, and comes back here. */}
@@ -246,12 +247,23 @@ export default function ItemView({ itemId }: { itemId: string }) {
             </div>
             {/* The condition chip beside the price (board D5, owner mockup 11-01), not again as a Details row. */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <p data-item-price="" className="text-ds-32 font-bold leading-tight tabular-nums text-[hsl(var(--burnt-sienna))]">
-                {itemPriceLabel(it.current_price_cents)}
-                {dropped && (
-                  <span className="ml-2 text-lg font-medium text-muted-foreground">
-                    <span className="sr-only">Price dropped, was </span>
-                    <s aria-hidden>{formatPrice(it.price_cents)}</s>
+              {/* Owner pick 2 (11-08), one price story: "$3.85 incl. fee" is the bold price (ink, the item page's one
+                  t-xl), the base price small and grey beside it; Free stays burnt sienna. */}
+              <p data-item-price="" className="flex flex-wrap items-baseline gap-x-2 leading-tight">
+                {it.current_price_cents > 0 ? (
+                  <PriceInclFee priceCents={it.current_price_cents} className={`${TYPE.xl} ${PRICE_PAID}`} wordsClassName={`${TYPE.sm} font-semibold text-primary`} />
+                ) : (
+                  <span className="text-ds-28 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(it.current_price_cents)}</span>
+                )}
+                {it.current_price_cents > 0 && (
+                  <span data-item-base-price="" className="text-ds-13 font-medium tabular-nums text-muted-foreground">
+                    {itemPriceLabel(it.current_price_cents)}
+                    {dropped && (
+                      <span className="ml-1.5">
+                        <span className="sr-only">Price dropped, was </span>
+                        <s aria-hidden>{formatPrice(it.price_cents)}</s>
+                      </span>
+                    )}
                   </span>
                 )}
               </p>
@@ -263,8 +275,6 @@ export default function ItemView({ itemId }: { itemId: string }) {
                 <span data-item-trades="" className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-ds-13 font-medium text-foreground">Trades OK</span>
               )}
             </div>
-            {/* Owner 11-07 (Vinted review): what the buyer pays with the fee, under the price. */}
-            <PriceInclFee priceCents={it.current_price_cents} className="-mt-1 block text-ds-14 font-medium tabular-nums text-muted-foreground" />
             <p data-item-where="" className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
               {/* Owner 11-07: lead with free porch pickup where it applies (nothing is charged to pick it up). */}
               {it.porch_ok !== false && <span data-item-porch-free="" className="font-semibold text-foreground">Free porch pickup · </span>}
@@ -323,6 +333,14 @@ export default function ItemView({ itemId }: { itemId: string }) {
           {!isSeller && user && (
             <DeclutterSellerCard
               sellerId={it.seller_id}
+              // Owner pick 1 (11-08): Message moved off the action stack to the seller row. Declutter has no messaging
+              // before a sale (lead 11-07: no new messaging path), so it opens the public Questions box, as "Ask the
+              // seller" did.
+              action={canAct && !preview ? (
+                <Button type="button" variant="outline" size="iconMd" aria-label="Message the seller" data-ask-seller="" className="shrink-0 rounded-full" onClick={askSeller}>
+                  <MessageCircle className="h-5 w-5" aria-hidden />
+                </Button>
+              ) : null}
               extra={<>
                 {bundle && canAct ? <BundleLine summary={bundle} /> : null}
                 {/* Owner 11-07: trust badges from real data, none when the data is thin (read after paint). */}

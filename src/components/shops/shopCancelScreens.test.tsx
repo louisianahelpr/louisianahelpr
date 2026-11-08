@@ -25,7 +25,7 @@
  * @mutate src/lib/shops/orders.ts |   if (error && isMissingRpcNamed(error, "shops_order_cancel_quote")) return { can_cancel: false, unavailable: true }; |
  * @mutate src/lib/shops/orders.ts |   if (closed && o.status === "partially_refunded") { |   if (false) {
  * @mutate src/components/shops/ShopOrderCancel.tsx |     mutationFn: (what: "cancel" \| "no_show") => (what === "cancel" ? shopCancelOrder(order.id, reason) : reportNoShow(order.id)), |     mutationFn: (what: "cancel" \| "no_show") => (what === "cancel" ? shopCancelOrder(order.id, "") : reportNoShow(order.id)),
- * @mutate src/components/shops/ShopMyOrdersView.tsx |       {o.status === "accepted" && <BuyerCancelOrder order={o} />} | {null}
+ * @mutate src/components/shops/ShopMyOrdersView.tsx | : <BuyerCancelOrder order={o} />)} | : null)}
  * @mutate src/components/shops/ShopDashboardView.tsx |                       <ShopCancelOrder order={o} />\n | \n
  * @mutate src/lib/shops/orders.ts |   if (closed && (o.status === "refunded" \|\| o.status === "cancelled")) return closed[side]; |   if (false) return closed[side];
  * @mutate src/lib/shops/orders.ts |   const data = await invokeShopCheckout({ action: "buyer_cancel", order_id: orderId, expect }); |   const data = await invokeShopCheckout({ action: "buyer_cancel", order_id: orderId });

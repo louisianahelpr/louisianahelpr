@@ -14,7 +14,7 @@ import { invokeShopCheckoutAction, type OrderTerms } from "./orders";
 export const PREORDER_MAX_DAYS = 120;
 export const PREORDER_MAX_PUSH_DAYS = 30;
 /** The shop's ready tap counts from this many days before ready-by (shop_handovers_preorder_ready_guard). */
-export const PREORDER_READY_TAP_DAYS = 14;
+const PREORDER_READY_TAP_DAYS = 14;
 /** Days after ready-by before an order not marked ready is refunded automatically (shop_preorder_sweep). */
 export const PREORDER_LATE_DAYS = 7;
 

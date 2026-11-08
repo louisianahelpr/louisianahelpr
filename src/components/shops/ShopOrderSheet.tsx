@@ -220,7 +220,9 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
     <section className="space-y-4 rounded-2xl border border-border bg-card p-4" aria-labelledby={headId}>
       <div className="space-y-1">
         <h2 id={headId} className="text-sm font-semibold">Order</h2>
-        <p className="text-xs text-muted-foreground">{preorder ? "This is a preorder: you pay in full now." : ORDER_HOLD_TEXT}</p>
+        {preorder ? <p className="text-xs text-muted-foreground">This is a preorder: you pay in full now.</p> : (
+          <p className="text-xs text-muted-foreground">{ORDER_HOLD_TEXT}</p>
+        )}
       </div>
 
       <ul className="space-y-3">

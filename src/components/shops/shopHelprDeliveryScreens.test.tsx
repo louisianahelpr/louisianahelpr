@@ -11,7 +11,7 @@
  * @mutate src/components/shops/ShopOrderSheet.tsx |     && (!atHome \|\| (svcOk && !atHomeMixed)) && (!helpring \|\| helprCents !== null); |     && (!atHome \|\| (svcOk && !atHomeMixed));
  * @mutate src/components/shops/ShopOrderSheet.tsx |         ...(helpring && helprCents !== null ? { delivery: dropoff, helprCents } : {}), |         ...(helpring && helprCents !== null ? { delivery: dropoff } : {}),
  * @mutate src/components/shops/ShopOrderSheet.tsx |       if ((err as { message?: unknown } \| null)?.message === "delivery_rate_changed") setQuote(null); |
- * @mutate src/components/shops/ShopOrderSheet.tsx |  const helprOffered = offer.data?.helpr_delivery === true && !atHome; |  const helprOffered = offer.data?.helpr_delivery === true;
+ * @mutate src/components/shops/ShopOrderSheet.tsx |  const helprOffered = offer.data?.helpr_delivery === true && !atHome && !preorderChosen; |  const helprOffered = offer.data?.helpr_delivery === true && !preorderChosen;
  * @mutate src/components/shops/ShopPickupAddressSection.tsx |        await savePickupPoint(); |        void 0;
  * @mutate src/components/shops/ShopOrderCard.tsx |   const shopDeliveryCents = delivered ? deliveryCents : 0; |   const shopDeliveryCents = deliveryCents;
  * @mutate src/components/shops/ShopOrderCard.tsx |   const byHelpr = order.fulfillment === "helpr_delivers" && !order.helpr_unfilled_at; |   const byHelpr = false;

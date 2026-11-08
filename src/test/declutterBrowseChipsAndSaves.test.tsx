@@ -10,7 +10,7 @@
  *     no numbers (never zeros).
  * Server rules (visibility, a number never a name, grants): src/test/pglite/declutterItemSaveCounts.pglite.mjs.
  */
-// @mutate src/components/declutter/DeclutterItemCard.tsx | {CONDITION_LABEL[item.condition_stars] && ( | {false && (
+// @mutate src/components/declutter/DeclutterItemCard.tsx | {condition && <span data-card-condition={item.condition_stars} | {false && <span data-card-condition={item.condition_stars}
 // @mutate src/components/declutter/DeclutterItemCard.tsx |   return n && n > 0 ? (n > 999 ? "999+" : String(n)) : null; |   return null;
 // @mutate src/components/declutter/DeclutterItemCard.tsx |     if (!savesText) return card; |     return card;
 // @mutate src/lib/declutter/saveCounts.ts |   return Math.max(0, serverCount - (savedAtRead ? 1 : 0) + (savedNow ? 1 : 0)); |   return serverCount;

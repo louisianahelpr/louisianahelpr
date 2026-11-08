@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 export function SectionListBack({ label, onBack }: { label: string; onBack: () => void }) {
   return (
     <div data-section-list-back="" className="flex h-11 items-center gap-1">
-      <Button type="button" variant="ghost" size="iconCompact" aria-label="Back to Browse" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground">
+      <Button type="button" variant="ghost" size="iconCompact" aria-label="Back to Browse" onClick={onBack} className="ctl-exit -ml-2 text-muted-foreground hover:text-foreground">
         <ChevronLeft className="h-5 w-5" aria-hidden />
       </Button>
       <h2 className="min-w-0 truncate text-ds-18 font-semibold text-foreground">{label}</h2>

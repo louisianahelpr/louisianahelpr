@@ -18,7 +18,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "delivery" ? ( |       ) : false ? (
  * B134: a shipped order is its own card (never "Pickup at the seller's home" with a pickup booking).
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "ship" ? ( |       ) : false ? (
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "ship" ? (order.side === "buyer" ? "Shipped to you" : "You ship it") : order.handover === "porch" | {order.handover === "porch"
+ * @mutate src/components/declutter/OrderCardHead.tsx |     case "ship": return order.side === "buyer" ? "Shipped to you" : "You ship it"; |     case "ship": return "Porch pickup";
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel |       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel
  */
 // @mutate src/components/declutter/DeclutterFoldedTime.tsx |       <DateTimeField id={id} label={fieldLabel} value={value} onChange={setValue} /> |       <input type="datetime-local" value={value} onChange={(e) => setValue(e.target.value)} />
@@ -958,9 +958,9 @@ describe("Declutter slice 4: paid-order cards", () => {
   // ("Paid · book a pickup…"), and a buyer's card no longer repeats "You're buying". The class: every step of every
   // pickup kind, for both sides, read from the rendered card.
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | waiting("book a pickup time"); | them(`${paid} · waiting on the buyer to book a pickup time.`);
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (items === 0 ? " · You're giving" : " · You're selling") : ""} | (items === 0 ? " · You're giving" : " · You're selling") : " · You're buying"}
+  // @mutate src/components/declutter/OrderCardHead.tsx | (items === 0 ? " · You're giving" : " · You're selling") : ""} | (items === 0 ? " · You're giving" : " · You're selling") : " · You're buying"}
   // DA-3 (Declutter audit 2026-10-30, shot da-seller-booked-mid-wk375): a giver's free order said "You're selling".
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (items === 0 ? " · You're giving" : " · You're selling") | " · You're selling"
+  // @mutate src/components/declutter/OrderCardHead.tsx | (items === 0 ? " · You're giving" : " · You're selling") | " · You're selling"
   it("DA-3: the giver's card for a free item says \"You're giving\"; a paid one still says \"You're selling\"", async () => {
     let read = 0;
     for (const [price, words, not] of [[0, "You're giving", /selling/], [4000, "You're selling", /giving/]] as const) {

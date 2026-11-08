@@ -30,6 +30,7 @@ import { listingNextStep } from "./listingStatusLine";
 import { ChevronRight, Settings, Tags } from "lucide-react";
 import { ListingShareButton } from "./DeclutterShareCard";
 import { SellChooserEntry } from "./SellChooserEntry";
+import { useTradedFor } from "./useMyTrades";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
 import { PriceNudgeLine, usePriceNudgeLink } from "./DeclutterPriceNudge";
@@ -120,6 +121,8 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
   // Audit 1028 D1-8: read again while a listing waits for review, and on every new notice (an approval sends one).
   const mine = useQuery(myItemsQuery(userId));
   useMyItemsFollowNotices(userId);
+  // Lead 11-08: a listing that went in a trade reads "Traded for <item>" (the trade sections' own read and key).
+  const tradedFor = useTradedFor(userId);
   // Board 26's thumbs and "May drop tonight" line: the same batched reads Browse uses.
   const mineIds = (mine.data ?? []).filter((i) => !PAST_LISTING.has(i.status)).map((i) => i.id);
   const myPhotos = useQuery({ queryKey: ["declutter", "photos", mineIds.join(",")], queryFn: () => fetchPhotos(mineIds), enabled: mineIds.length > 0 });
@@ -255,7 +258,7 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
         {list.map((item) => {
           const drop = dropsTonight.has(item.id);
           const thumb = myCover.get(item.id);
-          const next = listingNextStep(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id));
+          const next = listingNextStep(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id), tradedFor.get(item.id) ?? null);
           const statusLine = drop ? "May drop tonight" : nextStepWords(next);
           return (
           <li key={item.id} className="space-y-2 px-4 py-3" data-listing-row="">

@@ -47,7 +47,7 @@ describe("Declutter Browse filters", () => {
  * Audit item 4 / BUY-35: Back from an item finds the search, because Browse keeps it in the URL.
  * @mutate src/lib/declutter/browseFilters.ts |   put("q", s.query.trim() === "" ? null : s.query); |
  * @mutate src/lib/declutter/browseFilters.ts |   put("cond", s.filters.conditions.length ? s.filters.conditions.join(",") : null); |
- * @mutate src/lib/declutter/browseFilters.ts | freeOnly: p.get("free") === "1", porchOnly: p.get("porch") === "1", | freeOnly: p.get("free") === "1", porchOnly: false,
+ * @mutate src/lib/declutter/browseFilters.ts | tradesOnly: p.get("trades") === "1", porchOnly: p.get("porch") === "1", | tradesOnly: p.get("trades") === "1", porchOnly: false,
  */
 describe("Browse's state survives the URL", () => {
   const s = { query: "oak chair", maxMiles: 25, filters: { ...NO_FILTERS, category: "furniture", minDollars: 5, maxDollars: 90, conditions: [3, 5], porchOnly: true, dropsOnly: true, freeOnly: true, sort: "price_low" as const } };

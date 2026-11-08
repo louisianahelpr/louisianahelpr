@@ -2,7 +2,7 @@
  * CONTINUE ANOTHER DAY, FINISHED PROPERLY (owner 11-08, Yusef's job 7b1da54b; every fix of the audit
  * ~/.lh-shots/handoffs-1108/b5-jobs-notify-audit.md picked). Migration 20261108160000.
  *
- * Behaviour (real Postgres): src/test/pglite/continueDayResumes.pglite.mjs (32 PASS; 19 FAIL with NEW_MIGRATION=skip;
+ * Behaviour (real Postgres): src/test/pglite/continueDayResumes.pglite.mjs (33 PASS; 20 FAIL with NEW_MIGRATION=skip;
  * 7 plants each red). The edge half (the hold ends with the day; the lapsed day drives the stalled ladder):
  * src/test/edge/continueDayHold.test.ts and src/test/edge/stalled-completion-reminder.test.ts.
  *

@@ -97,6 +97,15 @@ if (PLANT === "no_evening") mig = mig.replaceAll("THEN 'evening_not_done_poster'
 if (PLANT === "in_app_gated") plant("  INSERT INTO public.notifications (user_id, title, message, type, link, job_id)\n  VALUES (NEW.customer_id, v_title, v_msg, v_category, v_link, NEW.id);",
   "  IF v_category = 'transit_updates' THEN RETURN NEW; END IF;\n  INSERT INTO public.notifications (user_id, title, message, type, link, job_id)\n  VALUES (NEW.customer_id, v_title, v_msg, v_category, v_link, NEW.id);");
 if (PLANT === "no_email") plant("  PERFORM public.send_notice_email(NEW.user_id, NEW.title, NEW.message, NEW.type, NEW.link);\n  RETURN NULL;", "  RETURN NULL;");
+// Yusef's live job as it stands before the fix: a day agreed (set) for 2 days ago, tracker still 'done' from day 1.
+await db.exec(`
+  insert into public.jobs (id, title, budget, customer_id, helper_id, status, payment_status, date_needed, start_time,
+                           helper_confirmed_at, poster_confirmed_arrival_at, helper_arrived_at, proof_before_urls, proof_after_urls, require_photo_proof)
+  values ('${J(6)}', 'Mow and Weed Eat (live)', 40, '${P}', '${A}', 'in_progress', 'escrow', current_date - 7, '09:00',
+          now() - interval '9 days', now() - interval '7 days', now() - interval '7 days', '{b.jpg}', '{a.jpg}', true);
+  insert into public.job_continue_days (job_id, proposed_by, new_date, new_start_time, status) values ('${J(6)}', '${A}', current_date - 2, '15:15', 'set');
+  insert into public.job_tracking (job_id, helper_id, status) values ('${J(6)}', '${A}', 'done');
+`);
 if (!MODE) for (let i = 0; i < 3; i++) await db.exec(mig); // replay-safe: applied 3x
 
 // Jobs, all $40, Helpr A hired, money held, under way since yesterday, arrival confirmed, day-1 photos in.
@@ -138,6 +147,8 @@ const dayIsNow = (job, mins = 30) => db.exec(`
   update public.job_continue_days set new_date = ((now() - interval '${mins} minutes') at time zone 'America/Chicago')::date,
     new_start_time = ((now() - interval '${mins} minutes') at time zone 'America/Chicago')::time
    where job_id = '${job}' and status = 'set'`);
+
+check("F3: a day agreed BEFORE the fix (Yusef's live job) gets the tracker reset once", (await tracking(J(6))) === "job_confirmed", String(await tracking(J(6))));
 
 // 1. A day is agreed on Yusef's job (poster asks, Yusef accepts): F3 and the ladder restart.
 const p1 = await propose(P, J(1));

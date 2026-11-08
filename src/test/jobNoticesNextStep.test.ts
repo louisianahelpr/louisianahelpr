@@ -16,8 +16,8 @@
  *
  * @mutate supabase/migrations/20261108160000_continue_day_resumes_checks_in_and_new_photos.sql | (NEW.helper_completed_at + interval '24 hours') | (NEW.helper_completed_at + interval '48 hours')
  * @mutate supabase/migrations/20261108160000_continue_day_resumes_checks_in_and_new_photos.sql | '. Next: review them and approve by ' | '. Review them and confirm. '
- * @mutate supabase/migrations/20261108160000_continue_day_resumes_checks_in_and_new_photos.sql | '". Next: nothing for you to do until they arrive.' | '"'
- * @mutate supabase/migrations/20261108160000_continue_day_resumes_checks_in_and_new_photos.sql | '". Next: nothing for you to do; they mark it done when they finish.' | '"'
+ * @mutate supabase/migrations/20261108160000_continue_day_resumes_checks_in_and_new_photos.sql | NEW.title \|\| '". Next: nothing for you to do until they arrive.' | NEW.title \|\| '"'
+ * @mutate supabase/migrations/20261108160000_continue_day_resumes_checks_in_and_new_photos.sql | NEW.title \|\| '". Next: nothing for you to do; they mark it done when they finish.' | NEW.title \|\| '"'
  * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | '". Next: review and pick a Helpr' | '"'
  * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | AND (job_expires IS NULL OR v_start < job_expires) | AND true
  * @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql | - interval '2 hours'; | - interval '12 hours';

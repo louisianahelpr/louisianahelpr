@@ -22,7 +22,8 @@
 --      until that photo exists (continue_day_needs_new_after_photo), when the job needs photos. Day-1 photos stay.
 --   3. When a day is agreed (status -> 'set'): the job's tracking row goes back to 'job_confirmed', so the new day
 --      runs On my way -> I've arrived -> Start working -> Mark it done again (an older app shows Start working), and
---      an un-escalated stalled-nudge ledger row is cleared so the ladder starts over for the new day.
+--      an un-escalated stalled-nudge ledger row is cleared so the ladder starts over for the new day. A day agreed
+--      before this migration (Yusef's) gets the same tracker reset once.
 --   4. Check-ins on the new day: On my way / I've arrived / Start working (job_tracking status) write
 --      job_continue_events and tell the poster as job_updates (never the transit switch), once per step per day.
 --      Before the window opens they are refused (continue_day_not_yet).
@@ -197,6 +198,19 @@ CREATE TRIGGER trg_continue_day_on_agreed
   AFTER INSERT OR UPDATE OF status ON public.job_continue_days
   FOR EACH ROW EXECUTE FUNCTION public.continue_day_on_agreed();
 
+-- Once, for a day agreed before this migration (on prod 11-08 only Yusef's 7b1da54b: set for 11/06, tracker still
+-- 'done' from 11/01, not marked done): the same tracker reset. Its stalled ladder needs nothing here (no ledger row),
+-- and the edge hold ends with its day. Idempotent.
+UPDATE public.job_tracking t
+   SET status = 'job_confirmed', updated_at = now()
+  FROM public.job_continue_days c
+  JOIN public.jobs j ON j.id = c.job_id
+ WHERE c.status = 'set'
+   AND t.job_id = c.job_id
+   AND t.status IN ('on_the_way', 'arrived', 'working', 'done')
+   AND j.status::text = 'in_progress'
+   AND j.helper_completed_at IS NULL;
+
 -- ── 4. Check-ins on the new day ────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.continue_day_check_in()
 RETURNS trigger
@@ -225,7 +239,8 @@ BEGIN
   IF v_row.id IS NULL THEN
     RETURN NULL;
   END IF;
-  SELECT j.id, j.title, j.customer_id, j.helper_id, j.is_group_job INTO v_job FROM public.jobs j WHERE j.id = NEW.job_id;
+  -- FOR SHARE (race class): the job's people are read under the same lock the tracker's arrival gate takes.
+  SELECT j.id, j.title, j.customer_id, j.helper_id, j.is_group_job INTO v_job FROM public.jobs j WHERE j.id = NEW.job_id FOR SHARE;
   IF v_job.id IS NULL OR v_job.is_group_job IS TRUE OR v_job.helper_id IS DISTINCT FROM NEW.helper_id THEN
     RETURN NULL;
   END IF;

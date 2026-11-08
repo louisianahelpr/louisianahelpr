@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-08T16:20Z",
+  "measured_at": "2026-11-08T19:54Z",
   "issues": {
     "readable": true,
     "open": [
@@ -71,7 +71,7 @@
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42393628693",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42503384265",
         "runTruncated": false
       },
       {
@@ -90,35 +90,40 @@
         "number": 3824,
         "title": "nightly-red: schedule-heartbeat",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42393478258",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42503284757",
         "runTruncated": false
       },
       {
         "number": 4149,
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42399172516",
-        "runTruncated": false
-      },
-      {
-        "number": 4202,
-        "title": "nightly-red: feature-switch-audience",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42393839202",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42509531248",
         "runTruncated": false
       },
       {
         "number": 4222,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42455946140",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42513737651",
         "runTruncated": false
       },
       {
-        "number": 4232,
-        "title": "nightly-red: main: Supabase DB Deploy",
+        "number": 4242,
+        "title": "🔴 Migration drift: 1 unapplied / 0 unrecorded",
+        "label": "migration-drift"
+      },
+      {
+        "number": 4245,
+        "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42438935377",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42513734683",
+        "runTruncated": false
+      },
+      {
+        "number": 4247,
+        "title": "nightly-red: main: Supabase Edge Functions Deploy",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42513734796",
         "runTruncated": false
       }
     ]
@@ -167,14 +172,6 @@
         "issue": null
       },
       {
-        "fingerprint": "42a784cb226e506d814a710c96d26487",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: supabase db deploy",
-        "issue": 4232
-      },
-      {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -199,6 +196,14 @@
         "issue": 4149
       },
       {
+        "fingerprint": "1bbb3f41bbe73f8632d7284e87e40948",
+        "source_kind": "workflow",
+        "source": "functions-deploy",
+        "status": "open",
+        "title": "functions-deploy failed on main",
+        "issue": null
+      },
+      {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -221,6 +226,14 @@
         "status": "open",
         "title": "nightly-red: slow-network",
         "issue": 3454
+      },
+      {
+        "fingerprint": "4c89303184fbafc9613e873aa811fa3c",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: race-runner",
+        "issue": null
       },
       {
         "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
@@ -268,7 +281,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": 4222
+        "issue": null
       },
       {
         "fingerprint": "f1bfed973a2a75d4ef5bb8ce2a1785df",
@@ -293,6 +306,14 @@
         "status": "open",
         "title": "error: error screen shown: we couldn't load jobs.",
         "issue": null
+      },
+      {
+        "fingerprint": "747845433253c079b579d26e780481bc",
+        "source_kind": "nightly_red",
+        "source": "migration-drift",
+        "status": "open",
+        "title": "🔴 migration drift: # unapplied / # unrecorded",
+        "issue": 4242
       },
       {
         "fingerprint": "8a2e802edbe7bd772cfe6fec1ea6488b",
@@ -333,14 +354,6 @@
         "status": "open",
         "title": "error: unexpected sign-out",
         "issue": null
-      },
-      {
-        "fingerprint": "a13c4edc69832354d5e579c068462874",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: feature-switch-audience",
-        "issue": 4202
       },
       {
         "fingerprint": "3c0d6b003e080de5479e1faf4a1df45a",
@@ -447,9 +460,10 @@
     "issue #3823": "Q2498",
     "issue #3824": "Q1816",
     "issue #4149": "Q1816",
-    "issue #4202": "Q1816",
     "issue #4222": "Q1816",
-    "issue #4232": "Q1816",
+    "issue #4242": "Q2775",
+    "issue #4245": "Q1816",
+    "issue #4247": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",
@@ -458,6 +472,7 @@
     "ledger 15cc2d7f63f3": "Q2347",
     "ledger 16e6e91f6701": "Q1816",
     "ledger 18539240a894": "Q1816",
+    "ledger 1bbb3f41bbe7": "Q2776",
     "ledger 2e4f3e726722": "Q1816",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 3712b62a9839": "Q2510",
@@ -465,12 +480,13 @@
     "ledger 3c0d6b003e08": "Q1810",
     "ledger 3c528ace98fd": "Q2350",
     "ledger 41f88aeb227f": "Q1777",
-    "ledger 42a784cb226e": "Q1816",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4aa239aefeb6": "Q1816",
+    "ledger 4c89303184fb": "Q1816",
     "ledger 5a28db44e912": "Q2410",
     "ledger 60298a019ea3": "Q1776",
     "ledger 6205197429d4": "Q1816",
+    "ledger 747845433253": "Q2775",
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
     "ledger 8018e82cb167": "Q1816",
@@ -480,7 +496,6 @@
     "ledger 8f6eb3360000": "Q2507",
     "ledger 9078a39b3304": "Q1615",
     "ledger 99390a68ded7": "Q1615",
-    "ledger a13c4edc6983": "Q1816",
     "ledger a8ceee56bbd5": "Q1816",
     "ledger ab6fdbe8c882": "Q1816",
     "ledger aeedd2495772": "Q2409",

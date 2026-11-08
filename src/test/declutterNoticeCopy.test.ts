@@ -59,7 +59,8 @@ describe("Declutter notice copy", () => {
   });
 
   it("the seller's sale notices open Selling", () => {
-    const seller = ["'Buyer paid'", "'Sold: waiting for the buyer to pay'", "'Someone claimed your free item'"];
+    // M1 (Declutter buy audit 11-08): "Someone's buying your item" until paid (was "Sold: waiting for the buyer to pay").
+    const seller = ["'Buyer paid'", "'Someone''s buying your item'", "'Someone claimed your free item'"];
     const hits = all.filter((c) => seller.includes(c.title));
     expect(hits.length).toBeGreaterThanOrEqual(4);
     expect(hits.filter((c) => !/'\/declutter\?(view|tab)=selling'/.test(c.link)).map((c) => `${c.fn}: ${c.title} -> ${c.link}`)).toEqual([]);

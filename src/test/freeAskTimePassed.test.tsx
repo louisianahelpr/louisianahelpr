@@ -80,7 +80,8 @@ describe("A3-57: the refusal and the server anchors", () => {
   it("the newest deadline sweep runs the free-ask half, and that half closes, tells and reminds", () => {
     expect(newestFunctionBody("sweep_deadline_reminders")).toContain("v_free_asks := public.sweep_declutter_free_asks(p_now);");
     const sweep = newestFunctionBody("sweep_declutter_free_asks");
-    expect(sweep).toContain("SET status = 'expired', closed_at = p_now WHERE q.status = 'open' AND q.pickup_at IS NOT NULL AND q.pickup_at <= p_now");
+    // M3 (Declutter buy audit 11-08, 20261108202546): an ask with no time also ends, 48 hours after it was made.
+    expect(sweep).toContain("SET status = 'expired', closed_at = p_now WHERE q.status = 'open' AND ((q.pickup_at IS NOT NULL AND q.pickup_at <= p_now) OR (q.pickup_at IS NULL AND q.created_at <= p_now - interval '48 hours'))");
     expect(sweep).toContain("'Your pickup time passed'");
     expect(sweep).toContain("q.pickup_at <= p_now + interval '2 hours'");
     expect(sweep).toContain("IF public.needs_you_reminder_quiet(p_now) THEN");

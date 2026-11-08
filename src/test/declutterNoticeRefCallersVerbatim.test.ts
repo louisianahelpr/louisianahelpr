@@ -83,7 +83,7 @@ describe("the Q2659 restates are verbatim apart from the ref", () => {
 });
 
 const ACTIONABLE = [
-  "Reserved for you: check out within", "Sold: waiting for the buyer to pay", "It''s yours: pick a pickup within 48 hours",
+  "Reserved for you: check out within", "Someone''s buying your item", "It''s yours: pick a pickup within 48 hours",
   "Porch pickup day booked", "It''s on the porch: pick it up today", "'New offer'", "'New counteroffer'",
 ];
 

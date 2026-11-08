@@ -143,7 +143,7 @@ export function BuyerCancelPreorder({ order }: { order: ShopOrder }) {
   const cancel = useMutation({
     mutationFn: () => cancelPreorder(order.id),
     onSuccess: ({ refundCents }) => {
-      toast.success(refundCents != null
+      toast(refundCents != null
         ? `Preorder cancelled. ${formatCents(refundCents)} is on its way back to your card.`
         : "Preorder cancelled. Your refund is on its way back to your card.");
       setAsking(false);

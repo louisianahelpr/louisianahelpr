@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-08T19:38:17.805Z",
-  "guards": 3712,
-  "registered": 3712,
+  "generated": "2026-11-08T21:00:23.511Z",
+  "guards": 3713,
+  "registered": 3713,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"
@@ -22,6 +22,15 @@
     }
   ],
   "classB_mountWiring": [
+    {
+      "module": "src/components/declutter/SellTradesRow.tsx",
+      "tests": [
+        "src/test/declutterTradesPrompt.test.tsx"
+      ],
+      "parents": [
+        "src/components/declutter/SellSummaryCard.tsx"
+      ]
+    },
     {
       "module": "src/components/rentals/listings/HomeTalk.tsx",
       "tests": [

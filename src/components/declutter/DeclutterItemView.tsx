@@ -42,7 +42,7 @@ import { DeclutterGallery } from "./DeclutterGallery";
 import { DeclutterSellerCard } from "./DeclutterSellerCard";
 import { DeclutterMovingSaleNote } from "./DeclutterMovingSaleNote";
 import { DeclutterItemRows } from "./DeclutterItemRows";
-import { BundleLine, useBundleSummary } from "./DeclutterBundleRow";
+import { BundleLine, BundleSaveBox, useBundleSummary } from "./DeclutterBundleRow";
 import { DeclutterQuestions } from "./DeclutterQuestions";
 import { DeclutterGuestJoin, DeclutterGuestSeller } from "./DeclutterGuest";
 import { ItemPickupBlock } from "./ItemPickupBlock";
@@ -56,6 +56,9 @@ import { useWatchToggle } from "./useWatchToggle";
 import { pagePhoto } from "@/lib/declutter/pagePhoto";
 import { recordItemView } from "@/lib/declutter/itemViews";
 import { ItemViewsCount } from "./ItemViewsCount";
+import { SellerTrustBadges } from "./SellerTrustBadges";
+import { useAfterPaint } from "./useAfterPaint";
+import { listedAgo } from "@/lib/declutter/sellerBadges";
 
 // B67 (DECL-ITEM-SPEED): only the seller sees the manage panel, so its edit flow (sell steps, handover choices)
 // loads when it shows, not on every buyer's and guest's cold item page.
@@ -130,6 +133,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const viewable = !!item.data && !ownListing && (item.data.status === "live" || item.data.status === "reserved");
   const signedIn = !!user;
   useEffect(() => (viewable ? recordItemView(itemId, signedIn) : undefined), [viewable, itemId, signedIn]);
+  // Owner 11-07: everything below the item (the seller's badges, "More from this seller", "Similar items") is read
+  // only once the item and its photos have painted, never in their loading gate (pages under 2 s; Facebook guests).
+  const afterPaint = useAfterPaint(!!item.data && !photos.isLoading);
 
   // One gate for the item and its photos: the gallery paints once, never a placeholder that pops into a photo.
   if (item.isLoading || photos.isLoading) return <DeclutterItemSkeleton />;
@@ -243,9 +249,13 @@ export default function ItemView({ itemId }: { itemId: string }) {
                 )}
               </p>
               <ConditionChip stars={it.condition_stars} />
+              {/* Owner 11-07 (Vinted review): how fresh the listing is, beside the condition. */}
+              {forSale && listedAgo(it.live_at) && <span data-item-listed="" className="text-sm text-muted-foreground">{listedAgo(it.live_at)}</span>}
             </div>
             <p data-item-where="" className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
-              {[it.area_label, away, it.porch_ok !== false ? "Porch pickup" : null].filter(Boolean).join(" · ")}
+              {/* Owner 11-07: lead with free porch pickup where it applies (nothing is charged to pick it up). */}
+              {it.porch_ok !== false && <span data-item-porch-free="" className="font-semibold text-foreground">Free porch pickup · </span>}
+              {[it.area_label, away].filter(Boolean).join(" · ")}
             </p>
             {isSeller && <ItemViewsCount sellerId={it.seller_id} itemId={it.id} />}
             {drop && (
@@ -297,7 +307,18 @@ export default function ItemView({ itemId }: { itemId: string }) {
           ) : actions}
 
           {/* Owner mockup 11-01: the seller card right under the buttons, with "12+ more items" folded into it. */}
-          {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} extra={bundle && canAct ? <BundleLine summary={bundle} /> : null} />}
+          {!isSeller && user && (
+            <DeclutterSellerCard
+              sellerId={it.seller_id}
+              extra={<>
+                {bundle && canAct ? <BundleLine summary={bundle} /> : null}
+                {/* Owner 11-07: trust badges from real data, none when the data is thin (read after paint). */}
+                <SellerTrustBadges sellerId={it.seller_id} itemId={it.id} after={afterPaint} />
+              </>}
+            />
+          )}
+          {/* Owner 11-07: "Bundle and save" when the seller's bundle discount can apply here. */}
+          {!isSeller && user && bundle && canAct && <BundleSaveBox summary={bundle} />}
           {/* BUY-16: a guest sees the seller's first name only (declutter_guest_seller_first_name). */}
           {!user && <DeclutterGuestSeller itemId={it.id} />}
           {!isSeller && user && <DeclutterMovingSaleNote itemId={it.id} sellerId={it.seller_id} />}
@@ -331,9 +352,10 @@ export default function ItemView({ itemId }: { itemId: string }) {
           {!ownListing && user && <DeclutterReportListing itemId={itemId} />}
         </div>
       </div>
-      {!isSeller && user && (
+      {/* Owner 11-07: the rows load after the item has painted, and guests see them too (they land here from Facebook). */}
+      {!isSeller && afterPaint && (
         <div className="mt-8">
-          <DeclutterItemRows item={it} viewerId={user.id} from={geo.status === "ready" ? { lat: geo.lat, lng: geo.lng, approximate: geo.approximate } : null} />
+          <DeclutterItemRows item={it} viewerId={user?.id ?? null} from={geo.status === "ready" ? { lat: geo.lat, lng: geo.lng, approximate: geo.approximate } : null} />
         </div>
       )}
     </AppPage>

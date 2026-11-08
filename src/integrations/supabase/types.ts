@@ -18171,6 +18171,7 @@ export type Database = {
         Returns: number
       }
       declutter_seller_sold_count: { Args: { p_seller_id: string }; Returns: number }
+      declutter_seller_on_time_handovers: { Args: { p_seller_id: string }; Returns: boolean }
       declutter_notice_link: { Args: { p_link: string }; Returns: string }
       declutter_notice_order_link: {
         Args: { p_link: string; p_other: string; p_user: string }

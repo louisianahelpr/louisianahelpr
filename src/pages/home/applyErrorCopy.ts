@@ -84,6 +84,8 @@ const EXACT: Record<string, string> = {
   // Q1401: the listing closes at the job's start (job_offer_cutoff), not its day.
   job_date_has_passed: "This job has already started, so it's closed to new applications.",
   job_expired: "This posting has expired.",
+  // 20261108154435: a member behind on the Terms (src/lib/termsGate.ts normally opens the re-agree dialog and retries first).
+  terms_not_accepted: "Agree to the updated Terms of Service first, then apply again.",
   job_not_available: "This job is no longer available.",
   // C10 (Q341): helper and poster are blocked, in either direction. Worded so
   // it does not say who blocked whom — same line either way.

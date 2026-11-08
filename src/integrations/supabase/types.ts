@@ -9389,6 +9389,9 @@ export type Database = {
           email_declutter_sales: boolean
           email_declutter_wanted: boolean
           email_declutter_questions: boolean
+          email_shops_messages: boolean
+          email_shops_orders: boolean
+          email_shops_updates: boolean
           email_enabled: boolean
           email_financial_alerts: boolean
           email_job_applications: boolean
@@ -9426,6 +9429,9 @@ export type Database = {
           reviews: boolean
           saved_helper_availability: boolean
           saved_searches_paused: boolean
+          shops_messages: boolean
+          shops_orders: boolean
+          shops_updates: boolean
           system_alerts: boolean
           sms_phone_prompt_dismissed_at: string | null
           transit_updates: boolean
@@ -9451,6 +9457,9 @@ export type Database = {
           email_declutter_sales?: boolean
           email_declutter_wanted?: boolean
           email_declutter_questions?: boolean
+          email_shops_messages?: boolean
+          email_shops_orders?: boolean
+          email_shops_updates?: boolean
           email_enabled?: boolean
           email_financial_alerts?: boolean
           email_job_applications?: boolean
@@ -9488,6 +9497,9 @@ export type Database = {
           reviews?: boolean
           saved_helper_availability?: boolean
           saved_searches_paused?: boolean
+          shops_messages?: boolean
+          shops_orders?: boolean
+          shops_updates?: boolean
           system_alerts?: boolean
           sms_phone_prompt_dismissed_at?: string | null
           transit_updates?: boolean
@@ -9513,6 +9525,9 @@ export type Database = {
           email_declutter_sales?: boolean
           email_declutter_wanted?: boolean
           email_declutter_questions?: boolean
+          email_shops_messages?: boolean
+          email_shops_orders?: boolean
+          email_shops_updates?: boolean
           email_enabled?: boolean
           email_financial_alerts?: boolean
           email_job_applications?: boolean
@@ -9550,6 +9565,9 @@ export type Database = {
           reviews?: boolean
           saved_helper_availability?: boolean
           saved_searches_paused?: boolean
+          shops_messages?: boolean
+          shops_orders?: boolean
+          shops_updates?: boolean
           system_alerts?: boolean
           sms_phone_prompt_dismissed_at?: string | null
           transit_updates?: boolean

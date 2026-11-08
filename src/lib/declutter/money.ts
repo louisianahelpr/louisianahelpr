@@ -34,6 +34,18 @@ export function minOfferCents(currentPriceCents: number): number {
   return Math.max(100, Math.ceil(currentPriceCents / 2));
 }
 
+/** The offer sheet's quick chips (owner 11-07, Vinted review): "10% off" and "20% off" the current price. */
+export const OFFER_CHIP_PERCENTS = [10, 20] as const;
+
+/**
+ * What a "N% off" chip offers, in whole cents (rounded to the cent), or null when the server would refuse it: under
+ * the lowest offer (minOfferCents) or not under the price. The server checks again (declutter_make_offer).
+ */
+export function offerChipCents(currentPriceCents: number, percentOff: number): number | null {
+  const cents = Math.round((currentPriceCents * (100 - percentOff)) / 100);
+  return cents >= minOfferCents(currentPriceCents) && cents < currentPriceCents ? cents : null;
+}
+
 /** Dollars as typed -> whole cents, or null. */
 export function dollarsToCents(v: string): number | null {
   const n = Number(v.replace(/[$,\s]/g, ""));

@@ -143,6 +143,12 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const away = ownListing ? null : milesLabel(miles, geo.status === "ready" && geo.approximate);
   const forSale = it.status === "live" || it.status === "reserved";
   const canAct = !isSeller && forSale;
+  // Owner 11-07 (lead: no new messaging path): "Ask the seller" brings the public Questions box into view and focuses it.
+  const askSeller = () => {
+    const box = document.getElementById("declutter-question");
+    box?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    box?.focus({ preventScroll: true });
+  };
   // On the page, not a toast: toast.info renders nothing (src/lib/toastPolicy.ts), so Tester 5's press showed no note.
   const noteOwnListing = () => setPreviewPressed(true);
   // DA-6 (Declutter audit 2026-10-30): a member who is not the seller reads an item that is no longer for sale only
@@ -169,7 +175,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const actions = (<>
     {/* Owner mockup 11-01: Make an offer (left) and Buy now (right) sit right under the price and place. */}
     {/* The Free section (20261027170717): a free item is claimed, never bought or offered on, and has no price hint. */}
-    {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} footer={deliveredLine} />)}
+    {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} footer={deliveredLine} onAskSeller={preview ? null : askSeller} />)}
     {/* Declutter trades (owner 10-31): a listing Open to trades also takes one of the buyer's own listings in trade. */}
     {canAct && user && !free && it.status === "live" && <Suspense fallback={null}><OfferTradeButton item={it} userId={user.id} /></Suspense>}
     {/* BUY-16: a guest signs up (or logs in) to buy, offer or ask, and comes back here. */}

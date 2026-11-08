@@ -400,7 +400,7 @@ describe("Declutter slice 3 screens", () => {
     // Nothing went to the server, the amount is still there, and "Add a card" is the one primary.
     expect(state.sent).toEqual([]);
     expect(screen.getByLabelText("Your offer")).toHaveValue("30");
-    expect(document.querySelectorAll("[aria-label='Buy or make an offer'] button.btn-grad-primary").length).toBe(1);
+    expect(document.querySelectorAll("[aria-label='Buy or make an offer'] button.btn-grad-primary:not([role=radio])").length).toBe(1);
     // Not now only closes the card step.
     fireEvent.click(screen.getByRole("button", { name: "Not now" }));
     expect(screen.queryByText(/add a card first\./)).toBeNull();
@@ -488,12 +488,13 @@ describe("Declutter slice 3 screens", () => {
     show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "offer" } });
     fireEvent.change(await screen.findByLabelText("Your offer"), { target: { value: "30" } });
     // $30 + round($30 x 5%) + 70c = $30 + $2.20 = $32.20 (checkoutAmounts, the rule declutter_start_checkout charges).
-    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | <BuyerTotal priceCents={cents} /></dd> | {formatPrice(cents)}</dd>
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | <BuyerTotal priceCents={cents} /><span | {formatPrice(cents)}<span
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | data-offer-incl-fee="">incl. fee</span> | data-offer-incl-fee=""></span>
     const bill = document.querySelector("[data-offer-bill]")!;
     expect(bill.textContent).toMatch(/Your offer\$30/);
-    // Owner 2026-10-25 (issue #3672): the bill names what the buyer pays, never a fee line, name or number.
-    expect(bill.textContent).not.toMatch(/fee|%|¢|\$2\.20/i);
-    expect(bill.textContent).toMatch(/You pay if the seller says yes\$32\.20/);
+    // Owner 11-07 (Vinted review, Declutter only): the buyer's total says it includes the fee; no rate or fee figure.
+    expect(bill.textContent).not.toMatch(/%|¢|\$2\.20/i);
+    expect(bill.textContent).toMatch(/You pay if the seller says yes\$32\.20incl\. fee/);
     // Under half the price: no bill, the rule instead.
     fireEvent.change(screen.getByLabelText("Your offer"), { target: { value: "5" } });
     expect(document.querySelector("[data-offer-bill]")).toBeNull();

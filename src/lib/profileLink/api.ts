@@ -115,7 +115,10 @@ export interface PublicProfile {
   /** Every live listing comes back (500 at most); this is their true count. */
   listing_count?: number;
   job_count?: number;
-  listings: { id: string; title: string; price_cents: number; area_label: string | null; photo_id: string | null; live_at: string }[];
+  /** Live listings. current_price_cents is the price a buyer pays now (after any price drop): the read sends it as
+   *  `price_cents` (public_profile_by_handle builds it from declutter_items.current_price_cents) and
+   *  fetchPublicProfile renames it, so the page reads one unambiguous name. */
+  listings: PublicListing[];
   jobs: { id: string; title: string; category: string; town: string | null; budget: number; date_needed: string }[];
   helpr: {
     jobs_done: number;
@@ -127,6 +130,10 @@ export interface PublicProfile {
   wanted: { id: string; what: string; category: string; max_price_cents: number; created_at: string }[];
 }
 
+export type PublicListing = { id: string; title: string; current_price_cents: number; area_label: string | null; photo_id: string | null; live_at: string };
+/** One listing as public_profile_by_handle sends it: `price_cents` IS the item's current price (i.current_price_cents). */
+type WireListing = Omit<PublicListing, "current_price_cents"> & { price_cents: number };
+
 /** The page for a handle, or null when there is none to show (unknown, hidden or a test member). Throws on a network fault. */
 export async function fetchPublicProfile(handle: string): Promise<PublicProfile | null> {
   const { data, error } = await supabase.rpc("public_profile_by_handle", { p_handle: handle });
@@ -134,7 +141,9 @@ export async function fetchPublicProfile(handle: string): Promise<PublicProfile 
     if (isMissingRpcNamed(error, "public_profile_by_handle")) return null;
     throw new Error(GENERIC);
   }
-  return (data as unknown as PublicProfile | null) ?? null;
+  const raw = (data as unknown as (Omit<PublicProfile, "listings"> & { listings?: WireListing[] | null }) | null) ?? null;
+  if (!raw) return null;
+  return { ...raw, listings: (raw.listings ?? []).map(({ price_cents, ...l }) => ({ ...l, current_price_cents: price_cents })) };
 }
 
 /**

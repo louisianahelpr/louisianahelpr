@@ -6,6 +6,7 @@
  * @mutate supabase/functions/_shared/email-templates/notificationAction.ts | export const NOTICE_SIGNOFF = "Louisiana Helpr"; | export const NOTICE_SIGNOFF = "The Helpr Team";
  * @mutate supabase/functions/_shared/email-templates/notificationAction.ts |     if (/[?&](tab\|view)=buying\b/.test(link ?? "")) return "See your order"; |
  * @mutate supabase/functions/_shared/email-templates/notificationAction.ts |   if (path.startsWith("/messages")) return "Read the message"; |
+ * @mutate supabase/functions/_shared/email-templates/notificationAction.ts |   if (path.startsWith("/shops/dashboard")) return "See your shop's orders"; |
  * @mutate supabase/functions/_shared/email-templates/notification.tsx | <BrandButton href={actionUrl} label={actionLabel} widthPx={230} /> | <BrandButton href={actionUrl} label="View Details" widthPx={230} />
  * @mutate supabase/functions/send-notification-email/index.ts |       actionLabel: notificationActionLabel(link, title),\n |       actionLabel: notificationActionLabel(link),\n
  *
@@ -40,6 +41,9 @@ describe("the notice email names its action and signs off as Louisiana Helpr (AU
     ["/jobs?job=1", "See the job"],
     ["/posts?highlight=1", "See the job"],
     ["/profile?tab=earnings", "See your earnings"],
+    // Shops emails (shops audit 11-08 #7)
+    ["/shops/orders", "See your order"],
+    ["/shops/dashboard", "See your shop's orders"],
     [null, "Open Louisiana Helpr"],
     ["/home", "Open Louisiana Helpr"],
   ];

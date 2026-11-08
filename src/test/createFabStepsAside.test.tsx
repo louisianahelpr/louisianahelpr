@@ -95,7 +95,7 @@ describe("2. My Jobs, My Shops and My Homes count their to-dos, as My Declutter 
 
   it("Shops: Shop carries my shop's orders waiting for an answer", () => {
     const shops = code("src/components/shops/ShopsHomeView.tsx");
-    expect(shops).toContain("const shopToDo = useNeedsYouCounts(useCurrentUser().user?.id).shops;");
+    expect(shops).toContain("const shopToDo = useNeedsYouCounts(useAuthReady().user?.id).shops;");
     expect(shops).toContain('count: t.value === "shop" ? shopToDo : undefined');
     expect(shops).toContain("mine={desktop ? undefined : myShops(shopToDo)}");
   });

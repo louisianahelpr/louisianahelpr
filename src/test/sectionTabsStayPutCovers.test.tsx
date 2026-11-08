@@ -7,7 +7,7 @@
  *      class is what is held here; the spec measures the real row).
  *
  * @mutate src/components/sections/SectionTabs.tsx | items-end overflow-x-auto overflow-y-hidden no-scrollbar | items-end overflow-x-auto no-scrollbar
- * @mutate e2e/a11y-prod/sectionTabScreens.ts |   { name: "Homes", file: "src/components/rentals/RentalsHomeView.tsx", path: "/rentals" },\n |
+ * @mutate e2e/a11y-prod/sectionTabScreens.ts |   { name: "Homes", file: "src/components/rentals/RentalsHomeView.tsx", path: "/rentals", desktopOnly: true },\n |
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

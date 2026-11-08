@@ -43,7 +43,10 @@ ALTER TABLE public.shop_items ADD COLUMN IF NOT EXISTS preorder_moved_at timesta
 ALTER TABLE public.shop_items ADD COLUMN IF NOT EXISTS preorder_goal_met_at timestamptz;
 ALTER TABLE public.shop_items ADD COLUMN IF NOT EXISTS preorder_goal_missed_at timestamptz;
 ALTER TABLE public.shop_items ADD COLUMN IF NOT EXISTS preorder_late_warned_at timestamptz;
-ALTER TABLE public.shop_orders ADD COLUMN IF NOT EXISTS preorder_item_id uuid REFERENCES public.shop_items(id) ON DELETE RESTRICT;
+-- ON DELETE SET NULL, as every other shop_orders / shop_order_lines FK into shops and shop_items (prod confdeltype 'n'):
+-- account deletion cascades users -> shops -> shop_items, and RESTRICT would stop it for any shop that ever sold a
+-- preorder (Shops audit 11-08 #4; App Store 5.1.1(v)).
+ALTER TABLE public.shop_orders ADD COLUMN IF NOT EXISTS preorder_item_id uuid REFERENCES public.shop_items(id) ON DELETE SET NULL;
 ALTER TABLE public.shop_orders ADD COLUMN IF NOT EXISTS preorder_moved_at timestamptz;
 CREATE INDEX IF NOT EXISTS shop_orders_preorder_item_idx ON public.shop_orders (preorder_item_id, status)
   WHERE preorder_item_id IS NOT NULL;

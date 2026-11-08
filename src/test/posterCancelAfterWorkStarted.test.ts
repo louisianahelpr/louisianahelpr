@@ -15,6 +15,7 @@
  * @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |        OR EXISTS (SELECT 1 FROM public.job_continue_days c WHERE c.job_id = v_job.id AND c.status IN ('proposed', 'set'))\n |
  * @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql | CASE WHEN v_helper_cut > 0 THEN 'payment' ELSE 'job_updates' END,\n      '/jobs?job=' | CASE WHEN v_helper_cut > 0 THEN 'payment' ELSE 'warning' END,\n      '/jobs?job='
  * @mutate src/lib/lifecycleErrorCopy.ts |     work_started:\n | 
+ * @mutate supabase/functions/_shared/notification-templates.ts |         type: "work_status",\n        link: jobPage(f),\n      };\n    },\n  },\n  arrival_confirmed | type: "warning",\n        link: jobPage(f),\n      };\n    },\n  },\n  arrival_confirmed
  * @mutate supabase/functions/create-payment/index.ts |           return quoteJson({ can_cancel: false, reason: "work_started", quoted_at: nowIso }); |           void 0;
  */
 import { describe, expect, it } from "vitest";
@@ -22,6 +23,7 @@ import { readFileSync } from "node:fs";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { RPC_ERROR_COPY } from "@/lib/lifecycleErrorCopy";
+import { NOTIFICATION_TEMPLATES } from "../../supabase/functions/_shared/notification-templates";
 
 const defs = effectiveDefs("supabase/migrations");
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");
@@ -68,5 +70,12 @@ describe("a poster cannot cancel a job the Helpr started (Jobs audit 11-08 #1)",
     const cp = blankComments(readFileSync("supabase/functions/create-payment/index.ts", "utf8"));
     expect(cp).toContain('return quoteJson({ can_cancel: false, reason: "work_started", quoted_at: nowIso });');
     expect(cp).toMatch(/from\("job_continue_days"\)[\s\S]{0,200}\.in\("status", \["proposed", "set"\]\)/);
+  });
+  it("the fix ask is Work status, not a System alert (#5)", () => {
+    const b = NOTIFICATION_TEMPLATES.revision_requested.build({
+      job: { id: "J", title: "Yard", status: "revision_requested" }, senderRole: "poster", revisionDescription: "Edge the walk",
+      senderName: "Dana",
+    } as unknown as Parameters<(typeof NOTIFICATION_TEMPLATES)["revision_requested"]["build"]>[0]);
+    expect(b?.type).toBe("work_status");
   });
 });

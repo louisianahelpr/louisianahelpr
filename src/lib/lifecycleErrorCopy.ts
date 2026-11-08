@@ -2541,6 +2541,9 @@ export const RPC_ERROR_COPY = {
     job_not_found: RC.job_not_cancellable,
     not_authorized: RC.job_not_cancellable,
     not_cancellable: RC.job_not_cancellable,
+    // Jobs audit 11-08 #1 (20261108200000): poster_cancel_job refuses once the Helpr started (on site, working, or a set
+    // continue day); the landlord's linked job is past cancelling the same way.
+    work_started: RC.job_not_cancellable,
   },
   rentals_confirm_visit: {
     account_restricted: RC.account_restricted,

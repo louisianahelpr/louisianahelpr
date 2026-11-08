@@ -114,6 +114,12 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   // items pass declutter_swap_items_ok's seed rule (seed_hidden_for the buyer) first, which hides a test listing as not found.
   declutter_offer_swap: "tags",
   declutter_swap_items_ok: "hides",
+  // Trades fixes (20261108195151): a trade between test accounts (declutter_swap_offers.is_seed) is never emailed;
+  // the bell notice still goes (kept out of notifications only, fails safe). No money, no ID check.
+  declutter_end_swap: "hides",
+  declutter_respond_swap: "hides",
+  declutter_swap_sweep: "hides",
+  declutter_void_swaps: "hides",
   // The Free change (Q2487): the ask carries the old claim's test-listing rule (declutter_claim_free just calls it).
   declutter_request_free: "hides",
   declutter_delivery_dropoffs_seed: "tags",

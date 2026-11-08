@@ -181,6 +181,13 @@ const CLASSIFIED: Record<string, string> = {
   "components/profile/SubscriptionTab.tsx::data.url": STRIPE_EDGE_URL,
   // Shops M1: requestOrder() returns shop-checkout's Checkout session url (server-built).
   "components/shops/ShopOrderSheet.tsx::url": STRIPE_EDGE_URL,
+  // Shops digital downloads (20261108185110): Buy opens shop-checkout buy_digital's Stripe page (server-built); in the
+  // iPhone app it opens the fixed louisianahelpr.com shop page (digitalBuyUrl: a constant origin, the shop and item ids
+  // encodeURIComponent-ed). The download links are shop-digital's signed shop-digital storage URLs (10 minutes).
+  "components/shops/ShopDigitalBuy.tsx::url": STRIPE_EDGE_URL,
+  "components/shops/ShopDigitalBuy.tsx::digitalBuyUrl(shopId, item.id)": "the fixed https://www.louisianahelpr.com/shops/<id>?buy=<id> page (lib/shops/digitalFiles.ts digitalBuyUrl, both ids encodeURIComponent-ed): the App Store US-storefront link-out to pay on the website",
+  "components/shops/ShopDigitalFiles.tsx::url": "a signed URL into the private shop-digital bucket, minted by shop-digital (download) for the file's own seller (supabase createSignedUrl, 600 s)",
+  "components/shops/ShopDigitalOrder.tsx::url": "a signed URL into the private shop-digital bucket, minted by shop-digital (download) only after shop_digital_download_path allowed this buyer (supabase createSignedUrl, 600 s)",
   // Custom orders (20261106205852): the buyer orders the shop's price; the same shop-checkout Stripe page.
   "components/shops/ShopCustomOrderForm.tsx::url": STRIPE_EDGE_URL,
   // Custom orders (50% deposit): payOrderRest() returns shop-checkout's pay-the-rest Checkout session url (server-built).

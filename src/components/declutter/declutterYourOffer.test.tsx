@@ -13,9 +13,9 @@
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |   if (item.status === "reserved" && myHold) { |   if (false) {
  * @mutate src/components/declutter/DeclutterYourOffer.tsx |   return offers?.find((o) => o.item_id === itemId && o.my_side === "buyer" && o.status === "open") ?? null; |   return null;
  * @mutate src/components/declutter/DeclutterYourOffer.tsx |   return cart?.find((l) => l.item_id === itemId && l.my_side === "buyer" && l.status === "in_cart") ?? null; |   return cart?.find((l) => l.item_id === itemId) ?? null;
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |         {!myOffer && !offersOff && ( |         {!offersOff && (
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |         {myOffer ? ( |         {false ? (
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const offersOff = item.accepts_offers === false; |   const offersOff = false;
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |         {!myOffer && !offersOff && ( |         {!myOffer && (
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | ) : offersOff ? null : ( | ) : false ? null : (
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   if (item.status === "reserved" && cart.isLoading) return <HoldChecking />;\n | \n
  * @mutate src/components/declutter/DeclutterYourOffer.tsx |       onChange();\n | \n
  * @mutate src/components/declutter/DeclutterYourOffer.tsx | onClick={() => setAsking(true)} | onClick={() => takeBack.mutate()}
@@ -354,12 +354,14 @@ describe("the item page knows the buyer's own open offer (#4)", () => {
   it("waiting for the seller: Your offer $25, no Make an offer, and Change my offer asks first, then opens the amount", async () => {
     state.offers = [OFFER, { ...OFFER, offer_id: "o2", item_id: "other" }];
     show(<OfferPanel item={ITEM} userId="u1" />);
-    expect(await screen.findByText("Your offer")).toBeInTheDocument();
+    // The sticky bar's "Your offer" button points at the box; the box itself says "Your offer" too.
+    await waitFor(() => expect(document.querySelector("[data-your-offer]")?.textContent).toContain("Your offer"));
+    expect(screen.getByRole("button", { name: "Your offer" })).toBeInTheDocument();
     expect(screen.getByText("$25")).toBeInTheDocument();
     // The shared next-step line (owner 11-01): who it waits on, with the time left.
     // @mutate src/components/declutter/DeclutterYourOffer.tsx |           : { who: "them", text: "Waiting on the seller to answer", by: timeLeft(offer.respond_by) }} |           : { who: "them", text: "Waiting on the seller to answer" }}
     expect(document.querySelector("[data-your-offer] [data-next-step]")?.textContent).toBe("Waiting on the seller to answer · 39 hours left");
-    expect(screen.queryByRole("button", { name: "Make an offer" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Make offer" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Change my offer" }));
     expect(state.responded).toEqual([]);
     expect(await screen.findByText("Take back your $25 offer?")).toBeInTheDocument();
@@ -367,7 +369,7 @@ describe("the item page knows the buyer's own open offer (#4)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Take it back" }));
     await waitFor(() => expect(state.responded).toEqual([{ offerId: "o1", action: "withdraw" }]));
     expect(await screen.findByLabelText("Your offer")).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: "Make an offer" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Make offer" })).toBeInTheDocument();
   });
 
   it("the seller answered with a price: their price and Answer it in Buying", async () => {
@@ -376,90 +378,67 @@ describe("the item page knows the buyer's own open offer (#4)", () => {
     expect(await screen.findByText("The seller answered")).toBeInTheDocument();
     expect(screen.getByText("$32")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Answer it" })).toHaveAttribute("href", "/declutter?tab=buying");
-    expect(screen.queryByRole("button", { name: "Make an offer" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Make offer" })).toBeNull();
   });
 
   it("an offer that closed (declined, taken back) leaves Make an offer as it was", async () => {
     state.offers = [{ ...OFFER, status: "declined" }, { ...OFFER, offer_id: "o3", status: "withdrawn" }];
     show(<OfferPanel item={ITEM} userId="u1" />);
-    await waitFor(() => expect(screen.getByRole("button", { name: "Make an offer" })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Make offer" })).toBeEnabled());
     expect(screen.queryByText("Change my offer")).toBeNull();
   });
 });
 
 // A1-B2 (Declutter audit, prod 2026-10-29): the button said "Buy now · $32.20 total" while Stripe charged $34.20,
-// because a first purchase also carries the one-time account setup fee. The button names what will be charged.
-describe("Buy now names the charge, setup fee included (A1-B2)", () => {
-  it("an account that still owes the setup fee sees it in the Buy now total", async () => {
+// because a first purchase also carries the one-time account setup fee. Owner pick 2 (11-08, one price story)
+// settles it the other way round: the button names NO figure, so it can never disagree with the charge; the price
+// block's "$42.70 incl. fee" is the price, and the one-time fee is its own line in the checkout summary
+// (DeclutterCheckoutSummary "One-time setup fee", guarded in declutterCheckoutSummary tests).
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx |   if (way !== "none") return <span className="whitespace-nowrap font-semibold" data-buy-label="">Buy now</span>; |
+describe("Buy now names no second figure; the setup fee is a checkout line (A1-B2, owner pick 2 11-08)", () => {
+  it("an account that still owes the setup fee sees plain Buy now: no $44.70, no setup-fee words on the bar", async () => {
     state.setupFeeCents = 200;
     show(<OfferPanel item={ITEM} userId="u1" />);
-    // $40 price -> $42.70 checkout total (5% + 70c) -> $44.70 with the $2 setup fee: the Stripe charge.
-    expect((await screen.findAllByRole("button", { name: "Buy now · $44.70 total" })).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("button", { name: /\$42\.70/ })).toBeNull();
-    expect(screen.queryByText("+ any one-time setup fee")).toBeNull();
+    const buy = await screen.findByRole("button", { name: "Buy now" });
+    expect(buy.textContent).toBe("Buy now");
+    expect(screen.queryByRole("button", { name: /\$/ })).toBeNull();
+    expect(screen.queryByText(/setup fee/)).toBeNull();
   });
 
-  it("once paid it is the checkout total alone", async () => {
+  it("once paid it is the same plain Buy now", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
-    expect((await screen.findAllByRole("button", { name: "Buy now · $42.70 total" })).length).toBeGreaterThan(0);
+    expect((await screen.findByRole("button", { name: "Buy now" })).textContent).toBe("Buy now");
   });
 
-  it("while the fee answer is not in, it says a setup fee may be added, never a figure $2 low on its own", async () => {
+  it("while the fee answer is not in, nothing hedges a figure the button no longer shows", async () => {
     state.setupFeeKnown = false;
     show(<OfferPanel item={ITEM} userId="u1" />);
-    expect((await screen.findAllByText("+ any one-time setup fee")).length).toBeGreaterThan(0);
+    await screen.findByRole("button", { name: "Buy now" });
+    expect(screen.queryByText("+ any one-time setup fee")).toBeNull();
   });
 });
 
-// Owner 11-01 (app-wide): buttons are ONE line each, the setup-fee words a small line UNDER them, never inside.
-// Owner 11-07 (Vinted review): on the item page the actions are three full-width buttons STACKED under the price:
-// "Buy now · $42.70" (the one filled button) first, then "Make an offer", then "Ask the seller" (the public
-// Questions box). Each nowrap. The phone's bottom bar keeps its short side-by-side pair ("Offer", "Buy · $42.70").
-// @mutate src/components/declutter/DeclutterOfferPanel.tsx |       {long ? <>Buy now ·</> : |       {long ? <>Buy ·</> :
-// @mutate src/components/declutter/DeclutterOfferPanel.tsx |     <span className="whitespace-nowrap font-semibold" data-buy-label=""> |     <span className="font-semibold" data-buy-label="">
-// @mutate src/components/declutter/DeclutterOfferPanel.tsx |         pendingClassName="sr-only" |         pendingClassName="block text-xs"
-// @mutate src/components/declutter/DeclutterOfferPanel.tsx | <span className="whitespace-nowrap" data-offer-label="">Make an offer</span> | <span className="whitespace-nowrap" data-offer-label="">Offer</span>
-// @mutate src/components/declutter/DeclutterOfferPanel.tsx |       <div ref={buttons} className="grid gap-2" data-offer-buttons=""> |       <div ref={buttons} className="grid grid-cols-3 gap-2" data-offer-buttons="">
-describe("Buy now, Make an offer, Ask the seller: stacked, one line each, the setup fee under them (owner 11-01, 11-07)", () => {
-  /** What a sighted buyer reads on a button: its text without the screen-reader-only spans. */
-  const seen = (el: Element) => {
-    const c = el.cloneNode(true) as Element;
-    c.querySelectorAll(".sr-only").forEach((n) => n.remove());
-    return (c.textContent ?? "").replace(/\s+/g, " ").trim();
-  };
-  for (const known of [true, false]) {
-    it(`short nowrap labels, setup fee ${known ? "known" : "not yet known"}`, async () => {
-      state.setupFeeKnown = known;
-      const asked: number[] = [];
-      show(<OfferPanel item={ITEM} userId="u1" onAskSeller={() => asked.push(1)} />);
-      const region = await screen.findByRole("region", { name: "Buy or make an offer" });
-      const buy = await within(region).findByRole("button", { name: /^Buy now · \$42\.70 total/ });
-      const offer = within(region).getByRole("button", { name: "Make an offer" });
-      const ask = within(region).getByRole("button", { name: "Ask the seller" });
-      expect(seen(offer)).toBe("Make an offer");
-      expect(seen(buy)).toBe("Buy now · $42.70");
-      fireEvent.click(ask);
-      expect(asked).toEqual([1]);
-      for (const b of [buy, offer]) {
-        const label = b.querySelector("[data-buy-label], [data-offer-label]");
-        expect(label?.className, seen(b)).toMatch(/whitespace-nowrap/);
-        expect(seen(b)).not.toMatch(/setup fee|total/);
-      }
-      // Stacked: Buy now first, then Make an offer, then Ask the seller, one column; the fee words UNDER them.
-      const row = region.querySelector("[data-offer-buttons]")!;
-      expect([...row.querySelectorAll("button")]).toEqual([buy, offer, ask]);
-      expect(row.className).not.toMatch(/grid-cols-/);
-      for (const b of [buy, offer, ask]) expect(b.className.split(/\s+/)).toContain("w-full");
-      const note = region.querySelector("[data-setup-fee-note]");
-      if (known) expect(note).toBeNull();
-      else {
-        expect(note?.textContent).toBe("+ any one-time setup fee");
-        expect(row.compareDocumentPosition(note!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        expect(row.contains(note)).toBe(false);
-        expect(buy.textContent).toContain("+ any one-time setup fee"); // heard by screen readers in the button
-      }
-    });
-  }
+// Owner pick 1 (11-08, replacing 11-01's bar-only pair and 11-07's stacked three): ONE sticky bar with Make offer (an
+// outline, left) and Buy now (the one filled button, right), side by side, one line each. Message is on the seller
+// row (declutterItemPage.test.tsx), not in this bar.
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx |             <span data-offer-label="">Make offer</span> |             <span data-offer-label="">Make an offer to the seller now</span>
+// @mutate src/components/ui/StickyActionBar.tsx | className="mx-auto flex w-full max-w-xl gap-2 [&>*]:min-w-0 [&>*]:flex-1" | className="mx-auto grid w-full max-w-xl gap-2"
+describe("one sticky bar: Make offer then Buy now, side by side (owner pick 1, 11-08)", () => {
+  it("two buttons in one row, the secondary first and the one primary last, no Ask the seller", async () => {
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    const region = await screen.findByRole("region", { name: "Buy or make an offer" });
+    const group = within(region).getByRole("group", { name: "Buy or make an offer" });
+    const buy = within(group).getByRole("button", { name: "Buy now" });
+    const offer = within(group).getByRole("button", { name: "Make offer" });
+    expect([...group.querySelectorAll("button")]).toEqual([offer, buy]);
+    expect(group.className).toMatch(/\bflex\b/);
+    expect(group.className).not.toMatch(/grid/);
+    expect(offer.textContent).toBe("Make offer");
+    expect(within(region).queryByRole("button", { name: "Ask the seller" })).toBeNull();
+    // ONE filled button: Buy now is the primary, Make offer an outline.
+    expect(offer.className).toMatch(/ctl-tint/);
+    expect(buy.className).not.toMatch(/ctl-tint/);
+  });
 });
 
 // Smart offers (owner 2026-10-29): a seller who turned offers off sells Buy only. The item page shows no
@@ -467,14 +446,14 @@ describe("Buy now, Make an offer, Ask the seller: stacked, one line each, the se
 describe("offers off = Buy only (smart offers)", () => {
   it("no Make an offer when the seller turned offers off", async () => {
     show(<OfferPanel item={{ ...ITEM, accepts_offers: false }} userId="u1" />);
-    expect((await screen.findAllByRole("button", { name: "Buy now · $42.70 total" })).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("button", { name: "Make an offer" })).toBeNull();
+    expect((await screen.findAllByRole("button", { name: "Buy now" })).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Make offer" })).toBeNull();
     expect(screen.getByText("The seller isn't taking offers on this one.")).toBeTruthy();
   });
 
   it("offers on (or not yet known) keeps Make an offer", async () => {
     show(<OfferPanel item={{ ...ITEM, accepts_offers: true }} userId="u1" />);
-    expect((await screen.findAllByRole("button", { name: "Make an offer" })).length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole("button", { name: "Make offer" })).length).toBeGreaterThan(0);
     expect(screen.queryByText("The seller isn't taking offers on this one.")).toBeNull();
   });
 });
@@ -499,7 +478,7 @@ describe("owner 11-07: offer chips, the total incl. fee, one Send offer", () => 
   it("10% off fills $36 and shows $38.50 incl. fee; Custom clears and focuses the field; one Send offer", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
     const region = await screen.findByRole("region", { name: "Buy or make an offer" });
-    const offerBtn = within(region).getByRole("button", { name: "Make an offer" });
+    const offerBtn = within(region).getByRole("button", { name: "Make offer" });
     await waitFor(() => expect(offerBtn).toBeEnabled());
     fireEvent.click(offerBtn);
     const chips = await within(region).findByRole("radiogroup", { name: "Quick offer amounts" });

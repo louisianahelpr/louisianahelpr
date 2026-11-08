@@ -16,7 +16,7 @@ const TONE: Record<PhotoTagTone, string> = {
   deal: "bg-card/95 text-[hsl(var(--sienna-ink))] [background-image:linear-gradient(hsl(var(--burnt-sienna)/0.14),hsl(var(--burnt-sienna)/0.14))]",
 };
 
-export const PHOTO_TAG_CLASS = "block max-w-full truncate rounded-full px-2 py-1 text-ds-11 font-semibold leading-none shadow-sm";
+const PHOTO_TAG_CLASS = "block max-w-full truncate rounded-full px-2 py-1 text-ds-11 font-semibold leading-none shadow-sm";
 
 export function PhotoTag({ children, tone = "plain", title, ...rest }: {
   children: ReactNode;

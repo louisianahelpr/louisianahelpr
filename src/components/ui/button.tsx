@@ -33,9 +33,9 @@ import { cn } from "@/lib/utils";
 const ELEV_FILLED =
   "shadow-[0_1px_2px_hsl(var(--ink-deep)/0.10),0_2px_6px_-2px_hsl(var(--ink-deep)/0.12)] " +
   "active:scale-[0.97] active:shadow-[0_1px_1px_hsl(var(--ink-deep)/0.14)]";
-const ELEV_OUTLINE =
-  "shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_1px_1px_hsl(var(--ink-deep)/0.08),0_2px_6px_hsl(var(--ink-deep)/0.10),0_4px_12px_-2px_hsl(var(--ink-deep)/0.06)] " +
-  "active:scale-[0.97] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_1px_1px_hsl(var(--ink-deep)/0.10)]";
+// Flat (design audit 11-08 B §4.4 [shared], owner picks 11-08): an outline button has NO shadow, only its outline and
+// the press. Three or four raised outlines side by side read as noise; Vinted, Depop and Mercari use flat outlines.
+const ELEV_OUTLINE = "shadow-none active:scale-[0.97]";
 
 // Hover shared by ALL green primary CTAs. `hover:brightness-110` and nothing
 // else — the filled-surface arm of the one interaction treatment (see "THE ONE
@@ -128,7 +128,7 @@ const buttonVariants = cva(
         // the app now gets. The text colour no longer changes with it — an
         // outline button inherits its ink and had no reason to restate it.
         outline:
-          "ctl-tint border border-border/60 bg-background/70 backdrop-blur-md " +
+          "ctl-tint border-[1.5px] border-foreground/70 bg-background/70 backdrop-blur-md " +
           ELEV_OUTLINE,
         // Secondary / parchment-tint: shadow + highlight + press, no gradient.
         //

@@ -6,7 +6,7 @@
  * still refuse anything while Declutter is not open to everyone). A definite "not open" keeps the wall.
  *
  * @mutate src/components/declutter/DeclutterGuest.tsx |   if (failed \|\| open?.has("declutter")) return |   if (open?.has("declutter")) return
- * @mutate src/components/landing/useSectionsOpen.ts |     retry: SECTIONS_OPEN_RETRIES, |     retry: false,
+ * @mutate src/components/landing/useSectionsOpen.ts |     retry: (count, err) => shouldRetryQuery(count, err, SECTIONS_OPEN_RETRIES), |     retry: false,
  * @mutate src/components/landing/useSectionsOpen.ts |   if (q.isError) return { open: new Set(), settled: true, failed: true }; |   if (q.isError) return { open: new Set(), settled: true, failed: false };
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

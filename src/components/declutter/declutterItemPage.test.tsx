@@ -250,7 +250,7 @@ describe("the photo-first Declutter item page", () => {
   });
 
   it("A3-48 (owner 11-01 11:49 AM): Helpr delivery priced BY SIZE, this item's size marked, never an all-in total; never on a free item or your own", async () => {
-    // @mutate src/components/declutter/DeclutterItemView.tsx | askSignal={offerAsk} footer={deliveredLine} /> | askSignal={offerAsk} />
+    // @mutate src/components/declutter/DeclutterItemView.tsx | askSignal={offerAsk} footer={deliveredLine} onAskSeller={preview ? null : askSeller} /> | askSignal={offerAsk} onAskSeller={preview ? null : askSeller} />
     // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       {footer}\n |
     // @mutate src/components/declutter/DeclutterItemView.tsx |       <DeliveryPriceList quote={null} size={it.delivery_size} /> |       <DeliveryPriceList quote={null} />
     // @mutate src/components/declutter/DeliveryPriceList.tsx |           const mine = (quote?.size ?? size) === r.size; |           const mine = quote?.size === r.size;
@@ -343,7 +343,19 @@ describe("the photo-first Declutter item page", () => {
     await screen.findByRole("button", { name: "Ask" });
     const filled = [...container.querySelectorAll("button.btn-grad-primary, a.btn-grad-primary")].map((b) => (b.textContent ?? "").trim());
     expect(filled.length, JSON.stringify(filled)).toBe(1);
-    expect(filled[0]).toMatch(/^Buy ·/);
+    expect(filled[0]).toMatch(/^Buy now ·/);
+  });
+
+  // Owner 11-07 (lead: no new messaging path; Declutter has no messaging before a sale): the third stacked button,
+  // "Ask the seller", focuses the public Questions box on the same page.
+  // @mutate src/components/declutter/DeclutterItemView.tsx |     box?.focus({ preventScroll: true }); |     void box;
+  it("owner 11-07: Ask the seller focuses the public Questions box", async () => {
+    state.item = { ...ITEM };
+    open();
+    const ask = await screen.findByRole("button", { name: "Ask the seller" });
+    await screen.findByRole("button", { name: "Ask" });
+    fireEvent.click(ask);
+    expect(document.activeElement?.id).toBe("declutter-question");
   });
 
   it("D5: the condition is a word chip ('Lightly used'), never stars", async () => {

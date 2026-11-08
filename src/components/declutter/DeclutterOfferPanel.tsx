@@ -21,7 +21,7 @@ import { noDeliveryWay, totalPhrase, type NoDeliveryWay } from "@/lib/declutter/
 import { deliveryPriceCents } from "@/lib/declutter/delivery";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
-import { minOfferCents } from "@/lib/declutter/money";
+import { centsToDollars, minOfferCents, OFFER_CHIP_PERCENTS, offerChipCents } from "@/lib/declutter/money";
 import { BuyerTotal, SetupFeeNote } from "./BuyerTotal";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { afterCardFromState, cardCancelledFromState, offerAmountFromState, rememberAfterCard, type AfterCardAction } from "@/lib/declutter/afterCard";
@@ -34,6 +34,7 @@ import { invalidateTrades } from "./declutterLightActions";
 import { useOffScreen } from "./useOffScreen";
 import { Input } from "@/components/ui/input";
 import { OfferSuggestion } from "./OfferSuggestion";
+import { ChoicePill } from "@/components/ui/ChoicePill";
 
 /**
  * Row 36, as the step INSIDE an offer (owner, 2026-10-19; owner 11-07: offers
@@ -114,15 +115,16 @@ const CARD_POLL_MS = 1_500;
  * freezes), never the bare price (D6), PLUS the one-time account setup fee a first purchase carries (A1-B2: the
  * button said $32.20 while Stripe charged $34.20). Screen readers hear "Buy now · $37.45 total" (and the setup-fee words while they apply).
  */
-function BuyNowLabel({ priceCents, way, size }: { priceCents: number; way: NoDeliveryWay; size: DeliverySize }) {
+function BuyNowLabel({ priceCents, way, size, long = false }: { priceCents: number; way: NoDeliveryWay; size: DeliverySize;
+  /** Owner 11-07: the item page's full-width stacked button has room for "Buy now" in full. */
+  long?: boolean }) {
   // Audit BUY-3: on an item the seller offers only delivered (way "none"), the pickup total is a figure nobody can
   // pay. The label names the least it costs delivered instead, the least a Helpr delivery can cost (one road mile).
   const delivered = way === "none";
   return (
     <span className="whitespace-nowrap font-semibold" data-buy-label="">
       {/* Text nodes carry the spaces: a space at a span's edge is dropped from the accessible name. */}
-      <span aria-hidden>Buy ·</span>
-      <span className="sr-only">Buy now ·</span>{" "}
+      {long ? <>Buy now ·</> : <><span aria-hidden>Buy ·</span><span className="sr-only">Buy now ·</span></>}{" "}
       {delivered && "from "}
       <BuyerTotal
         priceCents={priceCents}
@@ -134,8 +136,10 @@ function BuyNowLabel({ priceCents, way, size }: { priceCents: number; way: NoDel
   );
 }
 
-export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
+export function OfferPanel({ item, userId, askSignal = 0, footer = null, onAskSeller = null }: {
   item: DeclutterItem; userId: string;
+  /** Owner 11-07 (lead: no new messaging path): "Ask the seller" jumps to the public Questions box. Null hides it. */
+  onAskSeller?: (() => void) | null;
   /** AUD31-15: the Questions hint's "Make an offer" counts up; each new count opens the offer box, as the button does. */
   askSignal?: number;
   /** Owner mockup 11-01: the delivery line sits under the two buttons, inside this card. */
@@ -353,25 +357,11 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
   }
   return (
     <section ref={panel} tabIndex={-1} className="rounded-2xl border border-border bg-card p-4 space-y-3 scroll-mt-4 focus:outline-none" aria-label="Buy or make an offer">
-      {/* Owner mockup 11-01 (Mockup 1/2): Offer on the LEFT (outline), Buy on the RIGHT (solid, with the total), side
-          by side at every width, as in the phone bar below; each ONE line with a short label (owner 11-01, app-wide),
-          Buy taking the wider share for its figure, the setup-fee words on a line under them. Alone (offers off, or an
-          offer already sent), Buy takes the whole row. */}
-      <div ref={buttons} className={myOffer || offersOff ? "grid gap-2" : "grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-2"} data-offer-buttons="">
-        {!myOffer && !offersOff && (
-          <Button
-            type="button"
-            variant="outline"
-            size="wrap"
-            className="w-full min-w-0 rounded-full px-3"
-            aria-expanded={open}
-            disabled={offers.isLoading}
-            onClick={() => (open ? setOpen(false) : tap("offer"))}
-          >
-            <span aria-hidden className="whitespace-nowrap" data-offer-label="">Offer</span>
-            <span className="sr-only">Make an offer</span>
-          </Button>
-        )}
+      {/* Owner 11-07 (Vinted review): three full-width buttons stacked under the price: Buy now (the one primary,
+          with the total) first, then Make an offer, then Ask the seller (the public Questions box; Declutter has no
+          messaging before a sale). Offers off or an offer already sent: no Make an offer. The phone bar below keeps
+          its side-by-side pair (owner 11-01). */}
+      <div ref={buttons} className="grid gap-2" data-offer-buttons="">
         {/* ONE primary at a time (audit #47): while the card step asks for a card, "Add a card" is the primary
             and Buy now steps back to an outline. */}
         <Button
@@ -382,8 +372,26 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
           disabled={buy.isPending}
           onClick={() => tap("buy")}
         >
-          <BuyNowLabel priceCents={item.current_price_cents} way={way} size={item.delivery_size} />
+          <BuyNowLabel priceCents={item.current_price_cents} way={way} size={item.delivery_size} long />
         </Button>
+        {!myOffer && !offersOff && (
+          <Button
+            type="button"
+            variant="outline"
+            size="wrap"
+            className="w-full min-w-0 rounded-full px-3"
+            aria-expanded={open}
+            disabled={offers.isLoading}
+            onClick={() => (open ? setOpen(false) : tap("offer"))}
+          >
+            <span className="whitespace-nowrap" data-offer-label="">Make an offer</span>
+          </Button>
+        )}
+        {onAskSeller && (
+          <Button type="button" variant="outline" size="wrap" className="w-full min-w-0 rounded-full px-3" data-ask-seller="" onClick={onAskSeller}>
+            <span className="whitespace-nowrap">Ask the seller</span>
+          </Button>
+        )}
       </div>
       <SetupFeeNote className="-mt-1 text-center text-ds-12 text-muted-foreground" />
       {/* Q2564 (Auditor 1, audit 1102a): the card step and the offer box open HERE, right under the buttons, and the
@@ -400,29 +408,36 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
         >
           {cardSaved && <p role="status" className="text-sm font-medium" data-card-saved="">Card saved. Now send your offer.</p>}
           <label htmlFor="declutter-offer" className="text-sm font-medium">Your offer</label>
+          {/* Owner 11-07 (Vinted review): quick chips, "10% off" and "20% off" the price (shown only where the server would
+              take them: at least half the price, under the price), and Custom, the amount field below. */}
+          <div role="radiogroup" aria-label="Quick offer amounts" className="grid grid-cols-3 gap-2" data-offer-chips="">
+            {OFFER_CHIP_PERCENTS.map((pct) => {
+              const chip = offerChipCents(item.current_price_cents, pct);
+              if (chip === null) return null;
+              return (
+                <ChoicePill key={pct} selected={cents === chip} data-offer-chip={pct} aria-label={`${pct}% off, ${formatPrice(chip)}`}
+                  className="flex-col justify-center px-2 py-1 leading-tight" onClick={() => setAmount(centsToDollars(chip))}>
+                  <span>{pct}% off</span><span className="tabular-nums">{formatPrice(chip)}</span>
+                </ChoicePill>
+              );
+            })}
+            <ChoicePill selected={amount.trim() !== "" && !OFFER_CHIP_PERCENTS.some((p) => offerChipCents(item.current_price_cents, p) === cents)}
+              data-offer-chip="custom" className="justify-center px-2" onClick={() => { setAmount(""); offerBox.current?.focus(); }}>
+              Custom
+            </ChoicePill>
+          </div>
           {/* Q2471 (2): Claude's suggested amount, one tap to fill the box. */}
           <OfferSuggestion itemId={item.id} onUse={setAmount} />
-          <div className="flex gap-2">
-            <Input
-              id="declutter-offer"
-              ref={offerBox}
-              inputMode="decimal"
-              className="flex-1 min-w-0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder={`At least ${formatPrice(minCents)}`}
-              aria-describedby="declutter-offer-help"
-            />
-            <Button
-              type="submit"
-              size="sm"
-              variant={needCard === "offer" ? "outline" : undefined}
-              className="rounded-full"
-              disabled={send.isPending || !!offerProblem || card.isLoading || checkingCard}
-            >
-              Send offer
-            </Button>
-          </div>
+          <Input
+            id="declutter-offer"
+            ref={offerBox}
+            inputMode="decimal"
+            className="w-full min-w-0"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder={`Custom amount, at least ${formatPrice(minCents)}`}
+            aria-describedby="declutter-offer-help"
+          />
           {cents !== null && !offerProblem && (
             // Board 67: what the buyer would pay if the seller says yes, from the same fee rule as Buy now and
             // checkout (buyNowTotalCents = checkoutAmounts for one item, pickup). Delivery is added at checkout.
@@ -430,7 +445,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
               <div className="flex justify-between gap-3"><dt>Your offer</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(cents)}</dd></div>
               <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1.5">
                 <dt className="font-bold text-foreground">You pay if the seller says yes</dt>
-                <dd className="text-ds-18 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]"><BuyerTotal priceCents={cents} /></dd>
+                <dd className="text-right text-ds-18 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]"><BuyerTotal priceCents={cents} /><span className="block whitespace-nowrap text-right text-ds-12 font-medium text-muted-foreground" data-offer-incl-fee="">incl. fee</span></dd>
               </div>
               {/* lh-money-escrow re-review #2: a ceiling. Accepting charges the lower of the offer and the price now,
                   and more items from this seller share one 70¢. Delivery, if chosen, is added at checkout. */}
@@ -442,6 +457,16 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
               ? offerProblem
               : `The seller has 48 hours to accept, say no or answer with another price. If they accept, you have 24 hours to check out. Nothing is charged until you pay.`}
           </p>
+          {/* Owner 11-07: ONE offer button, under the total. */}
+          <Button
+            type="submit"
+            size="wrap"
+            variant={needCard === "offer" ? "outline" : undefined}
+            className="w-full rounded-full px-3"
+            disabled={send.isPending || !!offerProblem || card.isLoading || checkingCard}
+          >
+            Send offer
+          </Button>
         </form>
       )}
       {showCardStep && needCard === "offer" && cardStep("offer")}

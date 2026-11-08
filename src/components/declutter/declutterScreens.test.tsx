@@ -16,7 +16,7 @@
  * Owner 2026-10-19: back from Stripe's card page, the member returns to the item and carries on.
  * @mutate src/pages/declutter/DeclutterPage.tsx | afterCardReturnState(cardReturn === "saved", next) | afterCardReturnState(false, next)
  * @mutate src/pages/declutter/DeclutterPage.tsx |     navigate(afterCardPath(next.itemId), { replace: true, state: afterCardReturnState(cardReturn === "saved", next) }); |     void afterCardReturnState;
- * @mutate src/components/declutter/DeclutterItemView.tsx | : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} footer={deliveredLine} />)} | : null)}
+ * @mutate src/components/declutter/DeclutterItemView.tsx | : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} footer={deliveredLine} onAskSeller={preview ? null : askSeller} />)} | : null)}
  */
 import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -378,7 +378,7 @@ describe("Declutter screens", () => {
     expect(screen.getByRole("button", { name: "Add a card" })).toBeInTheDocument();
     // Audit #47: ONE filled primary at a time; while the card is asked for, Buy now steps back to an outline.
     // @mutate src/components/declutter/DeclutterOfferPanel.tsx |           variant={showCardStep ? "outline" : undefined} |           variant={undefined}
-    expect(document.querySelectorAll("[aria-label='Buy or make an offer'] button.btn-grad-primary").length).toBe(1);
+    expect(document.querySelectorAll("[aria-label='Buy or make an offer'] button.btn-grad-primary:not([role=radio])").length).toBe(1);
     // Near the price: the actions come before the description, not at the bottom of the page.
     expect(buyNow.compareDocumentPosition(screen.getByText("Solid oak.")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // The seller card (owner 2026-10-19): name, stars only with reviews, joined date.

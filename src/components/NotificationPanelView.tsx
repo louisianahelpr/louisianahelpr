@@ -184,7 +184,7 @@ export function NotificationPanelView({
             data-testid="bell-messages-row"
             onClick={() => { setOpen(false); navigate("/messages"); }}
             aria-label={messagesUnread > 0 ? `Messages, ${formatUnreadBadge(messagesUnread)} unread` : "Messages"}
-            className="mx-4 my-2 w-auto shrink-0 gap-3 rounded-2xl border border-border bg-card px-4 py-3 focus-visible:ring-offset-0"
+            className="mx-4 my-2 w-auto shrink-0 gap-3 rounded-2xl border border-border bg-card px-4 py-3"
           >
             <MessageSquare className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
             <span className="min-w-0 flex-1 text-ds-15 font-semibold text-foreground">Messages</span>

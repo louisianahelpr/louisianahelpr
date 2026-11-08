@@ -23,10 +23,17 @@ type InputProps = React.ComponentProps<"input"> & {
   look?: "field" | "card" | "bare";
 };
 
+/**
+ * look="bare": the field's focus is painted by the composed surface around it, never by the input: every caller rings
+ * its wrapper on focus-within (one ring, deep audit #46). Guard: src/test/focusableHasVisibleFocus.test.ts ("a bare
+ * Input's wrapper rings on focus-within").
+ */
+const BARE_FIELD_CLS = "w-full min-w-0 bg-transparent focus-visible:outline-none";
+
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, look = "field", ...props }, ref) => {
     if (look === "bare") {
-      return <input type={type} className={cn("w-full min-w-0 bg-transparent outline-none", className)} ref={ref} {...props} />;
+      return <input type={type} className={cn(BARE_FIELD_CLS, className)} ref={ref} {...props} />;
     }
     if (look === "card") {
       return <input type={type} className={`${CARD_FIELD_CLS} ${className ?? ""}`.trim()} ref={ref} {...props} />;

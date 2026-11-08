@@ -80,6 +80,23 @@ describe("a focusable that hides the outline paints its own focus", () => {
     expect(hits, "add focus-visible:ring-2 (or a focus border/bg) beside outline-none").toEqual([]);
   });
 
+  // look="bare" (the section search bar, owner 11-08) strips the input's outline because the bar around it is the
+  // field: each file that renders one must ring that wrapper on focus-within, or the field has no focus at all.
+  // @mutate src/components/sections/SectionSearchBar.tsx | focus-within:ring-2 focus-within:ring-ring | focus-within:ring-ring
+  it("a bare Input's wrapper rings on focus-within", () => {
+    expect(readFileSync("src/components/ui/input.tsx", "utf8")).toMatch(/const BARE_FIELD_CLS = "[^"]*focus-visible:outline-none"/);
+    const users: string[] = [];
+    (function walk(d: string) {
+      for (const dirent of readdirSync(d, { withFileTypes: true })) {
+        const p = join(d, dirent.name);
+        if (dirent.isDirectory()) walk(p);
+        else if (/\.tsx$/.test(dirent.name) && !/\.test\./.test(dirent.name) && !p.endsWith("ui/input.tsx") && /look="bare"/.test(readFileSync(p, "utf8"))) users.push(p);
+      }
+    })("src");
+    expect(users.length).toBeGreaterThan(0);
+    for (const p of users) expect(readFileSync(p, "utf8"), p).toMatch(/focus-within:ring-2\b/);
+  });
+
   it("the legacy list only shrinks", () => {
     for (const p of LEGACY) expect(offenders(p, readFileSync(p, "utf8")).length, `${p} is clean — remove it from LEGACY`).toBeGreaterThan(0);
   });

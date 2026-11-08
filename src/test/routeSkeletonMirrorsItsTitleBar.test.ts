@@ -78,8 +78,9 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(bar).toMatch(/NotificationPanel triggerClassName="h-11 w-11/);
     expect(bar.match(/size="iconCompact"/g)?.length, "Messages, the +, the avatar: 44px iconCompact").toBe(3);
     // A screen with no "My …" menu (Dashboard) names the avatar after the profile, as before.
-    expect(bar).toMatch(/variant="ghost"\s+size="iconCompact"\s+aria-label=\{mine \? /);
-    expect(bar).toContain(' : avatarButtonLabel(tr("nav.profile"), profile?.full_name)}');
+    // The initials the bare photo shows stay in its name either way (axe label-content-name-mismatch, WCAG 2.5.3).
+    expect(bar).toMatch(/variant="ghost"\s+size="iconCompact"\s+(?:\/\/[^\n]*\s+)?aria-label=\{avatarButtonLabel\(mine \? /);
+    expect(bar).toContain(' : tr("nav.profile"), profile?.full_name)}');
   });
 
   it("then Home's body: greeting, the Next up card, Coming up, the 2x2 section tiles (board 7)", () => {

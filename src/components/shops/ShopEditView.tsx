@@ -50,6 +50,7 @@ import { categoryGroups, useShopCategories, WEEKDAYS } from "./shopsUi";
 import ShopItemsSection from "./ShopItemsSection";
 import ShopPickupAddressSection from "./ShopPickupAddressSection";
 import ShopFaqsEditor from "./ShopFaqsEditor";
+import ShopOpenIntro from "./ShopOpenIntro";
 
 interface Form {
   name: string;
@@ -242,9 +243,7 @@ export default function ShopEditView() {
     <AppPage title={myId.data ? "Edit my shop" : "Open a shop"} backTo="/shops">
       <form className="space-y-5 pb-8" onSubmit={onSubmit} noValidate>
         {!myId.data && (
-          <p className="text-sm text-muted-foreground">
-            A shop is free, and it is also your business profile. You need to be 18 or older. Payouts come later, when you make your first sale.
-          </p>
+          <ShopOpenIntro />
         )}
         <div className="space-y-1.5">
           <Label htmlFor="shop-name">Shop or business name</Label>

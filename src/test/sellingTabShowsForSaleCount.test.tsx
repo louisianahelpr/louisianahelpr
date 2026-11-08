@@ -5,6 +5,7 @@
  * "You're selling" line, so the two never disagree.
  *
  * @mutate src/components/declutter/DeclutterHomeView.tsx | quiet: forSale, count: | count:
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | l.value === "selling" ? { ...l, countAsDot: true } : l | l
  * @mutate src/lib/declutter/liveListingCount.ts | i.status === "live" | i.status !== "withdrawn"
  * @mutate src/components/sections/SectionTabs.tsx | {o.countAsDot && o.count !== undefined && o.count > 0 && ( | {false && (
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts | selling: liveListingCount(items), | selling: items.length,
@@ -62,7 +63,12 @@ describe("Selling tab: how many items are for sale, to-dos as a dot", () => {
 
   it("Declutter's Selling tab and Home's selling line read the same rule", () => {
     const home = code("src/components/declutter/DeclutterHomeView.tsx");
-    expect(home).toMatch(/\{ value: "selling", label: "Selling", quiet: forSale, count: [^}]*countAsDot: true \}/);
+    // One list row feeds both the desktop tabs (Selling's to-dos as a dot) and the phone's My Declutter sheet (the
+    // Vinted header, owner 11-08: the same quiet for-sale number beside the row).
+    expect(home).toMatch(/\{ value: "selling", label: "Selling", quiet: forSale, count: sellingToDo \}/);
+    expect(home).toContain('tabs={lists.map((l) => l.value === "selling" ? { ...l, countAsDot: true } : l)}');
+    expect(home).toContain("const sellingToDo = todo ? todo.selling + questions.count : undefined;");
+    expect(home).toContain("count: l.count, quiet: l.quiet }))");
     expect(home).toMatch(/const forSale = mineForCount\.data \? liveListingCount\(mineForCount\.data\) : undefined;/);
     expect(code("src/pages/home/homeDashboard/useHomeSummary.ts")).toContain("selling: liveListingCount(items),");
   });

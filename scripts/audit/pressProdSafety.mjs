@@ -409,8 +409,9 @@ export function isCommitControl(meta = {}) {
  */
 // The bell's name carries its unread count when there is one (NotificationTrigger: "Notifications, 99+ unread"),
 // so the chain step reads "Notifications, 99+ unread" (press-every-control 42362289081, Q1816: 40+ GATE MISSes on
-// PATCH /rest/v1/notifications, every one behind a bell with unread rows).
-export const NOTIFICATION_OPEN_RX = /^Notifications(?:, [^\u203a]*? unread)? \u203a /;
+// PATCH /rest/v1/notifications, every one behind a bell with unread rows). Declutter's slim bar (the Vinted header,
+// owner 11-08) names its bell "Notifications and messages" (it holds Messages too), with the same unread tail.
+export const NOTIFICATION_OPEN_RX = /^Notifications(?: and messages)?(?:, [^\u203a]*? unread)? \u203a /;
 /*
  * Read the CHAIN, not the control's own words (Declutter audit 2026-10-28,
  * audit2 press.log: 23 GATE MISSes on PATCH /rest/v1/notifications). The main

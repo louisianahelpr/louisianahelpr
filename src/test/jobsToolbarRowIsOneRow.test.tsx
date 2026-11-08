@@ -14,7 +14,8 @@
  * other line above to save space": on the desktop website Browse has NO row of its own; its count sits beside
  * "Browse" and its search, filters and map at the tabs row's end. And on a PHONE (owner, 2026-10-28, ~900px window:
  * "search and filter should be next to gear"): no "Search jobs" row either; a search icon and Filters end the tabs
- * row before the gear (src/test/jobsSearchIsAnIcon.test.tsx).
+ * row before the gear. Since the Vinted header (owner 11-08) a phone's search is the top bar's field instead, with
+ * Filters inside it on Browse, and still no row of its own (src/test/jobsSearchIsAnIcon.test.tsx).
  * Measured before/after with getBoundingClientRect at 375 and 1440: ~/.lh-shots/jobs-search-inline-1027/.
  *
  * @mutate src/components/sections/InlineListSearch.tsx |         onClick={() => setOpen(true)} |         onClick={() => {}}
@@ -23,8 +24,8 @@
  * @mutate src/components/sections/InlineListSearch.tsx |           if (!value.trim()) close(false, false); |           void value;
  * @mutate src/components/sections/InlineListSearch.tsx |     if (clear && value) onChange(""); |     void clear;
  * @mutate src/components/sections/jobsToolbar.ts | export const JOBS_TOOLBAR_ROW = "flex min-h-[46px] min-w-0 items-center gap-2"; | export const JOBS_TOOLBAR_ROW = "flex min-h-[40px] min-w-0 items-center gap-2 px-4";
- * @mutate src/pages/home/Dashboard.tsx | embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes \|\| feedShowingLoadError ? undefined : headerCount } : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen }) | embeddedHeader(isWebDesktop ? undefined : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen })
- * @mutate src/pages/home/Dashboard.tsx | : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen })}\n    </div> | : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen })}\n      {!isWebDesktop && <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>search</div>}\n    </div>
+ * @mutate src/pages/home/Dashboard.tsx | embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes \|\| feedShowingLoadError ? undefined : headerCount } : { search: phoneBrowseSearch }) | embeddedHeader(isWebDesktop ? undefined : { search: phoneBrowseSearch })
+ * @mutate src/pages/home/Dashboard.tsx | : { search: phoneBrowseSearch })}\n    </div> | : { search: phoneBrowseSearch })}\n      {!isWebDesktop && <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>search</div>}\n    </div>
  * @mutate src/components/job-card/embeddedActivity.tsx |       <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}> |       <div data-jobs-toolbar="" className="flex">
  * @mutate src/components/job-card/embeddedActivity.tsx | <InlineListSearch value={search} onChange={onSearch} | <InlineListSearch value="" onChange={() => {}}
  */
@@ -40,7 +41,12 @@ import { EmbeddedActivityHeader } from "@/components/job-card/embeddedActivity";
 import { JOBS_TOOLBAR_LINE_CLASS, JOBS_TOOLBAR_LINE_STYLE, JOBS_TOOLBAR_ROW } from "@/components/sections/jobsToolbar";
 import { CHIP } from "@/components/ui/chipClasses";
 
-afterEach(cleanup);
+// Posted / Working's icon beside the gear is the desktop website's; on a phone the tab's search is the top bar's
+// field (the Vinted header, owner 11-08). Each test picks its width.
+const desktop = vi.hoisted(() => ({ on: true }));
+vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => desktop.on }));
+
+afterEach(() => { cleanup(); desktop.on = true; });
 
 const read = (rel: string) => blankComments(readFileSync(join(process.cwd(), rel), "utf8"));
 
@@ -104,7 +110,7 @@ describe("the search opens in place, focused, and closes back into its icon", ()
     expect((screen.getByRole("searchbox") as HTMLInputElement).value).toBe("paint");
   });
 
-  it("Posted / Working: the icon beside the gear opens there, in the tabs row, and searches that tab's list (owner 2026-10-31)", async () => {
+  it("desktop, Posted / Working: the icon beside the gear opens there, in the tabs row, and searches that tab's list (owner 2026-10-31)", async () => {
     const onSearch = vi.fn();
     const tabsRow = (row?: { end?: ReactNode }) => <div data-testid="tabs-row">{row?.end}<button type="button" aria-label="Jobs settings" /></div>;
     function Header() {
@@ -120,6 +126,23 @@ describe("the search opens in place, focused, and closes back into its icon", ()
     expect(screen.getByTestId("tabs-row").contains(field), "the field opens in the tabs row, where the icon was").toBe(true);
     expect(row.contains(field), "not in the chip row").toBe(false);
     expect(document.activeElement).toBe(field);
+    fireEvent.change(field, { target: { value: "mow" } });
+    expect(onSearch).toHaveBeenLastCalledWith("mow");
+  });
+
+  it("phone, Posted / Working: the tab's search is the top bar's open field (the Vinted header, owner 11-08), never in the chip row, and searches that tab's list", () => {
+    desktop.on = false;
+    const onSearch = vi.fn();
+    const bar = (row?: { end?: ReactNode; search?: ReactNode }) => <div data-testid="top-bar">{row?.search}{row?.end}</div>;
+    function Header() {
+      const [q, setQ] = useState("");
+      return <EmbeddedActivityHeader header={bar} tab="applied" statusFilter="all" counts={{ all: 2 }} onFilter={() => {}} search={q} onSearch={(v) => { onSearch(v); setQ(v); }} />;
+    }
+    const { container } = render(<MemoryRouter><Header /></MemoryRouter>);
+    expect(container.querySelector("[data-jobs-search]"), "no icon on a phone").toBeNull();
+    const field = screen.getByRole("searchbox", { name: "Search jobs you're working" });
+    expect(screen.getByTestId("top-bar").contains(field), "the field is the bar's").toBe(true);
+    expect(container.querySelector<HTMLElement>("[data-jobs-toolbar]")!.contains(field), "not in the chip row").toBe(false);
     fireEvent.change(field, { target: { value: "mow" } });
     expect(onSearch).toHaveBeenLastCalledWith("mow");
   });
@@ -146,7 +169,7 @@ describe("Browse, Posted and Working draw the same row box and the same hairline
   });
 
   it("desktop: Browse draws no row of its own; count beside Browse, controls at the tabs row's end", () => {
-    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes || feedShowingLoadError ? undefined : headerCount } : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen })");
+    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes || feedShowingLoadError ? undefined : headerCount } : { search: phoneBrowseSearch })");
     expect(dash).not.toMatch(/JOBS_TOOLBAR_LINE_CLASS/);
     const jobs = read("src/pages/jobs/JobsSection.tsx");
     expect(jobs).toContain("browseCount={browse?.count}");

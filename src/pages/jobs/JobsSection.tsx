@@ -121,12 +121,12 @@ const JobsSection = () => {
     settings: { label: tr(JOBS_SETTINGS.labelKey), to: JOBS_SETTINGS.path },
   };
   const listLabel = JOBS_TABS.find((t) => t.value === tab);
-  const makeHeader = (browse?: { end?: ReactNode; count?: number; onlySelected?: boolean; search?: ReactNode }) => (
+  const makeHeader = (browse?: { end?: ReactNode; count?: number; search?: ReactNode }) => (
     <div data-explore-header="" className="explore-header flex flex-col gap-1">
       {desktop ? (
         <>
           <AppTopBar title={tr(navKey(section.path, section.label) ?? "nav.jobs")} explore section="jobs" desktopGap={false} />
-          <SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} onlySelected={browse?.onlySelected} end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} />
+          <SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} />
         </>
       ) : (
         <>

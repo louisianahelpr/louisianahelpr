@@ -46,7 +46,7 @@ import { useClearQuickApplyParam } from "./useClearQuickApplyParam";
 /** Jobs > Browse (owner, 2026-10-19): `embeddedHeader` is the section's top bar + tabs; the feed adds ONE compact
  *  search row under it on phone. The old standalone phone title card (DashboardTitleBar + BrowseSearchBar) is gone:
  *  no route rendered it once /home became the Home dashboard (Q2205). */
-const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: ReactNode; count?: number; onlySelected?: boolean; search?: ReactNode }) => ReactNode }) => {
+const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: ReactNode; count?: number; search?: ReactNode }) => ReactNode }) => {
   const navigate = useNavigate();
   // Names the section this feed is the Browse tab of (Jobs; its top bar's h1).
   usePageTitle("Jobs — Helpr");
@@ -125,7 +125,6 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
     savedJobIds, setSavedJobIds, dismissedJobIds, setDismissedJobIds, savedRead,
   } = useDashboardSideQueries({ userId: user?.id, allJobs });
   const [savedOnly, setSavedOnly] = useState(false);
-  // A phone's open search takes the tabs row beside the selected tab, which stays whole (tester T10, 10-30).
   const toggleSavedOnly = useCallback(() => setSavedOnly((v) => !v), []);
   const { quotesOn, wantsQuotes, toggleWantsQuotes, showAllJobs } = useWantsQuotes();
 

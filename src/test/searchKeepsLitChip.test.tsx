@@ -11,6 +11,11 @@
  * control at its end any more, so it keeps every chip and every count, open or closed. Desktop keeps every tab (its
  * 260px pill leaves room).
  *
+ * Then the Vinted header (owner 11-08): on a phone the tab's search left the tabs row for the top bar's own rounded
+ * field (SectionSearchBar), and the tabs row left the phone ("My Jobs" under the photo). So on a phone typing never
+ * takes room from a tab or a chip: every chip and count stay, open or not. The tabs-row rules above hold on the desktop
+ * website, where the icon by the gear still opens in place.
+ *
  * HELP-WORKIN (lead 10-31): with counts at 360 the 4th chip ("Booked") starts just past the edge with no cue that the
  * row scrolls. The row now carries Declutter's right-edge fade (AUD31-4): a mask over the last 40px and an end padding
  * at least as wide, so the last chip scrolls clear of it.
@@ -18,8 +23,8 @@
  * @mutate src/components/job-card/embeddedActivity.tsx |             fade\n          /> |           />
  * @mutate src/components/sections/StatusBoxes.tsx | : fade ? "pl-1 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)]" : "px-1" | : "px-1"
  *
- * @mutate src/components/job-card/embeddedActivity.tsx | header({ end: searchEnd, onlySelected: searchOpen && !desktop }) | header({ end: searchEnd, onlySelected: false })
- * @mutate src/components/job-card/embeddedActivity.tsx | header({ end: searchEnd, onlySelected: searchOpen && !desktop }) | header({ end: searchEnd, onlySelected: searchOpen })
+ * @mutate src/components/job-card/embeddedActivity.tsx | header(desktop ? { end: searchEnd } : { search: <SectionSearchBar | header(desktop \|\| true ? { end: searchEnd } : { search: <SectionSearchBar
+ * @mutate src/components/job-card/embeddedActivity.tsx | home="/jobs" value={search} onChange={onSearch} /> }) | home="/jobs" value={search} onChange={onSearch} />, end: searchEnd })
  * @mutate src/components/job-card/embeddedActivity.tsx | ${searchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"} | ${"-ml-1 shrink-0"}
  * @mutate src/components/sections/StatusBoxes.tsx | {boxes.map((b) => chip(b.key, | {boxes.filter((b) => b.key === value).map((b) => chip(b.key,
  * @mutate src/components/sections/StatusBoxes.tsx | {count > 0 && <span | {false && <span
@@ -31,7 +36,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { blankCssComments } from "./helpers/blankNonCode";
@@ -42,6 +47,7 @@ vi.mock("@/lib/haptics", () => ({ hapticLight: () => {}, hapticMedium: () => {} 
 
 import { EmbeddedActivityHeader } from "@/components/job-card/embeddedActivity";
 import { SectionTabs } from "@/components/sections/SectionTabs";
+import { InlineListSearch } from "@/components/sections/InlineListSearch";
 
 afterEach(() => {
   cleanup();
@@ -51,15 +57,26 @@ afterEach(() => {
 const COUNTS = { all: 57, needs_you: 16, waiting: 3, scheduled: 1, done: 37, cancelled: 19 };
 const TABS = [{ value: "posted", label: "Posted" }, { value: "working", label: "Working" }] as const;
 
-/** JobsSection's makeHeader in small: the real tabs row, the tab's search handed in, then the gear. */
-const header = (row?: { end?: ReactNode; onlySelected?: boolean }) => (
-  <SectionTabs label="Jobs" tabs={TABS} value="working" onChange={() => {}} onlySelected={row?.onlySelected} end={<>{row?.end}<button type="button" aria-label="Jobs settings" data-testid="section-settings" /></>} />
+/**
+ * JobsSection's makeHeader in small: the bar (a phone's search field) and the real tabs row (the desktop website's),
+ * the tab's search icon handed in, then the gear.
+ */
+const header = (row?: { end?: ReactNode; search?: ReactNode }) => (
+  <>
+    <header data-testid="app-top-bar">{row?.search}</header>
+    <SectionTabs label="Jobs" tabs={TABS} value="working" onChange={() => {}} end={<>{row?.end}<button type="button" aria-label="Jobs settings" data-testid="section-settings" /></>} />
+  </>
 );
+
+function Header({ statusFilter, initial }: { statusFilter: string; initial: string }) {
+  const [q, setQ] = useState(initial);
+  return <EmbeddedActivityHeader header={header} tab="applied" statusFilter={statusFilter} counts={COUNTS} onFilter={() => {}} search={q} onSearch={setQ} />;
+}
 
 function renderHeader(statusFilter = "all", search = "") {
   return render(
     <MemoryRouter>
-      <EmbeddedActivityHeader header={header} tab="applied" statusFilter={statusFilter} counts={COUNTS} onFilter={() => {}} search={search} onSearch={() => {}} />
+      <Header statusFilter={statusFilter} initial={search} />
     </MemoryRouter>,
   );
 }
@@ -69,7 +86,7 @@ const tabs = () => screen.getAllByRole("tab").map((t) => (t.textContent ?? "").t
 const classes = (el: Element) => (el.getAttribute("class") ?? "").split(/\s+/);
 const open = () => fireEvent.click(screen.getByRole("button", { name: "Search jobs you're working" }));
 
-describe("Posted / Working: the open search keeps only the selected tab on a phone, and every chip", () => {
+describe("Posted / Working: the open search never cuts a tab or a chip", () => {
   it("closed: every tab, every chip with its count, in a scroller whose right edge fades (HELP-WORKIN, Declutter's AUD31-4)", () => {
     renderHeader();
     expect(tabs().length).toBeGreaterThan(2);
@@ -88,47 +105,53 @@ describe("Posted / Working: the open search keeps only the selected tab on a pho
     expect(Number(pr![1]) * 4, "end padding >= the fade, so the last chip scrolls clear of it").toBeGreaterThanOrEqual(fadePx);
   });
 
-  it("open: only the selected tab stays, whole; the field fills the rest of the tabs row; every chip and count stay", () => {
+  it("phone: typing in the bar's field keeps every chip and count, the lit one lit; the field is the bar's, never in the tabs or chip row", () => {
     renderHeader("waiting");
-    open();
-    expect(tabs()).toEqual(["Working"]);
     const field = screen.getByRole("search", { name: "Search jobs you're working" });
-    expect(classes(field)).toEqual(expect.arrayContaining(["flex-1", "min-w-0"]));
-    expect(classes(field).join(" ")).not.toMatch(/clamp\(200px/);
-    const box = field.closest<HTMLElement>("[data-activity-search-controls]")!;
-    expect(classes(box)).toEqual(expect.arrayContaining(["flex-1", "min-w-0"]));
-    expect(screen.getByTestId("section-tabs").contains(field), "the field opens in the tabs row").toBe(true);
+    expect(screen.getByTestId("app-top-bar").contains(field), "the bar's field").toBe(true);
+    expect(screen.getByTestId("section-tabs").contains(field)).toBe(false);
+    expect(document.querySelector("[data-jobs-toolbar]")!.contains(field)).toBe(false);
+    expect(screen.queryByRole("button", { name: "Search jobs you're working" }), "no icon to open").toBeNull();
+    fireEvent.change(within(field).getByRole("searchbox"), { target: { value: "mow" } });
     expect(chips().length).toBeGreaterThan(5);
     expect(chips()).toContain("Waiting · 3");
     expect(screen.getByRole("button", { name: /Waiting/ }).getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("closing the field (Escape) brings every tab back", () => {
-    renderHeader();
-    open();
-    fireEvent.keyDown(screen.getByRole("searchbox", { name: "Search jobs you're working" }), { key: "Escape" });
-    expect(tabs().length).toBeGreaterThan(2);
-    const box = document.querySelector("[data-activity-search-controls]")!;
-    expect(classes(box)).toContain("shrink-0");
-    expect(classes(box)).not.toContain("flex-1");
+  it("phone: Escape in the bar's field clears its words; every chip stays", () => {
+    renderHeader("all", "mow");
+    const box = screen.getByRole("searchbox", { name: "Search jobs you're working" }) as HTMLInputElement;
+    expect(box.value).toBe("mow");
+    fireEvent.keyDown(box, { key: "Escape" });
+    expect(box.value).toBe("");
+    expect(chips().length).toBeGreaterThan(5);
   });
 
-  it("arriving with words in ?q= opens the field, and the tabs row already shows only the selected tab", () => {
+  it("phone: arriving with words in ?q= shows them in the bar's field, with every chip", () => {
     renderHeader("all", "AA5");
-    expect(screen.getByRole("search", { name: "Search jobs you're working" })).toBeTruthy();
-    expect(tabs()).toEqual(["Working"]);
+    expect((screen.getByRole("searchbox", { name: "Search jobs you're working" }) as HTMLInputElement).value).toBe("AA5");
+    expect(chips().length).toBeGreaterThan(5);
   });
 
-  it("desktop keeps every tab while the 260px pill is open", () => {
+  it("desktop keeps every tab while the 260px pill is open; the open field's box fills the row and closes back to the icon's size", () => {
     env.desktop = true;
     renderHeader();
     open();
     expect(tabs().length).toBeGreaterThan(2);
     expect(chips().length).toBeGreaterThan(5);
+    const field = screen.getByRole("search", { name: "Search jobs you're working" });
+    expect(screen.getByTestId("section-tabs").contains(field), "the field opens in the tabs row").toBe(true);
+    const box = field.closest<HTMLElement>("[data-activity-search-controls]")!;
+    expect(classes(box)).toEqual(expect.arrayContaining(["flex-1", "min-w-0"]));
+    fireEvent.keyDown(screen.getByRole("searchbox", { name: "Search jobs you're working" }), { key: "Escape" });
+    expect(classes(document.querySelector("[data-activity-search-controls]")!)).toContain("shrink-0");
+    expect(classes(document.querySelector("[data-activity-search-controls]")!)).not.toContain("flex-1");
   });
 
+  // InlineListSearch's own rule for a filling field on a phone (no Jobs tab hands it one since owner 11-08; the bar's
+  // field drops its noun below 360px instead, SectionSearchBar).
   it("a narrow filling field keeps its word: below 160px the decorative magnifier steps aside (index.css)", () => {
-    renderHeader();
+    render(<InlineListSearch value="" onChange={() => {}} label="Search jobs you're working" fill />);
     open();
     const form = screen.getByRole("search", { name: "Search jobs you're working" });
     expect(classes(form)).toContain("search-fill");

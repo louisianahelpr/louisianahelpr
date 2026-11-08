@@ -66,6 +66,8 @@ vi.setConfig({ testTimeout: 90_000 });
 const ROOT = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");
 
+const DIGITAL_NO_HELPR = "a download never has a Helpr delivery (shops_request_digital_order writes none), so these refusals of shop_complete_handover never answer a Helpr task";
+const DIGITAL_ADMIN = "shops_admin_pay_shop finishes as admin and locks with p_allow_problem = true, so the download refusals (buyer finish, early auto finish, member cancel) never answer it";
 const ANON_REVOKED = "EXECUTE is revoked from anon, so a signed-out caller gets 42501 before the body runs; auth.uid() is never null inside it.";
 const LADDER_AFTER_CANCEL =
   "raised by apply_cancellation_violation_consequence, which this RPC calls only after its own UPDATE set status = 'cancelled' on the row it holds FOR UPDATE, as the job's customer.";
@@ -75,6 +77,17 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // Digital downloads (20261108185110): shop_complete_handover refuses a download's buyer finish and an early auto finish.
+  // A download never has a Helpr delivery (shops_request_digital_order writes none), so no Helpr task reaches them.
+  helpr_task_accept: { digital_no_pickup: { reason: DIGITAL_NO_HELPR }, too_soon: { reason: DIGITAL_NO_HELPR } },
+  helpr_task_buyer_choose: { digital_no_pickup: { reason: DIGITAL_NO_HELPR }, too_soon: { reason: DIGITAL_NO_HELPR } },
+  helpr_task_customer_confirm: { digital_no_pickup: { reason: DIGITAL_NO_HELPR }, too_soon: { reason: DIGITAL_NO_HELPR } },
+  helpr_task_delivered: { digital_no_pickup: { reason: DIGITAL_NO_HELPR }, too_soon: { reason: DIGITAL_NO_HELPR } },
+  helpr_task_picked_up: { digital_no_pickup: { reason: DIGITAL_NO_HELPR }, too_soon: { reason: DIGITAL_NO_HELPR } },
+  helpr_task_pickup_no_show: { digital_no_pickup: { reason: DIGITAL_NO_HELPR }, too_soon: { reason: DIGITAL_NO_HELPR } },
+  helpr_task_release: { digital_no_pickup: { reason: DIGITAL_NO_HELPR }, too_soon: { reason: DIGITAL_NO_HELPR } },
+  helpr_task_seller_return_answer: { digital_no_pickup: { reason: DIGITAL_NO_HELPR }, too_soon: { reason: DIGITAL_NO_HELPR } },
+  shops_admin_pay_shop: { digital_no_pickup: { reason: DIGITAL_ADMIN }, digital_not_cancellable: { reason: DIGITAL_ADMIN }, too_soon: { reason: DIGITAL_ADMIN } },
   // Owner 11-07 (20261107232700): fetchSaveCounts (src/lib/declutter/saveCounts.ts) sends at most PER_READ = 200 ids a
   // call (it chunks), which is exactly the RPC's limit, so its 'invalid_request' (more than 200) cannot come from there.
   declutter_item_save_counts: {

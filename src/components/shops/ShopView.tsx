@@ -35,6 +35,7 @@ import { ShopMessageButton, ShopTalkFromLink, ShopTalksCard } from "./ShopTalk";
 import { ShopReportShop } from "./ShopReport";
 import { ShopReviewsCard } from "./ShopReviews";
 import ShopOrderSheet from "./ShopOrderSheet";
+import ShopDigitalBuy from "./ShopDigitalBuy";
 import ShopCustomRequestSheet from "./ShopCustomRequestSheet";
 import { fetchCustomOrders } from "@/lib/shops/orders";
 
@@ -196,6 +197,7 @@ export default function ShopView() {
           </ShopCard>
         )}
         {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} reportable={!s.mine} />}
+        {s.offers_selling && !s.mine && !s.paused && <ShopDigitalBuy shopId={s.id} />}
         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />}
         {/* Custom orders: shown only while the shop takes them (its own setting, read by the sheet). */}
         {!s.mine && !s.paused && <ShopCustomRequestSheet shopId={s.id} />}

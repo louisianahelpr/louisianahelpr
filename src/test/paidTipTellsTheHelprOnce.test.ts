@@ -7,9 +7,9 @@
  * on main's trigger and handler; 4 planted SQL defects and the put-back webhook notice each red).
  *
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         logStep("Tip marked as paid", { jobId: tipJobId, tipper: tipperId }); |         logStep("Tip marked as paid", { jobId: tipJobId, tipper: tipperId }); await insertNotifications(supabase, { user_id: tipHelperId, title: "You received a tip!", message: "x", type: "financial_alerts" });
- * @mutate supabase/migrations/20261102045334_paid_tip_tells_the_helpr_once.sql | v_msg, 'financial_alerts', '/tips/' | v_msg, 'payment', '/tips/'
- * @mutate supabase/migrations/20261102045334_paid_tip_tells_the_helpr_once.sql | IF EXISTS (SELECT 1 FROM public.payout_holds h WHERE h.helper_id = NEW.helper_id) THEN | IF false THEN
- * @mutate supabase/migrations/20261102045334_paid_tip_tells_the_helpr_once.sql |       RETURN NEW;\n    END IF;\n\n    SELECT COALESCE |     END IF;\n\n    SELECT COALESCE
+ * @mutate supabase/migrations/20261108201000_jobs_notices_email.sql | v_msg, 'financial_alerts', '/tips/' | v_msg, 'payment', '/tips/'
+ * @mutate supabase/migrations/20261108201000_jobs_notices_email.sql | IF EXISTS (SELECT 1 FROM public.payout_holds h WHERE h.helper_id = NEW.helper_id) THEN | IF false THEN
+ * @mutate supabase/migrations/20261108201000_jobs_notices_email.sql |       RETURN NEW;\n    END IF;\n\n    IF true THEN |     END IF;\n\n    IF true THEN
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import { trimEntryRouteDeps, type EntryRouteBundle } from "./scripts/perf/entryRouteDeps.mjs";
+import { stripHtmlComments } from "./scripts/perf/stripHtmlComments.mjs";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { createRequire } from "module";
@@ -306,6 +307,14 @@ export default defineConfig(({ mode, command }) => ({
             `  </head>`,
         );
       },
+    } satisfies Plugin,
+    // Q2705 (11-09): index.html's history comments ship to no one: 29% of the built page's brotli bytes, all ahead
+    // of the first frame on Slow 4G. Script and style blocks are left byte-identical (CSP hashes). See the module.
+    {
+      name: "html-strip-comments",
+      apply: "build",
+      enforce: "post",
+      transformIndexHtml: { order: "post", handler: (html: string) => stripHtmlComments(html) },
     } satisfies Plugin,
     isAnalyze && visualizer({
       filename: "dist/stats.html",

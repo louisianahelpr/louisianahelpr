@@ -26,8 +26,9 @@ interface MagicLinkEmailProps {
 }
 
 export const MagicLinkEmail = ({ token }: MagicLinkEmailProps) => (
-  <BaseLayout preheader="Your Helpr code">
-      <Heading className="e-h1" style={h1}>Your Helpr Code</Heading>
+  <BaseLayout preheader="Your Louisiana Helpr code">
+      {/* Owner's message review 11-09: F159 sentence case, F188 the full name. */}
+      <Heading className="e-h1" style={h1}>Your Louisiana Helpr code</Heading>
       <Text className="e-text" style={text}>Enter this code in the app to confirm it&apos;s you:</Text>
       <Text className="e-h1" style={codeStyle}>{token}</Text>
       <TransactionalFooter>

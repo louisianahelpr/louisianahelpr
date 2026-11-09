@@ -229,7 +229,8 @@ serve(async (req) => {
       })
     }
 
-    const subject = 'Your identity is verified — welcome to Louisiana Helpr'
+    // F166/F202 (owner's message review 11-09): the app's words, "ID check".
+    const subject = 'Your ID check is done: welcome to Louisiana Helpr'
     const { html, text } = await renderAccountStatusEmail(
       'verified',
       profile.full_name || '',

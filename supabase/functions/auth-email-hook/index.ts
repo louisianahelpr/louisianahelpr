@@ -63,13 +63,14 @@ const corsHeaders = {
 // email_change_current, email_change_new, reauthentication.
 const EMAIL_SUBJECTS: Record<string, string> = {
   signup: 'Confirm your email',
-  invite: "You've been invited to Helpr",
-  magiclink: 'Your Helpr code',
-  recovery: 'Reset your Helpr password',
+  // F188 (owner's message review 11-09): "Louisiana Helpr" in every subject.
+  invite: "You've been invited to Louisiana Helpr",
+  magiclink: 'Your Louisiana Helpr code',
+  recovery: 'Reset your Louisiana Helpr password',
   email_change: 'Confirm your new email',
   email_change_current: 'Email change requested',
   email_change_new: 'Confirm your new email',
-  reauthentication: 'Your verification code',
+  reauthentication: 'Your confirmation code',
 }
 
 const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {

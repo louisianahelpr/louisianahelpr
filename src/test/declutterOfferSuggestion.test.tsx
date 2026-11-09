@@ -14,6 +14,7 @@
  * @mutate supabase/functions/declutter-ai-reply/index.ts |   if (!item \|\| item.accepts_offers === false) return json({ error: "item_not_found" }, 404); |   if (!item) return json({ error: "item_not_found" }, 404);
  * @mutate src/components/declutter/OfferSuggestion.tsx |         onClick={() => onUse(String(offerCents / 100))} |         onClick={() => onUse("")}
  * @mutate src/components/declutter/OfferSuggestion.tsx |   if (suggestion.isError \|\| !suggestion.data) return null; |   if (!suggestion.data) return <p>A suggestion isn't available.</p>;
+ * @mutate src/components/declutter/OfferSuggestion.tsx |   if (lowestChip !== null && offerCents < lowestChip) return | if (lowestChip === -1) return
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -79,18 +80,18 @@ describe("offer mode in declutter-ai-reply", () => {
   });
 });
 
-function renderIt(onUse: (v: string) => void) {
+function renderIt(onUse: (v: string) => void, priceCents = 4000) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}><OfferSuggestion itemId="item-1" onUse={onUse} /></QueryClientProvider>);
+  return render(<QueryClientProvider client={qc}><OfferSuggestion itemId="item-1" priceCents={priceCents} onUse={onUse} /></QueryClientProvider>);
 }
 
 describe("OfferSuggestion", () => {
   it("one tap fills the box with the suggested dollars", async () => {
-    requestSuggestedOffer.mockResolvedValueOnce({ offerCents: 3100, reason: "Similar lamps sold for $30 to $35 near you." });
+    requestSuggestedOffer.mockResolvedValueOnce({ offerCents: 3300, reason: "Similar lamps sold for $30 to $35 near you." });
     const onUse = vi.fn();
     renderIt(onUse);
-    fireEvent.click(await screen.findByRole("button", { name: /Suggested offer: \$31/ }));
-    expect(onUse).toHaveBeenCalledWith("31");
+    fireEvent.click(await screen.findByRole("button", { name: /Suggested offer: \$33/ }));
+    expect(onUse).toHaveBeenCalledWith("33");
     expect(screen.getByText("Similar lamps sold for $30 to $35 near you.")).toBeTruthy();
     expect(requestSuggestedOffer).toHaveBeenCalledWith("item-1");
   });
@@ -102,5 +103,17 @@ describe("OfferSuggestion", () => {
       expect(container.querySelector("[data-offer-suggestion-loading]")).toBeNull();
     });
     expect(container.textContent).toBe("");
+  });
+  // F118 (UI audit 11-09): $11 on the $15 item is under the 20%-off chip ($12) and was called "a bit under the $15 ask".
+  it("a suggestion under the lowest quick chip says it is a strong offer, never the model's 'a bit under'", async () => {
+    requestSuggestedOffer.mockResolvedValueOnce({ offerCents: 1100, reason: "A bit under the $15 ask." });
+    renderIt(vi.fn(), 1500);
+    expect(await screen.findByText("$11 is a strong offer and may be declined.")).toBeTruthy();
+    expect(screen.queryByText("A bit under the $15 ask.")).toBeNull();
+  });
+  it("a suggestion between the chips keeps the model's reason", async () => {
+    requestSuggestedOffer.mockResolvedValueOnce({ offerCents: 1300, reason: "Similar toys sold for $12 to $14." });
+    renderIt(vi.fn(), 1500);
+    expect(await screen.findByText("Similar toys sold for $12 to $14.")).toBeTruthy();
   });
 });

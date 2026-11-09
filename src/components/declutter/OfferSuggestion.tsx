@@ -8,8 +8,19 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/declutter/distance";
 import { requestSuggestedOffer } from "@/lib/declutter/aiReply";
+import { OFFER_CHIP_PERCENTS, offerChipCents } from "@/lib/declutter/money";
 
-export function OfferSuggestion({ itemId, onUse }: { itemId: string; onUse: (dollars: string) => void }) {
+/**
+ * F118 (UI audit 11-09): a suggestion under the lowest quick chip (20% off) is not "a bit under the ask": the model's
+ * reason is swapped for plain words that say it is a strong offer. The amount itself is the model's (display only).
+ */
+export function suggestionReason(offerCents: number, priceCents: number, reason: string): string {
+  const lowestChip = offerChipCents(priceCents, Math.max(...OFFER_CHIP_PERCENTS));
+  if (lowestChip !== null && offerCents < lowestChip) return `${formatPrice(offerCents)} is a strong offer and may be declined.`;
+  return reason;
+}
+
+export function OfferSuggestion({ itemId, priceCents, onUse }: { itemId: string; priceCents: number; onUse: (dollars: string) => void }) {
   const suggestion = useQuery({
     queryKey: ["declutter-offer-suggestion", itemId],
     queryFn: () => requestSuggestedOffer(itemId),
@@ -20,7 +31,8 @@ export function OfferSuggestion({ itemId, onUse }: { itemId: string; onUse: (dol
     return <p role="status" className="text-xs text-muted-foreground" data-offer-suggestion-loading="">Finding a fair offer…</p>;
   }
   if (suggestion.isError || !suggestion.data) return null;
-  const { offerCents, reason } = suggestion.data;
+  const { offerCents } = suggestion.data;
+  const reason = suggestionReason(offerCents, priceCents, suggestion.data.reason);
   return (
     <div className="flex flex-wrap items-center gap-2" data-offer-suggestion="">
       <Button

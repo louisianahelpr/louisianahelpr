@@ -15,7 +15,7 @@
  * @mutate src/components/landing/SectionsShowcase.tsx |   if (key === "declutter") return { to: path, text: `Browse ${label}`, signedIn: path }; |
  * @mutate src/pages/info/Index.tsx |       <FreshDeclutterSection />\n |
  * @mutate src/components/Navbar.tsx |                 to="/declutter" |                 to="/signup?redirect=%2Fdeclutter"
- * @mutate src/components/Footer.tsx |               <Link to="/declutter" className="link-standard"> |               <Link to="/help" className="link-standard">
+ * @mutate src/components/Footer.tsx |               <Link to="/declutter" className={FOOTER_LINK}> |               <Link to="/help" className={FOOTER_LINK}>
  * @mutate src/components/landing/FreshDeclutterStrip.tsx |                 to={`/declutter/item/${encodeURIComponent(it.id)}`} |                 to="/declutter"
  * @mutate src/components/landing/FreshDeclutterSection.tsx |     if (document.readyState === "complete") watch(); |     watch();
  * @mutate src/components/landing/FreshDeclutterSection.tsx |             .eq("status", "live") |             .in("status", ["live", "reserved", "sold"])
@@ -115,7 +115,7 @@ describe("the landing lets a guest browse Declutter (owner 11-04)", () => {
     expect(login).toBeGreaterThan(declutter);
     expect(nav.slice(declutter, login)).toMatch(/>\s*Declutter\s*<\/Link>/);
     const footer = read("src/components/Footer.tsx");
-    expect(footer).toMatch(/<Link to="\/declutter" className="link-standard">\s*Declutter\s*<\/Link>/);
+    expect(footer).toMatch(/<Link to="\/declutter" className=\{FOOTER_LINK\}>\s*Declutter\s*<\/Link>/);
     expect(footer.indexOf('to="/declutter"')).toBeGreaterThan(footer.indexOf("browseDestinationFor(user)}"));
   });
 });

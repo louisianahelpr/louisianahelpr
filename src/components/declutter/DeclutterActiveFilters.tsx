@@ -1,0 +1,70 @@
+/**
+ * F055 (UI audit 11-09): after Filters > Show items only a tiny number on the filter icon said the list was filtered,
+ * so it was easy to forget. Each filter that is on shows as a removable chip above the cards ("Under $20 ×",
+ * "Porch pickup ×"); tapping one turns that filter off. Category and Free are not repeated here: they already show as
+ * pressed chips in the category row above (owner pick 4, 11-08). Sort is an order, not a filter.
+ */
+import { X } from "lucide-react";
+import type { DeclutterFilters } from "@/lib/declutter/browseFilters";
+import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
+import { HANDOVER_TITLE } from "./handoverCopy";
+
+export interface ActiveFilterPill {
+  key: string;
+  label: string;
+  /** The filters with this one turned off (and the distance, for the distance pill). */
+  clear: (f: DeclutterFilters, maxMiles: number | null) => { filters: DeclutterFilters; maxMiles: number | null };
+}
+
+function priceLabel(min: number | null, max: number | null): string {
+  if (min !== null && max !== null) return `$${min} to $${max}`;
+  if (min !== null) return `$${min} and up`;
+  return `Under $${max}`;
+}
+
+/** The chips for what is on, in the sheet's order. Pure, so the rule is tested on its own. */
+export function activeFilterPills(f: DeclutterFilters, maxMiles: number | null): ActiveFilterPill[] {
+  const out: ActiveFilterPill[] = [];
+  if (maxMiles !== null) out.push({ key: "distance", label: `Within ${maxMiles} mi`, clear: (x) => ({ filters: x, maxMiles: null }) });
+  if (f.minDollars !== null || f.maxDollars !== null) {
+    out.push({ key: "price", label: priceLabel(f.minDollars, f.maxDollars), clear: (x, m) => ({ filters: { ...x, minDollars: null, maxDollars: null }, maxMiles: m }) });
+  }
+  if (f.conditions.length > 0) {
+    const words = [...f.conditions].sort((a, b) => b - a).map((c) => CONDITION_LABEL[c] ?? String(c)).join(", ");
+    out.push({ key: "condition", label: words, clear: (x, m) => ({ filters: { ...x, conditions: [] }, maxMiles: m }) });
+  }
+  if (f.porchOnly) out.push({ key: "porch", label: HANDOVER_TITLE.porch, clear: (x, m) => ({ filters: { ...x, porchOnly: false }, maxMiles: m }) });
+  for (const w of f.ways) {
+    out.push({ key: `way-${w}`, label: HANDOVER_TITLE[w], clear: (x, m) => ({ filters: { ...x, ways: x.ways.filter((y) => y !== w) }, maxMiles: m }) });
+  }
+  if (f.dropsOnly) out.push({ key: "drops", label: "Price drops", clear: (x, m) => ({ filters: { ...x, dropsOnly: false }, maxMiles: m }) });
+  if (f.tradesOnly) out.push({ key: "trades", label: "Open to trades", clear: (x, m) => ({ filters: { ...x, tradesOnly: false }, maxMiles: m }) });
+  return out;
+}
+
+export function DeclutterActiveFilters({ filters, maxMiles, onChange }: {
+  filters: DeclutterFilters;
+  maxMiles: number | null;
+  onChange: (next: { filters: DeclutterFilters; maxMiles: number | null }) => void;
+}) {
+  const pills = activeFilterPills(filters, maxMiles);
+  if (pills.length === 0) return null;
+  return (
+    <ul aria-label="Filters on" data-active-filters="" className="flex flex-wrap gap-2">
+      {pills.map((p) => (
+        <li key={p.key}>
+          <button
+            type="button"
+            data-active-filter={p.key}
+            aria-label={`Remove filter: ${p.label}`}
+            onClick={() => onChange(p.clear(filters, maxMiles))}
+            className="inline-flex h-10 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-ds-13 font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {p.label}
+            <X className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}

@@ -46,8 +46,6 @@ const SOURCE_NAMES: Readonly<Record<string, string>> = {
   "www.instagram.com": "Instagram",
   "l.instagram.com": "Instagram",
   "com.instagram.android": "Instagram app",
-  nextdoor: "Nextdoor",
-  "nextdoor.com": "Nextdoor",
   "t.co": "X (Twitter)",
   "x.com": "X (Twitter)",
   "twitter.com": "X (Twitter)",

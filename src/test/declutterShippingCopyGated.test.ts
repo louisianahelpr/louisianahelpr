@@ -6,7 +6,7 @@
  * The "arrives broken" claim matches spec 5.3: reported in the 2-day (48 h) window -> everything back after an admin
  * check; the spent label is the seller's debt. No return-label promise: the admin cannot request one yet (lead 11-03).
  *
- * @mutate src/pages/info/HelpCenter.tsx | const sections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS; | const sections = withDeclutterShipping(FAQ_SECTIONS);
+ * @mutate src/pages/info/HelpCenter.tsx | const allSections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS; | const allSections = withDeclutterShipping(FAQ_SECTIONS);
  * @mutate src/pages/info/legal/TermsSection.tsx | {shippingOn ? TERMS_SHIPPING_GET_ITEM : "Shipping is not offered."} | {TERMS_SHIPPING_GET_ITEM}
  * @mutate src/pages/info/legal/TermsSection.tsx |       {shippingOn && (\n        <PolicyRowItem |       {true && (\n        <PolicyRowItem
  * @mutate src/pages/info/declutterShippingCopy.ts | report a problem on your order within those 2 days: we check, and you get everything back | report a problem on your order: you get everything back

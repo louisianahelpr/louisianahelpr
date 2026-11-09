@@ -226,7 +226,7 @@ BEGIN
     SELECT r.user_id, v_job.id, 'Job stalled — nobody marked it done (continue day missed)',
            format('"%s": %s. Decide the payment in Jobs (release or refund). Nothing moved.',
                   COALESCE(v_job.title, 'a job'),
-                  CASE WHEN v_side = 'poster' THEN 'the poster says the Helpr didn''t come back' ELSE 'the Helpr says they can''t come back' END),
+                  CASE WHEN v_side = 'poster' THEN 'the person who posted it says the Helpr didn''t come back' ELSE 'the Helpr says they can''t come back' END),
            'admin_alert', '/admin?view=stalled&job=' || v_job.id::text
       FROM public.user_roles r
      WHERE r.role = 'admin';

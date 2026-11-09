@@ -40,7 +40,8 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { queueEmail } from "../../_shared/resend.ts";
-import { declutterEmailParts, emailSeller } from "../../_shared/declutterSellerEmail.ts";
+import { declutterEmailParts, declutterReceiptFor, emailSeller } from "../../_shared/declutterSellerEmail.ts";
+import type { EmailReceipt } from "../../_shared/email-templates/notification.tsx";
 import { recordDeclutterFunnel } from "./_declutterFunnel.ts";
 import { recordDeclutterCardAsWalletDefault, recordDeclutterOrderCardAsWalletDefault } from "./_walletDefaultCard.ts";
 import { storedStripeCustomer } from "../../_shared/stripeCustomer.ts";
@@ -497,8 +498,11 @@ async function settleOrder(
     return;
   }
   if (answer.result === "paid" && shipHeld) {
+    // F179 (owner's message review 11-09): the held amount's lines (item, service fee, shipping), display only; no
+    // breakdown when they do not add up to the hold.
     await sendMoneyEmail(ctx, meta.buyer_id, "declutter_receipt", "Your Declutter order",
-      `We're holding ${dollars(amount)} on your card for your Declutter order. You're charged once the shipping label is made; if it can't be made, the hold is released and you pay nothing. You'll get tracking in the app.`);
+      `We're holding ${dollars(amount)} on your card for your Declutter order. You're charged once the shipping label is made; if it can't be made, the hold is released and you pay nothing. You'll get tracking in the app.`,
+      await declutterReceiptFor(supabase, orderId, amount, 0, logStep, "Held"));
     await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep, 0);
     await saveOrderCard(event, session.id, paymentIntentId, meta.buyer_id, ctx);
     return;
@@ -514,6 +518,9 @@ async function settleOrder(
     // Q2106: a gift card paid part of this order (declutter-checkout stamps gift_cents; the page charged the rest).
     const giftCents = Number.parseInt(meta.gift_cents ?? "0", 10);
     const giftPart = Number.isInteger(giftCents) && giftCents > 0 ? ` (${dollars(giftCents)} from your gift card, ${dollars(amount)} on your card)` : "";
+    // F179 (owner's message review 11-09): the receipt's lines (items, service fee, delivery, setup fee) and the
+    // pickup time, from the order's recorded figures; display only, and none when they do not add up to what was paid.
+    const receipt = await declutterReceiptFor(supabase, orderId, amount + (giftPart ? giftCents : 0), setupFeeCents, logStep);
     await sendMoneyEmail(ctx, meta.buyer_id, "declutter_receipt", "Your Declutter receipt",
       `You paid ${dollars(amount + (giftPart ? giftCents : 0))}${giftPart} for your Declutter order${
         setupFeeCents > 0 ? `, including the one-time ${dollars(setupFeeCents)} account setup fee (charged once per account)` : ""
@@ -527,7 +534,7 @@ async function settleOrder(
           : parties?.handover === "meetup"
           // Q2425 (20261027204500): a public meeting spot, never the seller's home; the spot is in the app.
           ? "Next: book a time in the app and meet the seller at the safe spot you picked. Tap \"I'm here\" when you arrive."
-          : "Next: pick up your items at the time you chose."}`);
+          : "Next: pick up your items at the time you chose."}`, receipt);
     // Deep audit #57 / audit 2 SH2-3: the seller is emailed too ("You sold ..."), once, on the same 'paid' answer
     // (a redelivery answers already_paid and sends nothing).
     // AUD31-35: a seller who delivers is told the delivery money too (their payout is items + delivery).
@@ -741,6 +748,7 @@ async function sendMoneyEmail(
   templateName: string,
   subject: string,
   body: string,
+  receipt?: EmailReceipt | null,
 ): Promise<void> {
   if (!userId) return;
   try {
@@ -753,7 +761,7 @@ async function sendMoneyEmail(
     // AUD31-35: the branded notice email (greeting, sign-off, settings footer), not one raw paragraph.
     const { html, text } = await declutterEmailParts({
       title: subject, message: body, path: "/declutter?tab=buying", actionLabel: "Open Buying",
-      fullName: (profile as { full_name?: string | null } | null)?.full_name,
+      fullName: (profile as { full_name?: string | null } | null)?.full_name, receipt,
     });
     const result = await queueEmail(supabase, { to, subject, templateName, html, text });
     if (!result.ok) {

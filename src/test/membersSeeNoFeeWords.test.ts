@@ -154,6 +154,7 @@ const OWNER_1107_DECLUTTER_FEE = "owner 2026-11-07 ~5:10 PM (Vinted review): Dec
 // @two-way src/test/membersSeeNoFeeWords.test.ts:the allowlist is exact: no entry nobody hits any more
 export const MEMBER_FEE_COPY_ALLOWED: Record<string, string> = {
   "src/components/declutter/DeclutterCheckoutSummary.tsx::Service fee": `${OWNER_1107_DECLUTTER_FEE}: the checkout summary's "Service fee" line with its amount and an info tip`,
+  "supabase/functions/_shared/declutterSellerEmail.ts::Service fee": `${OWNER_1107_DECLUTTER_FEE}: the Declutter receipt email's "Service fee" line, the same line and amount as the checkout summary (owner's message review 11-09, F179)`,
   "src/components/declutter/DeclutterCheckoutSummary.tsx::It keeps Declutter running and pays for card processing. You pay it once per checkout, however many items you buy from this seller.": `${OWNER_1107_DECLUTTER_FEE}: the info tip on the checkout summary's "Service fee" line`,
   "src/lib/refundWords.ts::Card processing cost isn't refunded.": "owner decision 2026-11-09 (UI audit F089, via the lead): an expired, never-hired job keeps the card fee, and Receipts may say so in these plain words, no number",
   "src/lib/refundWords.ts::If no one is hired, you get your money back, less the small card processing cost if your card was already charged.": "owner decision 2026-11-09 (UI audit F089/F105, via the lead): Help's cancel answer says the card processing cost is kept when nobody is hired, no number",
@@ -281,7 +282,9 @@ describe("members see no fee words (owner 2026-10-25)", () => {
   it("owner 11-07: the Declutter fee allowance is used only by Declutter files", () => {
     const scoped = Object.entries(MEMBER_FEE_COPY_ALLOWED).filter(([, why]) => why.startsWith(OWNER_1107_DECLUTTER_FEE));
     expect(scoped.length).toBeGreaterThan(0);
-    const outside = scoped.map(([k]) => k.split("::")[0]).filter((f) => !f.startsWith("src/components/declutter/"));
+    const outside = scoped.map(([k]) => k.split("::")[0]).filter((f) => !f.startsWith("src/components/declutter/")
+      // F179 (11-09): Declutter's own receipt email, the one edge file the allowance covers.
+      && f !== "supabase/functions/_shared/declutterSellerEmail.ts");
     expect(outside, "the 11-07 fee allowance is for Declutter only").toEqual([]);
   });
 

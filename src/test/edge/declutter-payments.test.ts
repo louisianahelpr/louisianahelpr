@@ -354,6 +354,54 @@ describe("stripe-webhook: Declutter order paid", () => {
     expect(r?.props.actionUrl).toMatch(/\/declutter\?tab=buying$/);
     expect(queuedEmails.find((e) => e.templateName === "declutter_receipt")?.html).toBe("<p>mock</p>");
   });
+  // F179 (owner's message review 11-09): the receipt shows its lines (items, Service fee, how it gets to you) and the
+  // pickup time, from the order's recorded figures, display only; none when they do not add up to what was paid.
+  // @mutate supabase/functions/_shared/declutterSellerEmail.ts |     ["Service fee", dollars(fee)], |     ["Service fee", dollars(fee + 1)],
+  // @mutate supabase/functions/_shared/declutterSellerEmail.ts |   if (itemsCents + fee + delivery + shipping + setupFeeCents !== paidCents) return null; |   void paidCents;
+  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |           : "Next: pick up your items at the time you chose."}`, receipt); |           : "Next: pick up your items at the time you chose."}`);
+  describe("F179: the receipt's breakdown", () => {
+    type Receipt = { lines: Array<[string, string]>; total: [string, string]; note?: string };
+    const receiptOf = (title: string) => (emailRenders as Array<{ props: { title: string; receipt?: Receipt } }>)
+      .find((e) => e.props.title === title)?.props.receipt;
+    const PORCH = {
+      buyer_id: BUYER, seller_id: SELLER, handover: "porch", items_cents: 4300, bundle_discount_cents: 0, premium_cents: 300,
+      delivery_cents: 0, shipping_cents: 0, pickup_slot_start: "2026-11-14T16:00:00Z", pickup_slot_end: "2026-11-14T17:00:00Z",
+    };
+
+    it("a porch pickup lists the item, the Service fee and free pickup, totals what was paid, and names the time in Louisiana", async () => {
+      scenario.rpc.declutter_order_items_named = '"Ceramic planter"';
+      await deliver({ result: "paid" }, { orderRow: PORCH });
+      expect(receiptOf("Your Declutter receipt")).toEqual({
+        lines: [['"Ceramic planter"', "$43.00"], ["Service fee", "$3.00"], ["Pickup", "Free"]],
+        total: ["Total", "$46.00 (incl. fee)"],
+        note: "Pickup: Sat, Nov 14 at 10:00 AM. The address is in the app.",
+      });
+    });
+
+    it("a Helpr delivery lists the delivery, and a bundle discount is named on the item line", async () => {
+      scenario.rpc.declutter_order_items_named = '"Lamp" and "Chair"';
+      await deliver({ result: "paid" }, { orderRow: { ...PORCH, handover: "delivery", items_cents: 3500, bundle_discount_cents: 500, premium_cents: 245, delivery_cents: 855, pickup_slot_start: null } });
+      expect(receiptOf("Your Declutter receipt")).toEqual({
+        lines: [['"Lamp" and "Chair" (after a $5.00 bundle discount)', "$35.00"], ["Service fee", "$2.45"], ["Helpr delivery", "$8.55"]],
+        total: ["Total", "$46.00 (incl. fee)"],
+        note: undefined,
+      });
+    });
+
+    it("lines that do not add up to what was paid give no breakdown (the one-line receipt still goes)", async () => {
+      scenario.rpc.declutter_order_items_named = '"Ceramic planter"';
+      await deliver({ result: "paid" }, { orderRow: { ...PORCH, premium_cents: 299 } });
+      expect(queuedEmails.map((e) => e.templateName)).toContain("declutter_receipt");
+      expect(receiptOf("Your Declutter receipt")).toBeUndefined();
+    });
+
+    it("an order with no recorded figures gives no breakdown, never a throw", async () => {
+      await deliver({ result: "paid" }, { orderRow: { buyer_id: BUYER, seller_id: SELLER } });
+      expect(queuedEmails.map((e) => e.templateName)).toContain("declutter_receipt");
+      expect(receiptOf("Your Declutter receipt")).toBeUndefined();
+    });
+  });
+
   it("a redelivered payment (already_paid) emails the seller nothing", async () => {
     await deliver({ result: "already_paid" }, { orderRow: { buyer_id: BUYER, seller_id: SELLER, items_cents: 3000 }, sellerEmail: "seller@test.dev" });
     expect(queuedEmails.filter((e) => e.templateName === "declutter_sold")).toHaveLength(0);

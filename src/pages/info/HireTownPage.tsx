@@ -5,13 +5,14 @@
  * in a town with no Helprs yet (lead 10-31: nothing shown at zero). Data: src/lib/townPages.mjs.
  * Guard: src/pages/info/hireTownPage.test.tsx.
  */
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { Button } from "@/components/ui/button";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import NotFound from "@/pages/info/NotFound";
+import { JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
 import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, findTownPage, townPageMeta, townPagePath, type TownPageService, type TownPageTown } from "@/lib/townPages.mjs";
 
 const STEPS = [
@@ -23,8 +24,19 @@ const STEPS = [
 export default function HireTownPage() {
   const { service: serviceSlug, town: townSlug } = useParams();
   const page = findTownPage(serviceSlug, townSlug);
+  // F065 (owner UI audit 11-09; lead decision 11-09): a service/town pair with no page, for a real job category
+  // (/hire/plumbing/natchitoches), opens Browse filtered to that category instead of the 404. Licensed trades still
+  // get no town page of their own. Anything else is still the 404.
+  const category = page ? null : unknownComboCategory(serviceSlug);
+  if (category) return <Navigate replace to={`/browse?cat=${category}`} />;
   if (!page) return <NotFound />;
   return <TownPage service={page.service} town={page.town} />;
+}
+
+/** The job category a /hire/<service> slug names ("auto-repair" -> auto_repair), or null. */
+function unknownComboCategory(serviceSlug: string | undefined): string | null {
+  const value = (serviceSlug ?? "").toLowerCase().replace(/-/g, "_");
+  return (JOB_CATEGORY_VALUES as readonly string[]).includes(value) ? value : null;
 }
 
 function TownPage({ service, town }: { service: TownPageService; town: TownPageTown }) {

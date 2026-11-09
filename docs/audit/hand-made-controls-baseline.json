@@ -195,6 +195,9 @@
     "src/components/declutter/DeclutterRefundReturn.tsx": {
       "input": 2
     },
+    "src/components/declutter/DeclutterSellChooser.tsx": {
+      "button": 1
+    },
     "src/components/declutter/DeclutterWantedReplies.tsx": {
       "input": 1
     },

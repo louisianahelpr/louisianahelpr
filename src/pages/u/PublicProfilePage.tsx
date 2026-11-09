@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { BadgeCheck, Briefcase, Handshake, ImageIcon, MapPin, MessageSquare, Share2, ShoppingBag, Star, UserX, Search } from "lucide-react";
 import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
 import AppPage from "@/components/AppPage";
+import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { PUBLIC_LINK_COLUMN } from "@/lib/pageColumn";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -362,7 +363,12 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null }: { p: Publ
 export default function PublicProfilePage() {
   const { handle: raw } = useParams();
   const handle = handleFromPath(raw);
-  const { user } = useAuthReady();
+  const { user, isReady } = useAuthReady();
+  // F066 (owner UI audit 11-09): a guest arriving from a shared link had no site header (no logo, Jobs, Declutter, Log
+  // in / Join free) and no way to the rest of the site. A guest gets the public shell every other public page uses
+  // (PublicHeaderPage: the site header and footer); a member keeps the app page. Decided only once auth is ready, so a
+  // member's cold open never flashes the guest header.
+  const guestShell = isReady && !user;
   const { profile: me, isLoading: meLoading } = useCurrentUser();
   const q = useQuery({
     queryKey: ["public-profile", handle],
@@ -398,8 +404,9 @@ export default function PublicProfilePage() {
   const memberActions = user && q.data && ctaReady && !isMe
     ? <PublicProfileMemberActions handle={q.data.handle} name={q.data.name} currentUserId={user.id} />
     : null;
+  const Shell = guestShell ? PublicHeaderPage : AppPage;
   return (
-    <AppPage title={q.data?.name ?? "Profile"} backTo={user ? "/home" : "/"} titleActions={memberActions}>
+    <Shell title={q.data?.name ?? "Profile"} backTo={user ? "/home" : "/"} titleActions={memberActions}>
       {/* The canonical names the current handle, never an old one the link still carries. */}
       <Meta p={q.data} handle={current ?? handle} />
       {!handle ? (
@@ -413,6 +420,6 @@ export default function PublicProfilePage() {
       ) : (
         <ProfileBody p={q.data} signedIn={!!user} isMe={isMe} ctaReady={ctaReady} viewerId={user?.id ?? null} />
       )}
-    </AppPage>
+    </Shell>
   );
 }

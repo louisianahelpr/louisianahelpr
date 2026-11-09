@@ -126,7 +126,7 @@ const JobsSection = () => {
     settings: { label: tr(JOBS_SETTINGS.labelKey), to: JOBS_SETTINGS.path },
   };
   const listLabel = JOBS_TABS.find((t) => t.value === tab);
-  const makeHeader = (browse?: { end?: ReactNode; count?: number; search?: ReactNode }) => (
+  const makeHeader = (browse?: { end?: ReactNode; count?: number; search?: ReactNode; chips?: ReactNode }) => (
     <div data-explore-header="" className="explore-header flex flex-col gap-1">
       {desktop ? (
         <>
@@ -138,6 +138,8 @@ const JobsSection = () => {
           <AppTopBar title={tr(navKey(section.path, section.label) ?? "nav.jobs")} explore section="jobs" desktopGap={false}
             search={browse?.search ?? <SectionSearchBar noun="jobs" home="/jobs" />} mine={mine} />
           {listLabel && <SectionListBack label={tr(listLabel.labelKey)} onBack={() => onTab("browse")} />}
+          {/* Browse's category chips under the bar (design audit A J1, owner 11-08; JobCategoryChips). */}
+          {!listLabel && browse?.chips}
         </>
       )}
       {/* ONE search per screen (owner 2026-10-21). Desktop: every tab's search is an ICON at the end of the tabs row,

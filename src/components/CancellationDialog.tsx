@@ -23,7 +23,7 @@ import {
   DialogDestructiveAction,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, ShieldAlert, CheckCircle, ArrowRight } from "lucide-react";
+import { AlertTriangle, ShieldAlert, CheckCircle, ArrowRight, ChevronDown } from "lucide-react";
 import { CancelBackToYou, CancelFeeCallout, CancelHelprToldAndPaid, CancelSeriesNotice, cancelSeriesScope, visitDayLabel, type CancelSeriesScope } from "@/components/cancellationDialog/CancelDialogNotices";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
@@ -430,8 +430,33 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             </div>
           )}
 
-          {/* Full Cancellation Policy */}
-          {!nobodyLeft && (<>
+
+
+          {/* Fee summary callout: only when a non-zero fee applies (hasHelper + late). */}
+          {hasHelper && cancellationFee > 0 && (
+            <CancelFeeCallout fee={cancellationFee} crew={!!crewQuote} feeTier={feeTier} helperName={helperName} strike={strikeApplies} />
+          )}
+
+          {/* Boards 66/172 slice 2: "Back to you" is only ever the SERVER's number (see CancelBackToYou). */}
+          {wasFunded && <CancelBackToYou quote={quote} quoteLoading={quoteLoading} backToYouCents={backToYouCents} />}
+          {/* Q1674 kept setup fee: ALWAYS visible right under "Back to you", never only inside the closed policy link
+              (lh-money-escrow review 11-08: a poster must see it before confirming). nobodyLeft says it in its own card. */}
+          {!nobodyLeft && keptFeeSentence && (
+            <p data-cancel-kept-fee="" className="font-sans text-ds-12 text-muted-foreground">{keptFeeSentence.trim()}</p>
+          )}
+
+          {/* What the Helpr actually gets: gated on the FEE (see CancelHelprToldAndPaid). */}
+          {hasHelper && cancellationFee > 0 && <CancelHelprToldAndPaid helperName={helperName} />}
+
+          {/* Full Cancellation Policy. Design audit A CS1 (owner approved 11-08): the sheet leads with the money rows below;
+              the policy and the strike ladder sit behind ONE link (closed until tapped), words unchanged. */}
+          {!nobodyLeft && (
+          <details data-cancel-policy="" className="group">
+          <summary className="min-h-11 flex cursor-pointer list-none items-center gap-1.5 text-ds-13 font-semibold text-primary [&::-webkit-details-marker]:hidden">
+            {strikeApplies ? "How strikes work" : "Full cancellation policy"}
+            <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden />
+          </summary>
+          <div className="space-y-3 pt-1">
           <div className="rounded-ds-md border border-border bg-muted/30 p-4 space-y-3">
             <p className="text-ds-11 font-semibold text-foreground uppercase tracking-wide">Full Cancellation Policy</p>
 
@@ -459,7 +484,6 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                   {cardHeld
                     ? "Cancel anytime before you hire. Your card was only held, never charged, and the hold is let go within about 10 minutes."
                     : "Cancel anytime before you hire. Most of your payment comes back to your card within the hour."}
-                  {keptFeeSentence}
                 </p>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <CheckCircle className="w-3 h-3 text-primary shrink-0" />
@@ -483,7 +507,6 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                   <p className="text-ds-11 text-muted-foreground mt-0.5">
                     Cancelling <strong className="text-foreground">24 or more hours before</strong> the start sends nothing to your Helpr. Closer to the start, part of the job pays your Helpr for the time they set aside, and it counts as a strike; you see the exact amount here before you confirm.
                   </p>
-                  {hasHelper && keptFeeSentence && <p className="text-ds-11 text-muted-foreground mt-1">{keptFeeSentence.trim()}</p>}
                 </div>
               </div>
 
@@ -514,19 +537,9 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             </div>
           </div>
           )}
-          </>)}
-
-
-          {/* Fee summary callout: only when a non-zero fee applies (hasHelper + late). */}
-          {hasHelper && cancellationFee > 0 && (
-            <CancelFeeCallout fee={cancellationFee} crew={!!crewQuote} feeTier={feeTier} helperName={helperName} strike={strikeApplies} />
+          </div>
+          </details>
           )}
-
-          {/* Boards 66/172 slice 2: "Back to you" is only ever the SERVER's number (see CancelBackToYou). */}
-          {wasFunded && <CancelBackToYou quote={quote} quoteLoading={quoteLoading} backToYouCents={backToYouCents} />}
-
-          {/* What the Helpr actually gets: gated on the FEE (see CancelHelprToldAndPaid). */}
-          {hasHelper && cancellationFee > 0 && <CancelHelprToldAndPaid helperName={helperName} />}
 
           <div className="space-y-1.5">
             <label

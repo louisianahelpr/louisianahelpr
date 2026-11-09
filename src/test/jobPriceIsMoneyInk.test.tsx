@@ -10,7 +10,10 @@
  * and its "$") must be the money token. The inline bark colour on
  * MoneyAmount loses to the stylesheet's !important, as it does in a browser.
  *
- * @mutate src/index.css | .money-chip, .money-chip * { color: hsl(var(--burnt-sienna)) !important; } | .money-chip, .money-chip * { color: hsl(var(--foreground)) !important; }
+ * Design audit A J5 (owner approved 11-08): the price moves from rust to INK (--foreground), 16 px bold, so burnt
+ * sienna keeps its meaning for "urgent" and warnings. The class stays the same: every rule that colours a
+ * .money-chip names ONE token (now ink), and the computed colour is that token.
+ * @mutate src/index.css | .money-chip, .money-chip * { color: hsl(var(--foreground)) !important; } | .money-chip, .money-chip * { color: hsl(var(--burnt-sienna)) !important; }
  *
  * NO PILL (lead decision 11-03 for the owner, Q2036: "show the price as plain
  * bold text, Marketplace style"): the T3 `.money-chip` rule strips the chip's
@@ -42,13 +45,13 @@ function moneyChipColourRules(): string[] {
   return out;
 }
 
-describe("a job card's price wears the money ink (spec §1.1)", () => {
+describe("a job card's price wears ink, one colour rule (spec §1.1; J5 11-08)", () => {
   it("every stylesheet rule that colours a .money-chip names the money token", () => {
     const rules = moneyChipColourRules();
     expect(rules.length).toBeGreaterThan(0);
     for (const r of rules) {
       const colour = r.match(/(^|[;\s{])color\s*:\s*([^;]+)/)?.[2] ?? "";
-      expect(colour, r).toMatch(/hsl\(var\(--burnt-sienna\)\)/);
+      expect(colour, r).toMatch(/hsl\(var\(--foreground\)\)/);
     }
   });
 
@@ -62,7 +65,7 @@ describe("a job card's price wears the money ink (spec §1.1)", () => {
       const amount = chip.firstElementChild as HTMLElement;
       const dollar = amount.firstElementChild as HTMLElement;
       for (const el of [amount, dollar]) {
-        expect(getComputedStyle(el).color).toBe("hsl(var(--burnt-sienna))");
+        expect(getComputedStyle(el).color).toBe("hsl(var(--foreground))");
       }
     } finally {
       style.remove();
@@ -76,6 +79,6 @@ describe("a job card's price wears the money ink (spec §1.1)", () => {
     expect(decl("border-color")).toBe("transparent !important");
     expect(decl("box-shadow")).toBe("none !important");
     expect(decl("padding")).toBe("0 !important");
-    expect(css).toMatch(/\.money-chip > :first-child \{[^}]*font-weight: 800 !important/);
+    expect(css).toMatch(/\.money-chip > :first-child \{[^}]*font-size: 1rem !important; font-weight: 700 !important/);
   });
 });

@@ -10,11 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
+import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { GroupSection, GroupRow } from "@/components/sections/StatusBoxes";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionTabs, openingSoonLine } from "@/components/mobileNav/useSectionTabs";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useHomeSummary, SECTION_INVITE } from "./homeDashboard/useHomeSummary";
+import { useHomeSummary } from "./homeDashboard/useHomeSummary";
 import { todoTarget } from "./homeDashboard/useNeedsYouTodos";
 import { requestHelperStep } from "@/components/job-card/helperStepRequest";
 import { COMING_UP_ROLE, type ComingUpItem } from "./homeDashboard/comingUp";
@@ -30,10 +31,10 @@ import { JobProgress } from "@/components/tracker/JobProgress";
 import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
 import { FirstJobHome, useFirstJobState } from "./homeDashboard/FirstJobHome";
 import { PosterFirstJobCard } from "./homeDashboard/PosterFirstJobCard";
+import { WelcomeCard } from "./homeDashboard/WelcomeCard";
 import { HelprsNearYou } from "./homeDashboard/HelprsNearYou";
 import { useHomeTopSettled, useHoldWhileFirstVisitReads } from "./homeDashboard/homeTopSettled";
 import { optionalLazy } from "@/lib/optionalLazy";
-import { GlassTileButton } from "@/components/ui/GlassTileButton";
 // Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
 const SmsPhonePrompt = optionalLazy(() => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })), "SmsPhonePrompt");
@@ -120,6 +121,9 @@ function HomeDashboardScreen() {
   const [shown, setShown] = useState(0);
   const at = Math.min(shown, Math.max(0, todoCount - 1));
   const next = summary.todos[at];
+  // Design audit A D3 (owner approved 11-08): a new member with nothing to do sees ONE welcome card (WelcomeCard) in
+  // place of "You're all caught up" and an empty "Coming up". Same "new" rule as the first-job checklist below.
+  const welcome = !!firstJob?.isNew && !summary.usesDeclutter && !next && !summary.todosLoading && !summary.waiting;
   const rest = Math.max(0, todoCount - 1);
   // Q2706 (B98): while their reads are out, Next up and the money strip hold the height they had last time on this
   // device (reservedHeight.ts), so the blocks below them do not move when they land.
@@ -128,11 +132,12 @@ function HomeDashboardScreen() {
   const moneyReserve = useReservedHeight(user ? `money-main:${user.id}` : null, !!money.pending, () => document.querySelector<HTMLElement>('[data-home-money="main"]'));
 
   return (
-    // The Vinted header (owner 11-08): no search on Dashboard, so the bar keeps the logo with only the bell (which holds
-    // Messages) and the photo; "+ Create" floats over the page and opens the Create sheet.
-    <SectionScreen search={null} fab={<SectionCreateFab />}>
+    // The Vinted header on Dashboard too (owner 11-08, design audit A D1, approved 11-08): "Search jobs and items" (a link
+    // to /search, which searches every open section), the bell (which holds Messages) and the photo; no crest. "+ Create"
+    // floats over the page and opens the Create sheet.
+    <SectionScreen search={<SectionSearchBar noun="jobs and items" home="/search" />} fab={<SectionCreateFab />}>
       <div data-testid="home-dashboard" className="flex flex-col gap-section">
-        {/* The H logo sits in the top bar above this (owner, 2026-10-20 08:30Z: keep it on phone Home). */}
+        {/* The search bar sits in the top bar above this (design audit A D1, owner 11-08: it replaced the H crest). */}
         {/* ONE header row (owner 2026-10-21): on the desktop website the greeting is the bar's title
             (spec v2: Home's greeting in the same slot as every title) and the date opens the page. */}
         <PageTitleBar
@@ -141,8 +146,10 @@ function HomeDashboardScreen() {
           title={first ? `${greeting()}, ${first}` : greeting()}
           phone={
             <div>
-              <h1 className="font-moment text-page-title text-foreground">{first ? `${greeting()}, ${first}` : greeting()}</h1>
-              <p className="text-ds-14 text-muted-foreground mt-0.5">{today}</p>
+              {/* Design audit A D1 (owner 11-08): one 20px line under the search bar; the date line is gone. The bar is
+                  the Vinted header, so the page's name is a hidden h1 like every section's (one page-title size, Q236e). */}
+              <h1 className="sr-only">Dashboard</h1>
+              <p data-home-greeting="" className="text-ds-20 font-bold leading-tight text-foreground">{first ? `${greeting()}, ${first}` : greeting()}</p>
             </div>
           }
         />
@@ -168,11 +175,6 @@ function HomeDashboardScreen() {
             {/* Q2008: faces of opted-in members in your parish, "active now" dot; nothing until one opts in. */}
             <HelprsNearYou userId={user?.id} />
 
-            {/* Board 189: before a member's first job (never applied), the first-job checklist and jobs near them. */}
-            {/* A3-82: not for a member who came to sell or buy on Declutter (a Jobs checklist above Next up is noise). */}
-            {firstJob?.isNew && !summary.usesDeclutter && <FirstJobHome profile={profile} alertsOff={firstJob.alertsOff} />}
-            {/* UX-5: the poster's first week (posted, hired, approved) until a posted job is finished. */}
-            {firstJob && !firstJob.isNew && <PosterFirstJobCard userId={user?.id} />}
 
             {/* LIVE NOW (board 165, spec v2 §5.1): only while a job of mine, either side, is happening. */}
             {summary.liveNow && (() => {
@@ -198,6 +200,7 @@ function HomeDashboardScreen() {
                 to-do from every section and both sides, with its one action. Replaces the three
                 stat boxes. Nothing invented: no to-do, no task; the money line only when the
                 to-do carries a real amount. "See all" is the ONE control for the full list. */}
+            {welcome ? <WelcomeCard sell={visible.filter(isLive).some((v) => v.key === "declutter")} /> : (
             <section ref={nextUpRef} data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1.5" style={summary.todosLoading && nextUpReserve ? { minHeight: nextUpReserve } : undefined}>
               <div className="flex items-center justify-between gap-3">
                 <h2 data-testid="next-up-label" className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
@@ -299,6 +302,7 @@ function HomeDashboardScreen() {
                 </>
               )}
             </section>
+            )}
 
             {todoOpen && (
               <div data-testid="todo-list" id="home-todo-list">
@@ -330,7 +334,7 @@ function HomeDashboardScreen() {
                 body="Check your connection and try again."
                 onRetry={() => void queryClient.refetchQueries({ type: "active", predicate: (q) => q.state.status === "error" })}
               />
-            ) : (
+            ) : welcome && summary.upcoming.length === 0 ? null : (
             <GroupSection title="Coming up">
               {summary.upcoming.length === 0 ? (
                 <p data-testid="coming-up-empty" className="px-4 py-4 text-ds-14 text-muted-foreground">{summary.hasBookedJob ? "Nothing else booked." : "Nothing booked yet."}</p>
@@ -377,40 +381,48 @@ function HomeDashboardScreen() {
               )}
             </GroupSection>
             )}
+
+            {/* Design audit A D2 (owner approved 11-08): "Needs you" comes first, the first-week checklist after it as one
+                progress line. Board 189: before a member's first job, the first-job checklist and jobs near them.
+                A3-82: not for a member who came to sell or buy on Declutter. */}
+            {firstJob?.isNew && !summary.usesDeclutter && <FirstJobHome profile={profile} alertsOff={firstJob.alertsOff} />}
+            {/* UX-5: the poster's first week (posted, hired, approved) until a posted job is finished. */}
+            {firstJob && !firstJob.isNew && <PosterFirstJobCard userId={user?.id} />}
             </>}
           </div>
 
           {!holdBelowNextUp && <section data-home-side className="flex flex-col gap-2 min-w-0" aria-label="Your sections">
             <HomeMoneyTiles money={money} placement="side" />
             <div className="flex items-baseline justify-between px-1">
-              <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">Your sections</h2>
+              <h2 className="text-ds-15 font-semibold text-foreground">Your sections</h2>
               <Button type="button" variant="link" size="sm" data-testid="open-customize" onClick={() => setCustomize(true)} className="px-0 text-ds-13 font-semibold tracking-normal text-primary">
                 Customize
               </Button>
             </div>
-            {/* Only OPEN sections get a box; the rest share ONE compact line (owner, 2026-10-21: no full
-                "Opening soon" cards). */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Design audit A D4 (owner approved 11-08): the member's OPEN sections as one row of chips, each with its real
+                count line when there is one ("Jobs · 1 needs you"); the bottom bar already holds every section, so the
+                old 2x2 boxes repeated it. The rest share ONE compact line (owner, 2026-10-21: no "Opening soon" cards). */}
+            <div data-section-chips="" className="flex flex-wrap gap-2">
               {visible.filter(isLive).map((s) => {
-                // One real line, or the both-sides invitation: never a "0" (spec v2 §1.5, §5.5; board 19).
-                const line = summary.tiles[s.key] ?? SECTION_INVITE[s.key];
+                // Only a real line (spec v2 §1.5: never a "0"); with none the chip is the section's name alone.
+                const line = summary.tiles[s.key];
                 const Icon = s.icon;
                 return (
-                  <GlassTileButton
+                  <Button
                     key={s.key}
+                    type="button"
+                    variant="outline"
+                    size="sm"
                     data-section-tile={s.key}
-                    aria-label={`${s.label}: ${line}`}
                     onClick={() => navigate(s.path)}
-                    className="p-card lg:p-4 gap-1 lg:gap-0.5"
+                    className="max-w-full gap-1.5 rounded-full px-3.5 text-ds-13 font-semibold tracking-normal"
                   >
-                    <Icon className="w-6 h-6 lg:w-5 lg:h-5 text-primary" aria-hidden />
-                    <span className="text-ds-16 lg:text-ds-15 font-bold mt-2 lg:mt-1.5 truncate text-foreground">{s.label}</span>
-                    {/* Keeps the name and the line two words apart for axe's label-content-name-mismatch (Q1816). */}
-                    {" "}
-                    {/* Two lines' room always (leading-snug x 2): the live "near you" count replaces the line after
-                        first paint, and a shorter line must not shrink the card under the reader (owner 2026-11-01). */}
-                    <span data-tile-line className="text-ds-14 lg:text-ds-13 text-muted-foreground leading-snug min-h-[2.75em]">{line}</span>
-                  </GlassTileButton>
+                    <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                    <span className="truncate">
+                      {s.label}
+                      {line && <span data-tile-line className="font-normal text-muted-foreground"> · {line}</span>}
+                    </span>
+                  </Button>
                 );
               })}
             </div>

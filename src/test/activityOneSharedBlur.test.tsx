@@ -31,7 +31,7 @@ import { PageScaffold } from "@/components/ui/PageScaffold";
 // @mutate src/components/ui/PageScaffold.tsx | (oneBlur ? " page-panel--one-blur" : "") | ""
 // @mutate src/components/job-card/JobListPage.tsx | titleCardClassName="" oneBlur | titleCardClassName=""
 // @mutate src/components/JobsSectionSkeleton.tsx | <PageScaffold animate oneBlur tightGutter titleCard= | <PageScaffold animate tightGutter titleCard=
-// @mutate src/components/ui/button.tsx | "ctl-tint border border-border/60 bg-background/70 backdrop-blur-md " + | "ctl-tint border border-border/60 bg-background/70 backdrop-blur-lg " +
+// @mutate src/components/ui/button.tsx | "ctl-tint border-[1.5px] border-foreground/70 bg-background/70 backdrop-blur-md " + | "ctl-tint border-[1.5px] border-foreground/70 bg-background/70 backdrop-blur-lg " +
 
 const ROOT = process.cwd();
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");

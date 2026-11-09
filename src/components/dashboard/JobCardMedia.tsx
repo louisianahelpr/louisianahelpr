@@ -7,7 +7,7 @@ import { STAR_ON } from "@/lib/starColor";
 /** Shared with the pre-boot Browse shell (src/lib/browseShellCards.mjs), which must match byte for byte. */
 export const JOB_CARD_MEDIA_ROW = "flex items-stretch";
 export const JOB_CARD_MEDIA_PAD = "pl-3 pt-3 pb-3";
-const JOB_CARD_MEDIA = "relative shrink-0 self-start w-[4.5rem] h-[4.5rem] md:w-24 md:h-24 overflow-hidden rounded-xl";
+const JOB_CARD_MEDIA = "relative shrink-0 self-start w-14 h-14 overflow-hidden rounded-xl";
 const JOB_CARD_MEDIA_TINT = "linear-gradient(140deg, hsl(var(--primary) / 0.16), hsl(var(--primary) / 0.06))";
 export const JOB_CARD_TEXT_COL = "job-card-media-col min-w-0 flex-1";
 const JOB_CARD_FACE_ROW = "mt-1 flex h-5 items-center gap-1.5 min-w-0 text-ds-11 text-muted-foreground";

@@ -19,7 +19,7 @@ import { prefetchJobDialog } from "./prefetchJobDialog";
 import { formatDistanceLabel, formatDrivingLabel } from "./jobCardDistance";
 import { JobPrice } from "./JobPrice";
 import { JobCardHeroBand } from "./JobCardHeroBand";
-import { JobCardSecondaryChip, JobCardStatusCorner } from "./JobCardBadges";
+import { JobCardBadge } from "./JobCardBadges";
 import { jobCardInteractiveProps } from "./jobCardInteractiveProps";
 import { JOB_CARD_MEDIA_PAD, JOB_CARD_MEDIA_ROW, JOB_CARD_TEXT_COL, JobCardMedia, JobCardPosterFace } from "./JobCardMedia";
 import {
@@ -162,6 +162,9 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   const timeLabel = jobStartTimeLabel(job.start_time, job.is_flexible_schedule);
   // The hero card already leads with the job's own photo band; every other card gets the tile.
   const showMedia = !bare && !(hero && job.photos?.[0]);
+  // Design audit A J2 (owner approved 11-08): every feed card but the photo hero is a hairline ROW (~88 px: 56 px
+  // thumb, one badge, title, two meta lines, price in ink), not a white card. Guard: src/test/jobsHairlineRows.test.tsx.
+  const row = !bare && !(hero && job.photos?.[0]);
 
   // NO ENTRY ANIMATION (Q169, owner 2026-09-23: "more cards appear ... they
   // don't all load together"). Each card used to fade and rise in on its own
@@ -194,7 +197,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   const interactiveProps = jobCardInteractiveProps({ isGuest, job, onSelect, handleTap, prefetchHandlers });
 
   return (
-    <div data-feed-card=""
+    <div data-feed-card="" data-feed-row={row ? "" : undefined}
       // h-full: the card is a grid item in both feeds (guest /jobs and the
       // authed browse grid). CSS Grid stretches the ITEM to the tallest in its
       // row, but the card sized to its own content instead, so a two-line title
@@ -205,6 +208,8 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       className={
         bare
           ? "group relative h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          : row
+          ? "group relative h-full cursor-pointer border-b border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           : "group relative h-full rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       }
       {...interactiveProps}
@@ -217,54 +222,39 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           continuous shape. `bare` still clips (the callout bubble itself is
           rounded, and the category rail/tab need SOME edge to align to) but
           carries no paint of its own. */}
-      <div className={bare ? "relative h-full overflow-hidden rounded-lg" : JOB_CARD_CLIP}>
+      <div className={bare ? "relative h-full overflow-hidden rounded-lg" : row ? "relative h-full" : JOB_CARD_CLIP}>
         {/* No category rail: owner 2026-10-18; the category reads from the icon + label. */}
         {hero && !bare && <JobCardHeroBand photo={job.photos?.[0]} />}
         {/* Photo-first (owner 2026-10-17, Q2043 + Q2036): the picture leads, the text sits beside it. */}
         <div className={showMedia ? JOB_CARD_MEDIA_ROW : "contents"}>
         {showMedia && (
-          <div className={JOB_CARD_MEDIA_PAD}>
+          <div className={row ? "py-3" : JOB_CARD_MEDIA_PAD}>
             <JobCardMedia photo={job.photos?.[0]} category={job.category} />
           </div>
         )}
         <div className={showMedia ? JOB_CARD_TEXT_COL : "contents"}>
-        {/* ── BADGE RAIL ── ONE in-flow row holding every badge, so they share
-            one top edge, bottom edge and baseline by construction (owner
-            2026-08-31, "JUST IN needs to be better aligned"); in flow, so the
-            body starts after it in every font-size mode (senior mode grows
-            chips ~9px). Priority when width runs out (320px): 1. status corner
-            (never shrinks), 2. at most ONE secondary chip, "Just in" before
-            "Recommended" (never shrinks), 3. the category label, the only item
-            that truncates. Nothing wraps, so the rail is always one chip tall.
-            Full history: git log -S "BADGE RAIL" on this file. */}
-        <div className={JOB_CARD_BADGE_ROW}>
-          {/* 1. Category tab — flat left edge (squared) continuing the
-                 vertical rail, rounded nose on the right. The poster avatar
-                 moved to the job-detail view (JobPosterCard) so the feed
-                 card stays uncluttered. `min-w-0` + `truncate` make this the
-                 item that yields width; `max-w-[52%]` keeps a long or
-                 unmapped raw category value from eating the rail even when
-                 it is the only chip present. */}
-          {/* ONE component, shared with the activity cards' JobCardShell —
-              see JobCategoryTab. Both files drew this tab by hand and had
-              already drifted (only this copy carried the truncation cap). */}
-          <JobCategoryTab category={job.category} flexible />
-          {/* 2. Secondary slot (JobCardBadges.tsx). */}
-          <JobCardSecondaryChip justIn={isJustIn} recommended={recommended} />
-          {/* 3. Elastic gap — the ONLY thing on the rail allowed to grow or
-                 shrink freely. It is what pins the status chip to the right
-                 edge, so the top-right corner no longer needs its own
-                 absolute position (and so can no longer be overlapped by a
-                 left-hand chip that outgrew its hardcoded slot). */}
-          <span aria-hidden className="flex-1 min-w-[8px]" />
-          {/* 4. Status corner (JobCardBadges.tsx). */}
-          <JobCardStatusCorner job={job} />
-        </div>
+        {/* ── BADGE RAIL ── Design audit A J3 (owner approved 11-08): ONE badge, small caps words, no pill or corner
+            tab. Boosted > Urgent > Today > Just in > Recommended (JobCardBadges.tsx). A ROW draws the badge alone above
+            the title (nothing at all when there is none) and names the category on its place line; the photo hero
+            keeps the in-flow rail (badge, then the category label, which is the only item that truncates). History:
+            git log -S "BADGE RAIL" on this file. */}
+        {row ? (
+          <div data-job-badge-line="" className="flex pl-3 pt-3 -mb-2 empty:hidden">
+            <JobCardBadge job={job} justIn={isJustIn} recommended={recommended} />
+          </div>
+        ) : (
+          <div className={JOB_CARD_BADGE_ROW}>
+            <JobCardBadge job={job} justIn={isJustIn} recommended={recommended} />
+            {/* ONE component, shared with the activity cards' JobCardShell (see JobCategoryTab). */}
+            <JobCategoryTab category={job.category} flexible />
+            <span aria-hidden className="flex-1 min-w-[8px]" />
+          </div>
+        )}
         {/* Body. `pt-2` is a real gap under the rail, NOT a reservation for
             it — the rail is in flow above, so this padding no longer has to
             guess how tall a badge chip is (the guess it replaces, `pt-6`,
             was already wrong in senior mode). */}
-        <div className={JOB_CARD_BODY}>
+        <div className={row ? "w-full pl-3 pt-3 pb-3" : JOB_CARD_BODY}>
         {/* Title + price share the top row — price chip is vertically
             centered against the title. The location/date/time meta spans
             the full card width below.
@@ -297,7 +287,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             feeStamp={job}
             showBudget={showBudget}
             variant="chip"
-            className="shrink-0"
+            className="shrink-0 self-start"
           />
         </div>
 
@@ -326,6 +316,10 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               see the `is_group_job` chip, which drops its separator and rides
               tighter than the rest of the row. */}
           <div className="job-meta-row flex items-center gap-x-2 flex-nowrap max-[359px]:flex-wrap overflow-hidden">
+            {row && (<>
+              <JobCategoryTab category={job.category} className="shrink-0" />
+              <span className="shrink-0 opacity-30">·</span>
+            </>)}
             {/* Never hidden (owner, 2026-10-08); floor = pin + ~5 letters, not a city's width (owner, 2026-10-19: even "·" spacing). */}
             <span className="flex items-center gap-1 min-w-[3.625rem] overflow-hidden">
               <MapPin className="w-2.5 h-2.5 shrink-0" />

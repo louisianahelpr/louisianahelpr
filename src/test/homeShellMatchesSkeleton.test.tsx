@@ -14,7 +14,7 @@
  *
  * @mutate src/pages/home/HomeDashboard.tsx |   useEffect(() => removeShellOncePainted(HOME_SHELL_ID), []); |
  * @mutate src/components/landing/HomeShellLeaves.tsx | !== "/home") document.getElementById(HOME_SHELL_ID)?.remove(); | === "/x") document.getElementById(HOME_SHELL_ID)?.remove();
- * @mutate src/components/DashboardRouteSkeleton.tsx | <Skeleton className="h-8 w-56 max-w-full rounded-ds-md" /> | <Skeleton className="h-9 w-56 max-w-full rounded-ds-md" />
+ * @mutate src/components/DashboardRouteSkeleton.tsx | <Skeleton className="h-[25px] w-56 max-w-full rounded-ds-md" /> | <Skeleton className="h-9 w-56 max-w-full rounded-ds-md" />
  * @mutate index.html |         if (!stored) return; |
  * @mutate index.html | window.innerWidth >= 900) return; | window.innerWidth >= 9000) return;
  * @mutate index.html |         if (location.search \|\| location.hash \|\| window.Capacitor |         if (window.Capacitor

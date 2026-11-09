@@ -32,7 +32,7 @@ import {
 // @mutate supabase/functions/_shared/sameDayMatch.ts |   if (!isSameDayJob(jobLastDay(job), now)) return 0; |
 // @mutate supabase/functions/_shared/sameDayMatch.ts |   return job.date_window_end ?? job.date_needed ?? null; |   return job.date_needed ?? null;
 // @mutate src/components/postjob/LogisticsSection.tsx |     setDateNeeded(today);\n    markTodayStart(sameDayStart); |     setDateNeeded(today);
-// @mutate src/components/dashboard/JobCardBadges.tsx |   if (isTodayJob(job.date_needed)) { |   if (false) {
+// @mutate src/components/dashboard/JobCardBadges.tsx |     : isTodayJob(job.date_needed) |     : false
 
 const ROOT = resolve(__dirname, "..", "..");
 const code = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"));
@@ -143,8 +143,8 @@ describe("the wiring (Q2438)", () => {
   });
 
   it("the browse card shows Today for a job dated today", () => {
-    const src = code("src/components/dashboard/JobCardBadges.tsx"); // the status corner, out of JobCard.tsx (Q806)
-    expect(src).toMatch(/if \(isTodayJob\(job\.date_needed\)\) \{/);
+    const src = code("src/components/dashboard/JobCardBadges.tsx"); // the one badge, out of JobCard.tsx (Q806, J3 11-08)
+    expect(src).toMatch(/: isTodayJob\(job\.date_needed\)\s*\? \{ key: "today", text: t\("jobCard\.today"\)/);
   });
 
   it("instant-job-match reads the online state and boosts by it", () => {

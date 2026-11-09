@@ -71,13 +71,15 @@ export function MainFeedSection({
         // 132 default, which was reserving ~60% more slot height than any
         // row actually needs and reads as excess whitespace before
         // measureElement corrects it.
-        estimateSize={95}
+        // Design audit A J2 (11-08): hairline rows are ~88 px and touch (the hairline is the gap); only the photo
+        // hero (row 0) is still a card with the --list-gap under it.
+        estimateSize={88}
         renderItem={(job, i) => (
           // Gap between cards — `space-y-*` can't apply once the
           // virtualizer absolutely-positions rows, so the gap is bottom
           // padding measured as part of the row height.
           <div
-            className="pb-list"
+            className={i === 0 && job.photos?.[0] ? "pb-list" : undefined}
             onMouseEnter={() => setHoveredJobId?.(job.id)}
             onMouseLeave={() => setHoveredJobId?.(null)}
           >

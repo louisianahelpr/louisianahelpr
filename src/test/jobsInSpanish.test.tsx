@@ -3,9 +3,11 @@
  * is Spanish reads the Browse card's chips (Recommended, Urgent, Boosted, Today) and the job page's headings, states
  * and links in Spanish. English is the old copy word for word. Money and next-step sentences stay English (enJobs.ts).
  *
- * @mutate src/components/dashboard/JobCardBadges.tsx | font-semibold whitespace-nowrap">{t("jobCard.recommended")}</span> | font-semibold whitespace-nowrap">Recommended</span>
- * @mutate src/components/dashboard/JobCardBadges.tsx |         {t("jobCard.urgent")}\n |         Urgent\n
- * @mutate src/components/job-card/JobTodayChip.tsx |       {t("jobCard.today")}\n |       Today\n
+ * Design audit A J3 (11-08): the card wears ONE badge (Boosted > Urgent > Today > Just in > Recommended), so each
+ * word is read on a card where it is the winner.
+ * @mutate src/components/dashboard/JobCardBadges.tsx |     ? { key: "recommended", text: t("jobCard.recommended") } |     ? { key: "recommended", text: "Recommended" }
+ * @mutate src/components/dashboard/JobCardBadges.tsx |     ? { key: "urgent", text: t("jobCard.urgent"), | ? { key: "urgent", text: "Urgent",
+ * @mutate src/components/dashboard/JobCardBadges.tsx |     ? { key: "today", text: t("jobCard.today"), | ? { key: "today", text: "Today",
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | className="text-ds-16 font-semibold">{t("jobPage.details")}</h2> | className="text-ds-16 font-semibold">Details</h2>
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {detailsOpen ? t("jobPage.showLess") : t("jobPage.showMore")} | {detailsOpen ? "Show less" : "Show more"}
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | title={t("jobPage.unavailable")} | title="This job isn't available."
@@ -23,7 +25,6 @@ vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "idle" }));
 vi.mock("@/lib/haptics", () => ({ hapticLight: vi.fn() }));
 
 import JobCard from "@/components/dashboard/JobCard";
-import { JobTodayChip } from "@/components/job-card/JobTodayChip";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
@@ -54,24 +55,28 @@ describe("the job cards and the job page in Spanish", () => {
       await ensureLangLoaded();
     });
 
-    it("the Browse card's chips are Spanish", () => {
+    it("the Browse card's badge is Spanish", () => {
       card(job());
-      expect(screen.getByText(es["jobCard.recommended"])).toBeTruthy();
       expect(screen.getByText(es["jobCard.urgent"])).toBeTruthy();
-      expect(screen.queryByText("Recommended")).toBeNull();
       expect(screen.queryByText("Urgent")).toBeNull();
+      cleanup();
+      card(job({ is_urgent: false }));
+      expect(screen.getByText(es["jobCard.recommended"])).toBeTruthy();
+      expect(screen.queryByText("Recommended")).toBeNull();
     });
 
-    it("the Today chip is Spanish", () => {
-      render(<JobTodayChip className="c" />);
+    it("the Today badge is Spanish", () => {
+      card(job({ is_urgent: false, date_needed: jobLocalDateISO(0) }));
       expect(screen.getByText(es["jobCard.today"])).toBeTruthy();
     });
   });
 
   it("English: the card's chips are the old words", () => {
     card(job());
-    expect(screen.getByText("Recommended")).toBeTruthy();
     expect(screen.getByText("Urgent")).toBeTruthy();
+    cleanup();
+    card(job({ is_urgent: false }));
+    expect(screen.getByText("Recommended")).toBeTruthy();
     expect([enJobs["jobPage.details"], enJobs["jobPage.showMore"], enJobs["jobPage.title"]]).toEqual(["Details", "Show more", "Job"]);
   });
 

@@ -19,6 +19,10 @@
  * black/white pair, SocialAuthButtons board 37/55). The landing now wears the same fill and text colour, read from
  * SocialAuthButtons' own style so the two cannot drift apart.
  * @mutate src/components/landing/LandingAppleButton.tsx | style={{ backgroundColor: "hsl(var(--foreground))", color: "hsl(var(--background))", | style={{ backgroundColor: "var(--lp-surface)", color: "var(--lp-ink)",
+ *
+ * F005: the footer's Facebook (bright blue) and Instagram (rainbow gradient) chips were off brand. Every social chip is
+ * the olive monochrome chip (olivewood fill, parchment glyph), with no brand colour or gradient of its own.
+ * @mutate src/components/Footer.tsx | rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:brightness-110"\n              aria-label="Follow us on Facebook | rounded-full bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:brightness-110"\n              aria-label="Follow us on Facebook
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -38,6 +42,8 @@ vi.mock("@/lib/routePrefetch", async (importOriginal) => {
   return { ...real, whenPageSettled: (cb: () => void) => { if (settle.fire) cb(); return () => {}; } };
 });
 vi.mock("@/lib/socialAuth", () => ({ SOCIAL_SIGN_IN_ENABLED: true, signInWithProvider: vi.fn() }));
+vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, ready: true }) }));
+import Footer from "@/components/Footer";
 
 import { SectionsShowcase, TrustAndJoin } from "@/components/landing/SectionsShowcase";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
@@ -113,6 +119,20 @@ describe("landing UI audit 2026-11-09", () => {
       expect(screen.queryByTestId("landing-apple-slot")).toBeNull();
       unmount();
     });
+  });
+
+  it("F005: every footer social chip is the olive monochrome chip, no brand colour or gradient", () => {
+    const { container, unmount } = render(<MemoryRouter><Footer /></MemoryRouter>);
+    const chips = [...container.querySelectorAll<HTMLAnchorElement>('a[target="_blank"][aria-label^="Follow us on"]')];
+    expect(chips.length).toBeGreaterThan(1);
+    for (const a of chips) {
+      const label = a.getAttribute("aria-label")!;
+      expect(a.className, label).toContain("bg-[hsl(var(--olivewood))]");
+      expect(a.className, label).toContain("text-[hsl(var(--parchment))]");
+      expect(a.className, label).not.toMatch(/--facebook|text-white/);
+      expect(a.style.backgroundImage, label).toBe("");
+    }
+    unmount();
   });
 
   it("F027: the landing's Apple button has Sign up's solid ink fill and text colour", async () => {

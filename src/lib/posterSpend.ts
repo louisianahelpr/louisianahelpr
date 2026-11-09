@@ -330,3 +330,22 @@ export function refundedReceiptNote(r: Pick<SpentRow<unknown>, "job" | "refunded
   if (r.job && r.refundedInFull) return " · Refunded in full";
   return r.job && r.refundedCents > 0 ? ` · $${(r.refundedCents / 100).toFixed(2)} refunded` : "";
 }
+
+/**
+ * F089 (owner UI audit 2026-11-09, data): a part-refunded job showed "Cancelled · $100.00 refunded" and a bare rust
+ * "$12.00", which read as a $12 charge with no reason. Measured on prod: job 5d43debf charged $112.00 (price + the
+ * pre-F3 service fee), expired with nobody hired, and void-cancelled-payments refunded $100.00, so $12.00 is what the
+ * card kept. The figure stays (no amount changes); it is captioned "You paid" and opens to Charged / Refunded / Tip /
+ * You paid, with the owner-approved line (2026-11-09) "Card processing cost isn't refunded." when nothing was ruled
+ * the poster's fault (no cancellation fee). Guard: src/test/helpDisputeRuleOneVoice.test.ts + the Receipts test.
+ */
+export function jobRefundLines(r: { cents: number; refundedCents: number; tipCents: number }): { label: string; cents: number }[] | undefined {
+  if (r.refundedCents <= 0 || r.cents <= 0) return undefined;
+  const jobKept = r.cents - r.tipCents;
+  const lines = [
+    { label: "Charged", cents: jobKept + r.refundedCents },
+    { label: "Refunded", cents: -r.refundedCents },
+  ];
+  if (r.tipCents > 0) lines.push({ label: "Tip", cents: r.tipCents });
+  return lines;
+}

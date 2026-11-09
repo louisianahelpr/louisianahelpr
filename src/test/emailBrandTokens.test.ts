@@ -19,9 +19,11 @@
  * @mutate supabase/functions/_shared/email-templates/styles.ts |   backgroundColor: '#FFFFFF',\n  padding: '6px', |   padding: '6px',
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+// The repo's readdirSync (lists src/ from git; anything else, here supabase/, straight from disk).
+import { readdirSync } from "./helpers/trackedFiles";
 
 const DIR = resolve(__dirname, "..", "..", "supabase/functions/_shared/email-templates");
 const read = (f: string) => blankComments(readFileSync(join(DIR, f), "utf8"));
@@ -48,7 +50,7 @@ describe("the emails wear the brand (F158)", () => {
   });
 
   it("headings are Bodoni Moda with a Georgia fallback; the faces are loaded for clients that allow it", () => {
-    expect(styles).toContain(`export const headingFontStack = "'Bodoni Moda', Georgia, 'Times New Roman', serif"`);
+    expect(styles).toContain(`const headingFontStack = "'Bodoni Moda', Georgia, 'Times New Roman', serif"`);
     expect(styles).toMatch(/export const h1 = \{\s*fontFamily: headingFontStack,/);
     expect(styles).toMatch(/EMAIL_FONTS_URL =\s*'https:\/\/fonts\.googleapis\.com\/css2\?family=Bodoni\+Moda:wght@700&family=Montserrat:wght@400;600&display=swap'/);
     expect(styles).toContain(`"'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif"`);
@@ -70,7 +72,7 @@ describe("the emails wear the brand (F158)", () => {
   });
 
   it("no template carries the old cool hexes", () => {
-    const files = readdirSync(DIR).filter((f) => /\.(tsx?|ts)$/.test(f));
+    const files = readdirSync(DIR).filter((f) => /\.tsx?$/.test(f));
     expect(files.length).toBeGreaterThan(15);
     const old = /#F0F2F4|#55656D|#CBCFD8|#6E7C83|#23231A/i;
     expect(files.filter((f) => old.test(read(f)))).toEqual([]);

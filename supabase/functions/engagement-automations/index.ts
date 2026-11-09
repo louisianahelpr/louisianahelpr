@@ -86,7 +86,7 @@ interface RenderedEmail {
  * Nov 9" while the body said "the past 7 days (week of Nov 2)", two weeks for one report. The window is the 7 days
  * before the run; the range names its first and last day ("Nov 2 – Nov 8").
  */
-export function digestRangeLabel(now: Date): string {
+function digestRangeLabel(now: Date): string {
   const first = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
   const last = new Date(now.getTime() - 24 * 60 * 60 * 1000)
   return `${centralDayLabel(first)} – ${centralDayLabel(last)}`

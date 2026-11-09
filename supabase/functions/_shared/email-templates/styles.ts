@@ -119,7 +119,7 @@ const bodyFontStack =
   "'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif"
 
 /** Headline face (F158): Bodoni Moda, the site's display serif, with Georgia where webfonts are stripped. */
-export const headingFontStack = "'Bodoni Moda', Georgia, 'Times New Roman', serif"
+const headingFontStack = "'Bodoni Moda', Georgia, 'Times New Roman', serif"
 
 /** The one webfont request: Bodoni Moda 700 for headlines, Montserrat 400/600 for text. */
 export const EMAIL_FONTS_URL =

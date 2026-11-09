@@ -9,12 +9,14 @@
  *
  * @mutate supabase/functions/admin-user-actions/index.ts |         const restoreLabel = centralDateTimeLabel(suspendUntil) |         const restoreLabel = suspendUntil.toLocaleDateString()
  * @mutate supabase/functions/weekly-helper-report/index.ts | (${centralDayLabel(weekAgo)} – ${centralDayLabel(now)}) | (${weekAgo.toLocaleDateString()} – ${now.toLocaleDateString()})
- * @mutate supabase/functions/_shared/centralDateTime.ts | export const MEMBER_TIMEZONE = "America/Chicago"; | export const MEMBER_TIMEZONE = "UTC";
+ * @mutate supabase/functions/_shared/centralDateTime.ts | const MEMBER_TIMEZONE = "America/Chicago"; | const MEMBER_TIMEZONE = "UTC";
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+// The repo's readdirSync (lists src/ from git; anything else, here supabase/, straight from disk).
+import { readdirSync } from "./helpers/trackedFiles";
 import { centralDateTimeLabel, centralDayLabel } from "../../supabase/functions/_shared/centralDateTime";
 
 const ROOT = resolve(__dirname, "..", "..");

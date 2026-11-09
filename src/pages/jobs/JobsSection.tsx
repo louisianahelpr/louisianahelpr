@@ -26,7 +26,6 @@ import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
-import { SectionListBack } from "@/components/sections/SectionListBack";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -116,16 +115,16 @@ const JobsSection = () => {
   // with the other icons"), then the search. It sits in the scaffold's title card, above the
   // scrolling list, and never changes while the list scrolls (exploreHeaderSteady).
   /** Browse puts its count beside the tab and its search, filters and map at the row's end on desktop. */
-  // PHONE (owner 11-08, the Vinted header): the bar is the tab's search ("Search jobs", Filters inside it on Browse)
-  // with the bell (which holds Messages) and the photo; no visible title (a hidden h1). Posted, Working and Jobs
-  // settings live in "My Jobs" under the photo; on Posted or Working the row under the bar names the list and goes
-  // back to Browse. "+ Post a job" is the floating pill. DESKTOP keeps the tabs row with the gear last.
+  // PHONE: the bar is the title with the bell and the photo, the tab's search ("Search jobs", Filters inside it on
+  // Browse) is the row under it (F148, owner audit 11-09), and the Browse | Posted | Working tabs stay visible under
+  // the search on every tab (F152, owner audit 11-09: "Keep the three tabs visible on phone"; they had become a
+  // "< Posted" back row). Jobs settings is in "My Jobs" under the photo, which still lists Posted and Working.
+  // "+ Post a job" is the floating pill. DESKTOP keeps the tabs row with the gear last.
   const mine: SectionMineMenu = {
     title: tr("jobs.myJobs"),
     items: JOBS_TABS.map((t) => ({ key: t.value, label: tr(t.labelKey), to: `/jobs?tab=${t.value}`, count: todoFor[t.value] })),
     settings: { label: tr(JOBS_SETTINGS.labelKey), to: JOBS_SETTINGS.path },
   };
-  const listLabel = JOBS_TABS.find((t) => t.value === tab);
   const makeHeader = (browse?: { end?: ReactNode; count?: number; search?: ReactNode; chips?: ReactNode }) => (
     <div data-explore-header="" className="explore-header flex flex-col gap-1">
       {desktop ? (
@@ -137,9 +136,9 @@ const JobsSection = () => {
         <>
           <AppTopBar title={tr(navKey(section.path, section.label) ?? "nav.jobs")} explore section="jobs" desktopGap={false}
             search={browse?.search ?? <SectionSearchBar noun="jobs" home="/jobs" />} mine={mine} />
-          {listLabel && <SectionListBack label={tr(listLabel.labelKey)} onBack={() => onTab("browse")} />}
-          {/* Browse's category chips under the bar (design audit A J1, owner 11-08; JobCategoryChips). */}
-          {!listLabel && browse?.chips}
+          <SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} />
+          {/* Browse's category chips under the tabs (design audit A J1, owner 11-08; JobCategoryChips). */}
+          {tab === "browse" && browse?.chips}
         </>
       )}
       {/* ONE search per screen (owner 2026-10-21). Desktop: every tab's search is an ICON at the end of the tabs row,

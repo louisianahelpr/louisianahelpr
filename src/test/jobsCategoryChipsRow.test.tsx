@@ -7,7 +7,7 @@
  * @mutate src/components/dashboard/JobCategoryChips.tsx | (n.get(b) ?? 0) - (n.get(a) ?? 0) \|\| | (n.get(a) ?? 0) - (n.get(b) ?? 0) \|\|
  * @mutate src/components/dashboard/JobCategoryChips.tsx | onChange(value === g.id ? null : g.id) | onChange(g.id)
  * @mutate src/components/dashboard/JobCategoryChips.tsx |   const shown = !(groups.length < 2 && !value); |   const shown = true;
- * @mutate src/pages/jobs/JobsSection.tsx |           {!listLabel && browse?.chips} |           {browse?.chips}
+ * @mutate src/pages/jobs/JobsSection.tsx |           {tab === "browse" && browse?.chips} |           {browse?.chips}
  * @mutate src/pages/home/Dashboard.tsx | { search: phoneBrowseSearch, chips: phoneBrowseChips } | { search: phoneBrowseSearch }
  */
 import { readFileSync } from "node:fs";
@@ -58,11 +58,11 @@ describe("Jobs Browse category chips (design audit A J1)", () => {
     expect(chipNames()).toEqual(["all", "yard", "pets"]);
   });
 
-  it("the phone header draws the row under the bar on Browse only, fed by the feed's own filter", () => {
+  it("the phone header draws the row under the tabs on Browse only, fed by the feed's own filter", () => {
     const section = read("src/pages/jobs/JobsSection.tsx");
     const feed = read("src/pages/home/Dashboard.tsx");
-    expect(section).toContain("{!listLabel && browse?.chips}");
-    expect(section.indexOf("{!listLabel && browse?.chips}")).toBeGreaterThan(section.indexOf("<SectionListBack"));
+    expect(section).toContain('{tab === "browse" && browse?.chips}');
+    expect(section.indexOf('{tab === "browse" && browse?.chips}')).toBeGreaterThan(section.lastIndexOf("<SectionTabs"));
     expect(feed).toContain("<JobCategoryChips jobs={allJobs} value={filters.selectedCategory} onChange={filters.setSelectedCategory} />");
     expect(feed).toContain("{ search: phoneBrowseSearch, chips: phoneBrowseChips }");
   });

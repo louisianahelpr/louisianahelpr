@@ -26,7 +26,7 @@
  * @mutate src/components/JobsSectionSkeleton.tsx |       titleCard={header} | titleCard={<div className="flex flex-col gap-4">{header}<Skeleton className="h-10 w-full rounded-full" aria-hidden /></div>}
  * @mutate src/components/JobsSectionSkeleton.tsx |       {!titleInBar && <h1 className="sr-only">Jobs</h1>} |
  * @mutate src/components/JobsSectionSkeleton.tsx |               <Skeleton className="h-11 w-full rounded-full" />\n |
- * @mutate src/components/JobsSectionSkeleton.tsx | <JobsListLoadingFrame header={<JobsHeaderBones list />} | <JobsListLoadingFrame header={<JobsHeaderBones />}
+ * @mutate src/components/JobsSectionSkeleton.tsx |       <Skeleton className="h-11 w-full rounded-ds-md" /> |       {desktop && <Skeleton className="h-11 w-full rounded-ds-md" />}
  * @mutate src/components/JobsSectionSkeleton.tsx |           <div className="app-top-bar flex items-center justify-between gap-2 h-16"> |           <div className="app-top-bar flex items-center justify-between gap-2 h-12">
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -79,11 +79,11 @@ describe("the /jobs placeholder draws the tab the URL opens on", () => {
 });
 
 describe("the placeholder's header is the loaded header's shape", () => {
-  it.each([["/jobs", false], ["/jobs?tab=posted", true], ["/jobs?tab=working", true]] as const)("%s: the phone header's top row (the title, then the bell and the photo), the search row under it, no tabs row, the list's back row on Posted / Working, and a single h1", (url, list) => {
+  it.each(["/jobs", "/jobs?tab=posted", "/jobs?tab=working"] as const)("%s: the phone header's top row (the title, then the bell and the photo), the search row under it, the tabs row under that, no back row, and a single h1", (url) => {
     // One pattern (owner UI audit F148, 11-09): on a phone the top row is the title, then the bell and the photo, 64px
     // (AppTopBar's own h-16 row), and the section's search is its own 44px row right under it (app-top-bar-search,
-    // pb-2). No "+" (it floats: SectionCreateFab), no tabs row (Posted, Working and Jobs settings live in "My Jobs"
-    // under the photo). Posted / Working draw the 44px back row under the bar (SectionListBack) as a bone.
+    // pb-2). No "+" (it floats: SectionCreateFab). The Browse | Posted | Working tabs stay under the search on every
+    // tab (F152, owner audit 11-09), so every frame draws their 44px row and none draws a back row.
     const { container } = at(url);
     const bar = container.querySelector(".app-top-bar.h-16");
     expect(bar, "the top row's own h-16 box").not.toBeNull();
@@ -94,8 +94,9 @@ describe("the placeholder's header is the loaded header's shape", () => {
     const row = bar!.nextElementSibling;
     expect(row?.className, "the search row under the bar, 8px under it").toBe("pb-2 min-w-0");
     expect(row!.querySelectorAll(".h-11.w-full.rounded-full"), "the search bar's bone").toHaveLength(1);
-    expect(container.querySelectorAll(".h-11.w-full.rounded-ds-md"), "no tabs row on a phone").toHaveLength(0);
-    expect(container.querySelectorAll("[data-list-back-bone].h-11"), "the list's back row").toHaveLength(list ? 1 : 0);
+    expect(container.querySelectorAll(".h-11.w-full.rounded-ds-md"), "the tabs row on a phone").toHaveLength(1);
+    expect(row!.nextElementSibling?.className, "the tabs row right under the search").toContain("h-11 w-full rounded-ds-md");
+    expect(container.querySelectorAll("[data-list-back-bone]"), "no back row").toHaveLength(0);
     expect(container.querySelectorAll("h1")).toHaveLength(1);
   });
 });

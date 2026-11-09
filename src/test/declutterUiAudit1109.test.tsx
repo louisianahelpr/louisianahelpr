@@ -9,6 +9,7 @@
 // @mutate src/App.tsx |       <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} />\n |
 // @mutate src/components/declutter/DeclutterListingDefaults.tsx | `Lowers ${draft.dropPct}% each evening, never below your lowest price.` | `It drops ${draft.dropPct}% each evening, to a whole dollar, never below your lowest price.`
 // @mutate src/components/declutter/DeclutterListingDefaults.tsx | <ChipGroup label="Lowest price" | <ChipGroup label="Lowest you'll take"
+// @mutate src/components/declutter/ItemPickupBlock.tsx |   const others = cities.filter((c) => c && !same(c)); |   const others = cities.filter((c) => !!c);
 /**
  * Declutter findings from the UI audit of 11-09 (~/.lh-shots/ui-audit-1109, Builder 2). One describe per finding.
  */
@@ -25,6 +26,7 @@ import { guestSaveHref } from "@/lib/declutter/guestSave";
 import { wantedAskHref } from "@/lib/declutter/sellChooser";
 import { ListingChoiceFields } from "@/components/declutter/DeclutterListingDefaults";
 import { SELLER_DEFAULTS } from "@/lib/declutter/sellerDefaults";
+import { townsWords } from "@/components/declutter/ItemPickupBlock";
 import { SAVE_ITEM_REASON, SAVE_ITEM_SIGNUP_SUBTITLE, signupSubtitle } from "@/lib/jobIntent";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
@@ -98,6 +100,15 @@ describe("F125: the selling choices read in plain words", () => {
     expect(r.container.querySelector("[data-floor-words]")?.textContent).toMatch(/^Lowest price: 50% of your asking price\./);
     expect(text).not.toMatch(/to a whole dollar|Lowest you'll take|nothing to do with price drops/);
     r.unmount();
+  });
+});
+
+describe("F120: one pickup area (the top line names the item's area; Pickup names only a different town)", () => {
+  it("the item's own area is not repeated; other towns are named, with 'also' beside it", () => {
+    expect(townsWords(["New Iberia"], "New Iberia")).toBe("");
+    expect(townsWords(["New Iberia", "Delcambre"], "New Iberia")).toBe(" · also Delcambre");
+    expect(townsWords(["Delcambre"], "New Iberia")).toBe(" · Delcambre");
+    expect(townsWords(["new iberia "], "New Iberia")).toBe("");
   });
 });
 

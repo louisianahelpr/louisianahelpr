@@ -54,6 +54,18 @@ function orList(xs: string[]): string {
   return `${xs.slice(0, -1).join(", ")} or ${xs[xs.length - 1]}`;
 }
 
+/**
+ * F120 (UI audit 11-09, lead OK): the page's top line already names the item's area, so the pickup line names a town
+ * only where it differs: "" when the only town is the item's area, " · also Delcambre" when the places add towns to
+ * it, " · Delcambre" when none is the item's area.
+ */
+export function townsWords(cities: string[], areaLabel: string): string {
+  const same = (c: string) => c.trim().toLowerCase() === areaLabel.trim().toLowerCase();
+  const others = cities.filter((c) => c && !same(c));
+  if (others.length === 0) return "";
+  return cities.some(same) ? ` · also ${orList(others)}` : ` · ${orList(others)}`;
+}
+
 export function ItemPickupBlock({ itemId, sellerId, guest, porchOk, areaLabel, free, isSeller, showAddressNote, readTimes }: {
   itemId: string; sellerId: string; guest: boolean; porchOk: boolean; areaLabel: string; free: boolean; isSeller: boolean;
   /** DA-6: the member who already bought or claimed it gets no "after you pay" words. */
@@ -86,8 +98,9 @@ export function ItemPickupBlock({ itemId, sellerId, guest, porchOk, areaLabel, f
   const pickupUsual = plan.usual === "Pickup times" || plan.usual === "Pickup and meetup times" ? usualLine : "";
   const rows: { way: string; title: string; hours: string }[] = [];
   const porch = ticked === null ? porchOk : ticked.includes("porch");
-  if (porch) rows.push({ way: "porch", title: `${HANDOVER_TITLE.porch} · ${orList(cities)}`, hours: placeHours || pickupUsual });
-  if (ticked === null && !porchOk) rows.push({ way: "pickup_home", title: `${HANDOVER_TITLE.pickup_home} · ${orList(cities)}`, hours: pickupUsual });
+  const towns = townsWords(cities, areaLabel);
+  if (porch) rows.push({ way: "porch", title: `${HANDOVER_TITLE.porch}${towns}`, hours: placeHours || pickupUsual });
+  if (ticked === null && !porchOk) rows.push({ way: "pickup_home", title: `${HANDOVER_TITLE.pickup_home}${towns}`, hours: pickupUsual });
   if (ticked?.includes("meetup")) {
     const meetHours = plan.usual === "Meetup times" || plan.usual === "Pickup and meetup times" ? usualLine : "";
     rows.push({ way: "meetup", title: HANDOVER_TITLE.meetup, hours: [meetHours, "you pick the spot at checkout"].filter(Boolean).join(" · ") });

@@ -34,6 +34,8 @@ import {
   findSupportTopic,
   type SupportTopicKey,
   SUPPORT_REPLY_PROMISE,
+  supportFallbackPayload,
+  OLD_FUNCTION_TOPIC_REFUSAL,
 } from "@/lib/supportTopics";
 
 /**
@@ -266,18 +268,24 @@ const Support = () => {
     if (sending) return;
     setSuggestion(null);
     setSending(true);
-    const { data, error } = await supabase.functions.invoke("contact-support", {
-      body: {
-        // Guests supply these; for a signed-in sender the server overrides them
-        // from the profile, so sending blanks here is correct, not a gap.
-        name: identified ? "" : draft.name.trim(),
-        email: identified ? "" : draft.email.trim(),
-        topic: draft.topic,
-        subject: draft.subject.trim(),
-        // The server caps the message at MESSAGE_MAX; withBugReport keeps the block whole.
-        message: bugContext ? withBugReport(draft.message.trim(), bugContext, MESSAGE_MAX) : draft.message.trim(),
-      },
-    });
+    const body = {
+      // Guests supply these; for a signed-in sender the server overrides them
+      // from the profile, so sending blanks here is correct, not a gap.
+      name: identified ? "" : draft.name.trim(),
+      email: identified ? "" : draft.email.trim(),
+      topic: draft.topic,
+      subject: draft.subject.trim(),
+      // The server caps the message at MESSAGE_MAX; withBugReport keeps the block whole.
+      message: bugContext ? withBugReport(draft.message.trim(), bugContext, MESSAGE_MAX) : draft.message.trim(),
+    };
+    let { data, error } = await supabase.functions.invoke("contact-support", { body });
+    // F042: an older contact-support (before its deploy) refuses the topics added 11-09; send it once more under
+    // "message" with the topic's label in front of the subject, so the member's words still reach the team.
+    const fallback = supportFallbackPayload(body);
+    if (fallback && (error || data?.error)) {
+      const said = data?.error ?? (error ? await functionErrorMessage(error, "") : "");
+      if (said === OLD_FUNCTION_TOPIC_REFUSAL) ({ data, error } = await supabase.functions.invoke("contact-support", { body: fallback }));
+    }
     setSending(false);
 
     if (error || data?.error) {

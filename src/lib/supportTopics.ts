@@ -15,7 +15,8 @@
  * the authed path, the email subject for the guest path) so admins can
  * triage by scanning one column.
  *
- * FOUR topics — `other` stays (owner, 2026-08-31, asked directly).
+ * NINE topics since F042 (owner UI audit 11-09): the four below plus Declutter order, A job, Payments or payouts,
+ * Can't log in and Report someone. `other` stays (owner, 2026-08-31, asked directly).
  *
  * `other` IS largely redundant with `message`, and it is worth writing down
  * why, so nobody "cleans it up" again:
@@ -44,7 +45,11 @@
  * payloads keep validating.
  */
 
-export type SupportTopicKey = "message" | "suggestion" | "report" | "other";
+export type SupportTopicKey = "message" | "suggestion" | "report" | "other" | "declutter_order" | "job" | "payments" | "login" | "report_someone";
+
+/** F042: the topics added 11-09. An older contact-support (before its deploy) refuses them; the form then files the
+ *  message under "message" with the topic's label in front of the subject (supportFallbackPayload). */
+export const NEW_SUPPORT_TOPIC_KEYS: readonly SupportTopicKey[] = ["declutter_order", "job", "payments", "login", "report_someone"];
 
 export interface SupportTopic {
   key: SupportTopicKey;
@@ -93,6 +98,53 @@ export const SUPPORT_TOPICS: readonly SupportTopic[] = [
     submitLabel: "Report issue",
     reportLabel: "Issue Report",
   },
+  // F042 (owner UI audit 11-09; lead go-ahead 11-09): the most common reasons to write in had no topic. Each files
+  // under its own label (reportLabel, mirrored in supabase/functions/contact-support TOPIC_LABELS); "Other" stays.
+  {
+    key: "declutter_order",
+    label: "Declutter order",
+    description: "Something about an item you bought or sold",
+    messagePlaceholder: "Which item, and what happened?",
+    messageLabel: "Your message",
+    submitLabel: "Send message",
+    reportLabel: "Declutter Order",
+  },
+  {
+    key: "job",
+    label: "A job",
+    description: "Something about a job you posted or worked",
+    messagePlaceholder: "Which job, and what happened?",
+    messageLabel: "Your message",
+    submitLabel: "Send message",
+    reportLabel: "Job",
+  },
+  {
+    key: "payments",
+    label: "Payments or payouts",
+    description: "A charge, a refund or money on its way to you",
+    messagePlaceholder: "What payment is this about, and what did you expect?",
+    messageLabel: "Your message",
+    submitLabel: "Send message",
+    reportLabel: "Payments",
+  },
+  {
+    key: "login",
+    label: "Can't log in",
+    description: "Trouble getting into your account",
+    messagePlaceholder: "What happens when you try to log in?",
+    messageLabel: "Your message",
+    submitLabel: "Send message",
+    reportLabel: "Login",
+  },
+  {
+    key: "report_someone",
+    label: "Report someone",
+    description: "A member who broke the rules or made you feel unsafe",
+    messagePlaceholder: "Who is it, and what happened? Add their name or a link to their profile if you can.",
+    messageLabel: "Your message",
+    submitLabel: "Send report",
+    reportLabel: "Report Someone",
+  },
   {
     key: "other",
     label: "Other",
@@ -114,3 +166,19 @@ export const findSupportTopic = (
   key: string | null | undefined,
 ): SupportTopic | null =>
   SUPPORT_TOPICS.find((t) => t.key === key) ?? null;
+
+/**
+ * F042: while an older contact-support is still deployed (functions deploy on merge, a few minutes), it answers a new
+ * topic with 400 "Choose what your message is about." The form then sends the same message once more under "message",
+ * with the topic's label in front of the subject, so nothing a member wrote is lost. null for a topic the old function
+ * already knows.
+ */
+export function supportFallbackPayload<T extends { topic: string; subject: string }>(body: T): T | null {
+  const topic = findSupportTopic(body.topic);
+  if (!topic || !NEW_SUPPORT_TOPIC_KEYS.includes(topic.key)) return null;
+  // 120 = contact-support SUBJECT_MAX (review: the edge would otherwise cut the end of a long subject quietly).
+  return { ...body, topic: "message", subject: `[${topic.label}] ${body.subject}`.slice(0, 120) };
+}
+
+/** The old function's refusal of an unknown topic (contact-support/index.ts). */
+export const OLD_FUNCTION_TOPIC_REFUSAL = "Choose what your message is about.";

@@ -28,9 +28,14 @@
  * has a 44px tall tap area on a touch screen (pointer: coarse).
  * @mutate src/components/Footer.tsx | const FOOTER_LINK = "link-standard inline-flex items-center [@media(pointer:coarse)]:min-h-11"; | const FOOTER_LINK = "link-standard";
  * @mutate src/components/Footer.tsx |           <p className="text-ds-13 text-[hsl(var(--olivewood))]/80 max-w-xs | <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-xs
+ *
+ * F008: How a job works' "I need help / I want to work" switch had 11px labels. It uses SegmentedControl's 13px label
+ * size on the landing; every segment keeps the control's 44px row (h-11 min-h-11).
+ * @mutate src/components/landing/HowItWorksSection.tsx |             labelSize="md"\n |
+ * @mutate src/components/ui/SegmentedControl.tsx |               labelSize === "md" ? "text-ds-13" : "text-ds-11", |               "text-ds-11",
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -153,6 +158,21 @@ describe("landing UI audit 2026-11-09", () => {
     const tagline = [...container.querySelectorAll("footer p")].find((p) => /for Louisiana\.$/.test(p.textContent ?? ""))!;
     expect(tagline.className).toContain("text-ds-13");
     expect(container.innerHTML).not.toMatch(/<(ul|a)[^>]*text-ds-11/);
+    unmount();
+  });
+
+  it("F008: How a job works' side switch has 13px labels on a 44px row", async () => {
+    const { default: HowItWorksSection } = await import("@/components/landing/HowItWorksSection");
+    const { unmount } = render(<MemoryRouter><HowItWorksSection /></MemoryRouter>);
+    const tabs = within(screen.getByRole("tablist", { name: "Which side of Helpr are you on" })).getAllByRole("tab");
+    expect(tabs.map((t) => t.textContent)).toEqual(["I need help", "I want to work"]);
+    for (const t of tabs) {
+      const cls = t.className.split(" ");
+      expect(cls, t.textContent!).toContain("text-ds-13");
+      expect(cls, t.textContent!).not.toContain("text-ds-11");
+      expect(cls, t.textContent!).toContain("h-11");
+      expect(cls, t.textContent!).toContain("min-h-11");
+    }
     unmount();
   });
 

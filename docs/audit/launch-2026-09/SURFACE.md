@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 232 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1203 (across 346 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1213 (across 349 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 52 |
-| Multi-step flows — probable | flow | 33 |
+| Multi-step flows — probable | flow | 34 |
 | Back/next navigation only | flow | 71 |
-| Forms (submittable) | form | 132 |
+| Forms (submittable) | form | 133 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 187 |
 | Email templates | **exported template** | 23 |
 | Notification types (defined in notification_type_pref_map) | type | 26 |
-| **Navigable surfaces** (places a person can stand) | mixed | **829** |
-| **Copy surfaces** (strings a person may read) | mixed | **1252** |
-| **Total auditable surface** | mixed | **2081** |
+| **Navigable surfaces** (places a person can stand) | mixed | **831** |
+| **Copy surfaces** (strings a person may read) | mixed | **1262** |
+| **Total auditable surface** | mixed | **2093** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 232 | 130 | agree within method (script counts every menu instance) |
-| Forms | 132 | ~38 | agree |
+| Forms | 133 | ~38 | agree |
 | Confirmed multi-step flows | 52 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -509,6 +509,7 @@ A useState string-union of 2+ states. Some are real flows, some are display-stat
 | `src/components/profile/DeleteAccountReauth.tsx` | union-state |
 | `src/components/rentals/RentPanel.tsx` | union-state |
 | `src/components/schedule/ChangeJobSheet.tsx` | union-state |
+| `src/components/shops/ShopDigitalOrder.tsx` | union-state |
 | `src/components/shops/ShopOrderCancel.tsx` | union-state |
 | `src/components/TimeRangeField.tsx` | union-state |
 | `src/components/UserAvatar.tsx` | union-state |
@@ -702,6 +703,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/shops/ShopDailyCap.tsx` (dialog/mutation)
 - [ ] `src/components/shops/ShopDashboardView.tsx` (dialog/mutation)
 - [ ] `src/components/shops/ShopDeliveryPicker.tsx` (dialog/mutation)
+- [ ] `src/components/shops/ShopDigitalOrder.tsx` (dialog/mutation)
 - [ ] `src/components/shops/ShopEditView.tsx` (form tag)
 - [ ] `src/components/shops/ShopFaqsEditor.tsx` (form tag)
 - [ ] `src/components/shops/ShopHandoverActions.tsx` (dialog/mutation)

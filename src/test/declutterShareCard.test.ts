@@ -13,6 +13,13 @@
  * @mutate vercel.json |       "destination": "/api/share?_og=declutter&_id=:id" |       "destination": "/api/share?_og=page&_id=browse"
  * @mutate api/share.ts |   if (route.kind === "declutter") {\n    const seg = safeIdSegment(route.id); |   if (false) {\n    const seg = safeIdSegment(route.id);
  * @mutate api/share.ts |     ogTitle: clean(`${title} · ${price}`, 100), |     ogTitle: title,
+ *
+ * The owner's UI audit 11-09, F076: the card said "$15" (the seller's price) while the site shows buyers "$16.45 incl.
+ * fee", and its line said "pay in the app" on a website where a visitor can buy. It now shows the buyer's price
+ * (shareCardPrice.mjs, held equal to money.ts's buyNowTotalCents for every price up to $1,000) and "From a neighbor
+ * in <town> on Louisiana Helpr. Pick it up nearby."
+ * @mutate src/lib/declutter/shareCardPrice.mjs |   return priceCents + Math.round(priceCents * 0.05) + 70; |   return priceCents;
+ * @mutate api/share.ts |   const price = shareCardPriceLabel(item.price_cents); |   const price = `$${item.price_cents / 100}`;
  * @mutate api/share.ts |   if (!Number.isFinite(cents) \|\| cents <= 0) return "Free"; |   if (!Number.isFinite(cents)) return "Free";
  * @mutate api/share.ts |     url: `${SUPABASE_URL}/functions/v1/shop-photo?id=${id}&kind=declutter&w=1200&og=1`, |     url: `${SUPABASE_URL}/storage/v1/object/public/job-photos/${id}`,
  * @mutate supabase/functions/shop-photo/index.ts |       kind === "declutter"\n        ? await admin.rpc("declutter_public_photo_path", { p_photo_id: id }) |       false\n        ? await admin.rpc("declutter_public_photo_path", { p_photo_id: id })
@@ -26,6 +33,8 @@ import { resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { newestFunction } from "./helpers/parityReaders";
 import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
+import { buyNowTotalCents } from "@/lib/declutter/money";
+import { shareCardBuyNowCents, shareCardPriceLabel } from "@/lib/declutter/shareCardPrice.mjs";
 
 const read = (p: string) => readFileSync(resolve(p), "utf8");
 const code = (name: string) => blankSqlComments(newestFunction(name).body).replace(/\s+/g, " ");
@@ -97,8 +106,10 @@ describe("Q2426: the link preview (api/share.ts + vercel.json)", () => {
     const res = await page(ITEM);
     expect(res.headers.get("Vercel-CDN-Cache-Control")).toBe("public, s-maxage=60, stale-while-revalidate=60");
     const html = await res.text();
-    expect(html).toContain('<meta property="og:title" content="Oak rocking chair · $25"');
-    expect(html).toContain('<meta property="og:description" content="$25 · Mid-City, Baton Rouge.');
+    // $25.00 + 5% ($1.25) + 70c = $26.95, the buyer's price (F076).
+    expect(html).toContain('<meta property="og:title" content="Oak rocking chair · $26.95"');
+    expect(html).toContain('<meta property="og:description" content="From a neighbor in Mid-City, Baton Rouge on Louisiana Helpr. Pick it up nearby."');
+    expect(html).not.toMatch(/pay in the app/i);
     expect(html).toContain('<meta name="robots" content="noindex, follow"');
     expect(html).toContain(`<meta property="og:url" content="https://www.louisianahelpr.com/declutter/item/${ITEM}"`);
     expect(html).toContain(`<link rel="canonical" href="https://www.louisianahelpr.com/declutter/item/${ITEM}"`);
@@ -108,7 +119,7 @@ describe("Q2426: the link preview (api/share.ts + vercel.json)", () => {
     expect(html).not.toMatch(/job-photos(?:\/|%2F)[\w-]|storage\/v1\/object\/(?:public|sign|authenticated)\/[\w-]+\/[\w-]|storage\/v1\/render\/image\/(?:public|sign|authenticated)\/[\w-]+\/[\w-]/i);
     // Values only: still exactly one og:image tag (owner 10-31: no second, square one).
     expect(html.match(/<meta property="og:image" /g)?.length).toBe(1);
-    // Members never see fee numbers anywhere (owner rule): the card names no fee.
+    // The line names no fee: the price on the title is already the buyer's whole price.
     expect(html.match(/<meta property="og:description" content="([^"]*)"/)?.[1]).not.toMatch(/fee/i);
   });
 
@@ -116,10 +127,23 @@ describe("Q2426: the link preview (api/share.ts + vercel.json)", () => {
     answer = { title: "Kids' bike", price_cents: 0, area_label: "Lafayette", photo_id: null };
     let html = await (await page(ITEM)).text();
     expect(html).toContain('<meta property="og:title" content="Kids&#39; bike · Free"');
-    expect(html).toContain('<meta property="og:description" content="Free · Lafayette.');
-    answer = { title: "Lamp", price_cents: 1250, area_label: "Lafayette", photo_id: null };
+    expect(html).toContain('<meta property="og:description" content="From a neighbor in Lafayette on Louisiana Helpr. Pick it up nearby."');
+    // $12.50 + 5% (62.5c, rounded half up: 63c) + 70c = $13.83.
+    answer = { title: "Lamp", price_cents: 1250, area_label: null, photo_id: null };
     html = await (await page(ITEM)).text();
-    expect(html).toContain('<meta property="og:title" content="Lamp · $12.50"');
+    expect(html).toContain('<meta property="og:title" content="Lamp · $13.83"');
+    expect(html).toContain('<meta property="og:description" content="From a neighbor on Louisiana Helpr. Pick it up nearby."');
+  });
+
+  it("the card's buyer price is checkout's own rule (money.ts buyNowTotalCents) for every price up to $1,000", () => {
+    let checked = 0;
+    for (let cents = 1; cents <= 100_000; cents++) {
+      if (shareCardBuyNowCents(cents) !== buyNowTotalCents(cents)) throw new Error(`differs at ${cents} cents`);
+      checked++;
+    }
+    expect(checked).toBe(100_000);
+    expect(shareCardPriceLabel(1500)).toBe(`$${(buyNowTotalCents(1500) / 100).toFixed(2)}`);
+    expect(shareCardPriceLabel(0)).toBe("Free");
   });
 
   it("an item the card may not show, or a non-id path, is a noindex 'isn't available' card", async () => {

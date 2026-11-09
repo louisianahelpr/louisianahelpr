@@ -22,6 +22,8 @@ import { jobProgress } from "@/components/tracker/jobProgressState";
 import type { Job } from "@/components/job-card/activityConstants";
 import { jobNextStep } from "@/components/tracker/jobNextStep";
 import { nextStepWords } from "@/components/ui/NextStep";
+// F105: the poster's refund numbers come from one Receipts read (usePosterJobRefund); these cards render without it.
+vi.mock("@/hooks/usePosterJobRefund", () => ({ usePosterJobRefund: () => null }));
 
 const ago = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
 const job = (over: Record<string, unknown>): Job =>

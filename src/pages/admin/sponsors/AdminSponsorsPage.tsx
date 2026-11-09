@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { errorToast, successToast } from "@/lib/toast";
+import { report } from "@/lib/errorLogger";
 import { sponsorAdminBackend, type SponsorAdminBackend } from "./sponsorAdminApi";
 import type { SponsorAdminData, SponsorAdminSignup, SponsorStatus } from "@/lib/sponsor/types";
 import { sponsorPage as C } from "@/content/sponsorPage";
@@ -222,6 +223,7 @@ function SignupsView({ data, backend, run }: { data: SponsorAdminData; backend: 
       a.click();
       a.remove();
     } catch (e) {
+      report(e, { tags: { area: "sponsor_25days", action: "logo_download" } });
       errorToast("Couldn't get that logo.", { description: e instanceof Error ? e.message : undefined });
     }
   };
@@ -263,7 +265,7 @@ function SignupsView({ data, backend, run }: { data: SponsorAdminData; backend: 
                 <td className="px-2 py-2"><StatusSelect label={`Status for ${s.brand_name}`} value={s.status} onChange={(st) => run((b) => b.setStatus(s.id, st))} /></td>
                 <td className="px-2 py-2">
                   <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" aria-label={`Show ${s.brand_name} on the sponsor wall`} checked={s.show_on_wall} disabled={!s.wall_ok} onChange={(e) => run((b) => b.setWall(s.id, e.target.checked))} />
-                  {!s.wall_ok ? <div className="text-[11px] text-muted-foreground">no OK</div> : null}
+                  {!s.wall_ok ? <div className="text-ds-11 text-muted-foreground">no OK</div> : null}
                 </td>
                 <td className="px-2 py-2">{s.logo_path ? <Button size="sm" variant="outline" onClick={() => void getLogo(s.id)}>Download</Button> : "—"}</td>
                 <td className="px-2 py-2 text-xs">{fmt(s.created_at)}{s.ref_code ? <div className="text-muted-foreground">via {s.ref_code}</div> : null}</td>

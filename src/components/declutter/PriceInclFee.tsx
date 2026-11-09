@@ -21,6 +21,14 @@ function exactDollars(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+/**
+ * F050 (UI audit 11-09): a card link's spoken name, "Kinetic Sand Set, $3.85 incl. fee" ("Free" for a free item), so a
+ * screen reader names each card instead of reading "link". The same figure the card shows.
+ */
+export function cardLinkLabel(title: string, priceCents: number): string {
+  return `${title}, ${priceCents > 0 ? `${exactDollars(buyNowTotalCents(priceCents))} ${INCL_FEE_WORDS}` : "Free"}`;
+}
+
 export function PriceInclFee({
   priceCents,
   className = "block text-ds-12 font-medium leading-snug tabular-nums text-muted-foreground",

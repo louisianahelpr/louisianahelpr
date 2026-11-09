@@ -63,7 +63,7 @@ function PosterRequests({ focus, className }: { focus: boolean; className?: stri
     return (
       <Section title="Your quote requests" focus={focus} className={className}>
         <QuotesNotice title="You haven't asked for quotes yet">
-          Not sure what a job should cost? On Post a Job, pick Get quotes and local members send you their price.
+          Not sure what a job should cost? On Post a Job's Price step, pick Get quotes and local members send you their price.
         </QuotesNotice>
       </Section>
     );

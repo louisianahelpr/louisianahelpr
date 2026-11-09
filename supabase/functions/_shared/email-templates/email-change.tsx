@@ -28,8 +28,9 @@ export const EmailChangeEmail = ({
   newEmail,
   confirmationUrl,
 }: EmailChangeEmailProps) => (
-  <BaseLayout preheader="Confirm Your Email Change on Helpr">
-      <Heading className="e-h1" style={h1}>Confirm Your Email Change</Heading>
+  <BaseLayout preheader="Confirm your email change on Louisiana Helpr">
+      {/* Owner's message review 11-09, F159: sentence case. */}
+      <Heading className="e-h1" style={h1}>Confirm your email change</Heading>
       <Text className="e-text" style={text}>
         You requested to change your email from{' '}
         <Link href={`mailto:${email}`} className="e-accent" style={linkStyle}>
@@ -41,7 +42,7 @@ export const EmailChangeEmail = ({
         </Link>
         .
       </Text>
-      <BrandButton href={confirmationUrl} label="Confirm Email Change" />
+      <BrandButton href={confirmationUrl} label="Confirm the change" />
       <TransactionalFooter>
         If you didn't request this change, please secure your account immediately.
       </TransactionalFooter>

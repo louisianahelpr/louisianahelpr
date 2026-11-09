@@ -97,14 +97,14 @@ const Callout = ({ tone, body }: AdminActionCallout) => {
     tone === 'alert'
       ? { ...calloutInner, color: 'hsl(0,70%,45%)' }
       : { ...calloutInner, color: brand.bodyOlive }
-  // NO `e-text` class on these two boxes, deliberately. They set an explicit
-  // LIGHT background inline, which the dark-mode block cannot override; adding
-  // `e-text` would repaint the type light and leave light-on-light — the exact
-  // invisibility the dark palette exists to prevent. They stay light in both
-  // schemes, which is legible in both.
+  // NO `e-text` class on these two boxes, deliberately: `e-text` alone would repaint the type light on the light
+  // inline background. The NOTE box instead carries its own pair, `e-note` (dark background, !important beats the
+  // inline one) and `e-note-text` (light type), so in dark mode it is a dark box with light type, never a bright
+  // cream block on the dark card (owner's message review 11-09, F184). The red alert box stays light in both schemes.
+  const note = tone === 'note'
   return (
-    <Section style={boxed}>
-      <Text style={inner}>{renderLine(body)}</Text>
+    <Section className={note ? 'e-note' : undefined} style={boxed}>
+      <Text className={note ? 'e-note-text' : undefined} style={inner}>{renderLine(body)}</Text>
     </Section>
   )
 }

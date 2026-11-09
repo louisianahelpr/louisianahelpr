@@ -10,7 +10,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatShortDate } from "@/lib/format";
-import { refundedReceiptNote, spentRows } from "@/lib/posterSpend";
+import { CARD_COST_NOT_REFUNDED } from "@/lib/refundWords";
+import { jobRefundLines, refundedReceiptNote, spentRows } from "@/lib/posterSpend";
 import { usePosterSpendData } from "@/components/profile/earningsTab/usePosterSpendData";
 import { rowMs as spentRowMs } from "@/components/profile/earningsTab/SpentSection";
 import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers";
@@ -55,7 +56,14 @@ interface Receipt {
   feeWords?: boolean;
   /** The one-time account setup fee the card paid on top of the order (a first purchase), said in words under the total. */
   setupCents?: number;
+  /** F089: the amount's caption ("You paid") when the row is net of a refund, so the figure is never a bare number. */
+  amountCaption?: string;
+  /** Where the opened receipt links (a Declutter order: the Buying list). */
+  detailLink?: { to: string; label: string };
+  /** A plain line under the breakdown (owner 2026-11-09: why a part-refunded job kept some of the charge). */
+  detailNote?: string;
 }
+
 
 /** A Declutter order this member paid for (RLS: the two sides read). */
 export interface PaidOrderRow {
@@ -108,6 +116,7 @@ export function orderReceipts(
         lines,
         feeWords,
         setupCents: setup,
+        detailLink: { to: "/declutter?view=buying", label: "See the order" },
       };
     });
 }
@@ -174,12 +183,17 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
     for (const r of spentRows(jobs, refunds, gifts, tips, blockFees)) {
       // AUD31-55 (lead decision 10-31): a job refunded in full stays, "Refunded in full", at its $0 net.
       if (r.cents <= 0 && !r.refundedInFull) continue;
+      const refundLines = r.job ? jobRefundLines(r) : undefined;
       receipts.push({
         key: r.job ? `job-${r.job.id}` : `tip-${r.tip?.id}`,
         title: r.job ? r.job.title ?? "Job" : "Tip",
         ms: spentRowMs(r),
         cents: r.cents,
         note: `${r.job?.status === "cancelled" ? " · Cancelled" : ""}${refundedReceiptNote(r)}`,
+        lines: refundLines,
+        amountCaption: refundLines ? "You paid" : undefined,
+        // Only when nobody was owed for their time: a late cancel keeps the Helpr's part too, said on the cancel screen.
+        detailNote: refundLines && !(Number(r.job?.cancellation_fee ?? 0) > 0) ? CARD_COST_NOT_REFUNDED : undefined,
       });
     }
   }
@@ -212,7 +226,10 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
                     <span className="block text-ds-14 font-semibold truncate" style={ink}>{r.title}</span>
                     <span className="block text-ds-12 mt-0.5" style={quiet}>{r.ms ? formatShortDate(new Date(r.ms)) : ""}{r.note}</span>
                   </span>
-                  <span className="shrink-0 font-bold tabular-nums text-ds-15" style={rust}>{r.cents == null ? "Refunded" : formatCents(r.cents)}</span>
+                  <span className="shrink-0 text-right">
+                    {r.amountCaption && <span className="block text-ds-12" style={quiet} data-receipt-amount-caption="">{r.amountCaption}</span>}
+                    <span className="block font-bold tabular-nums text-ds-15" style={rust}>{r.cents == null ? "Refunded" : formatCents(r.cents)}</span>
+                  </span>
                 </>
               );
               if (!r.lines) return <li key={r.key} className="py-3 flex items-center justify-between gap-3">{row}</li>;
@@ -230,12 +247,13 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
                           <div key={l.label} className="flex justify-between gap-3"><dt style={quiet}>{l.label}</dt><dd className="tabular-nums" style={ink}>{formatCents(l.cents)}</dd></div>
                         ))}
                         {r.cents != null && (
-                          <div className="flex justify-between gap-3 font-semibold"><dt style={ink}>Total</dt><dd className="tabular-nums" style={ink}>{formatCents(r.cents)}</dd></div>
+                          <div className="flex justify-between gap-3 font-semibold"><dt style={ink}>{r.amountCaption ?? "Total"}</dt><dd className="tabular-nums" style={ink}>{formatCents(r.cents)}</dd></div>
                         )}
                       </dl>
+                      {r.detailNote && <p className="text-ds-12" style={quiet} data-receipt-detail-note="">{r.detailNote}</p>}
                       {r.feeWords && <p className="text-ds-12" style={quiet}>Includes a small Louisiana Helpr service fee.</p>}
                       {!!r.setupCents && <p className="text-ds-12" style={quiet} data-receipt-setup-fee="">Includes the one-time {formatCents(r.setupCents)} account setup fee.</p>}
-                      <Link to="/declutter?view=buying" className="link-standard text-ds-13 font-medium">See the order</Link>
+                      {r.detailLink && <Link to={r.detailLink.to} className="link-standard text-ds-13 font-medium">{r.detailLink.label}</Link>}
                     </div>
                   )}
                 </li>

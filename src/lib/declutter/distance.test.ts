@@ -2,11 +2,14 @@
  * Declutter Browse: nearest first, area + miles only (rows 5, 27).
  *
  * @mutate src/lib/declutter/distance.ts |   if (approximate) return `About ${Math.max(1, Math.round(miles))} mi away`; |   if (false) return `About ${Math.max(1, Math.round(miles))} mi away`;
- * @mutate src/lib/declutter/distance.ts |     .sort((x, y) => (x.miles as number) - (y.miles as number)); |     ;
+ * @mutate src/lib/declutter/distance.ts |     .sort((x, y) => (x.miles as number) - (y.miles as number) \|\| tie(x.item, y.item)); |     ;
  * @mutate src/lib/declutter/distance.ts |     .filter((r) => maxMiles === null \|\| (r.miles as number) <= maxMiles) |     .filter(() => true)
  * @mutate src/lib/declutter/distance.ts |   if (miles > MAX_SHOWN_MILES) return null; |   if (miles > 1e9) return null;
  */
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { blankComments } from "@/test/helpers/blankNonCode";
 import { MAX_SHOWN_MILES, formatPrice, milesBetween, milesLabel, nearestFirst } from "./distance";
 
 // Baton Rouge (30.45, -91.15), New Orleans (29.95, -90.07), Lafayette (30.22, -92.02).
@@ -33,6 +36,42 @@ describe("Declutter nearest first (rows 5, 27)", () => {
     const rows = nearestFirst(items, null, 5);
     expect(rows.map((r) => r.item.id)).toEqual(["nola", "laf", "br"]);
     expect(rows.every((r) => r.miles === null)).toBe(true);
+  });
+
+  // F205 (UI audit 11-09): a tie (one coarse point, one live_at) is drawn in the cold load's first answer's order
+  // whichever read it came from, so the full list replacing that answer moves no card.
+  // @mutate src/lib/declutter/distance.ts | (x.miles as number) - (y.miles as number) \|\| tie(x.item, y.item) | (x.miles as number) - (y.miles as number)
+  // @mutate src/lib/declutter/distance.ts |     return rx - ry; |     return 0;
+  // @mutate src/components/declutter/DeclutterBrowseView.tsx | nearestFirst(others, from, from ? maxMiles : null, firstOrder) | nearestFirst(others, from, from ? maxMiles : null)
+  it("a tie at one spot is newest first, then in the first answer's order, whatever order the read returned", () => {
+    const at = "2026-11-08T17:28:13.691+00:00";
+    const spot = { area_lat: 30.21, area_lng: -92.03 };
+    const tie = [
+      { id: "c", live_at: at, ...spot },
+      { id: "a", live_at: at, ...spot },
+      { id: "new", live_at: "2026-11-09T10:00:00+00:00", ...spot },
+      { id: "b", live_at: at, ...spot },
+      { id: "not-in-first", live_at: at, ...spot },
+    ];
+    const reversed = [...tie].reverse();
+    const first = new Map(["b", "c", "a"].map((id, n) => [id, n]));
+    const near = { lat: 30.45, lng: -91.15 };
+    const want = ["new", "b", "c", "a", "not-in-first"];
+    expect(nearestFirst(tie, near, null, first).map((r) => r.item.id)).toEqual(want);
+    expect(nearestFirst(reversed, near, null, first).map((r) => r.item.id)).toEqual(want);
+    expect(nearestFirst(tie, null, null, first).map((r) => r.item.id)).toEqual(want);
+    expect(nearestFirst(reversed, null, null, first).map((r) => r.item.id)).toEqual(want);
+    // No first answer: newest first, and a full tie keeps the order it came in (the server's, when it IS the answer).
+    expect(nearestFirst(tie, near, null).map((r) => r.item.id)).toEqual(["new", "c", "a", "b", "not-in-first"]);
+    // Distance still comes first: a nearer item leads whatever its age.
+    const nearer = { id: "z-old", live_at: "2026-01-01T00:00:00+00:00", area_lat: 30.45, area_lng: -91.15 };
+    expect(nearestFirst([...tie, nearer], near, null, first)[0].item.id).toBe("z-old");
+  });
+
+  it("Browse hands nearestFirst the first answer's order (the preview it shows while the full list loads)", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "../../components/declutter/DeclutterBrowseView.tsx"), "utf8"));
+    expect(src).toContain("new Map(capped.items.map((it, n) => [String(it.id), n]))");
+    expect(src).toContain("nearestFirst(others, from, from ? maxMiles : null, firstOrder)");
   });
 
   it("labels and prices in plain words", () => {

@@ -1,6 +1,6 @@
 import { lazy, Suspense, forwardRef, useState, type ComponentType, type ReactElement, type ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { RoutedBoundary } from "@/components/RoutedBoundary";
 import { lazyWithPreload } from "@/lib/lazyWithPreload";
 // Q1816: every lazy piece mounted beside the routes (outside RoutedBoundary) fails quietly; guard chromeLaziesFailQuietly.
@@ -296,6 +296,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember fallback={<DeclutterRouteSkeleton />}><DeclutterPage /></DeclutterGuestOrMember>, <DeclutterRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/move" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterMovePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* F130 (UI audit 11-09): the obvious address for a new Wanted post was a 404. It opens the Wanted composer
+          (wantedAskHref(""), the same address Browse's "Post what you're looking for" uses). */}
+      <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} />
       <Route path="/declutter/settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSettingsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/item/:id" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember><DeclutterItemPage /></DeclutterGuestOrMember>)}</RouteErrorBoundary>} />
       <Route path="/quotes" element={routeEl(<QuotesHubRedirect />)} />

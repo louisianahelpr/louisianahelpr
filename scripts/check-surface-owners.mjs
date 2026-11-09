@@ -115,6 +115,8 @@ const OWNERS = {
   "/declutter/sell": ["lh-long-tail-features", "lh-input-boundary"],
   "/declutter/move": ["lh-long-tail-features", "lh-input-boundary"],
   "/declutter/settings": ["lh-long-tail-features", "lh-input-boundary"],
+  // F130 (UI audit 11-09): a redirect into the Wanted composer (/declutter?tab=wanted&post=1).
+  "/declutter/wanted/new": ["lh-long-tail-features"],
   "/declutter/item/:id": ["lh-long-tail-features", "lh-trust-safety"],
   // Quotes on jobs (hidden switch 'quotes', created off).
   "/quotes": ["lh-long-tail-features"],

@@ -229,7 +229,10 @@
     <meta property="og:description" content="Hire a Helpr or find local work. For everyday jobs, big and small — Louisiana's trusted marketplace." />
     <!-- === SOCIAL PREVIEW IMAGES — the centring is load-bearing ===
          og-image.png is 1200×630 (1.91:1, the Open Graph standard) with the
-         wrought-iron H mark DEAD CENTRE on the #F4F2EE canvas. Centre placement is
+         wrought-iron H mark, "Louisiana Helpr" (Bodoni Moda) and "Louisiana's local
+         partner." (Montserrat) DEAD CENTRE on the brand's #F7F5F1 canvas, all three
+         inside the central 630×630 square (owner's UI audit 11-09, F075: the mark
+         alone on grey said nothing). Centre placement is
          not styling: every consumer crops this file to its own aspect ratio from
          the centre, so the mark survives all of them — 1.91:1 (Facebook/LinkedIn,
          no crop at all), 2:1 (Twitter/X summary_large_image, trims 15px top and
@@ -243,13 +246,12 @@
          to 624×624 and reproducing the exact thumbnail.
 
          Rules that follow from that, for anyone regenerating this art:
-           • Keep text OUT of the central 630×630 square, or omit text entirely
-             (og:title already renders as the card headline right beneath the image,
-             so a wordmark baked into the picture is redundant anyway).
+           • Keep any text INSIDE the central 630×630 square (the 11-09 art's name
+             and line are 580px and 370px wide), so a square crop never slices it.
            • Never go wider than 1.91:1 again — the extra width is pure crop bait.
            • Anything that must never be clipped belongs inside that centre square.
 
-         The ?v=h2 query is a deliberate cache bust, not a stray. Facebook, Slack,
+         The ?v=h3 query (h2 until the 11-09 art) is a deliberate cache bust, not a stray. Facebook, Slack,
          LinkedIn and Apple's LinkPresentation each cache a scraped og:image against
          its full URL for weeks, independent of Cache-Control, so reusing the bare
          /og-image.png path would have kept serving the clipped "Help" tile to
@@ -265,7 +267,7 @@
          card. Guard: src/test/oneShareImagePerPage.test.ts. Keep
          og:image:type/width/height/alt immediately after the og:image, since Open
          Graph binds structured sub-properties to the preceding parent by position. -->
-    <meta property="og:image" content="https://www.louisianahelpr.com/og-image.png?v=h2" />
+    <meta property="og:image" content="https://www.louisianahelpr.com/og-image.png?v=h3" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -283,7 +285,7 @@
     <!-- Deliberately the WIDE banner, not the square: summary_large_image crops to
          2:1, so handing it the 1024×1024 square would shave the top and bottom off
          the H. The banner's centred mark survives that crop untouched. -->
-    <meta name="twitter:image" content="https://www.louisianahelpr.com/og-image.png?v=h2" />
+    <meta name="twitter:image" content="https://www.louisianahelpr.com/og-image.png?v=h3" />
     <meta name="twitter:image:alt" content="The Helpr mark — an ornate wrought-iron letter H with a fleur-de-lis at its centre" />
 
     <!-- Site-wide structured data, served statically so non-JS crawlers

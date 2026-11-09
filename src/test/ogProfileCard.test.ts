@@ -9,7 +9,7 @@
  *  - the renderer stays server-only: nothing under src/ (outside this module and tests) imports it, satori or resvg.
  *
  * @mutate api/share.ts |     image: profileCardImage(typeof card.handle === "string" && HANDLE_RE.test(card.handle) ? card.handle : handle, card, name), |     image: undefined,
- * @mutate api/share.ts |     url: ogProfileImageUrl(SITE_ORIGIN, handle, card), |     url: `${SITE_ORIGIN}/og-image.png?v=h2`,
+ * @mutate api/share.ts |     url: ogProfileImageUrl(SITE_ORIGIN, handle, card), |     url: `${SITE_ORIGIN}/og-image.png?v=h3`,
  * @mutate src/lib/ogProfileCard.mjs |   const s = [l.name, l.town, l.rating, l.facts, l.skills, | const s = [l.name, l.town,
  * @mutate src/lib/ogProfileCard.mjs |   if (avatarUrl.slice(0, prefix.length) !== prefix) return null; |
  * @mutate api/og-profile.ts |       if (!HANDLE_RE.test(handle)) return fallback(); |
@@ -111,7 +111,7 @@ describe("the branded /u link card (api/og-profile.ts + api/share.ts)", () => {
     answer = null;
     for (const res of [await ogFetch("nobody-here")]) {
       expect(res.status).toBe(302);
-      expect(res.headers.get("location")).toBe("https://www.louisianahelpr.com/og-image.png?v=h2");
+      expect(res.headers.get("location")).toBe("https://www.louisianahelpr.com/og-image.png?v=h3");
       expect(res.headers.get("vercel-cdn-cache-control")).toBeNull();
     }
     rpcStatus = 500;
@@ -122,7 +122,7 @@ describe("the branded /u link card (api/og-profile.ts + api/share.ts)", () => {
     for (const h of ["x", "../etc", "a".repeat(31), `lexi-l${" ".repeat(80)}`, "lexi_l"]) {
       const r = await ogFetch(h, null);
       expect(r.status, h).toBe(302);
-      expect(r.headers.get("location"), h).toBe("https://www.louisianahelpr.com/og-image.png?v=h2");
+      expect(r.headers.get("location"), h).toBe("https://www.louisianahelpr.com/og-image.png?v=h3");
     }
     expect(fetched.length).toBe(before);
   }, 30_000);

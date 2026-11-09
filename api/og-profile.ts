@@ -48,7 +48,7 @@ export const OG_PROFILE_CDN_CACHE = "public, s-maxage=300, stale-while-revalidat
 /** No handle is longer than 30 characters (profiles_handle_format); a longer query is refused before any work. */
 const MAX_HANDLE_PARAM = 64;
 /** Where every miss goes: the shell's own 1200x630 brand card (index.html og:image), the size share.ts declares. */
-export const OG_PROFILE_FALLBACK = "/og-image.png?v=h2";
+export const OG_PROFILE_FALLBACK = "/og-image.png?v=h3";
 
 /** Brand tokens (src/index.css): parchment ground, olivewood text, sage accent. */
 const PARCHMENT = "#F4F2EE";

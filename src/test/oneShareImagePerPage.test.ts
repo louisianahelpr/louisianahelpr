@@ -10,7 +10,7 @@
  * those still carry exactly one og:image (counted there).
  *
  * @mutate index.html |     <meta property="og:site_name" content="Louisiana Helpr" /> |     <meta property="og:image" content="https://www.louisianahelpr.com/og-image-square.png" />\n    <meta property="og:image:width" content="1024" />\n    <meta property="og:image:height" content="1024" />\n    <meta property="og:site_name" content="Louisiana Helpr" />
- * @mutate index.html |     <meta name="twitter:image" content="https://www.louisianahelpr.com/og-image.png?v=h2" /> |     <meta name="twitter:image" content="https://www.louisianahelpr.com/og-image-square.png" />
+ * @mutate index.html |     <meta name="twitter:image" content="https://www.louisianahelpr.com/og-image.png?v=h3" /> |     <meta name="twitter:image" content="https://www.louisianahelpr.com/og-image-square.png" />
  * @mutate api/share.ts |     ...(card ? { image: { url: `${SITE_ORIGIN}${card.path}`, type: "image/png", width: 1200, height: 630, alt: card.alt } } : {}), |     ...(card ? { image: { url: `${SITE_ORIGIN}${card.path}`, type: "image/png", width: 1024, height: 1024, alt: card.alt } } : {}),
  * @mutate scripts/build-og-shell.mjs |   if (!IMAGE_ORDER_GUARD.test(html) \|\| ogImageCount !== 1) { |   if (!IMAGE_ORDER_GUARD.test(html)) {
  */

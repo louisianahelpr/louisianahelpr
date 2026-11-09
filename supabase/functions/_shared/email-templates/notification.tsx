@@ -47,7 +47,63 @@ export interface NotificationEmailProps {
   unsubscribeUrl?: string
   /** The button's words, naming where it goes (notificationActionLabel). */
   actionLabel?: string
+  /**
+   * A receipt's breakdown under the message (F179, owner's message review 11-09: a Declutter receipt showed one total
+   * and no item, fee, delivery or pickup). Display only: each line is a figure the order already recorded.
+   */
+  receipt?: EmailReceipt
 }
+
+/** A receipt's lines ([label, amount]), its total line, and an optional note under it (the pickup time). */
+export interface EmailReceipt {
+  lines: Array<[string, string]>
+  total: [string, string]
+  note?: string
+}
+
+const receiptCell = { padding: '4px 0', fontSize: '15px', color: brand.bodyOlive, lineHeight: '1.5' }
+
+/**
+ * One receipt line: label left, amount right. Each line is its own one-row table, so the plain-text part (react-email's
+ * html-to-text, which runs a row's cells together) puts every line on its own line; the hidden ": " gives
+ * "Service fee: $1.30" there and is never seen in the HTML.
+ */
+const ReceiptRow = ({ label, amount, total = false }: { label: string; amount: string; total?: boolean }) => {
+  const cell = total ? { ...receiptCell, borderTop: `1px solid ${brand.hairline}`, paddingTop: '8px' } : receiptCell
+  const words = (t: string) => (total ? <strong style={{ color: brand.inkDeep }}>{t}</strong> : t)
+  return (
+    <table role="presentation" width="100%" cellPadding={0} cellSpacing={0} style={{ borderCollapse: 'collapse' }}>
+      <tbody>
+        <tr>
+          <td className={total ? 'e-text e-rule' : 'e-text'} style={cell}>
+            {words(label)}
+            <span style={{ display: 'none', fontSize: 0, lineHeight: 0, maxHeight: 0, overflow: 'hidden' }}>: </span>
+          </td>
+          <td className={total ? 'e-text e-rule' : 'e-text'} style={{ ...cell, textAlign: 'right', whiteSpace: 'nowrap', paddingLeft: '12px' }}>
+            {words(amount)}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  )
+}
+
+/** The breakdown: its lines, a hairline, the total, then the note (the pickup time). */
+const ReceiptBlock = ({ receipt }: { receipt: EmailReceipt }) => (
+  <>
+    <div style={{ margin: '0 0 12px' }}>
+      {receipt.lines.map(([label, amount]) => (
+        <ReceiptRow key={label} label={label} amount={amount} />
+      ))}
+      <ReceiptRow label={receipt.total[0]} amount={receipt.total[1]} total />
+    </div>
+    {receipt.note ? (
+      <Text className="e-text" style={textStyle}>
+        {receipt.note}
+      </Text>
+    ) : null}
+  </>
+)
 
 /** Body sign-off. NOT a sender identity — the From header is FROM_DEFAULT. */
 const SIGNOFF = NOTICE_SIGNOFF
@@ -61,6 +117,7 @@ export const NotificationEmail = ({
   host,
   unsubscribeUrl,
   actionLabel = 'Open Louisiana Helpr',
+  receipt,
 }: NotificationEmailProps) => (
   <BaseLayout
     preheader={`${title} — open Louisiana Helpr for the details.`}
@@ -91,6 +148,7 @@ export const NotificationEmail = ({
     <Text className="e-text" style={textStyle}>
       {keepNumberUnitsTogether(message)}
     </Text>
+    {receipt ? <ReceiptBlock receipt={receipt} /> : null}
     <BrandButton href={actionUrl} label={actionLabel} widthPx={230} />
     <Text className="e-text" style={{ ...textStyle, fontSize: '14px', margin: '28px 0 4px' }}>
       — {SIGNOFF}

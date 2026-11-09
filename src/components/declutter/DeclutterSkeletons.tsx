@@ -14,6 +14,7 @@
  * the page's data will land. The 404 for a member without the switch still
  * comes after the switch's answer, never a flash of it for a tester.
  */
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ import { useScreenfulBelow } from "@/hooks/useScreenfulBelow";
  * tabs any more. The bone for one stayed: the body started 43px lower than the page that replaced it
  * ("row 672px -> 715px", the header region 140px -> 97px).
  */
-export function DeclutterHomeSkeleton() {
+export function DeclutterHomeSkeleton({ guestJoin }: { guestJoin?: ReactNode } = {}) {
   const desktop = useIsWebDesktop();
   const map = desktop && safeStorage.getItem("helpr.declutterMapVisible") !== "0";
   return (
@@ -45,18 +46,32 @@ export function DeclutterHomeSkeleton() {
       globalSearch={false}
       // Phone (owner 11-08, the Vinted header): the search bar's bone in the bar, the chips' bones under it.
       search={desktop ? undefined : <Skeleton className="h-11 w-full rounded-full" aria-hidden />}
-      tabs={desktop ? (
-        <Skeleton className="h-11 w-full rounded-ds-md" aria-hidden />
-      ) : (
-        <div className="flex gap-2 overflow-hidden" aria-hidden>
-          <Skeleton className="h-11 w-14 shrink-0 rounded-full" />
-          <Skeleton className="h-11 w-32 shrink-0 rounded-full" />
-          <Skeleton className="h-11 w-36 shrink-0 rounded-full" />
-        </div>
-      )}
+      tabs={desktop ? <Skeleton className="h-11 w-full rounded-ds-md" aria-hidden /> : <DeclutterChipBones />}
     >
+      {/* Q2705 (11-09): index.html's copy of this frame carries a guest's sign-up line where Browse draws it (above the
+          cards), hidden unless index.html's guest script marks <html> data-lh-declutter-guest, so a guest's drawn
+          photos sit where Browse's land (262px at 375, not 116px). The app never passes it. */}
+      {guestJoin && <div data-lh-guest-join="" style={{ display: "none" }}>{guestJoin}</div>}
       <DeclutterBrowseBones map={map} full={desktop && !map} />
     </SectionScreen>
+  );
+}
+
+/**
+ * The phone's category chips while Browse loads (Q2705, 11-09): the chips' own box (DeclutterBrowseView's pb-2 row
+ * around DeclutterCategoryChips' pb-1 row of 40px chips), so the first cards start where Browse puts them (124px at
+ * 375, not 116px) and the header does not grow when the chips arrive (CLS 0.062 at 375 on 11-09, the cards moving
+ * 56px down). index.html draws this frame with the first photos in it, and they must not jump either.
+ */
+export function DeclutterChipBones() {
+  return (
+    <div className="pb-2" aria-hidden data-declutter-chip-bones="">
+      <div className="flex gap-2 overflow-hidden pb-1">
+        <Skeleton className="h-10 w-14 shrink-0 rounded-full" />
+        <Skeleton className="h-10 w-32 shrink-0 rounded-full" />
+        <Skeleton className="h-10 w-36 shrink-0 rounded-full" />
+      </div>
+    </div>
   );
 }
 
@@ -128,7 +143,9 @@ export function DeclutterBrowseBones({ map = false, full = false }: { map?: bool
       {[0, 1, 2, 3].map((i) => (
         <li key={i} className="min-w-0">
           <Skeleton className="aspect-square w-full rounded-2xl bg-photo-empty" />
-          <div className="space-y-1.5 px-0.5 pt-2">
+          {/* The card's text block is 110px at 375 (DeclutterItemCard: price, fee, title, condition, town, how), so the
+              second row lands where Browse's does (Q2705, 11-09). */}
+          <div className="h-[110px] space-y-1.5 px-0.5 pt-2">
             <Skeleton className="h-4 w-14" />
             <Skeleton className="h-3.5 w-4/5" />
             <Skeleton className="h-3 w-3/5" />

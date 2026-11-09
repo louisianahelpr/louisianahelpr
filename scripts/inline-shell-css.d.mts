@@ -12,3 +12,4 @@ export function selectorNeeded(sel: string, docs: Document[]): boolean;
 export function shellCriticalCss(shellHtml: string | readonly { html: string; htmlAttr: string }[], css: string): string;
 export function inlineShellCss(html: string, css: string): { html: string; bytes: number };
 export const DECLUTTER_PHOTO_MARKUP: string;
+export const DECLUTTER_GUEST_JOIN_RULE: string;

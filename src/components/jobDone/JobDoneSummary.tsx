@@ -15,6 +15,7 @@ import { transferredCents, type TransferRow } from "@/lib/jobDonePay";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { bookAgainLabel, bookAgainLink } from "@/lib/bookAgain";
 import SaveHelperButton from "@/components/SaveHelperButton";
+import { paidWaitsOnBankLine, useHelprPayoutWaitsOnBank } from "@/hooks/useHelprTakesTips";
 
 /**
  * The top of the Job done screen (boards 35 poster / 36 Helpr), under the
@@ -107,6 +108,10 @@ export function JobDoneSummary({
   const before = job?.proof_before_urls?.[0] ?? "";
   const after = job?.proof_after_urls?.[0] ?? "";
   const [beforeSrc, afterSrc] = useProofPhotoUrls([before, after]);
+  // F108: a released job whose Helpr has no bank yet never says "on its way to their bank".
+  const waitsOnBank = useHelprPayoutWaitsOnBank(
+    side === "poster" && job?.payment_status === "released" && !job.is_group_job ? job.helper_id : null,
+  );
 
   if (!job) return null;
 
@@ -160,7 +165,7 @@ export function JobDoneSummary({
           </div>
           <p className="font-sans text-ds-12 mt-0.5" style={{ color: MONEY }}>
             {job.payment_status === "released"
-              ? (job.is_group_job ? "It's on its way to their banks." : "It's on its way to their bank.")
+              ? (job.is_group_job ? "It's on its way to their banks." : waitsOnBank ? paidWaitsOnBankLine(waitsOnBank.firstName || firstName) : "It's on its way to their bank.")
               : job.payout_scheduled_at
                 ? `${job.is_group_job ? "Your crew's" : `${firstName}'s`} pay is scheduled to go out ${formatPayoutTime(job.payout_scheduled_at)}.`
                 : `${job.is_group_job ? "Your crew's" : `${firstName}'s`} pay goes out with the next payout.`}

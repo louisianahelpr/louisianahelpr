@@ -115,6 +115,8 @@ vi.mock("@/hooks/useProofPhotoUrls", () => ({
   useProofPhotoUrls: (values: readonly string[]) => values.map((v) => `https://signed.example/${v}`),
 }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => state.owed }));
+// F108: the released line reads the Helpr's payout readiness (get_safe_profiles); posterMoneyAfterRelease.test covers it.
+vi.mock("@/hooks/useHelprTakesTips", async (orig) => ({ ...(await orig<typeof import("@/hooks/useHelprTakesTips")>()), useHelprPayoutWaitsOnBank: () => null }));
 // Q2701: the refunded-amount read (payment_refunds); covered by src/test/refundSaidOnce.test.tsx and lateCancelByPosterSaysTheMoney.test.tsx.
 vi.mock("@/hooks/useJobRefundedCents", () => ({ useJobRefundedCents: () => null }));
 // The poster's confirm-arrival write (src/lib/posterArrival.ts), shared with the Posted card; F14 checks the page calls it.

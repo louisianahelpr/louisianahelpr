@@ -27,7 +27,7 @@ const LandingAppleButton = lazy(() => import("./LandingAppleButton"));
  */
 const COPY: Record<SectionKey, string> = {
   jobs: "Hire local help, or find work nearby. Your payment is held until the work is done.",
-  declutter: "Sell to neighbors or find a deal. Offers and checkout happen in the app.",
+  declutter: "Sell to neighbors or find a deal. Offers and checkout are built in.",
   shops: "Shop Louisiana makers, or open your own shop. Orders and payments in one place.",
   homes: "Rent from local owners, or list a home you own, in the app you already use.",
 };

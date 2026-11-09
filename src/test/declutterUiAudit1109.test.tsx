@@ -1,4 +1,5 @@
 // @mutate src/components/declutter/DeclutterItemCard.tsx |       aria-label={cardLinkLabel(item.title, item.current_price_cents)}\n |
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts | Meet at a safe spot (a public place, no home address shared), | pickup at the seller's door,
 /**
  * Declutter findings from the UI audit of 11-09 (~/.lh-shots/ui-audit-1109, Builder 2). One describe per finding.
  */
@@ -8,6 +9,9 @@ import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { ItemCard } from "@/components/declutter/DeclutterItemCard";
+import { HANDOVER_TITLE } from "@/components/declutter/handoverCopy";
+import { OTHER_WAYS } from "@/lib/declutter/browseFilters";
+import { FAQ_SECTIONS } from "@/pages/info/helpCenter/helpCenterContent";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 const SRC = resolve(__dirname, "..");
@@ -41,5 +45,16 @@ describe("F050: every Declutter card link has a name (title and the price the ca
       .filter((f) => /<ItemCard\b/.test(blankComments(readFileSync(f, "utf8"))));
     expect(users.length).toBeGreaterThan(1);
     expect(users.some((f) => f.endsWith("DeclutterItemRows.tsx"))).toBe(true);
+  });
+});
+
+describe("F054: Help names the same ways to get an item as the Filters", () => {
+  const filterWays = ["porch" as const, ...OTHER_WAYS].map((w) => HANDOVER_TITLE[w]);
+  it("the Filters offer porch pickup plus the other ways (the inventory)", () => {
+    expect(filterWays.length).toBeGreaterThan(2);
+  });
+  it("Help's 'How do I get the item?' names every way the Filters offer, in the Filters' words", () => {
+    const a = FAQ_SECTIONS.flatMap((s) => s.items).find((i) => i.q === "How do I get the item?")?.a ?? "";
+    for (const w of filterWays) expect(a).toContain(w);
   });
 });

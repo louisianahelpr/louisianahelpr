@@ -15,6 +15,7 @@ import { seriesSummary } from "@/lib/format";
 import { InstantBookingCard } from "@/components/jobs/InstantBookingCard";
 import { useFeature } from "@/hooks/useFeature";
 import { declineUntilClock } from "@/lib/instantBook";
+import { StickyActionBar } from "@/components/ui/StickyActionBar";
 
 interface OfferedActionsProps {
   app: AppliedApp;
@@ -24,6 +25,9 @@ interface OfferedActionsProps {
   /** On the job page (PageOfferPanel): no side padding of its own, so the pair lines up with the page's buttons
    *  (Q2601, Jobs audit 1102b row 15). The Working card keeps its 16 px inset from the card's edge. */
   flush?: boolean;
+  /** On the job page (owner pick 11-08, JP2): Decline | Accept are the page's sticky action bar (fixed on a phone's
+   *  bottom edge, in the card wider), like every other stage's buttons. The Working card keeps them in the card. */
+  sticky?: boolean;
 }
 
 /**
@@ -55,12 +59,12 @@ function InstantOfferedActions(props: OfferedActionsProps & { declineUntil: stri
   if (!instantBookOn) return <GenericOfferedActions {...props} />;
   return (
     <div className={props.flush ? "py-3" : "px-4 py-3"} onClick={(e) => e.stopPropagation()}>
-      <InstantBookingCard jobId={props.job.id} title={props.job.title} declineUntil={props.declineUntil} />
+      <InstantBookingCard jobId={props.job.id} title={props.job.title} declineUntil={props.declineUntil} sticky={props.sticky} />
     </div>
   );
 }
 
-function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperAppId, flush }: OfferedActionsProps) {
+function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperAppId, flush, sticky = false }: OfferedActionsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const busy = respondingHelperAppId === app.id;
   // Which button was pressed: only that one says "Accepting…" / "Declining…" (audit 2026-10-28 F6:
@@ -290,12 +294,14 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
           <p className="text-ds-10 mt-0.5 leading-snug">{pendingStatus.body}</p>
         </div>
       )}
-      {isExpired ? null : (
-      <div className="flex gap-2 pt-1">
+      {isExpired ? null : (() => {
+        const pair = (
+          <>
+
         <Button
-          size="sm"
+          size={sticky ? "wrap" : "sm"}
           variant="outline"
-          className="flex-1"
+          className={sticky ? "flex-1 rounded-full" : "flex-1"}
           disabled={busy}
           aria-busy={busy}
           onClick={() => setConfirmOpen(true)}
@@ -308,8 +314,8 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
         </Button>
         <Button
           variant="primary"
-          size="sm"
-          className="flex-1"
+          size={sticky ? "wrap" : "sm"}
+          className={sticky ? "flex-1 rounded-full" : "flex-1"}
           disabled={busy}
           aria-busy={busy}
           data-offer-primary="accept"
@@ -320,8 +326,12 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
         >
           <CheckCircle2 className="w-4 h-4 hidden min-[360px]:block" aria-hidden /> {acceptLabel}
         </Button>
-      </div>
-      )}
+          </>
+        );
+        return sticky
+          ? <StickyActionBar label="Answer the offer" data-job-bar="offer" spacer={false}>{pair}</StickyActionBar>
+          : <div className="flex gap-2 pt-1">{pair}</div>;
+      })()}
       <BrandConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}

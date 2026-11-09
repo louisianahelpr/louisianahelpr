@@ -499,7 +499,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
         <aside aria-label={t("jobPage.side")} data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start lg:[[data-job-main]:empty+&]:col-start-1 lg:[[data-job-main]:empty+&]:col-span-2">
           <section data-job-card="" className={`${CARD} space-y-4 p-4 empty:hidden lg:p-5`}>
             {/* CMP-4: the booked Helpr's card, the same one the Working offer card shows (InstantBookingCard). */}
-            {!isPoster && instantUntil && <InstantBookingCard jobId={job.id} title={job.title} declineUntil={instantUntil} />}
+            {!isPoster && instantUntil && <InstantBookingCard jobId={job.id} title={job.title} declineUntil={instantUntil} sticky />}
             {viewer.status && !(!isPoster && instantUntil) && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}
             {/* Owner 2026-11-01: the other person's card sits ABOVE the buttons. */}
             {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && <HiredHelpr helprId={job.helper_id} />}

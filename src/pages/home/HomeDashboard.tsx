@@ -412,7 +412,7 @@ function HomeDashboardScreen() {
                     className="max-w-full gap-1.5 rounded-full px-3.5 text-ds-13 font-semibold tracking-normal"
                   >
                     <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                    <span className="truncate">
+                    <span className="truncate" title={line ? `${s.label} · ${line}` : s.label}>
                       {s.label}
                       {line && <span data-tile-line className="font-normal text-muted-foreground"> · {line}</span>}
                     </span>

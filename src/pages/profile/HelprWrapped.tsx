@@ -124,9 +124,11 @@ async function fetchWrappedStats(userId: string, firstPayoutFee = 0): Promise<Wr
 
   const shown = await shownIdsPromise;
   // A failed id read counts as a failed received-reviews read (never the unfiltered rows: that was the leak).
+  // The response is spread, so its status rides along with the error (queryReadsThrowThroughUnwrap: never a bare
+  // { data, error } that drops it).
   const reviewsReceivedRes = shown.error
-    ? { data: null, error: shown.error as NonNullable<typeof reviewsReceivedRaw.error> }
-    : { data: (reviewsReceivedRaw.data ?? []).filter((r) => shown.ids.has(r.id)), error: reviewsReceivedRaw.error };
+    ? { ...reviewsReceivedRaw, data: null, error: shown.error as NonNullable<typeof reviewsReceivedRaw.error> }
+    : { ...reviewsReceivedRaw, data: (reviewsReceivedRaw.data ?? []).filter((r) => shown.ids.has(r.id)) };
 
   for (const [label, res] of [
     ["posted", postedRes],

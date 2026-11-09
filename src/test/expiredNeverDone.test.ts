@@ -28,7 +28,7 @@ const FLAG = "2026-10-25T22:35:01Z";
 const expired = {
   id: "375000de", status: "cancelled", helper_id: null, cancelled_by: null, poster_marked_done_at: FLAG,
   cancellation_reason: `${EXPIRED_LISTING_REASON_PREFIX} — scheduled time passed with no Helpr assigned`,
-  payment_status: "refunded", date_needed: "2026-10-24",
+  payment_status: "refunded", date_needed: "2024-10-24",
 };
 const posterCancelled = { ...expired, id: "x", cancelled_by: "poster-1", cancellation_reason: "Changed my mind" };
 

@@ -2,10 +2,12 @@ import { useEffect, useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { goSignedInOr } from "./goSignedInOr";
 import { heroSearchTargets } from "./heroSearch";
 import { useHeroWords } from "./useHeroWords";
 import { removeLandingShellOncePainted } from "./landingShell";
+import { setLandingMode, useLandingMode } from "./landingMode";
 
 /**
  * Hero (owner-approved landing redesign 2026-10-20; option B 2026-10-23): Bodoni
@@ -29,12 +31,17 @@ const HeroSection = () => {
   const es = useHeroWords();
   // B100: index.html drew this hero before the app loaded (#lh-landing-shell); take that copy away once this one is painted.
   useEffect(() => removeLandingShellOncePainted(), []);
+  // F012 (owner's UI audit 11-09): Jobs | Declutter tabs above the search, sharing one choice with the switch under the
+  // hero (landingMode.ts), so picking Declutter in either turns both.
+  const mode = useLandingMode();
+  const declutter = mode === "declutter";
+  const searchLabel = declutter ? (es ? es.searchDeclutter : "Search Declutter") : es ? es.searchLabel : "Search local jobs";
 
   // Search: a signed-out visitor gets the public Jobs board with the words;
   // a signed-in one gets Jobs > Browse with them (heroSearch.ts).
   const search = (e: React.FormEvent) => {
     e.preventDefault();
-    const t = heroSearchTargets(query);
+    const t = heroSearchTargets(query, mode);
     void goSignedInOr(navigate, t.signedIn, t.signedOut);
   };
 
@@ -66,14 +73,28 @@ const HeroSection = () => {
               {es ? es.subhead : "Hire help or find work. One account, real neighbors."}
             </p>
 
+            <div className="mt-8 lg:mt-10 w-full max-w-[240px]" data-testid="landing-search-tabs">
+              <SegmentedControl
+                options={[
+                  { value: "jobs", label: es ? es.tabJobs : "Jobs" },
+                  { value: "declutter", label: "Declutter" },
+                ]}
+                value={mode}
+                onChange={(next) => setLandingMode(next)}
+                ariaLabel="What to search"
+                tone="quiet"
+                labelSize="md"
+              />
+            </div>
+
             <form
               onSubmit={search}
               role="search"
               aria-label="Search Helpr"
-              className="landing-search mt-8 lg:mt-10 w-full max-w-xl lg:max-w-[640px] text-left flex items-center gap-1.5 p-1.5"
+              className="landing-search mt-3 w-full max-w-xl lg:max-w-[640px] text-left flex items-center gap-1.5 p-1.5"
               data-testid="landing-search"
             >
-              <label htmlFor={inputId} className="sr-only">{es ? es.searchLabel : "Search local jobs"}</label>
+              <label htmlFor={inputId} className="sr-only">{searchLabel}</label>
               <div className="landing-search-field flex-1 min-w-0 flex items-center gap-2.5 pl-4 lg:pl-5 pr-1 h-12 lg:h-[52px]">
                 <Search className="hidden sm:block w-[18px] h-[18px] lg:w-5 lg:h-5 shrink-0" aria-hidden style={{ color: "var(--lp-muted)" }} />
                 <input
@@ -84,7 +105,7 @@ const HeroSection = () => {
                   maxLength={80}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder={es ? es.searchLabel : "Search local jobs"}
+                  placeholder={searchLabel}
                   className="w-full min-w-0 bg-transparent outline-none text-ds-16 lg:text-ds-17 placeholder:text-[color:var(--lp-muted)] placeholder:opacity-70"
                   style={{ color: "var(--lp-ink)" }}
                 />

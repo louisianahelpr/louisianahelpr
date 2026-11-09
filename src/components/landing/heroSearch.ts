@@ -14,9 +14,12 @@ function searchTerm(raw: string): string {
   return raw.replace(/\s+/g, " ").trim().slice(0, SEARCH_MAX);
 }
 
-export function heroSearchTargets(raw: string): { signedIn: string; signedOut: string } {
+export function heroSearchTargets(raw: string, mode: "jobs" | "declutter" = "jobs"): { signedIn: string; signedOut: string } {
   const q = searchTerm(raw);
   const qs = q ? `?${new URLSearchParams({ [SEARCH_PARAM]: q }).toString()}` : "";
+  // F012 (owner's UI audit 11-09): with the hero's Declutter tab picked, the words search Declutter, signed in or out
+  // (/declutter is open to guests; browseFilters.ts reads ?q=).
+  if (mode === "declutter") return { signedIn: `/declutter${qs}`, signedOut: `/declutter${qs}` };
   // Signed in, words go to /search (board 89: every section at once); an
   // empty box still opens Jobs. Signed out, the public Jobs board as before.
   return { signedIn: q ? `/search${qs}` : "/jobs", signedOut: `/browse${qs}` };

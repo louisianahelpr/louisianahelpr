@@ -102,9 +102,10 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
 
   // Owner 11-08 (the Vinted header): a bar that carries the section's search names the page with a visually hidden h1
   // instead (still the page's one h1); every other bar keeps the visible title, Dashboard's `search={null}` included.
-  it("3. on a phone the top bar is the section's visible title (the page's one h1), or a hidden h1 beside the search, with no chips row", () => {
+  it("3. on a phone the top bar is the section's visible title (the page's one h1), the search its own row under the bar (F148, owner audit 11-09), with no chips row", () => {
     const bar = code("src/components/sections/AppTopBar.tsx");
-    expect(bar).toMatch(/<header className="app-top-bar [^"]*"[^>]*>\s*\{slim && search \? \(\s*<>\s*\{title && <h1 className="sr-only">\{title\}<\/h1>\}\s*<div className="min-w-0 flex-1">\{search\}<\/div>\s*<\/>\s*\) : title \? \(\s*<h1 className="min-w-0 truncate text-page-title text-foreground" title=\{title\}>\{title\}<\/h1>/);
+    expect(bar).toMatch(/<header className="app-top-bar [^"]*"[^>]*>\s*\{title \? \(\s*<h1 className="min-w-0 truncate text-page-title text-foreground" title=\{title\}>\{title\}<\/h1>/);
+    expect(bar).toMatch(/<\/header>\s*\{search && <div data-testid="app-top-bar-search" className="pb-2 min-w-0">\{search\}<\/div>\}/);
     expect(bar).not.toMatch(/<ExploreSwitcher/);
   });
 

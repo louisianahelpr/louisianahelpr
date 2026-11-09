@@ -16,8 +16,10 @@ const NAV_KEYS: Record<string, MsgKey> = {
   "/rentals": "nav.homes",
 };
 
-/** "/profile" reads "You" in the dock and rail ("Profile" elsewhere). */
+/** "/profile" reads "You" in the dock and rail ("Profile" elsewhere); "/home" reads "Home" in the phone dock (F146)
+ *  and "Dashboard" on the rail. */
 export function navKey(path: string, label: string): MsgKey | null {
+  if (path === "/home" && label === "Home") return "nav.dockHome";
   if (path === "/profile") return label === "You" ? "nav.you" : "nav.profile";
   return NAV_KEYS[path] ?? null;
 }

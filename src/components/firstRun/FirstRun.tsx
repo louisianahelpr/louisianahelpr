@@ -29,14 +29,14 @@ export const FIRST_RUN_OPTIONS: { id: Pick; title: string; sub: string; section:
   { id: "deal", title: "Find a good deal", sub: "Local items from your neighbors", section: "declutter" },
 ];
 
-/** Where each coach mark points: the phone first, then the desktop sidebar. Since the nav redesign (owner
- *  2026-11-06) the phone's "+" and Messages are in the top bar, and the sections are bottom-bar tabs (Explore's
- *  mark points at Jobs there; a badge makes its name "3 Jobs", hence the suffix match). */
+/** Where each coach mark points: the phone first, then the desktop sidebar. Since F146/F148 (owner audit 11-09) the
+ *  phone's Messages is a bottom-bar tab and its create is Dashboard's floating "+ Create" pill; the sections are
+ *  bottom-bar tabs (Explore's mark points at Jobs there; a badge makes a name "3 Jobs", hence the suffix matches). */
 const TARGETS = {
-  home: ['nav[aria-label="Bottom navigation"] button[aria-label="Dashboard"]', '[data-sidebar-item="/home"]'],
-  create: ['[data-testid="top-bar-create"]', '[data-testid="sidebar-create"]'],
+  home: ['nav[aria-label="Bottom navigation"] button[aria-label="Home"]', '[data-sidebar-item="/home"]'],
+  create: ['[data-testid="section-create-fab"]', '[data-testid="sidebar-create"]'],
   explore: ['nav[aria-label="Bottom navigation"] button[aria-label$="Jobs"]', '[data-sidebar-item="/explore"]'],
-  messages: ['[data-testid="top-bar-messages"]', '[data-sidebar-item="/messages"]'],
+  messages: ['nav[aria-label="Bottom navigation"] button[aria-label$="Messages"]', '[data-sidebar-item="/messages"]'],
 } as const;
 type Target = keyof typeof TARGETS;
 

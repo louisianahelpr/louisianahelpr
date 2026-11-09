@@ -10,11 +10,12 @@
  *          to-do count; the photo wears a dot while any has one.
  *   Sell: a floating "+ Sell" pill above the bottom bar.
  * The desktop website keeps its row. Shots: ~/.lh-shots/b1-declutter-header/.
+ * F146/F148 (owner UI audit 11-09) changed row 1 for every section: the page's title shows on the left with the bell
+ * and the photo on the right, and the search is its own full-width row right under the bar; Messages is a bottom-bar
+ * tab, so it left the bell. The rest (My Declutter, the chips, the + Sell pill) stands.
  *
- * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && !slim && <PhoneMessagesButton />} |       {user && !isWebDesktop && <PhoneMessagesButton />}
- * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && !slim && <PhoneCreateButton />} |       {user && !isWebDesktop && <PhoneCreateButton />}
- * @mutate src/components/sections/AppTopBar.tsx |  withMessages={slim} /> |  />
- * @mutate src/components/sections/AppTopBar.tsx |               {title && <h1 className="sr-only">{title}</h1>}\n |
+ * @mutate src/components/sections/AppTopBar.tsx |         {search && <div data-testid="app-top-bar-search" className="pb-2 min-w-0">{search}</div>} | {null}
+ * @mutate src/components/sections/AppTopBar.tsx | <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> | <h1 className="sr-only">{title}</h1>
  * @mutate src/components/sections/AppTopBar.tsx |           onClick={() => { if (mine) { setMineAsked(true); setMineOpen(true); } else navigate("/profile"); }} |           onClick={() => navigate("/profile")}
  * @mutate src/components/sections/AppTopBar.tsx |           {mineToDo > 0 && <span data-top-bar-badge="mine" | {false && <span data-top-bar-badge="mine"
  * @mutate src/components/sections/sectionMine.ts | (i.count && i.count > 0 ? i.count : 0) | 0
@@ -80,17 +81,19 @@ const MINE: SectionMineMenu = {
   settings: { label: "Declutter settings", to: "/declutter/settings" },
 };
 
-describe("row 1: the search, the bell and the photo; the page's name is a hidden h1", () => {
-  it("the bar carries the search; the bell holds Messages; no Messages button and no '+'", () => {
+describe("row 1: the title, the bell and the photo; the search is the row under it (F148)", () => {
+  it("the bar shows the title; the search sits right under it; no Messages button and no '+'", () => {
     render(<MemoryRouter><AppTopBar title="Declutter" explore section="declutter" search={<input aria-label="Search Declutter" />} mine={MINE} /></MemoryRouter>);
     const bar = screen.getByTestId("app-top-bar");
-    expect(screen.getByRole("heading", { level: 1, name: "Declutter" }).className).toContain("sr-only");
-    expect(bar.contains(screen.getByRole("textbox", { name: "Search Declutter" }))).toBe(true);
+    expect(screen.getByRole("heading", { level: 1, name: "Declutter" }).className).not.toContain("sr-only");
+    const row = screen.getByTestId("app-top-bar-search");
+    expect(row.contains(screen.getByRole("textbox", { name: "Search Declutter" }))).toBe(true);
+    expect(bar.contains(row)).toBe(false);
+    expect(bar.nextElementSibling).toBe(row);
     expect(screen.queryByTestId("top-bar-messages")).toBeNull();
     expect(screen.queryByTestId("top-bar-create")).toBeNull();
-    const bell = screen.getByRole("button", { name: /^Notifications and messages/ });
     // The bar's buttons, in order: the bell, then the photo. Nothing else.
-    expect(Array.from(bar.querySelectorAll("button")).map((b) => b.getAttribute("data-testid") ?? b.getAttribute("aria-label"))).toEqual([bell.getAttribute("aria-label"), "top-bar-profile"]);
+    expect(Array.from(bar.querySelectorAll("button")).map((b) => b.getAttribute("data-testid") ?? b.getAttribute("aria-label"))).toEqual(["Notifications", "top-bar-profile"]);
   });
 
   it("the photo opens My Declutter: every list with its to-do count, the settings and the profile; a dot while any has a count", async () => {
@@ -116,11 +119,12 @@ describe("row 1: the search, the bell and the photo; the page's name is a hidden
     expect(photo.querySelector('[data-top-bar-badge="mine"]')).toBeNull();
   });
 
-  it("every other bar keeps its visible title, Messages and the '+' (one section changed, not all)", () => {
+  it("every other bar is the same one pattern: visible title, the bell, the photo, no search row without a search (F148)", () => {
     render(<MemoryRouter><AppTopBar title="Jobs" explore section="jobs" /></MemoryRouter>);
     expect(screen.getByRole("heading", { level: 1, name: "Jobs" }).className).not.toContain("sr-only");
-    expect(screen.getByTestId("top-bar-messages")).toBeInTheDocument();
-    expect(screen.getByTestId("top-bar-create")).toBeInTheDocument();
+    expect(screen.queryByTestId("top-bar-messages")).toBeNull();
+    expect(screen.queryByTestId("top-bar-create")).toBeNull();
+    expect(screen.queryByTestId("app-top-bar-search")).toBeNull();
     expect(screen.getByRole("button", { name: /^Notifications$/ })).toBeInTheDocument();
   });
 

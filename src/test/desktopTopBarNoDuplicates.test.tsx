@@ -5,14 +5,12 @@
  * bells (dashboards build run 4 shot 21-home-1440-light.png). On web-desktop
  * the bar keeps the section title and the section's soft "+ Post a job" (owner
  * 2026-10-28, topBarAddMatchesBell), and on Home draws nothing; on a phone it is
- * the title or logo, then the bell, Messages, the "+" and the avatar (owner nav redesign 2026-11-06; Help is in
- * You). Messages and the phone "+" are phone-only: the desktop rail has Messages and "+ Create".
+ * the title or logo, then the bell and the avatar (owner UI audit F148, 2026-11-09: one pattern; Help is in You).
+ * Messages is a bottom-bar tab and the create is the floating pill (F146/F148), so neither is on the bar.
  *
  * @mutate src/components/sections/AppTopBar.tsx |   if (isWebDesktop && !title) return null; |
  * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && (\n      <span data-testid="top-bar-bell"> |       {user && true && (\n      <span data-testid="top-bar-bell">
  * @mutate src/components/sections/AppTopBar.tsx |         {user && !isWebDesktop && showProfile && ( |         {user && showProfile && (
- * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && !slim && <PhoneMessagesButton />} |       {user && !slim && <PhoneMessagesButton />}
- * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && !slim && <PhoneCreateButton />} |       {user && !slim && <PhoneCreateButton />}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -36,13 +34,13 @@ const draw = (el: JSX.Element) =>
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter>{el}</MemoryRouter></QueryClientProvider>);
 
 describe("the section top bar never repeats the desktop header (Q2221)", () => {
-  it("phone: a section and Dashboard both show the bell, Messages, the + and the avatar (Dashboard: the logo too)", () => {
+  it("phone: a section and Dashboard both show the bell and the avatar, nothing else (Dashboard: the logo too; F148)", () => {
     draw(<AppTopBar title="Jobs" />);
-    expect(labels()).toEqual(["Notifications", "Messages", "Create", "Profile, TP"]);
+    expect(labels()).toEqual(["Notifications", "Profile, TP"]);
     cleanup();
     draw(<AppTopBar />);
     expect(screen.getByTestId("app-top-bar")).toBeTruthy();
-    expect(labels()).toEqual(["Notifications", "Messages", "Create", "Profile, TP"]);
+    expect(labels()).toEqual(["Notifications", "Profile, TP"]);
   });
 
   it("desktop: a section keeps its title and its soft '+ Post a job' (no second bell, no avatar)", () => {

@@ -29,11 +29,12 @@ const DashboardRouteSkeleton = () => (
     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top">
       <div className="container mx-auto px-4 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden" aria-hidden>
         <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-hidden px-3 -mx-3 pb-safe-nav">
-          {/* AppTopBar on Dashboard (the Vinted header, owner 11-08; design audit A D1): the search bar left; the bell (which
-              holds Messages) and the avatar right, each a 44px control ("+ Create" floats over the page). */}
+          {/* AppTopBar on Dashboard (one pattern, owner UI audit F148 11-09): the logo left (h-8 emblem); the bell and the
+              avatar right, each a 44px control; then the search as its own 44px row with 8px under it ("+ Create"
+              floats over the page). */}
           <div className="app-top-bar flex items-center justify-between gap-2 h-16">
-            <Skeleton className="h-11 min-w-0 flex-1 rounded-full" />
-            <div className="flex items-center gap-0.5 shrink-0">
+            <Skeleton className="h-8 w-8 rounded-ds-md" />
+            <div className="flex items-center gap-1 shrink-0">
               <span className="h-11 w-11 flex items-center justify-center">
                 <Skeleton className="h-6 w-6 rounded-full" />
               </span>
@@ -41,6 +42,9 @@ const DashboardRouteSkeleton = () => (
                 <Skeleton className="w-9 h-9 rounded-full" />
               </span>
             </div>
+          </div>
+          <div className="pb-2 min-w-0">
+            <Skeleton className="h-11 w-full rounded-full" />
           </div>
           <div className="flex min-h-full flex-col gap-4 pt-1 pb-6">
             <div className="flex flex-col gap-section">

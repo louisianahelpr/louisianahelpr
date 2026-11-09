@@ -69,9 +69,9 @@ const FRESH_MOBILE_LCP = new Map<string, (number | null)[]>();
 /** A tap's own jump (page-settle's cold-load budget) and the session's (Speed Insights' GOOD). */
 const WALK_HOP_CLS = 0.02;
 const WALK = ["Posts", "Jobs", "Messages", "Profile", "@Earnings", "Jobs", "Home"] as const;
-/** The phone since the nav redesign (owner 2026-11-06): the bottom bar is Dashboard, Jobs, Declutter, Shops, Homes;
- *  Messages and You are on the top bar ("^" = a top-bar control by its data-testid). */
-const WALK_PHONE = ["Jobs", "^top-bar-messages", "^top-bar-profile", "@Earnings", "Declutter", "Dashboard"] as const;
+/** The phone since F146 (owner audit 2026-11-09): the bottom bar is Home, Jobs, Declutter, Messages, You ("^" = a
+ *  top-bar control by its data-testid; You is also the top bar's photo, walked here as before). */
+const WALK_PHONE = ["Jobs", "Messages", "^top-bar-profile", "@Earnings", "Declutter", "Home"] as const;
 
 type ProfileName = "mobile" | "desktop";
 type Metric = "fcp" | "lcp";

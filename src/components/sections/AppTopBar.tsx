@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, type ReactNode } from "react";
-import { MessageSquare, Plus, Settings } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import { mineToDoCount, type SectionMineMenu } from "./sectionMine";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/notificationPanel/NotificationBell";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -11,11 +11,7 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { Button } from "@/components/ui/button";
 import { PageTitleBar } from "@/components/header/PageTitleBar";
 import { sectionByKey, type SectionKey } from "./sectionsConfig";
-import { useSharedUnreadCount } from "@/components/mobileNav/navUnreadStore";
-import { setCreateSheetOpen, useCreateSheetOpen } from "@/components/mobileNav/createSheetStore";
-import { hapticMedium } from "@/lib/haptics";
 import { useLanguage } from "@/lib/i18n/language";
-import { useSectionIsOn } from "./ExploreSwitcher";
 import type { MsgKey } from "@/lib/i18n/en";
 import { avatarButtonLabel } from "@/lib/avatarImage";
 
@@ -27,10 +23,6 @@ const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center btn-press text-muted
 
 /** The soft create look (the light olive tint, the olive glyph) of the desktop "+ Post a job". */
 const SECTION_ADD_TINT = "rounded-full shadow-none bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] ctl-tint-on-tint";
-
-/** The phone top bar's "+": the light green fill with its inset ring and the primary green plus (owner 2026-11-06,
- *  the approved mock-up; tokens --create-tint / --create-tint-ring, a deep green pair in dark). */
-const PHONE_CREATE_TINT = "rounded-full shadow-[inset_0_0_0_1.5px_hsl(var(--create-tint-ring))] bg-[hsl(var(--create-tint))] text-[hsl(var(--bark))] hover:bg-[hsl(var(--create-tint))]";
 
 /** The section's soft "+ Post a job" (etc.) for the DESKTOP bar; the /jobs loading frame draws the same one so the bar
  *  does not change when the page settles (src/test/sectionLoadingHeaderIsSettled.test.tsx). */
@@ -62,99 +54,12 @@ export function SectionAddButton({ section }: { section: SectionKey }) {
   );
 }
 
-/** What the phone top bar's "+" makes, read from the route: a section's own create, or ("sheet") the Create sheet,
- *  which is Dashboard's and every screen's outside a section (owner 11-06: the + is on every screen). */
-function phoneCreateTarget(pathname: string): SectionKey | "sheet" {
-  if (pathname.startsWith("/jobs") || pathname.startsWith("/posts")) return "jobs";
-  if (pathname.startsWith("/declutter")) return "declutter";
-  if (pathname.startsWith("/shops")) return "shops";
-  if (pathname.startsWith("/rentals")) return "homes";
-  return "sheet";
-}
-
 /**
- * THE PHONE "+" (owner, nav redesign 2026-11-06): it left the bottom bar's centre for the top bar, per section. On
- * Jobs it posts a job, on Declutter it sells, on Shops and Homes it is their own create (sectionsConfig `add`), and on
- * Dashboard, on a section closed to the viewer, and on every other screen it opens the Create sheet ("What are we
- * doing?"). It wears PHONE_CREATE_TINT (owner 2026-11-06: "light green background with the primary green plus"; the
- * approved mock-up's light green fill and inset ring). Guard: src/test/centerCreateNav.test.tsx.
- */
-function PhoneCreateButton() {
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const gate = useAgeGate();
-  const { t: tr } = useLanguage();
-  const isOn = useSectionIsOn();
-  const routeTarget = phoneCreateTarget(pathname);
-  // A section closed to this viewer (its screen says "Opens soon") never routes into itself: the "+" opens the Create
-  // sheet, whose row for it is the greyed "Coming soon" (lead 11-06, from the 375 shots).
-  const target = routeTarget !== "sheet" && !isOn(sectionByKey(routeTarget)) ? "sheet" : routeTarget;
-  const add = target === "sheet" ? null : sectionByKey(target).add;
-  const isPost = add?.path === "/post-job";
-  const sheetOpen = useCreateSheetOpen();
-  const make = () => {
-    hapticMedium();
-    if (add) navigate(add.path);
-    else setCreateSheetOpen((o) => !o);
-  };
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="iconCompact"
-      aria-label={add ? add.label : tr("nav.create")}
-      {...(add ? {} : { "aria-haspopup": "dialog" as const, "aria-expanded": sheetOpen })}
-      data-testid="top-bar-create"
-      data-create-target={target}
-      onClick={isPost ? gate.gate("post", make) : make}
-      {...(isPost ? gate.gatedProps("post") : {})}
-      className={`${PHONE_CREATE_TINT} [&>svg]:w-[22px] [&>svg]:h-[22px]`}
-    >
-      <Plus aria-hidden />
-    </Button>
-  );
-}
-
-/** Messages, with its unread badge, beside You (owner, nav redesign 2026-11-06: it left the bottom bar). */
-function PhoneMessagesButton() {
-  const navigate = useNavigate();
-  const { user } = useCurrentUser();
-  // READ ONLY: MobileNav (on every phone page with this bar) fills the shared store; this never opens one.
-  const unreadCount = useSharedUnreadCount(user?.id);
-  const { t: tr } = useLanguage();
-  const n = unreadCount > 9 ? "9+" : String(unreadCount);
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="iconCompact"
-      // WCAG 2.5.3: the count first, then the word, as the dock's badge did ("3 Messages").
-      aria-label={unreadCount > 0 ? `${n} ${tr("nav.messages")}` : tr("nav.messages")}
-      data-testid="top-bar-messages"
-      onClick={() => navigate("/messages")}
-      className="relative text-muted-foreground hover:text-foreground [&>svg]:w-[22px] [&>svg]:h-[22px]"
-    >
-      <MessageSquare aria-hidden />
-      {unreadCount > 0 && (
-        <span
-          data-top-bar-badge="messages"
-          aria-hidden
-          className="absolute top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full text-ds-10 flex items-center justify-center font-bold px-1"
-          // Count badges are --alert, never rust (spec v2 §1.1), as the dock's were.
-          style={{ background: "hsl(var(--alert))", color: "#fff" }}
-        >
-          {n}
-        </span>
-      )}
-    </Button>
-  );
-}
-
-/**
- * The phone top bar (owner, nav redesign 2026-11-06, order 11:42 AM). Right side: the NOTIFICATIONS bell,
- * MESSAGES (with its unread badge), the "+" (PhoneCreateButton: the section's own create, else the Create sheet),
- * then the PROFILE avatar (You) at the far right. Left: the logo on Dashboard, the section title elsewhere. Help is
- * inside You, not on the bar. Guard: src/test/centerCreateNav.test.tsx.
+ * The phone top bar, ONE pattern on every signed-in page (owner UI audit F148, 2026-11-09): the page title on the left
+ * (the logo on Dashboard), the NOTIFICATIONS bell and the PROFILE avatar (You) on the right, and a section's search
+ * INSIDE the page, as its own row under the bar. Messages and You are bottom-bar tabs since F146, and creating is the
+ * floating pill (SectionCreateFab), so the bar's Messages button and "+" left with the 11-08 search-in-the-bar header.
+ * Help is inside You, not on the bar. Guard: src/test/centerCreateNav.test.tsx.
  *
  * The desktop website's section bar carries the section's soft "+ Post a job" / "+ Sell an
  * item" / "+ Open a shop" / "+ Add a property" beside the bell (owner 2026-10-28,
@@ -190,20 +95,16 @@ export function AppTopBar({
   /** False inside PageScaffold's title card (Jobs, Messages), which pads itself. */
   desktopGap?: boolean;
   /**
-   * THE SEARCH BAR (owner 11-08, the Vinted header): on a phone the bar IS the section's search, with only the bell
-   * and the photo beside it. No visible title (the page keeps a visually hidden h1 for screen readers). Messages moves
-   * INTO the bell (its panel opens on a Messages row; its badge counts both) and the section's create is a floating
-   * pill (SectionCreateFab). Guard: src/test/declutterHeaderVinted.test.tsx.
+   * The section's search (F148, 11-09): on a phone, a full-width row UNDER the bar (it was the bar itself, owner
+   * 11-08). `null` (Dashboard) or omitted: no search row. Guard: src/test/centerCreateNav.test.tsx.
    */
   search?: ReactNode;
-  // `search={null}` (Dashboard, which has no search): the same slim right side, with the title or logo on the left.
   /** The section's "My …" menu, opened from the photo (which wears a dot while any row has a to-do). */
   mine?: SectionMineMenu;
 }) {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
   const isWebDesktop = useIsWebDesktop();
-  const slim = search !== undefined;
   const [mineOpen, setMineOpen] = useState(false);
   const [mineAsked, setMineAsked] = useState(false);
   const mineToDo = mineToDoCount(mine);
@@ -214,18 +115,15 @@ export function AppTopBar({
   const title = sectionTitle;
   if (isWebDesktop && !title) return null;
   const actions = isWebDesktop && section && sectionByKey(section).add ? <SectionAddButton section={section} /> : undefined;
-  // The phone bar's right side, in the owner's order (2026-11-06): the bell, Messages, the "+", You.
-  // Help moved INTO You (You > Help, one tap); it is no longer on the bar.
+  // The phone bar's right side (F148): the bell, then You. Help is INTO You (You > Help, one tap).
   const personal = (
     <>
       {/* AUD31-74: a guest (Declutter Browse is open to them) has no notifications: no bell, as no photo. */}
       {user && !isWebDesktop && (
       <span data-testid="top-bar-bell">
-        <NotificationPanel triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" withMessages={slim} />
+        <NotificationPanel triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" />
       </span>
       )}
-      {user && !isWebDesktop && !slim && <PhoneMessagesButton />}
-      {user && !isWebDesktop && !slim && <PhoneCreateButton />}
       {user && !isWebDesktop && showProfile && (
         <Button
           type="button"
@@ -252,24 +150,22 @@ export function AppTopBar({
       actions={actions}
       desktopGap={desktopGap}
       phone={
-        <header className="app-top-bar flex items-center justify-between gap-2 h-16" data-testid="app-top-bar" data-top-bar-search={slim ? "" : undefined}>
-          {slim && search ? (
-            <>
-              {title && <h1 className="sr-only">{title}</h1>}
-              <div className="min-w-0 flex-1">{search}</div>
-            </>
-          ) : title ? (
+        <>
+        <header className="app-top-bar flex items-center justify-between gap-2 h-16" data-testid="app-top-bar">
+          {title ? (
             <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1>
           ) : (
             <HelprMark size="sm" emblemOnly to="/home" />
           )}
-          <div className={`flex items-center shrink-0 ${slim ? "gap-0.5" : "gap-1 min-[360px]:gap-1.5"}`}>
+          <div className="flex items-center shrink-0 gap-1">
             {personal}
           </div>
           {mine && mineAsked && (
             <Suspense fallback={null}><MySectionSheet menu={mine} open={mineOpen} onOpenChange={setMineOpen} /></Suspense>
           )}
         </header>
+        {search && <div data-testid="app-top-bar-search" className="pb-2 min-w-0">{search}</div>}
+        </>
       }
     />
   );

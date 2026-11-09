@@ -27,7 +27,8 @@ import type { AppliedActivity, PostedActivity } from "@/hooks/useActivityData";
  */
 
 /**
- * Top bar (phone: search, bell, profile; desktop: title, "+") + (desktop) the Browse | Posted | Working tabs, as bones.
+ * Top bar (phone: title, bell, profile, then the search row; desktop: title, "+") + (desktop) the Browse | Posted |
+ * Working tabs, as bones.
  * `list` (phone, Posted / Working): the loaded screen's back row under the bar (SectionListBack, 44px) as a bone.
  */
 function JobsHeaderBones({ list = false, chips = false }: { list?: boolean; chips?: boolean }) {
@@ -37,24 +38,30 @@ function JobsHeaderBones({ list = false, chips = false }: { list?: boolean; chip
       {/* The section header's top row. On the DESKTOP WEBSITE it is the settled bar itself: the real "Jobs" title in
           the global top bar with its soft "+ Post a job", no back arrow (owner 2026-10-28: the loading frame draws exactly the settled
           header; src/test/sectionLoadingHeaderIsSettled.test.tsx), then the tabs row. On a phone (the Vinted header,
-          owner 11-08): the search bar, then the bell and the photo, as bones; no tabs row (they live in "My Jobs"). */}
+          owner 11-08; one pattern since F148, owner UI audit 11-09): the title, then the bell and the photo, as bones,
+          and the search as its own 44px row under the bar (AppTopBar's app-top-bar-search, 8px under it). */}
       <PageTitleBar
         title="Jobs"
         desktopGap={false}
         actions={<SectionAddButton section="jobs" />}
         phone={
-          <div className="app-top-bar flex items-center justify-between gap-2 h-16">
-            <span className="sr-only">Jobs</span>
-            <Skeleton className="h-11 min-w-0 flex-1 rounded-full" />
-            <div className="flex items-center gap-0.5 shrink-0">
-              <span className="h-11 w-11 shrink-0 flex items-center justify-center">
-                <Skeleton className="h-6 w-6 rounded-full" />
-              </span>
-              <span className="h-11 w-11 shrink-0 flex items-center justify-center">
-                <Skeleton className="w-9 h-9 rounded-full" />
-              </span>
+          <>
+            <div className="app-top-bar flex items-center justify-between gap-2 h-16">
+              <span className="sr-only">Jobs</span>
+              <Skeleton className="h-7 w-20 rounded-ds-md" />
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="h-11 w-11 shrink-0 flex items-center justify-center">
+                  <Skeleton className="h-6 w-6 rounded-full" />
+                </span>
+                <span className="h-11 w-11 shrink-0 flex items-center justify-center">
+                  <Skeleton className="w-9 h-9 rounded-full" />
+                </span>
+              </div>
             </div>
-          </div>
+            <div className="pb-2 min-w-0">
+              <Skeleton className="h-11 w-full rounded-full" />
+            </div>
+          </>
         }
       />
       {/* SectionTabs (desktop): thin underline tabs, 44px. */}

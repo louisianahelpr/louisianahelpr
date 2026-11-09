@@ -18,6 +18,7 @@ import {
   PASSWORD_MIN_LENGTH,
 } from "./signup/signupHelpers";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
+import { PasswordRuleList } from "@/components/auth/PasswordRuleList";
 
 
 // How long a recovery fragment may take to become a session before the link
@@ -321,13 +322,12 @@ const ResetPassword = () => {
                   <Check className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
                 )}
               </div>
+              {/* F021 follow-up (owner UI audit 11-09, the lead's call): the same up-front rule list as Sign up, one
+                  tick per part as it is met. passwordProblem() still names exactly what is missing, inline, after
+                  "Update password". */}
+              <PasswordRuleList password={password} />
               {/* The one shared strength meter (also on Sign up step 1). */}
               <PasswordStrengthMeter password={password} />
-              {/* No rules list under the password, the same as sign-up (owner
-                  2026-10-25: "remove the stuff under the password ... what's
-                  required"; app audit A3-L3 found this screen still listing all
-                  five up front). passwordProblem() names exactly what is
-                  missing, inline, after "Update password". */}
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm" className="text-ds-13 font-sans font-medium">Confirm password</Label>
@@ -363,7 +363,7 @@ const ResetPassword = () => {
                   </p>
                 ) : (
                   <p
-                    className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]"
+                    className="inline-flex items-center gap-1 text-ds-13 text-[hsl(var(--destructive-ink))]"
                     role="alert"
                   >
                     <X className="w-3 h-3" aria-hidden /> Passwords don't match
@@ -379,7 +379,7 @@ const ResetPassword = () => {
               <p
                 id="reset-password-error"
                 role="alert"
-                className="inline-flex items-start gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]"
+                className="inline-flex items-start gap-1 text-ds-13 text-[hsl(var(--destructive-ink))]"
               >
                 <X className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden />
                 {submitError}

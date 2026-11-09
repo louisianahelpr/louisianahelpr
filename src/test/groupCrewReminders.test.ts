@@ -40,8 +40,8 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |     DELETE FROM public.group_job_helpers WHERE id = v_crew.slot_id; |     PERFORM 1;
 // @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |           p_violation_type            => 'cancel_with_helper',\n          p_description               => 'Removed |           p_violation_type            => 'x',\n          p_description               => 'Removed
 // @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |       ELSIF v_member_fee > 0 THEN |       ELSIF false THEN
-// @mutate supabase/migrations/20261104050109_notices_name_the_person.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
-// @mutate supabase/migrations/20261104050109_notices_name_the_person.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
+// @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
+// @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
 // @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql |      SET response_deadline = v_crew_deadline |      SET response_deadline = NULL
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'proof_after_urls',\n    'response_deadline'\n  ]; |     'proof_after_urls'\n  ];
 // @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql | v_crew_deadline := LEAST(GREATEST(LEAST(COALESCE(p_deadline, now() + interval '48 hours'), now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | v_crew_deadline := p_deadline;
@@ -210,7 +210,8 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
     // strike for an unanswered offer) restates it again; the crew rules hold.
     // 20261103023713 (Q1889) restates it once more, poster words only; the crew rules hold.
     // 20261104050109 (Q2331) restates it to name the Helpr in the poster's notice; the crew rules hold.
-    expect(EFFECTIVE.get("expire_unanswered_offers")?.file).toBe("20261104050109_notices_name_the_person.sql");
+    // 20261109211412 (Part 3 F196) restates it once more, strings only; the crew rules hold.
+    expect(EFFECTIVE.get("expire_unanswered_offers")?.file).toBe("20261109211412_notices_plain_back_office_words.sql");
     const block = body("block_user_and_settle");
     expect(block).toMatch(/WHERE j\.is_group_job IS TRUE[\s\S]*\(j\.customer_id = v_user\s+AND g\.helper_id = p_blocked\)\s+OR \(j\.customer_id = p_blocked AND g\.helper_id = v_user\)/);
     expect(block).toMatch(/DELETE FROM public\.group_job_helpers WHERE id = v_crew\.slot_id;/);

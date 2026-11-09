@@ -63,7 +63,7 @@ export function QuietHoursCard({ prefs, quietEnabled, toggleQuiet, patchPrefs, l
                 to the orchestrator rather than papered over in copy — the
                 times below deliberately carry no "local" claim. */}
             <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Hold pushes overnight. Everything still lands in the bell icon.
+              Hold app notifications overnight. Everything still shows in your notifications.
             </p>
           </div>
         </div>

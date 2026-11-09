@@ -176,7 +176,8 @@ export function parseAppRoutes(appSrc = readFileSync(resolve(REPO, "src/App.tsx"
     const page = el
       .replace(/^<RouteErrorBoundary>\{([\s\S]*)\}<\/RouteErrorBoundary>$/, "$1")
       .replace(/^routeEl\(([\s\S]*)\)$/, "$1")
-      .replace(/^<ProtectedRoute>([\s\S]*)<\/ProtectedRoute>$/, "$1")
+      // F071 (owner 11-09): /explore is open to guests too (<ProtectedRoute allowGuest>); still the same redirect.
+      .replace(/^<ProtectedRoute(?:\s+allowGuest)?>([\s\S]*)<\/ProtectedRoute>$/, "$1")
       .trim();
     // Q2258: a page component is a redirect only when its module renders nothing but a <Navigate>.
     const only = /^<(\w+)\s*\/>$/.exec(page);

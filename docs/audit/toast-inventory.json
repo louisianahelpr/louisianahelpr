@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 500,
+      "literal": 499,
       "template": 107,
-      "dynamic": 660,
+      "dynamic": 661,
       "jsx": 0
     }
   },
@@ -685,7 +685,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 231,
+      "line": 232,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -695,7 +695,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 254,
+      "line": 255,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12765,21 +12765,21 @@
     },
     {
       "file": "src/pages/auth/ForgotPassword.tsx",
-      "line": 79,
+      "line": 83,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "recognizedAuthError(error.message) ?? \"The security check didn't finish. Try again.\""
+        "text": "recognizedAuthError(error.message) ?? t(\"forgot.captchaFailed\")"
       },
       "renders": true
     },
     {
       "file": "src/pages/auth/ForgotPassword.tsx",
-      "line": 85,
+      "line": 89,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Too many requests — try again in a minute."
+        "form": "dynamic",
+        "text": "t(\"forgot.tooMany\")"
       },
       "renders": true
     },
@@ -12845,7 +12845,7 @@
     },
     {
       "file": "src/pages/auth/ResetPassword.tsx",
-      "line": 164,
+      "line": 165,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

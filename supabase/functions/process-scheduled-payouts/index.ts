@@ -2349,8 +2349,9 @@ serve(async (req) => {
         await insertNotifications(supabaseAdmin, {
           user_id: helperId,
           job_id: job.id,
-          title: "Payout sent!",
-          message: `$${helprFaultFeeCents > 0 ? formatExactDollars(helperPayout) : formatPayoutDollars(helperPayout)} for "${job.title}" has been transferred to your account${feeNote}.`,
+          // F202 (Part 3 audit 11-09): one plain title, no "!", and where the money is going.
+          title: "Payout sent",
+          message: `$${helprFaultFeeCents > 0 ? formatExactDollars(helperPayout) : formatPayoutDollars(helperPayout)} for "${job.title}" is on its way to your bank${feeNote}.`,
           // NOID-15: payouts sit under "Payments and tips" (financial_alerts) with payout setup
           // and released payouts, never also under "Job payments".
           type: "financial_alerts", link: "/profile?tab=earnings",

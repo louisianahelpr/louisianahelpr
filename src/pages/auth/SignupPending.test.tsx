@@ -284,7 +284,7 @@ describe("SignupPending", () => {
   // ID check copy (owner decisions 10-30, "Job poster: ID when posting"): once per account, at posting a
   // job, being hired, listing, buying or claiming on Declutter, or the first payout (lead 10-31, B49's Help wording).
   // Never shown while the switch is off.
-  // @mutate src/pages/auth/SignupPending.tsx | {idCheckOn ? " Once per account | {true ? " Once per account
+  // @mutate src/pages/auth/SignupPending.tsx | {idCheckOn && ( | {true && (
   describe("the ID check line", () => {
     afterEach(() => setIdentityCheckOn(false));
 

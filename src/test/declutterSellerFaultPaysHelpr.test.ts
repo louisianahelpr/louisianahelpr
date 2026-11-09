@@ -10,8 +10,8 @@
  * src/test/pglite/declutterSellerFaultHelprNotice.pglite.mjs (3x replay; NEW_MIGRATION=skip RED).
  *
  * @mutate supabase/migrations/20261103214533_declutter_seller_fault_pays_helpr.sql |   v_fee := least(p_card_fee_cents + p_helpr_fee_cents, COALESCE(v_cap, 0)); |   v_fee := least(p_card_fee_cents, COALESCE(v_cap, 0));
- * @mutate supabase/migrations/20261103215616_declutter_seller_fault_helpr_notice.sql |                 AND public.cancellation_fee_percent(true, public.job_hours_until_start(jb.date_needed, jb.start_time, now())) > 0) AS paid_for_time |                 AND false) AS paid_for_time
- * @mutate supabase/migrations/20261103215616_declutter_seller_fault_helpr_notice.sql | It was not the poster''s choice.', COALESCE | It was not the poster''s choice, so there is no payment for it.', COALESCE
+ * @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |                 AND public.cancellation_fee_percent(true, public.job_hours_until_start(jb.date_needed, jb.start_time, now())) > 0) AS paid_for_time |                 AND false) AS paid_for_time
+ * @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql | It was not the poster''s choice.', COALESCE | It was not the poster''s choice, so there is no payment for it.', COALESCE
  */
 import { describe, expect, it } from "vitest";
 import { join, resolve } from "node:path";

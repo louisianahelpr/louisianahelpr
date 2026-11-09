@@ -42,7 +42,7 @@
 // @mutate supabase/functions/auto-resolve-disputes/index.ts |         .update({ dispute_status: "escalated" }) |         .update({ status: "completed", payment_status: "payout_pending", dispute_status: "auto_resolved" })
 // @mutate supabase/functions/auto-resolve-disputes/index.ts |         .eq("payment_status", "escrow")\n        .lte("dispute_deadline", new Date().toISOString()); |         .lte("dispute_deadline", new Date().toISOString());
 // @mutate supabase/functions/auto-resolve-disputes/index.ts |       escalatedAtDeadline.push(job.id); |
-// @mutate supabase/functions/auto-resolve-disputes/index.ts |             title: "Dispute sent to Helpr support", |             title: "Dispute auto-resolved",
+// @mutate supabase/functions/auto-resolve-disputes/index.ts |             title: "Our team will decide this dispute", |             title: "Dispute auto-resolved",
 // @mutate supabase/functions/auto-resolve-disputes/index.ts |       if (!escalatedRows \|\| escalatedRows.length === 0) { |       if (!escalatedRows) {
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -228,10 +228,10 @@ describe("auto-resolve-disputes", () => {
       expect(admins[0].type).toBe("admin_alert");
       expect(admins[0].link).toBe(`/admin?view=disputes&job=${JOB_ID}`);
 
-      const parties = rows.filter((r) => r.title === "Dispute sent to Helpr support");
+      const parties = rows.filter((r) => r.title === "Our team will decide this dispute");
       expect(parties.map((r) => r.user_id).sort()).toEqual(["helper-1", "poster-1"]);
       for (const p of parties) {
-        expect(String(p.message)).toContain("Helpr support will decide");
+        expect(String(p.message)).toContain("our team will decide");
         expect(String(p.message)).toContain("stays on hold");
         expect(String(p.message)).not.toMatch(/released to/i);
       }

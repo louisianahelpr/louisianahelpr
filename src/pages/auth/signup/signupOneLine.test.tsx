@@ -17,10 +17,11 @@ import { es } from "@/lib/i18n/es";
  *
  * F022 (owner UI audit 11-09): Continue with the consent box unticked named nothing on the box. The message shows
  * under it, in the fields' error style, and stays the screen-reader alert.
- * @mutate src/pages/auth/signup/SignupStep1.tsx | className={nudgeKey > 0 && !(acceptedPolicies && ageConfirmed) ? "flex items-start gap-1 px-1.5 text-ds-11 text-[hsl(var(--destructive-ink))]" : "sr-only"} | className="sr-only"
+ * @mutate src/pages/auth/signup/SignupStep1.tsx | className={nudgeKey > 0 && !(acceptedPolicies && ageConfirmed) ? "flex items-start gap-1 px-1.5 text-ds-13 text-[hsl(var(--destructive-ink))]" : "sr-only"} | className="sr-only"
  */
 const step1 = readFileSync(resolve(__dirname, "SignupStep1.tsx"), "utf8");
 const terms = readFileSync(resolve(__dirname, "../../info/legal/TermsSection.tsx"), "utf8");
+const ruleList = readFileSync(resolve(__dirname, "../../../components/auth/PasswordRuleList.tsx"), "utf8");
 
 describe("F022: the unticked consent box says what is missing", () => {
   it("the consent alert is visible (not sr-only) once Continue was pressed with the box unticked", () => {
@@ -35,11 +36,14 @@ describe("F022: the unticked consent box says what is missing", () => {
 describe("sign-up step 1 fits one line per item", () => {
   // F021 (owner UI audit 11-09; lead's call 11-09, superseding the 10-25 "remove the stuff under the password"): the rule
   // shows under the field from the start and ticks off live; the error after Continue still names what is missing.
-  // @mutate src/pages/auth/signup/SignupStep1.tsx | {PASSWORD_RULES.map((r) => { | {[].map((r: (typeof PASSWORD_RULES)[number]) => {
+  // The list is the shared PasswordRuleList (also on Reset password, the F021 follow-up).
+  // @mutate src/components/auth/PasswordRuleList.tsx | {PASSWORD_RULES.map((r) => { | {[].map((r: (typeof PASSWORD_RULES)[number]) => {
+  // @mutate src/pages/auth/signup/SignupStep1.tsx |           <PasswordRuleList password={password} />\n | \n
   it("F021: the password rule shows under the field from the start, one tick per rule; the error still names what is missing", () => {
-    expect(step1).toMatch(/PASSWORD_RULES\.map\(/);
-    expect(step1).toContain('t("signup.passwordHint", { n: PASSWORD_MIN_LENGTH })');
-    expect(step1).toMatch(/data-rule-met=\{met \? "true" : "false"\}/);
+    expect(step1).toContain("<PasswordRuleList password={password} />");
+    expect(ruleList).toMatch(/PASSWORD_RULES\.map\(/);
+    expect(ruleList).toContain('t("signup.passwordHint", { n: PASSWORD_MIN_LENGTH })');
+    expect(ruleList).toMatch(/data-rule-met=\{met \? "true" : "false"\}/);
     expect(en["signup.passwordHint"]).toMatch(/^At least \{n\} characters with a lowercase letter, a capital letter, a number and a symbol\.$/);
     expect(es["signup.passwordHint"]).toMatch(/\{n\}/);
     expect(step1).toMatch(/passwordProblem\(password\)/);

@@ -312,9 +312,11 @@ export function ProfileEditForm({
             {/* "20" is a MINIMUM, not a cap — showing "108/20" once the
                 user is past it reads like an over-limit error. So:
                 "X/20" while short of the minimum, a check once met. */}
+            {/* F098 (owner UI audit 11-09; lead: no new cap): a running count. The bio has no length limit anywhere
+                (profiles.bio is text with no CHECK, no validator), so the count is plain, never "n / max". */}
             {bioOk ? (
-              <span className="text-ds-11 font-medium text-success inline-flex items-center gap-1">
-                <Check className="w-3 h-3" /> Looks good
+              <span className="text-ds-11 font-medium text-success inline-flex items-center gap-1" data-bio-count="">
+                <Check className="w-3 h-3" /> Looks good · {bio.trim().length} characters
               </span>
             ) : bio.trim().length < 20 ? (
               <span className="text-ds-11 font-medium text-muted-foreground tabular-nums">
@@ -472,8 +474,9 @@ export function ProfileEditForm({
           className="text-center font-sans px-6 leading-snug text-ds-12"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          Photos save automatically. Your other edits save from the{" "}
-          <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>bar that appears below</span>.
+          {/* F099 (owner UI audit 11-09): the two save behaviours are said as plainly as possible, in one sentence. */}
+          Photos save as soon as you add them. Everything else saves when you press{" "}
+          <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Save changes</span> below.
         </p>
       </form>
 

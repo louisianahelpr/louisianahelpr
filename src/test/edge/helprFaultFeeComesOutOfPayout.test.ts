@@ -260,7 +260,7 @@ describe("Q2082 (b): a Helpr-fault card fee comes out of the next payout", () =>
       expect(claim?.amount_cents).toBe(fullCents);
       expect(claimStamp()?.amount_cents).toBe(fullCents - 369);
       expect(claimStamp()?.metadata).toEqual(expect.objectContaining({ helpr_fault_fee_cents: 369, claim: true }));
-      const note = scenario.writes.find((w) => w.table === "notifications" && JSON.stringify(w.payload).includes("Payout sent!"));
+      const note = scenario.writes.find((w) => w.table === "notifications" && JSON.stringify(w.payload).includes("Payout sent"));
       expect(JSON.stringify(note?.payload)).toContain(`$${((fullCents - 369) / 100).toFixed(2)} for`);
     });
 

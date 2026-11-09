@@ -23,11 +23,10 @@ import {
   PASSWORD_MIN_LENGTH,
   unmetPasswordRules,
   passwordProblem,
-  PASSWORD_RULES,
 } from "./signupHelpers";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
+import { PasswordRuleList } from "@/components/auth/PasswordRuleList";
 import { useLanguage } from "@/lib/i18n/language";
-import { LanguageToggle } from "@/components/LanguageToggle";
 import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 export interface SignupStep1Props {
@@ -223,7 +222,7 @@ export function SignupStep1({
             <Input ref={firstNameRef} id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} onKeyDown={onFirstNameKeyDown} required aria-required="true" autoComplete="given-name" autoCapitalize="words" enterKeyHint="next" aria-invalid={firstNameError} aria-describedby={firstNameError ? "signup-firstName-error" : undefined}
               className={`${inputCls} ${firstNameError ? "!border-destructive focus-visible:!border-destructive" : ""}`} />
             {firstNameError && (
-              <p id="signup-firstName-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
+              <p id="signup-firstName-error" role="alert" className="inline-flex items-center gap-1 text-ds-13 text-[hsl(var(--destructive-ink))]">
                 <X className="w-3.5 h-3.5" aria-hidden />
                 {t("signup.firstNameMissing")}
               </p>
@@ -234,7 +233,7 @@ export function SignupStep1({
             <Input ref={lastNameRef} id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} onKeyDown={onLastNameKeyDown} required aria-required="true" autoComplete="family-name" autoCapitalize="words" enterKeyHint="next" aria-invalid={lastNameError} aria-describedby={lastNameError ? "signup-lastName-error" : undefined}
               className={`${inputCls} ${lastNameError ? "!border-destructive focus-visible:!border-destructive" : ""}`} />
             {lastNameError && (
-              <p id="signup-lastName-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
+              <p id="signup-lastName-error" role="alert" className="inline-flex items-center gap-1 text-ds-13 text-[hsl(var(--destructive-ink))]">
                 <X className="w-3.5 h-3.5" aria-hidden />
                 {t("signup.lastNameMissing")}
               </p>
@@ -262,7 +261,7 @@ export function SignupStep1({
               empty case used to paint the border with no words at all, which
               is a "something's wrong" with no path out. */}
           {emailError && (
-            <p id="signup-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
+            <p id="signup-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-13 text-[hsl(var(--destructive-ink))]">
               <X className="w-3.5 h-3.5" aria-hidden />
               {email.trim() ? t("login.emailInvalid") : t("login.emailMissing")}
             </p>
@@ -310,7 +309,7 @@ export function SignupStep1({
               `passwordError` condition is the same boolean that paints the
               border, so the two can no longer disagree. */}
           {passwordError && (
-            <p id="signup-password-error" role="alert" className="inline-flex items-start gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
+            <p id="signup-password-error" role="alert" className="inline-flex items-start gap-1 text-ds-13 text-[hsl(var(--destructive-ink))]">
               <X className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden />
               {serverPasswordError ?? (password ? passwordProblem(password) : t("signup.passwordMissing"))}
             </p>
@@ -318,21 +317,7 @@ export function SignupStep1({
           {/* F021 (owner UI audit 11-09; the lead's call, superseding the 10-25 removal, the owner may override): the rule
               shows under the field from the start, and each part ticks off as it is met. passwordProblem() above still
               names what is missing after Continue. */}
-          <div data-password-rules="" className="space-y-1">
-            <p className="text-ds-11 text-muted-foreground">{t("signup.passwordHint", { n: PASSWORD_MIN_LENGTH })}</p>
-            <ul className="flex flex-wrap gap-x-3 gap-y-1" aria-label={t("signup.passwordHint", { n: PASSWORD_MIN_LENGTH })}>
-              {PASSWORD_RULES.map((r) => {
-                const met = r.test(password);
-                return (
-                  <li key={r.needKey} data-rule-met={met ? "true" : "false"} className={`inline-flex items-center gap-1 text-ds-11 ${met ? "text-primary" : "text-muted-foreground"}`}>
-                    {met ? <Check className="w-3 h-3" aria-hidden /> : <span aria-hidden className="inline-block w-3 h-3 rounded-full border border-current" />}
-                    <span>{t(r.needKey, { n: PASSWORD_MIN_LENGTH })}</span>
-                    <span className="sr-only">{met ? t("signup.ruleMet") : t("signup.ruleNotMet")}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          <PasswordRuleList password={password} />
           {/* The one shared strength meter (also on Reset password). */}
           <PasswordStrengthMeter password={password} />
         </div>
@@ -370,6 +355,12 @@ export function SignupStep1({
           <a href="/privacy" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">{t("signup.privacy")}</a>.
           {/* Terms, Rules and Privacy are not translated: a Spanish reader is told they open in English. */}
           {lang === "es" && <span className="block mt-0.5" data-testid="legal-in-english">{t("lang.legalInEnglish")}</span>}
+          {/* Continue saves the email for ONE reminder if sign-up is not finished (owner 2026-10-09;
+              src/lib/signupLead.ts), so it is said before it happens. F026 (owner UI audit 11-09): said here in the
+              privacy line, not under Continue, where it read like a warning at the moment of decision. */}
+          <span className="block mt-0.5" data-may-email-once="">
+            {t("signup.mayEmailOnce")}
+          </span>
         </span>
       </label>
 
@@ -398,7 +389,7 @@ export function SignupStep1({
         key={`consent-alert-${nudgeKey}`}
         role="alert"
         data-consent-error=""
-        className={nudgeKey > 0 && !(acceptedPolicies && ageConfirmed) ? "flex items-start gap-1 px-1.5 text-ds-11 text-[hsl(var(--destructive-ink))]" : "sr-only"}
+        className={nudgeKey > 0 && !(acceptedPolicies && ageConfirmed) ? "flex items-start gap-1 px-1.5 text-ds-13 text-[hsl(var(--destructive-ink))]" : "sr-only"}
       >
         {nudgeKey > 0 && !(acceptedPolicies && ageConfirmed) ? (
           <>
@@ -421,12 +412,6 @@ export function SignupStep1({
         {t("signup.continue")}
       </Button>
 
-      {/* Continue saves the email for ONE reminder if sign-up is not finished
-          (owner 2026-10-09; src/lib/signupLead.ts). Said before it happens. */}
-      <p className="text-center text-ds-12 font-sans text-muted-foreground">
-        {t("signup.mayEmailOnce")}
-      </p>
-
       {SOCIAL_SIGN_IN_ENABLED && (
         <>
           <OrRule />
@@ -440,9 +425,6 @@ export function SignupStep1({
           {t("login.submit")}
         </Link>
       </p>
-      <div className="flex justify-center">
-        <LanguageToggle />
-      </div>
     </div>
   );
 }

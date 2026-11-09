@@ -127,12 +127,14 @@ describe("landing redesign: the honesty fixes hold", () => {
     for (const f of files) expect(read(f), f).not.toMatch(/\bStripe\b|\bUSPS\b|Instead of/);
   });
 
-  it("Continue with Apple sits behind the one social switch and loads only when the close is on screen", () => {
+  it("Continue with Apple sits behind the one social switch and loads once the close is on screen or the page has settled", () => {
     const apple = read("src/components/landing/LandingAppleButton.tsx");
     expect(apple).toMatch(/if \(!SOCIAL_SIGN_IN_ENABLED\) return null;/);
     const blocks = read("src/components/landing/SectionsShowcase.tsx");
     expect(blocks).toMatch(/const LandingAppleButton = lazy\(\(\) => import\("\.\/LandingAppleButton"\)\);/);
-    expect(blocks).toMatch(/\{joinSeen && \(\s*<Suspense fallback=\{null\}>\s*<LandingAppleButton \/>/);
+    // UI audit F016 (11-09): never on first paint, but warmed once the page settles; a same-size slot holds its place.
+    expect(blocks).toMatch(/const appleReady = joinSeen \|\| settled;/);
+    expect(blocks).toMatch(/\{appleReady \? \(\s*<Suspense fallback=\{<AppleSlot \/>\}>\s*<LandingAppleButton \/>/);
     // Never a static import: socialAuth pulls Supabase into the landing's first paint.
     expect(blocks).not.toMatch(/from "@\/lib\/socialAuth"/);
   });

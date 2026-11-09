@@ -207,7 +207,12 @@ describe("come-back emails: the words (founder voice, plain, sentence case)", ()
 
   it("the product lines are the landing page's own, word for word", () => {
     const landing = readFileSync(join(ROOT, "src/components/landing/HowItWorksSection.tsx"), "utf8");
-    const lines = COME_BACK_COPY[1].bullets.map(([, rest]) => rest);
+    // The one line that is not the landing's: the Declutter line, in the owner's message review's own words
+    // (11-09, F169: "Got stuff to sell? List it on Declutter in a minute."). Exact both ways.
+    const REVIEW_LINES = ["List it on Declutter in a minute."];
+    const all = COME_BACK_COPY[1].bullets.map(([, rest]) => rest);
+    expect(all.filter((l) => REVIEW_LINES.includes(l))).toEqual(REVIEW_LINES);
+    const lines = all.filter((l) => !REVIEW_LINES.includes(l));
     expect(lines.length).toBeGreaterThan(0);
     for (const rest of lines) {
       for (const sentence of rest.split(/(?<=\.)\s+/)) expect(landing, sentence).toContain(sentence);

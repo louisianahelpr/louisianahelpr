@@ -6,6 +6,7 @@
 // @mutate src/components/declutter/DeclutterItemCard.tsx |             alt={item.title} |             alt=""
 // @mutate src/components/declutter/DeclutterMineViews.tsx | label: "Pickups to do", | label: "Hand over",
 // @mutate src/components/declutter/ManagerPanel.tsx |       <h2 id="manager-setup-title" className="text-base font-semibold">Have someone sell for you</h2> |       <h2 id="manager-setup-title" className="text-base font-semibold">Get help selling</h2>
+// @mutate src/App.tsx |       <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} />\n |
 /**
  * Declutter findings from the UI audit of 11-09 (~/.lh-shots/ui-audit-1109, Builder 2). One describe per finding.
  */
@@ -19,6 +20,7 @@ import { HANDOVER_TITLE } from "@/components/declutter/handoverCopy";
 import { OTHER_WAYS } from "@/lib/declutter/browseFilters";
 import { FAQ_SECTIONS } from "@/pages/info/helpCenter/helpCenterContent";
 import { guestSaveHref } from "@/lib/declutter/guestSave";
+import { wantedAskHref } from "@/lib/declutter/sellChooser";
 import { SAVE_ITEM_REASON, SAVE_ITEM_SIGNUP_SUBTITLE, signupSubtitle } from "@/lib/jobIntent";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
@@ -73,6 +75,14 @@ describe("F128: Selling's unclear phrases are plain words", () => {
     expect((mgr.match(/>Have someone sell for you</g) ?? []).length).toBe(2);
     expect(mgr).not.toMatch(/Get help selling|, for a share\./);
     expect(mgr).toContain("keeps a share of each sale.");
+  });
+});
+
+describe("F130: /declutter/wanted/new opens the Wanted composer, never the 404", () => {
+  it("the route sends it to Browse's own Wanted-composer address", () => {
+    const app = blankComments(readFileSync(join(SRC, "App.tsx"), "utf8"));
+    const m = /<Route path="\/declutter\/wanted\/new" element=\{<Navigate to="([^"]+)" replace \/>\} \/>/.exec(app);
+    expect(m?.[1]).toBe(wantedAskHref(""));
   });
 });
 

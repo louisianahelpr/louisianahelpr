@@ -8,9 +8,15 @@
  * F004: the four section cards were grey-beige fills (var(--lp-ground)) beside the white How a job works cards. They
  * wear the same white landing card with its soft shadow (.landing-card: var(--lp-surface) + var(--lp-shadow)).
  * @mutate src/components/landing/SectionsShowcase.tsx | className="landing-card relative p-6 | className="relative rounded-[20px] p-6
+ *
+ * F016: "Continue with Apple" appeared a moment after the rest of the join block and pushed "Create your free account"
+ * sideways (desktop) or up (phone). An invisible slot with the button's own box and label holds its place until the
+ * lazily loaded button has arrived, both before it is asked for and while its chunk is in flight.
+ * @mutate src/components/landing/SectionsShowcase.tsx | <Suspense fallback={<AppleSlot />}> | <Suspense fallback={null}>
+ * @mutate src/components/landing/SectionsShowcase.tsx |             ) : (\n              <AppleSlot />\n            )} |             ) : null}
  */
-import { describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -21,7 +27,14 @@ vi.mock("@/components/landing/useSectionsOpen", async (importOriginal) => {
   return { ...real, useSectionsOpen: () => ({ open: state.open }) };
 });
 
-import { SectionsShowcase } from "@/components/landing/SectionsShowcase";
+const settle = vi.hoisted(() => ({ fire: false }));
+vi.mock("@/lib/routePrefetch", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/routePrefetch")>();
+  return { ...real, whenPageSettled: (cb: () => void) => { if (settle.fire) cb(); return () => {}; } };
+});
+vi.mock("@/lib/socialAuth", () => ({ SOCIAL_SIGN_IN_ENABLED: true, signInWithProvider: vi.fn() }));
+
+import { SectionsShowcase, TrustAndJoin } from "@/components/landing/SectionsShowcase";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
 
 function renderSections(open: ReadonlySet<string> | null) {
@@ -52,5 +65,48 @@ describe("landing UI audit 2026-11-09", () => {
       expect(c.style.background, c.dataset.section).toBe("");
     }
     unmount();
+  });
+
+  describe("F016: the Apple button's place is held before it arrives", () => {
+    const BOX = ["h-14", "w-full", "sm:w-auto", "px-7", "rounded-full", "text-ds-15", "font-semibold"];
+    // An observer that never reports the join block on screen: the close is below the fold.
+    class NeverSeen {
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+      takeRecords() { return []; }
+    }
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      settle.fire = false;
+    });
+
+    it("the slot has the real button's box and label", () => {
+      const button = readFileSync(resolve(__dirname, "../components/landing/LandingAppleButton.tsx"), "utf8");
+      const buttonClass = button.match(/className="([^"]*h-14[^"]*)"/)?.[1] ?? "";
+      for (const c of BOX) expect(buttonClass.split(" "), c).toContain(c);
+    });
+
+    it("before the page settles and before the close is seen: the slot holds the place, invisible and hidden from readers", () => {
+      vi.stubGlobal("IntersectionObserver", NeverSeen);
+      const { unmount } = render(<MemoryRouter><TrustAndJoin /></MemoryRouter>);
+      const slot = screen.getByTestId("landing-apple-slot");
+      expect(slot.getAttribute("aria-hidden")).toBe("true");
+      expect(slot.classList.contains("invisible")).toBe(true);
+      for (const c of BOX) expect(slot.classList.contains(c), c).toBe(true);
+      expect(slot.textContent).toBe("Continue with Apple");
+      expect(screen.queryByTestId("landing-apple")).toBeNull();
+      unmount();
+    });
+
+    it("once the page settles: the slot stays while the chunk loads, then the button takes its place", async () => {
+      vi.stubGlobal("IntersectionObserver", NeverSeen);
+      settle.fire = true;
+      const { unmount } = render(<MemoryRouter><TrustAndJoin /></MemoryRouter>);
+      expect(screen.getByTestId("landing-apple-slot")).toBeTruthy();
+      expect(await screen.findByTestId("landing-apple")).toBeTruthy();
+      expect(screen.queryByTestId("landing-apple-slot")).toBeNull();
+      unmount();
+    });
   });
 });

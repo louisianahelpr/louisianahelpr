@@ -321,7 +321,7 @@ for (const { file, why } of DEFERRED_MODULES) {
     try { text = readFileSync(`${ASSETS}/${f}`, "utf8"); } catch { continue; }
     for (const hit of text.matchAll(STATIC_IMPORT)) if (!par.has(hit[1])) { par.set(hit[1], f); queue.push(hit[1]); }
   }
-  // Floor: the landing's closure is the boot chunks plus its own (~30 files measured 11-09); a tiny one is a blind walk.
+  // Floor: the landing's closure is the boot chunks plus its own (~30 files measured 2026-11-09); a tiny one is a blind walk.
   if (par.size < 10) fail(`the closure of ${rootChunk} has ${par.size} chunk(s); the import syntax changed. Fix the walk.`);
   const chainFrom = (f) => { const out = [f]; let cur = f; while (par.get(cur)) { cur = par.get(cur); out.push(cur); } return out.reverse().join(" → "); };
   for (const chunk of par.keys()) {

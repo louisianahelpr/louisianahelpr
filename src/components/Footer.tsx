@@ -254,10 +254,9 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
           >
             Follow
           </h2>
-          {/* Brand-color chips with a softer squircle radius — bigger,
-              airier, less pinched than the previous rounded-2xl chips.
-              Apple black, Facebook blue, Instagram gradient are kept for
-              instant brand recognition. */}
+          {/* One olive monochrome chip for every network (owner's UI audit
+              11-09, F005: Facebook blue and the Instagram gradient were off
+              brand), the same chip the App Store link wears. */}
           {/* shrink-0 on each icon below. They are `inline-flex` children of this
               flex row, so they were flex-shrinking below their `w-11`: measured
               24px wide against 44px tall, i.e. rendering as ovals rather than
@@ -284,7 +283,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
               href={FACEBOOK_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:brightness-110"
+              className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:brightness-110"
               aria-label="Follow us on Facebook (opens in a new tab)"
               title="Follow us on Facebook"
             >
@@ -297,11 +296,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
               href={INSTAGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all duration-300 ease-out hover:brightness-110"
-              style={{
-                backgroundImage:
-                  "linear-gradient(135deg, #f9ce34 0%, #ee2a7b 50%, #6228d7 100%)",
-              }}
+              className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:brightness-110"
               aria-label="Follow us on Instagram (opens in a new tab)"
               title="Follow us on Instagram"
             >

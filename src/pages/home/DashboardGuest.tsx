@@ -436,6 +436,7 @@ const DashboardGuest = () => {
                 clearLabel={browseFilteredEmptyCopy({ searchQuery: filters.searchQuery, activeFilterCount: filters.activeFilterCount, nearbyActive, currentMiles, nextMiles }).clearLabel}
                 onNotify={() => navigate(NOTIFY_SIGNUP_URL)}
                 onHire={() => navigate("/signup")}
+                onDeclutter={() => navigate("/declutter")}
               />
             }
           />
@@ -567,6 +568,7 @@ const DashboardGuest = () => {
     <PublicHeaderPage
       title="Browse jobs"
       width="public"
+      hideBack
       bottomPaddingClassName="pb-16"
       footer={feedSettled}
     >

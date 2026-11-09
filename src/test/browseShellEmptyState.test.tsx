@@ -54,6 +54,7 @@ function realEmptyState(): string {
               onClearFilters={noop}
               onNotify={noop}
               onHire={noop}
+              onDeclutter={noop}
             />
           }
         />
@@ -106,7 +107,8 @@ describe("/browse's raw HTML draws the guest feed's empty state when no job is o
 
   it("sits where the cards would, in the same body, the footer after it", () => {
     const html = browseShellHtml([], NOW, EMBLEM);
-    expect(html).toContain(`<div class="px-5 sm:px-8 lg:px-12 pb-16"><div class="mx-auto page-measure">${SHELL_EMPTY_HTML}</div></div></div><footer `);
+    // F017: the body closes inside the one public container, then flex-1, then the footer.
+    expect(html).toContain(`<div class="px-5 sm:px-8 lg:px-12 pb-16"><div class="mx-auto page-measure">${SHELL_EMPTY_HTML}</div></div></div></div><footer `);
     expect(html).toContain('<h1 class="text-page-title leading-tight truncate">Browse jobs</h1>');
     const card = { title: "Mow the front yard", category: "yard_work", budget: 85, location: "Lafayette, LA", status: "open", created_at: "2026-10-31T12:00:00Z" };
     const cards = browseShellHtml([card], NOW, EMBLEM);

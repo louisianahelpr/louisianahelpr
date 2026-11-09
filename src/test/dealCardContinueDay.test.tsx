@@ -111,14 +111,14 @@ describe("the thread's job card reads a day set to finish (A3-114)", () => {
     day.row = setDay();
     show(false);
     await screen.findByTestId("deal-card");
-    await vi.waitFor(() => expect(line()).toMatch(/^Next: confirm you'll be there · continuing \w{3} \d+\/\d+ at 9 AM$/));
+    await vi.waitFor(() => expect(line()).toMatch(/^Next: confirm you'll be there · continuing \w{3}, \w{3} \d+ at 9:00 AM$/));
   });
 
   it("the poster: who confirmed, once the Helpr did", async () => {
     day.row = setDay({ helper_confirmed_at: T(0.5) });
     show(true);
     await screen.findByTestId("deal-card");
-    await vi.waitFor(() => expect(line()).toMatch(/^Hallie confirmed \w{3} \d+\/\d+ at 9 AM$/));
+    await vi.waitFor(() => expect(line()).toMatch(/^Hallie confirmed \w{3}, \w{3} \d+ at 9:00 AM$/));
     expect(ROW.status).toBe("in_progress");
   });
 });

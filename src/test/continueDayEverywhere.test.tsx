@@ -135,7 +135,7 @@ describe("the Working card face before a day set to finish", () => {
   it("leads with Message and the note, never Mark job complete", () => {
     expect(helperFaceAction(base)?.label).toBe("Mark job complete");
     const note = continueDayDoneNote(day())!;
-    expect(note).toMatch(/^You can mark it done on \w{3} \d+\/\d+, the day you set to finish\.$/);
+    expect(note).toMatch(/^You can mark it done on \w{3}, \w{3} \d+, the day you set to finish\.$/);
     const f = helperFaceAction({ ...base, continueDayNote: note, message: { name: "Lexi", onClick: () => {} } });
     expect([f?.label, f?.note]).toEqual(["Message Lexi", note]);
     expect(helperFaceAction({ ...base, continueDayNote: note })?.label).toBe("Manage job");

@@ -164,15 +164,13 @@ const TopicSection = ({
         <span className="inline-flex flex-col gap-0.5 min-w-0">
           <span className="font-sans font-bold text-ds-15 text-foreground leading-snug">
             {sentenceCase(section.topic)}
-            {/* The count is real (this topic's question list), muted, and
-                hidden from a screen reader, which already hears the name. */}
-            <span aria-hidden className="ml-2 font-medium text-ds-13 text-muted-foreground">
-              {section.items.length}
-            </span>
           </span>
-          {topicDesc(section.topic) && (
-            <span className="font-sans text-ds-13 text-muted-foreground">{topicDesc(section.topic)}</span>
-          )}
+          {/* F035 (owner UI audit 11-09): the count beside the name looked like an unread badge. It is said in words,
+              muted, on the line under the name ("4 questions"), after the topic's blurb. */}
+          <span className="font-sans text-ds-13 text-muted-foreground" data-help-topic-count="">
+            {topicDesc(section.topic) ? `${topicDesc(section.topic)} · ` : ""}
+            {section.items.length === 1 ? "1 question" : `${section.items.length} questions`}
+          </span>
         </span>
         <ChevronDown
           className="w-5 h-5 shrink-0 transition-transform duration-200"

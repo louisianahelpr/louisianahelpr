@@ -11,11 +11,22 @@ describe("resolveTab", () => {
   // characters of body text and zero <h1>. After: the landing tab, 1450 chars.
   it("falls back to landing for an unknown tab", () => {
     expect(resolveTab("posted_jobs")).toBe("landing");
-    expect(resolveTab("completed_jobs")).toBe("landing");
     expect(resolveTab("bogus_tab_xyz")).toBe("landing");
     expect(resolveTab("")).toBe("landing");
     expect(resolveTab(null)).toBe("landing");
     expect(resolveTab(undefined)).toBe("landing");
+  });
+
+  // F096 (owner UI audit 11-09): an old or guessed tab name opens the page that now holds it, not the You page.
+  // @mutate src/pages/profile/types.ts |   privacy: "settings", |   privacy_x: "settings",
+  it("F096: old tab names open the page that holds them now", () => {
+    expect(resolveTab("privacy")).toBe("settings");
+    expect(resolveTab("payouts")).toBe("earnings");
+    expect(resolveTab("gift-cards")).toBe("gift_card");
+    expect(resolveTab("gift_cards")).toBe("gift_card");
+    expect(resolveTab("completed_jobs")).toBe("work_record");
+    // An inherited object key is not a tab name.
+    expect(resolveTab("constructor")).toBe("landing");
   });
 
   it("passes through every real tab", () => {
@@ -66,4 +77,4 @@ describe("TAB_TITLES.wrapped", () => {
 // The one production line this file exists for: an unknown ?tab= must not be
 // cast straight through to a Tab. Drop the membership test and /profile paints
 // nav chrome over an empty panel again.
-// @mutate src/pages/profile/types.ts | raw && VALID_TABS.has(raw) ? | raw ?
+// @mutate src/pages/profile/types.ts |   if (raw && VALID_TABS.has(raw)) return raw as Tab; |   if (raw) return raw as Tab;

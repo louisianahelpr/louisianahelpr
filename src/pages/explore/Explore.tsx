@@ -20,5 +20,8 @@ export default function Explore() {
   const open = visible.filter((s) => isOn(s) && isListed(s));
   // Jobs has no switch, so it is the safe fallback when every shown section is closed.
   const target = open.find((s) => s.key === last) ?? open[0] ?? sectionByKey("jobs");
+  // F071 (owner 11-09: guests may VIEW /explore, /helprs and /search; only actions are gated): a guest opens the
+  // public face of a section: Jobs is the guest job board (/browse), Declutter is open to guests as it is.
+  if (!user) return <Navigate replace to={last === "declutter" ? "/declutter" : "/browse"} />;
   return <Navigate replace to={target.path} />;
 }

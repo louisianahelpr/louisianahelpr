@@ -39,7 +39,7 @@ export function PushDeviceHint() {
         </p>
       ) : (
         <Button variant="primary" size="sm" className="ml-auto" disabled={state === "asking"} onClick={() => { void turnOn(); }}>
-          Turn on phone notifications
+          Turn on app notifications
         </Button>
       )}
       {state === "blocked" && (

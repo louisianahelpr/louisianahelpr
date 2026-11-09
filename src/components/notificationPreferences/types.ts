@@ -128,4 +128,6 @@ export interface Row {
       Email column (this text is its tooltip and screen-reader label) instead of
       a switch that would do nothing. */
   noEmailSwitch?: string;
+  /** F103: the header this row sits under in the main list (Messages, Jobs, Money, Account). */
+  group?: "Messages" | "Jobs" | "Money" | "Account";
 }

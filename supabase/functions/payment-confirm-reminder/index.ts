@@ -263,7 +263,7 @@ serve(async (req) => {
           user_id: job.customer_id,
           title: "Your Helpr marked the job done",
           // Owner 2026-10-23: nothing is released on a timer; past the window Helpr support steps in.
-          message: `"${job.title}" — please approve it or request a revision. If we don't hear from you within a day of it being marked done, Helpr support will reach out. Your payment stays held until then.`,
+          message: `"${job.title}" — please approve it or request a revision. If we don't hear from you within a day of it being marked done, our team steps in. Your payment stays held until then.`,
           type: "job_updates",
           // job_id is the SUBJECT (Q139): the Q137 seed boundary reads it, so a
           // seed job never reminds a real poster. The column exists since

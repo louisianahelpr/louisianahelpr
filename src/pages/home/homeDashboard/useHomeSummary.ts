@@ -178,6 +178,11 @@ export function useHomeSummary(user: SupaUser | null) {
         working: appliedLive.length,
         selling: liveListingCount(items),
         shopOrders: myOrders.length,
+        // F088 (owner UI audit 11-09): the You page's Buying tile says what is under way: items in the cart and paid
+        // orders not picked up yet (the member's own buyer lines).
+        buying: declutterOn
+          ? (cart.data ?? []).filter((l) => l.my_side === "buyer" && (l.status === "in_cart" || (l.status === "paid" && l.order_status === "paid"))).length
+          : 0,
       },
       tiles: {
         // H5 (Cowork audit 2026-10-20): "N in progress" counted open jobs still

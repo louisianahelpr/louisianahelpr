@@ -36,7 +36,7 @@ function typesForTitle(src: string, title: string): string[] {
 }
 
 const SENDERS: Array<{ file: string; title: string }> = [
-  { file: "supabase/functions/process-scheduled-payouts/index.ts", title: "Payout sent!" },
+  { file: "supabase/functions/process-scheduled-payouts/index.ts", title: "Payout sent" },
   // Q2329: the tip Checkout webhook no longer writes its own tip notice (trg_notify_helper_tip, financial_alerts, is the one).
   { file: "supabase/functions/_shared/heldTipRepay.ts", title: "You received a tip!" },
 ];

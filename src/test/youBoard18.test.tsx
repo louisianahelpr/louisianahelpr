@@ -5,8 +5,10 @@
  * section not open to this viewer has no tiles; ONE line names every such
  * section (owner 2026-10-21: "Homes is opening soon").
  *
- * @mutate src/components/profile/profileLanding/YourActivity.tsx |                   {n > 0 && <><span aria-hidden="true"> ·</span> {n}</>} |                   {<><span aria-hidden="true"> ·</span> {n}</>}
- * @mutate src/components/profile/profileLanding/YourActivity.tsx |   const open = visible.filter(isOn); |   const open = visible;
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |                   {n > 0 && <><span aria-hidden="true"> ·</span> {n} {word}</>} |                   {<><span aria-hidden="true"> ·</span> {n} {word}</>}
+ * F088 (owner UI audit 11-09): each count carries its status word ("2 live").
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |   posted: "live", |   posted: "",
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |   const open = visible.filter((s) => isOn(s) && isListedHere(s)); |   const open = visible;
  * @mutate src/components/profile/profileLanding/YourActivity.tsx |       {soon && <p | {false && <p
  * @mutate src/pages/home/HomeDashboard.tsx |               {visible.filter(isLive).map((s) => { |               {visible.map((s) => {
  * @mutate src/components/profile/profileLanding/headingContract.ts | export const PROFILE_PAGE_TITLE = "You"; | export const PROFILE_PAGE_TITLE = "Profile";
@@ -32,7 +34,7 @@ const openAnswer = vi.hoisted(() => ({ value: null as ReadonlySet<string> | null
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => openAnswer.value }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => k !== "rentals" }));
 vi.mock("@/pages/home/homeDashboard/useHomeSummary", () => ({
-  useHomeSummary: () => ({ counts: { posted: 2, working: 0, selling: 1, shopOrders: 0 } }),
+  useHomeSummary: () => ({ counts: { posted: 2, working: 0, selling: 1, shopOrders: 0, buying: 3 } }),
 }));
 vi.mock("@/components/sections/useSectionPrefs", async () => {
   const { SECTIONS } = await import("@/components/sections/sectionsConfig");
@@ -62,7 +64,7 @@ describe("You matches board 18", () => {
     const tiles = screen.getAllByRole("button");
     expect(Object.values(ACTIVITY_TILES).flat().length).toBe(8);
     expect(tiles.map((t) => t.textContent)).toEqual([
-      "Jobs Posted · 2", "Jobs Working", "Declutter Buying", "Declutter Selling · 1", "Shops Orders", "Shops My shop",
+      "Jobs Posted · 2 live", "Jobs Working", "Declutter Buying · 3 in progress", "Declutter Selling · 1 live", "Shops Orders", "Shops My shop",
     ]);
     expect(screen.getByTestId("you-activity-soon").textContent).toBe("Homes is opening soon");
   });
@@ -89,7 +91,7 @@ describe("You matches board 18", () => {
 
   it("an open tile routes to its tab; a closed section has no tile to tap", () => {
     render(<MemoryRouter initialEntries={["/profile"]}><YourActivity /><Where /></MemoryRouter>);
-    fireEvent.click(screen.getByRole("button", { name: /^Jobs\s*Posted\s*2$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Jobs\s*Posted\s*2 live$/ }));
     expect(path).toBe("/jobs?tab=posted");
     expect(screen.queryByRole("button", { name: /Homes/ })).toBeNull();
   });

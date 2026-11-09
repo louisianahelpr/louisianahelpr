@@ -335,8 +335,9 @@ serve(async (req) => {
     // alert is traceable rather than silently dropped.
     const { error: notifErr } = await supabase.from("notifications").insert({
       user_id: userId,
-      title: "Cash-out successful!",
-      message: `$${formatExactDollars(totalAmount)} in referral credits has been sent to your connected Stripe account.`,
+      // F196 (Part 3 audit 11-09): no back-office words ("connected Stripe account").
+      title: "Referral credit cashed out",
+      message: `Your $${formatExactDollars(totalAmount)} in referral credit is on its way to your bank.`,
       type: "payment",
       // Earnings & Payouts, not the Profile landing tab.
       link: "/profile?tab=earnings",

@@ -1,5 +1,6 @@
 // Quiet-hours window stored here is enforced server-side by the
 // send-push-notification edge function (PR #446).
+import { NotificationGroupHeader } from "@/components/notificationPreferences/NotificationGroupHeader";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { supabase } from "@/integrations/supabase/client";
@@ -430,7 +431,7 @@ const NotificationPreferences = () => {
               className="font-sans font-semibold block text-ds-14 mb-0"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
-              Master switch
+              All notifications
             </Label>
           </div>
         </div>
@@ -467,9 +468,13 @@ const NotificationPreferences = () => {
       {/* Quiet hours (notificationPreferences/QuietHoursCard.tsx): non-critical pushes wait; security alerts always fire. */}
       <QuietHoursCard prefs={prefs} quietEnabled={quietEnabled} toggleQuiet={toggleQuiet} patchPrefs={patchPrefs} locked={locked} saving={saving} savingKey={savingKey} loaded={loaded} />
 
-      {/* "Show message text in alerts" sits right under Messages (Messages audit M6). */}
-      {rows.map((item) => item.key !== "messages" ? renderRow(item) : (
+      {/* "Show message text in alerts" sits right under Messages (Messages audit M6). F103 (owner UI audit 11-09): a
+          header where the group changes (Messages, Jobs, Money, Account), the way the Declutter group has one. */}
+      {rows.map((item, i) => {
+        const header = item.group && item.group !== rows[i - 1]?.group ? <NotificationGroupHeader key={`group-${item.group}`} title={item.group} /> : null;
+        return item.key !== "messages" ? <Fragment key={item.key}>{header}{renderRow(item)}</Fragment> : (
         <Fragment key={item.key}>
+          {header}
           {renderRow(item)}
           {columns.message_preview && (
             <MessagePreviewRow
@@ -483,7 +488,8 @@ const NotificationPreferences = () => {
             />
           )}
         </Fragment>
-      ))}
+        );
+      })}
       {!loadFailed && <JobRemindersGroup prefs={prefs} loaded={loaded} savingKey={savingKey} locked={locked} columnsReady={(key) => columns[key]} onToggle={(key) => void toggle(key)} />}
 
       {/* Saved-Helpr availability nudges (notificationPreferences/SavedHelprNudgeCard.tsx): a standalone push-only opt-in. */}

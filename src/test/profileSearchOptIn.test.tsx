@@ -37,7 +37,8 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (...a: unknown[]) => toastError(...a), success: vi.fn() }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
-vi.mock("@/components/AppPage", () => ({ default: ({ children }: { children: ReactNode }) => <main>{children}</main> }));
+// F069 (owner UI audit 11-09): the name is the page title (the one h1), no longer repeated in the card.
+vi.mock("@/components/AppPage", () => ({ default: ({ title, children }: { title?: ReactNode; children: ReactNode }) => <main><h1>{title}</h1>{children}</main> }));
 vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: (m: unknown) => meta(m) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: null, isLoading: false }) }));
@@ -92,7 +93,7 @@ describe("the /u page's robots meta", () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    await screen.findByText("Eli B.", { selector: "h2" });
+    await screen.findByText("Eli B.", { selector: "h1" });
     const calls = meta.mock.calls;
     return (calls[calls.length - 1]?.[0] as { robots?: string } | undefined)?.robots;
   };

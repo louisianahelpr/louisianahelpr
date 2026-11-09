@@ -40,6 +40,7 @@ import { completeSignupErrorCopy, isSignupAlreadyFinished, isSignupResumedOldAcc
 import { useParishForZip } from "@/hooks/useParishForZip";
 import { useCityZipMismatch } from "./signup/useCityZipMismatch";
 import { useLanguage } from "@/lib/i18n/language";
+import { LanguageToggle } from "@/components/LanguageToggle";
 
 const Signup = () => {
   const { t } = useLanguage();
@@ -495,7 +496,9 @@ const Signup = () => {
       {...(step === 1 ? { hideBack: true } : { backOnClick: () => { setStep2Errors({}); setStep(1); } })}
       title={step === 1 ? undefined : stepHeading.title}
     >
-      <div>
+      {/* F024 (owner UI audit 11-09): at 1440x900 the card sat 24px under the top edge of the window; 48px from lg up
+          (the shell's 24 + 24 here), and the page scrolls naturally below. */}
+      <div className="lg:pt-6" data-signup-top="">
           {/* Liquid-glass card — matches the Login screen so the two auth
               screens read as one set (see Login.tsx's `.liquid-glass` card). */}
           <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
@@ -567,6 +570,13 @@ const Signup = () => {
         {/* "Already have an account? Sign in" lives in SignupStep1's social
             column (as Login's "New to Helpr?"); a second copy here rendered it twice. */}
           </div>
+          {/* F025 (owner UI audit 11-09): English / Español sits UNDER the card, the same spot as on Log in
+              (it was the last line inside the card here). Step 1 only, as before. */}
+          {step === 1 && (
+            <div className="flex justify-center pt-3" data-signup-language="">
+              <LanguageToggle />
+            </div>
+          )}
       </div>
     </AuthShell>
   );

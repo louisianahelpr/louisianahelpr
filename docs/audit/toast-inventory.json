@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 500,
+      "literal": 499,
       "template": 107,
-      "dynamic": 660,
+      "dynamic": 661,
       "jsx": 0
     }
   },
@@ -685,7 +685,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 231,
+      "line": 232,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -695,7 +695,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 254,
+      "line": 255,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12765,21 +12765,21 @@
     },
     {
       "file": "src/pages/auth/ForgotPassword.tsx",
-      "line": 79,
+      "line": 83,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "recognizedAuthError(error.message) ?? \"The security check didn't finish. Try again.\""
+        "text": "recognizedAuthError(error.message) ?? t(\"forgot.captchaFailed\")"
       },
       "renders": true
     },
     {
       "file": "src/pages/auth/ForgotPassword.tsx",
-      "line": 85,
+      "line": 89,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Too many requests — try again in a minute."
+        "form": "dynamic",
+        "text": "t(\"forgot.tooMany\")"
       },
       "renders": true
     },
@@ -12845,7 +12845,7 @@
     },
     {
       "file": "src/pages/auth/ResetPassword.tsx",
-      "line": 164,
+      "line": 165,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12855,7 +12855,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 172,
+      "line": 173,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12865,7 +12865,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 173,
+      "line": 174,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12875,7 +12875,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 174,
+      "line": 175,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12885,7 +12885,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 194,
+      "line": 195,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12895,7 +12895,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 195,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12905,7 +12905,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 196,
+      "line": 197,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12915,7 +12915,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 212,
+      "line": 213,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12925,7 +12925,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 295,
+      "line": 296,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12935,7 +12935,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 303,
+      "line": 304,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12945,7 +12945,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 373,
+      "line": 374,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12955,7 +12955,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 443,
+      "line": 444,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13247,7 +13247,7 @@
     },
     {
       "file": "src/pages/info/Support.tsx",
-      "line": 293,
+      "line": 272,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

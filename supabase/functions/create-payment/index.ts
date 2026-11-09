@@ -2154,7 +2154,8 @@ serve(async (req) => {
         await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
           title: "Job marked complete",
-          message: `The person who posted "${job.title}" marked it complete. Please confirm completion to release payment.`,
+          // F195 (Part 3 audit 11-09): plain words, no "confirm completion to release payment".
+          message: `The person who posted "${job.title}" marked it done. Check it and confirm it's finished.`,
           // `?job=` — see the note on the shared rule at the top of this file.
           type: "info", link: `/jobs?job=${job.id}`,
         });
@@ -2163,7 +2164,7 @@ serve(async (req) => {
         await insertNotifications(supabaseAdmin, {
           user_id: job.customer_id,
           title: "Helpr marked the job complete",
-          message: `The Helpr marked "${job.title}" as complete. Please confirm completion to release payment.`,
+          message: `The Helpr marked "${job.title}" done. Check the work and approve it.`,
           type: "info", link: `/posts?job=${job.id}`,
         });
       }
@@ -2183,7 +2184,7 @@ serve(async (req) => {
             job_id: job.id,
             title: "Job approved!",
             message: forPoster
-              ? `Helpr support approved "${job.title}". ${promise}`
+              ? `Our team approved "${job.title}". ${promise}`
               : `"${job.title}" was approved. ${promise}`,
             type: "payment", link: "/profile?tab=earnings",
           });
@@ -2191,9 +2192,11 @@ serve(async (req) => {
         if (job.customer_id) {
           await insertNotifications(supabaseAdmin, {
             user_id: job.customer_id,
+            // F193 (Part 3 audit 11-09): the body says "our team". The title stays: jobs_notice_email_type matches it by
+            // text (20261108214605) to send the email, so it changes only together with that function.
             title: forPoster ? "Helpr support approved your job" : "Job complete",
             message: forPoster
-              ? `You didn't answer, so Helpr support looked at "${job.title}" and approved it. ${isCrew ? "Every Helpr on your crew is" : "Your Helpr is"} paid ${payDay}.`
+              ? `You didn't answer, so our team looked at "${job.title}" and approved it. ${isCrew ? "Every Helpr on your crew is" : "Your Helpr is"} paid ${payDay}.`
               : `Thanks for approving "${job.title}". ${isCrew ? "Every Helpr on your crew is" : "Your Helpr is"} paid ${payDay}.`,
             type: "payment", link: `/posts?job=${job.id}`,
           });
@@ -2338,7 +2341,7 @@ serve(async (req) => {
       await insertNotifications(supabaseAdmin, {
         user_id: job.customer_id,
         title: "Revision completed — review needed",
-        message: `The Helpr has fixed the revision for "${job.title}". You have 72 hours to approve it or open a dispute. If we don't hear from you by then, Helpr support will reach out. Your payment stays held until it's approved.`,
+        message: `The Helpr has fixed the revision for "${job.title}". You have 72 hours to approve it or open a dispute. If we don't hear from you by then, our team steps in. Your payment stays held until it's approved.`,
         type: "warning", link: `/posts?job=${job.id}`,
       });
 

@@ -67,7 +67,7 @@ describe("avatarCaption", () => {
   });
 
   it("falls back to the neutral caption when a photo is showing", () => {
-    expect(avatarCaption(null)).toBe("Tap the photo to change it.");
+    expect(avatarCaption(null)).toBe("Click or tap the photo to change it.");
   });
 });
 
@@ -78,7 +78,7 @@ describe("PhotoNameSection", () => {
     expect(notice).toBeInTheDocument();
     // Both halves matter: that it is public, AND what specifically not to
     // upload. "Your photo is public" alone did not stop this happening.
-    expect(notice.textContent).toMatch(/never use a photo of an ID, licence or document/i);
+    expect(notice.textContent).toMatch(/never use a photo of an ID, license or document/i);
   });
 
   it("shows the notice before any photo exists — that is when it is read", () => {
@@ -118,4 +118,4 @@ describe("PhotoNameSection", () => {
 // @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx |       if (!uploadedThisVisit) return "Add a photo so people know who they're hiring."; |       if (!uploadedThisVisit) {}
 // @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | {avatarCaption(photoRejection, uploadedThisVisit)} | {avatarCaption(photoRejection, true)}
 // @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx |     setUploadedThisVisit(true);\n    onAvatarUpload(e); |     onAvatarUpload(e);
-// @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | Anyone can see this photo — never use a photo of an ID, licence or document. | Anyone can see this photo.
+// @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | Anyone can see this photo — never use a photo of an ID, license or document. | Anyone can see this photo.

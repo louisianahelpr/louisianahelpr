@@ -84,6 +84,15 @@ const NotFound = () => {
                 <Button asChild variant="primary" size="lg" className="w-full max-w-[280px] rounded-full">
                   <Link to="/">Go home</Link>
                 </Button>
+                {/* F032 (owner UI audit 11-09): most old links pointed at Jobs or Declutter, so both are one tap away. */}
+                <div className="flex flex-wrap justify-center gap-2 w-full" data-not-found-quick-links="">
+                  <Button asChild variant="outline" size="sm" className="rounded-full">
+                    <Link to="/declutter">Browse Declutter</Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="rounded-full">
+                    <Link to="/browse">Browse jobs</Link>
+                  </Button>
+                </div>
                 <Button
                   type="button"
                   variant="ghost"

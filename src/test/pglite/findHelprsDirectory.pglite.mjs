@@ -163,6 +163,11 @@ AS $function$
 $function$;
 
 -- live seed_hidden_from_caller()
+CREATE OR REPLACE FUNCTION public.is_test_member(p_user_id uuid) RETURNS boolean LANGUAGE sql STABLE AS $f$
+  SELECT p_user_id IS NOT NULL AND (
+    EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = p_user_id AND p.is_seed IS TRUE)
+    OR EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p_user_id));
+$f$;
 CREATE OR REPLACE FUNCTION public.seed_hidden_from_caller()
  RETURNS boolean
  LANGUAGE sql
@@ -285,8 +290,33 @@ check("F136: authenticated cannot call display_name_for_viewer directly", String
 const dacl = (await db.query(`SELECT coalesce(proacl::text, '') a FROM pg_proc WHERE proname = 'display_name_for_viewer'`)).rows[0]?.a;
 check("F136: display_name_for_viewer EXECUTE stays service_role only", process.env.F136 === "skip" || (/service_role=X/.test(dacl) && !/authenticated=X|anon=X|(^|[{,])=X/.test(dacl)), dacl);
 
+const acl0 = (await db.query(`SELECT coalesce(proacl::text, '') a FROM pg_proc WHERE proname = 'find_helprs'`)).rows[0]?.a;
+check("before F071: EXECUTE for authenticated only (not PUBLIC, not anon)", acl0 !== undefined && /authenticated=X/.test(acl0) && !/(^|[{,])(=|anon=)[^,}]*X/.test(acl0), String(acl0));
+
+// ── F071 (owner 11-09): a guest may VIEW Find a Helpr (20261109212142) ──
+//   F071=skip runs WITHOUT it: every F071 check below FAILs.
+const F071 = readFileSync(new URL("../../../supabase/migrations/20261109212142_find_helprs_guests_may_view.sql", import.meta.url).pathname, "utf8");
+if (process.env.F071 === "skip") console.log("F071=skip: running WITHOUT 20261109212142 (expect FAILs)");
+else { for (let i = 0; i < 3; i++) await db.exec(F071); check("F071 migration applies 3x (replay-safe)", true); }
+const guest = await find("anon", null);
+check("F071: a guest gets the directory", !guest.error && (guest.rows?.length ?? 0) > 0, guest.error ?? String(guest.rows?.length));
+for (const who of [ANA, BEN, TRICK]) check(`F071: a guest sees ${who === ANA ? "Ana" : who === BEN ? "Ben" : "the literal-% Helpr"}`, ids(guest).includes(who), JSON.stringify(ids(guest)));
+for (const [who, name] of [[NOSKILL, "a member with no skills"], [BANNED, "a banned member"], [MINOR, "an under-18 member"],
+  [SEED, "a test account (seed hidden)"], [UNVER, "an unverified email"], [GONE, "a deleted (anonymised) account"]]) {
+  check(`F071: a guest's list leaves out ${name}`, !ids(guest).includes(who));
+}
+const anaGuest = guest.rows?.find((r) => r.user_id === ANA) ?? {};
+check("F071: a guest gets first name + last initial", anaGuest.full_name === "Ana B.", anaGuest.full_name);
+check("F071: a guest gets no rate, phone, email or address", !("hourly_rate" in anaGuest) && !("phone" in anaGuest) && !("email" in anaGuest) && !("location" in anaGuest), JSON.stringify(Object.keys(anaGuest)));
+check("F071: a banned member signed in is still refused", String((await find("authenticated", BANNEDME)).error).includes("account_restricted"));
+const meAfter = await find("authenticated", ME);
+await db.exec(`INSERT INTO public.test_accounts VALUES ('${BEN}')`);
+check("F071: a guest never sees a test account (test_accounts), whatever the seed switch says", !ids(await find("anon", null)).includes(BEN));
+await db.exec(`DELETE FROM public.test_accounts WHERE user_id = '${BEN}'`);
+check("F071: a member's own list is unchanged (blocks both ways, never themselves)",
+  JSON.stringify(ids(meAfter)) === JSON.stringify([ANA, BEN, TRICK]), JSON.stringify(ids(meAfter)));
 const acl = (await db.query(`SELECT coalesce(proacl::text, '') a FROM pg_proc WHERE proname = 'find_helprs'`)).rows[0]?.a;
-check("EXECUTE for authenticated only (not PUBLIC, not anon)", acl !== undefined && /authenticated=X/.test(acl) && !/(^|[{,])(=|anon=)[^,}]*X/.test(acl), String(acl));
+check("F071: EXECUTE for anon and authenticated, never PUBLIC", /anon=X/.test(acl) && /authenticated=X/.test(acl) && !/(^|[{,])=[^,}]*X/.test(acl), String(acl));
 
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");
 process.exit(failures ? 1 : 0);

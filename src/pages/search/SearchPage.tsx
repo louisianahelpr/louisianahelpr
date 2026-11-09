@@ -55,14 +55,15 @@ type ItemHit = { id: string; title: string; description: string | null; category
 function useJobHits(q: string, userId: string | null) {
   return useQuery({
     queryKey: ["search", "jobs", q, userId],
-    enabled: q.length > 0 && !!userId,
+    // F071 (owner 11-09): a guest may search too. open_jobs_browse is readable signed out; a guest has no blocks.
+    enabled: q.length > 0,
     staleTime: 30_000,
     queryFn: async () => {
       // Jobs Browse hides posters on either side of a block (Q573); so does
       // search, in the query itself so the exact count stays exact.
       // getBlockedUserIds throws on a failed read: the error state, never
       // jobs from someone blocked.
-      const blocked = [...(await getBlockedUserIds(userId!))];
+      const blocked = userId ? [...(await getBlockedUserIds(userId))] : [];
       // Q2408: + date_window_end, so a window job reads "Any day Nov 4-10" (jobDayLabel); through readJobsAheadOfDb,
       // which asks once more without it on a database that does not have it yet.
       const res = await readJobsAheadOfDb(

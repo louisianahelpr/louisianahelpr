@@ -66,3 +66,16 @@ describe("F046: a guest on /support sees matching Help answers", () => {
     auth.user = null;
   });
 });
+
+// F045 (owner UI audit 11-09): "the message box is named only by its placeholder". Measured: the visible label is
+// linked (htmlFor="support-message" -> id="support-message"), so the box's accessible name is the label's words.
+describe("F045: the message box is named by its visible label", () => {
+  it("getByLabelText finds the textarea by 'Your message'", () => {
+    auth.user = null;
+    const { unmount } = mount();
+    const box = screen.getByLabelText(/Your message/);
+    expect(box.tagName).toBe("TEXTAREA");
+    expect(box.id).toBe("support-message");
+    unmount();
+  });
+});

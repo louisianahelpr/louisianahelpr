@@ -15,6 +15,7 @@
 // @mutate scripts/generate-sitemap.mjs |       "       Add an entry to WEIGHTS in scripts/generate-sitemap.mjs to tune these. -->", |       "       Add an entry to WEIGHTS (scripts/generate-sitemap.mjs --check) to tune these. -->",
 // @mutate vercel.json |       "destination": "https://www.louisianahelpr.com/:path",\n      "permanent": true | "destination": "https://www.louisianahelpr.com/:path",\n      "permanent": false
 // @mutate vercel.json |       "source": "/contact", |       "source": "/contact-us",
+// @mutate vercel.json |       "source": "/homes", |       "source": "/home-s",
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -97,6 +98,17 @@ describe("vercel.json redirects", () => {
     const r = config.redirects.find((x) => x.source === source);
     expect(r?.destination).toBe(destination);
     expect(r?.permanent).toBe(true);
+  });
+
+  // Owner's UI audit 11-09, F138: the section is called Homes everywhere (menu, dock, landing card), but its page is
+  // /rentals, so a typed /homes was the Not Found page. Temporary (307), so a later /homes page is not stuck behind a
+  // cached permanent redirect.
+  it("/homes goes to the Homes section's page, /rentals (temporary)", () => {
+    const r = config.redirects.find((x) => x.source === "/homes");
+    expect(r?.destination).toBe("/rentals");
+    expect(r?.permanent).toBe(false);
+    const sections = read("src/components/sections/sectionsConfig.ts");
+    expect(sections).toMatch(/key: "homes", label: "Homes", navLabel: "Homes", path: "\/rentals"/);
   });
 
   it("no doorway redirect shadows a real app route", () => {

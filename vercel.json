@@ -51,6 +51,11 @@
       "source": "/work",
       "destination": "/signup",
       "permanent": true
+    },
+    {
+      "source": "/homes",
+      "destination": "/rentals",
+      "permanent": false
     }
   ],
   "rewrites": [

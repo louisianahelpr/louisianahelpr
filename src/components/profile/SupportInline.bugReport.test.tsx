@@ -1,3 +1,4 @@
+// @mutate src/components/support/BugReportAttachments.tsx |             <dt className="text-muted-foreground">{PLAIN_LABEL[i.label] ?? i.label}</dt> |             <dt className="text-muted-foreground">{i.label}</dt>
 // @mutate src/components/profile/SupportInline.tsx |     () => supportCategories.find((c) => c.key === searchParams.get("topic"))?.key ?? "message", |     () => "message",
 // @mutate src/components/profile/SupportInline.tsx |         {bugContext && <BugReportAttachments context={bugContext} />} |         {null}
 // @mutate src/components/profile/SupportInline.tsx |     const text = bugContext ? withBugReport(message.trim(), bugContext, BUG_REPORT_MAX_CHARS) : message.trim(); |     const text = message.trim();
@@ -49,14 +50,19 @@ describe("Report a bug: the in-app support form (Q1028)", () => {
     noteScreen("/jobs/abc", "", "Fence repair · Helpr");
     renderAt("/profile?tab=support&topic=report");
     expect(screen.getAllByText("Something's not working").length).toBeGreaterThan(0);
-    expect(screen.getByRole("heading", { name: "Attached automatically" })).toBeTruthy();
+    // F043 (owner UI audit 11-09): folded behind a plain summary, with plain labels; still exactly what is sent.
+    expect(screen.getByText("What we'll send with your report")).toBeTruthy();
+    expect(screen.getByText("Page you were on")).toBeTruthy();
+    expect(screen.getByText("App version")).toBeTruthy();
+    expect(screen.queryByText("App build")).toBeNull();
+    expect(screen.queryByText("Route")).toBeNull();
     expect(screen.getByText("Fence repair · Helpr")).toBeTruthy();
     expect(screen.getByText("/jobs/abc")).toBeTruthy();
   });
 
   it("another topic attaches nothing", () => {
     renderAt("/profile?tab=support");
-    expect(screen.queryByRole("heading", { name: "Attached automatically" })).toBeNull();
+    expect(screen.queryByText("What we'll send with your report")).toBeNull();
   });
 
   it("sends the shown context with the report", async () => {

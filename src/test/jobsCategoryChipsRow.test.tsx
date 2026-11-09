@@ -6,7 +6,7 @@
  *
  * @mutate src/components/dashboard/JobCategoryChips.tsx | (n.get(b) ?? 0) - (n.get(a) ?? 0) \|\| | (n.get(a) ?? 0) - (n.get(b) ?? 0) \|\|
  * @mutate src/components/dashboard/JobCategoryChips.tsx | onChange(value === g.id ? null : g.id) | onChange(g.id)
- * @mutate src/components/dashboard/JobCategoryChips.tsx |   if (groups.length < 2 && !value) return null; |
+ * @mutate src/components/dashboard/JobCategoryChips.tsx |   const shown = !(groups.length < 2 && !value); |   const shown = true;
  * @mutate src/pages/jobs/JobsSection.tsx |           {!listLabel && browse?.chips} |           {browse?.chips}
  * @mutate src/pages/home/Dashboard.tsx | { search: phoneBrowseSearch, chips: phoneBrowseChips } | { search: phoneBrowseSearch }
  */

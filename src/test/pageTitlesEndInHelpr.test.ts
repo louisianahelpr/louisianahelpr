@@ -5,13 +5,20 @@
  * after its child's) and wins, which is how /helprs lost the suffix. Computed titles (template strings, helpers) are
  * read where they are built and are out of this check.
  *
+ * The public heads (the HTML <title> served before the app runs) follow the same pattern: every PUBLIC_PAGE_META,
+ * LEGAL_PAGE_META and NOINDEX_PAGE_META entry and every /hire/<service>/<town> page (F064: they said
+ * "| Louisiana Helpr"). The landing page keeps its locked brand title.
+ *
  * @mutate src/pages/helprs/FindHelprs.tsx | export default function FindHelprs() {\n | export default function FindHelprs() {\n  usePageTitle("Find a Helpr");\n
+ * @mutate src/lib/townPages.mjs | , LA — Helpr`; | , LA \| Louisiana Helpr`;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { trackedFiles } from "./helpers/trackedFiles";
+import { LEGAL_PAGE_META, NOINDEX_PAGE_META, PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, townPageMeta } from "@/lib/townPages.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const screens = trackedFiles("src").filter((f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.startsWith("src/test/"));
@@ -41,5 +48,17 @@ describe("tab titles read '<Page> — Helpr' (F137)", () => {
     expect(page).toContain('<AppPage title="Find a Helpr"');
     expect(page).not.toMatch(/usePageTitle\(/);
     expect(blankComments(readFileSync(join(ROOT, "src/components/AppPage.tsx"), "utf8"))).toContain("usePageTitle(`${title} — Helpr`);");
+  });
+
+  it("every public head and every /hire town page reads '<Page> — Helpr' (F064)", () => {
+    const heads: Array<[string, string]> = [
+      ...Object.entries(PUBLIC_PAGE_META).map(([k, m]) => [k, (m as { title: string }).title] as [string, string]),
+      ...Object.entries(LEGAL_PAGE_META).map(([k, m]) => [k, (m as { title: string }).title] as [string, string]),
+      ...Object.entries(NOINDEX_PAGE_META).map(([k, m]) => [k, (m as { title: string }).title] as [string, string]),
+      ...TOWN_PAGE_SERVICES.flatMap((s) => TOWN_PAGE_TOWNS.map((t) => [`/hire/${s.slug}/${t.slug}`, townPageMeta(s, t).title] as [string, string])),
+    ];
+    expect(heads.length).toBeGreaterThan(30);
+    expect(heads.filter(([, title]) => !title.endsWith(" — Helpr"))).toEqual([]);
+    expect(townPageMeta(TOWN_PAGE_SERVICES[0], TOWN_PAGE_TOWNS[0]).ogTitle).toMatch(/, LA — Helpr$/);
   });
 });

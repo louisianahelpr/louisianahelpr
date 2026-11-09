@@ -852,6 +852,8 @@ export const GAPS: Record<string, string> = {
   "src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx": "Not swept yet (new 11-01): title, description, price and area go through declutter_helpr_create_listing's checks (the same price, area and length rules as a listing; contact-leak trigger on the table).",
   // Continue another day (B118, 20261101231015): the job page's sheet.
   "src/components/jobs/ContinueDaySheet.tsx": "Not swept yet (new 11-01): a day from a fixed list of chips, a time wheel and one note (300 characters); propose_job_continue_day re-checks the day window (1 hour to 30 days), the note length and the parties, and refuses anything else.",
+  // Missed continue day (Jobs b2, 20261108214605): not swept yet (new 11-08).
+  "src/components/jobs/MissedReturnSheet.tsx": "Not swept yet (new 11-08): opens only on a live, agreed continue day whose time has passed, which no sweep account has. One note (maxLength 1000) and up to 5 proof photos (poster only, image types only); report_continue_day_missed re-checks the party, the day, the note length (1000, plus a table CHECK), the photo count and each photo path under the caller's own folder, and refuses anything else.",
   // CMP-4 instant book (20261101063725): Settings > Instant book.
   "src/pages/profile/InstantBookTab.tsx": "Not swept yet (new 11-01): one kind of work from a fixed list and one dollar box (CurrencyInput, min and max shown); rpc_set_instant_book_floor re-checks the category and the dollar range and refuses anything else.",
   // LEAD-PROFILE-LINK: Settings > Your profile link.

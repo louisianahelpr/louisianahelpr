@@ -5,6 +5,7 @@ import { identityCheckOn } from "@/lib/identityCheckSwitch";
 // restating the numbers as literals.
 import {
   APPROVAL_WINDOW_HOURS,
+  STANDARD_PAYOUT_DAYS_AFTER_APPROVAL,
   STANDARD_PAYOUT_PHRASE,
 } from "../../../../supabase/functions/_shared/escrowTiming";
 // Cancellation percentages and the standard payout window are binding money
@@ -19,6 +20,15 @@ import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
 import { CREDENTIAL_TIER_CATEGORIES } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
 
+
+/**
+ * F036 (owner UI audit 2026-11-09): the ONE finality rule every Help answer states. A job becomes
+ * `completed` only when the poster approves it (rpc_helper_mark_done stamps helper_completed_at and
+ * leaves the status live; completed is set on release), and open_dispute_as refuses a completed job
+ * (job_already_completed). "Once a job is marked done, it's final" contradicted the 24-hour approval
+ * window, because the Helpr marking it done is not the end. Guard: src/test/helpDisputeRuleOneVoice.test.ts.
+ */
+export const DONE_IS_FINAL = "Once the person who posted the job approves it, it's final and can't be disputed.";
 
 /** "handyman, painting, moving, assembly, storm prep, and yard work" — built. */
 const CREDENTIAL_CATEGORY_PHRASE = (() => {
@@ -152,7 +162,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // `void-cancelled-payments/index.ts:258`. A poster cancelling an
         // accepted job two days out was told they owed a fee they do not owe,
         // which is the version of this error that costs the platform a job.
-        a: `Yes. It's always free before you accept anyone. After you accept a Helpr it is still free 24 or more hours out. It isn't a strike either. Closer to the start, part of the job goes to the Helpr, because by then they have held the slot for you, and it counts as a strike; the cancel screen shows the exact amount before you confirm.`,
+        a: `Yes. Cancelling is free before you accept someone, and free up to 24 hours before the start. Closer than that, the Helpr gets part of the price for holding the time, and it counts as a strike. You'll see the exact amount first.`,
       },
     ],
   },
@@ -182,7 +192,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // file's guards exist to stop. "The standard schedule" is now named:
         // STANDARD_PAYOUT_WINDOW, the same constant InstantPayoutDialog and
         // PayoutHistory interpolate.
-        a: `Payment is sent to your Helpr account ${STANDARD_PAYOUT_PHRASE}, once the person who posted it approves the work, then transfers to your bank ${STANDARD_PAYOUT_WINDOW}. A one-time account setup fee comes out of your first payout, unless you already paid it on a job you posted or on Declutter; every standard payout after that is free. Every payout goes on the standard schedule.`,
+        a: `You're paid ${STANDARD_PAYOUT_DAYS_AFTER_APPROVAL} days after the person who posted the job approves it. Your bank shows it ${STANDARD_PAYOUT_WINDOW}. A one-time setup fee comes out of your first payout, unless you already paid it on a job you posted or on Declutter.`,
       },
       {
         q: "What if the person who posted the job doesn't confirm completion?",
@@ -248,7 +258,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // refuses a dispute on a completed job too (job_already_completed,
         // 20260915025607), so the answer says done is final and sends no one
         // to Support about a finished job.
-        a: "Open a dispute from the job's card — in My Jobs for a job you're doing, or My Posts for a job you posted — not the job detail screen. Report a Problem is available while the job is in progress: on a job you're doing, the button is there from On the way until the job is done, including during a revision. On a job you posted, request a revision first and give the person doing it their window to fix it; the dispute link appears once that window has run. Once a job is marked done, it's final and can't be disputed. While a dispute is open, our team reviews both sides and can release the payment to either party or split it. Disputes have a 72-hour window: if it isn't settled or escalated in that time, our team decides it, and the payment stays on hold until we do.",
+        a: `Open a dispute from the job's card: Jobs > Working for a job you're doing, or Jobs > Posted for a job you posted. On a job you're doing, Report a Problem is there from On the way until the person who posted the job approves it, including during a revision. On a job you posted, ask for a change first and give the person doing it time to fix it; the dispute link appears once that time has run out. The person who posted the job has ${APPROVAL_WINDOW_HOURS} hours after the work is marked done to approve it or ask for a change. ${DONE_IS_FINAL} While a dispute is open, our team reviews both sides and can release the payment to either party or split it. Disputes have a 72-hour window: if it isn't settled or escalated in that time, our team decides it, and the payment stays on hold until we do.`,
       },
     ],
   },
@@ -286,7 +296,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // 2026-10-23: ID verification is off (switch `identity_check`, owner:
         //       "just remove the verify id entirely"), so the answer no longer
         //       says an ID check is required. Licenses and insurance are unchanged.
-        a: `Helprs can upload trade licenses and insurance, and verified badges show on their profile. On trade jobs (${CREDENTIAL_CATEGORY_PHRASE}) you also choose who may apply: open to anyone, licensed pros only, or licensed and insured. Only Helprs who meet what you set can apply — it's enforced by the database, not just hidden in the app. Other categories are open to any Helpr.`,
+        a: `Helprs can upload trade licenses and insurance, and verified badges show on their profile. On trade jobs (${CREDENTIAL_CATEGORY_PHRASE}) you also choose who may apply: open to anyone, licensed pros only, or licensed and insured. Only Helprs who meet your choice can apply. Other categories are open to any Helpr.`,
       },
       {
         q: "What is the cancellation rate?",

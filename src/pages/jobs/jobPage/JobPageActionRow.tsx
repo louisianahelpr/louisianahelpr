@@ -139,7 +139,7 @@ export function JobPageActionRow({
   return (
     <>
       {cells.length > 0 || !menuHost ? (
-        <StickyActionBar label="Job actions" data-job-bar={tag}>
+        <StickyActionBar label="Job actions" data-job-bar={tag} spacer={false}>
           {/* A3-13 (audit 11-01): from md up each button is capped at 240px and the row sits right (step last), not
               ~547px a button across the page at 1440. The pair caps its columns, not the row (onePageColumn). */}
           <div data-job-row={tag} className={`flex w-full items-center gap-2 [&>[data-row-cell]]:min-w-0 [&>[data-row-cell]]:flex-1 md:justify-end md:[&>[data-row-cell]]:max-w-[240px]`}>

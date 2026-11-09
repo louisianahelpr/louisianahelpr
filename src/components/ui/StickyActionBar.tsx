@@ -31,7 +31,12 @@ function usePhoneWidth(): boolean {
 /** The phone bar's height above the safe area (48 px buttons + 8 px padding top and bottom), for the spacer. */
 const BAR_BODY_PX = 64;
 
-export function StickyActionBar({ children, label, note, active = true, ...rest }: {
+/** The in-flow room the phone bar covers, for a page that places the bar inside a card (spacer={false}). */
+export function StickyActionSpacer({ className = "" }: { className?: string }) {
+  return <div aria-hidden data-sticky-action-spacer="" className={className} style={{ height: `calc(${BAR_BODY_PX}px + var(--safe-area-bottom, 0px))` }} />;
+}
+
+export function StickyActionBar({ children, label, note, active = true, spacer = true, ...rest }: {
   /** The buttons, primary LAST (right) as on Vinted / Mercari: secondary first, then the one filled primary. */
   children: ReactNode;
   /** The group's accessible name ("Buy or make an offer"). */
@@ -40,6 +45,8 @@ export function StickyActionBar({ children, label, note, active = true, ...rest 
   note?: ReactNode;
   /** False hides the bar (and gives the dock back). */
   active?: boolean;
+  /** False when the page draws its own StickyActionSpacer at its end (the bar sits inside a card: the job page). */
+  spacer?: boolean;
 } & Record<`data-${string}`, string | undefined>) {
   const phone = usePhoneWidth();
   useDockYield(active && phone);
@@ -59,7 +66,7 @@ export function StickyActionBar({ children, label, note, active = true, ...rest 
   }
   return (
     <>
-      <div aria-hidden data-sticky-action-spacer="" style={{ height: `calc(${BAR_BODY_PX}px + var(--safe-area-bottom, 0px))` }} />
+      {spacer && <StickyActionSpacer />}
       {typeof document !== "undefined" && createPortal(
         <div
           {...rest}

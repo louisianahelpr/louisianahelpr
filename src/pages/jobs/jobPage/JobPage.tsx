@@ -38,7 +38,7 @@ import { seriesSummary } from "@/lib/format";
 import { JobTracker, PosterPrice, PosterMoneyNotes, HelprPrice, HelprMoneyNotes, PostedBy, HiredHelpr, RevisionAsk } from "./JobPageParts";
 import { OnTheWayNow, showsNow } from "./OnTheWayNow";
 import { JobPageActionRow, type RowAction } from "./JobPageActionRow";
-import { StickyActionBar } from "@/components/ui/StickyActionBar";
+import { StickyActionBar, StickyActionSpacer } from "@/components/ui/StickyActionBar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
@@ -539,7 +539,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {hiredRow}
             {primary && (
               // The one button (Apply, View application, Open in Jobs, Browse jobs) in the same sticky bar (JP2).
-              <StickyActionBar label="Job actions" data-job-bar="viewer">
+              <StickyActionBar label="Job actions" data-job-bar="viewer" spacer={false}>
                 <Button
                   variant="primary"
                   size="lg"
@@ -570,6 +570,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           </div>
         </aside>
       </div>
+      {/* The room the phone's sticky action bar covers, once, at the page's end (not inside the side card). */}
+      <StickyActionSpacer className="sm:hidden" />
       {!isPoster && <PageApplySheet apply={apply} />}
       {reviewOpen && job.customer_id && (
         <Suspense fallback={null}>

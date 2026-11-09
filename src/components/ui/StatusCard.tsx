@@ -15,7 +15,7 @@ import type { ReactNode } from "react";
 import { StepTracker } from "@/components/tracker/StepTracker";
 import { ItemThumb } from "./ItemThumb";
 
-export function StatusCard({ thumb, thumbPlaceholder, title, money, steps, next, when, action, details, corner, children, ...rest }: {
+export function StatusCard({ thumb, thumbPlaceholder, title, money, steps, progress, next, when, action, details, corner, children, ...rest }: {
   /** The photo element (fills a 56 px ItemThumb), or nothing. */
   thumb?: ReactNode;
   /** Under the photo, and alone when there is none (a category icon on its tint). */
@@ -25,6 +25,12 @@ export function StatusCard({ thumb, thumbPlaceholder, title, money, steps, next,
   money?: ReactNode;
   /** The step words and the current step (0-based), or nothing for a card with no steps (an offer). */
   steps?: { words: readonly string[]; at: number } | null;
+  /**
+   * A JOB's tracker goes here, never in `steps` (owner's "one job tracker" rule, src/test/oneJobTracker.test.ts): the
+   * caller passes <JobProgress progress={jobProgress(...)} barOnly /> (the six-step JobStepBar). `steps` is for an
+   * order's own steps (Declutter).
+   */
+  progress?: ReactNode;
   /** The status line's bold part ("Next: set it out"). */
   next?: ReactNode;
   /** The status line's muted part ("2 h left"). */
@@ -48,7 +54,8 @@ export function StatusCard({ thumb, thumbPlaceholder, title, money, steps, next,
         </div>
         {corner != null && <div className="-mr-2 -mt-2 shrink-0">{corner}</div>}
       </div>
-      {steps && <div className="mt-3"><StepTracker steps={steps.words} at={steps.at} /></div>}
+      {progress != null ? <div data-status-card-progress="" className="mt-3">{progress}</div>
+        : steps && <div className="mt-3"><StepTracker steps={steps.words} at={steps.at} /></div>}
       {(next != null || when != null) && (
         <p data-status-card-line="" className="mt-2 text-ds-13 leading-snug">
           {next != null && <span className="font-semibold text-foreground">{next}</span>}

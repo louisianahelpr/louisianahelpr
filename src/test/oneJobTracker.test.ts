@@ -7,6 +7,7 @@
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       <JobProgress progress={step \|\| hideNext ? { ...progress, next: "" } : progress} /> |       <ol aria-label="Job progress">{["Posted", "Hired", "Working", "Done"].map((s) => <li key={s}>{s}</li>)}</ol>
  * EIGHT steps on the job cards too (owner, 2026-10-22): MineJobFace draws the bar under a collapsed card's face,
  * fed by jobProgress on both the poster's Posted card and the Helpr's Working card.
+ * @mutate src/components/ui/StatusCard.tsx |       {progress != null ? <div data-status-card-progress="" className="mt-3">{progress}</div> |       {false ? <div data-status-card-progress="" className="mt-3">{progress}</div>
  * @mutate src/pages/posts/PostedJobCard.tsx |               progress={isExpanded ? null : faceProgress} | progress={null && faceProgress}
  * @mutate src/pages/jobs/AppliedJobCard.tsx |             progress={!isExpanded ? faceProgress : null} | progress={false ? faceProgress : null}
  * @mutate src/components/job-card/MineJobFace.tsx |             <JobProgress progress={progress} barOnly /> |             <span />
@@ -36,6 +37,9 @@ const STEP_TRACKER_OK = [
   // A Declutter order's own steps (deep audit #1, 2026-10-28), not a job. The porch handover card draws them
   // through OrderSteps since the porch DAY (20261028225038), so it no longer uses StepTracker itself.
   "src/components/declutter/OrderSteps.tsx",
+  // THE order card (owner pick 3, 11-08): its `steps` are an order's (Declutter); a job hands it <JobProgress> through
+  // its `progress` slot instead (asserted below), so a job never draws StepTracker through it.
+  "src/components/ui/StatusCard.tsx",
 ];
 
 const files = walkSource([join(ROOT, "src")])
@@ -83,6 +87,12 @@ describe("one job tracker (owner 2026-10-21)", () => {
     expect(read("src/pages/jobs/AppliedJobCard.tsx")).toMatch(/const faceProgress = job\.helper_id === userId \? jobProgress\(job, \{ viewer: "helpr"/);
     expect(read("src/pages/jobs/AppliedJobCard.tsx")).toMatch(/progress=\{!isExpanded \? faceProgress : null\}/);
     expect(read("src/components/job-card/MineJobFace.tsx")).toMatch(/<JobProgress progress=\{progress\} barOnly \/>/);
+  });
+
+  it("StatusCard takes the job tracker as a slot, not as StepTracker words", () => {
+    const src = read("src/components/ui/StatusCard.tsx");
+    expect(src).toMatch(/progress\?: ReactNode;/);
+    expect(src).toMatch(/progress != null \? <div data-status-card-progress="" className="mt-3">\{progress\}<\/div>/);
   });
 
   it("StepTracker is not used for jobs at all (exact, two-way)", () => {

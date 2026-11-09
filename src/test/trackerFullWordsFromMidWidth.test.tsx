@@ -15,7 +15,11 @@
  * 2026-10-29. The narrowest column in a 368px tracker is (368 - 7 gaps x 4px) / 8.5 fr = 40px (the current step's
  * column is 1.5fr and holds a 12px hand + 2px gap; a problem step's is 2fr).
  *
- * @mutate src/index.css | @container (min-width: 368px) {\n  .job-step-short { display: none; } | @container (min-width: 640px) {\n  .job-step-short { display: none; }
+ * SIX STEPS, FULL WORDS AT EVERY WIDTH (owner pick 11-08, design audit A JP3): the short words are gone; six columns
+ * give each full name room at any tracker width, which the arithmetic below proves for a 300px tracker (the
+ * narrowest before the words step down) and a 260px one at 0.91em (trackerWordsFitNarrow.test.ts).
+ * @mutate src/index.css | .job-step-wide { display: none; } | .job-step-wide { display: none; }\n.job-step-full { display: none; }
+ * @mutate src/components/tracker/JobProgress.tsx | const DRAWN_STEPS = JOB_PROGRESS_STEPS.map((full, i) => ({ full, i })).slice(JOB_TRACKER_FIRST); | const DRAWN_STEPS = JOB_PROGRESS_STEPS.map((full, i) => ({ full, i }));
  * @mutate src/components/tracker/JobProgress.tsx | <span className="job-step-full min-w-0 text-center"> | <span className="job-step-full truncate">
  * @mutate src/components/tracker/jobProgressSteps.ts | "Con\u00ADfirmed", | "Confirmed",
  */
@@ -53,12 +57,11 @@ function pieces(drawn: string): string[] {
 }
 
 describe("the tracker says its full names from a 368px tracker (A2-L15)", () => {
-  it("the short words give way to the full names at 368px, not 640px", () => {
-    const at = css.match(/@container \(min-width: (\d+)px\) \{\s*\.job-step-short \{ display: none; \}/)?.[1];
-    expect(at).toBe("368");
-    const body = css.match(/@container \(min-width: 368px\) \{([^}]*\}[^}]*\})\s*\}/)?.[1].replace(/\s+/g, " ") ?? "";
-    expect(body).toContain(".job-step-short { display: none; }");
-    expect(body).toContain(".job-step-full { display: inline; }");
+  it("no short words at any width: the full name is never hidden, and there is no short span", () => {
+    expect(css).not.toMatch(/\.job-step-full[^{]*\{[^}]*display: none/);
+    expect(css).not.toContain(".job-step-short");
+    expect(tracker).not.toContain("job-step-short");
+    expect(tracker).not.toContain("JOB_PROGRESS_SHORT");
   });
 
   it("the full name may wrap (never an ellipsis) and is the drawn name with its soft hyphens", () => {
@@ -69,12 +72,19 @@ describe("the tracker says its full names from a 368px tracker (A2-L15)", () => 
     expect(JOB_PROGRESS_DRAWN.map((d) => d.replace(new RegExp(SHY, "g"), ""))).toEqual([...JOB_PROGRESS_STEPS]);
   });
 
-  it("every piece of every drawn name fits the narrowest column of a 368px tracker, bold too", () => {
-    const col = (368 - 7 * 4) / 8.5;
-    const curCol = col * 1.5 - 14;
+  it("every piece of every drawn name fits the narrowest column of a 300px tracker, and of a 260px one at 0.91em, bold too", () => {
+    // Six columns (Hired … Done); the current step's is 1.5fr and holds a 12px hand + 2px gap. A 300px tracker has
+    // 2px gaps (under 320px); under 300px the words are 0.91em (trackerWordsFitNarrow).
+    const fits = (w: number, scale: number) => {
+      const col = (w - 5 * 2) / 6.5;
+      return { col: col / scale, curCol: (col * 1.5 - 14) / scale };
+    };
+    const narrow = [fits(300, 1), fits(260, 0.91)];
+    const col = Math.min(...narrow.map((f) => f.col));
+    const curCol = Math.min(...narrow.map((f) => f.curCol));
     let n = 0;
     expect(JOB_PROGRESS_DRAWN.length).toBeGreaterThan(5);
-    for (const drawn of JOB_PROGRESS_DRAWN) {
+    for (const drawn of JOB_PROGRESS_DRAWN.slice(2)) {
       for (const p of pieces(drawn)) {
         const m = MEASURED[p];
         expect(m, `measure "${p}" (from "${drawn}") before drawing it`).toBeDefined();
@@ -83,13 +93,13 @@ describe("the tracker says its full names from a 368px tracker (A2-L15)", () => 
         n++;
       }
     }
-    expect(n).toBeGreaterThan(10);
+    expect(n).toBeGreaterThan(8);
   });
 
   it("renders the full names (soft hyphens only) and keeps the screen-reader sentence's names", () => {
     const { container } = render(<JobProgress progress={{ stage: 3, waitingOnYou: true, tone: "progress", word: "Confirmed", next: "Tap to confirm", held: false }} />);
     const full = [...container.querySelectorAll(".job-step-full")].map((e) => e.textContent ?? "");
-    expect(full.map((t) => t.replace(new RegExp(SHY, "g"), ""))).toEqual([...JOB_PROGRESS_STEPS]);
+    expect(full.map((t) => t.replace(new RegExp(SHY, "g"), ""))).toEqual(JOB_PROGRESS_STEPS.slice(2));
     expect(full.join("")).not.toMatch(/Conf\.|Arr\./);
     expect(container.querySelector("[data-job-steps]")?.getAttribute("aria-label")).toContain("Confirmed");
     expect(container.querySelector("[data-job-steps]")?.getAttribute("aria-label")).not.toContain(SHY);

@@ -1,7 +1,5 @@
 /** The tracker's step names, apart from jobProgressState's derivation (B51: JobProgress draws on Home's first screen). */
 export const JOB_PROGRESS_STEPS = ["Posted", "Offered", "Hired", "Confirmed", "On the way", "Arrived", "Working", "Done"] as const;
-/** The same steps in a word that fits eight across a 375px card (phone); the full names show from a 368px tracker. */
-export const JOB_PROGRESS_SHORT = ["Post", "Offer", "Hired", "Conf.", "Way", "Arr.", "Work", "Done"] as const;
 /**
  * The full names as the tracker DRAWS them: each long word carries a soft hyphen (U+00AD, invisible unless the word
  * breaks there), so in a 368-639px tracker (/payment-success and the job page's side panel at 1440: 382 and ~420px) a

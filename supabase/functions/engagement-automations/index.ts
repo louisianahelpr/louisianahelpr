@@ -184,7 +184,7 @@ const DRIP_STEPS = {
   },
   3: {
     component: WelcomeDripStep3Email,
-    subject: "Four things great Helprs do.",
+    subject: 'Four tips from neighbors who use Helpr a lot',
     path: '/home',
   },
 } as const

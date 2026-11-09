@@ -132,6 +132,12 @@ export interface SegmentedControlProps<T extends string | number> {
    *     (`.segmented-option-quiet-selected`).
    */
   tone?: "solid" | "quiet";
+  /**
+   * The label size. "sm" (default) is the app's 11px segment label; "md" is 13px, for a control a first-time visitor
+   * reads on the marketing page (owner's UI audit 11-09, F008: the landing's "I need help / I want to work").
+   * The 44px row is the same either way.
+   */
+  labelSize?: "sm" | "md";
 }
 
 export function SegmentedControl<T extends string | number>({
@@ -149,6 +155,7 @@ export function SegmentedControl<T extends string | number>({
   haptic = true,
   disabled = false,
   tone = "solid",
+  labelSize = "sm",
 }: SegmentedControlProps<T>) {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -235,7 +242,8 @@ export function SegmentedControl<T extends string | number>({
               // segment 4px shorter than its siblings in Simple Mode, which is
               // invisible until you look at a control whose selected cell is
               // the only short one.
-              "segmented-option min-w-0 h-11 min-h-11 px-3 rounded-full font-sans text-ds-11 font-semibold",
+              "segmented-option min-w-0 h-11 min-h-11 px-3 rounded-full font-sans font-semibold",
+              labelSize === "md" ? "text-ds-13" : "text-ds-11",
               "whitespace-nowrap transition-all active:scale-[0.98]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]",
               iconPosition === "top"

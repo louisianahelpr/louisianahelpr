@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import PageHeader from "@/components/PageHeader";
+import { PUBLIC_CONTAINER } from "@/lib/publicContainer";
 
 interface PublicHeaderPageProps {
   title: string;
@@ -34,6 +35,8 @@ interface PublicHeaderPageProps {
   /** Forwarded to PublicLayout's `footer`: false while the body is still
    *  loading (Q1312), so the page needs no screen-tall reserve under it. */
   footer?: boolean;
+  /** A top-level page (guest /browse, F019 owner UI audit 11-09): no back arrow; there is nowhere "back" to go. */
+  hideBack?: boolean;
   children: ReactNode;
 }
 
@@ -61,12 +64,14 @@ export function PublicHeaderPage({
   titleActions,
   wrapTitle = false,
   footer = true,
+  hideBack = false,
   children,
 }: PublicHeaderPageProps) {
   const header = (
     <PageHeader
       title={title}
       backTo={backTo}
+      hideBack={hideBack}
       width={width}
       topInsetHandled
       titleActions={titleActions}
@@ -75,9 +80,13 @@ export function PublicHeaderPage({
   );
   return (
     <PublicLayout footer={footer}>
-      {headerWrapperClassName ? <div className={headerWrapperClassName}>{header}</div> : header}
-      <div className={`px-5 sm:px-8 lg:px-12 ${bottomPaddingClassName}`}>
-        {children}
+      {/* F017 (owner UI audit 11-09): the title and body sit in the same 78rem container as the bar (Navbar
+          PUBLIC_CONTAINER), so the logo, the title and the content share a left edge on every public page. */}
+      <div data-public-container="" className={PUBLIC_CONTAINER}>
+        {headerWrapperClassName ? <div className={headerWrapperClassName}>{header}</div> : header}
+        <div className={`px-5 sm:px-8 lg:px-12 ${bottomPaddingClassName}`}>
+          {children}
+        </div>
       </div>
     </PublicLayout>
   );

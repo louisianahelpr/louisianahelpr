@@ -4,6 +4,7 @@ import { forwardRef } from "react";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import HelprMark from "@/components/HelprMark";
 import { cn } from "@/lib/utils";
+import { PUBLIC_CONTAINER } from "@/lib/publicContainer";
 import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
@@ -20,14 +21,16 @@ interface NavbarProps {
    */
   solid?: boolean;
   /**
-   * The landing page: the bar's row is centred at the landing's 78rem measure.
-   * Its contents are the same bar as every other public page (owner,
-   * 2026-10-21: "Jobs | Log in · Join free").
+   * The landing page. Since F017 (owner UI audit 11-09) every public page's bar is centred at the landing's 78rem
+   * measure, so the bar no longer differs; the prop stays for PublicLayout's call and as the landing marker.
+   * Its contents are the same bar as every other public page (owner, 2026-10-21: "Jobs | Log in · Join free").
    */
   landing?: boolean;
 }
 
 const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = false }, ref) => {
+  // F017: the landing no longer changes the bar (one container on every public page, PUBLIC_CONTAINER).
+  void landing;
   // Session-only auth (no profile DB round-trip) so the marketing nav can
   // reflect logged-in state: an authenticated visitor landing on a public
   // page (/legal, /) sees none of the signed-out "Jobs | Log in · Join free"
@@ -87,7 +90,10 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
           pl-[max(1.25rem,var(--safe-area-left,0px))] pr-[max(1.25rem,var(--safe-area-right,0px))]
           sm:pl-[max(2rem,var(--safe-area-left,0px))] sm:pr-[max(2rem,var(--safe-area-right,0px))]
           lg:pl-[max(3rem,var(--safe-area-left,0px))] lg:pr-[max(3rem,var(--safe-area-right,0px))]`,
-          landing && "max-w-[78rem] mx-auto",
+          // F017 (owner UI audit 11-09): every public page's bar sits in the landing's 78rem container (it used to be
+          // the landing's alone, so the logo and links jumped between / and /browse). PublicHeaderPage holds its
+          // title and body to the same container (PUBLIC_CONTAINER).
+          PUBLIC_CONTAINER,
         )}
       >
         {/* Emblem + wordmark on the MARKETING nav. This is the public,

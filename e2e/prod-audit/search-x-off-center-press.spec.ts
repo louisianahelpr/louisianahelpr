@@ -188,6 +188,14 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: 'input[aria-label="City or ZIP"]',
     close: CLEAR,
   },
+  // F034 (owner UI audit, 11-09): the Help center's "Search help" is a permanent field; its ✕ clears.
+  {
+    name: "help-center", file: "src/pages/info/HelpCenter.tsx",
+    url: "/help",
+    trigger: 'input[aria-label="Search help"]',
+    field: 'input[aria-label="Search help"]',
+    close: CLEAR,
+  },
   {
     name: "admin-command-palette", file: "src/components/admin/AdminCommandPalette.tsx", as: "admin",
     url: "/admin",

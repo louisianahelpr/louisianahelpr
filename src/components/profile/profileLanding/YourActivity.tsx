@@ -48,7 +48,10 @@ export function YourActivity() {
   // everyone, sectionIsPreview) read as live. Its tiles carry the Coming soon badge inside, slightly dimmed (owner
   // 11-09, the F002/F013 badge rule). A member never sees one: their live sections are open to everyone.
   const isPreview = (s: (typeof visible)[number]) => !!live.find((t) => t.path === s.path)?.preview;
-  const open = visible.filter(isOn);
+  // In the iPhone app a section not yet open to everyone is not listed at all (owner 10-31, hideUnopenedInApp via the
+  // tab's `listed` answer), so its preview tiles and their Coming soon badge never reach the app.
+  const isListedHere = (s: (typeof visible)[number]) => live.find((t) => t.path === s.path)?.listed !== false;
+  const open = visible.filter((s) => isOn(s) && isListedHere(s));
   const soon = openingSoonLine(visible.filter((s) => !isOn(s)).map((s) => s.label));
 
   return (

@@ -49,7 +49,8 @@ import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { mapFillHeight } from "@/lib/declutter/mapFillHeight";
-import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, declutterAboveFoldCount, declutterFirstRowCount } from "./DeclutterSkeletons";
+import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, DeclutterChipBones, declutterAboveFoldCount, declutterFirstRowCount } from "./DeclutterSkeletons";
+import { releaseDeclutterShellForCards } from "./declutterShell";
 import { fetchBundleSellers } from "@/lib/declutter/bundle";
 import { SELL_CHOOSER_PATH, wantedAskHref } from "@/lib/declutter/sellChooser";
 import { previewIsTopOfList, readFirstScreenPreview, type FirstScreenAnswer } from "@/lib/declutter/bootPrefetch";
@@ -326,6 +327,10 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
     const raf = requestAnimationFrame(() => { t = setTimeout(() => setCardsPainted(true), 0); });
     return () => { cancelAnimationFrame(raf); if (t) clearTimeout(t); };
   }, [listLoading, cardsPainted]);
+  // Q2705 (11-09): index.html's skeleton may carry the first card photos and waits for the cards (declutterShell.ts).
+  useEffect(() => {
+    if (!listLoading) releaseDeclutterShellForCards();
+  }, [listLoading]);
   const saveCounts = useQuery({
     queryKey: ["declutter", "save-counts", others.map((i) => i.id).join(",")],
     // The viewer's own saves at read time, so a heart tap moves the number at once (shownSaves) without a new read.
@@ -367,7 +372,9 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
             filter={<FiltersIconButton open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen(true)} />} />
         ),
         // 8px under the chips + the column's 4px = 12px to the first cards.
-        chips: chipRow && <div data-declutter-chips-row="" className="pb-2">{chipRow}</div>,
+        // While the list loads, the chips' bones in the same box (Q2705, 11-09: the header grew 56px when the chips
+        // arrived, CLS 0.062 at 375).
+        chips: chipRow ? <div data-declutter-chips-row="" className="pb-2">{chipRow}</div> : listLoading && !items.isError ? <DeclutterChipBones /> : null,
       };
 
   const sheet = (

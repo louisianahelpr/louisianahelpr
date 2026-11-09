@@ -123,7 +123,7 @@ function setup(o: Run = {}) {
     fetchStub,
     (fn: () => void, ms: number) => { timers.push(ms); if (ms <= 25) setTimeout(fn, 0); },
   );
-  const imgs = () => [...document.querySelectorAll<HTMLImageElement>("#lh-declutter-shell img")];
+  const imgs = () => [...document.querySelectorAll<HTMLImageElement>("#lh-declutter-shell ul img")];
   return { win, calls, openNow: () => answerOpen(null), imgs, timers, shown: () => document.documentElement.getAttribute("data-lh-app-shell") };
 }
 

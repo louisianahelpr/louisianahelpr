@@ -4,8 +4,7 @@ import DeclutterHome from "@/components/declutter/DeclutterHomeView";
 import { lazy, Suspense, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useFeatureStatus } from "@/hooks/useFeature";
-import { removeShellOncePainted } from "@/components/landing/landingShell";
-import { DECLUTTER_SHELL_ID } from "@/components/landing/homeShell";
+import { releaseDeclutterShell } from "@/components/declutter/declutterShell";
 import { afterCardPath, afterCardReturnState, takeAfterCard } from "@/lib/declutter/afterCard";
 
 // B77 (2026-11-01, "Nothing slow for users"): what only some visits draw loads on its own. The agreed-sales view
@@ -42,8 +41,9 @@ export default function DeclutterPage() {
   // row (which waits for this answer, Q?declutter-settle) finds it already in
   // instead of asking only once the gate opens. Same query key, one request.
   useFeatureStatus("declutter_wanted");
-  // Q2705 B: index.html drew Declutter's loading frame first (#lh-declutter-shell); take it away once this is painted.
-  useEffect(() => removeShellOncePainted(DECLUTTER_SHELL_ID), []);
+  // Q2705 B: index.html drew Declutter's loading frame first (#lh-declutter-shell); take it away once this is painted,
+  // or, when it carries the first card photos, once Browse's cards are painted (declutterShell.ts; capped).
+  useEffect(() => releaseDeclutterShell(), []);
   // Back from Stripe's card page (declutter-card returns to
   // /declutter?card=saved or ?card=cancelled): a member who left an item to buy
   // or offer goes back to it; with a saved card it carries on with that action

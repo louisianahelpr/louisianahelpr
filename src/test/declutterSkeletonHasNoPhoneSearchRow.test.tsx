@@ -33,16 +33,19 @@ describe("Q1695: /declutter's loading frame draws the page's own phone header ro
     expect((search.children[0] as HTMLElement).className).toMatch(/\bh-11\b/);
     const slot = r.container.querySelector("[data-slot='tabs']") as HTMLElement;
     expect(slot.children).toHaveLength(1);
-    const chips = Array.from(slot.children[0].children) as HTMLElement[];
+    // Q2705 (11-09): the real row's box, a pb-2 row around a pb-1 row of 40px chips (44 + 8 = 52px, as measured).
+    expect((slot.children[0] as HTMLElement).className).toMatch(/\bpb-2\b/);
+    expect(slot.children[0].children).toHaveLength(1);
+    const chips = Array.from(slot.children[0].children[0].children) as HTMLElement[];
     expect(chips.length).toBeGreaterThan(1);
-    for (const c of chips) expect(c.className).toMatch(/\bh-11\b/);
+    for (const c of chips) expect(c.className).toMatch(/\bh-10\b/);
     expect(r.container.querySelector("[data-slot='body'] [role='status']")).not.toBeNull();
   });
 
   it("the real phone Browse header hands the bar its search and puts the chips under it (the premise above)", () => {
     const view = blankComments(readFileSync(resolve(__dirname, "../components/declutter/DeclutterBrowseView.tsx"), "utf8"));
     expect(view).toMatch(/search: \(\s*<SectionSearchBar /);
-    expect(view).toMatch(/chips: chipRow && /);
+    expect(view).toMatch(/chips: chipRow \? /);
     expect(view).toMatch(/search=\{head\.search\}[^>]*tabs=\{head\.tabs\}/);
   });
 });

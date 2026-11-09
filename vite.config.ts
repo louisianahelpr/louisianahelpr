@@ -1,5 +1,5 @@
 import { defineConfig, loadEnv, type Plugin } from "vite";
-import { trimEntryRouteDeps, type EntryRouteBundle } from "./scripts/perf/entryRouteDeps.mjs";
+import { entryBootPreloads, trimEntryRouteDeps, type EntryRouteBundle } from "./scripts/perf/entryRouteDeps.mjs";
 import { stripHtmlComments } from "./scripts/perf/stripHtmlComments.mjs";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -7,7 +7,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, bootIconFiles, declutterItemSplit, guestIconSplit, guestBrowseSplit, sellingIconFiles, homeIconFiles, homePageRoots, itemIconFiles, jobsBrowseFirstScreenModules, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
+import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, clientReachers, bootIconFiles, declutterItemSplit, guestIconSplit, guestBrowseSplit, sellingIconFiles, homeIconFiles, homePageRoots, itemIconFiles, jobsBrowseFirstScreenModules, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -207,6 +207,9 @@ const dockSet = staticReach(process.cwd(), [path.join(process.cwd(), "src/compon
 const bootOrHome = (f: string) => bootSet.has(f) || homeSet.has(f);
 const homeOnly = (f: string) => homeSet.has(f) && !bootSet.has(f);
 const norm = (id: string) => id.split("?")[0].replace(/\\/g, "/");
+// Q2705 (Builder 4, 11-09): every src module whose static closure reaches the Supabase client (useFeature, authSignOut,
+// socialAuth, the client itself...). See the home-shared-db and shared-late-db groups.
+const reachesClient = clientReachers(process.cwd());
 const lateShared = (id: string) => (SHARED_DIR_RE.test(id) || /[\\/]supabase[\\/]functions[\\/]/.test(id)) && !bootOrHome(norm(id));
 const { browseOnly, homeShared: browseHomeShared } = guestBrowseSplit(process.cwd());
 /** The bone guest /browse shares with the /home route skeleton; kept out of browse-first-screen (B86). */
@@ -700,7 +703,10 @@ export default defineConfig(({ mode, command }) => ({
     // landing +232 ms (2662 -> 2894 ms), its page-only deps walking 4 rounds.
     modulePreload: {
       // The entry's route lists skip main's closure (trimEntryRouteDeps above); every other list is whole.
+      // Q2705 (11-09): index.html's own list adds main's static closure, so the boot graph downloads in the entry's
+      // round instead of one round trip after it (entryBootPreloads; main's closure only, never a lazy page's).
       resolveDependencies: (filename, deps, { hostId, hostType }) =>
+        hostType === "html" ? entryBootPreloads(builtBundle, filename, deps) :
         hostType === "js" ? trimEntryRouteDeps(builtBundle, hostId, filename, deps) : deps,
     },
     // "hidden" = .map files are still emitted (so Sentry / DevTools can
@@ -1426,6 +1432,16 @@ export default defineConfig(({ mode, command }) => ({
             // userFacingError, turnstile and the edge copy modules. One chunk,
             // not rolldown's per-share split: that emitted ~40 tiny files and pushed the entry's preload list
             // past its budget (a two-way split by public reach also did, by 8 bytes, whatever the names).
+            // Q2705 (Builder 4, 11-09): shared-late's modules that reach the Supabase client (socialAuth, ...), as
+            // home-shared-db below: the guest landing runs shared-late's page meta and nothing that reads the database.
+            {
+              name: "shared-late-db",
+              test: (id: string) => lateShared(id) && reachesClient.has(norm(id)),
+              minShareCount: 2,
+              priority: 10,
+              minSize: 0,
+              includeDependenciesRecursively: false /* their deps stay put, as in shared-late */,
+            },
             {
               name: "shared-late",
               test: lateShared,
@@ -1439,6 +1455,17 @@ export default defineConfig(({ mode, command }) => ({
             // authSignOut...) put the client, createClient and the 30 KB gz supabase chunk on every page's boot, though
             // no boot module imports the client statically. Its own chunk, the modules alone (their deps stay where
             // they are: with the recursive capture, boot modules they import would ride here and pull it onto boot).
+            // Q2705 (Builder 4, 11-09): home-shared's modules that reach the Supabase client, in their own chunk. In one
+            // chunk with the rest, a page that runs only client-free ones (the guest landing: i18n, format, dates...)
+            // imported the chunk and with it the client and the 29 KB gz supabase chunk. clientReachers is closed
+            // under importers, so home-shared never imports this chunk.
+            {
+              name: "home-shared-db",
+              test: (id: string) => SHARED_DIR_RE.test(id) && homeOnly(norm(id)) && reachesClient.has(norm(id)),
+              minShareCount: 2,
+              priority: 11,
+              includeDependenciesRecursively: false /* the modules alone, as in home-shared */,
+            },
             {
               name: "home-shared",
               test: (id: string) => SHARED_DIR_RE.test(id) && homeOnly(norm(id)),

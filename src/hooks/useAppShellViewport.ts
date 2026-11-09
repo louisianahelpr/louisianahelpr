@@ -79,6 +79,9 @@ const DOCUMENT_SCROLL_ROUTES = [
   // Public marketing / informational pages (document-scroll)
   "/help",         // Help Center — static FAQ / support page
   "/sms-opt-in",   // How to opt in to text alerts (Twilio A2P review, 2026-10-23)
+  // 25 Days of Louisiana Giveaways (owner 2026-11-09): the public sponsor page and /25days/rules, document scroll.
+  "/sponsor",
+  "/25days",
   // /browse — the guest browse feed. Web-only entry: it renders through
   // PublicLayout on web now (same shell as /legal, /help, /rules), so it
   // needs the document-scroll lock lifted so the visitor can reach the

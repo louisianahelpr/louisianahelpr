@@ -21,7 +21,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import {
   test,
   expect,
@@ -255,6 +255,25 @@ async function openMoreOptions(page: Page) {
   const panel = page.locator('[data-row-options="poster"]');
   await expect(panel).toBeVisible();
   return panel;
+}
+
+/**
+ * Job page bar rule (owner 11-08 Jobs redesign, JobPageActionRow.tsx): one other action is its own button; exactly two
+ * other actions both go into "More options" (owner 11-01: "More options only with 2+"); three or more put the first
+ * as the bar's secondary and the rest in the "..." menu, which now sits in the page's top bar ([data-row-more]).
+ * So an action is looked for on the bar first, then in that menu.
+ */
+async function barThenMenu(page: Page) {
+  const bar = page.locator(POSTER_ROW);
+  const more = page.locator('[data-row-more="poster"]');
+  const open = async () => {
+    if (!(await more.count())) return null;
+    await more.click();
+    const panel = page.locator('[data-row-options="poster"]');
+    await expect(panel).toBeVisible();
+    return panel;
+  };
+  return { bar, open };
 }
 
 /** "More options", then the step row's own More (when the row has one): every move the card offers is then on screen. */
@@ -564,7 +583,7 @@ test.describe("My Posts — card density + header", () => {
   // changing colour between cards, Message deep-links into the thread, and the
   // description toggle lost its words.
 
-  test("the live tracker is the ONE four-segment line, and its next line names the step", async ({ page, context, baseURL }) => {
+  test("the live tracker is the ONE six-step line, and its next line names the step", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     await installSupabaseMocks(page, {
       user: FAKE_CUSTOMER,
@@ -575,9 +594,9 @@ test.describe("My Posts — card density + header", () => {
     });
     await openJobPage(page, IN_PROGRESS_ID);
 
-    // ONE tracker (owner, 2026-10-21: "we need 1 tracker"; 8 steps 2026-10-22): chat, the job page and both
-    // cards draw JobProgress, Posted · Offered · Hired · Confirmed · On the way · Arrived · Working · Done, in
-    // short words at 375 (src/components/tracker/jobProgressState.ts).
+    // ONE tracker (owner, 2026-10-21: "we need 1 tracker"): chat, the job page and both cards draw JobProgress. The
+    // owner-approved 11-08 Jobs redesign made it SIX steps in full words, Hired · Confirmed · On the way · Arrived ·
+    // Working · Done (src/test/jobTrackerSixSteps.test.tsx); a long word may carry a soft hyphen, read past here.
     const tracker = page.locator("[data-job-progress]");
     await expect(tracker).toHaveCount(1);
     await tracker.scrollIntoViewIfNeeded();
@@ -585,9 +604,9 @@ test.describe("My Posts — card density + header", () => {
     await expect(row).toHaveCount(1);
     const steps = await row.evaluate((el) =>
       // The drawn word is the first line; a step tip's sr-only name line ("Hired — <when>", Q1816) follows it.
-      Array.from(el.children).map((c) => ({ top: (c as HTMLElement).offsetTop, text: ((c as HTMLElement).innerText ?? "").trim().split("\n")[0].trim() })),
+      Array.from(el.children).map((c) => ({ top: (c as HTMLElement).offsetTop, text: ((c as HTMLElement).innerText ?? "").replace(/\u00ad/g, "").trim().split("\n")[0].trim() })),
     );
-    expect(steps.map((s) => s.text), "the eight steps, in order").toEqual(["Post", "Offer", "Hired", "Conf.", "Way", "Arr.", "Work", "Done"]);
+    expect(steps.map((s) => s.text), "the six steps, in order").toEqual(["Hired", "Confirmed", "On the way", "Arrived", "Working", "Done"]);
     // ONE line, and it FITS: no step wraps, nothing scrolls sideways at 375.
     expect(new Set(steps.map((s) => s.top)).size, "steps sit on more than one line").toBe(1);
     const { scrollWidth, clientWidth } = await row.evaluate((el) => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }));
@@ -646,17 +665,28 @@ test.describe("My Posts — card density + header", () => {
     // Message is ONE button (never the card's too), SOS is an ordinary outlined option (never the lead, never a big
     // red button), and no job-share control is offered on a job that already has its Helpr.
     // (Message's colour now follows its place by the owner's 11-01 rule: green when it leads, outlined beside a step.)
+    const names = (l: Locator) => l.getByRole("button").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label") ?? e.textContent?.trim() ?? ""));
     for (const jobId of ["job-msg-plain", "job-msg-done"]) {
       await openJobPage(page, jobId);
-      const options = await openMoreOptions(page);
-      await expect(page.getByRole("button", { name: /^Message\b/ }), `${jobId}: Message is drawn once`).toHaveCount(1);
+      // The bar first (read before the menu opens: an open sheet hides the page from roles), then the "..." menu.
+      const { bar, open } = await barThenMenu(page);
+      const barMessage = await bar.getByRole("button", { name: /^Message\b/ }).count();
+      await expect(page.getByRole("button", { name: /^Message\b/ }), `${jobId}: no second Message outside the bar`).toHaveCount(barMessage);
+      const barSos = bar.getByRole("button", { name: /^SOS\b/ });
+      const barSosCount = await barSos.count();
+      if (barSosCount) await expect(barSos).toHaveAttribute("data-sos-secondary", "");
+      const barLabels = await names(bar);
+      const options = await open();
+      const menuMessage = options ? await options.getByRole("button", { name: /^Message\b/ }).count() : 0;
+      expect(barMessage + menuMessage, `${jobId}: Message is drawn once`).toBe(1);
       // SOS while the Helpr is on site and the work is not marked done (the finished job's card no longer offers it).
-      const sos = options.getByRole("button", { name: /^SOS\b/ });
+      const menuSos = options ? options.getByRole("button", { name: /^SOS\b/ }) : null;
+      const menuSosCount = menuSos ? await menuSos.count() : 0;
       if (jobId === "job-msg-plain") {
-        await expect(sos, `${jobId}: SOS is one of the options`).toHaveCount(1);
-        await expect(sos).toHaveAttribute("data-sos-secondary", "");
+        expect(barSosCount + menuSosCount, `${jobId}: SOS is one of the options`).toBe(1);
+        if (menuSos && menuSosCount) await expect(menuSos).toHaveAttribute("data-sos-secondary", "");
       }
-      const labels = await options.getByRole("button").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label") ?? e.textContent?.trim() ?? ""));
+      const labels = [...barLabels, ...(options ? await names(options) : [])];
       expect(labels.some((l) => /^(share this job|copy a link to this job)$/i.test(l)), `${jobId}: a job-share control: ${labels.join(" | ")}`).toBe(false);
       if (jobId === "job-msg-done") {
         await page.keyboard.press("Escape");
@@ -709,8 +739,9 @@ test.describe("My Posts — card density + header", () => {
     // Edit — the one that opens something we can assert on. On the job page (owner 2026-10-31: Manage job is the
     // job page) it is the page's own "Edit job", which runs the Posted card's own edit flow (usePosterPageFlows).
     // Job page v2: Edit is on the row, or under the row's "More options" when there are several.
-    const editHost = await openMoreOptions(page);
-    const edit = editHost.getByRole("button", { name: "Edit job" });
+    const { bar, open } = await barThenMenu(page);
+    let edit = bar.getByRole("button", { name: "Edit job" });
+    if (!(await edit.count())) edit = ((await open()) ?? bar).getByRole("button", { name: "Edit job" });
     await expect(edit).toBeEnabled();
     await edit.click();
 

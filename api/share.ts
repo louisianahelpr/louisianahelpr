@@ -68,6 +68,7 @@ import { noindexPageMetaFor, publicPageMetaFor } from "../src/lib/publicPageMeta
 import { OG_PROFILE_HEIGHT, OG_PROFILE_WIDTH, ogProfileImageUrl } from "../src/lib/ogProfileCard.mjs";
 import { browseShellRowsUrl, browseShellSeedsHiddenUrl, shellRowsWhenSeedsHidden, withBrowseShell } from "../src/lib/browseShellCards.mjs";
 import { declutterGuestPreviewUrl, declutterPhotoPreloadHeader, firstPhotoPaths } from "../src/lib/declutterFirstPhotos.mjs";
+import { shareCardPriceLabel } from "../src/lib/declutter/shareCardPrice.mjs";
 
 /**
  * og:url and the canonical link are built from this constant, never from the
@@ -577,13 +578,6 @@ const DECLUTTER_ITEM_ROBOTS = "noindex, follow";
 /** Minutes, not a day: a sold or withdrawn item stops previewing as for sale. */
 const DECLUTTER_ITEM_CDN_CACHE = "public, s-maxage=60, stale-while-revalidate=60";
 
-/** "Free" for $0 (the Free section), else "$25" / "$12.50": the app's own itemPriceLabel wording. */
-function itemCardPrice(cents: number): string {
-  if (!Number.isFinite(cents) || cents <= 0) return "Free";
-  const dollars = cents / 100;
-  return Number.isInteger(dollars) ? `$${dollars}` : `$${dollars.toFixed(2)}`;
-}
-
 /**
  * The cover at exactly 1200x630 through shop-photo kind=declutter (by photo
  * ID, never by storage path: the path starts with the seller's user id, and
@@ -621,16 +615,16 @@ async function metaForDeclutterItem(id: string, url: string): Promise<Meta | nul
   const item = lookup.item;
   const title = clean(item.title, 80);
   if (!title) return unavailableItemMeta(url);
-  const price = itemCardPrice(item.price_cents);
+  // The buyer's price, as the site shows buyers ("$16.45 incl. fee"), never the seller's bare price (owner's UI audit
+  // 11-09, F076; owner 11-07: Declutter shows the fee). "Free" for $0.
+  const price = shareCardPriceLabel(item.price_cents);
   const town = clean(item.area_label, 80);
   return {
     title: `${title} — Helpr`,
     // Facebook shows og:title in bold on the card: the price rides on it so it is seen at a glance.
     ogTitle: clean(`${title} · ${price}`, 100),
-    description: clean(
-      `${price}${town ? ` · ${town}` : ""}. From a neighbor on Louisiana Helpr: pay in the app, pick it up nearby.`,
-      200,
-    ),
+    // No "pay in the app" (F076): on the website a visitor can buy too.
+    description: clean(`From a neighbor${town ? ` in ${town}` : ""} on Louisiana Helpr. Pick it up nearby.`, 200),
     url,
     robots: DECLUTTER_ITEM_ROBOTS,
     image: itemImage(item, title),

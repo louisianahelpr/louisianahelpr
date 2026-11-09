@@ -152,7 +152,7 @@ export function SectionsShowcase() {
   });
 
   return (
-    <section ref={ref} id="sections" aria-labelledby="sections-heading" className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-14 lg:pt-16 pb-16 sm:pb-20 lg:pb-28 scroll-mt-24" style={{ background: "var(--lp-surface)" }}>
+    <section ref={ref} id="sections" aria-labelledby="sections-heading" className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-14 lg:pt-16 pb-16 sm:pb-20 lg:pb-28 scroll-mt-24" style={{ background: "var(--lp-ground)" /* the page ground, so the white cards stand out (lead 11-09, F004) */ }}>
       <div className="mx-auto w-full max-w-6xl flex flex-col gap-8 sm:gap-12">
         <div className="flex flex-col gap-3 max-w-2xl">
           <h2 id="sections-heading" className={H2_CLASS} style={{ color: "var(--lp-ink)" }}>

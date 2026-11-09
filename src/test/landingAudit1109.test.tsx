@@ -8,6 +8,7 @@
  * F004: the four section cards were grey-beige fills (var(--lp-ground)) beside the white How a job works cards. They
  * wear the same white landing card with its soft shadow (.landing-card: var(--lp-surface) + var(--lp-shadow)).
  * @mutate src/components/landing/SectionsShowcase.tsx | className="landing-card relative p-6 | className="relative rounded-[20px] p-6
+ * @mutate src/components/landing/SectionsShowcase.tsx | scroll-mt-24" style={{ background: "var(--lp-ground)" | scroll-mt-24" style={{ background: "var(--lp-surface)"
  *
  * F016: "Continue with Apple" appeared a moment after the rest of the join block and pushed "Create your free account"
  * sideways (desktop) or up (phone). An invisible slot with the button's own box and label holds its place until the
@@ -85,6 +86,8 @@ describe("landing UI audit 2026-11-09", () => {
       expect(c.classList.contains("landing-card"), c.dataset.section).toBe(true);
       expect(c.style.background, c.dataset.section).toBe("");
     }
+    // The section sits on the page ground, so the white cards stand out (lead 11-09: on the white surface they read faint).
+    expect((container.querySelector("#sections") as HTMLElement).style.background).toBe("var(--lp-ground)");
     unmount();
   });
 

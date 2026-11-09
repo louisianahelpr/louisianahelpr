@@ -222,21 +222,23 @@ export function escapeShellText(value) {
  * the matching element.
  */
 export const SHELL_CARD_CLASSES = {
-  root: "group relative h-full rounded-2xl border border-border/60 bg-card cursor-pointer transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 active:scale-[0.99] shadow-[var(--card-shadow)] hover:shadow-[var(--card-hover-shadow)] hover:border-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-  inner: "relative h-full overflow-hidden rounded-2xl",
-  catRow: "relative z-20 flex items-stretch gap-1",
-  catLabel: "job-cat-label inline-flex items-center gap-1.5 min-w-0 text-ds-11 font-semibold text-muted-foreground max-w-[52%]",
-  body: "w-full px-3.5 pt-2 pb-2.5",
+  // Design audit A J2 (owner approved 11-08): the feed's cards are hairline ROWS (data-feed-row), the category on
+  // the place line, at most one badge in its own line above the title (the shell draws none: an empty line is hidden).
+  root: "group relative h-full cursor-pointer border-b border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+  inner: "relative h-full",
+  badgeLine: "flex pl-3 pt-3 -mb-2 empty:hidden",
+  catLabel: "job-cat-label inline-flex items-center gap-1.5 min-w-0 text-ds-11 font-semibold text-muted-foreground shrink-0",
+  body: "w-full pl-3 pt-3 pb-3",
   titleRow: "flex items-center justify-between gap-3",
   title: "job-card-title senior-clamp-2 text-headline-card flex-1 font-display font-bold text-foreground leading-tight line-clamp-2 break-words min-w-0",
-  chip: "money-chip inline-flex flex-col items-center justify-center rounded-ds-md text-center px-2.5 py-1 shrink-0",
+  chip: "money-chip inline-flex flex-col items-center justify-center rounded-ds-md text-center px-2.5 py-1 shrink-0 self-start",
   amount: "font-sans leading-none tabular-nums text-ds-17",
   metaWrap: "mt-1.5 flex flex-col gap-0.5 text-ds-11 leading-tight text-muted-foreground",
   metaRow: "job-meta-row flex items-center gap-x-2 flex-nowrap max-[359px]:flex-wrap overflow-hidden",
   // Photo-first cards (Q2043 + Q2036): the picture tile beside the text and the poster-face row, same size as the app's.
   mediaRow: "flex items-stretch",
-  mediaPad: "pl-3 pt-3 pb-3",
-  media: "relative shrink-0 self-start w-[4.5rem] h-[4.5rem] md:w-24 md:h-24 overflow-hidden rounded-xl",
+  mediaPad: "py-3",
+  media: "relative shrink-0 self-start w-14 h-14 overflow-hidden rounded-xl",
   mediaTint: "linear-gradient(140deg, hsl(var(--primary) / 0.16), hsl(var(--primary) / 0.06))",
   textCol: "job-card-media-col min-w-0 flex-1",
   face: "mt-1 flex h-5 items-center gap-1.5 min-w-0 text-ds-11 text-muted-foreground",
@@ -249,14 +251,14 @@ function cardHtml(job) {
   const town = escapeShellText(shellTown(job.location));
   const net = shellTakeHomeDollars(job).toLocaleString("en-US");
   return (
-    `<div data-feed-card="" class="${c.root}"><div class="${c.inner}">` +
+    `<div data-feed-card="" data-feed-row="" class="${c.root}"><div class="${c.inner}">` +
     `<div class="${c.mediaRow}"><div class="${c.mediaPad}"><div class="${c.media}" style="background:${c.mediaTint}"></div></div><div class="${c.textCol}">` +
-    `<div class="${c.catRow}"><span class="${c.catLabel}"><span aria-hidden="true" class="w-3.5 h-3.5 shrink-0"></span><span class="font-sans truncate">${label}</span></span></div>` +
+    `<div data-job-badge-line="" class="${c.badgeLine}"></div>` +
     `<div class="${c.body}"><div class="${c.titleRow}">` +
     `<h2 class="${c.title}" style="color:hsl(var(--ink-deep));letter-spacing:-0.02em">${title}</h2>` +
     `<div class="${c.chip}" style="background:hsl(var(--bark) / 0.1);border:0.5px solid hsl(var(--bark) / 0.28)">` +
     `<span class="${c.amount}" style="font-weight:800;color:hsl(var(--bark));letter-spacing:-0.02em"><span style="font-size:0.82em;vertical-align:0.02em;margin-right:0.5px">$</span>${net}</span></div>` +
-    `</div><div class="${c.metaWrap}"><div class="${c.metaRow}"><span class="flex items-center gap-1 min-w-[3.625rem] overflow-hidden"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-2.5 h-2.5 shrink-0" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg><span class="truncate font-sans min-w-[2.75rem]">${town}</span></span></div><div aria-hidden="true" class="${c.face}"></div></div>` +
+    `</div><div class="${c.metaWrap}"><div class="${c.metaRow}"><span class="${c.catLabel}"><span aria-hidden="true" class="w-3.5 h-3.5 shrink-0"></span><span class="font-sans truncate">${label}</span></span><span class="shrink-0 opacity-30">·</span><span class="flex items-center gap-1 min-w-[3.625rem] overflow-hidden"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-2.5 h-2.5 shrink-0" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg><span class="truncate font-sans min-w-[2.75rem]">${town}</span></span></div><div aria-hidden="true" class="${c.face}"></div></div>` +
     `</div></div></div></div></div>`
   );
 }

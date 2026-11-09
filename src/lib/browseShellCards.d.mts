@@ -27,6 +27,7 @@ export const SHELL_CARD_CLASSES: Readonly<Record<
   string
 >>;
 export const BROWSE_SHELL_ID: string;
+export const SHELL_PUBLIC_CONTAINER: string;
 export function browseShellRowsUrl(supabaseUrl: string): string;
 export function shellIsGiveaway(job: ShellJobRow): boolean;
 export function shellTakeHomeDollars(job: ShellJobRow): number | null;

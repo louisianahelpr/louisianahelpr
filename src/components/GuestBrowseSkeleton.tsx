@@ -1,6 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import PageHeader from "@/components/PageHeader";
+import { PUBLIC_CONTAINER } from "@/lib/publicContainer";
 import { isNativePlatform } from "@/lib/nativeInit";
 
 /**
@@ -100,7 +101,7 @@ const GuestBrowseSkeleton = () => {
       className="fixed top-0 left-0 right-0 z-50 glass-nav"
       style={{ paddingTop: "max(var(--safe-area-top, 0px), 0.25rem)" }}
     >
-      <div className="w-full flex items-center justify-end gap-2 h-[var(--public-nav-h)] px-5 sm:px-8 lg:px-12">
+      <div className={`w-full flex items-center justify-end gap-2 h-[var(--public-nav-h)] px-5 sm:px-8 lg:px-12 ${PUBLIC_CONTAINER}`}>
         <Skeleton className="h-9 w-16 rounded-ds-md" />
         <Skeleton className="h-9 w-24 rounded-ds-md" />
       </div>
@@ -108,7 +109,10 @@ const GuestBrowseSkeleton = () => {
     {/* PublicLayout's nav spacer, verbatim. src/test/listArrivesInOneWave
         compares the two strings, so this cannot drift from the page again. */}
     <div aria-hidden style={{ height: "calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))" }} />
-    <PageHeader title="Browse jobs" backTo="/" width="public" topInsetHandled />
+    {/* No back arrow: /browse is a top-level page (F019, owner UI audit 11-09), as DashboardGuest draws it. */}
+    {/* F017: the same 78rem container PublicHeaderPage holds the title and body to. */}
+    <div className={PUBLIC_CONTAINER}>
+    <PageHeader title="Browse jobs" hideBack width="public" topInsetHandled />
     <div className="px-5 sm:px-8 lg:px-12 pb-16">
       <div className="mx-auto page-measure">
         <div className={`${GUEST_FEED_GRID_CLASS} ${GUEST_FEED_RESERVE_CLASS}`}>
@@ -117,6 +121,7 @@ const GuestBrowseSkeleton = () => {
           ))}
         </div>
       </div>
+    </div>
     </div>
   </div>
   </div>

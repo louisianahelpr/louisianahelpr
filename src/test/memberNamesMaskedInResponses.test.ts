@@ -22,8 +22,10 @@
  * @mutate supabase/migrations/20261103154905_tip_waits_on_id_in_safe_profiles.sql | p.user_id, public.display_name_for_viewer(p.full_name, p.user_id) AS full_name, p.avatar_url | p.user_id, p.full_name, p.avatar_url
  * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql | CROSS JOIN LATERAL (SELECT public.display_name_for_viewer(p.full_name, p.user_id) AS name) d | CROSS JOIN LATERAL (SELECT p.full_name AS name) d
  * @mutate supabase/migrations/20261103041633_quote_not_found_is_404.sql | SELECT q.id, q.quoter_id, public.display_name_for_viewer(p.full_name, q.quoter_id)::text, p.avatar_url::text, | SELECT q.id, q.quoter_id, p.full_name::text, p.avatar_url::text,
- * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql |            ELSE public.member_display_name(p_full_name, NULL) |            ELSE p_full_name
- * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql | REVOKE ALL ON FUNCTION public.display_name_for_viewer(text, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.display_name_for_viewer(text, uuid) FROM PUBLIC;
+ * @mutate supabase/migrations/20261109174206_member_screens_short_names_for_admins_too.sql |            ELSE public.member_display_name(p_full_name, NULL) |            ELSE p_full_name
+ * @mutate supabase/migrations/20261109174206_member_screens_short_names_for_admins_too.sql | GRANT EXECUTE ON FUNCTION public.display_name_for_viewer(text, uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.display_name_for_viewer(text, uuid) TO service_role, authenticated;
+ * F136 (owner UI audit 2026-11-09): admins get "First L." on member screens too.
+ * @mutate supabase/migrations/20261109174206_member_screens_short_names_for_admins_too.sql |            WHEN (SELECT public.is_server_context()) THEN p_full_name\n |            WHEN (SELECT public.is_server_context()) THEN p_full_name\n           WHEN public.has_role((SELECT auth.uid()), 'admin'::public.app_role) THEN p_full_name\n
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -38,6 +40,7 @@ const THIS = "20261021131322_member_names_first_and_initial.sql";
 /** Callable functions that may hand back a full name. name -> why. Exact and two-way. */
 const RAW_NAME_OK: Record<string, string> = {
   admin_ban_settlement_reviews: "admin only: RAISE admin_only unless has_role(v_uid, 'admin')",
+  admin_booking_sources: "admin only: RAISE admin_only unless has_role(auth.uid(), 'admin') (Growth links screen; F136 2026-11-09 moved its name off display_name_for_viewer, which no longer gives admins the full name)",
   admin_list_category_suggestions: "admin only: RAISE not_authorized unless has_role(auth.uid(), 'admin')",
   admin_support_queue: "admin only: has_role(auth.uid(), 'admin') in WHERE, a member gets no rows",
   admin_support_replies: "admin only: has_role(auth.uid(), 'admin') in WHERE, a member gets no rows; the name is the replying admin's",
@@ -300,7 +303,7 @@ describe("members never see another member's last name in a response", () => {
   });
 
   it("every admin-only exception carries the admin gate in its body", () => {
-    expect(ADMIN_ONLY.length).toBe(7); // 7 with admin_support_replies (2026-10-23)
+    expect(ADMIN_ONLY.length).toBe(8); // 8 with admin_booking_sources (F136, 2026-11-09); 7 with admin_support_replies (2026-10-23)
     for (const name of ADMIN_ONLY) {
       expect(bodyOf(defs.get(name)!.stmt), name).toMatch(/\bhas_role\s*\([^;]*?'admin'/i);
     }
@@ -320,13 +323,16 @@ describe("members never see another member's last name in a response", () => {
     }
   });
 
-  it("display_name_for_viewer shows the full name only to the owner, an admin or the server, and no client may call it", () => {
+  // F136 (owner UI audit 2026-11-09): the owner, an admin, saw surnames on /helprs. Admins read full names on admin
+  // screens (profiles under the admin RLS policy); member screens give everyone but the owner of the row "First L.".
+  it("display_name_for_viewer shows the full name only to the owner or the server (not an admin), and no client may call it", () => {
     const d = defs.get("display_name_for_viewer");
-    expect(d?.file).toBe(THIS);
+    expect(d?.file).toBe("20261109174206_member_screens_short_names_for_admins_too.sql");
     const body = bodyOf(d!.stmt);
     expect(body).toMatch(/WHEN p_owner_id IS NOT NULL AND p_owner_id = \(SELECT auth\.uid\(\)\) THEN p_full_name/);
     expect(body).toMatch(/WHEN \(SELECT public\.is_server_context\(\)\) THEN p_full_name/);
-    expect(body).toMatch(/public\.has_role\(\(SELECT auth\.uid\(\)\), 'admin'::public\.app_role\) THEN p_full_name/);
+    expect(body).not.toMatch(/has_role/);
+    expect(body.match(/THEN p_full_name/g)?.length).toBe(2);
     expect(body).toMatch(/ELSE public\.member_display_name\(p_full_name, NULL\)/);
     expect(callable("display_name_for_viewer")).toBe(false);
   });

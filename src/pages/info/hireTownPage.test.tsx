@@ -65,7 +65,7 @@ describe("OPS-4: town + service pages", () => {
   it("/hire/handyman/baton-rouge: its own title, description and canonical; one way to post; links to the other towns and services", () => {
     at("/hire/handyman/baton-rouge");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Handyman in Baton Rouge");
-    expect(meta[0]).toMatchObject({ title: "Handyman in Baton Rouge, LA | Louisiana Helpr", canonical: "https://www.louisianahelpr.com/hire/handyman/baton-rouge" });
+    expect(meta[0]).toMatchObject({ title: "Handyman in Baton Rouge, LA — Helpr", canonical: "https://www.louisianahelpr.com/hire/handyman/baton-rouge" });
     expect(meta[0].description).toMatch(/Baton Rouge/);
     expect(screen.getByRole("link", { name: "Post a job" })).toHaveAttribute("href", `/signup?redirect=${encodeURIComponent("/post-job")}`);
     expect(screen.getByRole("link", { name: "Handyman in Lafayette" })).toHaveAttribute("href", "/hire/handyman/lafayette");
@@ -124,7 +124,7 @@ describe("OPS-4: town + service pages", () => {
 
   it("the pre-JS head (api/share.ts reads publicPageMetaFor) and the sitemap carry every town page", () => {
     const head = publicPageMetaFor("/hire/handyman/baton-rouge", null);
-    expect(head).toMatchObject({ title: "Handyman in Baton Rouge, LA | Louisiana Helpr", canonical: "https://www.louisianahelpr.com/hire/handyman/baton-rouge" });
+    expect(head).toMatchObject({ title: "Handyman in Baton Rouge, LA — Helpr", canonical: "https://www.louisianahelpr.com/hire/handyman/baton-rouge" });
     expect(publicPageMetaFor("/hire/plumbing/baton-rouge", null)).toBeNull();
     // The committed sitemap, and what the generator writes now (so a generator that drops them fails here too).
     const committed = readFileSync("public/sitemap.xml", "utf8");

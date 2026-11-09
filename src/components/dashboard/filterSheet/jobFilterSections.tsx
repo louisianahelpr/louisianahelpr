@@ -10,7 +10,7 @@ import {
 import { PayRangeSlider, payRangeLabel } from "@/components/dashboard/filterSheet/PayRangeSlider";
 import { AvailabilityRow, SignupRow, ToggleRow, WantsQuotesRow } from "@/components/dashboard/filterSheet/FilterSheetRows";
 
-interface JobFilterSectionsArgs {
+export interface JobFilterSectionsArgs {
   selectedCategory: string | null;
   setSelectedCategory: (v: string | null) => void;
   sortBy: string;

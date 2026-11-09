@@ -52,12 +52,14 @@ describe("the emails wear the brand (F158)", () => {
   it("headings are Bodoni Moda with a Georgia fallback; no email asks a font host for anything (privacy)", () => {
     expect(styles).toContain(`const headingFontStack = "'Bodoni Moda', Georgia, 'Times New Roman', serif"`);
     expect(styles).toMatch(/export const h1 = \{\s*fontFamily: headingFontStack,/);
-    expect(styles).not.toMatch(/fonts\.(googleapis|gstatic)\.com/);
+    // Plain substring checks (a host RegExp trips CodeQL js/regex/missing-regexp-anchor).
+    for (const host of ["fonts.googleapis.com", "fonts.gstatic.com"]) expect(styles.includes(host), host).toBe(false);
     expect(styles).toContain(`"'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif"`);
     const comp = read("components.tsx");
     const head = comp.slice(comp.indexOf("const EmailHead"), comp.indexOf("</Head>", comp.indexOf("const EmailHead")));
     expect(head).toContain("<Head>");
-    expect(head).not.toMatch(/<link[^>]*stylesheet|fonts\.(googleapis|gstatic)\.com/);
+    expect(head).not.toMatch(/<link[^>]*stylesheet/);
+    for (const host of ["fonts.googleapis.com", "fonts.gstatic.com"]) expect(head.includes(host), host).toBe(false);
   });
 
   it("F155: the H mark sits on a light rounded tile, kept light in dark mode, in every email", () => {

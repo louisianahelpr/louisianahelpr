@@ -327,7 +327,7 @@ const DATA_ROW_STACKS: Record<string, string> = {
 // Shown able to fail on the original (every Profile tab back on its 16px, a
 // page back on its 24px) and on the token:
 // @mutate src/components/profile/ProfileTabBody.tsx | export const PROFILE_TAB_BODY_CLASS = "space-y-section"; | export const PROFILE_TAB_BODY_CLASS = "space-y-4";
-// @mutate src/pages/info/HelpCenter.tsx | <div className="mx-auto page-measure space-y-section"> | <div className="mx-auto page-measure space-y-6">
+// @mutate src/pages/info/HelpCenter.tsx | <div className="mx-auto page-measure max-w-[760px] space-y-section" data-help-measure=""> | <div className="mx-auto page-measure max-w-[760px] space-y-6" data-help-measure="">
 // @mutate src/index.css | --section-gap: 0.75rem; | --section-gap: 1rem;
 // The job-card lists (Home feed, guest /browse) are held to the same 12px by
 // --list-gap (Q213a); a list pitch back off the token fails here too:

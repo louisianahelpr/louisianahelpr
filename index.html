@@ -74,7 +74,7 @@
          (scripts/check-csp-inline-scripts.mjs). Never add inline on*= handlers
          or javascript: URLs; use addEventListener. -->
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-duvv7l/N2Dk2UPVHhqWrbfpf01OVN8op3f3mHhD90C4=' 'sha256-GLRujf+9aEm72fbxj1uMZ9zZ4Q2dLYpb/5eYNCyGXPc=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-yUtNpiPXGeAc38WuKK8biiH5mrbfvvi5W7woqMMWHcA=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' 'sha256-AXm2TLBv4U1d/F/T3/dcAbe1QntzVJRWEySfKMS4y9o=' 'sha256-4MuTiLIkqRi1pnJ8C/PEYCMacyyBNy6I6F+KF3qIo5k=' 'sha256-ldDEb7cz2Q5EmRdHpOg+df/dED81vDhVRuFf5p38GOM=' 'sha256-mTnxF+2o2IOA+O6CdKvNm9CyJlzgk3lwnFgCnXpeBq8=' 'sha256-Jp9VdIkuUU/C+rQaCOBkVtR4i4zNadeA454jN0QAa34=' 'sha256-rlM+/G5Gcbg+zjPi7BwcG+8uqh+NZ0uo7V0zmsNKKZQ=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-duvv7l/N2Dk2UPVHhqWrbfpf01OVN8op3f3mHhD90C4=' 'sha256-lSJ+MTrvNIIttPSkpbGuoMf4Itkpre8IeLaKwwsc/po=' 'sha256-GLRujf+9aEm72fbxj1uMZ9zZ4Q2dLYpb/5eYNCyGXPc=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-yUtNpiPXGeAc38WuKK8biiH5mrbfvvi5W7woqMMWHcA=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' 'sha256-AXm2TLBv4U1d/F/T3/dcAbe1QntzVJRWEySfKMS4y9o=' 'sha256-4MuTiLIkqRi1pnJ8C/PEYCMacyyBNy6I6F+KF3qIo5k=' 'sha256-ldDEb7cz2Q5EmRdHpOg+df/dED81vDhVRuFf5p38GOM=' 'sha256-mTnxF+2o2IOA+O6CdKvNm9CyJlzgk3lwnFgCnXpeBq8=' 'sha256-Jp9VdIkuUU/C+rQaCOBkVtR4i4zNadeA454jN0QAa34=' 'sha256-rlM+/G5Gcbg+zjPi7BwcG+8uqh+NZ0uo7V0zmsNKKZQ=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -1098,6 +1098,68 @@
           setTimeout(rest, 3000);
           if (row.length || later.length) shell.setAttribute("data-lh-photos", "");
         });
+      })();
+    </script>
+    <!-- ITEM PAGE SPEED (Builder 2, 11-09; cwv-lab Slow 4G 375: an item page's largest paint, its first photo, did not
+         START until 3.6 s, after the entry's JS had run and its photo-rows read had answered; 5.8 s guest, 6.2 s member).
+         On a cold /declutter/item/:id this asks for the item's first photo row from the HTML (the read the entry asks,
+         src/boot/declutterItemPrefetch.ts) and preloads the gallery's first photo for each frame shape: a phone's square
+         crop, and the width-only photo from sm up (src/lib/declutter/pagePhoto.ts). Only the link whose media matches
+         fetches, and the gallery's own request is answered from it. A stored session that is still good reads as the
+         member (their own draft); otherwise the anonymous role reads, as a guest's page does. Anything unexpected:
+         nothing is preloaded and the page loads as before. Guard: src/boot/declutterItemEarly.test.ts. -->
+    <script>
+      (function () {
+        var hit = /^\/declutter\/item\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i.exec(location.pathname);
+        if (!hit || window.Capacitor || location.protocol === "capacitor:") return;
+        if (typeof fetch !== "function" || typeof Promise !== "function") return;
+        function m(n) {
+          var el = document.querySelector('meta[name="' + n + '"]');
+          return (el && el.getAttribute("content")) || "";
+        }
+        var base = m("lh-supabase-url").replace(/\/$/, "");
+        var key = m("lh-supabase-key");
+        if (!/^https?:\/\/[^%]+$/.test(base) || !key || key.indexOf("%") !== -1) return;
+        var bearer = key;
+        try {
+          for (var n = 0; n < localStorage.length; n++) {
+            var name = localStorage.key(n) || "";
+            if (name.slice(0, 3) !== "sb-" || !/-auth-token$/.test(name)) continue;
+            var s = JSON.parse(localStorage.getItem(name) || "null");
+            if (s && typeof s.access_token === "string" && typeof s.expires_at === "number" && s.expires_at - Date.now() / 1000 > 60) bearer = s.access_token;
+            break;
+          }
+        } catch (e) {
+          return;
+        }
+        var url = base + "/rest/v1/declutter_item_photos?select=storage_path&item_id=eq." + hit[1].toLowerCase() + "&order=position.asc&limit=1";
+        fetch(url, { headers: { apikey: key, Authorization: "Bearer " + bearer, Accept: "application/json" } })
+          .then(function (r) {
+            return r.ok ? r.json() : null;
+          })
+          .then(function (rows) {
+            var path = rows && rows.length && rows[0] && rows[0].storage_path;
+            if (typeof path !== "string" || !/^[A-Za-z0-9/_.-]+$/.test(path)) return;
+            var root = base + "/storage/v1/render/image/public/job-photos/" + path;
+            function set(wide) {
+              return [720, 1080].map(function (w) {
+                return root + (wide ? "?width=" + w + "&quality=75 " : "?width=" + w + "&height=" + w + "&resize=cover&quality=75 ") + w + "w";
+              }).join(", ");
+            }
+            [["(max-width: 639px)", set(false), "calc(100vw - 40px)"], ["(min-width: 640px)", set(true), "(min-width: 640px) 680px, calc(100vw - 40px)"]].forEach(function (p) {
+              var link = document.createElement("link");
+              link.rel = "preload";
+              link.setAttribute("as", "image");
+              link.href = root + "?width=720&quality=75";
+              link.setAttribute("imagesrcset", p[1]);
+              link.setAttribute("imagesizes", p[2]);
+              link.setAttribute("media", p[0]);
+              link.setAttribute("fetchpriority", "high");
+              link.setAttribute("data-lh-item-early", "");
+              document.head.appendChild(link);
+            });
+          })
+          .catch(function () {});
       })();
     </script>
 

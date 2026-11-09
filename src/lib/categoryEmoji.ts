@@ -28,7 +28,7 @@ export const START_ICON = { templates: ClipboardList, offer: Handshake, ai: Spar
  * The emoji the Post a Job start screens drew (owner 2026-10-21: "she prefers the EMOJI icons from the
  * mock", ~/Desktop/helpr-postjob-flow-mockup.png; SUPERSEDED on Post a Job by the owner's 11-09 decision above, F113).
  * Jobs Browse's group filter (JobFilters) draws GROUP_ICON too since 11-09 (lead, same owner decision); CATEGORY_EMOJI
- * and GROUP_EMOJI stay for the start-flow guard's enum check. ONE map, so a category has exactly one emoji on
+ * stays for the start-flow guard's enum check (GROUP_EMOJI, START_EMOJI and categoryEmoji went with F113: unused). ONE map, so a category has exactly one emoji on
  * every start screen. Decorative: always rendered aria-hidden; the label is the accessible name.
  *
  * Typed as a Record over the generated enum, so a new category fails typecheck here until it gets one.
@@ -60,23 +60,3 @@ export const CATEGORY_EMOJI: Record<JobCategory, string> = {
   appliance_repair: "🧺",
   other: "💬",
 };
-
-/** The 8 groups on screen 1 (mock-up order and glyphs). */
-export const GROUP_EMOJI: Record<JobCategoryGroupId, string> = {
-  home: "🏠",
-  yard: "🌿",
-  moving_errands: "📦",
-  auto: "🚗",
-  pets: "🐾",
-  events: "🎉",
-  trades: "🔧",
-  other: "💬",
-};
-
-/** Step 0's four ways to start. */
-export const START_EMOJI = { fresh: "✏️", templates: "📋", offer: "🤝", ai: "✨" } as const;
-
-/** The emoji for a stored category value; "💬" (Other) for a value outside the enum. */
-export function categoryEmoji(value: string): string {
-  return CATEGORY_EMOJI[value as JobCategory] ?? CATEGORY_EMOJI.other;
-}

@@ -3,6 +3,9 @@
  * towns Lafayette, New Iberia, Delcambre, Abbeville, Baton Rouge; nothing shown at zero.
  *
  * @mutate src/App.tsx |       <Route path="/hire/:service/:town" element={<RouteErrorBoundary>{routeEl(<PageTransition><HireTownPage /></PageTransition>)}</RouteErrorBoundary>} /> |
+ * F063: the 760px column and the chips.
+ * @mutate src/pages/info/HireTownPage.tsx | const TOWN_COLUMN = "max-w-[760px]"; | const TOWN_COLUMN = "page-measure";
+ * @mutate src/pages/info/HireTownPage.tsx | <li key={t.slug}><Button asChild variant="outline" size="sm" className="font-semibold tracking-normal"><Link to={townPagePath(service, t)}>{service.label} in {t.name}</Link></Button></li> | <li key={t.slug}><Link className="link-standard text-ds-15" to={townPagePath(service, t)}>{service.label} in {t.name}</Link></li>
  * @mutate src/pages/info/HireTownPage.tsx |   if (category) return <Navigate replace to={`/browse?cat=${category}`} />; |   if (category) return <NotFound />;
  * @mutate src/pages/info/HireTownPage.tsx |   return (JOB_CATEGORY_VALUES as readonly string[]).includes(value) ? value : null; |   return value \|\| null;
  * @mutate src/pages/info/HireTownPage.tsx |   if (!page) return <NotFound />; |   if (!page) return <TownPage service={TOWN_PAGE_SERVICES[0]} town={TOWN_PAGE_TOWNS[0]} />;
@@ -108,6 +111,23 @@ describe("OPS-4: town + service pages", () => {
     fireEvent.click(screen.getByRole("link", { name: "Post a job" }));
     expect(age.explained).toEqual([]);
     expect(screen.getByText("THE FORM")).toBeTruthy();
+  });
+
+  it("F063: a centred ~760px column, and More near you as chips (not a run-on line of small links)", () => {
+    at("/hire/yard-work/new-iberia");
+    const column = document.querySelector("[data-town-page]") as HTMLElement;
+    expect(column.className).toContain("max-w-[760px]");
+    expect(column.className).toContain("mx-auto");
+    const chipLinks = [...document.querySelectorAll("[data-town-more] a")];
+    expect(chipLinks.length).toBeGreaterThan(8);
+    for (const l of chipLinks) {
+      expect(l.className).toContain("rounded-full");
+      expect(l.className).not.toContain("link-standard");
+    }
+    const src = blankComments(readFileSync("src/pages/info/HireTownPage.tsx", "utf8"));
+    // The header's column is the body's column plus the same side padding ladder (PageHeader public: px-5 sm:px-8 lg:px-12).
+    expect(src).toContain('const TOWN_HEADER_COLUMN = "mx-auto max-w-[calc(760px+2.5rem)] sm:max-w-[calc(760px+4rem)] lg:max-w-[calc(760px+6rem)]";');
+    expect(src).toContain("headerWrapperClassName={TOWN_HEADER_COLUMN}");
   });
 
   it("F065: a pair with no page, for a real job category, opens Browse filtered to it; anything else is the 404", () => {

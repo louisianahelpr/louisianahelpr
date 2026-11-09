@@ -15,6 +15,10 @@ import NotFound from "@/pages/info/NotFound";
 import { JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
 import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, findTownPage, townPageMeta, townPagePath, type TownPageService, type TownPageTown } from "@/lib/townPages.mjs";
 
+/** F063: the town page's column, and its header's (the column plus the shell's side padding at each breakpoint). */
+const TOWN_COLUMN = "max-w-[760px]";
+const TOWN_HEADER_COLUMN = "mx-auto max-w-[calc(760px+2.5rem)] sm:max-w-[calc(760px+4rem)] lg:max-w-[calc(760px+6rem)]";
+
 const STEPS = [
   { title: "You name the price", body: "Say what you need done and what you'll pay." },
   { title: "Local Helprs apply", body: "People nearby see your job and apply. You pick who does it." },
@@ -48,8 +52,11 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
   const post = user ? "/post-job" : `/signup?redirect=${encodeURIComponent("/post-job")}`;
   const ink = { color: "hsl(var(--ink-deep))" };
   return (
-    <PublicHeaderPage title={`${service.label} in ${town.name}`} width="public" wrapTitle bottomPaddingClassName="pb-12 md:pb-16">
-      <div className="mx-auto page-measure space-y-section font-sans" data-town-page={`${service.slug}/${town.slug}`}>
+    // F063 (owner UI audit 11-09): the page is a ~760px column, centred, title included (the header's max width is the
+    // column plus the shell's own side padding at each breakpoint, px-5 / sm:px-8 / lg:px-12, so their left edges meet).
+    <PublicHeaderPage title={`${service.label} in ${town.name}`} width="public" wrapTitle bottomPaddingClassName="pb-12 md:pb-16"
+      headerWrapperClassName={TOWN_HEADER_COLUMN}>
+      <div className={`mx-auto ${TOWN_COLUMN} space-y-section font-sans`} data-town-page={`${service.slug}/${town.slug}`}>
         <section className="space-y-4">
           <p className="text-ds-17" style={ink}>
             Need {service.phrase} in {town.name}? Post the job on Louisiana Helpr and a local Helpr can take it.
@@ -81,14 +88,15 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
         </section>
         <nav aria-labelledby="town-more" className="space-y-3">
           <h2 id="town-more" className="text-ds-17 font-semibold" style={ink}>More near you</h2>
-          <ul className="flex flex-wrap gap-x-4 gap-y-2">
+          {/* F063: chips, not a run-on line of small links. */}
+          <ul className="flex flex-wrap gap-2" data-town-more="towns">
             {TOWN_PAGE_TOWNS.filter((t) => t.slug !== town.slug).map((t) => (
-              <li key={t.slug}><Link className="link-standard text-ds-15" to={townPagePath(service, t)}>{service.label} in {t.name}</Link></li>
+              <li key={t.slug}><Button asChild variant="outline" size="sm" className="font-semibold tracking-normal"><Link to={townPagePath(service, t)}>{service.label} in {t.name}</Link></Button></li>
             ))}
           </ul>
-          <ul className="flex flex-wrap gap-x-4 gap-y-2">
+          <ul className="flex flex-wrap gap-2" data-town-more="services">
             {TOWN_PAGE_SERVICES.filter((s) => s.slug !== service.slug).map((s) => (
-              <li key={s.slug}><Link className="link-standard text-ds-15" to={townPagePath(s, town)}>{s.label} in {town.name}</Link></li>
+              <li key={s.slug}><Button asChild variant="outline" size="sm" className="font-semibold tracking-normal"><Link to={townPagePath(s, town)}>{s.label} in {town.name}</Link></Button></li>
             ))}
           </ul>
         </nav>

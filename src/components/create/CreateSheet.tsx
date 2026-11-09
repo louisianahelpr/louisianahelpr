@@ -9,7 +9,7 @@ import { useSectionIsListed, useSectionIsOn, useSectionIsPreview } from "@/compo
 import { sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
-import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
+import { SELL_CHOOSER_PATH, SELL_FREE_PATH, WANTED_POST_PATH } from "@/lib/declutter/sellChooser";
 import { hapticLight } from "@/lib/haptics";
 import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
@@ -27,8 +27,10 @@ interface CreateAction {
  * The actions per section, only paths that EXIST today (measured 2026-10-20):
  * - Jobs: Post a job. "Get quotes" is a choice inside the post-job form with
  *   no entry route yet, so it is not offered here until one exists.
- * - Declutter: Sell an item (the "What do you want to sell?" chooser, owner 2026-10-30). Moving out sale is one of that
- *   chooser's choices, so it has no button of its own here (owner 10-31, LEAD-CREATE-SHEET-TRIM).
+ * - Declutter: Sell an item (the "What do you want to sell?" chooser, owner 2026-10-30), then Give away free and Post
+ *   a Wanted as outline buttons (owner UI audit 11-09, F135: "Add 'Give away free' and 'Post a Wanted' under
+ *   Declutter"; it supersedes the 10-31 LEAD-CREATE-SHEET-TRIM one-button rule for Declutter's row). Moving out sale
+ *   is one of the chooser's choices, so it still has no button of its own here.
  * - Shops: Open a shop, or, once the member has one, Add a product or service
  *   (both /shops/mine, whose items section adds them).
  * - Homes: List for rent (Owning's add property, the first step of a rent listing). "List for
@@ -51,7 +53,11 @@ function useCreateRows(open: boolean) {
   const hasShop = !!myShop.data;
   const actions: Record<SectionKey, CreateAction[]> = {
     jobs: [{ label: "Post a job", path: "/post-job", gated: true }],
-    declutter: [{ label: "Sell an item", path: SELL_CHOOSER_PATH }],
+    declutter: [
+      { label: "Sell an item", path: SELL_CHOOSER_PATH },
+      { label: "Give away free", path: SELL_FREE_PATH },
+      { label: "Post a Wanted", path: WANTED_POST_PATH },
+    ],
     shops: [{ label: hasShop ? "Add a product or service" : "Open a shop", path: "/shops/mine" }],
     homes: [{ label: "List for rent", path: "/rentals?tab=own&add=1" }],
   };
@@ -163,7 +169,7 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                         data-create-action={`${s.key}:${j}`}
                         onClick={a.gated ? gate.gate("post", () => go(a.path)) : () => go(a.path)}
                         {...(a.gated ? gate.gatedProps("post") : {})}
-                        className={`btn-press rounded-full min-h-11 px-3 min-[360px]:px-4 text-ds-13 min-[360px]:text-ds-14 font-semibold ${
+                        className={`btn-press rounded-full min-h-11 px-3 min-[360px]:px-4 text-ds-13 min-[360px]:text-ds-14 font-semibold whitespace-nowrap ${
                           j === 0 ? "btn-grad-primary" : "border text-foreground"
                         }`}
                         // No `bg-card` on the outline pill: index.css T2 strips a .bg-card border (looked: it vanished).

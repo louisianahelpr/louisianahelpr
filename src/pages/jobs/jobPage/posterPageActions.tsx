@@ -66,7 +66,7 @@ export function usePosterPageActions({
   /** The step due now, or Message when none is (the page's lead without an override). */
   primary: PagePrimary | null;
   /** The one row of buttons; `override` is the page's own step (Confirm they've arrived), null for none. */
-  row: (override?: PagePrimary | null, moreExtras?: RowAction[], opts?: { noCardSteps?: boolean }) => React.ReactNode;
+  row: (override?: PagePrimary | null, moreExtras?: RowAction[], opts?: { noCardSteps?: boolean; menuHost?: HTMLElement | null }) => React.ReactNode;
   /** The hidden card (its flows and dialogs). */
   panel: React.ReactNode;
   dialogs: React.ReactNode;
@@ -142,7 +142,7 @@ export function usePosterPageActions({
     withdrawOffer.action,
     canCancel && { key: "cancel", label: "Cancel job", go: flows.cancel, disabled: !flows.ready, danger: true },
   ].filter(Boolean) as RowAction[];
-  const row = (override: PagePrimary | null | undefined, moreExtras: RowAction[] = [], opts: { noCardSteps?: boolean } = {}) => {
+  const row = (override: PagePrimary | null | undefined, moreExtras: RowAction[] = [], opts: { noCardSteps?: boolean; menuHost?: HTMLElement | null } = {}) => {
     // A continue day still ahead (Auditor 11, 11-01): nobody is at the job, so the card's on-site actions (SOS) are
     // not on the row; they return on the day. Approve and "Something's not right" come once the Helpr marks it done.
     const cardSteps = cardStepsAll && !opts.noCardSteps;
@@ -159,7 +159,7 @@ export function usePosterPageActions({
       {/* The card's own words above its buttons (a crew's Tip rows; why a Tip can't be sent yet). */}
       {cardSteps && <div ref={flows.setAskHost} data-card-ask="" className="empty:hidden" />}
       <JobPageActionRow tag="poster" lead={lead} leadIsStep={!!step} extras={extras} cardCount={cardCount} cardInMenu={cardSteps && flows.loneSos}
-        cardLead={cardLead} setCardLeadHost={flows.setLeadHost} setCardSecondHost={flows.setSecondHost} setCardListHost={flows.setListHost} />
+        cardLead={cardLead} setCardLeadHost={flows.setLeadHost} setCardSecondHost={flows.setSecondHost} setCardListHost={flows.setListHost} menuHost={opts.menuHost} />
       {/* A3-40 (lead 11-01): Tip beside Review is a visible text button under the row, not in More options. */}
       {cardLead && <div ref={flows.setTextHost} data-card-text="" className="flex justify-center empty:hidden" />}
       </>

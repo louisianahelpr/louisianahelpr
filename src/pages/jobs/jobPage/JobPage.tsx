@@ -38,6 +38,7 @@ import { seriesSummary } from "@/lib/format";
 import { JobTracker, PosterPrice, PosterMoneyNotes, HelprPrice, HelprMoneyNotes, PostedBy, HiredHelpr, RevisionAsk } from "./JobPageParts";
 import { OnTheWayNow, showsNow } from "./OnTheWayNow";
 import { JobPageActionRow, type RowAction } from "./JobPageActionRow";
+import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
@@ -48,7 +49,7 @@ import { HelprGuaranteePanel } from "@/components/guarantee/HelprGuaranteePanel"
 import { jobPageViewerState } from "./viewerState";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 import { fetchSellerCard } from "@/lib/declutter/api";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { posterStatusLine } from "@/components/job-card/jobStatusLine";
@@ -91,12 +92,22 @@ const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ 
 const PageOfferPanel = lazy(() => import("@/components/job-card/JobListPage").then((m) => ({ default: m.PageOfferPanel })));
 
 /** "Sat, Oct 31 · 9:00 AM · Delcambre": only the parts the job really has. */
-function metaLine(job: JobPageRow): string {
+/** The When row: the day and the start time ("Wed, Nov 11 · 9:00 AM"). */
+function whenLine(job: JobPageRow): string {
   return [
     job.date_needed ? jobDayLabel(job) : null,
     jobStartTimeLabel(job.start_time, job.is_flexible_schedule),
-    job.location ? getCity(job.location) : null,
   ].filter(Boolean).join(" · ");
+}
+
+/** One label/value row of the job's facts (owner pick 11-08, JP1: When / Where / Visits, like a listing's facts). */
+function FactRow({ label, children, ...rest }: { label: string; children: ReactNode } & Record<`data-${string}`, string>) {
+  return (
+    <div data-job-fact="" className="flex items-baseline justify-between gap-4 border-b border-border py-2 last:border-b-0">
+      <dt className="shrink-0 text-ds-14 text-muted-foreground">{label}</dt>
+      <dd {...rest} className="min-w-0 text-right text-ds-14 text-foreground [overflow-wrap:anywhere]">{children}</dd>
+    </div>
+  );
 }
 
 const CARD = "rounded-2xl border border-border bg-card";
@@ -154,6 +165,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const [reviewOpen, setReviewOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [caseOpen, setCaseOpen] = useState(false);
+  // The top bar's "..." slot (owner pick 11-08, JP2): the action bar's menu button is drawn into it.
+  const [menuHost, setMenuHost] = useState<HTMLElement | null>(null);
   const seriesState = useJobSeriesState(isPoster ? null : q.data?.job);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
@@ -225,7 +238,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // The city here; the street once, on the Address line below for the offered or hired Helpr (F7, JOBS2-39: it was printed twice in a row).
   // A SET continue day (Auditor 11, 11-01): the first line is the next visit, "Continuing Thu 11/5 at 9 AM" (Q2680).
   const continuingOn = continueDayHeader(continueDay.row);
-  const meta = continuingOn ? [continuingOn, job.location ? getCity(job.location) : null].filter(Boolean).join(" · ") : metaLine(job);
+  const when = continuingOn ?? whenLine(job);
+  const town = job.location ? getCity(job.location) : "";
   const open = job.status === "open";
   const pending = applicants.data?.pending ?? 0;
   const total = applicants.data?.total ?? 0;
@@ -285,12 +299,14 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     // A3-44: "Leave series" joins More options only when that makes 2+ items (owner 5:42 PM); else it stays a link.
     const leaveAction: RowAction = { key: "leave-series", label: "Leave series", go: () => setLeaveOpen(true), danger: true };
     const canLeave = canLeaveSeries(job, userId, seriesState.data?.series_ended_on ?? null, isPoster);
+    // Owner pick 11-08 (JP2): "Not finished? Set a day" is in the "..." menu with the others, never a link under the bar.
+    const dayExtras = [...continueDay.helprExtras, ...(continueDay.setDay ? [continueDay.setDay] : [])];
     if (continueDay.helprLead) {
-      const withLeaveDay = withLeaveSeries([...(faceIs === "step" ? [] : [lead]), ...extras, ...continueDay.helprExtras], canLeave, leaveAction);
-      return { row: <JobPageActionRow tag="helpr" lead={continueDay.helprLead} leadIsStep extras={withLeaveDay.extras} />, leaveInMenu: withLeaveDay.inMenu };
+      const withLeaveDay = withLeaveSeries([...(faceIs === "step" ? [] : [lead]), ...extras, ...dayExtras], canLeave, leaveAction);
+      return { row: <JobPageActionRow tag="helpr" lead={continueDay.helprLead} leadIsStep extras={withLeaveDay.extras} menuHost={menuHost} />, leaveInMenu: withLeaveDay.inMenu };
     }
-    const withLeave = withLeaveSeries([...extras, ...continueDay.helprExtras], canLeave, leaveAction);
-    return { row: <JobPageActionRow tag="helpr" lead={lead} leadIsStep={faceIs === "step"} extras={withLeave.extras} />, leaveInMenu: withLeave.inMenu };
+    const withLeave = withLeaveSeries([...extras, ...dayExtras], canLeave, leaveAction);
+    return { row: <JobPageActionRow tag="helpr" lead={lead} leadIsStep={faceIs === "step"} extras={withLeave.extras} menuHost={menuHost} />, leaveInMenu: withLeave.inMenu };
   })();
   // JA-17: after an answer on the page, re-read the job, my application and the pending-offer row (useOfferedToMe).
   const refetchPage = () => {
@@ -370,31 +386,33 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     <AppPage
       title={job.title}
       backTo={isPoster ? "/posts" : "/jobs"}
-      titleActions={share ?? undefined}
+      titleActions={<>{share}<span ref={setMenuHost} data-job-menu-host="" className="contents" /></>}
     >
       <div data-job-page="" data-layout="v2" className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-x-6 lg:gap-y-5">
         <section aria-label={t("jobPage.summary")} data-job-head="" className="space-y-2 lg:col-span-2">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-1">
-              {/* Owner 11-01: "Move the category to the second line and the location, day and time to the first."
-                  Line 1 the day, time and town (muted); line 2 the category (semibold primary). Every stage, both sides. */}
-              {meta && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>}
+              {/* Owner 11-01: the category on its own line (semibold primary); the day, time and place are the facts
+                  rows below (owner pick 11-08, JP1: label/value rows, not a muted line of dots). */}
               <p data-job-category="" className="text-ds-14 font-semibold text-primary">{eyebrow}</p>
-              {/* JOBS-18: every visit, before they apply or answer; the hired Helpr and the poster read it in HiredSeriesSection (A3-44). */}
-              {!isHired && !isPoster && seriesSummary(job) && <p data-job-series="" className="text-ds-14 text-muted-foreground">{seriesSummary(job)}</p>}
-              {/* JA-20: the hired Helpr's street opens Maps; JA-25: not once the job is cancelled. */}
-              {isHired && job.location && job.status !== "cancelled" && (
-                <p data-job-address="" className="text-ds-14 text-foreground [overflow-wrap:anywhere]">
-                  <span className="font-semibold">Address: </span>
-                  <a href={mapsSearchUrl(job.location)} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
-                    {job.location}
-                  </a>
-                </p>
-              )}
             </div>
             {price}
           </div>
           {moneyNotes}
+          <dl data-job-facts="" className="border-y border-border">
+            {when && <FactRow label="When" data-job-meta="">{when}</FactRow>}
+            {/* JA-20: the hired Helpr's street opens Maps; JA-25: not once the job is cancelled. The street once,
+                here, for the hired Helpr (F7, JOBS2-39); the town for everyone else. */}
+            {isHired && job.location && job.status !== "cancelled" ? (
+              <FactRow label="Address" data-job-address="">
+                <a href={mapsSearchUrl(job.location)} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                  {job.location}
+                </a>
+              </FactRow>
+            ) : town ? <FactRow label="Where" data-job-town="">{town}</FactRow> : null}
+            {/* JOBS-18: every visit, before they apply or answer; the hired Helpr and the poster read it in HiredSeriesSection (A3-44). */}
+            {!isHired && !isPoster && seriesSummary(job) && <FactRow label="Visits" data-job-series="">{seriesSummary(job)}</FactRow>}
+          </dl>
         </section>
 
         {(posterDetails || hasVideo) && (
@@ -510,35 +528,28 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                 </div>
               </RefundsSwitchProvider>
             )}
-            {isPoster && posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras, { noCardSteps: continueDay.doneAhead })}
+            {/* Owner pick 11-08 (JP2): "Something's not right" and "Not finished? Set a day" are in the "..." menu. */}
+            {isPoster && posterActions.row(continueDay.posterLead ?? posterStep, [
+              ...continueDay.posterExtras,
+              ...(posterActions.notRight ? [{ key: "not-right", label: NOT_RIGHT_LABEL, go: posterActions.notRight, inMenu: true }] : []),
+              ...(continueDay.setDay ? [continueDay.setDay] : []),
+            ], { noCardSteps: continueDay.doneAhead, menuHost })}
             {continueDay.sheet}{continueDay.missedSheet}
             {isPoster && posterActions.panel}
             {hiredRow}
-            {/* A3-8 (audit 11-01): at the approve step the poster's complaint is a visible text button under the pair
-                (Message | Approve stays, owner 12:49 PM), opening the approve sheet at the fix form, never only behind Approve. */}
-            {isPoster && posterActions.notRight && (
-              <Button type="button" variant="link" size="sm" data-not-right-open="" onClick={posterActions.notRight}
-                className="h-auto self-center px-0 text-ds-15 font-semibold">
-                {NOT_RIGHT_LABEL}
-              </Button>
-            )}
-            {/* Continue another day (owner 2026-11-01): a visible text button under the pair, both sides. */}
-            {continueDay.setDay && (
-              <Button type="button" variant="link" size="sm" data-continue-day-open="" onClick={continueDay.setDay.go}
-                className="h-auto self-center px-0 text-ds-15 font-semibold">
-                {continueDay.setDay.label}
-              </Button>
-            )}
             {primary && (
-              <Button
-                variant="primary"
-                size="lg"
-                className="w-full rounded-full text-ds-16"
-                onClick={primary.go}
-                {...("gated" in primary ? primary.gated : {})}
-              >
-                {primary.label}
-              </Button>
+              // The one button (Apply, View application, Open in Jobs, Browse jobs) in the same sticky bar (JP2).
+              <StickyActionBar label="Job actions" data-job-bar="viewer">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  className="w-full rounded-full text-ds-16"
+                  onClick={primary.go}
+                  {...("gated" in primary ? primary.gated : {})}
+                >
+                  {primary.label}
+                </Button>
+              </StickyActionBar>
             )}
             {!isPoster && !hiredFace && !instantUntil && viewer.action.kind === "see_offer" && (
               <Suspense fallback={seeOffer}>

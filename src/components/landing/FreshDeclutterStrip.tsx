@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { PriceInclFee } from "@/components/declutter/PriceInclFee";
 import { PhotoTag, PhotoTagStack } from "@/components/ui/PhotoTag";
-import { PRICE_BASE, PRICE_DEAL } from "@/components/ui/designScale";
+import { PRICE_DEAL } from "@/components/ui/designScale";
 import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
 import { FRESH_DECLUTTER_LIMIT, type FreshItem } from "./FreshDeclutterSection";
 
@@ -73,8 +73,10 @@ function FreshCard({ it }: { it: FreshItem }) {
         <span data-card-price="" className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-1.5 leading-tight">
           {it.current_price_cents > 0 ? (
             <>
-              <PriceInclFee priceCents={it.current_price_cents} className="text-ds-16 font-bold tabular-nums text-foreground" wordsClassName="text-ds-11 font-semibold text-primary" />
-              <span data-card-base-price="" className={`text-ds-11 ${PRICE_BASE}`}>
+              {/* F007 (owner's UI audit 11-09): the "incl. fee" words and the base price were 11px light text; 12px in
+                  the landing's body ink (--lp-body, #4F4C45 / #D6D2C8 dark) reads at arm's length. */}
+              <PriceInclFee priceCents={it.current_price_cents} className="text-ds-16 font-bold tabular-nums text-foreground" wordsClassName="text-ds-12 font-semibold text-primary" />
+              <span data-card-base-price="" className="text-ds-12 font-medium tabular-nums" style={{ color: "var(--lp-body)" }}>
                 {itemPriceLabel(it.current_price_cents)}
                 {it.current_price_cents < it.price_cents && (
                   <span className="ml-1">

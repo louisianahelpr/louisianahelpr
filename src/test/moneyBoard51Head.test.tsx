@@ -8,7 +8,7 @@
  * @mutate src/components/profile/EarningsTab.tsx |         placement="money" |         placement="side"
  * @mutate src/components/profile/EarningsTab.tsx |           if (kind === "held") setView("spent"); |           if (kind === "held") setView("earned");
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |           onClick={() => (onOpen ? onOpen("held") : navigate("/profile?tab=earnings&view=spent"))} |           onClick={() => navigate("/profile?tab=earnings&view=spent")}
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   const span = money.coming && money.held ? "" : placement === "side" ? "" : "col-span-2"; |   const span = money.coming && money.held ? "" : placement === "main" ? "col-span-2" : "";
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   const span = money.coming && money.held ? "" : "col-span-2"; |   const span = money.coming && money.held ? "" : placement === "side" ? "" : "col-span-2";
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -57,8 +57,12 @@ describe("You › Money opens on board 51's two tiles", () => {
     expect((document.querySelector('[data-money-tile="held"]') as HTMLElement).className).toContain("col-span-2");
   });
 
-  it("Home's desktop column keeps a lone tile at half width", () => {
+  it("Home's desktop column gives a lone tile the whole row, two tiles share it (F082, owner UI audit 11-09)", () => {
     render(<MemoryRouter><HomeMoneyTiles money={{ coming: null, held: { cents: 4000, jobs: 1, only: null } }} placement="side" /></MemoryRouter>);
+    expect((document.querySelector('[data-money-tile="held"]') as HTMLElement).className).toContain("col-span-2");
+    cleanup();
+    render(<MemoryRouter><HomeMoneyTiles money={{ coming: COMING, held: { cents: 4000, jobs: 1, only: null } }} placement="side" /></MemoryRouter>);
     expect((document.querySelector('[data-money-tile="held"]') as HTMLElement).className).not.toContain("col-span-2");
+    expect((document.querySelector('[data-money-tile="coming"]') as HTMLElement).className).not.toContain("col-span-2");
   });
 });

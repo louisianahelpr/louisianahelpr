@@ -73,9 +73,9 @@ export function HomeMoneyTiles({
     );
   }
   if (!money.coming && !money.held) return null;
-  // A lone tile on the phone takes the row (half a row of empty ground reads as a missing tile);
-  // in the desktop column it keeps its half so it lines up with the section tiles under it.
-  const span = money.coming && money.held ? "" : placement === "side" ? "" : "col-span-2";
+  // A lone tile takes the row everywhere (half a row of empty ground reads as a missing tile). F082 (owner UI audit
+  // 11-09): the desktop column used to keep it at half width, a small card alone with a gap beside it.
+  const span = money.coming && money.held ? "" : "col-span-2";
   const where = placement === "main" ? "xl:hidden" : placement === "side" ? "hidden xl:grid xl:mb-2" : "";
   return (
     <div

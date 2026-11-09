@@ -207,7 +207,7 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null }: { p: Publ
         {team ? (
           <p className="mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-semibold" data-testid="pp-team"
             style={{ color: "hsl(var(--bark))", backgroundColor: "hsl(var(--bark) / 0.1)" }}>
-            <BadgeCheck className="h-3.5 w-3.5" aria-hidden />Helpr team
+            <BadgeCheck className="h-3.5 w-3.5" aria-hidden />Louisiana Helpr team
           </p>
         ) : (
           <p className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-foreground" data-testid="pp-trust">

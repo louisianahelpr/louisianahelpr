@@ -2163,7 +2163,7 @@ serve(async (req) => {
         await insertNotifications(supabaseAdmin, {
           user_id: job.customer_id,
           title: "Helpr marked the job complete",
-          message: `The helpr marked "${job.title}" as complete. Please confirm completion to release payment.`,
+          message: `The Helpr marked "${job.title}" as complete. Please confirm completion to release payment.`,
           type: "info", link: `/posts?job=${job.id}`,
         });
       }
@@ -2338,7 +2338,7 @@ serve(async (req) => {
       await insertNotifications(supabaseAdmin, {
         user_id: job.customer_id,
         title: "Revision completed — review needed",
-        message: `The helpr has fixed the revision for "${job.title}". You have 72 hours to approve it or open a dispute. If we don't hear from you by then, Helpr support will reach out. Your payment stays held until it's approved.`,
+        message: `The Helpr has fixed the revision for "${job.title}". You have 72 hours to approve it or open a dispute. If we don't hear from you by then, Helpr support will reach out. Your payment stays held until it's approved.`,
         type: "warning", link: `/posts?job=${job.id}`,
       });
 
@@ -4157,7 +4157,7 @@ serve(async (req) => {
       await insertNotifications(supabaseAdmin, {
         user_id: job.customer_id,
         title: "Dispute resolved",
-        message: `The dispute on "${job.title}" has been resolved. Payment was released to the helpr.`,
+        message: `The dispute on "${job.title}" has been resolved. Payment was released to the Helpr.`,
         type: "info", link: `/posts?job=${job.id}`,
       });
 

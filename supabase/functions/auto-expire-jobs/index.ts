@@ -197,7 +197,7 @@ serve(async (req) => {
       const { error: notifyErr } = await supabase.from("notifications").insert({
         user_id: job.customer_id,
         title: "Job re-opened",
-        message: `"${job.title}" was automatically re-opened because the helpr didn't confirm they were still on by the deadline.`,
+        message: `"${job.title}" was automatically re-opened because the Helpr didn't confirm they were still on by the deadline.`,
         // A change of status on the poster's own job — `job_updates`, the
         // category this event belongs to. `warning` routed it through
         // `system_alerts`, so muting platform alerts muted it.

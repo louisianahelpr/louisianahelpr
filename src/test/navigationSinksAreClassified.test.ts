@@ -129,6 +129,7 @@ const CLASSIFIED: Record<string, string> = {
   "lib/openSignedDocument.ts::url": STORAGE_SIGNED + " (Q295: deps.sign() is SignedOpenLink's createSignedUrl behind isStorageObjectPath; null closes the tab)",
   "components/profile/CredentialsTab.tsx::safe": "const safe = openableDocumentUrl(path) above (safeDocumentUrl output, or a blob: of its data: image)",
   "components/profile/CredentialsTab.tsx::signed.signedUrl": STORAGE_SIGNED,
+  "components/admin/StalledMissedReturn.tsx::data.signedUrl": STORAGE_SIGNED + " (the missed-return report's photo: proof-photos createSignedUrl(path, 300); an error or no URL toasts and opens nothing)",
   "components/messages/MessageBubble.tsx::url": "isSafeHttpsUrl(url) (new URL(url).protocol === 'https:') returns inert text first",
   // --- app-built URLs, no stored value in the scheme position ---
   "components/job-card/JobCardMetaRow.tsx::mapHref": MAPS,

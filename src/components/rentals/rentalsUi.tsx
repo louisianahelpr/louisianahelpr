@@ -35,14 +35,15 @@ export const HOMES_OPENS_SOON_BODY = "Homes opens here soon. Until then, hire he
 /**
  * The phone dock lists Homes before it opens (owner, nav redesign 2026-11-06 11:35 AM: no "Soon" on the tab,
  * "the screen says it is coming"), so /rentals with the switch off is its section frame holding "Opens soon" in the
- * shared Browse empty state (the Shops Q2005 screen), never the bare 404.
+ * shared Browse empty state (the Shops Q2005 screen), never the bare 404. It says "Coming soon", the word the menu, the
+ * Create sheet and Settings use (owner's UI audit 11-09, F139; it said "Opens soon").
  */
 function HomesOpensSoon() {
   return (
     <SectionScreen section="homes" title="Homes" globalSearch={false} search={null}>
       <BrowseEmptyState
         icon={KeyRound}
-        title="Opens soon"
+        title="Coming soon"
         body={HOMES_OPENS_SOON_BODY}
         action={
           <Button asChild variant="outline" size="sm">

@@ -15,6 +15,8 @@
  * @mutate src/pages/home/homeDashboard/homeTopSettled.ts |   return firstSettled && (!needPoster \|\| posterSettled); |   return firstSettled;
  * @mutate src/pages/home/homeDashboard/homeTopSettled.ts |   if (!userId \|\| timedOut) return true; |   if (!userId) return true;
  * @mutate src/pages/home/HomeDashboard.tsx |         {topSettled && <div data-home-columns | {<div data-home-columns
+ * @mutate src/pages/home/HomeDashboard.tsx |             {holdBelowNextUp && <HeldBlocksSkeleton />} |
+ * @mutate src/pages/home/homeDashboard/homeTopSettled.ts | export const HOME_BELOW_NEXT_UP_MAX_WAIT_MS = 10_000; | export const HOME_BELOW_NEXT_UP_MAX_WAIT_MS = 4000;
  * @mutate src/pages/home/homeDashboard/homeTopSettled.ts |   if (!pending \|\| timedOut) released.current = true; |   if (timedOut) released.current = true;
  * @mutate src/pages/home/homeDashboard/homeTopSettled.ts |   if (!pending \|\| timedOut) released.current = true; |   if (!pending) released.current = true;
  * @mutate src/pages/home/homeDashboard/homeTopSettled.ts |   return !released.current; |   return pending && !timedOut;
@@ -47,7 +49,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-const { useHomeTopSettled, useHoldWhileFirstVisitReads, HOME_TOP_MAX_WAIT_MS } = await import("@/pages/home/homeDashboard/homeTopSettled");
+const { useHomeTopSettled, useHoldWhileFirstVisitReads, HOME_TOP_MAX_WAIT_MS, HOME_BELOW_NEXT_UP_MAX_WAIT_MS } = await import("@/pages/home/homeDashboard/homeTopSettled");
 
 const code = (rel: string) => blankComments(readFileSync(resolve(__dirname, "../..", rel), "utf8"));
 
@@ -110,14 +112,22 @@ describe("Home's columns wait for the first-week cards' reads (Q2706/Q2708)", ()
     expect(result.current).toBe(false);
     const hung = renderHook(() => useHoldWhileFirstVisitReads(true), { wrapper });
     expect(hung.result.current).toBe(true);
+    // F204 (owner 11-09): still held past the 4 s top cap (Slow 4G's activity reads answer at ~8.2 s, and Live now
+    // arrives with them), released by its own 10 s cap.
     await act(async () => { vi.advanceTimersByTime(HOME_TOP_MAX_WAIT_MS + 1); });
+    expect(hung.result.current).toBe(true);
+    await act(async () => { vi.advanceTimersByTime(HOME_BELOW_NEXT_UP_MAX_WAIT_MS - HOME_TOP_MAX_WAIT_MS); });
     expect(hung.result.current).toBe(false);
+    expect(HOME_BELOW_NEXT_UP_MAX_WAIT_MS).toBeGreaterThan(8500);
   });
 
   it("Home holds the money strip, Coming up and Your sections (not Next up) on a first visit", () => {
     const home = code("src/pages/home/HomeDashboard.tsx");
     expect(home).toContain("!readReservedHeight(`next-up:${user.id}`)");
     expect(home).toContain("const holdBelowNextUp = useHoldWhileFirstVisitReads(firstVisit && (summary.todosLoading || !!money.pending));");
+    // F204 (lead 11-09): the held place shows bones, never blank ground, in both columns.
+    expect(home).toContain("{holdBelowNextUp && <HeldBlocksSkeleton />}");
+    expect(home).toContain("{holdBelowNextUp && <HeldBlocksSkeleton side />}");
     const nextUp = home.indexOf('data-testid="next-up"');
     const held = home.indexOf("{!holdBelowNextUp && <>");
     const money = home.indexOf('<HomeMoneyTiles money={money} placement="main" />');

@@ -526,7 +526,7 @@ describe("the photo-first Declutter item page", () => {
       await waitFor(() => expect(document.body.querySelector("[data-declutter-askbar]")).not.toBeNull());
       await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
       // F062: the rows under the item watch for themselves too (ROWS_NEAR_MARGIN); this is the action bar's observer.
-      expect(seen.filter((o) => o.rootMargin !== ROWS_NEAR_MARGIN).at(-1)?.rootMargin).toBe("0px 0px -64px 0px");
+      expect(seen.filter((o) => o.rootMargin !== ROWS_NEAR_MARGIN).slice(-1)[0]?.rootMargin).toBe("0px 0px -64px 0px");
     } finally {
       dock.remove();
     }

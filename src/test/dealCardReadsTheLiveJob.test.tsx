@@ -131,7 +131,7 @@ function workingLine(job: Row, trackingStatus: string | null): string {
 function dealLine(): string {
   const card = screen.getByTestId("deal-card");
   const aria = card.querySelector("[aria-label^='Job progress']")?.getAttribute("aria-label") ?? "";
-  const word = /step \d of 8: ([^,]+),/.exec(aria)?.[1] ?? aria;
+  const word = /step \d of 6: ([^,]+),/.exec(aria)?.[1] ?? aria;
   const next = card.querySelector("[data-next-step]")?.textContent ?? card.querySelector("[data-job-progress-next]")?.textContent ?? "";
   return `${word}|${next}`;
 }

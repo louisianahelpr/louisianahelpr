@@ -41,7 +41,7 @@ export function useContinueDayActions({
   posterExtras: RowAction[];
   helprLead: RowAction | null;
   helprExtras: RowAction[];
-  /** "Not finished? Set a day" (both sides): a visible text button under the row (null: none). */
+  /** "Not finished? Set a day" (both sides): in the bar's "..." menu (owner pick 11-08, JP2; null: none). */
   setDay: RowAction | null;
   sheet: React.ReactNode;
   /** Owner #4 (11-08): the "Didn't come back" / "Can't come back" sheet (null: none). */
@@ -120,8 +120,8 @@ export function useContinueDayActions({
       // Auditor 11 (11-01): the pair once a day is set is [Change day | Message], never "SOS | Message".
       posterExtras.push({ key: "continue-change", label: "Change day", go: open });
     } else if (offerSetDay) {
-      // A VISIBLE text button under the row, never in More options (lead 11-01: on the Approve stage this is Yusef's case).
-      setDay = { key: "continue-set", label: row ? "Set a different day" : CONTINUE_DAY_LABEL, go: open };
+      // In the "..." menu (owner pick 11-08, JP2: every action past one primary and one secondary; it was a text link).
+      setDay = { key: "continue-set", label: row ? "Set a different day" : CONTINUE_DAY_LABEL, go: open, inMenu: true };
     }
   } else {
     // Q2606 (owner): the poster's new day is the Helpr's to accept or decline (answer_job_continue_day, 20261102102402).
@@ -134,14 +134,15 @@ export function useContinueDayActions({
     }
     // Q2593: one name on both sides, the owner's "Not finished? Set a day" (it was "Need another day" here).
     // Q2678 (audit 1102e row 14): never once the Helpr marked it done; one tap would clear their own Done (they can Message).
-    if (offerSetDay && !job.helper_completed_at) setDay = { key: "continue-ask", label: row ? "Ask for a different day" : CONTINUE_DAY_LABEL, go: open };
+    if (offerSetDay && !job.helper_completed_at) setDay = { key: "continue-ask", label: row ? "Ask for a different day" : CONTINUE_DAY_LABEL, go: open, inMenu: true };
   }
 
   // Owner #4 (11-08): the agreed day passed (start + 6 h) without "Mark done": the poster's "Didn't come back", the
   // Helpr's "Can't come back". In the row's extras, so they sit in More options beside Change day / Message.
   if (continueDayMissedOpen(row, job.helper_completed_at)) {
     const extras = side === "poster" ? posterExtras : helprExtras;
-    extras.push({ key: "continue-missed", label: side === "poster" ? MISSED_LABEL_POSTER : MISSED_LABEL_HELPR, go: () => setMissedOpen(true) });
+    // Always in the "..." menu (owner pick 11-08, JP2), never the bar's one secondary.
+    extras.push({ key: "continue-missed", label: side === "poster" ? MISSED_LABEL_POSTER : MISSED_LABEL_HELPR, go: () => setMissedOpen(true), inMenu: true });
   }
 
   // Q2679 (audit 1102e row 16): the sheet carries the name of the button that opened it.

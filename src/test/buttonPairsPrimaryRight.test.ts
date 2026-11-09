@@ -5,7 +5,7 @@
  * none that may wrap (Button's base class is whitespace-nowrap; size "wrap" or whitespace-normal would break it).
  *
  * @mutate src/components/admin/settings/CategorySuggestionsCard.tsx | <Button variant="outline" onClick={() => decide.mutate(false)} disabled={decide.isPending}>Decline</Button>\n        <Button onClick={() => decide.mutate(true)} | <Button onClick={() => decide.mutate(false)} disabled={decide.isPending}>Decline</Button>\n        <Button variant="outline" onClick={() => decide.mutate(true)}
- * @mutate src/components/jobs/InstantBookingCard.tsx |           <Button variant="outline" className="flex-1 rounded-full" disabled={busy !== null} onClick={() => setConfirmDecline(true)}> |           <Button variant="outline" size="wrap" className="flex-1 rounded-full" disabled={busy !== null} onClick={() => setConfirmDecline(true)}>
+ * @mutate src/components/jobs/InstantBookingCard.tsx |             <Button variant="outline" size={sticky ? "md" : "default"} className="flex-1 rounded-full" disabled={busy !== null} onClick={() => setConfirmDecline(true)}> |             <Button variant="outline" size="wrap" className="flex-1 rounded-full" disabled={busy !== null} onClick={() => setConfirmDecline(true)}>
  * @mutate src/test/helpers/buttonPairs.ts | export const isPrimary = (s: ButtonPairSide) => s.variant === "primary" \|\| s.variant === "default"; | export const isPrimary = (s: ButtonPairSide) => s.variant === "primary";
  */
 import { readFileSync } from "node:fs";

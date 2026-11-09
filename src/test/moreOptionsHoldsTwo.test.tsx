@@ -6,8 +6,8 @@
  * counted. The cards' own More is walked over every stage fixture in src/components/job-card/jobStepOneRow.test.tsx
  * (counted from what the opened menu draws).
  *
- * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |   const second = others === 0 |   const second = others === -1
- * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |     : others === 1 |     : others === -1
+ * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |   const secondAction = loneCard \|\| others === 2 ? null |   const secondAction = loneCard ? null
+ * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |   const loneCard = others === 1 && extras.length === 0 && !menuOnly; |   const loneCard = others === -1 && extras.length === 0 && !menuOnly;
  * @mutate src/pages/user/ReviewsSection.tsx |                   Report\n                </Button> |                   <MoreHorizontal aria-hidden />\n                </Button>
  *
  * The same rule off the job screens: a public review's ⋯ held ONE action (Report this review), so it is a visible

@@ -6,15 +6,17 @@
  * 2026-10-21 "ONE job tracker everywhere"), plus the step buttons under it. Its inventory, read from that commit's
  * parent, and where each item lives now (the table is also in ~/.lh-wt/card-polish-critique.md):
  *   steps   Posted · Offered · Accepted · Confirmed · On the way · Arrived · Working · Done
- *           -> the same eight in JOB_PROGRESS_STEPS; Accepted is named "Hired" (owner's 8-step list, 2026-10-22)
+ *           -> the same eight in JOB_PROGRESS_STEPS; Accepted is named "Hired" (owner's 8-step list, 2026-10-22).
+ *           The bar DRAWS six of them, Hired … Done (owner pick 11-08, design audit A JP3: Posted and Offered belong
+ *           to the applicants view); the state still knows all eight.
  *   icons   FileText · Clock · CheckCircle2 · CalendarCheck · Truck · MapPin · Wrench · PartyPopper
  *           -> JOB_STEP_ICONS, drawn over each step on the full tracker
  *   time    tap/hover on a done step showed when it happened (useStepTooltip; a click never hides what a hover
  *           showed) -> the full tracker's done steps, the same stamps
  *   colour  one AMBER "you are here" step; red ONLY on the step a dispute stopped the job at; all green at Done
  *           -> the current step amber (owner 2026-10-23: the old rule wins), a hand / an hourglass for whose move;
- *           EXCEPT On the way / Arrived / Working (owner 2026-10-31: white until that step begins, bright yellow
- *           while it happens; JobProgressState.begun, guard src/test/trackerStepWhiteUntilBegun.test.tsx);
+ *           on EVERY step (owner pick 11-08, "one current colour": the 10-31 white/yellow On the way / Arrived /
+ *           Working is gone; guard src/test/trackerOneCurrentColour.test.tsx);
  *           Dispute red (bg-destructive); stage 8 all done
  *   pulse   the current step pulsed until Done (never on a dispute or a finished job) -> step-current-pulse on the
  *           current step's bar (a span, never a control: finishedJobDoesNotPulse)
@@ -27,13 +29,13 @@
  * @mutate src/components/tracker/JobProgress.tsx |         const tipText = !detailed ? null : ts ? stampText(ts) : i === stage && why ? why : null; |         const tipText = null;
  * @mutate src/components/tracker/JobProgress.tsx |   them: "bg-[hsl(var(--amber-solid))]", |   them: "bg-primary",
  * @mutate src/hooks/useStepTooltip.ts |       if (hoverOpened.current === key) { |       if (false) {
- * @mutate src/components/tracker/JobProgress.tsx |   const pulses = detailed && tone === "progress" && stage < JOB_PROGRESS_STEPS.length && phase !== "waiting"; |   const pulses = false;
+ * @mutate src/components/tracker/JobProgress.tsx |   const pulses = detailed && tone === "progress" && stage < JOB_PROGRESS_STEPS.length; |   const pulses = false;
  * @mutate src/components/tracker/JobProgress.tsx |   const current: StepState = tone === "problem" ? (label === "Dispute" ? "alarm" : "problem") : waitingOnYou ? "you" : "them"; |   const current: StepState = tone === "problem" ? "problem" : waitingOnYou ? "you" : "them";
  * @mutate src/components/tracker/jobStepFromWait.ts |   if (job.date_needed && !(job.helper_dayof_confirmed_at && job.poster_confirmed_at)) return at(3); |   if (job.date_needed && !job.helper_dayof_confirmed_at) return at(3);
  * @mutate src/components/job-card/trackerSteps.ts |   { key: "arrived", label: "Arrived", action: "I've arrived", icon: MapPin, color: "text-primary" }, |   { key: "arrived", label: "Arrived", action: null, icon: MapPin, color: "text-primary" },
  * Q1816 (WCAG 2.5.3, lead 11-04): a step tip's name reads the whole step name ("Arrived: what this step is waiting
  * on"), never the drawn "Arr., Ar-rived"; the drawn words are aria-hidden and the button carries no aria-label.
- * @mutate src/components/tracker/JobProgress.tsx | const named = problemWord ? `${problemWord}, ${full}` : full; | const named = problemWord ? `${problemWord}, ${full}` : `${JOB_PROGRESS_SHORT[i]}, ${JOB_PROGRESS_DRAWN[i]}`;
+ * @mutate src/components/tracker/JobProgress.tsx | const named = problemWord ? `${problemWord}, ${full}` : full; | const named = problemWord ? `${problemWord}, ${full}` : `${JOB_PROGRESS_DRAWN[i]}`;
  * @mutate src/components/tracker/JobProgress.tsx | <span aria-hidden="true" className="block">{body}</span> | <span className="block">{body}</span>
  * @mutate src/components/tracker/JobProgress.tsx | <span className="sr-only">{ts ? `${named} — ${tipText}` : `${named}: what this step is waiting on`}</span> | <span className="sr-only" aria-label={named}>{ts ? `${named} — ${tipText}` : `${named}: what this step is waiting on`}</span>
  */
@@ -89,7 +91,8 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
     const BY_NAME: Record<string, unknown> = { FileText, Clock, CheckCircle2, CalendarCheck, Truck, MapPin, Wrench, PartyPopper };
     expect(oldRail().map((s) => BY_NAME[s.icon])).toEqual([...JOB_STEP_ICONS]);
     const { container } = render(<JobProgress progress={live({})} />);
-    expect(container.querySelectorAll("[data-step-icon] svg").length).toBe(8);
+    // Six drawn steps (Hired … Done), each with its own old icon (owner pick 11-08).
+    expect(container.querySelectorAll("[data-step-icon] svg").length).toBe(6);
     // The collapsed card's bar stays compact: no icons there.
     cleanup();
     const card = render(<JobProgress barOnly progress={live({})} />);
@@ -112,7 +115,7 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
     expect(container.querySelector("[role='tooltip']")).toBeTruthy();
     fireEvent.click(hired);
     expect(container.querySelector("[role='tooltip']")).toBeNull();
-    // A step with no stamp (Offered) is not a control.
+    // A step with no stamp (Confirmed here) is not a control; Posted and Offered are not drawn at all.
     expect(container.querySelector('[data-step-tip="1"]')).toBeNull();
   });
 
@@ -130,7 +133,7 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
       // axe only compares a name it was GIVEN (aria-label) with the text; the name comes from the hidden line.
       expect(tip.hasAttribute("aria-label")).toBe(false);
       // The words the step draws (both widths) are hidden from the name; the full word they spell IS in it.
-      for (const cls of ["job-step-short", "job-step-full"]) {
+      for (const cls of ["job-step-full"]) {
         const el = tip.querySelector(`.${cls}`) as HTMLElement;
         expect(el.closest('[aria-hidden="true"]'), cls).toBeTruthy();
       }
@@ -158,11 +161,11 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
     expect(pulsing(live({ stage: 7, tone: "problem", label: "Dispute" }))).toBe(0);
   });
 
-  // Way / Arr. / Work with a known `begun` are white or yellow instead (owner 2026-10-31): trackerStepWhiteUntilBegun.
+  // ONE current colour on every step, begun or not (owner pick 11-08): trackerOneCurrentColour.
   it("the current step is AMBER, whoever's move it is (the old rail's rule; owner 2026-10-23)", () => {
-    for (const waitingOnYou of [true, false]) {
-      const { container } = render(<JobProgress progress={live({ waitingOnYou })} />);
-      expect(container.querySelectorAll("[data-step-state]")[5].querySelector("[data-step-seg]")?.className).toContain("bg-[hsl(var(--amber-solid))]");
+    for (const waitingOnYou of [true, false]) for (const begun of [true, false, undefined]) {
+      const { container } = render(<JobProgress progress={live({ waitingOnYou, begun })} />);
+      expect(container.querySelector('[data-step-state="you"],[data-step-state="them"]')?.querySelector("[data-step-seg]")?.className).toContain("bg-[hsl(var(--amber-solid))]");
       cleanup();
     }
   });
@@ -170,8 +173,8 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
   it("red only on the step a dispute stopped the job at; all green at Done", () => {
     const { container } = render(<JobProgress progress={live({ stage: 6, tone: "problem", label: "Dispute" })} />);
     const steps = [...container.querySelectorAll("[data-step-state]")];
-    expect(steps.map((s) => s.getAttribute("data-step-state"))).toEqual(["done", "done", "done", "done", "done", "done", "alarm", "todo"]);
-    expect(steps[6].querySelector("[data-step-seg]")?.className).toContain("bg-destructive");
+    expect(steps.map((s) => s.getAttribute("data-step-state"))).toEqual(["done", "done", "done", "done", "alarm", "todo"]);
+    expect(steps[4].querySelector("[data-step-seg]")?.className).toContain("bg-destructive");
     expect(container.querySelectorAll(".bg-destructive").length).toBe(1);
     cleanup();
     const done = render(<JobProgress progress={live({ stage: 8 })} />);

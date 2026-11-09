@@ -838,10 +838,25 @@ describe("the strip reads without colour, announces as one sentence, and is not 
       const strip = renderStrip(id);
       seen.add(strip.dataset.jobStatusTone!);
       expect(strip.querySelector("svg"), `${id} draws no icon`).not.toBeNull();
-      expect(strip.textContent?.trim().length, `${id} renders no words`).toBeGreaterThan(8);
+      // At least one word: "Done" alone is the shortest since F106 dropped its repeated spoken eyebrow ("Done — Done").
+      expect(strip.textContent?.trim().length, `${id} renders no words`).toBeGreaterThanOrEqual(4);
     }
     // More than one tone is actually in play, so "every tone" is not one tone.
     expect(seen.size, `only ${seen.size} tone(s) across the whole poster table`).toBeGreaterThanOrEqual(4);
+  });
+
+  // F106 (owner UI audit 11-09): Done cards read "Done — Done". A line that opens with its own eyebrow says it once.
+  // @mutate src/components/job-card/JobStatusStrip.tsx |  && !saysEyebrow(line) && <span className="sr-only"> |  && <span className="sr-only">
+  it("a Done card says Done once: no spoken eyebrow in front of a line that starts with it (F106)", () => {
+    for (const id of ["done_marked", "done_paid", "done_payout_pending"] as const) {
+      const strip = renderStrip(id as PosterWait);
+      const text = (strip.textContent ?? "").replace(/\s+/g, " ").trim();
+      expect(text, id).toMatch(/^Done\b/);
+      expect(text, id).not.toMatch(/Done\s*—\s*Done/);
+      expect((text.match(/\bDone\b/g) ?? []).length, id).toBe(1);
+    }
+    // A line that does not open with its eyebrow still speaks it (Needs You — Confirm they arrived).
+    expect(renderStrip("confirm_arrival").textContent).toContain("Needs You");
   });
 
   it("it announces as ONE sentence, with no duplicated sr-only copy", () => {

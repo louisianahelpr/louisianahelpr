@@ -109,6 +109,13 @@ const LINE_INK: Record<JobStatusTone, string> = {
   over: "--muted-foreground",
 };
 
+/** The line's own words already open with its eyebrow ("Done" under Done): speaking both would say it twice. */
+function saysEyebrow(line: JobStatusLine): boolean {
+  const e = line.eyebrow.trim().toLowerCase();
+  const d = line.detail.trim().toLowerCase();
+  return !!e && (d === e || d.startsWith(`${e} `) || d.startsWith(`${e}·`));
+}
+
 export function JobStatusStrip({
   line,
   extraClocks,
@@ -182,7 +189,9 @@ export function JobStatusStrip({
       */}
       {/* A DISPUTE SAYS SO on the card's face (owner, 2026-10-23, card critique item 15): "Dispute open ·
           Payment on hold". Its eyebrow IS the reason, the exception to the rule above. */}
-      {!(variant === "line" && line.tone === "alarm") && <span className="sr-only">{line.eyebrow} — </span>}
+      {/* F106 (owner UI audit 11-09: Done cards read "Done — Done"): the spoken eyebrow is left out when the line
+          already starts with it ("Done", "Done · paid and closed"), so the status is said once. */}
+      {!(variant === "line" && line.tone === "alarm") && !saysEyebrow(line) && <span className="sr-only">{line.eyebrow} — </span>}
       <span className={variant === "line" ? "font-sans text-ds-13 font-semibold" : "font-sans text-ds-11"} style={{ color: `hsl(var(${ink}))` }}>
         {variant === "line" && line.tone === "alarm" ? `${line.eyebrow} · ${line.detail}` : line.detail}
       </span>

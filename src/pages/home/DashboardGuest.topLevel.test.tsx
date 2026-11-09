@@ -1,5 +1,5 @@
 /**
- * F019 (owner UI audit 11-09, /browse at 1440 with no jobs: "Empty jobs page has a back arrow on a top-level page and
+ * F019 (owner UI audit 2026-11-09, /browse at 1440 with no jobs: "Empty jobs page has a back arrow on a top-level page and
  * no link to Declutter, so a guest who finds no jobs hits a dead end"): guest /browse draws no back arrow (it is a
  * top-level page), and its no-jobs state offers "Browse Declutter while you wait". The HTML shell and the skeleton
  * draw the same header (no arrow) and the same empty state, so nothing moves at the handoff (browseShellEmptyState,

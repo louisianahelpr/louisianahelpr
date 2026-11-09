@@ -19,7 +19,7 @@
 import * as React from 'npm:react@18.3.1'
 import { Heading, Text } from 'npm:@react-email/components@0.0.22'
 import { brand, h1, subtext, text as textStyle } from './styles.ts'
-import { BaseLayout, BrandButton } from './components.tsx'
+import { BaseLayout, BrandButton, TransactionalFooter } from './components.tsx'
 
 type AccountStatus = 'verified'
 
@@ -62,6 +62,8 @@ export const AccountStatusEmail = ({
     <BaseLayout
       preheader={copy.preheader}
       trailing={<img src={pixelUrl} width="1" height="1" style={{ display: 'none' }} alt="" />}
+      /* The one branded email that had no footer, so no postal address either (UI audit 11-09, F167). */
+      footer={<TransactionalFooter>Questions? Reply to this email and a real person on our team will answer.</TransactionalFooter>}
     >
       <Heading className="e-h1" style={h1}>
         {copy.heading}

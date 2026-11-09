@@ -180,12 +180,20 @@ export const BrandButton = ({
 
 /**
  * Footer for TRANSACTIONAL mail — a password reset, an account decision, a
- * security notice. No unsubscribe (you cannot opt out of these) and no postal
- * address requirement.
+ * security notice. No unsubscribe (you cannot opt out of these). CAN-SPAM does
+ * not ask these for a postal address, but they carry it too (lead 11-09, F167:
+ * one footer line on every email).
  */
 export const TransactionalFooter = ({ children }: { children: React.ReactNode }) => (
   <Text className="e-footer" style={footerStyle}>
     {children}
+    {/* The sender's postal address on every branded email, not only the commercial ones (lead 11-09, F167). */}
+    {POSTAL_ADDRESS ? (
+      <>
+        <br />
+        {POSTAL_ADDRESS}
+      </>
+    ) : null}
   </Text>
 )
 
@@ -205,11 +213,10 @@ export const TransactionalFooter = ({ children }: { children: React.ReactNode })
  *    secret is configured. Every real sender passes the URL.
  *
  * 2. THE POSTAL ADDRESS (§7704(a)(5)). `POSTAL_ADDRESS` is the single shared
- *    constant in `_shared/resend.ts` and is EMPTY today, so the block below
- *    renders nothing rather than printing a placeholder. Set the address in
- *    that one place and it appears here, in every commercial template, with
- *    no other edit. The full note on what counts as a valid address is at the
- *    top of `_shared/resend.ts`.
+ *    constant in `_shared/resend.ts`: "Louisiana Helpr · 314 Lynn Street,
+ *    Delcambre, LA 70528" since 2026-11-09 (UI audit F167, HIGH). It renders on
+ *    its own line under the unsubscribe link. The full note on what counts as a
+ *    valid address is at the top of `_shared/resend.ts`.
  */
 export const MarketingFooter = ({
   reasonLine,

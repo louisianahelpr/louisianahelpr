@@ -81,28 +81,25 @@ import { isTestAddress, TestRecipientRefusedError } from './testRecipient.ts'
  *
  *     supabase secrets set HELPR_POSTAL_ADDRESS="Louisiana Helpr, 123 Example St, New Orleans, LA 70112"
  *
- * ── WHAT HAPPENS WHILE IT IS EMPTY (TODAY'S STATE) ──────────────────────
- * It renders as NOTHING. `MarketingFooter` omits the address block entirely
- * when this is blank, so no false or placeholder address is ever printed —
- * the message simply ships without the line the statute wants.
- *
- * That is a KNOWN, ACCEPTED GAP, not an oversight: the owner decided on
- * 2026-08-31 to restore commercial email with the address requirement still
- * unmet, having been told what the statute requires. The opt-out half of the
- * obligation IS implemented and working. Do not add a UI warning about this,
- * and do not re-litigate it — just fill in the line above when the address
- * exists.
+ * ── IF IT WERE EVER EMPTY ───────────────────────────────────────────────
+ * It renders as NOTHING. The footers omit the address block entirely when
+ * this is blank, so no false or placeholder address is ever printed. From
+ * 2026-08-31 to 2026-11-09 it was empty (owner's accepted gap); the owner's
+ * address arrived with UI audit F167 and is set below.
  * ═════════════════════════════════════════════════════════════════════════
  */
-const POSTAL_ADDRESS_LITERAL = "";
+// Owner 11-09 (UI audit F167, via the lead): the business's street address in Delcambre.
+const POSTAL_ADDRESS_LITERAL = "Louisiana Helpr · 314 Lynn Street, Delcambre, LA 70528";
 
 /**
  * The one postal address for every commercial footer in the product.
  *
- * Consumed by exactly one place — `MarketingFooter` in
- * `email-templates/components.tsx` — which every commercial template
- * (`drip.tsx`, `marketing-blast.tsx`, `lifecycle.tsx`) renders. To change it,
- * edit `POSTAL_ADDRESS_LITERAL` above or set `HELPR_POSTAL_ADDRESS`.
+ * Consumed by the two shared footers in `email-templates/components.tsx`:
+ * `MarketingFooter`, which every commercial template (drips, re-engagement,
+ * come-back, marketing blast, sign-up lead reminder) renders, and, since
+ * 2026-11-09 (F167), `TransactionalFooter` too, so every branded email carries
+ * it. To change it, edit `POSTAL_ADDRESS_LITERAL` above or set
+ * `HELPR_POSTAL_ADDRESS`. Guard: src/test/emailFootersCarryPostalAddress.test.ts.
  *
  * Trimmed so a secret set to whitespace behaves like "unset" rather than
  * rendering an empty line under the unsubscribe links.

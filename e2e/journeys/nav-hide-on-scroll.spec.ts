@@ -342,14 +342,13 @@ test(`${scrollName("tab-order", "poster")} · a hidden dock is taken out of the 
 // rows to scroll, so the case has no surface here (see the file header).
 
 /**
- * THE DOCK IS ICONS ONLY, MEASURED (owner, nav redesign 2026-11-06 11:40 AM: "the phone bottom bar is icons only (no
- * words); the names stay as aria-labels"). Replaces the 2026-10-19 one-word-label check. The source half is
- * src/test/dockLabelsOneLine.test.ts; this is the pixel half: the five tabs (Dashboard, Jobs, Declutter, Shops,
- * Homes) each paint an icon and no word, each is named, each is at least 44px wide inside the dock and the viewport,
- * and no two touch.
+ * THE DOCK LABELS, MEASURED (owner UI audit F146/F147, 2026-11-09, replacing the 11-06 icons-only dock): "Home ·
+ * Jobs · Declutter · Messages · You", each tab painting its icon and its name under it on one line. The source half
+ * is src/test/dockLabelsOneLine.test.ts; this is the pixel half: each tab paints an icon and exactly its name, each
+ * is at least 44px wide inside the dock and the viewport, and no two touch.
  */
 for (const width of [320, 375]) {
-  test(`${scrollName(`labels-${width}`, "poster")} · dock icons only: five named tabs, no words, none touching @ ${width}`, as("poster", `labels-${width}`, async (page) => {
+  test(`${scrollName(`labels-${width}`, "poster")} · dock labels: five named tabs, each word under its icon, none touching @ ${width}`, as("poster", `labels-${width}`, async (page) => {
     await boot(page, "/home");
     await page.setViewportSize({ width, height: 700 });
     await page.waitForTimeout(400);
@@ -372,9 +371,9 @@ for (const width of [320, 375]) {
       return { tabs, navLeft: navBox?.left ?? 0, navRight: navBox?.right ?? 0, vw: innerWidth };
     });
     const names = m.tabs.map((t) => t.name.replace(/^\d+\+? /, ""));
-    expect(names, `tabs=${JSON.stringify(names)}`).toEqual(["Dashboard", "Jobs", "Declutter", "Shops", "Homes"]);
+    expect(names, `tabs=${JSON.stringify(names)}`).toEqual(["Home", "Jobs", "Declutter", "Messages", "You"]);
     for (const t of m.tabs) {
-      expect(t.words, `"${t.name}" paints a word under its icon`).toBe("");
+      expect(t.words, `"${t.name}" paints its name under its icon`).toBe(t.name.replace(/^\d+\+? /, ""));
       expect(t.icon, `"${t.name}" has no icon`).toBe(true);
       expect(t.w, `"${t.name}" is narrower than 44px at ${width}`).toBeGreaterThanOrEqual(44);
       expect(t.left, `"${t.name}" leaves the dock on the left`).toBeGreaterThanOrEqual(Math.max(0, m.navLeft) - 0.5);

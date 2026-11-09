@@ -59,23 +59,24 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(skeleton).toContain('<div className="flex min-h-full flex-col gap-4 pt-1 pb-6">');
   });
 
-  it("draws Dashboard's top bar: the same box, the search bar (no crest), then the bell (which holds Messages) and the avatar", () => {
+  it("draws Dashboard's top bar: the same box, the logo (no title), the bell and the avatar, then the search row (F148)", () => {
     expect(classOf(call(skeleton, "div className=\"app-top-bar"))).toBe(classOf(call(bar, "header")));
-    // Design audit A D1 (owner 11-08): the crest left Dashboard's phone bar; the search bar (44px, full) took its place.
-    expect(skeleton).not.toContain("HelprMark");
-    expect(skeleton).toMatch(/app-top-bar[^>]*>\s*<Skeleton className="h-11 min-w-0 flex-1 rounded-full" \/>/);
-    // The right cluster: the bar's slim gap (the Vinted header, owner 11-08), and two 44px controls: the bell (which
-    // holds Messages) and the avatar ("+ Create" floats over the page).
+    // One pattern (owner UI audit F148, 11-09): the bar is the page's title (on Dashboard, which has none, the h-8
+    // emblem), the bell and the avatar; the search is its own 44px row under the bar, 8px above the page.
+    expect(bar).toContain('<HelprMark size="sm" emblemOnly to="/home" />');
+    expect(skeleton).toMatch(/app-top-bar[^>]*>\s*<Skeleton className="h-8 w-8 rounded-ds-md" \/>/);
     expect(home).toContain("<SectionScreen search={<SectionSearchBar");
-    expect(bar).toContain('const slim = search !== undefined;');
-    expect(bar).toContain('className={`flex items-center shrink-0 ${slim ? "gap-0.5" : "gap-1 min-[360px]:gap-1.5"}`}');
-    const cluster = skeleton.slice(skeleton.indexOf('className="flex items-center gap-0.5 shrink-0"'));
+    expect(bar).toContain('{search && <div data-testid="app-top-bar-search" className="pb-2 min-w-0">{search}</div>}');
+    expect(skeleton).toMatch(/<div className="pb-2 min-w-0">\s*<Skeleton className="h-11 w-full rounded-full" \/>\s*<\/div>/);
+    // The right cluster: the bar's gap and two 44px controls, the bell and the avatar ("+ Create" floats over the page).
+    expect(bar).toContain('<div className="flex items-center shrink-0 gap-1">');
+    const cluster = skeleton.slice(skeleton.indexOf('className="flex items-center gap-1 shrink-0"'));
     expect(cluster.length).toBeGreaterThan(100);
     const right = cluster.slice(0, cluster.indexOf("</div>"));
     const boxes = right.match(/<span className="h-1[01] w-1[01]|<Skeleton className="h-11 w-11 shrink-0 rounded-full" \/>/g) ?? [];
     expect(boxes).toEqual(['<span className="h-11 w-11', '<span className="h-11 w-11']);
     expect(bar).toMatch(/NotificationPanel triggerClassName="h-11 w-11/);
-    expect(bar.match(/size="iconCompact"/g)?.length, "Messages, the +, the avatar: 44px iconCompact").toBe(3);
+    expect(bar.match(/size="iconCompact"/g)?.length, "the avatar: 44px iconCompact").toBe(1);
     // A screen with no "My …" menu (Dashboard) names the avatar after the profile, as before.
     // The initials the bare photo shows stay in its name either way (axe label-content-name-mismatch, WCAG 2.5.3).
     expect(bar).toMatch(/variant="ghost"\s+size="iconCompact"\s+(?:\/\/[^\n]*\s+)?aria-label=\{avatarButtonLabel\(mine \? /);
@@ -109,11 +110,11 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
 });
 
 // Proof this is able to fail: each restores a real way the two drift.
-// @mutate src/components/DashboardRouteSkeleton.tsx | <Skeleton className="h-11 min-w-0 flex-1 rounded-full" /> | <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+// @mutate src/components/DashboardRouteSkeleton.tsx | <Skeleton className="h-8 w-8 rounded-ds-md" /> | <Skeleton className="h-11 min-w-0 flex-1 rounded-full" />
 // @mutate src/components/DashboardRouteSkeleton.tsx | data-skeleton-part="next-up"> | data-skeleton-part="stats">
 // @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="h-11 w-36 mt-2 rounded-full" /> |
 // @mutate src/components/DashboardRouteSkeleton.tsx |               <span className="h-11 w-11 flex items-center justify-center">\n                <Skeleton className="h-6 w-6 rounded-full" />\n              </span>\n |
-// @mutate src/components/DashboardRouteSkeleton.tsx |             <div className="flex items-center gap-0.5 shrink-0"> |             <div className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0">
+// @mutate src/components/DashboardRouteSkeleton.tsx |             <div className="flex items-center gap-1 shrink-0"> |             <div className="flex items-center gap-0.5 shrink-0">
 // @mutate src/components/sections/SectionScreen.tsx | ${barSearch ? "px-4" : "px-5"} | ${barSearch !== undefined ? "px-4" : "px-5"}
 // @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="w-9 h-9 rounded-full" />\n              </span> |                 <Skeleton className="w-9 h-9 rounded-full" />\n              </span>\n              <span className="h-10 w-10" />
 // @mutate src/components/DashboardRouteSkeleton.tsx |     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top"> |     <AppShell scrollable={false} className="bg-premium-page pt-safe-top">

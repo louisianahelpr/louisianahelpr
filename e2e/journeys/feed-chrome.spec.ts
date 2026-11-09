@@ -113,14 +113,16 @@ for (const [i, variant] of [
       // owner 2026-10-21: PageTitleBar portals into DesktopTopNav's slot) ---
       const bar = isDesktopWeb ? page.locator("[data-desktop-title-slot]") : page.getByTestId("app-top-bar");
       await expect(bar).toBeVisible();
-      // Phone (nav redesign, owner 2026-11-06): the bar is the visible "Jobs" title, then the bell, Messages, the
-      // round "+" (Post a job) and the photo; the bottom bar switches sections, so the Explore chips row is gone.
+      // Phone (F148, owner audit 2026-11-09: one pattern): the bar is the visible "Jobs" title, then the bell and the
+      // photo; "+ Post a job" is the floating pill and Messages a bottom-bar tab (F146), so the Explore chips row is gone.
       // Desktop keeps the visible "Jobs" title and its soft "+ Post a job" beside the bell (owner 2026-10-28: "add the
       // post a job ... buttons back on the top nav maybe just make it the lighter green").
       await expect(bar.getByRole("heading", { level: 1, name: "Jobs" })).toBeVisible();
       if (!isDesktopWeb) {
         await expect(page.getByTestId("explore-switcher"), `no chips row on a phone @ ${variant.tag}`).toHaveCount(0);
-        await expect(bar.getByTestId("top-bar-create")).toHaveAttribute("aria-label", "Post a job");
+        await expect(page.getByTestId("section-create-fab")).toHaveAttribute("aria-label", "Post a job");
+        await expect(bar.getByTestId("top-bar-messages"), `no Messages on the bar @ ${variant.tag}`).toHaveCount(0);
+        await expect(bar.getByTestId("top-bar-create"), `no + on the bar @ ${variant.tag}`).toHaveCount(0);
       }
       await expect(page.getByTestId("section-add"), `the section + on desktop only @ ${variant.tag}`).toHaveCount(isDesktopWeb ? 1 : 0);
       const anchor = isDesktopWeb ? (await bar.getByRole("heading", { level: 1 }).boundingBox())! : (await bar.getByTestId("top-bar-bell").boundingBox())!;
@@ -139,16 +141,10 @@ for (const [i, variant] of [
         barBottom = Math.max(barBottom, photo.y + photo.height);
       } else {
         const bellBox = (await bar.getByTestId("top-bar-bell").boundingBox())!;
-        const messages = (await bar.getByTestId("top-bar-messages").boundingBox())!;
-        const create = (await bar.getByTestId("top-bar-create").boundingBox())!;
         const profile = (await bar.getByTestId("top-bar-profile").boundingBox())!;
-        // The owner's order (11-06 11:42 AM): the bell, Messages, the +, You.
-        const xs = [bellBox, messages, create, profile].map((b) => b.x);
-        expect(xs, `bell, Messages, +, You left to right @ ${variant.tag}`).toEqual([...xs].sort((a, b) => a - b));
-        expect(create.x + create.width, `the + sits just left of the profile @ ${variant.tag}`).toBeLessThanOrEqual(profile.x + 1);
-        for (const [name, box] of [["messages", messages], ["create", create], ["profile", profile]] as const) {
-          expect(Math.abs(box.y + box.height / 2 - (bellBox.y + bellBox.height / 2)), `${name} shares the bar with the bell`).toBeLessThan(6);
-        }
+        // F148: the bell, then You, at the right end.
+        expect(bellBox.x + bellBox.width, `the bell sits left of You @ ${variant.tag}`).toBeLessThanOrEqual(profile.x + 1);
+        expect(Math.abs(profile.y + profile.height / 2 - (bellBox.y + bellBox.height / 2)), "the profile shares the bar with the bell").toBeLessThan(6);
         barBottom = bellBox.y + bellBox.height;
       }
 

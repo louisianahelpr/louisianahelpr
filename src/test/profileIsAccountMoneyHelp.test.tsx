@@ -143,12 +143,13 @@ describe("Jobs settings", () => {
     expect(screen.getByTestId("where").textContent).toBe("/jobs/settings");
   });
 
-  // The Vinted header (owner 11-08): on a phone the tabs row and its gear left the top; Jobs settings is the settings
-  // row of "My Jobs", the sheet the photo opens (MySectionSheet), never a control in the bar itself.
-  it.each(["/jobs", "/jobs?tab=posted", "/jobs?tab=working"])("phone, %s: no gear and no tabs row; the photo's My Jobs sheet holds Jobs settings, which opens /jobs/settings", async (url) => {
+  // The Vinted header (owner 11-08): on a phone the gear left the top; Jobs settings is the settings row of "My Jobs",
+  // the sheet the photo opens (MySectionSheet), never a control in the bar itself. The Browse | Posted | Working tabs
+  // came back on a phone (F152, owner audit 11-09) without the gear.
+  it.each(["/jobs", "/jobs?tab=posted", "/jobs?tab=working"])("phone, %s: no gear (the tabs row carries none); the photo's My Jobs sheet holds Jobs settings, which opens /jobs/settings", async (url) => {
     renderJobs(url);
     if (url !== "/jobs") await screen.findByTestId("app-top-bar");
-    expect(screen.queryByTestId("section-tabs")).toBeNull();
+    expect(within(screen.getByTestId("section-tabs")).queryByRole("button", { name: /Jobs settings/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Jobs settings" })).toBeNull();
     const bar = screen.getByTestId("app-top-bar");
     expect(within(bar).queryByText("Jobs settings")).toBeNull();

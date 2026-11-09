@@ -6,11 +6,11 @@
  *   boxes: the most urgent to-do with its action), the To do list COLLAPSED on
  *   load and opened by Next up's "See all", the member's sections as boxes,
  *   Coming up. No "+" and no row of category pills.
- * - Bottom nav (owner nav redesign, 2026-11-06, superseding 10-20's center "+"
- *   bar): Dashboard, Jobs, Declutter, Shops, Homes, icons only; each section
- *   tab carries its share of the to-do count and is lit anywhere inside its
- *   section. Messages and You moved to the top bar
- *   (src/test/centerCreateNav.test.tsx).
+ * - Bottom nav (owner UI audit F146/F147, 2026-11-09, superseding the 11-06
+ *   Dashboard/Jobs/Declutter/Shops/Homes bar): Home, Jobs, Declutter, Messages,
+ *   You, each with its name under the icon; each section tab carries its share
+ *   of the to-do count and is lit anywhere inside its section. Shops and Homes
+ *   left the dock until they open (src/test/centerCreateNav.test.tsx).
  * - Every section opens on Browse, and Browse is the leftmost segment.
  * - Status boxes filter: tap = only that group (pressed), tap again = all.
  * - Customize hides a section from Explore AND Home; the last one cannot be
@@ -189,14 +189,15 @@ const exploreLabels = () =>
   [...document.querySelectorAll('[data-testid="explore-switcher"] [role="radio"]')].map((b) => b.getAttribute("aria-label") || b.textContent);
 
 describe("the bottom nav", () => {
-  it("is Dashboard, Jobs (with its to-do share as a badge), Declutter, Shops, Homes", () => {
+  it("is Home, Jobs (with its to-do share as a badge), Declutter, Messages, You", () => {
     wrap(<MobileNav />);
     // A tab with a badge is named with its visible count first (WCAG 2.5.3, axe label-content-name-mismatch, Q1816).
-    expect(dockLabels()).toEqual(["Dashboard", "3 Jobs", "Declutter", "Shops", "Homes"]);
+    expect(dockLabels()).toEqual(["Home", "3 Jobs", "Declutter", "3 Messages", "You"]); // 3 unread chats (mock above)
     const jobs = screen.getByRole("button", { name: "3 Jobs" });
-    expect(jobs.textContent).toBe("3");
-    // Messages left the dock for the top bar (its badge is the top bar's now).
-    expect(screen.queryByRole("button", { name: /Messages$/ })).toBeNull();
+    // The badge's count, then the name under the icon (F147).
+    expect(jobs.textContent?.replace(/\s+/g, " ").trim()).toBe("3 Jobs");
+    // Shops and Homes are not open yet: not in the dock (F146).
+    expect(screen.queryByRole("button", { name: /Shops$|Homes$/ })).toBeNull();
   });
 
   it.each([
@@ -206,10 +207,9 @@ describe("the bottom nav", () => {
     ["/posts", "Jobs"],
     ["/declutter", "Declutter"],
     ["/declutter/settings", "Declutter"],
-    ["/shops/mine", "Shops"],
-    ["/rentals", "Homes"],
-    ["/rentals/requests/r1", "Homes"],
-  ])("%s lights %s, not Dashboard (a section tab is lit anywhere inside its section)", (at, tab) => {
+    ["/messages", "Messages"],
+    ["/profile", "You"],
+  ])("%s lights %s, not Home (a section tab is lit anywhere inside its section)", (at, tab) => {
     wrap(<MobileNav />, at);
     const lit = [...document.querySelectorAll('nav[aria-label="Bottom navigation"] button[aria-current="page"]')].map((b) => b.getAttribute("aria-label")?.replace(/^\d+\+? /, ""));
     expect(lit).toEqual([tab]);

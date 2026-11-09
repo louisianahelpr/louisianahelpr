@@ -5275,3 +5275,7 @@ html.page-scrolled .page-title-card:has(.explore-header),
    this"): smaller chips than the phone sheet, which keeps its 40px touch chips. Mouse only: the drop-down never
    opens on a phone or in the app. */
 :where([data-filter-dropdown] button[aria-pressed]) { height: auto; min-height: 2rem; padding-left: 0.75rem; padding-right: 0.75rem; }
+
+/* F150 (owner UI audit 11-09): while a floating create pill shows (SectionCreateFab adds `has-section-fab`), a list
+   scrolling under it ends this much higher: the pill's 48px (Button md) + its 16px gap over the dock. */
+html.has-section-fab { --section-fab-clearance: 4rem; }

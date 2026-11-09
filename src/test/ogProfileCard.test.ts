@@ -18,14 +18,21 @@
  * @mutate api/og-profile.ts |       const current = typeof card.handle === "string" && HANDLE_RE.test(card.handle) ? card.handle : handle; |       const current = handle;
  * @mutate api/og-profile.ts |       if (!card) return fallback(); |       if (!card) return new Response("x", { status: 500 });
  * @mutate api/og-profile.ts |   return new Resvg(svg, { fitTo: { mode: "width", value: OG_PROFILE_WIDTH } }).render().asPng(); |   return new Resvg(svg, { fitTo: { mode: "width", value: 1000 } }).render().asPng();
+ *  - the card is drawn in the site's own type (owner's UI audit 11-09, F077: it was a generic system-looking face):
+ *    Montserrat for the text, Bodoni Moda for the name, every font file shipped in api/_og/ (vercel.json includeFiles),
+ *    and the card's ?v= tag changes with its look (OG_PROFILE_STYLE), so crawlers fetch the new drawing.
+ * @mutate api/og-profile.ts | el("div", { fontFamily: "Bodoni Moda", fontWeight: 700, fontSize: 72, | el("div", { fontSize: 72,
+ * @mutate api/og-profile.ts | padding: "60px 80px 44px", fontFamily: "Montserrat", fontWeight: 400 }, | padding: "60px 80px 44px" },
+ * @mutate api/og-profile.ts |   { name: "Bodoni Moda", file: "BodoniModa-700-latin.woff", weight: 700 },\n | 
  * @mutate src/lib/ogProfileCard.mjs |   const selling = Number.isFinite(countRaw) && countRaw >= 0 ? countRaw : Array.isArray(card?.listings) ? card.listings.length : 0; |   const selling = Array.isArray(card?.listings) ? card.listings.length : 0;
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
-import { ogProfileLines, ogProfileVersion } from "../lib/ogProfileCard.mjs";
+import { OG_PROFILE_STYLE, ogProfileLines, ogProfileVersion } from "../lib/ogProfileCard.mjs";
+import { blankComments } from "./helpers/blankNonCode";
 
 const SB = "https://example.supabase.co";
 const USER = "3f2a1b0c-1111-4222-8333-444455556666";
@@ -92,6 +99,7 @@ describe("the branded /u link card (api/og-profile.ts + api/share.ts)", () => {
     const png = Buffer.from(await res.arrayBuffer());
     expect(png.subarray(1, 4).toString("latin1")).toBe("PNG");
     expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630]);
+    if (process.env.OG_PROFILE_DUMP) writeFileSync(process.env.OG_PROFILE_DUMP, png);
     // A random ?v=, no ?v=, an extra parameter, another letter case, or an old handle: no render, a 302 to the canonical URL.
     for (const q of [`?h=lexi-l&v=stale1`, `?h=lexi-l`, `?h=lexi-l&v=${ogProfileVersion(CARD)}&x=1`, `?h=Lexi-L&v=${ogProfileVersion(CARD)}`]) {
       const r = await ogQuery(q);
@@ -169,6 +177,27 @@ describe("the branded /u link card (api/og-profile.ts + api/share.ts)", () => {
     expect(ogProfileVersion({ ...CARD, stats: { review_count: 4, avg_rating: 4.75 } })).not.toBe(ogProfileVersion(CARD));
     expect(ogProfileVersion({ ...CARD, photo_url: null })).not.toBe(ogProfileVersion(CARD));
     expect(ogProfileVersion({ ...CARD })).toBe(ogProfileVersion(CARD));
+  });
+
+  it("F077: the card is drawn in Montserrat with the name in Bodoni Moda, from font files the function ships", () => {
+    const src = blankComments(readFileSync(resolve("api/og-profile.ts"), "utf8"));
+    // The root sets Montserrat for every line; the name alone is Bodoni Moda 700.
+    expect(src).toMatch(/padding: "60px 80px 44px", fontFamily: "Montserrat", fontWeight: 400 \}/);
+    expect(src).toMatch(/el\("div", \{ fontFamily: "Bodoni Moda", fontWeight: 700, fontSize: 72, [^}]*\}, l\.name\)/);
+    // The fonts satori gets are the list, read from api/_og (shipped by vercel.json's includeFiles).
+    const list = [...src.matchAll(/\{ name: "([^"]+)", file: "([^"]+)", weight: (\d+) \}/g)].map((m) => ({ name: m[1], file: m[2], weight: Number(m[3]) }));
+    expect(list.length).toBeGreaterThan(4);
+    for (const want of [["Montserrat", 400], ["Montserrat", 600], ["Bodoni Moda", 700]] as const) {
+      // Each face's basic latin subset at least (the letters every name and town is written in).
+      expect(list.some((f) => f.name === want[0] && f.weight === want[1] && /-latin\.woff$/.test(f.file)), `${want[0]} ${want[1]}`).toBe(true);
+    }
+    for (const f of list) expect(existsSync(resolve("api/_og", f.file)), f.file).toBe(true);
+    expect(src).toMatch(/fonts \?\?= OG_PROFILE_FONTS\.map\(/);
+    expect(src).toMatch(/fonts: fonts \?\? \[\],/);
+    const vercel = JSON.parse(readFileSync(resolve("vercel.json"), "utf8")) as { functions: Record<string, { includeFiles?: string }> };
+    expect(vercel.functions["api/og-profile.ts"].includeFiles).toContain("api/_og/**");
+    // A new look is a new ?v= (crawlers cache images by URL).
+    expect(OG_PROFILE_STYLE).toBe("fonts-1109");
   });
 
   it("the renderer is server-only: nothing under src/ imports the renderer or the card module", () => {

@@ -54,11 +54,14 @@ export function ogProfilePhotoUrl(avatarUrl, supabaseUrl) {
 
 /**
  * A short, stable tag of everything the card draws. api/share.ts puts it on the og:image URL (?v=) so a crawler that
- * caches images by URL (Facebook does) fetches a new card when the name, town, rating, counts, skills or photo change.
+ * caches images by URL (Facebook does) fetches a new card when the name, town, rating, counts, skills or photo change,
+ * or when the card's look does (OG_PROFILE_STYLE: bump it with any change to how api/og-profile.ts draws the card).
  */
+export const OG_PROFILE_STYLE = "fonts-1109";
+
 export function ogProfileVersion(card) {
   const l = ogProfileLines(card);
-  const s = [l.name, l.town, l.rating, l.facts, l.skills, typeof card?.photo_url === "string" ? card.photo_url : ""].join("\u0001");
+  const s = [OG_PROFILE_STYLE, l.name, l.town, l.rating, l.facts, l.skills, typeof card?.photo_url === "string" ? card.photo_url : ""].join("\u0001");
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);

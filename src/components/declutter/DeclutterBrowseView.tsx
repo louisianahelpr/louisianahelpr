@@ -42,6 +42,7 @@ import { FiltersIconButton } from "@/components/dashboard/browseTasksToolbar/Fil
 import { MapToggleButton } from "@/components/dashboard/browseTasksToolbar/MapToggleButton";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 import { DeclutterMilesFrom } from "./DeclutterMilesFrom";
+import { DeclutterActiveFilters } from "./DeclutterActiveFilters";
 import { declutterFilterSections } from "./DeclutterFilterPanel";
 import { DeclutterFilterSheet } from "./DeclutterBrowseBar";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
@@ -433,6 +434,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
         {/* Owner 11-07 (Vinted review; replaces 10-21's "no chip row"): the category chips at the top of the list. Porch
             pickup, price drops and the rest stay in the filter sheet. Guard: src/test/declutterBrowseChipsAndSaves.test.tsx. */}
         {desktop && chipRow}
+        {/* F055 (UI audit 11-09): what is filtered, each removable. */}
+        <DeclutterActiveFilters filters={filters} maxMiles={maxMiles} onChange={(next) => { setFilters(next.filters); setMaxMiles(next.maxMiles); }} />
         {/* The filters a saved search keeps: words, category, price, distance and (BUY-13) Free, porch pickup, price
             drops and condition; the sheet shows them. Sort is how the list is ordered, not what it alerts on. */}
         {member && (q || filters.category || filters.minDollars !== null || filters.maxDollars !== null || (from && maxMiles !== null) || hasExtras(saveExtras)) && (

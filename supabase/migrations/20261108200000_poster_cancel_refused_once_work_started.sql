@@ -8,8 +8,8 @@
 --     the budget back for work already done, and 100% when the Helpr had not tapped the day-before confirm (or was
 --     waiting on their ID check, or under a ban review): v_committed false prices the fee at 0.
 --     Now: refused with 'work_started' (hint: use Report a problem to open a dispute) once there is real evidence of
---     work: job_work_started() = the Helpr is on site (helper_arrived_at, or the poster confirmed the arrival), the
---     tracker says arrived / working / done, the job is being fixed (revision_requested), or a continue day is agreed
+--     work: job_work_started() = the Helpr is on site (helper_arrived_at; never poster_confirmed_arrival_at, which the
+--     poster can write, Q423), the tracker says arrived / working / done, the job is being fixed (revision_requested), or a continue day is agreed
 --     ('set'). NOT status 'in_progress' alone: auto_start_due_jobs (20261102100421) flips a job to in_progress at its
 --     start time whether or not the Helpr came, and that no-show job keeps the old exits (the no-show report, and the
 --     free, no-strike cancel for a confirmed Helpr whose ID check is outstanding or whose account is frozen).
@@ -29,7 +29,8 @@
 -- Sensitive: money + authz (escrow refund path).
 
 -- Real evidence the Helpr did work on this job (Jobs audit 11-08 #1, lead review 11-08). Read by poster_cancel_job and
--- block_user_and_settle. Never status 'in_progress' alone (auto_start_due_jobs sets it at the start time).
+-- block_user_and_settle. Never status 'in_progress' alone (auto_start_due_jobs sets it at the start time). Only Helpr-side
+-- or system stamps count: never poster_confirmed_arrival_at, which the poster can write (Q423, posterCannotMoveFeeInputs).
 CREATE OR REPLACE FUNCTION public.job_work_started(p_job_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -39,8 +40,7 @@ SET search_path TO 'public'
 AS $fn$
   SELECT EXISTS (SELECT 1 FROM public.jobs j
                   WHERE j.id = p_job_id
-                    AND (j.helper_arrived_at IS NOT NULL OR j.poster_confirmed_arrival_at IS NOT NULL
-                         OR j.status::text = 'revision_requested'))
+                    AND (j.helper_arrived_at IS NOT NULL OR j.status::text = 'revision_requested'))
       OR EXISTS (SELECT 1 FROM public.job_tracking t JOIN public.jobs j ON j.id = t.job_id AND t.helper_id = j.helper_id
                   WHERE t.job_id = p_job_id AND t.status IN ('arrived', 'working', 'done'))
       OR EXISTS (SELECT 1 FROM public.job_continue_days c WHERE c.job_id = p_job_id AND c.status = 'set')
@@ -84,7 +84,7 @@ BEGIN
   SELECT j.id, j.title, j.budget, j.date_needed, j.start_time, j.customer_id, j.helper_id,
          j.status, j.helper_fee_percent, j.helper_fee_flat_cents, j.helper_confirmed_at,
          j.helper_completed_at, j.is_group_job, j.helpers_needed,
-         j.helper_on_the_way_at, j.helper_arrived_at, j.poster_confirmed_arrival_at
+         j.helper_on_the_way_at, j.helper_arrived_at
     INTO v_job
     FROM public.jobs j
    WHERE j.id = p_job_id
@@ -156,8 +156,7 @@ BEGIN
     IF EXISTS (
       SELECT 1 FROM public.group_job_helpers g
        WHERE g.job_id = v_job.id AND g.helper_id IS NOT NULL
-         AND (g.helper_arrived_at IS NOT NULL OR g.poster_confirmed_arrival_at IS NOT NULL
-              OR v_job.status::text = 'revision_requested')
+         AND (g.helper_arrived_at IS NOT NULL OR v_job.status::text = 'revision_requested')
     ) THEN
       RAISE EXCEPTION 'work_started'
         USING HINT = 'Your crew already started this job, so it can''t be cancelled. If something''s wrong, use Report a problem on the job to open a dispute. Your payment stays on hold until it''s sorted.';

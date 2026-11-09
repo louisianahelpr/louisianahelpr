@@ -37,14 +37,17 @@ describe("a poster cannot cancel a job the Helpr started (Jobs audit 11-08 #1)",
   });
   it("work = real evidence (on site, tracker step, being fixed, agreed continue day), never in_progress alone", () => {
     const w = flat(body("job_work_started"));
-    expect(w).toContain("j.helper_arrived_at IS NOT NULL OR j.poster_confirmed_arrival_at IS NOT NULL OR j.status::text = 'revision_requested'");
+    expect(w).toContain("j.helper_arrived_at IS NOT NULL OR j.status::text = 'revision_requested'");
+    // Q423: the poster can write poster_confirmed_arrival_at, so it is never evidence in the poster's own cancel.
+    expect(w).not.toMatch(/poster_confirmed_arrival_at/);
+    expect(pcj).not.toMatch(/poster_confirmed_arrival_at/);
     expect(w).toContain("t.status IN ('arrived', 'working', 'done')");
     expect(w).toContain("c.status = 'set'");
     expect(w).not.toMatch(/in_progress/);
     expect(pcj).toContain("IF v_job.is_group_job IS NOT TRUE AND public.job_work_started(v_job.id) THEN RAISE EXCEPTION 'work_started'");
   });
   it("refuses a crew with a member on site or being fixed (an empty roster still cancels)", () => {
-    expect(pcj).toMatch(/g\.helper_id IS NOT NULL AND \(g\.helper_arrived_at IS NOT NULL OR g\.poster_confirmed_arrival_at IS NOT NULL OR v_job\.status::text = 'revision_requested'\) \) THEN RAISE EXCEPTION 'work_started'/);
+    expect(pcj).toMatch(/g\.helper_id IS NOT NULL AND \(g\.helper_arrived_at IS NOT NULL OR v_job\.status::text = 'revision_requested'\) \) THEN RAISE EXCEPTION 'work_started'/);
   });
   it("a block never settles a worked-on job: the admins decide", () => {
     const b = flat(body("block_user_and_settle"));

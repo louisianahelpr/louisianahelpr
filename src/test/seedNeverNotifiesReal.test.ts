@@ -424,7 +424,7 @@ describe("Q137: a seed subject never notifies a real person", () => {
     // wrote its own notifications row through its seed boundary; the roundup adds no new subject.
     const ROUNDUPS = ["send_application_roundups", "send_job_match_roundups"];
     for (const fn of ROUNDUPS) expect(liveDef(fn)!.body, fn).toMatch(/FROM public\.(application|job_match)_email_state s/);
-    // Continue day (20261108160000), Declutter notices (20261108202546) and Jobs notices (20261108201000): send_notice_email
+    // Continue day (20261108160000), Declutter notices (20261108202546), trades (20261108195151) and Jobs notices (20261108201000): send_notice_email
     // only posts; its callers are AFTER INSERT triggers on notifications (email_*), so it fires only for a row
     // notifications_seed_boundary (BEFORE INSERT) let through. Every migration that calls it wires such a trigger.
     const noticeEmailSql = [...sqlOf.entries()].filter(([, sql]) => /\bsend_notice_email\s*\(/.test(sql)).map(([name]) => name);
@@ -436,7 +436,8 @@ describe("Q137: a seed subject never notifies a real person", () => {
       for (const fn of fns) emailTriggers.add(fn);
     }
     for (const fn of emailTriggers) expect(liveDef(fn)?.body ?? "", fn).toMatch(/PERFORM public\.send_notice_email\(NEW\.user_id,/);
-    expect([...emailTriggers].sort()).toEqual(["email_continue_day_notice", "email_declutter_notice", "email_jobs_notice"]);
+    // Trades (20261108195151): email_declutter_trade_notice emails the trade notices the same way.
+    expect([...emailTriggers].sort()).toEqual(["email_continue_day_notice", "email_declutter_notice", "email_declutter_trade_notice", "email_jobs_notice"]);
     for (const fn of emailers.filter((f) => f !== "send_backout_email" && f !== "declutter_wanted_email" && f !== "send_notice_email" && !ROUNDUPS.includes(f))) expect(/INSERT\s+INTO\s+(?:public\.)?notifications\b|public\.declutter_notify(?:_strict)?\(/i.test(liveDef(fn)!.body), fn).toBe(true);
     expect(liveDef("send_backout_email")!.body).toMatch(/IF public\.notification_crosses_seed_boundary\(p_user, p_job, p_link\) THEN\s+RETURN;/);
   });

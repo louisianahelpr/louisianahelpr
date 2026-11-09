@@ -17,7 +17,7 @@
  * The server half (cap under a lock, anon cannot read sign-ups, the switch) is
  * src/test/pglite/sponsor25days.pglite.mjs.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { render, screen } from "@testing-library/react";
@@ -281,6 +281,34 @@ describe("link preview (api/share.ts, before JavaScript runs)", () => {
     const v = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8")) as { rewrites: Array<{ source: string; destination: string }> };
     for (const [src, id] of [["/sponsor", "sponsor"], ["/25days", "25days"], ["/25days/rules", "25days/rules"]]) {
       expect(v.rewrites.find((r) => r.source === src)?.destination).toBe(`/api/share?_og=noindex&_id=${id}`);
+    }
+  });
+});
+
+// The admin logo download and founder photo upload call the sponsor-25days function with the admin's own token.
+// ed23308500 dropped the helper they import (a missing named import is undefined at runtime, so both buttons threw).
+// @mutate src/pages/admin/sponsors/sponsorAdminApi.ts | headers: await authHeaders() }); | headers: {} });
+describe("25 Days admin: function calls carry the admin token", () => {
+  it("logo download sends Authorization: Bearer <session token>", async () => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { sponsorAdminBackend } = await import("@/pages/admin/sponsors/sponsorAdminApi");
+    const sessionSpy = vi.spyOn(supabase.auth, "getSession").mockResolvedValue({ data: { session: { access_token: "admin-tok" } }, error: null } as never);
+    const calls: Array<{ url: string; headers: Record<string, string> }> = [];
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+      calls.push({ url: String(url), headers: (init?.headers ?? {}) as Record<string, string> });
+      return new Response(new Blob(["x"]), { status: 200 });
+    });
+    const urlSpy = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:logo");
+    try {
+      const b = await sponsorAdminBackend();
+      expect(await b.logoDownloadUrl("sig-1")).toBe("blob:logo");
+      expect(calls).toHaveLength(1);
+      expect(calls[0].url).toContain("/functions/v1/sponsor-25days?logo=sig-1&admin=1");
+      expect(calls[0].headers.Authorization).toBe("Bearer admin-tok");
+    } finally {
+      sessionSpy.mockRestore();
+      fetchSpy.mockRestore();
+      urlSpy.mockRestore();
     }
   });
 });

@@ -98,6 +98,7 @@
     "supabase/functions/_shared/stripeTestMode.ts",
     "supabase/functions/stripe-webhook/testModeScope.ts",
     "supabase/functions/_shared/instantBookRefund.ts",
+    "supabase/functions/_shared/sponsorSignup.ts",
     "supabase/functions/_shared/addressMatch.ts",
     "supabase/functions/_shared/geocodeAddressPoint.ts",
     "supabase/functions/_shared/declutterCheckoutName.ts",

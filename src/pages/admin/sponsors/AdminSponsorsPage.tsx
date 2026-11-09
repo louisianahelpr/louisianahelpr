@@ -21,6 +21,7 @@ import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { errorToast, successToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
+import { userFacingError } from "@/lib/userFacingError";
 import { sponsorAdminBackend, type SponsorAdminBackend } from "./sponsorAdminApi";
 import type { SponsorAdminData, SponsorAdminSignup, SponsorStatus } from "@/lib/sponsor/types";
 import { sponsorPage as C } from "@/content/sponsorPage";
@@ -105,7 +106,7 @@ export default function AdminSponsorsPage() {
     mutationFn: async (fn: (b: SponsorAdminBackend) => Promise<unknown>) => fn(backend as SponsorAdminBackend),
     onSuccess: () => { void refresh(); },
     // The data layer already turned a refusal into plain words (ADMIN_RPC_ERROR_COPY).
-    onError: (e: unknown) => errorToast("That change was not saved.", { description: e instanceof Error ? e.message : undefined }),
+    onError: (e: unknown) => errorToast("That change was not saved", { description: userFacingError(e, "Try again in a moment.") }),
   });
 
   return (
@@ -224,7 +225,7 @@ function SignupsView({ data, backend, run }: { data: SponsorAdminData; backend: 
       a.remove();
     } catch (e) {
       report(e, { tags: { area: "sponsor_25days", action: "logo_download" } });
-      errorToast("Couldn't get that logo.", { description: e instanceof Error ? e.message : undefined });
+      errorToast("Couldn't get that logo", { description: userFacingError(e, "Try again in a moment.") });
     }
   };
   return (

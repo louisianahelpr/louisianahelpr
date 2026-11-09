@@ -10,8 +10,16 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
-import { authHeaders, functionsBase } from "@/lib/sponsor/api";
+import { functionsBase } from "@/lib/sponsor/api";
 import type { SponsorAdminData, SponsorAdminSettings, SponsorAdminSignup, SponsorStatus } from "@/lib/sponsor/types";
+
+/** The signed-in admin's token for the sponsor-25days function's admin paths (the function checks the admin role). */
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  const key = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "");
+  return { apikey: key, Authorization: `Bearer ${token ?? key}` };
+}
 
 export interface SponsorAdminBackend {
   overview(): Promise<SponsorAdminData>;

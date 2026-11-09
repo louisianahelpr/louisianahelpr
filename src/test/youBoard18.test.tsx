@@ -11,6 +11,11 @@
  * @mutate src/pages/home/HomeDashboard.tsx |               {visible.filter(isLive).map((s) => { |               {visible.map((s) => {
  * @mutate src/components/profile/profileLanding/headingContract.ts | export const PROFILE_PAGE_TITLE = "You"; | export const PROFILE_PAGE_TITLE = "Profile";
  * @mutate src/components/profile/ProfileLanding.tsx |       <YourActivity /> |       {null}
+ *
+ * F087 (owner UI audit 11-09): a tester's preview sections (Shops, Homes: on for them, not open to everyone) showed
+ * live-looking tiles. They carry the Coming soon badge inside, slightly dimmed (owner 11-09 badge rule).
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |                 {preview && <>{" "}<PreviewPill className="self-start mt-1" /></>} |
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx | style={preview ? { opacity: 0.75 } : undefined} | style={undefined}
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -23,7 +28,8 @@ const toast = vi.hoisted(() => vi.fn());
 vi.mock("sonner", () => ({ toast }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: null }) }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
-vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
+const openAnswer = vi.hoisted(() => ({ value: null as ReadonlySet<string> | null }));
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => openAnswer.value }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => k !== "rentals" }));
 vi.mock("@/pages/home/homeDashboard/useHomeSummary", () => ({
   useHomeSummary: () => ({ counts: { posted: 2, working: 0, selling: 1, shopOrders: 0 } }),
@@ -39,7 +45,7 @@ import { PROFILE_PAGE_TITLE } from "@/components/profile/profileLanding/headingC
 
 let path = "";
 function Where() { path = useLocation().pathname + useLocation().search; return null; }
-afterEach(() => { cleanup(); toast.mockClear(); });
+afterEach(() => { cleanup(); toast.mockClear(); openAnswer.value = null; });
 
 describe("You matches board 18", () => {
   it("is named You: the h1 constant, rendered by ProfileLanding, and the browser tab", () => {
@@ -59,6 +65,26 @@ describe("You matches board 18", () => {
       "Jobs Posted · 2", "Jobs Working", "Declutter Buying", "Declutter Selling · 1", "Shops Orders", "Shops My shop",
     ]);
     expect(screen.getByTestId("you-activity-soon").textContent).toBe("Homes is opening soon");
+  });
+
+  it("F087: a tester's preview section (on for them, not open to everyone) wears the Coming soon badge, dimmed", () => {
+    // Shops is on for this viewer (useFeature mock) and only Declutter is open to everyone.
+    openAnswer.value = new Set(["declutter"]);
+    const { container } = render(<MemoryRouter><YourActivity /><Where /></MemoryRouter>);
+    const tiles = [...container.querySelectorAll("[data-activity-tile]")] as HTMLElement[];
+    expect(tiles.length).toBeGreaterThan(4);
+    const shops = tiles.filter((t) => t.dataset.activityTile!.startsWith("shops:"));
+    expect(shops).toHaveLength(2);
+    for (const t of shops) {
+      expect(t.dataset.preview).toBe("true");
+      expect(t.querySelector("[data-preview-pill]")?.textContent).toBe("Coming soon");
+      expect(t.style.opacity).toBe("0.75");
+    }
+    // Jobs and Declutter are live for everyone: no badge, no dim.
+    for (const t of tiles.filter((t) => !t.dataset.activityTile!.startsWith("shops:"))) {
+      expect(t.querySelector("[data-preview-pill]")).toBeNull();
+      expect(t.style.opacity).toBe("");
+    }
   });
 
   it("an open tile routes to its tab; a closed section has no tile to tap", () => {

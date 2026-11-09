@@ -5,6 +5,7 @@ import { useSectionTabs, openingSoonLine } from "@/components/mobileNav/useSecti
 import { useHomeSummary } from "@/pages/home/homeDashboard/useHomeSummary";
 import type { SectionKey } from "@/components/sections/sectionsConfig";
 import { GlassTileButton } from "@/components/ui/GlassTileButton";
+import { PreviewPill } from "@/components/sections/PreviewPill";
 
 type CountKey = "posted" | "working" | "selling" | "shopOrders";
 
@@ -43,6 +44,10 @@ export function YourActivity() {
   const live = useSectionTabs();
 
   const isOn = (s: (typeof visible)[number]) => s.feature === null || !!live.find((t) => t.path === s.path)?.on;
+  // F087 (owner UI audit 11-09): a section open to this viewer only as a tester preview (Shops, Homes: not yet open to
+  // everyone, sectionIsPreview) read as live. Its tiles carry the Coming soon badge inside, slightly dimmed (owner
+  // 11-09, the F002/F013 badge rule). A member never sees one: their live sections are open to everyone.
+  const isPreview = (s: (typeof visible)[number]) => !!live.find((t) => t.path === s.path)?.preview;
   const open = visible.filter(isOn);
   const soon = openingSoonLine(visible.filter((s) => !isOn(s)).map((s) => s.label));
 
@@ -53,13 +58,16 @@ export function YourActivity() {
         {open.flatMap((s) =>
           ACTIVITY_TILES[s.key].map((t) => {
             const n = t.count ? summary.counts[t.count] : 0;
+            const preview = isPreview(s);
             return (
               <GlassTileButton
                 key={`${s.key}-${t.label}`}
                 data-activity-tile={`${s.key}:${t.label}`}
+                data-preview={preview ? "true" : undefined}
                 onClick={() => navigate(t.to)}
                 title={`${s.label} ${t.label}${n > 0 ? ` · ${n}` : ""}`}
                 className="px-4 py-3"
+                style={preview ? { opacity: 0.75 } : undefined}
               >
                 {/* No aria-label: the tile's words ("Jobs Posted 2") are its name, so the visible text is in it (axe
                     label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491). The space keeps the two lines two words;
@@ -69,6 +77,7 @@ export function YourActivity() {
                   {t.label}
                   {n > 0 && <><span aria-hidden="true"> ·</span> {n}</>}
                 </span>
+                {preview && <>{" "}<PreviewPill className="self-start mt-1" /></>}
               </GlassTileButton>
             );
           }),

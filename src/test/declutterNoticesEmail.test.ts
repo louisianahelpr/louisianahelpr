@@ -13,7 +13,7 @@
  *   - M3: the free-ask sweep closes an ask with no time;
  *   - M4: the "Card saved" notice and the payment page's consent line say the same thing.
  *
- * @mutate supabase/migrations/20261108202546_declutter_notices_email_and_honest_sold.sql |   WHEN (NEW.type IN ('declutter_offers', 'declutter_sales', 'declutter_pickups', 'declutter_refunds') |   WHEN (NEW.type IN ('declutter_offers', 'declutter_sales', 'declutter_pickups')
+ * @mutate supabase/migrations/20261109005133_declutter_trade_email_once.sql |   WHEN (NEW.type IN ('declutter_offers', 'declutter_sales', 'declutter_pickups', 'declutter_refunds') |   WHEN (NEW.type IN ('declutter_offers', 'declutter_sales', 'declutter_pickups')
  * @mutate supabase/migrations/20261108202546_declutter_notices_email_and_honest_sold.sql |     PERFORM public.declutter_notify(v_seller, 'declutter_sales', 'Someone''s buying your item',\n      format('"%s" is held | 'Sold: waiting for the buyer to pay',\n      format('"%s" is held
  * @mutate supabase/migrations/20261108202546_declutter_notices_email_and_honest_sold.sql |             OR (q.pickup_at IS NULL AND q.created_at <= p_now - interval '48 hours')) |             OR false)
  * @mutate supabase/functions/declutter-checkout/index.ts |   "We'll save this card for your next Declutter buy. It's charged only when you press Pay | "We'll save this card. It's charged only when you press Pay
@@ -21,7 +21,7 @@
  * @mutate src/components/notificationPreferences/constants.tsx |   { key: "declutter_refunds", emailKey: "email_declutter_refunds", label: "Refunds", description: "Refund requests, reported problems and strikes. Refund receipts are always emailed.", icon: <Undo2 className="w-3.5 h-3.5" /> }, |   { key: "declutter_refunds", emailKey: "email_declutter_refunds", label: "Refunds", description: "Refund requests, reported problems and strikes. Refund receipts are always emailed.", icon: <Undo2 className="w-3.5 h-3.5" />, noEmailSwitch: "x" },
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { declutterRows } from "@/components/notificationPreferences/constants";
@@ -29,7 +29,11 @@ import { declutterRows } from "@/components/notificationPreferences/constants";
 const MIG_DIR = "supabase/migrations";
 const defs = effectiveDefs(MIG_DIR);
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");
-const FIX = blankSqlComments(readFileSync(`${MIG_DIR}/20261108202546_declutter_notices_email_and_honest_sold.sql`, "utf8"));
+/** The NEWEST migration that (re)creates trg_email_declutter_notice: 20261109005133 restated it after 20261108202546. */
+const TRIGGER_RE = /CREATE TRIGGER trg_email_declutter_notice\s/;
+const FIX = readdirSync(MIG_DIR).filter((f) => f.endsWith(".sql")).sort()
+  .map((f) => blankSqlComments(readFileSync(`${MIG_DIR}/${f}`, "utf8")))
+  .filter((sql) => TRIGGER_RE.test(sql)).pop() ?? "";
 const checkout = blankComments(readFileSync("supabase/functions/declutter-checkout/index.ts", "utf8"));
 
 /** The kinds the trigger emails. */

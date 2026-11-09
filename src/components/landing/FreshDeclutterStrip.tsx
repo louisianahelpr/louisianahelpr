@@ -69,7 +69,7 @@ function FreshCard({ it }: { it: FreshItem }) {
       </span>
       <span className="block min-w-0 px-0.5 pt-2">
         <span data-card-title className="block truncate text-ds-13 font-semibold leading-snug" style={{ color: "var(--lp-ink)" }} title={it.title}>{it.title}</span>
-        {condition && <span data-card-condition={it.condition_stars} className="block truncate text-ds-11 text-muted-foreground">{condition}</span>}
+        {condition && <span data-card-condition={it.condition_stars} title={condition} className="block truncate text-ds-11 text-muted-foreground">{condition}</span>}
         <span data-card-price="" className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-1.5 leading-tight">
           {it.current_price_cents > 0 ? (
             <>

@@ -364,7 +364,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "How do I get the item?",
-        a: "Four ways: porch pickup (the seller leaves it out and posts a photo), pickup at the seller's door, Helpr delivery, or seller delivery when the seller offers it. Shipping isn't offered. Every pickup or delivery happens within 7 days of paying, and you get the exact address right after you pay. If no Helpr takes a delivery within 48 hours, what you paid for delivery comes back, and you pick it up at the seller's door or cancel the sale for a refund.",
+        a: "Each listing says which of these it offers, with the same names as the Filters: Porch pickup (the seller leaves it out and posts a photo), Meet at a safe spot (a public place, no home address shared), Helpr delivery, or Seller delivers when the seller offers it. Shipping isn't offered. Every pickup or delivery happens within 7 days of paying, and for a pickup at the seller's place you get the exact address right after you pay. If no Helpr takes a delivery within 48 hours, what you paid for delivery comes back, and you pick it up at the seller's door or cancel the sale for a refund.",
       },
       {
         q: "What if something's wrong with my item?",

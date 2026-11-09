@@ -38,6 +38,9 @@
  * D2-1 (audit 1028 part 2): the Declutter tab lists the member's order chats, and keeps its chip with Declutter off.
  * @mutate src/pages/messages/useMessageSections.tsx |     if (section === "declutter") empty.Lead = DeclutterOrderTalkRows; |     void DeclutterOrderTalkRows;
  * @mutate src/pages/messages/useMessageSections.tsx |   const hasOrderTalks = (orderTalks.data?.length ?? 0) > 0; |   const hasOrderTalks = false;
+ * F133 (owner UI audit 11-09): a tester's Shops / Homes chip waits until the section is open to everyone.
+ * @mutate src/pages/messages/useMessageSections.tsx |     shops: shopsOn && !!openToEveryone?.has("shops"), |     shops: shopsOn,
+ * @mutate src/pages/messages/useMessageSections.tsx |     homes: homesOn && !!openToEveryone?.has("rentals"), |     homes: homesOn,
  * @mutate src/components/messages/SectionInboxEmpty.tsx |   return empty.Lead ? <empty.Lead empty={box} /> : box; |   return box;
  * Q2663: Unread with nothing unread has its own empty line, not "No messages yet".
  * @mutate src/pages/messages/useMessageSections.tsx |   if (section === "unread" && shown.length === 0) { |   if (section === "unread" && shown.length < 0) {
@@ -73,6 +76,12 @@ vi.mock("@/lib/haptics", () => ({
 // The member's switches and Customize choice are inputs here, not what is under test.
 const featureOn: Record<string, boolean> = { declutter: false, shops: true, rentals: true };
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => featureOn[k] ?? false }));
+// features_open_to_everyone(): Shops and Homes are open to everyone here unless a test says otherwise (F133).
+const openToAll: { set: ReadonlySet<string> | null } = { set: new Set(["declutter", "shops", "rentals"]) };
+vi.mock("@/components/landing/useSectionsOpen", async (io) => ({
+  ...(await io<typeof import("@/components/landing/useSectionsOpen")>()),
+  useOpenToEveryoneAnswer: () => openToAll.set,
+}));
 const prefs = { order: ["jobs", "declutter", "shops", "homes"] as SectionKey[], hidden: [] as SectionKey[] };
 vi.mock("@/components/sections/useSectionPrefs", async () => {
   const { SECTIONS: S } = await import("@/components/sections/sectionsConfig");
@@ -244,6 +253,27 @@ describe("the hook", () => {
     featureOn.declutter = false;
     const off = renderHook(() => useMessageSections([], []), { wrapper: wrap("/messages") });
     expect(off.result.current.mainEmptyBody).not.toMatch(/Declutter/);
+  });
+
+  // F133 (owner UI audit 11-09: "Filter chips include Shops and Homes, which are Coming soon. Hide those chips until
+  // the sections open"): the owner and testers have both switched on before they open to everyone.
+  it("a tester's Shops and Homes chips stay hidden until the section opens to everyone (and while that is unknown)", () => {
+    const chipsWith = (open: ReadonlySet<string> | null, threads: Conversation[] = [JOB, TEAM]) => {
+      openToAll.set = open;
+      try {
+        const { result } = renderHook(() => useMessageSections(threads, threads), { wrapper: wrap("/messages") });
+        const { unmount } = render(<MemoryRouter>{result.current.strip}</MemoryRouter>);
+        const names = screen.getAllByRole("button").map((b) => b.textContent);
+        unmount();
+        return names;
+      } finally {
+        openToAll.set = new Set(["declutter", "shops", "rentals"]);
+      }
+    };
+    // Neither open: Jobs is the lone section left, and a lone section chip is not drawn (A3-L8).
+    expect(chipsWith(new Set(["declutter"]))).toEqual(["All", "Unread · 1"]);
+    expect(chipsWith(null)).toEqual(["All", "Unread · 1"]);
+    expect(chipsWith(new Set(["declutter", "shops"]))).toEqual(["All", "Unread · 1", "Jobs", "Shops"]);
   });
 
   it("a hidden section has no chip, and its URL falls back to All", () => {

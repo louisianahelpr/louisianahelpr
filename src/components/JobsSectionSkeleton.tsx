@@ -29,9 +29,9 @@ import type { AppliedActivity, PostedActivity } from "@/hooks/useActivityData";
 /**
  * Top bar (phone: title, bell, profile, then the search row; desktop: title, "+") + (desktop) the Browse | Posted |
  * Working tabs, as bones.
- * `list` (phone, Posted / Working): the loaded screen's back row under the bar (SectionListBack, 44px) as a bone.
+ * The Browse | Posted | Working tabs row is drawn on every width and tab (F152, owner audit 11-09).
  */
-function JobsHeaderBones({ list = false, chips = false }: { list?: boolean; chips?: boolean }) {
+function JobsHeaderBones({ chips = false }: { chips?: boolean }) {
   const desktop = useIsWebDesktop();
   return (
     <div className="explore-header flex flex-col gap-1" aria-hidden>
@@ -64,8 +64,8 @@ function JobsHeaderBones({ list = false, chips = false }: { list?: boolean; chip
           </>
         }
       />
-      {/* SectionTabs (desktop): thin underline tabs, 44px. */}
-      {desktop && <Skeleton className="h-11 w-full rounded-ds-md" />}
+      {/* SectionTabs: thin underline tabs, 44px, on a phone too since F152 (owner audit 11-09). */}
+      <Skeleton className="h-11 w-full rounded-ds-md" />
       {/* Browse's category chips row (phone; JobCategoryChips: 40px chips + 4px scroller pad), only when the last
           loaded Browse drew it (jobChipsSeen.ts), so the list does not jump down when the chips arrive. */}
       {!desktop && chips && (
@@ -73,13 +73,6 @@ function JobsHeaderBones({ list = false, chips = false }: { list?: boolean; chip
           <Skeleton className="h-10 w-14 shrink-0 rounded-full" />
           <Skeleton className="h-10 w-24 shrink-0 rounded-full" />
           <Skeleton className="h-10 w-32 shrink-0 rounded-full" />
-        </div>
-      )}
-      {/* SectionListBack (phone, Posted / Working): the back chevron and the list's name, 44px. */}
-      {!desktop && list && (
-        <div data-list-back-bone="" className="flex h-11 items-center gap-2">
-          <Skeleton className="h-5 w-5 rounded-full" />
-          <Skeleton className="h-5 w-24 rounded-ds-sm" />
         </div>
       )}
     </div>
@@ -223,7 +216,7 @@ const JobsSectionSkeleton = () => {
       {tab === "browse" ? (
         <BrowseFrame header={<JobsHeaderBones chips={jobChipsRowSeen()} />} />
       ) : (
-        <JobsListLoadingFrame header={<JobsHeaderBones list />} tab={tab === "posted" ? "posted" : "applied"} />
+        <JobsListLoadingFrame header={<JobsHeaderBones />} tab={tab === "posted" ? "posted" : "applied"} />
       )}
     </div>
   );

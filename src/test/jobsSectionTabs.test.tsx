@@ -16,6 +16,7 @@
  * @mutate src/pages/home/useDetailJob.ts |         if (!next.has("tab")) next.set("tab", "browse"); |
  * @mutate src/pages/jobs/JobsSection.tsx |   const tab = params.get("tab") ? resolveJobsTab(params, picked) : openedOnLegacyLink ? "working" : "browse"; |   const tab = resolveJobsTab(params, picked);
  * @mutate src/components/job-card/embeddedActivity.tsx | label={tab === "posted" ? "Search posted jobs" | label={tab === "posted" ? "Search all sections"
+ * @mutate src/pages/jobs/JobsSection.tsx | <SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} /> | {null}
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 // The account's Customize row (useSectionPrefs, Q2199) is data, not what this spec measures: answered locally
@@ -118,11 +119,15 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     for (const t of tabs) expect((t.textContent ?? "").trim().split(/\s+/)).toHaveLength(1);
   });
 
-  // The Vinted header (owner 11-08): a plain /jobs opens on the feed (Browse) on a phone too, with no tabs row.
-  it("phone: a plain /jobs shows the feed, with no tabs row and no back row", () => {
+  // F152 (owner audit 11-09: "Keep the three tabs visible on phone"): a plain /jobs opens on the feed (Browse) with
+  // the Browse | Posted | Working tabs under the search row, Browse selected; no back row.
+  it("phone: a plain /jobs shows the feed under the three tabs, Browse selected, and no back row (F152)", () => {
     open("/jobs");
     expect(screen.getByTestId("feed")).toBeTruthy();
-    expect(screen.queryByTestId("section-tabs")).toBeNull();
+    const tabs = segments();
+    expect(tabs.map((t) => t.textContent?.trim())).toEqual(["Browse", "Posted", "Working"]);
+    expect(tabs[0].getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByTestId("app-top-bar-search").compareDocumentPosition(screen.getByTestId("section-tabs")) & Node.DOCUMENT_POSITION_FOLLOWING, "the tabs under the search row").toBeTruthy();
     expect(document.querySelector("[data-section-list-back]")).toBeNull();
   });
 
@@ -149,15 +154,15 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
   });
 
   // The lists are JobsSection's lazy chunk (B52): the first draw after a tab or link may be its loading frame.
-  it("phone: My Jobs' Posted shows the posted list under a back row named Posted; its back arrow brings the feed back", async () => {
+  it("phone: tapping Posted shows the posted list with the three tabs still there, Posted selected; Browse brings the feed back (F152)", async () => {
     open("/jobs");
-    fireEvent.click(within(screen.getByTestId("app-top-bar")).getByTestId("top-bar-profile"));
-    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("link", { name: /^Posted/ }));
+    fireEvent.click(segments()[1]);
     expect(await screen.findByTestId("list-posted")).toBeTruthy();
-    const back = document.querySelector<HTMLElement>("[data-section-list-back]")!;
-    expect(back, "the back row").not.toBeNull();
-    expect(within(back).getByRole("heading", { level: 2 }).textContent).toBe("Posted");
-    fireEvent.click(within(back).getByRole("button", { name: "Back to Browse" }));
+    expect(document.querySelector("[data-section-list-back]"), "no back row in place of the tabs").toBeNull();
+    const tabs = segments();
+    expect(tabs.map((t) => t.textContent?.trim())).toEqual(["Browse", "Posted", "Working"]);
+    expect(tabs[1].getAttribute("aria-selected")).toBe("true");
+    fireEvent.click(tabs[0]);
     expect(await screen.findByTestId("feed")).toBeTruthy();
   });
 

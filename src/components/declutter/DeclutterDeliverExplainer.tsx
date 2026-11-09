@@ -51,8 +51,8 @@ export function DeliverExplainer({ collapsed = false }: { collapsed?: boolean })
       </p>
       {/* BUY-45: the rules helpr_task_accept and helpr_task_sweep apply (20261031102758, 20261031014011). */}
       <p className="text-sm text-muted-foreground" data-deliver-rules="">
-        You can have 2 deliveries taken and not yet picked up at a time. Not picked up within 2 hours of the pickup time,
-        a delivery goes to another Helpr and you get a delivery strike.
+        You can have 2 deliveries taken and not yet picked up at a time. If you don&apos;t pick it up within 2 hours of the
+        pickup time, it goes to another Helpr and you get a delivery strike.
       </p>
       </CollapsibleContent>
     </section>

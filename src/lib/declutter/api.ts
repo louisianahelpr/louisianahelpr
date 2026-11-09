@@ -198,6 +198,21 @@ export async function fetchSellerItems(sellerId: string, exceptItemId: string): 
 }
 
 /**
+ * F120 (UI audit 11-09): how many OTHER live listings this seller has, for the seller card's "254 more items" when
+ * the row above holds its 12 (it said "12+" for a seller with 255). A head count: no rows come back.
+ */
+export async function fetchSellerLiveCount(sellerId: string, exceptItemId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("declutter_items")
+    .select("id", { count: "exact", head: true })
+    .eq("seller_id", sellerId)
+    .eq("status", "live")
+    .neq("id", exceptItemId);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+/**
  * The item page's "Similar items" row: other sellers' live listings in the
  * same category, newest first (this seller's own are in the row above).
  */

@@ -17,11 +17,51 @@ interface SourceRow {
   first_posts: number;
 }
 
-/** "facebook" -> "facebook", "direct" -> "Direct (no link)", "other" -> "Other". */
-function sourceLabel(source: string): string {
-  if (source === "direct") return "Direct (no link)";
-  if (source === "other") return "Other";
-  return source;
+/**
+ * The names a person knows for the raw source ids the report keeps (owner's UI audit 11-09, F144: the card showed
+ * "com.google.android.gm" and "mail.google.com"). A source is a utm_source word, the outside site's host name, or an
+ * Android app's package id (the referrer an app's in-app browser sends). Anything not listed shows as recorded.
+ */
+const SOURCE_NAMES: Readonly<Record<string, string>> = {
+  direct: "Direct (no link)",
+  other: "Other",
+  "com.google.android.gm": "Gmail app",
+  "mail.google.com": "Gmail (web)",
+  google: "Google search",
+  "google.com": "Google search",
+  "www.google.com": "Google search",
+  "com.google.android.googlequicksearchbox": "Google app",
+  facebook: "Facebook",
+  fb: "Facebook",
+  "facebook.com": "Facebook",
+  "www.facebook.com": "Facebook",
+  "m.facebook.com": "Facebook",
+  "l.facebook.com": "Facebook",
+  "lm.facebook.com": "Facebook",
+  "com.facebook.katana": "Facebook app",
+  "com.facebook.orca": "Messenger",
+  "messenger.com": "Messenger",
+  instagram: "Instagram",
+  "instagram.com": "Instagram",
+  "www.instagram.com": "Instagram",
+  "l.instagram.com": "Instagram",
+  "com.instagram.android": "Instagram app",
+  nextdoor: "Nextdoor",
+  "nextdoor.com": "Nextdoor",
+  "t.co": "X (Twitter)",
+  "x.com": "X (Twitter)",
+  "twitter.com": "X (Twitter)",
+  "bing.com": "Bing",
+  "www.bing.com": "Bing",
+  "duckduckgo.com": "DuckDuckGo",
+  "outlook.live.com": "Outlook (web)",
+  "com.microsoft.office.outlook": "Outlook app",
+  "mail.yahoo.com": "Yahoo Mail",
+};
+
+/** The name for a source id; an id the map does not know shows as recorded. */
+export function sourceLabel(source: string): string {
+  return SOURCE_NAMES[source] ?? source;
 }
 
 /**
@@ -87,7 +127,7 @@ export function SignupSources() {
               {rows.map((r) => (
                 <tr key={`${r.source}|${r.campaign ?? ""}`}>
                   <td className="py-2.5 min-w-0">
-                    <span className="font-semibold text-foreground break-words">{sourceLabel(r.source)}</span>
+                    <span className="font-semibold text-foreground break-words" title={r.source}>{sourceLabel(r.source)}</span>
                     {r.campaign && <span className="block text-ds-13 text-muted-foreground break-words">{r.campaign}</span>}
                   </td>
                   <td className="py-2.5 text-right tabular-nums">{r.signups}</td>

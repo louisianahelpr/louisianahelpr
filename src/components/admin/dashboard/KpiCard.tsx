@@ -11,6 +11,9 @@ export const computeTrend = (current: number, previous: number): { pct: number; 
   return { pct: Math.abs(pct), up: pct >= 0 };
 };
 
+/** The one change line under a tile's number (F145): 12px semibold, the arrow and the words on one row. */
+const KPI_CHANGE_CLASS = "flex items-center gap-1 text-ds-12 font-semibold tabular-nums mt-1 leading-tight";
+
 export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, sparkline, compareLabel, hint, pending = false }: {
   label: string;
   value: string | number;
@@ -59,30 +62,24 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
           </div>
           <p className="min-w-0 text-ds-12 sm:text-ds-13 font-medium text-muted-foreground leading-tight">{label}</p>
         </div>
-        {trend && (
-          <span className={cn(
-            "shrink-0 text-ds-10 sm:text-ds-11 font-semibold px-1.5 py-0.5 rounded-md flex items-center gap-0.5",
-            trend.up ? "text-primary bg-primary/10" : "text-destructive-ink bg-destructive/10"
-          )}>
-            {trend.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            {trend.pct}%
-          </span>
-        )}
       </div>
       <p className="text-ds-17 sm:text-ds-20 font-bold text-foreground tabular-nums leading-tight">{value}</p>
+      {/* The change, ONCE, under the number and readable (owner's UI audit 11-09, F145): a tiny "12%" pill beside the
+          label used to repeat the "+12% vs prior 7d" line in 10px. */}
       {pending && !trend && compareLabel && (
-        <p data-testid="kpi-compare-reserved" aria-hidden className="text-ds-10 tabular-nums mt-0.5 leading-tight invisible">+0% {compareLabel}</p>
+        <p data-testid="kpi-compare-reserved" aria-hidden className={`${KPI_CHANGE_CLASS} invisible`}>+0% {compareLabel}</p>
       )}
-      {trend && compareLabel && (
-        <p className={cn(
-          "text-ds-10 tabular-nums mt-0.5 leading-tight",
+      {trend && (
+        <p data-testid="kpi-change" className={cn(
+          KPI_CHANGE_CLASS,
           // Full opacity, not /80. The 20% alpha lightened bark to #7f8469,
           // measured 3.88:1 against the card — a fail for 16px text. The
           // alpha bought nothing but a contrast failure; bark at full
           // strength is the same hue, just legible. Same for destructive.
           trend.up ? "text-primary" : "text-destructive-ink",
         )}>
-          {trend.up ? "+" : "−"}{trend.pct}% {compareLabel}
+          {trend.up ? <TrendingUp className="w-3.5 h-3.5 shrink-0" aria-hidden /> : <TrendingDown className="w-3.5 h-3.5 shrink-0" aria-hidden />}
+          <span>{trend.up ? "+" : "−"}{trend.pct}%{compareLabel ? ` ${compareLabel}` : ""}</span>
         </p>
       )}
       {/* A tile that ASKED for a sparkline always gets the lane, even when the

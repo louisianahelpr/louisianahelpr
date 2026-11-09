@@ -6,9 +6,7 @@ import { lazyWithPreload } from "@/lib/lazyWithPreload";
 // Q1816: every lazy piece mounted beside the routes (outside RoutedBoundary) fails quietly; guard chromeLaziesFailQuietly.
 import { optionalLazy } from "@/lib/optionalLazy";
 import { whenPageSettled } from "@/lib/routePrefetch";
-import { SpeedInsightsRouted } from "@/components/SpeedInsightsRouted";
 import { HomeShellLeaves } from "@/components/landing/HomeShellLeaves";
-import { Analytics } from "@vercel/analytics/react";
 
 import QueryCacheHydrator from "@/components/QueryCacheHydrator";
 import DeferredToasters from "@/components/DeferredToasters";
@@ -83,6 +81,8 @@ const PageTransition = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   return <PageTransitionPick key={location.key}>{children}</PageTransitionPick>;
 };
+// Q2705 (11-09): Vercel Analytics + Speed Insights only inject Vercel's async script; off every page's boot (see the module).
+const VercelInsights = optionalLazy(() => import("@/components/VercelInsights"), "VercelInsights");
 const ScrollToTop = optionalLazy(() => import("@/components/ScrollToTop"), "ScrollToTop");
 const MobileNav = optionalLazy(() => import("./components/MobileNav"), "MobileNav");
 const DesktopSidebarNav = optionalLazy(() => import("./components/DesktopSidebarNav"), "DesktopSidebarNav");
@@ -586,12 +586,11 @@ const App = () => (
           <Suspense fallback={null}><PermissionRationaleMount /></Suspense>
           </SidePanelProvider>
           <HomeShellLeaves />
-          <SpeedInsightsRouted />
+          <Suspense fallback={null}><VercelInsights /></Suspense>
         </OfflineBannerLayoutProvider>
         </AppLockGate>
       </BrowserRouter>
       </ForceUpdateGate>
-      <Analytics />
       </LucideProvider>
     </QueryClientProvider>
   </ErrorBoundary>

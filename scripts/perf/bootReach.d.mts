@@ -42,3 +42,5 @@ export function jobsBrowseFirstScreenModules(root: string, split?: { homeOff: Se
 export function profileFirstScreenModules(root: string, split?: { deep: Set<string>; homeOff: Set<string> }): { own: Set<string>; shared: Set<string> };
 export function namedLoaders(src: string): Map<string, string>;
 export function loaderSpecs(text: string, loaders: Map<string, string>): string[];
+export const SUPABASE_CLIENT: string;
+export function clientReachers(root: string): Set<string>;

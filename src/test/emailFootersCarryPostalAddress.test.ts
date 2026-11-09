@@ -12,6 +12,7 @@
  * The rendered proof (Deno, the real react-email render of all 8 marketing emails) is in the commit message.
  *
  */
+// @mutate supabase/functions/_shared/resend.ts | export const POSTAL_ADDRESS = POSTAL_ADDRESS_LITERAL.trim(); | export const POSTAL_ADDRESS = (Deno.env.get("HELPR_POSTAL_ADDRESS") ?? POSTAL_ADDRESS_LITERAL).trim();
 // @mutate supabase/functions/_shared/resend.ts | const POSTAL_ADDRESS_LITERAL = "Louisiana Helpr · 314 Lynn Street, Delcambre, LA 70528"; | const POSTAL_ADDRESS_LITERAL = "";
 // @mutate supabase/functions/_shared/email-templates/components.tsx | the commercial ones (lead 11-09, F167). */}\n    {POSTAL_ADDRESS ? ( | the commercial ones (lead 11-09, F167). */}\n    {false ? (
 // @mutate supabase/functions/_shared/email-templates/drip.tsx |     footer={<MarketingFooter unsubscribeUrl={unsubscribeUrl} />}\n  >\n    <Heading className="e-h1" style={{ ...h1, fontSize: '22px' }}>\n      Welcome to | footer={<p>Unsubscribe: {unsubscribeUrl}</p>}\n  >\n    <Heading className="e-h1" style={{ ...h1, fontSize: '22px' }}>\n      Welcome to
@@ -24,6 +25,12 @@ const ROOT = resolve(__dirname, "..", "..");
 const TEMPLATES = join(ROOT, "supabase/functions/_shared/email-templates");
 const read = (p: string) => blankComments(readFileSync(p, "utf8"));
 const ADDRESS = "Louisiana Helpr · 314 Lynn Street, Delcambre, LA 70528";
+
+function walk(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? (e.name === "node_modules" ? [] : walk(join(dir, e.name))) : [join(dir, e.name)],
+  );
+}
 
 /** The text of the JSX element starting at `start` (`<Tag`), up to its matching `/>` or `</Tag>`, balancing braces. */
 function propsOf(src: string, start: number): string {
@@ -40,6 +47,15 @@ function propsOf(src: string, start: number): string {
 describe("every branded email carries the postal address (F167, CAN-SPAM)", () => {
   it("the one constant holds the owner's address", () => {
     expect(read(join(ROOT, "supabase/functions/_shared/resend.ts"))).toContain(`const POSTAL_ADDRESS_LITERAL = "${ADDRESS}";`);
+  });
+
+  // Lead 11-09: a HELPR_POSTAL_ADDRESS secret is set on prod with a hidden value that matches none of the owner's
+  // spellings, and it used to take precedence over the literal. The literal is the only source: no email code reads it.
+  it("no edge function code reads HELPR_POSTAL_ADDRESS; POSTAL_ADDRESS is the literal alone", () => {
+    const files = walk(join(ROOT, "supabase/functions")).filter((f) => /\.(ts|tsx|mts|js)$/.test(f));
+    expect(files.length).toBeGreaterThan(300);
+    expect(files.filter((f) => /HELPR_POSTAL_ADDRESS/.test(read(f))).map((f) => f.slice(ROOT.length + 1))).toEqual([]);
+    expect(read(join(ROOT, "supabase/functions/_shared/resend.ts"))).toMatch(/export const POSTAL_ADDRESS = POSTAL_ADDRESS_LITERAL\.trim\(\);/);
   });
 
   it("both shared footers render it", () => {

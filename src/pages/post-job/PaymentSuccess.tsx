@@ -28,6 +28,7 @@ import { offerPushAskAfterPostReturn } from "@/hooks/useNotificationPermissionPr
 import { dropDraftPaidAs } from "@/hooks/useDraftJob";
 // The paid-amount sentence (formatPriceExact: a sum ACTUALLY SITTING IN ESCROW) lives in PaidAmountLine.
 import { PaidAmountLine } from "./PaidAmountLine";
+import { GoToDashboardButton } from "./GoToDashboardButton";
 import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { shareNative } from "@/lib/nativeShare";
@@ -585,22 +586,7 @@ const PaymentSuccess = () => {
               Dashboard (owner, 2026-10-08). Collapsed by default; null for a
               category with no materials. Gated on `isHeld`: it presumes a funded job. */}
           {isHeld && category && <MaterialsPanel category={category} className="text-left" />}
-          <Button
-            variant="ghost"
-            onClick={() => {
-              try {
-                safeStorage.removeItem("helpr_last_posted_job_id");
-              } catch {
-                // Silent by design — same convenience pointer as above; a
-                // stale value is handled by every reader.
-              }
-              navigate("/home");
-            }}
-            className="w-full rounded-full"
-            style={{ color: "hsl(var(--bark))" }}
-          >
-            Go to Dashboard
-          </Button>
+          <GoToDashboardButton />
         </div>
 
       </div>

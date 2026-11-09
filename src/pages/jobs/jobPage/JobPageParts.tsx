@@ -52,7 +52,7 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
   helprCancelled?: { name: string | null; at: string } | null;
   /** The poster's review window in words ("23h 52m left, then Helpr support steps in"), in the line itself. */
   approveLeft?: string | null;
-  /** Continue another day (owner 2026-11-01): "Continuing Thu 11/5 at 9 AM · waiting on Yusef" over the tracker's own line. */
+  /** Continue another day (owner 2026-11-01): "Continuing Thu, Nov 5 at 9:00 AM · waiting on Yusef" over the tracker's own line. */
   continueStep?: NextStepValue | null;
   /** The page says the step above the tracker (OnTheWayNow): the tracker draws its bar without repeating the line. */
   hideNext?: boolean;

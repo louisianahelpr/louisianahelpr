@@ -106,12 +106,13 @@ export function DeclutterGuestJoin({ free, offers = true, trades = false }: { fr
           </Button>
         )}
         <Button asChild size="wrap" className="rounded-full px-3">
-          <Link to={signup} data-guest-buy="">{free ? "Ask for it" : "Buy now"}</Link>
+          <Link to={signup} data-guest-buy="">{free ? "Sign up to ask for it" : "Buy now"}</Link>
         </Button>
       </StickyActionBar>
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
-          Free to join. You come back here after.
+          {/* F048 / F059 (owner UI audit 11-09, newest wording): it is SIGNING UP that is free, never read as the item. */}
+          Signing up is free. We'll bring you back to this item.
           {/* The desktop guest bar already has Log in (AUD31-67 follow-up): only a phone gets it here. */}
           {!barShown && <>{" "}<Link to={`/login?redirect=${here(location)}`} className="font-semibold text-foreground underline underline-offset-2">Log in</Link></>}
         </p>

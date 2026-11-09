@@ -106,10 +106,29 @@ describe("the item's join panel does not repeat the bar at desktop width (lead 1
   // @mutate src/components/declutter/DeclutterGuest.tsx |           {!barShown && <>{" "}<Link | {true && <>{" "}<Link
   it("desktop: the item's Make offer / Buy now stay; no logo, no Sign up, no Log in in the panel", () => {
     const join = panel();
-    expect(join).toHaveTextContent("Free to join. You come back here after.");
+    expect(join).toHaveTextContent("Signing up is free. We'll bring you back to this item.");
     expect(within(join).getAllByRole("link").map((a) => a.textContent)).toEqual(["Make offer", "Buy now"]);
     expect(within(join).queryByRole("link", { name: /Log in|Sign up/ })).toBeNull();
     expect(join.querySelector("[data-guest-brand]")).toBeNull();
+  });
+
+  // F048 / F059 (owner UI audit 11-09): a free item's one button says what it does for a guest ("Sign up to ask for
+  // it"), and the line says SIGNING UP is free (under a $3 price "Free to join" / "It's free" read as a free item).
+  // @mutate src/components/declutter/DeclutterGuest.tsx | {free ? "Sign up to ask for it" : "Buy now"} | {free ? "Ask for it" : "Buy now"}
+  // @mutate src/components/declutter/DeclutterGuest.tsx |           Signing up is free. We'll bring you back to this item. |           Free to join. You come back here after.
+  it("F048: a free item gets one real 'Sign up to ask for it' button and the owner's sign-up line, at both widths", () => {
+    for (const desktop of [true, false]) {
+      state.desktop = desktop;
+      const { unmount } = render(<MemoryRouter initialEntries={["/declutter/item/i1"]}><DeclutterGuestJoin free /></MemoryRouter>);
+      const join = document.querySelector("[data-guest-join]") as HTMLElement;
+      const buy = join.querySelector("[data-guest-buy]") as HTMLAnchorElement;
+      expect(buy.textContent, String(desktop)).toBe("Sign up to ask for it");
+      expect(buy.getAttribute("href")).toBe("/signup?redirect=%2Fdeclutter%2Fitem%2Fi1");
+      expect(join.querySelector("[data-guest-offer]")).toBeNull();
+      expect(join).toHaveTextContent("Signing up is free. We'll bring you back to this item.");
+      expect(join.textContent).not.toMatch(/Free to join|It's free/);
+      unmount();
+    }
   });
 
   it("phone: the logo, the item's two buttons and Log in, each coming back to the item", () => {

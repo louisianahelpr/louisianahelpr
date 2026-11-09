@@ -140,6 +140,29 @@ export const POSTED_GROUP_LABEL: Record<ActivityBucket, string> = {
   done: "Done",
   cancelled: "Cancelled",
 };
+/**
+ * F107 (owner UI audit 11-09; owner pick 11-09 "filters inside the existing tabs"; lead 11-09 kept Needs you): the
+ * chips over Jobs > Working are All · Needs you · Applied · Active · Completed. Applied = applications and offers not
+ * hired yet; Active = hired and not finished (booked, waiting on the poster's confirm); Completed = done. Needs you is
+ * the bucket of the same name. Not picked shows under All only. Posted keeps its five bucket chips. Every Working row
+ * is in exactly one chip, or (not picked) in none: activityFilters.workingChip.
+ */
+export const WORKING_CHIPS = ["needs_you", "applied", "active", "completed"] as const;
+export type WorkingChip = (typeof WORKING_CHIPS)[number];
+export const WORKING_CHIP_LABEL: Record<WorkingChip, string> = {
+  needs_you: "Needs you",
+  applied: "Applied",
+  active: "Active",
+  completed: "Completed",
+};
+/** An old Working link's bucket (?filter=scheduled from a notification) as the chip it now lives under; null = All. */
+export function workingChipForFilter(filter: string): string {
+  if (filter === "scheduled") return "active";
+  if (filter === "done") return "completed";
+  if (filter === "waiting" || filter === "cancelled") return "all";
+  return filter;
+}
+
 export const WORKING_GROUP_LABEL: Record<ActivityBucket, string> = {
   needs_you: "Needs you",
   // "Waiting", not "Applied" (owner, 2026-10-23, card critique item 10): submitted work and an arrival waiting on

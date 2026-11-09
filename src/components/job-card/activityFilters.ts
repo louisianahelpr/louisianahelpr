@@ -14,6 +14,9 @@ import {
   BUCKET_LABEL,
   BUCKET_SHORT_LABEL,
   type ActivityBucket,
+  type WorkingChip,
+  WORKING_CHIPS,
+  WORKING_CHIP_LABEL,
 } from "@/lib/activityBuckets";
 
 /**
@@ -81,7 +84,13 @@ const BUCKET_FILTERS: StatusFilter[] = BUCKET_ORDER.map((key) => ({
 }));
 
 export const POSTED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;
-export const APPLIED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;
+/** F107: Working's filters are its chips (All · Needs you · Applied · Active · Completed), not Posted's buckets. */
+export const APPLIED_STATUS_FILTERS: StatusFilter[] = WORKING_CHIPS.map((key) => ({
+  key,
+  label: WORKING_CHIP_LABEL[key],
+  shortLabel: WORKING_CHIP_LABEL[key],
+  color: ALL_FILTER_COLOR,
+}));
 
 /**
  * Which bucket a job I POSTED belongs in.
@@ -401,6 +410,20 @@ export function postedActivityBucket(
   return "waiting";
 }
 
+/**
+ * F107: which Working chip a job I applied to sits under (activityBuckets.WORKING_CHIPS), or null (not picked: All
+ * only). From the bucket, so a chip never disagrees with the card's own "whose move" line: Needs you as is; Done is
+ * Completed; Waiting / Booked split on whether I am hired (an application or an offer still open is Applied; booked
+ * work, or work waiting on the poster's confirm, is Active).
+ */
+export function workingChip(app: AppliedApp): WorkingChip | null {
+  const bucket = appliedActivityBucket(app);
+  if (bucket === "needs_you") return "needs_you";
+  if (bucket === "done") return "completed";
+  if (bucket === "cancelled") return null;
+  return app.status === "accepted" ? "active" : "applied";
+}
+
 /** Which bucket a job I APPLIED to belongs in. */
 export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
   const jobStatus = app.job?.status;
@@ -713,7 +736,8 @@ export function useActivityFilters({
         statusMatch = appliedActivityBucket(a) === statusFilter;
       }
       else if (statusFilter === "all") statusMatch = bucketAppliedApp(a) !== "cancelled";
-      else if (statusFilter === "active") statusMatch = bucketAppliedApp(a) === "active";
+      // F107: the Working chips (Applied / Active / Completed), one rule with their counts below.
+      else if (statusFilter === "applied" || statusFilter === "active" || statusFilter === "completed") statusMatch = workingChip(a) === statusFilter;
       else if (statusFilter === "direct_offer") statusMatch = !!a.job?.offered_to_helper_id && a.job?.offered_to_helper_id === userId && a.job?.direct_offer_status === "pending";
       else if (statusFilter === "pending") statusMatch = a.status === "pending" && a.job?.status !== "cancelled";
       else if (statusFilter === "offered") statusMatch = a.status === "accepted" && a.job?.status === "accepted" && !a.job?.helper_confirmed_at;
@@ -721,7 +745,6 @@ export function useActivityFilters({
       else if (statusFilter === "in_progress") statusMatch = a.status === "accepted" && a.job?.status === "in_progress";
       else if (statusFilter === "disputed") statusMatch = a.status === "accepted" && a.job?.status === "disputed";
       else if (statusFilter === "revision") statusMatch = a.status === "accepted" && a.job?.status === "revision_requested";
-      else if (statusFilter === "completed") statusMatch = a.status === "accepted" && a.job?.status === "completed";
       else if (statusFilter === "not_selected") statusMatch = a.status === "rejected" || a.job?.status === "cancelled";
       if (!statusMatch) return false;
       if (query) {
@@ -756,7 +779,7 @@ export function useActivityFilters({
   }, [appliedApps, statusFilter, searchLower, offerNow]);
 
   const appliedCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: 0, active: 0, pending: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0, needs_you: 0, waiting: 0, scheduled: 0, done: 0, cancelled: 0 };
+    const counts: Record<string, number> = { all: 0, active: 0, applied: 0, pending: 0, direct_offer: 0, offered: 0, accepted: 0, in_progress: 0, revision: 0, completed: 0, disputed: 0, not_selected: 0, needs_you: 0, waiting: 0, scheduled: 0, done: 0, cancelled: 0 };
     appliedApps.forEach((a) => {
       const bucket = bucketAppliedApp(a);
       // The four tab counts. Tallied on their own line, never inside the
@@ -766,10 +789,10 @@ export function useActivityFilters({
       counts[appliedActivityBucket(a)]++;
       // "all" excludes not-selected (rejected / cancelled) — mirrors filteredAppliedApps.
       if (bucket !== "cancelled") counts.all++;
-      // Counted separately from the chain below, not inside it: "active" is a
-      // BUCKET that overlaps several of the single-status counters, so it must
-      // not consume an `else if` branch and steal rows from them.
-      if (bucket === "active") counts.active++;
+      // F107: the Working chips, counted on their own line (they overlap the single-status counters below, so they
+      // must not consume an `else if` branch and steal rows from them). Needs you is the bucket tally above.
+      const chip = workingChip(a);
+      if (chip === "applied" || chip === "active" || chip === "completed") counts[chip]++;
       if (a.job?.offered_to_helper_id === userId && a.job?.direct_offer_status === "pending") counts.direct_offer++;
       if (a.status === "pending" && a.job?.status !== "cancelled") counts.pending++;
       else if (a.status === "accepted" && a.job?.status === "accepted" && !a.job?.helper_confirmed_at) counts.offered++;
@@ -777,7 +800,6 @@ export function useActivityFilters({
       else if (a.status === "accepted" && a.job?.status === "in_progress") counts.in_progress++;
       else if (a.status === "accepted" && a.job?.status === "disputed") counts.disputed++;
       else if (a.status === "accepted" && a.job?.status === "revision_requested") counts.revision++;
-      else if (a.status === "accepted" && a.job?.status === "completed") counts.completed++;
       else if (a.status === "rejected" || a.job?.status === "cancelled") counts.not_selected++;
     });
     return counts;
@@ -825,8 +847,9 @@ export function useActivityFilters({
     if (!searchLower) return counts;
     appliedApps.forEach((a) => {
       if (!appliedAppMatchesSearch(a, searchLower)) return;
-      const b = appliedActivityBucket(a);
-      counts[b] = (counts[b] ?? 0) + 1;
+      // F107: per Working chip, so the search-miss jump lands on a chip that exists.
+      const b = workingChip(a);
+      if (b) counts[b] = (counts[b] ?? 0) + 1;
     });
     return counts;
   }, [appliedApps, searchLower]);

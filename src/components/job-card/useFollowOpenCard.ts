@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { AppliedApp, Job } from "./activityConstants";
-import { appliedActivityBucket, jobIsUnfundedDraft, postedActivityBucket } from "./activityFilters";
+import { jobIsUnfundedDraft, postedActivityBucket, workingChip } from "./activityFilters";
 
 /**
  * AN OPEN CARD FOLLOWS ITS JOB INTO ITS NEW BUCKET (e2e-journeys 41728838626, 11-03).
@@ -48,7 +48,8 @@ export function useFollowOpenCard(opts: {
         if (!jobIsUnfundedDraft(j)) m.set(j.id, postedActivityBucket(j, pendingApplicantCounts?.[j.id] ?? 0));
       }
     } else {
-      for (const a of appliedApps) m.set(a.job_id, appliedActivityBucket(a));
+      // F107: Working follows its chips (not picked: All).
+      for (const a of appliedApps) m.set(a.job_id, workingChip(a) ?? "all");
     }
     return m;
   }, [tab, postedJobs, appliedApps, pendingApplicantCounts]);

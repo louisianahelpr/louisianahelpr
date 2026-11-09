@@ -322,7 +322,8 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
 
   /* Phone row 2 (design audit A J1, owner 11-08): the category chips, from the feed in hand (no read of their own). */
   const phoneBrowseChips = isWebDesktop ? undefined : (
-    <JobCategoryChips jobs={allJobs} value={filters.selectedCategory} onChange={filters.setSelectedCategory} />
+    <JobCategoryChips jobs={allJobs} value={filters.selectedCategory} onChange={filters.setSelectedCategory}
+      saved={{ on: savedOnly, count: savedJobIds.size, onToggle: toggleSavedOnly }} />
   );
 
   const embeddedTitle = (

@@ -18,19 +18,22 @@ vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ gate: (_: string, fn
 import { ActivityEmptyState } from "./ActivityEmptyState";
 import { BOX_BUCKETS, boxLabelledFilters } from "./embeddedActivity";
 import { POSTED_STATUS_FILTERS, APPLIED_STATUS_FILTERS } from "./activityFilters";
-import { POSTED_GROUP_LABEL, WORKING_GROUP_LABEL } from "./ActivityBucketGroups";
+import { POSTED_GROUP_LABEL } from "./ActivityBucketGroups";
+import { WORKING_CHIPS, WORKING_CHIP_LABEL } from "@/lib/activityBuckets";
 
-const COUNTS = { needs_you: 14, waiting: 2, scheduled: 0, done: 22, cancelled: 136 };
+const COUNTS = { needs_you: 14, waiting: 2, scheduled: 0, done: 22, cancelled: 136, applied: 3, active: 4, completed: 5 };
 
 describe("H4: an empty bucket speaks the status boxes' words", () => {
   for (const tab of ["posted", "applied"] as const) {
-    const words: Record<string, string> = tab === "posted" ? POSTED_GROUP_LABEL : WORKING_GROUP_LABEL;
+    // F107 (owner 11-09): Working's boxes are its chips (Needs you · Applied · Active · Completed).
+    const words: Record<string, string> = tab === "posted" ? POSTED_GROUP_LABEL : WORKING_CHIP_LABEL;
+    const boxes: readonly string[] = tab === "posted" ? BOX_BUCKETS : WORKING_CHIPS;
     const filters = boxLabelledFilters(tab, tab === "posted" ? POSTED_STATUS_FILTERS : APPLIED_STATUS_FILTERS);
     it(`${tab}: the filter labels are the box labels`, () => {
-      expect(BOX_BUCKETS.length).toBeGreaterThan(2);
-      for (const k of BOX_BUCKETS) expect(filters.find((f) => f.key === k)?.label).toBe(words[k]);
+      expect(boxes.length).toBeGreaterThan(2);
+      for (const k of boxes) expect(filters.find((f) => f.key === k)?.label).toBe(words[k]);
     });
-    for (const bucket of BOX_BUCKETS) {
+    for (const bucket of boxes) {
       it(`${tab} / ${bucket}: one plain sentence in the box's word, no restated counts`, () => {
         const { unmount } = render(
           <ActivityEmptyState

@@ -40,6 +40,9 @@ export const SHOW_RULE = `[data-lh-landing-shell] #lh-landing-shell${FIXED}`;
 /** What index.html's guest /declutter script draws into a photo slot (same classes; src/boot/guestDeclutterEarly.test.ts). */
 export const DECLUTTER_PHOTO_MARKUP =
   '<div class="relative overflow-hidden aspect-square w-full rounded-2xl bg-photo-empty"><img class="relative h-full w-full object-cover"></div>';
+/** What index.html's item script puts into the item shell's photo bone (same classes; src/boot/declutterItemEarly.test.ts);
+ * the bone itself already wears the gallery frame's classes. */
+export const ITEM_PHOTO_MARKUP = '<img class="h-full w-full object-cover bg-photo-empty">';
 /** src/index.css carries the same rule (src/boot/memberDeclutterEarly.test.ts holds the two equal). */
 export const DECLUTTER_GUEST_JOIN_RULE = "[data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join]{display:block!important}";
 /** F153 (11-09): src/index.css carries the same rule. A guest has no section tabs, so the member tab bones hide. */
@@ -50,16 +53,19 @@ export const SHELLS = [
   { id: "lh-signup-shell", htmlAttr: 'data-lh-auth-shell="signup"', show: `[data-lh-auth-shell="signup"] #lh-signup-shell${FIXED}` },
   // Q2705 B: a signed-in phone's /home (src/test/homeShellMatchesSkeleton.test.tsx).
   // Its greeting slot is filled by index.html's inline script (Q1158), so the drawn h1 and date line count as markup.
-  { id: "lh-home-shell", htmlAttr: 'data-lh-app-shell="home"', show: `[data-lh-app-shell="home"] #lh-home-shell${FIXED}`, extra: GREETING_SHELL_MARKUP },
+  { id: "lh-home-shell", htmlAttr: 'data-lh-app-shell="home"', show: `[data-lh-app-shell="home"] #lh-home-shell${FIXED}`, extra: GREETING_SHELL_MARKUP, phoneOnly: true },
   // Q2705 B: and its /jobs (src/test/jobsShellMatchesSkeleton.test.tsx).
-  { id: "lh-jobs-shell", htmlAttr: 'data-lh-app-shell="jobs"', show: `[data-lh-app-shell="jobs"] #lh-jobs-shell${FIXED}` },
+  { id: "lh-jobs-shell", htmlAttr: 'data-lh-app-shell="jobs"', show: `[data-lh-app-shell="jobs"] #lh-jobs-shell${FIXED}`, phoneOnly: true },
   // Q2705 B: its /messages and /declutter (src/test/messagesDeclutterShellsMatchSkeletons.test.tsx).
-  { id: "lh-messages-shell", htmlAttr: 'data-lh-app-shell="messages"', show: `[data-lh-app-shell="messages"] #lh-messages-shell${FIXED}` },
+  { id: "lh-messages-shell", htmlAttr: 'data-lh-app-shell="messages"', show: `[data-lh-app-shell="messages"] #lh-messages-shell${FIXED}`, phoneOnly: true },
   // Q2705 (11-08): a guest's /declutter shell gets the first card photos drawn into its photo slots by index.html's
   // inline script (src/boot/guestDeclutterEarly.test.ts), so those <img>s and their bare tiles count as markup.
   // Q2705 (11-09): a guest's copy also shows the sign-up line Browse draws above the cards (hidden in the markup;
   // index.html's guest script marks <html> data-lh-declutter-guest), so the drawn photos sit where Browse's land.
-  { id: "lh-declutter-shell", htmlAttr: 'data-lh-app-shell="declutter"', show: `[data-lh-app-shell="declutter"] #lh-declutter-shell${FIXED}${DECLUTTER_GUEST_JOIN_RULE}${DECLUTTER_GUEST_NO_TABS_RULE}`, extra: DECLUTTER_PHOTO_MARKUP },
+  { id: "lh-declutter-shell", htmlAttr: 'data-lh-app-shell="declutter"', show: `[data-lh-app-shell="declutter"] #lh-declutter-shell${FIXED}${DECLUTTER_GUEST_JOIN_RULE}${DECLUTTER_GUEST_NO_TABS_RULE}`, extra: DECLUTTER_PHOTO_MARKUP, phoneOnly: true },
+  // Item page speed (lead 11-09): a phone's /declutter/item/:id frame, with the first photo drawn into its photo bone by
+  // index.html's item script (src/test/itemShellMatchesSkeleton.test.tsx).
+  { id: "lh-item-shell", htmlAttr: 'data-lh-app-shell="item"', show: `[data-lh-app-shell="item"] #lh-item-shell${FIXED}`, extra: ITEM_PHOTO_MARKUP, phoneOnly: true },
 ];
 /**
  * Ceiling on the inlined block, gzip bytes; the build fails above it. This is a cap on what every page's HTML
@@ -68,6 +74,24 @@ export const SHELLS = [
  * (2026-11-05 build of 8acdf7446d + this change).
  */
 export const MAX_INLINE_BYTES = 8_500;
+/**
+ * `phoneOnly` shells (above) are shown by index.html's scripts only below the desktop website's 900px
+ * (`window.innerWidth >= 900` returns before any of them is shown; src/test/shellCriticalCss.test.ts reads each script).
+ * A rule inside an `@media (min-width: >= DESKTOP_PX)` block can never apply to them, so it is kept only when a shell
+ * that can show at that width (the landing, /login, /signup) needs it (item page speed, 11-09: the item shell's
+ * desktop grid rules alone would have put the block over its cap).
+ */
+export const DESKTOP_PX = 900;
+/** The smallest min-width (px) among the at-rules wrapping `node`, or 0 when none sets one. */
+function minWidthAbove(node) {
+  let px = 0;
+  for (let p = node.parent; p; p = p.parent) {
+    if (p.type !== "atrule" || p.name !== "media") continue;
+    const m = /min-width:\s*(\d+(?:\.\d+)?)px/.exec(p.params);
+    if (m && !/max-width|\bor\b|,/.test(p.params)) px = Math.max(px, Number(m[1]));
+  }
+  return px;
+}
 
 /** The markup of the shell with this id in `html` (start of its div up to its end marker), or null when absent. */
 export function shellBlock(html, id) {
@@ -128,6 +152,7 @@ export function selectorNeeded(sel, docs) {
 export function shellCriticalCss(shellHtml, css) {
   const shells = typeof shellHtml === "string" ? [{ html: shellHtml, htmlAttr: SHELLS[0].htmlAttr }] : shellHtml;
   const docs = shells.flatMap((s) => shellDocuments(s.html, s.htmlAttr));
+  const wideDocs = shells.filter((s) => !s.phoneOnly).flatMap((s) => shellDocuments(s.html, s.htmlAttr));
   const root = postcss.parse(css);
   root.walkAtRules((at) => {
     // Animations are not part of a first frame.
@@ -138,7 +163,8 @@ export function shellCriticalCss(shellHtml, css) {
   // Inside :not() it is the other way round: ".x:not(:focus-visible)" applies at first frame, so it is judged as before.
   const dynamic = (s) => new RegExp(DYNAMIC.source).test(s.replace(/:not\([^()]*\)/g, ""));
   root.walkRules((rule) => {
-    const keep = rule.selectors.filter((s) => !dynamic(s) && selectorNeeded(s, docs));
+    const at = minWidthAbove(rule) >= DESKTOP_PX ? wideDocs : docs;
+    const keep = rule.selectors.filter((s) => !dynamic(s) && selectorNeeded(s, at));
     if (keep.length === 0) rule.remove();
     else rule.selectors = keep;
   });

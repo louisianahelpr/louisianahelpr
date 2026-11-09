@@ -193,6 +193,9 @@ export function DeclutterBrowseBones({ map = false, full = false }: { map?: bool
  * Q1837 (loading-states run 41949893912, helper, its own draft item): the frame is the real page's. Same header
  * (back + help, title only for screen readers, pinned: DeclutterItemView's AppPage props), the same grid, and ONE
  * photo bone in the gallery's own frame (a strip of two 80% bones stood in for one full-width square).
+ * Item page speed (lead 11-09): index.html draws this frame on a phone (#lh-item-shell) and puts the item's first
+ * photo into the bone marked data-item-photo-bone; data-item-loading tells itemShell.ts the page is still loading.
+ * src/test/itemShellMatchesSkeleton.test.tsx holds the HTML copy byte-equal.
  */
 export function DeclutterItemSkeleton() {
   // The details card reserves the rest of the screen (owner ruling 2026-09-19: "SKELETON FILLS THE SCREEN, GROWS
@@ -200,9 +203,9 @@ export function DeclutterItemSkeleton() {
   const { ref: columnRef, reserve } = useScreenfulBelow();
   return (
     <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle stickyHeader>
-      <div className="lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8" role="status" aria-label="Loading the item">
+      <div className="lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8" role="status" aria-label="Loading the item" data-item-loading="">
         <div>
-          <Skeleton className={`${ITEM_PHOTO_FRAME_BASE} ${ITEM_PHOTO_ASPECT.item}`} />
+          <Skeleton data-item-photo-bone="" className={`${ITEM_PHOTO_FRAME_BASE} ${ITEM_PHOTO_ASPECT.item}`} />
         </div>
         <div ref={columnRef} className="mt-4 lg:mt-0 min-w-0 space-y-5">
           <Skeleton className="h-52 w-full rounded-2xl" style={{ minHeight: reserve }} aria-hidden />

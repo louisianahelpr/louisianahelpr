@@ -239,6 +239,8 @@ if (document.documentElement.getAttribute("data-lh-app-shell") !== "home") docum
 if (document.documentElement.getAttribute("data-lh-app-shell") !== "jobs") document.getElementById("lh-jobs-shell")?.remove();
 if (document.documentElement.getAttribute("data-lh-app-shell") !== "messages") document.getElementById("lh-messages-shell")?.remove();
 if (document.documentElement.getAttribute("data-lh-app-shell") !== "declutter") document.getElementById("lh-declutter-shell")?.remove();
+// Item page speed (lead 11-09): and a phone's item page frame (#lh-item-shell; src/test/itemShellMatchesSkeleton.test.tsx).
+if (document.documentElement.getAttribute("data-lh-app-shell") !== "item") document.getElementById("lh-item-shell")?.remove();
 
 if (bounceToNativeAppIfReturning()) {
   // A scheme navigation is in flight; rendering now would only paint a screen

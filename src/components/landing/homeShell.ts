@@ -11,12 +11,15 @@ export const JOBS_SHELL_ID = "lh-jobs-shell";
 /** Q2705 B: the signed-in /messages and /declutter skeletons (#lh-messages-shell, #lh-declutter-shell). */
 export const MESSAGES_SHELL_ID = "lh-messages-shell";
 export const DECLUTTER_SHELL_ID = "lh-declutter-shell";
+/** Item page speed (lead 11-09): a phone's /declutter/item/:id loading frame (#lh-item-shell). */
+export const ITEM_SHELL_ID = "lh-item-shell";
 
 export function dropHomeShell(doc: Document = document): void {
   doc.getElementById(HOME_SHELL_ID)?.remove();
   dropJobsShell(doc);
   doc.getElementById(MESSAGES_SHELL_ID)?.remove();
   doc.getElementById(DECLUTTER_SHELL_ID)?.remove();
+  doc.getElementById(ITEM_SHELL_ID)?.remove();
 }
 
 export function dropJobsShell(doc: Document = document): void {

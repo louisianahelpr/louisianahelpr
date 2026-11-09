@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { DeclutterGate } from "@/components/declutter/declutterUi";
 import { DeclutterItemSkeleton, DeclutterItemUnavailable, isItemId } from "@/components/declutter/DeclutterSkeletons";
 import ItemView from "@/components/declutter/DeclutterItemView";
+import { releaseItemShell } from "@/components/declutter/itemShell";
 import { fetchItem, fetchPhotos } from "@/lib/declutter/api";
 
 /** /declutter/item/:id: the 404 unless the hidden 'declutter' switch is on (DeclutterGate). */
@@ -18,5 +19,8 @@ export default function DeclutterItemPage() {
     void qc.prefetchQuery({ queryKey: ["declutter", "item", id], queryFn: () => fetchItem(id) });
     void qc.prefetchQuery({ queryKey: ["declutter", "item-photos", id], queryFn: () => fetchPhotos([id]) });
   }, [id, qc]);
+  // Item page speed (lead 11-09): index.html's phone frame (#lh-item-shell, with the first photo drawn in) stays until
+  // the gallery's first photo is complete under it (itemShell.ts).
+  useEffect(() => releaseItemShell(), []);
   return <DeclutterGate skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />}>{id ? <ItemView itemId={id} /> : null}</DeclutterGate>;
 }

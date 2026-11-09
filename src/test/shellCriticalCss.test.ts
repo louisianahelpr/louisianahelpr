@@ -21,11 +21,14 @@
  * @mutate scripts/inline-shell-css.mjs |   root.walkDecls((d) => { if (d.prop.startsWith("--") && !used.has(d.prop)) d.remove(); }); |
  * @mutate scripts/inline-shell-css.mjs | for (const n of refs(v)) if (!used.has(n)) { used.add(n); queue.push(n); } | {}
  * @mutate package.json | node scripts/inline-shell-css.mjs && node scripts/build-og-shell.mjs | node scripts/build-og-shell.mjs
+ * Item page speed (11-09): a phone-only shell never needs a desktop (min-width >= 900px) rule.
+ * @mutate scripts/inline-shell-css.mjs |     const at = minWidthAbove(rule) >= DESKTOP_PX ? wideDocs : docs; |     const at = docs;
+ * @mutate scripts/inline-shell-css.mjs | extra: ITEM_PHOTO_MARKUP, phoneOnly: true }, | extra: ITEM_PHOTO_MARKUP },
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { inlineShellCss, SHELL_END, SHELL_START, shellCriticalCss, shellVocabulary } from "../../scripts/inline-shell-css.mjs";
+import { DESKTOP_PX, inlineShellCss, SHELL_END, SHELL_START, SHELLS, shellCriticalCss, shellVocabulary } from "../../scripts/inline-shell-css.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const INDEX = readFileSync(join(ROOT, "index.html"), "utf8");
@@ -98,6 +101,33 @@ describe("the landing shell's own CSS rides in the HTML (Q2705)", () => {
     expect(out).not.toContain("@keyframes");
     expect(out, "a token read through another token stays").toContain(":root{--chain-a-xyz:var(--chain-b-xyz);--chain-b-xyz:3px}");
     expect(out, "a token nothing in the first frame reads goes (it kept the block over its byte cap)").not.toContain("--unused-token-xyz");
+  });
+
+  it("keeps a desktop rule only for a shell that can show on the desktop website (item page speed, 11-09)", () => {
+    const sheet = [
+      "@media (min-width:900px){.lg\\:grid{display:grid}.lg\\:mt-7{margin-top:1.75rem}}",
+      "@media (min-width:640px){.sm\\:pt-6{padding-top:1.5rem}}",
+      ".mt-4{margin-top:1rem}",
+    ].join("");
+    const wide = { html: '<div class="lg:mt-7"></div>', htmlAttr: 'data-lh-landing-shell=""' };
+    const phone = { html: '<div class="lg:grid sm:pt-6 mt-4"></div>', htmlAttr: 'data-lh-app-shell="item"' };
+    const out = shellCriticalCss([wide, { ...phone, phoneOnly: true }], sheet);
+    expect(out, "a phone-only shell's desktop rule goes").not.toContain("display:grid");
+    expect(out, "a wide shell's desktop rule stays").toContain(".lg\\:mt-7{margin-top:1.75rem}");
+    expect(out, "a phone-only shell's small-tablet rule stays").toContain(".sm\\:pt-6{padding-top:1.5rem}");
+    expect(out).toContain(".mt-4{margin-top:1rem}");
+    expect(shellCriticalCss([wide, phone], sheet), "the same shell, not phone-only").toContain("display:grid");
+  });
+
+  it("every shell an app page shows is phone-only, and every script that shows one stops at the desktop width", () => {
+    const appShells = SHELLS.filter((s: { htmlAttr: string }) => s.htmlAttr.startsWith("data-lh-app-shell="));
+    expect(appShells.length).toBeGreaterThan(4);
+    for (const s of appShells as { id: string; phoneOnly?: boolean }[]) expect(s.phoneOnly, s.id).toBe(true);
+    for (const s of SHELLS as { id: string; htmlAttr: string; phoneOnly?: boolean }[]) if (!s.htmlAttr.startsWith("data-lh-app-shell=")) expect(s.phoneOnly, s.id).toBeUndefined();
+    const scripts = [...INDEX.replace(/<!--[\s\S]*?-->/g, "").matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+    const showing = scripts.filter((b) => /setAttribute\("data-lh-app-shell"/.test(b));
+    expect(showing.length).toBeGreaterThan(2);
+    for (const b of showing) expect(b, b.slice(0, 120)).toMatch(new RegExp(`window\\.innerWidth (?:>= ${DESKTOP_PX}|< ${DESKTOP_PX})`));
   });
 
   it("writes them with the show rule into <head>, once", () => {

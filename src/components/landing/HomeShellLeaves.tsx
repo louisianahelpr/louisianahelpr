@@ -1,12 +1,15 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { DECLUTTER_SHELL_ID, dropJobsShell, HOME_SHELL_ID, MESSAGES_SHELL_ID } from "./homeShell";
+import { DECLUTTER_SHELL_ID, dropJobsShell, HOME_SHELL_ID, ITEM_SHELL_ID, MESSAGES_SHELL_ID } from "./homeShell";
+
+/** The route index.html draws #lh-item-shell on (its inline script's own test). */
+const ITEM_ROUTE = /^\/declutter\/item\/[0-9a-f-]{36}\/?$/i;
 
 /**
  * Q2705 B: index.html draws a signed-in phone's /home skeleton (#lh-home-shell) before the app arrives, and
  * HomeDashboard takes it away once its greeting is painted. When the app lands anywhere else instead (an expired
  * session sent to /login, a /home link forwarded to the job feed, the member tapping away), nothing on /home will
- * ever mount, so this removes it as soon as the route is not /home; the /jobs, /messages and /declutter skeletons likewise. Guard: src/test/homeShellMatchesSkeleton.test.tsx.
+ * ever mount, so this removes it as soon as the route is not /home; the /jobs, /messages and /declutter skeletons likewise, and the item page's frame (#lh-item-shell) off an item page. Guard: src/test/homeShellMatchesSkeleton.test.tsx.
  */
 export function HomeShellLeaves() {
   const { pathname } = useLocation();
@@ -15,6 +18,7 @@ export function HomeShellLeaves() {
     if ((pathname.replace(/\/+$/, "") || "/") !== "/jobs") dropJobsShell();
     if ((pathname.replace(/\/+$/, "") || "/") !== "/messages") document.getElementById(MESSAGES_SHELL_ID)?.remove();
     if ((pathname.replace(/\/+$/, "") || "/") !== "/declutter") document.getElementById(DECLUTTER_SHELL_ID)?.remove();
+    if (!ITEM_ROUTE.test(pathname)) document.getElementById(ITEM_SHELL_ID)?.remove();
   }, [pathname]);
   return null;
 }

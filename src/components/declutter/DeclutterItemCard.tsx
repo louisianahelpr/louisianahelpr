@@ -114,7 +114,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
             src={photoStage === "card" ? photoCardUrl(photoPath) : photoPublicUrl(photoPath)}
             srcSet={photoStage === "card" ? cardPhotoSrcSet(photoPublicUrl(photoPath), photoCardUrl(photoPath), CARD_PHOTO_PX) : undefined}
             sizes={photoStage === "card" ? CARD_PHOTO_SIZES : undefined}
-            alt=""
+            alt={item.title}
             width={CARD_PHOTO_PX}
             height={CARD_PHOTO_PX}
             decoding="async"

@@ -17,7 +17,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { JOB_CATEGORY_VALUES, skillChipLabel } from "@/lib/jobCategories";
 import { directoryCardFacts, type DirectoryHelpr, type DirectoryStats } from "./findHelprsModel";
@@ -52,7 +51,8 @@ async function fetchDirectory(skill: string, town: string): Promise<{ helprs: Di
 }
 
 export default function FindHelprs() {
-  usePageTitle("Find a Helpr");
+  // The tab reads "Find a Helpr — Helpr": AppPage names it (F137, owner UI audit 11-09); a bare title here ran after
+  // AppPage's and dropped the "— Helpr". Guard: src/test/pageTitlesEndInHelpr.test.ts.
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const skill = params.get("skill") ?? "";

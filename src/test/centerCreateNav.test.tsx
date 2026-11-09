@@ -61,7 +61,9 @@ vi.mock("@/integrations/supabase/client", async () => (await import("./helpers/e
 const toasts = vi.hoisted(() => [] as string[]);
 const age = vi.hoisted(() => ({ under: false, explained: [] as string[] }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
-vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
+// F134 sets an answer (Shops and Homes open to testers only) to check the Create sheet's greyed preview buttons.
+const openAll = vi.hoisted(() => ({ set: null as ReadonlySet<string> | null }));
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => openAll.set }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: (key: string) => switches.on.has(key),
   useFeatureStatus: (key: string) => ({ on: switches.on.has(key), settled: true }),
@@ -331,6 +333,31 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
     expect(toasts).toEqual(["Homes is coming soon"]);
     fireEvent.click(action("shops"));
     expect(where()).toBe("/shops/mine");
+  });
+
+  // F134 (owner UI audit 11-09): "Open a shop" and "List for rent" were solid olive under a "Coming soon" mark.
+  // @mutate src/components/create/CreateSheet.tsx |             const soon = on && isPreview(s); |             const soon = false;
+  it("a section open to testers only keeps its 'Coming soon' mark and its buttons are grey and disabled (F134)", () => {
+    openAll.set = new Set(["declutter"]);
+    try {
+      renderDock();
+      openSheet();
+      for (const key of ["shops", "homes"]) {
+        expect(row(key).textContent).toContain("Coming soon");
+        const btn = action(key);
+        expect(btn.getAttribute("aria-disabled")).toBe("true");
+        expect(btn.className).not.toContain("btn-grad-primary");
+        expect(btn.className).toContain("text-muted-foreground");
+      }
+      fireEvent.click(action("shops"));
+      expect(where()).toBe("/home");
+      expect(toasts).toEqual(["Shops is coming soon"]);
+      // Jobs and Declutter (open to everyone) stay live.
+      expect(action("jobs").className).toContain("btn-grad-primary");
+      expect(action("declutter").getAttribute("aria-disabled")).toBeNull();
+    } finally {
+      openAll.set = null;
+    }
   });
 
   it("Customize: a hidden section has no row", () => {

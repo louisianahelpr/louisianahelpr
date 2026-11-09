@@ -114,6 +114,9 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
         <ul className="mt-4 liquid-glass overflow-hidden">
           {visible.map((s, i) => {
             const on = isOn(s);
+            // F134 (owner UI audit 11-09): a section open only to testers wears "Coming soon", so its buttons must not
+            // look live: they are drawn grey and disabled, and a tap says it is coming soon.
+            const soon = on && isPreview(s);
             const Icon = s.icon;
             return (
               <li
@@ -140,6 +143,20 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                   <div className="flex flex-col items-start gap-1">
                   <div className="flex flex-wrap gap-2">
                     {actions[s.key].map((a, j) => (
+                      soon ? (
+                        <button
+                          key={a.label}
+                          type="button"
+                          aria-disabled
+                          data-create-action={`${s.key}:${j}`}
+                          data-create-action-soon=""
+                          onClick={() => sayComingSoon(s.label)}
+                          className="rounded-full min-h-11 px-3 min-[360px]:px-4 text-ds-13 min-[360px]:text-ds-14 font-semibold border text-muted-foreground cursor-not-allowed"
+                          style={{ borderColor: "hsl(var(--border))", background: "hsl(var(--muted))" }}
+                        >
+                          {a.label}
+                        </button>
+                      ) : (
                       <button
                         key={a.label}
                         type="button"
@@ -154,6 +171,7 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                       >
                         {a.label}
                       </button>
+                      )
                     ))}
                   </div>
                   </div>

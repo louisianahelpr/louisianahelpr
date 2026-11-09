@@ -276,10 +276,10 @@ describe("/help dispute answer matches the cards (VN-28)", () => {
 // Proof this guard can fail: /help#faq-<topic> is a real destination — the shape
 // a support reply pastes. Dropping the `targeted` term leaves the anchor inert:
 // the page loads with every section shut and nothing scrolled to.
-// @mutate src/pages/info/HelpCenter.tsx | const open = manualOpen \|\| (targeted && !dismissed); | const open = manualOpen;
+// @mutate src/pages/info/HelpCenter.tsx | const open = searching \|\| manualOpen \|\| (targeted && !dismissed); | const open = searching \|\| manualOpen;
 
 // Q2259 S8: the shipping answers show only where declutter_shipping is on; elsewhere "Shipping isn't offered." stays.
-// @mutate src/pages/info/HelpCenter.tsx | const sections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS; | const sections = FAQ_SECTIONS;
+// @mutate src/pages/info/HelpCenter.tsx | const allSections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS; | const allSections = FAQ_SECTIONS;
 describe("/help Declutter shipping answers follow the switch", () => {
   const open = async () => {
     window.history.replaceState({}, "", "/help#faq-declutter");

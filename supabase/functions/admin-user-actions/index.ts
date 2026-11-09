@@ -604,6 +604,9 @@ serve(async (req) => {
     }
 
     if (action === 'formal_warning') {
+      // F191: both rules are real and apply side by side (this count reads every warning row, automatic ones too); the
+      // strike emails say the automatic rule exists.
+      const AUTO_FLAGS_SEPARATE = 'An automatic rule also applies alongside these strikes: if our system flags two problems on your account within 7 days, your account is suspended for 7 days.'
       // 3-strike system: 1st = warning, 2nd = final warning (banner shown in app), 3rd = 7-day auto-suspension
       // Count prior strikes (warning + final_warning) to determine escalation tier
       // Fail CLOSED on a read fault. The error used to be dropped, and that is
@@ -635,7 +638,7 @@ serve(async (req) => {
       let cancelBidsAfterStrike = false
       let banStatusUpdate: any = { ban_status: 'warned' }
       let notifTitle = 'Formal warning (Strike 1 of 3)'
-      let notifMsg = note || 'You\'ve received a formal warning for a platform rule violation. Please review the platform rules.'
+      let notifMsg = (note || 'You\'ve received a formal warning for a platform rule violation. Please review the platform rules.') + ' An automatic 7-day rule also applies.'
       let emailSubject = 'Helpr — Formal warning issued'
       let emailHeading = 'Formal warning (Strike 1 of 3)'
       let emailPreheader = 'A formal warning has been issued on your Helpr account (strike 1 of 3).'
@@ -649,6 +652,10 @@ serve(async (req) => {
           'This is your ',
           { b: '1st strike' },
           '. A 2nd strike will trigger a final warning banner across the app; a 3rd will result in a 7-day account suspension.',
+          // F191 (owner UI audit 11-09, wording only): the automatic ladder (auto_restrict_repeat_violators) is real
+          // and applies alongside these strikes; its notices now say so too (20261109192930).
+          ' ',
+          AUTO_FLAGS_SEPARATE,
         ],
       }
 
@@ -656,7 +663,7 @@ serve(async (req) => {
         actionTaken = 'final_warning'
         banStatusUpdate = { ban_status: 'final_warning' }
         notifTitle = 'Final warning (Strike 2 of 3)'
-        notifMsg = (note || 'You\'ve received a final warning.') + ' One more violation will result in a 7-day suspension. A warning banner will appear at the top of your app.'
+        notifMsg = (note || 'You\'ve received a final warning.') + ' One more violation will result in a 7-day suspension. A warning banner will appear at the top of your app. An automatic 7-day rule also applies.'
         emailSubject = 'Helpr — FINAL warning'
         emailHeading = 'Final warning (Strike 2 of 3)'
         emailPreheader = 'This is a final warning on your Helpr account — one more violation means a 7-day suspension.'
@@ -665,6 +672,8 @@ serve(async (req) => {
           body: [
             { b: 'This is your final warning.' },
             ' One more violation will result in an automatic 7-day suspension. A warning banner is now visible at the top of your app.',
+            ' ',
+            AUTO_FLAGS_SEPARATE,
           ],
         }
       } else if (strikeNumber >= 3) {

@@ -51,8 +51,12 @@ describe("the Declutter map while it loads", () => {
     expect(first.getByRole("status").textContent).toContain("Loading map…");
     first.unmount();
     kit.status = "ready";
+    built.length = 0;
     const ready = mount(true);
-    await waitFor(() => expect(ready.queryByText("Loading map…")).toBeNull());
+    // Wait for the map to be BUILT (a present thing), then the panel must be gone: waiting for the panel's absence alone
+    // passes on the first poll (waitForEmptyIsVacuous).
+    await waitFor(() => expect(built).toHaveLength(1));
+    expect(ready.queryByText("Loading map…")).toBeNull();
     ready.unmount();
     built.length = 0;
   });

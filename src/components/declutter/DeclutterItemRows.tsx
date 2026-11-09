@@ -15,6 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchNewestItems, fetchPhotos, fetchSellerItems, fetchSimilarItems, fetchSoldItemCard, type DeclutterItem } from "@/lib/declutter/api";
 import { listingPhotoUrl } from "@/lib/profileLink/api";
 import { FallbackImg } from "./FallbackImg";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
+import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { milesBetween } from "@/lib/declutter/distance";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 
@@ -84,6 +86,8 @@ export function SoldItemCard({ itemId }: { itemId: string }) {
   return (
     <section data-sold-item="" aria-label={`${title}, sold`} className="mb-4 flex items-center gap-4 rounded-[20px] border border-border bg-card p-3">
       <span className="relative block h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
+        {/* The card answers no category: the default glyph, toned by the title (photoPlaceholderEverywhere). */}
+        <PhotoPlaceholder icon={categoryIcon(null)} seed={title} className="absolute inset-0 h-full w-full" />
         {photo_id && <FallbackImg src={listingPhotoUrl(photo_id, 240)} alt={title} width={240} height={240} className="h-full w-full object-cover opacity-80 grayscale" />}
       </span>
       <span className="min-w-0">

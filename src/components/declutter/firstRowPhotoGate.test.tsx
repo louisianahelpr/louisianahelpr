@@ -8,7 +8,7 @@
  * @mutate src/components/declutter/firstRowPhotoGate.ts |     if (pending <= 0) openGate();\n  }; |   };
  * @mutate src/components/declutter/firstRowPhotoGate.ts |   if (!timer) timer = setTimeout(openGate, MAX_WAIT_MS); |
  * @mutate src/components/declutter/firstRowPhotoGate.ts |       if (pending <= 0) openGate();\n    }, 0); |     }, 0);
- * @mutate src/components/declutter/DeclutterItemCard.tsx |             onLoad={photoSettled}\n |
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | const photoLoadedNow = () => { setPhotoLoaded(true); photoSettled(); }; | const photoLoadedNow = () => { setPhotoLoaded(true); };
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, cleanup, fireEvent, act } from "@testing-library/react";

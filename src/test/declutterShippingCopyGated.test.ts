@@ -63,7 +63,7 @@ describe("Declutter shipping copy (S8), only where shipping is on", () => {
   it("HelpCenter and the Terms read the switch and keep the not-offered line when it is off", () => {
     const help = src("src/pages/info/HelpCenter.tsx");
     expect(help).toContain('const shippingOn = useFeature("declutter_shipping");');
-    expect(help).toContain("const sections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS;");
+    expect(help).toContain("const allSections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS;");
     expect(help).toContain("{sections.map((section) => (");
     expect(help).not.toContain("{FAQ_SECTIONS.filter(");
     const terms = src("src/pages/info/legal/TermsSection.tsx");

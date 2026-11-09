@@ -14,6 +14,7 @@ import GuestBrowseSkeleton, { GUEST_FEED_GRID_CLASS, GUEST_FEED_RESERVE_CLASS } 
 import { GuestEmptyStateActions } from "@/components/dashboard/GuestEmptyStateActions";
 import JobCard from "@/components/dashboard/JobCard";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
+import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/BrowseSearchBar";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 // Lazy-load the map so the map chunk (and Apple's MapKit JS script) only
 // loads when guests actually toggle to map view. List view stays cheap.
@@ -195,6 +196,9 @@ const DashboardGuest = () => {
     // pay sorts must use the same one or the order won't match the numbers.
     effectiveFee: TIER_PERKS.free.platformFeePercent,
   });
+  // F070: the field shows once the visit came with ?q= and stays for it, even emptied (its X closes it).
+  const [arrivedWithSearch] = useState(() => !!filters.searchQuery);
+  const shownSearch = arrivedWithSearch && filters.searchOpen;
 
   // Held until the session answer is in; a signed-in visitor is sent to /home (useGuestSessionCheck).
   const sessionChecked = useGuestSessionCheck(navigate);
@@ -292,6 +296,8 @@ const DashboardGuest = () => {
   // for guests. Identical on both shells; only the surrounding chrome
   // differs.
   const toolbar = (
+    <>
+    {shownSearch && <BrowseSearchBar filters={filters} autoFocus={false} className="!w-full mb-3" />}
     <BrowseTasksToolbar
       // Same anchor the Filters button carries, so the desktop-web popover
       // opens against it instead of floating.
@@ -310,6 +316,7 @@ const DashboardGuest = () => {
       setView={setView}
       onClearAllFilters={scrollFeedToTop}
     />
+    </>
   );
 
   const mapView = (
@@ -493,24 +500,11 @@ const DashboardGuest = () => {
             emblemTo="/"
             // No `status` — the live-job pill is a signed-in thing.
             //
-            // NO SEARCH, NO FILTERS on the guest feed (owner, 2026-09-11:
-            // "just remove the filters here and the search. its not needed").
-            // This REVERSES the 2026-09-07 decision that put them here
-            // ("/browse can have the filters"), and the reversal is deliberate
-            // — the argument recorded for adding them was that the filter
-            // sheet, the sort control and the List/Map toggle were already
-            // mounted and unreachable without an entry point. That is true and
-            // is no longer a reason: the owner's answer is that a signed-out
-            // visitor does not need to refine a preview at all.
-            //
-            // Consequence, recorded rather than discovered later: the filter
-            // sheet, the sort control and the List/Map toggle are once again
-            // mounted with no way to open them on this surface, so `view` is
-            // effectively pinned to "list" and the browse map is unreachable
-            // for guests. That is the owner's call, the same one made on
-            // 2026-08-19, not an oversight. Restoring any of it means putting
-            // an entry point back in this row — not re-adding an inline chip
-            // row.
+            // No search icon and no filters in the guest title bar (owner, 2026-09-11: "just remove the filters here and
+            // the search. its not needed"), so the filter sheet, sort and List/Map toggle stay unreachable for guests and
+            // `view` is pinned to "list" (owner 2026-08-19 too). EXCEPTION (owner UI audit 11-09 F070, lead decision 11-09:
+            // the audit wins): a guest who ARRIVES with a search (/browse?q=yard, from the landing page) gets a search
+            // field with the term in it above the list (`toolbar` below), so a search with no results can try another word.
             trailing={<GuestAuthActions onLogin={() => navigate("/login")} onSignup={() => navigate("/signup")} />}
           />
         }

@@ -23,6 +23,11 @@
  * F005: the footer's Facebook (bright blue) and Instagram (rainbow gradient) chips were off brand. Every social chip is
  * the olive monochrome chip (olivewood fill, parchment glyph), with no brand colour or gradient of its own.
  * @mutate src/components/Footer.tsx | rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:brightness-110"\n              aria-label="Follow us on Facebook | rounded-full bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:brightness-110"\n              aria-label="Follow us on Facebook
+ *
+ * F006: the footer's links and tagline were 11px, and the links 16px tall tap targets. They are 13px, and every link
+ * has a 44px tall tap area on a touch screen (pointer: coarse).
+ * @mutate src/components/Footer.tsx | const FOOTER_LINK = "link-standard inline-flex items-center [@media(pointer:coarse)]:min-h-11"; | const FOOTER_LINK = "link-standard";
+ * @mutate src/components/Footer.tsx |           <p className="text-ds-13 text-[hsl(var(--olivewood))]/80 max-w-xs | <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-xs
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -132,6 +137,22 @@ describe("landing UI audit 2026-11-09", () => {
       expect(a.className, label).not.toMatch(/--facebook|text-white/);
       expect(a.style.backgroundImage, label).toBe("");
     }
+    unmount();
+  });
+
+  it("F006: footer links and tagline are 13px, and every link has a 44px tap area on touch", () => {
+    const { container, unmount } = render(<MemoryRouter><Footer /></MemoryRouter>);
+    const links = [...container.querySelectorAll<HTMLAnchorElement>("footer ul a")];
+    // Jobs, Declutter, Help center, Contact us, Terms, Rules, Privacy.
+    expect(links.length).toBeGreaterThan(6);
+    for (const a of links) {
+      expect(a.closest("ul")!.className, a.textContent!).toContain("text-ds-13");
+      expect(a.className.split(" "), a.textContent!).toContain("[@media(pointer:coarse)]:min-h-11");
+      expect(a.className.split(" "), a.textContent!).toContain("inline-flex");
+    }
+    const tagline = [...container.querySelectorAll("footer p")].find((p) => /for Louisiana\.$/.test(p.textContent ?? ""))!;
+    expect(tagline.className).toContain("text-ds-13");
+    expect(container.innerHTML).not.toMatch(/<(ul|a)[^>]*text-ds-11/);
     unmount();
   });
 

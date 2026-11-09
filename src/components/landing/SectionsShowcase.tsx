@@ -6,6 +6,7 @@ import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig"
 import { APPROVAL_WINDOW_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
 import { useSectionsOpen, sectionIsComingSoon } from "./useSectionsOpen";
 import { goSignedInOr } from "./goSignedInOr";
+import { whenPageSettled } from "@/lib/routePrefetch";
 
 const LandingAppleButton = lazy(() => import("./LandingAppleButton"));
 
@@ -185,12 +186,31 @@ const TRUST: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: MapPin, title: "Made in Louisiana", body: "Built in Louisiana, for every parish in it." },
 ];
 
+/** Holds the Apple button's place (same box and label, invisible) until its chunk has loaded (F016). */
+function AppleSlot() {
+  return (
+    <span
+      aria-hidden
+      className="invisible inline-flex items-center justify-center gap-2 h-14 w-full sm:w-auto px-7 rounded-full text-ds-15 font-semibold border"
+      data-testid="landing-apple-slot"
+    >
+      <span className="w-[18px] h-[18px]" />
+      Continue with Apple
+    </span>
+  );
+}
+
 /** The money band + the join block. "Create your free account" is the close's one primary. */
 export function TrustAndJoin() {
   const idOn = useIdentityCheckOnStore();
   const navigate = useNavigate();
   const joinRef = useRef<HTMLElement>(null);
   const joinSeen = useSeenAfterLoad(joinRef);
+  // UI audit F016 (11-09): the Apple button's chunk is fetched once the page has settled (never on first paint), and
+  // its slot is held by a same-size placeholder until then, so "Create your free account" never moves when it lands.
+  const [settled, setSettled] = useState(false);
+  useEffect(() => whenPageSettled(() => setSettled(true)), []);
+  const appleReady = joinSeen || settled;
   // Same routing as everywhere on the landing: a signed-in visitor lands on Home, never on the sign-up form.
   const goToAccount = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -256,10 +276,12 @@ export function TrustAndJoin() {
             >
               Create your free account
             </Link>
-            {joinSeen && (
-              <Suspense fallback={null}>
+            {appleReady ? (
+              <Suspense fallback={<AppleSlot />}>
                 <LandingAppleButton />
               </Suspense>
+            ) : (
+              <AppleSlot />
             )}
           </div>
           <Link to="/login" className="inline-flex items-center min-h-11 text-ds-15 font-bold underline underline-offset-4" style={{ color: "var(--lp-action-strong)" }}>

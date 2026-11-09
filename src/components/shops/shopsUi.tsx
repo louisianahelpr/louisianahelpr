@@ -141,7 +141,7 @@ function ShopsOpensSoon({ title, backTo, sectionRoot }: { title: string; backTo?
   const empty = (
     <BrowseEmptyState
       icon={Store}
-      title="Opens soon"
+      title="Coming soon" /* the menu's word, F139 (owner's UI audit 11-09) */
       body={SHOPS_OPENS_SOON_BODY}
       action={
         <Button asChild variant="outline" size="sm">

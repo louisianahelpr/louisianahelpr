@@ -25,6 +25,8 @@
  * @mutate src/index.css | :root.page-scrolled[data-theme] .page-title-card:has(.explore-header) {\n  transition: none !important; | :root.page-scrolled[data-theme] .page-title-card:has(.explore-header) {
  * @mutate src/components/sections/SectionScreen.tsx |         {section && (\n          // py/gap | {false && (\n          // py/gap
  * @mutate src/components/sections/AppTopBar.tsx |             <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> |             <h1 className="sr-only">{title}</h1>
+ * @mutate src/components/rentals/listings/RentBrowse.tsx | title={preview ? "Coming soon" | title={preview ? "Opens soon"
+ * @mutate src/components/shops/ShopsHomeView.tsx | preview ? "Coming soon" : "No shops here yet." | preview ? "Opens soon" : "No shops here yet."
  * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = !unknown && (!on \|\| isPreview(s)); |     const soon = !unknown && (!on);
  * @mutate src/components/sections/SectionScreen.tsx |           <div className={`flex min-h-full flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>\n |           <div className={`flex flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>\n            {section && <p role="status">Coming soon – early preview</p>}\n
  */
@@ -117,7 +119,7 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     expect(css).toMatch(/\.explore-chips-more \[role="radiogroup"\] \{[^}]*mask-image: linear-gradient/);
   });
 
-  it("4. 'Coming soon' for everyone: no Preview mark on the chips, no 'early preview' banner anywhere, 'Opens soon'", () => {
+  it("4. 'Coming soon' for everyone: no Preview mark on the chips, no 'early preview' banner anywhere, a tester's empty Browse says 'Coming soon'", () => {
     const sw = code("src/components/sections/ExploreSwitcher.tsx");
     expect(sw).not.toMatch(/PreviewPill|previewLabel/);
     // While the switch answer is out the chip is neutral instead (exploreChipNeverSoonWhileAsking, lead 11-05).
@@ -127,7 +129,8 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     expect(screens.length).toBeGreaterThan(200);
     expect(screens.filter((f) => /early preview/i.test(code(f)))).toEqual([]);
     for (const f of ["src/components/shops/ShopsHomeView.tsx", "src/components/rentals/listings/RentBrowse.tsx"]) {
-      expect({ f, opensSoon: /preview \? "Opens soon"/.test(code(f)) }).toEqual({ f, opensSoon: true });
+      // One word (owner's UI audit 11-09, F139): it said "Opens soon" while the menu, Create and Settings said "Coming soon".
+      expect({ f, comingSoon: /preview \? "Coming soon"/.test(code(f)), opensSoon: /Opens soon/.test(code(f)) }).toEqual({ f, comingSoon: true, opensSoon: false });
     }
     // Owner 2026-10-30: Declutter reads as open to everyone who has it (useSectionTabs OPEN_FOR_THOSE_WHO_HAVE_IT),
     // so its Browse never says "Opens soon" (declutterTabs.test.tsx renders the real empty state).

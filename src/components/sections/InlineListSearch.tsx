@@ -122,7 +122,8 @@ export function InlineListSearch({ value, onChange, label, onOpenChange, fill = 
         enterKeyHint="search"
         className={`flex-1 min-w-0 bg-transparent ${desktop ? "text-ds-15" : "text-ds-16"} text-foreground outline-none focus:outline-none focus-visible:outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden`}
       />
-      <button
+      {/* F073: a pinned field has nothing to close; its X shows only once there are words to clear. */}
+      {(!pinned || value) && <button
         type="button"
         aria-label="Close search"
         onClick={() => close(true, true)}
@@ -130,7 +131,7 @@ export function InlineListSearch({ value, onChange, label, onOpenChange, fill = 
         className={`ctl-exit ctl-tint w-8 h-8 shrink-0 flex items-center justify-center text-muted-foreground hover:text-foreground ${desktop ? "!min-h-0 !min-w-0" : ""}`}
       >
         <X className="w-4 h-4" aria-hidden />
-      </button>
+      </button>}
     </form>
   );
 }

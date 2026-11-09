@@ -7,11 +7,13 @@
  * @mutate src/components/declutter/FallbackImg.tsx |       onError={() => setFailed({ src, stage: retrying \|\| !retrySrc ? "gone" : "retry" })} |       onError={() => setFailed({ src, stage: "gone" })}
  * @mutate src/components/declutter/DeclutterGallery.tsx |                 src={display?.[i]?.src ?? url} |                 src={url}
  * @mutate src/components/declutter/DeclutterItemView.tsx | <DeclutterGallery urls={urls} display={display} category | <DeclutterGallery urls={urls} category
+ * @mutate src/components/declutter/FallbackImg.tsx |   const phoneSrcSet = phone && !retrying ? safePhotoSrcSet(phone.srcSet) : undefined; |   const phoneSrcSet = phone ? safePhotoSrcSet(phone.srcSet) : undefined;
+ * @mutate src/components/declutter/FallbackImg.tsx |       <source media={phone.media} srcSet={phoneSrcSet} sizes={phone.sizes} /> |       <source srcSet={phoneSrcSet} sizes={phone.sizes} />
  */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { readFileSync } from "node:fs";
-import { pagePhoto, pagePhotoUrl } from "./pagePhoto";
+import { PHONE_PHOTO_MEDIA, PHONE_PHOTO_SIZES, pagePhoto, pagePhotoUrl } from "./pagePhoto";
 import { FallbackImg } from "@/components/declutter/FallbackImg";
 import { DeclutterGallery } from "@/components/declutter/DeclutterGallery";
 
@@ -45,6 +47,29 @@ describe("the item page's photo", () => {
     expect(again.getAttribute("srcset")).toBeNull();
     fireEvent.error(again);
     expect(screen.getByTestId("ph")).toBeTruthy();
+  });
+
+  // Item page speed (Builder 2, 11-09): the phone frame is square, so a phone downloads the square crop (the 720x900
+  // original's off-frame pixels were up to half the bytes), through a <picture> source only a phone matches.
+  it("a phone gets the square crop through a <picture> source; sm and up keep the width-only photo; a retry drops it", () => {
+    const shown = pagePhoto(ORIGINAL)!;
+    expect(shown.phoneSrcSet).toBe(
+      "https://unit-test.invalid/storage/v1/render/image/public/job-photos/u1/declutter/i1/a.jpg?width=720&height=720&resize=cover&quality=75 720w, "
+      + "https://unit-test.invalid/storage/v1/render/image/public/job-photos/u1/declutter/i1/a.jpg?width=1080&height=1080&resize=cover&quality=75 1080w",
+    );
+    const { container } = render(<DeclutterGallery urls={[ORIGINAL]} display={[shown]} category="furniture" title="Chair" />);
+    const source = container.querySelector("picture > source") as HTMLSourceElement;
+    expect(source.getAttribute("media")).toBe(PHONE_PHOTO_MEDIA);
+    expect(source.getAttribute("srcset")).toBe(shown.phoneSrcSet);
+    expect(source.getAttribute("sizes")).toBe(PHONE_PHOTO_SIZES);
+    const img = screen.getByAltText("Photo 1 of 1") as HTMLImageElement;
+    expect(img.parentElement?.tagName).toBe("PICTURE");
+    expect(img.parentElement?.className).toBe("contents");
+    expect(img.getAttribute("srcset")).toBe(shown.srcSet);
+    // The resized photo failed: the original, alone (no <picture>, no source a phone would still pick).
+    fireEvent.error(img);
+    expect(container.querySelector("picture")).toBeNull();
+    expect((screen.getByAltText("Photo 1 of 1") as HTMLImageElement).getAttribute("src")).toBe(ORIGINAL);
   });
 
   it("the gallery frame shows the resized photo, and the item page passes it", () => {

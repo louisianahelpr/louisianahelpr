@@ -16,14 +16,17 @@
 // @mutate src/lib/declutter/api.ts |   if (bootItem) return bootItem as DeclutterPhoto[]; |
 // @mutate src/boot/declutterItemPrefetch.ts | export const GALLERY_SIZES = "(min-width: 640px) 680px, calc(100vw - 40px)"; | export const GALLERY_SIZES = "100vw";
 // @mutate src/entry.ts | declutter(\/item\/[\w-]+)?\|home | declutter\|home
+// @mutate src/lib/declutter/pagePhoto.ts | `?width=${width}&height=${width}&resize=cover&quality=75` | `?width=${width}&quality=75`
+// @mutate src/boot/declutterItemPrefetch.ts | [[PHONE_MEDIA, p.phoneSrcset, PHONE_SIZES], [WIDE_MEDIA, p.srcset, GALLERY_SIZES]] | [[WIDE_MEDIA, p.srcset, GALLERY_SIZES]]
+// @mutate src/components/declutter/DeclutterGallery.tsx | phone={display?.[i]?.phoneSrcSet ? | phone={false ?
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
-import { DECLUTTER_ITEM_PREFETCH_KEY, declutterItemUrls, firstGalleryPhoto, GALLERY_SIZES, ITEM_SELECT, startDeclutterItemPrefetch } from "./declutterItemPrefetch";
+import { DECLUTTER_ITEM_PREFETCH_KEY, declutterItemUrls, firstGalleryPhoto, GALLERY_SIZES, ITEM_SELECT, PHONE_MEDIA, PHONE_SIZES, WIDE_MEDIA, startDeclutterItemPrefetch } from "./declutterItemPrefetch";
 import { DECLUTTER_ITEM_PREFETCH_MAX_AGE_MS, takeItemPhotosPrefetch, takeItemPrefetch } from "@/lib/declutter/itemPrefetchTake";
-import { pagePhoto } from "@/lib/declutter/pagePhoto";
+import { PHONE_PHOTO_MEDIA, PHONE_PHOTO_SIZES, pagePhoto } from "@/lib/declutter/pagePhoto";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { walkSource } from "@/test/helpers/walkSource";
 
@@ -89,8 +92,12 @@ describe("a cold item page's reads and first photo start from the entry (B100)",
 
   it("the preload is the gallery's first frame exactly (src, srcset, sizes), so the gallery's request is answered from it", () => {
     const want = pagePhoto(`${BASE}/storage/v1/object/public/job-photos/${PHOTO}`);
-    expect(firstGalleryPhoto(BASE, rows("declutter_item_photos"))).toEqual({ href: want!.src, srcset: want!.srcSet });
+    expect(firstGalleryPhoto(BASE, rows("declutter_item_photos"))).toEqual({ href: want!.src, srcset: want!.srcSet, phoneSrcset: want!.phoneSrcSet });
     expect(code("src/components/declutter/DeclutterGallery.tsx")).toContain(`sizes={display?.[i] ? "${GALLERY_SIZES}" : undefined}`);
+    // Item page speed (11-09): a phone's square frame gets the square crop; the copies match pagePhoto.ts.
+    expect(want!.phoneSrcSet).toContain("?width=720&height=720&resize=cover&quality=75 720w");
+    expect([PHONE_MEDIA, PHONE_SIZES]).toEqual([PHONE_PHOTO_MEDIA, PHONE_PHOTO_SIZES]);
+    expect(code("src/components/declutter/DeclutterGallery.tsx")).toContain("phone={display?.[i]?.phoneSrcSet ? { media: PHONE_PHOTO_MEDIA, srcSet: display[i]!.phoneSrcSet!, sizes: PHONE_PHOTO_SIZES } : undefined}");
     expect(code("src/lib/declutter/api.ts")).toContain("export const DECLUTTER_PHOTO_BUCKET = \"job-photos\"");
     expect(firstGalleryPhoto(BASE, [{ storage_path: "a b.jpg" }]), "a path a URL would encode").toBeNull();
     expect(firstGalleryPhoto(BASE, []), "no photos").toBeNull();
@@ -139,9 +146,13 @@ describe("a cold item page's reads and first photo start from the entry (B100)",
     for (const [, init] of calls) expect((init.headers as Record<string, string>).Authorization).toBe("Bearer tok");
     await flush();
     const links = [...document.head.querySelectorAll<HTMLLinkElement>('link[rel="preload"][as="image"]')];
-    expect(links).toHaveLength(1);
-    expect(links[0].getAttribute("imagesizes")).toBe(GALLERY_SIZES);
-    expect(links[0].href).toBe(firstGalleryPhoto(BASE, rows("declutter_item_photos"))!.href);
+    // One per frame shape: only the link whose media matches fetches (a phone's square crop; the 4:3 photo from sm up).
+    const first = firstGalleryPhoto(BASE, rows("declutter_item_photos"))!;
+    expect(links.map((l) => [l.getAttribute("media"), l.getAttribute("imagesrcset"), l.getAttribute("imagesizes")])).toEqual([
+      [PHONE_MEDIA, first.phoneSrcset, PHONE_SIZES],
+      [WIDE_MEDIA, first.srcset, GALLERY_SIZES],
+    ]);
+    expect(links[0].href).toBe(first.href);
   });
 
   it("a guest (no stored session) reads as the anonymous role, and the answer goes only to a page with no session (Q2707)", async () => {
@@ -158,7 +169,7 @@ describe("a cold item page's reads and first photo start from the entry (B100)",
       expect((init.headers as Record<string, string>).apikey).toBe("pk");
     }
     await flush();
-    expect(document.head.querySelectorAll('link[rel="preload"][as="image"]'), "the photo preload too").toHaveLength(1);
+    expect(document.head.querySelectorAll('link[rel="preload"][as="image"]'), "the photo preloads too (phone and wide)").toHaveLength(2);
     expect(await takeItemPrefetch(ITEM, UID), "never to a member").toBeUndefined();
     expect(await takeItemPrefetch(ITEM, async () => UID), "never to a member (resolved)").toBeUndefined();
     expect(await takeItemPrefetch(ITEM, async () => undefined)).toEqual({ id: ITEM, title: "Lamp" });

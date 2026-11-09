@@ -10,7 +10,8 @@
  * the app's one weight (owner 11-04), not the filter sheet's emoji.
  * Guard: src/test/jobsCategoryChipsRow.test.tsx.
  */
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { noteJobChipsRow } from "@/lib/jobChipsSeen";
 import { Car, Hammer, Home, Leaf, PartyPopper, PawPrint, Sparkles, Truck, type LucideIcon } from "lucide-react";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { JOB_CATEGORY_GROUPS, groupTileLabel, isJobCategoryGroupId, jobCategoryGroupOf, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
@@ -47,7 +48,10 @@ export function JobCategoryChips({ jobs, value, onChange }: {
       .filter((g): g is (typeof JOB_CATEGORY_GROUPS)[number] => !!g);
   }, [jobs, value]);
   // One group only and nothing chosen: a row of "All" + the one thing on screen says nothing.
-  if (groups.length < 2 && !value) return null;
+  const shown = !(groups.length < 2 && !value);
+  // Tell the next loading skeleton whether to draw the chips bone (jobChipsSeen.ts).
+  useEffect(() => { noteJobChipsRow(shown); }, [shown]);
+  if (!shown) return null;
   return (
     <div role="group" aria-label="Categories" data-chip-row="job-categories" className="flex min-w-0 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <FilterChip pressed={value === null} onClick={() => onChange(null)} className="shrink-0" data-category-chip="all">All</FilterChip>

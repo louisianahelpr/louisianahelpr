@@ -28,6 +28,8 @@ vi.mock("@/hooks/useJobRefundedCents", () => ({
 }));
 import { HelprMoneyNotes, JobTracker } from "@/pages/jobs/jobPage/JobPageParts";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+// F105: the poster's refund numbers come from one Receipts read (usePosterJobRefund); these cards render without it.
+vi.mock("@/hooks/usePosterJobRefund", () => ({ usePosterJobRefund: () => null }));
 
 const NOW = new Date("2037-10-21T15:00:00Z");
 const job = {
@@ -48,13 +50,13 @@ describe("a poster's late cancel says the money on both sides (Q2701, Q2696)", (
     const p = jobProgress(job, { viewer: "poster", otherFirst: "Eli", now: NOW });
     expect(p.next).toBe("You cancelled Tue 6:03 AM · Plans changed · $30 was kept for Eli's time · The rest was refunded");
     expect(p.next).not.toContain("Your payment was refunded");
-    // An early cancel (no fee) keeps the full-refund words.
-    expect(jobProgress({ ...job, cancellation_fee: 0 }, { viewer: "poster", otherFirst: "Eli", now: NOW }).next).toContain("Your payment was refunded");
+    // An early cancel (no fee) with no ledger figure: a refund was sent (F105: never "Your payment was refunded").
+    expect(jobProgress({ ...job, cancellation_fee: 0 }, { viewer: "poster", otherFirst: "Eli", now: NOW }).next).toContain("Refund sent to your card");
   });
 
   // Q2701 (owner 11-03 "YES"): the poster's line shows the dollar amount refunded, from the refund ledger.
-  // @mutate src/components/tracker/jobProgressState.ts |   const refund = refunded ? (back ?? (kept ? "The rest was refunded" : "Your payment was refunded")) : null; |   const refund = refunded ? (kept ? "The rest was refunded" : "Your payment was refunded") : null;
-  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     crewMember,\n    refundedCents,\n  }); |     crewMember,\n  });
+  // @mutate src/components/tracker/jobProgressState.ts |   const refund = refunded ? (back ?? (kept ? "The rest was refunded" : REFUND_SENT)) : null; |   const refund = refunded ? (kept ? "The rest was refunded" : REFUND_SENT) : null;
+  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     crewMember,\n    refundedCents,\n    refundKeptCents: | crewMember,\n    refundKeptCents:
   // @mutate src/pages/jobs/jobPage/JobPageParts.tsx | side === "poster" && job.status === "cancelled" && job.payment_status === "refunded" | false
   it("the poster's line names the dollars refunded when the ledger is read (Q2701)", () => {
     const p = jobProgress(job, { viewer: "poster", otherFirst: "Eli", now: NOW, refundedCents: 9040 });

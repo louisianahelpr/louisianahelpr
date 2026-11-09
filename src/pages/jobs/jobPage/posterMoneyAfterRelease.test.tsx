@@ -35,6 +35,8 @@ vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
 import { PosterPrice, PosterMoneyNotes } from "./JobPageParts";
 import { __resetHelprTakesTipsCache } from "@/hooks/useHelprTakesTips";
+// F105: the poster's refund numbers come from one Receipts read (usePosterJobRefund); these cards render without it.
+vi.mock("@/hooks/usePosterJobRefund", () => ({ usePosterJobRefund: () => null }));
 
 const row = (over: Partial<JobPageRow>): JobPageRow => ({
   id: "j", title: "AA5-AUDIT-1029 test clean", description: null, category: "cleaning", budget: 40, date_needed: null, start_time: null,

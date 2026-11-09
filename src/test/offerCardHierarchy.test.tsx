@@ -103,6 +103,8 @@ import { AppliedJobCard } from "../pages/jobs/AppliedJobCard";
 import { OfferedActions } from "../pages/jobs/appliedJobCard/OfferedActions";
 import { ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+// F105: the poster's refund numbers come from one Receipts read (usePosterJobRefund); these cards render without it.
+vi.mock("@/hooks/usePosterJobRefund", () => ({ usePosterJobRefund: () => null }));
 
 const noop = () => {};
 const STAMPS = ["helper_on_the_way_at", "helper_arrived_at", "helper_arrival_near_miss_at", "helper_completed_at", "poster_confirmed_arrival_at"] as const;

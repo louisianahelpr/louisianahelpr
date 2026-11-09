@@ -25,6 +25,8 @@ vi.mock("@/hooks/useJobRefundedCents", () => ({ useJobRefundedCents: () => null 
 
 import { JobTracker } from "./JobPageParts";
 import type { JobPageRow } from "./useJobPage";
+// F105: the poster's refund numbers come from one Receipts read (usePosterJobRefund); these cards render without it.
+vi.mock("@/hooks/usePosterJobRefund", () => ({ usePosterJobRefund: () => null }));
 
 pinJobClock();
 

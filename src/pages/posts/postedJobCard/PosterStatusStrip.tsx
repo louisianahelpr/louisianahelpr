@@ -1,3 +1,4 @@
+import { usePosterJobRefund } from "@/hooks/usePosterJobRefund";
 import { collapsedClocks } from "@/components/job-card/collapsedClocks";
 import { JobStatusStrip } from "@/components/job-card/JobStatusStrip";
 import { posterStatusLine } from "@/components/job-card/jobStatusLine";
@@ -67,7 +68,9 @@ export function PosterStatusStrip({
   // clock, so the collapsed line must not show one (InProgressStep agrees).
   const { profile } = useCurrentUser();
   const instantRelease = !!(profile as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
-  const line = withClosedApplicants(posterStatusLine(job, pendingApplicantCount, undefined, completedMeta, instantRelease, job.helper_id ? helperName : null), closedApplicants);
+  // F105: a cancelled, refunded job says the Receipts numbers (one shared read per poster).
+  const refund = usePosterJobRefund(job);
+  const line = withClosedApplicants(posterStatusLine(job, pendingApplicantCount, undefined, completedMeta, instantRelease, job.helper_id ? helperName : null, refund ? { refund } : undefined), closedApplicants);
   // EVERY TIME AT THE BOTTOM (owner, 2026-10-07, Q1399): the start (and, once
   // the Helpr has accepted, "until confirmation opens") go under the status
   // line in the strip, with its own clock ("left to accept", inline on the sentence),

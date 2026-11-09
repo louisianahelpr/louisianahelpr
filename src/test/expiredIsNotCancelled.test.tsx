@@ -10,7 +10,7 @@
 //   - the poster's own Posted card line (posterStatusLine)
 // AtAGlanceCard has no cancelled tile (deleted 2026-09-19), so it shows none.
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { readFileSync } from "node:fs";
@@ -23,6 +23,8 @@ import { helperStatusLine, posterStatusLine, EXPIRED_LISTING_DETAIL } from "@/co
 import { describeCancellation } from "@/pages/jobs/appliedJobCard/appliedJobCardHelpers";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import type { ProfileJob } from "@/pages/user/types";
+// F105: the poster's refund numbers come from one Receipts read (usePosterJobRefund); these cards render without it.
+vi.mock("@/hooks/usePosterJobRefund", () => ({ usePosterJobRefund: () => null }));
 
 const ROOT = join(__dirname, "..", "..");
 // The exact words auto-expire-jobs writes, read from the function itself.
@@ -156,7 +158,7 @@ describe("the poster's own Posted card line", () => {
     expect(line.detail).toBe(EXPIRED_LISTING_DETAIL);
     const all = [line.eyebrow, line.detail, line.suffix].join(" ");
     expect(all).not.toMatch(/cancel/i);
-    expect(line.suffix).toBe("Your payment was refunded");
+    expect(line.suffix).toBe("Refund sent to your card");
   });
 
   it("a poster's own cancel with the sweep's words typed in still reads Cancelled", () => {

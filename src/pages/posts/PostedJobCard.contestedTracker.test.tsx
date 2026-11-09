@@ -76,6 +76,8 @@ vi.mock("../../components/job-card/useHighlightPulse", () => ({ useHighlightPuls
 
 import { PostedJobCard } from "./PostedJobCard";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+// F105: the poster's refund numbers come from one Receipts read (usePosterJobRefund); these cards render without it.
+vi.mock("@/hooks/usePosterJobRefund", () => ({ usePosterJobRefund: () => null }));
 
 const baseJob = {
   id: "job-1",

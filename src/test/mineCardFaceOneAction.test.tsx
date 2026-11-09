@@ -68,6 +68,8 @@ vi.mock("@/components/schedule/ScheduleChangeControl", () => ({
 vi.mock("@/components/series/SeriesDatesPanel", () => ({ SeriesDatesPanel: () => null }));
 
 import { PostedJobCard } from "@/pages/posts/PostedJobCard";
+// F105: the poster's refund numbers come from one Receipts read (usePosterJobRefund); these cards render without it.
+vi.mock("@/hooks/usePosterJobRefund", () => ({ usePosterJobRefund: () => null }));
 
 const base = {
   id: "job-1",

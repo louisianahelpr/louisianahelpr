@@ -731,7 +731,7 @@ export default defineConfig(({ mode, command }) => ({
         // L33 train 11-02: "icons-rest" (the leftover icons, below) is written the same short way: its name in the
         // entry's preload list put the entry 6 B gz over its band (5382 vs 5376); as "icons-<hash>" it shares the
         // other icon chunks' prefix. Only the file name changes.
-        chunkFileNames: (chunk) => (chunk.name.startsWith("icons~") || chunk.name === "icons-rest" || chunk.name === "icons-item" ? "assets/icons-[hash].js" : "assets/[name]-[hash].js"),
+        chunkFileNames: (chunk) => (chunk.name.startsWith("icons~") || chunk.name === "icons-rest" || chunk.name === "icons-item" || chunk.name === "icons-selling" ? "assets/icons-[hash].js" : "assets/[name]-[hash].js"),
         // ── Chunk graph shape ────────────────────────────────────────────
         // Expressed as rolldown's `codeSplitting` rather than `manualChunks`
         // because the two are MUTUALLY EXCLUSIVE — rolldown logs

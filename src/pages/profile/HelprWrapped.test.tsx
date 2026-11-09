@@ -2,6 +2,8 @@
  * /wrapped is the app's most SHARED screen, so a wrong number here travels.
  * These lock the six defects found on 2026-09-01, each of which rendered
  * perfectly and said something untrue.
+ *
+ * @mutate src/pages/profile/HelprWrapped.tsx | .filter((r) => shown.ids.has(r.id)) | .filter(() => true)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
@@ -17,6 +19,8 @@ interface Rows {
   helped: unknown[];
   reviewsGiven: unknown[];
   reviewsReceived: unknown[];
+  /** The review ids get_public_profile_reviews shows (F093); undefined = every received review. */
+  shownIds?: string[];
 }
 let rows: Rows;
 
@@ -58,6 +62,12 @@ vi.mock("@/integrations/supabase/client", () => {
           return b;
         };
         return b;
+      },
+      // F093: Wrapped keeps only the received reviews the public-reviews RPC shows (Q2759 same-person rule).
+      rpc: (fn: string) => {
+        if (fn !== "get_public_profile_reviews") return Promise.resolve({ data: [], error: null });
+        const ids = rows.shownIds ?? (rows.reviewsReceived as { id: string }[]).map((r) => r.id);
+        return Promise.resolve({ data: ids.map((id) => ({ id, total_count: ids.length })), error: null });
       },
       auth: { onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }) },
     },
@@ -118,6 +128,16 @@ describe("/wrapped tells the truth about a year", () => {
     expect(screen.getByText("4.0")).toBeTruthy();
     expect(screen.queryByText("best rating")).toBeNull();
     expect(screen.queryByText("5.0")).toBeNull();
+  });
+
+  // F093 (owner UI audit 2026-11-09): Wrapped said "1 review received" while Reviews and Work record said none,
+  // because the one review was between two accounts of one person (hidden by the RPC, counted by the direct read).
+  it("counts only the received reviews the Reviews tab shows (F093)", async () => {
+    rows.shownIds = ["rr2", "rr3"];
+    renderWrapped();
+    expect(await screen.findByText("average rating")).toBeTruthy();
+    expect(screen.getByText("3.5")).toBeTruthy();
+    expect(screen.queryByText("4.0")).toBeNull();
   });
 
   it("makes no claim about hours worked — nothing in this app records them", async () => {

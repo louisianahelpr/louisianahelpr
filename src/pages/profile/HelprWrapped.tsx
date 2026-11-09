@@ -11,6 +11,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { shareNative } from "@/lib/nativeShare";
 import { report } from "@/lib/errorLogger";
 import { unwrap } from "@/lib/supabaseResult";
+import { publicReviewIds } from "@/hooks/useProfileTabData";
 import { formatCategory, formatPrice, formatPriceFloor, wrappedSeasonLabel } from "@/lib/format";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { earnedDollarsWithLedger } from "@/components/profile/earningsTab/earningsTabHelpers";
@@ -66,7 +67,15 @@ async function fetchWrappedStats(userId: string, firstPayoutFee = 0): Promise<Wr
   const yearStart = new Date(jobLocalMidnightMs(`${YEAR}-01-01`)).toISOString();
   const yearEnd = new Date(jobLocalMidnightMs(`${YEAR + 1}-01-01`) - 1).toISOString();
 
-  const [postedRes, completedRes, reviewsGivenRes, reviewsReceivedRes, profileRes] = await Promise.all([
+  // F093 (owner UI audit 2026-11-09): Wrapped said "1 review received" while Reviews and Work record said "No
+  // reviews yet". Measured on prod: the one review (12bef9e6) was left between two accounts of one person, which
+  // get_public_profile_reviews / get_public_profile_stats hide everywhere (Q2759) and this direct read did not.
+  // Received reviews now keep exactly the ids that RPC shows, the same rule the Reviews tab applies.
+  const shownIdsPromise = publicReviewIds(userId).then(
+    (ids) => ({ ids, error: null as unknown }),
+    (error: unknown) => ({ ids: new Set<string>(), error }),
+  );
+  const [postedRes, completedRes, reviewsGivenRes, reviewsReceivedRaw, profileRes] = await Promise.all([
     supabase
       .from("jobs")
       // `status` is selected so the MONEY figure below can be scoped to jobs
@@ -112,6 +121,12 @@ async function fetchWrappedStats(userId: string, firstPayoutFee = 0): Promise<Wr
       .eq("user_id", userId)
       .maybeSingle(),
   ]);
+
+  const shown = await shownIdsPromise;
+  // A failed id read counts as a failed received-reviews read (never the unfiltered rows: that was the leak).
+  const reviewsReceivedRes = shown.error
+    ? { data: null, error: shown.error as NonNullable<typeof reviewsReceivedRaw.error> }
+    : { data: (reviewsReceivedRaw.data ?? []).filter((r) => shown.ids.has(r.id)), error: reviewsReceivedRaw.error };
 
   for (const [label, res] of [
     ["posted", postedRes],

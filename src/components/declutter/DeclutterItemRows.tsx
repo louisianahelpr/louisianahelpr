@@ -12,7 +12,8 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchNewestItems, fetchPhotos, fetchSellerItems, fetchSimilarItems, type DeclutterItem } from "@/lib/declutter/api";
+import { fetchNewestItems, fetchPhotos, fetchSellerItems, fetchSimilarItems, fetchSoldItemCard, type DeclutterItem } from "@/lib/declutter/api";
+import { listingPhotoUrl } from "@/lib/profileLink/api";
 import { milesBetween } from "@/lib/declutter/distance";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 
@@ -69,6 +70,27 @@ export function nearestOf(rows: DeclutterItem[], from: { lat: number; lng: numbe
     return Number.isFinite(m) ? m : Number.POSITIVE_INFINITY;
   };
   return rows.map((r, i) => ({ r, i, d: away(r) })).sort((a, b) => a.d - b.d || a.i - b.i).map((x) => x.r);
+}
+
+/**
+ * F061 (lead rule 11-09): a SOLD item's page shows what it was: its cover, greyed, its title and "Sold". Only for a
+ * real sale (the server answers sold and completed items only); anything else shows nothing of the listing.
+ */
+export function SoldItemCard({ itemId }: { itemId: string }) {
+  const sold = useQuery({ queryKey: ["declutter", "sold-card", itemId], queryFn: () => fetchSoldItemCard(itemId) });
+  if (!sold.data) return null;
+  const { title, photo_id } = sold.data;
+  return (
+    <section data-sold-item="" aria-label={`${title}, sold`} className="mb-4 flex items-center gap-4 rounded-[20px] border border-border bg-card p-3">
+      <span className="relative block h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
+        {photo_id && <img src={listingPhotoUrl(photo_id, 240)} alt={title} width={240} height={240} className="h-full w-full object-cover opacity-80 grayscale" />}
+      </span>
+      <span className="min-w-0">
+        <span className="mb-1 inline-block rounded-full bg-muted px-2.5 py-0.5 text-ds-12 font-semibold text-foreground" data-sold-badge="">Sold</span>
+        <span className="block text-ds-15 font-semibold text-muted-foreground [overflow-wrap:anywhere]">{title}</span>
+      </span>
+    </section>
+  );
 }
 
 /** How close (px below the screen) the rows must come before their reads start. */

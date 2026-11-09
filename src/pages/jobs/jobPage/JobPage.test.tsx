@@ -685,7 +685,7 @@ describe("job page, the poster confirms the arrival here (F14)", () => {
     renderPage();
     // Approve keeps the lead (owner 12:49 PM), on the bar's right.
     const rowEl = await waitFor(() => document.querySelector('[data-job-row="poster"]') as HTMLElement);
-    expect(barNames(rowEl).at(-1)).toBe("Approve and release");
+    expect(barNames(rowEl).slice(-1)[0]).toBe("Approve and release");
     fireEvent.click(screen.getByRole("button", { name: "More options" }));
     const sheet = await screen.findByRole("dialog", { name: "More options" });
     const link = within(sheet).getByRole("button", { name: "Something's not right" });
@@ -1652,7 +1652,7 @@ describe("one row of buttons at every stage (B93)", () => {
     state.party = true;
     const r = renderPage();
     // "See the case" leads (on the right), Message beside it (owner pick 11-08, JP2: the case is what happens next).
-    await waitFor(() => expect(rowLabels().at(-1)).toBe("See the case"));
+    await waitFor(() => expect(rowLabels().slice(-1)[0]).toBe("See the case"));
     // Message beside it (the Helpr's name, once their profile has loaded).
     expect(rowLabels()[rowLabels().length - 2]).toMatch(/^Message /);
     expect(rowLabels()).not.toContain("Approve and release");

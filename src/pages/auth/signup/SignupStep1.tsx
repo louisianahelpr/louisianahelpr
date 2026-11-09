@@ -375,12 +375,21 @@ export function SignupStep1({
         </span>
       </label>
 
-      {/* Screen-reader parity for the consent gate: the shake is visual only.
-          Keyed on nudgeKey so a repeat tap re-announces. */}
-      <p key={`consent-alert-${nudgeKey}`} role="alert" className="sr-only">
-        {nudgeKey > 0 && !(acceptedPolicies && ageConfirmed)
-          ? t("signup.consentNeeded")
-          : ""}
+      {/* F022 (owner UI audit 11-09): Continue with the box unticked showed no words on it (every other field names
+          what is missing). The message is SHOWN under the box now, in the same error style as the fields, and is
+          still the alert a screen reader hears. Keyed on nudgeKey so a repeat tap re-announces. */}
+      <p
+        key={`consent-alert-${nudgeKey}`}
+        role="alert"
+        data-consent-error=""
+        className={nudgeKey > 0 && !(acceptedPolicies && ageConfirmed) ? "flex items-start gap-1 px-1.5 text-ds-11 text-[hsl(var(--destructive-ink))]" : "sr-only"}
+      >
+        {nudgeKey > 0 && !(acceptedPolicies && ageConfirmed) ? (
+          <>
+            <X className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden />
+            {t("signup.consentNeeded")}
+          </>
+        ) : ""}
       </p>
       </div>
 

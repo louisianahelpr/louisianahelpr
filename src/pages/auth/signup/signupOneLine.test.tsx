@@ -14,9 +14,23 @@ import { es } from "@/lib/i18n/es";
  * @mutate src/lib/i18n/enScreens.ts | "signup.agreeLead": "I'm 18 or older and agree to the" | "signup.agreeLead": "I agree to the"
  * @mutate src/lib/i18n/es.ts | "signup.agreeLead": "Tengo 18 años o más y acepto los" | "signup.agreeLead": "Acepto los"
  * @mutate src/pages/auth/signup/SignupStep1.tsx | {serverPasswordError ?? (password ? passwordProblem(password) : t("signup.passwordMissing"))} | {serverPasswordError ?? (password ? "Check your password" : t("signup.passwordMissing"))}
+ *
+ * F022 (owner UI audit 11-09): Continue with the consent box unticked named nothing on the box. The message shows
+ * under it, in the fields' error style, and stays the screen-reader alert.
+ * @mutate src/pages/auth/signup/SignupStep1.tsx | className={nudgeKey > 0 && !(acceptedPolicies && ageConfirmed) ? "flex items-start gap-1 px-1.5 text-ds-11 text-[hsl(var(--destructive-ink))]" : "sr-only"} | className="sr-only"
  */
 const step1 = readFileSync(resolve(__dirname, "SignupStep1.tsx"), "utf8");
 const terms = readFileSync(resolve(__dirname, "../../info/legal/TermsSection.tsx"), "utf8");
+
+describe("F022: the unticked consent box says what is missing", () => {
+  it("the consent alert is visible (not sr-only) once Continue was pressed with the box unticked", () => {
+    const alert = step1.match(/<p\s+key=\{`consent-alert-\$\{nudgeKey\}`\}[\s\S]*?<\/p>/)?.[0] ?? "";
+    expect(alert).toContain('role="alert"');
+    expect(alert).toContain('t("signup.consentNeeded")');
+    expect(alert).toMatch(/className=\{nudgeKey > 0 && !\(acceptedPolicies && ageConfirmed\) \? "[^"]*destructive-ink[^"]*" : "sr-only"\}/);
+    expect(en["signup.consentNeeded"]).toMatch(/18 or older/);
+  });
+});
 
 describe("sign-up step 1 fits one line per item", () => {
   it("no password rules list under the field (owner 2026-10-25); the error still names what is missing", () => {

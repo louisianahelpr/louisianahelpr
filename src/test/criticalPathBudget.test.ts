@@ -182,8 +182,9 @@ describe("the page's own chunk is started by the entry, beside the app", () => {
   it("dynamic imports get their preload lists (vite.config.ts resolveDependencies is not emptied)", () => {
     const cfg = code("vite.config.ts");
     // B48: the entry's route lists skip main's closure (scripts/perf/entryRouteDeps.mjs, entryRouteListsSkipMain.test.ts);
-    // every other list, and index.html's, is the whole closure.
-    expect(cfg).toMatch(/resolveDependencies:\s*\(filename,\s*deps,\s*\{\s*hostId,\s*hostType\s*\}\)\s*=>\s*hostType === "js" \? trimEntryRouteDeps\(builtBundle, hostId, filename, deps\) : deps/);
+    // every other list is the whole closure. Q2705 (11-09): index.html's list adds main's static closure
+    // (entryBootPreloads, src/test/indexHtmlPreloadsBootGraph.test.ts).
+    expect(cfg).toMatch(/resolveDependencies:\s*\(filename,\s*deps,\s*\{\s*hostId,\s*hostType\s*\}\)\s*=>\s*hostType === "html" \? entryBootPreloads\(builtBundle, filename, deps\) :\s*hostType === "js" \? trimEntryRouteDeps\(builtBundle, hostId, filename, deps\) : deps/);
     expect(cfg).not.toMatch(/resolveDependencies:\s*\(\)\s*=>\s*\[\]/);
   });
 

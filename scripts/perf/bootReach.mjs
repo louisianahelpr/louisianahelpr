@@ -372,6 +372,8 @@ export const HOME_DERIVE_ROOT = "src/pages/home/homeDashboard/homeDerive.ts";
 export const GUEST_CHROME_ROOTS = [
   "src/components/ScrollToTop.tsx",
   "src/components/PermissionRationaleMount.tsx",
+  // Q2705 (11-09): Vercel Analytics + Speed Insights, lazy since they left boot; every visit is measured.
+  "src/components/VercelInsights.tsx",
 ];
 
 /** Shared-code modules (the `app-shared` directories) that no public cold load reaches. */

@@ -18,7 +18,7 @@ vi.mock("@/hooks/useMembershipsOn", () => ({ useMembershipsOn: () => false }));
 vi.mock("@/lib/jobOfferTargets", () => ({ fetchJobOfferTargets: async () => offerTargets }));
 afterEach(() => { offerTargets = new Map(); });
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { render, screen, waitFor, act, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import PaymentSuccess from "./PaymentSuccess";
 
@@ -234,6 +234,15 @@ describe("PaymentSuccess", () => {
       // Nothing to re-check, so no dead Try again button.
       expect(screen.queryByRole("button", { name: /try again/i })).toBeNull();
       expect(screen.getByRole("button", { name: /see your posted jobs/i })).toBeInTheDocument();
+    });
+
+    // F141 (owner UI audit 11-09): Declutter uses checkout too, so a page with no job reference offers both lists.
+    // @mutate src/pages/post-job/PaymentSuccess.tsx |               {!resolvedJobId && (\n                <Button\n                  type="button"\n                  variant="outline"\n                  data-testid="payment-success-declutter-orders" |               {false && (\n                <Button\n                  type="button"\n                  variant="outline"\n                  data-testid="payment-success-declutter-orders"
+    it("offers 'See your Declutter orders' beside 'See your posted jobs', and it opens Buying", async () => {
+      renderAt("");
+      await screen.findByText(/we couldn't confirm your payment/i);
+      fireEvent.click(screen.getByRole("button", { name: "See your Declutter orders" }));
+      expect(navigateMock).toHaveBeenCalledWith("/declutter?tab=buying");
     });
   });
 

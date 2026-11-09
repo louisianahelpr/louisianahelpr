@@ -22,7 +22,7 @@
  * @mutate src/hooks/useDashboardJobsCount.ts | query.in("category", categoriesForFilter(selectedCategory) as never) | query.eq("category", selectedCategory as never)
  * @mutate src/hooks/useDashboardFilters.ts |       if (!categoryFilterMatches(selectedCategory, job.category)) return false; |       if (selectedCategory && job.category !== selectedCategory) return false;
  * @mutate src/components/browseMap/mapFilter.ts |     if (!categoryFilterMatches(f.selectedCategory, job.category)) return false; |     if (f.selectedCategory && job.category !== f.selectedCategory) return false;
- * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |       <FilterSheet | <div role="group" aria-label="Job groups"><button type="button">Home</button></div>\n      <FilterSheet
+ * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |       {(filters.filtersOpen \|\| filterSheetMounted) && ( |       <div role="group" aria-label="Job groups"><button type="button">Home</button></div>\n      {(filters.filtersOpen \|\| filterSheetMounted) && (
  * @mutate src/components/dashboard/FilterSheet.tsx |         <div data-filter-sheet-body="" className="min-h-0 flex-1 overflow-y-auto overscroll-contain"> |         <div data-filter-sheet-body="" className="min-h-0 flex-1">
  * @mutate src/components/dashboard/FilterSheet.tsx | max-h-[85dvh] flex flex-col overflow-hidden p-0 | max-h-[85dvh] overflow-y-auto p-0
  * @mutate src/components/shops/ShopsHomeView.tsx | globalSearch={desktop && tab !== "browse"} | globalSearch={true}

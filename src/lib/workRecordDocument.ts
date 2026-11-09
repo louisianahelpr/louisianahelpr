@@ -381,7 +381,7 @@ export type WorkRecordFile = PdfFile;
  */
 export async function buildWorkRecordPdf(input: WorkRecordDocumentInput): Promise<WorkRecordFile> {
   const { doc, ink, rule, label, band, fitLines } = await createLetterheadPdf(
-    "Employment and earnings record",
+    "Work and earnings record",
     `Generated ${formatLongDate(input.generatedAt)}`,
   );
 

@@ -244,7 +244,9 @@ describe("every search field is driven in a real browser (inventory minus checke
     // field with a "Clear search" ✕.
     // 2026-11-08 (owner, Vinted header): +1, Declutter's phone "Search Declutter" bar (SectionSearchBar), a permanent
     // field with a "Clear search" ✕ (Declutter's phone InlineListSearch left; the file still serves desktop and Jobs).
-    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(17);
+    // 2026-11-09 (F034, owner UI audit): +1, the Help center's "Search help" (HelpCenter), a permanent field with a
+    // "Clear search" ✕.
+    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(18);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",
@@ -260,6 +262,7 @@ describe("every search field is driven in a real browser (inventory minus checke
       "src/components/sections/InlineListSearch.tsx",
       "src/components/sections/SectionSearchBar.tsx",
       "src/components/sections/SectionSearchRow.tsx",
+      "src/pages/info/HelpCenter.tsx",
       "src/pages/info/Legal.tsx",
       "src/pages/search/SearchPage.tsx",
     ]);

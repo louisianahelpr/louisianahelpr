@@ -67,6 +67,8 @@ export const SURFACES: Surface[] = [
     note: "a canceled bank payout's next step, Message Support (A3-28, 11-01): opens /support on the message topic" },
   { file: "src/components/help/HelpEntry.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
     note: "the top bars' Help lifebuoy, Get help now (UX-6): opens /support on the message topic" },
+  { file: "src/pages/u/PublicProfilePage.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
+    note: "the Helpr support account's profile, Message support (F067, 11-09): opens /support on the message topic" },
   { file: "src/main.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",
     note: "shake-to-report opens /support?topic=report" },
   { file: "src/pages/jobs/appliedJobCard/DisputedSection.tsx", kind: "entry", target: "/support?topic=", channel: "support-redirect",

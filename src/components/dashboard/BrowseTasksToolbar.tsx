@@ -3,7 +3,8 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { ChevronRight, SearchCheck } from "lucide-react";
 import { whenPageSettled } from "@/lib/routePrefetch";
 import { loadModule, untilReload } from "@/lib/loadModule";
-import { buildJobFilterSections } from "@/components/dashboard/filterSheet/jobFilterSections";
+import type { FilterSheetProps, FilterSheetSection } from "@/components/dashboard/FilterSheet";
+import type { JobFilterSectionsArgs } from "@/components/dashboard/filterSheet/jobFilterSections";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { hapticLight } from "@/lib/haptics";
 import type { BrowseTasksToolbarProps } from "./browseTasksToolbar/types";
@@ -15,8 +16,19 @@ import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
 // FilterDropdown, the Radix popover and floating-ui on guest /browse's critical path (B47 10-31). It mounts the first
 // time it opens and stays mounted (so it can animate closed), and its chunk is fetched once the page has settled, so
 // the first tap on Filters does not wait on the network. Guard: src/test/browseFirstPaintLoadsOverlaysLazily.test.ts.
+// Q2705 (Builder 4, 11-09): the Jobs filter sections (jobFilterSections, FilterSheetRows, PayRangeSlider) are built
+// only inside the open sheet, so they load with it instead of riding /browse's and /jobs' first screen.
 const loadFilterSheet = () => loadModule(() => import("@/components/dashboard/FilterSheet"));
-const FilterSheet = lazy(() => loadFilterSheet().then((m) => (m ? { default: m.FilterSheet } : untilReload())));
+const loadJobFilterSections = () => loadModule(() => import("@/components/dashboard/filterSheet/jobFilterSections"));
+type JobsFilterSheetProps = Omit<FilterSheetProps, "sections"> & { leading: FilterSheetSection[]; jobSections: JobFilterSectionsArgs };
+const FilterSheet = lazy(() =>
+  Promise.all([loadFilterSheet(), loadJobFilterSections()]).then(([m, j]) => {
+    if (!m || !j) return untilReload();
+    const Sheet = m.FilterSheet;
+    const build = j.buildJobFilterSections;
+    return { default: ({ leading, jobSections, ...rest }: JobsFilterSheetProps) => <Sheet {...rest} sections={[...leading, ...build(jobSections)]} /> };
+  }),
+);
 
 // The saved-searches dialog loads the same way (Q2705/Q1158, Builder 3 11-09): closed on every first paint, yet its
 // static import put SavedSearches (and its Dialog, Input, Label and toasts) on signed-in /jobs' first screen. It mounts
@@ -102,7 +114,7 @@ export function BrowseTasksToolbar({
     if (filters.filtersOpen) setFilterSheetMounted(true);
   }, [filters.filtersOpen]);
   useEffect(() => whenPageSettled(() => {
-    void loadFilterSheet().catch(() => {
+    void Promise.all([loadFilterSheet(), loadJobFilterSections()]).catch(() => {
       /* a warm-up only: the lazy() factory imports again when the sheet first opens */
     });
     if (signedIn) void loadSavedSearches().catch(() => {
@@ -238,7 +250,7 @@ export function BrowseTasksToolbar({
               filters.clearFilters();
               onClearAllFilters?.();
             }}
-            sections={[
+            leading={[
               // PHONE ONLY. These two have icons in the header row on desktop; on
               // phone the row is emblem + filter + bell and there is no width for
               // them, so they live here instead. They sit ABOVE "View" because
@@ -270,7 +282,8 @@ export function BrowseTasksToolbar({
                       />
                     ),
                   }]),
-              ...buildJobFilterSections({
+            ]}
+            jobSections={{
                 // "Only saved" is a filter, so it lives with the other Show-only
                 // switches (owner: merge & tighten, 2026-08-24).
                 savedOnly,
@@ -325,8 +338,7 @@ export function BrowseTasksToolbar({
                     <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" aria-hidden />
                   </ListRow>
                 ) : undefined,
-              }),
-            ]}
+            }}
           />
         </Suspense>
       )}

@@ -10,6 +10,9 @@
  * /browse 365.63 -> 358.01 (bell) -> 343.32 KB gz (filter sheet); the budget (scripts/perf/critical-path-budget.json)
  * is lowered 354 -> 343. Its +5% band would let a revert of the bell alone back in, so this reads the source.
  * The sheet still opens on the first tap at 375 (sheet) and 1440 (dropdown), measured in a mocked headless run.
+ *
+ * Q2705 (Builder 4, 2026-11-09): the Jobs filter sections (jobFilterSections, FilterSheetRows, PayRangeSlider) were
+ * imported statically for a buildJobFilterSections call that only runs inside the open sheet; they now load with it.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -19,6 +22,7 @@ import ts from "typescript";
 // @mutate src/components/dashboard/DashboardTitleBar.tsx | const NotificationPanel = lazy(() => import("@/components/NotificationPanel")); | import NotificationPanelNow from "@/components/NotificationPanel";\nconst NotificationPanel = NotificationPanelNow;
 // @mutate src/components/dashboard/BrowseTasksToolbar.tsx | const loadFilterSheet = () => loadModule(() => import("@/components/dashboard/FilterSheet")); | import * as filterSheetNow from "@/components/dashboard/FilterSheet";\nconst loadFilterSheet = async () => filterSheetNow;
 // @mutate src/components/dashboard/BrowseTasksToolbar.tsx |       {(filters.filtersOpen \|\| filterSheetMounted) && ( |       {(true) && (
+// @mutate src/components/dashboard/BrowseTasksToolbar.tsx | const loadJobFilterSections = () => loadModule(() => import("@/components/dashboard/filterSheet/jobFilterSections")); | import * as jobSectionsNow from "@/components/dashboard/filterSheet/jobFilterSections";\nconst loadJobFilterSections = async () => jobSectionsNow;
 
 const read = (f: string) => readFileSync(resolve(__dirname, "../..", f), "utf8");
 
@@ -26,6 +30,7 @@ const read = (f: string) => readFileSync(resolve(__dirname, "../..", f), "utf8")
 const LAZY_ON_BROWSE: Array<{ file: string; module: string }> = [
   { file: "src/components/dashboard/DashboardTitleBar.tsx", module: "@/components/NotificationPanel" },
   { file: "src/components/dashboard/BrowseTasksToolbar.tsx", module: "@/components/dashboard/FilterSheet" },
+  { file: "src/components/dashboard/BrowseTasksToolbar.tsx", module: "@/components/dashboard/filterSheet/jobFilterSections" },
 ];
 
 function imports(file: string, module: string): { staticValue: number; dynamic: number } {

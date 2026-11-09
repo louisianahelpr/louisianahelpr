@@ -31,6 +31,7 @@ vi.mock("@/hooks/useStoredSessionHint", () => ({ useStoredSessionHint: () => aut
 const EVERY_VISITOR: Record<string, string> = {
   ScrollToTop: "scroll restoration for every visitor",
   PermissionRationaleMount: "anyone can be asked for a device permission",
+  VercelInsights: "Vercel Analytics and Speed Insights measure every visit, signed in or not (Q2705: lazy, off boot)",
 };
 
 const app = blankComments(readFileSync(resolve(process.cwd(), "src/App.tsx"), "utf8"));

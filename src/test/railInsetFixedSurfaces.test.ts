@@ -30,6 +30,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
+import { blankComments } from "./helpers/blankNonCode";
 
 const SRC = join(process.cwd(), "src");
 
@@ -88,7 +89,8 @@ describe("desktop rail never overlaps a fixed page surface", () => {
       const rel = file.slice(process.cwd().length + 1);
       if (DELIBERATELY_FULL_WIDTH.has(rel)) continue;
       const text = readFileSync(file, "utf8");
-      const hits = fixedFullWidthLines(text);
+      // Comments blanked: a test's `@mutate` line quoting a className is not a rendered surface.
+      const hits = fixedFullWidthLines(blankComments(text));
       if (!hits.length) continue;
       if (text.includes("data-rail-inset")) continue;
       unhandled.push(`${rel}: ${hits[0]}`);

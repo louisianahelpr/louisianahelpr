@@ -746,12 +746,13 @@ BEGIN
     UPDATE public.declutter_items SET status = 'sold', updated_at = now() WHERE id = r.item_id AND status = 'reserved';
   END LOOP;
   SELECT public.member_display_name(p.full_name, 'Someone') INTO v_taker FROM public.profiles p WHERE p.user_id = v_uid;
-  -- CHANGED (trades #2): a trade pickup says trade, never "free item".
+  -- CHANGED (trades #2): a trade pickup says trade, never "free item". Its own kind (declutter_pickups), since
+  -- declutter_notice_type does not list these titles (src/test/declutterNoticeKinds.test.ts).
   IF v_has_swap THEN
-    PERFORM public.declutter_notify(v_uid, 'payment', 'Trade pickup set',
+    PERFORM public.declutter_notify(v_uid, 'declutter_pickups', 'Trade pickup set',
       'Your trade pickup is set. Next: choose when to pick it up. No money changes hands.',
       '/declutter?view=cart', p_seller_id);
-    PERFORM public.declutter_notify(p_seller_id, 'payment', 'Trade pickup chosen',
+    PERFORM public.declutter_notify(p_seller_id, 'declutter_pickups', 'Trade pickup chosen',
       COALESCE(v_taker, 'Someone') || ' chose how to pick up their trade item. No money changes hands.',
       '/declutter?tab=selling', v_uid);
   ELSE

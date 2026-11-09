@@ -465,7 +465,9 @@ describe("engagement-automations edge function", () => {
     // @mutate supabase/functions/engagement-automations/index.ts |       newUsers: weekNum('new_users'), |       newUsers: weekNum('jobs_posted'),
     // @mutate supabase/functions/engagement-automations/index.ts |         if (v === null) statFailures.push |         if (false) statFailures.push
     // @mutate supabase/functions/engagement-automations/index.ts |     if (weekErr) statFailures.push |     if (false) statFailures.push
-    const WEEK = { new_users: 3, jobs_posted: 2, jobs_completed: 1, open_reports: 0, job_fee_revenue: 7.5 };
+    // @mutate supabase/functions/engagement-automations/index.ts |       itemsSold: weekNum('items_sold'), |       itemsSold: weekNum('items_posted'),
+    // @mutate supabase/functions/engagement-automations/index.ts |       salesCents: digestValues.salesCents!, |       salesCents: 0,
+    const WEEK = { new_users: 3, jobs_posted: 2, jobs_completed: 1, open_reports: 0, job_fee_revenue: 7.5, items_posted: 6, items_sold: 4, sales_cents: 8125 };
     /** The weekly answer differs from the daily one, so a digest reading the 24-hour answer is caught. */
     function seedWeek(week: Record<string, unknown> = WEEK) {
       const weekSince = new Date(A_MONDAY.getTime() - 7 * 24 * 3600_000).toISOString();
@@ -489,7 +491,11 @@ describe("engagement-automations edge function", () => {
       const b = await body(await fn.fetch(cronRequest(fn)));
 
       expect(b.adminDigest).toBe(1);
-      expect(digestStats()).toEqual({ newUsers: 3, newJobs: 2, completedJobs: 1, openReports: 0, revenue: 7.5 });
+      expect(digestStats()).toEqual({
+        newUsers: 3, newJobs: 2, completedJobs: 1, openReports: 0, revenue: 7.5,
+        // F186: Declutter's week from the same answer, not a second read.
+        itemsPosted: 6, itemsSold: 4, salesCents: 8125,
+      });
     });
 
     it("the digest reads no count straight from a table (that read let test data in)", async () => {
@@ -523,6 +529,26 @@ describe("engagement-automations edge function", () => {
       expect(b.adminDigest).toBe(0);
       expect(String(b.defectReasons)).toContain("admin digest NOT sent");
       expect(String(b.defectReasons)).toContain("revenue (unreadable)");
+    });
+
+    it("does NOT mail a digest when the weekly answer lacks a Declutter number (F186)", async () => {
+      // @mutate supabase/functions/engagement-automations/index.ts |       salesCents: weekNum('sales_cents'), |       salesCents: weekNum('sales_cents') ?? 0,
+      const fn = await loadConfigured();
+      seedAdmin();
+      seedWeek();
+      const answer = scenario.rpc.owner_daily_summary_stats as (a?: unknown) => Record<string, unknown>;
+      scenario.rpc.owner_daily_summary_stats = (args?: unknown) => {
+        const r = { ...answer(args) };
+        r.sales_cents = "not a number";
+        return r;
+      };
+
+      const res = await fn.fetch(cronRequest(fn));
+      const b = await body(res);
+
+      expect(res.status).toBe(500);
+      expect(b.adminDigest).toBe(0);
+      expect(String(b.defectReasons)).toContain("declutter sales (unreadable)");
     });
 
     it("HONOURS the suppression list for the admin digest too", async () => {

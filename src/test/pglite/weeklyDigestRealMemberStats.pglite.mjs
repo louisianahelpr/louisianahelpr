@@ -84,6 +84,10 @@ await db.exec(`
   insert into public.declutter_items (seller_id, live_at) values ('${REAL}', now()), ${TESTS.map((t) => `('${t}', now())`).join(", ")};
   insert into public.declutter_orders (buyer_id, seller_id, total_cents, paid_at) values ('${REAL}', '${REAL2}', 2500, now()),
     ${TESTS.map((t) => `('${t}', '${REAL2}', 9900, now()), ('${REAL}', '${t}', 9900, now())`).join(", ")};
+  -- F186 (11-09): the digest now reads Declutter's items_posted / items_sold / sales_cents from this same answer, so a
+  -- seeded item or order by REAL members must stay out too, not only test subjects' rows.
+  insert into public.declutter_items (seller_id, live_at, is_seed) values ('${REAL}', now(), true);
+  insert into public.declutter_orders (buyer_id, seller_id, total_cents, paid_at, is_seed) values ('${REAL}', '${REAL2}', 9900, now(), true);
   insert into public.declutter_payouts (seller_id, status) values ('${REAL}', 'failed'), ${TESTS.map((t) => `('${t}', 'failed')`).join(", ")};
   insert into public.messages (id, sender_id) values ('aaaaaaaa-0000-0000-0000-000000000001', '${REAL}'),
     ('aaaaaaaa-0000-0000-0000-000000000002', '${EMAIL}');
@@ -117,8 +121,8 @@ const n = (k) => (s ? Number(s[k]) : NaN);
 check(n("new_users") === 2, `[keep] sign-ups: only the 2 real members (got ${n("new_users")})`);
 check(n("jobs_posted") === 4, `[keep] jobs posted: the real poster's 4 (one with a test Helpr still posted by a real member; the seeded job left out) (got ${n("jobs_posted")})`);
 check(n("jobs_completed") === 1, `[keep] jobs completed: only the one with a real poster AND a real Helpr (got ${n("jobs_completed")})`);
-check(n("items_posted") === 1, `[keep] items posted: only the real seller's (got ${n("items_posted")})`);
-check(n("items_sold") === 1 && n("sales_cents") === 2500, `[keep] sales: only the real buyer-and-seller order, $25 (got ${n("items_sold")}, ${n("sales_cents")})`);
+check(n("items_posted") === 1, `[keep] items posted: only the real seller's, no seeded item (got ${n("items_posted")})`);
+check(n("items_sold") === 1 && n("sales_cents") === 2500, `[keep] sales: only the real buyer-and-seller order, $25, no seeded order (got ${n("items_sold")}, ${n("sales_cents")})`);
 check(n("failed_payouts") === 1, `[keep] failed payouts: only the real seller's (got ${n("failed_payouts")})`);
 check(n("open_reports") === 2, `[keep] open reports: real reporter about a real user, and about a real member's message (got ${n("open_reports")})`);
 check(n("member_errors") === 2 && n("members_with_errors") === 1,

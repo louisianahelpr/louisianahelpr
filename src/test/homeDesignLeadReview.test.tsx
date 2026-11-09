@@ -32,8 +32,7 @@
  * @mutate src/lib/avatarImage.ts |   return initials ? `${word}, ${initials}` : word; |   return word;
  * @mutate src/components/notificationPanel/NotificationTrigger.tsx |   return count > 0 ? `${name}, ${formatUnreadBadge(count)} unread` : name; |   return name;
  * @mutate src/components/MobileNav.tsx | : showBadge ? `${dockBadgeText(badgeCount)} ${shown}` : shown} | : shown}
- * @mutate src/components/sections/AppTopBar.tsx |           style={{ background: "hsl(var(--alert))", color: "#fff" }}\n        >\n          {n} |           style={{ background: "hsl(var(--burnt-sienna))", color: "#fff" }}\n        >\n          {n}
- * @mutate src/components/sections/AppTopBar.tsx |       aria-label={unreadCount > 0 ? `${n} ${tr("nav.messages")}` : tr("nav.messages")} |       aria-label={tr("nav.messages")}
+ * @mutate src/components/MobileNav.tsx |         {" "}\n        <span data-dock-label |         <span data-dock-label
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 // The account's Customize row (useSectionPrefs, Q2199) is data, not what this spec measures: answered locally
@@ -76,7 +75,6 @@ vi.mock("@/lib/shops/api", () => ({ fetchMyShopId: async () => null }));
 
 import MobileNav from "@/components/MobileNav";
 import { AppTopBar } from "@/components/sections/AppTopBar";
-import { stores } from "@/components/mobileNav/navUnreadStore";
 import { NotificationTrigger } from "@/components/notificationPanel/NotificationTrigger";
 import { countLine, SECTION_INVITE } from "@/pages/home/homeDashboard/useHomeSummary";
 
@@ -120,13 +118,13 @@ describe("1. Home section cards never show a 0 (spec v2 §1.5/§5.5, board 19)",
 });
 
 describe("2. phone Home keeps the H logo (owner 2026-10-20 08:30Z), never the wordmark", () => {
-  it("phone: H emblem left; the bell, Messages, the +, the avatar right (nav redesign 2026-11-06; Help is in You)", () => {
+  it("phone: H emblem left; the bell and the avatar right (F148, owner audit 11-09; Help is in You)", () => {
     render(<MemoryRouter><AppTopBar /></MemoryRouter>);
     const bar = screen.getByTestId("app-top-bar");
     const logo = bar.firstElementChild as HTMLElement;
     expect(logo.querySelector("img")).not.toBeNull();
     expect(logo.textContent ?? "").not.toMatch(/Helpr/);
-    expect([...bar.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Notifications", "Messages", "Create", "Profile, TP"]); // the avatar's initials are in its name (WCAG 2.5.3, Q1816)
+    expect([...bar.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Notifications", "Profile, TP"]); // the avatar's initials are in its name (WCAG 2.5.3, Q1816)
   });
 
   it("desktop Home: no bar (the left sidebar carries the H logo)", () => {
@@ -146,7 +144,7 @@ describe("3 + 4. the bottom bar: You is a person icon; olive active, --alert bad
       expect(t.querySelector("img"), t.getAttribute("aria-label") ?? "").toBeNull();
     }
     const jobs = screen.getByRole("button", { name: "Jobs" });
-    expect(jobs.textContent).toBe(""); // icons only: no word, no "TP" monogram
+    expect(jobs.textContent?.trim()).toBe("Jobs"); // its name under the icon (F147), no "TP" monogram
     expect(jobs.getAttribute("aria-current")).toBe("page");
     expect(jobs.querySelector("svg")?.getAttribute("fill")).toBe("currentColor");
   });
@@ -154,7 +152,7 @@ describe("3 + 4. the bottom bar: You is a person icon; olive active, --alert bad
   it("the active tab is olive with no rust anywhere in the bar", () => {
     todo.jobs = 3;
     const { container } = renderDock("/home");
-    const home = screen.getByRole("button", { name: "Dashboard" });
+    const home = screen.getByRole("button", { name: "Home" });
     expect(home.getAttribute("style")).toContain("hsl(var(--bark))");
     expect(container.innerHTML).not.toMatch(/burnt-sienna|accent-ink/);
   });
@@ -167,18 +165,17 @@ describe("3 + 4. the bottom bar: You is a person icon; olive active, --alert bad
     expect(badge!.getAttribute("style")).toContain("hsl(var(--alert))");
   });
 
-  it("the top bar's Messages count badge is --alert with white text, and its name starts with the count", () => {
-    stores.set("u-review", { count: 12, listeners: new Set(), publish: () => {}, close: () => {} });
+  it("the dock's Messages count badge is --alert with white text, and its name starts with the count (F146)", () => {
+    unread.n = 12;
     try {
-      render(<MemoryRouter><AppTopBar /></MemoryRouter>);
-      const msgs = screen.getByTestId("top-bar-messages");
-      expect(msgs.getAttribute("aria-label")).toBe("9+ Messages");
-      const badge = msgs.querySelector('[data-top-bar-badge="messages"]');
+      renderDock("/home");
+      const msgs = screen.getByRole("button", { name: "9+ Messages" });
+      const badge = msgs.querySelector('[data-dock-badge="/messages"]');
       expect(badge?.textContent).toBe("9+");
       expect(badge?.getAttribute("style")).toContain("hsl(var(--alert))");
       expect(nameHoldsVisibleText(msgs), msgs.getAttribute("aria-label") ?? "").toBe(true);
     } finally {
-      stores.delete("u-review");
+      unread.n = 0;
     }
   });
 

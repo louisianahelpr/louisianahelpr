@@ -64,6 +64,7 @@ const state = {
   similar: [] as unknown[],
   liveCount: null as number | null,
   newest: [] as unknown[],
+  sold: null as { title: string; photo_id: string | null } | null,
   questions: [] as unknown[],
   tableRows: [] as unknown[],
   drop: null as unknown,
@@ -137,6 +138,7 @@ vi.mock("@/lib/declutter/api", async () => {
     fetchSimilarItems: async () => state.similar,
     fetchSellerLiveCount: async () => state.liveCount,
     fetchNewestItems: async () => state.newest,
+    fetchSoldItemCard: async () => state.sold,
     fetchItem: async () => state.item,
     fetchItemHandovers: async () => state.handovers,
     fetchItemDropState: async () => { state.reads++; return state.drop; },
@@ -206,6 +208,7 @@ describe("the photo-first Declutter item page", () => {
     state.similar = [];
     state.liveCount = null;
     state.newest = [];
+    state.sold = null;
     state.drop = null;
     state.manage = null;
     calls.length = 0;
@@ -889,9 +892,24 @@ describe("the photo-first Declutter item page", () => {
       { ...ITEM, id: "0f0e0d0c-0b0a-4908-8706-050403020192", title: "My own rug", seller_id: "u1" },
     ];
     open();
-    expect(await screen.findByText("This item isn't available.")).toBeInTheDocument();
+    expect(await screen.findByText("No longer available.")).toBeInTheDocument();
     const row = await screen.findByRole("region", { name: "New on Declutter" });
     expect(within(row).getAllByRole("link").map((a) => a.getAttribute("aria-label"))).toEqual([expect.stringMatching(/^Desk lamp, /)]);
+    // Not sold (withdrawn, removed, ...): nothing of the listing.
+    expect(document.querySelector("[data-sold-item]")).toBeNull();
+  });
+
+  // F061 (lead rule 11-09): a SOLD item shows its cover greyed, its title and "Sold" (declutter_sold_item_card).
+  // @mutate src/components/declutter/DeclutterItemView.tsx | top={item.isError ? null : <SoldItemCard itemId={itemId} />} | top={null}
+  it("F061: a sold item shows its greyed cover, its title and Sold above the notice", async () => {
+    state.item = null;
+    state.sold = { title: "Oak rocking chair", photo_id: "11111111-2222-4333-8444-555555555555" };
+    open();
+    const sold = await screen.findByRole("region", { name: "Oak rocking chair, sold" });
+    expect(within(sold).getByText("Sold")).toBeInTheDocument();
+    const img = within(sold).getByRole("img", { name: "Oak rocking chair" });
+    expect(img.getAttribute("src")).toMatch(/\/functions\/v1\/shop-photo\?id=11111111-2222-4333-8444-555555555555&kind=declutter&w=240&sq=1$/);
+    expect(img.className).toMatch(/\bgrayscale\b/);
   });
 
   // F049 (UI audit 11-09): a free item said "Sold by Lexi" and "Exact address if the giver picks you".

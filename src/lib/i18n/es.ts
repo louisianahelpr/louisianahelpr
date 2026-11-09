@@ -75,6 +75,8 @@ export const es: Record<MsgKey, string> = {
   "hero.subhead": "Contrate ayuda o encuentre trabajo. Una cuenta, vecinos de verdad.",
   "hero.searchLabel": "Buscar trabajos locales",
   "hero.searchButton": "Buscar",
+  "hero.searchDeclutter": "Buscar en Declutter",
+  "hero.tabJobs": "Trabajos",
 
   "login.title": "Iniciar sesión",
   "login.welcome": "Qué gusto verle de nuevo, vecino.",

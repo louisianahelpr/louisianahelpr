@@ -19,7 +19,7 @@
  *     on every public page alike): no "How it works", no sections read of its own.
  *
  * @mutate src/components/landing/heroSearch.ts |   return { signedIn: q ? `/search${qs}` : "/jobs", signedOut: `/browse${qs}` }; |   return { signedIn: "/jobs", signedOut: "/signup" };
- * @mutate src/components/landing/HeroSection.tsx |     const t = heroSearchTargets(query); |     const t = heroSearchTargets("");
+ * @mutate src/components/landing/HeroSection.tsx |     const t = heroSearchTargets(query, mode); |     const t = heroSearchTargets("", mode);
  * @mutate src/components/landing/SectionsShowcase.tsx | "Helpr holds the money. Nobody is paid out until the work is done." | "Held through Stripe. Nobody is paid out until the work is done."
  * @mutate src/components/landing/LandingAppleButton.tsx |   if (!SOCIAL_SIGN_IN_ENABLED) return null; |
  * @mutate src/components/Navbar.tsx |         {!user && ( |         {landing && <Link to="/signup?redirect=%2Fdeclutter">Declutter</Link>}\n        {!user && (
@@ -61,9 +61,10 @@ describe("landing redesign: the honesty fixes hold", () => {
     expect(new URLSearchParams(heroSearchTargets("x".repeat(200)).signedOut.split("?")[1]).get("q")?.length).toBe(SEARCH_MAX);
     // The hero submits through it, with the session check, under the owner's words.
     const hero = read("src/components/landing/HeroSection.tsx");
-    expect(hero).toMatch(/const t = heroSearchTargets\(query\);\s*void goSignedInOr\(navigate, t\.signedIn, t\.signedOut\);/);
-    // Signed out it searches Jobs only, so it promises nothing else (owner 2026-10-21).
-    expect(hero).toContain(`placeholder={es ? es.searchLabel : "Search local jobs"}`);
+    expect(hero).toMatch(/const t = heroSearchTargets\(query, mode\);\s*void goSignedInOr\(navigate, t\.signedIn, t\.signedOut\);/);
+    // It searches Jobs (or, on the Declutter tab, Declutter: F012), so it promises nothing else (owner 2026-10-21).
+    expect(hero).toContain(`placeholder={searchLabel}`);
+    expect(hero).toContain(`declutter ? (es ? es.searchDeclutter : "Search Declutter") : es ? es.searchLabel : "Search local jobs"`);
     expect(hero).not.toMatch(/items, shops and homes/);
   });
 

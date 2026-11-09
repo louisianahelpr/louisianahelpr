@@ -94,12 +94,13 @@ export function SectionsShowcase() {
     const Icon = s.icon;
     const soon = sectionIsComingSoon(s.feature, open);
     const link = cardLinkFor(s.key, s.path, s.navLabel);
-    // All four sections are equal (design spec v2 §1): one card style.
+    // All four sections are equal (design spec v2 §1): one card style, the white landing card with its soft shadow
+    // (UI audit F004, 11-09: the How a job works cards' surface).
     const card = (
       <li
         key={s.key}
-        className="relative rounded-[20px] p-6 flex flex-col gap-3 min-h-[14rem] lg:min-h-[17rem] min-w-0"
-        style={{ background: "var(--lp-ground)", color: "var(--lp-ink)" }}
+        className="landing-card relative p-6 flex flex-col gap-3 min-h-[14rem] lg:min-h-[17rem] min-w-0"
+        style={{ color: "var(--lp-ink)" }}
         data-section={s.key}
         data-soon={soon ? "true" : "false"}
       >

@@ -406,7 +406,11 @@ function jobDescription(job: PublicJob): string {
  */
 function unavailableJobMeta(url: string): Meta {
   return {
-    title: "This job is no longer available — Helpr",
+    // F110 (owner audit 11-09): the TAB title stays neutral. `open_jobs_browse` lists only OPEN jobs, so a hired, done or
+    // cancelled job reads as absent here even for its own poster and Helpr, whose tab then said "This job is no longer
+    // available" until the app drew the job's title. The share card (ogTitle, description) still says so honestly.
+    // Guard: src/test/jobTabTitleNeutral.test.ts.
+    title: "Job — Helpr",
     ogTitle: "This job is no longer available",
     description:
       "This job has been filled, expired, or removed. Browse open jobs near you on Helpr — Louisiana's local job marketplace.",

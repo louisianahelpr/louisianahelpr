@@ -4,7 +4,8 @@
  * 35px) failed messages-thread.spec.ts's 44px tap-target scan on PR #2841.
  *
  * @mutate src/components/ScrollToTop.tsx | if (!rendered) return null; | if (false) return null;
- * @mutate src/components/ScrollToTop.tsx | setVisible(pos > REVEAL_AFTER_PX && !footerInView()); | setVisible(pos > REVEAL_AFTER_PX);
+ * @mutate src/components/ScrollToTop.tsx | setVisible(pos > REVEAL_AFTER_PX && !footerInView() && !onPhoneLanding(pathname)); | setVisible(pos > REVEAL_AFTER_PX && !onPhoneLanding(pathname));
+ * @mutate src/components/ScrollToTop.tsx |   if (pathname !== "/" \|\| typeof window.matchMedia !== "function") return false; |   if (true) return false;
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
@@ -75,5 +76,45 @@ describe("ScrollToTop's button is in the page only while wanted (Q1356)", () => 
     });
     expect(screen.queryByLabelText("Scroll to top")).toBeNull();
     footer.remove();
+  });
+
+  // Owner's UI audit 11-09, F014: on a phone the landing's full-width blocks always sat under the button.
+  describe("never on the landing on a phone (F014)", () => {
+    const realMatchMedia = window.matchMedia;
+    const phone = (isPhone: boolean) => {
+      window.matchMedia = ((q: string) => ({
+        matches: q === "(max-width: 639px)" ? isPhone : false,
+        media: q,
+        onchange: null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+      })) as typeof window.matchMedia;
+    };
+    afterEach(() => {
+      window.matchMedia = realMatchMedia;
+    });
+
+    it.each([
+      ["/", true, false],
+      ["/", false, true],
+      ["/messages", true, true],
+    ])("%s, phone=%s: button shown = %s", (path, isPhone, shown) => {
+      vi.useFakeTimers();
+      phone(isPhone);
+      const { unmount } = render(
+        <MemoryRouter initialEntries={[path]}>
+          <ScrollToTop />
+        </MemoryRouter>,
+      );
+      scrollTo(1500);
+      act(() => {
+        vi.advanceTimersByTime(50);
+      });
+      expect(!!screen.queryByLabelText("Scroll to top")).toBe(shown);
+      unmount();
+    });
   });
 });

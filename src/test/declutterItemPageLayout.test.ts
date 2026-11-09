@@ -45,7 +45,9 @@ describe("the Declutter item page's order (owner 2026-10-31)", () => {
 
   it("the pickup block names the cities once, never \"Pickup in <town>\"", () => {
     const block = blankComments(readFileSync("src/components/declutter/ItemPickupBlock.tsx", "utf8"));
-    expect(block).toContain("title: `${HANDOVER_TITLE.porch} · ${orList(cities)}`");
+    expect(block).toContain("title: `${HANDOVER_TITLE.porch}${towns}`");
+    // F120: the towns are said once, and only where they differ from the item's area (townsWords).
+    expect(block).toContain("const towns = townsWords(cities, areaLabel);");
     expect(block).not.toMatch(/Pickup in /);
     expect(src).not.toMatch(/Pickup in /);
   });

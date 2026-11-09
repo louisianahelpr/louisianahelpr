@@ -41,7 +41,9 @@ export default function LandingAppleButton() {
       disabled={busy}
       aria-busy={busy}
       className="inline-flex items-center justify-center gap-2 h-14 w-full sm:w-auto px-7 rounded-full text-ds-15 font-semibold transition-colors disabled:opacity-60"
-      style={{ background: "var(--lp-surface)", border: "1px solid var(--lp-line-strong)", color: "var(--lp-ink)" }}
+      // The same solid ink button as Sign up and Log in (SocialAuthButtons, board 37/55; Apple's own black/white pair):
+      // it was white here (UI audit F027, 11-09).
+      style={{ backgroundColor: "hsl(var(--foreground))", color: "hsl(var(--background))", border: "1px solid transparent" }}
       data-testid="landing-apple"
     >
       <Apple className="w-[18px] h-[18px]" fill="currentColor" aria-hidden />

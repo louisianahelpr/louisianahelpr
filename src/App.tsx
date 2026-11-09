@@ -1,6 +1,6 @@
 import { lazy, Suspense, forwardRef, useState, type ComponentType, type ReactElement, type ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { RoutedBoundary } from "@/components/RoutedBoundary";
 import { lazyWithPreload } from "@/lib/lazyWithPreload";
 // Q1816: every lazy piece mounted beside the routes (outside RoutedBoundary) fails quietly; guard chromeLaziesFailQuietly.
@@ -189,7 +189,6 @@ const LegalFullText = lazyWithPreload(() => import("./pages/info/LegalFullText")
 const Support = lazyWithPreload(() => import("./pages/info/Support"));
 
 // Lazy load less-critical global components
-
 const StrikeBanner = optionalLazy(() => import("./components/StrikeBanner"), "StrikeBanner");
 
 // Lazy load route wrappers
@@ -296,6 +295,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember fallback={<DeclutterRouteSkeleton />}><DeclutterPage /></DeclutterGuestOrMember>, <DeclutterRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/move" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterMovePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} />{/* F130: was a 404; = wantedAskHref("") */}
       <Route path="/declutter/settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSettingsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/item/:id" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember><DeclutterItemPage /></DeclutterGuestOrMember>)}</RouteErrorBoundary>} />
       <Route path="/quotes" element={routeEl(<QuotesHubRedirect />)} />

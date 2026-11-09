@@ -14,7 +14,8 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { fetchItemHandovers, type SellerHandover } from "@/lib/declutter/api";
+import { fetchGuestSellerFirstName, fetchItemHandovers, fetchSellerCard, type SellerHandover } from "@/lib/declutter/api";
+import { formatName } from "@/lib/utils";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchItemPickupWindows } from "@/lib/declutter/handover";
 import { weekHoursLine } from "@/lib/declutter/pickupSlots";
@@ -25,10 +26,26 @@ import { itemTimesPlan } from "./ItemHandoverTimes";
 
 const ORDER: SellerHandover[] = ["porch", "meetup", "seller_delivery", "delivery"];
 
-/** When the exact pickup address is shared, said to whoever is reading (audit DC-7: the seller is not the one paying). */
-function addressNote(free: boolean, isSeller: boolean): string {
+/**
+ * When the exact pickup address is shared, said to whoever is reading (audit DC-7: the seller is not the one paying).
+ * F049 (UI audit 11-09): a free item's line is a whole sentence naming the giver ("You'll get the exact address if
+ * Lexi picks you."); "the giver" only while no first name is known.
+ */
+function addressNote(free: boolean, isSeller: boolean, giver: string | null): string {
   if (isSeller) return free ? "buyers see your exact address only once they're picked" : "buyers see your exact address only after they pay";
-  return free ? "exact address if the giver picks you" : "exact address after you pay";
+  return free ? `You'll get the exact address if ${giver ?? "the giver"} picks you.` : "exact address after you pay";
+}
+
+/**
+ * The giver's first name for a free item's line, from the reads the page already makes (the same keys): a guest's
+ * declutter_guest_seller_first_name (DeclutterGuestSeller), a member's seller card (DeclutterSellerCard).
+ */
+function useGiverFirstName(itemId: string, sellerId: string, guest: boolean, enabled: boolean): string | null {
+  const guestName = useQuery({ queryKey: ["declutter", "guest-seller", itemId], queryFn: () => fetchGuestSellerFirstName(itemId), enabled: enabled && guest });
+  const card = useQuery({ queryKey: ["declutter", "seller-card", sellerId], queryFn: () => fetchSellerCard(sellerId), enabled: enabled && !guest });
+  if (guest) return guestName.data?.trim() || null;
+  const name = card.data?.name?.trim();
+  return name ? formatName(name).split(" ")[0] : null;
 }
 
 /** "A or B" / "A, B or C". */
@@ -37,14 +54,27 @@ function orList(xs: string[]): string {
   return `${xs.slice(0, -1).join(", ")} or ${xs[xs.length - 1]}`;
 }
 
-export function ItemPickupBlock({ itemId, porchOk, areaLabel, free, isSeller, showAddressNote, readTimes }: {
-  itemId: string; porchOk: boolean; areaLabel: string; free: boolean; isSeller: boolean;
+/**
+ * F120 (UI audit 11-09, lead OK): the page's top line already names the item's area, so the pickup line names a town
+ * only where it differs: "" when the only town is the item's area, " · also Delcambre" when the places add towns to
+ * it, " · Delcambre" when none is the item's area.
+ */
+export function townsWords(cities: string[], areaLabel: string): string {
+  const same = (c: string) => c.trim().toLowerCase() === areaLabel.trim().toLowerCase();
+  const others = cities.filter((c) => c && !same(c));
+  if (others.length === 0) return "";
+  return cities.some(same) ? ` · also ${orList(others)}` : ` · ${orList(others)}`;
+}
+
+export function ItemPickupBlock({ itemId, sellerId, guest, porchOk, areaLabel, free, isSeller, showAddressNote, readTimes }: {
+  itemId: string; sellerId: string; guest: boolean; porchOk: boolean; areaLabel: string; free: boolean; isSeller: boolean;
   /** DA-6: the member who already bought or claimed it gets no "after you pay" words. */
   showAddressNote: boolean;
   /** Times and places are read only for a signed-in member while the item is for sale (the server answers nothing else). */
   readTimes: boolean;
 }) {
   const ways = useQuery({ queryKey: ["declutter", "item-handovers", itemId], queryFn: () => fetchItemHandovers(itemId) });
+  const giver = useGiverFirstName(itemId, sellerId, guest, free && !isSeller && showAddressNote);
   const places = useQuery({ queryKey: ["declutter", "item-pickup-places", itemId], queryFn: () => fetchItemPickupPlaces(itemId), enabled: readTimes, retryOnMount: false });
   const hasPlaces = !readTimes ? false : places.isPending ? null : Array.isArray(places.data) && places.data.length > 0;
   const plan = itemTimesPlan(ways.data, hasPlaces);
@@ -68,15 +98,16 @@ export function ItemPickupBlock({ itemId, porchOk, areaLabel, free, isSeller, sh
   const pickupUsual = plan.usual === "Pickup times" || plan.usual === "Pickup and meetup times" ? usualLine : "";
   const rows: { way: string; title: string; hours: string }[] = [];
   const porch = ticked === null ? porchOk : ticked.includes("porch");
-  if (porch) rows.push({ way: "porch", title: `${HANDOVER_TITLE.porch} · ${orList(cities)}`, hours: placeHours || pickupUsual });
-  if (ticked === null && !porchOk) rows.push({ way: "pickup_home", title: `${HANDOVER_TITLE.pickup_home} · ${orList(cities)}`, hours: pickupUsual });
+  const towns = townsWords(cities, areaLabel);
+  if (porch) rows.push({ way: "porch", title: `${HANDOVER_TITLE.porch}${towns}`, hours: placeHours || pickupUsual });
+  if (ticked === null && !porchOk) rows.push({ way: "pickup_home", title: `${HANDOVER_TITLE.pickup_home}${towns}`, hours: pickupUsual });
   if (ticked?.includes("meetup")) {
     const meetHours = plan.usual === "Meetup times" || plan.usual === "Pickup and meetup times" ? usualLine : "";
     rows.push({ way: "meetup", title: HANDOVER_TITLE.meetup, hours: [meetHours, "you pick the spot at checkout"].filter(Boolean).join(" · ") });
   }
   for (const w of ["seller_delivery", "delivery"] as const) if (ticked?.includes(w)) rows.push({ way: w, title: HANDOVER_TITLE[w], hours: "" });
   // Said once, last, and only for a way that goes to the seller's place (never under delivery: A3-55).
-  const note = showAddressNote && rows.some((r) => r.way === "porch" || r.way === "pickup_home") ? addressNote(free, isSeller) : "";
+  const note = showAddressNote && rows.some((r) => r.way === "porch" || r.way === "pickup_home") ? addressNote(free, isSeller, giver) : "";
   const cap = (t: string) => t.replace(/^./, (c) => c.toUpperCase());
 
   return (

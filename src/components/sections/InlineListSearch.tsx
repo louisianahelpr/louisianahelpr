@@ -16,7 +16,7 @@ import { DESKTOP_SEARCH_PILL_SURFACE, DESKTOP_SEARCH_PILL_WIDTH } from "./search
  * It filters the tab's own list (Posted / Working: useActivityFilters' searchQuery, mirrored to ?q=),
  * the same way Browse's field filters the feed. Guard: src/test/jobsSearchOpensInPlace.test.tsx.
  */
-export function InlineListSearch({ value, onChange, label, onOpenChange, fill = false }: {
+export function InlineListSearch({ value, onChange, label, onOpenChange, fill = false, pinned = false }: {
   value: string;
   onChange: (v: string) => void;
   label: string;
@@ -29,9 +29,15 @@ export function InlineListSearch({ value, onChange, label, onOpenChange, fill = 
    * for "Search" and its X. Desktop keeps its 260px pill.
    */
   fill?: boolean;
+  /**
+   * F073 (UI audit 11-09, lead 11-09): always open (Declutter's desktop Browse shows a visible field, as the phone
+   * does). The X and Escape clear the words; it never folds into the square and never takes focus on arrival.
+   * Jobs keeps the owner's 10-27 open-in-place square (no `pinned`).
+   */
+  pinned?: boolean;
 }) {
   // Open on arrival when the address already carries words (?q=), so a filtered list always shows its field.
-  const [open, setOpen] = useState(() => value.trim().length > 0);
+  const [open, setOpen] = useState(() => pinned || value.trim().length > 0);
   const desktop = useIsWebDesktop();
   const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -41,6 +47,8 @@ export function InlineListSearch({ value, onChange, label, onOpenChange, fill = 
 
   useEffect(() => {
     onOpenChangeRef.current?.(open);
+    // A pinned field is always open: it never takes focus by itself (it would steal it on arrival).
+    if (pinned) return;
     if (open) inputRef.current?.focus();
     else if (reopenFocus.current) {
       reopenFocus.current = false;
@@ -50,6 +58,7 @@ export function InlineListSearch({ value, onChange, label, onOpenChange, fill = 
 
   const close = (clear: boolean, focusTrigger: boolean) => {
     if (clear && value) onChange("");
+    if (pinned) return;
     reopenFocus.current = focusTrigger;
     setOpen(false);
   };

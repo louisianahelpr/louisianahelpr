@@ -26,7 +26,7 @@ export function autoFreeDaysFrom(value: string): number | null {
 /** What the choice does, in one line under the dropdown. */
 export function autoFreeExplainer(days: number | null): string {
   // About free only (owner 2026-10-30): it once said "It stays at your price" here, which a seller read as "no price drops".
-  if (days === null) return "It won't become free on its own. This has nothing to do with price drops.";
+  if (days === null) return "It won't become free on its own.";
   return `If it hasn't sold by day ${days}, it becomes free and anyone nearby can claim it. Already past day ${days}? It becomes free tonight.`;
 }
 

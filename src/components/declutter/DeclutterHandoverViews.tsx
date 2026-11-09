@@ -153,7 +153,9 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
   // Boards 159/160: the other person by first name in the handover sheets; the problem form opens from "Something's not right".
   const { who } = useOrderOtherPerson(order.orderId, userId, order.side);
   // The same row and key HandoverPanel, NoShowButton and NoShowAnswer read: a buyer's no-show report and its 24 hours.
-  const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId), enabled: !done });
+  // F156 (lab 11-09): only a PAID order is asked. declutter_my_handover answers paid and handed-over orders only, so a
+  // refunded order's card (enabled: !done) got item_not_found and logged a QueryCache error on every Buying load.
+  const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId), enabled: order.status === "paid" });
   const noShowWaiting = !!handoverRow.data?.no_show_reported_at;
   const porchSeller = order.handover === "porch" && order.side === "seller"; // Q2627: its no-show and Report a problem wait for the porch window's end (noShowFrom).
   const [problemOpen, setProblemOpen] = useState(false);

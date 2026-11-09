@@ -4,11 +4,15 @@
  * of the same card Browse uses. Both rows and their photos arrive in one
  * paint (one loading gate); an empty row is left out, never shown empty.
  * Never the member's own items (Browse leaves them out the same way).
+ *
+ * F062 (UI audit 11-09): the rows' three reads (seller items, similar, their photos) started with the item and shared
+ * the line with its photo and code, and the rows sat as grey bones for 4+ s. They now start only when the rows come
+ * within ~one screen of view (ROWS_NEAR_MARGIN); until then the same bones hold the space, so nothing moves.
  */
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchPhotos, fetchSellerItems, fetchSimilarItems, type DeclutterItem } from "@/lib/declutter/api";
+import { fetchNewestItems, fetchPhotos, fetchSellerItems, fetchSimilarItems, type DeclutterItem } from "@/lib/declutter/api";
 import { milesBetween } from "@/lib/declutter/distance";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 
@@ -43,18 +47,65 @@ function Row({ id, title, items, cover, from }: { id?: string; title: string; it
   );
 }
 
+/**
+ * F061 (UI audit 11-09): under a sold or taken-down item's notice, a row of what is new on Declutter (never the
+ * member's own), the same card as Browse. Nothing while it loads or on a failed read: the notice and its button stand
+ * on their own.
+ */
+export function NewestItemsRow({ viewerId }: { viewerId: string | null }) {
+  const newest = useQuery({ queryKey: ["declutter", "newest-items"], queryFn: () => fetchNewestItems(12) });
+  const rows = (newest.data ?? []).filter((r) => r.seller_id !== viewerId);
+  const ids = rows.map((r) => r.id);
+  const photos = useQuery({ queryKey: ["declutter", "photos", ids.join(",")], queryFn: () => fetchPhotos(ids), enabled: ids.length > 0 });
+  const cover = useMemo(() => firstPhotos(photos.data ?? []), [photos.data]);
+  if (rows.length === 0 || photos.isLoading) return null;
+  return <div className="mt-6" data-newest-items=""><Row title="New on Declutter" items={rows} cover={cover} from={null} /></div>;
+}
+
+/** The rows nearest `from` first (items with no usable point last, in their order). */
+export function nearestOf(rows: DeclutterItem[], from: { lat: number; lng: number }): DeclutterItem[] {
+  const away = (r: DeclutterItem) => {
+    const m = milesBetween(from, { lat: Number(r.area_lat), lng: Number(r.area_lng) });
+    return Number.isFinite(m) ? m : Number.POSITIVE_INFINITY;
+  };
+  return rows.map((r, i) => ({ r, i, d: away(r) })).sort((a, b) => a.d - b.d || a.i - b.i).map((x) => x.r);
+}
+
+/** How close (px below the screen) the rows must come before their reads start. */
+export const ROWS_NEAR_MARGIN = "600px 0px";
+
+/** True once `ref` is within ROWS_NEAR_MARGIN of the screen (at once where IntersectionObserver is missing). */
+function useNear(ref: React.RefObject<HTMLElement>): boolean {
+  const [near, setNear] = useState(() => typeof IntersectionObserver !== "function");
+  useEffect(() => {
+    const el = ref.current;
+    if (near || !el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) setNear(true);
+    }, { rootMargin: ROWS_NEAR_MARGIN });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [near, ref]);
+  return near;
+}
+
 export function DeclutterItemRows({ item, viewerId, from }: { item: DeclutterItem; viewerId: string | null; from: From }) {
+  const spot = useRef<HTMLDivElement>(null);
+  const near = useNear(spot);
   const more = useQuery({
     queryKey: ["declutter", "more-from-seller", item.seller_id, item.id],
     queryFn: () => fetchSellerItems(item.seller_id, item.id),
+    enabled: near,
   });
   const similar = useQuery({
     queryKey: ["declutter", "similar", item.category, item.id, item.seller_id],
     queryFn: () => fetchSimilarItems(item.category, item.id, item.seller_id),
+    enabled: near,
   });
   const notMine = (rows: DeclutterItem[] | undefined) => (rows ?? []).filter((r) => r.seller_id !== viewerId);
   const moreRows = notMine(more.data);
-  const similarRows = notMine(similar.data);
+  // F121 (UI audit 11-09): "Similar near you": with a known position the same-category row is nearest first.
+  const similarRows = from ? nearestOf(notMine(similar.data), from) : notMine(similar.data);
   const ids = [...moreRows, ...similarRows].map((r) => r.id);
   const photos = useQuery({
     queryKey: ["declutter", "photos", ids.join(",")],
@@ -63,9 +114,9 @@ export function DeclutterItemRows({ item, viewerId, from }: { item: DeclutterIte
   });
   const cover = useMemo(() => firstPhotos(photos.data ?? []), [photos.data]);
   // A row that failed to load is left out: the item itself is what the page is for.
-  if (more.isLoading || similar.isLoading || photos.isLoading) {
+  if (!near || more.isLoading || similar.isLoading || photos.isLoading) {
     return (
-      <div className="space-y-2" role="status" aria-label="Loading more items">
+      <div ref={spot} className="space-y-2" role="status" aria-label="Loading more items" data-item-rows-waiting={near ? undefined : ""}>
         <Skeleton className="h-5 w-40" />
         <div className="flex gap-3 overflow-hidden">
           {[0, 1, 2].map((i) => (
@@ -86,7 +137,7 @@ export function DeclutterItemRows({ item, viewerId, from }: { item: DeclutterIte
           <BundleAsk item={item} others={moreRows} viewerId={viewerId} />
         </Suspense>
       )}
-      {similarRows.length > 0 && <Row title="Similar items" items={similarRows} cover={cover} from={from} />}
+      {similarRows.length > 0 && <Row title={from ? "Similar near you" : "Similar items"} items={similarRows} cover={cover} from={from} />}
     </div>
   );
 }

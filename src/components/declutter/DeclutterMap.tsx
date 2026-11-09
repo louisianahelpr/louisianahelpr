@@ -167,6 +167,8 @@ export default function DeclutterMap({
   }, [placed, selectedId]);
 
   const shell = flush ? "" : " rounded-2xl border border-border";
+  // One decorative spinner (aria-hidden) for both loading states below.
+  const spinner = <Loader2 className="h-5 w-5 animate-spin" style={{ color: "hsl(var(--bark) / 0.6)" }} aria-hidden />;
   if (pinsError && !pins) {
     return (
       <div className={`flex h-full w-full flex-col items-center justify-center gap-3 bg-card/40 px-6 text-center${shell}`} role="status">
@@ -181,9 +183,17 @@ export default function DeclutterMap({
   return (
     <div data-declutter-map="" className={`relative h-full w-full overflow-hidden bg-card/40${shell}`}>
       <div ref={setContainerEl} className="absolute inset-0" aria-label="Map of items for sale" role="region" />
-      {(pinsLoading || (!mapReady && !unusable)) && (
+      {/* F122 (UI audit 11-09): before the map's tiles are ready the half-clear veil showed MapKit's empty grid for
+          seconds. Until then it is a soft solid panel that says "Loading map…"; once the map is up, only a pins
+          reload keeps the light veil and spinner. */}
+      {!mapReady && !unusable ? (
+        <div role="status" data-map-loading="" className="pointer-events-none absolute inset-0 z-[300] flex flex-col items-center justify-center gap-2" style={{ background: "hsl(var(--surface-band) / 0.96)" }}>
+          {spinner}
+          <p className="text-ds-13 font-medium text-muted-foreground">Loading map…</p>
+        </div>
+      ) : pinsLoading && (
         <div aria-hidden className="pointer-events-none absolute inset-0 z-[300] flex items-center justify-center" style={{ background: "hsl(var(--surface-band) / 0.55)" }}>
-          <Loader2 className="h-5 w-5 animate-spin" style={{ color: "hsl(var(--bark) / 0.6)" }} />
+          {spinner}
         </div>
       )}
       {unusable && (

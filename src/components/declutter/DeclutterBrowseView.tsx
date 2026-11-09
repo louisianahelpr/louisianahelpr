@@ -12,7 +12,7 @@
  * 2026-10-19); a saved search (Q2275) opens Browse with its filters in the URL.
  */
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Search, Sofa } from "lucide-react";
 import { EmptyStateActions } from "@/components/ui/EmptyStateActions";
@@ -42,6 +42,7 @@ import { FiltersIconButton } from "@/components/dashboard/browseTasksToolbar/Fil
 import { MapToggleButton } from "@/components/dashboard/browseTasksToolbar/MapToggleButton";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 import { DeclutterMilesFrom } from "./DeclutterMilesFrom";
+import { DeclutterActiveFilters } from "./DeclutterActiveFilters";
 import { declutterFilterSections } from "./DeclutterFilterPanel";
 import { DeclutterFilterSheet } from "./DeclutterBrowseBar";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
@@ -52,6 +53,7 @@ import { mapFillHeight } from "@/lib/declutter/mapFillHeight";
 import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, DeclutterChipBones, declutterAboveFoldCount, declutterFirstRowCount } from "./DeclutterSkeletons";
 import { releaseDeclutterShellForCards } from "./declutterShell";
 import { fetchBundleSellers } from "@/lib/declutter/bundle";
+import { guestSaveHref } from "@/lib/declutter/guestSave";
 import { SELL_CHOOSER_PATH, wantedAskHref } from "@/lib/declutter/sellChooser";
 import { previewIsTopOfList, readFirstScreenPreview, type FirstScreenAnswer } from "@/lib/declutter/bootPrefetch";
 import { readGuestPreview } from "@/lib/declutter/guestBootPrefetch";
@@ -173,6 +175,9 @@ const GUEST_FULL_LIST_WAIT_MS = 3000;
 export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string | null; chrome: (browse: DeclutterBrowseHeader) => DeclutterChrome; top?: ReactNode; fab?: ReactNode }) {
   const desktop = useIsWebDesktop();
   const member = userId !== null;
+  const location = useLocation();
+  // F052: a guest's heart opens sign-up and comes back to this exact Browse (filters and search kept).
+  const guestSaveTo = member ? undefined : guestSaveHref(location.pathname + location.search);
   const [params, setParams] = useSearchParams();
   const [start] = useState(() => browseStateFromParams(params));
   // BUY-53: from a saved search, the listings its "N new" counted wear the New tag.
@@ -358,7 +363,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
         count: listLoading || preview || items.isError ? undefined : rows.length,
         end: (
           <div data-feed-strip="" className="ml-auto flex shrink-0 items-center gap-1 pb-0.5">
-            <InlineListSearch value={query} onChange={setQuery} label="Search items" />
+            {/* F073 (UI audit 11-09, lead 11-09): a visible field on desktop, as on the phone. */}
+            <InlineListSearch value={query} onChange={setQuery} label="Search items" pinned />
             <FiltersIconButton open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen((o) => !o)} />
             {member && <MapToggleButton visible={mapVisible} onToggle={toggleMap} disabled={items.isError} />}
           </div>
@@ -429,6 +435,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
         {/* Owner 11-07 (Vinted review; replaces 10-21's "no chip row"): the category chips at the top of the list. Porch
             pickup, price drops and the rest stay in the filter sheet. Guard: src/test/declutterBrowseChipsAndSaves.test.tsx. */}
         {desktop && chipRow}
+        {/* F055 (UI audit 11-09): what is filtered, each removable. */}
+        <DeclutterActiveFilters filters={filters} maxMiles={maxMiles} onChange={(next) => { setFilters(next.filters); setMaxMiles(next.maxMiles); }} />
         {/* The filters a saved search keeps: words, category, price, distance and (BUY-13) Free, porch pickup, price
             drops and condition; the sheet shows them. Sort is how the list is ordered, not what it alerts on. */}
         {member && (q || filters.category || filters.minDollars !== null || filters.maxDollars !== null || (from && maxMiles !== null) || hasExtras(saveExtras)) && (
@@ -481,6 +489,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
                     toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }),
                     pending: toggleWatch.isPending && toggleWatch.variables?.id === item.id,
                   } : undefined}
+                  guestSaveTo={guestSaveTo}
                 />
               </li>
             ))}

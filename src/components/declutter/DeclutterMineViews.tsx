@@ -191,7 +191,8 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
           { key: "offers", label: "To answer", count: toAnswer, hot: true },
           { key: "listings", label: "Listed", count: listed },
           { key: "waiting", label: waitingLabel, count: todo?.salesAwaitingPayment ?? 0 },
-          { key: "sold", label: "Hand over", count: todo?.salesOpen ?? 0, hot: true },
+          // F128 (UI audit 11-09): "Hand over" was unclear; these are the sales still to hand to the buyer.
+          { key: "sold", label: "Pickups to do", count: todo?.salesOpen ?? 0, hot: true },
           // Only while there is one (owner 2026-10-28: chips only for lists that hold something).
           ...(history > 0 ? [{ key: "taken" as const, label: "History", count: history }] : []),
         ]}

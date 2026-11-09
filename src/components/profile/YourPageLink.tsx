@@ -14,7 +14,7 @@ import { MY_HANDLE_KEY, ensureMyHandle, profileLinkLabel, profileLinkUrl, shareM
  * makes one for the rare member the sign-up trigger could not name). Changing it once stays in Settings
  * (ProfileLinkRow). Renders nothing until the handle is known, and nothing on a failed read.
  */
-export function YourPageLink({ name, className = "", forSale = 0, knownHandle }: { name?: string | null; className?: string; forSale?: number; knownHandle?: string | null }) {
+export function YourPageLink({ name, className = "", forSale = 0, knownHandle, slim = false }: { name?: string | null; className?: string; forSale?: number; knownHandle?: string | null; slim?: boolean }) {
   // A caller that already has the member's profile row (Home) passes its handle: no read at all.
   const { data: readHandle } = useQuery({
     enabled: !knownHandle,
@@ -32,6 +32,28 @@ export function YourPageLink({ name, className = "", forSale = 0, knownHandle }:
     if (await copyToClipboard(profileLinkUrl(handle))) toast("Link copied");
     else toast.error("Couldn't copy the link. Press and hold it to copy.");
   };
+  // F127 (UI audit 11-09; owner 11-05 placed the link on Home and leading Selling, "mine is kind of hidden"; lead 11-09:
+  // keep it easy to find, but not a third full card): Selling's is ONE slim line, "Your page · Copy · Share", with the
+  // same two actions. Home and You keep the card.
+  if (slim) {
+    return (
+      <p data-your-page-link="" data-your-page-slim="" className={`flex min-w-0 flex-wrap items-center gap-x-1.5 text-ds-13 text-muted-foreground ${className}`}>
+        <Link to={`/u/${encodeURIComponent(handle)}`} className="link-standard font-semibold text-foreground" aria-label={`Your page: ${profileLinkLabel(handle)}`}>
+          Your page
+        </Link>
+        <span aria-hidden>·</span>
+        <button type="button" onClick={() => void copy()} data-your-page-copy="" aria-label="Copy your page link"
+          className="inline-flex min-h-11 items-center gap-1 px-1 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
+          <Copy className="h-3.5 w-3.5" aria-hidden /> Copy
+        </button>
+        <span aria-hidden>·</span>
+        <button type="button" onClick={() => void shareMyProfile(handle, name)} data-your-page-share="" aria-label="Share your page"
+          className="inline-flex min-h-11 items-center gap-1 px-1 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
+          <Share2 className="h-3.5 w-3.5" aria-hidden /> Share
+        </button>
+      </p>
+    );
+  }
   // Owner request 11-05 ("mine is kind of hidden"): with something for sale, Selling leads with one clear
   // "Share your listings" button (the phone's share sheet; copy on a desktop browser), the way other marketplaces do.
   if (forSale > 0) {

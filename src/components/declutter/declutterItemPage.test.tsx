@@ -62,6 +62,8 @@ const state = {
   safeRows: [] as unknown[],
   more: [] as unknown[],
   similar: [] as unknown[],
+  liveCount: null as number | null,
+  newest: [] as unknown[],
   questions: [] as unknown[],
   tableRows: [] as unknown[],
   drop: null as unknown,
@@ -133,6 +135,8 @@ vi.mock("@/lib/declutter/api", async () => {
     fetchSimilarItemsReal: real.fetchSimilarItems,
     fetchSellerItems: async () => state.more,
     fetchSimilarItems: async () => state.similar,
+    fetchSellerLiveCount: async () => state.liveCount,
+    fetchNewestItems: async () => state.newest,
     fetchItem: async () => state.item,
     fetchItemHandovers: async () => state.handovers,
     fetchItemDropState: async () => { state.reads++; return state.drop; },
@@ -157,6 +161,7 @@ vi.mock("@/lib/declutter/api", async () => {
 vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
 
 import DeclutterItemPage from "@/pages/declutter/DeclutterItemPage";
+import { ROWS_NEAR_MARGIN } from "./DeclutterItemRows";
 import PageHeader from "@/components/PageHeader";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
@@ -199,6 +204,8 @@ describe("the photo-first Declutter item page", () => {
     shared.length = 0;
     state.more = [];
     state.similar = [];
+    state.liveCount = null;
+    state.newest = [];
     state.drop = null;
     state.manage = null;
     calls.length = 0;
@@ -213,13 +220,19 @@ describe("the photo-first Declutter item page", () => {
     const track = await screen.findByRole("group", { name: "Photos of Oak rocking chair" });
     expect(within(track).getAllByRole("img")).toHaveLength(3);
     expect(screen.getByText("1/3")).toBeInTheDocument();
-    expect(document.querySelectorAll("[data-gallery-dots] > span")).toHaveLength(3);
+    expect(document.querySelectorAll("[data-gallery-dots] > button")).toHaveLength(3);
     // A swipe to the second photo moves the counter and the active dot.
     Object.defineProperty(track, "clientWidth", { configurable: true, value: 300 });
     track.scrollLeft = 300;
     fireEvent.scroll(track);
     expect(screen.getByText("2/3")).toBeInTheDocument();
-    expect(document.querySelectorAll("[data-gallery-dots] > span")[1]).toHaveAttribute("data-dot-active");
+    expect(document.querySelectorAll("[data-gallery-dots] > button")[1]).toHaveAttribute("data-dot-active");
+    // F060 (UI audit 11-09): each dot is a button that shows its photo (the way back to photo 1 with a mouse).
+    // @mutate src/components/declutter/DeclutterGallery.tsx |               onClick={() => go(i)}\n |
+    fireEvent.click(screen.getByRole("button", { name: "Show photo 1 of 3" }));
+    expect(screen.getByText("1/3")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show photo 1 of 3" })).toHaveAttribute("aria-current", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Show photo 2 of 3" }));
     fireEvent.click(screen.getByRole("button", { name: "Open photo 2 of 3 full screen" }));
     expect(await screen.findByRole("dialog", { name: "Photo viewer" })).toBeInTheDocument();
   });
@@ -512,7 +525,8 @@ describe("the photo-first Declutter item page", () => {
       await screen.findAllByRole("button", { name: "Ask for it" });
       await waitFor(() => expect(document.body.querySelector("[data-declutter-askbar]")).not.toBeNull());
       await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
-      expect(seen[seen.length - 1]?.rootMargin).toBe("0px 0px -64px 0px");
+      // F062: the rows under the item watch for themselves too (ROWS_NEAR_MARGIN); this is the action bar's observer.
+      expect(seen.filter((o) => o.rootMargin !== ROWS_NEAR_MARGIN).slice(-1)[0]?.rootMargin).toBe("0px 0px -64px 0px");
     } finally {
       dock.remove();
     }
@@ -771,6 +785,12 @@ describe("the photo-first Declutter item page", () => {
     const full = open();
     expect(await screen.findByText(/^11\+ more items · /)).toBeInTheDocument();
     full.unmount();
+    // F120 (UI audit 11-09): with the seller's real count in, the card says it ("254 more items"), never "12+".
+    // @mutate src/components/declutter/DeclutterBundleRow.tsx |   return { count: counted ? total.data! : buyable.length, capped, firstName, |   return { count: buyable.length, capped: full, firstName,
+    state.liveCount = 254;
+    const counted = open();
+    expect(await screen.findByText(/^254 more items · /)).toBeInTheDocument();
+    counted.unmount();
     state.more = [{ ...ITEM, id: "a3", title: "Rug", status: "reserved" }];
     open();
     await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
@@ -815,7 +835,7 @@ describe("the photo-first Declutter item page", () => {
   // @mutate src/components/declutter/DeclutterGuest.tsx |         {!barShown && <GuestBrand />}\n      </div> |       </div>
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && (\n            <DeclutterSellerCard |           {!isSeller && (\n            <DeclutterSellerCard
   // @mutate src/components/declutter/DeclutterGuest.tsx |   if (failed \|\| open?.has("declutter")) return <><DeclutterGuestTopBar />{children}</>; |   return <><DeclutterGuestTopBar />{children}</>;
-  // @mutate src/components/declutter/DeclutterItemView.tsx |           {!user && <DeclutterGuestSeller itemId={it.id} />} |
+  // @mutate src/components/declutter/DeclutterItemView.tsx |           {!user && <DeclutterGuestSeller itemId={it.id} free={free} />} |
   // @mutate src/lib/declutter/api.ts |   const res = await supabase.rpc("declutter_guest_seller_first_name", { p_item_id: itemId }); |   const res = await supabase.rpc("get_safe_profiles", { user_ids: [itemId] });
   it("BUY-16 + owner pick 1 (11-08): a guest sees the REAL Make offer / Buy now, each going to sign up and back; no seller name; the wall while Declutter isn't open", async () => {
     guest.on = true;
@@ -858,6 +878,34 @@ describe("the photo-first Declutter item page", () => {
     guest.open = [];
     open();
     expect(await screen.findByText("LOGIN WALL")).toBeInTheDocument();
+  });
+
+  // F061 (UI audit 11-09): a sold or taken-down item was a notice, one button and a blank page.
+  // @mutate src/components/declutter/DeclutterSkeletons.tsx |       {more}\n    </AppPage> |     </AppPage>
+  it("F061: a sold or taken-down item shows the notice, the way on, and a row of what is new (never the member's own)", async () => {
+    state.item = null;
+    state.newest = [
+      { ...ITEM, id: "0f0e0d0c-0b0a-4908-8706-050403020191", title: "Desk lamp", seller_id: "u3" },
+      { ...ITEM, id: "0f0e0d0c-0b0a-4908-8706-050403020192", title: "My own rug", seller_id: "u1" },
+    ];
+    open();
+    expect(await screen.findByText("This item isn't available.")).toBeInTheDocument();
+    const row = await screen.findByRole("region", { name: "New on Declutter" });
+    expect(within(row).getAllByRole("link").map((a) => a.getAttribute("aria-label"))).toEqual([expect.stringMatching(/^Desk lamp, /)]);
+  });
+
+  // F049 (UI audit 11-09): a free item said "Sold by Lexi" and "Exact address if the giver picks you".
+  // @mutate src/components/declutter/DeclutterGuest.tsx | {free ? "Given by" : "Sold by"} | {"Sold by"}
+  // @mutate src/components/declutter/ItemPickupBlock.tsx | `You'll get the exact address if ${giver ?? "the giver"} picks you.` | "exact address if the giver picks you"
+  it("F049: a guest on a free item reads 'Given by Dana' and 'You'll get the exact address if Dana picks you.'", async () => {
+    guest.on = true;
+    state.handovers = ["porch"];
+    state.item = { ...ITEM, price_cents: 0, current_price_cents: 0, live_at: new Date(Date.now() - 60_000).toISOString() };
+    open();
+    const seller = await screen.findByText("Dana");
+    expect(seller.closest("[data-guest-seller]")?.textContent).toBe("DGiven byDana");
+    await vi.waitFor(() => expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("You'll get the exact address if Dana picks you."));
+    expect(document.body.textContent).not.toMatch(/Sold by|giver picks you/);
   });
 
   it("DA-6: the buyer's own sold item says You bought this (free: You claimed this), with Buying, and asks no item pickup times", async () => {

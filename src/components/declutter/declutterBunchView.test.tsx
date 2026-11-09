@@ -222,7 +222,8 @@ describe("Sell a bunch", () => {
     // LEAD-BUNCH-DRAFT-KEEP: the chooser reads the work kept on this device (a query), so it needs a client.
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(<QueryClientProvider client={qc}><MemoryRouter><DeclutterSellChooser /></MemoryRouter></QueryClientProvider>);
-    expect(screen.getByRole("link", { name: /Sell a bunch/ }).getAttribute("href")).toBe("/declutter/sell?mode=bunch");
+    // Owner pick 5 (11-08): the bunch flow's card reads "Several at once".
+    expect(screen.getByRole("link", { name: /Several at once/ }).getAttribute("href")).toBe("/declutter/sell?mode=bunch");
   });
 });
 

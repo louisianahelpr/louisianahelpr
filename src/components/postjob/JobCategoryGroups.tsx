@@ -5,7 +5,9 @@ import type { MsgKey } from "@/lib/i18n/en";
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SuggestCategory } from "@/components/SuggestCategory";
-import { GROUP_EMOJI, categoryEmoji } from "@/lib/categoryEmoji";
+import { GROUP_ICON } from "@/lib/categoryEmoji";
+import { getCategoryIcon } from "@/lib/categoryIcons";
+import type { LucideIcon } from "lucide-react";
 import { categoryFromTitle } from "@/lib/categoryFromTitle";
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
 import { JOB_CATEGORY_GROUPS, sentenceCaseLabel, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
@@ -74,7 +76,7 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
     onPicked();
   };
 
-  const tile = (key: string, icon: string, label: string, onClick: () => void, opts: { pressed?: boolean } = {}) => (
+  const tile = (key: string, Icon: LucideIcon, label: string, onClick: () => void, opts: { pressed?: boolean } = {}) => (
     <button
       key={key}
       type="button"
@@ -84,8 +86,8 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
       // nothing on these screens is filled olive, the tap is the choice.
       className={`flex min-h-[72px] items-center gap-2.5 rounded-2xl bg-card px-3 py-3 text-left font-sans text-foreground transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${opts.pressed ? "border-2 !border-primary" : "border border-border"}`}
     >
-      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-ds-20 leading-none" aria-hidden>
-        {icon}
+      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] leading-none" aria-hidden>
+        <Icon className="h-5 w-5" aria-hidden data-tile-glyph="" />
       </span>
       <span className="min-w-0 flex-1 leading-tight break-normal hyphens-none">
         <span className="block text-ds-15 font-semibold">{label}</span>
@@ -114,7 +116,7 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
         className={`pj-group-tile rounded-2xl bg-card text-left font-sans text-foreground leading-tight break-normal hyphens-none transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${pressed ? "border-2 !border-primary" : "border border-border"}`}
       >
         <span data-tile-icon="" className="inline-flex shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] leading-none" aria-hidden>
-          {GROUP_EMOJI[g.id]}
+          {(() => { const G = GROUP_ICON[g.id]; return <G className="h-1/2 w-1/2 text-[hsl(var(--bark))]" aria-hidden data-tile-glyph="" />; })()}
         </span>
         <span data-tile-title="" className="block min-w-0 text-ds-15 font-semibold">{t(`postJob.group.${g.id}` as MsgKey)}</span>
         <span data-tile-sub="" title={t(`postJob.groupEx.${g.id}` as MsgKey)} className="block min-w-0 line-clamp-2 text-ds-13 font-normal text-muted-foreground">{t(`postJob.groupEx.${g.id}` as MsgKey)}</span>
@@ -122,7 +124,7 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
     );
   };
   const categoryTile = (it: { value: string; label: string }) =>
-    tile(it.value, categoryEmoji(it.value), it.label, () => pick(it.value), { pressed: category === it.value });
+    tile(it.value, getCategoryIcon(it.value), it.label, () => pick(it.value), { pressed: category === it.value });
 
   const open = group ? JOB_CATEGORY_GROUPS.find((g) => g.id === group) : null;
   // ONE category-picker element (A0-L1): useJobSubmit's scrollToField("category-picker") finds it in either view.

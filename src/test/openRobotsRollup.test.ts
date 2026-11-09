@@ -5,6 +5,8 @@
 // @mutate scripts/lib/openFeeds.mjs |     if (it.state !== " " \|\| isRobotsItem(it.text)) continue; |     if (it.state !== " ") continue;
 // @mutate src/test/openRobotsRollup.test.ts |     if (row.length !== 1 \|\| own.length !== 1 \|\| row[0] !== own[0] \|\| row[0] === robotsId) off.push(rowKey(r)); |     // row unchecked
 // @mutate src/test/openRobotsRollup.test.ts | !otherAlertIssue(snap, r)).map(rowKey),\n | false).map(rowKey),\n
+// @mutate scripts/lib/openFeeds.mjs | r.source_kind === "nightly_red" && (r.source ?? "nightly-red") === "nightly-red" ? { robotTitle | r.source_kind === "nightly_red" ? { robotTitle
+// @mutate src/test/openRobotsRollup.test.ts |     if (row.length !== 1 \|\| row[0] === robotsId) off.push(rowKey(r)); |     // other-label row unchecked
 /*
  * GUARD (owner 2026-10-14, pop-up: "All failing robot checks roll into ONE
  * 'fix the test robots' item instead of 18"): every red overnight check is a
@@ -60,8 +62,10 @@ const opts = (over = {}) => ({ status: () => "open" as const, nextFree: 100, tod
 
 type Snap = {
   issues: { open: { number: number; label?: string }[] };
-  ledger: { open: { fingerprint: string; source_kind: string; issue?: number | null }[] };
+  ledger: { open: { fingerprint: string; source_kind: string; source?: string; issue?: number | null }[] };
 };
+/** A nightly_red row is an overnight check only when its `source` (the alert label) is nightly-red (or unrecorded). */
+const robotRow = (r: { source_kind: string; source?: string }) => r.source_kind === "nightly_red" && (r.source ?? "nightly-red") === "nightly-red";
 const rowKey = (r: { fingerprint: string }) => `ledger ${r.fingerprint.slice(0, 12)}`;
 /**
  * scripts/ops-alert-ledger.mjs sync records EVERY alert label's issue with
@@ -74,7 +78,7 @@ const otherAlertIssue = (snap: Snap, r: { issue?: number | null }) =>
   snap.issues.open.find((i) => i.number === r.issue && (i.label ?? "nightly-red") !== "nightly-red");
 const robotSourceKeys = (snap: Snap) => [
   ...snap.issues.open.filter((i) => (i.label ?? "nightly-red") === "nightly-red").map((i) => `issue #${i.number}`),
-  ...snap.ledger.open.filter((r) => r.source_kind === "nightly_red" && !otherAlertIssue(snap, r)).map(rowKey),
+  ...snap.ledger.open.filter((r) => robotRow(r) && !otherAlertIssue(snap, r)).map(rowKey),
 ];
 /** Source keys on the wrong item: a robot's off the robots item, another alert's row off exactly its issue's one item. */
 function robotMirrorProblems(md: string, snap: Snap): string[] {
@@ -87,6 +91,12 @@ function robotMirrorProblems(md: string, snap: Snap): string[] {
     const row = by.get(rowKey(r)) ?? [];
     const own = by.get(`issue #${issue.number}`) ?? [];
     if (row.length !== 1 || own.length !== 1 || row[0] !== own[0] || row[0] === robotsId) off.push(rowKey(r));
+  }
+  // Another alert label's row whose issue closed (or never had one) is ONE source: exactly one item, never the robots item.
+  for (const r of snap.ledger.open) {
+    if (r.source_kind !== "nightly_red" || robotRow(r) || otherAlertIssue(snap, r)) continue;
+    const row = by.get(rowKey(r)) ?? [];
+    if (row.length !== 1 || row[0] === robotsId) off.push(rowKey(r));
   }
   return off;
 }
@@ -192,6 +202,24 @@ describe("all red overnight checks are ONE OPEN.md item", () => {
       const s: Snap = { ...snap, ledger: { open: [...snap.ledger.open, { fingerprint: "bbbbbbbbbbbb2222", source_kind: "nightly_red", issue }] } };
       expect(robotMirrorProblems(md, s)).toEqual(["ledger bbbbbbbbbbbb"]);
     }
+  });
+
+  it("another alert label's row whose issue closed stays on the item that carries its tag, not the robots item (2026-11-09, Q2775)", () => {
+    // migration-drift issue #4242 closed; its nightly_red ledger row (source = the label) stayed open.
+    const row = { fingerprint: "747845433253c079", source_kind: "nightly_red", source: "migration-drift", status: "open", title: "🔴 migration drift: # unapplied / # unrecorded", sample_ref: { issue: 4242 } };
+    const groups = groupSources({ ledger: [...ledger, row], issues });
+    expect(groups.filter((g) => g.robots)[0].robots!.map((m) => m.workflow)).not.toContain(row.title);
+    const md = BASE.replace("keep me.", "keep me. feed: issue #4242 · feed: ledger 747845433253");
+    const res = applyFeeds(md, groups, opts());
+    expect(res.ambiguous).toEqual([]);
+    const owner = queueItems(res.md).filter((it) => tagsOf(it.text).includes("ledger 747845433253"));
+    expect(owner.map((it) => it.id)).toEqual(["Q1"]);
+    expect(feedCounts(res.md).robots).toBe(4);
+    const snap: Snap = { issues: { open: [] }, ledger: { open: [{ fingerprint: row.fingerprint, source_kind: "nightly_red", source: "migration-drift", issue: 4242 }] } };
+    expect(robotMirrorProblems(res.md, snap)).toEqual([]);
+    // on the robots item (or on none) it is off
+    const moved = res.md.replace(" · feed: ledger 747845433253", "");
+    expect(robotMirrorProblems(moved, snap)).toEqual(["ledger 747845433253"]);
   });
 
   it("the real OPEN.md: every open nightly-red source is on the ONE robots item and nowhere else", () => {

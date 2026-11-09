@@ -265,7 +265,11 @@ export function groupSources({ ledger, issues }) {
       title: `${r.title}`,
       origin: `alert-ledger row ${r.fingerprint.slice(0, 12)} (${r.source_kind}: ${r.source}; \`node scripts/ops-alert-ledger.mjs list\`)`,
       markers: [ledgerMarker(r.fingerprint)],
-      ...(r.source_kind === "nightly_red" ? { robotTitle: r.title } : {}),
+      // ops-alert-ledger.mjs records EVERY alert label's issue as source_kind nightly_red, with the label as
+      // `source`. Only a nightly-red one is an overnight check (a robot). 2026-11-09: migration-drift issue #4242
+      // closed while its row 747845433253 stayed open; read as a robot, it collided with Q2775 (which carries its
+      // tag) and every sync exited 1 (AMBIGUOUS), so open-auto-tick was red. Guard: src/test/openRobotsRollup.test.ts.
+      ...(r.source_kind === "nightly_red" && (r.source ?? "nightly-red") === "nightly-red" ? { robotTitle: r.title } : {}),
     });
   }
   return rollUpRobots(groups);

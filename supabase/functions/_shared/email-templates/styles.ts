@@ -121,9 +121,19 @@ const bodyFontStack =
 /** Headline face (F158): Bodoni Moda, the site's display serif, with Georgia where webfonts are stripped. */
 const headingFontStack = "'Bodoni Moda', Georgia, 'Times New Roman', serif"
 
-/** The one webfont request: Bodoni Moda 700 for headlines, Montserrat 400/600 for text. */
-export const EMAIL_FONTS_URL =
-  'https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@700&family=Montserrat:wght@400;600&display=swap'
+/**
+ * The brand faces, from OUR OWN site (the same self-hosted variable woff2 files the web app serves from /fonts/, sent
+ * with `access-control-allow-origin: *`), never Google Fonts: a Google Fonts link in an email hands every reader's IP to
+ * Google when the mail opens, a processor the privacy policy does not name (privacyPolicyNamesEveryProcessor). Latin
+ * subsets only; anything else falls back down the stacks above.
+ */
+const EMAIL_FONT_ORIGIN = 'https://www.louisianahelpr.com/fonts'
+export const EMAIL_FONT_CSS = `
+  @font-face { font-family:'Bodoni Moda'; font-style:normal; font-weight:400 900; font-display:swap;
+    src:url('${EMAIL_FONT_ORIGIN}/bodoni-moda-normal-latin.woff2') format('woff2'); }
+  @font-face { font-family:'Montserrat'; font-style:normal; font-weight:100 900; font-display:swap;
+    src:url('${EMAIL_FONT_ORIGIN}/montserrat-normal-latin-core.woff2') format('woff2'); }
+`
 
 
 export const main = {

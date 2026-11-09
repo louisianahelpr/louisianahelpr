@@ -19,7 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { BadgeCheck, Briefcase, Handshake, ImageIcon, MapPin, Share2, ShoppingBag, Star, UserX, Search } from "lucide-react";
+import { BadgeCheck, Briefcase, Handshake, ImageIcon, MapPin, MessageSquare, Share2, ShoppingBag, Star, UserX, Search } from "lucide-react";
 import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
 import AppPage from "@/components/AppPage";
 import { PUBLIC_LINK_COLUMN } from "@/lib/pageColumn";
@@ -44,6 +44,7 @@ import {
   type PublicProfile,
 } from "@/lib/profileLink/api";
 import { HIRE_PARAM, hireGuestHref, hireGuestLoginHref, hireOfferPath, hireTargetByHandle } from "@/lib/hireMe";
+import { isHelprTeam } from "@/lib/helprTeam";
 import { quickListHref } from "@/lib/declutter/wantedLinks";
 import { PublicProfileReviews, reviewTotal } from "@/components/profile/publicProfile/PublicProfileReviews";
 import { PublicProfileOwnerSteps } from "@/components/profile/publicProfile/PublicProfileOwnerSteps";
@@ -103,6 +104,17 @@ function Section({ id, title, icon: Icon, children }: { id: string; title: strin
  * "Hire me" (owner 2026-11-04): Post a job with a direct offer to this Helpr, free for everyone. A guest signs up (or
  * logs in) and comes back here with ?hire=1, which continues the tap once; never on your own page. See src/lib/hireMe.ts.
  */
+/** F067: the support account's one action: the support form (a person reads every message). Profiles have no Message button. */
+function MessageSupportButton() {
+  return (
+    <div className="mt-4" data-testid="pp-message-support">
+      <Button asChild className="btn-grad-primary w-full rounded-full">
+        <Link to="/support?topic=message"><MessageSquare className="mr-2 h-4 w-4" aria-hidden />Message support</Link>
+      </Button>
+    </div>
+  );
+}
+
 function HireMeButton({ handle, signedIn }: { handle: string; signedIn: boolean }) {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -167,6 +179,7 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null }: { p: Publ
   const [allListings, setAllListings] = useState(false);
   const listingsShown = allListings ? p.listings : p.listings.slice(0, LISTINGS_FIRST);
   const trust = profileTrustLine(p);
+  const team = isHelprTeam(p.handle);
   const since = memberSinceLabel(p.member_since);
   const nothing = p.listings.length + p.jobs.length + p.wanted.length + p.helpr.reviews.length + (p.helpr.jobs_done ?? 0) + work.length + skills.length + (p.bio ? 1 : 0) === 0;
   return (
@@ -190,9 +203,17 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null }: { p: Publ
           {p.licensed && <span className="inline-flex items-center gap-1" data-testid="pp-licensed"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />Licensed</span>}
           {p.insured && <span className="inline-flex items-center gap-1" data-testid="pp-insured"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />Insured</span>}
         </div>
-        <p className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-foreground" data-testid="pp-trust">
-          {trust ? (<><Star className="h-3.5 w-3.5" aria-hidden />{trust}</>) : "New on Helpr"}
-        </p>
+        {/* F067 (owner UI audit 11-09): the official support account says what it is, never "New on Helpr". */}
+        {team ? (
+          <p className="mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-semibold" data-testid="pp-team"
+            style={{ color: "hsl(var(--bark))", backgroundColor: "hsl(var(--bark) / 0.1)" }}>
+            <BadgeCheck className="h-3.5 w-3.5" aria-hidden />Helpr team
+          </p>
+        ) : (
+          <p className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-foreground" data-testid="pp-trust">
+            {trust ? (<><Star className="h-3.5 w-3.5" aria-hidden />{trust}</>) : "New on Helpr"}
+          </p>
+        )}
         {p.bio && <p className="mt-3 whitespace-pre-line text-left text-ds-15 text-foreground [overflow-wrap:anywhere]" data-testid="pp-bio">{p.bio}</p>}
         {skills.length > 0 && (
           <ul className="mt-3 flex flex-wrap justify-center gap-1.5" aria-label="Skills" data-testid="pp-skills">
@@ -202,7 +223,7 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null }: { p: Publ
           </ul>
         )}
         {/* M3 (audit 11-05): your own page never flashes Hire me while your profile row loads. */}
-        {ctaReady && !isMe && <HireMeButton handle={p.handle} signedIn={signedIn} />}
+        {ctaReady && !isMe && (team ? <MessageSupportButton /> : <HireMeButton handle={p.handle} signedIn={signedIn} />)}
         {ctaReady && <div className={isMe ? "mt-4" : "mt-2"}>
           <Button type="button" variant={isMe ? "default" : "outline"} className={isMe ? "btn-grad-primary w-full rounded-full" : "w-full rounded-full"}
             onClick={() => void shareMyProfile(p.handle, isMe ? null : p.name)}>

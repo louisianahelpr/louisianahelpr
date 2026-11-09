@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Copy, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { copyToClipboard } from "@/lib/nativeShare";
 import { MY_HANDLE_KEY, ensureMyHandle, profileLinkLabel, profileLinkUrl, shareMyProfile } from "@/lib/profileLink/api";
 
@@ -42,15 +43,13 @@ export function YourPageLink({ name, className = "", forSale = 0, knownHandle, s
           Your page
         </Link>
         <span aria-hidden>·</span>
-        <button type="button" onClick={() => void copy()} data-your-page-copy="" aria-label="Copy your page link"
-          className="inline-flex min-h-11 items-center gap-1 px-1 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
+        <InlineTextButton onClick={() => void copy()} data-your-page-copy="" aria-label="Copy your page link" className="inline-flex items-center gap-1 font-semibold text-foreground">
           <Copy className="h-3.5 w-3.5" aria-hidden /> Copy
-        </button>
+        </InlineTextButton>
         <span aria-hidden>·</span>
-        <button type="button" onClick={() => void shareMyProfile(handle, name)} data-your-page-share="" aria-label="Share your page"
-          className="inline-flex min-h-11 items-center gap-1 px-1 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
+        <InlineTextButton onClick={() => void shareMyProfile(handle, name)} data-your-page-share="" aria-label="Share your page" className="inline-flex items-center gap-1 font-semibold text-foreground">
           <Share2 className="h-3.5 w-3.5" aria-hidden /> Share
-        </button>
+        </InlineTextButton>
       </p>
     );
   }

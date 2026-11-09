@@ -1,6 +1,8 @@
 // /support — the contact form every screen links to.
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { suggestHelp } from "@/lib/helpSuggestions";
+import { FAQ_SECTIONS } from "./helpCenter/helpCenterContent";
 import { BugReportAttachments, useBugReportContext } from "@/components/support/BugReportAttachments";
 import { withBugReport } from "@/lib/bugReportContext";
 import { CheckCircle2, Loader2, Send } from "lucide-react";
@@ -187,6 +189,8 @@ const Support = () => {
   // Center (support-ai-answer); the member picks "This answered my question" or "Still send to the team".
   // The ticket is sent unless they say it was answered. Any AI failure just sends the ticket as before.
   const aiOn = useFeature("ai_support_answers");
+  // F046: matches for a guest from the subject they type (static Help data; nothing is sent).
+  const guestSuggestions = useMemo(() => suggestHelp(draft.subject, FAQ_SECTIONS, 3), [draft.subject]);
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [askedKey, setAskedKey] = useState<string | null>(null);
   const [answeredByAi, setAnsweredByAi] = useState(false);
@@ -523,6 +527,22 @@ const Support = () => {
                   />
                   <FieldError id="support-subject-error" message={showError("subject")} />
                 </div>
+
+                {/* F046 (owner 11-09): a guest gets up to three Help answers matching the subject, before writing in. */}
+                {isReady && !user && guestSuggestions.length > 0 && (
+                  <div data-support-suggestions="" className="rounded-ds-md border border-border bg-card px-4 py-3">
+                    <p className="text-ds-13 font-semibold text-foreground">These answers might help</p>
+                    <ul className="mt-1.5 space-y-1">
+                      {guestSuggestions.map((s) => (
+                        <li key={s.q}>
+                          <Link to={s.href} className="text-ds-13 font-medium underline underline-offset-4" style={{ color: "hsl(var(--bark))" }}>
+                            {s.q}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Message */}
                 <div>

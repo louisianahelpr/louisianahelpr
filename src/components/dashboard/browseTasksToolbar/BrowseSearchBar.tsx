@@ -34,6 +34,7 @@ import { DESKTOP_SEARCH_PILL_SURFACE, DESKTOP_SEARCH_PILL_WIDTH } from "@/compon
 export function BrowseSearchBar({
   filters,
   className = "",
+  autoFocus = true,
 }: {
   filters: ReturnType<typeof useDashboardFilters>;
   /**
@@ -49,6 +50,8 @@ export function BrowseSearchBar({
    * count.
    */
   className?: string;
+  /** False where the field is already open on arrival (guest /browse?q=, F070): nothing was tapped, so no focus. */
+  autoFocus?: boolean;
 }) {
   // Snapshot history when the field opens and refresh after each push, so the
   // list doesn't mutate under the user mid-typing.
@@ -70,13 +73,13 @@ export function BrowseSearchBar({
   // taps for one intent, on the app's primary surface.
   useEffect(() => {
     const el = inputRef.current;
-    if (!el) return;
+    if (!el || !autoFocus) return;
     // A frame, so the header's swap has committed before focus moves — focusing
     // an element that is still being laid out is how iOS ends up scrolling the
     // page instead of raising the keyboard.
     const raf = requestAnimationFrame(() => el.focus());
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [autoFocus]);
 
   const keyboardInset = useKeyboardInset();
   useEffect(() => {

@@ -40,6 +40,8 @@
  *   --expired  --persona customer|helper|admin   --guest (every route signed out)
  *   --label before   --out ~/.lh-shots/perf
  *   --dist <dir>   --viewport 1366x768   --scheme dark   --shots   --filmstrip
+ *   --scroll-end   (with --shots: every scroller to its end, a second shot, and the text the floating create
+ *            pill covers there; F150)
  *   --walk Posts,Jobs,@Earnings   (tap dock/rail destinations, or "@Text"
  *            anywhere, after the cold load; per-tap CLS and the session CLS
  *            Speed Insights would bill to the route on screen at page hide)
@@ -837,6 +839,36 @@ async function main() {
               }
               if (flag("shots") && run === 0) {
                 await page.screenshot({ path: join(out, `${label}-${browserName}-${profileName}-${kind}${route.replace(/\//g, "_") || "_root"}.png`) }).catch(() => {});
+                // --scroll-end (F150): every scroller to its end, then a second shot and what text the floating create
+                // pill covers there (none means the last row clears it).
+                if (flag("scroll-end")) {
+                  const covered = await page.evaluate(async () => {
+                    for (let i = 0; i < 4; i++) {
+                      for (const el of [document.scrollingElement, ...document.querySelectorAll("*")]) {
+                        if (el && el.scrollHeight > el.clientHeight + 4 && getComputedStyle(el).overflowY !== "visible") el.scrollTop = el.scrollHeight;
+                      }
+                      await new Promise((r) => setTimeout(r, 400));
+                    }
+                    const fab = document.querySelector('[data-testid="section-create-fab"]');
+                    if (!fab) return { fab: false, covered: [] };
+                    const f = fab.getBoundingClientRect();
+                    const hits = [];
+                    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+                    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+                      const t = (n.textContent ?? "").trim();
+                      const host = n.parentElement;
+                      if (!t || !host || fab.contains(host) || host.closest('nav[aria-label="Bottom navigation"]')) continue;
+                      const range = document.createRange();
+                      range.selectNodeContents(n);
+                      for (const r of range.getClientRects()) {
+                        if (r.width && r.height && r.right > f.left && r.left < f.right && r.bottom > f.top && r.top < f.bottom) { hits.push(t.slice(0, 40)); break; }
+                      }
+                    }
+                    return { fab: true, fabTop: Math.round(f.top), covered: hits };
+                  });
+                  console.log(`    SCROLL-END ${route}: ${JSON.stringify(covered)}`);
+                  await page.screenshot({ path: join(out, `${label}-${browserName}-${profileName}-${kind}${route.replace(/\//g, "_") || "_root"}-end.png`) }).catch(() => {});
+                }
               }
               rows.push({ browser: browserName, profile: profileName, route, landed, kind, run, signedIn, expired: flag("expired"), throttled, wallMs: Date.now() - t0, error, ...m, blocked: blocked.slice(blockedFrom), allowedReads: allowed.slice(allowedFrom) });
               const r = rows[rows.length - 1];

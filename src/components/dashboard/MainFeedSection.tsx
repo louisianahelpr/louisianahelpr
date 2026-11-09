@@ -60,7 +60,8 @@ export function MainFeedSection({
   return (
     <div
       className="px-0 lg:px-4 pt-1 lg:pt-3"
-      style={{ paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))" }}
+      // + the floating "+ Post a job" pill's room while it shows (F150, SectionCreateFab).
+      style={{ paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px) + var(--section-fab-clearance, 0px))" }}
     >
       <VirtualizedJobList
         items={split.ordered}

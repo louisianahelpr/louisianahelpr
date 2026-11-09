@@ -533,7 +533,8 @@ export function BrowseTasksFeed({
                  at this row height for typical feed sizes. */
               <ul
                 style={{
-                  paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px))",
+                  // + the floating "+ Post a job" pill's room while it shows (F150, SectionCreateFab).
+                  paddingBottom: "calc(6rem + var(--safe-area-bottom, 0px) + var(--section-fab-clearance, 0px))",
                 }}
               >
                 {combinedVisible.map((job) => (

@@ -12,7 +12,7 @@
  *     and Working from Home's to-do list split by side (needsYouStore jobsPosted / jobsWorking, published by
  *     NeedsYouBridge), Shops' Shop from the same list's shop orders, Homes' Owning from its own "Needs you" requests.
  *
- * @mutate src/components/sections/SectionCreateFab.tsx |   if (desktop \|\| hidden \|\| typeof document === "undefined") return null; |   if (desktop \|\| typeof document === "undefined") return null;
+ * @mutate src/components/sections/SectionCreateFab.tsx |   const shown = !desktop && !hidden && !(section && !add); |   const shown = !desktop && !(section && !add);
  * @mutate src/components/sections/createFabHidden.tsx |     return () => {\n      hiders -= 1; |     return () => {\n      hiders -= 0;
  * @mutate src/components/sections/createFabHidden.tsx |     if (!active) return; |     void active;
  * @mutate src/components/job-card/ActivityEmptyState.tsx | <>{isPosted && <HideSectionCreateFab />}{ctaButton}</> | <>{ctaButton}</>

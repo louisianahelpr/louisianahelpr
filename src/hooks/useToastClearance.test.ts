@@ -5,7 +5,7 @@
  * gives the room back.
  *
  * @mutate src/hooks/useToastClearance.ts | return tallest > 0 ? Math.ceil(tallest) + 12 : 0; | return 0;
- * @mutate src/components/job-card/JobListPage.tsx | var(--bottom-nav-h, 96px) + ${toastClearance}px) | var(--bottom-nav-h, 96px))
+ * @mutate src/components/job-card/JobListPage.tsx | var(--bottom-nav-h, 96px) + ${toastClearance}px + var(--section-fab-clearance, 0px)) | var(--bottom-nav-h, 96px) + var(--section-fab-clearance, 0px))
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -40,6 +40,6 @@ describe("useToastClearance", () => {
   it("the Jobs list wires it into its bottom padding", () => {
     const src = readFileSync(resolve(__dirname, "../components/job-card/JobListPage.tsx"), "utf8");
     expect(src).toMatch(/const toastClearance = useToastClearance\(\);/);
-    expect(src).toContain("var(--bottom-nav-h, 96px) + ${toastClearance}px)");
+    expect(src).toContain("var(--bottom-nav-h, 96px) + ${toastClearance}px + var(--section-fab-clearance, 0px))");
   });
 });

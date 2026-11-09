@@ -411,7 +411,7 @@ export const FORMS: FormSpec[] = [
     },
     covers: ["src/pages/auth/signup/SignupStep2.tsx"],
   },
-  { name: "support", url: "/support", as: null, covers: ["src/pages/info/Support.tsx", "src/lib/supportTopics.ts"] },
+  { name: "support", url: "/support", as: null, covers: ["src/pages/info/Support.tsx", "src/pages/info/support/SupportFormParts.tsx", "src/lib/supportTopics.ts"] },
   { name: "legal-search", url: "/legal", as: null, prepare: openSearch, covers: ["src/pages/info/Legal.tsx"] },
   // F034 (owner UI audit, 11-09): the Help center's permanent "Search help" field.
   { name: "help-search", url: "/help", as: null, covers: ["src/pages/info/HelpCenter.tsx"] },

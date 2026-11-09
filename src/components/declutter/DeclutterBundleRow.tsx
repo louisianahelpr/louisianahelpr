@@ -12,7 +12,7 @@ import { endSentence } from "@/lib/endSentence";
 import { useQuery } from "@tanstack/react-query";
 import { Layers } from "lucide-react";
 import { ListRow } from "@/components/ui/ListRow";
-import { fetchItemHandovers, fetchSellerCard, fetchSellerItems, type DeclutterItem } from "@/lib/declutter/api";
+import { fetchItemHandovers, fetchSellerCard, fetchSellerItems, fetchSellerLiveCount, type DeclutterItem } from "@/lib/declutter/api";
 import { noDeliveryWay } from "@/lib/declutter/pickupWords";
 import { formatName } from "@/lib/utils";
 import { bundleLabel, fetchBundleApplies, fetchBundleRule } from "@/lib/declutter/bundle";
@@ -47,10 +47,19 @@ export function useBundleSummary(itemOrNull: DeclutterItem | null, viewerId: str
   const pickup = noDeliveryWay(ways.data) !== "none";
   const offer = !!rule.data && (applies.data === null || !!applies.data && ids.some((id) => applies.data!.has(id)));
   // fetchSellerItems reads at most 12 (live + reserved): a full page may hide more, so say "12+".
-  const capped = (more.data?.length ?? 0) >= 12;
+  const full = (more.data?.length ?? 0) >= 12;
+  // F120 (UI audit 11-09): a full row reads the real number ("254 more items"), asked only then; "12+" only while it
+  // is not in (or failed).
+  const total = useQuery({
+    queryKey: ["declutter", "seller-live-count", item.seller_id, item.id],
+    queryFn: () => fetchSellerLiveCount(item.seller_id, item.id),
+    enabled: enabled && full,
+  });
+  const counted = full && typeof total.data === "number" && total.data >= buyable.length;
+  const capped = full && !counted;
   if (!enabled || buyable.length === 0 || card.isLoading) return null;
   const firstName = card.data?.name?.trim() ? formatName(card.data.name).split(" ")[0] : "this seller";
-  return { count: buyable.length, capped, firstName, free: item.current_price_cents === 0, pickup, offer: offer && rule.data ? bundleLabel(rule.data) : null };
+  return { count: counted ? total.data! : buyable.length, capped, firstName, free: item.current_price_cents === 0, pickup, offer: offer && rule.data ? bundleLabel(rule.data) : null };
 }
 
 /**

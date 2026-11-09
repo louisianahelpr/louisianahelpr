@@ -62,6 +62,7 @@ const state = {
   safeRows: [] as unknown[],
   more: [] as unknown[],
   similar: [] as unknown[],
+  liveCount: null as number | null,
   questions: [] as unknown[],
   tableRows: [] as unknown[],
   drop: null as unknown,
@@ -133,6 +134,7 @@ vi.mock("@/lib/declutter/api", async () => {
     fetchSimilarItemsReal: real.fetchSimilarItems,
     fetchSellerItems: async () => state.more,
     fetchSimilarItems: async () => state.similar,
+    fetchSellerLiveCount: async () => state.liveCount,
     fetchItem: async () => state.item,
     fetchItemHandovers: async () => state.handovers,
     fetchItemDropState: async () => { state.reads++; return state.drop; },
@@ -199,6 +201,7 @@ describe("the photo-first Declutter item page", () => {
     shared.length = 0;
     state.more = [];
     state.similar = [];
+    state.liveCount = null;
     state.drop = null;
     state.manage = null;
     calls.length = 0;
@@ -771,6 +774,12 @@ describe("the photo-first Declutter item page", () => {
     const full = open();
     expect(await screen.findByText(/^11\+ more items · /)).toBeInTheDocument();
     full.unmount();
+    // F120 (UI audit 11-09): with the seller's real count in, the card says it ("254 more items"), never "12+".
+    // @mutate src/components/declutter/DeclutterBundleRow.tsx |   return { count: counted ? total.data! : buyable.length, capped, firstName, |   return { count: buyable.length, capped: full, firstName,
+    state.liveCount = 254;
+    const counted = open();
+    expect(await screen.findByText(/^254 more items · /)).toBeInTheDocument();
+    counted.unmount();
     state.more = [{ ...ITEM, id: "a3", title: "Rug", status: "reserved" }];
     open();
     await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });

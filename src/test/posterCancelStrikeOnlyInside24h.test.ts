@@ -6,7 +6,7 @@
  * that names the rule true.
  *
  * @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |   IF v_late THEN\n    v_verdict |   IF v_committed THEN\n    v_verdict
- * @mutate src/pages/info/helpCenter/helpCenterContent.ts | It isn't a strike either. | A strike is still recorded.
+ * @mutate src/pages/info/helpCenter/helpCenterContent.ts | free up to 24 hours before the start. Closer | free up to 24 hours before the start, but it is a strike. Closer
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -41,7 +41,8 @@ describe("a poster's cancel strike is gated on the 24 hours, not on commitment a
 
   it("Help and the Community Rules say the 24-hour rule; nothing says a far-out cancel is struck", () => {
     const help = read("src/pages/info/helpCenter/helpCenterContent.ts");
-    expect(help).toMatch(/It isn't a strike either\./);
+    // F040 (owner UI audit 2026-11-09) reworded the answer; the free-and-unstruck window is the sentence before "Closer".
+    expect(help).toMatch(/free up to 24 hours before the start\. Closer than that/);
     expect(help).toMatch(/counts as a strike/);
     const rules = read("src/pages/info/legal/CommunitySection.tsx");
     expect(rules).toMatch(/24 or more hours before the start does <strong>not<\/strong> count toward strikes/);

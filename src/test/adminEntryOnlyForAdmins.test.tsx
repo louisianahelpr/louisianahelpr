@@ -101,7 +101,16 @@ describe("the Admin entry is for confirmed admins only, from the shared role sig
     expect(rail?.textContent).toBe("Admin");
     // Open by default for an admin (owner 2026-10-27): no click needed.
     expect(rail.getAttribute("aria-expanded")).toBe("true");
-    const sections = [...document.querySelectorAll("#side-panel-admin-sections button")] as HTMLButtonElement[];
+    // Real links since F084 (owner UI audit 11-09): new tab, middle-click, the address on hover.
+    const sections = [...document.querySelectorAll("#side-panel-admin-sections a")] as HTMLAnchorElement[];
+    expect(sections.find((x) => x.textContent === "Dashboard")?.getAttribute("href")).toBe("/admin?view=home");
+    // The main rows too: each open destination is an <a href> (F084).
+    // @mutate src/components/DesktopSidebarNav.tsx | <ListRowLink variant="flush" {...rowProps} to={path} | <ListRowLink variant="flush" {...rowProps} to="/"
+    for (const p of ["/home", "/messages", "/profile"]) {
+      const el = document.querySelector(`[data-sidebar-item="${p}"]`);
+      expect(el?.tagName, p).toBe("A");
+      expect(el?.getAttribute("href"), p).toBe(p);
+    }
     expect(sections.length).toBeGreaterThan(5);
     fireEvent.click(sections.find((x) => x.textContent === "Dashboard")!);
     expect(path).toBe("/admin?view=home");

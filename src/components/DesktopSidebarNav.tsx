@@ -1,9 +1,9 @@
-import { ListRow } from "@/components/ui/ListRow";
+import { ListRow, ListRowLink } from "@/components/ui/ListRow";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
   ShieldAlert,
   ChevronDown,
@@ -101,7 +101,6 @@ const DesktopSidebarRail = () => {
   const { t: tr } = useLanguage();
   const { open: sidePanelOpen } = useSidePanel();
   const location = useLocation();
-  const navigate = useNavigate();
   const { user, isAdmin } = useCurrentUser();
   // Declutter (docs/specs/declutter-auctions.md row 1: its own tab) joins the
   // destinations after Messages only while the hidden switch is on for this
@@ -232,20 +231,20 @@ const DesktopSidebarRail = () => {
           const count = soon ? 0 : badgeFor(badgeKey);
           return (
             <li key={path}>
-              <ListRow variant="flush"
-                onClick={() => { if (soon) return sayComingSoon(label); if (location.pathname === path) announceTabReselect(path); navigate(path); }}
-                onMouseEnter={() => !soon && prefetchRoute(path)}
-                aria-current={active ? "page" : undefined}
-                aria-disabled={soon ? true : undefined}
-                aria-label={soon ? tr("nav.comingSoon", { label: shown }) : undefined}
-                data-sidebar-item={path}
-                className={`min-h-11 group relative flex w-full items-center gap-3 rounded-full ${item.nested ? "pl-9 pr-3 py-2" : "px-3 py-2.5"} text-left transition-colors${soon ? " cursor-not-allowed" : ""}`}
-                style={{
+              {(() => {
+              // F084 (owner UI audit 11-09): a row that goes somewhere is a real link (new tab, middle-click, the
+              // address on hover); a "Coming soon" row only explains, so it stays a button.
+              const rowProps = {
+                "aria-current": active ? ("page" as const) : undefined,
+                "data-sidebar-item": path,
+                className: `min-h-11 group relative flex w-full items-center gap-3 rounded-full ${item.nested ? "pl-9 pr-3 py-2" : "px-3 py-2.5"} text-left transition-colors${soon ? " cursor-not-allowed" : ""}`,
+                style: {
                   // Only the current page gets the pill; Explore is bold when one of its sections is open.
                   background: active && (item.nested || path !== "/explore" || location.pathname === "/explore") ? "hsl(var(--bark) / 0.10)" : "transparent",
                   color: active ? "hsl(var(--bark))" : soon ? "hsl(var(--muted-foreground))" : "hsl(var(--ink-deep))",
-                }}
-              >
+                },
+              };
+              const inner = (<>
                 <span className="relative inline-flex">
                   <Icon
                     className="h-5 w-5"
@@ -277,7 +276,19 @@ const DesktopSidebarRail = () => {
                   {/* A2-L17: a tester's open section says "Coming soon" too (olive), as the phone's chips do. */}
                   {preview && <PreviewPill variant="rail" />}
                 </span>
-              </ListRow>
+              </>);
+              return soon ? (
+                <ListRow variant="flush" {...rowProps} onClick={() => sayComingSoon(label)} aria-disabled aria-label={tr("nav.comingSoon", { label: shown })}>
+                  {inner}
+                </ListRow>
+              ) : (
+                <ListRowLink variant="flush" {...rowProps} to={path}
+                  onClick={() => { if (location.pathname === path) announceTabReselect(path); }}
+                  onMouseEnter={() => prefetchRoute(path)}>
+                  {inner}
+                </ListRowLink>
+              );
+              })()}
             </li>
           );
         })}
@@ -296,7 +307,6 @@ const DesktopSidebarRail = () => {
 /** The Admin row and its sections (admins only). */
 const AdminNavGroup = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   // Admin's own sections: open unless this admin collapsed them on this device.
   const adminActive = location.pathname === "/admin";
   const currentAdminView = new URLSearchParams(location.search).get("view") || "home";
@@ -371,8 +381,8 @@ const AdminNavGroup = () => {
                   const on = adminActive && currentAdminView === id;
                   return (
                     <li key={id}>
-                      <ListRow variant="flush"
-                        onClick={() => navigate(`/admin?view=${id}`)}
+                      <ListRowLink variant="flush"
+                        to={`/admin?view=${id}`}
                         aria-current={on ? "page" : undefined}
                         // Indented to the parent's icon column, so the
                         // nesting reads structurally rather than needing
@@ -403,7 +413,7 @@ const AdminNavGroup = () => {
                             </>
                           );
                         })()}
-                      </ListRow>
+                      </ListRowLink>
                     </li>
                   );
                 })}

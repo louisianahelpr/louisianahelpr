@@ -29,6 +29,7 @@ import { getCategoryIcon } from "@/lib/categoryIcons";
 import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
 import { likePattern, type SearchSection } from "./searchQuery";
 import { SearchStart } from "./SearchStart";
+import { pushRecentSearch } from "@/lib/searchHistory";
 import { searchJobPrice, type PricedJobHit } from "./searchJobPrice";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -237,6 +238,8 @@ export default function SearchPage() {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const next = draft.trim();
+    // F142: a search the member ran is offered again on the empty /search (SearchStart's Recent searches).
+    if (next) pushRecentSearch(next);
     setParams(next ? { [SEARCH_PARAM]: next } : {}, { replace: true });
   };
 

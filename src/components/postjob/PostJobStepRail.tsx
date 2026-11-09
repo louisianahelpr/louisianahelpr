@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enPostJob";
 import type { MsgKey } from "@/lib/i18n/en";
-import { POST_JOB_SCREENS, screenNumber, type PostJobScreen } from "./postJobScreens";
+import { POST_JOB_SCREENS, kindIsAutoFilled, screenNumber, type PostJobScreen } from "./postJobScreens";
 
 /**
  * Board 166's desktop columns, shared by every Post a Job screen that shows the rail (the form steps
@@ -19,8 +19,9 @@ export const POST_JOB_DESKTOP_GRID =
  * what was typed, so going back loses nothing); a step ahead cannot be
  * skipped to. The phone keeps the segmented bar (PostJobStepHeader) instead.
  */
-/** `canPick` says which passed screens can be reopened from here (form pages only). */
-export function PostJobStepRail({ screen, onPick, canPick }: { screen: PostJobScreen; onPick?: (s: PostJobScreen) => void; canPick?: (s: PostJobScreen) => boolean }) {
+/** `canPick` says which passed screens can be reopened from here (form pages only). `category` is the pick so far:
+ *  a one-category group skips "Kind of job", which then shows as skipped, not done (F115). */
+export function PostJobStepRail({ screen, onPick, canPick, category }: { screen: PostJobScreen; onPick?: (s: PostJobScreen) => void; canPick?: (s: PostJobScreen) => boolean; category?: string }) {
   const step = screenNumber(screen);
   const { t } = useLanguage();
   return (
@@ -31,18 +32,22 @@ export function PostJobStepRail({ screen, onPick, canPick }: { screen: PostJobSc
           const label = t(`postJob.rail.${key}` as MsgKey);
           const n = i + 1;
           const current = n === step;
-          const done = n < step;
+          // F115: "Kind of job" passed over for a one-category group was never shown: a dash, not a tick.
+          const skipped = key === "kind" && !current && n < step && kindIsAutoFilled(category);
+          const done = n < step && !skipped;
           const body = (
             <>
               <span
+                data-step-skipped={skipped ? "" : undefined}
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-ds-13 font-semibold tabular-nums ${
-                  current ? "border-primary text-foreground" : done ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
+                  current ? "border-primary text-foreground" : done ? "border-primary bg-primary/10 text-primary" : skipped ? "border-dashed border-border text-muted-foreground" : "border-border text-muted-foreground"
                 }`}
                 aria-hidden
               >
-                {done ? <Check className="h-3.5 w-3.5" /> : n}
+                {done ? <Check className="h-3.5 w-3.5" /> : skipped ? "–" : n}
               </span>
               <span className={`text-ds-15 ${current ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{label}</span>
+              {skipped && <span className="sr-only">{t("postJob.railSkipped")}</span>}
             </>
           );
           const row = `flex w-full items-center gap-3 rounded-full px-3 py-2 text-left ${current ? "bg-muted" : ""}`;

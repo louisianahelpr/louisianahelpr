@@ -23,6 +23,7 @@ export const enPostJob = {
   "postJob.rail.where": "When and where",
   "postJob.rail.review": "Review",
   "postJob.railDone": "{label}, done. Go back to this step",
+  "postJob.railSkipped": ", not needed for this job",
 
   // Each screen's question and helper line
   "postJob.groupsQ": "What do you need done?",

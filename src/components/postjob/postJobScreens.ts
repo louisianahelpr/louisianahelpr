@@ -1,3 +1,5 @@
+import { JOB_CATEGORY_GROUPS, jobCategoryGroupOf } from "@/lib/jobCategoryGroups";
+
 /**
  * Post a Job's screens, in order: the ONE source of the "n of 7" each screen shows and of the
  * desktop rail (owner 2026-10-21: "make sure each one is numbered correctly"). The numbers are
@@ -30,4 +32,16 @@ export const FORM_PAGE_OF: Partial<Record<PostJobScreen, number>> = { groups: 1,
 export function screenOfFormPage(page: number, groupOpen: boolean): PostJobScreen {
   if (page <= 1) return groupOpen ? "kind" : "groups";
   return page === 2 ? "details" : page === 3 ? "price" : "where";
+}
+
+/**
+ * F115 (UI audit 2026-11-09): a group with ONE category (Yard, Something else) is that category, so its tap
+ * skips "Kind of job". The numbers stay fixed (owner 2026-10-21), but the skipped screen is shown as skipped
+ * (a dash, never a tick): it was never shown, so it is not "done". A category picked from search inside a
+ * group with choices is a real kind choice and stays ticked.
+ */
+export function kindIsAutoFilled(category: string | null | undefined): boolean {
+  if (!category) return false;
+  const id = jobCategoryGroupOf(category);
+  return !!id && JOB_CATEGORY_GROUPS.find((g) => g.id === id)?.items.length === 1;
 }

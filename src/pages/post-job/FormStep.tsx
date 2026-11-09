@@ -215,7 +215,7 @@ export function FormStep({ form }: FormStepProps) {
     // the three columns left the form about 215px at 1024 and 370px at 1180
     // (measured), so from lg to xl it is the step list and the form only.
     <div key="form-step" ref={rootRef} className={POST_JOB_DESKTOP_GRID}>
-      <PostJobStepRail screen={screenOfFormPage(page, !!openGroup)} canPick={canPickStep} onPick={pickStep} />
+      <PostJobStepRail screen={screenOfFormPage(page, !!openGroup)} canPick={canPickStep} onPick={pickStep} category={form.category} />
       <div className="min-w-0 space-y-section">
       {form.offerToHelperId && (
         <DirectOfferBanner
@@ -272,9 +272,9 @@ export function FormStep({ form }: FormStepProps) {
         {/* PAGE 1: WHAT, screens 2 and 3 of 7 (board 23) */}
         <div data-form-page="1" hidden={page !== 1} className="space-y-section">
           {openGroup ? (
-            <PostJobStepHeader screen="kind" question={groupQuestion(openGroup.id)} helper={t("postJob.kindH")} canPick={canPickStep} onPick={pickStep} />
+            <PostJobStepHeader screen="kind" question={groupQuestion(openGroup.id)} helper={t("postJob.kindH")} canPick={canPickStep} onPick={pickStep} category={form.category} />
           ) : (
-            <PostJobStepHeader screen="groups" question={t("postJob.groupsQ")} helper={t("postJob.groupsH")} canPick={canPickStep} onPick={pickStep} />
+            <PostJobStepHeader screen="groups" question={t("postJob.groupsQ")} helper={t("postJob.groupsH")} canPick={canPickStep} onPick={pickStep} category={form.category} />
           )}
           <JobCategoryGroups
             category={form.category}
@@ -292,7 +292,7 @@ export function FormStep({ form }: FormStepProps) {
 
         {/* PAGE 2: DETAILS, screen 4 of 7 (board 44) */}
         <div data-form-page="2" hidden={page !== 2} className="space-y-section">
-          <PostJobStepHeader screen="details" question={t("postJob.detailsQ")} helper={t("postJob.detailsH")} canPick={canPickStep} onPick={pickStep} />
+          <PostJobStepHeader screen="details" question={t("postJob.detailsQ")} helper={t("postJob.detailsH")} canPick={canPickStep} onPick={pickStep} category={form.category} />
           {/* JOBS-10: a copy was silent, and it leaves these out (useJobFormEffects' rebook load). */}
           {form.isRepost && (
             <p data-testid="repost-line" className="rounded-[20px] liquid-glass p-card text-sm">
@@ -337,7 +337,7 @@ export function FormStep({ form }: FormStepProps) {
 
         {/* PAGE 3: PRICE, screen 5 of 7 (board 3), or the quote window with "Get quotes" picked */}
         <div data-form-page="3" hidden={page !== 3} className="space-y-section">
-          <PostJobStepHeader screen="price" question={t("postJob.priceQ")} helper={askingQuotes ? "Choose how long Helprs near you can send quotes." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : form.cardHoldOn ? "Your card isn't charged until a Helpr accepts your offer. The money is then held until the job is done." : "You're charged when you post. The money is held until the job is done."} canPick={canPickStep} onPick={pickStep} />
+          <PostJobStepHeader screen="price" question={t("postJob.priceQ")} helper={askingQuotes ? "Choose how long Helprs near you can send quotes." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : form.cardHoldOn ? "Your card isn't charged until a Helpr accepts your offer. The money is then held until the job is done." : "You're charged when you post. The money is held until the job is done."} canPick={canPickStep} onPick={pickStep} category={form.category} />
           {quotesShape && quotes.settled && (
             <PriceModeChoice value={priceMode} onChange={setPriceMode} quotesComingSoon={!quotesOn} />
           )}
@@ -385,7 +385,7 @@ export function FormStep({ form }: FormStepProps) {
 
         {/* PAGE 4: WHEN AND WHERE, screen 6 of 7 (board 45) */}
         <div data-form-page="4" hidden={page !== 4} className="space-y-section">
-          <PostJobStepHeader screen="where" question={t("postJob.whereQ")} helper={t("postJob.whereH")} canPick={canPickStep} onPick={pickStep} />
+          <PostJobStepHeader screen="where" question={t("postJob.whereQ")} helper={t("postJob.whereH")} canPick={canPickStep} onPick={pickStep} category={form.category} />
           <LogisticsSection
             stepNumber={2}
             streetAddress={form.streetAddress}

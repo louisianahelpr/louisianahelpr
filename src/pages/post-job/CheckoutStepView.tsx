@@ -62,7 +62,7 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
     // A2-L13 (audit 2026-10-28): Review sits in the same board 166 columns as the form steps. Without
     // them, at 1440 it dropped the step rail and the post preview and its rows ran about 1144px wide.
     <div key="checkout-step" className={POST_JOB_DESKTOP_GRID}>
-      <PostJobStepRail screen="review" canPick={canPick} onPick={pick} />
+      <PostJobStepRail screen="review" canPick={canPick} onPick={pick} category={form.category} />
       <div className="min-w-0 space-y-section">
       {/* Screen 7 of 7 (board 46). The card is charged when the job posts
           (create-payment, automatic capture; design-b handoff), so this
@@ -73,6 +73,7 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         question="Look good?"
         canPick={canPick}
         onPick={pick}
+        category={form.category}
         helper={
           form.quoteReview
             ? "Check your job, then ask for quotes. Nothing is charged until you book one."

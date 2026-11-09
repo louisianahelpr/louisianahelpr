@@ -306,6 +306,7 @@ export const es: Record<MsgKey, string> = {
   "postJob.rail.where": "Cuándo y dónde",
   "postJob.rail.review": "Revisar",
   "postJob.railDone": "{label}, listo. Volver a este paso",
+  "postJob.railSkipped": ", no hace falta para este trabajo",
   "postJob.groupsQ": "¿Qué necesita?",
   "postJob.groupsH": "Busque o elija una categoría.",
   "postJob.kindH": "Toque una para seguir.",

@@ -1,6 +1,6 @@
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enPostJob";
-import { POST_JOB_SCREENS, POST_JOB_SCREEN_COUNT as POST_JOB_STEP_COUNT, screenNumber, type PostJobScreen } from "./postJobScreens";
+import { POST_JOB_SCREENS, POST_JOB_SCREEN_COUNT as POST_JOB_STEP_COUNT, kindIsAutoFilled, screenNumber, type PostJobScreen } from "./postJobScreens";
 
 interface Props {
   /** Which screen this is; its number comes from POST_JOB_SCREENS (one source). */
@@ -13,13 +13,15 @@ interface Props {
   onPick?: (s: PostJobScreen) => void;
   /** Which passed screens can be reopened from here. */
   canPick?: (s: PostJobScreen) => boolean;
+  /** The pick so far: a one-category group skips "Kind of job", whose segment then stays unfilled (F115). */
+  category?: string;
 }
 
 /**
  * The head of every Post a Job screen (boards 23, 44, 3, 45, 46; step 0 and 1b since 2026-10-21): a segmented
  * progress bar with "n of 7", then the screen's question and one helper line.
  */
-export function PostJobStepHeader({ screen, question, helper, onPick, canPick }: Props) {
+export function PostJobStepHeader({ screen, question, helper, onPick, canPick, category }: Props) {
   const step = screenNumber(screen);
   // Post a job in Spanish (A3-3): re-renders when the language or its words arrive.
   const { t } = useLanguage();
@@ -37,8 +39,11 @@ export function PostJobStepHeader({ screen, question, helper, onPick, canPick }:
           className="flex flex-1 gap-1.5"
         >
           {Array.from({ length: POST_JOB_STEP_COUNT }, (_, i) => {
-            const seg = <span className={`block h-1 w-full rounded-full ${i < step ? "bg-primary" : "bg-border"}`} />;
             const key = POST_JOB_SCREENS[i]?.key;
+            // F115: "Kind of job" passed over for a one-category group was never shown, so its segment is not filled.
+            const skipped = key === "kind" && i + 1 < step && kindIsAutoFilled(category);
+            if (skipped) return <span key={i} data-step-skipped="" className="flex-1 basis-0 flex items-center"><span className="block h-1 w-full rounded-full bg-border" /></span>;
+            const seg = <span className={`block h-1 w-full rounded-full ${i < step ? "bg-primary" : "bg-border"}`} />;
             // A step already passed is tappable on the phone too (owner 2026-10-25: "make the stepper
             // clickable to go back"), like the desktop rail. Back keeps what was typed. The button's 44px
             // height is the tap target; the visible segment stays the thin bar.

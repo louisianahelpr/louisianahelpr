@@ -12,7 +12,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchPhotos, fetchSellerItems, fetchSimilarItems, type DeclutterItem } from "@/lib/declutter/api";
+import { fetchNewestItems, fetchPhotos, fetchSellerItems, fetchSimilarItems, type DeclutterItem } from "@/lib/declutter/api";
 import { milesBetween } from "@/lib/declutter/distance";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 
@@ -45,6 +45,21 @@ function Row({ id, title, items, cover, from }: { id?: string; title: string; it
       </ul>
     </section>
   );
+}
+
+/**
+ * F061 (UI audit 11-09): under a sold or taken-down item's notice, a row of what is new on Declutter (never the
+ * member's own), the same card as Browse. Nothing while it loads or on a failed read: the notice and its button stand
+ * on their own.
+ */
+export function NewestItemsRow({ viewerId }: { viewerId: string | null }) {
+  const newest = useQuery({ queryKey: ["declutter", "newest-items"], queryFn: () => fetchNewestItems(12) });
+  const rows = (newest.data ?? []).filter((r) => r.seller_id !== viewerId);
+  const ids = rows.map((r) => r.id);
+  const photos = useQuery({ queryKey: ["declutter", "photos", ids.join(",")], queryFn: () => fetchPhotos(ids), enabled: ids.length > 0 });
+  const cover = useMemo(() => firstPhotos(photos.data ?? []), [photos.data]);
+  if (rows.length === 0 || photos.isLoading) return null;
+  return <div className="mt-6" data-newest-items=""><Row title="New on Declutter" items={rows} cover={cover} from={null} /></div>;
 }
 
 /** How close (px below the screen) the rows must come before their reads start. */

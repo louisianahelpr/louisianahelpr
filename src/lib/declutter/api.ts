@@ -198,6 +198,22 @@ export async function fetchSellerItems(sellerId: string, exceptItemId: string): 
 }
 
 /**
+ * F061 (UI audit 11-09): the newest listings for sale, for the row under a sold or taken-down item's page (the item
+ * itself can no longer be read: declutter_item_link_visible answers live and reserved items only).
+ */
+export async function fetchNewestItems(limit = 12): Promise<DeclutterItem[]> {
+  const rows = await readItems((cols) =>
+    supabase
+      .from("declutter_items")
+      .select(cols)
+      .eq("status", "live")
+      .order("live_at", { ascending: false })
+      .limit(limit),
+  );
+  return (rows ?? []) as DeclutterItem[];
+}
+
+/**
  * F120 (UI audit 11-09): how many OTHER live listings this seller has, for the seller card's "254 more items" when
  * the row above holds its 12 (it said "12+" for a seller with 255). A head count: no rows come back.
  */

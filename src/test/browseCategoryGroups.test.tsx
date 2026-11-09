@@ -16,6 +16,7 @@
  * alerts by group: src/test/savedSearchAlertsByGroup.test.ts.
  *
  * @mutate src/components/dashboard/JobFilters.tsx |       {JOB_CATEGORY_GROUPS.map((g) => { |       {JOB_CATEGORY_GROUPS.slice(1).map((g) => {
+ * @mutate src/components/dashboard/JobFilters.tsx | return <G aria-hidden data-chip-glyph="" className="h-4 w-4 shrink-0" />; | return <span aria-hidden>🏠</span>;
  * @mutate src/components/dashboard/JobFilters.tsx | onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : g.id); onSelect?.(); }} | onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : g.items[0].value); onSelect?.(); }}
  * @mutate src/components/dashboard/JobFilters.tsx |   const legacy = selectedCategory && !isJobCategoryGroupId(selectedCategory) ? selectedCategory : null; |   const legacy = null;
  * @mutate src/lib/jobCategoryGroups.ts |   if (isJobCategoryGroupId(value)) { |   if (false) {
@@ -92,6 +93,17 @@ describe("one group list for posting and browsing", () => {
     const groupNames = new Set(JOB_CATEGORY_GROUPS.map((g) => g.label.toLowerCase()));
     const subcategoryChips = ALL_CATEGORIES.map((c) => JOB_CATEGORY_LABELS[c].toLowerCase()).filter((l) => !groupNames.has(l) && names.some((n) => n?.toLowerCase() === l));
     expect(subcategoryChips).toEqual([]);
+  });
+
+  // F113 follow-up (lead 11-09, the owner's line-icons decision): each group chip draws the group's line icon, as Post a
+  // job's group tile does, never an emoji.
+  it("each group chip carries the group's line icon, no emoji", () => {
+    const { buttons } = category(null);
+    expect(buttons.length).toBe(8);
+    for (const b of buttons) {
+      expect(b.querySelector("svg[data-chip-glyph]"), b.textContent ?? "").not.toBeNull();
+      expect(b.textContent ?? "").not.toMatch(/\p{Extended_Pictographic}/u);
+    }
   });
 
   it("Post a job and the filter read the same list (JOB_CATEGORY_GROUPS), and every category sits in a group", () => {

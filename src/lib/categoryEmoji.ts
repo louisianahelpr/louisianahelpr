@@ -27,7 +27,8 @@ export const START_ICON = { templates: ClipboardList, offer: Handshake, ai: Spar
 /**
  * The emoji the Post a Job start screens drew (owner 2026-10-21: "she prefers the EMOJI icons from the
  * mock", ~/Desktop/helpr-postjob-flow-mockup.png; SUPERSEDED on Post a Job by the owner's 11-09 decision above, F113).
- * Still read by Jobs Browse's group filter (JobFilters) and the start-flow guard. ONE map, so a category has exactly one emoji on
+ * Jobs Browse's group filter (JobFilters) draws GROUP_ICON too since 11-09 (lead, same owner decision); CATEGORY_EMOJI
+ * and GROUP_EMOJI stay for the start-flow guard's enum check. ONE map, so a category has exactly one emoji on
  * every start screen. Decorative: always rendered aria-hidden; the label is the accessible name.
  *
  * Typed as a Record over the generated enum, so a new category fails typecheck here until it gets one.

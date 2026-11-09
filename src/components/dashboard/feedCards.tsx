@@ -70,7 +70,7 @@ export function JobFeedCard({
  * "compact" (nothing sets it any more; feedDensity.ts). Static, its one `formatDistanceToNow` put the whole date-fns
  * chunk (7.9 KB gz) on every signed-in /jobs first screen. Guard: src/test/jobsFirstScreenStaysLight.test.ts.
  */
-export const loadCompactJobCard = () => loadModule(() => import("@/components/dashboard/CompactJobCard"));
+const loadCompactJobCard = () => loadModule(() => import("@/components/dashboard/CompactJobCard"));
 const CompactJobCard = lazy(() => loadCompactJobCard().then((m) => (m ? { default: m.CompactJobCard } : untilReload())));
 
 /** Props every CompactJobCard row needs, regardless of which list renders it. */

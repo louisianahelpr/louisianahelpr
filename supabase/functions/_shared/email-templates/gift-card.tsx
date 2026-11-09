@@ -47,9 +47,12 @@ const noteText = {
   fontStyle: 'italic' as const,
 }
 
+/** "Paul" from "Paul Broussard"; the whole name when it has one word. */
+const donorFirstName = (name: string): string => name.trim().split(/\s+/)[0] || name
+
 export const GiftCardEmail = ({ donorName, amount, claimUrl, note }: GiftCardEmailProps) => (
   <BaseLayout
-    preheader={`${donorName} sent you a ${amount} credit to spend on Helpr.`}
+    preheader={`${donorName} sent you a ${amount} credit to spend on Louisiana Helpr.`}
     footer={
       <TransactionalFooter>
         New to Helpr? The link will help you create an account and add the credit automatically. If
@@ -61,9 +64,11 @@ export const GiftCardEmail = ({ donorName, amount, claimUrl, note }: GiftCardEma
       {donorName} sent you a {amount} Helpr credit
     </Heading>
     <Text className="e-text" style={textStyle}>
-      Someone wants to help you get something done. Your{' '}
-      <strong style={{ color: brand.olivewood }}>{amount} credit</strong> can go toward any job on
-      Helpr — cleaning, yard work, handyman help, groceries, and more.
+      {/* F172 (owner's message review 11-09): the giver by first name, not "Someone" under a heading naming them;
+          the credit also pays for Declutter buys (declutter-checkout redeems one gift card first, Q2106). */}
+      {donorFirstName(donorName)} wants to help you get something done. Your{' '}
+      <strong style={{ color: brand.olivewood }}>{amount} credit</strong> works on any job on Helpr: cleaning,
+      yard work, handyman help, groceries and more, and on Declutter buys.
     </Text>
     {note ? (
       // Translucent olive wash, so unlike the admin-action callouts this one

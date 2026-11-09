@@ -63,7 +63,7 @@ async function renderNotificationEmail(
       title,
       message,
       actionUrl,
-      actionLabel: notificationActionLabel(link),
+      actionLabel: notificationActionLabel(link, title),
       userName,
       prefsUrl,
       host: siteUrl.replace(/^https?:\/\//, ''),

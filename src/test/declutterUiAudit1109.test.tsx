@@ -18,8 +18,9 @@
 /**
  * Declutter findings from the UI audit of 11-09 (~/.lh-shots/ui-audit-1109, Builder 2). One describe per finding.
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
+import { trackedFiles } from "@/test/helpers/trackedFiles";
 import { fireEvent, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -42,13 +43,12 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 
 const SRC = resolve(__dirname, "..");
 
-function walk(dir: string, out: string[] = []): string[] {
-  for (const name of readdirSync(dir)) {
-    const p = join(dir, name);
-    if (statSync(p).isDirectory()) walk(p, out);
-    else if (/\.tsx$/.test(name) && !/\.test\.tsx$/.test(name)) out.push(p);
-  }
-  return out;
+/** Every non-test .tsx under `dir` (absolute), from the tracked-file list (trackedFiles, Q1142), as absolute paths. */
+function walk(dir: string): string[] {
+  const repo = resolve(SRC, "..");
+  return trackedFiles(relative(repo, dir))
+    .filter((f) => /\.tsx$/.test(f) && !/\.test\.tsx$/.test(f))
+    .map((f) => resolve(repo, f));
 }
 
 const card = (over: Record<string, unknown> = {}) => ({

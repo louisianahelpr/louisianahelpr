@@ -182,13 +182,13 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
     expect(jobProgress(done, { viewer: "poster", otherFirst: "Yusef", now: NOW })).toMatchObject({ stage: 8, next: "Finished Wed 9:20 AM" });
     expect(jobProgress(done, { viewer: "helpr", otherFirst: "Dana", now: NOW })).toMatchObject({ stage: 8, next: "Finished Wed 9:20 AM" });
   });
-  // @mutate src/components/tracker/jobProgressState.ts |   return [who, reason, kept, refund].filter(Boolean).join(" · "); |   return "This job was cancelled";
+  // @mutate src/components/tracker/jobProgressState.ts |   return [who, reason, kept, refund, cardCost].filter(Boolean).join(" · "); |   return "This job was cancelled";
   // @mutate src/components/tracker/jobProgressState.ts |   const posterDid = !!by && by === job.customer_id; |   const posterDid = false;
   it("JA-26: a cancelled job says who, when, why and the refund", () => {
     const c: ProgressJob = { ...base, status: "cancelled", customer_id: "p", helper_id: "h", helper_confirmed_at: "t", cancelled_by: "p",
       cancelled_at: "2037-10-21T14:00:00Z", cancellation_reason: "[SWEEP] Plans changed", payment_status: "refunded" };
     expect(jobProgress(c, { viewer: "poster", otherFirst: "Yusef", now: NOW }))
-      .toMatchObject({ label: "Cancelled", next: "You cancelled Wed 9:00 AM · Plans changed · Your payment was refunded" });
+      .toMatchObject({ label: "Cancelled", next: "You cancelled Wed 9:00 AM · Plans changed · Refund sent to your card" });
     // The Helpr: the poster's name, no refund line.
     expect(jobProgress(c, { viewer: "helpr", otherFirst: "Dana", now: NOW }).next).toBe("Dana cancelled Wed 9:00 AM · Plans changed");
     // The Helpr cancelled.

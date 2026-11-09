@@ -12,6 +12,7 @@ import {
 } from "@/components/job-card/activityFilters";
 import { assertNever } from "@/lib/assertNever";
 import { isExpiredListing } from "@/lib/expiredListing";
+import { refundedWords, type JobRefund } from "@/lib/refundWords";
 import { posterFirstName } from "@/lib/deletedPerson";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { afterPhotoIsThePrimary, beforePhotoIsThePrimary } from "./primaryPhotoAsk";
@@ -664,8 +665,9 @@ export function posterStatusLine(
   instantRelease = false,
   /** The hired Helpr's display name: the sentence names them (Q1552). */
   helperName?: string | null,
-  /** The surface's tracking-row progress, when it has it (the job page's tracker): see workHasBegun. */
-  progress?: { workUnderway?: boolean },
+  /** The surface's tracking-row progress, when it has it (the job page's tracker): see workHasBegun. F105: and the
+   *  poster's refund numbers for a cancelled, refunded job (usePosterJobRefund), when it has them. */
+  progress?: { workUnderway?: boolean; refund?: JobRefund | null },
 ): JobStatusLine {
   const id = derivePosterWait(job, pendingApplicantCount, now, completion);
   const copy = POSTER_WAIT[id];
@@ -685,7 +687,7 @@ export function posterStatusLine(
     detail: expired ? EXPIRED_LISTING_DETAIL : named ?? (atTheJob ? "Your Helpr is at the job" : copy.detail),
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_arrival",
-    suffix: id === "cancelled" ? cancelledSuffix(job) : null,
+    suffix: id === "cancelled" ? cancelledSuffix(job, progress?.refund) : null,
     deadline: posterDeadline(id, job, instantRelease),
   };
 }
@@ -698,12 +700,16 @@ const APPLICANT_CLOSED_DETAIL = "No longer open";
 
 /** The cancelled line's tail for the POSTER: the reason, and that their money
  *  came back when it did (owner, 2026-10-06). Only on payment_status
- *  'refunded', the state void-cancelled-payments writes after a full refund. */
-export function cancelledSuffix(job: Job): string | null {
+ *  'refunded', the state void-cancelled-payments writes after the refund.
+ *  F105 (owner UI audit 2026-11-09): the refund says the Receipts numbers when the card has them ("$28.83 refunded ·
+ *  Card processing cost isn't refunded."), else "Refund sent to your card"; never "Your payment was refunded", which
+ *  read as whole on a part refund. Guard: src/components/job-card/cancelledRefundLine.test.ts. */
+export function cancelledSuffix(job: Job, refund?: JobRefund | null): string | null {
   // An expired listing's fixed sweep reason is the detail's own sentence; only the refund follows.
   const reason = isExpiredListing(job) ? null : sanitizeCancellationReason(job.cancellation_reason);
   if (job.payment_status !== "refunded") return reason;
-  return reason ? `${reason} · Your payment was refunded` : "Your payment was refunded";
+  const words = refundedWords(refund, Number(job.cancellation_fee ?? 0) > 0);
+  return reason ? `${reason} · ${words}` : words;
 }
 
 /** The clock behind each poster state that has one; null for the rest. */

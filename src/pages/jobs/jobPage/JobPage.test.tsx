@@ -28,7 +28,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") } |             ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
  * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   // Q2399: the card is held (or, far out, only saved) at posting and charged at the hire. |   escrow: "Paid. Louisiana Helpr holds it until the job is done.",
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | releasedLine(job)) : refundInTracker ? null : HELD_LINE[status] ?? null; | releasedLine(job)) : status === "held" \|\| refundInTracker ? null : HELD_LINE[status] ?? null;
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | releasedLine(job)) : refundInTracker ? null : refundLine ?? HELD_LINE[status] ?? null; | releasedLine(job)) : status === "held" \|\| refundInTracker ? null : refundLine ?? HELD_LINE[status] ?? null;
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until a Helpr accepts your offer.", |
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (!side) return null; |   if (false) return null;
@@ -264,6 +264,8 @@ import { jobOnContinueDay } from "@/lib/continueDay";
 const DAY = jobLocalDateISO(11);
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import JobDetail from "../JobDetail";
+// F105: the poster's refund numbers come from one Receipts read (usePosterJobRefund); these cards render without it.
+vi.mock("@/hooks/usePosterJobRefund", () => ({ usePosterJobRefund: () => null }));
 
 const ME = "11111111-1111-1111-1111-111111111111";
 // Hoisted for the useCurrentUser mock (vi.mock factories run before the module body).
@@ -617,7 +619,7 @@ describe("job page, poster side (boards 15, 168)", () => {
     // The one tracker (owner 2026-10-21): off the path it is the line alone, no step bar.
     expect(screen.getByText(/This job was cancelled/)).toBeTruthy();
     // The refund is said ONCE (lead 11-01, B107): on the tracker line, not again under the price.
-    expect(screen.getByText(/Your payment was refunded/)).toBeTruthy();
+    expect(screen.getByText(/Refund sent to your card/)).toBeTruthy();
     expect(screen.queryByText("Refunded to your card.")).toBeNull();
     // No misleading progress colour (lead review 2026-10-22): an all-grey bar that says Cancelled.
     expect(screen.getByLabelText(/^Job progress: Cancelled/).getAttribute("data-tone")).toBe("cancelled");

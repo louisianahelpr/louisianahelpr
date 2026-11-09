@@ -348,12 +348,15 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
     return <DeclutterNotice tone="warn" title="You must be 18 or older to buy on Declutter." />;
   }
   return (
-    <section ref={panel} tabIndex={-1} className="space-y-3 scroll-mt-4 focus:outline-none" aria-label="Buy or make an offer">
+    // F119: lg:contents lifts the panel's children into the item column, so the pinned buy bar can stay in view the
+    // whole length of the column (a sticky box never leaves its parent).
+    <section ref={panel} tabIndex={-1} className="space-y-3 scroll-mt-4 focus:outline-none lg:contents" aria-label="Buy or make an offer">
       {/* Owner pick 1 (11-08, replacing 11-07's stacked buttons): ONE sticky bar with Make offer and Buy now, the one
           primary on the right. Fixed on the bottom edge of a phone (the dock yields), in the page on a wider screen.
           Message moved to the seller row (DeclutterItemView). Offers off: Buy now alone; an offer already sent: "Your
           offer" in Make offer's place. */}
-      <StickyActionBar label="Buy or make an offer" data-declutter-buybar="" spacer={false}>
+      {/* F119 (UI audit 11-09): on a computer the pair stays pinned while the description and questions scroll. */}
+      <StickyActionBar label="Buy or make an offer" data-declutter-buybar="" spacer={false} pinWide>
         {myOffer ? (
           <Button type="button" variant="outline" size="wrap" className="whitespace-nowrap rounded-full px-3 font-semibold"
             onClick={() => panel.current?.querySelector("[data-your-offer]")?.scrollIntoView({ behavior: "smooth", block: "center" })}>

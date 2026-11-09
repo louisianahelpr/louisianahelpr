@@ -63,6 +63,7 @@ const state = {
   more: [] as unknown[],
   similar: [] as unknown[],
   liveCount: null as number | null,
+  newest: [] as unknown[],
   questions: [] as unknown[],
   tableRows: [] as unknown[],
   drop: null as unknown,
@@ -135,6 +136,7 @@ vi.mock("@/lib/declutter/api", async () => {
     fetchSellerItems: async () => state.more,
     fetchSimilarItems: async () => state.similar,
     fetchSellerLiveCount: async () => state.liveCount,
+    fetchNewestItems: async () => state.newest,
     fetchItem: async () => state.item,
     fetchItemHandovers: async () => state.handovers,
     fetchItemDropState: async () => { state.reads++; return state.drop; },
@@ -203,6 +205,7 @@ describe("the photo-first Declutter item page", () => {
     state.more = [];
     state.similar = [];
     state.liveCount = null;
+    state.newest = [];
     state.drop = null;
     state.manage = null;
     calls.length = 0;
@@ -875,6 +878,20 @@ describe("the photo-first Declutter item page", () => {
     guest.open = [];
     open();
     expect(await screen.findByText("LOGIN WALL")).toBeInTheDocument();
+  });
+
+  // F061 (UI audit 11-09): a sold or taken-down item was a notice, one button and a blank page.
+  // @mutate src/components/declutter/DeclutterSkeletons.tsx |       {more}\n    </AppPage> |     </AppPage>
+  it("F061: a sold or taken-down item shows the notice, the way on, and a row of what is new (never the member's own)", async () => {
+    state.item = null;
+    state.newest = [
+      { ...ITEM, id: "0f0e0d0c-0b0a-4908-8706-050403020191", title: "Desk lamp", seller_id: "u3" },
+      { ...ITEM, id: "0f0e0d0c-0b0a-4908-8706-050403020192", title: "My own rug", seller_id: "u1" },
+    ];
+    open();
+    expect(await screen.findByText("This item isn't available.")).toBeInTheDocument();
+    const row = await screen.findByRole("region", { name: "New on Declutter" });
+    expect(within(row).getAllByRole("link").map((a) => a.getAttribute("aria-label"))).toEqual([expect.stringMatching(/^Desk lamp, /)]);
   });
 
   // F049 (UI audit 11-09): a free item said "Sold by Lexi" and "Exact address if the giver picks you".

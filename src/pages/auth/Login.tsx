@@ -137,6 +137,9 @@ const Login = () => {
   useEffect(() => removeShellOncePainted("lh-login-shell"), []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // F028 (owner UI audit 11-09): a wrong email or password said so only in a toast in the corner that went away,
+  // while the email field still wore its green check. The words now sit above Log in until either field changes.
+  const [credError, setCredError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const captcha = useCaptcha();
   const [showPassword, setShowPassword] = useState(false);
@@ -151,6 +154,8 @@ const Login = () => {
   const [mfaCode, setMfaCode] = useState("");
   const [mfaVerifying, setMfaVerifying] = useState(false);
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  // F028: the inline error's Forgot password link carries the typed email too (router state, as the Password row's does).
+  const forgotState = { email: email.trim() };
   // Set once Log In has been tapped — lets an UNTOUCHED field surface its
   // "add this" error, which a purely value-driven check can never do.
   const [attempted, setAttempted] = useState(false);
@@ -169,6 +174,8 @@ const Login = () => {
     // call: an incomplete form is not a failed sign-in attempt and must not
     // count toward the 5-strike lockout, nor reach signInWithPassword.
     setAttempted(true);
+    // F028 review: a new try clears the last wrong-password words, so they never sit beside a lockout or network toast.
+    setCredError(null);
     if (!emailValid) {
       hapticError();
       emailRef.current?.focus();
@@ -223,7 +230,7 @@ const Login = () => {
         const minutesLeft = Math.ceil((next.lockedUntil - now) / 60000);
         toast.error(t("login.tooManyAttempts", { minutes: minutesLeft }));
       } else {
-        toast.error(friendlyAuthError(error.message));
+        setCredError(friendlyAuthError(error.message));
       }
       return;
     }
@@ -432,14 +439,14 @@ const Login = () => {
                 spellCheck={false}
                 enterKeyHint="next"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setCredError(null); }}
                 required
                 autoComplete="email"
                 aria-invalid={emailError}
                 aria-describedby={emailError ? "login-email-error" : undefined}
                 className={`${emailValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)] ${emailError ? "!border-destructive focus-visible:!border-destructive" : ""}`}
               />
-              {emailValid && (
+              {emailValid && !credError && (
                 <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
               )}
             </div>
@@ -470,7 +477,7 @@ const Login = () => {
                 // Login and ForgotPassword the outliers rather than the rule.
                 // All three auth screens are now label-only.
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => { setPassword(e.target.value); setCredError(null); }}
                 required
                 autoComplete="current-password"
                 aria-invalid={passwordError}
@@ -501,6 +508,15 @@ const Login = () => {
             )}
           </div>
           <TurnstileField ref={captcha.ref} action="login" />
+          {credError && (
+            <p role="alert" data-login-cred-error="" className="flex flex-wrap items-start gap-x-1 text-ds-13 font-sans text-[hsl(var(--destructive-ink))]">
+              <X className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
+              <span>{credError}</span>{" "}
+              <Link to="/forgot-password" state={forgotState} className="font-bold underline underline-offset-4" style={{ color: "hsl(var(--bark))" }}>
+                {t("login.forgot")}
+              </Link>
+            </p>
+          )}
           <Button
             variant="primary"
             type="submit"

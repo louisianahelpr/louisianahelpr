@@ -280,7 +280,7 @@ describe("the entry takes the HTML's answer (declutterPrefetch.ts)", () => {
     const links = () => document.head.querySelectorAll('link[rel="preload"][as="image"]').length;
     stub();
     // Count what THIS test adds: an earlier test in the worker may have left its own preload links in <head> (#4279
-    // shard 5 read 8 that this test never made).
+    // shard 5 read eight that this test never made, 2026-11-09).
     const before = links();
     document.body.innerHTML = '<div id="lh-declutter-shell" data-lh-photos=""></div>';
     early();

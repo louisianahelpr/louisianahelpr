@@ -3,7 +3,11 @@
  * whatever it was about). Read from the notice's own same-origin link, so no producer has to send a label.
  * Guard: src/test/noticeEmailNamesItsAction.test.ts.
  */
-export function notificationActionLabel(link: string | null | undefined): string {
+export function notificationActionLabel(link: string | null | undefined, title?: string | null): string {
+  // Owner's message review 11-09 (F174, F175, F180): where a notice asks for one action, the button names THAT action,
+  // not the page ("See the job" under "tap to confirm you're still on"). Keyed on the notice's exact title.
+  const byTitle = title ? ACTION_BY_TITLE[title.trim()] : undefined;
+  if (byTitle) return byTitle;
   const path = (link ?? "").split(/[?#]/)[0];
   if (path.startsWith("/declutter/item/")) return "See the item";
   if (path.startsWith("/declutter")) {
@@ -17,6 +21,16 @@ export function notificationActionLabel(link: string | null | undefined): string
   if (path.startsWith("/profile") && /[?&]tab=earnings\b/.test(link ?? "")) return "See your earnings";
   return "Open Louisiana Helpr";
 }
+
+/** Notice titles whose email asks for one action, and that action's button (F174, F175, F180). */
+export const ACTION_BY_TITLE: Record<string, string> = {
+  "Still on for tomorrow?": "Confirm I'm still on",
+  "A dispute was opened": "Add your side",
+  "Your Helpr needs another day": "Answer the request",
+  "New counteroffer": "Answer the counteroffer",
+  "New trade offer": "Answer the trade offer",
+  "Your listings are live": "See your listings",
+};
 
 /** The notice email's sign-off: the site's own name (AUD31-20: it read "The Helpr Team"). */
 export const NOTICE_SIGNOFF = "Louisiana Helpr";

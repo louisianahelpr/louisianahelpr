@@ -141,37 +141,39 @@ export const WelcomeDripStep2Email = ({
   </BaseLayout>
 )
 
-/** Day 7 — "Four things great Helprs do." */
+/** Day 7 — "Four tips from neighbors who use Helpr a lot" (F168). */
 export const WelcomeDripStep3Email = ({
   greetingName,
   dashboardUrl,
   unsubscribeUrl,
 }: CommercialEmailProps) => (
   <BaseLayout
-    preheader="Four things the Helprs who get rebooked do well."
+    preheader="Four things that make every job and sale go smoothly."
     footer={<MarketingFooter unsubscribeUrl={unsubscribeUrl} />}
   >
+    {/* F168 (owner's message review 11-09): it spoke only to Helprs while tips 1-3 were poster advice (owner rule: never
+        role-based), "through the platform" was jargon and "Start Now" went nowhere in particular. */}
     <Heading className="e-h1" style={{ ...h1, fontSize: '22px' }}>
       Tips from the community
     </Heading>
     <Text className="e-text" style={textStyle}>
-      Hey {greetingName || 'there'} — four things the Helprs who get rebooked do well:
+      Hey {greetingName || 'there'}, four things that make every job and sale go smoothly:
     </Text>
     <ol className="e-text" style={listStyle}>
       <li>
-        <Bold>Be specific</Bold> — detailed descriptions attract better matches
+        <Bold>Be specific:</Bold> clear details and photos get the right people
       </li>
       <li>
-        <Bold>Respond quickly</Bold> — fast replies lead to faster help
+        <Bold>Reply quickly:</Bold> fast answers get jobs booked and items sold
       </li>
       <li>
-        <Bold>Leave reviews</Bold> — help the community grow by sharing feedback
+        <Bold>Leave reviews:</Bold> they help neighbors know who to trust
       </li>
       <li>
-        <Bold>Stay safe</Bold> — always communicate through the platform
+        <Bold>Stay safe:</Bold> keep messages and payments in the app
       </li>
     </ol>
-    <BrandButton href={dashboardUrl} label="Start Now" widthPx={190} />
+    <BrandButton href={dashboardUrl} label="Open Louisiana Helpr" widthPx={240} />
     <Text className="e-text" style={textStyle}>
       Questions? admin@louisianahelpr.com.
     </Text>

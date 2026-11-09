@@ -422,7 +422,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
             </ChoicePill>
           </div>
           {/* Q2471 (2): Claude's suggested amount, one tap to fill the box. */}
-          <OfferSuggestion itemId={item.id} onUse={setAmount} />
+          <OfferSuggestion itemId={item.id} priceCents={item.current_price_cents} onUse={setAmount} />
           <Input
             id="declutter-offer"
             ref={offerBox}

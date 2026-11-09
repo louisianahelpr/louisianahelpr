@@ -65,6 +65,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   is_test_member: "hides", // b62 (20261030015205): test data never counts in this total
   admin_sales_tax_adjustments: "hides", // Q1918 tax ledger (20261105021744): the admin export leaves seed and TEST rows out
   admin_booking_sources: "hides", // B66 Book me (20261030013347): a test Helpr or test poster never counts in the admin tally
+  declutter_item_sold_visible: "hides", // F061 (20261109194234): a test item's sold card is never shown publicly (seed_hidden_in_discovery)
   get_helprs_near_me: "hides", // Q2008 (20261104062747): a test member is never shown in Helprs near you (seed_hidden_in_discovery)
   instant_book_block_reason: "hides", // CMP-4 (20261101065105): a test job is instant-booked only to enrolled test accounts, a real one never to them
   instant_book_real_jobs_done: "hides", // CMP-4 (20261101063725): seed jobs and test posters never count toward the 3 real jobs

@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { publicReviewIds } from "@/hooks/useProfileTabData";
 import { queryKeys } from "@/lib/queryKeys";
 
 /**
@@ -80,17 +81,21 @@ export function useHelperStreak(helperId: string) {
       // of jobs doesn't haul the whole history just for a badge. We rely
       // on the double-blind reveal filter — anything still hidden by
       // `feedback_visible_at` is "pending" and shouldn't count yet.
-      const rows = unwrap(
-        await supabase
+      // F093 follow-up (owner UI audit 2026-11-09, lead): a review between two accounts of one person never counts
+      // anywhere (Q2759), so the streak keeps only the ids get_public_profile_reviews shows, like the Reviews tab.
+      const [res, shown] = await Promise.all([
+        supabase
           .from("reviews")
-          .select("rating, created_at")
+          .select("id, rating, created_at")
           .eq("reviewee_id", helperId)
           .lte("feedback_visible_at", new Date().toISOString())
           .order("created_at", { ascending: false })
           .limit(WINDOW),
-      ) as ReviewRow[] | null;
+        publicReviewIds(helperId),
+      ]);
+      const rows = (unwrap(res) as (ReviewRow & { id: string })[] | null) ?? [];
 
-      return computeFiveStarStreak(rows ?? []);
+      return computeFiveStarStreak(rows.filter((r) => shown.has(r.id)));
     },
     enabled: !!helperId,
     // Streak doesn't move job-by-job — only when a fresh review lands.

@@ -253,12 +253,12 @@ describe("Home", () => {
     // Soonest deadline first; a handed-over order is not a to-do. Two held orders + two jobs I posted.
     expect(screen.getByTestId("next-up-see-all").textContent).toBe("See all (4)");
     // A carousel over all four (mock-up 7): "1 of 4", and a dot shows the next one.
-    expect(screen.getByTestId("next-up-label").textContent).toBe("Next up · 1 of 4");
+    expect(screen.getByTestId("next-up-label").textContent).toBe("Needs you · 1 of 4");
     // Spec v2 §5.2: these orders' clocks are years out, so they rank with the other "someone is
     // waiting on you" to-dos, by date: the applicants on Job a (Jan 2) come before the Jan 3 order.
     fireEvent.click(document.querySelector('[data-next-up-dot="1"]') as HTMLElement);
     expect(screen.getByTestId("next-up-title").textContent).toBe("Review 1 applicant");
-    expect(screen.getByTestId("next-up-label").textContent).toBe("Next up · 2 of 4");
+    expect(screen.getByTestId("next-up-label").textContent).toBe("Needs you · 2 of 4");
   });
 
   it("a job's to-do is titled by its TASK, with your side and the job under it (spec v2 §5.2, board 165)", async () => {
@@ -321,7 +321,7 @@ describe("Home", () => {
       wrap(<HomeDashboard />);
       await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
       expect(screen.getByTestId("next-up-loading")).toBeTruthy();
-      expect(screen.getByTestId("next-up-label").textContent).toBe("Next up");
+      expect(screen.getByTestId("next-up-label").textContent).toBe("Needs you"); // F083: one name for the card
       expect(screen.queryByText("You're all caught up")).toBeNull();
       expect(screen.queryByTestId("next-up-action")).toBeNull();
     } finally {

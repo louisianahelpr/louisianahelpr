@@ -140,7 +140,7 @@ describe("badge = To-do (owner, 2026-10-20)", () => {
   it("21 new applicants on one job + one order to answer = 2 everywhere: the dock's section badges, sidebar, Next up, See all", async () => {
     await mountAll();
     // Home: the to-do list is one per job / order.
-    expect(screen.getByTestId("next-up-label").textContent).toBe("Next up · 1 of 2");
+    expect(screen.getByTestId("next-up-label").textContent).toBe("Needs you · 1 of 2");
     expect(screen.getByTestId("next-up-see-all").textContent).toBe("See all (2)");
     // The phone dock (nav redesign 2026-11-06: Dashboard, Jobs, Declutter, Shops, Homes): each section tab carries its
     // share, as the sidebar does (never "9+" from 21 applicants); Dashboard carries none (it would double-count).

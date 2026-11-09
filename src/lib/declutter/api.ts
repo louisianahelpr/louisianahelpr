@@ -231,14 +231,16 @@ export async function fetchNewestItems(limit = 12): Promise<DeclutterItem[]> {
  * the row above holds its 12 (it said "12+" for a seller with 255). A head count: no rows come back.
  */
 export async function fetchSellerLiveCount(sellerId: string, exceptItemId: string): Promise<number> {
-  const { count, error } = await supabase
+  const result = await supabase
     .from("declutter_items")
     .select("id", { count: "exact", head: true })
     .eq("seller_id", sellerId)
     .eq("status", "live")
     .neq("id", exceptItemId);
-  if (error) throw error;
-  return count ?? 0;
+  // A HEAD read has no body: unwrap() checks the error (and carries its HTTP status to the retry policy), the count
+  // is read off the result after it (useDashboardJobsCount's pattern).
+  unwrap(result);
+  return result.count ?? 0;
 }
 
 /**

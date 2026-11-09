@@ -36,7 +36,7 @@
  *
  * F197 + F198 + F193 (rest): one name for the card cost ("the card fee") and for who decides ("our team") across 32
  * Declutter / Shops / refund-request producers (20261109224952; proof src/test/pglite/noticesCardFeeOurTeam.pglite.mjs).
- * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql | so we''re refunding your payment, minus the card fee.' | so your payment is coming back to your card, minus what your card company charged, because you blocked the seller.'
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql | so we''re refunding your payment. You blocked the seller, so the card fee isn''t refunded.' | so your payment is coming back to your card, minus what your card company charged, because you blocked the seller.'
  * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql | 'Our automatic check flagged "%s" (%s). Our team will look at it before you''re paid.' | 'Our automatic check flagged "%s" (%s). Someone from Louisiana Helpr will look at it before you''re paid.'
  * F177 (moved from Builder 4, lead 11-09): the dispute and warning notices say "our team", never "an admin"
  * (20261109215021; proof src/test/pglite/noticesOurTeamNoStrike.pglite.mjs).
@@ -186,8 +186,8 @@ describe("F197/F198/F193: one name for the card fee and for who decides, in ever
   it("F193: who decides is only ever 'our team'", () => {
     expect(all.filter((t) => /Louisiana Helpr decides|real person at Helpr|goes to Helpr|Someone from Louisiana Helpr/.test(t))).toEqual([]);
   });
-  it("F198: the strike-removed notice is two plain sentences", () => {
-    expect(body("declutter_mark_order_paid")).toContain("The item''s hold had already ended, so we''re refunding your payment, minus the card fee.");
-    expect(body("declutter_mark_order_paid")).not.toContain("because you blocked the seller");
+  it("F198: the strike-removed notice is one fact a sentence, and names the block as why the card fee is kept", () => {
+    expect(body("declutter_mark_order_paid")).toContain("The item''s hold had already ended, so we''re refunding your payment. You blocked the seller, so the card fee isn''t refunded.");
+    expect(body("declutter_mark_order_paid")).not.toContain("minus what your card company charged, because you blocked the seller");
   });
 });

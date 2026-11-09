@@ -5,9 +5,10 @@
 -- give back", "minus what your card company charged", "what the buyer's card payment cost", "the card-processing cost",
 -- "what the card company keeps"). One term everywhere now: "the card fee". No amount changes: the same figures, the
 -- same people pay them; only the words.
--- F198: "Your strike was removed" put three facts in one sentence and "because you blocked the seller" read like the
--- reason for the fee: "You paid in time, so the missed-checkout strike is gone. The item's hold had already ended, so
--- we're refunding your payment, minus the card fee."
+-- F198: "Your strike was removed" put three facts in one sentence. Now one fact each, and the block is named as what it
+-- is, the reason the card fee is kept (this line is only sent when the buyer blocked the seller): "You paid in time, so
+-- the missed-checkout strike is gone. The item's hold had already ended, so we're refunding your payment. You blocked
+-- the seller, so the card fee isn't refunded."
 -- F193 (rest): who decides a problem was named four ways ("Louisiana Helpr decides", "a real person at Helpr will
 -- decide", "goes to Helpr to decide", "Someone from Louisiana Helpr will look at it"); "goes to Helpr" read like the
 -- member's Helpr. One phrase: "our team" ("Our team decides", "our team will decide the refund", "Our team will look at
@@ -1440,7 +1441,7 @@ BEGIN
       -- CHANGED (Q1926 buyer half): "every cent" only when every cent comes back.
       PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Your strike was removed',
         CASE WHEN v_reason = 'buyer_cancelled'
-             THEN 'You paid in time, so the missed-checkout strike is gone. The item''s hold had already ended, so we''re refunding your payment, minus the card fee.'
+             THEN 'You paid in time, so the missed-checkout strike is gone. The item''s hold had already ended, so we''re refunding your payment. You blocked the seller, so the card fee isn''t refunded.'
              ELSE 'You paid in time, so the missed-checkout strike is gone. The hold on the item had already ended, so every cent is coming back to your card.' END,
         '/declutter?view=cart', o.seller_id);
       v_refund := public.declutter_record_refund(o.id, p_payment_intent_id, v_reason, p_amount_cents, p_card_fee_cents);

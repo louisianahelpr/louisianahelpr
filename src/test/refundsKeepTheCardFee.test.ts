@@ -744,7 +744,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // 'order_closed' (we paid it), after seller_backed_out and seller_out, as on an open checkout; the buyer's notice
       // no longer says "every cent" then. No other reason, amount or fee changed.
       // Part 3 F197/F198/F193 (20261109224952, Builder 6, 11-09): notice wording only, md5 == LIVE before; no amount (PGlite S1).
-      declutter_mark_order_paid: "20261109224952_notices_card_fee_and_our_team.sql ecfb1b3d36cc96e4",
+      declutter_mark_order_paid: "20261109224952_notices_card_fee_and_our_team.sql 7842a243a189d175",
       // Owner 11-01 (B103, 20261101181129; lh-money-escrow via the lead): the giver's pick turns the asked time into a
       // paid FREE order ($0, card_fee_cents = 0, no payment) with its booking; it records no refund and moves no money.
       // A3-57 (20261102011547, Builder 125; re-pinned by Builder 151 after a line diff against 20261101181129): ONE

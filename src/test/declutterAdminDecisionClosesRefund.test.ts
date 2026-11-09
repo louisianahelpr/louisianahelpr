@@ -48,7 +48,7 @@ describe("audit 1b #5/#12: Louisiana Helpr's decision ends the refund request; n
 
   it("a refund after the handover that kept the card fee says why, in the refund form's words", () => {
     const r = body("declutter_refund_after_handover");
-    const line = "That''s all you paid, less the small part the card network kept for the payment, which it doesn''t give back.";
+    const line = "That''s all you paid, less the card fee."; // F197 (20261109224952): one name for the card cost
     expect(r.split(`WHEN v_policy = 'keep_card_fee' THEN ' ${line}'`).length - 1).toBe(2);
   });
 

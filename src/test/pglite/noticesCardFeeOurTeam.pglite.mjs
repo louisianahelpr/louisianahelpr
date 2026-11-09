@@ -10,7 +10,7 @@
  *      condition, column, link, type or refusal changed); grants exactly as live
  *   W1 no literal names the card cost any way but "the card fee"
  *   W2 no literal says "Louisiana Helpr decides", "a real person at Helpr", "goes to Helpr" or "Someone from Louisiana Helpr"
- *   W3 F198: the strike-removed notice is the two plain sentences, ending "minus the card fee."
+ *   W3 F198: the strike-removed notice is three plain sentences; the last names the block as why the card fee is kept.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import os from "node:os";
@@ -102,7 +102,7 @@ const badFee = all.filter((t) => /card network kept|what your card company charg
 check("W1 one name for the card cost: the card fee", badFee.length === 0, badFee.slice(0, 3).join(" | "));
 const badWho = all.filter((t) => /Louisiana Helpr decides|real person at Helpr|goes to Helpr|Someone from Louisiana Helpr/.test(t));
 check("W2 one name for who decides: our team", badWho.length === 0, badWho.slice(0, 3).join(" | "));
-check("W3 F198: two plain sentences, minus the card fee", src.declutter_mark_order_paid.includes("The item''s hold had already ended, so we''re refunding your payment, minus the card fee.") && !src.declutter_mark_order_paid.includes("because you blocked the seller"));
+check("W3 F198: one fact a sentence, the block named as why the card fee is kept", src.declutter_mark_order_paid.includes("The item''s hold had already ended, so we''re refunding your payment. You blocked the seller, so the card fee isn''t refunded.") && !src.declutter_mark_order_paid.includes("minus what your card company charged, because you blocked the seller"));
 
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");
 process.exit(failures ? 1 : 0);

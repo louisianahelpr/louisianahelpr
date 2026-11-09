@@ -10,7 +10,7 @@
  */
 import { categoryLabels } from "@/components/job-card/activityConstants";
 import { JOB_CATEGORY_GROUPS, categoryFilterLabel, isJobCategoryGroupId } from "@/lib/jobCategoryGroups";
-import { GROUP_EMOJI } from "@/lib/categoryEmoji";
+import { GROUP_ICON } from "@/lib/categoryEmoji";
 import { hapticLight } from "@/lib/haptics";
 import { X } from "lucide-react";
 import { JOB_WHEN_OPTIONS } from "@/lib/jobWhenFilter";
@@ -106,8 +106,8 @@ export const SortContent = ({
  * Category = the 8 GROUPS Post a job opens on (owner 2026-10-21: "show ONLY
  * the 8 main groups, from the same shared list, in sentence case. No
  * subcategories in the filter"), so the group a poster picks is the group a
- * Helpr filters by. One list, JOB_CATEGORY_GROUPS, and the group emoji Post a
- * job draws (GROUP_EMOJI). The stored value is the group id; the list, the map
+ * Helpr filters by. One list, JOB_CATEGORY_GROUPS, and the group's line icon Post a
+ * job draws (GROUP_ICON; owner 11-09, F113: line icons, not emoji, here as on Post a job). The stored value is the group id; the list, the map
  * and the server count all widen it to the group's categories
  * (categoryFilterMatches / categoriesForFilter).
  *
@@ -130,7 +130,7 @@ export const CategoryContent = ({
             data-category-group={g.id}
             onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : g.id); onSelect?.(); }}
           >
-            <span aria-hidden className="text-ds-14 leading-none">{GROUP_EMOJI[g.id]}</span>
+            {(() => { const G = GROUP_ICON[g.id]; return <G aria-hidden data-chip-glyph="" className="h-4 w-4 shrink-0" />; })()}
             {g.label}
           </FilterChip>
         );

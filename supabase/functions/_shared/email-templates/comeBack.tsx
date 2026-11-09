@@ -10,7 +10,7 @@
 // a marketplace, so it is sent only with marketing consent and carries the
 // recipient's signed one-click unsubscribe in <MarketingFooter>.
 //
-// A plain letter on purpose: a greeting, short paragraphs, at most a two-line
+// A plain letter on purpose: a greeting, short paragraphs, at most a three-line
 // list, one button and the founder's name. No heading: a heading reads as a
 // newsletter, and this is meant to read as a note from a person.
 

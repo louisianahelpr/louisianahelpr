@@ -55,6 +55,8 @@ export const COME_BACK_COPY: Record<ComeBackStep, ComeBackCopy> = {
     bullets: [
       ["Need a hand?", "Describe the job and set your price. See who applied and chat before you hire."],
       ["Want work?", "Browse jobs near you, see your take-home, then apply."],
+      // F169 (owner's message review 11-09): Declutter is live for everyone, so the come-back note names it too.
+      ["Got stuff to sell?", "List it on Declutter in a minute."],
     ],
     button: "Open Louisiana Helpr",
     closing: "Thanks,",

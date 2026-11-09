@@ -67,4 +67,30 @@ describe("email copy, owner's message review 11-09", () => {
     // The button goes to a real page.
     expect(readFileSync(join(ROOT, "src/App.tsx"), "utf8")).toMatch(/<Route path="\/forgot-password" /);
   });
+
+  // F169: the welcome drip's day 1 and day 3 said the same three things, and no welcome or come-back email named
+  // Declutter (live for everyone). Day 3 is now the Declutter intro, opening /declutter; day 1 and come-back 1 carry
+  // one Declutter line.
+  // @mutate supabase/functions/_shared/email-templates/drip.tsx |       Clear out a closet on Declutter\n |       Explore what Louisiana Helpr has to offer\n
+  // @mutate supabase/functions/engagement-automations/index.ts |     path: '/declutter', |     path: '/home',
+  // @mutate supabase/functions/_shared/comeBackEmail.ts |       ["Got stuff to sell?", "List it on Declutter in a minute."],\n | \n
+  it("F169: day 3 is the Declutter intro and opens /declutter; day 1 and come-back 1 name Declutter", () => {
+    const drip = T("drip.tsx");
+    const day1 = component(drip, "WelcomeDripStep1Email");
+    const day3 = component(drip, "WelcomeDripStep2Email");
+    expect(day3).toMatch(/>\s*Clear out a closet on Declutter\s*</);
+    expect(day3).toContain('label="Open Declutter"');
+    expect(day3).toMatch(/snap a photo, set a garage-sale price, and buyers pick it up from your\s+porch\./);
+    expect(day1).toContain("<Bold>Got stuff to sell?</Bold> List it on Declutter in a minute.");
+    // Day 1 and day 3 no longer share a bullet.
+    expect(day3).not.toMatch(/<li>/);
+    for (const vague of ["find opportunities", "Connect", "message before committing"]) {
+      expect(drip).not.toContain(vague);
+    }
+    const fn = blankComments(readFileSync(join(ROOT, "supabase/functions/engagement-automations/index.ts"), "utf8"));
+    expect(fn).toMatch(/2: \{\s*component: WelcomeDripStep2Email,\s*subject: 'Clear out a closet on Declutter',\s*path: '\/declutter',/);
+    expect(fn).toContain("dashboardUrl: `${getAppUrl()}${step.path}`,");
+    const comeBack = blankComments(readFileSync(join(ROOT, "supabase/functions/_shared/comeBackEmail.ts"), "utf8"));
+    expect(comeBack).toContain('["Got stuff to sell?", "List it on Declutter in a minute."],');
+  });
 });

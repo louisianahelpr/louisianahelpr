@@ -187,7 +187,7 @@ describe("every job-card list uses the one --list-gap pitch (Q213a)", () => {
     const render = code.slice(code.indexOf("renderItem={(job, i) =>"), code.indexOf("<JobFeedCard"));
     expect(render).toContain('className={i === 0 && job.photos?.[0] ? "pb-list" : undefined}');
     expect(render).not.toMatch(/\bpb-\d/);
-    // ~88 px row (no gap).
+    // ~88 px row, no gap (2026-11-08, Builder 1 hairline rows).
     expect(code).toMatch(/estimateSize=\{88\}/);
   });
 

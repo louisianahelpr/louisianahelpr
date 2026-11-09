@@ -30,7 +30,7 @@ import {
   X,
   Loader2,
   BookOpen,
-  ChevronRight, Compass } from "lucide-react";
+  ChevronRight, Compass, ShoppingBag, Briefcase, CreditCard, KeyRound, Flag } from "lucide-react";
 import { toast } from "sonner";
 import { SUPPORT_SCREENSHOT_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
 import { hapticError, hapticLight } from "@/lib/haptics";
@@ -52,6 +52,12 @@ const CATEGORY_ICONS: Record<SupportCategory, React.ReactNode> = {
   suggestion: <Lightbulb className="w-4 h-4" />,
   report: <AlertTriangle className="w-4 h-4" />,
   other: <HelpCircle className="w-4 h-4" />,
+  // F042: the topics added 11-09 (the in-app form files straight into reports, so no function is involved).
+  declutter_order: <ShoppingBag className="w-4 h-4" />,
+  job: <Briefcase className="w-4 h-4" />,
+  payments: <CreditCard className="w-4 h-4" />,
+  login: <KeyRound className="w-4 h-4" />,
+  report_someone: <Flag className="w-4 h-4" />,
 };
 
 const supportCategories = SUPPORT_TOPICS.map((topic) => ({

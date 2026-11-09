@@ -10,7 +10,7 @@
  *   3. the drawn copy carries the page's own emblem file, this year, and is inert + aria-hidden (a picture only).
  *
  * @mutate src/lib/browseShellCards.mjs |     (emblem ? shellFooterHtml(emblem, now) : "") + |     "" +
- * @mutate src/lib/browseShellCards.mjs | <p class="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-xs leading-relaxed">Jobs, Declutter | <p class="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-sm leading-relaxed">Jobs, Declutter
+ * @mutate src/lib/browseShellCards.mjs | <p class="text-ds-13 text-[hsl(var(--olivewood))]/80 max-w-xs leading-relaxed">Jobs, Declutter | <p class="text-ds-13 text-[hsl(var(--olivewood))]/80 max-w-sm leading-relaxed">Jobs, Declutter
  * @mutate src/lib/browseShellCards.mjs |   "min-h-screen page-warmth pb-[calc(var(--safe-area-bottom,0px)_+_var(--bottom-nav-h,96px))] relative flex flex-col overflow-x-clip"; |   "min-h-screen page-warmth relative flex flex-col overflow-x-clip";
  * @mutate src/lib/browseShellCards.mjs | " style="--bottom-nav-h:0px"><div aria-hidden | "><div aria-hidden
  * @mutate src/lib/browseShellCards.mjs |     `<div class="flex-1"><div class="mx-auto page-measure | `<div><div class="mx-auto page-measure

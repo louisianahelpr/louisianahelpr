@@ -47,6 +47,12 @@ const Instagram = ({ className }: { className?: string }) => (
 // Moved to lib/appStore.ts when ForceUpdateGate needed the same URL: on that
 // screen it is the ONLY way out of a blocked app, so the two copies must not
 // be allowed to drift.
+/**
+ * Footer links (owner's UI audit 11-09, F006): 13px, and a 44px tall tap area on a touch screen (they were 16px tall
+ * targets at 11px). On a mouse they keep the list's normal rhythm.
+ */
+const FOOTER_LINK = "link-standard inline-flex items-center [@media(pointer:coarse)]:min-h-11";
+
 const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
 // Live since 2026-10-20 (owner: "i created a instagram").
 const INSTAGRAM_URL = "https://www.instagram.com/louisianahelpr/";
@@ -122,7 +128,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
           {/* Break after the first sentence so the tagline wraps predictably
               into two short lines instead of one long one that pushes the
               link columns around. */}
-          <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-xs leading-relaxed">
+          <p className="text-ds-13 text-[hsl(var(--olivewood))]/80 max-w-xs leading-relaxed">
             Jobs, Declutter, Shops and Homes
             <br />
             for Louisiana.
@@ -166,30 +172,30 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
           {/* Single column, matching Legal and Follow. Uneven column LENGTHS
               are normal in a footer — three different list treatments side by
               side is what looks unfinished. */}
-          <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
+          <ul className="space-y-2 [@media(pointer:coarse)]:space-y-0 text-ds-13 text-[hsl(var(--olivewood))]/85">
             <li>
               {/* Named, not bounced: a signed-in reader goes straight to the
                   authed feed and a visitor to the guest one. Same label either
                   way — one feature, one noun (see browseDestinationFor). */}
-              <Link to={browseDestinationFor(user)} className="link-standard">
+              <Link to={browseDestinationFor(user)} className={FOOTER_LINK}>
                 Jobs
               </Link>
             </li>
             <li>
               {/* Owner 11-04: Declutter's Browse, which guests and members both read. */}
-              <Link to="/declutter" className="link-standard">
+              <Link to="/declutter" className={FOOTER_LINK}>
                 Declutter
               </Link>
             </li>
             <li>
-              <Link to="/help" className="link-standard">
+              <Link to="/help" className={FOOTER_LINK}>
                 Help center
               </Link>
             </li>
             <li>
               {/* /contact redirects here too (vercel.json); this is where a
                   person who wants to reach us lands. */}
-              <Link to="/support" className="link-standard">
+              <Link to="/support" className={FOOTER_LINK}>
                 Contact us
               </Link>
             </li>
@@ -226,19 +232,19 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
           >
             Legal
           </h2>
-          <ul className="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85">
+          <ul className="space-y-2 [@media(pointer:coarse)]:space-y-0 text-ds-13 text-[hsl(var(--olivewood))]/85">
             <li>
-              <Link to="/terms" className="link-standard">
+              <Link to="/terms" className={FOOTER_LINK}>
                 Terms
               </Link>
             </li>
             <li>
-              <Link to="/rules" className="link-standard">
+              <Link to="/rules" className={FOOTER_LINK}>
                 Rules
               </Link>
             </li>
             <li>
-              <Link to="/privacy" className="link-standard">
+              <Link to="/privacy" className={FOOTER_LINK}>
                 Privacy
               </Link>
             </li>

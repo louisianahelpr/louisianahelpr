@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { storageExtFor } from "@/lib/storageExt";
 import { PROOF_PHOTO_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@/lib/uploadTypes";
@@ -94,9 +95,9 @@ export function MissedReturnSheet({
                   {files.map((f, i) => (
                     <li key={`${f.name}-${i}`} className="flex items-center gap-1 rounded-ds-md border px-2 py-1 text-ds-12">
                       <span className="max-w-[10rem] truncate">{f.name}</span>
-                      <button type="button" aria-label={`Remove ${f.name}`} disabled={busy} onClick={() => setFiles((p) => p.filter((_, j) => j !== i))}>
+                      <Button type="button" variant="ghost" size="icon" aria-label={`Remove ${f.name}`} disabled={busy} onClick={() => setFiles((p) => p.filter((_, j) => j !== i))}>
                         <X className="h-3.5 w-3.5" aria-hidden="true" />
-                      </button>
+                      </Button>
                     </li>
                   ))}
                 </ul>
@@ -106,7 +107,7 @@ export function MissedReturnSheet({
                   <ImagePlus className="h-3.5 w-3.5" aria-hidden="true" /> {files.length === 0 ? "Add photos" : "Add more"}
                 </Button>
               )}
-              <input ref={input} type="file" accept="image/*" multiple className="hidden" aria-hidden="true" tabIndex={-1}
+              <HiddenFileInput ref={input} accept="image/*" multiple aria-hidden="true" tabIndex={-1}
                 onChange={(e) => { pick(e.target.files); e.target.value = ""; }} />
             </div>
           )}

@@ -197,6 +197,8 @@ function edgeOffenders(): Map<string, string> {
 const SQL_EXEMPT: Record<string, string> = {
   helper_abort_job:
     "quotes the assigned Helpr's own reason, prefixed 'Your Helpr had to stop work on …:', written only by the abort transition it performs",
+  report_continue_day_missed:
+    "owner #4 (20261108214605): admin-recipient alert and party notice built from the job title plus fixed literals; the caller's p_note is never written to a notification (it goes only to job_missed_returns and job_continue_events). The hit is the word 'text' in its own casts (v_job.id::text), not caller input",
   reject_pending_job:
     "business approver's rejection reason, prefixed 'Reason:' in the post-rejected notice; gated to the business's approvers",
 };

@@ -1936,7 +1936,7 @@ describe("Selling's sale cards: still to hand over first, refunded last (soldsta
 // BUY-30: a notice about one order links ?tab=...&order=<id> (migration 20261031111949); the card opens there.
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | show(o.orderId) \|\| o.orderId === linked | show(o.orderId)
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   useScrollToLinkedOrder(cardRef, linked, () => setOpen(true)); |
-// @mutate src/components/declutter/useLinkedOrder.ts |     ref.current.focus({ preventScroll: true }); |
+// @mutate src/components/declutter/useLinkedOrder.ts |     el.scrollIntoView?.({ block: "start" });\n    el.focus({ preventScroll: true });\n    let top | el.scrollIntoView?.({ block: "start" });\n    let top
 describe("BUY-30: a notice's ?order= opens that order's card", () => {
   const A = "00000000-0000-4000-8000-00000000000a";
   const B = "00000000-0000-4000-8000-00000000000b";

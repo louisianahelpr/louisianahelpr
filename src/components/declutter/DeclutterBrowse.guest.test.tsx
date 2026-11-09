@@ -12,7 +12,7 @@
  * @mutate src/components/declutter/DeclutterGuest.tsx |       {!barShown && <GuestBrand />}\n      <p className="min-w-0 flex-1 basis-48 text-sm"> |       <p className="min-w-0 flex-1 basis-48 text-sm">
  * Lead 10-31 (AUD31-67 follow-up): at desktop width the guest top bar carries the logo, Log in and Sign up, so the
  * Browse join line keeps only its message there; and a guest's empty Browse says "Sign up to sell", not "Sell something".
- * @mutate src/components/declutter/DeclutterGuest.tsx |   // AUD31-67 follow-up (lead 10-31): the desktop guest top bar has the logo and both buttons; the line stays.\n  const barShown = useIsWebDesktop(); |   const barShown = false;
+ * @mutate src/components/declutter/DeclutterGuest.tsx |   // AUD31-67 follow-up (lead 10-31): the desktop guest top bar has the logo; the H stays on the phone only.\n  const barShown = useIsWebDesktop(); |   const barShown = false;
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         primary={guest |         primary={false
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         secondary={wanted ? { |         secondary={true ? {
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | { label: "Sign up to sell", to: `/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}` } | { label: "Sign up to sell", to: "/signup" }

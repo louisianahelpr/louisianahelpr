@@ -30,6 +30,8 @@
  * @mutate src/pages/home/HomeDashboard.tsx |                       onClick={() => setShown(i)} |                       onClick={() => setShown(0)}
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   for (const o of shopWaiting) { |   for (const o of shopWaiting.filter(() => false)) {
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         title: n > 0 ? (n === 1 ? "Review 1 applicant" |         title: j.title, _t: n > 0 ? (n === 1 ? "Review 1 applicant"
+ * F204 (owner 11-09): Live now directly below Next up. The mutation puts it back above.
+ * @mutate src/pages/home/HomeDashboard.tsx |             <HelprsNearYou userId={user?.id} />\n | <HelprsNearYou userId={user?.id} />\n            {summary.liveNow && <section data-testid="live-now"><p data-testid="live-now-title">{summary.liveNow.title}</p></section>}\n
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |     const liveNow = derive ? derive.deriveLiveNow(pj, aa, posted.helperNames ?? {}, continueDays) : null; |     const liveNow = null;
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       waiting: todos.length \|\| !derive ? null : derive.deriveWaiting( |       waiting: true ? null : derive?.deriveWaiting(
  * @mutate src/components/mobileNav/dockItems.ts |     { path: jobs.path, icon: jobs.icon, label: jobs.label, badgeKey: "todoJobs" }, |     { path: jobs.path, icon: jobs.icon, label: jobs.label },
@@ -295,20 +297,25 @@ describe("Home", () => {
     }
   });
 
-  it("a job happening now sits ABOVE Next up as Live now, with the tracker on Working (board 165)", () => {
+  // Owner decision 11-09 (F204): Live now sits directly BELOW Next up (board 165 had it above; arriving after Next up
+  // was drawn, it pushed the page down: CLS 0.19 Fast 4G / 0.42 Slow 4G, lab).
+  it("a job happening now sits directly BELOW Next up as Live now, with the tracker on Working (owner 11-09, F204)", async () => {
     switches.on = new Set();
     noTodos.on = true;
     homeJobs.mode = "live";
     try {
       wrap(<HomeDashboard />);
-      const live = screen.getByTestId("live-now");
+      // A first visit holds the blocks under Next up until the to-do reads answer; Live now arrives with them.
+      const live = await screen.findByTestId("live-now");
       expect(screen.getByTestId("live-now-title").textContent).toBe("Job l");
       expect(live.textContent).toContain("You hired");
       expect(live.textContent).toContain("Started 2:04 PM");
       // The one tracker (owner, 2026-10-21; 8 steps 2026-10-22): the same bar and next line as every job surface.
       expect(live.querySelector("[data-job-steps]")?.getAttribute("aria-label")).toMatch(/^Job progress, step 5 of 6: Working, waiting on the other person\./);
       expect(live.querySelector("[data-job-progress-next]")?.textContent).toBe("Your Helpr is working"); // Working has begun: the line matches the bar (workHasBegun, lead 2026-10-31)
-      expect(live.compareDocumentPosition(screen.getByTestId("next-up")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(live.compareDocumentPosition(screen.getByTestId("next-up")) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+      // Directly below: nothing drawn between the two cards.
+      expect(screen.getByTestId("next-up").nextElementSibling).toBe(live);
       fireEvent.click(screen.getByTestId("live-now-action"));
       expect(screen.getByTestId("where").textContent).toBe("/jobs/l");
     } finally {

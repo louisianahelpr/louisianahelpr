@@ -36,6 +36,7 @@ import { PosterFirstJobCard } from "./homeDashboard/PosterFirstJobCard";
 import { WelcomeCard } from "./homeDashboard/WelcomeCard";
 import { HelprsNearYou } from "./homeDashboard/HelprsNearYou";
 import { useHomeTopSettled, useHoldWhileFirstVisitReads } from "./homeDashboard/homeTopSettled";
+import { HeldBlocksSkeleton } from "./homeDashboard/HeldBlocksSkeleton";
 import { optionalLazy } from "@/lib/optionalLazy";
 // Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
@@ -183,27 +184,6 @@ function HomeDashboardScreen() {
             {/* Q2008: faces of opted-in members in your parish, "active now" dot; nothing until one opts in. */}
             <HelprsNearYou userId={user?.id} />
 
-
-            {/* LIVE NOW (board 165, spec v2 §5.1): only while a job of mine, either side, is happening. */}
-            {summary.liveNow && (() => {
-              const l = summary.liveNow;
-              const started = l.startedAt ? new Date(l.startedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : null;
-              return (
-                <section data-testid="live-now" aria-label="Live now" className="liquid-glass p-card flex flex-col gap-1.5 border-2 border-primary">
-                  <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Live now</h2>
-                    {started && <span className="text-ds-13 font-semibold text-primary">Started {started}</span>}
-                  </div>
-                  <p data-testid="live-now-title" className="text-ds-18 font-bold leading-snug text-foreground line-clamp-2 [overflow-wrap:anywhere]">{l.title}</p>
-                  <p className="text-ds-14 text-muted-foreground">{l.side}</p>
-                  <div className="mt-1.5"><JobProgress progress={l.progress} compact /></div>
-                  <Button type="button" size="sm" data-testid="live-now-action" onClick={() => navigate(`/jobs/${l.jobId}`)} className="self-start mt-2 px-5 text-ds-15 font-semibold tracking-normal shadow-none">
-                    Open job
-                  </Button>
-                </section>
-              );
-            })()}
-
             {/* NEXT UP (owner, 2026-10-20; HELPR-DESIGN-SPEC §4 Home): the single most urgent
                 to-do from every section and both sides, with its one action. Replaces the three
                 stat boxes. Nothing invented: no to-do, no task; the money line only when the
@@ -331,7 +311,30 @@ function HomeDashboardScreen() {
               </div>
             )}
 
+            {holdBelowNextUp && <HeldBlocksSkeleton />}
             {!holdBelowNextUp && <>
+            {/* LIVE NOW (spec v2 §5.1): only while a job of mine, either side, is happening. Directly BELOW Next up
+                (owner decision 11-09, F204, reversing board 165's "above"): it comes with the activity reads, after Next up
+                is on screen, and landing above it pushed the page down (CLS 0.19 Fast 4G / 0.42 Slow 4G, lab). Here it
+                arrives with the blocks under Next up (held on a first visit until those reads answer), so nothing moves. */}
+            {summary.liveNow && (() => {
+              const l = summary.liveNow;
+              const started = l.startedAt ? new Date(l.startedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : null;
+              return (
+                <section data-testid="live-now" aria-label="Live now" className="liquid-glass p-card flex flex-col gap-1.5 border-2 border-primary">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Live now</h2>
+                    {started && <span className="text-ds-13 font-semibold text-primary">Started {started}</span>}
+                  </div>
+                  <p data-testid="live-now-title" className="text-ds-18 font-bold leading-snug text-foreground line-clamp-2 [overflow-wrap:anywhere]">{l.title}</p>
+                  <p className="text-ds-14 text-muted-foreground">{l.side}</p>
+                  <div className="mt-1.5"><JobProgress progress={l.progress} compact /></div>
+                  <Button type="button" size="sm" data-testid="live-now-action" onClick={() => navigate(`/jobs/${l.jobId}`)} className="self-start mt-2 px-5 text-ds-15 font-semibold tracking-normal shadow-none">
+                    Open job
+                  </Button>
+                </section>
+              );
+            })()}
             {/* MONEY STRIP (spec v2 §5.3): on phone right after Next up (board 7); from 1280 it moves to
                 the top of the right column (board 11). Hidden when there is nothing real to show. */}
             {money.pending && !money.coming && !money.held && moneyReserve > 0
@@ -408,6 +411,7 @@ function HomeDashboardScreen() {
             </>}
           </div>
 
+          {holdBelowNextUp && <HeldBlocksSkeleton side />}
           {!holdBelowNextUp && <section data-home-side className="flex flex-col gap-2 min-w-0" aria-label="Your sections">
             <HomeMoneyTiles money={money} placement="side" />
             <div className="flex items-baseline justify-between px-1">

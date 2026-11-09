@@ -53,13 +53,20 @@ export function useHomeTopSettled(userId: string | undefined, firstJob: { isNew:
  * with nothing under it, and the rest arrives once, in place. Next up itself is not held: its loading line is the
  * same <p> its to-do title fills, so the page's first big paint stays the greeting (holding the whole column moved
  * LCP from the greeting at 1.09 s to the to-do title at 2.24 s). True while held; once released it stays released,
- * and never longer than HOME_TOP_MAX_WAIT_MS.
+ * and never longer than HOME_BELOW_NEXT_UP_MAX_WAIT_MS.
+ *
+ * F204 (owner decision 11-09): Live now sits directly below Next up, inside these held blocks, and comes with the
+ * same activity reads. On Slow 4G (lab, poster persona with 728 jobs, 375) those reads answered at ~8.2 s: with the
+ * old 4 s cap the money strip was drawn first and Live now then pushed it down (CLS 0.41 x3). The blocks below Next up
+ * hold up to 10 s instead. None of them was the page's largest paint (LCP stayed the boot mark at ~2.0 s with them
+ * drawn at 4 s), so the longer hold costs no LCP.
  */
+export const HOME_BELOW_NEXT_UP_MAX_WAIT_MS = 10_000;
 export function useHoldWhileFirstVisitReads(pending: boolean): boolean {
   const released = useRef(false);
   const [timedOut, setTimedOut] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setTimedOut(true), HOME_TOP_MAX_WAIT_MS);
+    const t = setTimeout(() => setTimedOut(true), HOME_BELOW_NEXT_UP_MAX_WAIT_MS);
     return () => clearTimeout(t);
   }, []);
   if (!pending || timedOut) released.current = true;

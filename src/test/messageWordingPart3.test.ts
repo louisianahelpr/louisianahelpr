@@ -41,6 +41,11 @@
  * F177 (moved from Builder 4, lead 11-09): the dispute and warning notices say "our team", never "an admin"
  * (20261109215021; proof src/test/pglite/noticesOurTeamNoStrike.pglite.mjs).
  * @mutate supabase/migrations/20261109215021_notices_our_team_and_no_strike.sql | add your side so our team hears it.' | add your side so an admin hears it.'
+ * F176: the trigger's "Job cancelled" notice says who cancelled; "You don't owe anything" only when the poster did, never
+ * on a dispute decision (it can bill an at-fault Helpr) or an admin's cancel (20261109231855; behaviour proof, every
+ * branch single + crew, src/test/pglite/jobCancelNoticeSaysWho.pglite.mjs, --before red).
+ * @mutate supabase/migrations/20261109231855_job_cancel_notice_says_who.sql | WHEN OLD.status = 'disputed' THEN ' after our team decided the dispute.' | WHEN false THEN ' after our team decided the dispute.'
+ * @mutate supabase/migrations/20261109231855_job_cancel_notice_says_who.sql | THEN ' by the person who posted it. You don''t owe anything, and it doesn''t count against you.' | THEN ' by the person who posted it.'
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
@@ -189,5 +194,24 @@ describe("F197/F198/F193: one name for the card fee and for who decides, in ever
   it("F198: the strike-removed notice is one fact a sentence, and names the block as why the card fee is kept", () => {
     expect(body("declutter_mark_order_paid")).toContain("The item''s hold had already ended, so we''re refunding your payment. You blocked the seller, so the card fee isn''t refunded.");
     expect(body("declutter_mark_order_paid")).not.toContain("minus what your card company charged, because you blocked the seller");
+  });
+});
+
+describe("F176: the Job cancelled notice says who cancelled, and 'nothing owed' only when that is true", () => {
+  const b = () => body("notify_on_job_update");
+  it("one set of words, chosen by who cancelled, read by the single-Helpr and crew notices", () => {
+    expect(b().length).toBeGreaterThan(2000);
+    expect(b()).toContain("WHEN OLD.status = 'disputed' THEN ' after our team decided the dispute.'");
+    expect(b()).toContain("WHEN NEW.cancelled_by IS NOT NULL AND NEW.cancelled_by = OLD.customer_id");
+    expect(b()).toContain("THEN ' by the person who posted it. You don''t owe anything, and it doesn''t count against you.'");
+    expect(b()).toContain("WHEN NEW.cancelled_by IS NOT NULL AND public.has_role(NEW.cancelled_by, 'admin') THEN ' by our team.'");
+    expect(b().split("v_cancelled_words").length - 1).toBe(4); // declared, set, single notice, crew notice
+  });
+  it("the dispute case is decided before the poster case (a dispute decision can bill the Helpr)", () => {
+    expect(b().indexOf("OLD.status = 'disputed'")).toBeGreaterThan(0);
+    expect(b().indexOf("OLD.status = 'disputed'")).toBeLessThan(b().indexOf("NEW.cancelled_by = OLD.customer_id"));
+  });
+  it("no notice text claims the poster cancelled outside the poster case", () => {
+    expect(b().split("by the person who posted it").length - 1).toBe(1);
   });
 });

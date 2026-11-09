@@ -11,6 +11,7 @@ import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatShortDate } from "@/lib/format";
 import { CARD_COST_NOT_REFUNDED } from "@/lib/refundWords";
+import { cancelledStatusWord } from "@/lib/expiredListing";
 import { jobRefundLines, refundedReceiptNote, spentRows } from "@/lib/posterSpend";
 import { usePosterSpendData } from "@/components/profile/earningsTab/usePosterSpendData";
 import { rowMs as spentRowMs } from "@/components/profile/earningsTab/SpentSection";
@@ -189,7 +190,9 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
         title: r.job ? r.job.title ?? "Job" : "Tip",
         ms: spentRowMs(r),
         cents: r.cents,
-        note: `${r.job?.status === "cancelled" ? " · Cancelled" : ""}${refundedReceiptNote(r)}`,
+        // F104 (owner UI audit 2026-11-09): a listing that expired with nobody hired is "Expired", never "Cancelled"
+        // (owner 10-31: expired jobs are not cancellations), the word the poster's Jobs list and job page use.
+        note: `${r.job && r.job.status === "cancelled" ? ` · ${cancelledStatusWord(r.job)}` : ""}${refundedReceiptNote(r)}`,
         lines: refundLines,
         amountCaption: refundLines ? "You paid" : undefined,
         // Only when nobody was owed for their time: a late cancel keeps the Helpr's part too, said on the cancel screen.

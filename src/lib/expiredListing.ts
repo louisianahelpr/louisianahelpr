@@ -41,3 +41,12 @@ export const NOT_AN_EXPIRED_LISTING_FILTER = `helper_id.not.is.null,cancelled_by
  * cancelled stays, and a cancelled one stays unless it is an expired listing.
  */
 export const NOT_AN_EXPIRED_LISTING_ANY_STATUS = `status.neq.cancelled,${NOT_AN_EXPIRED_LISTING_FILTER}`;
+
+/**
+ * F104 (owner UI audit 2026-11-09, "use one job status everywhere"): the word for a cancelled job, "Expired" for a
+ * listing that expired with nobody hired, else "Cancelled". Receipts uses it; the Posted list files the same jobs by
+ * isExpiredListing (activityFilters.jobMarkedDone, jobStatusLine). Guard: src/test/expiredNeverDone.test.ts.
+ */
+export function cancelledStatusWord(job: Parameters<typeof isExpiredListing>[0]): "Expired" | "Cancelled" {
+  return isExpiredListing(job) ? "Expired" : "Cancelled";
+}

@@ -6,6 +6,11 @@
  * being changed" (nothing changes until the new address confirms), and its "Was this NOT you?" path had no button.
  * @mutate supabase/functions/_shared/email-templates/email-changed.tsx |       {SELF_CHANGE_HEADING}\n |       {HEADING}\n
  * @mutate supabase/functions/_shared/email-templates/email-changed.tsx |     <BrandButton href={`${getAppUrl()}/forgot-password`} | <BrandButton href={`${getAppUrl()}/profile`}
+ *
+ * F182: strike 2 and 3 emails with a blank admin note said "regarding a platform policy violation:" and never said
+ * what it was; strike 2's subject was in shouting caps.
+ * @mutate supabase/functions/admin-user-actions/index.ts |               : STRIKE_NO_NOTE_LINE, |               : 'You\'ve received a formal warning regarding a platform policy violation:',
+ * @mutate supabase/functions/admin-user-actions/index.ts |         emailSubject = 'Louisiana Helpr: final warning on your account' |         emailSubject = 'Helpr — FINAL warning'
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -24,6 +29,15 @@ function component(src: string, name: string): string {
 }
 
 describe("email copy, owner's message review 11-09", () => {
+  it("F182: a strike email with no admin note still says what happened, in plain words; subjects in sentence case", () => {
+    const src = blankComments(readFileSync(join(ROOT, "supabase/functions/admin-user-actions/index.ts"), "utf8"));
+    expect(src).toContain("const STRIKE_NO_NOTE_LINE = 'Our team found a break of the community rules. Reply to this email if you\\'d like to know more.'");
+    expect(src).toMatch(/paragraphs: \[\s*note\s*\?[\s\S]*?: STRIKE_NO_NOTE_LINE,\s*\]/);
+    expect(src).toContain("emailSubject = 'Louisiana Helpr: final warning on your account'");
+    expect(src).toContain("emailSubject = 'Louisiana Helpr: your account is paused for 7 days'");
+    expect(src).not.toMatch(/FINAL warning/);
+  });
+
   it("F163: the email-change notice says it was ASKED for, and the not-you path has a reset button", () => {
     const src = T("email-changed.tsx");
     expect(src).toContain("export const SELF_CHANGE_HEADING = 'Someone asked to change your login email'");

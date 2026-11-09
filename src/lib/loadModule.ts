@@ -7,7 +7,8 @@
  * past (an unhandled rejection at boot, a failure toast flashing during the reload).
  *
  * So: resolves `null` when the module came back undefined, and the module otherwise. Every caller returns
- * early, silently, on null, or waits on untilReload() below. A real load failure still rejects as before.
+ * early, silently, on null, or waits on untilReload() below. A stale-chunk failure that starts (or meets) the
+ * recovery reload resolves null too (11-09, error_logs e9286ab7); any other load failure still rejects as before.
  * The recovery flag lives here (chunkReload.ts sets it) so this file has no other imports: tests that mock
  * chunkReload do not reach it, and boot pulls nothing new in.
  */
@@ -30,9 +31,25 @@ export const isRecoveryReloadInFlight = (): boolean => recoveryReloadInFlight;
  * failed fire-time re-check), and work started in that window must run (review of b04c978c8f).
  */
 export async function loadModule<T>(load: () => Promise<T>): Promise<T | null> {
-  const m = await load();
+  let m: T;
+  try {
+    m = await load();
+  } catch (err) {
+    // A stale chunk (a deploy changed its hash) goes to the shared recovery (chunkReload.ts handOffStaleChunk,
+    // registered below). While that reload is on its way the answer is null, the same as a prevented preload, so
+    // every caller's existing null path (return quietly, or untilReload()) applies; nothing shows a failure a moment
+    // before the page goes. Recovery declined, or not a chunk error: rejects as before, and the caller reports it.
+    if (staleChunkHandoff?.(err)) return null;
+    throw err;
+  }
   return m == null ? null : m;
 }
+
+/** chunkReload.ts registers handOffStaleChunk here at boot (it imports this file, so this file cannot import it). */
+let staleChunkHandoff: ((err: unknown) => boolean) | null = null;
+export const onStaleChunkLoad = (fn: ((err: unknown) => boolean) | null): void => {
+  staleChunkHandoff = fn;
+};
 
 /** What untilReload() rejects with; errorLogger reports it (onModuleUnavailable). */
 export class ModuleUnavailableError extends Error {

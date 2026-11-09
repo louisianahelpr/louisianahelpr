@@ -33,6 +33,7 @@ import {
   brand,
   container,
   EMAIL_CSS,
+  EMAIL_FONTS_URL,
   footer as footerStyle,
   logo,
   LOGO_URL,
@@ -55,6 +56,8 @@ const EmailHead = () => (
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <meta name="supported-color-schemes" content="light dark" />
+    {/* F158: the brand faces for clients that load webfonts; the stacks in styles.ts cover the rest. */}
+    <link rel="stylesheet" href={EMAIL_FONTS_URL} />
     <style dangerouslySetInnerHTML={{ __html: EMAIL_CSS }} />
   </Head>
 )

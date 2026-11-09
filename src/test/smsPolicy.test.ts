@@ -3,7 +3,7 @@
  * The privacy rule: a text is only ever a fixed phrase plus our own link.
  */
 // @mutate supabase/functions/_shared/smsPolicy.ts | if (typeof jobId === "string" && UUID_RE.test(jobId)) return | if (typeof jobId === "string") return
-// @mutate supabase/functions/_shared/smsPolicy.ts | if (input.firstText) parts.push("Reply STOP to stop."); |
+// @mutate supabase/functions/_shared/smsPolicy.ts | if (input.firstText) parts.push("Reply STOP to opt out."); |
 import { describe, it, expect } from "vitest";
 import { createHmac } from "node:crypto";
 import {
@@ -37,7 +37,7 @@ describe("buildSmsBody", () => {
   });
 
   it("says how to stop on the first text only", () => {
-    expect(buildSmsBody({ kind: "message", firstText: true, appUrl: APP })).toMatch(/Reply STOP to stop\.$/);
+    expect(buildSmsBody({ kind: "message", firstText: true, appUrl: APP })).toMatch(/Reply STOP to opt out\.$/);
     expect(buildSmsBody({ kind: "message", firstText: false, appUrl: APP })).not.toMatch(/STOP/);
   });
 

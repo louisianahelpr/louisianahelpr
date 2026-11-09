@@ -18,26 +18,20 @@ export const brand = {
   bark: '#5E6544',
   /** --olivewood  hsl(64 16% 16%) — primary text / dark ground. */
   olivewood: '#2E2F22',
-  /** --ink-deep  hsl(64 16% 12%) — deep olivewood for headlines. 15.8:1 on white. */
-  inkDeep: '#23231A',
+  /** Headline ink — the brand text colour #2E2F22 (owner's UI audit 11-09, F158; was #23231A). */
+  inkDeep: '#2E2F22',
   /** --burnt-sienna  hsl(19 75% 35%) — warm accent / emphasis + inline links. 6.6:1 on white. */
   burntSienna: '#984216',
   /** --sage  hsl(78 9% 53%) — secondary accent. */
   sage: '#8C947D',
-  /** --parchment  hsl(220 14% 95%) — page canvas. */
-  parchment: '#F0F2F4',
-  /** Muted olive body copy — readable at 15px on white (6.5:1). Replaces the old cool grey. */
-  // #55656D — the exact hex of --stormy-sky (198 12% 38%), the app's
-  // secondary-text token. Was #5E5F4E, an olive-grey that existed nowhere
-  // in the app, so email and product disagreed about what quiet text looks
-  // like (Q5).
-  bodyOlive: '#55656D',
-  /** Softer olive for 12–13px legal/footer copy — still passes AA (5.2:1). */
-  // Same family, one step quieter. Was #6A6F5D — a second invented olive.
-  footerOlive: '#6E7C83',
-  /** Hairline rule / card border in the olive family. */
-  // #CBCFD8 — the hex of --border (220 14% 82%). Was #E3E4DD, warm.
-  hairline: '#CBCFD8',
+  /** Page canvas: the brand's warm off-white #F7F5F1 (F158: was the cool grey #F0F2F4). */
+  parchment: '#F7F5F1',
+  /** Body copy: the brand's secondary text #615E56 (F158: was the blue-grey #55656D). 6.3:1 on white. */
+  bodyOlive: '#615E56',
+  /** 12–13px legal/footer copy: the same brand secondary text (F158: was #6E7C83). 6.3:1 on white. */
+  footerOlive: '#615E56',
+  /** Card border / hairline rule: the brand border #E6E2DA (F158: was the cool #CBCFD8). */
+  hairline: '#E6E2DA',
   /** Card + email surface. */
   surface: '#ffffff',
 } as const
@@ -116,9 +110,21 @@ export const LOGO_VERSION = 'h-mark-2026-08-27'
 export const LOGO_URL =
   `https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/brand-asset?v=${LOGO_VERSION}`
 
-/** Body face. Montserrat is the app's sans; degrades to the usual grotesques. */
+/**
+ * Body face. Montserrat is the app's sans; degrades to the usual grotesques. EmailHead loads it (and Bodoni Moda) from
+ * Google Fonts for the clients that honour a webfont link (Apple Mail, iOS Mail, some webmail); Gmail and Outlook
+ * strip it and fall back down this stack (owner's UI audit 11-09, F158: it was named but never loaded).
+ */
 const bodyFontStack =
   "'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+
+/** Headline face (F158): Bodoni Moda, the site's display serif, with Georgia where webfonts are stripped. */
+export const headingFontStack = "'Bodoni Moda', Georgia, 'Times New Roman', serif"
+
+/** The one webfont request: Bodoni Moda 700 for headlines, Montserrat 400/600 for text. */
+export const EMAIL_FONTS_URL =
+  'https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@700&family=Montserrat:wght@400;600&display=swap'
+
 
 export const main = {
   backgroundColor: brand.parchment,
@@ -201,6 +207,7 @@ export const logo = {
 }
 
 export const h1 = {
+  fontFamily: headingFontStack,
   fontSize: '24px',
   fontWeight: 'bold' as const,
   color: brand.inkDeep,

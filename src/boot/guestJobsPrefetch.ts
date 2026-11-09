@@ -43,19 +43,42 @@ export function guestJobsRestUrl(supabaseUrl: string): string {
 /** Where the entry leaves the in-flight read for DashboardGuest to take. */
 export const GUEST_JOBS_PREFETCH_KEY = "__lhGuestJobsPrefetch";
 
-/** Called by the entry. No-op unless this is a signed-out cold load of /browse. */
+/**
+ * F010 (owner's UI audit 11-09): the landing's "Open jobs near you" read started only after the Supabase chunk arrived
+ * (measured live: 2.0 s at 1440, 3.6 s at 375). On a signed-out "/" the entry fires that read too, with a plain fetch,
+ * and LiveJobsSection takes the promise. Copy of LIVE_JOBS_SELECT in src/components/landing/LiveJobsSection.tsx,
+ * without its spaces; src/test/guestJobsPrefetch.test.ts holds this URL equal to the one supabase-js builds there.
+ */
+const LANDING_SELECT =
+  "id,title,budget,date_needed,parish,category,pricing_mode,urgent_fee,helpers_needed,is_group_job,helper_fee_flat_cents,helper_fee_percent";
+const LANDING_LIMIT = 4;
+
+/** The REST URL supabase-js sends for LiveJobsSection's query (see the test). */
+export function landingJobsRestUrl(supabaseUrl: string): string {
+  const u = new URL(`${supabaseUrl.replace(/\/$/, "")}/rest/v1/open_jobs_browse`);
+  u.searchParams.set("select", LANDING_SELECT);
+  u.searchParams.set("order", "created_at.desc");
+  u.searchParams.set("limit", String(LANDING_LIMIT));
+  return u.toString();
+}
+
+/** Where the entry leaves the landing's in-flight read for LiveJobsSection to take. */
+export const LANDING_JOBS_PREFETCH_KEY = "__lhLandingJobsPrefetch";
+
+/** Called by the entry. No-op unless this is a signed-out cold load of /browse (or, for the landing's read, "/"). */
 export function startGuestJobsPrefetch(pathname: string): void {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
-  if (path !== "/browse" || hasToken() || typeof fetch !== "function") return;
+  if ((path !== "/browse" && path !== "/") || hasToken() || typeof fetch !== "function") return;
   const base = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
   if (!base || !key) return;
-  (window as unknown as Record<string, unknown>)[GUEST_JOBS_PREFETCH_KEY] = {
+  const landing = path === "/";
+  (window as unknown as Record<string, unknown>)[landing ? LANDING_JOBS_PREFETCH_KEY : GUEST_JOBS_PREFETCH_KEY] = {
     at: Date.now(),
-    rows: fetch(guestJobsRestUrl(base), { headers: { apikey: key, Authorization: `Bearer ${key}` } })
+    rows: fetch(landing ? landingJobsRestUrl(base) : guestJobsRestUrl(base), { headers: { apikey: key, Authorization: `Bearer ${key}` } })
       .then((r) => (r.ok ? (r.json() as Promise<unknown>) : null))
       .then((rows) => (Array.isArray(rows) ? rows : null))
-      // A failed prefetch is not an error: DashboardGuest asks Supabase itself.
+      // A failed prefetch is not an error: DashboardGuest (or LiveJobsSection) asks Supabase itself.
       .catch(() => null),
   };
 }

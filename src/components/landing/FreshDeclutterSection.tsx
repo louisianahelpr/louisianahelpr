@@ -50,6 +50,37 @@ export function forgetRecentFreshItems() {
 }
 const keptItems = () => (recentItems && Date.now() - recentItems.at < FRESH_REUSE_MS ? recentItems.items : null);
 
+/**
+ * F010 (owner's UI audit 11-09): the grid used to draw nothing until its read came back, then popped in and pushed the
+ * page down. While it loads, this holds the grid's place: the same section padding, heading row and card grid
+ * (FreshDeclutterStrip.tsx) with FRESH_DECLUTTER_LIMIT empty cards (4:5 photo tile + the three text lines' height).
+ */
+function FreshDeclutterSkeleton() {
+  return (
+    <section aria-hidden data-testid="landing-fresh-declutter-skeleton" className="px-5 sm:px-8 lg:px-12 pt-8 lg:pt-12 pb-12 lg:pb-20" style={{ background: "var(--lp-surface)" }}>
+      <div className="mx-auto w-full max-w-6xl flex flex-col gap-6 lg:gap-8">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+          <span className="block font-display landing-serif leading-[1.05] text-ds-28" style={{ color: "var(--lp-ink)" }}>Fresh on Declutter</span>
+          <span className="hidden sm:block min-h-11" />
+        </div>
+        <ul className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-5 lg:gap-y-8">
+          {Array.from({ length: FRESH_DECLUTTER_LIMIT }, (_, i) => (
+            <li key={i} className="min-w-0">
+              <span className="block aspect-[4/5] rounded-xl bg-photo-empty" />
+              <span className="block px-0.5 pt-2">
+                <span className="block text-ds-13 leading-snug">&nbsp;</span>
+                <span className="block text-ds-11">&nbsp;</span>
+                <span className="mt-0.5 block text-ds-16 leading-tight">&nbsp;</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <span className="sm:hidden self-center block min-h-11" />
+      </div>
+    </section>
+  );
+}
+
 export function FreshDeclutterSection() {
   const ref = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<State>(() => {
@@ -141,7 +172,8 @@ export function FreshDeclutterSection() {
 
   return (
     <div ref={ref} data-testid="landing-fresh-declutter-spot">
-      <Suspense fallback={null}>
+      <Suspense fallback={<FreshDeclutterSkeleton />}>
+        {state.kind === "waiting" && <FreshDeclutterSkeleton />}
         {state.kind === "failed" && <FreshDeclutterFailed />}
         {state.kind === "ok" && state.items.length > 0 && <FreshDeclutterStrip items={state.items} />}
       </Suspense>

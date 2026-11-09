@@ -43,6 +43,21 @@ type LiveJob = {
   take_home?: number | null;
 };
 
+/**
+ * F010: the entry's read of the same four jobs (src/boot/guestJobsPrefetch.ts, signed-out "/" only), taken once. The
+ * key is a copy (nothing outside the entry may import the boot module; the test holds the two equal). A missing, failed
+ * or old prefetch gives null and the section asks Supabase as before.
+ */
+const LANDING_JOBS_PREFETCH_KEY = "__lhLandingJobsPrefetch";
+export const LANDING_JOBS_PREFETCH_MAX_AGE_MS = 60_000;
+export function takeLandingJobsPrefetch(now: number = Date.now()): Promise<unknown[] | null> | null {
+  const w = window as unknown as Record<string, { at: number; rows: Promise<unknown[] | null> } | undefined>;
+  const p = w[LANDING_JOBS_PREFETCH_KEY];
+  w[LANDING_JOBS_PREFETCH_KEY] = undefined;
+  if (!p || now - p.at > LANDING_JOBS_PREFETCH_MAX_AGE_MS) return null;
+  return p.rows;
+}
+
 type State = { kind: "loading" } | { kind: "failed" } | { kind: "ok"; jobs: LiveJob[] };
 
 /**
@@ -93,17 +108,23 @@ export function LiveJobsSection() {
     const el = ref.current;
     if (!el || keptJobs()) return;
     let cancelled = false;
+    // F010: the entry's read, taken at mount (it is already in flight), so the rows never wait on the Supabase chunk.
+    const prefetched = takeLandingJobsPrefetch();
     const load = async (attempt = 0): Promise<void> => {
       try {
-        const { supabase } = await import("@/integrations/supabase/client");
-        // readJobsAheadOfDb: LIVE_JOBS_SELECT names helper_fee_percent, which the view gains in 20261025235701 (Q2400).
-        const { readJobsAheadOfDb } = await import("@/lib/jobColumns");
-        const { data, error } = await readJobsAheadOfDb(LIVE_JOBS_SELECT, (columns) => supabase
-          .from("open_jobs_browse")
-          .select(columns)
-          .order("created_at", { ascending: false })
-          .limit(LIVE_JOBS_LIMIT), { browseView: true });
-        if (error) throw error;
+        let data = attempt === 0 && prefetched ? await prefetched : null;
+        if (!data) {
+          const { supabase } = await import("@/integrations/supabase/client");
+          // readJobsAheadOfDb: LIVE_JOBS_SELECT names helper_fee_percent, which the view gains in 20261025235701 (Q2400).
+          const { readJobsAheadOfDb } = await import("@/lib/jobColumns");
+          const res = await readJobsAheadOfDb(LIVE_JOBS_SELECT, (columns) => supabase
+            .from("open_jobs_browse")
+            .select(columns)
+            .order("created_at", { ascending: false })
+            .limit(LIVE_JOBS_LIMIT), { browseView: true });
+          if (res.error) throw res.error;
+          data = res.data as unknown[] | null;
+        }
         // The take-home with the /browse card's own math, loaded here (not at
         // module scope) so the landing's first paint stays as small as before.
         const { computeNet } = await import("@/components/dashboard/JobPrice");
@@ -140,6 +161,13 @@ export function LiveJobsSection() {
         setState({ kind: "failed" });
       }
     };
+    // F010: with the entry's rows in flight there is nothing to wait for: draw them as soon as they arrive.
+    if (prefetched) {
+      void load();
+      return () => {
+        cancelled = true;
+      };
+    }
     // Every browser the app supports has IntersectionObserver; without one
     // (a test DOM) nothing is fetched and the board link still works.
     if (typeof IntersectionObserver === "undefined") return;

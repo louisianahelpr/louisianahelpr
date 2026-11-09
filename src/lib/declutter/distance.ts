@@ -53,12 +53,39 @@ export function nearestFirst<T extends Located>(
   items: T[],
   from: { lat: number; lng: number } | null,
   maxMiles: number | null,
+  /** The cold load's first answer's order (item id -> place), for ties (F205, below). */
+  firstOrder?: ReadonlyMap<string, number>,
 ): { item: T; miles: number | null }[] {
-  if (!from) return items.map((item) => ({ item, miles: null }));
+  const tie = sameSpotOrder(firstOrder);
+  if (!from) return [...items].sort(tie).map((item) => ({ item, miles: null }));
   return items
     .map((item) => ({ item, miles: milesBetween(from, { lat: Number(item.area_lat), lng: Number(item.area_lng) }) }))
     .filter((r) => maxMiles === null || (r.miles as number) <= maxMiles)
-    .sort((x, y) => (x.miles as number) - (y.miles as number));
+    .sort((x, y) => (x.miles as number) - (y.miles as number) || tie(x.item, y.item));
+}
+
+/**
+ * F205 (UI audit 11-09, /declutter CLS 0.15 for a member): items the same miles away (one seller's listings share a
+ * coarse point) went in whatever order their read returned them. The cold load's first answer (declutter_first_screen
+ * and the guest preview: miles, then live_at) and the full list (live_at only) return a tie in different orders, so
+ * thirteen listings put live in one moment (one live_at) swapped places when the full list replaced the first answer,
+ * and a card from below the fold jumped to the top. Ties go newest first; a tie on that too goes in the first answer's
+ * order (`firstOrder`: item id -> its place there), the order index.html's skeleton drew its photos in, with the
+ * first answer's items ahead of the rest. Without one, a tie keeps the order it came in (a full list that IS the first
+ * answer keeps the server's order). Guard: src/lib/declutter/distance.test.ts.
+ */
+function sameSpotOrder(firstOrder?: ReadonlyMap<string, number>) {
+  return (a: unknown, b: unknown): number => {
+    const x = a as { live_at?: string | null; id?: string };
+    const y = b as { live_at?: string | null; id?: string };
+    if (!x.live_at || !y.live_at) return 0;
+    const byTime = Date.parse(y.live_at) - Date.parse(x.live_at);
+    if (byTime) return byTime;
+    if (!firstOrder || !x.id || !y.id) return 0;
+    const rx = firstOrder.get(x.id) ?? Number.MAX_SAFE_INTEGER;
+    const ry = firstOrder.get(y.id) ?? Number.MAX_SAFE_INTEGER;
+    return rx - ry;
+  };
 }
 
 /** An item's price as a member reads it: "Free" for a free item (20261027170717), else "$40" / "$40.50". */

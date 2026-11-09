@@ -592,3 +592,41 @@ export function guestIconSplit(root) {
   const taken = new Set([...guest, ...bootIconFiles(root), ...homeIconFiles(root), ...itemIconFiles(root)]);
   return { shared, own: new Set([...guest].filter((i) => !shared.has(i))), declutter: new Set([...drawn].filter((i) => !taken.has(i))) };
 }
+
+/** The module whose import loads supabase-js (createClient at module scope) and its 30 KB gz chunk. */
+export const SUPABASE_CLIENT = "src/integrations/supabase/client.ts";
+
+/**
+ * Every src module (absolute posix path) whose static closure reaches the Supabase client, the client included
+ * (Q2705, Builder 4, 2026-11-09). vite.config.ts's home-shared and shared-late groups each held both kinds, so a page
+ * that ran only client-free ones (the guest landing: i18n, format, page meta...) still imported those chunks, and
+ * with them the client and the 29 KB gz supabase chunk. Closed under importers (if A imports B and B reaches the
+ * client, A does too), so a chunk of client-free modules never imports a chunk of these.
+ * One read per src file, then a reverse walk from the client. Over-approximating (an import in a comment) only puts
+ * a module with the client, where it was before.
+ */
+export function clientReachers(root) {
+  const client = toPosix(path.join(root, SUPABASE_CLIENT));
+  if (!fs.existsSync(client)) throw new Error(`bootReach: ${SUPABASE_CLIENT} not found. Fix clientReachers.`);
+  const importers = new Map();
+  const walkDir = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) walkDir(p);
+      else if (/\.(tsx?|mjs|js)$/.test(e.name) && !/\.test\.|\.d\.ts$/.test(e.name)) {
+        const file = toPosix(p);
+        for (const m of fs.readFileSync(p, "utf8").matchAll(STATIC)) {
+          const dep = resolveSpecifier(root, file, m[1]);
+          if (!dep) continue;
+          if (!importers.has(dep)) importers.set(dep, []);
+          importers.get(dep).push(file);
+        }
+      }
+    }
+  };
+  walkDir(path.join(root, "src"));
+  const out = new Set([client]);
+  const stack = [client];
+  while (stack.length) for (const imp of importers.get(stack.pop()) ?? []) if (!out.has(imp)) (out.add(imp), stack.push(imp));
+  return out;
+}

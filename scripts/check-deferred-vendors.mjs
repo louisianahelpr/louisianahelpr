@@ -85,6 +85,9 @@ const DEFERRED_PACKAGES = [
   { pkg: "@supabase/realtime-js", why: "only chat, presence and live lists open a channel; lazyRealtime.ts loads it on the first one" },
   { pkg: "@supabase/phoenix", why: "realtime-js's socket; it loads with realtime-js (lazyRealtime.ts)" },
   { pkg: "@supabase/storage-js", why: "only upload, photo and delete screens touch files; lazyStorage.ts loads it on the first call" },
+  // Q2705 (Builder 4, 11-09): both only inject Vercel's own async script; src/components/VercelInsights.tsx, lazy from App.tsx.
+  { pkg: "@vercel/analytics", why: "it only injects Vercel's async script; App.tsx loads src/components/VercelInsights.tsx lazily" },
+  { pkg: "@vercel/speed-insights", why: "it only injects Vercel's async script; App.tsx loads src/components/VercelInsights.tsx lazily" },
   {
     pkg: "@capgo/capacitor-social-login",
     why: "PD-011: web never uses it and native only on an Apple/Google tap; src/lib/socialAuth.ts loads it with import()",
@@ -296,6 +299,40 @@ for (const { file, why } of DEFERRED_MODULES) {
           chain: chainFrom(chunk),
         });
       }
+    }
+  }
+}
+
+// ── The guest landing never downloads the Supabase client (Q2705, Builder 4, 11-09) ──
+// The landing ("/", src/pages/info/Index.tsx) reads nothing from the database before it draws: its live sections load
+// the client with import(). Yet its chunk imported home-shared and shared-late for client-free helpers (i18n, format,
+// page meta), and those chunks also held useFeature, authSignOut, socialAuth and the client, so "/" fetched the client
+// and the 29 KB gz supabase chunk before the app could draw: 235 KB gz on its critical path. vite.config.ts's
+// home-shared-db and shared-late-db groups (bootReach.mjs clientReachers) keep the client's importers apart; this fails
+// if any chunk in Index's static closure carries supabase-js or the client again.
+{
+  const rootChunk = all.find((f) => /^Index-[\w-]{6,}\.js$/.test(f));
+  if (!rootChunk) fail("no built chunk for the guest landing (expected Index-<hash>.js). Fix this scan; do not drop it.");
+  const par = new Map([[rootChunk, null]]);
+  const queue = [rootChunk];
+  while (queue.length) {
+    const f = queue.shift();
+    let text;
+    try { text = readFileSync(`${ASSETS}/${f}`, "utf8"); } catch { continue; }
+    for (const hit of text.matchAll(STATIC_IMPORT)) if (!par.has(hit[1])) { par.set(hit[1], f); queue.push(hit[1]); }
+  }
+  // Floor: the landing's closure is the boot chunks plus its own (~30 files measured 11-09); a tiny one is a blind walk.
+  if (par.size < 10) fail(`the closure of ${rootChunk} has ${par.size} chunk(s); the import syntax changed. Fix the walk.`);
+  const chainFrom = (f) => { const out = [f]; let cur = f; while (par.get(cur)) { cur = par.get(cur); out.push(cur); } return out.reverse().join(" → "); };
+  for (const chunk of par.keys()) {
+    const carries = packagesIn(chunk)?.has("@supabase/supabase-js") || sourcesIn(chunk)?.has("src/integrations/supabase/client.ts");
+    if (carries) {
+      violations.push({
+        chunk,
+        why: "the guest landing's static closure carries the Supabase client: keep its importers in home-shared-db / shared-late-db (vite.config.ts), or load it with import()",
+        gzip: bytes(chunk),
+        chain: chainFrom(chunk),
+      });
     }
   }
 }

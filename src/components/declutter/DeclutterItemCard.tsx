@@ -74,6 +74,10 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
   // A photo that fails to load drops out, leaving the icon under it (never a blank tile). The card-sized thumbnail
   // comes first (owner 10-31: pictures were slow while scrolling); if it fails, the full photo; then the icon.
   const [photoStage, setPhotoStage] = useState<PhotoStage>("card");
+  // F056 (UI audit 11-09): the photo is described by the title, once it has loaded. Before that (and for a photo that
+  // fails) alt stays empty, so a browser never paints the broken-image glyph and the title over the tile's icon
+  // (seen 11-09 on the seed rows at 1440). The card link's own name says the title either way (F050).
+  const [photoLoaded, setPhotoLoaded] = useState(false);
   const photoRef = useRef<HTMLImageElement>(null);
   // B77: a later card's photo waits for the first row's (firstRowPhotoGate.ts), so the largest paint loads alone.
   // Q2705 (11-07): every card above the fold counts as first (on a tall phone the largest paint is on the second row).
@@ -87,6 +91,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
     return done;
   }, [early, photoPath]);
   const photoSettled = () => firstRowDone.current?.();
+  const photoLoadedNow = () => { setPhotoLoaded(true); photoSettled(); };
   useLoadPhotoAhead(photoRef, laterOpen && !early && !!photoPath && photoStage !== "failed");
   const card = (
     <Link
@@ -114,11 +119,11 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
             src={photoStage === "card" ? photoCardUrl(photoPath) : photoPublicUrl(photoPath)}
             srcSet={photoStage === "card" ? cardPhotoSrcSet(photoPublicUrl(photoPath), photoCardUrl(photoPath), CARD_PHOTO_PX) : undefined}
             sizes={photoStage === "card" ? CARD_PHOTO_SIZES : undefined}
-            alt={item.title}
+            alt={photoLoaded ? item.title : ""}
             width={CARD_PHOTO_PX}
             height={CARD_PHOTO_PX}
             decoding="async"
-            onLoad={photoSettled}
+            onLoad={photoLoadedNow}
             onError={() => { photoSettled(); setPhotoStage((s) => (s === "card" ? "full" : "failed")); }}
             className="relative h-full w-full object-cover"
           />

@@ -3,7 +3,7 @@
 // @mutate src/pages/info/legal/TermsSection.tsx | <strong className="text-foreground">Meet at a safe spot</strong> | <strong className="text-foreground">pickup at the seller&apos;s door</strong>
 // @mutate src/components/declutter/DeclutterItemCard.tsx |   if (!save && guestSaveTo) { |   if (!save && guestSaveTo && saves === -1) {
 // @mutate src/lib/jobIntent.ts |   if (reason === SAVE_ITEM_REASON) return t("signup.saveItemSubtitle"); |
-// @mutate src/components/declutter/DeclutterItemCard.tsx |             alt={item.title} |             alt=""
+// @mutate src/components/declutter/DeclutterItemCard.tsx |             alt={photoLoaded ? item.title : ""} |             alt=""
 // @mutate src/components/declutter/DeclutterMineViews.tsx | label: "Pickups to do", | label: "Hand over",
 // @mutate src/components/declutter/ManagerPanel.tsx |       <h2 id="manager-setup-title" className="text-base font-semibold">Have someone sell for you</h2> |       <h2 id="manager-setup-title" className="text-base font-semibold">Get help selling</h2>
 // @mutate src/App.tsx | <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} /> |
@@ -75,6 +75,10 @@ describe("F050: every Declutter card link has a name (title and the price the ca
 describe("F056: every card photo's alt text is the item's title", () => {
   it("the photo is described by the title", () => {
     const r = render(<MemoryRouter><ItemCard item={card()} photoPath="u2/declutter/i9/a.png" miles={null} approximate={false} firstRow /></MemoryRouter>);
+    const img = r.container.querySelector("img") as HTMLImageElement;
+    // Until it loads, no alt (a broken or slow photo never paints the glyph and the title over the tile).
+    expect(img.getAttribute("alt")).toBe("");
+    fireEvent.load(img);
     expect(r.container.querySelector("img")?.getAttribute("alt")).toBe("Kinetic Sand SquishBlossom Set");
     r.unmount();
   });

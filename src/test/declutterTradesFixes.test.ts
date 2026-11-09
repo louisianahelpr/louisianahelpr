@@ -11,7 +11,9 @@
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |     PERFORM public.declutter_end_swap(v_line.swap_id, v_uid);\n    RETURN public.declutter_active_strike_count(v_uid); |     RETURN public.declutter_give_strike(v_uid, 'seller', 'cancelled_after_offers', p_item_id, 'x', v_line.id);
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   UPDATE public.declutter_cart_items SET swap_id = p_swap_id WHERE id IN (v_buyer_line, v_seller_line); |   NULL;
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |          CASE WHEN c.swap_id IS NOT NULL THEN 'swap' ELSE c.source END  -- DB-5; | c.source  -- DB-5;
- * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   IF NOT coalesce(p_seed, false) THEN\n    PERFORM public.send_notice_email | IF true THEN\n    PERFORM public.send_notice_email
+ * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   PERFORM public.send_notice_email(NEW.user_id, NEW.title, NEW.message, NEW.type, NEW.link, NULL);\n  RETURN NULL; |   RETURN NULL;
+ * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |                           'Trade cancelled', 'Trade ended, no strike')) |                           'Trade ended, no strike'))
+ * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   AFTER INSERT ON public.notifications\n  FOR EACH ROW\n  WHEN (COALESCE(NEW.link, '') LIKE '/declutter%' |   AFTER INSERT ON public.notifications\n  FOR EACH ROW\n  WHEN (true
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   AFTER UPDATE OF status, seller_hidden, current_price_cents ON public.declutter_items |   AFTER UPDATE OF status, seller_hidden ON public.declutter_items
  */
 import { readFileSync } from "node:fs";
@@ -64,8 +66,21 @@ describe("Declutter trades fixes (audit 11-08)", () => {
     expect(body("declutter_end_swap")).not.toMatch(/declutter_give_strike/);
   });
 
-  it("#6/#7 the void trigger also fires on a price change, and test trades are never emailed", () => {
+  it("#6/#7 the void trigger also fires on a price change", () => {
     expect(newestTrigger("declutter_items_void_swaps")).toMatch(/AFTER UPDATE OF status, seller_hidden, current_price_cents ON public\.declutter_items/i);
-    expect(body("declutter_swap_tell")).toMatch(/IF NOT coalesce\(p_seed, false\) THEN\s+PERFORM public\.send_notice_email/i);
+  });
+
+  // #11 (lander guard Q137): a trade email follows only a notifications row the seed boundary let through, so the one
+  // emailer is an AFTER INSERT trigger on notifications (the email_jobs_notice pattern), never a trade function.
+  it("#11 trade notices email through one notifications trigger, for the trade titles on Declutter links only", () => {
+    expect(body("email_declutter_trade_notice")).toMatch(/PERFORM public\.send_notice_email\(NEW\.user_id, NEW\.title, NEW\.message, NEW\.type, NEW\.link, NULL\);/);
+    const trg = newestTrigger("trg_email_declutter_trade_notice");
+    expect(trg).toMatch(/AFTER INSERT ON public\.notifications\s+FOR EACH ROW\s+WHEN \(COALESCE\(NEW\.link, ''\) LIKE '\/declutter%'/);
+    for (const t of ["New trade offer", "Trade offer declined", "Trade offer expired", "Trade offer closed", "Trade offer: about 12 hours left",
+      "Trade accepted: choose a pickup within 48 hours", "Trade cancelled", "Trade ended, no strike"]) expect(trg, t).toContain(`'${t}'`);
+    expect(trg).not.toContain("'You cancelled the trade'");
+    for (const fn of ["declutter_end_swap", "declutter_void_swaps", "declutter_offer_swap", "declutter_respond_swap", "declutter_swap_sweep"]) {
+      expect(body(fn), fn).not.toMatch(/send_notice_email/);
+    }
   });
 });

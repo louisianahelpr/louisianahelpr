@@ -101,6 +101,26 @@ export const es: Record<MsgKey, string> = {
   "login.tooManyAttempts": "Demasiados intentos. Inténtelo de nuevo en {minutes} min.",
   "login.mfaWrongCode": "Ese código no coincide. Revise su app e inténtelo de nuevo.",
 
+  // Olvidé mi contraseña (F029)
+  "forgot.title": "Restablezca su contraseña",
+  "forgot.sub": "Le enviaremos un enlace por correo para crear una nueva.",
+  "forgot.sentTitle": "Revise su correo",
+  "forgot.sentLead": "Si",
+  "forgot.sentTail": "está registrado, le enviamos un enlace para restablecerla. Vence en 1 hora.",
+  "forgot.spamHint": "¿No lo ve? Revise la carpeta de spam o espere un minuto: los correos pueden tardar un poco.",
+  "forgot.useAnother": "Usar otro correo",
+  "forgot.sending": "Enviando…",
+  "forgot.resendIn": "Reenviar en {s} s",
+  "forgot.resend": "Reenviar correo",
+  "forgot.emailInvalid": "Escriba un correo válido.",
+  "forgot.emailMissing": "Agregue su correo.",
+  "forgot.send": "Enviar enlace",
+  "forgot.remembered": "¿La recordó?",
+  "forgot.backToLogin": "Volver a iniciar sesión",
+  "forgot.close": "Cerrar",
+  "forgot.captchaFailed": "La verificación de seguridad no terminó. Inténtelo de nuevo.",
+  "forgot.tooMany": "Demasiadas solicitudes: inténtelo de nuevo en un minuto.",
+
   // Sign up, step 1
   "signup.title": "Cree su cuenta",
   "signup.subtitle": "Una cuenta para contratar ayuda, encontrar trabajo y comprar o vender cerca.",

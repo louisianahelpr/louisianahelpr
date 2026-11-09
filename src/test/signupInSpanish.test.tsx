@@ -12,6 +12,7 @@
  * @mutate src/components/auth/SocialAuthButtons.tsx |   const label = t("auth.continueWith", { provider: providerName }); |   const label = `Continue with ${providerName}`;
  * @mutate src/pages/auth/signup/SignupStep2.tsx |             {t("signup.referralHelp")}\n |             Got a code from a friend? Enter it and you both get $5 once you finish your first job.\n
  */
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, cleanup, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -55,7 +56,8 @@ afterEach(() => {
 
 describe("Sign up in Spanish", () => {
   it("step 1 reads in Spanish and says the legal terms are in English", async () => {
-    render(<MemoryRouter><SignupStep1 {...step1} /></MemoryRouter>);
+    // F025 (owner UI audit 11-09): the switch sits under the card (Signup.tsx), as on Log in; rendered beside step 1 here.
+    render(<MemoryRouter><SignupStep1 {...step1} /><LanguageToggle /></MemoryRouter>);
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(en["signup.title"]);
     expect(screen.queryByTestId("legal-in-english")).toBeNull();
     await spanish();
@@ -65,7 +67,7 @@ describe("Sign up in Spanish", () => {
     // The shared "or" rule and the Apple / Google buttons read in Spanish too.
     expect(screen.queryByText("or")).toBeNull();
     if (SOCIAL_SIGN_IN_ENABLED) expect(screen.getByRole("button", { name: "Continuar con Apple" })).toBeTruthy();
-    // The switch is on the card, and choosing English goes back.
+    // Choosing English goes back.
     fireEvent.click(screen.getByRole("button", { name: "English" }));
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(en["signup.title"]);
   });

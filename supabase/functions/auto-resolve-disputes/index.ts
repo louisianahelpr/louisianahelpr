@@ -357,8 +357,9 @@ serve(async (req) => {
         const { error: partyErr } = await supabase.from("notifications").insert(
           partyIds.map((userId) => ({
             user_id: userId,
-            title: "Dispute sent to Helpr support",
-            message: `The dispute on "${job.title}" was not settled within 72 hours, so Helpr support will decide it. The payment stays on hold until then.`,
+            // F193 (Part 3 audit 11-09): "our team", the one name for who decides.
+            title: "Our team will decide this dispute",
+            message: `The dispute on "${job.title}" was not settled within 72 hours, so our team will decide it. The payment stays on hold until then.`,
             type: "payment",
             link: userId === job.customer_id ? `/posts?job=${job.id}` : `/jobs?job=${job.id}`,
           })),

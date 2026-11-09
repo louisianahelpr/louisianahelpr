@@ -10,6 +10,11 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatShortDate } from "@/lib/format";
+
+/** "Nov 9, 2026" in Central time: the day a receipt was paid, written out on the opened receipt (F090). */
+function formatLongDate(d: Date): string {
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Chicago" });
+}
 import { CARD_COST_NOT_REFUNDED } from "@/lib/refundWords";
 import { cancelledStatusWord } from "@/lib/expiredListing";
 import { jobRefundLines, refundedReceiptNote, spentRows } from "@/lib/posterSpend";
@@ -77,6 +82,20 @@ export interface PaidOrderRow {
   delivery_cents?: number | null;
   shipping_cents?: number | null;
   tax_cents?: number | null;
+}
+
+/**
+ * F091 (owner UI audit 11-09): job titles showed exactly as typed ("GIVE AWAY!!", "clean"), so the list looked messy.
+ * On receipts only (the original stays everywhere else), a title in all capitals reads in lower case, and every title
+ * starts with a capital: "Give away!!", "Clean", "Clean my house". Mixed case is left as typed (names, "TV mount").
+ */
+export function receiptTitle(raw: string): string {
+  const t = raw.trim();
+  if (!t) return raw;
+  const letters = t.replace(/[^A-Za-z]/g, "");
+  const shouting = letters.length > 1 && letters === letters.toUpperCase();
+  const base = shouting ? t.toLowerCase() : t;
+  return base.charAt(0).toUpperCase() + base.slice(1);
 }
 
 /** "Blue mug", "Blue mug and 1 more", or the plain title when the items aren't known. */
@@ -187,13 +206,16 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
       const refundLines = r.job ? jobRefundLines(r) : undefined;
       receipts.push({
         key: r.job ? `job-${r.job.id}` : `tip-${r.tip?.id}`,
-        title: r.job ? r.job.title ?? "Job" : "Tip",
+        title: r.job ? receiptTitle(r.job.title ?? "Job") : "Tip",
         ms: spentRowMs(r),
         cents: r.cents,
         // F104 (owner UI audit 2026-11-09): a listing that expired with nobody hired is "Expired", never "Cancelled"
         // (owner 10-31: expired jobs are not cancellations), the word the poster's Jobs list and job page use.
         note: `${r.job && r.job.status === "cancelled" ? ` · ${cancelledStatusWord(r.job)}` : ""}${refundedReceiptNote(r)}`,
-        lines: refundLines,
+        // F090 (owner UI audit 11-09): every job receipt opens (it could not be opened at all): the lines when there was
+        // a refund, the total, the day it was paid and a link to the job. Display only: the same figures as the row.
+        lines: r.job ? refundLines ?? [] : undefined,
+        detailLink: r.job ? { to: `/jobs/${r.job.id}`, label: "See the job" } : undefined,
         amountCaption: refundLines ? "You paid" : undefined,
         // Only when nobody was owed for their time: a late cancel keeps the Helpr's part too, said on the cancel screen.
         detailNote: refundLines && !(Number(r.job?.cancellation_fee ?? 0) > 0) ? CARD_COST_NOT_REFUNDED : undefined,
@@ -246,6 +268,9 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
                   {shown && (
                     <div className="mt-2 space-y-1.5 text-ds-13" data-receipt-detail="">
                       <dl className="space-y-1">
+                        {r.ms > 0 && (
+                          <div className="flex justify-between gap-3" data-receipt-paid-on=""><dt style={quiet}>Paid on</dt><dd style={ink}>{formatLongDate(new Date(r.ms))}</dd></div>
+                        )}
                         {r.lines.map((l) => (
                           <div key={l.label} className="flex justify-between gap-3"><dt style={quiet}>{l.label}</dt><dd className="tabular-nums" style={ink}>{formatCents(l.cents)}</dd></div>
                         ))}

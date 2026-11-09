@@ -12,7 +12,7 @@
  *   (c) the app warms them once the page has settled, so a later Bodoni heading finds them cached.
  *
  * @mutate index.html |       href="/fonts/bodoni-moda-italic-latin.woff2"\n      crossorigin\n      data-lh-hero-font\n      media="not all" |       href="/fonts/bodoni-moda-italic-latin.woff2"\n      crossorigin\n      data-lh-hero-font
- * @mutate index.html |         if ((location.pathname.replace(/\/+$/, "") \|\| "/") !== "/") return; |         if (false) return;
+ * @mutate index.html |         if ((location.pathname.replace(/\/+$/, "") \|\| "/") !== "/") { |         if (false) {
  * @mutate src/App.tsx |     link.media = "all"; |     void link;
  */
 import { describe, expect, it } from "vitest";

@@ -2,14 +2,16 @@
  * AUD31-16 (audit 2026-10-31, Guests on Declutter pages): a guest who opened a shared Declutter link got "That page
  * needs an account" over "Welcome back, neighbor.", with Create an account only as the small last line and nothing
  * saying what the page was. The notice names the Declutter page and Login leads with Create an account.
- * @mutate src/pages/auth/loginNotice.ts |   const leadWithSignup = declutterPage !== null && notice === declutterPage; |   const leadWithSignup = false;
+ * @mutate src/pages/auth/loginNotice.ts |   const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && (notice === declutterPage \|\| notice.endsWith(BACK_TO_IT)); |   const leadWithSignup = false;
+ * F080 (owner UI audit 11-09): every gated page names itself and leads with Create an account (the Sell pattern).
+ * @mutate src/pages/auth/loginNotice.ts |   ["/post-job", "Posting a job needs a free account."], |
  * @mutate src/pages/auth/loginNotice.ts |   if (url.pathname.startsWith("/declutter/item/")) return | if (false) return
  * @mutate src/pages/auth/Login.tsx | {leadWithSignup && ( | {false && (
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { blankComments } from "@/test/helpers/blankNonCode";
-import { declutterGatedNotice, loginNotice } from "./loginNotice";
+import { declutterGatedNotice, gatedPageNotice, loginNotice } from "./loginNotice";
 
 const base = { oauthError: null, connect: null, signedOutForInactivity: false, arrivedFromSignup: false, bouncedFromGatedRoute: true };
 
@@ -30,13 +32,18 @@ describe("Login for a guest who opened a Declutter link (AUD31-16)", () => {
     }
   });
 
-  it("leads with Create an account for a Declutter page only", () => {
+  it("leads with Create an account for every gated page (F080), naming the page", () => {
     const d = loginNotice({ ...base, redirect: "/declutter/item/abc" });
     expect(d.leadWithSignup).toBe(true);
     expect(d.notice).toMatch(/^That's an item for sale on Declutter/);
-    const job = loginNotice({ ...base, redirect: "/jobs/123" });
-    expect(job.leadWithSignup).toBe(false);
-    expect(job.notice).toBe("That page needs an account. Log in and we'll take you straight back to it.");
+    const post = loginNotice({ ...base, redirect: "/post-job?category=cleaning" });
+    expect(post.leadWithSignup).toBe(true);
+    expect(post.notice).toBe("Posting a job needs a free account. Create an account, or log in and we'll take you straight back to it.");
+    expect(gatedPageNotice("/tips/abc")).toMatch(/^Sending a tip needs a free account\./);
+    expect(gatedPageNotice("/shops")).toMatch(/^Shops needs a free account\./);
+    const other = loginNotice({ ...base, redirect: "/somewhere-new" });
+    expect(other.leadWithSignup).toBe(true);
+    expect(other.notice).toBe("That page needs a free account. Create an account, or log in and we'll take you straight back to it.");
     expect(declutterGatedNotice("/declutterish")).toBeNull();
     expect(declutterGatedNotice(null)).toBeNull();
     // A stronger reason (signed out for inactivity) keeps its own words and no sign-up lead.

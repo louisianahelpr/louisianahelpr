@@ -41,9 +41,9 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 // @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql | PERFORM pg_advisory_xact_lock(hashtext('helpr_schedule:' \|\| v_helper_id::text)); | PERFORM 1;
 // @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql | PERFORM pg_advisory_xact_lock(hashtext('helpr_schedule:' \|\| p_helper::text)); | PERFORM 1;
 // @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql | FROM public.jobs j WHERE j.id = p_job_id FOR UPDATE;\n | FROM public.jobs j WHERE j.id = p_job_id FOR UPDATE;\n  PERFORM public.are_users_blocked(p_helper, v_customer);\n
-// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |   BEGIN\n  PERFORM pg_advisory_xact_lock(hashtext('helpr_schedule:' \|\| NEW.user_id::text));\n  FOR r IN |   BEGIN\n  FOR r IN
-// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |   EXCEPTION WHEN deadlock_detected THEN |   EXCEPTION WHEN unique_violation THEN
-// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql | 'pending_count', (SELECT count(*) | 'pending_total', (SELECT count(*)
+// @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |   BEGIN\n  PERFORM pg_advisory_xact_lock(hashtext('helpr_schedule:' \|\| NEW.user_id::text));\n  FOR r IN |   BEGIN\n  FOR r IN
+// @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |   EXCEPTION WHEN deadlock_detected THEN |   EXCEPTION WHEN unique_violation THEN
+// @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql | 'pending_count', (SELECT count(*) | 'pending_total', (SELECT count(*)
 // @mutate supabase/migrations/20261103032330_series_claim_takes_helpr_schedule_lock.sql | PERFORM pg_advisory_xact_lock(hashtext('helpr_schedule:' \|\| v_uid::text)); | PERFORM 1;
 // @mutate supabase/migrations/20261021102943_refund_requests.sql |       IF v_job.helper_id IS NOT NULL THEN\n        PERFORM pg_advisory_xact_lock | IF true THEN\n        PERFORM pg_advisory_xact_lock
 

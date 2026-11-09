@@ -521,8 +521,9 @@ serve(async (req) => {
         // 1) In-app notification (auto-triggers browser push via useRealtimePush)
         const { error: notifErr } = await supabase.from("notifications").insert({
           user_id: userId,
-          title: "Verification Successful",
-          message: "Your identity has been verified! You're cleared to start using Helpr.",
+          // F202 (Part 3 audit 11-09): one title per event, sentence case, no "!".
+          title: "ID check done",
+          message: "Your ID check is done. You're all set.",
           type: "success",
           link: "/home",
         });

@@ -13,6 +13,8 @@ const PROPER = new Set([
   "App", "Store", "AI", "Jobs", "Home", "Wrapped",
   // Jobs tab names, when a line points at the tab ("See it under Posted", Q2392).
   "Posted",
+  // The You page and its Money page, when a link names them ("Back to You", "Go to Money"; owner UI audit 11-09 F094/F097).
+  "You", "Money",
   // The phone dock's Dashboard tab, when a link names it ("Go to Dashboard"; owner nav redesign 2026-11-06).
   "Dashboard",
   // Days and months are names.

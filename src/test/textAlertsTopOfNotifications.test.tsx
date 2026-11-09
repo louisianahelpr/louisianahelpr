@@ -53,7 +53,7 @@ describe("Notifications: text alerts first, and how to get push when no device i
     render(<NotificationPreferences />);
     const hint = await screen.findByTestId("push-device-hint");
     // A3-90: the hint carries its action.
-    expect(hint.textContent).toBe("Get alerts on your phone.Turn on phone notifications");
+    expect(hint.textContent).toBe("Get alerts on your phone.Turn on app notifications");
     const firstSwitch = screen.getAllByRole("switch")[0];
     expect(hint.compareDocumentPosition(firstSwitch) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(hint.compareDocumentPosition(screen.getByText("Send a test")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

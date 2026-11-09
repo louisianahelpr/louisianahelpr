@@ -282,7 +282,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ProfileRouteSkeleton />}><Profile /></ProtectedRoute>, <ProfileRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<JobsSectionSkeleton />}><JobsPage /></ProtectedRoute>, <JobsSectionSkeleton />)}</RouteErrorBoundary>} />
-      <Route path="/explore" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ExploreRedirect /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/explore" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowGuest><ExploreRedirect /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<JobsSectionSkeleton />}><PostsPage /></ProtectedRoute>, <JobsSectionSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/payment-success" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PaymentSuccess /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<UserProfileRoute><UserProfile /></UserProfileRoute>)}</RouteErrorBoundary>} />
@@ -387,9 +387,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           public masked view only, no poster, and every action goes to sign-up with
           the job carried. Signed-in visitors still pass every ProtectedRoute gate. */}
       {/* Jobs settings (lead decision 2026-10-19, option A): a static segment, so it ranks above /jobs/:id. */}
-      <Route path="/search" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><SearchPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/search" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowGuest><SearchPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Q2437: Find a Helpr (browse by skill and town, offer a job at your price). */}
-      <Route path="/helprs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><FindHelprs /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/helprs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowGuest><FindHelprs /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/jobs/settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PageTransition><JobsSettings /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/jobs/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowGuest><PageTransition><JobDetail /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Guest "home dashboard" — what iOS native users see before signing up.

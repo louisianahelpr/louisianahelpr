@@ -451,7 +451,7 @@ const Login = () => {
               )}
             </div>
             {emailError && (
-              <p id="login-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
+              <p id="login-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-13 text-[hsl(var(--destructive-ink))]">
                 <X className="w-3.5 h-3.5" aria-hidden />
                 {email.trim() ? t("login.emailInvalid") : t("login.emailMissing")}
               </p>
@@ -501,7 +501,7 @@ const Login = () => {
               {t("login.forgot")}
             </Link>
             {passwordError && (
-              <p id="login-password-error" role="alert" className="col-span-2 row-start-3 justify-self-start inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
+              <p id="login-password-error" role="alert" className="col-span-2 row-start-3 justify-self-start inline-flex items-center gap-1 text-ds-13 text-[hsl(var(--destructive-ink))]">
                 <X className="w-3.5 h-3.5" aria-hidden />
                 {t("login.passwordMissing")}
               </p>

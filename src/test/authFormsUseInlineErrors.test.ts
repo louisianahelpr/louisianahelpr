@@ -13,7 +13,7 @@
  * `minLength`, `pattern`, `min`) must carry `noValidate`.
  */
 // @mutate src/pages/auth/ResetPassword.tsx |           <form onSubmit={handleSubmit} noValidate className="space-y-4"> |           <form onSubmit={handleSubmit} className="space-y-4">
-// @mutate src/pages/auth/ResetPassword.tsx |               <PasswordStrengthMeter password={password} /> |               <PasswordStrengthMeter password={password} />{PASSWORD_RULES.map((r) => r.label)}
+// @mutate src/pages/auth/ResetPassword.tsx |               <PasswordRuleList password={password} />\n | \n
 import { describe, expect, it } from "vitest";
 import { relative } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
@@ -76,16 +76,17 @@ describe("auth forms use the app's inline errors, not the browser's bubble (A3-L
     expect(bubble).toEqual([]);
   });
 
-  // F021 (owner UI audit 11-09; the lead's call): sign-up now shows the rule line with live ticks from the start
-  // (signupOneLine.test.tsx). Reset password is unchanged here: no up-front list. Both still name the missing ones inline.
-  it("both forms name the missing rules inline; sign-up shows the rule line (F021), reset password keeps no up-front list", () => {
+  // F021 (owner UI audit 11-09; the lead's call): sign-up shows the rule line with live ticks from the start
+  // (signupOneLine.test.tsx), and the follow-up gave Reset password the same shared list. Both still name the
+  // missing ones inline after a submit.
+  it("both forms name the missing rules inline and show the same up-front rule list (F021 + follow-up)", () => {
     const reset = blankComments(readSource("src/pages/auth/ResetPassword.tsx") ?? "");
     const signup = blankComments(readSource("src/pages/auth/signup/SignupStep1.tsx") ?? "");
     for (const src of [reset, signup]) {
       expect(src.length).toBeGreaterThan(5000);
       expect(src).toMatch(/passwordProblem\(password\)/);
     }
-    expect(reset).not.toMatch(/PASSWORD_RULES\.map\(/);
-    expect(signup).toMatch(/PASSWORD_RULES\.map\(/);
+    expect(reset).toContain("<PasswordRuleList password={password} />");
+    expect(signup).toContain("<PasswordRuleList password={password} />");
   });
 });

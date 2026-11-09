@@ -204,8 +204,8 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
       return {
         title: `${who} answered the issue`,
         message: awaitingAdmin
-          ? `${who} added their side of the issue on "${jobTitle(f)}". Next: Helpr support decides; nothing for you to do.`
-          : `${who} answered the issue on "${jobTitle(f)}". Next: read it, then mark it resolved or ask Helpr support to step in.`,
+          ? `${who} added their side of the issue on "${jobTitle(f)}". Next: our team decides; nothing for you to do.`
+          : `${who} answered the issue on "${jobTitle(f)}". Next: read it, then mark it resolved or ask our team to step in.`,
         type: "info",
         link: jobPage(f),
       };
@@ -364,11 +364,19 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
   },
 };
 
+/** "Mon, Nov 9 at 3:42 PM" in America/Chicago (F203). */
+function selfTestSentAt(now: Date): string {
+  const day = now.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" });
+  const time = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
+  return `${day} at ${time}`;
+}
+
 /** The one template a non-admin may send to THEMSELVES (Settings → Send a Test). */
 export function buildSelfTestNotification(now: Date): BuiltNotification {
   return {
     title: "Test from Helpr",
-    message: `If you got this, notifications are working. ${now.toISOString().slice(11, 19)} UTC`,
+    // F203 (Part 3 audit 11-09): the time in Louisiana, 12-hour, never UTC: "Sent Mon, Nov 9 at 3:42 PM."
+    message: `If you got this, notifications are working. Sent ${selfTestSentAt(now)}.`,
     type: "info",
     link: null,
   };

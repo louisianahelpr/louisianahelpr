@@ -70,7 +70,7 @@ export function DeclutterNotificationGroup({ renderRow }: { renderRow: (row: Row
           Declutter
         </h2>
         <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          Buying and selling your things. Everything still lands in the bell icon.
+          Buying and selling your things. Everything still shows in your notifications.
         </p>
       </div>
       {declutterRows.map((r) => renderRow(r))}

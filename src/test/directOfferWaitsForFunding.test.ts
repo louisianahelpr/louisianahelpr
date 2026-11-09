@@ -42,7 +42,7 @@
  *
  * @mutate supabase/migrations/20261101180708_direct_offer_notice_next_step.sql | AND public.job_payment_is_listed(NEW.payment_status)\n     -- Only a live job | AND true\n     -- Only a live job
  * @mutate supabase/migrations/20261105102419_applicant_jobs_hide_private_columns.sql | AND public.job_payment_is_listed(j.payment_status) | AND true
- * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql | AND public.job_payment_is_listed(payment_status) | AND true
+ * @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql | AND public.job_payment_is_listed(payment_status) | AND true
  * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql | AFTER INSERT OR UPDATE OF offered_to_helper_id, payment_status ON public.jobs | AFTER INSERT OR UPDATE OF offered_to_helper_id ON public.jobs
  * @mutate supabase/migrations/20261101180708_direct_offer_notice_next_step.sql |        OR OLD.payment_status IN ('unpaid', 'abandoned', 'failed')\n       -- A funded job |        OR NOT public.job_payment_is_funded(OLD.payment_status)\n       -- A funded job
  * @mutate supabase/migrations/20261101180708_direct_offer_notice_next_step.sql |      -- cancelled row).\n     AND NEW.status::text = 'open' |      -- cancelled row).\n     AND true
@@ -50,7 +50,7 @@
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | NEW.direct_offer_expires_at := LEAST( | NEW.direct_offer_expires_at := GREATEST(
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |      AND (OLD.payment_status IS NULL\n          OR OLD.payment_status IN ('unpaid', 'abandoned', 'failed'))\n  THEN |   THEN
  * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql |   BEFORE UPDATE OF payment_status ON public.jobs |   BEFORE UPDATE OF status ON public.jobs
- * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |             OR public.job_offer_cutoff(COALESCE(date_window_end, date_needed), start_time) > now()) |             OR true)
+ * @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |             OR public.job_offer_cutoff(COALESCE(date_window_end, date_needed), start_time) > now()) |             OR true)
  * @mutate supabase/migrations/20261102070622_late_cancel_notice_whole_dollars.sql |            v_job.id\n           WHERE public.job_payment_is_funded(v_job.payment_status); |            v_job.id\n           WHERE true;
  * @mutate supabase/migrations/20261102070622_late_cancel_notice_whole_dollars.sql |          CASE WHEN public.job_payment_is_funded(v_job.payment_status) THEN\n            format('The person you offered |          CASE WHEN true THEN\n            format('The person you offered
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |              CASE WHEN public.job_payment_is_listed(NEW.payment_status) THEN |              CASE WHEN true THEN

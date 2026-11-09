@@ -157,7 +157,8 @@ describe("Q180: the email gate covers EVERY protected route", () => {
     // <ProtectedRoute> in the route table is a per-route bypass in the making.
     // The one named exception, exact by route and prop. Owner 10-30: guests see shared jobs; signed-in unverified
     // accounts still go to verify-email (the it.each below renders /jobs/:id with this prop and proves it).
-    const GUEST_EXCEPTIONS = ["/jobs/:id: allowGuest"];
+    // F071 (owner 11-09): guests may VIEW /explore and /search too; only their actions are gated.
+    const GUEST_EXCEPTIONS = ["/explore: allowGuest", "/search: allowGuest", "/helprs: allowGuest", "/jobs/:id: allowGuest"];
     expect(protectedRoutes.filter((r) => Object.keys(r.props).length > 0).map((r) => `${r.path}: ${Object.keys(r.props).join(",")}`)).toEqual(GUEST_EXCEPTIONS);
   });
 

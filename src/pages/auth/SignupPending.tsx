@@ -285,19 +285,16 @@ const SignupPending = () => {
           <div className="flex items-start gap-3">
             {stepIcon(1)}
             <div>
-              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Verify your email</p>
-              <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Click the link in your inbox to confirm your email address.
-              </p>
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }} data-pending-step="1">Open the email we sent.</p>
             </div>
           </div>
 
           <div className="flex items-start gap-3">
             {stepIcon(2)}
             <div>
-              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>We'll sign you in</p>
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }} data-pending-step="2">Tap the link. We'll sign you in here.</p>
               <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Keep this page open — the moment you confirm in this browser, we take you straight in. Confirmed on your phone? Sign in below.
+                Opened it on another device? Log in below.
               </p>
             </div>
           </div>
@@ -333,11 +330,14 @@ const SignupPending = () => {
                   posts a job, gets hired, or lists, buys or claims on Declutter, or takes
                   a first payout (owner decisions 10-30). Naming it here is the difference
                   between "you're all set" and a promise we break later. */}
-              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Start right away</p>
-              <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Your profile is already done — you'll land straight in the app.
-                {idCheckOn ? " Once per account there's a quick ID check: when you post a job, get hired, or list, buy or claim on Declutter, or at your first payout." : ""}
-              </p>
+              {/* F030 (owner UI audit 11-09): the steps are short, and step 3 no longer says "you'll land straight in
+                  the app", which confused someone signing up on the website. */}
+              <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }} data-pending-step="3">You're in.</p>
+              {idCheckOn && (
+                <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  Once per account there's a quick ID check: when you post a job, get hired, or list, buy or claim on Declutter, or at your first payout.
+                </p>
+              )}
             </div>
           </div>
         </div>

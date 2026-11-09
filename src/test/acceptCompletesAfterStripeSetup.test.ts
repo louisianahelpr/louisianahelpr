@@ -15,27 +15,27 @@
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed', 'disputed')) |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed'))
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |           AND TG_OP = 'UPDATE' AND OLD.helper_id IS DISTINCT FROM NEW.helper_id); |           AND false);
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   INSERT INTO public.job_accept_pending (job_id, helper_id)\n  VALUES (p_job_id, v_uid) |   PERFORM 1; -- (job_id, helper_id)\n  -- VALUES (p_job_id, v_uid)
-// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |                ELSE public.complete_job_accept(r.job_id) END) THEN |                ELSE false END) THEN
+// @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |                ELSE public.complete_job_accept(r.job_id) END) THEN |                ELSE false END) THEN
 // @mutate supabase/migrations/20261021061341_member_display_name.sql |     v_name \|\| ' accepted your offer', |     'Offer update',
-// @mutate supabase/migrations/20261104050109_notices_name_the_person.sql |       v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL | v_setup_unfinished := false
+// @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |       v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL | v_setup_unfinished := false
 // @mutate supabase/migrations/20261108202000_no_show_notice_server_side.sql |     RAISE EXCEPTION 'helper_never_accepted'\n      USING HINT = 'This Helpr never accepted the offer |     RAISE NOTICE 'helper_never_accepted'\n      USING HINT = 'This Helpr never accepted the offer
 // @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |      OR v_job_status IS DISTINCT FROM 'accepted'\n     OR v_job_confirmed IS NOT NULL THEN |      OR false THEN
-// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |     EXCEPTION WHEN OTHERS THEN |     EXCEPTION WHEN division_by_zero THEN
-// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |   IF NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned') |   IF false AND NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
-// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |               (j.status = 'accepted' AND j.helper_id = p.helper_id) |               (j.status = 'accepted')
+// @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |     EXCEPTION WHEN OTHERS THEN\n      -- A seed/E2E job logs under the '-seed' source, which |     EXCEPTION WHEN division_by_zero THEN\n      -- A seed/E2E job logs under the '-seed' source, which
+// @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |   IF NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned') |   IF false AND NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
+// @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |               (j.status = 'accepted' AND j.helper_id = p.helper_id) |               (j.status = 'accepted')
 // @mutate supabase/migrations/20261021061341_member_display_name.sql |      AND public.job_payment_is_funded(payment_status::text) |      AND true
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     RAISE EXCEPTION 'job_not_funded'; |     RAISE NOTICE 'job_not_funded';
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   PERFORM 1 FROM public.profiles WHERE user_id = v_uid FOR SHARE; |   PERFORM 1;
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts | supabase.rpc("accept_job_offer", { p_job_id: app.job_id }) | supabase.rpc("accept_job_offer_retired", { p_job_id: app.job_id })
 // @mutate supabase/migrations/20261103075222_offer_closed_on_cancel.sql |     v_done := public.complete_direct_offer_accept(p_job_id, auth.uid()); |     v_done := jsonb_build_object('action', 'accepted');
 // @mutate supabase/migrations/20261103075222_offer_closed_on_cancel.sql |       INSERT INTO public.job_accept_pending (job_id, helper_id)\n      VALUES (p_job_id, auth.uid()) |       PERFORM 1; -- (job_id, helper_id)\n      -- VALUES (p_job_id, auth.uid())
-// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |                AND public.direct_accept_block_reason(p.job_id, p.helper_id) IS NULL)) |               AND true))
+// @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |                AND public.direct_accept_block_reason(p.job_id, p.helper_id) IS NULL)) |               AND true))
 // @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |   IF public.direct_accept_block_reason(p_job_id, p_helper) IS NOT NULL THEN |   IF false THEN
 // @mutate supabase/migrations/20261103075222_offer_closed_on_cancel.sql |     v_block := public.direct_accept_block_reason(p_job_id, auth.uid()); |     v_block := NULL;
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |      AND COALESCE(public.get_user_credential_tier(p_helper), 0) < v_job.credential_tier THEN |      AND false THEN
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() THEN\n    RETURN 'job_date_has_passed'; | AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() - interval '1 day' THEN\n    RETURN 'job_date_has_passed';
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql | DROP POLICY IF EXISTS "Targeted helper can respond to direct offer" ON public.jobs; | SELECT 1;
-// @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |       JOIN public.job_accept_pending p ON p.job_id = e.id |       JOIN public.job_accept_pending p ON false
+// @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |       JOIN public.job_accept_pending p ON p.job_id = e.id |       JOIN public.job_accept_pending p ON false
 // @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql |   IF TG_OP = 'INSERT' AND NEW.status = 'pending' THEN |   IF TG_OP = 'INSERT' THEN
 // @mutate supabase/migrations/20261103075222_offer_closed_on_cancel.sql |   PERFORM 1 FROM public.profiles WHERE user_id = auth.uid() FOR SHARE; |   PERFORM 1;
 // @mutate supabase/migrations/20261103075222_offer_closed_on_cancel.sql |     NEW.direct_offer_status := 'expired';\n  -- Q2011 |     NULL;\n  -- Q2011
@@ -50,7 +50,7 @@
 // @mutate supabase/migrations/20261102110120_hire_offer_pending_accept_cleared_on_reopen.sql |   IF NEW.status::text = 'open'\n     AND (OLD.date_needed |   IF true\n     AND (OLD.date_needed
 // @mutate supabase/migrations/20261102110120_hire_offer_pending_accept_cleared_on_reopen.sql | CASE WHEN NEW.direct_offer_expires_at IS NULL OR NEW.direct_offer_expires_at > now() | CASE WHEN true
 // @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |                   title, description, category, special_requirements, photos,\n |                   title, description, category, special_requirements,\n
-// @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |           CASE WHEN public.helper_accept_block_reason(p.helper_id) IS NOT NULL |           CASE WHEN true
+// @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |           CASE WHEN public.helper_accept_block_reason(p.helper_id) IS NOT NULL |           CASE WHEN true
 // @mutate supabase/migrations/20261103075222_offer_closed_on_cancel.sql |     IF v_done IS NULL THEN\n      RAISE EXCEPTION 'offer_not_active';\n    END IF;\n    RETURN v_done; |     RETURN v_done;
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
@@ -180,7 +180,7 @@ describe("the database: Hire is an offer, Accept completes after setup (Q1180)",
     // blames setup only while setup is unfinished (final review #3)
     const lapse = body("expire_pending_direct_offers");
     expect(lapse).toMatch(/JOIN public\.job_accept_pending p ON p\.job_id = e\.id/);
-    expect(lapse).toMatch(/CASE WHEN public\.helper_accept_block_reason\(p\.helper_id\) IS NOT NULL\s+THEN [^;]*?before your payout setup and Stripe ID were done[^;]*?ELSE [^;]*?before your accept could be completed/);
+    expect(lapse).toMatch(/CASE WHEN public\.helper_accept_block_reason\(p\.helper_id\) IS NOT NULL\s+THEN [^;]*?before your payout setup and ID check were done[^;]*?ELSE [^;]*?before your accept could be completed/);
     // Q1201: the Helpr a job is offered to cannot write the job row
     expect(readFileSync(join(MIG, "20261003214350_direct_offer_accept_works_like_an_offer.sql"), "utf8")).toContain('DROP POLICY IF EXISTS "Targeted helper can respond to direct offer" ON public.jobs;');
     expect(done).toMatch(/IF public\.are_users_blocked\(p_helper, v_customer\) THEN\s+RAISE EXCEPTION 'applicant_blocked'/);
@@ -225,7 +225,7 @@ describe("the database: Hire is an offer, Accept completes after setup (Q1180)",
     expect(expire).not.toMatch(/apply_job_denial_consequence\s*\(/);
     // The setup case keeps its own sentence: finish both to accept the next offer.
     expect(expire).toMatch(/v_setup_unfinished := public\.helper_accept_block_reason\(v_locked\.helper_id\) IS NOT NULL\s+OR EXISTS \(SELECT 1 FROM public\.job_accept_pending p/);
-    expect(expire).toMatch(/WHEN v_setup_unfinished\s+THEN '" before your payout setup and Stripe ID were done/);
+    expect(expire).toMatch(/WHEN v_setup_unfinished\s+THEN '" before your payout setup and ID check were done/);
     expect(body("decline_job_offer")).not.toMatch(/apply_job_denial_consequence\s*\(/);
     const noShow = body("report_helper_no_show");
     expect(noShow).toContain("RAISE EXCEPTION 'helper_never_accepted'");

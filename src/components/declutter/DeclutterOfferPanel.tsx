@@ -22,6 +22,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { centsToDollars, minOfferCents, OFFER_CHIP_PERCENTS, offerChipCents } from "@/lib/declutter/money";
 import { BuyerTotal } from "./BuyerTotal";
+import { PriceInclFee, inclFeeText } from "./PriceInclFee";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { afterCardFromState, cardCancelledFromState, offerAmountFromState, rememberAfterCard, type AfterCardAction } from "@/lib/declutter/afterCard";
 import { DeclutterNotice } from "./declutterUi";
@@ -405,9 +406,13 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
               const chip = offerChipCents(item.current_price_cents, pct);
               if (chip === null) return null;
               return (
-                <ChoicePill key={pct} selected={cents === chip} data-offer-chip={pct} aria-label={`${pct}% off, ${formatPrice(chip)}`}
+                // F117 (UI audit 11-09): each chip shows what the buyer would pay, incl. fee (Buy now's price block says
+                // the same), with the offer itself small under it. Display only: the offer sent is still `chip`.
+                <ChoicePill key={pct} selected={cents === chip} data-offer-chip={pct} aria-label={`${pct}% off, ${inclFeeText(chip)} (an offer of ${formatPrice(chip)})`}
                   className="flex-col justify-center px-2 py-1 leading-tight" onClick={() => setAmount(centsToDollars(chip))}>
-                  <span>{pct}% off</span><span className="tabular-nums">{formatPrice(chip)}</span>
+                  <span>{pct}% off</span>
+                  <PriceInclFee priceCents={chip} className="block text-ds-13 font-bold tabular-nums" wordsClassName="block text-ds-11 font-medium" />
+                  <span className="text-ds-11 font-normal tabular-nums text-muted-foreground" data-offer-chip-amount="">offer {formatPrice(chip)}</span>
                 </ChoicePill>
               );
             })}

@@ -2,3 +2,5 @@
 export type EntryRouteBundle = Record<string, { type: string; isEntry?: boolean; imports?: string[]; dynamicImports?: string[] }>;
 /** The entry's route preload list without main.tsx's static closure; every other list unchanged. */
 export declare function trimEntryRouteDeps(bundle: EntryRouteBundle | null, hostId: string, filename: string, deps: string[]): string[];
+/** index.html's preload list plus main.tsx's static closure (main first, then what it imports, depth first). */
+export declare function entryBootPreloads(bundle: EntryRouteBundle | null, entryFile: string, htmlDeps: string[]): string[];

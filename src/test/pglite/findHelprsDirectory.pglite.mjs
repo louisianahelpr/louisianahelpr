@@ -11,6 +11,11 @@
  * (pg_get_functiondef): display_name_for_viewer, member_display_name,
  * has_role, is_caller_banned, is_server_context, member_under_18,
  * seed_hidden_from_caller, seed_jobs_hidden_publicly. Applied 3x (replay-safe).
+ *
+ * F136 (owner UI audit 2026-11-09): then 20261109174206_member_screens_short_names_for_admins_too is applied 3x and
+ * an ADMIN reading the directory gets "Ana B." too (the owner, an admin, saw surnames on /helprs); the caller's own row
+ * and the server keep the full name.
+ *   F136=skip node src/test/pglite/findHelprsDirectory.pglite.mjs              # RED: the admin still gets surnames
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -261,6 +266,24 @@ check("a banned caller is refused", String((await find("authenticated", BANNEDME
 
 const admin = await find("authenticated", ADMIN);
 check("an admin sees full names and test accounts", admin.rows?.some((r) => r.full_name === "Ana Marie Broussard") && ids(admin).includes(SEED), JSON.stringify(ids(admin)));
+
+// ── F136: admins get "First L." on member screens too ──
+const F136 = readFileSync(new URL("../../../supabase/migrations/20261109174206_member_screens_short_names_for_admins_too.sql", import.meta.url).pathname, "utf8");
+if (process.env.F136 === "skip") console.log("F136=skip: running WITHOUT 20261109174206 (expect FAILs)");
+else { for (let i = 0; i < 3; i++) await db.exec(F136); check("F136 migration applies 3x (replay-safe)", true); }
+const adminAfter = await find("authenticated", ADMIN);
+const anaForAdmin = adminAfter.rows?.find((r) => r.user_id === ANA) ?? {};
+check("F136: an admin reading the directory gets first name + last initial", anaForAdmin.full_name === "Ana B.", anaForAdmin.full_name);
+check("F136: no row the admin reads carries a surname", (adminAfter.rows ?? []).every((r) => r.full_name == null || /^\S+( \S\.)?$/.test(r.full_name)), JSON.stringify((adminAfter.rows ?? []).map((r) => r.full_name)));
+await db.exec(`SELECT set_config('request.uid', '', false), set_config('request.role', 'service_role', false);`);
+const own = (await db.query(`SELECT public.display_name_for_viewer('Ana Marie Broussard', '${ANA}') AS n`)).rows[0]?.n;
+check("F136: the server context still gets the full name", own === "Ana Marie Broussard", own);
+await db.exec(`SET ROLE authenticated; SELECT set_config('request.uid', '${ANA}', false), set_config('request.role', 'authenticated', false);`);
+let ownRow;
+try { ownRow = (await db.query(`SELECT public.display_name_for_viewer('Ana Marie Broussard', '${ANA}') AS n`)).rows[0]?.n; } catch (e) { ownRow = `error: ${e.message}`; } finally { await db.exec("RESET ROLE;"); }
+check("F136: authenticated cannot call display_name_for_viewer directly", String(ownRow).includes("permission denied"), ownRow);
+const dacl = (await db.query(`SELECT coalesce(proacl::text, '') a FROM pg_proc WHERE proname = 'display_name_for_viewer'`)).rows[0]?.a;
+check("F136: display_name_for_viewer EXECUTE stays service_role only", process.env.F136 === "skip" || (/service_role=X/.test(dacl) && !/authenticated=X|anon=X|(^|[{,])=X/.test(dacl)), dacl);
 
 const acl = (await db.query(`SELECT coalesce(proacl::text, '') a FROM pg_proc WHERE proname = 'find_helprs'`)).rows[0]?.a;
 check("EXECUTE for authenticated only (not PUBLIC, not anon)", acl !== undefined && /authenticated=X/.test(acl) && !/(^|[{,])(=|anon=)[^,}]*X/.test(acl), String(acl));

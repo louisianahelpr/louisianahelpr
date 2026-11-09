@@ -182,6 +182,7 @@ export const EMAIL_CSS = `
     .e-footer, .e-footer a { color:#A7AD9C !important; }
     .e-cta { background-color:#94A06D !important; color:#14150F !important; }
     .e-rule, .e-footer { border-color:#3B3D2F !important; }
+    .e-logo { background-color:#F7F5F1 !important; }
   }
 `
 
@@ -201,6 +202,12 @@ export const logo = {
   maxWidth: '80px',
   height: 'auto' as const,
   margin: '0 0 24px',
+  // The dark iron H on a light rounded tile of its own (owner's UI audit 11-09, F155): on a dark-mode client's dark
+  // card the mark all but disappeared. White on the white light card shows nothing; EMAIL_CSS's dark block keeps the
+  // tile light (.e-logo) where a client would otherwise darken it.
+  backgroundColor: '#FFFFFF',
+  padding: '6px',
+  borderRadius: '12px',
   border: '0',
   outline: 'none',
   textDecoration: 'none',

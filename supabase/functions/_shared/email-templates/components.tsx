@@ -71,7 +71,7 @@ const EmailHead = () => (
  * honoured the attribute (Outlook) or the CSS (most webmail).
  */
 const HMark = () => (
-  <img src={LOGO_URL} alt="Louisiana Helpr" width="80" height="auto" style={logo} />
+  <img src={LOGO_URL} alt="Louisiana Helpr" width="80" height="auto" className="e-logo" style={logo} />
 )
 
 /**

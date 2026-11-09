@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
  * copy unchanged).
  *
  * Filtered: widen the radius / show all locations, or clear the filters.
- * Unfiltered: "Notify me when work lands" and "Or hire someone for a job".
+ * Unfiltered: "Notify me when work lands", "Or hire someone for a job" and (F019, owner UI audit 11-09: a guest who
+ * finds no jobs hit a dead end) "Browse Declutter while you wait".
  */
 export function GuestEmptyStateActions({
   hasFilters,
@@ -18,6 +19,7 @@ export function GuestEmptyStateActions({
   clearLabel = "Clear filters",
   onNotify,
   onHire,
+  onDeclutter,
 }: {
   hasFilters: boolean;
   nearbyActive: boolean;
@@ -29,6 +31,7 @@ export function GuestEmptyStateActions({
   clearLabel?: string;
   onNotify: () => void;
   onHire: () => void;
+  onDeclutter: () => void;
 }) {
   if (hasFilters) {
     return nearbyActive ? (
@@ -71,6 +74,9 @@ export function GuestEmptyStateActions({
       </Button>
       <Button type="button" variant="link" size="sm" className="text-muted-foreground" onClick={onHire}>
         Or hire someone for a job
+      </Button>
+      <Button type="button" variant="link" size="sm" className="text-muted-foreground" onClick={onDeclutter}>
+        Browse Declutter while you wait
       </Button>
     </div>
   );

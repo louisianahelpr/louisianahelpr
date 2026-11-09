@@ -13,7 +13,7 @@
  * @mutate src/lib/browseShellCards.mjs | <p class="text-ds-13 text-[hsl(var(--olivewood))]/80 max-w-xs leading-relaxed">Jobs, Declutter | <p class="text-ds-13 text-[hsl(var(--olivewood))]/80 max-w-sm leading-relaxed">Jobs, Declutter
  * @mutate src/lib/browseShellCards.mjs |   "min-h-screen page-warmth pb-[calc(var(--safe-area-bottom,0px)_+_var(--bottom-nav-h,96px))] relative flex flex-col overflow-x-clip"; |   "min-h-screen page-warmth relative flex flex-col overflow-x-clip";
  * @mutate src/lib/browseShellCards.mjs | " style="--bottom-nav-h:0px"><div aria-hidden | "><div aria-hidden
- * @mutate src/lib/browseShellCards.mjs |     `<div class="flex-1"><div class="mx-auto page-measure | `<div><div class="mx-auto page-measure
+ * @mutate src/lib/browseShellCards.mjs |     `<div class="flex-1"><div class="${SHELL_PUBLIC_CONTAINER}"><div class="mx-auto page-measure | `<div><div class="${SHELL_PUBLIC_CONTAINER}"><div class="mx-auto page-measure
  * @mutate src/lib/browseShellCards.mjs |     .replace("© __YEAR__ ", `© <!-- -->${year}<!-- --> `) |     .replace("© __YEAR__ ", `© ${year} `)
  * @mutate src/lib/browseShellCards.mjs |     .replace("<footer ", '<footer aria-hidden="true" inert="" '); |     .replace("<footer ", "<footer ");
  */
@@ -55,7 +55,8 @@ describe("/browse's raw HTML draws the app's own Footer", () => {
     const html = browseShellHtml([ROW], NOW, EMBLEM);
     expect(html).toContain(`<div class="${SHELL_LAYOUT_CLASS}" style="--bottom-nav-h:0px"><div aria-hidden="true" class="mesh-gradient-global"></div>`);
     // The body (header + cards) is one flex-1 block, and the footer follows it as the frame's last child.
-    expect(html).toMatch(/<div class="flex-1"><div class="mx-auto page-measure[\s\S]*data-feed-card[\s\S]*<\/div><\/div><\/div><\/div><footer /);
+    // F017: inside the one public container (max-w-[78rem] mx-auto), as PublicHeaderPage holds the app's.
+    expect(html).toMatch(/<div class="flex-1"><div class="max-w-\[78rem\] mx-auto"><div class="mx-auto page-measure[\s\S]*data-feed-card[\s\S]*<\/div><\/div><\/div><\/div><\/div><footer /);
     expect(html.endsWith("</footer></div></div>")).toBe(true);
   });
 

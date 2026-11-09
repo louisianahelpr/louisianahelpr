@@ -168,6 +168,8 @@ function deriveExpandingSearchFiles(): string[] {
  *   components/profile/SavedHelpersTab.tsx            Profile ▸ Saved Helprs
  *   pages/home/Dashboard.tsx                               desktop Browse strip — OPEN, see below
  *   pages/info/Legal.tsx                                   policy search
+ *   pages/home/DashboardGuest.tsx                          guest /browse?q= field (F070, 11-09): open for the
+ *                                                     visit, no magnifier to land on
  *   components/job-card/embeddedActivity.tsx          Jobs > Posted / Working chip row
  *                                                     (2026-10-29, audit F20: its
  *                                                     open flag keeps only the lit chip)
@@ -189,6 +191,7 @@ const REVIEWED_EXPANDING_SEARCHES = [
   "components/messages/ConversationList.tsx",
   "components/profile/SavedHelpersTab.tsx",
   "pages/home/Dashboard.tsx",
+  "pages/home/DashboardGuest.tsx",
   "pages/info/Legal.tsx",
 ].sort();
 
@@ -552,6 +555,8 @@ const NOT_EXERCISED: Record<string, string> = {
     "trigger only — asserted by source for the data-search-trigger marker above",
   "pages/home/Dashboard.tsx":
     "the desktop feed strip — pinned by its own describe block below, from source, because the page is 900 lines behind a dozen data hooks and the fact under test is structural",
+  "pages/home/DashboardGuest.tsx":
+    "guest /browse?q= (F070, lead 11-09): the field is drawn open for a visit that came with a search and is never swapped in for anything; rendered and typed into by src/pages/home/DashboardGuest.search.test.tsx",
   "pages/info/Legal.tsx":
     "document-scroll marketing page: the field replaces nothing. The old reason added 'the tab group holds its own width' — it did not, and that was the bug: at 320 the tabs and the field were both flex-1 at 107px, the three tab labels overlapped, and the field sat under the typable floor. Fixed 2026-09-20 by stepping the tab group aside below 500px while the field is open. The 320/375 the browser pass owed is now paid: e2e/prod-audit/expanding-search-geometry.spec.ts runs /legal at 320, 375 and 1440 against the shared MIN_TYPABLE_FIELD_PX, with no per-surface pin",
 };
@@ -716,6 +721,8 @@ const NO_SLOT_NEEDED: Record<string, string> = {
     "the brand row gives the WHOLE bar to the field, so the entire cluster — magnifier included — is unmounted and none of it is adjacent to the ✕ (measured at 375: clear of the ✕ by 50px). Since Q2205 no screen passes it a field (the guest feed renders it without one); the hand-back stays pinned above on the component itself",
   "pages/home/Dashboard.tsx":
     "renders the strip whose slot BrowseTasksActions supplies — pinned by the describe block above",
+  "pages/home/DashboardGuest.tsx":
+    "guest /browse?q= (F070): there is no magnifier at all (the guest bar has no search icon, owner 09-11), so the field's ✕ has no trigger to land on; it closes the field and the page stays as it was",
 };
 
 /** The world, minus the written exclusions. Input and oracle are different things. */

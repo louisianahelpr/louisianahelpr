@@ -89,10 +89,11 @@ describe("landing redesign: the honesty fixes hold", () => {
     expect(live).not.toMatch(/\$\d/);
     // A failed read is said, never an empty-looking section.
     expect(live).toMatch(/data-testid="landing-live-jobs-failed"/);
-    // It sits right under the hero.
+    // It sits right under the hero: the Jobs | Declutter switch (owner 11-08) shows it by default.
     const index = read("src/pages/info/Index.tsx");
-    expect(index.indexOf("<LiveJobsSection />")).toBeGreaterThan(index.indexOf("<HeroSection />"));
-    expect(index.indexOf("<LiveJobsSection />")).toBeLessThan(index.indexOf("<SectionsShowcase />"));
+    expect(index.indexOf("<LandingBrowseSwitch />")).toBeGreaterThan(index.indexOf("<HeroSection />"));
+    expect(index.indexOf("<LandingBrowseSwitch />")).toBeLessThan(index.indexOf("<SectionsShowcase />"));
+    expect(read("src/components/landing/LandingBrowseSwitch.tsx")).toMatch(/mode === "jobs" \? <LiveJobsSection \/>/);
     // Price and date read the row as it is: quotes jobs have no price; a date never shifts a day.
     expect(liveJobPrice({ budget: "75.00", pricing_mode: "set_price" })).toBe("$75");
     expect(liveJobPrice({ budget: "12.50", pricing_mode: "set_price" })).toBe("$12.50");

@@ -107,6 +107,12 @@ function useNear(ref: React.RefObject<HTMLElement>): boolean {
   useEffect(() => {
     const el = ref.current;
     if (near || !el) return;
+    // Read again here, not only at first render: the observer can be gone by the time the effect runs (a test that
+    // stubs it and restores it; #4283 shard 6 threw "IntersectionObserver is not defined").
+    if (typeof IntersectionObserver !== "function") {
+      setNear(true);
+      return;
+    }
     const io = new IntersectionObserver((entries) => {
       if (entries.some((e) => e.isIntersecting)) setNear(true);
     }, { rootMargin: ROWS_NEAR_MARGIN });

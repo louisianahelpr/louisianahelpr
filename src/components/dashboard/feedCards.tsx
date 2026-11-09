@@ -1,6 +1,6 @@
-import type { Dispatch, SetStateAction } from "react";
+import { lazy, Suspense, type Dispatch, type SetStateAction } from "react";
 import SwipeableJobCard from "@/components/dashboard/SwipeableJobCard";
-import { CompactJobCard } from "@/components/dashboard/CompactJobCard";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 // The two card builders BrowseTasksFeed threads its shared props through,
@@ -65,6 +65,14 @@ export function JobFeedCard({
   );
 }
 
+/**
+ * Q2705/Q1158 (Builder 3, 11-09): the compact row loads on its own chunk, only for a member whose stored density is
+ * "compact" (nothing sets it any more; feedDensity.ts). Static, its one `formatDistanceToNow` put the whole date-fns
+ * chunk (7.9 KB gz) on every signed-in /jobs first screen. Guard: src/test/jobsFirstScreenStaysLight.test.ts.
+ */
+export const loadCompactJobCard = () => loadModule(() => import("@/components/dashboard/CompactJobCard"));
+const CompactJobCard = lazy(() => loadCompactJobCard().then((m) => (m ? { default: m.CompactJobCard } : untilReload())));
+
 /** Props every CompactJobCard row needs, regardless of which list renders it. */
 export interface CompactCardCommonProps {
   effectiveFee: number;
@@ -83,15 +91,18 @@ export function CompactFeedCard({
   recommended?: boolean;
   common: CompactCardCommonProps;
 }) {
+  // While the row's chunk arrives: an empty row of the same 48px height, so nothing below moves when it lands.
   return (
-    <CompactJobCard
-      job={job}
-      effectiveFee={common.effectiveFee}
-      recommended={recommended}
-      onSelect={(j) => common.onSelect(j)}
-      isHighlighted={common.hoveredJobId === job.id}
-      onMouseEnter={() => common.setHoveredJobId?.(job.id)}
-      onMouseLeave={() => common.setHoveredJobId?.(null)}
-    />
+    <Suspense fallback={<li aria-hidden className="h-12" />}>
+      <CompactJobCard
+        job={job}
+        effectiveFee={common.effectiveFee}
+        recommended={recommended}
+        onSelect={(j) => common.onSelect(j)}
+        isHighlighted={common.hoveredJobId === job.id}
+        onMouseEnter={() => common.setHoveredJobId?.(job.id)}
+        onMouseLeave={() => common.setHoveredJobId?.(null)}
+      />
+    </Suspense>
   );
 }

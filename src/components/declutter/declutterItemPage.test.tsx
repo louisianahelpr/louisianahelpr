@@ -159,6 +159,7 @@ vi.mock("@/lib/declutter/api", async () => {
 vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
 
 import DeclutterItemPage from "@/pages/declutter/DeclutterItemPage";
+import { ROWS_NEAR_MARGIN } from "./DeclutterItemRows";
 import PageHeader from "@/components/PageHeader";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
@@ -515,7 +516,8 @@ describe("the photo-first Declutter item page", () => {
       await screen.findAllByRole("button", { name: "Ask for it" });
       await waitFor(() => expect(document.body.querySelector("[data-declutter-askbar]")).not.toBeNull());
       await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
-      expect(seen[seen.length - 1]?.rootMargin).toBe("0px 0px -64px 0px");
+      // F062: the rows under the item watch for themselves too (ROWS_NEAR_MARGIN); this is the action bar's observer.
+      expect(seen.filter((o) => o.rootMargin !== ROWS_NEAR_MARGIN).at(-1)?.rootMargin).toBe("0px 0px -64px 0px");
     } finally {
       dock.remove();
     }

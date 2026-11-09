@@ -37,7 +37,7 @@ export function DeclutterGallery({ urls, display, category, title, icon, shape =
   const go = (i: number) => {
     const el = track.current;
     const next = Math.max(0, Math.min(urls.length - 1, i));
-    if (el) el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
+    el?.scrollTo?.({ left: next * el.clientWidth, behavior: "smooth" });
     setAt(next);
   };
   return (
@@ -104,9 +104,21 @@ export function DeclutterGallery({ urls, display, category, title, icon, shape =
       </div>
       {urls.length > 1 && (
         // Dots show where you are (swipe or the arrows move); the counter on the photo says it in words.
-        <div className="flex justify-center gap-1.5" data-gallery-dots="" aria-hidden>
+        // F060 (UI audit 11-09): the 6px dots were the only way back to photo 1 with a mouse. Each dot is now a
+        // 32px-tall button that shows its photo; the visible dot is a little larger (10px).
+        <div className="flex justify-center" data-gallery-dots="">
           {urls.map((url, i) => (
-            <span key={url} data-dot-active={i === at ? "" : undefined} className={`block h-2 rounded-full transition-all ${i === at ? "w-4 bg-foreground/80" : "w-2 bg-foreground/25"}`} />
+            <button
+              key={url}
+              type="button"
+              aria-label={`Show photo ${i + 1} of ${urls.length}`}
+              aria-current={i === at ? "true" : undefined}
+              data-dot-active={i === at ? "" : undefined}
+              onClick={() => go(i)}
+              className="flex h-8 min-w-8 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span aria-hidden className={`block h-2.5 rounded-full transition-all ${i === at ? "w-5 bg-foreground/80" : "w-2.5 bg-foreground/30"}`} />
+            </button>
           ))}
         </div>
       )}

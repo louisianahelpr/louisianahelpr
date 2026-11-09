@@ -217,13 +217,19 @@ describe("the photo-first Declutter item page", () => {
     const track = await screen.findByRole("group", { name: "Photos of Oak rocking chair" });
     expect(within(track).getAllByRole("img")).toHaveLength(3);
     expect(screen.getByText("1/3")).toBeInTheDocument();
-    expect(document.querySelectorAll("[data-gallery-dots] > span")).toHaveLength(3);
+    expect(document.querySelectorAll("[data-gallery-dots] > button")).toHaveLength(3);
     // A swipe to the second photo moves the counter and the active dot.
     Object.defineProperty(track, "clientWidth", { configurable: true, value: 300 });
     track.scrollLeft = 300;
     fireEvent.scroll(track);
     expect(screen.getByText("2/3")).toBeInTheDocument();
-    expect(document.querySelectorAll("[data-gallery-dots] > span")[1]).toHaveAttribute("data-dot-active");
+    expect(document.querySelectorAll("[data-gallery-dots] > button")[1]).toHaveAttribute("data-dot-active");
+    // F060 (UI audit 11-09): each dot is a button that shows its photo (the way back to photo 1 with a mouse).
+    // @mutate src/components/declutter/DeclutterGallery.tsx |               onClick={() => go(i)}\n |
+    fireEvent.click(screen.getByRole("button", { name: "Show photo 1 of 3" }));
+    expect(screen.getByText("1/3")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show photo 1 of 3" })).toHaveAttribute("aria-current", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Show photo 2 of 3" }));
     fireEvent.click(screen.getByRole("button", { name: "Open photo 2 of 3 full screen" }));
     expect(await screen.findByRole("dialog", { name: "Photo viewer" })).toBeInTheDocument();
   });

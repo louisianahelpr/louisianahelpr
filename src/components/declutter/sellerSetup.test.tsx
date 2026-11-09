@@ -10,7 +10,9 @@
  * @mutate src/components/declutter/SellerSetup.tsx |             <AddressNeedsExactSpot typedAddress={address} inexact={place.inexact} locating={place.locating} shareMyLocation={place.shareMyLocation} /> |
  * @mutate src/components/declutter/SellerSetup.tsx |         address_lookup_unavailable: declutterErrorMessage({ message: "address_lookup_unavailable" }), |         address_lookup_unavailable: "We couldn't find that address. Check the street, city and ZIP.",
  * @mutate src/components/declutter/SellerSetup.tsx |     pickup: !s.hasPickup, |     pickup: false,
- * @mutate src/components/declutter/SellerSetup.tsx |     ways: !s.free && !s.hasWays, |     ways: !s.hasWays,
+ * @mutate src/components/declutter/SellerSetup.tsx |     defaults: !s.hasSettings, |     defaults: false,
+ * @mutate src/components/declutter/SellerSetup.tsx | const anyNeeded = (n: SetupNeeds) => n.pickup \|\| n.times; | const anyNeeded = (n: SetupNeeds) => n.pickup \|\| n.times \|\| n.defaults;
+ * @mutate src/components/declutter/SellerSetup.tsx |         const defaults: SellerDefaults = { ...SELLER_DEFAULTS, acceptsTrades: false }; |         const defaults: SellerDefaults = { ...SELLER_DEFAULTS, freeAfterDays: 30, acceptsTrades: false };
  * @mutate src/pages/declutter/DeclutterSellPage.tsx |         <SellerSetupGate>\n          <Suspense fallback={<DeclutterSellSkeleton />}>\n            <BunchFlow moving={params.get("mode") === "moving"} />\n          </Suspense>\n        </SellerSetupGate> |         <BunchFlow moving={params.get("mode") === "moving"} />
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -62,6 +64,7 @@ vi.mock("@/lib/declutter/api", async (orig) => ({
 }));
 
 import { SellerSetupGate, setupNeeds } from "./SellerSetup";
+import { SellWayTiles } from "./SellHandoverChoices";
 
 const PLACE = { id: "p", position: 1, label: "Home", address: "1 Main St, Baton Rouge, LA", area: "Mid-City", lat: 30.45, lng: -91.15, weekdays: [6] };
 const ROW = { keepUp: true, drops: false, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
@@ -91,18 +94,20 @@ describe("one-time setup before posting", () => {
     expect(document.querySelector("[data-seller-setup]")).toBeNull();
   });
 
-  it("a first-timer sets everything once, says why, and nothing is preselected; then the form opens", async () => {
+  it("a first-timer is asked only the address and days, says why, and nothing is preselected; then the form opens", async () => {
     open();
     await screen.findByRole("heading", { name: "Set up selling" });
     expect(screen.getByText(/Buyers need to know where and when/)).toBeTruthy();
-    // Q2582 (audit 1102a): the column starts under the page title (not centred), and an odd number of way tiles never
-    // sits in two columns with a lone half-width tile.
+    // Q2582 (audit 1102a): the column starts under the page title (not centred).
     // @mutate src/components/declutter/SellerSetup.tsx | <div className="w-full max-w-xl space-y-6" data-seller-setup=""> | <div className="mx-auto w-full max-w-xl space-y-6" data-seller-setup="">
-    // @mutate src/components/declutter/SellHandoverChoices.tsx | className={shown.length % 2 === 0 ? "grid gap-2 lg:grid-cols-2" : "grid gap-2"} | className="grid gap-2 lg:grid-cols-2"
     expect(document.querySelector("[data-seller-setup]")!.className.split(/\s+/)).not.toContain("mx-auto");
-    const tiles = document.querySelector("[data-way-tiles]")!;
-    expect(tiles.children.length).toBeGreaterThan(0);
-    if (tiles.children.length % 2 === 1) expect(tiles.className).not.toMatch(/grid-cols-2/);
+    // F124 (UI audit 11-09, owner): no ways, price drops, lowest price, keep it up, offers, trades or make it free here;
+    // one line says what was set for them and links to Declutter settings.
+    expect(document.querySelector("[data-way-tiles]")).toBeNull();
+    expect(screen.queryByText("If it doesn't sell right away")).toBeNull();
+    expect(screen.queryByText("How buyers can get your things")).toBeNull();
+    expect(document.querySelector("[data-setup-defaults]")!.textContent).toContain("5% each evening down to half your asking price, offers on, trades off");
+    expect(screen.getByRole("link", { name: "Change these in Declutter settings" }).getAttribute("href")).toBe("/declutter/settings");
     expect(screen.queryByText("the posting form")).toBeNull();
     // Audit single-free #16: no day chosen for them, and no "Area buyers see" box.
     expect(screen.queryByLabelText("Area buyers see")).toBeNull();
@@ -116,7 +121,16 @@ describe("one-time setup before posting", () => {
     // The area comes from the address; the point is the lookup's own, exactly.
     expect(state.savedPlaces[0]).toMatchObject({ label: "Home", area: "Baton Rouge", address: "1 Main St, Baton Rouge, LA", lat: 30.45123, lng: -91.15456, weekdays: [6] });
     expect(state.rows).toHaveLength(1);
+    // The defaults the owner set (F124): porch pickup, 5% drops to a 50% floor, kept up, offers on, trades off, never free.
+    expect(state.rows[0]).toEqual({ keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true, acceptsTrades: false });
     expect(state.savedWindows).toHaveLength(1);
+  });
+
+  it("address and times saved but no settings yet: nothing is asked (the defaults apply)", async () => {
+    Object.assign(state, { places: [PLACE], windows: [WINDOW] });
+    open();
+    await screen.findByText("the posting form");
+    expect(document.querySelector("[data-seller-setup]")).toBeNull();
   });
 
   it("a town-only match is never saved as the exact point: the note offers their location, and that point is what's kept", async () => {
@@ -185,9 +199,22 @@ describe("one-time setup before posting", () => {
     expect(document.querySelector("[data-setup-choices]")).toBeNull();
   });
 
-  it("Give it away asks only what a giveaway needs", () => {
-    expect(setupNeeds({ hasPickup: false, hasWays: false, hasWindows: false, hasSettings: false, free: true })).toEqual({ pickup: true, times: true, ways: false, choices: false });
-    expect(setupNeeds({ hasPickup: true, hasWays: true, hasWindows: true, hasSettings: false, free: false })).toEqual({ pickup: false, times: false, ways: false, choices: true });
+  // Q2582 (audit 1102a): an odd number of way tiles never sits in two columns with a lone half-width tile. The tiles
+  // left this screen (F124) but stay in the sell form and Declutter settings, so they are drawn here on their own.
+  // @mutate src/components/declutter/SellHandoverChoices.tsx | className={shown.length % 2 === 0 ? "grid gap-2 lg:grid-cols-2" : "grid gap-2"} | className="grid gap-2 lg:grid-cols-2"
+  it("way tiles: an odd count is one column, an even count two from lg", () => {
+    const odd = render(<SellWayTiles shown={["porch", "meetup", "seller_delivery"]} ways={["porch"]} setWays={() => {}} />);
+    expect(odd.container.querySelector("[data-way-tiles]")!.className).not.toMatch(/grid-cols-2/);
+    odd.unmount();
+    const even = render(<SellWayTiles shown={["porch", "meetup"]} ways={["porch"]} setWays={() => {}} />);
+    expect(even.container.querySelector("[data-way-tiles]")!.className).toMatch(/lg:grid-cols-2/);
+    even.unmount();
+  });
+
+  it("only the address and the days are ever asked; missing settings are saved as the defaults", () => {
+    expect(setupNeeds({ hasPickup: false, hasWindows: false, hasSettings: false })).toEqual({ pickup: true, times: true, defaults: true });
+    expect(setupNeeds({ hasPickup: true, hasWindows: true, hasSettings: false })).toEqual({ pickup: false, times: false, defaults: true });
+    expect(setupNeeds({ hasPickup: true, hasWindows: true, hasSettings: true })).toEqual({ pickup: false, times: false, defaults: false });
   });
 
   it("every posting flow is behind the gate; a saved draft is not", () => {

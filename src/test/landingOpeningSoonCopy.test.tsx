@@ -16,8 +16,8 @@
  * sectionIsComingSoon decides each card), so no Supabase is involved.
  *
  * @mutate src/components/landing/HeroSection.tsx | Hire help or find work. One account | Hire help or find work. Sell or find a deal. Shop local or open a shop. Find a place or list one. One account
- * @mutate src/components/landing/SectionsShowcase.tsx |           {soon && (\n            <span | {false && (\n            <span
- * @mutate src/components/landing/SectionsShowcase.tsx | ...(soon ? { opacity: 0.8 } : null) | ...(false ? { opacity: 0.8 } : null)
+ * @mutate src/components/landing/SectionsShowcase.tsx |           {badged && (\n            <span | {false && (\n            <span
+ * @mutate src/components/landing/SectionsShowcase.tsx | ...(badged ? { opacity: 0.8 } : null) | ...(false ? { opacity: 0.8 } : null)
  * @mutate src/components/landing/SectionsShowcase.tsx |         {!soon && (\n          <Link |         {true && (\n          <Link
  * @mutate src/components/landing/SectionsShowcase.tsx | One free account for jobs and Declutter. | One free account. Jobs are open now.
  *
@@ -74,12 +74,37 @@ describe("the landing says what is open today", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Louisiana’s local partner.");
   });
 
-  it("while pending (fails closed): a Coming soon badge inside each unopened card, each dimmed, no link; no line outside the cards", () => {
+  // F009 (owner UI audit 11-09, High; Builder 6's guard, 795062614d, on the badge rule): "Coming soon" sat over the live
+  // Declutter card while the answer loaded, then jumped. While pending there is NO Coming soon; links still fail closed
+  // (only Jobs, which has no switch).
+  // @mutate src/components/landing/SectionsShowcase.tsx |     const badged = soon && !pending; |     const badged = soon;
+  // @mutate src/components/landing/SectionsShowcase.tsx |   const pending = open === null; |   const pending = false;
+  it("while pending: no Coming soon yet, no card dimmed, every card in one row, only Jobs links (fails closed)", () => {
     const { container, unmount } = renderSections(null);
     const cards = [...container.querySelectorAll<HTMLElement>("[data-section]")];
     // Inventory floor: every section in sectionsConfig has a card.
     expect(cards.length).toBe(SECTIONS.length);
     expect(cards.length).toBeGreaterThan(3);
+    expect(screen.queryByText("Coming soon")).toBeNull();
+    expect(screen.queryByTestId("landing-sections-soon")).toBeNull();
+    for (const c of cards) expect(c.style.opacity, c.dataset.section).toBe("");
+    // One list, in sectionsConfig order.
+    const row = screen.getByRole("list", { name: "Sections" });
+    expect([...row.querySelectorAll("[data-section]")].map((c) => c.getAttribute("data-section"))).toEqual(SECTIONS.map((s) => s.key));
+
+    // Jobs keeps its link to the public board; no switched card has one until the answer is in.
+    const jobs = container.querySelector('[data-section="jobs"]') as HTMLElement;
+    expect(within(jobs).getByRole("link", { name: /Browse jobs/ }).getAttribute("href")).toBe("/browse");
+    for (const s of SECTIONS.filter((x) => x.feature !== null)) {
+      expect(container.querySelector(`[data-section="${s.key}"] a`), s.key).toBeNull();
+    }
+    unmount();
+  });
+
+  it("settled with nothing open (a failed read settles empty): a Coming soon badge inside each unopened card, each dimmed, no link; no line outside the cards", () => {
+    const { container, unmount } = renderSections(new Set());
+    const cards = [...container.querySelectorAll<HTMLElement>("[data-section]")];
+    expect(cards.length).toBe(SECTIONS.length);
     const switched = SECTIONS.filter((s) => s.feature !== null).map((s) => s.key);
     expect(switched.length).toBeGreaterThan(2);
     // One badge per unopened card, each INSIDE its card; nothing outside the cards says it.
@@ -95,8 +120,6 @@ describe("the landing says what is open today", () => {
     expect(screen.queryByTestId("landing-sections-soon")).toBeNull();
     // The cards keep sectionsConfig's order whatever the answer (no card moves when it comes in).
     expect(cards.map((c) => c.dataset.section)).toEqual(SECTIONS.map((s) => s.key));
-
-    // Jobs keeps its link to the public board.
     const jobs = container.querySelector('[data-section="jobs"]') as HTMLElement;
     expect(within(jobs).getByRole("link", { name: /Browse jobs/ }).getAttribute("href")).toBe("/browse");
     unmount();
@@ -133,7 +156,7 @@ describe("the landing says what is open today", () => {
     const chip = render(<SoonPill variant="caption" />);
     expect(chip.container.textContent).toBe("Soon");
     chip.unmount();
-    const { unmount } = renderSections(null);
+    const { unmount } = renderSections(new Set());
     expect(screen.getByTestId("landing-soon-shops").textContent).toBe(railWord);
     unmount();
   });

@@ -15,9 +15,10 @@ const LandingAppleButton = lazy(() => import("./LandingAppleButton"));
  * four section cards, then (after How a job works) the money band and the join
  * block. A section whose switch is not open to everyone has no link, carries a
  * small "Coming soon" badge inside its card and is slightly dimmed (owner 11-09,
- * UI audit F002/F013, replacing the 10-21 one-line rule), and so does every
- * switched section until that answer is in (fails closed,
- * useSectionsOpen). An OPEN section's card links to its Browse
+ * UI audit F002/F013, replacing the 10-21 one-line rule). Until that answer is
+ * in, no card shows the badge or the dim and no switched card links (F009,
+ * owner UI audit 11-09; links still fail closed, useSectionsOpen). An OPEN
+ * section's card links to its Browse
  * page (or sign-up, returning there, for a section behind sign-in).
  *
  * Copy states only what the app does today (lead, LANDING-APPROVED.md): no
@@ -90,6 +91,10 @@ export function SectionsShowcase() {
   const ref = useRef<HTMLElement>(null);
   const seen = useSeenAfterLoad(ref);
   const { open } = useSectionsOpen(seen);
+  // F009 (owner UI audit 11-09, High): while the answer is pending, no "Coming soon" at all. It sat over the live
+  // Declutter for ~2.7 s on a first visit, then jumped. Until the answer is in, no card is badged or dimmed; the
+  // switched cards still have no link (fails closed: never a link to a section not yet known open).
+  const pending = open === null;
   const navigate = useNavigate();
 
   // One list in sectionsConfig's order, which never changes when the switch answer comes in (so no card moves); each
@@ -97,6 +102,7 @@ export function SectionsShowcase() {
   const cards = SECTIONS.map((s) => {
     const Icon = s.icon;
     const soon = sectionIsComingSoon(s.feature, open);
+    const badged = soon && !pending;
     const link = cardLinkFor(s.key, s.path, s.navLabel);
     // All four sections are equal (design spec v2 §1): one card style, the white landing card with its soft shadow
     // (UI audit F004, 11-09: the How a job works cards' surface). A section not open yet is slightly dimmed and carries
@@ -105,13 +111,13 @@ export function SectionsShowcase() {
       <li
         key={s.key}
         className="landing-card relative p-6 flex flex-col gap-3 min-h-[14rem] lg:min-h-[17rem] min-w-0"
-        style={{ color: "var(--lp-ink)", ...(soon ? { opacity: 0.8 } : null) }}
+        style={{ color: "var(--lp-ink)", ...(badged ? { opacity: 0.8 } : null) }}
         data-section={s.key}
-        data-soon={soon ? "true" : "false"}
+        data-soon={badged ? "true" : "false"}
       >
         <div className="flex items-start justify-between gap-3">
           <Icon className="w-6 h-6" aria-hidden style={{ color: "var(--lp-action-strong)" }} />
-          {soon && (
+          {badged && (
             <span
               className="inline-flex items-center rounded-full px-2.5 py-1 text-ds-12 font-semibold leading-none"
               style={{ background: "var(--lp-ground)", color: "var(--lp-ink)", border: "1px solid var(--lp-line-strong)" }}
@@ -156,7 +162,7 @@ export function SectionsShowcase() {
             {idOn ? "Verify your ID once and it counts everywhere on Helpr." : "One account works in every section of Helpr."}
           </p>
         </div>
-        <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="landing-sections" aria-label="Sections of Helpr">
+        <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="landing-sections" aria-label="Sections">
           {cards}
         </ul>
       </div>

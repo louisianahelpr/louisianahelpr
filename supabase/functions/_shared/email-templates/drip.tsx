@@ -56,6 +56,7 @@ import { BaseLayout, BrandButton, MarketingFooter } from './components.tsx'
 /** Every email in this file is per-recipient and carries its own opt-out link. */
 interface CommercialEmailProps {
   greetingName: string
+  /** Where the button goes (engagement-automations' DRIP_STEPS path: /home, or /declutter for day 3). */
   dashboardUrl: string
   /** The recipient's signed one-click unsubscribe URL. Always pass it. */
   unsubscribeUrl: string
@@ -86,61 +87,57 @@ export const WelcomeDripStep1Email = ({
   unsubscribeUrl,
 }: CommercialEmailProps) => (
   <BaseLayout
-    preheader="Your Helpr account is set up — three things you can do today."
+    preheader="Your Louisiana Helpr account is set up. Three things you can do today."
     footer={<MarketingFooter unsubscribeUrl={unsubscribeUrl} />}
   >
+    {/* F169 (owner's message review 11-09): day 1 and day 3 said the same three things, none named Declutter, and
+        "find opportunities" / "Connect" were vague. Day 1 is jobs plus one Declutter line; day 3 is Declutter. */}
     <Heading className="e-h1" style={{ ...h1, fontSize: '22px' }}>
-      Welcome to Louisiana Helpr!
+      Welcome to Louisiana Helpr
     </Heading>
     <Text className="e-text" style={textStyle}>
-      Hey {greetingName || 'there'} — your account is set up. Three things you can do today:
+      Hey {greetingName || 'there'}, your account is set up. Three things you can do today:
     </Text>
     <ul className="e-text" style={listStyle}>
       <li>
-        <Bold>Post a job</Bold> — describe what you need and set your budget
+        <Bold>Need a hand?</Bold> Describe the job and set your price.
       </li>
       <li>
-        <Bold>Browse jobs</Bold> — find opportunities near you
+        <Bold>Want work?</Bold> Browse jobs near you, see your take-home, then apply.
       </li>
       <li>
-        <Bold>Connect</Bold> — message the people you hire or work for directly
+        <Bold>Got stuff to sell?</Bold> List it on Declutter in a minute.
       </li>
     </ul>
-    <BrandButton href={dashboardUrl} label="Go to Dashboard" widthPx={220} />
+    <BrandButton href={dashboardUrl} label="Open Louisiana Helpr" widthPx={240} />
     <Text className="e-text" style={textStyle}>
       Reach out any time at admin@louisianahelpr.com.
     </Text>
   </BaseLayout>
 )
 
-/** Day 3 — "A quick tour of how Louisiana Helpr works." */
+/** Day 3 — "Clear out a closet on Declutter" (F169). */
 export const WelcomeDripStep2Email = ({
   greetingName,
   dashboardUrl,
   unsubscribeUrl,
 }: CommercialEmailProps) => (
   <BaseLayout
-    preheader="Now that you're set up, here's what Louisiana Helpr can do."
+    preheader="Sell what you don't need to neighbors, or find a garage-sale deal."
     footer={<MarketingFooter unsubscribeUrl={unsubscribeUrl} />}
   >
+    {/* F169 (owner's message review 11-09): day 3 is the Declutter intro, in the audit's words. */}
     <Heading className="e-h1" style={{ ...h1, fontSize: '22px' }}>
-      Explore what Louisiana Helpr has to offer
+      Clear out a closet on Declutter
     </Heading>
     <Text className="e-text" style={textStyle}>
-      Hey {greetingName || 'there'}, now that you're set up, here's what you can do:
+      Hey {greetingName || 'there'}, snap a photo, set a garage-sale price, and buyers pick it up from your
+      porch.
     </Text>
-    <ul className="e-text" style={listStyle}>
-      <li>
-        <Bold>Post a job</Bold> — describe what you need, set a budget, and get help fast
-      </li>
-      <li>
-        <Bold>Browse jobs</Bold> — find work near you and start earning
-      </li>
-      <li>
-        <Bold>Chat directly</Bold> — message before committing
-      </li>
-    </ul>
-    <BrandButton href={dashboardUrl} label="Go to Dashboard" widthPx={220} />
+    <Text className="e-text" style={textStyle}>
+      Buying works the same way: browse, pay in the app, pick it up.
+    </Text>
+    <BrandButton href={dashboardUrl} label="Open Declutter" widthPx={200} />
   </BaseLayout>
 )
 

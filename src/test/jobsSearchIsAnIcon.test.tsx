@@ -19,7 +19,7 @@
  * sections" field under the tabs, and MineJobFace was p-4 with a 56px thumb.
  *
  * @mutate src/components/job-card/embeddedActivity.tsx | <InlineListSearch value={search} onChange={onSearch} label={tab === "posted" ? "Search posted jobs" : "Search jobs you're working"} onOpenChange={setSearchOpen} fill /> | {null}
- * @mutate src/components/sections/InlineListSearch.tsx |   const [open, setOpen] = useState(() => value.trim().length > 0); |   const [open, setOpen] = useState(() => true);
+ * @mutate src/components/sections/InlineListSearch.tsx |   const [open, setOpen] = useState(() => pinned \|\| value.trim().length > 0); |   const [open, setOpen] = useState(() => true);
  * @mutate src/pages/home/Dashboard.tsx |       filter={<BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />} /> | />\n      <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />
  * @mutate src/pages/home/Dashboard.tsx | : { search: phoneBrowseSearch, chips: phoneBrowseChips }) | : undefined)
  * @mutate src/pages/home/Dashboard.tsx |     <SectionSearchBar noun="jobs" home="/jobs" value={filters.searchQuery} onChange={filters.setSearchQuery} |     <SectionSearchRow value={filters.searchQuery} onChange={filters.setSearchQuery} placeholder="Search jobs"

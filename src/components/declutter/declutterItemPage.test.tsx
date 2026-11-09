@@ -29,7 +29,7 @@
  * @mutate src/components/profile/ProfileTabHeader.tsx | "sticky-title-row sticky top-[calc(-1*var(--shell-gap))] z-40 -mx-3 px-3 -mb-[var(--section-gap)]" | "sticky-title-row -mx-3 px-3 -mb-[var(--section-gap)]"
  * @mutate src/components/PageHeader.tsx |             {stickyTitle && phoneHidesTitle && ( |             {false && (
  * @mutate src/components/profile/ProfileTabHeader.tsx |         phoneHidesTitle={phoneHidesTitle}\n |
- * @mutate src/lib/declutter/api.ts |       .eq("seller_id", sellerId) |       .neq("seller_id", "")
+ * @mutate src/lib/declutter/api.ts |       .select(cols)\n      .eq("seller_id", sellerId) |       .select(cols)\n      .neq("seller_id", "")
  * @mutate src/lib/declutter/api.ts |       .neq("seller_id", sellerId) |       .neq("seller_id", "")
  * @mutate src/components/declutter/DeclutterItemRows.tsx | (rows ?? []).filter((r) => r.seller_id !== viewerId) | (rows ?? [])
  * @mutate src/components/declutter/DeclutterItemRows.tsx |       {moreRows.length > 0 && <Row |       {<Row
@@ -39,7 +39,7 @@
  * @mutate src/components/declutter/DeclutterItemView.tsx | const drop = planned && !(sellerState && sellerStateStopsDrops(sellerState, it.current_price_cents)) ? planned : null; | const drop = planned;
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const planned = dropState.data ? nextPriceDrop({ ...it, ...dropState.data }) : null; |   const planned = { at: new Date(), lowestCents: it.current_price_cents - 200, pct: 5 };
  * @mutate src/components/declutter/DeclutterBundleRow.tsx | (r) => r.status === "live" && r.seller_id !== viewerId | (r) => r.seller_id !== viewerId
- * @mutate src/components/declutter/DeclutterBundleRow.tsx |   const capped = (more.data?.length ?? 0) >= 12; |   const capped = false;
+ * @mutate src/components/declutter/DeclutterBundleRow.tsx |   const full = (more.data?.length ?? 0) >= 12; |   const full = false;
  * @mutate src/components/declutter/DeclutterBundleRow.tsx |   if (!enabled \|\| buyable.length === 0 \|\| card.isLoading) return null; |   if (!enabled \|\| card.isLoading) return null;
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const isSeller = ownListing && !preview; |   const isSeller = ownListing;
  * Tester 5, 10-30: pressing Buy now in the preview showed nothing, because toast.info renders nothing in the app.

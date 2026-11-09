@@ -58,7 +58,7 @@ export function setupNeeds(s: { hasPickup: boolean; hasWindows: boolean; hasSett
 const anyNeeded = (n: SetupNeeds) => n.pickup || n.times;
 
 /** F124: what a first-timer gets without being asked, in plain words, with where to change it. */
-export const SETUP_DEFAULTS_WORDS =
+const SETUP_DEFAULTS_WORDS =
   "We set the rest for you: porch pickup, the price lowers 5% each evening down to half your asking price, offers on, trades off, and it never turns free on its own.";
 
 function SetupScreen({ userId, needs, savedWindows }: { userId: string; needs: SetupNeeds; savedWindows: PickupWindow[] }) {

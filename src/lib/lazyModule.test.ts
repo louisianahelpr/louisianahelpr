@@ -1,4 +1,5 @@
 // @mutate src/lib/lazyModule.ts |     if (loaded \|\| pending) return; |     if (loaded) return;
+// @mutate src/lib/lazyModule.ts |         if (mod == null) {\n          pending = null;\n          return null;\n        } | 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
@@ -39,5 +40,20 @@ describe("createLazyModule (Q1172)", () => {
     act(() => lazy.start());
     await waitFor(() => expect(result.current).toEqual({ n: 1 }));
     expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it("a module that came back undefined (a prevented preload during recovery) is not kept, and the next start fetches again", async () => {
+    const load = vi.fn<() => Promise<{ n: number }>>()
+      .mockResolvedValueOnce(undefined as unknown as { n: number })
+      .mockResolvedValueOnce({ n: 2 });
+    const lazy = createLazyModule(load, "Dock.load");
+    const { result } = renderHook(() => lazy.use());
+    act(() => lazy.start());
+    await waitFor(() => expect(load).toHaveBeenCalledTimes(1));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(result.current).toBeNull();
+    act(() => lazy.start());
+    await waitFor(() => expect(result.current).toEqual({ n: 2 }));
+    expect(reported).toHaveLength(0);
   });
 });

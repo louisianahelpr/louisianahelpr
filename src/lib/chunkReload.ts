@@ -1,4 +1,4 @@
-import { isRecoveryReloadInFlight, setRecoveryReloadInFlight } from "@/lib/loadModule";
+import { isRecoveryReloadInFlight, onStaleChunkLoad, setRecoveryReloadInFlight } from "@/lib/loadModule";
 
 /**
  * Stale-chunk recovery — shared by the error boundaries and the eager
@@ -684,3 +684,30 @@ export const recoverFromChunkError = (): boolean => {
   }
   return true;
 };
+
+/**
+ * The ONE hand-off for an on-demand import that failed OUTSIDE an error boundary: createLazyModule
+ * (lazyModule.ts), optionalLazy (optionalLazy.ts) and loadModule (loadModule.ts, through onStaleChunkLoad below).
+ *
+ * THE HOLE THIS CLOSES (error_logs e9286ab7, 2026-11-08 22:05Z, /jobs, a real member, release 696580b0dd):
+ * "Failed to fetch dynamically imported module: .../assets/dockSheets-D9MaR0It.js", source
+ * MobileNav.loadDockSheets. A deploy had changed the chunk's hash. createLazyModule reported every failed import as
+ * a member error and retried the dead hashed file on the next start(); it never asked the stale-chunk recovery the
+ * boundaries and main.tsx's vite:preloadError use, so the dock's sheets stayed missing until a manual reload.
+ *
+ * Same rule as the boundaries: a stale chunk while a recovery reload is already in flight is a symptom (quiet); a
+ * fresh one starts the bounded recovery (recoverFromChunkError: CHUNK_RELOAD_SCHEDULE_MS, a session counter, never
+ * offline). Returns true when the page is on its way to a reload, so the caller stays quiet; false when the caller
+ * must report: not a chunk error, or recovery declined (attach getChunkRecoveryDecline() to say why).
+ *
+ * backgroundImport deliberately does NOT use this (Q131: nothing on screen needs that module, and a reload for it
+ * wiped "Application sent!"). src/test/lazyLoadersUseChunkRecovery.test.ts holds every loader helper to this rule.
+ */
+export const handOffStaleChunk = (err: unknown): boolean => {
+  if (!isChunkLoadError(err)) return false;
+  if (isRecoveryReloadInFlight()) return true;
+  return recoverFromChunkError();
+};
+
+// loadModule.ts cannot import this file (this file imports it), so the hand-off is registered here, at boot.
+onStaleChunkLoad(handOffStaleChunk);

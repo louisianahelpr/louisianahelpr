@@ -9,8 +9,8 @@
  *   3. every button whose only job is to open the sheet uses openIdentityCheckOrSay (a toast, never a dead press), and
  *      every other caller either branches on the answer or throws its own refusal message right after (exact list).
  *
- * @mutate src/lib/optionalLazy.ts |       if (!unavailable && isChunkLoadError(err)) recoverFromChunkError(); |
- * @mutate src/lib/optionalLazy.ts |       if (!unavailable) report(err, | if (true) report(err,
+ * @mutate src/lib/optionalLazy.ts |       if (!unavailable && !handOffStaleChunk(err)) { |       if (!unavailable && !false) {
+ * @mutate src/lib/optionalLazy.ts |       if (!unavailable && !handOffStaleChunk(err)) { |       if (!handOffStaleChunk(err)) {
  * @mutate src/lib/identityCheck.ts |   if (sheetUnavailable \|\| appSaysUnavailable()) return false;\n |
  * @mutate src/lib/identityCheck.ts |   if (sheetUnavailable \|\| appSaysUnavailable()) return false; |   if (sheetUnavailable) return false;
  * @mutate src/lib/identityCheck.ts |   if (waiting \|\| opts.entryLink) toast.error(IDENTITY_SHEET_UNAVAILABLE); |   if (opts.entryLink) toast.error(IDENTITY_SHEET_UNAVAILABLE);
@@ -26,12 +26,17 @@ import { render, waitFor } from "@testing-library/react";
 import { blankComments } from "./helpers/blankNonCode";
 import { trackedFiles } from "./helpers/trackedFiles";
 
-const h = vi.hoisted(() => ({ reported: [] as Array<{ err: unknown; opts: unknown }>, recover: 0, toasts: [] as string[], on: true }));
+const h = vi.hoisted(() => ({ reported: [] as Array<{ err: unknown; opts: unknown }>, recover: 0, starts: false, toasts: [] as string[], on: true }));
 vi.mock("@/lib/errorLogger", () => ({ report: (err: unknown, opts: unknown) => h.reported.push({ err, opts }), logError: () => {} }));
-vi.mock("@/lib/chunkReload", () => ({
-  isChunkLoadError: (e: unknown) => /Importing a module script failed|dynamically imported/.test(String((e as Error)?.message ?? e)),
-  recoverFromChunkError: () => { h.recover++; return false; },
-}));
+vi.mock("@/lib/chunkReload", () => {
+  const isChunkLoadError = (e: unknown) => /Importing a module script failed|dynamically imported/.test(String((e as Error)?.message ?? e));
+  return {
+    isChunkLoadError,
+    // The shared hand-off (11-09): here recovery DECLINES (h.starts false), so the failure is still reported.
+    handOffStaleChunk: (e: unknown) => { if (!isChunkLoadError(e)) return false; h.recover++; return h.starts; },
+    getChunkRecoveryDecline: () => ({ reason: "attempts_spent", count: 4, lastAttemptAgoMs: 0, onLine: true }),
+  };
+});
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (m: string) => h.toasts.push(m), success: vi.fn() }) }));
 vi.mock("@/lib/identityCheckSwitch", () => ({ identityCheckOn: () => h.on }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
@@ -48,20 +53,30 @@ import {
   openIdentityCheckOrSay,
 } from "@/lib/identityCheck";
 
-beforeEach(() => { h.reported.length = 0; h.recover = 0; h.toasts.length = 0; h.on = true; __resetIdentitySheetUnavailable(); closeIdentityCheck(); });
+beforeEach(() => { h.reported.length = 0; h.recover = 0; h.starts = false; h.toasts.length = 0; h.on = true; __resetIdentitySheetUnavailable(); closeIdentityCheck(); });
 afterEach(() => { __resetIdentitySheetUnavailable(); });
 
 const drawn = (C: React.ComponentType) => render(<Suspense fallback={null}><C /></Suspense>);
 
 describe("optionalLazy: a failed chunk recovers, reports once, and tells", () => {
-  it("a stale chunk starts the recovery reload, is reported as a warning and runs onFail", async () => {
+  it("a stale chunk whose recovery reload is on its way is not reported, and still runs onFail", async () => {
+    h.starts = true;
+    const onFail = vi.fn();
+    const C = optionalLazy(() => Promise.reject(new TypeError("Importing a module script failed.")), "Probe", onFail);
+    drawn(C);
+    await waitFor(() => expect(onFail).toHaveBeenCalledTimes(1));
+    expect(h.recover).toBe(1);
+    expect(h.reported).toHaveLength(0);
+  });
+
+  it("a stale chunk whose recovery declined is reported as a warning, with the reason, and runs onFail", async () => {
     const onFail = vi.fn();
     const C = optionalLazy(() => Promise.reject(new TypeError("Importing a module script failed.")), "Probe", onFail);
     drawn(C);
     await waitFor(() => expect(onFail).toHaveBeenCalledTimes(1));
     expect(h.recover).toBe(1);
     expect(h.reported).toHaveLength(1);
-    expect(h.reported[0].opts).toMatchObject({ severity: "warning", tags: { source: "Probe" } });
+    expect(h.reported[0].opts).toMatchObject({ severity: "warning", tags: { source: "Probe" }, context: { chunkRecovery: { reason: "attempts_spent" } } });
   });
 
   it("untilReload's ModuleUnavailableError is not reported again, and starts no second reload", async () => {

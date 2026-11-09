@@ -35,7 +35,7 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 
 // Shown able to fail on the original defect and on the token itself:
 // @mutate src/components/GuestBrowseSkeleton.tsx | "grid grid-cols-1 gap-list md:grid-cols-2 md:gap-4" | "grid grid-cols-1 gap-2.5 md:grid-cols-2 md:gap-4"
-// @mutate src/components/dashboard/MainFeedSection.tsx | className="pb-list" | className="pb-2 lg:pb-2.5 xl:pb-3"
+// @mutate src/components/dashboard/MainFeedSection.tsx | job.photos?.[0] ? "pb-list" : undefined | job.photos?.[0] ? "pb-2 lg:pb-2.5 xl:pb-3" : undefined
 // @mutate src/components/dashboard/BrowseTasksFeed.tsx | className="px-0 lg:px-4 pt-1 lg:pt-3 pb-1 space-y-list" | className="px-0 lg:px-4 pt-1 lg:pt-3 pb-1 space-y-2.5 lg:space-y-3"
 // @mutate src/components/job-card/PagedActivityList.tsx | className="space-y-list ds-activity-grid" | className="space-y-3 ds-activity-grid"
 // @mutate src/components/JobsSectionSkeleton.tsx | pb-0 space-y-list" | pb-0 space-y-2.5"
@@ -180,14 +180,15 @@ describe("every job-card list uses the one --list-gap pitch (Q213a)", () => {
     expect(numericPitch(h.cls), `${h.where}: numeric pitch typed beside the token`).toEqual([]);
   });
 
-  it("the virtualised Home feed pads each row by the token, and its size estimate includes it", () => {
-    // MainFeedSection moved out of BrowseTasksFeed.tsx (Q806); the virtualised rows live there.
+  it("the virtualised Home feed: hairline rows touch, the photo hero's gap is the token, the estimate is a row", () => {
+    // MainFeedSection moved out of BrowseTasksFeed.tsx (Q806); the virtualised rows live there. Design audit A J2
+    // (11-08): rows touch (the hairline is the gap, jobsHairlineRows.test.tsx); only the photo hero card keeps the gap.
     const code = blankComments(read("src/components/dashboard/MainFeedSection.tsx"));
     const render = code.slice(code.indexOf("renderItem={(job, i) =>"), code.indexOf("<JobFeedCard"));
-    expect(render).toContain('className="pb-list"');
+    expect(render).toContain('className={i === 0 && job.photos?.[0] ? "pb-list" : undefined}');
     expect(render).not.toMatch(/\bpb-\d/);
-    // ~83px card + 12px pitch.
-    expect(code).toMatch(/estimateSize=\{95\}/);
+    // ~88 px row (no gap).
+    expect(code).toMatch(/estimateSize=\{88\}/);
   });
 
   it("PagedActivityList (My Posts / My Jobs) is on the token", () => {

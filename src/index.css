@@ -4812,6 +4812,18 @@ html.web-desktop .explore-switcher-bone { display: none; }
 }
 .page-panel { box-shadow: none !important; background-color: transparent !important; }
 [data-feed-card] > div, [data-activity-card] { border-radius: 1rem; }
+/* Design audit A J2 (owner approved 11-08): the Browse feed is hairline ROWS on the page, not white cards. Higher
+   specificity than T2 above, so the row keeps its one bottom hairline and no fill or shadow, in both themes.
+   Guard: src/test/jobsHairlineRows.test.tsx. */
+[data-feed-card][data-feed-row] {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  border-bottom-color: hsl(var(--border)) !important;
+}
+[data-feed-card][data-feed-row] > div { border-radius: 0; }
+:root[data-theme="dark"] [data-feed-card][data-feed-row] { background-color: transparent !important; }
+[data-feed-card][data-feed-row] .job-cat-label { padding: 0; }
 :root[data-theme="dark"] .liquid-glass,
 :root[data-theme="dark"] :where(.bg-card),
 :root[data-theme="dark"] [data-feed-card],
@@ -4830,8 +4842,8 @@ html.web-desktop .explore-switcher-bone { display: none; }
   box-shadow: none !important;
   padding: 0 !important;
 }
-.money-chip, .money-chip * { color: hsl(var(--burnt-sienna)) !important; }
-.money-chip > :first-child { font-size: 1.25rem !important; font-weight: 800 !important; }
+.money-chip, .money-chip * { color: hsl(var(--foreground)) !important; }
+.money-chip > :first-child { font-size: 1rem !important; font-weight: 700 !important; }
 .job-card-title { font-size: 1rem !important; }
 .job-cat-label { padding-left: 1rem; padding-top: 0.75rem; }
 [data-activity-card] div.pt-6 { padding-top: 2.25rem !important; }

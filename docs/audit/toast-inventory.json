@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1216,
+    "calls": 1215,
     "files": 350,
-    "rendering": 1135,
+    "rendering": 1134,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 239,
-      "toast.error": 821,
+      "toast.error": 820,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 500,
       "template": 107,
-      "dynamic": 661,
+      "dynamic": 660,
       "jsx": 0
     }
   },
@@ -9011,7 +9011,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 158,
+      "line": 164,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9028,7 +9028,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 162,
+      "line": 168,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9038,7 +9038,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 195,
+      "line": 201,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9048,7 +9048,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 235,
+      "line": 241,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12785,7 +12785,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 187,
+      "line": 194,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12795,7 +12795,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 203,
+      "line": 210,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12805,7 +12805,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 224,
+      "line": 231,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12815,17 +12815,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 226,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "friendlyAuthError(error.message)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Login.tsx",
-      "line": 239,
+      "line": 246,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12835,7 +12825,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 267,
+      "line": 274,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12845,7 +12835,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 301,
+      "line": 308,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12865,7 +12855,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 172,
+      "line": 173,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12875,7 +12865,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 173,
+      "line": 174,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12885,7 +12875,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 174,
+      "line": 175,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12895,7 +12885,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 194,
+      "line": 195,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12905,7 +12895,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 195,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12915,7 +12905,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 196,
+      "line": 197,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12925,7 +12915,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 212,
+      "line": 213,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12935,7 +12925,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 295,
+      "line": 296,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12945,7 +12935,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 303,
+      "line": 304,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12955,7 +12945,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 373,
+      "line": 374,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12965,7 +12955,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 443,
+      "line": 444,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13005,7 +12995,7 @@
     },
     {
       "file": "src/pages/auth/completeProfile/saveCompletedProfile.ts",
-      "line": 132,
+      "line": 133,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13257,7 +13247,7 @@
     },
     {
       "file": "src/pages/info/Support.tsx",
-      "line": 280,
+      "line": 293,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14973,7 +14963,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 179,
+      "line": 180,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -14983,7 +14973,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 203,
+      "line": 204,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14993,7 +14983,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 211,
+      "line": 212,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15006,7 +14996,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 226,
+      "line": 227,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15016,7 +15006,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 304,
+      "line": 305,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15036,7 +15026,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 319,
+      "line": 320,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15434,7 +15424,7 @@
     },
     {
       "file": "src/pages/u/PublicProfilePage.tsx",
-      "line": 116,
+      "line": 129,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -46,6 +46,7 @@ const NO_TEST_ROWS: Record<string, string> = {
   [`${A}adminAnalytics/SignupLeadsCard.tsx`]: "admin_list_signup_leads drops test data on the server (20261030015205_test_data_never_counts)",
   [`${A}adminAnalytics/SignupSources.tsx`]: "admin_signup_source_report drops is_seed members on the server (20261031220447)",
   [`${A}adminHealth/useFillRate.ts`]: "get_fill_rate_stats leaves test jobs out on the server (20261012201528_fill_rate_leaves_test_jobs_out)",
+  [`${A}StalledMissedReturn.tsx`]: "reads the one missed-return report of a Stuck jobs row by its job id; AdminStalledJobs already dropped test rows (withoutTestRows) before mounting it, and report_continue_day_missed never alerts an admin about a test job (owner #4, 20261108214605)",
   [`${A}AdminGrowthLinks.tsx`]: "admin_booking_sources drops every test Helpr and poster on the server (20261030013347)",
   [`${A}AdminExport.tsx`]: "CSV downloads, not a screen: each row carries a Test column (adminSeedEveryView.test.ts 'export')",
   [`${A}adminDisputes/settlementEscapes.ts`]: "writes only (settle / escape RPCs on a dispute already on screen)",

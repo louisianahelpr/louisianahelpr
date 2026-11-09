@@ -8145,7 +8145,7 @@ export type Database = {
           resolution: string | null
           resolved_at: string | null
           resolved_by: string | null
-          side: string
+          reporter_side: string
         }
         Insert: {
           continue_id?: string | null
@@ -8158,7 +8158,7 @@ export type Database = {
           resolution?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
-          side: string
+          reporter_side: string
         }
         Update: {
           continue_id?: string | null
@@ -8171,7 +8171,7 @@ export type Database = {
           resolution?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
-          side?: string
+          reporter_side?: string
         }
         Relationships: [
           {

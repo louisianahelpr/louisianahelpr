@@ -248,6 +248,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   quote_job_funded_hires_quoter: "alerts",
   refuse_short_notice_job: "safety-skip",
   rentals_public_listing_visible: "hides",
+  report_continue_day_missed: "alerts", // owner #4 (20261108214605): a seed job or seed/test party never alerts the admins
   report_stale_dispute_settlement_claim: "alerts",
   // Closes a TEST-mode dispute without Stripe: test accounts only.
   // Takes back the admin join notice when an account is marked a test account (owner 2026-10-27).

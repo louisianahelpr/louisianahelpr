@@ -153,8 +153,8 @@ const p1 = await report(POSTER, "'Half the yard is still tall'", `ARRAY['${photo
 ok("P1 the poster's 'Didn't come back' goes through", p1.err === null, p1.err);
 const day = (await rows(`SELECT status, closed_at FROM public.job_continue_days`))[0];
 ok("P1 the continue day closes as lapsed", day?.status === "lapsed" && !!day?.closed_at, JSON.stringify(day));
-const rep = skip ? [] : await rows(`SELECT side, note, photos, reported_by, resolved_at FROM public.job_missed_returns`);
-ok("P1 the report holds the side, note and photos", rep.length === 1 && rep[0].side === "poster" && rep[0].note === "Half the yard is still tall" && rep[0].photos.length === 2 && rep[0].reported_by === POSTER && rep[0].resolved_at === null, JSON.stringify(rep));
+const rep = skip ? [] : await rows(`SELECT reporter_side, note, photos, reported_by, resolved_at FROM public.job_missed_returns`);
+ok("P1 the report holds the side, note and photos", rep.length === 1 && rep[0].reporter_side === "poster" && rep[0].note === "Half the yard is still tall" && rep[0].photos.length === 2 && rep[0].reported_by === POSTER && rep[0].resolved_at === null, JSON.stringify(rep));
 ok("P1 the event is missed_poster", (await rows(`SELECT 1 FROM public.job_continue_events WHERE action = 'missed_poster'`)).length === 1);
 const nudge = (await rows(`SELECT escalated_at, resolved_at, resolved_by FROM public.job_completion_nudges`))[0];
 ok("P1 the admin queue row is escalated now and unresolved (re-opened)", !!nudge && nudge.resolved_at === null && nudge.resolved_by === null && Date.now() - new Date(nudge.escalated_at).getTime() < 60_000, JSON.stringify(nudge));

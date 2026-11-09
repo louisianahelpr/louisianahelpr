@@ -174,7 +174,7 @@ vi.mock("@/lib/continueDayReads", async (orig) => ({
   fetchContinueDay: async () => continueState.row,
 }));
 // Owner #4 (11-08): the open missed-return report read (Louisiana Helpr reviewing), null unless a test sets one.
-const missedState = vi.hoisted(() => ({ open: null as null | { side: "poster" | "helpr"; created_at: string } }));
+const missedState = vi.hoisted(() => ({ open: null as null | { reporter_side: "poster" | "helpr"; created_at: string } }));
 vi.mock("@/lib/continueDayMissed", async (orig) => ({
   ...(await orig<typeof import("@/lib/continueDayMissed")>()),
   fetchOpenMissedReturn: async () => missedState.open,
@@ -2153,7 +2153,7 @@ describe("owner #4: a missed continue day goes to Louisiana Helpr", () => {
   });
 
   it("a report sent: the line says Louisiana Helpr is reviewing; no day to set", async () => {
-    missedState.open = { side: "poster", created_at: "2026-11-02T12:00:00Z" };
+    missedState.open = { reporter_side: "poster", created_at: "2026-11-02T12:00:00Z" };
     state.job = underWay();
     state.party = true;
     renderPage();

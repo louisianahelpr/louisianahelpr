@@ -38,9 +38,9 @@ export async function reportContinueDayMissed(jobId: string, note: string, photo
 }
 
 /** The job's open missed-return report (Louisiana Helpr is reviewing it), or null. A failed read throws (React Query). */
-export async function fetchOpenMissedReturn(jobId: string): Promise<{ side: "poster" | "helpr"; created_at: string } | null> {
+export async function fetchOpenMissedReturn(jobId: string): Promise<{ reporter_side: "poster" | "helpr"; created_at: string } | null> {
   const rows = unwrap(
-    await supabase.from("job_missed_returns").select("side, created_at").eq("job_id", jobId).is("resolved_at", null).limit(1),
-  ) as Array<{ side: "poster" | "helpr"; created_at: string }> | null;
+    await supabase.from("job_missed_returns").select("reporter_side, created_at").eq("job_id", jobId).is("resolved_at", null).limit(1),
+  ) as Array<{ reporter_side: "poster" | "helpr"; created_at: string }> | null;
   return rows?.[0] ?? null;
 }

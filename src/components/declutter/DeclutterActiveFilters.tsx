@@ -4,7 +4,7 @@
  * "Porch pickup ×"); tapping one turns that filter off. Category and Free are not repeated here: they already show as
  * pressed chips in the category row above (owner pick 4, 11-08). Sort is an order, not a filter.
  */
-import { X } from "lucide-react";
+import { RemoveFilterChip } from "@/components/ui/RemoveFilterChip";
 import type { DeclutterFilters } from "@/lib/declutter/browseFilters";
 import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
 import { HANDOVER_TITLE } from "./handoverCopy";
@@ -53,16 +53,13 @@ export function DeclutterActiveFilters({ filters, maxMiles, onChange }: {
     <ul aria-label="Filters on" data-active-filters="" className="flex flex-wrap gap-2">
       {pills.map((p) => (
         <li key={p.key}>
-          <button
-            type="button"
+          <RemoveFilterChip
             data-active-filter={p.key}
             aria-label={`Remove filter: ${p.label}`}
             onClick={() => onChange(p.clear(filters, maxMiles))}
-            className="inline-flex h-10 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-ds-13 font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {p.label}
-            <X className="h-3.5 w-3.5" aria-hidden />
-          </button>
+          </RemoveFilterChip>
         </li>
       ))}
     </ul>

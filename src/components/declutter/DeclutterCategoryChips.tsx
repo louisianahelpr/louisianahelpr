@@ -17,6 +17,7 @@
  * Guard: src/test/declutterBrowseChipsAndSaves.test.tsx.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { RowNudgeButton } from "@/components/ui/RowNudgeButton";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -84,16 +85,16 @@ export function DeclutterCategoryChips({ items, value, onChange, free = false, o
       {list}
       {more.left && (
         <div data-chip-edge="left" className="pointer-events-none absolute inset-y-0 left-0 flex w-16 items-start bg-gradient-to-r from-background via-background/90 to-transparent pb-1">
-          <button type="button" aria-label="Earlier categories" onClick={() => nudge(-1)} className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <RowNudgeButton aria-label="Earlier categories" onClick={() => nudge(-1)}>
             <ChevronLeft className="h-5 w-5" aria-hidden />
-          </button>
+          </RowNudgeButton>
         </div>
       )}
       {more.right && (
         <div data-chip-edge="right" className="pointer-events-none absolute inset-y-0 right-0 flex w-16 items-start justify-end bg-gradient-to-l from-background via-background/90 to-transparent pb-1">
-          <button type="button" aria-label="More categories" onClick={() => nudge(1)} className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <RowNudgeButton aria-label="More categories" onClick={() => nudge(1)}>
             <ChevronRight className="h-5 w-5" aria-hidden />
-          </button>
+          </RowNudgeButton>
         </div>
       )}
     </div>

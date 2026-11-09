@@ -12,7 +12,7 @@
  * 2026-10-19); a saved search (Q2275) opens Browse with its filters in the URL.
  */
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Search, Sofa } from "lucide-react";
 import { EmptyStateActions } from "@/components/ui/EmptyStateActions";
@@ -51,6 +51,7 @@ import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { mapFillHeight } from "@/lib/declutter/mapFillHeight";
 import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, declutterAboveFoldCount, declutterFirstRowCount } from "./DeclutterSkeletons";
 import { fetchBundleSellers } from "@/lib/declutter/bundle";
+import { guestSaveHref } from "@/lib/declutter/guestSave";
 import { SELL_CHOOSER_PATH, wantedAskHref } from "@/lib/declutter/sellChooser";
 import { previewIsTopOfList, readFirstScreenPreview, type FirstScreenAnswer } from "@/lib/declutter/bootPrefetch";
 import { readGuestPreview } from "@/lib/declutter/guestBootPrefetch";
@@ -172,6 +173,9 @@ const GUEST_FULL_LIST_WAIT_MS = 3000;
 export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string | null; chrome: (browse: DeclutterBrowseHeader) => DeclutterChrome; top?: ReactNode; fab?: ReactNode }) {
   const desktop = useIsWebDesktop();
   const member = userId !== null;
+  const location = useLocation();
+  // F052: a guest's heart opens sign-up and comes back to this exact Browse (filters and search kept).
+  const guestSaveTo = member ? undefined : guestSaveHref(location.pathname + location.search);
   const [params, setParams] = useSearchParams();
   const [start] = useState(() => browseStateFromParams(params));
   // BUY-53: from a saved search, the listings its "N new" counted wear the New tag.
@@ -474,6 +478,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
                     toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }),
                     pending: toggleWatch.isPending && toggleWatch.variables?.id === item.id,
                   } : undefined}
+                  guestSaveTo={guestSaveTo}
                 />
               </li>
             ))}

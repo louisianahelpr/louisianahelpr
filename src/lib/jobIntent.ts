@@ -2,6 +2,7 @@ import { safeStorage, trackKey } from "@/lib/safeStorage";
 import { safeInternalRedirect } from "@/lib/authRedirects";
 import { enCore } from "@/lib/i18n/enCore";
 import { t } from "@/lib/i18n/language";
+import { SAVE_ITEM_REASON } from "@/lib/declutter/guestSave";
 
 /**
  * "The job I tapped before you asked me to sign up."
@@ -148,6 +149,10 @@ export function notifySignupSubtitle(reason: string | null | undefined): string 
 /** English, for tests: Signup's line for a guest who came from a Declutter item (AUD31-69). */
 export const ITEM_SIGNUP_SUBTITLE = enCore["signup.itemSubtitle"];
 
+/** Signup's ?reason= for a guest who pressed a Declutter card's heart (F052), and its line in English, for tests. */
+export { SAVE_ITEM_REASON };
+export const SAVE_ITEM_SIGNUP_SUBTITLE = enCore["signup.saveItemSubtitle"];
+
 /**
  * Signup's step-1 subtitle: the notify line, or (AUD31-69, Guests on Declutter) for a guest who pressed Sign up on a
  * Declutter item, that they come back to it after; the item's panel promised it and Signup said nothing.
@@ -155,6 +160,8 @@ export const ITEM_SIGNUP_SUBTITLE = enCore["signup.itemSubtitle"];
 export function signupSubtitle(reason: string | null | undefined, redirect: string | null | undefined): string | undefined {
   const notify = notifySignupSubtitle(reason);
   if (notify) return notify;
+  // F052 (UI audit 11-09): a guest who pressed a Declutter card's heart.
+  if (reason === SAVE_ITEM_REASON) return t("signup.saveItemSubtitle");
   const safe = safeInternalRedirect(redirect);
   if (safe && new URL(safe, "https://x.invalid").pathname.startsWith("/declutter/item/")) return t("signup.itemSubtitle");
   return undefined;

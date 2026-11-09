@@ -379,6 +379,16 @@ export interface QueueEmailResult {
 }
 
 /**
+ * True when an email part holds U+FFFD, the replacement character a broken UTF-8 decode leaves (owner's UI audit
+ * 11-09, F178: the gallery copy of the pickup receipt showed "\uFFFD\uFFFD\uFFFD Louisiana Helpr" where the em dash
+ * sign-off belongs). The real send path (renderEmail -> pgmq jsonb -> process-email-queue -> Resend) re-rendered
+ * clean, so queueEmail does not refuse such a body: it says so loudly, naming the template, so a real one is found.
+ */
+export function emailHasBrokenText(...parts: Array<string | undefined>): boolean {
+  return parts.some((p) => typeof p === "string" && p.includes("\uFFFD"));
+}
+
+/**
  * Log + enqueue one email, the way send-notification-email does it.
  *
  * Every send in the product should be findable in `email_send_log`. Callers
@@ -399,6 +409,9 @@ export async function queueEmail(
 ): Promise<QueueEmailResult> {
   const messageId = crypto.randomUUID();
   const queue = email.queue ?? "transactional_emails";
+  if (emailHasBrokenText(email.subject, email.html, email.text)) {
+    console.error(`[queueEmail] ${email.templateName}: the body holds U+FFFD (a broken UTF-8 decode); sending it as rendered`);
+  }
 
   const { error: logError } = await supabase.from("email_send_log").insert({
     message_id: messageId,

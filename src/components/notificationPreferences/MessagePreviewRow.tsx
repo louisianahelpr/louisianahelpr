@@ -37,7 +37,7 @@ export function MessagePreviewRow({
             className="font-sans font-semibold block text-ds-14 mb-0"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
-            Show message words
+            Show message text in alerts
           </Label>
           <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Off: alerts say only who wrote. Emails never include the words.
@@ -51,7 +51,7 @@ export function MessagePreviewRow({
           checked={checked}
           onCheckedChange={onToggle}
           disabled={disabled}
-          ariaLabel="Show message words in alerts"
+          ariaLabel="Show message text in alerts"
           savingId="message_preview"
         />
         <div className="w-[51px] flex justify-center" title="Emails never include the words">

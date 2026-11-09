@@ -467,7 +467,7 @@ const NotificationPreferences = () => {
       {/* Quiet hours (notificationPreferences/QuietHoursCard.tsx): non-critical pushes wait; security alerts always fire. */}
       <QuietHoursCard prefs={prefs} quietEnabled={quietEnabled} toggleQuiet={toggleQuiet} patchPrefs={patchPrefs} locked={locked} saving={saving} savingKey={savingKey} loaded={loaded} />
 
-      {/* "Show message words" sits right under Messages (Messages audit M6). */}
+      {/* "Show message text in alerts" sits right under Messages (Messages audit M6). */}
       {rows.map((item) => item.key !== "messages" ? renderRow(item) : (
         <Fragment key={item.key}>
           {renderRow(item)}

@@ -74,6 +74,12 @@ const TOPIC_LABELS: Record<string, string> = {
   suggestion: 'Suggestion',
   report: 'Issue Report',
   other: 'Other',
+  // F042 (owner UI audit 11-09): the common reasons to write in, mirrored from src/lib/supportTopics.ts reportLabel.
+  declutter_order: 'Declutter Order',
+  job: 'Job',
+  payments: 'Payments',
+  login: 'Login',
+  report_someone: 'Report Someone',
   // "help" was merged into "message" in the UI (it submitted to the exact
   // same place); kept here so any in-flight/bookmarked payload still files
   // under a sensible label.

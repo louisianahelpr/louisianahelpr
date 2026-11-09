@@ -11,6 +11,7 @@
 // @mutate src/components/declutter/DeclutterListingDefaults.tsx | <ChipGroup label="Lowest price" | <ChipGroup label="Lowest you'll take"
 // @mutate src/components/declutter/ItemPickupBlock.tsx |   const others = cities.filter((c) => c && !same(c)); |   const others = cities.filter((c) => !!c);
 // @mutate src/components/declutter/itemPhotoFrame.ts | sm:max-h-[max(55dvh,calc(100dvh-400px))] | sm:max-h-none
+// @mutate src/lib/largeTitles.ts |     doc.documentElement.classList.toggle("page-scrolled-any", t.scrollTop > 0); |     doc.documentElement.classList.toggle("page-scrolled-any", t.scrollTop > 24);
 /**
  * Declutter findings from the UI audit of 11-09 (~/.lh-shots/ui-audit-1109, Builder 2). One describe per finding.
  */
@@ -29,6 +30,7 @@ import { ListingChoiceFields } from "@/components/declutter/DeclutterListingDefa
 import { SELLER_DEFAULTS } from "@/lib/declutter/sellerDefaults";
 import { townsWords } from "@/components/declutter/ItemPickupBlock";
 import { ITEM_PHOTO_ASPECT } from "@/components/declutter/itemPhotoFrame";
+import { installLargeTitles } from "@/lib/largeTitles";
 import { SAVE_ITEM_REASON, SAVE_ITEM_SIGNUP_SUBTITLE, signupSubtitle } from "@/lib/jobIntent";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
@@ -120,6 +122,31 @@ describe("F079: the item photo never fills a short screen (200% zoom)", () => {
     expect(ITEM_PHOTO_ASPECT.item).not.toContain("sm:max-h-none");
     // A phone keeps its own cap.
     expect(ITEM_PHOTO_ASPECT.item).toMatch(/(^| )max-h-\[52dvh\]/);
+  });
+});
+
+describe("F074: the pinned title row is opaque from the first pixel scrolled, at once", () => {
+  it("one pixel of scroll marks the page (page-scrolled-any); back at the top it clears", () => {
+    const off = installLargeTitles(document);
+    const box = document.createElement("div");
+    box.setAttribute("data-app-page-scroll", "");
+    Object.defineProperty(box, "scrollHeight", { configurable: true, value: 2000 });
+    Object.defineProperty(box, "clientHeight", { configurable: true, value: 800 });
+    document.body.appendChild(box);
+    box.scrollTop = 1;
+    box.dispatchEvent(new Event("scroll"));
+    expect(document.documentElement.classList.contains("page-scrolled-any")).toBe(true);
+    expect(document.documentElement.classList.contains("page-scrolled")).toBe(false);
+    box.scrollTop = 0;
+    box.dispatchEvent(new Event("scroll"));
+    expect(document.documentElement.classList.contains("page-scrolled-any")).toBe(false);
+    box.remove();
+    off();
+  });
+  it("the row's background does not fade in (only the title inside it does)", () => {
+    const css = readFileSync(join(SRC, "index.css"), "utf8");
+    expect(css).toContain("html:not(.web-desktop).page-scrolled-any .sticky-title-row {");
+    expect(css).not.toMatch(/\.sticky-title-row,\s*\.sticky-title-row-name\s*\{\s*transition/);
   });
 });
 

@@ -428,17 +428,30 @@ const ConversationRowBase = ({
                   an ellipsis and a word sliced in half. */}
               {/* Board 13: the section's icon + which side you are on, then the job
                   ("You're working · Mow the yard"). Support threads have no section. */}
+              {/* F131 (owner UI audit 11-09): a support thread's caption said the same "Louisiana Helpr Team
+                  conversation" on every row; it is a small team badge instead (owner: "a small 'Helpr team' badge";
+                  the site name stays whole, siteNameInTeamSignoffs). */}
+              {c.teamThread ? (
+                <p data-thread-caption className="flex-1 min-w-0 basis-[9rem] text-ds-12 font-sans">
+                  <span
+                    data-team-badge=""
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-ds-11 font-semibold"
+                    style={{ background: "hsl(var(--bark) / 0.12)", color: "hsl(var(--bark))" }}
+                  >
+                    Louisiana Helpr team
+                  </span>
+                </p>
+              ) : (
               <p
                 title={c.jobTitle}
                 data-thread-caption
                 className="flex-1 min-w-0 basis-[9rem] text-ds-12 truncate senior-clamp-2 font-sans"
                 style={{ color: "hsl(var(--muted-foreground))" }}
               >
-                {!c.teamThread && (
-                  <Briefcase aria-label="Jobs" className="inline w-3.5 h-3.5 mr-1 -mt-0.5 align-middle" />
-                )}
+                <Briefcase aria-label="Jobs" className="inline w-3.5 h-3.5 mr-1 -mt-0.5 align-middle" />
                 {threadRoleCaption(c) ? `${threadRoleCaption(c)} · ${c.jobTitle}` : c.jobTitle}
               </p>
+              )}
               {/* Muted bell-slash — quiet visual mark that this thread
                   has notifications off for the current user. iMessage
                   convention: small icon next to the title/subtitle row,

@@ -15,12 +15,12 @@ reports coverage against THIS file, not against the route list.
 | Surface class | Unit | Count |
 |---|---|---:|
 | Routes (non-redirect) | route | 60 |
-| Redirect-only routes | route | 1 |
+| Redirect-only routes | route | 2 |
 | `?tab=` variants | variant | 35 |
 | `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 234 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1216 (across 350 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1215 (across 350 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 52 |
 | Multi-step flows — probable | flow | 34 |
 | Back/next navigation only | flow | 70 |
@@ -28,8 +28,8 @@ reports coverage against THIS file, not against the route list.
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 188 |
 | Email templates | **exported template** | 23 |
 | Notification types (defined in notification_type_pref_map) | type | 26 |
-| **Navigable surfaces** (places a person can stand) | mixed | **833** |
-| **Copy surfaces** (strings a person may read) | mixed | **1265** |
+| **Navigable surfaces** (places a person can stand) | mixed | **834** |
+| **Copy surfaces** (strings a person may read) | mixed | **1264** |
 | **Total auditable surface** | mixed | **2098** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
@@ -68,7 +68,7 @@ they differ, the reason is understood:
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
 | Real routes | 60 | 34 | agree |
-| Redirect-only routes | 1 | 14 | agree |
+| Redirect-only routes | 2 | 14 | agree |
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 234 | 130 | agree within method (script counts every menu instance) |
 | Forms | 133 | ~38 | agree |
@@ -144,6 +144,7 @@ database and `lh-notifications` must correct it from there.
 
 ## Redirect-only routes (verify they land correctly, incl. query preservation)
 
+- [ ] `/declutter/wanted/new`
 - [ ] `/quotes`
 
 ## `?tab=` variants

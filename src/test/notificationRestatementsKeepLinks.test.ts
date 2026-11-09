@@ -56,6 +56,9 @@ const Q194 = "20260923152630_notification_links_point_direct_not_at_redirects.sq
  * Two-way: each must actually change one.
  */
 const INTENDED_LINK_CHANGES = new Set([
+  // Jobs audit 11-08 #1 (lead money review): a poster's block on a started single job no longer settles it; the admins get
+  // a new "Block on a started job" alert linking '/admin?view=jobs&job=<id>' (the crew branch already wrote that link).
+  "20261108200000_poster_cancel_refused_once_work_started.sql::block_user_and_settle",
   // Q2076: the poster's failed-bank-payment cancel notice links to the Repost prefill of the cancelled job,
   // '/post-job?rebook=<id>', instead of a blank '/post-job' (a 'failed' job is hidden from My Posts).
   "20261103010231_failed_bank_cancel_reposts_the_job.sql::cancel_job_after_failed_bank_payment",

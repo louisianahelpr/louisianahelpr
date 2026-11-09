@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1213,
-    "files": 349,
-    "rendering": 1132,
+    "calls": 1216,
+    "files": 350,
+    "rendering": 1135,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 238,
-      "toast.error": 819,
+      "toast": 239,
+      "toast.error": 821,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 500,
+      "literal": 501,
       "template": 107,
-      "dynamic": 658,
+      "dynamic": 660,
       "jsx": 0
     }
   },
@@ -2399,7 +2399,7 @@
     },
     {
       "file": "src/components/admin/AdminStalledJobs.tsx",
-      "line": 163,
+      "line": 164,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2409,7 +2409,7 @@
     },
     {
       "file": "src/components/admin/AdminStalledJobs.tsx",
-      "line": 175,
+      "line": 176,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -2419,7 +2419,7 @@
     },
     {
       "file": "src/components/admin/AdminStalledJobs.tsx",
-      "line": 179,
+      "line": 180,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -2429,7 +2429,7 @@
     },
     {
       "file": "src/components/admin/AdminStalledJobs.tsx",
-      "line": 184,
+      "line": 185,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7827,7 +7827,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 450,
+      "line": 448,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -7873,7 +7873,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 458,
+      "line": 456,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8138,6 +8138,43 @@
       "title": {
         "form": "dynamic",
         "text": "userFacingError(err, \"Couldn't save that. Check your connection and try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/jobs/MissedReturnSheet.tsx",
+      "line": 50,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "unsupportedUploadCopy(bad, \"a JPG, PNG, WebP or HEIC photo\")",
+        "from": "src/lib/uploadTypes.ts",
+        "branches": [
+          {
+            "form": "template",
+            "text": "\"${file.name}\" isn't a supported file type. Use ${formats}."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/jobs/MissedReturnSheet.tsx",
+      "line": 72,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Sent to Louisiana Helpr. We'll review the job and decide the payment."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/jobs/MissedReturnSheet.tsx",
+      "line": 76,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't send that. Check your connection and try again.\")"
       },
       "renders": true
     },
@@ -13646,7 +13683,7 @@
     },
     {
       "file": "src/pages/jobs/jobPage/useContinueDayActions.tsx",
-      "line": 78,
+      "line": 94,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -13656,7 +13693,7 @@
     },
     {
       "file": "src/pages/jobs/jobPage/useContinueDayActions.tsx",
-      "line": 81,
+      "line": 97,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

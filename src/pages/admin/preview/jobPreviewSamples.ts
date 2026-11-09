@@ -40,6 +40,14 @@ export const PREVIEW_STAGES = [
   { key: "late_cancel_helpr", label: "Late cancel by Helpr" },
   { key: "cancel_sheet", label: "Cancel sheet" },
   { key: "continue_day", label: "Another day set" },
+  // Jobs audit 11-08 #8: every continue-day stage, both sides (the viewer switch picks the side).
+  { key: "continue_day_proposed", label: "Another day asked" },
+  { key: "continue_day_today", label: "Another day: check-in open" },
+  { key: "continue_day_photo_owed", label: "Another day: new photo owed" },
+  { key: "continue_day_done_no_photo", label: "Another day: done, no new photo" },
+  { key: "continue_day_evening", label: "Another day: evening, not done" },
+  { key: "continue_day_lapsed", label: "Another day: day passed" },
+  { key: "continue_day_declined", label: "Another day declined" },
   // Q2616 (audit 1102b row 30): the Helpr has applied and waits on the poster.
   { key: "applied", label: "Applied" },
 ] as const;
@@ -113,6 +121,35 @@ function isoDate(ms: number): string {
   const d = new Date(ms);
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/** HH:MM in the preview clock's own day, `min` minutes from `now`. */
+function hhmm(ms: number): string {
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+/** Jobs audit 11-08 #8: the continue-day row and tracker for each continue-day stage. */
+function continueDayVariant(stage: PreviewStage, now: number): { status: string; date: string; time: string; tracking: string; doneAt: number | null } {
+  const at = (ms: number) => ({ date: isoDate(ms), time: hhmm(ms) });
+  switch (stage) {
+    // Asked by the Helpr, not answered: the poster answers it (the Helpr waits).
+    case "continue_day_proposed": return { status: "proposed", ...at(now + 2 * DAY), tracking: "done", doneAt: null };
+    // The new day starts in an hour: the check-in window is open, the tracker runs again from On my way.
+    case "continue_day_today": return { status: "set", ...at(now + 60 * 60_000), tracking: "job_confirmed", doneAt: null };
+    // Back at the job and working; no after photo from today yet.
+    case "continue_day_photo_owed": return { status: "set", ...at(now - 2 * 60 * 60_000), tracking: "working", doneAt: null };
+    // Marked done on the new day with only day-1 photos: the poster's approve step (the notice warns first).
+    case "continue_day_done_no_photo": return { status: "finished", ...at(now - 4 * 60 * 60_000), tracking: "done", doneAt: 30 };
+    // The new day started 8 hours ago and is still not marked done (the evening check-in).
+    case "continue_day_evening": return { status: "set", ...at(now - 8 * 60 * 60_000), tracking: "working", doneAt: null };
+    // The new day passed two days ago with nothing since (Yusef's job): the stalled ladder's turn.
+    case "continue_day_lapsed": return { status: "set", ...at(now - 2 * DAY), tracking: "job_confirmed", doneAt: null };
+    // The Helpr's day was declined: no day is set; either side can ask again.
+    case "continue_day_declined": return { status: "declined", ...at(now + 2 * DAY), tracking: "done", doneAt: null };
+    // Agreed for the day after tomorrow.
+    default: return { status: "set", ...at(now + 2 * DAY), tracking: "job_confirmed", doneAt: null };
+  }
 }
 
 /** The made-up job at one stage. `now` is injectable so a test can pin the clock. */
@@ -292,20 +329,36 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       };
       break;
     case "continue_day":
-      // The Helpr could not finish today; both agreed to come back the day after tomorrow (job_continue_days 'set').
+    case "continue_day_proposed":
+    case "continue_day_today":
+    case "continue_day_photo_owed":
+    case "continue_day_done_no_photo":
+    case "continue_day_evening":
+    case "continue_day_lapsed":
+    case "continue_day_declined": {
+      // The Helpr could not finish day 1 (on site, photos added); another day was asked or agreed (job_continue_days).
+      // Jobs audit 11-08 #8: an agreed day resets the tracker to job_confirmed (20261108160000), so the new day runs
+      // On my way -> I've arrived -> Start working -> Mark it done again; new_after_photo_at null = the new photo is owed.
+      const cd = continueDayVariant(stage, now);
       job = {
-        ...base, ...hired, ...today, ...bothIn, status: "in_progress", helper_on_the_way_at: ago(300), helper_arrived_at: ago(280),
-        poster_confirmed_arrival_at: ago(278), poster_confirmed_working_at: ago(275),
+        ...base, ...hired, ...today, ...bothIn, status: "in_progress", require_photo_proof: true,
+        date_needed: isoDate(now - 2 * DAY), helper_on_the_way_at: ago(3 * 1440 + 300), helper_arrived_at: ago(3 * 1440 + 280),
+        poster_confirmed_arrival_at: ago(3 * 1440 + 278), poster_confirmed_working_at: ago(3 * 1440 + 275),
+        proof_before_urls: ["preview/before-1.jpg"], proof_after_urls: ["preview/after-1.jpg"],
+        helper_completed_at: cd.doneAt ? ago(cd.doneAt) : null,
       };
       applications = [accepted];
-      trackingStatus = "in_progress";
+      trackingStatus = cd.tracking;
       extraTables = {
         job_continue_days: [{
-          id: "00000000-0000-4000-d000-000000000002", job_id: jobId, proposed_by: PREVIEW_HELPR_ID, new_date: isoDate(now + 2 * DAY),
-          new_start_time: "09:00", note: "Ran out of daylight; the side yard is left.", status: "set", helper_confirmed_at: ago(20),
+          id: "00000000-0000-4000-d000-000000000002", job_id: jobId, proposed_by: PREVIEW_HELPR_ID, new_date: cd.date,
+          new_start_time: cd.time, note: "Ran out of daylight; the side yard is left.", status: cd.status,
+          helper_confirmed_at: cd.status === "set" ? ago(20) : null, new_after_photo_at: null,
+          done_without_new_photo_at: cd.doneAt ? ago(cd.doneAt) : null,
         }],
       };
       break;
+    }
     case "tip":
     case "tip_sent": {
       // Approved and paying out. Tip: no tip sent yet (the poster's Tip). Tip sent (Q2684, audit 1102e row 11): the
@@ -403,6 +456,8 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       job_guarantee_claims: [],
       job_schedule_change_requests: [],
       job_continue_days: [],
+      // Owner #4: the job page asks whether a continue day was missed (continueDayMissed.ts); none in the sample.
+      job_missed_returns: [],
       reviews: [],
       tips: [],
       user_violations: [],

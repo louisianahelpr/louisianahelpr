@@ -256,7 +256,7 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     // public.messages is dropped (20261004192943).
     // 12 -> 13 (2026-10-06, Q1461): job_access_notes, the poster's Access &
     // Parking notes (exported to the poster in their own section).
-    expect(viaJob.size).toBe(15); // 15: +2 continue another day (20261101231015): job_continue_days, job_continue_events (both exported to the poster by 20261102030000, LEAD-EXPORT-CONTINUE-DAY)
+    expect(viaJob.size).toBe(16); // 16: +1 job_missed_returns (20261108214605, POSTER_SIDE_EXEMPT: OWED to export_my_data). 15: +2 continue another day (20261101231015): job_continue_days, job_continue_events (both exported to the poster by 20261102030000, LEAD-EXPORT-CONTINUE-DAY)
     expect(viaJob.has("job_views"), "Q1230: the poster reads view counts through get_job_view_counts, never the rows").toBe(false);
     expect(viaJob.get("applications")).toBe("job_id"); // the auth.uid() IN (SELECT customer_id ...) spelling
     expect(viaJob.get("disputes")).toBe("job_id");

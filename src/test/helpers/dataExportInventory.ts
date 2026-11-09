@@ -410,6 +410,7 @@ export const EXTRA_SECTIONS: Record<string, { table: string; scope: string; stri
 export const POSTER_SIDE_EXEMPT: Record<string, string> = {
   job_checkins: "a check-in is the Helpr's own location event, exported to them by user_id; never the poster's data",
   job_tracking: "the Helpr's live location trail, exported to them by helper_id; never the poster's data",
+  job_missed_returns: "OWED (owner #4, 20261108214605): the missed continue day report (reporter_side, note, photos) the poster or Helpr filed on the job; added to export_my_data for both parties at its next restatement (lander 11-08, flagged to the lead), as shop_item_files and declutter_funnel_events are",
 };
 
 /**
@@ -625,6 +626,8 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "shop_items.preorder_ready_by": { reason: "Shops preorders (20261108184654): a date (the item's ready-by day), not a person; the item is the shop owner's and is exported with it" },
   "shop_items.preorder_goal_by": { reason: "Shops preorders (20261108184654): a date (the goal's deadline), not a person; the item is the shop owner's and is exported with it" },
   "declutter_funnel_events.member_id": { reason: "Declutter buy funnel (20261108203450): the member's own analytics steps (item view, buy tap, checkout opened, back from Stripe; no content). OWED: added to export_my_data at its next restatement, as analytics_events and declutter_item_views are (lander 11-08, flagged to the lead)" },
+  "job_missed_returns.reported_by": { reason: "Owner #4 (20261108214605): the member who reported a missed continue day (side, note, photos). OWED: added to export_my_data at its next restatement (lander 11-08, flagged to the lead), as shop_item_files and declutter_funnel_events are" },
+  "job_missed_returns.resolved_by": { reason: "the staff member who closed a missed continue day report (20261108214605), like job_approval_escalations.resolved_by; the job is the parties', exported with their jobs" },
   "shops.sos_verified_by": { reason: "the staff member who checked a shop's Secretary of State number; the shop is the member's (exported by shops.owner_id, 20261017061157, with this staff id dropped)", stripped: true },
   "job_helpr_fault_rulings.admin_id": { reason: "the staff member who ruled the Helpr at fault (Q2082 (b)); the ruling is the Helpr's (exported by job_helpr_fault_rulings.helper_id, 20261019015302, with this staff id dropped)", stripped: true },
   "shop_strikes.removed_by": { reason: "the staff member who removed a Shops strike; the strike is the member's (exported by shop_strikes.user_id, 20261018164443, with this staff id dropped)", stripped: true },

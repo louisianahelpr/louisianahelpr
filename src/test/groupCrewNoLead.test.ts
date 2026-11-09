@@ -50,7 +50,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 // @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql |         status = (CASE WHEN v_current >= v_needed THEN 'accepted' ELSE 'open' END)::job_status |         status = CASE WHEN v_current >= v_needed THEN 'accepted' ELSE 'open' END
 // Q706: the rule's NEWEST definition is 20261004193450 (false); the twin check reads that one.
 // @mutate supabase/migrations/20261004193450_hire_moment_is_the_accept.sql | AS $function$ SELECT false $function$; | AS $function$ SELECT true $function$;
-// @mutate supabase/migrations/20261102074317_cancel_fee_waived_payee_under_review.sql |     INSERT INTO public.crew_cancellation_fee_shares\n      (job_id | --\n      (job_id
+// @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |     INSERT INTO public.crew_cancellation_fee_shares\n      (job_id | --\n      (job_id
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |       ADD CONSTRAINT reviews_one_per_reviewee_per_job UNIQUE (job_id, reviewer_id, reviewee_id); |       ADD CONSTRAINT reviews_one_per_reviewee_per_job UNIQUE (job_id, reviewer_id);
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     AND reviewer_id = NEW.reviewee_id\n |     AND true\n
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |       OR public.is_crew_member_of_job_folder(name)\n    )\n  );\n\nDROP POLICY IF EXISTS "Users can read | \n    )\n  );\n\nDROP POLICY IF EXISTS "Users can read
@@ -93,6 +93,7 @@ const SINGLE_HELPER_ONLY: Record<string, string> = {
   get_closed_application_job_labels: "JOBS-12 (20261031021424): keys on applications.helper_id, the caller's OWN application, never jobs.helper_id; returns only the title and date of a job the caller applied to, so a crew member reads their own applications and is granted nothing else",
   propose_job_continue_day: "continue another day (20261101231015): refuses a group job outright (continue_day_not_in_progress on is_group_job), so a crew member is never granted anything",
   confirm_job_continue_day: "continue another day (20261101231015): only a day set on a one-Helpr job exists (propose refuses a crew), so helper_id is the one Helpr",
+  report_continue_day_missed: "owner #4 (20261108214605): refuses a group job outright (continue_day_missed_not_live on is_group_job), and a continue day exists only on a one-Helpr job, so helper_id is the one Helpr",
   get_my_activity_cores: "Activity (20261103231310): applications.helper_id is the caller's OWN application; it returns only the caller's own open continue-another-day rows (SECURITY INVOKER, RLS still applies), so a crew member is granted nothing",
   accept_job_offer: "the single Helpr's Accept (Q1180); it refuses a group job outright (group_job_not_supported), a crew confirms through rpc_group_member_confirm",
   claim_series_dates: "a recurring series is never a group job (20260831200113 constraint); each date has one Helpr",

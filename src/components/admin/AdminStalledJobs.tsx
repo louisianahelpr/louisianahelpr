@@ -32,6 +32,7 @@ import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 import { AdminApprovalEscalations } from "@/components/admin/AdminApprovalEscalations";
+import { StalledMissedReturn } from "@/components/admin/StalledMissedReturn";
 import { useFilterCounts, pillLabel } from "@/components/admin/useFilterCounts";
 import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
@@ -398,6 +399,9 @@ const StalledJobRow = ({
           Refund or change status in Jobs
         </Link>
       </div>
+
+      {/* Owner #4 (11-08): a missed continue day the poster or Helpr reported. */}
+      <StalledMissedReturn jobId={row.job_id} />
 
       {/* The ladder. "Reminded twice and still nothing" is the difference
           between a decision an admin can make and a guess. */}

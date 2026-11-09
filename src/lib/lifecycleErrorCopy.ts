@@ -353,6 +353,24 @@ export const RPC_ERROR_COPY = {
     continue_day_note_too_long: "Keep the note under 300 characters.",
     continue_day_too_far: "Pick a day within the next 30 days.",
     continue_day_too_soon: "Pick a time at least an hour from now.",
+    // Jobs audit 11-08 #11 (20261108203000).
+    continue_day_refund_open: "A refund request on this job is still open. Answer or withdraw it before setting another day.",
+  },
+  // Owner #4 (11-08): "Didn't come back" (poster) / "Can't come back" (Helpr), 20261108214605.
+  report_continue_day_missed: {
+    not_authenticated: "Sign in again to send this.",
+    account_restricted: "Your account is restricted right now, so you can't change this job.",
+    job_not_found: "This job is no longer available.",
+    not_a_party: "Only the person who posted this job or its Helpr can send this.",
+    continue_day_missed_not_live: "This job isn't in progress any more. Refresh the page.",
+    continue_day_missed_marked_done: "The Helpr marked it done. Approve it, ask for a fix, or open a dispute instead.",
+    continue_day_missed_already_reported: "This was already sent. Louisiana Helpr is reviewing the job.",
+    continue_day_missed_no_day: "There's no agreed day to report. Refresh the page.",
+    continue_day_missed_too_soon: "You can send this once the day you agreed has passed.",
+    continue_day_missed_photos_poster_only: "Only the person who posted the job can add photos here.",
+    continue_day_missed_too_many_photos: "Add up to 5 photos.",
+    continue_day_missed_bad_photo: "One photo didn't upload properly. Remove it and try again.",
+    continue_day_missed_note_too_long: "Keep the note under 1,000 characters.",
   },
   answer_job_continue_day: {
     not_authenticated: "Sign in again to answer.",
@@ -427,6 +445,9 @@ export const RPC_ERROR_COPY = {
     not_authenticated: "Please sign in again to cancel this job.",
     // Boards 66/172 slice 2 (20261021130723): the fee moved a tier since the dialog quoted it; nothing was cancelled.
     quote_changed: "The amount for your Helpr's time changed while this was open, so nothing was cancelled. Check the new amount and confirm again.",
+    // Jobs audit 11-08 #1 (20261108200000): the Helpr already started (in progress, on site, or a continue day).
+    work_started:
+      "Your Helpr already started this job, so it can't be cancelled. If something's wrong, use Report a problem on the job to open a dispute. Your payment stays on hold until it's sorted.",
   },
   // EndSeriesControl — the poster ends a recurring series; a Helpr on it leaves.
   end_recurring_series: {
@@ -2536,6 +2557,9 @@ export const RPC_ERROR_COPY = {
     job_not_found: RC.job_not_cancellable,
     not_authorized: RC.job_not_cancellable,
     not_cancellable: RC.job_not_cancellable,
+    // Jobs audit 11-08 #1 (20261108200000): poster_cancel_job refuses once the Helpr started (on site, working, or a set
+    // continue day); the landlord's linked job is past cancelling the same way.
+    work_started: RC.job_not_cancellable,
   },
   rentals_confirm_visit: {
     account_restricted: RC.account_restricted,

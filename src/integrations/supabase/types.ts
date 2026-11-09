@@ -8133,6 +8133,63 @@ export type Database = {
           },
         ]
       }
+      job_missed_returns: {
+        Row: {
+          continue_id: string | null
+          created_at: string
+          id: string
+          job_id: string
+          note: string | null
+          photos: string[]
+          reported_by: string | null
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          reporter_side: string
+        }
+        Insert: {
+          continue_id?: string | null
+          created_at?: string
+          id?: string
+          job_id: string
+          note?: string | null
+          photos?: string[]
+          reported_by?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          reporter_side: string
+        }
+        Update: {
+          continue_id?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string
+          note?: string | null
+          photos?: string[]
+          reported_by?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          reporter_side?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_missed_returns_continue_id_fkey"
+            columns: ["continue_id"]
+            isOneToOne: false
+            referencedRelation: "job_continue_days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_missed_returns_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           accepted_at: string | null
@@ -20521,6 +20578,8 @@ export type Database = {
       }
       is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
       is_identity_verified: { Args: { p_user_id: string }; Returns: boolean }
+      job_work_started: { Args: { p_job_id: string }; Returns: boolean }
+      jobs_notice_email_type: { Args: { p_title: string; p_type: string }; Returns: string }
       send_notice_email: {
         Args: {
           p_job_id: string
@@ -21764,6 +21823,10 @@ export type Database = {
       rentals_withdraw_request: {
         Args: { p_request_id: string }
         Returns: undefined
+      }
+      report_continue_day_missed: {
+        Args: { p_job_id: string; p_note?: string; p_photos?: string[] }
+        Returns: Json
       }
       report_helper_no_show: { Args: { p_job_id: string }; Returns: Json }
       report_stale_dispute_settlement_claim: {

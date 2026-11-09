@@ -172,6 +172,12 @@ export const FEATURE_SWITCH_KEYS = [
   // support-ai-answer calls requireFeature. Read by /support's suggested answer (Support.tsx) and Admin
   // Support's "Suggest a reply" (SupportReply.tsx), useFeature("ai_support_answers").
   "ai_support_answers",
+  // 25 Days of Louisiana Giveaways (owner spec 2026-11-09): the public /sponsor (/25days) page, its rules page and
+  // /admin/sponsors. Created OFF by 20261109*_sponsor_25days. A public page has signed-out visitors, so the server
+  // answers with sponsor_25days_on() (Everyone -> anyone; Testers -> admins and test accounts): sponsor_public_state
+  // returns on=false, every sponsor RPC and the sponsor-25days function refuse while it is off. Read in the app by
+  // /admin/sponsors (useFeatureStatus("sponsor_25days")); the public pages read on/off from sponsor_public_state.
+  "sponsor_25days",
 ] as const;
 
 /**

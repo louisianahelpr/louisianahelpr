@@ -130,6 +130,11 @@ const AdminDeclutterPreview = lazy(() => import("./pages/admin/preview/Declutter
 const AdminJobPreview = lazy(() => import("./pages/admin/preview/JobPreviewPage"));
 const AdminMessagesPreview = lazy(() => import("./pages/admin/preview/MessagesPreviewPage"));
 const AdminOnboardingPreview = lazy(() => import("./pages/admin/preview/OnboardingPreviewPage"));
+// 25 Days of Louisiana Giveaways (owner 2026-11-09): admin, sponsor page and rules, each its own chunk. Dark until
+// the sponsor_25days switch is on (the server answers on/off; off renders Not found).
+const AdminSponsors = lazy(() => import("./pages/admin/sponsors/AdminSponsorsPage"));
+const SponsorPage = lazy(() => import("./pages/sponsor/SponsorPage"));
+const SponsorRulesPage = lazy(() => import("./pages/sponsor/SponsorRulesPage"));
 const PostsPage = lazyWithPreload(() => import("./pages/posts/PostsPage"));
 // A redirect (to the last or first open section): no screen of its own.
 const ExploreRedirect = lazyWithPreload(() => import("./pages/explore/Explore"));
@@ -291,6 +296,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/admin/preview/job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><AdminJobPreview /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin/preview/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><AdminMessagesPreview /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin/preview/onboarding" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><AdminOnboardingPreview /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/admin/sponsors" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><AdminSponsors /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
+      {/* 25 Days of Louisiana Giveaways: public (brands open it signed out from a pitch email). */}
+      <Route path="/sponsor" element={<RouteErrorBoundary>{routeEl(<SponsorPage />)}</RouteErrorBoundary>} />
+      <Route path="/25days" element={<RouteErrorBoundary>{routeEl(<SponsorPage />)}</RouteErrorBoundary>} />
+      <Route path="/25days/rules" element={<RouteErrorBoundary>{routeEl(<SponsorRulesPage />)}</RouteErrorBoundary>} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<MessagesRouteSkeleton />}><Messages /></ProtectedRoute>, <MessagesRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember fallback={<DeclutterRouteSkeleton />}><DeclutterPage /></DeclutterGuestOrMember>, <DeclutterRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />

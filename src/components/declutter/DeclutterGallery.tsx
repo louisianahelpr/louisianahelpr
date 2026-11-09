@@ -14,6 +14,7 @@ import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { FallbackImg } from "./FallbackImg";
 import { ITEM_PHOTO_ASPECT, ITEM_PHOTO_FRAME_BASE } from "./itemPhotoFrame";
 import { PhotoArrowButton } from "@/components/ui/PhotoArrowButton";
+import { PhotoDotButton } from "@/components/ui/PhotoDotButton";
 
 const FRAME_BASE = ITEM_PHOTO_FRAME_BASE;
 const ASPECT = ITEM_PHOTO_ASPECT;
@@ -108,17 +109,7 @@ export function DeclutterGallery({ urls, display, category, title, icon, shape =
         // 32px-tall button that shows its photo; the visible dot is a little larger (10px).
         <div className="flex justify-center" data-gallery-dots="">
           {urls.map((url, i) => (
-            <button
-              key={url}
-              type="button"
-              aria-label={`Show photo ${i + 1} of ${urls.length}`}
-              aria-current={i === at ? "true" : undefined}
-              data-dot-active={i === at ? "" : undefined}
-              onClick={() => go(i)}
-              className="flex h-8 min-w-8 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span aria-hidden className={`block h-2.5 rounded-full transition-all ${i === at ? "w-5 bg-foreground/80" : "w-2.5 bg-foreground/30"}`} />
-            </button>
+            <PhotoDotButton key={url} current={i === at} aria-label={`Show photo ${i + 1} of ${urls.length}`} onClick={() => go(i)} />
           ))}
         </div>
       )}

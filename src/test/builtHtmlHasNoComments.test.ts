@@ -1,5 +1,5 @@
 /**
- * Q2705 (Builder 4, 11-09): the built index.html ships without index.html's history comments. On the build of main
+ * Q2705 (Builder 4, 2026-11-09): the built index.html ships without index.html's history comments. On the build of main
  * 873309be70 they were 26 comments, 24,227 B raw / 8,760 B brotli of a 30,661 B brotli page, every byte ahead of the
  * first frame on Slow 4G. scripts/perf/stripHtmlComments.mjs drops them in the build (vite.config.ts
  * html-strip-comments); the source keeps them.

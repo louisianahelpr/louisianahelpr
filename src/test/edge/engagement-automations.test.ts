@@ -484,7 +484,7 @@ describe("engagement-automations edge function", () => {
       seedAdmin();
       seedWeek();
       // Two pending reports in the table, both test fixtures: the server leaves them out, and so must the email.
-      scenario.reads.reports = { rows: [{ id: "seed-r1", status: "pending" }, { id: "seed-r2", status: "pending" }], count: 2 };
+      scenario.reads.reports = { rows: [{ id: "seed-r1" }, { id: "seed-r2" }], count: 2 };
 
       const b = await body(await fn.fetch(cronRequest(fn)));
 

@@ -1,6 +1,6 @@
 import { lazy } from "react";
 import { report } from "@/lib/errorLogger";
-import { isChunkLoadError, recoverFromChunkError } from "@/lib/chunkReload";
+import { getChunkRecoveryDecline, handOffStaleChunk, isChunkLoadError } from "@/lib/chunkReload";
 import { ModuleUnavailableError } from "@/lib/loadModule";
 
 /**
@@ -14,7 +14,9 @@ import { ModuleUnavailableError } from "@/lib/loadModule";
  * A stale chunk (a deploy changed the hashes) also starts the same bounded
  * recovery reload the error boundaries start (ErrorBoundary.tsx), so the piece
  * comes back on the reloaded page instead of staying missing until the member
- * reloads by hand (lh-silent-failure review of 46b7b91713). A ModuleUnavailableError
+ * reloads by hand (lh-silent-failure review of 46b7b91713); while that reload is on
+ * its way the failure is not reported (11-09, the same hand-off as createLazyModule
+ * and loadModule: chunkReload.ts handOffStaleChunk). A ModuleUnavailableError
  * (untilReload) is already reported by errorLogger's listener: not reported again.
  * `onFail` runs once per failed load, for a piece whose callers must hear that it
  * is not there (the ID-check sheet: markIdentitySheetUnavailable).
@@ -31,8 +33,15 @@ export function optionalLazy<T extends LazyBound>(load: () => Promise<{ default:
   return lazy(() =>
     load().catch((err: unknown) => {
       const unavailable = err instanceof ModuleUnavailableError;
-      if (!unavailable && isChunkLoadError(err)) recoverFromChunkError();
-      if (!unavailable) report(err, { severity: "warning", tags: { source, kind: "optional-chunk-failed" } });
+      // A stale chunk goes to the shared recovery (handOffStaleChunk) and is quiet while that reload is on its way;
+      // reported only when recovery declined, with the reason, or when it is not a chunk error at all.
+      if (!unavailable && !handOffStaleChunk(err)) {
+        report(err, {
+          severity: "warning",
+          tags: { source, kind: "optional-chunk-failed" },
+          ...(isChunkLoadError(err) ? { context: { chunkRecovery: getChunkRecoveryDecline() } } : {}),
+        });
+      }
       try {
         onFail?.(err);
       } catch (hookErr) {

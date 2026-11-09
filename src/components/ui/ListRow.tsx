@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Link, type LinkProps } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 /**
@@ -42,3 +43,17 @@ export const ListRow = React.forwardRef<
   </button>
 ));
 ListRow.displayName = "ListRow";
+
+/**
+ * The same flush row as a real link (owner UI audit 11-09, F084: the desktop rail's rows were buttons, so a member
+ * could not open one in a new tab, middle-click it, or see its address on hover). For rows that go somewhere; a row
+ * that only acts (a toggle, "coming soon") stays a ListRow button.
+ */
+export const ListRowLink = React.forwardRef<HTMLAnchorElement, LinkProps & { variant?: "card" | "flush" }>(
+  ({ className, children, variant = "card", ...props }, ref) => (
+    <Link ref={ref} {...props} className={cn(variant === "flush" ? `${LIST_ROW_FLUSH} ${LIST_ROW_TINT}` : CARD, className)}>
+      {children}
+    </Link>
+  ),
+);
+ListRowLink.displayName = "ListRowLink";

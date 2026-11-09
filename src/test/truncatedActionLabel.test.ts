@@ -50,8 +50,9 @@ import { readdirSync } from "./helpers/trackedFiles";
 const ROOT = join(__dirname, "..", "..");
 const SCAN_DIR = join(ROOT, "src");
 
-// ListRow and InlineTextButton (src/components/ui) render a <button> (Q2709 moves hand-made buttons onto them).
-const INTERACTIVE_TAGS = new Set(["a", "button", "Button", "Link", "NavLink", "ListRow", "InlineTextButton"]);
+// ListRow and InlineTextButton (src/components/ui) render a <button> (Q2709 moves hand-made buttons onto them);
+// ListRowLink the same row as a link (F084, 11-09).
+const INTERACTIVE_TAGS = new Set(["a", "button", "Button", "Link", "NavLink", "ListRow", "ListRowLink", "InlineTextButton"]);
 const INTERACTIVE_ROLES = new Set(["button", "link", "tab", "menuitem"]);
 const CLIP_RE = /(^|\s)(?:[a-z0-9-]+:)*(truncate|text-ellipsis|line-clamp-(?:\d+|\[[^\]]+\]))(?=\s|$)/;
 
@@ -81,7 +82,7 @@ const KNOWN: Record<string, string> = {
     "MEASURED NOT CLIPPED 2026-09-23: all 19 descriptions sh==ch (<=2 lines) at 320, 375 and 1440",
   "src/components/DatePickerField.tsx:button:{formatted}":
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"Select a date\" sw==cw on /post-job (Start fresh) at 320, 375 and 1440 as poster-e2e",
-  "src/components/DesktopSidebarNav.tsx:ListRow:{label}":
+  "src/components/DesktopSidebarNav.tsx:ListRowLink:{label}":
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): all 25 admin sub-nav labels sw==cw on /admin at 1440 as admin-e2e (the sub-nav renders only at desktop)",
   "src/components/TimeRangeField.tsx:button:{display}":
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"9 AM – 5 PM\" sw==cw 89/89 at 320 on the availability editor as poster-e2e",

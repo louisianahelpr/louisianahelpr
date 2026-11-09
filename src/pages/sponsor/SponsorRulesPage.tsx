@@ -13,7 +13,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { sponsorBackend, type SponsorBackend } from "@/lib/sponsor/api";
 import { hasPlaceholder, placeholderRuns } from "@/lib/sponsor/placeholders";
-import { SponsorShell } from "./SponsorPage";
+import { SponsorChrome } from "./SponsorPage";
 import "./sponsor.css";
 
 const NotFound = lazy(() => import("@/pages/info/NotFound"));
@@ -52,23 +52,23 @@ export default function SponsorRulesPage() {
   });
 
   if (!backend || q.isPending) {
-    return <SponsorShell><div className="lh25-loading" role="status"><span className="lh25-spinner" aria-hidden="true" /> Loading…</div></SponsorShell>;
+    return <div className="lh25 min-h-screen bg-premium-page"><SponsorChrome /><div className="lh25-loading" role="status"><span className="lh25-spinner" aria-hidden="true" /> Loading…</div></div>;
   }
   if (q.isError) {
     return (
-      <SponsorShell>
+      <div className="lh25 min-h-screen bg-premium-page"><SponsorChrome />
         <div className="lh25-loading" role="alert">
           <p>We couldn't load the rules. Check your connection and try again.</p>
           <button type="button" className="lh25-btn lh25-btn-primary" onClick={() => void q.refetch()}>Try again</button>
         </div>
-      </SponsorShell>
+      </div>
     );
   }
   if (!q.data.on) return <Suspense fallback={null}><NotFound /></Suspense>;
 
   return (
-    <SponsorShell>
-      <main className="lh25-rules">
+    <div className="lh25 min-h-screen bg-premium-page"><SponsorChrome />
+      <div className="lh25-rules">
         {draft ? <p className="lh25-draft" role="note" data-testid="rules-draft-banner">{C.rules.draftBanner}</p> : null}
         <Link className="lh25-back" to="/sponsor">← {C.rules.backLink}</Link>
         <h1>{C.rules.title}</h1>
@@ -79,7 +79,7 @@ export default function SponsorRulesPage() {
             <p>{draft ? <RuleText text={s.body} /> : s.body}</p>
           </section>
         ))}
-      </main>
-    </SponsorShell>
+      </div>
+    </div>
   );
 }

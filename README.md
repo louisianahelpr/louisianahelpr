@@ -98,6 +98,10 @@ The sponsor page is `/sponsor` (also `/25days`). Its rules page is `/25days/rule
 - **Changing the cap.** Use /admin/sponsors → **Page content** → **Max sponsors per day**. Leave it blank for no limit.
   The server enforces the cap: a full day shows "Full" and refuses new sign-ups. Sponsors you add by hand, or move,
   are not capped.
+- **Sign-up deadline.** Sign-ups close after `event.signup_deadline` (2026-11-30, Louisiana time) in
+  `src/content/sponsorPage.ts`. After that the page says sign-ups are closed, and the server refuses new ones. The
+  server's copy of the date is `SPONSOR_SIGNUP_DEADLINE` in `supabase/functions/_shared/sponsorSignup.ts`; change both
+  together (a test checks that they match).
 - **Exporting sign-ups.** Use /admin/sponsors → **Sign-ups** → **Export CSV**. The export includes every column, and
   the day and status filters apply to it.
 - **Behind the page.** The data lives in the `sponsor_*` tables (migration `20261109162829_sponsor_25days.sql`). No

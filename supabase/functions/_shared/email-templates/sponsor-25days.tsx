@@ -81,7 +81,7 @@ export const SponsorConfirmationEmail = ({ s, adminEmail }: { s: SponsorEmailSig
   </BaseLayout>
 )
 
-export const SponsorAdminEmail = ({ s, logoUrl, adminUrl }: { s: SponsorEmailSignup; logoUrl: string | null; adminUrl: string }) => (
+export const SponsorAdminEmail = ({ s, logoUrl }: { s: SponsorEmailSignup; logoUrl: string | null }) => (
   <BaseLayout
     preheader={`New 25 Days sponsor: ${s.brandName} (${s.daysLabel})`}
     footer={<TransactionalFooter>Reply directly to <strong>{s.email}</strong> to answer this sponsor.</TransactionalFooter>}
@@ -112,7 +112,7 @@ export const SponsorAdminEmail = ({ s, logoUrl, adminUrl }: { s: SponsorEmailSig
       </>
     ) : null}
     <Text className="e-text" style={textStyle}>
-      <Link href={adminUrl}>Open the sponsor admin</Link>
+      It is also in the admin's 25 Days sponsors page, under its day(s).
     </Text>
   </BaseLayout>
 )

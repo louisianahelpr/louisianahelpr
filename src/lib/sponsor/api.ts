@@ -10,7 +10,7 @@
  *   sponsor-25days (edge function)   anyone: the sign-up (validated, honeypot,
  *                                    rate limit, per-day cap) + the emails; and
  *                                    GET ?logo=<id> / ?photo=founder images.
- *   sponsor_admin_*                  admins only.
+ *   sponsor_admin_*                  admins only: src/pages/admin/sponsors/sponsorAdminApi.ts.
  *
  * DEV ONLY: `?demo=1` on a local dev server answers every call from made-up
  * sample data (sponsorDemoBackend.ts) so the page can be screenshotted before
@@ -20,15 +20,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import type {
-  SponsorAdminData,
-  SponsorAdminSettings,
-  SponsorAdminSignup,
-  SponsorPublicState,
-  SponsorSignupPayload,
-  SponsorStatus,
-  SponsorSubmitResult,
-} from "./types";
+import type { SponsorPublicState, SponsorSignupPayload, SponsorSubmitResult } from "./types";
 
 export interface SponsorBackend {
   publicState(ref: string | null): Promise<SponsorPublicState>;
@@ -36,25 +28,10 @@ export interface SponsorBackend {
   submit(payload: SponsorSignupPayload, logo: File | null): Promise<SponsorSubmitResult>;
   logoUrl(signupId: string): string;
   founderPhotoUrl(): string;
-  admin: {
-    overview(): Promise<SponsorAdminData>;
-    setStatus(id: string, status: SponsorStatus): Promise<void>;
-    moveDay(id: string, fromDay: number | null, toDay: number): Promise<void>;
-    setWall(id: string, show: boolean): Promise<void>;
-    addInvite(brand: string, email: string | null): Promise<string>;
-    deleteInvite(id: string): Promise<void>;
-    addSignup(row: Omit<SponsorAdminSignup, "id" | "created_at" | "logo_path" | "ref_code" | "source">): Promise<string>;
-    saveSettings(s: Omit<SponsorAdminSettings, "founder_photo_path">): Promise<void>;
-    saveTestimonial(t: { id: string | null; quote: string; name: string; brand: string | null; approved: boolean }): Promise<void>;
-    deleteTestimonial(id: string): Promise<void>;
-    /** An object URL for the logo file (admins only). */
-    logoDownloadUrl(signupId: string): Promise<string>;
-    uploadFounderPhoto(file: File): Promise<void>;
-  };
 }
 
 const FUNCTION = "sponsor-25days";
-const functionsBase = `${String(import.meta.env.VITE_SUPABASE_URL ?? "").replace(/\/+$/, "")}/functions/v1/${FUNCTION}`;
+export const functionsBase = `${String(import.meta.env.VITE_SUPABASE_URL ?? "").replace(/\/+$/, "")}/functions/v1/${FUNCTION}`;
 
 function asState(data: unknown): SponsorPublicState {
   const d = (data && typeof data === "object" ? data : {}) as Record<string, unknown>;
@@ -77,27 +54,18 @@ function asState(data: unknown): SponsorPublicState {
   };
 }
 
-type LooseRpc = { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> };
-
-async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise<T> {
-  // The sponsor_* functions are new and not in the generated Database types yet.
-  const res = await (supabase as unknown as LooseRpc).rpc(name, args);
-  return unwrap(res as Parameters<typeof unwrap>[0]) as T;
-}
-
-async function authHeaders(): Promise<Record<string, string>> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  const key = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "");
-  return { apikey: key, Authorization: `Bearer ${token ?? key}` };
-}
+type LooseRpc = { rpc: (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> };
+// The sponsor_* functions are new and not in the generated Database types yet; every call below names its function
+// as a literal so src/test/rpcErrorCopyCoverage.test.ts can read it.
+const sb = supabase as unknown as LooseRpc;
+const ok = <T,>(res: { data: unknown; error: unknown }): T => unwrap(res as Parameters<typeof unwrap>[0]) as T;
 
 const realBackend: SponsorBackend = {
   async publicState(ref) {
-    return asState(await rpc("sponsor_public_state", { p_ref: ref }));
+    return asState(ok(await sb.rpc("sponsor_public_state", { p_ref: ref })));
   },
   async logVisit(ref, referrer, device) {
-    await rpc("sponsor_log_visit", { p_ref: ref, p_referrer: referrer, p_device: device });
+    ok(await sb.rpc("sponsor_log_visit", { p_ref: ref, p_referrer: referrer, p_device: device }));
   },
   async submit(payload, logo) {
     const form = new FormData();
@@ -116,6 +84,7 @@ const realBackend: SponsorBackend = {
     }
     const status = ctx?.status ?? 0;
     if (status === 429) return { ok: false, kind: "rateLimited" };
+    if (status === 410 || body?.error === "closed") return { ok: false, kind: "closed" };
     if (body?.error === "full" && Array.isArray(body.full_days)) return { ok: false, kind: "full", fullDays: body.full_days as number[] };
     if (body?.error === "invalid" && body.fields && typeof body.fields === "object") {
       return { ok: false, kind: "invalid", errors: body.fields as Record<string, never> };
@@ -128,55 +97,7 @@ const realBackend: SponsorBackend = {
   founderPhotoUrl() {
     return `${functionsBase}?photo=founder`;
   },
-  admin: {
-    async overview() {
-      return (await rpc("sponsor_admin_overview")) as SponsorAdminData;
-    },
-    async setStatus(id, status) {
-      await rpc("sponsor_admin_set_status", { p_signup_id: id, p_status: status });
-    },
-    async moveDay(id, fromDay, toDay) {
-      await rpc("sponsor_admin_move_day", { p_signup_id: id, p_from_day: fromDay, p_to_day: toDay });
-    },
-    async setWall(id, show) {
-      await rpc("sponsor_admin_set_wall", { p_signup_id: id, p_show: show });
-    },
-    async addInvite(brand, email) {
-      return (await rpc("sponsor_admin_add_invite", { p_brand: brand, p_email: email })) as string;
-    },
-    async deleteInvite(id) {
-      await rpc("sponsor_admin_delete_invite", { p_invite_id: id });
-    },
-    async addSignup(row) {
-      return (await rpc("sponsor_admin_add_signup", { p_signup: row })) as string;
-    },
-    async saveSettings(s) {
-      await rpc("sponsor_admin_save_settings", {
-        p_max_per_day: s.max_per_day,
-        p_group_members: s.group_members,
-        p_page_followers: s.page_followers,
-        p_monthly_visitors: s.monthly_visitors,
-      });
-    },
-    async saveTestimonial(t) {
-      await rpc("sponsor_admin_save_testimonial", { p_id: t.id, p_quote: t.quote, p_name: t.name, p_brand: t.brand, p_approved: t.approved });
-    },
-    async deleteTestimonial(id) {
-      await rpc("sponsor_admin_delete_testimonial", { p_id: id });
-    },
-    async logoDownloadUrl(signupId) {
-      // The bucket is private with no storage policy: the function checks the admin role and sends the file.
-      const res = await fetch(`${functionsBase}?logo=${encodeURIComponent(signupId)}&admin=1`, { headers: await authHeaders() });
-      if (!res.ok) throw new Error(`logo download failed (${res.status})`);
-      return URL.createObjectURL(await res.blob());
-    },
-    async uploadFounderPhoto(file) {
-      const form = new FormData();
-      form.append("photo", file, file.name);
-      const res = await fetch(`${functionsBase}?action=founder_photo`, { method: "POST", headers: await authHeaders(), body: form });
-      if (!res.ok) throw new Error(`photo upload failed (${res.status})`);
-    },
-  },
+
 };
 
 let demoPromise: Promise<SponsorBackend> | null = null;

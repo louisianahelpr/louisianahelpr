@@ -34,9 +34,8 @@ import { FROM_DEFAULT, SUPPORT_EMAIL, sendWithResend } from '../_shared/resend.t
 import { isTestRecipient } from '../_shared/testRecipient.ts'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 import { SponsorAdminEmail, SponsorConfirmationEmail, type SponsorEmailSignup } from '../_shared/email-templates/sponsor-25days.tsx'
-import { getAppUrl } from '../_shared/appUrl.ts'
 import { caughtMessage } from '../_shared/caughtMessage.ts'
-import { SPONSOR_LIMITS, sniffLogoType, validateSponsorSignup } from '../_shared/sponsorSignup.ts'
+import { SPONSOR_LIMITS, sniffLogoType, sponsorSignupsOpen, validateSponsorSignup } from '../_shared/sponsorSignup.ts'
 import { serve } from '../_shared/buildStamp.ts'
 
 const BUCKET = 'sponsor-logos'
@@ -146,7 +145,8 @@ async function handleFounderPhoto(req: Request): Promise<Response> {
   const img = await readImage(form?.get('photo') ?? null, false)
   if (img === null || typeof img === 'string') return json({ error: 'invalid', fields: { photo: img ?? 'required' } }, 400)
   const path = `founder/${crypto.randomUUID()}.${EXT[img.type]}`
-  const up = await admin.storage.from(BUCKET).upload(path, img.bytes, { contentType: img.type, cacheControl: '300', upsert: false })
+  // Immutable key (a fresh uuid per photo), so it caches a year.
+  const up = await admin.storage.from(BUCKET).upload(path, img.bytes, { contentType: img.type, cacheControl: '31536000', upsert: false })
   if (up.error) {
     console.error('[sponsor-25days] founder photo upload failed:', up.error.message)
     return json({ error: 'upload_failed' }, 500)
@@ -174,6 +174,9 @@ async function handleSignup(req: Request): Promise<Response> {
   const admin = serviceClient()
   const userId = await verifiedUserId(req)
   if (!(await switchOn(admin, userId))) return notFound()
+
+  // After the sign-up deadline (Nov 30, Louisiana time) nothing new is saved.
+  if (!sponsorSignupsOpen(Date.now())) return json({ error: 'closed' }, 410)
 
   const form = await req.formData().catch(() => null)
   if (!form) return json({ error: 'invalid', fields: {} }, 400)
@@ -203,7 +206,8 @@ async function handleSignup(req: Request): Promise<Response> {
   let logoPath: string | null = null
   if (img) {
     logoPath = `signups/${signupId}.${EXT[img.type]}`
-    const up = await admin.storage.from(BUCKET).upload(logoPath, img.bytes, { contentType: img.type, cacheControl: '300', upsert: false })
+    // Immutable key (the sign-up's own uuid), so it caches a year.
+    const up = await admin.storage.from(BUCKET).upload(logoPath, img.bytes, { contentType: img.type, cacheControl: '31536000', upsert: false })
     if (up.error) {
       console.error('[sponsor-25days] logo upload failed:', up.error.message)
       return json({ error: 'upload_failed' }, 500)
@@ -276,7 +280,7 @@ async function sendEmails(admin: SupabaseClient, s: SponsorEmailSignup, logoPath
       const signed = await admin.storage.from(BUCKET).createSignedUrl(logoPath, 7 * 24 * 3600, { download: true })
       logoUrl = signed.data?.signedUrl ?? null
     }
-    const { html, text } = await renderEmail(React.createElement(SponsorAdminEmail, { s, logoUrl, adminUrl: `${getAppUrl()}/admin/sponsors` }))
+    const { html, text } = await renderEmail(React.createElement(SponsorAdminEmail, { s, logoUrl }))
     await sendWithResend(key, { to: SUPPORT_EMAIL, from: FROM_DEFAULT, subject: `New 25 Days sponsor: ${s.brandName} (${s.daysLabel})`, html, text, replyTo: s.email })
   } catch (e) {
     console.error('[sponsor-25days] admin email failed:', caughtMessage(e))

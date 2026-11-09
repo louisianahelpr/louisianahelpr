@@ -198,6 +198,11 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "privacy", url: "/privacy" },
   { name: "terms", url: "/terms" },
   { name: "rules", url: "/rules" },
+  // 25 Days of Louisiana Giveaways (owner 2026-11-09). Dark behind sponsor_25days: while it is off each renders the
+  // NotFound page; once on, the sponsor page, its alias and the rules page.
+  { name: "sponsor-25days", url: "/sponsor" },
+  { name: "sponsor-25days-alias", url: "/25days" },
+  { name: "sponsor-25days-rules", url: "/25days/rules" },
   // Redirect since 2026-08-18 (page merged into /profile?tab=legal). Kept
   // for the same reason /privacy, /terms and /rules are: the Privacy Policy
   // and the App Store listing both publish this URL, so the catalog should
@@ -486,6 +491,8 @@ export const ADMIN_SCREENS: ScreenSpec[] = [
   { name: "admin-preview-messages", url: "/admin/preview/messages?stage=inbox&side=poster", rules: adminRules() },
   // The sign-up screens after step 2 on a blank sample profile (Q2664 b; src/pages/admin/preview/OnboardingPreviewPage.tsx).
   { name: "admin-preview-onboarding", url: "/admin/preview/onboarding?stage=profile", rules: adminRules() },
+  // 25 Days sponsors admin (owner 2026-11-09; src/pages/admin/sponsors/AdminSponsorsPage.tsx). Says "switched off" until sponsor_25days is on.
+  { name: "admin-sponsors", url: "/admin/sponsors", rules: adminRules() },
 ];
 
 /**

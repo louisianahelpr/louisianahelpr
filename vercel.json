@@ -291,6 +291,22 @@
       "destination": "/index.html"
     },
     {
+      "source": "/admin/sponsors",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/sponsor",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/25days",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/25days/rules",
+      "destination": "/index.html"
+    },
+    {
       "source": "/messages",
       "destination": "/index.html"
     },

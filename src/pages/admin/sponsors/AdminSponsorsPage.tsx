@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { errorToast, successToast } from "@/lib/toast";
-import { sponsorBackend, type SponsorBackend } from "@/lib/sponsor/api";
+import { sponsorAdminBackend, type SponsorAdminBackend } from "./sponsorAdminApi";
 import type { SponsorAdminData, SponsorAdminSignup, SponsorStatus } from "@/lib/sponsor/types";
 import { sponsorPage as C } from "@/content/sponsorPage";
 import { cleanDays, slugifyBrand } from "../../../../supabase/functions/_shared/sponsorSignup";
@@ -91,18 +91,19 @@ export default function AdminSponsorsPage() {
   const allowed = demo || sw.on;
   const [tab, setTab] = useState("calendar");
   const qc = useQueryClient();
-  const backendQ = useQuery({ queryKey: ["sponsor-25days", "backend"], queryFn: sponsorBackend, staleTime: Infinity, meta: { persist: false } });
-  const backend = backendQ.data as SponsorBackend | undefined;
+  const backendQ = useQuery({ queryKey: ["sponsor-25days", "backend"], queryFn: sponsorAdminBackend, staleTime: Infinity, meta: { persist: false } });
+  const backend = backendQ.data as SponsorAdminBackend | undefined;
   const dataQ = useQuery({
     queryKey: ["sponsor-25days", "admin"],
     enabled: !!backend && allowed,
-    queryFn: () => (backend as SponsorBackend).admin.overview(),
+    queryFn: () => (backend as SponsorAdminBackend).overview(),
     meta: { persist: false },
   });
   const refresh = () => qc.invalidateQueries({ queryKey: ["sponsor-25days", "admin"] });
   const act = useMutation({
-    mutationFn: async (fn: (b: SponsorBackend) => Promise<unknown>) => fn(backend as SponsorBackend),
+    mutationFn: async (fn: (b: SponsorAdminBackend) => Promise<unknown>) => fn(backend as SponsorAdminBackend),
     onSuccess: () => { void refresh(); },
+    // The data layer already turned a refusal into plain words (ADMIN_RPC_ERROR_COPY).
     onError: (e: unknown) => errorToast("That change was not saved.", { description: e instanceof Error ? e.message : undefined }),
   });
 
@@ -151,8 +152,8 @@ export default function AdminSponsorsPage() {
   );
 }
 
-type Run = (fn: (b: SponsorBackend) => Promise<unknown>) => void;
-type RunAsync = (fn: (b: SponsorBackend) => Promise<unknown>) => Promise<unknown>;
+type Run = (fn: (b: SponsorAdminBackend) => Promise<unknown>) => void;
+type RunAsync = (fn: (b: SponsorAdminBackend) => Promise<unknown>) => Promise<unknown>;
 
 function CalendarView({ data, run }: { data: SponsorAdminData; run: Run }) {
   const anyDay = data.signups.filter((s) => s.any_day || s.days.length === 0);
@@ -161,18 +162,18 @@ function CalendarView({ data, run }: { data: SponsorAdminData; run: Run }) {
       <div className="font-semibold">{s.brand_name}</div>
       <div className="text-xs text-muted-foreground">{s.prize_description} · ${s.prize_value}</div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <StatusSelect label={`Status for ${s.brand_name}`} value={s.status} onChange={(st) => run((b) => b.admin.setStatus(s.id, st))} />
+        <StatusSelect label={`Status for ${s.brand_name}`} value={s.status} onChange={(st) => run((b) => b.setStatus(s.id, st))} />
         <select
           aria-label={`Move ${s.brand_name} to another day`}
           className="h-9 rounded-lg border border-border bg-background px-2 text-sm"
           value=""
-          onChange={(e) => { const to = Number(e.target.value); if (to) run((b) => b.admin.moveDay(s.id, day, to)); }}
+          onChange={(e) => { const to = Number(e.target.value); if (to) run((b) => b.moveDay(s.id, day, to)); }}
         >
           <option value="">{day ? "Move to…" : "Set a day…"}</option>
           {DAYS.filter((d) => d !== day).map((d) => <option key={d} value={d}>Dec {d}</option>)}
         </select>
         <label className="flex items-center gap-1 text-xs" title={s.wall_ok ? "" : "The sponsor did not tick OK to show their logo"}>
-          <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" checked={s.show_on_wall} disabled={!s.wall_ok} onChange={(e) => run((b) => b.admin.setWall(s.id, e.target.checked))} />
+          <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" checked={s.show_on_wall} disabled={!s.wall_ok} onChange={(e) => run((b) => b.setWall(s.id, e.target.checked))} />
           On wall{!s.wall_ok ? " (no OK)" : ""}
         </label>
       </div>
@@ -204,7 +205,7 @@ function CalendarView({ data, run }: { data: SponsorAdminData; run: Run }) {
   );
 }
 
-function SignupsView({ data, backend, run }: { data: SponsorAdminData; backend: SponsorBackend; run: Run }) {
+function SignupsView({ data, backend, run }: { data: SponsorAdminData; backend: SponsorAdminBackend; run: Run }) {
   const [day, setDay] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const rows = useMemo(
@@ -213,7 +214,7 @@ function SignupsView({ data, backend, run }: { data: SponsorAdminData; backend: 
   );
   const getLogo = async (signupId: string) => {
     try {
-      const url = await backend.admin.logoDownloadUrl(signupId);
+      const url = await backend.logoDownloadUrl(signupId);
       const a = document.createElement("a");
       a.href = url;
       a.download = `sponsor-logo-${signupId}`;
@@ -259,9 +260,9 @@ function SignupsView({ data, backend, run }: { data: SponsorAdminData; backend: 
                 <td className="px-2 py-2">{s.any_day || s.days.length === 0 ? "Any day" : s.days.map((d) => `Dec ${d}`).join(", ")}</td>
                 <td className="px-2 py-2">{s.prize_description}<div className="text-xs text-muted-foreground">${s.prize_value}</div></td>
                 <td className="px-2 py-2">{s.ship_to === "helpr" ? "Louisiana Helpr" : s.ship_to === "winner" ? "Winner" : "—"}</td>
-                <td className="px-2 py-2"><StatusSelect label={`Status for ${s.brand_name}`} value={s.status} onChange={(st) => run((b) => b.admin.setStatus(s.id, st))} /></td>
+                <td className="px-2 py-2"><StatusSelect label={`Status for ${s.brand_name}`} value={s.status} onChange={(st) => run((b) => b.setStatus(s.id, st))} /></td>
                 <td className="px-2 py-2">
-                  <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" aria-label={`Show ${s.brand_name} on the sponsor wall`} checked={s.show_on_wall} disabled={!s.wall_ok} onChange={(e) => run((b) => b.admin.setWall(s.id, e.target.checked))} />
+                  <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" aria-label={`Show ${s.brand_name} on the sponsor wall`} checked={s.show_on_wall} disabled={!s.wall_ok} onChange={(e) => run((b) => b.setWall(s.id, e.target.checked))} />
                   {!s.wall_ok ? <div className="text-[11px] text-muted-foreground">no OK</div> : null}
                 </td>
                 <td className="px-2 py-2">{s.logo_path ? <Button size="sm" variant="outline" onClick={() => void getLogo(s.id)}>Download</Button> : "—"}</td>
@@ -292,7 +293,7 @@ function LinksView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
   };
   const add = async () => {
     if (!brand.trim()) return;
-    const code = (await run((b) => b.admin.addInvite(brand.trim(), email.trim() || null))) as string;
+    const code = (await run((b) => b.addInvite(brand.trim(), email.trim() || null))) as string;
     setBrand("");
     setEmail("");
     if (code) void copy(link(code));
@@ -308,7 +309,24 @@ function LinksView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
         {brand.trim() ? <p className="mt-2 text-xs text-muted-foreground">Link will be like: {link(slugifyBrand(brand) || "brand")}</p> : null}
       </Panel>
       <Panel title={`Links (${data.invites.length})`} actions={<span className="text-xs text-muted-foreground">Visits with no link: {data.directVisits}</span>}>
-        <div className="overflow-x-auto">
+        {/* Phone: one card per link, so the link and its Copy button are never cut off. */}
+        <ul className="flex flex-col gap-3 sm:hidden">
+          {data.invites.map((i) => (
+            <li key={i.id} className="rounded-xl border border-border p-3 text-sm">
+              <div className="font-semibold">{i.brand}</div>
+              {i.email ? <div className="text-xs text-muted-foreground">{i.email}</div> : null}
+              <code className="mt-2 block break-all text-xs">{link(i.ref_code)}</code>
+              <div className="mt-2 text-xs text-muted-foreground">
+                {i.visits} visits · first {fmt(i.first_visit)} · last {fmt(i.last_visit)} · signed up: {i.signed_up ? "Yes" : "No"}
+              </div>
+              <div className="mt-2 flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => void copy(link(i.ref_code))}>Copy link</Button>
+                <Button size="sm" variant="outline" onClick={() => { if (window.confirm(`Delete the link for ${i.brand}? Its visit history goes too.`)) void run((b) => b.deleteInvite(i.id)); }}>Delete</Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="text-xs uppercase text-muted-foreground">
               <tr>{["Brand", "Link", "Visits", "First visit", "Last visit", "Signed up", ""].map((h) => <th key={h} className="px-2 py-2">{h}</th>)}</tr>
@@ -328,7 +346,7 @@ function LinksView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
                   <td className="px-2 py-2 text-xs">{fmt(i.last_visit)}</td>
                   <td className="px-2 py-2">{i.signed_up ? <span className="font-semibold text-green-700">Yes</span> : "No"}</td>
                   <td className="px-2 py-2">
-                    <Button size="sm" variant="outline" onClick={() => { if (window.confirm(`Delete the link for ${i.brand}? Its visit history goes too.`)) void run((b) => b.admin.deleteInvite(i.id)); }}>Delete</Button>
+                    <Button size="sm" variant="outline" onClick={() => { if (window.confirm(`Delete the link for ${i.brand}? Its visit history goes too.`)) void run((b) => b.deleteInvite(i.id)); }}>Delete</Button>
                   </td>
                 </tr>
               ))}
@@ -347,7 +365,7 @@ function AddSponsorView({ run, onDone }: { run: RunAsync; onDone: () => void }) 
   const save = async () => {
     if (!valid || days === null) return;
     await run((b) =>
-      b.admin.addSignup({
+      b.addSignup({
         brand_name: f.brand_name.trim(), contact_name: f.contact_name.trim(), email: f.email.trim(), phone: null, website: null, instagram: null,
         facebook: null, tiktok: null, prize_description: f.prize_description.trim(), prize_value: Math.round(Number(f.prize_value)), ship_to: null,
         notes: null, any_day: f.any_day && days.length === 0, status: "pending", show_on_wall: f.wall_ok, wall_ok: f.wall_ok, days,
@@ -406,7 +424,7 @@ function ContentView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
         <Button
           className="mt-3"
           onClick={() =>
-            void run((b) => b.admin.saveSettings({ max_per_day: parse(form.max) || null, group_members: parse(form.g), page_followers: parse(form.p), monthly_visitors: parse(form.m) })).then(() => successToast("Saved"))
+            void run((b) => b.saveSettings({ max_per_day: parse(form.max) || null, group_members: parse(form.g), page_followers: parse(form.p), monthly_visitors: parse(form.m) })).then(() => successToast("Saved"))
           }
         >
           Save
@@ -422,7 +440,7 @@ function ContentView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
             const file = e.target.files?.[0];
             if (!file) return;
             if (file.size > 5 * 1024 * 1024) { errorToast("That photo is over 5 MB."); return; }
-            void run((b) => b.admin.uploadFounderPhoto(file)).then(() => successToast("Photo saved"));
+            void run((b) => b.uploadFounderPhoto(file)).then(() => successToast("Photo saved"));
           }}
         />
       </Panel>
@@ -434,7 +452,7 @@ function ContentView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
           <Input aria-label="Brand" placeholder="Brand (optional)" value={t.brand} onChange={(e) => setT((x) => ({ ...x, brand: e.target.value }))} />
           <Button
             disabled={!t.quote.trim() || !t.name.trim()}
-            onClick={() => void run((b) => b.admin.saveTestimonial({ id: null, quote: t.quote.trim(), name: t.name.trim(), brand: t.brand.trim() || null, approved: false })).then(() => setT({ quote: "", name: "", brand: "" }))}
+            onClick={() => void run((b) => b.saveTestimonial({ id: null, quote: t.quote.trim(), name: t.name.trim(), brand: t.brand.trim() || null, approved: false })).then(() => setT({ quote: "", name: "", brand: "" }))}
           >
             Add
           </Button>
@@ -444,8 +462,8 @@ function ContentView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
             <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-2 text-sm">
               <span>“{x.quote}” — {x.name}{x.brand ? `, ${x.brand}` : ""}</span>
               <span className="flex items-center gap-2">
-                <label className="flex items-center gap-1 text-xs"><input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" checked={x.approved} onChange={(e) => void run((b) => b.admin.saveTestimonial({ ...x, approved: e.target.checked }))} /> Approved (shows on page)</label>
-                <Button size="sm" variant="outline" onClick={() => void run((b) => b.admin.deleteTestimonial(x.id))}>Delete</Button>
+                <label className="flex items-center gap-1 text-xs"><input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" checked={x.approved} onChange={(e) => void run((b) => b.saveTestimonial({ ...x, approved: e.target.checked }))} /> Approved (shows on page)</label>
+                <Button size="sm" variant="outline" onClick={() => void run((b) => b.deleteTestimonial(x.id))}>Delete</Button>
               </span>
             </li>
           ))}

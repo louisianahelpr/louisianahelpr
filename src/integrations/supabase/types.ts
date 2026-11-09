@@ -15032,6 +15032,224 @@ export type Database = {
         }
         Relationships: []
       }
+      sponsor_days: {
+        Row: {
+          day: number
+          signup_id: string
+        }
+        Insert: {
+          day: number
+          signup_id: string
+        }
+        Update: {
+          day?: number
+          signup_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsor_days_signup_id_fkey"
+            columns: ["signup_id"]
+            isOneToOne: false
+            referencedRelation: "sponsor_signups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sponsor_invites: {
+        Row: {
+          brand: string
+          created_at: string
+          email: string | null
+          id: string
+          ref_code: string
+        }
+        Insert: {
+          brand: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          ref_code: string
+        }
+        Update: {
+          brand?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          ref_code?: string
+        }
+        Relationships: []
+      }
+      sponsor_settings: {
+        Row: {
+          founder_photo_path: string | null
+          group_members: number | null
+          id: boolean
+          max_per_day: number | null
+          monthly_visitors: number | null
+          page_followers: number | null
+          updated_at: string
+        }
+        Insert: {
+          founder_photo_path?: string | null
+          group_members?: number | null
+          id?: boolean
+          max_per_day?: number | null
+          monthly_visitors?: number | null
+          page_followers?: number | null
+          updated_at?: string
+        }
+        Update: {
+          founder_photo_path?: string | null
+          group_members?: number | null
+          id?: boolean
+          max_per_day?: number | null
+          monthly_visitors?: number | null
+          page_followers?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sponsor_signups: {
+        Row: {
+          any_day: boolean
+          brand_name: string
+          contact_name: string
+          created_at: string
+          email: string
+          facebook: string | null
+          id: string
+          instagram: string | null
+          logo_path: string | null
+          notes: string | null
+          phone: string | null
+          prize_description: string
+          prize_value: number
+          ref_code: string | null
+          ship_to: string | null
+          show_on_wall: boolean
+          source: string
+          status: string
+          tiktok: string | null
+          updated_at: string
+          wall_ok: boolean
+          website: string | null
+        }
+        Insert: {
+          any_day?: boolean
+          brand_name: string
+          contact_name: string
+          created_at?: string
+          email: string
+          facebook?: string | null
+          id?: string
+          instagram?: string | null
+          logo_path?: string | null
+          notes?: string | null
+          phone?: string | null
+          prize_description: string
+          prize_value: number
+          ref_code?: string | null
+          ship_to?: string | null
+          show_on_wall?: boolean
+          source?: string
+          status?: string
+          tiktok?: string | null
+          updated_at?: string
+          wall_ok?: boolean
+          website?: string | null
+        }
+        Update: {
+          any_day?: boolean
+          brand_name?: string
+          contact_name?: string
+          created_at?: string
+          email?: string
+          facebook?: string | null
+          id?: string
+          instagram?: string | null
+          logo_path?: string | null
+          notes?: string | null
+          phone?: string | null
+          prize_description?: string
+          prize_value?: number
+          ref_code?: string | null
+          ship_to?: string | null
+          show_on_wall?: boolean
+          source?: string
+          status?: string
+          tiktok?: string | null
+          updated_at?: string
+          wall_ok?: boolean
+          website?: string | null
+        }
+        Relationships: []
+      }
+      sponsor_testimonials: {
+        Row: {
+          approved: boolean
+          brand: string | null
+          created_at: string
+          id: string
+          name: string
+          quote: string
+        }
+        Insert: {
+          approved?: boolean
+          brand?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          quote: string
+        }
+        Update: {
+          approved?: boolean
+          brand?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          quote?: string
+        }
+        Relationships: []
+      }
+      sponsor_visit_hits: {
+        Row: {
+          bucket: string
+          hit_at: string
+        }
+        Insert: {
+          bucket: string
+          hit_at?: string
+        }
+        Update: {
+          bucket?: string
+          hit_at?: string
+        }
+        Relationships: []
+      }
+      sponsor_visits: {
+        Row: {
+          device: string
+          id: number
+          ref_code: string | null
+          referrer: string | null
+          visited_at: string
+        }
+        Insert: {
+          device?: string
+          id?: number
+          ref_code?: string | null
+          referrer?: string | null
+          visited_at?: string
+        }
+        Update: {
+          device?: string
+          id?: number
+          ref_code?: string | null
+          referrer?: string | null
+          visited_at?: string
+        }
+        Relationships: []
+      }
       str_calendar_connections: {
         Row: {
           auto_create_cleaning: boolean

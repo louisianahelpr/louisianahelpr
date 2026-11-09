@@ -111,6 +111,7 @@ const NOT_APP_CHROME: Record<string, { rail?: string; dock?: string }> = {
   "/admin/preview/job": { dock: "under /admin (noNavPages hides the dock on every /admin path); the preview's own controls sit there" },
   "/admin/preview/messages": { dock: "under /admin (noNavPages hides the dock on every /admin path); the preview's own controls sit there" },
   "/admin/preview/onboarding": { dock: "under /admin (noNavPages hides the dock on every /admin path); the preview's own controls sit there" },
+  "/admin/sponsors": { dock: "under /admin (noNavPages hides the dock on every /admin path); the 25 Days sponsor admin is a desk tool like the console" },
 };
 
 function protectedRoutes(): string[] {

@@ -4,6 +4,7 @@
 // @mutate src/components/sponsor/ClaimSection.tsx |   if (maxPerDay !== null && count >= maxPerDay) return { label: C.claim.full, full: true }; |   if (maxPerDay !== null && count > maxPerDay) return { label: C.claim.full, full: true };
 // @mutate src/components/sponsor/Sections.tsx |         {greetingBrand ? ( |         {true ? (
 // @mutate api/share.ts |   sponsor: SPONSOR_CARD, |   sponsorX: SPONSOR_CARD,
+// @mutate supabase/functions/_shared/sponsorSignup.ts |   return nowMs < closesAt; |   return true;
 /**
  * 25 Days of Louisiana Giveaways (owner spec 2026-11-09): the page-side rules.
  *  - the sign-up validator the page AND the sponsor-25days function run;
@@ -22,7 +23,7 @@ import path from "node:path";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { sponsorPage } from "@/content/sponsorPage";
-import { checkLogo, cleanDays, normalizeRef, slugifyBrand, sniffLogoType, validateSponsorSignup } from "../../supabase/functions/_shared/sponsorSignup";
+import { SPONSOR_SIGNUP_DEADLINE, checkLogo, cleanDays, normalizeRef, slugifyBrand, sniffLogoType, sponsorSignupsOpen, validateSponsorSignup } from "../../supabase/functions/_shared/sponsorSignup";
 import { filledUrl, hasPlaceholder, onlyFilled, statNumber } from "@/lib/sponsor/placeholders";
 import { buildIcs, countdown, dayStartUtc, daysLabel } from "@/lib/sponsor/dates";
 import { About, BrandGets, Faq, Footer, Founder, Hero, Reach, filledStats } from "@/components/sponsor/Sections";
@@ -235,6 +236,28 @@ describe("dates, calendar file and CSV", () => {
     expect(csv).toContain("'+1");
     expect(csv).toContain("3 12");
     expect(csv.split("\r\n")[0]).toContain("Prize value ($)");
+  });
+});
+
+describe("sign-up deadline (owner 2026-11-09: claim your day by Nov 30)", () => {
+  it("the content file and the server agree on the date", () => {
+    expect(sponsorPage.event.signup_deadline).toBe(SPONSOR_SIGNUP_DEADLINE);
+  });
+  it("open through Nov 30 in Louisiana, closed from midnight Dec 1 (06:00 UTC)", () => {
+    expect(sponsorSignupsOpen(Date.UTC(2026, 11, 1, 5, 59, 59))).toBe(true);
+    expect(sponsorSignupsOpen(Date.UTC(2026, 11, 1, 6, 0, 0))).toBe(false);
+    expect(sponsorSignupsOpen(Date.UTC(2026, 10, 9))).toBe(true);
+    expect(sponsorSignupsOpen(0, "not a date")).toBe(false);
+  });
+  it("after the deadline the form is gone and says sign-ups are closed; before it, the deadline line shows", () => {
+    const st: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
+    const closed = render(<ClaimSection state={st} greetingBrand={null} refCode={null} nowMs={Date.UTC(2026, 11, 2)} onSubmit={async () => ({ ok: false, kind: "error" })} />);
+    expect(closed.getByTestId("sponsor-closed").textContent).toContain(sponsorPage.claim.closedTitle);
+    expect(closed.container.querySelector("form")).toBeNull();
+    closed.unmount();
+    const open = render(<ClaimSection state={st} greetingBrand={null} refCode={null} nowMs={Date.UTC(2026, 10, 20)} onSubmit={async () => ({ ok: false, kind: "error" })} />);
+    expect(open.container.querySelector("form")).not.toBeNull();
+    expect(open.container.textContent).toContain(sponsorPage.claim.deadline);
   });
 });
 

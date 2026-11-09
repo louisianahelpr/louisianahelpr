@@ -22,6 +22,21 @@ export const SPONSOR_LIMITS = {
   lastDay: 25,
 } as const;
 
+/**
+ * The last day to sign up, Louisiana time (src/content/sponsorPage.ts event.signup_deadline says the same date).
+ * December is Central Standard Time (UTC-6), so sign-ups close at 06:00 UTC on the next day.
+ */
+export const SPONSOR_SIGNUP_DEADLINE = "2026-11-30";
+
+/** Are sign-ups still open at `nowMs`? Open through the whole deadline day in Louisiana. */
+export function sponsorSignupsOpen(nowMs: number, deadline: string = SPONSOR_SIGNUP_DEADLINE): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(deadline);
+  if (!m) return false;
+  // Midnight starting the next day in Louisiana: 06:00 UTC (CST) in late November / December.
+  const closesAt = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 1, 6, 0, 0);
+  return nowMs < closesAt;
+}
+
 export const SPONSOR_LOGO_TYPES = ["image/png", "image/jpeg", "image/svg+xml"] as const;
 export type SponsorLogoType = (typeof SPONSOR_LOGO_TYPES)[number];
 

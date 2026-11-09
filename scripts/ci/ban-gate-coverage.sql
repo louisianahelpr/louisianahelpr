@@ -251,7 +251,8 @@ rpc_exempt(fn, why) AS (
   ('apply_message_violation_consequence', 'only ever escalates the caller own ladder; refusing it would let a ban dodge escalation'),
   ('apply_cancellation_violation_consequence', 'only escalates the caller own ladder for their own cancelled job'),
   ('apply_low_rating_flag', 'derived from reviews that already exist; needs a prior review by the caller, which a ban cannot add'),
-  ('process_referral', 'enrols the caller only; enforce_referral_credit_eligibility already refuses banned accounts')
+  ('process_referral', 'enrols the caller only; enforce_referral_credit_eligibility already refuses banned accounts'),
+  ('sponsor_log_visit', '25 Days page view counter (20261109162829): anon-callable, inserts one row of ref + referrer origin + device and posts no content anyone else reads; refusing a banned member would only hide a page view')
 ),
 ops(op, bit) AS (VALUES ('INSERT', 4), ('DELETE', 8), ('UPDATE', 16)),
 tbls AS (

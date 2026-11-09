@@ -126,15 +126,31 @@ CREATE TABLE IF NOT EXISTS public.sponsor_visit_hits (
 CREATE INDEX IF NOT EXISTS sponsor_visit_hits_idx ON public.sponsor_visit_hits (bucket, hit_at);
 CREATE INDEX IF NOT EXISTS sponsor_visit_hits_at_idx ON public.sponsor_visit_hits (hit_at);
 
+-- No browser role reads or writes any sponsor table: RLS on with no policy, every client privilege revoked,
+-- the service role (the sponsor-25days function and the SECURITY DEFINER functions below) keeps them.
+ALTER TABLE public.sponsor_invites ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.sponsor_invites FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.sponsor_invites TO service_role;
+ALTER TABLE public.sponsor_visits ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.sponsor_visits FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.sponsor_visits TO service_role;
+ALTER TABLE public.sponsor_signups ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.sponsor_signups FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.sponsor_signups TO service_role;
+ALTER TABLE public.sponsor_days ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.sponsor_days FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.sponsor_days TO service_role;
+ALTER TABLE public.sponsor_testimonials ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.sponsor_testimonials FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.sponsor_testimonials TO service_role;
+ALTER TABLE public.sponsor_settings ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.sponsor_settings FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.sponsor_settings TO service_role;
+ALTER TABLE public.sponsor_visit_hits ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.sponsor_visit_hits FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.sponsor_visit_hits TO service_role;
 DO $do$
-DECLARE t text;
 BEGIN
-  FOREACH t IN ARRAY ARRAY['sponsor_invites', 'sponsor_visits', 'sponsor_signups', 'sponsor_days',
-                           'sponsor_testimonials', 'sponsor_settings', 'sponsor_visit_hits'] LOOP
-    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
-    EXECUTE format('REVOKE ALL ON TABLE public.%I FROM PUBLIC, anon, authenticated', t);
-    EXECUTE format('GRANT ALL ON TABLE public.%I TO service_role', t);
-  END LOOP;
   IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
     PERFORM public.attach_unconfirmed_email_gate();
   END IF;
@@ -358,7 +374,10 @@ SECURITY DEFINER
 SET search_path TO 'public'
 AS $function$
 BEGIN
-  PERFORM public.sponsor_require_admin();
+  IF NOT COALESCE(public.has_role((SELECT auth.uid()), 'admin'::app_role), false) THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.sponsor_require_admin();  -- the admin check again, plus the switch
   RETURN jsonb_build_object(
     'signups', COALESCE((SELECT jsonb_agg(to_jsonb(s) - 'updated_at' || jsonb_build_object(
                           'days', COALESCE((SELECT jsonb_agg(d.day ORDER BY d.day) FROM public.sponsor_days d WHERE d.signup_id = s.id), '[]'::jsonb))
@@ -387,9 +406,12 @@ SECURITY DEFINER
 SET search_path TO 'public'
 AS $function$
 BEGIN
-  PERFORM public.sponsor_require_admin();
+  IF NOT COALESCE(public.has_role((SELECT auth.uid()), 'admin'::app_role), false) THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.sponsor_require_admin();  -- the admin check again, plus the switch
   UPDATE public.sponsor_signups SET status = p_status, updated_at = now() WHERE id = p_signup_id;
-  IF NOT FOUND THEN RAISE EXCEPTION 'not_found' USING ERRCODE = 'P0002'; END IF;
+  IF NOT FOUND THEN RAISE EXCEPTION 'not_found' USING ERRCODE = 'PT404'; END IF;
 END;
 $function$;
 
@@ -403,10 +425,13 @@ SECURITY DEFINER
 SET search_path TO 'public'
 AS $function$
 BEGIN
-  PERFORM public.sponsor_require_admin();
+  IF NOT COALESCE(public.has_role((SELECT auth.uid()), 'admin'::app_role), false) THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.sponsor_require_admin();  -- the admin check again, plus the switch
   IF p_to_day IS NULL OR p_to_day NOT BETWEEN 1 AND 25 THEN RAISE EXCEPTION 'invalid_day' USING ERRCODE = '22023'; END IF;
   IF NOT EXISTS (SELECT 1 FROM public.sponsor_signups WHERE id = p_signup_id) THEN
-    RAISE EXCEPTION 'not_found' USING ERRCODE = 'P0002';
+    RAISE EXCEPTION 'not_found' USING ERRCODE = 'PT404';
   END IF;
   IF p_from_day IS NOT NULL THEN
     DELETE FROM public.sponsor_days WHERE signup_id = p_signup_id AND day = p_from_day;
@@ -424,10 +449,13 @@ SECURITY DEFINER
 SET search_path TO 'public'
 AS $function$
 BEGIN
-  PERFORM public.sponsor_require_admin();
+  IF NOT COALESCE(public.has_role((SELECT auth.uid()), 'admin'::app_role), false) THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.sponsor_require_admin();  -- the admin check again, plus the switch
   -- The CHECK sponsor_signups_wall_needs_ok refuses showing a sponsor who did not say OK.
   UPDATE public.sponsor_signups SET show_on_wall = COALESCE(p_show, false), updated_at = now() WHERE id = p_signup_id;
-  IF NOT FOUND THEN RAISE EXCEPTION 'not_found' USING ERRCODE = 'P0002'; END IF;
+  IF NOT FOUND THEN RAISE EXCEPTION 'not_found' USING ERRCODE = 'PT404'; END IF;
 END;
 $function$;
 
@@ -444,7 +472,10 @@ DECLARE
   v_code text;
   n integer := 1;
 BEGIN
-  PERFORM public.sponsor_require_admin();
+  IF NOT COALESCE(public.has_role((SELECT auth.uid()), 'admin'::app_role), false) THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.sponsor_require_admin();  -- the admin check again, plus the switch
   v_base := left(btrim(regexp_replace(regexp_replace(lower(COALESCE(p_brand, '')), '&', ' and ', 'g'), '[^a-z0-9]+', '-', 'g'), '-'), 56);
   v_base := btrim(v_base, '-');
   IF v_base = '' THEN v_base := 'brand'; END IF;
@@ -467,9 +498,12 @@ SET search_path TO 'public'
 AS $function$
 DECLARE v_code text;
 BEGIN
-  PERFORM public.sponsor_require_admin();
+  IF NOT COALESCE(public.has_role((SELECT auth.uid()), 'admin'::app_role), false) THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.sponsor_require_admin();  -- the admin check again, plus the switch
   DELETE FROM public.sponsor_invites WHERE id = p_invite_id RETURNING ref_code INTO v_code;
-  IF v_code IS NULL THEN RAISE EXCEPTION 'not_found' USING ERRCODE = 'P0002'; END IF;
+  IF v_code IS NULL THEN RAISE EXCEPTION 'not_found' USING ERRCODE = 'PT404'; END IF;
   DELETE FROM public.sponsor_visits WHERE ref_code = v_code;
 END;
 $function$;
@@ -487,7 +521,10 @@ DECLARE
   v_days smallint[];
   v_wall boolean := COALESCE((p_signup->>'wall_ok')::boolean, false);
 BEGIN
-  PERFORM public.sponsor_require_admin();
+  IF NOT COALESCE(public.has_role((SELECT auth.uid()), 'admin'::app_role), false) THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.sponsor_require_admin();  -- the admin check again, plus the switch
   SELECT COALESCE(array_agg(DISTINCT d::smallint ORDER BY d::smallint), '{}')
     INTO v_days FROM jsonb_array_elements_text(COALESCE(p_signup->'days', '[]'::jsonb)) AS d;
   INSERT INTO public.sponsor_signups (id, brand_name, contact_name, email, prize_description, prize_value, any_day,
@@ -510,7 +547,10 @@ SECURITY DEFINER
 SET search_path TO 'public'
 AS $function$
 BEGIN
-  PERFORM public.sponsor_require_admin();
+  IF NOT COALESCE(public.has_role((SELECT auth.uid()), 'admin'::app_role), false) THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.sponsor_require_admin();  -- the admin check again, plus the switch
   UPDATE public.sponsor_settings
      SET max_per_day = p_max_per_day, group_members = p_group_members, page_followers = p_page_followers,
          monthly_visitors = p_monthly_visitors, updated_at = now()
@@ -527,7 +567,10 @@ SET search_path TO 'public'
 AS $function$
 DECLARE v_id uuid;
 BEGIN
-  PERFORM public.sponsor_require_admin();
+  IF NOT COALESCE(public.has_role((SELECT auth.uid()), 'admin'::app_role), false) THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.sponsor_require_admin();  -- the admin check again, plus the switch
   IF p_id IS NULL THEN
     INSERT INTO public.sponsor_testimonials (quote, name, brand, approved)
     VALUES (btrim(p_quote), btrim(p_name), nullif(btrim(COALESCE(p_brand, '')), ''), COALESCE(p_approved, false))
@@ -537,7 +580,7 @@ BEGIN
        SET quote = btrim(p_quote), name = btrim(p_name), brand = nullif(btrim(COALESCE(p_brand, '')), ''),
            approved = COALESCE(p_approved, false)
      WHERE id = p_id RETURNING id INTO v_id;
-    IF v_id IS NULL THEN RAISE EXCEPTION 'not_found' USING ERRCODE = 'P0002'; END IF;
+    IF v_id IS NULL THEN RAISE EXCEPTION 'not_found' USING ERRCODE = 'PT404'; END IF;
   END IF;
   RETURN v_id;
 END;
@@ -551,7 +594,10 @@ SECURITY DEFINER
 SET search_path TO 'public'
 AS $function$
 BEGIN
-  PERFORM public.sponsor_require_admin();
+  IF NOT COALESCE(public.has_role((SELECT auth.uid()), 'admin'::app_role), false) THEN
+    RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';
+  END IF;
+  PERFORM public.sponsor_require_admin();  -- the admin check again, plus the switch
   DELETE FROM public.sponsor_testimonials WHERE id = p_id;
 END;
 $function$;

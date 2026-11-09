@@ -1113,7 +1113,8 @@ function metaForNoindexPage(id: string): Meta | null {
     ogDescription: page.ogDescription,
     url: page.canonical,
     robots: page.robots,
-    ...(card ? { image: { url: `${SITE_ORIGIN}${card.path}`, type: "image/png", width: 1200, height: 630, alt: card.alt } } : {}),
+    // 1200x630, the size public/og-25days.png is (checked by src/test/sponsor25days.test.tsx).
+    ...(card ? { image: { url: SITE_ORIGIN + card.path, type: "image/png", width: 1200, height: 630, alt: card.alt } } : {}),
   };
 }
 

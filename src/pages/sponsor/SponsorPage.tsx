@@ -52,14 +52,14 @@ function shouldLogVisit(ref: string | null): boolean {
   return true;
 }
 
-export function SponsorShell({ children }: { children: React.ReactNode }) {
+/** The page's own top: the dev-only sample-data ribbon and the string lights. */
+export function SponsorChrome() {
   const demo = import.meta.env.DEV && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo");
   return (
-    <div className="lh25">
+    <>
       {demo ? <div className="lh25-demo-ribbon">LOCAL PREVIEW · SAMPLE DATA · NOT LIVE</div> : null}
       <Garland />
-      {children}
-    </div>
+    </>
   );
 }
 
@@ -78,6 +78,8 @@ export default function SponsorPage() {
   const { pathname } = useLocation();
   const refCode = normalizeRef(params.get("ref"));
   const preview = import.meta.env.DEV && params.has("demo") && params.has("placeholders");
+  // Local preview only: show the claim section as it looks after the sign-up deadline.
+  const previewClosed = import.meta.env.DEV && params.has("demo") && params.has("closed");
   const backend = useBackend();
 
 
@@ -102,20 +104,22 @@ export default function SponsorPage() {
 
   if (!backend || stateQ.isPending) {
     return (
-      <SponsorShell>
+      <div className="lh25 min-h-screen bg-premium-page">
+        <SponsorChrome />
         <div className="lh25-loading" role="status" aria-live="polite"><span className="lh25-spinner" aria-hidden="true" /> Loading…</div>
-      </SponsorShell>
+      </div>
     );
   }
   if (stateQ.isError) {
     return (
-      <SponsorShell>
+      <div className="lh25 min-h-screen bg-premium-page">
+        <SponsorChrome />
         <div className="lh25-loading" role="alert">
           <p>We couldn't load this page. Check your connection and try again.</p>
           <button type="button" className="lh25-btn lh25-btn-primary" onClick={() => void stateQ.refetch()}>Try again</button>
           <p>Or email <a href={`mailto:${C.links.email}`}>{C.links.email}</a>.</p>
         </div>
-      </SponsorShell>
+      </div>
     );
   }
   if (!on) {
@@ -125,10 +129,11 @@ export default function SponsorPage() {
   return (
     <PlaceholderPreview.Provider value={preview}>
       {pathname === "/25days" ? <Head25days /> : <HeadSponsor />}
-      <SponsorShell>
+      <div className="lh25 min-h-screen bg-premium-page">
+        <SponsorChrome />
         <Hero greetingBrand={state.greetingBrand} />
         <TrustStrip />
-        <main className="lh25-main">
+        <div className="lh25-main">
           <About />
           <Founder photoUrl={photoUrl} />
           <HowItWorks />
@@ -138,12 +143,12 @@ export default function SponsorPage() {
           <PreviewCard />
           <SponsorWall wall={state.wall} logoUrl={(id) => backend.logoUrl(id)} />
           <Testimonials items={state.testimonials} />
-          <ClaimSection state={state} greetingBrand={state.greetingBrand} refCode={refCode} onSubmit={(p, logo) => backend.submit(p, logo)} />
+          <ClaimSection state={state} greetingBrand={state.greetingBrand} refCode={refCode} onSubmit={(p, logo) => backend.submit(p, logo)} nowMs={previewClosed ? Date.UTC(2026, 11, 2) : undefined} />
           <Faq />
-        </main>
+        </div>
         <FinalCta />
         <Footer />
-      </SponsorShell>
+      </div>
     </PlaceholderPreview.Provider>
   );
 }

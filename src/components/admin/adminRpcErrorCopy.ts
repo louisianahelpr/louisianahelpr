@@ -25,6 +25,9 @@ import { RENTALS_ERROR_COPY as RC } from "@/lib/rentals/errorCopy";
 import { codeNamedIn, type MappedRpc } from "@/lib/lifecycleErrors";
 import { RPC_ERROR_COPY } from "@/lib/lifecycleErrorCopy";
 
+const SPONSOR_NA = "Only an admin can manage 25 Days sponsors.";
+const SPONSOR_FD = "The 25 Days page is switched off. Turn on sponsor_25days in Admin, Settings, Hidden Feature Switches (Testers is enough to set up).";
+
 export const ADMIN_RPC_ERROR_COPY = {
   // UserAuditLog (admin).
   admin_reverse_violation: {
@@ -460,6 +463,17 @@ export const ADMIN_RPC_ERROR_COPY = {
   resolve_approval_escalation: {
     not_authorized: "Only an admin can close a job waiting on approval.",
   },
+  // 25 Days of Louisiana Giveaways admin (/admin/sponsors, 20261109162829).
+  sponsor_admin_overview: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD },
+  sponsor_admin_set_status: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD, not_found: "That sponsor is gone. Refresh the page." },
+  sponsor_admin_move_day: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD, not_found: "That sponsor is gone. Refresh the page.", invalid_day: "Pick a day from December 1 to 25." },
+  sponsor_admin_set_wall: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD, not_found: "That sponsor is gone. Refresh the page." },
+  sponsor_admin_add_invite: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD },
+  sponsor_admin_delete_invite: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD, not_found: "That link was already deleted. Refresh the page." },
+  sponsor_admin_add_signup: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD },
+  sponsor_admin_save_settings: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD },
+  sponsor_admin_save_testimonial: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD, not_found: "That testimonial was deleted. Refresh the page." },
+  sponsor_admin_delete_testimonial: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD },
 } satisfies Record<string, Record<string, string>>;
 
 export type AdminMappedRpc = keyof typeof ADMIN_RPC_ERROR_COPY;

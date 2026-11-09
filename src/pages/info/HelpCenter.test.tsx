@@ -35,6 +35,22 @@ const renderHelp = () =>
     </MemoryRouter>,
   );
 
+// F033 (owner UI audit 11-09): the answers ran the full 1440px width (~1,250px a line). The FAQ column is capped at
+// 760px and centred.
+// @mutate src/pages/info/HelpCenter.tsx | page-measure max-w-[760px] space-y-section | page-measure space-y-section
+describe("/help answers keep a reading measure (F033)", () => {
+  it("the FAQ column is capped at 760px and centred", () => {
+    const { container } = renderHelp();
+    const col = container.querySelector("#faq [data-help-measure]") as HTMLElement;
+    expect(col).not.toBeNull();
+    const cls = col.className.split(/\s+/);
+    expect(cls).toContain("max-w-[760px]");
+    expect(cls).toContain("mx-auto");
+    // Every topic sits inside the capped column.
+    expect(col.querySelectorAll("[id^='faq-']").length).toBeGreaterThan(3);
+  });
+});
+
 describe("/help offers one unambiguous way to reach a person", () => {
   it("renders the escape hatch as the shared GLOSSY primary control, not an inline link", () => {
     renderHelp();

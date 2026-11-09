@@ -232,7 +232,8 @@ const HelpCenter = () => {
         className="scroll-mt-24"
       >
         <h2 id="faq-heading" className="sr-only">Frequently asked questions</h2>
-        <div className="mx-auto page-measure space-y-section">
+        {/* F033 (owner UI audit 11-09): a reading measure on the answers, centred. At 1440 they ran ~1,250px a line. */}
+        <div className="mx-auto page-measure max-w-[760px] space-y-section" data-help-measure="">
           <div className="space-y-3 sm:space-y-4">
             {sections.map((section) => (
               <TopicSection

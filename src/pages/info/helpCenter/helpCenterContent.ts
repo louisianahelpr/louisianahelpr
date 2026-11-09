@@ -164,7 +164,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // `void-cancelled-payments/index.ts:258`. A poster cancelling an
         // accepted job two days out was told they owed a fee they do not owe,
         // which is the version of this error that costs the platform a job.
-        a: `Yes. ${NO_HIRE_REFUND} After you accept a Helpr, it's the same up to 24 hours before the start, with no strike. Closer than that, the Helpr also gets part of the price for holding the time, and it counts as a strike. You'll see the exact amount first.`,
+        a: `Yes. ${NO_HIRE_REFUND} After you accept a Helpr, cancelling works the same up to 24 hours before the start, with no strike. Closer than that, the Helpr also gets part of the price for holding the time, and it counts as a strike. You'll see the exact amount first.`,
       },
     ],
   },

@@ -14,6 +14,11 @@
  * lazily loaded button has arrived, both before it is asked for and while its chunk is in flight.
  * @mutate src/components/landing/SectionsShowcase.tsx | <Suspense fallback={<AppleSlot />}> | <Suspense fallback={null}>
  * @mutate src/components/landing/SectionsShowcase.tsx |             ) : (\n              <AppleSlot />\n            )} |             ) : null}
+ *
+ * F027: the landing's Continue with Apple was a white button; Sign up and Log in show the solid ink one (Apple's own
+ * black/white pair, SocialAuthButtons board 37/55). The landing now wears the same fill and text colour, read from
+ * SocialAuthButtons' own style so the two cannot drift apart.
+ * @mutate src/components/landing/LandingAppleButton.tsx | style={{ backgroundColor: "hsl(var(--foreground))", color: "hsl(var(--background))", | style={{ backgroundColor: "var(--lp-surface)", color: "var(--lp-ink)",
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -108,5 +113,18 @@ describe("landing UI audit 2026-11-09", () => {
       expect(screen.queryByTestId("landing-apple-slot")).toBeNull();
       unmount();
     });
+  });
+
+  it("F027: the landing's Apple button has Sign up's solid ink fill and text colour", async () => {
+    const social = readFileSync(resolve(__dirname, "../components/auth/SocialAuthButtons.tsx"), "utf8");
+    const m = social.match(/provider === "apple" \? \{ backgroundColor: "([^"]+)", color: "([^"]+)" \}/);
+    expect(m, "SocialAuthButtons' Apple style moved: update this guard").not.toBeNull();
+    const [, fill, ink] = m!;
+    const { default: LandingAppleButton } = await import("@/components/landing/LandingAppleButton");
+    const { unmount } = render(<LandingAppleButton />);
+    const button = screen.getByTestId("landing-apple");
+    expect(button.style.backgroundColor).toBe(fill);
+    expect(button.style.color).toBe(ink);
+    unmount();
   });
 });

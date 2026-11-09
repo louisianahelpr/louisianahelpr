@@ -413,6 +413,8 @@ export const FORMS: FormSpec[] = [
   },
   { name: "support", url: "/support", as: null, covers: ["src/pages/info/Support.tsx", "src/lib/supportTopics.ts"] },
   { name: "legal-search", url: "/legal", as: null, prepare: openSearch, covers: ["src/pages/info/Legal.tsx"] },
+  // F034 (owner UI audit, 11-09): the Help center's permanent "Search help" field.
+  { name: "help-search", url: "/help", as: null, covers: ["src/pages/info/HelpCenter.tsx"] },
   {
     // SIGNED IN, not signed out. /reset-password renders its two password
     // fields on three conditions (ResetPassword.tsx): a `#type=recovery` hash,

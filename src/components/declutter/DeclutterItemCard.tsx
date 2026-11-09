@@ -14,7 +14,7 @@ import { cardPhotoSrcSet, CARD_PHOTO_SIZES } from "@/lib/declutter/photoSizes";
 import { useLoadPhotoAhead } from "./useLoadPhotoAhead";
 import { holdForFirstRowPhoto, useLaterPhotosOpen } from "./firstRowPhotoGate";
 import { formatPrice, milesLabel, itemPriceLabel } from "@/lib/declutter/distance";
-import { PriceInclFee } from "./PriceInclFee";
+import { PriceInclFee, cardLinkLabel } from "./PriceInclFee";
 import { PhotoTag, PhotoTagStack } from "@/components/ui/PhotoTag";
 import { PRICE_BASE, PRICE_DEAL } from "@/components/ui/designScale";
 import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
@@ -89,6 +89,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
   const card = (
     <Link
       to={`/declutter/item/${item.id}`}
+      aria-label={cardLinkLabel(item.title, item.current_price_cents)}
       data-item-card=""
       className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >

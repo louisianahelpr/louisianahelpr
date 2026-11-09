@@ -219,6 +219,7 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
     // it in either direction: 8 name the percent, 6 more name the pay inputs.
     const MEASURED_LISTS = [
       "src/boot/guestJobsPrefetch.ts",
+      "src/boot/guestJobsPrefetch.ts", // F010 (11-09): the landing's Live now read, a copy of LiveJobsSection's list
       "src/boot/jobsPrefetch.ts", // B43 (11-03): the signed-in /jobs entry prefetch reads the same feed columns
       "src/components/admin/AdminDisputes.tsx",
       "src/components/admin/AdminDisputes.tsx",

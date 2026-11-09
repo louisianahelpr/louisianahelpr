@@ -71,7 +71,7 @@ export function LandingBrowseSwitch() {
       <div
         id="declutter"
         data-testid="landing-browse-switch"
-        className="scroll-mt-20 px-5 sm:px-8 lg:px-12 pt-10 lg:pt-14"
+        className="scroll-mt-20 px-5 sm:px-8 lg:px-12 pt-4 sm:pt-10 lg:pt-14"
         style={{ background: "var(--lp-surface)" }}
       >
         <div className="mx-auto w-full max-w-md">

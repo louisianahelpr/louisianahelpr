@@ -40,9 +40,11 @@ const HeroSection = () => {
 
   return (
     // The first screen (owner, 2026-10-27: "it just needs to be centered on the page with the stuff
-    // below smaller"): the section fills the screen; the H1, subhead and search are one block centred
-    // under the top bar's clearance. The proof row moved below the fold (owner, 2026-11-02).
-    <section className="relative flex min-h-[100svh] flex-col px-5 sm:px-8 lg:px-12 pt-32 sm:pt-28 lg:pt-24 pb-8 lg:pb-10">
+    // below smaller"): the H1, subhead and search are one block centred under the top bar's clearance.
+    // The proof row moved below the fold (owner, 2026-11-02). Owner 11-08: on a phone the section is
+    // 7.5rem (120px) shorter than the screen (and its bottom padding smaller), so the Jobs | Declutter switch
+    // under it (LandingBrowseSwitch) peeks into the first screen; from sm it fills the screen as before.
+    <section className="relative flex min-h-[calc(100svh-7.5rem)] sm:min-h-[100svh] flex-col px-5 sm:px-8 lg:px-12 pt-32 sm:pt-28 lg:pt-24 pb-4 sm:pb-8 lg:pb-10">
       <div data-testid="landing-hero-block" className="flex flex-1 flex-col justify-center">
         <div className="relative mx-auto w-full max-w-[760px]">
           <div data-testid="landing-hero-column" className="flex flex-col items-center text-center min-w-0">

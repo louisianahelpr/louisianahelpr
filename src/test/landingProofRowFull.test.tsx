@@ -10,7 +10,8 @@
  * items it shows there, and that number is 3 (the finished job + two facts). Any item that goes
  * missing again, or a column count that is not the item count, fails here.
  *
- * The first screen: the section fills the screen (100svh) and the H1, subhead and search are one
+ * The first screen: the section fills the screen (100svh; on a phone 120px less, owner 11-08, so the Jobs | Declutter
+ * switch peeks in) and the H1, subhead and search are one
  * block centred in it (the proof row moved below the fold, owner 2026-11-02: landingProofBelowTheFold); the H1 keeps its sizes and stays at least 3x the subhead;
  * the subhead is at most 20px, the search field at most 52px tall, and the proof row's text at most
  * 16px with a photo at most 72px. Before/after screenshots and measurements at 375, 768 and 1440:
@@ -22,6 +23,7 @@
  * @mutate src/components/landing/HeroSection.tsx | pl-4 lg:pl-5 pr-1 h-12 lg:h-[52px] | pl-4 lg:pl-5 pr-1 h-12 lg:h-14
  * @mutate src/components/landing/HeroSection.tsx | <div data-testid="landing-hero-block" className="flex flex-1 flex-col justify-center"> | <div data-testid="landing-hero-block" className="flex flex-col">
  * @mutate src/components/landing/HeroSection.tsx | xl:text-[7.75rem] | xl:text-[6rem]
+ * @mutate src/components/landing/HeroSection.tsx | min-h-[calc(100svh-7.5rem)] sm:min-h-[100svh] | min-h-[100svh]
  * @mutate src/components/landing/LandingProof.tsx | text-ds-15 lg:text-ds-16 font-semibold" style={{ color: "var(--lp-ink)" }}>\n            {it.title} | text-ds-15 lg:text-ds-20 font-semibold" style={{ color: "var(--lp-ink)" }}>\n            {it.title}
  */
 import { readFileSync } from "node:fs";
@@ -90,8 +92,15 @@ describe("the hero block is centred in the first screen, the H1 stays dominant, 
     for (const c of [h1, sub, field, section, block]) expect(c.length).toBeGreaterThan(10);
   });
 
-  it("the section fills the first screen and the block is centred in it", () => {
-    expect(section.split(/\s+/)).toEqual(expect.arrayContaining(["flex", "flex-col", "min-h-[100svh]"]));
+  it("the section fills the first screen (on a phone less a peek for the switch) and the block is centred in it", () => {
+    expect(section.split(/\s+/)).toEqual(expect.arrayContaining(["flex", "flex-col", "sm:min-h-[100svh]"]));
+    // Owner 11-08: on a phone the section is shorter than the screen by enough for the Jobs | Declutter switch under
+    // it to show (its top padding plus most of its 48px track), and never by more than a third of a 568px phone.
+    const phone = /^min-h-\[calc\(100svh-(\d+(?:\.\d+)?)rem\)\]$/.exec(section.split(/\s+/).find((t) => t.startsWith("min-h-")) ?? "");
+    expect(phone, `phone min-height on the hero section: ${section}`).not.toBeNull();
+    const peekPx = Number(phone![1]) * 16;
+    expect(peekPx).toBeGreaterThanOrEqual(96);
+    expect(peekPx).toBeLessThanOrEqual(568 / 3);
     expect(block.split(/\s+/)).toEqual(expect.arrayContaining(["flex", "flex-1", "flex-col", "justify-center"]));
     // The H1, subhead and search are inside the block (the proof row is no longer in the hero).
     const at = (t: string) => hero.indexOf(t);

@@ -307,7 +307,9 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   const now = new Date();
   const outlook = new Map(others.map((i) => [i.id, dropOutlook(i, drops.data?.get(i.id), now)]));
   const showDrops = [...outlook.values()].some((o) => o.planned);
-  const rows = applyBrowseFilters(nearestFirst(others, from, from ? maxMiles : null), filters, query, drops.data, now, itemWays.data);
+  // F205: a tie (one spot, one live_at) keeps the first answer's order when the full list replaces it, so nothing moves.
+  const firstOrder = useMemo(() => (capped ? new Map(capped.items.map((it, n) => [String(it.id), n])) : undefined), [capped]);
+  const rows = applyBrowseFilters(nearestFirst(others, from, from ? maxMiles : null, firstOrder), filters, query, drops.data, now, itemWays.data);
   const q = query.trim().toLowerCase();
   const filterCount = activeFilterCount(filters, from ? maxMiles : null);
   const clearAll = () => {

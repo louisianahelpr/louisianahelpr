@@ -14,7 +14,8 @@
  *   - backing out of a trade line ends the whole trade at once, both items back up, offers on both reopen, trade
  *     wording, no strike (#5, #4);
  *   - the swap sweep: an ended line releases the other side through declutter_end_swap (#4), the "12 hours left"
- *     reminder goes once, offers are emailed, a test-account trade is never emailed (#11);
+ *     reminder goes once, offers are emailed through the notifications trigger, a row the seed boundary drops is never
+ *     emailed (#11);
  *   - an offered item paused closes the trade; a wanted item paused keeps it (#7); an item made free closes its
  *     trades and its switch (#6);
  *   - a meetup-only item cannot be traded (#9);
@@ -45,14 +46,21 @@ END $$;
 CREATE SCHEMA IF NOT EXISTS auth;
 CREATE TABLE auth.users (id uuid PRIMARY KEY);
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('test.uid', true), '')::uuid $$;
-CREATE TABLE public.notices (user_id uuid, kind text, title text, message text);
+-- The bell: declutter_notify writes public.notifications; a stand-in for notifications_seed_boundary (BEFORE INSERT)
+-- drops a row to a member in seed_ids, as the real boundary drops a row it may not write. notices reads the rows.
+CREATE TABLE public.notifications (id bigserial PRIMARY KEY, user_id uuid, type text, title text, message text, link text);
+CREATE TABLE public.seed_ids (id uuid PRIMARY KEY);
+CREATE FUNCTION public.seed_boundary_stub() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN IF EXISTS (SELECT 1 FROM public.seed_ids WHERE id = NEW.user_id) THEN RETURN NULL; END IF; RETURN NEW; END $$;
+CREATE TRIGGER notifications_seed_boundary BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION public.seed_boundary_stub();
+CREATE VIEW public.notices AS SELECT user_id, type AS kind, title, message FROM public.notifications;
 CREATE TABLE public.emails (user_id uuid, title text, kind text);
 CREATE TABLE public.strikes (member uuid, side text);
 CREATE TABLE public.reopened (line uuid);
 CREATE TABLE public.gate_calls (gate text, member uuid);
 CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, full_name text);
 CREATE FUNCTION public.declutter_notify(p_user uuid, p_type text, p_title text, p_message text, p_link text, p_actor uuid DEFAULT NULL)
-RETURNS void LANGUAGE sql AS $$ INSERT INTO public.notices VALUES (p_user, p_type, p_title, p_message) $$;
+RETURNS void LANGUAGE sql AS $$ INSERT INTO public.notifications (user_id, type, title, message, link) VALUES (p_user, p_type, p_title, p_message, p_link) $$;
 CREATE FUNCTION public.send_notice_email(p_user_id uuid, p_title text, p_message text, p_type text, p_link text, p_job_id uuid)
 RETURNS void LANGUAGE sql AS $$ INSERT INTO public.emails VALUES (p_user_id, p_title, p_type) $$;
 CREATE FUNCTION public.declutter_give_strike(p_member uuid, p_side text, p_reason text, p_item uuid, p_why text, p_line uuid)
@@ -212,8 +220,9 @@ check("#5 the canceller's own hold is released too", (await st("declutter_cart_i
 check("#5 both items are back up", (await st("declutter_items", t5.ia)) === "live" && (await st("declutter_items", t5.ib)) === "live");
 check("#4 held-back money offers on BOTH items reopen", (await count(`SELECT DISTINCT line FROM public.reopened WHERE line IN ('${t5.lb}', '${t5.la}')`)) === 2);
 check("#5 no strike for backing out", (await count(`SELECT 1 FROM public.strikes`)) === 0);
-check("#5 trade wording, not 'The giver cancelled'",
-  (await count(`SELECT 1 FROM public.notices WHERE title = 'Trade cancelled'`)) === 2
+check("#5 trade wording, not 'The giver cancelled' (the other side: Trade cancelled; the one who backed out: You cancelled the trade)",
+  (await count(`SELECT 1 FROM public.notices WHERE title = 'Trade cancelled' AND user_id = '${B}'`)) === 1
+  && (await count(`SELECT 1 FROM public.notices WHERE title = 'You cancelled the trade' AND user_id = '${A}'`)) === 1
   && (await count(`SELECT 1 FROM public.notices WHERE title LIKE 'The giver%' OR message LIKE '%free%'`)) === 0);
 check("#11 the other side is emailed that the trade is off", (await count(`SELECT 1 FROM public.emails WHERE user_id = '${B}' AND title = 'Trade cancelled'`)) === 1);
 
@@ -234,9 +243,10 @@ check("the sweep runs", !sw?.error, JSON.stringify(sw));
 check("#4 the other side's line is released", (await st("declutter_cart_items", t4.la)) === "missed" && (await st("declutter_items", t4.ib)) === "live");
 check("#4 offers on both items reopen", (await count(`SELECT DISTINCT line FROM public.reopened WHERE line IN ('${t4.lb}', '${t4.la}')`)) === 2);
 check("#2 each side is told once", (await count(`SELECT 1 FROM public.notices WHERE title = 'Trade ended, no strike'`)) === 2);
-check("#11 the 12-hour reminder goes to the seller", (await count(`SELECT 1 FROM public.emails WHERE user_id = '${A}' AND title LIKE 'Trade offer: about 12 hours left'`)) === 1);
-check("#11 a test-account trade is never emailed (bell only)",
-  (await count(`SELECT 1 FROM public.notices WHERE title LIKE 'Trade offer: about 12 hours left'`)) === 2);
+check("#11 the 12-hour reminder goes to the seller (A sells both offers due in 6 hours)", (await count(`SELECT 1 FROM public.emails WHERE user_id = '${A}' AND title LIKE 'Trade offer: about 12 hours left'`)) === 2);
+check("#11 each reminder row written is emailed once, through the notifications trigger",
+  (await count(`SELECT 1 FROM public.notices WHERE title LIKE 'Trade offer: about 12 hours left'`)) === 2
+  && (await count(`SELECT 1 FROM public.emails WHERE title LIKE 'Trade offer: about 12 hours left'`)) === 2);
 const sw2 = await one(`SELECT public.declutter_swap_sweep() AS r`);
 check("a second sweep sends no second reminder and ends nothing", sw2?.r?.reminded === 0 && sw2?.r?.lapsed === 0, JSON.stringify(sw2));
 await db.exec(`UPDATE public.declutter_swap_offers SET respond_by = now() - interval '1 minute' WHERE id = '${offR?.id}'`);
@@ -280,9 +290,11 @@ check("Remove releases the other side's line too", (await st("declutter_cart_ite
 check("Remove puts both items back up", (await st("declutter_items", tx.ia)) === "live" && (await st("declutter_items", tx.ib)) === "live");
 check("Remove reopens held-back money offers on both items", (await count(`SELECT DISTINCT line FROM public.reopened WHERE line IN ('${tx.lb}', '${tx.la}')`)) === 2);
 check("Remove on a trade line sends trade wording, never 'Back on sale'",
-  (await count(`SELECT 1 FROM public.notices WHERE title = 'Trade cancelled'`)) === 2
+  (await count(`SELECT 1 FROM public.notices WHERE title = 'Trade cancelled' AND user_id = '${A}'`)) === 1
+  && (await count(`SELECT 1 FROM public.notices WHERE title = 'You cancelled the trade' AND user_id = '${B}'`)) === 1
   && (await count(`SELECT 1 FROM public.notices WHERE title = 'Back on sale'`)) === 0);
-check("Remove on a trade line: the other side is emailed", (await count(`SELECT 1 FROM public.emails WHERE user_id = '${A}' AND title = 'Trade cancelled'`)) === 1);
+check("Remove on a trade line: the other side is emailed, the one who backed out is not", (await count(`SELECT 1 FROM public.emails WHERE user_id = '${A}' AND title = 'Trade cancelled'`)) === 1
+  && (await count(`SELECT 1 FROM public.emails WHERE user_id = '${B}'`)) === 0);
 check("Remove on a trade line gives no strike", (await count(`SELECT 1 FROM public.strikes`)) === 0);
 // Control: a plain Buy-now line still sends "Back on sale" and touches no trade.
 const [plainItem, plainLine] = [U(970), U(971)];
@@ -310,7 +322,67 @@ finally { await db.exec(`RESET ROLE`); }
 const firstListItem = gf?.p?.items?.[0];
 check("#3 the guest's whole list (no preview) runs as anon and answers accepts_trades", !!firstListItem && "accepts_trades" in firstListItem, JSON.stringify(gf).slice(0, 300));
 
-for (const fn of ["declutter_end_swap(uuid, uuid)", "declutter_swap_tell(uuid, text, text, text, text, uuid, boolean)", "declutter_swap_sweep()"]) {
+// #11: a trade email follows only a row the seed boundary let through, and only the trade titles are emailed.
+const S = U(990);
+await db.exec(`INSERT INTO public.seed_ids VALUES ('${S}'); DELETE FROM public.emails;`);
+await one(`SELECT public.declutter_notify('${S}', 'declutter_offers', 'New trade offer', 'x', '/declutter?tab=selling', '${A}')`);
+check("#11 a trade notice the seed boundary drops is never emailed", (await count(`SELECT 1 FROM public.notices WHERE user_id = '${S}'`)) === 0
+  && (await count(`SELECT 1 FROM public.emails`)) === 0);
+await one(`SELECT public.declutter_notify('${A}', 'declutter_sales', 'Trade set: choose a pickup within 48 hours', 'x', '/declutter?tab=buying', '${B}')`);
+await one(`SELECT public.declutter_notify('${A}', 'declutter_offers', 'New trade offer', 'x', '/jobs', '${B}')`);
+check("#11 bell-only trade notices and non-Declutter links are not emailed", (await count(`SELECT 1 FROM public.emails`)) === 0);
+const swapFns = await one(`SELECT count(*)::int AS c FROM pg_proc WHERE proname LIKE 'declutter_%swap%' AND prosrc LIKE '%send_notice_email%'`);
+check("#11 no trade function emails directly (only the notifications trigger does)", swapFns?.c === 0, JSON.stringify(swapFns));
+
+// Lander 11-08 (lead): main's trg_email_declutter_notice (20261108202546) also emails every declutter_offers /
+// declutter_sales notice outside its exclusion list, so with both triggers a trade notice went out twice.
+// 20261109005133 makes the trade trigger the one path. RED: TRADE_ONCE=skip (each emailed trade title goes twice,
+// and the three bell-only titles are emailed once).
+{
+  const NOTICES = "20261108202546_declutter_notices_email_and_honest_sold.sql";
+  const ONCE = "20261109005133_declutter_trade_email_once.sql";
+  const notices = readMigration(NOTICES);
+  const at = notices.indexOf("CREATE OR REPLACE FUNCTION public.email_declutter_notice()");
+  const tail = "EXECUTE FUNCTION public.email_declutter_notice();";
+  const end = notices.indexOf(tail, at) + tail.length;
+  check("main's Declutter notice trigger is cut verbatim from 20261108202546", at > 0 && end > at);
+  await db.exec(`CREATE OR REPLACE FUNCTION public.is_test_member(p uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;`);
+  await db.exec(notices.slice(at, end));
+  if (process.env.TRADE_ONCE !== "skip") {
+    try { for (let i = 0; i < 3; i++) await db.exec(readMigration(ONCE)); check("20261109005133 applies 3x", true); }
+    catch (e) { check("20261109005133 applies 3x", false, e.message); }
+  }
+  const emailed = [
+    ["declutter_offers", "New trade offer"], ["declutter_offers", "Trade offer declined"],
+    ["declutter_offers", "Trade offer expired"], ["declutter_offers", "Trade offer closed"],
+    ["declutter_offers", "Trade offer: about 12 hours left"],
+    ["declutter_sales", "Trade accepted: choose a pickup within 48 hours"],
+    ["declutter_sales", "Trade cancelled"], ["declutter_sales", "Trade ended, no strike"],
+  ];
+  for (const [kind, title] of emailed) {
+    await db.exec(`DELETE FROM public.emails`);
+    await one(`SELECT public.declutter_notify('${A}', '${kind}', '${title}', 'x', '/declutter?tab=selling', '${B}')`);
+    const n = await count(`SELECT 1 FROM public.emails WHERE user_id = '${A}'`);
+    check(`one trade notice is emailed exactly once: "${title}"`, n === 1, `send_notice_email calls: ${n}`);
+  }
+  const bellOnly = [
+    ["declutter_offers", "Trade offer withdrawn"], ["declutter_sales", "Trade set: choose a pickup within 48 hours"],
+    ["declutter_sales", "You cancelled the trade"],
+  ];
+  for (const [kind, title] of bellOnly) {
+    await db.exec(`DELETE FROM public.emails`);
+    await one(`SELECT public.declutter_notify('${A}', '${kind}', '${title}', 'x', '/declutter?tab=buying', '${B}')`);
+    const n = await count(`SELECT 1 FROM public.emails`);
+    check(`a bell-only trade notice is never emailed: "${title}"`, n === 0, `send_notice_email calls: ${n}`);
+  }
+  // A non-trade Declutter action notice is still emailed once, by main's trigger.
+  await db.exec(`DELETE FROM public.emails`);
+  await one(`SELECT public.declutter_notify('${A}', 'declutter_offers', 'Offer accepted', 'x', '/declutter?tab=buying', '${B}')`);
+  const other = await count(`SELECT 1 FROM public.emails WHERE user_id = '${A}'`);
+  check("a non-trade Declutter offer notice is still emailed once", other === 1, `send_notice_email calls: ${other}`);
+}
+
+for (const fn of ["declutter_end_swap(uuid, uuid)", "declutter_swap_sweep()"]) {
   const priv = await one(`SELECT has_function_privilege('authenticated', 'public.${fn}', 'EXECUTE') AS a, has_function_privilege('anon', 'public.${fn}', 'EXECUTE') AS n`);
   check(`${fn} is service_role only`, priv && priv.a === false && priv.n === false, JSON.stringify(priv));
 }

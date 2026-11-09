@@ -1449,6 +1449,7 @@ export type Database = {
           seller_id: string | null
           source: string
           status: string
+          swap_id: string | null
         }
         Insert: {
           list_price_cents?: number | null
@@ -1469,6 +1470,7 @@ export type Database = {
           seller_id?: string | null
           source: string
           status?: string
+          swap_id?: string | null
         }
         Update: {
           list_price_cents?: number | null
@@ -1489,6 +1491,7 @@ export type Database = {
           seller_id?: string | null
           source?: string
           status?: string
+          swap_id?: string | null
         }
         Relationships: [
           {
@@ -4449,6 +4452,7 @@ export type Database = {
           is_seed: boolean
           item_id: string
           offered_item_id: string
+          reminded_at: string | null
           respond_by: string
           seller_id: string
           seller_line_id: string | null
@@ -4464,6 +4468,7 @@ export type Database = {
           is_seed?: boolean
           item_id: string
           offered_item_id: string
+          reminded_at?: string | null
           respond_by: string
           seller_id: string
           seller_line_id?: string | null
@@ -4479,6 +4484,7 @@ export type Database = {
           is_seed?: boolean
           item_id?: string
           offered_item_id?: string
+          reminded_at?: string | null
           respond_by?: string
           seller_id?: string
           seller_line_id?: string | null
@@ -17028,6 +17034,14 @@ export type Database = {
           p_title: string
         }
         Returns: undefined
+      }
+      declutter_end_swap: {
+        Args: { p_actor: string; p_swap_id: string }
+        Returns: boolean
+      }
+      declutter_item_free_pickup_ok: {
+        Args: { p_handovers: string[]; p_porch_ok: boolean }
+        Returns: boolean
       }
       declutter_item_link_visible: {
         Args: { p_item_id: string }

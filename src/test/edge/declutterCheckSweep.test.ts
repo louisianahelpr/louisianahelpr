@@ -22,7 +22,7 @@
  * @mutate supabase/functions/declutter-ai-draft/checkSweep.ts |       if (outcome === "defect" \|\| outcome === "stale" \|\| outcome === "busy") { |       if (false) {
  * @mutate supabase/functions/declutter-ai-draft/index.ts |     return answer.status === 429 \|\| answer.status >= 500 ? "busy" : "defect"; |     return answer.status === 429 \|\| answer.status >= 500 ? "failed" : "defect";
  * @mutate supabase/functions/declutter-ai-draft/checkSweep.ts |   if (at(0) === 0x89 && ascii(1, 4) === "PNG") return "image/png"; |   if (at(0) === 0x89 && ascii(1, 4) === "PNG") return "image/jpeg";
- * @mutate supabase/migrations/20261101031241_declutter_check_sweep.sql |                       AND ((pv.ai_checked_at IS NULL AND pv.ai_check_attempts >= 3) OR pv.ai_flag_reason IS NOT NULL)) |                       AND (pv.ai_checked_at IS NULL OR pv.ai_flag_reason IS NOT NULL))
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |                       AND ((pv.ai_checked_at IS NULL AND pv.ai_check_attempts >= 3) OR pv.ai_flag_reason IS NOT NULL)) |                       AND (pv.ai_checked_at IS NULL OR pv.ai_flag_reason IS NOT NULL))
  * @mutate supabase/migrations/20261101031241_declutter_check_sweep.sql |        AND NOT public.is_test_subject(i.seller_id) |        AND true
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";

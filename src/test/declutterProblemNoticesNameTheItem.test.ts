@@ -4,7 +4,7 @@
  * tab (20261031100935). Behaviour: src/test/pglite/declutterProblemNoticesNameTheItem.pglite.mjs (17 PASS, 3x;
  * NEW_MIGRATION=skip 6 FAIL).
  *
- * @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql | format('The buyer asked for a refund on %s. | format('The buyer asked for a refund%s.
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql | format('The buyer asked for a refund on %s. | format('The buyer asked for a refund%s.
  * @mutate supabase/migrations/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql | format('A problem was reported on %s. The money | format('A problem was reported%s. The money
  * @mutate supabase/migrations/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql |     '/declutter?tab=' \|\| CASE WHEN v_side = 'buyer' THEN 'selling' ELSE 'buying' END, v_uid); |     '/declutter?tab=' \|\| CASE WHEN v_side = 'buyer' THEN 'buying' ELSE 'selling' END, v_uid);
  */

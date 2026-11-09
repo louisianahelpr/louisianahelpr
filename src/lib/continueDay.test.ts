@@ -4,7 +4,7 @@
  * (continue_day_label, migration 20261101231015) are proven in src/test/pglite/jobContinueDay.pglite.mjs.
  *
  * @mutate src/lib/continueDayWords.ts |       : { who: "them", text: `Continuing ${when}`, by: `waiting on ${other \|\| "your Helpr"} to confirm` }; |       : null;
- * @mutate src/lib/continueDayWords.ts |   const clock = mm ? `${h12}:${String(mm).padStart(2, "0")}` : `${h12}`; |   const clock = `${h12}:${String(mm).padStart(2, "0")}`;
+ * @mutate src/lib/continueDayWords.ts | ${h12}:${String(mm \|\| 0).padStart(2, "0")} ${hh < 12 | ${h12} ${hh < 12
  * @mutate src/lib/continueDayWords.ts |       ? { who: "you", text: `Confirm ${other ? `${other}'s` : "your Helpr's"} new day`, by: when } |       ? null
  * @mutate src/lib/continueDayWords.ts |       ? { who: "info", text: `${other \|\| "Your Helpr"} confirmed ${when}` } |       ? { who: "them", text: `Continuing ${when}`, by: `waiting on ${other \|\| "your Helpr"} to confirm` }
  */

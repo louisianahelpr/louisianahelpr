@@ -93,7 +93,7 @@
  * (M1 fee zeroed for one reason, M8 kept fee shrunk, M4 a caller passing no fee, M9 a caller recording our-mistake,
  * M5 the fee estimate, note 1 the reader projection); table statements (M2 an UPDATE, M6 a trigger, an order
  * card-fee UPDATE); the site (M3 the fee handed to the SQL, M12 a second amount spread in).
- * @mutate supabase/migrations/20261105030604_declutter_gift_cards.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
  * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
  * @mutate supabase/migrations/20261105052751_declutter_gift_delivery_refunds.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
@@ -743,7 +743,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // BUYER who blocked the seller now reads 'buyer_cancelled' (keep_card_fee: refund less the card fee) instead of
       // 'order_closed' (we paid it), after seller_backed_out and seller_out, as on an open checkout; the buyer's notice
       // no longer says "every cent" then. No other reason, amount or fee changed.
-      declutter_mark_order_paid: "20261105030604_declutter_gift_cards.sql 9d0521f8488b3974",
+      // Part 3 F197/F198/F193 (20261109224952, Builder 6, 11-09): notice wording only, md5 == LIVE before; no amount (PGlite S1).
+      declutter_mark_order_paid: "20261109224952_notices_card_fee_and_our_team.sql ecfb1b3d36cc96e4",
       // Owner 11-01 (B103, 20261101181129; lh-money-escrow via the lead): the giver's pick turns the asked time into a
       // paid FREE order ($0, card_fee_cents = 0, no payment) with its booking; it records no refund and moves no money.
       // A3-57 (20261102011547, Builder 125; re-pinned by Builder 151 after a line diff against 20261101181129): ONE
@@ -769,7 +770,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // A3-85 (20261102002011, read by Builder 151): deadline reminders for an open offer or refund request; reads the
       // request's answer-by times, writes needs_you_reminder_sends and sends a notice of kind 'declutter_refunds'. No
       // refund row, amount or fee is read or written.
-      sweep_needs_you_reminders: "20261102002011_needs_you_deadline_reminders.sql 4fa7776ee46055c9",
+      // Part 3 F197/F198/F193 (20261109224952, Builder 6, 11-09): notice wording only, md5 == LIVE before; no amount (PGlite S1).
+      sweep_needs_you_reminders: "20261109224952_notices_card_fee_and_our_team.sql bc1535c1dd9b9d32",
       // Not a refund path: it only NAMES the notice kind 'declutter_refunds' (20261028162048 / 20261028171944), so
       // the touches() test matches it. It maps a notice title to a push switch and records nothing.
       // 20261029194046 restates it verbatim plus two smart-offer titles under declutter_offers; still records nothing.
@@ -802,7 +804,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // T9 (20261031004529): taking back the buyer's no-show report also clears it, so the sweep can't refund on it; verdict owed.
       // LEAD-TAKENBACK-LINK (20261031103443): restated verbatim; only the "taken back" notice link reads ?tab=. Still records no refund.
       // Q2390 p36 (20261103221614): restated with its two not-found raises as PT404 only (ERRCODE only); still records no refund.
-      declutter_withdraw_problem: "20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql c10298c867a2c578",
+      // Part 3 F197/F198/F193 (20261109224952, Builder 6, 11-09): notice wording only, md5 == LIVE before; no amount (PGlite S1).
+      declutter_withdraw_problem: "20261109224952_notices_card_fee_and_our_team.sql 81c3efae142629c2",
       // T9 (20261031004529): names declutter_refunds only as its notice kind, since the notice moved to that switch; records no refund and moves no money (the seller's answer becomes an open problem, which holds the money).
       // Q2390 p37 (20261103222939): restated with its not-found as PT404 only (ERRCODE only); still records no refund.
       declutter_answer_no_show: "20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql c5eaf736034ab643",
@@ -826,7 +829,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // A3 reconcile (20261102084222, builder 166, lead verdict pending): 20261102031228 verbatim plus A3-72's loop (b2)
       // (a needs_time seller delivery past book_by closes as delivery_never_booked = full_platform_absorbs, no strike),
       // which 031228 dropped. Every other loop unchanged.
-      declutter_handover_sweep: "20261102084222_a3_stack_reconcile.sql f656e5c9f5444a25",
+      // Part 3 F197/F198/F193 (20261109224952, Builder 6, 11-09): notice wording only, md5 == LIVE before; no amount (PGlite S1).
+      declutter_handover_sweep: "20261109224952_notices_card_fee_and_our_team.sql 1d94322dc3ec2719",
       // Board 141: the ONE refund after the handover. Full = declutter_record_refund (keep_card_fee for the seller's
       // refund; the admin's fault reasons keep their policy) on the payment minus a delivery fee a Helpr earned (B69);
       // part = EXACTLY the offered amount (agreed_part, below the item price, card_fee_cents 0). Refuses a payout
@@ -839,7 +843,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // is prorated to v_paid (total - reserved) by declutter_card_fee_left. Reasons, amounts and the part refund unchanged.
       // Q1928 gap 3 (20261102063343): restated from Shipping S6 2g with Q1935's prorated fee restored; admin_no_fault
       // becomes seller_out while the seller is out.
-      declutter_refund_after_handover: "20261102063343_declutter_seller_out_after_payment.sql 595741c2cd15bf1a",
+      // Part 3 F197/F198/F193 (20261109224952, Builder 6, 11-09): notice wording only, md5 == LIVE before; no amount (PGlite S1).
+      declutter_refund_after_handover: "20261109224952_notices_card_fee_and_our_team.sql 9cfb215239e6ba43",
       // Board 141 (lh-money-escrow review should-fix 1): the seller payout queue now also waits while an agreed part
       // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
       // Q2106 S2 (20261105032500, Builder 3 11-04, WIP: lead money review owed): restated verbatim, plus o.gift_cents in
@@ -1088,7 +1093,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_refund_executed: "20261103111244_money_webhooks_not_found_is_404.sql e33914e554c0bfea", // Q2390 p25: ERRCODE-only restatement (md5-verified); records Stripe's answer, writes no amount
       shop_refund_fee_policy: "20261108184654_shops_preorders.sql 20e58bc1965172e1", // Custom orders 2b: + unpaid_close_tax under keep_card_fee. Preorders (money review owed): + preorder_shop_late / preorder_date_moved / preorder_goal_missed under full_shop_pays_fee; every other reason unchanged
       // Preorders (money review owed): goal missed / 7 days late -> shop_write_refund under full_shop_pays_fee, each order under its lock.
-      shop_preorder_sweep: "20261108184654_shops_preorders.sql 93d94daec1ecb61e",
+      // Part 3 F197/F198/F193 (20261109224952, Builder 6, 11-09): notice wording only, md5 == LIVE before; no amount (PGlite S1).
+      shop_preorder_sweep: "20261109224952_notices_card_fee_and_our_team.sql fe3b0a3a37079bf7",
       // Preorders: the buyer's cancel -> buyer_cancelled (keep_card_fee); preorder_goal_missed / preorder_shop_late / preorder_date_moved (the shop pays) after the sweep's own trigger or a push (money review 11-08).
       shops_cancel_preorder: "20261108184654_shops_preorders.sql 8a7b284cc64cb193",
       // Custom orders 2b (money review owed): writes the deposit's tax back as the order's unpaid_close_tax row (keep_card_fee, card fee 0: the
@@ -1106,9 +1112,11 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_write_refund: "20261019071055_shops_refunds_cancels_strikes.sql 8e2784ad6a3144e8",
       shops_admin_queue: "20261107035259_shops_admin_answer_photo.sql 535ebf837daa5341", // Shops admin answer photo (lh-authz-rls owed): only h.problem_photo_path added to the read-only queue; records no refund
       shops_admin_record_hand_refund: "20261103142625_q2390_deposit_wanted_dispute_sold_elsewhere_hand_refund_fault_fee_not_found_is_404.sql 7cde81860e51c366",
-      shops_admin_refund_order: "20261019071055_shops_refunds_cancels_strikes.sql a7df4ee33cc5ef18",
+      // Part 3 F197/F198/F193 (20261109224952, Builder 6, 11-09): notice wording only, md5 == LIVE before; no amount (PGlite S1).
+      shops_admin_refund_order: "20261109224952_notices_card_fee_and_our_team.sql 52852810c0e1d6b8",
       shops_admin_settle_held_refund: "20261019071055_shops_refunds_cancels_strikes.sql 6d0001f095b1ff76",
-      shops_buyer_cancel_order: "20261104175521_q2390_last_member_not_found_is_404.sql 7ebae7958a42f34f", // Q2390 11-04: ERRCODE P0002 -> PT404 only
+      // Part 3 F197/F198/F193 (20261109224952, Builder 6, 11-09): notice wording only, md5 == LIVE before; no amount (PGlite S1).
+      shops_buyer_cancel_order: "20261109224952_notices_card_fee_and_our_team.sql 65803a9619e5e045", // Q2390 11-04: ERRCODE P0002 -> PT404 only
       shops_order_cancel_quote: "20261106194913_shops_helpr_delivery.sql 68b55433d93cc393", // Q2390 p22 read-only quote; Helpr delivery (20261106194913, money review owed): a late cancel quotes the delivery no Helpr picked up coming back
       shop_order_refunds_recorded_cents: "20261106194913_shops_helpr_delivery.sql 0637300959ca02d6", // Helpr delivery money review: a read-only sum of the Stripe-confirmed delivery and order refunds on the charge, so a payout from it reads it whole; records no refund
       shops_shop_cancel_order: "20261103162420_q2390_handover_paid_refund_shop_cancel_photo_no_show_decline_not_found_is_404.sql ae7a26b0a9ef9269",

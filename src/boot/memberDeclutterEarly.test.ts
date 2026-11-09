@@ -279,16 +279,19 @@ describe("the entry takes the HTML's answer (declutterPrefetch.ts)", () => {
   it("does not preload the card photos again when the HTML drew them into the skeleton", async () => {
     const links = () => document.head.querySelectorAll('link[rel="preload"][as="image"]').length;
     stub();
+    // Count what THIS test adds: an earlier test in the worker may have left its own preload links in <head> (#4279
+    // shard 5 read 8 that this test never made).
+    const before = links();
     document.body.innerHTML = '<div id="lh-declutter-shell" data-lh-photos=""></div>';
     early();
     startDeclutterPrefetch("/declutter");
     await flush();
-    expect(links()).toBe(0);
+    expect(links()).toBe(before);
     document.body.innerHTML = "";
     early();
     startDeclutterPrefetch("/declutter");
     await flush();
-    expect(links()).toBeGreaterThan(0);
+    expect(links()).toBeGreaterThan(before);
   });
 });
 

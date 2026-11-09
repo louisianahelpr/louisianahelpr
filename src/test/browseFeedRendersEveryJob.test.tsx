@@ -46,7 +46,7 @@
 // @mutate src/pages/home/browseFeedSections.ts | if (!showRecommendedBand) return { band: [], rest: filteredJobs.slice() }; | if (!showRecommendedBand) return { band: [], rest: filteredJobs.filter((_, i) => i > 0) };
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
@@ -173,13 +173,21 @@ const FLAG_MATRIX: { hasFilters: boolean; savedOnly: boolean }[] = [
   { hasFilters: true, savedOnly: true },
 ];
 
+/**
+ * The compact row is its own lazy chunk (feedCards.tsx loadCompactJobCard, b3-speed-home): the first render paints
+ * its Suspense fallback, so wait until a job card is drawn before reading what the feed rendered.
+ */
+async function cardsDrawn(): Promise<void> {
+  await waitFor(() => expect(document.querySelector('[aria-label^="JOB "]')).not.toBeNull());
+}
+
 describe("Browse feed: every job in the filtered list is rendered by SOME section", () => {
   beforeEach(cleanup);
 
   for (const { hasFilters, savedOnly } of FLAG_MATRIX) {
     const label = `hasFilters=${hasFilters} savedOnly=${savedOnly}`;
 
-    it(`renders all of filteredJobs — ${label}, recommended overlaps the list`, () => {
+    it(`renders all of filteredJobs — ${label}, recommended overlaps the list`, async () => {
       // The condition that makes the subtraction bite: the recommended picks
       // are a SUBSET of the filtered list, so anything subtracted for the band
       // must actually be painted by the band.
@@ -190,6 +198,7 @@ describe("Browse feed: every job in the filtered list is rendered by SOME sectio
         hasFilters,
         savedOnly,
       });
+      await cardsDrawn();
       const shown = renderedTitles();
       const missing = jobs.map((j) => j.title).filter((t) => !shown.includes(t));
       expect(
@@ -208,7 +217,7 @@ describe("Browse feed: every job in the filtered list is rendered by SOME sectio
       ).toEqual([]);
     });
 
-    it(`renders nothing outside filteredJobs — ${label}`, () => {
+    it(`renders nothing outside filteredJobs — ${label}`, async () => {
       // A recommended pick the viewer culls (dismissed, unsaved, applied) is
       // absent from `filteredJobs`. The band must not resurrect it.
       const kept = [job("KEEP-1"), job("KEEP-2")];
@@ -219,6 +228,7 @@ describe("Browse feed: every job in the filtered list is rendered by SOME sectio
         hasFilters,
         savedOnly,
       });
+      await cardsDrawn();
       const shown = renderedTitles();
       const allowed = new Set(kept.map((j) => j.title));
       const invented = shown.filter((t) => !allowed.has(t));
@@ -229,7 +239,7 @@ describe("Browse feed: every job in the filtered list is rendered by SOME sectio
     });
   }
 
-  it("an explicit sort still renders every job", () => {
+  it("an explicit sort still renders every job", async () => {
     const jobs = [job("S1", { budget: 50 }), job("S2", { budget: 300 }), job("S3", { budget: 120 })];
     renderFeed({
       filteredJobs: jobs,
@@ -238,11 +248,12 @@ describe("Browse feed: every job in the filtered list is rendered by SOME sectio
       savedOnly: false,
       sortBy: "budget_desc",
     });
+    await cardsDrawn();
     const shown = renderedTitles();
     expect(jobs.map((j) => j.title).filter((t) => !shown.includes(t))).toEqual([]);
   });
 
-  it("saved-only with every saved job recommended does NOT claim nothing is saved", () => {
+  it("saved-only with every saved job recommended does NOT claim nothing is saved", async () => {
     // The 2026-09-20 instance at its worst: all three saved jobs are also
     // recommended picks, so the everything-else list subtracted all of them
     // and the band rendered none — the panel showed "Nothing saved yet" over
@@ -254,6 +265,7 @@ describe("Browse feed: every job in the filtered list is rendered by SOME sectio
       hasFilters: false,
       savedOnly: true,
     });
+    await cardsDrawn();
     expect(screen.queryByText("Nothing saved yet")).toBeNull();
     expect(renderedTitles().sort()).toEqual(["JOB SV-1", "JOB SV-2", "JOB SV-3"]);
   });

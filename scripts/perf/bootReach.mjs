@@ -644,7 +644,7 @@ export function clientReachers(root) {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       const p = path.join(dir, e.name);
       if (e.isDirectory()) walkDir(p);
-      else if (/\.(tsx?|mjs|js)$/.test(e.name) && !/\.test\.|\.d\.ts$/.test(e.name)) {
+      else if (/\.(tsx?|mjs|js)$/.test(e.name) && !e.name.includes(".test.") && !e.name.endsWith(".d.ts")) {
         const file = toPosix(p);
         for (const m of fs.readFileSync(p, "utf8").matchAll(STATIC)) {
           const dep = resolveSpecifier(root, file, m[1]);

@@ -7,6 +7,8 @@
 // @mutate src/components/declutter/DeclutterMineViews.tsx | label: "Pickups to do", | label: "Hand over",
 // @mutate src/components/declutter/ManagerPanel.tsx |       <h2 id="manager-setup-title" className="text-base font-semibold">Have someone sell for you</h2> |       <h2 id="manager-setup-title" className="text-base font-semibold">Get help selling</h2>
 // @mutate src/App.tsx |       <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} />\n |
+// @mutate src/components/declutter/DeclutterListingDefaults.tsx | `Lowers ${draft.dropPct}% each evening, never below your lowest price.` | `It drops ${draft.dropPct}% each evening, to a whole dollar, never below your lowest price.`
+// @mutate src/components/declutter/DeclutterListingDefaults.tsx | <ChipGroup label="Lowest price" | <ChipGroup label="Lowest you'll take"
 /**
  * Declutter findings from the UI audit of 11-09 (~/.lh-shots/ui-audit-1109, Builder 2). One describe per finding.
  */
@@ -21,6 +23,8 @@ import { OTHER_WAYS } from "@/lib/declutter/browseFilters";
 import { FAQ_SECTIONS } from "@/pages/info/helpCenter/helpCenterContent";
 import { guestSaveHref } from "@/lib/declutter/guestSave";
 import { wantedAskHref } from "@/lib/declutter/sellChooser";
+import { ListingChoiceFields } from "@/components/declutter/DeclutterListingDefaults";
+import { SELLER_DEFAULTS } from "@/lib/declutter/sellerDefaults";
 import { SAVE_ITEM_REASON, SAVE_ITEM_SIGNUP_SUBTITLE, signupSubtitle } from "@/lib/jobIntent";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
@@ -83,6 +87,17 @@ describe("F130: /declutter/wanted/new opens the Wanted composer, never the 404",
     const app = blankComments(readFileSync(join(SRC, "App.tsx"), "utf8"));
     const m = /<Route path="\/declutter\/wanted\/new" element=\{<Navigate to="([^"]+)" replace \/>\} \/>/.exec(app);
     expect(m?.[1]).toBe(wantedAskHref(""));
+  });
+});
+
+describe("F125: the selling choices read in plain words", () => {
+  it("'Lowers 5% each evening', 'Lowest price: 50% of your asking price', and no 'nothing to do with price drops'", () => {
+    const r = render(<MemoryRouter><ListingChoiceFields draft={{ ...SELLER_DEFAULTS }} change={() => {}} /></MemoryRouter>);
+    const text = r.container.textContent ?? "";
+    expect(text).toContain("Lowers 5% each evening, never below your lowest price.");
+    expect(r.container.querySelector("[data-floor-words]")?.textContent).toMatch(/^Lowest price: 50% of your asking price\./);
+    expect(text).not.toMatch(/to a whole dollar|Lowest you'll take|nothing to do with price drops/);
+    r.unmount();
   });
 });
 

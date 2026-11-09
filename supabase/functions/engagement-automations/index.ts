@@ -167,19 +167,25 @@ async function ownerDailyEmail(stats: OwnerDailyStats): Promise<RenderedEmail> {
   return { subject, html, text }
 }
 
-/** The three welcome-drip steps, keyed by step number. */
+/**
+ * The three welcome-drip steps, keyed by step number, with the page each one's button opens. Day 3 is the
+ * Declutter intro and opens /declutter (F169, owner's message review 11-09).
+ */
 const DRIP_STEPS = {
   1: {
     component: WelcomeDripStep1Email,
     subject: "You're in. Here's where to start on Louisiana Helpr.",
+    path: '/home',
   },
   2: {
     component: WelcomeDripStep2Email,
-    subject: "A quick tour of how Louisiana Helpr works.",
+    subject: 'Clear out a closet on Declutter',
+    path: '/declutter',
   },
   3: {
     component: WelcomeDripStep3Email,
     subject: "Four things great Helprs do.",
+    path: '/home',
   },
 } as const
 
@@ -770,7 +776,7 @@ serve(async (_req) => {
         (unsubscribeUrl) =>
           React.createElement(step.component, {
             greetingName: user.full_name || '',
-            dashboardUrl: `${getAppUrl()}/home`,
+            dashboardUrl: `${getAppUrl()}${step.path}`,
             unsubscribeUrl,
           }),
         step.subject,

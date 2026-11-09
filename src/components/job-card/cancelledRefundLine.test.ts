@@ -56,7 +56,9 @@ describe("cancelled line and refunds", () => {
     const job = { id: "j1", status: "cancelled", payment_status: "refunded", cancellation_reason: "Plans changed", customer_id: "p1", cancelled_by: "p1" };
     const line = (o: { refundedCents?: number | null; refundKeptCents?: number | null }) =>
       jobProgress(job as never, { viewer: "poster", otherFirst: "Eli", ...o } as never).next;
-    expect(line({ refundedCents: 2883, refundKeptCents: 117 })).toMatch(new RegExp(`\\$28\\.83 was refunded · ${CARD_COST_NOT_REFUNDED.replace(/\./g, "\\.")}$`));
+    // A plain suffix check, not a RegExp built from the copy (CodeQL js/incomplete-sanitization on #4283).
+    const partRefund = String(line({ refundedCents: 2883, refundKeptCents: 117 }));
+    expect(partRefund.endsWith(`$28.83 was refunded · ${CARD_COST_NOT_REFUNDED}`), partRefund).toBe(true);
     expect(line({ refundedCents: 3000, refundKeptCents: 0 })).toMatch(/\$30 was refunded$/);
     expect(line({})).toMatch(new RegExp(`${REFUND_SENT}$`));
     expect(line({})).not.toMatch(/Your payment was refunded/);

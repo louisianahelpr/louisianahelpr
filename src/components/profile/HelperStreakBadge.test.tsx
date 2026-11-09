@@ -7,6 +7,7 @@ import { HelperStreakBadge, computeFiveStarStreak } from "./HelperStreakBadge";
 import { queryKeys } from "@/lib/queryKeys";
 import { supabase } from "@/integrations/supabase/client";
 
+// @mutate src/components/profile/HelperStreakBadge.tsx | rows.filter((r) => shown.has(r.id)) | rows
 /**
  * Mock the Supabase client surface — same shape EarningsForecastCard uses.
  * The queryFn awaits the terminal `.limit()` call, so that's where we
@@ -15,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 const mockQueryResult = {
   data: [] as { rating: number; created_at: string }[],
   error: null as { message: string } | null,
+  /** Row indexes get_public_profile_reviews leaves out (a same-person review, Q2759 / F093). */
+  hidden: [] as number[],
 };
 
 vi.mock("@/integrations/supabase/client", () => {
@@ -24,10 +27,17 @@ vi.mock("@/integrations/supabase/client", () => {
   builder.eq = vi.fn(chain);
   builder.lte = vi.fn(chain);
   builder.order = vi.fn(chain);
-  builder.limit = vi.fn(() => Promise.resolve(mockQueryResult));
+  builder.limit = vi.fn(() =>
+    Promise.resolve({ ...mockQueryResult, data: mockQueryResult.data.map((r, i) => ({ id: `r${i}`, ...r })) }),
+  );
   return {
     supabase: {
       from: vi.fn(() => builder),
+      // The public-reviews RPC: every row's id except the hidden ones.
+      rpc: vi.fn(() => {
+        const ids = mockQueryResult.data.map((_, i) => i).filter((i) => !mockQueryResult.hidden.includes(i)).map((i) => `r${i}`);
+        return Promise.resolve({ data: ids.map((id) => ({ id, total_count: ids.length })), error: null });
+      }),
     },
   };
 });
@@ -95,6 +105,7 @@ describe("computeFiveStarStreak", () => {
 
 describe("HelperStreakBadge", () => {
   beforeEach(() => {
+    mockQueryResult.hidden = [];
     mockQueryResult.data = [];
     mockQueryResult.error = null;
   });
@@ -141,6 +152,20 @@ describe("HelperStreakBadge", () => {
       expect(screen.getByTestId("helper-streak-badge")).toBeInTheDocument();
     });
     expect(screen.getByText(/3 5-star streak/i)).toBeInTheDocument();
+  });
+
+  // F093 follow-up (owner UI audit 2026-11-09): a review between one person's own accounts never counts.
+  it("skips a review the public-reviews RPC hides (same person)", async () => {
+    mockQueryResult.data = makeReviews([5, 5, 5, 5]);
+    mockQueryResult.hidden = [0];
+    const { wrapper: Wrapper } = makeWrapper();
+    render(
+      <Wrapper>
+        <HelperStreakBadge helperId="helper-1" />
+      </Wrapper>,
+    );
+    expect(await screen.findByText(/3 5-star streak/i)).toBeInTheDocument();
+    expect(screen.queryByText(/4 5-star streak/i)).toBeNull();
   });
 
   it("shows the count for a longer streak", async () => {

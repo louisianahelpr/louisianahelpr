@@ -8,6 +8,7 @@ import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { TIER_ORDER, TIER_PERK_MATRIX } from "../_shared/tierPerks.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
+import { centralDayLabel } from "../_shared/centralDateTime.ts";
 
 // The "Pro+" weekly report rides the Advanced Analytics perk. Derived from the
 // perk matrix, not a hand-kept list: a hardcoded ["pro","elite"] silently
@@ -269,7 +270,7 @@ serve(async (req) => {
 
       // Send as in-app notification (email would require email infrastructure)
       const message = [
-        `Your Weekly Report (${weekAgo.toLocaleDateString()} – ${now.toLocaleDateString()})`,
+        `Your Weekly Report (${centralDayLabel(weekAgo)} – ${centralDayLabel(now)})`,
         ``,
         `💰 Earnings: $${formatPayoutDollars(weeklyEarnings)}`,
         `✅ Jobs Completed: ${completedJobs}`,

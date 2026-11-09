@@ -1226,6 +1226,12 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/escrowTiming.ts";`,
   );
 
+  // Louisiana-time labels (F183, 11-09): `_shared/centralDateTime.ts` has ZERO imports; the real one serves.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/centralDateTime\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/centralDateTime.ts";`,
+  );
+
   // A payout past its day tells the Helpr (jobs audit item 8): `_shared/payDelayNotice.ts`
   // imports only insertNotifications and writes through the client it is given.
   out = out.replace(

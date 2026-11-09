@@ -33,8 +33,15 @@ describe("F022: the unticked consent box says what is missing", () => {
 });
 
 describe("sign-up step 1 fits one line per item", () => {
-  it("no password rules list under the field (owner 2026-10-25); the error still names what is missing", () => {
-    expect(step1).not.toMatch(/PASSWORD_RULES\.(map|filter)/);
+  // F021 (owner UI audit 11-09; lead's call 11-09, superseding the 10-25 "remove the stuff under the password"): the rule
+  // shows under the field from the start and ticks off live; the error after Continue still names what is missing.
+  // @mutate src/pages/auth/signup/SignupStep1.tsx | {PASSWORD_RULES.map((r) => { | {[].map((r: (typeof PASSWORD_RULES)[number]) => {
+  it("F021: the password rule shows under the field from the start, one tick per rule; the error still names what is missing", () => {
+    expect(step1).toMatch(/PASSWORD_RULES\.map\(/);
+    expect(step1).toContain('t("signup.passwordHint", { n: PASSWORD_MIN_LENGTH })');
+    expect(step1).toMatch(/data-rule-met=\{met \? "true" : "false"\}/);
+    expect(en["signup.passwordHint"]).toMatch(/^At least \{n\} characters with a lowercase letter, a capital letter, a number and a symbol\.$/);
+    expect(es["signup.passwordHint"]).toMatch(/\{n\}/);
     expect(step1).toMatch(/passwordProblem\(password\)/);
   });
   it("the consent line is short, SAYS 18+ (it is the attestation), and the Terms carry the 18+ confirmation", () => {

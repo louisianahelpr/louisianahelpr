@@ -366,14 +366,13 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
  */
 // Board 80: opens once after a publish (router state from DeclutterSellView).
 function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; haulOn: boolean; movingOutOn: boolean; todo: DeclutterTodo | null }) {
-  // The same cached read Your listings and the tab's count make.
-  const mine = useQuery(myItemsQuery(userId));
   return (
     // Q2562: a flex gap, not space-y-6 (space-y gave the child after the display:none Sell row a 24px margin).
     <div className="flex flex-col gap-6">
       {/* Owner 2026-11-04: the seller's page link (every listing shows there), with Copy and Share. Owner request
-          11-05 ("mine is kind of hidden"): it leads the tab, and with an item for sale it is a clear Share button. */}
-      <YourPageLink forSale={liveListingCount(mine.data ?? [])} />
+          11-05 ("mine is kind of hidden"): it leads the tab. F127 (UI audit 11-09, lead 11-09): one slim line
+          ("Your page · Copy · Share"), not a third full card; Home and You keep the card. */}
+      <YourPageLink slim />
       <ListedWhatNext />
       <ListedForYouCard />
       <ManagerWaitingForOkGate userId={userId} />

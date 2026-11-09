@@ -119,14 +119,13 @@ serve(async (req) => {
     // footer and in the List-Unsubscribe headers, honoured on the next send by
     // the marketing_consent / email_promotions filters here.
     //
-    // To close the remaining gap it is one edit — POSTAL_ADDRESS_LITERAL in
-    // _shared/resend.ts, or `supabase secrets set HELPR_POSTAL_ADDRESS="…"`.
-    // The address then renders in this campaign's footer automatically via the
+    // The address is set since 2026-11-09 (UI audit F167): POSTAL_ADDRESS_LITERAL
+    // in _shared/resend.ts, the one source (no secret overrides it). It renders in this campaign's footer automatically via the
     // shared <MarketingFooter> inside MarketingBlastEmail; nothing here changes.
     // ─────────────────────────────────────────────────────────────────────
     if (!POSTAL_ADDRESS) {
       console.warn(
-        "[send-marketing-blast] HELPR_POSTAL_ADDRESS is unset — this campaign will ship WITHOUT the physical postal address CAN-SPAM §7704(a)(5) requires. Sending anyway per owner decision 2026-08-31.",
+        "[send-marketing-blast] POSTAL_ADDRESS is empty — this campaign will ship WITHOUT the physical postal address CAN-SPAM §7704(a)(5) requires. Sending anyway per owner decision 2026-08-31.",
       );
     }
 

@@ -237,7 +237,6 @@
     "EMAIL_UNSUBSCRIBE_SECRET": "self-generated HMAC secret",
     "FASTLANE_APPLE_ID": "identifier, not a credential",
     "FASTLANE_PASSWORD": "Apple ID password; no expiry date (liveness is ios-beta itself)",
-    "HELPR_POSTAL_ADDRESS": "config, not a credential",
     "KEYCHAIN_PASSWORD": "self-generated passphrase for a throwaway CI keychain",
     "MARKETING_CLAIM_LIMIT": "config number",
     "META_APP_ID": "identifier, not a credential",

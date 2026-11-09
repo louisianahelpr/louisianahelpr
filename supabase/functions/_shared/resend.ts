@@ -73,13 +73,15 @@ import { isTestAddress, TestRecipientRefusedError } from './testRecipient.ts'
  *
  *     const POSTAL_ADDRESS_LITERAL = "Louisiana Helpr, 123 Example St, New Orleans, LA 70112"
  *
- * That is the whole change. Every commercial footer in the product reads
- * this one value through `MarketingFooter` — nothing else needs touching,
- * and no template needs to learn about it.
+ * That is the whole change. Every email footer in the product reads this one
+ * value through `MarketingFooter` / `TransactionalFooter` — nothing else needs
+ * touching, and no template needs to learn about it.
  *
- * You can ALSO set it without a code deploy, which takes precedence:
- *
- *     supabase secrets set HELPR_POSTAL_ADDRESS="Louisiana Helpr, 123 Example St, New Orleans, LA 70112"
+ * The literal is the ONLY source (lead 11-09). There used to be a
+ * `HELPR_POSTAL_ADDRESS` secret that took precedence; one is set on prod
+ * (2026-10-31) with a hidden value that matches none of the owner's spellings,
+ * so it would have printed an unknown address over the owner's. No email code
+ * reads it any more (guard: src/test/emailFootersCarryPostalAddress.test.ts).
  *
  * ── IF IT WERE EVER EMPTY ───────────────────────────────────────────────
  * It renders as NOTHING. The footers omit the address block entirely when
@@ -98,13 +100,13 @@ const POSTAL_ADDRESS_LITERAL = "Louisiana Helpr · 314 Lynn Street, Delcambre, L
  * `MarketingFooter`, which every commercial template (drips, re-engagement,
  * come-back, marketing blast, sign-up lead reminder) renders, and, since
  * 2026-11-09 (F167), `TransactionalFooter` too, so every branded email carries
- * it. To change it, edit `POSTAL_ADDRESS_LITERAL` above or set
- * `HELPR_POSTAL_ADDRESS`. Guard: src/test/emailFootersCarryPostalAddress.test.ts.
+ * it. To change it, edit `POSTAL_ADDRESS_LITERAL` above (the one source). Guard:
+ * src/test/emailFootersCarryPostalAddress.test.ts.
  *
- * Trimmed so a secret set to whitespace behaves like "unset" rather than
- * rendering an empty line under the unsubscribe links.
+ * Trimmed so a blank literal behaves like "unset" rather than rendering an
+ * empty line under the unsubscribe links.
  */
-export const POSTAL_ADDRESS = (Deno.env.get("HELPR_POSTAL_ADDRESS") ?? POSTAL_ADDRESS_LITERAL).trim();
+export const POSTAL_ADDRESS = POSTAL_ADDRESS_LITERAL.trim();
 
 /** The Resend-verified sending domain. */
 export const SENDER_DOMAIN = "louisianahelpr.com";

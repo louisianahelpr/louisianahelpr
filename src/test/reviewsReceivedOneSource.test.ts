@@ -11,6 +11,7 @@
  *
  * Inventory: every tracked .ts/.tsx under src/ (tests excluded), comments blanked.
  *
+ * @mutate src/components/profile/HelperStreakBadge.tsx |         publicReviewIds(helperId), |         Promise.resolve(new Set<string>()),
  * @mutate src/pages/profile/HelprWrapped.tsx | const shownIdsPromise = publicReviewIds(userId).then( | const shownIdsPromise = Promise.resolve(new Set<string>()).then(
  */
 import { describe, expect, it } from "vitest";
@@ -28,7 +29,6 @@ const ALLOWED: Record<string, string> = {
   "src/components/CompletionPrompts.tsx": "checks whether I already reviewed this person on this job (reviewer_id = me)",
   "src/components/admin/adminusers/useOpenProfile.ts": "admin user detail: staff see every review",
   "src/components/reviewPanel/ReviewList.tsx": "not mounted anywhere (its own comment says route through the RPC before mounting)",
-  "src/components/profile/HelperStreakBadge.tsx": "five-star streak badge; same-person filter not applied yet (reported to the lead 2026-11-09, F093 follow-up)",
 };
 
 function offenders(): string[] {

@@ -101,7 +101,8 @@ const SwipeableJobCard = ({
   return (
     <div
       ref={containerRef}
-      className="relative overflow-hidden rounded-2xl"
+      // A hairline row (design audit A J2, 11-08) runs edge to edge: a 16 px clip radius would cut its hairline short.
+      className={`relative overflow-hidden ${hero && job.photos?.[0] ? "rounded-2xl" : ""}`}
       onPointerDownCapture={swipeLayer.start}
     >
       {Layer ? (

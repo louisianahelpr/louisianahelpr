@@ -49,11 +49,11 @@ import {
  *   • Renders inside PublicLayout, matching /help — the
  *     compact header below carries the canonical BackButton, which is the
  *     page's only back affordance.
- *   • Magazine layout (left masthead / right content) on the standard
- *     `page-measure` container, so the form fills the page at
- *     every breakpoint instead of floating in a narrow column with dead side
- *     gutters. The rail inset is NOT applied here — it comes from the global
- *     `#root` padding rule for document-scroll routes (see CLAUDE.md).
+ *   • The standard `page-measure` container, with the form itself capped at
+ *     640px and centred on a white card (F044, owner UI audit 11-09: at 1440
+ *     the fields ran the full width). The rail inset is NOT applied here — it
+ *     comes from the global `#root` padding rule for document-scroll routes
+ *     (see CLAUDE.md).
  *   • Field set, copy, and topic list are shared with the in-app support tab
  *     via `src/lib/supportTopics.ts`, so the two surfaces read as one system.
  *
@@ -129,9 +129,10 @@ function validate(draft: Draft, identified: boolean): Partial<Record<FieldKey, s
 /* -------------------------------------------------------------------------- */
 
 /** Shared squircle treatment used by every panel on the public pages. */
+// F044 (owner UI audit 11-09): the white card style, not a tinted beige panel.
 const PANEL_STYLE = {
-  background: "hsl(var(--burnt-sienna) / 0.04)",
-  border: "1.5px solid hsl(var(--burnt-sienna) / 0.15)",
+  background: "hsl(var(--card))",
+  border: "1px solid hsl(var(--border))",
   boxShadow: "var(--elev-inset-hairline)",
 } as const;
 
@@ -320,7 +321,8 @@ const Support = () => {
               col-span-8 the form stayed in the first two-thirds of the grid
               and stranded an empty right third. Capped + centred so it
               doesn't stretch across the whole 90rem container. */}
-          <div className="w-full">
+          {/* F044 (owner UI audit 11-09): capped at 640px and centred; at 1440 a name or subject field ran the full width. */}
+          <div className="w-full max-w-[640px] mx-auto" data-support-measure="">
             {answeredByAi ? (
               <div className="rounded-2xl px-6 py-12 flex flex-col items-center text-center gap-4" style={PANEL_STYLE}>
                 <h3

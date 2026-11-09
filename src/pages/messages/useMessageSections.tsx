@@ -5,6 +5,7 @@ import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useQuery } from "@tanstack/react-query";
 import { useFeature } from "@/hooks/useFeature";
+import { useOpenToEveryoneAnswer } from "@/components/landing/useSectionsOpen";
 import type { Conversation } from "@/components/messages/types";
 import { DeclutterOrderTalkRows } from "@/components/messages/DeclutterOrderTalkInbox";
 import type { SectionEmpty } from "@/components/messages/SectionInboxEmpty";
@@ -44,11 +45,17 @@ function HomeTalkLead({ empty }: { empty: ReactNode }) {
 export function useMessageSections(conversations: Conversation[], allConversations: Conversation[] | undefined) {
   const [params, setParams] = useSearchParams();
   const { prefs, visible } = useSectionPrefs();
+  const shopsOn = useFeature("shops");
+  const homesOn = useFeature("rentals");
+  // F133 (owner UI audit 11-09: "Filter chips include Shops and Homes, which are Coming soon. Hide those chips until
+  // the sections open"): a tester has Shops and Homes switched on before they open to everyone, so their chips stay
+  // hidden until features_open_to_everyone says the section is open (unknown counts as not yet, so no chip flashes).
+  const openToEveryone = useOpenToEveryoneAnswer(shopsOn || homesOn);
   const live = {
     jobs: true,
     declutter: useFeature("declutter"),
-    shops: useFeature("shops"),
-    homes: useFeature("rentals"),
+    shops: shopsOn && !!openToEveryone?.has("shops"),
+    homes: homesOn && !!openToEveryone?.has("rentals"),
   } as const;
 
   const jobThreads = useMemo(() => conversations.filter((c) => threadSection(c) === "jobs").length, [conversations]);

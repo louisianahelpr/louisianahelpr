@@ -20,6 +20,7 @@ import type { useLanguage } from "@/lib/i18n/language";
 import { uploadProfileFiles } from "./uploadProfileFiles";
 import type { ProfileCompletionUpdates } from "./types";
 import { withTimeout } from "./constants";
+import { joinName } from "@/lib/splitName";
 
 type T = ReturnType<typeof useLanguage>["t"];
 
@@ -41,7 +42,7 @@ export interface CompletedProfileForm {
 export async function saveCompletedProfile({
   user, profile, firstName, lastName, bio, location, zipCode, resolvedZipParish, ageBoxShown, avatarFile, t, queryClient,
 }: CompletedProfileForm): Promise<void> {
-  const fullName = `${firstName.trim()} ${lastName.trim()}`;
+  const fullName = joinName(firstName, lastName);
   const nowIso = new Date().toISOString();
 
   // Note: full_name is persisted to the profiles table below. We intentionally

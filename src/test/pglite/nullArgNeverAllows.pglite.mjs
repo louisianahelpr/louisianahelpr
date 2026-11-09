@@ -179,6 +179,8 @@ CREATE TABLE public.declutter_items (id uuid PRIMARY KEY, seller_id uuid NOT NUL
   -- The handover chat (Q2462, 20261028235249): declutter_pair_needs_talk reads the ways the seller ticked and porch_ok;
   -- the class SQL's 'declutter' step offers item I by safe meeting spot only.
   porch_ok boolean NOT NULL DEFAULT true, handovers text[]);
+-- F061 sold card (20261109194234): declutter_item_sold_visible reads whether the item was reported (the two columns it reads).
+CREATE TABLE public.reports (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), reported_type text, reported_id uuid);
 CREATE TABLE public.declutter_cart_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), item_id uuid NOT NULL, buyer_id uuid NOT NULL,
   seller_id uuid NOT NULL, price_cents integer, source text, status text NOT NULL DEFAULT 'in_cart', checkout_by timestamptz);
 CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, status text, buyer_id uuid, seller_id uuid,
@@ -375,13 +377,17 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Shops H9 (20261105230819): may this shop review be shown (loaded after the stubs: see AFTER_STUBS).
   "shop_review_public",
   // Terms check (20261108154435): has this member accepted the current Terms; after its two helpers (HELPERS).
-  "terms_accepted_is_current"];
+  "terms_accepted_is_current",
+  // F061 sold card (20261109194234): may a sold item's page show what it was (loaded after the stubs: see AFTER_STUBS).
+  "declutter_item_sold_visible"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).
 // declutter_item_link_visible (Q2426) calls seed_hidden_in_discovery(), a stubbed noarg, so it loads after the stubs too.
 const AFTER_STUBS = ["job_announceable_to", "shop_state_ok", "shop_publicly_visible", "shop_link_visible", "shop_visible_to", "shop_extras_readable",
   "declutter_item_link_visible",
+  // F061 (20261109194234): calls seed_hidden_in_discovery(), a stubbed noarg, like declutter_item_link_visible.
+  "declutter_item_sold_visible",
   // Shops H9 (20261105230819): its SQL body calls seed_jobs_hidden_publicly(), a stubbed noarg.
   "shop_review_public"];
 // job_offer_cutoff (Q1784): called by the newest allow bodies; loaded verbatim

@@ -62,6 +62,15 @@ export function NewestItemsRow({ viewerId }: { viewerId: string | null }) {
   return <div className="mt-6" data-newest-items=""><Row title="New on Declutter" items={rows} cover={cover} from={null} /></div>;
 }
 
+/** The rows nearest `from` first (items with no usable point last, in their order). */
+export function nearestOf(rows: DeclutterItem[], from: { lat: number; lng: number }): DeclutterItem[] {
+  const away = (r: DeclutterItem) => {
+    const m = milesBetween(from, { lat: Number(r.area_lat), lng: Number(r.area_lng) });
+    return Number.isFinite(m) ? m : Number.POSITIVE_INFINITY;
+  };
+  return rows.map((r, i) => ({ r, i, d: away(r) })).sort((a, b) => a.d - b.d || a.i - b.i).map((x) => x.r);
+}
+
 /** How close (px below the screen) the rows must come before their reads start. */
 export const ROWS_NEAR_MARGIN = "600px 0px";
 
@@ -95,7 +104,8 @@ export function DeclutterItemRows({ item, viewerId, from }: { item: DeclutterIte
   });
   const notMine = (rows: DeclutterItem[] | undefined) => (rows ?? []).filter((r) => r.seller_id !== viewerId);
   const moreRows = notMine(more.data);
-  const similarRows = notMine(similar.data);
+  // F121 (UI audit 11-09): "Similar near you": with a known position the same-category row is nearest first.
+  const similarRows = from ? nearestOf(notMine(similar.data), from) : notMine(similar.data);
   const ids = [...moreRows, ...similarRows].map((r) => r.id);
   const photos = useQuery({
     queryKey: ["declutter", "photos", ids.join(",")],
@@ -127,7 +137,7 @@ export function DeclutterItemRows({ item, viewerId, from }: { item: DeclutterIte
           <BundleAsk item={item} others={moreRows} viewerId={viewerId} />
         </Suspense>
       )}
-      {similarRows.length > 0 && <Row title="Similar items" items={similarRows} cover={cover} from={from} />}
+      {similarRows.length > 0 && <Row title={from ? "Similar near you" : "Similar items"} items={similarRows} cover={cover} from={from} />}
     </div>
   );
 }

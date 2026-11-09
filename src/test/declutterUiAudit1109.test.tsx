@@ -13,6 +13,7 @@
 // @mutate src/components/declutter/itemPhotoFrame.ts | sm:max-h-[max(55dvh,calc(100dvh-400px))] | sm:max-h-none
 // @mutate src/lib/largeTitles.ts |     doc.documentElement.classList.toggle("page-scrolled-any", t.scrollTop > 0); |     doc.documentElement.classList.toggle("page-scrolled-any", t.scrollTop > 24);
 // @mutate src/components/sections/InlineListSearch.tsx |     if (pinned) return;\n    reopenFocus.current = focusTrigger; |     reopenFocus.current = focusTrigger;
+// @mutate src/components/declutter/DeclutterItemRows.tsx | .sort((a, b) => a.d - b.d \|\| a.i - b.i) | .sort((a, b) => a.i - b.i)
 /**
  * Declutter findings from the UI audit of 11-09 (~/.lh-shots/ui-audit-1109, Builder 2). One describe per finding.
  */
@@ -33,6 +34,7 @@ import { townsWords } from "@/components/declutter/ItemPickupBlock";
 import { ITEM_PHOTO_ASPECT } from "@/components/declutter/itemPhotoFrame";
 import { installLargeTitles } from "@/lib/largeTitles";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
+import { nearestOf } from "@/components/declutter/DeclutterItemRows";
 import { SAVE_ITEM_REASON, SAVE_ITEM_SIGNUP_SUBTITLE, signupSubtitle } from "@/lib/jobIntent";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
@@ -172,6 +174,19 @@ describe("F073: Declutter's desktop Browse shows a visible search field (Jobs ke
       .filter((t) => /<InlineListSearch\b/.test(t));
     expect(others.length).toBeGreaterThan(0);
     for (const t of others) expect(t).not.toMatch(/<InlineListSearch\b[^>]*\bpinned\b/);
+  });
+});
+
+describe("F121: Similar near you (same category, nearest first when we know where you are)", () => {
+  it("orders the row by distance, keeping order for ties and putting unplaced items last", () => {
+    const at = (id: string, lat: number | string, lng: number | string) => card({ id, area_lat: lat, area_lng: lng }) as unknown as { id: string };
+    const rows = [at("far", 32.5, -92.1), at("none", "x", "y"), at("near", 30.46, -91.15), at("mid", 30.9, -91.5)];
+    expect(nearestOf(rows as never, { lat: 30.45, lng: -91.15 }).map((r) => r.id)).toEqual(["near", "mid", "far", "none"]);
+  });
+  it("the row is titled 'Similar near you' with a position, 'Similar items' without", () => {
+    const rowsSrc = blankComments(readFileSync(join(SRC, "components/declutter/DeclutterItemRows.tsx"), "utf8"));
+    expect(rowsSrc).toContain('title={from ? "Similar near you" : "Similar items"}');
+    expect(rowsSrc).toContain("const similarRows = from ? nearestOf(notMine(similar.data), from) : notMine(similar.data);");
   });
 });
 

@@ -123,8 +123,11 @@ export function DeclutterGuestJoin({ free, offers = true, trades = false }: { fr
 /** Above a guest's Browse (BUY-16): one line and the two ways in, coming back to Browse after. */
 export function DeclutterGuestBrowseJoin() {
   const location = useLocation();
-  // AUD31-67 follow-up (lead 10-31): the desktop guest top bar has the logo and both buttons; the line stays.
+  // AUD31-67 follow-up (lead 10-31): the desktop guest top bar has the logo; the H stays on the phone only.
   const barShown = useIsWebDesktop();
+  // F073 (UI audit 11-09; lead 11-09, replacing the 10-31 call): the desktop card has the phone's real Log in / Sign up
+  // buttons too, one size up from the top bar's compact pair, so the card's are the primary pair.
+  const size = barShown ? "md" : "sm";
   return (
     <section data-guest-join="browse" aria-label="Join to buy or sell" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-border bg-card p-3">
       {!barShown && <GuestBrand />}
@@ -132,16 +135,14 @@ export function DeclutterGuestBrowseJoin() {
         <span className="font-semibold">Sign up to buy, make offers or sell.</span>{" "}
         <span className="text-muted-foreground">It's free.</span>
       </p>
-      {!barShown && (
-        <div className="flex shrink-0 gap-2">
-          <Button asChild size="sm" variant="outline" className="rounded-full">
-            <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
-          </Button>
-          <Button asChild size="sm" className="rounded-full">
-            <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
-          </Button>
-        </div>
-      )}
+      <div className="flex shrink-0 gap-2" data-guest-join-buttons="">
+        <Button asChild size={size} variant="outline" className="rounded-full">
+          <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
+        </Button>
+        <Button asChild size={size} className="rounded-full">
+          <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
+        </Button>
+      </div>
     </section>
   );
 }

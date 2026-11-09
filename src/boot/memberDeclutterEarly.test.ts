@@ -27,6 +27,7 @@
 // @mutate src/components/declutter/DeclutterBrowseView.tsx |  : listLoading && !items.isError ? <DeclutterChipBones /> : null, |  : null,
 // @mutate src/components/declutter/DeclutterBrowseView.tsx |     if (!listLoading) releaseDeclutterShellForCards(); |
 // @mutate src/components/declutter/declutterShell.ts |   if (!el.hasAttribute("data-lh-photos")) { |   if (el) {
+// @mutate src/components/declutter/declutterShell.ts | removeShellOncePainted(DECLUTTER_SHELL_ID, doc), SHELL_PHOTO_HOLD_MS); | removeShellOncePainted(DECLUTTER_SHELL_ID, doc), SHELL_PHOTO_HOLD_MS * 10);
 // @mutate index.html |           document.documentElement.setAttribute("data-lh-declutter-guest", ""); |
 // @mutate src/index.css | [data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join] {\n  display: block !important; | [data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join] {\n  display: none;
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -327,25 +328,27 @@ describe("the skeleton's boxes are Browse's (no jump when Browse replaces the dr
 });
 
 describe("the skeleton with drawn photos stays until Browse's cards are painted (declutterShell.ts)", () => {
-  const raf = () => new Promise((r) => setTimeout(r, 40));
-  it("goes at once without photos; with photos it waits for the cards, at most SHELL_PHOTO_HOLD_MS", async () => {
-    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  // Every clock is fake (timers AND animation frames), so no step waits on the wall clock: a real 40 ms wait for two
+  // real frames failed once under CI load (lander, l137). Two frames are well inside FRAMES.
+  const FRAMES = 100;
+  it("goes at once without photos; with photos it waits for the cards, at most SHELL_PHOTO_HOLD_MS", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "requestAnimationFrame", "cancelAnimationFrame"] });
     try {
       document.body.innerHTML = '<div id="lh-declutter-shell"></div>';
       releaseDeclutterShell();
-      vi.useRealTimers();
-      await raf();
+      vi.advanceTimersByTime(FRAMES);
       expect(document.getElementById("lh-declutter-shell"), "no photos: removed once painted").toBeNull();
-      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
       document.body.innerHTML = '<div id="lh-declutter-shell" data-lh-photos=""></div>';
       releaseDeclutterShell();
-      vi.advanceTimersByTime(SHELL_PHOTO_HOLD_MS - 1);
-      vi.useRealTimers();
-      await raf();
+      vi.advanceTimersByTime(SHELL_PHOTO_HOLD_MS - FRAMES);
       expect(document.getElementById("lh-declutter-shell"), "photos: still up before the cap").not.toBeNull();
       releaseDeclutterShellForCards();
-      await raf();
+      vi.advanceTimersByTime(FRAMES);
       expect(document.getElementById("lh-declutter-shell"), "cards painted: removed").toBeNull();
+      document.body.innerHTML = '<div id="lh-declutter-shell" data-lh-photos=""></div>';
+      releaseDeclutterShell();
+      vi.advanceTimersByTime(SHELL_PHOTO_HOLD_MS + FRAMES);
+      expect(document.getElementById("lh-declutter-shell"), "no cards: removed at the cap").toBeNull();
     } finally {
       vi.useRealTimers();
     }

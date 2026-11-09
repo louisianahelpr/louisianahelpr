@@ -7,6 +7,9 @@
  *  F037 the answer sent people to "My Jobs" / "My Posts"; the Jobs tabs are JOBS_TABS (Posted, Working).
  *  F038 "When do I get paid?" named the approval twice in one run-on sentence and added "Every payout goes on the
  *       standard schedule.": the answer says the approval once, in short sentences.
+ *  F089/F105 (owner decision 2026-11-09): an expired, never-hired job keeps the card processing cost, but Help said
+ *       "Cancelling is free before you accept someone". Help's cancel answer and the Receipts breakdown both use
+ *       src/lib/refundWords.ts; no answer may promise a free cancel before a hire again.
  *  F039 an answer said "enforced by the database": no back-end words in member Help copy.
  *
  * Inventory: every FAQ answer (FAQ_SECTIONS) and the JOBS_TABS labels read from JobsSection.tsx.
@@ -14,12 +17,16 @@
  * @mutate src/pages/info/helpCenter/helpCenterContent.ts | ${DONE_IS_FINAL} | Once a job is marked done, it's final and can't be disputed.
  * @mutate src/pages/info/helpCenter/helpCenterContent.ts | Jobs > Working for a job | My Jobs for a job
  * @mutate src/pages/info/helpCenter/helpCenterContent.ts | or on Declutter.` | or on Declutter. Every payout goes on the standard schedule.`
+ * @mutate src/pages/info/helpCenter/helpCenterContent.ts | a: `Yes. ${NO_HIRE_REFUND} After | a: `Yes. Cancelling is free before you accept someone. After
+ * @mutate src/pages/profile/Receipts.tsx | ? CARD_COST_NOT_REFUNDED : undefined, | ? undefined : undefined,
  * @mutate src/pages/info/helpCenter/helpCenterContent.ts | Only Helprs who meet your choice can apply. | Only Helprs who meet what you set can apply — it's enforced by the database.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { DONE_IS_FINAL, FAQ_SECTIONS } from "@/pages/info/helpCenter/helpCenterContent";
+import { CARD_COST_NOT_REFUNDED, NO_HIRE_REFUND } from "@/lib/refundWords";
+import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
 const answers = FAQ_SECTIONS.flatMap((s) => s.items.map((i) => ({ q: i.q, a: i.a })));
@@ -71,6 +78,27 @@ describe("When do I get paid? says it once (F038)", () => {
     expect(a.match(/approve/gi)?.length).toBe(1);
     expect(a).not.toMatch(/standard schedule/i);
     for (const sentence of a.split(/(?<=\.)\s+/)) expect(sentence.length, sentence).toBeLessThan(140);
+  });
+});
+
+describe("Help and Receipts say the same thing about money back (F089/F105)", () => {
+  it("the cancel answer states the no-hire refund rule", () => {
+    const a = answers.find((x) => x.q === "Can I cancel after someone applies?")?.a ?? "";
+    expect(a).toContain(NO_HIRE_REFUND);
+  });
+
+  it("no answer promises a free cancel before a hire", () => {
+    const bad = answers.filter((x) => /free before you accept|always free before|cancelling is free/i.test(x.a));
+    expect(bad.map((x) => x.q)).toEqual([]);
+  });
+
+  it("Receipts uses the shared words for a part-refunded job", () => {
+    const receipts = blankComments(readFileSync(resolve(ROOT, "src/pages/profile/Receipts.tsx"), "utf8"));
+    expect(receipts).toMatch(/import \{ CARD_COST_NOT_REFUNDED \} from "@\/lib\/refundWords"/);
+    expect(receipts).toMatch(/\? CARD_COST_NOT_REFUNDED : undefined/);
+    expect(receipts).toMatch(/\{r\.detailNote\}/);
+    expect(CARD_COST_NOT_REFUNDED).toMatch(/card processing cost/i);
+    expect(NO_HIRE_REFUND).toMatch(/card processing cost/i);
   });
 });
 

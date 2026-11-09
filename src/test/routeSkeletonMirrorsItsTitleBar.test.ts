@@ -87,7 +87,7 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     // Home: the Next up card (2026-10-20, it replaced the three stat boxes); the skeleton draws the same card.
     // The card measures and holds its own height while to-dos load (ref + a reserved minHeight style), so match
     // the tag's shell classes, not the whole tag.
-    expect(home).toMatch(/<section (?:ref=\{nextUpRef\} )?data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1\.5"[ >]/);
+    expect(home).toMatch(/<section (?:ref=\{nextUpRef\} )?data-testid="next-up" aria-label=\{NEEDS_YOU_LABEL\} className="liquid-glass p-card flex flex-col gap-1\.5"[ >]/);
     expect(skeleton).toContain('<div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton-part="next-up">');
     expect(skeleton).toMatch(/data-skeleton-part="next-up">[\s\S]*?<Skeleton className="h-11 w-36 mt-2 rounded-full" \/>/);
     // The section chips (owner 11-08): the same wrapping row, 44px pills (Button size sm is h-11).

@@ -205,7 +205,7 @@ export async function fetchSellerItems(sellerId: string, exceptItemId: string): 
 export async function fetchSoldItemCard(itemId: string): Promise<{ title: string; photo_id: string | null } | null> {
   const res = await supabase.rpc("declutter_sold_item_card" as never, { p_item_id: itemId } as never);
   if (res.error && isMissingRpcNamed(res.error, "declutter_sold_item_card")) return null;
-  const card = rpcData(res as never, (e) => rpcErrorMessage("declutter_sold_item_card", e)) as { title?: unknown; photo_id?: unknown } | null;
+  const card = rpcData(res as never, (e) => rpcErrorMessage("declutter_sold_item_card" as never, e)) as { title?: unknown; photo_id?: unknown } | null;
   if (!card || typeof card.title !== "string") return null;
   return { title: card.title, photo_id: typeof card.photo_id === "string" ? card.photo_id : null };
 }

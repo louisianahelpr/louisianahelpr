@@ -7,7 +7,7 @@
  * Read from the source (jsdom lays nothing out); the screenshots under ~/.lh-shots/declutter-audit-1028/phone-after
  * are the look.
  *
- * @mutate src/components/declutter/itemPhotoFrame.ts | aspect-square max-h-[52dvh] sm:max-h-none | aspect-square
+ * @mutate src/components/declutter/itemPhotoFrame.ts | aspect-square max-h-[52dvh] sm:max-h-[max(55dvh,calc(100dvh-400px))] | aspect-square
  * Since Q2709 (11-04) the chips are the shared ToggleChip (src/components/ui/ToggleChip.tsx), so these read it.
  * @mutate src/components/ui/ToggleChip.tsx | "flex min-h-11 items-center gap-1 | "flex h-10 items-center gap-1
  * @mutate src/components/ui/ToggleChip.tsx | : "border border-foreground/25 bg-background text-foreground", | : "border border-border bg-card text-foreground",

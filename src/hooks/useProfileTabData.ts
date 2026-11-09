@@ -153,7 +153,7 @@ const REVIEW_ID_PAGE = 500;
  * The ids of the reviews about `userId` that get_public_profile_reviews shows (published, past the blind period, job
  * not cancelled, never between one person's own accounts), every page of them. Throws on a failed read.
  */
-async function publicReviewIds(userId: string): Promise<Set<string>> {
+export async function publicReviewIds(userId: string): Promise<Set<string>> {
   const ids = new Set<string>();
   for (let offset = 0; ; offset += REVIEW_ID_PAGE) {
     const page = unwrap(

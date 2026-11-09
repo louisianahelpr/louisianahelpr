@@ -815,7 +815,7 @@ describe("the photo-first Declutter item page", () => {
   // @mutate src/components/declutter/DeclutterGuest.tsx |         {!barShown && <GuestBrand />}\n      </div> |       </div>
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && (\n            <DeclutterSellerCard |           {!isSeller && (\n            <DeclutterSellerCard
   // @mutate src/components/declutter/DeclutterGuest.tsx |   if (failed \|\| open?.has("declutter")) return <><DeclutterGuestTopBar />{children}</>; |   return <><DeclutterGuestTopBar />{children}</>;
-  // @mutate src/components/declutter/DeclutterItemView.tsx |           {!user && <DeclutterGuestSeller itemId={it.id} />} |
+  // @mutate src/components/declutter/DeclutterItemView.tsx |           {!user && <DeclutterGuestSeller itemId={it.id} free={free} />} |
   // @mutate src/lib/declutter/api.ts |   const res = await supabase.rpc("declutter_guest_seller_first_name", { p_item_id: itemId }); |   const res = await supabase.rpc("get_safe_profiles", { user_ids: [itemId] });
   it("BUY-16 + owner pick 1 (11-08): a guest sees the REAL Make offer / Buy now, each going to sign up and back; no seller name; the wall while Declutter isn't open", async () => {
     guest.on = true;
@@ -858,6 +858,20 @@ describe("the photo-first Declutter item page", () => {
     guest.open = [];
     open();
     expect(await screen.findByText("LOGIN WALL")).toBeInTheDocument();
+  });
+
+  // F049 (UI audit 11-09): a free item said "Sold by Lexi" and "Exact address if the giver picks you".
+  // @mutate src/components/declutter/DeclutterGuest.tsx | {free ? "Given by" : "Sold by"} | {"Sold by"}
+  // @mutate src/components/declutter/ItemPickupBlock.tsx | `You'll get the exact address if ${giver ?? "the giver"} picks you.` | "exact address if the giver picks you"
+  it("F049: a guest on a free item reads 'Given by Dana' and 'You'll get the exact address if Dana picks you.'", async () => {
+    guest.on = true;
+    state.handovers = ["porch"];
+    state.item = { ...ITEM, price_cents: 0, current_price_cents: 0, live_at: new Date(Date.now() - 60_000).toISOString() };
+    open();
+    const seller = await screen.findByText("Dana");
+    expect(seller.closest("[data-guest-seller]")?.textContent).toBe("DGiven byDana");
+    await vi.waitFor(() => expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("You'll get the exact address if Dana picks you."));
+    expect(document.body.textContent).not.toMatch(/Sold by|giver picks you/);
   });
 
   it("DA-6: the buyer's own sold item says You bought this (free: You claimed this), with Buying, and asks no item pickup times", async () => {

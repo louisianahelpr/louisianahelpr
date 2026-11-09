@@ -154,7 +154,7 @@ export function DeclutterGuestBrowseJoin() {
  * A guest's seller line (BUY-16): the first name only, never the full name, no avatar, no link to the profile (a
  * member's page). Nothing while it loads, on a failed read, or with no name: the listing reads the same without it.
  */
-export function DeclutterGuestSeller({ itemId }: { itemId: string }) {
+export function DeclutterGuestSeller({ itemId, free = false }: { itemId: string; free?: boolean }) {
   const first = useQuery({ queryKey: ["declutter", "guest-seller", itemId], queryFn: () => fetchGuestSellerFirstName(itemId) });
   if (!first.data) return null;
   return (
@@ -163,7 +163,8 @@ export function DeclutterGuestSeller({ itemId }: { itemId: string }) {
         {first.data.charAt(0).toUpperCase()}
       </span>
       <span className="min-w-0">
-        <span className="block text-xs text-muted-foreground">Sold by</span>
+        {/* F049 (UI audit 11-09): a giveaway is given, not sold. */}
+        <span className="block text-xs text-muted-foreground">{free ? "Given by" : "Sold by"}</span>
         <span className="block truncate font-semibold">{first.data}</span>
       </span>
     </p>

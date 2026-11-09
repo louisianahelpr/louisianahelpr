@@ -26,6 +26,10 @@ export const ITEM_SELECT =
 const BUCKET = "job-photos";
 const WIDTHS = [720, 1080] as const;
 export const GALLERY_SIZES = "(min-width: 640px) 680px, calc(100vw - 40px)";
+/** Copies of PHONE_PHOTO_MEDIA and PHONE_PHOTO_SIZES (pagePhoto.ts) and the media the width-only photo serves. */
+export const PHONE_MEDIA = "(max-width: 639px)";
+export const PHONE_SIZES = "calc(100vw - 40px)";
+export const WIDE_MEDIA = "(min-width: 640px)";
 
 const ITEM_PATH = /^\/declutter\/item\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i;
 
@@ -46,12 +50,14 @@ export function declutterItemUrls(supabaseUrl: string, itemId: string): { item: 
  * The gallery's first frame for these photo rows: pagePhoto(photoPublicUrl(path)) of the lowest position. A path that
  * a URL would have to encode, or anything not in the expected shape: none (the gallery then loads it as before).
  */
-export function firstGalleryPhoto(supabaseUrl: string, rows: unknown): { href: string; srcset: string } | null {
+export function firstGalleryPhoto(supabaseUrl: string, rows: unknown): { href: string; srcset: string; phoneSrcset: string } | null {
   if (!Array.isArray(rows) || rows.length === 0) return null;
   const path = (rows[0] as { storage_path?: unknown })?.storage_path;
   if (typeof path !== "string" || !/^[A-Za-z0-9/_.-]+$/.test(path)) return null;
   const at = (w: number) => `${supabaseUrl.replace(/\/$/, "")}/storage/v1/render/image/public/${BUCKET}/${path}?width=${w}&quality=75`;
-  return { href: at(720), srcset: WIDTHS.map((w) => `${at(w)} ${w}w`).join(", ") };
+  // Copy of pagePhonePhotoUrl (pagePhoto.ts): a phone's square frame gets the square crop.
+  const square = (w: number) => `${supabaseUrl.replace(/\/$/, "")}/storage/v1/render/image/public/${BUCKET}/${path}?width=${w}&height=${w}&resize=cover&quality=75`;
+  return { href: at(720), srcset: WIDTHS.map((w) => `${at(w)} ${w}w`).join(", "), phoneSrcset: WIDTHS.map((w) => `${square(w)} ${w}w`).join(", ") };
 }
 
 /** A list answer, or null (a refusal, an error body, anything else). */
@@ -88,13 +94,18 @@ export function startDeclutterItemPrefetch(pathname: string): void {
   void slot.photos.then((rows) => {
     const p = firstGalleryPhoto(base, rows);
     if (!p) return;
-    const link = document.createElement("link");
-    link.rel = "preload";
-    link.setAttribute("as", "image");
-    link.href = p.href;
-    link.setAttribute("imagesrcset", p.srcset);
-    link.setAttribute("imagesizes", GALLERY_SIZES);
-    link.setAttribute("fetchpriority", "high");
-    document.head.appendChild(link);
+    // One preload per frame shape, each for the width its <source> / <img> serves (only the matching media fetches):
+    // a phone's square crop, and the width-only photo from sm up (DeclutterGallery, FallbackImg's <picture>).
+    for (const [media, srcset, sizes] of [[PHONE_MEDIA, p.phoneSrcset, PHONE_SIZES], [WIDE_MEDIA, p.srcset, GALLERY_SIZES]] as const) {
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.setAttribute("as", "image");
+      link.href = p.href;
+      link.setAttribute("imagesrcset", srcset);
+      link.setAttribute("imagesizes", sizes);
+      link.setAttribute("media", media);
+      link.setAttribute("fetchpriority", "high");
+      document.head.appendChild(link);
+    }
   });
 }

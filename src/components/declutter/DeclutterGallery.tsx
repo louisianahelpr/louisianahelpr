@@ -14,6 +14,7 @@ import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { FallbackImg } from "./FallbackImg";
 import { ITEM_PHOTO_ASPECT, ITEM_PHOTO_FRAME_BASE } from "./itemPhotoFrame";
 import { PhotoArrowButton } from "@/components/ui/PhotoArrowButton";
+import { PHONE_PHOTO_MEDIA, PHONE_PHOTO_SIZES } from "@/lib/declutter/pagePhoto";
 
 const FRAME_BASE = ITEM_PHOTO_FRAME_BASE;
 const ASPECT = ITEM_PHOTO_ASPECT;
@@ -21,7 +22,7 @@ const ASPECT = ITEM_PHOTO_ASPECT;
 /** `icon`: the placeholder glyph when there is no photo (the job page passes the job category's; default: the Declutter category's). */
 /** `display`: what the frame shows for each of `urls` (a resized photo and its srcSet, B67); `urls` stay the originals,
  * for the full-screen viewer and as the fallback when a resized photo fails. */
-export function DeclutterGallery({ urls, display, category, title, icon, shape = "item" }: { urls: string[]; display?: ({ src: string; srcSet: string } | null)[]; category: string; title: string; icon?: LucideIcon; shape?: keyof typeof ASPECT }) {
+export function DeclutterGallery({ urls, display, category, title, icon, shape = "item" }: { urls: string[]; display?: ({ src: string; srcSet: string; phoneSrcSet?: string } | null)[]; category: string; title: string; icon?: LucideIcon; shape?: keyof typeof ASPECT }) {
   // A banner (the job page) always wears the one warm tint; items keep a tint per category.
   const FRAME = `${FRAME_BASE} ${ASPECT[shape]}`;
   const track = useRef<HTMLDivElement>(null);
@@ -68,6 +69,8 @@ export function DeclutterGallery({ urls, display, category, title, icon, shape =
                 srcSet={display?.[i]?.srcSet}
                 // The frame is the page column: 20px gutters on a phone (measured 335 px at 375), at most the 680px app-shell frame.
                 sizes={display?.[i] ? "(min-width: 640px) 680px, calc(100vw - 40px)" : undefined}
+                // Item page speed (11-09): a phone's square frame gets the square crop (pagePhoto.ts).
+                phone={display?.[i]?.phoneSrcSet ? { media: PHONE_PHOTO_MEDIA, srcSet: display[i]!.phoneSrcSet!, sizes: PHONE_PHOTO_SIZES } : undefined}
                 retrySrc={display?.[i] ? url : undefined}
                 alt={`Photo ${i + 1} of ${urls.length}`}
                 loading={i === 0 ? "eager" : "lazy"}

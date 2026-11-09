@@ -62,6 +62,8 @@ const NOT_APP_ADDRESSES: Record<string, string> = {
  */
 // @two-way src/test/everyLinkIsARealRoute.test.ts:stale OWNER_REDIRECT_ROUTES entry
 const OWNER_REDIRECT_ROUTES: Record<string, string> = {
+  "/declutter/wanted/new":
+    "owner 2026-11-09 (UI audit F130, the owner-approved fix list: \"Route it to the Wanted composer (or redirect to /declutter?tab=wanted)\"): the obvious address for a new Wanted post opens the composer (wantedAskHref(\"\")) instead of the 404",
   "/quotes":
     "owner 2026-10-19: the quotes hub is retired into Post a job / Jobs / My Jobs / Posts and old hub links (stored quote notices, Q2177) send the person to the new home (QuotesHubRedirect)",
 };

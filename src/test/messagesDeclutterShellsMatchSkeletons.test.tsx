@@ -12,7 +12,7 @@
  * drops them off their route and on every error card (dropHomeShell); the build inlines their CSS.
  *
  * @mutate src/pages/messages/useMessagesPageSetup.ts |   useEffect(() => removeShellOncePainted(MESSAGES_SHELL_ID), []); |
- * @mutate src/pages/declutter/DeclutterPage.tsx |   useEffect(() => removeShellOncePainted(DECLUTTER_SHELL_ID), []); |
+ * @mutate src/pages/declutter/DeclutterPage.tsx |   useEffect(() => releaseDeclutterShell(), []); |
  * @mutate src/components/landing/HomeShellLeaves.tsx | !== "/messages") document | === "/x") document
  * @mutate src/components/landing/HomeShellLeaves.tsx | !== "/declutter") document | === "/x") document
  * @mutate src/components/landing/homeShell.ts |   doc.getElementById(MESSAGES_SHELL_ID)?.remove();\n |\n
@@ -39,6 +39,7 @@ import type { ReactElement } from "react";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import MessagesRouteSkeleton from "@/components/MessagesRouteSkeleton";
 import DeclutterRouteSkeleton from "@/components/DeclutterRouteSkeleton";
+import { DeclutterGuestBrowseJoin } from "@/components/declutter/DeclutterGuest";
 import { blankComments } from "./helpers/blankNonCode";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 import { SECTIONS_OPEN_QUERY_KEY } from "@/components/landing/useSectionsOpen";
@@ -49,7 +50,7 @@ const ROOT = join(__dirname, "..", "..");
 const INDEX = join(ROOT, "index.html");
 const PAGES = [
   { page: "messages", path: "/messages", el: <MessagesRouteSkeleton />, testid: "messages-route-skeleton" },
-  { page: "declutter", path: "/declutter", el: <DeclutterRouteSkeleton />, testid: "declutter-route-skeleton" },
+  { page: "declutter", path: "/declutter", el: <DeclutterRouteSkeleton guestJoin={<DeclutterGuestBrowseJoin />} />, testid: "declutter-route-skeleton" },
 ] as const;
 const start = (page: string) => `<div id="lh-${page}-shell" aria-hidden="true" inert data-lh-shell="start">`;
 
@@ -171,7 +172,7 @@ describe("a signed-in phone's /messages and /declutter paint their own route ske
     }
     expect(blankComments(readFileSync(join(ROOT, "src/pages/messages/useMessagesPageSetup.ts"), "utf8"))).toContain("useEffect(() => removeShellOncePainted(MESSAGES_SHELL_ID), []);");
     expect(blankComments(readFileSync(join(ROOT, "src/pages/messages/Messages.tsx"), "utf8"))).toContain("useMessagesPageSetup();");
-    expect(blankComments(readFileSync(join(ROOT, "src/pages/declutter/DeclutterPage.tsx"), "utf8"))).toContain("useEffect(() => removeShellOncePainted(DECLUTTER_SHELL_ID), []);");
+    expect(blankComments(readFileSync(join(ROOT, "src/pages/declutter/DeclutterPage.tsx"), "utf8"))).toContain("useEffect(() => releaseDeclutterShell(), []);");
   });
 
   it("the build inlines their CSS with the other shells'", () => {

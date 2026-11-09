@@ -361,7 +361,7 @@ describe("Declutter screens", () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
     at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     // Owner mockup 11-01 / A3-47: ONE pickup block, the way and the town once, the address note once at the end.
-    await waitFor(() => expect(document.querySelector("[data-pickup-way='porch'] p")?.textContent).toBe("Porch pickup · Mid-City, Baton Rouge"));
+    await waitFor(() => expect(document.querySelector("[data-pickup-way='porch'] p")?.textContent).toBe("Porch pickup"));
     expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("Exact address after you pay");
     expect(screen.getByRole("button", { name: "Save this item" })).toBeInTheDocument();
     // Owner 2026-10-19: the two actions show with no saved card (Marketplace / OfferUp / Mercari).
@@ -409,10 +409,10 @@ describe("Declutter screens", () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
     // Owner mockup 11-01 / A3-47: one line per way, the town on the porch line only.
     const cases: [string[] | null, string[]][] = [
-      [["porch", "meetup"], ["Porch pickup · Mid-City, Baton Rouge", "Meet at a safe spot"]],
+      [["porch", "meetup"], ["Porch pickup", "Meet at a safe spot"]],
       [["meetup", "seller_delivery", "delivery"], ["Meet at a safe spot", "Seller delivers", "Helpr delivery"]],
       // An older item with no ticks keeps its porch line.
-      [null, ["Porch pickup · Mid-City, Baton Rouge"]],
+      [null, ["Porch pickup"]],
     ];
     for (const [ways, want] of cases) {
       state.itemHandovers = ways;
@@ -439,9 +439,9 @@ describe("Declutter screens", () => {
       // Lead's call 2026-10-31: the usual times are the Meetup times (no pickup place saved in this world).
       [["meetup", "delivery"], "Meetup", ["Meet at a safe spot", "Helpr delivery"], "meetup"],
       // BUY-18: porch only is a whole DAY, so no hours; porch with a meeting spot keeps them, under the meetup line.
-      [["porch"], "Pickup", ["Porch pickup · Mid-City, Baton Rouge"], null],
-      [["porch", "meetup"], "Pickup", ["Porch pickup · Mid-City, Baton Rouge", "Meet at a safe spot"], "meetup"],
-      [null, "Pickup", ["Porch pickup · Mid-City, Baton Rouge"], "porch"],
+      [["porch"], "Pickup", ["Porch pickup"], null],
+      [["porch", "meetup"], "Pickup", ["Porch pickup", "Meet at a safe spot"], "meetup"],
+      [null, "Pickup", ["Porch pickup"], "porch"],
     ];
     for (const [ways, heading, lines, times] of cases) {
       state.itemHandovers = ways;

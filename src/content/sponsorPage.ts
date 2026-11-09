@@ -60,7 +60,7 @@ export const sponsorPage = {
     countdownLabel: "Giveaways start in",
     countdownLive: "The giveaways are live! Day {day} of 25",
     /** Under the countdown and in Claim Your Day while sign-ups are open. */
-    deadline: "First come, first served · Claim your day by Nov 30.",
+    deadline: "Sign up by Nov 30.",
     countdownUnits: { days: "days", hours: "hours", minutes: "min", seconds: "sec" },
   },
 
@@ -110,9 +110,9 @@ export const sponsorPage = {
     title: "How It Works",
     steps: [
       { icon: "calendar", title: "Pick your day", body: "Choose any day (or days!) from December 1–25. Multiple brands can share a day." },
-      { icon: "gift", title: "Tell us your prize", body: "A product, gift card or bundle, any value you like." },
-      { icon: "sparkle", title: "We do the work", body: "We design the graphics, write and publish the posts, tag and link your brand, run the entries and pick a winner at random. You approve your post before it goes live." },
-      { icon: "chart", title: "You get the results", body: "The winner gets your prize, and you get a recap of how your day performed." },
+      { icon: "gift", title: "Tell us your prize", body: "Donate anything you'd like: a product, a gift card, a service or a bundle." },
+      { icon: "sparkle", title: "We do the work", body: "We design the graphics, write and publish the posts, tag and link your brand, run the entries and pick a winner at random." },
+      { icon: "chart", title: "Your brand shines", body: "A Louisiana neighbor wins your prize, and local families see your brand." },
     ],
   },
 
@@ -122,7 +122,6 @@ export const sponsorPage = {
       { icon: "star", title: "Your spotlight post", body: "A featured giveaway post for your brand on your day." },
       { icon: "link", title: "Tags & links everywhere", body: "Your brand tagged and linked on our Facebook page, our group and our website." },
       { icon: "heart", title: "Real local engagement", body: "Louisiana families commenting, sharing and following, right in the middle of holiday shopping." },
-      { icon: "chart", title: "A results recap", body: "After your day we send you [reach, comments, shares, entries and screenshots]." },
       { icon: "wall", title: "Featured on our sponsor wall", body: "Your logo on the 25 Days page all month, linked to your site." },
     ],
   },
@@ -130,7 +129,7 @@ export const sponsorPage = {
   whatWeAsk: {
     title: "What We Ask",
     body:
-      "Just one prize for one winner (a product, gift card or bundle, your choice of value), shipped to the winner or to us. That's it. No fees, no contracts, no catch. We handle the graphics, posts, picking the winner and the recap.",
+      "Donate a prize, anything you'd like (a product, a gift card, a service or a bundle), shipped to the winner or to us. That's it. No fees, no contracts, no catch. We handle the graphics, the posts and picking the winner.",
   },
 
   reach: {
@@ -172,7 +171,7 @@ export const sponsorPage = {
     intro: "Pick one day or as many as you like. More than one brand can share a day, and every sponsor gets their own spotlight post.",
     dayCount: { one: "{n} brand joined", many: "{n} brands joined", none: "Open" },
     full: "Full",
-    deadline: "First come, first served · Claim your day by Nov 30.",
+    deadline: "Sign up by Nov 30.",
     /** Shown in place of the calendar and form after signup_deadline. */
     closedTitle: "Sign-ups are closed",
     closed: "Sign-ups for the 25 Days of Louisiana Giveaways closed on November 30. Thank you to every brand that joined! Questions? Email admin@louisianahelpr.com.",
@@ -231,14 +230,12 @@ export const sponsorPage = {
   faq: {
     title: "Questions? We've Got Answers",
     items: [
-      { q: "Is this really free?", a: "Yes. There's no fee to join; all we ask is one prize for one winner." },
+      { q: "Is this really free?", a: "Yes. There's no fee to join; all we ask is a prize to give away." },
       { q: "Who can enter the giveaways?", a: "[Louisiana residents 18+ — confirm]. Full details are in the Official Giveaway Rules." },
       { q: "How is the winner picked?", a: "At random from eligible entries, and announced publicly on our Facebook page and group." },
       { q: "How does the prize get to the winner?", a: "Ship it straight to the winner (we send you their shipping info), or send it to us and we handle delivery." },
       { q: "Can I sponsor more than one day?", a: "Absolutely!" },
-      { q: "Do I get to see my post first?", a: "Yes. You approve your post before it goes live." },
       { q: "Can more than one brand be on the same day?", a: "Yes, and every sponsor gets their own spotlight post." },
-      { q: "What do I get afterward?", a: "A recap of your day: [reach, engagement, entries, screenshots]." },
       { q: "What if I have more questions?", a: "Email Lexi at admin@louisianahelpr.com. A real person replies." },
       { q: "Is this affiliated with Facebook?", a: "No. This giveaway is in no way sponsored, endorsed or administered by, or associated with, Facebook/Meta." },
     ],

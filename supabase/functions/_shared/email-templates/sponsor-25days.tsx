@@ -71,7 +71,7 @@ export const SponsorConfirmationEmail = ({ s, adminEmail }: { s: SponsorEmailSig
       2. We design your graphics, write and publish your post, tag and link your brand, run the entries and pick a
       winner at random.
       <br />
-      3. The winner gets your prize, and after your day you get a recap of how it performed.
+      3. A Louisiana neighbor wins your prize, and local families see your brand.
     </Text>
     <Text className="e-text" style={textStyle}>
       No fees, no contracts, no catch. You're working directly with Lexi, a real person: reply to this email or write

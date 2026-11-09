@@ -19,7 +19,7 @@ vi.mock("@/integrations/supabase/client", () => {
   const chain = (table: string) => {
     const rows =
       table === "declutter_items"
-        ? [{ id: "i1", title: "Oak dresser", current_price_cents: 4000, area_label: "Mid City", live_at: "2026-11-04T10:00:00Z" }]
+        ? [{ id: "i1", title: "Oak dresser", category: "furniture", condition_stars: 4, porch_ok: true, price_cents: 4000, current_price_cents: 4000, area_label: "Mid City", live_at: "2026-11-04T10:00:00Z" }]
         : [{ item_id: "i1", storage_path: "u/declutter/i1/a.jpg", position: 0 }];
     const q: Record<string, unknown> = {};
     for (const m of ["select", "eq", "order", "limit", "in"]) q[m] = () => q;
@@ -30,7 +30,9 @@ vi.mock("@/integrations/supabase/client", () => {
     };
     return q;
   };
-  return { supabase: { from: chain } };
+  // storage: the Declutter card builds its photo URLs (photoCardUrl / photoPublicUrl).
+  const storage = { from: () => ({ getPublicUrl: (p: string) => ({ data: { publicUrl: `https://cdn.invalid/${p}` } }) }) };
+  return { supabase: { from: chain, storage } };
 });
 vi.mock("@/lib/jobColumns", () => ({
   readJobsAheadOfDb: async () => {
@@ -40,7 +42,6 @@ vi.mock("@/lib/jobColumns", () => ({
   },
 }));
 vi.mock("@/lib/errorLogger", () => ({ report: () => {} }));
-vi.mock("@/lib/declutter/api", () => ({ photoCardUrl: (p: string) => `card/${p}`, photoPublicUrl: (p: string) => `full/${p}` }));
 
 import { LiveJobsSection, forgetRecentLiveJobs, LANDING_REUSE_MS } from "./LiveJobsSection";
 import { FreshDeclutterSection, forgetRecentFreshItems, FRESH_REUSE_MS } from "./FreshDeclutterSection";

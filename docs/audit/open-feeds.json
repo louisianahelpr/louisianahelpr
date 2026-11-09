@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-09T01:01Z",
+  "measured_at": "2026-11-09T06:55Z",
   "issues": {
     "readable": true,
     "open": [
@@ -104,7 +104,7 @@
         "number": 4222,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42533886917",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42553904004",
         "runTruncated": false
       },
       {
@@ -130,7 +130,7 @@
         "number": 4258,
         "title": "nightly-red: prod-errors",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42533929939",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42554076186",
         "runTruncated": false
       },
       {
@@ -145,6 +145,13 @@
         "title": "nightly-red: main: Vitest",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42540130824",
+        "runTruncated": false
+      },
+      {
+        "number": 4270,
+        "title": "nightly-red: nightly-live-smoke",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42552145903",
         "runTruncated": false
       }
     ]
@@ -182,7 +189,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: main: vitest",
-        "issue": null
+        "issue": 4264
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -209,12 +216,12 @@
         "issue": null
       },
       {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
+        "fingerprint": "42a784cb226e506d814a710c96d26487",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
         "status": "open",
-        "title": "db-deploy failed on main",
-        "issue": null
+        "title": "nightly-red: main: supabase db deploy",
+        "issue": 4261
       },
       {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
@@ -273,6 +280,14 @@
         "issue": 4245
       },
       {
+        "fingerprint": "1ef4b10bb74a3a15e67e4fbd811e7a0c",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: prod-errors",
+        "issue": 4258
+      },
+      {
         "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -318,7 +333,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
+        "issue": 4222
       },
       {
         "fingerprint": "f1bfed973a2a75d4ef5bb8ce2a1785df",
@@ -401,14 +416,6 @@
         "issue": null
       },
       {
-        "fingerprint": "95a0554486ebd14ed36618e23db7477f",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: prod-deploy",
-        "issue": null
-      },
-      {
         "fingerprint": "15cc2d7f63f3c53e80755673bf18e8c0",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
@@ -487,6 +494,14 @@
         "status": "open",
         "title": "typeerror: cannot read properties of undefined (reading 'fetchsupporttickets')",
         "issue": null
+      },
+      {
+        "fingerprint": "feb363ff214ac3c02969933acc795e1e",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: nightly-live-smoke",
+        "issue": 4270
       }
     ]
   },
@@ -512,6 +527,7 @@
     "issue #4258": "Q1816",
     "issue #4261": "Q1816",
     "issue #4264": "Q1816",
+    "issue #4270": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",
@@ -520,6 +536,7 @@
     "ledger 15cc2d7f63f3": "Q2347",
     "ledger 16e6e91f6701": "Q1816",
     "ledger 18539240a894": "Q1816",
+    "ledger 1ef4b10bb74a": "Q1816",
     "ledger 2e4f3e726722": "Q1816",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 3712b62a9839": "Q2510",
@@ -527,6 +544,7 @@
     "ledger 3c0d6b003e08": "Q1810",
     "ledger 3c528ace98fd": "Q2350",
     "ledger 41f88aeb227f": "Q1777",
+    "ledger 42a784cb226e": "Q1816",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4aa239aefeb6": "Q1816",
     "ledger 4c89303184fb": "Q1816",
@@ -544,7 +562,6 @@
     "ledger 8a2e802edbe7": "Q2498",
     "ledger 8f6eb3360000": "Q2507",
     "ledger 9078a39b3304": "Q1615",
-    "ledger 95a0554486eb": "Q1816",
     "ledger 99390a68ded7": "Q1615",
     "ledger a8ceee56bbd5": "Q1816",
     "ledger ab6fdbe8c882": "Q1816",
@@ -558,6 +575,7 @@
     "ledger d1f8391b44ec": "Q1631",
     "ledger db0fb15c4ec3": "Q1816",
     "ledger f1bfed973a2a": "Q2734",
-    "ledger f22e3275d50d": "Q1816"
+    "ledger f22e3275d50d": "Q1816",
+    "ledger feb363ff214a": "Q1816"
   }
 }

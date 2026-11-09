@@ -301,6 +301,35 @@ function Where() {
 
 /** A row button's full words: a pair shows the short label (pairLabel.ts) and keeps the full one as its name. */
 const fullName = (b: HTMLElement) => b.getAttribute("aria-label") ?? b.textContent ?? "";
+/**
+ * The sticky bar's shape (owner pick 11-08, JP2): "More options" first when the "..." menu is drawn (it sits in the
+ * page's top bar, data-job-menu-host), then the bar's own buttons left to right (at most a secondary and the primary).
+ */
+function barNames(rowEl: HTMLElement, hidden = false): string[] {
+  const more = document.querySelector("[data-row-more]");
+  return [...(more ? ["More options"] : []), ...within(rowEl).queryAllByRole("button", { hidden }).map(fullName).filter((t) => t !== "More options")];
+}
+
+/** The facts rows (owner pick 11-08, JP1): When reads the day and time; Where the town, or Address the street. */
+function factLabel(el: Element | null): string | undefined {
+  return el?.closest("[data-job-fact]")?.querySelector("dt")?.textContent ?? undefined;
+}
+function expectWhenWhere(street = false) {
+  const when = document.querySelector("[data-job-meta]");
+  expect(when?.textContent).toBe(`${formatJobDate(DAY)} · 9:00 AM`);
+  expect(factLabel(when)).toBe("When");
+  if (street) return;
+  const where = document.querySelector("[data-job-town]");
+  expect(where?.textContent).toBe("Delcambre");
+  expect(factLabel(where)).toBe("Where");
+}
+function expectAddressRow() {
+  const addr = document.querySelector("[data-job-address]");
+  expect(addr?.textContent).toBe("123 Main St, Delcambre, LA 70528");
+  expect(factLabel(addr)).toBe("Address");
+  // The street once: never the town row beside it (F7, JOBS2-39).
+  expect(document.querySelector("[data-job-town]")).toBeNull();
+}
 
 function renderPage(userId = ME) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -412,7 +441,7 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     expect(document.querySelector("[data-helpr-money] .sr-only")?.textContent).toBe("Your pay ");
     // Owner 2026-10-25: no fee name, rate or maths beside the take-home.
     expect(document.querySelector("[data-helpr-money]")?.textContent ?? "").not.toMatch(/fee|%/i);
-    expect(screen.getByText(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`)).toBeTruthy();
+    expectWhenWhere();
     expect(document.body.textContent).not.toContain("123 Main St");
     expect(screen.getByText("The street address is shared once you're offered the job.")).toBeTruthy();
     expect(screen.getByText("Home · Pressure washing")).toBeTruthy();
@@ -527,7 +556,8 @@ describe("job page, poster side (boards 15, 168)", () => {
     expect(document.body.textContent).not.toMatch(/holds it until the job is done/i);
     expect(document.body.textContent).not.toMatch(/Nothing is charged|take home|takes home|not charged/i);
     expect(screen.getByText("3 applicants")).toBeTruthy();
-    expect(screen.getByLabelText(/^Job progress, step 1 of 8: Posted,/)).toBeTruthy();
+    // Owner pick 11-08 (item 3): the tracker draws Hired..Done; before a hire there is no bar, only the next-step line.
+    expect(document.querySelector("[data-job-progress] [data-job-steps]")).toBeNull();
     // The next step (owner 11-01 12:05 PM): "Next: choose a Helpr · 2 applied".
     expect(document.querySelector("[data-next-step]")?.textContent).toBe("Next: choose a Helpr · 2 applied");
     fireEvent.click(screen.getByRole("button", { name: "Review 2 applicants" }));
@@ -575,7 +605,7 @@ describe("job page, poster side (boards 15, 168)", () => {
     state.job = row({ customer_id: ME, status: "completed", payment_status: "cancelling" });
     renderPage();
     expect(document.querySelector("[data-poster-money] p.mt-1\\.5")).toBeNull();
-    expect(screen.getByLabelText(/^Job progress: all 8 steps done/)).toBeTruthy();
+    expect(screen.getByLabelText(/^Job progress: all 6 steps done/)).toBeTruthy();
   });
 
   it("a cancelled job says so instead of drawing a tracker", () => {
@@ -608,7 +638,7 @@ describe("job page, the poster confirms the arrival here (F14)", () => {
     state.job = arrived();
     state.party = true;
     renderPage();
-    expect(screen.getByLabelText(/^Job progress, step 6 of 8: Arrived, waiting on you\./)).toBeTruthy();
+    expect(screen.getByLabelText(/^Job progress, step 4 of 6: Arrived, waiting on you\./)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Manage job" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Confirm they've arrived" }));
     await waitFor(() => expect(confirmArrivalMock).toHaveBeenCalledTimes(1));
@@ -644,29 +674,31 @@ describe("job page, the poster confirms the arrival here (F14)", () => {
     expect(screen.getByTestId("card-panel")).toBeTruthy();
   });
 
-  // A3-8 (audit 11-01): at the approve step the poster's complaint is a visible text button under the pair (Message |
-  // Approve stays, owner 12:49 PM), opening the approve sheet at the fix form; at other steps it is not there.
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const notRight = posterWait === "approve" && flows.ready && !refundOpen ? flows.notRight : null; |   const notRight = null;
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const notRight = posterWait === "approve" && flows.ready && !refundOpen ? flows.notRight : null; |   const notRight = flows.ready && !refundOpen ? flows.notRight : null;
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx | data-not-right-open="" onClick={posterActions.notRight} | data-not-right-open="" onClick={posterActions.edit}
-  it("A3-8: 'Something's not right' sits under Message | Approve and opens the fix form; not before the Helpr marks it done", async () => {
+  // A3-8 (audit 11-01): at the approve step the poster's complaint is offered beside Approve, never only behind it.
+  // Owner pick 11-08 (JP2): it is in the bar's "..." menu (`inMenu`), Approve still the lead; at other steps not at all.
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const notRight = posterWait === "approve" && flows.ready && !disputeOpen ? flows.notRight : null; |   const notRight = null;
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const notRight = posterWait === "approve" && flows.ready && !disputeOpen ? flows.notRight : null; |   const notRight = flows.ready && !disputeOpen ? flows.notRight : null;
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | label: NOT_RIGHT_LABEL, go: posterActions.notRight, inMenu: true | label: NOT_RIGHT_LABEL, go: posterActions.edit, inMenu: true
+  it("A3-8: 'Something's not right' is one tap from Approve (in More options) and opens the fix form; not before the Helpr marks it done", async () => {
     state.job = { ...arrived(), poster_confirmed_arrival_at: "2026-10-28T12:40:00Z", helper_completed_at: "2026-10-28T15:00:00Z" };
     state.party = true;
     renderPage();
-    const link = await screen.findByRole("button", { name: "Something's not right" });
-    expect(link.hasAttribute("data-not-right-open")).toBe(true);
-    // The pair keeps Approve as its lead (owner 12:49 PM); the complaint is outside the row, not in a menu.
-    expect(link.closest("[data-job-row]")).toBeNull();
-    expect(screen.getByRole("button", { name: "Approve and release" })).toBeTruthy();
+    // Approve keeps the lead (owner 12:49 PM), on the bar's right.
+    const rowEl = await waitFor(() => document.querySelector('[data-job-row="poster"]') as HTMLElement);
+    expect(barNames(rowEl).at(-1)).toBe("Approve and release");
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
+    const sheet = await screen.findByRole("dialog", { name: "More options" });
+    const link = within(sheet).getByRole("button", { name: "Something's not right" });
+    expect(link.getAttribute("data-row-action")).toBe("not-right");
     fireEvent.click(link);
-    expect(flowCalls).toEqual(["not-right"]);
+    expect(flowCalls.filter((c) => c !== "options-list")).toEqual(["not-right"]);
     cleanup();
     flowCalls.length = 0;
-    // Arrived, not marked done: there is nothing to approve, so no complaint button either.
+    // Arrived, not marked done: there is nothing to approve, so no complaint either.
     state.job = { ...arrived(), poster_confirmed_arrival_at: "2026-10-28T12:40:00Z" };
     renderPage();
     await screen.findAllByRole("button");
-    expect(screen.queryByRole("button", { name: "Something's not right" })).toBeNull();
+    expect(pageActions()).not.toContain("Something's not right");
   });
 
   // LEAD-JOBPAGE-LAYOUT (owner 2026-10-31): no step due is the next useful thing, never "Manage job".
@@ -776,14 +808,14 @@ describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => 
     const { unmount } = renderPage();
     const actions = document.querySelector('[data-job-row="poster"]') as HTMLElement;
     await within(actions).findByRole("button", { name: "Message Rhonda" });
-    expect(within(actions).getAllByRole("button").map(fullName)).toEqual(["Message Rhonda"]);
+    expect(barNames(actions)).toEqual(["Message Rhonda"]);
     unmount();
     state.moreCount = 3;
     renderPage();
     const row2 = document.querySelector('[data-job-row="poster"]') as HTMLElement;
     await within(row2).findByRole("button", { name: "Message Rhonda" });
     // The green one on the RIGHT (owner 11-01 12:00 PM, app-wide).
-    expect(within(row2).getAllByRole("button").map(fullName)).toEqual(["More options", "Message Rhonda"]);
+    expect(barNames(row2)).toEqual(["More options", "Message Rhonda"]);
   });
 });
 
@@ -821,7 +853,7 @@ describe("job page, the hired Helpr", () => {
     state.job = row({ helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-20T12:00:00Z", poster_confirmed_arrival_at: "2026-10-21T12:00:00Z" });
     state.party = true;
     renderPage();
-    expect(screen.getByLabelText(/^Job progress, step 7 of 8: Working, waiting on you\./)).toBeTruthy();
+    expect(screen.getByLabelText(/^Job progress, step 5 of 6: Working, waiting on you\./)).toBeTruthy();
     expect(screen.getByText("Next: mark it done when you finish")).toBeTruthy();
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open in Jobs" }));
@@ -853,7 +885,7 @@ describe("job page, the hired Helpr", () => {
     state.job = booked();
     state.party = true;
     renderPage();
-    expect(document.querySelector("[data-job-address]")?.textContent).toBe("Address: 123 Main St, Delcambre, LA 70528");
+    expectAddressRow();
     // The Working card's own face for this state (helperFaceAction: confirm_day).
     fireEvent.click(screen.getByRole("button", { name: "Confirm you'll be at the job" }));
     expect(faceRequests).toEqual([[row().id, "confirm"]]);
@@ -1051,8 +1083,8 @@ describe("job page, the street address follows the Working card", () => {
     // Q2601: the tracker says it as the step ("accept or decline Rhonda's offer"), once.
     await waitFor(() => expect(document.body.textContent!.match(/accept or decline Rhonda's offer/g)?.length).toBe(1));
     expect(document.body.textContent).not.toMatch(/offered you this job/);
-    expect(document.querySelector("[data-job-address]")?.textContent).toBe("Address: 123 Main St, Delcambre, LA 70528");
-    expect(document.querySelector("[data-job-meta]")?.textContent).toBe(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`);
+    expectAddressRow();
+    expectWhenWhere(true);
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
   });
 
@@ -1069,7 +1101,7 @@ describe("job page, the street address follows the Working card", () => {
     state.myApplication = { status: "pending", closed_reason: null };
     renderPage();
     await screen.findByText("You applied · Waiting on Rhonda");
-    expect(document.querySelector("[data-job-meta]")?.textContent).toBe(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`);
+    expectWhenWhere(true);
     expect(screen.getByText("The street address is shared once you're offered the job.")).toBeTruthy();
   });
 
@@ -1077,24 +1109,26 @@ describe("job page, the street address follows the Working card", () => {
     state.job = row({ customer_id: ME });
     state.party = true;
     renderPage();
-    expect(document.querySelector("[data-job-meta]")?.textContent).toBe(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`);
+    expectWhenWhere(true);
   });
 
-  // Owner 11-01: "Move the category to the second line and the location, day and time to the first."
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx |               {meta && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>} |               {false && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>}
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx |               <p data-job-category="" className="text-ds-14 font-semibold text-primary">{eyebrow}</p> |               <p data-job-category="" className="text-ds-14 font-semibold text-primary">{eyebrow}{meta ? ` · ${meta}` : ""}</p>
-  it("the head: day, time and town on line 1, the category alone on line 2 (poster and Helpr)", () => {
-    for (const job of [row({ customer_id: ME }), row({ helper_id: ME, status: "accepted" })]) {
+  // Owner 11-01 kept the category on its own line; owner pick 11-08 (JP1) moved the day, time and town out of a muted
+  // line of dots into label/value facts rows under it (When / Where), poster and Helpr alike.
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {when && <FactRow label="When" data-job-meta="">{when}</FactRow>} |             {false && <FactRow label="When" data-job-meta="">{when}</FactRow>}
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |               <p data-job-category="" className="text-ds-14 font-semibold text-primary">{eyebrow}</p> |               <p data-job-category="" className="text-ds-14 font-semibold text-primary">{eyebrow}{when ? ` · ${when}` : ""}</p>
+  it("the head: the category alone on its line, then the When and Where rows (poster and Helpr)", () => {
+    for (const job of [row({ customer_id: ME }), row({ helper_id: ME, status: "accepted", helper_confirmed_at: null, date_needed: DAY })]) {
       state.job = job;
       state.party = true;
       const { unmount } = renderPage();
       const head = document.querySelector("[data-job-head]") as HTMLElement;
-      const lines = [...head.querySelectorAll("p")].map((p) => p.textContent);
-      const meta = `${formatJobDate(DAY)} · 9:00 AM · Delcambre`;
-      expect(lines.indexOf(meta)).toBeGreaterThanOrEqual(0);
       const cat = head.querySelector("[data-job-category]")!;
       expect(cat.textContent).not.toContain("9:00 AM");
-      expect(lines.indexOf(cat.textContent)).toBe(lines.indexOf(meta) + 1);
+      const facts = head.querySelector("[data-job-facts]")!;
+      expect(facts).toBeTruthy();
+      expect(cat.compareDocumentPosition(facts) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(facts.querySelector("[data-job-meta]")?.textContent).toBe(`${formatJobDate(DAY)} · 9:00 AM`);
+      expect([...facts.querySelectorAll("dt")].map((d) => d.textContent)[0]).toBe("When");
       unmount();
     }
   });
@@ -1316,7 +1350,9 @@ describe("job page, one screen in the owner's order (LEAD-JOBPAGE-LAYOUT)", () =
     // ONE row (owner 2026-11-01): the confirm leads on the right; Message, Change date or time and Cancel job are behind
     // More options on its left (the open sheet hides the page from roles).
     const row2 = document.querySelector('[data-job-row="poster"]') as HTMLElement;
-    expect(within(row2).getAllByRole("button", { hidden: true }).map(fullName)).toEqual(["More options", "Confirm it's still on"]);
+    const names = barNames(row2, true);
+    expect([names[0], names[2], names.length]).toEqual(["More options", "Confirm it's still on", 3]);
+    expect(names[1]).toMatch(/^Message /);
   });
 
 });
@@ -1324,9 +1360,8 @@ describe("job page, one screen in the owner's order (LEAD-JOBPAGE-LAYOUT)", () =
 /** Every action the page offers: the row's buttons, and what its More options lists (opened, then closed again). */
 function pageActions(): string[] {
   const rowEl = document.querySelector("[data-job-row]");
-  if (!rowEl) return [];
-  const inRow = within(rowEl as HTMLElement).queryAllByRole("button").map(fullName);
-  const more = within(rowEl as HTMLElement).queryByRole("button", { name: "More options" });
+  const inRow = rowEl ? within(rowEl as HTMLElement).queryAllByRole("button").map(fullName) : [];
+  const more = document.querySelector<HTMLElement>("[data-row-more]");
   if (!more) return inRow;
   fireEvent.click(more);
   const sheet = document.querySelector("[data-row-options]") as HTMLElement;
@@ -1335,6 +1370,11 @@ function pageActions(): string[] {
   return [...inRow.filter((t) => t !== "More options"), ...listed];
 }
 /** Press an action, opening More options first when it is listed there (one tap). */
+/** Wait until the bar or its "..." menu offers the action, then press it (opening the menu first when it is there). */
+async function pressWhenOffered(name: string) {
+  await waitFor(() => expect(pageActions()).toContain(name));
+  pressAction(name);
+}
 function pressAction(name: string) {
   const direct = document.querySelector("[data-job-row]") ? within(document.querySelector("[data-job-row]") as HTMLElement).queryByRole("button", { name }) : null;
   if (direct) return fireEvent.click(direct);
@@ -1359,11 +1399,11 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     const row2 = steps.querySelector('[data-job-row="poster"]') as HTMLElement;
     expect(await within(row2).findByRole("button", { name: "Message Rhonda" })).toBeTruthy();
     // The green one on the RIGHT (owner 11-01 12:00 PM, app-wide).
-    expect(within(row2).getAllByRole("button").map(fullName)).toEqual(["More options", "Message Rhonda"]);
+    expect(barNames(row2)).toEqual(["More options", "Message Rhonda"]);
     // Never a stack of buttons: nothing else under the row.
     expect(screen.queryByRole("button", { name: "Cancel job" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Manage job" })).toBeNull();
-    fireEvent.click(within(row2).getByRole("button", { name: "More options" }));
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
     const sheet = await screen.findByRole("dialog", { name: "More options" });
     expect(within(sheet).getAllByRole("button").map(fullName).filter((t) => t !== "Close")).toEqual(["Change date or time", "Cancel job"]);
     // jsdom has no scrollTo (the sheet's date strip scrolls itself into view).
@@ -1550,19 +1590,21 @@ describe("one row of buttons at every stage (B93)", () => {
   const live = { customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
     helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",
     helper_on_the_way_at: "2026-10-28T13:51:00Z" } as const;
-  const rowLabels = () => within(document.querySelector("[data-job-row]") as HTMLElement).getAllByRole("button").map(fullName);
+  const rowLabels = () => barNames(document.querySelector("[data-job-row]") as HTMLElement);
 
   it("arrived (JA-3, JA-7, JA-8): never three in a row; the confirm leads on the right, its options one tap away, no duplicate", async () => {
     state.tracking = "arrived";
     state.job = row({ ...live, helper_arrived_at: "2026-10-28T14:20:00Z" });
     state.party = true;
     renderPage();
-    await waitFor(() => expect(rowLabels()).toEqual(["More options", "Confirm they've arrived"]));
+    // Owner pick 11-08 (JP2): the confirm leads on the right, Message is the one secondary, the rest one tap away.
+    await waitFor(() => expect(rowLabels()).toEqual(["More options", "Message Rhonda", "Confirm they've arrived"]));
     expect(screen.getAllByRole("button", { name: "Confirm they've arrived" })).toHaveLength(1);
     expect(screen.queryByRole("button", { name: /Fewer options/ })).toBeNull();
-    // Message is in the list, one tap away.
+    // Never Message twice: not also in the list.
     fireEvent.click(screen.getByRole("button", { name: "More options" }));
-    expect(await within(document.querySelector("[data-row-options]") as HTMLElement).findByRole("button", { name: "Message Rhonda" })).toBeTruthy();
+    const list = await screen.findByRole("dialog", { name: "More options" });
+    expect(within(list).queryByRole("button", { name: "Message Rhonda" })).toBeNull();
   });
 
   it("Approve and release (JA-9): how long the poster has to check, beside the button", async () => {
@@ -1570,9 +1612,10 @@ describe("one row of buttons at every stage (B93)", () => {
     state.job = row({ ...live, helper_arrived_at: "2026-10-28T14:20:00Z", poster_confirmed_working_at: "2026-10-28T14:25:00Z", helper_completed_at: new Date().toISOString() });
     state.party = true;
     renderPage();
-    await waitFor(() => expect(rowLabels()).toEqual(["Message Rhonda", "Approve and release"]));
-    // Continue another day (owner 2026-11-01, Yusef's job): a VISIBLE "Not finished? Set a day" under the pair.
-    expect(screen.getByRole("button", { name: "Not finished? Set a day" })).toBeTruthy();
+    await waitFor(() => expect(rowLabels()).toEqual(["More options", "Message Rhonda", "Approve and release"]));
+    // Continue another day (owner 2026-11-01, Yusef's job): "Not finished? Set a day" one tap away, in More options
+    // with "Something's not right" (owner pick 11-08, JP2).
+    expect(pageActions()).toEqual(expect.arrayContaining(["Not finished? Set a day", "Something's not right"]));
     // The review window is IN the next-step line (owner 11-01, live Done-stage screenshot), never a second panel.
     const line = document.querySelector("[data-next-step]") as HTMLElement;
     await waitFor(() => expect(line.textContent).toMatch(/Rhonda/));
@@ -1592,18 +1635,23 @@ describe("one row of buttons at every stage (B93)", () => {
     state.job = row(disputed);
     state.party = true;
     const r = renderPage();
-    await waitFor(() => expect(rowLabels()[0]).toBe("Message Rhonda"));
+    // Message leads (on the right); "See the case" is the one beside it (owner pick 11-08, JP2: in the bar).
+    await waitFor(() => expect(rowLabels().at(-1)).toBe("Message Rhonda"));
     expect(rowLabels()).not.toContain("Approve and release");
     expect(rowLabels()).not.toContain("Approve");
-    expect(document.querySelector("[data-see-the-case]")).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Not finished? Set a day" })).toBeNull();
+    expect(rowLabels()).toContain("See the case");
+    // The complaint is already made: no second "Something's not right", no continue day.
+    expect(pageActions()).not.toContain("Something's not right");
+    expect(pageActions()).not.toContain("Not finished? Set a day");
+    pressAction("See the case");
+    expect(await screen.findByTestId("dispute-case")).toBeTruthy();
     r.unmount();
     // The Helpr's side of the same job.
     state.job = row({ ...disputed, customer_id: POSTER, helper_id: ME, helper_completed_at: null });
     state.tracking = "working";
     renderPage();
-    await waitFor(() => expect(document.querySelector("[data-see-the-case]")).not.toBeNull());
-    expect(screen.queryByRole("button", { name: "Not finished? Set a day" })).toBeNull();
+    await waitFor(() => expect(pageActions()).toContain("See the case"));
+    expect(pageActions()).not.toContain("Not finished? Set a day");
   });
 
   it("completed (JA-10): the card's own Review leads the row; Message joins the options", async () => {
@@ -1616,26 +1664,27 @@ describe("one row of buttons at every stage (B93)", () => {
     await waitFor(() => expect(flowCalls).toContain("lead-host"));
     const rowEl = document.querySelector("[data-job-row]") as HTMLElement;
     // The lead slot is the row's right half; Message + the card's one other action make two, so More options.
-    expect(rowEl.lastElementChild?.hasAttribute("data-card-lead")).toBe(true);
-    expect(within(rowEl).getAllByRole("button").map(fullName)).toEqual(["More options"]);
+    expect(rowEl.lastElementChild?.querySelector("[data-card-lead]")).toBeTruthy();
+    expect(barNames(rowEl)).toEqual(["More options"]);
   });
 
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |       {cardLead && <div ref={flows.setTextHost} data-card-text="" className="flex justify-center empty:hidden" />} |
-  // A3-40 (lead 11-01): Tip beside Review is a visible text button UNDER the row (the card draws it into this slot),
-  // never a third button in the pair and never in More options. The slot exists only while the card's primary leads.
-  it("completed (A3-40): a text slot under the row holds the card's Tip", async () => {
+  // A3-40 (lead 11-01) said Tip beside Review was never a third button in the pair. Owner pick 11-08 (JP2): the card's
+  // Tip is one of the bar's actions like the rest: no text slot under the bar; it is the bar's one secondary when it is
+  // the only other action, else in the "..." menu with the others.
+  // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx | {cardCount > 0 && !loneCard && <div ref={setCardListHost} | {false && <div ref={setCardListHost}
+  it("completed: the card's Tip is in the bar or its menu, never a text slot under the bar", async () => {
     state.leadCount = 2;
     state.moreCount = 1;
     state.job = row({ ...live, status: "completed", payment_status: "payout_pending", helper_arrived_at: "2026-10-28T14:20:00Z",
       helper_completed_at: "2026-10-28T15:00:00Z", poster_completed_at: "2026-10-28T15:10:00Z" });
     state.party = true;
     renderPage();
-    await waitFor(() => expect(flowCalls).toContain("text-host"));
-    const rowEl = document.querySelector("[data-job-row]") as HTMLElement;
-    const slot = document.querySelector("[data-card-text]") as HTMLElement;
-    expect(slot).not.toBeNull();
-    expect(rowEl.contains(slot)).toBe(false);
-    expect(rowEl.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await waitFor(() => expect(flowCalls).toContain("lead-host"));
+    expect(flowCalls).not.toContain("text-host");
+    expect(document.querySelector("[data-card-text]")).toBeNull();
+    // Message + the card's one other primary (Tip) make two: both in More options, whose list the card fills.
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
+    await waitFor(() => expect(flowCalls).toContain("options-list"));
   });
 
   it("the hired Helpr's finished job (JA-22): Leave a review leads; Message and Open in working one tap away", async () => {
@@ -1699,7 +1748,7 @@ describe("job page layout V2 (owner 11-01, mockups 4 and 5)", () => {
     const rowEl = card!.querySelector('[data-job-row="poster"]');
     expect(follows(card!.querySelector('[aria-label="Your Helpr"]'), rowEl)).toBe(true);
     // Green on the RIGHT: [More options | Message Rhonda].
-    await waitFor(() => expect(within(rowEl as HTMLElement).getAllByRole("button").map(fullName)).toEqual(["More options", "Message Rhonda"]));
+    await waitFor(() => expect(barNames(rowEl as HTMLElement)).toEqual(["More options", "Message Rhonda"]));
   });
 
   it("after photos in, not marked done: the poster reads who added them and what it waits on (job 7b1da54b)", async () => {
@@ -1793,7 +1842,8 @@ describe("job page, a disputed job (JA-30)", () => {
       state.job = row({ customer_id: POSTER, helper_id: ME, status: "disputed", payment_status: "escrow", has_active_dispute: true });
       state.party = true;
       renderPage(viewer);
-      fireEvent.click(screen.getByRole("button", { name: "See the case" }));
+      // Owner pick 11-08 (JP2): one of the bar's actions (the secondary, or in its "..." menu).
+      await pressWhenOffered("See the case");
       expect((await screen.findByTestId("dispute-case")).getAttribute("data-job")).toBe(state.job.id);
       cleanup();
     }
@@ -1803,7 +1853,7 @@ describe("job page, a disputed job (JA-30)", () => {
     state.job = row({ customer_id: POSTER, helper_id: ME, status: "in_progress", payment_status: "escrow" });
     state.party = true;
     renderPage();
-    expect(screen.queryByRole("button", { name: "See the case" })).toBeNull();
+    expect(pageActions()).not.toContain("See the case");
     cleanup();
     state.job = row({ customer_id: POSTER, helper_id: "someone-else", status: "disputed", has_active_dispute: true });
     state.party = false;
@@ -1904,8 +1954,8 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     state.party = true;
     state.moreCount = 0;
     renderPage();
-    // Visible under the pair, never in More options (lead 11-01).
-    fireEvent.click(await screen.findByRole("button", { name: "Not finished? Set a day" }));
+    // Owner pick 11-08 (JP2): one tap away in More options, beside "Something's not right".
+    await pressWhenOffered("Not finished? Set a day");
     expect(await screen.findByRole("dialog", { name: "Set a day to finish" })).toBeTruthy();
   });
 
@@ -1914,7 +1964,8 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     state.job = underWay();
     state.party = true;
     renderPage();
-    expect(await screen.findByText("Continuing Thu 11/5 at 9 AM")).toBeTruthy();
+    // The When row reads the next visit (Q2680), not day 1.
+    await waitFor(() => expect(document.querySelector("[data-job-meta]")?.textContent).toBe("Continuing Thu 11/5 at 9 AM"));
     expect(document.querySelector("[data-next-step]")?.textContent).toBe("Continuing Thu 11/5 at 9 AM · waiting on Rhonda to confirm");
   });
 
@@ -1925,7 +1976,7 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     renderPage();
     const btn = await screen.findByRole("button", { name: "Confirm new day" });
     const rowEl = document.querySelector('[data-job-row="poster"]') as HTMLElement;
-    const names = within(rowEl).getAllByRole("button").map(fullName);
+    const names = barNames(rowEl);
     expect(names[names.length - 1]).toBe("Confirm new day");
     expect(screen.queryByRole("button", { name: "Approve and release" })).toBeNull();
     fireEvent.click(btn);
@@ -1936,7 +1987,7 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     state.job = underWay({ customer_id: POSTER, helper_id: ME });
     state.party = true;
     const { unmount } = renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Not finished? Set a day" }));
+    await pressWhenOffered("Not finished? Set a day");
     expect(await screen.findByRole("dialog", { name: "Set a day to finish" })).toBeTruthy();
     unmount();
     continueState.row = setRow({ proposed_by: POSTER });
@@ -1976,11 +2027,11 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     state.party = true;
     const { unmount } = renderPage();
     await waitFor(() => expect(document.querySelector('[data-job-row="helpr"]')).toBeTruthy());
-    expect(screen.queryByRole("button", { name: "Not finished? Set a day" })).toBeNull();
+    expect(pageActions()).not.toContain("Not finished? Set a day");
     unmount();
     state.tracking = "working";
     renderPage();
-    expect(await screen.findByRole("button", { name: "Not finished? Set a day" })).toBeTruthy();
+    await waitFor(() => expect(pageActions()).toContain("Not finished? Set a day"));
   });
 });
 
@@ -2096,12 +2147,12 @@ describe("job page: a day set to finish, still ahead (Auditor 11, 11-01)", () =>
     const { unmount } = renderPage();
     // Without a day the same job leads with the done step (the fixture is the audit's state).
     await waitFor(() => expect(document.querySelector('[data-job-row="helpr"]')).toBeTruthy());
-    expect(within(document.querySelector('[data-job-row="helpr"]') as HTMLElement).getAllByRole("button").map(fullName)).toContain("Mark it done");
+    expect(barNames(document.querySelector('[data-job-row="helpr"]') as HTMLElement)).toContain("Mark it done");
     unmount();
     continueState.row = setDay({ proposed_by: POSTER });
     renderPage();
     await screen.findByText(/You can mark it done on/);
-    const names = within(document.querySelector('[data-job-row="helpr"]') as HTMLElement).getAllByRole("button").map(fullName);
+    const names = barNames(document.querySelector('[data-job-row="helpr"]') as HTMLElement);
     expect(names).not.toContain("Mark it done");
     expect(names[names.length - 1]).toBe("Message Rhonda");
     expect(screen.getByText(/You can mark it done on \w{3} \d+\/\d+, the day you set to finish\./)).toBeTruthy();
@@ -2115,7 +2166,7 @@ describe("job page: a day set to finish, still ahead (Auditor 11, 11-01)", () =>
     state.leadCount = 0;
     renderPage();
     await screen.findByRole("button", { name: "Change day" });
-    const names = within(document.querySelector('[data-job-row="poster"]') as HTMLElement).getAllByRole("button").map(fullName);
+    const names = barNames(document.querySelector('[data-job-row="poster"]') as HTMLElement);
     expect(names).toEqual(["Change day", "Message Rhonda"]);
     expect(screen.queryByRole("button", { name: "Set a different day" })).toBeNull();
     // Q2680: the header and the line under it use ONE format, the owner's "Thu 11/5 at 9 AM".

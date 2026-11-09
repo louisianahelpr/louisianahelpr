@@ -115,10 +115,14 @@ export function JobPageActionRow({
   // `leadIsStep` still says which kind of lead it is (the callers' own reading); it no longer moves it.
   void leadIsStep;
   const stepRight = cardLead || (!!lead && !plainLead);
-  // THE ONE SECONDARY (owner pick 11-08): the first page action that may stand alone; a lone card action takes the
-  // slot when it is the only other one (and not an SOS). Everything else is in the "..." menu.
+  // THE ONE SECONDARY (owner pick 11-08), squared with "if More options doesn't actually have more options, it's not
+  // needed" (owner 11-01, moreOptionsHoldsTwo): one other action is its own button (a lone card action in its slot,
+  // unless an SOS); exactly two share the "..." menu and the bar keeps the primary alone; three or more give the first
+  // page action that may stand alone (not `inMenu`) the secondary slot and leave two or more in the menu.
   const loneCard = others === 1 && extras.length === 0 && !menuOnly;
-  const secondAction = loneCard ? null : extras.find((a) => !a.inMenu) ?? null;
+  const secondAction = loneCard || others === 2 ? null
+    : others === 1 ? (menuOnly ? null : extras[0] ?? null)
+    : extras.find((a) => !a.inMenu) ?? null;
   const menuExtras = extras.filter((a) => a !== secondAction);
   const menuCount = menuExtras.length + (loneCard ? 0 : cardCount);
   const pair = (!!secondAction || loneCard) && (cardLead || !!lead);
@@ -130,8 +134,8 @@ export function JobPageActionRow({
     : secondAction ? <ActionButton key="second" a={secondAction} pair={pair} /> : null;
   const cells = (stepRight ? [second, leadNode] : [leadNode, second]).filter(Boolean);
   const more = menuCount > 0 ? (
-    <Button key="more" type="button" variant="outline" size="icon" aria-label="More options" aria-haspopup="dialog" data-row-more={tag}
-      className={menuHost ? "h-11 w-11 shrink-0 rounded-full border-0 bg-transparent" : "h-12 w-12 !flex-none shrink-0 rounded-full"} onClick={() => setOpen(true)}>
+    <Button key="more" type="button" variant={menuHost ? "ghost" : "outline"} size={menuHost ? "iconCompact" : "iconMd"} aria-label="More options" aria-haspopup="dialog" data-row-more={tag}
+      className={menuHost ? "shrink-0 rounded-full" : "!flex-none shrink-0 rounded-full"} onClick={() => setOpen(true)}>
       <MoreHorizontal className="h-5 w-5" aria-hidden />
     </Button>
   ) : null;

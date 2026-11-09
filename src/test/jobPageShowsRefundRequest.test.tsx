@@ -24,7 +24,7 @@
  * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const disputeOpen = status === "disputed" \|\| !!job.has_active_dispute \|\| refundOpen; |   const disputeOpen = status === "disputed" \|\| !!job.has_active_dispute;
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -96,6 +96,16 @@ function renderJobPageDirect(viewer: "poster" | "helpr") {
 }
 
 const refundBlock = () => document.querySelector("[data-job-refund]");
+/** Whether the bar's "..." menu (owner pick 11-08, JP2) lists an action: opened, read, closed again. */
+async function menuOffers(name: string): Promise<boolean> {
+  const more = document.querySelector<HTMLElement>("[data-row-more]");
+  if (!more) return false;
+  fireEvent.click(more);
+  const sheet = await screen.findByRole("dialog", { name: "More options" });
+  const found = within(sheet).queryByRole("button", { name }) !== null;
+  fireEvent.click(within(sheet).getByRole("button", { name: "Close" }));
+  return found;
+}
 
 describe("the job page shows an open refund request (Q2694)", () => {
   it("the Helpr asked sees the amount, the reason, the answer-by and Answer", async () => {
@@ -126,7 +136,7 @@ describe("the job page shows an open refund request (Q2694)", () => {
     const approve = screen.queryAllByRole("button").filter((b) => /^approve/i.test((b.textContent ?? "").trim()));
     expect(approve).toHaveLength(0);
     // Lead 11-02: one path at a time: no "Something's not right" (the approve sheet's fix form) while it waits.
-    expect(document.querySelector("[data-not-right-open]")).toBeNull();
+    expect(await menuOffers("Something's not right")).toBe(false);
   }, 30000);
 
   it("the Helpr's tracker does not contradict the refund line (no 'has until ... to check it')", async () => {
@@ -144,7 +154,8 @@ describe("the job page shows an open refund request (Q2694)", () => {
     await waitFor(() => expect(document.querySelector("[data-job-steps]")?.textContent ?? "").toMatch(/approve/i), { timeout: 10000 });
     const approve = screen.queryAllByRole("button").filter((b) => /^approve/i.test((b.textContent ?? "").trim()));
     expect(approve.length).toBeGreaterThan(0);
-    expect(document.querySelector("[data-not-right-open]")).not.toBeNull();
+    // Owner pick 11-08 (JP2): the complaint is in the bar's "..." menu, one tap from Approve.
+    expect(await menuOffers("Something's not right")).toBe(true);
   }, 30000);
 
   it("with the switch off, nothing about the refund shows", async () => {

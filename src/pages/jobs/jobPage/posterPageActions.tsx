@@ -160,8 +160,6 @@ export function usePosterPageActions({
       {cardSteps && <div ref={flows.setAskHost} data-card-ask="" className="empty:hidden" />}
       <JobPageActionRow tag="poster" lead={lead} leadIsStep={!!step} extras={extras} cardCount={cardCount} cardInMenu={cardSteps && flows.loneSos}
         cardLead={cardLead} setCardLeadHost={flows.setLeadHost} setCardSecondHost={flows.setSecondHost} setCardListHost={flows.setListHost} menuHost={opts.menuHost} />
-      {/* A3-40 (lead 11-01): Tip beside Review is a visible text button under the row, not in More options. */}
-      {cardLead && <div ref={flows.setTextHost} data-card-text="" className="flex justify-center empty:hidden" />}
       </>
     );
   };
@@ -214,6 +212,7 @@ export function usePosterPageActions({
     </>
   );
   // Q2694 (lead 11-02): one path at a time: not while a refund request waits; back once it is withdrawn or answered.
-  const notRight = posterWait === "approve" && flows.ready && !refundOpen ? flows.notRight : null;
+  // While a case is open (Q2593) the complaint is already made: "See the case" is offered instead.
+  const notRight = posterWait === "approve" && flows.ready && !disputeOpen ? flows.notRight : null;
   return { primary: primaryOrMessage, row, panel, dialogs, edit: flows.edit, notRight };
 }

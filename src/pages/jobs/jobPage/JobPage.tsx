@@ -279,6 +279,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // The hired Helpr's row (owner 2026-11-01, the same rules as the poster's, JobPageActionRow.tsx): the Working card's
   // step leads on the right, with Message and "Open in working" beside it (one, or More options); when the face's
   // button IS Message or Open in working, it leads and the other sits beside it.
+  // JA-30 (Jobs audit 11-01): while a dispute is open "See the case" opens the case itself (the cards' own
+  // DisputeTimelineDialog). Owner pick 11-08 (JP2): it is one of the bar's actions, first in line for the secondary.
+  const seeCase: RowAction | null = party && (isPoster || isHired) && (job.status === "disputed" || !!job.has_active_dispute)
+    ? { key: "see-case", label: t("jobPage.seeCase"), go: () => setCaseOpen(true) } : null;
   const { row: hiredRow, leaveInMenu } = (() => {
     if (!hiredFace) return { row: null, leaveInMenu: false };
     const msg: RowAction | null = job.customer_id && !job.is_group_job ? { key: "message", label: `Message ${posterFirst ?? "them"}`, go: messagePoster } : null;
@@ -294,7 +298,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       : faceIs === "working" ? { ...work, label: doneLocked ? work.label : hiredFace.label }
       : { key: "step", label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled };
     // L27 JA-F2: a cancelled job is in no live Working list, so "Open in working" there is a dead end: not offered.
-    const extras = [msg, job.status === "cancelled" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
+    const extras = [seeCase, msg, job.status === "cancelled" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
     // Continue another day: a set day the Helpr has not confirmed leads; "Not finished? Set a day" sits with the others.
     // A3-44: "Leave series" joins More options only when that makes 2+ items (owner 5:42 PM); else it stays a link.
     const leaveAction: RowAction = { key: "leave-series", label: "Leave series", go: () => setLeaveOpen(true), danger: true };
@@ -451,14 +455,6 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             continueStep={continueDay.step ?? (isPoster && job.is_group_job ? crewPosterStep(posterFlows.crewRoster, posterFlows.crewNames ?? {}, job)
               : !isPoster && onCrew ? crewMemberLine(crewSlot.data, job.status, posterFirst) : null)} />
           {/* JA-34 (audit 11-01): the card's own clock ("28m until the job starts"), so the page knows what its card knows. */}
-          {/* JA-30 (Jobs audit 11-01): the dispute line says when they hear back; "See the case" opens the case itself
-              (the Working and Posted cards' own DisputeTimelineDialog: the reason, both sides' evidence, the decision). */}
-          {party && (isPoster || isHired) && (job.status === "disputed" || !!job.has_active_dispute) && (
-            <Button type="button" variant="link" size="sm" data-see-the-case="" onClick={() => setCaseOpen(true)}
-              className="h-auto px-0 text-ds-15 font-semibold">
-              {t("jobPage.seeCase")}
-            </Button>
-          )}
           {(isPoster || isHired) && job.status === "accepted" && <CountdownRows variant="bare" clocks={collapsedClocks({ ...job, status: job.status }, isPoster)} />}
         </section>
 
@@ -530,6 +526,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             )}
             {/* Owner pick 11-08 (JP2): "Something's not right" and "Not finished? Set a day" are in the "..." menu. */}
             {isPoster && posterActions.row(continueDay.posterLead ?? posterStep, [
+              ...(seeCase ? [seeCase] : []),
               ...continueDay.posterExtras,
               ...(posterActions.notRight ? [{ key: "not-right", label: NOT_RIGHT_LABEL, go: posterActions.notRight, inMenu: true }] : []),
               ...(continueDay.setDay ? [continueDay.setDay] : []),

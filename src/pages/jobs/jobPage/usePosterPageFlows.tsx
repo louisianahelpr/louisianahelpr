@@ -54,8 +54,6 @@ export interface PosterPageFlows {
   setLeadHost: (el: HTMLElement | null) => void;
   /** Above the row: where the card's `ask` is drawn (a crew's per-member Tip rows; why a Tip can't be sent yet). */
   setAskHost: (el: HTMLElement | null) => void;
-  /** Under the row (A3-40): the card's other primaries (Tip beside Review) as text buttons. */
-  setTextHost: (el: HTMLElement | null) => void;
   /** The page's second-button slot, where a lone card action is drawn. */
   setSecondHost: (el: HTMLElement | null) => void;
   /** The open options sheet's list, where two or more card actions are drawn (null while it is closed). */
@@ -147,8 +145,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   const [loneSos, setLoneSos] = useState(false);
   const [leadHost, setLeadHost] = useState<HTMLElement | null>(null);
   const [askHost, setAskHost] = useState<HTMLElement | null>(null);
-  const [textHost, setTextHost] = useState<HTMLElement | null>(null);
-  const menu = useMemo(() => ({ secondHost, listHost, leadHost, askHost, textHost, setCount: setMoreCount, setLeadCount, setLoneSos }), [secondHost, listHost, leadHost, askHost, textHost]);
+  const menu = useMemo(() => ({ secondHost, listHost, leadHost, askHost, setCount: setMoreCount, setLeadCount, setLoneSos }), [secondHost, listHost, leadHost, askHost]);
 
   const handlers = createLifecycleHandlers({
     user,
@@ -174,7 +171,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   });
 
   if (!enabled || !job) {
-    return { ready: false, completing: false, approve: () => {}, notRight: () => {}, cancel: () => {}, edit: () => {}, moreCount: 0, leadCount: 0, loneSos: false, setLeadHost: () => {}, setAskHost: () => {}, setTextHost: () => {}, setSecondHost: () => {}, setListHost: () => {}, crewNobodyLeft: false, panel: null, dialogs: null };
+    return { ready: false, completing: false, approve: () => {}, notRight: () => {}, cancel: () => {}, edit: () => {}, moreCount: 0, leadCount: 0, loneSos: false, setLeadHost: () => {}, setAskHost: () => {}, setSecondHost: () => {}, setListHost: () => {}, crewNobodyLeft: false, panel: null, dialogs: null };
   }
 
   // Its own Suspense: the card's steps lazy-load dialogs (the refund ask), and a suspend with no boundary of its own
@@ -265,7 +262,6 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
     loneSos,
     setLeadHost,
     setAskHost,
-    setTextHost,
     setSecondHost,
     setListHost,
     // The detail read is done (q.data), so a crew with no roster entry has nobody left on it.

@@ -172,7 +172,7 @@ function CalendarView({ data, run }: { data: SponsorAdminData; run: Run }) {
           {DAYS.filter((d) => d !== day).map((d) => <option key={d} value={d}>Dec {d}</option>)}
         </select>
         <label className="flex items-center gap-1 text-xs" title={s.wall_ok ? "" : "The sponsor did not tick OK to show their logo"}>
-          <input type="checkbox" checked={s.show_on_wall} disabled={!s.wall_ok} onChange={(e) => run((b) => b.admin.setWall(s.id, e.target.checked))} />
+          <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" checked={s.show_on_wall} disabled={!s.wall_ok} onChange={(e) => run((b) => b.admin.setWall(s.id, e.target.checked))} />
           On wall{!s.wall_ok ? " (no OK)" : ""}
         </label>
       </div>
@@ -211,9 +211,15 @@ function SignupsView({ data, backend, run }: { data: SponsorAdminData; backend: 
     () => data.signups.filter((s) => (!day || (day === "any" ? s.any_day || s.days.length === 0 : s.days.includes(Number(day)))) && (!status || s.status === status)),
     [data.signups, day, status],
   );
-  const getLogo = async (path: string) => {
+  const getLogo = async (signupId: string) => {
     try {
-      window.open(await backend.admin.logoDownloadUrl(path), "_blank", "noopener");
+      const url = await backend.admin.logoDownloadUrl(signupId);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sponsor-logo-${signupId}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     } catch (e) {
       errorToast("Couldn't get that logo.", { description: e instanceof Error ? e.message : undefined });
     }
@@ -255,10 +261,10 @@ function SignupsView({ data, backend, run }: { data: SponsorAdminData; backend: 
                 <td className="px-2 py-2">{s.ship_to === "helpr" ? "Louisiana Helpr" : s.ship_to === "winner" ? "Winner" : "—"}</td>
                 <td className="px-2 py-2"><StatusSelect label={`Status for ${s.brand_name}`} value={s.status} onChange={(st) => run((b) => b.admin.setStatus(s.id, st))} /></td>
                 <td className="px-2 py-2">
-                  <input type="checkbox" aria-label={`Show ${s.brand_name} on the sponsor wall`} checked={s.show_on_wall} disabled={!s.wall_ok} onChange={(e) => run((b) => b.admin.setWall(s.id, e.target.checked))} />
+                  <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" aria-label={`Show ${s.brand_name} on the sponsor wall`} checked={s.show_on_wall} disabled={!s.wall_ok} onChange={(e) => run((b) => b.admin.setWall(s.id, e.target.checked))} />
                   {!s.wall_ok ? <div className="text-[11px] text-muted-foreground">no OK</div> : null}
                 </td>
-                <td className="px-2 py-2">{s.logo_path ? <Button size="sm" variant="outline" onClick={() => void getLogo(s.logo_path as string)}>Download</Button> : "—"}</td>
+                <td className="px-2 py-2">{s.logo_path ? <Button size="sm" variant="outline" onClick={() => void getLogo(s.id)}>Download</Button> : "—"}</td>
                 <td className="px-2 py-2 text-xs">{fmt(s.created_at)}{s.ref_code ? <div className="text-muted-foreground">via {s.ref_code}</div> : null}</td>
               </tr>
             ))}
@@ -369,8 +375,8 @@ function AddSponsorView({ run, onDone }: { run: RunAsync; onDone: () => void }) 
         </label>
         {field("days", "Days (e.g. 3, 12)")}
         <div className="flex flex-col justify-end gap-2 text-sm">
-          <label className="flex items-center gap-2"><input type="checkbox" checked={f.any_day} onChange={(e) => setF((x) => ({ ...x, any_day: e.target.checked }))} /> Any day is fine</label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={f.wall_ok} onChange={(e) => setF((x) => ({ ...x, wall_ok: e.target.checked }))} /> They said OK to show their logo</label>
+          <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" checked={f.any_day} onChange={(e) => setF((x) => ({ ...x, any_day: e.target.checked }))} /> Any day is fine</label>
+          <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" checked={f.wall_ok} onChange={(e) => setF((x) => ({ ...x, wall_ok: e.target.checked }))} /> They said OK to show their logo</label>
         </div>
       </div>
       <p className="mt-2 text-xs text-muted-foreground">A sponsor added here skips the per-day cap and gets no emails.</p>
@@ -438,7 +444,7 @@ function ContentView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
             <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-2 text-sm">
               <span>“{x.quote}” — {x.name}{x.brand ? `, ${x.brand}` : ""}</span>
               <span className="flex items-center gap-2">
-                <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={x.approved} onChange={(e) => void run((b) => b.admin.saveTestimonial({ ...x, approved: e.target.checked }))} /> Approved (shows on page)</label>
+                <label className="flex items-center gap-1 text-xs"><input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" checked={x.approved} onChange={(e) => void run((b) => b.admin.saveTestimonial({ ...x, approved: e.target.checked }))} /> Approved (shows on page)</label>
                 <Button size="sm" variant="outline" onClick={() => void run((b) => b.admin.deleteTestimonial(x.id))}>Delete</Button>
               </span>
             </li>

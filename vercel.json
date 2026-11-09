@@ -191,6 +191,18 @@
       "destination": "/api/share?_og=noindex&_id=unsubscribe"
     },
     {
+      "source": "/sponsor",
+      "destination": "/api/share?_og=noindex&_id=sponsor"
+    },
+    {
+      "source": "/25days",
+      "destination": "/api/share?_og=noindex&_id=25days"
+    },
+    {
+      "source": "/25days/rules",
+      "destination": "/api/share?_og=noindex&_id=25days/rules"
+    },
+    {
       "source": "/",
       "destination": "/index.html"
     },

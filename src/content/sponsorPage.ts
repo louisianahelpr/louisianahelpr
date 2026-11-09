@@ -18,13 +18,9 @@
  * src/test/sponsorPageContent.test.ts).
  */
 export const sponsorPage = {
-  meta: {
-    title: "25 Days of Louisiana Giveaways — Sponsor a Day | Louisiana Helpr",
-    description:
-      "Claim your day this December and get your brand in front of Louisiana families shopping for the holidays. Free to join, no fees or contracts.",
-    rulesTitle: "Official Giveaway Rules — 25 Days of Louisiana Giveaways",
-    rulesDescription: "Official rules for the 25 Days of Louisiana Giveaways on Louisiana Helpr, December 1–25, 2026.",
-  },
+  // The browser-tab title, search description and link-preview text are NOT here: they live in
+  // src/lib/publicPageMeta.mjs (NOINDEX_PAGE_META "/sponsor", "/25days", "/25days/rules"), the one table the
+  // server reads to build a shared link's preview before the page runs. The preview picture is public/og-25days.png.
 
   /** The giveaway runs Dec 1–25, 2026, Louisiana time. */
   event: {

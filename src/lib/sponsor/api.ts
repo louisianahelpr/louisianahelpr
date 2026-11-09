@@ -47,7 +47,8 @@ export interface SponsorBackend {
     saveSettings(s: Omit<SponsorAdminSettings, "founder_photo_path">): Promise<void>;
     saveTestimonial(t: { id: string | null; quote: string; name: string; brand: string | null; approved: boolean }): Promise<void>;
     deleteTestimonial(id: string): Promise<void>;
-    logoDownloadUrl(path: string): Promise<string>;
+    /** An object URL for the logo file (admins only). */
+    logoDownloadUrl(signupId: string): Promise<string>;
     uploadFounderPhoto(file: File): Promise<void>;
   };
 }
@@ -82,6 +83,13 @@ async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise
   // The sponsor_* functions are new and not in the generated Database types yet.
   const res = await (supabase as unknown as LooseRpc).rpc(name, args);
   return unwrap(res as Parameters<typeof unwrap>[0]) as T;
+}
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  const key = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "");
+  return { apikey: key, Authorization: `Bearer ${token ?? key}` };
 }
 
 const realBackend: SponsorBackend = {
@@ -156,17 +164,17 @@ const realBackend: SponsorBackend = {
     async deleteTestimonial(id) {
       await rpc("sponsor_admin_delete_testimonial", { p_id: id });
     },
-    async logoDownloadUrl(path) {
-      const { data, error } = await supabase.storage.from("sponsor-logos").createSignedUrl(path, 600, { download: true });
-      if (error || !data?.signedUrl) throw error ?? new Error("no signed url");
-      return data.signedUrl;
+    async logoDownloadUrl(signupId) {
+      // The bucket is private with no storage policy: the function checks the admin role and sends the file.
+      const res = await fetch(`${functionsBase}?logo=${encodeURIComponent(signupId)}&admin=1`, { headers: await authHeaders() });
+      if (!res.ok) throw new Error(`logo download failed (${res.status})`);
+      return URL.createObjectURL(await res.blob());
     },
     async uploadFounderPhoto(file) {
-      const ext = file.type === "image/png" ? "png" : "jpg";
-      const path = `founder/photo-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("sponsor-logos").upload(path, file, { contentType: file.type, upsert: false });
-      if (error) throw error;
-      await rpc("sponsor_admin_set_founder_photo", { p_path: path });
+      const form = new FormData();
+      form.append("photo", file, file.name);
+      const res = await fetch(`${functionsBase}?action=founder_photo`, { method: "POST", headers: await authHeaders(), body: form });
+      if (!res.ok) throw new Error(`photo upload failed (${res.status})`);
     },
   },
 };

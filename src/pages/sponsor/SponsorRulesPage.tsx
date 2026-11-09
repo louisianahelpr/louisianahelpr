@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { sponsorPage as C } from "@/content/sponsorPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { sponsorBackend, type SponsorBackend } from "@/lib/sponsor/api";
 import { hasPlaceholder, placeholderRuns } from "@/lib/sponsor/placeholders";
 import { SponsorShell } from "./SponsorPage";
@@ -40,13 +41,8 @@ export default function SponsorRulesPage() {
     return () => { live = false; };
   }, []);
   const draft = rulesAreDraft(C.rules);
-  usePageMeta({
-    title: C.meta.rulesTitle,
-    description: C.meta.rulesDescription,
-    canonical: `${C.links.website}${C.links.rules}`,
-    // A draft is never indexed.
-    robots: draft ? "noindex" : undefined,
-  });
+  // The same head values api/share.ts serves before JavaScript runs (NOINDEX_PAGE_META; never indexed).
+  usePageMeta(NOINDEX_PAGE_META["/25days/rules"]);
   const q = useQuery({
     queryKey: ["sponsor-25days", "public", null, !!backend],
     enabled: !!backend,

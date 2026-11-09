@@ -1,14 +1,14 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1213,
-    "files": 349,
-    "rendering": 1132,
-    "suppressedByPolicy": 81,
+    "calls": 1221,
+    "files": 350,
+    "rendering": 1136,
+    "suppressedByPolicy": 85,
     "byKind": {
       "confirmConsequential": 33,
-      "errorToast": 6,
-      "successToast": 2,
+      "errorToast": 10,
+      "successToast": 6,
       "toast": 238,
       "toast.error": 819,
       "toast.loading": 1,
@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 500,
+      "literal": 508,
       "template": 107,
-      "dynamic": 658,
+      "dynamic": 660,
       "jsx": 0
     }
   },
@@ -12695,6 +12695,120 @@
         "text": "Preview: this would ${what}."
       },
       "renders": true
+    },
+    {
+      "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
+      "line": 106,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "That change was not saved."
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "e instanceof Error ? e.message : undefined",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "e.message"
+          },
+          {
+            "form": "dynamic",
+            "text": "undefined"
+          }
+        ]
+      },
+      "renders": true,
+      "rawError": [
+        "description: e.message"
+      ]
+    },
+    {
+      "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
+      "line": 224,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't get that logo."
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "e instanceof Error ? e.message : undefined",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "e.message"
+          },
+          {
+            "form": "dynamic",
+            "text": "undefined"
+          }
+        ]
+      },
+      "renders": true,
+      "rawError": [
+        "description: e.message"
+      ]
+    },
+    {
+      "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
+      "line": 287,
+      "kind": "successToast",
+      "title": {
+        "form": "literal",
+        "text": "Link copied"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
+      "line": 290,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't copy. Select the link and copy it by hand."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
+      "line": 356,
+      "kind": "successToast",
+      "title": {
+        "form": "literal",
+        "text": "Sponsor added"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
+      "line": 409,
+      "kind": "successToast",
+      "title": {
+        "form": "literal",
+        "text": "Saved"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
+      "line": 424,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "That photo is over 5 MB."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
+      "line": 425,
+      "kind": "successToast",
+      "title": {
+        "form": "literal",
+        "text": "Photo saved"
+      },
+      "renders": false
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",

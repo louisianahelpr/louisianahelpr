@@ -75,6 +75,40 @@ The web app deploys to Vercel via `.github/workflows/prod-deploy.yml` (batched; 
 via `.github/workflows/functions-deploy.yml` when `supabase/functions/**` changes.
 Native iOS releases go through Fastlane (see `docs/CICD_AND_ASO.md`).
 
+## 25 Days of Louisiana Giveaways (sponsor page)
+
+The sponsor page is `/sponsor` (also `/25days`). Its rules page is `/25days/rules`, and the admin is `/admin/sponsors`.
+
+- **Turning it on.** Everything stays dark until the `sponsor_25days` switch is flipped in Admin → Settings → Hidden
+  Feature Switches. While it is **Off**, both pages show "Not found" and the sign-up refuses. Set it to **Testers** to
+  set things up: then only admins and test accounts can see the page. Set it to **Everyone** when brands should see it.
+- **Adding a brand and copying its link.** Go to /admin/sponsors → **Links**, type the brand name (the email is
+  optional) and press **Create link**. You get `https://www.louisianahelpr.com/sponsor?ref=<brand-name>` and it is
+  copied for you. A brand that opens its link is greeted by name and the brand name is filled in on the form. The same
+  table shows each link's visits, its first and last visit, and whether that brand signed up.
+- **Editing the words.** Every word on both pages is in `src/content/sponsorPage.ts`. Text in `[square brackets]`
+  is a placeholder. The card, line, button or question that holds one stays hidden until you replace the brackets
+  with the real value. The Facebook Group button, for example, appears once `links.facebookGroup` is a real URL. Never
+  fill a placeholder with a made-up number, review or logo. The rules page shows a **DRAFT** banner until
+  `rules.approved` is set to `true` (only allowed once no `[placeholder]` is left in `rules`). The browser-tab title
+  and the link-preview text are in `src/lib/publicPageMeta.mjs` (`NOINDEX_PAGE_META["/sponsor"]`). The preview picture
+  is `public/og-25days.png`.
+- **Editing the stats, founder photo and testimonials.** Use /admin/sponsors → **Page content**. A stat left blank is
+  hidden. Add a testimonial only with a real sponsor's own words; it shows once you tick **Approved**.
+- **Changing the cap.** Use /admin/sponsors → **Page content** → **Max sponsors per day**. Leave it blank for no limit.
+  The server enforces the cap: a full day shows "Full" and refuses new sign-ups. Sponsors you add by hand, or move,
+  are not capped.
+- **Exporting sign-ups.** Use /admin/sponsors → **Sign-ups** → **Export CSV**. The export includes every column, and
+  the day and status filters apply to it.
+- **Behind the page.** The data lives in the `sponsor_*` tables (migration `20261109162829_sponsor_25days.sql`). No
+  browser can read them. The public page reads counts only, through `sponsor_public_state`. Sign-ups go through the
+  `sponsor-25days` edge function, which checks the honeypot, the rate limit and the input, then emails a
+  confirmation to the brand and the details to admin@. Logos are in the private `sponsor-logos` bucket. No new
+  environment variables are needed: it uses the existing `RESEND_API_KEY` and the optional `SUPPORT_INBOX_EMAIL`.
+- **Local preview.** On `npm run dev` only, add `?demo=1` to the URL to see the page with made-up sample data. Add
+  `&ref=cajun-candle-co` for the greeting, `&fill=1` for the stats and sponsor wall, `&placeholders=1` to highlight
+  the placeholders, and `&cap=1` for full days. Built bundles never contain the sample data.
+
 ## Contributing
 
 Land changes with `bash scripts/land.sh` (branch + PR; a direct push to `main` is

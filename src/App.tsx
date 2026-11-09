@@ -133,8 +133,8 @@ const AdminOnboardingPreview = lazy(() => import("./pages/admin/preview/Onboardi
 // 25 Days of Louisiana Giveaways (owner 2026-11-09): admin, sponsor page and rules, each its own chunk. Dark until
 // the sponsor_25days switch is on (the server answers on/off; off renders Not found).
 const AdminSponsors = lazy(() => import("./pages/admin/sponsors/AdminSponsorsPage"));
-const SponsorPage = lazy(() => import("./pages/sponsor/SponsorPage"));
-const SponsorRulesPage = lazy(() => import("./pages/sponsor/SponsorRulesPage"));
+const SponsorPage = lazyWithPreload(() => import("./pages/sponsor/SponsorPage"));
+const SponsorRulesPage = lazyWithPreload(() => import("./pages/sponsor/SponsorRulesPage"));
 const PostsPage = lazyWithPreload(() => import("./pages/posts/PostsPage"));
 // A redirect (to the last or first open section): no screen of its own.
 const ExploreRedirect = lazyWithPreload(() => import("./pages/explore/Explore"));

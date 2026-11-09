@@ -98,7 +98,7 @@ export function Hero({ greetingBrand }: { greetingBrand: string | null }) {
       <Magnolia className="lh25-hero-magnolia" size={70} />
       <GiftBox className="lh25-hero-gift" size={58} />
       <div className="lh25-hero-inner">
-        <img className="lh25-logo" src="/apple-touch-icon.png" width={64} height={64} alt="Louisiana Helpr" />
+        <img className="lh25-logo" src="/helpr-logo-transparent-192.png" width={84} height={84} alt="Louisiana Helpr" />
         {greetingBrand ? (
           <p className="lh25-greeting" data-testid="sponsor-greeting">{C.hero.greeting.replace("{brand}", greetingBrand)}</p>
         ) : null}

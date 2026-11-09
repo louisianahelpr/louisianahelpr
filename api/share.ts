@@ -1105,6 +1105,7 @@ const SECTION_CARDS: Record<string, { path: string; alt: string }> = {
 function metaForNoindexPage(id: string): Meta | null {
   const page = noindexPageMetaFor(`/${id}`);
   if (!page) return null;
+  const card = NOINDEX_CARDS[id];
   return {
     title: page.title,
     description: page.description,
@@ -1112,8 +1113,20 @@ function metaForNoindexPage(id: string): Meta | null {
     ogDescription: page.ogDescription,
     url: page.canonical,
     robots: page.robots,
+    ...(card ? { image: { url: `${SITE_ORIGIN}${card.path}`, type: "image/png", width: 1200, height: 630, alt: card.alt } } : {}),
   };
 }
+
+/**
+ * A not-indexed page's own link card. The 25 Days sponsor page (owner 2026-11-09) is sent to brands in pitch
+ * emails, so its link must unfurl as its own 1200x630 picture (public/og-25days.png), not the homepage's.
+ */
+const SPONSOR_CARD = { path: "/og-25days.png?v=1", alt: "You're Invited! 25 Days of Louisiana Giveaways on Louisiana Helpr, December 1–25" };
+const NOINDEX_CARDS: Record<string, { path: string; alt: string }> = {
+  sponsor: SPONSOR_CARD,
+  "25days": SPONSOR_CARD,
+  "25days/rules": SPONSOR_CARD,
+};
 
 /**
  * Which route is being previewed.

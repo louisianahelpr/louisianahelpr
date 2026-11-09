@@ -12,10 +12,11 @@
  * .lh25) and font: nothing here is in the main bundle or the app's theme.
  */
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { sponsorPage as C } from "@/content/sponsorPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { coarseDevice, coarseReferrer, sponsorBackend, type SponsorBackend } from "@/lib/sponsor/api";
 import { normalizeRef } from "../../../supabase/functions/_shared/sponsorSignup";
 import { ClaimSection } from "@/components/sponsor/ClaimSection";
@@ -62,20 +63,23 @@ export function SponsorShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+/* The same head values api/share.ts serves before JavaScript runs (NOINDEX_PAGE_META), one per path. */
+function HeadSponsor() {
+  usePageMeta(NOINDEX_PAGE_META["/sponsor"]);
+  return null;
+}
+function Head25days() {
+  usePageMeta(NOINDEX_PAGE_META["/25days"]);
+  return null;
+}
+
 export default function SponsorPage() {
   const [params] = useSearchParams();
+  const { pathname } = useLocation();
   const refCode = normalizeRef(params.get("ref"));
   const preview = import.meta.env.DEV && params.has("demo") && params.has("placeholders");
   const backend = useBackend();
 
-  usePageMeta({
-    title: C.meta.title,
-    description: C.meta.description,
-    ogTitle: C.meta.title,
-    ogDescription: C.meta.description,
-    canonical: `${C.links.website}/sponsor`,
-    ogUrl: `${C.links.website}/sponsor`,
-  });
 
   const stateQ = useQuery({
     queryKey: ["sponsor-25days", "public", refCode, !!backend],
@@ -120,6 +124,7 @@ export default function SponsorPage() {
   const state = stateQ.data;
   return (
     <PlaceholderPreview.Provider value={preview}>
+      {pathname === "/25days" ? <Head25days /> : <HeadSponsor />}
       <SponsorShell>
         <Hero greetingBrand={state.greetingBrand} />
         <TrustStrip />

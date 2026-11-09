@@ -201,6 +201,37 @@ export const NOINDEX_PAGE_META = {
     ogDescription: "Turn off a kind of Helpr email.",
     robots: NOINDEX_ROBOTS,
   },
+  // 25 Days of Louisiana Giveaways (owner 2026-11-09): the sponsor page a pitch email links to, and its rules.
+  // NOT indexed: it is dark behind the sponsor_25days switch and is reached from emails, not search. The link
+  // card (og-25days.png) is what a brand sees when the link unfurls. Same entries the pages pass to usePageMeta.
+  "/sponsor": {
+    title: "25 Days of Louisiana Giveaways — Sponsor a Day | Louisiana Helpr",
+    description:
+      "Claim your day this December and get your brand in front of Louisiana families shopping for the holidays. Free to join, no fees or contracts.",
+    canonical: `${SITE_ORIGIN}/sponsor`,
+    ogTitle: "You're Invited! 25 Days of Louisiana Giveaways",
+    ogDescription:
+      "Claim your day this December and get your brand in front of Louisiana families shopping for the holidays. Free to join.",
+    robots: NOINDEX_ROBOTS,
+  },
+  "/25days": {
+    title: "25 Days of Louisiana Giveaways — Claim Your Day | Louisiana Helpr",
+    description:
+      "Claim your day this December and get your brand in front of Louisiana families shopping for the holidays. Free to join, no fees or contracts.",
+    canonical: `${SITE_ORIGIN}/25days`,
+    ogTitle: "You're Invited! 25 Days of Louisiana Giveaways",
+    ogDescription:
+      "Claim your day this December and get your brand in front of Louisiana families shopping for the holidays. Free to join.",
+    robots: NOINDEX_ROBOTS,
+  },
+  "/25days/rules": {
+    title: "Official Giveaway Rules — 25 Days of Louisiana Giveaways",
+    description: "Official rules for the 25 Days of Louisiana Giveaways on Louisiana Helpr, December 1–25, 2026.",
+    canonical: `${SITE_ORIGIN}/25days/rules`,
+    ogTitle: "Official Giveaway Rules — 25 Days of Louisiana Giveaways",
+    ogDescription: "Official rules for the 25 Days of Louisiana Giveaways on Louisiana Helpr, December 1–25, 2026.",
+    robots: NOINDEX_ROBOTS,
+  },
 };
 
 /** The noindex head values for a path, or null when it is not one of those pages. */

@@ -9,6 +9,7 @@ import { AdminActionEmail, type AdminActionCallout } from '../_shared/email-temp
 import { renderEmail } from '../_shared/email-templates/render.ts'
 import { checkRateLimit, rateLimitResponse } from '../_shared/rate-limit.ts'
 import { serve } from "../_shared/buildStamp.ts";
+import { centralDateTimeLabel } from '../_shared/centralDateTime.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -673,17 +674,20 @@ serve(async (req) => {
         suspendUntil.setDate(suspendUntil.getDate() + 7)
         banStatusUpdate = { ban_status: 'temp_banned', auto_suspended_until: suspendUntil.toISOString() }
         notifTitle = 'Account suspended for 7 days (Strike 3)'
-        notifMsg = `Your account is suspended until ${suspendUntil.toLocaleDateString()}. ${note ? 'Reason: ' + note : 'You exceeded the 3-strike limit.'} Active bids have been cancelled.`
+        // F183 (owner's message review 11-09): the restore moment in Louisiana time and the house style, never the
+        // server's UTC toLocaleDateString(); "applications", the app's word, not "bids".
+        const restoreLabel = centralDateTimeLabel(suspendUntil)
+        notifMsg = `Your account is paused until ${restoreLabel}. ${note ? 'Reason: ' + note : 'You exceeded the 3-strike limit.'} Your open job applications were withdrawn.`
         emailSubject = 'Helpr — Account suspended (7 days)'
         emailHeading = 'Account suspended for 7 days'
-        emailPreheader = `Your Helpr account is suspended for 7 days after a third violation. Access returns on ${suspendUntil.toLocaleDateString()}.`
+        emailPreheader = `Your Louisiana Helpr account is paused for 7 days after a third strike. You can use it again on ${restoreLabel}.`
         escalation = {
           tone: 'alert',
           body: [
-            { b: 'Your account has reached 3 strikes and is now suspended.' },
-            ' Access will be restored on ',
-            { b: suspendUntil.toLocaleDateString() },
-            '. All active bids have been cancelled.',
+            { b: 'Your account has reached 3 strikes and is now paused.' },
+            ' You can use Louisiana Helpr again on ',
+            { b: restoreLabel },
+            '. Your open job applications were withdrawn.',
           ],
         }
 

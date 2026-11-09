@@ -24,6 +24,11 @@ import { withProposer } from "@/lib/continueDayReads";
 import { blankComments, blankSqlComments } from "@/test/helpers/blankNonCode";
 
 const state: { row: ContinueDay | null; answers: Array<[string, boolean]> } = { row: null, answers: [] };
+// Owner #4 (11-08): no open missed-return report in these cases (the read is the job page hook's second query).
+vi.mock("@/lib/continueDayMissed", async (orig) => ({
+  ...(await orig<typeof import("@/lib/continueDayMissed")>()),
+  fetchOpenMissedReturn: async () => null,
+}));
 vi.mock("@/lib/continueDay", async (orig) => ({
   ...(await orig<typeof import("@/lib/continueDay")>()),
   fetchContinueDay: async () => state.row,

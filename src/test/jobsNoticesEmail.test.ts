@@ -12,9 +12,9 @@
  *   - the admins' "Job disputed" is never on it (test disputes must never mail the owner);
  *   - the three restated senders never skip the in-app row on a switch (#6).
  *
- * @mutate supabase/migrations/20261108201000_jobs_notices_email.sql |       'Date or time request withdrawn', 'New date or time not applied', 'Your new time wasn''t answered') THEN 'job_updates' |       'Date or time request withdrawn', 'New date or time not applied') THEN 'job_updates'
- * @mutate supabase/migrations/20261108201000_jobs_notices_email.sql |     WHEN p_type = 'work_status' AND p_title IN ('Start time passed', 'Job day ended', 'Please review the work') THEN 'work_status' |     WHEN p_type = 'work_status' AND p_title IN ('Start time passed', 'Job day ended', 'Please review the work', 'Job disputed') THEN 'work_status'
- * @mutate supabase/migrations/20261108201000_jobs_notices_email.sql |     WHEN p_type = 'financial_alerts' AND p_title IN ('Job funded', 'Payout released', 'You received a tip!') THEN p_type |     WHEN p_type = 'financial_alerts' AND p_title IN ('Job funded', 'Payout released', 'You received a tip!', 'Nobody sends this') THEN p_type
+ * @mutate supabase/migrations/20261108214605_continue_day_missed_return.sql |       'Date or time request withdrawn', 'New date or time not applied', 'Your new time wasn''t answered') THEN 'job_updates' |       'Date or time request withdrawn', 'New date or time not applied') THEN 'job_updates'
+ * @mutate supabase/migrations/20261108214605_continue_day_missed_return.sql |     WHEN p_type = 'work_status' AND p_title IN ('Start time passed', 'Job day ended', 'Please review the work') THEN 'work_status' |     WHEN p_type = 'work_status' AND p_title IN ('Start time passed', 'Job day ended', 'Please review the work', 'Job disputed') THEN 'work_status'
+ * @mutate supabase/migrations/20261108214605_continue_day_missed_return.sql |     WHEN p_type = 'financial_alerts' AND p_title IN ('Job funded', 'Payout released', 'You received a tip!') THEN p_type |     WHEN p_type = 'financial_alerts' AND p_title IN ('Job funded', 'Payout released', 'You received a tip!', 'Nobody sends this') THEN p_type
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -80,7 +80,8 @@ describe("Jobs notices email (Jobs audit 11-08 #2)", () => {
   });
   it("never the admins' dispute notice", () => {
     expect(listed).not.toContain("Job disputed");
-    const trg = blankSqlComments(readFileSync("supabase/migrations/20261108201000_jobs_notices_email.sql", "utf8"));
+    // The trigger's newest restatement (20261108214605, owner #4; verbatim from 20261108201000).
+    const trg = blankSqlComments(readFileSync("supabase/migrations/20261108214605_continue_day_missed_return.sql", "utf8"));
     expect(trg).toMatch(/CREATE TRIGGER trg_email_jobs_notice[\s\S]*?NOT LIKE '\/admin%'/);
   });
 });

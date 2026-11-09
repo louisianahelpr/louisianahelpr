@@ -26,7 +26,7 @@
  * @mutate src/components/NotificationPanelView.tsx | unreadCount={unreadCount + messagesUnread} | unreadCount={unreadCount}
  * @mutate src/components/NotificationPanelView.tsx |         {withMessages && ( |         {false && (
  * @mutate src/components/sections/SectionCreateFab.tsx |       className="fixed bottom-safe-nav right-4 | className="fixed bottom-0 right-4
- * @mutate src/components/sections/SectionCreateFab.tsx |   if (desktop \|\| hidden \|\| typeof document === "undefined") return null; |   if (hidden \|\| typeof document === "undefined") return null;
+ * @mutate src/components/sections/SectionCreateFab.tsx |   const shown = !desktop && !hidden && !(section && !add); |   const shown = !hidden && !(section && !add);
  * @mutate src/components/sections/SectionSearchBar.tsx |       {filter && <span data-search-bar-filter="" | {false && <span data-search-bar-filter=""
  * @mutate src/components/sections/SectionSearchBar.tsx |         onClick={() => navigate(home, { state: FOCUS_SEARCH_STATE })} |         onClick={() => navigate("/search")}
  * @mutate src/components/sections/SectionScreen.tsx | ${fab ? "pb-20" : "pb-6"} | pb-6

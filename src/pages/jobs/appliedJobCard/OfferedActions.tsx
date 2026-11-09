@@ -299,7 +299,7 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
           <>
 
         <Button
-          size={sticky ? "wrap" : "sm"}
+          size={sticky ? "md" : "sm"}
           variant="outline"
           className={sticky ? "flex-1 rounded-full" : "flex-1"}
           disabled={busy}
@@ -314,7 +314,7 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
         </Button>
         <Button
           variant="primary"
-          size={sticky ? "wrap" : "sm"}
+          size={sticky ? "md" : "sm"}
           className={sticky ? "flex-1 rounded-full" : "flex-1"}
           disabled={busy}
           aria-busy={busy}

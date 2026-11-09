@@ -151,7 +151,8 @@ export function usePosterPageActions({
     const msg: RowAction | null = message ? { key: "message", label: message.label, go: message.go } : null;
     // No step of the page's own, and the card has one (Review, Tip on a finished job): the card's leads.
     // Q2694: never while a refund request waits (the card's primary there is its own Approve): Message leads.
-    const cardLead = !step && cardSteps && flows.leadCount > 0 && !refundOpen;
+    // Nor while a case is open (Q2593): the card's primary there is its Approve, and the case decides that.
+    const cardLead = !step && cardSteps && flows.leadCount > 0 && !disputeOpen;
     const lead: RowAction | null = step ? { key: "step", label: step.label, go: step.go, disabled: step.disabled } : cardLead ? null : msg;
     const extras = [...(lead === msg ? [] : msg ? [msg] : []), ...pageExtras(), ...moreExtras];
     return (

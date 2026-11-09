@@ -23,7 +23,7 @@
  * @mutate src/pages/jobs/jobPage/usePageConfirmArrival.ts |       await confirmPosterArrival(job); |       void job;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const hiredFace = isHired && viewer.action.kind === "open_working" |   const hiredFace = false && viewer.action.kind === "open_working"
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     workUnderway: helperProgress(job as unknown as Job, trackingStatus).workUnderway, |     workUnderway: undefined,
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |               {isHired && job.location && job.status !== "cancelled" && ( |               {false && job.location && job.status !== "cancelled" && (
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isHired && job.location && job.status !== "cancelled" ? ( |             {false && job.location && job.status !== "cancelled" ? (
  * @mutate src/pages/jobs/JobDetail.tsx |         <JobPage id={id} userId={user.id} /> |         <Navigate to={`/home?quickApply=${id}`} replace />
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") } |             ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
  * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
@@ -35,7 +35,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {isPoster && open && !offerOut && (job.payment_status === "escrow" \|\| job.payment_status === "held") && | {isPoster && open && !offerOut &&
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |         {reach && reach > 0 |         {reach !== null
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |     !(job.photos ?? []).length && { key: "photo" |     false && { key: "photo"
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |     job.location ? getCity(job.location) : null, |     job.location,
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const town = job.location ? getCity(job.location) : ""; |   const town = job.location ?? "";
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)) | go: () => void apply.flow.handleApplyRequest(job.id)
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId) \|\| onCrew); |   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId));
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | myApplication: myApplication.data, posterFirst, onCrew, offeredToMe }); | myApplication: myApplication.data, posterFirst, offeredToMe });
@@ -52,7 +52,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {(isPoster \|\| isHired) && job.status === "accepted" && <CountdownRows | {false && <CountdownRows
  */
 import { describe, expect, it, vi, beforeAll, beforeEach, onTestFinished } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { JobPageRow } from "./useJobPage";
@@ -867,7 +867,7 @@ describe("job page, the hired Helpr", () => {
   const booked = () => row({ helper_id: ME, status: "accepted", helper_confirmed_at: "2026-10-27T12:00:00Z", date_needed: TOMORROW, start_time: "09:00" });
 
   // JA-20 / JA-25 (audit 11-01): the address opens Maps; a cancelled job's Helpr no longer sees it.
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx |               {isHired && job.location && job.status !== "cancelled" && ( |               {isHired && job.location && (
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isHired && job.location && job.status !== "cancelled" ? ( |             {isHired && job.location ? (
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | <a href={mapsSearchUrl(job.location)} target="_blank" | <a target="_blank"
   it("the hired Helpr's address opens Maps, and is gone once the job is cancelled", () => {
     state.job = booked();
@@ -1372,8 +1372,21 @@ function pageActions(): string[] {
 /** Press an action, opening More options first when it is listed there (one tap). */
 /** Wait until the bar or its "..." menu offers the action, then press it (opening the menu first when it is there). */
 async function pressWhenOffered(name: string) {
-  await waitFor(() => expect(pageActions()).toContain(name));
+  await untilOffered(name);
   pressAction(name);
+}
+/**
+ * Poll (not waitFor: reading the menu opens and closes it, and those DOM changes would re-run waitFor's callback
+ * forever) until the bar or its menu offers the action; throws after 3 s.
+ */
+async function untilOffered(name: string, want = true) {
+  const until = Date.now() + 3000;
+  for (;;) {
+    const offered = pageActions();
+    if (offered.includes(name) === want) return;
+    if (Date.now() > until) throw new Error(`"${name}" ${want ? "never offered" : "still offered"}: ${JSON.stringify(offered)}`);
+    await act(() => new Promise((r) => setTimeout(r, 50)));
+  }
 }
 function pressAction(name: string) {
   const direct = document.querySelector("[data-job-row]") ? within(document.querySelector("[data-job-row]") as HTMLElement).queryByRole("button", { name }) : null;
@@ -1390,7 +1403,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   });
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     canChange && { key: "change" |     false && { key: "change"
-  // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |       {(others > 1 \|\| menuOnly) && ( |       {(others > 99 \|\| menuOnly) && (
+  // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |   const more = menuCount > 0 ? ( |   const more = menuCount > 99 ? (
   it("a booked job: [Message | More options], and More options lists Change date or time and Cancel job in one tap", async () => {
     state.job = booked();
     state.party = true;
@@ -1547,7 +1560,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   });
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | const MORE_ON_CARD = new Set(["in_progress", "revision_requested", "completed", "disputed"]); | const MORE_ON_CARD = new Set<string>([]);
-  // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx | aria-haspopup="dialog" data-row-more="" onClick={() => setOpen(true)}> | aria-haspopup="dialog" data-row-more="" onClick={() => {}}>
+  // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx | "!flex-none shrink-0 rounded-full"} onClick={() => setOpen(true)}> | "!flex-none shrink-0 rounded-full"} onClick={() => {}}>
   it("a job under way or done: More options opens the card's other steps (no-show, dispute, tip, review) ON the page, in one tap", async () => {
     state.job = { ...booked(), status: "completed", poster_completed_at: "2026-10-28T15:00:00Z", helper_completed_at: "2026-10-28T14:00:00Z" };
     state.party = true;
@@ -1583,7 +1596,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
 
 // B93 (owner 2026-11-01, 9:13 to 9:40 AM, and the Jobs audit's JA-3/7/8/9/10/22): the same one row at every stage.
 // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |   const cells = (stepRight ? [second, leadNode] : [leadNode, second]).filter(Boolean); |   const cells = [leadNode, second].filter(Boolean);
-// @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const cardLead = !step && cardSteps && flows.leadCount > 0 && !refundOpen; |     const cardLead = false;
+// @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const cardLead = !step && cardSteps && flows.leadCount > 0 && !disputeOpen; |     const cardLead = false;
 // @mutate src/pages/jobs/jobPage/JobPage.tsx |   const approveLeft = isPoster && posterWait === "approve" && job.helper_completed_at && !instantRelease |   const approveLeft = false && isPoster && posterWait === "approve" && job.helper_completed_at && !instantRelease
 // @mutate src/pages/jobs/jobPage/JobPage.tsx | owesReview, review: () => setReviewOpen(true), crewSlot: crewSlot.data, application: myApplication.data, | review: () => setReviewOpen(true), crewSlot: crewSlot.data, application: myApplication.data,
 describe("one row of buttons at every stage (B93)", () => {
@@ -1626,20 +1639,24 @@ describe("one row of buttons at every stage (B93)", () => {
 
   // Jobs audit 1102b rows 7 and 8 (Q2593, Q2594): while a dispute is open the poster's lead was "Approve" (its sheet
   // never mentions the case) and "Not finished? Set a day" was offered to both sides beside "A real person at
-  // Louisiana Helpr is looking at the problem". Now Message leads, See the case is there, and no continue day.
+  // Louisiana Helpr is looking at the problem". Now See the case leads, Message beside it, and no continue day.
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const cardLead = !step && cardSteps && flows.leadCount > 0 && !disputeOpen; |     const cardLead = !step && cardSteps && flows.leadCount > 0;
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |       : posterWait === "approve" && !disputeOpen |       : posterWait === "approve"
   // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx | job.status === "in_progress" && !job.has_active_dispute && | job.status === "in_progress" &&
   it("an open dispute on a job marked done: no Approve lead, no continue day, either side (Q2593, Q2594)", async () => {
     state.moreCount = 0;
+    // The card has a primary of its own (its Approve): it never leads while the case is open.
+    state.leadCount = 1;
     const disputed = { ...live, helper_arrived_at: "2026-10-28T14:20:00Z", poster_confirmed_working_at: "2026-10-28T14:25:00Z", helper_completed_at: new Date().toISOString(), has_active_dispute: true };
     state.job = row(disputed);
     state.party = true;
     const r = renderPage();
-    // Message leads (on the right); "See the case" is the one beside it (owner pick 11-08, JP2: in the bar).
-    await waitFor(() => expect(rowLabels().at(-1)).toBe("Message Rhonda"));
+    // "See the case" leads (on the right), Message beside it (owner pick 11-08, JP2: the case is what happens next).
+    await waitFor(() => expect(rowLabels().at(-1)).toBe("See the case"));
+    // Message beside it (the Helpr's name, once their profile has loaded).
+    expect(rowLabels()[rowLabels().length - 2]).toMatch(/^Message /);
     expect(rowLabels()).not.toContain("Approve and release");
     expect(rowLabels()).not.toContain("Approve");
-    expect(rowLabels()).toContain("See the case");
     // The complaint is already made: no second "Something's not right", no continue day.
     expect(pageActions()).not.toContain("Something's not right");
     expect(pageActions()).not.toContain("Not finished? Set a day");
@@ -1650,7 +1667,7 @@ describe("one row of buttons at every stage (B93)", () => {
     state.job = row({ ...disputed, customer_id: POSTER, helper_id: ME, helper_completed_at: null });
     state.tracking = "working";
     renderPage();
-    await waitFor(() => expect(pageActions()).toContain("See the case"));
+    await untilOffered("See the case");
     expect(pageActions()).not.toContain("Not finished? Set a day");
   });
 
@@ -1713,7 +1730,7 @@ describe("one row of buttons at every stage (B93)", () => {
  * @mutate src/components/tracker/jobProgressState.ts |   if (status === "in_progress" && !job.is_group_job && (job.proof_after_urls |   if (false && status === "in_progress" && !job.is_group_job && (job.proof_after_urls
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const offerOut = isPoster && offerIsOut(job); |   const offerOut = false;
  * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |  && job.direct_offer_status !== "pending"; | ;
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | [msg, job.status === "cancelled" ? null : work] | [msg, work]
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | msg, job.status === "cancelled" ? null : work] | msg, work]
  */
 describe("job page layout V2 (owner 11-01, mockups 4 and 5)", () => {
   const LONG = "Mow and weed eat an empty lot in New Iberia. The edge of the bank near the water has become overgrown and needs to be weed eaten.";
@@ -1834,7 +1851,7 @@ describe("job page: the booked job's clock, as its card shows it (JA-34)", () =>
 
 /**
  * JA-30 (Jobs audit 11-01): a disputed job's page says when they hear back AND links to the case.
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | {party && (isPoster \|\| isHired) && (job.status === "disputed" | {false && party && (isPoster \|\| isHired) && (job.status === "disputed"
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | const seeCase: RowAction \| null = party && (isPoster \|\| isHired) && | const seeCase: RowAction \| null = false && party && (isPoster \|\| isHired) &&
  */
 describe("job page, a disputed job (JA-30)", () => {
   it("both parties get 'See the case', which opens the dispute's own case view", async () => {
@@ -1933,10 +1950,10 @@ describe("job page, an offered Helpr is not told the address comes with an offer
 });
 
 describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yusef's job)", () => {
-  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |       setDay = { key: "continue-set", label: row ? "Set a different day" : CONTINUE_DAY_LABEL, go: open }; |
+  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |       setDay = { key: "continue-set", label: row ? "Set a different day" : CONTINUE_DAY_LABEL, go: open, inMenu: true }; |
   // @mutate src/pages/jobs/jobPage/JobPageParts.tsx | continueStep ?? jobNextStep( | jobNextStep(
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx | posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras, { noCardSteps: continueDay.doneAhead })} | posterActions.row(posterStep)}
-  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     if (offerSetDay && !job.helper_completed_at) setDay = { key: "continue-ask", label: row ? "Ask for a different day" : CONTINUE_DAY_LABEL, go: open }; |
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | posterActions.row(continueDay.posterLead ?? posterStep ?? | posterActions.row(posterStep ??
+  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     if (offerSetDay && !job.helper_completed_at) setDay = { key: "continue-ask", label: row ? "Ask for a different day" : CONTINUE_DAY_LABEL, go: open, inMenu: true }; |
   const underWay = (over: Partial<JobPageRow> = {}) => row({
     customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
     helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",
@@ -2031,7 +2048,7 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     unmount();
     state.tracking = "working";
     renderPage();
-    await waitFor(() => expect(pageActions()).toContain("Not finished? Set a day"));
+    await untilOffered("Not finished? Set a day");
   });
 });
 
@@ -2089,7 +2106,7 @@ describe("JA-17: Accept and Decline on the job page", () => {
 
   // Q2601 (Jobs audit 1102b row 15): on the page the Decline / Accept pair sat 16 px inside the page's button column
   // (x 53-322 vs 37-338 at 375): the Working card's own side padding. On the page the offer box has none.
-  // @mutate src/pages/jobs/jobPage/PageOfferPanel.tsx | <OfferedActions flush app={app} | <OfferedActions app={app}
+  // @mutate src/pages/jobs/jobPage/PageOfferPanel.tsx | <OfferedActions flush sticky app={app} | <OfferedActions sticky app={app}
   // @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | className={`${flush ? "" : "px-4 "}py-3 space-y-2.5`} | className="px-4 py-3 space-y-2.5"
   it("the offer box on the page has no side padding of its own, so the pair lines up with the page's buttons", async () => {
     state.job = offered();
@@ -2119,7 +2136,7 @@ describe("JA-17: Accept and Decline on the job page", () => {
  * complete" days before the server allows it (continue_day_ahead); (4) the poster's pair was "SOS | Message" with
  * nobody at the job; (5) the header still read day 1.
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |     const doneLocked = continueDay.doneAhead && hiredFace.label === DONE_FACE_LABEL; |     const doneLocked = false;
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | continueDay.posterExtras, { noCardSteps: continueDay.doneAhead })} | continueDay.posterExtras)}
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | ], { noCardSteps: continueDay.doneAhead, menuHost })} | ], { menuHost })}
  * @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |       posterExtras.push({ key: "continue-change", label: "Change day", go: open }); |       posterExtras.push();
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const continuingOn = continueDayHeader(continueDay.row); |   const continuingOn = null as string \| null;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | <MineFaceNote note={continueDay.doneAheadNote ?? hiredFace?.note} /> | <MineFaceNote note={hiredFace?.note} />
@@ -2215,7 +2232,7 @@ describe("owner #4: a missed continue day goes to Louisiana Helpr", () => {
 
 // A3-44 rest (audit 2026-11-01, B137): the standing Helpr's "Leave series" is one more item in the row's More options
 // (owner 2026-11-01 5:42 PM: a menu only when it holds 2+ items), with its confirm; never a second link beside the series line.
-// @mutate src/pages/jobs/jobPage/JobPage.tsx | leadIsStep={faceIs === "step"} extras={withLeave.extras} /> | leadIsStep={faceIs === "step"} extras={extras} />
+// @mutate src/pages/jobs/jobPage/JobPage.tsx | leadIsStep={faceIs === "step"} extras={withLeave.extras} menuHost={menuHost} /> | leadIsStep={faceIs === "step"} extras={extras} menuHost={menuHost} />
 // @mutate src/pages/jobs/jobPage/HiredSeriesSection.tsx |               trigger={!leaveInMenu} |               trigger
 // @mutate src/pages/jobs/jobPage/JobPage.tsx | go: () => setLeaveOpen(true), danger: true | go: () => {}, danger: true
 // @mutate src/pages/jobs/jobPage/HiredSeriesSection.tsx |   const inMenu = canLeave && extras.length >= 1; |   const inMenu = canLeave;

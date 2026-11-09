@@ -280,7 +280,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // step leads on the right, with Message and "Open in working" beside it (one, or More options); when the face's
   // button IS Message or Open in working, it leads and the other sits beside it.
   // JA-30 (Jobs audit 11-01): while a dispute is open "See the case" opens the case itself (the cards' own
-  // DisputeTimelineDialog). Owner pick 11-08 (JP2): it is one of the bar's actions, first in line for the secondary.
+  // DisputeTimelineDialog). Owner pick 11-08 (JP2): it is the bar's primary while no step of the page's own is due
+  // (the case is what happens next), Message beside it.
   const seeCase: RowAction | null = party && (isPoster || isHired) && (job.status === "disputed" || !!job.has_active_dispute)
     ? { key: "see-case", label: t("jobPage.seeCase"), go: () => setCaseOpen(true) } : null;
   const { row: hiredRow, leaveInMenu } = (() => {
@@ -298,7 +299,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       : faceIs === "working" ? { ...work, label: doneLocked ? work.label : hiredFace.label }
       : { key: "step", label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled };
     // L27 JA-F2: a cancelled job is in no live Working list, so "Open in working" there is a dead end: not offered.
-    const extras = [seeCase, msg, job.status === "cancelled" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
+    // With a step of the Working card's own due, "See the case" is the first of the others (the secondary).
+    const extras = [faceIs === "step" ? seeCase : null, msg, job.status === "cancelled" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
     // Continue another day: a set day the Helpr has not confirmed leads; "Not finished? Set a day" sits with the others.
     // A3-44: "Leave series" joins More options only when that makes 2+ items (owner 5:42 PM); else it stays a link.
     const leaveAction: RowAction = { key: "leave-series", label: "Leave series", go: () => setLeaveOpen(true), danger: true };
@@ -308,6 +310,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     if (continueDay.helprLead) {
       const withLeaveDay = withLeaveSeries([...(faceIs === "step" ? [] : [lead]), ...extras, ...dayExtras], canLeave, leaveAction);
       return { row: <JobPageActionRow tag="helpr" lead={continueDay.helprLead} leadIsStep extras={withLeaveDay.extras} menuHost={menuHost} />, leaveInMenu: withLeaveDay.inMenu };
+    }
+    if (seeCase && faceIs !== "step") {
+      const withLeaveCase = withLeaveSeries([lead, ...extras, ...dayExtras], canLeave, leaveAction);
+      return { row: <JobPageActionRow tag="helpr" lead={seeCase} leadIsStep extras={withLeaveCase.extras} menuHost={menuHost} />, leaveInMenu: withLeaveCase.inMenu };
     }
     const withLeave = withLeaveSeries([...extras, ...dayExtras], canLeave, leaveAction);
     return { row: <JobPageActionRow tag="helpr" lead={lead} leadIsStep={faceIs === "step"} extras={withLeave.extras} menuHost={menuHost} />, leaveInMenu: withLeave.inMenu };
@@ -525,8 +531,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               </RefundsSwitchProvider>
             )}
             {/* Owner pick 11-08 (JP2): "Something's not right" and "Not finished? Set a day" are in the "..." menu. */}
-            {isPoster && posterActions.row(continueDay.posterLead ?? posterStep, [
-              ...(seeCase ? [seeCase] : []),
+            {isPoster && posterActions.row(continueDay.posterLead ?? posterStep ?? (seeCase ? { label: seeCase.label, go: seeCase.go } : undefined), [
               ...continueDay.posterExtras,
               ...(posterActions.notRight ? [{ key: "not-right", label: NOT_RIGHT_LABEL, go: posterActions.notRight, inMenu: true }] : []),
               ...(continueDay.setDay ? [continueDay.setDay] : []),

@@ -105,10 +105,10 @@ export function InstantBookingCard({ jobId, title, declineUntil, now: fixedNow, 
       {left && (() => {
         const pair = (
           <>
-            <Button variant="outline" size={sticky ? "wrap" : "default"} className="flex-1 rounded-full" disabled={busy !== null} onClick={() => setConfirmDecline(true)}>
+            <Button variant="outline" size={sticky ? "md" : "default"} className="flex-1 rounded-full" disabled={busy !== null} onClick={() => setConfirmDecline(true)}>
               {busy === "decline" ? "Declining…" : "Decline"}
             </Button>
-            <Button size={sticky ? "wrap" : "default"} className="flex-1 rounded-full" disabled={busy !== null} onClick={() => void onConfirm()}>
+            <Button size={sticky ? "md" : "default"} className="flex-1 rounded-full" disabled={busy !== null} onClick={() => void onConfirm()}>
               {busy === "confirm" ? "Confirming…" : "Confirm"}
             </Button>
           </>

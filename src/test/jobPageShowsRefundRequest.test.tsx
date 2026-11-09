@@ -19,8 +19,8 @@
  * poster's row (both come back once the request is withdrawn or answered).
  *
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             hideNext={refundOpen \|\| (isPoster && !continueDay.row && showsNow(job, trackingStatus))} |             hideNext={isPoster && !continueDay.row && showsNow(job, trackingStatus)}
- * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const cardLead = !step && cardSteps && flows.leadCount > 0 && !refundOpen; |     const cardLead = !step && cardSteps && flows.leadCount > 0;
- * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const notRight = posterWait === "approve" && flows.ready && !refundOpen ? flows.notRight : null; |   const notRight = posterWait === "approve" && flows.ready ? flows.notRight : null;
+ * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const cardLead = !step && cardSteps && flows.leadCount > 0 && !disputeOpen; |     const cardLead = !step && cardSteps && flows.leadCount > 0;
+ * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const notRight = posterWait === "approve" && flows.ready && !disputeOpen ? flows.notRight : null; |   const notRight = posterWait === "approve" && flows.ready ? flows.notRight : null;
  * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const disputeOpen = status === "disputed" \|\| !!job.has_active_dispute \|\| refundOpen; |   const disputeOpen = status === "disputed" \|\| !!job.has_active_dispute;
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";

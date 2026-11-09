@@ -25,6 +25,7 @@ const state = vi.hoisted(() => ({
   refundExtra: {} as Record<string, unknown>,
   refundReads: 0,
   problems: [] as Record<string, unknown>[],
+  handoverReads: [] as string[],
 }));
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
@@ -32,6 +33,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "declutter_refund_requests" }));
 vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart }));
 vi.mock("@/lib/declutter/paidCents", () => ({ fetchMyPaidCents: async () => new Map() }));
+vi.mock("@/lib/declutter/refundedCents", async (orig) => ({ ...(await orig<object>()), fetchMyRefundedCents: async () => new Map() }));
 vi.mock("@/lib/declutter/refundRequests", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/refundRequests")>()),
   fetchRefundRequestView: async (orderId: string) => {
@@ -43,7 +45,7 @@ vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => [],
   fetchMyPayouts: async () => [],
   fetchOpenProblems: async () => state.problems,
-  fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "handed_over", side: "buyer", confirmed_at: "2026-10-20T15:00:00Z" }),
+  fetchMyHandover: async (orderId: string) => { state.handoverReads.push(orderId); return { order_id: orderId, status: "handed_over", side: "buyer", confirmed_at: "2026-10-20T15:00:00Z" }; },
   handoverPhotoUrl: async () => "",
   fetchItemAddress: async () => null,
 }));
@@ -85,6 +87,21 @@ beforeEach(() => {
   state.refundExtra = {};
   state.refundReads = 0;
   state.problems = [];
+  state.handoverReads = [];
+});
+
+// F156 (lab 11-09): a refunded order's card asked declutter_my_handover, which answers paid and handed-over orders
+// only, so every Buying load logged an item_not_found QueryCache error. Only a paid order's card asks.
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | queryFn: () => fetchMyHandover(order.orderId), enabled: order.status === "paid" }); | queryFn: () => fetchMyHandover(order.orderId), enabled: order.status !== "handed_over" });
+describe("F156: the order card asks for the handover row only where the server answers it", () => {
+  it("a refunded order's card is drawn and never asks", async () => {
+    state.cart = [line({ order_id: "o-refunded", order_status: "refunded" })];
+    const { unmount } = show();
+    expect(await screen.findByText("Oak chair")).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 30));
+    expect(state.handoverReads).toEqual([]);
+    unmount();
+  });
 });
 
 describe("BUY-31: the order card agrees with a refund", () => {

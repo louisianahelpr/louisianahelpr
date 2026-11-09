@@ -34,7 +34,7 @@ import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 const CACHE_MS = 60_000;
 /** tipWaitsOnId: the server's own answer (get_safe_profiles.tip_waits_on_id = payout_waits_on_identity), null when
  *  the RPC predates it or the caller is signed out; then the old computation from idVerified stands. */
-type TipAnswer = { payoutReady: boolean; idVerified: boolean; tipWaitsOnId: boolean | null } | null;
+type TipAnswer = { payoutReady: boolean; idVerified: boolean; tipWaitsOnId: boolean | null; firstName: string } | null;
 const cache = new Map<string, { at: number; value: Promise<TipAnswer> }>();
 
 function readTakesTips(helperId: string): Promise<TipAnswer> {
@@ -48,12 +48,13 @@ function readTakesTips(helperId: string): Promise<TipAnswer> {
       cache.delete(helperId);
       return null;
     }
-    const row = pickRequestedProfile(data as { user_id: string; is_payout_ready: boolean | null; is_id_verified?: boolean | null; tip_waits_on_id?: boolean | null }[] | null, helperId);
+    const row = pickRequestedProfile(data as { user_id: string; full_name?: string | null; is_payout_ready: boolean | null; is_id_verified?: boolean | null; tip_waits_on_id?: boolean | null }[] | null, helperId);
     return row
       ? {
           payoutReady: row.is_payout_ready === true,
           idVerified: row.is_id_verified === true,
           tipWaitsOnId: typeof row.tip_waits_on_id === "boolean" ? row.tip_waits_on_id : null,
+          firstName: (row.full_name ?? "").trim().split(/\s+/)[0] ?? "",
         }
       : null;
   })();
@@ -93,6 +94,24 @@ export function useHelprTakesTips(helperId: string | null | undefined, enabled =
   // viewer's switch and is_id_verified alone hid a tip the server takes. An older RPC (no field): the old rule.
   if (a.tipWaitsOnId !== null) return a.payoutReady && !a.tipWaitsOnId;
   return a.payoutReady && (!idCheckOn || a.idVerified);
+}
+
+/**
+ * F108 (owner UI audit 2026-11-09): the poster's done job said "Paid to your Helpr. It's on its way to their bank."
+ * while the Helpr card below said "Lexi hasn't finished payout setup yet". Measured on prod: job 28f8cff5 is released
+ * and its payout_transfers row is paid, but the Helpr's payout account (get_safe_profiles.is_payout_ready) is not
+ * ready, so the money waits in their account until a bank is added. Non-null (the Helpr's first name) only when the
+ * read says payouts are NOT ready; unknown or ready is null, so the normal words stand.
+ */
+export function useHelprPayoutWaitsOnBank(helperId: string | null | undefined, enabled = true): { firstName: string } | null {
+  const a = useTipAnswer(helperId, enabled);
+  return a && !a.payoutReady ? { firstName: a.firstName } : null;
+}
+
+/** The released line while the Helpr's bank is missing (F108). Never says the money is on its way to a bank. */
+export function paidWaitsOnBankLine(firstName: string | null | undefined): string {
+  const first = (firstName ?? "").trim();
+  return `Approved. ${first || "Your Helpr"} gets paid as soon as they add their bank.`;
 }
 
 /** True when the ID check is on and this Helpr has not verified: the tip waits on that, whatever their payout setup says. */

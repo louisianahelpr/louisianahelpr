@@ -15,6 +15,7 @@ import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { DeclutterSellerCard } from "@/components/declutter/DeclutterSellerCard";
+import { paidWaitsOnBankLine, useHelprPayoutWaitsOnBank } from "@/hooks/useHelprTakesTips";
 import type { JobPageRow } from "./useJobPage";
 import { JobProgress } from "@/components/tracker/JobProgress";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
@@ -134,13 +135,15 @@ export function PosterPrice({ job }: { job: JobPageRow }) {
  */
 export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; total: number; loading: boolean }) {
   const released = RELEASED.has(job.payment_status ?? "");
+  // F108: a released job whose Helpr has no bank yet says so, never "on its way to their bank".
+  const waitsOnBank = useHelprPayoutWaitsOnBank(released && !job.is_group_job ? job.helper_id : null);
   const status = job.payment_status ?? "";
   // ONE sentence about the money, from payment_status alone (JA-47); a paid (escrow) job has none (owner 11-01).
   // Lead 11-01 (B107): a cancelled job's tracker line already says "... · Your payment was refunded" (JA-26,
   // jobProgressState cancelledLine), so the refund is said ONCE, there. An expired listing's line says only "No
   // Helpr was hired in time", so it keeps "Refunded to your card." here. Guard: src/test/refundSaidOnce.test.tsx.
   const refundInTracker = status === "refunded" && (job.status === "cancelled" || job.status === "expired") && !isExpiredListing(job);
-  const line = released ? releasedLine(job) : refundInTracker ? null : HELD_LINE[status] ?? null;
+  const line = released ? (waitsOnBank ? paidWaitsOnBankLine(waitsOnBank.firstName) : releasedLine(job)) : refundInTracker ? null : HELD_LINE[status] ?? null;
   const count = job.status === "open" && !loading && total > 0;
   if (!line && !released && !count) return null;
   return (

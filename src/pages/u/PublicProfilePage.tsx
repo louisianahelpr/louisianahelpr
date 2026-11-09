@@ -151,10 +151,13 @@ function HireMeButton({ handle, signedIn }: { handle: string; signedIn: boolean 
         </Button>
       )}
       <p className="mt-2 text-ds-13 text-muted-foreground">Offer a job directly. Your payment is held safely until the work is done.</p>
-      {/* Audit L3 (11-05): a guest who already has an account was sent to sign-up only. */}
+      {/* Audit L3 (11-05): a guest who already has an account was sent to sign-up only. F068 (owner UI audit 11-09): and
+          a new guest had no plain way to sign up, so both are offered: "New here? Join free · Have an account? Log in". */}
       {!signedIn && (
-        <p className="mt-1 text-ds-13 text-muted-foreground" data-testid="pp-hire-login">
-          Have an account? <Link to={hireGuestLoginHref(handle)} className="font-semibold text-foreground underline underline-offset-2">Log in</Link>
+        <p className="mt-1 text-ds-13 text-muted-foreground" data-testid="pp-hire-join">
+          New here? <Link to={hireGuestHref(handle)} className="font-semibold text-foreground underline underline-offset-2">Join free</Link>
+          <span aria-hidden="true"> · </span>
+          <span data-testid="pp-hire-login">Have an account? <Link to={hireGuestLoginHref(handle)} className="font-semibold text-foreground underline underline-offset-2">Log in</Link></span>
         </p>
       )}
     </div>
@@ -186,9 +189,10 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null }: { p: Publ
   return (
     // M5 (audit 11-05): from 900px the column widens so the shop and work grids are 4 across, not ~100 rows of 2.
     <div className={`${PUBLIC_LINK_COLUMN} ${PROFILE_WIDE} space-y-4 pb-8`} data-public-profile={p.handle}>
-      <section className="rounded-2xl border border-border bg-card p-5 text-center shadow-sm" aria-labelledby="pp-name">
+      {/* F069 (owner UI audit 11-09): the name showed twice at the top (the page title and again in this card). It is
+          the page title (the one h1, the shell's title row); the card names itself to a screen reader instead. */}
+      <section className="rounded-2xl border border-border bg-card p-5 text-center shadow-sm" aria-label={p.name} data-pp-card="">
         <UserAvatar userId={p.handle} src={p.photo_url} name={p.name} pixelSize={96} className="mx-auto h-24 w-24" />
-        <h2 id="pp-name" className="mt-3 text-xl font-semibold text-foreground">{p.name}</h2>
         {p.business_name && <p className="text-ds-14 font-medium text-foreground" data-testid="pp-business">{p.business_name}</p>}
         <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
           {p.town && (

@@ -104,8 +104,25 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
  */
 const VALID_TABS = new Set<string>([...Object.keys(TAB_TITLES), "landing"]);
 
+/**
+ * F096 (owner UI audit 11-09): old or guessed tab names (privacy, payouts, gift cards, completed jobs) silently showed
+ * the You page. Each opens the page that now holds it: privacy is in Settings, payouts are on Money, the gift card
+ * is Gift card, completed jobs are the Work record. Anything else still falls back to You.
+ */
+const TAB_ALIASES: Readonly<Record<string, Tab>> = {
+  privacy: "settings",
+  payouts: "earnings",
+  payout: "earnings",
+  gift_cards: "gift_card",
+  "gift-cards": "gift_card",
+  "gift-card": "gift_card",
+  giftcard: "gift_card",
+  completed_jobs: "work_record",
+};
+
 export function resolveTab(raw: string | null | undefined): Tab {
-  return raw && VALID_TABS.has(raw) ? (raw as Tab) : "landing";
+  if (raw && VALID_TABS.has(raw)) return raw as Tab;
+  return (raw && Object.prototype.hasOwnProperty.call(TAB_ALIASES, raw) ? TAB_ALIASES[raw] : undefined) ?? "landing";
 }
 
 /**

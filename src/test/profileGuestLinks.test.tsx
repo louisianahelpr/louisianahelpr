@@ -9,7 +9,7 @@
  * @mutate src/lib/hireMe.ts |   return `/login?redirect=${encodeURIComponent(`/u/${encodeURIComponent(handle)}?${HIRE_PARAM}=1`)}`; |   return "/login";
  * @mutate src/pages/u/PublicProfilePage.tsx | <Link to={guestAware(quickListHref(w), signedIn)} data-testid="pp-wanted-reply"> | <Link to={guestAware("/declutter", signedIn)} data-testid="pp-wanted-reply">
  * @mutate src/pages/u/PublicProfilePage.tsx |                 {!isMe && (\n                  <Button asChild variant="outline" size="sm" className="shrink-0 rounded-full"> |                 {(\n                  <Button asChild variant="outline" size="sm" className="shrink-0 rounded-full">
- * @mutate src/pages/u/PublicProfilePage.tsx |       {!signedIn && (\n        <p className="mt-1 text-ds-13 text-muted-foreground" data-testid="pp-hire-login"> |       {false && (\n        <p className="mt-1 text-ds-13 text-muted-foreground" data-testid="pp-hire-login">
+ * @mutate src/pages/u/PublicProfilePage.tsx |       {!signedIn && (\n        <p className="mt-1 text-ds-13 text-muted-foreground" data-testid="pp-hire-join"> |       {false && (\n        <p className="mt-1 text-ds-13 text-muted-foreground" data-testid="pp-hire-join">
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -62,6 +62,16 @@ describe("the share profile brings a guest back where they were going (audit L3,
     const href = login.getAttribute("href")!;
     expect(href.startsWith("/login?redirect=")).toBe(true);
     expect(redirectOf(href)).toBe("/u/eli-b?hire=1");
+  });
+
+  // F068 (owner UI audit 11-09): a new guest also gets "New here? Join free", to sign-up and back to the hire.
+  // @mutate src/pages/u/PublicProfilePage.tsx |           New here? <Link to={hireGuestHref(handle)} | <Link to={hireGuestLoginHref(handle)}
+  it("F068: a guest's Hire me also offers Join free, through sign-up back to the hire", async () => {
+    show();
+    const join = (await screen.findByTestId("pp-hire-join")).querySelector("a")!;
+    expect(join.textContent).toBe("Join free");
+    expect(join.getAttribute("href")!.startsWith("/signup")).toBe(true);
+    expect(join.getAttribute("href")).toContain(encodeURIComponent("/u/eli-b?hire=1"));
   });
 
   it("L3: a member sees no Log in link", async () => {

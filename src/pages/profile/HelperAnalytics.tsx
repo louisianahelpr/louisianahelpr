@@ -120,7 +120,7 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
         variant="inline"
         icon={BarChart3}
         title="Advanced analytics is off for now"
-        body="Your earnings and payouts are all on the Earnings tab."
+        body="Your earnings and payouts are on the Money page."
         action={
           <Button
             type="button"
@@ -128,7 +128,7 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
             size="sm"
             onClick={() => navigate("/profile?tab=earnings")}
           >
-            Go to earnings
+            Go to Money
           </Button>
         }
       />,

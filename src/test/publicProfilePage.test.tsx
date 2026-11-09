@@ -35,7 +35,8 @@ const rpc = vi.fn();
 let signedIn: { id: string } | null = null;
 let myHandle: string | null = null;
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a) } }));
-vi.mock("@/components/AppPage", () => ({ default: ({ children }: { children: ReactNode }) => <main>{children}</main> }));
+// F069 (owner UI audit 11-09): the name is the page title (the one h1), no longer repeated in the card.
+vi.mock("@/components/AppPage", () => ({ default: ({ title, children }: { title?: ReactNode; children: ReactNode }) => <main><h1>{title}</h1>{children}</main> }));
 vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: () => undefined }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: signedIn, ready: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: myHandle ? { handle: myHandle } : null }) }));

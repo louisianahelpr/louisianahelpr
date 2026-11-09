@@ -222,6 +222,18 @@
       "function": "public.declutter_lock_buyable_item",
       "code": "card_required",
       "reason": "Not dropped: the 2-argument declutter_lock_buyable_item(uuid, uuid) is now a shim that calls the new 3-argument form declutter_lock_buyable_item(uuid, uuid, p_need_card boolean) with p_need_card = true, defined later in the same migration, and that form keeps every RAISE ('item_not_found', 'own_item', 'sale_mode_unavailable', 'item_not_available', 'card_required'). The checker matches by function name, so it reads the shim's body. Lander, 2026-11-07."
+    },
+    {
+      "migration": "20261109212142_find_helprs_guests_may_view.sql",
+      "function": "public.find_helprs",
+      "code": "not_signed_in",
+      "reason": "F071 (owner pop-up 11-09: guests may VIEW /explore, /helprs and /search; only actions gated). find_helprs now serves a guest the same masked list a member gets (First L., town, parish, skills, photo, ID-checked flag; no rate, phone, email or address; never a test account). The sign-in refusal is dropped on purpose; offering a job still needs an account, and a signed-in banned member is still refused."
+    },
+    {
+      "migration": "20261109212142_find_helprs_guests_may_view.sql",
+      "function": "public.find_helprs",
+      "code": "email_not_confirmed",
+      "reason": "Same F071 change: a guest has no email to confirm, so the confirmed-email refusal cannot apply to the anonymous view; the list it serves is the masked public directory, and every action from it still goes through sign-up."
     }
   ]
 }

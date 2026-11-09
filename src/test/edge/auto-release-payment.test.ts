@@ -815,7 +815,7 @@ describe("auto-release-payment edge function", () => {
       expect(esc?.args).toMatchObject({ p_job_id: "job-1", p_reason: "approval" });
       expect(notesTo(POSTER_ID).map((n) => n.title)).toEqual(["Please approve your Helpr's work"]);
       expect(String(notesTo(POSTER_ID)[0].message)).toMatch(/stays held/);
-      expect(notesTo(HELPER_ID).map((n) => n.title)).toEqual(["Helpr support is stepping in"]);
+      expect(notesTo(HELPER_ID).map((n) => n.title)).toEqual(["Our team is stepping in"]);
       expect(notesTo("admin-1").map((n) => n.link)).toEqual(["/admin?view=stalled&job=job-1"]);
       expect(notesTo("admin-2")).toHaveLength(1);
       const all = scenario.writes.filter((w) => w.table === "notifications")
@@ -834,7 +834,7 @@ describe("auto-release-payment edge function", () => {
       const fn = await load();
       const out = await json(await fn.fetch(cronRequest(fn)));
       expect(out.escalated).toBe(1);
-      expect(notesTo("crew-a").map((n) => n.title)).toEqual(["Helpr support is stepping in"]);
+      expect(notesTo("crew-a").map((n) => n.title)).toEqual(["Our team is stepping in"]);
       expect(notesTo("crew-b")).toHaveLength(1);
     });
 

@@ -242,7 +242,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/pages/auth/ForgotPassword.tsx` | input×1 | email |  | Close · email · fp-email-error |
+| `src/pages/auth/ForgotPassword.tsx` | input×1 | email |  | email · fp-email-error |
 
 ## /help
 

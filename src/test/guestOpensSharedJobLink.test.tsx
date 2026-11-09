@@ -85,11 +85,12 @@ beforeEach(() => {
 });
 
 describe("the route", () => {
-  it("/jobs/:id is the only route that lets a guest through", () => {
+  // F071 (owner 11-09): guests may VIEW /explore, /search and /helprs too; only their actions are gated.
+  it("only /jobs/:id and the three F071 views let a guest through", () => {
     const app = blankComments(readFileSync(resolve(process.cwd(), "src/App.tsx"), "utf8"));
     const routes = [...app.matchAll(/<Route path="([^"]+)" element=\{(.*)\} \/>/g)];
     expect(routes.length).toBeGreaterThan(30);
-    expect(routes.filter((m) => m[2].includes("allowGuest")).map((m) => m[1])).toEqual(["/jobs/:id"]);
+    expect(routes.filter((m) => m[2].includes("allowGuest")).map((m) => m[1])).toEqual(["/explore", "/search", "/helprs", "/jobs/:id"]);
   });
 });
 

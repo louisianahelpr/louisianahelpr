@@ -502,15 +502,15 @@ serve(async (req) => {
           told(await insertNotifications(supabaseAdmin, {
             user_id: job.customer_id, job_id: job.id,
             title: "Please approve your Helpr's work",
-            message: `Your Helpr ${waited} on "${title}" and we haven't heard from you. Approve it, or ask for a change if something's wrong. Helpr support will also reach out. Your payment stays held until then.`,
+            message: `Your Helpr ${waited} on "${title}" and we haven't heard from you. Approve it, or ask for a change if something's wrong. Our team will also reach out. Your payment stays held until then.`,
             type: "warning", link: `/posts?job=${job.id}`,
           }), "the person who posted it");
         }
         if (helprIds.length > 0) {
           told(await insertNotifications(supabaseAdmin, helprIds.map((h) => ({
             user_id: h, job_id: job.id,
-            title: "Helpr support is stepping in",
-            message: `The person who posted "${title}" hasn't approved your work yet, so Helpr support is reaching out to them. Your payment is held safely until the job is approved.`,
+            title: "Our team is stepping in",
+            message: `The person who posted "${title}" hasn't approved your work yet, so our team is reaching out to them. Your payment is held safely until the job is approved.`,
             type: "info", link: `/jobs?job=${job.id}`,
           }))), "the Helpr");
         }

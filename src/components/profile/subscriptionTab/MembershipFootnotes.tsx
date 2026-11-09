@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { Button } from "@/components/ui/button";
 
 /**
  * What /profile?tab=subscription shows in the store app, where memberships are
@@ -15,6 +16,12 @@ export function MembershipsUnavailable({ onBack }: { onBack: () => void }) {
       <p className="text-ds-14 text-muted-foreground" data-testid="memberships-unavailable">
         Memberships aren't available right now.
       </p>
+      {/* F097 (owner UI audit 11-09): the page was one line with no next step; it offers the way back to You. */}
+      <div>
+        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onBack} data-testid="memberships-back-to-you">
+          Back to You
+        </Button>
+      </div>
     </ProfileTabBody>
   );
 }

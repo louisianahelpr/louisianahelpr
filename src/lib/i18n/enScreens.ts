@@ -82,6 +82,26 @@ export const enScreens = {
   "login.tooManyAttempts": "Too many attempts \u2014 try again in {minutes} min.",
   "login.mfaWrongCode": "That code didn't match. Check your app and try again.",
 
+  // Forgot password (F029, owner UI audit 11-09: the page has the English / Español switch too)
+  "forgot.title": "Reset your password",
+  "forgot.sub": "We'll email you a link to set a new one.",
+  "forgot.sentTitle": "Check your inbox",
+  "forgot.sentLead": "If",
+  "forgot.sentTail": "is registered, we've sent a reset link. It expires in 1 hour.",
+  "forgot.spamHint": "Don't see it? Check your spam folder or wait a minute — emails can take a moment to arrive.",
+  "forgot.useAnother": "Use another email",
+  "forgot.sending": "Sending…",
+  "forgot.resendIn": "Resend in {s}s",
+  "forgot.resend": "Resend email",
+  "forgot.emailInvalid": "Enter a valid email address.",
+  "forgot.emailMissing": "Add your email address.",
+  "forgot.send": "Send reset link",
+  "forgot.remembered": "Remembered it?",
+  "forgot.backToLogin": "Back to log in",
+  "forgot.close": "Close",
+  "forgot.captchaFailed": "The security check didn't finish. Try again.",
+  "forgot.tooMany": "Too many requests — try again in a minute.",
+
   // Sign up, step 1
   "signup.title": "Create your account",
   "signup.subtitle": "One account to hire help, find work, and buy or sell nearby.",

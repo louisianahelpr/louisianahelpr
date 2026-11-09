@@ -7,7 +7,19 @@ import type { SectionKey } from "@/components/sections/sectionsConfig";
 import { GlassTileButton } from "@/components/ui/GlassTileButton";
 import { PreviewPill } from "@/components/sections/PreviewPill";
 
-type CountKey = "posted" | "working" | "selling" | "shopOrders";
+type CountKey = "posted" | "working" | "selling" | "shopOrders" | "buying";
+
+/**
+ * F088 (owner UI audit 11-09): a count alone ("Selling · 255") said nothing at a glance. Each count carries its status
+ * word ("255 live", "1 booked"). Still only when real and non-zero (board 18).
+ */
+const COUNT_WORD: Record<CountKey, string> = {
+  posted: "live",
+  working: "booked",
+  selling: "live",
+  shopOrders: "open",
+  buying: "in progress",
+};
 
 /**
  * Board 18 "YOUR ACTIVITY": both sides of every section, two tiles each, in the
@@ -23,7 +35,7 @@ export const ACTIVITY_TILES: Record<SectionKey, readonly { label: string; to: st
     { label: "Working", to: "/jobs?tab=working", count: "working" },
   ],
   declutter: [
-    { label: "Buying", to: "/declutter?tab=buying" },
+    { label: "Buying", to: "/declutter?tab=buying", count: "buying" },
     { label: "Selling", to: "/declutter?tab=selling", count: "selling" },
   ],
   shops: [
@@ -60,7 +72,8 @@ export function YourActivity() {
       <div className="grid grid-cols-2 gap-2.5">
         {open.flatMap((s) =>
           ACTIVITY_TILES[s.key].map((t) => {
-            const n = t.count ? summary.counts[t.count] : 0;
+            const n = t.count ? summary.counts[t.count] ?? 0 : 0;
+            const word = t.count ? COUNT_WORD[t.count] : "";
             const preview = isPreview(s);
             return (
               <GlassTileButton
@@ -68,7 +81,7 @@ export function YourActivity() {
                 data-activity-tile={`${s.key}:${t.label}`}
                 data-preview={preview ? "true" : undefined}
                 onClick={() => navigate(t.to)}
-                title={`${s.label} ${t.label}${n > 0 ? ` · ${n}` : ""}`}
+                title={`${s.label} ${t.label}${n > 0 ? ` · ${n} ${word}` : ""}`}
                 className="px-4 py-3"
                 style={preview ? { opacity: 0.75 } : undefined}
               >
@@ -78,7 +91,7 @@ export function YourActivity() {
                 <span className="text-ds-12 text-muted-foreground">{s.label}</span>{" "}
                 <span className="text-ds-15 font-bold text-foreground truncate">
                   {t.label}
-                  {n > 0 && <><span aria-hidden="true"> ·</span> {n}</>}
+                  {n > 0 && <><span aria-hidden="true"> ·</span> {n} {word}</>}
                 </span>
                 {preview && <>{" "}<PreviewPill className="self-start mt-1" /></>}
               </GlassTileButton>

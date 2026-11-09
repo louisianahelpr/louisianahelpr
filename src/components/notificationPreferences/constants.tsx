@@ -96,24 +96,27 @@ export const trimTime = (v: string | null | undefined): string | null => {
 // tip repay) to `financial_alerts`, so each kind now sits under one row.
 // F102 (owner UI audit 11-09): the switch names say plain outcomes ("Job updates", "Work status", "Job payments",
 // "Payments and tips" and "System alerts" overlapped and needed the small print). Keys and columns are unchanged.
+// F103 (owner UI audit 11-09): 35+ rows ran with no grouping until Job reminders. The rows sit under headers now
+// (Messages, Jobs, Money, Account), each group contiguous; NotificationPreferences draws a header where the group
+// changes. Keys, columns and switches are unchanged; only the order moved Messages to the top.
 export const rows: Row[] = [
-  { key: "new_offers", emailKey: "email_new_offers", label: "Job offers", icon: <Briefcase className="w-3.5 h-3.5" /> },
-  { key: "job_applications", emailKey: "email_job_applications", label: "Applications", icon: <Users className="w-3.5 h-3.5" /> },
-  { key: "job_updates", emailKey: "email_job_updates", label: "Changes to my jobs", icon: <RefreshCw className="w-3.5 h-3.5" /> },
+  { key: "messages", emailKey: "email_messages", label: "Messages", description: "New messages, plus a reminder at 15 min and 2 h if a job message is still unread. Texts follow Text alerts.", icon: <MessageSquare className="w-3.5 h-3.5" />, group: "Messages" },
+  { key: "new_offers", emailKey: "email_new_offers", label: "Job offers", icon: <Briefcase className="w-3.5 h-3.5" />, group: "Jobs" },
+  { key: "job_applications", emailKey: "email_job_applications", label: "Applications", icon: <Users className="w-3.5 h-3.5" />, group: "Jobs" },
+  { key: "job_updates", emailKey: "email_job_updates", label: "Changes to my jobs", icon: <RefreshCw className="w-3.5 h-3.5" />, group: "Jobs" },
   // The Daily Match Digest row renders directly beneath this one (see
   // NotificationPreferences.tsx) — it is a delivery mode FOR this category,
   // and it greys out when this switch is off.
-  { key: "job_matches", emailKey: "email_job_matches", label: "New matches", icon: <Sparkles className="w-3.5 h-3.5" /> },
-  { key: "messages", emailKey: "email_messages", label: "Messages", description: "New messages, plus a reminder at 15 min and 2 h if a job message is still unread. Texts follow Text alerts.", icon: <MessageSquare className="w-3.5 h-3.5" /> },
+  { key: "job_matches", emailKey: "email_job_matches", label: "New matches", icon: <Sparkles className="w-3.5 h-3.5" />, group: "Jobs" },
   // Owner 11-08 (20261108160000): this row's switches pick push and email (both real now); the notice is always
   // kept in the notifications list.
-  { key: "transit_updates", emailKey: "email_transit_updates", label: "Helpr on the way", icon: <Navigation className="w-3.5 h-3.5" /> },
-  { key: "work_status", emailKey: "email_work_status", label: "Helpr's progress", description: "When the work starts and when it's marked done.", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-  { key: "payments", emailKey: "email_payments", label: "Receipts and refunds", description: "Finished jobs, refunds and saved cards.", icon: <Receipt className="w-3.5 h-3.5" /> },
-  { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payouts and tips", description: "Money held for a job, payout setup, payouts and tips.", icon: <DollarSign className="w-3.5 h-3.5" /> },
-  { key: "reviews", emailKey: "email_reviews", label: "Reviews", icon: <Star className="w-3.5 h-3.5" /> },
-  { key: "system_alerts", emailKey: "email_system_alerts", label: "Account and safety alerts", icon: <ShieldAlert className="w-3.5 h-3.5" /> },
-  { key: "promotions", emailKey: "email_promotions", label: "Promotions", icon: <Megaphone className="w-3.5 h-3.5" /> },
+  { key: "transit_updates", emailKey: "email_transit_updates", label: "Helpr on the way", icon: <Navigation className="w-3.5 h-3.5" />, group: "Jobs" },
+  { key: "work_status", emailKey: "email_work_status", label: "Helpr's progress", description: "When the work starts and when it's marked done.", icon: <CheckCircle2 className="w-3.5 h-3.5" />, group: "Jobs" },
+  { key: "payments", emailKey: "email_payments", label: "Receipts and refunds", description: "Finished jobs, refunds and saved cards.", icon: <Receipt className="w-3.5 h-3.5" />, group: "Money" },
+  { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payouts and tips", description: "Money held for a job, payout setup, payouts and tips.", icon: <DollarSign className="w-3.5 h-3.5" />, group: "Money" },
+  { key: "reviews", emailKey: "email_reviews", label: "Reviews", icon: <Star className="w-3.5 h-3.5" />, group: "Account" },
+  { key: "system_alerts", emailKey: "email_system_alerts", label: "Account and safety alerts", icon: <ShieldAlert className="w-3.5 h-3.5" />, group: "Account" },
+  { key: "promotions", emailKey: "email_promotions", label: "Promotions", icon: <Megaphone className="w-3.5 h-3.5" />, group: "Account" },
 ];
 
 // ── The "Declutter" group (owner 2026-10-28, via the lead: "Yes, build them") ──

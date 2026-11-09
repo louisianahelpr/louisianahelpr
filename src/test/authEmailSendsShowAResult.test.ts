@@ -33,7 +33,8 @@ const VISIBLE_RESULT: Record<string, { marker: string; test: string; proof: stri
     proof: "every success shows a visible result",
   },
   "src/pages/auth/ForgotPassword.tsx": {
-    marker: 'title={sent ? "Check your inbox"',
+    // F029 (owner UI audit 11-09): the words come through t(); en "forgot.sentTitle" is "Check your inbox".
+    marker: 'title={sent ? t("forgot.sentTitle")',
     test: "src/pages/auth/ForgotPassword.sentResult.test.tsx",
     proof: "a successful send shows Check your inbox",
   },

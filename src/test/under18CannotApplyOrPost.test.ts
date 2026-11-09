@@ -87,6 +87,7 @@ const NOT_AN_ENTRY: Record<string, string> = {
   "src/lib/declutter/sellForMe.ts": "data only: Sell it for me's Post a job path; the buttons that open it (SellItForMe.tsx) read useAgeGate and grey it",
   "src/components/sections/sectionsConfig.ts": "data only: the Jobs section's add path; the desktop top bar's soft \"+ Post a job\" that reads it (AppTopBar) reads useAgeGate and greys it (owner 2026-10-28)",
   "src/components/landing/HowItWorksSection.tsx": "the landing page's Post a job (I need help side): signed out it goes to sign-up first (no saved birthday, no gate yet); signed in it opens the gated /post-job form (FormStep)",
+  "src/pages/auth/loginNotice.ts": "F080: the Log in notice's words for a guest bounced from /post-job (a path it reads, not a link it opens)",
   "src/pages/post-job/EntryChoice.tsx": "a step INSIDE /post-job; the form it opens is gated",
   "src/pages/post-job/OfferToSavedHelpr.tsx": "a step INSIDE /post-job; the form it opens is gated",
   "src/pages/post-job/usePostJobForm.ts": "the /post-job form's own hook: an unusable ?maintenance= draft goes back to the plain gated form (Rentals S1)",

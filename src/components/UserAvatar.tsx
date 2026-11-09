@@ -82,6 +82,11 @@ interface UserAvatarProps
   /** Extra classes for the inner fallback (gradient sits inside this). */
   fallbackClassName?: string;
   /**
+   * F100 (owner UI audit 11-09): while a photo is still loading, show a plain neutral circle instead of the initials,
+   * so a member's own photo does not first flash as a letter. Opt-in (Edit profile); off, nothing changes.
+   */
+  quietWhileLoading?: boolean;
+  /**
    * Reports whether a real photograph is on screen, and when it is not, why.
    * `null` means a photo IS showing; any other value means the monogram is
    * the final render.
@@ -131,6 +136,7 @@ const UserAvatar = React.forwardRef<
     className,
     fallbackClassName,
     onPhotoRejected,
+    quietWhileLoading = false,
     ...rest
   },
   ref,
@@ -281,6 +287,8 @@ const UserAvatar = React.forwardRef<
       ? "placeholder-url"
       : failure;
   const showPhoto = rejection === null;
+  // F100: a photo on its way shows a neutral circle, not the monogram (opt-in).
+  const quiet = quietWhileLoading && showPhoto && !loaded;
 
   // Held in a ref so an inline `onPhotoRejected={(r) => …}` — which every
   // call site writes — does not make the effect below re-fire on every
@@ -324,11 +332,12 @@ const UserAvatar = React.forwardRef<
           "bg-transparent bg-gradient-to-br text-[#23231a] font-sans font-bold",
           "ring-[1.5px] ring-[hsl(var(--olivewood)/0.12)] ring-offset-0",
           "drop-shadow-[0_1px_3px_hsl(var(--olivewood)/0.12)]",
-          gradient,
+          quiet ? "bg-none bg-muted" : gradient,
           fallbackClassName,
         )}
+        data-avatar-quiet={quiet ? "" : undefined}
       >
-        {text}
+        {quiet ? null : text}
       </AvatarFallback>
       {showPhoto ? (
         <img

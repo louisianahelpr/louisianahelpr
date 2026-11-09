@@ -17,7 +17,7 @@
  * unless it says the check is NOT asked there (no / not / never / without /
  * doesn't).
  *
- * @mutate src/pages/auth/SignupPending.tsx | " Once per account there's a quick ID check: when you post a job, get hired, or list, buy or claim on Declutter, or at your first payout." | " Signing up adds a quick ID check."
+ * @mutate src/pages/auth/SignupPending.tsx | Once per account there's a quick ID check: when you post a job, get hired, or list, buy or claim on Declutter, or at your first payout. | Signing up adds a quick ID check.
  * @mutate src/pages/info/helpCenter/helpCenterContent.ts | confirmed email. We ask for your ID once: when you post a job, when you're hired, or before your first payout, and on Declutter when you list, buy, claim a free item or take a delivery." | confirmed email and a quick identity check through Stripe."
  */
 import { describe, it, expect } from "vitest";

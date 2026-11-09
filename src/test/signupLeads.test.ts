@@ -22,7 +22,7 @@
  * @mutate src/pages/auth/Signup.tsx | captureLead(email); // ONE | // ONE
  * @mutate src/lib/signupLead.ts |     capturedLeadRef.current = email;\n | \n
  * @mutate src/lib/signupLead.ts |     const replaces = capturedLeadRef.current;\n | \n
- * @mutate src/pages/auth/signup/SignupStep1.tsx |         {t("signup.mayEmailOnce")}\n | \n
+ * @mutate src/pages/auth/signup/SignupStep1.tsx |             {t("signup.mayEmailOnce")}\n | \n
  * @mutate supabase/functions/email-unsubscribe/index.ts |     .from('signup_leads') |     .from('signup_leads_x')
  * @mutate supabase/migrations/20261012030524_admin_list_signup_leads.sql | REVOKE ALL ON FUNCTION public.admin_list_signup_leads() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.admin_list_signup_leads() FROM PUBLIC;
  * @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |   IF NOT COALESCE(public.has_role(auth.uid(), 'admin'::public.app_role), false) THEN | IF false THEN

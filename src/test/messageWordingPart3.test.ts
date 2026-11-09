@@ -14,12 +14,36 @@
  * expiring-job push drops "visibility" and "!".
  * @mutate supabase/functions/create-payment/index.ts | Payment was released to the Helpr.` | Payment was released to the helpr.`
  * @mutate supabase/functions/expiring-jobs-push/index.ts | nobody's been picked yet. Boost it so more Helprs see it.` | with no helpr yet. Boost it to get more visibility!`
+ *
+ * F193 (edge part): the edge functions' member notices call the people who step in "our team" (was "Helpr support").
+ * One title stays: "Helpr support approved your job" is matched by text in jobs_notice_email_type (20261108214605).
+ * @mutate supabase/functions/auto-resolve-disputes/index.ts | so our team will decide it. | so Helpr support will decide it.
+ * @mutate supabase/functions/auto-release-payment/index.ts | so our team is reaching out to them. | so Helpr support is reaching out to them.
+ * F195: "confirm completion to release payment" is gone from both marked-done notices.
+ * @mutate supabase/functions/create-payment/index.ts | marked "${job.title}" done. Check the work and approve it.` | marked "${job.title}" as complete. Please confirm completion to release payment.`
+ * F196: the referral cash-out notice names no Stripe account. F202: "Payout sent" (no "!") says where the money goes;
+ * the ID check notice is "ID check done". F203: the test notice says the Louisiana time, 12-hour, never UTC.
+ * @mutate supabase/functions/cash-out-credits/index.ts | in referral credit is on its way to your bank.` | in referral credits has been sent to your connected Stripe account.`
+ * @mutate supabase/functions/process-scheduled-payouts/index.ts |           title: "Payout sent", |           title: "Payout sent!",
+ * @mutate supabase/functions/stripe-idv-webhook/index.ts |           title: "ID check done", |           title: "Verification Successful",
+ * @mutate supabase/functions/_shared/notification-templates.ts | notifications are working. Sent ${selfTestSentAt(now)}.` | notifications are working. ${now.toISOString().slice(11, 19)} UTC`
+ *
+ * F196 (SQL) + F199: "Stripe ID" -> "ID check" in the accept-on-setup and offer-lapsed notices, "off-platform contact"
+ * -> what it looked like in "Message hidden", and the seller-fault setup notice's title/fee words
+ * (20261109211412; behaviour proof src/test/pglite/noticesPlainBackOfficeWords.pglite.mjs: wording only, --before red).
+ * @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql | 'Your payout setup and ID check are done, so you''ve accepted "' | 'Your payout setup and Stripe ID are done, so you''ve accepted "'
+ * @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql | PERFORM public.declutter_notify(j.customer_id, 'info', 'Setup job cancelled', | PERFORM public.declutter_notify(j.customer_id, 'info', 'Setup job cancelled, no fee',
+ *
+ * F177 (moved from Builder 4, lead 11-09): the dispute and warning notices say "our team", never "an admin"
+ * (20261109215021; proof src/test/pglite/noticesOurTeamNoStrike.pglite.mjs).
+ * @mutate supabase/migrations/20261109215021_notices_our_team_and_no_strike.sql | add your side so our team hears it.' | add your side so an admin hears it.'
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { readFileSync } from "node:fs";
+import { buildSelfTestNotification } from "../../supabase/functions/_shared/notification-templates";
 
 const DEFS = effectiveDefs(resolve(__dirname, "../../supabase/migrations"));
 const body = (fn: string) => blankSqlComments(DEFS.get(fn)?.stmt ?? "");
@@ -58,3 +82,88 @@ describe("F194: 'Helpr' is capitalised in the edge functions' member notices", (
   });
 });
 
+
+const edge = (f: string) => blankComments(readFileSync(resolve(__dirname, "../../supabase/functions", f), "utf8"));
+/** Every message/title literal a notice insert in this file writes (one per key, whichever quote it uses). */
+const literals = (code: string) => [...code.matchAll(/(?:message|title):\s*(`[^`]*`|'[^']*'|"[^"]*")/g)].map((m) => m[1]);
+
+describe("F193/F195/F196/F202/F203: the edge functions' member notices (Part 3)", () => {
+  const FILES = ["create-payment/index.ts", "payment-confirm-reminder/index.ts", "auto-resolve-disputes/index.ts", "auto-release-payment/index.ts", "_shared/notification-templates.ts"];
+  it("F193: no member notice says 'Helpr support' except the one title the email list matches by text", () => {
+    const hits: string[] = [];
+    let n = 0;
+    for (const f of FILES) {
+      for (const lit of literals(edge(f))) {
+        n++;
+        if (/Helpr support/.test(lit) && lit !== '"Helpr support approved your job"') hits.push(`${f}: ${lit.slice(0, 90)}`);
+      }
+    }
+    expect(n).toBeGreaterThan(50);
+    expect(hits).toEqual([]);
+    expect(edge("auto-resolve-disputes/index.ts")).toContain('title: "Our team will decide this dispute"');
+  });
+
+  it("F195: neither marked-done notice says 'confirm completion to release payment'", () => {
+    const code = edge("create-payment/index.ts");
+    expect(code).toContain('marked "${job.title}" done. Check the work and approve it.`');
+    expect(code).toContain('marked it done. Check it and confirm it\'s finished.`');
+    expect(code).not.toMatch(/confirm completion to release payment/);
+  });
+
+  it("F196: the referral cash-out notice names no Stripe account", () => {
+    const code = edge("cash-out-credits/index.ts");
+    expect(code).toContain("in referral credit is on its way to your bank.`");
+    expect(literals(code).filter((l) => /Stripe/.test(l))).toEqual([]);
+  });
+
+  it("F202: 'Payout sent' says where the money goes; the ID check notice is 'ID check done'", () => {
+    const pay = edge("process-scheduled-payouts/index.ts");
+    expect(pay).toContain('title: "Payout sent",');
+    expect(pay).toContain("is on its way to your bank${feeNote}.`");
+    expect(pay).not.toContain('"Payout sent!"');
+    const idv = edge("stripe-idv-webhook/index.ts");
+    expect(idv).toContain('title: "ID check done",');
+    expect(idv).not.toContain("Verification Successful");
+  });
+});
+
+describe("F203: the test notice says the Louisiana time, 12-hour, never UTC", () => {
+  it("a send at 21:42 UTC on Nov 9 reads 'Sent Mon, Nov 9 at 3:42 PM.'", () => {
+    const n = buildSelfTestNotification(new Date("2026-11-09T21:42:00Z"));
+    expect(n.message).toBe("If you got this, notifications are working. Sent Mon, Nov 9 at 3:42 PM.");
+    expect(n.message).not.toMatch(/UTC/);
+  });
+});
+
+describe("F196/F199: the SQL notices name no back-office word (Part 3)", () => {
+  const FNS = ["complete_pending_accepts_on_setup", "expire_pending_direct_offers", "expire_unanswered_offers", "apply_message_scan_consequence", "declutter_apply_seller_fault"];
+  /** The string literals of a function's newest definition. */
+  const strings = (fn: string) => [...body(fn).matchAll(/'(?:[^']|'')*'/g)].map((m) => m[0]);
+  it("no member notice string says 'Stripe ID' or 'off-platform contact'", () => {
+    const all = FNS.flatMap((fn) => strings(fn).map((t) => `${fn}: ${t}`));
+    expect(all.length).toBeGreaterThan(100);
+    expect(all.filter((t) => /Stripe ID|off-platform contact or payment/.test(t))).toEqual([]);
+    expect(body("complete_pending_accepts_on_setup")).toContain("payout setup and ID check are done");
+    expect(body("apply_message_scan_consequence")).toContain("a phone number, email or outside payment");
+  });
+  it("F199: the seller-fault setup notice says what it keeps, under a title that does not say 'no fee'", () => {
+    const b = body("declutter_apply_seller_fault");
+    expect(b).toContain("'Setup job cancelled',");
+    expect(b).toContain("except the one-time account setup fee.");
+    expect(b).not.toMatch(/Setup job cancelled, no fee|excepted\)/);
+  });
+});
+
+describe("F177: 'our team' in the dispute and warning notices (Part 3)", () => {
+  /** A newest definition's string literals, its -- comments blanked (blankSqlComments in body()). */
+  const strings = (fn: string) => [...body(fn).matchAll(/'(?:[^']|'')*'/g)].map((m) => m[0]);
+  it("F177: no member notice in the dispute and warning producers says 'an admin'", () => {
+    const fns = ["open_dispute_as", "rpc_escalate_dispute", "rpc_supersede_dispute_decision", "admin_reverse_violation"];
+    const all = fns.flatMap((fn) => strings(fn).map((t) => `${fn}: ${t}`));
+    expect(all.length).toBeGreaterThan(80);
+    // Staff alerts (admin_alert rows, error codes) may name admins; member words may not.
+    const member = all.filter((t) => /\b[Aa]n admin\b/.test(t) && !/needs an admin decision|another admin has to supersede|Re-opened by an admin/.test(t));
+    expect(member).toEqual([]);
+    expect(body("rpc_escalate_dispute")).toContain("'Our team will decide this dispute'");
+  });
+});

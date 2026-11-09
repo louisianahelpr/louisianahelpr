@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicResetPasswordUrl } from "@/lib/authRedirects";
 import { toast } from "sonner";
-import { Mail, Loader2, Check, X } from "lucide-react";
+import { Loader2, Check, X } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
 import { AuthCardHead } from "@/components/auth/AuthCardHead";
 import { TurnstileField, type TurnstileHandle } from "@/components/auth/TurnstileField";
@@ -17,6 +17,9 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { report as reportError } from "@/lib/errorLogger";
+import { useLanguage } from "@/lib/i18n/language";
+import { LanguageToggle } from "@/components/LanguageToggle";
+import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 const RESEND_COOLDOWN_S = 60;
 
@@ -29,6 +32,7 @@ const ForgotPassword = () => {
   // the user's SITUATION, not this page's title.
   // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
   usePageMeta(NOINDEX_PAGE_META["/forgot-password"]);
+  const { t } = useLanguage();
   // The address typed on /login comes along in router state (A3-C12).
   const carried = (useLocation().state as { email?: unknown } | null)?.email;
   const [email, setEmail] = useState(typeof carried === "string" ? carried : "");
@@ -49,8 +53,8 @@ const ForgotPassword = () => {
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
-    const t = window.setTimeout(() => setResendCooldown((s) => Math.max(0, s - 1)), 1000);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => setResendCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => window.clearTimeout(timer);
   }, [resendCooldown]);
 
   // Anti-enumeration: this screen MUST behave identically whether the
@@ -76,13 +80,13 @@ const ForgotPassword = () => {
       // about whether the address has an account.
       if (isCaptchaError(error.message)) {
         hapticError();
-        toast.error(recognizedAuthError(error.message) ?? "The security check didn't finish. Try again.");
+        toast.error(recognizedAuthError(error.message) ?? t("forgot.captchaFailed"));
         return false;
       }
       const msg = (error.message ?? "").toLowerCase();
       if (msg.includes("rate") || msg.includes("limit") || msg.includes("too many")) {
         hapticError();
-        toast.error("Too many requests — try again in a minute.");
+        toast.error(t("forgot.tooMany"));
         return false;
       }
       // Fall through: success-shaped UX even on error.
@@ -162,7 +166,7 @@ const ForgotPassword = () => {
         {sent && (
           <Link
             to="/"
-            aria-label="Close"
+            aria-label={t("forgot.close")}
             className="absolute top-3 right-3 z-10 w-11 h-11 rounded-full flex items-center justify-center transition-colors active:scale-[0.94] hover:bg-[hsl(var(--olivewood)/0.08)]"
             style={{ color: "hsl(var(--olivewood))" }}
           >
@@ -171,22 +175,22 @@ const ForgotPassword = () => {
         )}
         <AuthCardHead
           testId="forgot-card-head"
-          title={sent ? "Check your inbox" : "Reset your password"}
-          sub={sent ? undefined : "We'll email you a link to set a new one."}
+          title={sent ? t("forgot.sentTitle") : t("forgot.title")}
+          sub={sent ? undefined : t("forgot.sub")}
         />
         {sent ? (
           <div className="text-center space-y-4">
             {/* Neutral confirmation copy — leaks no signal about whether
                 the address is registered (see performSend comment). */}
             <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              If{" "}
+              {t("forgot.sentLead")}{" "}
               <span className="font-semibold" style={{ color: "hsl(var(--olivewood))" }}>
                 {email}
               </span>
-              {" "}is registered, we've sent a reset link. It expires in 1 hour.
+              {" "}{t("forgot.sentTail")}
             </p>
             <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Don't see it? Check your spam folder or wait a minute — emails can take a moment to arrive.
+              {t("forgot.spamHint")}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -194,7 +198,7 @@ const ForgotPassword = () => {
                 className="flex-1 rounded-full"
                 onClick={() => setSent(false)}
               >
-                Use another email
+                {t("forgot.useAnother")}
               </Button>
               <Button
                 variant="primary"
@@ -205,10 +209,10 @@ const ForgotPassword = () => {
                 style={{ opacity: resendCooldown > 0 ? 0.6 : 1 }}
               >
                 {loading
-                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</>
+                  ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t("forgot.sending")}</>
                   : resendCooldown > 0
-                    ? `Resend in ${resendCooldown}s`
-                    : "Resend email"}
+                    ? t("forgot.resendIn", { s: resendCooldown })
+                    : t("forgot.resend")}
               </Button>
             </div>
           </div>
@@ -224,12 +228,9 @@ const ForgotPassword = () => {
               className="space-y-4"
             >
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-ds-13 font-sans font-medium">Email</Label>
+                <Label htmlFor="email" className="text-ds-13 font-sans font-medium">{t("login.email")}</Label>
                 <div className="relative">
-                  <Mail
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-                    style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                  />
+                  {/* F029 (owner UI audit 11-09): no envelope icon; the field is styled exactly as Log in's email field. */}
                   <Input
                     ref={emailRef}
                     id="email"
@@ -247,7 +248,7 @@ const ForgotPassword = () => {
                     autoComplete="email"
                     aria-invalid={showEmailError}
                     aria-describedby={showEmailError ? "fp-email-error" : undefined}
-                    className={`pl-10 pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)] ${showEmailError ? "!border-destructive focus-visible:!border-destructive" : ""}`}
+                    className={`${emailValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)] ${showEmailError ? "!border-destructive focus-visible:!border-destructive" : ""}`}
                   />
                   {emailValid && (
                     <Check
@@ -263,14 +264,14 @@ const ForgotPassword = () => {
                     eyebrows and the Mail badge, so it did not read as an
                     error at all. */}
                 {showEmailError && (
-                  <p id="fp-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
+                  <p id="fp-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-13 text-[hsl(var(--destructive-ink))]">
                     <X className="w-3.5 h-3.5" aria-hidden />
                     {/* Two messages, not one. An untouched field and a
                         malformed address are different problems, and "Enter a
                         valid email address" on an EMPTY field reads as an
                         accusation about something the user never typed. Same
                         split SignupStep1 uses. */}
-                    {email.trim() ? "Enter a valid email address." : "Add your email address."}
+                    {email.trim() ? t("forgot.emailInvalid") : t("forgot.emailMissing")}
                   </p>
                 )}
               </div>
@@ -289,7 +290,7 @@ const ForgotPassword = () => {
                 // only on a real attempt).
                 disabled={loading}
               >
-                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</> : "Send reset link"}
+                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t("forgot.sending")}</> : t("forgot.send")}
               </Button>
             </form>
         )}
@@ -297,11 +298,15 @@ const ForgotPassword = () => {
             so the "sent" screen's resend carries a token too. */}
         <TurnstileField ref={turnstileRef} action="password_reset" />
         <p className="text-center text-ds-13 text-muted-foreground">
-          Remembered it?{" "}
+          {t("forgot.remembered")}{" "}
           <Link to="/login" className="font-bold" style={{ color: "hsl(var(--bark))" }}>
-            Back to log in
+            {t("forgot.backToLogin")}
           </Link>
         </p>
+      </div>
+      {/* F029 (owner UI audit 11-09): English / Español under the card, as on Log in and Sign up. */}
+      <div className="flex justify-center pt-3" data-forgot-language="">
+        <LanguageToggle />
       </div>
     </AuthShell>
   );

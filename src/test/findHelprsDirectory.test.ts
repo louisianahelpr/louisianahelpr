@@ -15,12 +15,15 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { directoryCardFacts } from "@/pages/helprs/findHelprsModel";
 
-// @mutate supabase/migrations/20261027201848_find_helprs_directory.sql |          public.display_name_for_viewer(p.full_name, p.user_id), |          p.full_name,
-// @mutate supabase/migrations/20261027201848_find_helprs_directory.sql | REVOKE ALL ON FUNCTION public.find_helprs(text, text, integer) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.find_helprs(text, text, integer) FROM PUBLIC;
-// @mutate supabase/migrations/20261027201848_find_helprs_directory.sql |      AND NOT COALESCE(public.member_under_18(p.user_id), false) |      AND true
-// @mutate supabase/migrations/20261027201848_find_helprs_directory.sql |      AND NOT EXISTS (\n       SELECT 1 FROM public.user_blocks b |      AND EXISTS (\n       SELECT 1 FROM public.user_blocks b
-// @mutate supabase/migrations/20261027201848_find_helprs_directory.sql |   v_limit integer := LEAST(GREATEST(COALESCE(p_limit, 30), 1), 50); |   v_limit integer := COALESCE(p_limit, 30);
-// @mutate supabase/migrations/20261027201848_find_helprs_directory.sql |          p.skills,\n |          p.skills, p.hourly_rate,\n
+// F071 (owner 11-09): the newest definition is supabase/migrations/20261109212142_find_helprs_guests_may_view.sql (guests may view); the registrations break IT the same ways.
+// @mutate supabase/migrations/20261109212142_find_helprs_guests_may_view.sql |          public.display_name_for_viewer(p.full_name, p.user_id), |          p.full_name,
+// @mutate supabase/migrations/20261109212142_find_helprs_guests_may_view.sql | GRANT EXECUTE ON FUNCTION public.find_helprs(text, text, integer) TO anon, authenticated; | GRANT EXECUTE ON FUNCTION public.find_helprs(text, text, integer) TO PUBLIC;
+// @mutate supabase/migrations/20261109212142_find_helprs_guests_may_view.sql |      AND NOT COALESCE(public.member_under_18(p.user_id), false) |      AND true
+// @mutate supabase/migrations/20261109212142_find_helprs_guests_may_view.sql |      AND NOT EXISTS (\n       SELECT 1 FROM public.user_blocks b |      AND EXISTS (\n       SELECT 1 FROM public.user_blocks b
+// @mutate supabase/migrations/20261109212142_find_helprs_guests_may_view.sql |   v_limit integer := LEAST(GREATEST(COALESCE(p_limit, 30), 1), 50); |   v_limit integer := COALESCE(p_limit, 30);
+// @mutate supabase/migrations/20261109212142_find_helprs_guests_may_view.sql |          p.skills,\n |          p.skills, p.hourly_rate,\n
+// @mutate supabase/migrations/20261109212142_find_helprs_guests_may_view.sql |   IF v_me IS NOT NULL AND public.is_caller_banned() THEN |   IF false THEN
+// @mutate supabase/migrations/20261109212142_find_helprs_guests_may_view.sql |      AND (v_me IS NOT NULL OR NOT public.is_test_member(p.user_id))\n | \n
 // @mutate src/pages/helprs/FindHelprs.tsx | navigate(`/post-job?offerTo=${h.user_id}`) | navigate(`/post-job`)
 // @mutate src/pages/helprs/findHelprsModel.ts |     place: h.town?.trim() \|\| parish, |     place: h.town?.trim() \|\| h.user_id,
 
@@ -47,16 +50,21 @@ describe("find_helprs (Q2437)", () => {
     expect(body).not.toMatch(/hourly_rate|\bphone\b|\bemail\b(?!_verified)|street|address/i);
   });
 
-  it("is for signed-in, unbanned members only", () => {
-    expect(body).toMatch(/IF v_me IS NULL THEN\s+RAISE EXCEPTION 'not_signed_in'/);
-    expect(body).toMatch(/IF public\.is_caller_banned\(\) THEN\s+RAISE EXCEPTION 'account_restricted'/);
-    expect(all).toMatch(/REVOKE ALL ON FUNCTION public\.find_helprs\(text, text, integer\) FROM PUBLIC, anon;/);
-    expect(all).toMatch(/GRANT EXECUTE ON FUNCTION public\.find_helprs\(text, text, integer\) TO authenticated;/);
+  // F071 (owner 11-09: guests may VIEW /helprs; only actions gated): a guest reads the same masked list; a banned member
+  // signed in is still refused; never PUBLIC. Behaviour: src/test/pglite/findHelprsDirectory.pglite.mjs (F071=skip red).
+  it("guests may view (F071); a banned member signed in is refused; never granted to PUBLIC", () => {
+    expect(body).not.toMatch(/RAISE EXCEPTION 'not_signed_in'/);
+    expect(body).toMatch(/IF v_me IS NOT NULL AND public\.is_caller_banned\(\) THEN\s+RAISE EXCEPTION 'account_restricted'/);
+    expect(all).toMatch(/REVOKE ALL ON FUNCTION public\.find_helprs\(text, text, integer\) FROM PUBLIC;/);
+    expect(all).toMatch(/GRANT EXECUTE ON FUNCTION public\.find_helprs\(text, text, integer\) TO anon, authenticated;/);
+    expect(all).not.toMatch(/TO PUBLIC/);
+    // A guest never sees a test account, whatever the seed switch says (review note, the public /u page's rule).
+    expect(body).toContain("AND (v_me IS NOT NULL OR NOT public.is_test_member(p.user_id))");
   });
 
   it("leaves out the caller, banned, unverified, deleted, under-18, blocked and hidden test accounts", () => {
     for (const clause of [
-      "p.user_id <> v_me",
+      "(v_me IS NULL OR p.user_id <> v_me)",
       "p.email_verified",
       "p.anonymized_at IS NULL",
       "p.ban_status NOT IN ('banned', 'temp_banned', 'permanently_banned')",
@@ -82,8 +90,8 @@ describe("Find a Helpr page (Q2437)", () => {
     expect(page).not.toMatch(/hourly|\/hr\b|per hour|rate:/i);
   });
 
-  it("is a signed-in route", () => {
-    expect(read("src/App.tsx")).toMatch(/<Route path="\/helprs" element=\{<RouteErrorBoundary>\{routeEl\(<ProtectedRoute><FindHelprs \/>/);
+  it("guests may view it (F071, owner 11-09); offering a job still goes through sign-up", () => {
+    expect(read("src/App.tsx")).toMatch(/<Route path="\/helprs" element=\{<RouteErrorBoundary>\{routeEl\(<ProtectedRoute allowGuest><FindHelprs \/>/);
   });
 
   it("the saved-Helpr picker links to it", () => {

@@ -40,7 +40,8 @@ export function avatarCaption(rejection: AvatarPhotoRejection | null, uploadedTh
       // scold; it offers the one thing that might work.
       return "We couldn't load your photo — tap to try another.";
     default:
-      return "Tap the photo to change it.";
+      // F099 (owner UI audit 11-09): the screen is used on a computer too, so it says click or tap.
+      return "Click or tap the photo to change it.";
   }
 }
 
@@ -114,6 +115,7 @@ export function PhotoNameSection({
             className="w-20 h-20 rounded-full border-2 border-primary/20"
             fallbackClassName="text-ds-24 ring-0"
             onPhotoRejected={setPhotoRejection}
+            quietWhileLoading
           />
           <label
             className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
@@ -193,7 +195,7 @@ export function PhotoNameSection({
           >
             <Globe className="w-3 h-3 shrink-0 mt-[2px]" aria-hidden />
             <span className="min-w-0">
-              Anyone can see this photo — never use a photo of an ID, licence or document.
+              Anyone can see this photo — never use a photo of an ID, license or document.
             </span>
           </p>
         </div>

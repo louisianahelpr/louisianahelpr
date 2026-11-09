@@ -86,7 +86,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 import PayoutHistory from "./PayoutHistory";
-import Receipts, { orderReceipts } from "./Receipts";
+import Receipts, { orderReceipts, receiptTitle } from "./Receipts";
 
 let where = "";
 function Where() {
@@ -188,6 +188,27 @@ describe("receipts, fees owed, tax forms (board 177)", () => {
     expect(text()).toContain("Available in January if you qualify");
   });
 
+  // F090 (owner UI audit 11-09): a job receipt could not be opened. It opens to the day it was paid, the total and the
+  // job. F091: a title typed in capitals or lower case reads in sentence case on receipts only.
+  // @mutate src/pages/profile/Receipts.tsx |         lines: r.job ? refundLines ?? [] : undefined, |         lines: refundLines,
+  // @mutate src/pages/profile/Receipts.tsx |   const shouting = letters.length > 1 && letters === letters.toUpperCase(); |   const shouting = false;
+  it("F090/F091: a job receipt opens to the day paid, the total and the job; its title reads in sentence case", async () => {
+    tables.jobs = [{
+      id: "j7", title: "GIVE AWAY!!", budget: 40, status: "completed", payment_status: "released",
+      stripe_payment_intent_id: "pi_7", poster_completed_at: "2026-10-01T12:00:00Z", helper_completed_at: null, created_at: "2026-09-30T12:00:00Z",
+    }];
+    renderAt(<Receipts />, "?tab=receipts");
+    const toggle = await screen.findByRole("button", { name: /Give away!!/ });
+    fireEvent.click(toggle);
+    const detail = document.querySelector("[data-receipt-detail]")!;
+    expect(detail.querySelector("[data-receipt-paid-on]")).not.toBeNull();
+    expect(detail.textContent).toContain("Total$40.00");
+    expect(screen.getByRole("link", { name: "See the job" })).toHaveAttribute("href", "/jobs/j7");
+    expect(receiptTitle("clean my house")).toBe("Clean my house");
+    expect(receiptTitle("TV mount in den")).toBe("TV mount in den");
+    expect(receiptTitle("GIVE AWAY!!")).toBe("Give away!!");
+  });
+
   // AUD31-55 (lead decision 10-31): a job refunded in full stays on Receipts, "Refunded in full", $0 net; a partly
   // refunded one says what came back. Jobs with nothing charged stay out.
   // @mutate src/pages/profile/Receipts.tsx |       if (r.cents <= 0 && !r.refundedInFull) continue; |       if (r.cents <= 0) continue;
@@ -224,7 +245,7 @@ describe("receipts, fees owed, tax forms (board 177)", () => {
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     const detail = document.querySelector("[data-receipt-detail]")!;
-    expect(detail.textContent).toBe("Items$22.00Delivery$8.00Total$35.40Includes a small Louisiana Helpr service fee.See the order");
+    expect(detail.textContent).toBe("Paid onOct 5, 2026Items$22.00Delivery$8.00Total$35.40Includes a small Louisiana Helpr service fee.See the order");
     expect(screen.getByRole("link", { name: "See the order" })).toHaveAttribute("href", "/declutter?view=buying");
     expect(text()).not.toContain("Someone else's sale");
   });
@@ -245,7 +266,7 @@ describe("receipts, fees owed, tax forms (board 177)", () => {
     expect(toggle.textContent).not.toContain("$32.20");
     fireEvent.click(toggle);
     expect(document.querySelector("[data-receipt-detail]")!.textContent)
-      .toBe("Items$30.00Total$34.20Includes a small Louisiana Helpr service fee.Includes the one-time $2.00 account setup fee.See the order");
+      .toBe("Paid onOct 5, 2026Items$30.00Total$34.20Includes a small Louisiana Helpr service fee.Includes the one-time $2.00 account setup fee.See the order");
     tables.my_paid = [];
   });
 

@@ -24,5 +24,6 @@ export const OG_PROFILE_HEIGHT: number;
 export const OG_PROFILE_PATH: string;
 export function ogProfileLines(card: OgProfileCard | null | undefined): OgProfileLines;
 export function ogProfilePhotoUrl(avatarUrl: string | null | undefined, supabaseUrl: string): string | null;
+export const OG_PROFILE_STYLE: string;
 export function ogProfileVersion(card: OgProfileCard | null | undefined): string;
 export function ogProfileImageUrl(siteOrigin: string, handle: string, card: OgProfileCard | null | undefined): string;

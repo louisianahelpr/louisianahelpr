@@ -21,7 +21,10 @@
  *
  * Renderer: satori (element tree -> SVG) + @resvg/resvg-wasm (SVG -> PNG), both pure JS/wasm, no native code.
  * @vercel/og was dropped: 0.11.x pins satori 0.25 (GHSA-wx4j-mvgx-mqwp) and pulls in sharp; 1.0.3's Node build
- * throws at import in plain ESM ("Dynamic require of fs"). The font is Geist Regular (SIL OFL 1.1, api/_og/).
+ * throws at import in plain ESM ("Dynamic require of fs"). The fonts are the site's own (owner's UI audit 11-09, F077: the
+ * card was drawn in a generic system-looking face): Montserrat 400/600 for the text and Bodoni Moda 700 for the name,
+ * each as its Google Fonts latin + latin-ext WOFF subsets (satori reads WOFF, not WOFF2), then the rating's star from
+ * Noto Sans Symbols 2 (a one-glyph subset), with Geist Regular kept last. All SIL OFL 1.1, licences in api/_og/.
  */
 import satori from "satori";
 import { Resvg, initWasm } from "@resvg/resvg-wasm";
@@ -105,7 +108,7 @@ export function ogProfileTree(card: OgProfileCard, photo: string | null, logo: s
         { width: 360, height: 360, flexShrink: 0, borderRadius: 180, background: SAGE, color: PARCHMENT, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 170 },
         l.name.slice(0, 1).toUpperCase(),
       );
-  const lines: Node[] = [el("div", { fontSize: 72, color: OLIVEWOOD, lineHeight: 1.05, display: "flex" }, l.name)];
+  const lines: Node[] = [el("div", { fontFamily: "Bodoni Moda", fontWeight: 700, fontSize: 72, color: OLIVEWOOD, lineHeight: 1.05, display: "flex" }, l.name)];
   if (l.town) lines.push(el("div", { fontSize: 38, color: MUTED, marginTop: 14, display: "flex" }, l.town));
   if (l.rating) lines.push(el("div", { fontSize: 38, color: OLIVEWOOD, marginTop: 30, display: "flex" }, l.rating));
   if (l.facts) lines.push(el("div", { fontSize: 34, color: MUTED, marginTop: l.rating ? 10 : 30, display: "flex" }, l.facts));
@@ -115,22 +118,35 @@ export function ogProfileTree(card: OgProfileCard, photo: string | null, logo: s
     { display: "flex", flexShrink: 0, height: 56, alignItems: "center", fontSize: 32, color: OLIVEWOOD },
     [
       ...(logo ? [el("img", { width: 58, height: 50, marginRight: 16 }, undefined, { src: logo, width: 58, height: 50 })] : []),
-      el("div", { display: "flex" }, "Louisiana Helpr"),
+      el("div", { display: "flex", fontWeight: 600 }, "Louisiana Helpr"),
       el("div", { display: "flex", color: MUTED, marginLeft: 18, fontSize: 26 }, "Hire help or find work. One account, real neighbors."),
     ],
   );
   return el(
     "div",
-    { width: OG_PROFILE_WIDTH, height: OG_PROFILE_HEIGHT, boxSizing: "border-box", display: "flex", flexDirection: "column", background: PARCHMENT, padding: "60px 80px 44px" },
+    { width: OG_PROFILE_WIDTH, height: OG_PROFILE_HEIGHT, boxSizing: "border-box", display: "flex", flexDirection: "column", background: PARCHMENT, padding: "60px 80px 44px", fontFamily: "Montserrat", fontWeight: 400 },
     [el("div", { display: "flex", flexGrow: 1, flexShrink: 1, minHeight: 0, alignItems: "center" }, [portrait, el("div", { display: "flex", flexDirection: "column", marginLeft: 64, flex: 1, minWidth: 0 }, lines)]), brand],
   );
 }
 
-/** The font and the resvg wasm, read once per instance (vercel.json includeFiles ships both with the function). */
-let font: Buffer | null = null;
+/** The card's fonts, in satori's fallback order: a glyph comes from the first one that has it. */
+export const OG_PROFILE_FONTS = [
+  { name: "Montserrat", file: "Montserrat-400-latin.woff", weight: 400 },
+  { name: "Montserrat", file: "Montserrat-400-latin-ext.woff", weight: 400 },
+  { name: "Montserrat", file: "Montserrat-600-latin.woff", weight: 600 },
+  { name: "Montserrat", file: "Montserrat-600-latin-ext.woff", weight: 600 },
+  { name: "Bodoni Moda", file: "BodoniModa-700-latin.woff", weight: 700 },
+  { name: "Bodoni Moda", file: "BodoniModa-700-latin-ext.woff", weight: 700 },
+  // Only the rating's star (U+2605), a Google Fonts text= subset: no face above has it, and it drew as a box before.
+  { name: "Noto Sans Symbols 2", file: "NotoSansSymbols2-star.woff", weight: 400 },
+  { name: "Geist", file: "Geist-Regular.ttf", weight: 400 },
+] as const;
+
+/** The fonts and the resvg wasm, read once per instance (vercel.json includeFiles ships api/_og/** with the function). */
+let fonts: { name: string; data: Buffer; weight: 400 | 600 | 700; style: "normal" }[] | null = null;
 let wasmReady: Promise<void> | null = null;
 function ensureRenderer(): Promise<void> {
-  font ??= readFileSync(new URL("./_og/Geist-Regular.ttf", import.meta.url));
+  fonts ??= OG_PROFILE_FONTS.map((f) => ({ name: f.name, data: readFileSync(new URL(`./_og/${f.file}`, import.meta.url)), weight: f.weight, style: "normal" as const }));
   wasmReady ??= initWasm(readFileSync(createRequire(import.meta.url).resolve("@resvg/resvg-wasm/index_bg.wasm"))).catch((e: unknown) => {
     // A failed init is retried by the next request instead of poisoning the instance.
     wasmReady = null;
@@ -144,7 +160,7 @@ async function renderPng(tree: Node): Promise<Uint8Array> {
   const svg = await satori(tree as unknown as Parameters<typeof satori>[0], {
     width: OG_PROFILE_WIDTH,
     height: OG_PROFILE_HEIGHT,
-    fonts: [{ name: "Geist", data: font as Buffer, weight: 400, style: "normal" }],
+    fonts: fonts ?? [],
   });
   return new Resvg(svg, { fitTo: { mode: "width", value: OG_PROFILE_WIDTH } }).render().asPng();
 }

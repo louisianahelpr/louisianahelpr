@@ -5,7 +5,7 @@ import { DeclutterSellSkeleton } from "@/components/declutter/DeclutterSkeletons
 import SellFlow from "@/components/declutter/DeclutterSellView";
 import SellChooser from "@/components/declutter/DeclutterSellChooser";
 import { SellerSetupGate } from "@/components/declutter/SellerSetup";
-import { startsFree, wantsBunch, wantsSellChooser } from "@/lib/declutter/sellChooser";
+import { wantsBunch, wantsSellChooser } from "@/lib/declutter/sellChooser";
 
 // "Sell a bunch" (owner 2026-10-29) loads only when it is asked for.
 const BunchFlow = lazy(() => import("@/components/declutter/DeclutterBunchView"));
@@ -32,7 +32,7 @@ export default function DeclutterSellPage() {
       ) : params.get("item") ? (
         <SellFlow />
       ) : (
-        <SellerSetupGate free={startsFree(params)}>
+        <SellerSetupGate>
           <SellFlow />
         </SellerSetupGate>
       )}

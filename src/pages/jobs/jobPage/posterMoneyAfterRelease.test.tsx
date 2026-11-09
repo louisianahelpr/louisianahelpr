@@ -11,6 +11,8 @@
  *
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | const RELEASED = new Set(["payout_pending", "released"]); | const RELEASED = new Set(["released"]);
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       {released && ( |       {false && (
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | released ? (waitsOnBank ? paidWaitsOnBankLine(waitsOnBank.firstName) : releasedLine(job)) | released ? releasedLine(job)
+ * @mutate src/hooks/useHelprTakesTips.ts |   return a && !a.payoutReady ? { firstName: a.firstName } : null; |   return null;
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -20,8 +22,19 @@ import type { JobPageRow } from "./useJobPage";
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0 }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "p" }, profile: null }) }));
 vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }));
+// F108: the Helpr's payout readiness comes from get_safe_profiles (useHelprTakesTips' read); stubbed per test.
+const safe = vi.hoisted(() => ({ ready: true as boolean, error: false }));
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    rpc: vi.fn(async () => (safe.error
+      ? { data: null, error: { message: "boom" } }
+      : { data: [{ user_id: "h", full_name: "Lexi Lombas", is_payout_ready: safe.ready, is_id_verified: true }], error: null })),
+  },
+}));
+vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
 import { PosterPrice, PosterMoneyNotes } from "./JobPageParts";
+import { __resetHelprTakesTipsCache } from "@/hooks/useHelprTakesTips";
 
 const row = (over: Partial<JobPageRow>): JobPageRow => ({
   id: "j", title: "AA5-AUDIT-1029 test clean", description: null, category: "cleaning", budget: 40, date_needed: null, start_time: null,
@@ -47,7 +60,18 @@ describe("the poster's money after the release (F32)", () => {
     expect(screen.getByRole("link", { name: "See your receipt" }).getAttribute("href")).toBe("/profile?tab=receipts");
   });
 
+  // F108 (owner UI audit 2026-11-09): job 28f8cff5 said "on its way to their bank" while its Helpr had no bank yet.
+  it("paid out but the Helpr has no bank yet: says they get paid once they add it, never 'on its way to their bank' (F108)", async () => {
+    __resetHelprTakesTipsCache();
+    safe.ready = false;
+    show(row({ payment_status: "released" }));
+    expect(await screen.findByText("Approved. Lexi gets paid as soon as they add their bank.")).toBeTruthy();
+    expect(notes()).not.toMatch(/on its way to their bank/);
+    safe.ready = true;
+  });
+
   it("paid out: says so, with the receipt", () => {
+    __resetHelprTakesTipsCache();
     show(row({ payment_status: "released" }));
     // Q2608 (Jobs audit 1102b row 22): one wording with the Job done sheet (JobDoneSummary).
     // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   released: "Paid to your Helpr. It's on its way to their bank.", |   released: "Paid out to your Helpr.",

@@ -115,3 +115,25 @@ describe("/support: Claude's answer before the ticket is sent", () => {
     await waitFor(() => expect(names()).toEqual(["contact-support"]));
   });
 });
+
+// F044 (owner UI audit 11-09): the form stretched the full 1440px on a tinted beige card. It is capped at 640px,
+// centred, on the white card style (the card surface and border tokens).
+// @mutate src/pages/info/Support.tsx | <div className="w-full max-w-[640px] mx-auto" data-support-measure=""> | <div className="w-full" data-support-measure="">
+// @mutate src/pages/info/Support.tsx |   background: "hsl(var(--card))", |   background: "hsl(var(--burnt-sienna) / 0.04)",
+describe("F044: the support form is a centred 640px white card", () => {
+  it("caps and centres the form column, on the card surface", () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={["/support"]}>
+        <Support />
+      </MemoryRouter>,
+    );
+    const col = container.querySelector("[data-support-measure]") as HTMLElement;
+    expect(col).not.toBeNull();
+    expect(col.className.split(/\s+/)).toEqual(expect.arrayContaining(["max-w-[640px]", "mx-auto"]));
+    const form = col.querySelector("form") as HTMLElement;
+    expect(form).not.toBeNull();
+    expect(form.getAttribute("style") ?? "").toContain("hsl(var(--card))");
+    expect(form.getAttribute("style") ?? "").not.toContain("burnt-sienna");
+  });
+});
+

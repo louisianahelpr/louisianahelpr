@@ -12,6 +12,11 @@
  * @mutate supabase/functions/_shared/email-templates/styles.ts |   hairline: '#E6E2DA', |   hairline: '#CBCFD8',
  * @mutate supabase/functions/_shared/email-templates/styles.ts | export const h1 = {\n  fontFamily: headingFontStack, | export const h1 = {
  * @mutate supabase/functions/_shared/email-templates/components.tsx |     <link rel="stylesheet" href={EMAIL_FONTS_URL} />\n |
+ *
+ * F155: in dark-mode clients the dark iron H all but disappeared on the dark card. The mark sits on its own light
+ * rounded tile in every email (one HMark, inside BaseLayout), kept light by the dark CSS block.
+ * @mutate supabase/functions/_shared/email-templates/styles.ts |     .e-logo { background-color:#F7F5F1 !important; }\n |
+ * @mutate supabase/functions/_shared/email-templates/styles.ts |   backgroundColor: '#FFFFFF',\n  padding: '6px', |   padding: '6px',
  */
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -50,6 +55,18 @@ describe("the emails wear the brand (F158)", () => {
     const comp = read("components.tsx");
     const head = comp.slice(comp.indexOf("const EmailHead"), comp.indexOf("</Head>", comp.indexOf("const EmailHead")));
     expect(head).toContain('<link rel="stylesheet" href={EMAIL_FONTS_URL} />');
+  });
+
+  it("F155: the H mark sits on a light rounded tile, kept light in dark mode, in every email", () => {
+    const logo = styles.slice(styles.indexOf("export const logo = {"), styles.indexOf("}", styles.indexOf("export const logo = {")));
+    expect(logo).toContain("backgroundColor: '#FFFFFF',");
+    expect(logo).toMatch(/borderRadius: '\d+px',/);
+    const dark = styles.slice(styles.indexOf("@media (prefers-color-scheme: dark)"));
+    expect(dark).toMatch(/\.e-logo \{ background-color:#F7F5F1 !important; \}/);
+    const comp = read("components.tsx");
+    expect(comp).toMatch(/const HMark = \(\) => \(\s*<img src=\{LOGO_URL\}[^>]*className="e-logo" style=\{logo\} \/>/);
+    // The one mark: BaseLayout draws it, so every template that uses BaseLayout has it.
+    expect(comp).toMatch(/<Container className="e-card" style=\{container\}>\s*<HMark \/>/);
   });
 
   it("no template carries the old cool hexes", () => {

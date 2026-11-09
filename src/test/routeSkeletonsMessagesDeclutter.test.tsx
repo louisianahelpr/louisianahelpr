@@ -125,7 +125,7 @@ describe("/messages and /declutter route skeletons (Q2705 B)", () => {
   });
 
   it("Declutter: the route skeleton IS DeclutterHomeSkeleton (the gate's next frame)", () => {
-    expect(code("src/components/DeclutterRouteSkeleton.tsx")).toMatch(/<DeclutterHomeSkeleton \/>/);
+    expect(code("src/components/DeclutterRouteSkeleton.tsx")).toMatch(/<DeclutterHomeSkeleton guestJoin={guestJoin} \/>/);
     expect(code("src/pages/declutter/DeclutterPage.tsx")).toMatch(/<DeclutterGate skeleton=\{<DeclutterHomeSkeleton \/>\}/);
     const { getByTestId, getByLabelText } = draw(<DeclutterRouteSkeleton />);
     expect(getByTestId("declutter-route-skeleton").getAttribute("aria-busy")).toBe("true");

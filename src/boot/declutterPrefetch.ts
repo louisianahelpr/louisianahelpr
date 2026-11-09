@@ -54,6 +54,26 @@ export const FIRST_SCREEN_SWITCH_KEYS = [
 ];
 export const DECLUTTER_PREFETCH_KEY = "__lhDeclutterPrefetch";
 
+/** Same string as index.html's member /declutter script uses (src/boot/memberDeclutterEarly.test.ts pins it). */
+export const MEMBER_DECLUTTER_EARLY_KEY = "__lhMemberDeclutterEarly";
+/** An early answer older than this is not used (the page's own freshness rule for the hand-over is longer). */
+const EARLY_MAX_AGE_MS = 30_000;
+
+/**
+ * Q2705 (lead 11-09): index.html's member /declutter script already fired declutter_first_screen from the HTML, before
+ * this file arrived. Its answer (parsed JSON or null, never a rejection) is taken ONCE instead of asking again, only
+ * when it was asked as this member, with exactly these switch keys, and recently. Otherwise null: the entry asks.
+ */
+export function takeEarlyMemberRead(userId: string, now: number = Date.now()): Promise<unknown> | null {
+  const w = window as unknown as Record<string, unknown>;
+  const e = w[MEMBER_DECLUTTER_EARLY_KEY] as { at?: unknown; userId?: unknown; keys?: unknown; answer?: unknown } | undefined;
+  delete w[MEMBER_DECLUTTER_EARLY_KEY];
+  if (!e || typeof e.at !== "number" || now - e.at > EARLY_MAX_AGE_MS) return null;
+  if (e.userId !== userId || e.keys !== FIRST_SCREEN_SWITCH_KEYS.join(",")) return null;
+  const a = e.answer as Promise<unknown> | undefined;
+  return a && typeof a.then === "function" ? a : null;
+}
+
 /** Called by the entry. No-op unless this is a cold load of /declutter; a visitor with no live session gets the guest reads. */
 export function startDeclutterPrefetch(pathname: string): void {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
@@ -68,21 +88,29 @@ export function startDeclutterPrefetch(pathname: string): void {
     if (!anyStoredSession()) startGuestDeclutterPrefetch(base, key, location.search);
     return;
   }
-  const answer = fetch(`${base.replace(/\/$/, "")}/rest/v1/rpc/declutter_first_screen`, {
-    method: "POST",
-    headers: { apikey: key, Authorization: `Bearer ${session.token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ p_switch_keys: FIRST_SCREEN_SWITCH_KEYS }),
-  })
-    .then((r) => (r.ok ? (r.json() as Promise<unknown>) : null))
-    // A failed prefetch is not an error: the page runs today's reads.
-    .catch(() => null);
+  const answer =
+    takeEarlyMemberRead(session.userId) ??
+    fetch(`${base.replace(/\/$/, "")}/rest/v1/rpc/declutter_first_screen`, {
+      method: "POST",
+      headers: { apikey: key, Authorization: `Bearer ${session.token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ p_switch_keys: FIRST_SCREEN_SWITCH_KEYS }),
+    })
+      .then((r) => (r.ok ? (r.json() as Promise<unknown>) : null))
+      // A failed prefetch is not an error: the page runs today's reads.
+      .catch(() => null);
   (window as unknown as Record<string, unknown>)[DECLUTTER_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, answer };
   // B96 (Q2705/Q2708): the first cards' photos start from the answer, not after the app draws and renders the grid.
   // Only when the link opens on Browse (no ?tab= or tab=browse, no ?view= other than browse: useSectionTab and
   // DeclutterHomeView's rule); another tab never draws these cards, so their photos would only take its bandwidth.
   const q = new URLSearchParams(location.search);
   const opensOnBrowse = (q.get("tab") ?? "browse") === "browse" && (q.get("view") ?? "browse") === "browse";
-  if (opensOnBrowse) void answer.then((a) => preloadFirstCardPhotos(firstCardPhotoPreloads(base, a, session.userId)));
+  // Not when index.html already drew them into the skeleton (its handler on the same answer ran first).
+  if (opensOnBrowse) {
+    void answer.then((a) => {
+      if (document.getElementById("lh-declutter-shell")?.hasAttribute("data-lh-photos")) return;
+      preloadFirstCardPhotos(firstCardPhotoPreloads(base, a, session.userId));
+    });
+  }
   // B81: the tab row's three reads (every tab waits on them), beside this one.
   startDeclutterMinePrefetch(base, key, session);
 }

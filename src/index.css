@@ -2194,6 +2194,11 @@ body[data-scroll-locked] .preview-dock {
   z-index: 2147483000;
   overflow: hidden;
 }
+/* Q2705 (11-09): a guest's /declutter skeleton shows the sign-up line where Browse draws it (index.html's guest script
+   marks <html>; scripts/inline-shell-css.mjs inlines the same rule). Guard: src/boot/memberDeclutterEarly.test.ts. */
+[data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join] {
+  display: block !important;
+}
 
 /* ── IN-PAGE SECTION RHYTHM (Q191, owner 2026-09-23) ────────────────────────
    "Update the spacing on every other phone width. Like all the profile tabs

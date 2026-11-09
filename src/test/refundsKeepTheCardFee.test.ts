@@ -654,7 +654,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Trades fixes (20261108195151, Builder 3, lh-money-escrow verdict owed): an all-trade checkout skips the fee half
       // of the free-claim gate (keeps the ID check); priced lines beside a trade line stay in the cart; trade notice words.
       // Still $0, paid_with free, and still records no refund. Was 20261103224955 9c02ae4e05056074.
-      declutter_checkout_free: "20261108195151_declutter_trades_fixes.sql f158cbe68eca2a71",
+      // Lander l135: the two trade pickup notices pass declutter_pickups instead of payment (declutterNoticeKinds);
+      // notice kind only, no refund logic changed. Was f158cbe68eca2a71.
+      declutter_checkout_free: "20261108195151_declutter_trades_fixes.sql 84964ac296fd37fc",
       // Q1929 (20261021185418), reviewed: a delivery-pay raise is its OWN charge and never a declutter_refunds row.
       // _start writes an unpaid raise row (its card fee is the buyer's to pay, grossed up); _status reads the
       // buyer's own raises; the close trigger moves applied raises to refunding: everything paid, except a sale

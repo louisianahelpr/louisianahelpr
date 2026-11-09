@@ -168,6 +168,10 @@ describe("F073: Declutter's desktop Browse shows a visible search field (Jobs ke
     expect(onChange).toHaveBeenCalledWith("");
     expect(r.getByRole("searchbox", { name: "Search items" })).toBeTruthy();
     r.unmount();
+    // Empty, there is nothing to close: no X (seen in the 1440 after-shot).
+    const empty = render(<InlineListSearch value="" onChange={() => {}} label="Search items" pinned />);
+    expect(empty.queryByRole("button", { name: "Close search" })).toBeNull();
+    empty.unmount();
   });
   it("Browse pins it; Jobs does not", () => {
     const browse = blankComments(readFileSync(join(SRC, "components/declutter/DeclutterBrowseView.tsx"), "utf8"));

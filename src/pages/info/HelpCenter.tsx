@@ -4,6 +4,7 @@ import { ChevronDown, Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { FieldClearButton } from "@/components/ui/FieldClearButton";
+import { Input } from "@/components/ui/input";
 import FaqRow from "@/components/marketing/FaqRow";
 // The card that closes every legal policy tab. Shared, not copied, so the
 // Help Center and the policy pages cannot drift into two support cards.
@@ -262,7 +263,7 @@ const HelpCenter = () => {
         <div className="mx-auto page-measure max-w-[760px] space-y-section" data-help-measure="">
           <div className="relative" data-help-search="">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <input
+            <Input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}

@@ -182,6 +182,8 @@ export const EMAIL_CSS = `
     .e-cta { background-color:#94A06D !important; color:#14150F !important; }
     .e-rule, .e-footer { border-color:#3B3D2F !important; }
     .e-logo { background-color:#F7F5F1 !important; }
+    .e-note { background-color:#2A2B20 !important; border-color:#3B3D2F !important; }
+    .e-note-text { color:#F2F2E9 !important; }
   }
 `
 

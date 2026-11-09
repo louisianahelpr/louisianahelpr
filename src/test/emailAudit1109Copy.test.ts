@@ -93,4 +93,54 @@ describe("email copy, owner's message review 11-09", () => {
     const comeBack = blankComments(readFileSync(join(ROOT, "supabase/functions/_shared/comeBackEmail.ts"), "utf8"));
     expect(comeBack).toContain('["Got stuff to sell?", "List it on Declutter in a minute."],');
   });
+
+  // F159 F160 F161 F162 F164 F165 F166 F188: the account emails read like the newer ones (sentence case, "Tap",
+  // plain words, "Louisiana Helpr" in subjects), name Declutter where the ID check applies, and drop staff jargon.
+  // @mutate supabase/functions/_shared/email-templates/signup.tsx | first time you post a job, take a job, list an item or buy one. | first time you post or accept a job.
+  // @mutate supabase/functions/_shared/email-templates/recovery.tsx | Tap the button below to choose a new password. | Click the button below to choose a new one.
+  // @mutate supabase/functions/_shared/email-templates/reauthentication.tsx | >Your confirmation code< | >Verify Your Identity<
+  // @mutate supabase/functions/_shared/email-templates/account-status.tsx | buy and sell on\n        Declutter. | help neighbors.
+  // @mutate supabase/functions/auth-email-hook/index.ts |   recovery: 'Reset your Louisiana Helpr password', |   recovery: 'Reset your Helpr password',
+  it("F159-F166, F188: account emails in sentence case and plain words, with the brand's full name", () => {
+    const has: Array<[string, string[], string[]]> = [
+      ["signup.tsx", [">Confirm your email<", 'label="Confirm my email"', "finish setting up your Louisiana Helpr account.",
+        "first time you post a job, take a job, list an item or buy one."], ["mailto:", "<Link", "Verify My Email"]],
+      ["recovery.tsx", [">Reset your password<", "Tap the button below to choose a new password.", 'label="Choose a new password"'], ["Click"]],
+      ["invite.tsx", [">You've been invited to Louisiana Helpr<", 'label="Accept the invite"'], ["<Link", "Accept Invitation"]],
+      ["reauthentication.tsx", [">Your confirmation code<"], ["Verify Your Identity", "your identity"]],
+      ["email-change.tsx", [">Confirm your email change<", 'label="Confirm the change"'], ["Confirm Email Change"]],
+      ["magic-link.tsx", [">Your Louisiana Helpr code<"], ["Your Helpr Code"]],
+      ["email-changed.tsx", ["Someone from Louisiana Helpr changed the email on your account"], ["administrator", "authorise"]],
+      ["account-status.tsx", ["buy and sell on\n        Declutter.", "cta: 'Open Louisiana Helpr'"], ["fully approved", "Go to Dashboard", "copy.note"]],
+    ];
+    for (const [file, yes, no] of has) {
+      const src = T(file);
+      for (const y of yes) expect(src, `${file} says ${y}`).toContain(y);
+      for (const n of no) expect(src, `${file} no longer says ${n}`).not.toContain(n);
+    }
+    const hook = blankComments(readFileSync(join(ROOT, "supabase/functions/auth-email-hook/index.ts"), "utf8"));
+    for (const subj of ["You've been invited to Louisiana Helpr", "Your Louisiana Helpr code", "Reset your Louisiana Helpr password", "Your confirmation code"]) {
+      expect(hook).toContain(subj);
+    }
+  });
+
+  // F184 F185 (and F159 F162 F188 in the admin emails): strike emails in plain words with a "Read the rules" button, the
+  // ID re-upload note labelled "Note from our team" with a dark-mode colour, its button straight to the ID step.
+  // @mutate supabase/functions/admin-user-actions/index.ts |           ctaUrl: `${appUrl}/home?verify_id=1`, |           ctaUrl: `${appUrl}/profile`,
+  // @mutate supabase/functions/_shared/email-templates/admin-action.tsx |     <Section className={note ? 'e-note' : undefined} style={boxed}> |     <Section style={boxed}>
+  // @mutate supabase/functions/admin-user-actions/index.ts |           ctaLabel: 'Read the rules', |           ctaLabel: 'Review Platform Rules',
+  it("F184, F185: strike and ID emails in plain words; the note box goes dark in dark mode; the button opens the ID step", () => {
+    const src = blankComments(readFileSync(join(ROOT, "supabase/functions/admin-user-actions/index.ts"), "utf8"));
+    for (const y of ["ctaLabel: 'Read the rules',", "We\\'re writing because something on your account broke our community rules:",
+      "{ b: 'Note from our team:' }", "ctaUrl: `${appUrl}/home?verify_id=1`,", "ctaLabel: 'Upload a clearer photo',",
+      "Tap the button below to choose a new password.", "subject: 'Reset your Louisiana Helpr password',",
+      "subject: 'Louisiana Helpr: please upload a clearer ID photo',", "emailSubject = 'Louisiana Helpr: formal warning on your account'"]) {
+      expect(src, y).toContain(y);
+    }
+    for (const n of ["Review Platform Rules", "platform policy violation", "Admin note:", "Re-upload ID", "Click the button", "'Go to Dashboard'", "Helpr —"]) {
+      expect(src, n).not.toContain(n);
+    }
+    expect(T("admin-action.tsx")).toContain("<Section className={note ? 'e-note' : undefined} style={boxed}>");
+    expect(T("styles.ts")).toMatch(/\.e-note \{ background-color:#2A2B20 !important;[^}]*\}\s*\.e-note-text \{ color:#F2F2E9 !important; \}/);
+  });
 });

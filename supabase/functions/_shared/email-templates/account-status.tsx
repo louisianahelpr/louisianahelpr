@@ -18,7 +18,7 @@
 
 import * as React from 'npm:react@18.3.1'
 import { Heading, Text } from 'npm:@react-email/components@0.0.22'
-import { brand, h1, subtext, text as textStyle } from './styles.ts'
+import { brand, h1, text as textStyle } from './styles.ts'
 import { BaseLayout, BrandButton, TransactionalFooter } from './components.tsx'
 
 type AccountStatus = 'verified'
@@ -35,11 +35,12 @@ export interface AccountStatusEmailProps {
 
 const COPY = {
   verified: {
-    preheader: 'Your identity check passed. Your Helpr account is ready.',
-    heading: 'Verification successful',
-    cta: 'Go to Dashboard',
-    ctaWidthPx: 200,
-    note: "Welcome in. You're set to post jobs and help neighbors across Louisiana.",
+    // F166 (owner's message review 11-09): no "fully approved" (sign-up says no approval wait), Declutter named,
+    // the button names the app, and no closing line repeating the paragraph.
+    preheader: 'Your ID check is done. Your Louisiana Helpr account is ready.',
+    heading: 'Your ID check is done',
+    cta: 'Open Louisiana Helpr',
+    ctaWidthPx: 240,
   },
 } as const
 
@@ -73,15 +74,11 @@ export const AccountStatusEmail = ({
       </Text>
 
       <Text className="e-text" style={textStyle}>
-        Your identity has been <Accent>verified</Accent> and your Helpr account is fully approved.
-        You're cleared to post jobs and start helping your neighbors across Louisiana.
+        Your ID check is <Accent>done</Accent>, so you&apos;re all set to post jobs, take jobs, and buy and sell on
+        Declutter.
       </Text>
 
       <BrandButton href={ctaUrl} label={copy.cta} widthPx={copy.ctaWidthPx} />
-
-      <Text className="e-text e-rule" style={subtext}>
-        {copy.note}
-      </Text>
     </BaseLayout>
   )
 }

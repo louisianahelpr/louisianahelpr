@@ -19,12 +19,13 @@ interface ReauthenticationEmailProps {
 }
 
 export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => (
-  <BaseLayout preheader="Your Helpr verification code">
-      <Heading className="e-h1" style={h1}>Verify Your Identity</Heading>
-      <Text className="e-text" style={text}>Use the code below to confirm your identity:</Text>
+  <BaseLayout preheader="Your Louisiana Helpr confirmation code">
+      {/* Owner's message review 11-09, F165: "Verify your identity" read like the photo-ID check; this is only a code. */}
+      <Heading className="e-h1" style={h1}>Your confirmation code</Heading>
+      <Text className="e-text" style={text}>Enter this code in the app to confirm it&apos;s you:</Text>
       <Text className="e-h1" style={codeStyle}>{token}</Text>
       <TransactionalFooter>
-        This code will expire shortly. If you didn't request this, you can safely ignore this email.
+        It expires soon. If you didn&apos;t ask for it, you can ignore this email; nothing changes without the code.
       </TransactionalFooter>
   </BaseLayout>
 )

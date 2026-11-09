@@ -5,14 +5,12 @@ import * as React from 'npm:react@18.3.1'
 import {
   Heading,
   Text,
-  Link,
 } from 'npm:@react-email/components@0.0.22'
 
 import {
   h1,
   text,
   subtext,
-  linkStyle,
 } from './styles.ts'
 import { BaseLayout, BrandButton, TransactionalFooter } from './components.tsx'
 
@@ -24,28 +22,16 @@ interface SignupEmailProps {
 }
 
 export const SignupEmail = ({
-  siteName,
-  siteUrl,
-  recipient,
   confirmationUrl,
 }: SignupEmailProps) => (
-  <BaseLayout preheader="Verify your email to get started on Helpr">
-      <Heading className="e-h1" style={h1}>Confirm Your Email to Get Started.</Heading>
+  <BaseLayout preheader="Confirm your email to get started on Louisiana Helpr">
+      {/* Owner's message review 11-09: F159 sentence case; F160 plain text, no stray "Helpr" link or repeated
+          address line; F161 the ID check timing names Declutter too (owner's ID-check rule). */}
+      <Heading className="e-h1" style={h1}>Confirm your email</Heading>
       <Text className="e-text" style={text}>
-        Tap the button below to verify your email so we can finish setting up your{' '}
-        <Link href={siteUrl} className="e-accent" style={linkStyle}>
-          <strong>Helpr</strong>
-        </Link>{' '}
-        account.
+        Tap the button below to confirm your email and finish setting up your Louisiana Helpr account.
       </Text>
-      <Text className="e-text" style={text}>
-        Please verify your email (
-        <Link href={`mailto:${recipient}`} className="e-accent" style={linkStyle}>
-          {recipient}
-        </Link>
-        ) to continue setting up your account:
-      </Text>
-      <BrandButton href={confirmationUrl} label="Verify My Email" />
+      <BrandButton href={confirmationUrl} label="Confirm my email" />
       {/* This line used to read: "Once verified, our team will review your
           profile and ID. This usually takes 24–48 hours. We'll email you when
           you're approved!"
@@ -66,12 +52,11 @@ export const SignupEmail = ({
           — two different invented numbers for the same non-existent step. The
           copy now describes what the code actually does. */}
       <Text className="e-text e-rule" style={subtext}>
-        Verifying takes a moment and you're in — no waiting on approval. Identity
-        checks and payout setup come later, only when you first post or accept a
-        job.
+        Confirming takes a moment and you're in. We'll only ask for an ID check the
+        first time you post a job, take a job, list an item or buy one.
       </Text>
       <TransactionalFooter>
-        If you didn't create an account on Helpr, you can safely ignore this email.
+        If you didn't create an account on Louisiana Helpr, you can safely ignore this email.
       </TransactionalFooter>
   </BaseLayout>
 )

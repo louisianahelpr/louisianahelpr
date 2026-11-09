@@ -51,7 +51,7 @@ const HEADING = 'Your email address was changed'
 /** An ADMIN changed the login email out from under the account owner. */
 export const AdminEmailChangedEmail = ({ oldEmail, newEmail }: EmailChangedProps) => (
   <BaseLayout
-    preheader="An administrator changed the login email on your Helpr account."
+    preheader="Someone from Louisiana Helpr changed the login email on your account."
     footer={
       <TransactionalFooter>
         Questions? Just reply to this email — it reaches our support team at <SupportAddress />.
@@ -62,12 +62,13 @@ export const AdminEmailChangedEmail = ({ oldEmail, newEmail }: EmailChangedProps
       {HEADING}
     </Heading>
     <Text className="e-text" style={textStyle}>
-      An administrator updated the email address on your Helpr account from{' '}
+      {/* F164 (owner's message review 11-09): no "administrator" jargon, no British "authorise". */}
+      Someone from Louisiana Helpr changed the email on your account from{' '}
       <strong>{oldEmail}</strong> to <strong>{newEmail}</strong>.
     </Text>
     <Text className="e-text" style={textStyle}>
-      Use <strong>{newEmail}</strong> to log in going forward. If you did not authorise this change,
-      contact us immediately at <SupportAddress />.
+      Use <strong>{newEmail}</strong> to log in from now on. If you didn&apos;t ask for this, reply to this email right
+      away or write to <SupportAddress />.
     </Text>
   </BaseLayout>
 )

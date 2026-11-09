@@ -19,7 +19,8 @@ import { paidWaitsOnBankLine, useHelprPayoutWaitsOnBank } from "@/hooks/useHelpr
 import type { JobPageRow } from "./useJobPage";
 import { JobProgress } from "@/components/tracker/JobProgress";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
-import { useJobRefundedCents } from "@/hooks/useJobRefundedCents";
+import { usePosterJobRefund } from "@/hooks/usePosterJobRefund";
+import { refundedWords } from "@/lib/refundWords";
 import { jobProgress } from "@/components/tracker/jobProgressState";
 import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
 import type { Job } from "@/components/job-card/activityConstants";
@@ -61,7 +62,8 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
 }) {
   const rescheduled = useJobRescheduled(job.id, !!side && job.status === "accepted");
   // Q2701: only a poster's cancelled, refunded job reads the refund ledger.
-  const refundedCents = useJobRefundedCents(job.id, side === "poster" && job.status === "cancelled" && job.payment_status === "refunded");
+  // F105: the Receipts numbers (one read per poster), the same the Posted card says.
+  const refund = usePosterJobRefund(side === "poster" ? job : { id: job.id });
   if (!side) return null;
   // The Working card's own progress (helperProgress off the tracking row), so the page's line and the card's agree.
   const progress = jobProgress(job, {
@@ -72,7 +74,8 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
     tracking: trackingStatus ? { status: trackingStatus } : null,
     pendingApplicants,
     crewMember,
-    refundedCents,
+    refundedCents: refund?.refundedCents ?? null,
+    refundKeptCents: refund?.keptCents ?? null,
   });
   if (progress.stage === null && !progress.next) return null;
   // THE STATUS LINE IS THE NEXT STEP (owner 11-01 12:05 PM): what to do or who we wait on, with its deadline, ABOVE the
@@ -93,7 +96,6 @@ const HELD_LINE: Partial<Record<string, string>> = {
   held: "Your card isn't charged until a Helpr accepts your offer.",
   unpaid: "Not paid yet. Helprs can't see this job until it's paid.",
   abandoned: "Not paid yet. Helprs can't see this job until it's paid.",
-  refunded: "Refunded to your card.",
   // Q2608 (Jobs audit 1102b row 22): the same words as the Job done sheet ("Paid to Eli · It's on its way to their bank").
   released: "Paid to your Helpr. It's on its way to their bank.",
 };
@@ -143,7 +145,11 @@ export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; tot
   // jobProgressState cancelledLine), so the refund is said ONCE, there. An expired listing's line says only "No
   // Helpr was hired in time", so it keeps "Refunded to your card." here. Guard: src/test/refundSaidOnce.test.tsx.
   const refundInTracker = status === "refunded" && (job.status === "cancelled" || job.status === "expired") && !isExpiredListing(job);
-  const line = released ? (waitsOnBank ? paidWaitsOnBankLine(waitsOnBank.firstName) : releasedLine(job)) : refundInTracker ? null : HELD_LINE[status] ?? null;
+  // F105: an expired listing's refund says the Receipts numbers ("$28.83 refunded · Card processing cost isn't
+  // refunded."), never a bare "Refunded to your card." that read as whole.
+  const refund = usePosterJobRefund(job);
+  const refundLine = status === "refunded" ? `${refundedWords(refund).replace(/\.$/, "")}.` : null;
+  const line = released ? (waitsOnBank ? paidWaitsOnBankLine(waitsOnBank.firstName) : releasedLine(job)) : refundInTracker ? null : refundLine ?? HELD_LINE[status] ?? null;
   const count = job.status === "open" && !loading && total > 0;
   if (!line && !released && !count) return null;
   return (

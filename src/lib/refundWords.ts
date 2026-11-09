@@ -14,3 +14,24 @@ export const CARD_COST_NOT_REFUNDED = "Card processing cost isn't refunded.";
 
 export const NO_HIRE_REFUND =
   "If no one is hired, you get your money back, less the small card processing cost if your card was already charged.";
+
+/** What came back on a poster's cancelled job, from the Receipts numbers (usePosterJobRefund). */
+export interface JobRefund {
+  refundedCents: number;
+  /** What the card kept (not counting a tip). */
+  keptCents: number;
+}
+
+/** The refund words when the amounts are not known (loading, no read): a refund was sent, never that it was whole. */
+export const REFUND_SENT = "Refund sent to your card";
+
+/**
+ * F105 (owner UI audit 2026-11-09): the cancelled card's refund words, with the same numbers as Receipts.
+ * "$28.83 refunded · Card processing cost isn't refunded." when the card kept something and nobody was owed for their
+ * time; "$28.83 refunded" when it came back whole, or when a late-cancel amount (said by its own words) was kept.
+ */
+export function refundedWords(refund: JobRefund | null | undefined, lateFeeKept = false): string {
+  if (!refund || refund.refundedCents <= 0) return REFUND_SENT;
+  const back = `$${(refund.refundedCents / 100).toFixed(2)} refunded`;
+  return refund.keptCents > 0 && !lateFeeKept ? `${back} · ${CARD_COST_NOT_REFUNDED}` : back;
+}

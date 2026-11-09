@@ -217,7 +217,7 @@ export function isItemId(id: string | undefined): id is string {
  * know before loading anything that no item will arrive, so a skeleton of
  * photos would be a promise the page then breaks.
  */
-export function DeclutterItemUnavailable({ detail }: { detail?: string }) {
+export function DeclutterItemUnavailable({ detail, more }: { detail?: string; more?: ReactNode }) {
   // Q2565 (Auditor 1, audit 1102a): a sold or taken-down item opened from a share, a notice or a saved link was a
   // dead end (a notice and an empty screen). It now offers the way on, and the page is titled for where it is.
   return (
@@ -228,6 +228,8 @@ export function DeclutterItemUnavailable({ detail }: { detail?: string }) {
       <Button asChild variant="primary" className="mt-4 w-full sm:w-auto" data-item-unavailable-onward="">
         <Link to="/declutter">See more on Declutter</Link>
       </Button>
+      {/* F061 (UI audit 11-09): something to look at instead of a blank page (the item page passes the newest row). */}
+      {more}
     </AppPage>
   );
 }

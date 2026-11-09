@@ -4929,7 +4929,10 @@ body[data-scroll-locked] .compact-title-bar {
 /* DA-9 (Declutter audit 2026-10-30): a pinned title row (AppPage `stickyHeader`, the item page) in place of the bar
    above. Clear at the top so the page reads as before; once scrolled it is the same opaque bar (background + hairline)
    with back, the title and the page's buttons. Not on the desktop website, whose top bar holds the title. */
-html:not(.web-desktop).page-scrolled .sticky-title-row {
+/* F074 (UI audit 11-09): the row went opaque only past 24px, and faded in over 0.18 s, so for the first scroll the
+   back arrow floated over half-faded page text. It is opaque from the first pixel scrolled (page-scrolled-any), at
+   once; only the title inside it fades in (past 24px, as before). */
+html:not(.web-desktop).page-scrolled-any .sticky-title-row {
   background: hsl(var(--background));
   box-shadow: 0 0.5px 0 hsl(var(--border));
 }
@@ -4937,7 +4940,7 @@ html:not(.web-desktop).page-scrolled .sticky-title-row {
 html.page-scrolled .sticky-title-row-name { opacity: 1; }
 @media (min-width: 640px) { .sticky-title-row-name { display: none; } }
 @media (prefers-reduced-motion: no-preference) {
-  .sticky-title-row, .sticky-title-row-name { transition: opacity 0.18s ease, background-color 0.18s ease; }
+  .sticky-title-row-name { transition: opacity 0.18s ease; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .compact-title-bar { transition: opacity 0.18s ease; }

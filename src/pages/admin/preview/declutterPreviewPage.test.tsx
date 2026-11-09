@@ -101,7 +101,7 @@ describe("Q2585: /admin/preview/declutter", () => {
   it("Q2621: Selling's chips count the sample's sale to hand over, and the sale comes first", async () => {
     open("?stage=paid&side=seller");
     const chip = await waitFor(() => { const el = document.querySelector('[data-status-box="sold"]'); expect(el).not.toBeNull(); return el as HTMLElement; });
-    expect(chip.textContent).toBe("Hand over · 1");
+    expect(chip.textContent).toBe("Pickups to do · 1");
     // AUD31-4: the sale to hand over is drawn before the listings.
     const sold = await screen.findByRole("region", { name: /Sold: pickup and payout/ });
     const listings = await screen.findByText(/Your listings/);

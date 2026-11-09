@@ -8,11 +8,14 @@
  *   - the address: a saved pickup place, with the exact point looked up here (useExactAddressPoint: an exact match or the
  *     seller's own position at the address, never a town or street point; declutter_save_porch_place);
  *   - the times: declutter pickup windows;
- *   - the ways, price drops, keep it up and make it free: declutter_seller_defaults.
+ *   - the ways, price drops, keep it up and make it free: declutter_seller_defaults. F124 (UI audit 11-09, owner): these
+ *     are NOT asked. A first-timer gets SELLER_DEFAULTS saved with the address and times (porch pickup, 5% a night down
+ *     to half the price, offers on, trades off, never free) and changes them in Declutter settings.
  * The address is settled first, so a lookup that can't place it writes nothing. After that each save is its own step, so
  * a failure part way never asks again for what already went through.
  */
 import { useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
@@ -20,16 +23,13 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
-import { useFeature } from "@/hooks/useFeature";
 import { fetchMyPickupWindows, setPickupWindows, type PickupWindow } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { MY_PORCH_PLACES_KEY, saveMyPorchPlace } from "@/lib/declutter/porchPlaces";
 import { SELLER_DEFAULTS, saveSellerDefaults, type SellerDefaults } from "@/lib/declutter/sellerDefaults";
 import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
-import { ListingChoiceFields } from "./DeclutterListingDefaults";
 import { PickupTimesEditor, pickupWindowsProblem } from "./DeclutterPickupTimes";
 import { DeclutterSellSkeleton } from "./DeclutterSkeletons";
-import { SELLER_WAYS, SellWayTiles } from "./SellHandoverChoices";
 import { SellerAddressField } from "./SellerAddressField";
 import { NO_CITY_IN_ADDRESS } from "./sellForm";
 import { useExactAddressPoint } from "./useExactAddressPoint";
@@ -37,43 +37,43 @@ import { useSavedPickup } from "./useSavedPickup";
 
 /** What a seller still has to choose before posting. Pure, so the rule is tested on its own. */
 export interface SetupNeeds {
+  /** Asked: the pickup address. */
   pickup: boolean;
-  ways: boolean;
+  /** Asked: the days and times buyers can come. */
   times: boolean;
-  choices: boolean;
+  /** Never asked (F124): no saved selling settings yet, so SELLER_DEFAULTS are saved along with the answers above. */
+  defaults: boolean;
 }
 
-export function setupNeeds(s: { hasPickup: boolean; hasWays: boolean; hasWindows: boolean; hasSettings: boolean; free: boolean }): SetupNeeds {
+export function setupNeeds(s: { hasPickup: boolean; hasWindows: boolean; hasSettings: boolean }): SetupNeeds {
   return {
     // No saved address, or none with an exact point (useSavedPickup never counts one without): asked here.
     pickup: !s.hasPickup,
     times: !s.hasWindows,
-    // A free item is porch pickup with no price to lower, so these wait for a first priced listing.
-    ways: !s.free && !s.hasWays,
-    choices: !s.free && !s.hasSettings,
+    defaults: !s.hasSettings,
   };
 }
 
-const anyNeeded = (n: SetupNeeds) => n.pickup || n.ways || n.times || n.choices;
+/** Only the two questions open the screen; missing settings alone never do (every read gives SELLER_DEFAULTS). */
+const anyNeeded = (n: SetupNeeds) => n.pickup || n.times;
 
-function SetupScreen({ userId, needs, saved, savedWindows }: { userId: string; needs: SetupNeeds; saved: SellerDefaults | null; savedWindows: PickupWindow[] }) {
+/** F124: what a first-timer gets without being asked, in plain words, with where to change it. */
+export const SETUP_DEFAULTS_WORDS =
+  "We set the rest for you: porch pickup, the price lowers 5% each evening down to half your asking price, offers on, trades off, and it never turns free on its own.";
+
+function SetupScreen({ userId, needs, savedWindows }: { userId: string; needs: SetupNeeds; savedWindows: PickupWindow[] }) {
   const qc = useQueryClient();
-  const sellerDeliveryOpen = useFeature("declutter_seller_delivery");
   const [address, setAddress] = useState("");
   const place = useExactAddressPoint();
   const [area, setArea] = useState("");
   // No day is picked for them (audit single-free #16): a guessed pickup time would be a promise they never made.
   const [windows, setWindows] = useState<PickupWindow[]>([]);
-  const [defaults, setDefaults] = useState<SellerDefaults>(saved ?? SELLER_DEFAULTS);
-  const change = (patch: Partial<SellerDefaults>) => setDefaults((d) => ({ ...d, ...patch }));
   const [problem, setProblem] = useState<string | null>(null);
-  const shown = SELLER_WAYS.filter((w) => w !== "seller_delivery" || sellerDeliveryOpen);
 
   const save = useMutation({
     mutationFn: async () => {
       if (needs.pickup && address.trim().length < 5) throw new Error("setup_address");
       if (needs.times && pickupWindowsProblem(windows)) throw new Error("setup_times");
-      if (needs.ways && !defaults.handovers.some((w) => shown.includes(w))) throw new Error("setup_ways");
       let pickup: { lat: number; lng: number; area: string } | null = null;
       if (needs.pickup) {
         const found = await place.locate(address);
@@ -81,7 +81,8 @@ function SetupScreen({ userId, needs, saved, savedWindows }: { userId: string; n
         if (!area.trim()) throw new Error("setup_area");
         pickup = { lat: found.lat, lng: found.lng, area: area.trim() };
       }
-      if (needs.ways || needs.choices) {
+      if (needs.defaults) {
+        const defaults: SellerDefaults = { ...SELLER_DEFAULTS, acceptsTrades: false };
         await saveSellerDefaults(userId, defaults);
         await qc.invalidateQueries({ queryKey: ["declutter", "seller-defaults", userId] });
       }
@@ -102,7 +103,6 @@ function SetupScreen({ userId, needs, saved, savedWindows }: { userId: string; n
       const said: Record<string, string> = {
         setup_address: "Add your pickup address.",
         setup_times: pickupWindowsProblem(windows) ?? "",
-        setup_ways: "Tick at least one way buyers can get your things.",
         invalid_location: "We couldn't find that address. Check the street, city and ZIP.",
         // The lookup itself is down: the address may be fine, so this never reads as "not found".
         address_lookup_unavailable: declutterErrorMessage({ message: "address_lookup_unavailable" }),
@@ -137,17 +137,11 @@ function SetupScreen({ userId, needs, saved, savedWindows }: { userId: string; n
             <PickupTimesEditor windows={windows} setWindows={setWindows} />
           </section>
         )}
-        {needs.ways && (
-          <section className="space-y-2 rounded-[20px] border border-border bg-card p-4" role="group" aria-labelledby="setup-ways" data-setup-ways="">
-            <h2 id="setup-ways" className="text-ds-15 font-semibold text-foreground">How buyers can get your things</h2>
-            <SellWayTiles shown={shown} ways={defaults.handovers} setWays={(w) => change({ handovers: w })} />
-          </section>
-        )}
-        {needs.choices && (
-          <section className="space-y-5 rounded-[20px] border border-border bg-card p-4" data-setup-choices="">
-            <h2 className="text-ds-15 font-semibold text-foreground">If it doesn't sell right away</h2>
-            <ListingChoiceFields draft={defaults} change={change} idPrefix="setup" />
-          </section>
+        {needs.defaults && (
+          <p className="text-ds-13 text-muted-foreground" data-setup-defaults="">
+            {SETUP_DEFAULTS_WORDS}{" "}
+            <Link to="/declutter/settings" className="font-semibold text-foreground underline underline-offset-2">Change these in Declutter settings</Link>
+          </p>
         )}
         {problem && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-setup-problem="">{problem}</p>}
         <Button type="button" className="w-full rounded-full" disabled={save.isPending} onClick={() => save.mutate()}>
@@ -159,7 +153,7 @@ function SetupScreen({ userId, needs, saved, savedWindows }: { userId: string; n
 }
 
 /** In front of a posting form: asks what is missing, once. A failed read offers a retry, since the form no longer asks. */
-export function SellerSetupGate({ free = false, children }: { free?: boolean; children: ReactNode }) {
+export function SellerSetupGate({ children }: { children: ReactNode }) {
   const { user } = useCurrentUser();
   const { underAge } = useAgeGate();
   const userId = user?.id;
@@ -176,7 +170,7 @@ export function SellerSetupGate({ free = false, children }: { free?: boolean; ch
   }
   if (!setup.settled || !windows.isFetched) return <DeclutterSellSkeleton />;
   const saved = (windows.data ?? []).map((r) => ({ weekday: r.weekday, starts: r.starts_local.slice(0, 5), ends: r.ends_local.slice(0, 5) }));
-  const needs = setupNeeds({ hasPickup: !!setup.pickup, hasWays: setup.hasWays, hasWindows: saved.length > 0, hasSettings: setup.hasSettings, free });
-  if (anyNeeded(needs)) return <SetupScreen userId={userId} needs={needs} saved={setup.settings} savedWindows={saved} />;
+  const needs = setupNeeds({ hasPickup: !!setup.pickup, hasWindows: saved.length > 0, hasSettings: setup.hasSettings });
+  if (anyNeeded(needs)) return <SetupScreen userId={userId} needs={needs} savedWindows={saved} />;
   return <>{children}</>;
 }

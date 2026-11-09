@@ -12,7 +12,7 @@
  *
  * @mutate src/components/declutter/sellForm.ts | return { floorCents: floor, dropPct: floor === price ? 0 : f.dropPct }; | return { floorCents: floor, dropPct: f.dropPct };
  * @mutate src/lib/declutter/priceDrop.ts |   return state.drops_stopped \|\| state.floor_price_cents >= currentCents; |   return state.drops_stopped;
- * @mutate src/lib/declutter/autoFree.ts | if (days === null) return "It won't become free on its own. This has nothing to do with price drops."; | if (days === null) return "It stays at your price until it sells or you change it.";
+ * @mutate src/lib/declutter/autoFree.ts | if (days === null) return "It won't become free on its own."; | if (days === null) return "It stays at your price until it sells or you change it.";
  * @mutate supabase/functions/declutter-ai-draft/index.ts | Price it like a local Louisiana garage or yard sale: | Buyers here offer less, so pick the HIGH end of the fair range:
  * @mutate src/components/declutter/useSavedPickup.ts |     .filter((p) => p.address.trim() && p.area.trim() && Number.isFinite(p.lat) && Number.isFinite(p.lng)); |     .filter((p) => p.address.trim() && p.area.trim());
  */
@@ -61,7 +61,8 @@ describe("the form can't be misread as never-drop", () => {
     expect(AUTO_FREE_OPTIONS[0].label).toBe("Never make it free");
     // The owner's listing: this line said "It stays at your price" while its drops were on.
     expect(autoFreeExplainer(null)).not.toMatch(/stays at your price/i);
-    expect(autoFreeExplainer(null)).toMatch(/price drops/);
+    // F125 (UI audit 11-09): the extra "nothing to do with price drops" sentence confused more than it helped.
+    expect(autoFreeExplainer(null)).toBe("It won't become free on its own.");
     expect(makeFreeValue(null)).toBe("Never");
     expect(makeFreeValue(14)).toBe("After 14 days");
   });

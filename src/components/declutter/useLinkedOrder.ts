@@ -31,14 +31,53 @@ export function useLinkedOffer(): string | null {
   return id && UUID.test(id) ? id : null;
 }
 
-/** Once per mount: the linked card opens (onOpen), scrolls into view and takes focus. */
+/**
+ * F157 (lab 11-09): how long the linked card is kept in place while the tab settles. Measured on prod at 1440, cold:
+ * the card scrolled into view at once, then the offers and trades above it landed and pushed it out of sight (the
+ * office-chair order ended off screen, focus on <body>).
+ */
+export const LINKED_ORDER_SETTLE_MS = 4000;
+
+/**
+ * Once per mount: the linked card opens (onOpen), scrolls into view and takes focus (keyboard and screen readers land
+ * on it). Until the tab settles (LINKED_ORDER_SETTLE_MS) or the member scrolls, taps or types, a card that moves (what
+ * loads above it) is scrolled back into view and keeps the focus.
+ */
 export function useScrollToLinkedOrder(ref: RefObject<HTMLElement>, linked: boolean, onOpen: () => void) {
   const done = useRef(false);
   useEffect(() => {
-    if (!linked || done.current || !ref.current) return;
+    const el = ref.current;
+    if (!linked || done.current || !el) return;
     done.current = true;
     onOpen();
-    ref.current.scrollIntoView?.({ block: "start" });
-    ref.current.focus({ preventScroll: true });
+    const place = () => {
+      el.scrollIntoView?.({ block: "start" });
+      const a = document.activeElement;
+      if (a !== el && (!a || a === document.body)) el.focus({ preventScroll: true });
+    };
+    el.scrollIntoView?.({ block: "start" });
+    el.focus({ preventScroll: true });
+    let top = el.getBoundingClientRect().top;
+    const started = Date.now();
+    let frame = 0;
+    const stop = () => {
+      cancelAnimationFrame(frame);
+      for (const ev of USER_MOVES) window.removeEventListener(ev, stop, true);
+    };
+    for (const ev of USER_MOVES) window.addEventListener(ev, stop, { capture: true, passive: true });
+    const tick = () => {
+      if (!el.isConnected || Date.now() - started > LINKED_ORDER_SETTLE_MS) return stop();
+      const now = el.getBoundingClientRect().top;
+      if (Math.abs(now - top) > 2) {
+        place();
+        top = el.getBoundingClientRect().top;
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return stop;
   }, [linked, ref, onOpen]);
 }
+
+/** What the member does that ends the keep-in-place (their own scroll wins). */
+const USER_MOVES = ["wheel", "touchstart", "pointerdown", "keydown"] as const;

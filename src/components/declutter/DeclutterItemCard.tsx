@@ -66,7 +66,9 @@ const LATER_PHOTO: Record<string, string> = { loading: "lazy" };
 /** The card's photo source, in order: the card-sized thumbnail, then the full photo if the thumbnail fails, then none. */
 type PhotoStage = "card" | "full" | "failed";
 
-export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag, bundle, firstRow, aboveFold }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; saves?: number | null; tag?: CardTag | null; bundle?: boolean; firstRow?: boolean; aboveFold?: boolean }) {
+export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag, bundle, firstRow, aboveFold, guestSaveTo }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; saves?: number | null; tag?: CardTag | null; bundle?: boolean; firstRow?: boolean; aboveFold?: boolean;
+  /** F052 (UI audit 11-09): a guest's heart, a link to sign-up ("Sign up to save items.") that comes back here. */
+  guestSaveTo?: string }) {
   const away = milesLabel(miles, approximate);
   const condition = CONDITION_LABEL[item.condition_stars] ?? null;
   // A photo that fails to load drops out, leaving the icon under it (never a blank tile). The card-sized thumbnail
@@ -112,7 +114,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
             src={photoStage === "card" ? photoCardUrl(photoPath) : photoPublicUrl(photoPath)}
             srcSet={photoStage === "card" ? cardPhotoSrcSet(photoPublicUrl(photoPath), photoCardUrl(photoPath), CARD_PHOTO_PX) : undefined}
             sizes={photoStage === "card" ? CARD_PHOTO_SIZES : undefined}
-            alt=""
+            alt={item.title}
             width={CARD_PHOTO_PX}
             height={CARD_PHOTO_PX}
             decoding="async"
@@ -175,6 +177,27 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
     </Link>
   );
   const savesText = savesWord(saves);
+  if (!save && guestSaveTo) {
+    // F052: the same heart and count a member sees; pressing it opens sign-up (saving needs an account).
+    return (
+      <div className="relative">
+        {card}
+        <Link
+          to={guestSaveTo}
+          data-card-heart=""
+          data-card-guest-heart=""
+          data-card-saves={saves ?? undefined}
+          aria-label={`Sign up to save ${item.title}${savesText ? `, saved by ${saves}` : ""}`}
+          className="absolute right-0.5 top-0.5 flex h-11 min-w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span className={`flex h-8 items-center justify-center gap-1 rounded-full bg-background/90 shadow-sm ${savesText ? "px-2.5" : "w-8"}`}>
+            <Heart className="h-4 w-4 text-foreground" fill="none" aria-hidden />
+            {savesText && <span aria-hidden className="text-ds-13 font-semibold tabular-nums text-foreground">{savesText}</span>}
+          </span>
+        </Link>
+      </div>
+    );
+  }
   if (!save) {
     if (!savesText) return card;
     // A guest sees how many saved it (no heart to press: saving needs an account), over the photo like a member's.

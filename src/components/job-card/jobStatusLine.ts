@@ -555,7 +555,8 @@ export function derivePosterWait(
   switch (job.status) {
     case "cancelled":
       if (disputeSettling(job)) return "dispute_settling";
-      return job.poster_marked_done_at ? "done_marked" : "cancelled";
+      // F104: an expired listing is Expired (below), never "Done", whatever poster_marked_done_at says.
+      return job.poster_marked_done_at && !isExpiredListing(job) ? "done_marked" : "cancelled";
     case "completed":
       if (disputeSettling(job)) return "dispute_settling";
       /* Which finish it is depends on the loose ends, not on the row. A loose end needs someone to close it

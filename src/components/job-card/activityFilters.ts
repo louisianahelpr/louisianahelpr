@@ -8,6 +8,7 @@ import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
 import { arrivalEstablished } from "@/lib/arrivalGate";
 import { beforePhotoIsThePrimary } from "@/components/job-card/primaryPhotoAsk";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
+import { isExpiredListing } from "@/lib/expiredListing";
 import {
   BUCKET_ORDER,
   BUCKET_LABEL,
@@ -138,9 +139,10 @@ export const APPLIED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;
  * completed or was cancelled has nothing left to chase, whatever its date.
  */
 /** A cancelled job filed under the poster's Done list (owner 2026-10-25;
- *  jobs.poster_marked_done_at, display only). */
-function jobMarkedDone(j: { status?: string | null; poster_marked_done_at?: string | null }): boolean {
-  return j.status === "cancelled" && !!j.poster_marked_done_at;
+ *  jobs.poster_marked_done_at, display only). F104 (owner 11-09, "one job status everywhere"): never an expired
+ *  listing, whatever the flag says; it is Expired (owner 10-31). Guard: src/test/expiredNeverDone.test.ts. */
+function jobMarkedDone(j: { status?: string | null; poster_marked_done_at?: string | null; helper_id?: string | null; cancellation_reason?: string | null; cancelled_by?: string | null }): boolean {
+  return j.status === "cancelled" && !!j.poster_marked_done_at && !isExpiredListing(j);
 }
 
 /**

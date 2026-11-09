@@ -116,8 +116,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_swap_items_ok: "hides",
   // Trades fixes (20261108195151): a trade between test accounts (declutter_swap_offers.is_seed) is never emailed;
   // the bell notice still goes (kept out of notifications only, fails safe). No money, no ID check.
-  declutter_end_swap: "hides",
-  declutter_respond_swap: "hides",
+  // declutter_end_swap / declutter_respond_swap no longer read is_seed: their emails go through trg_email_declutter_notice.
   declutter_swap_sweep: "hides",
   declutter_void_swaps: "hides",
   // The Free change (Q2487): the ask carries the old claim's test-listing rule (declutter_claim_free just calls it).

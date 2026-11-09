@@ -203,7 +203,7 @@ export async function fetchSellerItems(sellerId: string, exceptItemId: string): 
  * and before the function is on prod.
  */
 export async function fetchSoldItemCard(itemId: string): Promise<{ title: string; photo_id: string | null } | null> {
-  const res = await supabase.rpc("declutter_sold_item_card" as never, { p_item_id: itemId } as never);
+  const res = await supabase.rpc("declutter_sold_item_card", { p_item_id: itemId });
   if (res.error && isMissingRpcNamed(res.error, "declutter_sold_item_card")) return null;
   const card = rpcData(res as never, (e) => rpcErrorMessage("declutter_sold_item_card" as never, e)) as { title?: unknown; photo_id?: unknown } | null;
   if (!card || typeof card.title !== "string") return null;

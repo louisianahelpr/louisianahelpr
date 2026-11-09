@@ -121,9 +121,8 @@ const bodyFontStack =
 /** Headline face (F158): Bodoni Moda, the site's display serif, with Georgia where webfonts are stripped. */
 const headingFontStack = "'Bodoni Moda', Georgia, 'Times New Roman', serif"
 
-/** The one webfont request: Bodoni Moda 700 for headlines, Montserrat 400/600 for text. */
-export const EMAIL_FONTS_URL =
-  'https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@700&family=Montserrat:wght@400;600&display=swap'
+/* No webfont request (lead 11-09, privacy): no font host sees a reader's IP; clients with the faces installed use
+   them, the rest fall back down the stacks above. */
 
 
 export const main = {

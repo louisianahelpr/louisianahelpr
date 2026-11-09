@@ -28,7 +28,7 @@ export const DECLUTTER_PREVIEW_READ_RPCS: ReadonlySet<string> = new Set([
   "declutter_order_talk_view", "declutter_porch_days", "declutter_price_hint", "declutter_refund_request_view",
   "declutter_seller_can_ship", "declutter_ship_options_state", "declutter_seller_delivery_booking", "declutter_seller_delivery_offer",
   "declutter_seller_item_private", "declutter_seller_moving_sale", "declutter_seller_on_time_handovers", "declutter_seller_porch_places",
-  "declutter_seller_sold_count", "declutter_setup_helpr", "declutter_visible_reviews", "declutter_wanted_browse",
+  "declutter_seller_sold_count", "declutter_setup_helpr", "declutter_sold_item_card", "declutter_visible_reviews", "declutter_wanted_browse",
   "get_public_profile_stats", "get_safe_profiles", "get_user_last_active", "helpr_my_route", "helpr_my_tasks", "helpr_route_suggestions",
   "helpr_task_no_show_report", "helpr_task_pickup_windows", "helpr_task_same_pickup_slot", "helpr_task_talk_view",
   "helpr_task_view", "helpr_tasks_open_count", "helpr_tasks_open_near",

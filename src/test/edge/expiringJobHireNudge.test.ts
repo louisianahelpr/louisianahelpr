@@ -22,7 +22,7 @@ describe("hire nudge", () => {
   });
 
   it("a job nobody applied to keeps the boost reminder", () => {
-    expect(expiringJobCopy("Mow", 0, "day").message).toMatch(/no helpr yet\. Boost it/);
+    expect(expiringJobCopy("Mow", 0, "day").message).toMatch(/nobody's been picked yet\. Boost it/);
   });
 
   it("the final reminder only goes when someone applied, is marked before it is sent, and is emailed", () => {

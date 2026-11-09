@@ -357,7 +357,7 @@ function ListingsBrowse({ kind, onKind, intro }: { kind: BrowseKind; onKind: (k:
         // Owner 11-01 (B107): the shared Browse empty state, in the same spot as Shops, Declutter and Jobs.
         <BrowseEmptyState
           icon={Home}
-          title={preview ? "Opens soon" : `No ${kind.noun} here yet`}
+          title={preview ? "Coming soon" : `No ${kind.noun} here yet`}
           body={
             city || narrowing
               ? `No ${kind.noun} match yet. Try another city or fewer filters.`

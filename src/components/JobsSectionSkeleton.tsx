@@ -7,6 +7,7 @@ import { PostedListBones, WorkingListBones } from "@/components/ui/skeletons/App
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { PageTitleBar, useHeaderInDesktopBar } from "@/components/header/PageTitleBar";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { jobChipsRowSeen } from "@/lib/jobChipsSeen";
 import { EmptyStateSkeleton, useCachedListCount } from "@/components/ui/skeletons/EmptyStateSkeleton";
 import type { AppliedActivity, PostedActivity } from "@/hooks/useActivityData";
 
@@ -29,7 +30,7 @@ import type { AppliedActivity, PostedActivity } from "@/hooks/useActivityData";
  * Top bar (phone: search, bell, profile; desktop: title, "+") + (desktop) the Browse | Posted | Working tabs, as bones.
  * `list` (phone, Posted / Working): the loaded screen's back row under the bar (SectionListBack, 44px) as a bone.
  */
-function JobsHeaderBones({ list = false }: { list?: boolean }) {
+function JobsHeaderBones({ list = false, chips = false }: { list?: boolean; chips?: boolean }) {
   const desktop = useIsWebDesktop();
   return (
     <div className="explore-header flex flex-col gap-1" aria-hidden>
@@ -58,6 +59,15 @@ function JobsHeaderBones({ list = false }: { list?: boolean }) {
       />
       {/* SectionTabs (desktop): thin underline tabs, 44px. */}
       {desktop && <Skeleton className="h-11 w-full rounded-ds-md" />}
+      {/* Browse's category chips row (phone; JobCategoryChips: 40px chips + 4px scroller pad), only when the last
+          loaded Browse drew it (jobChipsSeen.ts), so the list does not jump down when the chips arrive. */}
+      {!desktop && chips && (
+        <div data-chips-bone="" className="flex min-w-0 gap-2 overflow-hidden pb-1">
+          <Skeleton className="h-10 w-14 shrink-0 rounded-full" />
+          <Skeleton className="h-10 w-24 shrink-0 rounded-full" />
+          <Skeleton className="h-10 w-32 shrink-0 rounded-full" />
+        </div>
+      )}
       {/* SectionListBack (phone, Posted / Working): the back chevron and the list's name, 44px. */}
       {!desktop && list && (
         <div data-list-back-bone="" className="flex h-11 items-center gap-2">
@@ -204,7 +214,7 @@ const JobsSectionSkeleton = () => {
       {!titleInBar && <h1 className="sr-only">Jobs</h1>}
       <span className="sr-only">Loading Jobs…</span>
       {tab === "browse" ? (
-        <BrowseFrame header={<JobsHeaderBones />} />
+        <BrowseFrame header={<JobsHeaderBones chips={jobChipsRowSeen()} />} />
       ) : (
         <JobsListLoadingFrame header={<JobsHeaderBones list />} tab={tab === "posted" ? "posted" : "applied"} />
       )}

@@ -198,6 +198,19 @@ export async function fetchSellerItems(sellerId: string, exceptItemId: string): 
 }
 
 /**
+ * F061 (lead rule 11-09): a SOLD item's title and cover photo id (declutter_sold_item_card, 20261109194234), for its
+ * page's greyed "Sold" card. Null for every other item (withdrawn, removed, rejected, hidden: nothing of it is shown),
+ * and before the function is on prod.
+ */
+export async function fetchSoldItemCard(itemId: string): Promise<{ title: string; photo_id: string | null } | null> {
+  const res = await supabase.rpc("declutter_sold_item_card" as never, { p_item_id: itemId } as never);
+  if (res.error && isMissingRpcNamed(res.error, "declutter_sold_item_card")) return null;
+  const card = rpcData(res as never, (e) => rpcErrorMessage("declutter_sold_item_card", e)) as { title?: unknown; photo_id?: unknown } | null;
+  if (!card || typeof card.title !== "string") return null;
+  return { title: card.title, photo_id: typeof card.photo_id === "string" ? card.photo_id : null };
+}
+
+/**
  * F061 (UI audit 11-09): the newest listings for sale, for the row under a sold or taken-down item's page (the item
  * itself can no longer be read: declutter_item_link_visible answers live and reserved items only).
  */

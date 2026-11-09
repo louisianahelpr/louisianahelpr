@@ -207,7 +207,7 @@ describe("Declutter loading frame (DeclutterGate)", () => {
 
   it("a link that cannot name an item says so at once: no skeleton of photos that will never come", () => {
     const { container } = at("/declutter/item/test", <DeclutterItemPage />, "/declutter/item/:id");
-    expect(screen.getByText("This item isn't available.")).toBeInTheDocument();
+    expect(screen.getByText("No longer available.")).toBeInTheDocument();
     expect(bones(container)).toBe(0);
   });
 

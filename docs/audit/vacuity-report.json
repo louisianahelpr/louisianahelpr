@@ -1,12 +1,14 @@
 {
-  "generated": "2026-11-09T21:37:25.495Z",
-  "guards": 3751,
-  "registered": 3750,
+  "generated": "2026-11-09T23:13:53.167Z",
+  "guards": 3782,
+  "registered": 3781,
   "unregistered": [
     "src/lib/shops/preorders.test.ts"
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/pages/jobs/jobPage/expiredRepost.test.tsx",
+    "src/test/declutterActiveFilters.test.tsx",
     "src/test/declutterTradesClient.test.tsx",
     "src/test/fabClearsLastRow.test.tsx"
   ],

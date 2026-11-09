@@ -20,7 +20,7 @@ import { BundleDiscountCard, bundleRuleKey, useBundleRule } from "./BundleDiscou
 import { setBundleDiscount } from "@/lib/declutter/bundle";
 import { bundleErrorMessage } from "@/lib/declutter/bundleErrors";
 import { SellerDeliveryDetails } from "./SellerDeliverySettings";
-import { ChipGroup, dropRunTime } from "./DeclutterSellSteps";
+import { ChipGroup } from "./DeclutterSellSteps";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { KEEP_UP_TITLE, keepUpSettingLine } from "./KeepUpRow";
 import { SELLER_WAYS, SellWayTiles } from "./SellHandoverChoices";
@@ -47,14 +47,17 @@ export function ListingDefaultsCard({ userId }: { userId: string }) {
   return <ListingDefaultsForm userId={userId} current={saved.data ?? SELLER_DEFAULTS} />;
 }
 
-/** Price drops, keep it up and make it free: the same fields here and in the one-time setup (SellerSetup). */
+/**
+ * Price drops, keep it up, offers, trades and make it free (Declutter settings; the one-time setup no longer asks them,
+ * F124). F125 (UI audit 11-09): plain words: "Lowers 5% each evening", "Lowest price" as a share of the asking price.
+ */
 export function ListingChoiceFields({ draft, change, idPrefix = "defaults" }: { draft: SellerDefaults; change: (patch: Partial<SellerDefaults>) => void; idPrefix?: string }) {
   return (<>
       <div className="flex items-start gap-3">
         <label htmlFor={`${idPrefix}-drops`} className="min-w-0 flex-1">
           <span className="block text-ds-15 font-semibold text-foreground">{DROPS_SWITCH_LABEL}</span>
           <span className="block text-ds-13 text-muted-foreground">
-            {draft.drops ? `It drops ${draft.dropPct}% each evening at ${dropRunTime()}, to a whole dollar, never below your lowest price.` : "Off. It stays at your price until you change it."}
+            {draft.drops ? `Lowers ${draft.dropPct}% each evening, never below your lowest price.` : "Off. It stays at your price until you change it."}
           </span>
         </label>
         <Switch id={`${idPrefix}-drops`} checked={draft.drops} onCheckedChange={(v) => change({ drops: v === true })} />
@@ -62,8 +65,8 @@ export function ListingChoiceFields({ draft, change, idPrefix = "defaults" }: { 
       {draft.drops && (<>
         <ChipGroup label="How much each evening" options={DROP_PCT_CHOICES.map((p) => ({ value: String(p), label: `${p}%` }))} value={String(draft.dropPct)} onChange={(v) => change({ dropPct: Number(v) })} compact />
         <div className="space-y-2">
-          <ChipGroup label="Lowest you'll take" options={floorOptions(draft.floorPct)} value={String(draft.floorPct)} onChange={(v) => change({ floorPct: Number(v) })} compact />
-          <p className="text-ds-13 text-muted-foreground">Starts at {draft.floorPct}% of your asking price. Only you see this. The drops stop here.</p>
+          <ChipGroup label="Lowest price" options={floorOptions(draft.floorPct)} value={String(draft.floorPct)} onChange={(v) => change({ floorPct: Number(v) })} compact />
+          <p className="text-ds-13 text-muted-foreground" data-floor-words="">Lowest price: {draft.floorPct}% of your asking price. Only you see it. The drops stop there.</p>
         </div>
       </>)}
       <div className="flex items-start gap-3">

@@ -3,7 +3,7 @@
  * and "You cancelled · Plans changed · Your payment was refunded" on the tracker. It is said once, on the tracker.
  * An expired listing's tracker says only "No Helpr was hired in time", so its page keeps the money line (once).
  *
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | : refundInTracker ? null : HELD_LINE[status] | : HELD_LINE[status]
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | : refundInTracker ? null : refundLine ?? HELD_LINE[status] | : refundLine ?? HELD_LINE[status]
  */
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
@@ -19,6 +19,9 @@ vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0 
 import { JobTracker, PosterMoneyNotes } from "@/pages/jobs/jobPage/JobPageParts";
 import type { JobPageRow } from "@/pages/jobs/jobPage/useJobPage";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+// F105: the poster's refund numbers (one Receipts read, usePosterJobRefund): unknown unless a test sets them.
+const posterRefund = vi.hoisted(() => ({ value: null as { refundedCents: number; keptCents: number } | null }));
+vi.mock("@/hooks/usePosterJobRefund", () => ({ usePosterJobRefund: () => posterRefund.value }));
 
 const base = {
   id: "j1", title: "Haul off an old couch", status: "cancelled", payment_status: "refunded", customer_id: "p", helper_id: null,
@@ -36,18 +39,35 @@ const pageText = (job: JobPageRow) => {
   unmount();
   return t;
 };
-const refunds = (t: string) => (t.match(/refunded/gi) ?? []).length;
+// F105: "Refund sent to your card" (numbers unknown) or "$28.83 refunded" (known): the refund itself, counted once.
+const refunds = (t: string) => (t.match(/Refund sent|\$[\d.,]+ (?:was )?refunded/g) ?? []).length;
 
 describe("the refund is said once on the job page", () => {
   it("a cancelled job: once, on the tracker line", () => {
     const t = pageText({ ...base, cancelled_by: "p", cancellation_reason: "Plans changed" } as JobPageRow);
-    expect(t).toContain("Your payment was refunded");
+    expect(t).toContain("Refund sent to your card");
+    expect(t).not.toContain("Your payment was refunded");
     expect(refunds(t)).toBe(1);
   });
 
   it("an expired listing: once, under the price", () => {
     const t = pageText({ ...base, cancelled_by: null, cancellation_reason: "Job listing expired: no Helpr was hired" } as JobPageRow);
-    expect(t).toContain("Refunded to your card.");
+    expect(t).toContain("Refund sent to your card.");
     expect(refunds(t)).toBe(1);
+  });
+
+  // F105 (owner UI audit 11-09): with the Receipts numbers the expired listing's line says them, and that the card
+  // processing cost isn't refunded (53c98775: $28.83 back, $1.17 kept). Never a bare "Refunded to your card."
+  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const refundLine = status === "refunded" ? `${refundedWords(refund).replace(/\.$/, "")}.` : null; |   const refundLine = status === "refunded" ? "Refunded to your card." : null;
+  it("an expired listing with the Receipts numbers: the amount and the card cost, once", () => {
+    posterRefund.value = { refundedCents: 2883, keptCents: 117 };
+    try {
+      const t = pageText({ ...base, cancelled_by: null, cancellation_reason: "Job listing expired: no Helpr was hired" } as JobPageRow);
+      expect(t).toContain("$28.83 refunded · Card processing cost isn't refunded.");
+      expect(t).not.toContain("Refunded to your card.");
+      expect(refunds(t)).toBe(1);
+    } finally {
+      posterRefund.value = null;
+    }
   });
 });

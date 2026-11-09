@@ -4,8 +4,12 @@
  * of the same card Browse uses. Both rows and their photos arrive in one
  * paint (one loading gate); an empty row is left out, never shown empty.
  * Never the member's own items (Browse leaves them out the same way).
+ *
+ * F062 (UI audit 11-09): the rows' three reads (seller items, similar, their photos) started with the item and shared
+ * the line with its photo and code, and the rows sat as grey bones for 4+ s. They now start only when the rows come
+ * within ~one screen of view (ROWS_NEAR_MARGIN); until then the same bones hold the space, so nothing moves.
  */
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchPhotos, fetchSellerItems, fetchSimilarItems, type DeclutterItem } from "@/lib/declutter/api";
@@ -43,14 +47,36 @@ function Row({ id, title, items, cover, from }: { id?: string; title: string; it
   );
 }
 
+/** How close (px below the screen) the rows must come before their reads start. */
+export const ROWS_NEAR_MARGIN = "600px 0px";
+
+/** True once `ref` is within ROWS_NEAR_MARGIN of the screen (at once where IntersectionObserver is missing). */
+function useNear(ref: React.RefObject<HTMLElement>): boolean {
+  const [near, setNear] = useState(() => typeof IntersectionObserver !== "function");
+  useEffect(() => {
+    const el = ref.current;
+    if (near || !el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) setNear(true);
+    }, { rootMargin: ROWS_NEAR_MARGIN });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [near, ref]);
+  return near;
+}
+
 export function DeclutterItemRows({ item, viewerId, from }: { item: DeclutterItem; viewerId: string | null; from: From }) {
+  const spot = useRef<HTMLDivElement>(null);
+  const near = useNear(spot);
   const more = useQuery({
     queryKey: ["declutter", "more-from-seller", item.seller_id, item.id],
     queryFn: () => fetchSellerItems(item.seller_id, item.id),
+    enabled: near,
   });
   const similar = useQuery({
     queryKey: ["declutter", "similar", item.category, item.id, item.seller_id],
     queryFn: () => fetchSimilarItems(item.category, item.id, item.seller_id),
+    enabled: near,
   });
   const notMine = (rows: DeclutterItem[] | undefined) => (rows ?? []).filter((r) => r.seller_id !== viewerId);
   const moreRows = notMine(more.data);
@@ -63,9 +89,9 @@ export function DeclutterItemRows({ item, viewerId, from }: { item: DeclutterIte
   });
   const cover = useMemo(() => firstPhotos(photos.data ?? []), [photos.data]);
   // A row that failed to load is left out: the item itself is what the page is for.
-  if (more.isLoading || similar.isLoading || photos.isLoading) {
+  if (!near || more.isLoading || similar.isLoading || photos.isLoading) {
     return (
-      <div className="space-y-2" role="status" aria-label="Loading more items">
+      <div ref={spot} className="space-y-2" role="status" aria-label="Loading more items" data-item-rows-waiting={near ? undefined : ""}>
         <Skeleton className="h-5 w-40" />
         <div className="flex gap-3 overflow-hidden">
           {[0, 1, 2].map((i) => (

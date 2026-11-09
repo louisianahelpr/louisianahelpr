@@ -142,7 +142,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
           // "Like new · 16 mi away" on ONE line. #45 (deep audit 2026-10-28): the distance always shows whole (it never
           // shrinks); the condition gives way first.
           <span data-card-place="" className="flex min-w-0 text-ds-11 text-muted-foreground" title={[condition, away].filter(Boolean).join(" · ")}>
-            {condition && <span data-card-condition={item.condition_stars} className="min-w-0 truncate">{condition}</span>}
+            {condition && <span data-card-condition={item.condition_stars} title={condition} className="min-w-0 truncate">{condition}</span>}
             {condition && away && <span className="shrink-0 whitespace-pre"> · </span>}
             {away && <span data-card-away className="shrink-0 whitespace-nowrap">{away}</span>}
           </span>

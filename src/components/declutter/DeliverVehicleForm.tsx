@@ -33,6 +33,9 @@ export function VehicleForm({ userId }: { userId: string }) {
   const savedCar = savedTruck || (vehicle.data?.has_car ?? false);
   const savedTwo = savedTruck && (vehicle.data?.second_person ?? false);
   const changed = hasCar !== savedCar || hasTruck !== savedTruck || twoPeople !== savedTwo || photo !== null;
+  const needsTruckPhoto = hasTruck && !photo && !vehicle.data?.photo_path;
+  // F129 (UI audit 11-09): a greyed Save said nothing about why. Nothing ticked yet, or a truck with no photo, says so.
+  const saveHint = vehicle.isLoading ? null : !hasCar && !savedCar ? "Tick car or truck to save." : needsTruckPhoto ? "Add a photo of your truck to save." : null;
   const save = useMutation({
     mutationFn: async () => {
       const path = hasTruck ? (photo ? await uploadVehiclePhoto(userId, photo) : vehicle.data?.photo_path ?? null) : null;
@@ -81,9 +84,11 @@ export function VehicleForm({ userId }: { userId: string }) {
         </>
       )}
       <Button type="button" variant="primary" size="sm" className="text-sm font-semibold"
-        disabled={save.isPending || vehicle.isLoading || !changed || (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}>
+        aria-describedby={saveHint ? `helpr-vehicle-hint-${userId}` : undefined}
+        disabled={save.isPending || vehicle.isLoading || !changed || needsTruckPhoto} onClick={() => save.mutate()}>
         {save.isPending ? "Saving…" : "Save"}
       </Button>
+      {saveHint && <p id={`helpr-vehicle-hint-${userId}`} className="text-sm text-muted-foreground" data-vehicle-save-hint="">{saveHint}</p>}
       {/* Audit 1c D3-8: a plain success toast renders nothing (toastPolicy), so "Saved." never showed. */}
       {save.isSuccess && <p className="text-sm font-medium" role="status">Vehicle saved.</p>}
     </section>

@@ -5,6 +5,7 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { DESKTOP_BAR_H } from "@/lib/desktopBar";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { useStoredSessionHint } from "@/hooks/useStoredSessionHint";
+import { useGuestTopBarOn } from "@/lib/guestTopBar";
 
 interface AppShellProps {
   /** Optional fixed header (back button + title, tabs, etc.) */
@@ -77,7 +78,9 @@ const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
     const isWebDesktop = useIsWebDesktop();
     const maybeSignedIn = useStoredSessionHint();
     const pathname = typeof window === "undefined" ? "" : window.location.pathname;
-    const topBarOffset = isWebDesktop && maybeSignedIn && isDesktopRailRoute(pathname) ? DESKTOP_BAR_H : 0;
+    // F047 (owner UI audit 11-09): a guest's Declutter top bar (DeclutterGuestTopBar) is a bar on screen too.
+    const guestBarOn = useGuestTopBarOn();
+    const topBarOffset = isWebDesktop && ((maybeSignedIn && isDesktopRailRoute(pathname)) || guestBarOn) ? DESKTOP_BAR_H : 0;
     const topOffset = bannerOffset + topBarOffset;
 
     return (

@@ -20,7 +20,7 @@
  *      listing card). No radius, no offset, inset ring, the list's 60px floor + px-4 py-3.5, the same tint. Every row
  *      in that list wears LIST_ROW_FLUSH (its 6 action rows as flush ListRows, the Preview Link, the switch rows and
  *      the child rows handed rowClassName), so the list has ONE look and no hand-made <button> row is left.
- * @mutate src/components/ui/ListRow.tsx | variant === "flush" ? `${LIST_ROW_FLUSH} ${LIST_ROW_TINT}` : CARD | variant === "flush" ? `${LIST_ROW_FLUSH} rounded-xl` : CARD
+ * @mutate src/components/ui/ListRow.tsx |     className={cn(variant === "flush" ? `${LIST_ROW_FLUSH} ${LIST_ROW_TINT}` : CARD, className)}\n  > |     className={cn(variant === "flush" ? `${LIST_ROW_FLUSH} rounded-xl` : CARD, className)}\n  >
  * @mutate src/components/ui/ListRow.tsx | text-left min-h-[60px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset | text-left min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
  * @mutate src/components/declutter/DeclutterManageListing.tsx | const ROW = LIST_ROW_FLUSH; | const ROW = "flex w-full items-center gap-3 px-4 py-3 text-left";
  * @mutate src/components/declutter/DeclutterManageListing.tsx | <ListRow variant="flush" onClick={() => setView("sold")} | <ListRow onClick={() => setView("sold")}

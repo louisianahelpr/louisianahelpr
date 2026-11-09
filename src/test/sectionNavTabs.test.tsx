@@ -41,7 +41,7 @@
  * @mutate src/components/sections/ExploreSwitcher.tsx | <SoonPill variant="caption" data-coming-soon="" /> | <span data-coming-soon="" />
  * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: soon ? tr("nav.comingSoon", { label: name }) : name, |       ariaLabel: name,
  * @mutate src/components/DesktopSidebarNav.tsx |     youItem,\n  ]; |     youItem,\n    { path: "/posts", icon: Plus, label: "Posts" },\n  ];
- * @mutate src/components/DesktopSidebarNav.tsx | onClick={() => { if (soon) return sayComingSoon(label); if | onClick={() => { if (false) return sayComingSoon(label); if
+ * @mutate src/components/DesktopSidebarNav.tsx | {...rowProps} onClick={() => sayComingSoon(label)} aria-disabled | {...rowProps} onClick={() => undefined} aria-disabled
  * @mutate src/components/sections/AppTopBar.tsx |         <span data-testid="top-bar-bell"> |         <span data-testid="top-bar-bell-x">
  * @mutate src/components/profile/ProfileLanding.tsx |       <YourActivity /> |       <Link to="/declutter">Declutter</Link>\n      <YourActivity />
  */
@@ -232,8 +232,9 @@ describe("the section tabs (owner 2026-10-18)", () => {
     expect(rail).toMatch(/badgeKey: "messages" \},\s*youItem,/);
     expect(rail).not.toMatch(/path: "\/posts"/);
     expect(rail).not.toMatch(/Post a job/);
-    expect(rail).toContain("onClick={() => { if (soon) return sayComingSoon(label); if (location.pathname === path) announceTabReselect(path); navigate(path); }}");
-    expect(rail).toContain("aria-disabled={soon ? true : undefined}");
+    // F084 (owner UI audit 11-09): an open section's row is a real link; an off one stays a button that says Coming soon.
+    expect(rail).toContain("<ListRow variant=\"flush\" {...rowProps} onClick={() => sayComingSoon(label)} aria-disabled aria-label={tr(\"nav.comingSoon\", { label: shown })}>");
+    expect(rail).toMatch(/<ListRowLink variant="flush" \{\.\.\.rowProps\} to=\{path\}\s+onClick=\{\(\) => \{ if \(location\.pathname === path\) announceTabReselect\(path\); \}\}/);
   });
 
   it("the Profile landing has no Declutter, Shops or Homes row", () => {

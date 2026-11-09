@@ -53,6 +53,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('rentals_listing_visible',       'allow',    'may this Homes listing show in the browse (live, not expired, ownership approved, owner not banned; 20261019043000)'),
   ('referral_member_has_completed_job','allow', 'referral bonus (20261027201034): TRUE = this member has a completed job, one of the two conditions for paying a referral'),
   ('declutter_item_link_visible',   'allow',    'Q2426 share card (20261027194426): may a public link card show this Declutter item (live/reserved, seller not out, Declutter not off)'),
+  ('declutter_item_sold_visible',  'allow',    'F061 sold card (20261109194234): may a sold item''s page show what it was (sold/completed, never reported, seller not out, Declutter not off)'),
   ('rentals_tenancy_party',         'allow',    'is the caller the landlord or tenant of this tenancy (Homes rent tracker read policies, 20261019073106)'),
   ('feature_enabled_for_user',      'allow',    'hidden feature switch is on for this user (service_role, edge functions)'),
   ('terms_accepted_is_current',     'allow',    'Terms check (20261108154435): TRUE = this member accepted the current Terms, so a commitment may go ahead (service_role, edge functions)'),
@@ -296,6 +297,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('referral_member_has_completed_job', NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1]),
   -- L is D's LIVE Declutter item and Declutter is on for testers (the 'declutter' fixture step), so the non-NULL call is TRUE.
   ('declutter_item_link_visible',   NULL, ARRAY['''00000000-0000-4000-8140-000000000311''::uuid'], ARRAY[1]),
+  -- S is D's SOLD Declutter item and Declutter is on for testers, so the non-NULL call is TRUE (F061).
+  ('declutter_item_sold_visible',   NULL, ARRAY['''00000000-0000-4000-8140-000000000312''::uuid'], ARRAY[1]),
   ('payout_setup_hire_allowed',     NULL, ARRAY['''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1]),
   ('helper_credential_document_ok', NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''trade_license''', '''00000000-0000-4000-8140-00000000000a/credentials/trade_license-1757721600000.png'''], ARRAY[1,2,3]),
   ('helper_has_advanced_analytics', '00000000-0000-4000-8140-00000000000b', ARRAY['''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1]),
@@ -487,6 +490,11 @@ BEGIN
           EXECUTE $q$INSERT INTO public.declutter_items (id, seller_id, status, title, category, condition_stars, delivery_size,
                                                         price_cents, current_price_cents, area_label, area_lat, area_lng)
                    VALUES ('00000000-0000-4000-8140-000000000311', '00000000-0000-4000-8140-00000000000d', 'live', '[q140] chair',
+                           'furniture', 3, 'small', 1000, 1000, 'Metairie', 29.98, -90.15)$q$;
+          -- S: D's sold item, for declutter_item_sold_visible (F061).
+          EXECUTE $q$INSERT INTO public.declutter_items (id, seller_id, status, title, category, condition_stars, delivery_size,
+                                                        price_cents, current_price_cents, area_label, area_lat, area_lng)
+                   VALUES ('00000000-0000-4000-8140-000000000312', '00000000-0000-4000-8140-00000000000d', 'sold', '[q140] desk',
                            'furniture', 3, 'small', 1000, 1000, 'Metairie', 29.98, -90.15)$q$;
           EXECUTE $q$UPDATE public.feature_switches SET audience = 'testers' WHERE key = 'declutter'$q$;
         END IF;

@@ -17262,6 +17262,14 @@ export type Database = {
         Args: { p_photo_id: string }
         Returns: string
       }
+      declutter_item_sold_visible: {
+        Args: { p_item_id: string }
+        Returns: boolean
+      }
+      declutter_sold_item_card: {
+        Args: { p_item_id: string }
+        Returns: Json
+      }
       declutter_active_strike_count: { Args: { p_user_id: string }; Returns: number }
       create_quote_request: {
         Args: {

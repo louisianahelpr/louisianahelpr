@@ -19,6 +19,9 @@
  * The @mutate lines break each sentence; this file must go red.
  *
  * @mutate src/App.tsx | <ProtectedRoute fallback={<DashboardRouteSkeleton />}><HomeDashboard /></ProtectedRoute> | <ProtectedRoute fallback={<DashboardRouteSkeleton />}><Dashboard /></ProtectedRoute>
+ * F081 (owner UI audit 11-09): money waiting on a payout account is Next up's ask, never "all caught up".
+ * @mutate src/pages/home/HomeDashboard.tsx |               ) : payoutAsk ? ( |               ) : false ? (
+ * @mutate src/pages/home/HomeDashboard.tsx | const payoutAsk = money.coming && !money.coming.hasPayoutAccount && !setupPaused ? | const payoutAsk = money.coming && !money.coming.hasPayoutAccount ?
  * @mutate src/pages/home/HomeDashboard.tsx |   const [todoOpen, setTodoOpen] = useState(false); |   const [todoOpen, setTodoOpen] = useState(true);
  * @mutate src/pages/home/HomeDashboard.tsx | useState(false);\n  const toggleTodo = () => setTodoOpen((o) => !o); | useState(() => sessionStorage.getItem("t") === "1");\n  const toggleTodo = () => setTodoOpen((o) => { sessionStorage.setItem("t", o ? "0" : "1"); return !o; });
  * @mutate src/pages/home/HomeDashboard.tsx |   useOnTabReselect("/home", () => setTodoOpen(false)); |   useOnTabReselect("/home", () => undefined);
@@ -125,7 +128,10 @@ vi.mock("@/lib/declutter/api", () => ({ fetchMyItems: async () => [], fetchMyCar
 // B87: Home reads these two through their own module.
 vi.mock("@/lib/declutter/myReads", () => ({ fetchMyItems: async () => [], fetchMyCart: async () => [] }));
 // Home's money tiles read the Money tab's own queries; homeMoneyTiles/homeMoneyGating prove them.
-vi.mock("@/pages/home/homeDashboard/homeMoney", () => ({ useHomeMoney: () => ({ coming: null, held: null }) }));
+// F081: a test sets `coming` (money waiting on a payout account) and whether payout setup is offered.
+const homeMoney = vi.hoisted(() => ({ coming: null as null | { cents: number; hasPayoutAccount: boolean }, setupPaused: false }));
+vi.mock("@/pages/home/homeDashboard/homeMoney", () => ({ useHomeMoney: () => ({ coming: homeMoney.coming, held: null }) }));
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => homeMoney.setupPaused }));
 vi.mock("@/lib/shops/orders", () => ({
   fetchMyOrders: async () => [],
   fetchShopOrders: async () => [
@@ -345,6 +351,37 @@ describe("Home", () => {
     expect(card.querySelector("button")).toBeNull();
     expect(card.textContent).not.toMatch(/\$|\d/);
     noTodos.on = false;
+  });
+
+  it("F081: with nothing to do but pay waiting on a payout account, Next up asks for the account (never all caught up)", async () => {
+    switches.on = new Set();
+    noTodos.on = true;
+    homeMoney.coming = { cents: 800, hasPayoutAccount: false };
+    try {
+      wrap(<HomeDashboard />);
+      const title = await screen.findByText("Add your payout account to get $8.00");
+      expect(screen.getByTestId("next-up").contains(title)).toBe(true);
+      expect(screen.queryByText("You're all caught up")).toBeNull();
+      fireEvent.click(screen.getByTestId("next-up-payout"));
+      expect(screen.getByTestId("where").textContent).toBe("/profile?tab=payment");
+      cleanup();
+      // Payout setup not offered (paused, or not hired yet): no ask, the same as the money tile's caption.
+      homeMoney.setupPaused = true;
+      wrap(<HomeDashboard />);
+      await screen.findByText("You're all caught up");
+      expect(screen.queryByTestId("next-up-payout")).toBeNull();
+      cleanup();
+      // An account on file: nothing to ask.
+      homeMoney.setupPaused = false;
+      homeMoney.coming = { cents: 800, hasPayoutAccount: true };
+      wrap(<HomeDashboard />);
+      await screen.findByText("You're all caught up");
+      expect(screen.queryByTestId("next-up-payout")).toBeNull();
+    } finally {
+      noTodos.on = false;
+      homeMoney.coming = null;
+      homeMoney.setupPaused = false;
+    }
   });
 
   it("has the Next up card (no stat boxes), no + and no category pill row", () => {

@@ -21,6 +21,8 @@ import { requestHelperStep } from "@/components/job-card/helperStepRequest";
 import { COMING_UP_ROLE, type ComingUpItem } from "./homeDashboard/comingUp";
 import { useHomeMoney } from "./homeDashboard/homeMoney";
 import { HomeMoneyTiles } from "./homeDashboard/HomeMoneyTiles";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { readReservedHeight, useReservedHeight } from "./homeDashboard/reservedHeight";
 import { useOnTabReselect } from "@/components/mobileNav/tabReselect";
 import { feedLinkTarget } from "./homeDashboard/feedLinkForward";
@@ -78,6 +80,10 @@ function HomeDashboardScreen() {
   const summary = useHomeSummary(user);
   const firstJob = useFirstJobState(user?.id);
   const money = useHomeMoney(user);
+  // F081 (owner UI audit 11-09): money is waiting on a payout account, so Next up asks for it instead of saying
+  // "all caught up" or naming only someone else's turn. Same rule as the money tile's caption (HomeMoneyTiles).
+  const setupPaused = usePayoutSetupPaused();
+  const payoutAsk = money.coming && !money.coming.hasPayoutAccount && !setupPaused ? formatCents(money.coming.cents) : null;
   // First visit on this device (Next up is always drawn, so its height is saved after every settled load): no reserve
   // to hold for the to-dos or the money strip, so the blocks below Next up wait for those reads (homeTopSettled.ts).
   const firstVisit = useMemo(() => !!user?.id && !readReservedHeight(`next-up:${user.id}`), [user?.id]);
@@ -276,7 +282,7 @@ function HomeDashboardScreen() {
                     </div>
                   </div>
                 </>
-              ) : summary.todosLoading ? (
+              ) : summary.todosLoading || money.pending ? (
                 /* Q2706 (B98): the to-dos are still loading. Never "all caught up" before the reads answer; hold the
                    to-do card's own size (title, meta, the 44px action row) so nothing moves when it lands. */
                 <>
@@ -288,6 +294,14 @@ function HomeDashboardScreen() {
                   </p>
                   <p aria-hidden className="text-ds-14 text-muted-foreground">One moment</p>
                   <div aria-hidden className="h-11 mt-1" />
+                </>
+              ) : payoutAsk ? (
+                <>
+                  <p data-testid="next-up-title" className="text-ds-18 font-bold leading-snug text-foreground [overflow-wrap:anywhere]">Add your payout account to get {payoutAsk}</p>
+                  <p className="text-ds-14 text-muted-foreground">Your pay is kept until you add where to send it.</p>
+                  <Button type="button" size="sm" data-testid="next-up-payout" onClick={() => navigate("/profile?tab=payment")} className="self-end mt-1 px-5 text-ds-15 font-semibold tracking-normal shadow-none">
+                    Set up
+                  </Button>
                 </>
               ) : summary.waiting ? (
                 /* Board 83: nothing is mine to do, so Next up says who is up; never blank. */

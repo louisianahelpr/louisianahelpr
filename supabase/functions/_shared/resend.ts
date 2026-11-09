@@ -384,7 +384,7 @@ export interface QueueEmailResult {
  * sign-off belongs). The real send path (renderEmail -> pgmq jsonb -> process-email-queue -> Resend) re-rendered
  * clean, so queueEmail does not refuse such a body: it says so loudly, naming the template, so a real one is found.
  */
-export function emailHasBrokenText(...parts: Array<string | undefined>): boolean {
+function emailHasBrokenText(...parts: Array<string | undefined>): boolean {
   return parts.some((p) => typeof p === "string" && p.includes("\uFFFD"));
 }
 

@@ -7,7 +7,7 @@
  * @mutate supabase/functions/_shared/email-templates/email-changed.tsx |       {SELF_CHANGE_HEADING}\n |       {HEADING}\n
  * @mutate supabase/functions/_shared/email-templates/email-changed.tsx |     <BrandButton href={`${getAppUrl()}/forgot-password`} | <BrandButton href={`${getAppUrl()}/profile`}
  *
- * F182: strike 2 and 3 emails with a blank admin note said "regarding a platform policy violation:" and never said
+ * F182: the strike-2 and strike-3 emails with a blank admin note said "regarding a platform policy violation:" and never said
  * what it was; strike 2's subject was in shouting caps.
  * @mutate supabase/functions/admin-user-actions/index.ts |               : STRIKE_NO_NOTE_LINE, |               : 'You\'ve received a formal warning regarding a platform policy violation:',
  * @mutate supabase/functions/admin-user-actions/index.ts |         emailSubject = 'Louisiana Helpr: final warning on your account' |         emailSubject = 'Helpr — FINAL warning'
@@ -59,7 +59,7 @@ describe("email copy, owner's message review 11-09", () => {
 
   it("F163: the email-change notice says it was ASKED for, and the not-you path has a reset button", () => {
     const src = T("email-changed.tsx");
-    expect(src).toContain("export const SELF_CHANGE_HEADING = 'Someone asked to change your login email'");
+    expect(src).toContain("const SELF_CHANGE_HEADING = 'Someone asked to change your login email'");
     const self = component(src, "SelfEmailChangeNoticeEmail");
     expect(self).toContain("{SELF_CHANGE_HEADING}");
     expect(self).not.toMatch(/\{HEADING\}/);

@@ -351,7 +351,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
           {/* Owner 11-07: "Bundle and save" when the seller's bundle discount can apply here. */}
           {!isSeller && user && bundle && canAct && <BundleSaveBox summary={bundle} />}
           {/* BUY-16: a guest sees the seller's first name only (declutter_guest_seller_first_name). */}
-          {!user && <DeclutterGuestSeller itemId={it.id} />}
+          {!user && <DeclutterGuestSeller itemId={it.id} free={free} />}
           {!isSeller && user && <DeclutterMovingSaleNote itemId={it.id} sellerId={it.seller_id} />}
 
           {/* Owner mockup 11-01: "About this item" (the description) first, then the Category and Size rows. */}
@@ -369,6 +369,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
           {/* Owner mockup 11-01: ONE pickup block, the ways and cities once, identical hours once. */}
           <ItemPickupBlock
             itemId={itemId}
+            sellerId={it.seller_id}
+            guest={!user}
             porchOk={it.porch_ok !== false}
             areaLabel={it.area_label}
             free={free}

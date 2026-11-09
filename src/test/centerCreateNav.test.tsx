@@ -11,7 +11,8 @@
  *   under the under-18 gate; Declutter: Sell an item; Shops / Homes: their add), and on Dashboard, on a section
  *   closed to the viewer and on every other screen it opens the Create sheet ("What are we doing?").
  * - The Create sheet (mock-up 20): ONE ROW PER SECTION in Customize order, each with ONE main button (owner 10-31,
- *   LEAD-CREATE-SHEET-TRIM). "Open a shop" becomes "Add a product or service" once the member has a shop. A section
+ *   LEAD-CREATE-SHEET-TRIM), except Declutter's, which also offers Give away free and Post a Wanted (owner UI audit
+ *   11-09, F135). "Open a shop" becomes "Add a product or service" once the member has a shop. A section
  *   closed to the viewer is a greyed "Coming soon" row with no actions; it never routes into a closed section.
  * - A section's phone top bar shows the section's own title (the Explore chips row left with Explore: the bottom bar
  *   switches sections). Explore (/explore, still a route for old links) opens the section last in, else the first
@@ -31,7 +32,7 @@
  * @mutate src/components/sections/AppTopBar.tsx | "aria-haspopup": "dialog" as const, "aria-expanded": sheetOpen | "aria-haspopup": "dialog" as const
  * @mutate src/components/create/CreateSheet.tsx |                 {on && ( |                 {true && (
  * @mutate src/components/create/CreateSheet.tsx |                         onClick={a.gated ? gate.gate("post", () => go(a.path)) : () => go(a.path)} |                         onClick={() => go(a.path)}
- * @mutate src/components/create/CreateSheet.tsx | declutter: [{ label: "Sell an item", path: SELL_CHOOSER_PATH }], | declutter: [{ label: "Sell an item", path: SELL_CHOOSER_PATH }, { label: "Moving out sale", path: "/declutter/sell?mode=move" }],
+ * @mutate src/components/create/CreateSheet.tsx |       { label: "Post a Wanted", path: WANTED_POST_PATH },\n    ], |       { label: "Post a Wanted", path: WANTED_POST_PATH },\n      { label: "Moving out sale", path: "/declutter/sell?mode=move" },\n    ],
  * @mutate src/components/create/CreateSheet.tsx | label: hasShop ? "Add a product or service" : "Open a shop" | label: "Open a shop"
  * @mutate src/components/create/CreateSheet.tsx |   return { isOn, isPreview, actions }; |   return { isOn, isPreview, actions: { ...actions, jobs: [...actions.jobs, { label: "or describe it", path: "/post-job?start=ai" }] } };
  * @mutate src/pages/post-job/usePostJobForm.ts |     searchParams.get("start") === "ai" ? "ai" : null, |     null,
@@ -288,8 +289,9 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
     openSheet();
     expect([...document.querySelectorAll("[data-create-row]")].map((e) => e.getAttribute("data-create-row"))).toEqual(["jobs", "declutter", "shops", "homes"]);
     expect(actionLabels("jobs")).toEqual(["Post a job"]);
-    // Owner 10-31 (LEAD-CREATE-SHEET-TRIM): ONE button per row, even with the moving-out switch on.
-    expect(actionLabels("declutter")).toEqual(["Sell an item"]);
+    // Owner 10-31 (LEAD-CREATE-SHEET-TRIM): ONE button per row, even with the moving-out switch on; EXCEPT Declutter,
+    // which carries Give away free and Post a Wanted too (owner UI audit 11-09, F135, approved via the lead 11-09).
+    expect(actionLabels("declutter")).toEqual(["Sell an item", "Give away free", "Post a Wanted"]);
     expect(actionLabels("homes")).toEqual(["List for rent"]);
     expect(await screen.findByText("Open a shop")).toBeTruthy();
     expect(actionLabels("shops")).toEqual(["Open a shop"]);
@@ -304,6 +306,21 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
     openSheet();
     expect(await screen.findByText("Add a product or service")).toBeTruthy();
     expect(screen.queryByText("No shop yet")).toBeNull();
+  });
+
+  // F135: Declutter's two outline buttons open the free Sell flow and the Wanted form.
+  // @mutate src/components/create/CreateSheet.tsx |       { label: "Give away free", path: SELL_FREE_PATH }, |       { label: "Give away free", path: SELL_CHOOSER_PATH },
+  it.each([
+    [1, "/declutter/sell?free=1"],
+    [2, "/declutter?tab=wanted&post=1"],
+  ])("Declutter's button %i goes to %s (F135)", (i, path) => {
+    renderDock();
+    openSheet();
+    const btn = action("declutter", i);
+    expect(btn.className).toContain("whitespace-nowrap");
+    expect(btn.className).not.toContain("btn-grad-primary");
+    fireEvent.click(btn);
+    expect(where()).toBe(path);
   });
 
   it.each([

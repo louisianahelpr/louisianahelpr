@@ -12855,7 +12855,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 173,
+      "line": 174,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12865,7 +12865,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 174,
+      "line": 175,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12875,7 +12875,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 175,
+      "line": 176,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12885,7 +12885,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 195,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12895,7 +12895,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 196,
+      "line": 197,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12905,7 +12905,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 197,
+      "line": 198,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12915,7 +12915,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 213,
+      "line": 214,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12925,7 +12925,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 296,
+      "line": 297,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12935,7 +12935,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 304,
+      "line": 305,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12945,7 +12945,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 374,
+      "line": 375,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12955,7 +12955,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 444,
+      "line": 445,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

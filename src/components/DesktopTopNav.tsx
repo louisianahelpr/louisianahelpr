@@ -11,6 +11,10 @@ import { DESKTOP_BAR_PAD_TOP } from "@/lib/desktopBar";
 import { HelpEntry } from "@/components/help/HelpEntry";
 import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 import { avatarButtonLabel } from "@/lib/avatarImage";
+import { useState } from "react";
+import { LogOut, Settings, UserRound } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { SignOutConfirmDialog } from "@/components/auth/SignOutConfirmDialog";
 
 /**
  * The signed-in app bar for the DESKTOP WEBSITE: the notification bell and the
@@ -50,6 +54,7 @@ const DesktopTopNav = () => {
   // 1440, banner bottom 31.9 vs the "Jobs" h1 top 28.4 (B44 10-31). AppShell already starts its frame at banner + bar,
   // so the bar moves down by the same banner offset. 0 while the banner is hidden. Guard: src/test/offlineBannerOverDesktopBar.test.ts.
   const bannerOffset = useOfflineBannerOffset();
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   if (!isWebDesktop) return null;
   if (!isDesktopRailRoute(location.pathname)) return null;
@@ -84,19 +89,45 @@ const DesktopTopNav = () => {
           {/* UX-6: the one Help entry, left of the bell. */}
           <HelpEntry />
           <NotificationPanel />
-          {/* Board 11: bell, then the member's photo (opens You). */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="iconCompact"
-            aria-label={avatarButtonLabel("Profile", profile?.full_name)}
-            data-testid="desktop-top-profile"
-            onClick={() => navigate("/profile")}
-          >
-            <UserAvatar userId={user.id} src={profile?.avatar_url} name={profile?.full_name} pixelSize={72} alt="" className="w-9 h-9" />
-          </Button>
+          {/* Board 11: bell, then the member's photo. F086 (owner UI audit 11-09): it opens a small menu (Profile,
+              Settings, Log out) instead of going straight to You, so a photo that is a logo (the admin account's) no
+              longer reads as a home button. No photo: UserAvatar draws the initials. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="iconCompact"
+                aria-label={avatarButtonLabel("Profile", profile?.full_name)}
+                data-testid="desktop-top-profile"
+              >
+                <UserAvatar userId={user.id} src={profile?.avatar_url} name={profile?.full_name} pixelSize={72} alt="" className="w-9 h-9" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48" data-testid="desktop-top-profile-menu">
+              <DropdownMenuItem onSelect={() => navigate("/profile")}>
+                <UserRound className="w-4 h-4 mr-2" aria-hidden /> Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => navigate("/profile?tab=settings")}>
+                <Settings className="w-4 h-4 mr-2" aria-hidden /> Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => setLogoutOpen(true)}>
+                <LogOut className="w-4 h-4 mr-2" aria-hidden /> Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
+      {/* The same confirm You > Log out opens (Profile.tsx). */}
+      <SignOutConfirmDialog
+        open={logoutOpen}
+        onOpenChange={setLogoutOpen}
+        title="Log out?"
+        description="You can sign back in anytime — your account stays intact."
+        label="Log out"
+        after={() => navigate("/")}
+      />
     </header>
   );
 };

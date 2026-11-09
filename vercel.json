@@ -299,6 +299,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/declutter/wanted/new",
+      "destination": "/index.html"
+    },
+    {
       "source": "/declutter/item/:id",
       "destination": "/index.html"
     },

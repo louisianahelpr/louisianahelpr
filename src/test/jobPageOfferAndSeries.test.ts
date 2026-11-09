@@ -33,7 +33,8 @@ describe("the job page and offer card say what is being offered", () => {
     const page = src("src/pages/jobs/jobPage/JobPage.tsx");
     expect(page).toMatch(/const offeredToMe = useOfferedToMe\(/);
     expect(page).toContain("posterFirst, onCrew, offeredToMe });");
-    expect(page).toContain('{!isHired && !isPoster && seriesSummary(job) && <p data-job-series=""');
+    // Owner pick 11-08 (JP1): the series is the Visits facts row.
+    expect(page).toContain('{!isHired && !isPoster && seriesSummary(job) && <FactRow label="Visits" data-job-series="">');
   });
 
   it("the offer card shows the series line", () => {

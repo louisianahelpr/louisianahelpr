@@ -25,7 +25,7 @@
  */
 import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -228,6 +228,20 @@ describe("the booked Helpr: Confirm, Decline, 2-hour countdown, every outcome", 
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     expect(await screen.findByText(INSTANT_OUTCOME_COPY.confirmed.body)).toBeTruthy();
     expect(db.calls.find((c) => c.fn === "capture_hold")?.args).toEqual({ knownHeld: true });
+  });
+
+  // Owner pick 11-08 (JP2): on the job page the booked Helpr's Decline | Confirm are the page's sticky action bar
+  // (fixed on a phone's bottom edge), like every other stage; the Working card keeps them in the card.
+  // @mutate src/components/jobs/InstantBookingCard.tsx |           ? <StickyActionBar label="Answer the booking" data-job-bar="instant" spacer={false}>{pair}</StickyActionBar> |           ? <div className="flex gap-2">{pair}</div>
+  it("on the job page (sticky) Decline | Confirm are the sticky bar, Confirm on the right; in the card otherwise", () => {
+    const { unmount } = wrap(<InstantBookingCard jobId={JOB} title="Mow the yard" declineUntil={until} now={NOW} sticky />);
+    const bar = document.querySelector('[data-job-bar="instant"]') as HTMLElement;
+    expect(bar).toBeTruthy();
+    expect(within(bar).getAllByRole("button").map((b) => b.textContent)).toEqual(["Decline", "Confirm"]);
+    unmount();
+    wrap(<InstantBookingCard jobId={JOB} title="Mow the yard" declineUntil={until} now={NOW} />);
+    expect(document.querySelector("[data-job-bar]")).toBeNull();
+    expect(screen.getByRole("button", { name: "Confirm" })).toBeTruthy();
   });
 
   it("Decline asks first, then calls rpc_instant_book_decline: no strike, nothing charged", async () => {

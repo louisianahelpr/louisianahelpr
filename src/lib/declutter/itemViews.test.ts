@@ -31,6 +31,9 @@ vi.mock("@/lib/declutter/api", () => ({
   sendItemViewRpc: (item: string, device: string | null) => rpc(item, device),
   fetchMyItemViewCounts: async () => new Map(),
 }));
+// recordItemView also logs the funnel's item_view step (H3); stubbed so its RPC never leaves the test (CI's
+// prodNetworkGuard caught it landing during a later test of this file).
+vi.mock("@/lib/declutter/funnel", () => ({ trackFunnel: () => {} }));
 const settled: Array<() => void> = [];
 vi.mock("@/lib/routePrefetch", () => ({
   whenPageSettled: (cb: () => void) => { settled.push(cb); return () => {}; },

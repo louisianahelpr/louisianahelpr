@@ -36,14 +36,13 @@ const day = (offsetDays: number) =>
   }).format(new Date(Date.now() + offsetDays * 86_400_000));
 
 describe("bucket order + the live-day rule are one change", () => {
-  it("both tabs run Needs You · Waiting · Scheduled · Done · Cancelled", () => {
+  it("Posted runs Needs You · Waiting · Scheduled · Done · Cancelled; Working its own chips (F107)", () => {
     const order = ["needs_you", "waiting", "scheduled", "done", "cancelled"];
     expect(POSTED_STATUS_FILTERS.map((f) => f.key)).toEqual(order);
-    // The two tabs must never diverge — a reader moving between them would be
-    // learning two different orders for the same five words.
-    expect(APPLIED_STATUS_FILTERS.map((f) => f.key)).toEqual(
-      POSTED_STATUS_FILTERS.map((f) => f.key),
-    );
+    // F107 (owner 11-09, filters inside the tabs; lead kept Needs you): Working is Needs you · Applied · Active ·
+    // Completed, Needs you first on both tabs.
+    expect(APPLIED_STATUS_FILTERS.map((f) => f.key)).toEqual(["needs_you", "applied", "active", "completed"]);
+    expect(APPLIED_STATUS_FILTERS.map((f) => f.label)).toEqual(["Needs you", "Applied", "Active", "Completed"]);
     // Floor: if the list ever came back empty, toEqual above would still need
     // five entries, but assert it plainly so the intent survives a refactor.
     expect(POSTED_STATUS_FILTERS).toHaveLength(5);

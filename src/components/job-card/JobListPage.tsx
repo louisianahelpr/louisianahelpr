@@ -26,7 +26,8 @@ import { PostedJobsTab, AppliedJobsTab, startTabChunk } from "@/components/job-c
 // My Posts gets the identical dialog, reportedType="job".
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 import { useActivityActions } from "@/components/job-card/useActivityActions";
-import { POSTED_STATUS_FILTERS, APPLIED_STATUS_FILTERS, useActivityFilters, postedActivityBucket, appliedActivityBucket, jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
+import { POSTED_STATUS_FILTERS, APPLIED_STATUS_FILTERS, useActivityFilters, postedActivityBucket, workingChip, jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
+import { workingChipForFilter } from "@/lib/activityBuckets";
 import { ActivityEmptyState } from "@/components/job-card/ActivityEmptyState";
 import { useActivityUrlMirror } from "./useActivityUrlMirror";
 import { JobListQuotesSlot } from "@/components/quotes/JobListQuotesSlot";
@@ -51,7 +52,11 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   const defaultFilter = "all";
   // Filter + search seed from URL params (deep links, back/forward); local mirror for typing latency.
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
-  const [statusFilter, setStatusFilter] = useState<string>(() => searchParams.get("filter") ?? defaultFilter);
+  // F107: an old Working link's bucket (?filter=scheduled) opens the chip it lives under now.
+  const [statusFilter, setStatusFilter] = useState<string>(() => {
+    const f = searchParams.get("filter") ?? defaultFilter;
+    return tab === "applied" ? workingChipForFilter(f) : f;
+  });
 
   // Deep-link highlight (/jobs?highlight=<applicationId>): read once, pulse the card, then strip it
   // from the URL (replace) so Back doesn't re-trigger the animation.
@@ -217,7 +222,8 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
         (highlightAppId ? appliedApps.find((a) => a.id === highlightAppId) : undefined);
       if (app) {
         onList = true;
-        bucket = appliedActivityBucket(app);
+        // F107: the Working chip the card is under (not picked: All).
+        bucket = workingChip(app) ?? "all";
         // Pulse the card we just navigated to, even when the link only knew
         // the job id.
         if (!highlightAppId) setHighlightAppId(app.id);

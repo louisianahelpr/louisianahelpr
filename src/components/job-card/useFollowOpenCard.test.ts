@@ -23,7 +23,8 @@ describe("an open card follows its job into its new bucket", () => {
 
   it("switches the selected bucket when the open card's job moves out of it", () => {
     const setStatusFilter = vi.fn();
-    const base = { tab: "applied" as const, postedJobs: [], expandedJobIds: new Set([JOB]), statusFilter: "waiting", setStatusFilter };
+    // F107: Working's chips — the submitted job is Active (hired, waiting on the poster), then Needs you.
+    const base = { tab: "applied" as const, postedJobs: [], expandedJobIds: new Set([JOB]), statusFilter: "active", setStatusFilter };
     const { rerender } = renderHook((p: { apps: AppliedApp[] }) => useFollowOpenCard({ ...base, appliedApps: p.apps }), {
       initialProps: { apps: [submitted] },
     });

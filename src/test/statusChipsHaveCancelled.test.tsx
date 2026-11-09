@@ -33,9 +33,11 @@ describe("Posted / Working: a chip for the cancelled bucket after Done (owner 20
     expect(onFilter).toHaveBeenCalledWith("cancelled");
   });
 
-  it("Working: the same chip in Working's word, 'Not picked'", () => {
-    draw("applied", { all: 3, waiting: 2, cancelled: 1 });
-    expect(chips().slice(-1)[0]).toBe("Not picked · 1");
+  // F107 (owner 11-09): Working's chips are Needs you · Applied · Active · Completed; Not picked shows under All only
+  // (src/test/jobsWorkingChipsAndSaved.test.tsx).
+  it("Working: no Not picked chip (All only, F107)", () => {
+    draw("applied", { all: 3, applied: 2, cancelled: 1 });
+    expect(chips()).not.toContain("Not picked · 1");
   });
 
   it("no count when there is none (truth rule, like Done)", () => {

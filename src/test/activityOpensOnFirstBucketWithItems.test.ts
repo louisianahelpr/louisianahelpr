@@ -28,16 +28,18 @@ const ORDER = POSTED_STATUS_FILTERS.map((f) => f.key);
 const PAGE = blankComments(readFileSync(join(process.cwd(), "src/components/job-card/JobListPage.tsx"), "utf8"));
 
 describe("Jobs > Posted / Working open on every group", () => {
-  it("both tabs walk the same order: needs you, waiting, scheduled, done, cancelled", () => {
+  it("Posted walks needs you, waiting, scheduled, done, cancelled; Working its chips, Needs you first (F107)", () => {
     expect(ORDER).toEqual(["needs_you", "waiting", "scheduled", "done", "cancelled"]);
-    expect(APPLIED_STATUS_FILTERS.map((f) => f.key)).toEqual(ORDER);
+    // F107 (owner 11-09): Working's chips are Needs you · Applied · Active · Completed (not picked under All).
+    expect(APPLIED_STATUS_FILTERS.map((f) => f.key)).toEqual(["needs_you", "applied", "active", "completed"]);
     // Every bucket has its chip, Cancelled last (owner 2026-10-28: "are we missing a button for cancelled?").
     expect([...BOX_BUCKETS]).toEqual(ORDER);
   });
 
   it("the page opens on 'all' and never moves the reader to one bucket by itself", () => {
     expect(PAGE).toContain('const defaultFilter = "all";');
-    expect(PAGE).toMatch(/useState<string>\(\(\) => searchParams\.get\("filter"\) \?\? defaultFilter\)/);
+    // F107: Working maps an old bucket link to its chip, still opening on "all" with no ?filter=.
+    expect(PAGE).toContain('const f = searchParams.get("filter") ?? defaultFilter;');
     // No auto-switch effect survives (the 2026-10-08 rule's code).
     expect(PAGE).not.toMatch(/firstBucketWithItems|openedOnFirstBucketFor/);
   });

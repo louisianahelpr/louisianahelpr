@@ -7,6 +7,7 @@ import {
   APPLIED_STATUS_FILTERS,
   appliedActivityBucket,
   type ActivityBucket,
+  workingChip,
 } from "./activityFilters";
 import { AppliedJobCard } from "@/pages/jobs/AppliedJobCard";
 import type { AppliedApp } from "@/components/job-card/activityConstants";
@@ -218,11 +219,20 @@ describe("Activity (helper) — bucketing is total and exclusive", () => {
     ).toBe(FIXTURES.length);
   });
 
-  it("every bucket has a chip to reach it", () => {
+  // F107 (owner 11-09): Working's chips are Needs you · Applied · Active · Completed. Every row is reachable: by its
+  // chip, and its chip's list holds it; a not-picked row (no chip) is under All.
+  it("every row has a chip to reach it, or is a not-picked row under All (F107)", () => {
     const keys = APPLIED_STATUS_FILTERS.map((f) => f.key);
-    for (const b of BUCKETS) {
-      expect(keys, `bucket "${b}" has rows but no filter chip`).toContain(b);
+    for (const f of FIXTURES) {
+      const chip = workingChip(f.app);
+      if (chip === null) {
+        expect(f.bucket, `"${f.name}" has no chip but is not a not-picked row`).toBe("cancelled");
+        continue;
+      }
+      expect(keys, `"${f.name}" sits under chip "${chip}", which is not drawn`).toContain(chip);
+      expect(filters(chip).filteredAppliedApps, `"${f.name}" is not in its chip's list`).toContain(f.app);
     }
+    expect(FIXTURES.length).toBeGreaterThan(5);
   });
 });
 

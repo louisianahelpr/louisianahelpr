@@ -9,10 +9,15 @@
  * Built from the jobs the feed already holds: no read of its own. Chips are the shared FilterChip; icons are lucide at
  * the app's one weight (owner 11-04), not the filter sheet's emoji.
  * Guard: src/test/jobsCategoryChipsRow.test.tsx.
+ *
+ * F107 (owner UI audit 11-09; owner pick 11-09: filters inside the existing tabs): a "Saved" chip after "All", the
+ * feed's own "Only saved jobs" filter (Dashboard's savedOnly, the same one the filter sheet and the desktop cluster
+ * toggle), so a job you saved has a home on Browse. Shown once you have saved a job, or while it is on.
+ * Guard: src/test/jobsWorkingChipsAndSaved.test.tsx.
  */
 import { useEffect, useMemo } from "react";
 import { noteJobChipsRow } from "@/lib/jobChipsSeen";
-import { Car, Hammer, Home, Leaf, PartyPopper, PawPrint, Sparkles, Truck, type LucideIcon } from "lucide-react";
+import { Bookmark, Car, Hammer, Home, Leaf, PartyPopper, PawPrint, Sparkles, Truck, type LucideIcon } from "lucide-react";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { JOB_CATEGORY_GROUPS, groupTileLabel, isJobCategoryGroupId, jobCategoryGroupOf, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
 
@@ -27,8 +32,10 @@ const GROUP_ICON: Record<JobCategoryGroupId, LucideIcon> = {
   other: Sparkles,
 };
 
-export function JobCategoryChips({ jobs, value, onChange }: {
+export function JobCategoryChips({ jobs, value, onChange, saved }: {
   jobs: readonly { category?: string | null }[];
+  /** F107: the "Only saved jobs" filter as a chip; `count` = jobs saved (no chip at 0 unless it is on). */
+  saved?: { on: boolean; count: number; onToggle: () => void };
   /** The filter's value: a group id, a legacy single category (then no chip is lit but "All" is not either), or null. */
   value: string | null;
   onChange: (value: string | null) => void;
@@ -49,12 +56,20 @@ export function JobCategoryChips({ jobs, value, onChange }: {
   }, [jobs, value]);
   // One group only and nothing chosen: a row of "All" + the one thing on screen says nothing.
   const shown = !(groups.length < 2 && !value);
+  const savedChip = !!saved && (saved.on || saved.count > 0);
+  const rowShown = shown || savedChip;
   // Tell the next loading skeleton whether to draw the chips bone (jobChipsSeen.ts).
-  useEffect(() => { noteJobChipsRow(shown); }, [shown]);
-  if (!shown) return null;
+  useEffect(() => { noteJobChipsRow(rowShown); }, [rowShown]);
+  if (!rowShown) return null;
   return (
     <div role="group" aria-label="Categories" data-chip-row="job-categories" className="flex min-w-0 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <FilterChip pressed={value === null} onClick={() => onChange(null)} className="shrink-0" data-category-chip="all">All</FilterChip>
+      <FilterChip pressed={value === null && !saved?.on} onClick={() => { onChange(null); if (saved?.on) saved.onToggle(); }} className="shrink-0" data-category-chip="all">All</FilterChip>
+      {savedChip && (
+        <FilterChip pressed={saved!.on} onClick={saved!.onToggle} className="shrink-0" data-category-chip="saved">
+          <Bookmark className="h-4 w-4 shrink-0" aria-hidden />
+          Saved
+        </FilterChip>
+      )}
       {groups.map((g) => {
         const Icon = GROUP_ICON[g.id];
         return (

@@ -21,8 +21,8 @@ import {
   useActivityFilters,
   APPLIED_STATUS_FILTERS,
   POSTED_STATUS_FILTERS,
-  appliedActivityBucket,
   postedActivityBucket,
+  workingChip,
 } from "./activityFilters";
 import { ActivityEmptyState } from "./ActivityEmptyState";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
@@ -98,8 +98,9 @@ describe("a search miss names the buckets that hold matches", () => {
   it("My Jobs: the match in another bucket is named, and the jump lands on it", () => {
     const mow = app("a1", "Mow the lawn", "pending", "open");
     const paint = app("a2", "Paint the fence", "accepted", "completed");
-    const here = appliedActivityBucket(mow);
-    const there = appliedActivityBucket(paint);
+    // F107: Working's search counts are per chip (Applied / Completed here), so the jump lands on a drawn chip.
+    const here = workingChip(mow)!;
+    const there = workingChip(paint)!;
     expect(here).not.toBe(there);
 
     const onBucket = (statusFilter: string) =>

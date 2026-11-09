@@ -620,7 +620,7 @@ export async function runLab({ mode, dryRun = false, rebuild = [], serviceKey, s
       if (o.key === "o-booked" || o.key === "o-problem") await booking(slot(2));
       if (o.key === "o-porch-photo") {
         await booking(slot(2));
-        const dest = `${oid}/set-out.jpg`;
+        const dest = `${P.userId}/declutter/handover/${oid}/set-out.jpg`; // <uid>/declutter/handover/<order>/<file> (declutter_handover_photo_access)
         await upload(HANDOVER_BUCKET, dest, photoFor("set-out"));
         await call("POST", "declutter_handovers?select=order_id", { order_id: oid, code: "4821", set_out_photo_path: dest, set_out_at: ago(15), set_out_note: "On the porch bench, left side.", seller_confirmed_at: ago(15) });
       }
@@ -630,7 +630,7 @@ export async function runLab({ mode, dryRun = false, rebuild = [], serviceKey, s
           .catch((e) => log(`  ${o.key}: past booking skipped: ${e.message.slice(0, 160)}`));
         let pickedUp = {};
         if (o.handover === "porch") {
-          const dest = `${oid}/picked-up.jpg`;
+          const dest = `${H.userId}/declutter/handover/${oid}/picked-up.jpg`;
           await upload(HANDOVER_BUCKET, dest, photoFor(o.key));
           pickedUp = { picked_up_at: at, picked_up_photo_path: dest };
         }

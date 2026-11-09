@@ -30,11 +30,13 @@
 // @mutate src/components/declutter/declutterShell.ts | removeShellOncePainted(DECLUTTER_SHELL_ID, doc), SHELL_PHOTO_HOLD_MS); | removeShellOncePainted(DECLUTTER_SHELL_ID, doc), SHELL_PHOTO_HOLD_MS * 10);
 // @mutate index.html |           document.documentElement.setAttribute("data-lh-declutter-guest", ""); |
 // @mutate src/index.css | [data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join] {\n  display: block !important; | [data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join] {\n  display: none;
+// @mutate src/index.css | [data-lh-declutter-guest] #lh-declutter-shell [data-lh-member-tabs] {\n  display: none !important; | [data-lh-declutter-guest] #lh-declutter-shell [data-lh-member-tabs] {\n  display: block;
+// @mutate src/components/declutter/DeclutterSkeletons.tsx | {(guestJoin \|\| hasPersistedAuthToken()) && <DeclutterPhoneTabBones />} | {false && <DeclutterPhoneTabBones />}
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { FEATURE_SWITCH_KEYS } from "@/config/featureSwitches";
 import { DECLUTTER_PREFETCH_KEY, FIRST_SCREEN_SWITCH_KEYS, MEMBER_DECLUTTER_EARLY_KEY, firstCardPhotoPreloads, startDeclutterPrefetch, takeEarlyMemberRead } from "./declutterPrefetch";
-import { DECLUTTER_GUEST_JOIN_RULE, DECLUTTER_PHOTO_MARKUP, SHELLS } from "../../scripts/inline-shell-css.mjs";
+import { DECLUTTER_GUEST_JOIN_RULE, DECLUTTER_GUEST_NO_TABS_RULE, DECLUTTER_PHOTO_MARKUP, SHELLS } from "../../scripts/inline-shell-css.mjs";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { SHELL_PHOTO_HOLD_MS, releaseDeclutterShell, releaseDeclutterShellForCards } from "@/components/declutter/declutterShell";
 
@@ -305,7 +307,9 @@ describe("the skeleton's boxes are Browse's (no jump when Browse replaces the dr
     expect(sk).toMatch(/<div className="pb-2" aria-hidden data-declutter-chip-bones="">\s*<div className="flex gap-2 overflow-hidden pb-1">\s*(<Skeleton className="h-10 w-\d+ shrink-0 rounded-full" \/>\s*){3}<\/div>/);
     expect(sk).toContain('<div className="h-[110px] space-y-1.5 px-0.5 pt-2">');
     // The skeleton's phone tabs slot and Browse's loading chips are the same bones (the header never grows).
-    expect(sk).toContain("tabs={desktop ? <Skeleton className=\"h-11 w-full rounded-ds-md\" aria-hidden /> : <DeclutterChipBones />}");
+    // F153: a member's tab bones (SectionTabs' 44px row over its 1px rule) come first, hidden for a guest.
+    expect(sk).toMatch(/\{\(guestJoin \|\| hasPersistedAuthToken\(\)\) && <DeclutterPhoneTabBones \/>\}\s*<DeclutterChipBones \/>/);
+    expect(sk).toMatch(/<div className="flex items-end gap-1 border-b border-border\/60" aria-hidden data-lh-member-tabs="">\s*<div className="flex h-11 items-center/);
     expect(browse).toContain("chips: chipRow ? <div data-declutter-chips-row=\"\" className=\"pb-2\">{chipRow}</div> : listLoading && !items.isError ? <DeclutterChipBones /> : null,");
     // index.html's shell is rendered from this skeleton (messagesDeclutterShellsMatchSkeletons holds it byte-equal).
     expect(INDEX).toContain('class="h-[110px] space-y-1.5 px-0.5 pt-2"');
@@ -327,6 +331,20 @@ describe("the skeleton's boxes are Browse's (no jump when Browse replaces the dr
     expect(guest).toContain('document.documentElement.setAttribute("data-lh-declutter-guest", "");');
     expect(guest).toContain('document.documentElement.removeAttribute("data-lh-declutter-guest");');
     expect(guest).toContain('if (slots.length) shell.setAttribute("data-lh-photos", "");');
+  });
+
+  // F153 (owner UI audit 11-09): a member's phone shows the section tabs under the search, a guest's none. The shell
+  // draws the member's tab bones above the chip bones; the guest mark hides them (inlined rule + the app's sheet).
+  it("a member's copy carries the tab row's bones under the search; a guest's hides them", () => {
+    const shell = shellMarkup(INDEX);
+    const tabs = shell.indexOf('data-lh-member-tabs=""');
+    expect(tabs).toBeGreaterThan(shell.indexOf('data-testid="app-top-bar-search"'));
+    expect(tabs).toBeLessThan(shell.indexOf("data-declutter-chip-bones"));
+    expect(DECLUTTER_GUEST_NO_TABS_RULE).toBe("[data-lh-declutter-guest] #lh-declutter-shell [data-lh-member-tabs]{display:none!important}");
+    const decl = SHELLS.find((s: { id: string }) => s.id === "lh-declutter-shell") as { show: string };
+    expect(decl.show).toContain(DECLUTTER_GUEST_NO_TABS_RULE);
+    const sheet = readFileSync("src/index.css", "utf8");
+    expect(sheet).toMatch(/\[data-lh-declutter-guest\] #lh-declutter-shell \[data-lh-member-tabs\] \{\s*display: none !important;\s*\}/);
   });
 });
 

@@ -160,7 +160,9 @@ const getCurrentPosition = vi.fn();
 
 /** Where the miles come from and "Use my location" live in Browse's slide-up filter sheet (owner 2026-10-19). */
 async function openFilters() {
-  fireEvent.click(await screen.findByRole("button", { name: /^Filters/ }));
+  // 5 s, as declutterTabs does: the phone header carries the section tabs too since F153, and a role query over the
+  // bigger tree under a loaded run took past the 1 s default (2026-11-09: 5 of its tests, one run).
+  fireEvent.click(await screen.findByRole("button", { name: /^Filters/ }, { timeout: 5000 }));
 }
 
 function at(path: string, el: React.ReactNode, route = path.split("?")[0]) {
@@ -484,9 +486,10 @@ describe("Declutter location ask", () => {
     }
   });
 
-  it("phone (owner 11-08, the Vinted header): the Search Declutter bar with Filters inside it, the category chips under it and no tabs row; the filter sheet's View switches the list to the map, as Jobs' does", async () => {
+  it("phone (owner 11-08, the Vinted header): the Search Declutter bar with Filters inside it, the section tabs under it (F153), then the category chips; the filter sheet's View switches the list to the map, as Jobs' does", async () => {
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: mapShown && others.length > 0 }); |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: others.length > 0 });
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |   } else if (!desktop && mapShown) { |   } else if (false) {
+    // @mutate src/components/declutter/DeclutterHomeView.tsx |         <SectionTabs label="Declutter view" value={view} onChange={goTab} tabs= |         <SectionTabs label="Declutter view" value={view} onChange={goTab} onlySelected tabs=
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |         chips: chipRow ? <div data-declutter-chips-row="" className="pb-2">{chipRow}</div> : listLoading && !items.isError ? <DeclutterChipBones /> : null, |         chips: null,
     twoItems();
     pins.reads = 0;
@@ -494,15 +497,19 @@ describe("Declutter location ask", () => {
       const { container } = at("/declutter", <DeclutterPage />);
       await screen.findByText("Oak rocking chair");
       expect(screen.queryByTestId("declutter-browse-bar")).toBeNull();
-      expect(screen.queryByTestId("section-tabs")).toBeNull();
-      expect(screen.queryByRole("tab")).toBeNull();
+      // F153 (owner UI audit 11-09): the section tabs are back on a phone, one sideways row under the search bar,
+      // above the chips (they were only in My Declutter since 11-08). The gear stays in My Declutter.
+      const tabs = screen.getByTestId("section-tabs");
+      expect(within(tabs).getAllByRole("tab").map((t) => t.getAttribute("data-section-tab"))).toEqual(expect.arrayContaining(["browse", "buying", "selling", "deliver", "free"]));
       const bar = screen.getByRole("search", { name: "Search Declutter" });
+      expect(bar.compareDocumentPosition(tabs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       expect(within(bar).getByRole("button", { name: "Filters" })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Declutter settings" })).toBeNull();
       // The chips sit in the header, under the bar, before the grid.
       const chips = container.querySelector("[data-declutter-chips-row]") as HTMLElement;
       expect(chips).not.toBeNull();
       expect(bar.compareDocumentPosition(chips) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(tabs.compareDocumentPosition(chips) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       expect(chips.compareDocumentPosition(screen.getByText("Oak rocking chair")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       // Typing filters the feed.
       fireEvent.change(within(bar).getByRole("searchbox", { name: "Search Declutter" }), { target: { value: "lamp" } });

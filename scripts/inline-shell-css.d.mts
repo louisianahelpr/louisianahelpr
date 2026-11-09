@@ -13,3 +13,4 @@ export function shellCriticalCss(shellHtml: string | readonly { html: string; ht
 export function inlineShellCss(html: string, css: string): { html: string; bytes: number };
 export const DECLUTTER_PHOTO_MARKUP: string;
 export const DECLUTTER_GUEST_JOIN_RULE: string;
+export const DECLUTTER_GUEST_NO_TABS_RULE: string;

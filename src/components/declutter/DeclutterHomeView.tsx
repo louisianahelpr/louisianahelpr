@@ -50,7 +50,6 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
-import { SectionListBack } from "@/components/sections/SectionListBack";
 import type { DeclutterBrowseHeader, DeclutterChrome } from "./DeclutterBrowseView";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
 import { DeclutterGuestBrowseJoin } from "./DeclutterGuest";
@@ -538,6 +537,8 @@ function DeclutterMemberHome() {
     items: lists.map((l) => ({ key: l.value, label: l.label, to: `/declutter?tab=${l.value}`, count: l.count, quiet: l.quiet })),
     settings: { label: DECLUTTER_SETTINGS.label, to: DECLUTTER_SETTINGS.path },
   };
+  // The tab row's tabs, on desktop and (F153) on a phone: Selling's to-dos are a dot beside its for-sale count.
+  const tabDefs = lists.map((l) => l.value === "selling" ? { ...l, countAsDot: true } : l);
   const chrome = (browse?: DeclutterBrowseHeader): DeclutterChrome => desktop ? {
     tabs: (
       <SectionTabs
@@ -546,13 +547,21 @@ function DeclutterMemberHome() {
         end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>}
         value={view}
         onChange={goTab}
-        tabs={lists.map((l) => l.value === "selling" ? { ...l, countAsDot: true } : l)}
+        tabs={tabDefs}
       />
     ),
   } : {
     search: browse?.search ?? <SectionSearchBar noun="Declutter" home="/declutter" />,
     mine,
-    tabs: browse ? browse.chips : <SectionListBack label={lists.find((l) => l.value === view)?.label ?? "Declutter"} onBack={() => goTab("browse")} />,
+    // F153 (owner UI audit 11-09: "Buying / Selling / Deliver / Wanted / Free tabs aren't visible. Show them (scrollable)
+    // under the search bar"): the section's tabs, one sideways row under the search, then Browse's category chips.
+    // The row is the desktop's SectionTabs (it scrolls and never cuts a word); the gear stays in My Declutter.
+    tabs: (
+      <>
+        <SectionTabs label="Declutter view" value={view} onChange={goTab} tabs={tabDefs} />
+        {browse?.chips}
+      </>
+    ),
   };
   // Owner pick 4 (11-08, design audit B #12): no "+ Sell" pill on a screen with its own main button (Wanted's "Post what
   // you're looking for", Deliver's vehicle form): two filled primaries competed there, and the pill covered "I have a truck".

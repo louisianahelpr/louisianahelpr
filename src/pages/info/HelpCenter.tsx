@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
+import { FieldClearButton } from "@/components/ui/FieldClearButton";
 import FaqRow from "@/components/marketing/FaqRow";
 // The card that closes every legal policy tab. Shared, not copied, so the
 // Help Center and the policy pages cannot drift into two support cards.
@@ -273,15 +274,11 @@ const HelpCenter = () => {
               enterKeyHint="search"
               className="h-12 w-full rounded-full border border-border bg-card pl-11 pr-11 text-ds-15 font-sans text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&::-webkit-search-cancel-button]:hidden"
             />
+            {/* The shared field ✕ (FieldClearButton), so a press keeps it under the pointer (pressKeepsTranslate). */}
             {searching && (
-              <button
-                type="button"
-                onClick={() => setQuery("")}
-                aria-label="Clear search"
-                className="absolute right-1 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
-              >
+              <FieldClearButton onClick={() => setQuery("")} aria-label="Clear search" className="right-3 rounded-full">
                 <X className="h-4 w-4" aria-hidden />
-              </button>
+              </FieldClearButton>
             )}
           </div>
           <div className="space-y-3 sm:space-y-4">

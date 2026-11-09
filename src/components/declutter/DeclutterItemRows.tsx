@@ -14,6 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchNewestItems, fetchPhotos, fetchSellerItems, fetchSimilarItems, fetchSoldItemCard, type DeclutterItem } from "@/lib/declutter/api";
 import { listingPhotoUrl } from "@/lib/profileLink/api";
+import { FallbackImg } from "./FallbackImg";
 import { milesBetween } from "@/lib/declutter/distance";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 
@@ -83,7 +84,7 @@ export function SoldItemCard({ itemId }: { itemId: string }) {
   return (
     <section data-sold-item="" aria-label={`${title}, sold`} className="mb-4 flex items-center gap-4 rounded-[20px] border border-border bg-card p-3">
       <span className="relative block h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
-        {photo_id && <img src={listingPhotoUrl(photo_id, 240)} alt={title} width={240} height={240} className="h-full w-full object-cover opacity-80 grayscale" />}
+        {photo_id && <FallbackImg src={listingPhotoUrl(photo_id, 240)} alt={title} width={240} height={240} className="h-full w-full object-cover opacity-80 grayscale" />}
       </span>
       <span className="min-w-0">
         <span className="mb-1 inline-block rounded-full bg-muted px-2.5 py-0.5 text-ds-12 font-semibold text-foreground" data-sold-badge="">Sold</span>

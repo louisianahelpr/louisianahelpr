@@ -424,6 +424,10 @@
     "src/pages/home/homeDashboard/FirstJobHome.tsx": {
       "button": 1
     },
+    "src/pages/info/HelpCenter.tsx": {
+      "button": 1,
+      "input": 1
+    },
     "src/pages/info/Legal.tsx": {
       "button": 1,
       "input": 1

@@ -1,5 +1,6 @@
 /**
  * Rentals S1 screens: the states a member can reach (docs/specs/landlord-hub-prep.md).
+ * @mutate src/components/rentals/rentalsUi.tsx |         title="Coming soon" |         title="Opens soon"
  * The Rentals API module and the account hooks are stubbed: these tests check
  * what each STATE renders; the backend proof is
  * src/test/pglite/rentalsMaintenance.pglite.mjs.
@@ -257,10 +258,11 @@ beforeEach(() => {
 });
 
 describe("Rentals screens", () => {
-  it("the hidden switch off: /rentals (the phone dock's Homes tab, nav redesign 11-06) says Opens soon under its section title, never the 404", async () => {
+  it("the hidden switch off: /rentals (the phone dock's Homes tab, nav redesign 11-06) says Coming soon under its section title, never the 404 (F139: one word)", async () => {
     state.feature = false;
     renderAt("/rentals");
-    expect(await screen.findByText("Opens soon")).toBeTruthy();
+    expect(await screen.findByText("Coming soon")).toBeTruthy();
+    expect(screen.queryByText("Opens soon")).toBeNull();
     expect(screen.getByRole("heading", { level: 1, name: "Homes" })).toBeTruthy();
     expect(screen.getByText(HOMES_OPENS_SOON_BODY)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Go to Dashboard" }).getAttribute("href")).toBe("/home");
@@ -270,7 +272,7 @@ describe("Rentals screens", () => {
     state.feature = false;
     renderAt("/rentals/requests/r1");
     expect(await screen.findByText("Page not found")).toBeTruthy();
-    expect(screen.queryByText("Opens soon")).toBeNull();
+    expect(screen.queryByText("Coming soon")).toBeNull();
   });
 
   describe("loading frames: the page's own shell, never a blank page (measure-loading-states, 2026-10-15)", () => {

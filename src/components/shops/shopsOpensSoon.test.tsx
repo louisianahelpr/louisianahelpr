@@ -5,7 +5,7 @@
  * which an old Shops link must never do.
  *
  * @mutate src/components/shops/shopsUi.tsx |   if (settled) return <ShopsOpensSoon title={title} backTo={backTo} sectionRoot={!!skeleton} />; |   if (settled) return null;
- * @mutate src/components/shops/shopsUi.tsx |       title="Opens soon" |       title="Page not found"
+ * @mutate src/components/shops/shopsUi.tsx |       title="Coming soon" |       title="Opens soon"
  * @mutate src/components/shops/shopsUi.tsx |   if (sectionRoot) { |   if (false) {
  * @mutate src/components/shops/shopsUi.tsx |           <Link to="/home">Go to Dashboard</Link> |           <Link to="/">Go to Dashboard</Link>
  */
@@ -54,11 +54,12 @@ const PAGES: Array<[string, () => ReactNode, string]> = [
   ["/shops/dashboard", () => <ShopDashboardPage />, "Shop dashboard"],
 ];
 
-describe("Shops switched off shows Opens soon, never the 404 (Q2005)", () => {
+describe("Shops switched off shows Coming soon, never the 404 (Q2005; F139: one word)", () => {
   it.each(PAGES)("%s", (path, page, title) => {
     reported.calls = 0;
     mount(page(), path);
-    expect(screen.getByText("Opens soon")).toBeTruthy();
+    expect(screen.getByText("Coming soon")).toBeTruthy();
+    expect(screen.queryByText("Opens soon")).toBeNull();
     expect(screen.getByText(SHOPS_OPENS_SOON_BODY)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Go to Dashboard" }).getAttribute("href")).toBe("/home");
     expect(screen.getAllByText(title).length).toBeGreaterThan(0);

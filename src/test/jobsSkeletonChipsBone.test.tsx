@@ -5,7 +5,7 @@
  * With no record (first visit, or a feed with under two groups) there is no bone, so a bone never vanishes either.
  *
  * @mutate src/components/JobsSectionSkeleton.tsx | <BrowseFrame header={<JobsHeaderBones chips={jobChipsRowSeen()} />} /> | <BrowseFrame header={<JobsHeaderBones />} />
- * @mutate src/components/dashboard/JobCategoryChips.tsx |   useEffect(() => { noteJobChipsRow(shown); }, [shown]); |   useEffect(() => {}, [shown]);
+ * @mutate src/components/dashboard/JobCategoryChips.tsx |   useEffect(() => { noteJobChipsRow(rowShown); }, [rowShown]); |   useEffect(() => {}, [rowShown]);
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";

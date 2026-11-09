@@ -22,7 +22,7 @@ import { blankComments } from "./helpers/blankNonCode";
 // @mutate src/components/dashboard/browseTasksToolbar/MapToggleButton.tsx |       size="iconCompact" |       size="icon"
 // @mutate src/components/declutter/DeclutterPickupTimes.tsx |           <Button type="button" variant="ghost" size="iconCompact" onClick={onRemove} | <Button type="button" variant="ghost" size="icon" onClick={onRemove}
 // @mutate src/components/BirthdayPopup.tsx |                   size="iconCompact" |                   size="icon"
-// @mutate src/components/DesktopTopNav.tsx |             size="iconCompact"\n            aria-label={avatarButtonLabel("Profile", |             size="icon"\n            aria-label={avatarButtonLabel("Profile",
+// @mutate src/components/DesktopTopNav.tsx |                 size="iconCompact"\n                aria-label={avatarButtonLabel("Profile", |                 size="icon"\n                aria-label={avatarButtonLabel("Profile",
 // @mutate src/pages/profile/SavedSearchesTab.tsx |                   <Button type="button" variant="ghost" size="iconCompact" onClick={() => setEditing(s)} |                   <Button type="button" variant="ghost" size="icon" onClick={() => setEditing(s)}
 // @mutate src/pages/auth/Login.tsx | size="iconCompact" onClick={() => setShowPassword(!showPassword)} | size="icon" onClick={() => setShowPassword(!showPassword)}
 // @mutate src/pages/auth/signup/SignupStep1.tsx | size="iconCompact" onClick={() => setShowPassword(!showPassword)} | size="icon" onClick={() => setShowPassword(!showPassword)}

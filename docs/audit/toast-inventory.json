@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1216,
+    "calls": 1215,
     "files": 350,
-    "rendering": 1135,
+    "rendering": 1134,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 239,
-      "toast.error": 821,
+      "toast.error": 820,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 500,
       "template": 107,
-      "dynamic": 661,
+      "dynamic": 660,
       "jsx": 0
     }
   },
@@ -12785,7 +12785,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 187,
+      "line": 194,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12795,7 +12795,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 203,
+      "line": 210,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12805,7 +12805,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 224,
+      "line": 231,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12815,17 +12815,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 226,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "friendlyAuthError(error.message)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/Login.tsx",
-      "line": 239,
+      "line": 246,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12835,7 +12825,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 267,
+      "line": 274,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12845,7 +12835,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 301,
+      "line": 308,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13257,7 +13247,7 @@
     },
     {
       "file": "src/pages/info/Support.tsx",
-      "line": 280,
+      "line": 281,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

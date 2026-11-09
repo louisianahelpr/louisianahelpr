@@ -16,7 +16,7 @@
  * @mutate src/lib/desktopBar.ts | export const DESKTOP_BAR_PAD_TOP = 14; | export const DESKTOP_BAR_PAD_TOP = 0;
  * @mutate src/components/header/PageTitleBar.tsx |         {desktopGap && <div aria-hidden className="h-2 shrink-0" data-page-title-gap="" />} |         {desktopGap && <div aria-hidden className="h-5 shrink-0" data-page-title-gap="" />}
  * @mutate src/components/ui/PageScaffold.tsx | ${headerInBar ? "lg:pt-3" : "lg:pt-5"} | ${headerInBar ? "lg:pt-5" : "lg:pt-5"}
- * @mutate src/components/AppShell.tsx | isDesktopRailRoute(pathname) ? DESKTOP_BAR_H : 0; | isDesktopRailRoute(pathname) ? 56 : 0;
+ * @mutate src/components/AppShell.tsx | isDesktopRailRoute(pathname)) \|\| guestBarOn) ? DESKTOP_BAR_H : 0; | isDesktopRailRoute(pathname)) \|\| guestBarOn) ? 56 : 0;
  * @mutate src/index.css |   --desktop-bar-h: 70px; |   --desktop-bar-h: 56px;
  * @mutate src/components/DesktopTopNav.tsx |         paddingTop: DESKTOP_BAR_PAD_TOP, |
  */
@@ -63,8 +63,8 @@ describe("the desktop page head is level with the rail (owner 2026-10-28)", () =
   });
 
   it("every layer that reserves the bar reserves the same height", () => {
-    // Owner request 11-05: the room is kept only while the bar is drawn (appShellBarRoomOnlyWithTheBar).
-    expect(code("src/components/AppShell.tsx")).toContain("const topBarOffset = isWebDesktop && maybeSignedIn && isDesktopRailRoute(pathname) ? DESKTOP_BAR_H : 0;");
+    // Owner request 11-05: the room is kept only while a bar is drawn, the guest's Declutter bar too (F047; appShellBarRoomOnlyWithTheBar).
+    expect(code("src/components/AppShell.tsx")).toContain("const topBarOffset = isWebDesktop && ((maybeSignedIn && isDesktopRailRoute(pathname)) || guestBarOn) ? DESKTOP_BAR_H : 0;");
     const css = code("src/index.css");
     expect(css).toContain(`--desktop-bar-h: ${DESKTOP_BAR_H}px;`);
     // The bar's height, plus the offline banner's while it shows (the bar sits under it: offlineBannerOverDesktopBar).

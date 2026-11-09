@@ -17,6 +17,7 @@ import { useSectionsOpen } from "@/components/landing/useSectionsOpen";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 import { DESKTOP_BAR_PAD_TOP } from "@/lib/desktopBar";
+import { useMarkGuestTopBarOn } from "@/lib/guestTopBar";
 
 function here(location: { pathname: string; search: string }): string {
   return encodeURIComponent(location.pathname + location.search);
@@ -58,6 +59,8 @@ function DeclutterGuestTopBar() {
   const isWebDesktop = useIsWebDesktop();
   const location = useLocation();
   const bannerOffset = useOfflineBannerOffset();
+  // F047: AppShell keeps this bar's room while it is drawn, so the page's header sits below it, never under it.
+  useMarkGuestTopBarOn(isWebDesktop);
   if (!isWebDesktop) return null;
   return (
     <header

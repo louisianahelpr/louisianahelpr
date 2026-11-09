@@ -16,7 +16,12 @@
 // A "code" is a RAISE message that is a bare snake_case identifier
 // ('not_abortable'), i.e. written for a program to match, not for a person to
 // read. Prose messages ('job not found') are a different class and out of
-// scope here. Triggers fired by an RPC's own writes are not followed.
+// scope here. BEFORE INSERT / UPDATE row triggers on the tables a function
+// writes ARE followed (latestBeforeWriteTriggers): a code such a trigger raises
+// aborts the RPC's statement and reaches the client exactly as the RPC's own
+// would (refuse_continue_day_while_refund_live → propose_job_continue_day's
+// 'continue_day_refund_open' is the case this was added for, 2026-11-08).
+// AFTER, DELETE and statement triggers are not followed.
 import ts from "typescript";
 import { readFileSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -151,11 +156,65 @@ export function raisedCodes(body: string): string[] {
   return [...out];
 }
 
-/** code → the function that raises it, for `rpc` and everything it calls. */
-export function codesReachableFrom(rpc: string, defs: Map<string, FunctionDef>): Map<string, string> {
+/** A BEFORE row trigger on INSERT and/or UPDATE: its events, the UPDATE OF columns (null: any update), its function. */
+export type BeforeWriteTrigger = { insert: boolean; update: boolean; columns: string[] | null; fn: string };
+
+/**
+ * table → its LATEST BEFORE INSERT / BEFORE UPDATE row triggers, in migration apply order. A trigger whose most recent
+ * event is a DROP TRIGGER with no later CREATE is absent; a later CREATE of the same (table, name) replaces it.
+ */
+export function latestBeforeWriteTriggers(migrationsDir: string): Map<string, BeforeWriteTrigger[]> {
+  const byKey = new Map<string, { table: string; t: BeforeWriteTrigger }>();
+  const files = readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort();
+  const event =
+    /CREATE\s+(?:OR\s+REPLACE\s+)?(?:CONSTRAINT\s+)?TRIGGER\s+"?(\w+)"?\s+(BEFORE|AFTER|INSTEAD\s+OF)\s+([\s\S]*?)\s+ON\s+(?:"?public"?\.)?"?(\w+)"?([\s\S]*?)EXECUTE\s+(?:FUNCTION|PROCEDURE)\s+(?:"?public"?\.)?"?(\w+)"?\s*\(|DROP\s+TRIGGER\s+(?:IF\s+EXISTS\s+)?"?(\w+)"?\s+ON\s+(?:"?public"?\.)?"?(\w+)"?/gi;
+  for (const f of files) {
+    const sql = stripSqlComments(readFileSync(join(migrationsDir, f), "utf8"));
+    for (const m of sql.matchAll(event)) {
+      if (m[1]) {
+        const key = `${m[4].toLowerCase()}.${m[1].toLowerCase()}`;
+        const events = m[3];
+        const insert = /\bINSERT\b/i.test(events);
+        const update = /\bUPDATE\b/i.test(events);
+        const of = /\bUPDATE\s+OF\s+([\w\s,"]+?)(?=\s+OR\b|$)/i.exec(events);
+        const columns = of ? of[1].split(",").map((c) => c.replace(/"/g, "").trim().toLowerCase()).filter(Boolean) : null;
+        const rowLevel = !/FOR\s+EACH\s+STATEMENT/i.test(m[5]);
+        if (/^BEFORE$/i.test(m[2]) && (insert || update) && rowLevel) byKey.set(key, { table: m[4].toLowerCase(), t: { insert, update, columns, fn: m[6] } });
+        else byKey.delete(key);
+      } else if (m[7]) byKey.delete(`${m[8].toLowerCase()}.${m[7].toLowerCase()}`);
+    }
+  }
+  const out = new Map<string, BeforeWriteTrigger[]>();
+  for (const { table, t } of byKey.values()) {
+    if (!out.has(table)) out.set(table, []);
+    out.get(table)!.push(t);
+  }
+  return out;
+}
+
+/** The writes a function body makes: each INSERT INTO a table, and each UPDATE of a table with the columns it SETs. */
+export function bodyWrites(body: string): Array<{ table: string; op: "insert" | "update"; columns: string[] }> {
+  const src = stripSqlComments(body);
+  const out: Array<{ table: string; op: "insert" | "update"; columns: string[] }> = [];
+  for (const m of src.matchAll(/\bINSERT\s+INTO\s+(?:"?public"?\.)?"?(\w+)"?/gi)) out.push({ table: m[1].toLowerCase(), op: "insert", columns: [] });
+  for (const m of src.matchAll(/\bUPDATE\s+(?:ONLY\s+)?(?:"?public"?\.)?"?(\w+)"?(?:\s+(?:AS\s+)?\w+)?\s+SET\s+([\s\S]*?)(?:\bWHERE\b|\bFROM\b|\bRETURNING\b|;)/gi)) {
+    const columns = [...m[2].matchAll(/(?:^|,)\s*(?:\w+\.)?"?(\w+)"?\s*=/g)].map((c) => c[1].toLowerCase());
+    out.push({ table: m[1].toLowerCase(), op: "update", columns });
+  }
+  return out;
+}
+
+/**
+ * code → the function that raises it, for `rpc` and everything it calls, transitively. With `triggers`, also the codes
+ * of each BEFORE row trigger that fires on a write one of those functions makes: the event matches (INSERT / UPDATE),
+ * and an `UPDATE OF` trigger fires only when the UPDATE sets one of its columns. A trigger is a LEAF: its own calls and
+ * writes are not followed (that closure named 4,578 (rpc, code) pairs, 2026-11-08, almost all unreachable).
+ */
+export function codesReachableFrom(rpc: string, defs: Map<string, FunctionDef>, triggers?: Map<string, BeforeWriteTrigger[]>): Map<string, string> {
   const codes = new Map<string, string>();
   const seen = new Set<string>();
   const queue = [rpc];
+  const fired = new Set<string>();
   while (queue.length) {
     const fn = queue.shift()!;
     if (seen.has(fn)) continue;
@@ -166,6 +225,17 @@ export function codesReachableFrom(rpc: string, defs: Map<string, FunctionDef>):
     for (const m of stripSqlComments(def.body).matchAll(/\b(?:public\.)?(\w+)\s*\(/g)) {
       if (defs.has(m[1]) && !seen.has(m[1])) queue.push(m[1]);
     }
+    if (!triggers) continue;
+    for (const w of bodyWrites(def.body)) {
+      for (const t of triggers.get(w.table) ?? []) {
+        const fires = w.op === "insert" ? t.insert : t.update && (t.columns === null || t.columns.some((c) => w.columns.includes(c)));
+        if (fires) fired.add(t.fn);
+      }
+    }
+  }
+  for (const t of fired) {
+    const def = defs.get(t);
+    if (def) for (const code of raisedCodes(def.body)) if (!codes.has(code)) codes.set(code, t);
   }
   return codes;
 }

@@ -1,3 +1,6 @@
+// @mutate src/test/helpers/rpcErrorInventory.ts |         if (fires) fired.add(t.fn); |         if (false) fired.add(t.fn);
+// @mutate src/test/helpers/rpcErrorInventory.ts |         const fires = w.op === "insert" ? t.insert : t.update && (t.columns === null \|\| t.columns.some((c) => w.columns.includes(c))); |         const fires = w.op === "insert" ? t.insert : t.update;
+// @mutate src/test/helpers/rpcErrorInventory.ts |         if (/^BEFORE$/i.test(m[2]) && (insert \|\| update) && rowLevel) | if (false)
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -21,9 +24,11 @@ import {
   anonExecuteRevoked,
   clientRpcCalls,
   codesReachableFrom,
+  bodyWrites,
   findUnmapped,
   findUnwired,
   latestFunctionDefs,
+  latestBeforeWriteTriggers,
   raisedCodes,
   type Allowlist,
   type CopyTable,
@@ -405,10 +410,19 @@ const UNREACHABLE: Allowlist = {
 
 const { calls, dynamic } = clientRpcCalls(ROOT);
 const defs = latestFunctionDefs(MIGRATIONS);
+const triggers = latestBeforeWriteTriggers(MIGRATIONS);
 const inventory = new Map<string, Map<string, string>>();
+// The codes a client can MEET through BEFORE INSERT / UPDATE triggers on the tables an RPC's call graph writes
+// (2026-11-08: refuse_continue_day_while_refund_live raises propose_job_continue_day's 'continue_day_refund_open').
+// Used by the STALE check only: copy for a trigger-raised code is not stale. The "every code has copy" direction stays
+// on the call graph alone: with triggers it names 1,050 (rpc, code) pairs (measured 2026-11-08), nearly all guards on
+// columns those RPCs never write wrongly; a trigger code that matters gets its copy and is then held by this check.
+const reachable = new Map<string, Map<string, string>>();
 for (const rpc of calls.keys()) {
   const codes = codesReachableFrom(rpc, defs);
   if (codes.size) inventory.set(rpc, codes);
+  const withTriggers = codesReachableFrom(rpc, defs, triggers);
+  if (withTriggers.size) reachable.set(rpc, withTriggers);
 }
 const SHARED = RPC_ERROR_COPY as CopyTable;
 const ADMIN = ADMIN_RPC_ERROR_COPY as CopyTable;
@@ -515,6 +529,24 @@ describe("the inventory still sees the world", () => {
     expect(dynamic, "a non-literal .rpc(name) hides that RPC's codes from this guard").toEqual([]);
   });
 
+  it("follows BEFORE INSERT / UPDATE triggers on the tables an RPC writes (2026-11-08)", () => {
+    // Inventory floor: the triggers map is read from the migrations.
+    expect([...triggers.values()].reduce((n, l) => n + l.length, 0)).toBeGreaterThan(100);
+    // The case it was added for: a BEFORE INSERT trigger on job_continue_days.
+    expect(reachable.get("propose_job_continue_day")?.get("continue_day_refund_open")).toBe("refuse_continue_day_while_refund_live");
+    expect(inventory.get("propose_job_continue_day")?.has("continue_day_refund_open")).toBe(false);
+    // UPDATE OF fires only on its columns.
+    const defsX = new Map([
+      ["rpc_a", { file: "x", body: "BEGIN UPDATE public.t SET a = 1 WHERE id = 1; END" }],
+      ["rpc_b", { file: "x", body: "BEGIN UPDATE public.t SET b = 1 WHERE id = 1; END" }],
+      ["trg_a", { file: "x", body: "BEGIN RAISE EXCEPTION 'only_a_raised'; END" }],
+    ]);
+    const trig = new Map([["t", [{ insert: false, update: true, columns: ["a"], fn: "trg_a" }]]]);
+    expect(codesReachableFrom("rpc_a", defsX, trig).get("only_a_raised")).toBe("trg_a");
+    expect(codesReachableFrom("rpc_b", defsX, trig).has("only_a_raised")).toBe(false);
+    expect(bodyWrites("UPDATE public.jobs j SET status = 'x', helper_id = NULL WHERE j.id = 1;")).toEqual([{ table: "jobs", op: "update", columns: ["status", "helper_id"] }]);
+  });
+
   it("a call quoted in a comment is not a call", () => {
     // Signup.tsx explains, in a comment, why it no longer calls process_referral.
     expect(calls.has("process_referral")).toBe(false);
@@ -541,7 +573,7 @@ describe("every code a client-called RPC raises has copy at its call site", () =
       for (const [rpc, codes] of Object.entries(entries)) {
         if (!calls.has(rpc)) stale.push(`${table}.${rpc}: no client calls this RPC`);
         for (const code of Object.keys(codes)) {
-          if (!inventory.get(rpc)?.has(code)) stale.push(`${table}.${rpc}.${code}: not raised by ${rpc}'s latest definition`);
+          if (!reachable.get(rpc)?.has(code)) stale.push(`${table}.${rpc}.${code}: not raised by ${rpc}'s latest definition or a BEFORE trigger on a table it writes`);
         }
       }
     }

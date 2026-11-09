@@ -231,7 +231,7 @@ describe("the photo-first Declutter item page", () => {
     expect(screen.getByText("2/3")).toBeInTheDocument();
     expect(document.querySelectorAll("[data-gallery-dots] > button")[1]).toHaveAttribute("data-dot-active");
     // F060 (UI audit 11-09): each dot is a button that shows its photo (the way back to photo 1 with a mouse).
-    // @mutate src/components/declutter/DeclutterGallery.tsx |               onClick={() => go(i)}\n |
+    // @mutate src/components/declutter/DeclutterGallery.tsx |  onClick={() => go(i)} /> |  />
     fireEvent.click(screen.getByRole("button", { name: "Show photo 1 of 3" }));
     expect(screen.getByText("1/3")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Show photo 1 of 3" })).toHaveAttribute("aria-current", "true");

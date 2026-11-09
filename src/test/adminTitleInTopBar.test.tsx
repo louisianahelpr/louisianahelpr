@@ -14,7 +14,8 @@
  * greeting card. Measured with getBoundingClientRect on the real screen:
  * e2e/prod-audit/admin-chrome.spec.ts.
  *
- * @mutate src/pages/admin/AdminFrame.tsx |         {!isWebDesktop && <AdminTopBar titleRow={header} />} |         {!isWebDesktop && <AdminTopBar />}
+ * @mutate src/pages/admin/AdminFrame.tsx |         {!isWebDesktop && <AdminTopBar titleRow={view !== "home" ? header : undefined} />} |         {!isWebDesktop && <AdminTopBar />}
+ * @mutate src/pages/admin/AdminFrame.tsx |     : <AdminSectionHeader title="Admin" />; |     : null;
  * @mutate src/pages/admin/AdminFrame.tsx |           {isWebDesktop && header} |           {header}
  * AUD31-48 (audit 10-31, 375): "License & insur…" and "Exception que…" were cut in the phone bar. Those views take
  * a short phone title (ADMIN_PHONE_TITLES); the desktop bar keeps the full name.
@@ -133,13 +134,17 @@ describe("every admin view's title sits in the top bar's row (owner 2026-10-27)"
     }
   });
 
-  it("the Dashboard draws no title row in either bar (its greeting card is the page's heading)", () => {
+  // F143 (owner's UI audit 11-09): the Dashboard had no title in the desktop top bar, unlike every other signed-in page.
+  // It now says "Admin" there, with no back arrow; the phone admin bar keeps its emblem on the Dashboard.
+  it("the Dashboard says \"Admin\" in the desktop bar (no back arrow); the phone bar keeps its emblem", () => {
     desktop.on = false;
     const phone = renderFrame("home", false);
     expect(phone.container.querySelector("header h1")).toBeNull();
     cleanup();
     desktop.on = true;
     const wide = renderFrame("home", true);
-    expect(wide.container.querySelector("[data-desktop-title-slot] h1")).toBeNull();
+    const slot = wide.container.querySelector("[data-desktop-title-slot]");
+    expect(slot?.querySelector("h1")?.textContent).toBe("Admin");
+    expect(slot?.querySelector("button, a[href]"), "no back arrow on the top of admin").toBeNull();
   });
 });

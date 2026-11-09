@@ -21,11 +21,12 @@ const AdminSectionHeader = ({ title, phoneTitle, onBack }: {
   title: string;
   /** A shorter title for the phone bar when the full one would be cut (ADMIN_PHONE_TITLES, AUD31-48). */
   phoneTitle?: string;
-  onBack: () => void;
+  /** The back arrow to the Dashboard; left out on the Dashboard itself (F143: its "Admin" title has no back). */
+  onBack?: () => void;
 }) => (
   <PageTitleBar
     title={title}
-    back={{ onBack }}
+    back={onBack ? { onBack } : undefined}
     // The admin scroll container already pads its content from the bar
     // (lg:p-8), so the shared row's extra gap would stack a second band on it.
     desktopGap={false}
@@ -34,7 +35,7 @@ const AdminSectionHeader = ({ title, phoneTitle, onBack }: {
       // names `flex items-center gap-3` as THE back+title row. Centred in the
       // bar's 56px row; no bottom margin, since the bar is not in the flow.
       <div className="flex items-center gap-3 min-w-0" data-admin-title-row="">
-        <BackButton onClick={onBack} />
+        {onBack && <BackButton onClick={onBack} />}
         <div className="flex flex-col leading-none min-w-0">
           <h1
             // THE SAME TITLE TYPE AS EVERY OTHER SCREEN — `font-display

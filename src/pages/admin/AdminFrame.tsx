@@ -46,9 +46,12 @@ export function AdminFrame({
   // (PageTitleBar); on a phone AdminTopBar draws it in its own row. It used to
   // be a row of its own inside the scroll container, ~100px under the bar.
   // Guard: src/test/adminTitleInTopBar.test.tsx.
+  // F143 (owner's UI audit 11-09): the Dashboard had no title in the desktop top bar, unlike every other signed-in
+  // page; it now says "Admin" there (no back arrow: it is the top of admin). On a phone the admin bar keeps its emblem
+  // on the Dashboard (its link home), as before.
   const header = view !== "home"
     ? <AdminSectionHeader title={viewLabels[view]} phoneTitle={ADMIN_PHONE_TITLES[view]} onBack={() => handleViewChange("home")} />
-    : null;
+    : <AdminSectionHeader title="Admin" />;
   return (
     <>
       {/* Top padding ONLY below `lg`, where admin renders its own fixed bar.
@@ -87,7 +90,7 @@ export function AdminFrame({
 
             Below `lg` the global pair is `hidden lg:flex`, so admin still
             needs its own — hence the split rather than a plain delete. */}
-        {!isWebDesktop && <AdminTopBar titleRow={header} />}
+        {!isWebDesktop && <AdminTopBar titleRow={view !== "home" ? header : undefined} />}
 
         {/* A <div>, not a <main>: App.tsx already wraps every route in
             <main id="main-content">, and a second one nested inside it

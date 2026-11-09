@@ -6,6 +6,9 @@
  *   a transformed ancestor), surface background, hairline top, safe-area padding. The dock yields the strip to it
  *   (useDockYield, Q1646), and an in-flow spacer of the bar's height keeps the page's last line clear of it.
  * - Wider: the same buttons sit in the page where the bar is placed, in one row; nothing is fixed (a desktop has room).
+ *   `pinWide` (F119, UI audit 11-09, the owner-approved list: "Keep a sticky bar with Make offer and Buy now visible
+ *   while scrolling"; at 1440 they scrolled away with the description): from lg the row is sticky under the page's
+ *   top row. Sticky is bounded by its parent, so the caller's wrappers between it and the long column are lg:contents.
  *
  * The children render ONCE, in whichever place applies, so a screen reader and a test see one set of buttons.
  */
@@ -31,7 +34,7 @@ function usePhoneWidth(): boolean {
 /** The phone bar's height above the safe area (48 px buttons + 8 px padding top and bottom), for the spacer. */
 const BAR_BODY_PX = 64;
 
-export function StickyActionBar({ children, label, note, active = true, spacer = true, ...rest }: {
+export function StickyActionBar({ children, label, note, active = true, spacer = true, pinWide = false, ...rest }: {
   /** The buttons, primary LAST (right) as on Vinted / Mercari: secondary first, then the one filled primary. */
   children: ReactNode;
   /** The group's accessible name ("Buy or make an offer"). */
@@ -42,6 +45,8 @@ export function StickyActionBar({ children, label, note, active = true, spacer =
   active?: boolean;
   /** False: no in-flow spacer (the page's own bottom clearance, pb-safe-nav, already clears the bar). */
   spacer?: boolean;
+  /** From lg, the inline row stays pinned (sticky) under the page's top row while its column scrolls (F119). */
+  pinWide?: boolean;
 } & Record<`data-${string}`, string | undefined>) {
   const phone = usePhoneWidth();
   useDockYield(active && phone);
@@ -53,7 +58,8 @@ export function StickyActionBar({ children, label, note, active = true, spacer =
   );
   if (!phone) {
     return (
-      <div {...rest} data-sticky-action-bar="inline" className="space-y-1">
+      <div {...rest} data-sticky-action-bar="inline" data-pin-wide={pinWide ? "" : undefined}
+        className={pinWide ? "space-y-1 lg:sticky lg:top-2 lg:z-30 lg:-mx-2 lg:rounded-2xl lg:bg-background lg:px-2 lg:py-2" : "space-y-1"}>
         {row}
         {note}
       </div>

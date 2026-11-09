@@ -95,8 +95,8 @@ export function DeclutterGuestJoin({ free, offers = true, trades = false }: { fr
   const label = free ? "Ask for this item" : offers ? "Buy or make an offer" : "Buy this item";
   const signup = `/signup?redirect=${here(location)}`;
   return (
-    <section data-guest-join="" aria-label={label} className="space-y-3">
-      <StickyActionBar label={label} spacer={false} data-guest-buttons="">
+    <section data-guest-join="" aria-label={label} className="space-y-3 lg:contents">
+      <StickyActionBar label={label} spacer={false} data-guest-buttons="" pinWide>
         {!free && offers && (
           <Button asChild variant="outline" size="wrap" className="rounded-full px-3 font-semibold">
             <Link to={signup} data-guest-offer="">Make offer</Link>

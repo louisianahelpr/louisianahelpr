@@ -14,6 +14,7 @@
 // @mutate src/lib/largeTitles.ts |     doc.documentElement.classList.toggle("page-scrolled-any", t.scrollTop > 0); |     doc.documentElement.classList.toggle("page-scrolled-any", t.scrollTop > 24);
 // @mutate src/components/sections/InlineListSearch.tsx |     if (pinned) return;\n    reopenFocus.current = focusTrigger; |     reopenFocus.current = focusTrigger;
 // @mutate src/components/declutter/DeclutterItemRows.tsx | .sort((a, b) => a.d - b.d \|\| a.i - b.i) | .sort((a, b) => a.i - b.i)
+// @mutate src/components/ui/StickyActionBar.tsx | className={pinWide ? "space-y-1 lg:sticky lg:top-2 | className={pinWide ? "space-y-1 lg:static lg:top-2
 /**
  * Declutter findings from the UI audit of 11-09 (~/.lh-shots/ui-audit-1109, Builder 2). One describe per finding.
  */
@@ -35,6 +36,7 @@ import { ITEM_PHOTO_ASPECT } from "@/components/declutter/itemPhotoFrame";
 import { installLargeTitles } from "@/lib/largeTitles";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
 import { nearestOf } from "@/components/declutter/DeclutterItemRows";
+import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { SAVE_ITEM_REASON, SAVE_ITEM_SIGNUP_SUBTITLE, signupSubtitle } from "@/lib/jobIntent";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
@@ -195,6 +197,26 @@ describe("F121: Similar near you (same category, nearest first when we know wher
     const rowsSrc = blankComments(readFileSync(join(SRC, "components/declutter/DeclutterItemRows.tsx"), "utf8"));
     expect(rowsSrc).toContain('title={from ? "Similar near you" : "Similar items"}');
     expect(rowsSrc).toContain("const similarRows = from ? nearestOf(notMine(similar.data), from) : notMine(similar.data);");
+  });
+});
+
+describe("F119: on a computer the item page's Make offer / Buy now stay pinned while the page scrolls", () => {
+  it("a pinWide bar's row is sticky from lg under the top row; without it, plain inline", () => {
+    const pinned = render(<StickyActionBar label="Buy or make an offer" pinWide><button type="button">Buy now</button></StickyActionBar>);
+    const row = pinned.container.querySelector("[data-sticky-action-bar='inline'][data-pin-wide]") as HTMLElement;
+    expect(row.className.split(/\s+/)).toEqual(expect.arrayContaining(["lg:sticky", "lg:top-2", "lg:bg-background"]));
+    pinned.unmount();
+    const plain = render(<StickyActionBar label="x"><button type="button">Go</button></StickyActionBar>);
+    expect((plain.container.querySelector("[data-sticky-action-bar='inline']") as HTMLElement).className).toBe("space-y-1");
+    plain.unmount();
+  });
+  it("the item page's member and guest bars pin, and their panels are lg:contents (sticky stays inside its parent)", () => {
+    const offer = blankComments(readFileSync(join(SRC, "components/declutter/DeclutterOfferPanel.tsx"), "utf8"));
+    const guest = blankComments(readFileSync(join(SRC, "components/declutter/DeclutterGuest.tsx"), "utf8"));
+    expect(offer).toContain('className="space-y-3 scroll-mt-4 focus:outline-none lg:contents" aria-label="Buy or make an offer"');
+    expect(guest).toContain('<section data-guest-join="" aria-label={label} className="space-y-3 lg:contents">');
+    expect(offer).toContain('<StickyActionBar label="Buy or make an offer" data-declutter-buybar="" spacer={false} pinWide>');
+    expect(guest).toContain('<StickyActionBar label={label} spacer={false} data-guest-buttons="" pinWide>');
   });
 });
 

@@ -1,6 +1,6 @@
 // /support — the contact form every screen links to.
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { suggestHelp } from "@/lib/helpSuggestions";
 import { FAQ_SECTIONS } from "./helpCenter/helpCenterContent";
 import { BugReportAttachments, useBugReportContext } from "@/components/support/BugReportAttachments";
@@ -12,14 +12,8 @@ import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { FieldError, SupportSuggestions, SupportTopicField } from "./support/SupportFormParts";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useFeature } from "@/hooks/useFeature";
 import { AiSuggestion, askSupportAi } from "./SupportAi";
@@ -30,7 +24,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { hapticError } from "@/lib/haptics";
 import {
-  SUPPORT_TOPICS,
   findSupportTopic,
   type SupportTopicKey,
   SUPPORT_REPLY_PROMISE,
@@ -140,20 +133,6 @@ const PANEL_STYLE = {
   boxShadow: "var(--elev-inset-hairline)",
 } as const;
 
-/** Inline field error — same shape as AddCalendarForm's budget error
- *  (role="alert" + the id the input points at via aria-describedby).
- *  Renders nothing when there's no message, so call sites stay flat. */
-const FieldError = ({ id, message }: { id: string; message?: string }) =>
-  message ? (
-    <p
-      id={id}
-      role="alert"
-      className="mt-1.5 font-sans text-ds-11 leading-snug"
-      style={{ color: "hsl(var(--burnt-sienna))" }}
-    >
-      {message}
-    </p>
-  ) : null;
 
 /* -------------------------------------------------------------------------- */
 /* Page                                                                        */
@@ -476,46 +455,14 @@ const Support = () => {
                 )}
 
                 {/* Topic */}
-                <div>
-                  <Label htmlFor="support-topic" className="text-ds-11">
-                    What&apos;s this about? *
-                  </Label>
-                  <Select
-                    value={draft.topic}
-                    onValueChange={(value) => {
-                      set("topic", value as SupportTopicKey);
-                      markTouched("topic");
-                    }}
-                  >
-                    <SelectTrigger
-                      id="support-topic"
-                      className="mt-1.5"
-                      aria-invalid={!!showError("topic")}
-                      aria-describedby={showError("topic") ? "support-topic-error" : undefined}
-                    >
-                      <SelectValue placeholder="Choose a topic" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SUPPORT_TOPICS.map((topic) => (
-                        <SelectItem key={topic.key} value={topic.key}>
-                          {topic.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {showError("topic") ? (
-                    <FieldError id="support-topic-error" message={showError("topic")} />
-                  ) : (
-                    selectedTopic && (
-                      <p
-                        className="mt-1.5 font-sans text-ds-11 leading-snug"
-                        style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-                      >
-                        {selectedTopic.description}
-                      </p>
-                    )
-                  )}
-                </div>
+                <SupportTopicField
+                  value={draft.topic}
+                  error={showError("topic")}
+                  onChange={(value) => {
+                    set("topic", value);
+                    markTouched("topic");
+                  }}
+                />
 
                 {/* Subject — REQUIRED (owner). */}
                 <div>
@@ -538,18 +485,7 @@ const Support = () => {
 
                 {/* F046 (owner 11-09): a guest gets up to three Help answers matching the subject, before writing in. */}
                 {isReady && !user && guestSuggestions.length > 0 && (
-                  <div data-support-suggestions="" className="rounded-ds-md border border-border bg-card px-4 py-3">
-                    <p className="text-ds-13 font-semibold text-foreground">These answers might help</p>
-                    <ul className="mt-1.5 space-y-1">
-                      {guestSuggestions.map((s) => (
-                        <li key={s.q}>
-                          <Link to={s.href} className="text-ds-13 font-medium underline underline-offset-4" style={{ color: "hsl(var(--bark))" }}>
-                            {s.q}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  <SupportSuggestions items={guestSuggestions} />
                 )}
 
                 {/* Message */}

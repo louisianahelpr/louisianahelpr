@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { RPC_ERROR_COPY } from "@/lib/lifecycleErrorCopy";
 import { ADMIN_RPC_ERROR_COPY } from "@/components/admin/adminRpcErrorCopy";
@@ -394,6 +394,35 @@ for (const rpc of calls.keys()) {
   const codes = codesReachableFrom(rpc, defs);
   if (codes.size) inventory.set(rpc, codes);
 }
+
+/**
+ * Codes a TRIGGER raises on a row the RPC itself writes. The inventory follows function calls, not triggers, so a
+ * trigger-raised code read as "not raised" and its copy as stale. Each entry is CHECKED against the migrations
+ * ("every trigger-raised entry is true of the migrations" below): the trigger function's latest body raises the code,
+ * the newest CREATE TRIGGER of that name fires it on INSERT on that table, and the RPC's latest body INSERTs into that
+ * table. A false or stale entry fails there, so this only ever adds codes the database really raises from the RPC.
+ */
+const TRIGGER_RAISES: { rpc: string; table: string; trigger: string; fn: string; code: string }[] = [
+  // Jobs audit 11-08 #11 (20261108203000): no continue day while a refund request is live.
+  { rpc: "propose_job_continue_day", table: "job_continue_days", trigger: "trg_refuse_continue_day_while_refund_live",
+    fn: "refuse_continue_day_while_refund_live", code: "continue_day_refund_open" },
+];
+for (const t of TRIGGER_RAISES) {
+  if (!inventory.has(t.rpc)) inventory.set(t.rpc, new Map());
+  inventory.get(t.rpc)!.set(t.code, t.fn);
+}
+
+/** The newest CREATE TRIGGER <name> statement across the migrations (comments stripped), or "" if a later DROP removed it. */
+function newestTriggerStmt(name: string): string {
+  let last = "";
+  for (const f of readdirSync(MIGRATIONS).filter((x) => x.endsWith(".sql")).sort()) {
+    const sql = readFileSync(resolve(MIGRATIONS, f), "utf8").replace(/--[^\n]*/g, "");
+    for (const m of sql.matchAll(new RegExp(`(CREATE\\s+TRIGGER\\s+${name}\\b[\\s\\S]*?;)|(DROP\\s+TRIGGER\\s+(?:IF\\s+EXISTS\\s+)?${name}\\b[^;]*;)`, "gi"))) {
+      last = m[1] ?? "";
+    }
+  }
+  return last;
+}
 const SHARED = RPC_ERROR_COPY as CopyTable;
 const ADMIN = ADMIN_RPC_ERROR_COPY as CopyTable;
 /** Both tables: every rule below holds for an admin RPC's copy exactly as for a member's. */
@@ -533,6 +562,20 @@ describe("every code a client-called RPC raises has copy at its call site", () =
       for (const code of Object.keys(codes)) if (COPY[rpc]?.[code]) stale.push(`${rpc}.${code}: both mapped and allowlisted`);
     }
     expect(stale).toEqual([]);
+  });
+
+  it("every trigger-raised entry is true of the migrations (code raised, trigger fires on INSERT there, RPC inserts there)", () => {
+    const wrong: string[] = [];
+    for (const t of TRIGGER_RAISES) {
+      if (!raisedCodes(defs.get(t.fn)?.body ?? "").includes(t.code)) wrong.push(`${t.fn} does not raise ${t.code}`);
+      const trg = newestTriggerStmt(t.trigger);
+      if (!new RegExp(`\\bINSERT\\b[\\s\\S]*?\\bON\\s+(?:public\\.)?${t.table}\\b[\\s\\S]*?EXECUTE\\s+FUNCTION\\s+(?:public\\.)?${t.fn}\\s*\\(`, "i").test(trg)) {
+        wrong.push(`${t.trigger} is not a live INSERT trigger on ${t.table} running ${t.fn}`);
+      }
+      if (!new RegExp(`INSERT\\s+INTO\\s+(?:public\\.)?${t.table}\\b`, "i").test(defs.get(t.rpc)?.body ?? "")) wrong.push(`${t.rpc} does not insert into ${t.table}`);
+    }
+    expect(TRIGGER_RAISES.length).toBeGreaterThan(0);
+    expect(wrong).toEqual([]);
   });
 
   it("every 'EXECUTE revoked from anon' reason is true of the migrations", () => {

@@ -189,7 +189,6 @@ const LegalFullText = lazyWithPreload(() => import("./pages/info/LegalFullText")
 const Support = lazyWithPreload(() => import("./pages/info/Support"));
 
 // Lazy load less-critical global components
-
 const StrikeBanner = optionalLazy(() => import("./components/StrikeBanner"), "StrikeBanner");
 
 // Lazy load route wrappers
@@ -296,9 +295,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember fallback={<DeclutterRouteSkeleton />}><DeclutterPage /></DeclutterGuestOrMember>, <DeclutterRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/move" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterMovePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      {/* F130 (UI audit 11-09): the obvious address for a new Wanted post was a 404. It opens the Wanted composer
-          (wantedAskHref(""), the same address Browse's "Post what you're looking for" uses). */}
-      <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} />
+      <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} />{/* F130: was a 404; = wantedAskHref("") */}
       <Route path="/declutter/settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSettingsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/item/:id" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember><DeclutterItemPage /></DeclutterGuestOrMember>)}</RouteErrorBoundary>} />
       <Route path="/quotes" element={routeEl(<QuotesHubRedirect />)} />

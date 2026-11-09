@@ -6,7 +6,7 @@
 // @mutate src/components/declutter/DeclutterItemCard.tsx |             alt={item.title} |             alt=""
 // @mutate src/components/declutter/DeclutterMineViews.tsx | label: "Pickups to do", | label: "Hand over",
 // @mutate src/components/declutter/ManagerPanel.tsx |       <h2 id="manager-setup-title" className="text-base font-semibold">Have someone sell for you</h2> |       <h2 id="manager-setup-title" className="text-base font-semibold">Get help selling</h2>
-// @mutate src/App.tsx |       <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} />\n |
+// @mutate src/App.tsx | <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} /> |
 // @mutate src/components/declutter/DeclutterListingDefaults.tsx | `Lowers ${draft.dropPct}% each evening, never below your lowest price.` | `It drops ${draft.dropPct}% each evening, to a whole dollar, never below your lowest price.`
 // @mutate src/components/declutter/DeclutterListingDefaults.tsx | <ChipGroup label="Lowest price" | <ChipGroup label="Lowest you'll take"
 // @mutate src/components/declutter/ItemPickupBlock.tsx |   const others = cities.filter((c) => c && !same(c)); |   const others = cities.filter((c) => !!c);

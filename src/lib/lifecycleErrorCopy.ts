@@ -490,9 +490,7 @@ export const RPC_ERROR_COPY = {
   },
   // FindHelprs — "Find a Helpr" by skill and town (Q2437, owner 2026-10-27).
   find_helprs: {
-    not_signed_in: "Please sign in again to find a Helpr.",
     account_restricted: "Your account is restricted right now, so you can't browse Helprs.",
-    email_not_confirmed: "Confirm your email to browse Helprs.",
     search_too_long: "That search is too long. Try a shorter skill or town.",
   },
   // SeriesDatesPanel — picking visit dates on a series (Q407 5).

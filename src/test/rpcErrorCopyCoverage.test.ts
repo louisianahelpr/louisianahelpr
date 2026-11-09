@@ -77,7 +77,7 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
-  // 25 Days page view counter (20261109162829): the page calls it only after sponsor_public_state said on=true for the
+  // Sponsor giveaway page view counter (20261109162829, 2026-11-09): the page calls it only after sponsor_public_state said on=true for the
   // same visitor, it shows nothing, and a failure is dropped (src/pages/sponsor/SponsorPage.tsx): no words to show.
   sponsor_log_visit: { feature_disabled: { reason: "a page-view counter with no screen; called only after the page read on=true, and a refusal is dropped silently" } },
   // Digital downloads (20261108185110): shop_complete_handover refuses a download's buyer finish and an early auto finish.

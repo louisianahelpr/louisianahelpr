@@ -319,7 +319,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/pages/auth/Login.tsx` | input×3 | text, email | 6 | login-card-head · mfa-login-code · email · login-email-error · login-password-field · password · login-password-error |
 
-## /login, /signup, /signup-pending, /forgot-password, /jobs, /payment-success, /admin, /messages, /quotes, /book/:userId, /u/:handle, /support, /legal, /terms, /privacy, /rules, *
+## /login, /signup, /signup-pending, /forgot-password, /jobs, /payment-success, /admin, /admin/sponsors, /messages, /quotes, /book/:userId, /u/:handle, /support, /legal, /terms, /privacy, /rules, *
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
@@ -534,7 +534,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/sponsor/ClaimSection.tsx` | input×16, textarea×2 | checkbox, text, email, tel, url, file, radio |  | claim · sponsor-thanks · lh25-thanks · calendar · lh25-claim · lh25-days · check · lh25-days-error |
+| `src/components/sponsor/ClaimSection.tsx` | input×16, textarea×2 | checkbox, text, email, tel, url, file, radio |  | claim · sponsor-thanks · lh25-thanks · calendar · sponsor-closed · lh25-closed · lh25-claim · lh25-days |
 
 ## /support
 

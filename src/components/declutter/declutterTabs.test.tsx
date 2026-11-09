@@ -873,7 +873,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // D2 (Cowork audit 2026-10-20): the Buying "Offers" box read 0 above a listed
   // offer (it counted only offers waiting for the buyer's answer). The class:
   // a status box either counts exactly the rows its list shows, or its label
-  // says it counts what needs you (To pay / To answer / Pick up / Hand over / To be paid).
+  // says it counts what needs you (To pay / To answer / Pick up / Pickups to do / To be paid).
   // Buying's chips are the order tracker's (owner 10-28): its count rule is the tracker test above.
   it.each([
     ["selling", "Offers on your items", { ...OFFER, my_side: "seller", awaiting: "buyer" }],
@@ -888,7 +888,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const box = container.querySelector('[data-status-box="offers"]') as HTMLElement;
     const count = Number(/\d+/.exec(box.textContent ?? "")?.[0]);
     const label = (box.textContent ?? "").replace(/\d+/, "").trim();
-    const needsYouLabel = /^(To |Pick up|Hand over)/.test(label);
+    const needsYouLabel = /^(To |Pick up|Hand over|Pickups to do)/.test(label);
     expect(count === rows || needsYouLabel, `box "${label}" shows ${count} above ${rows} listed`).toBe(true);
   });
 

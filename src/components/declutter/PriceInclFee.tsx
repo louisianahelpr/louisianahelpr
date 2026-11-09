@@ -26,7 +26,12 @@ function exactDollars(cents: number): string {
  * screen reader names each card instead of reading "link". The same figure the card shows.
  */
 export function cardLinkLabel(title: string, priceCents: number): string {
-  return `${title}, ${priceCents > 0 ? `${exactDollars(buyNowTotalCents(priceCents))} ${INCL_FEE_WORDS}` : "Free"}`;
+  return `${title}, ${priceCents > 0 ? inclFeeText(priceCents) : "Free"}`;
+}
+
+/** "$14.88 incl. fee": the words PriceInclFee draws, as plain text (an aria-label). */
+export function inclFeeText(priceCents: number): string {
+  return `${exactDollars(buyNowTotalCents(priceCents))} ${INCL_FEE_WORDS}`;
 }
 
 export function PriceInclFee({

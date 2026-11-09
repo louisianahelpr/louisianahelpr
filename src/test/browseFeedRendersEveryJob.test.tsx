@@ -45,7 +45,7 @@
 // @mutate src/pages/home/browseFeedSections.ts | const inBand = bandIds.has(j.id); | const inBand = true;
 // @mutate src/pages/home/browseFeedSections.ts | if (!showRecommendedBand) return { band: [], rest: filteredJobs.slice() }; | if (!showRecommendedBand) return { band: [], rest: filteredJobs.filter((_, i) => i > 0) };
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -178,10 +178,15 @@ const FLAG_MATRIX: { hasFilters: boolean; savedOnly: boolean }[] = [
  * its Suspense fallback, so wait until a job card is drawn before reading what the feed rendered.
  */
 async function cardsDrawn(): Promise<void> {
-  await waitFor(() => expect(document.querySelector('[aria-label^="JOB "]')).not.toBeNull());
+  // Generous: on a loaded CI shard the chunk's first import outlasted waitFor's 1 s default (#4280 shard 5).
+  await waitFor(() => expect(document.querySelector('[aria-label^="JOB "]')).not.toBeNull(), { timeout: 15_000 });
 }
 
 describe("Browse feed: every job in the filtered list is rendered by SOME section", () => {
+  // Warm the compact row's chunk once, so the first case does not pay its whole import inside one waitFor.
+  beforeAll(async () => {
+    await import("@/components/dashboard/CompactJobCard");
+  }, 30_000);
   beforeEach(cleanup);
 
   for (const { hasFilters, savedOnly } of FLAG_MATRIX) {

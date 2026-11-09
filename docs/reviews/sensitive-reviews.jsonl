@@ -334,3 +334,10 @@
 {"sha":"2f248175d1ab8779632690b1a6c2c0b422daf51a","reviewer":"code-review","verdict":"APPROVED - lead lexilombas-42 3:41 AM: admin home layout hold only (Priority Alerts box always drawn, KPI lanes reserved); no data access, authz or write change","date":"2026-11-05"}
 {"sha":"d46489728fd31c35ba18d4323c1f6da44bb1c904","reviewer":"code-review","verdict":"APPROVED - lead (lexilombas-42), 2026-11-05: display-only image swap; same public photo URL, no data access or authz change","date":"2026-11-05"}
 {"sha":"8b1da9cb6190b6bb350a357149f2bbe278366433","reviewer":"lh-authz-rls","verdict":"PASS","date":"2026-11-09"}
+{"sha":"b7225ad543612217753822c166780abc063e780f","reviewer":"lh-authz-rls","verdict":"PASS","date":"2026-11-09"}
+{"sha":"516c4a06cae81437b5f7450e459fb8dac5d37e91","reviewer":"lh-authz-rls","verdict":"PASS","date":"2026-11-09"}
+{"sha":"43fe6523e7fa8225f98ef8ed4fdbab888330c36a","reviewer":"lh-authz-rls","verdict":"PASS","date":"2026-11-09"}
+{"sha":"c228eb65d2e09e06e48860c129961f730cc9f645","reviewer":"lh-authz-rls","verdict":"PASS","date":"2026-11-09"}
+{"sha":"a46c4052133cb8159d0ecf5cce941d7edb08878c","reviewer":"lh-authz-rls","verdict":"PASS","date":"2026-11-09"}
+{"sha":"08da592ae4d6604649320e98b07b4d29c060885e","reviewer":"lh-authz-rls","verdict":"PASS","date":"2026-11-09"}
+{"sha":"779ac7fbe21b671310d16357bf2c8edaa641ea2c","reviewer":"lh-authz-rls","verdict":"PASS","date":"2026-11-09"}

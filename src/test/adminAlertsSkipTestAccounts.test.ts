@@ -75,6 +75,7 @@ const ADMIN_NOTIFIERS: Record<string, Kind> = {
   open_dispute_as: "explicit",
   rentals_submit_landlord_id: "caller",
   rentals_submit_ownership_proof: "caller",
+  report_continue_day_missed: "explicit", // 20261108214605 (owner #4): a missed continue day; is_seed on the job, is_test_subject and profiles.is_seed on poster and Helpr
   rpc_escalate_dispute: "link",
   send_new_member_daily_summary: "explicit",
   settle_one_off_jobs_for_banned_account: "link",

@@ -102,8 +102,7 @@ import { syncConnectGate } from "../_shared/connectGateSync.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { queueEmail } from "../_shared/resend.ts";
-import { emailSeller } from "../_shared/declutterSellerEmail.ts";
-import { getAppUrl } from "../_shared/appUrl.ts";
+import { declutterEmailParts, emailSeller } from "../_shared/declutterSellerEmail.ts";
 import { createStripeModeResolver, isPartyRefusal, sessionIdMode, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 /**
@@ -314,20 +313,29 @@ async function giftCovers(stripe: Stripe, o: {
 async function tellBuyerRefunded(admin: Db, buyerId: string | null, cents: number, giftCents = 0): Promise<void> {
   if (!buyerId) return;
   try {
-    const { data: profile, error } = await admin.from("profiles").select("email").eq("user_id", buyerId).maybeSingle();
+    const { data: profile, error } = await admin.from("profiles").select("email, full_name").eq("user_id", buyerId).maybeSingle();
     const to = (profile as { email?: string | null } | null)?.email;
     if (error || !to) return;
-    const link = `${getAppUrl()}/declutter?tab=buying`;
     // Q2106 S3b: the gift share is named apart: it is back on the gift balance now, not on its way to the card.
     const giftLine = giftCents > 0 ? `${dollars(giftCents)} is back on your gift card balance, ready for your next order.` : "";
     const cardLine = cents > 0 ? `${dollars(cents)} is on its way back to your card. Card refunds usually show up in 5 to 10 business days.` : "";
     const body = [cardLine, giftLine].filter(Boolean).join(" ");
+    // F154 (owner's message review 11-09): this was the one raw, unbranded <p> left among the Declutter money emails.
+    // It now uses the same branded notice email as the webhook's refund (declutterEmailParts: brand header, greeting,
+    // button, sign-off, settings footer), with the same words and the same link.
+    const { html, text } = await declutterEmailParts({
+      title: "Your Declutter refund",
+      message: body,
+      path: "/declutter?tab=buying",
+      actionLabel: "Open your Declutter cart",
+      fullName: (profile as { full_name?: string | null } | null)?.full_name,
+    });
     await queueEmail(admin, {
       to,
       subject: "Your Declutter refund",
       templateName: "declutter_refund",
-      html: `<p>${body}</p><p><a href="${link}">Open your Declutter cart</a></p>`,
-      text: `${body}\n\nOpen your Declutter cart: ${link}`,
+      html,
+      text,
     });
   } catch (e) {
     console.log(JSON.stringify({ event: "declutter_refund_email_failed", detail: caughtMessage(e, "email failed") }));

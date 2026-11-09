@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
@@ -19,6 +20,25 @@ import { useSectionCreateFabHidden } from "./createFabHidden";
  * block). SectionScreen's `fab` adds room under the last row so the pill never sits on the last row at rest.
  * Phone only: the desktop website keeps the bar's soft "+ Post a job" (etc.). Guard: src/test/declutterHeaderVinted.test.tsx.
  */
+/**
+ * F150 (owner UI audit 11-09: the floating "+ Create" / "+ Sell" / "+ Post a job" sat on card text; "Bottom padding =
+ * dock + floating button height"). While a pill is on screen, <html> wears `has-section-fab`, which sets
+ * --section-fab-clearance (index.css: the pill's 48px + its 16px gap over the dock). A list that scrolls under the pill
+ * adds it to its own dock clearance, so its last row ends above the pill. SectionScreen's `pb-20` already does this.
+ */
+let fabsShown = 0;
+function useFabClearance(on: boolean) {
+  useEffect(() => {
+    if (!on || typeof document === "undefined") return;
+    fabsShown += 1;
+    document.documentElement.classList.add("has-section-fab");
+    return () => {
+      fabsShown -= 1;
+      if (fabsShown === 0) document.documentElement.classList.remove("has-section-fab");
+    };
+  }, [on]);
+}
+
 export function SectionCreateFab({ section, text: given }: { section?: SectionKey; text?: string }) {
   const { t: tr } = useLanguage();
   const text = given ?? tr("nav.create");
@@ -28,10 +48,11 @@ export function SectionCreateFab({ section, text: given }: { section?: SectionKe
   const sheetOpen = useCreateSheetOpen();
   // An empty state showing its own create button hides the pill, so the action is never on screen twice (createFabHidden).
   const hidden = useSectionCreateFabHidden();
-  if (desktop || hidden || typeof document === "undefined") return null;
   // No section (Dashboard): the pill opens the Create sheet ("What are we doing?"), as the bar's "+" did there.
   const add = section ? sectionByKey(section).add : null;
-  if (section && !add) return null;
+  const shown = !desktop && !hidden && !(section && !add);
+  useFabClearance(shown);
+  if (!shown || typeof document === "undefined") return null;
   const isPost = add?.path === "/post-job";
   const go = () => { hapticMedium(); if (add) navigate(add.path); else setCreateSheetOpen((o) => !o); };
   return createPortal(

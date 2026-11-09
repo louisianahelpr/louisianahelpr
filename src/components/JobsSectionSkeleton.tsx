@@ -27,38 +27,45 @@ import type { AppliedActivity, PostedActivity } from "@/hooks/useActivityData";
  */
 
 /**
- * Top bar (phone: search, bell, profile; desktop: title, "+") + (desktop) the Browse | Posted | Working tabs, as bones.
- * `list` (phone, Posted / Working): the loaded screen's back row under the bar (SectionListBack, 44px) as a bone.
+ * Top bar (phone: title, bell, profile, then the search row; desktop: title, "+") + (desktop) the Browse | Posted |
+ * Working tabs, as bones.
+ * The Browse | Posted | Working tabs row is drawn on every width and tab (F152, owner audit 11-09).
  */
-function JobsHeaderBones({ list = false, chips = false }: { list?: boolean; chips?: boolean }) {
+function JobsHeaderBones({ chips = false }: { chips?: boolean }) {
   const desktop = useIsWebDesktop();
   return (
     <div className="explore-header flex flex-col gap-1" aria-hidden>
       {/* The section header's top row. On the DESKTOP WEBSITE it is the settled bar itself: the real "Jobs" title in
           the global top bar with its soft "+ Post a job", no back arrow (owner 2026-10-28: the loading frame draws exactly the settled
           header; src/test/sectionLoadingHeaderIsSettled.test.tsx), then the tabs row. On a phone (the Vinted header,
-          owner 11-08): the search bar, then the bell and the photo, as bones; no tabs row (they live in "My Jobs"). */}
+          owner 11-08; one pattern since F148, owner UI audit 11-09): the title, then the bell and the photo, as bones,
+          and the search as its own 44px row under the bar (AppTopBar's app-top-bar-search, 8px under it). */}
       <PageTitleBar
         title="Jobs"
         desktopGap={false}
         actions={<SectionAddButton section="jobs" />}
         phone={
-          <div className="app-top-bar flex items-center justify-between gap-2 h-16">
-            <span className="sr-only">Jobs</span>
-            <Skeleton className="h-11 min-w-0 flex-1 rounded-full" />
-            <div className="flex items-center gap-0.5 shrink-0">
-              <span className="h-11 w-11 shrink-0 flex items-center justify-center">
-                <Skeleton className="h-6 w-6 rounded-full" />
-              </span>
-              <span className="h-11 w-11 shrink-0 flex items-center justify-center">
-                <Skeleton className="w-9 h-9 rounded-full" />
-              </span>
+          <>
+            <div className="app-top-bar flex items-center justify-between gap-2 h-16">
+              <span className="sr-only">Jobs</span>
+              <Skeleton className="h-7 w-20 rounded-ds-md" />
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="h-11 w-11 shrink-0 flex items-center justify-center">
+                  <Skeleton className="h-6 w-6 rounded-full" />
+                </span>
+                <span className="h-11 w-11 shrink-0 flex items-center justify-center">
+                  <Skeleton className="w-9 h-9 rounded-full" />
+                </span>
+              </div>
             </div>
-          </div>
+            <div className="pb-2 min-w-0">
+              <Skeleton className="h-11 w-full rounded-full" />
+            </div>
+          </>
         }
       />
-      {/* SectionTabs (desktop): thin underline tabs, 44px. */}
-      {desktop && <Skeleton className="h-11 w-full rounded-ds-md" />}
+      {/* SectionTabs: thin underline tabs, 44px, on a phone too since F152 (owner audit 11-09). */}
+      <Skeleton className="h-11 w-full rounded-ds-md" />
       {/* Browse's category chips row (phone; JobCategoryChips: 40px chips + 4px scroller pad), only when the last
           loaded Browse drew it (jobChipsSeen.ts), so the list does not jump down when the chips arrive. */}
       {!desktop && chips && (
@@ -66,13 +73,6 @@ function JobsHeaderBones({ list = false, chips = false }: { list?: boolean; chip
           <Skeleton className="h-10 w-14 shrink-0 rounded-full" />
           <Skeleton className="h-10 w-24 shrink-0 rounded-full" />
           <Skeleton className="h-10 w-32 shrink-0 rounded-full" />
-        </div>
-      )}
-      {/* SectionListBack (phone, Posted / Working): the back chevron and the list's name, 44px. */}
-      {!desktop && list && (
-        <div data-list-back-bone="" className="flex h-11 items-center gap-2">
-          <Skeleton className="h-5 w-5 rounded-full" />
-          <Skeleton className="h-5 w-24 rounded-ds-sm" />
         </div>
       )}
     </div>
@@ -216,7 +216,7 @@ const JobsSectionSkeleton = () => {
       {tab === "browse" ? (
         <BrowseFrame header={<JobsHeaderBones chips={jobChipsRowSeen()} />} />
       ) : (
-        <JobsListLoadingFrame header={<JobsHeaderBones list />} tab={tab === "posted" ? "posted" : "applied"} />
+        <JobsListLoadingFrame header={<JobsHeaderBones />} tab={tab === "posted" ? "posted" : "applied"} />
       )}
     </div>
   );

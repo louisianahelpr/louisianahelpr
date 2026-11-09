@@ -429,7 +429,8 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
             /* The one page column (owner 2026-10-21: the list as wide as the Jobs header); a live toast never covers a card (lead 10-20). */
             <div
               className={`min-h-full flex flex-col ${PAGE_COLUMN}`}
-              style={{ paddingBottom: `calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + ${toastClearance}px)` }}
+              // + the floating "+ Post a job" pill's room while it shows (F150, SectionCreateFab).
+              style={{ paddingBottom: `calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + ${toastClearance}px + var(--section-fab-clearance, 0px))` }}
             >
           <JobListQuotesSlot tab={tab} />{/* the member's quotes, behind the 'quotes' switch (owner 2026-10-19) */}
           {/* Jobs waiting for the poster's bank payment: shown, never bucketed. */}

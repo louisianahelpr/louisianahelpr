@@ -11,7 +11,7 @@
  * App.tsx's BrowserRouter), with a destination page that never finishes
  * loading: the tapped tab must be lit while the old page is still shown, and
  * the router's own answer must win once a navigation commits. (Nav redesign, owner 2026-11-06: the dock is
- * Dashboard, Jobs, Declutter, Shops, Homes; the slow page is Jobs and the committing one Declutter.)
+ * Home, Jobs, Declutter, Messages, You since F146 (11-09); the slow page is Jobs and the committing one Declutter.)
  *
  * @mutate src/components/MobileNav.tsx |     const isActive = litNow ? litNow === path : active \|\| inStack; |     const isActive = active \|\| inStack;
  * @mutate src/components/MobileNav.tsx |         goTab(path, effectivePath); |         navigate(effectivePath);
@@ -85,7 +85,7 @@ afterEach(cleanup);
 describe("a dock tap answers at once (AUD31-62)", () => {
   it("lights the tapped tab while its page is still loading", () => {
     renderApp();
-    expect(lit()).toEqual(["Dashboard"]);
+    expect(lit()).toEqual(["Home"]);
     fireEvent.click(screen.getByRole("button", { name: "Jobs" }));
     // The transition holds the old page (the exact state the auditor saw)...
     expect(screen.getByText("Home page")).toBeTruthy();

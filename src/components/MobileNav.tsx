@@ -388,9 +388,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </span>
           )}
         </div>
-        {/* ICONS ONLY (owner, nav redesign 2026-11-06): no word under the icon. The tab's name is its aria-label
-            ("Dashboard", "Jobs", ... or "3 Jobs" with a badge, whose visible "3" it starts with: WCAG 2.5.3); the
-            active tab reads from its filled olive icon and the round pill behind it. Guard: centerCreateNav. */}
+        {/* F147 (owner UI audit 2026-11-09, replacing the 11-06 icons-only dock): the tab's name under its icon, bold
+            olive on the current section (Messages and You included), muted elsewhere. The aria-label starts with the
+            visible text in DOM order (the badge's count, a space, then the name: WCAG 2.5.3). Guard: centerCreateNav. */}
+        {" "}
+        <span data-dock-label className={`relative z-10 text-ds-10 leading-none whitespace-nowrap ${isActive ? "font-bold" : "font-medium"}`}>{shown}</span>
       </TabButton>
       {path === "/posts" && dockMotion && (
         <dockMotion.NavQuickMenu open={quickMenuTab === "posts"} onClose={closeQuickMenu} title="Quick filter">

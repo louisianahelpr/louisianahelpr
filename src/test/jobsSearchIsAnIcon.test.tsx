@@ -149,22 +149,24 @@ describe("Jobs: the search is an icon, never an expanded field", () => {
     });
   }
 
-  // The Vinted header (owner 11-08): on a phone the tab's search IS the top bar's rounded field ("Search posted jobs"),
-  // beside the bell and the photo; no icon, no tabs row, and still nothing searches from the chip row.
+  // On a phone the tab's search is the rounded field ("Search posted jobs", owner 11-08), in its own row right under
+  // the top bar since F148 (owner audit 11-09: "search inside the page"), with the tabs row under it (F152); no icon,
+  // and still nothing searches from the chip row or the tabs row.
   for (const tab of ["posted", "working"] as const) {
-    it(`phone, ${tab}: the search is the top bar's field, never an icon, never in the status chip row (owner 11-08)`, async () => {
+    it(`phone, ${tab}: the search is the field under the top bar, never an icon, never in the status chip row (owner 11-08, F148)`, async () => {
       desktop.on = false;
       const { container } = wrap(<JobsSection />, `/jobs?tab=${tab}`);
       await waitFor(() => expect(container.querySelector("[data-jobs-toolbar]")).not.toBeNull());
-      const bar = within(container).getByTestId("app-top-bar");
-      const field = bar.querySelector<HTMLElement>("[data-section-search-bar]");
+      const row = within(container).getByTestId("app-top-bar-search");
+      expect(within(container).getByTestId("app-top-bar").nextElementSibling, "right under the bar").toBe(row);
+      const field = row.querySelector<HTMLElement>("[data-section-search-bar]");
       expect(field, "the bar's search").not.toBeNull();
       const label = tab === "posted" ? "Search posted jobs" : "Search jobs you're working";
       expect(field!.getAttribute("role")).toBe("search");
       expect(within(field!).getByRole("searchbox", { name: label })).toBeInTheDocument();
       expect(container.querySelectorAll("[data-section-search-bar]"), "one search").toHaveLength(1);
       expect(container.querySelector("[data-jobs-search]"), "no icon").toBeNull();
-      expect(within(container).queryByTestId("section-tabs"), "no tabs row").toBeNull();
+      expect(within(container).getByTestId("section-tabs").querySelector("[data-section-search-bar], [data-jobs-search]"), "no search in the tabs row").toBeNull();
       expect(container.querySelector("[data-jobs-toolbar]")!.querySelector("[data-section-search-bar], [data-jobs-search]")).toBeNull();
     });
   }

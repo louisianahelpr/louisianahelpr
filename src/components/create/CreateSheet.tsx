@@ -150,18 +150,20 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                   <div className="flex flex-wrap gap-2">
                     {actions[s.key].map((a, j) => (
                       soon ? (
-                        <button
+                        <Button
                           key={a.label}
                           type="button"
+                          variant="ghost"
+                          size="wrapSm"
                           aria-disabled
                           data-create-action={`${s.key}:${j}`}
                           data-create-action-soon=""
                           onClick={() => sayComingSoon(s.label)}
-                          className="rounded-full min-h-11 px-3 min-[360px]:px-4 text-ds-13 min-[360px]:text-ds-14 font-semibold border text-muted-foreground cursor-not-allowed"
+                          className="rounded-full px-3 min-[360px]:px-4 text-ds-13 min-[360px]:text-ds-14 font-semibold tracking-normal border text-muted-foreground cursor-not-allowed shadow-none"
                           style={{ borderColor: "hsl(var(--border))", background: "hsl(var(--muted))" }}
                         >
                           {a.label}
-                        </button>
+                        </Button>
                       ) : (
                       <button
                         key={a.label}

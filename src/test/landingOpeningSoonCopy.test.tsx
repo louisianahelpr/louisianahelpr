@@ -6,7 +6,8 @@
  *     and CLAUDE.md's locked-copy rule quotes the same words;
  *   - ONE "Coming soon" line sits above the unopened section cards, never a
  *     pill on each card; the Jobs card keeps its "Browse jobs" link;
- *   - the closing line is exactly "One free account. Jobs are open now."
+ *   - the closing line is exactly "One free account for jobs and Declutter." (owner's UI audit 11-09, F001: the old
+ *     "Jobs are open now." sat on the same page as "No open jobs right now.")
  *
  * The open/soon answer is fed through useSectionsOpen (the real fail-closed
  * sectionIsComingSoon decides each card), so no Supabase is involved.
@@ -14,7 +15,7 @@
  * @mutate src/components/landing/HeroSection.tsx | Hire help or find work. One account | Hire help or find work. Sell or find a deal. Shop local or open a shop. Find a place or list one. One account
  * @mutate src/components/landing/SectionsShowcase.tsx | <h3 className="text-ds-20 font-bold tracking-tight mt-2">{s.navLabel}</h3> | <h3 className="text-ds-20 font-bold tracking-tight mt-2">{s.navLabel}</h3>{soon && <span>Coming soon</span>}
  * @mutate src/components/landing/SectionsShowcase.tsx |   const soonCards = cards.filter((c) => c.soon); |   const soonCards = cards.filter(() => false);
- * @mutate src/components/landing/SectionsShowcase.tsx | One free account. Jobs are open now. | One free account for Jobs, Declutter, Shops and Homes.
+ * @mutate src/components/landing/SectionsShowcase.tsx | One free account for jobs and Declutter. | One free account. Jobs are open now.
  *
  * ONE WORD for a closed section (audit 2026-10-28 P5-4): the landing said
  * "Opening soon" while the rail and the Explore chips (SoonPill "rail" and
@@ -141,7 +142,7 @@ describe("the landing says what is open today", () => {
 
   it("the closing line is the owner's words", () => {
     const src = blankComments(readFileSync(join(ROOT, "src/components/landing/SectionsShowcase.tsx"), "utf8"));
-    expect(src).toMatch(/>One free account\. Jobs are open now\.<\/p>/);
-    expect(src).not.toMatch(/One free account for Jobs, Declutter, Shops and Homes/);
+    expect(src).toMatch(/>One free account for jobs and Declutter\.<\/p>/);
+    expect(src).not.toMatch(/Jobs are open now/);
   });
 });

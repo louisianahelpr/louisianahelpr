@@ -205,7 +205,8 @@ describe("/help dispute answer matches the cards (VN-28)", () => {
   // Owner, 2026-09-14: "if the job is done, its done. period. too late to ask
   // for help. no link". The answer used to send a finished job to Support.
   it("says done is final and sends no one to Support about a finished job", () => {
-    expect(disputeAnswer).toMatch(/once a job is marked done, it's final/i);
+    // F036 (owner UI audit 2026-11-09): final at the poster's approval, not at "marked done".
+    expect(disputeAnswer).toMatch(/once the person who posted the job approves it, it's final/i);
     expect(disputeAnswer).not.toMatch(/support/i);
     expect(disputeAnswer).not.toMatch(/contact (us|our team)/i);
     // No link of any kind: no URL, no route, no email.
@@ -213,7 +214,7 @@ describe("/help dispute answer matches the cards (VN-28)", () => {
   });
 
   it("says Report a Problem is there while the job is in progress", () => {
-    expect(disputeAnswer).toMatch(/Report a Problem is available while the job is in progress/);
+    expect(disputeAnswer).toMatch(/Report a Problem is there from On the way until the person who posted the job approves it/);
   });
 
   it("names the Helpr's mid-job control by the label the card renders", () => {

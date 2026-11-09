@@ -23,8 +23,9 @@
 import * as React from 'npm:react@18.3.1'
 import { Heading, Link, Text } from 'npm:@react-email/components@0.0.22'
 import { h1, text as textStyle } from './styles.ts'
-import { BaseLayout, TransactionalFooter } from './components.tsx'
+import { BaseLayout, BrandButton, TransactionalFooter } from './components.tsx'
 import { SUPPORT_EMAIL } from '../resend.ts'
+import { getAppUrl } from '../appUrl.ts'
 
 export interface EmailChangedProps {
   /** The address being notified — the current/previous login email. */
@@ -71,6 +72,12 @@ export const AdminEmailChangedEmail = ({ oldEmail, newEmail }: EmailChangedProps
   </BaseLayout>
 )
 
+/**
+ * The self-service notice's heading (owner's UI audit 11-09, F163): it said "Your email address was changed" under a
+ * subject saying it "is being changed", which read as done; nothing changes until the new address confirms.
+ */
+export const SELF_CHANGE_HEADING = 'Someone asked to change your login email'
+
 /** Someone with a session started a self-service email change. */
 export const SelfEmailChangeNoticeEmail = ({ oldEmail, newEmail }: EmailChangedProps) => (
   <BaseLayout
@@ -82,7 +89,7 @@ export const SelfEmailChangeNoticeEmail = ({ oldEmail, newEmail }: EmailChangedP
     }
   >
     <Heading className="e-h1" style={h1}>
-      {HEADING}
+      {SELF_CHANGE_HEADING}
     </Heading>
     <Text className="e-text" style={textStyle}>
       Someone signed in to your Helpr account and started changing your login email from{' '}
@@ -94,8 +101,10 @@ export const SelfEmailChangeNoticeEmail = ({ oldEmail, newEmail }: EmailChangedP
       address.
     </Text>
     <Text className="e-text" style={textStyle}>
-      <strong>Was this NOT you?</strong> Reset your password immediately and contact us at{' '}
-      <SupportAddress />.
+      <strong>Was this NOT you?</strong> Reset your password right away so no one else can sign in, then
+      contact us at <SupportAddress />.
     </Text>
+    {/* F163: the "not you" path gets its own button, straight to choosing a new password. */}
+    <BrandButton href={`${getAppUrl()}/forgot-password`} label="This wasn't me: reset my password" widthPx={300} />
   </BaseLayout>
 )

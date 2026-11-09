@@ -20,7 +20,7 @@
  * in <town> on Louisiana Helpr. Pick it up nearby."
  * @mutate src/lib/declutter/shareCardPrice.mjs |   return priceCents + Math.round(priceCents * 0.05) + 70; |   return priceCents;
  * @mutate api/share.ts |   const price = shareCardPriceLabel(item.price_cents); |   const price = `$${item.price_cents / 100}`;
- * @mutate api/share.ts |   if (!Number.isFinite(cents) \|\| cents <= 0) return "Free"; |   if (!Number.isFinite(cents)) return "Free";
+ * @mutate src/lib/declutter/shareCardPrice.mjs |   if (!Number.isFinite(priceCents) \|\| priceCents <= 0) return "Free"; |   if (!Number.isFinite(priceCents)) return "Free";
  * @mutate api/share.ts |     url: `${SUPABASE_URL}/functions/v1/shop-photo?id=${id}&kind=declutter&w=1200&og=1`, |     url: `${SUPABASE_URL}/storage/v1/object/public/job-photos/${id}`,
  * @mutate supabase/functions/shop-photo/index.ts |       kind === "declutter"\n        ? await admin.rpc("declutter_public_photo_path", { p_photo_id: id }) |       false\n        ? await admin.rpc("declutter_public_photo_path", { p_photo_id: id })
  * @mutate supabase/migrations/20261027194426_declutter_share_card.sql |           AND NOT i.seller_hidden\n |

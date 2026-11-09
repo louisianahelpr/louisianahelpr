@@ -10,7 +10,7 @@
  *
  * @mutate api/share.ts |     image: profileCardImage(typeof card.handle === "string" && HANDLE_RE.test(card.handle) ? card.handle : handle, card, name), |     image: undefined,
  * @mutate api/share.ts |     url: ogProfileImageUrl(SITE_ORIGIN, handle, card), |     url: `${SITE_ORIGIN}/og-image.png?v=h3`,
- * @mutate src/lib/ogProfileCard.mjs |   const s = [l.name, l.town, l.rating, l.facts, l.skills, | const s = [l.name, l.town,
+ * @mutate src/lib/ogProfileCard.mjs |   const s = [OG_PROFILE_STYLE, l.name, l.town, l.rating, l.facts, l.skills, | const s = [OG_PROFILE_STYLE, l.name, l.town,
  * @mutate src/lib/ogProfileCard.mjs |   if (avatarUrl.slice(0, prefix.length) !== prefix) return null; |
  * @mutate api/og-profile.ts |       if (!HANDLE_RE.test(handle)) return fallback(); |
  * @mutate api/og-profile.ts |       if (raw.length > MAX_HANDLE_PARAM) return fallback(); |

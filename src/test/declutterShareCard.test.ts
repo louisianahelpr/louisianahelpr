@@ -44,7 +44,9 @@ const PHOTO = "9a8b7c6d-1111-4222-8333-444455556666";
 describe("Q2426: the Declutter item link card (SQL)", () => {
   it("the three functions are defined in 20261027194426 and read one visibility rule", () => {
     const names = ["declutter_item_link_visible", "declutter_public_item_card", "declutter_public_photo_path"];
-    for (const n of names) expect(newestFunction(n).file, n).toContain("20261027194426");
+    // F061 (20261109194234) restates the photo path (+ a sold item's cover); the other two stay in 20261027194426.
+    for (const n of names.slice(0, 2)) expect(newestFunction(n).file, n).toContain("20261027194426");
+    expect(newestFunction("declutter_public_photo_path").file).toContain("20261109194234");
     expect(names.length).toBeGreaterThan(2);
     const rule = code("declutter_item_link_visible");
     expect(rule).toContain("f.key = 'declutter' AND f.audience IN ('testers', 'everyone')");
@@ -61,11 +63,17 @@ describe("Q2426: the Declutter item link card (SQL)", () => {
   });
 
   it("anon may run the card; the photo path and the rule are service_role only", () => {
-    const sql = blankSqlComments(read("supabase/migrations/20261027194426_declutter_share_card.sql"));
+    // The card's and the rule's grants live where they are newest (20261027194426); the photo path's newest is below.
+    const cardFile = newestFunction("declutter_public_item_card").file;
+    const sql = blankSqlComments(read(cardFile.includes("/") ? cardFile : `supabase/migrations/${cardFile}`));
     expect(sql).toContain("GRANT EXECUTE ON FUNCTION public.declutter_public_item_card(uuid) TO anon, authenticated, service_role;");
     expect(sql).toContain("REVOKE ALL ON FUNCTION public.declutter_public_photo_path(uuid) FROM PUBLIC, anon, authenticated;");
     expect(sql).toContain("REVOKE ALL ON FUNCTION public.declutter_item_link_visible(uuid) FROM PUBLIC, anon, authenticated;");
     expect(sql).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.declutter_public_photo_path\(uuid\) TO [^;]*\b(anon|authenticated)\b/);
+    // The newest restatement (F061) keeps the photo path service_role only.
+    const newest = blankSqlComments(read("supabase/migrations/20261109194234_declutter_sold_item_card.sql"));
+    expect(newest).toContain("REVOKE ALL ON FUNCTION public.declutter_public_photo_path(uuid) FROM PUBLIC, anon, authenticated;");
+    expect(newest).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.declutter_public_photo_path\(uuid\) TO [^;]*\b(anon|authenticated)\b/);
   });
 
   it("shop-photo serves kind=declutter through declutter_public_photo_path, after the rate limit", () => {

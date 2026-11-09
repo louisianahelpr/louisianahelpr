@@ -41,7 +41,7 @@ import PriceHint from "./DeclutterPriceHint";
 import { DeclutterGallery } from "./DeclutterGallery";
 import { DeclutterSellerCard } from "./DeclutterSellerCard";
 import { DeclutterMovingSaleNote } from "./DeclutterMovingSaleNote";
-import { DeclutterItemRows, NewestItemsRow } from "./DeclutterItemRows";
+import { DeclutterItemRows, NewestItemsRow, SoldItemCard } from "./DeclutterItemRows";
 import { BundleLine, BundleSaveBox, useBundleSummary } from "./DeclutterBundleRow";
 import { DeclutterQuestions } from "./DeclutterQuestions";
 import { DeclutterGuestJoin, DeclutterGuestSeller } from "./DeclutterGuest";
@@ -142,7 +142,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
   // One gate for the item and its photos: the gallery paints once, never a placeholder that pops into a photo.
   if (item.isLoading || photos.isLoading) return <DeclutterItemSkeleton />;
   if (item.isError || !item.data) {
-    return <DeclutterItemUnavailable detail={item.isError ? declutterErrorMessage(item.error) : undefined} more={<NewestItemsRow viewerId={user?.id ?? null} />} />;
+    return <DeclutterItemUnavailable detail={item.isError ? declutterErrorMessage(item.error) : undefined} top={item.isError ? null : <SoldItemCard itemId={itemId} />} more={<NewestItemsRow viewerId={user?.id ?? null} />} />;
   }
   const it = item.data;
   const miles =

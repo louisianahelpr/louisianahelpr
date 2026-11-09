@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-09T00:00Z",
+  "measured_at": "2026-11-09T00:37Z",
   "issues": {
     "readable": true,
     "open": [
@@ -132,6 +132,27 @@
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42533929939",
         "runTruncated": false
+      },
+      {
+        "number": 4261,
+        "title": "nightly-red: main: Supabase DB Deploy",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42536791974",
+        "runTruncated": false
+      },
+      {
+        "number": 4263,
+        "title": "nightly-red: prod-deploy",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42540130760",
+        "runTruncated": false
+      },
+      {
+        "number": 4264,
+        "title": "nightly-red: main: Vitest",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42536791781",
+        "runTruncated": false
       }
     ]
   },
@@ -163,6 +184,14 @@
         "issue": 2353
       },
       {
+        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: vitest",
+        "issue": null
+      },
+      {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -184,6 +213,14 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
+        "issue": null
+      },
+      {
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
+        "status": "open",
+        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -371,6 +408,14 @@
         "issue": null
       },
       {
+        "fingerprint": "95a0554486ebd14ed36618e23db7477f",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: prod-deploy",
+        "issue": null
+      },
+      {
         "fingerprint": "15cc2d7f63f3c53e80755673bf18e8c0",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
@@ -427,19 +472,19 @@
         "issue": null
       },
       {
-        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: declutter-money returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "aeedd249577285330a97e04195cee7d8",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: refund-request-sweep returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: declutter-money returned 502",
         "issue": null
       },
       {
@@ -472,6 +517,9 @@
     "issue #4245": "Q1816",
     "issue #4253": "Q1816",
     "issue #4258": "Q1816",
+    "issue #4261": "Q1816",
+    "issue #4263": "Q1816",
+    "issue #4264": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",
@@ -480,7 +528,6 @@
     "ledger 15cc2d7f63f3": "Q2347",
     "ledger 16e6e91f6701": "Q1816",
     "ledger 18539240a894": "Q1816",
-    "ledger 1bbb3f41bbe7": "Q2776",
     "ledger 2e4f3e726722": "Q1816",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 3712b62a9839": "Q2510",
@@ -491,6 +538,7 @@
     "ledger 43d77e26f272": "Q1816",
     "ledger 4aa239aefeb6": "Q1816",
     "ledger 4c89303184fb": "Q1816",
+    "ledger 54ef0bfdcec3": "Q2777",
     "ledger 5a28db44e912": "Q2410",
     "ledger 60298a019ea3": "Q1776",
     "ledger 6205197429d4": "Q1816",
@@ -504,6 +552,7 @@
     "ledger 8a2e802edbe7": "Q2498",
     "ledger 8f6eb3360000": "Q2507",
     "ledger 9078a39b3304": "Q1615",
+    "ledger 95a0554486eb": "Q1816",
     "ledger 99390a68ded7": "Q1615",
     "ledger a8ceee56bbd5": "Q1816",
     "ledger ab6fdbe8c882": "Q1816",
@@ -516,6 +565,7 @@
     "ledger cae29df0662b": "Q2351",
     "ledger d1f8391b44ec": "Q1631",
     "ledger db0fb15c4ec3": "Q1816",
-    "ledger f1bfed973a2a": "Q2734"
+    "ledger f1bfed973a2a": "Q2734",
+    "ledger f22e3275d50d": "Q1816"
   }
 }

@@ -818,9 +818,6 @@
   --jasper-deep:    var(--olivewood);    /* hover deepens further */
   --copper:         var(--bark);         /* hairline tint */
 
-  /* Brand color tokens for third-party social marks. */
-  --facebook: 215 90% 52%;
-
   /* ── The elevation ladder, in one place (D1) ────────────────────────────
      Four rungs. The eye resolves about four levels of depth, which is why
      nine named elevations produced no hierarchy at all — screens picked a

@@ -3493,15 +3493,13 @@ button,
    its full name, breaking onto a second line at its space or soft hyphen ("On the" / "way", "Con-" / "firmed") when
    its column is too narrow; the widest piece, "On the", is 38.1px at 11px and the narrowest column at 368px is 40px.
    Guard: src/test/trackerFullWordsFromMidWidth.test.tsx. */
+/* SIX STEPS, FULL WORDS AT EVERY WIDTH (owner pick 11-08, design audit A JP3): the short forms ("Conf.", "Arr.")
+   are gone; six columns leave each name room to break at its space or soft hyphen instead. */
 .job-steps { container-type: inline-size; }
-.job-step-full, .job-step-wide { display: none; }
-@container (min-width: 368px) {
-  .job-step-short { display: none; }
-  .job-step-full { display: inline; }
-}
+.job-step-wide { display: none; }
 @container (min-width: 640px) {
   .job-step-wide { display: block; }
-  .job-steps-grid { grid-template-columns: repeat(8, minmax(0, 1fr)) !important; }
+  .job-steps-grid { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
 }
 /* NARROW TRACKERS KEEP EVERY SHORT WORD WHOLE (audit 2026-10-28 F17). Measured on a local build, prod data:
    /payment-success's tracker is 277px at 375 ("Hired" 30 in 29, "Done" 30 in 29) and 222px at 320 (7 of 8 cut);
@@ -3521,10 +3519,10 @@ button,
   .job-steps-grid [data-step-tip] { width: calc(100% + 2px); margin-left: -1px; margin-right: -1px; padding-left: 1px; padding-right: 1px; }
 }
 @container (max-width: 299px) {
-  .job-step-short { font-size: 0.91em; }
+  .job-step-full { font-size: 0.91em; }
 }
 @container (max-width: 259px) {
-  .job-steps-grid { grid-template-columns: repeat(8, minmax(0, auto)) !important; }
+  .job-steps-grid { grid-template-columns: repeat(6, minmax(0, auto)) !important; }
   .job-step-cur-icon { display: none; }
 }
 

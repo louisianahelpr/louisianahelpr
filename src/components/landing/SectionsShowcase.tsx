@@ -265,7 +265,7 @@ export function TrustAndJoin() {
             Join your neighbors on{" "}
             <em style={{ fontStyle: "italic", color: "var(--lp-action-strong)" }}>Helpr.</em>
           </h2>
-          <p className="max-w-xl text-ds-15 sm:text-ds-17" style={{ color: "var(--lp-body)" }}>One free account. Jobs are open now.</p>
+          <p className="max-w-xl text-ds-15 sm:text-ds-17" style={{ color: "var(--lp-body)" }}>One free account for jobs and Declutter.</p>
           <div className="mt-2 w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link
               to="/signup"

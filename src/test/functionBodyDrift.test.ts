@@ -219,12 +219,13 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // (#180/#190 'Amount owed added', and 20261027174633's #10-#30 Q1937 order cap); 20261103215616 (Q1938 notice)
     // declutter_apply_seller_fault (#210 'Nothing is owed for it'; #200's sentence is deliberately replaced by the
     // paid-for-time / neutral line, lead PASS 11-03).
-    expect(rewritten.length).toBe(12);
+    // (2026-11-09: 11.) F192 (Builder 6) re-created track_revision_scope_creep from its LIVE body (20261109193417,
+    // which already carries 20260925143327's "The person who posted this job" rewrite), so that rewrite is superseded.
+    expect(rewritten.length).toBe(11);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "helper_abort_job",
       "notify_helper_application_viewed",
-      "track_revision_scope_creep",
     ]);
   });
 

@@ -23,8 +23,9 @@
 import { queueEmail } from "../_shared/resend.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import * as React from "npm:react@18.3.1";
-import { NotificationEmail } from "../_shared/email-templates/notification.tsx";
+import { type EmailReceipt, NotificationEmail } from "../_shared/email-templates/notification.tsx";
 import { renderEmail } from "../_shared/email-templates/render.ts";
+import { centralDateTimeLabel } from "../_shared/centralDateTime.ts";
 
 type SellerEmailKind = "sold" | "payout_sent";
 
@@ -42,7 +43,7 @@ const firstName = (fullName: string | null | undefined): string => (fullName ?? 
  * button naming where it goes, the Louisiana Helpr sign-off and the notification-settings footer.
  */
 export async function declutterEmailParts(
-  opts: { title: string; message: string; path: string; actionLabel: string; fullName?: string | null },
+  opts: { title: string; message: string; path: string; actionLabel: string; fullName?: string | null; receipt?: EmailReceipt | null },
 ): Promise<{ html: string; text: string }> {
   const site = getAppUrl();
   return await renderEmail(React.createElement(NotificationEmail, {
@@ -53,7 +54,86 @@ export async function declutterEmailParts(
     userName: firstName(opts.fullName),
     prefsUrl: `${site}/profile?tab=notifications`,
     host: site.replace(/^https?:\/\//, ""),
+    receipt: opts.receipt ?? undefined,
   }));
+}
+
+/** What a receipt is built from: the order's own recorded figures (declutter_orders), never recomputed. */
+export interface ReceiptOrder {
+  handover: string | null;
+  items_cents: number | null;
+  bundle_discount_cents: number | null;
+  premium_cents: number | null;
+  delivery_cents: number | null;
+  shipping_cents: number | null;
+  pickup_slot_start: string | null;
+  pickup_slot_end: string | null;
+}
+
+const PICKUP_HANDOVERS = new Set(["porch", "pickup_home", "meetup"]);
+
+/**
+ * F179 (owner's message review 11-09): a Declutter receipt showed one total and nothing else, so a buyer could not tell
+ * what $52.75 was for. The owner's Declutter rule shows the fee ("Service fee", owner 11-07), like the checkout
+ * summary (src/components/declutter/DeclutterCheckoutSummary.tsx). DISPLAY ONLY: every line is a figure the order
+ * already recorded at checkout (declutter_start_checkout: total = items + premium (the service fee) + delivery +
+ * shipping; the setup fee rides outside it). The lines must add up to what was paid (`paidCents`, card plus gift),
+ * or there is no breakdown at all (the email keeps its one-line total) rather than a wrong one. Pure.
+ */
+export function declutterReceipt(
+  o: ReceiptOrder,
+  items: string,
+  paidCents: number,
+  setupFeeCents: number,
+  totalLabel = "Total",
+): EmailReceipt | null {
+  const n = (v: number | null | undefined) => (Number.isInteger(v) && (v as number) >= 0 ? (v as number) : null);
+  const itemsCents = n(o.items_cents);
+  const fee = n(o.premium_cents);
+  const delivery = n(o.delivery_cents) ?? 0;
+  const shipping = n(o.shipping_cents) ?? 0;
+  const discount = n(o.bundle_discount_cents) ?? 0;
+  if (itemsCents === null || fee === null) return null;
+  if (itemsCents + fee + delivery + shipping + setupFeeCents !== paidCents) return null;
+  const lines: Array<[string, string]> = [
+    [discount > 0 ? `${items} (after a ${dollars(discount)} bundle discount)` : items, dollars(itemsCents)],
+    ["Service fee", dollars(fee)],
+  ];
+  if (o.handover === "delivery") lines.push(["Helpr delivery", dollars(delivery)]);
+  else if (o.handover === "seller_delivery") lines.push(["Seller delivery", delivery > 0 ? dollars(delivery) : "Free"]);
+  else if (o.handover === "ship") lines.push(["Shipping", dollars(shipping)]);
+  else if (o.handover && PICKUP_HANDOVERS.has(o.handover)) lines.push([o.handover === "meetup" ? "Meetup" : "Pickup", "Free"]);
+  if (setupFeeCents > 0) lines.push(["One-time setup fee", dollars(setupFeeCents)]);
+  let note: string | undefined;
+  const start = o.pickup_slot_start ? new Date(o.pickup_slot_start) : null;
+  if (start && !Number.isNaN(start.getTime()) && o.handover && PICKUP_HANDOVERS.has(o.handover)) {
+    note = `${o.handover === "meetup" ? "Meetup" : "Pickup"}: ${centralDateTimeLabel(start)}. The address is in the app.`;
+  }
+  return { lines, total: [totalLabel, `${dollars(paidCents)} (incl. fee)`], note };
+}
+
+/**
+ * Reads what declutterReceipt needs for `orderId` and builds it. Best-effort, never throws: an unreadable order
+ * gives no breakdown (the receipt's one line still goes), logged by name.
+ */
+export async function declutterReceiptFor(
+  db: Db, orderId: string, paidCents: number, setupFeeCents: number, log: Log, totalLabel?: string,
+): Promise<EmailReceipt | null> {
+  try {
+    const { data, error } = await db.from("declutter_orders")
+      .select("handover, items_cents, bundle_discount_cents, premium_cents, delivery_cents, shipping_cents, pickup_slot_start, pickup_slot_end")
+      .eq("id", orderId).maybeSingle();
+    if (error || !data) {
+      log("Declutter receipt: order unreadable, no breakdown", { orderId, error: error?.message ?? null });
+      return null;
+    }
+    const receipt = declutterReceipt(data as ReceiptOrder, await itemsNamed(db, orderId, log), paidCents, setupFeeCents, totalLabel);
+    if (!receipt) log("Declutter receipt: lines do not add up to what was paid, no breakdown", { orderId, paidCents });
+    return receipt;
+  } catch (e) {
+    log("Declutter receipt: breakdown threw, none shown", { orderId, error: String(e) });
+    return null;
+  }
 }
 
 /** "Lamp" / "Lamp" and "Chair" / "Lamp" and 2 more items, from the SQL that words the sale notices; "your item" if unreadable. */

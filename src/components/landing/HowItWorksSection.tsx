@@ -131,6 +131,7 @@ const HowItWorksSection = () => {
               `semantics="tab"`: it swaps the three step cards below. */}
           <SegmentedControl
             semantics="tab"
+            labelSize="md"
             ariaLabel="Which side of Helpr are you on"
             options={SIDE_OPTIONS}
             value={side}

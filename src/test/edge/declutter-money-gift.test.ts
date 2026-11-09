@@ -45,7 +45,20 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
 import { resetStripeMock, stripeMock } from "./mocks/stripe";
-import { resetEmailMocks, queuedEmails } from "./mocks/email";
+import { resetEmailMocks, queuedEmails, emailRenders } from "./mocks/email";
+/**
+ * F154 (owner's message review 11-09): the refund email is the branded notice email now (declutterEmailParts), so its
+ * words are the rendered element's message, not a hand-built text part.
+ * @mutate supabase/functions/declutter-money/index.ts |       message: body,\n      path: "/declutter?tab=buying",\n      actionLabel: "Open your Declutter cart", |       message: "Your refund is on its way.",\n      path: "/declutter?tab=buying",\n      actionLabel: "Open your Declutter cart",
+ */
+const refundMessage = (): string => {
+  const r = (emailRenders as Array<{ type: { name: string }; props: Record<string, string> }>)
+    .find((e) => e.props.title === "Your Declutter refund");
+  expect(r?.type.name).toBe("NotificationEmail");
+  expect(r?.props.actionUrl).toMatch(/\/declutter\?tab=buying$/);
+  expect(r?.props.actionLabel).toBe("Open your Declutter cart");
+  return r?.props.message ?? "";
+};
 
 const BUYER = "0000000d-0000-4000-8000-000000000001";
 const SELLER = "0000000d-0000-4000-8000-000000000002";
@@ -276,8 +289,8 @@ describe("declutter-money: a gift-paid order's refunds (Q2106 S3b)", () => {
     expect(rpcs("declutter_refund_executed")[0]?.args).toEqual({ p_refund_id: REFUND, p_stripe_refund_id: "re_card1", p_succeeded: true });
     const mail = refundEmails();
     expect(mail).toHaveLength(1);
-    expect(mail[0].text).toContain("$15.00 is on its way back to your card");
-    expect(mail[0].text).toContain("$25.00 is back on your gift card balance");
+    expect(refundMessage()).toContain("$15.00 is on its way back to your card");
+    expect(refundMessage()).toContain("$25.00 is back on your gift card balance");
   });
 
   it("gift-only row (no payment intent): restored, executed with no Stripe ref, Stripe never called", async () => {
@@ -289,8 +302,8 @@ describe("declutter-money: a gift-paid order's refunds (Q2106 S3b)", () => {
     expect(rpcs("declutter_refund_executed")[0]?.args).toEqual({ p_refund_id: REFUND, p_stripe_refund_id: null, p_succeeded: true });
     const mail = refundEmails();
     expect(mail).toHaveLength(1);
-    expect(mail[0].text).toContain("$40.00 is back on your gift card balance");
-    expect(mail[0].text).not.toContain("your card. Card refunds");
+    expect(refundMessage()).toContain("$40.00 is back on your gift card balance");
+    expect(refundMessage()).not.toContain("your card. Card refunds");
   });
 
   it("a row on a card payment whose whole refund is gift (card part 0): restored, never sent to Stripe", async () => {
@@ -387,8 +400,8 @@ describe("declutter-money: a gift-paid order's delivery-fee and shipping refunds
     expect(order).toEqual(["restore_gift_card_for_declutter_order", "declutter_delivery_refund_executed"]);
     const mail = refundEmails();
     expect(mail).toHaveLength(1);
-    expect(mail[0].text).toContain("$2.00 is on its way back to your card");
-    expect(mail[0].text).toContain("$3.00 is back on your gift card balance");
+    expect(refundMessage()).toContain("$2.00 is on its way back to your card");
+    expect(refundMessage()).toContain("$3.00 is back on your gift card balance");
   });
 
   it("gift-only shipping row (no payment intent, ship_void_refunded): restored, executed with no Stripe ref, Stripe never called", async () => {
@@ -399,8 +412,8 @@ describe("declutter-money: a gift-paid order's delivery-fee and shipping refunds
     expect(rpcs("declutter_delivery_refund_executed")[0]?.args).toEqual({ p_id: DREFUND, p_stripe_refund_id: null, p_succeeded: true, p_error: null });
     const mail = refundEmails();
     expect(mail).toHaveLength(1);
-    expect(mail[0].text).toContain("$3.00 is back on your gift card balance");
-    expect(mail[0].text).not.toContain("your card. Card refunds");
+    expect(refundMessage()).toContain("$3.00 is back on your gift card balance");
+    expect(refundMessage()).not.toContain("your card. Card refunds");
   });
 
   it("a card-payment delivery row whose whole refund is gift (card part 0): restored, never sent to Stripe", async () => {

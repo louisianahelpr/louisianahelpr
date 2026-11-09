@@ -67,6 +67,8 @@ export default function HomeDashboard() {
   return <HomeDashboardScreen />;
 }
 
+/** The card's name (F083, owner UI audit 11-09: "Pick one label ('Needs you') and use it everywhere"). */
+const NEEDS_YOU_LABEL = "Needs you";
 /** Next up shows at most this many dots: five 44px targets fit the 320 card; See all lists the rest. */
 const NEXT_UP_MAX_DOTS = 5;
 
@@ -201,10 +203,11 @@ function HomeDashboardScreen() {
                 stat boxes. Nothing invented: no to-do, no task; the money line only when the
                 to-do carries a real amount. "See all" is the ONE control for the full list. */}
             {welcome ? <WelcomeCard sell={visible.filter(isLive).some((v) => v.key === "declutter")} /> : (
-            <section ref={nextUpRef} data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1.5" style={summary.todosLoading && nextUpReserve ? { minHeight: nextUpReserve } : undefined}>
+            // F083 (owner UI audit 11-09): the card is named "Needs you" here as everywhere else (it was "Next up").
+            <section ref={nextUpRef} data-testid="next-up" aria-label={NEEDS_YOU_LABEL} className="liquid-glass p-card flex flex-col gap-1.5" style={summary.todosLoading && nextUpReserve ? { minHeight: nextUpReserve } : undefined}>
               <div className="flex items-center justify-between gap-3">
                 <h2 data-testid="next-up-label" className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                  {!next && summary.waiting ? summary.waiting.label : todoCount > 1 ? `Next up · ${at + 1} of ${todoCount}` : "Next up"}
+                  {!next && summary.waiting ? summary.waiting.label : todoCount > 1 ? `${NEEDS_YOU_LABEL} · ${at + 1} of ${todoCount}` : NEEDS_YOU_LABEL}
                 </h2>
                 {!next && summary.waiting && (
                   <Button type="button" variant="ghost" size="sm" data-testid="next-up-see-job" onClick={() => navigate(`/jobs/${summary.waiting!.jobId}`)} className="px-1 -my-2 -mr-1 text-ds-13 tracking-normal text-primary">

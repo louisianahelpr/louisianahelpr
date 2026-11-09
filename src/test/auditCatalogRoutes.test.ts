@@ -121,6 +121,7 @@ const ALLOWED_UNRESOLVED: Record<string, string> = {
  */
 const UNSWEPT_ROUTES: Record<string, string> = {
   "*": "The NotFound catch-all; the `not-found` catalog row is what renders it.",
+  "/declutter/wanted/new": "F130 (UI audit 11-09): a <Navigate> to /declutter?tab=wanted&post=1, which the Declutter rows sweep; it paints nothing itself.",
 };
 
 /** The element source for a given `path=`, so an excuse can be verified. */

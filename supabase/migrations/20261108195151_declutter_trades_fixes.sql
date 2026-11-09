@@ -38,9 +38,12 @@
 --       declutter_first_screen RESTATED (+ accepts_trades): guests and members see
 --       "Trades OK" (#3).
 --
--- EMAIL: every trade email goes through send_notice_email (the send-notification-email function reads the member's
--- email_declutter_offers / email_declutter_sales preference and the seed boundary). A trade between test accounts
--- (declutter_swap_offers.is_seed) is never emailed at all.
+-- EMAIL: every trade notice is written through declutter_notify (so notifications_seed_boundary decides first, as for
+-- every notice), and ONE AFTER INSERT trigger on notifications, email_declutter_trade_notice, emails the trade notices
+-- the other side has to act on or should hear of (the titles in its WHEN) through send_notice_email, the same way
+-- email_jobs_notice does (20261108201000). Only a row actually written is emailed; send-notification-email reads the
+-- member's email_declutter_offers / email_declutter_sales switch and refuses test and seed recipients (Q840, Q137).
+-- The member who backed out of a trade gets "You cancelled the trade" in the bell only.
 -- MONEY: none moves. A trade order stays $0 / paid_with 'free'; the setup fee is skipped only for an all-trade
 -- checkout; a card order is never closed by any trade path.
 -- AUTHZ: member RPCs keep auth.uid() via declutter_assert_member / their own checks (a null uid raises); internal
@@ -60,21 +63,6 @@ UPDATE public.declutter_cart_items c SET swap_id = s.id
  WHERE c.id IN (s.buyer_line_id, s.seller_line_id) AND c.swap_id IS NULL;
 
 -- ---------------------------------------------------------------------------
--- A trade notice: the bell (declutter_notify) and, unless the trade is between test accounts, an email.
-CREATE OR REPLACE FUNCTION public.declutter_swap_tell(p_user uuid, p_type text, p_title text, p_message text,
-  p_link text, p_other uuid, p_seed boolean)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public', 'pg_temp'
-AS $fn$
-BEGIN
-  PERFORM public.declutter_notify(p_user, p_type, p_title, p_message, p_link, p_other);
-  IF NOT coalesce(p_seed, false) THEN
-    PERFORM public.send_notice_email(p_user, p_title, p_message, p_type, p_link, NULL);
-  END IF;
-END;
-$fn$;
 
 -- ---------------------------------------------------------------------------
 -- #8: a trade line only ever joins a free order. declutter_start_checkout links its lines with
@@ -163,20 +151,20 @@ BEGIN
     SELECT public.member_display_name(p.full_name, 'The other person') INTO v_name FROM public.profiles p WHERE p.user_id = p_actor;
     v_msg := format('%s backed out of the trade of "%s" for "%s", so the trade is off. Both items are back up. Nobody gets a strike.',
                     coalesce(v_name, 'The other person'), coalesce(v_offered, 'an item'), coalesce(v_title, 'an item'));
-    PERFORM public.declutter_swap_tell(CASE WHEN p_actor = s.buyer_id THEN s.seller_id ELSE s.buyer_id END,
+    PERFORM public.declutter_notify(CASE WHEN p_actor = s.buyer_id THEN s.seller_id ELSE s.buyer_id END,
       'declutter_sales', 'Trade cancelled', v_msg,
-      CASE WHEN p_actor = s.buyer_id THEN '/declutter?tab=selling' ELSE '/declutter?tab=buying' END, p_actor, s.is_seed);
-    PERFORM public.declutter_notify(p_actor, 'declutter_sales', 'Trade cancelled',
+      CASE WHEN p_actor = s.buyer_id THEN '/declutter?tab=selling' ELSE '/declutter?tab=buying' END, p_actor);
+    PERFORM public.declutter_notify(p_actor, 'declutter_sales', 'You cancelled the trade',
       format('You backed out of the trade of "%s" for "%s". Both items are back up. Nothing changed hands.',
              coalesce(v_offered, 'an item'), coalesce(v_title, 'an item')),
       '/declutter?tab=selling', CASE WHEN p_actor = s.buyer_id THEN s.seller_id ELSE s.buyer_id END);
   ELSIF v_released > 0 THEN
     v_msg := format('A pickup wasn''t chosen in time, so the trade of "%s" for "%s" ended. Both items are back up. Nobody gets a strike.',
                     coalesce(v_offered, 'an item'), coalesce(v_title, 'an item'));
-    PERFORM public.declutter_swap_tell(s.buyer_id, 'declutter_sales', 'Trade ended, no strike', v_msg,
-      '/declutter?tab=buying', s.seller_id, s.is_seed);
-    PERFORM public.declutter_swap_tell(s.seller_id, 'declutter_sales', 'Trade ended, no strike', v_msg,
-      '/declutter?tab=selling', s.buyer_id, s.is_seed);
+    PERFORM public.declutter_notify(s.buyer_id, 'declutter_sales', 'Trade ended, no strike', v_msg,
+      '/declutter?tab=buying', s.seller_id);
+    PERFORM public.declutter_notify(s.seller_id, 'declutter_sales', 'Trade ended, no strike', v_msg,
+      '/declutter?tab=selling', s.buyer_id);
   END IF;
   RETURN true;
 END;
@@ -206,18 +194,18 @@ BEGIN
     v_n := v_n + 1;
     IF r.offered_item_id = p_item_id THEN
       -- The buyer's own item left the market: the seller's inbox entry goes away and the seller is told.
-      PERFORM public.declutter_swap_tell(r.seller_id, 'declutter_offers', 'Trade offer closed',
+      PERFORM public.declutter_notify(r.seller_id, 'declutter_offers', 'Trade offer closed',
         format('A trade offer for "%s" closed because the item offered is no longer available.', coalesce(r.title, 'your item')),
-        '/declutter?tab=selling', r.buyer_id, r.is_seed);
+        '/declutter?tab=selling', r.buyer_id);
     ELSE
-      PERFORM public.declutter_swap_tell(r.buyer_id, 'declutter_offers', 'Trade offer closed',
+      PERFORM public.declutter_notify(r.buyer_id, 'declutter_offers', 'Trade offer closed',
         CASE WHEN p_why = 'trades_off'
              THEN format('The seller stopped taking trades on "%s", so your trade offer closed. Nothing changed hands.', coalesce(r.title, 'this item'))
              WHEN p_why = 'free'
              THEN format('"%s" is now free to claim, so your trade offer closed. Nothing changed hands.', coalesce(r.title, 'This item'))
              ELSE format('"%s" is no longer available, so your trade offer closed. Nothing changed hands.', coalesce(r.title, 'This item')) END,
         CASE WHEN p_why = 'free' THEN '/declutter/item/' || r.item_id::text ELSE '/declutter?tab=buying' END,
-        r.seller_id, r.is_seed);
+        r.seller_id);
     END IF;
   END LOOP;
   RETURN v_n;
@@ -386,11 +374,11 @@ BEGIN
   VALUES (p_item_id, p_offered_item_id, v_uid, v_ok.o_seller_id, now() + interval '48 hours', coalesce(v_ok.o_seed, false))
   RETURNING id INTO v_id;
   -- CHANGED (#11): bell and email.
-  PERFORM public.declutter_swap_tell(v_ok.o_seller_id, 'declutter_offers', 'New trade offer',
+  PERFORM public.declutter_notify(v_ok.o_seller_id, 'declutter_offers', 'New trade offer',
     format('%s offered "%s" in trade for "%s". Accept or decline within 48 hours. No money changes hands.',
            coalesce((SELECT public.member_display_name(p.full_name, 'A buyer') FROM public.profiles p WHERE p.user_id = v_uid), 'A buyer'),
            v_ok.o_offered_title, v_ok.o_title),
-    '/declutter?tab=selling', v_uid, coalesce(v_ok.o_seed, false));
+    '/declutter?tab=selling', v_uid);
   RETURN v_id;
 END;
 $fn$;
@@ -454,10 +442,10 @@ BEGIN
   IF p_action = 'decline' THEN
     UPDATE public.declutter_swap_offers SET status = 'declined', closed_at = now(), updated_at = now() WHERE id = p_swap_id;
     -- One wording for every decline (B26): never says why. CHANGED (#11): bell and email.
-    PERFORM public.declutter_swap_tell(s.buyer_id, 'declutter_offers', 'Trade offer declined',
+    PERFORM public.declutter_notify(s.buyer_id, 'declutter_offers', 'Trade offer declined',
       format('Your trade offer for "%s" was declined. Nothing changed hands.',
              (SELECT i.title FROM public.declutter_items i WHERE i.id = s.item_id)),
-      '/declutter/item/' || s.item_id::text, v_uid, s.is_seed);
+      '/declutter/item/' || s.item_id::text, v_uid);
     RETURN 'declined';
   END IF;
 
@@ -479,10 +467,10 @@ BEGIN
   SELECT public.member_display_name(p.full_name, 'The seller') INTO v_name FROM public.profiles p WHERE p.user_id = s.seller_id;
   PERFORM public.declutter_notice_ref(v_buyer_line); -- Q2659
   -- CHANGED (#11): the buyer's "accepted" is emailed too.
-  PERFORM public.declutter_swap_tell(s.buyer_id, 'declutter_sales', 'Trade accepted: choose a pickup within 48 hours',
+  PERFORM public.declutter_notify(s.buyer_id, 'declutter_sales', 'Trade accepted: choose a pickup within 48 hours',
     format('%s accepted your trade: "%s" for "%s". Choose how you''ll pick up their item within 48 hours. No money changes hands.',
            coalesce(v_name, 'The seller'), v_ok.o_offered_title, v_ok.o_title),
-    '/declutter?tab=buying', s.seller_id, s.is_seed);
+    '/declutter?tab=buying', s.seller_id);
   PERFORM public.declutter_notice_ref(v_seller_line); -- Q2659
   PERFORM public.declutter_notify(s.seller_id, 'declutter_sales', 'Trade set: choose a pickup within 48 hours',
     format('You traded "%s" for "%s". Choose how you''ll pick up their item within 48 hours. No money changes hands.',
@@ -515,9 +503,9 @@ BEGIN
       (SELECT i.title FROM public.declutter_items i WHERE i.id = s.item_id) AS title
   LOOP
     v_expired := v_expired + 1;
-    PERFORM public.declutter_swap_tell(r.buyer_id, 'declutter_offers', 'Trade offer expired',
+    PERFORM public.declutter_notify(r.buyer_id, 'declutter_offers', 'Trade offer expired',
       format('The seller did not answer your trade offer for "%s" within 48 hours, so it closed. Nothing changed hands.', coalesce(r.title, 'an item')),
-      '/declutter/item/' || r.item_id::text, r.seller_id, r.is_seed);
+      '/declutter/item/' || r.item_id::text, r.seller_id);
   END LOOP;
 
   -- CHANGED (#11): 12 hours before the answer window ends, the seller is reminded once.
@@ -530,10 +518,10 @@ BEGIN
       (SELECT i.title FROM public.declutter_items i WHERE i.id = s.offered_item_id) AS offered_title
   LOOP
     v_reminded := v_reminded + 1;
-    PERFORM public.declutter_swap_tell(r.seller_id, 'declutter_offers', 'Trade offer: about 12 hours left',
+    PERFORM public.declutter_notify(r.seller_id, 'declutter_offers', 'Trade offer: about 12 hours left',
       format('You have about 12 hours left to answer the trade offer of "%s" for "%s". If you don''t answer, it closes.',
              coalesce(r.offered_title, 'an item'), coalesce(r.title, 'your item')),
-      '/declutter?tab=selling', r.buyer_id, r.is_seed);
+      '/declutter?tab=selling', r.buyer_id);
   END LOOP;
 
   -- Both orders handed over: the trade is done (slice 4, unchanged).
@@ -566,8 +554,6 @@ BEGIN
 END;
 $fn$;
 
-REVOKE ALL ON FUNCTION public.declutter_swap_tell(uuid, text, text, text, text, uuid, boolean) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.declutter_swap_tell(uuid, text, text, text, text, uuid, boolean) TO service_role;
 REVOKE ALL ON FUNCTION public.declutter_cart_items_swap_free_only() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.declutter_end_swap(uuid, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_end_swap(uuid, uuid) TO service_role;
@@ -1491,3 +1477,31 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_remove_cart_item(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_remove_cart_item(uuid) TO authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- #11 trade emails: one AFTER INSERT trigger on notifications (the email_jobs_notice pattern, 20261108201000), so a
+-- trade email follows only a row notifications_seed_boundary let through. email_jobs_notice skips /declutter links,
+-- so a trade notice is emailed once. The bell-only trade notices ("Trade set: ...", "You cancelled the trade",
+-- "Trade pickup set / chosen") are not on the list.
+CREATE OR REPLACE FUNCTION public.email_declutter_trade_notice()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $fn$
+BEGIN
+  PERFORM public.send_notice_email(NEW.user_id, NEW.title, NEW.message, NEW.type, NEW.link, NULL);
+  RETURN NULL;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.email_declutter_trade_notice() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS trg_email_declutter_trade_notice ON public.notifications;
+CREATE TRIGGER trg_email_declutter_trade_notice
+  AFTER INSERT ON public.notifications
+  FOR EACH ROW
+  WHEN (COALESCE(NEW.link, '') LIKE '/declutter%'
+        AND NEW.title IN ('New trade offer', 'Trade offer declined', 'Trade offer expired', 'Trade offer closed',
+                          'Trade offer: about 12 hours left', 'Trade accepted: choose a pickup within 48 hours',
+                          'Trade cancelled', 'Trade ended, no strike'))
+  EXECUTE FUNCTION public.email_declutter_trade_notice();

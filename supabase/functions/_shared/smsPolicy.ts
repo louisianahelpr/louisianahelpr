@@ -26,7 +26,7 @@ export const SMS_KIND_PHRASES: Record<SmsKind, string> = {
   reschedule: "A new date or time was requested on a job.",
   dispute: "A problem was reported on one of your jobs.",
   job_cancelled: "One of your jobs was cancelled.",
-  money_problem: "There is a problem with a payment or payout. Please check your account.",
+  money_problem: "There is a problem with a payment or payout. Check your account.",
   job_update: "There is an update on one of your jobs.",
   // A3-85 (owner 11-01): a step due before a deadline (answer an offer or a refund step, check out, hand over,
   // approve finished work). Migration 20261102002011.
@@ -91,7 +91,8 @@ export function buildSmsBody(input: {
   if (input.kind === "confirm") return smsConfirmText(String(input.confirmCode ?? ""));
   const base = input.appUrl.replace(/\/+$/, "");
   const parts = ["Louisiana Helpr:", PHRASES[input.kind], `${base}${smsLinkPath(input.kind, input.jobId)}`];
-  if (input.firstText) parts.push("Reply STOP to stop.");
+  // F189 (owner UI audit 11-09): "Reply STOP to opt out." (it read "Reply STOP to stop.").
+  if (input.firstText) parts.push("Reply STOP to opt out.");
   return parts.join(" ");
 }
 

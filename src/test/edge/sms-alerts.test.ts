@@ -172,7 +172,7 @@ describe("send-sms-notification", () => {
     expect(form.get("To")).toBe("+12255550123");
     expect(form.get("MessagingServiceSid")).toBe(MG);
     expect(form.get("Body")).toBe(
-      `Louisiana Helpr: New job offer. Answer before it expires. https://www.louisianahelpr.com/jobs?job=${JOB} Reply STOP to stop.`,
+      `Louisiana Helpr: New job offer. Answer before it expires. https://www.louisianahelpr.com/jobs?job=${JOB} Reply STOP to opt out.`,
     );
     expect(scenario.rpcCalls?.[1]).toMatchObject({
       name: "sms_record_result", args: { p_sms_id: "sms-1", p_status: "sent", p_provider_sid: "SM123", p_error_code: null },
@@ -186,7 +186,7 @@ describe("send-sms-notification", () => {
     await fn.fetch(fn.request({ headers: { Authorization: "Bearer service-key" }, body: DRAIN }));
     const form = new URLSearchParams(String(fetchCalls[0].init?.body));
     expect(form.get("Body")).toBe(
-      "Louisiana Helpr: There is a problem with a payment or payout. Please check your account. https://www.louisianahelpr.com/profile?tab=earnings",
+      "Louisiana Helpr: There is a problem with a payment or payout. Check your account. https://www.louisianahelpr.com/profile?tab=earnings",
     );
   });
 

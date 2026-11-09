@@ -210,7 +210,8 @@ describe("guest /browse-only code is split off every other route's boot (LEAD-PO
 
   it("holds the map, browse and job-card code, and none of it is reached by another first screen or the boot", () => {
     expect(browseOnly.size).toBeGreaterThan(40); // 84 on 2026-10-31
-    for (const rel of ["src/hooks/useMapKitJs.ts", "src/lib/savedSearches.ts", "src/hooks/useDashboardJobsCount.ts", "src/lib/jobDisplayPay.ts", "src/components/dashboard/JobPrice.tsx"]) {
+    // src/lib/savedSearches.ts left this list 11-09: the saved-searches dialog loads on its first open (jobsFirstScreenStaysLight).
+    for (const rel of ["src/hooks/useMapKitJs.ts", "src/hooks/useSearchParamMirror.ts", "src/hooks/useDashboardJobsCount.ts", "src/lib/jobDisplayPay.ts", "src/components/dashboard/JobPrice.tsx"]) {
       expect(browseOnly.has(abs(rel)), rel).toBe(true);
     }
     const others = staticReach(ROOT, [

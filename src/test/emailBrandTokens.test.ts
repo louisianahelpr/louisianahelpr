@@ -11,7 +11,7 @@
  * @mutate supabase/functions/_shared/email-templates/styles.ts |   bodyOlive: '#615E56', |   bodyOlive: '#55656D',
  * @mutate supabase/functions/_shared/email-templates/styles.ts |   hairline: '#E6E2DA', |   hairline: '#CBCFD8',
  * @mutate supabase/functions/_shared/email-templates/styles.ts | export const h1 = {\n  fontFamily: headingFontStack, | export const h1 = {
- * @mutate supabase/functions/_shared/email-templates/components.tsx |     <style dangerouslySetInnerHTML={{ __html: EMAIL_CSS }} /> |     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat" />\n    <style dangerouslySetInnerHTML={{ __html: EMAIL_CSS }} />
+ * @mutate supabase/functions/_shared/email-templates/components.tsx |     <style dangerouslySetInnerHTML={{ __html: EMAIL_FONT_CSS }} />\n |
  *
  * F155: in dark-mode clients the dark iron H all but disappeared on the dark card. The mark sits on its own light
  * rounded tile in every email (one HMark, inside BaseLayout), kept light by the dark CSS block.
@@ -49,17 +49,18 @@ describe("the emails wear the brand (F158)", () => {
     expect(styles).toMatch(/backgroundColor: brand\.bark,/);
   });
 
-  it("headings are Bodoni Moda with a Georgia fallback; no email asks a font host for anything (privacy)", () => {
+  it("headings are Bodoni Moda with a Georgia fallback; the faces are loaded for clients that allow it", () => {
     expect(styles).toContain(`const headingFontStack = "'Bodoni Moda', Georgia, 'Times New Roman', serif"`);
     expect(styles).toMatch(/export const h1 = \{\s*fontFamily: headingFontStack,/);
-    // Plain substring checks (a host RegExp trips CodeQL js/regex/missing-regexp-anchor).
-    for (const host of ["fonts.googleapis.com", "fonts.gstatic.com"]) expect(styles.includes(host), host).toBe(false);
+    // Self-hosted on our own site, never Google Fonts (a reader's IP would reach an undisclosed processor).
+    expect(styles).toContain("const EMAIL_FONT_ORIGIN = 'https://www.louisianahelpr.com/fonts'");
+    expect(styles).toMatch(/font-family:'Bodoni Moda';[^}]*src:url\('\$\{EMAIL_FONT_ORIGIN\}\/bodoni-moda-normal-latin\.woff2'\)/);
+    expect(styles).toMatch(/font-family:'Montserrat';[^}]*src:url\('\$\{EMAIL_FONT_ORIGIN\}\/montserrat-normal-latin-core\.woff2'\)/);
+    expect(styles).not.toContain("fonts.googleapis.com");
     expect(styles).toContain(`"'Montserrat', 'Helvetica Neue', Helvetica, Arial, sans-serif"`);
     const comp = read("components.tsx");
     const head = comp.slice(comp.indexOf("const EmailHead"), comp.indexOf("</Head>", comp.indexOf("const EmailHead")));
-    expect(head).toContain("<Head>");
-    expect(head).not.toMatch(/<link[^>]*stylesheet/);
-    for (const host of ["fonts.googleapis.com", "fonts.gstatic.com"]) expect(head.includes(host), host).toBe(false);
+    expect(head).toContain('<style dangerouslySetInnerHTML={{ __html: EMAIL_FONT_CSS }} />');
   });
 
   it("F155: the H mark sits on a light rounded tile, kept light in dark mode, in every email", () => {

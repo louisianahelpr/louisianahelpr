@@ -11,6 +11,9 @@ import { checkRateLimit, rateLimitResponse } from '../_shared/rate-limit.ts'
 import { serve } from "../_shared/buildStamp.ts";
 import { centralDateTimeLabel } from '../_shared/centralDateTime.ts'
 
+/** A strike email's reason line when the admin left the note blank (F182, owner's message review 11-09). */
+const STRIKE_NO_NOTE_LINE = 'Our team found a break of the community rules. Reply to this email if you\'d like to know more.'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -665,7 +668,8 @@ serve(async (req) => {
         banStatusUpdate = { ban_status: 'final_warning' }
         notifTitle = 'Final warning (Strike 2 of 3)'
         notifMsg = (note || 'You\'ve received a final warning.') + ' One more violation will result in a 7-day suspension. A warning banner will appear at the top of your app. An automatic 7-day rule also applies.'
-        emailSubject = 'Helpr — FINAL warning'
+        // F182 (owner's message review 11-09): no shouting caps; the brand's full name.
+        emailSubject = 'Louisiana Helpr: final warning on your account'
         emailHeading = 'Final warning (Strike 2 of 3)'
         emailPreheader = 'This is a final warning on your Helpr account — one more violation means a 7-day suspension.'
         escalation = {
@@ -687,7 +691,7 @@ serve(async (req) => {
         // server's UTC toLocaleDateString(); "applications", the app's word, not "bids".
         const restoreLabel = centralDateTimeLabel(suspendUntil)
         notifMsg = `Your account is paused until ${restoreLabel}. ${note ? 'Reason: ' + note : 'You exceeded the 3-strike limit.'} Your open job applications were withdrawn.`
-        emailSubject = 'Helpr — Account suspended (7 days)'
+        emailSubject = 'Louisiana Helpr: your account is paused for 7 days'
         emailHeading = 'Account suspended for 7 days'
         emailPreheader = `Your Louisiana Helpr account is paused for 7 days after a third strike. You can use it again on ${restoreLabel}.`
         escalation = {
@@ -784,10 +788,14 @@ serve(async (req) => {
           preheader: emailPreheader,
           title: emailHeading,
           greetingName: fullName,
+          // F182 (owner's message review 11-09): with no admin note the colon led straight into the escalation box and
+          // the email never said what the strike was for. A blank note now gets a plain sentence that offers to explain.
           paragraphs: [
-            strikeNumber >= 3
-              ? 'Your account has been automatically suspended due to a third platform policy violation:'
-              : 'You\'ve received a formal warning regarding a platform policy violation:',
+            note
+              ? (strikeNumber >= 3
+                ? 'Your account has been automatically suspended due to a third platform policy violation:'
+                : 'You\'ve received a formal warning regarding a platform policy violation:')
+              : STRIKE_NO_NOTE_LINE,
           ],
           // `note` is admin-authored free text; React escapes it as a JSX child,
           // which is what the hand-applied htmlEscape() used to do here.

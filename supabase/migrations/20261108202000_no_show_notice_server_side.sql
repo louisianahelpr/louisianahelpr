@@ -155,7 +155,7 @@ BEGIN
     p_permanent_requires_review => true,
     p_suspension_days           => 7,
     p_clamp_to_worse_status     => true,
-    p_admin_message_format      => '%s has %s no-show reports on file from different posters and is restricted for 7 days pending your decision.',
+    p_admin_message_format      => '%s has %s no-show reports on file from different people who posted jobs and is restricted for 7 days pending your decision.',
     -- Unused while p_permanent_requires_review is true; kept verbatim from the
     -- old direct-ban path so that path stays fully specified if the policy is
     -- ever revisited.

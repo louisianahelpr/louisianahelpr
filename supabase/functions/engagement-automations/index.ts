@@ -867,20 +867,36 @@ serve(async (_req) => {
     if (dayOfWeek !== 1) {
       console.log('Skipping admin digest — not Monday')
     } else {
-    const yesterday = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString() // last 7 days
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString() // last 7 days
 
-    const [newUsersRes, newJobsRes, completedJobsRes, reportsRes, revenueRes] = await Promise.all([
-      // Real members and real jobs only (owner rule: test data never shows to the owner; OPS-1 area, b29 10-31).
-      // Revenue below already read is_seed = false; the three counts did not, so a test run's sign-ups and jobs
-      // were counted in the admins' digest.
-      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('created_at', yesterday),
-      supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('created_at', yesterday),
-      supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'completed').eq('is_seed', false).gte('updated_at', yesterday),
-      supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      // Real money only: a test job's fee was paid on the Stripe TEST key
-      // (owner 2026-10-12, test mode for test accounts) and is not revenue.
-      supabase.from('jobs').select('platform_fee_amount').eq('status', 'completed').eq('is_seed', false).gte('updated_at', yesterday),
-    ])
+    // REAL MEMBERS ONLY, from the same server read as the owner's daily summary (owner rule: test data never shows
+    // to the owner). The digest used to read its five numbers straight from the tables: open reports with no test
+    // filter at all, the rest with is_seed only, so unmarked test accounts counted. On 2026-11-09 it mailed
+    // "Open reports 2", both seed fixtures from 2026-09-13 whose reporters are test subjects.
+    // owner_daily_summary_stats (20261031224638, job_fee_revenue added in 20261109162655) leaves out is_seed rows
+    // AND test subjects (is_test_subject) in every count; job_fee_revenue is the platform fees on exactly the jobs
+    // jobs_completed keeps, so a test job's Stripe TEST-key fee (owner 2026-10-12) is never revenue.
+    const { data: weekData, error: weekErr } = await supabase.rpc('owner_daily_summary_stats', { p_since: weekAgo })
+    const week = (weekData && typeof weekData === 'object' && !Array.isArray(weekData) ? weekData : null) as Record<string, unknown> | null
+    const weekNum = (k: string, decimal = false) => {
+      const v = week?.[k]
+      const n = typeof v === 'number' ? v : typeof v === 'string' && (decimal ? /^\d+(\.\d+)?$/ : /^\d+$/).test(v) ? Number(v) : NaN
+      return Number.isFinite(n) && n >= 0 ? n : null
+    }
+    const digestValues = {
+      newUsers: weekNum('new_users'),
+      newJobs: weekNum('jobs_posted'),
+      completedJobs: weekNum('jobs_completed'),
+      openReports: weekNum('open_reports'),
+      revenue: weekNum('job_fee_revenue', true),
+    }
+    const DIGEST_KEY_NAMES: Record<keyof typeof digestValues, string> = {
+      newUsers: 'new users',
+      newJobs: 'new jobs',
+      completedJobs: 'completed jobs',
+      openReports: 'open reports',
+      revenue: 'revenue',
+    }
 
     // A FAILED STAT READ MUST NOT BECOME A NUMBER IN AN EMAIL.
     //
@@ -893,17 +909,17 @@ serve(async (_req) => {
     //
     // The digest is INTERNAL ops mail with no deadline, so the right response
     // is to skip this week's send rather than publish a number derived from a
-    // failure. Recorded as a defect so the run answers non-2xx.
-    const statReads: Array<[string, { error: { message: string } | null }]> = [
-      ['new users', newUsersRes],
-      ['new jobs', newJobsRes],
-      ['completed jobs', completedJobsRes],
-      ['open reports', reportsRes],
-      ['revenue', revenueRes],
-    ]
-    const statFailures = statReads
-      .filter(([, r]) => r.error)
-      .map(([name, r]) => `${name} (${r.error!.message})`)
+    // failure (an error, no answer, or a key missing or malformed, e.g. the edge
+    // function deployed before the migration that adds job_fee_revenue).
+    // Recorded as a defect so the run answers non-2xx.
+    const statFailures: string[] = []
+    if (weekErr) statFailures.push(`weekly stats (${weekErr.message})`)
+    else if (!week) statFailures.push('weekly stats (no answer)')
+    else {
+      for (const [k, v] of Object.entries(digestValues) as Array<[keyof typeof digestValues, number | null]>) {
+        if (v === null) statFailures.push(`${DIGEST_KEY_NAMES[k]} (unreadable)`)
+      }
+    }
 
     if (statFailures.length) {
       results.errors.push(
@@ -911,14 +927,12 @@ serve(async (_req) => {
       )
     } else {
 
-    const revenue = (revenueRes.data || []).reduce((sum, j) => sum + (j.platform_fee_amount || 0), 0)
-
     const stats = {
-      newUsers: newUsersRes.count || 0,
-      newJobs: newJobsRes.count || 0,
-      completedJobs: completedJobsRes.count || 0,
-      openReports: reportsRes.count || 0,
-      revenue,
+      newUsers: digestValues.newUsers!,
+      newJobs: digestValues.newJobs!,
+      completedJobs: digestValues.completedJobs!,
+      openReports: digestValues.openReports!,
+      revenue: digestValues.revenue!,
     }
 
     // Send digest to every admin who is not a test account (OPS-1 helper: the same recipients as the daily

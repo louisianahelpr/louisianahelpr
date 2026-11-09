@@ -52,6 +52,7 @@ function seedQuietDay() {
   scenario.rpc.owner_daily_summary_stats = {
     new_users: 0, jobs_posted: 0, items_posted: 0, jobs_completed: 0, items_sold: 0, sales_cents: 0,
     open_reports: 0, failed_payouts: 0, member_errors: 0, members_with_errors: 0, top_sources: [],
+    job_fee_revenue: 0,
   };
 }
 
@@ -452,36 +453,76 @@ describe("engagement-automations edge function", () => {
       expect(b.adminDigest).toBe(1);
     });
 
-    // Owner 2026-10-12, test mode for test accounts: a test job's platform fee
-    // was paid on the Stripe TEST key, so the digest's "Revenue" reads real
-    // jobs only.
-    // @mutate supabase/functions/engagement-automations/index.ts | .select('platform_fee_amount').eq('status', 'completed').eq('is_seed', false) | .select('platform_fee_amount').eq('status', 'completed')
-    it("the digest's revenue read counts real jobs only (never a test-mode fee)", async () => {
+    // Owner rule (test data never shows to the owner). Owner's admin email 2026-11-09: the digest said "Open reports 2",
+    // both seed fixtures from 2026-09-13 whose reporters are test subjects. It read its five numbers straight from the
+    // tables (open reports with no test filter, the rest with is_seed only). Now EVERY number comes from the server
+    // read the daily summary uses, owner_daily_summary_stats, over the last 7 days; that function leaves out is_seed
+    // rows and test subjects in each count, job_fee_revenue included (proved in
+    // src/test/pglite/weeklyDigestRealMemberStats.pglite.mjs). A test-mode fee (owner 2026-10-12) is never revenue.
+    // @mutate supabase/functions/engagement-automations/index.ts | .rpc('owner_daily_summary_stats', { p_since: weekAgo }) | .rpc('owner_daily_summary_stats', { p_since: new Date(0).toISOString() })
+    // @mutate supabase/functions/engagement-automations/index.ts |       openReports: weekNum('open_reports'), |       openReports: 2,
+    // @mutate supabase/functions/engagement-automations/index.ts |       revenue: weekNum('job_fee_revenue', true), |       revenue: weekNum('sales_cents', true),
+    // @mutate supabase/functions/engagement-automations/index.ts |       newUsers: weekNum('new_users'), |       newUsers: weekNum('jobs_posted'),
+    // @mutate supabase/functions/engagement-automations/index.ts |         if (v === null) statFailures.push |         if (false) statFailures.push
+    // @mutate supabase/functions/engagement-automations/index.ts |     if (weekErr) statFailures.push |     if (false) statFailures.push
+    const WEEK = { new_users: 3, jobs_posted: 2, jobs_completed: 1, open_reports: 0, job_fee_revenue: 7.5 };
+    /** The weekly answer differs from the daily one, so a digest reading the 24-hour answer is caught. */
+    function seedWeek(week: Record<string, unknown> = WEEK) {
+      const weekSince = new Date(A_MONDAY.getTime() - 7 * 24 * 3600_000).toISOString();
+      const daily = scenario.rpc.owner_daily_summary_stats as Record<string, unknown>;
+      scenario.rpc.owner_daily_summary_stats = (args?: unknown) =>
+        (args as { p_since?: string })?.p_since === weekSince
+          ? { ...daily, job_fee_revenue: 0, open_reports: 9, ...week }
+          : { ...daily, open_reports: 9 };
+    }
+    const digestStats = () =>
+      (emailRenders as Array<{ type: { name: string }; props: { stats: Record<string, unknown> } }>)
+        .find((e) => e.type.name === "AdminDigestEmail")?.props.stats;
+
+    it("every digest number is the real-member count from the server, over the last 7 days", async () => {
       const fn = await loadConfigured();
       seedAdmin();
+      seedWeek();
+      // Two pending reports in the table, both test fixtures: the server leaves them out, and so must the email.
+      scenario.reads.reports = { rows: [{ id: "seed-r1", status: "pending" }, { id: "seed-r2", status: "pending" }], count: 2 };
 
-      await fn.fetch(cronRequest(fn));
+      const b = await body(await fn.fetch(cronRequest(fn)));
 
-      const revenueRead = (scenario.readQueries ?? []).find((q) => q.table === "jobs" && q.cols.includes("platform_fee_amount"));
-      expect(revenueRead, "the digest read the jobs' platform fees").toBeDefined();
-      expect(revenueRead!.filters).toContainEqual(expect.objectContaining({ op: "eq", column: "is_seed", value: false }));
+      expect(b.adminDigest).toBe(1);
+      expect(digestStats()).toEqual({ newUsers: 3, newJobs: 2, completedJobs: 1, openReports: 0, revenue: 7.5 });
     });
 
-    // Owner rule (test data never shows to the owner), b29 10-31: the digest's sign-up, posted and completed counts
-    // read real members and real jobs only, like its revenue line.
-    // @mutate supabase/functions/engagement-automations/index.ts | supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('created_at', yesterday), | supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', yesterday),
-    // @mutate supabase/functions/engagement-automations/index.ts | supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('is_seed', false).gte('created_at', yesterday), | supabase.from('jobs').select('id', { count: 'exact', head: true }).gte('created_at', yesterday),
-    // @mutate supabase/functions/engagement-automations/index.ts | .select('id', { count: 'exact', head: true }).eq('status', 'completed').eq('is_seed', false).gte('updated_at', yesterday) | .select('id', { count: 'exact', head: true }).eq('status', 'completed').gte('updated_at', yesterday)
-    it("the digest's sign-up, posted and completed counts leave out test accounts and test jobs", async () => {
+    it("the digest reads no count straight from a table (that read let test data in)", async () => {
       const fn = await loadConfigured();
       seedAdmin();
+      seedWeek();
 
       await fn.fetch(cronRequest(fn));
 
-      const counts = (scenario.readQueries ?? []).filter((q) => (q.table === "profiles" || q.table === "jobs") && q.cols === "id");
-      // Three for the weekly digest; the daily summary (OPS-1) reads its counts from owner_daily_summary_stats.
-      expect(counts.map((q) => q.table).sort()).toEqual(["jobs", "jobs", "profiles"]);
-      for (const q of counts) expect(q.filters, `${q.table} count`).toContainEqual(expect.objectContaining({ op: "eq", column: "is_seed", value: false }));
+      const direct = (scenario.readQueries ?? []).filter(
+        (q) => q.table === "reports" || q.table === "jobs" || (q.table === "profiles" && q.cols === "id"),
+      );
+      expect(direct.map((q) => `${q.table}:${q.cols}`)).toEqual([]);
+    });
+
+    it("does NOT mail a digest when the weekly answer lacks a number (e.g. the function predates job_fee_revenue)", async () => {
+      const fn = await loadConfigured();
+      seedAdmin();
+      seedWeek();
+      const answer = scenario.rpc.owner_daily_summary_stats as (a?: unknown) => Record<string, unknown>;
+      scenario.rpc.owner_daily_summary_stats = (args?: unknown) => {
+        const r = { ...answer(args) };
+        delete r.job_fee_revenue;
+        return r;
+      };
+
+      const res = await fn.fetch(cronRequest(fn));
+      const b = await body(res);
+
+      expect(res.status).toBe(500);
+      expect(b.adminDigest).toBe(0);
+      expect(String(b.defectReasons)).toContain("admin digest NOT sent");
+      expect(String(b.defectReasons)).toContain("revenue (unreadable)");
     });
 
     it("HONOURS the suppression list for the admin digest too", async () => {
@@ -514,7 +555,7 @@ describe("engagement-automations edge function", () => {
       // with no deadline, so skipping this week beats publishing a lie.
       const fn = await loadConfigured();
       seedAdmin();
-      scenario.reads.reports = { error: { message: "statement timeout" } };
+      scenario.rpcErrors = { owner_daily_summary_stats: { message: "statement timeout" } };
 
       const res = await fn.fetch(cronRequest(fn));
       const b = await body(res);
@@ -522,7 +563,7 @@ describe("engagement-automations edge function", () => {
       expect(res.status).toBe(500);
       expect(b.adminDigest).toBe(0);
       expect(String(b.defectReasons)).toContain("admin digest NOT sent");
-      expect(String(b.defectReasons)).toContain("open reports");
+      expect(String(b.defectReasons)).toContain("weekly stats (statement timeout)");
     });
   });
 

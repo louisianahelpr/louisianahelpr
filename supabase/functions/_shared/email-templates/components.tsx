@@ -33,6 +33,7 @@ import {
   brand,
   container,
   EMAIL_CSS,
+  EMAIL_FONT_CSS,
   footer as footerStyle,
   logo,
   LOGO_URL,
@@ -55,8 +56,8 @@ const EmailHead = () => (
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <meta name="supported-color-schemes" content="light dark" />
-    {/* F158 + privacy (lead 11-09, option A): no webfont request. A Google Fonts link would show Google each reader's
-        IP, and the privacy policy names no font host; the stacks in styles.ts name the faces and fall back. */}
+    {/* F158: the brand faces for clients that load webfonts, from our own site; the stacks in styles.ts cover the rest. */}
+    <style dangerouslySetInnerHTML={{ __html: EMAIL_FONT_CSS }} />
     <style dangerouslySetInnerHTML={{ __html: EMAIL_CSS }} />
   </Head>
 )

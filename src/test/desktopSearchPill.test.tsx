@@ -78,8 +78,9 @@ describe("the desktop search pill (owner 2026-10-28, the mock-up's Today row)", 
     const mounts = trackedFiles("src")
       .filter((f) => /\.tsx$/.test(f) && !/\.test\.tsx$/.test(f) && !f.startsWith("src/test/"))
       .filter((f) => /<(InlineListSearch|BrowseSearchBar)\b/.test(blankComments(readFileSync(resolve(__dirname, "../..", f), "utf8"))));
-    // Dashboard (Browse, desktop strip + phone row), embeddedActivity (Posted / Working), DeclutterBrowseView.
-    expect(mounts.length).toBeGreaterThan(2);
-    expect(mounts.sort()).toEqual(["src/components/declutter/DeclutterBrowseView.tsx", "src/components/job-card/embeddedActivity.tsx", "src/pages/home/Dashboard.tsx"]);
+    // Dashboard (Browse, desktop strip + phone row), embeddedActivity (Posted / Working), DeclutterBrowseView,
+    // DashboardGuest (F070, 2026-11-09: a guest who arrives with a search keeps a search field).
+    expect(mounts.length).toBeGreaterThan(3);
+    expect(mounts.sort()).toEqual(["src/components/declutter/DeclutterBrowseView.tsx", "src/components/job-card/embeddedActivity.tsx", "src/pages/home/Dashboard.tsx", "src/pages/home/DashboardGuest.tsx"]);
   });
 });

@@ -15,6 +15,7 @@ import {
 } from '../_shared/email-templates/drip.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 import { serve } from "../_shared/buildStamp.ts";
+import { centralDayLabel } from "../_shared/centralDateTime.ts";
 
 // Declared because line 163 already used it. That reference was the only one
 // in the file and resolved to nothing, so the CAN-SPAM fail-closed branch —
@@ -80,21 +81,36 @@ interface RenderedEmail {
   text: string
 }
 
+/**
+ * The digest's one date range, in Louisiana time (owner's message review 11-09, F186): the subject said "Week of
+ * Nov 9" while the body said "the past 7 days (week of Nov 2)", two weeks for one report. The window is the 7 days
+ * before the run; the range names its first and last day ("Nov 2 – Nov 8").
+ */
+export function digestRangeLabel(now: Date): string {
+  const first = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+  const last = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  return `${centralDayLabel(first)} – ${centralDayLabel(last)}`
+}
+
 async function adminDigestEmail(stats: {
   newUsers: number
   newJobs: number
   completedJobs: number
   openReports: number
   revenue: number
-}): Promise<RenderedEmail> {
-  const subject = `Louisiana Helpr Weekly Digest — Week of ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+  itemsPosted: number
+  itemsSold: number
+  salesCents: number
+}, now: Date): Promise<RenderedEmail> {
+  const range = digestRangeLabel(now)
+  const subject = `Louisiana Helpr weekly summary: ${range}`
   // Both parts come from the one component — react-email renders the plaintext
   // twin, so the two can no longer drift.
   const { html, text } = await renderEmail(
     React.createElement(AdminDigestEmail, {
       stats,
       adminUrl: `${getAppUrl()}/admin`,
-      weekOf: new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
+      range,
     }),
   )
   return { subject, html, text }
@@ -869,7 +885,7 @@ serve(async (_req) => {
     } else {
     const yesterday = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString() // last 7 days
 
-    const [newUsersRes, newJobsRes, completedJobsRes, reportsRes, revenueRes] = await Promise.all([
+    const [newUsersRes, newJobsRes, completedJobsRes, reportsRes, revenueRes, declutterRes] = await Promise.all([
       // Real members and real jobs only (owner rule: test data never shows to the owner; OPS-1 area, b29 10-31).
       // Revenue below already read is_seed = false; the three counts did not, so a test run's sign-ups and jobs
       // were counted in the admins' digest.
@@ -880,7 +896,16 @@ serve(async (_req) => {
       // Real money only: a test job's fee was paid on the Stripe TEST key
       // (owner 2026-10-12, test mode for test accounts) and is not revenue.
       supabase.from('jobs').select('platform_fee_amount').eq('status', 'completed').eq('is_seed', false).gte('updated_at', yesterday),
+      // F186: Declutter's week, from the same server read as the daily summary (real members and items only).
+      supabase.rpc('owner_daily_summary_stats', { p_since: yesterday }),
     ])
+    const dRaw = (declutterRes.data && typeof declutterRes.data === 'object' && !Array.isArray(declutterRes.data) ? declutterRes.data : null) as Record<string, unknown> | null
+    const dNum = (k: string): number | null => {
+      const v = dRaw?.[k]
+      const n = typeof v === 'number' ? v : typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : NaN
+      return Number.isFinite(n) && n >= 0 ? n : null
+    }
+    const declutterWeek = { itemsPosted: dNum('items_posted'), itemsSold: dNum('items_sold'), salesCents: dNum('sales_cents') }
 
     // A FAILED STAT READ MUST NOT BECOME A NUMBER IN AN EMAIL.
     //
@@ -900,6 +925,7 @@ serve(async (_req) => {
       ['completed jobs', completedJobsRes],
       ['open reports', reportsRes],
       ['revenue', revenueRes],
+      ['declutter', declutterRes.error ? declutterRes : Object.values(declutterWeek).some((v) => v === null) ? { error: { message: 'malformed answer' } } : { error: null }],
     ]
     const statFailures = statReads
       .filter(([, r]) => r.error)
@@ -919,13 +945,16 @@ serve(async (_req) => {
       completedJobs: completedJobsRes.count || 0,
       openReports: reportsRes.count || 0,
       revenue,
+      itemsPosted: declutterWeek.itemsPosted ?? 0,
+      itemsSold: declutterWeek.itemsSold ?? 0,
+      salesCents: declutterWeek.salesCents ?? 0,
     }
 
     // Send digest to every admin who is not a test account (OPS-1 helper: the same recipients as the daily
     // summary; a failed role, profile or test check is recorded, never a silent skip).
     const digestTo = await opsMailRecipients(supabase, suppressedSet, results, 'admin digest')
     for (const adminEmail of digestTo) {
-      const { subject, html, text } = await adminDigestEmail(stats)
+      const { subject, html, text } = await adminDigestEmail(stats, now)
       const messageId = crypto.randomUUID()
 
       await logSend(

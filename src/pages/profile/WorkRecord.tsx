@@ -119,7 +119,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
       const file = await buildWorkRecordPdf(input);
       const outcome = await shareFileNative({
         ...file,
-        title: "Helpr Employment & Earnings Record",
+        title: "Helpr Work and Earnings Record",
         dialogTitle: "Share my Helpr Work Record",
         source: "workRecord",
         // `shareFileNative` confirms its own web downloads now; this screen
@@ -221,7 +221,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                       className="font-sans font-bold mt-3 text-ds-20 leading-tight"
                       style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
                     >
-                      Employment and earnings record
+                      Work and earnings record
                     </h2>
                     <p className="font-sans text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       Generated {today}

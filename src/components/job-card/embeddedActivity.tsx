@@ -6,6 +6,7 @@ import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { JOBS_TOOLBAR_ROW } from "@/components/sections/jobsToolbar";
 import { POSTED_GROUP_LABEL, WORKING_GROUP_LABEL } from "@/components/job-card/ActivityBucketGroups";
+import { WORKING_CHIPS, WORKING_CHIP_LABEL } from "@/lib/activityBuckets";
 import { JobsListLoadingFrame } from "@/components/JobsSectionSkeleton";
 
 /**
@@ -58,13 +59,15 @@ export function EmbeddedActivityHeader({
   search: string;
   onSearch: (next: string) => void;
 }) {
-  const labels = tab === "posted" ? POSTED_GROUP_LABEL : WORKING_GROUP_LABEL;
+  // F107 (owner 11-09): Posted's chips are its five buckets; Working's are Needs you · Applied · Active · Completed.
+  const chips: readonly string[] = tab === "posted" ? BOX_BUCKETS : WORKING_CHIPS;
+  const labels: Record<string, string> = tab === "posted" ? POSTED_GROUP_LABEL : WORKING_CHIP_LABEL;
   const noRows = !search.trim() && Object.values(counts).every((n) => !n);
   // Desktop: the icon by the gear opens in place and its box fills the tabs row's rest while open. A phone's search is
   // the top bar's field (owner 11-08, the Vinted header), so it takes no room from a tab or a chip (audit F20).
   const desktop = useIsWebDesktop();
   const [searchOpen, setSearchOpen] = useState(false);
-  const value = (BOX_BUCKETS as readonly string[]).includes(statusFilter) ? (statusFilter as (typeof BOX_BUCKETS)[number]) : null;
+  const value = chips.includes(statusFilter) ? statusFilter : null;
   // THE SEARCH SITS BESIDE THE GEAR (owner 2026-10-31, Jobs > Posted at 375: "move it up into the tab row next to the
   // gear"): the icon ends the tabs row before the gear, as on Browse (owner 2026-10-28: "search and filter should be
   // next to gear"), and still opens IN PLACE, leftward (owner 2026-10-27). While the field is open the magnifier's 40px
@@ -88,7 +91,7 @@ export function EmbeddedActivityHeader({
       {!noRows && <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>
         <div className="min-w-0 flex-1">
           <StatusBoxes
-            boxes={BOX_BUCKETS.map((k) => ({ key: k, label: labels[k], count: counts[k] ?? 0, hot: k === "needs_you" }))}
+            boxes={chips.map((k) => ({ key: k, label: labels[k], count: counts[k] ?? 0, hot: k === "needs_you" }))}
             value={value}
             onToggle={(k) => onFilter(nextBoxFilter(statusFilter, k))}
             // `all` is the length of the very list "All" shows (activityFilters: postedJobs.length / appliedApps.length).

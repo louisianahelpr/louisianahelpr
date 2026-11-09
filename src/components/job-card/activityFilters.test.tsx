@@ -7,7 +7,7 @@ import {
   POSTED_STATUS_FILTERS,
   appliedActivityBucket,
   postedActivityBucket,
-  bucketAppliedApp,
+  workingChip,
 } from "./activityFilters";
 import { defaultStatusFilterFor } from "@/components/job-card/activityConstants";
 import type { AppliedApp } from "@/components/job-card/activityConstants";
@@ -79,17 +79,27 @@ describe("Activity — the Active bucket", () => {
     expect(POSTED_STATUS_FILTERS.map((f) => f.key)).toContain(fallback);
   });
 
-  it("keeps live applications and drops settled ones", () => {
+  // F107 (owner 11-09): Working's chips. Applied = not hired yet; Active = hired, not finished, not my move;
+  // Completed = done; Needs you = the bucket; not picked = All only. Each row in exactly one chip, or none.
+  it("F107: Applied, Active and Completed each hold their own rows, and not-picked ones are in none", () => {
+    // Booked: hired, confirmed, the day still ahead.
+    const booked = app({ status: "accepted", jobStatus: "accepted" });
+    Object.assign(booked.job as object, { helper_confirmed_at: "2026-08-01T00:00:00Z", date_needed: "2099-01-01", helper_id: HELPER });
     const apps = [
       app({ status: "pending", jobStatus: "open" }),        // applied, awaiting
-      app({ status: "accepted", jobStatus: "in_progress" }), // working
+      booked,
       app({ status: "rejected", jobStatus: "open" }),        // not selected
       app({ status: "accepted", jobStatus: "completed" }),   // done
       app({ status: "pending", jobStatus: "cancelled" }),    // job pulled
     ];
-    const { filteredAppliedApps } = run(apps, "active");
-    expect(filteredAppliedApps).toHaveLength(2);
-    expect(filteredAppliedApps.every((a) => bucketAppliedApp(a) === "active")).toBe(true);
+    expect(run(apps, "applied").filteredAppliedApps.map((a) => a.status)).toEqual(["pending"]);
+    expect(run(apps, "active").filteredAppliedApps.map((a) => a.job?.status)).toEqual(["accepted"]);
+    expect(run(apps, "completed").filteredAppliedApps.map((a) => a.job?.status)).toEqual(["completed"]);
+    const chips = apps.map(workingChip);
+    expect(chips).toEqual(["applied", "active", null, "completed", null]);
+    const { appliedCounts } = run(apps, "all");
+    expect([appliedCounts.applied, appliedCounts.active, appliedCounts.completed]).toEqual([1, 1, 1]);
+    expect(apps.length).toBeGreaterThan(4);
   });
 
   it("counts Active without stealing rows from the single-status counters", () => {
@@ -102,7 +112,10 @@ describe("Activity — the Active bucket", () => {
       app({ status: "rejected", jobStatus: "open" }),
     ];
     const { appliedCounts } = run(apps, "active");
-    expect(appliedCounts.active).toBe(2);
+    // F107: Active is the hired-and-not-finished chip now; the pending application is Applied, the job under way
+    // today is Needs you.
+    expect(appliedCounts.active).toBe(0);
+    expect(appliedCounts.applied).toBe(1);
     expect(appliedCounts.pending).toBe(1);
     expect(appliedCounts.in_progress).toBe(1);
     expect(appliedCounts.not_selected).toBe(1);

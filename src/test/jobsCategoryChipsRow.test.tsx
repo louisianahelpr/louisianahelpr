@@ -63,7 +63,7 @@ describe("Jobs Browse category chips (design audit A J1)", () => {
     const feed = read("src/pages/home/Dashboard.tsx");
     expect(section).toContain('{tab === "browse" && browse?.chips}');
     expect(section.indexOf('{tab === "browse" && browse?.chips}')).toBeGreaterThan(section.lastIndexOf("<SectionTabs"));
-    expect(feed).toContain("<JobCategoryChips jobs={allJobs} value={filters.selectedCategory} onChange={filters.setSelectedCategory} />");
+    expect(feed).toContain("<JobCategoryChips jobs={allJobs} value={filters.selectedCategory} onChange={filters.setSelectedCategory}"); // F107 adds saved={...} after it
     expect(feed).toContain("{ search: phoneBrowseSearch, chips: phoneBrowseChips }");
   });
 });

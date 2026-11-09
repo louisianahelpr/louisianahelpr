@@ -54,7 +54,8 @@ afterEach(() => {
   env.desktop = false;
 });
 
-const COUNTS = { all: 57, needs_you: 16, waiting: 3, scheduled: 1, done: 37, cancelled: 19 };
+// F107 (owner 11-09): Working's chips are Needs you · Applied · Active · Completed.
+const COUNTS = { all: 57, needs_you: 16, applied: 2, active: 3, completed: 37, waiting: 3, scheduled: 1, done: 37, cancelled: 19 };
 const TABS = [{ value: "posted", label: "Posted" }, { value: "working", label: "Working" }] as const;
 
 /**
@@ -90,8 +91,8 @@ describe("Posted / Working: the open search never cuts a tab or a chip", () => {
   it("closed: every tab, every chip with its count, in a scroller whose right edge fades (HELP-WORKIN, Declutter's AUD31-4)", () => {
     renderHeader();
     expect(tabs().length).toBeGreaterThan(2);
-    // Inventory floor: All plus the five buckets.
-    expect(chips().length).toBeGreaterThan(5);
+    // Inventory floor: All plus Working's four chips (F107).
+    expect(chips().length).toBeGreaterThan(4);
     expect(chips()[0]).toBe("All · 57");
     const row = classes(screen.getByRole("group", { name: "Filter by status" }));
     expect(row).toContain("overflow-x-auto");
@@ -106,16 +107,16 @@ describe("Posted / Working: the open search never cuts a tab or a chip", () => {
   });
 
   it("phone: typing in the bar's field keeps every chip and count, the lit one lit; the field is the bar's, never in the tabs or chip row", () => {
-    renderHeader("waiting");
+    renderHeader("active");
     const field = screen.getByRole("search", { name: "Search jobs you're working" });
     expect(screen.getByTestId("app-top-bar").contains(field), "the bar's field").toBe(true);
     expect(screen.getByTestId("section-tabs").contains(field)).toBe(false);
     expect(document.querySelector("[data-jobs-toolbar]")!.contains(field)).toBe(false);
     expect(screen.queryByRole("button", { name: "Search jobs you're working" }), "no icon to open").toBeNull();
     fireEvent.change(within(field).getByRole("searchbox"), { target: { value: "mow" } });
-    expect(chips().length).toBeGreaterThan(5);
-    expect(chips()).toContain("Waiting · 3");
-    expect(screen.getByRole("button", { name: /Waiting/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(chips().length).toBeGreaterThan(4);
+    expect(chips()).toContain("Active · 3");
+    expect(screen.getByRole("button", { name: /Active/ }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("phone: Escape in the bar's field clears its words; every chip stays", () => {
@@ -124,13 +125,13 @@ describe("Posted / Working: the open search never cuts a tab or a chip", () => {
     expect(box.value).toBe("mow");
     fireEvent.keyDown(box, { key: "Escape" });
     expect(box.value).toBe("");
-    expect(chips().length).toBeGreaterThan(5);
+    expect(chips().length).toBeGreaterThan(4);
   });
 
   it("phone: arriving with words in ?q= shows them in the bar's field, with every chip", () => {
     renderHeader("all", "AA5");
     expect((screen.getByRole("searchbox", { name: "Search jobs you're working" }) as HTMLInputElement).value).toBe("AA5");
-    expect(chips().length).toBeGreaterThan(5);
+    expect(chips().length).toBeGreaterThan(4);
   });
 
   it("desktop keeps every tab while the 260px pill is open; the open field's box fills the row and closes back to the icon's size", () => {
@@ -138,7 +139,7 @@ describe("Posted / Working: the open search never cuts a tab or a chip", () => {
     renderHeader();
     open();
     expect(tabs().length).toBeGreaterThan(2);
-    expect(chips().length).toBeGreaterThan(5);
+    expect(chips().length).toBeGreaterThan(4);
     const field = screen.getByRole("search", { name: "Search jobs you're working" });
     expect(screen.getByTestId("section-tabs").contains(field), "the field opens in the tabs row").toBe(true);
     const box = field.closest<HTMLElement>("[data-activity-search-controls]")!;

@@ -404,9 +404,9 @@ export default function PublicProfilePage() {
   const memberActions = user && q.data && ctaReady && !isMe
     ? <PublicProfileMemberActions handle={q.data.handle} name={q.data.name} currentUserId={user.id} />
     : null;
-  const Shell = guestShell ? PublicHeaderPage : AppPage;
-  return (
-    <Shell title={q.data?.name ?? "Profile"} backTo={user ? "/home" : "/"} titleActions={memberActions}>
+  const title = q.data?.name ?? "Profile";
+  const body = (
+    <>
       {/* The canonical names the current handle, never an old one the link still carries. */}
       <Meta p={q.data} handle={current ?? handle} />
       {!handle ? (
@@ -420,6 +420,15 @@ export default function PublicProfilePage() {
       ) : (
         <ProfileBody p={q.data} signedIn={!!user} isMe={isMe} ctaReady={ctaReady} viewerId={user?.id ?? null} />
       )}
-    </Shell>
+    </>
+  );
+  return guestShell ? (
+    <PublicHeaderPage title={title} backTo="/" titleActions={memberActions} bottomPaddingClassName="pb-12 md:pb-16">
+      {body}
+    </PublicHeaderPage>
+  ) : (
+    <AppPage title={title} backTo={user ? "/home" : "/"} titleActions={memberActions}>
+      {body}
+    </AppPage>
   );
 }

@@ -404,23 +404,24 @@ serve(async (req) => {
 
       const { html, text } = await renderEmail(
         React.createElement(AdminActionEmail, {
-          preheader: 'An admin verified your identity — you now have full access to Helpr.',
-          title: 'You\'re verified',
+          // F159/F166/F188 (owner's message review 11-09): plain words, the app's name on the button and subject.
+          preheader: 'Our team checked your ID. You\'re all set on Louisiana Helpr.',
+          title: 'Your ID check is done',
           greetingName: fullName,
           paragraphs: [
             [
-              'An admin has personally ',
-              { accent: 'verified your account' },
-              '. You now have full access to post or accept jobs on Helpr.',
+              'Someone from our team ',
+              { accent: 'checked your ID' },
+              ', so you\'re all set to post jobs, take jobs, and buy and sell on Declutter.',
             ],
           ],
           ctaUrl: `${appUrl}/home`,
-          ctaLabel: 'Go to Dashboard',
+          ctaLabel: 'Open Louisiana Helpr',
         }),
       )
       const emailResult = await queueEmail(admin, {
         to: profile.email,
-        subject: 'You\'re verified on Helpr',
+        subject: 'Your ID check is done on Louisiana Helpr',
         html,
         text,
         templateName: 'admin_manual_verify',
@@ -536,15 +537,17 @@ serve(async (req) => {
           // used to be interpolated raw, then hand-escaped; as a JSX child
           // React escapes it, exactly as in the formal_warning branch.
           callouts: note
-            ? [{ tone: 'note' as const, body: [{ b: 'Admin note:' }, ' ', note] }]
+            ? [{ tone: 'note' as const, body: [{ b: 'Note from our team:' }, ' ', note] }]
             : [],
-          ctaUrl: `${appUrl}/profile`,
-          ctaLabel: 'Re-upload ID',
+          // F185 (owner's message review 11-09): straight to the ID step (the ?verify_id=1 entry link every ID-check
+          // notice uses), not the top of the profile; F184: "Note from our team", not staff jargon.
+          ctaUrl: `${appUrl}/home?verify_id=1`,
+          ctaLabel: 'Upload a clearer photo',
         }),
       )
       const emailResult = await queueEmail(admin, {
         to: profile.email,
-        subject: 'Helpr — please re-upload your ID',
+        subject: 'Louisiana Helpr: please upload a clearer ID photo',
         html,
         text,
         templateName: 'admin_id_reupload',
@@ -582,19 +585,20 @@ serve(async (req) => {
 
       const { html, text } = await renderEmail(
         React.createElement(AdminActionEmail, {
-          preheader: 'An admin sent you a password reset link — it expires in 1 hour.',
+          // F162/F159/F188 (owner's message review 11-09): "Tap" like every other email, sentence-case button.
+          preheader: 'Our team sent you a password reset link. It expires in 1 hour.',
           title: 'Reset your password',
           greetingName: fullName,
           paragraphs: [
-            'An admin sent you a password reset link. Click the button below to choose a new password. This link expires in 1 hour.',
+            'Our team sent you a password reset link. Tap the button below to choose a new password. This link expires in 1 hour.',
           ],
           ctaUrl: actionLink,
-          ctaLabel: 'Reset Password',
+          ctaLabel: 'Choose a new password',
         }),
       )
       const emailResult = await queueEmail(admin, {
         to: profile.email,
-        subject: 'Reset your Helpr password',
+        subject: 'Reset your Louisiana Helpr password',
         html,
         text,
         templateName: 'admin_password_reset',
@@ -643,9 +647,9 @@ serve(async (req) => {
       let banStatusUpdate: any = { ban_status: 'warned' }
       let notifTitle = 'Formal warning (Strike 1 of 3)'
       let notifMsg = (note || 'You\'ve received a formal warning for a platform rule violation. Please review the platform rules.') + ' An automatic 7-day rule also applies.'
-      let emailSubject = 'Helpr — Formal warning issued'
+      let emailSubject = 'Louisiana Helpr: formal warning on your account'
       let emailHeading = 'Formal warning (Strike 1 of 3)'
-      let emailPreheader = 'A formal warning has been issued on your Helpr account (strike 1 of 3).'
+      let emailPreheader = 'A formal warning on your Louisiana Helpr account (strike 1 of 3).'
       // The escalation line is DATA now, not an HTML string. It used to be a
       // template literal interpolating a brand token, and HAD to be written
       // with backticks — as a single-quoted literal the ${...} shipped
@@ -671,7 +675,7 @@ serve(async (req) => {
         // F182 (owner's message review 11-09): no shouting caps; the brand's full name.
         emailSubject = 'Louisiana Helpr: final warning on your account'
         emailHeading = 'Final warning (Strike 2 of 3)'
-        emailPreheader = 'This is a final warning on your Helpr account — one more violation means a 7-day suspension.'
+        emailPreheader = 'A final warning on your Louisiana Helpr account: one more strike pauses it for 7 days.'
         escalation = {
           tone: 'alert',
           body: [
@@ -793,8 +797,9 @@ serve(async (req) => {
           paragraphs: [
             note
               ? (strikeNumber >= 3
-                ? 'Your account has been automatically suspended due to a third platform policy violation:'
-                : 'You\'ve received a formal warning regarding a platform policy violation:')
+                // F184 (owner's message review 11-09): plain words, not "platform policy violation".
+                ? 'Your account is paused because something on it broke our community rules a third time:'
+                : 'We\'re writing because something on your account broke our community rules:')
               : STRIKE_NO_NOTE_LINE,
           ],
           // `note` is admin-authored free text; React escapes it as a JSX child,
@@ -804,7 +809,7 @@ serve(async (req) => {
             escalation,
           ],
           ctaUrl: `${appUrl}/rules`,
-          ctaLabel: 'Review Platform Rules',
+          ctaLabel: 'Read the rules',
         }),
       )
       const emailResult = await queueEmail(admin, {

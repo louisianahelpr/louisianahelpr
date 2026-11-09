@@ -7,7 +7,14 @@
  * @mutate supabase/functions/_shared/email-templates/notificationAction.ts |     if (/[?&](tab\|view)=buying\b/.test(link ?? "")) return "See your order"; |
  * @mutate supabase/functions/_shared/email-templates/notificationAction.ts |   if (path.startsWith("/messages")) return "Read the message"; |
  * @mutate supabase/functions/_shared/email-templates/notification.tsx | <BrandButton href={actionUrl} label={actionLabel} widthPx={230} /> | <BrandButton href={actionUrl} label="View Details" widthPx={230} />
- * @mutate supabase/functions/send-notification-email/index.ts |       actionLabel: notificationActionLabel(link),\n |
+ * @mutate supabase/functions/send-notification-email/index.ts |       actionLabel: notificationActionLabel(link, title),\n |       actionLabel: notificationActionLabel(link),\n
+ *
+ * F174 F175 F180 (owner's message review 11-09): a notice that asks for one action names it on the button.
+ * @mutate supabase/functions/_shared/email-templates/notificationAction.ts |   "Still on for tomorrow?": "Confirm I'm still on", |
+ * @mutate supabase/functions/_shared/email-templates/notificationAction.ts |   if (byTitle) return byTitle; |
+ *
+ * F173: the footer no longer says "because you enabled email notifications" (they are on by default).
+ * @mutate supabase/functions/_shared/email-templates/notification.tsx | You&apos;re getting this because email alerts are on for this kind of notice. | You're receiving this because you enabled email notifications on {host}.
  *
  * AUD31-21: the email broke "7-" / "day pickup deadline" across lines at 1440; the number and its unit now hold.
  * @mutate supabase/functions/_shared/email-templates/notificationAction.ts | "$1\u2011$2" | "$1-$2"
@@ -50,7 +57,28 @@ describe("the notice email names its action and signs off as Louisiana Helpr (AU
     expect(tpl).toContain("<BrandButton href={actionUrl} label={actionLabel} widthPx={230} />");
     expect(tpl).not.toMatch(/View Details|The Helpr Team|open Helpr for/);
     const sender = read("supabase/functions/send-notification-email/index.ts");
-    expect(sender).toContain("actionLabel: notificationActionLabel(link),");
+    expect(sender).toContain("actionLabel: notificationActionLabel(link, title),");
+  });
+
+  it("F174 F175 F180: a notice asking for one action names that action, whatever its link", () => {
+    const want: Array<[string, string, string]> = [
+      ["Still on for tomorrow?", "/jobs?job=1", "Confirm I'm still on"],
+      ["A dispute was opened", "/jobs?job=1", "Add your side"],
+      ["Your Helpr needs another day", "/posts?highlight=1", "Answer the request"],
+      ["New counteroffer", "/declutter?tab=buying", "Answer the counteroffer"],
+      ["New trade offer", "/declutter?tab=selling", "Answer the trade offer"],
+      ["Your listings are live", "/declutter?tab=selling", "See your listings"],
+    ];
+    for (const [title, link, label] of want) expect(notificationActionLabel(link, title), title).toBe(label);
+    // Any other title keeps the link's words.
+    expect(notificationActionLabel("/jobs?job=1", "Hallie H. accepted your offer")).toBe("See the job");
+  });
+
+  it("F173: the footer says email alerts are on, not that the member enabled them", () => {
+    const tpl = read("supabase/functions/_shared/email-templates/notification.tsx");
+    expect(tpl).toContain("You&apos;re getting this because email alerts are on for this kind of notice.");
+    expect(tpl).toContain("Change which emails you get");
+    expect(tpl).not.toMatch(/because you enabled email notifications/);
   });
 
   it("a number and its unit never break at the hyphen (AUD31-21)", () => {

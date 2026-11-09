@@ -143,4 +143,26 @@ describe("email copy, owner's message review 11-09", () => {
     expect(T("admin-action.tsx")).toContain("<Section className={note ? 'e-note' : undefined} style={boxed}>");
     expect(T("styles.ts")).toMatch(/\.e-note \{ background-color:#2A2B20 !important;[^}]*\}\s*\.e-note-text \{ color:#F2F2E9 !important; \}/);
   });
+
+  // F168 (day 7 speaks to everyone, never only Helprs), F172 (gift credit names the giver and Declutter), F187 (one
+  // "member" in the errors row).
+  // @mutate supabase/functions/_shared/email-templates/drip.tsx |       Hey {greetingName \|\| 'there'}, four things that make every job and sale go smoothly: |       Hey {greetingName \|\| 'there'} — four things the Helprs who get rebooked do well:
+  // @mutate supabase/functions/_shared/email-templates/gift-card.tsx |       {donorFirstName(donorName)} wants to help you get something done. |       Someone wants to help you get something done.
+  // @mutate supabase/functions/_shared/email-templates/lifecycle.tsx |         label="App errors"\n |         label="App errors members hit"\n
+  it("F168, F172, F187: day 7 is for everyone, the gift names its giver and Declutter, the errors row says member once", () => {
+    const day7 = component(T("drip.tsx"), "WelcomeDripStep3Email");
+    expect(day7).toContain("four things that make every job and sale go smoothly:");
+    expect(day7).toContain("<Bold>Stay safe:</Bold> keep messages and payments in the app");
+    expect(day7).toContain('label="Open Louisiana Helpr"');
+    expect(day7).not.toMatch(/Helprs who get rebooked|platform|Start Now/);
+    const fn = blankComments(readFileSync(join(ROOT, "supabase/functions/engagement-automations/index.ts"), "utf8"));
+    expect(fn).toContain("subject: 'Four tips from neighbors who use Helpr a lot',");
+    const gift = T("gift-card.tsx");
+    expect(gift).toContain("{donorFirstName(donorName)} wants to help you get something done.");
+    expect(gift).toContain("and on Declutter buys.");
+    expect(gift).not.toContain("Someone wants");
+    const daily = component(T("lifecycle.tsx"), "OwnerDailySummaryEmail");
+    expect(daily).toContain('label="App errors"');
+    expect(daily).toContain("(hit ${stats.membersWithErrors} ");
+  });
 });

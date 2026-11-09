@@ -192,8 +192,9 @@ export const OwnerDailySummaryEmail = ({
       <Stat label="Open reports" value={stats.openReports} />
       <Stat label="Declutter payouts that failed" value={stats.failedPayouts} />
       <Stat
-        label="App errors members hit"
-        value={stats.memberErrors === 0 ? 0 : `${stats.memberErrors} (${stats.membersWithErrors} ${stats.membersWithErrors === 1 ? 'member' : 'members'})`}
+        // F187 (owner's message review 11-09): "App errors members hit · 1 (1 member)" said "member" twice.
+        label="App errors"
+        value={stats.memberErrors === 0 ? 0 : `${stats.memberErrors} (hit ${stats.membersWithErrors} ${stats.membersWithErrors === 1 ? 'member' : 'members'})`}
       />
     </Section>
     <BrandButton href={adminUrl} label="Open Admin Dashboard" widthPx={250} />

@@ -126,13 +126,15 @@ export const NotificationEmail = ({
         <MarketingFooter unsubscribeUrl={unsubscribeUrl} />
       ) : (
         <TransactionalFooter>
-          You're receiving this because you enabled email notifications on {host}.{' '}
+          {/* F173 (owner's message review 11-09): email alerts are ON by default, so "because you enabled" was untrue
+              for most members. `host` stays in the props for callers; the sentence no longer needs it. */}
+          You&apos;re getting this because email alerts are on for this kind of notice.{' '}
           <Link
             href={prefsUrl}
             className="e-footer"
             style={{ color: brand.footerOlive, textDecoration: 'underline' }}
           >
-            Manage your notification preferences
+            Change which emails you get
           </Link>
           .
         </TransactionalFooter>

@@ -23,7 +23,7 @@ export function notificationActionLabel(link: string | null | undefined, title?:
 }
 
 /** Notice titles whose email asks for one action, and that action's button (F174, F175, F180). */
-export const ACTION_BY_TITLE: Record<string, string> = {
+const ACTION_BY_TITLE: Record<string, string> = {
   "Still on for tomorrow?": "Confirm I'm still on",
   "A dispute was opened": "Add your side",
   "Your Helpr needs another day": "Answer the request",

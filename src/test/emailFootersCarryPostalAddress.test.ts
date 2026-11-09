@@ -15,7 +15,7 @@
 // @mutate supabase/functions/_shared/resend.ts | export const POSTAL_ADDRESS = POSTAL_ADDRESS_LITERAL.trim(); | export const POSTAL_ADDRESS = (Deno.env.get("HELPR_POSTAL_ADDRESS") ?? POSTAL_ADDRESS_LITERAL).trim();
 // @mutate supabase/functions/_shared/resend.ts | const POSTAL_ADDRESS_LITERAL = "Louisiana Helpr · 314 Lynn Street, Delcambre, LA 70528"; | const POSTAL_ADDRESS_LITERAL = "";
 // @mutate supabase/functions/_shared/email-templates/components.tsx | the commercial ones (lead 11-09, F167). */}\n    {POSTAL_ADDRESS ? ( | the commercial ones (lead 11-09, F167). */}\n    {false ? (
-// @mutate supabase/functions/_shared/email-templates/drip.tsx |     footer={<MarketingFooter unsubscribeUrl={unsubscribeUrl} />}\n  >\n    <Heading className="e-h1" style={{ ...h1, fontSize: '22px' }}>\n      Welcome to | footer={<p>Unsubscribe: {unsubscribeUrl}</p>}\n  >\n    <Heading className="e-h1" style={{ ...h1, fontSize: '22px' }}>\n      Welcome to
+// @mutate supabase/functions/_shared/email-templates/drip.tsx |     footer={<MarketingFooter unsubscribeUrl={unsubscribeUrl} />}\n  >\n    {/* F169 (owner's message review 11-09): day 1 and day 3 said | footer={<p>Unsubscribe: {unsubscribeUrl}</p>}\n  >\n    {/* F169 (owner's message review 11-09): day 1 and day 3 said
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";

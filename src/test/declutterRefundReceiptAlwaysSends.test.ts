@@ -5,7 +5,7 @@
  *
  * @mutate src/components/notificationPreferences/constants.tsx | strikes. Refund receipts are always emailed." | strikes."
  * @mutate src/pages/info/legal/TermsSection.tsx | Declutter always emails your sale, payout and refund receipts. | Declutter always emails your sale and payout receipts.
- * @mutate supabase/functions/declutter-money/index.ts |     const { data: profile, error } = await admin.from("profiles").select("email").eq("user_id", buyerId).maybeSingle(); |     const { data: profile, error } = await admin.from("notification_preferences").select("email").eq("user_id", buyerId).maybeSingle();
+ * @mutate supabase/functions/declutter-money/index.ts |     const { data: profile, error } = await admin.from("profiles").select("email, full_name").eq("user_id", buyerId).maybeSingle(); |     const { data: profile, error } = await admin.from("notification_preferences").select("email, full_name").eq("user_id", buyerId).maybeSingle();
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

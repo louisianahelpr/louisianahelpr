@@ -59,7 +59,7 @@ export async function declutterEmailParts(
 }
 
 /** What a receipt is built from: the order's own recorded figures (declutter_orders), never recomputed. */
-export interface ReceiptOrder {
+interface ReceiptOrder {
   handover: string | null;
   items_cents: number | null;
   bundle_discount_cents: number | null;
@@ -80,7 +80,7 @@ const PICKUP_HANDOVERS = new Set(["porch", "pickup_home", "meetup"]);
  * shipping; the setup fee rides outside it). The lines must add up to what was paid (`paidCents`, card plus gift),
  * or there is no breakdown at all (the email keeps its one-line total) rather than a wrong one. Pure.
  */
-export function declutterReceipt(
+function declutterReceipt(
   o: ReceiptOrder,
   items: string,
   paidCents: number,

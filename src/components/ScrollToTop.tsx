@@ -24,6 +24,15 @@ function footerInView(): boolean {
   return !!footer && footer.getBoundingClientRect().top < window.innerHeight;
 }
 
+// Never on the signed-out landing on a phone (owner's UI audit 11-09, F014): there every block is full width, so the
+// button always sat on card text (the money band's "No cash to count", the Jobs card). The landing is one marketing
+// page a visitor scrolls straight through, and the top bar's logo is one tap back to its top.
+const PHONE_LANDING_MQ = "(max-width: 639px)";
+function onPhoneLanding(pathname: string): boolean {
+  if (pathname !== "/" || typeof window.matchMedia !== "function") return false;
+  return window.matchMedia(PHONE_LANDING_MQ).matches;
+}
+
 // Per-history-entry scroll offsets, keyed by react-router's `location.key`.
 // Module-level so it survives the AppShell remounting between routes (but
 // resets on a full reload, which matches browser-native scroll restoration).
@@ -143,7 +152,7 @@ const ScrollToTop = () => {
       // an entry left at the top came back mid-page (Q1312).
       if (currentKeyRef.current !== key) return;
       const pos = readPos();
-      setVisible(pos > REVEAL_AFTER_PX && !footerInView());
+      setVisible(pos > REVEAL_AFTER_PX && !footerInView() && !onPhoneLanding(pathname));
       scrollPositions.set(key, pos);
     };
     onScroll();

@@ -49,7 +49,7 @@ export function allTownPagePaths() {
 }
 
 export function townPageMeta(service, town) {
-  const title = `${service.label} in ${town.name}, LA | Louisiana Helpr`;
+  const title = `${service.label} in ${town.name}, LA — Helpr`; // the one tab-title pattern (F064, owner UI audit 11-09)
   const description = `Need ${service.phrase} in ${town.name}? Post the job and name your price. Local Helprs apply, you pick one, and your payment is held until the work is done.`;
   const canonical = `https://www.louisianahelpr.com${townPagePath(service, town)}`;
   return { title, description, canonical, ogTitle: title, ogDescription: description, ogUrl: canonical, geoRegion: "US-LA", geoPlacename: town.name };

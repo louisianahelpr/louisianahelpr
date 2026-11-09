@@ -45,7 +45,8 @@ export function expiringJobCopy(title: string | null, waiting: number, when: "da
       ? { title: "Pick someone today", message: `${people} applied to ${what}, and it expires in a few hours. Pick someone before it closes.` }
       : { title: "Your job expires soon", message: `${people} applied to ${what}. Pick someone before it expires tomorrow.` };
   }
-  return { title: "Your job expires soon", message: `${what} expires in less than 24 hours with no helpr yet. Boost it to get more visibility!` };
+  // F194 (owner UI audit 11-09, Part 3): the role is "Helpr"; no jargon ("visibility") and no "!".
+  return { title: "Your job expires soon", message: `${what} expires in less than 24 hours and nobody's been picked yet. Boost it so more Helprs see it.` };
 }
 
 /** Pending applications per job, in one read. */

@@ -14,6 +14,7 @@
  * the page's data will land. The 404 for a member without the switch still
  * comes after the switch's answer, never a flash of it for a tester.
  */
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";

@@ -1,7 +1,5 @@
 /** The tracker's step names, apart from jobProgressState's derivation (B51: JobProgress draws on Home's first screen). */
 export const JOB_PROGRESS_STEPS = ["Posted", "Offered", "Hired", "Confirmed", "On the way", "Arrived", "Working", "Done"] as const;
-/** The same steps in a word that fits eight across a 375px card (phone); the full names show from a 368px tracker. */
-export const JOB_PROGRESS_SHORT = ["Post", "Offer", "Hired", "Conf.", "Way", "Arr.", "Work", "Done"] as const;
 /**
  * The full names as the tracker DRAWS them: each long word carries a soft hyphen (U+00AD, invisible unless the word
  * breaks there), so in a 368-639px tracker (/payment-success and the job page's side panel at 1440: 382 and ~420px) a
@@ -10,3 +8,10 @@ export const JOB_PROGRESS_SHORT = ["Post", "Offer", "Hired", "Conf.", "Way", "Ar
  * column is (368 - 7 x 4) / 8.5 = 40px. The accessible names keep JOB_PROGRESS_STEPS. Guard: src/test/trackerFullWordsFromMidWidth.test.tsx.
  */
 export const JOB_PROGRESS_DRAWN = ["Post\u00ADed", "Of\u00ADfered", "Hired", "Con\u00ADfirmed", "On the way", "Ar\u00ADrived", "Work\u00ADing", "Done"] as const;
+/**
+ * THE SIX STEPS THE TRACKER DRAWS (owner pick, 11-08, design audit A JP3: "Hired, Confirmed, On the way, Arrived,
+ * Working, Done"; Posted and Offered belong to the applicants view). The job's state keeps all eight stages
+ * (jobProgressState.ts); the bar draws from JOB_TRACKER_FIRST on, and draws nothing before a hire.
+ * Guard: src/test/jobTrackerSixSteps.test.tsx.
+ */
+export const JOB_TRACKER_FIRST = 2;

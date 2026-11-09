@@ -27,7 +27,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { jobProgress, JOB_PROGRESS_SHORT, JOB_PROGRESS_STEPS, type ProgressJob } from "@/components/tracker/jobProgressState";
+import { jobProgress, JOB_PROGRESS_STEPS, type ProgressJob } from "@/components/tracker/jobProgressState";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 const ME = "me";
@@ -45,7 +45,7 @@ describe("jobProgress (the one tracker)", () => {
   afterAll(() => { vi.useRealTimers(); });
   it("has the owner's eight steps (2026-10-22)", () => {
     expect([...JOB_PROGRESS_STEPS]).toEqual(["Posted", "Offered", "Hired", "Confirmed", "On the way", "Arrived", "Working", "Done"]);
-    expect(JOB_PROGRESS_SHORT.length).toBe(JOB_PROGRESS_STEPS.length);
+    // The bar DRAWS six of them, Hired … Done, in full words (owner pick 11-08): src/test/jobTrackerSixSteps.test.tsx.
   });
 
   it("board 2/59: open job with a pending application", () => {

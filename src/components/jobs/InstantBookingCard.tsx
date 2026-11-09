@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Timer, XCircle, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import BrandConfirmDialog from "@/components/ui/BrandConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { withCardHoldCapture } from "@/lib/cardHoldCapture";
@@ -28,7 +29,11 @@ export const INSTANT_OUTCOME_COPY: Record<InstantBookingOutcome, { title: string
  * charged, the job opens again for other Helprs. The countdown ticks each
  * minute; past it the buttons go (the sweep hires them).
  */
-export function InstantBookingCard({ jobId, title, declineUntil, now: fixedNow }: { jobId: string; title: string; declineUntil: string; now?: number }) {
+export function InstantBookingCard({ jobId, title, declineUntil, now: fixedNow, sticky = false }: {
+  jobId: string; title: string; declineUntil: string; now?: number;
+  /** On the job page (owner pick 11-08, JP2): Decline | Confirm are the page's sticky action bar. */
+  sticky?: boolean;
+}) {
   const qc = useQueryClient();
   const [now, setNow] = useState(() => fixedNow ?? Date.now());
   useEffect(() => {
@@ -97,16 +102,21 @@ export function InstantBookingCard({ jobId, title, declineUntil, now: fixedNow }
         {left ? `${left} to decline` : "The 2 hours to decline have ended, so you're booked."}
       </p>
       {error && <p role="alert" className="text-ds-14" style={{ color: "hsl(var(--destructive-ink))" }}>{error}</p>}
-      {left && (
-        <div className="flex gap-2">
-          <Button variant="outline" className="flex-1 rounded-full" disabled={busy !== null} onClick={() => setConfirmDecline(true)}>
-            {busy === "decline" ? "Declining…" : "Decline"}
-          </Button>
-          <Button className="flex-1 rounded-full" disabled={busy !== null} onClick={() => void onConfirm()}>
-            {busy === "confirm" ? "Confirming…" : "Confirm"}
-          </Button>
-        </div>
-      )}
+      {left && (() => {
+        const pair = (
+          <>
+            <Button variant="outline" size={sticky ? "md" : "default"} className="flex-1 rounded-full" disabled={busy !== null} onClick={() => setConfirmDecline(true)}>
+              {busy === "decline" ? "Declining…" : "Decline"}
+            </Button>
+            <Button size={sticky ? "md" : "default"} className="flex-1 rounded-full" disabled={busy !== null} onClick={() => void onConfirm()}>
+              {busy === "confirm" ? "Confirming…" : "Confirm"}
+            </Button>
+          </>
+        );
+        return sticky
+          ? <StickyActionBar label="Answer the booking" data-job-bar="instant" spacer={false}>{pair}</StickyActionBar>
+          : <div className="flex gap-2">{pair}</div>;
+      })()}
       <BrandConfirmDialog
         open={confirmDecline}
         onOpenChange={setConfirmDecline}

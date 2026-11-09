@@ -4,8 +4,11 @@
  *     neighbors." (owner pop-up 2026-10-23, when ID verification was turned
  *     off; it changes again as the other sections open),
  *     and CLAUDE.md's locked-copy rule quotes the same words;
- *   - ONE "Coming soon" line sits above the unopened section cards, never a
- *     pill on each card; the Jobs card keeps its "Browse jobs" link;
+ *   - each unopened section card carries its own small "Coming soon" badge and
+ *     is slightly dimmed (owner pop-up 2026-11-09, UI audit F002/F013; this
+ *     REPLACES the 10-21 rule of ONE line above the unopened cards, which
+ *     floated above the Shops card only and sat flush to the phone's edge);
+ *     the Jobs card keeps its "Browse jobs" link;
  *   - the closing line is exactly "One free account for jobs and Declutter." (owner's UI audit 11-09, F001: the old
  *     "Jobs are open now." sat on the same page as "No open jobs right now.")
  *
@@ -13,15 +16,16 @@
  * sectionIsComingSoon decides each card), so no Supabase is involved.
  *
  * @mutate src/components/landing/HeroSection.tsx | Hire help or find work. One account | Hire help or find work. Sell or find a deal. Shop local or open a shop. Find a place or list one. One account
- * @mutate src/components/landing/SectionsShowcase.tsx | <h3 className="text-ds-20 font-bold tracking-tight mt-2">{s.navLabel}</h3> | <h3 className="text-ds-20 font-bold tracking-tight mt-2">{s.navLabel}</h3>{soon && <span>Coming soon</span>}
- * @mutate src/components/landing/SectionsShowcase.tsx |   const soonCards = cards.filter((c) => c.soon); |   const soonCards = cards.filter(() => false);
+ * @mutate src/components/landing/SectionsShowcase.tsx |           {soon && (\n            <span | {false && (\n            <span
+ * @mutate src/components/landing/SectionsShowcase.tsx | ...(soon ? { opacity: 0.8 } : null) | ...(false ? { opacity: 0.8 } : null)
+ * @mutate src/components/landing/SectionsShowcase.tsx |         {!soon && (\n          <Link |         {true && (\n          <Link
  * @mutate src/components/landing/SectionsShowcase.tsx | One free account for jobs and Declutter. | One free account. Jobs are open now.
  *
  * ONE WORD for a closed section (audit 2026-10-28 P5-4): the landing said
  * "Opening soon" while the rail and the Explore chips (SoonPill "rail" and
- * "caption") say "Coming soon". The landing line now uses the rail's word, read
+ * "caption") say "Coming soon". The landing badge uses the rail's word, read
  * from the rendered SoonPill so the two cannot drift apart.
- * @mutate src/components/landing/SectionsShowcase.tsx |                 Coming soon\n |                 Opening soon\n
+ * @mutate src/components/landing/SectionsShowcase.tsx |               Coming soon\n |               Opening soon\n
  *
  * And everywhere else a member sees it (lead, 2026-10-28): SoonPill's "full"
  * pill (Create sheet, Settings, Customize), Settings' section line and /search's
@@ -70,39 +74,48 @@ describe("the landing says what is open today", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Louisiana’s local partner.");
   });
 
-  it("while pending (fails closed): ONE Coming soon line above the three unopened cards, no pill on any card", () => {
+  it("while pending (fails closed): a Coming soon badge inside each unopened card, each dimmed, no link; no line outside the cards", () => {
     const { container, unmount } = renderSections(null);
-    const cards = [...container.querySelectorAll("[data-section]")];
+    const cards = [...container.querySelectorAll<HTMLElement>("[data-section]")];
     // Inventory floor: every section in sectionsConfig has a card.
     expect(cards.length).toBe(SECTIONS.length);
     expect(cards.length).toBeGreaterThan(3);
-    expect(screen.getAllByText("Coming soon")).toHaveLength(1);
-    for (const c of cards) expect(c.textContent, c.getAttribute("data-section")!).not.toMatch(/Coming soon/);
+    const switched = SECTIONS.filter((s) => s.feature !== null).map((s) => s.key);
+    expect(switched.length).toBeGreaterThan(2);
+    // One badge per unopened card, each INSIDE its card; nothing outside the cards says it.
+    expect(screen.getAllByText("Coming soon")).toHaveLength(switched.length);
+    for (const c of cards) {
+      const key = c.dataset.section!;
+      const soon = switched.includes(key);
+      expect(c.dataset.soon, key).toBe(soon ? "true" : "false");
+      expect(within(c).queryAllByText("Coming soon"), key).toHaveLength(soon ? 1 : 0);
+      expect(c.style.opacity, key).toBe(soon ? "0.8" : "");
+      if (soon) expect(within(c).queryAllByRole("link"), key).toHaveLength(0);
+    }
+    expect(screen.queryByTestId("landing-sections-soon")).toBeNull();
+    // The cards keep sectionsConfig's order whatever the answer (no card moves when it comes in).
+    expect(cards.map((c) => c.dataset.section)).toEqual(SECTIONS.map((s) => s.key));
 
-    const line = screen.getByTestId("landing-sections-soon");
-    const soonList = screen.getByRole("list", { name: "Coming soon" });
-    const soon = [...soonList.querySelectorAll("[data-section]")].map((c) => c.getAttribute("data-section"));
-    expect(soon).toEqual(SECTIONS.filter((s) => s.feature !== null).map((s) => s.key));
-    // The line comes before the cards it names.
-    expect(line.compareDocumentPosition(soonList) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-
-    // Jobs keeps its link to the public board; no unopened card has one.
+    // Jobs keeps its link to the public board.
     const jobs = container.querySelector('[data-section="jobs"]') as HTMLElement;
     expect(within(jobs).getByRole("link", { name: /Browse jobs/ }).getAttribute("href")).toBe("/browse");
-    expect(within(soonList).queryAllByRole("link")).toHaveLength(0);
     unmount();
   });
 
-  it("a section that opens leaves the Coming soon group; the line stays one", () => {
+  it("a section that opens loses its badge and dimming and gains its link; the others keep theirs", () => {
     const { container, unmount } = renderSections(new Set(["declutter"]));
-    expect(screen.getAllByText("Coming soon")).toHaveLength(1);
-    const soonList = screen.getByRole("list", { name: "Coming soon" });
-    expect(soonList.querySelector('[data-section="declutter"]')).toBeNull();
-    expect(container.querySelector('[data-section="declutter"] a')).not.toBeNull();
+    const declutter = container.querySelector('[data-section="declutter"]') as HTMLElement;
+    expect(within(declutter).queryByText("Coming soon")).toBeNull();
+    expect(declutter.style.opacity).toBe("");
+    expect(declutter.querySelector("a")).not.toBeNull();
+    const stillSoon = SECTIONS.filter((s) => s.feature !== null && s.feature !== "declutter");
+    expect(stillSoon.length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Coming soon")).toHaveLength(stillSoon.length);
+    expect(container.querySelectorAll("[data-section]")[0].getAttribute("data-section")).toBe(SECTIONS[0].key);
     unmount();
   });
 
-  it("every section open: no Coming soon line at all", () => {
+  it("every section open: no Coming soon badge at all", () => {
     const features: string[] = [];
     for (const s of SECTIONS) if (s.feature) features.push(s.feature);
     expect(features.length).toBeGreaterThan(2);
@@ -111,7 +124,7 @@ describe("the landing says what is open today", () => {
     unmount();
   });
 
-  it("the landing's soon line uses the same word as the rail (P5-4)", () => {
+  it("the landing's soon badge uses the same word as the rail (P5-4)", () => {
     const rail = render(<SoonPill variant="rail" />);
     const railWord = rail.container.textContent;
     rail.unmount();
@@ -121,7 +134,7 @@ describe("the landing says what is open today", () => {
     expect(chip.container.textContent).toBe("Soon");
     chip.unmount();
     const { unmount } = renderSections(null);
-    expect(screen.getByTestId("landing-sections-soon").textContent).toBe(railWord);
+    expect(screen.getByTestId("landing-soon-shops").textContent).toBe(railWord);
     unmount();
   });
 

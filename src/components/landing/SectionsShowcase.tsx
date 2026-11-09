@@ -12,9 +12,10 @@ const LandingAppleButton = lazy(() => import("./LandingAppleButton"));
 /**
  * The landing page below the hero (owner-approved redesign, 2026-10-20): the
  * four section cards, then (after How a job works) the money band and the join
- * block. A section whose switch is not open to everyone has no link and sits
- * under ONE "Coming soon" line with the others not yet open (owner 2026-10-21),
- * and so does every switched section until that answer is in (fails closed,
+ * block. A section whose switch is not open to everyone has no link, carries a
+ * small "Coming soon" badge inside its card and is slightly dimmed (owner 11-09,
+ * UI audit F002/F013, replacing the 10-21 one-line rule), and so does every
+ * switched section until that answer is in (fails closed,
  * useSectionsOpen). An OPEN section's card links to its Browse
  * page (or sign-up, returning there, for a section behind sign-in).
  *
@@ -90,21 +91,35 @@ export function SectionsShowcase() {
   const { open } = useSectionsOpen(seen);
   const navigate = useNavigate();
 
+  // One list in sectionsConfig's order, which never changes when the switch answer comes in (so no card moves); each
+  // card says for itself whether it is open (owner 11-09, F002/F013).
   const cards = SECTIONS.map((s) => {
     const Icon = s.icon;
     const soon = sectionIsComingSoon(s.feature, open);
     const link = cardLinkFor(s.key, s.path, s.navLabel);
     // All four sections are equal (design spec v2 §1): one card style, the white landing card with its soft shadow
-    // (UI audit F004, 11-09: the How a job works cards' surface).
+    // (UI audit F004, 11-09: the How a job works cards' surface). A section not open yet is slightly dimmed and carries
+    // its own "Coming soon" badge (owner 11-09, F002/F013, replacing the 10-21 one-line rule).
     const card = (
       <li
         key={s.key}
         className="landing-card relative p-6 flex flex-col gap-3 min-h-[14rem] lg:min-h-[17rem] min-w-0"
-        style={{ color: "var(--lp-ink)" }}
+        style={{ color: "var(--lp-ink)", ...(soon ? { opacity: 0.8 } : null) }}
         data-section={s.key}
         data-soon={soon ? "true" : "false"}
       >
-        <Icon className="w-6 h-6" aria-hidden style={{ color: "var(--lp-action-strong)" }} />
+        <div className="flex items-start justify-between gap-3">
+          <Icon className="w-6 h-6" aria-hidden style={{ color: "var(--lp-action-strong)" }} />
+          {soon && (
+            <span
+              className="inline-flex items-center rounded-full px-2.5 py-1 text-ds-12 font-semibold leading-none"
+              style={{ background: "var(--lp-ground)", color: "var(--lp-ink)", border: "1px solid var(--lp-line-strong)" }}
+              data-testid={`landing-soon-${s.key}`}
+            >
+              Coming soon
+            </span>
+          )}
+        </div>
         <h3 className="text-ds-20 font-bold tracking-tight mt-2">{s.navLabel}</h3>
         <p className="text-ds-15 leading-relaxed" style={{ color: "var(--lp-body)" }}>
           {COPY[s.key]}
@@ -126,10 +141,8 @@ export function SectionsShowcase() {
         )}
       </li>
     );
-    return { soon, card };
+    return card;
   });
-  const openCards = cards.filter((c) => !c.soon);
-  const soonCards = cards.filter((c) => c.soon);
 
   return (
     <section ref={ref} id="sections" aria-labelledby="sections-heading" className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-14 lg:pt-16 pb-16 sm:pb-20 lg:pb-28 scroll-mt-24" style={{ background: "var(--lp-surface)" }}>
@@ -142,42 +155,9 @@ export function SectionsShowcase() {
             {idOn ? "Verify your ID once and it counts everywhere on Helpr." : "One account works in every section of Helpr."}
           </p>
         </div>
-        {/* Owner 2026-10-21: ONE "Coming soon" line (audit 2026-10-28 P5-4: the rail and chips say "Coming soon", so the landing does too) above the unopened cards, never a
-            pill on each. The open cards come first; the line names the group, so it
-            moves with the switches (fail closed: a section is "soon" until its answer
-            is in). At lg the four cards share one row, the open ones on the left:
-            the line takes its own grid row above the unopened cards, so every
-            card top lines up (lead look, 2026-10-21). */}
-        <div
-          className={`grid grid-cols-1 lg:grid-cols-4 gap-4${soonCards.length > 0 ? " lg:[grid-template-rows:auto_1fr]" : ""}`}
-          data-testid="landing-sections"
-          style={{ "--open-n": openCards.length, "--soon-n": soonCards.length, "--soon-start": openCards.length + 1 } as React.CSSProperties}
-        >
-          <ul
-            className={`grid grid-cols-1 gap-4 md:[grid-template-columns:repeat(var(--open-n),minmax(0,1fr))] lg:[grid-column:span_var(--open-n)]${soonCards.length > 0 ? " lg:row-start-2" : ""}`}
-            aria-label="Open now"
-          >
-            {openCards.map((c) => c.card)}
-          </ul>
-          {soonCards.length > 0 && (
-            <div className="mt-4 flex flex-col gap-3 min-w-0 lg:contents">
-              <p
-                id="sections-soon"
-                className="text-ds-15 font-semibold lg:row-start-1 lg:[grid-column:var(--soon-start)/-1]"
-                style={{ color: "var(--lp-body)" }}
-                data-testid="landing-sections-soon"
-              >
-                Coming soon
-              </p>
-              <ul
-                aria-labelledby="sections-soon"
-                className="grid grid-cols-1 gap-4 md:[grid-template-columns:repeat(var(--soon-n),minmax(0,1fr))] lg:row-start-2 lg:[grid-column:var(--soon-start)/-1]"
-              >
-                {soonCards.map((c) => c.card)}
-              </ul>
-            </div>
-          )}
-        </div>
+        <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="landing-sections" aria-label="Sections of Helpr">
+          {cards}
+        </ul>
       </div>
     </section>
   );

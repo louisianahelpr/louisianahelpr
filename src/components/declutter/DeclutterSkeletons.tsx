@@ -22,6 +22,7 @@ import { SectionScreen } from "@/components/sections/SectionScreen";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { safeStorage } from "@/lib/safeStorage";
+import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
 import { DeclutterNotice } from "./declutterUi";
 import { ITEM_PHOTO_ASPECT, ITEM_PHOTO_FRAME_BASE } from "./itemPhotoFrame";
 import { useScreenfulBelow } from "@/hooks/useScreenfulBelow";
@@ -46,7 +47,14 @@ export function DeclutterHomeSkeleton({ guestJoin }: { guestJoin?: ReactNode } =
       globalSearch={false}
       // Phone (owner 11-08, the Vinted header): the search bar's bone in the bar, the chips' bones under it.
       search={desktop ? undefined : <Skeleton className="h-11 w-full rounded-full" aria-hidden />}
-      tabs={desktop ? <Skeleton className="h-11 w-full rounded-ds-md" aria-hidden /> : <DeclutterChipBones />}
+      tabs={desktop ? <Skeleton className="h-11 w-full rounded-ds-md" aria-hidden /> : (
+        <>
+          {/* F153: a member's phone has the section tabs under the search; a guest's has none. index.html's copy
+              (guestJoin) always draws the row, and its guest rule hides it (index.css, data-lh-declutter-guest). */}
+          {(guestJoin || hasPersistedAuthToken()) && <DeclutterPhoneTabBones />}
+          <DeclutterChipBones />
+        </>
+      )}
     >
       {/* Q2705 (11-09): index.html's copy of this frame carries a guest's sign-up line where Browse draws it (above the
           cards), hidden unless index.html's guest script marks <html> data-lh-declutter-guest, so a guest's drawn
@@ -54,6 +62,24 @@ export function DeclutterHomeSkeleton({ guestJoin }: { guestJoin?: ReactNode } =
       {guestJoin && <div data-lh-guest-join="" style={{ display: "none" }}>{guestJoin}</div>}
       <DeclutterBrowseBones map={map} full={desktop && !map} />
     </SectionScreen>
+  );
+}
+
+/**
+ * F153 (owner UI audit 11-09): a member's phone tab row (Browse Buying Selling Deliver Wanted Free) while Declutter
+ * loads, in SectionTabs' own box: a 44px row of tabs over its 1px rule, so the chips and cards start where the page
+ * puts them and nothing moves when the real row arrives.
+ */
+function DeclutterPhoneTabBones() {
+  return (
+    <div className="flex items-end gap-1 border-b border-border/60" aria-hidden data-lh-member-tabs="">
+      <div className="flex h-11 items-center gap-3">
+        <Skeleton className="h-4 w-14" />
+        <Skeleton className="h-4 w-12" />
+        <Skeleton className="h-4 w-14" />
+        <Skeleton className="h-4 w-14" />
+      </div>
+    </div>
   );
 }
 

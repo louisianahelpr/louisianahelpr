@@ -42,6 +42,8 @@ export const DECLUTTER_PHOTO_MARKUP =
   '<div class="relative overflow-hidden aspect-square w-full rounded-2xl bg-photo-empty"><img class="relative h-full w-full object-cover"></div>';
 /** src/index.css carries the same rule (src/boot/memberDeclutterEarly.test.ts holds the two equal). */
 export const DECLUTTER_GUEST_JOIN_RULE = "[data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join]{display:block!important}";
+/** F153 (11-09): src/index.css carries the same rule. A guest has no section tabs, so the member tab bones hide. */
+export const DECLUTTER_GUEST_NO_TABS_RULE = "[data-lh-declutter-guest] #lh-declutter-shell [data-lh-member-tabs]{display:none!important}";
 export const SHELLS = [
   { id: "lh-landing-shell", htmlAttr: 'data-lh-landing-shell=""', show: SHOW_RULE },
   { id: "lh-login-shell", htmlAttr: 'data-lh-auth-shell="login"', show: `[data-lh-auth-shell="login"] #lh-login-shell${FIXED}` },
@@ -57,7 +59,7 @@ export const SHELLS = [
   // inline script (src/boot/guestDeclutterEarly.test.ts), so those <img>s and their bare tiles count as markup.
   // Q2705 (11-09): a guest's copy also shows the sign-up line Browse draws above the cards (hidden in the markup;
   // index.html's guest script marks <html> data-lh-declutter-guest), so the drawn photos sit where Browse's land.
-  { id: "lh-declutter-shell", htmlAttr: 'data-lh-app-shell="declutter"', show: `[data-lh-app-shell="declutter"] #lh-declutter-shell${FIXED}${DECLUTTER_GUEST_JOIN_RULE}`, extra: DECLUTTER_PHOTO_MARKUP },
+  { id: "lh-declutter-shell", htmlAttr: 'data-lh-app-shell="declutter"', show: `[data-lh-app-shell="declutter"] #lh-declutter-shell${FIXED}${DECLUTTER_GUEST_JOIN_RULE}${DECLUTTER_GUEST_NO_TABS_RULE}`, extra: DECLUTTER_PHOTO_MARKUP },
 ];
 /**
  * Ceiling on the inlined block, gzip bytes; the build fails above it. This is a cap on what every page's HTML

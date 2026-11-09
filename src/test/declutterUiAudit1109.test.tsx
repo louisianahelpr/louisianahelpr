@@ -4,6 +4,8 @@
 // @mutate src/components/declutter/DeclutterItemCard.tsx |   if (!save && guestSaveTo) { |   if (!save && guestSaveTo && saves === -1) {
 // @mutate src/lib/jobIntent.ts |   if (reason === SAVE_ITEM_REASON) return t("signup.saveItemSubtitle"); |
 // @mutate src/components/declutter/DeclutterItemCard.tsx |             alt={item.title} |             alt=""
+// @mutate src/components/declutter/DeclutterMineViews.tsx | label: "Pickups to do", | label: "Hand over",
+// @mutate src/components/declutter/ManagerPanel.tsx |       <h2 id="manager-setup-title" className="text-base font-semibold">Have someone sell for you</h2> |       <h2 id="manager-setup-title" className="text-base font-semibold">Get help selling</h2>
 /**
  * Declutter findings from the UI audit of 11-09 (~/.lh-shots/ui-audit-1109, Builder 2). One describe per finding.
  */
@@ -59,6 +61,18 @@ describe("F056: every card photo's alt text is the item's title", () => {
     const r = render(<MemoryRouter><ItemCard item={card()} photoPath="u2/declutter/i9/a.png" miles={null} approximate={false} firstRow /></MemoryRouter>);
     expect(r.container.querySelector("img")?.getAttribute("alt")).toBe("Kinetic Sand SquishBlossom Set");
     r.unmount();
+  });
+});
+
+describe("F128: Selling's unclear phrases are plain words", () => {
+  it("the sales to hand over are 'Pickups to do'; the helper is 'Have someone sell for you' (they keep a share)", () => {
+    const mine = blankComments(readFileSync(join(SRC, "components/declutter/DeclutterMineViews.tsx"), "utf8"));
+    const mgr = blankComments(readFileSync(join(SRC, "components/declutter/ManagerPanel.tsx"), "utf8"));
+    expect(mine).toContain('{ key: "sold", label: "Pickups to do", count: todo?.salesOpen ?? 0, hot: true },');
+    expect(mine).not.toContain('label: "Hand over"');
+    expect((mgr.match(/>Have someone sell for you</g) ?? []).length).toBe(2);
+    expect(mgr).not.toMatch(/Get help selling|, for a share\./);
+    expect(mgr).toContain("keeps a share of each sale.");
   });
 });
 

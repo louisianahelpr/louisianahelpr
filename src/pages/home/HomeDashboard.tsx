@@ -31,6 +31,7 @@ import { JobProgress } from "@/components/tracker/JobProgress";
 import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
 import { FirstJobHome, useFirstJobState } from "./homeDashboard/FirstJobHome";
 import { PosterFirstJobCard } from "./homeDashboard/PosterFirstJobCard";
+import { WelcomeCard } from "./homeDashboard/WelcomeCard";
 import { HelprsNearYou } from "./homeDashboard/HelprsNearYou";
 import { useHomeTopSettled, useHoldWhileFirstVisitReads } from "./homeDashboard/homeTopSettled";
 import { optionalLazy } from "@/lib/optionalLazy";
@@ -120,6 +121,9 @@ function HomeDashboardScreen() {
   const [shown, setShown] = useState(0);
   const at = Math.min(shown, Math.max(0, todoCount - 1));
   const next = summary.todos[at];
+  // Design audit A D3 (owner approved 11-08): a new member with nothing to do sees ONE welcome card (WelcomeCard) in
+  // place of "You're all caught up" and an empty "Coming up". Same "new" rule as the first-job checklist below.
+  const welcome = !!firstJob?.isNew && !summary.usesDeclutter && !next && !summary.todosLoading && !summary.waiting;
   const rest = Math.max(0, todoCount - 1);
   // Q2706 (B98): while their reads are out, Next up and the money strip hold the height they had last time on this
   // device (reservedHeight.ts), so the blocks below them do not move when they land.
@@ -196,6 +200,7 @@ function HomeDashboardScreen() {
                 to-do from every section and both sides, with its one action. Replaces the three
                 stat boxes. Nothing invented: no to-do, no task; the money line only when the
                 to-do carries a real amount. "See all" is the ONE control for the full list. */}
+            {welcome ? <WelcomeCard sell={visible.filter(isLive).some((v) => v.key === "declutter")} /> : (
             <section ref={nextUpRef} data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1.5" style={summary.todosLoading && nextUpReserve ? { minHeight: nextUpReserve } : undefined}>
               <div className="flex items-center justify-between gap-3">
                 <h2 data-testid="next-up-label" className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
@@ -297,6 +302,7 @@ function HomeDashboardScreen() {
                 </>
               )}
             </section>
+            )}
 
             {todoOpen && (
               <div data-testid="todo-list" id="home-todo-list">
@@ -328,7 +334,7 @@ function HomeDashboardScreen() {
                 body="Check your connection and try again."
                 onRetry={() => void queryClient.refetchQueries({ type: "active", predicate: (q) => q.state.status === "error" })}
               />
-            ) : (
+            ) : welcome && summary.upcoming.length === 0 ? null : (
             <GroupSection title="Coming up">
               {summary.upcoming.length === 0 ? (
                 <p data-testid="coming-up-empty" className="px-4 py-4 text-ds-14 text-muted-foreground">{summary.hasBookedJob ? "Nothing else booked." : "Nothing booked yet."}</p>

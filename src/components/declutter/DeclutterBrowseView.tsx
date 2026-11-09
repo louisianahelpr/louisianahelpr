@@ -363,7 +363,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
         count: listLoading || preview || items.isError ? undefined : rows.length,
         end: (
           <div data-feed-strip="" className="ml-auto flex shrink-0 items-center gap-1 pb-0.5">
-            <InlineListSearch value={query} onChange={setQuery} label="Search items" />
+            {/* F073 (UI audit 11-09, lead 11-09): a visible field on desktop, as on the phone. */}
+            <InlineListSearch value={query} onChange={setQuery} label="Search items" pinned />
             <FiltersIconButton open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen((o) => !o)} />
             {member && <MapToggleButton visible={mapVisible} onToggle={toggleMap} disabled={items.isError} />}
           </div>

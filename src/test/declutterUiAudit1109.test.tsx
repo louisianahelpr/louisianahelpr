@@ -12,14 +12,15 @@
 // @mutate src/components/declutter/ItemPickupBlock.tsx |   const others = cities.filter((c) => c && !same(c)); |   const others = cities.filter((c) => !!c);
 // @mutate src/components/declutter/itemPhotoFrame.ts | sm:max-h-[max(55dvh,calc(100dvh-400px))] | sm:max-h-none
 // @mutate src/lib/largeTitles.ts |     doc.documentElement.classList.toggle("page-scrolled-any", t.scrollTop > 0); |     doc.documentElement.classList.toggle("page-scrolled-any", t.scrollTop > 24);
+// @mutate src/components/sections/InlineListSearch.tsx |     if (pinned) return;\n    reopenFocus.current = focusTrigger; |     reopenFocus.current = focusTrigger;
 /**
  * Declutter findings from the UI audit of 11-09 (~/.lh-shots/ui-audit-1109, Builder 2). One describe per finding.
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { render } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ItemCard } from "@/components/declutter/DeclutterItemCard";
 import { HANDOVER_TITLE } from "@/components/declutter/handoverCopy";
 import { OTHER_WAYS } from "@/lib/declutter/browseFilters";
@@ -31,6 +32,7 @@ import { SELLER_DEFAULTS } from "@/lib/declutter/sellerDefaults";
 import { townsWords } from "@/components/declutter/ItemPickupBlock";
 import { ITEM_PHOTO_ASPECT } from "@/components/declutter/itemPhotoFrame";
 import { installLargeTitles } from "@/lib/largeTitles";
+import { InlineListSearch } from "@/components/sections/InlineListSearch";
 import { SAVE_ITEM_REASON, SAVE_ITEM_SIGNUP_SUBTITLE, signupSubtitle } from "@/lib/jobIntent";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
@@ -147,6 +149,29 @@ describe("F074: the pinned title row is opaque from the first pixel scrolled, at
     const css = readFileSync(join(SRC, "index.css"), "utf8");
     expect(css).toContain("html:not(.web-desktop).page-scrolled-any .sticky-title-row {");
     expect(css).not.toMatch(/\.sticky-title-row,\s*\.sticky-title-row-name\s*\{\s*transition/);
+  });
+});
+
+describe("F073: Declutter's desktop Browse shows a visible search field (Jobs keeps its square)", () => {
+  it("a pinned search is open on arrival, never takes focus by itself, and its X clears without folding away", () => {
+    const onChange = vi.fn();
+    const r = render(<InlineListSearch value="lamp" onChange={onChange} label="Search items" pinned />);
+    const box = r.getByRole("searchbox", { name: "Search items" });
+    expect(document.activeElement).not.toBe(box);
+    fireEvent.click(r.getByRole("button", { name: "Close search" }));
+    expect(onChange).toHaveBeenCalledWith("");
+    expect(r.getByRole("searchbox", { name: "Search items" })).toBeTruthy();
+    r.unmount();
+  });
+  it("Browse pins it; Jobs does not", () => {
+    const browse = blankComments(readFileSync(join(SRC, "components/declutter/DeclutterBrowseView.tsx"), "utf8"));
+    expect(browse).toContain('<InlineListSearch value={query} onChange={setQuery} label="Search items" pinned />');
+    const others = walk(join(SRC, "components")).concat(walk(join(SRC, "pages")))
+      .filter((f) => !f.endsWith("DeclutterBrowseView.tsx"))
+      .map((f) => blankComments(readFileSync(f, "utf8")))
+      .filter((t) => /<InlineListSearch\b/.test(t));
+    expect(others.length).toBeGreaterThan(0);
+    for (const t of others) expect(t).not.toMatch(/<InlineListSearch\b[^>]*\bpinned\b/);
   });
 });
 

@@ -25,6 +25,10 @@ export interface DigestStats {
   completedJobs: number
   openReports: number
   revenue: number
+  /** Declutter's week (F186), from owner_daily_summary_stats like the daily summary. */
+  itemsPosted: number
+  itemsSold: number
+  salesCents: number
 }
 
 const statLabel = {
@@ -79,14 +83,15 @@ const Stat = ({ label, value }: { label: string; value: string | number }) => (
 export const AdminDigestEmail = ({
   stats,
   adminUrl,
-  weekOf,
+  range,
 }: {
   stats: DigestStats
   adminUrl: string
-  weekOf: string
+  /** The one date range, the subject's too: "Nov 2 – Nov 8" (Louisiana time; F186). */
+  range: string
 }) => (
   <BaseLayout
-    preheader={`Helpr this week: ${stats.newUsers} signups, ${stats.newJobs} jobs posted, ${stats.completedJobs} completed.`}
+    preheader={`Louisiana Helpr, ${range}: ${stats.newUsers} sign-ups, ${stats.newJobs} jobs posted, ${stats.itemsSold} items sold.`}
     footer={
       <TransactionalFooter>
         You're receiving this because you're an administrator on Louisiana Helpr. It's an
@@ -95,17 +100,20 @@ export const AdminDigestEmail = ({
     }
   >
     <Heading className="e-h1" style={{ ...h1, fontSize: '22px' }}>
-      Weekly Digest
+      Weekly summary
     </Heading>
     <Text className="e-text" style={textStyle}>
-      Here's your platform summary for the past 7 days (week of {weekOf}):
+      {range} (Central):
     </Text>
     <Section style={{ margin: '0 0 20px' }}>
-      <Stat label="New signups" value={stats.newUsers} />
+      <Stat label="New sign-ups" value={stats.newUsers} />
       <Stat label="Jobs posted" value={stats.newJobs} />
       <Stat label="Jobs completed" value={stats.completedJobs} />
       <Stat label="Open reports" value={stats.openReports} />
       <Stat label="Revenue (fees)" value={`$${stats.revenue.toFixed(2)}`} />
+      <Stat label="Declutter items posted" value={stats.itemsPosted} />
+      <Stat label="Declutter items sold" value={stats.itemsSold} />
+      <Stat label="Declutter sales" value={`$${(stats.salesCents / 100).toFixed(2)}`} />
     </Section>
     <BrandButton href={adminUrl} label="Open Admin Dashboard" widthPx={250} />
   </BaseLayout>

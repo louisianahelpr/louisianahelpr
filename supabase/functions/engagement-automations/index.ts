@@ -15,6 +15,7 @@ import {
 } from '../_shared/email-templates/drip.tsx'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 import { serve } from "../_shared/buildStamp.ts";
+import { centralDayLabel } from "../_shared/centralDateTime.ts";
 
 // Declared because line 163 already used it. That reference was the only one
 // in the file and resolved to nothing, so the CAN-SPAM fail-closed branch —
@@ -80,21 +81,36 @@ interface RenderedEmail {
   text: string
 }
 
+/**
+ * The digest's one date range, in Louisiana time (owner's message review 11-09, F186): the subject said "Week of
+ * Nov 9" while the body said "the past 7 days (week of Nov 2)", two weeks for one report. The window is the 7 days
+ * before the run; the range names its first and last day ("Nov 2 – Nov 8").
+ */
+export function digestRangeLabel(now: Date): string {
+  const first = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+  const last = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  return `${centralDayLabel(first)} – ${centralDayLabel(last)}`
+}
+
 async function adminDigestEmail(stats: {
   newUsers: number
   newJobs: number
   completedJobs: number
   openReports: number
   revenue: number
-}): Promise<RenderedEmail> {
-  const subject = `Louisiana Helpr Weekly Digest — Week of ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+  itemsPosted: number
+  itemsSold: number
+  salesCents: number
+}, now: Date): Promise<RenderedEmail> {
+  const range = digestRangeLabel(now)
+  const subject = `Louisiana Helpr weekly summary: ${range}`
   // Both parts come from the one component — react-email renders the plaintext
   // twin, so the two can no longer drift.
   const { html, text } = await renderEmail(
     React.createElement(AdminDigestEmail, {
       stats,
       adminUrl: `${getAppUrl()}/admin`,
-      weekOf: new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
+      range,
     }),
   )
   return { subject, html, text }
@@ -889,6 +905,10 @@ serve(async (_req) => {
       completedJobs: weekNum('jobs_completed'),
       openReports: weekNum('open_reports'),
       revenue: weekNum('job_fee_revenue', true),
+      // F186 (owner's message review 11-09): Declutter's week, from the same call and the same real-member rule.
+      itemsPosted: weekNum('items_posted'),
+      itemsSold: weekNum('items_sold'),
+      salesCents: weekNum('sales_cents'),
     }
     const DIGEST_KEY_NAMES: Record<keyof typeof digestValues, string> = {
       newUsers: 'new users',
@@ -896,6 +916,9 @@ serve(async (_req) => {
       completedJobs: 'completed jobs',
       openReports: 'open reports',
       revenue: 'revenue',
+      itemsPosted: 'declutter items posted',
+      itemsSold: 'declutter items sold',
+      salesCents: 'declutter sales',
     }
 
     // A FAILED STAT READ MUST NOT BECOME A NUMBER IN AN EMAIL.
@@ -933,13 +956,16 @@ serve(async (_req) => {
       completedJobs: digestValues.completedJobs!,
       openReports: digestValues.openReports!,
       revenue: digestValues.revenue!,
+      itemsPosted: digestValues.itemsPosted!,
+      itemsSold: digestValues.itemsSold!,
+      salesCents: digestValues.salesCents!,
     }
 
     // Send digest to every admin who is not a test account (OPS-1 helper: the same recipients as the daily
     // summary; a failed role, profile or test check is recorded, never a silent skip).
     const digestTo = await opsMailRecipients(supabase, suppressedSet, results, 'admin digest')
     for (const adminEmail of digestTo) {
-      const { subject, html, text } = await adminDigestEmail(stats)
+      const { subject, html, text } = await adminDigestEmail(stats, now)
       const messageId = crypto.randomUUID()
 
       await logSend(

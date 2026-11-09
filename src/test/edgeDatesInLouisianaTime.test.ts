@@ -35,12 +35,9 @@ function callArgs(src: string, open: number): string {
   return src.slice(open + 1);
 }
 
-/** Calls still on the server's zone, removed as each is fixed (F186 owns the weekly digest's dates). Exact. */
+/** Calls still on the server's zone (the weekly digest's 2 left with F186, 11-09). Exact. */
 // @two-way src/test/edgeDatesInLouisianaTime.test.ts:expect(offenders.sort()).toEqual([...KNOWN].sort());
-const KNOWN: string[] = [
-  "supabase/functions/engagement-automations/index.ts",
-  "supabase/functions/engagement-automations/index.ts",
-];
+const KNOWN: string[] = [];
 
 describe("edge functions write dates in Louisiana time (F183)", () => {
   it("every toLocaleDateString / toLocaleTimeString call names a timeZone", () => {

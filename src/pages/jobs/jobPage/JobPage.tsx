@@ -38,6 +38,7 @@ import { seriesSummary } from "@/lib/format";
 import { JobTracker, PosterPrice, PosterMoneyNotes, HelprPrice, HelprMoneyNotes, PostedBy, HiredHelpr, RevisionAsk } from "./JobPageParts";
 import { OnTheWayNow, showsNow } from "./OnTheWayNow";
 import { JobPageActionRow, type RowAction } from "./JobPageActionRow";
+import { useExpiredRepost } from "./ExpiredRepost";
 import { StickyActionBar, StickyActionSpacer } from "@/components/ui/StickyActionBar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
@@ -185,6 +186,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const refundParty = !!pj?.helper_id && !pj.is_group_job && (pj.customer_id === userId || pj.helper_id === userId);
   const refundAsk = useRefundRequest(id, refundsOn && refundParty);
   const refundOpen = refundsOn && refundParty && refundAsk.data?.status === "open";
+  const repost = useExpiredRepost(q.data?.job, isPoster); // F116: an expired listing's one action under its line (desktop)
   const posterActions = usePosterPageActions({
     job: q.data?.job, userId, enabled: isPoster, flows: posterFlows, refundOpen,
     posterWait: isPoster && q.data ? posterStatusLine(q.data.job as unknown as Job, applicants.data?.pending ?? 0).id : null,
@@ -462,6 +464,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               : !isPoster && onCrew ? crewMemberLine(crewSlot.data, job.status, posterFirst) : null)} />
           {/* JA-34 (audit 11-01): the card's own clock ("28m until the job starts"), so the page knows what its card knows. */}
           {(isPoster || isHired) && job.status === "accepted" && <CountdownRows variant="bare" clocks={collapsedClocks({ ...job, status: job.status }, isPoster)} />}
+          {repost.inline}
         </section>
 
         <div data-job-main="" className="flex min-w-0 flex-col gap-4 empty:hidden lg:col-start-1">
@@ -531,7 +534,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               </RefundsSwitchProvider>
             )}
             {/* Owner pick 11-08 (JP2): "Something's not right" and "Not finished? Set a day" are in the "..." menu. */}
-            {isPoster && posterActions.row(continueDay.posterLead ?? posterStep ?? (seeCase ? { label: seeCase.label, go: seeCase.go } : undefined), [
+            {isPoster && !repost.hideRow && posterActions.row(continueDay.posterLead ?? posterStep ?? (seeCase ? { label: seeCase.label, go: seeCase.go } : undefined), [
               ...continueDay.posterExtras,
               ...(posterActions.notRight ? [{ key: "not-right", label: NOT_RIGHT_LABEL, go: posterActions.notRight, inMenu: true }] : []),
               ...(continueDay.setDay ? [continueDay.setDay] : []),

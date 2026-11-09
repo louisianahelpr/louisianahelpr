@@ -5,8 +5,10 @@ const FreshDeclutterStrip = lazy(() => import("./FreshDeclutterStrip"));
 const FreshDeclutterFailed = lazy(() => import("./FreshDeclutterStrip").then((m) => ({ default: m.FreshDeclutterFailed })));
 
 /**
- * "Fresh on Declutter" (owner 11-04, via the lead): the newest live Declutter listings under the landing's jobs
- * section, each linking to its item page, plus "See everything" to /declutter. Nothing here is typed: no item,
+ * "Fresh on Declutter" (owner 11-04, via the lead): the newest live Declutter listings, each linking to its item page,
+ * plus "See everything" to /declutter. Since owner 11-08 it is the landing's "Shop Declutter" view: drawn only when the
+ * visitor picks Shop Declutter on the switch under the hero (LandingBrowseSwitch.tsx), in place of the jobs section, as
+ * a grid of up to FRESH_DECLUTTER_LIMIT cards in the /declutter browse card style (FreshDeclutterStrip.tsx). Nothing here is typed: no item,
  * price or count is written into the page.
  *
  * The same public read the guest /declutter feed makes (declutter_items, live, newest first): the table's row policy
@@ -18,12 +20,25 @@ const FreshDeclutterFailed = lazy(() => import("./FreshDeclutterStrip").then((m)
  * chunk) until the spot nears the screen after the page has loaded, the LiveJobsSection rule. A failed read says so
  * and keeps the link to Declutter.
  */
-export const FRESH_DECLUTTER_LIMIT = 6;
-const FRESH_SELECT = "id, title, current_price_cents, area_label, live_at";
+export const FRESH_DECLUTTER_LIMIT = 8;
+/** What the browse card draws, all within the anon column grant on declutter_items (accepts_trades is not, yet). */
+const FRESH_SELECT = "id, title, category, condition_stars, porch_ok, price_cents, current_price_cents, area_label, live_at";
 /** The pause before the one quiet retry of a failed read (the LiveJobsSection rule, Q2735). */
 const FRESH_DECLUTTER_RETRY_MS = 1500;
 
-export type FreshItem = { id: string; title: string; current_price_cents: number; area_label: string | null; photo: string | null; photoFull: string | null };
+export type FreshItem = {
+  id: string;
+  title: string;
+  category: string;
+  condition_stars: number;
+  porch_ok: boolean;
+  price_cents: number;
+  current_price_cents: number;
+  area_label: string | null;
+  /** The card-sized thumbnail (photoCardUrl) and the original as its fallback. */
+  photo: string | null;
+  photoFull: string | null;
+};
 type State = { kind: "waiting" } | { kind: "failed" } | { kind: "ok"; items: FreshItem[] };
 
 /** Q104: a good answer is kept for FRESH_REUSE_MS (LiveJobsSection's LANDING_REUSE_MS rule) and drawn at once on the next visit. */

@@ -1,6 +1,6 @@
 import { ListRow } from "@/components/ui/ListRow";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import FaqRow from "@/components/marketing/FaqRow";
@@ -99,10 +99,13 @@ const sentenceCase = (t: string): string => t.charAt(0) + t.slice(1).toLowerCase
 const TopicSection = ({
   section,
   targeted,
+  searching = false,
 }: {
   section: { topic: string; items: Array<{ q: string; a: string }> };
   /** True when `location.hash` addresses THIS section. */
   targeted: boolean;
+  /** F034: a search is on, so this (matching) section shows its matches open. */
+  searching?: boolean;
 }) => {
   // Collapsed by default at EVERY width (owner, 2026-08-25: "the tabs in help
   // center also should open as expanded. They should be collapsed").
@@ -121,7 +124,7 @@ const TopicSection = ({
   // closes it.
   const [manualOpen, setManualOpen] = useState<boolean>(false);
   const [dismissed, setDismissed] = useState(false);
-  const open = manualOpen || (targeted && !dismissed);
+  const open = searching || manualOpen || (targeted && !dismissed);
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -189,17 +192,37 @@ const TopicSection = ({
   );
 };
 
+// ─── Search ───────────────────────────────────────────────────────────────────
+
+type FaqSection = { topic: string; items: Array<{ q: string; a: string }> };
+
+/**
+ * F034 (owner UI audit 11-09; the owner decided 11-09 to ADD the search back, reversing the 2026-08-22 removal):
+ * the questions whose question or answer holds every word typed, case-insensitive, grouped under their topics.
+ * An empty query returns the sections unchanged. Exported for the guard.
+ */
+export function filterFaqSections(sections: readonly FaqSection[], query: string): FaqSection[] {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [...sections];
+  return sections
+    .map((s) => ({
+      ...s,
+      items: s.items.filter((i) => {
+        const text = `${s.topic} ${i.q} ${i.a}`.toLowerCase();
+        return words.every((w) => text.includes(w));
+      }),
+    }))
+    .filter((s) => s.items.length > 0);
+}
+
 // ─── HelpCenter ───────────────────────────────────────────────────────────────
 
 const HelpCenter = () => {
   const hash = useHashTarget();
-  // No search on this page (owner, 2026-08-22). It was a client-side filter
-  // over FAQ_SECTIONS — a static array of seven topics — reached through a
-  // control that had already been moved three times looking for a place where
-  // it did not read as clutter. Seven labelled, collapsible topics are a list
-  // you scan, not a corpus you query, and the browser's own find-in-page
-  // already covers the rest. The whole feature is gone rather than relocated
-  // again: the filter, its "Matching …" caption, and the no-results dead end.
+  // F034: "Search help" at the top filters the questions as you type (owner 2026-11-09, reversing the 2026-08-22
+  // "no search on this page" decision: people had to open every topic to find an answer). Matching topics open
+  // with only their matching questions; no match says so and points at Contact support below.
+  const [query, setQuery] = useState("");
 
   // Same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs).
   usePageMeta(PUBLIC_PAGE_META["/help"]);
@@ -208,7 +231,9 @@ const HelpCenter = () => {
   // Shipping answers show only where Declutter shipping is on (switch declutter_shipping); elsewhere "Shipping isn't
   // offered." stays, and stays true (declutterShippingCopy.ts).
   const shippingOn = useFeature("declutter_shipping");
-  const sections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS;
+  const allSections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS;
+  const searching = query.trim().length > 0;
+  const sections = filterFaqSections(allSections, query);
 
   return (
     // Shared shell (PublicHeaderPage) — same component Legal, Jobs and
@@ -218,8 +243,8 @@ const HelpCenter = () => {
     // one component and share the same shell").
     //
     // No lede under the title (desktop-only marketing framing that restated
-    // the title) and no search (removed — see the note at the top of the
-    // component). The "Contact support" escape hatch closes the page.
+    // the title). "Search help" opens the column (F034, owner 2026-11-09).
+    // The "Contact support" escape hatch closes the page.
     //
     // FAQ + contact support are still ONE block, not three (owner,
     // 2026-08-30: "this should be 1 component not 3" — the masthead heading
@@ -234,14 +259,45 @@ const HelpCenter = () => {
         <h2 id="faq-heading" className="sr-only">Frequently asked questions</h2>
         {/* F033 (owner UI audit 11-09): a reading measure on the answers, centred. At 1440 they ran ~1,250px a line. */}
         <div className="mx-auto page-measure max-w-[760px] space-y-section" data-help-measure="">
+          <div className="relative" data-help-search="">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setQuery("");
+              }}
+              placeholder="Search help"
+              aria-label="Search help"
+              enterKeyHint="search"
+              className="h-12 w-full rounded-full border border-border bg-card pl-11 pr-11 text-ds-15 font-sans text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&::-webkit-search-cancel-button]:hidden"
+            />
+            {searching && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                className="absolute right-1 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" aria-hidden />
+              </button>
+            )}
+          </div>
           <div className="space-y-3 sm:space-y-4">
             {sections.map((section) => (
               <TopicSection
                 key={section.topic}
                 section={section}
                 targeted={hash === `faq-${topicSlug(section.topic)}`}
+                searching={searching}
               />
             ))}
+            {searching && sections.length === 0 && (
+              <p role="status" data-help-no-match="" className="rounded-[20px] border border-border bg-card px-5 py-4 text-ds-15 font-sans text-muted-foreground">
+                No answers match "{query.trim()}". Try other words, or contact support below.
+              </p>
+            )}
           </div>
 
           {/* Escape hatch to a human — at the BOTTOM (owner: "contact support

@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import HelpCenter, { LEGACY_TOPIC_ANCHORS } from "./HelpCenter";
+import HelpCenter, { LEGACY_TOPIC_ANCHORS, filterFaqSections } from "./HelpCenter";
 import { FAQ_SECTIONS } from "./helpCenter/helpCenterContent";
 import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
 import { CREDENTIAL_TIER_CATEGORIES } from "@/components/postjob/detailsSection/detailsSectionConstants";
@@ -48,6 +48,41 @@ describe("/help answers keep a reading measure (F033)", () => {
     expect(cls).toContain("mx-auto");
     // Every topic sits inside the capped column.
     expect(col.querySelectorAll("[id^='faq-']").length).toBeGreaterThan(3);
+  });
+});
+
+// F034 (owner UI audit 11-09; owner decided 11-09 to ADD the search back, reversing the 2026-08-22 removal):
+// "Search help" at the top filters the questions as you type.
+// @mutate src/pages/info/HelpCenter.tsx |         return words.every((w) => text.includes(w)); |         return true;
+// @mutate src/pages/info/HelpCenter.tsx |   const open = searching \|\| manualOpen \|\| (targeted && !dismissed); |   const open = manualOpen \|\| (targeted && !dismissed);
+// @mutate src/pages/info/HelpCenter.tsx |   const sections = filterFaqSections(allSections, query); |   const sections = allSections;
+describe("/help search (F034)", () => {
+  it("filters questions by every word typed, across question, answer and topic; empty returns all", () => {
+    const total = FAQ_SECTIONS.reduce((n, s) => n + s.items.length, 0);
+    expect(total).toBeGreaterThan(20);
+    expect(filterFaqSections(FAQ_SECTIONS, "  ").reduce((n, s) => n + s.items.length, 0)).toBe(total);
+    const hits = filterFaqSections(FAQ_SECTIONS, "refund");
+    const n = hits.reduce((k, s) => k + s.items.length, 0);
+    expect(n).toBeGreaterThan(0);
+    expect(n).toBeLessThan(total);
+    for (const s of hits) for (const i of s.items) expect(`${s.topic} ${i.q} ${i.a}`.toLowerCase()).toContain("refund");
+    expect(filterFaqSections(FAQ_SECTIONS, "zzqxnotaword")).toEqual([]);
+  });
+
+  it("the page: typing opens only the matching topics with their matches; no match says so; clear brings all back", () => {
+    const { container } = renderHelp();
+    const box = screen.getByRole("searchbox", { name: "Search help" });
+    const topicsAll = container.querySelectorAll("#faq [aria-controls^='faq-panel-']").length;
+    expect(topicsAll).toBeGreaterThan(3);
+    fireEvent.change(box, { target: { value: "refund" } });
+    const shown = [...container.querySelectorAll("#faq [aria-controls^='faq-panel-']")];
+    expect(shown.length).toBeGreaterThan(0);
+    expect(shown.length).toBeLessThanOrEqual(topicsAll);
+    for (const t of shown) expect(t.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.change(box, { target: { value: "zzqxnotaword" } });
+    expect(container.querySelector("[data-help-no-match]")?.textContent).toMatch(/No answers match/);
+    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(container.querySelectorAll("#faq [aria-controls^='faq-panel-']").length).toBe(topicsAll);
   });
 });
 

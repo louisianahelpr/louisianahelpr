@@ -9,7 +9,7 @@
  *   2. BOTH shared footers (MarketingFooter, TransactionalFooter) render POSTAL_ADDRESS;
  *   3. every <BaseLayout> in every template passes a footer that is one of those two, so no template, today's or a new
  *      one, can ship without the line; every commercial template (it takes an unsubscribeUrl) uses MarketingFooter.
- * The rendered proof (Deno, the real react-email render of all 8 marketing emails) is in the commit message.
+ * The rendered proof (Deno, the real react-email render of all 8 marketing emails on 2026-11-09) is in the commit message.
  *
  */
 // @mutate supabase/functions/_shared/resend.ts | export const POSTAL_ADDRESS = POSTAL_ADDRESS_LITERAL.trim(); | export const POSTAL_ADDRESS = (Deno.env.get("HELPR_POSTAL_ADDRESS") ?? POSTAL_ADDRESS_LITERAL).trim();
@@ -17,9 +17,11 @@
 // @mutate supabase/functions/_shared/email-templates/components.tsx | the commercial ones (lead 11-09, F167). */}\n    {POSTAL_ADDRESS ? ( | the commercial ones (lead 11-09, F167). */}\n    {false ? (
 // @mutate supabase/functions/_shared/email-templates/drip.tsx |     footer={<MarketingFooter unsubscribeUrl={unsubscribeUrl} />}\n  >\n    <Heading className="e-h1" style={{ ...h1, fontSize: '22px' }}>\n      Welcome to | footer={<p>Unsubscribe: {unsubscribeUrl}</p>}\n  >\n    <Heading className="e-h1" style={{ ...h1, fontSize: '22px' }}>\n      Welcome to
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+// The repo's readdirSync (lists src/ from git; anything else, here supabase/, straight from disk).
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 const TEMPLATES = join(ROOT, "supabase/functions/_shared/email-templates");
@@ -31,6 +33,8 @@ function walk(dir: string): string[] {
     e.isDirectory() ? (e.name === "node_modules" ? [] : walk(join(dir, e.name))) : [join(dir, e.name)],
   );
 }
+
+
 
 /** The text of the JSX element starting at `start` (`<Tag`), up to its matching `/>` or `</Tag>`, balancing braces. */
 function propsOf(src: string, start: number): string {

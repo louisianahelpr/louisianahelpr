@@ -76,7 +76,7 @@ export const AdminEmailChangedEmail = ({ oldEmail, newEmail }: EmailChangedProps
  * The self-service notice's heading (owner's UI audit 11-09, F163): it said "Your email address was changed" under a
  * subject saying it "is being changed", which read as done; nothing changes until the new address confirms.
  */
-export const SELF_CHANGE_HEADING = 'Someone asked to change your login email'
+const SELF_CHANGE_HEADING = 'Someone asked to change your login email'
 
 /** Someone with a session started a self-service email change. */
 export const SelfEmailChangeNoticeEmail = ({ oldEmail, newEmail }: EmailChangedProps) => (

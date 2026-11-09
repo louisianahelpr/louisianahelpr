@@ -5,7 +5,7 @@
  * server, which runs in UTC, so a strike given after 6 PM Central showed the next day's date, written "11/16/2026"
  * unlike every other message. Pure (no Deno, no I/O) so a unit test runs the real function.
  */
-export const MEMBER_TIMEZONE = "America/Chicago";
+const MEMBER_TIMEZONE = "America/Chicago";
 
 export function centralDateTimeLabel(when: Date): string {
   const day = when.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: MEMBER_TIMEZONE });

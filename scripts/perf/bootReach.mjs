@@ -555,6 +555,35 @@ export function guestIconFiles(root) {
 }
 
 /** The Declutter first screen's roots: the page and its default (Browse) tab, which declutterRoute.ts starts together. */
+/**
+ * The icons the Declutter Selling tab draws (DeclutterMineViews and its static reach), not already pinned as boot,
+ * Home, item, guest or Declutter first-screen icons. vite.config pins them as `icons-selling` (lander 11-08): the
+ * trades + b6 redesign changed which pages import which icons, and the entriesAware merge regrouped them so
+ * /declutter?tab=selling fetched ~8 KB gz of icons it does not draw (553 -> 563 KB gz, budget 532 +5%).
+ */
+const DECLUTTER_SELLING_ROOTS = ["src/components/declutter/DeclutterMineViews.tsx"];
+export function sellingIconFiles(root) {
+  const index = fs.readFileSync(path.join(root, "node_modules/lucide-react/dist/esm/lucide-react.mjs"), "utf8");
+  const fileOf = new Map();
+  for (const m of index.matchAll(/export \{([^}]*)\} from '\.\/icons\/([^']+)\.mjs'/g)) {
+    for (const n of m[1].matchAll(/default as (\w+)/g)) fileOf.set(n[1], m[2]);
+  }
+  const drawn = new Set();
+  for (const f of staticReach(root, DECLUTTER_SELLING_ROOTS.map((r) => toPosix(path.join(root, r))))) {
+    if (!/\.(tsx?|mjs)$/.test(f)) continue;
+    const src = stripComments(fs.readFileSync(f, "utf8"));
+    for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
+      for (const n of x[1].split(",")) {
+        const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
+        if (fileOf.has(name)) drawn.add(fileOf.get(name));
+      }
+    }
+  }
+  const split = guestIconSplit(root);
+  const taken = new Set([...split.shared, ...split.own, ...split.declutter, ...bootIconFiles(root), ...homeIconFiles(root), ...itemIconFiles(root)]);
+  return new Set([...drawn].filter((i) => !taken.has(i)));
+}
+
 export const DECLUTTER_FIRST_SCREEN_ROOTS = ["src/pages/declutter/DeclutterPage.tsx", "src/components/declutter/DeclutterBrowseView.tsx"];
 
 /**

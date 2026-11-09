@@ -40,6 +40,7 @@ import { PAGE_COLUMN } from "@/lib/pageColumn";
 import { isEarnedJob } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { queryKeys } from "@/lib/queryKeys";
 import { fetchSmsConsent, smsConsentQueryKey } from "@/lib/smsConsentQuery";
+import { joinName } from "@/lib/splitName";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 
 const ProfilePage = () => {
@@ -196,7 +197,7 @@ const ProfilePage = () => {
     e.preventDefault();
     if (!requireOnline()) return;
     if (!user) return;
-    const merged = `${firstName.trim()} ${lastName.trim()}`.trim();
+    const merged = joinName(firstName, lastName);
     // Contact details in a bio are REJECTED by the database (23514); the
     // field shows the same sentence inline, so block before the round-trip.
     const bioLeak = contactLeakFieldError(bio, "bio");

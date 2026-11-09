@@ -40,6 +40,7 @@ import { completeSignupErrorCopy, isSignupAlreadyFinished, isSignupResumedOldAcc
 import { useParishForZip } from "@/hooks/useParishForZip";
 import { useCityZipMismatch } from "./signup/useCityZipMismatch";
 import { useLanguage } from "@/lib/i18n/language";
+import { joinName } from "@/lib/splitName";
 
 const Signup = () => {
   const { t } = useLanguage();
@@ -73,7 +74,7 @@ const Signup = () => {
   // Step 1 fields
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+  const fullName = joinName(firstName, lastName);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [location, setLocation] = useState("");

@@ -1,12 +1,14 @@
 {
-  "generated": "2026-11-09T00:01:26.716Z",
-  "guards": 3723,
-  "registered": 3722,
+  "generated": "2026-11-09T21:37:25.495Z",
+  "guards": 3751,
+  "registered": 3750,
   "unregistered": [
     "src/lib/shops/preorders.test.ts"
   ],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/test/declutterTradesClient.test.tsx",
+    "src/test/fabClearsLastRow.test.tsx"
   ],
   "classD_selfReferential": [
     {

@@ -18,7 +18,7 @@
  * (Back) fires its own scroll event, which turns them on again if it should.
  */
 export function resetLargeTitles(doc: Document = document): void {
-  doc.documentElement.classList.remove("page-scrolled");
+  doc.documentElement.classList.remove("page-scrolled", "page-scrolled-any");
   doc.querySelectorAll(".compact-title-bar.on").forEach((b) => b.classList.remove("on"));
 }
 
@@ -41,6 +41,8 @@ export function installLargeTitles(doc: Document = document): () => void {
     // the top here, and skipping it left the compact bar on over the back button with nothing to scroll.
     if (t.scrollHeight <= t.clientHeight + 1 && t.scrollWidth > t.clientWidth + 1) return;
     doc.documentElement.classList.toggle("page-scrolled", t.scrollTop > 24);
+    // F074 (UI audit 11-09): a pinned title row (the item page) is opaque from the first pixel (index.css).
+    doc.documentElement.classList.toggle("page-scrolled-any", t.scrollTop > 0);
     if (t.matches("[data-app-page-scroll]")) {
       const h1 = t.querySelector("h1.text-page-title");
       const b = ensureBar();
@@ -62,6 +64,6 @@ export function installLargeTitles(doc: Document = document): () => void {
     doc.removeEventListener("scroll", onScroll, { capture: true });
     bar?.remove();
     bar = null;
-    doc.documentElement.classList.remove("page-scrolled");
+    doc.documentElement.classList.remove("page-scrolled", "page-scrolled-any");
   };
 }

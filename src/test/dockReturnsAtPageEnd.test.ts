@@ -9,7 +9,7 @@
  * @mutate src/components/mobileNav/useDockScrollState.ts | const atEnd = dockRevealsAtEnd(surface.scrollHeight, surface.clientHeight, y); | const atEnd = false;
  * @mutate src/components/mobileNav/useDockScrollState.ts | if (!atEnd && (y < 0 \|\| Math.abs(delta) < 6)) { | if (y < 0 \|\| Math.abs(delta) < 6) {
  * @mutate src/components/mobileNav/useDockScrollState.ts | setNavHidden(!atEnd && y >= 64 && delta > 0); | setNavHidden(y >= 64 && delta > 0);
- * @mutate src/index.css | html:not(.web-desktop).page-scrolled .sticky-title-row {\n  background: hsl(var(--background)); | html:not(.web-desktop).page-scrolled .sticky-title-row {\n  background: transparent;
+ * @mutate src/index.css | html:not(.web-desktop).page-scrolled-any .sticky-title-row {\n  background: hsl(var(--background)); | html:not(.web-desktop).page-scrolled-any .sticky-title-row {\n  background: transparent;
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -48,9 +48,10 @@ describe("the dock at the end of a page (DA-9)", () => {
     expect(body.split("setNavHidden(").length - 1).toBe(1);
   });
 
+  // F074 (UI audit 11-09): opaque from the first pixel scrolled (page-scrolled-any), not past 24px, and not faded in.
   it("the pinned title row is opaque once the page has scrolled, and not on the desktop website", () => {
     const css = readFileSync("src/index.css", "utf8");
-    const at = css.indexOf("html:not(.web-desktop).page-scrolled .sticky-title-row {");
+    const at = css.indexOf("html:not(.web-desktop).page-scrolled-any .sticky-title-row {");
     expect(at).toBeGreaterThan(-1);
     const rule = css.slice(at, css.indexOf("}", at));
     expect(rule).toContain("background: hsl(var(--background));");

@@ -47,7 +47,7 @@ export interface FilterSheetSection {
   trailing?: ReactNode;
 }
 
-interface FilterSheetProps {
+export interface FilterSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Sections to render, top to bottom. */

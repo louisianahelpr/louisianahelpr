@@ -3,6 +3,8 @@
  * towns Lafayette, New Iberia, Delcambre, Abbeville, Baton Rouge; nothing shown at zero.
  *
  * @mutate src/App.tsx |       <Route path="/hire/:service/:town" element={<RouteErrorBoundary>{routeEl(<PageTransition><HireTownPage /></PageTransition>)}</RouteErrorBoundary>} /> |
+ * @mutate src/pages/info/HireTownPage.tsx |   if (category) return <Navigate replace to={`/browse?cat=${category}`} />; |   if (category) return <NotFound />;
+ * @mutate src/pages/info/HireTownPage.tsx |   return (JOB_CATEGORY_VALUES as readonly string[]).includes(value) ? value : null; |   return value \|\| null;
  * @mutate src/pages/info/HireTownPage.tsx |   if (!page) return <NotFound />; |   if (!page) return <TownPage service={TOWN_PAGE_SERVICES[0]} town={TOWN_PAGE_TOWNS[0]} />;
  * @mutate src/pages/info/HireTownPage.tsx |   usePageMeta(townPageMeta(service, town)); |
  * @mutate src/pages/info/HireTownPage.tsx |   const post = user ? "/post-job" : `/signup?redirect=${encodeURIComponent("/post-job")}`; |   const post = "/post-job";
@@ -19,7 +21,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { blankComments } from "@/test/helpers/blankNonCode";
@@ -47,8 +49,13 @@ import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, allTownPagePaths } from "@/lib/tow
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
 import { publicPageMetaFor } from "@/lib/publicPageMeta.mjs";
 
+function BrowseAt() {
+  const { search } = useLocation();
+  return <p>BROWSE {search}</p>;
+}
+
 function at(path: string) {
-  return render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/hire/:service/:town" element={<HireTownPage />} /><Route path="/post-job" element={<p>THE FORM</p>} /></Routes></MemoryRouter>);
+  return render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/hire/:service/:town" element={<HireTownPage />} /><Route path="/post-job" element={<p>THE FORM</p>} /><Route path="/browse" element={<BrowseAt />} /></Routes></MemoryRouter>);
 }
 
 afterEach(() => { cleanup(); meta.length = 0; who.user = null; age.under = false; age.explained.length = 0; });
@@ -103,12 +110,25 @@ describe("OPS-4: town + service pages", () => {
     expect(screen.getByText("THE FORM")).toBeTruthy();
   });
 
-  it("an unknown service or town is the 404 page, never a page about nowhere", () => {
+  it("F065: a pair with no page, for a real job category, opens Browse filtered to it; anything else is the 404", () => {
+    // Owner UI audit 11-09 F065, lead decision 11-09: /hire/plumbing/natchitoches went to the 404. Licensed trades
+    // still get no town page (first test); their URL lands on Browse with the category set.
+    at("/hire/plumbing/natchitoches");
+    expect(screen.getByText("BROWSE ?cat=plumbing")).toBeTruthy();
+    expect(meta).toEqual([]);
+    cleanup();
     at("/hire/plumbing/lafayette");
-    expect(screen.getByText("NOT FOUND")).toBeTruthy();
+    expect(screen.getByText("BROWSE ?cat=plumbing")).toBeTruthy();
     cleanup();
     at("/hire/handyman/houston");
+    expect(screen.getByText("BROWSE ?cat=handyman")).toBeTruthy();
+    cleanup();
+    at("/hire/auto-repair/abbeville");
+    expect(screen.getByText("BROWSE ?cat=auto_repair")).toBeTruthy();
+    cleanup();
+    at("/hire/space-travel/lafayette");
     expect(screen.getByText("NOT FOUND")).toBeTruthy();
+    expect(screen.queryByText(/BROWSE/)).toBeNull();
   });
 
   it("App.tsx serves /hire/:service/:town to anyone (no ProtectedRoute)", () => {

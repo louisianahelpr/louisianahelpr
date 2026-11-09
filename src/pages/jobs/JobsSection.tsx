@@ -20,7 +20,6 @@ import { JobsListLoadingFrame } from "@/components/JobsSectionSkeleton";
 import { removeShellOncePainted } from "@/components/landing/landingShell";
 import { JOBS_SHELL_ID } from "@/components/landing/homeShell";
 import { manageLinkOpensJobPage } from "@/components/job-card/manageLinkOpensJobPage";
-import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { AppTopBar, SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
@@ -41,8 +40,19 @@ import { JOB_LISTS_PREFETCH_KEY, prefetchRoutesWhenIdle } from "@/lib/routePrefe
 // opens on a list starts this chunk from the entry beside the section's (src/boot/jobsListRoute.ts); Browse warms it
 // once the page has settled, so the first tap on Posted or Working finds it in hand. Same specifier everywhere, so all
 // share one module instance. Through loadModule (dynamicImportThenDoesNoWork): a prevented preload resolves null.
+// Q2705/Q1158 (Builder 3, 11-09): the refund_requests switch's provider (board 141) wraps only the lists, so it loads
+// with them. Static here, RefundsSwitch's chunk (job-lifecycle) put WhatNextSheet, the Sheet and their Radix dialog on
+// Browse's first screen too. Guard: src/test/jobsFirstScreenStaysLight.test.ts.
 const JobListPage = lazy(() =>
-  loadModule(() => import("@/components/job-card/JobListPage")).then((m) => (m ? { default: m.default } : untilReload())),
+  Promise.all([
+    loadModule(() => import("@/components/job-card/JobListPage")),
+    loadModule(() => import("@/components/refund/RefundsSwitch")),
+  ]).then(([m, refunds]) => {
+    if (!m || !refunds) return untilReload();
+    const List = m.default;
+    const { RefundsSwitchProvider } = refunds;
+    return { default: (props: Parameters<typeof List>[0]) => <RefundsSwitchProvider><List {...props} /></RefundsSwitchProvider> };
+  }),
 );
 
 const JOBS_SETTINGS = { label: "Jobs settings", labelKey: "jobs.settings", path: "/jobs/settings" } as const;
@@ -150,18 +160,18 @@ const JobsSection = () => {
   // An old Manage job link opens the job page, before the list mounts (manageLinkOpensJobPage).
   const jobPage = tab === "posted" ? manageLinkOpensJobPage(params) : null;
   if (jobPage) return <Navigate replace to={jobPage} />;
-  // Board 141: the refund_requests switch, read once for every job card in the list.
+  // Board 141: the refund_requests switch, read once for every job card in the list (JobListPage's lazy wrapper above).
   // While the lists' chunk arrives: the list's own loading frame (EmbeddedActivityLoading draws the same), so the only
   // change a reader sees is still bones -> content.
   if (tab === "posted" || tab === "working") {
     const list = tab === "posted" ? "posted" : "applied";
     return (
-      <RefundsSwitchProvider>
+      <>
         <Suspense fallback={<JobsListLoadingFrame header={makeHeader()} tab={list} />}>
           <JobListPage key={tab} defaultTab={list} embeddedHeader={makeHeader} />
         </Suspense>
         {fab}
-      </RefundsSwitchProvider>
+      </>
     );
   }
   return <><Dashboard embeddedHeader={makeHeader} />{fab}</>;

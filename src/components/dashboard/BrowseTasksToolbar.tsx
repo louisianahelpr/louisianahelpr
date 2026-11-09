@@ -4,7 +4,6 @@ import { ChevronRight, SearchCheck } from "lucide-react";
 import { whenPageSettled } from "@/lib/routePrefetch";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { buildJobFilterSections } from "@/components/dashboard/filterSheet/jobFilterSections";
-import { SavedSearches } from "@/components/SavedSearches";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { hapticLight } from "@/lib/haptics";
 import type { BrowseTasksToolbarProps } from "./browseTasksToolbar/types";
@@ -18,6 +17,12 @@ import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
 // the first tap on Filters does not wait on the network. Guard: src/test/browseFirstPaintLoadsOverlaysLazily.test.ts.
 const loadFilterSheet = () => loadModule(() => import("@/components/dashboard/FilterSheet"));
 const FilterSheet = lazy(() => loadFilterSheet().then((m) => (m ? { default: m.FilterSheet } : untilReload())));
+
+// The saved-searches dialog loads the same way (Q2705/Q1158, Builder 3 11-09): closed on every first paint, yet its
+// static import put SavedSearches (and its Dialog, Input, Label and toasts) on signed-in /jobs' first screen. It mounts
+// the first time it opens and stays mounted (to animate closed); its chunk is warmed once the page has settled.
+const loadSavedSearches = () => loadModule(() => import("@/components/SavedSearches"));
+const SavedSearches = lazy(() => loadSavedSearches().then((m) => (m ? { default: m.SavedSearches } : untilReload())));
 
 const SaveSearchButton = lazy(() => import("@/components/savedSearches/SaveSearchButton").then((m) => ({ default: m.SaveSearchButton })));
 
@@ -87,13 +92,23 @@ export function BrowseTasksToolbar({
   // row, which closes the sheet on the way — so the dialog is mounted HERE,
   // outside the sheet, or it would unmount with the row that opened it.
   const [savedSearchesOpen, setSavedSearchesOpen] = useState(false);
+  const [savedSearchesMounted, setSavedSearchesMounted] = useState(false);
+  const signedIn = !!user;
+  useEffect(() => {
+    if (savedSearchesOpen) setSavedSearchesMounted(true);
+  }, [savedSearchesOpen]);
   const [filterSheetMounted, setFilterSheetMounted] = useState(false);
   useEffect(() => {
     if (filters.filtersOpen) setFilterSheetMounted(true);
   }, [filters.filtersOpen]);
-  useEffect(() => whenPageSettled(() => void loadFilterSheet().catch(() => {
-    /* a warm-up only: the lazy() factory imports again when the sheet first opens */
-  })), []);
+  useEffect(() => whenPageSettled(() => {
+    void loadFilterSheet().catch(() => {
+      /* a warm-up only: the lazy() factory imports again when the sheet first opens */
+    });
+    if (signedIn) void loadSavedSearches().catch(() => {
+      /* a warm-up only: the lazy() factory imports again when the dialog first opens */
+    });
+  }), [signedIn]);
 
   // One source for the row's heading text, used by both the normal and the
   // search state (search keeps it sr-only rather than dropping the h1).
@@ -318,10 +333,12 @@ export function BrowseTasksToolbar({
 
       {/* The saved-searches dialog itself — mounted here rather than inside
           the sheet section that opens it, because that row closes the sheet on
-          tap and would take a dialog rendered inside it down with it. Also
-          still openable by the `open-saved-searches` window event, which is
-          why the listener inside SavedSearches keeps working unchanged. */}
-      {user && (
+          tap and would take a dialog rendered inside it down with it. Mounted
+          from its first open on (its chunk loads lazily, above); its
+          `open-saved-searches` window listener therefore starts with that first
+          open (nothing in src/ dispatches that event, 11-09). */}
+      {user && (savedSearchesOpen || savedSearchesMounted) && (
+        <Suspense fallback={null}>
         <SavedSearches
           open={savedSearchesOpen}
           onOpenChange={setSavedSearchesOpen}
@@ -355,6 +372,7 @@ export function BrowseTasksToolbar({
             filters.setLocationFilter(saved.radius_miles ? `nearby:${saved.radius_miles}` : "");
           }}
         />
+        </Suspense>
       )}
     </>
   );

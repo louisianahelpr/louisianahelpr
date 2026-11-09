@@ -9,7 +9,8 @@
  *  - the migration's insert trigger, backfill and grants as the newest definitions.
  *
  * @mutate src/components/profile/ProfileLanding.tsx | <YourPageLink name={displayName?.trim().split(/\s+/)[0] ?? null} /> | {null}
- * @mutate src/components/declutter/DeclutterHomeView.tsx |       <YourPageLink forSale={liveListingCount(mine.data ?? [])} /> |       <YourPageLink forSale={0} />
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |       <YourPageLink slim /> |       <YourPageLink forSale={1} />
+ * @mutate src/components/profile/YourPageLink.tsx |   if (slim) { |   if (slim && forSale < 0) {
  * @mutate src/components/profile/YourPageLink.tsx | if (await copyToClipboard(profileLinkUrl(handle))) | if (await copyToClipboard(handle))
  * @mutate src/components/profile/YourPageLink.tsx |   if (forSale > 0) { |   if (forSale < 0) {
  * @mutate src/components/declutter/DeclutterShareCard.tsx | data-listing-share="" onClick={() => shareListing(item)} | data-listing-share="" onClick={() => undefined}
@@ -125,7 +126,26 @@ describe("Your page link (made at sign-up, easy to find)", () => {
     expect(code("src/components/profile/ProfileLanding.tsx")).toMatch(/<YourPageLink name=\{displayName/);
     const home = code("src/components/declutter/DeclutterHomeView.tsx");
     const selling = home.slice(home.indexOf("function SellingView"), home.indexOf("<SellingDash", home.indexOf("function SellingView")));
-    expect(selling).toContain("<YourPageLink forSale={liveListingCount(mine.data ?? [])} />");
+    // F127 (UI audit 11-09; owner 11-05 placements; lead 11-09): Selling's is the slim one-line link.
+    expect(selling).toContain("<YourPageLink slim />");
+  });
+
+  it("F127: the slim line is 'Your page · Copy · Share' with the same two actions, never a card", async () => {
+    rpc.mockResolvedValue({ data: "eli-b", error: null });
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <YourPageLink name="Eli" slim />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(container.querySelector("[data-your-page-slim]")).not.toBeNull());
+    expect(container.querySelector("section")).toBeNull();
+    expect(container.querySelector("[data-your-page-slim]")?.textContent).toBe("Your page· Copy· Share");
+    fireEvent.click(screen.getByRole("button", { name: "Copy your page link" }));
+    await waitFor(() => expect(copy).toHaveBeenCalledWith("https://www.louisianahelpr.com/u/eli-b"));
+    fireEvent.click(screen.getByRole("button", { name: "Share your page" }));
+    await waitFor(() => expect(share).toHaveBeenCalled());
   });
 });
 

@@ -25,6 +25,7 @@ const files = walkSource([resolve(ROOT, "src")]).filter(
 );
 
 /** Files that read reviews by reviewee without the shared filter, and why. */
+// @two-way src/test/reviewsReceivedOneSource.test.ts:stale ALLOWED entry
 const ALLOWED: Record<string, string> = {
   "src/components/CompletionPrompts.tsx": "checks whether I already reviewed this person on this job (reviewer_id = me)",
   "src/components/admin/adminusers/useOpenProfile.ts": "admin user detail: staff see every review",
@@ -50,6 +51,9 @@ describe("reviews about a member come from one source (F093)", () => {
   });
 
   it("every direct reviewee read is filtered by the public-reviews RPC or listed with a reason (exact)", () => {
-    expect(offenders()).toEqual(Object.keys(ALLOWED).sort());
+    const found = offenders();
+    const stale = Object.keys(ALLOWED).filter((f) => !found.includes(f));
+    expect(stale.map((f) => `stale ALLOWED entry ${f}: it no longer reads reviews by reviewee unfiltered; remove it`)).toEqual([]);
+    expect(found).toEqual(Object.keys(ALLOWED).sort());
   });
 });

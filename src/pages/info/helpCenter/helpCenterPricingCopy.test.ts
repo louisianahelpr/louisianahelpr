@@ -23,12 +23,12 @@
 // Delta review (#A): "any sales tax you paid comes back" overstated it: on a
 // refund that keeps a fee, tax stays paid on what is kept (owner 10-15).
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | the cancel screen shows exactly what you will get back before you confirm. | you get back what you paid less the card-processing fee Stripe keeps.
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts |  Every payout goes on the standard schedule.` |  Every payout goes on the standard schedule. Elite drops your platform fee to 8%.`
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts |  on a job you posted or on Declutter.` |  on a job you posted or on Declutter. Elite drops your platform fee to 8%.`
 //
 // Memberships are RETIRED (owner 2026-11-04): no answer names a plan, a tier or
 // a paid perk at all, and the Membership & Billing topic is gone.
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts |     topic: "Declutter", |     topic: "Membership & Billing", items: [{ q: "What does a membership do?", a: "Elite adds a crown badge." }] }, { topic: "Declutter",
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts |  Every payout goes on the standard schedule.` |  Instant Payout is a membership feature.`
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts |  on a job you posted or on Declutter.` |  on a job you posted or on Declutter. Instant Payout is a membership feature.`
 // Q1834 (2026-11-04): the owner removed suggested prices from Post a job on
 // 2026-10-08 (BudgetSection.tsx) and the range table had no caller, so no
 // answer may still promise a suggested price or range.

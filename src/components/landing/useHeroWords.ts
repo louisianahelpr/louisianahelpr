@@ -14,7 +14,7 @@ import { loadModule, untilReload } from "@/lib/loadModule";
 /** The Spanish words alone in their own loader, read outside Vite's preload wrapper (dynamicImportThenDoesNoWork). */
 const esModule = () => loadModule(() => import("@/lib/i18n/es"));
 
-export type HeroWords = { titleLead: string; titleAccent: string; subhead: string; searchLabel: string; searchButton: string };
+export type HeroWords = { titleLead: string; titleAccent: string; subhead: string; searchLabel: string; searchButton: string; searchDeclutter: string; tabJobs: string };
 
 function heroLangIsSpanish(): boolean {
   let saved: string | null;
@@ -41,6 +41,7 @@ export function useHeroWords(): HeroWords | null {
         setWords({
           titleLead: es["hero.titleLead"], titleAccent: es["hero.titleAccent"], subhead: es["hero.subhead"],
           searchLabel: es["hero.searchLabel"], searchButton: es["hero.searchButton"],
+          searchDeclutter: es["hero.searchDeclutter"], tabJobs: es["hero.tabJobs"],
         });
       },
       (err: unknown) => console.warn("[hero] Spanish words failed to load; showing English", err),

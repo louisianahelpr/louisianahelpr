@@ -15,6 +15,8 @@ export const enScreens = {
   "hero.subhead": "Hire help or find work. One account, real neighbors.",
   "hero.searchLabel": "Search local jobs",
   "hero.searchButton": "Search",
+  "hero.searchDeclutter": "Search Declutter",
+  "hero.tabJobs": "Jobs",
 
   // Chat screens: everyday words only. Safety, rules and money wording stays English until a person translates it.
   "chat.back": "Back to conversations",

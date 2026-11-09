@@ -824,10 +824,10 @@ describe("the photo-first Declutter item page", () => {
     expect(await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 })).toBeInTheDocument();
     expect(document.querySelector("[data-item-price]")?.textContent).toContain("$40");
     const join = document.querySelector("[data-guest-join]") as HTMLElement;
-    expect(join).toHaveTextContent("Free to join. You come back here after.");
+    expect(join).toHaveTextContent("Signing up is free. We'll bring you back to this item.");
     const back = encodeURIComponent(`/declutter/item/${ID}`);
     // The real pair, in the member's order (Make offer, then the one filled Buy now), each to sign up and back here.
-    // @mutate src/components/declutter/DeclutterGuest.tsx |           <Link to={signup} data-guest-buy="">{free ? "Ask for it" : "Buy now"}</Link> |           <Link to="/signup" data-guest-buy="">{free ? "Ask for it" : "Buy now"}</Link>
+    // @mutate src/components/declutter/DeclutterGuest.tsx |           <Link to={signup} data-guest-buy="">{free ? "Sign up to ask for it" : "Buy now"}</Link> |           <Link to="/signup" data-guest-buy="">{free ? "Sign up to ask for it" : "Buy now"}</Link>
     const pair = join.querySelector("[data-guest-buttons]")!;
     expect(Array.from(pair.querySelectorAll("a")).map((a) => a.textContent)).toEqual(["Make offer", "Buy now"]);
     for (const a of pair.querySelectorAll("a")) expect(a).toHaveAttribute("href", `/signup?redirect=${back}`);

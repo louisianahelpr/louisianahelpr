@@ -14,7 +14,7 @@
  * @mutate src/pages/u/PublicProfilePage.tsx | title={`For sale · ${listingTotal}`} | title="For sale"
  * @mutate src/pages/u/PublicProfilePage.tsx | {p.bio && <p | {false && <p
  * @mutate src/pages/u/PublicProfilePage.tsx | <HelperWorkPhotos urls={work} /> | {null}
- * @mutate src/pages/u/PublicProfilePage.tsx | {ctaReady && !isMe && <HireMeButton | {!isMe && <HireMeButton
+ * @mutate src/pages/u/PublicProfilePage.tsx | {ctaReady && !isMe && (team ? <MessageSupportButton | {!isMe && (team ? <MessageSupportButton
  * @mutate src/pages/u/PublicProfilePage.tsx | const ctaReady = !user \|\| !meLoading; | const ctaReady = true;
  * @mutate supabase/migrations/20261105165059_public_profile_full.sql | GRANT UPDATE (show_in_search) ON public.profiles TO authenticated; | SELECT 1;
  * @mutate src/pages/u/PublicProfilePage.tsx | const PROFILE_WIDE = "min-[900px]:max-w-3xl"; | const PROFILE_WIDE = "";

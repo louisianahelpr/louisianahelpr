@@ -25,13 +25,13 @@ const show = (key: string) => {
 };
 
 describe("the money rows' descriptions", () => {
-  it("Job payments says refunds and finished jobs, and no longer claims payouts or tips", () => {
+  it("Receipts and refunds (payments) says refunds and finished jobs, and no longer claims payouts or tips", () => {
     show("payments");
     expect(screen.getByText("Finished jobs, refunds and saved cards.")).toBeInTheDocument();
     expect(screen.queryByText(/payouts|tips/i)).toBeNull();
   });
 
-  it("Payments and tips says held money, payouts and tips", () => {
+  it("Payouts and tips (financial_alerts) says held money, payouts and tips", () => {
     show("financial_alerts");
     expect(screen.getByText("Money held for a job, payout setup, payouts and tips.")).toBeInTheDocument();
   });
@@ -40,9 +40,24 @@ describe("the money rows' descriptions", () => {
     for (const r of rows) expect(r.description ?? "").not.toMatch(/escrow|\bfee\b/i);
   });
 
-  it("only the two money rows and Messages carry one (floor: the list still has its rows)", () => {
+  it("only the two money rows, Messages and Helpr's progress carry one (floor: the list still has its rows)", () => {
     expect(rows.length).toBeGreaterThan(10);
-    expect(rows.filter((r) => r.description).map((r) => r.key).sort()).toEqual(["financial_alerts", "messages", "payments"]);
+    expect(rows.filter((r) => r.description).map((r) => r.key).sort()).toEqual(["financial_alerts", "messages", "payments", "work_status"]);
+  });
+
+  // F102 (owner UI audit 11-09): plain outcome names, not overlapping category words.
+  // @mutate src/components/notificationPreferences/constants.tsx | label: "Receipts and refunds", | label: "Job payments",
+  // @mutate src/components/notificationPreferences/constants.tsx | label: "Payouts and tips", | label: "Payments and tips",
+  // @mutate src/components/notificationPreferences/constants.tsx | label: "Account and safety alerts", | label: "System alerts",
+  it("F102: the overlapping switch names are plain outcomes", () => {
+    const label = (k: string) => rows.find((r) => r.key === k)?.label;
+    expect(label("job_updates")).toBe("Changes to my jobs");
+    expect(label("work_status")).toBe("Helpr's progress");
+    expect(label("payments")).toBe("Receipts and refunds");
+    expect(label("financial_alerts")).toBe("Payouts and tips");
+    expect(label("system_alerts")).toBe("Account and safety alerts");
+    const all = rows.map((r) => r.label);
+    for (const old of ["Job updates", "Work status", "Job payments", "Payments and tips", "System alerts"]) expect(all).not.toContain(old);
   });
 
   it("a row without one renders only its label", () => {

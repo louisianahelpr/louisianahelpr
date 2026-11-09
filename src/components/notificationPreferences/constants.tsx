@@ -94,10 +94,12 @@ export const trimTime = (v: string | null | undefined): string | null => {
 // "Payout sent!" and tips. NOID-15 (10-31) moved "Payout sent!"
 // (process-scheduled-payouts) and "You received a tip!" (checkout and the held
 // tip repay) to `financial_alerts`, so each kind now sits under one row.
+// F102 (owner UI audit 11-09): the switch names say plain outcomes ("Job updates", "Work status", "Job payments",
+// "Payments and tips" and "System alerts" overlapped and needed the small print). Keys and columns are unchanged.
 export const rows: Row[] = [
   { key: "new_offers", emailKey: "email_new_offers", label: "Job offers", icon: <Briefcase className="w-3.5 h-3.5" /> },
   { key: "job_applications", emailKey: "email_job_applications", label: "Applications", icon: <Users className="w-3.5 h-3.5" /> },
-  { key: "job_updates", emailKey: "email_job_updates", label: "Job updates", icon: <RefreshCw className="w-3.5 h-3.5" /> },
+  { key: "job_updates", emailKey: "email_job_updates", label: "Changes to my jobs", icon: <RefreshCw className="w-3.5 h-3.5" /> },
   // The Daily Match Digest row renders directly beneath this one (see
   // NotificationPreferences.tsx) — it is a delivery mode FOR this category,
   // and it greys out when this switch is off.
@@ -106,11 +108,11 @@ export const rows: Row[] = [
   // Owner 11-08 (20261108160000): this row's switches pick push and email (both real now); the notice is always
   // kept in the notifications list.
   { key: "transit_updates", emailKey: "email_transit_updates", label: "Helpr on the way", icon: <Navigation className="w-3.5 h-3.5" /> },
-  { key: "work_status", emailKey: "email_work_status", label: "Work status", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-  { key: "payments", emailKey: "email_payments", label: "Job payments", description: "Finished jobs, refunds and saved cards.", icon: <Receipt className="w-3.5 h-3.5" /> },
-  { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payments and tips", description: "Money held for a job, payout setup, payouts and tips.", icon: <DollarSign className="w-3.5 h-3.5" /> },
+  { key: "work_status", emailKey: "email_work_status", label: "Helpr's progress", description: "When the work starts and when it's marked done.", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
+  { key: "payments", emailKey: "email_payments", label: "Receipts and refunds", description: "Finished jobs, refunds and saved cards.", icon: <Receipt className="w-3.5 h-3.5" /> },
+  { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payouts and tips", description: "Money held for a job, payout setup, payouts and tips.", icon: <DollarSign className="w-3.5 h-3.5" /> },
   { key: "reviews", emailKey: "email_reviews", label: "Reviews", icon: <Star className="w-3.5 h-3.5" /> },
-  { key: "system_alerts", emailKey: "email_system_alerts", label: "System alerts", icon: <ShieldAlert className="w-3.5 h-3.5" /> },
+  { key: "system_alerts", emailKey: "email_system_alerts", label: "Account and safety alerts", icon: <ShieldAlert className="w-3.5 h-3.5" /> },
   { key: "promotions", emailKey: "email_promotions", label: "Promotions", icon: <Megaphone className="w-3.5 h-3.5" /> },
 ];
 

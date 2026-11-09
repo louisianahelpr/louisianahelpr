@@ -340,6 +340,27 @@ describe("6. the offer card's primary is Accept before the tap, for every Helpr"
     expect(document.querySelector("[data-offer-gate-line]")).toBeNull();
   });
 
+  // Owner pick 11-08 (JP2): on the job page (PageOfferPanel, `sticky`) Decline | Accept are the page's sticky action
+  // bar like every other stage's buttons; the Working card keeps the pair in the card.
+  // @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |           ? <StickyActionBar label="Answer the offer" data-job-bar="offer" spacer={false}>{pair}</StickyActionBar> |           ? <div className="flex gap-2 pt-1">{pair}</div>
+  // @mutate src/pages/jobs/jobPage/PageOfferPanel.tsx | <OfferedActions flush sticky app= | <OfferedActions flush app=
+  it("on the job page Decline | Accept job are the sticky bar (Accept on the right); in the Working card, in the card", () => {
+    const { unmount } = render(
+      <MemoryRouter>
+        <OfferedActions flush sticky app={offerApp} job={offerJob} onHelperResponse={noop} respondingHelperAppId={null} />
+      </MemoryRouter>,
+    );
+    const bar = document.querySelector('[data-job-bar="offer"]') as HTMLElement;
+    expect(bar).toBeTruthy();
+    expect([...bar.querySelectorAll("button")].map((b) => b.textContent?.trim())).toEqual(["Decline", "Accept job"]);
+    unmount();
+    renderOffer();
+    expect(document.querySelector("[data-job-bar]")).toBeNull();
+    expect(screen.getByRole("button", { name: /Accept job/ })).toBeTruthy();
+    const panel = readFileSync("src/pages/jobs/jobPage/PageOfferPanel.tsx", "utf8");
+    expect(panel).toContain("<OfferedActions flush sticky app=");
+  });
+
   it("gate unknown (profile loading): Accept job is there and enabled, never a Checking… wait", () => {
     gateState.loading = true;
     renderOffer();

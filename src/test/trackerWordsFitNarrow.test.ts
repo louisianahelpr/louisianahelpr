@@ -12,8 +12,10 @@
  * cut at 320, 375 or 1440 on /payment-success (222 / 277 / 382px) or on any Working card (250 / 305px); "$25".
  * jsdom has no layout, so the widths are read from the rules here; the numbers above are the measurement.
  *
- * @mutate src/index.css | @container (max-width: 259px) {\n  .job-steps-grid { grid-template-columns: repeat(8, minmax(0, auto)) !important; } | @container (max-width: 259px) {\n  .job-steps-grid { }
- * @mutate src/index.css |   .job-step-short { font-size: 0.91em; } |   .job-step-short { }
+ * Six drawn steps since the owner pick of 11-08 (design audit A JP3), always their full words: the rules below now
+ * step the FULL word down (job-step-full) and size six columns.
+ * @mutate src/index.css | @container (max-width: 259px) {\n  .job-steps-grid { grid-template-columns: repeat(6, minmax(0, auto)) !important; } | @container (max-width: 259px) {\n  .job-steps-grid { }
+ * @mutate src/index.css |   .job-step-full { font-size: 0.91em; } |   .job-step-full { }
  * @mutate src/index.css | @container (max-width: 319px) {\n  .job-steps-grid { column-gap: 2px; } | @container (max-width: 319px) {\n  .job-steps-grid { }
  * @mutate src/index.css | margin-left: -1px; margin-right: -1px; | margin-left: -2px; margin-right: -2px;
  *
@@ -56,19 +58,19 @@ describe("narrow trackers keep every short word whole (F17)", () => {
 
   it("under 300px: words at 0.91em (relative, so Senior Mode still scales)", () => {
     const body = containerBody(299);
-    expect(body).toContain(".job-step-short { font-size: 0.91em; }");
+    expect(body).toContain(".job-step-full { font-size: 0.91em; }");
     expect(body).not.toMatch(/font-size: \d+px/);
   });
 
   it("under 260px: columns sized by their words, and the current step's small icon steps aside", () => {
     const body = containerBody(259);
-    expect(body).toContain(".job-steps-grid { grid-template-columns: repeat(8, minmax(0, auto)) !important; }");
+    expect(body).toContain(".job-steps-grid { grid-template-columns: repeat(6, minmax(0, auto)) !important; }");
     expect(body).toContain(".job-step-cur-icon { display: none; }");
     // Both current-step icons carry the hook; the step words never do (they must stay).
     const icons = [...tracker.matchAll(/<(Hand|Hourglass) className="([^"]*)"/g)];
     expect(icons.length).toBeGreaterThan(1);
     for (const m of icons) expect(m[2].split(/\s+/), m[1]).toContain("job-step-cur-icon");
-    expect(tracker).not.toMatch(/job-step-short[^"]*job-step-cur-icon|job-step-cur-icon[^"]*job-step-short/);
+    expect(tracker).not.toMatch(/job-step-full[^"]*job-step-cur-icon|job-step-cur-icon[^"]*job-step-full/);
   });
 });
 

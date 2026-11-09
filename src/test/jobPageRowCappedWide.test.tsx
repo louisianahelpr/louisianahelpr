@@ -3,8 +3,9 @@
  * is capped at 240px and the row sits right (the step last); on a phone it stays full width. jsdom draws no layout, so
  * this reads the classes that do it; the measured widths need a browser run (not done in this lane).
  *
- * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx | "grid grid-cols-2 gap-2 md:grid-cols-[repeat(2,minmax(0,240px))] md:justify-end" | "grid grid-cols-2 gap-2"
- * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx | "grid grid-cols-1 md:ml-auto md:w-full md:max-w-[240px]" | "grid grid-cols-1"
+ * Owner pick 11-08 (JP2): the row is the sticky bar's flex row of cells; from md each cell is capped at 240px and the
+ * row is right-aligned (the same rule, one class set for one or two buttons).
+ * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx | md:justify-end md:[&>[data-row-cell]]:max-w-[240px]` | `
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
@@ -14,15 +15,19 @@ const go = () => {};
 const row = () => document.querySelector<HTMLElement>("[data-job-row]")!;
 
 describe("the job page row is capped at desktop width (A3-13)", () => {
-  it("a pair: two columns of at most 240px, right-aligned from md; full width below md", () => {
+  const CAP = ["flex", "w-full", "[&>[data-row-cell]]:flex-1", "md:justify-end", "md:[&>[data-row-cell]]:max-w-[240px]"];
+  it("a pair: two cells of at most 240px, right-aligned from md; full width below md", () => {
     render(<JobPageActionRow tag="t" lead={{ key: "step", label: "Approve", go }} leadIsStep extras={[{ key: "message", label: "Message", go }]} />);
     const cls = row().className.split(/\s+/);
-    expect(cls).toEqual(expect.arrayContaining(["grid-cols-2", "md:grid-cols-[repeat(2,minmax(0,240px))]", "md:justify-end"]));
+    expect(cls).toEqual(expect.arrayContaining(CAP));
+    expect(row().querySelectorAll(":scope > [data-row-cell]")).toHaveLength(2);
+    // No cap below md: the phone bar is full width.
     expect(cls.filter((c) => /^max-w-/.test(c))).toEqual([]);
   });
 
   it("one button: 240px, right-aligned from md", () => {
     render(<JobPageActionRow tag="t" lead={{ key: "step", label: "Approve", go }} leadIsStep extras={[]} />);
-    expect(row().className.split(/\s+/)).toEqual(expect.arrayContaining(["grid-cols-1", "md:ml-auto", "md:max-w-[240px]"]));
+    expect(row().className.split(/\s+/)).toEqual(expect.arrayContaining(CAP));
+    expect(row().querySelectorAll(":scope > [data-row-cell]")).toHaveLength(1);
   });
 });

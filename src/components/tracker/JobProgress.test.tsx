@@ -1,5 +1,5 @@
-// The 8-step tracker's colours and words (owner, 2026-10-22): done GREEN, the current step YELLOW when it waits
-// on the viewer and OLIVE when it waits on the other person, later steps grey; colour is never the only signal
+// The tracker's colours and words: SIX drawn steps, Hired … Done (owner pick 11-08, design audit A JP3; it was 8,
+// 2026-10-22): done GREEN, the current step AMBER (one colour), later steps grey; colour is never the only signal
 // (an icon on the current step, the bold word, an outline for later steps, one sentence for a screen reader).
 // @mutate src/components/tracker/JobProgress.tsx |   you: "bg-[hsl(var(--amber-solid))]", |   you: "bg-primary",
 // @mutate src/components/tracker/JobProgress.tsx |   them: "bg-[hsl(var(--amber-solid))]", |   them: "bg-primary",
@@ -7,20 +7,27 @@
 // @mutate src/components/tracker/JobProgress.tsx |   if (tone === "cancelled") { |   if (false) {
 // @mutate src/components/tracker/JobProgress.tsx |   done: "bg-[hsl(var(--bark))]", |   done: "bg-[hsl(var(--success-ink))]",
 // @mutate src/components/tracker/JobProgress.tsx |               {s === "you" && <Hand className="job-step-cur-icon h-3 w-3 shrink-0" />} |
-// @mutate src/components/tracker/JobProgress.tsx |     `Job progress, step ${stage + 1} of ${n}: ${(JOB_PROGRESS_STEPS as readonly string[])[stage]}, | `Job progress, step ${stage + 1} of ${n}:
+// @mutate src/components/tracker/JobProgress.tsx |     `Job progress, step ${at + 1} of ${n}: ${steps[at]}, | `Job progress, step ${at + 1} of ${n}:
+// @mutate src/components/tracker/JobProgress.tsx | const DRAWN_STEPS = JOB_PROGRESS_STEPS.map((full, i) => ({ full, i })).slice(JOB_TRACKER_FIRST); | const DRAWN_STEPS = JOB_PROGRESS_STEPS.map((full, i) => ({ full, i }));
+// @mutate src/components/tracker/JobProgress.tsx |   const drawsBar = progress.stage !== null && (progress.stage >= JOB_TRACKER_FIRST \|\| progress.tone === "cancelled"); |   const drawsBar = progress.stage !== null;
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
 import { JobProgress, jobStepsLabel } from "@/components/tracker/JobProgress";
 import { JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressState";
+import { JOB_TRACKER_FIRST } from "@/components/tracker/jobProgressSteps";
+
+const DRAWN = JOB_PROGRESS_STEPS.slice(JOB_TRACKER_FIRST);
 
 const states = (c: HTMLElement) => [...c.querySelectorAll("[data-step-state]")].map((e) => e.getAttribute("data-step-state"));
-const bar = (c: HTMLElement, i: number) => c.querySelectorAll("[data-step-state]")[i].querySelector("[data-step-seg]") as HTMLElement;
+/** The bar of the step at STAGE index i (0..7); the drawn bar starts at Hired (index 2). */
+const bar = (c: HTMLElement, i: number) => c.querySelectorAll("[data-step-state]")[i - JOB_TRACKER_FIRST].querySelector("[data-step-seg]") as HTMLElement;
+const stateAt = (c: HTMLElement, i: number) => states(c)[i - JOB_TRACKER_FIRST];
 
-describe("JobProgress: the 8-step bar", () => {
+describe("JobProgress: the six-step bar", () => {
   it("done green, current amber with a hand when it waits on you, later grey outline", () => {
     const { container } = render(<JobProgress progress={{ stage: 3, waitingOnYou: true, tone: "progress", word: "Confirmed", next: "Tap I'm still on to confirm", held: false }} />);
-    expect(states(container)).toEqual(["done", "done", "done", "you", "todo", "todo", "todo", "todo"]);
-    expect(bar(container, 0).className).toContain("bg-[hsl(var(--bark))]");
+    expect(states(container)).toEqual(["done", "you", "todo", "todo", "todo", "todo"]);
+    expect(bar(container, 2).className).toContain("bg-[hsl(var(--bark))]");
     expect(bar(container, 3).className).toContain("bg-[hsl(var(--amber-solid))]");
     expect(bar(container, 4).className).toContain("border");
     // An icon on the current step, none on later ones (besides the step's own icon, src/test/trackerKeepsTheOldSteps).
@@ -31,7 +38,7 @@ describe("JobProgress: the 8-step bar", () => {
 
   it("amber with an hourglass when the current step waits on the other person", () => {
     const { container } = render(<JobProgress progress={{ stage: 5, waitingOnYou: false, tone: "progress", word: "Arrived", next: "x", held: false }} />);
-    expect(states(container)[5]).toBe("them");
+    expect(stateAt(container, 5)).toBe("them");
     // The current step is amber either way (owner 2026-10-23); the hourglass says it is theirs.
     expect(bar(container, 5).className).toContain("bg-[hsl(var(--amber-solid))]");
     expect(container.querySelectorAll("[data-step-state='them'] svg:not([data-step-icon] svg)").length).toBe(1);
@@ -40,15 +47,16 @@ describe("JobProgress: the 8-step bar", () => {
 
   it("every step done when the job is complete", () => {
     const { container } = render(<JobProgress progress={{ stage: 8, waitingOnYou: false, tone: "progress", word: "Done", next: "", held: false }} />);
-    expect(states(container)).toEqual(Array(8).fill("done"));
+    expect(states(container)).toEqual(Array(6).fill("done"));
   });
 
   it("the bar reads as one sentence with every full step name and the state", () => {
     const l = jobStepsLabel(3, true);
-    for (const s of JOB_PROGRESS_STEPS) expect(l).toContain(s);
-    expect(l).toContain("step 4 of 8: Confirmed, waiting on you");
+    for (const s of DRAWN) expect(l).toContain(s);
+    expect(l).not.toContain("Posted");
+    expect(l).toContain("step 2 of 6: Confirmed, waiting on you");
     expect(jobStepsLabel(5, false)).toContain("Arrived, waiting on the other person");
-    expect(jobStepsLabel(8, false)).toContain("all 8 steps done");
+    expect(jobStepsLabel(8, false)).toContain("all 6 steps done");
     const { container } = render(<JobProgress progress={{ stage: 3, waitingOnYou: true, tone: "progress", word: "", next: "", held: false }} />);
     expect(container.querySelector("[data-job-steps]")?.getAttribute("aria-label")).toBe(l);
   });
@@ -63,7 +71,7 @@ describe("JobProgress: the 8-step bar", () => {
 
   it("a problem step (no-show, overdue, dispute) is the warning colour with an alert icon and its own word", () => {
     const { container } = render(<JobProgress barOnly progress={{ stage: 5, waitingOnYou: false, tone: "problem", label: "No-show?", word: "", next: "", held: false }} />);
-    expect(states(container)[5]).toBe("problem");
+    expect(stateAt(container, 5)).toBe("problem");
     expect(bar(container, 5).className).toContain("bg-[hsl(var(--burnt-sienna))]");
     expect(container.querySelectorAll("[data-step-state='problem'] svg").length).toBe(1);
     expect(container.querySelector("[data-step-state='problem']")?.textContent).toContain("No-show");
@@ -75,8 +83,8 @@ describe("JobProgress: the 8-step bar", () => {
   // @mutate src/components/tracker/JobProgress.tsx |         const Icon = s === "alarm" ? AlertTriangle : JOB_STEP_ICONS[i]; |         const Icon = JOB_STEP_ICONS[i];
   it("a dispute on the last step shows a warning icon, never the party popper", () => {
     const { container } = render(<JobProgress progress={{ stage: 7, waitingOnYou: false, tone: "problem", label: "Dispute", word: "Under review", next: "x", held: true }} />);
-    expect(states(container)[7]).toBe("alarm");
-    const icon = container.querySelectorAll("[data-step-state]")[7].querySelector("[data-step-icon] svg");
+    expect(stateAt(container, 7)).toBe("alarm");
+    const icon = container.querySelectorAll("[data-step-state]")[7 - JOB_TRACKER_FIRST].querySelector("[data-step-icon] svg");
     expect(icon?.getAttribute("class")).toMatch(/lucide-(alert-triangle|triangle-alert)/);
     expect(container.querySelector(".lucide-party-popper")).toBeNull();
   });
@@ -84,6 +92,19 @@ describe("JobProgress: the 8-step bar", () => {
   // Q2596 (Jobs audit 1102b row 10): an ended job draws no bars (eight empty grey bars read as a progress bar with no
   // progress), only its word.
   // @mutate src/components/tracker/JobProgress.tsx |         <span className="flex items-center gap-1 text-ds-11 | <span className="grid grid-cols-8"><span data-step-state="todo" /></span><span className="flex items-center gap-1 text-ds-11
+  // Owner pick 11-08 (JP3): Posted and Offered belong to the applicants view; before a hire no bar is drawn, the line
+  // alone says where the job is.
+  it("before a hire (Posted, Offered) no bar, only the line", () => {
+    for (const stage of [0, 1] as const) {
+      const { container, unmount } = render(<JobProgress progress={{ stage, waitingOnYou: true, tone: "progress", word: "Posted", next: "Review 2 applicants", held: false }} />);
+      expect(container.querySelector("[data-job-steps]")).toBeNull();
+      expect(container.querySelector("[data-job-progress-next]")?.textContent).toContain("Review 2 applicants");
+      unmount();
+    }
+    const card = render(<JobProgress barOnly progress={{ stage: 1, waitingOnYou: true, tone: "progress", word: "Offered", next: "Accept", held: false }} />);
+    expect(card.container.innerHTML).toBe("");
+  });
+
   it("cancelled draws no bars, only Cancelled", () => {
     const { container } = render(<JobProgress barOnly progress={{ stage: 0, waitingOnYou: false, tone: "cancelled", label: "Cancelled", word: "Cancelled", next: "", held: false }} />);
     expect(states(container)).toEqual([]);

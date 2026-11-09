@@ -22,7 +22,8 @@ describe("Q2592 a lone SOS is inside More options, never beside Message", () => 
     const secondHost = vi.fn();
     render(<JobPageActionRow tag="poster" lead={msg} leadIsStep={false} extras={[]} cardCount={1} cardInMenu setCardSecondHost={secondHost} setCardListHost={listHost} />);
     const row = document.querySelector('[data-job-row="poster"]') as HTMLElement;
-    expect(within(row).getAllByRole("button").map((b) => b.textContent)).toEqual(["More options", "Message"]);
+    // The "..." button is an icon named "More options"; Message alone keeps its full words (owner pick 11-08, JP2).
+    expect(within(row).getAllByRole("button").map((b) => b.getAttribute("aria-label") ?? b.textContent)).toEqual(["More options", "Message Eli"]);
     expect(secondHost).not.toHaveBeenCalledWith(expect.any(HTMLElement));
     fireEvent.click(screen.getByRole("button", { name: "More options" }));
     expect(listHost).toHaveBeenCalledWith(expect.any(HTMLElement));

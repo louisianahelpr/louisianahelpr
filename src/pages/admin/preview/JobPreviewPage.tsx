@@ -118,7 +118,8 @@ function useOpenOnDraw(label: string | null, key: string) {
     if (!label) return;
     let tries = 0;
     const find = (name: string) => Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
-      .find((b) => !b.closest("[data-preview-controls]") && !b.disabled && b.textContent?.trim() === name);
+      // A button's name: its words, or its aria-label for an icon button (the job page's "..." is "More options").
+      .find((b) => !b.closest("[data-preview-controls]") && !b.disabled && (b.textContent?.trim() || b.getAttribute("aria-label")) === name);
     const t = window.setInterval(() => {
       tries++;
       const target = find(label);

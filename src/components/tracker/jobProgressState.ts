@@ -28,7 +28,7 @@ export type { Stage, StepTone } from "@/components/tracker/jobStepFromWait";
 
 // The step names live in jobProgressSteps.ts, so the tracker component (on Home's first draw) does not import this
 // file's derivation (B51).
-export { JOB_PROGRESS_DRAWN, JOB_PROGRESS_SHORT, JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressSteps";
+export { JOB_PROGRESS_DRAWN, JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressSteps";
 import { JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressSteps";
 
 export type ProgressJob = {

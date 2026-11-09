@@ -145,11 +145,21 @@ describe("admin job-page preview", () => {
     const tipButtons = () => screen.queryAllByRole("button").filter((b) => /^(Tip|Send a tip|Tip Eli)\b/i.test((b.textContent ?? "").trim()));
     renderPreview("tip", "poster");
     await screen.findAllByText(previewSample("tip", "poster").job.title, undefined, { timeout: 10000 });
-    await waitFor(() => expect(tipButtons().length).toBeGreaterThan(0), { timeout: 10000 });
+    // Owner pick 11-08 (JP2): Tip is one of the bar's actions: its secondary, or in its "..." menu (open it to look).
+    await waitFor(() => {
+      if (tipButtons().length === 0) {
+        const more = document.querySelector<HTMLElement>("[data-row-more]");
+        if (more && !screen.queryByRole("dialog", { name: "More options" })) fireEvent.click(more);
+      }
+      expect(tipButtons().length).toBeGreaterThan(0);
+    }, { timeout: 10000 });
     cleanup();
     renderPreview("tip_sent", "poster");
     await screen.findAllByText(previewSample("tip_sent", "poster").job.title, undefined, { timeout: 10000 });
     await waitFor(() => expect(screen.queryAllByRole("button").some((b) => /Review/.test(b.textContent ?? ""))).toBe(true), { timeout: 10000 });
+    // Not in the "..." menu either.
+    const more = document.querySelector<HTMLElement>("[data-row-more]");
+    if (more) { fireEvent.click(more); await screen.findByRole("dialog", { name: "More options" }); }
     expect(tipButtons().map((b) => b.textContent)).toEqual([]);
     expect(leaked()).toEqual([]);
   }, 30000);

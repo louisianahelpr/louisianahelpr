@@ -1,5 +1,6 @@
 // @mutate src/components/declutter/DeclutterItemCard.tsx |       aria-label={cardLinkLabel(item.title, item.current_price_cents)}\n |
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | Meet at a safe spot (a public place, no home address shared), | pickup at the seller's door,
+// @mutate src/pages/info/legal/TermsSection.tsx | <strong className="text-foreground">Meet at a safe spot</strong> | <strong className="text-foreground">pickup at the seller&apos;s door</strong>
 /**
  * Declutter findings from the UI audit of 11-09 (~/.lh-shots/ui-audit-1109, Builder 2). One describe per finding.
  */
@@ -48,7 +49,7 @@ describe("F050: every Declutter card link has a name (title and the price the ca
   });
 });
 
-describe("F054: Help names the same ways to get an item as the Filters", () => {
+describe("F054: Help and the Terms name the same ways to get an item as the Filters", () => {
   const filterWays = ["porch" as const, ...OTHER_WAYS].map((w) => HANDOVER_TITLE[w]);
   it("the Filters offer porch pickup plus the other ways (the inventory)", () => {
     expect(filterWays.length).toBeGreaterThan(2);
@@ -56,5 +57,10 @@ describe("F054: Help names the same ways to get an item as the Filters", () => {
   it("Help's 'How do I get the item?' names every way the Filters offer, in the Filters' words", () => {
     const a = FAQ_SECTIONS.flatMap((s) => s.items).find((i) => i.q === "How do I get the item?")?.a ?? "";
     for (const w of filterWays) expect(a).toContain(w);
+  });
+  // Owner 11-09: the Terms' Declutter card uses the same names (wording only, no version bump, no re-accept).
+  it("the Terms' Declutter card names every one of them the same way", () => {
+    const terms = blankComments(readFileSync(join(SRC, "pages/info/legal/TermsSection.tsx"), "utf8")).replace(/&apos;/g, "'");
+    for (const w of filterWays) expect(terms).toContain(`<strong className="text-foreground">${w}</strong>`);
   });
 });

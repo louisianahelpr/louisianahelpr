@@ -131,7 +131,8 @@ describe("the Jobs status chips fit a phone", () => {
 
 describe("the Jobs section tabs fit a phone", () => {
   it("Browse | Posted | Working fit the row at every phone width", () => {
-    const segPad = SEGMENTED.match(/"segmented-option min-w-0 h-11 min-h-11 px-(\d+) rounded-full font-sans text-(ds-\d+) font-semibold"/);
+    // The default ("sm") label size, which the Jobs tabs use (labelSize "md" is the landing's, F008 11-09).
+    const segPad = SEGMENTED.match(/"segmented-option min-w-0 h-11 min-h-11 px-(\d+) rounded-full font-sans font-semibold",\s*labelSize === "md" \? "text-ds-\d+" : "text-(ds-\d+)"/);
     expect(segPad, "SegmentedControl's segment classes changed shape").not.toBeNull();
     const pad = spacing(segPad![1]);
     const font = dsFont(segPad![2]);

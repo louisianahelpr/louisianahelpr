@@ -105,7 +105,7 @@ describe("the landing says what is open today", () => {
     const { container, unmount } = renderSections(new Set());
     const cards = [...container.querySelectorAll<HTMLElement>("[data-section]")];
     expect(cards.length).toBe(SECTIONS.length);
-    const switched = SECTIONS.filter((s) => s.feature !== null).map((s) => s.key);
+    const switched: string[] = SECTIONS.filter((s) => s.feature !== null).map((s) => s.key);
     expect(switched.length).toBeGreaterThan(2);
     // One badge per unopened card, each INSIDE its card; nothing outside the cards says it.
     expect(screen.getAllByText("Coming soon")).toHaveLength(switched.length);

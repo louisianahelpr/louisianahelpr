@@ -1,4 +1,4 @@
-// @mutate src/components/Footer.tsx |               <Link to="/support" className="link-standard">\n                Contact us | <Link to="/help" className="link-standard">\n                Contact us
+// @mutate src/components/Footer.tsx |               <Link to="/support" className={FOOTER_LINK}>\n                Contact us | <Link to="/help" className={FOOTER_LINK}>\n                Contact us
 /**
  * The footer has a way to reach us (lead item 14, 2026-10-25: /contact 404'd
  * and the footer had no contact link). /contact now redirects to /support

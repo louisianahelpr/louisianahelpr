@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS public.job_missed_returns (
   job_id uuid NOT NULL REFERENCES public.jobs(id) ON DELETE CASCADE,
   continue_id uuid REFERENCES public.job_continue_days(id) ON DELETE SET NULL,
   reported_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
-  side text NOT NULL CHECK (side IN ('poster', 'helpr')),
+  reporter_side text NOT NULL CHECK (reporter_side IN ('poster', 'helpr')),
   note text CHECK (note IS NULL OR char_length(note) <= 1000),
   photos text[] NOT NULL DEFAULT '{}'::text[] CHECK (cardinality(photos) <= 5),
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -180,7 +180,7 @@ BEGIN
           jsonb_build_object('note', v_note, 'photos', to_jsonb(v_photos)));
 
   -- 2. The report.
-  INSERT INTO public.job_missed_returns (job_id, continue_id, reported_by, side, note, photos)
+  INSERT INTO public.job_missed_returns (job_id, continue_id, reported_by, reporter_side, note, photos)
   VALUES (v_job.id, v_row.id, v_uid, v_side, v_note, v_photos)
   RETURNING id INTO v_report;
 

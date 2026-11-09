@@ -410,7 +410,7 @@ export const EXTRA_SECTIONS: Record<string, { table: string; scope: string; stri
 export const POSTER_SIDE_EXEMPT: Record<string, string> = {
   job_checkins: "a check-in is the Helpr's own location event, exported to them by user_id; never the poster's data",
   job_tracking: "the Helpr's live location trail, exported to them by helper_id; never the poster's data",
-  job_missed_returns: "OWED (owner #4, 20261108214605): the missed continue day report (side, note, photos) the poster or Helpr filed on the job; added to export_my_data for both parties at its next restatement (lander 11-08, flagged to the lead), as shop_item_files and declutter_funnel_events are",
+  job_missed_returns: "OWED (owner #4, 20261108214605): the missed continue day report (reporter_side, note, photos) the poster or Helpr filed on the job; added to export_my_data for both parties at its next restatement (lander 11-08, flagged to the lead), as shop_item_files and declutter_funnel_events are",
 };
 
 /**

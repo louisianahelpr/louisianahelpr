@@ -66,6 +66,7 @@ type Site = {
 const UT = "src/lib/uploadTypes.ts";
 const SITES: Site[] = [
   { file: "src/components/DisputeDialog.tsx", bucket: "proof-photos", gate: [UT, "PROOF_PHOTO_TYPES"], via: ["isAllowedUploadType", "PROOF_PHOTO_TYPES"] },
+  { file: "src/components/jobs/MissedReturnSheet.tsx", bucket: "proof-photos", gate: [UT, "PROOF_PHOTO_TYPES"], via: ["isAllowedUploadType", "PROOF_PHOTO_TYPES"] },
   { file: "src/components/DisputeTimelineDialog.tsx", bucket: "proof-photos", gate: [UT, "PROOF_PHOTO_TYPES"], via: ["isAllowedUploadType", "PROOF_PHOTO_TYPES"] },
   { file: "src/components/PhotoProof.tsx", bucket: "proof-photos", gate: [UT, "PROOF_PHOTO_TYPES"], via: ["isAllowedUploadType", "PROOF_PHOTO_TYPES"] },
   // Helpr Guarantee (Q2450): the poster's photos on a request, the dispute-evidence path.
@@ -112,6 +113,7 @@ const SITES: Site[] = [
 /** Picker file -> the bucket its chosen files go to (and where an accept={CONST} is declared). */
 const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/DisputeDialog.tsx": { bucket: "proof-photos" },
+  "src/components/jobs/MissedReturnSheet.tsx": { bucket: "proof-photos" },
   "src/components/DisputeTimelineDialog.tsx": { bucket: "proof-photos" },
   "src/components/PhotoProof.tsx": { bucket: "proof-photos" },
   "src/components/guarantee/HelprGuaranteePanel.tsx": { bucket: "proof-photos" },

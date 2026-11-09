@@ -31,7 +31,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { blankCssComments } from "./helpers/blankNonCode";
 import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
 import { GROUP_EXAMPLES_MAX, JOB_CATEGORY_GROUPS } from "@/lib/jobCategoryGroups";
-import { GROUP_EMOJI } from "@/lib/categoryEmoji";
+import { GROUP_ICON } from "@/lib/categoryEmoji";
 
 vi.mock("@/components/SuggestCategory", () => ({ SuggestCategory: () => null }));
 afterEach(cleanup);
@@ -81,10 +81,12 @@ describe("Post a job screen 2: every group tile has the same parts", () => {
     expect(tiles.length).toBe(JOB_CATEGORY_GROUPS.length);
     tiles.forEach((tile, i) => {
       const g = JOB_CATEGORY_GROUPS[i];
-      const icons = tile.querySelectorAll("[aria-hidden]");
+      // F113 (owner 11-09): the group's line icon (GROUP_ICON), one per tile.
+      const icons = tile.querySelectorAll("[data-tile-icon]");
       expect(icons.length, g.id).toBe(1);
-      expect(icons[0].textContent, g.id).toBe(GROUP_EMOJI[g.id]);
-      expect(icons[0].hasAttribute("data-tile-icon"), g.id).toBe(true);
+      expect(icons[0].getAttribute("aria-hidden"), g.id).toBe("true");
+      expect(icons[0].querySelectorAll("svg[data-tile-glyph]").length, g.id).toBe(1);
+      expect(GROUP_ICON[g.id], g.id).toBeTruthy();
       expect(tile.querySelectorAll("[data-tile-title]").length, g.id).toBe(1);
       expect([...tile.children].map((c) => [...c.attributes].map((a) => a.name).find((n) => n.startsWith("data-tile-"))), g.id).toEqual(["data-tile-icon", "data-tile-title", "data-tile-sub"]);
       const subs = tile.querySelectorAll<HTMLElement>("[data-tile-sub]");

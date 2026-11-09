@@ -10,7 +10,10 @@
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/post-job", "/declutter/sell"]; | "/post-job"];
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/admin", "/post-job", "/declutter/sell"]; | "/admin", "/declutter/sell"];
  * @mutate src/pages/post-job/usePostJobForm.ts |     if (step === "entry" && entryPanel) { |     if (false) {
- * @mutate src/components/postjob/JobCategoryGroups.tsx | tile(it.value, categoryEmoji(it.value), it.label, | tile(it.value, "", it.label,
+ * @mutate src/components/postjob/JobCategoryGroups.tsx | tile(it.value, getCategoryIcon(it.value), it.label, | tile(it.value, getCategoryIcon("other"), it.label,
+ * F113 (owner UI audit 11-09, owner decision 11-09, superseding the 10-21 emoji): line icons, not emoji.
+ * @mutate src/components/postjob/JobCategoryGroups.tsx |         <Icon className="h-5 w-5" aria-hidden data-tile-glyph="" /> |         <span data-tile-glyph="">🧹</span>
+ * @mutate src/pages/post-job/EntryChoice.tsx |       <Icon aria-hidden data-entry-glyph="" className="h-4 w-4 shrink-0" /> |       <span aria-hidden data-entry-glyph="">✏️</span>
  * @mutate src/lib/i18n/enPostJob.ts |   "postJob.group.moving_errands": "Moving & errands", |   "postJob.group.moving_errands": "Moving and errands",
  */
 import { describe, it, expect, vi } from "vitest";
@@ -18,7 +21,8 @@ import { readFileSync } from "node:fs";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
 import { noNavPages } from "@/components/mobileNav/mobileNavHelpers";
-import { CATEGORY_EMOJI, GROUP_EMOJI } from "@/lib/categoryEmoji";
+import { CATEGORY_EMOJI } from "@/lib/categoryEmoji";
+import { getCategoryIcon } from "@/lib/categoryIcons";
 import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 import { enPostJob } from "@/lib/i18n/enPostJob";
 
@@ -86,19 +90,30 @@ describe("Post a Job start (owner 2026-10-21)", () => {
     expect(form).toMatch(/else if \(step === "form" && formPage === 1 && categoryGroup\) \{\s*\/\/[^\n]*\n\s*setCategoryGroup\(null\);\s*if \(!skipEntry\) setStep\("entry"\);/);
   });
 
-  it("emoji (owner 2026-10-21): one per category from one map, decorative and aria-hidden", () => {
-    expect(Object.keys(CATEGORY_EMOJI).sort()).toEqual(Object.keys(JOB_CATEGORY_LABELS).sort());
+  // No emoji anywhere on a tile or start link: a pictograph character (\p{Extended_Pictographic}).
+  const EMOJI = /\p{Extended_Pictographic}/u;
+  it("line icons (F113, owner 11-09): each category tile draws the app's lucide category icon, decorative, no emoji", () => {
+    expect(Object.keys(CATEGORY_EMOJI).sort()).toEqual(Object.keys(JOB_CATEGORY_LABELS).sort()); // still Browse's filter map
     setup("home");
     const cleaning = screen.getByRole("button", { name: "Cleaning" });
-    const glyph = cleaning.querySelector("[aria-hidden]");
-    expect(glyph?.textContent).toBe(CATEGORY_EMOJI.cleaning);
+    const glyph = cleaning.querySelector("svg[data-tile-glyph]");
+    expect(glyph, "a line icon").not.toBeNull();
+    expect(glyph!.closest("[aria-hidden]")).not.toBeNull();
+    expect(getCategoryIcon("cleaning")).toBeTruthy();
+    expect(cleaning.textContent ?? "").not.toMatch(EMOJI);
   });
 
-  it("group tiles carry the group emoji, and Moving reads 'Moving & errands' on its tile", () => {
+  it("group tiles carry a line icon, and Moving reads 'Moving & errands' on its tile; the start links too", () => {
     setup();
-    const moving = screen.getByRole("button", { name: /^Moving & errands/ });
-    expect(moving.querySelector("[aria-hidden]")?.textContent).toBe(GROUP_EMOJI.moving_errands);
+    const tiles = screen.getAllByRole("button").filter((b) => b.hasAttribute("data-group-tile"));
+    expect(tiles.length).toBe(8);
+    for (const t of tiles) {
+      expect(t.querySelector("[data-tile-icon] svg[data-tile-glyph]"), t.textContent ?? "").not.toBeNull();
+      expect(t.textContent ?? "").not.toMatch(EMOJI);
+    }
+    expect(screen.getByRole("button", { name: /^Moving & errands/ })).toBeTruthy();
     const entry = read("src/pages/post-job/EntryChoice.tsx");
-    for (const k of ["templates", "offer", "ai"]) expect(entry).toContain(`START_EMOJI.${k}`);
+    for (const k of ["templates", "offer", "ai", "repost"]) expect(entry).toContain(`START_ICON.${k}`);
+    expect(entry).not.toMatch(/START_EMOJI|"🔁"/);
   });
 });

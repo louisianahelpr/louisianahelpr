@@ -4,7 +4,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FileText, ChevronRight } from "lucide-react";
-import { START_EMOJI } from "@/lib/categoryEmoji";
+import { START_ICON } from "@/lib/categoryEmoji";
+import type { LucideIcon } from "lucide-react";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enPostJob";
@@ -272,7 +273,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   );
 
   // A small link under the grid (JA-41): 44px tall, one line, the way-to-start emoji before it.
-  const entryLink = (key: string, emoji: string, label: string, onClick: () => void) => (
+  const entryLink = (key: string, Icon: LucideIcon, label: string, onClick: () => void) => (
     <Button
       key={key}
       type="button"
@@ -282,7 +283,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
       onClick={onClick}
       className="w-fit px-0 items-center gap-2 font-sans text-ds-14 font-semibold text-[hsl(var(--bark))] underline-offset-2 hover:underline"
     >
-      <span aria-hidden className="text-ds-15 leading-none">{emoji}</span>
+      <Icon aria-hidden data-entry-glyph="" className="h-4 w-4 shrink-0" />
       {label}
     </Button>
   );
@@ -426,16 +427,16 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           the grid; the page's back arrow returns here (handlePostJobBack). */}
       <nav aria-label={t("postJob.otherWays")} className="flex flex-col" data-testid="entry-start-links">
         {/* 2 — USE A TEMPLATE */}
-        {entryLink("templates", START_EMOJI.templates, t("postJob.useTemplate"), () => {
+        {entryLink("templates", START_ICON.templates, t("postJob.useTemplate"), () => {
           track("post_job_entry_choice", { choice: "use_template_open" });
           form.setEntryPanel("templates");
         })}
         {/* 3 — OFFER TO A SAVED HELPR */}
-        {entryLink("offer", START_EMOJI.offer, t("postJob.hireSaved"), () => form.setEntryPanel("offer"))}
+        {entryLink("offer", START_ICON.offer, t("postJob.hireSaved"), () => form.setEntryPanel("offer"))}
         {/* 4 — AI JOB BUILDER */}
-        {entryLink("ai", START_EMOJI.ai, t("postJob.describeAi"), () => form.setEntryPanel("ai"))}
+        {entryLink("ai", START_ICON.ai, t("postJob.describeAi"), () => form.setEntryPanel("ai"))}
         {/* 6 — REPOST A RECENT TASK */}
-        {hasRecent && entryLink("repost", "🔁", t("postJob.repost"), () => {
+        {hasRecent && entryLink("repost", START_ICON.repost, t("postJob.repost"), () => {
           track("post_job_entry_choice", { choice: "repost_open" });
           form.setEntryPanel("repost");
         })}

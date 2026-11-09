@@ -33,6 +33,8 @@ describe("board 166: group cards", () => {
     expect(home.getAttribute("aria-pressed")).toBe("true");
     expect(home.className).toContain("border-2");
     expect(home.className).not.toContain("btn-grad-primary");
-    expect(home.textContent).toMatch(/^🏠HomeCleaning, handyman/u);
+    // F113 (owner 11-09): the group icon is a line icon (svg), so the tile's text starts with its title.
+    expect(home.textContent).toMatch(/^HomeCleaning, handyman/u);
+    expect(home.querySelector("[data-tile-icon] svg")).not.toBeNull();
   });
 });

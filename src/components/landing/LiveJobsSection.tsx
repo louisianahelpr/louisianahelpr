@@ -18,6 +18,8 @@ import { LandingProof } from "./LandingProof";
  * says there are none right now.
  */
 const LIVE_JOBS_LIMIT = 4;
+/** One row's height: the skeleton's row and the empty state's card are both exactly this (F011). */
+const LIVE_JOBS_ROW_H = "h-[72px] lg:h-[176px]";
 /** One quiet retry before the failed state (a phone's network blip). */
 const LIVE_JOBS_RETRY_MS = 1500;
 
@@ -191,10 +193,14 @@ export function LiveJobsSection() {
           </Link>
         </div>
 
+        {/* F011 (owner's UI audit 11-09): the skeleton was four tall cards and the empty state one short line, so the page
+            jumped up ~200px (192px measured live at 375, 11-09) when the read came back empty. The skeleton is now ONE
+            row (one card on a phone, four across from lg) and the empty state is a card of exactly that row's height, so
+            an empty answer moves nothing. */}
         {state.kind === "loading" && (
-          <ul aria-hidden className="grid gap-3 lg:gap-5 lg:grid-cols-4">
+          <ul aria-hidden className="grid gap-3 lg:gap-5 lg:grid-cols-4" data-testid="landing-live-jobs-skeleton">
             {Array.from({ length: LIVE_JOBS_LIMIT }, (_, i) => (
-              <li key={i} className={`rounded-2xl h-[72px] lg:h-[176px] ${i === 3 ? "lg:block hidden" : ""}`} style={{ background: "var(--lp-subtle)" }} />
+              <li key={i} className={`rounded-2xl ${LIVE_JOBS_ROW_H} ${i > 0 ? "hidden lg:block" : ""}`} style={{ background: "var(--lp-subtle)" }} />
             ))}
           </ul>
         )}
@@ -207,9 +213,11 @@ export function LiveJobsSection() {
           </>
         )}
         {state.kind === "ok" && state.jobs.length === 0 && (
-          <p className="text-ds-15" style={{ color: "var(--lp-body)" }} data-testid="landing-live-jobs-empty">
-            No open jobs right now. Post one and name your price.
-          </p>
+          <div className={`rounded-2xl ${LIVE_JOBS_ROW_H} flex items-center px-4 lg:px-6`} style={{ background: "var(--lp-ground)" }}>
+            <p className="text-ds-15" style={{ color: "var(--lp-body)" }} data-testid="landing-live-jobs-empty">
+              No open jobs right now. Post one and name your price.
+            </p>
+          </div>
         )}
         {state.kind === "ok" && state.jobs.length > 0 && (
           // As many columns as there are jobs (at most 4): two jobs used to sit in a four-wide row

@@ -76,13 +76,16 @@ describe("auth forms use the app's inline errors, not the browser's bubble (A3-L
     expect(bubble).toEqual([]);
   });
 
-  it("reset password states the rules the way sign-up does: no up-front list, the missing ones named inline", () => {
+  // F021 (owner UI audit 11-09; the lead's call): sign-up now shows the rule line with live ticks from the start
+  // (signupOneLine.test.tsx). Reset password is unchanged here: no up-front list. Both still name the missing ones inline.
+  it("both forms name the missing rules inline; sign-up shows the rule line (F021), reset password keeps no up-front list", () => {
     const reset = blankComments(readSource("src/pages/auth/ResetPassword.tsx") ?? "");
     const signup = blankComments(readSource("src/pages/auth/signup/SignupStep1.tsx") ?? "");
     for (const src of [reset, signup]) {
       expect(src.length).toBeGreaterThan(5000);
-      expect(src).not.toMatch(/PASSWORD_RULES\.map\(/);
       expect(src).toMatch(/passwordProblem\(password\)/);
     }
+    expect(reset).not.toMatch(/PASSWORD_RULES\.map\(/);
+    expect(signup).toMatch(/PASSWORD_RULES\.map\(/);
   });
 });

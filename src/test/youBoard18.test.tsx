@@ -6,7 +6,7 @@
  * section (owner 2026-10-21: "Homes is opening soon").
  *
  * @mutate src/components/profile/profileLanding/YourActivity.tsx |                   {n > 0 && <><span aria-hidden="true"> ·</span> {n}</>} |                   {<><span aria-hidden="true"> ·</span> {n}</>}
- * @mutate src/components/profile/profileLanding/YourActivity.tsx |   const open = visible.filter(isOn); |   const open = visible;
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |   const open = visible.filter((s) => isOn(s) && isListedHere(s)); |   const open = visible;
  * @mutate src/components/profile/profileLanding/YourActivity.tsx |       {soon && <p | {false && <p
  * @mutate src/pages/home/HomeDashboard.tsx |               {visible.filter(isLive).map((s) => { |               {visible.map((s) => {
  * @mutate src/components/profile/profileLanding/headingContract.ts | export const PROFILE_PAGE_TITLE = "You"; | export const PROFILE_PAGE_TITLE = "Profile";

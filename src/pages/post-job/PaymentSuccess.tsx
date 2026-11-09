@@ -552,6 +552,19 @@ const PaymentSuccess = () => {
               >
                 See your posted jobs
               </Button>
+              {/* F141 (owner UI audit 11-09): opened with no job reference, this page cannot tell a job's checkout from
+                  a Declutter one, so it offers both lists. */}
+              {!resolvedJobId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  data-testid="payment-success-declutter-orders"
+                  onClick={() => navigate("/declutter?tab=buying")}
+                  className="w-full rounded-full"
+                >
+                  See your Declutter orders
+                </Button>
+              )}
               {resolvedJobId && (
                 <Button
                   type="button"

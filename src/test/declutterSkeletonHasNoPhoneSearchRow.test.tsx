@@ -1,4 +1,4 @@
-// @mutate src/components/declutter/DeclutterSkeletons.tsx |         <div className="flex gap-2 overflow-hidden" aria-hidden> |         <div className="flex flex-col gap-2 overflow-hidden" aria-hidden><Skeleton className="h-10 w-full rounded-full" />
+// @mutate src/components/declutter/DeclutterSkeletons.tsx |       <div className="flex gap-2 overflow-hidden pb-1"> |       <div className="flex flex-col gap-2 overflow-hidden pb-1"><Skeleton className="h-11 w-full rounded-full" />
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";

@@ -19,7 +19,7 @@
 // @mutate index.html | typeof p.photos.length !== "number") return unshow(); | typeof p.photos.length !== "number") return;
 // @mutate index.html |               else unshow(); | 
 // @mutate index.html |            (s < 2 ? row : later).push({ img: img, path: paths[s] }); |            row.push({ img: img, path: paths[s] });
-// @mutate index.html |             return root + path + "?width=" + px + "&height=" + px + "&resize=cover&quality=55"; |             return root + path + "?width=" + px + "&height=" + px + "&resize=cover&quality=75";
+// @mutate index.html | removeAttribute("data-lh-declutter-guest");\n        }\n        var root = base + "/storage/v1/render/image/public/job-photos/";\n        function url(path, px) {\n          return root + path + "?width=" + px + "&height=" + px + "&resize=cover&quality=55"; | removeAttribute("data-lh-declutter-guest");\n        }\n        var root = base + "/storage/v1/render/image/public/job-photos/";\n        function url(path, px) {\n          return root + path + "?width=" + px + "&height=" + px + "&resize=cover&quality=75";
 // @mutate index.html |         if (location.search \|\| location.hash \|\| window.innerWidth >= 900 \|\| prefs) return; |         if (location.hash \|\| prefs) return;
 // @mutate index.html |             if (mark && mark !== "declutter") return; |
 // @mutate src/boot/guestDeclutterPrefetch.ts |   const early = takeEarlyGuestReads(); |   const early = null as ReturnType<typeof takeEarlyGuestReads>;

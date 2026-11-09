@@ -14,7 +14,8 @@
  *   W1b auto-started in progress, nobody on site: still cancels (in_progress alone is not work)
  *   W1c tracker 'working': refused    W1d being fixed: refused    W4b a frozen Helpr who never came: free cancel kept
  *   B1 a poster's block mid-job: block stands, job untouched, admins alerted once   B2/B3 controls: a block still settles
- *   W2 accepted but the Helpr arrived (stamp kept): refused        W3 accepted, the poster confirmed the arrival: refused
+ *   W2 accepted but the Helpr arrived (stamp kept): refused
+ *   W3 accepted, only the poster confirmed the arrival: NOT work (the poster can write that stamp, Q423): cancels
  *   W4 in progress on an agreed continue day (done cleared): refused
  *   W5 crew in progress with a member still on it: refused         W6 crew in progress, roster empty: cancels, fee 0
  *   W7 control: accepted, nobody set out, 30 h out: cancels with no fee (unchanged)
@@ -36,15 +37,15 @@ const MUTANTS = {
   // 'in_progress' alone counts as work again (the auto-started no-show job is refused).
   inProgressAlone: ["OR j.status::text = 'revision_requested'))", "OR j.status::text IN ('revision_requested', 'in_progress')))"],
   // An arrival stamp no longer counts.
-  arrived: ["(j.helper_arrived_at IS NOT NULL OR j.poster_confirmed_arrival_at", "(false OR j.poster_confirmed_arrival_at"],
-  // The poster's confirm of the arrival no longer counts.
-  posterConfirmed: ["OR j.poster_confirmed_arrival_at IS NOT NULL\n", "\n"],
+  arrived: ["(j.helper_arrived_at IS NOT NULL OR j.status::text", "(false OR j.status::text"],
+  // The poster's own (poster-writable) confirm of the arrival counts as work again (Q423).
+  posterConfirmed: ["(j.helper_arrived_at IS NOT NULL OR j.status::text", "(j.helper_arrived_at IS NOT NULL OR j.poster_confirmed_arrival_at IS NOT NULL OR j.status::text"],
   // The tracker no longer counts.
   tracking: ["WHERE t.job_id = p_job_id AND t.status IN ('arrived', 'working', 'done'))", "WHERE false)"],
   // An agreed continue day no longer counts.
   continueDay: ["WHERE c.job_id = p_job_id AND c.status = 'set')", "WHERE false)"],
   // The crew rule is dropped.
-  crew: ["         AND (g.helper_arrived_at IS NOT NULL OR g.poster_confirmed_arrival_at IS NOT NULL", "         AND false AND (g.helper_arrived_at IS NOT NULL OR g.poster_confirmed_arrival_at IS NOT NULL"],
+  crew: ["         AND (g.helper_arrived_at IS NOT NULL OR v_job.status::text", "         AND false AND (g.helper_arrived_at IS NOT NULL OR v_job.status::text"],
   // The empty-roster crew exit is closed (the single-job rule applied to every crew, with in_progress as work).
   crewEmpty: ["  IF v_job.is_group_job IS NOT TRUE AND public.job_work_started(v_job.id) THEN", "  IF public.job_work_started(v_job.id) OR v_job.status::text = 'in_progress' THEN"],
   // A block settles a worked-on job again.
@@ -281,10 +282,12 @@ await solo("accepted", "-1 hours", `UPDATE public.jobs SET helper_arrived_at = n
 const w2 = await cancel(JOB);
 ok("W2 accepted with the Helpr's arrival stamped: refused work_started", refusedStarted(w2) && (await job()).status === "accepted", JSON.stringify(w2));
 
-// W3: the poster confirmed the arrival (no Helpr stamp).
+// W3: only the poster confirmed the arrival (no Helpr stamp). The poster can write that stamp, so it is not evidence
+// (Q423): the cancel runs on the ladder as before.
 await solo("accepted", "-1 hours", `UPDATE public.jobs SET poster_confirmed_arrival_at = now() - interval '50 minutes' WHERE id = '${JOB}';`);
 const w3 = await cancel(JOB);
-ok("W3 accepted with the poster's confirm of the arrival: refused work_started", refusedStarted(w3), JSON.stringify(w3));
+const j3 = await job();
+ok("W3 accepted with only the poster's confirm of the arrival: not work, cancels on the ladder (50%)", w3.error == null && j3.status === "cancelled" && Number(j3.cancellation_fee) === 50, JSON.stringify({ w3, j3 }));
 
 // W4: a continue day agreed (the done cleared; this fixture's day-1 stamps omitted to isolate the rule).
 await solo("in_progress", "-7 days", `INSERT INTO public.job_continue_days (job_id, status, new_date, new_start_time) VALUES ('${JOB}', 'set', current_date - 2, '15:15');`);

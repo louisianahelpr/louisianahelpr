@@ -337,3 +337,7 @@
 {"sha":"b7225ad543612217753822c166780abc063e780f","reviewer":"lh-authz-rls","verdict":"PASS","date":"2026-11-09"}
 {"sha":"516c4a06cae81437b5f7450e459fb8dac5d37e91","reviewer":"lh-authz-rls","verdict":"PASS","date":"2026-11-09"}
 {"sha":"43fe6523e7fa8225f98ef8ed4fdbab888330c36a","reviewer":"lh-authz-rls","verdict":"PASS","date":"2026-11-09"}
+{"sha":"9624d080e10b284a1a48e1f7c06cb56f9e3a054a","reviewer":"lh-money-escrow","verdict":"PASS display only: aria-label from buyNowTotalCents; fee rule matches server (general-purpose agent run to the lh-money-escrow standard)","date":"2026-11-09"}
+{"sha":"5ab1fbae47173baddca2ea3dd6d305e6c73200b5","reviewer":"lh-money-escrow","verdict":"PASS display only: offer chip label; amount sent unchanged (setAmount); total matches the You pay line (general-purpose agent run to the lh-money-escrow standard)","date":"2026-11-09"}
+{"sha":"05bfc962bdeb29e95fc4ed2bfec9fa7da408be1d","reviewer":"code-review","verdict":"PASS text only: Help copy names the handover ways; no new bot instruction","date":"2026-11-09"}
+{"sha":"b8bf6d63dbcbe51083af6df3b8eea51db0db8747","reviewer":"code-review","verdict":"PASS text only: Terms card + regenerated helpKnowledge; owner-approved wording 11-09","date":"2026-11-09"}

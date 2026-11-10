@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-10T21:53Z",
+  "measured_at": "2026-11-10T22:10Z",
   "issues": {
     "readable": true,
     "open": [
@@ -82,13 +82,6 @@
         "runTruncated": false
       },
       {
-        "number": 4149,
-        "title": "nightly-red: db-drift-detect",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42716534692",
-        "runTruncated": false
-      },
-      {
         "number": 4222,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
@@ -127,7 +120,7 @@
         "number": 4281,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42905974829",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42911827893",
         "runTruncated": false
       },
       {
@@ -142,13 +135,6 @@
         "title": "nightly-red: code-scanning-alerts",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42841895039",
-        "runTruncated": false
-      },
-      {
-        "number": 4321,
-        "title": "nightly-red: main-batch",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42853655555",
         "runTruncated": false
       },
       {
@@ -577,7 +563,6 @@
     "issue #3491": "Q1816",
     "issue #3784": "Q1816",
     "issue #3813": "Q1816",
-    "issue #4149": "Q1816",
     "issue #4222": "Q1816",
     "issue #4245": "Q1816",
     "issue #4253": "Q1816",
@@ -586,7 +571,6 @@
     "issue #4281": "Q1816",
     "issue #4302": "Q1816",
     "issue #4317": "Q1816",
-    "issue #4321": "Q1816",
     "issue #4340": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",

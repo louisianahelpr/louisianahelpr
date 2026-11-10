@@ -188,9 +188,13 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
             main button) and "Ask for a new time" follows; "I got it" stays, after them, as an ordinary button. */}
         {late && <Button type="button" variant="primary" size="sm" disabled={busy} onClick={() => setAsk("notDelivered")}>It wasn't delivered</Button>}
         {can.gotIt && !problemOpen && !late && <Button type="button" variant="primary" size="sm" disabled={busy} onClick={() => setAsk("gotIt")}>I got it</Button>}
-        {can.askNewTime && !noShowWaiting && <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => setMoving((m) => !m)}>{b.status === "needs_time" && b.side === "buyer" ? "Pick a time" : "Ask for a new time"}</Button>}
+        {/* Audit 11-10 F385: four equal outlined buttons hid which one was the move. Only a real move is a button
+            ("Pick a time", "I got it", "It wasn't delivered"); "Ask for a new time" and "Report a problem" are text links. */}
+        {can.askNewTime && !noShowWaiting && (b.status === "needs_time" && b.side === "buyer"
+          ? <Button type="button" variant="primary" size="sm" disabled={busy} onClick={() => setMoving((m) => !m)}>Pick a time</Button>
+          : <Button type="button" variant="link" size="sm" disabled={busy} onClick={() => setMoving((m) => !m)}>Ask for a new time</Button>)}
         {can.gotIt && !problemOpen && late && <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => setAsk("gotIt")}>I got it</Button>}
-        {!problemOpen && <Button type="button" variant="outline" size="sm" onClick={onProblem}>Report a problem</Button>}
+        {!problemOpen && <Button type="button" variant="link" size="sm" onClick={onProblem}>Report a problem</Button>}
       </div>
       {ask && (
         <ConfirmSheet open title={ASK[ask].title} confirmLabel={ASK[ask].confirm} cancelLabel={ASK[ask].cancel} pending={busy} testId={`seller-delivery-${ask}`}

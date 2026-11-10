@@ -25,6 +25,9 @@ import { GuestJobPreview, guestJobFacts, type GuestJob } from "@/components/dash
 // Signed in: the job page itself (boards 15, 42, 168, 169).
 const JobPage = lazy(() => import("./jobPage/JobPage"));
 
+/** A job id is a UUID; anything else (/jobs/abc) never existed. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * JobDetail — public, deep-linkable job preview at `/jobs/:id`.
  *
@@ -173,7 +176,40 @@ const JobDetail = () => {
                 </Button>
               }
             />
+          ) : !job && id && UUID_RE.test(id) ? (
+            /* F286a (audit 11-10, High): a job that exists but is not public (hired,
+               done, cancelled, expired) is what an email or push link opens for its
+               own poster or Helpr once the session is gone. The public view hides
+               it, so this branch used to say "This job isn't available" with no way
+               to log in: members read it as "my job was cancelled". Lead with Log in,
+               carrying the job so Login lands back on it. */
+            <EmptyState
+              variant="inline"
+              icon={Briefcase}
+              title="Log in to see this job."
+              body="It's only visible to the poster and the Helpr. If it was filled, expired or removed, Browse has what's open today."
+              action={
+                <div className="flex flex-col items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/jobs/${id}`)}`)}
+                    className="squircle"
+                  >
+                    Log in
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/browse")}
+                    className="squircle"
+                  >
+                    Browse open Jobs
+                  </Button>
+                </div>
+              }
+            />
           ) : !job ? (
+            /* Not a job id at all (/jobs/abc): nothing to log in for. */
             <EmptyState
               variant="inline"
               icon={Briefcase}

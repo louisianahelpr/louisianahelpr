@@ -38,5 +38,3 @@ export const MagicLinkEmail = ({ token }: MagicLinkEmailProps) => (
       </TransactionalFooter>
   </BaseLayout>
 )
-
-export default MagicLinkEmail

@@ -18,8 +18,6 @@
  */
 import { vi } from "vitest";
 
-/** Sender identity — one place, matching `_shared/resend.ts`'s contract. */
-export const FROM_DEFAULT = "Louisiana Helpr <hello@louisianahelpr.com>";
 /** Support replies (admin-support-reply): the team, never one admin. */
 export const FROM_SUPPORT = "Louisiana Helpr Support <noreply@louisianahelpr.com>";
 

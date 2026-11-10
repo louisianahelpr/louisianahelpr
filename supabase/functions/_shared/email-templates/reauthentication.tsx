@@ -31,5 +31,3 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
       </TransactionalFooter>
   </BaseLayout>
 )
-
-export default ReauthenticationEmail

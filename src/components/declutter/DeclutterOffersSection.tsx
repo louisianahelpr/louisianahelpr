@@ -230,7 +230,9 @@ function OfferRow({ o, linked = false }: { o: MyOffer; linked?: boolean }) {
           </p>
         </form>
       )}
-      {o.status === "open" && o.my_side === "buyer" && !(wantedReply && o.awaiting === "buyer") && (
+      {/* Audit 1110 F357: while a counter waits on the buyer, Say no already ends the offer, so Take back shows only
+          while the seller has the turn (which also keeps it off a Wanted reply, D4-3). */}
+      {o.status === "open" && o.my_side === "buyer" && o.awaiting === "seller" && (
         <InlineTextButton className="text-sm underline underline-offset-2" disabled={act.isPending} onClick={() => setWithdrawing(true)}>
           Take back my offer
         </InlineTextButton>

@@ -18,7 +18,7 @@
  * src/test/membershipsOffInNativeApp.test.ts.
  *
  * @mutate supabase/migrations/20261104143451_memberships_retired_off.sql |    SET audience = 'off', |    SET audience = 'testers',
- * @mutate supabase/migrations/20261021062609_memberships_off_paid_perks.sql |           AND public.feature_enabled_for_user('memberships', p_helper)) |           AND true)
+ * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql |           AND public.feature_enabled_for_user('memberships', p_helper)) |           AND true)
  * @mutate supabase/functions/instant-payout/index.ts | const membershipsOn = await featureEnabledForUser(supabaseAdmin, "memberships", user); | const membershipsOn = true;
  */
 import { describe, expect, it } from "vitest";

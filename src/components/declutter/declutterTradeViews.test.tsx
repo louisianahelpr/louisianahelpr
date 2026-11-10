@@ -1090,7 +1090,7 @@ describe("Declutter slice 3 screens", () => {
     // The real payout rule (declutter_handover_sweep, read live 2026-10-20): handover done, or 24 h after the slot
     // unless a problem is open.
     // @mutate src/components/declutter/DeclutterTradeViews.tsx | or about 48 hours after the seller says you do, unless you report a problem. | once you have your items.
-    expect(note.textContent).toMatch(/The seller keeps the whole \$7\. It's paid to the seller when you say you have it, or about 48 hours after the seller says you do, unless you report a problem\./);
+    expect(note.textContent).toMatch(/The seller keeps the whole \$7\. You have 24 hours after you say you have it to report a problem\. Then the seller is paid \(about 48 hours after the seller says you have it, if you don't\)\./);
     // Owner: no codes or QR for Declutter pickup.
     expect(document.body.textContent).not.toMatch(/\bcode\b|QR/i);
     // Never the false promise the money review found (the sweep can pay the seller with no buyer step).

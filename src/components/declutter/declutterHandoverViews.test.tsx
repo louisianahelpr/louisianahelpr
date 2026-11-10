@@ -706,7 +706,7 @@ describe("Declutter slice 4: paid-order cards", () => {
 
   // Q2627 (audit 1102c R2, lead 11-02): the seller's Report a problem opened with "The buyer didn't come" preselected,
   // though that path is "They didn't show". Nothing is preselected; Send waits for the seller's own pick.
-  // @mutate src/components/declutter/DeclutterProblemForm.tsx | : side === "seller" ? null : reasons[0][0]; | : reasons[0][0];
+  // @mutate src/components/declutter/DeclutterProblemForm.tsx | reasons.some(([r]) => r === picked) ? picked : null; | reasons.some(([r]) => r === picked) ? picked : reasons[0][0];
   // @mutate src/components/declutter/DeclutterProblemForm.tsx | disabled={send.isPending \|\| !reason \|\| note | disabled={send.isPending \|\| note
   it("Q2627: the seller's Report a problem preselects nothing; Send waits for a pick", async () => {
     state.bookings = [slot(20)];
@@ -743,6 +743,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     const input = container.querySelector('[data-problem-photos] input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(["x"], "crack.jpg", { type: "image/jpeg" })] } });
     expect(within(screen.getByRole("group", { name: "Photos" })).getAllByRole("img")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("radio", { name: "It isn't as described" }));
     fireEvent.change(screen.getByLabelText("Tell us what happened"), { target: { value: "Leg is cracked" } });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
     await waitFor(() => expect(state.calls).toContainEqual(["problem", "o1", "not_as_described", "Leg is cracked", ["me/declutter/problem/o1/crack.jpg"]]));
@@ -2127,5 +2128,24 @@ describe("audit 11-10: cancelled orders and the buyer's 24 hours to check", () =
     await screen.findByText(/Review o1 as the buyer/);
     await new Promise((r) => setTimeout(r, 50));
     expect(document.querySelector("[data-check-window]")).toBeNull();
+  });
+});
+
+// Audit 11-10 F387/F388: the buyer's Report a problem opened with a reason already picked and never said what Send does.
+describe("audit 11-10: the buyer's Report a problem form", () => {
+  afterEach(() => { state.handover = null; });
+  it("F387: nothing is preselected for the buyer, the counter says how many more characters, and the form says what Send does", async () => {
+    const at = new Date(Date.now() - 2 * 3_600_000).toISOString();
+    state.features = []; state.problems = []; state.bookings = [];
+    state.handover = { status: "handed_over", confirmed_at: at };
+    show([line({ order_status: "handed_over" })]);
+    fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
+    const radios = screen.getAllByRole("radio");
+    expect(radios.length).toBeGreaterThan(1);
+    expect(radios.filter((r) => r.getAttribute("aria-checked") === "true")).toHaveLength(0);
+    fireEvent.change(screen.getByLabelText("Tell us what happened"), { target: { value: "Bent" } });
+    expect(document.querySelector("[data-problem-note-short]")?.textContent).toMatch(/^6 more characters/);
+    expect(document.querySelector("[data-problem-after]")?.textContent).toMatch(/nobody is paid until Louisiana Helpr/);
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
   });
 });

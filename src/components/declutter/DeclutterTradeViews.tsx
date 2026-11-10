@@ -366,8 +366,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           // Shipping S5 (20261102013630): the sale is final, and paid out, 48 hours after the carrier's delivered scan.
           : shipping ? "It's paid to the seller about 48 hours after the carrier delivers it, unless you report a problem."
           : sellerDelivering
-            ? "It's paid to the seller when you have your items, or about 48 hours after they mark it delivered unless you report a problem."
-            : "It's paid to the seller when you say you have it, or about 48 hours after the seller says you do, unless you report a problem."}
+            ? "You have 24 hours after you get your items to report a problem. Then the seller is paid (about 48 hours after they mark it delivered if you don't say you have it)."
+            : "You have 24 hours after you say you have it to report a problem. Then the seller is paid (about 48 hours after the seller says you have it, if you don't)."}
       </p>
       {/* Owner 11-07 (Vinted review): ONE Pay button; on a phone it stays in reach at the bottom of the screen while the
           buyer scrolls the choices, above the floating dock (AppShell's own bottom clearance; measured 11-07: a bottom-3

@@ -14,7 +14,8 @@
 // @mutate src/components/declutter/DeclutterItemCard.tsx |   return n && n > 0 ? (n > 999 ? "999+" : String(n)) : null; |   return null;
 // @mutate src/components/declutter/DeclutterItemCard.tsx |     if (!savesText) return card; |     return card;
 // @mutate src/lib/declutter/saveCounts.ts |   return Math.max(0, serverCount - (savedAtRead ? 1 : 0) + (savedNow ? 1 : 0)); |   return serverCount;
-// @mutate src/components/declutter/DeclutterCategoryChips.tsx |     return keys.sort((a, b) => (n.get(b) ?? 0) - (n.get(a) ?? 0) \|\| (order.get(a) ?? 99) - (order.get(b) ?? 99)); |     return keys;
+// @mutate src/components/declutter/DeclutterCategoryChips.tsx |     return keys.sort((a, b) => last(a) - last(b) \|\| (n.get(b) ?? 0) - (n.get(a) ?? 0) \|\| (order.get(a) ?? 99) - (order.get(b) ?? 99)); |     return keys;
+// @mutate src/components/declutter/DeclutterCategoryChips.tsx |     const last = (k: string) => (k === "other" ? 1 : 0); |     const last = (k: string) => (k === "other" ? 0 : 0);
 // @mutate src/components/declutter/DeclutterCategoryChips.tsx |     if (value && CATEGORY_LABEL[value] && !n.has(value)) keys.push(value); | /* gone */
 // @mutate src/components/declutter/DeclutterBrowseView.tsx |     enabled: cardsPainted && others.length > 0, |     enabled: others.length > 0,
 // @mutate src/lib/declutter/saveCounts.ts |     if (res.error && isMissingRpcNamed(res.error, "declutter_item_save_counts")) return null; | /* gone */
@@ -99,6 +100,14 @@ describe("Browse's category chips", () => {
     rerender(<DeclutterCategoryChips items={items} value="kitchen" onChange={onChange} />);
     fireEvent.click(within(row).getByRole("button", { name: "Kitchen" }));
     expect(onChange).toHaveBeenLastCalledWith(null);
+  });
+
+  // L021 (landing audit 11-09): "Other" sat mid-row; it is always last, however many items it has.
+  it("Other is always the last chip", () => {
+    const withOther = [...items, { category: "other" }, { category: "other" }, { category: "other" }, { category: "other" }];
+    render(<DeclutterCategoryChips items={withOther} value={null} onChange={vi.fn()} />);
+    const names = within(screen.getByRole("group", { name: "Categories" })).getAllByRole("button").map((b) => b.textContent);
+    expect(names).toEqual(["All", "Kitchen", "Furniture", "Toys and games", "Other"]);
   });
 
   it("keeps the chosen category even with nothing in it; no row for a single category", () => {

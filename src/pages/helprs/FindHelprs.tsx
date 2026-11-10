@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { hasInAppHistory } from "@/lib/inAppHistory";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Search, Send, Star } from "lucide-react";
 import AppPage from "@/components/AppPage";
@@ -81,7 +82,8 @@ export default function FindHelprs() {
   };
 
   return (
-    <AppPage title="Find a Helpr" onBack={() => navigate(-1)}>
+    // L005 (landing audit 11-09): a cold-opened link had no in-app entry behind it, so back went to about:blank.
+    <AppPage title="Find a Helpr" onBack={() => (hasInAppHistory() ? navigate(-1) : navigate("/", { replace: true }))}>
       <div className="space-y-4 pb-6" data-testid="find-helprs">
         <p className="text-ds-14 text-muted-foreground">
           Find someone near you, then offer them your job at your price. If they pass, it opens to everyone.

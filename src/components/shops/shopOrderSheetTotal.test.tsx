@@ -14,7 +14,7 @@ import type { ShopItem } from "@/lib/shops/items";
 import type { OrderTerms } from "@/lib/shops/orders";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/components/DatePickerField", () => ({
   DatePickerField: ({ onChange }: { onChange: (v: string) => void }) => (
     <button type="button" onClick={() => onChange("2026-10-21")}>day 2026-10-21</button>

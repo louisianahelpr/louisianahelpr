@@ -151,14 +151,12 @@ const EMPTY: Form = {
  */
 function ShopEditSkeleton({ children }: { children: ReactNode }) {
   return (
-    <AppPage title="My shop" backTo="/shops">
-      <div className="relative" role="status" aria-label="Loading your shop">
-        <div className="invisible" aria-hidden>
-          {children}
-        </div>
-        <Skeleton className="absolute inset-0 rounded-xl" />
+    <div className="relative" role="status" aria-label="Loading your shop">
+      <div className="invisible" aria-hidden>
+        {children}
       </div>
-    </AppPage>
+      <Skeleton className="absolute inset-0 rounded-xl" />
+    </div>
   );
 }
 
@@ -357,7 +355,7 @@ export default function ShopEditView() {
     </div>
     <div className="space-y-1.5">
       <Label htmlFor="shop-area">Town or neighborhood</Label>
-      <Input id="shop-area" value={form.areaLabel} maxLength={80} placeholder="e.g. Broussard" className="placeholder:text-muted-foreground/70"
+      <Input id="shop-area" value={form.areaLabel} maxLength={80} placeholder="e.g. Broussard"
         onChange={(e) => set("areaLabel", e.target.value)} required {...invalidProps("area", errors)} />
       <FieldError field="area" errors={errors} />
       <p className="text-xs text-muted-foreground">Never your street address. Your pin shows the area, not your house.</p>
@@ -519,7 +517,14 @@ export default function ShopEditView() {
   </form>
   );
 
-  if (myId.isLoading || categories.isLoading || (myId.data && shop.isLoading)) return <ShopEditSkeleton>{formEl}</ShopEditSkeleton>;
+  if (myId.isLoading || categories.isLoading || (myId.data && shop.isLoading)) {
+    // The page shell is returned here (not inside the skeleton) so the shell guard can see it.
+    return (
+      <AppPage title="My shop" backTo="/shops">
+        <ShopEditSkeleton>{formEl}</ShopEditSkeleton>
+      </AppPage>
+    );
+  }
   if (myId.isError || categories.isError || shop.isError) {
     return (
       <AppPage title="My shop" backTo="/shops">

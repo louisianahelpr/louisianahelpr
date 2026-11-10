@@ -90,6 +90,8 @@ const NOT_PROCESSORS = [
   "vercel.live",
   // A link only: the Homes lease shows the EPA lead pamphlet (40 CFR 745.107) to a tenant of a pre-1978 home.
   "epa.gov",
+  // A link only: the admin Shops paperwork card opens the Louisiana Secretary of State business search (ShopsPaperworkCard.tsx); no data is sent.
+  "coraweb.sos.la.gov",
   // A docs link in a comment (supabase/functions/_shared/smsPolicy.ts, Twilio's
   // request-signing docs); the host that receives data is DISCLOSED above.
   "www.twilio.com",

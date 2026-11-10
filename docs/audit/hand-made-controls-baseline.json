@@ -235,17 +235,20 @@
     "src/components/messages/InboxMenus.tsx": {
       "button": 1
     },
+    "src/components/messages/MessageBubble.tsx": {
+      "button": 2
+    },
     "src/components/messages/MessagesSearchRow.tsx": {
       "button": 1,
       "input": 1
-    },
-    "src/components/messages/MessageBubble.tsx": {
-      "button": 2
     },
     "src/components/mobileNav/GateSheet.tsx": {
       "button": 1
     },
     "src/components/mobileNav/TabButton.tsx": {
+      "button": 1
+    },
+    "src/components/notificationPreferences/TestSendCard.tsx": {
       "button": 1
     },
     "src/components/postjob/BudgetSection.tsx": {
@@ -310,9 +313,6 @@
     "src/components/profile/ScheduleTab.tsx": {
       "button": 3
     },
-    "src/components/profile/schedule/ScheduleCard.tsx": {
-      "button": 2
-    },
     "src/components/profile/SubscriptionTab.tsx": {
       "button": 2
     },
@@ -329,6 +329,9 @@
     },
     "src/components/profile/profileLanding/YouCard.tsx": {
       "button": 1
+    },
+    "src/components/profile/schedule/ScheduleCard.tsx": {
+      "button": 2
     },
     "src/components/quotes/QuotePriceStepper.tsx": {
       "button": 2,
@@ -397,14 +400,24 @@
     "src/components/shops/PublicShopView.tsx": {
       "button": 1
     },
+    "src/components/shops/ShopCategoryQuickPick.tsx": {
+      "button": 2
+    },
+    "src/components/shops/ShopDashboardView.tsx": {
+      "button": 1
+    },
     "src/components/shops/ShopEditView.tsx": {
-      "input": 1
+      "input": 1,
+      "button": 1
     },
     "src/components/shops/ShopHandoverActions.tsx": {
       "input": 1
     },
     "src/components/shops/ShopItemEditor.tsx": {
       "input": 1
+    },
+    "src/components/shops/ShopPermitSection.tsx": {
+      "select": 1
     },
     "src/components/tracker/JobProgress.tsx": {
       "button": 1
@@ -487,9 +500,6 @@
     },
     "src/pages/user/ReviewsSection.tsx": {
       "button": 3
-    },
-    "src/components/notificationPreferences/TestSendCard.tsx": {
-      "button": 1
     }
   }
 }

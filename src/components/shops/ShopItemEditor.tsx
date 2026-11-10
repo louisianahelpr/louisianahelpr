@@ -356,7 +356,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="item-price">Price (dollars)</Label>
-          <Input id="item-price" inputMode="decimal" value={d.price} placeholder="e.g. 18" className="placeholder:text-muted-foreground/70" onChange={(e) => set("price", e.target.value)}
+          <Input id="item-price" inputMode="decimal" value={d.price} placeholder="e.g. 18" onChange={(e) => set("price", e.target.value)}
             aria-invalid={fieldError?.field === "price" || undefined} aria-describedby={fieldError?.field === "price" ? "item-price-error" : undefined} />
           {fieldError?.field === "price" && <p id="item-price-error" className="text-sm text-destructive-ink" role="alert">{fieldError.msg}</p>}
         </div>

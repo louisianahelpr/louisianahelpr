@@ -184,7 +184,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
         <div className="flex flex-wrap gap-2">
           {due && !h?.shop_confirmed_at && (
             <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setHandingOver(true)}>
-              {w.shopDone}
+              {service ? "Mark done" : "Handed over"}
             </Button>
           )}
           <p className="w-full text-xs text-muted-foreground" data-testid="shop-handover-wait">
@@ -217,7 +217,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
           )}
           {!porch && due && !h?.shop_confirmed_at && (
             <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setHandingOver(true)}>
-              {w.shopDone}
+              {service ? "Mark done" : "Handed over"}
             </Button>
           )}
           <p className="w-full text-xs text-muted-foreground" data-testid="shop-handover-wait">
@@ -250,7 +250,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
         onOpenChange={(o) => { if (!o) setHandingOver(false); }}
         title={service ? "Work done?" : "Handed over?"}
         description={w.shopDoneBody}
-        primaryLabel={handedOver.isPending ? "Saving…" : w.shopDone}
+        primaryLabel={handedOver.isPending ? "Saving…" : service ? "Mark done" : "Handed over"}
         primaryDisabled={handedOver.isPending}
         onPrimary={(e) => {
           e.preventDefault();

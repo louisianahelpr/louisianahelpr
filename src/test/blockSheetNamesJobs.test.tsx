@@ -5,14 +5,14 @@
  * The strike words follow the server (migration 20261102131745, lead 11-02): a poster's block is a strike only inside
  * 24 hours; a hired Helpr's block is their strike only inside 24 hours, the same as cancelling, and costs the poster
  * nothing.
- * @mutate src/components/BlockUserDialog.tsx | most of your payment comes back to you, and it isn&rsquo;t a strike. | most of your payment comes back to you, but a cancellation strike is still recorded on your account.
+ * @mutate src/components/BlockUserDialog.tsx | <li>This isn&rsquo;t a strike.</li> | <li>A cancellation strike is still recorded on your account.</li>
  * @mutate src/components/BlockUserDialog.tsx |       setIsHelprOnAny(rows.some((r) => r.helper_id === user.id)); |       setIsHelprOnAny(false);
  *
- * @mutate src/components/BlockUserDialog.tsx | will be cancelled{jobTitles.length > 0 ? `: ${jobTitles.map((t) => `"${t}"`).join(", ")}` : ""}. | will be cancelled.
+ * @mutate src/components/BlockUserDialog.tsx |                       {jobTitles.length > 0 && ( |                       {false && (
  * @mutate src/components/BlockUserDialog.tsx | They can&apos;t apply to your jobs, offer you a job, or message you. | They won&apos;t be able to apply to your jobs or message you.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const rows: Array<Record<string, unknown>> = [];
@@ -72,31 +72,37 @@ describe("the block sheet names the jobs and speaks to both seats (Q2675, Q2676)
   it("names every job that will be cancelled", async () => {
     rows.push(job({ id: "a", title: "Rake the front yard" }), job({ id: "b", title: "Haul off a couch", helper_confirmed_at: "2026-09-20T12:00:00Z" }));
     open();
-    const text = await liText(/will be cancelled/);
-    expect(text).toContain('2 active jobs between you will be cancelled: "Rake the front yard", "Haul off a couch".');
+    const text = await liText(/also cancels/);
+    // F428: the count in the bullet, the titles as a nested list under it.
+    expect(text).toContain("Blocking Marie also cancels 2 jobs:");
+    const titles = within(screen.getByRole("list", { name: "Jobs that will be cancelled" })).getAllByRole("listitem").map((li) => li.textContent);
+    expect(titles).toEqual(["\u201cRake the front yard\u201d", "\u201cHaul off a couch\u201d"]);
   });
 
   it("the poster's strike words follow the 24-hour rule (Q2675)", async () => {
     // Committed, 3 days out: no fee, no strike.
     rows.push(job({ title: "Mow", date_needed: jobLocalDateISO(3, NOW), start_time: "12:00:00", helper_confirmed_at: "2026-09-20T12:00:00Z" }));
     open();
-    const far = await liText(/will be cancelled/);
-    expect(far).toMatch(/and it isn.t a strike\./);
-    expect(far).not.toMatch(/strike is still recorded/);
+    expect(await liText(/a strike/)).toBe("This isn\u2019t a strike.");
+    expect(screen.queryByText(/strike is still recorded/)).toBeNull();
   });
 
   it("inside 24 hours the poster reads the amount and the strike", async () => {
     rows.push(job({ title: "Mow", helper_confirmed_at: "2026-09-20T12:00:00Z" }));
     open();
-    expect(await liText(/will be cancelled/)).toMatch(/is for your Helpr.s time, most of the rest of your payment comes back to you, and it counts as a strike\./);
+    // F428: three short bullets, "the Helpr's time" (never "your Helpr's").
+    expect(await liText(/You will pay/)).toMatch(/^You will pay about \$\d[\d.,]* for the Helpr.s time \(it starts within 24 hours\)\.$/);
+    expect(await liText(/the rest back/)).toBe("You get most of the rest back.");
+    expect(await liText(/strike/)).toBe("This counts as a strike against you.");
+    expect(screen.queryByText(/your Helpr/)).toBeNull();
   });
 
   it("the hired Helpr reads their own rule, never the poster's (Q2676)", async () => {
     rows.push(job({ customer_id: "helper-1", helper_id: "poster-1", title: "Mow", helper_confirmed_at: "2026-09-20T12:00:00Z" }));
     open();
-    const t = await liText(/will be cancelled/);
-    expect(t).toContain("For a job you were hired for, it counts as a strike if it starts within 24 hours, the same as cancelling.");
-    expect(t).not.toMatch(/your Helpr.s time/);
+    await liText(/also cancels/);
+    expect(await liText(/hired for/)).toBe("For a job you were hired for, it counts as a strike if it starts within 24 hours, the same as cancelling.");
+    expect(screen.queryByText(/Helpr.s time/)).toBeNull();
   });
 
   it("the who-can-reach-you line is true from either seat", async () => {

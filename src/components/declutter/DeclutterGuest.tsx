@@ -113,10 +113,17 @@ export function DeclutterGuestJoin({ free, offers = true, trades = false }: { fr
         <p className="text-xs text-muted-foreground">
           {/* F048 / F059 (owner UI audit 11-09, newest wording): it is SIGNING UP that is free, never read as the item. */}
           Signing up is free. We'll bring you back to this item.
-          {/* The desktop guest bar already has Log in (AUD31-67 follow-up): only a phone gets it here. */}
-          {!barShown && <>{" "}<Link to={`/login?redirect=${here(location)}`} className="font-semibold text-foreground underline underline-offset-2">Log in</Link></>}
         </p>
-        {!barShown && <GuestBrand />}
+        {/* The desktop guest bar already has Log in (AUD31-67 follow-up): only a phone gets it here. Audit 1110 F318: as
+            an inline underlined word it measured 36x14px; it is a 44px (h-11) outline pill now, like the Browse card's. */}
+        {!barShown && (
+          <div className="flex shrink-0 items-center gap-2" data-guest-login="">
+            <Button asChild size="sm" variant="outline" className="rounded-full">
+              <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
+            </Button>
+            <GuestBrand />
+          </div>
+        )}
       </div>
       {/* Trades audit 11-08 #3: a trade is one of the member's own listings, so a guest needs both. */}
       {trades && <p data-guest-trades="" className="text-xs text-muted-foreground">Sign in and list an item to offer a trade.</p>}

@@ -13,8 +13,8 @@
  * Lead 10-31 (follow-up): at 1440 a guest then saw the logo and Sign up / Log in twice (the bar and the item's join
  * panel). At desktop width the item panel keeps only its item-specific message; phone widths are unchanged.
  * @mutate src/components/declutter/DeclutterGuest.tsx |   // only on a phone.\n  const barShown = useIsWebDesktop(); |   // only on a phone.\n  const barShown = false;
- * @mutate src/components/declutter/DeclutterGuest.tsx | font-semibold text-foreground underline underline-offset-2">Log in</Link></>} | font-semibold text-foreground underline underline-offset-2">Log in</Link></>}<Link to="/signup">Sign up</Link>
- * @mutate src/components/declutter/DeclutterGuest.tsx |           {!barShown && <>{" "}<Link | {barShown && <>{" "}<Link
+ * @mutate src/components/declutter/DeclutterGuest.tsx |               <Link to={`/login?redirect=${here(location)}`}>Log in</Link>\n            </Button> |               <Link to={`/login?redirect=${here(location)}`}>Log in</Link>\n            </Button><Link to="/signup">Sign up</Link>
+ * @mutate src/components/declutter/DeclutterGuest.tsx |         {!barShown && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login=""> |         {barShown && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login="">
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -103,7 +103,7 @@ describe("the item's join panel does not repeat the bar at desktop width (lead 1
 
   // Owner pick 1 (11-08): the panel's own links are the item's real Make offer / Buy now (to sign up and back). What the
   // bar already carries (the logo, Log in, Sign up) is not repeated at desktop width.
-  // @mutate src/components/declutter/DeclutterGuest.tsx |           {!barShown && <>{" "}<Link | {true && <>{" "}<Link
+  // @mutate src/components/declutter/DeclutterGuest.tsx |         {!barShown && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login=""> |         {true && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login="">
   it("desktop: the item's Make offer / Buy now stay; no logo, no Sign up, no Log in in the panel", () => {
     const join = panel();
     expect(join).toHaveTextContent("Signing up is free. We'll bring you back to this item.");
@@ -129,6 +129,18 @@ describe("the item's join panel does not repeat the bar at desktop width (lead 1
       expect(join.textContent).not.toMatch(/Free to join|It's free/);
       unmount();
     }
+  });
+
+  // Audit 1110 F318: the phone's Log in was an inline underlined word (36x14px measured). It is a 44px outline pill
+  // now (Button size sm = h-11), the same control as the Browse card's Log in.
+  // @mutate src/components/declutter/DeclutterGuest.tsx |             <Button asChild size="sm" variant="outline" className="rounded-full">\n              <Link to={`/login?redirect=${here(location)}`}>Log in</Link> |             <Button asChild size="sm" variant="link" className="rounded-full">\n              <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
+  it("F318 phone: Log in is a 44px outline pill, not an inline underlined word", () => {
+    state.desktop = false;
+    const join = panel();
+    const login = within(join).getByRole("link", { name: "Log in" });
+    expect(login.className).toMatch(/\bh-11\b/);
+    expect(login.className).toMatch(/\bborder-\[1\.5px\]/);
+    expect(login.className).not.toMatch(/underline/);
   });
 
   it("phone: the logo, the item's two buttons and Log in, each coming back to the item", () => {

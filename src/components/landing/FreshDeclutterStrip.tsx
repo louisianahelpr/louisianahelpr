@@ -59,7 +59,7 @@ function FreshCard({ it, showPorch }: { it: FreshItem; showPorch: boolean }) {
         )}
       </span>
       <span className="block min-w-0 px-0.5 pt-2">
-        <span data-card-title className={`block line-clamp-2 break-words ${FRESH_TITLE}`} style={{ color: "var(--lp-ink)" }} title={it.title}>{it.title}</span>
+        <span data-card-title className={`line-clamp-2 break-words ${FRESH_TITLE}`} style={{ color: "var(--lp-ink)" }} title={it.title}>{it.title}</span>
         <span data-card-town="" className={`block truncate ${FRESH_TOWN}`} style={{ color: "var(--lp-body)" }}>{it.area_label || "\u00a0"}</span>
         <span data-card-price="" className="mt-0.5 flex min-w-0 flex-col leading-tight">
           {it.current_price_cents > 0 ? (

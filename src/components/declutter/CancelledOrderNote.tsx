@@ -19,7 +19,7 @@ import { ReopenListingButton } from "./DeclutterReopenListing";
 const SELLER_NOTE = "This sale was cancelled before the handover and the buyer was refunded, so there's no payout for it.";
 
 /** What the seller's card adds about the order's listings, from their statuses (null: nothing to say yet). */
-export function cancelledListingWords(items: readonly Pick<DeclutterItem, "status">[]): string | null {
+function cancelledListingWords(items: readonly Pick<DeclutterItem, "status">[]): string | null {
   if (items.length === 0) return null;
   const live = items.filter((i) => i.status === "live").length;
   const down = items.filter((i) => i.status === "withdrawn").length;

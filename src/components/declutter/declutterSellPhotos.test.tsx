@@ -479,7 +479,7 @@ describe("photo-first selling, one screen", () => {
   });
 
   // F326: with no item in the photo the writer's advice went into the title, details and price, ready to post.
-  // @mutate src/components/declutter/SellAiDraft.tsx | export const noItemDraft = (d: AiDraft): boolean => d.noItem === true \|\| WRITER_WARNING_RE.test(d.title); | export const noItemDraft = (d: AiDraft): boolean => false;
+  // @mutate src/components/declutter/SellAiDraft.tsx | const noItemDraft = (d: AiDraft): boolean => d.noItem === true \|\| WRITER_WARNING_RE.test(d.title); | const noItemDraft = (d: AiDraft): boolean => false;
   it.each([
     ["the function says no item", { noItem: true, title: "No item seen", description: "", priceDollars: 1 }],
     ["an older function wrote its advice into the title", { title: "Item photo unclear - please retake photos", description: "The photo shows only a uniform gray, grainy surface.", priceDollars: 5 }],

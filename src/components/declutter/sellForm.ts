@@ -91,7 +91,7 @@ export function areaFromAddress(address: string): string {
 }
 
 /** F326: said under the title when it still reads as a note about the photos, not the item. */
-export const WRITER_WARNING_TITLE = "That title is a note about the photo, not the item's name. Type what the item is.";
+const WRITER_WARNING_TITLE = "That title is a note about the photo, not the item's name. Type what the item is.";
 
 /** An address with no city in it: said at Save, since there is no box to ask in. */
 export const NO_CITY_IN_ADDRESS = "We couldn't tell the city from that address. Pick it from the list, or type it as street, city, ZIP.";

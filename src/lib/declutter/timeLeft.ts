@@ -39,7 +39,7 @@ export function orderWhen(iso: string): string {
 }
 
 /** The buyer's time to check an item after the handover: 24 hours (declutter_sale_final / declutter_problem_window_open). */
-export const CHECK_WINDOW_MS = 24 * 3_600_000;
+const CHECK_WINDOW_MS = 24 * 3_600_000;
 
 /**
  * Audit 11-10 F376/F365: when the buyer's 24 hours to check a handed-over item end, or null once they are over (or

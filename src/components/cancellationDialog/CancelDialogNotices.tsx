@@ -93,7 +93,7 @@ export function CancelFeeCallout({ fee, crew, feeTier, helperName, strike }: { f
  * "you see the exact amount here before you confirm", so the poster pressed the red button blind. With no number,
  * the line now says WHY there is none, by the server's reason; it still invents no amount.
  */
-export function unquotedBackToYou(reason: string | null): string {
+function unquotedBackToYou(reason: string | null): string {
   switch (reason) {
     case "not_in_escrow":
     case "no_payment":

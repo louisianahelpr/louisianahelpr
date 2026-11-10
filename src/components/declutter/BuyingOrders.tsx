@@ -360,7 +360,7 @@ export function useBuyingTracker(): BuyingTracker {
  * Audit 11-10 F370: with no figure yet the row still gives the day and says when the money shows up, instead of a bare
  * "Cancelled and refunded to your card." (no amount, no date). Card refunds take 5-10 business days to show on a statement.
  */
-export function cancelledStep(cents: number | null, closedAt: string | null): NextStepValue {
+function cancelledStep(cents: number | null, closedAt: string | null): NextStepValue {
   const day = closedAt && !Number.isNaN(Date.parse(closedAt)) ? new Date(closedAt).toLocaleDateString([], { month: "short", day: "numeric" }) : null;
   const when = " It shows on your statement in 5-10 business days.";
   if (cents != null && cents > 0) return { who: "info", text: `Cancelled. ${formatPrice(cents)} was refunded to your card${day ? ` on ${day}` : ""}.${when}` };

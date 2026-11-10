@@ -76,7 +76,7 @@ function mergeAiDraft<F extends AiFields>(current: F, before: AiMemory, d: AiDra
  * function), or whose title reads as a note about the photos (an older function), fills NOTHING; the panel says
  * "We couldn't see an item" by the photos instead, and formProblem (sellForm.ts) blocks Post on such a title.
  */
-export const noItemDraft = (d: AiDraft): boolean => d.noItem === true || WRITER_WARNING_RE.test(d.title);
+const noItemDraft = (d: AiDraft): boolean => d.noItem === true || WRITER_WARNING_RE.test(d.title);
 
 const aiFieldsOf = (f: AiFields): AiFields => ({ title: f.title, description: f.description, category: f.category, deliverySize: f.deliverySize, conditionStars: f.conditionStars, price: f.price });
 

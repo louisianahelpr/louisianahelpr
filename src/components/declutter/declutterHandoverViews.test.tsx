@@ -33,6 +33,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const state = {
   /** A3-78: the refund request on a handed-over card (null: none). */
   refundRequest: null as Record<string, unknown> | null,
+  /** F393: the seller's own listings (myItemsQuery), by id and status. */
+  mine: [] as { id: string; status: string }[],
   bookings: [] as unknown[],
   payouts: [] as unknown[],
   calls: [] as unknown[][],
@@ -133,6 +135,7 @@ vi.mock("@/lib/declutter/meetup", () => ({
 vi.mock("./useOrderOtherPerson", () => ({ useOrderOtherPerson: () => ({ otherId: "u2", name: "Dana R", avatarUrl: null, first: "Dana", who: "Dana" }) }));
 
 // Board 163: the review sheet has its own test (declutterReviewForm.test.tsx).
+vi.mock("./myItemsQuery", () => ({ myItemsQuery: (userId: string) => ({ queryKey: ["declutter", "mine", userId], queryFn: async () => state.mine }) }));
 vi.mock("./DeclutterReviewForm", () => ({
   DeclutterReviewForm: ({ orderId, side, userId }: { orderId: string; side: string; userId: string }) => <p>Review {orderId} as the {side} ({userId})</p>,
 }));
@@ -706,7 +709,7 @@ describe("Declutter slice 4: paid-order cards", () => {
 
   // Q2627 (audit 1102c R2, lead 11-02): the seller's Report a problem opened with "The buyer didn't come" preselected,
   // though that path is "They didn't show". Nothing is preselected; Send waits for the seller's own pick.
-  // @mutate src/components/declutter/DeclutterProblemForm.tsx | : side === "seller" ? null : reasons[0][0]; | : reasons[0][0];
+  // @mutate src/components/declutter/DeclutterProblemForm.tsx | reasons.some(([r]) => r === picked) ? picked : null; | reasons.some(([r]) => r === picked) ? picked : reasons[0][0];
   // @mutate src/components/declutter/DeclutterProblemForm.tsx | disabled={send.isPending \|\| !reason \|\| note | disabled={send.isPending \|\| note
   it("Q2627: the seller's Report a problem preselects nothing; Send waits for a pick", async () => {
     state.bookings = [slot(20)];
@@ -743,6 +746,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     const input = container.querySelector('[data-problem-photos] input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(["x"], "crack.jpg", { type: "image/jpeg" })] } });
     expect(within(screen.getByRole("group", { name: "Photos" })).getAllByRole("img")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("radio", { name: "It isn't as described" }));
     fireEvent.change(screen.getByLabelText("Tell us what happened"), { target: { value: "Leg is cracked" } });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
     await waitFor(() => expect(state.calls).toContainEqual(["problem", "o1", "not_as_described", "Leg is cracked", ["me/declutter/problem/o1/crack.jpg"]]));
@@ -1799,7 +1803,7 @@ describe("DB-2: no I got it while a problem is open", () => {
 // a porch sale card showed the tracker, where it stands and "You get $10 once the sale is final"; the seller-delivers
 // card under it showed none of the three, and the porch tracker's third step read "On the po..." at 375. ONE sale card:
 // every handover kind on the seller's side draws the same three parts, and a step name wraps instead of being cut.
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {!view && order.handover === "seller_delivery" && <SellerDeliveryStatus | {false && order.handover === "seller_delivery" && <SellerDeliveryStatus
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {!view && !cancelled && order.handover === "seller_delivery" && <SellerDeliveryStatus | {false && order.handover === "seller_delivery" && <SellerDeliveryStatus
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | order.handover === "pickup_home" \|\| order.handover === "meetup") && ( | order.handover === "pickup_home") && (
 // @mutate src/components/tracker/StepTracker.tsx | mt-1.5 block break-words text-ds-12 leading-tight | mt-1.5 block truncate text-ds-12
 describe("DC-16: one sale card on the seller's side, every handover kind", () => {
@@ -2086,4 +2090,86 @@ describe("B134: a shipped order (B131 found it read as a pickup)", () => {
     });
   }
   afterEach(() => { state.features = []; });
+});
+
+// Audit 11-10 F377 (High): a cancelled, refunded order loaded the pickup address and times ("We couldn't load…" twice)
+// and offered "Pick a pickup time" / "Book" under a sale that no longer exists.
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : cancelled ? ( |       ) : false ? (
+// Audit 11-10 F376 (High): inside the buyer's 24 hours after the handover the card had no deadline and no Report a problem.
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.side === "buyer" && !refundRequests && !problem && <BuyerCheckWindow orderId={order.orderId} />} |
+describe("audit 11-10: cancelled orders and the buyer's 24 hours to check", () => {
+  beforeEach(() => {
+    state.features = []; state.bookings = []; state.payouts = []; state.problems = []; state.refundRequest = null;
+    state.windows = { windows: [{ weekday: 1, starts: "09:00", ends: "17:00" }], latestPickupAt: null };
+  });
+  afterEach(() => { state.handover = null; state.windows = null; });
+
+  for (const side of ["buyer", "seller"] as const) {
+    it(`F377: a refunded ${side} order says it was cancelled and offers no pickup to book`, async () => {
+      const { container } = show([line({ order_status: "refunded", my_side: side })]);
+      expect(await screen.findByText(side === "buyer" ? /This order was cancelled and refunded to your card/ : /This sale was cancelled before the handover/)).toBeInTheDocument();
+      const text = container.textContent ?? "";
+      expect(text).not.toMatch(/Pick a pickup time|couldn't load/i);
+      expect(screen.queryByRole("button", { name: /^Book/ })).toBeNull();
+    });
+  }
+
+  // F393 (Medium): the seller's cancelled card said nothing about the listing. It names where it stands, with Relist
+  // when the refund took it down (status 'withdrawn'); it does not claim who cancelled (close_reason is always 'refunded').
+  it("F393: the seller's cancelled card says the listing is back up for sale when the refund put it back to live", async () => {
+    state.mine = [{ id: "i1", status: "live" }];
+    show([line({ order_status: "refunded", my_side: "seller" })]);
+    expect(await screen.findByText(/no payout for it\. Your listing is back up for sale\./)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Relist" })).toBeNull();
+  });
+
+  it("F393: a taken-down listing on the seller's cancelled card offers Relist, and the buyer's card never does", async () => {
+    state.mine = [{ id: "i1", status: "withdrawn" }];
+    const { unmount } = show([line({ order_status: "refunded", my_side: "seller" })]);
+    expect(await screen.findByText(/Your listing is taken down; buyers can't see it\./)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Relist" })).toBeInTheDocument();
+    unmount();
+    show([line({ order_status: "refunded", my_side: "buyer" })]);
+    await screen.findByText(/This order was cancelled and refunded to your card/);
+    expect(screen.queryByRole("button", { name: "Relist" })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/back up for sale|taken down/);
+  });
+
+  it("F376: handed over 2 hours ago, the buyer sees until when they can report a problem, and the form opens", async () => {
+    const at = new Date(Date.now() - 2 * 3_600_000).toISOString();
+    state.handover = { status: "handed_over", confirmed_at: at, confirmed_by: "buyer", picked_up_at: at };
+    show([line({ order_status: "handed_over" })]);
+    const block = await waitFor(() => { const el = document.querySelector("[data-check-window]"); expect(el).not.toBeNull(); return el as HTMLElement; });
+    expect(block.textContent).toMatch(/you can report a problem until [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2}, \d{1,2}:\d{2} (AM|PM)/);
+    fireEvent.click(within(block).getByRole("button", { name: "Report a problem" }));
+    expect(await within(block).findByText("Tell us what happened")).toBeInTheDocument();
+  });
+
+  it("F376: once the 24 hours are over the block is gone", async () => {
+    const at = new Date(Date.now() - 25 * 3_600_000).toISOString();
+    state.handover = { status: "handed_over", confirmed_at: at };
+    show([line({ order_status: "handed_over" })]);
+    await screen.findByText(/Review o1 as the buyer/);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(document.querySelector("[data-check-window]")).toBeNull();
+  });
+});
+
+// Audit 11-10 F387/F388: the buyer's Report a problem opened with a reason already picked and never said what Send does.
+describe("audit 11-10: the buyer's Report a problem form", () => {
+  afterEach(() => { state.handover = null; });
+  it("F387: nothing is preselected for the buyer, the counter says how many more characters, and the form says what Send does", async () => {
+    const at = new Date(Date.now() - 2 * 3_600_000).toISOString();
+    state.features = []; state.problems = []; state.bookings = [];
+    state.handover = { status: "handed_over", confirmed_at: at };
+    show([line({ order_status: "handed_over" })]);
+    fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
+    const radios = screen.getAllByRole("radio");
+    expect(radios.length).toBeGreaterThan(1);
+    expect(radios.filter((r) => r.getAttribute("aria-checked") === "true")).toHaveLength(0);
+    fireEvent.change(screen.getByLabelText("Tell us what happened"), { target: { value: "Bent" } });
+    expect(document.querySelector("[data-problem-note-short]")?.textContent).toMatch(/^6 more characters/);
+    expect(document.querySelector("[data-problem-after]")?.textContent).toMatch(/nobody is paid until Louisiana Helpr/);
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+  });
 });

@@ -7,6 +7,8 @@ export function timeLeft(iso: string, now = Date.now()): string {
   const ms = new Date(iso).getTime() - now;
   if (ms <= 0) return "time is up";
   const h = Math.floor(ms / 3_600_000);
+  // Audit 11-10 F368: "118 hours left" became days from 48 hours up.
+  if (h >= 48) return `${Math.floor(h / 24)} days left`;
   if (h >= 1) return `${h} hour${h === 1 ? "" : "s"} left`;
   const m = Math.max(1, Math.floor(ms / 60_000));
   return `${m} minute${m === 1 ? "" : "s"} left`;
@@ -23,4 +25,29 @@ export function byClock(iso: string, now = Date.now()): string {
   const time = at.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   const sameDay = at.toDateString() === new Date(now).toDateString();
   return sameDay ? `by ${time}` : `by ${at.toLocaleDateString("en-US", { weekday: "short" })} ${time}`;
+}
+
+/** Louisiana Helpr's own clock (Central), so every order date reads the same on every device. */
+const CENTRAL = "America/Chicago";
+
+/**
+ * Audit 11-10 F367/F376: one date format for order deadlines: "Wed, Nov 11, 3:00 PM" (weekday, month name, day,
+ * 12-hour time, Central time).
+ */
+export function orderWhen(iso: string): string {
+  return new Date(iso).toLocaleString("en-US", { timeZone: CENTRAL, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+/** The buyer's time to check an item after the handover: 24 hours (declutter_sale_final / declutter_problem_window_open). */
+export const CHECK_WINDOW_MS = 24 * 3_600_000;
+
+/**
+ * Audit 11-10 F376/F365: when the buyer's 24 hours to check a handed-over item end, or null once they are over (or
+ * before the handover row has answered). `handedOverAt` is the handover row's confirmed_at, written in the same
+ * statement as declutter_orders.handed_over_at.
+ */
+export function checkWindowEnds(handedOverAt: string | null | undefined, now = Date.now()): string | null {
+  if (!handedOverAt) return null;
+  const ends = new Date(handedOverAt).getTime() + CHECK_WINDOW_MS;
+  return Number.isFinite(ends) && ends > now ? new Date(ends).toISOString() : null;
 }

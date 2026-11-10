@@ -117,6 +117,13 @@ const ITEM_SCHEMA = {
  */
 const PRICE_RULE = `Suggest a starting price in whole US dollars (1 to 1000) for this USED item, from what you see: the kind of item, its condition and its size. Price it like a local Louisiana garage or yard sale: what this used item would realistically sell for there, a quick-sale price that moves it, not what it might fetch online. Stay honest to its condition: less for wear, damage or missing parts, a little more for something like new. Give price_reason as one short plain line about the item itself (for example "Used with light wear, so a fair yard-sale price that should sell quickly"). Never mention retail, new, original or store prices, or any website or marketplace.`;
 
+/**
+ * Audit 11-10 F326 (High): with no item in the photos the model wrote its advice INTO the title, details and price
+ * ("Item photo unclear - please retake photos", $5), and the form filled them in, ready to go live. It now says so in
+ * its own field, and the form fills nothing from that answer.
+ */
+const NO_ITEM_RULE = `If the photos show no sellable item at all (a blank wall, floor or surface, a blurry or dark frame, only a person or a pet), set no_item to true, title to "No item seen", description empty, category other, price_dollars 1 and possibly_banned false. Never put advice about the photos into the title, description or details; use photo_tip for that. Otherwise set no_item to false.`;
+
 const PHOTO_COACH_RULE = `Read any labels, tags or markings in the photos: put the brand, model, size or measurements you can actually read into details as one short line (for example "Brand: KitchenAid. Model: KSM150. 5 quart."); leave details empty when nothing is readable, and never guess. Set cover_photo to the number of the photo (0 for the first one sent) that shows the whole item best for a listing's cover. Set photo_tip to at most ONE short tip for one more photo that would help a buyer (for example "A photo of the label" or "A photo of the back"), or leave it empty when the photos are enough.`;
 
 // The not-allowed rule (owner 10-31: only what truly cannot be sold) lives in bannedRule.ts.
@@ -133,6 +140,7 @@ Write a short, honest title (80 characters or fewer, no prices, no contact detai
 ${CATEGORY_RULE}
 ${PRICE_RULE}
 ${PHOTO_COACH_RULE}
+${NO_ITEM_RULE}
 ${BANNED_RULE}`;
 
 /**
@@ -146,8 +154,9 @@ const DRAFT_SCHEMA = {
     details: { type: "string" },
     cover_photo: { type: "integer", minimum: 0 },
     photo_tip: { type: "string" },
+    no_item: { type: "boolean" },
   },
-  required: [...ITEM_SCHEMA.required, "details", "cover_photo", "photo_tip"],
+  required: [...ITEM_SCHEMA.required, "details", "cover_photo", "photo_tip", "no_item"],
 };
 
 const ITEM_TOOL = { name: "draft_listing", description: "A draft listing for one used household item", parameters: DRAFT_SCHEMA };
@@ -573,6 +582,7 @@ function draftAnswer(draft: DeclutterDraft) {
     priceReason: draft.priceReason,
     coverPhoto: draft.coverPhoto,
     photoTip: draft.photoTip,
+    noItem: draft.noItem,
   };
 }
 

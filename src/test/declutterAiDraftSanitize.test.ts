@@ -36,6 +36,14 @@ describe("declutter-ai-draft output", () => {
     expect(sanitizeDraft({ title: "Car seat", possibly_banned: true, banned_reason: "used car seat" })!.flagReason).toBe("used car seat");
   });
 
+  // Audit 11-10 F326 (High): "no item seen" is its own field; only an explicit true counts, and an older answer has none.
+  // @mutate supabase/functions/declutter-ai-draft/sanitize.ts |   const noItem = r.no_item === true; |   const noItem = false;
+  it("F326: no_item true comes through as noItem; anything else is false", () => {
+    expect(sanitizeDraft({ title: "No item seen", possibly_banned: false, no_item: true })!.noItem).toBe(true);
+    expect(sanitizeDraft({ title: "Lamp", possibly_banned: false })!.noItem).toBe(false);
+    expect(sanitizeDraft({ title: "Lamp", possibly_banned: false, no_item: "yes" })!.noItem).toBe(false);
+  });
+
   it("refuses an answer with no usable title", () => {
     expect(sanitizeDraft({ title: "x" })).toBeNull();
     expect(sanitizeDraft(null)).toBeNull();

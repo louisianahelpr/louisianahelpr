@@ -5,9 +5,9 @@
  * withdrawn or no request: the solid one. NIGHT-SELL-soldstates-7: settled with a full refund, it isn't offered at all. The read is the refund panel's own
  * (same query key), made only when the card shows that panel.
  *
- * @mutate src/components/declutter/DeclutterReviewForm.tsx |   if (problemOpen \|\| refundHoldsTheItem(refund.data?.request?.status) \|\| refundedInFull(refund.data)) return null; |
+ * @mutate src/components/declutter/DeclutterReviewForm.tsx |   if (problemOpen \|\| refundStillOpen(refund.data) \|\| refundHoldsTheItem(refund.data?.request?.status) \|\| refundedInFull(refund.data)) return null; |
+ * @mutate src/components/declutter/DeclutterReviewForm.tsx |   if (problemOpen \|\| refundStillOpen(refund.data) \|\| refundHoldsTheItem(refund.data?.request?.status) \|\| refundedInFull(refund.data)) return null; |   if (problemOpen \|\| refundHoldsTheItem(refund.data?.request?.status) \|\| refundedInFull(refund.data)) return null;
  * @mutate src/components/declutter/DeclutterReviewForm.tsx | const REFUND_STILL_OPEN: ReadonlySet<string> = new Set(["open", "offered"]); | const REFUND_STILL_OPEN: ReadonlySet<string> = new Set(["open"]);
- * @mutate src/components/declutter/DeclutterReviewForm.tsx | variant={refundStillOpen(refund.data) ? "outline" : "default"} | variant="default"
  * @mutate src/components/declutter/DeclutterReviewForm.tsx |     enabled: refundPanel, |     enabled: true,
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | userId={userId} refundPanel={!!refundRequests && items > 0} problemOpen={!!problem} /> | userId={userId} problemOpen={!!problem} />
  */
@@ -71,11 +71,12 @@ describe("Leave a review while a refund is open (D2-15)", () => {
     expect(screen.queryByRole("button", { name: "Leave a review" })).toBeNull();
   });
 
-  it.each(["open", "offered"])("refund %s: the outline button", async (status) => {
+  // Audit 11-10 F381/F395: while the request is still being worked out, no review is asked for at all.
+  it.each(["open", "offered"])("refund %s: no review is asked for until it is settled", async (status) => {
     state.status = status;
     const b = show(true);
-    await waitFor(() => expect(b.className).toContain(OUTLINE));
-    expect(b.className).not.toContain("btn-grad-primary");
+    await waitFor(() => expect(b.isConnected).toBe(false));
+    expect(screen.queryByRole("button", { name: "Leave a review" })).toBeNull();
   });
 
   it.each([null, "agreed", "declined", "withdrawn"])("refund %s: the solid button", async (status) => {

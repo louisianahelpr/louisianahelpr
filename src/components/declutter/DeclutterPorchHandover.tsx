@@ -18,6 +18,7 @@
  *     seller-delivers sale uses SellerDeliveryStatus: the same three parts, its steps read from the delivery booking.
  */
 import { useState } from "react";
+import { orderWhen } from "@/lib/declutter/timeLeft";
 import { useQuery } from "@tanstack/react-query";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { fetchMyHandover, handoverPhotoUrl } from "@/lib/declutter/handover";
@@ -111,7 +112,7 @@ export function standing(handover: Pickup, side: "buyer" | "seller", at: number,
 }
 
 /** DC-16: a seller-delivers sale, in the same words (OrderSteps: Paid -> Time booked -> Delivered -> Done). */
-const answerByWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+const answerByWords = orderWhen; // F367: date and Central time
 
 /** A3-71: the seller's line once the hour has passed (late), or once the buyer says it never came (reported). */
 const SELLER_DELIVERY_LATE = "Late: deliver it now or ask for a new time. The buyer can now say it didn't come.";

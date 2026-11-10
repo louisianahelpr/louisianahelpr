@@ -4,6 +4,7 @@
  * seller's has the answer. An answer goes to Louisiana Helpr with the money held.
  */
 import { useState } from "react";
+import { orderWhen } from "@/lib/declutter/timeLeft";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -14,7 +15,7 @@ import { invalidate, type PaidOrder } from "./paidOrders";
 import { Textarea } from "@/components/ui/textarea";
 
 
-const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+const when = orderWhen; // F367: date and Central time
 
 export function NoShowAnswer({ orderId, side, delivery, free }: { orderId: string; side: "buyer" | "seller"; delivery: boolean; free: boolean }) {
   const qc = useQueryClient();

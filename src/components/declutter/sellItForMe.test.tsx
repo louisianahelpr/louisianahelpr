@@ -75,6 +75,7 @@ import { SellItForMeEntry, QUOTE_SOON_LINE } from "./SellItForMe";
 import { buildSellForMePrefill, SELL_FOR_ME_NO_ACCOUNT_LINE, sellForMePostJobPath } from "@/lib/declutter/sellForMe";
 import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
 import { isLaborTaxable } from "@/lib/salesTax";
+import { HELPR_LIST_ROWS } from "./HelprListExplainSheet";
 
 function shop(id: string, name: string) {
   return { id, name, category: "declutter_estate_sales", area_label: "Baton Rouge", miles: 3, rating: null, review_count: 0, logo_path: null, paused: false, badges: null };
@@ -337,5 +338,19 @@ describe("Post a job reads ?sellForMe=1", () => {
     renderHook(() => useJobFormEffects(effectParams(set) as never));
     expect(set.setDescription).toHaveBeenLastCalledWith(buildSellForMePrefill().description);
     localStorage.removeItem("helpr_draft_job");
+  });
+});
+
+// Audit 11-10 F325 (High): the explain sheet said "post the listings from your own account. A Helpr never gets into
+// your account" while the job it prefills says the Helpr writes them "on my account" for the seller to approve (owner
+// POST-H3). Both now say the same true thing.
+// @mutate src/components/declutter/HelprListExplainSheet.tsx | line: "Be there, and approve each listing before it goes on sale. | line: "Be there, and post the listings from your own account. A Helpr never gets into your account. Approve each listing before it goes on sale.
+describe("F325: the explain sheet and the prefilled job agree on who writes the listings", () => {
+  it("the sheet says the seller approves what the Helpr writes, never that the seller posts them alone", () => {
+    const youDo = HELPR_LIST_ROWS.find((r) => r.title === "What you do")?.line ?? "";
+    expect(HELPR_LIST_ROWS.length).toBeGreaterThan(3);
+    expect(youDo).toMatch(/approve each listing/);
+    expect(youDo).not.toMatch(/from your own account|never gets into your account/);
+    expect(SELL_FOR_ME_NO_ACCOUNT_LINE).toMatch(/I approve each one/);
   });
 });

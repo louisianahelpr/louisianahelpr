@@ -282,8 +282,9 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null }: { p: Publ
                   </div>
                   <div className="p-2">
                     <p className="truncate text-ds-14 font-semibold text-foreground" title={l.title}>{l.title}</p>
+                    {/* Owner 11-09 (10:35 PM): the list price is the bold one; "$X.XX incl. fee" small under it. */}
                     <p className="text-ds-13 text-muted-foreground">
-                      {itemPriceLabel(l.current_price_cents)}{l.area_label ? ` · ${l.area_label}` : ""}
+                      <span data-pp-list-price="" className="text-ds-14 font-bold tabular-nums text-foreground">{itemPriceLabel(l.current_price_cents)}</span>{l.area_label ? ` · ${l.area_label}` : ""}
                     </p>
                     <PriceInclFee priceCents={l.current_price_cents} />
                   </div>

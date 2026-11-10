@@ -10,7 +10,7 @@
  * @mutate src/components/declutter/MovingSaleBanner.tsx |       const todo = ids.filter((id) => (watching.data?.has(id) ?? false) !== next); |       const todo = ids.slice(0, 1);
  * @mutate src/components/declutter/MovingSaleBanner.tsx |             if (code !== "item_not_found" && code !== "own_item" && code !== "item_not_available") throw err; |             throw err;
  * @mutate src/components/declutter/MovingSaleBanner.tsx |   const area = areas.size === 1 ? [...areas][0] : null; |   const area = [...areas][0] ?? null;
- * @mutate src/components/declutter/MovingSaleBanner.tsx | <PriceInclFee priceCents={it.current_price_cents} className="block text-ds-15 font-bold tabular-nums text-foreground" /> | <PriceInclFee priceCents={it.current_price_cents} className="block text-ds-12 tabular-nums text-muted-foreground" />
+ * @mutate src/components/declutter/MovingSaleBanner.tsx | <p className="text-ds-15 font-bold tabular-nums text-foreground">{itemPriceLabel(it.current_price_cents)}</p> | <p className="text-ds-12 tabular-nums text-muted-foreground">{itemPriceLabel(it.current_price_cents)}</p>
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -69,17 +69,18 @@ beforeEach(() => {
 });
 
 describe("board 164: the moving sale, as a buyer sees it", () => {
-  it("area + move-out line, the incl.-fee price bold over the base price and the title, Share sale shares the profile", async () => {
+  it("area + move-out line, the list price bold over the incl.-fee price and the title, Share sale shares the profile", async () => {
     renderIt();
     expect(await screen.findByText("Delcambre · Moving out Nov 1. 2 items for sale.")).toBeInTheDocument();
-    // Owner pick 2 (11-08, one price story): "$126.70 incl. fee" is the bold price, in ink; the base $120 small and grey
-    // under it, then the title (11-07: both numbers stay).
-    const paid = screen.getByText("$126.70 incl. fee");
-    expect(paid.className).toMatch(/\bfont-bold\b/);
-    expect(paid.className).toMatch(/\btext-foreground\b/);
-    expect(paid.nextElementSibling?.textContent).toBe("$120");
-    expect(paid.nextElementSibling?.className).toMatch(/\btext-muted-foreground\b/);
-    expect(paid.nextElementSibling?.nextElementSibling?.textContent).toBe("Sofa, 3 seat");
+    // Owner 11-09 (reverses pick 2 of 11-08): the list price $120 is the bold one, in ink; "$126.70 incl. fee" small and
+    // grey under it, then the title (11-07: both numbers stay).
+    const list = screen.getByText("$120");
+    expect(list.className).toMatch(/\bfont-bold\b/);
+    expect(list.className).toMatch(/\btext-foreground\b/);
+    expect(list.nextElementSibling?.textContent).toBe("$126.70 incl. fee");
+    expect(list.nextElementSibling?.className).toMatch(/\btext-muted-foreground\b/);
+    expect(list.nextElementSibling?.className).not.toMatch(/\bfont-bold\b/);
+    expect(list.nextElementSibling?.nextElementSibling?.textContent).toBe("Sofa, 3 seat");
     fireEvent.click(screen.getByRole("button", { name: "Share sale" }));
     await waitFor(() => expect(shared).toEqual([expect.objectContaining({ url: "https://louisianahelpr.com/user/s1" })]));
   });

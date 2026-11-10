@@ -14,9 +14,9 @@ import { cardPhotoSrcSet, CARD_PHOTO_SIZES } from "@/lib/declutter/photoSizes";
 import { useLoadPhotoAhead } from "./useLoadPhotoAhead";
 import { holdForFirstRowPhoto, useLaterPhotosOpen } from "./firstRowPhotoGate";
 import { formatPrice, milesLabel, itemPriceLabel } from "@/lib/declutter/distance";
-import { PriceInclFee, cardLinkLabel } from "./PriceInclFee";
+import { PriceInclFee } from "./PriceInclFee";
 import { PhotoTag, PhotoTagStack } from "@/components/ui/PhotoTag";
-import { PRICE_BASE, PRICE_DEAL } from "@/components/ui/designScale";
+import { PRICE_BASE, PRICE_DEAL, PRICE_PAID } from "@/components/ui/designScale";
 import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
 
 export function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
@@ -96,7 +96,6 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
   const card = (
     <Link
       to={`/declutter/item/${item.id}`}
-      aria-label={cardLinkLabel(item.title, item.current_price_cents)}
       data-item-card=""
       className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
@@ -155,21 +154,21 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
             {away && <span data-card-away className="shrink-0 whitespace-nowrap">{away}</span>}
           </span>
         )}
-        {/* Owner pick 2 (11-08), one price story: the incl.-fee price is the bold one, the base price small and grey
-            beside it (11-07 rule: the card keeps both numbers). Free stays in burnt sienna. */}
-        <span data-card-price="" className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-1.5 leading-tight">
+        {/* Owner 11-09 (10:35 PM, reverses pick 2 of 11-08): the LIST price is the big bold one, and "$X.XX incl. fee"
+            sits under it, smaller (11-07 rule: the card keeps both numbers). Free stays in burnt sienna. */}
+        <span data-card-price="" className="mt-0.5 flex min-w-0 flex-col leading-tight">
           {item.current_price_cents > 0 ? (
             <>
-              <PriceInclFee priceCents={item.current_price_cents} className="text-ds-16 font-bold tabular-nums text-foreground" wordsClassName="text-ds-11 font-semibold text-primary" />
-              <span data-card-base-price="" className={`text-ds-11 ${PRICE_BASE}`}>
+              <span data-card-base-price="" className={`text-ds-16 ${PRICE_PAID}`}>
                 {itemPriceLabel(item.current_price_cents)}
                 {item.current_price_cents < item.price_cents && (
-                  <span className="ml-1">
+                  <span className={`ml-1.5 text-ds-11 ${PRICE_BASE}`}>
                     <span className="sr-only">Price dropped, was </span>
                     <s aria-hidden>{formatPrice(item.price_cents)}</s>
                   </span>
                 )}
               </span>
+              <PriceInclFee priceCents={item.current_price_cents} className={`text-ds-11 ${PRICE_BASE}`} />
             </>
           ) : (
             <span data-card-free="" className={`text-ds-16 ${PRICE_DEAL}`}>{itemPriceLabel(item.current_price_cents)}</span>

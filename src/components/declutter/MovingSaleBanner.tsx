@@ -109,9 +109,9 @@ export function MovingSaleBanner({ sellerId }: { sellerId: string }) {
                 )}
               </div>
               <div className="px-1 pt-2 min-w-0">
-                {/* Owner pick 2 (11-08): the incl.-fee price is the bold one; the base price small and grey. */}
-                <PriceInclFee priceCents={it.current_price_cents} className="block text-ds-15 font-bold tabular-nums text-foreground" />
-                <p className="text-ds-12 font-medium tabular-nums text-muted-foreground">{itemPriceLabel(it.current_price_cents)}</p>
+                {/* Owner 11-09 (reverses pick 2 of 11-08): the list price is the bold one; "$X.XX incl. fee" small under it. */}
+                <p className="text-ds-15 font-bold tabular-nums text-foreground">{itemPriceLabel(it.current_price_cents)}</p>
+                <PriceInclFee priceCents={it.current_price_cents} className="block text-ds-12 font-medium tabular-nums text-muted-foreground" />
                 <p className="text-ds-13 font-semibold truncate" title={it.title}>{it.title}</p>
               </div>
             </Link>

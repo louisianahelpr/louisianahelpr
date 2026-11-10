@@ -247,24 +247,24 @@ export default function ItemView({ itemId }: { itemId: string }) {
             </div>
             {/* The condition chip beside the price (board D5, owner mockup 11-01), not again as a Details row. */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              {/* Owner pick 2 (11-08), one price story: "$3.85 incl. fee" is the bold price (ink, the item page's one
-                  t-xl), the base price small and grey beside it; Free stays burnt sienna. */}
-              <p data-item-price="" className="flex flex-wrap items-baseline gap-x-2 leading-tight">
+              {/* Owner 11-09 (10:35 PM, reverses pick 2 of 11-08): the LIST price is the big one (ink, the item page's
+                  one t-xl), and "$3.85 incl. fee" sits under it, smaller; Free stays burnt sienna. */}
+              <p data-item-price="" className="flex flex-col leading-tight">
                 {it.current_price_cents > 0 ? (
-                  <PriceInclFee priceCents={it.current_price_cents} className={`${TYPE.xl} ${PRICE_PAID}`} wordsClassName={`${TYPE.sm} font-semibold text-primary`} />
-                ) : (
-                  <span className="text-ds-28 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(it.current_price_cents)}</span>
-                )}
-                {it.current_price_cents > 0 && (
-                  <span data-item-base-price="" className="text-ds-13 font-medium tabular-nums text-muted-foreground">
+                  <span data-item-base-price="" className={`${TYPE.xl} ${PRICE_PAID}`}>
                     {itemPriceLabel(it.current_price_cents)}
                     {dropped && (
-                      <span className="ml-1.5">
+                      <span className="ml-2 text-ds-13 font-medium tabular-nums text-muted-foreground">
                         <span className="sr-only">Price dropped, was </span>
                         <s aria-hidden>{formatPrice(it.price_cents)}</s>
                       </span>
                     )}
                   </span>
+                ) : (
+                  <span className="text-ds-28 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(it.current_price_cents)}</span>
+                )}
+                {it.current_price_cents > 0 && (
+                  <PriceInclFee priceCents={it.current_price_cents} className="mt-0.5 text-ds-13 font-medium tabular-nums text-muted-foreground" />
                 )}
               </p>
               <ConditionChip stars={it.condition_stars} />

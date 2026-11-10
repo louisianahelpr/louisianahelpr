@@ -1,4 +1,4 @@
-// @mutate src/components/declutter/DeclutterItemCard.tsx |       aria-label={cardLinkLabel(item.title, item.current_price_cents)}\n |
+// @mutate src/components/declutter/DeclutterItemCard.tsx |       data-item-card=""\n      className="group block rounded-2xl | aria-label="Item" data-item-card=""\n      className="group block rounded-2xl
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | Meet at a safe spot (a public place, no home address shared), | pickup at the seller's door,
 // @mutate src/pages/info/legal/TermsSection.tsx | <strong className="text-foreground">Meet at a safe spot</strong> | <strong className="text-foreground">pickup at the seller&apos;s door</strong>
 // @mutate src/components/declutter/DeclutterItemCard.tsx |   if (!save && guestSaveTo) { |   if (!save && guestSaveTo && saves === -1) {
@@ -56,13 +56,18 @@ const card = (over: Record<string, unknown> = {}) => ({
   price_cents: 300, current_price_cents: 300, area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15, ...over,
 }) as never;
 
-describe("F050: every Declutter card link has a name (title and the price the card shows)", () => {
-  it("a paid card is named '<title>, $X.XX incl. fee'; a free one '<title>, Free'", () => {
+describe("F050 / L008: every Declutter card link is named by what it shows (title and both prices)", () => {
+  // L008 (landing audit 11-09): an aria-label of "<title>, $X.XX incl. fee" hid the card's other visible words (axe
+  // label-content-name-mismatch on /declutter, the item page's rows and the landing strip). The card is named by its own
+  // text, which holds the title, the list price and the incl.-fee price, so the name and what a sighted person reads agree.
+  it("a paid card's name holds the title, the list price and the incl.-fee price; a free one says Free", () => {
     const paid = render(<MemoryRouter><ItemCard item={card()} miles={null} approximate={false} /></MemoryRouter>);
-    expect(paid.getByRole("link").getAttribute("aria-label")).toMatch(/^Kinetic Sand SquishBlossom Set, \$\d+\.\d{2} incl\. fee$/);
+    const link = paid.getByRole("link", { name: /Kinetic Sand SquishBlossom Set.*\$3.*\$\d+\.\d{2} incl\. fee/ });
+    expect(link.hasAttribute("aria-label")).toBe(false);
     paid.unmount();
     const free = render(<MemoryRouter><ItemCard item={card({ price_cents: 0, current_price_cents: 0 })} miles={null} approximate={false} /></MemoryRouter>);
-    expect(free.getByRole("link").getAttribute("aria-label")).toBe("Kinetic Sand SquishBlossom Set, Free");
+    const fl = free.getByRole("link", { name: /Kinetic Sand SquishBlossom Set.*Free/ });
+    expect(fl.hasAttribute("aria-label")).toBe(false);
     free.unmount();
   });
 

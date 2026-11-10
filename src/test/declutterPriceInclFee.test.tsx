@@ -12,9 +12,9 @@
  *
  * @mutate src/components/declutter/PriceInclFee.tsx | {exactDollars(buyNowTotalCents(priceCents))}{" "} | {exactDollars(priceCents)}{" "}
  * @mutate src/components/declutter/PriceInclFee.tsx |   if (!(priceCents > 0)) return null; |   if (priceCents < 0) return null;
- * @mutate src/components/declutter/DeclutterItemCard.tsx | <PriceInclFee priceCents={item.current_price_cents} className="text-ds-16 | <PriceInclFee priceCents={item.price_cents} className="text-ds-16
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | <PriceInclFee priceCents={item.current_price_cents} className={`text-ds-11 | <PriceInclFee priceCents={item.price_cents} className={`text-ds-11
  * @mutate src/components/declutter/DeclutterItemView.tsx |             <PriceInclFee priceCents={it.current_price_cents} | {null}            <PriceInclFee priceCents={0}
- * @mutate src/components/declutter/MovingSaleBanner.tsx | <PriceInclFee priceCents={it.current_price_cents} className="block text-ds-15 font-bold tabular-nums text-foreground" /> | {null}
+ * @mutate src/components/declutter/MovingSaleBanner.tsx | <PriceInclFee priceCents={it.current_price_cents} className="block text-ds-12 font-medium tabular-nums text-muted-foreground" /> | {null}
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
@@ -89,5 +89,33 @@ describe("owner 11-07: Declutter prices show the buyer's price incl. fee", () =>
       "src/components/declutter/SellingNowRow.tsx",
       "src/components/landing/FreshDeclutterStrip.tsx",
     ]) expect(covered.has(f), `${f} lost its incl. fee line`).toBe(true);
+  });
+
+  // Owner 11-09 (10:35 PM, reverses owner pick 2 of 11-08): the LIST price is the big one and "$X.XX incl. fee" sits
+  // UNDER it, smaller, on the item page and every card/strip. The class, from the same inventory: at every buyer-facing
+  // site the list price comes first, and its <PriceInclFee> is never bold and never splits off a loud "incl. fee" label.
+  // @mutate src/components/declutter/SellingNowRow.tsx | <PriceInclFee priceCents={it.current_price_cents} className="block text-ds-12 font-medium tabular-nums text-muted-foreground" /> | <PriceInclFee priceCents={it.current_price_cents} className="block text-ds-14 font-bold tabular-nums text-foreground" />
+  it("the list price comes first and is the loud one; the incl.-fee line under it is small", () => {
+    const all = sites().filter((s) => !(s.file in NOT_A_BUYER_PRICE));
+    expect(all.length).toBeGreaterThan(6);
+    const wrong: string[] = [];
+    const files = new Set<string>();
+    // Every <PriceInclFee> beside a list-price site: the nearest list price for the same item sits BEFORE it.
+    const seen = new Set<string>();
+    for (const s of all) {
+      const esc = s.who.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const tagRe = new RegExp(`<PriceInclFee\\s+priceCents=\\{${esc}\\.current_price_cents\\}([^>]*)/>`, "g");
+      for (const t of s.src.matchAll(tagRe)) {
+        if (Math.abs(t.index! - s.at) >= 900 || seen.has(`${s.file}@${t.index}`)) continue;
+        seen.add(`${s.file}@${t.index}`);
+        files.add(s.file);
+        const before = all.some((o) => o.file === s.file && o.who === s.who && o.at < t.index! && t.index! - o.at < 900);
+        if (!before) wrong.push(`${s.file}: the incl.-fee price comes before the list price`);
+        if (/\bfont-bold\b/.test(t[1])) wrong.push(`${s.file}: the incl.-fee price is bold`);
+        if (/wordsClassName/.test(t[1])) wrong.push(`${s.file}: "incl. fee" is its own loud label`);
+      }
+    }
+    expect(wrong, wrong.join("\n")).toEqual([]);
+    expect(files.size).toBeGreaterThanOrEqual(7);
   });
 });

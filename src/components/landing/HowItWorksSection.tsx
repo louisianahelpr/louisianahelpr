@@ -110,7 +110,9 @@ const HowItWorksSection = () => {
     <section
       id="how-it-works"
       ref={sectionRef}
-      className="px-5 sm:px-8 lg:px-12 py-16 sm:py-20 lg:py-28 scroll-mt-24"
+      // L020 (landing audit 11-09): ~200px stood between "Four ways" and this heading at 1440 (~115 at 375); the top is
+      // trimmed, the bottom (before the money band) kept.
+      className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-16 lg:pt-20 pb-16 sm:pb-20 lg:pb-28 scroll-mt-24"
     >
       {/* ONE layout at every width: heading + toggle on one row (the toggle drops
           under the heading on a phone), three step cards below, three across

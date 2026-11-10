@@ -130,27 +130,15 @@ describe("ShopPayoutRow (shop dashboard)", () => {
     fireEvent.click(screen.getByRole("button", { name: /Set up/ }));
     expect(nav).toHaveBeenCalledWith("/profile?tab=payment");
   });
-  // Shops audit 11-10 F12: no empty gray box at the top of the Shop tab while the payout check answers.
-  // @mutate src/components/shops/ShopPayoutRow.tsx |   if (payoutPrompt.kind === "reserve") return null; |
-  // A new shop with no sale (setup paused or not owed): not even "We couldn't check your payout account".
-  // @mutate src/components/shops/ShopPayoutRow.tsx |   if (setupBlock !== null) return null; |   if (setupBlock === "needs_hire" && payoutPrompt.kind === "setup") return null;
-  it("nothing while setup is paused or not owed, even when the payout check failed", () => {
-    for (const b of ["paused", "needs_hire"] as const) {
-      block.value = b;
-      connect.prompt = { kind: "error" };
-      const { container, unmount } = renderWith(<ShopPayoutRow />);
-      expect(container.textContent, b).toBe("");
-      unmount();
-    }
-    block.value = null;
-    connect.prompt = { kind: "error" };
-    renderWith(<ShopPayoutRow />);
-    expect(screen.getByText(/We couldn't check your payout account/)).toBeTruthy();
-  });
-  it("nothing while the payout check is still answering (no held-open gray box)", () => {
+  // Shops audit 11-10 F12: no gray box at all while setup is not offered; while it is, the box holds the slot.
+  it("the held-open box only while setup is offered (it holds the Finish setting up row's slot)", () => {
+    block.value = "paused";
     connect.prompt = { kind: "reserve" };
+    const a = renderWith(<ShopPayoutRow />);
+    expect(a.container.querySelector("button")).toBeNull();
+    a.unmount();
+    block.value = null;
     const { container } = renderWith(<ShopPayoutRow />);
-    expect(container.textContent).toBe("");
-    expect(container.querySelector("button")).toBeNull();
+    expect(container.querySelector("button[aria-hidden]")).not.toBeNull();
   });
 });

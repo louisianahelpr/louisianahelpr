@@ -20,14 +20,13 @@ export default function ShopPayoutRow() {
   // and no payouts has nothing to set up for yet, so the row waits for the
   // first sale. While setup is paused or not yet owed (or that answer is still
   // loading) there is nothing to act on, so nothing shows, not even "We
-  // couldn't check your payout account" (Builder 1, 2026-11-10: that line
-  // popped in on a new shop with no sale and pushed the Shop tab down 72px at
-  // 1440, CLS 0.027). A failed status read shows only once setup is offered.
+  // couldn't check your payout account". A failed status read shows only
+  // once setup is offered.
+  // Shops audit 11-10 F12 (the empty gray blob): the held-open box only ever shows while setup is offered,
+  // where it holds the slot the "Finish setting up" row then fills at the same height. Hiding it there too
+  // (an earlier try) let that row pop in and push the orders down 142px at 375 (CLS 0.137, Builder 1's
+  // screenshot pass with a tester account).
   if (setupBlock !== null) return null;
-  // Shops audit 11-10 F12: no held-open gray box while the payout check answers. Here the row is the rare
-  // case (only once a sale is owed), so the usual answer is nothing; holding a box open painted an empty
-  // blob at the top of the Shop tab that then collapsed (shift 0.07 at 375).
-  if (payoutPrompt.kind === "reserve") return null;
   return (
     <PayoutStatusRow
       prompt={payoutPrompt}

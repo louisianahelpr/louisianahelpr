@@ -3,6 +3,8 @@
 -- (src/test/helpers/dataExportInventory.ts) since Shops H1 (20261105185006). Shops stays behind its switch (testers).
 -- RESTATED FROM THE NEWEST CREATE, checked by name:
 --   export_my_data(uuid)   from 20261106191100 (newest), verbatim plus the one Shops messages block before RETURN
+--   and the owner's shop permits (Q1952; Builder 2's 20261110195956 makes the table, which sorts before this file;
+--   guarded by to_regclass so a tree without it still exports)
 -- Account deletion needs no new step: shop_talks.buyer_id and shop_talks.shop_id cascade (shops.owner_id cascades),
 -- and shop_talk_messages.talk_id cascades, so no chat outlives either side; the proof deletes each side and counts.
 -- REPLAY-SAFE: DROP the old no-arg overload IF EXISTS, CREATE OR REPLACE. Grants as stated (service_role only).
@@ -680,6 +682,19 @@ BEGIN
       WHERE t.sender_id = v_uid
          OR t.talk_id IN (SELECT st.id FROM public.shop_talks st JOIN public.shops s ON s.id = st.shop_id
                            WHERE st.buyer_id = v_uid OR s.owner_id = v_uid)));
+  -- Shops paperwork (Q1952, 20261110195956): the food permits / inflatable registrations the member's shop sent for
+  -- the Permit on file badge, with the check's outcome and (on a turn-down only) its note, as the owner reads them
+  -- in My shop (shops_my_permits). Never the admin who checked it (reviewed_by) or the shop and row ids. Skipped while the table
+  -- does not exist yet (a tree without 20261110195956), as shop_strikes is, so the export never fails with 42P01.
+  IF to_regclass('public.shop_permits') IS NOT NULL THEN
+    v_out := v_out || jsonb_build_object('shop_permits', (SELECT coalesce(jsonb_agg(jsonb_build_object(
+          'kind', t.kind, 'expires_on', t.expires_on, 'status', t.status,
+          'review_note', CASE WHEN t.status = 'rejected' THEN t.review_note END,
+          'reviewed_at', t.reviewed_at, 'created_at', t.created_at, 'document_path', t.document_path)
+          ORDER BY t.created_at, t.kind), '[]'::jsonb)
+        FROM public.shop_permits t
+        WHERE t.owner_id = v_uid));
+  END IF;
 
   RETURN v_out;
 END;

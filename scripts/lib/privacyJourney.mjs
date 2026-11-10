@@ -144,6 +144,8 @@ export const EXPORT_SECTIONS = [
   "home_talks", "home_talk_messages",
   // Shops messages (20261105185006; exported by 20261110200630, NOT-LAUNCHED Q1947).
   "shop_talks", "shop_talk_messages",
+  // Shops paperwork (Q1952, 20261110195956; exported by 20261110200630): the owner's own permits.
+  "shop_permits",
   // Porch days (20261029161347; exported by 20261029223949).
   "declutter_seller_porch_days",
   // A seller's own meet spots (20261101194608; exported by 20261101210500).

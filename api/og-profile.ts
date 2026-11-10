@@ -119,7 +119,7 @@ export function ogProfileTree(card: OgProfileCard, photo: string | null, logo: s
     [
       ...(logo ? [el("img", { width: 58, height: 50, marginRight: 16 }, undefined, { src: logo, width: 58, height: 50 })] : []),
       el("div", { display: "flex", fontWeight: 600 }, "Louisiana Helpr"),
-      el("div", { display: "flex", color: MUTED, marginLeft: 18, fontSize: 26 }, "Hire help or find work. One account, real neighbors."),
+      el("div", { display: "flex", color: MUTED, marginLeft: 18, fontSize: 26 }, "Hire help, find work, or buy and sell. One account, real neighbors."),
     ],
   );
   return el(

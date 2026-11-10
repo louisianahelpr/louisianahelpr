@@ -12,7 +12,7 @@ export const enScreens = {
   // The Spanish lines are their faithful translation (lead, 2026-10-29).
   "hero.titleLead": "Louisiana’s local",
   "hero.titleAccent": "partner.",
-  "hero.subhead": "Hire help or find work. One account, real neighbors.",
+  "hero.subhead": "Hire help, find work, or buy and sell. One account, real neighbors.",
   "hero.searchLabel": "Search local jobs",
   "hero.searchButton": "Search",
   "hero.searchDeclutter": "Search Declutter",

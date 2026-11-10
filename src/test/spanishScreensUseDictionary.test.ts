@@ -18,7 +18,7 @@
  *
  * @mutate src/pages/auth/Login.tsx | {t("login.passwordMissing")} | Add your password
  * @mutate src/pages/auth/Login.tsx | aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")} | aria-label={showPassword ? "Hide password" : "Show password"}
- * @mutate src/lib/i18n/enScreens.ts | "hero.subhead": "Hire help or find work. One account, real neighbors.", | "hero.subhead": "Hire help or find work.",
+ * @mutate src/lib/i18n/enScreens.ts | "hero.subhead": "Hire help, find work, or buy and sell. One account, real neighbors.", | "hero.subhead": "Hire help or find work.",
  * @mutate src/components/MobileNav.tsx |     const shown = shownKey ? tr(shownKey) : label; |     const shown = label;
  * @mutate src/lib/i18n/navLabels.ts |   "/messages": "nav.messages",\n | \n
  */
@@ -125,7 +125,7 @@ describe("the detector itself", () => {
 describe("the landing hero: English locked, Spanish present", () => {
   it("en.ts keeps the locked hero words exactly", () => {
     expect(`${en["hero.titleLead"]} ${en["hero.titleAccent"]}`).toBe("Louisiana’s local partner.");
-    expect(en["hero.subhead"]).toBe("Hire help or find work. One account, real neighbors.");
+    expect(en["hero.subhead"]).toBe("Hire help, find work, or buy and sell. One account, real neighbors.");
   });
   it("es.ts carries a Spanish hero (not the English left in place)", () => {
     for (const k of ["hero.titleLead", "hero.titleAccent", "hero.subhead"] as const) {

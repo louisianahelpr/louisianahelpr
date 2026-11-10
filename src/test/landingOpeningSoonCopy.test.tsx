@@ -1,7 +1,7 @@
 /**
  * THE LANDING SAYS WHAT IS OPEN TODAY (owner answers 2026-10-21, via the lead):
- *   - the hero subhead is exactly "Hire help or find work. One account, real
- *     neighbors." (owner pop-up 2026-10-23, when ID verification was turned
+ *   - the hero subhead is exactly "Hire help, find work, or buy and sell. One account, real
+ *     neighbors." (owner pop-up 2026-11-09, 10:40 PM; before that 2026-10-23, when ID verification was turned
  *     off; it changes again as the other sections open),
  *     and CLAUDE.md's locked-copy rule quotes the same words;
  *   - each unopened section card carries its own small "Coming soon" badge and
@@ -15,7 +15,7 @@
  * The open/soon answer is fed through useSectionsOpen (the real fail-closed
  * sectionIsComingSoon decides each card), so no Supabase is involved.
  *
- * @mutate src/components/landing/HeroSection.tsx | Hire help or find work. One account | Hire help or find work. Sell or find a deal. Shop local or open a shop. Find a place or list one. One account
+ * @mutate src/components/landing/HeroSection.tsx | Hire help, find work, or buy and sell. One account | Hire help or find work. Sell or find a deal. Shop local or open a shop. Find a place or list one. One account
  * @mutate src/components/landing/SectionsShowcase.tsx |           {badged && (\n            <span | {false && (\n            <span
  * @mutate src/components/landing/SectionsShowcase.tsx | ...(badged ? { opacity: 0.8 } : null) | ...(false ? { opacity: 0.8 } : null)
  * @mutate src/components/landing/SectionsShowcase.tsx |         {!soon && (\n          <Link |         {true && (\n          <Link
@@ -57,7 +57,7 @@ import { SECTIONS } from "@/components/sections/sectionsConfig";
 import { SoonPill } from "@/components/sections/SoonPill";
 
 const ROOT = resolve(__dirname, "..", "..");
-const SUBHEAD = "Hire help or find work. One account, real neighbors.";
+const SUBHEAD = "Hire help, find work, or buy and sell. One account, real neighbors.";
 
 function renderSections(open: ReadonlySet<string> | null) {
   state.open = open;

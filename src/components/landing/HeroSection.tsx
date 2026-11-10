@@ -70,7 +70,7 @@ const HeroSection = () => {
               className="mt-6 lg:mt-7 text-[16px] sm:text-[17px] lg:text-[20px] leading-relaxed lg:whitespace-nowrap"
               style={{ fontFamily: "Montserrat, system-ui, sans-serif", fontWeight: 400, color: "var(--lp-body)" }}
             >
-              {es ? es.subhead : "Hire help or find work. One account, real neighbors."}
+              {es ? es.subhead : "Hire help, find work, or buy and sell. One account, real neighbors."}
             </p>
 
             <div className="mt-8 lg:mt-10 w-full max-w-[240px]" data-testid="landing-search-tabs">

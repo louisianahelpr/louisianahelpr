@@ -73,7 +73,7 @@ describe("the guest landing's HTML-drawn first screen is the app's own hero (B10
     const b = block(readFileSync(INDEX, "utf8"));
     expect(b).toMatch(/Louisiana(’|&rsquo;|&#x27;|')s local/);
     expect(b).toContain('style="font-style:italic;color:var(--lp-money)">partner.</em>');
-    expect(b).toContain(">Hire help or find work. One account, real neighbors.</p>");
+    expect(b).toContain(">Hire help, find work, or buy and sell. One account, real neighbors.</p>");
     expect(b).toContain('class="landing-h1 relative z-10 font-display font-bold');
     expect(b).toContain("landing-page");
   });

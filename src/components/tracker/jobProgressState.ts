@@ -463,7 +463,8 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     if (!Number.isNaN(opens) && now < opens) {
       // JA-5 (audit 11-01): the day, never "Opens Mon 12:00 AM" (a midnight time reads like a system stamp).
       const day = new Date(opens).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short" });
-      const wait = poster ? `${other} confirms on ${day}, the day before` : `Confirm on ${day}, the day before`;
+      // F442 (audit 11-10): say WHAT is confirmed ("Confirm on Thu, the day before" left a Helpr asking confirm what).
+      const wait = poster ? `${other} confirms on ${day}, the day before, that they can still come` : `Confirm on ${day}, the day before, that you can still do this job`;
       return at(2, false, "Hired", slot ? `New time ${slot}. ${wait}` : wait, held);
     }
     const helprIn = !!job.helper_dayof_confirmed_at;

@@ -152,7 +152,7 @@ describe("Q1554 — the Helpr's scheduled card: Confirm first, the rest under Mo
       expect(disabled, "the row's primary is greyed: a disabled future step").toBe(false);
       if (days > 1) {
         // JA-5 (audit 11-01): the day, never "Opens Mon 12:00 AM".
-        expect(cardText).toMatch(/Confirm on [A-Z][a-z]{2}, the day before/);
+        expect(cardText).toMatch(/Confirm on [A-Z][a-z]{2}, the day before, that you can still do this job/);
         expect(cardText).not.toMatch(/12:00 AM/);
         expect(cardText).not.toMatch(/Confirm you'll be at the job/);
       }

@@ -64,6 +64,7 @@ export const enScreens = {
   "login.email": "Email",
   "login.password": "Password",
   "login.forgot": "Forgot password?",
+  "login.resendVerify": "Send the email again",
   "login.emailInvalid": "Enter a valid email address",
   "login.emailMissing": "Add your email address",
   "login.passwordMissing": "Add your password",

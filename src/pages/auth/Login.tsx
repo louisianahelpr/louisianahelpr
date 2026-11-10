@@ -517,7 +517,7 @@ const Login = () => {
                   page (its Resend button), carrying the typed address; every other error keeps Forgot password. */}
               {credError === EMAIL_NOT_CONFIRMED_MESSAGE ? (
                 <Link to="/signup-pending" state={{ email: email.trim() }} data-login-resend-verify="" className="font-bold underline underline-offset-4" style={{ color: "hsl(var(--bark))" }}>
-                  Send the email again
+                  {t("login.resendVerify")}
                 </Link>
               ) : (
                 <Link to="/forgot-password" state={forgotState} className="font-bold underline underline-offset-4" style={{ color: "hsl(var(--bark))" }}>

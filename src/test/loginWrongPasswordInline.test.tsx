@@ -89,7 +89,7 @@ describe("F028: a wrong email or password is said above Log in, not in a corner 
       });
       expect(alert).toHaveTextContent("Please verify your email first");
       const link = alert.querySelector("a")!;
-      expect(link.textContent).toBe("Send the email again");
+      expect(link.textContent).toBe("Send the email again"); // enScreens "login.resendVerify"
       expect(link.getAttribute("href")).toBe("/signup-pending");
       expect(alert.querySelector('a[href="/forgot-password"]')).toBeNull();
     } finally {

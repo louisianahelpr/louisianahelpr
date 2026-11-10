@@ -19,6 +19,7 @@
 // @mutate src/pages/auth/Unsubscribe.tsx |     if (outcome.ok) setStage(outcome.status); |     setStage("unsubscribed");
 // @mutate src/pages/auth/Unsubscribe.tsx |     if (window.location.search) window.history.replaceState( |     if (false) window.history.replaceState(
 // @mutate src/lib/emailUnsubscribe.ts | /functions/v1/email-unsubscribe`, { | /functions/v1/email-unsubscribe?${form.toString()}`, {
+// @mutate src/pages/auth/Unsubscribe.tsx | or it's from an older email. Open the newest email from us and tap Unsubscribe again, or log in below." | or it's from an older email."
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -136,5 +137,9 @@ describe("the /unsubscribe page", () => {
     // F249 (audit 11-10): never a dead end: log in to the email settings, or ask us to stop every email.
     expect(screen.getByRole("link", { name: "Log in to manage emails" }).getAttribute("href")).toBe(`/login?redirect=${encodeURIComponent("/profile?tab=notifications")}`);
     expect(screen.getByRole("link", { name: "Ask us to stop all emails" }).getAttribute("href")).toMatch(/^\/support\?topic=message&subject=/);
+    // F416 (audit 11-10): the body says what to do next, not only what went wrong.
+    expect(screen.getByText(/It may have been changed, or it's from an older email\./).textContent).toBe(
+      "It may have been changed, or it's from an older email. Open the newest email from us and tap Unsubscribe again, or log in below.",
+    );
   });
 });

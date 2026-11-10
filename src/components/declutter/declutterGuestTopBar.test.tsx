@@ -131,9 +131,12 @@ describe("the item's join panel does not repeat the bar at desktop width (lead 1
     }
   });
 
+  // F228 (audit 11-10): the phone line's Log in measured 36x14; tap-44 gives it a 44px hit area without moving the line.
+  // @mutate src/components/declutter/DeclutterGuest.tsx | className="tap-44 font-semibold text-foreground underline underline-offset-2">Log in</Link> | className="font-semibold text-foreground underline underline-offset-2">Log in</Link>
   it("phone: the logo, the item's two buttons and Log in, each coming back to the item", () => {
     state.desktop = false;
     const join = panel();
+    expect(within(join).getByRole("link", { name: "Log in" }).className).toMatch(/\btap-44\b/);
     expect(within(join).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual([
       "/signup?redirect=%2Fdeclutter%2Fitem%2Fi1",
       "/signup?redirect=%2Fdeclutter%2Fitem%2Fi1",

@@ -114,7 +114,8 @@ export function DeclutterGuestJoin({ free, offers = true, trades = false }: { fr
           {/* F048 / F059 (owner UI audit 11-09, newest wording): it is SIGNING UP that is free, never read as the item. */}
           Signing up is free. We'll bring you back to this item.
           {/* The desktop guest bar already has Log in (AUD31-67 follow-up): only a phone gets it here. */}
-          {!barShown && <>{" "}<Link to={`/login?redirect=${here(location)}`} className="font-semibold text-foreground underline underline-offset-2">Log in</Link></>}
+          {/* F228 (audit 11-10): the inline Log in measured 36x14; tap-44 gives it a 44px hit area without moving the line. */}
+          {!barShown && <>{" "}<Link to={`/login?redirect=${here(location)}`} className="tap-44 font-semibold text-foreground underline underline-offset-2">Log in</Link></>}
         </p>
         {!barShown && <GuestBrand />}
       </div>

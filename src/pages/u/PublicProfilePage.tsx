@@ -150,14 +150,18 @@ function HireMeButton({ handle, signedIn }: { handle: string; signedIn: boolean 
           <Link to={hireGuestHref(handle)}>{label}</Link>
         </Button>
       )}
-      <p className="mt-2 text-ds-13 text-muted-foreground">Offer a job directly. Your payment is held safely until the work is done.</p>
+      {/* F231 (audit 11-10): a guest asked what Hire me costs: free to look, pay only when you hire. */}
+      <p className="mt-2 text-ds-13 text-muted-foreground">
+        {signedIn ? "Offer a job directly. Your payment is held safely until the work is done." : "Free to look. You pay only when you hire, and your payment is held safely until the work is done."}
+      </p>
       {/* Audit L3 (11-05): a guest who already has an account was sent to sign-up only. F068 (owner UI audit 11-09): and
           a new guest had no plain way to sign up, so both are offered: "New here? Join free · Have an account? Log in". */}
       {!signedIn && (
         <p className="mt-1 text-ds-13 text-muted-foreground" data-testid="pp-hire-join">
-          New here? <Link to={hireGuestHref(handle)} className="font-semibold text-foreground underline underline-offset-2">Join free</Link>
+          {/* F230 (audit 11-10): Join free measured 58x16 and Log in 36x14; tap-44 gives each a 44px hit area in place. */}
+          New here? <Link to={hireGuestHref(handle)} className="tap-44 font-semibold text-foreground underline underline-offset-2">Join free</Link>
           <span aria-hidden="true"> · </span>
-          <span data-testid="pp-hire-login">Have an account? <Link to={hireGuestLoginHref(handle)} className="font-semibold text-foreground underline underline-offset-2">Log in</Link></span>
+          <span data-testid="pp-hire-login">Have an account? <Link to={hireGuestLoginHref(handle)} className="tap-44 font-semibold text-foreground underline underline-offset-2">Log in</Link></span>
         </p>
       )}
     </div>

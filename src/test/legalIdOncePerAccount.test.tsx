@@ -10,15 +10,16 @@
  *
  * @mutate src/pages/info/legal/TermsSection.tsx |   const idOn = useIdCheckOnForViewer(); |   const idOn = useIdentityCheckOnStore();
  * @mutate src/pages/info/legal/TermsSection.tsx | ${idOn ? ` You also verify ${ID_ONCE_PER_ACCOUNT}.` : ""} |
+ * @mutate src/lib/useIdCheckOnForViewer.ts | export const ID_CHECK_BEFORE_ANSWER = true; | export const ID_CHECK_BEFORE_ANSWER = false;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
-const state = vi.hoisted(() => ({ open: new Set<string>() }));
+const state = vi.hoisted(() => ({ open: new Set<string>() as Set<string> | null }));
 vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, isReady: true }) }));
-vi.mock("@/components/landing/useSectionsOpen", () => ({ useSectionsOpen: () => ({ open: state.open, settled: true, failed: false }) }));
+vi.mock("@/components/landing/useSectionsOpen", () => ({ useSectionsOpen: () => ({ open: state.open, settled: state.open !== null, failed: false }) }));
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticLight: vi.fn(), hapticSuccess: vi.fn() }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: vi.fn() } }));
@@ -29,7 +30,7 @@ vi.mock("@/hooks/useOnboardingFee", async (orig) => ({
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 
 import { TermsContent } from "@/pages/info/legal/TermsSection";
-import { ID_ONCE_PER_ACCOUNT } from "@/lib/useIdCheckOnForViewer";
+import { ID_CHECK_BEFORE_ANSWER, ID_ONCE_PER_ACCOUNT } from "@/lib/useIdCheckOnForViewer";
 
 function firstShortItem(): string {
   render(<MemoryRouter><TermsContent /></MemoryRouter>);
@@ -52,6 +53,15 @@ describe("L003: the Terms' short version says the real ID rule to a signed-out v
     expect(first).toContain(`You also verify ${ID_ONCE_PER_ACCOUNT}.`);
     expect(ID_ONCE_PER_ACCOUNT).toMatch(/once per account/);
     expect(ID_ONCE_PER_ACCOUNT).toMatch(/post a job.*hired.*delivery.*list an item.*buy/);
+  });
+
+  // Lead 11-09: identity_check is on for everyone, so before any answer (the build-time prerender of /legal, a guest's
+  // read in flight) the pages say the ID rule; the real answer, once in, still wins.
+  it("before the answer is known (prerender, first paint): the ID rule, which is true today", () => {
+    state.open = null;
+    const first = firstShortItem();
+    expect(first).toContain(`You also verify ${ID_ONCE_PER_ACCOUNT}.`);
+    expect(ID_CHECK_BEFORE_ANSWER).toBe(true);
   });
 
   it("ID check not open to everyone: email only, no ID promise", () => {

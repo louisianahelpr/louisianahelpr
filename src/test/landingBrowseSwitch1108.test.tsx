@@ -102,6 +102,11 @@ describe("the landing's Jobs | Declutter switch (owner 11-08)", () => {
       expect(screen.getByTestId("landing-browse-switch").id).toBe("declutter");
       // The link does not overwrite the visitor's own remembered pick.
       expect(window.localStorage.getItem(LANDING_MODE_KEY)).toBe("jobs");
+      // The hero alone reads the hash on its first render too (the switch's effect is not what turns it).
+      cleanup();
+      resetLandingModeForTests();
+      render(<MemoryRouter initialEntries={["/"]}><HeroSection /></MemoryRouter>);
+      expect(box().placeholder).toBe("Search Declutter");
     } finally {
       window.history.replaceState(null, "", "/");
     }

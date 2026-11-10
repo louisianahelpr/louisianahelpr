@@ -12,10 +12,11 @@
  * .lh25) and font: nothing here is in the main bundle or the app's theme.
  */
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { sponsorPage as C } from "@/content/sponsorPage";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { coarseDevice, coarseReferrer, sponsorBackend, type SponsorBackend } from "@/lib/sponsor/api";
 import { normalizeRef } from "../../../supabase/functions/_shared/sponsorSignup";
 import { ClaimSection } from "@/components/sponsor/ClaimSection";
@@ -51,31 +52,36 @@ function shouldLogVisit(ref: string | null): boolean {
   return true;
 }
 
-export function SponsorShell({ children }: { children: React.ReactNode }) {
+/** The page's own top: the dev-only sample-data ribbon and the string lights. */
+export function SponsorChrome() {
   const demo = import.meta.env.DEV && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo");
   return (
-    <div className="lh25">
+    <>
       {demo ? <div className="lh25-demo-ribbon">LOCAL PREVIEW · SAMPLE DATA · NOT LIVE</div> : null}
       <Garland />
-      {children}
-    </div>
+    </>
   );
+}
+
+/* The same head values api/share.ts serves before JavaScript runs (NOINDEX_PAGE_META), one per path. */
+function HeadSponsor() {
+  usePageMeta(NOINDEX_PAGE_META["/sponsor"]);
+  return null;
+}
+function Head25days() {
+  usePageMeta(NOINDEX_PAGE_META["/25days"]);
+  return null;
 }
 
 export default function SponsorPage() {
   const [params] = useSearchParams();
+  const { pathname } = useLocation();
   const refCode = normalizeRef(params.get("ref"));
   const preview = import.meta.env.DEV && params.has("demo") && params.has("placeholders");
+  // Local preview only: show the claim section as it looks after the sign-up deadline.
+  const previewClosed = import.meta.env.DEV && params.has("demo") && params.has("closed");
   const backend = useBackend();
 
-  usePageMeta({
-    title: C.meta.title,
-    description: C.meta.description,
-    ogTitle: C.meta.title,
-    ogDescription: C.meta.description,
-    canonical: `${C.links.website}/sponsor`,
-    ogUrl: `${C.links.website}/sponsor`,
-  });
 
   const stateQ = useQuery({
     queryKey: ["sponsor-25days", "public", refCode, !!backend],
@@ -98,20 +104,22 @@ export default function SponsorPage() {
 
   if (!backend || stateQ.isPending) {
     return (
-      <SponsorShell>
+      <div className="lh25 min-h-screen bg-premium-page">
+        <SponsorChrome />
         <div className="lh25-loading" role="status" aria-live="polite"><span className="lh25-spinner" aria-hidden="true" /> Loading…</div>
-      </SponsorShell>
+      </div>
     );
   }
   if (stateQ.isError) {
     return (
-      <SponsorShell>
+      <div className="lh25 min-h-screen bg-premium-page">
+        <SponsorChrome />
         <div className="lh25-loading" role="alert">
           <p>We couldn't load this page. Check your connection and try again.</p>
           <button type="button" className="lh25-btn lh25-btn-primary" onClick={() => void stateQ.refetch()}>Try again</button>
           <p>Or email <a href={`mailto:${C.links.email}`}>{C.links.email}</a>.</p>
         </div>
-      </SponsorShell>
+      </div>
     );
   }
   if (!on) {
@@ -120,10 +128,12 @@ export default function SponsorPage() {
   const state = stateQ.data;
   return (
     <PlaceholderPreview.Provider value={preview}>
-      <SponsorShell>
+      {pathname === "/25days" ? <Head25days /> : <HeadSponsor />}
+      <div className="lh25 min-h-screen bg-premium-page">
+        <SponsorChrome />
         <Hero greetingBrand={state.greetingBrand} />
         <TrustStrip />
-        <main className="lh25-main">
+        <div className="lh25-main">
           <About />
           <Founder photoUrl={photoUrl} />
           <HowItWorks />
@@ -133,12 +143,12 @@ export default function SponsorPage() {
           <PreviewCard />
           <SponsorWall wall={state.wall} logoUrl={(id) => backend.logoUrl(id)} />
           <Testimonials items={state.testimonials} />
-          <ClaimSection state={state} greetingBrand={state.greetingBrand} refCode={refCode} onSubmit={(p, logo) => backend.submit(p, logo)} />
+          <ClaimSection state={state} greetingBrand={state.greetingBrand} refCode={refCode} onSubmit={(p, logo) => backend.submit(p, logo)} nowMs={previewClosed ? Date.UTC(2026, 11, 2) : undefined} />
           <Faq />
-        </main>
+        </div>
         <FinalCta />
         <Footer />
-      </SponsorShell>
+      </div>
     </PlaceholderPreview.Provider>
   );
 }

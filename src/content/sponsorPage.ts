@@ -18,17 +18,19 @@
  * src/test/sponsorPageContent.test.ts).
  */
 export const sponsorPage = {
-  meta: {
-    title: "25 Days of Louisiana Giveaways — Sponsor a Day | Louisiana Helpr",
-    description:
-      "Claim your day this December and get your brand in front of Louisiana families shopping for the holidays. Free to join, no fees or contracts.",
-    rulesTitle: "Official Giveaway Rules — 25 Days of Louisiana Giveaways",
-    rulesDescription: "Official rules for the 25 Days of Louisiana Giveaways on Louisiana Helpr, December 1–25, 2026.",
-  },
+  // The browser-tab title, search description and link-preview text are NOT here: they live in
+  // src/lib/publicPageMeta.mjs (NOINDEX_PAGE_META "/sponsor", "/25days", "/25days/rules"), the one table the
+  // server reads to build a shared link's preview before the page runs. The preview picture is public/og-25days.png.
 
   /** The giveaway runs Dec 1–25, 2026, Louisiana time. */
   event: {
     year: 2026,
+    /**
+     * Last day to sign up (Louisiana time). After it the sign-up form is replaced by `claim.closed`, and the
+     * sponsor-25days function refuses new sign-ups too (SPONSOR_SIGNUP_DEADLINE in
+     * supabase/functions/_shared/sponsorSignup.ts must say the same date; src/test/sponsor25days.test.tsx checks).
+     */
+    signup_deadline: "2026-11-30",
     firstDay: 1,
     lastDay: 25,
     timeZone: "America/Chicago",
@@ -57,13 +59,15 @@ export const sponsorPage = {
     secondaryCta: "How It Works",
     countdownLabel: "Giveaways start in",
     countdownLive: "The giveaways are live! Day {day} of 25",
+    /** Under the countdown and in Claim Your Day while sign-ups are open. */
+    deadline: "Sign up by Nov 30.",
     countdownUnits: { days: "days", hours: "hours", minutes: "min", seconds: "sec" },
   },
 
   trustStrip: [
     "Louisiana-owned & run",
     "Based in Delcambre, LA",
-    "Free to join, no fees or contracts",
+    "No fees, no contracts",
     "Real local families, not bots",
   ],
 
@@ -78,7 +82,8 @@ export const sponsorPage = {
      */
     features: [
       { icon: "briefcase", title: "Jobs & Gigs", body: "Hire local help or find work near you.", href: "/jobs", soonLabel: null },
-      { icon: "home", title: "Homes & Rentals", body: "Local homes and rentals, from your neighbors.", href: null, soonLabel: "Coming soon" },
+      // The section is called Homes everywhere in the app (owner 2026-10-18; src/test/homesNotRentalsInCopy.test.ts).
+      { icon: "home", title: "Homes", body: "Local homes and rentals, from your neighbors.", href: null, soonLabel: "Coming soon" },
       { icon: "bag", title: "Shop & Declutter Local", body: "Buy and sell used things with Louisiana neighbors.", href: "/declutter", soonLabel: null },
     ],
     groupButton: "Visit our Facebook Group",
@@ -105,19 +110,18 @@ export const sponsorPage = {
     title: "How It Works",
     steps: [
       { icon: "calendar", title: "Pick your day", body: "Choose any day (or days!) from December 1–25. Multiple brands can share a day." },
-      { icon: "gift", title: "Tell us your prize", body: "A product, gift card or bundle, any value you like." },
+      { icon: "gift", title: "Tell us your prize", body: "Donate anything you'd like: a product, a gift card, a service or a bundle." },
       { icon: "sparkle", title: "We do the work", body: "We design the graphics, write and publish the posts, tag and link your brand, run the entries and pick a winner at random." },
-      { icon: "chart", title: "You get the results", body: "The winner gets your prize, and you get a recap of how your day performed." },
+      { icon: "chart", title: "Your brand shines", body: "A Louisiana neighbor wins your prize, and local families see your brand." },
     ],
   },
 
   brandGets: {
     title: "What Your Brand Gets",
     items: [
-      { icon: "star", title: "Your own spotlight", body: "A featured giveaway post on your day." },
+      { icon: "star", title: "Your spotlight post", body: "A featured giveaway post for your brand on your day." },
       { icon: "link", title: "Tags & links everywhere", body: "Your brand tagged and linked on our Facebook page, our group and our website." },
       { icon: "heart", title: "Real local engagement", body: "Louisiana families commenting, sharing and following, right in the middle of holiday shopping." },
-      { icon: "chart", title: "A results recap", body: "After your day we send you [reach, comments, shares, entries and screenshots]." },
       { icon: "wall", title: "Featured on our sponsor wall", body: "Your logo on the 25 Days page all month, linked to your site." },
     ],
   },
@@ -125,7 +129,7 @@ export const sponsorPage = {
   whatWeAsk: {
     title: "What We Ask",
     body:
-      "Just one prize for one winner (a product, gift card or bundle, your choice of value), shipped to the winner or to us. That's it. No fees, no contracts, no catch. We handle the graphics, posts, picking the winner and the recap.",
+      "Donate a prize, anything you'd like (a product, a gift card, a service or a bundle), shipped to the winner or to us. That's it. No fees, no contracts, no catch. We handle the graphics, the posts and picking the winner.",
   },
 
   reach: {
@@ -167,8 +171,12 @@ export const sponsorPage = {
     intro: "Pick one day or as many as you like. More than one brand can share a day, and every sponsor gets their own spotlight post.",
     dayCount: { one: "{n} brand joined", many: "{n} brands joined", none: "Open" },
     full: "Full",
+    deadline: "Sign up by Nov 30.",
+    /** Shown in place of the calendar and form after signup_deadline. */
+    closedTitle: "Sign-ups are closed",
+    closed: "Sign-ups for the 25 Days of Louisiana Giveaways closed on November 30. Thank you to every brand that joined! Questions? Email admin@louisianahelpr.com.",
     anyDay: "Any day is fine",
-    selectedNone: "Pick at least one day, or choose “Any day is fine”.",
+    selectedNone: "Pick at least one day, or tick the any-day box.",
     form: {
       brandName: "Brand name",
       contactName: "Your name",
@@ -195,14 +203,15 @@ export const sponsorPage = {
     errors: {
       required: "This one's required.",
       email: "Enter a valid email address.",
-      days: "Pick at least one day, or choose “Any day is fine”.",
+      days: "Pick at least one day, or tick the any-day box.",
       prizeValue: "Enter a dollar amount, like 50.",
       agree: "Please check this box to continue.",
       logoType: "Logos can be PNG, JPG or SVG.",
       logoSize: "That logo is over 5 MB. Try a smaller file.",
-      url: "Enter a full web address, like https://yourbrand.com.",
+      url: "Enter a full web address that starts with https://",
       full: "Sorry, {days} just filled up. Pick another day?",
       rateLimited: "Too many tries in a short time. Please wait a few minutes and try again.",
+      closed: "Sign-ups closed on November 30, so this one was not saved. Questions? Email admin@louisianahelpr.com.",
       generic: "Something went wrong and your sign-up was NOT saved. Please try again, or email admin@louisianahelpr.com.",
     },
   },
@@ -221,13 +230,12 @@ export const sponsorPage = {
   faq: {
     title: "Questions? We've Got Answers",
     items: [
-      { q: "Is this really free?", a: "Yes. There's no fee to join; all we ask is one prize for one winner." },
+      { q: "Is this really free?", a: "Yes. There's no fee to join; all we ask is a prize to give away." },
       { q: "Who can enter the giveaways?", a: "[Louisiana residents 18+ — confirm]. Full details are in the Official Giveaway Rules." },
       { q: "How is the winner picked?", a: "At random from eligible entries, and announced publicly on our Facebook page and group." },
       { q: "How does the prize get to the winner?", a: "Ship it straight to the winner (we send you their shipping info), or send it to us and we handle delivery." },
       { q: "Can I sponsor more than one day?", a: "Absolutely!" },
       { q: "Can more than one brand be on the same day?", a: "Yes, and every sponsor gets their own spotlight post." },
-      { q: "What do I get afterward?", a: "A recap of your day: [reach, engagement, entries, screenshots]." },
       { q: "What if I have more questions?", a: "Email Lexi at admin@louisianahelpr.com. A real person replies." },
       { q: "Is this affiliated with Facebook?", a: "No. This giveaway is in no way sponsored, endorsed or administered by, or associated with, Facebook/Meta." },
     ],

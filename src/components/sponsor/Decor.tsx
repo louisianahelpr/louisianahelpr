@@ -17,7 +17,7 @@ export function Garland({ count = 18 }: { count?: number }) {
   for (let x = 20; x <= w; x += 20) d += ` L ${x} ${sag(x).toFixed(1)}`;
   return (
     <svg className="lh25-garland" viewBox={`0 0 ${w} 70`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
-      <path d={d} fill="none" stroke="#2f5d3a" strokeWidth="2" />
+      <path className="lh25-wire" d={d} fill="none" stroke="#2f5d3a" />
       {Array.from({ length: count }, (_, i) => {
         const x = step * i + step / 2;
         const y = sag(x);
@@ -63,7 +63,7 @@ export function Magnolia({ size = 44, className = "" }: { size?: number; classNa
     <svg className={className} width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" focusable="false">
       <g transform="translate(32 32)">
         {petals.map((a) => (
-          <path key={a} transform={`rotate(${a})`} d="M0 0 C-10 -8 -9 -26 0 -29 C9 -26 10 -8 0 0 Z" fill="#fffaf2" stroke="#e8d9c4" strokeWidth="1.2" />
+          <path key={a} transform={`rotate(${a})`} d="M0 0 C-10 -8 -9 -26 0 -29 C9 -26 10 -8 0 0 Z" className="lh25-petal" fill="#fffaf2" stroke="#e8d9c4" />
         ))}
         <circle r="6" fill="#D4AF37" />
         <circle r="3" fill="#b8932a" />
@@ -111,7 +111,7 @@ export function Icon({ name, size = 22, label }: { name: string; size?: number; 
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.9"
+      className="lh25-icon"
       strokeLinecap="round"
       strokeLinejoin="round"
       role={label ? "img" : undefined}

@@ -32,7 +32,8 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "..", "..");
 // Names, not sentences: the legal document and the credential seal (controlsSentenceCase NAMES).
-const NAMES = [/Terms of Service/g, /Licensed & Insured/g];
+// "25 Days of Louisiana Giveaways" is the owner's name for the December giveaway (owner spec 2026-11-09).
+const NAMES = [/Terms of Service/g, /Licensed & Insured/g, /25 Days of Louisiana Giveaways/g];
 
 function problems(title: string): string[] {
   let t = title;

@@ -9,7 +9,7 @@ import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react
 import { sponsorPage as C } from "@/content/sponsorPage";
 import { buildIcs, daysLabel } from "@/lib/sponsor/dates";
 import type { SponsorPublicState, SponsorSignupPayload, SponsorSubmitResult } from "@/lib/sponsor/types";
-import { checkLogo, validateSponsorSignup } from "../../../supabase/functions/_shared/sponsorSignup";
+import { checkLogo, sponsorSignupsOpen, validateSponsorSignup } from "../../../supabase/functions/_shared/sponsorSignup";
 import { confettiBurst } from "./confetti";
 import { GiftBox, Icon, Sparkle } from "./Decor";
 
@@ -66,7 +66,10 @@ export function ClaimSection({
   greetingBrand,
   refCode,
   onSubmit,
+  nowMs,
 }: {
+  /** For tests and the local preview only; the real page passes nothing and reads the clock. */
+  nowMs?: number;
   state: SponsorPublicState;
   greetingBrand: string | null;
   refCode: string | null;
@@ -145,6 +148,8 @@ export function ClaimSection({
         setExtraFull((x) => [...new Set([...x, ...res.fullDays])]);
         setForm((f) => ({ ...f, days: f.days.filter((d) => !res.fullDays.includes(d)) }));
         setBanner(E.full.replace("{days}", daysLabel(res.fullDays)));
+      } else if (res.kind === "closed") {
+        setBanner(E.closed);
       } else if (res.kind === "rateLimited") {
         setBanner(E.rateLimited);
       } else if (res.kind === "invalid") {
@@ -182,6 +187,17 @@ export function ClaimSection({
     );
   }
 
+  if (!sponsorSignupsOpen(nowMs ?? Date.now(), C.event.signup_deadline)) {
+    return (
+      <section className="lh25-section" id="claim" aria-labelledby="lh25-closed">
+        <div className="lh25-thanks" data-testid="sponsor-closed">
+          <h2 id="lh25-closed">{C.claim.closedTitle}</h2>
+          <p className="lh25-thanks-body">{C.claim.closed}</p>
+        </div>
+      </section>
+    );
+  }
+
   const err = (k: FieldKey) => errors[k] ?? null;
   const describe = (id: string, k: FieldKey, hint?: boolean) => (errors[k] ? `${id}-error` : hint ? `${id}-hint` : undefined);
 
@@ -191,6 +207,7 @@ export function ClaimSection({
         <h2 id="lh25-claim">{C.claim.title}</h2>
       </div>
       <p className="lh25-lede lh25-center">{C.claim.intro}</p>
+      <p className="lh25-deadline lh25-center">{C.claim.deadline}</p>
 
       <div
         className={`lh25-calendar${err("days") ? " lh25-calendar-error" : ""}`}
@@ -270,7 +287,7 @@ export function ClaimSection({
             <input id="lh25-ig" name="instagram" value={form.instagram} onChange={(e) => set("instagram", e.target.value)} placeholder="@yourbrand" />
           </Field>
           <Field id="lh25-fb" label={F.facebook} error={err("facebook")}>
-            <input id="lh25-fb" name="facebook" value={form.facebook} onChange={(e) => set("facebook", e.target.value)} placeholder="facebook.com/yourbrand" />
+            <input id="lh25-fb" name="facebook" value={form.facebook} onChange={(e) => set("facebook", e.target.value)} placeholder="your Facebook page" />
           </Field>
           <Field id="lh25-tt" label={F.tiktok} error={err("tiktok")}>
             <input id="lh25-tt" name="tiktok" value={form.tiktok} onChange={(e) => set("tiktok", e.target.value)} placeholder="@yourbrand" />

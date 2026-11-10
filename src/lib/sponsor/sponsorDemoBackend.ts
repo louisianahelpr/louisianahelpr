@@ -12,6 +12,7 @@
  *   &fail=full|rate|error the next submit fails that way
  */
 import type { SponsorBackend } from "./api";
+import type { SponsorAdminBackend } from "@/pages/admin/sponsors/sponsorAdminApi";
 import type { SponsorAdminData, SponsorAdminSignup, SponsorPublicState } from "./types";
 
 const params = () => new URLSearchParams(window.location.search);
@@ -30,13 +31,14 @@ function sampleSignups(): SponsorAdminSignup[] {
   return [
     { ...base, id: "s1", created_at: "2026-11-09T15:02:00Z", brand_name: "Cajun Candle Co (sample)", contact_name: "Sample Person A", email: "a@example.com", website: "https://example.com", prize_description: "Holiday candle trio", prize_value: 60, ship_to: "winner", status: "confirmed", show_on_wall: true, logo_path: "demo/a.svg", ref_code: "cajun-candle-co", days: [3, 12] },
     { ...base, id: "s2", created_at: "2026-11-09T16:40:00Z", brand_name: "Bayou Bloom Boutique (sample)", contact_name: "Sample Person B", email: "b@example.com", website: null, prize_description: "$50 gift card", prize_value: 50, ship_to: "helpr", status: "pending", show_on_wall: false, days: [3] },
-    { ...base, id: "s3", created_at: "2026-11-10T09:15:00Z", brand_name: "Magnolia Coffee (sample)", contact_name: "Sample Person C", email: "c@example.com", website: "https://example.org", prize_description: "Coffee lover's bundle", prize_value: 75, ship_to: "winner", status: "prize_received", show_on_wall: true, logo_path: "demo/c.svg", days: [7] },
+    { ...base, id: "s3", created_at: "2026-11-10T09:15:00Z", brand_name: "Magnolia Coffee (sample)", contact_name: "Sample Person C", email: "c@example.com", website: "https://example.com", prize_description: "Coffee lover's bundle", prize_value: 75, ship_to: "winner", status: "prize_received", show_on_wall: true, logo_path: "demo/c.svg", days: [7] },
     { ...base, id: "s4", created_at: "2026-11-10T12:00:00Z", brand_name: "Teche Tees (sample)", contact_name: "Sample Person D", email: "d@example.com", website: null, prize_description: "Two holiday t-shirts", prize_value: 40, ship_to: null, status: "pending", show_on_wall: false, any_day: true, wall_ok: false, days: [] },
   ];
 }
 
+const signups = sampleSignups();
+
 export function createDemoBackend(): SponsorBackend {
-  const signups = sampleSignups();
   let failNext = params().get("fail");
   const fill = params().has("fill");
   const cap = params().has("cap") ? 1 : null;
@@ -58,7 +60,7 @@ export function createDemoBackend(): SponsorBackend {
         wall: fill
           ? [
               { id: "s1", brand: "Cajun Candle Co (sample)", website: "https://example.com", hasLogo: true },
-              { id: "s3", brand: "Magnolia Coffee (sample)", website: "https://example.org", hasLogo: true },
+              { id: "s3", brand: "Magnolia Coffee (sample)", website: "https://example.com", hasLogo: true },
               { id: "s5", brand: "Sample Brand Without Logo", website: null, hasLogo: false },
             ]
           : [],
@@ -76,6 +78,7 @@ export function createDemoBackend(): SponsorBackend {
       failNext = null;
       if (f === "full") return { ok: false, kind: "full", fullDays: payload.days.slice(0, 1) };
       if (f === "rate") return { ok: false, kind: "rateLimited" };
+      if (f === "closed") return { ok: false, kind: "closed" };
       if (f === "error") return { ok: false, kind: "error" };
       if (cap !== null) {
         const c = counts();
@@ -97,7 +100,13 @@ export function createDemoBackend(): SponsorBackend {
     founderPhotoUrl() {
       return "";
     },
-    admin: {
+  };
+  return backend;
+}
+
+/** The admin half of the sample backend (same sample sign-ups as the page). */
+export function createDemoAdminBackend(): SponsorAdminBackend {
+  return {
       async overview(): Promise<SponsorAdminData> {
         await wait(150);
         return {
@@ -128,7 +137,6 @@ export function createDemoBackend(): SponsorBackend {
       async deleteTestimonial() { /* sample only */ },
       async logoDownloadUrl() { return LOGO_SVG("C", "#C8102E"); },
       async uploadFounderPhoto() { /* sample only */ },
-    },
+    
   };
-  return backend;
 }

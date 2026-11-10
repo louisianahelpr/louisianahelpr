@@ -118,19 +118,13 @@ describe("BUY-16: guests browse Declutter", () => {
     expect(reads).toEqual([]);
   });
 
-  // F073 (UI audit 11-09; lead 11-09 replaces the 10-31 call): the desktop card has the phone's real buttons too, one
-  // size up from the top bar's compact pair; the H stays in the bar only.
-  // @mutate src/components/declutter/DeclutterGuest.tsx |   const size = barShown ? "md" : "sm"; |   const size = "sm";
-  it("at desktop width the line keeps its message and has real Log in / Sign up buttons, the primary pair (F073)", async () => {
+  // Owner 11-10 (replaces F073): at desktop width the guest top bar already has Log in / Sign up, so the sign-up card is
+  // not repeated above Browse; the phone keeps it (its bar has no buttons).
+  // @mutate src/components/declutter/DeclutterGuest.tsx |   if (barShown) return null; |   if (false) return null;
+  it("at desktop width there is no sign-up card above Browse (the top bar has Log in / Sign up)", async () => {
     show(<DeclutterHome />);
     expect(await screen.findByText("Thing 1")).toBeInTheDocument();
-    const join = document.querySelector('[data-guest-join="browse"]') as HTMLElement;
-    expect(join).toHaveTextContent("Sign up to buy, make offers or sell.");
-    const links = within(join).getAllByRole("link");
-    expect(links.map((a) => a.textContent)).toEqual(["Log in", "Sign up"]);
-    expect(links[1].getAttribute("href")).toMatch(/^\/signup\?redirect=/);
-    for (const a of links) expect(a.className).toMatch(/\bh-12\b/);
-    expect(join.querySelector("[data-guest-brand]")).toBeNull();
+    expect(document.querySelector('[data-guest-join="browse"]')).toBeNull();
     // Desktop draws the map beside the list for a member; a guest still gets no map and no pins read.
     expect(screen.queryByRole("button", { name: /the map/ })).toBeNull();
     expect(screen.queryByText("THE MAP")).toBeNull();

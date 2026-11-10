@@ -23,14 +23,22 @@ const START_CHIPS_PER_SECTION = 4;
  * 'Declutter'; show recent searches"): the member's recent searches (searchHistory, this device) come first, each
  * running again, and the category chips sit under a "Jobs" and a "Declutter" heading.
  */
-export function SearchStart({ userId, declutterOn }: { userId: string | null; declutterOn: boolean }) {
+/**
+ * L004 (landing audit 11-09): a guest's Jobs chip went to /jobs?tab=browse (signed-in only), so it hit the login wall.
+ * Signed out it opens the public board on that category (/browse?cat=, the address HireTownPage already uses).
+ */
+export function jobsCategoryHref(cat: string, signedIn: boolean): string {
+  return signedIn ? `/jobs?tab=browse&cat=${cat}` : `/browse?cat=${cat}`;
+}
+
+export function SearchStart({ userId, declutterOn, signedIn = true }: { userId: string | null; declutterOn: boolean; signedIn?: boolean }) {
   // The same cache entry as Settings › Saved searches. A failed read shows no saved list (the chips and the box
   // still work); Settings shows the error and its retry.
   const saved = useQuery({ queryKey: [...SAVED_SEARCHES_KEY, "list", userId ?? ""], enabled: !!userId, queryFn: () => fetchSavedSearches(userId!) });
   const open = (s: SavedSearch) => s.section === "jobs" || (s.section === "declutter" && declutterOn);
   const rows = (saved.data ?? []).filter(open).slice(0, START_SAVED_MAX);
   const groups: { key: string; title: string; chips: { key: string; label: string; to: string }[] }[] = [
-    { key: "jobs", title: "Jobs", chips: JOB_CATEGORIES.slice(0, START_CHIPS_PER_SECTION).map((c) => ({ key: `jobs-${c.value}`, label: c.label, to: `/jobs?tab=browse&cat=${c.value}` })) },
+    { key: "jobs", title: "Jobs", chips: JOB_CATEGORIES.slice(0, START_CHIPS_PER_SECTION).map((c) => ({ key: `jobs-${c.value}`, label: c.label, to: jobsCategoryHref(c.value, signedIn) })) },
     ...(declutterOn ? [{ key: "declutter", title: "Declutter", chips: CATEGORIES.slice(0, START_CHIPS_PER_SECTION).map((c) => ({ key: `declutter-${c.key}`, label: c.label, to: `/declutter?cat=${c.key}` })) }] : []),
   ];
   // Read once per visit: the list only changes when a search is run, which leaves this screen.

@@ -9,6 +9,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { Link } from "react-router-dom";
 import { sponsorPage as C } from "@/content/sponsorPage";
 import { countdown } from "@/lib/sponsor/dates";
+import { sponsorSignupsOpen } from "../../../supabase/functions/_shared/sponsorSignup";
 import { filledUrl, hasPlaceholder, placeholderRuns, statNumber } from "@/lib/sponsor/placeholders";
 import type { SponsorPublicState, SponsorStatKey } from "@/lib/sponsor/types";
 import { prefersReducedMotion } from "./confetti";
@@ -98,7 +99,7 @@ export function Hero({ greetingBrand }: { greetingBrand: string | null }) {
       <Magnolia className="lh25-hero-magnolia" size={70} />
       <GiftBox className="lh25-hero-gift" size={58} />
       <div className="lh25-hero-inner">
-        <img className="lh25-logo" src="/apple-touch-icon.png" width={64} height={64} alt="Louisiana Helpr" />
+        <img className="lh25-logo" src="/helpr-logo-transparent-192.png" width={84} height={84} alt="Louisiana Helpr" />
         {greetingBrand ? (
           <p className="lh25-greeting" data-testid="sponsor-greeting">{C.hero.greeting.replace("{brand}", greetingBrand)}</p>
         ) : null}
@@ -113,6 +114,7 @@ export function Hero({ greetingBrand }: { greetingBrand: string | null }) {
           <button type="button" className="lh25-btn lh25-btn-outline" onClick={() => scrollToId("how")}>{C.hero.secondaryCta}</button>
         </div>
         <Countdown />
+        {sponsorSignupsOpen(Date.now(), C.event.signup_deadline) ? <p className="lh25-deadline">{C.hero.deadline}</p> : null}
       </div>
     </header>
   );

@@ -357,6 +357,12 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # per-IP rate limit inside the handler, not the gateway.
   [functions.contact-support]
     verify_jwt = false
+  # 25 Days of Louisiana Giveaways sign-up and sponsor-wall images. Signed-out
+  # brands sign up and the wall's <img> sends no token, so verify_jwt MUST be
+  # false. The handler rate-limits per address, verifies any token itself
+  # (auth.getUser) and refuses everything while the sponsor_25days switch is off.
+  [functions.sponsor-25days]
+    verify_jwt = false
   # CSP violation reports (vercel.json report-uri / report-to). Browsers post
   # them with no apikey and no Authorization header, so verify_jwt MUST be
   # false. The handler size-limits, drops extension noise, rate-limits per IP

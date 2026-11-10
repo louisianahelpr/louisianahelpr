@@ -42,6 +42,15 @@
   color-scheme: light;
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+/* The page root also carries the app's document-scroll wrapper classes (min-h-screen bg-premium-page); this page
+   paints its own cream canvas in every theme, so it outranks .bg-premium-page and its dark-theme rule. */
+div.lh25.lh25 {
+  background-color: var(--cream);
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(212, 175, 55, 0.10) 0, transparent 28%),
+    radial-gradient(circle at 88% 18%, rgba(91, 42, 134, 0.07) 0, transparent 30%);
+  background-attachment: scroll;
+}
 .lh25 *, .lh25 *::before, .lh25 *::after { box-sizing: border-box; }
 .lh25 a { color: var(--p); text-underline-offset: 3px; }
 .lh25 h1, .lh25 h2, .lh25 h3 { font-family: var(--head); color: var(--p); margin: 0; line-height: 1.15; letter-spacing: 0.005em; }
@@ -53,6 +62,10 @@
 }
 
 /* ── Garland ─────────────────────────────────────────────────────────── */
+/* Line weights live here, not on the SVGs: the app's one icon weight is 1.5 (src/test/typeAndIconScaleRatchet.test.ts). */
+.lh25-icon { stroke-width: 1.5; }
+.lh25-wire { stroke-width: 2; }
+.lh25-petal { stroke-width: 1.2; }
 .lh25-garland { display: block; width: 100%; height: 56px; }
 .lh25-bulb { animation: lh25-twinkle 2.4s ease-in-out infinite; animation-delay: var(--lh25-delay, 0s); transform-box: fill-box; transform-origin: center; }
 @keyframes lh25-twinkle { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px currentColor); } 50% { opacity: .55; filter: none; } }
@@ -76,10 +89,10 @@
 /* ── Hero ────────────────────────────────────────────────────────────── */
 .lh25-hero { position: relative; padding: 4px 16px 36px; text-align: center; }
 .lh25-hero-inner { position: relative; max-width: 760px; margin: 0 auto; z-index: 1; }
-.lh25-logo { width: 64px; height: 64px; border-radius: 18px; box-shadow: var(--shadow); display: block; margin: 0 auto 14px; }
+.lh25-logo { width: 84px; height: 84px; display: block; margin: 0 auto 10px; object-fit: contain; }
 .lh25-greeting {
   display: inline-block; margin: 0 0 14px; padding: 10px 18px; border-radius: 999px; background: var(--pink); color: var(--p-dark);
-  font: 700 16px/1.35 var(--head); box-shadow: inset 0 0 0 2px rgba(91,42,134,.18);
+  font: 700 16px/1.35 var(--head); box-shadow: inset 0 0 0 2px rgba(91,42,134,.18); text-wrap: balance; max-width: 100%;
 }
 .lh25-eyebrow { margin: 0 0 6px; color: var(--g); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: 12.5px; }
 .lh25-h1 { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
@@ -102,6 +115,7 @@
 .lh25-countdown-cell { min-width: 60px; padding: 8px 6px; border-radius: 14px; background: var(--cream-2); display: flex; flex-direction: column; align-items: center; }
 .lh25-countdown-num { font: 700 26px/1 var(--head); color: var(--p); font-variant-numeric: tabular-nums; }
 .lh25-countdown-unit { font-size: 11.5px; color: var(--ink-soft); margin-top: 4px; }
+.lh25-deadline { margin: 14px auto 0; font: 700 15px/1.35 var(--head); color: var(--r); text-wrap: balance; }
 .lh25-countdown-live { display: inline-block; font: 700 18px/1.3 var(--head); color: #fff; background: var(--g); padding: 10px 18px; border-radius: 999px; }
 
 /* ── Trust strip ─────────────────────────────────────────────────────── */
@@ -207,11 +221,11 @@
 
 /* Claim: calendar */
 .lh25-claim { scroll-margin-top: 12px; }
-.lh25-calendar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 760px; margin: 0 auto; padding: 4px; border-radius: 24px; }
+.lh25-calendar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; max-width: 760px; margin: 0 auto; padding: 4px; border-radius: 24px; }
 .lh25-calendar-error { box-shadow: 0 0 0 2px var(--r); }
 .lh25-tile {
-  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 84px; padding: 10px 6px;
-  border-radius: 18px; border: 2px solid rgba(91,42,134,.14); cursor: pointer; font-family: var(--body); color: var(--ink);
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 76px; min-width: 0; padding: 8px 2px;
+  border-radius: 14px; border: 2px solid rgba(91,42,134,.14); cursor: pointer; font-family: var(--body); color: var(--ink);
   background: #fff; box-shadow: 0 3px 10px rgba(91,42,134,.08); transition: transform .12s ease, background-color .12s ease, border-color .12s ease;
 }
 .lh25-tile:nth-child(4n+1) { background-image: linear-gradient(180deg, rgba(200,16,46,.07), transparent 55%); }
@@ -219,17 +233,18 @@
 .lh25-tile:nth-child(4n+3) { background-image: linear-gradient(180deg, rgba(212,175,55,.12), transparent 55%); }
 .lh25-tile:nth-child(4n) { background-image: linear-gradient(180deg, rgba(91,42,134,.08), transparent 55%); }
 .lh25-tile:hover:not([disabled]) { transform: translateY(-2px); border-color: var(--p); }
-.lh25-tile-day { font: 700 28px/1 var(--head); color: var(--p); }
-.lh25-tile-count { font-size: 11.5px; color: var(--ink-soft); font-weight: 600; text-align: center; line-height: 1.2; }
+.lh25-tile-day { font: 700 24px/1 var(--head); color: var(--p); }
+.lh25-tile-count { font-size: 10px; color: var(--ink-soft); font-weight: 600; text-align: center; line-height: 1.2; }
 .lh25-tile.is-selected { background: var(--p); background-image: none; border-color: var(--p); color: #fff; box-shadow: 0 6px 16px rgba(91,42,134,.35); }
 .lh25-tile.is-selected .lh25-tile-day { color: #fff; }
 .lh25-tile.is-selected .lh25-tile-count { color: #f1e6fb; }
-.lh25-tile-check { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; background: var(--gold); color: var(--ink); display: flex; align-items: center; justify-content: center; }
+.lh25-tile-check { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--gold); color: var(--ink); display: flex; align-items: center; justify-content: center; }
 .lh25-tile.is-full { cursor: not-allowed; background: #f1eef3; background-image: repeating-linear-gradient(135deg, rgba(0,0,0,.035) 0 6px, transparent 6px 12px); border-style: dashed; box-shadow: none; }
 .lh25-tile.is-full .lh25-tile-day { color: #9a93a0; }
 .lh25-tile.is-full .lh25-tile-count { color: var(--r); font-weight: 700; }
 .lh25-anyday { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px auto 0; font-weight: 700; color: var(--p); cursor: pointer; min-height: 44px; }
-.lh25-anyday input, .lh25-check input { width: 22px; height: 22px; accent-color: var(--p); flex: none; }
+/* The app's 44px tap floor sits on the LABEL here (whole row is clickable), so the box itself can be a normal size. */
+.lh25 input[type="checkbox"], .lh25 input[type="radio"] { min-width: 0; min-height: 0; width: 22px; height: 22px; margin: 0; accent-color: var(--p); flex: none; }
 .lh25-picked { color: var(--g); font-weight: 700; margin: 6px 0 0; }
 
 /* Claim: form */
@@ -248,9 +263,8 @@
 .lh25-hint { margin: 0; font-size: 13px; color: var(--ink-soft); }
 .lh25-error { margin: 4px 0 0; font-size: 13.5px; color: var(--r); font-weight: 700; }
 .lh25-radio-group { gap: 8px; }
-.lh25-radio-group label { display: flex; align-items: center; gap: 10px; font-weight: 500; min-height: 40px; cursor: pointer; }
-.lh25-radio-group input { width: 20px; height: 20px; accent-color: var(--p); }
-.lh25-check { display: flex; align-items: flex-start; gap: 10px; margin-top: 16px; font-size: 15px; cursor: pointer; }
+.lh25-radio-group label { display: flex; align-items: center; gap: 12px; font-weight: 500; min-height: 44px; cursor: pointer; }
+.lh25-check { display: flex; align-items: center; gap: 12px; margin-top: 12px; min-height: 44px; font-size: 15px; cursor: pointer; }
 .lh25-check-error span { color: var(--r); }
 .lh25-req { color: var(--r); }
 .lh25-banner-error { margin: 16px 0 0; padding: 12px 14px; border-radius: 14px; background: #fff0f2; color: #8d0b20; font-weight: 600; border: 1px solid rgba(200,16,46,.25); }
@@ -259,6 +273,7 @@
 
 /* Thank you */
 .lh25-thanks { position: relative; max-width: 620px; margin: 0 auto; text-align: center; background: #fff; border-radius: 30px; padding: 36px 22px; box-shadow: var(--shadow); border: 3px solid var(--gold); outline: none; }
+.lh25-thanks > svg:not(.lh25-sparkle) { display: block; margin: 0 auto; }
 .lh25-thanks h2 { font-size: 40px; margin: 10px 0 8px; color: var(--r); }
 .lh25-thanks-body { font-size: 18px; font-weight: 600; margin: 0 0 12px; }
 .lh25-thanks-days { margin: 0 0 20px; color: var(--p); }
@@ -309,8 +324,11 @@
 /* ── Wider screens ───────────────────────────────────────────────────── */
 @media (min-width: 640px) {
   .lh25-trust { grid-template-columns: repeat(4, auto); justify-content: center; gap: 10px 28px; font-size: 14.5px; }
-  .lh25-calendar { grid-template-columns: repeat(5, 1fr); gap: 12px; }
-  .lh25-tile { min-height: 96px; }
+  .lh25-calendar { gap: 12px; }
+  .lh25-tile { min-height: 96px; border-radius: 18px; padding: 10px 6px; }
+  .lh25-tile-day { font-size: 30px; }
+  .lh25-tile-count { font-size: 12px; }
+  .lh25-tile-check { top: 6px; right: 6px; width: 22px; height: 22px; }
   .lh25-form { padding: 30px; }
   .lh25-form-grid { grid-template-columns: 1fr 1fr; }
   .lh25-form-grid > .lh25-field:has(textarea) { grid-column: 1 / -1; }
@@ -325,9 +343,9 @@
   .lh25-hero-gift { right: 10%; bottom: 40px; }
   .lh25-grid3 { grid-template-columns: repeat(3, 1fr); }
   .lh25-steps { grid-template-columns: repeat(4, 1fr); }
-  .lh25-grid-gets { grid-template-columns: repeat(6, 1fr); }
-  .lh25-grid-gets > .lh25-card { grid-column: span 2; }
-  .lh25-grid-gets > .lh25-card:nth-child(4):nth-last-child(2) { grid-column: 2 / span 2; }
+  /* Flex so a short last row (a card hidden until its placeholder is filled) stays centred. */
+  .lh25-grid-gets { display: flex; flex-wrap: wrap; justify-content: center; }
+  .lh25-grid-gets > .lh25-card { flex: 0 1 calc((100% - 28px) / 3); }
   .lh25-founder-card { flex-direction: row; align-items: center; padding: 34px 40px; gap: 32px; }
   .lh25-ask { flex-direction: row; text-align: left; padding: 30px 36px; gap: 24px; }
   .lh25-section { padding-top: 60px; }

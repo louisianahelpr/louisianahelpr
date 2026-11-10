@@ -360,6 +360,13 @@ describe("every fixture literal could be inserted", () => {
     // The AI item helper's raw answer (`{ title, kind, subtype, possibly_banned }`, declutter-ai-draft's shop JSON) as
     // sanitizeShopItemDraft reads it, not a shop_items row: the sanitizer exists to turn an off-list kind into an allowed one.
     { file: "src/test/shopsItems.test.ts", keys: ["title", "kind", "subtype", "possibly_banned"] },
+    // 25 Days sponsor page (20261109162829, 2026-11-09): sponsor_visits.device made `device` a column only that table has,
+    // so the journeys' browser rotation objects (`{ ...rotation, device: "phone-375" }`) read as visit rows; they are not.
+    { file: "e2e/journeys/02-marketplace.spec.ts", keys: ["device"] },
+    { file: "e2e/journeys/post-job-day-tap.spec.ts", keys: ["device", "network"] },
+    // The same migration's sponsor_days.day made `day` shared, so Stripe Identity's date of birth (`dob: { year, month,
+    // day }`) is left with `year` alone and read as a facilitator_threshold_alerts row; it is not.
+    { file: "src/test/edge/stripe-idv-webhook.test.ts", keys: ["year", "month", "day"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

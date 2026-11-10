@@ -125,6 +125,12 @@ const OWNERS = {
   "/quotes/send/:id": ["lh-long-tail-features", "lh-input-boundary"],
   // Shops (hidden switch 'shops', docs/specs/local-shops-prep.md).
   "/shops": ["lh-long-tail-features", "lh-browse-discovery"],
+  // 25 Days of Louisiana Giveaways (owner approved 11-09; behind sponsor_25days, off): the public sponsor
+  // sign-up, its rules page and the admin's sponsor list.
+  "/sponsor": ["lh-long-tail-features", "lh-input-boundary"],
+  "/25days": ["lh-long-tail-features"],
+  "/25days/rules": ["lh-long-tail-features", "lh-compliance-store"],
+  "/admin/sponsors": ["lh-admin-moderation", "lh-long-tail-features"],
   "/shops/mine": ["lh-long-tail-features", "lh-input-boundary"],
   "/shops/orders": ["lh-long-tail-features", "lh-money-escrow"],
   "/shops/dashboard": ["lh-long-tail-features", "lh-money-escrow"],

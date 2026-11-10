@@ -5,7 +5,7 @@
  * tracker and its line, the pickup and Move, When will it be out, Take the porch photo, THEN the money note and Message
  * the buyer (photo now 335px down). A finished sale keeps its order.
  *
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {!sellerNextFirst && !problem && !(cancelled && order.side === "seller") && <OrderTalkButton orderId={order.orderId} side={order.side} trade={trade} />} |       {!problem && !(cancelled && order.side === "seller") && <OrderTalkButton orderId={order.orderId} side={order.side} trade={trade} />}
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {!sellerNextFirst && !(cancelled && order.side === "seller") && <div data-order-talk-row=""><OrderTalkButton orderId={order.orderId} side={order.side} trade={trade} /></div>} |       {!(cancelled && order.side === "seller") && <div data-order-talk-row=""><OrderTalkButton orderId={order.orderId} side={order.side} trade={trade} /></div>}
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           part={sellerNextFirst ? "status" : "all"} |           part="all"
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx |       {part === "all" && money} |       {money}
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const sellerNextFirst = !view && order.side === "seller" && !done | const sellerNextFirst = false && !done
@@ -112,13 +112,33 @@ describe("NIGHT-SELL-soldstates-3: the seller's open sale leads with the next ac
     expect(before(money, card.querySelector("[data-talk]")!)).toBeTruthy();
   });
 
-  it("a finished sale keeps Message the buyer above the tracker", async () => {
+  // Audit 1110 F397 (Low, Selling tab): "Message the buyer" jumped around: at the bottom on an open porch / door / meetup
+  // sale, but ABOVE the step bar on a finished sale and on a seller-delivery, shipped or Helpr-delivery sale, pushing the
+  // status down. It is the body's last control on every card now: after the tracker and the money line.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {!sellerNextFirst && !(cancelled && order.side === "seller") && <div data-order-talk-row=""> | {false && <div data-order-talk-row="">
+  it("F397: a finished sale puts Message the buyer after the tracker, last in the body", async () => {
     state.cart = [line({ order_status: "handed_over" })];
     state.handover = (orderId) => ({ order_id: orderId, status: "handed_over", side: "seller", confirmed_at: "2026-10-20T15:00:00Z" });
     show();
     const talk = await screen.findByText("Message the buyer");
     const card = talk.closest("article")!;
     await waitFor(() => expect(card.querySelector("[data-pickup-status]")).not.toBeNull());
-    expect(before(talk, card.querySelector("[data-pickup-status]")!)).toBeTruthy();
+    expect(before(card.querySelector("[data-pickup-status]")!, talk)).toBeTruthy();
+    expect(card.querySelectorAll("[data-talk]")).toHaveLength(1);
+    const body = card.querySelector("[data-order-body]")!;
+    expect(body.contains(talk)).toBe(true);
+    expect(body.lastElementChild!.contains(talk)).toBe(true);
+  });
+
+  it("F397: an open seller-delivery sale puts Message the buyer after the tracker and its money line too", async () => {
+    state.cart = [line({ handover: "seller_delivery" })];
+    state.bookings = [];
+    show();
+    const talk = await screen.findByText("Message the buyer");
+    const card = talk.closest("article")!;
+    const steps = await waitFor(() => { const s = card.querySelector("[data-delivery-status]"); expect(s).not.toBeNull(); return s!; });
+    expect(before(steps, talk)).toBeTruthy();
+    expect(card.querySelectorAll("[data-talk]")).toHaveLength(1);
+    expect(card.querySelector("[data-order-body]")!.lastElementChild!.contains(talk)).toBe(true);
   });
 });

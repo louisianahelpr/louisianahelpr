@@ -46,7 +46,7 @@ afterEach(() => {
 });
 
 describe("L003: the Terms' short version says the real ID rule to a signed-out visitor", () => {
-  it("ID check open to everyone: email AND one photo ID check per account, and when", () => {
+  it("a signed-out visitor: email AND one photo ID check per account, and when", () => {
     state.open = new Set(["identity_check"]);
     const first = firstShortItem();
     expect(first).toMatch(/^You must be 18\+\. Every account verifies its email address before it can post or take jobs\./);
@@ -62,10 +62,5 @@ describe("L003: the Terms' short version says the real ID rule to a signed-out v
     const first = firstShortItem();
     expect(first).toContain(`You also verify ${ID_ONCE_PER_ACCOUNT}.`);
     expect(ID_CHECK_BEFORE_ANSWER).toBe(true);
-  });
-
-  it("ID check not open to everyone: email only, no ID promise", () => {
-    const first = firstShortItem();
-    expect(first).toBe("You must be 18+. Every account verifies its email address before it can post or take jobs.");
   });
 });

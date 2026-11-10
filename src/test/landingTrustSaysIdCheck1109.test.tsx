@@ -3,10 +3,9 @@
  * confirms its email", and the sections block "One account works in every section", because both read the member's
  * own identity_check answer, which is false signed out, while ID checks are on for everyone (prod, 11-09). The real
  * protection is the ID check. Both now read the switch for THIS viewer (useIdCheckOnForViewer): a guest reads whether
- * identity_check is open to everyone.
+ * nothing: a guest is told the ID rule (identity_check is on for everyone; a guest cannot read the switch).
  *
- * @mutate src/components/landing/SectionsShowcase.tsx |   const idOn = useIdCheckOnForViewer(joinSeen); |   const idOn = false;
- * @mutate src/components/landing/SectionsShowcase.tsx |   const idOn = useIdCheckOnForViewer(seen); |   const idOn = false;
+ * @mutate src/lib/useIdCheckOnForViewer.ts |   if (!isReady \|\| !user) return ID_CHECK_BEFORE_ANSWER; |   if (!isReady \|\| !user) return false;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -32,23 +31,16 @@ afterEach(() => {
 });
 
 describe("L010: the landing tells a guest about the ID check while it is on for everyone", () => {
-  it("open to everyone: the trust card says ID-verified people, never just email", () => {
+  it("a guest: the trust card says ID-verified people, never just email", () => {
     state.open = new Set(["identity_check", "declutter"]);
     render(<MemoryRouter><TrustAndJoin /></MemoryRouter>);
     expect(screen.getByText("ID-verified people")).toBeTruthy();
     expect(screen.queryByText("Real accounts")).toBeNull();
   });
 
-  it("open to everyone: the sections block says one ID check counts everywhere", () => {
+  it("a guest: the sections block says one ID check counts everywhere", () => {
     state.open = new Set(["identity_check", "declutter"]);
     render(<MemoryRouter><SectionsShowcase /></MemoryRouter>);
     expect(screen.getByText("Verify your ID once and it counts everywhere on Helpr.")).toBeTruthy();
-  });
-
-  it("not open to everyone: no ID claim", () => {
-    state.open = new Set(["declutter"]);
-    render(<MemoryRouter><TrustAndJoin /></MemoryRouter>);
-    expect(screen.getByText("Real accounts")).toBeTruthy();
-    expect(screen.queryByText("ID-verified people")).toBeNull();
   });
 });

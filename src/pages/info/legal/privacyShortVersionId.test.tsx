@@ -11,7 +11,7 @@
  * says the same (src/test/legalIdOncePerAccount.test.tsx).
  *
  * @mutate src/pages/info/legal/PrivacySection.tsx | usage data, and ${idCheckOn ? ID_ONCE_PER_ACCOUNT : "ID, if you choose to verify it"}. | usage data, and ID, if you choose to verify it.
- * @mutate src/lib/useIdCheckOnForViewer.ts |   if (guest) return open === null ? ID_CHECK_BEFORE_ANSWER : open.has("identity_check"); |   if (guest) return member;
+ * @mutate src/lib/useIdCheckOnForViewer.ts |   if (!isReady \|\| !user) return ID_CHECK_BEFORE_ANSWER; |   if (!isReady) return ID_CHECK_BEFORE_ANSWER;
  */
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -71,15 +71,10 @@ describe("Privacy short version: the ID line says the real rule for whoever read
     expect(collect).not.toMatch(/choose to verify/);
   });
 
-  it("L003: a signed-out visitor while the ID check is open to everyone reads the same rule", () => {
+  it("L003: a signed-out visitor reads the same rule (identity_check is on for everyone; a guest cannot read the switch)", () => {
     state.open = new Set(["identity_check", "declutter"]);
     const collect = collectLine();
     expect(collect).toMatch(RULE);
     expect(collect).not.toMatch(/choose to verify/);
-  });
-
-  it("a signed-out visitor while it is not open to everyone: optional", () => {
-    state.open = new Set(["declutter"]);
-    expect(collectLine()).toMatch(/\bID, if you choose to verify it\b/);
   });
 });

@@ -133,6 +133,8 @@ export default function ShopEditView() {
   const [form, setForm] = useState<Form>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
+  // Shops audit 11-10 F4: "Add an item" is its own screen; the item section names it ("Add an item", then "Edit item").
+  const [itemTitle, setItemTitle] = useState("Add an item");
 
   useEffect(() => {
     if (loaded || !shop.data) return;
@@ -228,6 +230,14 @@ export default function ShopEditView() {
             if (myId.data) void shop.refetch();
           }}
         />
+      </AppPage>
+    );
+  }
+
+  if (startAdding && myId.data && user?.id) {
+    return (
+      <AppPage title={itemTitle} backTo="/shops/mine">
+        <ShopItemsSection shopId={myId.data} ownerId={user.id} startAdding onTitle={setItemTitle} onLeave={() => navigate("/shops/mine")} />
       </AppPage>
     );
   }
@@ -393,7 +403,7 @@ export default function ShopEditView() {
       {/* FAQs (SH12): save on their own, like the pickup address. */}
       {myId.data && <div className="pb-6"><ShopFaqsEditor shopId={myId.data} /></div>}
       {/* Items (slice 2): outside the shop form, each item saves on its own. */}
-      {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} startAdding={startAdding} />}
+      {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} />}
       {/* The app's own confirm, never window.confirm (off-brand and
           unreliable inside the iOS WebView; SecurityTab). */}
       <BrandConfirmDialog

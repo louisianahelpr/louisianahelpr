@@ -10,6 +10,9 @@
  * @mutate src/components/shops/ShopView.tsx |   const ownerEmpty = s.mine && s.offers_selling && ownItems.isSuccess && !ownItems.data.some((i) => i.status === "live"); |   const ownerEmpty = false;
  * @mutate src/components/shops/ShopView.tsx | onClick={() => navigate("/shops/mine#add-item")} | onClick={() => navigate("/shops/mine")}
  * @mutate src/components/shops/ShopItemsSection.tsx | useState<string \| "new" \| null>(startAdding ? "new" : null) | useState<string \| "new" \| null>(null)
+ * @mutate src/components/shops/ShopEditView.tsx |   if (startAdding && myId.data && user?.id) { |   if (false) {
+ * @mutate src/components/shops/ShopItemsSection.tsx | onClick={() => navigate("/shops/mine#add-item")} | onClick={() => {}}
+ * @mutate src/components/shops/ShopView.tsx |       title={s.mine ? "My shop" : s.name} |       title={s.name}
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -97,7 +100,7 @@ describe("an owner's empty shop leads with Add an item", () => {
     renderAt("/shops/s1");
     const block = await screen.findByTestId("shop-owner-empty");
     expect(block.textContent).toContain("No items listed yet.");
-    const add = screen.getByRole("button", { name: "Add an item" });
+    const add = screen.getByRole("button", { name: "Add your first item" });
     const share = screen.getByRole("button", { name: "Share my shop" });
     const print = screen.getByRole("button", { name: "Print a sign" });
     expect(add.compareDocumentPosition(share) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -110,9 +113,41 @@ describe("an owner's empty shop leads with Add an item", () => {
     api.fetchShopItems.mockResolvedValue([]);
     api.fetchMyShopId.mockResolvedValue("s1");
     renderAt("/shops/s1");
+    fireEvent.click(await screen.findByRole("button", { name: "Add your first item" }));
+    expect((await screen.findByTestId("where")).textContent).toBe("/shops/mine#add-item");
+    expect(await screen.findByText("Item editor (new)")).toBeTruthy();
+  });
+
+  // Shops audit 11-10 F4: "Add an item" is its own screen, titled so, without the shop form above it.
+  it("#add-item is its own screen titled Add an item: no shop form, no items list", async () => {
+    api.fetchShop.mockResolvedValue(page());
+    api.fetchShopItems.mockResolvedValue([item("live")]);
+    api.fetchMyShopId.mockResolvedValue("s1");
+    renderAt("/shops/mine#add-item");
+    expect(await screen.findByText("Item editor (new)")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Add an item");
+    expect(screen.queryByLabelText("Shop or business name")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Items" })).toBeNull();
+  });
+
+  it("the Add an item under the list goes to that screen", async () => {
+    api.fetchShop.mockResolvedValue(page());
+    api.fetchShopItems.mockResolvedValue([]);
+    api.fetchMyShopId.mockResolvedValue("s1");
+    renderAt("/shops/mine");
+    expect(await screen.findByRole("heading", { level: 1, name: "Edit my shop" })).toBeTruthy();
     fireEvent.click(await screen.findByRole("button", { name: "Add an item" }));
     expect((await screen.findByTestId("where")).textContent).toBe("/shops/mine#add-item");
     expect(await screen.findByText("Item editor (new)")).toBeTruthy();
+  });
+
+  // F10: the owner's page names the shop once (the card), the header says My shop.
+  it("the owner's header says My shop, not the name a second time", async () => {
+    api.fetchShop.mockResolvedValue(page());
+    api.fetchShopItems.mockResolvedValue([]);
+    renderAt("/shops/s1");
+    await screen.findByTestId("shop-owner-empty");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("My shop");
   });
 
   it("/shops/mine without #add-item keeps the editor closed", async () => {

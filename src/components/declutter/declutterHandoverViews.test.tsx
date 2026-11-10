@@ -164,6 +164,7 @@ vi.mock("./DeclutterAddHelpr", () => ({ AddHelprPanel: () => (state.features.inc
 import { MemoryRouter } from "react-router-dom";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
 import { pickupDays } from "@/lib/declutter/pickupSlots";
+import { orderWhen } from "@/lib/declutter/timeLeft";
 
 /** Q2634 (owner 11-02): the seller's payout rule sits under the money note's "Details"; opens it and returns its words. */
 async function openPayoutRule(): Promise<string> {
@@ -308,7 +309,9 @@ describe("Q2425: a safe-spot meetup order", () => {
         if (shown) {
           expect(await screen.findByRole("button", { name: "I got it" })).toBeInTheDocument();
         } else {
-          expect(await screen.findByText(`You can tap "I got it" from an hour before the ${words} time.`)).toBeInTheDocument();
+          // Audit 11-10 F384: the waiting line names the clock time the button appears (an hour before the slot).
+          const opens = orderWhen(new Date(new Date(state.bookings[0].slot_start).getTime() - 3_600_000).toISOString());
+          expect(await screen.findByText(`The "I got it" button appears ${opens}, an hour before the ${words} time.`)).toBeInTheDocument();
           expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
         }
         unmount();
@@ -548,11 +551,12 @@ describe("Declutter slice 4: paid-order cards", () => {
     await waitFor(() => expect(state.calls).toContainEqual(["seller_picked_up", "o1", null, null]));
   });
 
-  it("door pickup (owner 2026-10-18): both sides get the safety tips; the buyer is pointed to Add a Helpr; porch has no tips and no seller \"Picked up\"", async () => {
+  it("door pickup (owner 2026-10-18): both sides get the safety tips; no \"Add a Helpr below\" promise (F384); porch has no tips and no seller \"Picked up\"", async () => {
     state.bookings = [slot(-60)];
     const { unmount } = show([line()]);
     expect(await screen.findByText("Pickup at the door")).toBeInTheDocument();
-    expect(screen.getByText(/Add a Helpr below/)).toBeInTheDocument();
+    // Audit 11-10 F384: the tips no longer promise an "Add a Helpr below" that may not render (feature off, no fitting kinds).
+    expect(screen.queryByText(/Add a Helpr below/)).toBeNull();
     unmount();
     show([line({ handover: "porch", my_side: "seller" })]);
     await openPayoutRule();

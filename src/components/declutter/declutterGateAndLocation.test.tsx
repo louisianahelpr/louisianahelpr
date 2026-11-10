@@ -26,7 +26,9 @@
  * @mutate src/components/declutter/DeclutterItemView.tsx | milesLabel(miles, geo.status === "ready" && geo.approximate); | milesLabel(miles);
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | miles={miles} approximate={origin.status === "ready" && origin.approximate}\n | miles={miles} approximate={false}\n
  * @mutate src/components/declutter/useDeclutterOrigin.ts |     asked && device.status === "error" | false && device.status === "error"
- * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />} | skeleton={<DeclutterItemSkeleton />}
+ * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable notFound />} | skeleton={<DeclutterItemSkeleton />}
+ * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable notFound />} | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />}
+ * @mutate src/components/declutter/DeclutterSkeletons.tsx |   usePageTitle(notFound ? "Item not found — Helpr" : "Declutter — Helpr"); |   usePageTitle("Declutter — Helpr");
  * @mutate src/hooks/usePermissionRationale.ts | body: "Declutter uses your location to show how far away each item is | body: "We use your location to show jobs near you, how far away each item is
  */
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
@@ -209,7 +211,11 @@ describe("Declutter loading frame (DeclutterGate)", () => {
 
   it("a link that cannot name an item says so at once: no skeleton of photos that will never come", () => {
     const { container } = at("/declutter/item/test", <DeclutterItemPage />, "/declutter/item/:id");
-    expect(screen.getByText("No longer available.")).toBeInTheDocument();
+    // Audit 11-10 F316: a mistyped link is a broken link, never "It sold"; the tab says so too.
+    expect(screen.getByText("We couldn't find that item.")).toBeInTheDocument();
+    expect(screen.getByText("The link may be broken.")).toBeInTheDocument();
+    expect(screen.queryByText("No longer available.")).toBeNull();
+    expect(document.title).toBe("Item not found — Helpr");
     expect(bones(container)).toBe(0);
   });
 
@@ -320,7 +326,8 @@ describe("Declutter location ask", () => {
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
     }];
     const browse = at("/declutter", <DeclutterPage />);
-    await waitFor(() => expect(document.querySelector("[data-card-away]")?.textContent).toBe("About 1 mi away"));
+    // Audit 11-10 F321: the card says it short ("About 1 mi"), so the condition beside it has room.
+    await waitFor(() => expect(document.querySelector("[data-card-away]")?.textContent).toBe("About 1 mi"));
     // Owner pick 4 (11-08): three text lines; the town line is gone (the distance says how far).
     expect(document.querySelector("[data-item-card]")?.textContent).not.toContain("Mid-City, Baton Rouge");
     browse.unmount();
@@ -573,7 +580,7 @@ describe("Declutter location ask", () => {
     const r = render(<MemoryRouter><ItemCard item={item} miles={5} approximate={false} /></MemoryRouter>);
     const how = r.container.querySelector("[data-card-place]")!;
     const porch = r.container.querySelector("[data-card-porch]")!;
-    expect(how.textContent).toBe("Lightly used · 5 mi away");
+    expect(how.textContent).toBe("Lightly used · 5 mi");
     expect(porch.textContent).toBe("Porch pickup");
     for (const el of [how, porch, porch.closest("[data-photo-tags]")!]) expect(el.className).not.toMatch(/(^|\s)(hidden|lg:|sm:|md:)/);
     r.unmount();
@@ -610,7 +617,9 @@ describe("Declutter location ask", () => {
     const r = render(<MemoryRouter><ItemCard item={item} miles={3.2} approximate={false} /></MemoryRouter>);
     const place = r.container.querySelector("[data-card-place]")!;
     const away = place.querySelector("[data-card-away]")!;
-    expect(away.textContent).toBe("3 mi away");
+    // Audit 11-10 F321: the short form on the card; the item page keeps "3 mi away".
+    expect(away.textContent).toBe("3 mi");
+    // @mutate src/components/declutter/DeclutterItemCard.tsx |   const away = milesLabelShort(miles, approximate); |   const away = milesLabelShort(miles, approximate)?.concat(" away") ?? null;
     // The distance is its own piece that never shrinks or truncates; only the condition does (owner pick 4, 11-08:
     // the town line is gone).
     expect(away.className).toMatch(/\bshrink-0\b/);

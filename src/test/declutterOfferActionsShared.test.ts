@@ -3,6 +3,8 @@
  * Declutter's offer row answers with the shared Button, not hand-made pills.
  *   1. The three answers (Say no, Answer with a price, Accept) are shared <Button size="sm"> (44px tap floor; the old
  *      pills were py-2 text-sm, about 36px), and the green primary Accept is LAST, so it sits on the right.
+ *      Audit 11-10 F373: Say no and Answer with a price are the link variant (text links), so Accept is the only
+ *      button-shaped control in the row and the three fit one line at 375 instead of Accept wrapping alone.
  *   2. The row is right-aligned (justify-end), so when it wraps at 375 Accept stays at the bottom right, not alone on
  *      the left.
  *   3. The counter form's Send is the shared primary Button; no hand-made btn-grad-primary <button> is left in the file.
@@ -11,8 +13,9 @@
  * The hand-made ratchet (docs/audit/hand-made-controls-baseline.json) fell 6 -> 2 for this file, then 2 -> 0 (the
  * file's entry is gone).
  *
- * @mutate src/components/declutter/DeclutterOffersSection.tsx | <div className="flex flex-wrap justify-end gap-2" data-offer-actions=""> | <div className="flex flex-wrap gap-2" data-offer-actions="">
- * @mutate src/components/declutter/DeclutterOffersSection.tsx | <Button type="button" variant="outline" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}> | <Button type="button" variant="outline" disabled={act.isPending} onClick={() => setDeclining(true)}>
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | <div className="flex flex-wrap items-center justify-end gap-2" data-offer-actions=""> | <div className="flex flex-wrap items-center gap-2" data-offer-actions="">
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}> | <Button type="button" variant="link" disabled={act.isPending} onClick={() => setDeclining(true)}>
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}> | <Button type="button" variant="outline" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}>
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | <Button type="submit" size="sm" disabled={act.isPending \|\| !counterCents \|\| !!counterBad}> | <button type="submit" className="btn-grad-primary rounded-full px-4 text-sm font-semibold" disabled={act.isPending \|\| !counterCents \|\| !!counterBad}>
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | <InlineTextButton className="text-sm underline underline-offset-2" disabled={act.isPending} | <button type="button" className="text-sm underline underline-offset-2" disabled={act.isPending}
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | <InlineTextButton className="text-sm font-medium" aria-expanded={closedOpen} | <button type="button" className="link-standard text-sm font-medium" aria-expanded={closedOpen}
@@ -59,7 +62,8 @@ describe("Declutter's offer answers use the shared Button, primary on the right 
     expect(row!.kids.map((k) => k.tag)).toEqual(["Button", "Button", "Button"]);
     expect(row!.kids.map((k) => k.text)).toEqual(["Say no", "Answer with a price", "Accept"]);
     for (const k of row!.kids) expect(k.attrs.size, `${k.text} size`).toBe('"sm"');
-    expect(row!.kids.slice(0, 2).map((k) => k.attrs.variant)).toEqual(['"outline"', '"outline"']);
+    // F373: text links, never outlined buttons beside the filled Accept.
+    expect(row!.kids.slice(0, 2).map((k) => k.attrs.variant)).toEqual(['"link"', '"link"']);
     expect(row!.kids[2].attrs.variant, "Accept is the default (green primary) Button").toBeUndefined();
     expect(row!.cls).toMatch(/\bjustify-end\b/);
   });

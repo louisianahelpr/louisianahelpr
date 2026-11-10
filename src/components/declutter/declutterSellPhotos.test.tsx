@@ -538,6 +538,27 @@ describe("photo-first selling, one screen", () => {
   // Audit posting 1030 #8: Edit opened the row and left the cursor elsewhere.
   // @mutate src/components/declutter/SellSummaryCard.tsx | [role=radio][aria-checked=true]")?.focus(); | [role=radio][aria-checked=true]");
   // @mutate src/components/declutter/SellSummaryCard.tsx | <p onClick={instead ? undefined : onToggle} | <p
+  // Audit 11-10 F329: the open Title row read "Title" twice (the row header and a label over the box), and a long
+  // pasted title was cut at 80 characters with no word.
+  // @mutate src/components/declutter/SellSummaryCard.tsx | aria-labelledby="sell-row-title-title" maxLength={80} | aria-label="Title" maxLength={80}
+  // @mutate src/components/declutter/SellSummaryCard.tsx | {form.title.length}/80{form.title.length >= 80 ? " · That's the limit." : ""} | {form.title.length}/80
+  it("F329: the open Title row names the box once, and counts the characters, red at the 80 limit", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    fireEvent.click(screen.getByRole("button", { name: /^(Add|Edit) title$/ }));
+    const box = screen.getByLabelText("Title");
+    expect(box.id).toBe("sell-title");
+    expect(screen.getAllByText("Title")).toHaveLength(1);
+    expect(document.querySelector("[data-title-count]")?.textContent).toBe("0/80");
+    fireEvent.change(box, { target: { value: "Oak rocking chair" } });
+    const count = document.querySelector("[data-title-count]")!;
+    expect(count.textContent).toBe("17/80");
+    expect(count.className).not.toContain("text-destructive");
+    fireEvent.change(box, { target: { value: "x".repeat(80) } });
+    expect(count.textContent).toBe("80/80 · That's the limit.");
+    expect(count.className).toContain("text-destructive");
+  });
+
   it("opening a row puts the cursor in it, and tapping the value opens it too", async () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });

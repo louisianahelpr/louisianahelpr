@@ -83,13 +83,13 @@ export function BunchCard({ item, offersDefault, tradesDefault, index, others, u
     <div className="space-y-3 p-4" data-bunch-card="">
       {/* The row above says its name. */}
       <div className="flex items-center justify-end gap-2">
-        <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" disabled={rewriting} aria-label={rewriting ? undefined : `${noWords ? "Write it with AI" : "Write it again"}: ${name}`} onClick={onRewrite}>
+        <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" disabled={rewriting} aria-label={rewriting ? undefined : `${noWords ? "Write it for me" : "Write it again"}: ${name}`} onClick={onRewrite}>
           {rewriting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden /> : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden />}
-          {rewriting ? "Writing…" : noWords ? "Write it with AI" : "Write it again"}
+          {rewriting ? "Writing…" : noWords ? "Write it for me" : "Write it again"}
         </Button>
       </div>
 
-      {noWords && !rewriting && <p className="text-ds-13 text-muted-foreground" data-bunch-no-words="">This one has no words yet. Tap Write it with AI, or fill it in below.</p>}
+      {noWords && !rewriting && <p className="text-ds-13 text-muted-foreground" data-bunch-no-words="">This one has no words yet. Tap Write it for me, or fill it in below.</p>}
       {rewriteNote && <p className="text-ds-13 text-foreground" role="alert" data-bunch-rewrite-note="">{rewriteNote}</p>}
       {mergeTarget && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/40 p-3" data-bunch-merge-hint="">

@@ -177,11 +177,13 @@ function OfferRow({ o, linked = false }: { o: MyOffer; linked?: boolean }) {
       {myTurn && (
         // Q2709: the shared Button (44px tap floor); the green primary on the RIGHT (owner 11-01), the row
         // right-aligned so a wrap keeps Accept at the bottom right.
-        <div className="flex flex-wrap justify-end gap-2" data-offer-actions="">
-          <Button type="button" variant="outline" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}>
+        // Audit 11-10 F373: three outlined buttons competed and pushed Accept onto its own line at 375; the two
+        // other answers are text links (still the shared Button, 44px), so Accept is the one button in the row.
+        <div className="flex flex-wrap items-center justify-end gap-2" data-offer-actions="">
+          <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}>
             Say no
           </Button>
-          <Button type="button" variant="outline" size="sm" disabled={act.isPending} onClick={() => setCountering((v) => !v)} aria-expanded={countering}>
+          <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={() => setCountering((v) => !v)} aria-expanded={countering}>
             Answer with a price
           </Button>
           <Button

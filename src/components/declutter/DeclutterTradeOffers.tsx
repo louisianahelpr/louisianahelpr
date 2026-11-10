@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { useMyTrades } from "./useMyTrades";
 import { itemPriceLabel } from "@/lib/declutter/distance";
-import { timeLeft } from "@/lib/declutter/timeLeft";
+import { orderWhen } from "@/lib/declutter/timeLeft";
 import { respondSwap, tradeStatusWords, type MyTrade, type SwapAction } from "@/lib/declutter/trades";
 
 
@@ -79,13 +79,15 @@ function TradeCard({ t }: { t: MyTrade }) {
         <ArrowLeftRight className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
         <span>
           <span className="font-semibold">{t.my_side === "seller" ? "Trade offer" : "Your trade offer"}</span>
-          {" "}{open ? `${t.my_side === "seller" ? "Answer" : "Waiting on the seller"}: ${timeLeft(t.respond_by)}. No money changes hands.` : tradeStatusWords(t)}
+          {/* Audit 11-10 F401: a sentence with the deadline, not "Answer: 119 hours left" (a label with no value). */}
+          {" "}{open ? `${t.my_side === "seller" ? "Answer by" : "Waiting on the seller until"} ${orderWhen(t.respond_by)}. No money changes hands.` : tradeStatusWords(t)}
         </span>
       </p>
       <Pair t={t} />
       {open && t.my_side === "seller" && (
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="ghost" data-trade-decline="" disabled={act.isPending} onClick={() => act.mutate("decline")}>Decline</Button>
+          {/* F401: Decline is a real outlined button, the same height as Accept, never plain text that looks disabled. */}
+          <Button type="button" variant="outline" data-trade-decline="" disabled={act.isPending} onClick={() => act.mutate("decline")}>Decline</Button>
           <Button type="button" className="btn-grad-primary" data-trade-accept="" disabled={act.isPending} onClick={() => act.mutate("accept")}>Accept trade</Button>
         </div>
       )}

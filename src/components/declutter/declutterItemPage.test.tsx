@@ -53,6 +53,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = {
   manageReads: 0,
+  soldReads: 0,
   buys: 0,
   item: null as unknown,
   photos: [] as unknown[],
@@ -138,7 +139,7 @@ vi.mock("@/lib/declutter/api", async () => {
     fetchSimilarItems: async () => state.similar,
     fetchSellerLiveCount: async () => state.liveCount,
     fetchNewestItems: async () => state.newest,
-    fetchSoldItemCard: async () => state.sold,
+    fetchSoldItemCard: async () => { state.soldReads++; return state.sold; },
     fetchItem: async () => state.item,
     fetchItemHandovers: async () => state.handovers,
     fetchItemDropState: async () => { state.reads++; return state.drop; },
@@ -176,12 +177,12 @@ const ITEM = {
   area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15, created_at: "2026-10-14", live_at: null, porch_ok: true,
 };
 
-function open(search = "") {
+function open(search = "", id = ID) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   qc.setQueryData(featureSwitchBatchKey("u1"), { declutter: true });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[`/declutter/item/${ID}${search}`]}>
+      <MemoryRouter initialEntries={[`/declutter/item/${id}${search}`]}>
         <Routes>
           <Route path="/declutter/item/:id" element={<DeclutterItemPage />} />
           <Route path="/login" element={<p>LOGIN WALL</p>} />
@@ -897,6 +898,23 @@ describe("the photo-first Declutter item page", () => {
     // L008: a card is named by its own text (title and price), not an aria-label.
     expect(within(row).getAllByRole("link").map((a) => a.textContent)).toEqual([expect.stringMatching(/Desk lamp.*\$40/)]);
     // Not sold (withdrawn, removed, ...): nothing of the listing.
+    expect(document.querySelector("[data-sold-item]")).toBeNull();
+  });
+
+  // Audit 11-10 F316: /declutter/item/abc said "No longer available. It sold..." and asked the sold-card RPC with
+  // "abc" (a 400 from the database). A malformed id asks the server for nothing and says the link is broken.
+  // @mutate src/components/declutter/DeclutterItemView.tsx |   if (!validId) return <DeclutterItemUnavailable notFound more={<NewestItemsRow viewerId={user?.id ?? null} />} />;\n | \n
+  it("F316: a mistyped item link says the link may be broken, titles the tab Item not found, and reads nothing", async () => {
+    state.item = null;
+    state.sold = { title: "Oak rocking chair", photo_id: null };
+    state.soldReads = 0;
+    open("", "abc");
+    expect(await screen.findByText("We couldn't find that item.")).toBeInTheDocument();
+    expect(screen.getByText("The link may be broken.")).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/It sold or is no longer on Declutter/);
+    expect(document.title).toBe("Item not found — Helpr");
+    await act(async () => { await Promise.resolve(); });
+    expect(state.soldReads).toBe(0);
     expect(document.querySelector("[data-sold-item]")).toBeNull();
   });
 

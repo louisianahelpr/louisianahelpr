@@ -67,6 +67,7 @@ import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { BuyerOrderHead, byBucket, refundStanding, type BuyerOrderView } from "./BuyingOrders";
 import { fetchRefundRequestView, refundedInFull, refundHoldsTheItem, refundTookItBack } from "@/lib/declutter/refundRequests";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { orderWhen } from "@/lib/declutter/timeLeft";
 import { DoorPickupTips, PickupAddresses, SellerAfterActions } from "./DeclutterOrderBits";
 import { currentPosition } from "@/lib/declutter/position";
 import { useLinkedOrder, useScrollToLinkedOrder } from "./useLinkedOrder";
@@ -74,7 +75,7 @@ import { useLinkedOrder, useScrollToLinkedOrder } from "./useLinkedOrder";
 // Helpr task module rode in signed-in-shared and put /posts over its critical-path budget.
 import { DeliveryDoneStatus, onDay, PickupStatus, PorchOutPhoto, SellerDeliveryMoney, SellerDeliveryStatus } from "./DeclutterPorchHandover";
 import { DateTimeField } from "@/components/DateTimeField";
-import { gotItOpen } from "./OrderSteps";
+import { gotItOpen, gotItOpensAt } from "./OrderSteps";
 import { FoldedTimePicker } from "./DeclutterFoldedTime";
 import { PickupSlotPicker } from "./DeclutterPickupWindows";
 import { ProblemForm } from "./DeclutterProblemForm";
@@ -464,7 +465,8 @@ function HandoverPanel({ order, userId, slotStart, anyProblem, who, problemOpen,
   // "I'm here" does (the server refuses it before then: got_it_too_early, 20261030061753; declutter_meetup_rules()
   // here_from_minutes_before).
   if ((order.handover === "meetup" || order.handover === "pickup_home") && !gotItOpen(slotStart)) {
-    return <p className="text-sm text-muted-foreground" data-got-it-wait="">You can tap "I got it" from an hour before the {order.handover === "meetup" ? "meeting" : "pickup"} time.</p>;
+    // Audit 11-10 F384: say WHEN the button appears, not only "an hour before".
+    return <p className="text-sm text-muted-foreground" data-got-it-wait="">The "I got it" button appears {orderWhen(gotItOpensAt(slotStart))}, an hour before the {order.handover === "meetup" ? "meeting" : "pickup"} time.</p>;
   }
   // Audit 1028 D1-12: its own block, so "I got it" never sits edge to edge with "Report a problem" below it.
   return (

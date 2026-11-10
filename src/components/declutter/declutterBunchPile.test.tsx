@@ -1,10 +1,10 @@
 /**
  * What the seller sees when sorting didn't finish (owner 2026-10-30, on an iPhone: "each picture a separate item and
  * don't even write the listing with ai"): one card, with the reason and Sort again; and a card with no words offers
- * "Write it with AI", says why it is blank, and shows on that card why writing failed.
+ * "Write it for me", says why it is blank, and shows on that card why writing failed.
  *
  * @mutate src/components/declutter/DeclutterBunchPile.tsx | {item.sortReason}</p> | </p>
- * @mutate src/components/declutter/DeclutterBunchCard.tsx | {rewriting ? "Writing…" : noWords ? "Write it with AI" : "Write it again"} | {rewriting ? "Writing…" : "Write it again"}
+ * @mutate src/components/declutter/DeclutterBunchCard.tsx | {rewriting ? "Writing…" : noWords ? "Write it for me" : "Write it again"} | {rewriting ? "Writing…" : "Write it again"}
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |       {rewriteNote && <p | {false && <p
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |       {mergeTarget && ( |       {false && (
  */
@@ -58,13 +58,13 @@ describe("the photos that aren't sorted yet", () => {
 });
 
 describe("an item with no words", () => {
-  it("offers Write it with AI and says why it is blank", () => {
+  it("offers Write it for me and says why it is blank", () => {
     const onRewrite = vi.fn();
     card({ onRewrite });
     expect(document.querySelector("[data-bunch-no-words]")).toBeTruthy();
-    const btn = screen.getByRole("button", { name: /^Write it with AI/ });
+    const btn = screen.getByRole("button", { name: /^Write it for me/ });
     // The words on the button, not only its aria-label (vacuity 11-07: the label alone kept a "Write it again" face green).
-    expect(btn.textContent).toBe("Write it with AI");
+    expect(btn.textContent).toBe("Write it for me");
     fireEvent.click(btn);
     expect(onRewrite).toHaveBeenCalledTimes(1);
   });

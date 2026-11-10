@@ -3,7 +3,7 @@
  * into the pickup branch of the order card, which loaded the pickup address and the seller's times for a sale that
  * no longer exists: two "We couldn't load…" panels, a "Pick a pickup time" heading and a live "Book" button. The card
  * now says plainly that it ended, and loads nothing about a pickup. The amount refunded is on the buyer's head line
- * (BuyingOrders refundedStep, from declutter_my_refunded_cents).
+ * (BuyingOrders cancelledStep, from declutter_my_refunded_cents).
  *
  * F393, the seller's side: the card said nothing about the listing. It now reads the seller's own listings (the
  * Selling tab's one read, myItemsQuery) and says where each item of the order stands: back up for sale (the refund

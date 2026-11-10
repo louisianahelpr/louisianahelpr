@@ -395,3 +395,4 @@
 {"sha":"aaf3cc3617cc85cb12c43d7ff7192c2ab608ab98","reviewer":"lh-money-escrow","verdict":"PASS - display-only: hides the payout row while setup is paused or not yet owed; no amount or payout logic","date":"2026-11-10"}
 {"sha":"e42c6b33f25327bacc7f691542b50d35ec33224e","reviewer":"lh-money-escrow","verdict":"PASS - display-only: no placeholder box while the payout check answers; no amount or payout logic","date":"2026-11-10"}
 {"sha":"99362a7bb988f7bc021e2d55ad94d664639abe77","reviewer":"lh-money-escrow","verdict":"PASS labels, CI classification and guard find-strings only; no money or escrow path changed","date":"2026-11-10"}
+{"sha":"5bbe8fc5606544b497e0a938e5621243326b258d","reviewer":"lh-money-escrow","verdict":"PASS button label and copy only","date":"2026-11-10"}

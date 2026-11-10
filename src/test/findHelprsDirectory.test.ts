@@ -106,6 +106,9 @@ describe("Find a Helpr page (Q2437)", () => {
     expect(g.place).toBe("Iberia Parish");
     expect(g.name).toBe("A neighbor");
     expect(g.rating).toBe("New");
-    expect(g.jobsDone).toBe("0 jobs done");
+    // L016: no "0 jobs done" beside "New".
+    // @mutate src/pages/helprs/findHelprsModel.ts | jobsDone: done > 0 ? `${done} ${done === 1 ? "job" : "jobs"} done` : null, | jobsDone: `${done} ${done === 1 ? "job" : "jobs"} done`,
+    expect(g.jobsDone).toBeNull();
+    expect(directoryCardFacts(base, { user_id: "u1", review_count: 0, avg_rating: null, completed_jobs_as_helper: 1 }).jobsDone).toBe("1 job done");
   });
 });

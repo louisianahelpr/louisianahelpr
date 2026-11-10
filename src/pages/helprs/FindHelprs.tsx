@@ -171,7 +171,7 @@ export default function FindHelprs() {
                           <Star className="h-3.5 w-3.5" aria-hidden />
                           {f.rating}
                         </span>
-                        <span>{f.jobsDone}</span>
+                        {f.jobsDone && <span>{f.jobsDone}</span>}
                       </p>
                       {f.skills.length > 0 && (
                         <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Skills">

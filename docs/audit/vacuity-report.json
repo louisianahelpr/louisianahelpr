@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-10T02:18:43.109Z",
-  "guards": 3788,
-  "registered": 3787,
+  "generated": "2026-11-10T09:44:29.853Z",
+  "guards": 3790,
+  "registered": 3789,
   "unregistered": [
     "src/lib/shops/preorders.test.ts"
   ],
@@ -45,6 +45,24 @@
       "parents": [
         "src/components/rentals/listings/ListingView.tsx",
         "src/components/messages/HomeTalkInbox.tsx"
+      ]
+    },
+    {
+      "module": "src/components/sponsor/ClaimSection.tsx",
+      "tests": [
+        "src/test/sponsor25days.test.tsx"
+      ],
+      "parents": [
+        "src/pages/sponsor/SponsorPage.tsx"
+      ]
+    },
+    {
+      "module": "src/components/sponsor/Sections.tsx",
+      "tests": [
+        "src/test/sponsor25days.test.tsx"
+      ],
+      "parents": [
+        "src/pages/sponsor/SponsorPage.tsx"
       ]
     },
     {

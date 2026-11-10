@@ -51,7 +51,8 @@ const Instagram = ({ className }: { className?: string }) => (
  * Footer links (owner's UI audit 11-09, F006): 13px, and a 44px tall tap area on a touch screen (they were 16px tall
  * targets at 11px). On a mouse they keep the list's normal rhythm.
  */
-const FOOTER_LINK = "link-standard inline-flex items-center [@media(pointer:coarse)]:min-h-11";
+// L017 (landing audit 11-09): at least 24px tall everywhere (19px with a mouse-less phone emulator), 44px on touch.
+const FOOTER_LINK = "link-standard inline-flex items-center min-h-6 [@media(pointer:coarse)]:min-h-11";
 
 const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
 // Live since 2026-10-20 (owner: "i created a instagram").
@@ -129,7 +130,8 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
               into two short lines instead of one long one that pushes the
               link columns around. */}
           <p className="text-ds-13 text-[hsl(var(--olivewood))]/80 max-w-xs leading-relaxed">
-            Jobs, Declutter, Shops and Homes
+            {/* L036 (landing audit 11-09): only the sections open today (Shops and Homes are Coming soon). */}
+            Jobs and Declutter
             <br />
             for Louisiana.
           </p>
@@ -325,8 +327,12 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
         </p>
         <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 flex items-center gap-1.5">
           Made with{" "}
+          {/* L018 (landing audit 11-09): the icon was aria-hidden, so it read "Made with for Louisiana communities". */}
           <Heart
             className="w-3 h-3"
+            role="img"
+            aria-hidden={false}
+            aria-label="love"
             style={{
               // Olive, not rust: rust is for money only (audit #14).
               color: "hsl(var(--bark))",

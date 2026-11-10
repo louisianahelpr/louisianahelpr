@@ -11052,7 +11052,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 188,
+      "line": 194,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11062,21 +11062,11 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 189,
+      "line": 195,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
         "text": "Your shop is open."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/shops/ShopEditView.tsx",
-      "line": 193,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "shopsErrorMessage(err)"
       },
       "renders": true
     },
@@ -11092,7 +11082,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 204,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11103,6 +11093,16 @@
     {
       "file": "src/components/shops/ShopEditView.tsx",
       "line": 210,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopEditView.tsx",
+      "line": 216,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11112,7 +11112,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 214,
+      "line": 220,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11232,7 +11232,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 136,
+      "line": 138,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -11262,7 +11262,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 141,
+      "line": 143,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11272,7 +11272,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 150,
+      "line": 152,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11282,7 +11282,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 153,
+      "line": 155,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11292,7 +11292,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 162,
+      "line": 164,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11302,7 +11302,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 168,
+      "line": 170,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11312,7 +11312,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 173,
+      "line": 175,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11322,7 +11322,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 183,
+      "line": 185,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -11342,7 +11342,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 189,
+      "line": 191,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11352,7 +11352,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 210,
+      "line": 212,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -11372,7 +11372,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 215,
+      "line": 217,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11462,7 +11462,7 @@
     },
     {
       "file": "src/components/shops/ShopItemsSection.tsx",
-      "line": 79,
+      "line": 90,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11472,7 +11472,7 @@
     },
     {
       "file": "src/components/shops/ShopItemsSection.tsx",
-      "line": 82,
+      "line": 93,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11482,7 +11482,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 57,
+      "line": 72,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11492,7 +11492,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 67,
+      "line": 82,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11502,7 +11502,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 72,
+      "line": 87,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11730,7 +11730,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 79,
+      "line": 80,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11740,7 +11740,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 84,
+      "line": 85,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -11760,7 +11760,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 87,
+      "line": 88,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11770,7 +11770,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 179,
+      "line": 182,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

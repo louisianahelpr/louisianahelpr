@@ -142,6 +142,7 @@ vi.mock("@/lib/posthog", () => ({ captureEvent: vi.fn(), initPostHog: vi.fn() })
 vi.mock("@/lib/hibpCheck", () => ({ checkPasswordPwned: async () => 0 }));
 vi.mock("@/lib/geocode", () => ({
   geocodeAddress: async () => null,
+  geocodeJobAddress: async () => null,
   composeJobAddress: () => "1 Main St, New Orleans, LA 70112",
 }));
 vi.mock("@/hooks/useStripeConnectCheck", () => ({

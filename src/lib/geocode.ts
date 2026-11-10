@@ -71,3 +71,32 @@ export function composeJobAddress(parts: {
   ].filter(Boolean);
   return segments.join(", ");
 }
+
+/**
+ * The street with its house number taken off ("9816 Lake Peigneur Rd" -> "Lake Peigneur Rd"), or null when there
+ * was no leading number to take or too little is left.
+ */
+export function streetWithoutNumber(street: string | null | undefined): string | null {
+  const s = street?.trim() ?? "";
+  const m = /^\d+[A-Za-z]?(?:-\d+)?\s+(.+)$/.exec(s);
+  return m && m[1].trim().length >= 3 ? m[1].trim() : null;
+}
+
+/**
+ * Geocode a job's address for its map point: the full address first; when that finds nothing, ONCE more with the
+ * street name and town only (owner bug 2026-11-10: "9816 Lake Peigneur Rd, New Iberia, LA 70560" found no match,
+ * while the street without its house number did). Null when neither finds it; the job then saves without a point
+ * and the map pins it at its ZIP or parish when it reads it (20261110210539).
+ */
+export async function geocodeJobAddress(parts: {
+  streetAddress?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
+}): Promise<GeocodeResult | null> {
+  const full = await geocodeAddress(composeJobAddress(parts));
+  if (full) return full;
+  const street = streetWithoutNumber(parts.streetAddress);
+  if (!street || !parts.city?.trim()) return null;
+  return geocodeAddress(composeJobAddress({ streetAddress: street, city: parts.city, state: parts.state }));
+}

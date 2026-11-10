@@ -9,7 +9,7 @@
  * The class: whichever migration defines each of these objects LAST must carry
  * BOTH rules. Inventory: every migration file, newest definition per object.
  *
- * @mutate supabase/migrations/20261104080753_map_and_ranked_read_date_window.sql |     -- Q1411: not while the poster is under an open ban settlement review.\n    AND NOT EXISTS (SELECT 1 FROM public.ban_settlement_queue q WHERE q.user_id = j.customer_id AND q.review_state = 'open')\n  ORDER BY j.boosted_at |     AND true\n  ORDER BY j.boosted_at
+ * @mutate supabase/migrations/20261110210539_map_pins_ungeocoded_jobs.sql |     -- Q1411: not while the poster is under an open ban settlement review.\n    AND NOT EXISTS (SELECT 1 FROM public.ban_settlement_queue q WHERE q.user_id = j.customer_id AND q.review_state = 'open')\n  ORDER BY j.boosted_at |     AND true\n  ORDER BY j.boosted_at
  * @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql |  AND (NOT (EXISTS ( SELECT 1 FROM ban_settlement_queue q WHERE q.user_id = jobs.customer_id AND q.review_state = 'open'::text))) |
  * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |   IF EXISTS (SELECT 1 FROM public.ban_settlement_queue q\n              WHERE q.user_id = v_job.customer_id AND q.review_state = 'open') THEN |   IF false THEN
  */

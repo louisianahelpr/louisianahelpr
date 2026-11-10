@@ -76,12 +76,12 @@ describe("Q2606 the row says who asked", () => {
 
 describe("Q2606 the next-step lines", () => {
   it("the poster's ask: the Helpr's move, the poster waits on them", () => {
-    expect(continueDayNextStep(day(), { side: "helpr", otherFirst: "Lexi" })).toEqual({ who: "you", text: "Accept Lexi's new day", by: "Thu 11/5 at 9 AM" });
-    expect(continueDayNextStep(day(), { side: "poster", otherFirst: "Eli" })).toEqual({ who: "them", text: "You asked to finish Thu 11/5 at 9 AM", by: "waiting on Eli" });
+    expect(continueDayNextStep(day(), { side: "helpr", otherFirst: "Lexi" })).toEqual({ who: "you", text: "Accept Lexi's new day", by: "Thu, Nov 5 at 9:00 AM" });
+    expect(continueDayNextStep(day(), { side: "poster", otherFirst: "Eli" })).toEqual({ who: "them", text: "You asked to finish Thu, Nov 5 at 9:00 AM", by: "waiting on Eli" });
   });
   it("the Helpr's ask: unchanged (the poster confirms)", () => {
     const h = day({ proposer: "helpr", proposed_by: "helpr-1" });
-    expect(continueDayNextStep(h, { side: "poster", otherFirst: "Eli" })).toEqual({ who: "you", text: "Confirm Eli's new day", by: "Thu 11/5 at 9 AM" });
+    expect(continueDayNextStep(h, { side: "poster", otherFirst: "Eli" })).toEqual({ who: "you", text: "Confirm Eli's new day", by: "Thu, Nov 5 at 9:00 AM" });
     expect(continueDayNextStep(h, { side: "helpr", otherFirst: "Lexi" })?.who).toBe("them");
   });
 });

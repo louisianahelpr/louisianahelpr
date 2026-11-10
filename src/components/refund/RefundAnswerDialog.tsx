@@ -79,7 +79,7 @@ export function RefundAnswerDialog({
     ...(finishOffered
       ? [{ value: "finish", label: "Come back and finish", sub: "Offer a time instead of a refund" }]
       : []),
-    { value: "decline", label: "I don't agree", sub: "A real person at Helpr will decide" },
+    { value: "decline", label: "I don't agree", sub: "Our team will decide" },
   ];
 
   const close = () => {
@@ -98,7 +98,7 @@ export function RefundAnswerDialog({
           ? `Agreed. ${first} gets the refund and you take home your pay on the rest.`
           : status === "finish_offered"
           ? `Sent. ${first} can accept or decline the new time.`
-          : "Sent. A real person at Helpr will decide.",
+          : "Sent. Our team will decide.",
       );
       try {
         await Promise.all([

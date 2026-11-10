@@ -1,6 +1,6 @@
 /**
  * Owner 11-05: "accepting the new day should be on the job card instead, not hidden in the home page." The owner got
- * "Your Helpr needs another day: Yusef asked to finish 'Mow and Weed Eat' on Fri 11/6 at 3:15 PM" and the Posted card
+ * "Your Helpr needs another day: Yusef asked to finish 'Mow and Weed Eat' on Fri, Nov 6 at 3:15 PM" and the Posted card
  * had no way to accept it: Confirm / Decline new day lived only on the job page (useContinueDayActions).
  * Lead 11-05: while a proposal waits on the viewer, Confirm / Accept new day TAKES the card's one primary and Message
  * steps down to a chip, on both cards, collapsed and open.
@@ -63,7 +63,7 @@ describe("a new day that waits on me is the one primary on my card (owner 11-05,
     expect(c.faceAction?.tone).toBe("primary");
     expect(c.faceAction?.under?.label).toBe("Decline new day");
     expect(c.faceAction?.chip?.label).toBe("Message Yusef");
-    expect(c.faceAction?.note).toContain("Yusef asked to finish on Fri 11/6 at 3:15 PM.");
+    expect(c.faceAction?.note).toContain("Yusef asked to finish on Fri, Nov 6 at 3:15 PM.");
     expect(c.faceAction?.note).toContain("Ran out of daylight");
     expect(c.lead).not.toBeNull();
   });
@@ -128,7 +128,7 @@ describe("a new day that waits on me is the one primary on my card (owner 11-05,
     expect(rowEl.textContent).not.toContain("Message Yusef");
     expect(rowEl.textContent).not.toContain("Mark it done");
     const note = document.querySelector("[data-job-step-note]")!;
-    expect(note.textContent).toContain("Yusef asked to finish on Fri 11/6 at 3:15 PM.");
+    expect(note.textContent).toContain("Yusef asked to finish on Fri, Nov 6 at 3:15 PM.");
     expect(screen.getByRole("button", { name: "Decline new day" })).toBeTruthy();
   });
 

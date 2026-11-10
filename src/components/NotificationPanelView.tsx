@@ -21,19 +21,8 @@ import { JobFoldToggle } from "@/components/notificationPanel/JobFoldToggle";
 import { DaySection } from "@/components/notificationPanel/DaySection";
 import { NotificationTrigger } from "@/components/notificationPanel/NotificationTrigger";
 import { NotificationMessage } from "@/components/notificationPanel/NotificationMessage";
+import { isHelprCancelCopy } from "@/components/notificationPanel/helprCancelCopy";
 import type { NotificationPanelModel } from "./NotificationPanel";
-
-/**
- * Needles for "this job was cancelled by whoever posted it" in a STORED
- * notification body. These are not copy this file prints — the bodies are
- * written by Postgres (`poster_cancel_job`, `notify_on_job_update`). Since
- * 20260925143327 they say "cancelled by the person who posted it"; rows stored
- * before it say "cancelled by the poster" and always will, so both match.
- */
-const CANCELLED_BY_POSTER_NEEDLES = [
-  "cancelled by the poster",
-  "cancelled by the person who posted",
-] as const;
 
 export function NotificationPanelView({
   anchorRef,
@@ -413,15 +402,8 @@ export function NotificationPanelView({
                               if (n.type === "expired") {
                                 actions.push({ label: "Repost", href: "/post-job" });
                               } else if (
-                                n.type === "warning" &&
-                                // MATCHES STORED TEXT, not copy this file owns.
-                                // Postgres writes these bodies; rows from before
-                                // 20260925143327 say "cancelled by the poster",
-                                // later ones "cancelled by the person who posted
-                                // it", and both keep the pill.
-                                CANCELLED_BY_POSTER_NEEDLES.some((needle) =>
-                                  n.message.toLowerCase().includes(needle),
-                                )
+                                // MATCHES STORED TEXT written by Postgres (helprCancelCopy.ts says which).
+                                isHelprCancelCopy(n)
                               ) {
                                 // The Helpr's copy of a poster cancellation
                                 // (poster_cancel_job + notify_on_job_update both

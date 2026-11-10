@@ -26,7 +26,9 @@
  * @mutate src/components/declutter/DeclutterItemView.tsx | milesLabel(miles, geo.status === "ready" && geo.approximate); | milesLabel(miles);
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | miles={miles} approximate={origin.status === "ready" && origin.approximate}\n | miles={miles} approximate={false}\n
  * @mutate src/components/declutter/useDeclutterOrigin.ts |     asked && device.status === "error" | false && device.status === "error"
- * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />} | skeleton={<DeclutterItemSkeleton />}
+ * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable notFound />} | skeleton={<DeclutterItemSkeleton />}
+ * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable notFound />} | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />}
+ * @mutate src/components/declutter/DeclutterSkeletons.tsx |   usePageTitle(notFound ? "Item not found — Helpr" : "Declutter — Helpr"); |   usePageTitle("Declutter — Helpr");
  * @mutate src/hooks/usePermissionRationale.ts | body: "Declutter uses your location to show how far away each item is | body: "We use your location to show jobs near you, how far away each item is
  */
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
@@ -209,7 +211,11 @@ describe("Declutter loading frame (DeclutterGate)", () => {
 
   it("a link that cannot name an item says so at once: no skeleton of photos that will never come", () => {
     const { container } = at("/declutter/item/test", <DeclutterItemPage />, "/declutter/item/:id");
-    expect(screen.getByText("No longer available.")).toBeInTheDocument();
+    // Audit 11-10 F316: a mistyped link is a broken link, never "It sold"; the tab says so too.
+    expect(screen.getByText("We couldn't find that item.")).toBeInTheDocument();
+    expect(screen.getByText("The link may be broken.")).toBeInTheDocument();
+    expect(screen.queryByText("No longer available.")).toBeNull();
+    expect(document.title).toBe("Item not found — Helpr");
     expect(bones(container)).toBe(0);
   });
 

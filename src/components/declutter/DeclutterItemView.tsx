@@ -139,6 +139,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
   // only once the item and its photos have painted, never in their loading gate (pages under 2 s; Facebook guests).
   const afterPaint = useAfterPaint(!!item.data && !photos.isLoading);
 
+  // Audit 11-10 F316: a malformed link never asks the server for anything (the sold-card RPC answered a 400 for
+  // "abc") and says the link is broken, not that the item sold.
+  if (!validId) return <DeclutterItemUnavailable notFound more={<NewestItemsRow viewerId={user?.id ?? null} />} />;
   // One gate for the item and its photos: the gallery paints once, never a placeholder that pops into a photo.
   if (item.isLoading || photos.isLoading) return <DeclutterItemSkeleton />;
   if (item.isError || !item.data) {

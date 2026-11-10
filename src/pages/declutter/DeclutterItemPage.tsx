@@ -18,5 +18,5 @@ export default function DeclutterItemPage() {
     void qc.prefetchQuery({ queryKey: ["declutter", "item", id], queryFn: () => fetchItem(id) });
     void qc.prefetchQuery({ queryKey: ["declutter", "item-photos", id], queryFn: () => fetchPhotos([id]) });
   }, [id, qc]);
-  return <DeclutterGate skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />}>{id ? <ItemView itemId={id} /> : null}</DeclutterGate>;
+  return <DeclutterGate skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable notFound />}>{id ? <ItemView itemId={id} /> : null}</DeclutterGate>;
 }

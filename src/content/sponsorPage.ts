@@ -303,5 +303,3 @@ export const sponsorPage = {
     ],
   },
 } as const;
-
-export type SponsorPageContent = typeof sponsorPage;

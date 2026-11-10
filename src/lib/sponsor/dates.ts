@@ -41,7 +41,7 @@ export function countdown(nowMs: number): CountdownState {
 }
 
 /** "December 3" style label for a giveaway day. */
-export function dayLabel(day: number): string {
+function dayLabel(day: number): string {
   return `December ${day}`;
 }
 

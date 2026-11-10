@@ -130,8 +130,7 @@ const AdminDeclutterPreview = lazy(() => import("./pages/admin/preview/Declutter
 const AdminJobPreview = lazy(() => import("./pages/admin/preview/JobPreviewPage"));
 const AdminMessagesPreview = lazy(() => import("./pages/admin/preview/MessagesPreviewPage"));
 const AdminOnboardingPreview = lazy(() => import("./pages/admin/preview/OnboardingPreviewPage"));
-// 25 Days of Louisiana Giveaways (owner 2026-11-09): admin, sponsor page and rules, each its own chunk. Dark until
-// the sponsor_25days switch is on (the server answers on/off; off renders Not found).
+// 25 Days of Louisiana Giveaways (owner 2026-11-09): dark until the sponsor_25days switch is on (off renders Not found).
 const AdminSponsorsPage = lazyWithPreload(() => import("./pages/admin/sponsors/AdminSponsorsPage"));
 const SponsorPage = lazyWithPreload(() => import("./pages/sponsor/SponsorPage"));
 const SponsorRulesPage = lazyWithPreload(() => import("./pages/sponsor/SponsorRulesPage"));
@@ -202,17 +201,6 @@ const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
 const AdminRoute = lazy(() => (Admin.preload(), import("./components/AdminRoute")));
 
 /**
- * Wraps a single route's lazy content in its own `<Suspense>` with a
- * branded parchment fallback so navigating between routes doesn't blank
- * the persistent shell (header, banners, mobile nav). Each route gets its
- * own independent Suspense boundary — the fallback renders in place of
- * THAT route only.
- *
- * Composes inside `RouteErrorBoundary` (`<RouteErrorBoundary>{routeEl(...)}
- * </RouteErrorBoundary>`) so a lazy-chunk fetch failure still surfaces
- * the branded route-error UI instead of suspending forever.
- */
-/**
  * The landing page's load fallback: the plain page background and nothing
  * else (owner, 2026-09-23: no H loader and no dashboard-shaped skeleton
  * before the landing page; a guest saw the generic route skeleton, then the
@@ -221,6 +209,8 @@ const AdminRoute = lazy(() => (Admin.preload(), import("./components/AdminRoute"
  */
 const LandingPlainFallback = () => <div className="min-h-screen bg-premium-page" aria-busy="true" />;
 
+// Each route's lazy content in its own <Suspense>, so a route change never blanks the shell; it sits inside
+// RouteErrorBoundary, so a failed chunk fetch shows the route-error UI instead of suspending forever.
 const routeEl = (node: ReactElement, fallback: ReactElement = <RouteSuspenseFallback />) => (
   <Suspense fallback={fallback}>{node}</Suspense>
 );

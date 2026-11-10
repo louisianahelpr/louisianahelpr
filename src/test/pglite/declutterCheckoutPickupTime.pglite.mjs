@@ -143,7 +143,7 @@ const offer = one(await svc(`INSERT INTO public.declutter_offers (item_id, buyer
 const took = await svc(`SELECT public.declutter_take_item('${I(4)}', '${BUYER}', 3000, 'offer', '${offer}')`);
 ok(Array.isArray(took), `fixture: the offer is accepted (${short(took)})`);
 const offerNote = await svc(`SELECT message FROM public.notifications WHERE user_id = '${BUYER}' AND message LIKE '%Offer lamp%'`);
-ok(Array.isArray(offerNote) && offerNote.some((x) => /^Dana .*accepted your \$30(\.00)? offer for "Offer lamp"\. Check out within 24 hours: choose pickup or delivery, pick a day and time, and pay/.test(x.message)),
+ok(Array.isArray(offerNote) && offerNote.some((x) => /^Dana .*accepted your \$30(\.00)? offer for "Offer lamp"\. Check out by [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2} at \d{1,2}:\d{2} [AP]M to keep it: choose pickup or delivery, pick a day and time, and pay/.test(x.message)),
   `the buyer is told who accepted and what to do next (${short(offerNote)})`);
 
 // 6. B112 (B110 leftover 1): the order's two sides read the chosen window (20261101200035), so the order card shows

@@ -8,7 +8,7 @@
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |       ELSIF v_line.price_cents = 0 THEN |       ELSIF false THEN
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |     IF r.price_cents = 0 THEN\n      -- DA-12: a free item has no strike to threaten.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'declutter_sales', 'Choose a pickup within 24 hours', |     IF false THEN\n      -- DA-12: a free item has no strike to threaten.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', 'Choose a pickup within 24 hours',
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |     IF r.price_cents = 0 THEN\n      -- DA-12: a free item has no strike to threaten.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'declutter_sales', '2 hours left to choose a pickup', |     IF false THEN\n      -- DA-12: a free item has no strike to threaten.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', '2 hours left to choose a pickup',
- * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql | Choose how you''ll pick it up within 48 hours or it goes back up. %s', | Choose how you''ll pick it up within 48 hours or you get a strike and it goes back up. %s',
+ * @mutate supabase/migrations/20261110223800_declutter_reserved_notice_names_the_deadline.sql | Choose how you''ll pick it up within 48 hours or it goes back up. %s', | Choose how you''ll pick it up within 48 hours or you get a strike and it goes back up. %s',
  * @mutate src/components/declutter/DeclutterReserveSheet.tsx | If you don't, it goes back up. No strike.` | If you don't, you get a strike and it goes back up.`
  * @mutate src/components/declutter/DeclutterYourOffer.tsx | If you don't, it goes back up. No strike.` | If you don't, you get a strike and it goes back up.`
  */
@@ -47,7 +47,7 @@ describe("free items give no strike for the 48 hours (DA-12)", () => {
     const free = take.slice(take.indexOf("IF p_price = 0 THEN"), take.indexOf("ELSE", take.indexOf("IF p_price = 0 THEN")));
     expect(free.length).toBeGreaterThan(100);
     expect(free).not.toMatch(/strike/i);
-    expect(take.slice(take.indexOf("Reserved for you: check out"))).toMatch(/you get a strike/);
+    expect(take.slice(take.indexOf("Reserved for you: check out"))).toMatch(/counts as a strike/);
     const files = ["src/components/declutter/DeclutterReserveSheet.tsx", "src/components/declutter/DeclutterYourOffer.tsx"];
     expect(files.length).toBeGreaterThan(1);
     for (const f of files) {

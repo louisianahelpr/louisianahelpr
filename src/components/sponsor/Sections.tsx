@@ -178,6 +178,8 @@ export function About() {
 
 export function Founder({ photoUrl }: { photoUrl: string | null }) {
   const preview = useContext(PlaceholderPreview);
+  // Owner 11-10: no founder section on the page.
+  if (!C.founder.show) return null;
   const paragraphs = C.founder.paragraphs.filter((p) => preview || !hasPlaceholder(p));
   return (
     <section className="lh25-section lh25-founder" aria-labelledby="lh25-founder">

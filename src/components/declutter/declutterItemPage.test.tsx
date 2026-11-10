@@ -894,7 +894,8 @@ describe("the photo-first Declutter item page", () => {
     open();
     expect(await screen.findByText("No longer available.")).toBeInTheDocument();
     const row = await screen.findByRole("region", { name: "New on Declutter" });
-    expect(within(row).getAllByRole("link").map((a) => a.getAttribute("aria-label"))).toEqual([expect.stringMatching(/^Desk lamp, /)]);
+    // L008: a card is named by its own text (title and price), not an aria-label.
+    expect(within(row).getAllByRole("link").map((a) => a.textContent)).toEqual([expect.stringMatching(/Desk lamp.*\$40/)]);
     // Not sold (withdrawn, removed, ...): nothing of the listing.
     expect(document.querySelector("[data-sold-item]")).toBeNull();
   });

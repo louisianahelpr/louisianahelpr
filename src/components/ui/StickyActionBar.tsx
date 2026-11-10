@@ -79,6 +79,11 @@ export function StickyActionBar({ children, label, note, active = true, spacer =
           {...rest}
           data-sticky-action-bar="fixed"
           data-rail-inset=""
+          // L024 (landing audit 11-09): portaled to <body>, the bar sat outside every landmark (axe "region"). It is a
+          // labelled region of its own, so a screen reader can jump to the page's actions.
+
+          role="region"
+          aria-label="Actions"
           className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card px-4 pt-2 pb-[calc(var(--safe-area-bottom,0px)+0.5rem)]"
         >
           {row}

@@ -13,17 +13,13 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import NotFound from "@/pages/info/NotFound";
 import { JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
+import { HIRE_STEPS } from "@/components/landing/hireSteps";
 import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, findTownPage, townPageMeta, townPagePath, type TownPageService, type TownPageTown } from "@/lib/townPages.mjs";
 
 /** F063: the town page's column, and its header's (the column plus the shell's side padding at each breakpoint). */
 const TOWN_COLUMN = "max-w-[760px]";
 const TOWN_HEADER_COLUMN = "mx-auto max-w-[calc(760px+2.5rem)] sm:max-w-[calc(760px+4rem)] lg:max-w-[calc(760px+6rem)]";
 
-const STEPS = [
-  { title: "You name the price", body: "Say what you need done and what you'll pay." },
-  { title: "Local Helprs apply", body: "People nearby see your job and apply. You pick who does it." },
-  { title: "Pay when it's done", body: "Your money is held safely until you approve the work." },
-] as const;
 
 export default function HireTownPage() {
   const { service: serviceSlug, town: townSlug } = useParams();
@@ -74,14 +70,21 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
               Post a job
             </Link>
           </Button>
+          {/* L014: the page named no Helprs; the directory, filtered to this town, is one tap away. */}
+          <p className="text-ds-15">
+            <Link to={`/helprs?town=${encodeURIComponent(town.name)}`} className="link-standard font-semibold" data-town-helprs="" style={ink}>
+              See Helprs in {town.name}
+            </Link>
+          </p>
         </section>
         <section aria-labelledby="town-how" className="space-y-3">
           <h2 id="town-how" className="text-ds-17 font-semibold" style={ink}>How it works</h2>
           <ol className="space-y-3">
-            {STEPS.map((s) => (
+            {/* L014 (landing audit 11-09): the landing's own three steps, word for word (hireSteps.ts). */}
+            {HIRE_STEPS.map((s) => (
               <li key={s.title} className="rounded-2xl liquid-glass p-card">
                 <p className="font-semibold" style={ink}>{s.title}</p>
-                <p className="text-ds-15 text-muted-foreground">{s.body}</p>
+                <p className="text-ds-15 text-muted-foreground">{s.desc}</p>
               </li>
             ))}
           </ol>

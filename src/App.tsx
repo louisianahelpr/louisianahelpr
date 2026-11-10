@@ -215,7 +215,6 @@ const routeEl = (node: ReactElement, fallback: ReactElement = <RouteSuspenseFall
   <Suspense fallback={fallback}>{node}</Suspense>
 );
 
-
 const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
   return (
@@ -296,6 +295,12 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/move" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterMovePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} />{/* F130: was a 404; = wantedAskHref("") */}
+      {/* F471/F415/F234 + F455 (audit 11-10): names people type or old emails use were 404s. /helpdesk is the Help
+          center (Contact us stays /support); /settings and /profile/security open the matching Profile tab (a guest
+          gets the Log in page and comes straight back, as ProtectedRoute does for every /profile link). */}
+      <Route path="/helpdesk" element={<Navigate to="/help" replace />} />
+      <Route path="/settings" element={<Navigate to="/profile?tab=settings" replace />} />
+      <Route path="/profile/security" element={<Navigate to="/profile?tab=security" replace />} />
       <Route path="/declutter/settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSettingsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/item/:id" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember><DeclutterItemPage /></DeclutterGuestOrMember>)}</RouteErrorBoundary>} />
       <Route path="/quotes" element={routeEl(<QuotesHubRedirect />)} />
@@ -379,7 +384,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/terms/full" element={<RouteErrorBoundary>{routeEl(<PageTransition><LegalFullText doc="terms" /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/privacy/full" element={<RouteErrorBoundary>{routeEl(<PageTransition><LegalFullText doc="privacy" /></PageTransition>)}</RouteErrorBoundary>} />
 
-
       {/* A SHARED JOB LINK SHOWS THE JOB TO A GUEST (10-30 jobs audit, items 1 and 2).
           From 2026-09-02 this route was signed-in-only (owner's call then, to match
           the browse card), so someone tapping a job shared on Facebook met a login
@@ -454,7 +458,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           copy of the dashboard. */}
       {/* Public vertical landing pages */}
 
-
       {/* /become-a-partner, /enterprise and /how-it-works were retired, and
           their redirect stubs deleted in 2352466e. These comments used to say
           the links were redirected "so they don't 404" — they are not; all
@@ -497,8 +500,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   );
 });
 AnimatedRoutes.displayName = "AnimatedRoutes";
-
-
 
 const App = () => (
   <ErrorBoundary>

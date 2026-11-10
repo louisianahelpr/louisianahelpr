@@ -12,6 +12,7 @@ export const es: Record<MsgKey, string> = {
   "chat.options": "Opciones de la conversación",
   "chat.cancelReply": "Cancelar la respuesta",
   "chat.search": "Buscar conversaciones",
+  "chat.searchHint": "Buscar nombres, trabajos y mensajes",
   "chat.closeSearch": "Cerrar la búsqueda",
   "chat.clearSearch": "Borrar la búsqueda",
   "chat.loadFailed": "No pudimos cargar sus mensajes.",
@@ -192,6 +193,7 @@ export const es: Record<MsgKey, string> = {
 
   // Finish your profile (CompleteProfile, the gate after sign-up)
   "profileGate.pageTitle": "Complete su perfil — Helpr",
+  "profileGate.alreadyComplete": "Su perfil ya está completo.",
   "profileGate.zipMismatch": "Ese código postal suele corresponder a la parroquia {zipParish}, no a donde está {city} (parroquia {cityParish}). Revíselo, por favor.",
   "profileGate.fileType": "{label}: ese tipo de archivo no se admite.",
   "profileGate.fileSize": "{label} pesa más de 5 MB. Pruebe con un archivo más pequeño.",

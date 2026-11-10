@@ -4,8 +4,8 @@
  * line now says they come straight back to it, in the member's language; the notify line keeps its place.
  * (The Log in side: a guest bounced to /login with an item redirect reads AUD31-16's item notice, loginNotice.test.ts.)
  *
- * @mutate src/lib/jobIntent.ts |   if (safe && new URL(safe, "https://x.invalid").pathname.startsWith("/declutter/item/")) return t("signup.itemSubtitle"); |
- * @mutate src/lib/jobIntent.ts |   const safe = safeInternalRedirect(redirect);\n  if (safe && | const safe = redirect;\n  if (safe &&
+ * @mutate src/lib/jobIntent.ts |   if (path.startsWith("/declutter/item/")) return t("signup.itemSubtitle"); |
+ * @mutate src/lib/jobIntent.ts |   const safe = safeInternalRedirect(redirect);\n  const path = | const safe = redirect;\n  const path =
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

@@ -12678,11 +12678,11 @@
     },
     {
       "file": "src/lib/requireOnline.ts",
-      "line": 67,
+      "line": 71,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "You're offline. Try again when you're back."
+        "form": "dynamic",
+        "text": "offlineMessage"
       },
       "renders": true
     },

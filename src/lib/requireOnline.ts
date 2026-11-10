@@ -4,6 +4,10 @@ import { toast } from "sonner";
 
 import { isNativePlatform } from "@/lib/nativeInit";
 
+export const OFFLINE_MESSAGE = "You're offline. Try again when you're back.";
+/** F473 (audit 11-10): the chat keeps the typed message on a refused send, so its toast says so. */
+export const OFFLINE_MESSAGE_KEPT = "You're offline. Your message is kept. Tap send when you're back.";
+
 /**
  * Synchronous gate for high-stakes mutation entry points (Apply, Post,
  * Send message, Save profile). Call as the FIRST line of an onClick /
@@ -55,7 +59,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
  * stays the user's problem to discover when the mutation fails — which
  * it now visibly does.
  */
-export function requireOnline(): boolean {
+export function requireOnline(offlineMessage: string = OFFLINE_MESSAGE): boolean {
   // Web: only a CONFIRMED offline blocks (src/lib/connectivity.ts). Chrome can
   // report navigator.onLine=false while online (owner, 10-31), and every write
   // was refused with this toast. Native keeps reading navigator.onLine here.
@@ -64,6 +68,6 @@ export function requireOnline(): boolean {
     : !isConfirmedOffline();
   const nativeOnline = !isNativePlatform || onlineManager.isOnline();
   if (browserOnline && nativeOnline) return true;
-  toast.error("You're offline. Try again when you're back.");
+  toast.error(offlineMessage);
   return false;
 }

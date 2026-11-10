@@ -39,7 +39,8 @@ export function loginNotice(o: {
           : null;
   // AUD31-16: a guest who followed a Declutter link is most likely new, so the notice leads with Create an account.
   // F080 (owner UI audit 11-09): every gated page does the same (the Sell pattern), with its own line.
-  const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && (notice === declutterPage || notice.endsWith(BACK_TO_IT));
+  // F252: the returning-member lines (payment, finish profile) end with LOG_BACK_IN, so they do not lead with sign-up.
+  const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && notice.endsWith(BACK_TO_IT);
   return { accountChoice, notice, leadWithSignup };
 }
 
@@ -60,10 +61,23 @@ const GATED_PAGE_LINES: readonly [prefix: string, line: string][] = [
   ["/home", "Your home page needs an account."],
 ];
 
+/**
+ * F252 (audit 11-10): /payment-success and /complete-profile are only reached by someone who already has an account
+ * (back from Stripe; mid sign-up), so "Create an account" was the wrong lead. These say log in, and Login does not
+ * lead with Create an account for them.
+ */
+const RETURNING_PAGE_LINES: readonly [prefix: string, line: string][] = [
+  ["/payment-success", "Log in to see your payment."],
+  ["/complete-profile", "Log in to finish your profile."],
+];
+const LOG_BACK_IN = "We'll take you straight back to it.";
+
 export function gatedPageNotice(redirect: string | null | undefined): string | null {
   const declutter = declutterGatedNotice(redirect);
   if (declutter || !redirect) return declutter;
   const first = `/${new URL(redirect, "https://x.invalid").pathname.split("/")[1] ?? ""}`;
+  const returning = RETURNING_PAGE_LINES.find(([prefix]) => prefix === first)?.[1];
+  if (returning) return `${returning} ${LOG_BACK_IN}`;
   const line = GATED_PAGE_LINES.find(([prefix]) => prefix === first)?.[1];
   return line ? `${line} ${BACK_TO_IT}` : null;
 }

@@ -45,9 +45,10 @@ export const CommunityContent = () => (
   <div className="space-y-3">
     <TldrCard
       items={[
-        `Cancel free 24+ hours ahead. Inside 24h, part of the job goes to the Helpr for their time, and you see the amount before you confirm. A no-show is a final warning, then a 7-day restriction an admin reviews.`,
-        `Nothing is paid until the person who posted approves the work. If they haven't answered ${APPROVAL_WINDOW_HOURS} hours after it's marked done, Helpr support steps in.`,
-        "If something's wrong, request a revision first → file a dispute → admin decides. Each step has a 72-hour window.",
+        // F239 (audit 11-10): the numbers a first-timer scans for are bold; the words are unchanged.
+        <>Cancel free <strong className="font-semibold">24+ hours</strong> ahead. Inside 24h, part of the job goes to the Helpr for their time, and you see the amount before you confirm. A no-show is a final warning, then a 7-day restriction an admin reviews.</>,
+        <>Nothing is paid until the person who posted approves the work. If they haven't answered <strong className="font-semibold">{APPROVAL_WINDOW_HOURS} hours</strong> after it's marked done, Helpr support steps in.</>,
+        <>If something's wrong, request a revision first → file a dispute → admin decides. Each step has a <strong className="font-semibold">72-hour</strong> window.</>,
         // WAS "Three strikes = ban." — false, and the single most consequential
         // sentence on the page, sitting in the TL;DR a restricted user reads
         // first. No ladder in the app bans anyone: all four call

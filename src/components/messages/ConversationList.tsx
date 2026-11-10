@@ -134,7 +134,7 @@ export function ConversationList({
         autoFocus
         type="search"
         aria-label={t("chat.search")}
-        placeholder={`${t("chat.search")}…`}
+        placeholder={`${t("chat.searchHint")}…`}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         /* Escape is the keyboard's X — same single activation, same return

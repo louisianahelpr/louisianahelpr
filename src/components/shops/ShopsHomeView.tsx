@@ -31,7 +31,6 @@ import type { SectionMineMenu } from "@/components/sections/sectionMine";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useNeedsYouCounts } from "@/lib/needsYouStore";
-import { useSectionPreview } from "@/components/sections/ExploreSwitcher";
 import ShopMyOrdersView from "./ShopMyOrdersView";
 import ShopDashboardView from "./ShopDashboardView";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -148,8 +147,6 @@ export default function ShopsHomeView() {
 
 function ShopsBrowse() {
   const [group, setGroup] = useState<string | null>(null);
-  // A tester inside Shops before it opens to everyone: no shops yet "Opens soon" (owner, 2026-10-22).
-  const preview = useSectionPreview("shops");
   // No location prompt on landing: miles come from what the app already knows.
   const { origin } = useDeclutterOrigin();
   const from = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
@@ -219,8 +216,10 @@ function ShopsBrowse() {
         // The shared empty state every Browse wears (owner, 2026-10-19: Homes' style, same place).
         <BrowseEmptyState
           icon={Store}
-          title={words && (shops.data ?? []).length > 0 ? "No shops match that search." : preview ? "Coming soon" : "No shops here yet."}
-          body={words && (shops.data ?? []).length > 0 ? "Try another word." : "Be the first: open a free shop for your business or the things you make."}
+          // Shops audit 11-10 F1 (lead): one message. A tester who can already open a shop is never told "Coming soon"
+          // beside "Be the first: open a free shop" (members without the switch get the gate's Coming soon instead).
+          title={words && (shops.data ?? []).length > 0 ? "No shops match that search." : "No shops near you yet."}
+          body={words && (shops.data ?? []).length > 0 ? "Try another word." : "Be the first: open a free shop."}
         />
       ) : (
         <ul className={SHOP_GRID}>

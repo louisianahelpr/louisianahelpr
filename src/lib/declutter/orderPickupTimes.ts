@@ -66,10 +66,14 @@ export function bookByWords(iso: string): string {
  */
 export function orderTimeWords(t: OrderPickupTimes | null | undefined, handover: string | null, bookedSlotStart: string | null):
   { chosen: string | null; by: string | null } {
-  if (!t) return { chosen: null, by: null };
   const booked = !!bookedSlotStart;
+  // Audit 1110 F405: a door or meetup booking whose time is not the checkout time (moved, the checkout time had passed,
+  // or no order times read) still names the BOOKING's own time, so the order chat's line (which has no booking panel
+  // "below" it) and the buyer's line carry the same time. A porch booking is a day, never shown as a clock time (A1-C2).
+  const own = booked && handover !== "porch" ? pickupWhenWords(bookedSlotStart!, null, false) : null;
+  if (!t) return { chosen: own, by: null };
   const chosen = booked && t.pickup_slot_start && Date.parse(t.pickup_slot_start) === Date.parse(bookedSlotStart!)
     ? pickupWhenWords(t.pickup_slot_start, t.pickup_slot_end, handover === "porch")
-    : null;
+    : own;
   return { chosen, by: !booked && t.book_by ? bookByWords(t.book_by) : null };
 }

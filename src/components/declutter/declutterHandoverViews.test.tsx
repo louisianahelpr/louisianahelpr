@@ -959,7 +959,9 @@ describe("Declutter slice 4: paid-order cards", () => {
   // NextStep line; the other side's move reads "Waiting on the buyer to …". Pinned by board 72, the free-claim loop,
   // the seller-delivers and meetup cases below.
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : you("Put it out and take one photo where the buyer will find it"); | : info("Put it out and take one photo where the buyer will find it.");
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | you("Have it ready at the pickup time below") | info("Have it ready at the pickup time below.")
+  // Audit 1110 F405: a booked door pickup names the booking's own time even with no order times read, so the line is
+  // "Next: have it ready at the door · Pickup <time>" / "Pickup <time> · at the door".
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | ? you("Have it ready at the door", `Pickup ${chosen}`) : | ? info(`Have it ready at the door · Pickup ${chosen}`) :
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | { who: "you", text: "Deliver it at the time below" } | { who: "info", text: "Booked. The delivery time is below." }
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | waiting("book a time to meet") | them(`${paid} The buyer books a time to meet.`)
   // Lead 2026-10-28 (Buying, calmer): where a pickup stands is said in plain sentences, never dot-joined fragments
@@ -1011,6 +1013,9 @@ describe("Declutter slice 4: paid-order cards", () => {
           const lines = [...container.querySelectorAll("[data-pickup-status] p")].map((p) => p.textContent ?? "");
           expect(lines.length).toBeGreaterThan(0);
           for (const t of lines) {
+            // A3-19 (lead 11-01, after 10-28) names the booked time as "Pickup <time> · at the door" / "<step> · Pickup
+            // <time>" on purpose; audit 1110 F405 names a door booking's own time too. That one line is the exception.
+            if (/ · Pickup |^Pickup .* · at the door$/.test(t)) continue;
             expect(t, `${handover}/${side}/step ${at}`).not.toMatch(/ · /);
             // A next-step line (owner 11-01) is "Next: <step>", a step and not a sentence; every other line is one.
             expect(t, `${handover}/${side}/step ${at}`).toMatch(/^Next: [a-z]|[.!?]$/);
@@ -1263,7 +1268,7 @@ describe("#6: a free claim never reads like a paid order", () => {
           const { container, unmount } = show([free({ handover, my_side: side })]);
           const card = (await screen.findByText("Claimed")).closest("article")!;
           // Wait for the booking read: a booked door pickup moves to its second step.
-          if (at !== null && handover === "pickup_home") await within(card).findByText(side === "buyer" ? "Booked. The pickup time is below." : "Next: have it ready at the pickup time below");
+          if (at !== null && handover === "pickup_home") await waitFor(() => expect(card.textContent).toMatch(side === "buyer" ? /Pickup .* · at the door/ : /Next: have it ready at the door · Pickup /));
           const name = side === "buyer" ? "I got it" : "Picked up";
           // BUY-17: a porch buyer's "I got it" waits for the porch photo (none here), so it is greyed out, never opened.
           const acts = side === "buyer" ? at !== null && handover !== "porch" : handover === "pickup_home" && at === 30;

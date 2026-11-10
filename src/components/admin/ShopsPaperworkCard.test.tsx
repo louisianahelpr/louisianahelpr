@@ -9,7 +9,7 @@
  *  4. View document opens a signed user-documents link for the permit's own path.
  *  5. PGRST202: "not on the server yet", never an empty list.
  *
- * @mutate src/components/admin/ShopsPaperworkCard.tsx |     return { permits: withoutTestRows(p.permits), registrations: withoutTestRows(p.registrations) }; |     return { permits: p.permits, registrations: p.registrations };
+ * @mutate src/components/admin/ShopsPaperworkCard.tsx |   return { permits: withoutTestRows(p.permits), registrations: withoutTestRows(p.registrations), notDeployed: p.notDeployed }; |   return { permits: p.permits, registrations: p.registrations, notDeployed: p.notDeployed };
  * @mutate src/components/admin/ShopsPaperworkCard.tsx |         primaryDisabled={decide.isPending \|\| note.trim().length < 3 \|\| note.length > 500} |         primaryDisabled={decide.isPending}
  * @mutate src/components/admin/ShopsPaperworkCard.tsx |                         onClick={() => registration.mutate({ shopId: r.shop_id, found: false })}>Not found</Button> |                         onClick={() => registration.mutate({ shopId: r.shop_id, found: true })}>Not found</Button>
  * @mutate src/components/admin/AdminShopsOrders.tsx |       <ShopsPaperworkCard />\n |

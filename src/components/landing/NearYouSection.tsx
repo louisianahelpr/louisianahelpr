@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
 import { useLiveJobs } from "./LiveJobsSection";
-import { FRESH_DECLUTTER_LIMIT, FRESH_GRID, FRESH_INCL, FRESH_PRICE, FRESH_TITLE, FRESH_TOWN, useFreshItems } from "./FreshDeclutterSection";
+import { FRESH_DECLUTTER_LIMIT, FRESH_GRID, FRESH_INCL, FRESH_PRICE, FRESH_TITLE, FRESH_TOWN, fullRowsCellClass, useFreshItems } from "./FreshDeclutterSection";
 import { mixNearCards } from "./nearYouCards";
 import { LANDING_DECLUTTER_HASH, setLandingMode, useLandingMode } from "./landingMode";
 import { sectionIsComingSoon, useSectionsOpen } from "./useSectionsOpen";
@@ -49,7 +49,7 @@ function NearYouSkeleton() {
   return (
     <ul className={FRESH_GRID} aria-hidden data-testid="landing-near-you-skeleton">
       {Array.from({ length: FRESH_DECLUTTER_LIMIT }, (_, i) => (
-        <li key={i} className="min-w-0">
+        <li key={i} className={`min-w-0 ${fullRowsCellClass(i, FRESH_DECLUTTER_LIMIT)}`}>
           <span className="block aspect-[4/5] rounded-xl bg-photo-empty" />
           <span className="block px-0.5 pt-2">
             <span className={`block ${FRESH_TITLE}`}>&nbsp;<br />&nbsp;</span>

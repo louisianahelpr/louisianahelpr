@@ -59,7 +59,8 @@ describe("the landing lets a guest browse Declutter (owner 11-04)", () => {
     render(<MemoryRouter><NearYouGrid cards={cards(items)} /></MemoryRouter>);
     const li = within(screen.getByTestId("landing-near-you-list")).getAllByRole("listitem");
     expect(li.length).toBe(items.length);
-    expect(li.every((c) => c.querySelector("[data-item-card]") && !c.className.includes("hidden"))).toBe(true);
+    // Every card is a browse card; on a phone (2 across) all 6 show (fullRowsCellClass hides only past the last full row).
+    expect(li.every((c) => c.querySelector("[data-item-card]") && !c.className.split(" ").includes("max-sm:hidden"))).toBe(true);
     expect(li[0].querySelector("[data-card-free]")?.textContent).toBe("Free");
     expect(li[0].querySelector("[data-card-title]")?.textContent).toBe("Thing 1");
     // D006: item 1 alone is porch pickup, so the tag tells it apart; nobody else wears it.

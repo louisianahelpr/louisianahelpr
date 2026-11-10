@@ -11,6 +11,7 @@
  * D009/D010: the band is deep olive in BOTH themes, with three badges.
  *
  * @mutate src/components/landing/NearYouSection.tsx |   const cards = mixNearCards(jobs.kind === "ok" ? jobs.jobs : [], items.kind === "ok" ? items.items : [], mode); |   const cards = mixNearCards(jobs.kind === "ok" ? jobs.jobs : [], items.kind === "ok" ? items.items : [], "jobs");
+ * @mutate src/components/landing/FreshDeclutterSection.tsx |   const past = (cols: number) => n > cols && i >= Math.floor(n / cols) * cols; |   const past = (cols: number) => n > cols && i >= n;
  * @mutate src/components/landing/nearYouCards.ts |   const [first, second] = mode === "declutter" ? [i, j] : [j, i]; |   const [first, second] = [j, i];
  * @mutate src/components/landing/NearYouSection.tsx |   if (!pending && !bothFailed && cards.length === 0) return <span ref={ref} id="declutter" data-testid="landing-near-you-none" hidden />; |
  * @mutate src/components/landing/NearYouSection.tsx |         ) : pending ? ( |         ) : false ? (
@@ -56,7 +57,7 @@ import { LandingPhotoBand, FINISHED_JOB_PHOTO, porchTileItem } from "@/component
 import { NeighborsSay, NEIGHBOR_REVIEWS } from "@/components/landing/NeighborsSay";
 import { TrustAndJoin } from "@/components/landing/SectionsShowcase";
 import { resetLandingModeForTests, setLandingMode } from "@/components/landing/landingMode";
-import type { FreshItem } from "@/components/landing/FreshDeclutterSection";
+import { fullRowsCellClass, type FreshItem } from "@/components/landing/FreshDeclutterSection";
 import type { LiveJob } from "@/components/landing/LiveJobsSection";
 
 const job = (n: number): LiveJob => ({
@@ -148,6 +149,18 @@ describe("Near you this week (Direction A)", () => {
     near();
     const links = within(screen.getByTestId("landing-near-you-links")).getAllByRole("link").map((a) => [a.textContent, a.getAttribute("href")]);
     expect(links).toEqual([["Browse jobs", "/browse"], ["Shop Declutter", "/declutter"]]);
+  });
+});
+
+describe("never a half-empty last row (P5-6; the 768 after-shot of 11-10 showed 3 + 3 + 2)", () => {
+  it("a card past the last full row is hidden at that width; a grid under one row shows all", () => {
+    const hidden = (n: number, cls: string) => Array.from({ length: n }, (_, i) => fullRowsCellClass(i, n)).flatMap((c, i) => (c.split(" ").includes(cls) ? [i] : []));
+    expect(hidden(8, "sm:max-lg:hidden")).toEqual([6, 7]); // 3 across: 6 shown
+    expect(hidden(8, "lg:hidden")).toEqual([]); // 4 across: 8 shown
+    expect(hidden(8, "max-sm:hidden")).toEqual([]); // 2 across: 8 shown
+    expect(hidden(5, "max-sm:hidden")).toEqual([4]);
+    expect(hidden(5, "lg:hidden")).toEqual([4]);
+    expect(hidden(3, "lg:hidden")).toEqual([]);
   });
 });
 

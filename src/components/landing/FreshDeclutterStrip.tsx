@@ -3,7 +3,7 @@ import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { PriceInclFee } from "@/components/declutter/PriceInclFee";
 import { PhotoTag, PhotoTagStack } from "@/components/ui/PhotoTag";
 import { PRICE_DEAL } from "@/components/ui/designScale";
-import { FRESH_GRID, FRESH_INCL, FRESH_PRICE, FRESH_TITLE, FRESH_TOWN, type FreshItem } from "./FreshDeclutterSection";
+import { FRESH_GRID, FRESH_INCL, FRESH_PRICE, FRESH_TITLE, FRESH_TOWN, fullRowsCellClass, type FreshItem } from "./FreshDeclutterSection";
 import { LANDING_CARD_PHOTO } from "@/lib/declutter/landingCardPhoto";
 import type { NearCard, NearJob } from "./nearYouCards";
 
@@ -119,8 +119,8 @@ export default function NearYouGrid({ cards }: { cards: NearCard[] }) {
   const showPorch = porchTagTellsApart(cards.flatMap((c) => (c.kind === "item" ? [c.item] : [])));
   return (
     <ul className={FRESH_GRID} data-testid="landing-near-you-list">
-      {cards.map((c) => (
-        <li key={`${c.kind}-${c.kind === "job" ? c.job.id : c.item.id}`} className="min-w-0">
+      {cards.map((c, i) => (
+        <li key={`${c.kind}-${c.kind === "job" ? c.job.id : c.item.id}`} className={`min-w-0 ${fullRowsCellClass(i, cards.length)}`}>
           {c.kind === "job" ? <JobCard job={c.job} /> : <FreshCard it={c.item} showPorch={showPorch} />}
         </li>
       ))}

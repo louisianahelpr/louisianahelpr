@@ -19,6 +19,15 @@ export const FRESH_DECLUTTER_LIMIT = 8;
 /** The card grid, shared by the Near you grid and its placeholder so they are the same size: 2 across, 3 from sm, 4 from lg. */
 export const FRESH_GRID = "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-5 lg:gap-y-8";
 /**
+ * Never a half-empty last row (audit 2026-10-28 P5-6; the 768 after-shot of 11-10 showed 8 cards as 3 + 3 + 2): a card
+ * past the last FULL row at a width is hidden at that width (2 across on a phone, 3 from sm, 4 from lg). A grid smaller
+ * than one row shows every card.
+ */
+export function fullRowsCellClass(i: number, n: number): string {
+  const past = (cols: number) => n > cols && i >= Math.floor(n / cols) * cols;
+  return [past(2) && "max-sm:hidden", past(3) && "sm:max-lg:hidden", past(4) && "lg:hidden"].filter(Boolean).join(" ");
+}
+/**
  * D006 (landing design audit 11-10): the card's type, shared with the placeholder so both are the same height. On the
  * app's five-size scale (11/13/16/20/28): a two-line 16px title (it was one 13px line), the town at 13px (it was the
  * condition, "Like new" on almost every card), the LIST price first at 20px (it was 16), and "$X.XX incl. fee"

@@ -90,13 +90,15 @@ const dollars = (c: number) => `$${(c / 100).toLocaleString("en-US", { maximumFr
  * null for a new item; the parent remounts this form (key) when it changes
  * which item is open, and `onCreated` hands it the new item's id.
  */
-export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOptions = false }: {
+export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOptions = false, titleHidden = false }: {
   /** The item has option lists: its stock is set per combination in the Options section (20261106165310). */
   hasOptions?: boolean;
   ownerId: string;
   item: ShopItem | null;
   onCreated: (itemId: string) => void;
   onDone: () => void;
+  /** The page itself is titled "Add an item" / "Edit item" (shops audit 11-10 F4): the heading stays for screen readers only. */
+  titleHidden?: boolean;
 }) {
   const qc = useQueryClient();
   const id = item?.id ?? null;
@@ -224,7 +226,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
 
   return (
     <section className="space-y-4 rounded-2xl border border-border p-4" aria-labelledby="item-editor-title">
-      <h3 id="item-editor-title" className="text-base font-semibold">{id ? "Edit item" : "Add an item"}</h3>
+      <h3 id="item-editor-title" className={titleHidden ? "sr-only" : "text-base font-semibold"}>{id ? "Edit item" : "Add an item"}</h3>
       {review.data?.review_note && (
         <ShopsNotice title="An admin didn't approve this item." tone="warn">
           <p className="[overflow-wrap:anywhere]">{review.data.review_note}</p>

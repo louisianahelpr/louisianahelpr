@@ -46,7 +46,7 @@ import { SERVICE_AREA_LINE } from "@/components/landing/LandingBrowseShell";
 import Navbar from "@/components/Navbar";
 
 const css = readFileSync(join(process.cwd(), "src/index.css"), "utf8");
-const rule = (sel: string) => css.match(new RegExp(`\\n${sel.replace(/[.[\]"=]/g, "\\$&")} \\{([^}]*)\\}`))?.[1] ?? "";
+const rule = (sel: string) => css.match(new RegExp(`\\n${sel.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")} \\{([^}]*)\\}`))?.[1] ?? "";
 
 const item = (n: number) => ({
   id: `i${n}`, title: `Thing ${n}`, category: "kitchen", condition_stars: 4, porch_ok: false, price_cents: 2000,

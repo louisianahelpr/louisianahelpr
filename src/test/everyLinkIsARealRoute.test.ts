@@ -45,6 +45,7 @@ const NOT_APP_ADDRESSES: Record<string, string> = {
   "/9j": "the base64 start of a JPEG (declutter-ai-draft room photos check it), not an address",
   "/avatars": "storage object path (avatars bucket)",
   "/credentials": "storage object path (credential documents)",
+  "/shop-permits": "storage object path (user-documents bucket, shop permit documents; shops_submit_permit, 20261110195956)",
   "/disputes": "storage object path (dispute evidence)",
   "/functions": "Supabase edge-function REST path",
   "/message-attachments": "storage bucket path",

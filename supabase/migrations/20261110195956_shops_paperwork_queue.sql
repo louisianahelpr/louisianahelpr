@@ -389,3 +389,12 @@ END;
 $function$;
 REVOKE ALL ON FUNCTION public.is_submitted_credential_object(text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.is_submitted_credential_object(text) TO authenticated, service_role;
+
+-- Q807: every new public table joins the unconfirmed-email write gate in the same migration.
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;

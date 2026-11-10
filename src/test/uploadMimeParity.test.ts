@@ -66,6 +66,7 @@ type Site = {
 const UT = "src/lib/uploadTypes.ts";
 const SITES: Site[] = [
   { file: "src/components/DisputeDialog.tsx", bucket: "proof-photos", gate: [UT, "PROOF_PHOTO_TYPES"], via: ["isAllowedUploadType", "PROOF_PHOTO_TYPES"] },
+  { file: "src/lib/shops/permits.ts", bucket: "user-documents", gate: ["src/lib/shops/permits.ts", "PERMIT_DOC_EXT_BY_TYPE"], via: ["PERMIT_DOC_EXT_BY_TYPE"] },
   { file: "src/components/jobs/MissedReturnSheet.tsx", bucket: "proof-photos", gate: [UT, "PROOF_PHOTO_TYPES"], via: ["isAllowedUploadType", "PROOF_PHOTO_TYPES"] },
   { file: "src/components/DisputeTimelineDialog.tsx", bucket: "proof-photos", gate: [UT, "PROOF_PHOTO_TYPES"], via: ["isAllowedUploadType", "PROOF_PHOTO_TYPES"] },
   { file: "src/components/PhotoProof.tsx", bucket: "proof-photos", gate: [UT, "PROOF_PHOTO_TYPES"], via: ["isAllowedUploadType", "PROOF_PHOTO_TYPES"] },
@@ -113,6 +114,7 @@ const SITES: Site[] = [
 /** Picker file -> the bucket its chosen files go to (and where an accept={CONST} is declared). */
 const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/DisputeDialog.tsx": { bucket: "proof-photos" },
+  "src/components/shops/ShopPermitSection.tsx": { bucket: "user-documents" },
   "src/components/jobs/MissedReturnSheet.tsx": { bucket: "proof-photos" },
   "src/components/DisputeTimelineDialog.tsx": { bucket: "proof-photos" },
   "src/components/PhotoProof.tsx": { bucket: "proof-photos" },

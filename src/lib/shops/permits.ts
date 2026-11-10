@@ -8,6 +8,7 @@
  * server refuses any other path, and any path that was not uploaded.
  */
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { isStorageObjectPath } from "@/lib/storagePath";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
@@ -129,6 +130,7 @@ export async function checkRegistration(shopId: string, verified: boolean): Prom
 
 /** A short-lived link to the document (admins read any user-documents object; the owner reads their own). */
 export async function permitDocumentUrl(path: string): Promise<string> {
+  if (!isStorageObjectPath(path)) throw new Error("not_a_storage_path");
   const { data, error } = await supabase.storage.from("user-documents").createSignedUrl(path, 300);
   if (error || !data?.signedUrl) throw error ?? new Error("no_signed_url");
   return data.signedUrl;

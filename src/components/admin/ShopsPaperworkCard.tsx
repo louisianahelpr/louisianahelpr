@@ -60,7 +60,7 @@ export default function ShopsPaperworkCard() {
   const decide = useMutation({
     mutationFn: ({ id, approve, why }: { id: string; approve: boolean; why: string }) => reviewPermit(id, approve, why),
     onSuccess: (status) => {
-      toast.success(status === "verified" ? "Permit checked. The shop shows Permit on file." : "Permit turned down. The shop was told why.");
+      toast(status === "verified" ? "Permit checked. The shop shows Permit on file." : "Permit turned down. The shop was told why.");
       setTurningDown(null);
       setNote("");
       done();
@@ -70,7 +70,7 @@ export default function ShopsPaperworkCard() {
   const registration = useMutation({
     mutationFn: ({ shopId, found }: { shopId: string; found: boolean }) => checkRegistration(shopId, found),
     onSuccess: (found) => {
-      toast.success(found ? "Marked as a registered business." : "Marked as not found.");
+      toast(found ? "Marked as a registered business." : "Marked as not found.");
       done();
     },
     onError: (err) => toast.error(shopsErrorMessage(err)),
@@ -127,10 +127,10 @@ export default function ShopsPaperworkCard() {
                   <li key={r.shop_id} className="space-y-2 text-sm" data-testid="admin-shops-registration">
                     <p className="[overflow-wrap:anywhere]"><span className="font-semibold">{r.shop_name}</span> · {r.area_label} · number <span className="font-mono">{r.sos_number}</span></p>
                     <div className="flex flex-wrap gap-2">
-                      <Button type="button" size="sm" className="btn-grad-primary" disabled={registration.isPending}
-                        onClick={() => registration.mutate({ shopId: r.shop_id, found: true })}>Registered</Button>
                       <Button type="button" size="sm" variant="outline" disabled={registration.isPending}
                         onClick={() => registration.mutate({ shopId: r.shop_id, found: false })}>Not found</Button>
+                      <Button type="button" size="sm" className="btn-grad-primary" disabled={registration.isPending}
+                        onClick={() => registration.mutate({ shopId: r.shop_id, found: true })}>Registered</Button>
                     </div>
                   </li>
                 ))}

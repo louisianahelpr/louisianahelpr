@@ -71,7 +71,7 @@ describe("1. the floating create pill steps aside while an empty state shows its
       ["src/components/job-card/ActivityEmptyState.tsx", /\{isPosted && <HideSectionCreateFab \/>\}\{ctaButton\}/],
       ["src/components/declutter/DeclutterBrowseView.tsx", /<HideSectionCreateFab active=\{!guest\} \/>\s*<EmptyStateActions/],
       ["src/components/declutter/DeclutterHomeView.tsx", /action=\{<><HideSectionCreateFab \/><SectionActionPill[^\n]*sectionByKey\("declutter"\)\.add\.path/],
-      ["src/components/shops/ShopDashboardView.tsx", /<HideSectionCreateFab \/>\s*<SectionActionPill[^\n]*>Open a shop<\/SectionActionPill>/],
+      ["src/components/shops/ShopDashboardView.tsx", /<HideSectionCreateFab \/>\}?\s*<SectionActionPill[^\n]*>Open a shop<\/SectionActionPill>/],
       ["src/components/rentals/RentalsHomeView.tsx", /<HideSectionCreateFab \/>\s*<Button[^>]*onClick=\{\(\) => setAdding\(true\)\}>\s*Add a property/],
     ];
     expect(sites.length).toBeGreaterThan(5);

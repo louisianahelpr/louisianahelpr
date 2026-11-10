@@ -40,7 +40,7 @@ export default function ShopPermitSection({ userId }: { userId: string }) {
   const send = useMutation({
     mutationFn: () => submitPermit(userId, kind, file as File, expires),
     onSuccess: () => {
-      toast.success("Permit sent. We'll check it soon.");
+      toast("Permit sent. We'll check it soon.");
       setFile(null);
       setExpires("");
       void qc.invalidateQueries({ queryKey: KEY });
@@ -95,7 +95,7 @@ export default function ShopPermitSection({ userId }: { userId: string }) {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor={ids.date}>Expires on</Label>
-              <Input id={ids.date} type="date" value={expires} onChange={(e) => setExpires(e.target.value)} />
+              <Input id={ids.date} type="date" className="min-w-0" value={expires} onChange={(e) => setExpires(e.target.value)} />
             </div>
             {problem && <p className="text-sm text-destructive-ink" role="alert">{problem}</p>}
             <Button type="submit" className="w-full" variant="outline" disabled={send.isPending}>

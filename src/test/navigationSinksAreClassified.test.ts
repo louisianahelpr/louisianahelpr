@@ -107,6 +107,8 @@ const MAPS = "mapsSearchUrl(): a fixed https://maps.apple.com / maps:// / geo: p
 
 const CLASSIFIED: Record<string, string> = {
   // 25 Days sponsor page (owner 2026-11-09).
+  // Shops paperwork queue (lead train 11-10): the permit document link, gated by isStorageObjectPath in permitDocumentUrl.
+  "components/admin/ShopsPaperworkCard.tsx::await permitDocumentUrl(path)": STORAGE_SIGNED,
   "pages/admin/sponsors/AdminSponsorsPage.tsx::url": `${OBJECT_URL}: the CSV export, and the logo file the admin-only sponsor-25days function sent back (logoDownloadUrl)`,
   "components/sponsor/ClaimSection.tsx::href": "a data:text/calendar URL of an .ics file the page builds itself (buildIcs + encodeURIComponent)",
   "components/sponsor/Sections.tsx::href": "ExternalButton's prop: every caller passes C.links.* (our content file constants) or filledUrl() output (^https?:// only)",

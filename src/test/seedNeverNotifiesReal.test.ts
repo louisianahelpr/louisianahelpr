@@ -220,6 +220,7 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   "sql:declutter_record_ai_check#1": "an admin alert that a sold listing failed its check: the insert is skipped when the seller is a test account (IF NOT public.is_test_subject(v_item.seller_id), 20261031152545)",
   "sql:declutter_alert_overdue_checks#1": "an admin alert that listings on sale 45+ minutes have no check: only listings with NOT i.is_seed AND NOT public.is_test_subject(i.seller_id) are counted, and none means no insert (20261101042045)",
   "sql:declutter_hold_unchecked_listings#1": "an admin alert that a sold listing was never checked: the insert is skipped when the seller is a test account (IF NOT public.is_test_subject(r.seller_id), 20261031152545)",
+  "sql:shops_mark_pickup_address_refused#1": "a notice to the shop's own owner that their pickup address was turned down (20261110205854): the owner of the shop being written, no counterpart",
   "ts:supabase/functions/admin-update-email/index.ts#1": "own email updated by an admin",
   "ts:supabase/functions/admin-support-reply/index.ts#1": "an admin's answer to the member's own support ticket",
   "ts:supabase/functions/str-ical-sync/index.ts#1": "own calendar's checkout ready to post (Q768): the host's own STR connection, no job exists yet",
@@ -445,7 +446,7 @@ describe("Q137: a seed subject never notifies a real person", () => {
     }
     for (const fn of emailTriggers) expect(liveDef(fn)?.body ?? "", fn).toMatch(/PERFORM public\.send_notice_email\(NEW\.user_id,/);
     // Trades (20261108195151): email_declutter_trade_notice emails the trade notices the same way.
-    expect([...emailTriggers].sort()).toEqual(["email_continue_day_notice", "email_declutter_notice", "email_declutter_trade_notice", "email_jobs_notice"]);
+    expect([...emailTriggers].sort()).toEqual(["email_continue_day_notice", "email_declutter_notice", "email_declutter_trade_notice", "email_jobs_notice", "email_shop_order_notice"]);
     for (const fn of emailers.filter((f) => f !== "send_backout_email" && f !== "declutter_wanted_email" && f !== "send_notice_email" && !ROUNDUPS.includes(f))) expect(/INSERT\s+INTO\s+(?:public\.)?notifications\b|public\.declutter_notify(?:_strict)?\(/i.test(liveDef(fn)!.body), fn).toBe(true);
     expect(liveDef("send_backout_email")!.body).toMatch(/IF public\.notification_crosses_seed_boundary\(p_user, p_job, p_link\) THEN\s+RETURN;/);
   });

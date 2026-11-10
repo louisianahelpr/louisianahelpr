@@ -329,8 +329,23 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     await waitFor(() => expect(document.querySelector("[data-free-claim] [data-next-step]")?.textContent).toBe("Waiting on Lexi to pick who gets it. We'll tell you either way."));
     expect(document.querySelector("[data-free-claim] [data-next-step]")?.getAttribute("data-next-step")).toBe("them");
     expect(screen.queryByRole("button", { name: "Ask for it" })).toBeNull();
+    // Audit 1110 F359c: it asks first, like Take back my offer; nothing is withdrawn until Take it back.
     fireEvent.click(screen.getByRole("button", { name: "Take back my ask" }));
+    expect(await screen.findByText("Take back your ask?")).toBeInTheDocument();
+    expect(screen.getByText(/your ask ends\. Nothing is charged\./)).toBeInTheDocument();
+    expect(state.withdrawn).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Take it back" }));
     await waitFor(() => expect(state.withdrawn).toEqual(["r1"]));
+  });
+
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |           onClick={() => setTakingBack(true)}> |           onClick={() => takeBack.mutate(myAsk.id)}>
+  it("Keep my ask closes the confirm and withdraws nothing", async () => {
+    state.asks = [{ id: "r1", item_id: "i1", status: "open", created_at: "2026-10-30T00:00:00Z" }];
+    show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Take back my ask" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Keep my ask" }));
+    await waitFor(() => expect(screen.queryByText("Take back your ask?")).toBeNull());
+    expect(state.withdrawn).toEqual([]);
   });
 });
 

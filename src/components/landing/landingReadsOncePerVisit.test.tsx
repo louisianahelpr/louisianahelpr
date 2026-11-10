@@ -32,7 +32,12 @@ vi.mock("@/integrations/supabase/client", () => {
   };
   // storage: the Declutter card builds its photo URLs (photoCardUrl / photoPublicUrl).
   const storage = { from: () => ({ getPublicUrl: (p: string) => ({ data: { publicUrl: `https://cdn.invalid/${p}` } }) }) };
-  return { supabase: { from: chain, storage } };
+  // Owner 11-09: the Declutter grid reads declutter_popular_items, the card rows with their cover photo path, in one call.
+  const rpc = async () => {
+    reads.items++;
+    return { data: [{ id: "i1", title: "Oak dresser", category: "furniture", condition_stars: 4, porch_ok: true, price_cents: 4000, current_price_cents: 4000, area_label: "Mid City", live_at: "2026-11-04T10:00:00Z", photo_path: "u/declutter/i1/a.jpg" }], error: null };
+  };
+  return { supabase: { from: chain, storage, rpc } };
 });
 vi.mock("@/lib/jobColumns", () => ({
   readJobsAheadOfDb: async () => {
@@ -100,6 +105,7 @@ describe("the landing reads its lists once per visit run, not on every return (Q
     expect(await screen.findByTestId("landing-fresh-declutter-list", {}, { timeout: 4000 })).toBeTruthy();
     await new Promise((r) => setTimeout(r, 100));
     expect(reads.items).toBe(1);
-    expect(reads.photos).toBe(1);
+    // One call brings the cover photo too: no separate photo read.
+    expect(reads.photos).toBe(0);
   });
 });

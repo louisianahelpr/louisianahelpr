@@ -1,35 +1,23 @@
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { PriceInclFee } from "@/components/declutter/PriceInclFee";
 import { PhotoTag, PhotoTagStack } from "@/components/ui/PhotoTag";
 import { PRICE_DEAL } from "@/components/ui/designScale";
 import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
-import { FRESH_DECLUTTER_LIMIT, type FreshItem } from "./FreshDeclutterSection";
+import { FRESH_DECLUTTER_LIMIT, FRESH_GRID, type FreshItem } from "./FreshDeclutterSection";
+import { DECLUTTER_SHELL, LandingBrowseShell } from "./LandingBrowseShell";
 
 /**
- * The "Fresh on Declutter" strip's markup (FreshDeclutterSection.tsx has the read and the rules). Its own chunk,
- * fetched with the listings, so the landing's page chunk carries only the loader.
+ * The landing's Declutter grid markup (FreshDeclutterSection.tsx has the read and the rules). Its own chunk,
+ * fetched with the listings, so the landing's page chunk carries only the loader and the placeholder.
  */
-function SeeEverything({ className }: { className: string }) {
-  return (
-    <Link to="/declutter" className={`group items-center gap-1.5 min-h-11 text-ds-15 font-bold link-standard ${className}`} style={{ color: "var(--lp-action-strong)" }}>
-      See everything
-      <ArrowRight className="w-4 h-4" aria-hidden />
-    </Link>
-  );
-}
-
 export function FreshDeclutterFailed() {
   return (
-    <section className="px-5 sm:px-8 lg:px-12 pb-12 lg:pb-20" style={{ background: "var(--lp-surface)" }}>
-      <div className="mx-auto w-full max-w-6xl flex flex-wrap items-center gap-x-4 gap-y-1">
-        <p className="text-ds-15" style={{ color: "var(--lp-body)" }} data-testid="landing-fresh-declutter-failed">
-          We couldn’t load the newest Declutter listings just now.
-        </p>
-        <SeeEverything className="inline-flex" />
-      </div>
-    </section>
+    <LandingBrowseShell testId="landing-fresh-declutter-failed-section" titleId="landing-fresh-declutter-title" {...DECLUTTER_SHELL}>
+      <p className="text-ds-15" style={{ color: "var(--lp-body)" }} data-testid="landing-fresh-declutter-failed">
+        We couldn’t load the Declutter listings just now.
+      </p>
+    </LandingBrowseShell>
   );
 }
 
@@ -102,28 +90,15 @@ function FreshCard({ it }: { it: FreshItem }) {
  */
 export default function FreshDeclutterStrip({ items }: { items: FreshItem[] }) {
   return (
-    <section
-      data-testid="landing-fresh-declutter"
-      aria-labelledby="landing-fresh-declutter-title"
-      className="px-5 sm:px-8 lg:px-12 pt-8 lg:pt-12 pb-12 lg:pb-20"
-      style={{ background: "var(--lp-surface)" }}
-    >
-      <div className="mx-auto w-full max-w-6xl flex flex-col gap-6 lg:gap-8">
-        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-          <h2 id="landing-fresh-declutter-title" className="font-display landing-serif leading-[1.05] text-ds-28" style={{ color: "var(--lp-ink)" }}>
-            Fresh on Declutter
-          </h2>
-          <SeeEverything className="hidden sm:inline-flex" />
-        </div>
-        <ul className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-5 lg:gap-y-8" data-testid="landing-fresh-declutter-list">
-          {items.slice(0, FRESH_DECLUTTER_LIMIT).map((it) => (
-            <li key={it.id} className="min-w-0">
-              <FreshCard it={it} />
-            </li>
-          ))}
-        </ul>
-        <SeeEverything className="sm:hidden self-center inline-flex" />
-      </div>
-    </section>
+    // Owner 11-09 (10:35 PM): the same frame as the Jobs view (LandingBrowseShell), so the two modes look alike.
+    <LandingBrowseShell testId="landing-fresh-declutter" titleId="landing-fresh-declutter-title" {...DECLUTTER_SHELL}>
+      <ul className={FRESH_GRID} data-testid="landing-fresh-declutter-list">
+        {items.slice(0, FRESH_DECLUTTER_LIMIT).map((it) => (
+          <li key={it.id} className="min-w-0">
+            <FreshCard it={it} />
+          </li>
+        ))}
+      </ul>
+    </LandingBrowseShell>
   );
 }

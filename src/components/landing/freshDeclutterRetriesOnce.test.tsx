@@ -24,7 +24,13 @@ vi.mock("@/integrations/supabase/client", () => {
     if (table === "declutter_item_photos") q.order = async () => ({ data: [], error: null });
     return q;
   };
-  return { supabase: { from: chain } };
+  // Owner 11-09: the grid's one read is declutter_popular_items (the card rows with their cover photo path).
+  const rpc = async () => {
+    reads.calls++;
+    if (reads.calls <= reads.fails) return { data: null, error: new Error("Load failed") };
+    return { data: [{ id: "i1", title: "Lamp", current_price_cents: 1500, price_cents: 1500, area_label: "New Iberia", live_at: "2026-11-04T10:00:00Z", photo_path: null }], error: null };
+  };
+  return { supabase: { from: chain, rpc } };
 });
 const reported = vi.hoisted(() => [] as unknown[]);
 vi.mock("@/lib/errorLogger", () => ({ report: (e: unknown) => reported.push(e) }));

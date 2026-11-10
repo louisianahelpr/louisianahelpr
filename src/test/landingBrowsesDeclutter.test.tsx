@@ -61,7 +61,7 @@ describe("the landing lets a guest browse Declutter (owner 11-04)", () => {
     const items = Array.from({ length: 10 }, (_, i) => item(i + 1, i === 0 ? 0 : undefined));
     render(<MemoryRouter><FreshDeclutterStrip items={items} /></MemoryRouter>);
     const strip = screen.getByTestId("landing-fresh-declutter");
-    expect(within(strip).getByRole("heading", { name: "Fresh on Declutter" })).toBeTruthy();
+    expect(within(strip).getByRole("heading", { name: "Popular on Declutter" })).toBeTruthy();
     const cards = within(screen.getByTestId("landing-fresh-declutter-list")).getAllByRole("listitem");
     expect(FRESH_DECLUTTER_LIMIT).toBe(8); // owner 11-08: a grid of 8
     expect(cards.length).toBe(FRESH_DECLUTTER_LIMIT); // never more than the limit, even when handed more
@@ -96,6 +96,10 @@ describe("the landing lets a guest browse Declutter (owner 11-04)", () => {
     expect(src).toMatch(/if \(document\.readyState === "complete"\) watch\(\);\s*else window\.addEventListener\("load", watch, \{ once: true \}\);/);
     expect(src).toMatch(/new IntersectionObserver\(/);
     expect(src).toMatch(/\.from\("declutter_items"\)\s*\.select\(FRESH_SELECT\)\s*\.eq\("status", "live"\)\s*\.order\("live_at", \{ ascending: false \}\)\s*\.limit\(FRESH_DECLUTTER_LIMIT\)/);
+    // Owner 11-09 (10:55 PM): popular items first, one call (declutter_popular_items); the newest-first read above is
+    // only the fallback while the function is not deployed yet (PGRST202).
+    expect(src).toMatch(/supabase\.rpc\("declutter_popular_items", \{ p_limit: FRESH_DECLUTTER_LIMIT \}\)/);
+    expect(src).toMatch(/popular\.error\.code === "PGRST202"/);
     expect(src).toMatch(/unwrap\(/);
     // A failed read says so (not silent); an empty one draws nothing.
     expect(src).toMatch(/state\.kind === "failed" && <FreshDeclutterFailed \/>/);

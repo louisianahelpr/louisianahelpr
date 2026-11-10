@@ -38,7 +38,7 @@ async function expectClean(page: import("@playwright/test").Page) {
 // third test names it: the CTA used to route to /signup, and "not /signup,
 // which was the pre-fix bug today" is the whole reason that test exists.
 // Sending the Browse link (Live now section, the first one) back to /signup reproduces it exactly.
-// @mutate src/components/landing/LiveJobsSection.tsx | <Link\n            to="/browse"\n            className="group hidden | <Link\n            to="/signup"\n            className="group hidden
+// @mutate src/components/landing/LandingBrowseShell.tsx |   seeAll: { to: "/browse", label: "Browse local jobs" }, |   seeAll: { to: "/signup", label: "Browse local jobs" },
 
 test.describe("post + apply baseline", () => {
   test("/post-job redirects anonymous to a valid surface (no crash)", async ({ page }) => {

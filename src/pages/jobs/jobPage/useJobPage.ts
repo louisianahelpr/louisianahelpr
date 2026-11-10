@@ -114,7 +114,14 @@ function toRow(raw: Record<string, unknown>): JobPageRow {
   } as JobPageRow;
 }
 
-async function fetchJobPage(id: string): Promise<{ job: JobPageRow; party: boolean } | null> {
+/** A job id is a uuid; anything else in the URL (`/jobs/abc`) names no job. */
+const JOB_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const isJobId = (id: string): boolean => JOB_ID_RE.test(id);
+
+export async function fetchJobPage(id: string): Promise<{ job: JobPageRow; party: boolean } | null> {
+  // Audit 11-10 W2 F270a: a non-uuid id made Postgres reject the `eq` (22P02), so the page said "couldn't load this
+  // job, check your connection" with a Retry that can never work. No such job exists: the page says it isn't available.
+  if (!isJobId(id)) return null;
   const own = unwrap<Record<string, unknown> | null>(
     // Q2408: readJobsAheadOfDb, because PARTY_COLUMNS names date_window_end (20261104073000).
     await readJobsAheadOfDb(PARTY_COLUMNS, (columns) => supabase.from("jobs").select(columns).eq("id", id).maybeSingle<Record<string, unknown>>()),

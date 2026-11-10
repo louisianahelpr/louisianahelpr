@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { jobCategoryLabel } from "@/lib/jobCategories";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { LandingProof, useProofLine } from "./LandingProof";
-import { JOBS_SHELL, LandingBrowseShell } from "./LandingBrowseShell";
-import { POST_JOB_PATH, POST_JOB_SIGNED_OUT } from "./HowItWorksSection";
-import { goSignedInOr } from "./goSignedInOr";
+import { JOBS_SHELL, LandingBrowseShell, NO_JOBS_DECLUTTER_SHELL } from "./LandingBrowseShell";
+import { FreshDeclutterSection } from "./FreshDeclutterSection";
 
 /**
  * "Live now: Open jobs near you" (owner, 2026-10-23, landing option B): the
@@ -18,11 +16,11 @@ import { goSignedInOr } from "./goSignedInOr";
  * Loaded only when the section nears the screen, so the Supabase chunk never
  * joins the landing's first paint (the hero and useSectionsOpen keep the same
  * rule). A failed read says so and keeps the link to the board; an empty read
- * says there are none right now.
+ * shows the Declutter listings in this place (D003, 11-10).
  */
 /** Three jobs beside the finished-job card (owner 11-09: that card is the grid's first), four cards across from lg. */
 const LIVE_JOBS_LIMIT = 3;
-/** One row's height: the skeleton's row and the empty state's card are both exactly this (F011). */
+/** One row's height: the skeleton's row (F011). */
 const LIVE_JOBS_ROW_H = "h-[120px] lg:h-[176px]";
 /** The finished-job card is at least a row tall, so it lines up with the cards beside it from lg. */
 const LIVE_JOBS_ROW_H_MIN = "lg:min-h-[176px]";
@@ -166,7 +164,8 @@ export function LiveJobsSection() {
   }, []);
 
   const line = useProofLine();
-  const navigate = useNavigate();
+  // D003 (landing design audit 11-10, High): no open job means real Declutter listings here, never an empty card.
+  if (state.kind === "ok" && state.jobs.length === 0) return <FreshDeclutterSection shell={NO_JOBS_DECLUTTER_SHELL} />;
   // The finished job is the grid's first card (owner 11-09, 10:31 PM: no block of its own), so the row holds it plus
   // the jobs: as many columns as cards (audit 2026-10-28 P5-6: never a half-empty row).
   const cols = 1 + (state.kind === "ok" ? Math.max(1, Math.min(state.jobs.length, LIVE_JOBS_LIMIT)) : LIVE_JOBS_LIMIT);
@@ -176,7 +175,6 @@ export function LiveJobsSection() {
       sectionRef={ref}
       testId="landing-live-jobs"
       titleId="landing-live-jobs-title"
-      eyebrow={JOBS_SHELL.eyebrow}
       title={JOBS_SHELL.title}
       line={line}
       seeAll={JOBS_SHELL.seeAll}
@@ -190,7 +188,7 @@ export function LiveJobsSection() {
         </>
       )}
       {/* F011 (owner's UI audit 11-09): while loading, the finished job and ONE placeholder row on a phone (the jobs'
-          row from lg); an empty answer is a card of exactly that row's height, so an empty answer moves nothing. */}
+          row from lg). */}
       <ul
         className="grid gap-3 lg:gap-5 lg:[grid-template-columns:repeat(var(--live-n),minmax(0,1fr))]"
         style={{ "--live-n": cols } as React.CSSProperties}
@@ -203,28 +201,6 @@ export function LiveJobsSection() {
           Array.from({ length: LIVE_JOBS_LIMIT }, (_, i) => (
             <li key={i} aria-hidden data-testid="landing-live-jobs-skeleton" className={`rounded-2xl ${LIVE_JOBS_ROW_H} ${i > 0 ? "hidden lg:block" : ""}`} style={{ background: "var(--lp-subtle)" }} />
           ))}
-        {state.kind === "ok" && state.jobs.length === 0 && (
-          // L009 (landing audit 11-09): the empty card said "Post one" while its only link went to the board. It now
-          // carries its own "Post a job" link (sign-up first for a guest, the How it works button's rule).
-          <li className={`rounded-2xl ${LIVE_JOBS_ROW_H} flex flex-col justify-center items-start gap-1 px-4 lg:px-6`} style={{ background: "var(--lp-ground)" }}>
-            <p className="text-ds-15" style={{ color: "var(--lp-body)" }} data-testid="landing-live-jobs-empty">
-              No open jobs right now. Post one and name your price.
-            </p>
-            <Link
-              to={POST_JOB_SIGNED_OUT}
-              onClick={(e) => {
-                e.preventDefault();
-                void goSignedInOr(navigate, POST_JOB_PATH, POST_JOB_SIGNED_OUT);
-              }}
-              data-testid="landing-live-jobs-post"
-              className="group inline-flex items-center gap-1.5 min-h-11 text-ds-15 font-bold link-standard"
-              style={{ color: "var(--lp-action-strong)" }}
-            >
-              Post a job
-              <ArrowRight className="w-4 h-4" aria-hidden />
-            </Link>
-          </li>
-        )}
         {state.kind === "ok" &&
           state.jobs.slice(0, LIVE_JOBS_LIMIT).map((j) => {
             const date = liveJobDate(j.date_needed);

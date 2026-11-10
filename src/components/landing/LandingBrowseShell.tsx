@@ -8,7 +8,7 @@ import { ArrowRight } from "lucide-react";
  *   - Jobs: "Live now / Open jobs near you", the just-finished job as the first card, then the newest open jobs
  *     (LiveJobsSection.tsx);
  *   - Declutter: "Popular now / Popular on Declutter", the popular listings (FreshDeclutterSection.tsx and its strip).
- * The same padding, eyebrow, serif H2, one quiet line under it, the see-all link beside the heading from sm (under the
+ * The same padding, serif H2, one quiet line under it, the see-all link beside the heading from sm (under the
  * grid on a phone), and the max-w-6xl measure every landing section uses.
  */
 function LandingSeeAll({ to, label, className }: { to: string; label: string; className: string }) {
@@ -27,7 +27,6 @@ function LandingSeeAll({ to, label, className }: { to: string; label: string; cl
 export function LandingBrowseShell({
   testId,
   titleId,
-  eyebrow,
   title,
   line,
   seeAll,
@@ -38,7 +37,6 @@ export function LandingBrowseShell({
   testId: string;
   /** The H2's id (the section's aria-labelledby); omitted for a placeholder, which draws a plain span instead. */
   titleId?: string;
-  eyebrow: string;
   title: string;
   /** One quiet sentence under the heading (the two facts that used to sit in their own block above it). */
   line: string;
@@ -60,14 +58,12 @@ export function LandingBrowseShell({
       <div className="mx-auto w-full max-w-6xl flex flex-col gap-6 lg:gap-8" data-testid={`${testId}-measure`}>
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
           <div className="flex flex-col gap-2 min-w-0">
-            <span className="inline-flex items-center gap-2 text-ds-11 lg:text-ds-12 font-bold uppercase tracking-[0.1em]" style={{ color: "var(--lp-action-strong)" }}>
-              <span aria-hidden className="w-2 h-2 rounded-full" style={{ background: "var(--lp-action)" }} />
-              {eyebrow}
-            </span>
+            {/* D015 (landing design audit 11-10): no "LIVE NOW" / "POPULAR NOW" eyebrow over the heading; the heading
+                says it. */}
             {hidden ? (
-              <span className="block font-display landing-serif leading-[1.05] text-ds-28" style={{ color: "var(--lp-ink)" }}>{title}</span>
+              <span className="block font-display landing-serif landing-h2" style={{ color: "var(--lp-ink)" }}>{title}</span>
             ) : (
-              <h2 id={titleId} className="font-display landing-serif leading-[1.05] text-ds-28" style={{ color: "var(--lp-ink)" }}>
+              <h2 id={titleId} className="font-display landing-serif landing-h2" style={{ color: "var(--lp-ink)" }}>
                 {title}
               </h2>
             )}
@@ -79,22 +75,47 @@ export function LandingBrowseShell({
         </div>
         {children}
         {hidden ? <span className="sm:hidden self-center block min-h-11" /> : <LandingSeeAll to={seeAll.to} label={seeAll.label} className="sm:hidden self-center inline-flex" />}
+        {/* D016 (landing design audit 11-10): where Helpr is busy, under the first section. */}
+        <p className="text-ds-14" style={{ color: "var(--lp-muted)" }} data-testid="landing-service-area">
+          {SERVICE_AREA_LINE}
+        </p>
       </div>
     </section>
   );
 }
 
-/** The two modes' headings, so the placeholder, the failed state and the real section say the same words. */
+/**
+ * D016 (landing design audit 11-10): the towns where most members live (non-seed profiles by ZIP, read-only on prod
+ * 11-10: Lafayette 7050x 59+, New Iberia 70560/70563 43, Abbeville 70510 24, Erath 70533 15).
+ */
+export const SERVICE_AREA_LINE = "Serving New Iberia, Lafayette, Abbeville and nearby.";
+
+/**
+ * The two modes' headings, so the placeholder, the failed state and the real section say the same words. D012 (11-10):
+ * one verb per destination on the whole landing: "Browse jobs" for the board, "Shop Declutter" for Declutter.
+ */
 export const JOBS_SHELL = {
-  eyebrow: "Live now",
   title: "Open jobs near you",
   line: "You pick who helps. Paid only when it’s done.",
-  seeAll: { to: "/browse", label: "Browse local jobs" },
+  seeAll: { to: "/browse", label: "Browse jobs" },
 } as const;
 
 export const DECLUTTER_SHELL = {
-  eyebrow: "Popular now",
   title: "Popular on Declutter",
   line: "Pick it up, meet up, or have a Helpr deliver it.",
-  seeAll: { to: "/declutter", label: "See everything" },
+  seeAll: { to: "/declutter", label: "Shop Declutter" },
 } as const;
+
+/**
+ * D003 (landing design audit 11-10, High): with no open job the first section under the hero was an empty card ("No
+ * open jobs right now..."). Then the Jobs view shows real Declutter listings under this heading instead, never an
+ * empty card.
+ */
+export const NO_JOBS_DECLUTTER_SHELL = {
+  title: "New on Declutter near you",
+  line: "Every job is taken right now. Here’s what neighbors are selling.",
+  seeAll: { to: "/declutter", label: "Shop Declutter" },
+} as const;
+
+/** The words a browse section draws: heading, one line, its see-all link. */
+export type BrowseShellCopy = { readonly title: string; readonly line: string; readonly seeAll: { readonly to: string; readonly label: string } };

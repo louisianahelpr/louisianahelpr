@@ -16,11 +16,12 @@
  *   - "Continue with Apple" sits behind the one social switch and loads lazily;
  *   - the landing's top bar is the one public bar, "Jobs · Declutter | Log in · Join free"
  *     (owner, 2026-10-21; Declutter added by the owner 11-04, to its guest Browse,
- *     on every public page alike): no "How it works", no sections read of its own.
+ *     on every public page alike): no "How it works", no sections read of its own. On a
+ *     phone the landing's bar is logo, Log in and Join free (D021, 11-10).
  *
  * @mutate src/components/landing/heroSearch.ts |   return { signedIn: q ? `/search${qs}` : "/jobs", signedOut: `/browse${qs}` }; |   return { signedIn: "/jobs", signedOut: "/signup" };
  * @mutate src/components/landing/HeroSection.tsx |     const t = heroSearchTargets(query, mode); |     const t = heroSearchTargets("", mode);
- * @mutate src/components/landing/SectionsShowcase.tsx | "Helpr holds the money. Nobody is paid out until the work is done." | "Held through Stripe. Nobody is paid out until the work is done."
+ * @mutate src/components/landing/SectionsShowcase.tsx | "The full price is shown before anyone pays, and Helpr holds the money." | "The full price is shown before anyone pays, and Stripe holds the money."
  * @mutate src/components/landing/LandingAppleButton.tsx |   if (!SOCIAL_SIGN_IN_ENABLED) return null; |
  * @mutate src/components/Navbar.tsx |         {!user && ( |         {landing && <Link to="/signup?redirect=%2Fdeclutter">Declutter</Link>}\n        {!user && (
  * @mutate src/components/landing/HeroSection.tsx | className="flex flex-col items-center text-center min-w-0" | className="flex flex-col items-start min-w-0"
@@ -143,10 +144,14 @@ describe("landing redesign: the honesty fixes hold", () => {
 
   it("the landing's top bar is the one public bar: Jobs and Declutter, no How it works, no sections read (owner, 2026-10-21; 11-04)", () => {
     const nav = read("src/components/Navbar.tsx");
-    // The bar's contents never branch on `landing` (it only sets the row's measure)...
+    // The bar's contents never branch on `landing`: the ONE exception is D021 (landing design audit 11-10), which hides
+    // the Jobs and Declutter links on a phone on the landing only (its hero has the Jobs | Declutter switch); they are
+    // still in the bar at every width from sm, and on every other page.
     const landingUses = nav.match(/\blanding\b(?!\?:)/g) ?? [];
     expect(landingUses.length).toBeGreaterThan(0);
-    expect(nav).not.toMatch(/\{landing &&|landing \?/);
+    expect(nav).not.toMatch(/\{landing &&/);
+    expect(nav.match(/landing \?/g)).toEqual(["landing ?"]);
+    expect(nav).toMatch(/const phoneHidden = landing \? " max-\[639px\]:hidden" : "";/);
     // ...and nothing on it reads the sections answer or links a section that may not be open.
     expect(nav).not.toMatch(/useSectionsOpen|sectionIsComingSoon|LandingNavLinks|how-it-works|Get started/i);
     expect(nav).toMatch(/to="\/browse"/);

@@ -21,6 +21,9 @@
  * the landing H2s use text-ds-28. The check below resolves every text-size class the app uses to its px and holds
  * the set at exactly the five. EXEMPT, by the owner's lock (CLAUDE.md "The landing hero is LOCKED"): the landing
  * H1 "Louisiana's local partner." and its subhead in src/components/landing/HeroSection.tsx keep their own sizes.
+ * 2026-11-10 (landing design audit D002, owner: "hand all findings to a builder"): the landing's H2s had no middle step
+ * between the 124px H1 and 28px. Its two display classes in src/index.css, .landing-h2 (clamp 32 -> 48px) and
+ * .landing-h2-close (clamp 40 -> 56px), are exempt like the hero, and held EXACTLY to those two values below.
  * Not yet on the scale (exact two-way counts, to fall to 0): inline style fontSize literals and src/index.css
  * font-size declarations outside the five.
  * 2026-11-04 (Builder 106): 26 -> 3 inline and 19 -> 5 in index.css. Chart text (recharts takes numbers, never a
@@ -53,7 +56,8 @@
  * @mutate src/components/profile/ProfileEditForm.tsx | <Check className="w-3 h-3" /> Looks good | <Check className="w-3 h-3" strokeWidth={3} /> Looks good
  * @mutate tailwind.config.ts |         "ds-17": ["16px", |         "ds-17": ["17px",
  * @mutate src/index.css |   --headline-section: 20px; |   --headline-section: 19px;
- * @mutate src/components/landing/LandingBrowseShell.tsx | <h2 id={titleId} className="font-display landing-serif leading-[1.05] text-ds-28" | <h2 id={titleId} className="font-display landing-serif leading-[1.05] text-ds-28 sm:text-[44px]"
+ * @mutate src/components/landing/LandingBrowseShell.tsx | <h2 id={titleId} className="font-display landing-serif landing-h2" | <h2 id={titleId} className="font-display landing-serif landing-h2 sm:text-[44px]"
+ * @mutate src/index.css |   font-size: clamp(40px, 5vw, 56px); |   font-size: clamp(40px, 5vw, 60px);
  * @mutate src/components/LanguageToggle.tsx | <Languages className="h-4 w-4 shrink-0" aria-hidden | <Languages className="h-4 w-4 shrink-0" strokeWidth={1.8} aria-hidden
  * @mutate src/components/ui/EmptyState.tsx |             style={{ color: "hsl(var(--bark))" }}\n          />\n        </div>\n      )} |             style={{ color: "hsl(var(--bark))" }}\n            strokeWidth={1.4}\n          />\n        </div>\n      )}
  * @mutate src/lib/chartText.ts | export const CHART_TOOLTIP_PX = 13; | export const CHART_TOOLTIP_PX = 12;
@@ -201,7 +205,11 @@ describe("Q2027: icon weights and text sizes only ever shrink", () => {
     const inline = [...code.matchAll(/fontSize:\s*(?:"[^"]+"|'[^']+'|\d+)/g)].length;
     expect(inline).toBe(INLINE_FONT_SIZE_LITERALS);
     const onScale = new Set(["11px", "13px", "16px", "20px", "28px", "1.75rem", "1.25rem", "1rem", "0.8125rem"]);
-    const decls = [...css.matchAll(/font-size:\s*([^;!}]+)/g)].map((m) => m[1].trim());
+    // D002 (11-10): the landing's two display headings, exact, then left out of the count like the locked hero.
+    const display = [...css.matchAll(/\n\.(landing-h2(?:-close)?) \{[^}]*font-size:\s*([^;]+);/g)].map((m) => `${m[1]}=${m[2].trim()}`);
+    expect(display).toEqual(["landing-h2=clamp(32px, 3.2vw, 48px)", "landing-h2-close=clamp(40px, 5vw, 56px)"]);
+    const cssOutsideDisplay = css.replace(/\n\.landing-h2(?:-close)? \{[^}]*\}/g, "");
+    const decls = [...cssOutsideDisplay.matchAll(/font-size:\s*([^;!}]+)/g)].map((m) => m[1].trim());
     expect(decls.length).toBeGreaterThan(10);
     const off = decls.filter((d) => !onScale.has(d) && !/^var\(--headline-/.test(d) && d !== "inherit");
     expect(off.length, off.join(" | ")).toBe(CSS_OFF_SCALE_FONT_SIZES);

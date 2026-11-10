@@ -51,6 +51,7 @@ import HireTownPage from "./HireTownPage";
 import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, allTownPagePaths } from "@/lib/townPages.mjs";
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
 import { publicPageMetaFor } from "@/lib/publicPageMeta.mjs";
+import { HIRE_STEPS } from "@/components/landing/hireSteps";
 
 function BrowseAt() {
   const { search } = useLocation();
@@ -156,6 +157,16 @@ describe("OPS-4: town + service pages", () => {
     expect(line).toBeDefined();
     expect(line).toContain("<HireTownPage />");
     expect(line).not.toContain("ProtectedRoute");
+  });
+
+  // L014 (landing audit 11-09): the town pages were thin and said the steps in other words than the landing. They show
+  // the landing's own three steps (hireSteps.ts) and link to the Helprs in that town.
+  // @mutate src/pages/info/HireTownPage.tsx |             {HIRE_STEPS.map((s) => ( |             {HIRE_STEPS.slice(1).map((s) => (
+  // @mutate src/pages/info/HireTownPage.tsx | <Link to={`/helprs?town=${encodeURIComponent(town.name)}`} | <Link to="/helprs"
+  it("shows the landing's three steps and links to the Helprs in that town", () => {
+    at("/hire/yard-work/new-iberia");
+    for (const s of HIRE_STEPS) expect(screen.getByText(s.title)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "See Helprs in New Iberia" }).getAttribute("href")).toBe("/helprs?town=New%20Iberia");
   });
 
   // L028 (landing audit 11-09): "Moving in New Iberia" read as relocating there. The page and its tab say "Moving help".

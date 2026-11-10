@@ -75,7 +75,10 @@ export function DeclutterGallery({ urls, display, category, title, icon, shape =
                 retrySrc={display?.[i] ? url : undefined}
                 alt={`Photo ${i + 1} of ${urls.length}`}
                 loading={i === 0 ? "eager" : "lazy"}
-                className="h-full w-full object-cover"
+                // L015 (landing audit 11-09): from sm the frame is 4:3 and capped in height, so a portrait photo lost its
+                // top and bottom (the product name on the box). From sm the whole photo shows on the frame's ground; the
+                // phone's square frame keeps the square crop it is served.
+                className="h-full w-full object-cover sm:object-contain"
                 fallback={<span aria-hidden className="block h-full w-full bg-photo-empty" />}
               />
             </button>

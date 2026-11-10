@@ -21,7 +21,7 @@
 import { readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { trackedFiles } from "@/test/helpers/trackedFiles";
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { ItemCard } from "@/components/declutter/DeclutterItemCard";
@@ -202,6 +202,24 @@ describe("F121: Similar near you (same category, nearest first when we know wher
     const rowsSrc = blankComments(readFileSync(join(SRC, "components/declutter/DeclutterItemRows.tsx"), "utf8"));
     expect(rowsSrc).toContain('title={from ? "Similar near you" : "Similar items"}');
     expect(rowsSrc).toContain("const similarRows = from ? nearestOf(notMine(similar.data), from) : notMine(similar.data);");
+  });
+});
+
+describe("L024 (landing audit 11-09): the phone's fixed action bar is a landmark", () => {
+  // Portaled to <body>, the bar sat outside every landmark (axe "region"); it is a labelled region of its own.
+  // @mutate src/components/ui/StickyActionBar.tsx |           role="region"\n          aria-label="Actions" |
+  it("on a phone the bar is a region named Actions holding its buttons", () => {
+    const real = window.matchMedia;
+    window.matchMedia = ((q: string) => ({ matches: q === "(max-width: 639px)", media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
+    try {
+      const r = render(<StickyActionBar label="Buy or make an offer"><button type="button">Buy now</button></StickyActionBar>);
+      const region = screen.getByRole("region", { name: "Actions" });
+      expect(region.getAttribute("data-sticky-action-bar")).toBe("fixed");
+      expect(region.textContent).toContain("Buy now");
+      r.unmount();
+    } finally {
+      window.matchMedia = real;
+    }
   });
 });
 

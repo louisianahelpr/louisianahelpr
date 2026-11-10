@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { goSignedInOr } from "./goSignedInOr";
+import { HIRE_STEPS } from "./hireSteps";
 import {
   SegmentedControl,
   type SegmentedOption,
@@ -47,11 +48,7 @@ const SIDE_OPTIONS: SegmentedOption<Side>[] = [
 //      helpr's Stripe Connect account once the job is completed and clear
 //      of disputes. No payout speed or fee % is claimed here on purpose.
 const STEPS: Record<Side, { title: string; desc: string }[]> = {
-  hire: [
-    { title: "Post what you need", desc: "Describe the job and set your price." },
-    { title: "Pick your Helpr", desc: "See who applied and chat before you hire." },
-    { title: "Pay when it's done", desc: "Your money is held safely until you approve the work." },
-  ],
+  hire: [...HIRE_STEPS], // shared with the /hire town pages (L014)
   work: [
     { title: "Find work nearby", desc: "Browse jobs near you, see your take-home, then apply." },
     { title: "Get picked", desc: "The person who posted the job picks you, and you accept." },

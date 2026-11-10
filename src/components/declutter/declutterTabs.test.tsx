@@ -24,7 +24,7 @@
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |             footnote={<WantedLink query={query} category={filters.category} />} |             footnote={null}
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |   if (!on) return null; |   if (on === undefined) return null;
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 <WantedLink query={query} category={filters.category} />\n              </div> |                 {null}\n              </div>
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |             title={q ? "Nothing matches that search." : |             title={others.length === 0 ? "Opens soon" : q ? "Nothing matches that search." :
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |             title={zipSearch ? `Looking for items near ${q}?` : q ? "Nothing matches that search." : |             title={others.length === 0 ? "Opens soon" : zipSearch ? `Looking for items near ${q}?` : q ? "Nothing matches that search." :
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 {searched && ( |                 {false && (
  * Owner 2026-10-30: nothing for sale at all is a real empty state (Sell something, Post what you're looking for).
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | others.length === 0 ? "Nothing for sale near you yet." | others.length === 0 ? "Opens soon"
@@ -72,6 +72,8 @@ vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => screenMode.de
 beforeEach(() => { localStorage.setItem("helpr.declutterMapVisible", "0"); screenMode.desktop = true; });
 vi.mock("@/components/profile/YourPageLink", () => ({ YourPageLink: () => null }));
 vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({ ...(await orig<object>()), fetchBundleRequests: async () => [] }));
+// The cards' save counts (none here): the F311 emoji test lists a live item.
+vi.mock("@/lib/declutter/saveCounts", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/saveCounts")>()), fetchSaveCounts: async () => new Map<string, number>() }));
 // Declutter trades slice 3: the trade cards' read (none here).
 vi.mock("@/lib/declutter/tradesPrompt", async (orig) => ({ ...(await orig<object>()), fetchTradesPromptDue: async () => false })); // owner 11-08 card
 vi.mock("@/lib/declutter/trades", async (orig) => ({ ...(await orig<object>()), fetchMyTrades: async () => [] }));
@@ -396,6 +398,29 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(await screen.findByText("Nothing matches that search.")).toBeInTheDocument();
     expect(screen.getByTestId("declutter-clear-search")).toBeInTheDocument();
     expect(screen.queryByTestId("declutter-wanted-link")).toBeNull();
+  });
+
+  // Audit 1110 F311: a zip code in the search box is a location question, answered with the way to Distance.
+  // @mutate src/components/declutter/DeclutterBrowseView.tsx |   const zipSearch = /^\d{5}$/.test(q); |   const zipSearch = false;
+  it("searching a zip code points at Filters > Distance, with a button that opens the sheet", async () => {
+    at("/declutter?q=70808");
+    expect(await screen.findByText("Looking for items near 70808?")).toBeInTheDocument();
+    expect(screen.getByText(/Filters > Distance > Use my location/)).toBeInTheDocument();
+    expect(screen.queryByText("Nothing matches that search.")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByTestId("declutter-open-distance"));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByText("Distance")).toBeInTheDocument();
+  });
+
+  // Audit 1110 F311: an emoji alone has no words to match, so every item shows; the list says so.
+  // @mutate src/components/declutter/DeclutterBrowseView.tsx |   const wordlessSearch = q !== "" && searchWords(query).length === 0; |   const wordlessSearch = false;
+  it("searching only an emoji shows every item with a 'Search with words' line", async () => {
+    state.live = [{ ...ITEM, id: "e1", seller_id: "s9", title: "Brass floor lamp" }];
+    at(`/declutter?q=${encodeURIComponent("🪑")}`);
+    expect(await screen.findByText("Brass floor lamp")).toBeInTheDocument();
+    expect(screen.getByText(/Search with words, like chair/)).toHaveAttribute("data-search-wordless");
+    expect(screen.queryByText("Nothing matches that search.")).toBeNull();
   });
 
   // OWN-FREE (owner via the lead, 2026-10-30): a Free tab next to Wanted, for everyone (the Free section has no

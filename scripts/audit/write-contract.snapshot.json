@@ -1,7 +1,7 @@
 {
  "appliedMigrations": {
-  "count": 1900,
-  "latest": "20261109234038",
+  "count": 1903,
+  "latest": "20261110082700",
   "versions": [
    "20260311000404",
    "20260311001514",
@@ -1893,6 +1893,7 @@
    "20261108214605",
    "20261109005133",
    "20261109162655",
+   "20261109162829",
    "20261109174206",
    "20261109184020",
    "20261109191035",
@@ -1902,7 +1903,9 @@
    "20261109211412",
    "20261109212142",
    "20261109215021",
-   "20261109234038"
+   "20261109234038",
+   "20261110054539",
+   "20261110082700"
   ]
  },
  "functions": {
@@ -7694,6 +7697,17 @@
     ],
     "authenticated": false,
     "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_popular_items": [
+   {
+    "anon": true,
+    "args": [
+     "p_limit"
+    ],
+    "authenticated": true,
+    "nargdefaults": 1,
     "nargs": 1
    }
   ],
@@ -21491,6 +21505,214 @@
     "anon": false,
     "args": [
      "p_text"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "sponsor_25days_on_for": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "sponsor_admin_add_invite": [
+   {
+    "anon": false,
+    "args": [
+     "p_brand",
+     "p_email"
+    ],
+    "authenticated": true,
+    "nargdefaults": 1,
+    "nargs": 2
+   }
+  ],
+  "sponsor_admin_add_signup": [
+   {
+    "anon": false,
+    "args": [
+     "p_signup"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "sponsor_admin_delete_invite": [
+   {
+    "anon": false,
+    "args": [
+     "p_invite_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "sponsor_admin_delete_testimonial": [
+   {
+    "anon": false,
+    "args": [
+     "p_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "sponsor_admin_move_day": [
+   {
+    "anon": false,
+    "args": [
+     "p_signup_id",
+     "p_from_day",
+     "p_to_day"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
+  "sponsor_admin_overview": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "sponsor_admin_save_settings": [
+   {
+    "anon": false,
+    "args": [
+     "p_max_per_day",
+     "p_group_members",
+     "p_page_followers",
+     "p_monthly_visitors"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 4
+   }
+  ],
+  "sponsor_admin_save_testimonial": [
+   {
+    "anon": false,
+    "args": [
+     "p_id",
+     "p_quote",
+     "p_name",
+     "p_brand",
+     "p_approved"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 5
+   }
+  ],
+  "sponsor_admin_set_status": [
+   {
+    "anon": false,
+    "args": [
+     "p_signup_id",
+     "p_status"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "sponsor_admin_set_wall": [
+   {
+    "anon": false,
+    "args": [
+     "p_signup_id",
+     "p_show"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "sponsor_create_signup": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id",
+     "p_signup"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "sponsor_log_visit": [
+   {
+    "anon": true,
+    "args": [
+     "p_ref",
+     "p_referrer",
+     "p_device"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
+  "sponsor_public_state": [
+   {
+    "anon": true,
+    "args": [
+     "p_ref"
+    ],
+    "authenticated": true,
+    "nargdefaults": 1,
+    "nargs": 1
+   }
+  ],
+  "sponsor_require_admin": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "sponsor_service_founder_photo": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "sponsor_service_logo_path": [
+   {
+    "anon": false,
+    "args": [
+     "p_signup_id",
+     "p_any"
+    ],
+    "authenticated": false,
+    "nargdefaults": 1,
+    "nargs": 2
+   }
+  ],
+  "sponsor_service_set_founder_photo": [
+   {
+    "anon": false,
+    "args": [
+     "p_path"
     ],
     "authenticated": false,
     "nargdefaults": 0,
@@ -56731,6 +56953,486 @@
      "hasDefault": false,
      "notNull": true,
      "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "sponsor_days": {
+   "checks": [
+    "CHECK (((day >= 1) AND (day <= 25)))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "day": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "smallint"
+    },
+    "signup_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "sponsor_invites": {
+   "checks": [
+    "CHECK (((length(btrim(brand)) >= 1) AND (length(btrim(brand)) <= 120)))",
+    "CHECK (((email IS NULL) OR (length(email) <= 254)))",
+    "CHECK ((ref_code ~ '^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$'::text))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "brand": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "email": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "ref_code": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "sponsor_settings": {
+   "checks": [
+    "CHECK (((founder_photo_path IS NULL) OR (founder_photo_path ~ '^founder/[0-9a-f-]{36}\\.(png|jpg)$'::text)))",
+    "CHECK (((group_members IS NULL) OR (group_members >= 0)))",
+    "CHECK (id)",
+    "CHECK (((max_per_day IS NULL) OR (max_per_day >= 1)))",
+    "CHECK (((monthly_visitors IS NULL) OR (monthly_visitors >= 0)))",
+    "CHECK (((page_followers IS NULL) OR (page_followers >= 0)))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "founder_photo_path": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "group_members": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "max_per_day": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
+    },
+    "monthly_visitors": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
+    },
+    "page_followers": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "sponsor_signups": {
+   "checks": [
+    "CHECK (((length(btrim(brand_name)) >= 1) AND (length(btrim(brand_name)) <= 120)))",
+    "CHECK (((length(btrim(contact_name)) >= 1) AND (length(btrim(contact_name)) <= 100)))",
+    "CHECK ((((length(email) >= 3) AND (length(email) <= 254)) AND (email !~ '\\s'::text) AND (email ~~ '%_@_%.__%'::text)))",
+    "CHECK (((facebook IS NULL) OR (length(facebook) <= 100)))",
+    "CHECK (((instagram IS NULL) OR (length(instagram) <= 100)))",
+    "CHECK (((logo_path IS NULL) OR (logo_path ~ '^signups/[0-9a-f-]{36}\\.(png|jpg|svg)$'::text)))",
+    "CHECK (((notes IS NULL) OR (length(notes) <= 2000)))",
+    "CHECK (((phone IS NULL) OR (length(phone) <= 40)))",
+    "CHECK (((length(btrim(prize_description)) >= 1) AND (length(btrim(prize_description)) <= 1000)))",
+    "CHECK (((prize_value >= 1) AND (prize_value <= 100000)))",
+    "CHECK (((ref_code IS NULL) OR (ref_code ~ '^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$'::text)))",
+    "CHECK (((ship_to IS NULL) OR (ship_to = ANY (ARRAY['winner'::text, 'helpr'::text]))))",
+    "CHECK ((source = ANY (ARRAY['form'::text, 'admin'::text])))",
+    "CHECK ((status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'prize_received'::text, 'posted'::text])))",
+    "CHECK (((tiktok IS NULL) OR (length(tiktok) <= 100)))",
+    "CHECK (((NOT show_on_wall) OR wall_ok))",
+    "CHECK (((website IS NULL) OR ((length(website) <= 300) AND (website ~ '^https?://'::text))))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "any_day": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "brand_name": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "contact_name": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "email": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "facebook": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "instagram": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "logo_path": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "notes": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "phone": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "prize_description": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "prize_value": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "ref_code": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "ship_to": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "show_on_wall": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "source": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "tiktok": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "wall_ok": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "website": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "sponsor_testimonials": {
+   "checks": [
+    "CHECK (((brand IS NULL) OR (length(brand) <= 120)))",
+    "CHECK (((length(btrim(name)) >= 1) AND (length(btrim(name)) <= 100)))",
+    "CHECK (((length(btrim(quote)) >= 1) AND (length(btrim(quote)) <= 600)))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "approved": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "brand": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "name": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "quote": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "sponsor_visit_hits": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "bucket": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "hit_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "bigint"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "sponsor_visits": {
+   "checks": [
+    "CHECK ((device = ANY (ARRAY['phone'::text, 'tablet'::text, 'desktop'::text, 'unknown'::text])))",
+    "CHECK (((ref_code IS NULL) OR (ref_code ~ '^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$'::text)))",
+    "CHECK (((referrer IS NULL) OR ((length(referrer) <= 200) AND (referrer ~ '^https?://'::text))))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "device": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "bigint"
+    },
+    "ref_code": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "referrer": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "visited_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
     }
    },
    "grants": {},

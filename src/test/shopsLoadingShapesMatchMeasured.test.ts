@@ -10,8 +10,12 @@
  * the next refresh this pins each placeholder to those numbers in source.
  * jsdom has no layout; the heights are Tailwind arbitrary values read from the
  * code (comments blanked).
+ * 2026-11-10 (shops audit F16): /shops/orders no longer pins a number. Its
+ * placeholder IS the "No orders yet." card, rendered invisible under one bone,
+ * so it equals that card at every width (the fixed 98px went stale the moment
+ * the card gained its "Browse shops" button).
  */
-// @mutate src/components/shops/ShopMyOrdersView.tsx | <li><Skeleton className="h-[98px] w-full rounded-2xl" /></li> | {[0, 1].map((i) => <li key={i}><Skeleton className="h-36 w-full rounded-2xl" /></li>)}
+// @mutate src/components/shops/ShopMyOrdersView.tsx |           <div className="invisible" aria-hidden>\n            <NoOrdersYet />\n          </div> |           <div className="h-36" aria-hidden />
 // @mutate src/components/shops/ShopDashboardView.tsx | <li><Skeleton className="h-[154px] w-full rounded-2xl" /></li> | {[0, 1].map((i) => <li key={i}><Skeleton className="h-36 w-full rounded-2xl" /></li>)}
 // @mutate src/components/shops/ShopEditView.tsx | <div className="space-y-4 min-h-[1472px]" role="status" aria-label="Loading your shop"> | <div className="space-y-4" role="status" aria-label="Loading your shop">
 // @mutate src/components/shops/ShopView.tsx | <Skeleton className="h-[145px] w-full rounded-2xl" /> | <Skeleton className="h-24 w-full rounded-2xl" />
@@ -39,14 +43,13 @@ const heights = (block: string) =>
   }));
 
 const CASES = [
-  { file: "src/components/shops/ShopMyOrdersView.tsx", label: "Loading your orders", bones: [98] },
   { file: "src/components/shops/ShopDashboardView.tsx", label: "Loading your shop's orders", bones: [154] },
   { file: "src/components/shops/ShopView.tsx", label: "Loading the shop", bones: [144, 24, 145] },
 ] as const;
 
 describe("Q2558: the /shops placeholders reserve the measured heights", () => {
   it("checks every case (never passes on an empty list)", () => {
-    expect(CASES.length).toBeGreaterThan(2);
+    expect(CASES.length).toBeGreaterThan(1);
   });
 
   for (const c of CASES) {
@@ -59,6 +62,15 @@ describe("Q2558: the /shops placeholders reserve the measured heights", () => {
   it("ShopView's bones total 345px with the 16px gaps (the measured block)", () => {
     const hs = heights(statusBlock(read("src/components/shops/ShopView.tsx"), "Loading the shop")).map((h) => h.px);
     expect(hs.reduce((a, b) => a + b, 0) + 16 * (hs.length - 1)).toBe(345);
+  });
+
+  it("/shops/orders: the placeholder is the empty card itself, invisible under one bone that covers it", () => {
+    const src = read("src/components/shops/ShopMyOrdersView.tsx");
+    expect(src).toMatch(
+      /<div className="relative" role="status" aria-label="Loading your orders">\s*<div className="invisible" aria-hidden>\s*<NoOrdersYet \/>\s*<\/div>\s*<Skeleton className="absolute inset-0 rounded-2xl" \/>\s*<\/div>/,
+    );
+    // The empty state is the same component the placeholder hides.
+    expect(src).toMatch(/\.length === 0 \? \(\s*<NoOrdersYet \/>/);
   });
 
   it("ShopEditView reserves the 1472px form", () => {

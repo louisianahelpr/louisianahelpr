@@ -77,7 +77,7 @@ ok(!r.err, `callable (${r.err ?? "ok"})`);
 ok(JSON.stringify(ids(r)) === JSON.stringify([1, 2, 3, 4, 5]), `no signals: newest first; never Free, reserved, hidden, seed, unphotographed or sold (${ids(r)})`);
 ok(r.v?.[0]?.photo_path === "p/1/a.jpg", `the cover photo is the lowest position (${r.v?.[0]?.photo_path})`);
 
-// Signals: item 5 gets one view, item 4 one save (3), item 3 one offer (3) + one view (4 in all).
+// Fixture signals (2026-11-10): item 5 gets one view, item 4 one save (3), item 3 one offer (3) + one view (4 in all).
 await db.exec(`insert into public.declutter_item_views(item_id, viewer_id) values ('${it(5)}', '${U1}')`);
 await db.exec(`insert into public.declutter_watchlist values ('${U1}', '${it(4)}')`);
 await db.exec(`insert into public.declutter_offers(item_id, buyer_id) values ('${it(3)}', '${U2}')`);
@@ -115,7 +115,7 @@ await db.exec(`insert into public.profiles values ('${SEEDP}', true); insert int
 r = await top();
 ok(JSON.stringify(ids(r)) === JSON.stringify([3, 4, 5, 1, 2]), `a seed profile's save never counts (${ids(r)})`);
 
-// A flood of signed-out views with made-up device ids (anon may record views) counts at most 10: it never beats
+// two real saves (6) plus an offer (3)... and a member's views count in full. Fixture (2026-11-10): item 2 gets 500 guest views -> 10.
 // two real saves (6) plus an offer (3)... and a member's views count in full. Item 2 gets 500 guest views -> 10.
 await db.exec(`insert into public.declutter_item_views(item_id, device_id) select '${it(2)}', gen_random_uuid() from generate_series(1, 500)`);
 await db.exec(`insert into public.declutter_watchlist values ('${U2}', '${it(4)}'), ('${U3}', '${it(4)}')`);

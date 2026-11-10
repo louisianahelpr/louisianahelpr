@@ -16,6 +16,7 @@ import { featureSwitchSettled } from "@/lib/featureSwitchQuery";
 import { BrowseEmptyState } from "@/components/ui/BrowseEmptyState";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { fetchShopCategories, type ShopBadges, type ShopCategory } from "@/lib/shops/api";
+import { SHOPS_ERROR_COPY } from "@/lib/shops/errors";
 
 export const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -180,22 +181,27 @@ export function OrderGroup({ title, count, empty, children }: { title: string; c
   );
 }
 
+/** The one title a shop link that leads nowhere wears (shops audit 11-10 F3). */
+export const SHOP_UNAVAILABLE_TITLE = "This shop isn't taking orders right now.";
+
 /**
- * A shop link that leads nowhere (paused, closed, never existed): the one
- * empty-state layout, not a warning box (spec v2 rebuild, audit 2026-10-21).
+ * A shop link that leads nowhere (paused, closed, no live item, never existed): the one
+ * empty-state layout, not a warning box (spec v2 rebuild, audit 2026-10-21). Shops audit 11-10 F3 (lead): the
+ * server's own "This shop isn't available." under a title that said the same is left out, and the way on is
+ * "Browse shops" (a buyer or a signed-out visitor has no dashboard).
  */
-export function ShopUnavailable({ body = "It may be paused or closed. Check the link with whoever sent it." }: { body?: string }) {
-  const { user } = useAuthReady();
+export function ShopUnavailable({ body }: { body?: string }) {
+  const sameAsTitle = !body || body === SHOPS_ERROR_COPY.shop_not_found;
   return (
     <div className="flex" role="alert">
       <EmptyState
         variant="inline"
         icon={Store}
-        title="This shop isn't available"
-        body={body}
+        title={SHOP_UNAVAILABLE_TITLE}
+        body={sameAsTitle ? "Check back later, or find another local shop." : body}
         action={
           <Button asChild variant="primary" size="lg" className="rounded-full px-8">
-            <Link to={user ? "/home" : "/"}>{user ? "Go to Dashboard" : "Go home"}</Link>
+            <Link to="/shops">Browse shops</Link>
           </Button>
         }
       />

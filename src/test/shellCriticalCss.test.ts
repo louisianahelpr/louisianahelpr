@@ -7,7 +7,7 @@
  * @mutate scripts/inline-shell-css.mjs |       if (doc.querySelector(base)) return true; |       if (doc.querySelector(base) && base.includes(":")) return true;
  * Trim plan (Q2705 B, 11-05): a first frame has no hover/focus/press and no motion, so those selectors and the
  * transition/animation/will-change declarations stay in the app sheet only (":not(:focus-visible)" still applies).
- * @mutate scripts/inline-shell-css.mjs | (s) => !dynamic(s) && selectorNeeded(s, docs) | (s) => selectorNeeded(s, docs)
+ * @mutate scripts/inline-shell-css.mjs | (s) => !dynamic(s) && selectorNeeded(s, at) | (s) => selectorNeeded(s, at)
  * @mutate scripts/inline-shell-css.mjs | (d) => d.remove());
  | (d) => void d);
 

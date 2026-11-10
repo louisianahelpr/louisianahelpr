@@ -10,7 +10,7 @@
  *
  * @mutate src/components/declutter/DeclutterSkeletons.tsx | <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle stickyHeader> | <AppPage title="Item" backTo="/declutter">
  * @mutate src/components/declutter/DeclutterSkeletons.tsx | <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle stickyHeader> | <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle>
- * @mutate src/components/declutter/DeclutterSkeletons.tsx |           <Skeleton className={`${ITEM_PHOTO_FRAME_BASE} ${ITEM_PHOTO_ASPECT.item}`} /> |           <Skeleton className="shrink-0 w-[80%] max-w-sm aspect-square rounded-2xl bg-photo-empty" />
+ * @mutate src/components/declutter/DeclutterSkeletons.tsx |           <Skeleton data-item-photo-bone="" className={`${ITEM_PHOTO_FRAME_BASE} ${ITEM_PHOTO_ASPECT.item}`} /> |           <Skeleton className="shrink-0 w-[80%] max-w-sm aspect-square rounded-2xl bg-photo-empty" />
  * @mutate scripts/audit/measure-loading-states.mjs | !e.closest("[data-sonner-toaster]") && !e.closest(".sticky-title-row")) | !e.closest("[data-sonner-toaster]"))
  * @mutate src/components/declutter/DeclutterSkeletons.tsx | <Skeleton className="h-52 w-full rounded-2xl" style={{ minHeight: reserve }} aria-hidden /> | <Skeleton className="h-52 w-full rounded-2xl" aria-hidden />
  * @mutate src/hooks/useScreenfulBelow.ts | Math.round(window.innerHeight - el.getBoundingClientRect().top) | 0

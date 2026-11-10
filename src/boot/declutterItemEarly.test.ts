@@ -22,7 +22,7 @@
  * @mutate index.html |                 preloadPhone("low"); |
  * @mutate index.html |             if (!draw) return preloadPhone("high"); |             if (!draw) return;
  * @mutate index.html |                 return c && c.indexOf("after:") !== 0 && c.indexOf("motion-safe:after:") !== 0; |                 return c;
- * @mutate index.html |               shell.setAttribute("data-lh-photos", ""); |
+ * @mutate index.html | frame.appendChild(img);\n              shell.setAttribute("data-lh-photos", ""); | frame.appendChild(img);
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";

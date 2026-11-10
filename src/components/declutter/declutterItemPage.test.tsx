@@ -835,7 +835,6 @@ describe("the photo-first Declutter item page", () => {
   // @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && !user && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} trades={!free && it.accepts_trades === true} />} |
   // @mutate src/components/declutter/DeclutterItemView.tsx | <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} trades={!free && it.accepts_trades === true} /> | <DeclutterGuestJoin free={free} trades={!free && it.accepts_trades === true} />
   // @mutate src/components/declutter/DeclutterGuest.tsx |         {!free && offers && ( |         {!free && (
-  // @mutate src/components/declutter/DeclutterGuest.tsx |         {!barShown && <GuestBrand />}\n      </div> |       </div>
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && (\n            <DeclutterSellerCard |           {!isSeller && (\n            <DeclutterSellerCard
   // @mutate src/components/declutter/DeclutterGuest.tsx |   if (failed \|\| open?.has("declutter")) return <><DeclutterGuestTopBar />{children}</>; |   return <><DeclutterGuestTopBar />{children}</>;
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!user && <DeclutterGuestSeller itemId={it.id} free={free} />} |
@@ -858,8 +857,11 @@ describe("the photo-first Declutter item page", () => {
     // No member action runs for a guest: these are links to sign up, never the Buy now button that holds the item.
     expect(screen.queryByRole("button", { name: /Buy now/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Save this item" })).toBeNull();
-    // AUD31-67: the guest has the brand and a way to the rest of Louisiana Helpr.
-    expect(within(join).getByRole("link", { name: "Helpr home" })).toHaveAttribute("href", "/");
+    // F207 (UI audit 11-09): no H mark beside the sign-up line on the item page (it read as a stray logo at 375); the
+    // back arrow leads to Browse, whose guest panel keeps it (AUD31-67).
+    // @mutate src/components/declutter/DeclutterGuest.tsx |         {!barShown && <>{" "}<Link to={`/login?redirect=${here(location)}`} className="font-semibold text-foreground underline underline-offset-2">Log in</Link></>}\n      </p> |         {!barShown && <>{" "}<Link to={`/login?redirect=${here(location)}`} className="font-semibold text-foreground underline underline-offset-2">Log in</Link></>}\n      </p>{!barShown && <GuestBrand />}
+    expect(within(join).queryByRole("link", { name: "Helpr home" })).toBeNull();
+    expect(join.querySelector("[data-guest-brand]")).toBeNull();
     // The seller's first name only (declutter_guest_seller_first_name), never the member card's "Dana R." or its link.
     const seller = await screen.findByText("Dana");
     expect(seller.closest("[data-guest-seller]")).not.toBeNull();

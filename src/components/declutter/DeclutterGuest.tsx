@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchGuestSellerFirstName } from "@/lib/declutter/api";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { HelprMark } from "@/components/HelprMark";
 import { useSectionsOpen } from "@/components/landing/useSectionsOpen";
@@ -36,7 +37,8 @@ export function DeclutterGuestGate({ children, skeleton }: { children: ReactNode
 
 /**
  * AUD31-67 (Guests on Declutter): a guest who opened a shared Declutter link had no brand and no way to the rest of
- * Louisiana Helpr. The H mark, a link to the landing page, sits in each guest join panel (Browse and item).
+ * Louisiana Helpr. The H mark, a link to the landing page, sits in the guest join panel above Browse (F207, 11-09: no
+ * longer beside the item page's sign-up line, where it read as a stray logo).
  */
 function GuestBrand() {
   return (
@@ -109,15 +111,15 @@ export function DeclutterGuestJoin({ free, offers = true, trades = false }: { fr
           <Link to={signup} data-guest-buy="">{free ? "Sign up to ask for it" : "Buy now"}</Link>
         </Button>
       </StickyActionBar>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">
-          {/* F048 / F059 (owner UI audit 11-09, newest wording): it is SIGNING UP that is free, never read as the item. */}
-          Signing up is free. We'll bring you back to this item.
-          {/* The desktop guest bar already has Log in (AUD31-67 follow-up): only a phone gets it here. */}
-          {!barShown && <>{" "}<Link to={`/login?redirect=${here(location)}`} className="font-semibold text-foreground underline underline-offset-2">Log in</Link></>}
-        </p>
-        {!barShown && <GuestBrand />}
-      </div>
+      {/* F207 (UI audit 11-09, lead): the H mark beside this line read as a stray logo on the item page at 375. The line
+          stands alone; the item page's back arrow leads to Browse, whose guest panel keeps the H (AUD31-67).
+          Guard: src/components/declutter/declutterItemPage.test.tsx. */}
+      <p className="text-xs text-muted-foreground">
+        {/* F048 / F059 (owner UI audit 11-09, newest wording): it is SIGNING UP that is free, never read as the item. */}
+        Signing up is free. We'll bring you back to this item.
+        {/* The desktop guest bar already has Log in (AUD31-67 follow-up): only a phone gets it here. */}
+        {!barShown && <>{" "}<Link to={`/login?redirect=${here(location)}`} className="font-semibold text-foreground underline underline-offset-2">Log in</Link></>}
+      </p>
       {/* Trades audit 11-08 #3: a trade is one of the member's own listings, so a guest needs both. */}
       {trades && <p data-guest-trades="" className="text-xs text-muted-foreground">Sign in and list an item to offer a trade.</p>}
     </section>
@@ -153,10 +155,24 @@ export function DeclutterGuestBrowseJoin() {
 
 /**
  * A guest's seller line (BUY-16): the first name only, never the full name, no avatar, no link to the profile (a
- * member's page). Nothing while it loads, on a failed read, or with no name: the listing reads the same without it.
+ * member's page). Nothing on a failed read or with no name: the listing reads the same without it.
+ * Item page speed (lead 11-09): while it loads, the row's own box holds its place (the same border, padding and 40 px
+ * avatar line, so the same height), so the description below does not drop 86 px when the name lands (cwv-lab 375:
+ * CLS 0.0192 on every guest item page). Guard: src/components/declutter/guestSellerHoldsItsPlace.test.tsx.
  */
 export function DeclutterGuestSeller({ itemId, free = false }: { itemId: string; free?: boolean }) {
   const first = useQuery({ queryKey: ["declutter", "guest-seller", itemId], queryFn: () => fetchGuestSellerFirstName(itemId) });
+  if (first.isLoading) {
+    return (
+      <p data-guest-seller-loading="" aria-hidden className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+        <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+        <span className="min-w-0 flex-1 space-y-2">
+          <Skeleton className="h-3 w-12" />
+          <Skeleton className="h-4 w-24" />
+        </span>
+      </p>
+    );
+  }
   if (!first.data) return null;
   return (
     <p data-guest-seller="" className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">

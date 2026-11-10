@@ -20,9 +20,17 @@ import { unwrap } from "@/lib/supabaseResult";
  * new hire re-asks.
  */
 export function usePayoutSetupHireAllowed(): boolean {
+  return usePayoutSetupHireStatus().allowed;
+}
+
+/**
+ * The same answer and whether it has arrived (`settled`: answered, failed, or nobody signed in). A screen that
+ * places the payout row inside its own loading gate waits on this, so the row never pops in after paint.
+ */
+export function usePayoutSetupHireStatus(): { allowed: boolean; settled: boolean } {
   const { user } = useAuthReady();
   const userId = user?.id ?? null;
-  const { data } = useQuery({
+  const { data, isFetched, failureCount } = useQuery({
     queryKey: queryKeys.activity.payoutSetupHire(userId),
     enabled: !!userId,
     staleTime: 60_000,
@@ -35,5 +43,7 @@ export function usePayoutSetupHireAllowed(): boolean {
       return unwrap(res) === true;
     },
   });
-  return data === true;
+  // A failed first try counts as answered (not allowed, the fail-closed reading) rather than holding a screen's
+  // loading gate through every retry.
+  return { allowed: data === true, settled: !userId || isFetched || failureCount > 0 };
 }

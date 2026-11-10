@@ -519,6 +519,15 @@ describe("the dashboard entries", () => {
     expect(screen.getByRole("button", { name: /Share my shop/ })).toBeTruthy();
     expect(screen.getByTestId("shop-licensed-insured").getAttribute("href")).toBe("/profile?tab=credentials");
   });
+  // Shops audit 11-10 F1 (lead): one message on an empty Browse, never "Coming soon" beside "open a free shop".
+  // @mutate src/components/shops/ShopsHomeView.tsx | : "No shops near you yet."} | : "Coming soon"}
+  it("Browse with no shops says one thing: No shops near you yet. Be the first: open a free shop.", async () => {
+    desktop.on = true;
+    renderAt("/shops", "/shops", <ShopsPage />);
+    expect(await screen.findByText("No shops near you yet.")).toBeTruthy();
+    expect(screen.getByText("Be the first: open a free shop.")).toBeTruthy();
+    expect(screen.queryByText("Coming soon")).toBeNull();
+  });
   it("the Shop tab without a shop: Open a shop", async () => {
     api.fetchMyShopId.mockResolvedValue(null);
     renderAt("/shops?tab=shop", "/shops", <ShopsPage />);

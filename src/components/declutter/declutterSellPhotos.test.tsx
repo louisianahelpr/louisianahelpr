@@ -19,6 +19,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DropSchedule } from "./DeclutterSellSteps";
 import { SellHandoverChoices } from "./SellHandoverChoices";
+import { inclFeeText } from "./PriceInclFee";
 
 const PLACE = { id: "pl", position: 1, label: "Home", address: "100 Main Street, Baton Rouge, LA 70802", area: "Mid-City, Baton Rouge", lat: 30.45, lng: -91.15, weekdays: [6] };
 const savedRow = vi.hoisted(() => ({ value: null as unknown, places: [] as unknown[] }));
@@ -671,6 +672,8 @@ describe("photo-first selling, one screen", () => {
     const preview = document.querySelector("[data-sell-preview]")!;
     expect(preview.textContent).toContain(DRAFT.title);
     expect(preview.textContent).toContain("$45");
+    // Buyers see "$X.XX incl. fee" under the price on the card, so the preview says it too (audit 1110 F333).
+    expect(preview.querySelector("[data-price-incl-fee]")?.textContent).toBe(inclFeeText(4500));
   });
 
   // Audit posting 1030 #4: a photo that looked fine was lost at Post, with the AI panel taking the blame.

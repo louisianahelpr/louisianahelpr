@@ -14,6 +14,11 @@ export function centralDateTimeLabel(when: Date): string {
   return `${day} at ${time} Central`;
 }
 
+/** A day with its year, in Louisiana time: "Feb 8, 2027". For dates months out (a gift credit's expiry, F497). */
+export function centralDateLabel(when: Date): string {
+  return when.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: MEMBER_TIMEZONE });
+}
+
 /** A day as members read it, in Louisiana time: "Nov 16". */
 export function centralDayLabel(when: Date): string {
   return when.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: MEMBER_TIMEZONE });

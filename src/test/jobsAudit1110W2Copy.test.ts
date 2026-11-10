@@ -46,6 +46,11 @@
  * F265a (review window): Jobs settings said instant release skips a "24-hour review" while the job page's guarantee
  * names 48 hours. They are two different windows; the line now names both so they no longer read as a contradiction.
  * @mutate src/pages/profile/AutoTip.tsx | The 48-hour Helpr Guarantee still applies. | They're paid 3 days later.
+ *
+ * F289: the Applicants sheet named two cut-offs on one day ("by Sun, Nov 15, 10:00 AM" then "If nobody is hired by
+ * Sun, Nov 15, 12:28 PM, the job closes"). When the close is on the pick-by's day, the second line now says "by then".
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsNextStep.tsx | ifNot = byAt && dayWords(byAt) === dayWords(close) | ifNot = false
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsNextStep.tsx | ifNot = byAt && dayWords(byAt) === dayWords(close) | ifNot = true
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -55,6 +60,7 @@ import { jobProgress } from "@/components/tracker/jobProgressState";
 import { bioCharsToGo } from "@/components/profile/ProfileEditForm";
 import { titlePlaceholders } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { onTheWaySince } from "@/pages/jobs/jobPage/OnTheWayNow";
+import { applicantsNextStep } from "@/pages/posts/postedJobs/applicantsPanel/ApplicantsNextStep";
 
 /** The same minimal job jobProgressState.test.ts starts from. */
 const DONE_BASE = { status: "open", helper_id: null, payment_status: "unpaid" } as const;
@@ -135,5 +141,15 @@ describe("audit 11-10 W2: Jobs in-app copy", () => {
     const src = read("src/pages/profile/AutoTip.tsx");
     expect(src).toContain("with no 24-hour approval wait. The 48-hour Helpr Guarantee still applies.");
     expect(src).not.toContain("no 24-hour review");
+  });
+  // F289: one cut-off per day. Sat Nov 16 2058 9:00 AM CST start, close 12:28 PM the same Louisiana day.
+  it("F289: a close on the pick-by's day refers back to it instead of naming a second time", () => {
+    const now = new Date("2058-11-12T18:00:00Z");
+    const sameDay = applicantsNextStep({ status: "open", payment_status: "held", date_needed: "2058-11-16", start_time: "09:00:00", expires_at: "2058-11-16T18:28:00Z" }, 2, now);
+    expect(sameDay?.step.by).toBe("by Sat, Nov 16, 9:00 AM");
+    expect(sameDay?.ifNot).toBe("If nobody is hired by then, the job closes and your card isn't charged.");
+    // A close days after the start still names its own day and time: it is a different cut-off.
+    const later = applicantsNextStep({ status: "open", payment_status: "held", date_needed: "2058-11-16", start_time: "09:00:00", expires_at: "2058-11-30T15:00:00Z" }, 2, now);
+    expect(later?.ifNot).toBe("If nobody is hired by Sat, Nov 30, 9:00 AM, the job closes and your card isn't charged.");
   });
 });

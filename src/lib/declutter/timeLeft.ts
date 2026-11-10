@@ -7,6 +7,8 @@ export function timeLeft(iso: string, now = Date.now()): string {
   const ms = new Date(iso).getTime() - now;
   if (ms <= 0) return "time is up";
   const h = Math.floor(ms / 3_600_000);
+  // Audit 11-10 F368: "118 hours left" became days from 48 hours up.
+  if (h >= 48) return `${Math.floor(h / 24)} days left`;
   if (h >= 1) return `${h} hour${h === 1 ? "" : "s"} left`;
   const m = Math.max(1, Math.floor(ms / 60_000));
   return `${m} minute${m === 1 ? "" : "s"} left`;

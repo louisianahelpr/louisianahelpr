@@ -269,7 +269,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       {/* Board 30: "How you'll get it" as radio cards; each price from the real rule (pickups are free; delivery is
           the server's quote, or "Get a price" until there is one). */}
       <fieldset className="space-y-2">
-        <legend className="mb-2 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">How you'll get it</legend>
+        <legend className="mb-2 text-sm font-semibold">How you'll get it</legend>
         {offered.map((h) => (
           <div key={h} className="space-y-2" data-handover-option={h}>
           <label
@@ -537,7 +537,7 @@ export function CartView() {
               </ul>
               <CartHold sellerId={sellerId} checkoutBy={soonest} allFree={allFree} lines={lines} timeLeft={timeLeft(soonest)} />
               {allFree ? (
-                <FreeCheckoutForSeller sellerId={sellerId} porchOk={lines.every((l) => l.porch_ok !== false)} ways={waysEveryLineAllows(lines)} onDone={() => void cart.refetch()} />
+                <FreeCheckoutForSeller sellerId={sellerId} porchOk={lines.every((l) => l.porch_ok !== false)} ways={waysEveryLineAllows(lines)} onDone={() => void cart.refetch()} trade={lines.every((l) => l.source === "swap")} />
               ) : (
                 <PayWithBundle sellerId={sellerId} lines={lines} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()}
                   held={settling.settling && (settling.sellerId === null || settling.sellerId === sellerId)} />

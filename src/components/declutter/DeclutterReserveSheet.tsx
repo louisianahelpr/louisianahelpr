@@ -5,6 +5,7 @@
  * and a Buy now line that is never paid just goes back up (declutter_deadline_sweep, 20261030064929).
  */
 import { useEffect, useRef } from "react";
+import { orderWhen } from "@/lib/declutter/timeLeft";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchBundleRule } from "@/lib/declutter/bundle";
@@ -31,7 +32,7 @@ export function CartHold({ sellerId, checkoutBy, allFree, lines, timeLeft }: {
   sellerId: string; checkoutBy: string; allFree: boolean; lines: readonly CartLine[]; timeLeft: string;
 }) {
   const rule = useQuery({ queryKey: ["declutter", "bundle-rule", sellerId], queryFn: () => fetchBundleRule(sellerId) });
-  const by = new Date(checkoutBy).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+  const by = orderWhen(checkoutBy); // F367
   const noStrike = holdHasNoStrike(lines);
   const ref = useRef<HTMLDivElement>(null);
   const [params] = useSearchParams();

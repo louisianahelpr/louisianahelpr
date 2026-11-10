@@ -8,6 +8,7 @@
  * back, the seller taps "I got it back", and only then is the refund sent.
  */
 import { useState, type ReactNode } from "react";
+import { orderWhen } from "@/lib/declutter/timeLeft";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchMyHandover } from "@/lib/declutter/handover";
@@ -73,7 +74,8 @@ const FULL_REFUND_WHY = "That's all you paid, less the small part the card netwo
 const FULL_REFUND_WHY_ITEM = "That's what you paid for the item, less the small part the card network kept for the payment, which it doesn't give back.";
 const fullRefundWhy = (deliveryKeptCents: number) => (deliveryKeptCents > 0 ? FULL_REFUND_WHY_ITEM : FULL_REFUND_WHY);
 
-const at = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+// Audit 11-10 F367/F381/F395: every refund deadline with its date ("Sat, Nov 14, 12:31 PM", Central), never "Sat 12:31 PM".
+const at = orderWhen;
 
 export function DeclutterRefundPanel({ orderId, who, problemForm }: {
   orderId: string;
@@ -202,7 +204,7 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
           {/* A3-20: the shared next-step line, deadline after the dot; what happens after it stays in words. */}
           <NextStep value={{ who: "them", text: `Waiting on ${who} to answer your refund request`, by: at(r.answer_by) }} />
           <p className="text-ds-12 text-muted-foreground">If {who} doesn't answer by then, Louisiana Helpr decides.</p>
-          <Button type="button" variant="outline" size="sm" disabled={withdraw.isPending} onClick={() => setConfirmWithdraw(true)}>Take it back</Button>
+          <Button type="button" variant="outline" size="sm" disabled={withdraw.isPending} onClick={() => setConfirmWithdraw(true)}>Cancel my refund request</Button>
           <ConfirmSheet
             open={confirmWithdraw}
             pending={withdraw.isPending}

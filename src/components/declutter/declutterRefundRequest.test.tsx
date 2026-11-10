@@ -169,7 +169,7 @@ describe("DeclutterRefundPanel: answering a part refund asks first (BUY-10)", ()
 describe("DeclutterRefundPanel: taking a refund request back asks first (DB-11)", () => {
   it("Take it back opens a sheet that says what follows; Keep my request sends nothing; the sheet's button withdraws", async () => {
     show({ ...BASE, can_ask: false, request: REQ });
-    fireEvent.click(await screen.findByRole("button", { name: "Take it back" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel my refund request" }));
     const sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent("Take back your refund request?");
     expect(sheet).toHaveTextContent("Nikki is told, and is paid once the sale is final. You can't ask for a refund on this sale again.");
@@ -177,7 +177,7 @@ describe("DeclutterRefundPanel: taking a refund request back asks first (DB-11)"
     fireEvent.click(within(sheet).getByRole("button", { name: "Keep my request" }));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(state.withdrawn).toEqual([]);
-    fireEvent.click(screen.getByRole("button", { name: "Take it back" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel my refund request" }));
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Take it back" }));
     await waitFor(() => expect(state.withdrawn).toEqual([["r1"]]));
   });
@@ -465,7 +465,8 @@ describe("DeclutterRefundPanel", () => {
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx |         <NextStep value={sellerReturnStep(r, who)} /> |
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx |   if (r.return_dropped_off_at && r.return_way === "drop_off") return | if (false) return
 describe("the refund panel says the next step in the shared line (A3-20, A3-79)", () => {
-  const atWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+  // Audit 11-10 F367: the deadline has its date, in Central time (orderWhen).
+  const atWords = (iso: string) => new Date(iso).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   const line = async (who: "you" | "them") => {
     await waitFor(() => expect(document.querySelector(`[data-next-step="${who}"]`)).not.toBeNull());
     return document.querySelector(`[data-next-step="${who}"]`)!.textContent;

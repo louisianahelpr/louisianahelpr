@@ -90,7 +90,7 @@ describe("Declutter trade cards (slice 3)", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Accept trade" }));
     await waitFor(() => expect(state.sent).toEqual([["t1", "accept"]]));
     // Audit 11-10 F401: a sentence with the deadline, not "Answer: 119 hours left"; Decline is an outlined button.
-    expect(screen.getByText(new RegExp(`Answer by ${orderWhen(later).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\. No money changes hands\\.`))).toBeTruthy();
+    expect(screen.getByText(`Answer by ${orderWhen(later)}. No money changes hands.`)).toBeTruthy();
     expect(screen.queryByText(/Answer:/)).toBeNull();
     const decline = screen.getByRole("button", { name: "Decline" });
     expect(decline.className).toContain("border");

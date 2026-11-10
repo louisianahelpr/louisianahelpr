@@ -29,7 +29,8 @@ export function OrderCardHead({ order, userId }: { order: PaidOrder; userId: str
   return (
     <div className="flex items-start justify-between gap-3 min-w-0" data-order-head="">
       <div className="min-w-0">
-        <p className="truncate text-ds-15 font-semibold" title={title}>{title}</p>
+        {/* Audit 1110 F408: an order title wraps to two lines (break-words) instead of an ellipsis at 375 / Bigger text. */}
+        <p className="line-clamp-2 break-words text-ds-15 font-semibold leading-snug" title={title}>{title}</p>
         <p className="text-ds-13 text-muted-foreground">
           {howItComes(order)}{trade ? "" : order.side === "seller" ? (items === 0 ? " · You're giving" : " · You're selling") : ""}
         </p>

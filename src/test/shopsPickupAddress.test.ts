@@ -81,7 +81,10 @@ describe("Shops pickup address stays private (20261018210400)", () => {
         "shop_pickup_addresses_clear_point", "shop_set_pickup_point",
         // The owner's own "is my pickup point saved" test before Helpr delivery turns on (answers only a refusal), and
         // the service-only order/task/quote writers that copy the shop's own point onto its own order's task.
-        "shops_set_helpr_delivery", "shop_set_order_helpr_delivery", "shop_delivery_open_task", "shop_helpr_delivery_quote"], name).toContain(name);
+        "shops_set_helpr_delivery", "shop_set_order_helpr_delivery", "shop_delivery_open_task", "shop_helpr_delivery_quote",
+        // Q2146 (20261110205854): the service-only stamp when Stripe refuses the address for tax, and the owner's own
+        // "was it refused" read (a timestamp only, never the address or Stripe's words).
+        "shops_mark_pickup_address_refused", "shops_clear_pickup_address_refused", "shops_my_pickup_address_problem"], name).toContain(name);
     }
   });
 

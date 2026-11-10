@@ -18,6 +18,8 @@
  * @mutate src/lib/shops/pickupAddress.ts |   return /^[0-9]{5}$/.test(zip) && isLouisianaZip(zip); |   return /^7[01][0-9]{3}$/.test(zip);
  * @mutate src/components/shops/ShopPickupAddressSection.tsx |     mutationFn: () => saveMyPickupAddress({ line1, line2, city, postal_code: zip.trim() }), |     mutationFn: async () => undefined,
  * @mutate src/components/shops/ShopEditView.tsx |       {myId.data && <div className="pb-6"><ShopPickupAddressSection /></div>} |
+ * Q2146: a pickup address Stripe refused for tax says so (20261110205854, shops_my_pickup_address_problem).
+ * @mutate src/components/shops/ShopPickupAddressSection.tsx |           {current.data && refused.data && ( |           {false && (
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -35,6 +37,7 @@ vi.mock("sonner", () => ({ toast }));
 const api = vi.hoisted(() => ({
   fetchOrderPickupAddress: vi.fn(),
   fetchMyPickupAddress: vi.fn(),
+  fetchMyPickupAddressProblem: vi.fn(),
   saveMyPickupAddress: vi.fn(),
 }));
 vi.mock("@/lib/shops/pickupAddress", async (orig) => ({
@@ -68,6 +71,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   api.fetchOrderPickupAddress.mockResolvedValue(ADDRESS);
   api.fetchMyPickupAddress.mockResolvedValue(null);
+  api.fetchMyPickupAddressProblem.mockResolvedValue(null);
   api.saveMyPickupAddress.mockResolvedValue(undefined);
 });
 
@@ -165,6 +169,16 @@ describe("the owner's pickup address form", () => {
     expect((screen.getByLabelText("Apt, suite or unit (optional)") as HTMLInputElement).value).toBe("Suite 2");
     expect((screen.getByLabelText("ZIP code") as HTMLInputElement).value).toBe("70506");
     expect(screen.getByRole("button", { name: "Save pickup address" })).toBeTruthy();
+    expect(screen.queryByTestId("pickup-address-refused")).toBeNull();
+  });
+
+  it("Q2146: an address Stripe refused for tax says so beside it, in plain words", async () => {
+    api.fetchMyPickupAddress.mockResolvedValue(ADDRESS);
+    api.fetchMyPickupAddressProblem.mockResolvedValue("2026-11-10T20:00:00Z");
+    wrap(<ShopPickupAddressSection />);
+    const note = await screen.findByTestId("pickup-address-refused");
+    expect(note.getAttribute("role")).toBe("alert");
+    expect(note.textContent).toBe("We couldn't work out sales tax for this address, so buyers can't order right now. Check the street, city and ZIP, then save it again.");
   });
 });
 

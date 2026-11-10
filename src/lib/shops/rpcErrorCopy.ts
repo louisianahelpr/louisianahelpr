@@ -422,6 +422,9 @@ export const SHOPS_RPC_ERROR_COPY = {
     feature_disabled: SC.feature_disabled,
     not_authenticated: SC.not_authenticated,
   },
+  shops_my_pickup_address_problem: {
+    feature_disabled: SC.feature_disabled,
+  },
   shops_set_cancel_policy: {
     account_restricted: SC.account_restricted,
     feature_disabled: SC.feature_disabled,

@@ -42,7 +42,7 @@ export interface PendingPermit {
   is_seed: boolean;
 }
 
-export interface PendingRegistration {
+interface PendingRegistration {
   shop_id: string;
   shop_name: string;
   owner_id: string;
@@ -65,7 +65,7 @@ export const PERMIT_DOC_EXT_BY_TYPE: Readonly<Record<string, string>> = {
   "image/webp": "webp",
   "image/heic": "heic",
 };
-export const PERMIT_DOC_MAX_BYTES = 10 * 1024 * 1024;
+const PERMIT_DOC_MAX_BYTES = 10 * 1024 * 1024;
 
 function withWords<T>(res: { data: T; error: { message: string } | null }, words: string | null): T {
   if (!res.error) return res.data;

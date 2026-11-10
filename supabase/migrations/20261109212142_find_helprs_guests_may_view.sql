@@ -28,7 +28,9 @@ BEGIN
   -- F071 (owner 11-09): a guest may VIEW the list (the same masked names, towns and skills a public /u page shows);
   -- only acting on it (offering a job) needs an account. A signed-in member who is banned still gets nothing. The
   -- confirmed-email check is gone with the sign-in check: a guest reads the list without any account at all.
-  IF v_me IS NOT NULL AND public.is_caller_banned() THEN
+  -- is_caller_banned() is false for a NULL uid (profiles.user_id = NULL matches no row), so a guest passes without the
+  -- bare-NULL-uid shape the DB smoke refuses (scripts/ci/null-uid-trust.sql, shape B).
+  IF public.is_caller_banned() THEN
     RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
   END IF;
   IF length(v_skill) > 60 OR length(v_town) > 60 THEN

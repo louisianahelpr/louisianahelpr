@@ -22,7 +22,7 @@ import { directoryCardFacts } from "@/pages/helprs/findHelprsModel";
 // @mutate supabase/migrations/20261109212142_find_helprs_guests_may_view.sql |      AND NOT EXISTS (\n       SELECT 1 FROM public.user_blocks b |      AND EXISTS (\n       SELECT 1 FROM public.user_blocks b
 // @mutate supabase/migrations/20261109212142_find_helprs_guests_may_view.sql |   v_limit integer := LEAST(GREATEST(COALESCE(p_limit, 30), 1), 50); |   v_limit integer := COALESCE(p_limit, 30);
 // @mutate supabase/migrations/20261109212142_find_helprs_guests_may_view.sql |          p.skills,\n |          p.skills, p.hourly_rate,\n
-// @mutate supabase/migrations/20261109212142_find_helprs_guests_may_view.sql |   IF v_me IS NOT NULL AND public.is_caller_banned() THEN |   IF false THEN
+// @mutate supabase/migrations/20261109212142_find_helprs_guests_may_view.sql |   IF public.is_caller_banned() THEN |   IF false THEN
 // @mutate supabase/migrations/20261109212142_find_helprs_guests_may_view.sql |      AND (v_me IS NOT NULL OR NOT public.is_test_member(p.user_id))\n | \n
 // @mutate src/pages/helprs/FindHelprs.tsx | navigate(`/post-job?offerTo=${h.user_id}`) | navigate(`/post-job`)
 // @mutate src/pages/helprs/findHelprsModel.ts |     place: h.town?.trim() \|\| parish, |     place: h.town?.trim() \|\| h.user_id,
@@ -54,7 +54,7 @@ describe("find_helprs (Q2437)", () => {
   // signed in is still refused; never PUBLIC. Behaviour: src/test/pglite/findHelprsDirectory.pglite.mjs (F071=skip red).
   it("guests may view (F071); a banned member signed in is refused; never granted to PUBLIC", () => {
     expect(body).not.toMatch(/RAISE EXCEPTION 'not_signed_in'/);
-    expect(body).toMatch(/IF v_me IS NOT NULL AND public\.is_caller_banned\(\) THEN\s+RAISE EXCEPTION 'account_restricted'/);
+    expect(body).toMatch(/IF public\.is_caller_banned\(\) THEN\s+RAISE EXCEPTION 'account_restricted'/);
     expect(all).toMatch(/REVOKE ALL ON FUNCTION public\.find_helprs\(text, text, integer\) FROM PUBLIC;/);
     expect(all).toMatch(/GRANT EXECUTE ON FUNCTION public\.find_helprs\(text, text, integer\) TO anon, authenticated;/);
     expect(all).not.toMatch(/TO PUBLIC/);

@@ -46,7 +46,7 @@
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = picked && offered.includes(picked) ? picked : offered[0]; |   const chosen = picked ?? offered[0];
  * Slice 5 (Helpr delivery, rows 29-30): offered while Declutter is open, priced by the server.
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const ticked: Handover[] = deliveryOpen && wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order; |   const ticked: Handover[] = wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order;
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (delivering && !liveQuote) \|\| (shipping && !shipQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady \|\| !!split?.cardPartTooSmall} |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (shipping && !shipQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady \|\| !!split?.cardPartTooSmall}
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={held \|\| opening \|\| !!tradeFirst \|\| offered.length === 0 \|\| (delivering && !liveQuote) \|\| (shipping && !shipQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady \|\| !!split?.cardPartTooSmall} |         disabled={held \|\| opening \|\| !!tradeFirst \|\| offered.length === 0 \|\| (shipping && !shipQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady \|\| !!split?.cardPartTooSmall}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |     : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |     : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchOk={lines.every((l) => l.porch_ok !== false)} onBack= | porchOk={true} onBack=
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
@@ -1021,6 +1021,36 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getByRole("link", { name: "See their other items" })).toHaveAttribute("href", "/user/s2");
   });
 
+  // Audit 11-10 F350 (High): a buyer with a trade AND a priced line from one seller got two cards, and Pay on the
+  // priced one failed every time (declutter_start_checkout links the trade line in; the swap_free_only trigger refuses
+  // it, trade_checkout_first) with only a toast. Pay is off and says why, with a jump to the trade card.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | const tradeWaiting = !trade && tradeSellers.has(sellerId) ? | const tradeWaiting = false ?
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | disabled={held \|\| opening \|\| !!tradeFirst \|\| | disabled={held \|\| opening \|\|
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | data-checkout-kind={trade ? "trade" : "paid"} | data-checkout-kind="paid"
+  it("F350: the paid card of a seller whose trade still waits has Pay off, says why, and jumps to the trade", async () => {
+    const seen: string[] = [];
+    const orig = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: HTMLElement) { seen.push(`${this.dataset.checkoutSeller}:${this.dataset.checkoutKind}`); };
+    try {
+      const by = new Date(Date.now() + 20 * 3_600_000).toISOString();
+      const base = { my_side: "buyer", seller_id: "s2", status: "in_cart", checkout_by: by, order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
+      state.cart = [
+        { ...base, line_id: "l1", item_id: "i1", item_title: "Camping lantern", price_cents: 0, source: "swap" },
+        { ...base, line_id: "l2", item_id: "i2", item_title: "Lamp", price_cents: 300, source: "buy" },
+      ];
+      show(<CartView />);
+      const pay = await screen.findByRole("button", { name: /^Pay \$/ });
+      expect(pay).toBeDisabled();
+      const why = document.querySelector("[data-pay-waits-on]") as HTMLElement;
+      expect(why.textContent).toContain("First choose how you'll get your trade (Camping lantern) below, then pay here.");
+      expect(document.querySelectorAll("[data-checkout-kind=\"trade\"]")).toHaveLength(1);
+      fireEvent.click(screen.getByRole("button", { name: "Go to my trade" }));
+      expect(seen).toEqual(["s2:trade"]);
+    } finally {
+      Element.prototype.scrollIntoView = orig;
+    }
+  });
+
   // DB-5 (owner 2026-10-30): a Buy now line (source "buy") is no strike; a checkout holding an accepted offer keeps it.
   // @mutate src/components/declutter/DeclutterReserveSheet.tsx |           : noStrike ? `Pay by ${by}. |           : false ? `Pay by ${by}.
   // @mutate src/lib/declutter/buyNowHold.ts |   return lines.length > 0 && lines.every((l) => l.price_cents === 0 \|\| l.source === "buy"); |   return lines.length > 0;
@@ -1112,7 +1142,7 @@ describe("Declutter slice 3 screens", () => {
 
   // Q2709 packet 17 (lead 11-04): Pay moved onto the shared Button; a second tap while the pay request is out must not
   // start a second checkout. Pay turns off ("Opening…") the moment it is tapped.
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx | disabled={held \|\| opening \|\| offered.length === 0 | disabled={held \|\| offered.length === 0
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | disabled={held \|\| opening \|\| !!tradeFirst \|\| offered.length === 0 | disabled={held \|\| !!tradeFirst \|\| offered.length === 0
   it("a double tap on Pay starts one checkout, not two", async () => {
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
       checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };

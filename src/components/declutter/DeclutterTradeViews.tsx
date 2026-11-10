@@ -82,9 +82,9 @@ export { OffersSection } from "./DeclutterOffersSection";
 export { StrikeCount } from "./DeclutterTabHeads";
 
 /** Q2427: the seller's bundle discount on these lines (useBundleDiscount), then the ordinary checkout panel. */
-function PayWithBundle({ sellerId, lines, porchOk, onBack, held }: { sellerId: string; lines: CartLine[]; porchOk: boolean; onBack: () => void; held: boolean }) {
+function PayWithBundle({ sellerId, lines, porchOk, onBack, held, tradeFirst = null }: { sellerId: string; lines: CartLine[]; porchOk: boolean; onBack: () => void; held: boolean; tradeFirst?: string | null }) {
   const b = useBundleDiscount(sellerId, lines);
-  return <PayForSeller sellerId={sellerId} itemsTotalCents={b.itemsCents} discountCents={b.discountCents} totalCents={b.totalCents} porchOk={porchOk} onBack={onBack} itemCount={lines.length} held={held}
+  return <PayForSeller sellerId={sellerId} itemsTotalCents={b.itemsCents} discountCents={b.discountCents} totalCents={b.totalCents} porchOk={porchOk} onBack={onBack} itemCount={lines.length} held={held} tradeFirst={tradeFirst}
     ways={waysEveryLineAllows(lines)} itemId={lines.find((l) => l.item_id)?.item_id ?? null}
     itemIds={lines.map((l) => l.item_id).filter((id): id is string => !!id)} />;
 }
@@ -98,8 +98,15 @@ function PayWithBundle({ sellerId, lines, porchOk, onBack, held }: { sellerId: s
  * the drop-off address, the SERVER geocodes it and prices the trip ($6 + $1.50 per
  * road mile + size), and the Pay button carries that price.
  */
-function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents, porchOk, onBack, itemCount = 1, held = false, ways = null, itemId = null, itemIds = [] }: {
+function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents, porchOk, onBack, itemCount = 1, held = false, ways = null, itemId = null, itemIds = [], tradeFirst = null }: {
   sellerId: string; itemsTotalCents: number; totalCents: number; porchOk: boolean; onBack: () => void;
+  /**
+   * Audit 11-10 F350 (High): the title of this seller's trade still waiting in the cart. declutter_start_checkout
+   * (20261103224955) links EVERY in_cart line of the seller into the paid order, and the swap_free_only trigger
+   * (20261108195151) then refuses it (trade_checkout_first), so Pay failed every time with only a toast. Pay is off
+   * and says why until the trade is confirmed, with a jump to its card.
+   */
+  tradeFirst?: string | null;
   /** B-1: this checkout was just paid and the cart has not caught up: Pay stays off. */
   held?: boolean;
   /** Owner 2026-10-28: the ways every item in this checkout allows (null = older items: every way). */
@@ -243,7 +250,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   // BUY-8 (audit 10-30): Pay was grey with nothing saying why, and at 375 the choice it waited on was far above it,
   // past the bill. The first thing it waits on, in the buyer's words, right above it.
   const payWaitsOn =
-    needsPlace && !placeReady && porchPlaces.places.length > 0 ? "Choose a pickup place above to pay."
+    tradeFirst ? `First choose how you'll get your trade (${tradeFirst}) below, then pay here.`
+    : needsPlace && !placeReady && porchPlaces.places.length > 0 ? "Choose a pickup place above to pay."
       : delivering && !liveQuote ? "Get the delivery price above to pay."
         : shipping && !shipQuote ? "Get shipping prices above to pay."
         : sellerDelivering && sdState === "pick" && !sdReady ? "Finish the delivery choices above to pay."
@@ -374,14 +382,25 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           bar sat under the dock at 375). lg: it sits in the summary column on the right. */}
       <div className="max-lg:sticky max-lg:bottom-[calc(var(--safe-area-bottom,0px)+var(--bottom-nav-h,96px))] max-lg:z-20 max-lg:space-y-2 max-lg:rounded-2xl max-lg:border max-lg:border-border max-lg:bg-[hsl(var(--card))] max-lg:p-2 max-lg:shadow-md lg:space-y-3" data-pay-bar="">
       {!held && !opening && payWaitsOn && (
-        <p id={`${addressId}-pay-waits`} className="text-ds-14 font-semibold text-foreground max-lg:px-2" data-pay-waits-on="">{payWaitsOn}</p>
+        <p id={`${addressId}-pay-waits`} className="text-ds-14 font-semibold text-foreground max-lg:px-2" data-pay-waits-on="">
+          {payWaitsOn}
+          {tradeFirst && (
+            <>
+              {" "}
+              <button type="button" className="underline underline-offset-2" data-go-to-trade=""
+                onClick={() => document.querySelector(`[data-checkout-seller="${sellerId}"][data-checkout-kind="trade"]`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+                Go to my trade
+              </button>
+            </>
+          )}
+        </p>
       )}
       <Button
         type="button"
         variant="primary"
         aria-describedby={!held && !opening && payWaitsOn ? `${addressId}-pay-waits` : undefined}
         className="w-full px-5 text-ds-16 font-semibold"
-        disabled={held || opening || offered.length === 0 || (delivering && !liveQuote) || (shipping && !shipQuote) || (sellerDelivering && !sdReady) || !meetupReady || !placeReady || !pickupTimeReady || !!split?.cardPartTooSmall}
+        disabled={held || opening || !!tradeFirst || offered.length === 0 || (delivering && !liveQuote) || (shipping && !shipQuote) || (sellerDelivering && !sdReady) || !meetupReady || !placeReady || !pickupTimeReady || !!split?.cardPartTooSmall}
         onClick={async () => {
           setOpening(true);
           setGiftError(null);
@@ -510,11 +529,14 @@ export function CartView() {
         [...bySeller.entries()].map(([key, lines], i) => {
           const sellerId = key.split(":")[0];
           const trade = lines.some(isTradeLine);
+          // F350: the paid card of a seller whose trade is still waiting cannot pay yet (the server links the trade
+          // line into the order and refuses it); it names the trade and points at its card.
+          const tradeWaiting = !trade && tradeSellers.has(sellerId) ? waiting.find((l) => l.seller_id === sellerId && isTradeLine(l))?.item_title ?? null : null;
           const soonest = lines.map((l) => l.checkout_by).sort()[0];
           // The Free section (20261027170717): an all-free group never reaches a payment page.
           const allFree = lines.every((l) => l.price_cents === 0);
           return (
-            <section key={key} className="rounded-2xl border border-border bg-card p-4 space-y-3 scroll-mt-4" aria-label={`Checkout ${i + 1}`} data-checkout-seller={sellerId}>
+            <section key={key} className="rounded-2xl border border-border bg-card p-4 space-y-3 scroll-mt-4" aria-label={`Checkout ${i + 1}`} data-checkout-seller={sellerId} data-checkout-kind={trade ? "trade" : "paid"}>
               {/* Board 161: several items from one seller are one checkout, one pickup and ONE buyer fee on the total. */}
               {/* Said once (lead 2026-10-28: the card read "From one seller · one checkout" then "One checkout, one pickup,
                   one payment."): the heading names the checkout, the line under it (2+ items) what they share. */}
@@ -540,7 +562,7 @@ export function CartView() {
                 <FreeCheckoutForSeller sellerId={sellerId} porchOk={lines.every((l) => l.porch_ok !== false)} ways={waysEveryLineAllows(lines)} onDone={() => void cart.refetch()} trade={lines.every((l) => l.source === "swap")} />
               ) : (
                 <PayWithBundle sellerId={sellerId} lines={lines} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()}
-                  held={settling.settling && (settling.sellerId === null || settling.sellerId === sellerId)} />
+                  held={settling.settling && (settling.sellerId === null || settling.sellerId === sellerId)} tradeFirst={tradeWaiting} />
               )}
             </section>
           );

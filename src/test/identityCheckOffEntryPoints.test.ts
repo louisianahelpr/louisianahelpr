@@ -73,7 +73,7 @@ const NOT_GATED: Readonly<Record<string, string>> = {
 // trust-safety review found two that the first version of this list missed (2026-10-23).
 const COPY = /\bverify (?:your|my|their) (?:id|identity)\b|\bverif(?:y|ies) their id\b|\bphoto id\b|\bid[- ]verified (?:people|helprs?|louisiana|neighbors|members)\b|\bstripe identity\b|\bid check(?:ed)?\b|\bfinish your id check\b|\bverified (?:helprs?|neighbors|members)\b|\bidentity verification\b[^.\n]{0,40}\brequired\b|\bquick identity check\b|\bidentity check through stripe\b/i;
 // L003 (11-09): useIdCheckOnForViewer (src/lib/useIdCheckOnForViewer.ts) reads useIdentityCheckOnStore, plus the open-to-everyone answer for a guest.
-const GATED = /\buseIdentityCheck(?:On|OnStore|Status)\s*\(\s*\)|\buseIdCheckOnForViewer\s*\(\s*\)|\bidentityCheckOn\s*\(\s*\)|\bneedsIdentityCheck\s*\(/;
+const GATED = /\buseIdentityCheck(?:On|OnStore|Status)\s*\(\s*\)|\buseIdCheckOnForViewer\s*\(|\bidentityCheckOn\s*\(\s*\)|\bneedsIdentityCheck\s*\(/;
 
 export function clientCopyInventory(files: Iterable<[string, string]>): { entry: string[]; bad: string[] } {
   const entry: string[] = [];

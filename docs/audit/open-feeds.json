@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-10T04:08Z",
+  "measured_at": "2026-11-10T04:23Z",
   "issues": {
     "readable": true,
     "open": [
@@ -125,7 +125,7 @@
         "number": 4258,
         "title": "nightly-red: prod-errors",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42714481774",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42755430510",
         "runTruncated": false
       },
       {
@@ -139,7 +139,7 @@
         "number": 4281,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42753722345",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42755395810",
         "runTruncated": false
       },
       {
@@ -328,7 +328,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
+        "issue": 4222
       },
       {
         "fingerprint": "f1bfed973a2a75d4ef5bb8ce2a1785df",
@@ -353,14 +353,6 @@
         "status": "open",
         "title": "error: error screen shown: we couldn't load jobs.",
         "issue": null
-      },
-      {
-        "fingerprint": "747845433253c079b579d26e780481bc",
-        "source_kind": "nightly_red",
-        "source": "migration-drift",
-        "status": "open",
-        "title": "🔴 migration drift: # unapplied / # unrecorded",
-        "issue": 4242
       },
       {
         "fingerprint": "8a2e802edbe7bd772cfe6fec1ea6488b",

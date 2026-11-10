@@ -48,7 +48,7 @@ export const LEGAL_PAGE_META = {
   terms: {
     title: "Terms of Service — Helpr",
     description:
-      "Helpr's Terms of Service — eligibility, binding job agreements, escrow, split fees, membership tiers, and tax responsibilities for Louisiana's job marketplace.",
+      "Helpr's Terms of Service — eligibility, binding job agreements, Declutter sales, escrow, fees, and tax responsibilities for Louisiana's local marketplace.",
     canonical: `${SITE_ORIGIN}/legal`,
   },
   community: {
@@ -245,19 +245,19 @@ export function noindexPageMetaFor(pathname) {
  * api/share.ts: it is served as the static index.html, so these values must
  * also be written verbatim in index.html's <title>, description, og:* and
  * twitter:* tags (HTML-escaped). Index.tsx's usePageMeta reads this entry.
- * Q401(b), owner 2026-09-26: the "Hire a Helpr…" copy wins, matching the
- * hero subhead and footer; index.html used to say "Helpr connects you with
+ * Q401(b), owner 2026-09-26: the copy matches the hero subhead (L012, landing audit 11-09: it named Jobs only and
+ * New Orleans/Baton Rouge; since the 11-09 subhead it says buy and sell, and the towns Helpr is busy in); index.html used to say "Helpr connects you with
  * trusted neighbors…" until JavaScript replaced it.
  * Pinned by src/test/publicRoutesServeOwnHead.test.ts.
  */
 export const LANDING_PAGE_META = {
   title: "Louisiana Helpr — Louisiana's local partner.",
   description:
-    "Hire a Helpr or find local work in Louisiana. For everyday jobs, big and small — post or apply in minutes across New Orleans, Baton Rouge & beyond.",
+    "Hire help, find work, or buy and sell with real Louisiana neighbors. Everyday jobs and Declutter in one account, starting in New Iberia.",
   canonical: SITE_ORIGIN,
   ogTitle: "Louisiana Helpr — Louisiana's local partner.",
   ogDescription:
-    "Hire a Helpr or find local work. For everyday jobs, big and small — Louisiana's trusted marketplace.",
+    "Hire help, find work, or buy and sell. One account, real Louisiana neighbors.",
 };
 
 /** Legal tab meta in the same full shape as PUBLIC_PAGE_META's entries. */

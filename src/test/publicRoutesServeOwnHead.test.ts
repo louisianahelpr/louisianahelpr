@@ -53,8 +53,8 @@
 // @mutate src/lib/publicPageMeta.mjs | export const NOINDEX_ROBOTS = "noindex, follow"; | export const NOINDEX_ROBOTS = "index, follow";
 // @mutate src/lib/publicPageMeta.mjs | canonical: `${SITE_ORIGIN}/signup-pending`, | canonical: SITE_ORIGIN,
 // @mutate api/share.ts |     robots: signup.robots,\n |
-// @mutate index.html | <meta property="og:description" content="Hire a Helpr or find local work. | <meta property="og:description" content="Helpr connects you with trusted neighbors.
-// @mutate index.html | <meta name="description" content="Hire a Helpr or find local work in Louisiana. | <meta name="description" content="Helpr connects you with trusted neighbors across Louisiana.
+// @mutate index.html | <meta property="og:description" content="Hire help, find work, or buy and sell. | <meta property="og:description" content="Helpr connects you with trusted neighbors.
+// @mutate index.html | <meta name="description" content="Hire help, find work, or buy and sell with | <meta name="description" content="Helpr connects you with trusted neighbors across Louisiana.
 // @mutate src/pages/info/Index.tsx |     ...LANDING_PAGE_META,\n |     ...LANDING_PAGE_META,\n    description: "Helpr connects you with trusted neighbors.",\n
 // @mutate src/pages/auth/AccountBanned.tsx | usePageMeta(NOINDEX_PAGE_META["/account-banned"]); | usePageMeta({ ...NOINDEX_PAGE_META["/account-banned"], robots: "index, follow" });
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";

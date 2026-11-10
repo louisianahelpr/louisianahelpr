@@ -30,9 +30,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { TwoStepCategoryPicker } from "@/components/ui/TwoStepCategoryPicker";
 import { geocodeAddress } from "@/lib/geocode";
-import { PARISHES } from "@/lib/parishes";
+import { PARISHES, parishByName, parishForCity } from "@/lib/parishes";
 import {
   addShopPhoto,
   closeMyShop,
@@ -45,11 +44,13 @@ import {
   type ShopHour,
   type ShopPhotoKind,
 } from "@/lib/shops/api";
-import { shopsErrorMessage } from "@/lib/shops/errors";
+import { SHOPS_ERROR_COPY, shopsErrorMessage } from "@/lib/shops/errors";
 import { categoryGroups, useShopCategories, WEEKDAYS } from "./shopsUi";
+import { ShopCategoryQuickPick } from "./ShopCategoryQuickPick";
 import ShopItemsSection from "./ShopItemsSection";
 import ShopPickupAddressSection from "./ShopPickupAddressSection";
 import ShopFaqsEditor from "./ShopFaqsEditor";
+import ShopPermitSection from "./ShopPermitSection";
 import ShopOpenIntro from "./ShopOpenIntro";
 
 interface Form {
@@ -67,6 +68,68 @@ interface Form {
 
 const EMPTY_HOURS = (): Form["hours"] =>
   Object.fromEntries(WEEKDAYS.map((_, i) => [i, { open: false, opens: "09:00", closes: "17:00" }]));
+/** A new shop starts open Monday to Friday, 9 to 5 (audit 11-10 F6); the owner changes what differs. */
+const NEW_SHOP_HOURS = (): Form["hours"] =>
+  Object.fromEntries(WEEKDAYS.map((_, i) => [i, { open: i >= 1 && i <= 5, opens: "09:00", closes: "17:00" }]));
+
+/**
+ * Audit 11-10 F2: a problem shows in red under its own field and the page scrolls to the first one, never as a toast
+ * that stacks at the bottom over the button. The server's refusal is mapped to its field the same way.
+ */
+type FieldKey = "name" | "category" | "about" | "area" | "offers" | "parishes" | "hours" | "sos";
+const FIELD_ORDER: FieldKey[] = ["name", "category", "about", "area", "offers", "parishes", "hours", "sos"];
+const FIELD_ID: Record<FieldKey, string> = {
+  name: "shop-name", category: "shop-category", about: "shop-about", area: "shop-area", offers: "shop-selling",
+  parishes: "shop-parishes", hours: "shop-hours", sos: "shop-sos",
+};
+const FIELD_OF_CODE: Record<string, FieldKey> = {
+  invalid_name: "name", invalid_category: "category", about_too_long: "about", invalid_area: "area",
+  area_looks_like_address: "area", invalid_location: "area", offers_required: "offers", invalid_parishes: "parishes",
+  invalid_hours: "hours", invalid_sos_number: "sos",
+};
+type FieldErrors = Partial<Record<FieldKey, string>>;
+
+/** The field a server refusal is about (its code as a whole word in the message), or null for a form-wide problem. */
+function fieldOfError(err: unknown): FieldKey | null {
+  const e = err as { message?: unknown; code?: unknown } | null;
+  const msg = typeof e?.message === "string" ? e.message : "";
+  // The contact-leak filter (check_violation) refuses a phone, email or link typed into the shop's words.
+  if (e?.code === "23514" && /contact details/.test(msg)) return "about";
+  for (const [code, field] of Object.entries(FIELD_OF_CODE)) {
+    if (new RegExp(`(^|[^a-z0-9_])${code}($|[^a-z0-9_])`).test(msg)) return field;
+  }
+  return null;
+}
+
+function validate(form: Form): FieldErrors {
+  const out: FieldErrors = {};
+  const name = form.name.trim().length;
+  if (name < 2 || name > 60) out.name = SHOPS_ERROR_COPY.invalid_name;
+  if (!form.category) out.category = SHOPS_ERROR_COPY.invalid_category;
+  if (form.about.length > 2000) out.about = SHOPS_ERROR_COPY.about_too_long;
+  const area = form.areaLabel.trim().length;
+  if (area < 2 || area > 80) out.area = SHOPS_ERROR_COPY.invalid_area;
+  if (!form.offersSelling && !form.offersQuotes) out.offers = SHOPS_ERROR_COPY.offers_required;
+  const sos = form.sosNumber.trim();
+  if (sos && !/^[A-Za-z0-9-]{3,20}$/.test(sos)) out.sos = SHOPS_ERROR_COPY.invalid_sos_number;
+  if (Object.values(form.hours).some((h) => h.open && !(h.opens && h.closes && h.opens < h.closes))) out.hours = SHOPS_ERROR_COPY.invalid_hours;
+  return out;
+}
+
+function FieldError({ field, errors }: { field: FieldKey; errors: FieldErrors }) {
+  const msg = errors[field];
+  if (!msg) return null;
+  return <p id={`${FIELD_ID[field]}-error`} className="text-sm text-destructive-ink" role="alert">{msg}</p>;
+}
+const invalidProps = (field: FieldKey, errors: FieldErrors) =>
+  errors[field] ? { "aria-invalid": true as const, "aria-describedby": `${FIELD_ID[field]}-error` } : {};
+
+function focusField(field: FieldKey) {
+  const el = document.getElementById(FIELD_ID[field]);
+  if (!el) return;
+  el.scrollIntoView?.({ block: "center", behavior: "smooth" });
+  el.focus?.({ preventScroll: true });
+}
 
 const EMPTY: Form = {
   name: "",
@@ -78,7 +141,7 @@ const EMPTY: Form = {
   offersSelling: true,
   offersQuotes: false,
   sosNumber: "",
-  hours: EMPTY_HOURS(),
+  hours: NEW_SHOP_HOURS(),
 };
 
 /**
@@ -126,7 +189,7 @@ export default function ShopEditView() {
   // The shop page's "Add an item" (an owner's empty shop) opens the item editor here.
   const startAdding = useLocation().hash === "#add-item";
   const qc = useQueryClient();
-  const { user } = useCurrentUser();
+  const { user, profile } = useCurrentUser();
   const categories = useShopCategories();
   const myId = useQuery({ queryKey: ["shops", "mine"], queryFn: fetchMyShopId });
   const shop = useQuery({
@@ -139,6 +202,20 @@ export default function ShopEditView() {
   const [confirmClose, setConfirmClose] = useState(false);
   // Shops audit 11-10 F4: "Add an item" is its own screen; the item section names it ("Add an item", then "Edit item").
   const [itemTitle, setItemTitle] = useState("Add an item");
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [showAllParishes, setShowAllParishes] = useState(false);
+  // F6: the optional business number waits behind one tap unless the shop already has one.
+  const [showSos, setShowSos] = useState(false);
+  // A new shop's parish follows its town (or the member's own parish) until the owner picks parishes themselves (F6).
+  const [parishesTouched, setParishesTouched] = useState(false);
+  const homeParish = parishByName((profile as { parish?: string | null } | null)?.parish ?? null)?.name ?? null;
+  useEffect(() => {
+    if (myId.data || myId.isLoading || parishesTouched) return;
+    const fromTown = parishForCity(form.areaLabel)?.name ?? null;
+    const pick = fromTown ?? homeParish;
+    setForm((f) => (pick && !(f.parishes.length === 1 && f.parishes[0] === pick) ? { ...f, parishes: [pick] } : f));
+  }, [form.areaLabel, homeParish, myId.data, myId.isLoading, parishesTouched]);
 
   useEffect(() => {
     if (loaded || !shop.data) return;
@@ -161,7 +238,17 @@ export default function ShopEditView() {
   }, [shop.data, loaded]);
 
   const groups = useMemo(() => categoryGroups(categories.data), [categories.data]);
-  const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const FIELD_OF_FORM_KEY: Partial<Record<keyof Form, FieldKey>> = {
+    name: "name", category: "category", about: "about", areaLabel: "area", offersSelling: "offers", offersQuotes: "offers",
+    parishes: "parishes", hours: "hours", sosNumber: "sos",
+  };
+  const set = <K extends keyof Form>(k: K, v: Form[K]) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    const field = FIELD_OF_FORM_KEY[k];
+    if (field) setErrors((e) => (e[field] ? { ...e, [field]: undefined } : e));
+    if (k === "parishes") setParishesTouched(true);
+    setFormError(null);
+  };
 
   const save = useMutation({
     mutationFn: async () => {
@@ -196,7 +283,17 @@ export default function ShopEditView() {
       void qc.invalidateQueries({ queryKey: ["shops"] });
       navigate(`/shops/${id}`);
     },
-    onError: (err) => toast.error(shopsErrorMessage(err)),
+    onError: (err) => {
+      // F2: beside the field it is about, or under the button; never a toast that stacks over the form.
+      const field = fieldOfError(err);
+      const msg = shopsErrorMessage(err);
+      if (field) {
+        setErrors({ [field]: msg });
+        focusField(field);
+      } else {
+        setFormError(msg);
+      }
+    },
   });
 
   const photo = useMutation({
@@ -222,159 +319,204 @@ export default function ShopEditView() {
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
+    toast.dismiss(); // F2: no stale toast from an earlier try stays on screen
+    setFormError(null);
+    const found = validate(form);
+    setErrors(found);
+    const first = FIELD_ORDER.find((f) => found[f]);
+    if (first) {
+      focusField(first);
+      return;
+    }
     save.mutate();
   };
   const photos = shop.data?.photos ?? [];
   const busy = photo.isPending || unphoto.isPending;
 
   const formEl = (
-    <form className="space-y-5 pb-8" onSubmit={onSubmit} noValidate>
-      {!myId.data && (
-        <ShopOpenIntro />
+  <form className="space-y-5 pb-8" onSubmit={onSubmit} noValidate>
+    {!myId.data && (
+      <ShopOpenIntro />
+    )}
+    <div className="space-y-1.5">
+      <Label htmlFor="shop-name">Shop or business name</Label>
+      <Input id="shop-name" value={form.name} maxLength={60} onChange={(e) => set("name", e.target.value)} required {...invalidProps("name", errors)} />
+      <FieldError field="name" errors={errors} />
+    </div>
+    <div className="space-y-1.5">
+      <Label htmlFor="shop-category">Category</Label>
+      <ShopCategoryQuickPick id="shop-category" value={form.category} onChange={(slug) => set("category", slug)} groups={groups}
+        invalid={!!errors.category} describedBy={errors.category ? "shop-category-error" : undefined} />
+      <FieldError field="category" errors={errors} />
+    </div>
+    <div className="space-y-1.5">
+      <Label htmlFor="shop-about">About</Label>
+      <Textarea id="shop-about" value={form.about} maxLength={2000} rows={5} onChange={(e) => set("about", e.target.value)} {...invalidProps("about", errors)} />
+      <FieldError field="about" errors={errors} />
+      <p className="text-xs text-muted-foreground">No phone numbers, emails or websites: Shops does not allow contact details.</p>
+    </div>
+    <div className="space-y-1.5">
+      <Label htmlFor="shop-area">Town or neighborhood</Label>
+      <Input id="shop-area" value={form.areaLabel} maxLength={80} placeholder="e.g. Broussard" className="placeholder:text-muted-foreground/70"
+        onChange={(e) => set("areaLabel", e.target.value)} required {...invalidProps("area", errors)} />
+      <FieldError field="area" errors={errors} />
+      <p className="text-xs text-muted-foreground">Never your street address. Your pin shows the area, not your house.</p>
+    </div>
+    <div className="flex items-start gap-2">
+      <Checkbox id="shop-storefront" checked={form.storefront} onCheckedChange={(v) => set("storefront", v === true)} />
+      <Label htmlFor="shop-storefront" className="block min-h-11 flex-1 font-normal leading-snug">
+        I have a storefront people can visit (the pin shows its exact place)
+      </Label>
+    </div>
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium">What your shop offers</legend>
+      <div className="flex items-center gap-2">
+        <Checkbox id="shop-selling" checked={form.offersSelling} onCheckedChange={(v) => set("offersSelling", v === true)} />
+        <Label htmlFor="shop-selling" className="flex min-h-11 flex-1 items-center font-normal">Selling things I make or have</Label>
+      </div>
+      <div className="flex items-center gap-2">
+        <Checkbox id="shop-quotes" checked={form.offersQuotes} onCheckedChange={(v) => set("offersQuotes", v === true)} />
+        <Label htmlFor="shop-quotes" className="flex min-h-11 flex-1 items-center font-normal">Quotes for work</Label>
+      </div>
+      <FieldError field="offers" errors={errors} />
+    </fieldset>
+    <fieldset id="shop-parishes" tabIndex={-1} className="space-y-2" {...invalidProps("parishes", errors)}>
+      <legend className="text-sm font-medium">Parishes you serve</legend>
+      {form.parishes.length > 0 ? (
+        <ul className="flex flex-wrap gap-2" aria-label="Parishes picked">
+          {form.parishes.map((name) => (
+            <li key={name} className="inline-flex items-center gap-1 rounded-full border border-border bg-card pl-3 text-sm">
+              {name}
+              <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground"
+                aria-label={`Remove ${name}`} onClick={() => set("parishes", form.parishes.filter((x) => x !== name))}>×</button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">None picked yet. Type your town above and its parish is picked for you.</p>
       )}
-      <div className="space-y-1.5">
-        <Label htmlFor="shop-name">Shop or business name</Label>
-        <Input id="shop-name" value={form.name} maxLength={60} onChange={(e) => set("name", e.target.value)} required />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="shop-category">Category</Label>
-        <TwoStepCategoryPicker id="shop-category" value={form.category} onChange={(slug) => set("category", slug)} groups={groups} />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="shop-about">About</Label>
-        <Textarea id="shop-about" value={form.about} maxLength={2000} rows={5} onChange={(e) => set("about", e.target.value)} />
-        <p className="text-xs text-muted-foreground">No phone numbers, emails or websites: Shops does not allow contact details.</p>
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="shop-area">Town or neighborhood</Label>
-        <Input id="shop-area" value={form.areaLabel} maxLength={80} placeholder="Broussard" onChange={(e) => set("areaLabel", e.target.value)} required />
-        <p className="text-xs text-muted-foreground">Never your street address. Your pin shows the area, not your house.</p>
-      </div>
-      <div className="flex items-start gap-2">
-        <Checkbox id="shop-storefront" checked={form.storefront} onCheckedChange={(v) => set("storefront", v === true)} />
-        <Label htmlFor="shop-storefront" className="block min-h-11 flex-1 font-normal leading-snug">
-          I have a storefront people can visit (the pin shows its exact place)
-        </Label>
-      </div>
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">What your shop offers</legend>
-        <div className="flex items-center gap-2">
-          <Checkbox id="shop-selling" checked={form.offersSelling} onCheckedChange={(v) => set("offersSelling", v === true)} />
-          <Label htmlFor="shop-selling" className="flex min-h-11 flex-1 items-center font-normal">Selling things I make or have</Label>
-        </div>
-        <div className="flex items-center gap-2">
-          <Checkbox id="shop-quotes" checked={form.offersQuotes} onCheckedChange={(v) => set("offersQuotes", v === true)} />
-          <Label htmlFor="shop-quotes" className="flex min-h-11 flex-1 items-center font-normal">Quotes for work</Label>
-        </div>
-      </fieldset>
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">Parishes you serve</legend>
-        <div className="max-h-48 overflow-y-auto rounded-xl border border-border p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {[...PARISHES].sort((a, b) => a.name.localeCompare(b.name)).map((p) => {
-            const id = `parish-${p.slug}`;
-            const on = form.parishes.includes(p.name);
-            return (
-              <div key={p.slug} className="flex items-center gap-2 min-w-0">
-                <Checkbox
-                  id={id}
-                  checked={on}
-                  onCheckedChange={(v) => set("parishes", v === true ? [...form.parishes, p.name] : form.parishes.filter((x) => x !== p.name))}
-                />
-                <Label htmlFor={id} className="block min-h-11 min-w-0 flex-1 truncate py-3 font-normal">{p.name}</Label>
-              </div>
-            );
-          })}
-        </div>
-      </fieldset>
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">Open days and hours</legend>
-        {WEEKDAYS.map((day, i) => {
-          const h = form.hours[i];
+      <Button type="button" variant="outline" size="sm" aria-expanded={showAllParishes} onClick={() => setShowAllParishes((v) => !v)}>
+        {showAllParishes ? "Done adding parishes" : "Add other parishes"}
+      </Button>
+      <FieldError field="parishes" errors={errors} />
+      {showAllParishes && (
+      <div className="max-h-48 overflow-y-auto rounded-xl border border-border p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {[...PARISHES].sort((a, b) => a.name.localeCompare(b.name)).map((p) => {
+          const id = `parish-${p.slug}`;
+          const on = form.parishes.includes(p.name);
           return (
-            <div key={day} className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 w-32">
-                <Checkbox
-                  id={`open-${i}`}
-                  checked={h.open}
-                  onCheckedChange={(v) => set("hours", { ...form.hours, [i]: { ...h, open: v === true } })}
-                />
-                <Label htmlFor={`open-${i}`} className="flex min-h-11 flex-1 items-center font-normal">{day}</Label>
-              </div>
-              {h.open && (
-                <>
-                  <Input
-                    type="time"
-                    aria-label={`${day} opens`}
-                    className="w-32 min-w-0"
-                    value={h.opens}
-                    onChange={(e) => set("hours", { ...form.hours, [i]: { ...h, opens: e.target.value } })}
-                  />
-                  <span className="text-sm text-muted-foreground">to</span>
-                  <Input
-                    type="time"
-                    aria-label={`${day} closes`}
-                    className="w-32 min-w-0"
-                    value={h.closes}
-                    onChange={(e) => set("hours", { ...form.hours, [i]: { ...h, closes: e.target.value } })}
-                  />
-                </>
-              )}
+            <div key={p.slug} className="flex items-center gap-2 min-w-0">
+              <Checkbox
+                id={id}
+                checked={on}
+                onCheckedChange={(v) => set("parishes", v === true ? [...form.parishes, p.name] : form.parishes.filter((x) => x !== p.name))}
+              />
+              <Label htmlFor={id} className="block min-h-11 min-w-0 flex-1 truncate py-3 font-normal">{p.name}</Label>
             </div>
           );
         })}
-      </fieldset>
+      </div>
+      )}
+    </fieldset>
+    <fieldset id="shop-hours" tabIndex={-1} className="space-y-2" {...invalidProps("hours", errors)}>
+      <legend className="text-sm font-medium">Open days and hours</legend>
+      {!myId.data && <p className="text-xs text-muted-foreground">Set to Monday to Friday, 9 to 5. Change any day that's different.</p>}
+      {WEEKDAYS.map((day, i) => {
+        const h = form.hours[i];
+        return (
+          <div key={day} className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 w-32">
+              <Checkbox
+                id={`open-${i}`}
+                checked={h.open}
+                onCheckedChange={(v) => set("hours", { ...form.hours, [i]: { ...h, open: v === true } })}
+              />
+              <Label htmlFor={`open-${i}`} className="flex min-h-11 flex-1 items-center font-normal">{day}</Label>
+            </div>
+            {h.open && (
+              <>
+                <Input
+                  type="time"
+                  aria-label={`${day} opens`}
+                  className="w-32 min-w-0"
+                  value={h.opens}
+                  onChange={(e) => set("hours", { ...form.hours, [i]: { ...h, opens: e.target.value } })}
+                />
+                <span className="text-sm text-muted-foreground">to</span>
+                <Input
+                  type="time"
+                  aria-label={`${day} closes`}
+                  className="w-32 min-w-0"
+                  value={h.closes}
+                  onChange={(e) => set("hours", { ...form.hours, [i]: { ...h, closes: e.target.value } })}
+                />
+              </>
+            )}
+          </div>
+        );
+      })}
+      <FieldError field="hours" errors={errors} />
+    </fieldset>
+    {showSos || form.sosNumber.trim() !== "" ? (
       <div className="space-y-1.5">
         <Label htmlFor="shop-sos">Louisiana Secretary of State number (optional)</Label>
-        <Input id="shop-sos" value={form.sosNumber} maxLength={20} onChange={(e) => set("sosNumber", e.target.value)} />
+        <Input id="shop-sos" value={form.sosNumber} maxLength={20} onChange={(e) => set("sosNumber", e.target.value)} {...invalidProps("sos", errors)} />
+        <FieldError field="sos" errors={errors} />
         <p className="text-xs text-muted-foreground">Once we check it, your shop shows "Registered business". A shop without one is still welcome.</p>
       </div>
-      {myId.data && (
-        <section className="space-y-2" aria-labelledby="shop-edit-photos">
-          <h2 id="shop-edit-photos" className="text-sm font-medium">Logo, cover and photos</h2>
-          <div className="flex flex-wrap gap-2">
-            <PhotoPicker label="Choose logo" kind="logo" busy={busy} onPick={(kind, file) => photo.mutate({ kind, file })} />
-            <PhotoPicker label="Choose cover" kind="cover" busy={busy} onPick={(kind, file) => photo.mutate({ kind, file })} />
-            <PhotoPicker label="Add a photo" kind="gallery" busy={busy} onPick={(kind, file) => photo.mutate({ kind, file })} />
-          </div>
-          {photos.length > 0 && (
-            <ul className="grid grid-cols-3 gap-2">
-              {photos.map((p) => (
-                <li key={p.id} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
-                  <img src={shopPhotoUrl(p.storage_path)} alt="" className="h-full w-full object-cover" />
-                  <span className="absolute left-1 top-1 rounded bg-background/90 px-1.5 text-ds-11">
-                    {p.kind === "logo" ? "Logo" : p.kind === "cover" ? "Cover" : "Photo"}
-                  </span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="absolute bottom-1 right-1 px-2 text-xs"
-                    disabled={busy}
-                    onClick={() => unphoto.mutate(p.id)}
-                  >
-                    Remove
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
-      <Button type="submit" className="btn-grad-primary w-full" disabled={save.isPending}>
-        {save.isPending ? "Saving…" : myId.data ? "Save my shop" : "Open my shop"}
+    ) : (
+      <Button type="button" variant="outline" size="sm" className="self-start" aria-expanded={false} onClick={() => setShowSos(true)}>
+        Have a Louisiana business number?
       </Button>
-      {myId.data && (
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          disabled={close.isPending}
-          onClick={() => setConfirmClose(true)}
-        >
-          Close my shop
-        </Button>
-      )}
-    </form>
+    )}
+    {myId.data && (
+      <section className="space-y-2" aria-labelledby="shop-edit-photos">
+        <h2 id="shop-edit-photos" className="text-sm font-medium">Logo, cover and photos</h2>
+        <div className="flex flex-wrap gap-2">
+          <PhotoPicker label="Choose logo" kind="logo" busy={busy} onPick={(kind, file) => photo.mutate({ kind, file })} />
+          <PhotoPicker label="Choose cover" kind="cover" busy={busy} onPick={(kind, file) => photo.mutate({ kind, file })} />
+          <PhotoPicker label="Add a photo" kind="gallery" busy={busy} onPick={(kind, file) => photo.mutate({ kind, file })} />
+        </div>
+        {photos.length > 0 && (
+          <ul className="grid grid-cols-3 gap-2">
+            {photos.map((p) => (
+              <li key={p.id} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
+                <img src={shopPhotoUrl(p.storage_path)} alt="" className="h-full w-full object-cover" />
+                <span className="absolute left-1 top-1 rounded bg-background/90 px-1.5 text-ds-11">
+                  {p.kind === "logo" ? "Logo" : p.kind === "cover" ? "Cover" : "Photo"}
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="absolute bottom-1 right-1 px-2 text-xs"
+                  disabled={busy}
+                  onClick={() => unphoto.mutate(p.id)}
+                >
+                  Remove
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    )}
+    <Button type="submit" className="btn-grad-primary w-full" disabled={save.isPending}>
+      {save.isPending ? "Saving…" : myId.data ? "Save my shop" : "Open my shop"}
+    </Button>
+    {formError && <p className="text-sm text-destructive-ink" role="alert">{formError}</p>}
+    {myId.data && (
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        disabled={close.isPending}
+        onClick={() => setConfirmClose(true)}
+      >
+        Close my shop
+      </Button>
+    )}
+  </form>
   );
 
   if (myId.isLoading || categories.isLoading || (myId.data && shop.isLoading)) return <ShopEditSkeleton>{formEl}</ShopEditSkeleton>;
@@ -395,6 +537,7 @@ export default function ShopEditView() {
     );
   }
 
+
   if (startAdding && myId.data && user?.id) {
     return (
       <AppPage title={itemTitle} backTo="/shops/mine">
@@ -408,6 +551,8 @@ export default function ShopEditView() {
       {formEl}
       {/* The private pickup address (M1b part 2): saves on its own, needed before orders. */}
       {myId.data && <div className="pb-6"><ShopPickupAddressSection /></div>}
+      {/* Permit on file (Q1952): optional, saves on its own; an admin checks it. */}
+      {myId.data && user?.id && <div className="pb-6"><ShopPermitSection userId={user.id} /></div>}
       {/* FAQs (SH12): save on their own, like the pickup address. */}
       {myId.data && <div className="pb-6"><ShopFaqsEditor shopId={myId.data} /></div>}
       {/* Items (slice 2): outside the shop form, each item saves on its own. */}

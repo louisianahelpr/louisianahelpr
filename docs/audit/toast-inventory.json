@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1219,
-    "files": 351,
-    "rendering": 1138,
-    "suppressedByPolicy": 81,
+    "calls": 1224,
+    "files": 353,
+    "rendering": 1140,
+    "suppressedByPolicy": 84,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 10,
       "successToast": 2,
       "toast": 239,
-      "toast.error": 820,
+      "toast.error": 822,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 87,
+      "toast.success": 90,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
       "literal": 502,
-      "template": 107,
-      "dynamic": 664,
+      "template": 108,
+      "dynamic": 668,
       "jsx": 0
     }
   },
@@ -2359,7 +2359,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 162,
+      "line": 163,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -2369,7 +2369,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 166,
+      "line": 167,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2379,7 +2379,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 221,
+      "line": 222,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -2389,7 +2389,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 224,
+      "line": 225,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2704,6 +2704,76 @@
       "title": {
         "form": "dynamic",
         "text": "mutationErrorMessage(err, \"Couldn't apply that restriction — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/ShopsPaperworkCard.tsx",
+      "line": 63,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "status === \"verified\" ? \"Permit checked. The shop shows Permit on file.\" : \"Permit turned down. The shop was told why.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Permit checked. The shop shows Permit on file."
+          },
+          {
+            "form": "literal",
+            "text": "Permit turned down. The shop was told why."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/ShopsPaperworkCard.tsx",
+      "line": 68,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/ShopsPaperworkCard.tsx",
+      "line": 73,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "found ? \"Marked as a registered business.\" : \"Marked as not found.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Marked as a registered business."
+          },
+          {
+            "form": "literal",
+            "text": "Marked as not found."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/ShopsPaperworkCard.tsx",
+      "line": 76,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/ShopsPaperworkCard.tsx",
+      "line": 82,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "We couldn't open the document. ${shopsErrorMessage(err)}"
       },
       "renders": true
     },
@@ -11062,7 +11132,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 194,
+      "line": 281,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11072,7 +11142,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 195,
+      "line": 282,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -11082,7 +11152,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 199,
+      "line": 302,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11092,7 +11162,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 205,
+      "line": 307,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11102,17 +11172,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 210,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "shopsErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/shops/ShopEditView.tsx",
-      "line": 216,
+      "line": 313,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11122,7 +11182,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 220,
+      "line": 317,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11242,7 +11302,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 138,
+      "line": 166,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -11272,7 +11332,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 143,
+      "line": 179,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11282,7 +11342,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 152,
+      "line": 190,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11292,7 +11352,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 155,
+      "line": 193,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11302,7 +11362,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 164,
+      "line": 202,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11312,7 +11372,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 170,
+      "line": 208,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11322,7 +11382,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 175,
+      "line": 213,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11332,7 +11392,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 185,
+      "line": 223,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -11352,7 +11412,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 191,
+      "line": 229,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11362,7 +11422,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 212,
+      "line": 250,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -11382,7 +11442,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 217,
+      "line": 255,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11661,8 +11721,18 @@
       "renders": true
     },
     {
+      "file": "src/components/shops/ShopPermitSection.tsx",
+      "line": 43,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Permit sent. We'll check it soon."
+      },
+      "renders": false
+    },
+    {
       "file": "src/components/shops/ShopPickupAddressSection.tsx",
-      "line": 54,
+      "line": 58,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11672,7 +11742,7 @@
     },
     {
       "file": "src/components/shops/ShopPickupAddressSection.tsx",
-      "line": 60,
+      "line": 65,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -11682,7 +11752,7 @@
     },
     {
       "file": "src/components/shops/ShopPickupAddressSection.tsx",
-      "line": 63,
+      "line": 68,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

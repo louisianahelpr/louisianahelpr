@@ -52,6 +52,7 @@ export function ConversationList({
   sectionTabs,
   sectionEmpty = null,
   mainEmptyBody = mainInboxEmptyBody(false),
+  orderTalks = null,
 }: ConversationListProps) {
   const {
     navigate, isWebDesktop, searchOnOwnLine, showAllConvos, setShowAllConvos, selectMode, selectedKeys,
@@ -470,6 +471,7 @@ export function ConversationList({
 
   const listBody = (
     <ConversationListBody
+      orderTalks={orderTalks}
       loading={loading}
       loadError={loadError}
       conversations={conversations}

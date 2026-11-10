@@ -1,4 +1,5 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
+import type { OrderTalkInbox } from "./DeclutterOrderTalkInbox";
 import type { SectionEmpty } from "./SectionInboxEmpty";
 import type { Conversation } from "./types";
 
@@ -61,4 +62,6 @@ export interface ConversationListProps {
   sectionEmpty?: SectionEmpty | null;
   /** The All / Unread empty inbox's line (messageSections.mainInboxEmptyBody): names Declutter when it is on. */
   mainEmptyBody?: string;
+  /** F420: the member's Declutter order chats, drawn as rows among the threads (newest first); null/absent = none here. */
+  orderTalks?: OrderTalkInbox | null;
 }

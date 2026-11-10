@@ -15,7 +15,8 @@ export function PasswordRuleList({ password }: { password: string }) {
   const hint = t("signup.passwordHint", { n: PASSWORD_MIN_LENGTH });
   return (
     <div data-password-rules="" className="space-y-1">
-      <p className="text-ds-11 text-muted-foreground">{hint}</p>
+      {/* F219 (audit 11-10): the rules were written twice, a sentence and this checklist; the sentence stays as the
+          list's label for a screen reader and the checklist is the one visible copy. */}
       <ul className="flex flex-wrap gap-x-3 gap-y-1" aria-label={hint}>
         {PASSWORD_RULES.map((r) => {
           const met = r.test(password);

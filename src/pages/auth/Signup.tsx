@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { removeShellOncePainted } from "@/components/landing/landingShell";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { contactLeakFieldError } from "@/lib/contactLeakField";
@@ -30,6 +30,7 @@ import {
   passwordProblem,
   isAlreadyRegistered,
   noteSignupRedirect,
+  signupStepFromHistory,
 } from "./signup/signupHelpers";
 import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
@@ -58,6 +59,24 @@ const Signup = () => {
     const n = Number(new URLSearchParams(window.location.search).get("step"));
     return n === 2 ? 2 : 1;
   });
+  // F260n (audit 11-10): step 2 is its own history entry, so Back returns to step 1 (fields kept in state, not
+  // retyped) and Forward returns to step 2. The entry's state says which step; popstate lands here through
+  // location.key. The first render keeps the dev-only ?step seed above.
+  const routerLocation = useLocation();
+  const firstLocationKey = useRef(routerLocation.key);
+  useEffect(() => {
+    if (routerLocation.key === firstLocationKey.current) return;
+    setStep(signupStepFromHistory(routerLocation.state));
+  }, [routerLocation.key, routerLocation.state]);
+  const goToStep2 = () => {
+    navigate({ pathname: routerLocation.pathname, search: routerLocation.search }, { state: { ...((routerLocation.state as object | null) ?? {}), step: 2 } });
+    setStep(2);
+  };
+  const backToStep1 = () => {
+    setStep2Errors({});
+    if (signupStepFromHistory(routerLocation.state) === 2) navigate(-1);
+    else setStep(1);
+  };
   const [loading, setLoading] = useState(false);
   // OA-002: one tap, one signUp(). `loading` is only set inside
   // createAccountAndFinish, AFTER the awaited validateAboutYouStep, so a second
@@ -436,8 +455,7 @@ const Signup = () => {
       // under the password.
       if (isWeakPasswordError(err)) {
         setServerPasswordError(weakPasswordWords(err));
-        setStep2Errors({});
-        setStep(1);
+        backToStep1();
         return;
       }
       const authCopy = recognizedAuthError((err as { message?: string } | null | undefined)?.message);
@@ -494,7 +512,7 @@ const Signup = () => {
       noWebChrome
       // Board 55: step 1 sits in the Log in card's width with its heading inside the card and no
       // back (the H links home); step 2 keeps the row title and walks the wizard back.
-      {...(step === 1 ? { hideBack: true } : { backOnClick: () => { setStep2Errors({}); setStep(1); } })}
+      {...(step === 1 ? { hideBack: true } : { backOnClick: backToStep1 })}
       title={step === 1 ? undefined : stepHeading.title}
     >
       {/* F024 (owner UI audit 11-09): at 1440x900 the card sat 24px under the top edge of the window; 48px from lg up
@@ -564,7 +582,7 @@ const Signup = () => {
               if (!(await validateAccountStep())) return;
               track(AhaEvent.SignupStepCompleted, { step: 1, ...ppoTrackingProps() });
               captureLead(email); // ONE "finish signing up" reminder (owner 2026-10-09); never blocks
-              setStep(2);
+              goToStep2();
             }}
           />
         )}

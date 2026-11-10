@@ -13,7 +13,7 @@ import { resetConnectivityForTests } from "@/lib/connectivity";
 // for. The rule itself is tested with the real hook
 // (src/hooks/usePayoutSetupHireAllowed.test.tsx unmocks it) and on the server
 // (src/test/edge/stripeConnectNeedsHire.test.ts, payoutAfterHire.pglite.mjs).
-vi.mock("@/hooks/usePayoutSetupHireAllowed", () => ({ usePayoutSetupHireAllowed: () => true }));
+vi.mock("@/hooks/usePayoutSetupHireAllowed", () => ({ usePayoutSetupHireAllowed: () => true, usePayoutSetupHireStatus: () => ({ allowed: true, settled: true }) }));
 
 // Unmount every render after every test, in every file. RTL only registers its
 // own auto-cleanup when a test file imports it statically; a file that loads it

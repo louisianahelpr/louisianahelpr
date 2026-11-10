@@ -9,6 +9,20 @@
 import { useNavigate } from "react-router-dom";
 import { usePayoutSetupBlock } from "@/hooks/usePayoutSetupPaused";
 import { useStripeConnectStatus } from "@/hooks/useStripeConnectStatus";
+import { useFeatureStatus } from "@/hooks/useFeature";
+import { usePayoutSetupHireStatus } from "@/hooks/usePayoutSetupHireAllowed";
+
+/**
+ * Whether this row knows if setup is offered (the payout_setup switch, and when it is on the hire answer).
+ * ShopDashboardView keeps its loading placeholder until then (one loading gate), so the row (or its held-open
+ * box) is there from the first paint and never pushes the orders down (Builder 1 2026-11-10: a tester's
+ * "Finish setting up" popped in 142px at 375, CLS 0.137). Only fast database reads; never the Stripe check.
+ */
+export function useShopPayoutRowSettled(): boolean {
+  const sw = useFeatureStatus("payout_setup");
+  const hire = usePayoutSetupHireStatus();
+  return sw.settled && (!sw.on || hire.settled);
+}
 import { PayoutStatusRow } from "@/components/profile/profileLanding/PayoutStatusRow";
 
 export default function ShopPayoutRow() {

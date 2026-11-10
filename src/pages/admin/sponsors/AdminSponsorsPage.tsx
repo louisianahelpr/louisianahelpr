@@ -11,11 +11,11 @@
  *   Add        add a sponsor by hand
  *   Content    reach stats, founder photo, per-day cap, testimonials (real only)
  */
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import PageHeader from "@/components/PageHeader";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { NativeSelect } from "@/components/ui/select";
@@ -419,6 +419,7 @@ function AddSponsorView({ run, onDone }: { run: RunAsync; onDone: () => void }) 
 }
 
 function ContentView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
+  const photoInput = useRef<HTMLInputElement>(null);
   const s = data.settings;
   const num = (v: number | null) => (v == null ? "" : String(v));
   const [form, setForm] = useState({ max: num(s.max_per_day), g: num(s.group_members), p: num(s.page_followers), m: num(s.monthly_visitors) });
@@ -448,8 +449,8 @@ function ContentView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
       <Panel title="Founder photo">
         <p className="mb-2 text-sm text-muted-foreground">{s.founder_photo_path ? "A photo is set." : "No photo yet: the page shows no photo frame until you add one."}</p>
         <HiddenFileInput
-          peer
-          id="sponsor-founder-photo"
+          ref={photoInput}
+          aria-label="Founder photo file"
           accept="image/png,image/jpeg"
           onChange={(e) => {
             const file = e.target.files?.[0];
@@ -459,9 +460,9 @@ function ContentView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
             void run((b) => b.uploadFounderPhoto(file));
           }}
         />
-        <label htmlFor="sponsor-founder-photo" className={`${buttonVariants({ variant: "outline", size: "sm" })} cursor-pointer peer-focus-visible:ring-2 peer-focus-visible:ring-ring`}>
+        <Button size="sm" variant="outline" onClick={() => photoInput.current?.click()}>
           {s.founder_photo_path ? "Change founder photo" : "Upload founder photo"}
-        </label>
+        </Button>
       </Panel>
       <Panel title="Testimonials (real ones only)">
         <p className="mb-3 text-xs text-muted-foreground">Add only words a real sponsor actually sent you, with their OK. The section stays hidden until one is approved.</p>

@@ -25,10 +25,10 @@ describe("a cancelled job marked done sits in the poster's Done list", () => {
     expect(bucketPostedJob(cancelled)).toBe("cancelled");
   });
 
-  it("its line reads just Done: no cancel reason, no refund, no 'outside the app'", () => {
+  it("its line reads just Done and the day it was filed (F106, 2026-11-09): no cancel reason, no refund, no 'outside the app'", () => {
     const line = posterStatusLine(marked as unknown as Job, 0);
     expect(line.id).toBe("done_marked");
-    expect(line.detail).toBe("Done");
+    expect(line.detail).toBe("Done · Oct 25"); // 21:00Z Oct 25 is 4 PM Oct 25 in Louisiana
     expect(line.suffix).toBeNull();
     expect(`${line.eyebrow} ${line.detail}`).not.toMatch(/cancel|refund|outside|app/i);
   });

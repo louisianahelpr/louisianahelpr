@@ -684,12 +684,30 @@ export function posterStatusLine(
   return {
     id,
     eyebrow: expired ? EXPIRED_WORD : copy.eyebrow ?? BUCKET_LABEL[bucket],
-    detail: expired ? EXPIRED_LISTING_DETAIL : named ?? (atTheJob ? "Your Helpr is at the job" : copy.detail),
+    detail: expired ? EXPIRED_LISTING_DETAIL : named ?? (atTheJob ? "Your Helpr is at the job" : withDoneDate(copy.detail, id, job)),
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_arrival",
     suffix: id === "cancelled" ? cancelledSuffix(job, progress?.refund) : null,
     deadline: posterDeadline(id, job, instantRelease),
   };
+}
+
+/** The poster's Done lines that carry the day the job was done (F106). */
+const DONE_DATED = new Set<PosterWait>(["done_paid", "done_payout_pending", "done_refunded", "done_marked"]);
+
+/**
+ * F106 (owner UI audit 2026-11-09: "Show 'Done · Oct 24' once"): a poster's Done line names the day it was done,
+ * in Louisiana time, right after "Done": "Done · Oct 24", "Done · Oct 24 · paid and closed". The day is when the
+ * poster filed it under Done (poster_marked_done_at) for a cancelled job, else when the job completed
+ * (completed_at, or poster_completed_at). No stamp: the line is unchanged.
+ */
+export function withDoneDate(detail: string, id: PosterWait, job: Pick<Job, "completed_at" | "poster_completed_at" | "poster_marked_done_at">): string {
+  if (!DONE_DATED.has(id) || !detail.startsWith("Done")) return detail;
+  const at = id === "done_marked" ? job.poster_marked_done_at : job.completed_at ?? job.poster_completed_at;
+  const t = at ? new Date(at) : null;
+  if (!t || Number.isNaN(t.getTime())) return detail;
+  const day = t.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric" });
+  return `Done · ${day}${detail.slice("Done".length)}`;
 }
 
 /** The poster's line for a listing that expired with no Helpr (never "Cancelled"). */

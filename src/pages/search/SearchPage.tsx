@@ -12,6 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useSectionsOpen } from "@/components/landing/useSectionsOpen";
 import { getBlockedUserIds } from "@/lib/userBlocks";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { jobDayLabel } from "@/lib/jobDateWindow";
@@ -228,9 +230,18 @@ export default function SearchPage() {
   const firstPayoutFee = useFirstPayoutFeeDollars();
   // A switch reads false until its answer arrives; "Coming soon" waits for
   // the settled answer so a slow read never says a section is closed.
-  const declutter = useFeatureStatus("declutter");
-  const shops = useFeatureStatus("shops");
-  const homes = useFeatureStatus("rentals");
+  // L001 (landing audit 11-09, High): useFeatureStatus is false for every switch when signed out, so a guest read
+  // "Declutter Coming soon" and got no Declutter results while /declutter is open to everyone. A guest's sections are
+  // the switches open to EVERYONE (features_open_to_everyone, the answer the Declutter guest gate and the landing read);
+  // a member's are their own switches, as before.
+  const { isReady: authReady } = useAuthReady();
+  const guest = authReady && !user;
+  const openToAll = useSectionsOpen(guest);
+  const forViewer = (key: string, member: { on: boolean; settled: boolean }) =>
+    guest ? { on: !!openToAll.open?.has(key), settled: openToAll.settled } : member;
+  const declutter = forViewer("declutter", useFeatureStatus("declutter"));
+  const shops = forViewer("shops", useFeatureStatus("shops"));
+  const homes = forViewer("rentals", useFeatureStatus("rentals"));
   const declutterOn = declutter.on;
   const switchesSettled = declutter.settled && shops.settled && homes.settled;
   const jobs = useJobHits(q, user?.id ?? null);
@@ -324,7 +335,7 @@ export default function SearchPage() {
           />
         )}
 
-        {!q && <SearchStart userId={user?.id ?? null} declutterOn={declutterOn} />}
+        {!q && <SearchStart userId={user?.id ?? null} declutterOn={declutterOn} signedIn={!!user} />}
         {q && failed && (
           <div className="flex items-center justify-between gap-3 px-1" role="alert">
             <p className="font-sans text-ds-13" style={{ color: "hsl(var(--alert-ink))" }}>Search didn't load.</p>
@@ -383,7 +394,7 @@ export default function SearchPage() {
           </Group>
         )}
         {q && section === "jobs" && jobCount > MAX_ROWS && (
-          <Link to={`/jobs?tab=browse&${qs}`} className="block text-center font-sans font-semibold text-ds-13 min-h-[44px] leading-[44px]" style={{ color: "hsl(var(--bark))" }}>
+          <Link to={user ? `/jobs?tab=browse&${qs}` : `/browse?${qs}`} className="block text-center font-sans font-semibold text-ds-13 min-h-[44px] leading-[44px]" style={{ color: "hsl(var(--bark))" }}>
             See all {jobCount} in Jobs
           </Link>
         )}

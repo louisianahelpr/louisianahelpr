@@ -52,8 +52,8 @@ interface SponsorSignupInput {
   facebook: string | null;
   tiktok: string | null;
   prizeDescription: string;
-  /** Whole dollars. */
-  prizeValue: number;
+  /** Whole dollars, or null: the form no longer asks it (owner 11-10). A value that IS sent must still be 1..100000. */
+  prizeValue: number | null;
   shipTo: SponsorShipTo | null;
   notes: string | null;
   days: number[];
@@ -162,11 +162,13 @@ export function validateSponsorSignup(raw: Record<string, unknown>): SponsorVali
   if (email && !errors.email && !EMAIL_RE.test(email)) errors.email = "email";
   const prizeDescription = req("prizeDescription", raw.prizeDescription, SPONSOR_LIMITS.prizeDescription, true);
 
-  let prizeValue = NaN;
+  // Optional (owner 11-10: "I don't like asking the approximate value of the gift"): absent or blank is null.
+  let prizeValue: number | null = null;
   const pv = typeof raw.prizeValue === "number" ? String(raw.prizeValue) : cleanLine(raw.prizeValue, 20);
   const pvClean = pv.replace(/[$,\s]/g, "");
-  if (!pvClean) errors.prizeValue = "required";
-  else if (!/^\d+(\.\d{1,2})?$/.test(pvClean)) errors.prizeValue = "prizeValue";
+  if (!pvClean) {
+    // Not given: stays null (sponsor_signups.prize_value is nullable since 20261110171648).
+  } else if (!/^\d+(\.\d{1,2})?$/.test(pvClean)) errors.prizeValue = "prizeValue";
   else {
     prizeValue = Math.round(Number(pvClean));
     if (prizeValue < 1 || prizeValue > SPONSOR_LIMITS.prizeValueMax) errors.prizeValue = "prizeValue";

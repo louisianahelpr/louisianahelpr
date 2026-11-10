@@ -39,6 +39,8 @@ const SPONSOR_STATUSES: Array<{ key: SponsorStatus; label: string }> = [
 ];
 const statusLabel = (s: SponsorStatus) => SPONSOR_STATUSES.find((x) => x.key === s)?.label ?? s;
 const DAYS = Array.from({ length: 25 }, (_, i) => i + 1);
+/** The prize value, or "—" when the sponsor gave none (no longer asked, owner 11-10). Exported for its test. */
+export const prizeValueLabel = (v: number | null) => (v == null ? "—" : `$${v}`);
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "—");
 
 /** The sign-ups as CSV, every column, one row per sign-up. Exported for its test. */
@@ -166,7 +168,7 @@ function SponsorChip({ s, day, run }: { s: SponsorAdminSignup; day: number | nul
   return (
     <li className="rounded-xl border border-border bg-background p-2 text-sm">
       <div className="font-semibold">{s.brand_name}</div>
-      <div className="text-xs text-muted-foreground">{s.prize_description} · ${s.prize_value}</div>
+      <div className="text-xs text-muted-foreground">{s.prize_description} · {prizeValueLabel(s.prize_value)}</div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <StatusSelect label={`Status for ${s.brand_name}`} value={s.status} onChange={(st) => run((b) => b.setStatus(s.id, st))} />
         <NativeSelect
@@ -270,7 +272,7 @@ function SignupsView({ data, backend, run }: { data: SponsorAdminData; backend: 
                 </td>
                 <td className="px-2 py-2">{s.contact_name}<div className="text-xs"><a href={`mailto:${s.email}`}>{s.email}</a></div>{s.phone ? <div className="text-xs">{s.phone}</div> : null}</td>
                 <td className="px-2 py-2">{s.any_day || s.days.length === 0 ? "Any day" : s.days.map((d) => `Dec ${d}`).join(", ")}</td>
-                <td className="px-2 py-2">{s.prize_description}<div className="text-xs text-muted-foreground">${s.prize_value}</div></td>
+                <td className="px-2 py-2">{s.prize_description}<div className="text-xs text-muted-foreground">{prizeValueLabel(s.prize_value)}</div></td>
                 <td className="px-2 py-2">{s.ship_to === "helpr" ? "Louisiana Helpr" : s.ship_to === "winner" ? "Winner" : "—"}</td>
                 <td className="px-2 py-2"><StatusSelect label={`Status for ${s.brand_name}`} value={s.status} onChange={(st) => run((b) => b.setStatus(s.id, st))} /></td>
                 <td className="px-2 py-2">
@@ -377,13 +379,17 @@ function LinksView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
 function AddSponsorView({ run, onDone }: { run: RunAsync; onDone: () => void }) {
   const [f, setF] = useState({ brand_name: "", contact_name: "", email: "", prize_description: "", prize_value: "", days: "", any_day: false, wall_ok: false });
   const days = cleanDays(f.days.split(/[\s,]+/).filter(Boolean));
-  const valid = f.brand_name.trim() && f.contact_name.trim() && f.email.includes("@") && f.prize_description.trim() && Number(f.prize_value) > 0 && days !== null && (f.any_day || days.length > 0);
+  // Optional: blank is no value; a value given must be a whole-dollar amount the table accepts (1..100000).
+  const valueText = f.prize_value.replace(/[$,\s]/g, "");
+  const valueNum = valueText ? Math.round(Number(valueText)) : null;
+  const valueOk = valueNum === null || (Number.isFinite(valueNum) && valueNum >= 1 && valueNum <= 100_000);
+  const valid = f.brand_name.trim() && f.contact_name.trim() && f.email.includes("@") && f.prize_description.trim() && valueOk && days !== null && (f.any_day || days.length > 0);
   const save = async () => {
     if (!valid || days === null) return;
     await run((b) =>
       b.addSignup({
         brand_name: f.brand_name.trim(), contact_name: f.contact_name.trim(), email: f.email.trim(), phone: null, website: null, instagram: null,
-        facebook: null, tiktok: null, prize_description: f.prize_description.trim(), prize_value: Math.round(Number(f.prize_value)), ship_to: null,
+        facebook: null, tiktok: null, prize_description: f.prize_description.trim(), prize_value: valueNum, ship_to: null,
         notes: null, any_day: f.any_day && days.length === 0, status: "pending", show_on_wall: f.wall_ok, wall_ok: f.wall_ok, days,
       }),
     );
@@ -401,7 +407,7 @@ function AddSponsorView({ run, onDone }: { run: RunAsync; onDone: () => void }) 
         {field("brand_name", "Brand name")}
         {field("contact_name", "Contact name")}
         {field("email", "Email", "email")}
-        {field("prize_value", "Prize value ($)")}
+        {field("prize_value", "Prize value ($, optional)")}
         <label className="flex flex-col gap-1 text-sm font-medium sm:col-span-2">
           Prize
           <Textarea value={f.prize_description} onChange={(e) => setF((x) => ({ ...x, prize_description: e.target.value }))} />

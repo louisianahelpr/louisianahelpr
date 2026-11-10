@@ -32,7 +32,7 @@ function sampleSignups(): SponsorAdminSignup[] {
     { ...base, id: "s1", created_at: "2026-11-09T15:02:00Z", brand_name: "Cajun Candle Co (sample)", contact_name: "Sample Person A", email: "a@example.com", website: "https://example.com", prize_description: "Holiday candle trio", prize_value: 60, ship_to: "winner", status: "confirmed", show_on_wall: true, logo_path: "demo/a.svg", ref_code: "cajun-candle-co", days: [3, 12] },
     { ...base, id: "s2", created_at: "2026-11-09T16:40:00Z", brand_name: "Bayou Bloom Boutique (sample)", contact_name: "Sample Person B", email: "b@example.com", website: null, prize_description: "$50 gift card", prize_value: 50, ship_to: "helpr", status: "pending", show_on_wall: false, days: [3] },
     { ...base, id: "s3", created_at: "2026-11-10T09:15:00Z", brand_name: "Magnolia Coffee (sample)", contact_name: "Sample Person C", email: "c@example.com", website: "https://example.com", prize_description: "Coffee lover's bundle", prize_value: 75, ship_to: "winner", status: "prize_received", show_on_wall: true, logo_path: "demo/c.svg", days: [7] },
-    { ...base, id: "s4", created_at: "2026-11-10T12:00:00Z", brand_name: "Teche Tees (sample)", contact_name: "Sample Person D", email: "d@example.com", website: null, prize_description: "Two holiday t-shirts", prize_value: 40, ship_to: null, status: "pending", show_on_wall: false, any_day: true, wall_ok: false, days: [] },
+    { ...base, id: "s4", created_at: "2026-11-10T12:00:00Z", brand_name: "Teche Tees (sample)", contact_name: "Sample Person D", email: "d@example.com", website: null, prize_description: "Two holiday t-shirts", prize_value: null, ship_to: null, status: "pending", show_on_wall: false, any_day: true, wall_ok: false, days: [] },
   ];
 }
 
@@ -88,7 +88,7 @@ export function createDemoBackend(): SponsorBackend {
       signups.push({
         id: `s${signups.length + 1}`, created_at: new Date().toISOString(), brand_name: payload.brandName, contact_name: payload.contactName,
         email: payload.email, phone: null, website: null, instagram: null, facebook: null, tiktok: null,
-        prize_description: payload.prizeDescription, prize_value: Number(payload.prizeValue) || 0, ship_to: payload.shipTo || null,
+        prize_description: payload.prizeDescription, prize_value: payload.prizeValue ? Number(payload.prizeValue) || null : null, ship_to: payload.shipTo || null,
         notes: null, any_day: payload.anyDay, status: "pending", show_on_wall: payload.showOnWall, wall_ok: payload.showOnWall,
         logo_path: null, ref_code: payload.ref, source: "form", days: payload.days,
       });

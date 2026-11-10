@@ -190,7 +190,6 @@ export const sponsorPage = {
       tiktok: "TikTok (optional)",
       prizeDescription: "Prize description",
       prizeDescriptionHint: "e.g. a candle gift set, a $50 gift card, a holiday bundle",
-      prizeValue: "Approximate prize value ($)",
       logo: "Logo (optional)",
       logoHint: "PNG, JPG or SVG, up to 5 MB",
       // Owner 11-09: every prize ships to Louisiana Helpr; the form shows the address instead of asking.
@@ -206,7 +205,6 @@ export const sponsorPage = {
       required: "This one's required.",
       email: "Enter a valid email address.",
       days: "Pick at least one day, or tick the any-day box.",
-      prizeValue: "Enter a dollar amount, like 50.",
       agree: "Please check this box to continue.",
       logoType: "Logos can be PNG, JPG or SVG.",
       logoSize: "That logo is over 5 MB. Try a smaller file.",

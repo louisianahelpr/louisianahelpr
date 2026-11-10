@@ -1482,6 +1482,9 @@ EXCEPTION WHEN OTHERS THEN
   RETURN total_pushed;
 END;
 $function$;
+-- Cron-only, as in 20260824241000 and 20260927012241: restating the function keeps its grants, said again here so the
+-- migration reads as the whole definition.
+REVOKE ALL ON FUNCTION public.sweep_dayof_confirm_reminders() FROM PUBLIC, anon, authenticated;
 
 -- declutter_notice_type: from 20261110202142_notice_titles_by_outcome_plain_words.sql
 CREATE OR REPLACE FUNCTION public.declutter_notice_type(p_type text, p_title text, p_link text)

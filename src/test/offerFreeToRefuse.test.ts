@@ -119,7 +119,8 @@ describe("an offer is free to refuse (Q1281)", () => {
   it("the strike ladder's own words no longer count declining or ignoring (money review of 250d0d72a, #1)", () => {
     const ladder = now.get("apply_job_denial_consequence")!;
     // Q1848 restated it with the memberships switch on the Elite shield; the ladder's words are unchanged.
-    expect([FIX, "20261021062609_memberships_off_paid_perks.sql"]).toContain(ladder.file);
+    // F503 (20261110202142) restated it with the notice titles by outcome; the ladder's words are asserted below either way.
+    expect([FIX, "20261021062609_memberships_off_paid_perks.sql", "20261110202142_notice_titles_by_outcome_plain_words.sql"]).toContain(ladder.file);
     const literals = [...blankSqlComments(ladder.stmt).matchAll(/'(?:[^']|'')*'/g)].map((m) => m[0]).join(" ");
     expect(literals).toContain("backing out of a job you accepted");
     expect(literals, "a ladder notice still says declining or ignoring is a strike").not.toMatch(/declin|ignor/i);

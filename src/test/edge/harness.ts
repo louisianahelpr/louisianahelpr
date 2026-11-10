@@ -157,6 +157,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/rpcNotDeployed.ts";`,
   );
 
+  // F466/F502: `_shared/strikeRule.ts` has ZERO imports (one wording constant), so
+  // point at the REAL module.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/strikeRule\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/strikeRule.ts";`,
+  );
+
   // Q1918 + Q2148 (2): `_shared/salesTaxAdjustment.ts` imports only
   // `./caughtMessage.ts` (the caller passes its ops-alert poster), so the REAL
   // ledger writer runs against the mocked client.

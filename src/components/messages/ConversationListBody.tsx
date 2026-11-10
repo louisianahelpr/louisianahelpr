@@ -419,7 +419,7 @@ export function ConversationListBody({
           ) : (
             <div className="space-y-2">{sectionEmpty?.Lead && !searchQuery.trim() && !selectMode && <sectionEmpty.Lead empty={null} />}
               {orderTalks && orderTalks.error != null && !selectMode && !isSpecialFilterView && (
-                <OrderTalkLoadError error={orderTalks.error} retry={orderTalks.retry} />
+                <OrderTalkLoadError error={orderTalks.error} retry={orderTalks.reload} />
               )}
               {(() => {
                 const visibleItems = showAllConvos ? items : items.slice(0, CONVO_LIMIT);

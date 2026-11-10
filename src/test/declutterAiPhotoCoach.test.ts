@@ -45,7 +45,7 @@ describe("photo coach", () => {
   });
 
   it("the edge function asks for them in one-item drafts only and returns them", () => {
-    expect(EDGE).toMatch(/required: \[\.\.\.ITEM_SCHEMA\.required, "details", "cover_photo", "photo_tip"\]/);
+    expect(EDGE).toMatch(/required: \[\.\.\.ITEM_SCHEMA\.required, "details", "cover_photo", "photo_tip", "no_item"\]/);
     expect(EDGE).toContain('const ITEM_TOOL = { name: "draft_listing", description: "A draft listing for one used household item", parameters: DRAFT_SCHEMA };');
     // The room scan keeps the plain item schema (no cover pick across a room's items).
     expect(EDGE).toMatch(/items: \{ type: "array", maxItems: ROOM_MAX_ITEMS, items: ITEM_SCHEMA \}/);

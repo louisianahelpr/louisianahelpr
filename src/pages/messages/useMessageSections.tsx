@@ -160,7 +160,7 @@ export function useMessageSections(conversations: Conversation[], allConversatio
   // Declutter chip (ConversationListBody). Not under Unread (the server has no unread flag for them), Jobs, Shops or Homes.
   const orderTalkInbox: OrderTalkInbox | null =
     section === "all" || section === "declutter"
-      ? { rows: orderTalks.data ?? [], pending: orderTalks.isPending, error: orderTalks.isError ? orderTalks.error : null, retry: () => void orderTalks.refetch() }
+      ? { rows: orderTalks.data ?? [], pending: orderTalks.isPending, error: orderTalks.isError ? orderTalks.error : null, reload: () => void orderTalks.refetch() }
       : null;
   return {
     section, strip, conversations: shown, allConversations: shownAll, sectionEmpty: empty, orderTalks: orderTalkInbox,

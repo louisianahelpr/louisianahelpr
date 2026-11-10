@@ -16,7 +16,8 @@ import type { ReactNode } from "react";
 // Payout setup OPEN here (owner pause of 2026-10-23 is the `payout_setup` switch):
 // this file tests the setup flow itself; the paused state is
 // src/components/payouts/payoutSetupPaused.test.tsx.
-vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false, usePayoutSetupBlock: () => null }));
+const block = vi.hoisted(() => ({ value: null as "paused" | "needs_hire" | null }));
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => block.value !== null, usePayoutSetupBlock: () => block.value }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));
@@ -131,6 +132,21 @@ describe("ShopPayoutRow (shop dashboard)", () => {
   });
   // Shops audit 11-10 F12: no empty gray box at the top of the Shop tab while the payout check answers.
   // @mutate src/components/shops/ShopPayoutRow.tsx |   if (payoutPrompt.kind === "reserve") return null; |
+  // A new shop with no sale (setup paused or not owed): not even "We couldn't check your payout account".
+  // @mutate src/components/shops/ShopPayoutRow.tsx |   if (setupBlock !== null) return null; |   if (setupBlock === "needs_hire" && payoutPrompt.kind === "setup") return null;
+  it("nothing while setup is paused or not owed, even when the payout check failed", () => {
+    for (const b of ["paused", "needs_hire"] as const) {
+      block.value = b;
+      connect.prompt = { kind: "error" };
+      const { container, unmount } = renderWith(<ShopPayoutRow />);
+      expect(container.textContent, b).toBe("");
+      unmount();
+    }
+    block.value = null;
+    connect.prompt = { kind: "error" };
+    renderWith(<ShopPayoutRow />);
+    expect(screen.getByText(/We couldn't check your payout account/)).toBeTruthy();
+  });
   it("nothing while the payout check is still answering (no held-open gray box)", () => {
     connect.prompt = { kind: "reserve" };
     const { container } = renderWith(<ShopPayoutRow />);

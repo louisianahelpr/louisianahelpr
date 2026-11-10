@@ -18,7 +18,7 @@
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |                 WHERE so.seller_id = p_user_id AND so.captured_at IS NOT NULL\n |                 WHERE so.seller_id = p_user_id\n
  * @mutate supabase/migrations/20261103085435_declutter_shops_listing_and_hours_not_found_is_404.sql | -- Publish's own checks (authz review 7): a pickup time on file. (No payout | IF public.helper_award_block_reason(v_uid) IS NOT NULL THEN RAISE EXCEPTION 'payout_setup_incomplete'; END IF;\n  -- (No payout
  * @mutate src/components/declutter/DeclutterSellView.tsx |         photoCount >= DECLUTTER_MIN_PHOTOS && ( |         photoCount >= DECLUTTER_MIN_PHOTOS && !payoutBlock && (
- * @mutate src/components/shops/ShopPayoutRow.tsx |   if (setupBlock === "needs_hire" && payoutPrompt.kind === "setup") return null; |
+ * @mutate src/components/shops/ShopPayoutRow.tsx |   if (setupBlock !== null) return null; |
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx |   if (!owed) return null; |   if (false) return null;
  */
 import { describe, expect, it } from "vitest";
@@ -83,6 +83,7 @@ describe("payout setup only when money is owed", () => {
     expect(prompt).toContain('if (payoutPrompt.kind !== "setup") return null;');
     expect(prompt).toContain("const owed = usePayoutSetupHireAllowed();");
     expect(read("src/components/declutter/DeclutterSellView.tsx")).not.toMatch(/DECLUTTER_MIN_PHOTOS && !payoutBlock/);
-    expect(read("src/components/shops/ShopPayoutRow.tsx")).toContain('if (setupBlock === "needs_hire" && payoutPrompt.kind === "setup") return null;');
+    // Builder 1 2026-11-10: nothing at all while setup is not offered (paused or not owed), not even the check's error.
+    expect(read("src/components/shops/ShopPayoutRow.tsx")).toContain("if (setupBlock !== null) return null;");
   });
 });

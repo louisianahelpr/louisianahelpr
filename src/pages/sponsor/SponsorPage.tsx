@@ -27,6 +27,7 @@ import {
   SponsorWall, Testimonials, TrustStrip, WhatWeAsk,
 } from "@/components/sponsor/Sections";
 import "./sponsor.css";
+import { Button } from "@/components/ui/button";
 
 const NotFound = lazy(() => import("@/pages/info/NotFound"));
 
@@ -118,7 +119,7 @@ export default function SponsorPage() {
         <div className="lh25-loading" role="alert">
           <ReportErrorScreen source="SponsorPage" title="We couldn't load this page" />
           <p>We couldn't load this page. Check your connection and try again.</p>
-          <button type="button" className="lh25-btn lh25-btn-primary" onClick={() => void stateQ.refetch()}>Try again</button>
+          <Button type="button" variant="ghost" className="lh25-btn lh25-btn-primary" onClick={() => void stateQ.refetch()}>Try again</Button>
           <p>Or email <a href={`mailto:${C.links.email}`}>{C.links.email}</a>.</p>
         </div>
       </div>

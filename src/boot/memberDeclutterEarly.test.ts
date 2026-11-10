@@ -17,7 +17,7 @@
 // @mutate index.html |         if (document.documentElement.getAttribute("data-lh-app-shell") !== "declutter") return;\n        var root | var root
 // @mutate index.html |             (at < 2 ? row : later).push({ img: img, path: first[it.id] }); |             row.push({ img: img, path: first[it.id] });
 // @mutate index.html | !== "declutter") return;\n        var root = base + "/storage/v1/render/image/public/job-photos/";\n        function url(path, px) {\n          return root + path + "?width=" + px + "&height=" + px + "&resize=cover&quality=55"; | !== "declutter") return;\n        var root = base + "/storage/v1/render/image/public/job-photos/";\n        function url(path, px) {\n          return root + path + "?width=" + px + "&quality=55";
-// @mutate index.html | "card_hold_at_post", "declutter_shipping", "ai_support_answers"]; | "card_hold_at_post", "declutter_shipping"];
+// @mutate index.html | "declutter_shipping", "ai_support_answers", "sponsor_25days"]; | "declutter_shipping", "ai_support_answers"];
 // @mutate src/boot/declutterPrefetch.ts |   if (e.userId !== userId \|\| e.keys !== FIRST_SCREEN_SWITCH_KEYS.join(",")) return null; |
 // @mutate src/boot/declutterPrefetch.ts |   if (!e \|\| typeof e.at !== "number" \|\| now - e.at > EARLY_MAX_AGE_MS) return null; |   if (!e \|\| typeof e.at !== "number") return null;
 // @mutate src/boot/declutterPrefetch.ts |     takeEarlyMemberRead(session.userId) ?? | (null as Promise<unknown> \| null) ??

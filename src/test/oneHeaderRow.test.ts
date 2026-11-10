@@ -49,6 +49,8 @@ const NOT_A_PAGE_HEADER: Record<string, string> = {
   "src/components/dashboard/DashboardBlockedScreen.tsx": "a blocked-account screen in place of the page",
   "src/components/firstRun/FirstRun.tsx": "the first-run welcome moment, full screen",
   "src/components/landing/HeroSection.tsx": "the signed-out landing hero (locked)",
+  "src/components/sponsor/Sections.tsx": "the public 25 Days sponsor page's hero (owner spec 2026-11-09): a stand-alone page brands open from a link, signed out, with its own design and no app header row",
+  "src/pages/sponsor/SponsorRulesPage.tsx": "the 25 Days official rules, part of the same stand-alone public sponsor page (signed out, its own design, no app header row)",
   "src/components/messages/ChatView.tsx": "sr-only conversation heading (the chat's visible title is ChatHeader's name pill)",
   "src/components/profile/SupportInline.tsx": "a 'Message sent' confirmation moment, not the page row",
   "src/components/ui/ScreenHeaderRow.tsx": "toolbar row whose title is sr-only on the desktop website (titleSrOnly); phone headers are AppTopBar",

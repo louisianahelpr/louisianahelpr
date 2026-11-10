@@ -16,6 +16,7 @@ import { hasPlaceholder, placeholderRuns } from "@/lib/sponsor/placeholders";
 import { SponsorChrome } from "./SponsorPage";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import "./sponsor.css";
+import { Button } from "@/components/ui/button";
 
 const NotFound = lazy(() => import("@/pages/info/NotFound"));
 
@@ -61,7 +62,7 @@ export default function SponsorRulesPage() {
         <div className="lh25-loading" role="alert">
           <ReportErrorScreen source="SponsorRulesPage" title="We couldn't load the rules" />
           <p>We couldn't load the rules. Check your connection and try again.</p>
-          <button type="button" className="lh25-btn lh25-btn-primary" onClick={() => void q.refetch()}>Try again</button>
+          <Button type="button" variant="ghost" className="lh25-btn lh25-btn-primary" onClick={() => void q.refetch()}>Try again</Button>
         </div>
       </div>
     );

@@ -33,6 +33,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const state = {
   /** A3-78: the refund request on a handed-over card (null: none). */
   refundRequest: null as Record<string, unknown> | null,
+  /** F393: the seller's own listings (myItemsQuery), by id and status. */
+  mine: [] as { id: string; status: string }[],
   bookings: [] as unknown[],
   payouts: [] as unknown[],
   calls: [] as unknown[][],
@@ -133,6 +135,7 @@ vi.mock("@/lib/declutter/meetup", () => ({
 vi.mock("./useOrderOtherPerson", () => ({ useOrderOtherPerson: () => ({ otherId: "u2", name: "Dana R", avatarUrl: null, first: "Dana", who: "Dana" }) }));
 
 // Board 163: the review sheet has its own test (declutterReviewForm.test.tsx).
+vi.mock("./myItemsQuery", () => ({ myItemsQuery: (userId: string) => ({ queryKey: ["declutter", "mine", userId], queryFn: async () => state.mine }) }));
 vi.mock("./DeclutterReviewForm", () => ({
   DeclutterReviewForm: ({ orderId, side, userId }: { orderId: string; side: string; userId: string }) => <p>Review {orderId} as the {side} ({userId})</p>,
 }));
@@ -2110,6 +2113,27 @@ describe("audit 11-10: cancelled orders and the buyer's 24 hours to check", () =
       expect(screen.queryByRole("button", { name: /^Book/ })).toBeNull();
     });
   }
+
+  // F393 (Medium): the seller's cancelled card said nothing about the listing. It names where it stands, with Relist
+  // when the refund took it down (status 'withdrawn'); it does not claim who cancelled (close_reason is always 'refunded').
+  it("F393: the seller's cancelled card says the listing is back up for sale when the refund put it back to live", async () => {
+    state.mine = [{ id: "i1", status: "live" }];
+    show([line({ order_status: "refunded", my_side: "seller" })]);
+    expect(await screen.findByText(/no payout for it\. Your listing is back up for sale\./)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Relist" })).toBeNull();
+  });
+
+  it("F393: a taken-down listing on the seller's cancelled card offers Relist, and the buyer's card never does", async () => {
+    state.mine = [{ id: "i1", status: "withdrawn" }];
+    const { unmount } = show([line({ order_status: "refunded", my_side: "seller" })]);
+    expect(await screen.findByText(/Your listing is taken down; buyers can't see it\./)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Relist" })).toBeInTheDocument();
+    unmount();
+    show([line({ order_status: "refunded", my_side: "buyer" })]);
+    await screen.findByText(/This order was cancelled and refunded to your card/);
+    expect(screen.queryByRole("button", { name: "Relist" })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/back up for sale|taken down/);
+  });
 
   it("F376: handed over 2 hours ago, the buyer sees until when they can report a problem, and the form opens", async () => {
     const at = new Date(Date.now() - 2 * 3_600_000).toISOString();

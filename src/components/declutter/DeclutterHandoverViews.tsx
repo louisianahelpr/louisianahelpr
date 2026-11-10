@@ -243,7 +243,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           <DeclutterReviewForm orderId={order.orderId} side={order.side} userId={userId} refundPanel={!!refundRequests && items > 0} problemOpen={!!problem} />
         </>
       ) : cancelled ? (
-        <CancelledOrderNote side={order.side} />
+        <CancelledOrderNote side={order.side} userId={userId} itemIds={order.lines.map((l) => l.item_id)} />
       ) : order.handover === "seller_delivery" ? (
         <>
           {/* 20261027153244: the seller brings it at the time the buyer picked. */}

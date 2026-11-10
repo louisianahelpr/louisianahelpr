@@ -312,6 +312,19 @@ describe("DeclutterRefundPanel", () => {
     await waitFor(() => expect(state.answered).toEqual([["r1", "part", 1250, "", []]]));
   });
 
+  // Audit 11-10 F395 (Medium): "then gets $36.06 back" under a $37.45 payment, with nothing explaining the gap.
+  it("F395: the seller's Refund in full says why the amount is less than the payment", async () => {
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: REQ });
+    const sub = await screen.findByText(/then gets \$41\.20 back once you confirm you have it/);
+    expect(sub.textContent).toContain("That's all they paid, less the small part the card network kept for the payment, which it doesn't give back. You get no payout for this sale.");
+  });
+
+  it("F395: with a Helpr delivery kept, the seller's Refund in full names the item price instead", async () => {
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, delivery_kept_cents: 1500, request: REQ });
+    const sub = await screen.findByText(/then gets \$41\.20 back once you confirm you have it/);
+    expect(sub.textContent).toContain("That's what they paid for the item, less the small part the card network kept");
+  });
+
   it("seller: Refund in full sends no amount (the server decides it), even after typing an offer", async () => {
     show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: REQ });
     fireEvent.click(await screen.findByText("Offer part of it"));

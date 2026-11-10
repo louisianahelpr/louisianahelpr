@@ -73,6 +73,13 @@ const FULL_REFUND_WHY = "That's all you paid, less the small part the card netwo
  */
 const FULL_REFUND_WHY_ITEM = "That's what you paid for the item, less the small part the card network kept for the payment, which it doesn't give back.";
 const fullRefundWhy = (deliveryKeptCents: number) => (deliveryKeptCents > 0 ? FULL_REFUND_WHY_ITEM : FULL_REFUND_WHY);
+/**
+ * Audit 11-10 F395: the seller's "Refund in full" named $36.06 under a $37.45 payment with nothing in between. The
+ * seller's side of the same words: the buyer's payment (or their item price, when a Helpr's delivery stays paid) less
+ * the card network's part.
+ */
+const sellerFullRefundWhy = (deliveryKeptCents: number) =>
+  `That's ${deliveryKeptCents > 0 ? "what they paid for the item" : "all they paid"}, less the small part the card network kept for the payment, which it doesn't give back.`;
 
 // Audit 11-10 F367/F381/F395: every refund deadline with its date ("Sat, Nov 14, 12:31 PM", Central), never "Sat 12:31 PM".
 const at = orderWhen;
@@ -399,7 +406,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
             label: "Refund in full",
             sub: neverGotIt
               ? `${cap(who)} gets ${refundDollars(neverGotItCents)} back now. There's nothing to bring back. You get no payout for this sale, and what the card network kept for the payment comes out of your next sale's payout.`
-              : `${cap(who)} gives the item back, then gets ${refundDollars(v.full_refund_cents)} back once you confirm you have it. You get no payout for this sale.`,
+              : `${cap(who)} gives the item back, then gets ${refundDollars(v.full_refund_cents)} back once you confirm you have it. ${sellerFullRefundWhy(v.delivery_kept_cents)} You get no payout for this sale.`,
           },
           { value: "part", label: "Offer part of it", sub: `${cap(who)} keeps the item; the amount comes out of your payout.` },
           { value: "decline", label: "I don't agree", sub: `${cap(who)} can ask Louisiana Helpr to decide.` },

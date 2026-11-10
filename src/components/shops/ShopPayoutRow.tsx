@@ -20,6 +20,10 @@ export default function ShopPayoutRow() {
   // and no payouts has nothing to set up for yet, so the row waits for the
   // first sale. A failed status read still shows (with its Retry).
   if (setupBlock === "needs_hire" && payoutPrompt.kind === "setup") return null;
+  // Shops audit 11-10 F12: no held-open gray box while the payout check answers. Here the row is the rare
+  // case (only once a sale is owed, and setup is paused), so the usual answer is nothing; holding a box open
+  // painted an empty blob at the top of the Shop tab that then collapsed (shift 0.07 at 375).
+  if (payoutPrompt.kind === "reserve") return null;
   return (
     <PayoutStatusRow
       prompt={payoutPrompt}

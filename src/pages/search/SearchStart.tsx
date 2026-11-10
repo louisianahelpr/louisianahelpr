@@ -27,7 +27,7 @@ const START_CHIPS_PER_SECTION = 4;
  * L004 (landing audit 11-09): a guest's Jobs chip went to /jobs?tab=browse (signed-in only), so it hit the login wall.
  * Signed out it opens the public board on that category (/browse?cat=, the address HireTownPage already uses).
  */
-export function jobsCategoryHref(cat: string, signedIn: boolean): string {
+function jobsCategoryHref(cat: string, signedIn: boolean): string {
   return signedIn ? `/jobs?tab=browse&cat=${cat}` : `/browse?cat=${cat}`;
 }
 

@@ -11,7 +11,7 @@ import { ArrowRight } from "lucide-react";
  * The same padding, eyebrow, serif H2, one quiet line under it, the see-all link beside the heading from sm (under the
  * grid on a phone), and the max-w-6xl measure every landing section uses.
  */
-export function LandingSeeAll({ to, label, className }: { to: string; label: string; className: string }) {
+function LandingSeeAll({ to, label, className }: { to: string; label: string; className: string }) {
   return (
     <Link
       to={to}

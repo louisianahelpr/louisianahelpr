@@ -14414,6 +14414,62 @@ export type Database = {
           },
         ]
       }
+      shop_permits: {
+        Row: {
+          created_at: string
+          document_path: string
+          expires_on: string
+          id: string
+          is_seed: boolean
+          kind: string
+          owner_id: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          shop_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          document_path: string
+          expires_on: string
+          id?: string
+          is_seed?: boolean
+          kind: string
+          owner_id: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shop_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          document_path?: string
+          expires_on?: string
+          id?: string
+          is_seed?: boolean
+          kind?: string
+          owner_id?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shop_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_permits_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_photos: {
         Row: {
           created_at: string
@@ -23007,6 +23063,19 @@ export type Database = {
           text_flag_reason: string
           title: string
         }[]
+      }
+      shops_submit_permit: {
+        Args: { p_kind: string; p_document_path: string; p_expires_on: string }
+        Returns: string
+      }
+      shops_my_permits: {
+        Args: never
+        Returns: { kind: string; status: string; expires_on: string; review_note: string | null; sent_at: string; expired: boolean }[]
+      }
+      shops_admin_paperwork: { Args: never; Returns: Json }
+      shops_admin_review_permit: {
+        Args: { p_permit_id: string; p_approve: boolean; p_note: string }
+        Returns: string
       }
       shops_admin_check_registration: {
         Args: { p_shop_id: string; p_verified: boolean }

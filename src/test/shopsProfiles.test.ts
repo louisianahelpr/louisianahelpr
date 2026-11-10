@@ -73,9 +73,16 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
     expect(callable.size).toBeGreaterThan(12);
   });
 
-  it("1. every client-callable shops_* RPC starts with require_feature('shops')", () => {
-    const missing = rpcs.filter((fn) => !/\bBEGIN\s+PERFORM\s+public\.require_feature\('shops'\);/i.test(body(fn)));
+  it("1. every client-callable shops_* RPC starts with require_feature('shops'); the admin RPCs only for a non-admin", () => {
+    const missing = rpcs.filter((fn) => !ADMIN_RPCS.includes(fn) && !/\bBEGIN\s+PERFORM\s+public\.require_feature\('shops'\);/i.test(body(fn)));
     expect(missing).toEqual([]);
+    // Q1952 (lh-authz-rls review of d439419a1 note 2, 20261110195956): an admin skips the switch, so a switch set
+    // back to off never stops an admin hiding a shop; a non-admin still meets require_feature, then not_admin.
+    for (const fn of ADMIN_RPCS) {
+      expect(flat(body(fn)), fn).toMatch(
+        /BEGIN IF v_uid IS NULL OR NOT public\.has_role\(v_uid, 'admin'\) THEN PERFORM public\.require_feature\('shops'\); RAISE EXCEPTION 'not_admin'/,
+      );
+    }
   });
 
   it("2. every write RPC names is_caller_banned(); owner writes run the owner gate", () => {
@@ -102,7 +109,7 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
       "IF EXISTS (SELECT 1 FROM public.shops WHERE owner_id = v_uid AND hidden_at IS NOT NULL) THEN RAISE EXCEPTION 'shop_hidden'",
     );
     for (const fn of ADMIN_RPCS) {
-      expect(flat(body(fn)), fn).toContain("IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin') THEN RAISE EXCEPTION 'not_admin'");
+      expect(flat(body(fn)), fn).toContain("IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin') THEN PERFORM public.require_feature('shops'); RAISE EXCEPTION 'not_admin'");
       expect(flat(body(fn)), fn).toContain("IF v_owner = v_uid THEN RAISE EXCEPTION 'own_shop'");
       expect(body(fn), fn).toContain("INSERT INTO public.admin_audit_log");
     }

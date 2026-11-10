@@ -50,6 +50,7 @@ import { categoryGroups, useShopCategories, WEEKDAYS } from "./shopsUi";
 import ShopItemsSection from "./ShopItemsSection";
 import ShopPickupAddressSection from "./ShopPickupAddressSection";
 import ShopFaqsEditor from "./ShopFaqsEditor";
+import ShopPermitSection from "./ShopPermitSection";
 
 interface Form {
   name: string;
@@ -391,6 +392,8 @@ export default function ShopEditView() {
       </form>
       {/* The private pickup address (M1b part 2): saves on its own, needed before orders. */}
       {myId.data && <div className="pb-6"><ShopPickupAddressSection /></div>}
+      {/* Permit on file (Q1952): optional, saves on its own; an admin checks it. */}
+      {myId.data && user?.id && <div className="pb-6"><ShopPermitSection userId={user.id} /></div>}
       {/* FAQs (SH12): save on their own, like the pickup address. */}
       {myId.data && <div className="pb-6"><ShopFaqsEditor shopId={myId.data} /></div>}
       {/* Items (slice 2): outside the shop form, each item saves on its own. */}

@@ -6,7 +6,7 @@
  * Reads the NEWEST definition of sweep_dayof_confirm_reminders (effectiveDefs), comments blanked.
  *
  * @mutate supabase/migrations/20261110224500_dayof_reminder_names_the_day.sql | starts %s — tap to confirm you''re still on. One tap keeps your spot.', rec.title, v_when), | starts soon — tap to confirm you''re still on. One tap keeps your spot.', rec.title),
- * @mutate supabase/migrations/20261110224500_dayof_reminder_names_the_day.sql | ELSE public.continue_day_label(rec.date_needed, rec.start_time) END; | ELSE to_char(rec.date_needed, 'FMDy, FMMon FMDD') END;
+ * @mutate supabase/migrations/20261110224500_dayof_reminder_names_the_day.sql | ELSE public.continue_day_label(rec.date_needed, rec.start_time) END;\n      FOR v_member IN | ELSE to_char(rec.date_needed, 'FMDy, FMMon FMDD') END;\n      FOR v_member IN
  * @mutate supabase/migrations/20261110224500_dayof_reminder_names_the_day.sql | SELECT j.id, j.title, j.customer_id, j.poster_confirmed_at, j.date_needed, j.start_time, | SELECT j.id, j.title, j.customer_id, j.poster_confirmed_at, j.date_needed, NULL::time AS start_time,
  */
 import { describe, expect, it } from "vitest";

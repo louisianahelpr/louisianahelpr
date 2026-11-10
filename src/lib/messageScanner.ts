@@ -96,14 +96,14 @@ export function scanMessage(content: string): DetectedViolation[] {
 
   const directPay = content.match(DIRECT_PAY_PHRASES);
   if (directPay) {
-    directPay.forEach((m) => violations.push({ type: "direct_pay", match: m.trim(), label: "Off-platform language detected" }));
+    directPay.forEach((m) => violations.push({ type: "direct_pay", match: m.trim(), label: "Asking to pay outside Helpr" }));
   }
 
   // "Call me" / "llámame" only beside a contact detail (Messages audit M3).
   const hasContact = violations.some((v) => v.type === "phone_number" || v.type === "email");
   const callMe = hasContact ? content.match(CALL_ME_PHRASES) : null;
   if (callMe) {
-    callMe.forEach((m) => violations.push({ type: "direct_pay", match: m.trim(), label: "Off-platform language detected" }));
+    callMe.forEach((m) => violations.push({ type: "direct_pay", match: m.trim(), label: "Asking to call" }));
   }
 
   return violations;

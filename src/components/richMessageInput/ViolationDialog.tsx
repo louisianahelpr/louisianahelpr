@@ -124,8 +124,7 @@ export const ViolationDialog = ({
         </DialogBody>
 
         <DialogCallout>
-          Remove or reword the quoted text and send again. Nothing has been sent
-          and no strike has been recorded — the message is still in your box
+          Remove or reword the quoted text and send again. Nothing was sent and nothing counts against you — the message is still in your box
           exactly as you typed it.
         </DialogCallout>
 

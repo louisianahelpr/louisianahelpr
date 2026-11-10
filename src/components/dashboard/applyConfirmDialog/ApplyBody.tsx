@@ -259,7 +259,7 @@ export function ApplyBody({
     if (!online) {
       if (applyMessage && draftKey) safeStorage.setItem(draftKey, applyMessage);
       errorToast("You're offline", {
-        description: "We saved your pitch. Try again once you're back online.",
+        description: "We saved your message. Try again once you're back online.",
         critical: true,
         id: OFFLINE_TOAST_ID,
         onRetry: () => {
@@ -355,7 +355,7 @@ export function ApplyBody({
             style={{ color: "hsl(var(--bark))" }}
           >
             <BookmarkCheck className="w-3.5 h-3.5" />
-            Use saved pitch
+            Use saved message
           </button>
         )}
         {/* ALWAYS RENDERED, never conditional on the field's contents. It used
@@ -385,7 +385,7 @@ export function ApplyBody({
               differsFromTemplate ? "text-muted-foreground" : "text-muted-foreground/90"
             }`}
           >
-            Save as my default pitch
+            Use this message next time
           </span>
         </label>
 
@@ -479,7 +479,7 @@ export function ApplyBody({
           role="status"
         >
           <WifiOff className="w-3.5 h-3.5 shrink-0" />
-          You're offline. We'll hold onto your pitch — apply again once you're back online.
+          You're offline. We'll hold onto your message — apply again once you're back online.
         </p>
       )}
 

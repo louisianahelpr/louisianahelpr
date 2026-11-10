@@ -14,7 +14,7 @@ export function pitchDraftKey(userId: string | null | undefined, jobId: string |
   return userId && jobId ? `helpr_apply_pitch_draft_${userId}_${jobId}` : null;
 }
 
-/** The account's saved default pitch ("Save as my default pitch"). */
+/** The account's saved default pitch ("Use this message next time"). */
 export function pitchTemplateKey(userId: string | null | undefined): string | null {
   return userId ? `helpr_pitch_template_${userId}` : null;
 }

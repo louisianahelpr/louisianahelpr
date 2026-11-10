@@ -1,11 +1,13 @@
 /**
  * Shops audit 11-10 (~/.lh-shots/shops-audit-1110/FINDINGS.md), the open-a-shop form:
+ *  F7  the common categories are one tap; "More" opens the full list.
  *  F8  the town placeholder reads "e.g. Broussard".
  *
+ * @mutate src/components/shops/ShopCategoryQuickPick.tsx | onClick={() => { setMore(false); onChange(c.slug); }} | onClick={() => { setMore(false); }}
  * @mutate src/components/shops/ShopEditView.tsx | placeholder="e.g. Broussard" | placeholder="Broussard"
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -53,7 +55,18 @@ function renderForm() {
 
 beforeEach(() => vi.clearAllMocks());
 
-describe("open-a-shop form (audit 11-10 F8)", () => {
+describe("open-a-shop form (audit 11-10 F7, F8)", () => {
+  it("F7: common categories are one tap; More opens the full list", async () => {
+    renderForm();
+    await screen.findByRole("button", { name: "Open my shop" });
+    const bakery = screen.getByRole("radio", { name: "Bakery and cakes" });
+    fireEvent.click(bakery);
+    expect(bakery.getAttribute("aria-checked")).toBe("true");
+    expect(screen.queryByRole("radio", { name: "Tattoo" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    expect(screen.getByRole("button", { name: /Choose another category/ })).toBeTruthy();
+  });
+
   it("F8: the town placeholder says it is an example", async () => {
     renderForm();
     await screen.findByRole("button", { name: "Open my shop" });

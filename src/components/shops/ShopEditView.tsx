@@ -30,7 +30,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { TwoStepCategoryPicker } from "@/components/ui/TwoStepCategoryPicker";
 import { geocodeAddress } from "@/lib/geocode";
 import { PARISHES } from "@/lib/parishes";
 import {
@@ -47,6 +46,7 @@ import {
 } from "@/lib/shops/api";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { categoryGroups, useShopCategories, WEEKDAYS } from "./shopsUi";
+import { ShopCategoryQuickPick } from "./ShopCategoryQuickPick";
 import ShopItemsSection from "./ShopItemsSection";
 import ShopPickupAddressSection from "./ShopPickupAddressSection";
 import ShopFaqsEditor from "./ShopFaqsEditor";
@@ -253,7 +253,7 @@ export default function ShopEditView() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="shop-category">Category</Label>
-          <TwoStepCategoryPicker id="shop-category" value={form.category} onChange={(slug) => set("category", slug)} groups={groups} />
+          <ShopCategoryQuickPick id="shop-category" value={form.category} onChange={(slug) => set("category", slug)} groups={groups} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="shop-about">About</Label>

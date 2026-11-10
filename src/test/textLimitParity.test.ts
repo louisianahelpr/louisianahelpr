@@ -26,7 +26,7 @@
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | const MAX_MESSAGE_LEN = 140; | const MAX_MESSAGE_LEN = 100;
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | body.occasion.slice(0, 48) | body.occasion.slice(0, 8)
  * @mutate src/pages/profile/giftCards/RecipientPicker.tsx | const MIN_QUERY_LEN = 2; | const MIN_QUERY_LEN = 1;
- * @mutate supabase/migrations/20261109215021_notices_our_team_and_no_strike.sql | OR length(_reason_trimmed) < 15 | OR length(_reason_trimmed) < 25
+ * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql | OR length(_reason_trimmed) < 15 | OR length(_reason_trimmed) < 25
  * @mutate src/components/disputeReasons.ts | export const DISPUTE_DETAILS_MIN = 10; | export const DISPUTE_DETAILS_MIN = 3;
  */
 import { describe, it, expect } from "vitest";

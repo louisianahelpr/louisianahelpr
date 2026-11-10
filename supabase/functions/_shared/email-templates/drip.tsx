@@ -111,7 +111,8 @@ export const WelcomeDripStep1Email = ({
     </ul>
     <BrandButton href={dashboardUrl} label="Open Louisiana Helpr" widthPx={240} />
     <Text className="e-text" style={textStyle}>
-      Reach out any time at admin@louisianahelpr.com.
+      {/* F492 (audit 11-10): a sign-off with the name, the same form as days 14 and 30. */}
+      Reach out any time at admin@louisianahelpr.com. - Louisiana Helpr
     </Text>
   </BaseLayout>
 )
@@ -131,11 +132,13 @@ export const WelcomeDripStep2Email = ({
       Clear out a closet on Declutter
     </Heading>
     <Text className="e-text" style={textStyle}>
-      Hey {greetingName || 'there'}, snap a photo, set a garage-sale price, and buyers pick it up from your
-      porch.
+      {/* F491 (audit 11-10): sellers also deliver or ship (declutter_orders.handover: pickup_home, porch, meetup,
+          delivery, seller_delivery, ship), so "pick it up from your porch" undersold it. */}
+      Hey {greetingName || 'there'}, snap a photo and set a garage-sale price. Buyers pick up, or you deliver. You
+      choose.
     </Text>
     <Text className="e-text" style={textStyle}>
-      Buying works the same way: browse, pay in the app, pick it up.
+      Buying works the same way: browse, pay in the app, then pick it up or have it brought to you.
     </Text>
     <BrandButton href={dashboardUrl} label="Open Declutter" widthPx={200} />
   </BaseLayout>
@@ -200,9 +203,10 @@ export const ReEngagementEmail = ({
       There are new jobs posted in your area — whether you're looking for help or looking to
       earn, now's a great time to check in.
     </Text>
-    <BrandButton href={dashboardUrl} label="See What's New" widthPx={210} />
+    {/* F495 (audit 11-10): the app's own words, no "feed"; the button names where it goes. */}
+    <BrandButton href={dashboardUrl} label="Open Louisiana Helpr" widthPx={240} />
     <Text className="e-text" style={textStyle}>
-      Pull up the feed when you're ready.
+      Open the app when you're ready. - Louisiana Helpr
     </Text>
   </BaseLayout>
 )
@@ -238,10 +242,11 @@ export const SignupLeadReminderEmail = ({
       You started signing up for Louisiana Helpr but didn't finish. It only takes a minute to
       pick up where you left off, then you can post a job or find local work.
     </Text>
-    <BrandButton href={signupUrl} label="Finish Signing Up" widthPx={220} />
+    {/* F474 (audit 11-10): sentence-case button, a sign-off. */}
+    <BrandButton href={signupUrl} label="Finish signing up" widthPx={220} />
     <Text className="e-text" style={textStyle}>
       This is the only reminder we'll send. If you didn't start signing up, you can ignore this
-      email.
+      email. - Louisiana Helpr
     </Text>
   </BaseLayout>
 )

@@ -14,9 +14,9 @@
  * @mutate src/lib/continueDayMissed.ts |   return row.status === "set" && !done && Date.now() >= startMs + CONTINUE_DAY_MISSED_AFTER_HOURS * 3_600_000; |   return row.status === "set" && !done;
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
+import { newestTriggerText } from "./helpers/migrationTriggers";
 import { CONTINUE_DAY_MISSED_AFTER_HOURS, continueDayMissedOpen } from "@/lib/continueDayMissed";
 import { CONTINUE_DAY_HOLD_GRACE_HOURS } from "../../supabase/functions/_shared/continueDay";
 import { RPC_ERROR_COPY } from "@/lib/lifecycleErrorCopy";
@@ -42,10 +42,10 @@ describe("a missed continue day goes to the admin queue (owner #4, 11-08)", () =
     expect(rpc).not.toMatch(/UPDATE public\.jobs/);
   });
   it("the report closes itself when the admin acts, and blocks a new day meanwhile", () => {
-    const fix = flat(readFileSync("supabase/migrations/20261108214605_continue_day_missed_return.sql", "utf8"));
-    expect(fix).toContain("CREATE TRIGGER trg_resolve_missed_return_on_review AFTER UPDATE OF resolved_at ON public.job_completion_nudges");
-    expect(fix).toContain("CREATE TRIGGER trg_resolve_missed_return_on_job_change AFTER UPDATE OF status ON public.jobs");
-    expect(fix).toContain("CREATE TRIGGER trg_refuse_continue_day_while_missed_open BEFORE INSERT ON public.job_continue_days");
+    const trg = (name: string) => flat(newestTriggerText("supabase/migrations", name));
+    expect(trg("trg_resolve_missed_return_on_review")).toMatch(/^AFTER UPDATE OF resolved_at ON public\.job_completion_nudges/);
+    expect(trg("trg_resolve_missed_return_on_job_change")).toMatch(/^AFTER UPDATE OF status ON public\.jobs/);
+    expect(trg("trg_refuse_continue_day_while_missed_open")).toMatch(/^BEFORE INSERT ON public\.job_continue_days/);
   });
   it("the lapse instant is the edge hold's (start + CONTINUE_DAY_HOLD_GRACE_HOURS) and the app's", () => {
     expect(CONTINUE_DAY_HOLD_GRACE_HOURS).toBe(6);

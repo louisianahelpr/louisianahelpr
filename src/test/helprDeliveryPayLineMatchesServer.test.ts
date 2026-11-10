@@ -7,7 +7,7 @@
  *     open problem holds it, and the toast's held branch says so.
  * If the server's timing changes, this fails and the toast must change with it.
  *
- * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql | WHERE x.status = 'delivered' AND x.delivered_at + interval '24 hours' <= now() | WHERE x.status = 'delivered' AND x.delivered_at + interval '48 hours' <= now()
+ * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql | WHERE x.status = 'delivered' AND x.delivered_at + interval '24 hours' <= now() | WHERE x.status = 'delivered' AND x.delivered_at + interval '48 hours' <= now()
  * @mutate src/components/declutter/useTaskSteps.ts | You're paid when the buyer confirms, or after 24 hours. | You're paid when the buyer confirms, or after 48 hours.
  * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |           CASE WHEN v_amount = 0 THEN 'nothing_due' ELSE 'pending' END) | CASE WHEN v_amount = 0 THEN 'nothing_due' ELSE 'scheduled' END)
  */

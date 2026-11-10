@@ -8,7 +8,9 @@
  * public.messages, triggerInventory() returns prod's 16 pg_trigger rows name
  * for name, including the three attached by format() in a loop.
  */
+import { readFileSync } from "node:fs";
 import { blankSqlComments } from "./blankNonCode";
+import { migrationFiles } from "./effectiveFunctionDefs";
 
 export type Trg = { table: string; name: string; fn: string; timing: string; events: string; excludes: string[] };
 
@@ -90,4 +92,17 @@ export function triggerInventory(files: { name: string; sql: string }[]): Map<st
 /** The triggers on `table`, an every-table attach included unless its loop excludes the table. */
 export function triggersOn(inv: Map<string, Trg>, table: string): Trg[] {
   return [...inv.values()].filter((t) => t.table === table || (t.table === "*" && !t.excludes.includes(table)));
+}
+
+/**
+ * The text of the NEWEST `CREATE TRIGGER <name> ...;` across every migration in `dir` (comments blanked), or ""
+ * when no migration creates it. Guards use it instead of pinning the file a trigger was last restated in.
+ */
+export function newestTriggerText(dir: string, name: string): string {
+  let last = "";
+  for (const f of migrationFiles(dir)) {
+    const sql = blankSqlComments(readFileSync(`${dir}/${f}`, "utf8"));
+    for (const m of sql.matchAll(new RegExp(`CREATE TRIGGER ${name}\\s+([\\s\\S]*?);`, "gi"))) last = m[1];
+  }
+  return last;
 }

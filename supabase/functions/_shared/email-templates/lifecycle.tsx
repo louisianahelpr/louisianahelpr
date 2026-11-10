@@ -47,10 +47,11 @@ const statValue = {
   borderBottom: `1px solid ${brand.hairline}`,
 }
 
+// F472 (audit 11-10): "label: value", so the plain-text part never reads "New sign-ups4".
 const Stat = ({ label, value }: { label: string; value: string | number }) => (
   <Row>
     <Column className="e-text e-rule" style={statLabel}>
-      {label}
+      {`${label}: `}
     </Column>
     <Column className="e-h1 e-rule" style={statValue}>
       {value}

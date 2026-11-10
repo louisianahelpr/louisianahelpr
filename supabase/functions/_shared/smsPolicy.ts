@@ -20,17 +20,20 @@ export type SmsKind =
 
 export const SMS_KIND_PHRASES: Record<SmsKind, string> = {
   message: "You have a new message.",
-  job_offer: "New job offer. Answer before it expires.",
+  // F498/F499 (audit 11-10): every text now ends with the opt-out line, so each phrase is <=35 characters to keep a
+  // job-link text in one 160-character segment.
+  job_offer: "New job offer. Answer soon.",
   application: "Someone applied to your job.",
   starting_soon: "Your job starts soon.",
-  reschedule: "A new date or time was requested on a job.",
-  dispute: "A problem was reported on one of your jobs.",
+  // F500/F501/F498 (audit 11-10): plain words, and each names what is waiting.
+  reschedule: "Someone asked to change a job time.",
+  dispute: "A problem was reported on a job.",
   job_cancelled: "One of your jobs was cancelled.",
-  money_problem: "There is a problem with a payment or payout. Check your account.",
-  job_update: "There is an update on one of your jobs.",
+  money_problem: "A payout or payment needs you.",
+  job_update: "There is an update on your job.",
   // A3-85 (owner 11-01): a step due before a deadline (answer an offer or a refund step, check out, hand over,
   // approve finished work). Migration 20261102002011.
-  needs_you: "Something needs you before a deadline.",
+  needs_you: "A reply or approval is due soon.",
   confirm: "",
 };
 const PHRASES = SMS_KIND_PHRASES;
@@ -45,12 +48,18 @@ const PHRASES = SMS_KIND_PHRASES;
  */
 export function smsConfirmText(code: string): string {
   if (!/^\d{4}$/.test(code)) throw new Error("a confirmation code is 4 digits");
-  return `Louisiana Helpr: Reply YES ${code} to get alerts about your jobs and messages. Msg frequency varies. Msg&data rates may apply. HELP for help, STOP to cancel.`;
+  // F499 (audit 11-10): one STOP/HELP/rates wording on every text (SMS_STOP_LINE, SMS_RATES_LINE).
+  return `Louisiana Helpr: Reply YES ${code} for job and message alerts. Msg frequency varies. ${SMS_RATES_LINE} Reply HELP for help. ${SMS_STOP_LINE}`;
 }
+
+/** F499 (audit 11-10): the one opt-out wording; every text Helpr sends ends with it. */
+export const SMS_STOP_LINE = "Reply STOP to opt out.";
+/** F499: the one rates wording (spaced "Msg & data", never "Msg&data"). */
+export const SMS_RATES_LINE = "Msg & data rates may apply.";
 
 /** The reply to a YES without the code (nothing changes). */
 export const SMS_CONFIRM_HINT =
-  "Louisiana Helpr: to turn on alerts, reply YES and the 4-digit code from our text, like YES 1234. Reply STOP to cancel.";
+  "Louisiana Helpr: to turn on alerts, reply YES and the 4-digit code from our text, like YES 1234. Reply STOP to opt out.";
 
 /** "YES 4821" (or START/OPTIN 4821) -> "4821"; anything else -> null. */
 export function parseConfirmCode(body: unknown): string | null {
@@ -92,7 +101,10 @@ export function buildSmsBody(input: {
   const base = input.appUrl.replace(/\/+$/, "");
   const parts = ["Louisiana Helpr:", PHRASES[input.kind], `${base}${smsLinkPath(input.kind, input.jobId)}`];
   // F189 (owner UI audit 11-09): "Reply STOP to opt out." (it read "Reply STOP to stop.").
-  if (input.firstText) parts.push("Reply STOP to opt out.");
+  // F499 (audit 11-10): EVERY text ends with the opt-out line (the rates line is in the opt-in text; a job link
+  // leaves no room for it in one segment). `firstText` no longer changes the words.
+  void input.firstText;
+  parts.push(SMS_STOP_LINE);
   return parts.join(" ");
 }
 
@@ -110,7 +122,7 @@ export function ownerSupportText(appUrl: string, teamThreadUserId?: unknown): st
 
 /** The reply to HELP (sent as TwiML by twilio-inbound). */
 export const SMS_HELP_REPLY =
-  "Louisiana Helpr alerts: help at louisianahelpr.com/support or admin@louisianahelpr.com. Msg & data rates may apply. Reply STOP to cancel.";
+  "Louisiana Helpr alerts: help at louisianahelpr.com/support or admin@louisianahelpr.com. Msg & data rates may apply. Reply STOP to opt out.";
 
 /**
  * The reply to a confirmed opt-in ("YES <code>" that sms_inbound_keyword accepted). Twilio's A2P campaign review
@@ -118,7 +130,7 @@ export const SMS_HELP_REPLY =
  * Guard: src/test/smsPolicy.test.ts, src/test/edge/sms-alerts.test.ts.
  */
 export const SMS_OPTED_IN_REPLY =
-  "Louisiana Helpr: You're now signed up for job alert texts. Msg frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to opt out.";
+  "Louisiana Helpr: You're now signed up for job alert texts. Msg frequency varies. Msg & data rates may apply. Reply HELP for help. Reply STOP to opt out.";
 
 export type InboundAction = "stop" | "start" | "help" | null;
 

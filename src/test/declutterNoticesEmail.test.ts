@@ -13,8 +13,8 @@
  *   - M3: the free-ask sweep closes an ask with no time;
  *   - M4: the "Card saved" notice and the payment page's consent line say the same thing.
  *
- * @mutate supabase/migrations/20261109005133_declutter_trade_email_once.sql |   WHEN (NEW.type IN ('declutter_offers', 'declutter_sales', 'declutter_pickups', 'declutter_refunds') |   WHEN (NEW.type IN ('declutter_offers', 'declutter_sales', 'declutter_pickups')
- * @mutate supabase/migrations/20261108202546_declutter_notices_email_and_honest_sold.sql |     PERFORM public.declutter_notify(v_seller, 'declutter_sales', 'Someone''s buying your item',\n      format('"%s" is held | 'Sold: waiting for the buyer to pay',\n      format('"%s" is held
+ * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |   WHEN (NEW.type IN ('declutter_offers', 'declutter_sales', 'declutter_pickups', 'declutter_refunds') |   WHEN (NEW.type IN ('declutter_offers', 'declutter_sales', 'declutter_pickups')
+ * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |     PERFORM public.declutter_notify(v_seller, 'declutter_sales', 'Someone''s buying your item',\n      format('"%s" is held | 'Sold: waiting for the buyer to pay',\n      format('"%s" is held
  * @mutate supabase/migrations/20261108202546_declutter_notices_email_and_honest_sold.sql |             OR (q.pickup_at IS NULL AND q.created_at <= p_now - interval '48 hours')) |             OR false)
  * @mutate supabase/functions/declutter-checkout/index.ts |   "We'll save this card for your next Declutter buy. It's charged only when you press Pay | "We'll save this card. It's charged only when you press Pay
  * @mutate supabase/functions/declutter-checkout/index.ts |       ...consentText, |
@@ -94,7 +94,7 @@ describe("M1: a seller is not told Sold before the payment lands", () => {
       expect(body(fn), fn).not.toMatch(/'(Bundle )?[Ss]old: waiting/);
     }
     expect(body("declutter_take_item").match(/'Someone''s buying your item'/g)?.length).toBe(2);
-    expect(body("declutter_answer_bundle")).toContain("'Bundle accepted: waiting for the buyer to pay'");
+    expect(body("declutter_answer_bundle")).toContain("'Bundle accepted: waiting on payment'");
   });
 });
 

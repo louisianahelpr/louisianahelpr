@@ -14,10 +14,10 @@
  * Behaviour (real Postgres): src/test/pglite/jobNoticesNextStep.pglite.mjs (23 PASS; 15 FAIL with NEW_MIGRATION=skip;
  * 7 planted defects each red).
  *
- * @mutate supabase/migrations/20261108160000_continue_day_resumes_checks_in_and_new_photos.sql | (NEW.helper_completed_at + interval '24 hours') | (NEW.helper_completed_at + interval '48 hours')
- * @mutate supabase/migrations/20261108160000_continue_day_resumes_checks_in_and_new_photos.sql | '. Next: review them and approve by ' | '. Review them and confirm. '
- * @mutate supabase/migrations/20261108160000_continue_day_resumes_checks_in_and_new_photos.sql | NEW.title \|\| '". Next: nothing for you to do until they arrive.' | NEW.title \|\| '"'
- * @mutate supabase/migrations/20261108160000_continue_day_resumes_checks_in_and_new_photos.sql | NEW.title \|\| '". Next: nothing for you to do; they mark it done when they finish.' | NEW.title \|\| '"'
+ * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql | (NEW.helper_completed_at + interval '24 hours') | (NEW.helper_completed_at + interval '48 hours')
+ * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql | '. Next: review them and approve by ' | '. Review them and confirm. '
+ * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql | NEW.title \|\| '". Next: nothing for you to do until they arrive.' | NEW.title \|\| '"'
+ * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql | NEW.title \|\| '". Next: nothing for you to do; they mark it done when they finish.' | NEW.title \|\| '"'
  * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | '". Next: review and pick a Helpr' | '"'
  * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | AND (job_expires IS NULL OR v_start < job_expires) | AND true
  * @mutate supabase/migrations/20261108201000_jobs_notices_email.sql | - interval '2 hours'; | - interval '12 hours';
@@ -48,8 +48,10 @@ describe("job notices end with the next step and its deadline (A3-36..38)", () =
     expect(b).toContain(
       `to_char((NEW.helper_completed_at + interval '${APPROVAL_WINDOW_HOURS} hours') AT TIME ZONE 'America/Chicago'`,
     );
-    expect(b).toContain("'. Next: review them and approve by ' || v_approve_by || ', or Helpr support steps in.'");
-    expect(b).toContain(`'". Next: check the work and approve by ' || v_approve_by || ', or Helpr support steps in.'`);
+    const next = "'. If you don''t, our team reviews it and tells you what happens next.'";
+    expect(b).toContain(`'. Next: review them and approve by ' || v_approve_by || ${next}`);
+    expect(b).toContain(`'". Next: check the work and approve by ' || v_approve_by || ${next}`);
+    expect(b).not.toContain("steps in");
     expect(b).not.toMatch(/Please review and confirm|Review them and confirm/);
   });
 

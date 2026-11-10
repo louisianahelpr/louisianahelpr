@@ -131,7 +131,7 @@ export const rows: Row[] = [
 // NIGHT-SET-Declutterse-3.)
 const NO_EMAIL = "In the app only, no email for this";
 // A3-103 (audit 11-01): each row says what it sends, read from the senders' titles (migrations and functions). The
-// buyer's "Reserved for you: check out within 30 minutes / 24 hours" is a declutter_sales notice
+// buyer's "Reserved: check out within 30 minutes" / "Reserved for you: check out in 24 hours" is a declutter_sales notice
 // (20261101030040), so that row is named for both sides ("Buying & selling", was "Sales"): a buyer no longer turns it
 // off thinking it is the seller's. No buyer-only category exists; splitting one out would be a new preference column
 // (SQL), not done here.

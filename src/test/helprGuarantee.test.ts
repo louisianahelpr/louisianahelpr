@@ -98,7 +98,7 @@ describe("Helpr Guarantee: the server", () => {
     expect(flagOn).toBeGreaterThan(0);
     expect(flagOn).toBeLessThan(esc.indexOf("v_dispute := public.open_dispute_as("));
     expect(code("guarantee_filing_skips_revision_notice")).toContain(
-      "IF COALESCE(current_setting('app.guarantee_filing', true), '') = 'on' AND NEW.title = 'Revision deadline passed — dispute opened' THEN RETURN NULL;");
+      "IF COALESCE(current_setting('app.guarantee_filing', true), '') = 'on' AND NEW.title = 'Revision deadline passed: dispute opened' THEN RETURN NULL;");
   });
 
   it("the fix day is today to 3 days out, Louisiana time", () => {

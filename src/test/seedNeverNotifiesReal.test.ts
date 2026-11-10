@@ -68,7 +68,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 // @mutate supabase/functions/create-notification/index.ts |     if (crossesSeed === true) { |     if (crossesSeed === "never") {
 // @mutate supabase/functions/saved-helper-availability-push/index.ts | .from("notifications").insert(notifications) | .from("notifications").insert(notifications); await supabase.from("notifications").insert({ user_id: "x", title: "t", message: "m", type: "job_match" })
 // @mutate supabase/migrations/20260927060952_low_rating_alert_links_person.sql | '/admin?view=people&user=' \|\| p_reviewee_id, | '/admin?view=people',
-// @mutate supabase/migrations/20261109215021_notices_our_team_and_no_strike.sql | INSERT INTO public.notifications (user_id, title, message, type, link, job_id)\n      VALUES (\n        _admin, | INSERT INTO public.notifications (user_id, title, message, type, link)\n      VALUES (\n        _admin,
+// @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql | INSERT INTO public.notifications (user_id, title, message, type, link, job_id)\n      VALUES (\n        _admin, | INSERT INTO public.notifications (user_id, title, message, type, link)\n      VALUES (\n        _admin,
 // @mutate supabase/functions/create-payment/index.ts |             user_id: job.helper_id,\n            job_id: job.id,\n            title: "Job approved!", |             user_id: job.helper_id,\n            title: "Job approved!",
 // @mutate supabase/functions/stripe-idv-webhook/index.ts |               link: `/admin?view=people&user=${userId}`, |               link: "/admin",
 // @mutate supabase/functions/arrival-confirm-reminder/index.ts |       if ((await seedBoundaryDropsRow(supabase, { user_id: userId, job_id: jobId, link })) === true) return;\n |       if (false) return;\n
@@ -428,7 +428,14 @@ describe("Q137: a seed subject never notifies a real person", () => {
     // Continue day (20261108160000), Declutter notices (20261108202546), trades (20261108195151) and Jobs notices (20261108201000): send_notice_email
     // only posts; its callers are AFTER INSERT triggers on notifications (email_*), so it fires only for a row
     // notifications_seed_boundary (BEFORE INSERT) let through. Every migration that calls it wires such a trigger.
-    const noticeEmailSql = [...sqlOf.entries()].filter(([, sql]) => /\bsend_notice_email\s*\(/.test(sql)).map(([name]) => name);
+    // notify_poster_on_status_change (20261108160000 F5/F6) is the one direct caller: it INSERTs the poster's
+    // notifications row (through the BEFORE seed boundary) first, then mails; a migration that only restates
+    // that function (20261110202142, audit 11-10 titles by outcome) wires no new trigger.
+    const DIRECT_CALLER = "notify_poster_on_status_change";
+    expect(liveDef(DIRECT_CALLER)!.body).toMatch(/INSERT INTO public\.notifications \(user_id, title, message, type, link, job_id\)[\s\S]*PERFORM public\.send_notice_email\(NEW\.customer_id,/);
+    const restatesDirectCallerOnly = (sql: string) =>
+      new RegExp(`FUNCTION public\\.${DIRECT_CALLER}\\(`).test(sql) && !/AFTER INSERT ON public\.notifications/.test(sql);
+    const noticeEmailSql = [...sqlOf.entries()].filter(([, sql]) => /\bsend_notice_email\s*\(/.test(sql) && !restatesDirectCallerOnly(sql)).map(([name]) => name);
     expect(noticeEmailSql.length).toBeGreaterThan(1);
     const emailTriggers = new Set<string>();
     for (const name of noticeEmailSql) {

@@ -69,8 +69,7 @@ describe("notice titles carry no emoji", () => {
   it("the shared templates and the job match alert", () => {
     const t = titles(fn("_shared/notification-templates.ts"));
     expect(t.length).toBeGreaterThan(5);
-    // The hire offer's title moves in its own branch with the classifier that reads it (wip/b40-1030-job-notice-switches).
-    expect(t.filter((x) => EMOJI.test(x) && x !== "📋 New job offer!")).toEqual([]);
+    expect(t.filter((x) => EMOJI.test(x))).toEqual([]);
     const match = fn("instant-job-match/index.ts");
     expect(match).not.toMatch(/categoryEmoji/);
     expect(titles(match).filter((x) => EMOJI.test(x) || x.includes("${emoji}"))).toEqual([]);

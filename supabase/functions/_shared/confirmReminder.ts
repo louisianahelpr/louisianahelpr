@@ -33,7 +33,8 @@ export const CONFIRM_REMINDER_COPY: Record<ConfirmReminderStep, ConfirmReminderC
     heading: "One step left",
     body: [
       "You started a Louisiana Helpr account but haven't confirmed your email yet.",
-      "Tap the button, then tap Confirm my email on the page that opens.",
+      // F475 (audit 11-10): one instruction, not two.
+      "Tap Confirm my email below to finish.",
     ],
     button: "Confirm my email",
     after: "If the link has run out by the time you tap it, the page will send you a new one.",
@@ -44,7 +45,7 @@ export const CONFIRM_REMINDER_COPY: Record<ConfirmReminderStep, ConfirmReminderC
     heading: "Your account is waiting",
     body: [
       "Your Louisiana Helpr account is set up, but your email still isn't confirmed, so you can't post or take jobs yet.",
-      "Tap the button, then tap Confirm my email on the page that opens.",
+      "Tap Confirm my email below to finish.",
     ],
     button: "Confirm my email",
     after: "This is the last reminder we'll send. If the link has run out by the time you tap it, the page will send you a new one.",

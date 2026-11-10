@@ -24,7 +24,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * fails until it is taken off.
  */
 
-// @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql |       AND j.is_group_job IS TRUE\n      AND j.status IN ('open', 'accepted')\n      AND j.date_needed IS NOT NULL\n      AND EXISTS | AND false\n      AND j.status IN ('open', 'accepted')\n      AND j.date_needed IS NOT NULL\n      AND EXISTS
+// @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |       AND j.is_group_job IS TRUE\n      AND j.status IN ('open', 'accepted')\n      AND j.date_needed IS NOT NULL\n      AND EXISTS | AND false\n      AND j.status IN ('open', 'accepted')\n      AND j.date_needed IS NOT NULL\n      AND EXISTS
 // @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |          OR (j.is_group_job IS TRUE\n             AND EXISTS (SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id IS NOT NULL)\n             AND NOT EXISTS |          OR (false\n             AND EXISTS (SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id IS NOT NULL)\n             AND NOT EXISTS
 // @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |                               WHERE g.job_id = j.id AND g.helper_id IS NOT NULL AND g.helper_confirmed_at IS NULL)) |                               WHERE false))
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (j.is_group_job IS TRUE AND EXISTS ( |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (false AND EXISTS (
@@ -109,6 +109,7 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       // 20261102100421 (Q2588) restates auto_start_due_jobs with a no-start-time job due at its day's end only.
       // 20261103214229 (owner bug 11-03) restates sweep_no_show_alerts with the crew branch skipping a crew with an
       // open SET continue day only (the roster reads are unchanged).
+      // 20261110205345 (audit 11-10 F508) restates sweep_dayof_confirm_reminders with shorter crew titles only.
       const want = fn === "get_public_profile_stats"
         ? [CREW_COUNTS, "20261007033530_seed_switch_hides_test_profiles.sql", "20261015051301_declutter_shared_star_rating.sql", "20261021074131_id_badge_reads_stripe_identity_only.sql", "20261030015205_test_data_never_counts.sql", "20261031234653_public_stats_expired_is_not_cancelled.sql", "20261102040000_declutter_review_report.sql", "20261105171508_public_profile_stats_same_person.sql"]
         : fn === "sweep_no_show_alerts"
@@ -117,7 +118,9 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
             ? [THIS, "20261030015205_test_data_never_counts.sql"]
             : fn === "auto_start_due_jobs"
               ? [THIS, "20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql"]
-              : [THIS];
+              : fn === "sweep_dayof_confirm_reminders"
+                ? [THIS, "20261110205345_push_titles_fit_lock_screen.sql"]
+                : [THIS];
       expect(want, `${fn} is not the Q728 (or Q731/Q552) definition`).toContain(EFFECTIVE.get(fn)?.file);
     }
     for (const fn of ["get_helper_earnings_export", "get_helper_tiers", "get_neighbor_hire_count", "settle_one_off_jobs_for_banned_account"]) {

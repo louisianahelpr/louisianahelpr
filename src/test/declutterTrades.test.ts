@@ -6,8 +6,8 @@
  *
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   IF NOT v_want.accepts_trades THEN |   IF false THEN
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   PERFORM public.declutter_identity_gate(v_uid, 'identity_required_to_buy');\n  SELECT * INTO v_ok |   PERFORM 1;\n  SELECT * INTO v_ok
- * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   PERFORM set_config('declutter.bundle_take', 'on', true); |   PERFORM 1;
- * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   IF (p_action = 'withdraw') <> (s.buyer_id = v_uid) THEN |   IF false THEN
+ * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |   PERFORM set_config('declutter.bundle_take', 'on', true);\n  v_buyer_line := public.declutter_take_item( |   PERFORM 1;\n  v_buyer_line := public.declutter_take_item(
+ * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |   IF (p_action = 'withdraw') <> (s.buyer_id = v_uid) THEN |   IF false THEN
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   AFTER UPDATE OF status, seller_hidden, current_price_cents ON public.declutter_items |   AFTER UPDATE OF price_cents ON public.declutter_items
  * @mutate supabase/migrations/20261106184913_declutter_trades_handover.sql | GRANT EXECUTE ON FUNCTION public.declutter_swap_sweep() TO service_role; | GRANT EXECUTE ON FUNCTION public.declutter_swap_sweep() TO authenticated;
  * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql |   v_out := v_out \|\| jsonb_build_object('declutter_swap_offers', | v_out := v_out; PERFORM ('declutter_swap_offers',

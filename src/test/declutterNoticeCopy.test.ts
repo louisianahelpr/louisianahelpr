@@ -54,8 +54,8 @@ describe("Declutter notice copy", () => {
     const offenders = all.filter((c) => /It''s yours: check out/.test(c.title)).map((c) => c.fn);
     expect(offenders).toEqual([]);
     // BUY-1 (owner 10-31): Buy now holds 30 minutes, an accepted offer 24 hours.
-    expect(code("declutter_take_item")).toContain("'Reserved for you: check out within 30 minutes'");
-    expect(code("declutter_take_item")).toContain("'Reserved for you: check out within 24 hours'");
+    expect(code("declutter_take_item")).toContain("'Reserved: check out within 30 minutes'");
+    expect(code("declutter_take_item")).toContain("'Reserved for you: check out in 24 hours'");
   });
 
   it("the seller's sale notices open Selling", () => {

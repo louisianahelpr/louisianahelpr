@@ -80,7 +80,8 @@ describe("email copy, owner's message review 11-09", () => {
     const day3 = component(drip, "WelcomeDripStep2Email");
     expect(day3).toMatch(/>\s*Clear out a closet on Declutter\s*</);
     expect(day3).toContain('label="Open Declutter"');
-    expect(day3).toMatch(/snap a photo, set a garage-sale price, and buyers pick it up from your\s+porch\./);
+    // F491 (audit 11-10) reworded the handover line; src/test/emailAudit1110Copy.test.ts pins the new words.
+    expect(day3).toMatch(/snap a photo and set a garage-sale price\./);
     expect(day1).toContain("<Bold>Got stuff to sell?</Bold> List it on Declutter in a minute.");
     // Day 1 and day 3 no longer share a bullet.
     expect(day3).not.toMatch(/<li>/);

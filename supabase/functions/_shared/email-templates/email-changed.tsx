@@ -70,6 +70,8 @@ export const AdminEmailChangedEmail = ({ oldEmail, newEmail }: EmailChangedProps
       Use <strong>{newEmail}</strong> to log in from now on. If you didn&apos;t ask for this, reply to this email right
       away or write to <SupportAddress />.
     </Text>
+    {/* F470 (audit 11-10): the same "not you" step the self-service notice has. */}
+    <BrandButton label="This wasn't me: reset my password" widthPx={300} href={`${getAppUrl()}/forgot-password`} />
   </BaseLayout>
 )
 

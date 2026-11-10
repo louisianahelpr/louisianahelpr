@@ -10,6 +10,7 @@ import { renderEmail } from '../_shared/email-templates/render.ts'
 import { checkRateLimit, rateLimitResponse } from '../_shared/rate-limit.ts'
 import { serve } from "../_shared/buildStamp.ts";
 import { centralDateTimeLabel } from '../_shared/centralDateTime.ts'
+import { STRIKE_RULE } from '../_shared/strikeRule.ts'
 
 /** A strike email's reason line when the admin left the note blank (F182, owner's message review 11-09). */
 const STRIKE_NO_NOTE_LINE = 'Our team found a break of the community rules. Reply to this email if you\'d like to know more.'
@@ -396,8 +397,9 @@ serve(async (req) => {
 
       await notifyUser({
         user_id: targetUserId,
-        title: 'Manually verified',
-        message: 'An admin has manually verified your identity. You have full access to Helpr.',
+        // F469 family (audit 11-10): the push says what the email says, without "admin" or "manually".
+        title: 'Your ID check is done',
+        message: 'Our team checked your ID. You\'re all set to post jobs, take jobs, and buy and sell on Declutter.',
         type: 'success',
         link: '/home',
       }, 'manual_verify')
@@ -519,10 +521,11 @@ serve(async (req) => {
 
       await notifyUser({
         user_id: targetUserId,
-        title: 'Please re-upload your ID',
+        title: 'Please upload a clearer ID photo',
         message: note || 'Your ID photo was a bit blurry. Snap a clearer one so we can get you started.',
         type: 'warning',
-        link: '/profile',
+        // F465 (audit 11-10): straight to the ID step, like the email's button.
+        link: '/home?verify_id=1',
       }, 'request_id_reupload')
 
       const { html, text } = await renderEmail(
@@ -591,6 +594,8 @@ serve(async (req) => {
           greetingName: fullName,
           paragraphs: [
             'Our team sent you a password reset link. Tap the button below to choose a new password. This link expires in 1 hour.',
+            // F471 (audit 11-10): what to do when the email was not expected.
+            'Didn\'t expect this? Reply and tell us. Your password stays the same until you choose a new one.',
           ],
           ctaUrl: actionLink,
           ctaLabel: 'Choose a new password',
@@ -612,9 +617,8 @@ serve(async (req) => {
     }
 
     if (action === 'formal_warning') {
-      // F191: both rules are real and apply side by side (this count reads every warning row, automatic ones too); the
-      // strike emails say the automatic rule exists.
-      const AUTO_FLAGS_SEPARATE = 'An automatic rule also applies alongside these strikes: if our system flags two problems on your account within 7 days, your account is suspended for 7 days.'
+      // F191 + F466/F502 (11-10): both ladders are real and apply side by side (this count reads every warning row,
+      // automatic ones too). Every strike email and push states them in the same words: STRIKE_RULE.
       // 3-strike system: 1st = warning, 2nd = final warning (banner shown in app), 3rd = 7-day auto-suspension
       // Count prior strikes (warning + final_warning) to determine escalation tier
       // Fail CLOSED on a read fault. The error used to be dropped, and that is
@@ -645,10 +649,10 @@ serve(async (req) => {
       let actionTaken: 'warning' | 'final_warning' | 'suspension' = 'warning'
       let cancelBidsAfterStrike = false
       let banStatusUpdate: any = { ban_status: 'warned' }
-      let notifTitle = 'Formal warning (Strike 1 of 3)'
-      let notifMsg = (note || 'You\'ve received a formal warning for a platform rule violation. Please review the platform rules.') + ' An automatic 7-day rule also applies.'
+      let notifTitle = 'Formal warning (strike 1 of 3)'
+      let notifMsg = (note || 'You\'ve received a formal warning for breaking a community rule.') + ' ' + STRIKE_RULE
       let emailSubject = 'Louisiana Helpr: formal warning on your account'
-      let emailHeading = 'Formal warning (Strike 1 of 3)'
+      let emailHeading = 'Formal warning (strike 1 of 3)'
       let emailPreheader = 'A formal warning on your Louisiana Helpr account (strike 1 of 3).'
       // The escalation line is DATA now, not an HTML string. It used to be a
       // template literal interpolating a brand token, and HAD to be written
@@ -658,31 +662,27 @@ serve(async (req) => {
         tone: 'plain',
         body: [
           'This is your ',
-          { b: '1st strike' },
-          '. A 2nd strike will trigger a final warning banner across the app; a 3rd will result in a 7-day account suspension.',
-          // F191 (owner UI audit 11-09, wording only): the automatic ladder (auto_restrict_repeat_violators) is real
-          // and applies alongside these strikes; its notices now say so too (20261109192930).
-          ' ',
-          AUTO_FLAGS_SEPARATE,
+          { b: '1st strike from our team' },
+          '. ',
+          STRIKE_RULE,
         ],
       }
 
       if (strikeNumber === 2) {
         actionTaken = 'final_warning'
         banStatusUpdate = { ban_status: 'final_warning' }
-        notifTitle = 'Final warning (Strike 2 of 3)'
-        notifMsg = (note || 'You\'ve received a final warning.') + ' One more violation will result in a 7-day suspension. A warning banner will appear at the top of your app. An automatic 7-day rule also applies.'
+        notifTitle = 'Final warning (strike 2 of 3)'
+        notifMsg = (note || 'You\'ve received a final warning.') + ' A warning banner now shows at the top of your app. ' + STRIKE_RULE
         // F182 (owner's message review 11-09): no shouting caps; the brand's full name.
         emailSubject = 'Louisiana Helpr: final warning on your account'
-        emailHeading = 'Final warning (Strike 2 of 3)'
+        emailHeading = 'Final warning (strike 2 of 3)'
         emailPreheader = 'A final warning on your Louisiana Helpr account: one more strike pauses it for 7 days.'
         escalation = {
           tone: 'alert',
           body: [
-            { b: 'This is your final warning.' },
-            ' One more violation will result in an automatic 7-day suspension. A warning banner is now visible at the top of your app.',
-            ' ',
-            AUTO_FLAGS_SEPARATE,
+            { b: 'This is your final warning (2nd strike from our team).' },
+            ' A warning banner now shows at the top of your app. ',
+            STRIKE_RULE,
           ],
         }
       } else if (strikeNumber >= 3) {
@@ -690,11 +690,11 @@ serve(async (req) => {
         const suspendUntil = new Date()
         suspendUntil.setDate(suspendUntil.getDate() + 7)
         banStatusUpdate = { ban_status: 'temp_banned', auto_suspended_until: suspendUntil.toISOString() }
-        notifTitle = 'Account suspended for 7 days (Strike 3)'
+        notifTitle = 'Account suspended for 7 days'
         // F183 (owner's message review 11-09): the restore moment in Louisiana time and the house style, never the
         // server's UTC toLocaleDateString(); "applications", the app's word, not "bids".
         const restoreLabel = centralDateTimeLabel(suspendUntil)
-        notifMsg = `Your account is paused until ${restoreLabel}. ${note ? 'Reason: ' + note : 'You exceeded the 3-strike limit.'} Your open job applications were withdrawn.`
+        notifMsg = `Your account is paused until ${restoreLabel}. ${note ? 'Reason: ' + note : 'This is your 3rd strike from our team.'} Your open job applications were withdrawn. ${STRIKE_RULE}`
         emailSubject = 'Louisiana Helpr: your account is paused for 7 days'
         emailHeading = 'Account suspended for 7 days'
         emailPreheader = `Your Louisiana Helpr account is paused for 7 days after a third strike. You can use it again on ${restoreLabel}.`
@@ -704,7 +704,8 @@ serve(async (req) => {
             { b: 'Your account has reached 3 strikes and is now paused.' },
             ' You can use Louisiana Helpr again on ',
             { b: restoreLabel },
-            '. Your open job applications were withdrawn.',
+            '. Your open job applications were withdrawn. ',
+            STRIKE_RULE,
           ],
         }
 

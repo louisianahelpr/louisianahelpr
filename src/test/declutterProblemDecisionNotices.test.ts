@@ -4,13 +4,14 @@
  * seller of a sale decided "Damaged in delivery" heard only "Handover done".
  *
  * THE CLASS: every declutter_admin_decide_* function (EXACT list, both ways, from the effective definitions) writes
- * a "Louisiana Helpr decided" notice to the order's buyer AND its seller, each opening the recipient's own tab, and
+ * a decision notice ("We looked at ... the problem with <items>"; titled by outcome since 20261110202142, F503) to the
+ * order's buyer AND its seller, each opening the recipient's own tab, and
  * no member notice in them carries the admin's note (p_note / admin_note): it was written as an internal note.
  * Paths are proven in PGlite: src/test/pglite/declutterProblemDecisionNotices.pglite.mjs (prod's bodies md5-checked,
  * every path told once, 3x replay; RED before it and on 5 planted defects).
  */
-// @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |     PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Louisiana Helpr decided',\n      format('We looked at both sides of the problem with %s. %s' |     PERFORM public.declutter_notify(v_task.helpr_id, 'payment', 'Louisiana Helpr decided',\n      format('We looked at both sides of the problem with %s. %s'
-// @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql |     '/declutter?tab=buying', o.seller_id);\n  PERFORM public.declutter_notify(o.seller_id, 'payment', 'Louisiana Helpr decided',\n    format( |     '/declutter?tab=buying', o.seller_id);\n  PERFORM public.declutter_notify(v_task.helpr_id, 'payment', 'Louisiana Helpr decided',\n    format(
+// @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql |   PERFORM public.declutter_notify(o.buyer_id, 'payment', 'We reviewed your delivery problem', |   PERFORM public.declutter_notify(v_task.helpr_id, 'payment', 'We reviewed your delivery problem',
+// @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql |     PERFORM public.declutter_notify(o.seller_id, 'payment',\n      CASE WHEN o.paid_with = 'free' AND p_decision = 'pay_seller' THEN 'The free handover stands' |     PERFORM public.declutter_notify(v_task.helpr_id, 'payment',\n      CASE WHEN o.paid_with = 'free' AND p_decision = 'pay_seller' THEN 'The free handover stands'
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -46,7 +47,8 @@ describe("both sides hear the admin's decision on a reported problem", () => {
   });
 
   it.each(DECIDERS)("%s tells the buyer and the seller, each on their own tab", (fn) => {
-    const decided = notices(fn).filter((n) => n.title === "'Louisiana Helpr decided'");
+    const decided = notices(fn).filter((n) => /We looked at (both sides of )?the problem with/.test(n.message));
+    expect(decided.every((n) => n.title !== "'Louisiana Helpr decided'"), "F503: one title for four outcomes").toBe(true);
     expect(decided.filter((n) => n.to === "o.buyer_id").map((n) => n.link)).toContain("'/declutter?tab=buying'");
     expect(decided.filter((n) => n.to === "o.seller_id").map((n) => n.link)).toContain("'/declutter?tab=selling'");
   });

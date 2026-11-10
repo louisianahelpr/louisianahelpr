@@ -16,6 +16,7 @@ import { getAppUrl } from "./appUrl.ts";
 import { FROM_DEFAULT, queueEmail, sanitizeHeaderValue } from "./resend.ts";
 import { postSlackOpsAlert } from "./slack-alerts.ts";
 import { GiftCardEmail } from "./email-templates/gift-card.tsx";
+import { centralDateLabel } from "./centralDateTime.ts";
 import { renderEmail } from "./email-templates/render.ts";
 
 export interface GiftCardEmailOpts {
@@ -24,6 +25,8 @@ export interface GiftCardEmailOpts {
   amountCents: number;
   message?: string | null;
   claimToken: string;
+  /** The gift_cards row's expires_at (ISO); the email tells the recipient the day (F497). Null: no expiry line. */
+  expiresAt?: string | null;
 }
 
 /**
@@ -54,6 +57,9 @@ async function renderGiftCardEmail(
   // the tab's own query.
   const claimUrl = `${getAppUrl()}/profile?tab=gift_card&claim=${encodeURIComponent(opts.claimToken)}`;
   const note = opts.message?.trim();
+  // An unparseable or missing expiry drops the line rather than printing "Invalid Date".
+  const expiresMs = opts.expiresAt ? Date.parse(opts.expiresAt) : NaN;
+  const expiresOn = Number.isFinite(expiresMs) ? centralDateLabel(new Date(expiresMs)) : null;
 
   const { html, text } = await renderEmail(
     React.createElement(GiftCardEmail, {
@@ -61,6 +67,7 @@ async function renderGiftCardEmail(
       amount,
       claimUrl,
       note: note || null,
+      expiresOn,
     }),
   );
 

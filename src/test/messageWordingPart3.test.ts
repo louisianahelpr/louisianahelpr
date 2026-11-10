@@ -40,7 +40,7 @@
  * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql | 'Our automatic check flagged "%s" (%s). Our team will look at it before you''re paid.' | 'Our automatic check flagged "%s" (%s). Someone from Louisiana Helpr will look at it before you''re paid.'
  * F177 (moved from Builder 4, lead 11-09): the dispute and warning notices say "our team", never "an admin"
  * (20261109215021; proof src/test/pglite/noticesOurTeamNoStrike.pglite.mjs).
- * @mutate supabase/migrations/20261109215021_notices_our_team_and_no_strike.sql | add your side so our team hears it.' | add your side so an admin hears it.'
+ * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql | add your side so our team hears it.' | add your side so an admin hears it.'
  * F176: the trigger's "Job cancelled" notice says who cancelled; "You don't owe anything" only when the poster did, never
  * on a dispute decision (it can bill an at-fault Helpr) or an admin's cancel (20261109231855; behaviour proof, every
  * branch single + crew, src/test/pglite/jobCancelNoticeSaysWho.pglite.mjs, --before red).

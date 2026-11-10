@@ -26,7 +26,6 @@
  * @mutate src/components/sections/SectionScreen.tsx |         {section && (\n          // py/gap | {false && (\n          // py/gap
  * @mutate src/components/sections/AppTopBar.tsx |             <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> |             <h1 className="sr-only">{title}</h1>
  * @mutate src/components/rentals/listings/RentBrowse.tsx | title={preview ? "Coming soon" | title={preview ? "Opens soon"
- * @mutate src/components/shops/ShopsHomeView.tsx | preview ? "Coming soon" : "No shops here yet." | preview ? "Opens soon" : "No shops here yet."
  * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = !unknown && (!on \|\| isPreview(s)); |     const soon = !unknown && (!on);
  * @mutate src/components/sections/SectionScreen.tsx |           <div className={`flex min-h-full flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>\n |           <div className={`flex flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>\n            {section && <p role="status">Coming soon – early preview</p>}\n
  */
@@ -128,7 +127,11 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     const screens = trackedFiles("src").filter((f) => f.endsWith(".tsx") && !f.endsWith(".test.tsx") && !f.startsWith("src/test/"));
     expect(screens.length).toBeGreaterThan(200);
     expect(screens.filter((f) => /early preview/i.test(code(f)))).toEqual([]);
-    for (const f of ["src/components/shops/ShopsHomeView.tsx", "src/components/rentals/listings/RentBrowse.tsx"]) {
+    // Shops left this list with the shops audit 11-10 F1 (lead): its empty Browse says one thing, "No shops near you
+    // yet. Be the first: open a free shop." (src/components/shops/shopOrderScreens.test.tsx), never "Coming
+    // soon" beside "open a free shop"; it still never says "Opens soon".
+    expect(code("src/components/shops/ShopsHomeView.tsx")).not.toMatch(/Opens soon|"Coming soon"/);
+    for (const f of ["src/components/rentals/listings/RentBrowse.tsx"]) {
       // One word (owner's UI audit 11-09, F139): it said "Opens soon" while the menu, Create and Settings said "Coming soon".
       expect({ f, comingSoon: /preview \? "Coming soon"/.test(code(f)), opensSoon: /Opens soon/.test(code(f)) }).toEqual({ f, comingSoon: true, opensSoon: false });
     }

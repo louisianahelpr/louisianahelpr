@@ -30,20 +30,20 @@
  *
  * @mutate supabase/migrations/20261102061755_schedule_change_replace_words_your_own.sql |                    AND rr.responder_id = v_uid\n |
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |     PERFORM set_config('app.refund_finish_rpc', '0', true); |     NULL;
- * @mutate supabase/migrations/20261021102943_refund_requests.sql |       UPDATE public.refund_requests SET status = 'declined' WHERE id = v_refund_id;\n    END IF;\n  END IF; |       NULL;\n    END IF;\n  END IF;
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |       UPDATE public.refund_requests SET status = 'declined' WHERE id = v_refund_id;\n    END IF;\n  END IF; |       NULL;\n    END IF;\n  END IF;
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |            OR p_status = 'coming_back' |            OR false
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |      AND NOT public.refund_party_held(r.answered_by)\n |
- * @mutate supabase/migrations/20261021102943_refund_requests.sql |     IF public.refund_party_held(v_row.requester_id) OR public.refund_party_held(v_row.answered_by) THEN |     IF false THEN
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |     IF public.refund_party_held(v_row.requester_id) OR public.refund_party_held(v_row.answered_by) THEN |     IF false THEN
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |       OR EXISTS (SELECT 1 FROM public.payout_holds h WHERE h.helper_id = p_user) |       OR false
  * @mutate supabase/functions/auto-resolve-disputes/index.ts |               typeof row.execution_error === "string" && (row.execution_error as string).startsWith(REFUND_AGREEMENT_HELD_ERROR)\n |               false\n
- * @mutate supabase/migrations/20261021102943_refund_requests.sql |              WHERE r.job_id = p_job_id\n                AND public.refund_request_is_live(r.status, r.dispute_id)) THEN |              WHERE r.job_id = p_job_id\n                AND r.status = 'open') THEN
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |              WHERE r.job_id = p_job_id\n                AND public.refund_request_is_live(r.status, r.dispute_id)) THEN |              WHERE r.job_id = p_job_id\n                AND r.status = 'open') THEN
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |     IF p_date > (now() AT TIME ZONE 'America/Chicago')::date + 7 THEN |     IF false THEN
  * @mutate supabase/migrations/20261102061755_schedule_change_replace_words_your_own.sql |     v_starts_at := LEAST(v_new_at, now() + interval '1 day'); |     v_starts_at := v_new_at;
- * @mutate supabase/migrations/20261021102943_refund_requests.sql |       RETURN jsonb_build_object('status', 'expired', 'reason', 'come_back_lapsed'); |       NULL;
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |       RETURN jsonb_build_object('status', 'expired', 'reason', 'come_back_lapsed'); |       NULL;
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |     RAISE EXCEPTION 'completion_before_come_back' |     RAISE NOTICE 'completion_before_come_back'
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |          OR r.closed_reason = 'coming_back'\n |
- * @mutate supabase/migrations/20261021102943_refund_requests.sql |            SET helper_completed_at = NULL, poster_completed_at = NULL |            SET helper_completed_at = NULL
- * @mutate supabase/migrations/20261021102943_refund_requests.sql |          AND d.execution_started_at IS NULL\n |
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |            SET helper_completed_at = NULL, poster_completed_at = NULL |            SET helper_completed_at = NULL
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |          AND d.execution_started_at IS NULL\n |
  * @mutate supabase/functions/_shared/refundRequestHold.ts |       if (held.error \|\| typeof held.data !== "boolean") { |       if (held.error) {
  * @mutate supabase/functions/_shared/refundRequestHold.ts |       if (!row.requester_id \|\| !row.answered_by \|\| heldUsers.has(row.requester_id) \|\| heldUsers.has(row.answered_by)) { |       if (heldUsers.has(row.requester_id ?? "") \|\| heldUsers.has(row.answered_by ?? "")) {
  * @mutate src/lib/refundRequests/index.ts | export const COME_BACK_MAX_DAYS = 7; | export const COME_BACK_MAX_DAYS = 14;

@@ -136,15 +136,15 @@ function RefundRequestPanelOpen({
     );
   } else if (isWaiting(request) && request.status === "declined") {
     line = asked ? (
-      <>{other} didn't agree to the refund. A real person at Helpr will decide; the payment stays on hold until then.</>
+      <>{other} didn't agree to the refund. Our team will decide; the payment stays on hold until then.</>
     ) : (
-      <>You didn't agree to the refund. A real person at Helpr will decide; the payment stays on hold until then.</>
+      <>You didn't agree to the refund. Our team will decide; the payment stays on hold until then.</>
     );
   } else if (request.status === "finish_offered" && !settled) {
     line = asked ? (
       <>
-        {other} offered to come back and finish instead of a refund. Accept the new time on this job, or decline it and a real person
-        at Helpr will decide. The payment stays on hold until then.
+        {other} offered to come back and finish instead of a refund. Accept the new time on this job, or decline it and our team
+        will decide. The payment stays on hold until then.
       </>
     ) : (
       <>You offered to come back and finish instead of a refund. The payment stays on hold until they answer.</>

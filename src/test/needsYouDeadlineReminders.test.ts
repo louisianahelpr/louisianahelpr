@@ -50,10 +50,10 @@ function newestScheduling(job: string): string {
 }
 
 describe("needs-you deadline reminders (A3-85)", () => {
-  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |      WHERE o.status = 'open' AND o.awaiting IN ('seller', 'buyer') |      WHERE o.awaiting IN ('seller', 'buyer')
-  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |        AND ((q.status = 'open' AND q.answer_by > p_now | AND ((q.answer_by > p_now
-  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |                       AND s.sent_at >= v_day_start) >= 2; |                       AND s.sent_at >= v_day_start) >= 3;
-  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |   IF public.needs_you_reminder_quiet(p_now) THEN\n    RETURN 0; |   IF false THEN\n    RETURN 0;
+  // @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |      WHERE o.status = 'open' AND o.awaiting IN ('seller', 'buyer') |      WHERE o.awaiting IN ('seller', 'buyer')
+  // @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |        AND ((q.status = 'open' AND q.answer_by > p_now | AND ((q.answer_by > p_now
+  // @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |                       AND s.sent_at >= v_day_start) >= 2; |                       AND s.sent_at >= v_day_start) >= 3;
+  // @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   IF public.needs_you_reminder_quiet(p_now) THEN\n    RETURN 0; |   IF false THEN\n    RETURN 0;
   it("the sweep reminds only while the step is open and before its deadline, 2 a day per item, never in quiet hours", () => {
     const body = newestFunctionBody("sweep_needs_you_reminders");
     expect(body.length).toBeGreaterThan(2000);

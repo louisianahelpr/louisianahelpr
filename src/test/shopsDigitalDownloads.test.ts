@@ -10,9 +10,9 @@
  * @mutate supabase/functions/shop-digital/index.ts |   else refusal = await refusalFor(admin, row.storage_path, row.ext as DigitalExt, size); |   else refusal = null;
  * @mutate supabase/functions/shop-digital/index.ts |   const off = await requireFeature(admin, "shops", user, corsHeaders);\n  if (off) return off;\n |
  * @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql | VALUES ('shop-digital', 'shop-digital', false, 104857600, | VALUES ('shop-digital', 'shop-digital', true, 104857600,
- * @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |   IF o.is_digital AND NOT COALESCE(p_allow_problem, false) THEN |   IF false THEN
- * @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |   IF o.is_digital AND p_how = 'auto' AND o.captured_at + interval '72 hours' > now() THEN |   IF false THEN
- * @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |          OR (o.is_digital AND o.captured_at + interval '72 hours' <= now())) |          OR (o.is_digital AND o.captured_at + interval '24 hours' <= now()))
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   IF o.is_digital AND NOT COALESCE(p_allow_problem, false) THEN |   IF false THEN
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   IF o.is_digital AND p_how = 'auto' AND o.captured_at + interval '72 hours' > now() THEN |   IF false THEN
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |          OR (o.is_digital AND o.captured_at + interval '72 hours' <= now())) |          OR (o.is_digital AND o.captured_at + interval '24 hours' <= now()))
  * @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |        AND o.status IN ('accepted', 'handed_over')\n       AND o.captured_at IS NOT NULL | AND o.status IN ('accepted', 'handed_over', 'refunded')\n       AND o.captured_at IS NOT NULL
  * Review 11-08 (money BLOCK): the snapshot trigger is restated from its NEWEST body; a paid-not-captured order counts
  * as bought; the card that pays is the address taxed; a hand refund or a chargeback ends the download.

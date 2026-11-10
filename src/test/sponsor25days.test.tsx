@@ -92,6 +92,12 @@ describe("sign-up validator (page and server)", () => {
     expect(sniffLogoType(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))).toBe("image/jpeg");
     expect(sniffLogoType(new TextEncoder().encode('<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"></svg>'))).toBe("image/svg+xml");
     expect(sniffLogoType(new TextEncoder().encode("<html><script>alert(1)</script>"))).toBeNull();
+    // Comments and a doctype before <svg> (Illustrator exports), and the CodeQL js/redos input answered fast and null.
+    expect(sniffLogoType(new TextEncoder().encode('<?xml version="1.0"?>\n<!-- Generator: Illustrator --> <!--x--><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"><svg viewBox="0 0 1 1"></svg>'))).toBe("image/svg+xml");
+    expect(sniffLogoType(new TextEncoder().encode("<!--x--><html><svg></svg>"))).toBeNull();
+    const t0 = Date.now();
+    expect(sniffLogoType(new TextEncoder().encode("<!--" + "--><!--".repeat(140)))).toBeNull();
+    expect(Date.now() - t0).toBeLessThan(500); // the old regex took ~114 ms at 24 repeats and hangs at 140
   });
   it("every validator code has a message", () => {
     for (const c of ["required", "email", "days", "prizeValue", "agree", "url", "logoType", "logoSize", "tooLong"]) {

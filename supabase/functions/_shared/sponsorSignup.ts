@@ -232,6 +232,23 @@ export function sniffLogoType(head: Uint8Array): SponsorLogoType | null {
   if (head.length >= 8 && head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47) return "image/png";
   if (head.length >= 3 && head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) return "image/jpeg";
   const text = new TextDecoder("utf-8", { fatal: false }).decode(head.slice(0, 1024)).replace(/^﻿/, "").trimStart();
-  if (/^(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE svg[^>]*>\s*)?<svg[\s>]/i.test(text)) return "image/svg+xml";
-  return null;
+  // A linear scan, not one regex (CodeQL js/redos: a nested "(<!--[\s\S]*?-->\s*)*" backtracks on "<!--" + many
+  // "--><!--"): an optional <?xml ...>, any number of comments, an optional <!DOCTYPE svg ...>, then <svg.
+  let t = text;
+  if (/^<\?xml/i.test(t)) {
+    const end = t.indexOf(">");
+    if (end < 0) return null;
+    t = t.slice(end + 1).trimStart();
+  }
+  while (t.startsWith("<!--")) {
+    const end = t.indexOf("-->", 4);
+    if (end < 0) return null;
+    t = t.slice(end + 3).trimStart();
+  }
+  if (/^<!DOCTYPE svg/i.test(t)) {
+    const end = t.indexOf(">");
+    if (end < 0) return null;
+    t = t.slice(end + 1).trimStart();
+  }
+  return /^<svg[\s>]/i.test(t) ? "image/svg+xml" : null;
 }

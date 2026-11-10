@@ -190,6 +190,13 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
               </Link>
             </li>
             <li>
+              {/* L035 (landing audit 11-09): the Helpr directory (open to guests, F071) had no link from the landing or
+                  the footer. */}
+              <Link to="/helprs" className={FOOTER_LINK}>
+                Find a Helpr
+              </Link>
+            </li>
+            <li>
               <Link to="/help" className={FOOTER_LINK}>
                 Help center
               </Link>

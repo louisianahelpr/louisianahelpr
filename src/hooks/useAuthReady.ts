@@ -4,6 +4,7 @@ import { loadModule } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
 import { recordColdLaunchPhase } from "@/lib/coldLaunchPhases";
 import { noteAuthUser } from "@/lib/authUserChanged";
+import { rememberHadSession } from "@/lib/hadSession";
 
 const AUTH_BOOTSTRAP_TIMEOUT_MS = 2500;
 // How long we will wait for a session RESTORE that we know is in flight (a
@@ -79,6 +80,8 @@ const emitAuthSnapshot = (rawSnapshot: AuthSnapshot) => {
   const justBecameReady = !authSnapshot.isReady && snapshot.isReady;
   authSnapshot = snapshot;
   noteAuthUser(snapshot.isReady, snapshot.user?.id ?? null);
+  // F281a: this browser has held a session; /login tells a lapsed member from a guest by it.
+  if (snapshot.user) rememberHadSession();
   if (DEBUG_AUTH) {
     console.log("[auth] snapshot", {
       isReady: snapshot.isReady,

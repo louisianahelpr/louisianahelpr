@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { loginNotice } from "./loginNotice";
+import { hadSessionOnThisBrowser } from "@/lib/hadSession";
 import { AlertCircle, Clock } from "lucide-react";
 import { postAuthDestination, rememberSignupRedirect, signupUrlFor } from "@/lib/jobIntent";
 import { rememberReferralFromUrl } from "@/lib/pendingReferral";
@@ -129,7 +130,7 @@ const Login = () => {
       tags: { area: "auth", op: "webSocialRedirect", provider: oauthError.provider ?? "unknown", code: oauthError.code },
     });
   }, [oauthError]);
-  const { accountChoice, notice, leadWithSignup } = loginNotice({ oauthError, connect: searchParams.get("connect"), signedOutForInactivity, sessionLost: searchParams.get("signed_out") === "session-lost", arrivedFromSignup, bouncedFromGatedRoute, redirect: safeInternalRedirect(pendingRedirect) });
+  const { accountChoice, notice, leadWithSignup } = loginNotice({ oauthError, connect: searchParams.get("connect"), signedOutForInactivity, sessionLost: searchParams.get("signed_out") === "session-lost", hadSessionHere: hadSessionOnThisBrowser(), arrivedFromSignup, bouncedFromGatedRoute, redirect: safeInternalRedirect(pendingRedirect) });
   const queryClient = useQueryClient();
   // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
   usePageMeta(NOINDEX_PAGE_META["/login"]);

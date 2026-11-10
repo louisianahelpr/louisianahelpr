@@ -197,7 +197,7 @@ export const sponsorPage = {
       shipTo: "Ship your prize to",
       shipAddress: "Louisiana Helpr, 314 Lynn Street, Delcambre, LA 70528",
       notes: "Anything else? (optional)",
-      agree: "I agree to provide one prize per giveaway day I sign up for",
+      agree: "I agree to provide the prize(s) I described for my giveaway day(s)",
       showOnWall: "OK to show our logo on the sponsor wall",
       submit: "Claim My Day 🎁",
       submitting: "Sending…",

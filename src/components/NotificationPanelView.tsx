@@ -21,7 +21,7 @@ import { JobFoldToggle } from "@/components/notificationPanel/JobFoldToggle";
 import { DaySection } from "@/components/notificationPanel/DaySection";
 import { NotificationTrigger } from "@/components/notificationPanel/NotificationTrigger";
 import { NotificationMessage } from "@/components/notificationPanel/NotificationMessage";
-import { isHelprCancelCopy } from "@/components/notificationPanel/helprCancelCopy";
+import { quickActionFor } from "@/components/notificationPanel/quickActions";
 import type { NotificationPanelModel } from "./NotificationPanel";
 
 export function NotificationPanelView({
@@ -398,33 +398,10 @@ export function NotificationPanelView({
                             {/* Inline quick-action pills — only for actionable
                                 types so chat/review/payment rows stay clean. */}
                             {(() => {
-                              const actions: { label: string; href: string }[] = [];
-                              if (n.type === "expired") {
-                                actions.push({ label: "Repost", href: "/post-job" });
-                              } else if (
-                                // MATCHES STORED TEXT written by Postgres (helprCancelCopy.ts says which).
-                                isHelprCancelCopy(n)
-                              ) {
-                                // The Helpr's copy of a poster cancellation
-                                // (poster_cancel_job + notify_on_job_update both
-                                // emit it). The recipient does not own the job,
-                                // so "Repost" is a poster-only action offered to
-                                // the wrong person — send them to the job instead.
-                                const to = destinationOf(n);
-                                if (to) actions.push({ label: "View", href: to });
-                              } else if (
-                                (n.type === "warning" || n.title === "Your Helpr cancelled") &&
-                                (n.title.toLowerCase().includes("cancelled") ||
-                                  n.message.toLowerCase().includes("auto-cancel"))
-                              ) {
-                                actions.push({ label: "Repost", href: "/post-job" });
-                              } else if (
-                                n.type === "job_update" &&
-                                n.message.toLowerCase().includes("cancelled") &&
-                                destinationOf(n)
-                              ) {
-                                actions.push({ label: "View", href: destinationOf(n)! });
-                              }
+                              // MATCHES STORED TEXT written by Postgres (helprCancelCopy.ts says which).
+                              // F486 (audit 11-10): the pill is picked in quickActions.ts, so Repost reaches only the poster.
+                              const action = quickActionFor(n, destinationOf);
+                              const actions: { label: string; href: string }[] = action ? [action] : [];
                               if (actions.length === 0) return null;
                               return (
                                 <div className="flex gap-1.5 mt-1.5">

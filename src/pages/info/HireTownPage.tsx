@@ -76,11 +76,12 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
             </Link>
           </Button>
           {/* L014: the page named no Helprs; the directory, filtered to this town, is one tap away. */}
-          <p className="text-ds-15">
-            <Link to={`/helprs?town=${encodeURIComponent(town.name)}`} className="link-standard font-semibold" data-town-helprs="" style={ink}>
+          {/* F260t (audit 11-10): read as plain text at 1440 and in dark; now the secondary button it is. */}
+          <Button asChild variant="outline" size="sm" className="squircle">
+            <Link to={`/helprs?town=${encodeURIComponent(town.name)}`} data-town-helprs="">
               See Helprs in {town.name}
             </Link>
-          </p>
+          </Button>
         </section>
         <section aria-labelledby="town-how" className="space-y-3">
           <h2 id="town-how" className="text-ds-17 font-semibold" style={ink}>How it works</h2>

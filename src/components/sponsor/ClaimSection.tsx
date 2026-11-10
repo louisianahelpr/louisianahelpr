@@ -199,9 +199,12 @@ export function ClaimSection({
           <p className="lh25-thanks-days" data-testid="sponsor-thanks-ship">
             <strong>{C.thankYou.shipTo}</strong> {F.shipAddress}
           </p>
-          <a className="lh25-btn lh25-btn-primary" href={href} download="25-days-of-louisiana-giveaways.ics">
-            <Icon name="calendar" size={18} /> <span>{C.thankYou.addToCalendar}</span>
-          </a>
+          {/* F240 (audit 11-10): "Any day, we'll pick one together" has no date yet, so there is nothing to add. */}
+          {done.anyDay ? null : (
+            <a className="lh25-btn lh25-btn-primary" href={href} download="25-days-of-louisiana-giveaways.ics">
+              <Icon name="calendar" size={18} /> <span>{C.thankYou.addToCalendar}</span>
+            </a>
+          )}
         </div>
       </section>
     );

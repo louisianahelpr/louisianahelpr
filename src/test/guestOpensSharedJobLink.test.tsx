@@ -19,7 +19,7 @@
  * @mutate src/pages/jobs/JobDetail.tsx | ) : !job && id && UUID_RE.test(id) ? ( | ) : !job && id && !UUID_RE.test(id) ? (
  * @mutate src/pages/jobs/JobDetail.tsx | navigate(`/login?redirect=${encodeURIComponent(`/jobs/${id}`)}`) | navigate("/login")
  * @mutate src/pages/auth/loginNotice.ts | if (/^\/jobs\/[0-9a-f-]{36}$/i.test(path)) return JOB_LINK_NOTICE; | 
- * @mutate src/pages/auth/loginNotice.ts | notice !== JOB_LINK_NOTICE && (notice === declutterPage | (notice === declutterPage
+ * @mutate src/pages/auth/loginNotice.ts | notice !== JOB_LINK_NOTICE && notice.endsWith(BACK_TO_IT) | notice.endsWith(BACK_TO_IT)
  * @mutate src/pages/auth/Login.tsx | const signupHref = signupUrlFor(pendingRedirect); | const signupHref = pendingRedirect?.match(/^\/jobs\/([^/?#]+)$/) ? signupUrlFor(pendingRedirect) : "/signup";
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";

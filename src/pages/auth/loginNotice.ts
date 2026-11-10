@@ -41,7 +41,7 @@ export function loginNotice(o: {
   // F080 (owner UI audit 11-09): every gated page does the same (the Sell pattern), with its own line.
   // F252: the returning-member lines (payment, finish profile) end with LOG_BACK_IN, so they do not lead with sign-up.
   // F286a: a private job link is the poster's or Helpr's, so it leads with Log in too.
-  const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && notice !== JOB_LINK_NOTICE && (notice === declutterPage || notice.endsWith(BACK_TO_IT));
+  const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && notice !== JOB_LINK_NOTICE && notice.endsWith(BACK_TO_IT);
   return { accountChoice, notice, leadWithSignup };
 }
 

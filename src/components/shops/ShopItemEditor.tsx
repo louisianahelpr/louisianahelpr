@@ -85,6 +85,29 @@ function wholeNumber(s: string, code: string): number {
 }
 const dollars = (c: number) => `$${(c / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 
+/** The title / price a save refusal is about (its code as a whole word in the message), or null. */
+function itemFieldOfError(err: unknown): "title" | "price" | null {
+  const msg = String((err as { message?: unknown } | null)?.message ?? "");
+  if (/(^|[^a-z_])invalid_title($|[^a-z_])/.test(msg)) return "title";
+  if (/(^|[^a-z_])invalid_price($|[^a-z_])/.test(msg)) return "price";
+  return null;
+}
+
+/** Audit 11-10 F11: each thing a draft still needs before Publish, in plain words (the server's own limits). */
+export function publishBlockers(x: { photos: number; title: string; price: string; unticked: number; cottageNeedsTick: boolean; cottageUnknown: boolean }): string[] {
+  const out: string[] = [];
+  if (x.photos < 3) out.push(`Add ${3 - x.photos} more photo${3 - x.photos === 1 ? "" : "s"} (3 to 12).`);
+  const t = x.title.trim().length;
+  if (t < 3 || t > 80) out.push("Give it a title of 3 to 80 characters.");
+  // Read the price the way the save does (cents(): "$", "," and spaces dropped), so "1,200" never blocks Publish.
+  const price = x.price.replace(/[$,\s]/g, "");
+  if (!/^\d+(\.\d{1,2})?$/.test(price) || Number(price) <= 0) out.push("Enter a price.");
+  if (x.unticked > 0) out.push(`Tick ${x.unticked === 1 ? "the confirmation" : `the ${x.unticked} confirmations`} above.`);
+  if (x.cottageNeedsTick) out.push("Confirm this year's home-kitchen sales above.");
+  if (x.cottageUnknown) out.push("Wait for this year's home-kitchen limit to load.");
+  return out;
+}
+
 /**
  * `item` is the server's current copy (the parent's shops_shop_items query),
  * null for a new item; the parent remounts this form (key) when it changes
@@ -104,7 +127,12 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
   const [d, setD] = useState<Draft>(() => fromItem(item));
   const [ticked, setTicked] = useState<string[]>([]);
   const [underCap, setUnderCap] = useState(false);
-  const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((x) => ({ ...x, [k]: v }));
+  // Audit 11-10 F11: a refused title or price shows under its own field, not only in a toast.
+  const [fieldError, setFieldError] = useState<{ field: "title" | "price"; msg: string } | null>(null);
+  const set = <K extends keyof Draft>(k: K, v: Draft[K]) => {
+    setD((x) => ({ ...x, [k]: v }));
+    if ((k === "title" || k === "price") && fieldError?.field === k) setFieldError(null);
+  };
   const digital = d.kind === "digital";
   const refresh = () => void qc.invalidateQueries({ queryKey: ["shops", "items"] });
 
@@ -138,7 +166,17 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
       await qc.invalidateQueries({ queryKey: ["shops", "items"] });
       if (!id) onCreated(savedId);
     },
-    onError: (err) => toast.error(shopsErrorMessage(err)),
+    onError: (err) => {
+      const field = itemFieldOfError(err);
+      if (field) {
+        setFieldError({ field, msg: shopsErrorMessage(err) });
+        const el = document.getElementById(field === "title" ? "item-title" : "item-price");
+        el?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+        el?.focus?.({ preventScroll: true });
+      } else {
+        toast.error(shopsErrorMessage(err));
+      }
+    },
   });
 
   const stock = useMutation({
@@ -221,6 +259,15 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
   const cottageNeedsTick = d.kind === "home_food" && !!cottage.data && !cottage.data.confirmed;
   // Home food cannot publish until the yearly status is known (review should-fix 5).
   const cottageUnknown = d.kind === "home_food" && !cottage.data;
+  // F11: what still stands between this draft and Publish, said beside the button.
+  const blockers = publishBlockers({
+    photos: shown.length,
+    title: d.title,
+    price: d.price,
+    unticked: need.filter((k) => !ticked.includes(k)).length,
+    cottageNeedsTick: cottageNeedsTick && !underCap,
+    cottageUnknown,
+  });
 
   return (
     <section className="space-y-4 rounded-2xl border border-border p-4" aria-labelledby="item-editor-title">
@@ -295,7 +342,9 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
       )}
       <div className="space-y-1.5">
         <Label htmlFor="item-title">Title</Label>
-        <Input id="item-title" value={d.title} maxLength={80} onChange={(e) => set("title", e.target.value)} />
+        <Input id="item-title" value={d.title} maxLength={80} onChange={(e) => set("title", e.target.value)}
+          aria-invalid={fieldError?.field === "title" || undefined} aria-describedby={fieldError?.field === "title" ? "item-title-error" : undefined} />
+        {fieldError?.field === "title" && <p id="item-title-error" className="text-sm text-destructive-ink" role="alert">{fieldError.msg}</p>}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="item-description">Description</Label>
@@ -305,7 +354,9 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="item-price">Price (dollars)</Label>
-          <Input id="item-price" inputMode="decimal" value={d.price} placeholder="e.g. 18" className="placeholder:text-muted-foreground/70" onChange={(e) => set("price", e.target.value)} />
+          <Input id="item-price" inputMode="decimal" value={d.price} placeholder="e.g. 18" className="placeholder:text-muted-foreground/70" onChange={(e) => set("price", e.target.value)}
+            aria-invalid={fieldError?.field === "price" || undefined} aria-describedby={fieldError?.field === "price" ? "item-price-error" : undefined} />
+          {fieldError?.field === "price" && <p id="item-price-error" className="text-sm text-destructive-ink" role="alert">{fieldError.msg}</p>}
         </div>
         {!digital && (
         <div className="space-y-1.5">
@@ -438,10 +489,18 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
               </Label>
             </div>
           )}
+          {blockers.length > 0 && (
+            <div className="rounded-lg bg-muted/70 px-3 py-2 text-sm" data-testid="item-publish-blockers" aria-live="polite">
+              <p className="font-medium">To publish:</p>
+              <ul className="list-disc pl-5">
+                {blockers.map((b) => <li key={b}>{b}</li>)}
+              </ul>
+            </div>
+          )}
           <Button
             type="button"
             className="btn-grad-primary w-full"
-            disabled={busy || !allTicked || cottageUnknown || (cottageNeedsTick && !underCap)}
+            disabled={busy || blockers.length > 0 || !allTicked || cottageUnknown || (cottageNeedsTick && !underCap)}
             onClick={() => publish.mutate()}
           >
             {publish.isPending ? "Publishing…" : "Publish"}

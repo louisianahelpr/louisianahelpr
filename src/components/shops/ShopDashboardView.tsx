@@ -10,6 +10,7 @@
  */
 import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 import { useEffect, useState, type ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -128,7 +129,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
 
   if (myId.isLoading || (!!myId.data && orders.isLoading)) {
     return (
-      <Frame title="Shop dashboard" backTo="/shops">
+      <Frame title="Shop" backTo="/shops">
         <ul className="space-y-3" role="status" aria-label="Loading your shop's orders">
           {/* Q2558: the "You don't have a shop yet." card, 154px measured 2026-11-02 (both test accounts); two
               144px order bones collapsed 146px into it. A shop's order list grows below. */}
@@ -139,14 +140,14 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
   }
   if (myId.isError) {
     return (
-      <Frame title="Shop dashboard" backTo="/shops">
+      <Frame title="Shop" backTo="/shops">
         <ErrorState variant="inline" title="We couldn't load your shop." body={shopsErrorMessage(myId.error)} onRetry={() => void myId.refetch()} />
       </Frame>
     );
   }
   if (!myId.data) {
     return (
-      <Frame title="Shop dashboard" backTo="/shops">
+      <Frame title="Shop" backTo="/shops">
         {embedded ? (
           <ShopsNotice title="You don't have a shop yet.">
             <p>Open a free shop for your business or the things you make. Its orders show here.</p>
@@ -171,7 +172,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
   const earlier = all.filter((o) => o.status !== "held" && o.status !== "accepted");
 
   return (
-    <Frame title="Shop dashboard" backTo={`/shops/${myId.data}`}>
+    <Frame title="Shop" backTo={`/shops/${myId.data}`}>
       <div className="space-y-6 pb-6">
         {header?.(myId.data)}
         {embedded && !orders.isError && (
@@ -256,8 +257,16 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
             )}
           </>
         )}
-        <HandoverModePicker shopId={myId.data} />
-        <ShopDeliveryPicker shopId={myId.data} />
+        {/* Shops audit 11-10 F12: a shop with no order yet sees one closed "Pickup and delivery" row, not two
+            long pickers before anything has happened; the first order opens them for good. */}
+        {all.length > 0 ? (
+          <>
+            <HandoverModePicker shopId={myId.data} />
+            <ShopDeliveryPicker shopId={myId.data} />
+          </>
+        ) : (
+          <HandoverSettingsRow shopId={myId.data} />
+        )}
         <CancelPolicyPicker shopId={myId.data} />
         <ShopCustomRequestsList side="shop" />
         <CustomOrdersPicker shopId={myId.data} />
@@ -299,6 +308,35 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
         </div>
       </BrandConfirmDialog>
     </Frame>
+  );
+}
+
+/** Before the first order: the handover and delivery choices behind one closed row (the defaults hold meanwhile). */
+function HandoverSettingsRow({ shopId }: { shopId: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="space-y-3" aria-label="Pickup and delivery">
+      <button
+        type="button"
+        className="btn-press flex w-full items-center gap-3 rounded-2xl border border-border/60 px-4 py-3 text-left"
+        aria-expanded={open}
+        aria-controls="shop-handover-settings"
+        onClick={() => setOpen((v) => !v)}
+        data-testid="shop-handover-settings-toggle"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">Pickup and delivery</span>
+          <span className="block text-xs text-muted-foreground">Buyers pick up from you unless you change it.</span>
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform${open ? " rotate-180" : ""}`} aria-hidden />
+      </button>
+      {open && (
+        <div id="shop-handover-settings" className="space-y-6">
+          <HandoverModePicker shopId={shopId} />
+          <ShopDeliveryPicker shopId={shopId} />
+        </div>
+      )}
+    </section>
   );
 }
 

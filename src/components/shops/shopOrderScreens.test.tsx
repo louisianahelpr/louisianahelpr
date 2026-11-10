@@ -450,6 +450,40 @@ describe("/shops/dashboard", () => {
     expect(orders.fetchReadyTapCancel).not.toHaveBeenCalled();
   });
 
+  // Shops audit 11-10 F12: before the first order the handover and delivery choices sit behind one closed row.
+  // @mutate src/components/shops/ShopDashboardView.tsx |         {all.length > 0 ? ( |         {all.length >= 0 ? (
+  it("no order yet: one closed Pickup and delivery row; opening it shows the handover choice", async () => {
+    api.fetchMyShopId.mockResolvedValue("s1");
+    orders.fetchCancelPolicy.mockResolvedValue("until_accept");
+    orders.fetchShopOrders.mockResolvedValue([]);
+    renderAt("/shops/dashboard", "/shops/dashboard", <ShopDashboardPage />);
+    const toggle = await screen.findByTestId("shop-handover-settings-toggle");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByText("How buyers get their orders")).toBeNull();
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(await screen.findByText("How buyers get their orders")).toBeTruthy();
+  });
+  it("with an order: the handover choice shows open, with no extra row", async () => {
+    api.fetchMyShopId.mockResolvedValue("s1");
+    orders.fetchCancelPolicy.mockResolvedValue("until_accept");
+    orders.fetchShopOrders.mockResolvedValue([order({ id: "o1" })]);
+    renderAt("/shops/dashboard", "/shops/dashboard", <ShopDashboardPage />);
+    expect(await screen.findByText("How buyers get their orders")).toBeTruthy();
+    expect(screen.queryByTestId("shop-handover-settings-toggle")).toBeNull();
+  });
+  // One name (F12): the page is "Shop", the tab this same view fills; never "Shop dashboard".
+  // @mutate src/pages/shops/ShopDashboardPage.tsx |       <AppPage title="Shop" backTo="/shops"> |       <AppPage title="Shop dashboard" backTo="/shops">
+  it("the page is titled Shop, as its tab", async () => {
+    api.fetchMyShopId.mockResolvedValue("s1");
+    orders.fetchCancelPolicy.mockResolvedValue("until_accept");
+    orders.fetchShopOrders.mockResolvedValue([]);
+    renderAt("/shops/dashboard", "/shops/dashboard", <ShopDashboardPage />);
+    await screen.findByTestId("shop-handover-settings-toggle");
+    expect(screen.queryByText("Shop dashboard")).toBeNull();
+    expect(screen.getAllByText("Shop").length).toBeGreaterThan(0);
+  });
+
   it("a member with no shop is told so", async () => {
     renderAt("/shops/dashboard", "/shops/dashboard", <ShopDashboardPage />);
     expect(await screen.findByText("You don't have a shop yet.")).toBeTruthy();

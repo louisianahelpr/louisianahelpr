@@ -5,6 +5,7 @@
  * holds a checkbox; the two yes/no filters are pressed-state pill buttons that toggle the filter.
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx | <Chip on={filters.porchOnly} onClick={() => onChange({ ...filters, porchOnly: !filters.porchOnly })}>{HANDOVER_TITLE.porch}</Chip> | <label><input type="checkbox" checked={filters.porchOnly} onChange={() => onChange({ ...filters, porchOnly: !filters.porchOnly })} />{HANDOVER_TITLE.porch}</label>
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx | <Row><Chip on={filters.dropsOnly} onClick={() => onChange({ ...filters, dropsOnly: !filters.dropsOnly })}>Only items with nightly price drops</Chip></Row> | <label><input type="checkbox" checked={filters.dropsOnly} onChange={() => onChange({ ...filters, dropsOnly: !filters.dropsOnly })} />Only items with nightly price drops</label>
+ * @mutate src/components/declutter/DeclutterFilterPanel.tsx | {priceRangeSwapped(filters) && <p | {false && <p
  */
 import { describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -41,5 +42,16 @@ describe("Declutter Filters: pill buttons, never a square checkbox (DA-19)", () 
       expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ [key]: true }));
       cleanup();
     }
+  });
+
+  // Audit 1110 F312: a min above the max is called out in red under the two boxes, with nothing disabled.
+  it("a min above the max shows 'Min is more than max' under the price boxes, and only then", () => {
+    renderSections({ ...NO_FILTERS, minDollars: 50, maxDollars: 5 }, () => {});
+    const hint = screen.getByRole("alert");
+    expect(hint.textContent).toBe("Min is more than max");
+    expect(hint.closest("section")).toHaveAttribute("aria-label", "Price");
+    cleanup();
+    renderSections({ ...NO_FILTERS, minDollars: 5, maxDollars: 50 }, () => {});
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

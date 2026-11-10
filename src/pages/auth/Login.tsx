@@ -25,7 +25,7 @@ import { useCaptcha } from "@/hooks/useCaptcha";
 import { signInWithTimeout, isTransportFailure } from "@/lib/loginTransport";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { queryKeys } from "@/lib/queryKeys";
-import { friendlyAuthError } from "@/lib/authErrors";
+import { EMAIL_NOT_CONFIRMED_MESSAGE, friendlyAuthError } from "@/lib/authErrors";
 import { isExpectedSocialRefusal, takeOAuthRedirectError } from "@/lib/oauthRedirectError";
 import { report } from "@/lib/errorLogger";
 import {
@@ -512,9 +512,18 @@ const Login = () => {
             <p role="alert" data-login-cred-error="" className="flex flex-wrap items-start gap-x-1 text-ds-13 font-sans text-[hsl(var(--destructive-ink))]">
               <X className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
               <span>{credError}</span>{" "}
-              <Link to="/forgot-password" state={forgotState} className="font-bold underline underline-offset-4" style={{ color: "hsl(var(--bark))" }}>
-                {t("login.forgot")}
-              </Link>
+              {/* F259f (audit 11-10): an unverified account was told to check its inbox with no way to get the email
+                  again, and a second "Forgot password?" under the one on the Password row. It now gets the check-email
+                  page (its Resend button), carrying the typed address; every other error keeps Forgot password. */}
+              {credError === EMAIL_NOT_CONFIRMED_MESSAGE ? (
+                <Link to="/signup-pending" state={{ email: email.trim() }} data-login-resend-verify="" className="font-bold underline underline-offset-4" style={{ color: "hsl(var(--bark))" }}>
+                  Send the email again
+                </Link>
+              ) : (
+                <Link to="/forgot-password" state={forgotState} className="font-bold underline underline-offset-4" style={{ color: "hsl(var(--bark))" }}>
+                  {t("login.forgot")}
+                </Link>
+              )}
             </p>
           )}
           <Button

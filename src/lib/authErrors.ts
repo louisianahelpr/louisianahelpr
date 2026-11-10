@@ -17,6 +17,9 @@
  * signup wall: they are short lowercase prose, so `userFacingError`'s
  * machine-shape filter trusts them and passes them through verbatim.
  */
+/** F259f (audit 11-10): Login offers "Send the email again" beside this one message, instead of Forgot password. */
+export const EMAIL_NOT_CONFIRMED_MESSAGE = "Please verify your email first — check your inbox for the link.";
+
 export function recognizedAuthError(raw: string | undefined | null): string | null {
   const msg = (raw ?? "").toLowerCase();
 
@@ -24,7 +27,7 @@ export function recognizedAuthError(raw: string | undefined | null): string | nu
     return "That email or password doesn't match. Give it another try.";
   }
   if (msg.includes("email not confirmed")) {
-    return "Please verify your email first — check your inbox for the link.";
+    return EMAIL_NOT_CONFIRMED_MESSAGE;
   }
   if (msg.includes("rate") && msg.includes("limit")) {
     return "Too many attempts just now. Give it a moment and try again.";

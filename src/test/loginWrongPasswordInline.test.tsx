@@ -6,6 +6,7 @@
  * @mutate src/pages/auth/Login.tsx |         setCredError(friendlyAuthError(error.message)); |         toast.error(friendlyAuthError(error.message));
  * @mutate src/pages/auth/Login.tsx |               {emailValid && !credError && ( |               {emailValid && (
  * @mutate src/pages/auth/Login.tsx | onChange={(e) => { setPassword(e.target.value); setCredError(null); }} | onChange={(e) => setPassword(e.target.value)}
+ * @mutate src/pages/auth/Login.tsx |               {credError === EMAIL_NOT_CONFIRMED_MESSAGE ? ( |               {credError === null ? (
  */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -18,8 +19,9 @@ vi.mock("@/hooks/useCaptcha", () => ({
   useCaptcha: () => ({ ref: { current: null }, run: <T,>(fn: (token: string | undefined) => Promise<T>) => fn(undefined) }),
 }));
 vi.mock("@/components/auth/TurnstileField", () => ({ TurnstileField: () => null }));
+const signInMessage = vi.hoisted(() => ({ value: "Invalid login credentials" }));
 vi.mock("@/lib/loginTransport", () => ({
-  signInWithTimeout: async () => ({ data: { session: null }, error: new Error("Invalid login credentials") }),
+  signInWithTimeout: async () => ({ data: { session: null }, error: new Error(signInMessage.value) }),
   isTransportFailure: () => false,
 }));
 vi.mock("@/lib/haptics", () => ({ hapticMedium: () => {}, hapticSuccess: () => {}, hapticError: () => {} }));
@@ -62,5 +64,36 @@ describe("F028: a wrong email or password is said above Log in, not in a corner 
 
     fireEvent.change(container.querySelector("#password")!, { target: { value: "another-try" } });
     expect(container.querySelector("[data-login-cred-error]")).toBeNull();
+  });
+
+  // F259f (audit 11-10): an unverified account was told to check its inbox with no way to get the email again, beside
+  // a second "Forgot password?". It now links to the check-email page (its Resend), with the typed address.
+  it("F259f: an unverified account gets 'Send the email again', not a second Forgot password", async () => {
+    localStorage.clear();
+    signInMessage.value = "Email not confirmed";
+    try {
+      const { container } = render(
+        <QueryClientProvider client={new QueryClient()}>
+          <MemoryRouter initialEntries={["/login"]}>
+            <Login />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      fireEvent.change(container.querySelector("#email")!, { target: { value: "dana@example.com" } });
+      fireEvent.change(container.querySelector("#password")!, { target: { value: "a-password-here" } });
+      fireEvent.submit(container.querySelector("form")!);
+      const alert = await waitFor(() => {
+        const el = container.querySelector("[data-login-cred-error]") as HTMLElement | null;
+        expect(el).not.toBeNull();
+        return el!;
+      });
+      expect(alert).toHaveTextContent("Please verify your email first");
+      const link = alert.querySelector("a")!;
+      expect(link.textContent).toBe("Send the email again");
+      expect(link.getAttribute("href")).toBe("/signup-pending");
+      expect(alert.querySelector('a[href="/forgot-password"]')).toBeNull();
+    } finally {
+      signInMessage.value = "Invalid login credentials";
+    }
   });
 });

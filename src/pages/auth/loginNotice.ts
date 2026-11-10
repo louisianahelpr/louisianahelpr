@@ -81,6 +81,9 @@ export function declutterGatedNotice(redirect: string | null | undefined): strin
   if (url.pathname.startsWith("/declutter/item/")) return `That's an item for sale on Declutter, neighbors selling what they don't need. ${back}`;
   // Every Sell address (the one-item form, a bunch, the chooser) starts with the one-item form's path.
   if (url.pathname.startsWith(SELL_ONE_PATH)) return `Selling on Declutter needs an account. ${back}`;
+  // Audit 11-10 F359l: the settings page and the moving-sale planner were "That's Declutter..." too; they say what they are.
+  if (url.pathname.startsWith("/declutter/settings")) return `Your Declutter settings need an account. ${back}`;
+  if (url.pathname.startsWith("/declutter/move")) return `Planning a moving sale? That needs an account. ${back}`;
   const tab = url.searchParams.get("tab");
   if (tab === "buying") return `Your Declutter orders need an account. ${back}`;
   if (tab === "selling") return `Your Declutter listings need an account. ${back}`;

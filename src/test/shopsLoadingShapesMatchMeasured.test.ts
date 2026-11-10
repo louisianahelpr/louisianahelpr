@@ -22,9 +22,9 @@
  */
 // @mutate src/components/shops/ShopMyOrdersView.tsx |           <div className="invisible" aria-hidden>\n            <NoOrdersYet />\n          </div> |           <div className="h-36" aria-hidden />
 // @mutate src/components/shops/ShopDashboardView.tsx |             <NoShopYet embedded={embedded} placeholder />\n | \n
-// @mutate src/components/shops/ShopEditView.tsx |         <div className="invisible" aria-hidden>\n          {children}\n        </div> |         <div className="h-56" aria-hidden />
+// @mutate src/components/shops/ShopEditView.tsx |       <div className="invisible" aria-hidden>\n        {children}\n      </div> |       <div className="h-56" aria-hidden />
 // @mutate src/components/shops/ShopView.tsx |         <div className="invisible" aria-hidden>\n          <ShopUnavailable />\n        </div> |         <div className="h-[296px]" aria-hidden />
-// @mutate src/components/shops/ShopEditView.tsx | return <ShopEditSkeleton>{formEl}</ShopEditSkeleton>; | return <ShopEditSkeleton>{null}</ShopEditSkeleton>;
+// @mutate src/components/shops/ShopEditView.tsx | <ShopEditSkeleton>{formEl}</ShopEditSkeleton> | <ShopEditSkeleton>{null}</ShopEditSkeleton>
 // @mutate src/components/shops/ShopDashboardView.tsx |   if (myId.isLoading \|\| (!!myId.data && (orders.isLoading \|\| !payoutSettled))) { |   if (myId.isLoading \|\| (!!myId.data && orders.isLoading)) {
 // @mutate src/components/shops/ShopPayoutRow.tsx |   return sw.settled && (!sw.on \|\| hire.settled); |   return true;
 import { readFileSync } from "node:fs";

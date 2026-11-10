@@ -6,6 +6,7 @@ import { useSearchParamMirror } from "@/hooks/useSearchParamMirror";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
 import { haversineMiles, parseNearbyFilter } from "@/lib/geo";
+import { jobAreaPoint } from "@/lib/jobAreaPoint";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { sortJobsSmart, compareJobsBySortMode } from "@/lib/smartSort";
 import { earlyAccessDelayMs, resolveEarlyAccessTier } from "@/lib/earlyAccess";
@@ -15,6 +16,13 @@ import { useDashboardJobsCount } from "@/hooks/useDashboardJobsCount";
 import { jobMatchesWhen, jobWhenRange } from "@/lib/jobWhenFilter";
 import { jobLastDay } from "@/lib/jobDateWindow";
 import { isJobExcludedForViewer, type ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
+
+/**
+ * Extra miles a job placed only by its parish gets in a radius filter (see the Nearby filter below). 40: Cameron's
+ * centre in parishCentroids.ts (-93.17) is about 37 miles from the parish's west end at the Sabine River (~-93.84),
+ * the widest spread found, so a job really within the radius is not hidden for being placed at its parish centre.
+ */
+const APPROX_SLACK_MI = 40;
 
 // Persisted browse-feed sort key. Stored in localStorage so a helper's
 // pick survives reloads; defaults to "smart" the very first time the
@@ -349,18 +357,23 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
       // collapsing the last two into one `else` is what made this filter a
       // silent no-op for every logged-out visitor (BD-001).
       if (nearbyMiles !== null) {
-        const jLat = job.latitude;
-        const jLng = job.longitude;
-        if (userLoc.status === "ready" && typeof jLat === "number" && typeof jLng === "number") {
-          // 1. The real filter. Both ends have coordinates, so measure.
-          //    The job's are the view's 2dp-masked pair (~1.1km), which is
+        const jPoint = jobAreaPoint(job);
+        if (userLoc.status === "ready" && jPoint) {
+          // 1. The real filter. Both ends have a position, so measure.
+          //    The job's is the view's 2dp-masked pair (~1.1km), which is
           //    well inside the error a phone's own fix already carries — it
           //    cannot move a job across a 5-mile boundary, let alone a 25.
-          if (haversineMiles(userLoc.lat, userLoc.lng, jLat, jLng) > nearbyMiles) return false;
+          //    A job whose address never geocoded (owner bug 2026-11-10) is
+          //    measured from its parish's centre instead, with APPROX_SLACK_MI
+          //    of slack (the widest parish's half-width): wrongly hiding a
+          //    real listing is worse than one extra card.
+          const limit = jPoint.approximate ? nearbyMiles + APPROX_SLACK_MI : nearbyMiles;
+          if (haversineMiles(userLoc.lat, userLoc.lng, jPoint.lat, jPoint.lng) > limit) return false;
         } else if (userLoc.status === "ready") {
-          // 2. We know where the VIEWER is, but this job has no geocode —
-          //    geocoding failed, is still pending, or the poster deleted their
-          //    account (which nulls the coordinates). We cannot measure it.
+          // 2. We know where the VIEWER is, but this job has no geocode and no
+          //    parish we can place — geocoding failed, is still pending, or the
+          //    poster deleted their account (which nulls the coordinates). We
+          //    cannot measure it.
           //
           //    It is kept, not hidden: a poster whose geocode failed silently
           //    losing their listing is a worse failure than one extra card in

@@ -6,8 +6,9 @@
  *     pre-fills a Declutter Help job (category, a title that fits the 32-char
  *     cap, the template with the no-account line).
  *   - B: nearby shops in "Declutter and estate sale services" on the Shops
- *     card, each with a greyed "Request a quote" (Coming soon; no shop can be
- *     asked yet: Q1869 / Q1947), and an empty state that only says so (deep
+ *     card, each with "Request a quote", which opens the member's chat with
+ *     that business on its shop page with the quote line started (Q1947,
+ *     ?ask=quote), and an empty state that only says so (deep
  *     audit #34: its "Hire a Helpr instead" did what "Hire a local Helpr",
  *     right above, does).
  *     Only while the 'shops' switch is on; otherwise the sheet offers A alone
@@ -18,7 +19,8 @@
  * @mutate src/components/declutter/SellItForMe.tsx |   if (!declutterOn) return null; |
  * @mutate src/components/declutter/SellItForMe.tsx | {shopsOn && open && <LocalBusinesses />} | {open && <LocalBusinesses />}
  * @mutate src/components/declutter/SellItForMe.tsx |     queryFn: () => browseShops({ lat: from?.lat ?? null, lng: from?.lng ?? null, category: SELL_FOR_ME_SHOP_CATEGORY }), |     queryFn: () => browseShops({ lat: from?.lat ?? null, lng: from?.lng ?? null }),
- * @mutate src/components/declutter/SellItForMe.tsx |                   onClick={() => setAsked(s.id)} |                   onClick={() => {}}
+ * @mutate src/components/declutter/SellItForMe.tsx |                   onClick={() => ask.mutate(s.id)} |                   onClick={() => {}}
+ * @mutate src/components/declutter/SellItForMe.tsx | navigate(`/shops/${shopId}?talk=${talkId}&ask=quote`) | navigate(`/shops/${shopId}?talk=${talkId}`)
  * @mutate src/components/declutter/SellItForMe.tsx |           <p className="mt-2 text-sm font-semibold">No local businesses offer this yet.</p>\n |           <p className="mt-2 text-sm font-semibold">No local businesses offer this yet.</p><button type="button">Hire a Helpr instead</button>\n
  * @mutate src/components/declutter/SellItForMe.tsx |     if (underAge) {\n      explain("post");\n      return;\n    } | 
  * @mutate src/components/declutter/SellItForMe.tsx |     onHire();\n |     onOpenChange(false);\n
@@ -70,8 +72,12 @@ vi.mock("@/lib/shops/api", () => ({
   ],
   shopPhotoUrl: (p: string) => `https://x/${p}`,
 }));
+const talk = vi.hoisted(() => ({ opened: [] as string[] }));
+vi.mock("@/lib/shops/talk", () => ({
+  openShopTalk: async (shopId: string) => { talk.opened.push(shopId); return "00000000-0000-4000-8000-0000000000aa"; },
+}));
 
-import { SellItForMeEntry, QUOTE_SOON_LINE } from "./SellItForMe";
+import { SellItForMeEntry } from "./SellItForMe";
 import { buildSellForMePrefill, SELL_FOR_ME_NO_ACCOUNT_LINE, sellForMePostJobPath } from "@/lib/declutter/sellForMe";
 import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
 import { isLaborTaxable } from "@/lib/salesTax";
@@ -94,6 +100,7 @@ function show() {
         <Routes>
           <Route path="/declutter" element={<SellItForMeEntry />} />
           <Route path="/post-job" element={<Where />} />
+          <Route path="/shops/:id" element={<Where />} />
         </Routes>
       </QueryClientProvider>
     </MemoryRouter>,
@@ -196,7 +203,7 @@ describe("Sell it for me: B, ask a local business", () => {
     state.fail = false;
   });
 
-  it("lists nearby shops in the declutter category on the Shops card, each with a greyed Request a quote", async () => {
+  it("lists nearby shops in the declutter category on the Shops card; Request a quote opens that shop's chat with the quote line", async () => {
     state.shops = [shop("s1", "Bayou Consignment"), shop("s2", "Red Stick Estate Sales")];
     show();
     open();
@@ -207,13 +214,13 @@ describe("Sell it for me: B, ask a local business", () => {
     expect(first.getByText("Bayou Consignment")).toBeInTheDocument();
     expect(cards[0].querySelector("[data-shop-card]")?.getAttribute("href")).toBe("/shops/s1");
     const ask = first.getByTestId("sell-for-me-request-quote");
-    expect(ask).toHaveAttribute("aria-disabled", "true");
-    expect(first.getByText("Coming soon")).toBeInTheDocument();
-    expect(screen.queryByText(QUOTE_SOON_LINE)).toBeNull();
+    expect(ask).not.toHaveAttribute("aria-disabled");
+    expect(first.queryByText("Coming soon")).toBeNull();
+    talk.opened = [];
     fireEvent.click(ask);
-    expect(first.getByText(QUOTE_SOON_LINE)).toBeInTheDocument();
-    // Nothing navigated: no dead thread, no quote form.
-    expect(screen.queryByTestId("where")).toBeNull();
+    // The member's one chat with THAT shop, opened over its page with the quote line started (ShopTalk QUOTE_DRAFT).
+    expect(await screen.findByTestId("where")).toHaveTextContent("/shops/s1?talk=00000000-0000-4000-8000-0000000000aa&ask=quote");
+    expect(talk.opened).toEqual(["s1"]);
   });
 
   it("no businesses yet: says so, and the sheet has ONE way to hire a Helpr (deep audit #34)", async () => {

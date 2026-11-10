@@ -16,7 +16,7 @@
  *
  * @mutate supabase/functions/create-payment/index.ts |         if (comeBack.pending) throw new PublicError(COME_BACK_PENDING_MESSAGE); |
  * @mutate supabase/functions/create-payment/index.ts |         if (!comeBack.ok) throw new PublicError("We couldn't check this job right now, so it wasn't marked done. Try again in a minute."); |
- * @mutate supabase/functions/create-payment/index.ts |           if (isHelper && !isPoster && !job.helper_completed_at) await newHelperCompletionGates(job);\n        }\n |         }\n
+ * @mutate supabase/functions/create-payment/index.ts |           if (isHelper && !isPoster && !job.helper_completed_at) await newHelperCompletionGates(job);\n          await posterFinishRefusal(job);\n        }\n |           await posterFinishRefusal(job);\n        }\n
  * @mutate supabase/functions/auto-release-payment/index.ts |             if (comeBack.jobs.has(j.id)) continue; |
  * @mutate supabase/functions/_shared/refundRequestHold.ts |       .or("status.eq.coming_back,closed_reason.eq.coming_back"); |       .or("status.eq.coming_back");
  * @mutate supabase/functions/_shared/refundRequestHold.ts |     if (typeof res.data !== "boolean") return { ok: false, message: "refund_come_back_pending returned no answer" }; |

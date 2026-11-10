@@ -889,6 +889,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/continueDay.ts";`,
   );
 
+  // The poster finishes the job (owner 11-10): `_shared/posterFinish.ts` imports only the pure cancellationFee.ts, so
+  // the REAL refusal words run inside create-payment.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/posterFinish\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/posterFinish.ts";`,
+  );
+
   // Agreed part refund's rush share (owner 2026-10-21): `_shared/refundRush.ts`
   // has ZERO imports, so the REAL rule runs inside execute-dispute-split.
   out = out.replace(

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-09T07:08Z",
+  "measured_at": "2026-11-10T02:46Z",
   "issues": {
     "readable": true,
     "open": [
@@ -22,7 +22,7 @@
         "number": 2353,
         "title": "nightly-red: press-every-control",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42362289081",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42609204217",
         "runTruncated": false
       },
       {
@@ -36,7 +36,7 @@
         "number": 2375,
         "title": "nightly-red: a11y-webkit-prod",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42255030839",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42686315674",
         "runTruncated": false
       },
       {
@@ -71,7 +71,7 @@
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42503384265",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42702937638",
         "runTruncated": false
       },
       {
@@ -83,40 +83,35 @@
       },
       {
         "number": 3823,
-        "title": "🔴 3 scheduled workflow(s) have stopped running",
+        "title": "🔴 1 scheduled workflow(s) have stopped running",
         "label": "schedule-stalled"
       },
       {
         "number": 3824,
         "title": "nightly-red: schedule-heartbeat",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42503284757",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42702738300",
         "runTruncated": false
       },
       {
         "number": 4149,
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42509531248",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42716534692",
         "runTruncated": false
       },
       {
         "number": 4222,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42553904004",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42714438867",
         "runTruncated": false
-      },
-      {
-        "number": 4242,
-        "title": "🔴 Migration drift: 1 unapplied / 0 unrecorded",
-        "label": "migration-drift"
       },
       {
         "number": 4245,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42536791788",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42731259752",
         "runTruncated": false
       },
       {
@@ -130,21 +125,7 @@
         "number": 4258,
         "title": "nightly-red: prod-errors",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42554076186",
-        "runTruncated": false
-      },
-      {
-        "number": 4261,
-        "title": "nightly-red: main: Supabase DB Deploy",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42536791974",
-        "runTruncated": false
-      },
-      {
-        "number": 4264,
-        "title": "nightly-red: main: Vitest",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42540130824",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42714481774",
         "runTruncated": false
       },
       {
@@ -152,6 +133,20 @@
         "title": "nightly-red: nightly-live-smoke",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42552145903",
+        "runTruncated": false
+      },
+      {
+        "number": 4281,
+        "title": "nightly-red: main: Sensitive review record",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42744529169",
+        "runTruncated": false
+      },
+      {
+        "number": 4288,
+        "title": "nightly-red: main: Supabase DB Deploy",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42731259967",
         "runTruncated": false
       }
     ]
@@ -184,14 +179,6 @@
         "issue": 2353
       },
       {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": 4264
-      },
-      {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -216,12 +203,12 @@
         "issue": null
       },
       {
-        "fingerprint": "42a784cb226e506d814a710c96d26487",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
         "status": "open",
-        "title": "nightly-red: main: supabase db deploy",
-        "issue": 4261
+        "title": "db-deploy failed on main",
+        "issue": null
       },
       {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
@@ -304,6 +291,14 @@
         "issue": 2375
       },
       {
+        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: sensitive review record",
+        "issue": 4281
+      },
+      {
         "fingerprint": "0bebf0385b3e217facd52bb36536de1f",
         "source_kind": "sentry",
         "source": "sentry:assets/supabase",
@@ -333,7 +328,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": 4222
+        "issue": null
       },
       {
         "fingerprint": "f1bfed973a2a75d4ef5bb8ce2a1785df",
@@ -448,6 +443,14 @@
         "issue": null
       },
       {
+        "fingerprint": "4840f1c5d1e74cf39f68000b5c6580da",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/ · boot stalled #s on the startup screen (boot scripts unfinished: #)",
+        "issue": null
+      },
+      {
         "fingerprint": "c540527c8265b56e664f823f4805b1ec",
         "source_kind": "sentry",
         "source": "sentry:assets/supabase",
@@ -496,12 +499,44 @@
         "issue": null
       },
       {
+        "fingerprint": "dd2ccbc600cefe639623d0c8e3339c8c",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/ · error screen shown: couldn't load the newest jobs.",
+        "issue": null
+      },
+      {
         "fingerprint": "feb363ff214ac3c02969933acc795e1e",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: nightly-live-smoke",
         "issue": 4270
+      },
+      {
+        "fingerprint": "60dd730d868e59e9782f8c988b69c446",
+        "source_kind": "sentry",
+        "source": "sentry:https://www.louisianahelpr.com/",
+        "status": "open",
+        "title": "unhandledrejection: non-error promise rejection captured with value: object not found matching id:#, methodname:update, paramcount:#",
+        "issue": null
+      },
+      {
+        "fingerprint": "8b1b5ac42f94df73b646456ff83c9e69",
+        "source_kind": "sentry",
+        "source": "sentry:unknown",
+        "status": "open",
+        "title": "ms",
+        "issue": null
+      },
+      {
+        "fingerprint": "e19cffc1cc66f118da45230c04ed11b8",
+        "source_kind": "sentry",
+        "source": "sentry:assets/NotFound",
+        "status": "open",
+        "title": "error: 404 — non-existent route: /homes",
+        "issue": null
       }
     ]
   },
@@ -525,9 +560,9 @@
     "issue #4245": "Q1816",
     "issue #4253": "Q1816",
     "issue #4258": "Q1816",
-    "issue #4261": "Q1816",
-    "issue #4264": "Q1816",
     "issue #4270": "Q1816",
+    "issue #4281": "Q1816",
+    "issue #4288": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",
@@ -544,12 +579,14 @@
     "ledger 3c0d6b003e08": "Q1810",
     "ledger 3c528ace98fd": "Q2350",
     "ledger 41f88aeb227f": "Q1777",
-    "ledger 42a784cb226e": "Q1816",
     "ledger 43d77e26f272": "Q1816",
+    "ledger 4840f1c5d1e7": "Q2779",
     "ledger 4aa239aefeb6": "Q1816",
     "ledger 4c89303184fb": "Q1816",
+    "ledger 54ef0bfdcec3": "Q2778",
     "ledger 5a28db44e912": "Q2410",
     "ledger 60298a019ea3": "Q1776",
+    "ledger 60dd730d868e": "Q2781",
     "ledger 6205197429d4": "Q1816",
     "ledger 6389f98a9f66": "Q1816",
     "ledger 747845433253": "Q2775",
@@ -559,6 +596,7 @@
     "ledger 88b4addefbcd": "Q2503",
     "ledger 88ecf6e765df": "Q1816",
     "ledger 8a2e802edbe7": "Q2498",
+    "ledger 8b1b5ac42f94": "Q2782",
     "ledger 8f6eb3360000": "Q2507",
     "ledger 9078a39b3304": "Q1615",
     "ledger 99390a68ded7": "Q1615",
@@ -573,8 +611,10 @@
     "ledger cae29df0662b": "Q2351",
     "ledger d1f8391b44ec": "Q1631",
     "ledger db0fb15c4ec3": "Q1816",
+    "ledger dd2ccbc600ce": "Q2780",
+    "ledger e19cffc1cc66": "Q2783",
+    "ledger e41c806b9175": "Q1816",
     "ledger f1bfed973a2a": "Q2734",
-    "ledger f22e3275d50d": "Q1816",
     "ledger feb363ff214a": "Q1816"
   }
 }

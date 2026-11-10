@@ -93,7 +93,7 @@ export default function ShopView() {
   if (shop.isError || !shop.data) {
     return (
       <AppPage title="Shop" backTo="/shops">
-        <ShopUnavailable body={shop.isError ? shopsErrorMessage(shop.error) : "It may have closed."} />
+        <ShopUnavailable body={shop.isError ? shopsErrorMessage(shop.error) : undefined} />
       </AppPage>
     );
   }

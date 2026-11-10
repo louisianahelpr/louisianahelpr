@@ -23,6 +23,8 @@ import { CheckoutPickupTime } from "@/components/declutter/CheckoutPickupTime";
 
 const invoke = vi.fn(async (_fn: string, _opts: { body: Record<string, unknown> }) => ({ data: { url: "https://checkout.stripe.com/x" }, error: null }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invoke: (fn: string, opts: { body: Record<string, unknown> }) => invoke(fn, opts) } } }));
+// The checkout funnel ping is fire-and-forget through supabase.rpc; keep it off the network in a shared vitest run.
+vi.mock("@/lib/declutter/funnel", () => ({ trackFunnel: () => {} }));
 const lastBody = () => invoke.mock.calls[invoke.mock.calls.length - 1]?.[1].body;
 
 const read = (p: string) => readFileSync(p, "utf8");

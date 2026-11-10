@@ -168,7 +168,7 @@ describe("landing UI audit 2026-11-09", () => {
     const { default: HowItWorksSection } = await import("@/components/landing/HowItWorksSection");
     const { unmount } = render(<MemoryRouter><HowItWorksSection /></MemoryRouter>);
     const tabs = within(screen.getByRole("tablist", { name: "Which side of Helpr are you on" })).getAllByRole("tab");
-    expect(tabs.map((t) => t.textContent)).toEqual(["I need help", "I want to work"]);
+    expect(tabs.map((t) => t.textContent)).toEqual(["I need help", "I want to work", "Buy or sell"]);
     for (const t of tabs) {
       const cls = t.className.split(" ");
       expect(cls, t.textContent!).toContain("text-ds-13");

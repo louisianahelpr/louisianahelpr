@@ -198,6 +198,8 @@ describe("card hold at posting (Q2399)", () => {
       expect(args?.payment_intent_data?.metadata?.card_hold).toBe("1");
       expect(opts?.apiVersion).toBe("2025-09-30.clover");
       expect(opts?.idempotencyKey).toMatch(/-h-b\d+$/);
+      // audit 11-10 F299: Stripe's "Pay $100" button alone reads as a charge; the line under it says it is a hold.
+      expect(args?.custom_text?.submit?.message).toBe(CARD_HOLD_COPY.checkout(10000));
     });
 
     it("switch OFF: today's checkout, captured at once (no capture_method, no API override)", async () => {
@@ -209,6 +211,7 @@ describe("card hold at posting (Q2399)", () => {
       // "" is unset at Stripe (as wallet_save): the webhook settles it as today's checkout.
       expect(args?.metadata?.card_hold).toBe("");
       expect(opts?.apiVersion).toBeUndefined();
+      expect(args?.custom_text).toBeUndefined();
     });
 
     it("switch ON, a job 20 days out: the card is saved (setup mode) for a hold 4 days before the start", async () => {

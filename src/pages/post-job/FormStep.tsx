@@ -28,6 +28,7 @@ import { JOB_CATEGORY_GROUPS, sentenceCaseLabel, type JobCategoryGroupId } from 
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { t, useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enPostJob";
+import { CARD_HOLD_COPY } from "../../../supabase/functions/_shared/cardHoldCopy";
 import type { MsgKey } from "@/lib/i18n/en";
 import {
   PriceModeChoice,
@@ -337,7 +338,7 @@ export function FormStep({ form }: FormStepProps) {
 
         {/* PAGE 3: PRICE, screen 5 of 7 (board 3), or the quote window with "Get quotes" picked */}
         <div data-form-page="3" hidden={page !== 3} className="space-y-section">
-          <PostJobStepHeader screen="price" question={t("postJob.priceQ")} helper={askingQuotes ? "Choose how long Helprs near you can send quotes." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : form.cardHoldOn ? "Your card isn't charged until a Helpr accepts your offer. The money is then held until the job is done." : "You're charged when you post. The money is held until the job is done."} canPick={canPickStep} onPick={pickStep} />
+          <PostJobStepHeader screen="price" question={t("postJob.priceQ")} helper={askingQuotes ? "Choose how long Helprs near you can send quotes." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : form.cardHoldOn ? CARD_HOLD_COPY.postPromise : "You're charged when you post. The money is held until the job is done."} canPick={canPickStep} onPick={pickStep} />
           {quotesShape && quotes.settled && (
             <PriceModeChoice value={priceMode} onChange={setPriceMode} quotesComingSoon={!quotesOn} />
           )}

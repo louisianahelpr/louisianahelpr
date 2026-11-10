@@ -37,12 +37,12 @@ export function useProofLine(): string {
   return proofLine(useIdentityCheckOnStore());
 }
 
-/** The finished job, as the first card of the Jobs grid: a row on a phone, a column card from lg (the job cards' shape). */
+/** The finished job, as the first card of the Jobs grid: photo beside the words at every width, so from lg it fits the row's 176px like the job cards (a column was 203px tall and the row's other card 176px, 11-10 screenshot). */
 export function LandingProof() {
   return (
     <div
       data-testid="landing-proof"
-      className="h-full rounded-2xl p-4 lg:p-6 flex lg:flex-col items-center lg:items-start gap-3 lg:gap-4 min-w-0"
+      className="h-full rounded-2xl p-4 lg:p-6 flex items-center gap-3 lg:gap-4 min-w-0"
       style={{ background: "var(--lp-ground)", color: "var(--lp-ink)" }}
     >
       <img

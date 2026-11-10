@@ -7,7 +7,7 @@
  * Reads the NEWEST definition of each function (effectiveDefs), comments blanked.
  *
  * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql | PERFORM public.declutter_notify(o.buyer_id, 'payment', 'We reviewed your delivery problem', | PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Louisiana Helpr decided',
- * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql | 'Sale is final', 'The free handover stands', 'Free pickup cancelled', | 'The free handover stands', 'Free pickup cancelled',
+ * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql | 'Sale is final', 'The free handover stands', 'Free pickup cancelled by our team', | 'The free handover stands', 'Free pickup cancelled by our team',
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
@@ -20,8 +20,9 @@ const code = (fn: string) => {
   expect(s.length, fn).toBeGreaterThan(200);
   return s;
 };
-const TITLES = ["Sale is final", "The free handover stands", "Free pickup cancelled", "Part refund on your Declutter order",
-  "Refund on your Declutter order", "We reviewed your delivery problem"];
+const TITLES = ["Sale is final", "The free handover stands", "Free pickup cancelled by our team",
+  "Part refund on your Declutter order", "Refund on your Declutter order", "We reviewed your delivery problem",
+  "Sale cancelled after delivery problem"];
 
 describe("11-10 notice wording", () => {
   it("F503: no decision notice is titled 'Louisiana Helpr decided'; each outcome has its own short title", () => {
@@ -36,6 +37,7 @@ describe("11-10 notice wording", () => {
   it("F503: declutter_notice_type files every new title under declutter_refunds", () => {
     const nt = code("declutter_notice_type");
     const refunds = /WHEN p_title IN \(([^)]*'Louisiana Helpr decided'[^)]*)\)\s*THEN 'declutter_refunds'/.exec(nt)?.[1] ?? "";
+    expect(code("declutter_admin_decide_stuck_delivery")).toContain("'Sale cancelled after delivery problem'");
     expect(refunds.length).toBeGreaterThan(100);
     for (const t of TITLES) expect(refunds).toContain(`'${t}'`);
   });

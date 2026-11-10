@@ -48,8 +48,10 @@ describe("job notices end with the next step and its deadline (A3-36..38)", () =
     expect(b).toContain(
       `to_char((NEW.helper_completed_at + interval '${APPROVAL_WINDOW_HOURS} hours') AT TIME ZONE 'America/Chicago'`,
     );
-    expect(b).toContain("'. Next: review them and approve by ' || v_approve_by || ', or Helpr support steps in.'");
-    expect(b).toContain(`'". Next: check the work and approve by ' || v_approve_by || ', or Helpr support steps in.'`);
+    const next = "'. If you don''t, our team reviews it and tells you what happens next.'";
+    expect(b).toContain(`'. Next: review them and approve by ' || v_approve_by || ${next}`);
+    expect(b).toContain(`'". Next: check the work and approve by ' || v_approve_by || ${next}`);
+    expect(b).not.toContain("steps in");
     expect(b).not.toMatch(/Please review and confirm|Review them and confirm/);
   });
 

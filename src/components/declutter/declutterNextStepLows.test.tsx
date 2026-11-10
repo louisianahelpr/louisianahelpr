@@ -190,6 +190,26 @@ describe("A3-27: the order chat shows the order card's step", () => {
     expect(box.textContent).toContain("Next: put it out and post the porch photo");
   });
 
+  // Audit 1110 F405: the seller's chat said "Next: have it ready at the pickup time below" with no pickup time in the
+  // sheet (the order times read nothing), while the buyer's chat named the time. The line names the booking's own time.
+  it("F405: the seller's door-pickup chat line names the booked time even with no order times read", async () => {
+    const id = "55555555-5555-4555-8555-555555555555";
+    const start = todayAt(3, 0);
+    state.talk = talk("seller");
+    state.cart = [{ ...LINE, status: "paid", order_id: id, order_status: "paid", handover: "pickup_home", porch_ok: false }];
+    state.bookings = [{ order_id: id, slot_start: start, slot_end: todayAt(3, 30), porch_mode: null, porch_until: null, pickup_day: null }];
+    state.times = [];
+    state.handover = { order_id: id, status: "paid", side: "seller", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null };
+    show(<OrderTalkFromLink />, `/declutter?tab=selling&order_talk=${id}`);
+    const box = await waitFor(() => {
+      const el = document.querySelector("[data-order-talk-step]") as HTMLElement | null;
+      expect(el?.textContent).toContain(`Pickup ${pickupWhenWords(start, null, false)}`);
+      return el!;
+    });
+    expect(box.textContent).toContain("Next: have it ready at the door");
+    expect(box.textContent).not.toContain("below");
+  });
+
   it("buyer: the Buying card's step and its action words", async () => {
     state.talk = talk("buyer");
     const id = "33333333-3333-4333-8333-333333333333";

@@ -33,6 +33,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, nearestFirst } from "@/lib/declutter/distance";
 import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, browseStateInParams, dropOutlook, droppedQueryFromParams, isNewSince, newSinceFromParams, type DeclutterFilters } from "@/lib/declutter/browseFilters";
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
+import { searchWords } from "@/lib/declutter/searchMatch";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
 import { SectionScreen } from "@/components/sections/SectionScreen";
@@ -311,6 +312,10 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   const firstOrder = useMemo(() => (capped ? new Map(capped.items.map((it, n) => [String(it.id), n])) : undefined), [capped]);
   const rows = applyBrowseFilters(nearestFirst(others, from, from ? maxMiles : null, firstOrder), filters, query, drops.data, now, itemWays.data);
   const q = query.trim().toLowerCase();
+  // Audit 1110 F311: a zip code in the search box finds no listing (location lives in Filters > Distance), and a search
+  // with no words in it (an emoji alone) matches everything; each gets told so instead of a blank "Nothing matches".
+  const zipSearch = /^\d{5}$/.test(q);
+  const wordlessSearch = q !== "" && searchWords(query).length === 0;
   const filterCount = activeFilterCount(filters, from ? maxMiles : null);
   const clearAll = () => {
     setFilters(NO_FILTERS);
@@ -451,21 +456,30 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
         {/* Owner 11-08 (the Vinted header): on a phone the grid starts right under the chips; the same line and "Use my
             location" stay in the filter sheet. */}
         {desktop && itemsPhase !== "offline-empty" && rows.length > 0 && <DeclutterMilesFrom ask={ask} />}
+        {/* Audit 1110 F311: an emoji alone is no search, so every item shows; say why instead of looking like a match. */}
+        {wordlessSearch && rows.length > 0 && (
+          <p className="text-ds-13 text-muted-foreground" role="status" data-search-wordless="">Search with words, like chair. Showing every item.</p>
+        )}
         {itemsPhase === "offline-empty" ? (
           <OfflineEmptyState body="Items for sale will show here once you're back online." onRetry={() => void items.refetch()} />
         ) : rows.length === 0 ? (
           // The shared empty state every Browse wears (owner, 2026-10-19: Homes' style, same place).
           <BrowseEmptyState
             icon={Sofa}
-            title={q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.tradesOnly && filterCount === 1 ? "No listings open to trades right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_LABEL[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : others.length === 0 ? "Nothing for sale near you yet." : "Nothing for sale this close."}
+            title={zipSearch ? `Looking for items near ${q}?` : q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.tradesOnly && filterCount === 1 ? "No listings open to trades right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_LABEL[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : others.length === 0 ? "Nothing for sale near you yet." : "Nothing for sale this close."}
             // The category line no longer says "tap it again": the category chips left Browse for the filter sheet
             // (owner 2026-10-21); the Clear button below is the way back to everything.
-            body={q ? "Try another word." : filters.freeOnly && filterCount === 1 ? "Check back soon, or give something away yourself." : filters.tradesOnly && filterCount === 1 ? "Check back soon, or open your own listings to trades." : filters.category && filterCount === 1 ? "Try another category." : filterCount > 0 ? "Try fewer filters." : others.length === 0 ? "New items show up here as people list them." : "Try a bigger distance."}
+            body={zipSearch ? "Search looks at the words in a listing. Set where you are under Filters > Distance > Use my location." : q ? "Try another word." : filters.freeOnly && filterCount === 1 ? "Check back soon, or give something away yourself." : filters.tradesOnly && filterCount === 1 ? "Check back soon, or open your own listings to trades." : filters.category && filterCount === 1 ? "Try another category." : filterCount > 0 ? "Try fewer filters." : others.length === 0 ? "New items show up here as people list them." : "Try a bigger distance."}
             action={
               // Owner 2026-10-30 (via the lead): nothing for sale at all is a real empty state for everyone who has
               // Declutter, never "Opens soon": Sell something, and Post what you're looking for (NothingForSaleActions).
               !searched && others.length === 0 ? <NothingForSaleActions guest={!member} /> :
               <div className="flex flex-col items-center gap-2">
+                {zipSearch && (
+                  <Button type="button" variant="default" size="sm" className="rounded-full" data-testid="declutter-open-distance" onClick={() => setFiltersOpen(true)}>
+                    Open Distance
+                  </Button>
+                )}
                 {searched && (
                   <Button type="button" variant="outline" size="sm" className="rounded-full" data-testid="declutter-clear-search" onClick={() => { setQuery(""); clearAll(); }}>
                     {/* Not "Clear search": that name is the search field's own ✕ (searchFieldsAllChecked). */}

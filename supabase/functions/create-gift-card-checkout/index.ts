@@ -227,8 +227,10 @@ serve(async (req) => {
     // found by email (an address can belong to someone else's old customer).
 
     // Carry everything the webhook needs to MINT the credit. The webhook is the
-    // only writer of gift_cards (client mint is removed), so amount_cents and
-    // recipient_email must survive here, not be re-derived.
+    // only thing that mints one (client mint is removed): it completes the
+    // payment_status='pending' row this function pre-registers below, or
+    // inserts the row if that is missing, so amount_cents and recipient_email
+    // must survive here, not be re-derived.
     const sharedMeta = {
       kind: "gift_card_purchase",
       donor_id: user.id,
@@ -308,10 +310,10 @@ serve(async (req) => {
     // equivalent. This is that equivalent.
     //
     // The row is written payment_status='pending', which every spend path
-    // already refuses — usePostJobGiftCard.ts and useDashboardSideQueries.ts
-    // both require payment_status === "paid", and claim-gift-card rejects
-    // anything else — so a pre-registered gift is inert until the webhook
-    // completes it. `status` stays at the column default rather than 'sent':
+    // already refuses — usePostJobGiftCard.ts requires payment_status ===
+    // "paid", the redeem_gift_card RPC raises on anything but 'paid', and
+    // claim-gift-card rejects anything else — so a pre-registered gift is inert
+    // until the webhook completes it. `status` stays at the column default rather than 'sent':
     // nothing has been sent and no claim token exists yet.
     //
     // FAIL CLOSED. If this write fails we return an error instead of the

@@ -10,7 +10,8 @@
  * if the Helpr can't or the fix doesn't solve it, Helpr decides it as a
  * dispute. "Louisiana Helpr steps in" is that last step, and nothing more:
  * no refund is promised here, because the terms don't promise one.
- * src/test/guaranteePromiseMatchesTerms.test.ts holds the two in step.
+ * src/test/bookMeOnHelpr.test.ts ("the Helpr Guarantee promise matches the
+ * terms") holds the two in step.
  */
 import { GUARANTEE_RULES } from "./rules";
 

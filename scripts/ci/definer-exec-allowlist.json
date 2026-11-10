@@ -27,7 +27,8 @@
     "declutter_record_item_view(uuid, uuid)": "client",
     "declutter_funnel_event(text, uuid, uuid, uuid, text)": "client",
     "declutter_item_save_counts(uuid[])": "client",
-    "public_profile_work_photos(text)": "client"
+    "public_profile_work_photos(text)": "client",
+    "find_helprs(text, text, integer)": "reviewed 2026-11-09 (Q14): F071 owner decision, guests may view Find a Helpr (20261109212142_find_helprs_guests_may_view). Names masked to 'First L.', town/parish/skills/photo/ID flag only; no rate, phone, email or address; test, banned, deleted, unconfirmed and under-18 accounts never returned to a guest. Proof src/test/pglite/findHelprsDirectory.pglite.mjs."
   },
   "authenticated": {
     "accept_application(uuid, timestamp with time zone, text)": "client",

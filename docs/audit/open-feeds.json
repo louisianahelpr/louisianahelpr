@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-10T21:33Z",
+  "measured_at": "2026-11-10T21:53Z",
   "issues": {
     "readable": true,
     "open": [
@@ -36,7 +36,7 @@
         "number": 2375,
         "title": "nightly-red: a11y-webkit-prod",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42736261091",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42830683448",
         "runTruncated": false
       },
       {
@@ -149,6 +149,13 @@
         "title": "nightly-red: main-batch",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42853655555",
+        "runTruncated": false
+      },
+      {
+        "number": 4340,
+        "title": "nightly-red: e2e-abuse-notifications",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42860928141",
         "runTruncated": false
       }
     ]
@@ -580,6 +587,7 @@
     "issue #4302": "Q1816",
     "issue #4317": "Q1816",
     "issue #4321": "Q1816",
+    "issue #4340": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",

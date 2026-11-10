@@ -564,7 +564,9 @@ function DeclutterMemberHome() {
   };
   // Owner pick 4 (11-08, design audit B #12): no "+ Sell" pill on a screen with its own main button (Wanted's "Post what
   // you're looking for", Deliver's vehicle form): two filled primaries competed there, and the pill covered "I have a truck".
-  const ownMainButton = view === "wanted" || view === "deliver";
+  // Audit 11-10 F360: no "+ Sell" pill on Buying either. It sat on the order cards (a price, a pickup chip, a trade
+  // card's title, "See the item") and a member looking at what they bought is not here to sell.
+  const ownMainButton = view === "wanted" || view === "deliver" || view === "buying";
   const fab = desktop || ownMainButton ? undefined : <SectionCreateFab section="declutter" text="Sell" />;
   // Browse draws its own section screen, so its header can carry its search, filters, chips, map toggle and count.
   if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} chrome={chrome} top={<StrikeCount userId={user.id} />} fab={fab} /></Suspense>;

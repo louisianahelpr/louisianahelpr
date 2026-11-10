@@ -9,7 +9,8 @@
  * 2.5; the icons stay in the category picker), and "Free" is a chip right after "All" (the same freeOnly filter the
  * sheet sets), so guests and members reach giveaways the same way.
  *
- * Built from the counts the list already holds: no read of its own. Chips are the shared FilterChip.
+ * Built from the counts the list already holds: no read of its own. Chips are the shared FilterChip, in its `tall`
+ * size (audit 11-10 F313: the default chip is 40px; a strip thumbed sideways on a phone keeps the 44px tap floor).
  *
  * F053 (UI audit 11-09): with a mouse there was no way to see the chips past the right edge (cut in half, no arrow).
  * On the desktop website the row now fades at an edge that has more and shows a round arrow there, which scrolls it
@@ -71,12 +72,12 @@ export function DeclutterCategoryChips({ items, value, onChange, free = false, o
   if (chips.length < 2 && !value && !freeChip) return null;
   const list = (
     <div ref={row} onScroll={desktop ? measure : undefined} role="group" aria-label="Categories" data-chip-row="categories" className="flex min-w-0 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <FilterChip pressed={value === null && !free} onClick={() => { onChange(null); if (free) onFree?.(false); }} className="shrink-0" data-category-chip="all">All</FilterChip>
+      <FilterChip pressed={value === null && !free} onClick={() => { onChange(null); if (free) onFree?.(false); }} size="tall" className="shrink-0" data-category-chip="all">All</FilterChip>
       {freeChip && (
-        <FilterChip pressed={free} onClick={() => onFree?.(!free)} className="shrink-0" data-category-chip="free">Free</FilterChip>
+        <FilterChip pressed={free} onClick={() => onFree?.(!free)} size="tall" className="shrink-0" data-category-chip="free">Free</FilterChip>
       )}
       {chips.map((k) => (
-        <FilterChip key={k} pressed={value === k} onClick={() => onChange(value === k ? null : k)} className="shrink-0" data-category-chip={k}>
+        <FilterChip key={k} pressed={value === k} onClick={() => onChange(value === k ? null : k)} size="tall" className="shrink-0" data-category-chip={k}>
           {CATEGORY_LABEL[k]}
         </FilterChip>
       ))}

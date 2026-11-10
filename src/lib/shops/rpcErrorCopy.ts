@@ -405,6 +405,26 @@ export const SHOPS_RPC_ERROR_COPY = {
     shop_strikes_blocked: SC.shop_strikes_blocked,
     under_18: SC.under_18,
   },
+  // Q1952 (20261110195956): the shop sends a food permit or inflatable registration for "Permit on file".
+  shops_submit_permit: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    invalid_permit_document: "Upload a clear photo or PDF of the permit, then send it again.",
+    invalid_permit_expiry: "Enter the date the permit expires. It can't be in the past or more than 5 years away.",
+    invalid_permit_kind: "Choose a food permit or an inflatable registration.",
+    not_authenticated: SC.not_authenticated,
+    payout_setup_incomplete: SC.payout_setup_incomplete,
+    shop_not_found: SC.shop_not_found,
+    shop_strikes_blocked: SC.shop_strikes_blocked,
+    under_18: SC.under_18,
+  },
+  shops_my_permits: {
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+  },
+  shops_my_pickup_address_problem: {
+    feature_disabled: SC.feature_disabled,
+  },
   shops_set_cancel_policy: {
     account_restricted: SC.account_restricted,
     feature_disabled: SC.feature_disabled,

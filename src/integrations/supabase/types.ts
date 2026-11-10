@@ -14432,6 +14432,62 @@ export type Database = {
           },
         ]
       }
+      shop_permits: {
+        Row: {
+          created_at: string
+          document_path: string
+          expires_on: string
+          id: string
+          is_seed: boolean
+          kind: string
+          owner_id: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          shop_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          document_path: string
+          expires_on: string
+          id?: string
+          is_seed?: boolean
+          kind: string
+          owner_id: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shop_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          document_path?: string
+          expires_on?: string
+          id?: string
+          is_seed?: boolean
+          kind?: string
+          owner_id?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          shop_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_permits_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_photos: {
         Row: {
           created_at: string
@@ -14486,6 +14542,8 @@ export type Database = {
           state_code: string
           stripe_tax_location_id: string | null
           stripe_tax_location_mode: string | null
+          tax_refused_at: string | null
+          tax_refused_reason: string | null
           updated_at: string
         }
         Insert: {
@@ -14503,6 +14561,8 @@ export type Database = {
           state_code?: string
           stripe_tax_location_id?: string | null
           stripe_tax_location_mode?: string | null
+          tax_refused_at?: string | null
+          tax_refused_reason?: string | null
           updated_at?: string
         }
         Update: {
@@ -14520,6 +14580,8 @@ export type Database = {
           state_code?: string
           stripe_tax_location_id?: string | null
           stripe_tax_location_mode?: string | null
+          tax_refused_at?: string | null
+          tax_refused_reason?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -22979,6 +23041,10 @@ export type Database = {
       shops_quote_custom_request: { Args: { p_request_id: string; p_quote_cents: number; p_note?: string | null; p_subtype: string; p_statements: string[] }; Returns: Json }
       shops_order_custom_quote: { Args: { p_request_id: string; p_shop_id: string; p_ready_date: string; p_note?: string | null }; Returns: Json }
       shops_decline_custom_request: { Args: { p_request_id: string }; Returns: string }
+      shops_mark_pickup_address_refused: {
+        Args: { p_address_updated_at: string; p_reason: string; p_shop_id: string }
+        Returns: boolean
+      }
       shops_my_custom_requests: { Args: never; Returns: Json }
       shops_order_delivery_address: {
         Args: { p_order_id: string }
@@ -23026,6 +23092,19 @@ export type Database = {
           text_flag_reason: string
           title: string
         }[]
+      }
+      shops_submit_permit: {
+        Args: { p_kind: string; p_document_path: string; p_expires_on: string }
+        Returns: string
+      }
+      shops_my_permits: {
+        Args: never
+        Returns: { kind: string; status: string; expires_on: string; review_note: string | null; sent_at: string; expired: boolean }[]
+      }
+      shops_admin_paperwork: { Args: never; Returns: Json }
+      shops_admin_review_permit: {
+        Args: { p_permit_id: string; p_approve: boolean; p_note: string }
+        Returns: string
       }
       shops_admin_check_registration: {
         Args: { p_shop_id: string; p_verified: boolean }
@@ -23147,6 +23226,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      shops_clear_pickup_address_refused: {
+        Args: { p_address_updated_at: string; p_shop_id: string }
+        Returns: boolean
+      }
       shops_close_my_shop: { Args: never; Returns: string[] }
       shops_confirm_cottage_year: { Args: never; Returns: number }
       shops_create_item: {
@@ -23212,6 +23295,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      shops_my_pickup_address_problem: { Args: never; Returns: string }
       shops_my_shop_id: { Args: never; Returns: string }
       shops_publish_item: { Args: { p_item_id: string }; Returns: string }
       shops_public_photo_path: {

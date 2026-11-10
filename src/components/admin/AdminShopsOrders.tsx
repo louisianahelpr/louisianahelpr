@@ -48,6 +48,7 @@ import { usePayoutHolds } from "./adminPayoutBatches/usePayoutHolds";
 import { adminRecordHandRefund, adminRefundOrder, formatCents, type AdminRefundReason } from "@/lib/shops/orders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { HelprPhoto } from "./settings/DeclutterProblemCase";
+import ShopsPaperworkCard from "./ShopsPaperworkCard";
 
 interface Problem {
   order_id: string; seller_id: string | null; shop_name: string | null; ready_date: string; total_cents: number;
@@ -314,6 +315,9 @@ export default function AdminShopsOrders() {
       >
         <RecordHandRefund onDone={() => { void qc.invalidateQueries({ queryKey: ["admin-shops-queue"] }); }} />
       </AdminCard>
+
+      {/* Q1952: permits and Secretary of State numbers (the paperwork part of the one Shops queue, L73). */}
+      <ShopsPaperworkCard />
 
       <AdminCard title="Active Shops strikes" subtitle="Shops has its own count; 3 active strikes pause Shops for that member. Each ends after a year.">
         {q.strikes.length === 0 ? <p className="text-sm text-muted-foreground">No active strikes.</p> : (

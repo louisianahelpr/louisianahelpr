@@ -35,7 +35,7 @@
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | && o.floor_price_cents < o.current_price_cents && o.amount_cents < o.floor_price_cents; | && o.floor_price_cents < o.current_price_cents;
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | disabled={act.isPending} onClick={() => setDeclining(true)}> | disabled={act.isPending} onClick={() => act.mutate({ action: "decline" })}>
  * @mutate src/components/declutter/DeclutterOffersSection.tsx |   const wantedReply = o.from_wanted === true && o.my_side === "buyer"; |   const wantedReply = false;
- * @mutate src/components/declutter/DeclutterOffersSection.tsx | o.my_side === "buyer" && !(wantedReply && o.awaiting === "buyer") && ( | o.my_side === "buyer" && (
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | o.my_side === "buyer" && o.awaiting === "seller" && ( | o.my_side === "buyer" && (
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply ? "their price" : "their counter") | : "their counter")
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply\n            ? `"${o.item_title}": this reply ends | : false\n            ? `"${o.item_title}": this reply ends
  * @mutate src/components/declutter/DeclutterTabHeads.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
@@ -730,7 +730,27 @@ describe("Declutter slice 3 screens", () => {
     expect(within(reply).getByRole("button", { name: "Say no" })).toBeInTheDocument();
     expect(within(plain).queryByText("Reply to your Wanted")).toBeNull();
     expect(within(plain).getByText("their counter")).toBeInTheDocument();
-    expect(within(plain).getByRole("button", { name: "Take back my offer" })).toBeInTheDocument();
+    // Audit 1110 F357: an ordinary counter the buyer must answer has Say no; Take back my offer no longer doubles it.
+    expect(within(plain).getByRole("button", { name: "Say no" })).toBeInTheDocument();
+    expect(within(plain).queryByRole("button", { name: "Take back my offer" })).toBeNull();
+  });
+
+  // Audit 1110 F357: after a counter the buyer saw both "Say no" and "Take back my offer", which did nearly the same
+  // thing. One at a time: Take back while waiting on the seller, Say no when there is a counter to answer.
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx |       {o.status === "open" && o.my_side === "buyer" && o.awaiting === "seller" && ( |       {o.status === "open" && o.my_side === "buyer" && !(wantedReply && o.awaiting === "buyer") && (
+  it("a buyer's card shows one of Take back my offer (seller's turn) or Say no (buyer's turn), never both", async () => {
+    state.offers = [
+      { ...OFFER, offer_id: "o6", my_side: "buyer", awaiting: "seller", floor_price_cents: null, item_title: "Lamp" },
+      { ...OFFER, offer_id: "o7", my_side: "buyer", awaiting: "buyer", counter_count: 1, floor_price_cents: null, item_title: "Oak chair" },
+    ];
+    show(<OffersSection side="buyer" />);
+    const rows = await screen.findAllByRole("listitem");
+    const waiting = rows.find((r) => r.textContent?.includes("Lamp"))!;
+    const countered = rows.find((r) => r.textContent?.includes("Oak chair"))!;
+    expect(within(waiting).getByRole("button", { name: "Take back my offer" })).toBeInTheDocument();
+    expect(within(waiting).queryByRole("button", { name: "Say no" })).toBeNull();
+    expect(within(countered).getByRole("button", { name: "Say no" })).toBeInTheDocument();
+    expect(within(countered).queryByRole("button", { name: "Take back my offer" })).toBeNull();
   });
 
   // B11's read of D4-3 (2026-10-30): the Say no sheet said "this counter ends" on a card that says "Reply to your Wanted".

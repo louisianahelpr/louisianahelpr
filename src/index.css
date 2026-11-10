@@ -2193,8 +2193,11 @@ body[data-scroll-locked] .preview-dock {
 }
 /* Q2705 (11-09): a guest's /declutter skeleton shows the sign-up line where Browse draws it (index.html's guest script
    marks <html>; scripts/inline-shell-css.mjs inlines the same rule). Guard: src/boot/memberDeclutterEarly.test.ts. */
-[data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join] {
-  display: block !important;
+/* Owner 11-10: phone only; at desktop width (useIsWebDesktop, 900px) the guest top bar carries Log in / Sign up. */
+@media (max-width: 899px) {
+  [data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join] {
+    display: block !important;
+  }
 }
 /* F153 (11-09): a member phone has the section tabs under the search; a guest has none, so the skeleton row hides. */
 [data-lh-declutter-guest] #lh-declutter-shell [data-lh-member-tabs] {

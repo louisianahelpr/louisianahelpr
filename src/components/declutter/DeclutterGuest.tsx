@@ -129,9 +129,8 @@ export function DeclutterGuestBrowseJoin() {
   const location = useLocation();
   // AUD31-67 follow-up (lead 10-31): the desktop guest top bar has the logo; the H stays on the phone only.
   const barShown = useIsWebDesktop();
-  // F073 (UI audit 11-09; lead 11-09, replacing the 10-31 call): the desktop card has the phone's real Log in / Sign up
-  // buttons too, one size up from the top bar's compact pair, so the card's are the primary pair.
-  const size = barShown ? "md" : "sm";
+  // Owner 11-10: at desktop width the guest top bar already carries Log in / Sign up, so this card is not repeated there.
+  if (barShown) return null;
   return (
     <section data-guest-join="browse" aria-label="Join to buy or sell" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-border bg-card p-3">
       {!barShown && <GuestBrand />}
@@ -140,10 +139,10 @@ export function DeclutterGuestBrowseJoin() {
         <span className="text-muted-foreground">It's free.</span>
       </p>
       <div className="flex shrink-0 gap-2" data-guest-join-buttons="">
-        <Button asChild size={size} variant="outline" className="rounded-full">
+        <Button asChild size="sm" variant="outline" className="rounded-full">
           <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
         </Button>
-        <Button asChild size={size} className="rounded-full">
+        <Button asChild size="sm" className="rounded-full">
           <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
         </Button>
       </div>

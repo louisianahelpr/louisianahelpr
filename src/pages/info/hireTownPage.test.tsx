@@ -5,7 +5,7 @@
  * @mutate src/App.tsx |       <Route path="/hire/:service/:town" element={<RouteErrorBoundary>{routeEl(<PageTransition><HireTownPage /></PageTransition>)}</RouteErrorBoundary>} /> |
  * F063: the 760px column and the chips.
  * @mutate src/pages/info/HireTownPage.tsx | const TOWN_COLUMN = "max-w-[760px]"; | const TOWN_COLUMN = "page-measure";
- * @mutate src/pages/info/HireTownPage.tsx | <li key={t.slug}><Button asChild variant="outline" size="sm" className="font-semibold tracking-normal"><Link to={townPagePath(service, t)}>{service.label} in {t.name}</Link></Button></li> | <li key={t.slug}><Link className="link-standard text-ds-15" to={townPagePath(service, t)}>{service.label} in {t.name}</Link></li>
+ * @mutate src/pages/info/HireTownPage.tsx | <li key={t.slug}><Button asChild variant="outline" size="sm" className="font-semibold tracking-normal"><Link to={townPagePath(service, t)}>{service.pageLabel ?? service.label} in {t.name}</Link></Button></li> | <li key={t.slug}><Link className="link-standard text-ds-15" to={townPagePath(service, t)}>{service.pageLabel ?? service.label} in {t.name}</Link></li>
  * @mutate src/pages/info/HireTownPage.tsx |   if (category) return <Navigate replace to={`/browse?cat=${category}`} />; |   if (category) return <NotFound />;
  * @mutate src/pages/info/HireTownPage.tsx |   return (JOB_CATEGORY_VALUES as readonly string[]).includes(value) ? value : null; |   return value \|\| null;
  * @mutate src/pages/info/HireTownPage.tsx |   if (!page) return <NotFound />; |   if (!page) return <TownPage service={TOWN_PAGE_SERVICES[0]} town={TOWN_PAGE_TOWNS[0]} />;
@@ -156,6 +156,14 @@ describe("OPS-4: town + service pages", () => {
     expect(line).toBeDefined();
     expect(line).toContain("<HireTownPage />");
     expect(line).not.toContain("ProtectedRoute");
+  });
+
+  // L028 (landing audit 11-09): "Moving in New Iberia" read as relocating there. The page and its tab say "Moving help".
+  // @mutate src/lib/townPages.mjs | label: "Moving", pageLabel: "Moving help", | label: "Moving",
+  it("the moving page says Moving help, never a bare Moving in <town>", () => {
+    const moving = TOWN_PAGE_SERVICES.find((s) => s.category === "moving")!;
+    expect(moving.pageLabel).toBe("Moving help");
+    expect(publicPageMetaFor("/hire/moving/new-iberia", null)?.title).toBe("Moving help in New Iberia, LA — Helpr");
   });
 
   it("each service is a real job category under its own shown name", () => {

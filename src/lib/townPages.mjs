@@ -25,7 +25,9 @@ export const TOWN_PAGE_SERVICES = [
   { category: "handyman", label: "Handyman", phrase: "a handyman" },
   { category: "cleaning", label: "Cleaning", phrase: "house cleaning" },
   { category: "yard_work", label: "Yard work", phrase: "yard work" },
-  { category: "moving", label: "Moving", phrase: "moving help" },
+  // L028 (landing audit 11-09): "Moving in New Iberia" read as relocating there; the page says "Moving help" (pageLabel),
+  // the category keeps its own name.
+  { category: "moving", label: "Moving", pageLabel: "Moving help", phrase: "moving help" },
   { category: "assembly", label: "Assembly", phrase: "furniture assembly" },
   { category: "pressure_washing", label: "Pressure washing", phrase: "pressure washing" },
   { category: "errands", label: "Errands", phrase: "errands" },
@@ -49,7 +51,7 @@ export function allTownPagePaths() {
 }
 
 export function townPageMeta(service, town) {
-  const title = `${service.label} in ${town.name}, LA — Helpr`; // the one tab-title pattern (F064, owner UI audit 11-09)
+  const title = `${service.pageLabel ?? service.label} in ${town.name}, LA — Helpr`; // the one tab-title pattern (F064, owner UI audit 11-09)
   const description = `Need ${service.phrase} in ${town.name}? Post the job and name your price. Local Helprs apply, you pick one, and your payment is held until the work is done.`;
   const canonical = `https://www.louisianahelpr.com${townPagePath(service, town)}`;
   return { title, description, canonical, ogTitle: title, ogDescription: description, ogUrl: canonical, geoRegion: "US-LA", geoPlacename: town.name };

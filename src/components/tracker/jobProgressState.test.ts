@@ -209,7 +209,7 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
   // @mutate src/components/tracker/jobProgressState.ts |     const checkBy = autoCompleteAt({ helper_completed_at: job.helper_completed_at }); |     const checkBy = null;
   it("JA-21: the Helpr who marked it done is told until when the poster has to check", () => {
     const j: ProgressJob = { ...base, status: "in_progress", helper_id: ME, helper_confirmed_at: "t", poster_confirmed_arrival_at: "t", helper_completed_at: "2037-10-21T14:30:00Z" };
-    expect(jobProgress(j, { viewer: "helpr", otherFirst: "Dana", threadHelprId: ME, now: NOW }).next).toMatch(/^You marked it done\. Dana has until \w{3} \d{1,2}:\d{2} [AP]M to check it$/);
+    expect(jobProgress(j, { viewer: "helpr", otherFirst: "Dana", threadHelprId: ME, now: NOW }).next).toMatch(/^You marked it done\. Dana has until \w{3}, \w{3} \d{1,2} at \d{1,2}:\d{2} [AP]M to check it$/);
   });
   // @mutate src/components/tracker/jobProgressState.ts |   if (mins <= LATE_GRACE_MIN) return null; |   return null;
   // @mutate src/components/tracker/jobProgressState.ts | \|\| posterLate \|\| noApplicantsYet | \|\| false \|\| noApplicantsYet

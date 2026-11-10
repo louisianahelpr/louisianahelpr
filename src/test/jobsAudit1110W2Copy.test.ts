@@ -29,6 +29,23 @@
  * F279a (placeholder part): under Bigger text the yard-work title placeholder was cut ("e.g. Mow and edge my yarc");
  * the audit asked for "e.g. Mow my yard". The sticky-bar padding and tile stacking asks of F279a are layout work, not here.
  * @mutate src/components/postjob/detailsSection/detailsSectionConstants.ts | yard_work: "e.g. Mow my yard", | yard_work: "e.g. Mow and edge my yard",
+ *
+ * F286: the Helpr read "E2E has until Tue 12:28 PM to check it" a day later, after that time had passed. The deadline
+ * now carries its date, and once it has passed the line says what happens now (support is checking; the money is held).
+ * @mutate src/components/tracker/jobProgressState.ts | : checkMs <= now ? `You marked it done. | : false ? `You marked it done.
+ * @mutate src/components/tracker/jobProgressState.ts | : `You marked it done. ${other} has until ${whenDated(checkMs)} to check it`; | : `You marked it done. ${other} has until ${when(checkMs)} to check it`;
+ * @mutate src/components/tracker/jobProgressState.ts | ${other} has until ${whenDated(checkMs)} to check it`, held); | ${other} has until ${when(checkMs)} to check it`, held);
+ *
+ * F291a (date part): the disputed job's "answer by Thu 12:28 PM" had no date; it is now "Thu, Nov 12 at 12:28 PM".
+ * @mutate src/components/tracker/jobProgressState.ts | `, with an answer by ${whenDated(decideMs)}` | `, with an answer by ${when(decideMs)}`
+ *
+ * F283 (time part): "Hallie is on the way · since 12:28 PM" was yesterday's time and read as an hour ago. On any day
+ * but today the stamp carries its date: "since Mon, Nov 9 at 12:28 PM".
+ * @mutate src/pages/jobs/jobPage/OnTheWayNow.tsx | if (laDay(d) === laDay(now)) return clock; | return clock;
+ *
+ * F265a (review window): Jobs settings said instant release skips a "24-hour review" while the job page's guarantee
+ * names 48 hours. They are two different windows; the line now names both so they no longer read as a contradiction.
+ * @mutate src/pages/profile/AutoTip.tsx | The 48-hour Helpr Guarantee still applies. | They're paid 3 days later.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -37,6 +54,7 @@ import { blankComments } from "./helpers/blankNonCode";
 import { jobProgress } from "@/components/tracker/jobProgressState";
 import { bioCharsToGo } from "@/components/profile/ProfileEditForm";
 import { titlePlaceholders } from "@/components/postjob/detailsSection/detailsSectionConstants";
+import { onTheWaySince } from "@/pages/jobs/jobPage/OnTheWayNow";
 
 /** The same minimal job jobProgressState.test.ts starts from. */
 const DONE_BASE = { status: "open", helper_id: null, payment_status: "unpaid" } as const;
@@ -84,5 +102,38 @@ describe("audit 11-10 W2: Jobs in-app copy", () => {
 
   it("F279a: the yard-work title placeholder is the short example the audit asked for", () => {
     expect(titlePlaceholders.yard_work).toBe("e.g. Mow my yard");
+  });
+  it("F286: the Helpr's done line carries the date; past the window it says support is checking", () => {
+    // Marked done Wed, Oct 21 2037 at 9:30 AM Louisiana; the 24-hour approval window ends Thu, Oct 22 at 9:30 AM.
+    const job = { ...DONE_BASE, status: "in_progress", helper_id: "h", helper_confirmed_at: "t", poster_confirmed_arrival_at: "t",
+      payment_status: "held", helper_completed_at: "2037-10-21T14:30:00Z" } as const;
+    const before = jobProgress(job, { viewer: "helpr", otherFirst: "Dana", threadHelprId: "h", now: new Date("2037-10-21T15:00:00Z") });
+    expect(before.next).toBe("You marked it done. Dana has until Thu, Oct 22 at 9:30 AM to check it");
+    const after = jobProgress(job, { viewer: "helpr", otherFirst: "Dana", threadHelprId: "h", now: new Date("2037-10-22T15:00:00Z") });
+    expect(after.next).toBe("You marked it done. Dana didn't answer in time, so Helpr support is checking it. The money stays held.");
+    expect(after.next).not.toMatch(/has until/);
+    // The fix-sent line (revision_acceptance_deadline) is dated the same way.
+    const fixSent = jobProgress({ ...job, status: "revision_requested", revision_accepted_at: "t", revision_completed_at: "t",
+      revision_acceptance_deadline: "2037-10-24T15:00:00Z" } as never, { viewer: "helpr", otherFirst: "Dana", threadHelprId: "h", now: new Date("2037-10-22T15:00:00Z") });
+    expect(fixSent.next).toContain("Dana has until Sat, Oct 24 at 10:00 AM to check it");
+  });
+
+  it("F291a: the disputed job names the answer-by date, not a bare weekday", () => {
+    const p = jobProgress({ ...DONE_BASE, status: "disputed", helper_id: "h", helper_confirmed_at: "t", payment_status: "held",
+      helper_completed_at: "2037-10-21T14:30:00Z", dispute_deadline: "2037-10-24T15:00:00Z" } as never,
+      { viewer: "helpr", otherFirst: "Dana", threadHelprId: "h", now: new Date("2037-10-22T15:00:00Z") });
+    expect(p.body).toContain("with an answer by Sat, Oct 24 at 10:00 AM.");
+  });
+
+  it("F283: the on-the-way stamp is a bare time today and carries its day otherwise", () => {
+    // 2037-10-21T17:28Z is Wed, Oct 21 at 12:28 PM in Louisiana.
+    expect(onTheWaySince("2037-10-21T17:28:00Z", new Date("2037-10-21T20:00:00Z"))).toBe("12:28 PM");
+    expect(onTheWaySince("2037-10-21T17:28:00Z", new Date("2037-10-22T15:00:00Z"))).toBe("Wed, Oct 21 at 12:28 PM");
+  });
+
+  it("F265a: instant release names both windows (24-hour approval, 48-hour guarantee)", () => {
+    const src = read("src/pages/profile/AutoTip.tsx");
+    expect(src).toContain("with no 24-hour approval wait. The 48-hour Helpr Guarantee still applies.");
+    expect(src).not.toContain("no 24-hour review");
   });
 });

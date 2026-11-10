@@ -467,7 +467,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
             </h2>
             <p id="instant-release-desc" className="font-sans text-ds-12 leading-snug text-muted-foreground">
               Approve automatically when your Helpr marks the job done with photo
-              proof, with no 24-hour review. They're paid 3 days later.
+              proof, with no 24-hour approval wait. The 48-hour Helpr Guarantee still applies. They're paid 3 days later.
             </p>
           </div>
           <Switch

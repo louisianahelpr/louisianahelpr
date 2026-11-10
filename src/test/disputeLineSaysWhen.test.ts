@@ -5,7 +5,7 @@
  *
  * Q2600: the sentence is now the line's body (the title is "We're looking into it").
  *
- * @mutate src/components/tracker/jobProgressState.ts | decideMs > now ? `, with an answer by ${when(decideMs)}` : ""; | "";
+ * @mutate src/components/tracker/jobProgressState.ts | decideMs > now ? `, with an answer by ${whenDated(decideMs)}` : ""; | "";
  */
 import { describe, expect, it } from "vitest";
 import { jobProgress } from "@/components/tracker/jobProgressState";
@@ -22,7 +22,7 @@ describe("JA-30: the dispute line says when they hear back", () => {
       const p = jobProgress(job as never, { viewer, otherFirst: "Dana", now: NOW });
       expect(p.label).toBe("Dispute");
       // 2032-10-23 15:00Z is Sat 10:00 AM in Louisiana.
-      expect(p.body).toMatch(/A real person at Louisiana Helpr is looking at the problem, with an answer by Sat 10:00 AM\. The money stays held/);
+      expect(p.body).toMatch(/A real person at Louisiana Helpr is looking at the problem, with an answer by Sat, Oct 23 at 10:00 AM\. The money stays held/);
     });
   }
   it("past the deadline it promises no time it can no longer keep", () => {

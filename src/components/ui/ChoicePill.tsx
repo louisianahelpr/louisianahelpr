@@ -12,6 +12,10 @@ import { cn } from "@/lib/utils";
  * the global `button { min-height: 44px }` EXCLUDES `[role="radio"]`. The focus
  * ring's offset is the page colour (`ring-offset-background`), never the white
  * Tailwind default (ringOffsetIsThePageNotWhite.test.ts).
+ *
+ * UNSELECTED (audit 1110 F408): the order card's "Leave it at my door" pill sat on a card with a hairline
+ * `border-border` edge, so on a card (and with Bigger text on) it read as plain text, while the outline buttons
+ * beside it kept a 1.5px `border-foreground/70` edge. The pill takes that same edge now, in every text size.
  */
 export function ChoicePill({
   selected,
@@ -28,7 +32,7 @@ export function ChoicePill({
       className={cn(
         "flex min-h-11 items-center rounded-full px-4 font-sans text-ds-13 font-semibold transition-all",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background",
-        selected ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground",
+        selected ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border-[1.5px] border-foreground/70 bg-card text-foreground",
         className,
       )}
     >

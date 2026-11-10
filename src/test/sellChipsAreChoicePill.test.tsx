@@ -35,6 +35,19 @@ function Harness({ compact = false, onPick = vi.fn() }: { compact?: boolean; onP
 const pillClass = (selected: boolean, className?: string) =>
   render(<ChoicePill selected={selected} className={className}>x</ChoicePill>).container.querySelector("button")!.className;
 
+// Audit 1110 F408: the unselected pill wore a hairline `border-border` edge and vanished on a card ("Leave it at my
+// door" on the Buying order card, Bigger text on). It keeps the outline button's 1.5px `border-foreground/70` edge.
+// @mutate src/components/ui/ChoicePill.tsx | "border-[1.5px] border-foreground/70 bg-card text-foreground" | "border border-border bg-card text-foreground"
+describe("F408: an unselected ChoicePill keeps a visible 1.5px edge on a card", () => {
+  it("wears the outline button's edge, never a hairline border-border", () => {
+    const off = set(pillClass(false));
+    expect(off).toContain("border-[1.5px]");
+    expect(off).toContain("border-foreground/70");
+    expect(off).not.toContain("border-border");
+    expect(set(pillClass(true))).not.toContain("border-foreground/70");
+  });
+});
+
 describe("the Sell step chips are the shared ChoicePill (owner 11-06: switch)", () => {
   it("every chip renders ChoicePill's class set: 44 px, focus ring, glossy when chosen", () => {
     const want = { on: set(pillClass(true)), off: set(pillClass(false)) };

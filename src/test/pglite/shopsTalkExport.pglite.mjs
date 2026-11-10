@@ -2,7 +2,7 @@
 /**
  * PGlite proof for 20261110200630_shops_talk_export.sql (NOT-LAUNCHED Q1947): Download My Data carries each side's
  * shop chats and their messages without the other side's id, the body is the newest CREATE verbatim plus the one
- * Shops block, EXECUTE stays service_role only, and deleting either side's account leaves no chat behind.
+ * Shops block (shop chats, then the owner's shop permits, Q1952), EXECUTE stays service_role only, and deleting either side's account leaves no chat behind.
  *
  *   node src/test/pglite/shopsTalkExport.pglite.mjs                    # ALL OK (migration applied 3x)
  *   NEW_MIGRATION=skip node src/test/pglite/shopsTalkExport.pglite.mjs # red: the checks need it
@@ -177,6 +177,26 @@ const M_MEMBER = U(30), M_OWNER = U(31), M2 = U(32), M3 = U(33);
     JSON.stringify(ids(own?.shop_talk_messages)) === JSON.stringify([M_MEMBER, M_OWNER, M2]), JSON.stringify(own?.shop_talk_messages));
   ok("a member with no thread gets empty sections",
     JSON.stringify(str?.shop_talks) === "[]" && JSON.stringify(str?.shop_talk_messages) === "[]", JSON.stringify([str?.shop_talks, str?.shop_talk_messages]));
+
+  // Shops paperwork (Q1952): the owner's own permits, the listed columns only, never the reviewer or the ids.
+  // The stub has only the columns the body reads; give it the real table's reviewer, shop and owner columns too.
+  await db.exec(`ALTER TABLE public.shop_permits ADD COLUMN IF NOT EXISTS reviewed_by uuid, ADD COLUMN IF NOT EXISTS shop_id uuid, ADD COLUMN IF NOT EXISTS owner_id uuid;`);
+  await db.exec(`INSERT INTO public.shop_permits (shop_id, owner_id, kind, expires_on, status, review_note, reviewed_at, reviewed_by, created_at, document_path) VALUES
+    ('${SHOP2}', '${OWNER2}', 'food_permit', '2027-06-30', 'rejected', 'The photo is blurry.', now(), '${STRANGER}', '2026-11-09 10:00+00', 'o2/permit.jpg'),
+    (NULL, '${MEMBER2}', 'inflatable_registration', '2027-01-31', 'verified', 'Looks good.', now(), '${STRANGER}', '2026-11-09 11:00+00', 'm2/reg.jpg');`);
+  const o2 = await exportOf(OWNER2);
+  ok("the owner gets their own permit with its check's outcome and note",
+    o2?.shop_permits?.length === 1 && o2.shop_permits[0].kind === "food_permit" && o2.shop_permits[0].status === "rejected"
+      && o2.shop_permits[0].review_note === "The photo is blurry." && o2.shop_permits[0].document_path === "o2/permit.jpg",
+    JSON.stringify(o2?.shop_permits));
+  ok("  exactly the listed columns: no reviewer, owner or row id",
+    JSON.stringify(Object.keys(o2?.shop_permits?.[0] ?? {}).sort())
+      === JSON.stringify(["created_at", "document_path", "expires_on", "kind", "review_note", "reviewed_at", "status"]),
+    JSON.stringify(o2?.shop_permits?.[0]));
+  // Exported again after the insert: another member (here also the admin who checked it) gets none of it.
+  const strAfter = await exportOf(STRANGER), m2 = await exportOf(MEMBER2);
+  ok("another member, even the reviewer, gets none of it", JSON.stringify(strAfter?.shop_permits) === "[]", JSON.stringify(strAfter?.shop_permits));
+  ok("the note shows only on a turn-down, as in My shop", m2?.shop_permits?.length === 1 && m2.shop_permits[0].review_note === null, JSON.stringify(m2?.shop_permits));
 
   // Account deletion: the FKs alone leave nothing behind (the purge has no Shops chat step to forget).
   const count = async () => (await db.query(`SELECT (SELECT count(*)::int FROM public.shop_talks) AS t, (SELECT count(*)::int FROM public.shop_talk_messages) AS m`)).rows[0];

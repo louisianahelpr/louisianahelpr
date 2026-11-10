@@ -6,7 +6,7 @@
  * "Pick up in person".
  *
  * @mutate src/lib/shops/handoverWords.ts |   return order.shop_order_lines.some((l) => l.kind === "service" \|\| !!l.at_buyer); |   return false;
- * @mutate src/components/shops/ShopHandoverActions.tsx |       {side === "shop" && service ? ( |       {side === "shop" && false ? (
+ * @mutate src/components/shops/ShopHandoverActions.tsx |       ) : side === "shop" && service ? ( |       ) : side === "shop" && false ? (
  * @mutate src/lib/shops/handoverWords.ts |   if (order.fulfillment === "shop_delivers") return "The shop delivers."; |
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";

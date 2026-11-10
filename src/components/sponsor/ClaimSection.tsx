@@ -10,8 +10,7 @@ import { sponsorPage as C } from "@/content/sponsorPage";
 import { buildIcs, daysLabel } from "@/lib/sponsor/dates";
 import type { SponsorPublicState, SponsorSignupPayload, SponsorSubmitResult } from "@/lib/sponsor/types";
 import { checkLogo, sponsorSignupsOpen, validateSponsorSignup } from "../../../supabase/functions/_shared/sponsorSignup";
-import { confettiBurst } from "./confetti";
-import { GiftBox, Icon, Sparkle } from "./Decor";
+import { Icon, StarRule } from "./Decor";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
@@ -121,16 +120,12 @@ export function ClaimSection({
     return s;
   }, [state, extraFull]);
 
-  const toggleDay = (d: number, el: HTMLElement) => {
+  const toggleDay = (d: number) => {
     if (fullDays.has(d)) return;
     const on = !form.days.includes(d);
     const days = on ? [...form.days, d].sort((a, b) => a - b) : form.days.filter((x) => x !== d);
     setForm((f) => ({ ...f, days, anyDay: days.length > 0 ? false : f.anyDay }));
     if (errors.days) setErrors((e) => ({ ...e, days: undefined }));
-    if (on) {
-      const r = el.getBoundingClientRect();
-      confettiBurst({ x: r.left + r.width / 2, y: r.top + r.height / 2 }, 24);
-    }
   };
 
   const pickLogo = (file: File | null) => {
@@ -165,7 +160,6 @@ export function ClaimSection({
       const res = await onSubmit(form, logo);
       if (res.ok) {
         setDone({ days: res.days, anyDay: res.anyDay, brand: form.brandName.trim() });
-        confettiBurst(undefined, 90);
         requestAnimationFrame(() => doneRef.current?.focus());
         return;
       }
@@ -196,9 +190,7 @@ export function ClaimSection({
     return (
       <section className="lh25-section" id={CLAIM_ID} aria-labelledby="lh25-thanks">
         <div className="lh25-thanks" ref={doneRef} tabIndex={-1} data-testid="sponsor-thanks">
-          <Sparkle className="lh25-thanks-s1" size={26} />
-          <Sparkle className="lh25-thanks-s2" size={18} color="#C8102E" />
-          <GiftBox size={64} />
+          <StarRule />
           <h2 id="lh25-thanks">{C.thankYou.title}</h2>
           <p className="lh25-thanks-body">{C.thankYou.body}</p>
           <p className="lh25-thanks-days">
@@ -233,6 +225,7 @@ export function ClaimSection({
     <section className="lh25-section lh25-claim" id={CLAIM_ID} aria-labelledby="lh25-claim">
       <div className="lh25-section-title">
         <h2 id="lh25-claim">{C.claim.title}</h2>
+        <StarRule />
       </div>
       <p className="lh25-lede lh25-center">{C.claim.intro}</p>
       <p className="lh25-deadline lh25-center">{C.claim.deadline}</p>
@@ -256,7 +249,7 @@ export function ClaimSection({
               className={`lh25-tile${selected ? " is-selected" : ""}${full ? " is-full" : ""}`}
               pressed={selected}
               disabled={full}
-              onClick={(e) => toggleDay(d, e.currentTarget)}
+              onClick={() => toggleDay(d)}
               aria-label={`December ${d}, ${full ? C.claim.full : label}${selected ? ", picked" : ""}`}
             >
               <span className="lh25-tile-day">{d}</span>

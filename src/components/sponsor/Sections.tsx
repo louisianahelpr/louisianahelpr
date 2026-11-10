@@ -13,7 +13,7 @@ import { sponsorSignupsOpen } from "../../../supabase/functions/_shared/sponsorS
 import { filledUrl, hasPlaceholder, placeholderRuns, statNumber } from "@/lib/sponsor/placeholders";
 import type { SponsorPublicState, SponsorStatKey } from "@/lib/sponsor/types";
 import { prefersReducedMotion } from "./confetti";
-import { FleurDeLis, GiftBox, Icon, Magnolia, Sparkle } from "./Decor";
+import { FleurDeLis, Icon, Sparkle, StarRule } from "./Decor";
 import { Button } from "@/components/ui/button";
 
 /** Dev preview only: show [placeholders] highlighted instead of hiding them. */
@@ -46,9 +46,7 @@ function SectionTitle({ children, kicker }: { children: ReactNode; kicker?: Reac
     <div className="lh25-section-title">
       {kicker ? <div className="lh25-kicker">{kicker}</div> : null}
       <h2>{children}</h2>
-      <div className="lh25-title-rule" aria-hidden="true">
-        <span /> <FleurDeLis size={18} /> <span />
-      </div>
+      <StarRule className="lh25-title-rule" />
     </div>
   );
 }
@@ -91,24 +89,31 @@ function Countdown() {
   );
 }
 
+/** "25 Days of Louisiana Giveaways" with everything after "of" in italic, as in the sponsor email; the words are unchanged. */
+function HeadlineMain({ text }: { text: string }) {
+  const m = /^(.*?\bof)\s+(.+)$/.exec(text);
+  if (!m) return <span className="lh25-h1-main">{text}</span>;
+  return (
+    <span className="lh25-h1-main">
+      <span>{m[1]}</span> <em>{m[2]}</em>
+    </span>
+  );
+}
+
 export function Hero({ greetingBrand }: { greetingBrand: string | null }) {
   return (
     <header className="lh25-hero">
-      <Sparkle className="lh25-float lh25-f1" size={22} />
-      <Sparkle className="lh25-float lh25-f2" size={14} color="#C8102E" />
-      <Sparkle className="lh25-float lh25-f3" size={18} color="#1E8E3E" />
-      <Magnolia className="lh25-hero-magnolia" size={70} />
-      <GiftBox className="lh25-hero-gift" size={58} />
       <div className="lh25-hero-inner">
         <img className="lh25-logo" src="/helpr-logo-transparent-192.png" width={84} height={84} alt="Louisiana Helpr" />
         {greetingBrand ? (
           <p className="lh25-greeting" data-testid="sponsor-greeting">{C.hero.greeting.replace("{brand}", greetingBrand)}</p>
         ) : null}
-        <p className="lh25-eyebrow">{C.hero.eyebrow}</p>
         <h1 className="lh25-h1">
           <span className="lh25-h1-lead">{C.hero.headlineLead}</span>
-          <span className="lh25-h1-main">{C.hero.headline}</span>
+          <StarRule className="lh25-h1-rule" />
+          <HeadlineMain text={C.hero.headline} />
         </h1>
+        <p className="lh25-eyebrow">{C.hero.eyebrow}</p>
         <p className="lh25-subhead">{C.hero.subhead}</p>
         <div className="lh25-hero-ctas">
           <Button type="button" variant="ghost" className="lh25-btn lh25-btn-primary" onClick={() => scrollToId("claim")}>{C.hero.primaryCta}</Button>
@@ -127,7 +132,7 @@ export function TrustStrip() {
   return (
     <ul className="lh25-trust" aria-label="About us">
       {C.trustStrip.map((t) => (
-        <li key={t}><Icon name="check" size={16} /> {t}</li>
+        <li key={t}><Sparkle size={11} /> {t}</li>
       ))}
     </ul>
   );
@@ -241,7 +246,7 @@ export function WhatWeAsk() {
   return (
     <section className="lh25-section" aria-labelledby="lh25-ask">
       <div className="lh25-ask">
-        <GiftBox size={52} box="#5B2A86" />
+        <FleurDeLis size={44} color="#c9a96e" />
         <div>
           <h2 id="lh25-ask">{C.whatWeAsk.title}</h2>
           <p>{C.whatWeAsk.body}</p>
@@ -322,13 +327,11 @@ export function PreviewCard() {
       <p className="lh25-lede lh25-center">{C.preview.note}</p>
       <figure className="lh25-preview">
         <div className="lh25-preview-art">
-          <Sparkle className="lh25-pa-s1" size={20} />
-          <Sparkle className="lh25-pa-s2" size={14} color="#fff" />
-          <FleurDeLis className="lh25-pa-fdl" size={30} />
+          <StarRule className="lh25-pa-rule" />
           <p className="lh25-preview-day">{dayLine}</p>
           <div className="lh25-preview-logo">{C.preview.logoPlaceholder}</div>
           <p className="lh25-preview-sponsor">{C.preview.cardSponsorLine}</p>
-          <GiftBox className="lh25-pa-gift" size={40} box="#1E8E3E" />
+          <FleurDeLis className="lh25-pa-fdl" size={26} color="#c9a96e" />
         </div>
         <figcaption className="lh25-preview-caption">{C.preview.caption}</figcaption>
       </figure>
@@ -412,8 +415,7 @@ export function Faq() {
 export function FinalCta() {
   return (
     <section className="lh25-final" aria-labelledby="lh25-final">
-      <Sparkle className="lh25-final-s1" size={22} />
-      <Sparkle className="lh25-final-s2" size={16} color="#fff" />
+      <StarRule className="lh25-final-rule" />
       <h2 id="lh25-final">{C.finalCta.title}</h2>
       <Button type="button" variant="ghost" className="lh25-btn lh25-btn-gold" onClick={() => scrollToId("claim")}>{C.finalCta.button}</Button>
     </section>

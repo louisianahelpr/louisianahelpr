@@ -321,7 +321,7 @@ describe("25 Days admin: function calls carry the admin token", () => {
     const calls: Array<{ url: string; headers: Record<string, string> }> = [];
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
       calls.push({ url: String(url), headers: (init?.headers ?? {}) as Record<string, string> });
-      return new Response(new Blob(["x"]), { status: 200 });
+      return new Response("x", { status: 200 }); // a string body: jsdom's Blob has no .stream() for Node's Response (CI)
     });
     const urlSpy = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:logo");
     try {

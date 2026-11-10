@@ -262,7 +262,8 @@ export default function ShopEditView() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="shop-area">Town or neighborhood</Label>
-          <Input id="shop-area" value={form.areaLabel} maxLength={80} placeholder="Broussard" onChange={(e) => set("areaLabel", e.target.value)} required />
+          <Input id="shop-area" value={form.areaLabel} maxLength={80} placeholder="e.g. Broussard" className="placeholder:text-muted-foreground/70"
+            onChange={(e) => set("areaLabel", e.target.value)} required />
           <p className="text-xs text-muted-foreground">Never your street address. Your pin shows the area, not your house.</p>
         </div>
         <div className="flex items-start gap-2">

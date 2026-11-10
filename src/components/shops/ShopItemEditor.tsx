@@ -305,7 +305,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="item-price">Price (dollars)</Label>
-          <Input id="item-price" inputMode="decimal" value={d.price} placeholder="18" onChange={(e) => set("price", e.target.value)} />
+          <Input id="item-price" inputMode="decimal" value={d.price} placeholder="e.g. 18" className="placeholder:text-muted-foreground/70" onChange={(e) => set("price", e.target.value)} />
         </div>
         {!digital && (
         <div className="space-y-1.5">

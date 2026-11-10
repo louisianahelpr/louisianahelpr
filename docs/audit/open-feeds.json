@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-10T19:31Z",
+  "measured_at": "2026-11-10T20:42Z",
   "issues": {
     "readable": true,
     "open": [
@@ -99,7 +99,7 @@
         "number": 4245,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42855812256",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42893114101",
         "runTruncated": false
       },
       {
@@ -127,7 +127,7 @@
         "number": 4281,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42885857571",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42896596135",
         "runTruncated": false
       },
       {
@@ -213,22 +213,6 @@
         "issue": null
       },
       {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
-        "issue": null
-      },
-      {
-        "fingerprint": "42a784cb226e506d814a710c96d26487",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: supabase db deploy",
-        "issue": 4307
-      },
-      {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -293,14 +277,6 @@
         "issue": 4258
       },
       {
-        "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: schedule-heartbeat",
-        "issue": 3824
-      },
-      {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -346,7 +322,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
+        "issue": 4222
       },
       {
         "fingerprint": "f1bfed973a2a75d4ef5bb8ce2a1785df",
@@ -373,20 +349,20 @@
         "issue": null
       },
       {
-        "fingerprint": "8a2e802edbe7bd772cfe6fec1ea6488b",
-        "source_kind": "nightly_red",
-        "source": "schedule-stalled",
-        "status": "open",
-        "title": "🔴 # scheduled workflow(s) have stopped running",
-        "issue": 3823
-      },
-      {
         "fingerprint": "b8b42cf124da685c1fe0087a97455b48",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: usesearchparammirror runaway writes",
         "issue": null
+      },
+      {
+        "fingerprint": "e275ee325abe1633e514acaa78fef874",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main-batch",
+        "issue": 4321
       },
       {
         "fingerprint": "41f88aeb227f0f23692853cc857a3f79",
@@ -461,6 +437,14 @@
         "issue": null
       },
       {
+        "fingerprint": "c2e77e40435efc12778adbbdcb9fc240",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: code-scanning-alerts",
+        "issue": 4317
+      },
+      {
         "fingerprint": "4840f1c5d1e74cf39f68000b5c6580da",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
@@ -493,19 +477,19 @@
         "issue": null
       },
       {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: declutter-money returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
         "issue": null
       },
       {
@@ -563,6 +547,14 @@
         "status": "open",
         "title": "/sponsor · boot stalled #s on the startup screen (boot scripts unfinished: #)",
         "issue": null
+      },
+      {
+        "fingerprint": "932d4bee3b0872e826941e289c5c149f",
+        "source_kind": "sentry",
+        "source": "sentry:https://www.louisianahelpr.com/sponsor",
+        "status": "open",
+        "title": "unhandledrejection: non-error promise rejection captured with value: object not found matching id:#, methodname:update, paramcount:#",
+        "issue": null
       }
     ]
   },
@@ -605,10 +597,8 @@
     "ledger 3c0d6b003e08": "Q1810",
     "ledger 3c528ace98fd": "Q2350",
     "ledger 41f88aeb227f": "Q1777",
-    "ledger 42a784cb226e": "Q1816",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4840f1c5d1e7": "Q2779",
-    "ledger 4aa239aefeb6": "Q1816",
     "ledger 4c89303184fb": "Q1816",
     "ledger 54ef0bfdcec3": "Q2778",
     "ledger 5a28db44e912": "Q2410",
@@ -625,6 +615,7 @@
     "ledger 8b1b5ac42f94": "Q2782",
     "ledger 8f6eb3360000": "Q2507",
     "ledger 9078a39b3304": "Q1615",
+    "ledger 932d4bee3b08": "Q2781",
     "ledger 99390a68ded7": "Q1615",
     "ledger a0597e872e21": "Q2789",
     "ledger a8ceee56bbd5": "Q1816",
@@ -634,6 +625,7 @@
     "ledger b8b42cf124da": "Q2506",
     "ledger ba04c0f07725": "Q2532",
     "ledger bbdaee370c35": "Q1631",
+    "ledger c2e77e40435e": "Q1816",
     "ledger c540527c8265": "Q2517",
     "ledger c5d2aafd1f77": "Q2410",
     "ledger cae29df0662b": "Q2351",
@@ -641,6 +633,7 @@
     "ledger db0fb15c4ec3": "Q1816",
     "ledger dd2ccbc600ce": "Q2780",
     "ledger e19cffc1cc66": "Q2783",
+    "ledger e275ee325abe": "Q1816",
     "ledger e41c806b9175": "Q1816",
     "ledger f1bfed973a2a": "Q2734",
     "ledger f22e3275d50d": "Q1816",

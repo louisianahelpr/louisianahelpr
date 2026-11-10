@@ -1800,7 +1800,7 @@ describe("DB-2: no I got it while a problem is open", () => {
 // a porch sale card showed the tracker, where it stands and "You get $10 once the sale is final"; the seller-delivers
 // card under it showed none of the three, and the porch tracker's third step read "On the po..." at 375. ONE sale card:
 // every handover kind on the seller's side draws the same three parts, and a step name wraps instead of being cut.
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {!view && order.handover === "seller_delivery" && <SellerDeliveryStatus | {false && order.handover === "seller_delivery" && <SellerDeliveryStatus
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {!view && !cancelled && order.handover === "seller_delivery" && <SellerDeliveryStatus | {false && order.handover === "seller_delivery" && <SellerDeliveryStatus
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | order.handover === "pickup_home" \|\| order.handover === "meetup") && ( | order.handover === "pickup_home") && (
 // @mutate src/components/tracker/StepTracker.tsx | mt-1.5 block break-words text-ds-12 leading-tight | mt-1.5 block truncate text-ds-12
 describe("DC-16: one sale card on the seller's side, every handover kind", () => {

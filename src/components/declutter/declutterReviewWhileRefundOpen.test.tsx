@@ -7,7 +7,7 @@
  *
  * @mutate src/components/declutter/DeclutterReviewForm.tsx |   if (problemOpen \|\| refundHoldsTheItem(refund.data?.request?.status) \|\| refundedInFull(refund.data)) return null; |
  * @mutate src/components/declutter/DeclutterReviewForm.tsx | const REFUND_STILL_OPEN: ReadonlySet<string> = new Set(["open", "offered"]); | const REFUND_STILL_OPEN: ReadonlySet<string> = new Set(["open"]);
- * @mutate src/components/declutter/DeclutterReviewForm.tsx | variant={refundStillOpen(refund.data) ? "outline" : "default"} | variant="default"
+ * @mutate src/components/declutter/DeclutterReviewForm.tsx | variant={refundStillOpen(refund.data) \|\| checkOpen ? "outline" : "default"} | variant={checkOpen ? "outline" : "default"}
  * @mutate src/components/declutter/DeclutterReviewForm.tsx |     enabled: refundPanel, |     enabled: true,
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | userId={userId} refundPanel={!!refundRequests && items > 0} problemOpen={!!problem} /> | userId={userId} problemOpen={!!problem} />
  */

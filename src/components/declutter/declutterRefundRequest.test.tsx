@@ -119,7 +119,7 @@ beforeEach(() => {
 });
 
 // Audit 2026-10-30 DB-11: "Take it back" ended the refund request in one tap, with no word on what follows.
-// @mutate src/components/declutter/DeclutterRefundRequest.tsx | disabled={withdraw.isPending} onClick={() => setConfirmWithdraw(true)}>Take it back</Button> | disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Take it back</Button>
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx | disabled={withdraw.isPending} onClick={() => setConfirmWithdraw(true)}>Cancel my refund request</Button> | disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Cancel my refund request</Button>
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx |             {`${cap(who)} is told, and is paid once the sale is final. You can't ask for a refund on this sale again.`} |             {""}
 async function sendAnswer() {
   fireEvent.click(screen.getByRole("button", { name: "Send answer" }));

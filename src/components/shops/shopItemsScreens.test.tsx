@@ -46,6 +46,7 @@
  * @mutate src/components/shops/ShopProfile.tsx |       {anyHomeKitchen && ( |       {false && (
  * @mutate src/components/shops/ShopProfile.tsx |                     <span className="sr-only">{HOME_KITCHEN_NOTICE}</span>\n |
  */
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -104,7 +105,7 @@ const cottage: CottageStatus = { year: 2026, cap_cents: 3000000, sales_cents: 0,
 
 function renderWith(ui: ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  return { qc, ...render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>) };
+  return { qc, ...render(<QueryClientProvider client={qc}><MemoryRouter>{ui}</MemoryRouter></QueryClientProvider>) };
 }
 
 beforeEach(() => {

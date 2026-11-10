@@ -5,8 +5,9 @@
  * a review, listed, not approved), Edit and Take down. The server decides
  * every rule (shops_* RPCs) and this shows its words.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,11 +56,20 @@ function ItemRow({ item, onEdit, onTakeDown, busy }: { item: ShopItem; onEdit: (
 }
 
 /**
- * `startAdding`: the shop page's "Add an item" (an owner's empty shop, audit 2026-10-28 P5-2) lands
- * on /shops/mine#add-item, and ShopEditView passes it here: open the new-item editor and bring it
- * into view.
+ * `startAdding`: every "Add an item" (the shop page's for an owner's empty shop, audit 2026-10-28 P5-2, and the
+ * one under this list) lands on /shops/mine#add-item, and ShopEditView renders this section ALONE there as its own
+ * screen titled "Add an item" (shops audit 11-10 F4: the editor sat at the very bottom of "Edit my shop", under the
+ * pickup address, FAQs and daily limit). `onTitle` gives that screen its title ("Add an item", then "Edit item" once
+ * the new item is saved); `onLeave` takes the member back to "Edit my shop" when they are done.
  */
-export default function ShopItemsSection({ shopId, ownerId, startAdding = false }: { shopId: string; ownerId: string; startAdding?: boolean }) {
+export default function ShopItemsSection({ shopId, ownerId, startAdding = false, onTitle, onLeave }: {
+  shopId: string;
+  ownerId: string;
+  startAdding?: boolean;
+  onTitle?: (title: string) => void;
+  onLeave?: () => void;
+}) {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const items = useQuery({ queryKey: ["shops", "items", shopId], queryFn: () => fetchShopItems(shopId) });
   // Which items have option lists (the Options section below the editor reads the same query).
@@ -67,10 +77,11 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false 
   // One gate (oneLoadingGatePerScreen): the rows and which of them have options paint together.
   const listLoading = items.isLoading || options.isLoading;
   const [editing, setEditing] = useState<string | "new" | null>(startAdding ? "new" : null);
-  const sectionRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    if (startAdding) sectionRef.current?.scrollIntoView?.({ block: "start" });
-  }, [startAdding]);
+    if (startAdding) onTitle?.(editing === "new" ? "Add an item" : "Edit item");
+  }, [startAdding, editing, onTitle]);
+  // Done on the "Add an item" screen: back to "Edit my shop" (its list shows the new item).
+  const stopEditing = () => (startAdding && onLeave ? onLeave() : setEditing(null));
   const [takeDown, setTakeDown] = useState<ShopItem | null>(null);
   const withdraw = useMutation({
     mutationFn: (itemId: string) => withdrawShopItem(itemId),
@@ -85,9 +96,9 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false 
   const open = editing === "new" ? null : list.find((i) => i.id === editing) ?? null;
 
   return (
-    <section ref={sectionRef} className="space-y-4 pb-8" aria-labelledby="shop-my-items">
-      <h2 id="shop-my-items" className="text-base font-semibold">Items</h2>
-      <ShopDailyCap shopId={shopId} />
+    <section className="space-y-4 pb-8" aria-labelledby={startAdding ? undefined : "shop-my-items"} aria-label={startAdding ? "Item" : undefined}>
+      {!startAdding && <h2 id="shop-my-items" className="text-base font-semibold">Items</h2>}
+      {!startAdding && <ShopDailyCap shopId={shopId} />}
       {listLoading ? (
         <div role="status" aria-label="Loading your items" className="space-y-2">
           <Skeleton className="h-16 w-full rounded-xl" />
@@ -119,13 +130,13 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false 
               <Button type="button" variant="outline" size="sm" onClick={() => void items.refetch()}>
                 Try again
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => setEditing(null)}>Back to your items</Button>
+              <Button type="button" variant="outline" size="sm" onClick={stopEditing}>Back to your items</Button>
             </div>
           </div>
         ) : (
           <div className="space-y-2" role="status">
             <p className="text-sm">This item isn't available any more.</p>
-            <Button type="button" variant="outline" onClick={() => setEditing(null)}>Back to your items</Button>
+            <Button type="button" variant="outline" onClick={stopEditing}>Back to your items</Button>
           </div>
         )
       ) : editing ? (
@@ -136,7 +147,8 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false 
             item={open}
             hasOptions={!!open && !!options.data?.has(open.id)}
             onCreated={(itemId) => setEditing(itemId)}
-            onDone={() => setEditing(null)}
+            onDone={stopEditing}
+            titleHidden={startAdding}
           />
           {/* Variants (20261106165310): option lists for a saved item. */}
           {open && <ShopItemOptionsEditor shopId={shopId} itemId={open.id} basePriceCents={open.price_cents} />}
@@ -164,7 +176,7 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false 
               ))}
             </ul>
           )}
-          <Button type="button" className="btn-grad-primary w-full" onClick={() => setEditing("new")}>
+          <Button type="button" className="btn-grad-primary w-full" onClick={() => navigate("/shops/mine#add-item")}>
             Add an item
           </Button>
         </>

@@ -206,7 +206,7 @@ vi.mock("./usePosterPageFlows", () => ({
     setLeadHost: (el: HTMLElement | null) => { if (el) flowCalls.push("lead-host"); },
     setAskHost: () => {},
     setTextHost: (el: HTMLElement | null) => { if (el) flowCalls.push("text-host"); },
-    approve: () => flowCalls.push("approve"), notRight: () => flowCalls.push("not-right"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
+    approve: () => flowCalls.push("approve"), finish: () => flowCalls.push("finish"), notRight: () => flowCalls.push("not-right"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
     setSecondHost: () => {}, setListHost: (el: HTMLElement | null) => { if (el) flowCalls.push("options-list"); },
     crewNobodyLeft: state.crewNobodyLeft, crewRoster: state.crewRoster, crewNames: state.crewNames, panel: <div data-testid="card-panel" />, dialogs: null,
   }),
@@ -2020,6 +2020,50 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
   // B118 follow-up (lead 11-01): with a SET day the bar read day 1 ("Late" on Arrived on a day that had passed).
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | <JobTracker job={jobOnContinueDay(job, continueDay.row)} side= | <JobTracker job={job} side=
   // @mutate src/lib/continueDayWords.ts |   return { ...job, date_needed: row.new_date, start_time: row.new_start_time.slice(0, 5) }; |   return job;
+  // Owner 11-10 ("Mow and Weed Eat" 7b1da54b): the set day passed with no done from the Helpr and the poster had only
+  // "Change day" and "Message". Now "Mark done and release" leads, its confirm names the amount, and it runs the flows'
+  // finish (the poster's release with posterFinishes; src/test/edge/posterFinishesAndPays.test.ts).
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | continueDay.posterLead ?? posterStep ?? posterFinish.lead ?? (seeCase | continueDay.posterLead ?? posterStep ?? (seeCase
+  // @mutate src/pages/jobs/jobPage/usePosterFinish.tsx |         onConfirm={() => { setOpen(false); flows.finish(); }} |         onConfirm={() => { setOpen(false); flows.approve(); }}
+  it("Yusef's job: the set day passed with no done, so 'Mark done and release' leads and its confirm names the $100", async () => {
+    continueState.row = setRow({ new_date: jobLocalDateISO(-4), new_start_time: "15:15:00", proposed_by: POSTER, helper_confirmed_at: "2026-11-06T07:43:01Z" });
+    state.job = underWay({ budget: 100, title: "Mow and Weed Eat", date_needed: jobLocalDateISO(-9) });
+    state.party = true;
+    flowCalls.length = 0;
+    renderPage();
+    const btn = await screen.findByRole("button", { name: "Mark done and release" });
+    const rowEl = document.querySelector('[data-job-row="poster"]') as HTMLElement;
+    const names = barNames(rowEl);
+    expect(names[names.length - 1]).toBe("Mark done and release");
+    fireEvent.click(btn);
+    const sheet = await screen.findByRole("dialog", { name: "Mark done and release?" });
+    expect(sheet.querySelector("[data-poster-finish-amount]")?.textContent).toContain("$100");
+    expect(sheet.textContent).toContain("ends the continue day");
+    expect(flowCalls).not.toContain("finish");
+    fireEvent.click(within(sheet).getByRole("button", { name: "Mark done and release $100" }));
+    await waitFor(() => expect(flowCalls).toContain("finish"));
+  });
+
+  it("no 'Mark done and release' while the set day is still ahead, once the Helpr marked done, or for the Helpr", async () => {
+    continueState.row = setRow({ new_date: jobLocalDateISO(3), proposed_by: POSTER });
+    state.job = underWay({ date_needed: jobLocalDateISO(-9) });
+    state.party = true;
+    const a = renderPage();
+    await screen.findByRole("button", { name: "Change day" });
+    expect(screen.queryByRole("button", { name: "Mark done and release" })).toBeNull();
+    a.unmount();
+    continueState.row = null;
+    state.job = underWay({ date_needed: jobLocalDateISO(-9), helper_completed_at: "2026-10-28T15:00:00Z" });
+    const b = renderPage();
+    await waitFor(() => expect(document.querySelector('[data-job-row="poster"]')).toBeTruthy());
+    expect(screen.queryByRole("button", { name: "Mark done and release" })).toBeNull();
+    b.unmount();
+    state.job = underWay({ customer_id: POSTER, helper_id: ME, date_needed: jobLocalDateISO(-9) });
+    renderPage();
+    await waitFor(() => expect(document.querySelector('[data-job-row="helpr"]')).toBeTruthy());
+    expect(screen.queryByRole("button", { name: "Mark done and release" })).toBeNull();
+  });
+
   it("a set day: the tracker bar reads the new day, never 'Late' off day 1's passed date", async () => {
     continueState.row = setRow({ new_date: jobLocalDateISO(3), proposed_by: POSTER });
     state.job = underWay({ customer_id: POSTER, helper_id: ME, date_needed: jobLocalDateISO(-1), helper_arrived_at: null });

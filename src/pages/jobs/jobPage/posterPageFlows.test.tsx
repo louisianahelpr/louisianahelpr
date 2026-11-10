@@ -89,6 +89,7 @@ function Harness() {
       <p data-testid="nobody">{String(f.crewNobodyLeft)}</p>
       <p data-testid="roster">{f.crewRoster === undefined ? "none" : `rows=${f.crewRoster.length}`}</p>
       <button onClick={f.approve}>approve</button>
+      <button onClick={f.finish}>finish</button>
       <button onClick={f.cancel}>cancel</button>
       <p data-testid="count">{f.moreCount}</p>
       <p data-testid="leads">{f.leadCount}</p>
@@ -133,6 +134,16 @@ describe("the job page runs the Posted card's own flows (usePosterPageFlows)", (
     fireEvent.click(sheet.querySelector("button")!);
     await waitFor(() => expect(calls.invoke).toEqual([["create-payment", { body: { action: "release", jobId: "job-1" } }]]));
     expect(sheet.textContent).toContain("Hallie");
+  });
+
+  // Owner 11-10: the poster's own finish is the same release with posterFinishes (the server's poster_finish_job_refusal).
+  // @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts | body: opts?.posterFinishes ? { action: "release", jobId, posterFinishes: true } : { action: "release", jobId }, | body: { action: "release", jobId },
+  // @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx | finish: () => void handlers.completeJob(job.id, { posterFinishes: true }), | finish: () => void handlers.completeJob(job.id),
+  it("finish is create-payment's release with posterFinishes, once", async () => {
+    mount();
+    await waitFor(() => expect(screen.getByTestId("ready").textContent).toBe("true"));
+    fireEvent.click(screen.getByRole("button", { name: "finish" }));
+    await waitFor(() => expect(calls.invoke).toEqual([["create-payment", { body: { action: "release", jobId: "job-1", posterFinishes: true } }]]));
   });
 
   it("Cancel checks the tracking row, then opens the card's cancel dialog with the Posted row (fee kept, Helpr committed)", async () => {

@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 503,
+      "literal": 502,
       "template": 107,
-      "dynamic": 663,
+      "dynamic": 664,
       "jsx": 0
     }
   },
@@ -7628,7 +7628,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 96,
+      "line": 97,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7638,7 +7638,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 117,
+      "line": 118,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7648,7 +7648,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 123,
+      "line": 124,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7658,7 +7658,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 170,
+      "line": 176,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7733,7 +7733,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 192,
+      "line": 198,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7743,7 +7743,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 292,
+      "line": 300,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -7757,17 +7757,27 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 308,
+      "line": 316,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "We couldn't mark this job complete — please try again."
+        "form": "dynamic",
+        "text": "opts?.posterFinishes ? userFacingError(err, \"We couldn't mark this job done — please try again.\") : \"We couldn't mark this job complete — please try again.\"",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "userFacingError(err, \"We couldn't mark this job done — please try again.\")"
+          },
+          {
+            "form": "literal",
+            "text": "We couldn't mark this job complete — please try again."
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 321,
+      "line": 333,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -7777,7 +7787,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 323,
+      "line": 335,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7787,7 +7797,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 341,
+      "line": 353,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7797,7 +7807,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 345,
+      "line": 357,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -7807,7 +7817,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 372,
+      "line": 384,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7817,7 +7827,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 381,
+      "line": 393,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -7827,7 +7837,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 416,
+      "line": 428,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7837,7 +7847,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 448,
+      "line": 460,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -7883,7 +7893,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useLifecycleHandlers.ts",
-      "line": 456,
+      "line": 468,
       "kind": "toast.error",
       "title": {
         "form": "literal",

@@ -40,6 +40,8 @@ export interface PosterPageFlows {
   ready: boolean;
   completing: boolean;
   approve: () => void;
+  /** Owner 11-10: the poster marks the job done and releases the money with no done from the Helpr (past its day). */
+  finish: () => void;
   /** "Something's not right" (A3-8): the approve sheet, opened at the fix form. */
   notRight: () => void;
   cancel: () => void;
@@ -171,7 +173,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   });
 
   if (!enabled || !job) {
-    return { ready: false, completing: false, approve: () => {}, notRight: () => {}, cancel: () => {}, edit: () => {}, moreCount: 0, leadCount: 0, loneSos: false, setLeadHost: () => {}, setAskHost: () => {}, setSecondHost: () => {}, setListHost: () => {}, crewNobodyLeft: false, panel: null, dialogs: null };
+    return { ready: false, completing: false, approve: () => {}, finish: () => {}, notRight: () => {}, cancel: () => {}, edit: () => {}, moreCount: 0, leadCount: 0, loneSos: false, setLeadHost: () => {}, setAskHost: () => {}, setSecondHost: () => {}, setListHost: () => {}, crewNobodyLeft: false, panel: null, dialogs: null };
   }
 
   // Its own Suspense: the card's steps lazy-load dialogs (the refund ask), and a suspend with no boundary of its own
@@ -254,6 +256,8 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
     ready: true,
     completing: completingJobId === job.id,
     approve: () => setCompletionRequest((n) => n + 1),
+    // The same release as Approve (createLifecycleHandlers' completeJob), with the server's poster-finish rule.
+    finish: () => void handlers.completeJob(job.id, { posterFinishes: true }),
     notRight: () => setRevisionRequest((n) => n + 1),
     cancel: () => void handlers.tryCancelJob(job),
     edit: () => setEditJob(job),

@@ -62,6 +62,7 @@ import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatExactDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { payoutPromiseSentence, readPromisedPayout } from "../_shared/payoutPromise.ts";
+import { posterFinishRefusalMessage } from "../_shared/posterFinish.ts";
 import { helprFaultFeeCapCents, helprFaultFeeDeductedClause, ledgerHelprFaultFeeCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
@@ -1837,13 +1838,33 @@ serve(async (req) => {
       const isPoster = forPoster || job.customer_id === user.id;
       const isHelper = !forPoster && job.helper_id === user.id;
       if (!isPoster && !isHelper) throw new PublicError("Not authorized");
+      // THE POSTER FINISHES THE JOB (owner 11-10, "Mow and Weed Eat" 7b1da54b): past the job's day (or its continue
+      // day's) with no done from the Helpr, the poster may mark it done and release the money themselves. The one rule
+      // is public.poster_finish_job_refusal (20261110160451), asked with the token's user id, never the body's. The
+      // write below is then the poster's own Approve with the Helpr's half counted as done: the same payout math, payout
+      // day, held-escrow pin and Stripe check. The poster's stamp ends the open continue day (close_continue_day_on_job_change).
+      // Never for an admin acting for the poster, and never for the Helpr on their own job.
+      const posterFinishes = body.posterFinishes === true && !forPoster && isPoster && !isHelper;
+      if (body.posterFinishes === true && !posterFinishes) throw new PublicError(posterFinishRefusalMessage("not_the_poster"));
+      // deno-lint-ignore no-explicit-any
+      const posterFinishRefusal = async (jobRow: any) => {
+        if (!posterFinishes) return;
+        const { data: refusal, error: refusalErr } = await supabaseAdmin.rpc("poster_finish_job_refusal", { p_job_id: jobRow.id, p_user_id: user.id });
+        if (refusalErr) {
+          // Fails closed, and says so: an unread rule is never "allowed".
+          console.error("[create-payment] release poster_finish_job_refusal failed:", refusalErr.message);
+          throw new PublicError("We couldn't check this job right now, so nothing was released. Try again in a minute.");
+        }
+        if (refusal) throw new PublicError(posterFinishRefusalMessage(String(refusal)));
+      };
       // A duplicate release (double tap, two devices, a retry after a lost
       // response) answers cleanly BEFORE the status gate, which would otherwise
       // call an already-completed job "not in progress".
       const LIVE_RELEASE_STATUSES = ["in_progress", "revision_requested", "accepted"];
       const alreadyDone = (row: typeof job) => {
         const mine = !!((isPoster && row.poster_completed_at) || (isHelper && row.helper_completed_at));
-        const released = row.status === "completed" && !!row.poster_completed_at && !!row.helper_completed_at;
+        // A poster-finished job carries no Helpr stamp, so its replay counts as released too.
+        const released = row.status === "completed" && !!row.poster_completed_at && (!!row.helper_completed_at || posterFinishes);
         // Both stamps on a still-live job is the stuck state the old race left
         // behind: NOT "waiting" — fall through so this tap completes it.
         const bothStampedLive = !!row.poster_completed_at && !!row.helper_completed_at;
@@ -1948,6 +1969,7 @@ serve(async (req) => {
         }
       };
       if (isHelper && !isPoster && !job.helper_completed_at) await newHelperCompletionGates(job);
+      await posterFinishRefusal(job);
 
       // 3. MINIMUM JOB TIME — 30 minutes measured from when work actually
       //    started. The anchor was `helper_confirmed_at || updated_at`, which
@@ -2029,6 +2051,7 @@ serve(async (req) => {
             );
           }
           if (isHelper && !isPoster && !job.helper_completed_at) await newHelperCompletionGates(job);
+          await posterFinishRefusal(job);
         }
 
         updateFields = {};
@@ -2036,7 +2059,7 @@ serve(async (req) => {
         if (isHelper) updateFields.helper_completed_at = new Date().toISOString();
 
         posterDone = isPoster ? true : !!job.poster_completed_at;
-        helperDone = isHelper ? true : !!job.helper_completed_at;
+        helperDone = isHelper || posterFinishes ? true : !!job.helper_completed_at;
         bothDone = posterDone && helperDone;
 
         if (bothDone) {

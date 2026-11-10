@@ -15,12 +15,15 @@ import { useMemo, useState, type ReactNode } from "react";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import PageHeader from "@/components/PageHeader";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
+import { NativeSelect } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
 import { useFeatureStatus } from "@/hooks/useFeature";
-import { errorToast, successToast } from "@/lib/toast";
+import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
 import { userFacingError } from "@/lib/userFacingError";
 import { sponsorAdminBackend, type SponsorAdminBackend } from "./sponsorAdminApi";
@@ -82,9 +85,9 @@ function Panel({ title, children, actions }: { title: string; children: ReactNod
 
 function StatusSelect({ value, onChange, label }: { value: SponsorStatus; onChange: (s: SponsorStatus) => void; label: string }) {
   return (
-    <select aria-label={label} className="h-9 rounded-lg border border-border bg-background px-2 text-sm" value={value} onChange={(e) => onChange(e.target.value as SponsorStatus)}>
+    <NativeSelect aria-label={label} wrapperClassName="w-auto" className="h-9 py-0 pl-2 text-sm" value={value} onChange={(e) => onChange(e.target.value as SponsorStatus)}>
       {SPONSOR_STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-    </select>
+    </NativeSelect>
   );
 }
 
@@ -113,7 +116,7 @@ export default function AdminSponsorsPage() {
   return (
     <div className="min-h-screen bg-premium-page pb-safe-nav">
       <PageHeader title="25 Days sponsors" backTo="/admin" />
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pb-10">
+      <div className="flex w-full flex-col gap-4 px-4 pb-10">
         {demo ? <p className="rounded-lg bg-black px-3 py-2 text-center text-xs font-bold tracking-wider text-yellow-300">LOCAL PREVIEW · SAMPLE DATA · NOT LIVE</p> : null}
         {!allowed && sw.settled ? (
           <Panel title="The 25 Days page is switched off">
@@ -159,35 +162,39 @@ export default function AdminSponsorsPage() {
 type Run = (fn: (b: SponsorAdminBackend) => Promise<unknown>) => void;
 type RunAsync = (fn: (b: SponsorAdminBackend) => Promise<unknown>) => Promise<unknown>;
 
-function CalendarView({ data, run }: { data: SponsorAdminData; run: Run }) {
-  const anyDay = data.signups.filter((s) => s.any_day || s.days.length === 0);
-  const SponsorChip = ({ s, day }: { s: SponsorAdminSignup; day: number | null }) => (
+function SponsorChip({ s, day, run }: { s: SponsorAdminSignup; day: number | null; run: Run }) {
+  return (
     <li className="rounded-xl border border-border bg-background p-2 text-sm">
       <div className="font-semibold">{s.brand_name}</div>
       <div className="text-xs text-muted-foreground">{s.prize_description} · ${s.prize_value}</div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <StatusSelect label={`Status for ${s.brand_name}`} value={s.status} onChange={(st) => run((b) => b.setStatus(s.id, st))} />
-        <select
+        <NativeSelect
           aria-label={`Move ${s.brand_name} to another day`}
-          className="h-9 rounded-lg border border-border bg-background px-2 text-sm"
+          wrapperClassName="w-auto"
+          className="h-9 py-0 pl-2 text-sm"
           value=""
           onChange={(e) => { const to = Number(e.target.value); if (to) run((b) => b.moveDay(s.id, day, to)); }}
         >
           <option value="">{day ? "Move to…" : "Set a day…"}</option>
           {DAYS.filter((d) => d !== day).map((d) => <option key={d} value={d}>Dec {d}</option>)}
-        </select>
-        <label className="flex items-center gap-1 text-xs" title={s.wall_ok ? "" : "The sponsor did not tick OK to show their logo"}>
-          <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" checked={s.show_on_wall} disabled={!s.wall_ok} onChange={(e) => run((b) => b.setWall(s.id, e.target.checked))} />
+        </NativeSelect>
+        <label className="flex min-h-11 items-center gap-2 text-xs" title={s.wall_ok ? "" : "The sponsor did not tick OK to show their logo"}>
+          <Checkbox checked={s.show_on_wall} disabled={!s.wall_ok} onCheckedChange={(v) => run((b) => b.setWall(s.id, v === true))} />
           On wall{!s.wall_ok ? " (no OK)" : ""}
         </label>
       </div>
     </li>
   );
+}
+
+function CalendarView({ data, run }: { data: SponsorAdminData; run: Run }) {
+  const anyDay = data.signups.filter((s) => s.any_day || s.days.length === 0);
   return (
     <div className="flex flex-col gap-4">
       {anyDay.length > 0 ? (
         <Panel title={`Any day is fine (${anyDay.length})`}>
-          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{anyDay.map((s) => <SponsorChip key={s.id} s={s} day={null} />)}</ul>
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{anyDay.map((s) => <SponsorChip key={s.id} s={s} day={null} run={run} />)}</ul>
         </Panel>
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -200,7 +207,7 @@ function CalendarView({ data, run }: { data: SponsorAdminData; run: Run }) {
                 <h3 className="text-base font-bold">Dec {d}</h3>
                 <span className="text-xs text-muted-foreground">{list.length}{cap ? ` / ${cap}` : ""}</span>
               </div>
-              {list.length ? <ul className="flex flex-col gap-2">{list.map((s) => <SponsorChip key={s.id} s={s} day={d} />)}</ul> : <p className="text-xs text-muted-foreground">No sponsor yet</p>}
+              {list.length ? <ul className="flex flex-col gap-2">{list.map((s) => <SponsorChip key={s.id} s={s} day={d} run={run} />)}</ul> : <p className="text-xs text-muted-foreground">No sponsor yet</p>}
             </section>
           );
         })}
@@ -235,15 +242,15 @@ function SignupsView({ data, backend, run }: { data: SponsorAdminData; backend: 
       title={`Sign-ups (${rows.length})`}
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <select aria-label="Filter by day" className="h-9 rounded-lg border border-border bg-background px-2 text-sm" value={day} onChange={(e) => setDay(e.target.value)}>
+          <NativeSelect aria-label="Filter by day" wrapperClassName="w-auto" className="h-9 py-0 pl-2 text-sm" value={day} onChange={(e) => setDay(e.target.value)}>
             <option value="">All days</option>
             <option value="any">Any day</option>
             {DAYS.map((d) => <option key={d} value={d}>Dec {d}</option>)}
-          </select>
-          <select aria-label="Filter by status" className="h-9 rounded-lg border border-border bg-background px-2 text-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
+          </NativeSelect>
+          <NativeSelect aria-label="Filter by status" wrapperClassName="w-auto" className="h-9 py-0 pl-2 text-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">All statuses</option>
             {SPONSOR_STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-          </select>
+          </NativeSelect>
           <Button size="sm" variant="outline" onClick={() => download(`25-days-sponsors-${new Date().toISOString().slice(0, 10)}.csv`, signupsCsv(rows))}>Export CSV</Button>
         </div>
       }
@@ -267,7 +274,9 @@ function SignupsView({ data, backend, run }: { data: SponsorAdminData; backend: 
                 <td className="px-2 py-2">{s.ship_to === "helpr" ? "Louisiana Helpr" : s.ship_to === "winner" ? "Winner" : "—"}</td>
                 <td className="px-2 py-2"><StatusSelect label={`Status for ${s.brand_name}`} value={s.status} onChange={(st) => run((b) => b.setStatus(s.id, st))} /></td>
                 <td className="px-2 py-2">
-                  <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" aria-label={`Show ${s.brand_name} on the sponsor wall`} checked={s.show_on_wall} disabled={!s.wall_ok} onChange={(e) => run((b) => b.setWall(s.id, e.target.checked))} />
+                  <label className="flex min-h-11 items-center">
+                    <Checkbox aria-label={`Show ${s.brand_name} on the sponsor wall`} checked={s.show_on_wall} disabled={!s.wall_ok} onCheckedChange={(v) => run((b) => b.setWall(s.id, v === true))} />
+                  </label>
                   {!s.wall_ok ? <div className="text-ds-11 text-muted-foreground">no OK</div> : null}
                 </td>
                 <td className="px-2 py-2">{s.logo_path ? <Button size="sm" variant="outline" onClick={() => void getLogo(s.id)}>Download</Button> : "—"}</td>
@@ -287,10 +296,12 @@ function LinksView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
   const [email, setEmail] = useState("");
   const origin = C.links.website;
   const link = (code: string) => `${origin}/sponsor?ref=${code}`;
+  // The button itself says "Copied" (a success toast never renders: applyToastPolicy).
+  const [copied, setCopied] = useState<string | null>(null);
   const copy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      successToast("Link copied");
+      setCopied(text);
     } catch {
       // Clipboard blocked (no permission / insecure context): the link is shown on screen to copy by hand.
       errorToast("Couldn't copy. Select the link and copy it by hand.");
@@ -325,7 +336,7 @@ function LinksView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
                 {i.visits} visits · first {fmt(i.first_visit)} · last {fmt(i.last_visit)} · signed up: {i.signed_up ? "Yes" : "No"}
               </div>
               <div className="mt-2 flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => void copy(link(i.ref_code))}>Copy link</Button>
+                <Button size="sm" variant="outline" onClick={() => void copy(link(i.ref_code))}>{copied === link(i.ref_code) ? "Copied" : "Copy link"}</Button>
                 <Button size="sm" variant="outline" onClick={() => { if (window.confirm(`Delete the link for ${i.brand}? Its visit history goes too.`)) void run((b) => b.deleteInvite(i.id)); }}>Delete</Button>
               </div>
             </li>
@@ -343,7 +354,7 @@ function LinksView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
                   <td className="px-2 py-2">
                     <div className="flex items-center gap-2">
                       <code className="break-all text-xs">{link(i.ref_code)}</code>
-                      <Button size="sm" variant="outline" onClick={() => void copy(link(i.ref_code))}>Copy</Button>
+                      <Button size="sm" variant="outline" onClick={() => void copy(link(i.ref_code))}>{copied === link(i.ref_code) ? "Copied" : "Copy"}</Button>
                     </div>
                   </td>
                   <td className="px-2 py-2">{i.visits}</td>
@@ -376,7 +387,6 @@ function AddSponsorView({ run, onDone }: { run: RunAsync; onDone: () => void }) 
         notes: null, any_day: f.any_day && days.length === 0, status: "pending", show_on_wall: f.wall_ok, wall_ok: f.wall_ok, days,
       }),
     );
-    successToast("Sponsor added");
     onDone();
   };
   const field = (key: keyof typeof f, label: string, type = "text") => (
@@ -398,8 +408,8 @@ function AddSponsorView({ run, onDone }: { run: RunAsync; onDone: () => void }) 
         </label>
         {field("days", "Days (e.g. 3, 12)")}
         <div className="flex flex-col justify-end gap-2 text-sm">
-          <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" checked={f.any_day} onChange={(e) => setF((x) => ({ ...x, any_day: e.target.checked }))} /> Any day is fine</label>
-          <label className="flex items-center gap-2"><input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" checked={f.wall_ok} onChange={(e) => setF((x) => ({ ...x, wall_ok: e.target.checked }))} /> They said OK to show their logo</label>
+          <label className="flex min-h-11 items-center gap-2"><Checkbox checked={f.any_day} onCheckedChange={(v) => setF((x) => ({ ...x, any_day: v === true }))} /> Any day is fine</label>
+          <label className="flex min-h-11 items-center gap-2"><Checkbox checked={f.wall_ok} onCheckedChange={(v) => setF((x) => ({ ...x, wall_ok: v === true }))} /> They said OK to show their logo</label>
         </div>
       </div>
       <p className="mt-2 text-xs text-muted-foreground">A sponsor added here skips the per-day cap and gets no emails.</p>
@@ -429,7 +439,7 @@ function ContentView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
         <Button
           className="mt-3"
           onClick={() =>
-            void run((b) => b.saveSettings({ max_per_day: parse(form.max) || null, group_members: parse(form.g), page_followers: parse(form.p), monthly_visitors: parse(form.m) })).then(() => successToast("Saved"))
+            void run((b) => b.saveSettings({ max_per_day: parse(form.max) || null, group_members: parse(form.g), page_followers: parse(form.p), monthly_visitors: parse(form.m) }))
           }
         >
           Save
@@ -437,17 +447,21 @@ function ContentView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
       </Panel>
       <Panel title="Founder photo">
         <p className="mb-2 text-sm text-muted-foreground">{s.founder_photo_path ? "A photo is set." : "No photo yet: the page shows no photo frame until you add one."}</p>
-        <input
-          type="file"
+        <HiddenFileInput
+          peer
+          id="sponsor-founder-photo"
           accept="image/png,image/jpeg"
-          aria-label="Upload founder photo"
           onChange={(e) => {
             const file = e.target.files?.[0];
+            e.target.value = "";
             if (!file) return;
             if (file.size > 5 * 1024 * 1024) { errorToast("That photo is over 5 MB."); return; }
-            void run((b) => b.uploadFounderPhoto(file)).then(() => successToast("Photo saved"));
+            void run((b) => b.uploadFounderPhoto(file));
           }}
         />
+        <label htmlFor="sponsor-founder-photo" className={`${buttonVariants({ variant: "outline", size: "sm" })} cursor-pointer peer-focus-visible:ring-2 peer-focus-visible:ring-ring`}>
+          {s.founder_photo_path ? "Change founder photo" : "Upload founder photo"}
+        </label>
       </Panel>
       <Panel title="Testimonials (real ones only)">
         <p className="mb-3 text-xs text-muted-foreground">Add only words a real sponsor actually sent you, with their OK. The section stays hidden until one is approved.</p>
@@ -467,7 +481,7 @@ function ContentView({ data, run }: { data: SponsorAdminData; run: RunAsync }) {
             <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-2 text-sm">
               <span>“{x.quote}” — {x.name}{x.brand ? `, ${x.brand}` : ""}</span>
               <span className="flex items-center gap-2">
-                <label className="flex items-center gap-1 text-xs"><input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" checked={x.approved} onChange={(e) => void run((b) => b.saveTestimonial({ ...x, approved: e.target.checked }))} /> Approved (shows on page)</label>
+                <label className="flex min-h-11 items-center gap-2 text-xs"><Checkbox checked={x.approved} onCheckedChange={(v) => void run((b) => b.saveTestimonial({ ...x, approved: v === true }))} /> Approved (shows on page)</label>
                 <Button size="sm" variant="outline" onClick={() => void run((b) => b.deleteTestimonial(x.id))}>Delete</Button>
               </span>
             </li>

@@ -157,6 +157,8 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/rentals/listings/editorParts.tsx": { bucket: "job-photos" }, // the shared Photos card (Rent and Buy editors)
   "src/components/rentals/LandlordIdReview.tsx": { bucket: "user-documents" }, // ownership proof + landlord ID photo (owner 2026-10-19)
   "src/components/rentals/MaintenanceRequestForm.tsx": { bucket: "user-documents" }, // request photos
+  "src/components/sponsor/ClaimSection.tsx": { bucket: "sponsor-logos" }, // 25 Days: a brand's logo (sponsor-25days stores it)
+  "src/pages/admin/sponsors/AdminSponsorsPage.tsx": { bucket: "sponsor-logos" }, // 25 Days: the founder photo (sponsor-25days stores it)
   "src/components/admin/marketing/MarketingComposerDialog.tsx": {
     bucket: "marketing-media",
     constSrc: "src/components/admin/marketing/marketingMedia.ts",

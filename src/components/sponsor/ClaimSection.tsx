@@ -12,10 +12,34 @@ import type { SponsorPublicState, SponsorSignupPayload, SponsorSubmitResult } fr
 import { checkLogo, sponsorSignupsOpen, validateSponsorSignup } from "../../../supabase/functions/_shared/sponsorSignup";
 import { confettiBurst } from "./confetti";
 import { GiftBox, Icon, Sparkle } from "./Decor";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { ToggleChip } from "@/components/ui/ToggleChip";
 
 const E = C.claim.errors;
 const F = C.claim.form;
 const DAYS = Array.from({ length: C.event.lastDay - C.event.firstDay + 1 }, (_, i) => C.event.firstDay + i);
+
+/** Field ids, each written once: the label (Field's htmlFor) and the control share it. */
+const ID = {
+  brand: "lh25-brand",
+  contact: "lh25-contact",
+  email: "lh25-email",
+  phone: "lh25-phone",
+  prize: "lh25-prize",
+  value: "lh25-value",
+  website: "lh25-website",
+  ig: "lh25-ig",
+  fb: "lh25-fb",
+  tt: "lh25-tt",
+  logo: "lh25-logo",
+  notes: "lh25-notes",
+} as const;
+/** The section's anchor (the hero and final buttons scroll to it); one of three exclusive branches renders it. */
+const CLAIM_ID = "claim";
 
 type FieldKey = keyof SponsorSignupPayload | "logo";
 
@@ -132,7 +156,7 @@ export function ClaimSection({
     if (Object.values(errs).some(Boolean)) {
       setErrors(errs);
       const first = Object.keys(errs).find((k) => errs[k as FieldKey]);
-      const target = first === "days" ? document.getElementById("lh25-days") : formRef.current?.querySelector<HTMLElement>(`[name="${first}"]`);
+      const target = first === "days" ? document.getElementById("lh25-days") : (formRef.current?.querySelector<HTMLElement>(`[name="${first}"]:not([aria-hidden="true"])`) ?? document.getElementById(`lh25-${first}`));
       target?.focus({ preventScroll: false });
       return;
     }
@@ -170,7 +194,7 @@ export function ClaimSection({
     const ics = buildIcs({ brand: done.brand, days: done.days, anyDay: done.anyDay });
     const href = `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
     return (
-      <section className="lh25-section" id="claim" aria-labelledby="lh25-thanks">
+      <section className="lh25-section" id={CLAIM_ID} aria-labelledby="lh25-thanks">
         <div className="lh25-thanks" ref={doneRef} tabIndex={-1} data-testid="sponsor-thanks">
           <Sparkle className="lh25-thanks-s1" size={26} />
           <Sparkle className="lh25-thanks-s2" size={18} color="#C8102E" />
@@ -193,7 +217,7 @@ export function ClaimSection({
 
   if (!sponsorSignupsOpen(nowMs ?? Date.now(), C.event.signup_deadline)) {
     return (
-      <section className="lh25-section" id="claim" aria-labelledby="lh25-closed">
+      <section className="lh25-section" id={CLAIM_ID} aria-labelledby="lh25-closed">
         <div className="lh25-thanks" data-testid="sponsor-closed">
           <h2 id="lh25-closed">{C.claim.closedTitle}</h2>
           <p className="lh25-thanks-body">{C.claim.closed}</p>
@@ -206,7 +230,7 @@ export function ClaimSection({
   const describe = (id: string, k: FieldKey, hint?: boolean) => (errors[k] ? `${id}-error` : hint ? `${id}-hint` : undefined);
 
   return (
-    <section className="lh25-section lh25-claim" id="claim" aria-labelledby="lh25-claim">
+    <section className="lh25-section lh25-claim" id={CLAIM_ID} aria-labelledby="lh25-claim">
       <div className="lh25-section-title">
         <h2 id="lh25-claim">{C.claim.title}</h2>
       </div>
@@ -227,11 +251,10 @@ export function ClaimSection({
           const full = atCap || fullDays.has(d);
           const selected = form.days.includes(d);
           return (
-            <button
+            <ToggleChip
               key={d}
-              type="button"
               className={`lh25-tile${selected ? " is-selected" : ""}${full ? " is-full" : ""}`}
-              aria-pressed={selected}
+              pressed={selected}
               disabled={full}
               onClick={(e) => toggleDay(d, e.currentTarget)}
               aria-label={`December ${d}, ${full ? C.claim.full : label}${selected ? ", picked" : ""}`}
@@ -239,16 +262,15 @@ export function ClaimSection({
               <span className="lh25-tile-day">{d}</span>
               <span className="lh25-tile-count">{full ? C.claim.full : label}</span>
               {selected ? <span className="lh25-tile-check" aria-hidden="true"><Icon name="check" size={14} /></span> : null}
-            </button>
+            </ToggleChip>
           );
         })}
       </div>
-      <label className="lh25-anyday">
-        <input
-          type="checkbox"
+      <label className="lh25-anyday min-h-11">
+        <Checkbox
           checked={form.anyDay}
-          onChange={(e) => {
-            const on = e.target.checked;
+          onCheckedChange={(v) => {
+            const on = v === true;
             setForm((f) => ({ ...f, anyDay: on, days: on ? [] : f.days }));
             if (errors.days) setErrors((x) => ({ ...x, days: undefined }));
           }}
@@ -262,65 +284,66 @@ export function ClaimSection({
         {/* Honeypot: hidden from people and screen readers; a bot that fills it is dropped by the server. */}
         <div className="lh25-hp" aria-hidden="true">
           <label htmlFor="lh25-company-fax">Company fax</label>
-          <input id="lh25-company-fax" name="company_fax" tabIndex={-1} autoComplete="off" value={form.company_fax} onChange={(e) => set("company_fax", e.target.value)} />
+          <Input id="lh25-company-fax" name="company_fax" tabIndex={-1} autoComplete="off" value={form.company_fax} onChange={(e) => set("company_fax", e.target.value)} />
         </div>
 
         <div className="lh25-form-grid">
-          <Field id="lh25-brand" label={F.brandName} error={err("brandName")}>
-            <input id="lh25-brand" name="brandName" autoComplete="organization" value={form.brandName} onChange={(e) => set("brandName", e.target.value)} aria-invalid={!!err("brandName")} aria-describedby={describe("lh25-brand", "brandName")} required />
+          <Field id={ID.brand} label={F.brandName} error={err("brandName")}>
+            <Input id={ID.brand} name="brandName" autoComplete="organization" value={form.brandName} onChange={(e) => set("brandName", e.target.value)} aria-invalid={!!err("brandName")} aria-describedby={describe("lh25-brand", "brandName")} required />
           </Field>
-          <Field id="lh25-contact" label={F.contactName} error={err("contactName")}>
-            <input id="lh25-contact" name="contactName" autoComplete="name" value={form.contactName} onChange={(e) => set("contactName", e.target.value)} aria-invalid={!!err("contactName")} aria-describedby={describe("lh25-contact", "contactName")} required />
+          <Field id={ID.contact} label={F.contactName} error={err("contactName")}>
+            <Input id={ID.contact} name="contactName" autoComplete="name" value={form.contactName} onChange={(e) => set("contactName", e.target.value)} aria-invalid={!!err("contactName")} aria-describedby={describe("lh25-contact", "contactName")} required />
           </Field>
-          <Field id="lh25-email" label={F.email} error={err("email")}>
-            <input id="lh25-email" name="email" type="email" inputMode="email" autoComplete="email" value={form.email} onChange={(e) => set("email", e.target.value)} aria-invalid={!!err("email")} aria-describedby={describe("lh25-email", "email")} required />
+          <Field id={ID.email} label={F.email} error={err("email")}>
+            <Input id={ID.email} name="email" type="email" inputMode="email" autoComplete="email" value={form.email} onChange={(e) => set("email", e.target.value)} aria-invalid={!!err("email")} aria-describedby={describe("lh25-email", "email")} required />
           </Field>
-          <Field id="lh25-phone" label={F.phone} error={err("phone")}>
-            <input id="lh25-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} aria-describedby={describe("lh25-phone", "phone")} />
+          <Field id={ID.phone} label={F.phone} error={err("phone")}>
+            <Input id={ID.phone} name="phone" type="tel" inputMode="tel" autoComplete="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} aria-describedby={describe("lh25-phone", "phone")} />
           </Field>
-          <Field id="lh25-prize" label={F.prizeDescription} error={err("prizeDescription")} hint={F.prizeDescriptionHint}>
-            <textarea id="lh25-prize" name="prizeDescription" rows={2} value={form.prizeDescription} onChange={(e) => set("prizeDescription", e.target.value)} aria-invalid={!!err("prizeDescription")} aria-describedby={describe("lh25-prize", "prizeDescription", true)} required />
+          <Field id={ID.prize} label={F.prizeDescription} error={err("prizeDescription")} hint={F.prizeDescriptionHint}>
+            <Textarea id={ID.prize} name="prizeDescription" rows={2} value={form.prizeDescription} onChange={(e) => set("prizeDescription", e.target.value)} aria-invalid={!!err("prizeDescription")} aria-describedby={describe("lh25-prize", "prizeDescription", true)} required />
           </Field>
-          <Field id="lh25-value" label={F.prizeValue} error={err("prizeValue")}>
-            <input id="lh25-value" name="prizeValue" inputMode="decimal" value={form.prizeValue} onChange={(e) => set("prizeValue", e.target.value)} aria-invalid={!!err("prizeValue")} aria-describedby={describe("lh25-value", "prizeValue")} required placeholder="50" />
+          <Field id={ID.value} label={F.prizeValue} error={err("prizeValue")}>
+            <Input id={ID.value} name="prizeValue" inputMode="decimal" value={form.prizeValue} onChange={(e) => set("prizeValue", e.target.value)} aria-invalid={!!err("prizeValue")} aria-describedby={describe("lh25-value", "prizeValue")} required placeholder="50" />
           </Field>
-          <Field id="lh25-website" label={F.website} error={err("website")}>
-            <input id="lh25-website" name="website" type="url" inputMode="url" autoComplete="url" value={form.website} onChange={(e) => set("website", e.target.value)} aria-describedby={describe("lh25-website", "website")} placeholder="https://" />
+          <Field id={ID.website} label={F.website} error={err("website")}>
+            <Input id={ID.website} name="website" type="url" inputMode="url" autoComplete="url" value={form.website} onChange={(e) => set("website", e.target.value)} aria-describedby={describe("lh25-website", "website")} placeholder="https://" />
           </Field>
-          <Field id="lh25-ig" label={F.instagram} error={err("instagram")}>
-            <input id="lh25-ig" name="instagram" value={form.instagram} onChange={(e) => set("instagram", e.target.value)} placeholder="@yourbrand" />
+          <Field id={ID.ig} label={F.instagram} error={err("instagram")}>
+            <Input id={ID.ig} name="instagram" value={form.instagram} onChange={(e) => set("instagram", e.target.value)} placeholder="@yourbrand" />
           </Field>
-          <Field id="lh25-fb" label={F.facebook} error={err("facebook")}>
-            <input id="lh25-fb" name="facebook" value={form.facebook} onChange={(e) => set("facebook", e.target.value)} placeholder="your Facebook page" />
+          <Field id={ID.fb} label={F.facebook} error={err("facebook")}>
+            <Input id={ID.fb} name="facebook" value={form.facebook} onChange={(e) => set("facebook", e.target.value)} placeholder="your Facebook page" />
           </Field>
-          <Field id="lh25-tt" label={F.tiktok} error={err("tiktok")}>
-            <input id="lh25-tt" name="tiktok" value={form.tiktok} onChange={(e) => set("tiktok", e.target.value)} placeholder="@yourbrand" />
+          <Field id={ID.tt} label={F.tiktok} error={err("tiktok")}>
+            <Input id={ID.tt} name="tiktok" value={form.tiktok} onChange={(e) => set("tiktok", e.target.value)} placeholder="@yourbrand" />
           </Field>
-          <Field id="lh25-logo" label={F.logo} error={err("logo")} hint={logo ? `${logo.name} ✓` : F.logoHint}>
-            <input id="lh25-logo" name="logo" type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={(e) => pickLogo(e.target.files?.[0] ?? null)} aria-describedby={describe("lh25-logo", "logo", true)} />
+          <Field id={ID.logo} label={F.logo} error={err("logo")} hint={logo ? `${logo.name} ✓` : F.logoHint}>
+            <HiddenFileInput peer id={ID.logo} name="logo" accept="image/png,image/jpeg,image/svg+xml" onChange={(e) => { pickLogo(e.target.files?.[0] ?? null); e.target.value = ""; }} aria-describedby={describe("lh25-logo", "logo", true)} />
+            <label htmlFor={ID.logo} className="lh25-file-pick" aria-hidden="true">{logo ? "Choose another file" : "Choose a file"}</label>
           </Field>
           <p className="lh25-field" data-testid="sponsor-ship-address">
             <strong>{F.shipTo}:</strong> {F.shipAddress}
           </p>
-          <Field id="lh25-notes" label={F.notes} error={err("notes")}>
-            <textarea id="lh25-notes" name="notes" rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
+          <Field id={ID.notes} label={F.notes} error={err("notes")}>
+            <Textarea id={ID.notes} name="notes" rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
           </Field>
         </div>
 
-        <label className={`lh25-check${err("agree") ? " lh25-check-error" : ""}`}>
-          <input type="checkbox" name="agree" checked={form.agree} onChange={(e) => set("agree", e.target.checked)} aria-invalid={!!err("agree")} aria-describedby={err("agree") ? "lh25-agree-error" : undefined} />
+        <label className={`min-h-11 lh25-check${err("agree") ? " lh25-check-error" : ""}`}>
+          <Checkbox id="lh25-agree" name="agree" checked={form.agree} onCheckedChange={(v) => set("agree", v === true)} aria-invalid={!!err("agree")} aria-describedby={err("agree") ? "lh25-agree-error" : undefined} />
           <span>{F.agree} <span className="lh25-req" aria-hidden="true">*</span></span>
         </label>
         {err("agree") ? <p className="lh25-error" id="lh25-agree-error" role="alert">{err("agree")}</p> : null}
-        <label className="lh25-check">
-          <input type="checkbox" name="showOnWall" checked={form.showOnWall} onChange={(e) => set("showOnWall", e.target.checked)} />
+        <label className="min-h-11 lh25-check">
+          <Checkbox name="showOnWall" checked={form.showOnWall} onCheckedChange={(v) => set("showOnWall", v === true)} />
           <span>{F.showOnWall}</span>
         </label>
 
         {banner ? <p className="lh25-banner-error" role="alert">{banner}</p> : null}
-        <button type="submit" className="lh25-btn lh25-btn-primary lh25-submit" disabled={busy} aria-busy={busy}>
+        <Button type="submit" variant="ghost" className="lh25-btn lh25-btn-primary lh25-submit" disabled={busy} aria-busy={busy}>
           {busy ? F.submitting : F.submit}
-        </button>
+        </Button>
       </form>
     </section>
   );

@@ -3,7 +3,8 @@
  * Terms say Helprs are independent contractors, not employees. Renamed "Work and earnings record". CLASS: no
  * member-facing code says "employment" / "employee(s)" / "employed" about Helpr work. The IRS term
  * "self-employment tax" stays (it is the tax's legal name), and so does the Terms' "independent contractors, not
- * employees" (it says the opposite).
+ * employees" (it says the opposite), and the 25 Days rules' prize exclusion "Employees of Louisiana Helpr and of the
+ * sponsor of a given day" (the company's and a sponsor's own staff, not Helpr work; exact phrase).
  *
  * Inventory: every tracked .ts/.tsx file under src/ and supabase/functions/ (tests excluded), comments blanked.
  *
@@ -33,7 +34,10 @@ describe("member copy never calls Helpr work employment (F092)", () => {
     for (const f of files) {
       const raw = readSource(f);
       if (raw == null) continue;
-      const code = blankComments(raw).replace(/self-employ(ment|ed)/gi, "").replace(/\bnot (an? )?employees?\b/gi, "");
+      const code = blankComments(raw).replace(/self-employ(ment|ed)/gi, "").replace(/\bnot (an? )?employees?\b/gi, "")
+        // The 25 Days official rules' standard sweepstakes exclusion (owner copy 2026-11-09, src/content/sponsorPage.ts):
+        // it names the company's and a sponsor's OWN staff who may not win a prize, not Helpr work. Exact phrase only.
+        .replace(/\bEmployees of Louisiana Helpr and of the sponsor of a given day\b/g, "");
       code.split("\n").forEach((line, i) => {
         if (EMPLOY.test(line)) offenders.push(`${relative(ROOT, f)}:${i + 1}: ${line.trim().slice(0, 100)}`);
       });

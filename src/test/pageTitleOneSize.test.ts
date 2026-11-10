@@ -37,6 +37,9 @@ const REPO = resolve(__dirname, "../..");
 const EXEMPT: Record<string, string> = {
   // LOCKED landing hero (CLAUDE.md): font, colour and copy are off-limits.
   "src/components/landing/HeroSection.tsx": "locked landing hero",
+  // The 25 Days sponsor page (owner spec 2026-11-09): a stand-alone public page in its own design (sponsor.css), not an app screen.
+  "src/components/sponsor/Sections.tsx": "25 Days sponsor page hero, its own design (sponsor.css lh25-h1)",
+  "src/pages/sponsor/SponsorRulesPage.tsx": "25 Days official rules title, its own design (sponsor.css .lh25-rules h1)",
   // The decorative "404" numeral, not a page title.
 };
 

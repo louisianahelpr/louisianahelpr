@@ -14,6 +14,7 @@ import { filledUrl, hasPlaceholder, placeholderRuns, statNumber } from "@/lib/sp
 import type { SponsorPublicState, SponsorStatKey } from "@/lib/sponsor/types";
 import { prefersReducedMotion } from "./confetti";
 import { FleurDeLis, GiftBox, Icon, Magnolia, Sparkle } from "./Decor";
+import { Button } from "@/components/ui/button";
 
 /** Dev preview only: show [placeholders] highlighted instead of hiding them. */
 export const PlaceholderPreview = createContext(false);
@@ -110,8 +111,8 @@ export function Hero({ greetingBrand }: { greetingBrand: string | null }) {
         </h1>
         <p className="lh25-subhead">{C.hero.subhead}</p>
         <div className="lh25-hero-ctas">
-          <button type="button" className="lh25-btn lh25-btn-primary" onClick={() => scrollToId("claim")}>{C.hero.primaryCta}</button>
-          <button type="button" className="lh25-btn lh25-btn-outline" onClick={() => scrollToId("how")}>{C.hero.secondaryCta}</button>
+          <Button type="button" variant="ghost" className="lh25-btn lh25-btn-primary" onClick={() => scrollToId("claim")}>{C.hero.primaryCta}</Button>
+          <Button type="button" variant="ghost" className="lh25-btn lh25-btn-outline" onClick={() => scrollToId("how")}>{C.hero.secondaryCta}</Button>
         </div>
         <Countdown />
         {sponsorSignupsOpen(Date.now(), C.event.signup_deadline) ? <p className="lh25-deadline">{C.hero.deadline}</p> : null}
@@ -414,7 +415,7 @@ export function FinalCta() {
       <Sparkle className="lh25-final-s1" size={22} />
       <Sparkle className="lh25-final-s2" size={16} color="#fff" />
       <h2 id="lh25-final">{C.finalCta.title}</h2>
-      <button type="button" className="lh25-btn lh25-btn-gold" onClick={() => scrollToId("claim")}>{C.finalCta.button}</button>
+      <Button type="button" variant="ghost" className="lh25-btn lh25-btn-gold" onClick={() => scrollToId("claim")}>{C.finalCta.button}</Button>
     </section>
   );
 }

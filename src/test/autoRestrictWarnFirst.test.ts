@@ -29,16 +29,16 @@
  * races two real connections: green on 20261002055040, red on 20260927231939
  * (final_warning, two Final warnings).
  *
- * @mutate supabase/migrations/20261109192930_auto_flag_notices_say_separate_from_team_strikes.sql | (as Q745 does for the suspensions).\n      IF NOT profile_found THEN | (as Q745 does for the suspensions).\n      IF false THEN
- * @mutate supabase/migrations/20261109192930_auto_flag_notices_say_separate_from_team_strikes.sql | log the miss, as Q820 does.\n      IF NOT profile_found THEN | log the miss, as Q820 does.\n      IF false THEN
- * @mutate supabase/migrations/20261109192930_auto_flag_notices_say_separate_from_team_strikes.sql | 'repeat offender: no profiles row; admin notice skipped',\n            jsonb_build_object('violation_id', NEW.id, 'violation_count', violation_count));\n        EXCEPTION WHEN OTHERS THEN\n          NULL;\n        END;\n        RETURN NEW; | 'repeat offender: no profiles row; admin notice skipped',\n            jsonb_build_object('violation_id', NEW.id, 'violation_count', violation_count));\n        EXCEPTION WHEN OTHERS THEN\n          NULL;\n        END;
- * @mutate supabase/migrations/20261109192930_auto_flag_notices_say_separate_from_team_strikes.sql |     profile_found := FOUND; |     profile_found := true;
- * @mutate supabase/migrations/20261109192930_auto_flag_notices_say_separate_from_team_strikes.sql |         GET DIAGNOSTICS warned_rows = ROW_COUNT; |         warned_rows := 1;
- * @mutate supabase/migrations/20261109192930_auto_flag_notices_say_separate_from_team_strikes.sql |       AND created_at >= NOW() - INTERVAL '7 days'; |       ;
- * @mutate supabase/migrations/20261109192930_auto_flag_notices_say_separate_from_team_strikes.sql |     WHERE user_id = NEW.user_id\n      AND violation_type NOT IN ( |     WHERE user_id = NEW.user_id\n      AND violation_type IN (
- * @mutate supabase/migrations/20261109192930_auto_flag_notices_say_separate_from_team_strikes.sql | INTERVAL '7 days'\n      WHERE user_id = NEW.user_id;\n      GET DIAGNOSTICS suspended_rows = ROW_COUNT; | INTERVAL '7 days'\n      WHERE user_id = NEW.user_id;
- * @mutate supabase/migrations/20261109192930_auto_flag_notices_say_separate_from_team_strikes.sql | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC;
- * @mutate supabase/migrations/20261109192930_auto_flag_notices_say_separate_from_team_strikes.sql |     PERFORM pg_advisory_xact_lock(hashtextextended('auto_restrict_repeat_violators:' \|\| NEW.user_id::text, 0)); |     NULL;
+ * @mutate supabase/migrations/20261110200605_strike_rule_one_wording.sql | (as Q745 does for the suspensions).\n      IF NOT profile_found THEN | (as Q745 does for the suspensions).\n      IF false THEN
+ * @mutate supabase/migrations/20261110200605_strike_rule_one_wording.sql | log the miss, as Q820 does.\n      IF NOT profile_found THEN | log the miss, as Q820 does.\n      IF false THEN
+ * @mutate supabase/migrations/20261110200605_strike_rule_one_wording.sql | 'repeat offender: no profiles row; admin notice skipped',\n            jsonb_build_object('violation_id', NEW.id, 'violation_count', violation_count));\n        EXCEPTION WHEN OTHERS THEN\n          NULL;\n        END;\n        RETURN NEW; | 'repeat offender: no profiles row; admin notice skipped',\n            jsonb_build_object('violation_id', NEW.id, 'violation_count', violation_count));\n        EXCEPTION WHEN OTHERS THEN\n          NULL;\n        END;
+ * @mutate supabase/migrations/20261110200605_strike_rule_one_wording.sql |     profile_found := FOUND; |     profile_found := true;
+ * @mutate supabase/migrations/20261110200605_strike_rule_one_wording.sql |         GET DIAGNOSTICS warned_rows = ROW_COUNT; |         warned_rows := 1;
+ * @mutate supabase/migrations/20261110200605_strike_rule_one_wording.sql |       AND created_at >= NOW() - INTERVAL '7 days'; |       ;
+ * @mutate supabase/migrations/20261110200605_strike_rule_one_wording.sql |     WHERE user_id = NEW.user_id\n      AND violation_type NOT IN ( |     WHERE user_id = NEW.user_id\n      AND violation_type IN (
+ * @mutate supabase/migrations/20261110200605_strike_rule_one_wording.sql | INTERVAL '7 days'\n      WHERE user_id = NEW.user_id;\n      GET DIAGNOSTICS suspended_rows = ROW_COUNT; | INTERVAL '7 days'\n      WHERE user_id = NEW.user_id;
+ * @mutate supabase/migrations/20261110200605_strike_rule_one_wording.sql | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.auto_restrict_repeat_violators() FROM PUBLIC;
+ * @mutate supabase/migrations/20261110200605_strike_rule_one_wording.sql |     PERFORM pg_advisory_xact_lock(hashtextextended('auto_restrict_repeat_violators:' \|\| NEW.user_id::text, 0)); |     NULL;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";

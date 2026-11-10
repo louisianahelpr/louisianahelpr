@@ -3,7 +3,7 @@
  * The privacy rule: a text is only ever a fixed phrase plus our own link.
  */
 // @mutate supabase/functions/_shared/smsPolicy.ts | if (typeof jobId === "string" && UUID_RE.test(jobId)) return | if (typeof jobId === "string") return
-// @mutate supabase/functions/_shared/smsPolicy.ts | if (input.firstText) parts.push("Reply STOP to opt out."); |
+// @mutate supabase/functions/_shared/smsPolicy.ts |   parts.push(SMS_STOP_LINE);\n  return parts.join(" "); |   return parts.join(" ");
 import { describe, it, expect } from "vitest";
 import { createHmac } from "node:crypto";
 import {
@@ -15,6 +15,7 @@ import {
   twilioSignature,
   twiml,
   SMS_HELP_REPLY,
+  SMS_CONFIRM_HINT,
   SMS_OPTED_IN_REPLY,
   type SmsKind,
   SMS_KIND_PHRASES,
@@ -36,9 +37,18 @@ describe("buildSmsBody", () => {
     }
   });
 
-  it("says how to stop on the first text only", () => {
-    expect(buildSmsBody({ kind: "message", firstText: true, appUrl: APP })).toMatch(/Reply STOP to opt out\.$/);
-    expect(buildSmsBody({ kind: "message", firstText: false, appUrl: APP })).not.toMatch(/STOP/);
+  // F499 (audit 11-10): every text ends with the one opt-out line, in one wording.
+  // F498/F501: each fits one 160-character segment even with a job link.
+  it("every text ends with 'Reply STOP to opt out.', in one wording, in one segment", () => {
+    for (const kind of KINDS) {
+      for (const firstText of [true, false]) {
+        const body = buildSmsBody({ kind, jobId: JOB, firstText, appUrl: APP, confirmCode: "0427" });
+        expect(body, body).toMatch(/ Reply STOP to opt out\.$/);
+        expect(body, body).not.toMatch(/to cancel|STOP to stop|Msg&data/);
+        expect(body.length, body).toBeLessThanOrEqual(160);
+      }
+    }
+    for (const t of [SMS_HELP_REPLY, SMS_OPTED_IN_REPLY, SMS_CONFIRM_HINT]) expect(t, t).toMatch(/ Reply STOP to opt out\.$/);
   });
 
   it("only a real uuid reaches the link; anything else falls back to /jobs", () => {
@@ -63,7 +73,7 @@ describe("the double opt-in text", () => {
     expect(() => buildSmsBody({ kind: "confirm", firstText: false, appUrl: APP })).toThrow();
     expect(() => buildSmsBody({ kind: "confirm", firstText: false, appUrl: APP, confirmCode: "42" })).toThrow();
     expect(t).toMatch(/Msg frequency varies/);
-    expect(t).toMatch(/Msg&data rates may apply/);
+    expect(t).toMatch(/Msg & data rates may apply\. Reply HELP for help\. Reply STOP to opt out\.$/);
     expect(t).toMatch(/HELP/);
     expect(t).toMatch(/STOP/);
     expect(t).not.toMatch(/https?:/);
@@ -126,6 +136,6 @@ describe("twiml", () => {
     expect(SMS_OPTED_IN_REPLY.length).toBeLessThanOrEqual(160);
     expect(SMS_OPTED_IN_REPLY).toMatch(/^[\x20-\x7e]+$/);
     expect(SMS_OPTED_IN_REPLY).toMatch(/^Louisiana Helpr: /);
-    expect(SMS_OPTED_IN_REPLY).toMatch(/Msg frequency varies\. Msg & data rates may apply\. Reply HELP for help, STOP to opt out\.$/);
+    expect(SMS_OPTED_IN_REPLY).toMatch(/Msg frequency varies\. Msg & data rates may apply\. Reply HELP for help\. Reply STOP to opt out\.$/);
   });
 });

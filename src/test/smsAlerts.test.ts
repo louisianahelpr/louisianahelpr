@@ -108,7 +108,7 @@ describe("SMS alerts source rules", () => {
   // new one never queued, the claim never hands one out) is proved in src/test/pglite/smsNoNearbyJobTexts.pglite.mjs;
   // the sender's refusal in src/test/edge/sms-alerts.test.ts. These are the anchors.
   // @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |     WHEN p_type = 'job_match' THEN NULL | WHEN p_type = 'job_match' THEN 'job_match'
-  // @mutate supabase/functions/_shared/smsPolicy.ts |   job_offer: "New job offer. Answer before it expires.", |   job_offer: "New job offer. Answer before it expires.",\n  job_match: "A new job was posted near you.",
+  // @mutate supabase/functions/_shared/smsPolicy.ts |   job_offer: "New job offer. Answer soon.", |   job_offer: "New job offer. Answer soon.",\n  job_match: "A new job was posted near you.",
   it("a nearby-job (job_match) notification is never texted, and no text can be built for one", () => {
     const body = newestFunctionBody("sms_kind_for").replace(/\s+/g, " ");
     // The FIRST branch, so no later branch (e.g. info/success with a job) can catch one.

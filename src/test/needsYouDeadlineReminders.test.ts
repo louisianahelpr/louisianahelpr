@@ -113,7 +113,7 @@ describe("needs-you deadline reminders (A3-85)", () => {
 
   // @mutate supabase/functions/_shared/smsPolicy.ts |   if (kind === "needs_you") return "/declutter"; |   if (kind === "needs_you") return "/jobs";
   it("the text: a fixed phrase, the job link for a job step, Declutter for the rest, one segment", () => {
-    expect(SMS_KIND_PHRASES.needs_you).toBe("Something needs you before a deadline.");
+    expect(SMS_KIND_PHRASES.needs_you).toBe("A reply or approval is due soon.");
     expect(smsLinkPath("needs_you", null)).toBe("/declutter");
     const job = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
     expect(smsLinkPath("needs_you", job)).toBe(`/jobs?job=${job}`);

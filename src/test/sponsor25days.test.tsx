@@ -1,3 +1,4 @@
+// @mutate src/content/sponsorPage.ts |     show: false, |     show: true,
 // @mutate supabase/functions/_shared/sponsorSignup.ts |   if (raw.agree !== true) errors.agree = "agree"; |   if (raw.agree === false) errors.agree = "agree";
 // @mutate supabase/functions/_shared/sponsorSignup.ts |   else if (!anyDay && days.length === 0) errors.days = "days"; |   else if (false) errors.days = "days";
 // @mutate src/lib/sponsor/placeholders.ts |   return PLACEHOLDER_RE.test(text); |   return false;
@@ -141,8 +142,10 @@ describe("hidden until filled", () => {
     // The Facebook GROUP url is unknown: its button and footer link are hidden, the PAGE link shows.
     expect(screen.queryByText(sponsorPage.about.groupButton)).toBeNull();
     expect(screen.getByText(sponsorPage.about.pageButton)).toBeTruthy();
-    // Founder: the bracketed sentences are hidden, the filled ones show; no empty photo frame.
-    expect(text).toContain("I live right here in Delcambre");
+    // Owner 11-10: no founder section and no personal name anywhere on the page.
+    expect(text).not.toContain("I live right here in Delcambre");
+    expect(text).not.toMatch(/\bLexi\b/);
+    expect(text).not.toMatch(/founder/i);
     expect(text).not.toContain("I started Louisiana Helpr because");
     expect(container.querySelector(".lh25-founder-photo")).toBeNull();
     // FAQ: the eligibility answer is a placeholder, so its question is hidden.

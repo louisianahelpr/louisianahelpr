@@ -92,6 +92,8 @@ export const sponsorPage = {
   },
 
   founder: {
+    // Owner 11-10: the page shows no founder section and no personal name. Kept as data for a possible return.
+    show: false,
     title: "Hi, I'm Lexi! 👋",
     // The photo is uploaded in /admin/sponsors. Until then no photo frame shows.
     photoAlt: "Lexi, founder of Louisiana Helpr",
@@ -218,7 +220,7 @@ export const sponsorPage = {
 
   thankYou: {
     title: "You're in! 🎉",
-    body: "Lexi will be in touch within 48 hours.",
+    body: "We'll be in touch within 48 hours.",
     yourDays: "Your day(s):",
     shipTo: "Ship your prize to:",
     anyDay: "Any day — we'll pick one together.",
@@ -237,7 +239,7 @@ export const sponsorPage = {
       { q: "How does the prize get to the winner?", a: "Ship it straight to the winner (we send you their shipping info), or send it to us and we handle delivery." },
       { q: "Can I sponsor more than one day?", a: "Absolutely!" },
       { q: "Can more than one brand be on the same day?", a: "Yes, and every sponsor gets their own spotlight post." },
-      { q: "What if I have more questions?", a: "Email Lexi at admin@louisianahelpr.com. A real person replies." },
+      { q: "What if I have more questions?", a: "Email us at admin@louisianahelpr.com. A real person replies." },
       { q: "Is this affiliated with Facebook?", a: "No. This giveaway is in no way sponsored, endorsed or administered by, or associated with, Facebook/Meta." },
     ],
   },

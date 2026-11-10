@@ -29,7 +29,7 @@ describe("A3-45: the Applicants sheet's next step", () => {
 
   it("a close before the start is the pick-by", () => {
     expect(words({ ...job, expires_at: "2058-11-14T18:00:00Z" })).toBe(
-      "Next: choose a Helpr · by Thu, Nov 14, 12:00 PM | If nobody is hired by Thu, Nov 14, 12:00 PM, the job closes and your card isn't charged.",
+      "Next: choose a Helpr · by Thu, Nov 14, 12:00 PM | If nobody is hired by then, the job closes and your card isn't charged.",
     );
   });
 
@@ -38,7 +38,7 @@ describe("A3-45: the Applicants sheet's next step", () => {
   });
 
   it("past the start, the close is the pick-by; past both, no date", () => {
-    expect(words(job, new Date("2058-11-17T00:00:00Z"))).toMatch(/^Next: choose a Helpr · by Sat, Nov 30, 9:00 AM \|/);
+    expect(words(job, new Date("2058-11-17T00:00:00Z"))).toBe("Next: choose a Helpr · by Sat, Nov 30, 9:00 AM | If nobody is hired by then, the job closes and your card isn't charged.");
     expect(words(job, new Date("2058-12-01T00:00:00Z"))).toBe("Next: choose a Helpr | ");
   });
 

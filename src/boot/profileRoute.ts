@@ -1,5 +1,5 @@
 /**
- * Starts /profile's page and every chunk it needs (and /admin's, see accountPageChunksFor), for routePreload.ts.
+ * Starts /profile's page and every chunk it needs (and /admin's and /messages', see accountPageChunksFor), for routePreload.ts.
  *
  * Its own tiny chunk because a dynamic import's preload list lives in the file
  * that holds the import: in the entry, Profile's list (12 files) costs every
@@ -31,7 +31,10 @@ for (const link of document.querySelectorAll('link[rel="modulepreload"]')) {
  * its 5.0 KB band.
  */
 export function accountPageChunksFor(pathname: string, search: string): Array<() => Promise<unknown>> {
-  if (pathname.replace(/\/+$/, "") === "/admin") return [() => import("@/components/AdminRoute"), () => import("@/pages/admin/Admin")];
+  const path = pathname.replace(/\/+$/, "");
+  if (path === "/admin") return [() => import("@/components/AdminRoute"), () => import("@/pages/admin/Admin")];
+  // /messages (11-10): its 103-file preload list left the entry for this chunk (routePreload.ts), the same trade as /admin.
+  if (path === "/messages") return [() => import("@/pages/messages/Messages")];
   return [() => import("@/pages/profile/Profile"), ...profileTabChunksFor(search)];
 }
 

@@ -90,9 +90,12 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
     guest: [protectedRoute],
     signedIn: [homeDashboard, protectedRoute],
   },
+  // Messages' preload list (103 files) moved to profileRoute's boot chunk (11-10): in the entry it cost every visitor
+  // bytes on every load, and after #4297's sponsor chunks the entry stood at 5.4 KB gz, over its 5 KB band. A cold
+  // signed-in /messages on the web pays one network round before its chunks start (the app loads them from disk).
   "/messages": {
     guest: [protectedRoute],
-    signedIn: [() => import("@/pages/messages/Messages"), protectedRoute],
+    signedIn: [profileRoute, protectedRoute],
   },
   "/jobs": {
     guest: [protectedRoute],

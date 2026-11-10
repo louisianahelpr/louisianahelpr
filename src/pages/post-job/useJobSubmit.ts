@@ -14,7 +14,7 @@ import { backgroundImport } from "@/lib/chunkReload";
 import { requireOnline } from "@/lib/requireOnline";
 import { assertWritable } from "@/hooks/useImpersonation";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
-import { geocodeAddress, composeJobAddress } from "@/lib/geocode";
+import { geocodeJobAddress } from "@/lib/geocode";
 import { maybeFireFirstPostConfetti } from "./firstPostConfetti";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
 import { buildJobInsertPayload } from "./jobSubmitHelpers";
@@ -992,13 +992,13 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     // in-flight fetch, so most jobs never got coords and never hit the map.
     // The map's RPC rounds these to ~110m so the doorstep is never exposed.
     const geocodePromise = (async () => {
-      const composed = composeJobAddress({
+      // The full address, then once more with the street name and town only (owner bug 2026-11-10).
+      const coords = await geocodeJobAddress({
         streetAddress,
         city,
         state: addrState,
         zipCode,
       });
-      const coords = await geocodeAddress(composed);
       if (coords) {
         // `error` is checked FIRST, and that is the whole fix. This used to
         // read `const { data: rows } = …` and then test

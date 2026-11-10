@@ -99,7 +99,7 @@ vi.mock("@/lib/analytics", () => ({ track: vi.fn(), AhaEvent: {} }));
 vi.mock("@/lib/haptics", () => ({ hapticSuccess: vi.fn(), hapticError: vi.fn() }));
 vi.mock("@/lib/requireOnline", () => ({ requireOnline: () => true }));
 vi.mock("@/hooks/useImpersonation", () => ({ assertWritable: () => true }));
-vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => null, composeJobAddress: () => "" }));
+vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => null, geocodeJobAddress: async () => null, composeJobAddress: () => "" }));
 vi.mock("./firstPostConfetti", () => ({ maybeFireFirstPostConfetti: async () => {} }));
 vi.mock("@/hooks/useNotificationPermissionPrompt", () => ({ recordJobActionForPermissionPrompt: vi.fn() }));
 vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: vi.fn(async () => {}) }));

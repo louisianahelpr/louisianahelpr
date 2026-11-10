@@ -59,6 +59,8 @@ const FEE_PERCENT = "20261025235701_browse_carries_helper_fee_percent.sql";
 const CARD_HOLD = "20261027185146_card_hold_at_post.sql";
 // Q2742 restates get_jobs_for_my_applications (private columns hidden from a caller who is not a party); crew rule untouched.
 const PRIVATE_COLUMNS = "20261105102419_applicant_jobs_hide_private_columns.sql";
+// Owner bug 2026-11-10: the map pins a job that never geocoded at its ZIP/parish centroid (restates get_open_jobs_for_map).
+const MAP_AREA_PIN = "20261110210539_map_pins_ungeocoded_jobs.sql";
 // Q2408 restates the map and ranked feed (window's-last-day filter + date_window_end), crew rule untouched.
 const DATE_WINDOW = "20261104080753_map_and_ranked_read_date_window.sql";
 // Q2408 part 4 restates the apply gate and the landing teaser (window's-last-day cutoff), crew rule untouched.
@@ -89,7 +91,7 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   });
 
   it.each(Object.entries(TAKES_APPLICANTS))("%s reads crew_spots_open", (fn, rule) => {
-    expect([THIS, RESTATED, SEED_SWITCH, LISTING_START, UNDER_18, FEE_STAMP, MEMBERSHIPS, FEE_PERCENT, CARD_HOLD, DATE_WINDOW, DATE_WINDOW_APPLY, PRIVATE_COLUMNS], `${fn} is not the Q1409 definition or its Q1411/Q552/Q1401/Q1586/Q1839/Q1848/Q2400/Q2399/Q2408/Q2742 restatement`).toContain(EFFECTIVE.get(fn)?.file);
+    expect([THIS, RESTATED, SEED_SWITCH, LISTING_START, UNDER_18, FEE_STAMP, MEMBERSHIPS, FEE_PERCENT, CARD_HOLD, DATE_WINDOW, DATE_WINDOW_APPLY, PRIVATE_COLUMNS, MAP_AREA_PIN], `${fn} is not the Q1409 definition or its Q1411/Q552/Q1401/Q1586/Q1839/Q1848/Q2400/Q2399/Q2408/Q2742/map-area-pin restatement`).toContain(EFFECTIVE.get(fn)?.file);
     expect(body(fn).replace(/\s+/g, " ")).toContain(rule.replace(/\s+/g, " "));
   });
 

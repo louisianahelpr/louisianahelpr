@@ -347,3 +347,5 @@ div.lh25.lh25 {
 @media (prefers-reduced-motion: reduce) {
   .lh25 *, .lh25 *::before, .lh25 *::after { animation: none !important; transition: none !important; }
 }
+
+.lh25 .lh25-rules-pending { margin: 1.5rem 0; font-style: italic; line-height: 1.6; }

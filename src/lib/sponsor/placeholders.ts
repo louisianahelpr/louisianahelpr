@@ -15,7 +15,7 @@ export function hasPlaceholder(text: string | null | undefined): boolean {
 }
 
 /** `text` when it is filled in, else null. */
-export function filled(text: string | null | undefined): string | null {
+function filled(text: string | null | undefined): string | null {
   return hasPlaceholder(text) ? null : (text as string);
 }
 

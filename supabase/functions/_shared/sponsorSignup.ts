@@ -37,12 +37,12 @@ export function sponsorSignupsOpen(nowMs: number, deadline: string = SPONSOR_SIG
   return nowMs < closesAt;
 }
 
-export const SPONSOR_LOGO_TYPES = ["image/png", "image/jpeg", "image/svg+xml"] as const;
+const SPONSOR_LOGO_TYPES = ["image/png", "image/jpeg", "image/svg+xml"] as const;
 export type SponsorLogoType = (typeof SPONSOR_LOGO_TYPES)[number];
 
 export type SponsorShipTo = "winner" | "helpr";
 
-export interface SponsorSignupInput {
+interface SponsorSignupInput {
   brandName: string;
   contactName: string;
   email: string;
@@ -82,13 +82,13 @@ export type SponsorValidation =
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /** Single line: every control character becomes a space, runs collapse. */
-export function cleanLine(input: unknown, max: number): string {
+function cleanLine(input: unknown, max: number): string {
   if (typeof input !== "string") return "";
   return input.replace(/[\u0000-\u001F\u007F-\u009F]/g, " ").replace(/\s+/g, " ").trim().slice(0, max + 1);
 }
 
 /** Multi-line: keeps tab and newline, drops other control characters. */
-export function cleanText(input: unknown, max: number): string {
+function cleanText(input: unknown, max: number): string {
   if (typeof input !== "string") return "";
   return input.replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g, "").trim().slice(0, max + 1);
 }

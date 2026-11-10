@@ -78,7 +78,7 @@ export interface SponsorAdminSignup {
   days: number[];
 }
 
-export interface SponsorAdminInvite {
+interface SponsorAdminInvite {
   id: string;
   brand: string;
   email: string | null;
@@ -90,7 +90,7 @@ export interface SponsorAdminInvite {
   signed_up: boolean;
 }
 
-export interface SponsorAdminTestimonial {
+interface SponsorAdminTestimonial {
   id: string;
   quote: string;
   name: string;

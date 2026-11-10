@@ -43,7 +43,7 @@ const Detail = ({ label, children }: { label: string; children: React.ReactNode 
 )
 
 // Owner 11-09: every prize ships to Louisiana Helpr.
-export const SHIP_ADDRESS = 'Louisiana Helpr, 314 Lynn Street, Delcambre, LA 70528'
+const SHIP_ADDRESS = 'Louisiana Helpr, 314 Lynn Street, Delcambre, LA 70528'
 
 const shipLabel = (s: SponsorEmailSignup['shipTo']) =>
   s === 'winner' ? 'The winner directly' : s === 'helpr' ? 'Louisiana Helpr' : 'Not chosen yet'

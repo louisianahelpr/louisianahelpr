@@ -27,7 +27,7 @@ import type { SponsorAdminData, SponsorAdminSignup, SponsorStatus } from "@/lib/
 import { sponsorPage as C } from "@/content/sponsorPage";
 import { cleanDays, slugifyBrand } from "../../../../supabase/functions/_shared/sponsorSignup";
 
-export const SPONSOR_STATUSES: Array<{ key: SponsorStatus; label: string }> = [
+const SPONSOR_STATUSES: Array<{ key: SponsorStatus; label: string }> = [
   { key: "pending", label: "Pending" },
   { key: "confirmed", label: "Confirmed" },
   { key: "prize_received", label: "Prize received" },

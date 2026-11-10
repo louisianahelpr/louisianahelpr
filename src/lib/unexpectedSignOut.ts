@@ -41,6 +41,15 @@ function storedIntentionalAt(): number {
 /** A sign-out within this long of a mark is the app's own. */
 const INTENTIONAL_WINDOW_MS = 15_000;
 
+/**
+ * F260p (audit 11-10): true when this browser pressed Sign out (any tab) within the window, so a screen that just lost
+ * its user can tell "you signed out" from "your session ended". A mark dated after `now` excuses nothing.
+ */
+export function signedOutOnPurposeRecently(now: number = Date.now()): boolean {
+  const since = now - Math.max(intentionalAt, storedIntentionalAt());
+  return since >= 0 && since < INTENTIONAL_WINDOW_MS;
+}
+
 export interface SignOutWatchState {
   lastEvent: string | null;
   signedInAt: number | null;

@@ -106,7 +106,8 @@ export function TwoFactorCard() {
                 : verified
                   // AUD31-72: "sign-in" stays whole; at 360 it split "sign- / in.".
                   ? <>Required at <span className="whitespace-nowrap">sign-in.</span> Support can remove it.</>
-                  : <>Authenticator code at <span className="whitespace-nowrap">sign-in.</span></>}
+                  // F456 (audit 11-10): "Authenticator code at sign-in." said the mechanism, not what it adds.
+                  : <>Extra safety: a 6-digit app code when you <span className="whitespace-nowrap">log in.</span></>}
             </p>
           )}
         </div>

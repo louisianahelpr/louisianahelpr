@@ -1,4 +1,4 @@
-import { Children, isValidElement, useEffect, useState } from "react";
+import { Children, isValidElement, useEffect, useRef, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { dropHomeShell } from "@/components/landing/homeShell";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -8,6 +8,7 @@ import { report } from "@/lib/errorLogger";
 import { confirmSessionLost } from "@/lib/sessionLoss";
 import { authDiagnostics } from "@/lib/authDiagnostics";
 import { PERMISSION_DENIED_EVENT, markSessionLost, releaseHeldDenials } from "@/lib/permissionDenied";
+import { signedOutOnPurposeRecently } from "@/lib/unexpectedSignOut";
 import { track, AhaEvent } from "@/lib/analytics";
 import { rememberJobIntent } from "@/lib/jobIntent";
 import { hasPreload } from "@/lib/lazyWithPreload";
@@ -184,6 +185,10 @@ const ProtectedRoute = ({
   allowGuest = false,
 }: ProtectedRouteProps) => {
   const { user, profile, isLoading, isError, refresh } = useCurrentUser();
+  // F260p (audit 11-10): this screen had a signed-in user earlier in its life. When that user goes away without the
+  // app's own Sign out, the Login bounce below says "You were signed out" instead of "needs an account".
+  const hadUser = useRef(false);
+  if (user) hadUser.current = true;
   const location = useLocation();
   const [retrying, setRetrying] = useState(false);
 
@@ -377,10 +382,11 @@ const ProtectedRoute = ({
     // Preserve where the user was headed so /login can return them there
     // after they sign in, instead of silently dumping them on /home.
     const intended = location.pathname + location.search;
+    const lostMidUse = hadUser.current && !signedOutOnPurposeRecently();
     const to =
-      intended && intended !== "/"
+      (intended && intended !== "/"
         ? `/login?redirect=${encodeURIComponent(intended)}`
-        : "/login";
+        : "/login") + (lostMidUse ? `${intended && intended !== "/" ? "&" : "?"}signed_out=session-lost` : "");
     if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to, reason: "no-user-after-ready" });
     return <Navigate to={to} replace />;
   }

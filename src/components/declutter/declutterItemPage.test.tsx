@@ -837,7 +837,7 @@ describe("the photo-first Declutter item page", () => {
 
   // BUY-16 (audit 10-30, High; owner 10-30: guests see item pages, sign up to buy or offer, no seller full name).
   // @mutate src/components/declutter/declutterUi.tsx |   if (!user) return <DeclutterGuestGate skeleton={skeleton}>{children}</DeclutterGuestGate>; |
-  // @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && !user && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} trades={!free && it.accepts_trades === true} />} |
+  // @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && !user && !signedOutOwner && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} trades={!free && it.accepts_trades === true} />} |
   // @mutate src/components/declutter/DeclutterItemView.tsx | <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} trades={!free && it.accepts_trades === true} /> | <DeclutterGuestJoin free={free} trades={!free && it.accepts_trades === true} />
   // @mutate src/components/declutter/DeclutterGuest.tsx |         {!free && offers && ( |         {!free && (
   // @mutate src/components/declutter/DeclutterGuest.tsx |             <GuestBrand />\n          </div>\n        )} |           </div>\n        )}

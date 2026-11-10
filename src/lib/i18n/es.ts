@@ -111,6 +111,8 @@ export const es: Record<MsgKey, string> = {
   "forgot.sentLead": "Si",
   "forgot.sentTail": "está registrado, le enviamos un enlace para restablecerla. Vence en 1 hora.",
   "forgot.spamHint": "¿No lo ve? Revise la carpeta de spam o espere un minuto: los correos pueden tardar un poco.",
+  "forgot.stillNothing": "¿Sigue sin llegar después de unos minutos?",
+  "forgot.contactSupport": "Contacte a soporte",
   "forgot.useAnother": "Usar otro correo",
   "forgot.sending": "Enviando…",
   "forgot.resendIn": "Reenviar en {s} s",

@@ -92,6 +92,8 @@ export const enScreens = {
   "forgot.sentLead": "If",
   "forgot.sentTail": "is registered, we've sent a reset link. It expires in 1 hour.",
   "forgot.spamHint": "Don't see it? Check your spam folder or wait a minute — emails can take a moment to arrive.",
+  "forgot.stillNothing": "Still nothing after a few minutes?",
+  "forgot.contactSupport": "Contact support",
   "forgot.useAnother": "Use another email",
   "forgot.sending": "Sending…",
   "forgot.resendIn": "Resend in {s}s",

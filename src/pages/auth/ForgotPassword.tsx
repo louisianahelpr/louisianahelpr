@@ -192,6 +192,13 @@ const ForgotPassword = () => {
             <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {t("forgot.spamHint")}
             </p>
+            {/* F260a (audit 11-10): a person whose reset email never comes had no way on but waiting. */}
+            <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-forgot-support="">
+              {t("forgot.stillNothing")}{" "}
+              <Link to={`/support?topic=login&subject=${encodeURIComponent("My password reset email didn't arrive")}`} className="font-semibold underline underline-offset-2" style={{ color: "hsl(var(--bark))" }}>
+                {t("forgot.contactSupport")}
+              </Link>
+            </p>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"

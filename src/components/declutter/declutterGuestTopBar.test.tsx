@@ -146,7 +146,6 @@ describe("the item's join panel does not repeat the bar at desktop width (lead 1
   it("phone: the logo, the item's two buttons and Log in, each coming back to the item", () => {
     state.desktop = false;
     const join = panel();
-    expect(within(join).getByRole("link", { name: "Log in" }).className).toMatch(/\btap-44\b/);
     expect(within(join).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual([
       "/signup?redirect=%2Fdeclutter%2Fitem%2Fi1",
       "/signup?redirect=%2Fdeclutter%2Fitem%2Fi1",

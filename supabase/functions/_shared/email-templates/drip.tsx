@@ -111,7 +111,8 @@ export const WelcomeDripStep1Email = ({
     </ul>
     <BrandButton href={dashboardUrl} label="Open Louisiana Helpr" widthPx={240} />
     <Text className="e-text" style={textStyle}>
-      Reach out any time at admin@louisianahelpr.com.
+      {/* F492 (audit 11-10): a sign-off with the name, the same form as days 14 and 30. */}
+      Reach out any time at admin@louisianahelpr.com. - Louisiana Helpr
     </Text>
   </BaseLayout>
 )
@@ -131,11 +132,13 @@ export const WelcomeDripStep2Email = ({
       Clear out a closet on Declutter
     </Heading>
     <Text className="e-text" style={textStyle}>
-      Hey {greetingName || 'there'}, snap a photo, set a garage-sale price, and buyers pick it up from your
-      porch.
+      {/* F491 (audit 11-10): sellers also deliver or ship (declutter_orders.handover: pickup_home, porch, meetup,
+          delivery, seller_delivery, ship), so "pick it up from your porch" undersold it. */}
+      Hey {greetingName || 'there'}, snap a photo and set a garage-sale price. Buyers pick up, or you deliver. You
+      choose.
     </Text>
     <Text className="e-text" style={textStyle}>
-      Buying works the same way: browse, pay in the app, pick it up.
+      Buying works the same way: browse, pay in the app, then pick it up or have it brought to you.
     </Text>
     <BrandButton href={dashboardUrl} label="Open Declutter" widthPx={200} />
   </BaseLayout>

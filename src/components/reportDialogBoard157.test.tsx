@@ -33,6 +33,18 @@ import ReportDialog from "./ReportDialog";
 import { REASONS } from "./reportDialog/reportReasons";
 
 describe("ReportDialog, board 157", () => {
+  // Audit 1110 F359j: the Report user / Report listing sheets had no X; on a phone the only exit was Cancel at the
+  // very bottom. The dialog keeps its X beside Cancel (keepClose), on the form and on the receipt.
+  // @mutate src/components/ReportDialog.tsx |           stepped keepClose onOpenAutoFocus={(e) => e.preventDefault()}> |           stepped onOpenAutoFocus={(e) => e.preventDefault()}>
+  it("keeps a Close X at the top beside Cancel, and the X closes it", () => {
+    const onClose = vi.fn();
+    render(<ReportDialog open onClose={onClose} reportedType="declutter_item" reportedId="i1" />);
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
+    const x = screen.getByRole("button", { name: "Close" });
+    fireEvent.click(x);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it("offers every reason as one radio group, with the details box on the same screen", () => {
     render(<ReportDialog open onClose={vi.fn()} reportedType="user" reportedId="u1" />);
     const radios = screen.getAllByRole("radio");

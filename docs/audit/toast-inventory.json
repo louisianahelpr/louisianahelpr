@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 503,
+      "literal": 502,
       "template": 107,
-      "dynamic": 663,
+      "dynamic": 664,
       "jsx": 0
     }
   },
@@ -685,7 +685,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 232,
+      "line": 233,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -695,7 +695,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 255,
+      "line": 256,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11052,7 +11052,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 187,
+      "line": 188,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11062,7 +11062,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 188,
+      "line": 189,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -11072,7 +11072,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 192,
+      "line": 193,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11082,7 +11082,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 198,
+      "line": 199,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11092,7 +11092,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 203,
+      "line": 204,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11102,7 +11102,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 209,
+      "line": 210,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11112,7 +11112,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 213,
+      "line": 214,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11152,7 +11152,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 71,
+      "line": 79,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11162,7 +11162,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 77,
+      "line": 85,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11172,17 +11172,17 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 83,
+      "line": 91,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Marked handed over. The buyer has 48 hours to report a problem."
+        "form": "dynamic",
+        "text": "w.shopDoneToast"
       },
       "renders": true
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 92,
+      "line": 100,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11192,7 +11192,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 101,
+      "line": 109,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11202,7 +11202,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 115,
+      "line": 123,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11612,7 +11612,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCard.tsx",
-      "line": 336,
+      "line": 339,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -11622,7 +11622,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCard.tsx",
-      "line": 338,
+      "line": 341,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11632,7 +11632,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 179,
+      "line": 184,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11642,7 +11642,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 211,
+      "line": 216,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

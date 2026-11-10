@@ -36,6 +36,7 @@
  * @mutate src/components/shops/ShopItemEditor.tsx |   if (!/^\d+$/.test(t)) throw new Error(code); |   if (!/^\d*$/.test(t)) throw new Error(code);
  * @mutate src/components/shops/ShopItemEditor.tsx |   const cottageUnknown = d.kind === "home_food" && !cottage.data; |   const cottageUnknown = false;
  * @mutate src/components/shops/ShopItemEditor.tsx |   if (x.photos < 3) out.push( |   if (x.photos < 0) out.push(
+ * @mutate src/components/shops/ShopItemEditor.tsx | After a rejection, new items are checked by an admin for 30 days. | New items may be checked.
  * @mutate src/components/shops/ShopItemEditor.tsx |   const price = x.price.replace(/[$,\s]/g, ""); |   const price = x.price.replace(/[$\s]/g, "");
  * @mutate src/components/shops/ShopItemEditor.tsx |       if (field) {\n        setFieldError({ field, msg: shopsErrorMessage(err) }); |       if (false) {\n        setFieldError({ field, msg: shopsErrorMessage(err) });
  * @mutate src/components/shops/ShopItemEditor.tsx |     enabled: !!id && (status === "rejected" \|\| status === "draft"), |     enabled: !!id && status === "rejected",
@@ -337,6 +338,13 @@ describe("ShopItemEditor", () => {
     expect(list.textContent).toContain("Give it a title of 3 to 80 characters.");
     expect(list.textContent).toMatch(/Tick (the confirmation|the \d+ confirmations) above\./);
     expect((screen.getByRole("button", { name: "Publish" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  // Q1961 (owner 11-10 2:05 PM): the 30-day hold after a rejection is said beside Publish, in the owner's words.
+  it("Q1961: the editor says new items are checked by an admin for 30 days after a rejection", async () => {
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft" })} onCreated={() => {}} onDone={() => {}} />);
+    expect(await screen.findByText(/After a rejection, new items are checked by an admin for 30 days\./)).toBeTruthy();
+    expect(screen.getByText(/Changing only the price or stock of a live item keeps it live\./)).toBeTruthy();
   });
 
   it("F11: the price check reads a price the way the save does (\"$1,200\" is a price)", () => {

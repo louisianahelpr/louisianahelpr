@@ -505,7 +505,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
           >
             {publish.isPending ? "Publishing…" : "Publish"}
           </Button>
-          <p className="text-xs text-muted-foreground">Your item shows on your shop right away. Anything our checks flag gets a quick review first, and for 30 days after an item is turned down, so do new items and new wording.</p>
+          <p className="text-xs text-muted-foreground">Your item shows on your shop right away. Anything our checks flag gets a quick review first. After a rejection, new items are checked by an admin for 30 days. Changing only the price or stock of a live item keeps it live.</p>
         </fieldset>
       )}
     </section>

@@ -1,43 +1,42 @@
 /*
- * 25 Days of Louisiana Giveaways: this page's own look (owner spec 2026-11-09:
- * Mardi Gras purple, green, gold, Christmas red, on white/cream). Every rule is
- * scoped under .lh25, so nothing here touches the app's theme. Loaded only by
- * the lazy /sponsor and /25days/rules chunks.
+ * 25 Days of Louisiana Giveaways: this page's own look. Classic Christmas, matching the approved sponsor email (owner
+ * 2026-11-09): hunter green, oxblood, cream and antique gold, a thin plaid trim, Bodoni Moda headings with italics,
+ * small gold star rules and letter-spaced small-caps labels. Every rule is scoped under .lh25, so nothing here
+ * touches the app's theme. Loaded only by the lazy /sponsor and /25days/rules chunks. No webfont of its own: the
+ * headings use the app's self-hosted Bodoni Moda (index.css) and the body uses the system's Georgia.
+ *
+ * Contrast: antique gold (#b08d57) is used only for lines, borders and the SVG stars, never for text. Gold TEXT sits
+ * on the green band only, in the lighter --gold-text (#c9a96e, 5.5:1 on #1f3a2b).
  */
-@font-face {
-  font-family: "LH25 Fredoka";
-  font-style: normal;
-  font-weight: 500 700;
-  font-display: swap;
-  src: url("/fonts/fredoka-latin.woff2") format("woff2");
-}
-
 .lh25 {
-  --p: #5B2A86;
-  --p-dark: #431d63;
-  --g: #1E8E3E;
-  --gold: #D4AF37;
-  --gold-deep: #9c7a14;
-  --r: #C8102E;
-  --cream: #fffaf2;
-  --cream-2: #fbf1e3;
-  --ink: #2a1f33;
-  --ink-soft: #5d5266;
-  --pink: #f9e3ec;
-  --radius: 22px;
-  --shadow: 0 6px 22px rgba(91, 42, 134, 0.10), 0 1px 3px rgba(42, 31, 51, 0.06);
-  --head: "LH25 Fredoka", "Montserrat", ui-rounded, system-ui, sans-serif;
-  --body: "Montserrat", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --green: #1f3a2b;
+  --green-2: #29483a;
+  --ox: #6e1423;
+  --ox-dark: #56101b;
+  --cream: #fbf7ee;
+  --cream-2: #f3ecdc;
+  --paper: #fffdf8;
+  --gold: #b08d57;
+  --gold-text: #c9a96e;
+  --on-green: #ddd4bc;
+  --ink: #2a2a24;
+  --muted: #6b6656;
+  --line: #d9cfb8;
+  --field-line: #9a9079;
+  --radius: 2px;
+  --shadow: 0 1px 2px rgba(42, 42, 36, 0.05);
+  --head: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, "Times New Roman", serif;
+  --body: Georgia, "Times New Roman", Times, serif;
+  --plaid: repeating-linear-gradient(90deg, rgba(31, 58, 43, .55) 0 10px, transparent 10px 22px, rgba(176, 141, 87, .5) 22px 24px, transparent 24px 36px),
+    repeating-linear-gradient(0deg, rgba(31, 58, 43, .55) 0 10px, transparent 10px 22px, rgba(176, 141, 87, .5) 22px 24px, transparent 24px 36px);
   position: relative;
   min-height: 100vh;
   background-color: var(--cream);
-  background-image:
-    radial-gradient(circle at 12% 8%, rgba(212, 175, 55, 0.10) 0, transparent 28%),
-    radial-gradient(circle at 88% 18%, rgba(91, 42, 134, 0.07) 0, transparent 30%);
+  background-image: none;
   color: var(--ink);
   font-family: var(--body);
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.65;
   overflow-x: clip;
   color-scheme: light;
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -46,328 +45,305 @@
    paints its own cream canvas in every theme, so it outranks .bg-premium-page and its dark-theme rule. */
 div.lh25.lh25 {
   background-color: var(--cream);
-  background-image:
-    radial-gradient(circle at 12% 8%, rgba(212, 175, 55, 0.10) 0, transparent 28%),
-    radial-gradient(circle at 88% 18%, rgba(91, 42, 134, 0.07) 0, transparent 30%);
+  background-image: none;
   background-attachment: scroll;
 }
 .lh25 *, .lh25 *::before, .lh25 *::after { box-sizing: border-box; }
-.lh25 a { color: var(--p); text-underline-offset: 3px; }
-.lh25 h1, .lh25 h2, .lh25 h3 { font-family: var(--head); color: var(--p); margin: 0; line-height: 1.15; letter-spacing: 0.005em; }
-.lh25 :focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; border-radius: 10px; }
+.lh25 a { color: var(--green); text-underline-offset: 3px; text-decoration-color: rgba(176, 141, 87, .8); }
+.lh25 h1, .lh25 h2, .lh25 h3 { font-family: var(--head); font-weight: 400; color: var(--green); margin: 0; line-height: 1.15; letter-spacing: 0; }
+.lh25 em { font-style: italic; }
+.lh25 :focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 2px; }
 
 .lh25-demo-ribbon {
-  position: sticky; top: 0; z-index: 50; text-align: center; font: 700 12px/1 var(--body); letter-spacing: .08em;
+  position: sticky; top: 0; z-index: 50; text-align: center; font: 700 12px/1 system-ui, sans-serif; letter-spacing: .08em;
   background: #111; color: #ffe27a; padding: 7px 8px;
 }
 
-/* ── Garland ─────────────────────────────────────────────────────────── */
+/* ── Plaid trim and star rules ───────────────────────────────────────── */
+.lh25-plaid { display: block; height: 14px; background-color: var(--ox); background-image: var(--plaid); }
 /* Line weights live here, not on the SVGs: the app's one icon weight is 1.5 (src/test/typeAndIconScaleRatchet.test.ts). */
 .lh25-icon { stroke-width: 1.5; }
-.lh25-wire { stroke-width: 2; }
-.lh25-petal { stroke-width: 1.2; }
-.lh25-garland { display: block; width: 100%; height: 56px; }
-.lh25-bulb { animation: lh25-twinkle 2.4s ease-in-out infinite; animation-delay: var(--lh25-delay, 0s); transform-box: fill-box; transform-origin: center; }
-@keyframes lh25-twinkle { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px currentColor); } 50% { opacity: .55; filter: none; } }
+.lh25-sparkle { display: inline-block; flex: none; }
+.lh25-star-rule { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.lh25-star-rule > span { display: block; width: 52px; height: 0; border-top: 1px solid var(--gold); }
 
 /* ── Buttons ─────────────────────────────────────────────────────────── */
 /* `.lh25 .lh25-btn` (0,2,0): the controls are the shared <Button variant="ghost"> (OWN-SHARED), so the page's own
    button look is stated one step stronger than any Tailwind utility the shared component carries. Press feedback is
-   the app's shared one (no :active transform here: src/test/pressKeepsTranslate.test.ts). */
+   the app's shared one (no :active transform here: src/test/pressKeepsTranslate.test.ts). One button look on this
+   page (owner 2026-11-09): oxblood with a gold edge, as in the email; the outline variant is its quiet secondary. */
 .lh25 .lh25-btn {
   height: auto; white-space: normal; text-align: center;
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 12px 22px;
-  border-radius: 999px; font: 700 16px/1.2 var(--head); letter-spacing: .01em; text-decoration: none; cursor: pointer;
-  border: 2px solid transparent; transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 14px 28px;
+  border-radius: var(--radius); font: 400 14px/1.25 var(--body); letter-spacing: .16em; text-transform: uppercase; text-decoration: none; cursor: pointer;
+  background: var(--ox); color: var(--cream) !important; border: 1px solid var(--gold); box-shadow: none;
+  transition: background-color .15s ease;
   -webkit-tap-highlight-color: transparent;
 }
-.lh25 .lh25-btn:hover { transform: translateY(-1px); }
-.lh25 .lh25-btn[disabled] { opacity: .65; cursor: progress; transform: none; }
-.lh25 .lh25-btn-primary { background: var(--r); color: #fff !important; box-shadow: 0 6px 16px rgba(200, 16, 46, .28); }
-.lh25 .lh25-btn-primary:hover { background: #ae0d27; }
-.lh25 .lh25-btn-outline { background: #fff; color: var(--p) !important; border-color: var(--p); }
-.lh25 .lh25-btn-solid { background: var(--p); color: #fff !important; }
-.lh25 .lh25-btn-gold { background: var(--gold); color: var(--ink) !important; box-shadow: 0 6px 16px rgba(0,0,0,.18); }
+.lh25 .lh25-btn:hover { background: var(--ox-dark); }
+.lh25 .lh25-btn[disabled] { opacity: .7; cursor: progress; }
+.lh25 .lh25-btn-primary, .lh25 .lh25-btn-solid, .lh25 .lh25-btn-gold { background: var(--ox); color: var(--cream) !important; border-color: var(--gold); }
+.lh25 .lh25-btn-primary:hover, .lh25 .lh25-btn-solid:hover, .lh25 .lh25-btn-gold:hover { background: var(--ox-dark); }
+/* The secondary: transparent with the same gold edge, so each screen has one oxblood primary (lead 2026-11-09).
+   Green text on the cream page, cream text on the green hero band. */
+.lh25 .lh25-btn-outline { background: transparent; color: var(--green) !important; border-color: var(--gold); }
+.lh25 .lh25-btn-outline:hover { background: rgba(176, 141, 87, .12); }
+.lh25 .lh25-hero .lh25-btn-outline { color: var(--cream) !important; border-color: var(--gold-text); }
+.lh25 .lh25-hero .lh25-btn-outline:hover { background: rgba(201, 169, 110, .14); }
+.lh25-hero .lh25-btn:focus-visible, .lh25-final .lh25-btn:focus-visible, .lh25-ask :focus-visible { outline-color: var(--cream); }
 
-/* ── Hero ────────────────────────────────────────────────────────────── */
-.lh25-hero { position: relative; padding: 4px 16px 36px; text-align: center; }
-.lh25-hero-inner { position: relative; max-width: 760px; margin: 0 auto; z-index: 1; }
-.lh25-logo { width: 84px; height: 84px; display: block; margin: 0 auto 10px; object-fit: contain; }
+/* ── Hero: the deep green band ───────────────────────────────────────── */
+.lh25-hero { position: relative; padding: 40px 16px 44px; text-align: center; background: var(--green); color: var(--on-green); border-bottom: 3px solid var(--gold); }
+.lh25-hero-inner { position: relative; max-width: 760px; margin: 0 auto; }
+.lh25-logo { width: 76px; height: 76px; display: block; margin: 0 auto 22px; object-fit: contain; padding: 8px; border-radius: 50%; background: var(--cream); box-shadow: 0 0 0 1px var(--gold), 0 0 0 5px var(--green), 0 0 0 6px rgba(176, 141, 87, .6); }
 .lh25-greeting {
-  display: inline-block; margin: 0 0 14px; padding: 10px 18px; border-radius: 999px; background: var(--pink); color: var(--p-dark);
-  font: 700 16px/1.35 var(--head); box-shadow: inset 0 0 0 2px rgba(91,42,134,.18); text-wrap: balance; max-width: 100%;
+  display: inline-block; margin: 0 0 22px; padding: 8px 18px; border: 1px solid rgba(201, 169, 110, .7); color: var(--cream);
+  font: italic 400 16px/1.4 var(--body); text-wrap: balance; max-width: 100%;
 }
-.lh25-eyebrow { margin: 0 0 6px; color: var(--g); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: 12.5px; }
-.lh25-h1 { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
-.lh25-h1-lead { font-size: 22px; color: var(--r); }
-.lh25-h1-main { font-size: clamp(36px, 10vw, 66px); line-height: 1.02; color: var(--p); }
-.lh25-subhead { font-size: 17px; color: var(--ink-soft); margin: 0 auto 22px; max-width: 560px; }
-.lh25-hero-ctas { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 24px; }
-.lh25-hero-ctas .lh25-btn { flex: 1 1 200px; max-width: 260px; }
-.lh25-float { position: absolute; animation: lh25-bob 4s ease-in-out infinite; }
-.lh25-f1 { top: 8%; left: 6%; }
-.lh25-f2 { top: 36%; right: 8%; animation-delay: .8s; }
-.lh25-f3 { bottom: 16%; left: 10%; animation-delay: 1.6s; }
-.lh25-hero-magnolia { position: absolute; top: 4px; right: -14px; opacity: .9; }
-.lh25-hero-gift { position: absolute; bottom: 10px; right: 10px; transform: rotate(10deg); display: none; }
-@keyframes lh25-bob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-8px) rotate(12deg); } }
+.lh25-h1 { display: flex; flex-direction: column; align-items: center; gap: 0; margin-bottom: 16px; }
+.lh25 .lh25-h1-lead { font: 400 12px/1.2 var(--body); letter-spacing: .32em; text-transform: uppercase; color: var(--gold-text); }
+.lh25-h1-rule { margin: 16px 0 18px; }
+.lh25 .lh25-h1-main { font-size: clamp(36px, 10vw, 64px); line-height: 1.1; color: var(--cream); text-wrap: balance; }
+.lh25-h1-main em { display: block; font-style: italic; }
+.lh25-eyebrow { margin: 16px 0 12px; color: var(--on-green); letter-spacing: .14em; text-transform: uppercase; font-size: 13px; }
+.lh25-subhead { font-size: 17px; font-style: italic; color: var(--on-green); margin: 0 auto 28px; max-width: 560px; }
+.lh25-hero-ctas { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 30px; }
+.lh25-hero-ctas .lh25-btn { flex: 1 1 220px; max-width: 280px; }
 
-.lh25-countdown { display: inline-block; background: #fff; border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
-.lh25-countdown-label { font: 700 13px/1 var(--body); color: var(--g); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px; }
-.lh25-countdown-cells { display: flex; gap: 8px; }
-.lh25-countdown-cell { min-width: 60px; padding: 8px 6px; border-radius: 14px; background: var(--cream-2); display: flex; flex-direction: column; align-items: center; }
-.lh25-countdown-num { font: 700 26px/1 var(--head); color: var(--p); font-variant-numeric: tabular-nums; }
-.lh25-countdown-unit { font-size: 11.5px; color: var(--ink-soft); margin-top: 4px; }
-.lh25-deadline { margin: 14px auto 0; font: 700 15px/1.35 var(--head); color: var(--r); text-wrap: balance; }
-.lh25-countdown-live { display: inline-block; font: 700 18px/1.3 var(--head); color: #fff; background: var(--g); padding: 10px 18px; border-radius: 999px; }
+.lh25-countdown { display: inline-block; padding: 0; }
+.lh25-countdown-label { font: 400 12px/1 var(--body); color: var(--gold-text); text-transform: uppercase; letter-spacing: .28em; margin-bottom: 12px; }
+.lh25-countdown-cells { display: flex; gap: 8px; justify-content: center; }
+.lh25-countdown-cell { min-width: 64px; padding: 10px 6px 8px; border: 1px solid rgba(201, 169, 110, .55); display: flex; flex-direction: column; align-items: center; }
+.lh25-countdown-num { font: 400 28px/1 var(--head); color: var(--cream); font-variant-numeric: tabular-nums; }
+.lh25-countdown-unit { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--on-green); margin-top: 6px; }
+.lh25-deadline { margin: 14px auto 0; font: italic 400 16px/1.4 var(--body); color: var(--ox); text-wrap: balance; }
+.lh25-hero .lh25-deadline { color: var(--gold-text); margin-top: 20px; }
+.lh25-countdown-live { display: inline-block; font: italic 400 19px/1.3 var(--head); color: var(--cream); border: 1px solid var(--gold); padding: 10px 20px; }
 
 /* ── Trust strip ─────────────────────────────────────────────────────── */
 .lh25-trust {
-  list-style: none; margin: 0; padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px;
-  background: var(--p); color: #fff; font-weight: 600; font-size: 13.5px;
-  background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 10px, transparent 10px 20px);
+  list-style: none; margin: 0; padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px;
+  background: var(--cream-2); color: var(--ink); font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+  border-bottom: 1px solid var(--line);
 }
-.lh25-trust li { display: flex; align-items: flex-start; gap: 6px; line-height: 1.35; }
-.lh25-trust svg { color: var(--gold); flex: none; margin-top: 1px; }
+.lh25-trust li { display: flex; align-items: center; gap: 8px; line-height: 1.4; }
 
 /* ── Sections ────────────────────────────────────────────────────────── */
 .lh25-main { display: block; }
-.lh25-section { max-width: 1080px; margin: 0 auto; padding: 44px 16px 8px; }
-.lh25-section-title { text-align: center; margin-bottom: 18px; }
-.lh25-section-title h2 { font-size: clamp(28px, 7vw, 40px); }
-.lh25-kicker { color: var(--g); font-weight: 700; text-transform: uppercase; letter-spacing: .12em; font-size: 12px; margin-bottom: 6px; }
-.lh25-title-rule { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
-.lh25-title-rule span { display: block; width: 46px; height: 2px; background: var(--gold); border-radius: 2px; }
-.lh25-lede { font-size: 16.5px; color: var(--ink-soft); max-width: 760px; margin: 0 auto 22px; }
+.lh25-section { max-width: 1080px; margin: 0 auto; padding: 52px 16px 8px; }
+.lh25-section-title { text-align: center; margin-bottom: 22px; }
+.lh25-section-title h2 { font-size: clamp(30px, 7vw, 42px); }
+.lh25-kicker { color: var(--ox); text-transform: uppercase; letter-spacing: .24em; font-size: 12px; margin-bottom: 8px; }
+.lh25-title-rule { margin-top: 14px; }
+.lh25-lede { font-size: 17px; color: var(--muted); max-width: 720px; margin: 0 auto 26px; }
 .lh25-center { text-align: center; }
 
-.lh25-card { position: relative; background: #fff; border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); border: 1px solid rgba(91,42,134,.06); }
-.lh25-card h3 { font-size: 21px; margin: 10px 0 6px; }
-.lh25-card p { margin: 0; color: var(--ink-soft); font-size: 15px; }
-.lh25-card-link-wrap { display: block; text-decoration: none; color: inherit !important; transition: transform .15s ease, box-shadow .15s ease; }
-.lh25-card-link-wrap:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(91,42,134,.16); }
-.lh25-card-link { display: inline-block; margin-top: 10px; color: var(--g); font-weight: 700; font-size: 14px; }
-.lh25-soon { display: inline-block; margin-top: 10px; padding: 3px 10px; border-radius: 999px; background: var(--cream-2); color: var(--gold-deep); font-weight: 700; font-size: 12.5px; }
-.lh25-icon-badge { display: inline-flex; width: 46px; height: 46px; border-radius: 15px; align-items: center; justify-content: center; background: rgba(91,42,134,.10); color: var(--p); }
-.lh25-icon-badge-green { background: rgba(30,142,62,.12); color: var(--g); }
-.lh25-icon-badge-gold { background: rgba(212,175,55,.18); color: var(--gold-deep); }
+.lh25-card { position: relative; background: var(--paper); border-radius: var(--radius); padding: 22px; border: 1px solid var(--line); box-shadow: var(--shadow); }
+.lh25-card h3 { font-size: 22px; margin: 12px 0 6px; }
+.lh25-card p { margin: 0; color: var(--muted); font-size: 15.5px; }
+.lh25-card-link-wrap { display: block; text-decoration: none; color: inherit !important; transition: border-color .15s ease; }
+.lh25-card-link-wrap:hover { border-color: var(--gold); }
+.lh25-card-link { display: inline-block; margin-top: 12px; color: var(--green); font-style: italic; font-size: 15px; }
+.lh25-soon { display: inline-block; margin-top: 12px; padding: 3px 10px; border: 1px solid var(--line); color: var(--ox); font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; }
+.lh25-icon-badge { display: inline-flex; width: 44px; height: 44px; border-radius: 50%; align-items: center; justify-content: center; border: 1px solid var(--gold); color: var(--green); background: transparent; }
+.lh25-icon-badge-green, .lh25-icon-badge-gold { color: var(--green); }
 
-.lh25-grid3, .lh25-grid-gets { display: grid; grid-template-columns: 1fr; gap: 14px; }
-.lh25-btn-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 22px; }
-.lh25-btn-row .lh25-btn { flex: 1 1 240px; max-width: 320px; }
+.lh25-grid3, .lh25-grid-gets { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.lh25-btn-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 26px; }
+.lh25-btn-row .lh25-btn { flex: 1 1 240px; max-width: 340px; }
 
-/* Founder */
+/* Founder: a framed letter */
 .lh25-founder-card {
-  display: flex; flex-direction: column; align-items: center; gap: 18px; background: #fff; border-radius: 28px; padding: 26px 20px; box-shadow: var(--shadow);
-  background-image: linear-gradient(90deg, rgba(212,175,55,.08) 50%, transparent 50%), linear-gradient(rgba(212,175,55,.08) 50%, transparent 50%);
-  background-size: 22px 22px; background-color: #fff;
+  display: flex; flex-direction: column; align-items: center; gap: 20px; background: var(--paper); padding: 30px 22px;
+  border: 1px solid var(--gold); outline: 1px solid var(--line); outline-offset: -8px;
 }
-.lh25-founder-card > div { background: rgba(255,255,255,.92); border-radius: 18px; padding: 4px 6px; }
-.lh25-founder-photo { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 5px var(--gold), 0 0 0 9px #fff, var(--shadow); flex: none; }
+.lh25-founder-photo { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 2px var(--gold), 0 0 0 7px var(--paper), 0 0 0 8px var(--line); flex: none; }
 .lh25-founder-photo-empty { display: flex; align-items: center; justify-content: center; background: var(--cream-2); text-align: center; font-size: 12px; padding: 10px; }
-.lh25-founder-title { font-size: 30px; margin-bottom: 10px; }
-.lh25-founder p { margin: 0 0 10px; }
-.lh25-signature { font-family: var(--head); font-weight: 600; color: var(--p); margin-top: 14px !important; }
+.lh25 .lh25-founder-title { font-size: 32px; font-style: italic; margin-bottom: 12px; }
+.lh25-founder p { margin: 0 0 12px; }
+.lh25-signature { font-family: var(--head); font-style: italic; font-size: 19px; color: var(--green); margin-top: 16px !important; overflow-wrap: anywhere; }
+.lh25-signature a { font-family: var(--body); font-style: normal; font-size: 15px; }
 
 /* Steps */
-.lh25-steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr; gap: 14px; }
-.lh25-step { padding-top: 24px; }
-.lh25-step-num { position: absolute; top: -12px; left: 18px; width: 34px; height: 34px; border-radius: 50%; background: var(--r); color: #fff; font: 700 17px/34px var(--head); text-align: center; box-shadow: 0 3px 8px rgba(200,16,46,.3); }
+.lh25-steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr; gap: 22px; }
+.lh25-step { padding-top: 28px; }
+.lh25-step-num { position: absolute; top: -15px; left: 20px; width: 32px; height: 32px; border-radius: 50%; background: var(--ox); color: var(--cream); font: 400 17px/30px var(--head); text-align: center; border: 1px solid var(--gold); }
 
-/* Gingham accent */
+/* The quieter band behind "What your brand gets" (class name kept from the first design) */
 .lh25-gingham-bg {
-  max-width: none; padding-left: 0; padding-right: 0; margin-top: 44px; padding-bottom: 40px;
-  background-color: #f5effa;
-  background-image: linear-gradient(90deg, rgba(91,42,134,.07) 50%, transparent 50%), linear-gradient(rgba(91,42,134,.07) 50%, transparent 50%);
-  background-size: 28px 28px;
+  max-width: none; padding-left: 0; padding-right: 0; margin-top: 52px; padding-bottom: 48px;
+  background: var(--cream-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
 }
 .lh25-gingham-bg > * { max-width: 1080px; margin-left: auto; margin-right: auto; padding-left: 16px; padding-right: 16px; }
 
 /* What we ask */
-.lh25-ask { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; background: var(--g); color: #fff; border-radius: 28px; padding: 26px 20px; box-shadow: var(--shadow); background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 14px, transparent 14px 28px); }
-.lh25-ask h2 { color: #fff; font-size: 28px; margin-bottom: 6px; }
+.lh25-ask { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; background: var(--green); color: var(--on-green); padding: 32px 24px; outline: 1px solid rgba(201, 169, 110, .6); outline-offset: -8px; }
+.lh25 .lh25-ask h2 { color: var(--cream); font-size: 30px; font-style: italic; margin-bottom: 8px; }
 .lh25-ask p { margin: 0; font-size: 16.5px; }
 
 /* Reach */
-.lh25-stats { display: grid; grid-template-columns: 1fr; gap: 12px; }
-.lh25-stat { background: #fff; border-radius: var(--radius); padding: 18px; text-align: center; box-shadow: var(--shadow); border-top: 5px solid var(--gold); }
-.lh25-stat-num { display: block; font: 700 40px/1.1 var(--head); color: var(--p); font-variant-numeric: tabular-nums; }
-.lh25-stat-label { color: var(--ink-soft); font-weight: 600; }
+.lh25-stats { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.lh25-stat { background: var(--paper); padding: 22px 18px; text-align: center; border: 1px solid var(--line); border-top: 2px solid var(--gold); }
+.lh25-stat-num { display: block; font: 400 42px/1.1 var(--head); color: var(--ox); font-variant-numeric: tabular-nums; }
+.lh25-stat-label { color: var(--muted); font-size: 12.5px; letter-spacing: .14em; text-transform: uppercase; }
 
 /* Preview */
-.lh25-preview { margin: 0 auto; max-width: 440px; background: #fff; border-radius: 26px; overflow: hidden; box-shadow: var(--shadow); }
+.lh25-preview { margin: 0 auto; max-width: 440px; background: var(--paper); border: 1px solid var(--line); overflow: hidden; }
 .lh25-preview-art {
-  position: relative; aspect-ratio: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 26px; text-align: center;
-  background: var(--p); color: #fff;
-  background-image: radial-gradient(circle at 20% 15%, rgba(212,175,55,.35) 0, transparent 30%), radial-gradient(circle at 85% 85%, rgba(30,142,62,.45) 0, transparent 35%),
-    repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 12px, transparent 12px 24px);
+  position: relative; aspect-ratio: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 30px; text-align: center;
+  background: var(--green); color: var(--cream); border-bottom: 3px solid var(--gold);
+  outline: 1px solid rgba(201, 169, 110, .6); outline-offset: -12px;
 }
-.lh25-preview-day { margin: 0; font: 700 21px/1.25 var(--head); }
-.lh25-preview-logo { width: 116px; height: 116px; border-radius: 50%; border: 3px dashed rgba(255,255,255,.75); display: flex; align-items: center; justify-content: center; font: 600 14px/1 var(--head); background: rgba(255,255,255,.12); }
-.lh25-preview-sponsor { margin: 0; font: 700 22px/1.2 var(--head); color: var(--gold); }
-.lh25-pa-s1 { position: absolute; top: 16px; left: 18px; }
-.lh25-pa-s2 { position: absolute; top: 40px; right: 30px; }
-.lh25-pa-fdl { position: absolute; bottom: 16px; left: 18px; }
-.lh25-pa-gift { position: absolute; bottom: 14px; right: 16px; }
-.lh25-preview-caption { padding: 16px 18px 18px; font-size: 14.5px; color: var(--ink-soft); }
+.lh25-preview-day { margin: 0; font: italic 400 23px/1.25 var(--head); color: var(--cream); }
+.lh25-preview-logo { width: 116px; height: 116px; border-radius: 50%; border: 1px dashed var(--gold-text); display: flex; align-items: center; justify-content: center; font: italic 400 15px/1 var(--body); color: var(--on-green); }
+.lh25-preview-sponsor { margin: 0; font: 400 21px/1.25 var(--head); color: var(--gold-text); }
+.lh25-preview-caption { padding: 18px 20px 20px; font-size: 15px; color: var(--muted); }
 
 /* Wall */
 .lh25-wall { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; }
-.lh25-wall-tile { aspect-ratio: 1 / 1; background: #fff; border-radius: 20px; box-shadow: var(--shadow); display: flex; align-items: center; justify-content: center; padding: 12px; overflow: hidden; }
+.lh25-wall-tile { aspect-ratio: 1 / 1; background: var(--paper); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; padding: 12px; overflow: hidden; }
 .lh25-wall-tile a { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; text-decoration: none; }
 .lh25-wall-tile img { max-width: 100%; max-height: 100%; object-fit: contain; }
-.lh25-wall-name { font: 700 15px/1.2 var(--head); color: var(--p); text-align: center; overflow-wrap: anywhere; }
+.lh25-wall-name { font: italic 400 16px/1.2 var(--head); color: var(--green); text-align: center; overflow-wrap: anywhere; }
 
 /* Testimonials */
-.lh25-quote blockquote { margin: 0 0 10px; font-size: 16px; color: var(--ink); }
-.lh25-quote figcaption { font-weight: 700; color: var(--p); font-size: 14px; }
+.lh25-quote blockquote { margin: 0 0 12px; font-size: 17px; font-style: italic; color: var(--ink); }
+.lh25-quote figcaption { color: var(--ox); font-size: 12.5px; letter-spacing: .14em; text-transform: uppercase; }
 
 /* Claim: calendar */
 .lh25-claim { scroll-margin-top: 12px; }
-.lh25-calendar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; max-width: 760px; margin: 0 auto; padding: 4px; border-radius: 24px; }
-.lh25-calendar-error { box-shadow: 0 0 0 2px var(--r); }
+.lh25-calendar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; max-width: 760px; margin: 0 auto; padding: 4px; }
+.lh25-calendar-error { box-shadow: 0 0 0 1px var(--ox); }
 /* `.lh25 .lh25-tile`: each tile is the shared <ToggleChip> (aria-pressed), drawn in the page's own tile look. */
 .lh25 .lh25-tile {
   white-space: normal; flex-shrink: 1; font-size: inherit; font-weight: inherit;
-  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 76px; min-width: 0; padding: 8px 2px;
-  border-radius: 14px; border: 2px solid rgba(91,42,134,.14); cursor: pointer; font-family: var(--body); color: var(--ink);
-  background: #fff; box-shadow: 0 3px 10px rgba(91,42,134,.08); transition: transform .12s ease, background-color .12s ease, border-color .12s ease;
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 76px; min-width: 0; padding: 8px 2px;
+  border-radius: var(--radius); border: 1px solid var(--line); cursor: pointer; font-family: var(--body); color: var(--ink);
+  background: var(--paper); background-image: none; box-shadow: none; transition: background-color .12s ease, border-color .12s ease;
 }
-.lh25-tile:nth-child(4n+1) { background-image: linear-gradient(180deg, rgba(200,16,46,.07), transparent 55%); }
-.lh25-tile:nth-child(4n+2) { background-image: linear-gradient(180deg, rgba(30,142,62,.08), transparent 55%); }
-.lh25-tile:nth-child(4n+3) { background-image: linear-gradient(180deg, rgba(212,175,55,.12), transparent 55%); }
-.lh25-tile:nth-child(4n) { background-image: linear-gradient(180deg, rgba(91,42,134,.08), transparent 55%); }
-.lh25-tile:hover:not([disabled]) { transform: translateY(-2px); border-color: var(--p); }
-.lh25-tile-day { font: 700 24px/1 var(--head); color: var(--p); }
-.lh25-tile-count { font-size: 10px; color: var(--ink-soft); font-weight: 600; text-align: center; line-height: 1.2; }
-.lh25 .lh25-tile.is-selected { background: var(--p); background-image: none; border-color: var(--p); color: #fff; box-shadow: 0 6px 16px rgba(91,42,134,.35); }
-.lh25-tile.is-selected .lh25-tile-day { color: #fff; }
-.lh25-tile.is-selected .lh25-tile-count { color: #f1e6fb; }
-.lh25-tile-check { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--gold); color: var(--ink); display: flex; align-items: center; justify-content: center; }
-.lh25 .lh25-tile.is-full { cursor: not-allowed; background: #f1eef3; background-image: repeating-linear-gradient(135deg, rgba(0,0,0,.035) 0 6px, transparent 6px 12px); border-style: dashed; box-shadow: none; }
-.lh25-tile.is-full .lh25-tile-day { color: #9a93a0; }
-.lh25-tile.is-full .lh25-tile-count { color: var(--r); font-weight: 700; }
-.lh25-anyday { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px auto 0; font-weight: 700; color: var(--p); cursor: pointer; min-height: 44px; }
+.lh25-tile:hover:not([disabled]) { border-color: var(--green); }
+.lh25-tile-day { font: 400 25px/1 var(--head); color: var(--green); }
+.lh25-tile-count { font-size: 10px; color: var(--muted); text-align: center; line-height: 1.2; letter-spacing: .04em; }
+.lh25 .lh25-tile.is-selected { background: var(--green); background-image: none; border-color: var(--gold); color: var(--cream); box-shadow: inset 0 0 0 1px var(--gold); }
+.lh25-tile.is-selected .lh25-tile-day { color: var(--cream); }
+.lh25-tile.is-selected .lh25-tile-count { color: var(--on-green); }
+.lh25-tile-check { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--gold-text); color: var(--green); display: flex; align-items: center; justify-content: center; }
+.lh25 .lh25-tile.is-full { cursor: not-allowed; background: var(--cream-2); background-image: none; border-style: dashed; box-shadow: none; }
+.lh25-tile.is-full .lh25-tile-day { color: #8f897a; }
+.lh25-tile.is-full .lh25-tile-count { color: var(--ox); }
+.lh25-anyday { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 18px auto 0; font-style: italic; color: var(--green); cursor: pointer; min-height: 44px; }
 /* The app's 44px tap floor sits on the LABEL here (whole row is clickable), so the box itself can be a normal size. */
-.lh25 input[type="radio"] { min-width: 0; min-height: 0; width: 22px; height: 22px; margin: 0; accent-color: var(--p); flex: none; }
-/* The shared <Checkbox> (18 px box, 12 px tick) in the page's purple when ticked. */
-.lh25 [role="checkbox"] { flex: none; background: #fff; }
-.lh25 [role="checkbox"][data-state="checked"] { background: var(--p); border-color: var(--p); color: #fff; }
-.lh25-picked { color: var(--g); font-weight: 700; margin: 6px 0 0; }
+.lh25 input[type="radio"] { min-width: 0; min-height: 0; width: 22px; height: 22px; margin: 0; accent-color: var(--green); flex: none; }
+/* The shared <Checkbox> (18 px box, 12 px tick) in the page's green when ticked. */
+.lh25 [role="checkbox"] { flex: none; background: var(--paper); border-color: var(--field-line); }
+.lh25 [role="checkbox"][data-state="checked"] { background: var(--green); border-color: var(--green); color: var(--cream); }
+.lh25-picked { color: var(--green); font-style: italic; margin: 8px 0 0; }
 
 /* Claim: form */
-.lh25-form { max-width: 760px; margin: 22px auto 0; background: #fff; border-radius: 28px; padding: 22px 18px; box-shadow: var(--shadow); }
-.lh25-form-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.lh25-form { max-width: 760px; margin: 26px auto 0; background: var(--paper); padding: 24px 18px; border: 1px solid var(--line); border-top: 2px solid var(--gold); }
+.lh25-form-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
 .lh25-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; border: 0; padding: 0; margin: 0; }
-.lh25-field label, .lh25-field legend { font-weight: 700; font-size: 14.5px; color: var(--ink); padding: 0; }
+.lh25-field label, .lh25-field legend { font-size: 12.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink); padding: 0; }
 .lh25-field input:not([type="radio"]):not([type="checkbox"]):not([type="file"]), .lh25-field textarea {
-  width: 100%; min-height: 48px; padding: 12px 14px; border-radius: 14px; border: 1.5px solid #d9d0e0; background: var(--cream);
-  font: 500 16px/1.4 var(--body); color: var(--ink);
+  width: 100%; min-height: 48px; padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--field-line); background: var(--cream);
+  font: 400 16px/1.4 var(--body); color: var(--ink);
 }
 /* The logo picker: the shared HiddenFileInput (visually hidden, still focusable) and a second <label> for it drawn as
    the dashed drop box; the box shows the hidden input's keyboard focus. */
 .lh25-field { position: relative; }
 .lh25-field .lh25-file-pick {
-  display: flex; align-items: center; min-height: 48px; padding: 10px 14px; border-radius: 14px; border: 1.5px dashed #d9d0e0;
-  background: #fff; font: 600 15px/1.3 var(--body); color: var(--p); cursor: pointer;
+  display: flex; align-items: center; min-height: 48px; padding: 10px 14px; border-radius: var(--radius); border: 1px dashed var(--field-line);
+  background: var(--paper); font: italic 400 15px/1.3 var(--body); letter-spacing: 0; text-transform: none; color: var(--green); cursor: pointer;
 }
-.lh25-field input[type="file"]:focus-visible + .lh25-file-pick { outline: 3px solid var(--gold); outline-offset: 2px; }
+.lh25-field input[type="file"]:focus-visible + .lh25-file-pick { outline: 2px solid var(--green); outline-offset: 2px; }
 .lh25-field textarea { resize: vertical; }
-.lh25-field input:focus, .lh25-field textarea:focus { outline: none; border-color: var(--p); box-shadow: 0 0 0 3px rgba(91,42,134,.18); background: #fff; }
-.lh25-field-error input, .lh25-field-error textarea { border-color: var(--r) !important; background: #fff5f6 !important; }
-.lh25-hint { margin: 0; font-size: 13px; color: var(--ink-soft); }
-.lh25-error { margin: 4px 0 0; font-size: 13.5px; color: var(--r); font-weight: 700; }
+.lh25-field input:focus, .lh25-field textarea:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 2px rgba(31, 58, 43, .2); background: var(--paper); }
+.lh25-field-error input, .lh25-field-error textarea { border-color: var(--ox) !important; background: #fdf3f2 !important; }
+.lh25-hint { margin: 0; font-size: 13.5px; color: var(--muted); }
+.lh25-error { margin: 4px 0 0; font-size: 14px; color: var(--ox); font-weight: 700; }
 .lh25-radio-group { gap: 8px; }
-.lh25-radio-group label { display: flex; align-items: center; gap: 12px; font-weight: 500; min-height: 44px; cursor: pointer; }
-.lh25-check { display: flex; align-items: center; gap: 12px; margin-top: 12px; min-height: 44px; font-size: 15px; cursor: pointer; }
-.lh25-check-error span { color: var(--r); }
-.lh25-req { color: var(--r); }
-.lh25-banner-error { margin: 16px 0 0; padding: 12px 14px; border-radius: 14px; background: #fff0f2; color: #8d0b20; font-weight: 600; border: 1px solid rgba(200,16,46,.25); }
-.lh25-submit { width: 100%; margin-top: 18px; font-size: 18px; min-height: 54px; }
+.lh25-radio-group label { display: flex; align-items: center; gap: 12px; font-size: 16px; letter-spacing: 0; text-transform: none; min-height: 44px; cursor: pointer; }
+.lh25-check { display: flex; align-items: center; gap: 12px; margin-top: 12px; min-height: 44px; font-size: 15.5px; cursor: pointer; }
+.lh25-check-error span { color: var(--ox); }
+.lh25-req { color: var(--ox); }
+.lh25-banner-error { margin: 16px 0 0; padding: 12px 14px; background: #fdf3f2; color: var(--ox); font-weight: 700; border: 1px solid rgba(110, 20, 35, .35); }
+.lh25 .lh25-submit { width: 100%; margin-top: 20px; font-size: 15px; min-height: 54px; }
 .lh25-hp { position: absolute !important; left: -10000px !important; width: 1px; height: 1px; overflow: hidden; }
 
-/* Thank you */
-.lh25-thanks { position: relative; max-width: 620px; margin: 0 auto; text-align: center; background: #fff; border-radius: 30px; padding: 36px 22px; box-shadow: var(--shadow); border: 3px solid var(--gold); outline: none; }
-.lh25-thanks > svg:not(.lh25-sparkle) { display: block; margin: 0 auto; }
-.lh25-thanks h2 { font-size: 40px; margin: 10px 0 8px; color: var(--r); }
-.lh25-thanks-body { font-size: 18px; font-weight: 600; margin: 0 0 12px; }
-.lh25-thanks-days { margin: 0 0 20px; color: var(--p); }
-.lh25-thanks-s1 { position: absolute; top: 16px; left: 20px; }
-.lh25-thanks-s2 { position: absolute; top: 30px; right: 26px; }
+/* Thank you / sign-ups closed */
+.lh25-thanks { position: relative; max-width: 620px; margin: 0 auto; text-align: center; background: var(--paper); padding: 40px 24px; border: 1px solid var(--gold); outline: 1px solid var(--line); outline-offset: -8px; }
+.lh25 .lh25-thanks h2 { font-size: 40px; font-style: italic; margin: 16px 0 10px; color: var(--green); }
+.lh25-thanks-body { font-size: 18px; margin: 0 0 14px; }
+.lh25-thanks-days { margin: 0 0 20px; color: var(--ink); }
 
 /* FAQ */
-.lh25-faq { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
-.lh25-faq-item { background: #fff; border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
-.lh25-faq-item summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; min-height: 56px; cursor: pointer; font: 600 17px/1.3 var(--head); color: var(--p); }
+.lh25-faq { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; border-top: 1px solid var(--gold); }
+.lh25-faq-item { border-bottom: 1px solid var(--line); }
+.lh25-faq-item summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 4px; min-height: 56px; cursor: pointer; font: 400 19px/1.3 var(--head); color: var(--green); }
 .lh25-faq-item summary::-webkit-details-marker { display: none; }
-.lh25-faq-item summary svg { flex: none; transition: transform .2s ease; color: var(--gold-deep); }
+.lh25-faq-item summary svg { flex: none; transition: transform .2s ease; color: var(--gold); }
 .lh25-faq-item[open] summary svg { transform: rotate(180deg); }
-.lh25-faq-item p { margin: 0; padding: 0 18px 16px; color: var(--ink-soft); }
+.lh25-faq-item p { margin: 0; padding: 0 4px 18px; color: var(--muted); }
 
 /* Final CTA */
-.lh25-final { position: relative; margin: 52px 16px 0; padding: 36px 20px; border-radius: 30px; text-align: center; background: var(--r); color: #fff; box-shadow: var(--shadow); overflow: hidden;
-  background-image: repeating-linear-gradient(90deg, rgba(255,255,255,.08) 0 18px, transparent 18px 36px); }
-.lh25-final h2 { color: #fff; font-size: clamp(26px, 6.5vw, 40px); margin: 0 auto 20px; max-width: 720px; }
-.lh25-final-s1 { position: absolute; top: 16px; left: 18px; }
-.lh25-final-s2 { position: absolute; bottom: 18px; right: 22px; }
+.lh25-final { position: relative; margin: 60px 0 0; padding: 44px 20px 48px; text-align: center; background: var(--green); color: var(--cream); border-top: 3px solid var(--gold); }
+.lh25 .lh25-final h2 { color: var(--cream); font-style: italic; font-size: clamp(28px, 6.5vw, 42px); margin: 18px auto 26px; max-width: 720px; text-wrap: balance; }
 
 /* Footer */
-.lh25-footer { text-align: center; padding: 30px 16px 40px; color: var(--ink-soft); font-size: 14.5px; }
+.lh25-footer { text-align: center; padding: 32px 16px 40px; color: var(--muted); font-size: 14.5px; }
 .lh25-footer p { margin: 0 0 8px; }
 .lh25-footer-brand { overflow-wrap: anywhere; }
-.lh25-footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; }
-.lh25-footer-links a { font-weight: 600; min-height: 32px; display: inline-flex; align-items: center; }
+.lh25-footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 20px; }
+.lh25-footer-links a { min-height: 32px; display: inline-flex; align-items: center; font-size: 12.5px; letter-spacing: .12em; text-transform: uppercase; }
 
 /* Placeholder highlight: LOCAL DEV PREVIEW ONLY (never rendered for visitors) */
 .lh25-ph { background: #ffe27a; color: #5a3b00; border-radius: 4px; padding: 0 3px; outline: 1px dashed #b38600; }
 
 /* Loading / error */
-.lh25-loading { min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 16px; color: var(--ink-soft); }
-.lh25-spinner { width: 34px; height: 34px; border-radius: 50%; border: 4px solid rgba(91,42,134,.2); border-top-color: var(--p); animation: lh25-spin .9s linear infinite; }
+.lh25-loading { min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 16px; color: var(--muted); }
+.lh25-spinner { width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(31, 58, 43, .2); border-top-color: var(--green); animation: lh25-spin .9s linear infinite; }
 @keyframes lh25-spin { to { transform: rotate(360deg); } }
 
 /* Rules page */
-.lh25-rules { max-width: 760px; margin: 0 auto; padding: 8px 16px 40px; }
-.lh25-draft { position: sticky; top: 0; z-index: 20; margin: 0 0 18px; padding: 12px 14px; text-align: center; border-radius: 14px; background: #fff3c4; color: #6b4d00; border: 2px dashed #c79a00; font: 700 16px/1.3 var(--head); }
-.lh25-rules h1 { font-size: clamp(30px, 8vw, 44px); margin-bottom: 4px; }
-.lh25-rules-sub { color: var(--g); font-weight: 700; margin: 0 0 24px; }
-.lh25-rules section { background: #fff; border-radius: 18px; padding: 18px; box-shadow: var(--shadow); margin-bottom: 12px; }
-.lh25-rules h2 { font-size: 21px; margin-bottom: 6px; }
+.lh25-rules { max-width: 760px; margin: 0 auto; padding: 16px 16px 48px; }
+.lh25-draft { position: sticky; top: 0; z-index: 20; margin: 0 0 18px; padding: 12px 14px; text-align: center; background: var(--cream-2); color: var(--ox); border: 1px dashed var(--ox); font: 700 15px/1.35 var(--body); }
+.lh25-rules h1 { font-size: clamp(32px, 8vw, 46px); margin: 8px 0 6px; }
+.lh25-rules-sub { color: var(--ox); font-style: italic; margin: 0 0 28px; padding-bottom: 20px; border-bottom: 1px solid var(--gold); }
+.lh25-rules section { padding: 0 0 18px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+.lh25-rules h2 { font-size: 22px; margin-bottom: 8px; }
 .lh25-rules section p { margin: 0; color: var(--ink); }
-.lh25-back { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; margin-bottom: 8px; }
+.lh25-back { display: inline-flex; align-items: center; min-height: 44px; font-size: 12.5px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 4px; }
 
 /* ── Wider screens ───────────────────────────────────────────────────── */
 @media (min-width: 640px) {
-  .lh25-trust { grid-template-columns: repeat(4, auto); justify-content: center; gap: 10px 28px; font-size: 14.5px; }
-  .lh25-calendar { gap: 12px; }
-  .lh25-tile { min-height: 96px; border-radius: 18px; padding: 10px 6px; }
-  .lh25-tile-day { font-size: 30px; }
+  .lh25-trust { grid-template-columns: repeat(4, auto); justify-content: center; gap: 10px 36px; }
+  .lh25-calendar { gap: 10px; }
+  .lh25 .lh25-tile { min-height: 96px; padding: 10px 6px; }
+  .lh25-tile-day { font-size: 32px; }
   .lh25-tile-count { font-size: 12px; }
   .lh25-tile-check { top: 6px; right: 6px; width: 22px; height: 22px; }
-  .lh25-form { padding: 30px; }
+  .lh25-form { padding: 32px; }
   .lh25-form-grid { grid-template-columns: 1fr 1fr; }
   .lh25-form-grid > .lh25-field:has(textarea) { grid-column: 1 / -1; }
   .lh25-stats { grid-template-columns: repeat(3, 1fr); }
   .lh25-grid-gets { grid-template-columns: repeat(2, 1fr); }
   .lh25-steps { grid-template-columns: repeat(2, 1fr); }
-  .lh25-hero-gift { display: block; }
+  .lh25-hero { padding: 56px 24px 60px; }
 }
 @media (min-width: 960px) {
-  .lh25-hero { padding: 10px 24px 48px; }
-  .lh25-hero-magnolia { right: 6%; top: 20px; }
-  .lh25-hero-gift { right: 10%; bottom: 40px; }
+  .lh25-hero { padding: 72px 24px 72px; }
   .lh25-grid3 { grid-template-columns: repeat(3, 1fr); }
   .lh25-steps { grid-template-columns: repeat(4, 1fr); }
   /* Flex so a short last row (a card hidden until its placeholder is filled) stays centred. */
   .lh25-grid-gets { display: flex; flex-wrap: wrap; justify-content: center; }
-  .lh25-grid-gets > .lh25-card { flex: 0 1 calc((100% - 28px) / 3); }
-  .lh25-founder-card { flex-direction: row; align-items: center; padding: 34px 40px; gap: 32px; }
-  .lh25-ask { flex-direction: row; text-align: left; padding: 30px 36px; gap: 24px; }
-  .lh25-section { padding-top: 60px; }
-  .lh25-final { max-width: 1080px; margin: 64px auto 0; padding: 48px 24px; }
+  .lh25-grid-gets > .lh25-card { flex: 0 1 calc((100% - 32px) / 3); }
+  .lh25-founder-card { flex-direction: row; align-items: center; padding: 40px 48px; gap: 36px; }
+  .lh25-ask { flex-direction: row; text-align: left; padding: 36px 44px; gap: 28px; }
+  .lh25-section { padding-top: 68px; }
+  .lh25-final { padding: 60px 24px 64px; }
 }
 
-/* ── Reduced motion: no twinkle, bobbing, confetti (confetti.ts) or count-up ── */
+/* ── Reduced motion: no transitions or spin (the count-up reads the same preference) ── */
 @media (prefers-reduced-motion: reduce) {
   .lh25 *, .lh25 *::before, .lh25 *::after { animation: none !important; transition: none !important; }
 }

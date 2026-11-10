@@ -410,7 +410,7 @@ serve(async (req) => {
           greetingName: fullName,
           paragraphs: [
             [
-              'Someone from our team ',
+              'Our team ',
               { accent: 'checked your ID' },
               ', so you\'re all set to post jobs, take jobs, and buy and sell on Declutter.',
             ],

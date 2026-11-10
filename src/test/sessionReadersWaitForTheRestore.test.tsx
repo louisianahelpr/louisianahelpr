@@ -200,6 +200,7 @@ const READERS: Record<string, string> = {
   "src/boot/routePreload.ts": "preload hint: a wrong guess fetches the other route's chunk",
   "src/boot/guestJobsPrefetch.ts": "prefetch hint: a wrong guess fetches the guest job list once",
   "src/boot/storedSession.ts": "prefetch hint (declutterPrefetch, homePrefetch): no usable stored token starts no read, and the page reads for itself",
+  "src/components/declutter/DeclutterSkeletons.tsx": "skeleton hint (F153): a wrong guess in the native restore window only draws or skips the phone tab-row bones until the page draws its own row",
   "src/entry.ts": "prefetch hint: hasToken() picks whether to start Declutter's or Home's first-screen reads",
   // Read after the restore by construction:
   "src/hooks/useAuthReady.ts": "after the restore: read only once AUTH_BOOTSTRAP_TIMEOUT_MS (2.5 s) passed, past the 2 s hydrate cap",

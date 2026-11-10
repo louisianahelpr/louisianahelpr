@@ -52,6 +52,7 @@ const NOT_APP_ADDRESSES: Record<string, string> = {
   "/storage": "Supabase Storage path",
   "/s": "the typed-signature mark on a signed lease PDF (\"/s/ Dana Smith\", src/lib/rentals/leasePdf.ts), not an address",
   "/landing": "public/landing/ static photos on the landing page (LandingProof.tsx), served as files, not an app address",
+  "/fonts": "public/fonts/ self-hosted brand font files the emails load (email-templates/styles.ts @font-face), served as files, not an app address",
   "/ti": "Apple MapKit CDN path (cdn.apple-mapkit.com/ti/csr/) that csp-report classifies as vendor noise",
 };
 

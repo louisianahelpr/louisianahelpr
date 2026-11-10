@@ -29,12 +29,14 @@ interface CityAutocompleteProps {
    * really needs a city (Post a job's address: FormStep refuses a post without one).
    */
   required?: boolean;
+  /** F259b (audit 11-10): sign-up's City showed no example beside ZIP's "e.g. 70801". */
+  placeholder?: string;
 }
 
 const titleCase = (s: string) =>
   s.trim().toLowerCase().replace(/\b\w/g, (ch) => ch.toUpperCase());
 
-export function CityAutocomplete({ id, value, onChange, className, required = false }: CityAutocompleteProps) {
+export function CityAutocomplete({ id, value, onChange, className, required = false, placeholder }: CityAutocompleteProps) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
 
@@ -106,6 +108,7 @@ export function CityAutocomplete({ id, value, onChange, className, required = fa
           setQuery(cleaned);
         }}
         required={required}
+        placeholder={placeholder}
         maxLength={100}
         // address-level2 is the WHATWG token for the city field: it lets the
         // OS keyboard / password-manager offer the user's saved city for

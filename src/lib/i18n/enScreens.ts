@@ -143,6 +143,7 @@ export const enScreens = {
   "signup.zip": "ZIP",
   // A3-102 (audit 11-01): "70801" alone read as a ZIP already filled in.
   "signup.zipExample": "e.g. 70801",
+  "signup.cityExample": "e.g. Lafayette",
   "signup.about": "About you",
   "signup.aboutPlaceholder": "Tell us a bit about yourself — whether you're looking for work or need help around the house…",
   "signup.aboutHelp": "You can add it later from your profile.",

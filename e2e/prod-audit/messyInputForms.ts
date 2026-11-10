@@ -836,6 +836,9 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // 25 Days sponsor page (20261109162829, 2026-11-09): created behind the sponsor_25days switch, OFF, so the sweep cannot reach it yet.
+  "src/components/sponsor/ClaimSection.tsx": "behind the OFF sponsor_25days switch (the page renders Not found). The sponsor-25days function re-runs the shared validator (validateSponsorSignup): control characters stripped, brand 120 / contact 100 / email 254 / phone 40 / website 300 / handles 100 / prize 1000 / notes 2000 characters, prize value $1 to $100,000, days 1 to 25 only, a filled honeypot is dropped, the logo is byte-sniffed (PNG, JPG or SVG) and capped at 5 MB; covered in src/test/sponsor25days.test.tsx.",
+  "src/pages/admin/sponsors/AdminSponsorsPage.tsx": "admin-only and behind the OFF sponsor_25days switch; a sweep account is not an admin. Every sponsor_admin_* function checks the admin role and the switch, and a hand-added sponsor meets the sponsor_signups / sponsor_days CHECKs (brand 120, contact 100, email 254 with an @, phone 40, website 300 starting http(s)://, handles 100, prize 1000 characters, value 1 to 100,000, days 1 to 25).",
   // Money tab help (Q2471, b109-finish 11-04): not swept yet (new 11-04).
   "src/components/money/MoneyHelp.tsx": "one question box (maxLength 500 on the client, Ask disabled under 10 characters) sent to support-ai-answer, which is rate-limited per IP (6 a minute) and answers nothing under 10 characters; nothing typed here is saved.",
   // Bundle requests (Q2268, 20261104103528): not swept yet (new 11-04).

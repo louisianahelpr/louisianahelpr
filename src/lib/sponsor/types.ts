@@ -48,6 +48,7 @@ export type SponsorSubmitResult =
   | { ok: false; kind: "invalid"; errors: Partial<Record<string, SponsorFieldError | "logoType" | "logoSize">> }
   | { ok: false; kind: "full"; fullDays: number[] }
   | { ok: false; kind: "rateLimited" }
+  | { ok: false; kind: "closed" }
   | { ok: false; kind: "error" };
 
 export type SponsorStatus = "pending" | "confirmed" | "prize_received" | "posted";

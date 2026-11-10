@@ -56,6 +56,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_item_sold_visible',  'allow',    'F061 sold card (20261109194234): may a sold item''s page show what it was (sold/completed, never reported, seller not out, Declutter not off)'),
   ('rentals_tenancy_party',         'allow',    'is the caller the landlord or tenant of this tenancy (Homes rent tracker read policies, 20261019073106)'),
   ('feature_enabled_for_user',      'allow',    'hidden feature switch is on for this user (service_role, edge functions)'),
+  ('sponsor_25days_on_for',         'absent',   '25 Days page (20261109162829): NULL = a signed-out visitor, valid by design; TRUE for NULL only when the owner set the switch to Everyone (the public page is for signed-out brands)'),
   ('terms_accepted_is_current',     'allow',    'Terms check (20261108154435): TRUE = this member accepted the current Terms, so a commitment may go ahead (service_role, edge functions)'),
   ('sell_for_me_listings_sent',     'allow',    'may a Have a Helpr list it job be marked done: TRUE = its Helpr sent at least one listing for approval (create-payment release path, LEAD-LIST-FOR-SELLER, 20261101034159)'),
   ('declutter_payout_unsent',       'allow',    'may a refund after the handover still rebook this sale''s seller payout (never tried, marked or sent; board 141, 20261026155251)'),

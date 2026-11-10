@@ -75,6 +75,9 @@ const NOINDEX = {
   "/reset-password": "consumes a one-time token from an email; no canonical URL",
   "/payment-success": "post-checkout receipt screen, bound to one session",
   "/unsubscribe": "email opt-out step; needs the signed link from one email (Q1655)",
+  "/sponsor": "25 Days sponsor page: reached from pitch emails, dark behind the sponsor_25days switch",
+  "/25days": "25 Days sponsor page (same page as /sponsor)",
+  "/25days/rules": "25 Days giveaway rules: a draft until the owner approves it",
 };
 
 /**

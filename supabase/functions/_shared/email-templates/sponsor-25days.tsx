@@ -77,7 +77,7 @@ export const SponsorConfirmationEmail = ({ s, adminEmail }: { s: SponsorEmailSig
       3. A Louisiana neighbor wins your prize, and local families see your brand.
     </Text>
     <Text className="e-text" style={textStyle}>
-      No fees, no contracts, no catch. You're working directly with Lexi, a real person: reply to this email or write
+      You're working directly with Lexi, a real person: reply to this email or write
       to <Link href={`mailto:${adminEmail}`}>{adminEmail}</Link> any time.
     </Text>
     <Text className="e-text" style={textStyle}>— Lexi, Founder, Louisiana Helpr</Text>

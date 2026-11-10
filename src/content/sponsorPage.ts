@@ -67,7 +67,7 @@ export const sponsorPage = {
   trustStrip: [
     "Louisiana-owned & run",
     "Based in Delcambre, LA",
-    "No fees, no contracts",
+    "Prizes delivered to the winner by us",
     "Real local families, not bots",
   ],
 
@@ -129,7 +129,7 @@ export const sponsorPage = {
   whatWeAsk: {
     title: "What We Ask",
     body:
-      "Donate a prize, anything you'd like (a product, a gift card, a service or a bundle), shipped to the winner or to us. That's it. No fees, no contracts, no catch. We handle the graphics, the posts and picking the winner.",
+      "Donate a prize, anything you'd like (a product, a gift card, a service or a bundle), dropped off or shipped to us in Delcambre. That's it. We handle the graphics, the posts and picking the winner.",
   },
 
   reach: {

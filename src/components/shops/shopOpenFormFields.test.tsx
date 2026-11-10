@@ -1,8 +1,13 @@
 /**
  * Shops audit 11-10 (~/.lh-shots/shops-audit-1110/FINDINGS.md), the open-a-shop form:
+ *  F6  a new shop starts open Monday to Friday 9 to 5, and its parish is picked from the town typed (the full list is
+ *      behind "Add other parishes"); the optional business number waits behind "Have a Louisiana business number?".
  *  F7  the common categories are one tap; "More" opens the full list.
  *  F8  the town placeholder reads "e.g. Broussard".
  *
+ * @mutate src/components/shops/ShopEditView.tsx |   Object.fromEntries(WEEKDAYS.map((_, i) => [i, { open: i >= 1 && i <= 5, opens: "09:00", closes: "17:00" }])); |   Object.fromEntries(WEEKDAYS.map((_, i) => [i, { open: false, opens: "09:00", closes: "17:00" }]));
+ * @mutate src/components/shops/ShopEditView.tsx |     const fromTown = parishForCity(form.areaLabel)?.name ?? null; |     const fromTown = null;
+ * @mutate src/components/shops/ShopEditView.tsx |   const [showSos, setShowSos] = useState(false); |   const [showSos, setShowSos] = useState(true);
  * @mutate src/components/shops/ShopCategoryQuickPick.tsx | onClick={() => { setMore(false); onChange(c.slug); }} | onClick={() => { setMore(false); }}
  * @mutate src/components/shops/ShopEditView.tsx | placeholder="e.g. Broussard" | placeholder="Broussard"
  */
@@ -55,7 +60,30 @@ function renderForm() {
 
 beforeEach(() => vi.clearAllMocks());
 
-describe("open-a-shop form (audit 11-10 F7, F8)", () => {
+describe("open-a-shop form (audit 11-10 F6, F7, F8)", () => {
+  it("F6: Monday to Friday 9 to 5 is set, and the parish follows the town", async () => {
+    renderForm();
+    await screen.findByRole("button", { name: "Open my shop" });
+    for (const day of ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]) {
+      expect(screen.getByRole("checkbox", { name: day }).getAttribute("aria-checked") ?? screen.getByRole("checkbox", { name: day }).getAttribute("data-state")).toMatch(/true|checked/);
+      expect((screen.getByLabelText(`${day} opens`) as HTMLInputElement).value).toBe("09:00");
+    }
+    expect(screen.getByRole("checkbox", { name: "Sunday" }).getAttribute("data-state")).toBe("unchecked");
+    expect(screen.queryByRole("checkbox", { name: "Lafayette" })).toBeNull(); // the long list waits behind the button
+    fireEvent.change(screen.getByLabelText("Town or neighborhood"), { target: { value: "Broussard" } });
+    expect(await screen.findByRole("button", { name: "Remove Lafayette" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Add other parishes" }));
+    expect(screen.getByRole("checkbox", { name: "Lafayette" }).getAttribute("data-state")).toBe("checked");
+  });
+
+  it("F6: the optional business number waits behind one tap", async () => {
+    renderForm();
+    await screen.findByRole("button", { name: "Open my shop" });
+    expect(screen.queryByLabelText(/Secretary of State number/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Have a Louisiana business number?" }));
+    expect(screen.getByLabelText(/Secretary of State number/)).toBeTruthy();
+  });
+
   it("F7: common categories are one tap; More opens the full list", async () => {
     renderForm();
     await screen.findByRole("button", { name: "Open my shop" });

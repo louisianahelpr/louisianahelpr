@@ -31,7 +31,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { geocodeAddress } from "@/lib/geocode";
-import { PARISHES } from "@/lib/parishes";
+import { PARISHES, parishByName, parishForCity } from "@/lib/parishes";
 import {
   addShopPhoto,
   closeMyShop,
@@ -67,6 +67,10 @@ interface Form {
 
 const EMPTY_HOURS = (): Form["hours"] =>
   Object.fromEntries(WEEKDAYS.map((_, i) => [i, { open: false, opens: "09:00", closes: "17:00" }]));
+/** A new shop starts open Monday to Friday, 9 to 5 (audit 11-10 F6); the owner changes what differs. */
+const NEW_SHOP_HOURS = (): Form["hours"] =>
+  Object.fromEntries(WEEKDAYS.map((_, i) => [i, { open: i >= 1 && i <= 5, opens: "09:00", closes: "17:00" }]));
+
 
 const EMPTY: Form = {
   name: "",
@@ -78,7 +82,7 @@ const EMPTY: Form = {
   offersSelling: true,
   offersQuotes: false,
   sosNumber: "",
-  hours: EMPTY_HOURS(),
+  hours: NEW_SHOP_HOURS(),
 };
 
 function ShopEditSkeleton() {
@@ -122,7 +126,7 @@ export default function ShopEditView() {
   // The shop page's "Add an item" (an owner's empty shop) opens the item editor here.
   const startAdding = useLocation().hash === "#add-item";
   const qc = useQueryClient();
-  const { user } = useCurrentUser();
+  const { user, profile } = useCurrentUser();
   const categories = useShopCategories();
   const myId = useQuery({ queryKey: ["shops", "mine"], queryFn: fetchMyShopId });
   const shop = useQuery({
@@ -133,6 +137,18 @@ export default function ShopEditView() {
   const [form, setForm] = useState<Form>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [showAllParishes, setShowAllParishes] = useState(false);
+  // F6: the optional business number waits behind one tap unless the shop already has one.
+  const [showSos, setShowSos] = useState(false);
+  // A new shop's parish follows its town (or the member's own parish) until the owner picks parishes themselves (F6).
+  const [parishesTouched, setParishesTouched] = useState(false);
+  const homeParish = parishByName((profile as { parish?: string | null } | null)?.parish ?? null)?.name ?? null;
+  useEffect(() => {
+    if (myId.data || myId.isLoading || parishesTouched) return;
+    const fromTown = parishForCity(form.areaLabel)?.name ?? null;
+    const pick = fromTown ?? homeParish;
+    setForm((f) => (pick && !(f.parishes.length === 1 && f.parishes[0] === pick) ? { ...f, parishes: [pick] } : f));
+  }, [form.areaLabel, homeParish, myId.data, myId.isLoading, parishesTouched]);
 
   useEffect(() => {
     if (loaded || !shop.data) return;
@@ -155,7 +171,10 @@ export default function ShopEditView() {
   }, [shop.data, loaded]);
 
   const groups = useMemo(() => categoryGroups(categories.data), [categories.data]);
-  const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const set = <K extends keyof Form>(k: K, v: Form[K]) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    if (k === "parishes") setParishesTouched(true);
+  };
 
   const save = useMutation({
     mutationFn: async () => {
@@ -285,6 +304,23 @@ export default function ShopEditView() {
         </fieldset>
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">Parishes you serve</legend>
+          {form.parishes.length > 0 ? (
+            <ul className="flex flex-wrap gap-2" aria-label="Parishes picked">
+              {form.parishes.map((name) => (
+                <li key={name} className="inline-flex items-center gap-1 rounded-full border border-border bg-card pl-3 text-sm">
+                  {name}
+                  <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground"
+                    aria-label={`Remove ${name}`} onClick={() => set("parishes", form.parishes.filter((x) => x !== name))}>×</button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">None picked yet. Type your town above and its parish is picked for you.</p>
+          )}
+          <Button type="button" variant="outline" size="sm" aria-expanded={showAllParishes} onClick={() => setShowAllParishes((v) => !v)}>
+            {showAllParishes ? "Done adding parishes" : "Add other parishes"}
+          </Button>
+          {showAllParishes && (
           <div className="max-h-48 overflow-y-auto rounded-xl border border-border p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
             {[...PARISHES].sort((a, b) => a.name.localeCompare(b.name)).map((p) => {
               const id = `parish-${p.slug}`;
@@ -301,9 +337,11 @@ export default function ShopEditView() {
               );
             })}
           </div>
+          )}
         </fieldset>
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">Open days and hours</legend>
+          {!myId.data && <p className="text-xs text-muted-foreground">Set to Monday to Friday, 9 to 5. Change any day that's different.</p>}
           {WEEKDAYS.map((day, i) => {
             const h = form.hours[i];
             return (
@@ -339,11 +377,17 @@ export default function ShopEditView() {
             );
           })}
         </fieldset>
-        <div className="space-y-1.5">
-          <Label htmlFor="shop-sos">Louisiana Secretary of State number (optional)</Label>
-          <Input id="shop-sos" value={form.sosNumber} maxLength={20} onChange={(e) => set("sosNumber", e.target.value)} />
-          <p className="text-xs text-muted-foreground">Once we check it, your shop shows "Registered business". A shop without one is still welcome.</p>
-        </div>
+        {showSos || form.sosNumber.trim() !== "" ? (
+          <div className="space-y-1.5">
+            <Label htmlFor="shop-sos">Louisiana Secretary of State number (optional)</Label>
+            <Input id="shop-sos" value={form.sosNumber} maxLength={20} onChange={(e) => set("sosNumber", e.target.value)} />
+            <p className="text-xs text-muted-foreground">Once we check it, your shop shows "Registered business". A shop without one is still welcome.</p>
+          </div>
+        ) : (
+          <Button type="button" variant="outline" size="sm" className="self-start" aria-expanded={false} onClick={() => setShowSos(true)}>
+            Have a Louisiana business number?
+          </Button>
+        )}
         {myId.data && (
           <section className="space-y-2" aria-labelledby="shop-edit-photos">
             <h2 id="shop-edit-photos" className="text-sm font-medium">Logo, cover and photos</h2>

@@ -253,7 +253,7 @@ describe("declutter-money: seller payouts (B53)", () => {
     // AUD31-35: rendered from the branded notice email (the mock records the element).
     const r = (emailRenders as Array<{ type: { name: string }; props: Record<string, string> }>).find((e) => e.props.title === "Your payout is on its way");
     expect(r?.type.name).toBe("NotificationEmail");
-    expect(r?.props.message).toMatch(/^Your \$38\.50 payout for "Lamp" was sent\. It lands in your bank on your usual payout schedule\./);
+    expect(r?.props.message).toMatch(/^Your \$38\.50 payout for "Lamp" was sent\. It lands in your bank on your usual payout schedule, usually within 2 business days\.$/);
     expect(JSON.stringify({ sent: sent[0], message: r?.props.message })).not.toMatch(/fee|%/i);
   });
   it("a reconciled payout (sent earlier, recorded now) is emailed once; a failed or unrecorded one is not emailed", async () => {

@@ -165,7 +165,7 @@ function sellerEmailCopy(
   return {
     templateName: "declutter_payout_sent",
     subject: "Your payout is on its way",
-    body: `Your ${dollars(cents)} payout for ${items} was sent. It lands in your bank on your usual payout schedule.`,
+    body: `Your ${dollars(cents)} payout for ${items} was sent. It lands in your bank on your usual payout schedule, usually within 2 business days.`,
   };
 }
 

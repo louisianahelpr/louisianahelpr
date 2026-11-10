@@ -1,4 +1,4 @@
-import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
+import { useIdCheckOnForViewer } from "@/lib/useIdCheckOnForViewer";
 import { lazy, Suspense, useEffect, useRef, useState, type RefObject } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Check, Camera, CreditCard, Headset, Lock, MapPin, ShieldCheck, Wallet, type LucideIcon } from "lucide-react";
@@ -86,10 +86,11 @@ function useSeenAfterLoad(ref: RefObject<HTMLElement>): boolean {
 
 /** The four section cards. */
 export function SectionsShowcase() {
-  // No ID claim while the ID check is off (switch `identity_check`, owner 2026-10-23).
-  const idOn = useIdentityCheckOnStore();
   const ref = useRef<HTMLElement>(null);
   const seen = useSeenAfterLoad(ref);
+  // No ID claim while the ID check is off (switch `identity_check`, owner 2026-10-23). L010 (landing audit 11-09): read
+  // for THIS viewer, guests included (useIdCheckOnForViewer; a guest read it as off while it is on for everyone).
+  const idOn = useIdCheckOnForViewer(seen);
   const { open } = useSectionsOpen(seen);
   // F009 (owner UI audit 11-09, High): while the answer is pending, no "Coming soon" at all. It sat over the live
   // Declutter for ~2.7 s on a first visit, then jumped. Until the answer is in, no card is badged or dimmed; the
@@ -208,10 +209,12 @@ function AppleSlot() {
 
 /** The money band + the join block. "Create your free account" is the close's one primary. */
 export function TrustAndJoin() {
-  const idOn = useIdentityCheckOnStore();
   const navigate = useNavigate();
   const joinRef = useRef<HTMLElement>(null);
   const joinSeen = useSeenAfterLoad(joinRef);
+  // L010 (landing audit 11-09): the trust card said "Every account confirms its email" to every guest, because the
+  // member's switch answer is false signed out; the real protection, on for everyone, is the ID check.
+  const idOn = useIdCheckOnForViewer(joinSeen);
   // UI audit F016 (11-09): the Apple button's chunk is fetched once the page has settled (never on first paint), and
   // its slot is held by a same-size placeholder until then, so "Create your free account" never moves when it lands.
   const [settled, setSettled] = useState(false);

@@ -37,6 +37,8 @@ import { SponsorAdminEmail, SponsorConfirmationEmail, type SponsorEmailSignup } 
 import { caughtMessage } from '../_shared/caughtMessage.ts'
 import { SPONSOR_LIMITS, sniffLogoType, sponsorSignupsOpen, validateSponsorSignup } from '../_shared/sponsorSignup.ts'
 import { serve } from '../_shared/buildStamp.ts'
+import { writeAdminAudit } from '../_shared/adminAuditLog.ts'
+import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 
 const BUCKET = 'sponsor-logos'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -157,6 +159,15 @@ async function handleFounderPhoto(req: Request): Promise<Response> {
     console.error('[sponsor-25days] founder photo not recorded:', error.message)
     return json({ error: 'save_failed' }, 500)
   }
+  // Q76: who changed the founder photo on the public sponsor page, and when.
+  await writeAdminAudit(admin, {
+    adminId: userId,
+    action: 'sponsor_founder_photo_set',
+    targetType: 'sponsor_settings',
+    targetId: 'founder_photo',
+    details: { path },
+    source: 'sponsor-25days',
+  }, postSlackOpsAlert)
   return json({ ok: true })
 }
 
@@ -263,18 +274,31 @@ async function sendEmails(admin: SupabaseClient, s: SponsorEmailSignup, logoPath
     console.error('[sponsor-25days] RESEND_API_KEY not configured; no emails sent')
     return
   }
-  // Q840: a fixture/test address is never mailed, and its sign-up is not sent to admin@ either.
-  if (await isTestRecipient(admin, s.email)) {
-    console.log('[sponsor-25days] test address; emails not sent (Q840)')
-    return
-  }
+  await sendConfirmation(admin, key, s)
+  await sendAdminNotice(admin, key, s, logoPath)
+}
+
+// Q840: a fixture/test address is never mailed (each send asks for itself).
+async function sendConfirmation(admin: SupabaseClient, key: string, s: SponsorEmailSignup): Promise<void> {
   try {
+    if (await isTestRecipient(admin, s.email)) {
+      console.log('[sponsor-25days] test address; confirmation not sent (Q840)')
+      return
+    }
     const { html, text } = await renderEmail(React.createElement(SponsorConfirmationEmail, { s, adminEmail: SUPPORT_EMAIL }))
     await sendWithResend(key, { to: s.email, from: FROM_DEFAULT, subject: "You're in! 25 Days of Louisiana Giveaways 🎄", html, text, replyTo: SUPPORT_EMAIL })
   } catch (e) {
     console.error('[sponsor-25days] confirmation email failed:', caughtMessage(e))
   }
+}
+
+// Q840 / Q137: a test address's sign-up is not sent to admin@ either.
+async function sendAdminNotice(admin: SupabaseClient, key: string, s: SponsorEmailSignup, logoPath: string | null): Promise<void> {
   try {
+    if (await isTestRecipient(admin, s.email)) {
+      console.log('[sponsor-25days] test address; admin notice not sent (Q840)')
+      return
+    }
     let logoUrl: string | null = null
     if (logoPath) {
       const signed = await admin.storage.from(BUCKET).createSignedUrl(logoPath, 7 * 24 * 3600, { download: true })

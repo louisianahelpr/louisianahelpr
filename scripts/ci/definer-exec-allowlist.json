@@ -28,7 +28,9 @@
     "declutter_funnel_event(text, uuid, uuid, uuid, text)": "client",
     "declutter_item_save_counts(uuid[])": "client",
     "public_profile_work_photos(text)": "client",
-    "find_helprs(text, text, integer)": "reviewed 2026-11-09 (Q14): F071 owner decision, guests may view Find a Helpr (20261109212142_find_helprs_guests_may_view). Names masked to 'First L.', town/parish/skills/photo/ID flag only; no rate, phone, email or address; test, banned, deleted, unconfirmed and under-18 accounts never returned to a guest. Proof src/test/pglite/findHelprsDirectory.pglite.mjs."
+    "find_helprs(text, text, integer)": "reviewed 2026-11-09 (Q14): F071 owner decision, guests may view Find a Helpr (20261109212142_find_helprs_guests_may_view). Names masked to 'First L.', town/parish/skills/photo/ID flag only; no rate, phone, email or address; test, banned, deleted, unconfirmed and under-18 accounts never returned to a guest. Proof src/test/pglite/findHelprsDirectory.pglite.mjs.",
+    "sponsor_public_state(text)": "reviewed 2026-11-09 (Q14): 25 Days sponsor page (20261109162829; lh-authz-rls PASS). The public sponsor page is signed out by design; answers on=false unless sponsor_25days_on_for(auth.uid()). Returns per-day COUNTS (never names), the greeting brand NAME for a matching invite code (never its email), the sponsor wall (only confirmed + OK to show + shown), approved testimonials and reach stats.",
+    "sponsor_log_visit(text, text, text)": "reviewed 2026-11-09 (Q14): 25 Days sponsor page (20261109162829; lh-authz-rls PASS). Insert-only visit row (ref code, referrer origin, coarse device), refused while sponsor_25days is off for auth.uid(), rate limited per hashed address; returns nothing."
   },
   "authenticated": {
     "accept_application(uuid, timestamp with time zone, text)": "client",
@@ -702,7 +704,19 @@
     "shops_request_digital_order(uuid)": "reviewed 2026-11-08 (Q14): Shops digital downloads (20261108185110): no client caller; shop-checkout (buy_digital) calls it with the buyer's token; behind switch 'shops'; refuses a NULL caller, a banned one, 3 strikes, under 18, 30 orders an hour, a hidden or blocked shop (404), own shop, paused or not selling, already bought; writes only the caller's own awaiting order and its one line",
     "public_profile_work_photos(text)": "client",
     "my_job_photos()": "client",
-    "set_job_photo_shown(uuid, text, boolean)": "client"
+    "set_job_photo_shown(uuid, text, boolean)": "client",
+    "sponsor_public_state(text)": "reviewed 2026-11-09 (Q14): 25 Days sponsor page (20261109162829; lh-authz-rls PASS). The public sponsor page is signed out by design; answers on=false unless sponsor_25days_on_for(auth.uid()). Returns per-day COUNTS (never names), the greeting brand NAME for a matching invite code (never its email), the sponsor wall (only confirmed + OK to show + shown), approved testimonials and reach stats.",
+    "sponsor_log_visit(text, text, text)": "reviewed 2026-11-09 (Q14): 25 Days sponsor page (20261109162829; lh-authz-rls PASS). Insert-only visit row (ref code, referrer origin, coarse device), refused while sponsor_25days is off for auth.uid(), rate limited per hashed address; returns nothing.",
+    "sponsor_admin_overview()": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; reads only.",
+    "sponsor_admin_set_status(uuid, text)": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; writes admin_audit_log.",
+    "sponsor_admin_move_day(uuid, integer, integer)": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; writes admin_audit_log.",
+    "sponsor_admin_set_wall(uuid, boolean)": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; writes admin_audit_log.",
+    "sponsor_admin_add_invite(text, text)": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; writes admin_audit_log.",
+    "sponsor_admin_delete_invite(uuid)": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; writes admin_audit_log.",
+    "sponsor_admin_add_signup(jsonb)": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; writes admin_audit_log.",
+    "sponsor_admin_save_settings(integer, integer, integer, integer)": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; writes admin_audit_log.",
+    "sponsor_admin_save_testimonial(uuid, text, text, text, boolean)": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; writes admin_audit_log.",
+    "sponsor_admin_delete_testimonial(uuid)": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; writes admin_audit_log."
   },
   "unscoped": {
     "declutter_road_miles(numeric, numeric, numeric, numeric)": "reviewed 2026-11-04 (Q1930): Lander 69, after DB Deploy 41846860386. SECURITY DEFINER only to read declutter_route_miles (service-role table) for the exact coordinate pair it is given, else straight line x 1.3; returns one whole number of miles, reads no caller row and writes nothing, so it needs no auth.uid() scope. anon revoked; authenticated + service_role execute (the Declutter delivery quote).",

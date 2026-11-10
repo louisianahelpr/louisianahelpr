@@ -12,6 +12,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 import { functionsBase } from "@/lib/sponsor/api";
 import type { SponsorAdminData, SponsorAdminSettings, SponsorAdminSignup, SponsorStatus } from "@/lib/sponsor/types";
+import { loadModule, untilReload } from "@/lib/loadModule";
 
 /** The signed-in admin's token for the sponsor-25days function's admin paths (the function checks the admin role). */
 async function authHeaders(): Promise<Record<string, string>> {
@@ -38,7 +39,8 @@ export interface SponsorAdminBackend {
 }
 
 type LooseRpc = { rpc: (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> };
-// The sponsor_* functions are not in the generated Database types yet; each call names its function as a literal.
+// A loose rpc signature: the sponsor_* arguments are nullable where the generated types mark them required; each call
+// names its function as a literal.
 const sb = supabase as unknown as LooseRpc;
 
 /** The result's data, or an Error carrying the plain words for the refusal (ADMIN_RPC_ERROR_COPY) when there are some. */
@@ -107,11 +109,13 @@ const realAdmin: SponsorAdminBackend = {
   },
 };
 
+// The sample backend loads only on the local dev server with ?demo (B65: the import stays alone in its loader).
+const sponsorDemoModule = () => loadModule(() => import("@/lib/sponsor/sponsorDemoBackend"));
 let demo: Promise<SponsorAdminBackend> | null = null;
 
 export async function sponsorAdminBackend(): Promise<SponsorAdminBackend> {
   if (import.meta.env.DEV && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo")) {
-    demo ??= import("@/lib/sponsor/sponsorDemoBackend").then((m) => m.createDemoAdminBackend());
+    demo ??= sponsorDemoModule().then((m) => m ?? untilReload()).then((m) => m.createDemoAdminBackend());
     return demo;
   }
   return realAdmin;

@@ -21,6 +21,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import type { SponsorPublicState, SponsorSignupPayload, SponsorSubmitResult } from "./types";
+import { loadModule, untilReload } from "@/lib/loadModule";
 
 export interface SponsorBackend {
   publicState(ref: string | null): Promise<SponsorPublicState>;
@@ -55,8 +56,8 @@ function asState(data: unknown): SponsorPublicState {
 }
 
 type LooseRpc = { rpc: (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> };
-// The sponsor_* functions are new and not in the generated Database types yet; every call below names its function
-// as a literal so src/test/rpcErrorCopyCoverage.test.ts can read it.
+// A loose rpc signature: the sponsor_* arguments are nullable where the generated types mark them required. Every
+// call below names its function as a literal so src/test/rpcErrorCopyCoverage.test.ts can read it.
 const sb = supabase as unknown as LooseRpc;
 const ok = <T,>(res: { data: unknown; error: unknown }): T => unwrap(res as Parameters<typeof unwrap>[0]) as T;
 
@@ -100,12 +101,14 @@ const realBackend: SponsorBackend = {
 
 };
 
+// The sample backend loads only on the local dev server with ?demo (B65: the import stays alone in its loader).
+const sponsorDemoModule = () => loadModule(() => import("./sponsorDemoBackend"));
 let demoPromise: Promise<SponsorBackend> | null = null;
 
 /** The backend for this page load: the real one, or (local dev server + ?demo=1 only) the sample one. */
 export async function sponsorBackend(): Promise<SponsorBackend> {
   if (import.meta.env.DEV && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo")) {
-    demoPromise ??= import("./sponsorDemoBackend").then((m) => m.createDemoBackend());
+    demoPromise ??= sponsorDemoModule().then((m) => m ?? untilReload()).then((m) => m.createDemoBackend());
     return demoPromise;
   }
   return realBackend;

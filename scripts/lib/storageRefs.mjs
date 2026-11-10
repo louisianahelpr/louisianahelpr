@@ -74,6 +74,8 @@ export const STORAGE_REFERENCE_COLUMNS = [
   { table: "rental_listing_photos", column: "storage_path", array: false, bucket: "listing-photos", writer: "rentals_add_listing_photo RPC (PRIVATE bucket since 20261019071203, path <uid>/rental-listings/<listing>/<file>; src/lib/rentals/listings.ts uploads it)" },
   { table: "landlord_id_reviews", column: "front_path", array: false, bucket: "user-documents", writer: "rentals_submit_landlord_id RPC, the landlord's ID photo (path <uid>/landlord-id/<file>; src/lib/rentals/api.ts uploads it; nulled once the photo is deleted after review)" },
   { table: "landlord_id_reviews", column: "back_path", array: false, bucket: "user-documents", writer: "rentals_submit_landlord_id RPC, the optional back of the ID (path <uid>/landlord-id/<file>; src/lib/rentals/api.ts uploads it; nulled once the photo is deleted after review)" },
+  { table: "sponsor_signups", column: "logo_path", array: false, bucket: "sponsor-logos", writer: "sponsor-25days edge function, a brand's logo (PRIVATE bucket, path signups/<signup id>.<ext>; service role only)" },
+  { table: "sponsor_settings", column: "founder_photo_path", array: false, bucket: "sponsor-logos", writer: "sponsor-25days edge function ?action=founder_photo, admins only (PRIVATE bucket, path founder/<uuid>.<ext>)" },
 ];
 
 /**

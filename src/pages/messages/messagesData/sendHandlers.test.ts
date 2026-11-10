@@ -38,7 +38,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn() }));
-vi.mock("@/lib/requireOnline", () => ({ requireOnline: () => true }));
+vi.mock("@/lib/requireOnline", () => ({ requireOnline: () => true, OFFLINE_MESSAGE_KEPT: "Your message is kept. Tap send when you are back." }));
 vi.mock("@/lib/messagingLockout", () => ({
   THREAD_CLOSED_TOAST: "thread closed",
   fetchMessagingClosesAt: async () => new Map(),

@@ -154,7 +154,7 @@ describe("a guest opening a shared link", () => {
     state.row = null;
     openLink();
     expect(await screen.findByText("Log in to see this job.")).toBeTruthy();
-    expect(screen.getByText(/only visible to the poster and the Helpr/)).toBeTruthy();
+    expect(screen.getByText(/only visible to the person who posted it and the person doing it/)).toBeTruthy();
     expect(screen.queryByText("This job isn't available.")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Log in" }));
     expect(screen.getByTestId("where").textContent).toBe(`/login?redirect=${encodeURIComponent(`/jobs/${JOB_ID}`)}`);
@@ -178,7 +178,7 @@ describe("a guest opening a shared link", () => {
   it("the Log in screen that link opens leads with Log in, not Create an account", () => {
     const { notice, leadWithSignup } = loginNotice({ oauthError: null, connect: null, signedOutForInactivity: false, arrivedFromSignup: false, bouncedFromGatedRoute: true, redirect: `/jobs/${JOB_ID}` });
     expect(notice).toBe(JOB_LINK_NOTICE);
-    expect(notice).toMatch(/only visible to its poster and Helpr/);
+    expect(notice).toMatch(/only visible to the person who posted it and the person doing it/);
     expect(leadWithSignup).toBe(false);
     // The Jobs tabs themselves keep the generic account line.
     expect(loginNotice({ oauthError: null, connect: null, signedOutForInactivity: false, arrivedFromSignup: false, bouncedFromGatedRoute: true, redirect: "/jobs?tab=posted" }).leadWithSignup).toBe(true);

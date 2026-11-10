@@ -190,7 +190,7 @@ const JobDetail = () => {
               variant="inline"
               icon={Briefcase}
               title="Log in to see this job."
-              body="It's only visible to the poster and the Helpr. If it was filled, expired or removed, Browse has what's open today."
+              body="It's only visible to the person who posted it and the person doing it. If it was filled, expired or removed, Browse has what's open today."
               action={
                 <div className="flex flex-col items-center gap-2">
                   <Button

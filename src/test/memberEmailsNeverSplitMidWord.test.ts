@@ -70,6 +70,8 @@ describe("member-facing emails never split mid-word or get cut (AUD31-72)", () =
   it("the two-step line keeps 'sign-in' whole", () => {
     const card = read("src/components/profile/TwoFactorCard.tsx");
     expect(card).not.toMatch(/"[^"\n]*\bsign-in\.[^"\n]*"/);
-    expect(card.match(/<span className="whitespace-nowrap">sign-in\.<\/span>/g)?.length).toBe(2);
+    // F456 (audit 11-10) reworded the not-yet-enrolled line to end in "log in." — kept whole the same way.
+    expect(card.match(/<span className="whitespace-nowrap">sign-in\.<\/span>/g)?.length).toBe(1);
+    expect(card.match(/<span className="whitespace-nowrap">log in\.<\/span>/g)?.length).toBe(1);
   });
 });

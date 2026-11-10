@@ -110,7 +110,7 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems, setti
               long pasted title was cut at 80 with no word, so the count shows and turns red at the limit. */}
           <div className="space-y-1.5">
             <Input look="card" id="sell-title" aria-labelledby="sell-row-title-title" maxLength={80} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Oak rocking chair" />
-            <p data-title-count="" className={`text-right text-ds-12 ${form.title.length >= 80 ? "font-semibold text-destructive" : "text-muted-foreground"}`} aria-live="polite">
+            <p data-title-count="" className={`text-right text-ds-12 ${form.title.length >= 80 ? "font-semibold text-destructive-ink" : "text-muted-foreground"}`} aria-live="polite">
               {form.title.length}/80{form.title.length >= 80 ? " · That's the limit." : ""}
             </p>
           </div>

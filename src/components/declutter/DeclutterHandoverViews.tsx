@@ -92,9 +92,7 @@ const DeclutterRefundPanel = lazy(() => import("./DeclutterRefundRequest").then(
 const DeclutterProblemSides = lazy(() => import("./DeclutterProblemSides").then((m) => ({ default: m.DeclutterProblemSides }))); // D2-3: both sides of a problem.
 const DeclutterProblemDecided = lazy(() => import("./DeclutterProblemSides").then((m) => ({ default: m.DeclutterProblemDecided })));
 
-
-/** Every paid order in `cart` (the cart's paid lines). The Buying and Selling tabs pass one side's lines and their own
- *  heading (PaidOrders in DeclutterTradeViews). */
+/** Every paid order in `cart` (the cart's paid lines). The Buying and Selling tabs pass one side's lines and their own heading (PaidOrders in DeclutterTradeViews). */
 export function PaidOrdersSection({ cart, heading, label, views, show }: {
   cart: CartLine[]; heading?: ReactNode; label?: string;
   /** Buying's tracker (BuyingOrders.tsx): each buyer order's steps, chip and one next action. */

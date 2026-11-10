@@ -47,7 +47,7 @@ export function loginNotice(o: {
 
 const BACK_TO_IT = "Create an account, or log in and we'll take you straight back to it.";
 /** F286a: the one gated line that does not end with BACK_TO_IT, so the form leads with Log in. */
-export const JOB_LINK_NOTICE = "This job is only visible to its poster and Helpr. Log in and we'll take you straight back to it.";
+export const JOB_LINK_NOTICE = "This job is only visible to the person who posted it and the person doing it. Log in and we'll take you straight back to it.";
 
 /**
  * F080 (owner UI audit 11-09): most gated pages said a generic "That page needs an account" over the Log in form,

@@ -133,7 +133,8 @@ export function buyerNextStep(f: OrderFacts, when: string | null, helprName: str
   const you = (text: string, by?: string | null): NextStepValue => ({ who: "you", text, by: by ?? null });
   const them = (text: string): NextStepValue => ({ who: "them", text });
   const info = (text: string): NextStepValue => ({ who: "info", text });
-  if (f.cancelled) return info("Cancelled and refunded to your card.");
+  // Audit 11-10 F370: the tracker passes the refund figure and day through cancelledStep; this is the words-only fallback.
+  if (f.cancelled) return cancelledStep(null, null);
   if (f.problem) return f.problemAwaitsYou ? you("Add your side to the problem") : info(PROBLEM_ON_HOLD);
   // Audit 11-10 F365: inside the buyer's 24 hours the row says until when they can report a problem.
   if (f.done && checkUntil) return info(`You have it. Check it over: you can report a problem until ${orderWhen(checkUntil)}, then the sale is final.`);
@@ -340,7 +341,7 @@ export function useBuyingTracker(): BuyingTracker {
       facts,
       bucket,
       action: buyerNextAction(facts),
-      next: back != null && back > 0 ? refundedStep(back, o.lines[0]?.closed_at ?? null) : buyerNextStep(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
+      next: facts.cancelled ? cancelledStep(back, o.lines[0]?.closed_at ?? null) : buyerNextStep(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
         o.handover === "delivery" ? task?.status ?? null : null,
         orderTimeWords(orderTimes, o.handover, slot), shipRows[shipOrders.indexOf(o)]?.data ?? null, checkUntil),
       // #6: a free item never reads like a paid order ("You paid $0").
@@ -354,10 +355,16 @@ export function useBuyingTracker(): BuyingTracker {
   return { ready: !!cart.data, views, checkouts, ended, counts, live, bookings: bookings.data };
 }
 
-/** Q2630: "Cancelled. $42.70 was refunded to your card on Nov 2." (the day only when the server sends closed_at). */
-function refundedStep(cents: number, closedAt: string | null): NextStepValue {
+/**
+ * Q2630: "Cancelled. $42.70 was refunded to your card on Nov 2." (the day only when the server sends closed_at).
+ * Audit 11-10 F370: with no figure yet the row still gives the day and says when the money shows up, instead of a bare
+ * "Cancelled and refunded to your card." (no amount, no date). Card refunds take 5-10 business days to show on a statement.
+ */
+export function cancelledStep(cents: number | null, closedAt: string | null): NextStepValue {
   const day = closedAt && !Number.isNaN(Date.parse(closedAt)) ? new Date(closedAt).toLocaleDateString([], { month: "short", day: "numeric" }) : null;
-  return { who: "info", text: `Cancelled. ${formatPrice(cents)} was refunded to your card${day ? ` on ${day}` : ""}.` };
+  const when = " It shows on your statement in 5-10 business days.";
+  if (cents != null && cents > 0) return { who: "info", text: `Cancelled. ${formatPrice(cents)} was refunded to your card${day ? ` on ${day}` : ""}.${when}` };
+  return { who: "info", text: `Cancelled${day ? ` on ${day}` : ""}. Your payment is refunded to your card.${when}` };
 }
 
 /**

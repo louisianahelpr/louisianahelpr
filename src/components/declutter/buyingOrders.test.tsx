@@ -234,7 +234,8 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // Q2630 (audit 1102c R5): a refunded order read as one still in progress: the step bar stopped at "Paid" and the line
   // gave no amount. It now has no step bar and says what came back and when.
   // @mutate src/components/declutter/BuyingOrders.tsx |       {!view.facts.cancelled && <OrderSteps facts={view.facts} />} |       {<OrderSteps facts={view.facts} />}
-  // @mutate src/components/declutter/BuyingOrders.tsx |       next: back != null && back > 0 ? refundedStep(back, o.lines[0]?.closed_at ?? null) : buyerNextStep( |       next: buyerNextStep(
+  // @mutate src/components/declutter/BuyingOrders.tsx |       next: facts.cancelled ? cancelledStep(back, o.lines[0]?.closed_at ?? null) : buyerNextStep( |       next: buyerNextStep(
+  // @mutate src/components/declutter/BuyingOrders.tsx | return { who: "info", text: `Cancelled${day ? ` on ${day}` : ""}. Your payment is refunded to your card.${when}` }; | return { who: "info", text: "Cancelled and refunded to your card." };
   it("Q2630: a refunded order has no step bar and says the amount refunded and the day", async () => {
     const closed = new Date(NOW - 5 * 3_600_000);
     load([{ id: "refunded", line: { order_status: "refunded", closed_at: closed.toISOString() }, step: 0, bucket: "cancelled", action: null },
@@ -242,9 +243,20 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     state.refunded = { refunded: 4270 };
     show();
     const day = closed.toLocaleDateString([], { month: "short", day: "numeric" });
-    await waitFor(() => expect(card("refunded")).toHaveTextContent(`Cancelled. $42.70 was refunded to your card on ${day}.`));
+    await waitFor(() => expect(card("refunded")).toHaveTextContent(`Cancelled. $42.70 was refunded to your card on ${day}. It shows on your statement in 5-10 business days.`));
     expect(within(card("refunded")).queryAllByRole("list", { name: /^Step/ })).toHaveLength(0);
     expect(within(card("home1")).getAllByRole("list", { name: /^Step/ }).length).toBeGreaterThan(0);
+  });
+
+  // Audit 11-10 F370: with no refund figure the row read "Cancelled and refunded to your card." (no date, no timing).
+  it("F370: a cancelled order with no refund figure still names the day and when the money shows up", async () => {
+    const closed = new Date(NOW - 5 * 3_600_000);
+    load([{ id: "refunded", line: { order_status: "refunded", closed_at: closed.toISOString() }, step: 0, bucket: "cancelled", action: null }]);
+    state.refunded = {};
+    show();
+    const day = closed.toLocaleDateString([], { month: "short", day: "numeric" });
+    await waitFor(() => expect(card("refunded")).toHaveTextContent(`Cancelled on ${day}. Your payment is refunded to your card. It shows on your statement in 5-10 business days.`));
+    expect(card("refunded")).not.toHaveTextContent("Cancelled and refunded to your card.");
   });
 
   // T13, BUY-37: past 24 hours the closed card's head stopped being true; the new line was only inside Details.

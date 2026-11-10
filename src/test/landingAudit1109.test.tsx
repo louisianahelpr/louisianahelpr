@@ -27,7 +27,7 @@
  *
  * F006: the footer's links and tagline were 11px, and the links 16px tall tap targets. They are 13px, and every link
  * has a 44px tall tap area on a touch screen (pointer: coarse).
- * @mutate src/components/Footer.tsx | const FOOTER_LINK = "link-standard inline-flex items-center [@media(pointer:coarse)]:min-h-11"; | const FOOTER_LINK = "link-standard";
+ * @mutate src/components/Footer.tsx | const FOOTER_LINK = "link-standard inline-flex items-center min-h-6 [@media(pointer:coarse)]:min-h-11"; | const FOOTER_LINK = "link-standard";
  * @mutate src/components/Footer.tsx |           <p className="text-ds-13 text-[hsl(var(--olivewood))]/80 max-w-xs | <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-xs
  *
  * F008: How a job works' "I need help / I want to work" switch had 11px labels. It uses SegmentedControl's 13px label

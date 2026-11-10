@@ -13,6 +13,9 @@ interface PageMeta {
   /** When "noindex", emits <meta name="robots" content="noindex"> for the
    *  page lifetime. Used on error/utility pages the SPA serves as 200s. */
   robots?: string;
+  /** L038 (landing audit 11-09): a page with no address of its own (the 404) drops index.html's canonical, which
+   *  pointed every unknown URL at the home page. */
+  noCanonical?: boolean;
 }
 
 export const usePageMeta = (meta: PageMeta) => {
@@ -39,6 +42,8 @@ export const usePageMeta = (meta: PageMeta) => {
         document.head.appendChild(link);
       }
       link.href = meta.canonical;
+    } else if (meta.noCanonical) {
+      document.querySelector('link[rel="canonical"]')?.remove();
     }
     if (meta.ogTitle) setMeta("og:title", meta.ogTitle, "property");
     if (meta.ogDescription) setMeta("og:description", meta.ogDescription, "property");
@@ -67,5 +72,5 @@ export const usePageMeta = (meta: PageMeta) => {
       document.title = "Louisiana Helpr";
       if (robotsEl && robotsEl.parentNode) robotsEl.parentNode.removeChild(robotsEl);
     };
-  }, [meta.title, meta.description, meta.keywords, meta.canonical, meta.ogTitle, meta.ogDescription, meta.ogUrl, meta.geoRegion, meta.geoPlacename, meta.robots]);
+  }, [meta.title, meta.description, meta.keywords, meta.canonical, meta.ogTitle, meta.ogDescription, meta.ogUrl, meta.geoRegion, meta.geoPlacename, meta.robots, meta.noCanonical]);
 };

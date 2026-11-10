@@ -36,6 +36,7 @@ const NotFound = () => {
     title: "Page not found — Helpr",
     description: "The page you're looking for doesn't exist or has been moved.",
     robots: "noindex",
+    noCanonical: true,
   });
   const location = useLocation();
   const navigate = useNavigate();

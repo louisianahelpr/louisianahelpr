@@ -317,9 +317,11 @@ describe("stalled-completion-reminder", () => {
   it("owner 11-08 (F1): a continue day whose time has passed no longer holds; the ladder runs from THAT day", async () => {
     const fn = await load();
     seedStalled(STALLED_ESCALATE_AFTER_HOURS + 200, null);
-    // The day the work moved to: 2 days ago at 9 AM Central, so its scheduled end (midnight after) is ~1 day past.
+    // The day the work moved to: 3 days ago at 9 AM Central. seedStalled's estimate (25 to 49 h, by the clock's time of
+    // day) rides along, so the moved day's end is at most yesterday 10 AM: always at least 14 h past. At 2 days ago it
+    // landed up to 2 h in the FUTURE after about 11 PM Central (measured failing at 00:12 CST, 11-10).
     const d = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" })
-      .format(new Date(Date.now() - 2 * 24 * HOUR));
+      .format(new Date(Date.now() - 3 * 24 * HOUR));
     scenario.reads.job_continue_days = { rows: [{ job_id: "job-stalled", status: "set", new_date: d, new_start_time: "09:00:00" }] };
     const res = await fn.fetch(cronRequest(fn));
     expect(res.status).toBe(200);

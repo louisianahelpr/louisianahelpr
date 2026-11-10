@@ -22,9 +22,12 @@ describe("Login for a guest who opened a Declutter link (AUD31-16)", () => {
       ["/declutter/sell", /^Selling on Declutter needs an account/],
       ["/declutter?tab=buying", /^Your Declutter orders need an account/],
       ["/declutter?tab=selling", /^Your Declutter listings need an account/],
+      // Audit 11-10 F359l: settings and the moving-sale planner name themselves too.
+      ["/declutter/settings", /^Your Declutter settings need an account/],
+      ["/declutter/move", /^Planning a moving sale\? That needs an account/],
       ["/declutter", /^That's Declutter/],
     ];
-    expect(cases.length).toBeGreaterThan(4);
+    expect(cases.length).toBeGreaterThan(6);
     for (const [path, words] of cases) {
       const n = declutterGatedNotice(path);
       expect(n, path).toMatch(words);

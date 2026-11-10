@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-10T18:45Z",
+  "measured_at": "2026-11-10T19:02Z",
   "issues": {
     "readable": true,
     "open": [
@@ -71,7 +71,7 @@
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42702937638",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42877915088",
         "runTruncated": false
       },
       {
@@ -127,7 +127,7 @@
         "number": 4281,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42874802388",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42880654592",
         "runTruncated": false
       },
       {

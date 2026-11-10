@@ -88,6 +88,23 @@ export function CancelFeeCallout({ fee, crew, feeTier, helperName, strike }: { f
  * exact refund needs the charge's Stripe fee, its tax, any gift and a first
  * job's setup fee. No quote, no number: the refund notice carries the real one.
  */
+/**
+ * Audit 11-10 F268: the sheet said only "Your refund notice will show the exact amount." under a policy promising
+ * "you see the exact amount here before you confirm", so the poster pressed the red button blind. With no number,
+ * the line now says WHY there is none, by the server's reason; it still invents no amount.
+ */
+export function unquotedBackToYou(reason: string | null): string {
+  switch (reason) {
+    case "not_in_escrow":
+    case "no_payment":
+      return "This job's payment isn't held in escrow, so there's nothing to refund from it. If your card is on hold for it, the hold is released.";
+    case "earlier_refund":
+      return "Part of this job was refunded earlier, so your refund notice will show the exact amount that comes back this time.";
+    default:
+      return "We couldn't work out your exact refund right now. Your refund notice will show it, within the hour of cancelling.";
+  }
+}
+
 export function CancelBackToYou({ quote, quoteLoading, backToYouCents }: { quote: PosterCancelQuote | null; quoteLoading: boolean; backToYouCents: number | null }) {
   return (
     <div
@@ -112,7 +129,7 @@ export function CancelBackToYou({ quote, quoteLoading, backToYouCents }: { quote
               : "Refunded to your card within the hour. Your bank may take a few days to show it."
             : quote?.unquoted_reason === "gift"
               ? "A gift card paid toward this job, so your refund notice will show what goes back to your card and to your gift balance."
-              : "Your refund notice will show the exact amount."}
+              : unquotedBackToYou(quote?.unquoted_reason ?? null)}
       </p>
     </div>
   );

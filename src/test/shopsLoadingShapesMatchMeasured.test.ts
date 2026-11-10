@@ -25,6 +25,8 @@
 // @mutate src/components/shops/ShopEditView.tsx |         <div className="invisible" aria-hidden>\n          {children}\n        </div> |         <div className="h-56" aria-hidden />
 // @mutate src/components/shops/ShopView.tsx |         <div className="invisible" aria-hidden>\n          <ShopUnavailable />\n        </div> |         <div className="h-[296px]" aria-hidden />
 // @mutate src/components/shops/ShopEditView.tsx | return <ShopEditSkeleton>{formEl}</ShopEditSkeleton>; | return <ShopEditSkeleton>{null}</ShopEditSkeleton>;
+// @mutate src/components/shops/ShopDashboardView.tsx |   if (myId.isLoading \|\| (!!myId.data && (orders.isLoading \|\| !payoutSettled))) { |   if (myId.isLoading \|\| (!!myId.data && orders.isLoading)) {
+// @mutate src/components/shops/ShopPayoutRow.tsx |   return sw.settled && (!sw.on \|\| hire.settled); |   return true;
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -67,4 +69,16 @@ describe("Q2558: each /shops placeholder is its screen's shorter loaded shape, h
       expect(statusBlock(src, c.label)).not.toMatch(/(min-)?h-\[\d+px\]/);
     });
   }
+
+  // Builder 1 2026-11-10: a tester's "Finish setting up" row popped in above the orders (142px at 375, CLS 0.137).
+  // The dashboard's one loading gate waits for the row's "is setup offered" answer (fast reads, never Stripe).
+  it("the Shop dashboard's loading gate waits for the payout row's answer", () => {
+    const dash = read("src/components/shops/ShopDashboardView.tsx");
+    expect(dash).toContain("const payoutSettled = useShopPayoutRowSettled();");
+    expect(dash).toContain("if (myId.isLoading || (!!myId.data && (orders.isLoading || !payoutSettled))) {");
+    const row = read("src/components/shops/ShopPayoutRow.tsx");
+    const settled = row.slice(row.indexOf("export function useShopPayoutRowSettled"), row.indexOf("export default function ShopPayoutRow"));
+    expect(settled).toContain("return sw.settled && (!sw.on || hire.settled);");
+    expect(settled).not.toContain("useStripeConnectStatus");
+  });
 });

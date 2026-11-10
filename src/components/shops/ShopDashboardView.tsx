@@ -38,7 +38,7 @@ import { ShopsNotice } from "./shopsUi";
 import { ShopOrderCard } from "./ShopOrderCard";
 import { ShopTalkFromLink } from "./ShopTalk";
 import CancelPolicyPicker from "./ShopCancelPolicyPicker";
-import ShopPayoutRow from "./ShopPayoutRow";
+import ShopPayoutRow, { useShopPayoutRowSettled } from "./ShopPayoutRow";
 import HandoverModePicker from "./ShopHandoverModePicker";
 import ShopDeliveryPicker from "./ShopDeliveryPicker";
 import CustomOrdersPicker from "./ShopCustomOrdersPicker";
@@ -99,6 +99,8 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
   const Frame = embedded ? EmbeddedFrame : AppPage;
   const refresh = () => void qc.invalidateQueries({ queryKey: ["shops", "shop-orders"] });
 
+  // The payout row's "is setup offered" answer joins this screen's loading gate (it renders above the orders).
+  const payoutSettled = useShopPayoutRowSettled();
   const accept = useMutation({
     mutationFn: (id: string) => acceptOrder(id),
     onSuccess: ({ charged }) => {
@@ -126,7 +128,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
     },
   });
 
-  if (myId.isLoading || (!!myId.data && orders.isLoading)) {
+  if (myId.isLoading || (!!myId.data && (orders.isLoading || !payoutSettled))) {
     return (
       <Frame title="Shop" backTo="/shops">
         {/* Q2558: the placeholder IS the "You don't have a shop yet." card (the shorter case), invisible under one

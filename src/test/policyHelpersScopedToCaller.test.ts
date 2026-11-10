@@ -138,6 +138,7 @@ const CROSS_USER: Record<string, string> = {
   "fn admin_apply_account_action: has_role(p_admin_id)": "EXECUTE is service_role only (20261012185742; admin-action passes its verified caller): is_server_context()",
   "fn clear_test_mode_dispute_ledger: has_role(_admin)": "EXECUTE is service_role only (20261012215235; execute-dispute-split passes its verified admin): is_server_context()",
   "fn declutter_free_claim_gate: has_role(p_member)": "returns first unless p_member = auth.uid() (20261031211922): the caller arm",
+  "fn notify_on_job_update: has_role(NEW.cancelled_by)": "trigger body: only picks the Job cancelled notice's wording ('by our team'); grants nothing (F176, 20261109231855)",
   "fn enforce_block_on_message_insert: has_role(NEW.receiver_id)": "trigger body: pg_trigger_depth() > 0",
   "fn enforce_block_on_message_insert: has_role(NEW.sender_id)": "trigger body; also the caller (the bypass requires NEW.sender_id = auth.uid())",
   "fn feature_enabled_for_user: has_role(p_user_id)": "EXECUTE is service_role only (edge functions pass their verified caller): is_server_context(); feature_enabled_for passes auth.uid(): the caller arm",

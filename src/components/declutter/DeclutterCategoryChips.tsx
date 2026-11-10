@@ -38,7 +38,10 @@ export function DeclutterCategoryChips({ items, value, onChange, free = false, o
     const order = new Map(CATEGORIES.map((c, i) => [c.key, i]));
     const keys = [...n.keys()].filter((k) => CATEGORY_LABEL[k]);
     if (value && CATEGORY_LABEL[value] && !n.has(value)) keys.push(value);
-    return keys.sort((a, b) => (n.get(b) ?? 0) - (n.get(a) ?? 0) || (order.get(a) ?? 99) - (order.get(b) ?? 99));
+    // L021 (landing audit 11-09): "Other" sat mid-row among the real categories (it sorted by count like them). It is
+    // always the last chip.
+    const last = (k: string) => (k === "other" ? 1 : 0);
+    return keys.sort((a, b) => last(a) - last(b) || (n.get(b) ?? 0) - (n.get(a) ?? 0) || (order.get(a) ?? 99) - (order.get(b) ?? 99));
   }, [items, value]);
   const anyFree = useMemo(() => items.some((i) => i.current_price_cents === 0), [items]);
   const freeChip = !!onFree && (anyFree || free);

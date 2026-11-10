@@ -200,9 +200,10 @@ export const ReEngagementEmail = ({
       There are new jobs posted in your area — whether you're looking for help or looking to
       earn, now's a great time to check in.
     </Text>
-    <BrandButton href={dashboardUrl} label="See What's New" widthPx={210} />
+    {/* F495 (audit 11-10): the app's own words, no "feed"; the button names where it goes. */}
+    <BrandButton href={dashboardUrl} label="Open Louisiana Helpr" widthPx={240} />
     <Text className="e-text" style={textStyle}>
-      Pull up the feed when you're ready.
+      Open the app when you're ready. - Louisiana Helpr
     </Text>
   </BaseLayout>
 )
@@ -238,10 +239,11 @@ export const SignupLeadReminderEmail = ({
       You started signing up for Louisiana Helpr but didn't finish. It only takes a minute to
       pick up where you left off, then you can post a job or find local work.
     </Text>
-    <BrandButton href={signupUrl} label="Finish Signing Up" widthPx={220} />
+    {/* F474 (audit 11-10): sentence-case button, a sign-off. */}
+    <BrandButton href={signupUrl} label="Finish signing up" widthPx={220} />
     <Text className="e-text" style={textStyle}>
       This is the only reminder we'll send. If you didn't start signing up, you can ignore this
-      email.
+      email. - Louisiana Helpr
     </Text>
   </BaseLayout>
 )

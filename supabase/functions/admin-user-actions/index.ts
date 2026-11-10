@@ -397,8 +397,9 @@ serve(async (req) => {
 
       await notifyUser({
         user_id: targetUserId,
-        title: 'Manually verified',
-        message: 'An admin has manually verified your identity. You have full access to Helpr.',
+        // F469 family (audit 11-10): the push says what the email says, without "admin" or "manually".
+        title: 'Your ID check is done',
+        message: 'Our team checked your ID. You\'re all set to post jobs, take jobs, and buy and sell on Declutter.',
         type: 'success',
         link: '/home',
       }, 'manual_verify')
@@ -520,10 +521,11 @@ serve(async (req) => {
 
       await notifyUser({
         user_id: targetUserId,
-        title: 'Please re-upload your ID',
+        title: 'Please upload a clearer ID photo',
         message: note || 'Your ID photo was a bit blurry. Snap a clearer one so we can get you started.',
         type: 'warning',
-        link: '/profile',
+        // F465 (audit 11-10): straight to the ID step, like the email's button.
+        link: '/home?verify_id=1',
       }, 'request_id_reupload')
 
       const { html, text } = await renderEmail(
@@ -592,6 +594,8 @@ serve(async (req) => {
           greetingName: fullName,
           paragraphs: [
             'Our team sent you a password reset link. Tap the button below to choose a new password. This link expires in 1 hour.',
+            // F471 (audit 11-10): what to do when the email was not expected.
+            'Didn\'t expect this? Reply and tell us. Your password stays the same until you choose a new one.',
           ],
           ctaUrl: actionLink,
           ctaLabel: 'Choose a new password',

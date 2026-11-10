@@ -9,7 +9,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/landing/HeroSection.tsx` | input×1 | search | 80 | landing-hero-block · landing-hero-column · Search Helpr · landing-search · landing-search-submit |
+| `src/components/landing/HeroSection.tsx` | input×1 | search | 80 | landing-hero-block · landing-hero-column · landing-search-tabs · Search Helpr · landing-search · landing-search-submit |
 
 ## /admin
 
@@ -336,7 +336,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/pages/auth/Login.tsx` | input×3 | text, email | 6 | login-card-head · mfa-login-code · email · login-email-error · login-password-field · password · login-password-error |
 
-## /login, /signup, /signup-pending, /forgot-password, /jobs, /payment-success, /admin, /admin/sponsors, /messages, /quotes, /book/:userId, /u/:handle, /support, /legal, /terms, /privacy, /rules, *
+## /login, /signup, /signup-pending, /forgot-password, /jobs, /payment-success, /admin, /admin/sponsors, /messages, /quotes, /book/:userId, /u/:handle, /support, /legal, /terms, /privacy, /search, /rules, *
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|

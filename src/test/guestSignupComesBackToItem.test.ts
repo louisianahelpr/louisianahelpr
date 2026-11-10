@@ -20,6 +20,8 @@ describe("AUD31-69: Sign up from a Declutter item says the guest comes back to i
     expect(signupSubtitle(null, "/declutter/item/00000000-0000-4000-8000-000000000001")).toBe(ITEM_SIGNUP_SUBTITLE);
     expect(signupSubtitle(null, "/declutter")).toBeUndefined();
     expect(signupSubtitle(null, "/jobs")).toBeUndefined();
+    // F218 (audit 11-10): a guest sent from a job's "Sign up to apply" is told why they are here.
+    expect(signupSubtitle(null, "/jobs/00000000-0000-4000-8000-000000000001")).toBe("Sign up to apply, and we'll take you straight back to this job.");
     expect(signupSubtitle(null, null)).toBeUndefined();
     expect(signupSubtitle(null, "https://evil.example/declutter/item/x")).toBeUndefined();
     expect(signupSubtitle(null, "//evil.example/declutter/item/x")).toBeUndefined();

@@ -12,16 +12,16 @@ import { setLandingMode, useLandingMode } from "./landingMode";
 /**
  * Hero (owner-approved landing redesign 2026-10-20; option B 2026-10-23): Bodoni
  * H1 with the rust italic "partner.", the subhead (one line from 1024px), one
- * search. ONE centered column (max 760px) at every width. The proof row
- * (LandingProof) is NOT here: it opens the next section, below the fold (owner,
- * 2026-11-02: the first screen is just the headline, subhead and search). No phone mock (owner,
- * 2026-10-20), no seasonal pill and no example chips (owner, 2026-10-23: "remove
- * the storm banner and job chips"). The live jobs sit in the next section
- * (LiveJobsSection), which also carries the "Browse local jobs" link.
+ * search. ONE centered column (max 760px) at every width. The proof (a real
+ * finished job) is NOT here: it is the photo band under the hero (LandingPhotoBand,
+ * Direction A 11-10; owner 2026-11-02: the first screen is just the headline, subhead
+ * and search). No phone mock (owner, 2026-10-20), no seasonal pill and no example
+ * chips (owner, 2026-10-23: "remove the storm banner and job chips"). The live jobs
+ * and Declutter items sit in "Near you this week" (NearYouSection).
  *
  * Honesty rules (LANDING-APPROVED.md): the search really searches
  * (heroSearch.ts); no parish select (owner, 2026-10-20); every proof line is a
- * checked fact (LandingProof.tsx, now in LiveJobsSection).
+ * checked fact (LandingPhotoBand.tsx, NeighborsSay.tsx).
  */
 const HeroSection = () => {
   const navigate = useNavigate();

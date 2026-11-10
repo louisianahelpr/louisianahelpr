@@ -25,7 +25,7 @@
  * @mutate src/components/landing/LandingAppleButton.tsx |   if (!SOCIAL_SIGN_IN_ENABLED) return null; |
  * @mutate src/components/Navbar.tsx |         {!user && ( |         {landing && <Link to="/signup?redirect=%2Fdeclutter">Declutter</Link>}\n        {!user && (
  * @mutate src/components/landing/HeroSection.tsx | className="flex flex-col items-center text-center min-w-0" | className="flex flex-col items-start min-w-0"
- * @mutate src/components/landing/LiveJobsSection.tsx |         <LandingProof />\n | \n
+ * @mutate src/pages/info/Index.tsx |       <LandingPhotoBand />\n |
  * @mutate src/components/landing/LiveJobsSection.tsx |           .from("open_jobs_browse") |           .from("jobs")
  * @mutate src/components/landing/LiveJobsSection.tsx |   if (j.pricing_mode === "quotes") return "Get quotes"; |
  * @mutate src/components/landing/HeroSection.tsx | <div className="relative mx-auto w-full max-w-[760px]"> | <div className="relative mx-auto w-full max-w-6xl">
@@ -69,17 +69,17 @@ describe("landing redesign: the honesty fixes hold", () => {
     expect(hero).not.toMatch(/items, shops and homes/);
   });
 
-  it("the landing shows the proof row (under the hero), and its only price is the checked tip", () => {
+  it("the landing shows the proof (the photo band under the hero, Direction A), and its only price is the checked tip", () => {
     const hero = read("src/components/landing/HeroSection.tsx");
-    expect(read("src/components/landing/LiveJobsSection.tsx")).toMatch(/<LandingProof \/>/);
+    expect(read("src/pages/info/Index.tsx")).toMatch(/<HeroSection \/>\s*<LandingPhotoBand \/>/);
     expect(hero).not.toMatch(/\$\d|Typical prices/);
-    const proof = read("src/components/landing/LandingProof.tsx");
+    const proof = read("src/components/landing/LandingPhotoBand.tsx");
     expect(proof.match(/\$\d+/g)).toEqual(["$20"]);
     // Never "every member is verified": browsing and applying are not ID-gated.
     expect(proof).not.toMatch(/every member/i);
   });
 
-  it("Live now shows real open jobs: the public board's own view, fetched late, nothing typed (owner, 2026-10-23)", () => {
+  it("Near you shows real open jobs: the public board's own view, fetched late, nothing typed (owner, 2026-10-23)", () => {
     const live = read("src/components/landing/LiveJobsSection.tsx");
     // The same view the public board reads (it drops seed, ownerless and closed jobs).
     expect(live).toMatch(/\.from\("open_jobs_browse"\)/);
@@ -89,13 +89,14 @@ describe("landing redesign: the honesty fixes hold", () => {
     expect(live).toMatch(/await import\("@\/integrations\/supabase\/client"\)/);
     // No job, price or count typed into the page.
     expect(live).not.toMatch(/\$\d/);
-    // A failed read is said, never an empty-looking section.
-    expect(live).toMatch(/data-testid="landing-live-jobs-failed"/);
-    // It sits right under the hero: the Jobs | Declutter switch (owner 11-08) shows it by default.
+    // A failed read is said, never an empty-looking section (Near you's failed line; its jobs come from useLiveJobs).
+    const near = read("src/components/landing/NearYouSection.tsx");
+    expect(near).toMatch(/data-testid="landing-near-you-failed"/);
+    expect(near).toMatch(/const jobs = useLiveJobs\(ref\);/);
+    // It sits right under the photo band (Direction A, owner 11-10).
     const index = read("src/pages/info/Index.tsx");
-    expect(index.indexOf("<LandingBrowseSwitch />")).toBeGreaterThan(index.indexOf("<HeroSection />"));
-    expect(index.indexOf("<LandingBrowseSwitch />")).toBeLessThan(index.indexOf("<SectionsShowcase />"));
-    expect(read("src/components/landing/LandingBrowseSwitch.tsx")).toMatch(/mode === "jobs" \? <LiveJobsSection \/>/);
+    expect(index.indexOf("<NearYouSection />")).toBeGreaterThan(index.indexOf("<LandingPhotoBand />"));
+    expect(index.indexOf("<LandingPhotoBand />")).toBeGreaterThan(index.indexOf("<HeroSection />"));
     // Price and date read the row as it is: quotes jobs have no price; a date never shifts a day.
     expect(liveJobPrice({ budget: "75.00", pricing_mode: "set_price" })).toBe("$75");
     expect(liveJobPrice({ budget: "12.50", pricing_mode: "set_price" })).toBe("$12.50");
@@ -125,7 +126,7 @@ describe("landing redesign: the honesty fixes hold", () => {
   });
 
   it("no other company or vendor named in the landing's copy (design spec v2 §1.7; Apple only as the sign-in provider)", () => {
-    const files = ["HeroSection.tsx", "SectionsShowcase.tsx", "HowItWorksSection.tsx", "LandingProof.tsx", "LiveJobsSection.tsx", "heroSearch.ts"].map((f) => `src/components/landing/${f}`);
+    const files = ["HeroSection.tsx", "SectionsShowcase.tsx", "HowItWorksSection.tsx", "LandingPhotoBand.tsx", "NearYouSection.tsx", "NeighborsSay.tsx", "FreshDeclutterStrip.tsx", "LiveJobsSection.tsx", "heroSearch.ts"].map((f) => `src/components/landing/${f}`);
     expect(files.length).toBeGreaterThan(4);
     for (const f of files) expect(read(f), f).not.toMatch(/\bStripe\b|\bUSPS\b|Instead of/);
   });

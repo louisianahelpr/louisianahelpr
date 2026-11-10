@@ -14,9 +14,11 @@ import { useScrollFadeUp } from "@/hooks/useScrollFadeUp";
 const NativeRedirect = lazy(() => import("@/components/NativeRedirect"));
 
 import HeroSection from "@/components/landing/HeroSection";
-import { LandingBrowseSwitch } from "@/components/landing/LandingBrowseSwitch";
+import { LandingPhotoBand } from "@/components/landing/LandingPhotoBand";
+import { NearYouSection } from "@/components/landing/NearYouSection";
+import { NeighborsSay } from "@/components/landing/NeighborsSay";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
-import { SectionsShowcase, TrustAndJoin } from "@/components/landing/SectionsShowcase";
+import { TrustAndJoin } from "@/components/landing/SectionsShowcase";
 
 const SITE_URL = "https://www.louisianahelpr.com";
 
@@ -134,17 +136,16 @@ const Index = () => {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      {/* Owner-approved redesign (2026-10-20, mock-up "5 · Landing page"):
-          hero with the search and the phone, the four sections, how a job
-          works, the money band, then the join block. */}
+      {/* Direction A, "Porch and Parish" (owner 11-10; D014, the story order): the unchanged hero, real local photos,
+          what is near you this week (jobs and Declutter items), what neighbors say, how it works, the safety band,
+          then join. The hero (H1, subhead, fonts, colours, empty space) is LOCKED and untouched. */}
       <HeroSection />
 
-      {/* Owner 11-08: the Jobs | Declutter switch right under the hero. "Find help or work" (the default) shows the
-          newest open jobs (owner 2026-10-23, option B); "Shop Declutter" shows the newest Declutter items in their
-          place (owner 11-04 strip, loaded only once chosen and near the screen). /#declutter opens on Declutter. */}
-      <LandingBrowseSwitch />
+      <LandingPhotoBand />
 
-      <SectionsShowcase />
+      <NearYouSection />
+
+      <NeighborsSay />
 
       <HowItWorksSection />
 

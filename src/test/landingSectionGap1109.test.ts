@@ -1,9 +1,10 @@
 /**
  * L020 (landing audit 11-09): ~200px stood between "Four ways to get things done" and "How a job works" at 1440 (~115px
  * at 375): the sections block's bottom padding plus How it works' top padding. Below the hero only (the hero's own
- * space is locked, owner 10:33 PM). The gap (sections pb + how-it-works pt) is at most 96px on a phone and 144px from lg.
+ * space is locked, owner 10:33 PM). Since Direction A (11-10) the block before How it works is "Neighbors say"; the gap
+ * (its pb + how-it-works pt) is at most 96px on a phone and 144px from lg.
  *
- * @mutate src/components/landing/SectionsShowcase.tsx | pb-12 sm:pb-14 lg:pb-16 scroll-mt-24 | pb-16 sm:pb-20 lg:pb-28 scroll-mt-24
+ * @mutate src/components/landing/NeighborsSay.tsx | pt-12 pb-10 lg:pt-20 lg:pb-14 | pt-12 pb-16 lg:pt-20 lg:pb-32
  * @mutate src/components/landing/HowItWorksSection.tsx | pt-12 sm:pt-16 lg:pt-20 pb-16 | py-16 sm:py-20 lg:py-28 pb-16
  */
 import { describe, expect, it } from "vitest";
@@ -24,9 +25,9 @@ function pad(classes: string, side: "t" | "b", bp: "" | "sm:" | "lg:"): number {
   return 0;
 }
 
-describe("L020: the gap between the sections block and How it works is calm, not a hole", () => {
+describe("L020: the gap between the block before How it works and How it works is calm, not a hole", () => {
   it("at most 96px on a phone and 144px from lg", () => {
-    const sections = /id="sections"[^>]*className="([^"]+)"/.exec(read("SectionsShowcase.tsx"))?.[1] ?? "";
+    const sections = /data-testid="landing-neighbors" className="([^"]+)"/.exec(read("NeighborsSay.tsx"))?.[1] ?? "";
     const how = /id="how-it-works"[\s\S]*?className="([^"]+)"/.exec(read("HowItWorksSection.tsx"))?.[1] ?? "";
     expect(sections.length).toBeGreaterThan(10);
     expect(how.length).toBeGreaterThan(10);

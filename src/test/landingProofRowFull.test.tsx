@@ -22,7 +22,6 @@
  * @mutate src/components/landing/HeroSection.tsx | <div data-testid="landing-hero-block" className="flex flex-1 flex-col justify-center"> | <div data-testid="landing-hero-block" className="flex flex-col">
  * @mutate src/components/landing/HeroSection.tsx | xl:text-[7.75rem] | xl:text-[6rem]
  * @mutate src/components/landing/HeroSection.tsx | min-h-[calc(100svh-7.5rem)] sm:min-h-[100svh] | min-h-[100svh]
- * @mutate src/components/landing/LandingProof.tsx | <span className="text-ds-15 lg:text-ds-16 font-semibold" style={{ color: "var(--lp-ink)" }}> | <span className="text-ds-15 lg:text-ds-20 font-semibold" style={{ color: "var(--lp-ink)" }}>
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -42,7 +41,9 @@ function sizeAt(classes: string, prefix: string): number | null {
 
 describe("the hero block is centred in the first screen, the H1 stays dominant, what sits under it is small", () => {
   const hero = read("src/components/landing/HeroSection.tsx");
-  const proof = read("src/components/landing/LandingProof.tsx");
+  // Direction A (11-10): the proof is the photo band under the hero (LandingPhotoBand); its captions stay small.
+  const proof = read("src/components/landing/LandingPhotoBand.tsx");
+  const caption = /absolute inset-x-0 bottom-0 [^"]*/.exec(proof)?.[0] ?? "";
   const h1 = /<h1\s+className="([^"]+)"/.exec(hero)?.[1] ?? "";
   const sub = /<p\s+className="([^"]+)"/.exec(hero)?.[1] ?? "";
   const field = /className="landing-search-field ([^"]+)"/.exec(hero)?.[1] ?? "";
@@ -81,16 +82,12 @@ describe("the hero block is centred in the first screen, the H1 stays dominant, 
     }
   });
 
-  it("the search field is at most 52px tall; the proof row's photo, labels, titles and text are small", () => {
+  it("the search field is at most 52px tall; the photo band's captions are small", () => {
     const heights = [...field.matchAll(/(?:^|\s)(?:[a-z]+:)?h-(?:(\d+)|\[(\d+)px\])(?=\s|$)/g)].map((m) => (m[1] ? Number(m[1]) * 4 : Number(m[2])));
     expect(heights.length).toBeGreaterThan(0);
     for (const h of heights) expect(h).toBeLessThanOrEqual(52);
-    const sizes = [...proof.matchAll(/(?:^|[\s"])(?:lg:)?text-ds-(\d+)(?=\s|")/g)].map((m) => Number(m[1]));
-    // D015 (11-10): the Just finished label is one sentence-case size now (it was text-ds-11 lg:text-ds-12), one fewer.
-    expect(sizes.length).toBeGreaterThan(4);
-    expect(Math.max(...sizes)).toBeLessThanOrEqual(16);
-    const photo = [...proof.matchAll(/(?:^|\s)(?:lg:)?w-(?:(\d+)|\[(\d+)px\])(?=\s|")/g)].map((m) => (m[1] ? Number(m[1]) * 4 : Number(m[2])));
-    expect(photo.length).toBeGreaterThan(0);
-    expect(Math.max(...photo)).toBeLessThanOrEqual(72);
+    const sizes = [...caption.matchAll(/(?:^|\s)(?:[a-z]+:)?text-ds-(\d+)(?=\s|$)/g)].map((m) => Number(m[1]));
+    expect(sizes.length).toBeGreaterThan(0);
+    expect(Math.max(...sizes)).toBeLessThanOrEqual(13);
   });
 });

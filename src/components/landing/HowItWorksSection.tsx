@@ -190,17 +190,21 @@ const HowItWorksSection = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 items-stretch gap-3 sm:gap-4 lg:gap-5">
+        {/* D007 (landing design audit 11-10; Direction A): numbered steps in one row, a rule over each, no white
+            boxes (white cards are for real inventory only). */}
+        <ol className="grid grid-cols-1 sm:grid-cols-3 items-stretch gap-6 sm:gap-8 lg:gap-12">
           {/* Keyed by index, not title: switching sides swaps the copy in the
               SAME three nodes instead of remounting them, so the reveal is not
               re-armed on every toggle. */}
           {STEPS[side].map((step, i) => (
-            <div
+            <li
               key={i}
-              className="landing-card h-full min-w-0 flex flex-col p-6 lg:p-7"
+              data-step=""
+              className="h-full min-w-0 flex flex-col border-t-2 pt-5"
               style={{
+                borderColor: "var(--lp-line-strong)",
                 // Never an opacity of 0 (Q2228): the steps are readable in every state.
-                  opacity: 1,
+                opacity: 1,
                 transform: lowered ? "translateY(16px)" : "translateY(0)",
                 // Short and lightly staggered, so a fast scroll never lands on blank cards.
                 transition: reveal === "revealed" ? `transform 600ms cubic-bezier(0.22, 1, 0.36, 1) ${i * 120}ms` : undefined,
@@ -227,9 +231,9 @@ const HowItWorksSection = () => {
                   {step.desc}
                 </p>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
 
         {/* No Helpr Guarantee box here (owner, 2026-10-31: "it doesn't fit there"). The
             promise stays where it is offered: first post's Review and /book/<id>. */}

@@ -1,14 +1,8 @@
 /**
  * The owner's UI audit of the landing (2026-11-09, ~/.lh-shots/ui-audit-1109), one block per finding.
  *
- * F003: the Declutter card said "Offers and checkout happen in the app.", which reads wrong on the website, where a
- * visitor can browse and buy. It now says they are built in.
- * @mutate src/components/landing/SectionsShowcase.tsx | Offers and checkout are built in. | Offers and checkout happen in the app.
- *
- * F004: the four section cards were grey-beige fills (var(--lp-ground)) beside the white How a job works cards. They
- * wear the same white landing card with its soft shadow (.landing-card: var(--lp-surface) + var(--lp-shadow)).
- * @mutate src/components/landing/SectionsShowcase.tsx | className="landing-card relative p-6 | className="relative rounded-[20px] p-6
- * @mutate src/components/landing/SectionsShowcase.tsx | scroll-mt-24" style={{ background: "var(--lp-ground)" | scroll-mt-24" style={{ background: "var(--lp-surface)"
+ * F003 / F004 (the section cards' copy and surface) left with the cards themselves: Direction A (owner 11-10) shows
+ * real jobs and items in "Near you this week" instead (src/test/landingDirectionA1110.test.tsx).
  *
  * F016: "Continue with Apple" appeared a moment after the rest of the join block and pushed "Create your free account"
  * sideways (desktop) or up (phone). An invisible slot with the button's own box and label holds its place until the
@@ -41,11 +35,6 @@ import { MemoryRouter } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const state = vi.hoisted(() => ({ open: null as ReadonlySet<string> | null }));
-vi.mock("@/components/landing/useSectionsOpen", async (importOriginal) => {
-  const real = await importOriginal<typeof import("@/components/landing/useSectionsOpen")>();
-  return { ...real, useSectionsOpen: () => ({ open: state.open }) };
-});
 
 const settle = vi.hoisted(() => ({ fire: false }));
 vi.mock("@/lib/routePrefetch", async (importOriginal) => {
@@ -56,41 +45,9 @@ vi.mock("@/lib/socialAuth", () => ({ SOCIAL_SIGN_IN_ENABLED: true, signInWithPro
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, ready: true }) }));
 import Footer from "@/components/Footer";
 
-import { LANDING_CARD_KEYS, SectionsShowcase, TrustAndJoin } from "@/components/landing/SectionsShowcase";
-
-function renderSections(open: ReadonlySet<string> | null) {
-  state.open = open;
-  return render(<MemoryRouter><SectionsShowcase /></MemoryRouter>);
-}
+import { TrustAndJoin } from "@/components/landing/SectionsShowcase";
 
 describe("landing UI audit 2026-11-09", () => {
-  it("F003: the Declutter card says offers and checkout are built in", () => {
-    const { container, unmount } = renderSections(new Set(["declutter"]));
-    // D005 (11-10): the open pair as cards (LANDING_CARD_KEYS), the rest in one line.
-    expect(container.querySelectorAll("[data-section]").length).toBe(LANDING_CARD_KEYS.length);
-    const card = container.querySelector('[data-section="declutter"]') as HTMLElement;
-    expect(card.textContent).toContain("Sell to neighbors or find a deal. Offers and checkout are built in.");
-    expect(container.textContent).not.toMatch(/happen in the app/);
-    unmount();
-  });
-
-  it("F004: every section card is the white landing card (the How a job works surface), never the ground fill", () => {
-    const css = readFileSync(resolve(__dirname, "../index.css"), "utf8");
-    const rule = css.match(/\n\.landing-card \{([^}]*)\}/)?.[1] ?? "";
-    expect(rule).toMatch(/background:\s*var\(--lp-surface\)/);
-    expect(rule).toMatch(/box-shadow:\s*var\(--lp-shadow\)/);
-    const { container, unmount } = renderSections(null);
-    const cards = [...container.querySelectorAll<HTMLElement>("[data-section]")];
-    expect(cards.length).toBeGreaterThan(1);
-    for (const c of cards) {
-      expect(c.classList.contains("landing-card"), c.dataset.section).toBe(true);
-      expect(c.style.background, c.dataset.section).toBe("");
-    }
-    // The section sits on the page ground, so the white cards stand out (lead 11-09: on the white surface they read faint).
-    expect((container.querySelector("#sections") as HTMLElement).style.background).toBe("var(--lp-ground)");
-    unmount();
-  });
-
   describe("F016: the Apple button's place is held before it arrives", () => {
     const BOX = ["h-14", "w-full", "sm:w-auto", "px-7", "rounded-full", "text-ds-15", "font-semibold"];
     // An observer that never reports the join block on screen: the close is below the fold.

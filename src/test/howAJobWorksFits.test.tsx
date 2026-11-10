@@ -12,9 +12,12 @@
  * heading row wraps, so the toggle drops under the heading instead of running
  * off the edge. A tester confirms the pixels at 1440 and 375.
  *
- * @mutate src/components/landing/HowItWorksSection.tsx |               className="landing-card h-full min-w-0 flex flex-col p-6 lg:p-7" |               className="landing-card h-full flex flex-col p-6 lg:p-7"
+ * @mutate src/components/landing/HowItWorksSection.tsx |               className="h-full min-w-0 flex flex-col border-t-2 pt-5" |               className="h-full flex flex-col border-t-2 pt-5"
  * @mutate src/components/landing/HowItWorksSection.tsx |         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4"> |         <div className="flex items-center justify-between gap-x-6 gap-y-4">
- * @mutate src/components/landing/HowItWorksSection.tsx |         <div className="grid grid-cols-1 sm:grid-cols-3 items-stretch gap-3 sm:gap-4 lg:gap-5"> |         <div className="grid grid-cols-[repeat(3,1fr)] items-stretch gap-3 sm:gap-4 lg:gap-5">
+ * @mutate src/components/landing/HowItWorksSection.tsx |         <ol className="grid grid-cols-1 sm:grid-cols-3 items-stretch gap-6 sm:gap-8 lg:gap-12"> |         <ol className="grid grid-cols-[repeat(3,1fr)] items-stretch gap-6 sm:gap-8 lg:gap-12">
+ * D007 (landing design audit 11-10; Direction A): the steps are numbered list items in one row with a rule over each,
+ * never white boxes (white cards are for real inventory only).
+ * @mutate src/components/landing/HowItWorksSection.tsx |               className="h-full min-w-0 flex flex-col border-t-2 pt-5" |               className="landing-card h-full min-w-0 flex flex-col border-t-2 pt-5"
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -45,11 +48,14 @@ describe("How a job works: no Guarantee box, nothing past the column (LEAD-HOWJO
 
   it("keeps the three steps and the toggle inside the column", () => {
     renderSection();
-    const card3 = screen.getByText("Pay when it's done").closest(".landing-card");
+    const card3 = screen.getByText("Pay when it's done").closest("[data-step]");
     const grid = card3?.parentElement ?? null;
     const cards = grid ? [...grid.children] : [];
     expect(cards).toHaveLength(3);
     for (const c of cards) expect(classes(c)).toContain("min-w-0");
+    // D007: no white box per step.
+    for (const c of cards) expect(classes(c)).not.toContain("landing-card");
+    expect(grid?.tagName).toBe("OL");
     expect(classes(grid)).toEqual(expect.arrayContaining(["grid", "grid-cols-1", "sm:grid-cols-3"]));
     const column = grid?.parentElement ?? null;
     expect(classes(column)).toEqual(expect.arrayContaining(["w-full", "max-w-6xl", "mx-auto"]));

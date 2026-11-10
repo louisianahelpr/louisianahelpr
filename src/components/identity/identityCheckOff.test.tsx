@@ -7,7 +7,6 @@
  *
  * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx |   const rows = allRows.filter((r) => r.key !== "id" \|\| r.done \|\| idUnderWay); |   const rows = allRows;
  * @mutate src/components/identity/IdentityPromptCard.tsx |   if (!idOn \|\| view === "verified") return null; |   if (view === "verified") return null;
- * @mutate src/components/landing/LandingProof.tsx |   return proofLine(useIdentityCheckOnStore()); |   return proofLine(true);
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -22,7 +21,6 @@ vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => fal
 
 import { TrustMarksCard } from "@/components/profile/profileEditForm/TrustMarksCard";
 import { IdentityPromptCard } from "@/components/identity/IdentityPromptCard";
-import { LandingProof, useProofLine } from "@/components/landing/LandingProof";
 import type { Profile } from "@/components/profile/profileEditForm/types";
 
 afterEach(() => {
@@ -58,17 +56,8 @@ describe("ID check off", () => {
     expect(screen.getByText(/verify your id/i)).toBeTruthy();
   });
 
-  // Owner 11-09: the proof is the Jobs grid's finished-job card plus the section's line (useProofLine).
-  it("the landing proof claims no ID check (on: 'Photo ID checked')", () => {
-    const Line = () => <p>{useProofLine()}</p>;
-    render(<><LandingProof /><Line /></>);
-    expect(document.body.textContent).not.toMatch(/photo id checked|verified id/i);
-    cleanup();
-    setIdentityCheckOn(true);
-    render(<><LandingProof /><Line /></>);
-    expect(document.body.textContent).toMatch(/photo id checked/i);
-  });
-
+  // The landing's ID line (the old proof card) left with Direction A (11-10); the band's ID badge reads the switch for
+  // this viewer: src/test/landingTrustSaysIdCheck1109.test.tsx.
   it("the shared functions: the sheet does not open, nobody needs the check, accept never waits on the ID", () => {
     expect(openIdentityCheck("post")).toBe(false);
     expect(needsIdentityCheck({ idv_status: "not_started", is_seed: false })).toBe(false);

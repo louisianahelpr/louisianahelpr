@@ -1,36 +1,24 @@
-import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { jobCategoryLabel } from "@/lib/jobCategories";
-import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
-import { LandingProof, useProofLine } from "./LandingProof";
-import { JOBS_SHELL, LandingBrowseShell, NO_JOBS_DECLUTTER_SHELL } from "./LandingBrowseShell";
-import { FreshDeclutterSection } from "./FreshDeclutterSection";
+import { useEffect, useState, type RefObject } from "react";
 
 /**
- * "Live now: Open jobs near you" (owner, 2026-10-23, landing option B): the
- * newest real open jobs, straight from open_jobs_browse, the same view the
- * public board reads (it already leaves out seed, ownerless and closed jobs,
- * and anon may read it). Nothing here is typed: no job, price or count is
- * written into the page.
+ * The landing's open jobs (owner, 2026-10-23, landing option B): the newest real open jobs, straight from
+ * open_jobs_browse, the same view the public board reads (it already leaves out seed, ownerless and closed jobs, and
+ * anon may read it). Nothing here is typed: no job, price or count is written into the page. Since Direction A (owner
+ * 11-10) they are drawn beside the Declutter items in "Near you this week" (NearYouSection.tsx).
  *
- * Loaded only when the section nears the screen, so the Supabase chunk never
- * joins the landing's first paint (the hero and useSectionsOpen keep the same
- * rule). A failed read says so and keeps the link to the board; an empty read
- * shows the Declutter listings in this place (D003, 11-10).
+ * Loaded only when the section nears the screen, so the Supabase chunk never joins the landing's first paint (the
+ * hero and useSectionsOpen keep the same rule). A failed read is reported and the section says so; an empty read
+ * leaves the Declutter items alone in the grid (D003, 11-10: never an empty card).
  */
-/** Three jobs beside the finished-job card (owner 11-09: that card is the grid's first), four cards across from lg. */
+/** Up to three jobs in the Near you grid, beside the Declutter items. */
 const LIVE_JOBS_LIMIT = 3;
-/** One row's height: the skeleton's row (F011). */
-const LIVE_JOBS_ROW_H = "h-[120px] lg:h-[176px]";
-/** The finished-job card is at least a row tall, so it lines up with the cards beside it from lg. */
-const LIVE_JOBS_ROW_H_MIN = "lg:min-h-[176px]";
 /** One quiet retry before the failed state (a phone's network blip). */
 const LIVE_JOBS_RETRY_MS = 1500;
 
 const LIVE_JOBS_SELECT =
   "id, title, budget, date_needed, parish, category, pricing_mode, urgent_fee, helpers_needed, is_group_job, helper_fee_flat_cents, helper_fee_percent";
 
-type LiveJob = {
+export type LiveJob = {
   id: string;
   title: string;
   budget: number | string | null;
@@ -47,7 +35,7 @@ type LiveJob = {
   take_home?: number | null;
 };
 
-type State = { kind: "loading" } | { kind: "failed" } | { kind: "ok"; jobs: LiveJob[] };
+export type LiveJobsState = { kind: "loading" } | { kind: "failed" } | { kind: "ok"; jobs: LiveJob[] };
 
 /**
  * Q104 (e2e-real-backend anon surface, 11-04: 19 requests in one route walk, budget 11): coming back to the landing
@@ -86,9 +74,12 @@ export function liveJobDate(d: string | null): string | null {
   return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
-export function LiveJobsSection() {
-  const ref = useRef<HTMLElement>(null);
-  const [state, setState] = useState<State>(() => {
+/**
+ * The newest open jobs, read once the element nears the screen (Direction A, 11-10: the "Near you this week" section
+ * reads them through this hook too, beside the Declutter items).
+ */
+export function useLiveJobs(ref: RefObject<HTMLElement>): LiveJobsState {
+  const [state, setState] = useState<LiveJobsState>(() => {
     const kept = keptJobs();
     return kept ? { kind: "ok", jobs: kept } : { kind: "loading" };
   });
@@ -161,79 +152,6 @@ export function LiveJobsSection() {
       cancelled = true;
       io.disconnect();
     };
-  }, []);
-
-  const line = useProofLine();
-  // D003 (landing design audit 11-10, High): no open job means real Declutter listings here, never an empty card.
-  if (state.kind === "ok" && state.jobs.length === 0) return <FreshDeclutterSection shell={NO_JOBS_DECLUTTER_SHELL} />;
-  // The finished job is the grid's first card (owner 11-09, 10:31 PM: no block of its own), so the row holds it plus
-  // the jobs: as many columns as cards (audit 2026-10-28 P5-6: never a half-empty row).
-  const cols = 1 + (state.kind === "ok" ? Math.max(1, Math.min(state.jobs.length, LIVE_JOBS_LIMIT)) : LIVE_JOBS_LIMIT);
-
-  return (
-    <LandingBrowseShell
-      sectionRef={ref}
-      testId="landing-live-jobs"
-      titleId="landing-live-jobs-title"
-      title={JOBS_SHELL.title}
-      line={line}
-      seeAll={JOBS_SHELL.seeAll}
-    >
-      {state.kind === "failed" && (
-        <>
-          <ReportErrorScreen source="LiveJobsSection" title="Couldn't load the newest jobs." />
-          <p className="text-ds-15" style={{ color: "var(--lp-body)" }} data-testid="landing-live-jobs-failed">
-            We couldn’t load the newest jobs just now. The full board has every open job.
-          </p>
-        </>
-      )}
-      {/* F011 (owner's UI audit 11-09): while loading, the finished job and ONE placeholder row on a phone (the jobs'
-          row from lg). */}
-      <ul
-        className="grid gap-3 lg:gap-5 lg:[grid-template-columns:repeat(var(--live-n),minmax(0,1fr))]"
-        style={{ "--live-n": cols } as React.CSSProperties}
-        data-testid={state.kind === "ok" && state.jobs.length > 0 ? "landing-live-jobs-list" : "landing-live-jobs-grid"}
-      >
-        <li className={LIVE_JOBS_ROW_H_MIN} data-landing-proof-card="">
-          <LandingProof />
-        </li>
-        {state.kind === "loading" &&
-          Array.from({ length: LIVE_JOBS_LIMIT }, (_, i) => (
-            <li key={i} aria-hidden data-testid="landing-live-jobs-skeleton" className={`rounded-2xl ${LIVE_JOBS_ROW_H} ${i > 0 ? "hidden lg:block" : ""}`} style={{ background: "var(--lp-subtle)" }} />
-          ))}
-        {state.kind === "ok" &&
-          state.jobs.slice(0, LIVE_JOBS_LIMIT).map((j) => {
-            const date = liveJobDate(j.date_needed);
-            const where = [j.parish ? `${j.parish} Parish` : null, date].filter(Boolean).join(" · ");
-            return (
-              <li key={j.id} data-live-job="">
-                <Link
-                  to={`/browse?job=${encodeURIComponent(j.id)}`}
-                  className="h-full rounded-2xl p-4 lg:p-6 flex lg:flex-col items-center lg:items-stretch justify-between gap-3 transition-colors"
-                  style={{ background: "var(--lp-ground)", color: "var(--lp-ink)" }}
-                >
-                  <span className="flex flex-col gap-1 lg:gap-3 min-w-0">
-                    {j.category && (
-                      <span className="hidden lg:block text-ds-13 font-semibold" style={{ color: "var(--lp-action-strong)" }}>
-                        {jobCategoryLabel(j.category)}
-                      </span>
-                    )}
-                    <span className="text-ds-16 lg:text-ds-18 font-semibold line-clamp-2 break-words" title={j.title}>{j.title}</span>
-                    {where && (
-                      <span className="lg:hidden text-ds-13" style={{ color: "var(--lp-body)" }}>{where}</span>
-                    )}
-                  </span>
-                  <span className="flex flex-col gap-3 shrink-0 text-right lg:text-left">
-                    <span className="landing-serif-text text-ds-24 lg:text-ds-32">{liveJobPrice(j)}</span>
-                    {where && (
-                      <span className="hidden lg:block text-ds-14" style={{ color: "var(--lp-body)" }}>{where}</span>
-                    )}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-      </ul>
-    </LandingBrowseShell>
-  );
+  }, [ref]);
+  return state;
 }

@@ -3,12 +3,12 @@
  * landing on a phone had the "Just finished · 2 yards in New Iberia" proof row sitting alone at the very
  * bottom of the full-height hero). The hero keeps its empty space (owner correction, same day: "no spacing
  * change"); the proof row (with its "Paid when it's done" line) moves OUT of the hero to the top of the next
- * section, "Open jobs near you", below the fold, at every width. Since owner 11-09 it is that section's first CARD
- * (src/test/landingJustFinishedInJobs1109.test.tsx).
+ * section, below the fold, at every width. Since Direction A (owner 11-10) the finished job is the photo band UNDER
+ * the hero (LandingPhotoBand, src/test/landingDirectionA1110.test.tsx), never inside it.
  *
  * Before/after screenshots at 390x844, 375x667 and 1440x900: ~/.lh-shots/b188/hero-*.png.
  *
- * @mutate src/components/landing/HeroSection.tsx |       </div>\n    </section> |       </div>\n      <LandingProof />\n    </section>
+ * @mutate src/components/landing/HeroSection.tsx |       </div>\n    </section> |       </div>\n      <LandingPhotoBand />\n    </section>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -26,6 +26,7 @@ describe("the landing's first screen is the headline, subhead and search only (o
     expect(screen.getByRole("heading", { level: 1 })).toBeTruthy();
     expect(screen.getByRole("search")).toBeTruthy();
     expect(screen.queryByTestId("landing-proof")).toBeNull();
+    expect(screen.queryByTestId("landing-photo-band")).toBeNull();
     expect(screen.queryByText("Just finished")).toBeNull();
   });
 });

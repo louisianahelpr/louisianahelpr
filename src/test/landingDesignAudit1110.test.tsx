@@ -9,14 +9,14 @@
  *         56px); none is the flat 28px (text-ds-28) any more. The hero H1 keeps its own sizes.
  *   D010: the dark money band is its own colour (deep olive), never the dark surface (#262420) it vanished into.
  *   D015: no tracked-out ALL-CAPS template labels (LIVE NOW, POPULAR NOW, JUST FINISHED, YOUR MONEY PROTECTED).
- *   D016: the service-area line under the first section.
+ *   D016: the service-area line under the first section ("Near you this week" since Direction A).
  *   D021: on a phone the landing's bar is the logo, Log in and Join free.
  *
  * @mutate src/index.css |   font-size: clamp(32px, 3.2vw, 48px); |   font-size: 28px;
  * @mutate src/components/landing/HowItWorksSection.tsx |             className="font-display landing-serif text-balance landing-h2" |             className="font-display landing-serif text-balance text-ds-28"
- * @mutate src/index.css |   --lp-band: #2E2F22; |   --lp-band: #262420;
- * @mutate src/components/landing/LandingProof.tsx |         <span className="text-ds-13 font-semibold" style={{ color: "var(--lp-action-strong)" }}> |         <span className="text-ds-13 font-semibold uppercase" style={{ color: "var(--lp-action-strong)" }}>
- * @mutate src/components/landing/LandingBrowseShell.tsx |           {SERVICE_AREA_LINE} |
+ * @mutate src/index.css | --lp-band: #2E2F22;\n  --lp-band-tile: #3A3C2B;\n  --lp-band-ink: #F1EEE7;\n  --lp-band-body: #D6D2C8;\n  --lp-band-money: #E2A585;\n  --lp-band-line | --lp-band: #262420;\n  --lp-band-tile: #3A3C2B;\n  --lp-band-ink: #F1EEE7;\n  --lp-band-body: #D6D2C8;\n  --lp-band-money: #E2A585;\n  --lp-band-line
+ * @mutate src/components/landing/NeighborsSay.tsx |               <p className="text-ds-14" style={{ color: "var(--lp-body)" }}> |               <p className="text-ds-14 uppercase" style={{ color: "var(--lp-body)" }}>
+ * @mutate src/components/landing/NearYouSection.tsx |           <p data-testid="landing-service-area">{SERVICE_AREA_LINE}</p> |
  * @mutate src/components/Navbar.tsx |   const phoneHidden = landing ? " max-[639px]:hidden" : ""; |   const phoneHidden = "";
  */
 import { readFileSync } from "node:fs";
@@ -37,12 +37,17 @@ vi.mock("@/lib/socialAuth", () => ({ SOCIAL_SIGN_IN_ENABLED: false, signInWithPr
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, isReady: true, ready: true }) }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: null } })) } } }));
 vi.mock("@/lib/jobColumns", () => ({ readJobsAheadOfDb: () => new Promise(() => {}) }));
+vi.mock("@/components/landing/FreshDeclutterSection", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/components/landing/FreshDeclutterSection")>();
+  return { ...real, useFreshItems: () => ({ kind: "waiting" }) };
+});
 
-import { SectionsShowcase, TrustAndJoin } from "@/components/landing/SectionsShowcase";
+import { TrustAndJoin } from "@/components/landing/SectionsShowcase";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
-import { LiveJobsSection } from "@/components/landing/LiveJobsSection";
-import FreshDeclutterStrip from "@/components/landing/FreshDeclutterStrip";
-import { SERVICE_AREA_LINE } from "@/components/landing/LandingBrowseShell";
+import { NearYouSection, SERVICE_AREA_LINE } from "@/components/landing/NearYouSection";
+import { NeighborsSay } from "@/components/landing/NeighborsSay";
+import { LandingPhotoBand } from "@/components/landing/LandingPhotoBand";
+import NearYouGrid from "@/components/landing/FreshDeclutterStrip";
 import Navbar from "@/components/Navbar";
 
 const css = readFileSync(join(process.cwd(), "src/index.css"), "utf8");
@@ -56,11 +61,12 @@ const item = (n: number) => ({
 function allLanding() {
   return render(
     <MemoryRouter>
-      <LiveJobsSection />
-      <SectionsShowcase />
+      <LandingPhotoBand />
+      <NearYouSection />
+      <NearYouGrid cards={[{ kind: "item", item: item(1) }, { kind: "item", item: item(2) }]} />
+      <NeighborsSay />
       <HowItWorksSection />
       <TrustAndJoin />
-      <FreshDeclutterStrip items={[item(1), item(2)]} />
     </MemoryRouter>,
   );
 }
@@ -103,8 +109,8 @@ describe("landing design audit 11-10", () => {
 
   it("D016: the first section says where Helpr is busy", () => {
     expect(SERVICE_AREA_LINE).toBe("Serving New Iberia, Lafayette, Abbeville and nearby.");
-    const { unmount } = render(<MemoryRouter><LiveJobsSection /></MemoryRouter>);
-    expect(within(screen.getByTestId("landing-live-jobs")).getByTestId("landing-service-area").textContent).toBe(SERVICE_AREA_LINE);
+    const { unmount } = render(<MemoryRouter><NearYouSection /></MemoryRouter>);
+    expect(within(screen.getByTestId("landing-near-you")).getByTestId("landing-service-area").textContent).toBe(SERVICE_AREA_LINE);
     unmount();
   });
 

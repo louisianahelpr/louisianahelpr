@@ -7,7 +7,7 @@
  * pixel of it scrolling in slides it up (no ratio threshold).
  *
  * @mutate src/components/landing/HowItWorksSection.tsx | useState<Reveal>("shown") | useState<Reveal>("waiting")
- * @mutate src/components/landing/HowItWorksSection.tsx |                   opacity: 1, |                   opacity: lowered ? 0 : 1,
+ * @mutate src/components/landing/HowItWorksSection.tsx |                 opacity: 1, |                 opacity: lowered ? 0 : 1,
  * @mutate src/components/landing/HowItWorksSection.tsx |       { threshold: 0 }, |       { threshold: 0.2 },
  * @mutate src/components/landing/HowItWorksSection.tsx |     if (!el \|\| el.getBoundingClientRect().top < window.innerHeight) return; |     if (!el) return;
  */
@@ -22,7 +22,8 @@ import HowItWorksSectionBare from "@/components/landing/HowItWorksSection";
 const HowItWorksSection = () => <MemoryRouter><HowItWorksSectionBare /></MemoryRouter>;
 
 const SRC = readFileSync(join(process.cwd(), "src/components/landing/HowItWorksSection.tsx"), "utf8");
-const card = () => screen.getByText("Post what you need").closest("div[style]") as HTMLElement;
+// Direction A (11-10): each step is a list item (no white box), the element that carries the reveal.
+const card = () => screen.getByText("Post what you need").closest("li[style]") as HTMLElement;
 
 type Cb = (entries: { isIntersecting: boolean }[]) => void;
 let observed: { cb: Cb; opts?: IntersectionObserverInit }[] = [];

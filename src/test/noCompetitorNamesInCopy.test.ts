@@ -13,7 +13,7 @@
 // (footer links, the admin social-post console). "Marketplace" alone is a
 // generic word; "Facebook Marketplace" is listed.
 //
-// @mutate src/components/landing/SectionsShowcase.tsx |   jobs: "Hire local help, or find work nearby. Your payment is held until the work is done.", |   jobs: "Hire local help, like on Thumbtack.",
+// @mutate src/components/landing/NearYouSection.tsx | const NEAR_YOU_LINE = "Open jobs and things for sale, from your neighbors."; | const NEAR_YOU_LINE = "Open jobs and things for sale, like on Thumbtack.";
 // @mutate src/data/sampleJobs.ts |     title: "Assemble a flat-pack dresser", |     title: "Assemble an IKEA dresser",
 // @mutate index.html | "areaServed": { "@type": "State", "name": "Louisiana" }, | "areaServed": { "@type": "State", "name": "Louisiana" }, "description": "Like Craigslist",
 import { describe, expect, it } from "vitest";

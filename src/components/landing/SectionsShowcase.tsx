@@ -1,10 +1,8 @@
 import { useIdCheckOnForViewer } from "@/lib/useIdCheckOnForViewer";
 import { lazy, Suspense, useEffect, useRef, useState, type RefObject } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Check, CreditCard, Headset, Lock, MapPin, ShieldCheck, Wallet, type LucideIcon } from "lucide-react";
-import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig";
+import { Check, CreditCard, Headset, Lock, MapPin, ShieldCheck, type LucideIcon } from "lucide-react";
 import { APPROVAL_WINDOW_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
-import { useSectionsOpen, sectionIsComingSoon } from "./useSectionsOpen";
 import { goSignedInOr } from "./goSignedInOr";
 import { POST_JOB_PATH, POST_JOB_SIGNED_OUT, SELL_PATH, SELL_SIGNED_OUT } from "./HowItWorksSection";
 import { whenPageSettled } from "@/lib/routePrefetch";
@@ -12,58 +10,17 @@ import { whenPageSettled } from "@/lib/routePrefetch";
 const LandingAppleButton = lazy(() => import("./LandingAppleButton"));
 
 /**
- * The landing page below the hero (owner-approved redesign, 2026-10-20): the
- * four section cards, then (after How a job works) the money band and the join
- * block. A section whose switch is not open to everyone has no link, carries a
- * small "Coming soon" badge inside its card and is slightly dimmed (owner 11-09,
- * UI audit F002/F013, replacing the 10-21 one-line rule). Until that answer is
- * in, no card shows the badge or the dim and no switched card links (F009,
- * owner UI audit 11-09; links still fail closed, useSectionsOpen). An OPEN
- * section's card links to its Browse
- * page (or sign-up, returning there, for a section behind sign-in).
+ * The landing's close (owner-approved redesign, 2026-10-20; Direction A, owner 11-10): the deep-olive safety band, then
+ * the join block. Direction A took the four (then two) section cards away: "Near you this week" (NearYouSection.tsx)
+ * shows real jobs and items in their place, with "Shops and Homes are on the way." under it.
  *
- * Copy states only what the app does today (lead, LANDING-APPROVED.md): no
- * price-drop timing, no fee or speed figures beyond the real rules
- * (APPROVAL_WINDOW_HOURS is the cron's own number: past it Helpr support steps in, nothing
- * releases on a timer, owner 2026-10-23), photo proof as the poster's
- * per-job choice (photoProofRequired), no other company or vendor named, and
- * copy for both sides (design spec v2 §1.4, §1.7). All four cards are equal.
+ * Copy states only what the app does today (lead, LANDING-APPROVED.md): no price-drop timing, no fee or speed figures
+ * beyond the real rules (APPROVAL_WINDOW_HOURS is the cron's own number: past it Helpr support steps in, nothing
+ * releases on a timer, owner 2026-10-23), no other company or vendor named, and copy for both sides (design spec v2
+ * §1.4, §1.7).
  */
-const COPY: Record<SectionKey, string> = {
-  jobs: "Hire local help, or find work nearby. Your payment is held until the work is done.",
-  declutter: "Sell to neighbors or find a deal. Offers and checkout are built in.",
-  shops: "Shop Louisiana makers, or open your own shop. Orders and payments in one place.",
-  homes: "Rent from local owners, or list a home you own, in the app you already use.",
-};
-
-/**
- * Where an open section's card goes. Jobs: the public guest board, which a
- * signed-out visitor can read. Declutter: its own Browse, which a guest reads
- * too while Declutter is open to everyone (BUY-16, DeclutterGuestOrMember; the
- * card only links once that answer is in), so "Browse Declutter" goes straight
- * there, never through sign-up (owner 11-04). Shops and Homes sit behind
- * sign-in (ProtectedRoute), so a signed-out visitor goes to sign-up with the
- * section as the return path ("Join to browse Shops"), never a login wall; a
- * signed-in visitor's click goes straight to the section (cardClick below).
- */
-export function cardLinkFor(key: SectionKey, path: string, label: string): { to: string; text: string; signedIn: string } {
-  if (key === "jobs") return { to: "/browse", text: "Browse jobs", signedIn: path };
-  // D012 (11-10): the landing says "Shop Declutter" everywhere it links to Declutter.
-  if (key === "declutter") return { to: path, text: `Shop ${label}`, signedIn: path };
-  return { to: `/signup?redirect=${encodeURIComponent(path)}`, text: `Join to browse ${label}`, signedIn: path };
-}
-
-/** D002 (landing design audit 11-10): every landing H2 on the middle type step (.landing-h2, 32 -> 48px). */
-const H2_CLASS = "font-display landing-serif text-balance landing-h2";
-
-/** D005: the two sections the landing draws as cards; the rest are named in one line while they are on the way. */
-export const LANDING_CARD_KEYS: readonly SectionKey[] = ["jobs", "declutter"];
-
-/** "Shops and Homes are on the way." (owner's preview tweak 3, 11-10). */
-export function onTheWayLine(labels: string[]): string {
-  const names = labels.length <= 1 ? labels.join("") : `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
-  return `${names} ${labels.length === 1 ? "is" : "are"} on the way.`;
-}
+/** D002 (landing design audit 11-10): the close is one step larger than the section headings (.landing-h2-close). */
+const H2_CLOSE_CLASS = "font-display landing-serif text-balance landing-h2-close";
 
 /** True once `ref` has been on screen after the page loaded (never at first paint). */
 function useSeenAfterLoad(ref: RefObject<HTMLElement>): boolean {
@@ -96,103 +53,6 @@ function useSeenAfterLoad(ref: RefObject<HTMLElement>): boolean {
   return seen;
 }
 
-/** The four section cards. */
-export function SectionsShowcase() {
-  const ref = useRef<HTMLElement>(null);
-  const seen = useSeenAfterLoad(ref);
-  // No ID claim while the ID check is off (switch `identity_check`, owner 2026-10-23). L010 (landing audit 11-09): read
-  // for THIS viewer, guests included (useIdCheckOnForViewer; a guest read it as off while it is on for everyone).
-  const idOn = useIdCheckOnForViewer();
-  const { open } = useSectionsOpen(seen);
-  // F009 (owner UI audit 11-09, High): while the answer is pending, no "Coming soon" at all. It sat over the live
-  // Declutter for ~2.7 s on a first visit, then jumped. Until the answer is in, no card is badged or dimmed; the
-  // switched cards still have no link (fails closed: never a link to a section not yet known open).
-  const pending = open === null;
-  const navigate = useNavigate();
-
-  // D005 (landing design audit 11-10): "Four ways" was 1,245px tall at 375, ~465px of it two Coming soon cards. Now two
-  // large cards for the sections open today (Jobs, Declutter: a fixed pair, so no card moves when the switch answer
-  // comes in), and ONE line naming the sections still on the way. Each card still says for itself whether it is open
-  // (owner 11-09, F002/F013).
-  const later = SECTIONS.filter((s) => !LANDING_CARD_KEYS.includes(s.key) && sectionIsComingSoon(s.feature, open));
-  const cards = SECTIONS.filter((s) => LANDING_CARD_KEYS.includes(s.key)).map((s) => {
-    const Icon = s.icon;
-    const soon = sectionIsComingSoon(s.feature, open);
-    const badged = soon && !pending;
-    const link = cardLinkFor(s.key, s.path, s.navLabel);
-    // All four sections are equal (design spec v2 §1): one card style, the white landing card with its soft shadow
-    // (UI audit F004, 11-09: the How a job works cards' surface). A section not open yet is slightly dimmed and carries
-    // its own "Coming soon" badge (owner 11-09, F002/F013, replacing the 10-21 one-line rule).
-    const card = (
-      <li
-        key={s.key}
-        className="landing-card relative p-6 lg:p-8 flex flex-col gap-3 min-h-[12rem] lg:min-h-[15rem] min-w-0"
-        style={{ color: "var(--lp-ink)", ...(badged ? { opacity: 0.8 } : null) }}
-        data-section={s.key}
-        data-soon={badged ? "true" : "false"}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <Icon className="w-6 h-6" aria-hidden style={{ color: "var(--lp-action-strong)" }} />
-          {badged && (
-            <span
-              className="inline-flex items-center rounded-full px-2.5 py-1 text-ds-12 font-semibold leading-none"
-              style={{ background: "var(--lp-ground)", color: "var(--lp-ink)", border: "1px solid var(--lp-line-strong)" }}
-              data-testid={`landing-soon-${s.key}`}
-            >
-              Coming soon
-            </span>
-          )}
-        </div>
-        <h3 className="font-display landing-serif text-ds-28 mt-2">{s.navLabel}</h3>
-        <p className="text-ds-15 leading-relaxed" style={{ color: "var(--lp-body)" }}>
-          {COPY[s.key]}
-        </p>
-        {!soon && (
-          <Link
-            to={link.to}
-            onClick={(e) => {
-              e.preventDefault();
-              void goSignedInOr(navigate, link.signedIn, link.to);
-            }}
-            className="self-start mt-auto pt-1 inline-flex items-center gap-1.5 min-h-11 text-ds-15 font-bold underline-offset-4 hover:underline after:absolute after:inset-0 after:rounded-[inherit]"
-            style={{ color: "var(--lp-action-strong)" }}
-            data-testid={`landing-browse-${s.key}`}
-          >
-            {link.text}
-            <ArrowRight className="w-4 h-4" aria-hidden />
-          </Link>
-        )}
-      </li>
-    );
-    return card;
-  });
-
-  return (
-    <section ref={ref} id="sections" aria-labelledby="sections-heading" className="px-5 sm:px-8 lg:px-12 pt-12 sm:pt-14 lg:pt-16 pb-12 sm:pb-14 lg:pb-16 scroll-mt-24" style={{ background: "var(--lp-ground)" /* the page ground, so the white cards stand out (lead 11-09, F004) */ }}>
-      <div className="mx-auto w-full max-w-6xl flex flex-col gap-8 sm:gap-12">
-        <div className="flex flex-col gap-3 max-w-2xl">
-          <h2 id="sections-heading" className={H2_CLASS} style={{ color: "var(--lp-ink)" }}>
-            Hire, work, buy and sell. One account.
-          </h2>
-          {idOn && (
-            <p className="text-ds-15 sm:text-ds-17" style={{ color: "var(--lp-body)" }}>
-              Verify your ID once and it counts everywhere on Helpr.
-            </p>
-          )}
-        </div>
-        <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5" data-testid="landing-sections" aria-label="Sections">
-          {cards}
-        </ul>
-        {later.length > 0 && (
-          <p className="text-ds-15" style={{ color: "var(--lp-body)" }} data-testid="landing-sections-later">
-            {onTheWayLine(later.map((s) => s.navLabel))}
-          </p>
-        )}
-      </div>
-    </section>
-  );
-}
-
 /**
  * D009 (landing design audit 11-10): the band made eight claims of equal weight (four steps and four tiles) and left an
  * empty block at 1440. Now one headline that covers jobs AND Declutter (owner's preview tweak 2: the Declutter line is
@@ -211,9 +71,9 @@ const MONEY_STEPS: { icon: LucideIcon; title: string; body: string }[] = [
 /** The ID badge while the ID check is on; while it is off (owner 2026-10-23) a true one takes its place. */
 const TRUST_ID_ON = { icon: ShieldCheck, title: "ID-verified people" };
 const TRUST_ID_OFF = { icon: ShieldCheck, title: "Every email confirmed" };
+/** Direction A (owner 11-10): THREE badges under the band's headline (the cash line is the headline's own promise). */
 const TRUST: { icon: LucideIcon; title: string }[] = [
   TRUST_ID_ON,
-  { icon: Wallet, title: "No cash changes hands" },
   { icon: Headset, title: "A real person answers" },
   { icon: MapPin, title: "Made in Louisiana" },
 ];
@@ -286,7 +146,7 @@ export function TrustAndJoin() {
       <section ref={joinRef} aria-labelledby="join-heading" className="px-5 sm:px-8 lg:px-12 py-20 sm:py-24 lg:py-32">
         <div className="mx-auto w-full max-w-3xl flex flex-col items-center text-center gap-5">
           {/* D002 (11-10): the close is one step larger than the section headings (.landing-h2-close, 40 -> 56px). */}
-          <h2 id="join-heading" className="font-display landing-serif text-balance landing-h2-close" style={{ color: "var(--lp-ink)" }}>
+          <h2 id="join-heading" className={H2_CLOSE_CLASS} style={{ color: "var(--lp-ink)" }}>
             Join your neighbors on{" "}
             <em style={{ fontStyle: "italic", color: "var(--lp-action-strong)" }}>Helpr.</em>
           </h2>

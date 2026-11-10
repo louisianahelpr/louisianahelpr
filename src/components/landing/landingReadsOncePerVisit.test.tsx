@@ -12,7 +12,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { useRef } from "react";
 
 const reads = vi.hoisted(() => ({ jobs: 0, items: 0, photos: 0, failJobs: 0 }));
 vi.mock("@/integrations/supabase/client", () => {
@@ -48,8 +48,20 @@ vi.mock("@/lib/jobColumns", () => ({
 }));
 vi.mock("@/lib/errorLogger", () => ({ report: () => {} }));
 
-import { LiveJobsSection, forgetRecentLiveJobs, LANDING_REUSE_MS } from "./LiveJobsSection";
-import { FreshDeclutterSection, forgetRecentFreshItems, FRESH_REUSE_MS } from "./FreshDeclutterSection";
+import { forgetRecentLiveJobs, LANDING_REUSE_MS, useLiveJobs } from "./LiveJobsSection";
+import { forgetRecentFreshItems, FRESH_REUSE_MS, useFreshItems } from "./FreshDeclutterSection";
+
+// Direction A (11-10): both lists feed "Near you this week" through these hooks; each probe shows the hook's state.
+function Jobs() {
+  const ref = useRef<HTMLDivElement>(null);
+  const s = useLiveJobs(ref);
+  return <div ref={ref} data-testid={`jobs-${s.kind}`} />;
+}
+function Items() {
+  const ref = useRef<HTMLDivElement>(null);
+  const s = useFreshItems(ref);
+  return <div ref={ref} data-testid={`items-${s.kind}`} />;
+}
 
 class SeeAll {
   constructor(private cb: (e: { isIntersecting: boolean }[]) => void) {}
@@ -71,11 +83,11 @@ afterEach(() => {
 
 describe("the landing reads its lists once per visit run, not on every return (Q104)", () => {
   it("the newest jobs: a second visit draws the kept answer with no read", async () => {
-    render(<MemoryRouter><LiveJobsSection /></MemoryRouter>);
-    expect(await screen.findByTestId("landing-live-jobs-list")).toBeTruthy();
+    render(<Jobs />);
+    expect(await screen.findByTestId("jobs-ok")).toBeTruthy();
     cleanup();
-    render(<MemoryRouter><LiveJobsSection /></MemoryRouter>);
-    expect(screen.getByTestId("landing-live-jobs-list")).toBeTruthy();
+    render(<Jobs />);
+    expect(screen.getByTestId("jobs-ok")).toBeTruthy();
     // Long enough for a (wrong) second read to land: the chain is a few awaited imports.
     await new Promise((r) => setTimeout(r, 100));
     expect(reads.jobs).toBe(1);
@@ -83,11 +95,11 @@ describe("the landing reads its lists once per visit run, not on every return (Q
 
   it("the newest jobs: a failed read is not kept, the next visit reads again", async () => {
     reads.failJobs = 2;
-    render(<MemoryRouter><LiveJobsSection /></MemoryRouter>);
-    expect(await screen.findByTestId("landing-live-jobs-failed", {}, { timeout: 4000 })).toBeTruthy();
+    render(<Jobs />);
+    expect(await screen.findByTestId("jobs-failed", {}, { timeout: 4000 })).toBeTruthy();
     cleanup();
-    render(<MemoryRouter><LiveJobsSection /></MemoryRouter>);
-    expect(await screen.findByTestId("landing-live-jobs-list")).toBeTruthy();
+    render(<Jobs />);
+    expect(await screen.findByTestId("jobs-ok")).toBeTruthy();
     expect(reads.jobs).toBe(3);
   });
 
@@ -98,11 +110,11 @@ describe("the landing reads its lists once per visit run, not on every return (Q
   });
 
   it("Fresh on Declutter: a second visit draws the kept listings with no read", async () => {
-    render(<MemoryRouter><FreshDeclutterSection /></MemoryRouter>);
-    expect(await screen.findByTestId("landing-fresh-declutter-list", {}, { timeout: 4000 })).toBeTruthy();
+    render(<Items />);
+    expect(await screen.findByTestId("items-ok", {}, { timeout: 4000 })).toBeTruthy();
     cleanup();
-    render(<MemoryRouter><FreshDeclutterSection /></MemoryRouter>);
-    expect(await screen.findByTestId("landing-fresh-declutter-list", {}, { timeout: 4000 })).toBeTruthy();
+    render(<Items />);
+    expect(await screen.findByTestId("items-ok", {}, { timeout: 4000 })).toBeTruthy();
     await new Promise((r) => setTimeout(r, 100));
     expect(reads.items).toBe(1);
     // One call brings the cover photo too: no separate photo read.

@@ -158,8 +158,10 @@ describe("(c) every soon mark reads the helper", () => {
   const MARK = /<SoonPill\b|<PreviewPill\b|>\s*Coming soon\s*</;
   // Reads the helper, or the `listed` answer it feeds (useSectionTabs / useSectionIsListed).
   const READS = /hideUnopenedInApp\(|\.listed\b|useSectionIsListed\(|isListed\(/;
-  // Web-only pages: the marketing landing (the app opens on sign-in, never the landing). Exact both ways.
-  const WEB_ONLY = new Set(["src/components/landing/SectionsShowcase.tsx"]);
+  // Web-only pages: the marketing landing (the app opens on sign-in, never the landing). Exact both ways. Empty since
+  // Direction A (11-10): the landing's section cards and their Coming soon badges are gone ("Shops and Homes are on
+  // the way." is a sentence, not a mark).
+  const WEB_ONLY = new Set<string>([]);
 
   it("finds the marks, and each file outside the web-only list hides them in the app", () => {
     const files = walk("src").filter((f) => !f.startsWith("src/test/") && MARK.test(blankComments(readFileSync(resolve(ROOT, f), "utf8"))));

@@ -1,28 +1,22 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { DECLUTTER_SHELL, LandingBrowseShell, type BrowseShellCopy } from "./LandingBrowseShell";
-
-// The strip's markup is its own chunk, fetched alongside the listings (load below), never with the page.
-const FreshDeclutterStrip = lazy(() => import("./FreshDeclutterStrip"));
-const FreshDeclutterFailed = lazy(() => import("./FreshDeclutterStrip").then((m) => ({ default: m.FreshDeclutterFailed })));
+import { useEffect, useState, type RefObject } from "react";
 
 /**
- * "Fresh on Declutter" (owner 11-04, via the lead): the newest live Declutter listings, each linking to its item page,
- * plus "See everything" to /declutter. Since owner 11-08 it is the landing's "Shop Declutter" view: drawn only when the
- * visitor picks Shop Declutter on the switch under the hero (LandingBrowseSwitch.tsx), in place of the jobs section, as
- * a grid of up to FRESH_DECLUTTER_LIMIT cards in the /declutter browse card style (FreshDeclutterStrip.tsx). Nothing here is typed: no item,
- * price or count is written into the page.
+ * The landing's Declutter listings (owner 11-04, via the lead; popular first since owner 11-09). Since Direction A
+ * (owner 11-10) they are drawn beside the open jobs in "Near you this week" (NearYouSection.tsx) and the photo band's
+ * porch-pickup tile (LandingPhotoBand.tsx), in the /declutter browse card style (FreshDeclutterStrip.tsx). Nothing here
+ * is typed: no item, price or count is written into the page.
  *
  * The same public read the guest /declutter feed makes (declutter_items, live, newest first): the table's row policy
  * already leaves out test listings (is_seed), hidden sellers and every listing while Declutter is closed to guests
  * ("declutter items: guests read live"; a member's read applies the same seed rule, seed_hidden_in_discovery), so an
- * empty answer means there is nothing to show and the strip is not drawn at all.
+ * empty answer means there are no items to show.
  *
  * Below the fold, so it never joins the first paint: nothing renders and nothing is fetched (not even the Supabase
- * chunk) until the spot nears the screen after the page has loaded, the LiveJobsSection rule. A failed read says so
- * and keeps the link to Declutter.
+ * chunk) until the spot nears the screen after the page has loaded, the useLiveJobs rule. A failed read is reported
+ * once and the section says so.
  */
 export const FRESH_DECLUTTER_LIMIT = 8;
-/** The card grid, shared by the strip and its placeholder so they are the same size: 2 across, 3 from sm, 4 from lg. */
+/** The card grid, shared by the Near you grid and its placeholder so they are the same size: 2 across, 3 from sm, 4 from lg. */
 export const FRESH_GRID = "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-5 lg:gap-y-8";
 /**
  * D006 (landing design audit 11-10): the card's type, shared with the placeholder so both are the same height. On the
@@ -52,7 +46,7 @@ export type FreshItem = {
   photo: string | null;
   photoFull: string | null;
 };
-type State = { kind: "waiting" } | { kind: "failed" } | { kind: "ok"; items: FreshItem[] };
+export type FreshState = { kind: "waiting" } | { kind: "failed" } | { kind: "ok"; items: FreshItem[] };
 
 /** Q104: a good answer is kept for FRESH_REUSE_MS (LiveJobsSection's LANDING_REUSE_MS rule) and drawn at once on the next visit. */
 export const FRESH_REUSE_MS = 5 * 60_000;
@@ -64,37 +58,71 @@ export function forgetRecentFreshItems() {
 const keptItems = () => (recentItems && Date.now() - recentItems.at < FRESH_REUSE_MS ? recentItems.items : null);
 
 /**
- * L002 (landing audit 11-09: /#declutter CLS 0.82 at 375, 0.58 at 1440): the grid drew nothing until its read came back
- * (~1.1 s), then pushed the page down. While it loads, this holds the grid's place in the landing's own chunk (never the
- * entry): the same frame (LandingBrowseShell, heading, line, see-all space) and FRESH_DECLUTTER_LIMIT empty cards of the
- * real card's size (4:5 photo tile plus its four text lines: title, condition, list price, incl.-fee price).
- * Builder 4's F010 skeleton (ready/b4-landing-2 e24fde442b), without its entry-chunk jobs read.
+ * One read of the popular listings, shared by every caller on the page while it is in flight (Direction A, 11-10: the
+ * photo band and "Near you this week" both show them; one request, never two).
  */
-export function FreshDeclutterSkeleton({ shell = DECLUTTER_SHELL }: { shell?: BrowseShellCopy }) {
-  return (
-    <LandingBrowseShell testId="landing-fresh-declutter-skeleton" hidden {...shell}>
-      <ul className={FRESH_GRID}>
-        {Array.from({ length: FRESH_DECLUTTER_LIMIT }, (_, i) => (
-          <li key={i} className="min-w-0">
-            <span className="block aspect-[4/5] rounded-xl bg-photo-empty" />
-            <span className="block px-0.5 pt-2">
-              {/* The real card's lines (D006): a two-line 15px title, the town, the 18px list price, the incl.-fee line. */}
-              <span className={`block ${FRESH_TITLE}`}>&nbsp;<br />&nbsp;</span>
-              <span className={`block ${FRESH_TOWN}`}>&nbsp;</span>
-              <span className={`mt-0.5 block ${FRESH_PRICE}`}>&nbsp;</span>
-              <span className={`block ${FRESH_INCL}`}>&nbsp;</span>
-            </span>
-          </li>
-        ))}
-      </ul>
-    </LandingBrowseShell>
-  );
+let inflight: Promise<FreshItem[]> | null = null;
+function sharedFreshRead(): Promise<FreshItem[]> {
+  inflight ??= readFreshItems().finally(() => {
+    inflight = null;
+  });
+  return inflight;
 }
 
-/** `shell`: the words over the grid; the Jobs view passes NO_JOBS_DECLUTTER_SHELL when there is no open job (D003). */
-export function FreshDeclutterSection({ shell = DECLUTTER_SHELL }: { shell?: BrowseShellCopy } = {}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [state, setState] = useState<State>(() => {
+async function readFreshItems(): Promise<FreshItem[]> {
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { unwrap } = await import("@/lib/supabaseResult");
+  const { isMissingRpcNamed } = await import("@/lib/missingRpc");
+  // Owner 11-09 (10:55 PM): POPULAR items first, not just the newest. One call: declutter_popular_items
+  // (20261110054539) ranks live, priced, photographed, non-test listings by saves, offers and recent page views,
+  // then the best-selling categories, then the newest, and returns each card's cover photo path with it.
+  const popular = await supabase.rpc("declutter_popular_items", { p_limit: FRESH_DECLUTTER_LIMIT });
+  let rows: Omit<FreshItem, "photo" | "photoFull">[];
+  let first = new Map<string, string>();
+  if (!popular.error) {
+    const got = popular.data ?? [];
+    rows = got.map(({ photo_path: _p, live_at: _l, ...r }) => r);
+    for (const r of got) if (r.photo_path) first.set(r.id, r.photo_path);
+  } else if (isMissingRpcNamed(popular.error, "declutter_popular_items")) {
+    // The function is not deployed yet (a client ahead of db-deploy): the newest listings, as before.
+    rows = (unwrap(
+      await supabase
+        .from("declutter_items")
+        .select(FRESH_SELECT)
+        .eq("status", "live")
+        .order("live_at", { ascending: false })
+        .limit(FRESH_DECLUTTER_LIMIT),
+    ) ?? []) as unknown as Omit<FreshItem, "photo" | "photoFull">[];
+  } else {
+    throw popular.error;
+  }
+  if (rows.length > 0 && first.size === 0) {
+    const photos = (unwrap(
+      await supabase
+        .from("declutter_item_photos")
+        .select("item_id, storage_path, position")
+        .in("item_id", rows.map((r) => r.id))
+        .order("position", { ascending: true }),
+    ) ?? []) as { item_id: string; storage_path: string }[];
+    first = new Map();
+    for (const p of photos) if (!first.has(p.item_id)) first.set(p.item_id, p.storage_path);
+  }
+  // D017 (11-10): a 640x800 thumbnail sized for the landing's 4:5 card (photoLandingCardUrl), its original as the
+  // fallback; loaded here, not at module scope, so the landing's first paint stays as small as before.
+  const { photoLandingCardUrl, photoPublicUrl } = await import("@/lib/declutter/api");
+  const items = rows.map((r) => {
+    const path = first.get(r.id);
+    return { ...r, photo: path ? photoLandingCardUrl(path) : null, photoFull: path ? photoPublicUrl(path) : null };
+  });
+  return items;
+}
+
+/**
+ * The popular Declutter listings, read once the page has loaded and the element nears the screen (Direction A, 11-10:
+ * the "Near you this week" section and the photo band read them through this hook too).
+ */
+export function useFreshItems(ref: RefObject<HTMLElement>): FreshState {
+  const [state, setState] = useState<FreshState>(() => {
     const kept = keptItems();
     return kept ? { kind: "ok", items: kept } : { kind: "waiting" };
   });
@@ -104,52 +132,9 @@ export function FreshDeclutterSection({ shell = DECLUTTER_SHELL }: { shell?: Bro
     if (!el || typeof IntersectionObserver === "undefined" || keptItems()) return;
     let cancelled = false;
     const load = async (attempt = 0): Promise<void> => {
-      void import("./FreshDeclutterStrip");
+      void import("./FreshDeclutterStrip"); // the grid chunk, fetched beside the listings
       try {
-        const { supabase } = await import("@/integrations/supabase/client");
-        const { unwrap } = await import("@/lib/supabaseResult");
-        const { isMissingRpcNamed } = await import("@/lib/missingRpc");
-        // Owner 11-09 (10:55 PM): POPULAR items first, not just the newest. One call: declutter_popular_items
-        // (20261110054539) ranks live, priced, photographed, non-test listings by saves, offers and recent page views,
-        // then the best-selling categories, then the newest, and returns each card's cover photo path with it.
-        const popular = await supabase.rpc("declutter_popular_items", { p_limit: FRESH_DECLUTTER_LIMIT });
-        let rows: Omit<FreshItem, "photo" | "photoFull">[];
-        let first = new Map<string, string>();
-        if (!popular.error) {
-          const got = popular.data ?? [];
-          rows = got.map(({ photo_path: _p, live_at: _l, ...r }) => r);
-          for (const r of got) if (r.photo_path) first.set(r.id, r.photo_path);
-        } else if (isMissingRpcNamed(popular.error, "declutter_popular_items")) {
-          // The function is not deployed yet (a client ahead of db-deploy): the newest listings, as before.
-          rows = (unwrap(
-            await supabase
-              .from("declutter_items")
-              .select(FRESH_SELECT)
-              .eq("status", "live")
-              .order("live_at", { ascending: false })
-              .limit(FRESH_DECLUTTER_LIMIT),
-          ) ?? []) as unknown as Omit<FreshItem, "photo" | "photoFull">[];
-        } else {
-          throw popular.error;
-        }
-        if (rows.length > 0 && first.size === 0) {
-          const photos = (unwrap(
-            await supabase
-              .from("declutter_item_photos")
-              .select("item_id, storage_path, position")
-              .in("item_id", rows.map((r) => r.id))
-              .order("position", { ascending: true }),
-          ) ?? []) as { item_id: string; storage_path: string }[];
-          first = new Map();
-          for (const p of photos) if (!first.has(p.item_id)) first.set(p.item_id, p.storage_path);
-        }
-        // D017 (11-10): a 640x800 thumbnail sized for the landing's 4:5 card (photoLandingCardUrl), its original as the
-        // fallback; loaded here, not at module scope, so the landing's first paint stays as small as before.
-        const { photoLandingCardUrl, photoPublicUrl } = await import("@/lib/declutter/api");
-        const items = rows.map((r) => {
-          const path = first.get(r.id);
-          return { ...r, photo: path ? photoLandingCardUrl(path) : null, photoFull: path ? photoPublicUrl(path) : null };
-        });
+        const items = await sharedFreshRead();
         recentItems = { at: Date.now(), items };
         if (!cancelled) setState({ kind: "ok", items });
       } catch (err) {
@@ -194,15 +179,6 @@ export function FreshDeclutterSection({ shell = DECLUTTER_SHELL }: { shell?: Bro
       window.removeEventListener("load", watch);
       io?.disconnect();
     };
-  }, []);
-
-  return (
-    <div ref={ref} data-testid="landing-fresh-declutter-spot">
-      <Suspense fallback={<FreshDeclutterSkeleton shell={shell} />}>
-        {state.kind === "waiting" && <FreshDeclutterSkeleton shell={shell} />}
-        {state.kind === "failed" && <FreshDeclutterFailed shell={shell} />}
-        {state.kind === "ok" && state.items.length > 0 && <FreshDeclutterStrip items={state.items} shell={shell} />}
-      </Suspense>
-    </div>
-  );
+  }, [ref]);
+  return state;
 }

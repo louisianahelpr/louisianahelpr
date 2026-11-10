@@ -9,7 +9,7 @@
  * @mutate src/components/landing/HeroSection.tsx | <span className="hidden sm:inline">{es ? es.searchButton : "Search"}</span> | <span className="hidden sm:inline">Search</span>
  */
 import { readFileSync } from "node:fs";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { es } from "@/lib/i18n/es";
@@ -17,7 +17,6 @@ import { enScreens } from "@/lib/i18n/enScreens";
 import HeroSection from "@/components/landing/HeroSection";
 import { blankComments } from "./helpers/blankNonCode";
 
-vi.mock("@/components/landing/LandingProof", () => ({ LandingProof: () => null }));
 
 const renderHero = () => render(<MemoryRouter><HeroSection /></MemoryRouter>);
 

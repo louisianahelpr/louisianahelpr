@@ -51,7 +51,7 @@ const PAGES: Array<[string, () => ReactNode, string]> = [
   ["/shops", () => <ShopsPage />, "Shops"],
   ["/shops/orders", () => <ShopOrdersPage />, "My orders"],
   ["/shops/mine", () => <ShopEditPage />, "My shop"],
-  ["/shops/dashboard", () => <ShopDashboardPage />, "Shop dashboard"],
+  ["/shops/dashboard", () => <ShopDashboardPage />, "Shop"],
 ];
 
 describe("Shops switched off shows Coming soon, never the 404 (Q2005; F139: one word)", () => {

@@ -129,4 +129,12 @@ describe("ShopPayoutRow (shop dashboard)", () => {
     fireEvent.click(screen.getByRole("button", { name: /Set up/ }));
     expect(nav).toHaveBeenCalledWith("/profile?tab=payment");
   });
+  // Shops audit 11-10 F12: no empty gray box at the top of the Shop tab while the payout check answers.
+  // @mutate src/components/shops/ShopPayoutRow.tsx |   if (payoutPrompt.kind === "reserve") return null; |
+  it("nothing while the payout check is still answering (no held-open gray box)", () => {
+    connect.prompt = { kind: "reserve" };
+    const { container } = renderWith(<ShopPayoutRow />);
+    expect(container.textContent).toBe("");
+    expect(container.querySelector("button")).toBeNull();
+  });
 });

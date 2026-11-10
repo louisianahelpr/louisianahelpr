@@ -46,7 +46,7 @@ describe("F466/F502: one strike rule, same words everywhere", () => {
     const src = blankComments(readFileSync(resolve(ROOT, "supabase/functions/admin-user-actions/index.ts"), "utf8"));
     const block = src.slice(src.indexOf("action === 'formal_warning'"), src.indexOf("admin_apply_account_action', {\n        p_user_id: targetUserId,\n        p_admin_id: userData.user.id,\n        p_action: actionTaken"));
     expect(block.length).toBeGreaterThan(2000);
-    // 3 pushes + 3 email callouts.
+    // Three pushes and three email callouts, as the block stood on 2026-11-10.
     expect((block.match(/STRIKE_RULE/g) ?? []).length).toBe(6);
     expect(block).not.toMatch(/One more violation will result/);
     expect(block).not.toMatch(/An automatic 7-day rule also applies/);

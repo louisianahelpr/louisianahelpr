@@ -718,7 +718,11 @@
     "sponsor_admin_add_signup(jsonb)": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; writes admin_audit_log.",
     "sponsor_admin_save_settings(integer, integer, integer, integer)": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; writes admin_audit_log.",
     "sponsor_admin_save_testimonial(uuid, text, text, text, boolean)": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; writes admin_audit_log.",
-    "sponsor_admin_delete_testimonial(uuid)": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; writes admin_audit_log."
+    "sponsor_admin_delete_testimonial(uuid)": "reviewed 2026-11-09 (Q14): 25 Days sponsor admin (20261109162829; lh-authz-rls PASS). Refuses unless has_role(auth.uid(), 'admin') and sponsor_25days is on for the caller; writes admin_audit_log.",
+    "shops_admin_paperwork()": "client",
+    "shops_admin_review_permit(uuid, boolean, text)": "client",
+    "shops_my_permits()": "client",
+    "shops_submit_permit(text, text, date)": "client"
   },
   "unscoped": {
     "declutter_popular_items(integer)": "reviewed 2026-11-10 (Q14): lh-authz-rls PASS-with-notes, migration 20261110054539, the landing's Declutter preview; deliberately reads no caller and answers the same for anon and members. Returns up to 24 guest-visible listings (live, declutter_open_to_guests(), seller not hidden, not is_seed, priced, with a photo): only the card columns of the anon column grant and the cover photo path, never a count, seller, saver or viewer id. SECURITY DEFINER only to rank by saves, offers, 30-day views (guest devices capped at 10) and category sales. Proof: src/test/pglite/declutterPopularItems.pglite.mjs, 18/18 applied 3x.",

@@ -22,7 +22,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import {
   checkRegistration,
@@ -40,13 +39,8 @@ const KEY = ["admin-shops-paperwork"] as const;
 const SOS_SEARCH_URL = "https://coraweb.sos.la.gov/commercialsearch/commercialsearch.aspx";
 
 async function load(): Promise<Paperwork & { notDeployed?: boolean }> {
-  try {
-    const p = await fetchPaperwork();
-    return { permits: withoutTestRows(p.permits), registrations: withoutTestRows(p.registrations) };
-  } catch (err) {
-    if (isMissingRpcNamed(err as { message?: string }, "shops_admin_paperwork")) return { permits: [], registrations: [], notDeployed: true };
-    throw err;
-  }
+  const p = await fetchPaperwork();
+  return { permits: withoutTestRows(p.permits), registrations: withoutTestRows(p.registrations), notDeployed: p.notDeployed };
 }
 
 function dateLabel(isoDate: string): string {

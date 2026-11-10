@@ -7,6 +7,7 @@
  * The document goes to the private user-documents bucket under <uid>/shop-permits/<kind>-<13-digit time>.<ext>; the
  * server refuses any other path, and any path that was not uploaded.
  */
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
@@ -108,8 +109,10 @@ async function adminWords(res: { error: { message: string } | null }, words: (a:
   return admin ? words(admin, res.error) : null;
 }
 
-export async function fetchPaperwork(): Promise<Paperwork> {
+export async function fetchPaperwork(): Promise<Paperwork & { notDeployed?: boolean }> {
   const res = await supabase.rpc("shops_admin_paperwork");
+  // A brand-new RPC the database has not deployed yet: "not on the server yet", never an empty list.
+  if (isMissingRpcNamed(res.error, "shops_admin_paperwork")) return { permits: [], registrations: [], notDeployed: true };
   const data = withWords(res, await adminWords(res, (a, e) => a.rpcErrorMessage("shops_admin_paperwork", e))) as unknown as Paperwork | null;
   return { permits: data?.permits ?? [], registrations: data?.registrations ?? [] };
 }

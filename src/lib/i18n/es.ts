@@ -176,6 +176,7 @@ export const es: Record<MsgKey, string> = {
 
   // Sign up (the page: step titles, checks, messages)
   "signup.aboutTitle": "Un poco sobre usted",
+  "signup.stepTwoOfTwo": "Paso 2 de 2",
   "signup.zipInvalid": "Escriba un código postal de 5 dígitos",
   "signup.bioShort": "Escriba al menos 20 caracteres, o déjelo en blanco por ahora",
   "signup.firstNameToast": "Escriba su nombre.",

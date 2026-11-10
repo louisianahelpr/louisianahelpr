@@ -513,7 +513,17 @@ const Signup = () => {
       // Board 55: step 1 sits in the Log in card's width with its heading inside the card and no
       // back (the H links home); step 2 keeps the row title and walks the wizard back.
       {...(step === 1 ? { hideBack: true } : { backOnClick: backToStep1 })}
-      title={step === 1 ? undefined : stepHeading.title}
+      // F259a (audit 11-10): step 2 says where it sits in the wizard; the row title carries "Step 2 of 2" under it.
+      title={
+        step === 1 ? undefined : (
+          <>
+            {stepHeading.title}
+            <span className="mt-0.5 block font-sans text-ds-12 font-normal text-muted-foreground" data-signup-step-of="">
+              {t("signup.stepTwoOfTwo")}
+            </span>
+          </>
+        )
+      }
     >
       {/* F024 (owner UI audit 11-09): at 1440x900 the card sat 24px under the top edge of the window; 48px from lg up
           (the shell's 24 + 24 here), and the page scrolls naturally below. */}

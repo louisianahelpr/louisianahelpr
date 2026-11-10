@@ -14,6 +14,8 @@ import { MemoryRouter } from "react-router-dom";
 import { PolicySearchContext } from "@/components/policy/CollapsedPolicy";
 
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, isReady: true }) }));
+// A guest's ID wording reads the switches open to everyone (L003); none here.
+vi.mock("@/components/landing/useSectionsOpen", () => ({ useSectionsOpen: () => ({ open: new Set<string>(), settled: true, failed: false }) }));
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticLight: vi.fn() }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: vi.fn() } }));

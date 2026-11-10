@@ -1,4 +1,4 @@
-import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
+import { ID_ONCE_PER_ACCOUNT, useIdCheckOnForViewer } from "@/lib/useIdCheckOnForViewer";
 import { Link } from "react-router-dom";
 import {
   Building2, Wallet, ShieldAlert, Receipt, FileText, Scale, AlertTriangle,
@@ -47,7 +47,9 @@ const POSTER_PAYS_SENTENCE =
 export const TermsContent = () => {
   // ID verification is off (switch `identity_check`, owner 2026-10-23): the
   // Terms say so instead of promising a check nobody runs.
-  const idOn = useIdentityCheckOnStore();
+  // L003 (landing audit 11-09): the ID wording follows the switch for THIS viewer, guests included (a guest read every
+  // ID rule here as off while identity_check is on for everyone).
+  const idOn = useIdCheckOnForViewer();
   // The setup fee is quoted from platform_settings (what is charged), never a code constant (see useOnboardingFeeCents),
   // and named the "account setup fee" as everywhere else. Null while loading or on failure: the row quotes no number.
   const feeLabel = formatFeeLabel(useOnboardingFeeCents());
@@ -56,7 +58,7 @@ export const TermsContent = () => {
   <div className="space-y-3">
     <TldrCard
       items={[
-        "You must be 18+. Every account verifies its email address before it can post or take jobs.",
+        `You must be 18+. Every account verifies its email address before it can post or take jobs.${idOn ? ` You also verify ${ID_ONCE_PER_ACCOUNT}.` : ""}`,
         "Helpr is a marketplace — we don't perform jobs ourselves and aren't liable for the work delivered.",
         `${POSTER_PAYS_SENTENCE} Louisiana Helpr keeps a service fee from each Helpr payout; a Helpr always sees what they will take home before they apply.`,
         "Cancellations, disputes, and behavior rules live in the Community Rules tab — they're part of this agreement.",

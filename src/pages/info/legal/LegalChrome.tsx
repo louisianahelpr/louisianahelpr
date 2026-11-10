@@ -35,7 +35,7 @@ export const HideOnSearch = ({ children }: { children: ReactNode }) => {
   return query.trim() ? null : <>{children}</>;
 };
 
-export const TldrCard = ({ items }: { items: string[] }) => {
+export const TldrCard = ({ items }: { items: ReactNode[] }) => {
   const query = useContext(PolicySearchContext);
   if (query.trim()) return null;
   return (

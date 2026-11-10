@@ -45,6 +45,9 @@ const PrivacyShortVersion = () => {
     <TldrCard
       items={[
         `We collect only what we need to match jobs and process payments — name, email, phone, location, usage data, and ${idCheckOn ? ID_ONCE_PER_ACCOUNT : "ID, if you choose to verify it"}.`,
+        // F238 (audit 11-10): the question a first-timer opens this page with. The ID images stay with Stripe
+        // (stripe-idv-webhook reads the report, never the files; no bucket or table holds them).
+        "Your photo ID is checked by Stripe and never shown to other members.",
         "Stripe handles payments. We never store full card numbers.",
         "Delete your account or download your data yourself, anytime, from the Download your data card in this policy — no waiting on support.",
       ]}

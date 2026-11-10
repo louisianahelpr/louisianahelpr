@@ -1197,3 +1197,7 @@ duplicate-number check).
 ## Archived 2026-11-09 — from "FEEDS — mirrored from the alert ledger, nightly-red issues and the audit bus (node scripts/open-sync-trackers.mjs)"
 
 - [x] **Q2777 MEDIUM db-deploy failed on main.** Mirrored 2026-11-09 from alert-ledger row 54ef0bfdcec3 (workflow: db-deploy; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 54ef0bfdcec3. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '54ef0bfdcec3bbc35e6f8e9764306afc'` => closed **DONE 2026-11-09 (auto-tick, verified live): every done-when marker on this item read as expected on prod (got closed, want closed).**
+
+## Archived 2026-11-10 — from "FEEDS — mirrored from the alert ledger, nightly-red issues and the audit bus (node scripts/open-sync-trackers.mjs)"
+
+- [x] **Q2775 MEDIUM migration-drift: Migration drift: 1 unapplied / 0 unrecorded.** Mirrored 2026-11-08 from migration-drift issue #4242 and alert-ledger row 747845433253 by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #4242 · feed: ledger 747845433253. done-when: issue #4242 closed, done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '747845433253c079b579d26e780481bc'` => closed **DONE 2026-11-10 (auto-tick, verified live): every done-when marker on this item read as expected on prod (issue #4242 is CLOSED by its own green run; got closed, want closed).**

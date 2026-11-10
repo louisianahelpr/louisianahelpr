@@ -17,7 +17,9 @@ import { withDeclutterShipping } from "./declutterShippingCopy";
 import {
   TOPICS,
   FAQ_SECTIONS,
+  withSetupFeeAmount,
 } from "./helpCenter/helpCenterContent";
+import { formatFeeLabel, useOnboardingFeeCents } from "@/hooks/useOnboardingFee";
 
 /**
  * Help Center — ONE component serving two surfaces, and now ONE visual block.
@@ -231,7 +233,9 @@ const HelpCenter = () => {
   // Shipping answers show only where Declutter shipping is on (switch declutter_shipping); elsewhere "Shipping isn't
   // offered." stays, and stays true (declutterShippingCopy.ts).
   const shippingOn = useFeature("declutter_shipping");
-  const allSections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS;
+  // F236/F258 (audit 11-10): the setup fee's amount, read live (the number pay-onboarding-fee charges).
+  const setupFeeLabel = formatFeeLabel(useOnboardingFeeCents());
+  const allSections = withSetupFeeAmount(shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS, setupFeeLabel);
   const searching = query.trim().length > 0;
   const sections = filterFaqSections(allSections, query);
 

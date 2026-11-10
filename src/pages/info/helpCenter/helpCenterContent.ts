@@ -21,6 +21,8 @@ import { NO_HIRE_REFUND } from "@/lib/refundWords";
 // stale the moment Storm Prep and Yard Work were added (2026-09-06).
 import { CREDENTIAL_TIER_CATEGORIES } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
+// F236/F258 (audit 11-10): the Declutter buyer's fee, from the numbers checkoutAmounts charges (never retyped).
+import { DECLUTTER_BUYER_FEE_WORDS } from "@/lib/declutter/money";
 
 
 /**
@@ -54,6 +56,23 @@ const CREDENTIAL_CATEGORY_PHRASE = (() => {
 // floor the same way (floorPayoutDollars). lh-money-escrow review of
 // 7166349cd #1: "$94.30" was the unrounded figure; the transfer is $94.
 
+
+/**
+ * F236/F258 (audit 11-10, lead confirmed live: Help showed no fee amounts). Every answer that names the one-time setup
+ * fee says SETUP_FEE_PHRASE; HelpCenter swaps in the amount read live from platform_settings (useOnboardingFeeCents, the
+ * number pay-onboarding-fee charges) through withSetupFeeAmount. Never a literal: the setting is admin-editable.
+ */
+export const SETUP_FEE_PHRASE = "a one-time account setup fee";
+
+/** "a one-time $2 account setup fee" once the amount is known; the plain phrase while it loads or on a failed read. */
+export function withSetupFeeAmount<T extends { topic: string; items: { q: string; a: string }[] }>(sections: T[], feeLabel: string | null): T[] {
+  if (!feeLabel) return sections;
+  const withAmount = `a one-time ${feeLabel} account setup fee`;
+  return sections.map((section) => ({
+    ...section,
+    items: section.items.map((item) => (item.a.includes(SETUP_FEE_PHRASE) ? { ...item, a: item.a.split(SETUP_FEE_PHRASE).join(withAmount) } : item)),
+  }));
+}
 
 // ─── Topic blurbs ─────────────────────────────────────────────────────────────
 //
@@ -146,7 +165,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "How do I sell?",
-        a: "List your own used household things with 1 to 12 photos you took, a price from $1 to $1,000 and a private lowest price you'll accept. The listing goes live when you post it. Buyers see your area name, never your address. Each evening an unsold item's price drops 5%, stopping above your lowest price. You set up payouts with Stripe at your first paid sale, and you receive the whole item price.",
+        a: `List your own used household things with 1 to 12 photos you took, a price from $1 to $1,000 and a private lowest price you'll accept. The listing goes live when you post it. Buyers see your area name, never your address. Each evening an unsold item's price drops 5%, stopping above your lowest price. You set up payouts with Stripe at your first paid sale, and you receive the whole item price: the buyer pays a buyer's fee of ${DECLUTTER_BUYER_FEE_WORDS} on top, once per checkout.`,
       },
       {
         q: "How do I get the item?",
@@ -220,7 +239,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // file's guards exist to stop. "The standard schedule" is now named:
         // STANDARD_PAYOUT_WINDOW, the same constant InstantPayoutDialog and
         // PayoutHistory interpolate.
-        a: `You're paid ${STANDARD_PAYOUT_DAYS_AFTER_APPROVAL} days after the person who posted the job approves it. Your bank shows it ${STANDARD_PAYOUT_WINDOW}. A one-time setup fee comes out of your first payout, unless you already paid it on a job you posted or on Declutter.`,
+        a: `You're paid ${STANDARD_PAYOUT_DAYS_AFTER_APPROVAL} days after the person who posted the job approves it. Your bank shows it ${STANDARD_PAYOUT_WINDOW}. ${SETUP_FEE_PHRASE.charAt(0).toUpperCase()}${SETUP_FEE_PHRASE.slice(1)} comes out of your first payout, unless you already paid it on a job you posted or on Declutter.`,
       },
       {
         q: "What if the person who posted the job doesn't confirm completion?",
@@ -256,9 +275,9 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // (create-payment adds Louisiana sales tax on TAXABLE_CATEGORIES' labor,
         // and the one-time setup fee on a first funded job), the take-home was
         // unrounded, and the refund sentence left out the kept setup fee and
-        // crew block fees (refundToPayerCents). The setup fee stays unnumbered:
-        // it is a live DB setting (see "When do I get paid?").
-        a: `When you post a job, you pay the job price (including any urgent bonus you add), plus Louisiana sales tax on the labor for taxable job types (auto and appliance repair). Your first paid job also carries a small one-time account setup fee, unless you already paid it on a job you did or on Declutter. When you do a job, every job shows exactly what you will take home before you apply. Job payouts are rounded down to the whole dollar (tips are paid in full). If a paid job is cancelled, the cancel screen shows exactly what you will get back before you confirm. If the mistake was ours, you get everything back.`,
+        // crew block fees (refundToPayerCents). The setup fee's amount is a live DB setting:
+        // HelpCenter fills SETUP_FEE_PHRASE from it (withSetupFeeAmount, F236/F258).
+        a: `When you post a job, you pay the job price (including any urgent bonus you add), plus Louisiana sales tax on the labor for taxable job types (auto and appliance repair). Your first paid job also carries ${SETUP_FEE_PHRASE}, charged once per account, unless you already paid it on a job you did or on Declutter. On Declutter, the buyer pays the item price plus a buyer's fee of ${DECLUTTER_BUYER_FEE_WORDS}, once per checkout, and the seller keeps the whole item price. When you do a job, every job shows exactly what you will take home before you apply. Job payouts are rounded down to the whole dollar (tips are paid in full). If a paid job is cancelled, the cancel screen shows exactly what you will get back before you confirm. If the mistake was ours, you get everything back.`,
       },
       {
         q: "What if there's a dispute?",

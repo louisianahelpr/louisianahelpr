@@ -13,6 +13,8 @@ import { shouldShowDisputeLink } from "@/components/jobs/DisputeLink";
 
 vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: () => {} }));
+// F236/F258: the setup fee amount is read live (a query); the tests give it the prod value.
+vi.mock("@/hooks/useOnboardingFee", async (orig) => ({ ...(await orig<typeof import("@/hooks/useOnboardingFee")>()), useOnboardingFeeCents: () => 200 }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { auth: { onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }) } },
 }));

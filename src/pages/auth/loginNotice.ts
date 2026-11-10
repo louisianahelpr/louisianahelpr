@@ -13,6 +13,9 @@ export function loginNotice(o: {
   signedOutForInactivity: boolean;
   /** The device lost its session on a signed-in screen (ProtectedRoute). */
   sessionLost?: boolean;
+  /** F281a: this browser has held a session before (hadSessionOnThisBrowser). A bounce from a gated route is then a
+   *  lapsed member's, not a guest's: the session-lost line, leading with Log in, not Create an account. */
+  hadSessionHere?: boolean;
   arrivedFromSignup: boolean;
   bouncedFromGatedRoute: boolean;
   /** Where the bounced guest was going (already checked by safeInternalRedirect). */
@@ -28,7 +31,7 @@ export function loginNotice(o: {
       ? null // the dialog says it; "That page needs an account" (the /home bounce) would not fit
       : connectName
       ? `Log in to the account you already have. Next you'll connect ${connectName} to it, so that button opens this same account from now on.`
-      : o.sessionLost
+      : o.sessionLost || (o.bouncedFromGatedRoute && o.hadSessionHere)
       ? "You were signed out on this browser. Log back in and we'll take you right back to where you were."
       : o.signedOutForInactivity
       ? "You were signed out after 30 minutes of inactivity. Log back in to pick up where you left off."

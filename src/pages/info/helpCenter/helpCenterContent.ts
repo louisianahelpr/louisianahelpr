@@ -199,6 +199,17 @@ export const FAQ_SECTIONS: FaqSection[] = [
         a: "You set the price. Pick what the job is worth to you.",
       },
       {
+        // F411 (audit 11-10): no answer was called "How do I cancel a job?". Same rule as the answer below
+        // (cancellationFee.ts: free 24+ hours out; inside 24 hours part goes to the Helpr and it is a strike).
+        q: "How do I cancel a job?",
+        a: `Open the job and tap Cancel job. ${NO_HIRE_REFUND} With a Helpr hired, cancelling is free up to 24 hours before the start. Closer than that, the Helpr gets part of the price for holding the time, and it counts as a strike. You see the exact amount before you confirm.`,
+      },
+      {
+        // F411 (audit 11-10): the no-show steps, in the words of the Report no-show dialog (ActivityDialogs.tsx).
+        q: "What if my Helpr doesn't show up?",
+        a: "Once the start time has passed, open the job and tap Report no-show. The Helpr comes off your job and it goes on their record. To hire someone else, change the date right away; otherwise the job is cancelled and refunded. Our team is told about every no-show.",
+      },
+      {
         q: "Can I cancel after someone applies?",
         // WAS: "Yes, before accepting an applicant. Once you accept and payment
         // is held securely, a cancellation fee applies." FALSE — the fee is

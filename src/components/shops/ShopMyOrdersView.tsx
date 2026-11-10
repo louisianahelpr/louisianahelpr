@@ -37,6 +37,21 @@ function buyerGroup(o: Pick<ShopOrder, "status">): BuyerGroup {
 }
 
 /**
+ * The buyer's empty Orders (shops audit 11-10 F16: "Browse shops" is a button, as on Jobs and Declutter, not a
+ * plain underlined link). The loading placeholder is this same card, hidden (Q2558).
+ */
+function NoOrdersYet() {
+  return (
+    <ShopsNotice title="No orders yet.">
+      <p>Order from a local shop and it shows here.</p>
+      <Button asChild variant="outline" size="sm" className="mt-2 rounded-full">
+        <Link to="/shops">Browse shops</Link>
+      </Button>
+    </ShopsNotice>
+  );
+}
+
+/**
  * `embedded`: rendered inside the Shops section's Orders tab (no page frame of
  * its own), with the status boxes on top and the orders grouped. Standalone
  * (/shops/orders) it is unchanged.
@@ -92,17 +107,17 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
       {orders.isError ? (
         <ErrorState variant="inline" title="We couldn't load your orders." body={shopsErrorMessage(orders.error)} onRetry={() => void orders.refetch()} />
       ) : orders.isLoading || !user ? (
-        // Q2558: the "No orders yet." card, 98px measured 2026-11-02 (both test accounts); two 144px order
-        // bones collapsed 202px into it. A list of orders grows below.
-        <ul className="space-y-3" role="status" aria-label="Loading your orders">
-          <li><Skeleton className="h-[98px] w-full rounded-2xl" /></li>
-        </ul>
+        // Q2558: the placeholder is the "No orders yet." card itself, hidden under one bone, so it is exactly
+        // that card's height at every width and theme (two 144px order bones once collapsed 202px into it;
+        // a fixed 98px went stale with the card's words). A list of orders grows below.
+        <div className="relative" role="status" aria-label="Loading your orders">
+          <div className="invisible" aria-hidden>
+            <NoOrdersYet />
+          </div>
+          <Skeleton className="absolute inset-0 rounded-2xl" />
+        </div>
       ) : (orders.data ?? []).length === 0 ? (
-        <ShopsNotice title="No orders yet.">
-          <p>
-            Order from a local shop and it shows here. <Link to="/shops" className="underline">Browse shops</Link>
-          </p>
-        </ShopsNotice>
+        <NoOrdersYet />
       ) : (
         embedded ? (
           <>

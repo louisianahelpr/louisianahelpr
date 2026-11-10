@@ -528,6 +528,17 @@ describe("the dashboard entries", () => {
     expect(screen.getByText("Be the first: open a free shop.")).toBeTruthy();
     expect(screen.queryByText("Coming soon")).toBeNull();
   });
+  // Shops audit 11-10 F16: the buyer's empty Orders leads on with a Browse shops BUTTON, not an underlined link.
+  // @mutate src/components/shops/ShopMyOrdersView.tsx |       <Button asChild variant="outline" size="sm" className="mt-2 rounded-full">\n        <Link to="/shops">Browse shops</Link>\n      </Button> |       <Link to="/shops" className="underline">Browse shops</Link>
+  it("Orders with none yet: No orders yet, and Browse shops is a button", async () => {
+    orders.fetchMyOrders.mockResolvedValue([]);
+    renderAt("/shops/orders", "/shops/orders", <ShopOrdersPage />);
+    const browse = await screen.findByRole("link", { name: "Browse shops" });
+    expect(screen.getByText("No orders yet.")).toBeTruthy();
+    expect(browse.getAttribute("href")).toBe("/shops");
+    expect(browse.className).toContain("rounded-full");
+    expect(browse.className).not.toMatch(/(^|\s)underline(\s|$)/);
+  });
   it("the Shop tab without a shop: Open a shop", async () => {
     api.fetchMyShopId.mockResolvedValue(null);
     renderAt("/shops?tab=shop", "/shops", <ShopsPage />);

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { TwoStepCategoryPicker } from "@/components/ui/TwoStepCategoryPicker";
 
 /** The common kinds of shop (audit 11-10 F7: bakery, crafts, plants, cleaning, ...). Only those on the server's list show. */
-export const COMMON_SHOP_CATEGORIES = ["bakery", "crafts_gifts", "plants_garden", "cleaning", "lawn_landscaping"] as const;
+const COMMON_SHOP_CATEGORIES = ["bakery", "crafts_gifts", "plants_garden", "cleaning", "lawn_landscaping"] as const;
 
 interface Group { slug: string; label: string; items: { slug: string; label: string }[] }
 

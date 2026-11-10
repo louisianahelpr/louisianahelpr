@@ -258,6 +258,8 @@ export const sponsorPage = {
 
   rules: {
     /** Set to true ONLY after the owner has reviewed every section and no [placeholder] is left. */
+    // Shown to visitors instead of the rules while they are still a draft (owner 11-10).
+    pendingNote: "The official rules for 25 Days of Louisiana Giveaways will be posted here before the first giveaway on December 1. Questions? Email admin@louisianahelpr.com.",
     approved: false,
     draftBanner: "DRAFT – review before publishing",
     title: "Official Giveaway Rules",

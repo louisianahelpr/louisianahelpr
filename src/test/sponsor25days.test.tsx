@@ -224,6 +224,11 @@ describe("links and rules", () => {
   });
   it("the rules page stays a DRAFT until approved with no placeholder left", () => {
     expect(rulesAreDraft(sponsorPage.rules)).toBe(true);
+    // Owner 11-10: a draft is never shown to visitors; they get the pending note instead (the local ?demo preview still shows it).
+    const page = fs.readFileSync(path.resolve(__dirname, "../pages/sponsor/SponsorRulesPage.tsx"), "utf8");
+    expect(page).toContain("draft && !showDraft ?");
+    expect(page).toMatch(/showDraft = import\.meta\.env\.DEV/);
+    expect(sponsorPage.rules.pendingNote).toMatch(/before the first giveaway on December 1/);
     expect(rulesAreDraft({ approved: true, sections: [{ heading: "A", body: "Open to [state] residents" }] })).toBe(true);
     expect(rulesAreDraft({ approved: true, sections: [{ heading: "A", body: "Open to Louisiana residents" }] })).toBe(false);
     // The content file may only be approved once every placeholder in the rules is filled.

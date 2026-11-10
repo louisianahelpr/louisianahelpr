@@ -15,6 +15,7 @@
  * @mutate src/pages/jobs/JobDetail.tsx | "id, title, category, budget, location, urgent_fee, | "id, title, description, category, budget, location, urgent_fee,
  * @mutate src/pages/jobs/JobDetail.tsx | navigate(signupUrlFor(id ? `/jobs/${id}` : null)) | navigate("/signup")
  * @mutate src/pages/jobs/JobDetail.tsx | onClose={() => navigate("/browse")} | onClose={() => navigate("/home")}
+ * @mutate src/pages/jobs/JobDetail.tsx | if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id ?? "")) return null; | if (id === "") return null;
  * @mutate src/pages/auth/Login.tsx | const signupHref = signupUrlFor(pendingRedirect); | const signupHref = pendingRedirect?.match(/^\/jobs\/([^/?#]+)$/) ? signupUrlFor(pendingRedirect) : "/signup";
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -190,5 +191,18 @@ describe("the Log in screen's sign-up link (item 2)", () => {
     const login = blankComments(readFileSync(resolve(process.cwd(), "src/pages/auth/Login.tsx"), "utf8"));
     expect(login).toContain("const signupHref = signupUrlFor(pendingRedirect);");
     expect(signupUrlFor(`/jobs/${JOB_ID}?ref=share`)).toBe(`/signup?redirect=${encodeURIComponent(`/jobs/${JOB_ID}?ref=share`)}`);
+  });
+});
+
+// F254 (audit 11-10): /jobs/abc was a refused read that said "our end is having a hiccup" with a Try again that could
+// never work. A malformed id now reads as "This job isn't available." and is never sent to the server.
+describe("F254: a malformed job id", () => {
+  it("says the job isn't available, with no Try again, and asks the server nothing", async () => {
+    state.row = null;
+    openLink("/jobs/abc");
+    expect(await screen.findByText("This job isn't available.")).toBeTruthy();
+    expect(screen.queryByText(/having a hiccup/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /try again/i })).toBeNull();
+    expect(state.columns).toEqual([]);
   });
 });

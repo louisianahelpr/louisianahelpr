@@ -49,7 +49,7 @@ const aiAnswer = {
   hold: false,
   release: null as null | (() => void),
   // Photo coach (owner 2026-10-29): a test may add a cover pick and a photo tip.
-  extra: {} as { coverPhoto?: number; photoTip?: string; description?: string },
+  extra: {} as { coverPhoto?: number; photoTip?: string; description?: string; title?: string; priceDollars?: number; noItem?: boolean },
   next(): Promise<typeof DRAFT> {
     const d = { ...DRAFT, ...this.extra };
     if (!this.hold) return Promise.resolve(d);
@@ -458,6 +458,46 @@ describe("photo-first selling, one screen", () => {
     await waitFor(() => expect(aiCalls).toHaveLength(3));
     await screen.findByRole("button", { name: "Write it again" });
     expect(rowValue("title")).toBe("My grandmother's dresser");
+  });
+
+  // Audit 11-10 F326 (High): a title and price typed BEFORE the first photo were overwritten by the writer's answer.
+  // @mutate src/components/declutter/SellAiDraft.tsx |     if (!memory.current) memory.current = { base: aiFieldsOf(blank ?? formRef.current), theirs: [] }; |     if (!memory.current) memory.current = { base: aiFieldsOf(formRef.current), theirs: [] };
+  it("F326: what the seller typed before the first photo stays; the writer fills the rest", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    fireEvent.click(screen.getByRole("button", { name: "Add title" }));
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "TEST - please ignore" } });
+    fireEvent.click(screen.getByRole("button", { name: "Done title" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add price" }));
+    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "15" } });
+    fireEvent.click(screen.getByRole("button", { name: "Done price" }));
+    addPhotos("a.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    expect(rowValue("title")).toBe("TEST - please ignore");
+    expect(rowValue("price")).toBe("$15");
+    expect(rowValue("description")).toBe(DRAFT.description);
+  });
+
+  // F326: with no item in the photo the writer's advice went into the title, details and price, ready to post.
+  // @mutate src/components/declutter/SellAiDraft.tsx | export const noItemDraft = (d: AiDraft): boolean => d.noItem === true \|\| WRITER_WARNING_RE.test(d.title); | export const noItemDraft = (d: AiDraft): boolean => false;
+  it.each([
+    ["the function says no item", { noItem: true, title: "No item seen", description: "", priceDollars: 1 }],
+    ["an older function wrote its advice into the title", { title: "Item photo unclear - please retake photos", description: "The photo shows only a uniform gray, grainy surface.", priceDollars: 5 }],
+  ])("F326: %s: nothing is filled in and the photos get one message", async (_name, extra) => {
+    aiAnswer.extra = extra;
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await screen.findByText("We couldn't see an item in this photo. Try another photo in good light.");
+    expect(screen.queryByText("We wrote your listing. Check it before you post")).toBeNull();
+    expect(document.querySelector('[data-summary-row="title"]')!.textContent).not.toMatch(/unclear|No item seen/);
+    expect(document.querySelector('[data-summary-row="price"]')!.textContent).not.toMatch(/\$5\b|\$1\b/);
+    expect(document.querySelector('[data-summary-row="description"]')!.textContent).not.toMatch(/uniform gray/);
+    // The next photo is read again, and a real item fills the form.
+    aiAnswer.extra = {};
+    addPhotos("b.jpg");
+    await screen.findByText("We wrote your listing. Check it before you post");
+    expect(rowValue("title")).toBe(DRAFT.title);
   });
 
   // Audit posting 1030 #7: tapping Post while the AI wrote said "Give the item a name".

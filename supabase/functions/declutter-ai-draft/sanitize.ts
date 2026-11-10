@@ -39,6 +39,11 @@ export interface DeclutterDraft {
   coverPhoto: number | null;
   /** At most one "one more photo would help" tip (e.g. "A photo of the label"), or null. */
   photoTip: string | null;
+  /**
+   * Audit 11-10 F326 (High): the model saw no sellable item (a blank wall, a blurry or uniform surface). The form
+   * fills nothing from such an answer and says so by the photos. Only an explicit `true` counts.
+   */
+  noItem: boolean;
 }
 
 /** Brand / model / size / measurements read from labels, as one line added to the details (never invented: blank when not readable). */
@@ -100,7 +105,8 @@ export function sanitizeDraft(raw: unknown, photoCount?: number): DeclutterDraft
   const coverPhoto = photoCount !== undefined && Number.isInteger(cover) && cover >= 0 && cover < photoCount ? cover : null;
   const tipRaw = typeof r.photo_tip === "string" ? oneLine(r.photo_tip).slice(0, 120) : "";
   const photoTip = tipRaw.length >= 3 ? tipRaw : null;
-  return { title, description, category, deliverySize, conditionStars, flagged, flagReason, priceDollars, priceReason, coverPhoto, photoTip };
+  const noItem = r.no_item === true;
+  return { title, description, category, deliverySize, conditionStars, flagged, flagReason, priceDollars, priceReason, coverPhoto, photoTip, noItem };
 }
 
 /** What declutter_price_hint answers: the middle of OUR past sales of the same category and condition nearby. */

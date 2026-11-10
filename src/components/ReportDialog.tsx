@@ -204,8 +204,10 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
           convention — DialogContent turns a prevented autofocus into
           `content.focus()`, so the dialog still owns focus, a screen reader
           announces the title, and Tab starts inside the modal. */}
+      {/* keepClose: on a phone this is a sheet whose Cancel sits under the reasons and the text box; the X at the top
+          is the near exit (audit 1110 F359j; owner 10-31, every sheet keeps its X). */}
       <DialogContent
-          stepped onOpenAutoFocus={(e) => e.preventDefault()}>
+          stepped keepClose onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero title={title} />
 
         {step === "form" && (

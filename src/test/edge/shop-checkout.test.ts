@@ -59,6 +59,13 @@
  * @mutate supabase/functions/shop-checkout/index.ts |   const atHome = lines.some((l) => l.at_buyer === true); |   const atHome = false;
  * @mutate supabase/functions/shop-checkout/index.ts |   if (serviceAddress === "invalid") return json({ error: "invalid_service_address" }, 400); |
  * @mutate supabase/functions/shop-checkout/index.ts |     if (unusable) return json({ error: atHome ? "service_address_unusable" : "pickup_address_unusable" }, 409); |     if (unusable) return json({ error: "pickup_address_unusable" }, 409);
+ * Q2146: a refused pickup address is stamped and its owner told (never for the buyer's own address or a try-again).
+ * @mutate supabase/functions/shop-checkout/index.ts |     if (unusable && !atHome && pickupVersion?.updatedAt) { |     if (false) {
+ * @mutate supabase/functions/shop-checkout/index.ts |     if (unusable && !atHome && pickupVersion?.updatedAt) { |     if (shopId) {
+ * @mutate supabase/functions/shop-checkout/index.ts |     pickupVersion = null;
+ | 
+
+ * @mutate supabase/functions/shop-checkout/index.ts |   if (!atHome && pickupVersion?.refused && pickupVersion.updatedAt) { |   if (false) {
  * @mutate supabase/functions/shop-checkout/index.ts |      const { error: purgeErr } = await admin.from("shop_order_service_addresses").delete().eq("order_id", o.id); |      const purgeErr = null;
  * Delivery (migration 20261106180902, "Shop delivers"):
  * @mutate supabase/functions/shop-checkout/index.ts |  const chargedCents = o.items_cents + o.premium_cents + deliveryCents + setupFeeCents + tax.cents; |  const chargedCents = o.items_cents + o.premium_cents + setupFeeCents + tax.cents;
@@ -284,6 +291,8 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     const res = await fn.fetch(askAtHome(fn));
     expect(res.status).toBe(409);
     expect((await json(res)).error).toBe("service_address_unusable");
+    // Q2146: the buyer's own address is not the shop's to fix: no stamp, no notice to the shop.
+    expect(rpcs("shops_mark_pickup_address_refused")).toHaveLength(0);
     expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
     expect(scenario.writes.filter((w) => w.table === "shop_order_service_addresses").map((w) => w.op)).toEqual(["insert", "delete"]);
   });
@@ -426,6 +435,32 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     expect(clientOf(closed[0])?.key).toBe("anon-key");
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
     expect(rpcs("shop_attach_checkout_session")).toHaveLength(0);
+    // Q2146: the refused pickup address is stamped for the shop (My shop says so) and its owner told once, by the server.
+    const marked = rpcs("shops_mark_pickup_address_refused");
+    expect(marked.map((c) => c.args)).toEqual([
+      { p_shop_id: SHOP, p_address_updated_at: "2026-10-18T03:00:00.123456+00:00", p_reason: "Unable to determine tax location" },
+    ]);
+    expect(clientOf(marked[0])?.key).toBe("service-key");
+  });
+
+  it("Q2146 (review 2): a pickup address Stripe taxes after refusing it before is cleared; one never refused calls nothing", async () => {
+    const fn = await load();
+    frozen();
+    scenario.reads.shop_pickup_addresses = { rows: [pickup({ tax_refused_at: "2026-11-10T20:00:00Z" })] };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6625 });
+    expect((await fn.fetch(ask(fn))).status).toBe(200);
+    const cleared = rpcs("shops_clear_pickup_address_refused");
+    expect(cleared.map((c) => c.args)).toEqual([{ p_shop_id: SHOP, p_address_updated_at: "2026-10-18T03:00:00.123456+00:00" }]);
+    expect(clientOf(cleared[0])?.key).toBe("service-key");
+
+    resetSupabaseMock();
+    resetStripeMock();
+    scenario.reads.test_accounts = { rows: [] };
+    const fn2 = await load();
+    frozen();
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6625 });
+    expect((await fn2.fetch(ask(fn2))).status).toBe(200);
+    expect(rpcs("shops_clear_pickup_address_refused")).toHaveLength(0);
   });
 
   it("H6: any other tax refusal (Stripe Tax off, an API change, a timeout) is a try-again, never 'unusable'; the order is closed", async () => {
@@ -443,6 +478,8 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
       expect(res.status).toBe(503);
       expect((await json(res)).error).not.toBe("pickup_address_unusable");
       expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+      // Q2146: only Stripe refusing the ADDRESS is the shop's to fix; a try-again tells the shop nothing.
+      expect(rpcs("shops_mark_pickup_address_refused")).toHaveLength(0);
       expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
     }
   });
@@ -589,6 +626,15 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
       expect(calc.customer_details.address).toMatchObject({ line1: "100 Main St", city: "Lafayette", postal_code: "70501", state: "LA" });
       // The delivery is not in the tax calculation (only the items and the fee).
       expect(calc.line_items.reduce((t: number, l: any) => t + l.amount, 0)).toBe(6100 + 375);
+    });
+
+    it("Q2146: a drop-off Stripe cannot tax is the buyer's address: the shop's pickup address is never stamped", async () => {
+      const fn = await load();
+      delivered();
+      stripeMock.tax.calculations.create.mockRejectedValue(Object.assign(new Error("Unable to determine tax location"), { type: "StripeInvalidRequestError", code: "customer_tax_location_invalid", statusCode: 400 }));
+      const res = await fn.fetch(askDelivered(fn));
+      expect(res.status).toBe(409);
+      expect(rpcs("shops_mark_pickup_address_refused")).toHaveLength(0);
     });
 
     it("a drop-off the SQL refuses (too far) closes the just-frozen order and opens no page", async () => {

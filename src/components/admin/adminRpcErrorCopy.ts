@@ -95,6 +95,29 @@ export const ADMIN_RPC_ERROR_COPY = {
     shop_not_found: "This shop is gone. Refresh the reports list.",
     own_shop: "Another admin must act on your own shop.",
   },
+  // Q1952 (20261110195956): the Shops paperwork queue (permits and Secretary of State numbers).
+  shops_admin_paperwork: {
+    account_restricted: "Your account is restricted, so this can't be done right now.",
+    feature_disabled: "Shops isn't on for your account, so its paperwork can't be read.",
+    not_admin: "Only an admin can do that.",
+  },
+  shops_admin_review_permit: {
+    account_restricted: "Your account is restricted, so this can't be done right now.",
+    feature_disabled: "Shops isn't on for your account, so permits can't be checked.",
+    not_admin: "Only an admin can do that.",
+    invalid_decision: "Choose Approve or Turn down.",
+    reject_reason_required: "Say why the permit can't be checked, so the shop knows what to send.",
+    permit_not_found: "This permit is gone. Refresh the list.",
+    own_shop: "Another admin must act on your own shop.",
+    permit_already_reviewed: "This permit was already checked. Refresh the list.",
+  },
+  shops_admin_check_registration: {
+    account_restricted: "Your account is restricted, so this can't be done right now.",
+    feature_disabled: "Shops isn't on for your account, so registrations can't be checked.",
+    not_admin: "Only an admin can do that.",
+    shop_not_found: "This shop is gone or no longer has a number. Refresh the list.",
+    own_shop: "Another admin must act on your own shop.",
+  },
   shops_admin_remove_strike: {
     admin_only: "Only admins can remove a Shops strike.",
     invalid_note: "Add a note of up to 500 characters. Other admins see it.",

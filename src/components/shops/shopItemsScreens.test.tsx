@@ -35,6 +35,10 @@
  * @mutate src/components/admin/settings/ShopItemsReviewCard.tsx |   if (!row.owner_last_rejected_at) return null; |   return null;
  * @mutate src/components/shops/ShopItemEditor.tsx |   if (!/^\d+$/.test(t)) throw new Error(code); |   if (!/^\d*$/.test(t)) throw new Error(code);
  * @mutate src/components/shops/ShopItemEditor.tsx |   const cottageUnknown = d.kind === "home_food" && !cottage.data; |   const cottageUnknown = false;
+ * @mutate src/components/shops/ShopItemEditor.tsx |   if (x.photos < 3) out.push( |   if (x.photos < 0) out.push(
+ * @mutate src/components/shops/ShopItemEditor.tsx | After a rejection, new items are checked by an admin for 30 days. | New items may be checked.
+ * @mutate src/components/shops/ShopItemEditor.tsx |   const price = x.price.replace(/[$,\s]/g, ""); |   const price = x.price.replace(/[$\s]/g, "");
+ * @mutate src/components/shops/ShopItemEditor.tsx |       if (field) {\n        setFieldError({ field, msg: shopsErrorMessage(err) }); |       if (false) {\n        setFieldError({ field, msg: shopsErrorMessage(err) });
  * @mutate src/components/shops/ShopItemEditor.tsx |     enabled: !!id && (status === "rejected" \|\| status === "draft"), |     enabled: !!id && status === "rejected",
  * @mutate src/components/shops/ShopItemEditor.tsx |       if (s.kind !== d.kind \|\| s.subtype !== d.subtype) setTicked([]); |       if (false) setTicked([]);
  * @mutate src/components/shops/ShopDailyCap.tsx |   const clearing = shown.trim() === "" && cap.data != null; |   const clearing = false;
@@ -93,7 +97,7 @@ vi.mock("@/lib/shops/variants", async (orig) => ({ ...(await orig<typeof import(
 
 import ShopItemsSection from "./ShopItemsSection";
 import ShopItemsList from "./ShopItemsList";
-import ShopItemEditor from "./ShopItemEditor";
+import ShopItemEditor, { publishBlockers } from "./ShopItemEditor";
 import ShopDailyCap from "./ShopDailyCap";
 import { ShopItemsReviewCard } from "../admin/settings/ShopItemsReviewCard";
 
@@ -325,6 +329,41 @@ describe("ShopItemEditor", () => {
     expect(screen.queryByText("Fixing an item someone brings you? Choose Repair of an item.")).toBeNull();
     fireEvent.change(screen.getByLabelText("What kind of item"), { target: { value: "made" } });
     expect(screen.queryByText("Fixing an item someone brings you? Choose Repair of an item.")).toBeNull();
+  });
+
+  // Shops audit 11-10 F11: what a draft still needs is listed beside Publish, and a refused title shows under its field.
+  it("F11: a draft lists what stands between it and Publish, beside the button", async () => {
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft", title: "", photos: [{ id: "p1", storage_path: "u1/a.jpg" }] as ShopItem["photos"] })} onCreated={() => {}} onDone={() => {}} />);
+    const list = await screen.findByTestId("item-publish-blockers");
+    expect(list.textContent).toContain("Add 2 more photos (3 to 12).");
+    expect(list.textContent).toContain("Give it a title of 3 to 80 characters.");
+    expect(list.textContent).toMatch(/Tick (the confirmation|the \d+ confirmations) above\./);
+    expect((screen.getByRole("button", { name: "Publish" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  // Q1961 (owner 11-10 2:05 PM): the 30-day hold after a rejection is said beside Publish, in the owner's words.
+  it("Q1961: the editor says new items are checked by an admin for 30 days after a rejection", async () => {
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft" })} onCreated={() => {}} onDone={() => {}} />);
+    expect(await screen.findByText(/After a rejection, new items are checked by an admin for 30 days\./)).toBeTruthy();
+    expect(screen.getByText(/Changing only the price or stock of a live item keeps it live\./)).toBeTruthy();
+  });
+
+  it("F11: the price check reads a price the way the save does (\"$1,200\" is a price)", () => {
+    const base = { photos: 3, title: "Pecan pie", unticked: 0, cottageNeedsTick: false, cottageUnknown: false };
+    expect(publishBlockers({ ...base, price: "$1,200" })).toEqual([]);
+    expect(publishBlockers({ ...base, price: "0" })).toEqual(["Enter a price."]);
+    expect(publishBlockers({ ...base, price: "abc" })).toEqual(["Enter a price."]);
+  });
+
+  it("F11: a refused title shows in red under the title, not as a toast", async () => {
+    api.updateShopItem.mockRejectedValueOnce(Object.assign(new Error("invalid_title"), { code: "22023" }));
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft" })} onCreated={() => {}} onDone={() => {}} />);
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "ab" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    const title = screen.getByLabelText("Title");
+    await waitFor(() => expect(title.getAttribute("aria-invalid")).toBe("true"));
+    expect(document.getElementById("item-title-error")?.getAttribute("role")).toBe("alert");
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it("an empty 'days' box is refused, never saved as 0 (same day)", async () => {

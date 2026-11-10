@@ -20,15 +20,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { fetchMyPickupAddress, isLouisianaZip5, saveMyPickupAddress } from "@/lib/shops/pickupAddress";
+import { fetchMyPickupAddress, fetchMyPickupAddressProblem, isLouisianaZip5, saveMyPickupAddress } from "@/lib/shops/pickupAddress";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { savePickupPoint } from "@/lib/shops/delivery";
 
 const KEY = ["shops", "my-pickup-address"] as const;
+const PROBLEM_KEY = ["shops", "my-pickup-address-problem"] as const;
 
 export default function ShopPickupAddressSection() {
   const qc = useQueryClient();
   const current = useQuery({ queryKey: KEY, queryFn: fetchMyPickupAddress });
+  // Q2146: Stripe refused this address for sales tax, so buyers cannot order until it is fixed. A failed read shows
+  // nothing extra (the address form still works); the owner also got a notice when it happened.
+  const refused = useQuery({ queryKey: PROBLEM_KEY, queryFn: fetchMyPickupAddressProblem });
   const [line1, setLine1] = useState("");
   const [line2, setLine2] = useState("");
   const [city, setCity] = useState("");
@@ -53,6 +57,7 @@ export default function ShopPickupAddressSection() {
     onSuccess: async () => {
       toast.success("Pickup address saved.");
       void qc.invalidateQueries({ queryKey: KEY });
+      void qc.invalidateQueries({ queryKey: PROBLEM_KEY });
       try {
         await savePickupPoint();
       } catch (err) {
@@ -96,6 +101,11 @@ export default function ShopPickupAddressSection() {
         <form className="space-y-3" onSubmit={onSubmit} noValidate>
           {!current.data && (
             <p className="text-sm font-medium">Add your pickup address to start taking orders.</p>
+          )}
+          {current.data && refused.data && (
+            <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive-ink" role="alert" data-testid="pickup-address-refused">
+              We couldn't work out sales tax for this address, so buyers can't order right now. Check the street, city and ZIP, then save it again.
+            </p>
           )}
           <div className="space-y-1.5">
             <Label htmlFor="pickup-line1">Street address</Label>

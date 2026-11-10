@@ -9,6 +9,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { isLouisianaZip } from "@/lib/shipping/policy";
 import { rpcErrorMessage } from "./rpcErrorCopy";
 
@@ -35,6 +36,21 @@ export async function fetchMyPickupAddress(): Promise<PickupAddress | null> {
   const rows = unwrap(await supabase.rpc("shops_my_pickup_address"));
   const r = rows?.[0];
   return r ? { line1: r.line1, line2: r.line2, city: r.city, state: r.state, postal_code: r.postal_code } : null;
+}
+
+/**
+ * Q2146 (20261110205854): when Stripe last refused the owner's pickup address for sales tax, or null when it has not
+ * since the address last changed. Buyers cannot order while it stands. A server without the function yet (PGRST202,
+ * the migration not deployed) reads as null; any other error throws.
+ */
+export async function fetchMyPickupAddressProblem(): Promise<string | null> {
+  const { data, error } = await supabase.rpc("shops_my_pickup_address_problem");
+  if (error) {
+    if (isMissingRpcNamed(error, "shops_my_pickup_address_problem")) return null;
+    const words = rpcErrorMessage("shops_my_pickup_address_problem", error);
+    throw Object.assign(new Error(error.message), error, words ? { userMessage: words } : {});
+  }
+  return typeof data === "string" ? data : null;
 }
 
 /** Where to pick up an order: null until the maker accepted it (or for anyone but its buyer and seller). */

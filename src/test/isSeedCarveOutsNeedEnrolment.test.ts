@@ -292,6 +292,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   shop_rows_seed_from_owner: "tags",
   shop_state_ok: "hides",
   shops_admin_queue: "tags",
+  shops_admin_paperwork: "tags", // 20261110195956 (Q1952): each permit / registration row says is_seed; the admin card drops them
+  shops_submit_permit: "tags", // 20261110195956 (Q1952): the permit copies its shop's is_seed
   shops_request_order: "tags",
   shops_request_digital_order: "tags", // 20261108185110 (Shops digital downloads): the order line copies its order's is_seed
   shops_report_digital_problem: "alerts", // 20261108185110 (Shops digital downloads): a test order's problem report reaches no admin; no money moves

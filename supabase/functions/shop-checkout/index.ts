@@ -206,15 +206,25 @@ function parseServiceAddress(v: unknown): ServiceAddress | null | "invalid" {
  * previous page, so a missing address answers first, review 2026-10-18 finding 3). "missing" when the shop has
  * none (the SQL refuses such an order first; this is the race where it vanished). A failed read throws.
  */
-async function pickupTaxAddress(admin: Db, shopId: string): Promise<PickupTaxAddress | "missing"> {
+async function pickupTaxAddress(admin: Db, shopId: string): Promise<{ address: PickupTaxAddress; version: PickupVersion } | "missing"> {
   const { data, error } = await admin.from("shop_pickup_addresses")
-    .select("line1, line2, city, state_code, postal_code")
+    .select("line1, line2, city, state_code, postal_code, updated_at, tax_refused_at")
     .eq("shop_id", shopId).maybeSingle();
   if (error) throw new Error(`pickup address read failed: ${error.message}`);
-  const a = data as { line1: string; line2: string | null; city: string; state_code: string; postal_code: string } | null;
+  const a = data as { line1: string; line2: string | null; city: string; state_code: string; postal_code: string;
+    updated_at?: string | null; tax_refused_at?: string | null } | null;
   if (!a) return "missing";
-  return { line1: a.line1, ...(a.line2 ? { line2: a.line2 } : {}), city: a.city, state: a.state_code, postal_code: a.postal_code, country: "US" };
+  return {
+    address: { line1: a.line1, ...(a.line2 ? { line2: a.line2 } : {}), city: a.city, state: a.state_code, postal_code: a.postal_code, country: "US" },
+    version: { updatedAt: a.updated_at ?? null, refused: !!a.tax_refused_at },
+  };
 }
+
+/**
+ * Q2146: which copy of the pickup address the tax was figured on (its updated_at, passed back unchanged so a stamp
+ * never lands on an address saved since) and whether Stripe had refused it before (a success then clears that).
+ */
+interface PickupVersion { updatedAt: string | null; refused: boolean }
 
 /**
  * H6: Stripe names a pickup address it cannot tax by an invalid_request on the customer's tax location
@@ -335,11 +345,14 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   const ownerId = (shopRow as { owner_id?: string | null } | null)?.owner_id ?? null;
   let mode: StripeMode | null = null;
   let taxAddress: PickupTaxAddress | null = null;
+  // Q2146: set only while the tax is figured at the shop's own pickup address (not a delivery or an at-home job).
+  let pickupVersion: PickupVersion | null = null;
   if (ownerId) {
     mode = await stripeModeForParties(admin, [user.id, ownerId], { caller: user.id });
     const addr = await pickupTaxAddress(admin, shopId);
     if (addr === "missing") return json({ error: "pickup_address_missing" }, 409);
-    taxAddress = addr;
+    taxAddress = addr.address;
+    pickupVersion = addr.version;
   }
 
   // H8 (b): an at-home cleaning is ordered on its own and needs the buyer's address, answered BEFORE the order
@@ -437,6 +450,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     // The tax follows the order to where the buyer takes it: the drop-off (tax memo Q3).
     taxAddress = { line1: delivery.line1, ...(delivery.line2 ? { line2: delivery.line2 } : {}), city: delivery.city, state: "LA",
                    postal_code: delivery.postal_code, country: "US" };
+    pickupVersion = null;
   }
 
   const o = await readOrder(admin, frozen.order_id);
@@ -557,8 +571,22 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       const { error: purgeErr } = await admin.from("shop_order_service_addresses").delete().eq("order_id", o.id);
       if (purgeErr) console.error(`[shop-checkout] order ${o.id} service address not purged: ${purgeErr.message}`);
     }
+    // Q2146: a refused PICKUP address is the shop's to fix: stamp the copy it was figured on (My shop says so) and
+    // tell the owner once. Never for a delivery or at-home address (the buyer's). A failed stamp is logged, never
+    // shown to the buyer, whose 409 follows it.
+    if (unusable && !atHome && pickupVersion?.updatedAt) {
+      const { error: markErr } = await admin.rpc("shops_mark_pickup_address_refused", {
+        p_shop_id: shopId, p_address_updated_at: pickupVersion.updatedAt, p_reason: caughtMessage(e).slice(0, 200),
+      });
+      if (markErr) console.error(`[shop-checkout] shop ${shopId} pickup address refusal not recorded: ${markErr.message}`);
+    }
     if (unusable) return json({ error: atHome ? "service_address_unusable" : "pickup_address_unusable" }, 409);
     return json({ error: TRY_AGAIN }, 503);
+  }
+  // Q2146: Stripe taxed the pickup address it had refused before (a one-off refusal): the stamp and My shop's note go.
+  if (!atHome && pickupVersion?.refused && pickupVersion.updatedAt) {
+    const { error: clearErr } = await admin.rpc("shops_clear_pickup_address_refused", { p_shop_id: shopId, p_address_updated_at: pickupVersion.updatedAt });
+    if (clearErr) console.error(`[shop-checkout] shop ${shopId} pickup address refusal not cleared: ${clearErr.message}`);
   }
   meta.tax_calculation_id = tax.calculationId;
   meta.job_tax_cents = String(tax.cents);

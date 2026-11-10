@@ -29,7 +29,7 @@
 // @mutate src/components/declutter/declutterShell.ts |   if (!el.hasAttribute("data-lh-photos")) { |   if (el) {
 // @mutate src/components/declutter/declutterShell.ts | removeShellOncePainted(DECLUTTER_SHELL_ID, doc), SHELL_PHOTO_HOLD_MS); | removeShellOncePainted(DECLUTTER_SHELL_ID, doc), SHELL_PHOTO_HOLD_MS * 10);
 // @mutate index.html |           document.documentElement.setAttribute("data-lh-declutter-guest", ""); |
-// @mutate src/index.css | [data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join] {\n  display: block !important; | [data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join] {\n  display: none;
+// @mutate src/index.css |   [data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join] {\n    display: block !important; |   [data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join] {\n    display: none;
 // @mutate src/index.css | [data-lh-declutter-guest] #lh-declutter-shell [data-lh-member-tabs] {\n  display: none !important; | [data-lh-declutter-guest] #lh-declutter-shell [data-lh-member-tabs] {\n  display: block;
 // @mutate src/components/declutter/DeclutterSkeletons.tsx | {(guestJoin \|\| hasPersistedAuthToken()) && <DeclutterPhoneTabBones />} | {false && <DeclutterPhoneTabBones />}
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -321,11 +321,11 @@ describe("the skeleton's boxes are Browse's (no jump when Browse replaces the dr
     expect(join).toBeGreaterThan(0);
     expect(join, "above the cards").toBeLessThan(shell.indexOf('aria-label="Loading items"'));
     // The rule that shows it: inlined into the HTML by the build, and the same rule in the app's sheet.
-    expect(DECLUTTER_GUEST_JOIN_RULE).toBe("[data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join]{display:block!important}");
+    expect(DECLUTTER_GUEST_JOIN_RULE).toBe("@media (max-width:899px){[data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join]{display:block!important}}");
     const decl = SHELLS.find((s: { id: string }) => s.id === "lh-declutter-shell") as { show: string };
     expect(decl.show).toContain(DECLUTTER_GUEST_JOIN_RULE);
     const sheet = readFileSync("src/index.css", "utf8");
-    expect(sheet).toMatch(/\[data-lh-declutter-guest\] #lh-declutter-shell \[data-lh-guest-join\] \{\s*display: block !important;\s*\}/);
+    expect(sheet).toMatch(/@media \(max-width: 899px\) \{\s*\[data-lh-declutter-guest\] #lh-declutter-shell \[data-lh-guest-join\] \{\s*display: block !important;\s*\}/);
     // The guest script marks <html> when it shows the skeleton, and unmarks it when it takes it away.
     const guest = INDEX.slice(INDEX.indexOf("window.__lhGuestDeclutterEarly"), INDEX.indexOf("window.__lhMemberDeclutterEarly"));
     expect(guest).toContain('document.documentElement.setAttribute("data-lh-declutter-guest", "");');

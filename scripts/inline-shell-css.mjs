@@ -41,7 +41,7 @@ export const SHOW_RULE = `[data-lh-landing-shell] #lh-landing-shell${FIXED}`;
 export const DECLUTTER_PHOTO_MARKUP =
   '<div class="relative overflow-hidden aspect-square w-full rounded-2xl bg-photo-empty"><img class="relative h-full w-full object-cover"></div>';
 /** src/index.css carries the same rule (src/boot/memberDeclutterEarly.test.ts holds the two equal). */
-export const DECLUTTER_GUEST_JOIN_RULE = "[data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join]{display:block!important}";
+export const DECLUTTER_GUEST_JOIN_RULE = "@media (max-width:899px){[data-lh-declutter-guest] #lh-declutter-shell [data-lh-guest-join]{display:block!important}}";
 /** F153 (11-09): src/index.css carries the same rule. A guest has no section tabs, so the member tab bones hide. */
 export const DECLUTTER_GUEST_NO_TABS_RULE = "[data-lh-declutter-guest] #lh-declutter-shell [data-lh-member-tabs]{display:none!important}";
 export const SHELLS = [

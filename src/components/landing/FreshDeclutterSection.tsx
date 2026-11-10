@@ -96,6 +96,7 @@ export function FreshDeclutterSection() {
       try {
         const { supabase } = await import("@/integrations/supabase/client");
         const { unwrap } = await import("@/lib/supabaseResult");
+        const { isMissingRpcNamed } = await import("@/lib/missingRpc");
         // Owner 11-09 (10:55 PM): POPULAR items first, not just the newest. One call: declutter_popular_items
         // (20261110054539) ranks live, priced, photographed, non-test listings by saves, offers and recent page views,
         // then the best-selling categories, then the newest, and returns each card's cover photo path with it.
@@ -106,7 +107,7 @@ export function FreshDeclutterSection() {
           const got = popular.data ?? [];
           rows = got.map(({ photo_path: _p, live_at: _l, ...r }) => r);
           for (const r of got) if (r.photo_path) first.set(r.id, r.photo_path);
-        } else if (popular.error.code === "PGRST202") {
+        } else if (isMissingRpcNamed(popular.error, "declutter_popular_items")) {
           // The function is not deployed yet (a client ahead of db-deploy): the newest listings, as before.
           rows = (unwrap(
             await supabase

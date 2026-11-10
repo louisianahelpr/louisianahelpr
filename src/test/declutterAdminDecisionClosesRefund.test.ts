@@ -8,17 +8,17 @@
  *   - declutter_admin_decide_problem closes the to_admin request tied to the decided problem: agreed with the
  *     refund on a refund, declined on paying the seller;
  *   - declutter_refund_request_view tells the panel the request ended with Louisiana Helpr's decision;
- *   - declutter_refund_after_handover explains a refund that kept the card fee, in the refund form's words;
+ *   - declutter_refund_after_handover explains a refund that kept the card cost (F197: "less the card cost"; the refund form keeps the longer why);
  *   - CLASS: no Declutter function's notice (any declutter_* function that calls declutter_notify) tells a member
  *     to use "Messages".
  * Backend proof: src/test/pglite/declutterAdminDecisionClosesRefund.pglite.mjs (3x; RED without the migration).
  *
- * @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql |      WHERE order_id = o.id AND problem_id = p.id AND status = 'to_admin'; |      WHERE false;
- * @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql |        SET status = CASE WHEN p_decision IN ('refund_buyer', 'refund_part') THEN 'agreed' ELSE 'declined' END, |        SET status = 'declined',
- * @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql |           refund_id = CASE WHEN p_decision IN ('refund_buyer', 'refund_part') THEN (v_out->>'refund_id')::uuid ELSE refund_id END, |           refund_id = refund_id,
- * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql |                           WHEN v_policy = 'keep_card_fee' THEN ' That''s all you paid, less the small part the card network kept for the payment, which it doesn''t give back.'\n | \n
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |      WHERE order_id = o.id AND problem_id = p.id AND status = 'to_admin'; |      WHERE false;
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |        SET status = CASE WHEN p_decision IN ('refund_buyer', 'refund_part') THEN 'agreed' ELSE 'declined' END, |        SET status = 'declined',
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |           refund_id = CASE WHEN p_decision IN ('refund_buyer', 'refund_part') THEN (v_out->>'refund_id')::uuid ELSE refund_id END, |           refund_id = refund_id,
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |                           WHEN v_policy = 'keep_card_fee' THEN ' That''s all you paid, less the card cost.'\n | \n
  * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql |       'admin_decided', r.status IN ('agreed', 'declined') | 'admin_decided', r.status IN ('agreed', 'declined', 'to_admin')
- * @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql | 'Give the item back to the seller; message the seller from your order. Your refund | 'Give the item back to the seller; arrange it in Messages. Your refund
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql | 'Give the item back to the seller; message the seller from your order. Your refund | 'Give the item back to the seller; arrange it in Messages. Your refund
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
@@ -46,9 +46,9 @@ describe("audit 1b #5/#12: Louisiana Helpr's decision ends the refund request; n
       "'admin_decided', r.status IN ('agreed', 'declined') AND EXISTS (SELECT 1 FROM public.declutter_problems x WHERE x.id = r.problem_id AND x.status = 'decided')");
   });
 
-  it("a refund after the handover that kept the card fee says why, in the refund form's words", () => {
+  it("a refund after the handover that kept the card cost says so", () => {
     const r = body("declutter_refund_after_handover");
-    const line = "That''s all you paid, less the small part the card network kept for the payment, which it doesn''t give back.";
+    const line = "That''s all you paid, less the card cost."; // F197 (20261109224952): one name for the card cost
     expect(r.split(`WHEN v_policy = 'keep_card_fee' THEN ' ${line}'`).length - 1).toBe(2);
   });
 

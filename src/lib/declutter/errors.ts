@@ -132,7 +132,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   sale_already_paid: "The buyer already paid. Contact support to cancel.",
   // Slice 4 (20261015042253): pickup, handover, porch, no-shows, problems, reviews, money queues.
   order_not_paid: "This sale isn't paid, so this can't be done.",
-  problem_open: "A problem was reported on this sale. Louisiana Helpr will decide it before anyone is paid.",
+  problem_open: "A problem was reported on this sale. Our team will decide it before anyone is paid.",
   already_paid_out: "The seller was already paid for this sale.",
   invalid_slot: "Pick a time inside the seller's pickup times, before your 7-day pickup deadline.",
   reschedule_used: "You already moved this pickup once.",

@@ -52,9 +52,10 @@ const yusefApp = (j: Job): AppliedApp => ({ id: "app1", helper_id: "yusef", stat
 const day = (over: Partial<ContinueDay> = {}): ContinueDay => ({
   id: "c1", job_id: "7b1da54b", proposed_by: "lexi", new_date: AHEAD, new_start_time: "09:00:00", note: null, status: "set", helper_confirmed_at: null, ...over,
 });
+// F175 (20261109224343): the house date style, "Thu, Jun 18 at 9:00 AM" (was "Thu 6/18 at 9 AM").
 const label = (d: string) => {
-  const [, m, dd] = d.split("-").map(Number);
-  return `${new Date(`${d}T12:00:00`).toLocaleDateString("en-US", { weekday: "short" })} ${m}/${dd} at 9 AM`;
+  const at = new Date(`${d}T12:00:00`);
+  return `${at.toLocaleDateString("en-US", { weekday: "short" })}, ${at.toLocaleDateString("en-US", { month: "short" })} ${at.getDate()} at 9:00 AM`;
 };
 
 describe("the tracker line (Home's Live now, the chat's job card) reads the continue day", () => {
@@ -135,7 +136,7 @@ describe("the Working card face before a day set to finish", () => {
   it("leads with Message and the note, never Mark job complete", () => {
     expect(helperFaceAction(base)?.label).toBe("Mark job complete");
     const note = continueDayDoneNote(day())!;
-    expect(note).toMatch(/^You can mark it done on \w{3} \d+\/\d+, the day you set to finish\.$/);
+    expect(note).toMatch(/^You can mark it done on \w{3}, \w{3} \d+, the day you set to finish\.$/);
     const f = helperFaceAction({ ...base, continueDayNote: note, message: { name: "Lexi", onClick: () => {} } });
     expect([f?.label, f?.note]).toEqual(["Message Lexi", note]);
     expect(helperFaceAction({ ...base, continueDayNote: note })?.label).toBe("Manage job");

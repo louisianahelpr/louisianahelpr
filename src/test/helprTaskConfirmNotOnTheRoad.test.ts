@@ -8,8 +8,8 @@
  * that it matches the app's STILL_IN_HAND_MS, and that the refusal has words at the call site.
  * Backend proof: src/test/pglite/helprTaskConfirmNotOnTheRoad.pglite.mjs (3x replay; NEW_MIGRATION=skip RED).
  *
- * @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql | t.picked_up_at > now() - interval '24 hours' | t.picked_up_at > now() - interval '1 minute'
- * @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql |   IF t.status = 'picked_up' AND t.stuck_stage IS DISTINCT FROM 'collecting' |   IF t.status = 'no_such' AND t.stuck_stage IS DISTINCT FROM 'collecting'
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql | t.picked_up_at > now() - interval '24 hours' | t.picked_up_at > now() - interval '1 minute'
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   IF t.status = 'picked_up' AND t.stuck_stage IS DISTINCT FROM 'collecting' |   IF t.status = 'no_such' AND t.stuck_stage IS DISTINCT FROM 'collecting'
  * @mutate src/lib/declutter/errors.ts |   delivery_on_the_way: "The Helpr is still bringing it. Tap I got it once it's dropped off.", |   delivery_on_the_way: "Something went wrong.",
  */
 import { describe, expect, it } from "vitest";

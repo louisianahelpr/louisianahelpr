@@ -63,7 +63,7 @@ export const REFUND_RPC_ERROR_COPY = {
     refund_request_not_yours: "Only the Helpr who was asked can answer this request.",
     refund_request_answered: "This request has already been answered. Refresh to see the job as it is.",
     refund_request_poster_gone: "The person who asked is no longer on Louisiana Helpr, so there's nothing to answer.",
-    refund_request_expired: "The 2 days to answer have passed, so Helpr will decide this one.",
+    refund_request_expired: "The 2 days to answer have passed, so our team will decide this one.",
     refund_request_stale: "The job's price changed after they asked, so this request can't be agreed. Refresh and check.",
     refund_request_needs_time: "Pick a day and time to come back and finish.",
     refund_request_finish_too_far: "Pick a day within the next 7 days to come back and finish.",

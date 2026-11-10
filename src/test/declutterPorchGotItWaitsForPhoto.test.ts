@@ -8,7 +8,7 @@
  * RED on prod's bodies with NEW_MIGRATION=skip; RED with either gate planted out).
  */
 // @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |   IF o.handover = 'porch' AND NOT EXISTS ( |   IF false AND NOT EXISTS (
-// @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |   IF v_side = 'buyer' AND NOT EXISTS ( |   IF false AND NOT EXISTS (
+// @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   IF v_side = 'buyer' AND NOT EXISTS ( |   IF false AND NOT EXISTS (
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

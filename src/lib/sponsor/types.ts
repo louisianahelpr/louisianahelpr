@@ -31,7 +31,8 @@ export interface SponsorSignupPayload {
   facebook: string;
   tiktok: string;
   prizeDescription: string;
-  prizeValue: string;
+  /** No longer asked on the form (owner 11-10); the validator and server accept it absent. */
+  prizeValue?: string;
   shipTo: SponsorShipTo | "";
   notes: string;
   days: number[];
@@ -65,7 +66,8 @@ export interface SponsorAdminSignup {
   facebook: string | null;
   tiktok: string | null;
   prize_description: string;
-  prize_value: number;
+  /** NULL when not given (20261110171648, owner 11-10). */
+  prize_value: number | null;
   ship_to: SponsorShipTo | null;
   notes: string | null;
   any_day: boolean;

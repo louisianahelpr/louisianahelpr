@@ -31,6 +31,8 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const mig = (f) => readFileSync(new URL(`../../../supabase/migrations/${f}`, import.meta.url).pathname, "utf8");
 const SWITCHES = mig("20261012031120_hidden_feature_switches.sql");
 const MIGRATION = process.env.MIGRATION_PATH ? readFileSync(process.env.MIGRATION_PATH, "utf8") : mig("20261109162829_sponsor_25days.sql");
+// Owner 11-10: the prize value is no longer asked; 20261110171648 makes prize_value optional (NULL = not given).
+const OPTIONAL_VALUE = process.env.OPTIONAL_VALUE_PATH ? readFileSync(process.env.OPTIONAL_VALUE_PATH, "utf8") : mig("20261110171648_sponsor_prize_value_optional.sql");
 
 const SCHEMA = `
 DO $$ BEGIN
@@ -103,6 +105,20 @@ if (process.env.NEW_MIGRATION !== "skip") {
   }
 }
 ok(applied === 3, "the migration applies 3 times (replay-safe)");
+
+// OPTIONAL_VALUE=skip: RED for the "prize value is optional" checks below (the old NOT NULL column).
+let appliedOptional = 0;
+if (process.env.OPTIONAL_VALUE !== "skip") {
+  for (let i = 0; i < 3; i++) {
+    try {
+      await db.exec(OPTIONAL_VALUE);
+      appliedOptional++;
+    } catch (e) {
+      console.log(`apply 20261110171648 ${i + 1} failed: ${e.message}`);
+    }
+  }
+}
+ok(appliedOptional === 3, "20261110171648 (prize value optional) applies 3 times on top (replay-safe)");
 
 async function as(role, uid, sql, headers) {
   try {
@@ -277,6 +293,23 @@ ok(!/(^|,)anon=/.test(await acl("public.sponsor_admin_set_status(uuid,text)")), 
 ok(!/(^|,)(anon|authenticated)=/.test(await acl("public.sponsor_require_admin()")), "proacl: no client role runs sponsor_require_admin directly");
 const bucket = (await q(`SELECT public, file_size_limit FROM storage.buckets WHERE id = 'sponsor-logos'`)).rows[0];
 ok(bucket?.public === false && Number(bucket?.file_size_limit) === 5242880, "sponsor-logos bucket is private, 5 MB");
+
+// ── prize value is optional (owner 11-10: "I don't like asking the approximate value of the gift") ──
+const valueOf = async (brand) => (await q(`SELECT prize_value FROM public.sponsor_signups WHERE brand_name = '${brand}'`)).rows;
+const noValue = await signup([15], { brand_name: "No Value Brand", prize_value: undefined });
+ok(noValue?.ok === true && (await valueOf("No Value Brand"))[0]?.prize_value === null, `a sign-up with no prize value is saved with NULL (got ${JSON.stringify(noValue)})`);
+const nullValue = await signup([15], { brand_name: "Null Value Brand", prize_value: null });
+ok(nullValue?.ok === true && (await valueOf("Null Value Brand"))[0]?.prize_value === null, "a JSON-null prize value is saved as NULL");
+ok((await signup([15], { brand_name: "Value Brand", prize_value: 75 }))?.ok === true && (await valueOf("Value Brand"))[0]?.prize_value === 75, "a given prize value is still saved");
+ok(isErr(await signup([15], { brand_name: "Zero Brand", prize_value: 0 }), /check constraint/), "a given prize value of 0 is still refused (CHECK 1..100000 kept)");
+ok(isErr(await signup([15], { brand_name: "Huge Brand", prize_value: 100001 }), /check constraint/), "a given prize value over 100000 is still refused");
+const handNoValue = await as("authenticated", ADMIN, `SELECT public.sponsor_admin_add_signup('{"brand_name":"Hand No Value","contact_name":"H","email":"h2@example.com","prize_description":"x","prize_value":"","days":[16]}'::jsonb) AS id`);
+ok(Array.isArray(handNoValue) && (await valueOf("Hand No Value"))[0]?.prize_value === null, `admin add with a blank prize value saves NULL (got ${JSON.stringify(handNoValue)})`);
+const handAbsent = await as("authenticated", ADMIN, `SELECT public.sponsor_admin_add_signup('{"brand_name":"Hand Absent","contact_name":"H","email":"h3@example.com","prize_description":"x","days":[16]}'::jsonb) AS id`);
+ok(Array.isArray(handAbsent) && (await valueOf("Hand Absent"))[0]?.prize_value === null, "admin add with no prize value saves NULL");
+ok(isErr(await as("authenticated", ORDINARY, `SELECT public.sponsor_admin_add_signup('{"brand_name":"Nope","contact_name":"H","email":"n@example.com","prize_description":"x","days":[16]}'::jsonb)`), /not_authorized/), "an ordinary account is still refused sponsor_admin_add_signup");
+ok(!/(^|,)(anon|authenticated)=/.test(await acl("public.sponsor_create_signup(uuid,jsonb)")), "proacl after 20261110171648: no anon/authenticated EXECUTE on sponsor_create_signup");
+ok(!/(^|,)anon=/.test(await acl("public.sponsor_admin_add_signup(jsonb)")) && /(^|,)authenticated=X/.test(await acl("public.sponsor_admin_add_signup(jsonb)")), "proacl after 20261110171648: sponsor_admin_add_signup is authenticated-only (no anon)");
 
 // ── back off -> dark again ──────────────────────────────────────────────────
 await setAudience("off");

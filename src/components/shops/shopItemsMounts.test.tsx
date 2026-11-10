@@ -10,7 +10,7 @@
  * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} reportable={!s.mine} />} |         {<ShopItemsList shopId={s.id} reportable={!s.mine} />}
  * @mutate src/pages/shops/ShopPage.tsx |   if (lastAnswer === true) return <ShopView />; |   if (lastAnswer === true) return null;
  * @mutate src/pages/shops/ShopEditPage.tsx |       <ShopEditView />\n | \n
- * @mutate src/components/shops/ShopEditView.tsx |       {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} startAdding={startAdding} />} |       {null}
+ * @mutate src/components/shops/ShopEditView.tsx |       {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} />} |       {null}
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

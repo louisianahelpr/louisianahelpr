@@ -114,7 +114,9 @@ export default function ShopView() {
   );
   return (
     <AppPage
-      title={s.name}
+      // Shops audit 11-10 F10: the owner's page said the shop's name twice (the header and the card right under
+      // it); the owner's header says "My shop", a visitor's keeps the name.
+      title={s.mine ? "My shop" : s.name}
       backTo="/shops"
       titleActions={
         s.mine ? (
@@ -162,7 +164,7 @@ export default function ShopView() {
                   <p className="text-sm text-muted-foreground">No items listed yet.</p>
                   <Button type="button" className="btn-grad-primary rounded-full" onClick={() => navigate("/shops/mine#add-item")}>
                     <Plus className="mr-1.5 h-4 w-4" aria-hidden />
-                    Add an item
+                    Add your first item
                   </Button>
                 </div>
               )}

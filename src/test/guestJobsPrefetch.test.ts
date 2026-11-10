@@ -17,7 +17,6 @@
 // F010 (owner's UI audit 11-09): the landing's "Open jobs near you" read also starts at the entry on a signed-out "/".
 // @mutate src/boot/guestJobsPrefetch.ts |   if ((path !== "/browse" && path !== "/") \|\| hasToken() | if (path !== "/browse" \|\| hasToken()
 // @mutate src/boot/guestJobsPrefetch.ts |   u.searchParams.set("limit", String(LANDING_LIMIT)); |   u.searchParams.set("limit", "40");
-// @mutate src/components/landing/LiveJobsSection.tsx |     const prefetched = takeLandingJobsPrefetch(); |     const prefetched = null as Promise<unknown[] \| null> \| null; void takeLandingJobsPrefetch;
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

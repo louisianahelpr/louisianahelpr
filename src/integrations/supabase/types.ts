@@ -16613,6 +16613,7 @@ export type Database = {
         Args: { p_order_id: string; p_refund_cents: number }
         Returns: number
       }
+      poster_finish_job_refusal: { Args: { p_job_id: string; p_now?: string; p_user_id: string }; Returns: string }
       redeem_gift_card_for_declutter_order: {
         Args: {
           p_credit_id: string

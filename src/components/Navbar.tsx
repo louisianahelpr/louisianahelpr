@@ -29,8 +29,10 @@ interface NavbarProps {
 }
 
 const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = false }, ref) => {
-  // F017: the landing no longer changes the bar (one container on every public page, PUBLIC_CONTAINER).
-  void landing;
+  // F017: the landing no longer changes the bar's container (one on every public page, PUBLIC_CONTAINER). D021 (landing
+  // design audit 11-10): on a phone the landing's bar keeps only the logo, Log in and Join free; its hero already has
+  // the Jobs | Declutter switch, so the Jobs and Declutter links (and their divider) were a full bar of repeats there.
+  const phoneHidden = landing ? " max-[639px]:hidden" : "";
   // Session-only auth (no profile DB round-trip) so the marketing nav can
   // reflect logged-in state: an authenticated visitor landing on a public
   // page (/legal, /) sees none of the signed-out "Jobs | Log in · Join free"
@@ -128,7 +130,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
               asChild
               variant="ghost"
               size="sm"
-              className="rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+              className={`rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]${phoneHidden}`}
             >
               <Link
                 to="/browse"
@@ -144,7 +146,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
               asChild
               variant="ghost"
               size="sm"
-              className="rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+              className={`rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]${phoneHidden}`}
             >
               <Link
                 to="/declutter"
@@ -156,7 +158,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
             {/* The divider between the public links and the auth actions. Below 400px the bar drops it and
                 tightens the link padding (below 375 also one text size down), so Jobs + Declutter fit beside the logo without squeezing it
                 (owner 11-04; measured at 320, 360 and 375). */}
-            <span aria-hidden className="hidden min-[400px]:block w-px h-5 mx-1" style={{ background: "hsl(var(--olivewood) / 0.18)" }} />
+            <span aria-hidden className={`hidden min-[400px]:block w-px h-5 mx-1${phoneHidden}`} style={{ background: "hsl(var(--olivewood) / 0.18)" }} />
             <Button
               asChild
               variant="ghost"

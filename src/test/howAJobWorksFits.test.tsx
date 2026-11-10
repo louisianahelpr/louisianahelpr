@@ -53,7 +53,7 @@ describe("How a job works: no Guarantee box, nothing past the column (LEAD-HOWJO
     expect(classes(grid)).toEqual(expect.arrayContaining(["grid", "grid-cols-1", "sm:grid-cols-3"]));
     const column = grid?.parentElement ?? null;
     expect(classes(column)).toEqual(expect.arrayContaining(["w-full", "max-w-6xl", "mx-auto"]));
-    const headRow = screen.getByRole("heading", { name: "How a job works" }).parentElement;
+    const headRow = screen.getByRole("heading", { name: "How it works" }).parentElement;
     expect(classes(headRow)).toContain("flex-wrap");
     expect(headRow?.contains(screen.getByRole("tab", { name: "I need help" }))).toBe(true);
   });

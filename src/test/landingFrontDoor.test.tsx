@@ -27,7 +27,7 @@
 // @mutate src/components/landing/useSectionsOpen.ts |   return open === null \|\| !open.has(feature); |   return open !== null && !open.has(feature);
 // @mutate src/lib/missingRpc.ts |   if (e.code !== "PGRST202") return false; |   return false;
 // @mutate src/components/landing/SectionsShowcase.tsx |   return { to: `/signup?redirect=${encodeURIComponent(path)}`, | return { to: path,
-// @mutate src/components/landing/SectionsShowcase.tsx |   if (key === "declutter") return { to: path, text: `Browse ${label}`, signedIn: path }; |
+// @mutate src/components/landing/SectionsShowcase.tsx |   if (key === "declutter") return { to: path, text: `Shop ${label}`, signedIn: path }; |
 // @mutate src/lib/queryClient.ts |       if (query.meta?.reportsItself === true) return; |
 // @mutate src/components/landing/useSectionsOpen.ts |     meta: { persist: false, reportsItself: true }, |     meta: { reportsItself: true },
 // @mutate src/components/landing/useSectionsOpen.ts |   if (reported) return false; |
@@ -79,7 +79,8 @@ describe("landing: the front door for all four sections", () => {
   it("one block per section (inventory from sectionsConfig); an open card never sends a signed-out visitor to a sign-in-only page", () => {
     const blocks = read("src/components/landing/SectionsShowcase.tsx");
     expect(SECTIONS.length).toBeGreaterThan(3);
-    expect(blocks).toMatch(/SECTIONS\.map\(\(s\) =>/);
+    // D005 (11-10): the open pair (LANDING_CARD_KEYS) as cards, the rest named in one line.
+    expect(blocks).toMatch(/SECTIONS\.filter\(\(s\) => LANDING_CARD_KEYS\.includes\(s\.key\)\)\.map\(\(s\) =>/);
     // The mark comes from the fail-closed rule, nothing else.
     expect(blocks).toMatch(/const soon = sectionIsComingSoon\(s\.feature, open\);/);
     expect(blocks).toMatch(/\{!soon && \(\s*<Link\s+to=\{link\.to\}/);
@@ -91,7 +92,8 @@ describe("landing: the front door for all four sections", () => {
         expect(link).toMatchObject({ to: "/browse", text: "Browse jobs" }); // the public guest board
       } else if (s.key === "declutter") {
         // Owner 11-04: guests read Declutter's Browse (BUY-16), so the card goes straight there, no sign-up.
-        expect(link).toMatchObject({ to: "/declutter", text: "Browse Declutter" });
+        // D012 (11-10): "Shop Declutter", the landing's one verb for Declutter.
+        expect(link).toMatchObject({ to: "/declutter", text: "Shop Declutter" });
       } else {
         // Shops/Homes are ProtectedRoute pages: sign-up, returning to the section.
         expect(link.to, s.key).toBe(`/signup?redirect=${encodeURIComponent(s.path)}`);

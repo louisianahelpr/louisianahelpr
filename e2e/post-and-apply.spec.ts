@@ -37,8 +37,8 @@ async function expectClean(page: import("@playwright/test").Page) {
 // Shown able to fail on the regression it was written for. The header of the
 // third test names it: the CTA used to route to /signup, and "not /signup,
 // which was the pre-fix bug today" is the whole reason that test exists.
-// Sending the Browse link (Live now section, the first one) back to /signup reproduces it exactly.
-// @mutate src/components/landing/LandingBrowseShell.tsx |   seeAll: { to: "/browse", label: "Browse local jobs" }, |   seeAll: { to: "/signup", label: "Browse local jobs" },
+// Sending the Browse jobs links back to /signup reproduces it exactly.
+// @mutate src/components/landing/LandingBrowseShell.tsx |   seeAll: { to: "/browse", label: "Browse jobs" }, |   seeAll: { to: "/signup", label: "Browse jobs" },
 
 test.describe("post + apply baseline", () => {
   test("/post-job redirects anonymous to a valid surface (no crash)", async ({ page }) => {
@@ -81,8 +81,9 @@ test.describe("post + apply baseline", () => {
     // it names. It went unnoticed because NOTHING RUNS THIS SPEC: the chromium
     // project is only ever invoked with an explicit file list
     // (e2e-real-backend.yml) and this file is in none of them.
-    // 2026-10-23: the "Browse local jobs" link moved from the hero to the Live now section under it.
-    const cta = page.getByRole("link", { name: /browse local jobs/i }).first();
+    // 2026-10-23: the "Browse local jobs" link moved from the hero to the Live now section under it. 2026-11-10 (D012):
+    // the landing says "Browse jobs" for the board everywhere (the section's see-all, the Jobs card, the close).
+    const cta = page.getByRole("link", { name: /^browse jobs$/i }).first();
     await cta.waitFor({ timeout: 10_000 });
 
     // Click and verify we land on /browse (not /signup, which was the

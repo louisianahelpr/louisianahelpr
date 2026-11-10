@@ -55,7 +55,8 @@ export function LandingProof() {
         className="w-14 h-14 lg:w-[72px] lg:h-[72px] shrink-0 rounded-xl object-cover"
       />
       <div className="flex flex-col gap-0.5 lg:gap-1 min-w-0">
-        <span className="text-ds-11 lg:text-ds-12 font-bold uppercase tracking-[0.1em]" style={{ color: "var(--lp-action-strong)" }}>
+        {/* D015 (landing design audit 11-10): sentence case, not a tracked-out JUST FINISHED template label. */}
+        <span className="text-ds-13 font-semibold" style={{ color: "var(--lp-action-strong)" }}>
           Just finished
         </span>
         <span className="text-ds-15 lg:text-ds-16 font-semibold" style={{ color: "var(--lp-ink)" }}>

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { DECLUTTER_SHELL, LandingBrowseShell } from "./LandingBrowseShell";
+import { DECLUTTER_SHELL, LandingBrowseShell, type BrowseShellCopy } from "./LandingBrowseShell";
 
 // The strip's markup is its own chunk, fetched alongside the listings (load below), never with the page.
 const FreshDeclutterStrip = lazy(() => import("./FreshDeclutterStrip"));
@@ -24,6 +24,16 @@ const FreshDeclutterFailed = lazy(() => import("./FreshDeclutterStrip").then((m)
 export const FRESH_DECLUTTER_LIMIT = 8;
 /** The card grid, shared by the strip and its placeholder so they are the same size: 2 across, 3 from sm, 4 from lg. */
 export const FRESH_GRID = "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-5 lg:gap-y-8";
+/**
+ * D006 (landing design audit 11-10): the card's type, shared with the placeholder so both are the same height. On the
+ * app's five-size scale (11/13/16/20/28): a two-line 16px title (it was one 13px line), the town at 13px (it was the
+ * condition, "Like new" on almost every card), the LIST price first at 20px (it was 16), and "$X.XX incl. fee"
+ * smaller under it at 13px (it was 11).
+ */
+export const FRESH_TITLE = "text-ds-15 font-semibold leading-snug min-h-[2.75em]";
+export const FRESH_TOWN = "text-ds-13 leading-snug";
+export const FRESH_PRICE = "text-ds-20 leading-tight";
+export const FRESH_INCL = "text-ds-13 leading-tight";
 /** What the browse card draws, all within the anon column grant on declutter_items (accepts_trades is not, yet). */
 const FRESH_SELECT = "id, title, category, condition_stars, porch_ok, price_cents, current_price_cents, area_label, live_at";
 /** The pause before the one quiet retry of a failed read (the LiveJobsSection rule, Q2735). */
@@ -38,7 +48,7 @@ export type FreshItem = {
   price_cents: number;
   current_price_cents: number;
   area_label: string | null;
-  /** The card-sized thumbnail (photoCardUrl) and the original as its fallback. */
+  /** The landing card's thumbnail (photoLandingCardUrl, 640x800) and the original as its fallback. */
   photo: string | null;
   photoFull: string | null;
 };
@@ -60,18 +70,19 @@ const keptItems = () => (recentItems && Date.now() - recentItems.at < FRESH_REUS
  * real card's size (4:5 photo tile plus its four text lines: title, condition, list price, incl.-fee price).
  * Builder 4's F010 skeleton (ready/b4-landing-2 e24fde442b), without its entry-chunk jobs read.
  */
-export function FreshDeclutterSkeleton() {
+export function FreshDeclutterSkeleton({ shell = DECLUTTER_SHELL }: { shell?: BrowseShellCopy }) {
   return (
-    <LandingBrowseShell testId="landing-fresh-declutter-skeleton" hidden {...DECLUTTER_SHELL}>
+    <LandingBrowseShell testId="landing-fresh-declutter-skeleton" hidden {...shell}>
       <ul className={FRESH_GRID}>
         {Array.from({ length: FRESH_DECLUTTER_LIMIT }, (_, i) => (
           <li key={i} className="min-w-0">
             <span className="block aspect-[4/5] rounded-xl bg-photo-empty" />
             <span className="block px-0.5 pt-2">
-              <span className="block text-ds-13 leading-snug">&nbsp;</span>
-              <span className="block text-ds-11">&nbsp;</span>
-              <span className="mt-0.5 block text-ds-16 leading-tight">&nbsp;</span>
-              <span className="block text-ds-12 leading-tight">&nbsp;</span>
+              {/* The real card's lines (D006): a two-line 15px title, the town, the 18px list price, the incl.-fee line. */}
+              <span className={`block ${FRESH_TITLE}`}>&nbsp;<br />&nbsp;</span>
+              <span className={`block ${FRESH_TOWN}`}>&nbsp;</span>
+              <span className={`mt-0.5 block ${FRESH_PRICE}`}>&nbsp;</span>
+              <span className={`block ${FRESH_INCL}`}>&nbsp;</span>
             </span>
           </li>
         ))}
@@ -80,7 +91,8 @@ export function FreshDeclutterSkeleton() {
   );
 }
 
-export function FreshDeclutterSection() {
+/** `shell`: the words over the grid; the Jobs view passes NO_JOBS_DECLUTTER_SHELL when there is no open job (D003). */
+export function FreshDeclutterSection({ shell = DECLUTTER_SHELL }: { shell?: BrowseShellCopy } = {}) {
   const ref = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<State>(() => {
     const kept = keptItems();
@@ -131,12 +143,12 @@ export function FreshDeclutterSection() {
           first = new Map();
           for (const p of photos) if (!first.has(p.item_id)) first.set(p.item_id, p.storage_path);
         }
-        // The card-sized thumbnail Browse uses (photoCardUrl), its original as the fallback; loaded here, not at
-        // module scope, so the landing's first paint stays as small as before.
-        const { photoCardUrl, photoPublicUrl } = await import("@/lib/declutter/api");
+        // D017 (11-10): a 640x800 thumbnail sized for the landing's 4:5 card (photoLandingCardUrl), its original as the
+        // fallback; loaded here, not at module scope, so the landing's first paint stays as small as before.
+        const { photoLandingCardUrl, photoPublicUrl } = await import("@/lib/declutter/api");
         const items = rows.map((r) => {
           const path = first.get(r.id);
-          return { ...r, photo: path ? photoCardUrl(path) : null, photoFull: path ? photoPublicUrl(path) : null };
+          return { ...r, photo: path ? photoLandingCardUrl(path) : null, photoFull: path ? photoPublicUrl(path) : null };
         });
         recentItems = { at: Date.now(), items };
         if (!cancelled) setState({ kind: "ok", items });
@@ -186,10 +198,10 @@ export function FreshDeclutterSection() {
 
   return (
     <div ref={ref} data-testid="landing-fresh-declutter-spot">
-      <Suspense fallback={<FreshDeclutterSkeleton />}>
-        {state.kind === "waiting" && <FreshDeclutterSkeleton />}
-        {state.kind === "failed" && <FreshDeclutterFailed />}
-        {state.kind === "ok" && state.items.length > 0 && <FreshDeclutterStrip items={state.items} />}
+      <Suspense fallback={<FreshDeclutterSkeleton shell={shell} />}>
+        {state.kind === "waiting" && <FreshDeclutterSkeleton shell={shell} />}
+        {state.kind === "failed" && <FreshDeclutterFailed shell={shell} />}
+        {state.kind === "ok" && state.items.length > 0 && <FreshDeclutterStrip items={state.items} shell={shell} />}
       </Suspense>
     </div>
   );

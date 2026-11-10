@@ -1,7 +1,7 @@
 import { useIdCheckOnForViewer } from "@/lib/useIdCheckOnForViewer";
 import { lazy, Suspense, useEffect, useRef, useState, type RefObject } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Check, Camera, CreditCard, Headset, Lock, MapPin, ShieldCheck, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowRight, Check, CreditCard, Headset, Lock, MapPin, ShieldCheck, Wallet, type LucideIcon } from "lucide-react";
 import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig";
 import { APPROVAL_WINDOW_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
 import { useSectionsOpen, sectionIsComingSoon } from "./useSectionsOpen";
@@ -48,11 +48,22 @@ const COPY: Record<SectionKey, string> = {
  */
 export function cardLinkFor(key: SectionKey, path: string, label: string): { to: string; text: string; signedIn: string } {
   if (key === "jobs") return { to: "/browse", text: "Browse jobs", signedIn: path };
-  if (key === "declutter") return { to: path, text: `Browse ${label}`, signedIn: path };
+  // D012 (11-10): the landing says "Shop Declutter" everywhere it links to Declutter.
+  if (key === "declutter") return { to: path, text: `Shop ${label}`, signedIn: path };
   return { to: `/signup?redirect=${encodeURIComponent(path)}`, text: `Join to browse ${label}`, signedIn: path };
 }
 
-const H2_CLASS = "font-display landing-serif text-balance leading-[1.05] text-ds-28";
+/** D002 (landing design audit 11-10): every landing H2 on the middle type step (.landing-h2, 32 -> 48px). */
+const H2_CLASS = "font-display landing-serif text-balance landing-h2";
+
+/** D005: the two sections the landing draws as cards; the rest are named in one line while they are on the way. */
+export const LANDING_CARD_KEYS: readonly SectionKey[] = ["jobs", "declutter"];
+
+/** "Shops and Homes are on the way." (owner's preview tweak 3, 11-10). */
+export function onTheWayLine(labels: string[]): string {
+  const names = labels.length <= 1 ? labels.join("") : `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
+  return `${names} ${labels.length === 1 ? "is" : "are"} on the way.`;
+}
 
 /** True once `ref` has been on screen after the page loaded (never at first paint). */
 function useSeenAfterLoad(ref: RefObject<HTMLElement>): boolean {
@@ -99,9 +110,12 @@ export function SectionsShowcase() {
   const pending = open === null;
   const navigate = useNavigate();
 
-  // One list in sectionsConfig's order, which never changes when the switch answer comes in (so no card moves); each
-  // card says for itself whether it is open (owner 11-09, F002/F013).
-  const cards = SECTIONS.map((s) => {
+  // D005 (landing design audit 11-10): "Four ways" was 1,245px tall at 375, ~465px of it two Coming soon cards. Now two
+  // large cards for the sections open today (Jobs, Declutter: a fixed pair, so no card moves when the switch answer
+  // comes in), and ONE line naming the sections still on the way. Each card still says for itself whether it is open
+  // (owner 11-09, F002/F013).
+  const later = SECTIONS.filter((s) => !LANDING_CARD_KEYS.includes(s.key) && sectionIsComingSoon(s.feature, open));
+  const cards = SECTIONS.filter((s) => LANDING_CARD_KEYS.includes(s.key)).map((s) => {
     const Icon = s.icon;
     const soon = sectionIsComingSoon(s.feature, open);
     const badged = soon && !pending;
@@ -112,7 +126,7 @@ export function SectionsShowcase() {
     const card = (
       <li
         key={s.key}
-        className="landing-card relative p-6 flex flex-col gap-3 min-h-[14rem] lg:min-h-[17rem] min-w-0"
+        className="landing-card relative p-6 lg:p-8 flex flex-col gap-3 min-h-[12rem] lg:min-h-[15rem] min-w-0"
         style={{ color: "var(--lp-ink)", ...(badged ? { opacity: 0.8 } : null) }}
         data-section={s.key}
         data-soon={badged ? "true" : "false"}
@@ -129,7 +143,7 @@ export function SectionsShowcase() {
             </span>
           )}
         </div>
-        <h3 className="text-ds-20 font-bold tracking-tight mt-2">{s.navLabel}</h3>
+        <h3 className="font-display landing-serif text-ds-28 mt-2">{s.navLabel}</h3>
         <p className="text-ds-15 leading-relaxed" style={{ color: "var(--lp-body)" }}>
           {COPY[s.key]}
         </p>
@@ -158,40 +172,50 @@ export function SectionsShowcase() {
       <div className="mx-auto w-full max-w-6xl flex flex-col gap-8 sm:gap-12">
         <div className="flex flex-col gap-3 max-w-2xl">
           <h2 id="sections-heading" className={H2_CLASS} style={{ color: "var(--lp-ink)" }}>
-            Four ways to get things done. One account.
+            Hire, work, buy and sell. One account.
           </h2>
-          <p className="text-ds-15 sm:text-ds-17" style={{ color: "var(--lp-body)" }}>
-            {idOn ? "Verify your ID once and it counts everywhere on Helpr." : "Jobs and Declutter are open today. Shops and Homes are on the way."}
-          </p>
+          {idOn && (
+            <p className="text-ds-15 sm:text-ds-17" style={{ color: "var(--lp-body)" }}>
+              Verify your ID once and it counts everywhere on Helpr.
+            </p>
+          )}
         </div>
-        <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="landing-sections" aria-label="Sections">
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5" data-testid="landing-sections" aria-label="Sections">
           {cards}
         </ul>
+        {later.length > 0 && (
+          <p className="text-ds-15" style={{ color: "var(--lp-body)" }} data-testid="landing-sections-later">
+            {onTheWayLine(later.map((s) => s.navLabel))}
+          </p>
+        )}
       </div>
     </section>
   );
 }
 
-const MONEY_STEPS: { icon: LucideIcon; title: string; body: string; done?: boolean }[] = [
-  { icon: CreditCard, title: "Paid through Helpr", body: "The full price is shown before anyone pays." },
-  { icon: Lock, title: "Held safely", body: "Helpr holds the money. Nobody is paid out until the work is done." },
-  { icon: Camera, title: "Before and after photos", body: "The person hiring can ask for photo proof, so everyone can see it's done right." },
+/**
+ * D009 (landing design audit 11-10): the band made eight claims of equal weight (four steps and four tiles) and left an
+ * empty block at 1440. Now one headline that covers jobs AND Declutter (owner's preview tweak 2: the Declutter line is
+ * folded in, not a ninth claim), three steps in one row, and one row of trust badges.
+ */
+const MONEY_STEPS: { icon: LucideIcon; title: string; body: string }[] = [
+  { icon: CreditCard, title: "Paid through Helpr", body: "The full price is shown before anyone pays, and Helpr holds the money." },
+  { icon: Lock, title: "Held until it’s done", body: "Nobody is paid out until the work is done, or the buyer says they got the item." },
   {
     icon: Check,
     title: "Approved, then released",
-    body: `Nothing is paid until the person hiring approves the work or asks for a change. If they haven't answered in ${APPROVAL_WINDOW_HOURS} hours, a real person on our team steps in.`,
-    done: true,
+    body: `The person hiring approves the work or asks for a change. If they haven’t answered in ${APPROVAL_WINDOW_HOURS} hours, a real person on our team steps in.`,
   },
 ];
 
-/** The ID tile while the ID check is on; while it is off (owner 2026-10-23) a true one takes its place. */
-const TRUST_ID_ON = { icon: ShieldCheck, title: "ID-verified people", body: "Verify your ID once, and it counts everywhere on Helpr." };
-const TRUST_ID_OFF = { icon: ShieldCheck, title: "Real accounts", body: "Every account confirms its email before it posts or takes a job." };
-const TRUST: { icon: LucideIcon; title: string; body: string }[] = [
+/** The ID badge while the ID check is on; while it is off (owner 2026-10-23) a true one takes its place. */
+const TRUST_ID_ON = { icon: ShieldCheck, title: "ID-verified people" };
+const TRUST_ID_OFF = { icon: ShieldCheck, title: "Every email confirmed" };
+const TRUST: { icon: LucideIcon; title: string }[] = [
   TRUST_ID_ON,
-  { icon: Wallet, title: "No cash to count", body: "Payments happen in the app, so there's no cash changing hands." },
-  { icon: Headset, title: "Real human support", body: "A real person on our team answers when something goes wrong." },
-  { icon: MapPin, title: "Made in Louisiana", body: "Built in Louisiana, for every parish in it." },
+  { icon: Wallet, title: "No cash changes hands" },
+  { icon: Headset, title: "A real person answers" },
+  { icon: MapPin, title: "Made in Louisiana" },
 ];
 
 /** Holds the Apple button's place (same box and label, invisible) until its chunk has loaded (F016). */
@@ -207,6 +231,9 @@ function AppleSlot() {
     </span>
   );
 }
+
+/** The band's one headline: jobs and Declutter under one rule (D009, preview tweak 2). */
+const MONEY_HEADLINE = "Nobody gets paid until it’s really done, or really handed over.";
 
 /** The money band + the join block. "Create your free account" is the close's one primary. */
 export function TrustAndJoin() {
@@ -228,47 +255,28 @@ export function TrustAndJoin() {
   };
   return (
     <>
-      <section aria-labelledby="money-heading" className="px-5 sm:px-8 lg:px-12 py-16 sm:py-20 lg:py-28" style={{ background: "var(--lp-band)", color: "var(--lp-band-body)" }}>
-        <div className="mx-auto w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-col gap-3">
-              <p className="text-ds-12 font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--lp-band-money)" }}>
-                Your money, protected
-              </p>
-              <h2 id="money-heading" className="font-display landing-serif text-balance leading-[1.05] text-ds-28" style={{ color: "var(--lp-band-ink)" }}>
-                Nobody gets paid until the job is{" "}
-                <em style={{ fontStyle: "italic", color: "var(--lp-band-money)" }}>really</em> done.
-              </h2>
-            </div>
-            <ol className="flex flex-col gap-5">
-              {MONEY_STEPS.map(({ icon: Icon, title, body, done }) => (
-                <li key={title} className="flex items-start gap-4">
-                  <span
-                    className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                    style={done ? { background: "var(--lp-band-ink)", color: "var(--lp-band)" } : { background: "var(--lp-band-tile)", color: "var(--lp-band-money)" }}
-                    aria-hidden
-                  >
-                    <Icon className="w-[18px] h-[18px]" />
-                  </span>
-                  <div className="min-w-0 pt-0.5">
-                    <h3 className="text-ds-15 font-bold" style={{ color: "var(--lp-band-ink)" }}>{title}</h3>
-                    <p className="text-ds-13 sm:text-ds-15 leading-relaxed">{body}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-            {/* Owner #7 (11-09): Declutter's money rule beside the jobs' one, one quiet line (OWNER-DECISIONS.md, Declutter
-                handover money: the buyer's "I got it" finishes the order and pays the seller; nothing moves before). */}
-            <p className="text-ds-13 sm:text-ds-15 leading-relaxed" data-testid="landing-money-declutter">
-              On Declutter, the same rule: the seller is paid once the buyer says they got it.
-            </p>
-          </div>
-          <ul className="grid grid-cols-2 gap-2.5 sm:gap-3">
-            {TRUST.map((t) => (t === TRUST_ID_ON && !idOn ? TRUST_ID_OFF : t)).map(({ icon: Icon, title, body }) => (
-              <li key={title} className="rounded-[20px] p-4 sm:p-5 flex flex-col gap-2 min-w-0" style={{ background: "var(--lp-band-tile)" }}>
-                <Icon className="w-5 h-5" aria-hidden style={{ color: "var(--lp-band-ink)" }} />
-                <h3 className="text-ds-14 sm:text-ds-15 font-bold mt-1 [overflow-wrap:anywhere]" style={{ color: "var(--lp-band-ink)" }}>{title}</h3>
-                <p className="text-ds-12 sm:text-ds-13 leading-relaxed">{body}</p>
+      <section aria-labelledby="money-heading" data-testid="landing-money-band" className="px-5 sm:px-8 lg:px-12 py-16 sm:py-20 lg:py-24" style={{ background: "var(--lp-band)", color: "var(--lp-band-body)" }}>
+        <div className="mx-auto w-full max-w-6xl flex flex-col gap-10 lg:gap-12">
+          {/* D015 (11-10): no YOUR MONEY, PROTECTED eyebrow; the headline says it. */}
+          <h2 id="money-heading" className="max-w-3xl font-display landing-serif text-balance landing-h2" style={{ color: "var(--lp-band-ink)" }}>
+            {MONEY_HEADLINE}
+          </h2>
+          <ol className="grid grid-cols-1 sm:grid-cols-3 gap-6 lg:gap-10" data-testid="landing-money-steps">
+            {MONEY_STEPS.map(({ icon: Icon, title, body }) => (
+              <li key={title} className="flex flex-col gap-3 min-w-0">
+                <span className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "var(--lp-band-tile)", color: "var(--lp-band-money)" }} aria-hidden>
+                  <Icon className="w-[18px] h-[18px]" />
+                </span>
+                <h3 className="text-ds-16 font-bold" style={{ color: "var(--lp-band-ink)" }}>{title}</h3>
+                <p className="text-ds-15 leading-relaxed">{body}</p>
+              </li>
+            ))}
+          </ol>
+          <ul className="flex flex-wrap gap-2" data-testid="landing-trust-badges" aria-label="Why it’s safe">
+            {TRUST.map((t) => (t === TRUST_ID_ON && !idOn ? TRUST_ID_OFF : t)).map(({ icon: Icon, title }) => (
+              <li key={title} className="inline-flex items-center gap-2 rounded-full px-3.5 min-h-9 text-ds-13 font-semibold" style={{ border: "1px solid var(--lp-band-line)", color: "var(--lp-band-ink)" }}>
+                <Icon className="w-4 h-4" aria-hidden style={{ color: "var(--lp-band-money)" }} />
+                {title}
               </li>
             ))}
           </ul>
@@ -277,7 +285,8 @@ export function TrustAndJoin() {
 
       <section ref={joinRef} aria-labelledby="join-heading" className="px-5 sm:px-8 lg:px-12 py-20 sm:py-24 lg:py-32">
         <div className="mx-auto w-full max-w-3xl flex flex-col items-center text-center gap-5">
-          <h2 id="join-heading" className={H2_CLASS} style={{ color: "var(--lp-ink)" }}>
+          {/* D002 (11-10): the close is one step larger than the section headings (.landing-h2-close, 40 -> 56px). */}
+          <h2 id="join-heading" className="font-display landing-serif text-balance landing-h2-close" style={{ color: "var(--lp-ink)" }}>
             Join your neighbors on{" "}
             <em style={{ fontStyle: "italic", color: "var(--lp-action-strong)" }}>Helpr.</em>
           </h2>
@@ -299,9 +308,10 @@ export function TrustAndJoin() {
               <AppleSlot />
             )}
           </div>
-          {/* Owner #7 (11-09): the close names both open sections' first steps, quietly (links, not more buttons). */}
+          {/* Owner #7 (11-09): the close names both open sections' first steps, quietly (links, not more buttons), in the
+              landing's one set of verbs (D012, 11-10). */}
           <nav aria-label="Start here" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-ds-15 font-semibold" data-testid="landing-join-starts">
-            <Link to="/browse" className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>Find work</Link>
+            <Link to="/browse" className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>Browse jobs</Link>
             <Link to={POST_JOB_SIGNED_OUT} onClick={(e) => { e.preventDefault(); void goSignedInOr(navigate, POST_JOB_PATH, POST_JOB_SIGNED_OUT); }} className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>Post a job</Link>
             <Link to="/declutter" className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>Shop Declutter</Link>
             <Link to={SELL_SIGNED_OUT} onClick={(e) => { e.preventDefault(); void goSignedInOr(navigate, SELL_PATH, SELL_SIGNED_OUT); }} className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>Sell something</Link>

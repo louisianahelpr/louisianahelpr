@@ -86,7 +86,8 @@ describe("the hero block is centred in the first screen, the H1 stays dominant, 
     expect(heights.length).toBeGreaterThan(0);
     for (const h of heights) expect(h).toBeLessThanOrEqual(52);
     const sizes = [...proof.matchAll(/(?:^|[\s"])(?:lg:)?text-ds-(\d+)(?=\s|")/g)].map((m) => Number(m[1]));
-    expect(sizes.length).toBeGreaterThan(5);
+    // D015 (11-10): the Just finished label is one sentence-case size now (it was text-ds-11 lg:text-ds-12), one fewer.
+    expect(sizes.length).toBeGreaterThan(4);
     expect(Math.max(...sizes)).toBeLessThanOrEqual(16);
     const photo = [...proof.matchAll(/(?:^|\s)(?:lg:)?w-(?:(\d+)|\[(\d+)px\])(?=\s|")/g)].map((m) => (m[1] ? Number(m[1]) * 4 : Number(m[2])));
     expect(photo.length).toBeGreaterThan(0);

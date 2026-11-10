@@ -24,13 +24,12 @@ function footerInView(): boolean {
   return !!footer && footer.getBoundingClientRect().top < window.innerHeight;
 }
 
-// Never on the signed-out landing on a phone (owner's UI audit 11-09, F014): there every block is full width, so the
-// button always sat on card text (the money band's "No cash to count", the Jobs card). The landing is one marketing
-// page a visitor scrolls straight through, and the top bar's logo is one tap back to its top.
-const PHONE_LANDING_MQ = "(max-width: 639px)";
-function onPhoneLanding(pathname: string): boolean {
-  if (pathname !== "/" || typeof window.matchMedia !== "function") return false;
-  return window.matchMedia(PHONE_LANDING_MQ).matches;
+// Never on the signed-out landing (owner's UI audit 11-09, F014, on a phone: every block is full width, so the button
+// always sat on card text). D019 (landing design audit 11-10): at 1440 it floated over the money band and the join
+// block too, so the rule now holds at every width. The landing is one marketing page a visitor scrolls straight
+// through, and the top bar's logo is one tap back to its top.
+function onLanding(pathname: string): boolean {
+  return pathname === "/";
 }
 
 // Per-history-entry scroll offsets, keyed by react-router's `location.key`.
@@ -152,7 +151,7 @@ const ScrollToTop = () => {
       // an entry left at the top came back mid-page (Q1312).
       if (currentKeyRef.current !== key) return;
       const pos = readPos();
-      setVisible(pos > REVEAL_AFTER_PX && !footerInView() && !onPhoneLanding(pathname));
+      setVisible(pos > REVEAL_AFTER_PX && !footerInView() && !onLanding(pathname));
       scrollPositions.set(key, pos);
     };
     onScroll();

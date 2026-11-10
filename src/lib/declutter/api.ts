@@ -15,6 +15,7 @@ import { isMissingRpcNamed } from "@/lib/missingRpc";
 import type { ShipOptions, ShipPreset } from "@/lib/declutter/shipOptions";
 import { blobToBase64, cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { AI_DRAFT_PHOTOS } from "@/lib/declutter/photoRules";
+import { LANDING_CARD_PHOTO } from "@/lib/declutter/landingCardPhoto";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { offerPushAfterAction } from "@/hooks/useNotificationPermissionPrompt";
@@ -517,6 +518,13 @@ export function photoCardUrl(path: string): string {
   return supabase.storage
     .from(DECLUTTER_PHOTO_BUCKET)
     .getPublicUrl(path, { transform: { width: CARD_PHOTO_PX, height: CARD_PHOTO_PX, resize: "cover", quality: 55 } }).data.publicUrl;
+}
+
+/** D017 (11-10): the landing card's 640x800 thumbnail (LANDING_CARD_PHOTO); Browse keeps photoCardUrl's square. */
+export function photoLandingCardUrl(path: string): string {
+  return supabase.storage
+    .from(DECLUTTER_PHOTO_BUCKET)
+    .getPublicUrl(path, { transform: { ...LANDING_CARD_PHOTO, resize: "cover", quality: 55 } }).data.publicUrl;
 }
 
 /** The seller's shared star rating (the jobs' public aggregate, row 45). */

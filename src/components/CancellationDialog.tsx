@@ -505,7 +505,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     {hasHelper && <span className="text-ds-10 font-bold bg-foreground text-background px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                   </div>
                   <p className="text-ds-11 text-muted-foreground mt-0.5">
-                    Cancelling <strong className="text-foreground">24 or more hours before</strong> the start sends nothing to your Helpr. Closer to the start, part of the job pays your Helpr for the time they set aside, and it counts as a strike; you see the exact amount here before you confirm.
+                    Cancelling <strong className="text-foreground">24 or more hours before</strong> the start sends nothing to your Helpr. Closer to the start, part of the job pays your Helpr for the time they set aside, and it counts as a strike; {backToYouCents !== null ? "you see the exact amount here before you confirm." : "your refund notice shows the exact amount."}
                   </p>
                 </div>
               </div>
@@ -579,7 +579,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
           </DialogSecondaryAction>
           {/* Held while the quote loads, so the fee confirmed is the one quoted. */}
           <DialogDestructiveAction onClick={handleCancel} disabled={cancelling || quoteLoading}>
-            {cancelling ? "Cancelling…" : cancellationFee > 0 ? `Cancel · pay $${formatPrice(cancellationFee)}` : "Cancel job"}
+            {cancelling ? "Cancelling…" : cancellationFee > 0 ? `Cancel · pay $${formatPrice(cancellationFee)}` : backToYouCents !== null && backToYouCents > 0 ? `Cancel · refund $${formatPrice(backToYouCents / 100)}` : "Cancel job"}
           </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>

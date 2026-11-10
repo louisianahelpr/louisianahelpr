@@ -1580,6 +1580,9 @@ serve(async (req) => {
         ...(jobTax ? {} : { customer_update: { address: 'auto' as const } }),
         line_items: lineItems,
         mode: "payment",
+        // A card HOLD (Q2399) says so under Stripe's "Pay" button (audit 11-10 F299): the button alone reads as a
+        // charge. The amount is the real hold: the line items plus the job-site tax when there is one.
+        ...(holdPlan ? { custom_text: { submit: { message: CARD_HOLD_COPY.checkout(threeDSCents, owesOnboardingFee ? onboardingFeeCents : 0) } } } : {}),
         // Explicit methods on every job checkout (owner 2026-10-18): card,
         // Link and ACH; Pay in 4 is its own session with Klarna/Afterpay only.
         payment_method_types: payInFour ? payInFourMethods : [...JOB_CHECKOUT_PAYMENT_METHOD_TYPES],

@@ -27,7 +27,7 @@
  * @mutate supabase/functions/_shared/comeBackEmail.ts | "Describe the job and set your price. See who applied and chat before you hire." | "Describe the job and set your budget. See who applied and chat before you hire."
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { centralDateLabel } from "../../supabase/functions/_shared/centralDateTime";
@@ -71,8 +71,11 @@ describe("email copy, whole-app audit 11-10", () => {
     expect(day3).toMatch(/browse, pay in the app, then pick it up or have it brought to you\./);
     expect(day3).not.toMatch(/porch/);
     // The fact the wording rests on: delivery kinds are real handovers, not only pickup.
-    const check = read("supabase/migrations/20261030000030_shipping_s2_ship_handover.sql");
-    expect(check).toContain("CHECK (handover IN ('pickup_home', 'porch', 'delivery', 'seller_delivery', 'meetup', 'ship'))");
+    // Read from the NEWEST migration that states the handover kinds, never a pinned file (guardsReadTheNewestMigration).
+    const newest = readdirSync(join(ROOT, "supabase/migrations")).filter((f) => f.endsWith(".sql")).sort().reverse()
+      .find((f) => read(join("supabase/migrations", f)).includes("CHECK (handover IN ("));
+    expect(newest).toBeTruthy();
+    expect(read(join("supabase/migrations", newest!))).toContain("CHECK (handover IN ('pickup_home', 'porch', 'delivery', 'seller_delivery', 'meetup', 'ship'))");
   });
 
   it("F492: the welcome email signs off with the name, in the form the later drips use", () => {
@@ -81,7 +84,7 @@ describe("email copy, whole-app audit 11-10", () => {
     expect(day1).toContain('label="Open Louisiana Helpr"');
     expect(day1).toMatch(/Reach out any time at admin@louisianahelpr\.com\. - Louisiana Helpr\s*<\/Text>/);
     expect(day1).not.toContain("Dashboard");
-    // The same sign-off form as the day 14 and day 30 emails.
+    // The same sign-off form as the day-14 and day-30 emails (2026-11-10).
     expect(drip.match(/ - Louisiana Helpr\s*<\/Text>/g)?.length).toBeGreaterThanOrEqual(3);
   });
 

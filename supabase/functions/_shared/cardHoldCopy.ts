@@ -31,6 +31,16 @@ function setupFeeNote(amountCents: number, feeCents: number): { including: strin
 
 /** Every member-facing sentence about a hold, in one place. */
 export const CARD_HOLD_COPY = {
+  /**
+   * The post-a-job money promise with the switch on (audit 11-10 F299): the price step, the review step and the
+   * Stripe page said three different things ("isn't charged", "a bank payment is charged", "Pay $25"). ONE sentence
+   * on both steps; `checkout` is its Stripe-page form, under the Pay button, with the real hold.
+   */
+  postPromise: "Your card is held, not charged, until a Helpr accepts your offer. A bank payment is charged when you post. Either way the money is held until the job is done.",
+  checkout: (amountCents: number, feeCents = 0) => {
+    const note = setupFeeNote(amountCents, feeCents);
+    return `Pay by card and it's held for ${holdDollars(amountCents)}${note.including}, not charged: you're only charged when you hire someone${note.once}. Pay by bank and it's charged now. Either way the money is held until the job is done.`;
+  },
   heldTitle: "Your card is on hold",
   held: (amountCents: number, feeCents = 0) => {
     const note = setupFeeNote(amountCents, feeCents);

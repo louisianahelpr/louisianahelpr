@@ -54,7 +54,7 @@ describe("cancel dialog for a crew where nobody came", () => {
     expect(document.body.textContent).not.toMatch(/Most of your payment/);
     expect(document.body.textContent).not.toMatch(/Before a Helpr is selected/);
     await waitFor(() => expect(screen.getByTestId("cancel-back-to-you")).toHaveTextContent("$126.51"));
-    expect(screen.getByRole("button", { name: /^cancel job$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^cancel · refund \$126\.51$/i })).toBeInTheDocument();
   });
 
   it("control: any other cancel still shows the two-step policy", async () => {

@@ -501,7 +501,7 @@ async function settleOrder(
     // F179 (owner's message review 11-09): the held amount's lines (item, service fee, shipping), display only; no
     // breakdown when they do not add up to the hold.
     await sendMoneyEmail(ctx, meta.buyer_id, "declutter_receipt", "Your Declutter order",
-      `We're holding ${dollars(amount)} on your card for your Declutter order. You're charged once the shipping label is made; if it can't be made, the hold is released and you pay nothing. You'll get tracking in the app.`,
+      `Your card has a hold for ${dollars(amount)} for your Declutter order; it isn't a charge yet. You're charged only after the shipping label is made. If no label can be made, the hold is released and you pay nothing. You'll get tracking in the app.`,
       await declutterReceiptFor(supabase, orderId, amount, 0, logStep, "Held"));
     await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep, 0);
     await saveOrderCard(event, session.id, paymentIntentId, meta.buyer_id, ctx);

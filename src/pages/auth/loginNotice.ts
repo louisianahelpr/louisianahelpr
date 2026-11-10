@@ -40,11 +40,14 @@ export function loginNotice(o: {
   // AUD31-16: a guest who followed a Declutter link is most likely new, so the notice leads with Create an account.
   // F080 (owner UI audit 11-09): every gated page does the same (the Sell pattern), with its own line.
   // F252: the returning-member lines (payment, finish profile) end with LOG_BACK_IN, so they do not lead with sign-up.
-  const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && notice.endsWith(BACK_TO_IT);
+  // F286a: a private job link is the poster's or Helpr's, so it leads with Log in too.
+  const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && notice !== JOB_LINK_NOTICE && (notice === declutterPage || notice.endsWith(BACK_TO_IT));
   return { accountChoice, notice, leadWithSignup };
 }
 
 const BACK_TO_IT = "Create an account, or log in and we'll take you straight back to it.";
+/** F286a: the one gated line that does not end with BACK_TO_IT, so the form leads with Log in. */
+export const JOB_LINK_NOTICE = "This job is only visible to its poster and Helpr. Log in and we'll take you straight back to it.";
 
 /**
  * F080 (owner UI audit 11-09): most gated pages said a generic "That page needs an account" over the Log in form,
@@ -75,7 +78,11 @@ const LOG_BACK_IN = "We'll take you straight back to it.";
 export function gatedPageNotice(redirect: string | null | undefined): string | null {
   const declutter = declutterGatedNotice(redirect);
   if (declutter || !redirect) return declutter;
-  const first = `/${new URL(redirect, "https://x.invalid").pathname.split("/")[1] ?? ""}`;
+  const path = new URL(redirect, "https://x.invalid").pathname;
+  // F286a (audit 11-10): a link to one job that is not public (hired, done, cancelled) comes from the
+  // job's own poster or Helpr, who already has an account. Lead with Log in, not Create an account.
+  if (/^\/jobs\/[0-9a-f-]{36}$/i.test(path)) return JOB_LINK_NOTICE;
+  const first = `/${path.split("/")[1] ?? ""}`;
   const returning = RETURNING_PAGE_LINES.find(([prefix]) => prefix === first)?.[1];
   if (returning) return `${returning} ${LOG_BACK_IN}`;
   const line = GATED_PAGE_LINES.find(([prefix]) => prefix === first)?.[1];

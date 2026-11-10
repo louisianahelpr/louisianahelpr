@@ -16,6 +16,10 @@
  * @mutate src/pages/jobs/JobDetail.tsx | navigate(signupUrlFor(id ? `/jobs/${id}` : null)) | navigate("/signup")
  * @mutate src/pages/jobs/JobDetail.tsx | onClose={() => navigate("/browse")} | onClose={() => navigate("/home")}
  * @mutate src/pages/jobs/JobDetail.tsx | if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id ?? "")) return null; | if (id === "") return null;
+ * @mutate src/pages/jobs/JobDetail.tsx | ) : !job && id && UUID_RE.test(id) ? ( | ) : !job && id && !UUID_RE.test(id) ? (
+ * @mutate src/pages/jobs/JobDetail.tsx | navigate(`/login?redirect=${encodeURIComponent(`/jobs/${id}`)}`) | navigate("/login")
+ * @mutate src/pages/auth/loginNotice.ts | if (/^\/jobs\/[0-9a-f-]{36}$/i.test(path)) return JOB_LINK_NOTICE; | 
+ * @mutate src/pages/auth/loginNotice.ts | notice !== JOB_LINK_NOTICE && (notice === declutterPage | (notice === declutterPage
  * @mutate src/pages/auth/Login.tsx | const signupHref = signupUrlFor(pendingRedirect); | const signupHref = pendingRedirect?.match(/^\/jobs\/([^/?#]+)$/) ? signupUrlFor(pendingRedirect) : "/signup";
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -27,6 +31,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { blankComments } from "./helpers/blankNonCode";
 import { postAuthDestination, rememberSignupRedirect, signupUrlFor } from "@/lib/jobIntent";
 import { guestTakeHome } from "@/components/dashboard/GuestJobPreview";
+import { JOB_LINK_NOTICE, loginNotice } from "@/pages/auth/loginNotice";
 
 const JOB_ID = "3f0c9a4e-0000-4000-8000-000000000000";
 const state = vi.hoisted(() => ({
@@ -143,12 +148,40 @@ describe("a guest opening a shared link", () => {
     expect(screen.getByTestId("where").textContent).toBe("/browse");
   });
 
-  it("a job that is not public says so and offers Browse", async () => {
+  // F286a (audit 11-10, High): an email or push link to a hired, done or cancelled job, opened signed out,
+  // said "This job isn't available" (read as "my job was cancelled") with no way to log in.
+  it("a job that is not public leads with Log in carrying the job, and still offers Browse", async () => {
     state.row = null;
     openLink();
-    expect(await screen.findByText("This job isn't available.")).toBeTruthy();
+    expect(await screen.findByText("Log in to see this job.")).toBeTruthy();
+    expect(screen.getByText(/only visible to the poster and the Helpr/)).toBeTruthy();
+    expect(screen.queryByText("This job isn't available.")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Log in" }));
+    expect(screen.getByTestId("where").textContent).toBe(`/login?redirect=${encodeURIComponent(`/jobs/${JOB_ID}`)}`);
+  });
+
+  it("the Browse way out stays on the not-public state", async () => {
+    state.row = null;
+    openLink();
+    await screen.findByText("Log in to see this job.");
     fireEvent.click(screen.getByRole("button", { name: /browse open jobs/i }));
     expect(screen.getByTestId("where").textContent).toBe("/browse");
+  });
+
+  it("an id that is not a job id at all keeps 'isn't available' (nothing to log in for)", async () => {
+    state.row = null;
+    openLink("/jobs/abc");
+    expect(await screen.findByText("This job isn't available.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Log in" })).toBeNull();
+  });
+
+  it("the Log in screen that link opens leads with Log in, not Create an account", () => {
+    const { notice, leadWithSignup } = loginNotice({ oauthError: null, connect: null, signedOutForInactivity: false, arrivedFromSignup: false, bouncedFromGatedRoute: true, redirect: `/jobs/${JOB_ID}` });
+    expect(notice).toBe(JOB_LINK_NOTICE);
+    expect(notice).toMatch(/only visible to its poster and Helpr/);
+    expect(leadWithSignup).toBe(false);
+    // The Jobs tabs themselves keep the generic account line.
+    expect(loginNotice({ oauthError: null, connect: null, signedOutForInactivity: false, arrivedFromSignup: false, bouncedFromGatedRoute: true, redirect: "/jobs?tab=posted" }).leadWithSignup).toBe(true);
   });
 });
 

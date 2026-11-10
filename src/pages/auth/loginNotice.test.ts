@@ -2,7 +2,7 @@
  * AUD31-16 (audit 2026-10-31, Guests on Declutter pages): a guest who opened a shared Declutter link got "That page
  * needs an account" over "Welcome back, neighbor.", with Create an account only as the small last line and nothing
  * saying what the page was. The notice names the Declutter page and Login leads with Create an account.
- * @mutate src/pages/auth/loginNotice.ts |   const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && notice.endsWith(BACK_TO_IT); |   const leadWithSignup = false;
+ * @mutate src/pages/auth/loginNotice.ts |   const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && notice !== JOB_LINK_NOTICE && (notice === declutterPage \|\| notice.endsWith(BACK_TO_IT)); |   const leadWithSignup = false;
  * F080 (owner UI audit 11-09): every gated page names itself and leads with Create an account (the Sell pattern).
  * @mutate src/pages/auth/loginNotice.ts |   ["/post-job", "Posting a job needs a free account."], |
  * @mutate src/pages/auth/loginNotice.ts |   if (url.pathname.startsWith("/declutter/item/")) return | if (false) return

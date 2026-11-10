@@ -1,7 +1,7 @@
 /**
  * Shops audit 11-08 #3: services and at-home work get their own completion step. The server keeps such an order in
  * person (20261108200421_shops_services_in_person.sql; src/test/pglite/shopsServicesInPerson.pglite.mjs), and the
- * screen gives it service words: the shop taps "Mark done" (no ready photo, no "Mark ready"), the buyer taps "It's
+ * screen gives it service words: the shop taps "Work done" (no ready photo, no "Mark ready"), the buyer taps "It's
  * done" or "Something's wrong". Goods keep "Handed over" / "I got it" and the photo. #14: a delivery never reads
  * "Pick up in person".
  *
@@ -57,22 +57,22 @@ beforeEach(() => {
 });
 
 describe("a service's shop side", () => {
-  it("offers Mark done, never a ready photo or Mark ready", async () => {
+  it("offers Work done, never a ready photo or Mark ready", async () => {
     show(order(), "shop");
-    const done = await screen.findByRole("button", { name: "Mark done" });
+    const done = await screen.findByRole("button", { name: "Work done" });
     expect(screen.queryByRole("button", { name: /photo/i })).toBeNull();
     expect(screen.queryByRole("button", { name: "Mark ready" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Handed over" })).toBeNull();
     expect(screen.getByTestId("shop-handover-actions").textContent).toContain("The shop marks it done when the work is finished.");
     fireEvent.click(done);
-    fireEvent.click(screen.getByRole("button", { name: "confirm Mark done" }));
+    fireEvent.click(screen.getByRole("button", { name: "confirm Work done" }));
     await vi.waitFor(() => expect(handover.markHandedOver).toHaveBeenCalledWith("o1"));
     await vi.waitFor(() => expect(toast).toHaveBeenCalledWith("Marked done. The buyer has 48 hours to report a problem."));
   });
 
   it("at-home work (a cleaning at the buyer's place) gets the same step", async () => {
     show(order({}, { kind: "service", at_buyer: true }), "shop");
-    expect(await screen.findByRole("button", { name: "Mark done" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Work done" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /photo/i })).toBeNull();
   });
 });
@@ -91,7 +91,7 @@ describe("goods keep the goods step", () => {
     show(order({}, { kind: "made", title: "Candle" }), "shop");
     expect(await screen.findByRole("button", { name: "Handed over" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Add a ready photo" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Mark done" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Work done" })).toBeNull();
   });
 
   it("a shop delivery never reads Pick up in person (#14)", async () => {

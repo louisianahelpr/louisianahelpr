@@ -28,6 +28,7 @@
  * @mutate src/components/landing/FreshDeclutterStrip.tsx |   return items.some((i) => i.porch_ok) && items.some((i) => !i.porch_ok); |   return items.some((i) => i.porch_ok);
  * @mutate src/components/landing/FreshDeclutterStrip.tsx | {it.area_label \|\| "\u00a0"} | {it.condition_stars}
  * @mutate src/components/landing/FreshDeclutterSection.tsx | export const FRESH_PRICE = "text-ds-20 leading-tight"; | export const FRESH_PRICE = "text-ds-16 leading-tight";
+ * @mutate src/components/landing/FreshDeclutterStrip.tsx | className={`line-clamp-2 break-words ${FRESH_TITLE}`} | className={`block line-clamp-2 break-words ${FRESH_TITLE}`}
  * @mutate src/lib/declutter/landingCardPhoto.ts | export const LANDING_CARD_PHOTO = { width: 640, height: 800 } as const; | export const LANDING_CARD_PHOTO = { width: 480, height: 480 } as const;
  */
 import { readFileSync } from "node:fs";
@@ -93,6 +94,9 @@ describe("the landing lets a guest browse Declutter (owner 11-04)", () => {
     expect(priceLines[0]).toBe(base);
     expect(priceLines[1]?.textContent).toMatch(/incl\. fee/);
     expect((cards[1].querySelector("[data-card-title]") as HTMLElement).className).toMatch(/\bline-clamp-2\b.*\btext-ds-15\b/);
+    // A display class beside line-clamp-2 overrides its -webkit-box, so the clamp did nothing (WebKit 375 after-shot
+    // 11-10: a four-line title). Never one on the title.
+    expect((cards[1].querySelector("[data-card-title]") as HTMLElement).className.split(/\s+/)).not.toEqual(expect.arrayContaining(["block"]));
     // D017: the 4:5 card asks for a 640x800 thumbnail (it was the 480 square).
     expect(cards[0].querySelector("img")?.getAttribute("width")).toBe(String(LANDING_CARD_PHOTO.width));
     expect(LANDING_CARD_PHOTO).toEqual({ width: 640, height: 800 });

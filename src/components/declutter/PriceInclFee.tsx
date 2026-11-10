@@ -21,14 +21,6 @@ function exactDollars(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-/**
- * F050 (UI audit 11-09): a card link's spoken name, "Kinetic Sand Set, $3.85 incl. fee" ("Free" for a free item), so a
- * screen reader names each card instead of reading "link". The same figure the card shows.
- */
-export function cardLinkLabel(title: string, priceCents: number): string {
-  return `${title}, ${priceCents > 0 ? inclFeeText(priceCents) : "Free"}`;
-}
-
 /** "$14.88 incl. fee": the words PriceInclFee draws, as plain text (an aria-label). */
 export function inclFeeText(priceCents: number): string {
   return `${exactDollars(buyNowTotalCents(priceCents))} ${INCL_FEE_WORDS}`;
@@ -42,7 +34,7 @@ export function PriceInclFee({
   /** The item's current price in cents, before the fee. */
   priceCents: number;
   className?: string;
-  /** Owner pick 2 (11-08): where the incl. price is the loud one, "incl. fee" is its own small label (primary colour). */
+  /** The offer chips (DeclutterOfferPanel): "incl. fee" as its own small label (primary colour) under the chip's total. */
   wordsClassName?: string;
 }) {
   if (!(priceCents > 0)) return null;

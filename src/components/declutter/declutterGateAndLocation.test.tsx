@@ -346,14 +346,18 @@ describe("Declutter location ask", () => {
     const first = (await screen.findByText("Oak rocking chair")).closest("a")!;
     // @mutate src/components/declutter/DeclutterItemCard.tsx | className="block truncate text-ds-13 font-semibold leading-snug" title={item.title} | className="block line-clamp-2 text-ds-13 font-semibold leading-snug" title={item.title}
     expect(first.querySelector("[data-card-title]")!.className).toMatch(/\btruncate\b/);
-    // Owner pick 2 (11-08), one price story: the incl.-fee price is the bold one, in ink; the base price small and grey.
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | className="text-ds-16 font-bold tabular-nums text-foreground" wordsClassName | className="text-ds-11 tabular-nums text-muted-foreground" wordsClassName
-    const paid = first.querySelector("[data-card-price] [data-price-incl-fee]")!;
-    expect(paid.className).toMatch(/\bfont-bold\b/);
-    expect(paid.className).toMatch(/\btext-foreground\b/);
-    expect(paid.className).not.toMatch(/burnt-sienna/);
-    expect(first.querySelector("[data-card-base-price]")!.className).toMatch(/\btext-muted-foreground\b/);
-    expect(first.querySelector("[data-card-base-price]")!.textContent).toBe("$40");
+    // Owner 11-09 (reverses pick 2 of 11-08): the LIST price is the bold one, in ink; "incl. fee" small and grey under it.
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-base-price="" className={`text-ds-16 ${PRICE_PAID}`}> | <span data-card-base-price="" className={`text-ds-11 ${PRICE_BASE}`}>
+    const list = first.querySelector("[data-card-price] [data-card-base-price]")!;
+    expect(list.className).toMatch(/\bfont-bold\b/);
+    expect(list.className).toMatch(/\btext-foreground\b/);
+    expect(list.className).not.toMatch(/burnt-sienna/);
+    expect(list.textContent).toBe("$40");
+    const incl = first.querySelector("[data-card-price] [data-price-incl-fee]")!;
+    expect(incl.className).toMatch(/\btext-muted-foreground\b/);
+    expect(incl.className).not.toMatch(/\bfont-bold\b/);
+    // The list price comes first, the incl.-fee line after it.
+    expect(list.compareDocumentPosition(incl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // Three text lines under the photo: title, the meta line, the price.
     expect(first.querySelectorAll("[data-card-title], [data-card-place], [data-card-price]")).toHaveLength(3);
     // 4:5 photo (Vinted's taller tile), never square.

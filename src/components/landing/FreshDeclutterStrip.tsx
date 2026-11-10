@@ -70,21 +70,22 @@ function FreshCard({ it }: { it: FreshItem }) {
       <span className="block min-w-0 px-0.5 pt-2">
         <span data-card-title className="block truncate text-ds-13 font-semibold leading-snug" style={{ color: "var(--lp-ink)" }} title={it.title}>{it.title}</span>
         {condition && <span data-card-condition={it.condition_stars} title={condition} className="block truncate text-ds-11 text-muted-foreground">{condition}</span>}
-        <span data-card-price="" className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-1.5 leading-tight">
+        <span data-card-price="" className="mt-0.5 flex min-w-0 flex-col leading-tight">
           {it.current_price_cents > 0 ? (
             <>
-              {/* F007 (owner's UI audit 11-09): the "incl. fee" words and the base price were 11px light text; 12px in
-                  the landing's body ink (--lp-body, #4F4C45 / #D6D2C8 dark) reads at arm's length. */}
-              <PriceInclFee priceCents={it.current_price_cents} className="text-ds-16 font-bold tabular-nums text-foreground" wordsClassName="text-ds-12 font-semibold text-primary" />
-              <span data-card-base-price="" className="text-ds-12 font-medium tabular-nums" style={{ color: "var(--lp-body)" }}>
+              {/* Owner 11-09 (10:35 PM, reverses pick 2 of 11-08): the LIST price is the big bold one; "$X.XX incl. fee"
+                  sits under it, smaller. F007 (owner's UI audit 11-09): the small text is 12px in the landing's body ink
+                  (--lp-body, #4F4C45 / #D6D2C8 dark), which reads at arm's length. */}
+              <span data-card-base-price="" className="text-ds-16 font-bold tabular-nums text-foreground">
                 {itemPriceLabel(it.current_price_cents)}
                 {it.current_price_cents < it.price_cents && (
-                  <span className="ml-1">
+                  <span className="ml-1.5 text-ds-12 font-medium text-[color:var(--lp-body)]">
                     <span className="sr-only">Price dropped, was </span>
                     <s aria-hidden>{formatPrice(it.price_cents)}</s>
                   </span>
                 )}
               </span>
+              <PriceInclFee priceCents={it.current_price_cents} className="text-ds-12 font-medium tabular-nums text-[color:var(--lp-body)]" />
             </>
           ) : (
             <span data-card-free="" className={`text-ds-16 ${PRICE_DEAL}`}>{itemPriceLabel(it.current_price_cents)}</span>

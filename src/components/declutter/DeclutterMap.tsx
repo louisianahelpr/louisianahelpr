@@ -231,9 +231,9 @@ export default function DeclutterMap({
                 {cover.get(selected.item.id) && <FallbackImg src={photoPublicUrl(cover.get(selected.item.id)!)} alt="" className="relative h-full w-full object-cover" />}
               </span>
               <span className="min-w-0 flex-1">
-                {/* Owner pick 2 (11-08): the incl.-fee price is the bold one; the base price small and grey. */}
-                <PriceInclFee priceCents={selected.item.current_price_cents} className="block text-ds-15 font-bold tabular-nums text-foreground" />
-                <span className="block text-ds-12 font-medium tabular-nums text-muted-foreground">{itemPriceLabel(selected.item.current_price_cents)}</span>
+                {/* Owner 11-09 (reverses pick 2 of 11-08): the list price is the bold one; "$X.XX incl. fee" small under it. */}
+                <span className="block text-ds-15 font-bold tabular-nums text-foreground">{itemPriceLabel(selected.item.current_price_cents)}</span>
+                <PriceInclFee priceCents={selected.item.current_price_cents} className="block text-ds-12 font-medium tabular-nums text-muted-foreground" />
                 <span className="block truncate text-ds-15 font-semibold text-foreground" title={selected.item.title}>{selected.item.title}</span>
                 {/* NIGHT-BUYINGrealma-2: "Mid-City, Baton Rouge · 2 ..." cut the miles, the one number that matters on a map.
                     The place may be cut; the miles have their own line and never are. */}

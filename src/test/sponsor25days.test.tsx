@@ -295,7 +295,7 @@ describe("link preview (api/share.ts, before JavaScript runs)", () => {
     const html = await (await handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?_og=noindex&_id=${id}`))).text();
     const first = html.indexOf('<meta property="og:image" ');
     const block = html.slice(first, html.indexOf('<meta property="og:image" ', first + 1));
-    expect(block).toContain('<meta property="og:image" content="https://www.louisianahelpr.com/og-25days.png?v=1"');
+    expect(block).toContain('<meta property="og:image" content="https://www.louisianahelpr.com/og-25days.png?v=2"');
     expect(block).toContain('<meta property="og:image:width" content="1200"');
     expect(html).toMatch(/<meta name="robots" content="noindex/);
     expect(html).toContain("25 Days of Louisiana Giveaways");

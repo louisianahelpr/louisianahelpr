@@ -18,9 +18,10 @@
  * old code: 5 FAIL; measured 2026-10-18).
  */
 // @mutate supabase/migrations/20261018210400_shops_pickup_address.sql | REVOKE ALL ON TABLE public.shop_pickup_addresses FROM PUBLIC, anon, authenticated; | GRANT SELECT ON TABLE public.shop_pickup_addresses TO authenticated;
-// @mutate supabase/migrations/20261018210400_shops_pickup_address.sql |              AND o.status = 'accepted'\n | \n
-// @mutate supabase/migrations/20261018210400_shops_pickup_address.sql |              AND public.shop_local_today() <= o.ready_date + 7\n | \n
-// @mutate supabase/migrations/20261018210400_shops_pickup_address.sql |              AND NOT public.is_caller_banned())); | ));
+// @mutate supabase/migrations/20261108195900_shops_deposit_hidden_pickup_private.sql |              AND o.status = 'accepted'\n | \n
+// @mutate supabase/migrations/20261108195900_shops_deposit_hidden_pickup_private.sql |              AND public.shop_local_today() <= o.ready_date + 7\n | \n
+// @mutate supabase/migrations/20261108195900_shops_deposit_hidden_pickup_private.sql |              AND NOT public.is_caller_banned())); | ));
+// @mutate supabase/migrations/20261108195900_shops_deposit_hidden_pickup_private.sql |              AND (o.fulfillment = 'pickup' |              AND (true OR o.fulfillment = 'pickup'
 // @mutate supabase/migrations/20261106180540_shops_pickup_zip_louisiana_only.sql |   PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN | IF public.is_caller_banned() THEN
 // @mutate supabase/migrations/20261018210400_shops_pickup_address.sql |   BEFORE INSERT ON public.shop_orders\n | BEFORE INSERT ON public.shop_order_lines\n
 // @mutate supabase/migrations/20261106180540_shops_pickup_zip_louisiana_only.sql |   IF p_postal_code IS NULL OR btrim(p_postal_code) !~ '^(70[013-8]\|71[0-4])[0-9]{2}$' THEN |   IF p_postal_code IS NULL OR btrim(p_postal_code) !~ '^7[01][0-9]{3}$' THEN
@@ -55,7 +56,9 @@ describe("Shops pickup address stays private (20261018210400)", () => {
   it("2. the buyer sees it only while accepted (a week past the ready date at most, never banned); the seller always", () => {
     const b = body("shops_order_pickup_address");
     expect(b).toMatch(/o\.seller_id\s*=\s*auth\.uid\(\)/i);
-    expect(b).toMatch(/o\.buyer_id\s*=\s*auth\.uid\(\)\s+AND\s+o\.status\s*=\s*'accepted'\s+AND\s+public\.shop_local_today\(\)\s*<=\s*o\.ready_date\s*\+\s*7\s+AND\s+NOT\s+public\.is_caller_banned\(\)/i);
+    expect(b).toMatch(/o\.buyer_id\s*=\s*auth\.uid\(\)\s+AND\s+o\.status\s*=\s*'accepted'\s+AND\s+public\.shop_local_today\(\)\s*<=\s*o\.ready_date\s*\+\s*7\s+AND\s+[^;]*?AND\s+NOT\s+public\.is_caller_banned\(\)\)\)/i);
+    // Shops audit 11-08 #2 (20261108195900): only a buyer who picks up at the shop, never for work at the buyer's place.
+    expect(b).toMatch(/AND\s+\(o\.fulfillment\s*=\s*'pickup'\s+OR\s+\(o\.fulfillment\s*=\s*'helpr_delivers'\s+AND\s+o\.helpr_unfilled_at\s+IS\s+NOT\s+NULL\)\)\s+AND\s+NOT\s+EXISTS\s+\(SELECT\s+1\s+FROM\s+public\.shop_order_lines\s+l\s+WHERE\s+l\.order_id\s*=\s*o\.id\s+AND\s+l\.at_buyer\)/i);
     expect(b).not.toMatch(/handed_over/i);
     // The address must be the order's seller's own (authz review 2026-10-18, note 4).
     expect(b).toMatch(/a\.owner_id\s*=\s*o\.seller_id/i);

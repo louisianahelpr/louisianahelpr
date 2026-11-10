@@ -34,6 +34,8 @@ vi.mock("@/hooks/useOnboardingFee", async (orig) => ({
 }));
 // The Declutter shipping row reads the declutter_shipping switch (a query); off here, as for every non-tester.
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
+// A guest's ID wording reads the switches open to everyone (L003); none here.
+vi.mock("@/components/landing/useSectionsOpen", () => ({ useSectionsOpen: () => ({ open: new Set<string>(), settled: true, failed: false }) }));
 
 import { LegalFullTextBody } from "@/pages/info/legal/LegalFullTextBody";
 import LegalFullText from "@/pages/info/LegalFullText";

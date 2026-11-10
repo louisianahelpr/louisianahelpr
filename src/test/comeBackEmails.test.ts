@@ -206,7 +206,9 @@ describe("come-back emails: the words (founder voice, plain, sentence case)", ()
   });
 
   it("the product lines are the landing page's own, word for word", () => {
-    const landing = readFileSync(join(ROOT, "src/components/landing/HowItWorksSection.tsx"), "utf8");
+    // The hire steps live in hireSteps.ts since L014 (11-10: the town pages read the same three), still the landing's own.
+    const landing = ["src/components/landing/HowItWorksSection.tsx", "src/components/landing/hireSteps.ts"]
+      .map((f) => readFileSync(join(ROOT, f), "utf8")).join("\n");
     // The one line that is not the landing's: the Declutter line, in the owner's message review's own words
     // (11-09, F169: "Got stuff to sell? List it on Declutter in a minute."). Exact both ways.
     const REVIEW_LINES = ["List it on Declutter in a minute."];

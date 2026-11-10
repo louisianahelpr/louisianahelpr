@@ -6,9 +6,9 @@
  * Root cause of the empty third: LandingProof dropped its "Verified ID" item while the ID check is
  * off (switch identity_check, owner 2026-10-23) and nothing took its place, so the row held two items.
  *
- * The CLASS, for both answers of the ID switch: at lg the row's column count equals the number of
- * items it shows there, and that number is 3 (the finished job + two facts). Any item that goes
- * missing again, or a column count that is not the item count, fails here.
+ * Owner 11-09 (10:31 PM): the proof row is no longer a row: the finished job is the Jobs grid's first card and the two
+ * facts are that section's line (src/test/landingJustFinishedInJobs1109.test.tsx holds it), so the three-column rule
+ * went with it. What stays here is the first screen and the small sizes.
  *
  * The first screen: the section fills the screen (100svh; on a phone 120px less, owner 11-08, so the Jobs | Declutter
  * switch peeks in) and the H1, subhead and search are one
@@ -17,58 +17,19 @@
  * 16px with a photo at most 72px. Before/after screenshots and measurements at 375, 768 and 1440:
  * ~/.lh-shots/landing-tighten-1027/.
  *
- * @mutate src/components/landing/LandingProof.tsx |   return [idOn ? ID_ITEM : PICK_ITEM, PRICE_ITEM]; |   return idOn ? [ID_ITEM, PRICE_ITEM] : [PRICE_ITEM];
- * @mutate src/components/landing/LandingProof.tsx | grid gap-3 lg:grid-cols-3 lg:gap-10 | grid gap-3 lg:grid-cols-2 lg:gap-10
  * @mutate src/components/landing/HeroSection.tsx | text-[16px] sm:text-[17px] lg:text-[20px] leading-relaxed | text-[16px] sm:text-[18px] lg:text-[22px] xl:text-[24px] leading-relaxed
  * @mutate src/components/landing/HeroSection.tsx | pl-4 lg:pl-5 pr-1 h-12 lg:h-[52px] | pl-4 lg:pl-5 pr-1 h-12 lg:h-14
  * @mutate src/components/landing/HeroSection.tsx | <div data-testid="landing-hero-block" className="flex flex-1 flex-col justify-center"> | <div data-testid="landing-hero-block" className="flex flex-col">
  * @mutate src/components/landing/HeroSection.tsx | xl:text-[7.75rem] | xl:text-[6rem]
  * @mutate src/components/landing/HeroSection.tsx | min-h-[calc(100svh-7.5rem)] sm:min-h-[100svh] | min-h-[100svh]
- * @mutate src/components/landing/LandingProof.tsx | text-ds-15 lg:text-ds-16 font-semibold" style={{ color: "var(--lp-ink)" }}>\n            {it.title} | text-ds-15 lg:text-ds-20 font-semibold" style={{ color: "var(--lp-ink)" }}>\n            {it.title}
+ * @mutate src/components/landing/LandingProof.tsx | <span className="text-ds-15 lg:text-ds-16 font-semibold" style={{ color: "var(--lp-ink)" }}> | <span className="text-ds-15 lg:text-ds-20 font-semibold" style={{ color: "var(--lp-ink)" }}>
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
-import { LandingProof, proofItems } from "@/components/landing/LandingProof";
-import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 
 const read = (rel: string) => blankComments(readFileSync(join(process.cwd(), rel), "utf8"));
-
-afterEach(() => {
-  cleanup();
-  act(() => setIdentityCheckOn(false));
-});
-
-/** The items the row shows at lg: every <li> not hidden from lg up (`lg:hidden`), plus those only shown there. */
-function lgItems(row: HTMLElement): HTMLElement[] {
-  return [...row.querySelectorAll<HTMLElement>(":scope > li")].filter((li) => !li.className.split(/\s+/).includes("lg:hidden"));
-}
-
-describe("the landing proof row has as many columns as items, and they are three", () => {
-  for (const idOn of [false, true]) {
-    it(`ID check ${idOn ? "on" : "off"}`, () => {
-      act(() => setIdentityCheckOn(idOn));
-      render(<LandingProof />);
-      const row = screen.getByTestId("landing-proof");
-      const items = lgItems(row);
-      const cols = Number(/\blg:grid-cols-(\d+)\b/.exec(row.className)?.[1]);
-      expect(items.length).toBeGreaterThan(2);
-      expect(items.length).toBe(3);
-      expect(cols).toBe(items.length);
-      // Each item says something: no empty cell.
-      for (const li of items) expect(li.textContent?.trim().length).toBeGreaterThan(10);
-      expect(proofItems(idOn)).toHaveLength(2);
-    });
-  }
-
-  it("with the ID check off, no line claims an ID check", () => {
-    act(() => setIdentityCheckOn(false));
-    render(<LandingProof />);
-    expect(screen.getByTestId("landing-proof").textContent).not.toMatch(/Photo ID|Verified ID/);
-  });
-});
 
 /** The px of a Tailwind text size token in the class list for one breakpoint prefix ("" = base). */
 function sizeAt(classes: string, prefix: string): number | null {
@@ -124,7 +85,7 @@ describe("the hero block is centred in the first screen, the H1 stays dominant, 
     const heights = [...field.matchAll(/(?:^|\s)(?:[a-z]+:)?h-(?:(\d+)|\[(\d+)px\])(?=\s|$)/g)].map((m) => (m[1] ? Number(m[1]) * 4 : Number(m[2])));
     expect(heights.length).toBeGreaterThan(0);
     for (const h of heights) expect(h).toBeLessThanOrEqual(52);
-    const sizes = [...proof.matchAll(/(?:^|\s)(?:lg:)?text-ds-(\d+)(?=\s|")/g)].map((m) => Number(m[1]));
+    const sizes = [...proof.matchAll(/(?:^|[\s"])(?:lg:)?text-ds-(\d+)(?=\s|")/g)].map((m) => Number(m[1]));
     expect(sizes.length).toBeGreaterThan(5);
     expect(Math.max(...sizes)).toBeLessThanOrEqual(16);
     const photo = [...proof.matchAll(/(?:^|\s)(?:lg:)?w-(?:(\d+)|\[(\d+)px\])(?=\s|")/g)].map((m) => (m[1] ? Number(m[1]) * 4 : Number(m[2])));

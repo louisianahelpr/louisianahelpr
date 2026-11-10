@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { jobCategoryLabel } from "@/lib/jobCategories";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
-import { LandingProof } from "./LandingProof";
+import { LandingProof, useProofLine } from "./LandingProof";
+import { JOBS_SHELL, LandingBrowseShell } from "./LandingBrowseShell";
+import { POST_JOB_PATH, POST_JOB_SIGNED_OUT } from "./HowItWorksSection";
+import { goSignedInOr } from "./goSignedInOr";
 
 /**
  * "Live now: Open jobs near you" (owner, 2026-10-23, landing option B): the
@@ -17,9 +20,12 @@ import { LandingProof } from "./LandingProof";
  * rule). A failed read says so and keeps the link to the board; an empty read
  * says there are none right now.
  */
-const LIVE_JOBS_LIMIT = 4;
+/** Three jobs beside the finished-job card (owner 11-09: that card is the grid's first), four cards across from lg. */
+const LIVE_JOBS_LIMIT = 3;
 /** One row's height: the skeleton's row and the empty state's card are both exactly this (F011). */
-const LIVE_JOBS_ROW_H = "h-[72px] lg:h-[176px]";
+const LIVE_JOBS_ROW_H = "h-[120px] lg:h-[176px]";
+/** The finished-job card is at least a row tall, so it lines up with the cards beside it from lg. */
+const LIVE_JOBS_ROW_H_MIN = "lg:min-h-[176px]";
 /** One quiet retry before the failed state (a phone's network blip). */
 const LIVE_JOBS_RETRY_MS = 1500;
 
@@ -159,117 +165,99 @@ export function LiveJobsSection() {
     };
   }, []);
 
-  return (
-    <section
-      ref={ref}
-      data-testid="landing-live-jobs"
-      aria-labelledby="landing-live-jobs-title"
-      className="px-5 sm:px-8 lg:px-12 py-12 lg:py-20"
-      style={{ background: "var(--lp-surface)" }}
-    >
-      {/* max-w-6xl, the measure every other landing section uses (SectionsShowcase, HowItWorks): at
-          1440 this section's left edge sat at x=160 against their 144 (audit 2026-10-28 P5-6). */}
-      <div className="mx-auto w-full max-w-6xl flex flex-col gap-6 lg:gap-8" data-testid="landing-live-jobs-measure">
-        {/* The proof row opens this section, below the fold (owner, 2026-11-02: the hero's first screen is
-            just the headline, subhead and search). */}
-        <LandingProof />
-        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-          <div className="flex flex-col gap-2">
-            <span className="inline-flex items-center gap-2 text-ds-11 lg:text-ds-12 font-bold uppercase tracking-[0.1em]" style={{ color: "var(--lp-action-strong)" }}>
-              <span aria-hidden className="w-2 h-2 rounded-full" style={{ background: "var(--lp-action)" }} />
-              Live now
-            </span>
-            <h2 id="landing-live-jobs-title" className="font-display landing-serif leading-[1.05] text-ds-28" style={{ color: "var(--lp-ink)" }}>
-              Open jobs near you
-            </h2>
-          </div>
-          <Link
-            to="/browse"
-            className="group hidden sm:inline-flex items-center gap-1.5 min-h-11 text-ds-15 font-bold link-standard"
-            style={{ color: "var(--lp-action-strong)" }}
-          >
-            Browse local jobs
-            <ArrowRight className="w-4 h-4" aria-hidden />
-          </Link>
-        </div>
+  const line = useProofLine();
+  const navigate = useNavigate();
+  // The finished job is the grid's first card (owner 11-09, 10:31 PM: no block of its own), so the row holds it plus
+  // the jobs: as many columns as cards (audit 2026-10-28 P5-6: never a half-empty row).
+  const cols = 1 + (state.kind === "ok" ? Math.max(1, Math.min(state.jobs.length, LIVE_JOBS_LIMIT)) : LIVE_JOBS_LIMIT);
 
-        {/* F011 (owner's UI audit 11-09): the skeleton was four tall cards and the empty state one short line, so the page
-            jumped up ~200px (192px measured live at 375, 11-09) when the read came back empty. The skeleton is now ONE
-            row (one card on a phone, four across from lg) and the empty state is a card of exactly that row's height, so
-            an empty answer moves nothing. */}
-        {state.kind === "loading" && (
-          <ul aria-hidden className="grid gap-3 lg:gap-5 lg:grid-cols-4" data-testid="landing-live-jobs-skeleton">
-            {Array.from({ length: LIVE_JOBS_LIMIT }, (_, i) => (
-              <li key={i} className={`rounded-2xl ${LIVE_JOBS_ROW_H} ${i > 0 ? "hidden lg:block" : ""}`} style={{ background: "var(--lp-subtle)" }} />
-            ))}
-          </ul>
-        )}
-        {state.kind === "failed" && (
-          <>
-            <ReportErrorScreen source="LiveJobsSection" title="Couldn't load the newest jobs." />
-            <p className="text-ds-15" style={{ color: "var(--lp-body)" }} data-testid="landing-live-jobs-failed">
-              We couldn’t load the newest jobs just now. The full board has every open job.
-            </p>
-          </>
-        )}
+  return (
+    <LandingBrowseShell
+      sectionRef={ref}
+      testId="landing-live-jobs"
+      titleId="landing-live-jobs-title"
+      eyebrow={JOBS_SHELL.eyebrow}
+      title={JOBS_SHELL.title}
+      line={line}
+      seeAll={JOBS_SHELL.seeAll}
+    >
+      {state.kind === "failed" && (
+        <>
+          <ReportErrorScreen source="LiveJobsSection" title="Couldn't load the newest jobs." />
+          <p className="text-ds-15" style={{ color: "var(--lp-body)" }} data-testid="landing-live-jobs-failed">
+            We couldn’t load the newest jobs just now. The full board has every open job.
+          </p>
+        </>
+      )}
+      {/* F011 (owner's UI audit 11-09): while loading, the finished job and ONE placeholder row on a phone (the jobs'
+          row from lg); an empty answer is a card of exactly that row's height, so an empty answer moves nothing. */}
+      <ul
+        className="grid gap-3 lg:gap-5 lg:[grid-template-columns:repeat(var(--live-n),minmax(0,1fr))]"
+        style={{ "--live-n": cols } as React.CSSProperties}
+        data-testid={state.kind === "ok" && state.jobs.length > 0 ? "landing-live-jobs-list" : "landing-live-jobs-grid"}
+      >
+        <li className={LIVE_JOBS_ROW_H_MIN} data-landing-proof-card="">
+          <LandingProof />
+        </li>
+        {state.kind === "loading" &&
+          Array.from({ length: LIVE_JOBS_LIMIT }, (_, i) => (
+            <li key={i} aria-hidden data-testid="landing-live-jobs-skeleton" className={`rounded-2xl ${LIVE_JOBS_ROW_H} ${i > 0 ? "hidden lg:block" : ""}`} style={{ background: "var(--lp-subtle)" }} />
+          ))}
         {state.kind === "ok" && state.jobs.length === 0 && (
-          <div className={`rounded-2xl ${LIVE_JOBS_ROW_H} flex items-center px-4 lg:px-6`} style={{ background: "var(--lp-ground)" }}>
+          // L009 (landing audit 11-09): the empty card said "Post one" while its only link went to the board. It now
+          // carries its own "Post a job" link (sign-up first for a guest, the How it works button's rule).
+          <li className={`rounded-2xl ${LIVE_JOBS_ROW_H} flex flex-col justify-center items-start gap-1 px-4 lg:px-6`} style={{ background: "var(--lp-ground)" }}>
             <p className="text-ds-15" style={{ color: "var(--lp-body)" }} data-testid="landing-live-jobs-empty">
               No open jobs right now. Post one and name your price.
             </p>
-          </div>
+            <Link
+              to={POST_JOB_SIGNED_OUT}
+              onClick={(e) => {
+                e.preventDefault();
+                void goSignedInOr(navigate, POST_JOB_PATH, POST_JOB_SIGNED_OUT);
+              }}
+              data-testid="landing-live-jobs-post"
+              className="group inline-flex items-center gap-1.5 min-h-11 text-ds-15 font-bold link-standard"
+              style={{ color: "var(--lp-action-strong)" }}
+            >
+              Post a job
+              <ArrowRight className="w-4 h-4" aria-hidden />
+            </Link>
+          </li>
         )}
-        {state.kind === "ok" && state.jobs.length > 0 && (
-          // As many columns as there are jobs (at most 4): two jobs used to sit in a four-wide row
-          // with its right half empty (audit 2026-10-28 P5-6).
-          <ul
-            className="grid gap-3 lg:gap-5 lg:[grid-template-columns:repeat(var(--live-n),minmax(0,1fr))]"
-            style={{ "--live-n": Math.min(state.jobs.length, LIVE_JOBS_LIMIT) } as React.CSSProperties}
-            data-testid="landing-live-jobs-list"
-          >
-            {state.jobs.map((j, i) => {
-              const date = liveJobDate(j.date_needed);
-              const where = [j.parish ? `${j.parish} Parish` : null, date].filter(Boolean).join(" · ");
-              return (
-                <li key={j.id} className={i === 3 ? "hidden lg:block" : undefined}>
-                  <Link
-                    to={`/browse?job=${encodeURIComponent(j.id)}`}
-                    className="h-full rounded-2xl p-4 lg:p-6 flex lg:flex-col items-center lg:items-stretch justify-between gap-3 transition-colors"
-                    style={{ background: "var(--lp-ground)", color: "var(--lp-ink)" }}
-                  >
-                    <span className="flex flex-col gap-1 lg:gap-3 min-w-0">
-                      {j.category && (
-                        <span className="hidden lg:block text-ds-13 font-semibold" style={{ color: "var(--lp-action-strong)" }}>
-                          {jobCategoryLabel(j.category)}
-                        </span>
-                      )}
-                      <span className="text-ds-16 lg:text-ds-18 font-semibold line-clamp-2 break-words" title={j.title}>{j.title}</span>
-                      {where && (
-                        <span className="lg:hidden text-ds-13" style={{ color: "var(--lp-body)" }}>{where}</span>
-                      )}
-                    </span>
-                    <span className="flex flex-col gap-3 shrink-0 text-right lg:text-left">
-                      <span className="landing-serif-text text-ds-24 lg:text-ds-32">{liveJobPrice(j)}</span>
-                      {where && (
-                        <span className="hidden lg:block text-ds-14" style={{ color: "var(--lp-body)" }}>{where}</span>
-                      )}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-
-        <Link
-          to="/browse"
-          className="group sm:hidden self-center inline-flex items-center gap-1.5 min-h-11 text-ds-15 font-bold link-standard"
-          style={{ color: "var(--lp-action-strong)" }}
-        >
-          Browse local jobs
-          <ArrowRight className="w-4 h-4" aria-hidden />
-        </Link>
-      </div>
-    </section>
+        {state.kind === "ok" &&
+          state.jobs.slice(0, LIVE_JOBS_LIMIT).map((j) => {
+            const date = liveJobDate(j.date_needed);
+            const where = [j.parish ? `${j.parish} Parish` : null, date].filter(Boolean).join(" · ");
+            return (
+              <li key={j.id} data-live-job="">
+                <Link
+                  to={`/browse?job=${encodeURIComponent(j.id)}`}
+                  className="h-full rounded-2xl p-4 lg:p-6 flex lg:flex-col items-center lg:items-stretch justify-between gap-3 transition-colors"
+                  style={{ background: "var(--lp-ground)", color: "var(--lp-ink)" }}
+                >
+                  <span className="flex flex-col gap-1 lg:gap-3 min-w-0">
+                    {j.category && (
+                      <span className="hidden lg:block text-ds-13 font-semibold" style={{ color: "var(--lp-action-strong)" }}>
+                        {jobCategoryLabel(j.category)}
+                      </span>
+                    )}
+                    <span className="text-ds-16 lg:text-ds-18 font-semibold line-clamp-2 break-words" title={j.title}>{j.title}</span>
+                    {where && (
+                      <span className="lg:hidden text-ds-13" style={{ color: "var(--lp-body)" }}>{where}</span>
+                    )}
+                  </span>
+                  <span className="flex flex-col gap-3 shrink-0 text-right lg:text-left">
+                    <span className="landing-serif-text text-ds-24 lg:text-ds-32">{liveJobPrice(j)}</span>
+                    {where && (
+                      <span className="hidden lg:block text-ds-14" style={{ color: "var(--lp-body)" }}>{where}</span>
+                    )}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+      </ul>
+    </LandingBrowseShell>
   );
 }

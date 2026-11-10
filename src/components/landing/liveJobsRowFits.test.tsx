@@ -5,8 +5,8 @@
  * max-w-6xl). The row now has as many columns as there are jobs (at most 4)
  * and the section uses the same measure as the sections around it.
  *
- * @mutate src/components/landing/LiveJobsSection.tsx | style={{ "--live-n": Math.min(state.jobs.length, LIVE_JOBS_LIMIT) } as React.CSSProperties} | style={{ "--live-n": LIVE_JOBS_LIMIT } as React.CSSProperties}
- * @mutate src/components/landing/LiveJobsSection.tsx | <div className="mx-auto w-full max-w-6xl flex flex-col gap-6 lg:gap-8" data-testid="landing-live-jobs-measure"> | <div className="mx-auto w-full max-w-[1120px] flex flex-col gap-6 lg:gap-8" data-testid="landing-live-jobs-measure">
+ * @mutate src/components/landing/LiveJobsSection.tsx | const cols = 1 + (state.kind === "ok" ? Math.max(1, Math.min(state.jobs.length, LIVE_JOBS_LIMIT)) : LIVE_JOBS_LIMIT); | const cols = 1 + LIVE_JOBS_LIMIT;
+ * @mutate src/components/landing/LandingBrowseShell.tsx | <div className="mx-auto w-full max-w-6xl flex flex-col gap-6 lg:gap-8" data-testid={`${testId}-measure`}> | <div className="mx-auto w-full max-w-[1120px] flex flex-col gap-6 lg:gap-8" data-testid={`${testId}-measure`}>
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -41,12 +41,14 @@ afterEach(() => vi.unstubAllGlobals());
 const MEASURE = /\bmax-w-6xl\b/;
 
 describe("the landing's Open jobs row fits its cards and the page's edge", () => {
-  it.each([1, 2, 3, 4])("%i job(s) -> that many columns", async (n) => {
+  // Owner 11-09: the finished-job card is the grid's first card, so the row is that card plus the jobs (at most 3).
+  it.each([1, 2, 3])("%i job(s) -> that many columns plus the finished-job card", async (n) => {
     rows.data = Array.from({ length: n }, (_, i) => job(i + 1));
     const { unmount } = render(<MemoryRouter><LiveJobsSection /></MemoryRouter>);
     const list = await screen.findByTestId("landing-live-jobs-list");
-    expect(list.querySelectorAll("li")).toHaveLength(n);
-    expect(list.style.getPropertyValue("--live-n")).toBe(String(n));
+    expect(list.querySelectorAll(":scope > li")).toHaveLength(n + 1);
+    expect(list.querySelector(":scope > li:first-child [data-testid=landing-proof]")).toBeTruthy();
+    expect(list.style.getPropertyValue("--live-n")).toBe(String(n + 1));
     expect(list.className).toContain("lg:[grid-template-columns:repeat(var(--live-n),minmax(0,1fr))]");
     unmount();
   });

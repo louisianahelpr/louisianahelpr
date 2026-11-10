@@ -53,7 +53,7 @@
  * @mutate src/components/profile/ProfileEditForm.tsx | <Check className="w-3 h-3" /> Looks good | <Check className="w-3 h-3" strokeWidth={3} /> Looks good
  * @mutate tailwind.config.ts |         "ds-17": ["16px", |         "ds-17": ["17px",
  * @mutate src/index.css |   --headline-section: 20px; |   --headline-section: 19px;
- * @mutate src/components/landing/LiveJobsSection.tsx | leading-[1.05] text-ds-28" | leading-[1.05] text-ds-28 sm:text-[44px]"
+ * @mutate src/components/landing/LandingBrowseShell.tsx | <h2 id={titleId} className="font-display landing-serif leading-[1.05] text-ds-28" | <h2 id={titleId} className="font-display landing-serif leading-[1.05] text-ds-28 sm:text-[44px]"
  * @mutate src/components/LanguageToggle.tsx | <Languages className="h-4 w-4 shrink-0" aria-hidden | <Languages className="h-4 w-4 shrink-0" strokeWidth={1.8} aria-hidden
  * @mutate src/components/ui/EmptyState.tsx |             style={{ color: "hsl(var(--bark))" }}\n          />\n        </div>\n      )} |             style={{ color: "hsl(var(--bark))" }}\n            strokeWidth={1.4}\n          />\n        </div>\n      )}
  * @mutate src/lib/chartText.ts | export const CHART_TOOLTIP_PX = 13; | export const CHART_TOOLTIP_PX = 12;

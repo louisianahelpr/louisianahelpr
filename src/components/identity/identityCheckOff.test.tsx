@@ -7,7 +7,7 @@
  *
  * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx |   const rows = allRows.filter((r) => r.key !== "id" \|\| r.done \|\| idUnderWay); |   const rows = allRows;
  * @mutate src/components/identity/IdentityPromptCard.tsx |   if (!idOn \|\| view === "verified") return null; |   if (view === "verified") return null;
- * @mutate src/components/landing/LandingProof.tsx |   return [idOn ? ID_ITEM : PICK_ITEM, PRICE_ITEM]; |   return [ID_ITEM, PRICE_ITEM];
+ * @mutate src/components/landing/LandingProof.tsx |   return proofLine(useIdentityCheckOnStore()); |   return proofLine(true);
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -22,7 +22,7 @@ vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => fal
 
 import { TrustMarksCard } from "@/components/profile/profileEditForm/TrustMarksCard";
 import { IdentityPromptCard } from "@/components/identity/IdentityPromptCard";
-import { LandingProof } from "@/components/landing/LandingProof";
+import { LandingProof, useProofLine } from "@/components/landing/LandingProof";
 import type { Profile } from "@/components/profile/profileEditForm/types";
 
 afterEach(() => {
@@ -58,12 +58,14 @@ describe("ID check off", () => {
     expect(screen.getByText(/verify your id/i)).toBeTruthy();
   });
 
-  it("the landing proof row claims no ID check (on: 'Photo ID checked')", () => {
-    render(<LandingProof />);
+  // Owner 11-09: the proof is the Jobs grid's finished-job card plus the section's line (useProofLine).
+  it("the landing proof claims no ID check (on: 'Photo ID checked')", () => {
+    const Line = () => <p>{useProofLine()}</p>;
+    render(<><LandingProof /><Line /></>);
     expect(document.body.textContent).not.toMatch(/photo id checked|verified id/i);
     cleanup();
     setIdentityCheckOn(true);
-    render(<LandingProof />);
+    render(<><LandingProof /><Line /></>);
     expect(document.body.textContent).toMatch(/photo id checked/i);
   });
 

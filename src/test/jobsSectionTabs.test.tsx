@@ -229,7 +229,7 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     expect(screen.queryByTestId("list-applied")).toBeNull();
   });
 
-  // @mutate src/pages/search/SearchPage.tsx | <Link to={`/jobs?tab=browse&${qs}`} | <Link to={`/jobs?${qs}`}
+  // @mutate src/pages/search/SearchPage.tsx | <Link to={user ? `/jobs?tab=browse&${qs}` : `/browse?${qs}`} | <Link to={user ? `/jobs?${qs}` : `/browse?${qs}`}
   it("Search's See all in Jobs names its tab and opens Browse", () => {
     const src = blankComments(readFileSync(resolve(__dirname, "../pages/search/SearchPage.tsx"), "utf8"));
     const links = src.match(/\/jobs\?[^`"']*\$\{qs\}/g) ?? [];

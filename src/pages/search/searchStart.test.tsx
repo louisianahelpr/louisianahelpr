@@ -3,7 +3,7 @@
  * section at once."), although the member had saved searches. It now lists them (each opens its results, as in
  * Settings) and offers a few categories per open section; Declutter's are offered only while Declutter is open.
  *
- * @mutate src/pages/search/SearchPage.tsx |         {!q && <SearchStart userId={user?.id ?? null} declutterOn={declutterOn} />} |         {!q && <p className="font-sans text-ds-13 text-muted-foreground px-1">Search every section at once.</p>}
+ * @mutate src/pages/search/SearchPage.tsx |         {!q && <SearchStart userId={user?.id ?? null} declutterOn={declutterOn} signedIn={!!user} />} |         {!q && <p className="font-sans text-ds-13 text-muted-foreground px-1">Search every section at once.</p>}
  * @mutate src/pages/search/SearchStart.tsx |   const open = (s: SavedSearch) => s.section === "jobs" \|\| (s.section === "declutter" && declutterOn); |   const open = (s: SavedSearch) => !!s;
  * @mutate src/pages/search/SearchStart.tsx |     ...(declutterOn ? [{ key: "declutter" | ...(true ? [{ key: "declutter"
  * @mutate src/pages/search/SearchStart.tsx | <Link key={s.id} to={resultsPath(s)} | <Link key={s.id} to="/profile?tab=saved_searches"

@@ -18,6 +18,8 @@
  * @mutate supabase/migrations/20261108202546_declutter_notices_email_and_honest_sold.sql |             OR (q.pickup_at IS NULL AND q.created_at <= p_now - interval '48 hours')) |             OR false)
  * @mutate supabase/functions/declutter-checkout/index.ts |   "We'll save this card for your next Declutter buy. It's charged only when you press Pay | "We'll save this card. It's charged only when you press Pay
  * @mutate supabase/functions/declutter-checkout/index.ts |       ...consentText, |
+ * F487 (audit 11-10): the ship-hold receipt says "hold", not "holding ... on your card" (which read like a charge).
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts | `Your card has a hold for ${dollars(amount)} for your Declutter order; it isn't a charge yet. | `We're holding ${dollars(amount)} on your card for your Declutter order.
  * @mutate src/components/notificationPreferences/constants.tsx |   { key: "declutter_refunds", emailKey: "email_declutter_refunds", label: "Refunds", description: "Refund requests, reported problems and strikes. Refund receipts are always emailed.", icon: <Undo2 className="w-3.5 h-3.5" /> }, |   { key: "declutter_refunds", emailKey: "email_declutter_refunds", label: "Refunds", description: "Refund requests, reported problems and strikes. Refund receipts are always emailed.", icon: <Undo2 className="w-3.5 h-3.5" />, noEmailSwitch: "x" },
  */
 import { describe, expect, it } from "vitest";
@@ -114,5 +116,15 @@ describe("M4: the card-save consent on the payment page and the notice match", (
     expect(checkout).toMatch(/\.\.\.consentText,\s*expires_at: expiresAt/);
     const notice = /'Card saved',\s*'((?:[^']|'')*)'/.exec(body("declutter_save_card"))?.[1].replace(/''/g, "'") ?? "";
     expect(notice).toBe(consent.replace("We'll save this card", "We saved this card"));
+  });
+});
+
+
+describe("F487: the ship-hold receipt is a hold, not a charge (audit 11-10)", () => {
+  it("leads with the hold, says it isn't a charge yet, and when the charge happens", () => {
+    const src = blankComments(readFileSync("supabase/functions/stripe-webhook/handlers/declutterCheckout.ts", "utf8"));
+    const line = src.match(/`Your card has a hold for \$\{dollars\(amount\)\} for your Declutter order;[^`]*`/)?.[0] ?? "";
+    expect(line).toContain("it isn't a charge yet. You're charged only after the shipping label is made. If no label can be made, the hold is released and you pay nothing.");
+    expect(src).not.toMatch(/We're holding \$\{dollars\(amount\)\} on your card/);
   });
 });

@@ -203,8 +203,10 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
           flow is exactly the wrong first impression, and (b) it is the shared
           convention — DialogContent turns a prevented autofocus into
           `content.focus()`, so the dialog still owns focus, a screen reader
-          announces the title, and Tab starts inside the modal. */}
-      <DialogContent
+          announces the title, and Tab starts inside the modal.
+          keepClose (F359j, audit 11-10): the Report dialog is a sheet on a phone, and every sheet keeps its X
+          (owner 10-31), as the Job done review does (JA-54); Cancel alone left the sheet with no corner close. */}
+      <DialogContent keepClose
           stepped onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero title={title} />
 

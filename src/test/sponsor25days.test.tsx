@@ -5,6 +5,7 @@
 // @mutate src/components/sponsor/Sections.tsx |         {greetingBrand ? ( |         {true ? (
 // @mutate api/share.ts |   sponsor: SPONSOR_CARD, |   sponsorX: SPONSOR_CARD,
 // @mutate supabase/functions/_shared/sponsorSignup.ts |   return nowMs < closesAt; |   return true;
+// @mutate src/components/sponsor/ClaimSection.tsx |   shipTo: "helpr", notes: "", |   shipTo: "", notes: "",
 /**
  * 25 Days of Louisiana Giveaways (owner spec 2026-11-09): the page-side rules.
  *  - the sign-up validator the page AND the sponsor-25days function run;
@@ -27,7 +28,7 @@ import { SPONSOR_SIGNUP_DEADLINE, checkLogo, cleanDays, normalizeRef, slugifyBra
 import { filledUrl, hasPlaceholder, onlyFilled, statNumber } from "@/lib/sponsor/placeholders";
 import { buildIcs, countdown, dayStartUtc, daysLabel } from "@/lib/sponsor/dates";
 import { About, BrandGets, Faq, Footer, Founder, Hero, Reach, filledStats } from "@/components/sponsor/Sections";
-import { ClaimSection, dayTileLabel, errorMessage } from "@/components/sponsor/ClaimSection";
+import { ClaimSection, EMPTY as EMPTY_SIGNUP, dayTileLabel, errorMessage } from "@/components/sponsor/ClaimSection";
 import { rulesAreDraft } from "@/pages/sponsor/SponsorRulesPage";
 import { signupsCsv } from "@/pages/admin/sponsors/AdminSponsorsPage";
 import type { SponsorAdminSignup, SponsorPublicState } from "@/lib/sponsor/types";
@@ -163,6 +164,24 @@ describe("ref greeting", () => {
     const st: SponsorPublicState = { on: true, greetingBrand: "Cajun Candle Co", dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
     render(<ClaimSection state={st} greetingBrand="Cajun Candle Co" refCode="cajun-candle-co" onSubmit={async () => ({ ok: false, kind: "error" })} />);
     expect((screen.getByLabelText(sponsorPage.claim.form.brandName) as HTMLInputElement).value).toBe("Cajun Candle Co");
+  });
+});
+
+describe("prizes ship to Louisiana Helpr (owner 11-09)", () => {
+  it("the form shows the shipping address, asks no ship-to question, and sends ship_to helpr", async () => {
+    const st: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
+    render(<ClaimSection state={st} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />);
+    expect(screen.getByTestId("sponsor-ship-address").textContent).toContain("314 Lynn Street, Delcambre, LA 70528");
+    expect(document.querySelector('input[name="shipTo"]')).toBeNull();
+    expect(screen.queryByText("The winner directly")).toBeNull();
+    expect(EMPTY_SIGNUP.shipTo).toBe("helpr");
+  });
+  it("the confirmation email says where to ship", () => {
+    const src = fs.readFileSync(path.resolve(__dirname, "../../supabase/functions/_shared/email-templates/sponsor-25days.tsx"), "utf8");
+    const conf = src.slice(src.indexOf("export const SponsorConfirmationEmail"), src.indexOf("export const SponsorAdminEmail"));
+    expect(conf).toContain("Ship your prize to");
+    expect(conf).toContain("{SHIP_ADDRESS}");
+    expect(src).toContain("314 Lynn Street, Delcambre, LA 70528");
   });
 });
 

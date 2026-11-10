@@ -44,9 +44,10 @@ export function dayTileLabel(count: number, maxPerDay: number | null): { label: 
   return { label: tpl.replace("{n}", String(count)), full: false };
 }
 
-const EMPTY: SponsorSignupPayload = {
+/** The blank form. Exported for its test: every sign-up sends shipTo "helpr" (owner 11-09). */
+export const EMPTY: SponsorSignupPayload = {
   brandName: "", contactName: "", email: "", phone: "", website: "", instagram: "", facebook: "", tiktok: "",
-  prizeDescription: "", prizeValue: "", shipTo: "", notes: "", days: [], anyDay: false, agree: false, showOnWall: false,
+  prizeDescription: "", prizeValue: "", shipTo: "helpr", notes: "", days: [], anyDay: false, agree: false, showOnWall: false,
   ref: null, company_fax: "",
 };
 
@@ -179,6 +180,9 @@ export function ClaimSection({
           <p className="lh25-thanks-days">
             <strong>{C.thankYou.yourDays}</strong> {done.anyDay ? C.thankYou.anyDay : daysLabel(done.days)}
           </p>
+          <p className="lh25-thanks-days" data-testid="sponsor-thanks-ship">
+            <strong>{C.thankYou.shipTo}</strong> {F.shipAddress}
+          </p>
           <a className="lh25-btn lh25-btn-primary" href={href} download="25-days-of-louisiana-giveaways.ics">
             <Icon name="calendar" size={18} /> <span>{C.thankYou.addToCalendar}</span>
           </a>
@@ -295,11 +299,9 @@ export function ClaimSection({
           <Field id="lh25-logo" label={F.logo} error={err("logo")} hint={logo ? `${logo.name} ✓` : F.logoHint}>
             <input id="lh25-logo" name="logo" type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={(e) => pickLogo(e.target.files?.[0] ?? null)} aria-describedby={describe("lh25-logo", "logo", true)} />
           </Field>
-          <fieldset className="lh25-field lh25-radio-group">
-            <legend>{F.shipTo}</legend>
-            <label><input type="radio" name="shipTo" value="winner" checked={form.shipTo === "winner"} onChange={() => set("shipTo", "winner")} /> {F.shipToWinner}</label>
-            <label><input type="radio" name="shipTo" value="helpr" checked={form.shipTo === "helpr"} onChange={() => set("shipTo", "helpr")} /> {F.shipToHelpr}</label>
-          </fieldset>
+          <p className="lh25-field" data-testid="sponsor-ship-address">
+            <strong>{F.shipTo}:</strong> {F.shipAddress}
+          </p>
           <Field id="lh25-notes" label={F.notes} error={err("notes")}>
             <textarea id="lh25-notes" name="notes" rows={3} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
           </Field>

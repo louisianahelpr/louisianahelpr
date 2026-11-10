@@ -37,6 +37,10 @@ export interface JobPageRow {
   status: string | null;
   payment_status: string | null;
   urgent_fee: number | null;
+  /** F109: the rest of what the poster's card was charged (party read only), so the page says the total Receipts shows. */
+  customer_fee_amount?: number | null;
+  sales_tax_amount?: number | null;
+  onboarding_fee_amount?: number | null;
   helpers_needed: number | null;
   is_group_job: boolean | null;
   photos: string[] | null;
@@ -101,7 +105,7 @@ export interface JobPageRow {
 const BASE_COLUMNS =
   "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, date_window_end, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date";
 const PARTY_COLUMNS =
-  "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, date_window_end, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, helper_id, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, completed_at, direct_offer_expires_at, response_deadline, has_active_dispute, dispute_deadline, cancellation_reason, cancelled_by, cancelled_at, cancellation_fee, revision_note, revision_deadline, require_photo_proof, proof_before_urls, proof_after_urls, payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status, latitude, longitude, revision_requested_at, revision_completed_at, revision_acceptance_deadline";
+  "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, date_window_end, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, helper_id, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, completed_at, direct_offer_expires_at, response_deadline, has_active_dispute, dispute_deadline, cancellation_reason, cancelled_by, cancelled_at, cancellation_fee, revision_note, revision_deadline, require_photo_proof, proof_before_urls, proof_after_urls, payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status, latitude, longitude, revision_requested_at, revision_completed_at, revision_acceptance_deadline, customer_fee_amount, sales_tax_amount, onboarding_fee_amount";
 
 function toRow(raw: Record<string, unknown>): JobPageRow {
   return {
@@ -111,6 +115,10 @@ function toRow(raw: Record<string, unknown>): JobPageRow {
     ...(raw as Partial<JobPageRow>),
     budget: Number(raw.budget ?? 0),
     urgent_fee: raw.urgent_fee == null ? null : Number(raw.urgent_fee),
+    // Numeric columns arrive as strings ("1.2"); posterJobCost reads numbers only.
+    customer_fee_amount: raw.customer_fee_amount == null ? null : Number(raw.customer_fee_amount),
+    sales_tax_amount: raw.sales_tax_amount == null ? null : Number(raw.sales_tax_amount),
+    onboarding_fee_amount: raw.onboarding_fee_amount == null ? null : Number(raw.onboarding_fee_amount),
   } as JobPageRow;
 }
 

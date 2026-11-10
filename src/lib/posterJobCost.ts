@@ -78,3 +78,28 @@ export function posterPaidDollars(job: PosterChargedJob): number {
 export function hasChargeBreakdown(job: PosterChargedJob): boolean {
   return posterPaidDollars(job) > num(job.budget);
 }
+
+/** "$10", "$1.20", "$1,524": whole dollars bare, cents only when there are some. */
+function usd(n: number): string {
+  const c = Math.round(n * 100);
+  return `$${(c / 100).toLocaleString("en-US", { minimumFractionDigits: c % 100 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
+}
+
+/**
+ * F109 (owner UI audit 2026-11-09: the job page said $10 while Receipts said $11.20 for the same job): the job
+ * page's one line for the poster, from the same stamped columns as posterPaidDollars and with the checkout's own
+ * row names: "Total $11.20 ($10 job + $1.20 service fee)". Null when nothing was added to the budget. Display
+ * only: it reads what was billed and changes no money.
+ */
+export function posterTotalLine(job: PosterChargedJob): string | null {
+  if (!hasChargeBreakdown(job)) return null;
+  const parts: [number, string][] = [
+    [num(job.budget), "job"],
+    [num(job.customer_fee_amount), "service fee"],
+    [num(job.urgent_fee), "urgent bonus"],
+    [num(job.sales_tax_amount), "sales tax"],
+    [num(job.onboarding_fee_amount), "one-time account setup"],
+  ];
+  const named = parts.filter(([n]) => n > 0).map(([n, w]) => `${usd(n)} ${w}`);
+  return `Total ${usd(posterPaidDollars(job))} (${named.join(" + ")})`;
+}

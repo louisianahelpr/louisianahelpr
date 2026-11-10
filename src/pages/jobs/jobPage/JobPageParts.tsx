@@ -22,6 +22,7 @@ import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { useJobRefundedCents } from "@/hooks/useJobRefundedCents";
 import { usePosterJobRefund } from "@/hooks/usePosterJobRefund";
 import { refundedWords } from "@/lib/refundWords";
+import { posterTotalLine } from "@/lib/posterJobCost";
 import { jobProgress } from "@/components/tracker/jobProgressState";
 import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
 import type { Job } from "@/components/job-card/activityConstants";
@@ -154,9 +155,13 @@ export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; tot
   const refundLine = status === "refunded" ? `${refundedWords(refund).replace(/\.$/, "")}.` : null;
   const line = released ? (waitsOnBank ? paidWaitsOnBankLine(waitsOnBank.firstName) : releasedLine(job)) : refundInTracker ? null : refundLine ?? HELD_LINE[status] ?? null;
   const count = job.status === "open" && !loading && total > 0;
-  if (!line && !released && !count) return null;
+  // F109: the price above is the job's; when the card was charged more (a service fee, tax, setup), say the total
+  // Receipts shows and what it is made of, so the two pages never seem to disagree.
+  const totalLine = posterTotalLine(job);
+  if (!line && !released && !count && !totalLine) return null;
   return (
     <div data-poster-money-notes="" className="space-y-1.5">
+      {totalLine && <p data-poster-total="" className="text-ds-13 tabular-nums text-muted-foreground">{totalLine}</p>}
       {line && <p className="text-ds-13 text-muted-foreground">{line}</p>}
       {released && (
         <Link data-receipt-link="" to="/profile?tab=receipts" className="inline-block text-ds-14 font-semibold text-primary underline underline-offset-2">

@@ -64,6 +64,7 @@ import { HAS_HELPR, usePosterPageActions } from "./posterPageActions";
 import { usePosterPageFlows } from "./usePosterPageFlows";
 import { useContinueDayActions } from "./useContinueDayActions";
 import { continueDayHeader, jobOnContinueDay } from "@/lib/continueDay";
+import { usePosterFinish } from "./usePosterFinish";
 import { MineFaceNote } from "@/components/job-card/MineJobFace";
 import { doneFloorStart, useDoneFloorMinutesLeft } from "@/components/job-card/useDoneFloor";
 import { PageApplySheet, usePageApply } from "./PageApplySheet";
@@ -201,6 +202,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     trackingStatus,
     onChanged: () => void q.refetch(),
   });
+  // Owner 11-10: past its day with no done from the Helpr, the poster marks it done and releases (usePosterFinish).
+  const posterFinish = usePosterFinish({ job: q.data?.job, enabled: isPoster, day: continueDay.row, helperFirst, flows: posterFlows, refundOpen });
 
   if (q.isPending) {
     return (
@@ -534,12 +537,12 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               </RefundsSwitchProvider>
             )}
             {/* Owner pick 11-08 (JP2): "Something's not right" and "Not finished? Set a day" are in the "..." menu. */}
-            {isPoster && !repost.hideRow && posterActions.row(continueDay.posterLead ?? posterStep ?? (seeCase ? { label: seeCase.label, go: seeCase.go } : undefined), [
+            {isPoster && !repost.hideRow && posterActions.row(continueDay.posterLead ?? posterStep ?? posterFinish.lead ?? (seeCase ? { label: seeCase.label, go: seeCase.go } : undefined), [
               ...continueDay.posterExtras,
               ...(posterActions.notRight ? [{ key: "not-right", label: NOT_RIGHT_LABEL, go: posterActions.notRight, inMenu: true }] : []),
               ...(continueDay.setDay ? [continueDay.setDay] : []),
             ], { noCardSteps: continueDay.doneAhead, menuHost })}
-            {continueDay.sheet}{continueDay.missedSheet}
+            {continueDay.sheet}{continueDay.missedSheet}{posterFinish.sheet}
             {isPoster && posterActions.panel}
             {hiredRow}
             {primary && (

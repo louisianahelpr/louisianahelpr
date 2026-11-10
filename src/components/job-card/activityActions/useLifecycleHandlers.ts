@@ -6,6 +6,7 @@ import { notifyJobParty } from "@/lib/notifications";
 import { confirmPosterArrival } from "@/lib/posterArrival";
 import { report } from "@/lib/errorLogger";
 import { functionInvokeError } from "@/lib/supabaseResult";
+import { userFacingError } from "@/lib/userFacingError";
 import { arrivalEstablished, arrivalGateMessage } from "@/lib/arrivalGate";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
@@ -126,7 +127,12 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
     setCancelDialogJob(job);
   };
 
-  const completeJob = async (jobId: string) => {
+  /**
+   * `posterFinishes` (owner 11-10, "Mow and Weed Eat"): the poster marks the job done and releases the money with no
+   * done from the Helpr, past the job's day (create-payment checks poster_finish_job_refusal). Same release, same
+   * completion moment and prompts; a refusal shows the server's own words.
+   */
+  const completeJob = async (jobId: string, opts?: { posterFinishes?: boolean }) => {
     // Same-frame double tap: both calls share one render's closure, so only
     // the ref sees the first. Cleared in `finally` below.
     if (completeInFlight.current.has(jobId)) return;
@@ -195,7 +201,9 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
           }
         }
       }
-      const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "release", jobId } });
+      const { data, error } = await supabase.functions.invoke("create-payment", {
+        body: opts?.posterFinishes ? { action: "release", jobId, posterFinishes: true } : { action: "release", jobId },
+      });
       if (error) throw await functionInvokeError(error);
       if (data?.error) throw new Error(data.error);
       // Idempotent replay guard: a duplicate release (double tap, retry after
@@ -305,7 +313,11 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
     } catch (err) {
       report(err, { tags: { area: "activity", op: "completeJob" }, context: { jobId } });
       hapticError();
-      toast.error("We couldn't mark this job complete — please try again.");
+      toast.error(
+        opts?.posterFinishes
+          ? userFacingError(err, "We couldn't mark this job done — please try again.")
+          : "We couldn't mark this job complete — please try again.",
+      );
     } finally {
       completeInFlight.current.delete(jobId);
       setCompletingJobId((cur) => (cur === jobId ? null : cur));

@@ -15,7 +15,7 @@
  * when a sale is owed (owner 2026-10-27, migration 20261027163240), so the
  * intro says so (audit 2026-10-28 P5-1).
  */
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -81,15 +81,19 @@ const EMPTY: Form = {
   hours: EMPTY_HOURS(),
 };
 
-function ShopEditSkeleton() {
+/**
+ * Q2558: the placeholder IS the "Open a shop" form (the shorter of the two shapes), rendered invisible under one
+ * bone, so it is that form's height at every width and theme; a fixed min-height (1472px on 2026-11-02) went stale
+ * as the form grew (1760px by 2026-11-05). An existing shop's longer page grows below it.
+ */
+function ShopEditSkeleton({ children }: { children: ReactNode }) {
   return (
     <AppPage title="My shop" backTo="/shops">
-      {/* Q2558: the "Open a shop" form is 1472px at 375 (measured 2026-11-02, both test accounts); 224px of
-          bones jumped 1248px when it landed, so the block reserves the form's height. */}
-      <div className="space-y-4 min-h-[1472px]" role="status" aria-label="Loading your shop">
-        <Skeleton className="h-10 w-full rounded-xl" />
-        <Skeleton className="h-10 w-full rounded-xl" />
-        <Skeleton className="h-28 w-full rounded-xl" />
+      <div className="relative" role="status" aria-label="Loading your shop">
+        <div className="invisible" aria-hidden>
+          {children}
+        </div>
+        <Skeleton className="absolute inset-0 rounded-xl" />
       </div>
     </AppPage>
   );
@@ -216,7 +220,164 @@ export default function ShopEditView() {
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
 
-  if (myId.isLoading || categories.isLoading || (myId.data && shop.isLoading)) return <ShopEditSkeleton />;
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    save.mutate();
+  };
+  const photos = shop.data?.photos ?? [];
+  const busy = photo.isPending || unphoto.isPending;
+
+  const formEl = (
+    <form className="space-y-5 pb-8" onSubmit={onSubmit} noValidate>
+      {!myId.data && (
+        <ShopOpenIntro />
+      )}
+      <div className="space-y-1.5">
+        <Label htmlFor="shop-name">Shop or business name</Label>
+        <Input id="shop-name" value={form.name} maxLength={60} onChange={(e) => set("name", e.target.value)} required />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="shop-category">Category</Label>
+        <TwoStepCategoryPicker id="shop-category" value={form.category} onChange={(slug) => set("category", slug)} groups={groups} />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="shop-about">About</Label>
+        <Textarea id="shop-about" value={form.about} maxLength={2000} rows={5} onChange={(e) => set("about", e.target.value)} />
+        <p className="text-xs text-muted-foreground">No phone numbers, emails or websites: Shops does not allow contact details.</p>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="shop-area">Town or neighborhood</Label>
+        <Input id="shop-area" value={form.areaLabel} maxLength={80} placeholder="Broussard" onChange={(e) => set("areaLabel", e.target.value)} required />
+        <p className="text-xs text-muted-foreground">Never your street address. Your pin shows the area, not your house.</p>
+      </div>
+      <div className="flex items-start gap-2">
+        <Checkbox id="shop-storefront" checked={form.storefront} onCheckedChange={(v) => set("storefront", v === true)} />
+        <Label htmlFor="shop-storefront" className="block min-h-11 flex-1 font-normal leading-snug">
+          I have a storefront people can visit (the pin shows its exact place)
+        </Label>
+      </div>
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium">What your shop offers</legend>
+        <div className="flex items-center gap-2">
+          <Checkbox id="shop-selling" checked={form.offersSelling} onCheckedChange={(v) => set("offersSelling", v === true)} />
+          <Label htmlFor="shop-selling" className="flex min-h-11 flex-1 items-center font-normal">Selling things I make or have</Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Checkbox id="shop-quotes" checked={form.offersQuotes} onCheckedChange={(v) => set("offersQuotes", v === true)} />
+          <Label htmlFor="shop-quotes" className="flex min-h-11 flex-1 items-center font-normal">Quotes for work</Label>
+        </div>
+      </fieldset>
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium">Parishes you serve</legend>
+        <div className="max-h-48 overflow-y-auto rounded-xl border border-border p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {[...PARISHES].sort((a, b) => a.name.localeCompare(b.name)).map((p) => {
+            const id = `parish-${p.slug}`;
+            const on = form.parishes.includes(p.name);
+            return (
+              <div key={p.slug} className="flex items-center gap-2 min-w-0">
+                <Checkbox
+                  id={id}
+                  checked={on}
+                  onCheckedChange={(v) => set("parishes", v === true ? [...form.parishes, p.name] : form.parishes.filter((x) => x !== p.name))}
+                />
+                <Label htmlFor={id} className="block min-h-11 min-w-0 flex-1 truncate py-3 font-normal">{p.name}</Label>
+              </div>
+            );
+          })}
+        </div>
+      </fieldset>
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium">Open days and hours</legend>
+        {WEEKDAYS.map((day, i) => {
+          const h = form.hours[i];
+          return (
+            <div key={day} className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 w-32">
+                <Checkbox
+                  id={`open-${i}`}
+                  checked={h.open}
+                  onCheckedChange={(v) => set("hours", { ...form.hours, [i]: { ...h, open: v === true } })}
+                />
+                <Label htmlFor={`open-${i}`} className="flex min-h-11 flex-1 items-center font-normal">{day}</Label>
+              </div>
+              {h.open && (
+                <>
+                  <Input
+                    type="time"
+                    aria-label={`${day} opens`}
+                    className="w-32 min-w-0"
+                    value={h.opens}
+                    onChange={(e) => set("hours", { ...form.hours, [i]: { ...h, opens: e.target.value } })}
+                  />
+                  <span className="text-sm text-muted-foreground">to</span>
+                  <Input
+                    type="time"
+                    aria-label={`${day} closes`}
+                    className="w-32 min-w-0"
+                    value={h.closes}
+                    onChange={(e) => set("hours", { ...form.hours, [i]: { ...h, closes: e.target.value } })}
+                  />
+                </>
+              )}
+            </div>
+          );
+        })}
+      </fieldset>
+      <div className="space-y-1.5">
+        <Label htmlFor="shop-sos">Louisiana Secretary of State number (optional)</Label>
+        <Input id="shop-sos" value={form.sosNumber} maxLength={20} onChange={(e) => set("sosNumber", e.target.value)} />
+        <p className="text-xs text-muted-foreground">Once we check it, your shop shows "Registered business". A shop without one is still welcome.</p>
+      </div>
+      {myId.data && (
+        <section className="space-y-2" aria-labelledby="shop-edit-photos">
+          <h2 id="shop-edit-photos" className="text-sm font-medium">Logo, cover and photos</h2>
+          <div className="flex flex-wrap gap-2">
+            <PhotoPicker label="Choose logo" kind="logo" busy={busy} onPick={(kind, file) => photo.mutate({ kind, file })} />
+            <PhotoPicker label="Choose cover" kind="cover" busy={busy} onPick={(kind, file) => photo.mutate({ kind, file })} />
+            <PhotoPicker label="Add a photo" kind="gallery" busy={busy} onPick={(kind, file) => photo.mutate({ kind, file })} />
+          </div>
+          {photos.length > 0 && (
+            <ul className="grid grid-cols-3 gap-2">
+              {photos.map((p) => (
+                <li key={p.id} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
+                  <img src={shopPhotoUrl(p.storage_path)} alt="" className="h-full w-full object-cover" />
+                  <span className="absolute left-1 top-1 rounded bg-background/90 px-1.5 text-ds-11">
+                    {p.kind === "logo" ? "Logo" : p.kind === "cover" ? "Cover" : "Photo"}
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="absolute bottom-1 right-1 px-2 text-xs"
+                    disabled={busy}
+                    onClick={() => unphoto.mutate(p.id)}
+                  >
+                    Remove
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+      <Button type="submit" className="btn-grad-primary w-full" disabled={save.isPending}>
+        {save.isPending ? "Saving…" : myId.data ? "Save my shop" : "Open my shop"}
+      </Button>
+      {myId.data && (
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          disabled={close.isPending}
+          onClick={() => setConfirmClose(true)}
+        >
+          Close my shop
+        </Button>
+      )}
+    </form>
+  );
+
+  if (myId.isLoading || categories.isLoading || (myId.data && shop.isLoading)) return <ShopEditSkeleton>{formEl}</ShopEditSkeleton>;
   if (myId.isError || categories.isError || shop.isError) {
     return (
       <AppPage title="My shop" backTo="/shops">
@@ -242,162 +403,9 @@ export default function ShopEditView() {
     );
   }
 
-  const onSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    save.mutate();
-  };
-  const photos = shop.data?.photos ?? [];
-  const busy = photo.isPending || unphoto.isPending;
-
   return (
     <AppPage title={myId.data ? "Edit my shop" : "Open a shop"} backTo="/shops">
-      <form className="space-y-5 pb-8" onSubmit={onSubmit} noValidate>
-        {!myId.data && (
-          <ShopOpenIntro />
-        )}
-        <div className="space-y-1.5">
-          <Label htmlFor="shop-name">Shop or business name</Label>
-          <Input id="shop-name" value={form.name} maxLength={60} onChange={(e) => set("name", e.target.value)} required />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="shop-category">Category</Label>
-          <TwoStepCategoryPicker id="shop-category" value={form.category} onChange={(slug) => set("category", slug)} groups={groups} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="shop-about">About</Label>
-          <Textarea id="shop-about" value={form.about} maxLength={2000} rows={5} onChange={(e) => set("about", e.target.value)} />
-          <p className="text-xs text-muted-foreground">No phone numbers, emails or websites: Shops does not allow contact details.</p>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="shop-area">Town or neighborhood</Label>
-          <Input id="shop-area" value={form.areaLabel} maxLength={80} placeholder="Broussard" onChange={(e) => set("areaLabel", e.target.value)} required />
-          <p className="text-xs text-muted-foreground">Never your street address. Your pin shows the area, not your house.</p>
-        </div>
-        <div className="flex items-start gap-2">
-          <Checkbox id="shop-storefront" checked={form.storefront} onCheckedChange={(v) => set("storefront", v === true)} />
-          <Label htmlFor="shop-storefront" className="block min-h-11 flex-1 font-normal leading-snug">
-            I have a storefront people can visit (the pin shows its exact place)
-          </Label>
-        </div>
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium">What your shop offers</legend>
-          <div className="flex items-center gap-2">
-            <Checkbox id="shop-selling" checked={form.offersSelling} onCheckedChange={(v) => set("offersSelling", v === true)} />
-            <Label htmlFor="shop-selling" className="flex min-h-11 flex-1 items-center font-normal">Selling things I make or have</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Checkbox id="shop-quotes" checked={form.offersQuotes} onCheckedChange={(v) => set("offersQuotes", v === true)} />
-            <Label htmlFor="shop-quotes" className="flex min-h-11 flex-1 items-center font-normal">Quotes for work</Label>
-          </div>
-        </fieldset>
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium">Parishes you serve</legend>
-          <div className="max-h-48 overflow-y-auto rounded-xl border border-border p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {[...PARISHES].sort((a, b) => a.name.localeCompare(b.name)).map((p) => {
-              const id = `parish-${p.slug}`;
-              const on = form.parishes.includes(p.name);
-              return (
-                <div key={p.slug} className="flex items-center gap-2 min-w-0">
-                  <Checkbox
-                    id={id}
-                    checked={on}
-                    onCheckedChange={(v) => set("parishes", v === true ? [...form.parishes, p.name] : form.parishes.filter((x) => x !== p.name))}
-                  />
-                  <Label htmlFor={id} className="block min-h-11 min-w-0 flex-1 truncate py-3 font-normal">{p.name}</Label>
-                </div>
-              );
-            })}
-          </div>
-        </fieldset>
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium">Open days and hours</legend>
-          {WEEKDAYS.map((day, i) => {
-            const h = form.hours[i];
-            return (
-              <div key={day} className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-2 w-32">
-                  <Checkbox
-                    id={`open-${i}`}
-                    checked={h.open}
-                    onCheckedChange={(v) => set("hours", { ...form.hours, [i]: { ...h, open: v === true } })}
-                  />
-                  <Label htmlFor={`open-${i}`} className="flex min-h-11 flex-1 items-center font-normal">{day}</Label>
-                </div>
-                {h.open && (
-                  <>
-                    <Input
-                      type="time"
-                      aria-label={`${day} opens`}
-                      className="w-32 min-w-0"
-                      value={h.opens}
-                      onChange={(e) => set("hours", { ...form.hours, [i]: { ...h, opens: e.target.value } })}
-                    />
-                    <span className="text-sm text-muted-foreground">to</span>
-                    <Input
-                      type="time"
-                      aria-label={`${day} closes`}
-                      className="w-32 min-w-0"
-                      value={h.closes}
-                      onChange={(e) => set("hours", { ...form.hours, [i]: { ...h, closes: e.target.value } })}
-                    />
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </fieldset>
-        <div className="space-y-1.5">
-          <Label htmlFor="shop-sos">Louisiana Secretary of State number (optional)</Label>
-          <Input id="shop-sos" value={form.sosNumber} maxLength={20} onChange={(e) => set("sosNumber", e.target.value)} />
-          <p className="text-xs text-muted-foreground">Once we check it, your shop shows "Registered business". A shop without one is still welcome.</p>
-        </div>
-        {myId.data && (
-          <section className="space-y-2" aria-labelledby="shop-edit-photos">
-            <h2 id="shop-edit-photos" className="text-sm font-medium">Logo, cover and photos</h2>
-            <div className="flex flex-wrap gap-2">
-              <PhotoPicker label="Choose logo" kind="logo" busy={busy} onPick={(kind, file) => photo.mutate({ kind, file })} />
-              <PhotoPicker label="Choose cover" kind="cover" busy={busy} onPick={(kind, file) => photo.mutate({ kind, file })} />
-              <PhotoPicker label="Add a photo" kind="gallery" busy={busy} onPick={(kind, file) => photo.mutate({ kind, file })} />
-            </div>
-            {photos.length > 0 && (
-              <ul className="grid grid-cols-3 gap-2">
-                {photos.map((p) => (
-                  <li key={p.id} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
-                    <img src={shopPhotoUrl(p.storage_path)} alt="" className="h-full w-full object-cover" />
-                    <span className="absolute left-1 top-1 rounded bg-background/90 px-1.5 text-ds-11">
-                      {p.kind === "logo" ? "Logo" : p.kind === "cover" ? "Cover" : "Photo"}
-                    </span>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="absolute bottom-1 right-1 px-2 text-xs"
-                      disabled={busy}
-                      onClick={() => unphoto.mutate(p.id)}
-                    >
-                      Remove
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        )}
-        <Button type="submit" className="btn-grad-primary w-full" disabled={save.isPending}>
-          {save.isPending ? "Saving…" : myId.data ? "Save my shop" : "Open my shop"}
-        </Button>
-        {myId.data && (
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            disabled={close.isPending}
-            onClick={() => setConfirmClose(true)}
-          >
-            Close my shop
-          </Button>
-        )}
-      </form>
+      {formEl}
       {/* The private pickup address (M1b part 2): saves on its own, needed before orders. */}
       {myId.data && <div className="pb-6"><ShopPickupAddressSection /></div>}
       {/* FAQs (SH12): save on their own, like the pickup address. */}

@@ -25,6 +25,10 @@
  *
  * F261a (counter): "2 more characters to go" never said what the minimum was; now "At least 20 characters (2 to go)".
  * @mutate src/components/profile/ProfileEditForm.tsx | return `At least 20 characters (${left} to go)`; | return `${left} more characters to go`;
+ *
+ * F279a (placeholder part): under Bigger text the yard-work title placeholder was cut ("e.g. Mow and edge my yarc");
+ * the audit asked for "e.g. Mow my yard". The sticky-bar padding and tile stacking asks of F279a are layout work, not here.
+ * @mutate src/components/postjob/detailsSection/detailsSectionConstants.ts | yard_work: "e.g. Mow my yard", | yard_work: "e.g. Mow and edge my yard",
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -32,6 +36,7 @@ import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { jobProgress } from "@/components/tracker/jobProgressState";
 import { bioCharsToGo } from "@/components/profile/ProfileEditForm";
+import { titlePlaceholders } from "@/components/postjob/detailsSection/detailsSectionConstants";
 
 /** The same minimal job jobProgressState.test.ts starts from. */
 const DONE_BASE = { status: "open", helper_id: null, payment_status: "unpaid" } as const;
@@ -75,5 +80,9 @@ describe("audit 11-10 W2: Jobs in-app copy", () => {
   it("F261a: the About-you counter names the 20-character minimum", () => {
     expect(bioCharsToGo("a".repeat(18))).toBe("At least 20 characters (2 to go)");
     expect(bioCharsToGo("")).toMatch(/^At least 20 characters/);
+  });
+
+  it("F279a: the yard-work title placeholder is the short example the audit asked for", () => {
+    expect(titlePlaceholders.yard_work).toBe("e.g. Mow my yard");
   });
 });

@@ -1,14 +1,14 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1223,
+    "calls": 1219,
     "files": 351,
     "rendering": 1138,
-    "suppressedByPolicy": 85,
+    "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 10,
-      "successToast": 6,
+      "successToast": 2,
       "toast": 239,
       "toast.error": 820,
       "toast.loading": 1,
@@ -17,7 +17,7 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 507,
+      "literal": 503,
       "template": 107,
       "dynamic": 663,
       "jsx": 0
@@ -12745,7 +12745,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 109,
+      "line": 113,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -12759,7 +12759,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 228,
+      "line": 237,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -12773,17 +12773,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 291,
-      "kind": "successToast",
-      "title": {
-        "form": "literal",
-        "text": "Link copied"
-      },
-      "renders": false
-    },
-    {
-      "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 294,
+      "line": 307,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -12793,43 +12783,13 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 377,
-      "kind": "successToast",
-      "title": {
-        "form": "literal",
-        "text": "Sponsor added"
-      },
-      "renders": false
-    },
-    {
-      "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 430,
-      "kind": "successToast",
-      "title": {
-        "form": "literal",
-        "text": "Saved"
-      },
-      "renders": false
-    },
-    {
-      "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 445,
+      "line": 459,
       "kind": "errorToast",
       "title": {
         "form": "literal",
         "text": "That photo is over 5 MB."
       },
       "renders": true
-    },
-    {
-      "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 446,
-      "kind": "successToast",
-      "title": {
-        "form": "literal",
-        "text": "Photo saved"
-      },
-      "renders": false
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",

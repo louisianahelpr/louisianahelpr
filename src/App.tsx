@@ -215,7 +215,6 @@ const routeEl = (node: ReactElement, fallback: ReactElement = <RouteSuspenseFall
   <Suspense fallback={fallback}>{node}</Suspense>
 );
 
-
 const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   const location = useLocation();
   return (
@@ -385,7 +384,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/terms/full" element={<RouteErrorBoundary>{routeEl(<PageTransition><LegalFullText doc="terms" /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/privacy/full" element={<RouteErrorBoundary>{routeEl(<PageTransition><LegalFullText doc="privacy" /></PageTransition>)}</RouteErrorBoundary>} />
 
-
       {/* A SHARED JOB LINK SHOWS THE JOB TO A GUEST (10-30 jobs audit, items 1 and 2).
           From 2026-09-02 this route was signed-in-only (owner's call then, to match
           the browse card), so someone tapping a job shared on Facebook met a login
@@ -460,7 +458,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           copy of the dashboard. */}
       {/* Public vertical landing pages */}
 
-
       {/* /become-a-partner, /enterprise and /how-it-works were retired, and
           their redirect stubs deleted in 2352466e. These comments used to say
           the links were redirected "so they don't 404" — they are not; all
@@ -503,8 +500,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
   );
 });
 AnimatedRoutes.displayName = "AnimatedRoutes";
-
-
 
 const App = () => (
   <ErrorBoundary>

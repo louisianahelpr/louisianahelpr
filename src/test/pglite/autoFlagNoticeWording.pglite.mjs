@@ -19,8 +19,9 @@ const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const BASE = readFileSync(DIR + "20261002055040_auto_restrict_lock_per_user.sql", "utf8");
-const THIS = "20261109192930_auto_flag_notices_say_separate_from_team_strikes.sql";
-const MIGRATION = readFileSync(DIR + THIS, "utf8");
+// F466/F502 (11-10): the newest wording migration is applied on top of F191's; W1-W3 read its single strike rule.
+const THIS = "20261110200605_strike_rule_one_wording.sql";
+const MIGRATION = readFileSync(DIR + "20261109192930_auto_flag_notices_say_separate_from_team_strikes.sql", "utf8") + "\n" + readFileSync(DIR + THIS, "utf8");
 const REPLAY = process.argv.includes("--replay");
 const BEFORE = process.argv.includes("--before");
 
@@ -81,14 +82,14 @@ check("L1 excluded types and flags older than 7 days never step it", d.ban_statu
 const adminTitles = (await notes(ADMIN)).map((n) => n.title);
 check("L2 admin notices unchanged", adminTitles.includes("Auto-restricted (7d): Bob") && adminTitles.includes("Auto-restricted (30d): Cy"), JSON.stringify(adminTitles));
 
-const SEP = "This automatic rule runs alongside the 3-strike rule for warnings from our team.";
+const SEP = "Strikes from our team: the 1st is a warning, the 2nd is a final warning, and the 3rd suspends your account for 7 days. Automatic flags from our system, counted over 7 days: the 1st is a final warning, the 2nd suspends your account for 7 days, and the 3rd suspends it for 30 days.";
 const na = (await notes(A)).at(-1), nb = (await notes(B)).at(-1), nc = (await notes(C)).at(-1);
 check("W1 1st flag: 'Final warning', says automatic and separate from team strikes",
   na?.title === "Final warning" && na.message.startsWith("Our system flagged a problem") && na.message.includes(SEP), na?.message);
 check("W2 2nd flag: 7-day notice says automatic and separate",
-  nb?.title === "Account suspended — 7 days" && nb.message.startsWith("Our system flagged a 2nd problem") && nb.message.includes(SEP), nb?.message);
+  nb?.title === "Account suspended for 7 days" && nb.message.startsWith("Our system flagged a 2nd problem") && nb.message.includes(SEP), nb?.message);
 check("W3 3rd flag: 30-day notice says automatic and separate",
-  nc?.title === "Account suspended — 30 days" && nc.message.startsWith("Our system flagged 3 problems") && nc.message.includes(SEP), nc?.message);
+  nc?.title === "Account suspended for 30 days" && nc.message.startsWith("Our system flagged 3 problems") && nc.message.includes(SEP), nc?.message);
 
 if (BEFORE) {
   const expected = 3;

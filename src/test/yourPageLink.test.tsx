@@ -15,6 +15,8 @@
  * @mutate src/components/profile/YourPageLink.tsx |   if (forSale > 0) { |   if (forSale < 0) {
  * @mutate src/components/declutter/DeclutterShareCard.tsx | data-listing-share="" onClick={() => shareListing(item)} | data-listing-share="" onClick={() => undefined}
  * @mutate src/components/profile/YourPageLink.tsx |     enabled: !knownHandle, |     enabled: true,
+ * @mutate src/components/profile/YourPageLink.tsx |   if (publicPage === null) { |   if (publicPage === undefined && false) {
+ * @mutate src/components/profile/YourPageLink.tsx |     queryFn: () => fetchPublicProfile(handle as string), |     queryFn: async () => fetchPublicProfile(handle as string).catch(() => null),
  * @mutate src/pages/home/HomeDashboard.tsx | {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mt-2" />} | {null}
  * @mutate supabase/migrations/20261104142602_profile_handle_at_signup.sql |   BEFORE INSERT ON public.profiles\n  FOR EACH ROW EXECUTE FUNCTION public.profile_handle_default_on_insert(); |   BEFORE UPDATE OF bio ON public.profiles\n  FOR EACH ROW EXECUTE FUNCTION public.profile_handle_default_on_insert();
  */
@@ -110,9 +112,45 @@ describe("Your page link (made at sign-up, easy to find)", () => {
       </QueryClientProvider>,
     );
     expect(screen.getByRole("link", { name: "louisianahelpr.com/u/eli-b" })).toBeTruthy();
-    expect(rpc).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalledWith("rpc_ensure_my_handle");
     const home = code("src/pages/home/HomeDashboard.tsx");
     expect(home).toContain("{profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className=\"mt-2\" />}");
+  });
+
+  // F259k (audit 11-10, lead confirmed live): the card offered Copy and Share for a link that opened "This profile isn't
+  // available". When the page's own read answers "no page", the card says the page is hidden and offers nothing to share.
+  it("F259k: a hidden page gets no Copy or Share, just a plain note", async () => {
+    rpc.mockImplementation(async (fn: string) =>
+      fn === "public_profile_by_handle" ? { data: null, error: null } : { data: "eli-b", error: null });
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <YourPageLink knownHandle="eli-b" name="Eli" />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(container.querySelector("[data-your-page-hidden]")).not.toBeNull());
+    expect(rpc).toHaveBeenCalledWith("public_profile_by_handle", { p_handle: "eli-b" });
+    expect(screen.queryByRole("button", { name: /copy/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /share/i })).toBeNull();
+    expect(screen.queryByText("louisianahelpr.com/u/eli-b")).toBeNull();
+    expect(container.textContent).toContain("Your page is hidden right now, so others can't open it.");
+  });
+
+  it("F259k: a failed page read keeps the card (a network blip never hides a working link)", async () => {
+    rpc.mockImplementation(async (fn: string) =>
+      fn === "public_profile_by_handle" ? { data: null, error: { message: "boom", code: "XX000" } } : { data: "eli-b", error: null });
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter>
+          <YourPageLink knownHandle="eli-b" name="Eli" />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith("public_profile_by_handle", { p_handle: "eli-b" }));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(container.querySelector("[data-your-page-hidden]")).toBeNull();
+    expect(screen.getByRole("button", { name: /copy/i })).toBeTruthy();
   });
 
   it("shows nothing when the handle cannot be read", async () => {

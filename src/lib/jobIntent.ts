@@ -163,7 +163,10 @@ export function signupSubtitle(reason: string | null | undefined, redirect: stri
   // F052 (UI audit 11-09): a guest who pressed a Declutter card's heart.
   if (reason === SAVE_ITEM_REASON) return t("signup.saveItemSubtitle");
   const safe = safeInternalRedirect(redirect);
-  if (safe && new URL(safe, "https://x.invalid").pathname.startsWith("/declutter/item/")) return t("signup.itemSubtitle");
+  const path = safe ? new URL(safe, "https://x.invalid").pathname : "";
+  if (path.startsWith("/declutter/item/")) return t("signup.itemSubtitle");
+  // F218 (audit 11-10): "Sign up to apply" on a job sent a guest to sign-up with no word on why they were there.
+  if (/^\/jobs\/[^/]+$/.test(path)) return t("signup.jobSubtitle");
   return undefined;
 }
 

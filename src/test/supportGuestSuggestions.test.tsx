@@ -17,6 +17,8 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: auth.user, isReady: true }) }));
 vi.mock("@/hooks/useProfile", () => ({ useProfile: () => ({ data: auth.user ? { full_name: "Lucy M", email: "l@x.net" } : null, isLoading: false }) }));
 vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: () => {} }));
+// F236/F258: the setup fee amount is read live (a query); the tests give it the prod value.
+vi.mock("@/hooks/useOnboardingFee", async (orig) => ({ ...(await orig<typeof import("@/hooks/useOnboardingFee")>()), useOnboardingFeeCents: () => 200 }));
 vi.mock("@/components/marketing/PublicHeaderPage", () => ({ PublicHeaderPage: ({ children }: { children: ReactNode }) => <main>{children}</main> }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invoke: async () => ({ data: null, error: null }) } } }));
 

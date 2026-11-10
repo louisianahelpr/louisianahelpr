@@ -5,8 +5,9 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 
 /**
  * What a Declutter / Shops / Homes inbox tab shows while it has no threads (useMessageSections). `Lead` is a
- * section's own list that is not message threads (Declutter's order chats, DeclutterOrderTalkInbox): drawn above the
- * chip's threads, and given the empty state to show in its place only when it has nothing either.
+ * section's own list that is not message threads (Shops' and Homes' chat lists): drawn above the chip's threads, and
+ * given the empty state to show in its place only when it has nothing either. Declutter's order chats were a Lead
+ * until F420 (audit 11-10); they are now rows in the list itself (ConversationListBody, OrderTalkRow).
  */
 export type SectionEmpty = {
   icon: LucideIcon; title: string; body: string; action?: { label: string; to: string };

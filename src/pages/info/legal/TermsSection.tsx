@@ -11,6 +11,8 @@ import { URGENT_FEE_FLOOR_DOLLARS, FORM_1099K_TRANSACTION_THRESHOLD, form1099kGr
 import { GUARANTEE_RULES } from "@/lib/guarantee/rules";
 import { HideOnSearch, TldrCard, PolicyFooter, TaxGuidanceLine } from "./LegalChrome";
 import { useOnboardingFeeCents, formatFeeLabel } from "@/hooks/useOnboardingFee";
+// F236/F258 (audit 11-10): the Declutter buyer's fee, from the numbers checkoutAmounts charges (never retyped).
+import { DECLUTTER_BUYER_FEE_WORDS } from "@/lib/declutter/money";
 import { LAST_UPDATED } from "./legalSections";
 import { useFeature } from "@/hooks/useFeature";
 import { TERMS_SHIPPING_GET_ITEM, TERMS_SHIPPING_PARAGRAPHS } from "../declutterShippingCopy";
@@ -61,6 +63,8 @@ export const TermsContent = () => {
         `You must be 18+. Every account verifies its email address before it can post or take jobs.${idOn ? ` You also verify ${ID_ONCE_PER_ACCOUNT}.` : ""}`,
         "Helpr is a marketplace — we don't perform jobs ourselves and aren't liable for the work delivered.",
         `${POSTER_PAYS_SENTENCE} Louisiana Helpr keeps a service fee from each Helpr payout; a Helpr always sees what they will take home before they apply.`,
+        // F236 (audit 11-10): the short version names the amounts (setup fee read live; buyer's fee from checkout's numbers).
+        `One-time account setup fee${feeLabel ? `: ${feeLabel}` : ""}, charged once per account. On Declutter, the buyer pays a buyer's fee of ${DECLUTTER_BUYER_FEE_WORDS}, once per checkout; the seller keeps the whole item price.`,
         "Cancellations, disputes, and behavior rules live in the Community Rules tab — they're part of this agreement.",
         "Helprs are independent contractors, not employees.",
         "You use Helpr at your own risk. We're the marketplace, not a party to any job — we're not liable for loss, theft, property damage, or injury, and you agree to indemnify us.",
@@ -314,7 +318,7 @@ export const TermsContent = () => {
           <>
             <p><strong className="text-foreground">Time to check out.</strong> Buy now holds an item for 30 minutes while you check out; an accepted offer gives you 24 hours to pay. On an accepted offer we remind you 2 hours before the end. Missing the deadline on an accepted offer is 1 Declutter strike, and the item goes back on sale. If you tapped Buy now and don&apos;t pay, the item just goes back on sale, with no strike. When an item goes back on sale, the offers its hold closed open again. A payment that arrives after the hold has ended is refunded in full.</p>
             <p>Your saved card is charged only when you check out and pay, or automatically in a part of Louisiana Helpr where you turned on automatic charges.</p>
-            <p><strong className="text-foreground">What you pay:</strong> the item price plus a buyer&apos;s fee, once per checkout, which covers running Declutter and card processing. You see one total before you pay, delivery included.</p>
+            <p><strong className="text-foreground">What you pay:</strong> the item price plus a buyer&apos;s fee of {DECLUTTER_BUYER_FEE_WORDS}, once per checkout, which covers running Declutter and card processing. You see one total before you pay, delivery included.</p>
             <p>Items from the same seller go into one checkout: one payment, one pickup or delivery.</p>
             <p><strong className="text-foreground">Sellers pay no fee</strong> and receive the whole item price, less anything they owe from a sale they cancelled. We hold the payment through Stripe until the sale is final.</p>
           </>

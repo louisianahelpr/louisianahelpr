@@ -1,4 +1,4 @@
-import { FAQ_SECTIONS } from "./helpCenterContent";
+import { COMMON_PROBLEMS, FAQ_SECTIONS } from "./helpCenterContent";
 
 /**
  * The Help Center and the Terms (as /terms/full renders them; the test passes that text in) as plain text, the ONLY source the support AI may answer
@@ -11,7 +11,9 @@ function helpKnowledgeText(termsText: string): string {
   const faq = FAQ_SECTIONS.map((section) =>
     [`## ${section.topic}`, ...section.items.map((item) => `Q: ${item.q}\nA: ${item.a}`)].join("\n\n"),
   ).join("\n\n");
-  return `# Help Center\n\n${faq}\n\n# Terms of Service (summary and full text)\n\n${termsText}`;
+  // F411: the Common problems steps are Help copy too, so the support AI gives the same three steps.
+  const problems = COMMON_PROBLEMS.map((p) => `Q: ${p.title}\nA: ${p.steps.map((step, i) => `${i + 1}. ${step}`).join(" ")}`).join("\n\n");
+  return `# Help Center\n\n## Common problems\n\n${problems}\n\n${faq}\n\n# Terms of Service (summary and full text)\n\n${termsText}`;
 }
 
 /** The generated module's whole source, byte for byte. */

@@ -64,6 +64,9 @@ const JobDetail = () => {
   const { data: job, isLoading, isError, refetch, status, fetchStatus } = useQuery({
     queryKey: queryKeys.jobs.publicDetail(id ?? ""),
     queryFn: async (): Promise<GuestJob | null> => {
+      // F254 (audit 11-10): a malformed id (/jobs/abc) came back as a refused read and showed "our end is having a
+      // hiccup" with a Try again that could never work. No job has that id, so it is simply not available.
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id ?? "")) return null;
       const data = unwrap<unknown>(
         await readJobsAheadOfDb(
           "id, title, category, budget, location, urgent_fee, is_group_job, helpers_needed, helper_fee_flat_cents, helper_fee_percent, status, expires_at",

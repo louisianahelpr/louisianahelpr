@@ -9088,7 +9088,7 @@
     },
     {
       "file": "src/components/profile/YourPageLink.tsx",
-      "line": 33,
+      "line": 51,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -9098,7 +9098,7 @@
     },
     {
       "file": "src/components/profile/YourPageLink.tsx",
-      "line": 34,
+      "line": 52,
       "kind": "toast.error",
       "title": {
         "form": "literal",

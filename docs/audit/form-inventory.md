@@ -9,7 +9,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/landing/HeroSection.tsx` | input×1 | search | 80 | landing-hero-block · landing-hero-column · Search Helpr · landing-search · landing-search-submit |
+| `src/components/landing/HeroSection.tsx` | input×1 | search | 80 | landing-hero-block · landing-hero-column · landing-search-tabs · Search Helpr · landing-search · landing-search-submit |
 
 ## /admin
 

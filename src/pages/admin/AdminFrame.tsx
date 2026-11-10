@@ -100,9 +100,12 @@ export function AdminFrame({
             Q2583: from lg up the right padding is 72px, not 32px, so the
             floating scroll-to-top button (ScrollToTop: right-4, 44px wide)
             sits in the gutter instead of on a card's Edit button. Guard:
-            src/test/adminScrollTopClearsCards.test.ts. */}
+            src/test/adminScrollTopClearsCards.test.ts.
+            F143 (owner's UI audit 11-09): from lg the left padding is 24px (lg:pl-6), so the cards' left edge lines up
+            with the "Admin" title in the bar (x=272 at 1440), as on every other signed-in page; the right keeps the
+            Q2583 gutter (lead 11-09, option A). */}
         <div data-admin-scroll
-          className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 lg:pr-[4.5rem] pb-[calc(2rem_+_var(--safe-area-bottom,0px))]"
+          className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 lg:pl-6 lg:pr-[4.5rem] pb-[calc(2rem_+_var(--safe-area-bottom,0px))]"
         >
           {/* Mounted once, inside admin only: the shortcut should not exist
               on the rest of the app, where there are no sections to jump

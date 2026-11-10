@@ -8,7 +8,7 @@
  *    button's right offset plus its width, so the button sits in the gutter.
  * 2. The Declutter cards render next to each other, the stage preview with them.
  *
- * @mutate src/pages/admin/AdminFrame.tsx | lg:p-8 lg:pr-[4.5rem] | lg:p-8
+ * @mutate src/pages/admin/AdminFrame.tsx | lg:pl-6 lg:pr-[4.5rem] | lg:pl-6
  * @mutate src/components/ScrollToTop.tsx | fixed right-4 z-30 active:scale-[0.94] | fixed right-12 z-30 active:scale-[0.94]
  * @mutate src/components/ui/RoundIconButton.tsx | md: "w-11 h-11" | md: "w-20 h-20"
  * @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     <DonationPartnersCard />\n    <DeclutterFunnelCard />\n    <DeclutterPreviewCard />\n    <ShopItemsReviewCard />\n | <ShopItemsReviewCard />\n    <DonationPartnersCard />\n    <DeclutterFunnelCard />\n    <DeclutterPreviewCard />\n

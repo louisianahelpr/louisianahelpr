@@ -158,6 +158,11 @@ const PROFILE_ROOT = "src/pages/profile/Profile.tsx";
  */
 const POST_JOB_ROOT = "src/pages/post-job/PostJob.tsx";
 /**
+ * /messages starts its page through src/boot/profileRoute.ts (11-10: its 103-file preload list put the entry over its
+ * band after #4297); the page itself is named so the walk reaches it and its modules stay grouped as a first screen's.
+ */
+const MESSAGES_ROOT = "src/pages/messages/Messages.tsx";
+/**
  * B52 (11-03): the Posted / Working lists, JobsSection's lazy chunk, which a list link starts through
  * src/boot/jobsListRoute.ts (a dynamic import the walk does not follow). Named so its modules stay grouped as a first
  * screen's: unnamed, they fell to signed-in-deep and the lists' chunk pulled signed-in-deep, declutter-first-screen
@@ -203,7 +208,7 @@ export function firstScreenRoots(root) {
   // the walk does not follow, so each page itself is named.
   // HOME_DERIVE_ROOT (B51): Home's derivations, a dynamic import Home's chunk starts; see homeFirstScreenRoots.
   // JOB_LISTS_ROOT (B52): the Posted / Working lists, which src/boot/jobsListRoute.ts starts on a list link.
-  return [...roots, toPosix(path.join(root, HOME_DERIVE_ROOT)), ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), ...DECLUTTER_ROOTS.map((r) => toPosix(path.join(root, r))), toPosix(path.join(root, PROFILE_ROOT)), toPosix(path.join(root, POST_JOB_ROOT)), toPosix(path.join(root, JOB_LISTS_ROOT))];
+  return [...roots, toPosix(path.join(root, HOME_DERIVE_ROOT)), ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), ...DECLUTTER_ROOTS.map((r) => toPosix(path.join(root, r))), toPosix(path.join(root, PROFILE_ROOT)), toPosix(path.join(root, POST_JOB_ROOT)), toPosix(path.join(root, MESSAGES_ROOT)), toPosix(path.join(root, JOB_LISTS_ROOT))];
 }
 
 /**

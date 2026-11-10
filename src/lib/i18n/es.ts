@@ -72,7 +72,7 @@ export const es: Record<MsgKey, string> = {
 
   "hero.titleLead": "Su aliado local en",
   "hero.titleAccent": "Luisiana.",
-  "hero.subhead": "Contrate ayuda o encuentre trabajo. Una cuenta, vecinos de verdad.",
+  "hero.subhead": "Contrate ayuda, encuentre trabajo o compre y venda. Una cuenta, vecinos de verdad.",
   "hero.searchLabel": "Buscar trabajos locales",
   "hero.searchButton": "Buscar",
   "hero.searchDeclutter": "Buscar en Declutter",

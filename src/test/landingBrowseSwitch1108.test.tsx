@@ -156,9 +156,9 @@ describe("the hero search's Jobs | Declutter tabs share the switch's choice (F01
 
   it("the LOCKED hero words stay exactly the same on either tab", () => {
     open();
-    const words = () => [screen.getByRole("heading", { level: 1 }).textContent, screen.getByText(/^Hire help or find work/).textContent];
+    const words = () => [screen.getByRole("heading", { level: 1 }).textContent, screen.getByText(/^Hire help, find work, or buy and sell/).textContent];
     const before = words();
-    expect(before).toEqual(["Louisiana’s local partner.", "Hire help or find work. One account, real neighbors."]);
+    expect(before).toEqual(["Louisiana’s local partner.", "Hire help, find work, or buy and sell. One account, real neighbors."]);
     fireEvent.click(heroTab("Declutter"));
     expect(words()).toEqual(before);
   });

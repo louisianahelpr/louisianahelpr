@@ -42,11 +42,11 @@ describe("the landing hero speaks the visitor's language", () => {
     renderHero();
     await new Promise((r) => setTimeout(r, 30));
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Louisiana’s local partner.");
-    expect(screen.getByText("Hire help or find work. One account, real neighbors.")).toBeTruthy();
+    expect(screen.getByText("Hire help, find work, or buy and sell. One account, real neighbors.")).toBeTruthy();
     expect(screen.getByPlaceholderText("Search local jobs")).toBeTruthy();
     // The locked English and the en dictionary agree, so the two can never drift apart.
     expect(`${enScreens["hero.titleLead"]} ${enScreens["hero.titleAccent"]}`).toBe("Louisiana’s local partner.");
-    expect(enScreens["hero.subhead"]).toBe("Hire help or find work. One account, real neighbors.");
+    expect(enScreens["hero.subhead"]).toBe("Hire help, find work, or buy and sell. One account, real neighbors.");
   });
 
   it("first paint: the hero imports no i18n module (the Spanish words are a dynamic import)", () => {

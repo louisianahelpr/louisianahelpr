@@ -32,6 +32,11 @@ create role anon; create role authenticated; create role service_role;
 -- Stub of the guest switch the anon row policy uses, driven by a setting.
 create function public.declutter_open_to_guests() returns boolean language sql stable as $$ select coalesce(nullif(current_setting('t.guests', true), ''), 'on') = 'on' $$;
 create table public.test_accounts(user_id uuid primary key);
+create table public.profiles(user_id uuid primary key, is_seed boolean);
+-- is_test_member as prod defines it (20261030015205, pg_get_functiondef 11-09): a seed profile or a test_accounts row.
+create function public.is_test_member(p_user_id uuid) returns boolean language sql stable as $$
+  select p_user_id is not null and (exists (select 1 from public.profiles p where p.user_id = p_user_id and p.is_seed is true)
+    or exists (select 1 from public.test_accounts t where t.user_id = p_user_id)) $$;
 create table public.declutter_items(id uuid primary key, seller_id uuid not null, status text not null, title text not null,
   category text not null, condition_stars smallint not null default 4, porch_ok boolean not null default false,
   price_cents integer not null, current_price_cents integer not null, area_label text, live_at timestamptz,
@@ -104,10 +109,27 @@ await db.exec(`update public.declutter_orders set status = 'expired' where id = 
 r = await top();
 ok(JSON.stringify(ids(r)) === JSON.stringify([3, 4, 5, 1, 2]), `seed and expired orders are not sales (${ids(r)})`);
 
+// A seed-profile member's save never counts either (is_test_member, not only test_accounts).
+const SEEDP = "88888888-8888-4888-8888-888888888888";
+await db.exec(`insert into public.profiles values ('${SEEDP}', true); insert into public.declutter_watchlist values ('${SEEDP}', '${it(1)}')`);
+r = await top();
+ok(JSON.stringify(ids(r)) === JSON.stringify([3, 4, 5, 1, 2]), `a seed profile's save never counts (${ids(r)})`);
+
+// A flood of signed-out views with made-up device ids (anon may record views) counts at most 10: it never beats
+// two real saves (6) plus an offer (3)... and a member's views count in full. Item 2 gets 500 guest views -> 10.
+await db.exec(`insert into public.declutter_item_views(item_id, device_id) select '${it(2)}', gen_random_uuid() from generate_series(1, 500)`);
+await db.exec(`insert into public.declutter_watchlist values ('${U2}', '${it(4)}'), ('${U3}', '${it(4)}')`);
+await db.exec(`insert into public.declutter_offers(item_id, buyer_id) values ('${it(4)}', '${U1}')`);
+r = await top();
+ok(JSON.stringify(ids(r).slice(0, 2)) === JSON.stringify([4, 2]), `500 guest views count as 10, under 3 saves + an offer (12) (${ids(r)})`);
+
 // Limit is clamped.
+await db.exec(`insert into public.declutter_items select ('aaaaaaaa-0000-4000-8000-9' || lpad(g::text, 11, '0'))::uuid, '${S1}', 'live', 'Bulk', 'kitchen', 4, false, 500, 500, null, now() - interval '200 hours', false, false from generate_series(1, 30) g`);
+await db.exec(`insert into public.declutter_item_photos(item_id, storage_path, position) select ('aaaaaaaa-0000-4000-8000-9' || lpad(g::text, 11, '0'))::uuid, 'b.jpg', 0 from generate_series(1, 30) g`);
+ok(ids(await top(100)).length === 24, "limit 100: at most 24");
 ok(ids(await top(2)).length === 2, "limit 2: two");
 ok(ids(await top(0)).length === 1, "limit 0: at least one");
-ok((await db.query(`select count(*)::int n from public.declutter_popular_items(null)`)).rows[0].n === 5, "limit null: the default 8 (5 shown here)");
+ok((await db.query(`select count(*)::int n from public.declutter_popular_items(null)`)).rows[0].n === 8, "limit null: the default 8");
 
 // Declutter closed to guests: nothing.
 await db.exec(`select set_config('t.guests', 'off', false)`);

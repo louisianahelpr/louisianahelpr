@@ -4,8 +4,9 @@
 -- declutter_popular_items(p_limit): up to p_limit (1..24) live listings for the landing's "Shop Declutter" grid, best
 -- first, ONE call (the card's columns plus its cover photo's storage path). Ranked by real signals, recency breaks ties:
 --   1. score = 3 x members who saved it (declutter_watchlist) + 3 x buyers who made an offer (declutter_offers, not
---      seed) + people who opened its page in the last 30 days (declutter_item_views, one per viewer or device).
---      Saves, offers and views by the seller themself or by a test account (public.test_accounts) never count.
+--      seed) + people who opened its page in the last 30 days (declutter_item_views: one per member, plus at most 10
+--      signed-out devices, so made-up device ids cannot buy the top spot). Saves, offers and views by the seller
+--      themself or by a test member (public.is_test_member: a seed profile or a test_accounts row) never count.
 --   2. then how many real orders (paid or handed over, not seed) its CATEGORY has had: the categories that sell best.
 --   3. then the newest (live_at desc).
 -- Measured on prod 11-09 ~11:50 PM (read-only SQL): 254 live non-seed listings, all with a photo, 242 priced; 16 of them
@@ -23,7 +24,8 @@
 -- Proof: src/test/pglite/declutterPopularItems.pglite.mjs (applied 3x, every rule switched on and off).
 -- REPLAY-SAFETY: CREATE OR REPLACE; REVOKE/GRANT restated. Every table and helper read exists from earlier migrations
 -- (20261014193955 items, photos, watchlist, offers; the cart and order tables; 20261021142959 seller_hidden;
--- 20261020033623 is_seed; 20261012031120 test_accounts; the item-views migration; declutter_open_to_guests()).
+-- 20261020033623 is_seed; 20261012031120 test_accounts; 20261030015205 is_test_member(uuid); the item-views migration;
+-- declutter_open_to_guests()).
 CREATE OR REPLACE FUNCTION public.declutter_popular_items(p_limit integer DEFAULT 8)
 RETURNS TABLE(
   id uuid,
@@ -57,7 +59,7 @@ AS $fn$
       FROM public.declutter_watchlist w
       JOIN shown s ON s.id = w.item_id
      WHERE w.user_id <> s.seller_id
-       AND NOT EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = w.user_id)
+       AND NOT public.is_test_member(w.user_id)
      GROUP BY w.item_id
   ),
   offers AS (
@@ -66,16 +68,18 @@ AS $fn$
       JOIN shown s ON s.id = o.item_id
      WHERE NOT o.is_seed
        AND o.buyer_id <> s.seller_id
-       AND NOT EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = o.buyer_id)
+       AND NOT public.is_test_member(o.buyer_id)
      GROUP BY o.item_id
   ),
   views AS (
-    SELECT v.item_id, count(DISTINCT coalesce(v.viewer_id, v.device_id)) AS n
+    -- Members' views count in full; signed-out views (any device id a caller makes up) count at most 10 per item,
+    -- so a script cannot buy the top spot with guest views (lh-authz-rls review 11-09, finding 1).
+    SELECT v.item_id,
+           count(DISTINCT v.viewer_id) + least(count(DISTINCT v.device_id) FILTER (WHERE v.viewer_id IS NULL), 10) AS n
       FROM public.declutter_item_views v
       JOIN shown s ON s.id = v.item_id
      WHERE v.created_at > now() - interval '30 days'
-       AND (v.viewer_id IS NULL OR v.viewer_id <> s.seller_id)
-       AND NOT EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = v.viewer_id)
+       AND (v.viewer_id IS NULL OR (v.viewer_id <> s.seller_id AND NOT public.is_test_member(v.viewer_id)))
      GROUP BY v.item_id
   ),
   category_sales AS (

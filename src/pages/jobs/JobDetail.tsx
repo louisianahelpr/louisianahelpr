@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { lazy, Suspense, useRef } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Briefcase } from "lucide-react";
 
@@ -13,6 +13,7 @@ import { useJobRef } from "@/hooks/useJobRef";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { queryKeys } from "@/lib/queryKeys";
 import { signupUrlFor } from "@/lib/jobIntent";
+import { signedOutOnPurposeRecently } from "@/lib/unexpectedSignOut";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
@@ -46,6 +47,13 @@ const JobDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, isLoading: authLoading, profileQuery, refresh: refreshCurrentUser } = useCurrentUser();
+  // F260o (audit 11-10): a member whose session ended on this page (Apply gave 401s) fell through to the guest branch,
+  // and a job the public view does not list (their own, or one they applied to) read "This job isn't available. It may
+  // have been filled, expired, or removed." The job was fine. Remember that this page had a user; when the user goes
+  // away without the app's own Sign out, say so and offer Log in back to this job.
+  const hadUser = useRef(false);
+  if (user) hadUser.current = true;
+  const sessionLost = !authLoading && !user && hadUser.current && !signedOutOnPurposeRecently();
   // Q571: a signed-in visitor waits on their profile before the redirect below.
   // Offline that query is paused, `authLoading` never clears, and the page held
   // its skeleton for as long as the connection was down.
@@ -153,6 +161,18 @@ const JobDetail = () => {
             <OfflineEmptyState
               body="This job will load here as soon as you're back online."
               onRetry={() => { void (authLoading ? refreshCurrentUser() : refetch()); }}
+            />
+          ) : sessionLost ? (
+            <EmptyState
+              variant="inline"
+              icon={Briefcase}
+              title="You've been signed out."
+              body="Log in again to see this job and apply. It's still here."
+              action={
+                <Button asChild size="sm" className="squircle" data-job-session-lost-login="">
+                  <Link to={`/login?redirect=${encodeURIComponent(`/jobs/${id ?? ""}`)}&signed_out=session-lost`}>Log in</Link>
+                </Button>
+              }
             />
           ) : authLoading || isLoading ? (
             <div role="status" aria-busy="true" aria-label="Loading job">

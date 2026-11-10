@@ -28,7 +28,7 @@ export const OLD_DECLUTTER_VIEWS: readonly OldDeclutterView[] = ["mine", "offers
 
 /** What needs the member, per side. Each number is a count of things to act on. */
 export interface DeclutterTodo {
-  /** Buyer: items in the cart still inside their 48 hours (check out and pay). */
+  /** Buyer: checkouts still inside their time, one per seller (F363: the same count as Home's "Check out" to-dos). */
   toPay: number;
   /** Buyer: open offers waiting for the buyer's answer (a seller's counter). */
   buyerOffers: number;
@@ -68,8 +68,23 @@ function openPickupOrders(cart: readonly CartLine[], side: "buyer" | "seller", h
   return orders.size;
 }
 
+/**
+ * Audit 11-10 F363/F396: the buyer's open checkouts, one per seller (one checkout per seller), keyed by the seller.
+ * The ONE rule for "to check out" that the Buying badge, Home's to-dos and the dock's Declutter badge all count, so
+ * two items from one seller are one thing to do everywhere (the badge said 8 where the dock said 7).
+ */
+export function openCheckouts(cart: readonly CartLine[], now = Date.now()): Map<string, CartLine[]> {
+  const checkouts = new Map<string, CartLine[]>();
+  for (const l of cart) {
+    if (l.my_side !== "buyer" || l.status !== "in_cart" || !(new Date(l.checkout_by).getTime() > now)) continue;
+    const k = l.seller_id ?? l.line_id;
+    checkouts.set(k, [...(checkouts.get(k) ?? []), l]);
+  }
+  return checkouts;
+}
+
 export function declutterTodo(cart: readonly CartLine[], offers: readonly MyOffer[], now = Date.now()): DeclutterTodo {
-  const toPay = cart.filter((l) => l.my_side === "buyer" && l.status === "in_cart" && new Date(l.checkout_by).getTime() > now).length;
+  const toPay = openCheckouts(cart, now).size;
   const myTurn = (o: MyOffer) => o.status === "open" && o.awaiting === o.my_side;
   const buyerOffers = offers.filter((o) => o.my_side === "buyer" && myTurn(o)).length;
   const sellerOffers = offers.filter((o) => o.my_side === "seller" && myTurn(o)).length;

@@ -215,6 +215,9 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   // shopper; the owner's chats come through their shop) and every message in them, without the other side's id.
   shop_talks: { by: ["buyer_id"] },
   shop_talk_messages: { by: ["sender_id"] },
+  // Shops paperwork (Q1952, 20261110195956, exported by 20261110200630): the owner's own permits, without the admin
+  // who checked them (shop_permits.reviewed_by stays EXEMPT).
+  shop_permits: { by: ["owner_id"] },
   // Bundle discounts (20261027211754, exported by 20261028003604): the seller's own setting.
   declutter_bundle_rules: { by: ["seller_id"] },
   // Q2462 (20261028235249, exported by 20261028235250): the handover talks, buyer or seller, and their messages.

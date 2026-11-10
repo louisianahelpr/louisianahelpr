@@ -4,7 +4,7 @@
  * the entry; it now starts through profileRoute's boot chunk (the /profile and /admin trade): entry 5.4 -> 4.7 KB gz.
  * This holds the shape: the entry table names no page import for /messages, and the boot chunk starts Messages.
  *
- * @mutate src/boot/routePreload.ts |     signedIn: [profileRoute, protectedRoute],\n  },\n  // profileRoute keeps |     signedIn: [() => import("@/pages/messages/Messages"), protectedRoute],\n  },\n  // profileRoute keeps
+ * @mutate src/boot/routePreload.ts | "/messages": {\n    guest: [protectedRoute],\n    signedIn: [profileRoute, protectedRoute], | "/messages": {\n    guest: [protectedRoute],\n    signedIn: [() => import("@/pages/messages/Messages"), protectedRoute],
  * @mutate src/boot/profileRoute.ts |   if (path === "/messages") return [() => import("@/pages/messages/Messages")]; |
  */
 import { describe, expect, it } from "vitest";

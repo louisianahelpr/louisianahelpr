@@ -15,7 +15,7 @@ export interface MyPayout {
   refunded_cents: number;
   debt_cents: number;
   amount_cents: number;
-  status: "pending" | "succeeded" | "failed" | "nothing_due";
+  status: "pending" | "succeeded" | "failed" | "nothing_due" | "held_for_review" | "settled_by_hand";
   executed_at: string | null;
   /** soldstates-4: the payout run's tries so far (20261031184338); absent until that grant is live. */
   attempts?: number;

@@ -2087,3 +2087,45 @@ describe("B134: a shipped order (B131 found it read as a pickup)", () => {
   }
   afterEach(() => { state.features = []; });
 });
+
+// Audit 11-10 F377 (High): a cancelled, refunded order loaded the pickup address and times ("We couldn't load…" twice)
+// and offered "Pick a pickup time" / "Book" under a sale that no longer exists.
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : cancelled ? ( |       ) : false ? (
+// Audit 11-10 F376 (High): inside the buyer's 24 hours after the handover the card had no deadline and no Report a problem.
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.side === "buyer" && !refundRequests && !problem && <BuyerCheckWindow orderId={order.orderId} />} |
+describe("audit 11-10: cancelled orders and the buyer's 24 hours to check", () => {
+  beforeEach(() => {
+    state.features = []; state.bookings = []; state.payouts = []; state.problems = []; state.refundRequest = null;
+    state.windows = { windows: [{ weekday: 1, starts: "09:00", ends: "17:00" }], latestPickupAt: null };
+  });
+  afterEach(() => { state.handover = null; state.windows = null; });
+
+  for (const side of ["buyer", "seller"] as const) {
+    it(`F377: a refunded ${side} order says it was cancelled and offers no pickup to book`, async () => {
+      const { container } = show([line({ order_status: "refunded", my_side: side })]);
+      expect(await screen.findByText(side === "buyer" ? /This order was cancelled and refunded to your card/ : /This sale was cancelled before the handover/)).toBeInTheDocument();
+      const text = container.textContent ?? "";
+      expect(text).not.toMatch(/Pick a pickup time|couldn't load/i);
+      expect(screen.queryByRole("button", { name: /^Book/ })).toBeNull();
+    });
+  }
+
+  it("F376: handed over 2 hours ago, the buyer sees until when they can report a problem, and the form opens", async () => {
+    const at = new Date(Date.now() - 2 * 3_600_000).toISOString();
+    state.handover = { status: "handed_over", confirmed_at: at, confirmed_by: "buyer", picked_up_at: at };
+    show([line({ order_status: "handed_over" })]);
+    const block = await waitFor(() => { const el = document.querySelector("[data-check-window]"); expect(el).not.toBeNull(); return el as HTMLElement; });
+    expect(block.textContent).toMatch(/you can report a problem until [A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2}, \d{1,2}:\d{2} (AM|PM)/);
+    fireEvent.click(within(block).getByRole("button", { name: "Report a problem" }));
+    expect(await within(block).findByText("Tell us what happened")).toBeInTheDocument();
+  });
+
+  it("F376: once the 24 hours are over the block is gone", async () => {
+    const at = new Date(Date.now() - 25 * 3_600_000).toISOString();
+    state.handover = { status: "handed_over", confirmed_at: at };
+    show([line({ order_status: "handed_over" })]);
+    await screen.findByText(/Review o1 as the buyer/);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(document.querySelector("[data-check-window]")).toBeNull();
+  });
+});

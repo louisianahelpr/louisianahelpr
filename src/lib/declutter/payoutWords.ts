@@ -20,7 +20,14 @@ const PAYOUT_WORDS: Record<MyPayout["status"], string> = {
   failed: "Your payout didn't go through yet. We'll try again on our own. If it still doesn't arrive, message Support.",
   succeeded: "Paid to your payout account. Banks usually show it in 2 business days.",
   nothing_due: "Nothing to pay out.",
+  // Audit 11-10 F392 (High): these two statuses (20261019070737, 20261102043754) had no words, so the card read
+  // "$50. undefined". held_for_review: the payout left the automatic run until an admin releases or settles it.
+  held_for_review: "On hold while Louisiana Helpr checks this payout. If it doesn't arrive soon, message Support.",
+  settled_by_hand: "Paid to you by Louisiana Helpr.",
 };
+
+/** A status this screen doesn't know yet still reads as words, never "undefined". */
+const PAYOUT_UNKNOWN = "If you have a question about this payout, message Support.";
 
 // Never promises the money: a last try can fail on a refunded or disputed charge, which ops must not pay by hand
 // (declutter-money pageIfLastTry).
@@ -39,7 +46,7 @@ export function payoutStatusWords(p: Pick<MyPayout, "status" | "items_cents" | "
   if ((p.status === "failed" || p.status === "pending") && (p.attempts ?? 0) >= PAYOUT_TRIES) return PAYOUT_GAVE_UP;
   // Try count unknown (the grant not live yet): the old words, which promise no retries.
   if (p.status === "failed" && p.attempts === undefined) return PAYOUT_FAILED_UNKNOWN;
-  if (p.status !== "nothing_due") return PAYOUT_WORDS[p.status];
+  if (p.status !== "nothing_due") return PAYOUT_WORDS[p.status] ?? PAYOUT_UNKNOWN;
   const sale = p.items_cents + (p.delivery_cents ?? 0);
   if ((p.refunded_cents ?? 0) >= sale) return "Nothing to pay out: the buyer was refunded for this sale.";
   if (p.debt_cents > 0) return "Nothing to pay out: this sale covered an amount you owed from an earlier refund.";

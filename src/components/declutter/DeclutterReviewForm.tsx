@@ -29,6 +29,8 @@ import { REVIEW_TAGS } from "@/lib/declutter/reviewTags";
 import { fetchRefundRequestView, refundedInFull, refundHoldsTheItem, type RefundRequestView } from "@/lib/declutter/refundRequests";
 import { clearReviewPrompt, reviewPromptWaiting } from "@/lib/declutter/reviewPrompt";
 import { focusSheetItself } from "./focusSheetItself";
+import { useBuyerCheckWindow } from "./BuyerCheckWindow";
+import { useFeature } from "@/hooks/useFeature";
 import { Textarea } from "@/components/ui/textarea";
 
 const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days.";
@@ -76,6 +78,10 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
   /** An open problem on this order (BUY-31). */
   problemOpen?: boolean;
 }) {
+  // Audit 11-10 F376: while the buyer's 24 hours to check it run (the card's BuyerCheckWindow, shown when the refund
+  // switch is off), "Report a problem" is the main move and the review is the second button.
+  const refundSwitch = useFeature("declutter_refund_requests");
+  const checkOpen = !!useBuyerCheckWindow(orderId, side === "buyer" && !refundSwitch);
   const refund = useQuery({
     queryKey: ["declutter", "refund-request", orderId],
     queryFn: () => fetchRefundRequestView(orderId),
@@ -124,7 +130,7 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
   return (
     <>
       {/* Full width on a phone; from sm it sizes to its words like the card's other buttons (deep audit #51: a ~1100px bar at 1440). */}
-      <Button type="button" variant={refundStillOpen(refund.data) ? "outline" : "default"} className="w-full sm:w-auto" onClick={() => setOpen(true)}>
+      <Button type="button" variant={refundStillOpen(refund.data) || checkOpen ? "outline" : "default"} className="w-full sm:w-auto" onClick={() => setOpen(true)}>
         Leave a review
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>

@@ -56,6 +56,8 @@ import { payoutLine } from "./declutterPayoutWords";
 import { ManagerSaleShareGate } from "./ManagerSaleShareGate";
 import { useOpenProblems } from "./useOpenProblems";
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
+import { BuyerCheckWindow } from "./BuyerCheckWindow";
+import { CancelledOrderNote } from "./CancelledOrderNote";
 import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
 import { GotItSheet, GotItWaitsForPorchPhoto, PickedUpPhotoSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
 import { MeetupPanel } from "./DeclutterMeetup";
@@ -148,6 +150,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
   const title = order.lines.map((l) => l.item_title).join(", ");
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
   const done = order.status === "handed_over";
+  const cancelled = order.status === "refunded" && order.handover !== "ship" && order.handover !== "delivery"; // F377 (CancelledOrderNote)
   // Lead 11-08: an order from a trade is worded as a trade ("Trade", "Your trade: <item>", "Message about the trade").
   const trade = isTradeOrder(order);
   // Boards 159/160: the other person by first name in the handover sheets; the problem form opens from "Something's not right".
@@ -185,7 +188,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
   const body = !view || open;
   // NIGHT-SELL-soldstates-3 (B18's order): the seller's open pickup sale leads with what to do next. Tracker and line,
   // the pickup and Move, When will it be out, Take the porch photo; THEN the money note and Message the buyer.
-  const sellerNextFirst = !view && order.side === "seller" && !done
+  const sellerNextFirst = !view && order.side === "seller" && !done && !cancelled
     && (order.handover === "porch" || order.handover === "pickup_home" || order.handover === "meetup");
   const cardRef = useRef<HTMLElement>(null);
   useScrollToLinkedOrder(cardRef, linked, () => setOpen(true));
@@ -203,9 +206,9 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
       {done && order.side === "buyer" && order.handover === "delivery" && order.deliveryTaskId && <Suspense fallback={null}><OrderDeliveryPanel taskId={order.deliveryTaskId} side="buyer" orderId={order.orderId} tipOnly /></Suspense>}
       {body && <div ref={bodyRef} className="space-y-3" data-order-body="">
       {/* DC-16: ONE sale card: every handover kind shows the tracker, where it stands and the money note (Helpr delivery's is in OrderDeliveryPanel). */}
-      {!sellerNextFirst && !problem && <OrderTalkButton orderId={order.orderId} side={order.side} trade={trade} />}
-      {!view && order.handover === "seller_delivery" && <SellerDeliveryStatus orderId={order.orderId} side={order.side} itemsCents={items} problemOpen={!!problem} refunded={fullRefund} />}
-      {!view && (order.handover === "porch" || order.handover === "pickup_home" || order.handover === "meetup") && (
+      {!sellerNextFirst && !problem && !(cancelled && order.side === "seller") && <OrderTalkButton orderId={order.orderId} side={order.side} trade={trade} />}
+      {!view && !cancelled && order.handover === "seller_delivery" && <SellerDeliveryStatus orderId={order.orderId} side={order.side} itemsCents={items} problemOpen={!!problem} refunded={fullRefund} />}
+      {!view && !cancelled && (order.handover === "porch" || order.handover === "pickup_home" || order.handover === "meetup") && (
         <PickupStatus
           orderId={order.orderId}
           handover={order.handover}
@@ -236,8 +239,11 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
               <DeclutterRefundPanel orderId={order.orderId} who={who} problemForm={problem ? null : <ProblemForm orderId={order.orderId} side={order.side} stage="handover" />} />
             </Suspense>
           )}
+          {order.side === "buyer" && !refundRequests && !problem && <BuyerCheckWindow orderId={order.orderId} />}
           <DeclutterReviewForm orderId={order.orderId} side={order.side} userId={userId} refundPanel={!!refundRequests && items > 0} problemOpen={!!problem} />
         </>
+      ) : cancelled ? (
+        <CancelledOrderNote side={order.side} />
       ) : order.handover === "seller_delivery" ? (
         <>
           {/* 20261027153244: the seller brings it at the time the buyer picked. */}

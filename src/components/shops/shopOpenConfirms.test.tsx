@@ -66,6 +66,10 @@ describe("Open my shop confirms", () => {
       </QueryClientProvider>,
     );
     const button = await screen.findByRole("button", { name: "Open my shop" });
+    // The form checks its own fields first (audit 11-10 F2), so fill the ones a shop needs.
+    fireEvent.change(screen.getByLabelText("Shop or business name"), { target: { value: "Bayou Bakes" } });
+    fireEvent.click(screen.getByRole("radio", { name: "Bakery" }));
+    fireEvent.change(screen.getByLabelText("Town or neighborhood"), { target: { value: "Broussard" } });
     fireEvent.submit(button.closest("form") as HTMLFormElement);
     expect(await screen.findByText("Shop page")).toBeTruthy();
     expect(api.saveMyShop).toHaveBeenCalledTimes(1);

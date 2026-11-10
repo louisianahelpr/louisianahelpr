@@ -1,10 +1,15 @@
 /**
  * Shops audit 11-10 (~/.lh-shots/shops-audit-1110/FINDINGS.md), the open-a-shop form:
+ *  F2  a problem shows in red under its own field (role=alert, aria-invalid), the page goes to the first one, stale
+ *      toasts are cleared, and nothing is saved; a server refusal lands under its field too, never as a toast.
  *  F6  a new shop starts open Monday to Friday 9 to 5, and its parish is picked from the town typed (the full list is
  *      behind "Add other parishes"); the optional business number waits behind "Have a Louisiana business number?".
  *  F7  the common categories are one tap; "More" opens the full list.
  *  F8  the town placeholder reads "e.g. Broussard".
  *
+ * @mutate src/components/shops/ShopEditView.tsx |     if (first) {\n      focusField(first);\n      return;\n    } |     if (first) {\n      focusField(first);\n    }
+ * @mutate src/components/shops/ShopEditView.tsx |     toast.dismiss(); // F2: no stale toast from an earlier try stays on screen |     // toast.dismiss() removed
+ * @mutate src/components/shops/ShopEditView.tsx |       if (field) {\n        setErrors({ [field]: msg }); |       if (false) {\n        setErrors({ [field]: msg });
  * @mutate src/components/shops/ShopEditView.tsx |   Object.fromEntries(WEEKDAYS.map((_, i) => [i, { open: i >= 1 && i <= 5, opens: "09:00", closes: "17:00" }])); |   Object.fromEntries(WEEKDAYS.map((_, i) => [i, { open: false, opens: "09:00", closes: "17:00" }]));
  * @mutate src/components/shops/ShopEditView.tsx |     const fromTown = parishForCity(form.areaLabel)?.name ?? null; |     const fromTown = null;
  * @mutate src/components/shops/ShopEditView.tsx |   const [showSos, setShowSos] = useState(false); |   const [showSos, setShowSos] = useState(true);
@@ -12,7 +17,7 @@
  * @mutate src/components/shops/ShopEditView.tsx | placeholder="e.g. Broussard" | placeholder="Broussard"
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -60,7 +65,39 @@ function renderForm() {
 
 beforeEach(() => vi.clearAllMocks());
 
-describe("open-a-shop form (audit 11-10 F6, F7, F8)", () => {
+describe("open-a-shop form (audit 11-10 F2, F6, F7, F8)", () => {
+  it("F2: an empty submit marks each field under itself, goes to the first, clears toasts, saves nothing", async () => {
+    renderForm();
+    const button = await screen.findByRole("button", { name: "Open my shop" });
+    const name = screen.getByLabelText("Shop or business name");
+    fireEvent.submit(button.closest("form") as HTMLFormElement);
+    expect(toast.dismiss).toHaveBeenCalled();
+    const alerts = screen.getAllByRole("alert").map((a) => a.textContent);
+    expect(alerts.length).toBeGreaterThanOrEqual(3); // name, category, town
+    expect(name.getAttribute("aria-invalid")).toBe("true");
+    expect(document.getElementById(name.getAttribute("aria-describedby") as string)?.textContent).toMatch(/name/i);
+    expect(screen.getByLabelText("Town or neighborhood").getAttribute("aria-invalid")).toBe("true");
+    expect(document.activeElement).toBe(name);
+    await new Promise((r) => setTimeout(r, 30)); // the save is async (it geocodes first): give it time to be wrong
+    expect(api.saveMyShop).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+    // Typing in the field clears its own message.
+    fireEvent.change(name, { target: { value: "Bayou Bakes" } });
+    expect(name.getAttribute("aria-invalid")).toBeNull();
+  });
+
+  it("F2: a server refusal lands under its field, never in a toast", async () => {
+    api.saveMyShop.mockRejectedValueOnce(Object.assign(new Error("area_looks_like_address"), { code: "22023" }));
+    renderForm();
+    await screen.findByRole("button", { name: "Open my shop" });
+    fireEvent.change(screen.getByLabelText("Shop or business name"), { target: { value: "Bayou Bakes" } });
+    fireEvent.click(screen.getByRole("radio", { name: "Bakery and cakes" }));
+    fireEvent.change(screen.getByLabelText("Town or neighborhood"), { target: { value: "123 Main St" } });
+    fireEvent.submit(screen.getByRole("button", { name: "Open my shop" }).closest("form") as HTMLFormElement);
+    await waitFor(() => expect(screen.getByLabelText("Town or neighborhood").getAttribute("aria-invalid")).toBe("true"));
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
   it("F6: Monday to Friday 9 to 5 is set, and the parish follows the town", async () => {
     renderForm();
     await screen.findByRole("button", { name: "Open my shop" });

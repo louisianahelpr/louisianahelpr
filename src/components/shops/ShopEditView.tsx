@@ -44,7 +44,7 @@ import {
   type ShopHour,
   type ShopPhotoKind,
 } from "@/lib/shops/api";
-import { shopsErrorMessage } from "@/lib/shops/errors";
+import { SHOPS_ERROR_COPY, shopsErrorMessage } from "@/lib/shops/errors";
 import { categoryGroups, useShopCategories, WEEKDAYS } from "./shopsUi";
 import { ShopCategoryQuickPick } from "./ShopCategoryQuickPick";
 import ShopItemsSection from "./ShopItemsSection";
@@ -71,6 +71,64 @@ const EMPTY_HOURS = (): Form["hours"] =>
 const NEW_SHOP_HOURS = (): Form["hours"] =>
   Object.fromEntries(WEEKDAYS.map((_, i) => [i, { open: i >= 1 && i <= 5, opens: "09:00", closes: "17:00" }]));
 
+/**
+ * Audit 11-10 F2: a problem shows in red under its own field and the page scrolls to the first one, never as a toast
+ * that stacks at the bottom over the button. The server's refusal is mapped to its field the same way.
+ */
+type FieldKey = "name" | "category" | "about" | "area" | "offers" | "parishes" | "hours" | "sos";
+const FIELD_ORDER: FieldKey[] = ["name", "category", "about", "area", "offers", "parishes", "hours", "sos"];
+const FIELD_ID: Record<FieldKey, string> = {
+  name: "shop-name", category: "shop-category", about: "shop-about", area: "shop-area", offers: "shop-selling",
+  parishes: "shop-parishes", hours: "shop-hours", sos: "shop-sos",
+};
+const FIELD_OF_CODE: Record<string, FieldKey> = {
+  invalid_name: "name", invalid_category: "category", about_too_long: "about", invalid_area: "area",
+  area_looks_like_address: "area", invalid_location: "area", offers_required: "offers", invalid_parishes: "parishes",
+  invalid_hours: "hours", invalid_sos_number: "sos",
+};
+type FieldErrors = Partial<Record<FieldKey, string>>;
+
+/** The field a server refusal is about (its code as a whole word in the message), or null for a form-wide problem. */
+function fieldOfError(err: unknown): FieldKey | null {
+  const e = err as { message?: unknown; code?: unknown } | null;
+  const msg = typeof e?.message === "string" ? e.message : "";
+  // The contact-leak filter (check_violation) refuses a phone, email or link typed into the shop's words.
+  if (e?.code === "23514" && /contact details/.test(msg)) return "about";
+  for (const [code, field] of Object.entries(FIELD_OF_CODE)) {
+    if (new RegExp(`(^|[^a-z0-9_])${code}($|[^a-z0-9_])`).test(msg)) return field;
+  }
+  return null;
+}
+
+function validate(form: Form): FieldErrors {
+  const out: FieldErrors = {};
+  const name = form.name.trim().length;
+  if (name < 2 || name > 60) out.name = SHOPS_ERROR_COPY.invalid_name;
+  if (!form.category) out.category = SHOPS_ERROR_COPY.invalid_category;
+  if (form.about.length > 2000) out.about = SHOPS_ERROR_COPY.about_too_long;
+  const area = form.areaLabel.trim().length;
+  if (area < 2 || area > 80) out.area = SHOPS_ERROR_COPY.invalid_area;
+  if (!form.offersSelling && !form.offersQuotes) out.offers = SHOPS_ERROR_COPY.offers_required;
+  const sos = form.sosNumber.trim();
+  if (sos && !/^[A-Za-z0-9-]{3,20}$/.test(sos)) out.sos = SHOPS_ERROR_COPY.invalid_sos_number;
+  if (Object.values(form.hours).some((h) => h.open && !(h.opens && h.closes && h.opens < h.closes))) out.hours = SHOPS_ERROR_COPY.invalid_hours;
+  return out;
+}
+
+function FieldError({ field, errors }: { field: FieldKey; errors: FieldErrors }) {
+  const msg = errors[field];
+  if (!msg) return null;
+  return <p id={`${FIELD_ID[field]}-error`} className="text-sm text-destructive-ink" role="alert">{msg}</p>;
+}
+const invalidProps = (field: FieldKey, errors: FieldErrors) =>
+  errors[field] ? { "aria-invalid": true as const, "aria-describedby": `${FIELD_ID[field]}-error` } : {};
+
+function focusField(field: FieldKey) {
+  const el = document.getElementById(FIELD_ID[field]);
+  if (!el) return;
+  el.scrollIntoView?.({ block: "center", behavior: "smooth" });
+  el.focus?.({ preventScroll: true });
+}
 
 const EMPTY: Form = {
   name: "",
@@ -137,6 +195,8 @@ export default function ShopEditView() {
   const [form, setForm] = useState<Form>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [showAllParishes, setShowAllParishes] = useState(false);
   // F6: the optional business number waits behind one tap unless the shop already has one.
   const [showSos, setShowSos] = useState(false);
@@ -171,9 +231,16 @@ export default function ShopEditView() {
   }, [shop.data, loaded]);
 
   const groups = useMemo(() => categoryGroups(categories.data), [categories.data]);
+  const FIELD_OF_FORM_KEY: Partial<Record<keyof Form, FieldKey>> = {
+    name: "name", category: "category", about: "about", areaLabel: "area", offersSelling: "offers", offersQuotes: "offers",
+    parishes: "parishes", hours: "hours", sosNumber: "sos",
+  };
   const set = <K extends keyof Form>(k: K, v: Form[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
+    const field = FIELD_OF_FORM_KEY[k];
+    if (field) setErrors((e) => (e[field] ? { ...e, [field]: undefined } : e));
     if (k === "parishes") setParishesTouched(true);
+    setFormError(null);
   };
 
   const save = useMutation({
@@ -209,7 +276,17 @@ export default function ShopEditView() {
       void qc.invalidateQueries({ queryKey: ["shops"] });
       navigate(`/shops/${id}`);
     },
-    onError: (err) => toast.error(shopsErrorMessage(err)),
+    onError: (err) => {
+      // F2: beside the field it is about, or under the button; never a toast that stacks over the form.
+      const field = fieldOfError(err);
+      const msg = shopsErrorMessage(err);
+      if (field) {
+        setErrors({ [field]: msg });
+        focusField(field);
+      } else {
+        setFormError(msg);
+      }
+    },
   });
 
   const photo = useMutation({
@@ -253,6 +330,15 @@ export default function ShopEditView() {
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
+    toast.dismiss(); // F2: no stale toast from an earlier try stays on screen
+    setFormError(null);
+    const found = validate(form);
+    setErrors(found);
+    const first = FIELD_ORDER.find((f) => found[f]);
+    if (first) {
+      focusField(first);
+      return;
+    }
     save.mutate();
   };
   const photos = shop.data?.photos ?? [];
@@ -268,21 +354,26 @@ export default function ShopEditView() {
         )}
         <div className="space-y-1.5">
           <Label htmlFor="shop-name">Shop or business name</Label>
-          <Input id="shop-name" value={form.name} maxLength={60} onChange={(e) => set("name", e.target.value)} required />
+          <Input id="shop-name" value={form.name} maxLength={60} onChange={(e) => set("name", e.target.value)} required {...invalidProps("name", errors)} />
+          <FieldError field="name" errors={errors} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="shop-category">Category</Label>
-          <ShopCategoryQuickPick id="shop-category" value={form.category} onChange={(slug) => set("category", slug)} groups={groups} />
+          <ShopCategoryQuickPick id="shop-category" value={form.category} onChange={(slug) => set("category", slug)} groups={groups}
+            invalid={!!errors.category} describedBy={errors.category ? "shop-category-error" : undefined} />
+          <FieldError field="category" errors={errors} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="shop-about">About</Label>
-          <Textarea id="shop-about" value={form.about} maxLength={2000} rows={5} onChange={(e) => set("about", e.target.value)} />
+          <Textarea id="shop-about" value={form.about} maxLength={2000} rows={5} onChange={(e) => set("about", e.target.value)} {...invalidProps("about", errors)} />
+          <FieldError field="about" errors={errors} />
           <p className="text-xs text-muted-foreground">No phone numbers, emails or websites: Shops does not allow contact details.</p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="shop-area">Town or neighborhood</Label>
           <Input id="shop-area" value={form.areaLabel} maxLength={80} placeholder="e.g. Broussard" className="placeholder:text-muted-foreground/70"
-            onChange={(e) => set("areaLabel", e.target.value)} required />
+            onChange={(e) => set("areaLabel", e.target.value)} required {...invalidProps("area", errors)} />
+          <FieldError field="area" errors={errors} />
           <p className="text-xs text-muted-foreground">Never your street address. Your pin shows the area, not your house.</p>
         </div>
         <div className="flex items-start gap-2">
@@ -301,8 +392,9 @@ export default function ShopEditView() {
             <Checkbox id="shop-quotes" checked={form.offersQuotes} onCheckedChange={(v) => set("offersQuotes", v === true)} />
             <Label htmlFor="shop-quotes" className="flex min-h-11 flex-1 items-center font-normal">Quotes for work</Label>
           </div>
+          <FieldError field="offers" errors={errors} />
         </fieldset>
-        <fieldset className="space-y-2">
+        <fieldset id="shop-parishes" tabIndex={-1} className="space-y-2" {...invalidProps("parishes", errors)}>
           <legend className="text-sm font-medium">Parishes you serve</legend>
           {form.parishes.length > 0 ? (
             <ul className="flex flex-wrap gap-2" aria-label="Parishes picked">
@@ -320,6 +412,7 @@ export default function ShopEditView() {
           <Button type="button" variant="outline" size="sm" aria-expanded={showAllParishes} onClick={() => setShowAllParishes((v) => !v)}>
             {showAllParishes ? "Done adding parishes" : "Add other parishes"}
           </Button>
+          <FieldError field="parishes" errors={errors} />
           {showAllParishes && (
           <div className="max-h-48 overflow-y-auto rounded-xl border border-border p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
             {[...PARISHES].sort((a, b) => a.name.localeCompare(b.name)).map((p) => {
@@ -339,7 +432,7 @@ export default function ShopEditView() {
           </div>
           )}
         </fieldset>
-        <fieldset className="space-y-2">
+        <fieldset id="shop-hours" tabIndex={-1} className="space-y-2" {...invalidProps("hours", errors)}>
           <legend className="text-sm font-medium">Open days and hours</legend>
           {!myId.data && <p className="text-xs text-muted-foreground">Set to Monday to Friday, 9 to 5. Change any day that's different.</p>}
           {WEEKDAYS.map((day, i) => {
@@ -376,11 +469,13 @@ export default function ShopEditView() {
               </div>
             );
           })}
+          <FieldError field="hours" errors={errors} />
         </fieldset>
         {showSos || form.sosNumber.trim() !== "" ? (
           <div className="space-y-1.5">
             <Label htmlFor="shop-sos">Louisiana Secretary of State number (optional)</Label>
-            <Input id="shop-sos" value={form.sosNumber} maxLength={20} onChange={(e) => set("sosNumber", e.target.value)} />
+            <Input id="shop-sos" value={form.sosNumber} maxLength={20} onChange={(e) => set("sosNumber", e.target.value)} {...invalidProps("sos", errors)} />
+            <FieldError field="sos" errors={errors} />
             <p className="text-xs text-muted-foreground">Once we check it, your shop shows "Registered business". A shop without one is still welcome.</p>
           </div>
         ) : (
@@ -423,6 +518,7 @@ export default function ShopEditView() {
         <Button type="submit" className="btn-grad-primary w-full" disabled={save.isPending}>
           {save.isPending ? "Saving…" : myId.data ? "Save my shop" : "Open my shop"}
         </Button>
+        {formError && <p className="text-sm text-destructive-ink" role="alert">{formError}</p>}
         {myId.data && (
           <Button
             type="button"

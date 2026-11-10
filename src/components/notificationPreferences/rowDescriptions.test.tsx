@@ -74,7 +74,7 @@ describe("the money rows' descriptions", () => {
 });
 
 // A3-103 (audit 11-01): every Declutter switch says what it sends, and the row that carries the BUYER's checkout
-// deadline (declutter_sales: "Reserved for you: check out within 30 minutes") is named for both sides.
+// deadline (declutter_sales: "Reserved: check out within 30 minutes") is named for both sides.
 describe("the Declutter rows' descriptions", () => {
   it("every Declutter row has one line (floor: all eight rows)", () => {
     expect(declutterRows.length).toBeGreaterThan(7);

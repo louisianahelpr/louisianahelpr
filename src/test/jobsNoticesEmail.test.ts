@@ -12,15 +12,16 @@
  *   - the admins' "Job disputed" is never on it (test disputes must never mail the owner);
  *   - the three restated senders never skip the in-app row on a switch (#6).
  *
- * @mutate supabase/migrations/20261108214605_continue_day_missed_return.sql |       'Date or time request withdrawn', 'New date or time not applied', 'Your new time wasn''t answered') THEN 'job_updates' |       'Date or time request withdrawn', 'New date or time not applied') THEN 'job_updates'
- * @mutate supabase/migrations/20261108214605_continue_day_missed_return.sql |     WHEN p_type = 'work_status' AND p_title IN ('Start time passed', 'Job day ended', 'Please review the work') THEN 'work_status' |     WHEN p_type = 'work_status' AND p_title IN ('Start time passed', 'Job day ended', 'Please review the work', 'Job disputed') THEN 'work_status'
- * @mutate supabase/migrations/20261108214605_continue_day_missed_return.sql |     WHEN p_type = 'financial_alerts' AND p_title IN ('Job funded', 'Payout released', 'You received a tip!') THEN p_type |     WHEN p_type = 'financial_alerts' AND p_title IN ('Job funded', 'Payout released', 'You received a tip!', 'Nobody sends this') THEN p_type
+ * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |       'Date or time request withdrawn', 'New date or time not applied', 'Your new time wasn''t answered') THEN 'job_updates' |       'Date or time request withdrawn', 'New date or time not applied') THEN 'job_updates'
+ * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |     WHEN p_type = 'work_status' AND p_title IN ('Start time passed', 'Job day ended', 'Please review the work') THEN 'work_status' |     WHEN p_type = 'work_status' AND p_title IN ('Start time passed', 'Job day ended', 'Please review the work', 'Job disputed') THEN 'work_status'
+ * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |     WHEN p_type = 'financial_alerts' AND p_title IN ('Job funded', 'Payout released', 'You received a tip!') THEN p_type |     WHEN p_type = 'financial_alerts' AND p_title IN ('Job funded', 'Payout released', 'You received a tip!', 'Nobody sends this') THEN p_type
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { newestTriggerText } from "./helpers/migrationTriggers";
 
 const defs = effectiveDefs("supabase/migrations");
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");
@@ -49,8 +50,8 @@ const ALL_SQL = [...defs.entries()].filter(([n]) => n !== "jobs_notice_email_typ
 describe("Jobs notices email (Jobs audit 11-08 #2)", () => {
   it("the matcher lists a real set", () => {
     expect(listed.length).toBeGreaterThan(20);
-    // Newest definition: 20261108214605 adds the missed continue day titles (owner #4) to the 20261108201000 set.
-    expect(defs.get("jobs_notice_email_type")?.file).toMatch(/^20261108214605_/);
+    // Newest definition: 20261110205345 (F508) renames the revision-deadline dispute title in the 20261108214605 set.
+    expect(defs.get("jobs_notice_email_type")?.file).toMatch(/^20261110205345_/);
   });
   it("every listed title is written by a live sender (SQL or edge)", () => {
     const missing = listed.filter((t) => !ALL_SQL.includes(`'${t.replace(/'/g, "''")}'`) && !EDGE.includes(`"${t}"`));
@@ -76,13 +77,12 @@ describe("Jobs notices email (Jobs audit 11-08 #2)", () => {
     }
     expect(titles.size).toBeGreaterThan(8);
     expect([...titles].filter((t) => !listed.includes(t))).toEqual([]);
-    for (const t of ["Job funded", "Payout released", "A dispute was opened", "Revision deadline passed — dispute opened"]) expect(listed).toContain(t);
+    for (const t of ["Job funded", "Payout released", "A dispute was opened", "Revision deadline passed: dispute opened"]) expect(listed).toContain(t);
   });
   it("never the admins' dispute notice", () => {
     expect(listed).not.toContain("Job disputed");
-    // The trigger's newest restatement (20261108214605, owner #4; verbatim from 20261108201000).
-    const trg = blankSqlComments(readFileSync("supabase/migrations/20261108214605_continue_day_missed_return.sql", "utf8"));
-    expect(trg).toMatch(/CREATE TRIGGER trg_email_jobs_notice[\s\S]*?NOT LIKE '\/admin%'/);
+    // The trigger's newest restatement, wherever it sits.
+    expect(newestTriggerText("supabase/migrations", "trg_email_jobs_notice")).toMatch(/NOT LIKE '\/admin%'/);
   });
 });
 

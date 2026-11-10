@@ -9,7 +9,7 @@
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |       ELSIF v_line.source = 'buy' THEN |       ELSIF false THEN
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |     ELSIF r.source = 'buy' THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', 'Check out within 24 hours', |     ELSIF false THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', 'Check out within 24 hours',
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |     ELSIF r.source = 'buy' THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', '2 hours left to check out', |     ELSIF false THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', '2 hours left to check out',
- * @mutate supabase/migrations/20261108202546_declutter_notices_email_and_honest_sold.sql |   ELSIF p_source = 'buy' THEN |   ELSIF false THEN
+ * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |   ELSIF p_source = 'buy' THEN |   ELSIF false THEN
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |          CASE WHEN c.swap_id IS NOT NULL THEN 'swap' ELSE c.source END  -- DB-5; | NULL::text  -- DB-5;
  * @mutate src/components/declutter/DeclutterReserveSheet.tsx | If you don't, it goes back up for sale. No strike.` | If you don't, you get a strike.`
  */

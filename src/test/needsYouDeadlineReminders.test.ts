@@ -70,8 +70,8 @@ describe("needs-you deadline reminders (A3-85)", () => {
     expect(quiet).toContain("< time '08:00'");
   });
 
-  // @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |     WHEN p_type = 'payment' AND p_title IN ('Check out within 24 hours', '2 hours left to check out') THEN 'needs_you' |     WHEN p_type = 'payment' AND p_title IN ('Check out within 24 hours') THEN 'needs_you'
-  // @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |     WHEN p_type IN ('warning', 'work_status') AND p_title = 'Please review the work' THEN 'needs_you' |     WHEN p_type IN ('warning', 'work_status') AND p_title = 'Please review the work' THEN 'job_update'
+  // @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |     WHEN p_type = 'payment' AND p_title IN ('Check out within 24 hours', '2 hours left to check out') THEN 'needs_you' |     WHEN p_type = 'payment' AND p_title IN ('Check out within 24 hours') THEN 'needs_you'
+  // @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |     WHEN p_type IN ('warning', 'work_status') AND p_title = 'Please review the work' THEN 'needs_you' |     WHEN p_type IN ('warning', 'work_status') AND p_title = 'Please review the work' THEN 'job_update'
   // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |                      'declutter_offers', 'declutter_refunds', 'declutter_pickups')) |                      'declutter_refunds', 'declutter_pickups'))
   // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql |       OR (r.kind = 'needs_you' AND n.created_at < v_now - interval '1 hour') |       OR false
   it("every needs-you notice is texted as 'needs_you', the trigger wakes for its types, and a late text is dropped", () => {

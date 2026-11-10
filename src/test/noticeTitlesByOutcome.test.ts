@@ -7,7 +7,7 @@
  * Reads the NEWEST definition of each function (effectiveDefs), comments blanked.
  *
  * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql | PERFORM public.declutter_notify(o.buyer_id, 'payment', 'We reviewed your delivery problem', | PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Louisiana Helpr decided',
- * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql | 'Sale is final', 'The free handover stands', 'Free pickup cancelled by our team', | 'The free handover stands', 'Free pickup cancelled by our team',
+ * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql | 'Sale is final', 'The free handover stands', 'Free pickup cancelled by our team', | 'The free handover stands', 'Free pickup cancelled by our team',
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";

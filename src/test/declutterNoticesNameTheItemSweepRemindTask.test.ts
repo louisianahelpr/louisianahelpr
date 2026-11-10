@@ -23,7 +23,7 @@
  * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |            public.declutter_order_items_named(o.id)),\n    '/declutter?tab=selling', v_uid); |            public.declutter_order_items_named(o.id)),\n    '/declutter?tab=selling', NULL);
  * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql |   o := public.declutter_lock_order(v_order);\n  IF v_uid IN (o.buyer_id, o.seller_id) THEN\n    -- Another admin decides | \n  SELECT * INTO o FROM public.declutter_orders WHERE id = v_order;\n  IF v_uid IN (o.buyer_id, o.seller_id) THEN\n    -- Another admin decides
  * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql | '/declutter?tab=buying', o.seller_id);  -- AUD31-34 | '/declutter?tab=buying', NULL);  -- AUD31-34
- * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql |     WHEN p_type IN ('payment', 'financial_alerts') THEN 'declutter_sales' |     WHEN p_type IN ('financial_alerts') THEN 'declutter_sales'
+ * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |     WHEN p_type IN ('payment', 'financial_alerts') THEN 'declutter_sales' |     WHEN p_type IN ('financial_alerts') THEN 'declutter_sales'
  */
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";

@@ -965,7 +965,7 @@ BEGIN
       INSERT INTO public.notifications (user_id, title, message, type, link)
       VALUES (
         _customer,
-        'Revision deadline passed — dispute opened',
+        'Revision deadline passed: dispute opened',
         'The revision you requested on "' || COALESCE(_title, 'a job') ||
           '" was not delivered before the deadline, so we opened a dispute for you. ' ||
           'The payment stays on hold and an admin will decide it — add your side.',
@@ -977,7 +977,7 @@ BEGIN
       INSERT INTO public.notifications (user_id, title, message, type, link)
       VALUES (
         _helper,
-        'Revision deadline passed — dispute opened',
+        'Revision deadline passed: dispute opened',
         'The revision requested on "' || COALESCE(_title, 'a job') ||
           '" was not delivered before the deadline, so a dispute was opened automatically. ' ||
           'An admin will decide the payment — add your side.',

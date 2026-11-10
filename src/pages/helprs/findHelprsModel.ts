@@ -35,7 +35,8 @@ export function directoryCardFacts(h: DirectoryHelpr, s: DirectoryStats | undefi
     name: h.full_name?.trim() || "A neighbor",
     place: h.town?.trim() || parish,
     rating: reviews > 0 && avg !== null && Number.isFinite(avg) ? `${avg.toFixed(1)} (${reviews} ${reviews === 1 ? "review" : "reviews"})` : "New",
-    jobsDone: `${done} ${done === 1 ? "job" : "jobs"} done`,
+    // L016 (landing audit 11-09): 28 of 30 cards read "New · 0 jobs done". Zero says nothing "New" did not; it is left out.
+    jobsDone: done > 0 ? `${done} ${done === 1 ? "job" : "jobs"} done` : null,
     skills: skills.slice(0, SHOWN_SKILLS),
     moreSkills: Math.max(0, skills.length - SHOWN_SKILLS),
   };

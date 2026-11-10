@@ -99,7 +99,7 @@ describe("the landing lets a guest browse Declutter (owner 11-04)", () => {
     // Owner 11-09 (10:55 PM): popular items first, one call (declutter_popular_items); the newest-first read above is
     // only the fallback while the function is not deployed yet (PGRST202).
     expect(src).toMatch(/supabase\.rpc\("declutter_popular_items", \{ p_limit: FRESH_DECLUTTER_LIMIT \}\)/);
-    expect(src).toMatch(/popular\.error\.code === "PGRST202"/);
+    expect(src).toMatch(/isMissingRpcNamed\(popular\.error, "declutter_popular_items"\)/);
     expect(src).toMatch(/unwrap\(/);
     // A failed read says so (not silent); an empty one draws nothing.
     expect(src).toMatch(/state\.kind === "failed" && <FreshDeclutterFailed \/>/);

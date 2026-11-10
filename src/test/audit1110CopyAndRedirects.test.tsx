@@ -25,10 +25,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { toast } from "sonner";
 import { blankComments } from "./helpers/blankNonCode";
 
-const toastError = vi.fn();
-vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/connectivity", () => ({ isConfirmedOffline: () => true }));
 vi.mock("@/lib/nativeInit", () => ({ isNativePlatform: false }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, isReady: true }) }));
@@ -82,6 +82,7 @@ describe("audit 11-10: the 404 page (F419, F257)", () => {
 
 describe("audit 11-10: the chat's offline toast says the message is kept (F473)", () => {
   it("requireOnline shows the caller's words; the default is unchanged", () => {
+    const toastError = vi.mocked(toast.error);
     toastError.mockClear();
     expect(requireOnline(OFFLINE_MESSAGE_KEPT)).toBe(false);
     expect(toastError).toHaveBeenLastCalledWith("You're offline. Your message is kept. Tap send when you're back.");

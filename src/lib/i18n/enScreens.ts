@@ -176,6 +176,7 @@ export const enScreens = {
 
   // Finish your profile (CompleteProfile, the gate after sign-up)
   "profileGate.pageTitle": "Complete your profile — Helpr",
+  "profileGate.alreadyComplete": "Your profile is already complete.",
   "profileGate.zipMismatch": "That ZIP usually maps to {zipParish} Parish, not where {city} is ({cityParish} Parish) — double check it.",
   "profileGate.fileType": "{label} — that file type isn't supported.",
   "profileGate.fileSize": "{label} is over 5 MB — try a smaller file.",

@@ -317,6 +317,13 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       const withLeaveCase = withLeaveSeries([lead, ...extras, ...dayExtras], canLeave, leaveAction);
       return { row: <JobPageActionRow tag="helpr" lead={seeCase} leadIsStep extras={withLeaveCase.extras} menuHost={menuHost} />, leaveInMenu: withLeaveCase.inMenu };
     }
+    // Audit 11-10 W2 F291: on a cancelled job the hired Helpr's one big button was "Message <poster>". The job is over
+    // for them, so the row leads with a way to other work ("Find another job", Browse) and Message sits beside it.
+    if (job.status === "cancelled") {
+      const findAnother: RowAction = { key: "find-another", label: "Find another job", go: () => navigate("/browse") };
+      const withLeaveGone = withLeaveSeries([...(faceIs === "step" ? [] : [lead]), ...extras, ...dayExtras], canLeave, leaveAction);
+      return { row: <JobPageActionRow tag="helpr" lead={findAnother} extras={withLeaveGone.extras} menuHost={menuHost} />, leaveInMenu: withLeaveGone.inMenu };
+    }
     const withLeave = withLeaveSeries([...extras, ...dayExtras], canLeave, leaveAction);
     return { row: <JobPageActionRow tag="helpr" lead={lead} leadIsStep={faceIs === "step"} extras={withLeave.extras} menuHost={menuHost} />, leaveInMenu: withLeave.inMenu };
   })();

@@ -30,16 +30,19 @@ export type ContinueDay = {
 };
 
 const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+const MONTH = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
 
-/** "Thu 11/5 at 9 AM" / "Thu 11/5 at 1:30 PM": the server's continue_day_label, the same words in every notice. */
+/** "Thu, Nov 5 at 9:00 AM" / "Thu, Nov 5 at 1:30 PM": the server's continue_day_label, the same words in every notice. */
 export function continueDayLabel(date: string, time: string): string {
+  // F175 (owner UI audit 11-09, lead: change the server label and this mirror together): the house date style every
+  // other message uses, "Wed, Nov 11 at 9:00 AM" (it read "Wed 11/11 at 9 AM"). Kept identical to continue_day_label
+  // (20261109224343): src/test/continueDayLabelParity.test.ts.
   const [y, m, d] = date.split("-").map(Number);
   const [hh, mm] = time.split(":").map(Number);
   if (!y || !m || !d || Number.isNaN(hh)) return "";
   const weekday = WEEKDAY[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
   const h12 = hh % 12 === 0 ? 12 : hh % 12;
-  const clock = mm ? `${h12}:${String(mm).padStart(2, "0")}` : `${h12}`;
-  return `${weekday} ${m}/${d} at ${clock} ${hh < 12 ? "AM" : "PM"}`;
+  return `${weekday}, ${MONTH[m - 1]} ${d} at ${h12}:${String(mm || 0).padStart(2, "0")} ${hh < 12 ? "AM" : "PM"}`;
 }
 
 /**
@@ -153,9 +156,9 @@ export function continueDayOwesAfterPhoto(
 export const CONTINUE_DAY_PHOTO_NOTE = "Add an after photo from today, then mark it done. Your earlier photos stay on the job.";
 
 /**
- * The job page's first line on a SET day: "Continuing Thu 11/5 at 9 AM" (null: day 1's line stands), the owner's own
+ * The job page's first line on a SET day: "Continuing Thu, Nov 5 at 9:00 AM" (null: day 1's line stands), the owner's own
  * words (11-01 5:05 PM) and the same label as the tracker line under it. Q2680 (audit 1102e row 17): it read
- * "Continuing Thu, Nov 5 · 9:00 AM" over a line saying "Thu 11/5 at 9 AM", two formats on one screen.
+ * "Continuing Thu, Nov 5 · 9:00 AM" over a line saying "Thu, Nov 5 at 9:00 AM", two formats on one screen.
  */
 export function continueDayHeader(row: ContinueDay | null | undefined): string | null {
   if (!row || row.status !== "set" || !row.new_date) return null;

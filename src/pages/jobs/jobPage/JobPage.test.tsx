@@ -1980,14 +1980,14 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     expect(await screen.findByRole("dialog", { name: "Set a day to finish" })).toBeTruthy();
   });
 
-  it("a set day: both sides read 'Continuing Thu 11/5 at 9 AM', the poster waiting on the Helpr by name", async () => {
+  it("a set day: both sides read 'Continuing Thu, Nov 5 at 9:00 AM', the poster waiting on the Helpr by name", async () => {
     continueState.row = setRow();
     state.job = underWay();
     state.party = true;
     renderPage();
     // The When row reads the next visit (Q2680), not day 1.
-    await waitFor(() => expect(document.querySelector("[data-job-meta]")?.textContent).toBe("Continuing Thu 11/5 at 9 AM"));
-    expect(document.querySelector("[data-next-step]")?.textContent).toBe("Continuing Thu 11/5 at 9 AM · waiting on Rhonda to confirm");
+    await waitFor(() => expect(document.querySelector("[data-job-meta]")?.textContent).toBe("Continuing Thu, Nov 5 at 9:00 AM"));
+    expect(document.querySelector("[data-next-step]")?.textContent).toBe("Continuing Thu, Nov 5 at 9:00 AM · waiting on Rhonda to confirm");
   });
 
   it("a Helpr's ask: 'Confirm new day' leads on the right (one tap) over Approve", async () => {
@@ -2176,7 +2176,7 @@ describe("job page: a day set to finish, still ahead (Auditor 11, 11-01)", () =>
     const names = barNames(document.querySelector('[data-job-row="helpr"]') as HTMLElement);
     expect(names).not.toContain("Mark it done");
     expect(names[names.length - 1]).toBe("Message Rhonda");
-    expect(screen.getByText(/You can mark it done on \w{3} \d+\/\d+, the day you set to finish\./)).toBeTruthy();
+    expect(screen.getByText(/You can mark it done on \w{3}, \w{3} \d+, the day you set to finish\./)).toBeTruthy();
   });
 
   it("the poster: [Change day | Message], no SOS, and the header reads the continue day", async () => {
@@ -2190,9 +2190,10 @@ describe("job page: a day set to finish, still ahead (Auditor 11, 11-01)", () =>
     const names = barNames(document.querySelector('[data-job-row="poster"]') as HTMLElement);
     expect(names).toEqual(["Change day", "Message Rhonda"]);
     expect(screen.queryByRole("button", { name: "Set a different day" })).toBeNull();
-    // Q2680: the header and the line under it use ONE format, the owner's "Thu 11/5 at 9 AM".
-    const [, m, d] = ahead.split("-").map(Number);
-    const when = `${formatJobDate(ahead).slice(0, 3)} ${m}/${d} at 9 AM`;
+    // Q2680: the header and the line under it use ONE format, the owner's "Thu, Nov 5 at 9:00 AM".
+    const [y, m, d] = ahead.split("-").map(Number);
+    const mon = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+    const when = `${formatJobDate(ahead).slice(0, 3)}, ${mon} ${d} at 9:00 AM`;
     expect(document.querySelector("[data-job-meta]")?.textContent).toMatch(new RegExp(`^Continuing ${when}`));
     expect(document.querySelector("[data-next-step]")?.textContent).toBe(`Rhonda confirmed ${when}`);
   });

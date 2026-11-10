@@ -32,7 +32,7 @@ describe("a change that could not be applied says why", () => {
     expect(expiredMessage("expired:job_started")).toMatch(/original start arrived/);
     expect(expiredMessage("expired:job_changed")).toMatch(/job changed/);
     // Board 141 (Q2326): a come-back offer answered after it lapsed.
-    expect(expiredMessage("expired:come_back_lapsed")).toMatch(/real person at Helpr will decide the refund/);
+    expect(expiredMessage("expired:come_back_lapsed")).toMatch(/our team will decide the refund/);
     for (const r of ["new_time_passed", "job_started", "job_changed", "come_back_lapsed"]) expect(expiredMessage(`expired:${r}`)).toMatch(/told/);
   });
 

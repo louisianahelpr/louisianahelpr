@@ -31,7 +31,7 @@ import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
  * price (owner: "the whole point is for the poster to say their price, not for
  * a Helpr to set their rate"). So this page shows no rate of any kind.
  *
- * Who is listed is the server's decision (public.find_helprs: signed in only,
+ * Who is listed is the server's decision (public.find_helprs: guests may look (F071),
  * members who show skills, first name + last initial, never blocked, banned,
  * under-18 or test accounts). Ratings and jobs done come from the same
  * get_public_profile_stats the profile page reads, so the two never disagree.

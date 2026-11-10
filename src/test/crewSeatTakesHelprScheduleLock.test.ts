@@ -45,7 +45,7 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 // @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |   EXCEPTION WHEN deadlock_detected THEN |   EXCEPTION WHEN unique_violation THEN
 // @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql | 'pending_count', (SELECT count(*) | 'pending_total', (SELECT count(*)
 // @mutate supabase/migrations/20261103032330_series_claim_takes_helpr_schedule_lock.sql | PERFORM pg_advisory_xact_lock(hashtext('helpr_schedule:' \|\| v_uid::text)); | PERFORM 1;
-// @mutate supabase/migrations/20261021102943_refund_requests.sql |       IF v_job.helper_id IS NOT NULL THEN\n        PERFORM pg_advisory_xact_lock | IF true THEN\n        PERFORM pg_advisory_xact_lock
+// @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |       IF v_job.helper_id IS NOT NULL THEN\n        PERFORM pg_advisory_xact_lock | IF true THEN\n        PERFORM pg_advisory_xact_lock
 
 const MIGRATIONS = resolve(__dirname, "../../supabase/migrations");
 const EFFECTIVE = effectiveDefs(MIGRATIONS);

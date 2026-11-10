@@ -281,7 +281,7 @@ describe("/help dispute answer matches the cards (VN-28)", () => {
 // @mutate src/pages/info/HelpCenter.tsx | const open = searching \|\| manualOpen \|\| (targeted && !dismissed); | const open = searching \|\| manualOpen;
 
 // Q2259 S8: the shipping answers show only where declutter_shipping is on; elsewhere "Shipping isn't offered." stays.
-// @mutate src/pages/info/HelpCenter.tsx | const allSections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS; | const allSections = FAQ_SECTIONS;
+// @mutate src/pages/info/HelpCenter.tsx | const allSections = withSetupFeeAmount(shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS, setupFeeLabel); | const allSections = withSetupFeeAmount(FAQ_SECTIONS, setupFeeLabel);
 describe("/help Declutter shipping answers follow the switch", () => {
   const open = async () => {
     window.history.replaceState({}, "", "/help#faq-declutter");

@@ -4,7 +4,7 @@
  * starts with it filled in; a direct visit still starts empty.
  *
  * @mutate src/pages/auth/ForgotPassword.tsx | useState(typeof carried === "string" ? carried : "") | useState("")
- * @mutate src/pages/auth/Login.tsx | state={{ email: email.trim() }} | state={{}}
+ * @mutate src/pages/auth/Login.tsx | to="/forgot-password"\n              state={{ email: email.trim() }} | to="/forgot-password"\n              state={{}}
  */
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";

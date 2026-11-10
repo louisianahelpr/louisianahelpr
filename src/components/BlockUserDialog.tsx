@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,9 @@ import { blockUser } from "@/lib/userBlocks";
 // charged, so it is read, never restated.
 import { computeCancellationFee } from "../../supabase/functions/_shared/cancellationFee";
 import { formatPriceExact } from "@/lib/format";
+
+/** Who the sheet is about. `muteInstead` is set where a thread exists to mute (the chat), see F428. */
+export type BlockTarget = { id: string; name: string; muteInstead?: () => void };
 
 interface BlockUserDialogProps {
   open: boolean;
@@ -41,6 +45,8 @@ interface BlockUserDialogProps {
    *  that protects them from it. Receives no args; the parent owns the
    *  Report dialog open state and routes it through this hook. */
   onReportAndBlock?: () => void;
+  /** F428: "Mute instead", the first button in the sheet. Closes the sheet, then opens the mute picker. */
+  onMuteInstead?: () => void;
 }
 
 export function BlockUserDialog({
@@ -50,6 +56,7 @@ export function BlockUserDialog({
   blockedUserName,
   onBlocked,
   onReportAndBlock,
+  onMuteInstead,
 }: BlockUserDialogProps) {
   const [reason, setReason] = useState("");
   // Q2682 (audit 1102e row 35): reporting is a choice in the body, not a third footer button. "Just block" sat beside
@@ -169,29 +176,51 @@ export function BlockUserDialog({
                 <li>They can&apos;t apply to your jobs, offer you a job, or message you.</li>
                 <li>They won&apos;t be notified that you blocked them.</li>
                 {activeJobCount !== null && activeJobCount > 0 && (
-                  // Plain words, not a red paragraph; only the money is rust (audit #51).
-                  <li className="not-italic font-sans font-medium text-foreground">
-                    {activeJobCount} active job{activeJobCount === 1 ? "" : "s"} between you will be cancelled{jobTitles.length > 0 ? `: ${jobTitles.map((t) => `"${t}"`).join(", ")}` : ""}.{" "}
+                  // F428 (whole-app audit 2026-11-10): one short bullet per fact, never a 90-word run-on next to the
+                  // red Block button. Plain words, not a red paragraph; only the money is rust (audit #51).
+                  <>
+                    <li className="not-italic font-sans font-medium text-foreground">
+                      Blocking {blockedUserName} also cancels {activeJobCount} job{activeJobCount === 1 ? "" : "s"}{jobTitles.length > 0 ? ":" : "."}
+                      {jobTitles.length > 0 && (
+                        <ul className="list-[circle] pl-5 font-normal" aria-label="Jobs that will be cancelled">
+                          {jobTitles.map((t, i) => <li key={i}>&ldquo;{t}&rdquo;</li>)}
+                        </ul>
+                      )}
+                    </li>
                     {/* Q2675 + Q2676 (lead 11-02, migration 20261102131745): the server's rules, said as they are. A
                         poster's block is a strike only inside 24 hours of the start (with an amount for the Helpr's
                         time); a hired Helpr's block costs the poster nothing and is the Helpr's strike only inside
-                        24 hours, exactly like cancelling. */}
+                        24 hours, exactly like cancelling. "The Helpr's time", never "your Helpr's" (F428). */}
                     {isPosterOnAny && (estimatedFee > 0 ? (
                       <>
-                        It starts within 24 hours, so about{" "}
-                        <span className="tabular-nums" style={{ color: "hsl(var(--sienna-ink))" }}>${formatPriceExact(estimatedFee)}</span> is for your Helpr&rsquo;s time,
-                        most of the rest of your payment comes back to you, and it counts as a strike.
+                        <li className="not-italic font-sans font-medium text-foreground">
+                          You will pay about{" "}
+                          <span className="tabular-nums" style={{ color: "hsl(var(--sienna-ink))" }}>${formatPriceExact(estimatedFee)}</span> for the Helpr&rsquo;s time (it starts within 24 hours).
+                        </li>
+                        <li>You get most of the rest back.</li>
+                        <li className="not-italic font-sans font-medium text-foreground">This counts as a strike against you.</li>
                       </>
                     ) : (
-                      <>Nothing is kept for your Helpr&rsquo;s time, most of your payment comes back to you, and it isn&rsquo;t a strike.</>
+                      <>
+                        <li>Nothing is kept for the Helpr&rsquo;s time; you get most of your payment back.</li>
+                        <li>This isn&rsquo;t a strike.</li>
+                      </>
                     ))}
                     {isHelprOnAny && (
-                      <>{isPosterOnAny ? " " : ""}For a job you were hired for, it counts as a strike if it starts within 24 hours, the same as cancelling.</>
+                      <li>For a job you were hired for, it counts as a strike if it starts within 24 hours, the same as cancelling.</li>
                     )}
-                  </li>
+                  </>
                 )}
                 </ul>
               </DialogBody>
+              {/* F428: the quiet way out comes first. A person who only wants silence should never have to read past
+                  the red Block to find it. Shown only where a thread exists to mute (the chat; not a profile). */}
+              {onMuteInstead && (
+                <Button type="button" variant="outline" size="sm" className="w-full" disabled={submitting}
+                  onClick={() => { onClose(); onMuteInstead(); }}>
+                  Mute instead
+                </Button>
+              )}
               <div className="space-y-1.5">
                 <label className="text-ds-13 font-sans font-medium text-muted-foreground block">
                   Reason (optional, only our team sees it)

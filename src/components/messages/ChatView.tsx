@@ -14,6 +14,7 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { MessageActionSheet } from "./MessageActionSheet";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { MuteSheet } from "./MuteSheet";
+import type { BlockTarget } from "@/components/BlockUserDialog";
 import { ChatHeader } from "./ChatHeader";
 import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import type { Conversation, Message } from "./types";
@@ -88,7 +89,7 @@ interface ChatViewProps {
   chatContainerRef: Ref<HTMLDivElement>;
   bottomRef: Ref<HTMLDivElement>;
   setReportTarget: Dispatch<SetStateAction<{ type: "message" | "user"; id: string } | null>>;
-  setBlockTarget: Dispatch<SetStateAction<{ id: string; name: string } | null>>;
+  setBlockTarget: Dispatch<SetStateAction<BlockTarget | null>>;
   setDeleteMessageConfirm: Dispatch<SetStateAction<string | null>>;
   /** Persist an edit to a sent message's content. Mirrors the sender-only,
    *  15-minute-window RLS policy — see
@@ -361,10 +362,9 @@ export function ChatView({
           onBack={() => { setDraft(""); setLightboxPhoto(null); onCloseThread(); }}
           onOpenMuteSheet={() => setMuteSheetOpen(true)}
           onToggleMute={onToggleMute}
-          // Q262: ChatHeader offers none of these for a deleted-account thread
-          // (otherUserId null); the guards keep a null out of the targets.
+          // Q262: ChatHeader offers none of these for a deleted-account thread (otherUserId null); the guards keep a null out.
           onReportUser={() => { if (otherUserId !== null) setReportTarget({ type: "user", id: otherUserId }); }}
-          onBlockUser={() => { if (otherUserId !== null) setBlockTarget({ id: otherUserId, name: activeConvo.otherUserName }); }}
+          onBlockUser={() => { if (otherUserId !== null) setBlockTarget({ id: otherUserId, name: activeConvo.otherUserName, muteInstead: () => setMuteSheetOpen(true) }); }}
           onViewProfile={() => { if (otherUserId !== null) navigate(memberProfilePath(otherUserId)); }}
         />
       }
@@ -547,7 +547,7 @@ export function ChatView({
         mine={actionMessage?.sender_id === userId}
         onClose={() => setActionMessage(null)}
         onReport={isTeam ? undefined : (id) => setReportTarget({ type: "message", id })}
-        onBlock={isTeam ? undefined : () => { if (otherUserId !== null) setBlockTarget({ id: otherUserId, name: activeConvo.otherUserName }); }}
+        onBlock={isTeam ? undefined : () => { if (otherUserId !== null) setBlockTarget({ id: otherUserId, name: activeConvo.otherUserName, muteInstead: () => setMuteSheetOpen(true) }); }}
         onDelete={setDeleteMessageConfirm}
         onEdit={(m) => { setEditDraft(m.content); setEditingMessage(m); }}
         onReact={isTeam ? undefined : react}

@@ -126,7 +126,8 @@ function OfferRow({ o, linked = false }: { o: MyOffer; linked?: boolean }) {
       <div className="flex items-start justify-between gap-3 min-w-0">
         <div className="min-w-0">
           {wantedReply && <p className="text-ds-12 font-semibold text-[hsl(var(--sage-ink))]" data-wanted-reply="">Reply to your Wanted</p>}
-          <Link to={`/declutter/item/${o.item_id}`} className="text-ds-15 font-semibold truncate block" title={o.item_title}>{o.item_title}</Link>
+          {/* Audit 1110 F408: an offer title wraps to two lines instead of an ellipsis at 375 / Bigger text. */}
+          <Link to={`/declutter/item/${o.item_id}`} className="line-clamp-2 break-words block text-ds-15 font-semibold leading-snug" title={o.item_title}>{o.item_title}</Link>
           <p className="text-ds-13 text-muted-foreground">Price now {formatPrice(o.current_price_cents)}</p>
         </div>
         <div className="shrink-0 text-right">

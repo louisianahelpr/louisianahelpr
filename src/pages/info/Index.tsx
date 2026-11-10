@@ -20,10 +20,6 @@ import { SectionsShowcase, TrustAndJoin } from "@/components/landing/SectionsSho
 
 const SITE_URL = "https://www.louisianahelpr.com";
 
-const louisianaCities = [
-  "New Orleans", "Baton Rouge", "Shreveport", "Lafayette", "Lake Charles",
-  "Kenner", "Bossier City", "Monroe", "Alexandria", "Houma",
-];
 
 // LocalBusiness + Organization schema is served statically from
 // index.html so non-JS crawlers see it — see that file's <head>.
@@ -40,7 +36,7 @@ const webAppSchema = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
   name: "Louisiana Helpr",
-  description: "Connect with trusted neighbors in Louisiana for everyday jobs — cleaning, yard work, moving, errands & more.",
+  description: "Hire Louisiana neighbors for everyday jobs, find work nearby, or buy and sell used items on Declutter. One account.",
   url: SITE_URL,
   applicationCategory: "Marketplace",
   operatingSystem: "Web",
@@ -57,7 +53,7 @@ const faqSchema = {
       name: "What is Helpr?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Helpr is Louisiana's trusted marketplace that connects you with local neighbors for everyday jobs like cleaning, yard work, moving, errands, and handyman jobs.",
+        text: "Helpr is Louisiana's local marketplace: hire neighbors for everyday jobs like yard work, moving and errands, find work nearby, or buy and sell used items on Declutter, all with one account.",
       },
     },
     {
@@ -65,7 +61,7 @@ const faqSchema = {
       name: "Where does Helpr operate?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: `Helpr currently serves communities across Louisiana, including ${louisianaCities.slice(0, 5).join(", ")}, and more.`,
+        text: "Helpr is open across Louisiana and busiest today in New Iberia and the towns around it.",
       },
     },
     {
@@ -73,7 +69,7 @@ const faqSchema = {
       name: "How much does it cost to use Helpr?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Signing up and browsing Helpr is free. You only pay when you hire a Helpr, and pricing is set per job.",
+        text: "Browsing Helpr is free. You pay when you hire a Helpr or buy an item, and you see the full price before you pay.",
       },
     },
   ],
@@ -93,7 +89,7 @@ const Index = () => {
   usePageMeta({
     ...LANDING_PAGE_META,
     keywords:
-      "Louisiana helprs, local help, cleaning services Louisiana, yard work New Orleans, moving help Baton Rouge, errands Shreveport, handyman Lafayette, job marketplace, trusted neighbors, home services Louisiana",
+      "Louisiana Helprs, local jobs, Declutter, buy and sell used items, garage sale, yard work, moving help, errands, handyman, New Iberia, Delcambre, Acadiana",
     geoRegion: "US-LA",
     geoPlacename: "Louisiana",
   });

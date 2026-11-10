@@ -67,6 +67,19 @@ const FEE_WORDS = /fee|%|platform|card-processing|card processing|commission/i;
 const shown = () => (document.body.textContent ?? "").replace(/one-time \$[\d.]+ account setup fee/g, "");
 
 describe("CancellationDialog shows amounts, never fees", () => {
+  // Audit 11-10 W2 F269: with a Helpr hired the policy drew a lone step "2" (step 1 is not drawn, Q2674), so it read as
+  // a list missing its other steps. The number is drawn only beside step 1; before a hire both numbers show.
+  // @mutate src/components/CancellationDialog.tsx | {!hasHelper && <div data-cancel-step-number="2" | {true && <div data-cancel-step-number="2"
+  it("F269: no lone step number once a Helpr is hired; both numbers before a hire", () => {
+    pinEvening();
+    const { unmount } = render(<CancellationDialog {...makeProps({ jobDate: isoDateHoursFromNow(6) })} />);
+    expect(document.querySelectorAll("[data-cancel-step-number]")).toHaveLength(0);
+    expect(shown()).toContain("After a Helpr is selected");
+    unmount();
+    render(<CancellationDialog {...makeProps({ hasHelper: false, jobDate: isoDateHoursFromNow(72) })} />);
+    expect([...document.querySelectorAll("[data-cancel-step-number]")].map((el) => el.textContent)).toEqual(["1", "2"]);
+  });
+
   it("a late cancel: ONE money box for the Helpr's time and the strike, what comes back said once (Q2674)", () => {
     pinEvening();
     render(<CancellationDialog {...makeProps({ jobDate: isoDateHoursFromNow(6) })} />);

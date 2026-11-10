@@ -129,6 +129,18 @@ function when(ms: number): string {
   return new Date(ms).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
 }
 
+/**
+ * "Mon, Nov 9 at 12:28 PM": the house date style (continueDayLabel) for a stamp that may be days or weeks old. The
+ * finished line reads long after the fact, where a bare weekday ("Finished Mon 12:28 PM") no longer says which Monday
+ * (audit 11-10 W2 F275); every other line on the page already carries the date.
+ */
+function whenDated(ms: number): string {
+  const d = new Date(ms);
+  const day = d.toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
+  const clock = d.toLocaleString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
+  return `${day} at ${clock}`;
+}
+
 /** The job's slot in Louisiana time: "Thu 9:00 AM", or the weekday alone when it has no start time. */
 export function slotLabel(dateNeeded: string | null | undefined, startTime: string | null | undefined): string {
   if (!dateNeeded) return "";
@@ -412,7 +424,7 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   // JA-11 (audit 11-01): a finished job's tracker says when it finished, never a blank line under eight full steps.
   if (status === "completed" || job.poster_completed_at) {
     const doneMs = Date.parse(job.poster_completed_at ?? job.completed_at ?? job.helper_completed_at ?? "");
-    return at(8, false, "Done", Number.isNaN(doneMs) ? "Finished" : `Finished ${when(doneMs)}`, held);
+    return at(8, false, "Done", Number.isNaN(doneMs) ? "Finished" : `Finished ${whenDated(doneMs)}`, held);
   }
   if (!LIVE.has(status) || !someoneHired(job)) return at(null, false, "", "", held);
 

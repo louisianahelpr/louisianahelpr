@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-10T18:11Z",
+  "measured_at": "2026-11-10T18:45Z",
   "issues": {
     "readable": true,
     "open": [
@@ -82,18 +82,6 @@
         "runTruncated": false
       },
       {
-        "number": 3823,
-        "title": "🔴 1 scheduled workflow(s) have stopped running",
-        "label": "schedule-stalled"
-      },
-      {
-        "number": 3824,
-        "title": "nightly-red: schedule-heartbeat",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42702738300",
-        "runTruncated": false
-      },
-      {
         "number": 4149,
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
@@ -139,7 +127,7 @@
         "number": 4281,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42871965913",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42874802388",
         "runTruncated": false
       },
       {
@@ -591,7 +579,6 @@
     "issue #3784": "Q1816",
     "issue #3813": "Q1816",
     "issue #3823": "Q2498",
-    "issue #3824": "Q1816",
     "issue #4149": "Q1816",
     "issue #4222": "Q1816",
     "issue #4245": "Q1816",

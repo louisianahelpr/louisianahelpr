@@ -28,7 +28,7 @@ export interface OrderTalkInbox {
   /** True until the first answer is in: the list holds its empty state until then (D2-1). */
   pending: boolean;
   error: unknown;
-  retry: () => void;
+  reload: () => void;
 }
 
 /**

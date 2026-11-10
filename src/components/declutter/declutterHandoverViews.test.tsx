@@ -304,13 +304,14 @@ describe("Q2425: a safe-spot meetup order", () => {
   for (const [handover, words] of [["meetup", "meeting"], ["pickup_home", "pickup"]] as const) {
     it(`DB-3: the buyer's I got it waits until an hour before the ${words} time (${handover})`, async () => {
       for (const [minsAgo, shown] of [[-180, false], [-61, false], [-59, true], [10, true]] as const) {
-        state.bookings = [slot(minsAgo)];
+        const booked = slot(minsAgo);
+        state.bookings = [booked];
         const { unmount } = show([line({ handover })]);
         if (shown) {
           expect(await screen.findByRole("button", { name: "I got it" })).toBeInTheDocument();
         } else {
           // Audit 11-10 F384: the waiting line names the clock time the button appears (an hour before the slot).
-          const opens = orderWhen(new Date(new Date(state.bookings[0].slot_start).getTime() - 3_600_000).toISOString());
+          const opens = orderWhen(new Date(new Date(booked.slot_start).getTime() - 3_600_000).toISOString());
           expect(await screen.findByText(`The "I got it" button appears ${opens}, an hour before the ${words} time.`)).toBeInTheDocument();
           expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
         }

@@ -87,7 +87,7 @@ const row = (o: Partial<OrderTalkListRow>): OrderTalkListRow => ({
   order_id: A, side: "buyer", title: "Brass lamp", last_at: at(9), last_mine: false, open: true, ...o,
 });
 const talks = (rows: OrderTalkListRow[], more: Partial<OrderTalkInbox> = {}): OrderTalkInbox =>
-  ({ rows, pending: false, error: null, retry: vi.fn(), ...more });
+  ({ rows, pending: false, error: null, reload: vi.fn(), ...more });
 
 /** Two threads (10:00, 08:00) and two order chats (09:00, 07:00; the chair's order has ended). */
 const THREADS = [convo({ jobId: "ten", lastAt: at(10) }), convo({ jobId: "eight", lastAt: at(8) })];
@@ -230,7 +230,7 @@ describe("F420: order chats are inbox rows, mixed with the threads", () => {
 
   it("a failed order-chat read says so above the threads, with a retry; the threads still show", async () => {
     const retry = vi.fn();
-    show(THREADS, talks([], { error: new Error("boom"), retry }));
+    show(THREADS, talks([], { error: new Error("boom"), reload: retry }));
     expect(await screen.findByText("We couldn't load your order chats.")).toBeInTheDocument();
     expect(drawn()).toEqual(["thread:ten", "thread:eight"]);
     fireEvent.click(screen.getByRole("button", { name: /try again|retry/i }));

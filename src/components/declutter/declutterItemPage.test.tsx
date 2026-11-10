@@ -735,6 +735,10 @@ describe("the photo-first Declutter item page", () => {
     state.buys = 0;
     const first = open("?preview=buyer");
     await screen.findByText("This is what buyers see");
+    // The way back is a 44px outline button, not a 16px text link (audit 1110 F333).
+    const back = screen.getByRole("link", { name: "Back to your listing" });
+    expect(back.className).toMatch(/\bh-11\b/);
+    expect(back.className).not.toMatch(/\bunderline\b/);
     // The buyer's words and the buyer's actions.
     expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("Exact address after you pay");
     expect(await screen.findByText(/until it reaches a price the seller chose/)).toBeInTheDocument();

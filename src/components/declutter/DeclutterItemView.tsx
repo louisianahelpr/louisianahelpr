@@ -292,7 +292,10 @@ export default function ItemView({ itemId }: { itemId: string }) {
           {preview && (
             <div data-item-preview="">
               <DeclutterNotice title="This is what buyers see">
-                <Link to={`/declutter/item/${it.id}`} className="font-semibold underline underline-offset-2">Back to your listing</Link>
+                {/* A 44px button, not a 16px text link (audit 1110 F333). */}
+                <Button asChild variant="outline" size="sm" className="mt-1 rounded-full">
+                  <Link to={`/declutter/item/${it.id}`} data-preview-back="">Back to your listing</Link>
+                </Button>
                 {previewPressed && <p role="status" className="mt-1 font-semibold text-foreground" data-preview-note="">{PREVIEW_ACTION_NOTE}</p>}
               </DeclutterNotice>
             </div>

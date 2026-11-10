@@ -32,14 +32,15 @@ export function PushDeviceHint() {
       className="px-3 min-[360px]:px-4 py-2.5 font-sans text-ds-13 flex flex-wrap items-center gap-x-3 gap-y-2"
       style={{ color: "hsl(var(--ink-deep) / 0.8)", borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
     >
-      <p className="flex-1 min-w-[10rem]">Get alerts on your phone.</p>
+      {/* F454 (audit 11-10): the button says what you get, not the setting's name. */}
+      <p className="flex-1 min-w-[10rem]">Hear about messages and job updates as they happen.</p>
       {state === "on" ? (
         <p role="status" data-testid="push-device-hint-result" className="font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
           {PUSH_HINT_ON}
         </p>
       ) : (
         <Button variant="primary" size="sm" className="ml-auto" disabled={state === "asking"} onClick={() => { void turnOn(); }}>
-          Turn on app notifications
+          Get alerts on this phone
         </Button>
       )}
       {state === "blocked" && (

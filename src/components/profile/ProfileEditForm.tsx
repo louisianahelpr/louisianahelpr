@@ -357,7 +357,11 @@ export function ProfileEditForm({
         <div ref={skillsCardRef} data-skills-card className="rounded-2xl liquid-glass p-card space-y-3 scroll-mt-4">
           <div className="flex items-baseline justify-between gap-3">
             {/* Board 41: "I can help with" (the public profile reads it as "Helps with"). */}
-            <Label htmlFor="skills" className="text-ds-11 block">I can help with</Label>
+            <div>
+              <Label htmlFor="skills" className="text-ds-11 block">I can help with</Label>
+              {/* F458 (audit 11-10): a poster saw 30 chips with nothing saying they are for Helprs. */}
+              <p className="text-ds-11 text-muted-foreground" data-skills-hint="">Only if you want to work jobs.</p>
+            </div>
             {skillList.length > 0 && (
               <span className="text-ds-11 font-medium text-success inline-flex items-center gap-1">
                 <Check className="w-3 h-3" /> {skillList.length} listed

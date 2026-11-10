@@ -29,6 +29,28 @@ import { setNotFoundPathname } from "@/hooks/useAppShellViewport";
  * On NATIVE, PublicLayout renders AppShell instead of the marketing chrome
  * (no App Store footer inside the app), so the in-app 404 is unaffected.
  */
+/**
+ * F419 (audit 11-10): a dead /messages/<id> link (a removed conversation, an old notification) said only "Page not
+ * found"; it now says it was a conversation and the one button opens the inbox. Every other path keeps the general
+ * words. "Page not found" stays in the general title so e2e/errorScreens.ts's 404 pattern still sees the screen.
+ */
+export function notFoundCopy(pathname: string): { title: string; body: string; primary: string; primaryTo: string } {
+  if (/^\/messages\/[^/]+/.test(pathname)) {
+    return {
+      title: "We couldn't find that conversation",
+      body: "It may have been removed, or the link may be old.",
+      primary: "Go to my messages",
+      primaryTo: "/messages",
+    };
+  }
+  return {
+    title: "Page not found",
+    body: "This page doesn't exist or has moved. The link may be old.",
+    primary: "Go home",
+    primaryTo: "/",
+  };
+}
+
 const NotFound = () => {
   // The SPA serves unknown paths with a 200 status, so the 404 page must
   // be explicitly non-indexable to keep junk URLs out of search results.
@@ -40,6 +62,7 @@ const NotFound = () => {
   });
   const location = useLocation();
   const navigate = useNavigate();
+  const copy = notFoundCopy(location.pathname);
 
   useEffect(() => {
     report(new Error(`404 — non-existent route: ${location.pathname}`), {
@@ -73,17 +96,18 @@ const NotFound = () => {
     <PublicLayout>
       <div className="flex justify-center px-5 py-12 sm:py-20" data-testid="not-found">
         <div className="w-full max-w-[440px] flex">
-          {/* The page's one h1 for assistive tech; EmptyState's title is a <p>. */}
-          <h1 className="sr-only">Error 404</h1>
+          {/* The page's one h1 for assistive tech; EmptyState's title is a <p>.
+              F257 (audit 11-10): it said "Error 404", a code, so a screen reader heard the number first. */}
+          <h1 className="sr-only">{copy.title}</h1>
           <EmptyState
             variant="inline"
             icon={Signpost}
-            title="Page not found"
-            body="This page doesn't exist or has moved. The link may be old."
+            title={copy.title}
+            body={copy.body}
             action={
               <div className="flex flex-col items-center gap-3 w-full">
                 <Button asChild variant="primary" size="lg" className="w-full max-w-[280px] rounded-full">
-                  <Link to="/">Go home</Link>
+                  <Link to={copy.primaryTo}>{copy.primary}</Link>
                 </Button>
                 {/* F032 (owner UI audit 11-09): most old links pointed at Jobs or Declutter, so both are one tap away. */}
                 <div className="flex flex-wrap justify-center gap-2 w-full" data-not-found-quick-links="">

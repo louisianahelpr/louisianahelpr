@@ -23,6 +23,8 @@ export const enScreens = {
   "chat.options": "Conversation options",
   "chat.cancelReply": "Cancel reply",
   "chat.search": "Search conversations",
+  // F480 (audit 11-10): the field finds job titles too, and the placeholder says so.
+  "chat.searchHint": "Search names, jobs and messages",
   "chat.closeSearch": "Close search",
   "chat.clearSearch": "Clear search",
   "chat.loadFailed": "We couldn't load your messages.",

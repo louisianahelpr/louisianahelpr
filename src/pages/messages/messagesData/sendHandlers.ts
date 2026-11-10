@@ -6,7 +6,7 @@ import { track } from "@/lib/analytics";
 import { offerPushAfterAction } from "@/hooks/useNotificationPermissionPrompt";
 import { toast } from "sonner";
 import { scanMessage } from "@/lib/messageScanner";
-import { requireOnline } from "@/lib/requireOnline";
+import { OFFLINE_MESSAGE_KEPT, requireOnline } from "@/lib/requireOnline";
 import type { Conversation, Message } from "@/components/messages/types";
 import { logViolation } from "../logViolation";
 import {
@@ -487,7 +487,7 @@ export function createSendHandlers({
     replyToId?: string | null,
     opts?: { isLocationShare?: boolean },
   ): Promise<boolean> => {
-    if (!requireOnline()) return false;
+    if (!requireOnline(OFFLINE_MESSAGE_KEPT)) return false;
     if (!activeConvo || !userId) return false;
     // Q262: the other party deleted their account; the composer is replaced by
     // a read-only notice, and this refuses a send that reaches here anyway.

@@ -296,6 +296,12 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/move" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterMovePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} />{/* F130: was a 404; = wantedAskHref("") */}
+      {/* F471/F415/F234 + F455 (audit 11-10): names people type or old emails use were 404s. /helpdesk is the Help
+          center (Contact us stays /support); /settings and /profile/security open the matching Profile tab (a guest
+          gets the Log in page and comes straight back, as ProtectedRoute does for every /profile link). */}
+      <Route path="/helpdesk" element={<Navigate to="/help" replace />} />
+      <Route path="/settings" element={<Navigate to="/profile?tab=settings" replace />} />
+      <Route path="/profile/security" element={<Navigate to="/profile?tab=security" replace />} />
       <Route path="/declutter/settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSettingsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/item/:id" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember><DeclutterItemPage /></DeclutterGuestOrMember>)}</RouteErrorBoundary>} />
       <Route path="/quotes" element={routeEl(<QuotesHubRedirect />)} />

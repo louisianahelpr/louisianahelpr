@@ -14,11 +14,17 @@
  * placeholder IS the "No orders yet." card, rendered invisible under one bone,
  * so it equals that card at every width (the fixed 98px went stale the moment
  * the card gained its "Browse shops" button).
+ * 2026-11-10 (Builder 1, F12): the other three follow the same rule. Each
+ * placeholder IS the screen's shorter loaded shape rendered invisible under one
+ * bone: /shops/dashboard the "no shop yet" card, /shops/mine the "Open a shop"
+ * form (1472px went stale at 1760px once the form grew), /shops/:id the
+ * unavailable card (345px went stale at 369px). No number left to go stale.
  */
 // @mutate src/components/shops/ShopMyOrdersView.tsx |           <div className="invisible" aria-hidden>\n            <NoOrdersYet />\n          </div> |           <div className="h-36" aria-hidden />
-// @mutate src/components/shops/ShopDashboardView.tsx | <li><Skeleton className="h-[154px] w-full rounded-2xl" /></li> | {[0, 1].map((i) => <li key={i}><Skeleton className="h-36 w-full rounded-2xl" /></li>)}
-// @mutate src/components/shops/ShopEditView.tsx | <div className="space-y-4 min-h-[1472px]" role="status" aria-label="Loading your shop"> | <div className="space-y-4" role="status" aria-label="Loading your shop">
-// @mutate src/components/shops/ShopView.tsx | <Skeleton className="h-[145px] w-full rounded-2xl" /> | <Skeleton className="h-24 w-full rounded-2xl" />
+// @mutate src/components/shops/ShopDashboardView.tsx |             <NoShopYet embedded={embedded} placeholder />\n | \n
+// @mutate src/components/shops/ShopEditView.tsx |         <div className="invisible" aria-hidden>\n          {children}\n        </div> |         <div className="h-56" aria-hidden />
+// @mutate src/components/shops/ShopView.tsx |         <div className="invisible" aria-hidden>\n          <ShopUnavailable />\n        </div> |         <div className="h-[296px]" aria-hidden />
+// @mutate src/components/shops/ShopEditView.tsx | return <ShopEditSkeleton>{formEl}</ShopEditSkeleton>; | return <ShopEditSkeleton>{null}</ShopEditSkeleton>;
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -26,55 +32,39 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 
 const read = (p: string) => blankComments(readFileSync(resolve(process.cwd(), p), "utf8"));
 
-/** The status block a skeleton renders, from its aria-label to the block's end. */
+/** The status block a placeholder renders, from its aria-label to the block's end (whitespace collapsed). */
 const statusBlock = (src: string, label: string): string => {
   const at = src.indexOf(`aria-label="${label}"`);
   expect(at, `no loading block labelled "${label}"`).toBeGreaterThan(0);
   const start = src.lastIndexOf("<", at);
-  const tag = src.slice(start + 1, src.indexOf(" ", start)); // ul / div
-  return src.slice(start, src.indexOf(`</${tag}>`, at));
+  return src.slice(start, src.indexOf("<Skeleton", at) + 200).replace(/\s+/g, " ");
 };
 
-/** Pixel heights of every bone and min-height in a block: h-36 = 144, h-[98px] = 98, min-h-[1472px] = 1472. */
-const heights = (block: string) =>
-  [...block.matchAll(/(?<![\w-])(min-h|h)-(\[(\d+)px\]|(\d+))(?![\w\]])/g)].map((m) => ({
-    min: m[1] === "min-h",
-    px: m[3] ? Number(m[3]) : Number(m[4]) * 4,
-  }));
+/** The one shape every /shops placeholder takes: the loaded shape, invisible, under one bone that covers it. */
+const HIDDEN_UNDER_ONE_BONE = (label: string, inner: string) =>
+  new RegExp(
+    `^<div className="relative" role="status" aria-label="${label}"> <div className="invisible" aria-hidden> ${inner} </div> <Skeleton className="absolute inset-0 rounded-[\\w-]+" /> </div>`,
+  );
 
 const CASES = [
-  { file: "src/components/shops/ShopDashboardView.tsx", label: "Loading your shop's orders", bones: [154] },
-  { file: "src/components/shops/ShopView.tsx", label: "Loading the shop", bones: [144, 24, 145] },
+  { file: "src/components/shops/ShopMyOrdersView.tsx", label: "Loading your orders", inner: "<NoOrdersYet />", loaded: /\.length === 0 \? \(\s*<NoOrdersYet \/>/ },
+  { file: "src/components/shops/ShopDashboardView.tsx", label: "Loading your shop's orders", inner: "<NoShopYet embedded=\\{embedded\\} placeholder />", loaded: /<NoShopYet embedded=\{embedded\} \/>/ },
+  { file: "src/components/shops/ShopEditView.tsx", label: "Loading your shop", inner: "\\{children\\}", loaded: /<ShopEditSkeleton>\{formEl\}<\/ShopEditSkeleton>/ },
+  { file: "src/components/shops/ShopView.tsx", label: "Loading the shop", inner: "<ShopUnavailable />", loaded: /<ShopUnavailable body=/ },
 ] as const;
 
-describe("Q2558: the /shops placeholders reserve the measured heights", () => {
+describe("Q2558: each /shops placeholder is its screen's shorter loaded shape, hidden under one bone", () => {
   it("checks every case (never passes on an empty list)", () => {
-    expect(CASES.length).toBeGreaterThan(1);
+    expect(CASES.length).toBeGreaterThan(3);
   });
 
   for (const c of CASES) {
-    it(`${c.file}: bones ${c.bones.join(" + ")}px`, () => {
-      const hs = heights(statusBlock(read(c.file), c.label)).filter((h) => !h.min).map((h) => h.px);
-      expect(hs).toEqual([...c.bones]);
+    it(`${c.file}: "${c.label}" hides the real shape, which the loaded screen also renders`, () => {
+      const src = read(c.file);
+      expect(statusBlock(src, c.label)).toMatch(HIDDEN_UNDER_ONE_BONE(c.label, c.inner));
+      expect(src).toMatch(c.loaded);
+      // No fixed pixel height left to go stale.
+      expect(statusBlock(src, c.label)).not.toMatch(/(min-)?h-\[\d+px\]/);
     });
   }
-
-  it("ShopView's bones total 345px with the 16px gaps (the measured block)", () => {
-    const hs = heights(statusBlock(read("src/components/shops/ShopView.tsx"), "Loading the shop")).map((h) => h.px);
-    expect(hs.reduce((a, b) => a + b, 0) + 16 * (hs.length - 1)).toBe(345);
-  });
-
-  it("/shops/orders: the placeholder is the empty card itself, invisible under one bone that covers it", () => {
-    const src = read("src/components/shops/ShopMyOrdersView.tsx");
-    expect(src).toMatch(
-      /<div className="relative" role="status" aria-label="Loading your orders">\s*<div className="invisible" aria-hidden>\s*<NoOrdersYet \/>\s*<\/div>\s*<Skeleton className="absolute inset-0 rounded-2xl" \/>\s*<\/div>/,
-    );
-    // The empty state is the same component the placeholder hides.
-    expect(src).toMatch(/\.length === 0 \? \(\s*<NoOrdersYet \/>/);
-  });
-
-  it("ShopEditView reserves the 1472px form", () => {
-    const hs = heights(statusBlock(read("src/components/shops/ShopEditView.tsx"), "Loading your shop"));
-    expect(hs.filter((h) => h.min).map((h) => h.px)).toEqual([1472]);
-  });
 });

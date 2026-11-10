@@ -42,12 +42,13 @@ import { fetchCustomOrders } from "@/lib/shops/orders";
 function ShopSkeleton() {
   return (
     <AppPage title="Shop" backTo="/shops">
-      <div className="space-y-4" role="status" aria-label="Loading the shop">
-        <Skeleton className="h-36 w-full rounded-2xl" />
-        <Skeleton className="h-6 w-2/3" />
-        {/* Q2558: 345px in all (measured 2026-11-02 on /shops/test, the unavailable card); 296px jumped 49px.
-            A real shop page is longer and grows below. */}
-        <Skeleton className="h-[145px] w-full rounded-2xl" />
+      {/* Q2558: the placeholder IS the unavailable card (the shorter case: 345px on 2026-11-02, 369px by
+          2026-11-05), invisible under one bone, so it matches at every width. A real shop page grows below. */}
+      <div className="relative" role="status" aria-label="Loading the shop">
+        <div className="invisible" aria-hidden>
+          <ShopUnavailable />
+        </div>
+        <Skeleton className="absolute inset-0 rounded-2xl" />
       </div>
     </AppPage>
   );

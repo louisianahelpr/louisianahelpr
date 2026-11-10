@@ -72,7 +72,6 @@ function useMinuteTick(): number {
  */
 export default function ShopDashboardView({ embedded = false, header, footer }: { embedded?: boolean; header?: (shopId: string) => ReactNode; footer?: ReactNode } = {}) {
   const { user } = useCurrentUser();
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const now = useMinuteTick();
   const [accepting, setAccepting] = useState<ShopOrder | null>(null);
@@ -130,11 +129,15 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
   if (myId.isLoading || (!!myId.data && orders.isLoading)) {
     return (
       <Frame title="Shop" backTo="/shops">
-        <ul className="space-y-3" role="status" aria-label="Loading your shop's orders">
-          {/* Q2558: the "You don't have a shop yet." card, 154px measured 2026-11-02 (both test accounts); two
-              144px order bones collapsed 146px into it. A shop's order list grows below. */}
-          <li><Skeleton className="h-[154px] w-full rounded-2xl" /></li>
-        </ul>
+        {/* Q2558: the placeholder IS the "You don't have a shop yet." card (the shorter case), invisible under one
+            bone, so it is that card's height at every width (154px measured 2026-11-02 went stale with its words).
+            A shop's order list grows below. */}
+        <div className="relative" role="status" aria-label="Loading your shop's orders">
+          <div className="invisible" aria-hidden>
+            <NoShopYet embedded={embedded} placeholder />
+          </div>
+          <Skeleton className="absolute inset-0 rounded-2xl" />
+        </div>
       </Frame>
     );
   }
@@ -148,20 +151,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
   if (!myId.data) {
     return (
       <Frame title="Shop" backTo="/shops">
-        {embedded ? (
-          <ShopsNotice title="You don't have a shop yet.">
-            <p>Open a free shop for your business or the things you make. Its orders show here.</p>
-            {/* Its own "Open a shop" is here: the floating one steps aside (owner via the lead, 11-08). */}
-            <HideSectionCreateFab />
-            <SectionActionPill className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</SectionActionPill>
-          </ShopsNotice>
-        ) : (
-          <ShopsNotice title="You don't have a shop yet.">
-            <p>
-              Open a free shop and its orders show here. <Link to="/shops/mine" className="underline">Open a shop</Link>
-            </p>
-          </ShopsNotice>
-        )}
+        <NoShopYet embedded={embedded} />
       </Frame>
     );
   }
@@ -308,6 +298,25 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
         </div>
       </BrandConfirmDialog>
     </Frame>
+  );
+}
+
+/** No shop yet. `placeholder`: the loading copy, which must not hide the floating "Open a shop" meanwhile. */
+function NoShopYet({ embedded, placeholder = false }: { embedded: boolean; placeholder?: boolean }) {
+  const navigate = useNavigate();
+  return embedded ? (
+    <ShopsNotice title="You don't have a shop yet.">
+      <p>Open a free shop for your business or the things you make. Its orders show here.</p>
+      {/* Its own "Open a shop" is here: the floating one steps aside (owner via the lead, 11-08). */}
+      {!placeholder && <HideSectionCreateFab />}
+      <SectionActionPill className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</SectionActionPill>
+    </ShopsNotice>
+  ) : (
+    <ShopsNotice title="You don't have a shop yet.">
+      <p>
+        Open a free shop and its orders show here. <Link to="/shops/mine" className="underline">Open a shop</Link>
+      </p>
+    </ShopsNotice>
   );
 }
 

@@ -28451,6 +28451,57 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (3 wave(s) of data released)",
       "requests": 10
+    },
+    {
+      "url": "/25days",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4187",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/25days",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 2
+    },
+    {
+      "url": "/sponsor",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4187",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/sponsor",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 2
+    },
+    {
+      "url": "/25days/rules",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4187",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/25days/rules",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 2
+    }
+  ],
+  "merged": [
+    {
+      "at": "2026-11-10T02:58:07.199Z",
+      "base": "http://127.0.0.1:4187",
+      "surfaces": [
+        "anon /25days",
+        "anon /sponsor",
+        "anon /25days/rules"
+      ],
+      "replaced": []
     }
   ]
 }

@@ -403,11 +403,34 @@ export const isSpeculativePrefetchInFlight = (): boolean => speculativePrefetche
 export { isRecoveryReloadInFlight };
 
 /**
+ * Drop the recovery reload's `_v` cache-buster from the address once a chunk has loaded (audit 1110 F359n: after an
+ * offline recovery the item page read /declutter/item/<id>?_v=1794341313312, and Share or Copy link carried the odd
+ * number). Only when sessionStorage works: without it `_v` is the one marker that stops attempt 1 from repeating on
+ * every reloaded page (recoverFromChunkError), so a storage-blocked visitor keeps the odd address rather than a loop.
+ * Other params and the hash stay; a refused replaceState leaves the address as it was.
+ */
+export const stripRecoveryCacheBuster = (): void => {
+  try {
+    if (typeof window === "undefined" || typeof history === "undefined") return;
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("_v")) return;
+    const probe = "helpr_chunk_reload_probe";
+    sessionStorage.setItem(probe, "1");
+    sessionStorage.removeItem(probe);
+    url.searchParams.delete("_v");
+    history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  } catch {
+    // Blocked storage or a refused replaceState: the address keeps `_v`, which is only untidy.
+  }
+};
+
+/**
  * Call when a lazy chunk loaded successfully. Clears the attempt counter, but
  * only once the last attempt is a whole episode old, so a page whose entry
  * loads while its route chunk still 404s keeps its spent attempts.
  */
 export const markChunkLoadSucceeded = (): void => {
+  stripRecoveryCacheBuster();
   try {
     const rawLast = sessionStorage.getItem(RELOAD_FLAG);
     if (rawLast === null && sessionStorage.getItem(RELOAD_COUNT) === null) return;

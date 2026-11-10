@@ -358,7 +358,8 @@ export function CheckoutStep({
             if (!taxableLine) {
               return (
                 <>
-                  <div className="h-px bg-border" />
+                  {/* Owner 11-10: a plain job's Total stands alone, so no rule above it (the rule left an empty band). */}
+                  {budgetRowShown && <div className="h-px bg-border" data-total-rule="" />}
                   <div className="flex justify-between items-baseline">
                     <span className="font-semibold text-foreground">Total</span>
                     <span className="text-ds-20 font-bold text-foreground">

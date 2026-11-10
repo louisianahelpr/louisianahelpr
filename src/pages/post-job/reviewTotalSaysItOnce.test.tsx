@@ -65,6 +65,16 @@ describe("F18: the review step's Total says each number once", () => {
     expect(row).not.toMatch(/budget/);
   });
 
+  // Owner 11-10 (screenshot): a plain job's breakdown had an empty band above Total (a rule with nothing to divide).
+  // @mutate src/components/postjob/CheckoutStep.tsx |                   {budgetRowShown && <div className="h-px bg-border" data-total-rule="" />} |                   {true && <div className="h-px bg-border" data-total-rule="" />}
+  it("a plain job: no divider above Total (no empty band); an urgent bonus brings it back", () => {
+    const { container, unmount } = render(<CheckoutStepView form={makeForm()} />);
+    expect(container.querySelector("[data-total-rule]")).toBeNull();
+    unmount();
+    const r = render(<CheckoutStepView form={makeForm({ isUrgent: true, urgentFeeNum: 5, totalCharge: 45 })} />);
+    expect(r.container.querySelector("[data-total-rule]")).not.toBeNull();
+  });
+
   it("an urgent bonus on top: the budget line stays and names it", () => {
     render(<CheckoutStepView form={makeForm({ isUrgent: true, urgentFeeNum: 5, totalCharge: 45 })} />);
     const row = totalRow();

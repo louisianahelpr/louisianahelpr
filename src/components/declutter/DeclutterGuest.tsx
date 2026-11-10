@@ -6,7 +6,7 @@
  * While Declutter is not open to everyone, a guest still gets the login wall, as before. A read that FAILED (H2, audit
  * 11-08) shows the page: the wall is only for a definite "not open".
  */
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchGuestSellerFirstName } from "@/lib/declutter/api";
 import { Link, Navigate, useLocation } from "react-router-dom";
@@ -21,6 +21,30 @@ import { useMarkGuestTopBarOn } from "@/lib/guestTopBar";
 
 function here(location: { pathname: string; search: string }): string {
   return encodeURIComponent(location.pathname + location.search);
+}
+
+/**
+ * F359o (audit 11-10): the seller was reading their OWN listing when the session ended (sign-out elsewhere, token
+ * expiry). The page quietly turned into the guest view ("Signing up is free..."), as if they had never had an
+ * account. Remember that this viewer owned the listing earlier in this page view; once signed out, say so instead.
+ */
+export function useSignedOutOwner(ownListing: boolean, signedIn: boolean): boolean {
+  const ownedBefore = useRef(false);
+  if (ownListing) ownedBefore.current = true;
+  return !signedIn && ownedBefore.current;
+}
+
+/** F359o: what the signed-out seller sees in place of the guest join line; Log in brings them back here. */
+export function DeclutterSignedOutOwner() {
+  const location = useLocation();
+  return (
+    <div data-signed-out-owner="" role="status" className="space-y-2 rounded-2xl border border-border bg-card p-3 text-sm">
+      <p>You've been signed out. Log in again to manage this listing.</p>
+      <Button asChild size="sm">
+        <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
+      </Button>
+    </div>
+  );
 }
 
 /** DeclutterGate's signed-out branch: the page while Declutter is open to everyone, the login wall otherwise. */

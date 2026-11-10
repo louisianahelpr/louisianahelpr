@@ -473,7 +473,7 @@ export const ADMIN_RPC_ERROR_COPY = {
   sponsor_admin_add_signup: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD },
   sponsor_admin_save_settings: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD },
   sponsor_admin_save_testimonial: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD, not_found: "That testimonial was deleted. Refresh the page." },
-  sponsor_admin_delete_testimonial: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD },
+  sponsor_admin_delete_testimonial: { not_authorized: SPONSOR_NA, feature_disabled: SPONSOR_FD, not_found: "That testimonial was already deleted. Refresh the page." },
 } satisfies Record<string, Record<string, string>>;
 
 export type AdminMappedRpc = keyof typeof ADMIN_RPC_ERROR_COPY;

@@ -193,6 +193,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/instantBookRefund.ts";`,
   );
 
+  // 25 Days sponsor sign-up (owner 2026-11-09): `_shared/sponsorSignup.ts` has ZERO imports (the one
+  // validator the page and the function share), so the REAL module serves.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/sponsorSignup\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/sponsorSignup.ts";`,
+  );
+
   // "First L." (Q2292): `_shared/memberDisplayName.ts` has ZERO imports, so
   // point at the REAL module and the name rule stays under test.
   out = out.replace(

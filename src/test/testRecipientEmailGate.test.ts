@@ -79,6 +79,7 @@ describe("no test or seed recipient reaches Resend (Q840)", () => {
       "send-account-status-email/index.ts",
       "send-marketing-blast/index.ts",
       "send-notification-email/index.ts",
+      "sponsor-25days/index.ts",
     ]);
     // Q855: per CALL SITE, not per file. Each sendWithResend( needs its own
     // gate before it (gates and calls pair up in order), and nothing between

@@ -53,16 +53,35 @@ CREATE FUNCTION public.has_role(_user_id uuid, _role app_role) RETURNS boolean L
 CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY, enrolled_at timestamptz NOT NULL DEFAULT now(), note text);
 CREATE TABLE public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), admin_id uuid, action text NOT NULL,
   target_type text, target_id text, details jsonb, created_at timestamptz NOT NULL DEFAULT now());
+-- Test data never counts (b62): prod's is_test_member (20261030015205) and is_seed_email (20260923052520), verbatim bodies.
+CREATE TABLE auth.users (id uuid PRIMARY KEY, email text);
+CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, is_seed boolean NOT NULL DEFAULT false);
+CREATE FUNCTION public.is_test_member(p_user_id uuid) RETURNS boolean LANGUAGE sql STABLE SET search_path TO 'public' AS $fn$
+  SELECT p_user_id IS NOT NULL AND (
+    EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = p_user_id AND p.is_seed IS TRUE)
+    OR EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p_user_id));
+$fn$;
+REVOKE ALL ON FUNCTION public.is_test_member(uuid) FROM PUBLIC, anon, authenticated;
+CREATE FUNCTION public.is_seed_email(p_email text) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $fn$
+  SELECT EXISTS (SELECT 1 FROM auth.users u JOIN public.profiles p ON p.user_id = u.id
+                  WHERE lower(u.email) = lower(btrim(p_email)) AND p.is_seed IS TRUE)
+$fn$;
+REVOKE ALL ON FUNCTION public.is_seed_email(text) FROM PUBLIC, anon, authenticated;
 CREATE TABLE storage.buckets (id text PRIMARY KEY, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
 `;
 
 const ADMIN = "00000000-0000-0000-0000-00000000000a";
 const ORDINARY = "00000000-0000-0000-0000-00000000000c";
+const SEED = "00000000-0000-0000-0000-00000000000e";
+const TESTER = "00000000-0000-0000-0000-00000000000f";
 
 const db = new PGlite();
 await db.exec(SCHEMA);
 await db.exec(SWITCHES);
-await db.exec(`INSERT INTO public.user_roles (user_id, role) VALUES ('${ADMIN}', 'admin'), ('${ORDINARY}', 'helper');`);
+await db.exec(`INSERT INTO public.user_roles (user_id, role) VALUES ('${ADMIN}', 'admin'), ('${ORDINARY}', 'helper');
+  INSERT INTO auth.users (id, email) VALUES ('${SEED}', 'seed.brand@example.com');
+  INSERT INTO public.profiles (user_id, is_seed) VALUES ('${SEED}', true), ('${ORDINARY}', false);
+  INSERT INTO public.test_accounts (user_id) VALUES ('${TESTER}');`);
 
 let pass = 0;
 let fail = 0;
@@ -173,6 +192,18 @@ const pub = await state("anon", null);
 ok(pub?.day_counts?.["3"] === 2 && pub?.day_counts?.["12"] === 1 && pub?.day_counts?.["4"] === 1, `day counts (got ${JSON.stringify(pub?.day_counts)})`);
 ok(!JSON.stringify(pub).includes("First Brand") && !JSON.stringify(pub).includes("p@example.com"), "public state names no pending brand and no email");
 
+// ── test data never counts (b62) ────────────────────────────────────────────
+const seedSignup = await signup([3, 20], { brand_name: "Seed Brand", email: "Seed.Brand@example.com", wall_ok: true });
+ok(seedSignup?.ok === true, "a test address can still sign up (the row is saved)");
+const pubSeed = await state("anon", null);
+ok(pubSeed?.day_counts?.["3"] === 2 && pubSeed?.day_counts?.["20"] === undefined, `a test address's sign-up is not counted on the page (got ${JSON.stringify(pubSeed?.day_counts)})`);
+await as("authenticated", ADMIN, `SELECT public.sponsor_admin_save_settings(2, NULL, NULL, NULL)`);
+ok((await signup([20]))?.ok === true, "cap 2: Dec 20 holds only a test sign-up, so a real brand still gets it");
+ok((await signup([20]))?.ok === true && (await signup([20]))?.ok === false, "cap 2: two real brands fill Dec 20 (the test sign-up takes no spot)");
+await as("authenticated", ADMIN, `SELECT public.sponsor_admin_set_status('${seedSignup?.id}', 'confirmed')`);
+ok(!JSON.stringify((await state("anon", null))?.wall ?? []).includes("Seed Brand"), "a confirmed test sign-up never shows on the wall");
+await as("authenticated", ADMIN, `SELECT public.sponsor_admin_save_settings(NULL, NULL, NULL, NULL)`);
+
 // ── admin overview lists the two-day sponsor under both days ────────────────
 const ov = await as("authenticated", ADMIN, `SELECT public.sponsor_admin_overview() AS o`);
 const first = Array.isArray(ov) ? ov[0].o.signups.find((s) => s.brand_name === "First Brand") : null;
@@ -210,6 +241,33 @@ ok(fromAddr === 20, `rate limit: one address records at most 20 visits in 10 min
 await as("anon", null, `SELECT public.sponsor_log_visit(NULL, NULL, 'desktop')`, { "x-forwarded-for": "6.6.6.6, 10.0.0.2" });
 ok((await q(`SELECT count(*)::int AS n FROM public.sponsor_visits`)).rows[0].n === 21, "another address (last x-forwarded-for entry) is not limited by the first");
 ok(!JSON.stringify((await q(`SELECT * FROM public.sponsor_visit_hits`)).rows).includes("6.6.6.6"), "the rate-limit table holds no address");
+const vBefore = (await q(`SELECT count(*)::int AS n FROM public.sponsor_visits`)).rows[0].n;
+await as("authenticated", TESTER, `SELECT public.sponsor_log_visit(NULL, NULL, 'phone')`, { "x-forwarded-for": "7.7.7.7" });
+await as("authenticated", SEED, `SELECT public.sponsor_log_visit(NULL, NULL, 'phone')`, { "x-forwarded-for": "7.7.7.8" });
+ok((await q(`SELECT count(*)::int AS n FROM public.sponsor_visits`)).rows[0].n === vBefore, "a test account's (or seed member's) visit is not recorded");
+await as("authenticated", ORDINARY, `SELECT public.sponsor_log_visit(NULL, NULL, 'phone')`, { "x-forwarded-for": "7.7.7.9" });
+ok((await q(`SELECT count(*)::int AS n FROM public.sponsor_visits`)).rows[0].n === vBefore + 1, "an ordinary member's visit is recorded");
+const tz = (await q(`SELECT array_to_string(proconfig, ',') AS c FROM pg_proc WHERE oid = 'public.sponsor_log_visit(text,text,text)'::regprocedure`)).rows[0]?.c ?? "";
+ok(/TimeZone=America\/Chicago/.test(tz), `sponsor_log_visit judges the day in Louisiana (proconfig ${tz})`);
+
+// ── every admin write is audited (Q76) ──────────────────────────────────────
+const audited = (await q(`SELECT array_agg(DISTINCT action ORDER BY action) AS a FROM public.admin_audit_log WHERE admin_id = '${ADMIN}'`)).rows[0]?.a ?? [];
+for (const a of ["sponsor_day_moved", "sponsor_invite_added", "sponsor_settings_saved", "sponsor_status_set", "sponsor_wall_set"]) {
+  ok(audited.includes(a), `admin_audit_log has ${a}`);
+}
+const tid = await as("authenticated", ADMIN, `SELECT public.sponsor_admin_save_testimonial(NULL, 'Great', 'Ann', NULL, true) AS id`);
+await as("authenticated", ADMIN, `SELECT public.sponsor_admin_delete_testimonial('${Array.isArray(tid) ? tid[0].id : ""}')`);
+const addId = await as("authenticated", ADMIN, `SELECT public.sponsor_admin_add_signup('{"brand_name":"Hand Brand","contact_name":"H","email":"h@example.com","prize_description":"x","prize_value":5,"days":[9]}'::jsonb) AS id`);
+const invId = (await q(`SELECT id FROM public.sponsor_invites WHERE ref_code = 'cajun-candle-co-2'`)).rows[0]?.id;
+await as("authenticated", ADMIN, `SELECT public.sponsor_admin_delete_invite('${invId}')`);
+const audited2 = (await q(`SELECT array_agg(DISTINCT action ORDER BY action) AS a FROM public.admin_audit_log WHERE admin_id = '${ADMIN}'`)).rows[0]?.a ?? [];
+for (const a of ["sponsor_testimonial_added", "sponsor_testimonial_deleted", "sponsor_signup_added", "sponsor_invite_deleted"]) {
+  ok(audited2.includes(a), `admin_audit_log has ${a}`);
+}
+ok(Array.isArray(addId) && (await q(`SELECT count(*)::int AS n FROM public.admin_audit_log WHERE target_id = '${Array.isArray(addId) ? addId[0].id : ""}'`)).rows[0].n === 1, "the hand-added sign-up's audit row names it");
+const refusedBefore = (await q(`SELECT count(*)::int AS n FROM public.admin_audit_log`)).rows[0].n;
+await as("authenticated", ORDINARY, `SELECT public.sponsor_admin_save_settings(1, NULL, NULL, NULL)`);
+ok((await q(`SELECT count(*)::int AS n FROM public.admin_audit_log`)).rows[0].n === refusedBefore, "a refused (non-admin) call writes no audit row");
 
 // ── grants by object state ──────────────────────────────────────────────────
 const acl = async (sig) => (await q(`SELECT coalesce(array_to_string(proacl, ','), '') AS a FROM pg_proc WHERE oid = '${sig}'::regprocedure`)).rows[0]?.a ?? "";

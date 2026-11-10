@@ -15278,14 +15278,17 @@ export type Database = {
         Row: {
           bucket: string
           hit_at: string
+          id: number
         }
         Insert: {
           bucket: string
           hit_at?: string
+          id?: number
         }
         Update: {
           bucket?: string
           hit_at?: string
+          id?: number
         }
         Relationships: []
       }
@@ -17895,6 +17898,44 @@ export type Database = {
         Args: { p_item_id: string; p_option_names: string[]; p_variants: Json }
         Returns: Json
       }
+      sponsor_25days_on_for: { Args: { p_user_id: string }; Returns: boolean }
+      sponsor_admin_add_invite: { Args: { p_brand: string; p_email?: string }; Returns: string }
+      sponsor_admin_add_signup: { Args: { p_signup: Json }; Returns: string }
+      sponsor_admin_delete_invite: { Args: { p_invite_id: string }; Returns: undefined }
+      sponsor_admin_delete_testimonial: { Args: { p_id: string }; Returns: undefined }
+      sponsor_admin_move_day: {
+        Args: { p_from_day: number; p_signup_id: string; p_to_day: number }
+        Returns: undefined
+      }
+      sponsor_admin_overview: { Args: never; Returns: Json }
+      sponsor_admin_save_settings: {
+        Args: {
+          p_group_members: number
+          p_max_per_day: number
+          p_monthly_visitors: number
+          p_page_followers: number
+        }
+        Returns: undefined
+      }
+      sponsor_admin_save_testimonial: {
+        Args: {
+          p_approved: boolean
+          p_brand: string
+          p_id: string
+          p_name: string
+          p_quote: string
+        }
+        Returns: string
+      }
+      sponsor_admin_set_status: { Args: { p_signup_id: string; p_status: string }; Returns: undefined }
+      sponsor_admin_set_wall: { Args: { p_show: boolean; p_signup_id: string }; Returns: undefined }
+      sponsor_create_signup: { Args: { p_signup: Json; p_user_id: string }; Returns: Json }
+      sponsor_log_visit: { Args: { p_device: string; p_ref: string; p_referrer: string }; Returns: undefined }
+      sponsor_public_state: { Args: { p_ref?: string }; Returns: Json }
+      sponsor_require_admin: { Args: never; Returns: undefined }
+      sponsor_service_founder_photo: { Args: never; Returns: string }
+      sponsor_service_logo_path: { Args: { p_any?: boolean; p_signup_id: string }; Returns: string }
+      sponsor_service_set_founder_photo: { Args: { p_path: string }; Returns: undefined }
       sweep_chat_unread_reminders: {
         Args: { p_now?: string }
         Returns: Json

@@ -1,7 +1,7 @@
 /**
  * NOTHING "COMING SOON" IN THE iPHONE APP (owner, 2026-10-31 ~9:15 PM, App Store submission pop-up):
- * in the native app HIDE closed sections (Shops, Homes) and the two disabled quote buttons (Get quotes on
- * Post a job; Request a quote in Sell it for me) until they open; the website keeps showing them. One
+ * in the native app HIDE closed sections (Shops, Homes) and the disabled quote buttons (Get quotes on
+ * Post a job; Request a quote in Sell it for me, live since Q1947 opened shop chats) until they open; the website keeps showing them. One
  * helper decides: src/lib/hideUnopenedInApp.ts.
  *
  * (a) the helper and the shared words (toast, "opening soon" line) with native mocked on and off;
@@ -17,7 +17,6 @@
  * @mutate src/components/mobileNav/useSectionTabs.ts |   if (hideUnopenedInApp()) return; |
  * @mutate src/components/mobileNav/useSectionTabs.ts |   if (labels.length === 0 \|\| hideUnopenedInApp()) return null; |   if (labels.length === 0) return null;
  * @mutate src/pages/search/SearchPage.tsx |   if (hideUnopenedInApp()) return null; |
- * @mutate src/components/declutter/SellItForMe.tsx |               {!hideUnopenedInApp() && ( |               {true && (
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // The account's Customize row (useSectionPrefs, Q2199) is data, not what this spec measures: answered locally

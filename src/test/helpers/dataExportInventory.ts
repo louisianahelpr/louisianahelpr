@@ -211,6 +211,10 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   // threads come through their listing) and every message in them, without the other side's id.
   home_talks: { by: ["member_id"] },
   home_talk_messages: { by: ["sender_id"] },
+  // Shops messages (20261105185006, exported by 20261110200630; NOT-LAUNCHED Q1947): the member's shop chats (as the
+  // shopper; the owner's chats come through their shop) and every message in them, without the other side's id.
+  shop_talks: { by: ["buyer_id"] },
+  shop_talk_messages: { by: ["sender_id"] },
   // Bundle discounts (20261027211754, exported by 20261028003604): the seller's own setting.
   declutter_bundle_rules: { by: ["seller_id"] },
   // Q2462 (20261028235249, exported by 20261028235250): the handover talks, buyer or seller, and their messages.
@@ -720,10 +724,8 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "support_replies.admin_id": { reason: "the staff member who answered a support ticket (20261023200521); the member's copy of the reply is their own notification row, exported with their notifications, and the send is in admin_audit_log" },
   "job_approval_escalations.resolved_by": { reason: "the staff member who closed a job waiting on approval (20261023143240); the job is the poster's and the Helpr's, exported with their jobs, and the close is in admin_audit_log" },
   "job_payout_holds.held_by": { reason: "Q1491: the staff member who placed a JOB payout hold (NULL when stripe-webhook placed it); a server-only money-control row about the job, not the person's own data" },
-  "shop_talks.buyer_id": { reason: "Shops H1 (20261105185006): a shopper's chat thread with a shop, behind the 'shops' switch (testers only, no live members). Its Download My Data section is owed before Shops opens to everyone (docs/NOT-LAUNCHED.md Q1947, 'Still open')" },
   "shop_order_delivery_addresses.buyer_id": { reason: "Shops delivery (20261106180902): the buyer's drop-off address for one order the shop delivers, behind the 'shops' switch (testers only, no live members). Purged with the account (ON DELETE CASCADE). Its Download My Data section is owed with Builder 4's shops export (with shop_order_service_addresses), before Shops opens to everyone" },
   "shop_custom_requests.buyer_id": { reason: "Shops custom orders slice 1a (20261106202917): a buyer's custom order request to one shop and the shop's price, behind the 'shops' switch (testers only, no live members). Purged with the account (ON DELETE CASCADE). Its Download My Data section is owed with Builder 4's shops export (custom orders slice 5), before Shops opens to everyone" },
-  "shop_talk_messages.sender_id": { reason: "Shops H1 (20261105185006): the sender of one shop chat message, behind the 'shops' switch (testers only, no live members). Its Download My Data section is owed before Shops opens to everyone (docs/NOT-LAUNCHED.md Q1947, 'Still open')" },
   "shop_order_service_addresses.buyer_id": { reason: "Shops H8 (b) (20261106164313): the buyer's service address for one at-home carpet or furniture cleaning order, behind the 'shops' switch (testers only, no live members). Purged with the account (ON DELETE CASCADE). Its Download My Data section is owed with the shops export after job-photos v4 (docs/NOT-LAUNCHED.md Shops H8 note)" },
   "shop_hand_refunds.recorded_by": { reason: "the staff member who recorded a Shops refund made by hand in Stripe (NULL when stripe-webhook recorded it; Shops M3, 20261019071055); a server-only money-control row about the order, not the person's own data" },
   "series_platform_ends.admin_id": { reason: "the staff member who ended a series (Q1735); the series is the poster's, exported with their jobs" },

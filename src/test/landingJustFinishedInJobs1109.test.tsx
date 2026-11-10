@@ -2,19 +2,20 @@
  * Owner 11-09, signed-out home under the hero:
  *   - 10:31 PM (screenshot at 375): the "Just finished / 2 yards in New Iberia / You pick who helps · Paid when it's
  *     done" block took up space on its own above "Open jobs near you". It is no longer a block: the finished job is the
- *     FIRST CARD of the Jobs grid (loading, empty and with jobs alike), and the two facts are the section's one line
- *     under its heading.
+ *     FIRST CARD of the Jobs grid (loading and with jobs alike), and the two facts are the section's one line under its
+ *     heading.
  *   - 10:35 PM: browsing Jobs and browsing Declutter look the same: both modes draw ONE frame (LandingBrowseShell): the
- *     same section padding, eyebrow, serif H2, line, see-all link and measure; Declutter's placeholder (L002) is that
+ *     same section padding, serif H2, line, see-all link and measure; Declutter's placeholder (L002) is that
  *     frame with its grid, so the real grid replaces it without moving the page.
- *   - L009 (landing audit 11-09): the empty Jobs card said "Post one" while its only link went to the board; it now
- *     carries its own "Post a job" link (sign-up first for a guest).
+ *   - D003 (landing design audit 11-10, High): with no open job the first section under the hero was an empty card
+ *     ("No open jobs right now..."). It now shows real Declutter listings under "New on Declutter near you"; never an
+ *     empty card. (This replaced L009's empty card and its Post a job link.)
  *
  * @mutate src/components/landing/LiveJobsSection.tsx |         <li className={LIVE_JOBS_ROW_H_MIN} data-landing-proof-card="">\n          <LandingProof />\n        </li>\n |
  * @mutate src/components/landing/LiveJobsSection.tsx |       line={line} |       line=""
- * @mutate src/components/landing/LiveJobsSection.tsx |               data-testid="landing-live-jobs-post" |               data-testid="landing-live-jobs-post" hidden
- * @mutate src/components/landing/FreshDeclutterSection.tsx |         {state.kind === "waiting" && <FreshDeclutterSkeleton />}\n |
- * @mutate src/components/landing/FreshDeclutterStrip.tsx |     <LandingBrowseShell testId="landing-fresh-declutter" titleId="landing-fresh-declutter-title" {...DECLUTTER_SHELL}> |     <LandingBrowseShell testId="landing-fresh-declutter" titleId="landing-fresh-declutter-title" {...DECLUTTER_SHELL} line="">
+ * @mutate src/components/landing/LiveJobsSection.tsx |   if (state.kind === "ok" && state.jobs.length === 0) return <FreshDeclutterSection shell={NO_JOBS_DECLUTTER_SHELL} />; |
+ * @mutate src/components/landing/FreshDeclutterSection.tsx |         {state.kind === "waiting" && <FreshDeclutterSkeleton shell={shell} />}\n |
+ * @mutate src/components/landing/FreshDeclutterStrip.tsx |     <LandingBrowseShell testId="landing-fresh-declutter" titleId="landing-fresh-declutter-title" {...shell}> |     <LandingBrowseShell testId="landing-fresh-declutter" titleId="landing-fresh-declutter-title" {...shell} line="">
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -30,8 +31,7 @@ import { LiveJobsSection, forgetRecentLiveJobs } from "@/components/landing/Live
 import { FreshDeclutterSkeleton } from "@/components/landing/FreshDeclutterSection";
 import FreshDeclutterStrip from "@/components/landing/FreshDeclutterStrip";
 import { proofLine } from "@/components/landing/LandingProof";
-import { POST_JOB_SIGNED_OUT } from "@/components/landing/HowItWorksSection";
-import { DECLUTTER_SHELL, JOBS_SHELL } from "@/components/landing/LandingBrowseShell";
+import { DECLUTTER_SHELL, JOBS_SHELL, NO_JOBS_DECLUTTER_SHELL } from "@/components/landing/LandingBrowseShell";
 
 class SeeAll {
   constructor(private cb: (e: { isIntersecting: boolean }[]) => void) {}
@@ -85,27 +85,32 @@ describe("owner 11-09: the finished job is a card in the Jobs section, not a blo
     expectProofIsFirstCard();
   });
 
-  it("with no jobs, and the empty card carries its own Post a job link (L009)", async () => {
+  it("D003: with no open job, real Declutter listings take the section, never an empty card", async () => {
     rows.data = [];
     render(<MemoryRouter><LiveJobsSection /></MemoryRouter>);
-    await screen.findByTestId("landing-live-jobs-empty");
-    expectProofIsFirstCard();
-    const post = screen.getByTestId("landing-live-jobs-post");
-    expect(post.getAttribute("href")).toBe(POST_JOB_SIGNED_OUT);
-    expect(post.hasAttribute("hidden")).toBe(false);
-    expect(post.textContent).toMatch(/Post a job/);
+    await screen.findByTestId("landing-fresh-declutter-spot");
+    expect(screen.getByText(NO_JOBS_DECLUTTER_SHELL.title)).toBeTruthy();
+    expect(screen.queryByTestId("landing-live-jobs")).toBeNull();
+    expect(screen.queryByText(/No open jobs right now/)).toBeNull();
+    // With jobs, the Jobs section draws as before (inventory floor: the swap is only for the empty answer).
+    cleanup();
+    forgetRecentLiveJobs();
+    rows.data = [job(1)];
+    render(<MemoryRouter><LiveJobsSection /></MemoryRouter>);
+    expect((await screen.findByTestId("landing-live-jobs-list")).querySelectorAll("[data-live-job]").length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("landing-fresh-declutter-spot")).toBeNull();
   });
 });
 
 describe("owner 11-09: browsing Jobs and browsing Declutter look the same", () => {
-  /** The frame's shape: section classes, the eyebrow, the H2 classes, the line, and the see-all links. */
+  /** The frame's shape: section classes, the H2 classes, the line, and the see-all links. */
   function frame(section: HTMLElement) {
     const h2 = section.querySelector("h2, span.font-display")!;
     return {
       section: section.className,
       heading: h2.className,
       line: !!section.querySelector("[data-landing-browse-line]")?.textContent?.trim(),
-      seeAll: within(section).queryAllByRole("link").filter((a) => /Browse local jobs|See everything/.test(a.textContent ?? "")).length,
+      seeAll: within(section).queryAllByRole("link").filter((a) => /Browse jobs|Shop Declutter/.test(a.textContent ?? "")).length,
     };
   }
 

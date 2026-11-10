@@ -5152,6 +5152,8 @@ html.page-scrolled .page-title-card:has(.explore-header),
   --lp-band-ink: #F1EEE7;
   --lp-band-body: #D6D2C8;
   --lp-band-money: #E2A585;
+  /* The band's trust badges' outline (D009, 11-10). */
+  --lp-band-line: rgba(241, 238, 231, 0.32);
   --lp-shadow: 0 4px 18px rgba(32, 30, 26, 0.06);
   /* The app's olive primary reads these; on the landing it wears the spec's action olive. */
   --bark: 63 17% 37%;
@@ -5175,11 +5177,14 @@ html.page-scrolled .page-title-card:has(.explore-header),
   --lp-money: #E2A585;
   --lp-money-tint: #3B2A22;
   --lp-photo-empty: #3A3731;
-  --lp-band: #262420;
-  --lp-band-tile: #2F2C27;
+  /* D010 (landing design audit 11-10): the band was #262420, the same as --lp-surface, so in dark it vanished into the
+     sections around it. Deep olive, a hue of its own, with lifted tiles. */
+  --lp-band: #2E2F22;
+  --lp-band-tile: #3A3C2B;
   --lp-band-ink: #F1EEE7;
   --lp-band-body: #D6D2C8;
   --lp-band-money: #E2A585;
+  --lp-band-line: rgba(241, 238, 231, 0.32);
   --lp-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
   --bark: 66 20% 60%;
   --parchment: 36 16% 10%;
@@ -5197,6 +5202,17 @@ html.page-scrolled .page-title-card:has(.explore-header),
   letter-spacing: -0.02em !important;
 }
 
+/* D002 (landing design audit 11-10): the landing's middle type step. Every H2 was 28px under a 124px H1, with nothing
+   between; section headings now grow with the screen (32 -> 48px), and the closing "Join your neighbors" is one step
+   larger again (40 -> 56px). The hero H1 is untouched. */
+.landing-h2 {
+  font-size: clamp(32px, 3.2vw, 48px);
+  line-height: 1.05;
+}
+.landing-h2-close {
+  font-size: clamp(40px, 5vw, 56px);
+  line-height: 1.02;
+}
 .landing-card {
   background: var(--lp-surface);
   border-radius: 20px;

@@ -56,8 +56,7 @@ vi.mock("@/lib/socialAuth", () => ({ SOCIAL_SIGN_IN_ENABLED: true, signInWithPro
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: null, ready: true }) }));
 import Footer from "@/components/Footer";
 
-import { SectionsShowcase, TrustAndJoin } from "@/components/landing/SectionsShowcase";
-import { SECTIONS } from "@/components/sections/sectionsConfig";
+import { LANDING_CARD_KEYS, SectionsShowcase, TrustAndJoin } from "@/components/landing/SectionsShowcase";
 
 function renderSections(open: ReadonlySet<string> | null) {
   state.open = open;
@@ -67,7 +66,8 @@ function renderSections(open: ReadonlySet<string> | null) {
 describe("landing UI audit 2026-11-09", () => {
   it("F003: the Declutter card says offers and checkout are built in", () => {
     const { container, unmount } = renderSections(new Set(["declutter"]));
-    expect(container.querySelectorAll("[data-section]").length).toBe(SECTIONS.length);
+    // D005 (11-10): the open pair as cards (LANDING_CARD_KEYS), the rest in one line.
+    expect(container.querySelectorAll("[data-section]").length).toBe(LANDING_CARD_KEYS.length);
     const card = container.querySelector('[data-section="declutter"]') as HTMLElement;
     expect(card.textContent).toContain("Sell to neighbors or find a deal. Offers and checkout are built in.");
     expect(container.textContent).not.toMatch(/happen in the app/);
@@ -81,7 +81,7 @@ describe("landing UI audit 2026-11-09", () => {
     expect(rule).toMatch(/box-shadow:\s*var\(--lp-shadow\)/);
     const { container, unmount } = renderSections(null);
     const cards = [...container.querySelectorAll<HTMLElement>("[data-section]")];
-    expect(cards.length).toBeGreaterThan(3);
+    expect(cards.length).toBeGreaterThan(1);
     for (const c of cards) {
       expect(c.classList.contains("landing-card"), c.dataset.section).toBe(true);
       expect(c.style.background, c.dataset.section).toBe("");

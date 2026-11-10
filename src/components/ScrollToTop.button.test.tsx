@@ -4,8 +4,8 @@
  * 35px) failed messages-thread.spec.ts's 44px tap-target scan on PR #2841.
  *
  * @mutate src/components/ScrollToTop.tsx | if (!rendered) return null; | if (false) return null;
- * @mutate src/components/ScrollToTop.tsx | setVisible(pos > REVEAL_AFTER_PX && !footerInView() && !onPhoneLanding(pathname)); | setVisible(pos > REVEAL_AFTER_PX && !onPhoneLanding(pathname));
- * @mutate src/components/ScrollToTop.tsx |   if (pathname !== "/" \|\| typeof window.matchMedia !== "function") return false; |   if (true) return false;
+ * @mutate src/components/ScrollToTop.tsx | setVisible(pos > REVEAL_AFTER_PX && !footerInView() && !onLanding(pathname)); | setVisible(pos > REVEAL_AFTER_PX && !onLanding(pathname));
+ * @mutate src/components/ScrollToTop.tsx |   return pathname === "/"; |   return false;
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
@@ -59,7 +59,8 @@ describe("ScrollToTop's button is in the page only while wanted (Q1356)", () => 
     const top = { value: 2000 };
     footer.getBoundingClientRect = () => ({ top: top.value }) as DOMRect;
     render(
-      <MemoryRouter initialEntries={["/"]}>
+      // Any public page with the footer (the landing itself never shows the button, D019).
+      <MemoryRouter initialEntries={["/help"]}>
         <ScrollToTop />
       </MemoryRouter>,
     );
@@ -78,8 +79,9 @@ describe("ScrollToTop's button is in the page only while wanted (Q1356)", () => 
     footer.remove();
   });
 
-  // Owner's UI audit 11-09, F014: on a phone the landing's full-width blocks always sat under the button.
-  describe("never on the landing on a phone (F014)", () => {
+  // Owner's UI audit 11-09, F014: on a phone the landing's full-width blocks always sat under the button. D019 (landing
+  // design audit 11-10): at 1440 it floated over the money band and the join block, so it is off the landing at every width.
+  describe("never on the landing, at any width (F014, D019)", () => {
     const realMatchMedia = window.matchMedia;
     const phone = (isPhone: boolean) => {
       window.matchMedia = ((q: string) => ({
@@ -99,7 +101,7 @@ describe("ScrollToTop's button is in the page only while wanted (Q1356)", () => 
 
     it.each([
       ["/", true, false],
-      ["/", false, true],
+      ["/", false, false],
       ["/messages", true, true],
     ])("%s, phone=%s: button shown = %s", (path, isPhone, shown) => {
       vi.useFakeTimers();

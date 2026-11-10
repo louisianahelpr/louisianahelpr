@@ -52,7 +52,7 @@ vi.mock("@/components/landing/useSectionsOpen", async (importOriginal) => {
 });
 
 import HeroSection from "@/components/landing/HeroSection";
-import { SectionsShowcase } from "@/components/landing/SectionsShowcase";
+import { LANDING_CARD_KEYS, SectionsShowcase, onTheWayLine } from "@/components/landing/SectionsShowcase";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
 import { SoonPill } from "@/components/sections/SoonPill";
 
@@ -75,67 +75,64 @@ describe("the landing says what is open today", () => {
   });
 
   // F009 (owner UI audit 11-09, High; Builder 6's guard, 795062614d, on the badge rule): "Coming soon" sat over the live
-  // Declutter card while the answer loaded, then jumped. While pending there is NO Coming soon; links still fail closed
-  // (only Jobs, which has no switch).
+  // Declutter card while the answer loaded, then jumped. While pending there is NO Coming soon badge; links still fail
+  // closed (only Jobs, which has no switch).
+  // D005 (landing design audit 11-10) + the owner's preview tweak 3: "Four ways" was 1,245px tall at 375, ~465px of it
+  // two Coming soon cards. The cards are the open pair (LANDING_CARD_KEYS: Jobs, Declutter), and the sections still on
+  // the way are ONE line: "Shops and Homes are on the way."
   // @mutate src/components/landing/SectionsShowcase.tsx |     const badged = soon && !pending; |     const badged = soon;
   // @mutate src/components/landing/SectionsShowcase.tsx |   const pending = open === null; |   const pending = false;
-  it("while pending: no Coming soon yet, no card dimmed, every card in one row, only Jobs links (fails closed)", () => {
+  // @mutate src/components/landing/SectionsShowcase.tsx | export const LANDING_CARD_KEYS: readonly SectionKey[] = ["jobs", "declutter"]; | export const LANDING_CARD_KEYS: readonly SectionKey[] = ["jobs", "declutter", "shops", "rentals"];
+  // @mutate src/components/landing/SectionsShowcase.tsx |         {later.length > 0 && ( |         {false && (
+  it("while pending: no Coming soon badge yet, no card dimmed, two cards in one row, only Jobs links (fails closed)", () => {
     const { container, unmount } = renderSections(null);
     const cards = [...container.querySelectorAll<HTMLElement>("[data-section]")];
-    // Inventory floor: every section in sectionsConfig has a card.
-    expect(cards.length).toBe(SECTIONS.length);
-    expect(cards.length).toBeGreaterThan(3);
+    // Inventory floor: the open pair from sectionsConfig has a card each.
+    expect(cards.map((c) => c.dataset.section)).toEqual([...LANDING_CARD_KEYS]);
+    expect(cards.length).toBeGreaterThan(1);
     expect(screen.queryByText("Coming soon")).toBeNull();
-    expect(screen.queryByTestId("landing-sections-soon")).toBeNull();
     for (const c of cards) expect(c.style.opacity, c.dataset.section).toBe("");
-    // One list, in sectionsConfig order.
-    const row = screen.getByRole("list", { name: "Sections" });
-    expect([...row.querySelectorAll("[data-section]")].map((c) => c.getAttribute("data-section"))).toEqual(SECTIONS.map((s) => s.key));
-
     // Jobs keeps its link to the public board; no switched card has one until the answer is in.
     const jobs = container.querySelector('[data-section="jobs"]') as HTMLElement;
     expect(within(jobs).getByRole("link", { name: /Browse jobs/ }).getAttribute("href")).toBe("/browse");
-    for (const s of SECTIONS.filter((x) => x.feature !== null)) {
-      expect(container.querySelector(`[data-section="${s.key}"] a`), s.key).toBeNull();
-    }
+    expect(container.querySelector('[data-section="declutter"] a')).toBeNull();
+    // The rest are one line, never a card each.
+    expect(screen.getByTestId("landing-sections-later").textContent).toBe("Shops and Homes are on the way.");
     unmount();
   });
 
-  it("settled with nothing open (a failed read settles empty): a Coming soon badge inside each unopened card, each dimmed, no link; no line outside the cards", () => {
+  it("settled with nothing open: Declutter's card is badged and dimmed with no link; Shops and Homes are the one line", () => {
     const { container, unmount } = renderSections(new Set());
     const cards = [...container.querySelectorAll<HTMLElement>("[data-section]")];
-    expect(cards.length).toBe(SECTIONS.length);
-    const switched: string[] = SECTIONS.filter((s) => s.feature !== null).map((s) => s.key);
-    expect(switched.length).toBeGreaterThan(2);
-    // One badge per unopened card, each INSIDE its card; nothing outside the cards says it.
-    expect(screen.getAllByText("Coming soon")).toHaveLength(switched.length);
-    for (const c of cards) {
-      const key = c.dataset.section!;
-      const soon = switched.includes(key);
-      expect(c.dataset.soon, key).toBe(soon ? "true" : "false");
-      expect(within(c).queryAllByText("Coming soon"), key).toHaveLength(soon ? 1 : 0);
-      expect(c.style.opacity, key).toBe(soon ? "0.8" : "");
-      if (soon) expect(within(c).queryAllByRole("link"), key).toHaveLength(0);
+    expect(cards.map((c) => c.dataset.section)).toEqual([...LANDING_CARD_KEYS]);
+    const declutter = container.querySelector('[data-section="declutter"]') as HTMLElement;
+    expect(declutter.dataset.soon).toBe("true");
+    expect(within(declutter).getAllByText("Coming soon")).toHaveLength(1);
+    expect(declutter.style.opacity).toBe("0.8");
+    expect(within(declutter).queryAllByRole("link")).toHaveLength(0);
+    expect(screen.getAllByText("Coming soon")).toHaveLength(1);
+    for (const s of SECTIONS.filter((x) => !LANDING_CARD_KEYS.includes(x.key))) {
+      expect(container.querySelector(`[data-section="${s.key}"]`), s.key).toBeNull();
     }
-    expect(screen.queryByTestId("landing-sections-soon")).toBeNull();
-    // The cards keep sectionsConfig's order whatever the answer (no card moves when it comes in).
-    expect(cards.map((c) => c.dataset.section)).toEqual(SECTIONS.map((s) => s.key));
-    const jobs = container.querySelector('[data-section="jobs"]') as HTMLElement;
-    expect(within(jobs).getByRole("link", { name: /Browse jobs/ }).getAttribute("href")).toBe("/browse");
+    expect(screen.getByTestId("landing-sections-later").textContent).toBe("Shops and Homes are on the way.");
     unmount();
   });
 
-  it("a section that opens loses its badge and dimming and gains its link; the others keep theirs", () => {
+  it("a section that opens loses its badge and gains its link; an opened Shops leaves the line", () => {
     const { container, unmount } = renderSections(new Set(["declutter"]));
     const declutter = container.querySelector('[data-section="declutter"]') as HTMLElement;
     expect(within(declutter).queryByText("Coming soon")).toBeNull();
     expect(declutter.style.opacity).toBe("");
     expect(declutter.querySelector("a")).not.toBeNull();
-    const stillSoon = SECTIONS.filter((s) => s.feature !== null && s.feature !== "declutter");
-    expect(stillSoon.length).toBeGreaterThan(1);
-    expect(screen.getAllByText("Coming soon")).toHaveLength(stillSoon.length);
-    expect(container.querySelectorAll("[data-section]")[0].getAttribute("data-section")).toBe(SECTIONS[0].key);
+    expect(screen.queryByText("Coming soon")).toBeNull();
     unmount();
+    const r = renderSections(new Set(["declutter", "shops"]));
+    expect(screen.getByTestId("landing-sections-later").textContent).toBe("Homes is on the way.");
+    r.unmount();
+    const all = renderSections(new Set(["declutter", "shops", "rentals"]));
+    expect(screen.queryByTestId("landing-sections-later")).toBeNull();
+    all.unmount();
+    expect(onTheWayLine(["Shops", "Homes"])).toBe("Shops and Homes are on the way.");
   });
 
   it("every section open: no Coming soon badge at all", () => {
@@ -157,7 +154,7 @@ describe("the landing says what is open today", () => {
     expect(chip.container.textContent).toBe("Soon");
     chip.unmount();
     const { unmount } = renderSections(new Set());
-    expect(screen.getByTestId("landing-soon-shops").textContent).toBe(railWord);
+    expect(screen.getByTestId("landing-soon-declutter").textContent).toBe(railWord);
     unmount();
   });
 

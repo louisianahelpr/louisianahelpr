@@ -1,9 +1,10 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { goSignedInOr } from "./goSignedInOr";
 import { HIRE_STEPS } from "./hireSteps";
+import { useLandingMode, type LandingMode } from "./landingMode";
 import {
   SegmentedControl,
   type SegmentedOption,
@@ -92,11 +93,30 @@ export const POST_JOB_SIGNED_OUT = signupUrlFor(POST_JOB_PATH);
 export const SELL_PATH = "/declutter/sell";
 export const SELL_SIGNED_OUT = signupUrlFor(SELL_PATH);
 
+/** Owner's preview tweak 1 (11-10): in Declutter mode How it works opens on "Buy or sell"; in Jobs mode on "I need help". */
+function sideForMode(mode: LandingMode): Side {
+  return mode === "declutter" ? "sell" : "hire";
+}
+
+/**
+ * D012 / D020 (landing design audit 11-10): each side's ONE action, a quiet link beside the tabs (it was a lone outline
+ * button under the steps, bottom-left at 1440, and the sell side had two). Same verbs as the rest of the landing.
+ */
+const SIDE_ACTION: Record<Side, { label: string; signedOut: string; signedIn: string; testId: string }> = {
+  hire: { label: "Post a job", signedOut: POST_JOB_SIGNED_OUT, signedIn: POST_JOB_PATH, testId: "landing-post-job" },
+  work: { label: "Browse jobs", signedOut: "/browse", signedIn: "/browse", testId: "landing-find-work" },
+  sell: { label: "Sell something", signedOut: SELL_SIGNED_OUT, signedIn: SELL_PATH, testId: "landing-sell" },
+};
+
 const HowItWorksSection = () => {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [reveal, setReveal] = useState<Reveal>("shown");
-  const [side, setSide] = useState<Side>("hire");
+  const mode = useLandingMode();
+  const [side, setSide] = useState<Side>(() => sideForMode(mode));
+  // The hero's Jobs | Declutter choice turns this section's side too (preview tweak 1).
+  useEffect(() => setSide(sideForMode(mode)), [mode]);
   const navigate = useNavigate();
+  const action = SIDE_ACTION[side];
 
   useLayoutEffect(() => {
     if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
@@ -134,7 +154,7 @@ const HowItWorksSection = () => {
       <div className="mx-auto w-full max-w-6xl flex flex-col gap-8 md:gap-10">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
           <h2
-            className="font-display landing-serif text-balance leading-[1.05] text-ds-28"
+            className="font-display landing-serif text-balance landing-h2"
             style={{ color: "var(--lp-ink)" }}
           >
             How it works
@@ -142,14 +162,32 @@ const HowItWorksSection = () => {
           {/* The app's shared control (selected = the olive primary), so the
               marketing page and the app agree on what "selected" looks like.
               `semantics="tab"`: it swaps the three step cards below. */}
-          <SegmentedControl
-            semantics="tab"
-            labelSize="md"
-            ariaLabel="Which side of Helpr are you on"
-            options={SIDE_OPTIONS}
-            value={side}
-            onChange={setSide}
-          />
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            {/* D008 (landing design audit 11-10): the hero's quiet selected style, so the landing has ONE look for
+                "selected" (this switch was the solid olive, the hero's the white pill). */}
+            <SegmentedControl
+              semantics="tab"
+              labelSize="md"
+              tone="quiet"
+              ariaLabel="Which side of Helpr are you on"
+              options={SIDE_OPTIONS}
+              value={side}
+              onChange={setSide}
+            />
+            <Link
+              to={action.signedOut}
+              onClick={(e) => {
+                e.preventDefault();
+                void goSignedInOr(navigate, action.signedIn, action.signedOut);
+              }}
+              data-testid={action.testId}
+              className="inline-flex items-center gap-1.5 min-h-11 text-ds-15 font-bold link-standard"
+              style={{ color: "var(--lp-action-strong)" }}
+            >
+              {action.label}
+              <ArrowRight className="w-4 h-4" aria-hidden />
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 items-stretch gap-3 sm:gap-4 lg:gap-5">
@@ -195,44 +233,6 @@ const HowItWorksSection = () => {
 
         {/* No Helpr Guarantee box here (owner, 2026-10-31: "it doesn't fit there"). The
             promise stays where it is offered: first post's Review and /book/<id>. */}
-        {side === "hire" && (
-          <Link
-            to={POST_JOB_SIGNED_OUT}
-            onClick={(e) => {
-              e.preventDefault();
-              void goSignedInOr(navigate, POST_JOB_PATH, POST_JOB_SIGNED_OUT);
-            }}
-            data-testid="landing-post-job"
-            className="self-center sm:self-start inline-flex items-center justify-center gap-2 min-h-12 rounded-full px-7 text-ds-16 font-bold border-2 transition-colors"
-            style={{ color: "var(--lp-action-strong)", borderColor: "var(--lp-action)" }}
-          >
-            Post a job
-            <ArrowRight className="w-4 h-4" aria-hidden />
-          </Link>
-        )}
-        {/* Owner #7 (11-09): the Declutter side's own two actions, the same outline button as Post a job, plus a quiet
-            link: selling asks for an account first (a guest signs up and comes back to /declutter/sell); browsing is
-            open to guests. */}
-        {side === "sell" && (
-          <div className="self-center sm:self-start flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-            <Link
-              to={SELL_SIGNED_OUT}
-              onClick={(e) => {
-                e.preventDefault();
-                void goSignedInOr(navigate, SELL_PATH, SELL_SIGNED_OUT);
-              }}
-              data-testid="landing-sell"
-              className="inline-flex items-center justify-center gap-2 min-h-12 rounded-full px-7 text-ds-16 font-bold border-2 transition-colors"
-              style={{ color: "var(--lp-action-strong)", borderColor: "var(--lp-action)" }}
-            >
-              Sell something
-              <ArrowRight className="w-4 h-4" aria-hidden />
-            </Link>
-            <Link to="/declutter" data-testid="landing-shop" className="inline-flex items-center min-h-11 text-ds-15 font-bold link-standard" style={{ color: "var(--lp-action-strong)" }}>
-              Shop Declutter
-            </Link>
-          </div>
-        )}
       </div>
     </section>
   );

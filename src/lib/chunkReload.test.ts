@@ -210,6 +210,35 @@ describe("recoverFromChunkError", () => {
     expect(replace).toHaveBeenCalledTimes(1);
   });
 
+  // Audit 1110 F359n: the reloaded page's address loses `_v` once a chunk loads, so a shared link is clean.
+  // @mutate src/lib/chunkReload.ts |   stripRecoveryCacheBuster();\n  try {\n    const rawLast |   try {\n    const rawLast
+  // @mutate src/lib/chunkReload.ts |     url.searchParams.delete("_v");\n    history.replaceState |     history.replaceState
+  // @mutate src/lib/chunkReload.ts |     if (!url.searchParams.has("_v")) return;\n    const probe |     const probe
+  it("(e) a successful load removes the recovery `_v` from the address, keeping the other params and the hash", () => {
+    window.location.href = "https://www.louisianahelpr.com/declutter/item/de8ae5ef?_v=1794341313312&from=share#photos";
+    const replaceState = vi.spyOn(window.history, "replaceState");
+    markChunkLoadSucceeded();
+    expect(replaceState).toHaveBeenCalledTimes(1);
+    expect(replaceState.mock.calls[0][2]).toBe("/declutter/item/de8ae5ef?from=share#photos");
+    // Without `_v` the address is left alone.
+    window.location.href = "https://www.louisianahelpr.com/declutter/item/de8ae5ef?from=share";
+    markChunkLoadSucceeded();
+    expect(replaceState).toHaveBeenCalledTimes(1);
+    replaceState.mockRestore();
+  });
+
+  it("(f) with storage blocked, `_v` stays: it is the only marker against a reload loop", () => {
+    window.location.href = "https://www.louisianahelpr.com/browse?_v=1794341313312";
+    const replaceState = vi.spyOn(window.history, "replaceState");
+    const set = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    markChunkLoadSucceeded();
+    expect(replaceState).not.toHaveBeenCalled();
+    set.mockRestore();
+    replaceState.mockRestore();
+  });
+
   it("without usable sessionStorage, reloads once and never again from the reloaded page", async () => {
     const get = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("blocked");

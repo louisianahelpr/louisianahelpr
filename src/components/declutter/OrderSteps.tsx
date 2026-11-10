@@ -87,6 +87,11 @@ const STEPS: Record<OrderHandover, readonly [string, string, string, string]> = 
  * the card's action and the button under Details.
  */
 const GOT_IT_OPENS_MINUTES_BEFORE = 60;
+/** Audit 11-10 F384: the ISO time "I got it" opens (an hour before the booked time), for the card's waiting line. */
+export function gotItOpensAt(slotStart: string): string {
+  return new Date(new Date(slotStart).getTime() - GOT_IT_OPENS_MINUTES_BEFORE * 60_000).toISOString();
+}
+
 export function gotItOpen(slotStart: string | null | undefined, now: number = Date.now()): boolean {
   if (!slotStart) return false;
   const t = new Date(slotStart).getTime();

@@ -324,8 +324,13 @@ export function SellerDeliveryMoney({ itemsCents, problemOpen = false }: { items
   );
 }
 
-/** Board 159: the seller's porch photo, for both sides, once it's out. */
-export function PorchOutPhoto({ orderId, side }: { orderId: string; side: "buyer" | "seller" }) {
+/**
+ * Board 159: the seller's porch photo, for both sides, once it's out.
+ * Audit 11-10 F378: the buyer's caption said "Report it before you take your pickup photo" with no Report button in
+ * sight (the card's own "Report a problem" waits for the pickup time to pass). `onProblem` puts a text button right
+ * under that sentence, opening the card's one problem form; the card leaves it out while a problem is already open.
+ */
+export function PorchOutPhoto({ orderId, side, onProblem }: { orderId: string; side: "buyer" | "seller"; onProblem?: () => void }) {
   const h = useMyHandover(orderId);
   const path = h.data?.set_out_photo_path ?? null;
   const url = useQuery({
@@ -350,6 +355,9 @@ export function PorchOutPhoto({ orderId, side }: { orderId: string; side: "buyer
           ? "This photo shows where it is. Something wrong? Report it before you take your pickup photo."
           : "The buyer sees this photo."}
       </figcaption>
+      {side === "buyer" && onProblem && (
+        <InlineTextButton className="text-sm font-semibold underline underline-offset-2" onClick={onProblem} data-porch-report="">Report a problem</InlineTextButton>
+      )}
     </figure>
   );
 }

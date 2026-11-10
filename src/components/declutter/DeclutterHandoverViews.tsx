@@ -286,7 +286,8 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {order.handover === "meetup" && <MeetupPanel orderId={order.orderId} side={order.side} slotStart={booking?.slot_start ?? null} />}
           {/* NIGHT-BUYINGopenpr-7: door tips only for a pickup still to come; a held order says what happens instead. */}
           {order.handover === "pickup_home" && !problem && !noShowWaiting && <DoorPickupTips side={order.side} />}
-          {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
+          {/* F378: the buyer's "Report it before you take your pickup photo" has its button; it opens the card's form below. */}
+          {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} onProblem={problem ? undefined : () => { setAtHandover(true); setProblemOpen(true); }} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} held={!!problem} />}
           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
           {booking?.slot_start && !problem && <NoShowButton order={order} slotStart={noShowFrom(booking, porchSeller) ?? booking.slot_start} who={who} />}

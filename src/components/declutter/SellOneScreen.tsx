@@ -37,6 +37,9 @@ type Where = "photos" | SummaryField | "settings" | "tax";
  * The first thing that blocks Post, top to bottom, and the row it belongs to. While the AI is writing, the title and
  * price it is about to fill are not problems yet (audit posting 1030 #7: tapping Post then said "Give the item a name").
  */
+const SIZE_PROBLEM = "Pick a size, so buyers know what it takes to move it.";
+const SIZE_PROBLEM_FREE = "Pick a size, so the person picking it up knows what it takes to move it.";
+
 function postProblems(s: SellFlow): { message: string; at: Where }[] {
   const out: { message: string; at: Where }[] = [];
   if (s.photoTotal < DECLUTTER_MIN_PHOTOS) out.push({ message: `Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}.`, at: "photos" });
@@ -50,7 +53,8 @@ function postProblems(s: SellFlow): { message: string; at: Where }[] {
     probe = at === "title" ? { ...probe, title: "Answered" } : { ...probe, price: "100", floor: "1", dropPct: DEFAULT_DROP_PCT };
   }
   if (s.savedWays.length === 0 && !out.some((p) => p.at === "settings")) out.push({ message: "Choose a way buyers can get it in Settings.", at: "settings" });
-  if (!writing && !s.sizeKnown) out.push({ message: "Pick a size, so buyers know what it takes to move it.", at: "size" });
+  // Nobody buys a give-away (audit 1110 F340): that form names the person picking it up.
+  if (!writing && !s.sizeKnown) out.push({ message: s.form.free ? SIZE_PROBLEM_FREE : SIZE_PROBLEM, at: "size" });
   if (!s.attested) out.push({ message: "Tick the box about this item before you list it.", at: "tax" });
   return out;
 }
@@ -134,8 +138,9 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   return (
     <AppPage title={form.free ? "Give it away" : "Sell an item"} backTo="/declutter?tab=selling" phoneHidesTitle>
       <div className="mx-auto w-full max-w-xl space-y-6" data-sell-one-screen="">
-        {/* Payouts: only once money is owed (owner 2026-10-27, list first, set up at first sale). */}
-        <SellerPayoutPrompt />
+        {/* Payouts: only once money is owed (owner 2026-10-27, list first, set up at first sale); never on a give-away,
+            which earns nothing (audit 1110 F340). */}
+        {!form.free && <SellerPayoutPrompt />}
 
         {s.keptWork.restored && (
           <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-[20px] border border-border bg-card p-4" data-sell-kept="">

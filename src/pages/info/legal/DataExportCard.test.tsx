@@ -41,7 +41,11 @@ describe("DataExportCard waits for auth before choosing its control", () => {
   it("signed out once ready: the Sign In link, returning straight to the in-app Legal tab card", () => {
     auth.state = { user: null, isReady: true };
     renderCard();
-    const link = screen.getByRole("link", { name: "Sign In to Download" });
+    // L030 (landing audit 11-09): sentence case, as every button.
+    // @mutate src/pages/info/legal/DataExportCard.tsx |                 Sign in to download | Sign In to Download
+    // @mutate src/pages/info/legal/DataExportCard.tsx |             One file |             JSON file
+    const link = screen.getByRole("link", { name: "Sign in to download" });
+    expect(document.body.textContent).not.toMatch(/JSON/);
     expect(link).toHaveAttribute(
       "href",
       `/login?redirect=${encodeURIComponent("/profile?tab=legal&doc=privacy#download-your-data")}`,

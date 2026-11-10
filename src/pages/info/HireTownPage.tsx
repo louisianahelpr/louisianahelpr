@@ -54,7 +54,7 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
   return (
     // F063 (owner UI audit 11-09): the page is a ~760px column, centred, title included (the header's max width is the
     // column plus the shell's own side padding at each breakpoint, px-5 / sm:px-8 / lg:px-12, so their left edges meet).
-    <PublicHeaderPage title={`${service.label} in ${town.name}`} width="public" wrapTitle bottomPaddingClassName="pb-12 md:pb-16"
+    <PublicHeaderPage title={`${service.pageLabel ?? service.label} in ${town.name}`} width="public" wrapTitle bottomPaddingClassName="pb-12 md:pb-16"
       headerWrapperClassName={TOWN_HEADER_COLUMN}>
       <div className={`mx-auto ${TOWN_COLUMN} space-y-section font-sans`} data-town-page={`${service.slug}/${town.slug}`}>
         <section className="space-y-4">
@@ -91,12 +91,12 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
           {/* F063: chips, not a run-on line of small links. */}
           <ul className="flex flex-wrap gap-2" data-town-more="towns">
             {TOWN_PAGE_TOWNS.filter((t) => t.slug !== town.slug).map((t) => (
-              <li key={t.slug}><Button asChild variant="outline" size="sm" className="font-semibold tracking-normal"><Link to={townPagePath(service, t)}>{service.label} in {t.name}</Link></Button></li>
+              <li key={t.slug}><Button asChild variant="outline" size="sm" className="font-semibold tracking-normal"><Link to={townPagePath(service, t)}>{service.pageLabel ?? service.label} in {t.name}</Link></Button></li>
             ))}
           </ul>
           <ul className="flex flex-wrap gap-2" data-town-more="services">
             {TOWN_PAGE_SERVICES.filter((s) => s.slug !== service.slug).map((s) => (
-              <li key={s.slug}><Button asChild variant="outline" size="sm" className="font-semibold tracking-normal"><Link to={townPagePath(s, town)}>{s.label} in {town.name}</Link></Button></li>
+              <li key={s.slug}><Button asChild variant="outline" size="sm" className="font-semibold tracking-normal"><Link to={townPagePath(s, town)}>{s.pageLabel ?? s.label} in {town.name}</Link></Button></li>
             ))}
           </ul>
         </nav>

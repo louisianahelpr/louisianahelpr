@@ -78,7 +78,7 @@ export function DataExportCard() {
               Download your data
             </h2>
             <p className="text-ds-11 text-muted-foreground mt-1 leading-snug">
-              Get a copy of what your Helpr account holds — profile, jobs, messages, payments, reviews, settings, and links to your uploaded files — as a single JSON file.
+              Get a copy of what your Helpr account holds — profile, jobs, messages, payments, reviews, settings, and links to your uploaded files — as one file you can save.
             </p>
           </div>
         </div>
@@ -88,8 +88,9 @@ export function DataExportCard() {
           className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3"
           style={{ borderTop: "1px solid hsl(var(--olivewood) / 0.10)" }}
         >
+          {/* L030 (landing audit 11-09): "JSON file" was jargon for the owner's readers. */}
           <span className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            JSON file
+            One file
           </span>
           {!isReady ? (
             // Auth still settling: a neutral, disabled control in the shape of
@@ -115,7 +116,7 @@ export function DataExportCard() {
                   mint goes through a redirect), and not /privacy, which is the
                   nav-less public page. */}
               <Link to={`/login?redirect=${encodeURIComponent(dataRightsTarget(true))}`}>
-                Sign In to Download
+                Sign in to download
               </Link>
             </Button>
           )}

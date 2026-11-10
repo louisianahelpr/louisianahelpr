@@ -1,6 +1,6 @@
 /** Types for src/lib/townPages.mjs (shared by the SPA, api/share.ts and the sitemap generator). */
 export interface TownPageTown { slug: string; name: string }
-export interface TownPageService { category: string; label: string; phrase: string; slug: string }
+export interface TownPageService { category: string; label: string; pageLabel?: string; phrase: string; slug: string }
 export interface TownPageMeta {
   title: string;
   description: string;

@@ -12,7 +12,7 @@
  *         for Louisiana Helpr), and the shop's ready photo.
  *
  * Services and at-home work (shops audit 11-08 #3): always in person on the
- * server; the shop taps "Work done" (no ready photo), the buyer "It's done" or
+ * server; the shop taps "Mark complete" (no ready photo), the buyer "It's done" or
  * "Something's wrong", and the 48-hour auto-confirm runs from the shop's tap.
  *
  * Loads its own handover row (one small query per card), so the screens keep
@@ -57,7 +57,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
   const [note, setNote] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const open = order.status === "accepted" && !!order.captured_at;
-  // Services and at-home work: "Work done" (the jobs card owns the name "Mark done", AppliedJobCard.doneFloorFace guard), never a ready photo (shops audit 11-08 #3; the server keeps them in person).
+  // Services and at-home work: "Mark complete" (the jobs card owns the name "Mark done", AppliedJobCard.doneFloorFace guard), never a ready photo (shops audit 11-08 #3; the server keeps them in person).
   const service = isServiceOrder(order);
   const w = handoverWords(order);
   const handover = useQuery({
@@ -184,7 +184,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
         <div className="flex flex-wrap gap-2">
           {due && !h?.shop_confirmed_at && (
             <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setHandingOver(true)}>
-              {service ? "Work done" : "Handed over"}
+              {service ? "Mark complete" : "Handed over"}
             </Button>
           )}
           <p className="w-full text-xs text-muted-foreground" data-testid="shop-handover-wait">
@@ -217,7 +217,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
           )}
           {!porch && due && !h?.shop_confirmed_at && (
             <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setHandingOver(true)}>
-              {service ? "Work done" : "Handed over"}
+              {service ? "Mark complete" : "Handed over"}
             </Button>
           )}
           <p className="w-full text-xs text-muted-foreground" data-testid="shop-handover-wait">
@@ -248,9 +248,9 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
       <BrandConfirmDialog
         open={handingOver}
         onOpenChange={(o) => { if (!o) setHandingOver(false); }}
-        title={service ? "Work done?" : "Handed over?"}
+        title={service ? "Mark complete?" : "Handed over?"}
         description={w.shopDoneBody}
-        primaryLabel={handedOver.isPending ? "Saving…" : service ? "Work done" : "Handed over"}
+        primaryLabel={handedOver.isPending ? "Saving…" : service ? "Mark complete" : "Handed over"}
         primaryDisabled={handedOver.isPending}
         onPrimary={(e) => {
           e.preventDefault();

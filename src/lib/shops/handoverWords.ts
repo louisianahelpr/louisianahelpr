@@ -1,7 +1,7 @@
 /**
  * The words of one Shops order's handover (shops audit 11-08 #3 and #14). A service or work at the buyer's place is
  * "done", never "handed over" or "picked up": the server freezes such an order to the in-person step (no ready photo,
- * no porch photo rule; 20261108200421_shops_services_in_person.sql), so its completion is the shop's "Mark done", then
+ * no porch photo rule; 20261108200421_shops_services_in_person.sql), so its completion is the shop's "Mark complete", then
  * the buyer's "It's done" or the 48-hour auto-confirm.
  */
 import type { ShopOrder } from "./orders";
@@ -46,11 +46,11 @@ const GOODS: HandoverWords = {
 };
 
 const SERVICE: HandoverWords = {
-  shopDone: "Mark done",
+  shopDone: "Mark complete",
   shopDoneToast: "Marked done. The buyer has 48 hours to report a problem.",
   shopDoneBody: "Only tap this once the work is finished. The buyer has 48 hours to report a problem; then you're paid.",
   shopMarkedWait: "You marked it done. You're paid 48 hours after that unless the buyer reports a problem.",
-  shopOpenWait: "Tap \"Mark done\" when the work is finished. The buyer confirms, or it confirms itself 48 hours after your tap unless they report a problem.",
+  shopOpenWait: "Tap \"Mark complete\" when the work is finished. The buyer confirms, or it confirms itself 48 hours after your tap unless they report a problem.",
   buyerShopSaysDone: " The shop says the work is done. If something's wrong, tell us within 48 hours.",
   buyerGotIt: "It's done",
   buyerGotItBody: "The shop is paid now and the order is final. Only tap this once the work is finished.",

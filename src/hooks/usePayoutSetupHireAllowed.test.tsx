@@ -5,7 +5,7 @@
  * member and FAILS CLOSED: an error, a missing function (PGRST202), any
  * answer but a literal true, signed out, and while loading all read false.
  *
- * @mutate src/hooks/usePayoutSetupHireAllowed.ts |   return data === true; |   return data !== false;
+ * @mutate src/hooks/usePayoutSetupHireAllowed.ts |   return { allowed: data === true, |   return { allowed: data !== false,
  * @mutate src/hooks/usePayoutSetupHireAllowed.ts |       return unwrap(res) === true; |       return true;
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";

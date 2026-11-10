@@ -25,12 +25,18 @@ const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Q1947: Declutter's "Sell it for me" sheet opens a business's chat with ?ask=quote, and the message box starts with
+ * this line for the member to finish and send (nothing is sent for them).
+ */
+export const QUOTE_DRAFT = "I'd like a quote to help sell my items: ";
+
 function useTalkParam() {
   const [params, setParams] = useSearchParams();
   const talkId = params.get("talk");
   const set = (id: string | null) => {
     const next = new URLSearchParams(params);
-    if (id) next.set("talk", id); else next.delete("talk");
+    if (id) next.set("talk", id); else { next.delete("talk"); next.delete("ask"); }
     setParams(next, { replace: !id });
   };
   return [talkId && UUID.test(talkId) ? talkId : null, set] as const;
@@ -100,11 +106,12 @@ export function ShopTalksCard() {
 /** The thread for ?talk=<id>; closing it takes the parameter off. */
 export function ShopTalkFromLink() {
   const [talkId, setTalk] = useTalkParam();
+  const [params] = useSearchParams();
   if (!talkId) return null;
-  return <ShopTalkSheet talkId={talkId} onClose={() => setTalk(null)} />;
+  return <ShopTalkSheet talkId={talkId} onClose={() => setTalk(null)} initialDraft={params.get("ask") === "quote" ? QUOTE_DRAFT : ""} />;
 }
 
-function ShopTalkSheet({ talkId, onClose }: { talkId: string; onClose: () => void }) {
+function ShopTalkSheet({ talkId, onClose, initialDraft = "" }: { talkId: string; onClose: () => void; initialDraft?: string }) {
   const webDesktop = useIsWebDesktop();
   const qc = useQueryClient();
   const key = ["shops", "talk", talkId] as const;
@@ -125,7 +132,7 @@ function ShopTalkSheet({ talkId, onClose }: { talkId: string; onClose: () => voi
     }
     return view;
   }, refetchInterval: 15_000 });
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(initialDraft);
   const [refusal, setRefusal] = useState<string | null>(null);
   // Q1947: the other side's message can be reported (shop_talk_message; the server refuses your own).
   const [reporting, setReporting] = useState<string | null>(null);

@@ -142,6 +142,8 @@ export const EXPORT_SECTIONS = [
   "declutter_swap_offers",
   // Homes messages (20261106182837; exported by 20261106191100).
   "home_talks", "home_talk_messages",
+  // Shops messages (20261105185006; exported by 20261110200630, NOT-LAUNCHED Q1947).
+  "shop_talks", "shop_talk_messages",
   // Porch days (20261029161347; exported by 20261029223949).
   "declutter_seller_porch_days",
   // A seller's own meet spots (20261101194608; exported by 20261101210500).

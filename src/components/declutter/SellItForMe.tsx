@@ -6,14 +6,15 @@
  *   B. Ask a local business: nearby shops in "Declutter and estate sale
  *      services", on the Shops Browse card. Only while the 'shops' switch is
  *      on for the viewer; otherwise the sheet offers A alone.
- * "Request a quote" is greyed with "Coming soon" (lead, 2026-10-19): a shop
- * cannot be asked yet, neither by quote invite (Q1869) nor by message
- * (Q1947), so a tap only says so. The card itself opens the shop's page.
+ * "Request a quote" opens the member's chat with that business (Shops
+ * messages, Q1947) on its shop page, the message box started with "I'd like a
+ * quote to help sell my items: " for them to finish and send. The card itself
+ * opens the shop's page.
  * The entry shows only where Declutter shows (the 'declutter' switch).
  */
 import { useState } from "react";
-import { hideUnopenedInApp } from "@/lib/hideUnopenedInApp";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { ChevronRight, HandHelping, Store, UserRound } from "lucide-react";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,6 +25,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { browseShops, fetchShopCardExtras } from "@/lib/shops/api";
 import { shopsErrorMessage } from "@/lib/shops/errors";
+import { openShopTalk } from "@/lib/shops/talk";
 import { SELL_FOR_ME_SHOP_CATEGORY } from "@/lib/declutter/sellForMe";
 import { ShopBrowseCard } from "@/components/shops/ShopBrowseCard";
 import { categoryLabel, useShopCategories } from "@/components/shops/shopsUi";
@@ -33,9 +35,6 @@ import { HelprListExplainSheet } from "./HelprListExplainSheet";
 
 /** At most this many businesses in the sheet, nearest first. */
 const MAX_SHOPS = 6;
-
-/** What a tap on the greyed "Request a quote" says (no shop can be asked yet). */
-export const QUOTE_SOON_LINE = "Asking a business for a quote opens soon. For now, see their shop or hire a Helpr.";
 
 /** The two "who helps" rows wear the shared ListRow (Q2709, 11-05) in this card look: icon, text, chevron. */
 const ROW = "gap-3 rounded-2xl border border-border bg-card px-4 py-3";
@@ -132,7 +131,13 @@ function LocalBusinesses() {
     enabled: shops.isSuccess && ids.length > 0,
   });
   const loading = origin.status === "pending" || shops.isLoading || categories.isLoading || (ids.length > 0 && extras.isLoading);
-  const [asked, setAsked] = useState<string | null>(null);
+  const navigate = useNavigate();
+  // Q1947: "Request a quote" opens (or makes) the member's one chat with that business, on its shop page, with the
+  // quote line started in the message box (?ask=quote; ShopTalk.tsx QUOTE_DRAFT).
+  const ask = useMutation({
+    mutationFn: (shopId: string) => openShopTalk(shopId),
+    onSuccess: (talkId, shopId) => navigate(`/shops/${shopId}?talk=${talkId}&ask=quote`),
+  });
   const group = categories.data?.find((c) => c.slug === SELL_FOR_ME_SHOP_CATEGORY)?.group_slug ?? null;
 
   return (
@@ -160,25 +165,19 @@ function LocalBusinesses() {
           {list.map((s) => (
             <li key={s.id} className="min-w-0 space-y-2" data-testid="sell-for-me-shop">
               <ShopBrowseCard shop={s} category={categoryLabel(categories.data, s.category)} group={group} extras={extras.data?.get(s.id)} />
-              {/* The iPhone app shows no disabled "Request a quote" (owner 10-31, src/lib/hideUnopenedInApp.ts). */}
-              {!hideUnopenedInApp() && (
               <div className="flex items-center gap-2 px-0.5">
                 <SectionActionPill
                   variant="outline"
-                  aria-disabled="true"
-                  aria-label="Request a quote, coming soon"
-                  className="bg-muted/50 text-muted-foreground shadow-none hover:bg-muted/50 hover:text-muted-foreground"
-                  onClick={() => setAsked(s.id)}
+                  disabled={ask.isPending}
+                  onClick={() => ask.mutate(s.id)}
                   data-testid="sell-for-me-request-quote"
                 >
                   Request a quote
                 </SectionActionPill>
-                <span className="text-ds-13 text-muted-foreground">Coming soon</span>
               </div>
-              )}
-              {asked === s.id && (
-                <p role="status" className="px-0.5 text-ds-13 text-muted-foreground">
-                  {QUOTE_SOON_LINE}
+              {ask.isError && ask.variables === s.id && (
+                <p role="alert" className="px-0.5 text-ds-13 text-destructive-ink">
+                  {shopsErrorMessage(ask.error)}
                 </p>
               )}
             </li>

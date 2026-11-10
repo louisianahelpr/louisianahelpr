@@ -15,7 +15,10 @@
  * @mutate scripts/inline-shell-css.mjs |   return false;\n} | return true;\n}
  * @mutate scripts/inline-shell-css.mjs | data-theme="${theme}" ${htmlAttr}><head> | data-theme="${theme}"><head>
  * @mutate scripts/inline-shell-css.mjs | const FIXED = "{display:block; | const FIXED = "{display:none;
- * @mutate scripts/inline-shell-css.mjs | `<style id="${STYLE_ID}">${critical}${present | `<style id="${STYLE_ID}">${present
+ * @mutate scripts/inline-shell-css.mjs | `<style id="${STYLE_ID}">${critical}${showRulesNotIn | `<style id="${STYLE_ID}">${showRulesNotIn
+ * Item page speed (11-09): a show rule the critical CSS already carries is not written twice; one it lacks is.
+ * @mutate scripts/inline-shell-css.mjs |     if (!covered) out.push(node.toString()); |     out.push(node.toString());
+ * @mutate scripts/inline-shell-css.mjs | decls(node).every((d) => have.get(sel(one))?.has(d)) | have.has(sel(one))
  * @mutate scripts/inline-shell-css.mjs |     if (!families.has(fam)) at.remove(); |     at.remove();
  * @mutate scripts/inline-shell-css.mjs |     if (!families.has(fam)) at.remove(); |     {}
  * @mutate scripts/inline-shell-css.mjs |   root.walkDecls((d) => { if (d.prop.startsWith("--") && !used.has(d.prop)) d.remove(); }); |
@@ -28,7 +31,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { DESKTOP_PX, inlineShellCss, SHELL_END, SHELL_START, SHELLS, shellCriticalCss, shellVocabulary } from "../../scripts/inline-shell-css.mjs";
+import { DESKTOP_PX, inlineShellCss, showRulesNotIn, SHELL_END, SHELL_START, SHELLS, shellCriticalCss, shellVocabulary } from "../../scripts/inline-shell-css.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const INDEX = readFileSync(join(ROOT, "index.html"), "utf8");
@@ -140,6 +143,16 @@ describe("the landing shell's own CSS rides in the HTML (Q2705)", () => {
     expect(block).toContain("[data-lh-landing-shell] #lh-landing-shell{display:block;position:fixed;inset:0;");
     expect(() => inlineShellCss(html, SHEET)).toThrow(/already inlined/);
     expect(() => inlineShellCss("<html><head></head><body></body></html>", SHEET)).toThrow(/no #lh-landing-shell/);
+  });
+
+  it("writes a show rule only once: the app sheet's own copy in the critical CSS is enough (item page speed, 11-09)", () => {
+    const show = '[data-lh-app-shell="item"] #lh-item-shell{display:block;position:fixed;inset:0}[data-x] #y{display:block!important}';
+    // The minifier drops the quotes and reorders the declarations: still the same rule.
+    expect(showRulesNotIn(show, "[data-lh-app-shell=item] #lh-item-shell{position:fixed;display:block;inset:0}.a{color:red}")).toBe("[data-x] #y{display:block!important}");
+    expect(showRulesNotIn(show, "[data-lh-app-shell=item] #lh-item-shell{display:block;inset:0}"), "a declaration missing: written").toContain("#lh-item-shell{display:block;position:fixed;inset:0}");
+    expect(showRulesNotIn(show, "[data-x] #y{display:block}"), "not !important: written").toContain("[data-x] #y{display:block!important}");
+    expect(showRulesNotIn(show, "@media (min-width:1px){[data-x] #y{display:block!important}}"), "only top-level rules count").toContain("[data-x] #y");
+    expect(showRulesNotIn(show, "")).toBe(show);
   });
 
   it("npm run build inlines it after vite build and before the share function snapshots the shell", () => {

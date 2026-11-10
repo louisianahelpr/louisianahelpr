@@ -206,6 +206,31 @@ export function shellCriticalCss(shellHtml, css) {
   return root.toString().replace(/\n+/g, "");
 }
 
+const sel = (s) => s.replace(/["'\s]/g, "");
+const decls = (rule) => rule.nodes.filter((n) => n.type === "decl").map((d) => `${d.prop}:${d.value.replace(/\s/g, "")}${d.important ? "!" : ""}`);
+/**
+ * The show rules the critical CSS does not already carry (item page speed, 11-09: each shell's show rule is also in
+ * src/index.css, so the critical CSS kept that copy too, and the second one cost 127 B gz of the cap). A show rule is
+ * dropped only when a top-level critical rule names its exact selector with every one of its declarations.
+ */
+export function showRulesNotIn(show, critical) {
+  const have = new Map();
+  postcss.parse(critical).each((node) => {
+    if (node.type !== "rule") return;
+    for (const one of node.selectors) {
+      const k = sel(one);
+      have.set(k, new Set([...(have.get(k) ?? []), ...decls(node)]));
+    }
+  });
+  const out = [];
+  postcss.parse(show).each((node) => {
+    if (node.type !== "rule") return void out.push(node.toString());
+    const covered = node.selectors.every((one) => decls(node).every((d) => have.get(sel(one))?.has(d)));
+    if (!covered) out.push(node.toString());
+  });
+  return out.join("");
+}
+
 /** index.html with every present shell's critical CSS and show rule in <head>. */
 export function inlineShellCss(html, css) {
   if (shellBlock(html, SHELLS[0].id) === null) throw new Error("inline-shell-css: index.html has no #lh-landing-shell block");
@@ -214,7 +239,7 @@ export function inlineShellCss(html, css) {
     .filter((s) => s.html !== null)
     .map((s) => (s.extra ? { ...s, html: s.html + s.extra } : s));
   const critical = shellCriticalCss(present, css);
-  const block = `<style id="${STYLE_ID}">${critical}${present.map((s) => s.show).join("")}</style>`;
+  const block = `<style id="${STYLE_ID}">${critical}${showRulesNotIn(present.map((s) => s.show).join(""), critical)}</style>`;
   const head = html.indexOf("</head>");
   if (head < 0) throw new Error("inline-shell-css: no </head>");
   // BEFORE the app stylesheet, never after it (live 11-05: the desktop rail vanished on every page). The block is a

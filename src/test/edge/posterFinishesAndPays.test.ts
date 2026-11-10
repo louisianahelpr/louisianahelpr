@@ -23,6 +23,10 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+
+/** The fixed clock the rule tests use (Tue 11/10 noon Central); the fixtures' days are relative to it, never literals. */
+const RUN_NOW = new Date("2026-11-10T18:00:00Z");
 import { posterFinishOpen, posterFinishRefusalMessage } from "../../../supabase/functions/_shared/posterFinish";
 
 const POSTER = { id: "poster-1", email: "poster@test.com" };
@@ -36,7 +40,7 @@ const yusefJob = (over: Record<string, unknown> = {}) => ({
   id: "job-1", title: "Mow and Weed Eat", customer_id: POSTER.id, helper_id: HELPR.id, status: "in_progress", budget: 100,
   urgent_fee: 0, helper_fee_percent: 10, platform_fee_amount: 10, is_group_job: false, payment_status: "escrow",
   helper_arrived_at: daysAgo(9), poster_confirmed_arrival_at: daysAgo(9), helper_arrival_verified_at: daysAgo(9),
-  poster_completed_at: null, helper_completed_at: null, stripe_payment_intent_id: "pi_123", date_needed: "2026-11-01", start_time: "09:00:00",
+  poster_completed_at: null, helper_completed_at: null, stripe_payment_intent_id: "pi_123", date_needed: jobLocalDateISO(-9, RUN_NOW), start_time: "09:00:00",
   ...over,
 });
 
@@ -157,7 +161,7 @@ describe("create-payment release: the poster finishes the job (posterFinishes)",
 });
 
 describe("posterFinishOpen (the job page's mirror of the rule, for the button only)", () => {
-  const now = Date.parse("2026-11-10T18:00:00Z");
+  const now = RUN_NOW.getTime();
   const job = yusefJob();
   it("Yusef's job with its continue day (Fri 11/6 3:15 PM) passed: open", () => {
     expect(posterFinishOpen(job, { status: "set", new_date: "2026-11-06", new_start_time: "15:15:00" }, now)).toBe(true);
@@ -167,7 +171,7 @@ describe("posterFinishOpen (the job page's mirror of the rule, for the button on
   });
   it("no continue day: the job's own start decides", () => {
     expect(posterFinishOpen(job, null, now)).toBe(true);
-    expect(posterFinishOpen({ ...job, date_needed: "2026-11-11" }, null, now)).toBe(false);
+    expect(posterFinishOpen({ ...job, date_needed: jobLocalDateISO(1, RUN_NOW) }, null, now)).toBe(false);
   });
   it("closed once the Helpr marked done, for a crew, without held money, during a dispute, or off in_progress", () => {
     expect(posterFinishOpen({ ...job, helper_completed_at: daysAgo(1) }, null, now)).toBe(false);

@@ -5,6 +5,7 @@ import { signupUrlFor } from "@/lib/jobIntent";
 import { goSignedInOr } from "./goSignedInOr";
 import { HIRE_STEPS } from "./hireSteps";
 import { useLandingMode, type LandingMode } from "./landingMode";
+import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 import {
   SegmentedControl,
   type SegmentedOption,
@@ -89,8 +90,8 @@ type Reveal = "shown" | "waiting" | "revealed";
  */
 export const POST_JOB_PATH = "/post-job";
 export const POST_JOB_SIGNED_OUT = signupUrlFor(POST_JOB_PATH);
-/** Owner #7 (11-09): the Declutter side's Sell button, with the same sign-up-and-return rule. */
-export const SELL_PATH = "/declutter/sell";
+/** Owner #7 (11-09): the Declutter side's Sell button, with the same sign-up-and-return rule; it opens the sell chooser (owner pick 5, 11-08), never the bare one-item form. */
+export const SELL_PATH = SELL_CHOOSER_PATH;
 export const SELL_SIGNED_OUT = signupUrlFor(SELL_PATH);
 
 /** Owner's preview tweak 1 (11-10): in Declutter mode How it works opens on "Buy or sell"; in Jobs mode on "I need help". */

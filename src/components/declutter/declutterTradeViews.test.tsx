@@ -996,7 +996,7 @@ describe("Declutter slice 3 screens", () => {
   });
 
   it("lead 2026-10-28: a reserved line says \"Reserved for you, not paid yet\" with the time left; the bundle hint only when the seller has one", async () => {
-    // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         {allFree ? "Reserved for you. " : "Reserved for you, not paid yet. "} |         {allFree ? "Reserved for you. " : "Reserved for you. "}
+    // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         {allFree ? "Reserved for you. " : noStrike ? "" : "Reserved for you, not paid yet. "} |         {allFree ? "Reserved for you. " : noStrike ? "" : "Reserved for you. "}
     // Next-step line (owner 2026-11-01): the hold opens with the buyer's move and its deadline.
     // @mutate src/components/declutter/DeclutterReserveSheet.tsx |       <NextStep value={cartNextStep(allFree, timeLeft)} /> |       <NextStep value={null} />
     // @mutate src/components/declutter/DeclutterReserveSheet.tsx | allFree ? "Choose how you get it, then confirm" : "Choose how you get it, then pay", by: timeLeft \|\| null | allFree ? "Choose how you get it, then confirm" : "Choose how you get it, then pay", by: null
@@ -1052,7 +1052,9 @@ describe("Declutter slice 3 screens", () => {
   });
 
   // DB-5 (owner 2026-10-30): a Buy now line (source "buy") is no strike; a checkout holding an accepted offer keeps it.
-  // @mutate src/components/declutter/DeclutterReserveSheet.tsx |           : noStrike ? `Pay by ${by}. |           : false ? `Pay by ${by}.
+  // Audit 11-10 F351 (High): the Buy now hold is "Held for you until …. Not ready? Remove it anytime, no strike."
+  // @mutate src/components/declutter/DeclutterReserveSheet.tsx |           : noStrike ? `Held for you until ${by}. |           : false ? `Held for you until ${by}.
+  // @mutate src/components/declutter/DeclutterReserveSheet.tsx | : noStrike ? "" : "Reserved for you, not paid yet. " | : "Reserved for you, not paid yet. "
   // @mutate src/lib/declutter/buyNowHold.ts |   return lines.length > 0 && lines.every((l) => l.price_cents === 0 \|\| l.source === "buy"); |   return lines.length > 0;
   // @mutate src/components/declutter/DeclutterTradeViews.tsx | allFree={allFree} lines={lines} timeLeft= | allFree={allFree} lines={[]} timeLeft=
   it("DB-5: a Buy now checkout says No strike; one with an accepted offer still warns of the strike", async () => {
@@ -1063,8 +1065,8 @@ describe("Declutter slice 3 screens", () => {
     const first = show(<CartView />);
     await waitFor(() => expect(document.querySelector("[data-cart-hold]")).not.toBeNull());
     const hold = document.querySelector("[data-cart-hold]") as HTMLElement;
-    expect(hold.textContent).toMatch(/Pay by .+\. If you don't, it goes back up for sale\. No strike\.$/);
-    expect(hold.textContent).not.toMatch(/you get a strike/);
+    expect(hold.textContent).toMatch(/Held for you until .+\. Not ready\? Remove it anytime, no strike\.$/);
+    expect(hold.textContent).not.toMatch(/you get a strike|goes back up|Reserved for you, not paid yet/);
     first.unmount();
     state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", source: "offer" }];
     show(<CartView />);

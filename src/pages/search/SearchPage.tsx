@@ -2,6 +2,7 @@ import { hideUnopenedInApp } from "@/lib/hideUnopenedInApp";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { hasInAppHistory } from "@/lib/inAppHistory";
 import { useQuery } from "@tanstack/react-query";
 import { Search, X, type LucideIcon } from "lucide-react";
 import AppPage from "@/components/AppPage";
@@ -282,7 +283,8 @@ export default function SearchPage() {
   const fieldLabel = declutterOn ? "Search jobs and items" : "Search jobs";
 
   return (
-    <AppPage title="Search" onBack={() => navigate(-1)}>
+    // L005 (landing audit 11-09): a cold-opened link had no in-app entry behind it, so back went to about:blank.
+    <AppPage title="Search" onBack={() => (hasInAppHistory() ? navigate(-1) : navigate("/", { replace: true }))}>
       <div className="space-y-4 pb-6" data-testid="search-page">
         <form role="search" aria-label="Search Helpr" onSubmit={submit} className="flex items-center gap-2 h-12 pl-4 pr-1 rounded-full border border-border focus-within:ring-2 focus-within:ring-ring" style={{ background: "hsl(var(--card))" }}>
           <Search className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />

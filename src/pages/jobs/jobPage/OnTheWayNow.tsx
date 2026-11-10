@@ -23,8 +23,15 @@ import type { JobPageRow } from "./useJobPage";
 const TrackingMap = lazy(() => import("@/components/TrackingMap").then((m) => ({ default: m.TrackingMap })));
 
 /** "8:51 AM" in Louisiana time, the job's own clock. */
-function onTheWaySince(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
+const TZ = "America/Chicago";
+const laDay = (d: Date) => d.toLocaleDateString("en-US", { timeZone: TZ, year: "numeric", month: "short", day: "numeric" });
+/** "12:28 PM" today; "Mon, Nov 9 at 12:28 PM" on any other day (audit 11-10 W2 F283: a bare yesterday's time read as an hour ago). */
+export function onTheWaySince(iso: string, now: Date = new Date()): string {
+  const d = new Date(iso);
+  const clock = d.toLocaleTimeString("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit" });
+  if (laDay(d) === laDay(now)) return clock;
+  const day = d.toLocaleDateString("en-US", { timeZone: TZ, weekday: "short", month: "short", day: "numeric" });
+  return `${day} at ${clock}`;
 }
 
 /** The poster sees this block: set off, not arrived, the job still live. */

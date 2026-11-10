@@ -21,7 +21,7 @@ const job = {
   status: "disputed", helper_id: "h1", payment_status: "escrow", has_active_dispute: true,
   helper_completed_at: "2032-10-20T12:00:00Z", dispute_deadline: "2032-10-23T15:00:00Z",
 };
-const BODY = "A real person at Louisiana Helpr is looking at the problem, with an answer by Sat 10:00 AM. The money stays held.";
+const BODY = "A real person at Louisiana Helpr is looking at the problem, with an answer by Sat, Oct 23 at 10:00 AM. The money stays held.";
 
 describe("Q2600: the dispute line is a short title with the explanation as body", () => {
   for (const side of ["poster", "helpr"] as const) {

@@ -736,7 +736,7 @@ describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => 
     state.party = true;
     renderPage();
     const block = document.querySelector("[data-on-the-way]") as HTMLElement;
-    await waitFor(() => expect(block.textContent).toContain("Rhonda is on the way · since 8:51 AM"));
+    await waitFor(() => expect(block.textContent).toContain("Rhonda is on the way · since Wed, Oct 28 at 8:51 AM"));
     expect(block.textContent).toContain("You'll confirm once they say they've arrived.");
     const tracker = document.querySelector("[data-job-tracker]") as HTMLElement;
     expect(block.compareDocumentPosition(tracker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

@@ -21,7 +21,7 @@ import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { coarseDevice, coarseReferrer, sponsorBackend, type SponsorBackend } from "@/lib/sponsor/api";
 import { normalizeRef } from "../../../supabase/functions/_shared/sponsorSignup";
 import { ClaimSection } from "@/components/sponsor/ClaimSection";
-import { Garland } from "@/components/sponsor/Decor";
+import { PlaidTrim } from "@/components/sponsor/Decor";
 import {
   About, BrandGets, Faq, FinalCta, Footer, Founder, Hero, HowItWorks, PlaceholderPreview, PreviewCard, Reach,
   SponsorWall, Testimonials, TrustStrip, WhatWeAsk,
@@ -54,13 +54,13 @@ function shouldLogVisit(ref: string | null): boolean {
   return true;
 }
 
-/** The page's own top: the dev-only sample-data ribbon and the string lights. */
+/** The page's own top: the dev-only sample-data ribbon and the thin plaid trim. */
 export function SponsorChrome() {
   const demo = import.meta.env.DEV && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo");
   return (
     <>
       {demo ? <div className="lh25-demo-ribbon">LOCAL PREVIEW · SAMPLE DATA · NOT LIVE</div> : null}
-      <Garland />
+      <PlaidTrim />
     </>
   );
 }
@@ -151,6 +151,7 @@ export default function SponsorPage() {
         </div>
         <FinalCta />
         <Footer />
+        <PlaidTrim />
       </div>
     </PlaceholderPreview.Provider>
   );

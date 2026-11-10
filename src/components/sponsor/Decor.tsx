@@ -1,39 +1,20 @@
 /**
- * 25 Days page decorations: original, simple inline SVGs drawn for this page
- * (string lights, sparkles, fleur-de-lis, magnolia, gift box) and the small
- * line icons on the cards. No clip-art, no characters, no other brand's logo.
- * All are decorative (aria-hidden) unless a label is passed.
+ * 25 Days page decorations, in the classic Christmas look of the sponsor
+ * email (owner 2026-11-09): a thin plaid trim, small antique-gold four-point
+ * stars and a gold star rule, plus a quiet fleur-de-lis and the small line
+ * icons on the cards. No clip-art, no characters, no other brand's logo. All
+ * are decorative (aria-hidden) unless a label is passed. The stars are SVG,
+ * not a text glyph, so antique gold never counts as text for contrast.
  */
 import type { CSSProperties, ReactNode } from "react";
 
-const BULBS = ["#C8102E", "#D4AF37", "#1E8E3E", "#5B2A86"];
-
-/** The string-light garland across the top of the page. */
-export function Garland({ count = 18 }: { count?: number }) {
-  const w = 1200;
-  const step = w / count;
-  const sag = (x: number) => 18 + 14 * Math.sin((x / w) * Math.PI * 6 - Math.PI / 2);
-  let d = `M 0 ${sag(0)}`;
-  for (let x = 20; x <= w; x += 20) d += ` L ${x} ${sag(x).toFixed(1)}`;
-  return (
-    <svg className="lh25-garland" viewBox={`0 0 ${w} 70`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
-      <path className="lh25-wire" d={d} fill="none" stroke="#2f5d3a" />
-      {Array.from({ length: count }, (_, i) => {
-        const x = step * i + step / 2;
-        const y = sag(x);
-        const color = BULBS[i % BULBS.length];
-        return (
-          <g key={i} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}>
-            <rect x="-3" y="0" width="6" height="6" rx="1.5" fill="#6b6b6b" />
-            <ellipse className="lh25-bulb" style={{ "--lh25-delay": `${(i % 5) * 0.37}s` } as CSSProperties} cx="0" cy="15" rx="6.5" ry="10" fill={color} />
-          </g>
-        );
-      })}
-    </svg>
-  );
+/** The thin plaid band (hunter green and gold over oxblood) at the top and bottom of the page. */
+export function PlaidTrim({ className = "" }: { className?: string }) {
+  return <div className={`lh25-plaid ${className}`} aria-hidden="true" />;
 }
 
-export function Sparkle({ size = 18, color = "#D4AF37", className = "", style }: { size?: number; color?: string; className?: string; style?: CSSProperties }) {
+/** A small four-point star, the page's one ornament. */
+export function Sparkle({ size = 14, color = "#b08d57", className = "", style }: { size?: number; color?: string; className?: string; style?: CSSProperties }) {
   return (
     <svg className={`lh25-sparkle ${className}`} style={style} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path d="M12 1 C13 8 16 11 23 12 C16 13 13 16 12 23 C11 16 8 13 1 12 C8 11 11 8 12 1 Z" fill={color} />
@@ -41,8 +22,17 @@ export function Sparkle({ size = 18, color = "#D4AF37", className = "", style }:
   );
 }
 
+/** Two gold hairlines with a star between them: the divider under every heading. */
+export function StarRule({ className = "" }: { className?: string }) {
+  return (
+    <span className={`lh25-star-rule ${className}`} aria-hidden="true">
+      <span /> <Sparkle size={13} /> <span />
+    </span>
+  );
+}
+
 /** A simple fleur-de-lis built from three petals and a band. */
-export function FleurDeLis({ size = 28, color = "#D4AF37", className = "" }: { size?: number; color?: string; className?: string }) {
+export function FleurDeLis({ size = 28, color = "#b08d57", className = "" }: { size?: number; color?: string; className?: string }) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" focusable="false">
       <g fill={color}>
@@ -52,33 +42,6 @@ export function FleurDeLis({ size = 28, color = "#D4AF37", className = "" }: { s
         <rect x="20" y="36" width="24" height="5" rx="2.5" />
         <path d="M28 41 L36 41 L34 56 L30 56 Z" />
       </g>
-    </svg>
-  );
-}
-
-/** A five-petal magnolia bloom. */
-export function Magnolia({ size = 44, className = "" }: { size?: number; className?: string }) {
-  const petals = [0, 72, 144, 216, 288];
-  return (
-    <svg className={className} width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-      <g transform="translate(32 32)">
-        {petals.map((a) => (
-          <path key={a} transform={`rotate(${a})`} d="M0 0 C-10 -8 -9 -26 0 -29 C9 -26 10 -8 0 0 Z" className="lh25-petal" fill="#fffaf2" stroke="#e8d9c4" />
-        ))}
-        <circle r="6" fill="#D4AF37" />
-        <circle r="3" fill="#b8932a" />
-      </g>
-    </svg>
-  );
-}
-
-export function GiftBox({ size = 44, box = "#C8102E", ribbon = "#D4AF37", className = "" }: { size?: number; box?: string; ribbon?: string; className?: string }) {
-  return (
-    <svg className={className} width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-      <rect x="8" y="26" width="48" height="32" rx="5" fill={box} />
-      <rect x="5" y="18" width="54" height="11" rx="4" fill={box} style={{ filter: "brightness(1.12)" }} />
-      <rect x="28" y="18" width="8" height="40" fill={ribbon} />
-      <path d="M32 18 C24 6 12 10 18 17 C21 20 28 19 32 18 Z M32 18 C40 6 52 10 46 17 C43 20 36 19 32 18 Z" fill={ribbon} />
     </svg>
   );
 }

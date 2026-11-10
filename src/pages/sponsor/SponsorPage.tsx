@@ -12,6 +12,7 @@
  * .lh25) and font: nothing here is in the main bundle or the app's theme.
  */
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { sponsorPage as C } from "@/content/sponsorPage";
@@ -115,6 +116,7 @@ export default function SponsorPage() {
       <div className="lh25 min-h-screen bg-premium-page">
         <SponsorChrome />
         <div className="lh25-loading" role="alert">
+          <ReportErrorScreen source="SponsorPage" title="We couldn't load this page" />
           <p>We couldn't load this page. Check your connection and try again.</p>
           <button type="button" className="lh25-btn lh25-btn-primary" onClick={() => void stateQ.refetch()}>Try again</button>
           <p>Or email <a href={`mailto:${C.links.email}`}>{C.links.email}</a>.</p>

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-10T20:42Z",
+  "measured_at": "2026-11-10T20:57Z",
   "issues": {
     "readable": true,
     "open": [
@@ -22,7 +22,7 @@
         "number": 2353,
         "title": "nightly-red: press-every-control",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42609204217",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42830678182",
         "runTruncated": false
       },
       {
@@ -113,7 +113,7 @@
         "number": 4258,
         "title": "nightly-red: prod-errors",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42820949074",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42897084347",
         "runTruncated": false
       },
       {
@@ -127,7 +127,7 @@
         "number": 4281,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42896596135",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42900038601",
         "runTruncated": false
       },
       {
@@ -570,7 +570,6 @@
     "issue #3491": "Q1816",
     "issue #3784": "Q1816",
     "issue #3813": "Q1816",
-    "issue #3823": "Q2498",
     "issue #4149": "Q1816",
     "issue #4222": "Q1816",
     "issue #4245": "Q1816",
@@ -600,7 +599,6 @@
     "ledger 43d77e26f272": "Q1816",
     "ledger 4840f1c5d1e7": "Q2779",
     "ledger 4c89303184fb": "Q1816",
-    "ledger 54ef0bfdcec3": "Q2778",
     "ledger 5a28db44e912": "Q2410",
     "ledger 60298a019ea3": "Q1776",
     "ledger 60dd730d868e": "Q2781",
@@ -611,7 +609,6 @@
     "ledger 8018e82cb167": "Q1816",
     "ledger 88b4addefbcd": "Q2503",
     "ledger 88ecf6e765df": "Q1816",
-    "ledger 8a2e802edbe7": "Q2498",
     "ledger 8b1b5ac42f94": "Q2782",
     "ledger 8f6eb3360000": "Q2507",
     "ledger 9078a39b3304": "Q1615",

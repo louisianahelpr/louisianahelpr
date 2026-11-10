@@ -43,10 +43,13 @@ export const SHORT_FIELD_MEASURE = "max-w-[22rem]";
 /** Area + ZIP side by side: a city name and five digits. */
 export const AREA_FIELD_MEASURE = "max-w-[36rem]";
 
-/** Q2648: the About-you counter counts UP to the 20-character minimum ("2 more characters to go"). */
+/**
+ * Q2648: the About-you counter counts UP to the 20-character minimum. It names the minimum too ("At least 20
+ * characters (2 to go)"): "2 more characters to go" alone never said what the target was (audit 11-10 W2 F261a).
+ */
 export function bioCharsToGo(bio: string): string {
   const left = Math.max(0, 20 - bio.trim().length);
-  return `${left} more character${left === 1 ? "" : "s"} to go`;
+  return `At least 20 characters (${left} to go)`;
 }
 
 export function ProfileEditForm({

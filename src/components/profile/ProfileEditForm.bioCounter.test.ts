@@ -3,7 +3,7 @@
  * (Q2648): "18 of 20 characters" then read like a limit almost reached, though 20 is a MINIMUM. It now says what is
  * still needed while the bio is short.
  *
- * @mutate src/components/profile/ProfileEditForm.tsx |   return `${left} more character${left === 1 ? "" : "s"} to go`; |   return `${20 - left} of 20 characters`;
+ * @mutate src/components/profile/ProfileEditForm.tsx |   return `At least 20 characters (${left} to go)`; |   return `${20 - left} of 20 characters`;
  * @mutate src/components/profile/ProfileEditForm.tsx |                 {bioCharsToGo(bio)} |                 {bio.trim().length} of 20 characters
  */
 import { describe, it, expect, vi } from "vitest";
@@ -17,9 +17,9 @@ const src = readFileSync(path.join(process.cwd(), "src/components/profile/Profil
 
 describe("the About-you counter says what is still needed (A3-C5, Q2648)", () => {
   it("counts down to the minimum, in characters", () => {
-    expect(bioCharsToGo("a".repeat(18))).toBe("2 more characters to go");
-    expect(bioCharsToGo("a".repeat(19))).toBe("1 more character to go");
-    expect(bioCharsToGo("")).toBe("20 more characters to go");
+    expect(bioCharsToGo("a".repeat(18))).toBe("At least 20 characters (2 to go)");
+    expect(bioCharsToGo("a".repeat(19))).toBe("At least 20 characters (1 to go)");
+    expect(bioCharsToGo("")).toBe("At least 20 characters (20 to go)");
   });
 
   it("the form shows it, never '/20 min' or 'of 20 characters'", () => {

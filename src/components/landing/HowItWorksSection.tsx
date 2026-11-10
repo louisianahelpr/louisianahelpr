@@ -20,11 +20,14 @@ import {
  * jobs and works them, so the steps switch between the poster journey
  * and the helpr journey via the segmented control above the cards.
  */
-type Side = "hire" | "work";
+type Side = "hire" | "work" | "sell";
 
 const SIDE_OPTIONS: SegmentedOption<Side>[] = [
   { value: "hire", label: "I need help" },
   { value: "work", label: "I want to work" },
+  // Owner 11-09 (10:45 PM, #7): the landing talked about Jobs and barely about Declutter. The third side is Declutter's
+  // own three steps, the same calm cards.
+  { value: "sell", label: "Buy or sell" },
 ];
 
 // Copy true TODAY (lead, LANDING-APPROVED.md, 2026-10-20). Poster side:
@@ -54,6 +57,14 @@ const STEPS: Record<Side, { title: string; desc: string }[]> = {
     { title: "Get picked", desc: "The person who posted the job picks you, and you accept." },
     { title: "Get paid when it's done", desc: "Their payment is held safely, then released to you once the work is approved." },
   ],
+  // Declutter, true today (OWNER-DECISIONS.md "Posting" and "Declutter handover money", 10-30/11-01): a listing is photos,
+  // title, description, price, category and condition; buyers tap Buy now or send an offer; the buyer's "I got it" alone
+  // finishes the order and pays the seller.
+  sell: [
+    { title: "List it in a minute", desc: "Add photos, a title and a garage-sale price." },
+    { title: "Neighbors buy or offer", desc: "They tap Buy now or send you an offer. You choose." },
+    { title: "Hand it over, get paid", desc: "Meet up or leave it on the porch. You're paid once the buyer says they got it." },
+  ],
 };
 
 /**
@@ -77,6 +88,9 @@ type Reveal = "shown" | "waiting" | "revealed";
  */
 export const POST_JOB_PATH = "/post-job";
 export const POST_JOB_SIGNED_OUT = signupUrlFor(POST_JOB_PATH);
+/** Owner #7 (11-09): the Declutter side's Sell button, with the same sign-up-and-return rule. */
+export const SELL_PATH = "/declutter/sell";
+export const SELL_SIGNED_OUT = signupUrlFor(SELL_PATH);
 
 const HowItWorksSection = () => {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -123,7 +137,7 @@ const HowItWorksSection = () => {
             className="font-display landing-serif text-balance leading-[1.05] text-ds-28"
             style={{ color: "var(--lp-ink)" }}
           >
-            How a job works
+            How it works
           </h2>
           {/* The app's shared control (selected = the olive primary), so the
               marketing page and the app agree on what "selected" looks like.
@@ -195,6 +209,29 @@ const HowItWorksSection = () => {
             Post a job
             <ArrowRight className="w-4 h-4" aria-hidden />
           </Link>
+        )}
+        {/* Owner #7 (11-09): the Declutter side's own two actions, the same outline button as Post a job, plus a quiet
+            link: selling asks for an account first (a guest signs up and comes back to /declutter/sell); browsing is
+            open to guests. */}
+        {side === "sell" && (
+          <div className="self-center sm:self-start flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <Link
+              to={SELL_SIGNED_OUT}
+              onClick={(e) => {
+                e.preventDefault();
+                void goSignedInOr(navigate, SELL_PATH, SELL_SIGNED_OUT);
+              }}
+              data-testid="landing-sell"
+              className="inline-flex items-center justify-center gap-2 min-h-12 rounded-full px-7 text-ds-16 font-bold border-2 transition-colors"
+              style={{ color: "var(--lp-action-strong)", borderColor: "var(--lp-action)" }}
+            >
+              Sell something
+              <ArrowRight className="w-4 h-4" aria-hidden />
+            </Link>
+            <Link to="/declutter" data-testid="landing-shop" className="inline-flex items-center min-h-11 text-ds-15 font-bold link-standard" style={{ color: "var(--lp-action-strong)" }}>
+              Shop Declutter
+            </Link>
+          </div>
         )}
       </div>
     </section>

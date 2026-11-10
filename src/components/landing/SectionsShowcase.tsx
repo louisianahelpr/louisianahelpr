@@ -6,6 +6,7 @@ import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig"
 import { APPROVAL_WINDOW_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
 import { useSectionsOpen, sectionIsComingSoon } from "./useSectionsOpen";
 import { goSignedInOr } from "./goSignedInOr";
+import { POST_JOB_PATH, POST_JOB_SIGNED_OUT, SELL_PATH, SELL_SIGNED_OUT } from "./HowItWorksSection";
 import { whenPageSettled } from "@/lib/routePrefetch";
 
 const LandingAppleButton = lazy(() => import("./LandingAppleButton"));
@@ -160,7 +161,7 @@ export function SectionsShowcase() {
             Four ways to get things done. One account.
           </h2>
           <p className="text-ds-15 sm:text-ds-17" style={{ color: "var(--lp-body)" }}>
-            {idOn ? "Verify your ID once and it counts everywhere on Helpr." : "One account works in every section of Helpr."}
+            {idOn ? "Verify your ID once and it counts everywhere on Helpr." : "Jobs and Declutter are open today. Shops and Homes are on the way."}
           </p>
         </div>
         <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="landing-sections" aria-label="Sections">
@@ -256,6 +257,11 @@ export function TrustAndJoin() {
                 </li>
               ))}
             </ol>
+            {/* Owner #7 (11-09): Declutter's money rule beside the jobs' one, one quiet line (OWNER-DECISIONS.md, Declutter
+                handover money: the buyer's "I got it" finishes the order and pays the seller; nothing moves before). */}
+            <p className="text-ds-13 sm:text-ds-15 leading-relaxed" data-testid="landing-money-declutter">
+              On Declutter, the same rule: the seller is paid once the buyer says they got it.
+            </p>
           </div>
           <ul className="grid grid-cols-2 gap-2.5 sm:gap-3">
             {TRUST.map((t) => (t === TRUST_ID_ON && !idOn ? TRUST_ID_OFF : t)).map(({ icon: Icon, title, body }) => (
@@ -293,6 +299,13 @@ export function TrustAndJoin() {
               <AppleSlot />
             )}
           </div>
+          {/* Owner #7 (11-09): the close names both open sections' first steps, quietly (links, not more buttons). */}
+          <nav aria-label="Start here" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-ds-15 font-semibold" data-testid="landing-join-starts">
+            <Link to="/browse" className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>Find work</Link>
+            <Link to={POST_JOB_SIGNED_OUT} onClick={(e) => { e.preventDefault(); void goSignedInOr(navigate, POST_JOB_PATH, POST_JOB_SIGNED_OUT); }} className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>Post a job</Link>
+            <Link to="/declutter" className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>Shop Declutter</Link>
+            <Link to={SELL_SIGNED_OUT} onClick={(e) => { e.preventDefault(); void goSignedInOr(navigate, SELL_PATH, SELL_SIGNED_OUT); }} className="inline-flex items-center min-h-11 link-standard" style={{ color: "var(--lp-action-strong)" }}>Sell something</Link>
+          </nav>
           <Link to="/login" className="inline-flex items-center min-h-11 text-ds-15 font-bold underline underline-offset-4" style={{ color: "var(--lp-action-strong)" }}>
             Already a member? Log in
           </Link>

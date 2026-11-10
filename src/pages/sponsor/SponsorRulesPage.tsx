@@ -43,6 +43,7 @@ export default function SponsorRulesPage() {
     return () => { live = false; };
   }, []);
   const draft = rulesAreDraft(C.rules);
+  const showDraft = import.meta.env.DEV && typeof window !== "undefined" && new URLSearchParams(window.location.search).has("demo");
   // The same head values api/share.ts serves before JavaScript runs (NOINDEX_PAGE_META; never indexed).
   usePageMeta(NOINDEX_PAGE_META["/25days/rules"]);
   const q = useQuery({
@@ -72,16 +73,21 @@ export default function SponsorRulesPage() {
   return (
     <div className="lh25 min-h-screen bg-premium-page"><SponsorChrome />
       <div className="lh25-rules">
-        {draft ? <p className="lh25-draft" role="note" data-testid="rules-draft-banner">{C.rules.draftBanner}</p> : null}
+        {draft && showDraft ? <p className="lh25-draft" role="note" data-testid="rules-draft-banner">{C.rules.draftBanner}</p> : null}
         <Link className="lh25-back" to="/sponsor">← {C.rules.backLink}</Link>
         <h1>{C.rules.title}</h1>
         <p className="lh25-rules-sub">{C.rules.subtitle}</p>
-        {C.rules.sections.map((s) => (
-          <section key={s.heading}>
-            <h2>{s.heading}</h2>
-            <p>{draft ? <RuleText text={s.body} /> : s.body}</p>
-          </section>
-        ))}
+        {/* Owner 11-10: an unfinished draft is never shown to the public; only the local preview (?demo) shows it. */}
+        {draft && !showDraft ? (
+          <p className="lh25-rules-pending" data-testid="rules-pending">{C.rules.pendingNote}</p>
+        ) : (
+          C.rules.sections.map((s) => (
+            <section key={s.heading}>
+              <h2>{s.heading}</h2>
+              <p>{draft ? <RuleText text={s.body} /> : s.body}</p>
+            </section>
+          ))
+        )}
       </div>
     </div>
   );

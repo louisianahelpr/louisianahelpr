@@ -29,7 +29,6 @@ const ID = {
   email: "lh25-email",
   phone: "lh25-phone",
   prize: "lh25-prize",
-  value: "lh25-value",
   website: "lh25-website",
   ig: "lh25-ig",
   fb: "lh25-fb",
@@ -49,7 +48,6 @@ export function errorMessage(code: string | undefined): string | null {
     case "required": return E.required;
     case "email": return E.email;
     case "days": return E.days;
-    case "prizeValue": return E.prizeValue;
     case "agree": return E.agree;
     case "url": return E.url;
     case "logoType": return E.logoType;
@@ -70,7 +68,7 @@ export function dayTileLabel(count: number, maxPerDay: number | null): { label: 
 /** The blank form. Exported for its test: every sign-up sends shipTo "helpr" (owner 11-09). */
 export const EMPTY: SponsorSignupPayload = {
   brandName: "", contactName: "", email: "", phone: "", website: "", instagram: "", facebook: "", tiktok: "",
-  prizeDescription: "", prizeValue: "", shipTo: "helpr", notes: "", days: [], anyDay: false, agree: false, showOnWall: false,
+  prizeDescription: "", shipTo: "helpr", notes: "", days: [], anyDay: false, agree: false, showOnWall: false,
   ref: null, company_fax: "",
 };
 
@@ -295,9 +293,6 @@ export function ClaimSection({
           </Field>
           <Field id={ID.prize} label={F.prizeDescription} error={err("prizeDescription")} hint={F.prizeDescriptionHint}>
             <Textarea id={ID.prize} name="prizeDescription" rows={2} value={form.prizeDescription} onChange={(e) => set("prizeDescription", e.target.value)} aria-invalid={!!err("prizeDescription")} aria-describedby={describe("lh25-prize", "prizeDescription", true)} required />
-          </Field>
-          <Field id={ID.value} label={F.prizeValue} error={err("prizeValue")}>
-            <Input id={ID.value} name="prizeValue" inputMode="decimal" value={form.prizeValue} onChange={(e) => set("prizeValue", e.target.value)} aria-invalid={!!err("prizeValue")} aria-describedby={describe("lh25-value", "prizeValue")} required placeholder="50" />
           </Field>
           <Field id={ID.website} label={F.website} error={err("website")}>
             <Input id={ID.website} name="website" type="url" inputMode="url" autoComplete="url" value={form.website} onChange={(e) => set("website", e.target.value)} aria-describedby={describe("lh25-website", "website")} placeholder="https://" />

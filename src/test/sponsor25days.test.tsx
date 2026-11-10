@@ -6,6 +6,10 @@
 // @mutate api/share.ts |   sponsor: SPONSOR_CARD, |   sponsorX: SPONSOR_CARD,
 // @mutate supabase/functions/_shared/sponsorSignup.ts |   return nowMs < closesAt; |   return true;
 // @mutate src/components/sponsor/ClaimSection.tsx |   shipTo: "helpr", notes: "", |   shipTo: "", notes: "",
+// @mutate supabase/functions/_shared/sponsorSignup.ts |     // Not given: stays null (sponsor_signups.prize_value is nullable since 20261110171648). |     errors.prizeValue = "required";
+// @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       <Detail label="Your prize">{s.prizeDescription}</Detail> |       <Detail label="Your prize">{s.prizeDescription} (about ${s.prizeValue})</Detail>
+// @mutate supabase/functions/_shared/email-templates/sponsor-25days.tsx |       {s.prizeValue != null ? <Detail label="Prize value">${s.prizeValue}</Detail> : null} |       <Detail label="Prize value">${s.prizeValue}</Detail>
+// @mutate src/pages/admin/sponsors/AdminSponsorsPage.tsx | (v == null ? "—" : `$${v}`) | `$${v}`
 /**
  * 25 Days of Louisiana Giveaways (owner spec 2026-11-09): the page-side rules.
  *  - the sign-up validator the page AND the sponsor-25days function run;
@@ -30,7 +34,7 @@ import { buildIcs, countdown, dayStartUtc, daysLabel } from "@/lib/sponsor/dates
 import { About, BrandGets, Faq, Footer, Founder, Hero, Reach, filledStats } from "@/components/sponsor/Sections";
 import { ClaimSection, EMPTY as EMPTY_SIGNUP, dayTileLabel, errorMessage } from "@/components/sponsor/ClaimSection";
 import { rulesAreDraft } from "@/pages/sponsor/SponsorRulesPage";
-import { signupsCsv } from "@/pages/admin/sponsors/AdminSponsorsPage";
+import { prizeValueLabel, signupsCsv } from "@/pages/admin/sponsors/AdminSponsorsPage";
 import type { SponsorAdminSignup, SponsorPublicState } from "@/lib/sponsor/types";
 
 const ROOT = path.resolve(__dirname, "../..");
@@ -49,11 +53,22 @@ describe("sign-up validator (page and server)", () => {
     expect(v.value.prizeValue).toBe(60);
     expect(v.value.ref).toBe("cajun-candle-co");
   });
-  it("requires brand, contact, email, prize, value, a day and the agreement", () => {
+  it("requires brand, contact, email, prize, a day and the agreement (not a value: owner 11-10)", () => {
     const v = validateSponsorSignup({});
     expect(v.ok).toBe(false);
     if (v.ok) return;
-    expect(v.errors).toMatchObject({ brandName: "required", contactName: "required", email: "required", prizeDescription: "required", prizeValue: "required", days: "days", agree: "agree" });
+    expect(v.errors).toMatchObject({ brandName: "required", contactName: "required", email: "required", prizeDescription: "required", days: "days", agree: "agree" });
+    expect(v.errors.prizeValue).toBeUndefined();
+  });
+  it("the prize value is optional: absent or blank is null; a value given is still checked", () => {
+    const noValue: Record<string, unknown> = { ...good };
+    delete noValue.prizeValue;
+    const absent = validateSponsorSignup(noValue);
+    expect(absent.ok && absent.value.prizeValue).toBeNull();
+    const blank = validateSponsorSignup({ ...good, prizeValue: "  " });
+    expect(blank.ok && blank.value.prizeValue).toBeNull();
+    const zero = validateSponsorSignup({ ...good, prizeValue: "0" });
+    expect(!zero.ok && zero.errors.prizeValue).toBe("prizeValue");
   });
   it("refuses a bad email, a non-number value, days outside 1-25 and an unchecked agreement", () => {
     const v = validateSponsorSignup({ ...good, email: "not an email", prizeValue: "lots", days: [26], agree: false });
@@ -100,7 +115,7 @@ describe("sign-up validator (page and server)", () => {
     expect(Date.now() - t0).toBeLessThan(500); // the old regex took ~114 ms at 24 repeats and hangs at 140
   });
   it("every validator code has a message", () => {
-    for (const c of ["required", "email", "days", "prizeValue", "agree", "url", "logoType", "logoSize", "tooLong"]) {
+    for (const c of ["required", "email", "days", "agree", "url", "logoType", "logoSize", "tooLong"]) {
       expect(errorMessage(c)).toBeTruthy();
     }
   });
@@ -188,6 +203,39 @@ describe("prizes ship to Louisiana Helpr (owner 11-09)", () => {
     expect(conf).toContain("Ship your prize to");
     expect(conf).toContain("{SHIP_ADDRESS}");
     expect(src).toContain("314 Lynn Street, Delcambre, LA 70528");
+  });
+});
+
+describe("no prize value question (owner 11-10: \"I don't like asking the approximate value of the gift\")", () => {
+  it("the form has no prize value field and the blank form sends none", () => {
+    const st: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
+    render(<ClaimSection state={st} greetingBrand={null} refCode={null} onSubmit={async () => ({ ok: false, kind: "error" })} />);
+    expect(document.querySelector('input[name="brandName"]')).not.toBeNull(); // the form did render
+    expect(document.querySelector('input[name="prizeValue"]')).toBeNull();
+    expect(screen.queryByText(/prize value/i)).toBeNull();
+    expect("prizeValue" in EMPTY_SIGNUP).toBe(false);
+    expect(JSON.stringify(sponsorPage)).not.toMatch(/prize value|dollar amount/i);
+  });
+  it("the confirmation email names the prize without a value; the admin email shows one only when given", () => {
+    const src = fs.readFileSync(path.resolve(__dirname, "../../supabase/functions/_shared/email-templates/sponsor-25days.tsx"), "utf8");
+    const conf = src.slice(src.indexOf("export const SponsorConfirmationEmail"), src.indexOf("export const SponsorAdminEmail"));
+    expect(conf).toContain('<Detail label="Your prize">{s.prizeDescription}</Detail>');
+    expect(conf).not.toContain("prizeValue");
+    const adm = src.slice(src.indexOf("export const SponsorAdminEmail"));
+    expect(adm).toMatch(/\{s\.prizeValue != null \? <Detail label="Prize value">/);
+  });
+  it("the admin page shows a dash for no value, and the CSV leaves the cell blank", () => {
+    expect(prizeValueLabel(null)).toBe("—");
+    expect(prizeValueLabel(60)).toBe("$60");
+    const row = {
+      id: "1", created_at: "2026-11-10", brand_name: "B", contact_name: "C", email: "a@b.co", phone: null, website: null,
+      instagram: null, facebook: null, tiktok: null, prize_description: "P", prize_value: null, ship_to: "helpr", notes: null,
+      any_day: true, status: "pending", show_on_wall: false, wall_ok: false, logo_path: null, ref_code: null, source: "form", days: [],
+    } satisfies SponsorAdminSignup;
+    const [head, line] = signupsCsv([row]).split("\r\n");
+    const col = head.split(",").indexOf("Prize value ($)");
+    expect(col).toBeGreaterThan(0);
+    expect(line.split(",")[col]).toBe("");
   });
 });
 

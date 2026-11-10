@@ -551,7 +551,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/sponsor/ClaimSection.tsx` | input×10, textarea×2, checkbox/switch/radio×3 | text, email, tel, url |  | sponsor-thanks · lh25-thanks · sponsor-thanks-ship · calendar · sponsor-closed · lh25-closed · lh25-claim · lh25-days |
+| `src/components/sponsor/ClaimSection.tsx` | input×9, textarea×2, checkbox/switch/radio×3 | text, email, tel, url |  | sponsor-thanks · lh25-thanks · sponsor-thanks-ship · calendar · sponsor-closed · lh25-closed · lh25-claim · lh25-days |
 
 ## /support
 

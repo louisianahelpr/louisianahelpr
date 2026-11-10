@@ -23,7 +23,8 @@ export interface SponsorEmailSignup {
   facebook: string | null
   tiktok: string | null
   prizeDescription: string
-  prizeValue: number
+  /** Whole dollars, or null: the form no longer asks it (owner 11-10). */
+  prizeValue: number | null
   shipTo: 'winner' | 'helpr' | null
   notes: string | null
   /** "December 3 and 12" or "Any day". */
@@ -64,7 +65,7 @@ export const SponsorConfirmationEmail = ({ s, adminEmail }: { s: SponsorEmailSig
     </Text>
     <Section style={{ width: '100%', margin: '0 0 16px' }}>
       <Detail label="Your day(s)">{s.daysLabel}</Detail>
-      <Detail label="Your prize">{s.prizeDescription} (about ${s.prizeValue})</Detail>
+      <Detail label="Your prize">{s.prizeDescription}</Detail>
       <Detail label="Ship your prize to">{SHIP_ADDRESS}</Detail>
     </Section>
     <Heading as="h2" className="e-h1" style={{ ...h1, fontSize: '18px' }}>What happens next</Heading>
@@ -100,7 +101,7 @@ export const SponsorAdminEmail = ({ s, logoUrl }: { s: SponsorEmailSignup; logoU
       <Detail label="Facebook">{s.facebook ?? '—'}</Detail>
       <Detail label="TikTok">{s.tiktok ?? '—'}</Detail>
       <Detail label="Prize">{s.prizeDescription}</Detail>
-      <Detail label="Prize value">${s.prizeValue}</Detail>
+      {s.prizeValue != null ? <Detail label="Prize value">${s.prizeValue}</Detail> : null}
       <Detail label="Ship to">{shipLabel(s.shipTo)}</Detail>
       <Detail label="OK on wall">{s.showOnWall ? 'Yes' : 'No'}</Detail>
       <Detail label="Invite link">{s.ref ?? 'none (direct)'}</Detail>

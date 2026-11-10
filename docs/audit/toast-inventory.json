@@ -12745,7 +12745,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 113,
+      "line": 115,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -12759,7 +12759,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 237,
+      "line": 239,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -12773,7 +12773,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 307,
+      "line": 309,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -12783,7 +12783,7 @@
     },
     {
       "file": "src/pages/admin/sponsors/AdminSponsorsPage.tsx",
-      "line": 459,
+      "line": 465,
       "kind": "errorToast",
       "title": {
         "form": "literal",

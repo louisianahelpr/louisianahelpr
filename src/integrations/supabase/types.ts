@@ -15186,7 +15186,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           prize_description: string
-          prize_value: number
+          prize_value: number | null
           ref_code: string | null
           ship_to: string | null
           show_on_wall: boolean
@@ -15210,7 +15210,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           prize_description: string
-          prize_value: number
+          prize_value?: number | null
           ref_code?: string | null
           ship_to?: string | null
           show_on_wall?: boolean
@@ -15234,7 +15234,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           prize_description?: string
-          prize_value?: number
+          prize_value?: number | null
           ref_code?: string | null
           ship_to?: string | null
           show_on_wall?: boolean

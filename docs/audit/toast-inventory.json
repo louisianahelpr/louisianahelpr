@@ -9327,7 +9327,7 @@
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "status === \"agreed\" ? `Agreed. ${first} gets the refund and you take home your pay on the rest.` : status === \"finish_offered\" ? `Sent. ${first} can accept or decline the new time.` : \"Sent. A real person at Helpr will decide.\"",
+        "text": "status === \"agreed\" ? `Agreed. ${first} gets the refund and you take home your pay on the rest.` : status === \"finish_offered\" ? `Sent. ${first} can accept or decline the new time.` : \"Sent. Our team will decide.\"",
         "branches": [
           {
             "form": "template",
@@ -9335,7 +9335,7 @@
           },
           {
             "form": "dynamic",
-            "text": "status === \"finish_offered\" ? `Sent. ${first} can accept or decline the new time.` : \"Sent. A real person at Helpr will decide.\"",
+            "text": "status === \"finish_offered\" ? `Sent. ${first} can accept or decline the new time.` : \"Sent. Our team will decide.\"",
             "branches": [
               {
                 "form": "template",
@@ -9343,7 +9343,7 @@
               },
               {
                 "form": "literal",
-                "text": "Sent. A real person at Helpr will decide."
+                "text": "Sent. Our team will decide."
               }
             ]
           }

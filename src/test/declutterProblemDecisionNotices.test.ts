@@ -9,7 +9,7 @@
  * Paths are proven in PGlite: src/test/pglite/declutterProblemDecisionNotices.pglite.mjs (prod's bodies md5-checked,
  * every path told once, 3x replay; RED before it and on 5 planted defects).
  */
-// @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql |     PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Louisiana Helpr decided',\n      format('We looked at both sides of the problem with %s. %s' |     PERFORM public.declutter_notify(v_task.helpr_id, 'payment', 'Louisiana Helpr decided',\n      format('We looked at both sides of the problem with %s. %s'
+// @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |     PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Louisiana Helpr decided',\n      format('We looked at both sides of the problem with %s. %s' |     PERFORM public.declutter_notify(v_task.helpr_id, 'payment', 'Louisiana Helpr decided',\n      format('We looked at both sides of the problem with %s. %s'
 // @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql |     '/declutter?tab=buying', o.seller_id);\n  PERFORM public.declutter_notify(o.seller_id, 'payment', 'Louisiana Helpr decided',\n    format( |     '/declutter?tab=buying', o.seller_id);\n  PERFORM public.declutter_notify(v_task.helpr_id, 'payment', 'Louisiana Helpr decided',\n    format(
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";

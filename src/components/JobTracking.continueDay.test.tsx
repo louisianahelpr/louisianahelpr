@@ -116,7 +116,7 @@ describe("the open card's Mark it done before a day set to finish", () => {
   it("a set day still ahead: greyed, with the note", async () => {
     day.row = { id: "c1", job_id: "job-1", proposed_by: "poster", new_date: ahead, new_start_time: "09:00:00", note: null, status: "set", helper_confirmed_at: AGO_MIN(30) };
     renderDoneStep();
-    expect(await screen.findByText(/You can mark it done on \w{3} \d+\/\d+, the day you set to finish\./)).toBeTruthy();
+    expect(await screen.findByText(/You can mark it done on \w{3}, \w{3} \d+, the day you set to finish\./)).toBeTruthy();
     expect((screen.getByRole("button", { name: /mark it done/i }) as HTMLButtonElement).disabled).toBe(true);
   });
 

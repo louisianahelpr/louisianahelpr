@@ -22,7 +22,7 @@
  * @mutate supabase/functions/declutter-ai-draft/checkSweep.ts |       if (outcome === "defect" \|\| outcome === "stale" \|\| outcome === "busy") { |       if (false) {
  * @mutate supabase/functions/declutter-ai-draft/index.ts |     return answer.status === 429 \|\| answer.status >= 500 ? "busy" : "defect"; |     return answer.status === 429 \|\| answer.status >= 500 ? "failed" : "defect";
  * @mutate supabase/functions/declutter-ai-draft/checkSweep.ts |   if (at(0) === 0x89 && ascii(1, 4) === "PNG") return "image/png"; |   if (at(0) === 0x89 && ascii(1, 4) === "PNG") return "image/jpeg";
- * @mutate supabase/migrations/20261101031241_declutter_check_sweep.sql |                       AND ((pv.ai_checked_at IS NULL AND pv.ai_check_attempts >= 3) OR pv.ai_flag_reason IS NOT NULL)) |                       AND (pv.ai_checked_at IS NULL OR pv.ai_flag_reason IS NOT NULL))
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |                       AND ((pv.ai_checked_at IS NULL AND pv.ai_check_attempts >= 3) OR pv.ai_flag_reason IS NOT NULL)) |                       AND (pv.ai_checked_at IS NULL OR pv.ai_flag_reason IS NOT NULL))
  * @mutate supabase/migrations/20261101031241_declutter_check_sweep.sql |        AND NOT public.is_test_subject(i.seller_id) |        AND true
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -181,9 +181,9 @@ describe("(b, c) the service key runs the sweep; the seller comes from the claim
 
 describe("(d, e) the SQL, newest definitions", () => {
   it("reads the newest definitions (floor)", () => {
-    for (const n of ["declutter_hold_unchecked_listings", "declutter_check_sweep_claim"]) {
-      expect(newestFunction(n).file, n).toContain("20261101031241");
-    }
+    // Part 3 F197/F193 (20261109224952) restated it from LIVE, wording only. (declutter_hold_unchecked_listings only)
+    expect(newestFunction("declutter_hold_unchecked_listings").file).toContain("20261109224952");
+    expect(newestFunction("declutter_check_sweep_claim").file).toContain("20261101031241");
   });
 
   it("the fail-safe holds an unchecked listing only after 3 failed tries, or a flag", () => {

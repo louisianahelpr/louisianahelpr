@@ -34,9 +34,18 @@
  * @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql | 'Your payout setup and ID check are done, so you''ve accepted "' | 'Your payout setup and Stripe ID are done, so you''ve accepted "'
  * @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql | PERFORM public.declutter_notify(j.customer_id, 'info', 'Setup job cancelled', | PERFORM public.declutter_notify(j.customer_id, 'info', 'Setup job cancelled, no fee',
  *
+ * F197 + F198 + F193 (rest): one name for the card cost ("the card cost", never a fee name) and for who decides ("our team") across 32
+ * Declutter / Shops / refund-request producers (20261109224952; proof src/test/pglite/noticesCardFeeOurTeam.pglite.mjs).
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql | so we''re refunding your payment. You blocked the seller, so the card cost isn''t refunded.' | so your payment is coming back to your card, minus what your card company charged, because you blocked the seller.'
+ * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql | 'Our automatic check flagged "%s" (%s). Our team will look at it before you''re paid.' | 'Our automatic check flagged "%s" (%s). Someone from Louisiana Helpr will look at it before you''re paid.'
  * F177 (moved from Builder 4, lead 11-09): the dispute and warning notices say "our team", never "an admin"
  * (20261109215021; proof src/test/pglite/noticesOurTeamNoStrike.pglite.mjs).
  * @mutate supabase/migrations/20261109215021_notices_our_team_and_no_strike.sql | add your side so our team hears it.' | add your side so an admin hears it.'
+ * F176: the trigger's "Job cancelled" notice says who cancelled; "You don't owe anything" only when the poster did, never
+ * on a dispute decision (it can bill an at-fault Helpr) or an admin's cancel (20261109231855; behaviour proof, every
+ * branch single + crew, src/test/pglite/jobCancelNoticeSaysWho.pglite.mjs, --before red).
+ * @mutate supabase/migrations/20261109231855_job_cancel_notice_says_who.sql | WHEN OLD.status = 'disputed' THEN ' after our team decided the dispute.' | WHEN false THEN ' after our team decided the dispute.'
+ * @mutate supabase/migrations/20261109231855_job_cancel_notice_says_who.sql | THEN ' by the person who posted it. You don''t owe anything, and it doesn''t count against you.' | THEN ' by the person who posted it.'
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
@@ -165,5 +174,45 @@ describe("F177: 'our team' in the dispute and warning notices (Part 3)", () => {
     const member = all.filter((t) => /\b[Aa]n admin\b/.test(t) && !/needs an admin decision|another admin has to supersede|Re-opened by an admin/.test(t));
     expect(member).toEqual([]);
     expect(body("rpc_escalate_dispute")).toContain("'Our team will decide this dispute'");
+  });
+});
+
+describe("F197/F198/F193: one name for the card cost and for who decides, in every SQL notice (Part 3)", () => {
+  const FNS = ["declutter_accept_refund_with_return", "declutter_admin_decide_problem", "declutter_admin_decide_stuck_delivery", "declutter_answer_refund", "declutter_answer_refund_offer", "declutter_ask_refund", "declutter_complete_handover", "declutter_delivery_return_finish", "declutter_handover_sweep", "declutter_hold_unchecked_listings", "declutter_mark_order_paid", "declutter_porch_photo", "declutter_record_ai_check", "declutter_refund_after_handover", "declutter_seller_picked_up", "declutter_ship_sweep", "declutter_withdraw_problem", "helpr_task_cant_finish", "helpr_task_confirm", "helpr_task_customer_confirm", "helpr_task_sweep", "refund_agreements_due", "refund_requests_sweep", "respond_job_schedule_change", "rpc_open_refund_request", "shop_complete_handover", "shop_handover_sweep", "shop_lock_open_charged_order", "shop_preorder_sweep", "shops_admin_refund_order", "shops_buyer_cancel_order", "sweep_needs_you_reminders"];
+  const strings = (fn: string) => [...body(fn).matchAll(/'(?:[^']|'')*'/g)].map((m) => `${fn}: ${m[0]}`);
+  const all = FNS.flatMap(strings);
+  it("reads every producer (floor)", () => {
+    expect(FNS.length).toBe(32);
+    expect(all.length).toBeGreaterThan(800);
+  });
+  it("F197: the card cost is only ever 'the card cost' (never a fee name)", () => {
+    expect(all.filter((t) => /card network kept|what your card company charged|card payment cost|card-processing cost|what the card company keeps|card fee/.test(t))).toEqual([]);
+    expect(all.filter((t) => /card cost/.test(t)).length).toBeGreaterThan(12);
+  });
+  it("F193: who decides is only ever 'our team'", () => {
+    expect(all.filter((t) => /Louisiana Helpr decides|real person at Helpr|goes to Helpr|Someone from Louisiana Helpr/.test(t))).toEqual([]);
+  });
+  it("F198: the strike-removed notice is one fact a sentence, and names the block as why the card cost is kept", () => {
+    expect(body("declutter_mark_order_paid")).toContain("The item''s hold had already ended, so we''re refunding your payment. You blocked the seller, so the card cost isn''t refunded.");
+    expect(body("declutter_mark_order_paid")).not.toContain("minus what your card company charged, because you blocked the seller");
+  });
+});
+
+describe("F176: the Job cancelled notice says who cancelled, and 'nothing owed' only when that is true", () => {
+  const b = () => body("notify_on_job_update");
+  it("one set of words, chosen by who cancelled, read by the single-Helpr and crew notices", () => {
+    expect(b().length).toBeGreaterThan(2000);
+    expect(b()).toContain("WHEN OLD.status = 'disputed' THEN ' after our team decided the dispute.'");
+    expect(b()).toContain("WHEN NEW.cancelled_by IS NOT NULL AND NEW.cancelled_by = OLD.customer_id");
+    expect(b()).toContain("THEN ' by the person who posted it. You don''t owe anything, and it doesn''t count against you.'");
+    expect(b()).toContain("WHEN NEW.cancelled_by IS NOT NULL AND public.has_role(NEW.cancelled_by, 'admin') THEN ' by our team.'");
+    expect(b().split("v_cancelled_words").length - 1).toBe(4); // declared, set, single notice, crew notice
+  });
+  it("the dispute case is decided before the poster case (a dispute decision can bill the Helpr)", () => {
+    expect(b().indexOf("OLD.status = 'disputed'")).toBeGreaterThan(0);
+    expect(b().indexOf("OLD.status = 'disputed'")).toBeLessThan(b().indexOf("NEW.cancelled_by = OLD.customer_id"));
+  });
+  it("no notice text claims the poster cancelled outside the poster case", () => {
+    expect(b().split("by the person who posted it").length - 1).toBe(1);
   });
 });

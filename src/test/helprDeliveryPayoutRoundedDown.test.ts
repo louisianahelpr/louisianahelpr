@@ -32,15 +32,15 @@
  *  6. The client mirror (helprTakeHomeCents) floors through roundPayoutDownCents.
  */
 // @mutate supabase/migrations/20261021181118_helpr_delivery_payout_round_down.sql |               ELSE (p_cents / 100) * 100 END; |               ELSE p_cents END;
-// @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   v_amount := public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents); |   v_amount := t.pay_cents - t.fee_cents;
+// @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   v_amount := public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents); |   v_amount := t.pay_cents - t.fee_cents;
 // @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     debt_cents >= 0 AND amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents - setup_fee_cents AND amount_cents >= 0); |     debt_cents >= 0 AND amount_cents = pay_cents - fee_cents - debt_cents - setup_fee_cents AND amount_cents >= 0);
 // @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     debt_cents >= 0 AND amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents - setup_fee_cents | amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents - setup_fee_cents
 // @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     debt_cents >= 0 AND amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents - setup_fee_cents AND | debt_cents >= 0 AND amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents AND
 // @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql |          public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents), t.open_until, t.latest_pickup_at |          t.pay_cents - t.fee_cents, t.open_until, t.latest_pickup_at
 // @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql | THEN public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents) END, | THEN t.pay_cents - t.fee_cents END,
-// @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql | ELSE format('"%s" is delivered. $%s is on its way to your payout account.', t.title, to_char(v_amount / 100.0, 'FM999990.00')) END, | ELSE format('"%s" is delivered. $%s is on its way to your payout account.', t.title, (v_amount / 100)::text) END,
-// @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   v_amount := v_amount - v_debt; |   v_amount := public.helpr_payout_round_down_cents(v_amount - v_debt);
-// @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |       greatest(0, v_amount - COALESCE(t.raised_cents, 0) - 100)); |       v_amount);
+// @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql | ELSE format('"%s" is delivered. $%s is on its way to your payout account.', t.title, to_char(v_amount / 100.0, 'FM999990.00')) END, | ELSE format('"%s" is delivered. $%s is on its way to your payout account.', t.title, (v_amount / 100)::text) END,
+// @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   v_amount := v_amount - v_debt; |   v_amount := public.helpr_payout_round_down_cents(v_amount - v_debt);
+// @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |       greatest(0, v_amount - COALESCE(t.raised_cents, 0) - 100)); |       v_amount);
 // @mutate supabase/functions/declutter-money/index.ts |       parts = [...helprPayoutParts(h.amount_cents, h.payment_intent_id ?? "", h.raised_cents, h.raise_parts), ...heldTipParts(h.tip_parts)]; |       parts = [...helprPayoutParts(h.amount_cents + 50, h.payment_intent_id ?? "", h.raised_cents, h.raise_parts), ...heldTipParts(h.tip_parts)];
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

@@ -106,6 +106,14 @@ const OBJECT_URL = "URL.createObjectURL() of a Blob the app built itself (blob: 
 const MAPS = "mapsSearchUrl(): a fixed https://maps.apple.com / maps:// / geo: prefix + encodeURIComponent(address)";
 
 const CLASSIFIED: Record<string, string> = {
+  // 25 Days sponsor page (owner 2026-11-09).
+  "pages/admin/sponsors/AdminSponsorsPage.tsx::url": `${OBJECT_URL}: the CSV export, and the logo file the admin-only sponsor-25days function sent back (logoDownloadUrl)`,
+  "components/sponsor/ClaimSection.tsx::href": "a data:text/calendar URL of an .ics file the page builds itself (buildIcs + encodeURIComponent)",
+  "components/sponsor/Sections.tsx::href": "ExternalButton's prop: every caller passes C.links.* (our content file constants) or filledUrl() output (^https?:// only)",
+  "components/sponsor/Sections.tsx::group": "filledUrl(C.links.facebookGroup): our content file value, only when it matches ^https?:// with no placeholder",
+  "components/sponsor/Sections.tsx::C.links.facebookPage": "a constant https:// URL in src/content/sponsorPage.ts",
+  "components/sponsor/Sections.tsx::C.links.website": "a constant https:// URL in src/content/sponsorPage.ts",
+  "components/sponsor/Sections.tsx::site": "filledUrl(sponsor website): a sponsor-entered value shown only after an admin confirms the sponsor, and only when it matches ^https?:// (no javascript:/data:); rel noopener noreferrer nofollow",
   // --- stored values, sanitized upstream of the sink ---
   "components/AttachmentLink.tsx::signed": "getAttachmentSignedUrl(): isStorageObjectPath-gated createSignedUrl output, else null",
   "components/MessageAttachment.tsx::url": "thumbUrl / getMessageAttachmentSignedUrl(): isStorageObjectPath-gated createSignedUrl output, else null",

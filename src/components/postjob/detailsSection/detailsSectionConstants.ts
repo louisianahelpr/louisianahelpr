@@ -103,7 +103,7 @@ export const CREDENTIAL_TIERS = [
 export const TITLE_PLACEHOLDER_MAX = 28;
 export const titlePlaceholders: Record<string, string> = {
   cleaning: "e.g. Deep clean 2 bedrooms",
-  yard_work: "e.g. Mow and edge my yard",
+  yard_work: "e.g. Mow my yard", // audit 11-10 W2 F279a: the longer example was cut under Bigger text
   moving: "e.g. Move a couch upstairs",
   errands: "e.g. Pick up my groceries",
   handyman: "e.g. Mount a TV on the wall",

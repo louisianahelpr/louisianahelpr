@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { composeJobAddress, geocodeAddress } from "./geocode";
+import { composeJobAddress, geocodeAddress, geocodeJobAddress, streetWithoutNumber } from "./geocode";
 
 describe("composeJobAddress", () => {
   it("formats full address as 'street, city, state zip'", () => {
@@ -153,3 +153,44 @@ describe("geocodeAddress", () => {
 // A job without coordinates is a job that is not on the map; a job with the
 // FIRST match of an unscoped search is a job in the wrong state.
 // @mutate src/lib/geocode.ts | url.searchParams.set("countrycodes", "us"); | url.searchParams.set("countrycodes", "de");
+
+// Owner bug 2026-11-10: "9816 Lake Peigneur Rd, New Iberia, LA 70560" found no match, the street without its house
+// number did; the job saved with no map point. The post flow now retries ONCE with the street name and town only.
+// @mutate src/lib/geocode.ts |   if (!street \|\| !parts.city?.trim()) return null; |   return null;
+describe("geocodeJobAddress: the full address, then once with the street name and town", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+  const LIGHTS = { streetAddress: "9816 Lake Peigneur Rd", city: "New Iberia", state: "LA", zipCode: "70560" };
+  const asked = (m: ReturnType<typeof vi.fn>) => m.mock.calls.map((c) => new URL(String(c[0])).searchParams.get("q"));
+
+  it("the owner's job: the full address finds nothing, the street without its number does", async () => {
+    const fetchMock = vi.fn(async (u: string) =>
+      okResponse(new URL(u).searchParams.get("q")?.startsWith("9816") ? [] : [{ lat: "29.9761875", lon: "-91.9479804" }]));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(geocodeJobAddress(LIGHTS)).resolves.toEqual({ latitude: 29.9761875, longitude: -91.9479804 });
+    expect(asked(fetchMock)).toEqual(["9816 Lake Peigneur Rd, New Iberia, LA 70560", "Lake Peigneur Rd, New Iberia, LA"]);
+  });
+
+  it("a full-address hit asks once; no house number or no town means no second try", async () => {
+    let fetchMock = vi.fn(async () => okResponse([{ lat: "30", lon: "-91" }]));
+    vi.stubGlobal("fetch", fetchMock);
+    await geocodeJobAddress(LIGHTS);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    fetchMock = vi.fn(async () => okResponse([]));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(geocodeJobAddress({ ...LIGHTS, streetAddress: "Lake Peigneur Rd" })).resolves.toBeNull();
+    await expect(geocodeJobAddress({ ...LIGHTS, city: "" })).resolves.toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("streetWithoutNumber", () => {
+    expect(streetWithoutNumber("9816 Lake Peigneur Rd")).toBe("Lake Peigneur Rd");
+    expect(streetWithoutNumber("12B Oak St")).toBe("Oak St");
+    expect(streetWithoutNumber("101-3 Main St")).toBe("Main St");
+    expect(streetWithoutNumber("Lake Peigneur Rd")).toBeNull();
+    expect(streetWithoutNumber("12 A")).toBeNull();
+    expect(streetWithoutNumber(null)).toBeNull();
+  });
+});

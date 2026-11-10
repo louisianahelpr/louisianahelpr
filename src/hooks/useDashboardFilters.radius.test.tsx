@@ -219,4 +219,4 @@ describe("useDashboardFilters — Nearby radius (BD-001)", () => {
 // Shown able to fail:
 // The haversine radius made a no-op again — the literal shape of BD-001, where every
 // "Nearby" radius returned the identical unfiltered feed.
-// @mutate src/hooks/useDashboardFilters.ts | if (haversineMiles(userLoc.lat, userLoc.lng, jLat, jLng) > nearbyMiles) return false; | if (false && haversineMiles(userLoc.lat, userLoc.lng, jLat, jLng) > nearbyMiles) return false;
+// @mutate src/hooks/useDashboardFilters.ts | if (haversineMiles(userLoc.lat, userLoc.lng, jPoint.lat, jPoint.lng) > limit) return false; | if (false && haversineMiles(userLoc.lat, userLoc.lng, jPoint.lat, jPoint.lng) > limit) return false;

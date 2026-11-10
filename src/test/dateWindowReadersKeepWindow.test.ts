@@ -7,7 +7,7 @@
  *   - the map adapter and the first-job Home row: never carried date_window_end, so they printed the first day.
  * The SQL behaviour is proven in src/test/pglite/mapAndRankedReadDateWindow.pglite.mjs (red 9 FAIL before, green after).
  *
- * @mutate supabase/migrations/20261104080753_map_and_ranked_read_date_window.sql | (NULL end = one-day job, as before).\n    AND (j.date_needed IS NULL OR public.job_offer_cutoff(COALESCE(j.date_window_end, j.date_needed), j.start_time) | (NULL end = one-day job, as before).\n    AND (j.date_needed IS NULL OR public.job_offer_cutoff(j.date_needed, j.start_time)
+ * @mutate supabase/migrations/20261110210539_map_pins_ungeocoded_jobs.sql | (NULL end = one-day job, as before).\n    AND (j.date_needed IS NULL OR public.job_offer_cutoff(COALESCE(j.date_window_end, j.date_needed), j.start_time) | (NULL end = one-day job, as before).\n    AND (j.date_needed IS NULL OR public.job_offer_cutoff(j.date_needed, j.start_time)
  * @mutate src/hooks/useDashboardData.ts | return !jobDayHasEnded(jobLastDay(j) ?? j.date_needed, now.getTime()); | return !jobDayHasEnded(j.date_needed, now.getTime());
  * @mutate src/hooks/useDashboardFilters.ts |       const lastDay = jobLastDay(job); |       const lastDay = job.date_needed;
  * @mutate src/components/browseMap/mapJobToEnrichedJob.ts |     date_window_end: job.date_window_end ?? null, |     date_window_end: null,

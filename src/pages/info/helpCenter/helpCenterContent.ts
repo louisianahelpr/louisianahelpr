@@ -23,6 +23,8 @@ import { CREDENTIAL_TIER_CATEGORIES } from "@/components/postjob/detailsSection/
 import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
 // F236/F258 (audit 11-10): the Declutter buyer's fee, from the numbers checkoutAmounts charges (never retyped).
 import { DECLUTTER_BUYER_FEE_WORDS } from "@/lib/declutter/money";
+// F411 (audit 11-10): the "Common problems" steps name the controls by the labels the job card renders.
+import { NOT_RIGHT_LABEL, RELEASE_ACTION } from "@/lib/releaseCopy";
 
 
 /**
@@ -64,15 +66,76 @@ const CREDENTIAL_CATEGORY_PHRASE = (() => {
  */
 export const SETUP_FEE_PHRASE = "a one-time account setup fee";
 
+/** One answer (or step) with SETUP_FEE_PHRASE swapped for the live amount; unchanged while the amount is unknown. */
+export function fillSetupFeeAmount(text: string, feeLabel: string | null): string {
+  if (!feeLabel || !text.includes(SETUP_FEE_PHRASE)) return text;
+  return text.split(SETUP_FEE_PHRASE).join(`a one-time ${feeLabel} account setup fee`);
+}
+
 /** "a one-time $2 account setup fee" once the amount is known; the plain phrase while it loads or on a failed read. */
 export function withSetupFeeAmount<T extends { topic: string; items: { q: string; a: string }[] }>(sections: T[], feeLabel: string | null): T[] {
   if (!feeLabel) return sections;
-  const withAmount = `a one-time ${feeLabel} account setup fee`;
   return sections.map((section) => ({
     ...section,
-    items: section.items.map((item) => (item.a.includes(SETUP_FEE_PHRASE) ? { ...item, a: item.a.split(SETUP_FEE_PHRASE).join(withAmount) } : item)),
+    items: section.items.map((item) => (item.a.includes(SETUP_FEE_PHRASE) ? { ...item, a: fillSetupFeeAmount(item.a, feeLabel) } : item)),
   }));
 }
+
+// ─── Common problems (F411) ───────────────────────────────────────────────────
+//
+// F411 (audit 11-10, High): someone with a problem in hand had to guess which of seven topics held the answer.
+// The top of /help now shows four cards for the problems people actually arrive with; each opens three steps.
+// Every step names a real control by the label the card renders (Cancel job, Report no-show, NOT_RIGHT_LABEL,
+// RELEASE_ACTION) and states only rules the code enforces: cancellationFee.ts (free 24+ hours out, part to the
+// Helpr inside 24 hours), ActivityDialogs.tsx (Report no-show), escrowTiming.ts (APPROVAL_WINDOW_HOURS, the
+// 72-hour dispute deadline) and the fee answer above (what a charge is made of).
+export interface CommonProblem {
+  /** Stable slug: the card's id and the step panel's anchor. */
+  id: string;
+  /** The card's words, the finding's exact wording. */
+  title: string;
+  /** Exactly three steps, in order. */
+  steps: readonly [string, string, string];
+}
+
+export const COMMON_PROBLEMS: readonly CommonProblem[] = [
+  {
+    id: "cancel-a-job",
+    title: "Cancel a job",
+    steps: [
+      "Open the job under Jobs › Posted and tap Cancel job.",
+      "Read what you get back before you confirm. With a Helpr hired, there is no charge to cancel up to 24 hours before the start; closer than that, the Helpr gets part of the price for holding the time, and it counts as a strike.",
+      `Confirm. ${NO_HIRE_REFUND} Every refund shows under You › Money › Receipts.`,
+    ],
+  },
+  {
+    id: "helpr-did-not-show-up",
+    title: "My Helpr did not show up",
+    steps: [
+      "Once the start time has passed, open the job and tap Report no-show.",
+      "The Helpr comes off your job and it goes on their record. Our team is told about every no-show.",
+      "To hire someone else, change the date right away; otherwise the job is cancelled and refunded.",
+    ],
+  },
+  {
+    id: "dont-like-the-work",
+    title: "I don't like the work",
+    steps: [
+      `Don't tap ${RELEASE_ACTION}. Under the job, tap ${NOT_RIGHT_LABEL} and describe what needs to be redone; you can add photos.`,
+      `The Helpr gets time to fix it, and the money stays on hold. You have ${APPROVAL_WINDOW_HOURS} hours after the work is marked done to approve it or ask for a change.`,
+      "If it still isn't right once that time has run out, open a dispute from the job's card. Our team reviews both sides and can release the payment to either party or split it; if the two of you don't settle it in the dispute window, our team decides it.",
+    ],
+  },
+  {
+    id: "charged-too-much",
+    title: "I was charged too much",
+    steps: [
+      `Open You › Money › Receipts and find the charge. A job charge is the job price (plus any urgent bonus you added), Louisiana sales tax on the labor for taxable job types, and, on your first paid job, ${SETUP_FEE_PHRASE}.`,
+      `On Declutter, the buyer pays the item price plus a buyer's fee of ${DECLUTTER_BUYER_FEE_WORDS}, once per checkout.`,
+      "If the receipt doesn't match what you were told, contact support below with the receipt. If the mistake was ours, you get everything back.",
+    ],
+  },
+];
 
 // ─── Topic blurbs ─────────────────────────────────────────────────────────────
 //
@@ -202,7 +265,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // F411 (audit 11-10): no answer was called "How do I cancel a job?". Same rule as the answer below
         // (cancellationFee.ts: free 24+ hours out; inside 24 hours part goes to the Helpr and it is a strike).
         q: "How do I cancel a job?",
-        a: `Open the job and tap Cancel job. ${NO_HIRE_REFUND} With a Helpr hired, cancelling is free up to 24 hours before the start. Closer than that, the Helpr gets part of the price for holding the time, and it counts as a strike. You see the exact amount before you confirm.`,
+        a: `Open the job and tap Cancel job. ${NO_HIRE_REFUND} With a Helpr hired, there is no charge to cancel up to 24 hours before the start. Closer than that, the Helpr gets part of the price for holding the time, and it counts as a strike. You see the exact amount before you confirm.`,
       },
       {
         // F411 (audit 11-10): the no-show steps, in the words of the Report no-show dialog (ActivityDialogs.tsx).
@@ -357,7 +420,8 @@ export const FAQ_SECTIONS: FaqSection[] = [
         a: `Helprs can upload trade licenses and insurance, and verified badges show on their profile. On trade jobs (${CREDENTIAL_CATEGORY_PHRASE}) you also choose who may apply: open to anyone, licensed pros only, or licensed and insured. Only Helprs who meet your choice can apply. Other categories are open to any Helpr.`,
       },
       {
-        q: "What is the cancellation rate?",
+        // F411 (audit 11-10): the question said what it is, not where it shows or what it means for the reader.
+        q: "What does the cancellation rate on a profile mean?",
         // WAS "…once they've completed 5+ jobs". The threshold is `jobs_total
         // >= 5`, and `jobs_total` is COUNT(*) over every job where the user is
         // customer OR helper, in ANY status

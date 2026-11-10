@@ -15,8 +15,10 @@ import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { useFeature } from "@/hooks/useFeature";
 import { withDeclutterShipping } from "./declutterShippingCopy";
 import {
+  COMMON_PROBLEMS,
   TOPICS,
   FAQ_SECTIONS,
+  fillSetupFeeAmount,
   withSetupFeeAmount,
 } from "./helpCenter/helpCenterContent";
 import { formatFeeLabel, useOnboardingFeeCents } from "@/hooks/useOnboardingFee";
@@ -194,6 +196,54 @@ const TopicSection = ({
   );
 };
 
+// ─── Common problems (F411) ───────────────────────────────────────────────────
+
+/**
+ * F411 (audit 11-10, High): a card row at the top of /help for the four problems people arrive with. One card open
+ * at a time; its three steps show in a panel under the row. Hidden while a search is on, so the results stay the
+ * only thing under the box.
+ */
+const CommonProblems = ({ setupFeeLabel }: { setupFeeLabel: string | null }) => {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const openProblem = COMMON_PROBLEMS.find((p) => p.id === openId) ?? null;
+  return (
+    <div data-help-common-problems="">
+      <h3 className="mb-3 px-1 font-sans text-ds-13 font-semibold uppercase tracking-wide text-muted-foreground">Common problems</h3>
+      <div className="grid grid-cols-2 gap-3" role="list">
+        {COMMON_PROBLEMS.map((problem) => {
+          const open = problem.id === openId;
+          return (
+            <div key={problem.id} role="listitem">
+              <ListRow
+                variant="flush"
+                aria-expanded={open}
+                aria-controls={`help-problem-${problem.id}`}
+                data-help-problem={problem.id}
+                onClick={() => setOpenId(open ? null : problem.id)}
+                className={`min-h-11 w-full rounded-[20px] border bg-card px-4 py-4 text-left font-sans text-ds-15 font-semibold text-foreground transition-colors duration-200 hover:opacity-80 ${open ? "border-[hsl(var(--bark)/0.45)]" : "border-border"}`}
+              >
+                {problem.title}
+              </ListRow>
+            </div>
+          );
+        })}
+      </div>
+      {openProblem && (
+        <div
+          id={`help-problem-${openProblem.id}`}
+          className="mt-3 rounded-[20px] border border-[hsl(var(--bark)/0.45)] bg-card px-5 py-4 sm:px-6"
+        >
+          <ol className="list-decimal space-y-2 pl-5 font-sans text-ds-15 leading-relaxed text-foreground">
+            {openProblem.steps.map((step) => (
+              <li key={step}>{fillSetupFeeAmount(step, setupFeeLabel)}</li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── Search ───────────────────────────────────────────────────────────────────
 
 type FaqSection = { topic: string; items: Array<{ q: string; a: string }> };
@@ -284,6 +334,8 @@ const HelpCenter = () => {
               </FieldClearButton>
             )}
           </div>
+          {/* F411 (audit 11-10): the four problems people arrive with, each opening three steps. */}
+          {!searching && <CommonProblems setupFeeLabel={setupFeeLabel} />}
           <div className="space-y-3 sm:space-y-4">
             {sections.map((section) => (
               <TopicSection

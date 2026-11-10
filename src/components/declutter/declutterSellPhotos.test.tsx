@@ -812,6 +812,24 @@ describe("photo-first selling, one screen", () => {
     expect(calls).not.toContain("windows");
   });
 
+  // Nobody buys a give-away, so its Size nudge names the person picking it up (audit 1110 F340).
+  // @mutate src/components/declutter/SellOneScreen.tsx | message: s.form.free ? SIZE_PROBLEM_FREE : SIZE_PROBLEM, | message: SIZE_PROBLEM,
+  it("the photo tool failed on a give-away: the Size nudge talks about the person picking it up, not buyers", async () => {
+    aiAnswer.fails = true;
+    open("/declutter/sell?free=1");
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await waitFor(() => expect(aiCalls).toHaveLength(1));
+    await waitFor(() => expect(document.querySelector('[data-summary-row="size"]')).not.toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Add title" }));
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Blue couch" } });
+    fireEvent.click(document.getElementById("sell-tax")!);
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await screen.findByText("Pick a size, so the person picking it up knows what it takes to move it.");
+    expect(screen.queryByText(/so buyers know/)).toBeNull();
+    expect(calls).toEqual([]);
+  });
+
   // Audit DC-1: the one-screen form still said "these go up when you save on step 4" and "change anything on the
   // next steps" (there are no steps). The class: nothing on the one screen talks about steps.
   // @mutate src/components/declutter/SellOneScreen.tsx | <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} oneScreen free={form.free} /> | <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} free={form.free} />

@@ -14,6 +14,7 @@ import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { sponsorBackend, type SponsorBackend } from "@/lib/sponsor/api";
 import { hasPlaceholder, placeholderRuns } from "@/lib/sponsor/placeholders";
 import { SponsorChrome } from "./SponsorPage";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import "./sponsor.css";
 
 const NotFound = lazy(() => import("@/pages/info/NotFound"));
@@ -58,6 +59,7 @@ export default function SponsorRulesPage() {
     return (
       <div className="lh25 min-h-screen bg-premium-page"><SponsorChrome />
         <div className="lh25-loading" role="alert">
+          <ReportErrorScreen source="SponsorRulesPage" title="We couldn't load the rules" />
           <p>We couldn't load the rules. Check your connection and try again.</p>
           <button type="button" className="lh25-btn lh25-btn-primary" onClick={() => void q.refetch()}>Try again</button>
         </div>

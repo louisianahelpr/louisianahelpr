@@ -12,6 +12,7 @@
  *   Content    reach stats, founder photo, per-day cap, testimonials (real only)
  */
 import { useMemo, useState, type ReactNode } from "react";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -125,6 +126,7 @@ export default function AdminSponsorsPage() {
         {allowed && (dataQ.isPending || !backend) ? <p className="py-10 text-center text-muted-foreground" role="status">Loading…</p> : null}
         {allowed && dataQ.isError ? (
           <Panel title="Couldn't load sponsors">
+            <ReportErrorScreen source="AdminSponsorsPage" title="Couldn't load sponsors" />
             <Button onClick={() => void dataQ.refetch()}>Try again</Button>
           </Panel>
         ) : null}

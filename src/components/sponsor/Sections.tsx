@@ -177,7 +177,7 @@ export function Founder({ photoUrl }: { photoUrl: string | null }) {
     <section className="lh25-section lh25-founder" aria-labelledby="lh25-founder">
       <div className="lh25-founder-card">
         {photoUrl ? (
-          <img className="lh25-founder-photo" src={photoUrl} alt={C.founder.photoAlt} width={150} height={150} loading="lazy" decoding="async" />
+          <img className="lh25-founder-photo" loading="lazy" decoding="async" src={photoUrl} alt={C.founder.photoAlt} width={150} height={150} />
         ) : preview ? (
           <div className="lh25-founder-photo lh25-founder-photo-empty"><mark className="lh25-ph">[PHOTO OF LEXI]</mark></div>
         ) : null}
@@ -345,7 +345,7 @@ export function SponsorWall({ wall, logoUrl }: { wall: SponsorPublicState["wall"
       <ul className="lh25-wall">
         {wall.map((s) => {
           const body = s.hasLogo ? (
-            <img src={logoUrl(s.id)} alt={s.brand} loading="lazy" decoding="async" width={96} height={96} />
+            <img loading="lazy" decoding="async" src={logoUrl(s.id)} alt={s.brand} width={96} height={96} />
           ) : (
             <span className="lh25-wall-name">{s.brand}</span>
           );

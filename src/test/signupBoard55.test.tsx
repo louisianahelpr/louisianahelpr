@@ -14,7 +14,7 @@
  * @mutate src/pages/auth/signup/SignupStep1.tsx |           {t("login.submit")}\n        </Link> |           Log In\n        </Link>
  * @mutate src/pages/auth/signup/SignupStep1.tsx |         className="w-full rounded-full"\n        size="lg"\n        onClick={handleContinue} |         className="w-full rounded-ds-md"\n        size="lg"\n        onClick={handleContinue}
  * @mutate src/lib/i18n/enScreens.ts | "signup.subtitle": "One account to hire help, find work, and buy or sell nearby." | "signup.subtitle": "One account to hire help or find work."
- * @mutate src/pages/auth/Signup.tsx |       title={step === 1 ? undefined : stepHeading.title} |       title={step === 1 ? "Create Account" : stepHeading.title}
+ * @mutate src/pages/auth/Signup.tsx |         step === 1 ? undefined : ( |         step === 1 ? "Create Account" : (
  */
 // @mutate src/pages/auth/Signup.tsx |         {/* Step 2: About you + ID */}\n |         {step === 2 && stepHeading.subtitle && <p>{stepHeading.subtitle}</p>}\n        {/* Step 2: About you + ID */}\n
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -63,7 +63,7 @@ describe("Create account matches board 55", () => {
     expect(step1).toContain('{subtitle ?? t("signup.subtitle")}');
     expect(en["signup.subtitle"]).toBe("One account to hire help, find work, and buy or sell nearby.");
     expect(step1).not.toMatch(/buy and sell/);
-    expect(signup).toContain("title={step === 1 ? undefined : stepHeading.title}");
+    expect(signup).toContain("step === 1 ? undefined : ("); // F259a wrapped the step-2 title; step 1 still has none
     expect(signup + step1).not.toMatch(/"Create Account"|"About You"|>Log in<|Did You Mean/);
   });
 

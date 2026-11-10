@@ -159,6 +159,7 @@ export const enScreens = {
 
   // Sign up (the page: step titles, checks, messages)
   "signup.aboutTitle": "A little about you",
+  "signup.stepTwoOfTwo": "Step 2 of 2",
   "signup.zipInvalid": "Enter a 5-digit ZIP code",
   "signup.bioShort": "Add at least 20 characters, or leave it blank for now",
   "signup.firstNameToast": "Add your first name.",

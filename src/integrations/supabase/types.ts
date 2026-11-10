@@ -18254,6 +18254,21 @@ export type Database = {
           saves: number
         }[]
       }
+      declutter_popular_items: {
+        Args: { p_limit?: number }
+        Returns: {
+          area_label: string
+          category: string
+          condition_stars: number
+          current_price_cents: number
+          id: string
+          live_at: string
+          photo_path: string
+          porch_ok: boolean
+          price_cents: number
+          title: string
+        }[]
+      }
       declutter_in_agreed_sale: { Args: { p_item_id: string; p_user_id: string }; Returns: boolean }
       declutter_item_address: {
         Args: { p_item_id: string }

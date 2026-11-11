@@ -66,6 +66,14 @@ interface Form {
   hours: Record<number, { open: boolean; opens: string; closes: string }>;
 }
 
+/**
+ * Builder 1 Shops pass (11-10): at 1440 every field on /shops/mine ran the full ~1600px column (a one-word town in a
+ * 1590px box). The page column stays full width (src/lib/pageColumn.ts); the form and the field sections that save on
+ * their own carry a LINE measure, as Edit profile's fields do. The items list below them keeps the column.
+ * Guard: src/test/shopEditFormMeasure.test.ts.
+ */
+const SHOP_FORM_MEASURE = "max-w-[40rem]";
+
 const EMPTY_HOURS = (): Form["hours"] =>
   Object.fromEntries(WEEKDAYS.map((_, i) => [i, { open: false, opens: "09:00", closes: "17:00" }]));
 /** A new shop starts open Monday to Friday, 9 to 5 (audit 11-10 F6); the owner changes what differs. */
@@ -332,7 +340,7 @@ export default function ShopEditView() {
   const busy = photo.isPending || unphoto.isPending;
 
   const formEl = (
-  <form className="space-y-5 pb-8" onSubmit={onSubmit} noValidate>
+  <form className={`space-y-5 pb-8 ${SHOP_FORM_MEASURE}`} onSubmit={onSubmit} noValidate>
     {!myId.data && (
       <ShopOpenIntro />
     )}
@@ -555,11 +563,11 @@ export default function ShopEditView() {
     <AppPage title={myId.data ? "Edit my shop" : "Open a shop"} backTo="/shops">
       {formEl}
       {/* The private pickup address (M1b part 2): saves on its own, needed before orders. */}
-      {myId.data && <div className="pb-6"><ShopPickupAddressSection /></div>}
+      {myId.data && <div className={`pb-6 ${SHOP_FORM_MEASURE}`}><ShopPickupAddressSection /></div>}
       {/* Permit on file (Q1952): optional, saves on its own; an admin checks it. */}
-      {myId.data && user?.id && <div className="pb-6"><ShopPermitSection userId={user.id} /></div>}
+      {myId.data && user?.id && <div className={`pb-6 ${SHOP_FORM_MEASURE}`}><ShopPermitSection userId={user.id} /></div>}
       {/* FAQs (SH12): save on their own, like the pickup address. */}
-      {myId.data && <div className="pb-6"><ShopFaqsEditor shopId={myId.data} /></div>}
+      {myId.data && <div className={`pb-6 ${SHOP_FORM_MEASURE}`}><ShopFaqsEditor shopId={myId.data} /></div>}
       {/* Items (slice 2): outside the shop form, each item saves on its own. */}
       {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} />}
       {/* The app's own confirm, never window.confirm (off-brand and

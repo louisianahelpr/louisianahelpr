@@ -18,7 +18,7 @@
  * @mutate src/components/shops/ShopPickupAddressSection.tsx |     if (!isLouisianaZip5(zip.trim())) { |     if (false) {
  * @mutate src/lib/shops/pickupAddress.ts |   return /^[0-9]{5}$/.test(zip) && isLouisianaZip(zip); |   return /^7[01][0-9]{3}$/.test(zip);
  * @mutate src/components/shops/ShopPickupAddressSection.tsx |     mutationFn: () => saveMyPickupAddress({ line1, line2, city, postal_code: zip.trim() }), |     mutationFn: async () => undefined,
- * @mutate src/components/shops/ShopEditView.tsx |       {myId.data && <div className="pb-6"><ShopPickupAddressSection /></div>} |
+ * @mutate src/components/shops/ShopEditView.tsx |       {myId.data && <div className={`pb-6 ${SHOP_FORM_MEASURE}`}><ShopPickupAddressSection /></div>} |
  * Q2146: a pickup address Stripe refused for tax says so (20261110205854, shops_my_pickup_address_problem).
  * @mutate src/components/shops/ShopPickupAddressSection.tsx |           {current.data && refused.data && ( |           {false && (
  */
@@ -196,6 +196,6 @@ describe("ShopEditView mounts the form for an existing shop", () => {
   it("renders ShopPickupAddressSection behind myId.data", () => {
     const src = blankComments(readFileSync(join(process.cwd(), "src/components/shops/ShopEditView.tsx"), "utf8"));
     expect(src.length).toBeGreaterThan(2000); // the real file (measured ~2026-10-18), never an empty read
-    expect(src).toMatch(/\{myId\.data && <div className="pb-6"><ShopPickupAddressSection \/><\/div>\}/);
+    expect(src).toContain("{myId.data && <div className={`pb-6 ${SHOP_FORM_MEASURE}`}><ShopPickupAddressSection /></div>}");
   });
 });

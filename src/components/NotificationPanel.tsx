@@ -333,21 +333,22 @@ function useNotificationPanelModel({ triggerClassName, defaultOpen = false, with
 
   const markAllRead = async () => {
     const unreadIds = notifications.filter((n) => !n.read).map((n) => n.id);
-    if (unreadIds.length === 0) return;
+    if (unreadIds.length === 0 && !unreadTotal) return;
+    const prevTotal = unreadTotal;
     // Optimistically clear unread state so the UI responds immediately.
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    // NOT zero — `unreadIds` covers only the 50 rows this panel fetched, and
-    // `unreadTotal` is the whole database. On an account with more unread than
-    // one page (the case the count query exists for at all) setting 0 here
-    // would clear a badge that still has real unread behind it. Subtract what
-    // was actually marked.
-    setUnreadTotal((t) => (t === null ? t : Math.max(0, t - unreadIds.length)));
+    // F434 (whole-app audit 2026-11-10): this used to mark only the page (100 rows) and subtract it, so a member with
+    // 723 unread pressed "Mark all read" and still had 623 and a 99+ badge. The write below now marks EVERY unread row
+    // of this member, so the total is 0 (rolled back to the old total on a failed write).
+    setUnreadTotal((t) => (t === null ? t : 0));
     try {
-      // Every id must come back. A short result means some rows were filtered
-      // out by RLS or no longer exist, and the badge would otherwise sit at 0
-      // while the database still holds unread rows.
+      const { data: { session } } = await supabase.auth.getSession();
+      const uid = session?.user?.id;
+      if (!uid) throw new Error("No session for mark all read");
+      // Only the `read` column (notifications_member_updates_read_only). At least every unread row on the page must
+      // come back; a short result means RLS filtered rows and the badge would otherwise sit at 0 over real unread.
       unwrapMutation(
-        await supabase.from("notifications").update({ read: true }).in("id", unreadIds).select("id"),
+        await supabase.from("notifications").update({ read: true }).eq("user_id", uid).eq("read", false).select("id"),
         {
           action: "mark your notifications read",
           min: unreadIds.length,
@@ -360,7 +361,7 @@ function useNotificationPanelModel({ triggerClassName, defaultOpen = false, with
       setNotifications((prev) =>
         prev.map((n) => (unreadIds.includes(n.id) ? { ...n, read: false } : n)),
       );
-      setUnreadTotal((t) => (t === null ? t : t + unreadIds.length));
+      setUnreadTotal(prevTotal);
       toast.error("Couldn't mark all as read — please try again.");
       return;
     }

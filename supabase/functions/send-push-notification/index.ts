@@ -73,6 +73,7 @@ import { inferCategoryFromLink, type PushCategory } from './category.ts'
 import { isInQuietHours, QUIET_HOURS_TIME_ZONE } from './quietHours.ts'
 import { serve } from "../_shared/buildStamp.ts";
 import { sendWebPush, type VapidKeys } from '../_shared/webPush.ts'
+import { pushTextInLanguage } from './pushLanguage.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -467,6 +468,17 @@ serve(async (req) => {
     )
   }
 
+  // F260q (owner 11-11 "Spanish everything"): the device sees the text in the recipient's language. Read here, after
+  // the admin fallback above (ops alerts and their severity keep the English title). A failed read sends English.
+  const { data: langRow, error: langErr } = await supabase
+    .from('profiles')
+    .select('language')
+    .eq('user_id', payload.user_id)
+    .maybeSingle()
+  if (langErr) console.warn('Failed to load profiles.language; sending English', langErr)
+  const deviceText = pushTextInLanguage(langErr ? null : langRow?.language, payload.title, payload.body)
+  const devicePayload: PushPayload = { ...payload, ...deviceText }
+
   const iosTokens = tokens.filter((t) => t.platform === 'ios')
   const androidTokens = tokens.filter((t) => t.platform === 'android')
   // Q1252: any other platform ('web' was admitted by the CHECK until
@@ -555,7 +567,7 @@ serve(async (req) => {
       const bundleId = Deno.env.get('APNS_BUNDLE_ID')!
 
       const iosResults = await mapWithConcurrency(iosTokens, SEND_CONCURRENCY, async (t) => {
-        const r = await sendApnsOne(apnsHost, jwt, bundleId, t.token, payload)
+        const r = await sendApnsOne(apnsHost, jwt, bundleId, t.token, devicePayload)
         if (!r.ok) {
           console.warn('APNs send failed', { token_id: t.id, status: r.status, reason: r.reason })
           if (r.isInvalidToken) {
@@ -601,7 +613,7 @@ serve(async (req) => {
     const webResults = await mapWithConcurrency(webSubs, SEND_CONCURRENCY, async (sub) => {
       const r = await sendWebPush(
         sub,
-        { title: payload.title, message: payload.body, link: payload.link ?? null, tag: payload.thread_id ?? null },
+        { title: devicePayload.title, message: devicePayload.body, link: payload.link ?? null, tag: payload.thread_id ?? null },
         vapid,
       )
       if (!r.ok) {

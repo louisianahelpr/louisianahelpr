@@ -3,7 +3,6 @@ import { itemPriceLabel } from "@/lib/declutter/distance";
 import { FallbackImg } from "./FallbackImg";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
-import { PriceInclFee } from "./PriceInclFee";
 
 export function BuyerPreviewCard({ src, title, cents, category = null }: { src: string | null | undefined; title: string; cents: number | null; category?: string | null }) {
   return (
@@ -17,8 +16,7 @@ export function BuyerPreviewCard({ src, title, cents, category = null }: { src: 
         <p className="text-ds-13 text-muted-foreground">What buyers see</p>
         <p className="truncate text-ds-15 font-bold text-foreground">{title}</p>
         {cents != null && <p className="text-ds-15 font-bold text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(cents)}</p>}
-        {/* The same second line buyers get on the card (audit 1110 F333); nothing for a free item. */}
-        {cents != null && <PriceInclFee priceCents={cents} />}
+        {/* F328 (owner 11-11 ~2:10 PM): the sell form shows "You get $Y" only, so no buyers-pay ("incl. fee") line here. */}
       </div>
     </div>
   );

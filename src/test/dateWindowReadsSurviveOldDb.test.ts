@@ -98,6 +98,7 @@ describe("Q2408: reads that name date_window_end survive a database without it",
       "src/pages/home/QuickApplyHandler.tsx",
       "src/pages/home/useApplyFlow.ts",
       "src/pages/jobs/jobPage/usePosterPageFlows.tsx",
+      "src/pages/jobs/JobDetail.tsx", // F217 (11-10): the guest job sheet shows When (date_needed / date_window_end)
       "src/pages/jobs/jobPage/useJobPage.ts",
     ].sort());
     for (const f of naming.filter((x) => !BOOT_PREFETCH.includes(x) && x !== "src/lib/guestJobsQuery.ts" && x !== "src/hooks/useDashboardJobsCount.ts")) {

@@ -7,6 +7,8 @@
  *
  * @mutate src/components/MobileNav.tsx | leading-none whitespace-nowrap ${isActive ? "font-bold" : "font-medium"}`}>{shown}</span> | leading-none whitespace-nowrap ${isActive ? "font-bold" : "font-medium"}`}>{""}</span>
  * @mutate src/components/MobileNav.tsx | text-ds-10 leading-none whitespace-nowrap | text-ds-10 leading-none truncate
+ * @mutate src/index.css | html.senior-mode .text-ds-10[data-dock-label] { font-size: 11px | html.senior-mode .text-ds-10[data-dock-label] { font-size: 13px
+ * @mutate src/index.css | html.senior-mode .text-ds-10[data-dock-label] | html.senior-mode .text-ds-10[data-dock-labels]
  * @mutate src/components/MobileNav.tsx | ariaLabel={locked ? `${shown} — locked until your account is approved` : showBadge ? `${dockBadgeText(badgeCount)} ${shown}` : shown} | ariaLabel={locked ? `${label} — locked until your account is approved` : showBadge ? `${dockBadgeText(badgeCount)} ${label}` : label}
  */
 import { describe, it, expect } from "vitest";
@@ -36,5 +38,17 @@ describe("dock labels (F147)", () => {
   });
   it("the accessible name is the same word, in the member's language", () => {
     expect(tab).toMatch(/ariaLabel=\{[^\n]*\bshown\b[^\n]*\}/);
+  });
+  it("F462: under Bigger text the names keep their default 11px (13px made Declutter and Messages touch)", () => {
+    const css = blankComments(readFileSync(resolve(__dirname, "../index.css"), "utf8"));
+    const tw = readFileSync(resolve(__dirname, "../../tailwind.config.ts"), "utf8");
+    const base = tw.match(/"ds-10":\s*\["(\d+)px"/)?.[1];
+    expect(base, "tailwind ds-10 size not found").toBe("11");
+    const rule = css.match(/html\.senior-mode \.text-ds-10\[data-dock-label\]\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(rule, "the senior-mode dock label rule is missing").toMatch(/font-size:\s*(\d+)px\s*!important/);
+    expect(rule.match(/font-size:\s*(\d+)px/)?.[1]).toBe(base);
+    // It must come AFTER the senior-mode .text-ds-10 rung, or the rung wins on equal weight elsewhere.
+    expect(css.indexOf("html.senior-mode .text-ds-10[data-dock-label]")).toBeGreaterThan(css.indexOf("html.senior-mode .text-ds-10 {"));
+    expect(span).toContain("data-dock-label");
   });
 });

@@ -4013,6 +4013,11 @@ html.senior-mode .text-ds-12 { font-size: 16px !important; line-height: 1.5 !imp
 html.senior-mode .text-ds-13 { font-size: 16px !important; line-height: 1.5 !important; }
 html.senior-mode .text-ds-14 { font-size: 16px !important; line-height: 1.5 !important; }
 html.senior-mode .text-ds-15 { font-size: 20px !important; line-height: 1.45 !important; }
+/* F462 (whole-app audit 11-10): the bottom bar's tab names stay at their 11px under Bigger text. At 13px "Declutter"
+   and "Messages" touched at 375 (five one-line names, never cut, F147); 11px is the size the dock's pixel check
+   proves fits at 320 and 375 (e2e nav-hide-on-scroll "dock labels"). The icons and the rest of the page still grow.
+   Guard: src/test/dockLabelsOneLine.test.ts. */
+html.senior-mode .text-ds-10[data-dock-label] { font-size: 11px !important; line-height: 1 !important; }
 
 /* Muted greys are the first thing to fail for ageing eyes — they were chosen
    for hierarchy on a good screen in good light. Simple Mode trades some of

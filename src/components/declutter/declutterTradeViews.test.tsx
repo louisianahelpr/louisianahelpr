@@ -1928,6 +1928,7 @@ describe("BUY-15: checkout is two columns from lg, and each cart line shows its 
   // room for two. The title now wraps to two lines (line-clamp-2), never a one-line cut.
   // @mutate src/components/declutter/DeclutterTradeViews.tsx | className="flex min-h-11 min-w-0 items-center" title={l.item_title}><span className="line-clamp-2 break-words"> | className="flex min-h-11 min-w-0 items-center truncate" title={l.item_title}><span className="truncate">
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |                       <span className="line-clamp-2 min-w-0 break-words" title={l.item_title}>{l.item_title}</span> |                       <span className="truncate" title={l.item_title}>{l.item_title}</span>
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | data-cart-line="" data-cart-item={l.item_id ?? undefined}> | data-cart-line="">
   it("Q2636: a cart line's title wraps to two lines, never cut to one", async () => {
     const long = "Solid oak rocking chair with the original cane seat";
     state.cart = [{ ...line, item_title: long }, { ...line, line_id: "l2", item_id: null, item_title: `${long} (gone)` }];
@@ -1939,6 +1940,8 @@ describe("BUY-15: checkout is two columns from lg, and each cart line shows its 
       for (const el of title) expect(el.className).not.toMatch(/\btruncate\b/);
       expect(title.some((el) => /\bline-clamp-2\b/.test(el.className))).toBe(true);
     }
+    // F360c: each line names its item for the trade card's "Go to my trade in the cart" (declutterTradeCards).
+    expect(document.querySelector(`[data-cart-item="${line.item_id}"]`)?.closest("[data-checkout-seller]")).toBeInstanceOf(HTMLElement);
   });
   // Q2637 (audit 1102c R12, measured 11-02 at 1440): the bill box showed no top edge. Not a clip (every clipping parent
   // starts above it): it was bg-card, and index.css's T2 rule (`:where(.bg-card)`, border-color transparent !important)

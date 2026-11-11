@@ -16,6 +16,9 @@
  *
  * Audit 11-10 F366 (rest): with a refund still being worked out (no problem row) the card's step bar ended on "Done".
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |  refundOpen={refundIsOpen(refundStatus)} open={open} |  open={open}
+ *
+ * Owner 11-11 F382: after a seller says no, the refund panel's report button reads "Ask Louisiana Helpr to look".
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |  stage="handover" triggerLabel="Ask Louisiana Helpr to look" />} /> |  stage="handover" />} />
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -63,7 +66,8 @@ vi.mock("./DeclutterReviewForm", () => ({ DeclutterReviewForm: ({ problemOpen }:
 vi.mock("./DeclutterDeliveryViews", () => ({ OrderDeliveryPanel: () => null }));
 vi.mock("./SellerDeliveryOrder", () => ({ SellerDeliveryOrderPanel: () => null }));
 vi.mock("./DeclutterAddHelpr", () => ({ AddHelprPanel: ({ bookedOnly }: { bookedOnly?: boolean }) => <p>Help panel{bookedOnly ? " (booked only)" : " (offers)"}</p> }));
-vi.mock("./DeclutterRefundRequest", () => ({ DeclutterRefundPanel: () => null }));
+// F382: the panel's own words are tested in declutterRefundRequest; here it shows the problem form it is handed.
+vi.mock("./DeclutterRefundRequest", () => ({ DeclutterRefundPanel: ({ problemForm }: { problemForm: React.ReactNode }) => <div data-refund-panel="">{problemForm}</div> }));
 
 import { fetchMyCart } from "@/lib/declutter/api";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
@@ -192,5 +196,17 @@ describe("F366 (rest): the step bar never ends on Done over a refund still being
     const { container } = show();
     await waitFor(() => expect(container.querySelector('[aria-label="Step 4 of 4: Done"]')).not.toBeNull());
     expect(container.textContent).not.toContain("Refund asked");
+  });
+});
+
+describe("F382: the refund panel's report button asks Louisiana Helpr to look", () => {
+  it("the problem form handed to the refund panel opens from Ask Louisiana Helpr to look", async () => {
+    state.refund = "declined";
+    const { container } = show();
+    await screen.findByText("Oak chair");
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
+    const panel = await waitFor(() => { const p = container.querySelector("[data-refund-panel]"); if (!p) throw new Error("no panel"); return p as HTMLElement; });
+    expect(panel.textContent).toContain("Ask Louisiana Helpr to look");
+    expect(panel.textContent).not.toContain("Report a problem");
   });
 });

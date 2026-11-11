@@ -194,6 +194,9 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
    */
   const REVIEWED: Record<string, "returns-guarded" | "own-row-only" | "no-return"> = {
     "function:get_job_offer_targets": "own-row-only",
+    // F300 (20261111160809): reads offered_to_helper_id only to leave an offered job alone; returns
+    // {deleted, skipped} counts and EXECUTE is service_role only (the hourly cron).
+    "function:sweep_unpaid_job_drafts": "no-return",
     // Quotes slice 1 (20261015091114): WRITES the offeree (the agreed quoter) on the
     // booked job's insert and returns only the new job id; never reads it back.
     "function:quote_insert_job": "no-return",

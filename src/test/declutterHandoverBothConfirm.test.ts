@@ -19,7 +19,7 @@
 // @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |                         AND p.created_at < public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '7 days') |                         AND true)
 // @mutate src/components/declutter/SellerDeliveryOrder.tsx | {can.askNewTime && !noShowWaiting && | {can.askNewTime &&
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (anyProblem) return null;\n | \n
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (frozen) return booked ? | if (false) return booked ?
+// @mutate src/components/declutter/DeclutterBookingPanel.tsx |   if (frozen) return booked ? | if (false) return booked ?
 // @mutate src/components/declutter/DeclutterProblemOpen.tsx |     : noShowAnswered ? noShowAnsweredWords(side, delivery)\n | \n
 // @mutate supabase/functions/delete-own-account/index.ts |             ? DECLUTTER_HELD_BLOCKS_DELETION_MESSAGE | ? MONEY_OWED_BLOCKS_DELETION_MESSAGE
 import { describe, it, expect } from "vitest";
@@ -124,7 +124,8 @@ describe("Declutter: both sides confirm before money moves", () => {
     expect(seller).toContain("{can.askNewTime && !noShowWaiting &&");
     const views = screen("src/components/declutter/DeclutterHandoverViews.tsx");
     expect(views).toMatch(/if \(order\.side === "seller"\) \{ if \(anyProblem\) return null;/);
-    expect(views).toContain("if (frozen) return booked ?");
+    // The booking panel moved to its own file (componentSizeRatchet, 11-11 land).
+    expect(screen("src/components/declutter/DeclutterBookingPanel.tsx")).toContain("if (frozen) return booked ?");
     const note = screen("src/components/declutter/DeclutterProblemOpen.tsx");
     expect(note).toContain(": noShowAnswered ? noShowAnsweredWords(side, delivery) :");
   });

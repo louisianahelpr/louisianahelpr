@@ -7,6 +7,7 @@
  */
 // @mutate supabase/functions/_shared/confirmDeadline.ts |   return jobLocalMidnightMs(previousDay(dateNeeded)); |   return jobLocalMidnightMs(dateNeeded);
 // @mutate src/components/tracker/jobProgressState.ts |  : `Confirm on ${day}, the day before`; |  : `Confirm the day before.`;
+// @mutate src/components/tracker/jobProgressState.ts | const wait = poster ? `You both confirm on ${day}, the day before` | const wait = poster ? `${other} confirms on ${day}, the day before`
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { confirmDeadlineMs, confirmOpensMs } from "@/lib/jobDate";
@@ -30,7 +31,7 @@ describe("a Thu 9:00 AM job's confirm window", () => {
 
   it("the tracker says when it opens, on both sides", () => {
     const job = { status: "accepted", helper_id: "h", helper_confirmed_at: "t", date_needed: DAY, start_time: "09:00" };
-    expect(jobProgress(job, { viewer: "poster", otherFirst: "Yusef", now: NOW }).next).toBe("Yusef confirms on Wed, the day before");
+    expect(jobProgress(job, { viewer: "poster", otherFirst: "Yusef", now: NOW }).next).toBe("You both confirm on Wed, the day before"); // F270: never "Yusef confirms"
     expect(jobProgress(job, { viewer: "helpr", otherFirst: "Ben", now: NOW }).next).toBe("Confirm on Wed, the day before");
   });
 

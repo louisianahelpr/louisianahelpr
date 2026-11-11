@@ -193,7 +193,9 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
         onPick={(k) => (k === null ? only && toggle(only) : toggle(k))}
         chips={[
           { key: "offers", label: "To answer", count: toAnswer, hot: true },
-          { key: "listings", label: "Listed", count: listed },
+          // Audit 11-10 F406: "Listed" read as "still for sale" over rows that are sold, handed over or being bought.
+          // "Listings" names the list it opens (Your listings), every row of it, as the count already does.
+          { key: "listings", label: "Listings", count: listed },
           { key: "waiting", label: waitingLabel, count: todo?.salesAwaitingPayment ?? 0 },
           // F128 (UI audit 11-09): "Hand over" was unclear; these are the sales still to hand to the buyer.
           { key: "sold", label: "Pickups to do", count: todo?.salesOpen ?? 0, hot: true },

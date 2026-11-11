@@ -578,7 +578,9 @@ describe("Selling tab: Taken down, with Relist", () => {
   // Your listings shows every row but the history ones (sold, completed and rejected too). The chip now counts the
   // rows it opens, from the one shared set.
   // @mutate src/components/declutter/DeclutterMineViews.tsx | .filter((i) => !PAST_LISTING.has(i.status)).length | .filter((i) => ["draft", "pending_review", "live", "paused", "reserved"].includes(i.status)).length
-  it("the Listed chip counts exactly the rows under Your listings (Sellinglist-2)", async () => {
+  // Audit 11-10 F406: the chip says "Listings" (the list it opens), not "Listed" (read as still for sale).
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | { key: "listings", label: "Listings", count: listed }, | { key: "listings", label: "Listed", count: listed },
+  it("the Listings chip counts exactly the rows under Your listings (Sellinglist-2, F406)", async () => {
     const statuses = ["draft", "pending_review", "live", "paused", "reserved", "rejected", "sold", "completed", "withdrawn", "sold_elsewhere"] as const;
     state.mine = statuses.map((s, n) => ({ ...ITEM, id: `c${n}`, status: s, title: `Row ${s}` }));
     const { container } = at("/declutter?tab=selling");
@@ -587,7 +589,7 @@ describe("Selling tab: Taken down, with Relist", () => {
     const rows = listings.querySelectorAll("[data-selling-list] > li").length;
     expect(rows).toBeGreaterThan(5);
     const chip = container.querySelector('[data-status-box="listings"]') as HTMLElement;
-    expect(chip.textContent).toBe(`Listed · ${rows}`);
+    expect(chip.textContent).toBe(`Listings · ${rows}`);
   });
 
   // NIGHT-SELL-Sellinglist-4 (night audit 2026-10-30, list-375-01-top.png): at 375 one listing's title was cut on one

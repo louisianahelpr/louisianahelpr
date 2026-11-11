@@ -126,7 +126,7 @@ describe("PayoutSetupForm while payout setup is paused", () => {
     statusFixture = NOT_CONNECTED;
     wrap(<PayoutSetupForm />);
     await drain();
-    expect(await screen.findByRole("button", { name: /set up payouts with stripe/i })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /add your bank \(with stripe\)/i })).toBeTruthy();
     expect(screen.queryByText(PAYOUT_SETUP_PAUSED_COPY)).toBeNull();
   });
 });

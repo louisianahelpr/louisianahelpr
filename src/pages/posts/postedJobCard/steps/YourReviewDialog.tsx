@@ -14,7 +14,8 @@ import { unwrap } from "@/lib/supabaseResult";
 import { reviewText, withReviewTags } from "@/lib/reviewTags";
 import { STAR_ON_CLS } from "@/lib/starColor";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
-import { ErrorState } from "@/components/ui/ErrorState";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 
 /**
  * F278 (audit 11-10): the poster's done job used to show a disabled "Reviewed"
@@ -80,7 +81,12 @@ export function YourReviewDialog({
           {isLoading ? (
             <p className="text-ds-14 text-muted-foreground">Loading your review…</p>
           ) : isError ? (
-            <ErrorState variant="inline" title="Your review couldn't load." onRetry={() => void refetch()} />
+            // Inside a job card, so no ErrorState card (noNestedTrackerCard); the hand-drawn line still reports (errorSurfacesReport).
+            <div role="alert" className="space-y-1">
+              <ReportErrorScreen source="YourReviewDialog" title="Your review couldn't load." />
+              <p className="text-ds-14 text-foreground">Your review couldn't load.</p>
+              <InlineTextButton onClick={() => void refetch()}>Try again</InlineTextButton>
+            </div>
           ) : !data || data.length === 0 ? (
             <p className="text-ds-14 text-muted-foreground">We couldn't find your review for this job.</p>
           ) : (

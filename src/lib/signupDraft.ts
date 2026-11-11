@@ -8,7 +8,7 @@ export type SignupDraftKey = "firstName" | "lastName" | "email";
 
 const KEYS: readonly SignupDraftKey[] = ["firstName", "lastName", "email"];
 
-export const signupDraftStorageKey = (key: SignupDraftKey) => `lh-signup-draft:${key}`;
+const signupDraftStorageKey = (key: SignupDraftKey) => `lh-signup-draft:${key}`;
 
 export function readSignupDraft(key: SignupDraftKey): string {
   try {

@@ -90,6 +90,8 @@
     "supabase/functions/stripe-webhook-config-check/shape.ts",
     "supabase/functions/backfill-job-geocode/budget.ts",
     "supabase/functions/_shared/geocodeDropoff.ts",
+    "supabase/functions/_shared/noticeEs.ts",
+    "supabase/functions/send-push-notification/pushLanguage.ts",
     "supabase/functions/_shared/appleRoutes.ts",
     "supabase/functions/_shared/travelEstimates.ts",
     "supabase/functions/_shared/crewCancelQuote.ts",

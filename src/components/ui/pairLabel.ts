@@ -31,6 +31,7 @@ const SHORT: ReadonlyArray<[RegExp, string]> = [
   [/^Report (a )?no-show$/i, "No-show"],
   [/^Report a problem$/, "Report"],
   [/^Ask for a fix$/, "Ask for fix"],
+  [/^Find another job$/, "Find work"],
 ];
 
 /** The label a button wears in a side-by-side pair: the short form, or the label itself when it is short already. */

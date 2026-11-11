@@ -21,7 +21,7 @@
  * @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |        AND NOT EXISTS (SELECT 1 FROM public.shop_hand_refunds hr WHERE hr.order_id = o.id AND hr.failed_at IS NULL)); |        );
  * @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |        AND o.digital_access_revoked_at IS NULL\n |
  * @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |                 AND o.status IN ('accepted', 'handed_over')) THEN |                 AND o.captured_at IS NOT NULL AND o.status IN ('accepted', 'handed_over')) THEN
- * @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |   IF p_billing_matches IS NOT TRUE THEN |   IF false THEN
+ * @mutate supabase/migrations/20261111025213_shops_gift_hold_steps.sql |   IF p_billing_matches IS NOT TRUE THEN |   IF false THEN
  * @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |   UPDATE public.shop_orders SET digital_access_revoked_at = COALESCE(digital_access_revoked_at, now()) WHERE id = o.id; |   NULL;
  *
  * Slice 2 (checkout) behaviour: src/test/pglite/shopsDigitalCheckout.pglite.mjs (3x; NEW_MIGRATION=skip RED; planted

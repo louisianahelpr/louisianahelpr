@@ -6,13 +6,14 @@
  *         row carries its own Alerts switch (disabled while "Pause all" is on; the settings sheet keeps Email and Delete).
  *
  * @mutate src/components/messages/ChatHeader.tsx | <DropdownMenuItem onClick={onBlockUser} data-chat-block-user="" className="text-[hsl(var(--destructive-ink))] focus:text-[hsl(var(--destructive-ink))]"> | <DropdownMenuItem onClick={onBlockUser} data-chat-block-user="">
- * @mutate src/components/messages/ChatHeader.tsx | <span className="text-ds-12 text-muted-foreground">Tell our team about a problem.</span> | <span className="text-ds-12 text-muted-foreground"></span>
+ * @mutate src/components/messages/ChatHeader.tsx | <span className="text-ds-12 text-muted-foreground">{t("msg.reportUserBody")}</span> | <span className="text-ds-12 text-muted-foreground"></span>
  * @mutate src/pages/profile/SavedSearchesTab.tsx | <RowAlertSwitch search={s} userId={userId} paused={!!paused.data} /> | {null}
  * @mutate src/pages/profile/SavedSearchesTab.tsx | disabled={paused \|\| change.isPending} | disabled={change.isPending}
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
+import { en } from "@/lib/i18n/en";
 
 const code = (f: string) => blankComments(readFileSync(f, "utf8"));
 
@@ -23,7 +24,9 @@ describe("F429: the chat menu tells Report and Block apart", () => {
     expect(block).not.toBeNull();
     expect(block![1]).toContain("text-[hsl(var(--destructive-ink))]");
     expect(block![1]).toContain("focus:text-[hsl(var(--destructive-ink))]");
-    expect(src).toMatch(/<span data-menu-label="">Report user<\/span>\s*<span className="text-ds-12 text-muted-foreground">Tell our team about a problem\.<\/span>/);
+    expect(src).toMatch(/<span data-menu-label="">\{t\("msg\.reportUser"\)\}<\/span>\s*<span className="text-ds-12 text-muted-foreground">\{t\("msg\.reportUserBody"\)\}<\/span>/);
+    expect(en["msg.reportUser"]).toBe("Report user");
+    expect(en["msg.reportUserBody"]).toBe("Tell our team about a problem.");
     // Report stays the plain colour: no destructive ink on the Report row.
     const report = src.match(/<DropdownMenuItem onClick=\{onReportUser\}([^>]*)>/);
     expect(report).not.toBeNull();

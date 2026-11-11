@@ -11,6 +11,7 @@ import { esLanding } from "./esLanding";
 import { esNotifications } from "./esNotifications";
 import { esDeclutter } from "./esDeclutter";
 import { esHome } from "./esHome";
+import { esMessages } from "./esMessages";
 
 export const es: Record<MsgKey, string> = {
   ...esPublic,
@@ -18,6 +19,7 @@ export const es: Record<MsgKey, string> = {
   ...esNotifications,
   ...esDeclutter,
   ...esHome,
+  ...esMessages,
   "chat.back": "Volver a las conversaciones",
   "chat.options": "Opciones de la conversación",
   "chat.cancelReply": "Cancelar la respuesta",

@@ -1,3 +1,4 @@
+import "@/lib/i18n/enMessages";
 import { t } from "@/lib/i18n/language";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import "@/lib/i18n/enScreens";
@@ -45,7 +46,7 @@ const renderMessageContent = (
           loading="lazy"
           decoding="async"
           src={url}
-          alt="Shared photo"
+          alt={t("msg.sharedPhoto")}
           className="max-w-full max-h-64 object-contain rounded-ds-sm cursor-pointer hover:opacity-90 transition-opacity"
           onClick={() => onImageClick(url)}
         />
@@ -76,7 +77,7 @@ const renderMessageContent = (
         className="flex items-center gap-1.5 underline hover:no-underline tap-44"
       >
         <MapPin className="w-3.5 h-3.5 shrink-0" />
-        View location on map
+        {t("msg.viewMap")}
       </a>
     );
   }
@@ -216,13 +217,13 @@ export function MessageBubble({
               className="text-ds-10 font-sans font-semibold leading-none mb-0.5"
               style={{ color: mine ? "hsl(var(--parchment) / 0.85)" : "hsl(var(--bark))" }}
             >
-              {replyParent.mine ? "You" : "Them"}
+              {replyParent.mine ? t("msg.you") : t("msg.them")}
             </p>
             <p
               className="text-ds-11 font-sans leading-snug line-clamp-2"
               style={{ color: mine ? "hsl(var(--parchment) / 0.80)" : "hsl(var(--olivewood) / 0.85)" }}
             >
-              {replyParent.content?.trim() || "Attachment"}
+              {replyParent.content?.trim() || t("msg.attachment")}
             </p>
           </div>
         )}
@@ -261,7 +262,7 @@ export function MessageBubble({
                 disabled={!onReact}
                 // The count shows once two people used it, so the name says it too (WCAG 2.5.3, axe 4.14
                 // label-content-name-mismatch: a visible "2" missing from the name).
-                aria-label={`${isMine ? `Remove your ${emoji} reaction` : `React with ${emoji}`}${count > 1 ? `, ${count} reactions` : ""}`}
+                aria-label={`${isMine ? t("msg.removeReaction", { emoji }) : t("msg.react", { emoji })}${count > 1 ? t("msg.nReactions", { n: count }) : ""}`}
                 aria-pressed={isMine}
                 className="relative min-h-0 min-w-0 inline-flex items-center gap-0.5 rounded-full px-1 py-[2px] text-ds-10 leading-none transition-transform active:scale-90 disabled:active:scale-100 before:absolute before:-inset-x-3 before:-inset-y-4 before:content-['']"
                 style={{
@@ -325,7 +326,7 @@ export function MessageBubble({
         {isSending ? (
           <span className="flex items-center gap-1">
             <Loader2 className="w-2.5 h-2.5 animate-spin" />
-            Sending…
+            {t("msg.sending")}
           </span>
         ) : isFailed ? (
           <InlineTextButton
@@ -334,11 +335,11 @@ export function MessageBubble({
             title={t("chat.retry")}
           >
             <RotateCw className="w-2.5 h-2.5" />
-            {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not sent — tap to retry"}
+            {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : t("msg.notSentRetry")}
           </InlineTextButton>
         ) : isRefused ? (
           <span className="text-destructive-ink font-medium">
-            {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not sent — conversation closed"}
+            {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : t("msg.notSentClosed")}
           </span>
         ) : (
           <>

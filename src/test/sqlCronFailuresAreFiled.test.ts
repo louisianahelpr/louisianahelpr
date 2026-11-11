@@ -38,6 +38,7 @@ const KNOWN_SWALLOWS: Record<string, [number, string]> = {
   sweep_cron_blackouts: [1, "Catches a failed Slack post; the blackout is already in error_logs."],
   send_ops_daily_digest: [1, "A failed Slack post leaves v_request NULL and posted false, which check_ops_digest_delivery reads (ops-digest-undelivered)."],
   sweep_open_ban_settlement_reviews: [1, "Q1324: catches a failed admin_alert insert; the fatal error_logs page for the same review is already written."],
+  sweep_unpaid_job_drafts: [1, "F300: a job a foreign key still protects is skipped, never forced; the count is returned as 'skipped' in the run's result, which cron_record_work records."],
   run_missed_cron_catch_up: [2, "(1) lock_not_available: the slot stays unclaimed for the next tick; (2) the catch-up's failure is recorded as action 'catch_up_failed' in cron_catchup_runs and alerted from there."],
 };
 

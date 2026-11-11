@@ -1559,6 +1559,19 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     expect(offered).not.toContain("Cancel job");
   });
 
+  // F300 (audit 11-10): the unpaid draft still offered "Copy a link to this job", a link to a job nobody can see.
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |   const share = open && !jobIsUnfundedDraft(job) ? ( |   const share = open ? (
+  it("an unpaid draft offers no share link; a paid open job does", () => {
+    const shareName = /^(Share this job|Copy a link to this job)$/;
+    state.job = row({ customer_id: ME, payment_status: "unpaid" });
+    const first = renderPage();
+    expect(screen.queryByRole("button", { name: shareName })).toBeNull();
+    first.unmount();
+    state.job = row({ customer_id: ME, payment_status: "escrow" });
+    renderPage();
+    expect(screen.getByRole("button", { name: shareName })).toBeTruthy();
+  });
+
   it("a cancelled job: Post this job again", () => {
     state.job = row({ customer_id: ME, status: "cancelled" });
     renderPage();

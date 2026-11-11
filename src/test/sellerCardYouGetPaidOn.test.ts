@@ -20,7 +20,8 @@
  * @mutate src/components/declutter/declutterPayoutWords.ts | const from = ctx.declinedAt && | const from = false &&
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | const feeUnknown = setupFee.unknown; | const feeUnknown = false;
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | holdUnknown={feeUnknown \|\| !problemsSettled \|\| | holdUnknown={feeUnknown \|\|
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | !((holdUnknown \|\| (refundRequests && !refund.isSuccess)) && | !((holdUnknown) &&
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | !((holdUnknown \|\| (refundRequests && !refund.isSuccess) \|\| lastProblem.isLoading) && | !((holdUnknown \|\| lastProblem.isLoading) &&
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | \|\| lastProblem.isLoading) && (payout.status | ) && (payout.status
  * @mutate src/lib/declutter/timeLeft.ts | return payoutDay(new Date(Date.parse(windowEnds) + PAYOUT_SEND_MARGIN_MS).toISOString()); | return payoutDay(windowEnds);
  * @mutate src/lib/declutter/payoutWords.ts | : ` after the ${formatPrice(refunded)} refund`; | : " after the buyer's refund";
  * @mutate src/components/declutter/declutterPayoutWords.ts | if (could.length === 1) | if (could.length >= 1)
@@ -48,6 +49,11 @@
  * @mutate src/components/declutter/declutterPayoutWords.ts | return cut > 0 && gross - cut >= 100 ? gross - cut : gross; | return gross - cut;
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | const feeAhead = setupFee.server ? setupFeeAheadFromServer(payouts.data ?? [], setupFee.cents, setupFee.orderId) | const feeAhead = false ? setupFeeAheadFromServer(payouts.data ?? [], setupFee.cents, setupFee.orderId)
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx | preHandover && setupFee.server ? setupFee : null | null
+ * F360b loose end (lead 11-11): a problem Louisiana Helpr decided, or a handover an admin confirmed, makes the sale final
+ * at once (declutter_sale_decided), so no "paid on" day 24 hours out.
+ * @mutate src/components/declutter/declutterPayoutWords.ts |   if (ctx.saleDecided) return `${gets}. The sale is final, so we send it next.`; |
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | const saleDecided = lastProblem.data?.status === "decided" \|\| handoverRow.data?.confirmed_by === "admin"; | const saleDecided = lastProblem.data?.status === "decided";
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | const saleDecided = lastProblem.data?.status === "decided" \|\| | const saleDecided =
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -149,12 +155,12 @@ describe("F360b: the seller card's one money line", () => {
 
   it("the card passes the handover time, the refund state and the setup fee; the open sale uses the same parts", () => {
     const views = code("src/components/declutter/DeclutterHandoverViews.tsx");
-    expect(views).toMatch(/payoutLine\(payout, !!problem, \{\s*handedOverAt: handoverRow\.data\?\.confirmed_at \?\? null, refundOpen: refundIsOpen\(refundStatus\), setupFeeAhead, payoutReady,\s*declinedAt: refundStatus === "declined" \? refund\.data\?\.request\?\.declined_at \?\? null : null,\s*refundAgreed: refundStatus === "agreed" \? refund\.data\?\.request\?\.refund_status \?\? "unknown" : null, \}\)/);
+    expect(views).toMatch(/payoutLine\(payout, !!problem, \{\s*handedOverAt: handoverRow\.data\?\.confirmed_at \?\? null, refundOpen: refundIsOpen\(refundStatus\), setupFeeAhead, payoutReady,\s*declinedAt: refundStatus === "declined" \? refund\.data\?\.request\?\.declined_at \?\? null : null,\s*refundAgreed: refundStatus === "agreed" \? refund\.data\?\.request\?\.refund_status \?\? "unknown" : null, saleDecided, \}\)/);
     // A hold read not answered yet (fee inputs, open problems, the refund request): unsent rows show no line rather than
     // a figure too high by the fee or a day the server will not keep (lh-money-escrow re-review 11-11).
     expect(views).toContain("const feeUnknown = setupFee.unknown;");
     expect(views).toContain("holdUnknown={feeUnknown || !problemsSettled || feeUnsure.has(o.orderId)}");
-    expect(views).toMatch(/!\(\(holdUnknown \|\| \(refundRequests && !refund\.isSuccess\)\) && \(payout\.status === "pending" \|\| payout\.status === "failed"\)\) && <p/);
+    expect(views).toMatch(/!\(\(holdUnknown \|\| \(refundRequests && !refund\.isSuccess\) \|\| lastProblem\.isLoading\) && \(payout\.status === "pending" \|\| payout\.status === "failed"\)\) && <p/);
     expect(views).toMatch(/setupFeeAhead=\{feeAhead\.get\(o\.orderId\) \?\? 0\}/);
     expect(code("src/components/declutter/DeclutterPorchHandover.tsx")).toContain("` (${formatPrice(itemsCents)} + ${formatPrice(deliveryCents)} delivery)`");
   });
@@ -179,5 +185,20 @@ describe("F360b: the seller card's one money line", () => {
     // The card and the note use the server's answer.
     expect(code("src/components/declutter/DeclutterHandoverViews.tsx")).toContain("const feeAhead = setupFee.server ? setupFeeAheadFromServer(payouts.data ?? [], setupFee.cents, setupFee.orderId)");
     expect(code("src/components/declutter/DeclutterPorchHandover.tsx")).toContain("preHandoverSellerCents(orderId, itemsCents, deliveryCents, preHandover && setupFee.server ? setupFee : null)");
+  });
+
+  it("lead 11-11: a decided problem or an admin-confirmed handover is final at once: sent next, no day 24 hours out", () => {
+    const p = row();
+    expect(payoutLine(p, false, { handedOverAt: HANDED, now: NOW, saleDecided: true })).toBe("You get $45. The sale is final, so we send it next.");
+    expect(payoutLine(p, false, { handedOverAt: HANDED, now: NOW, saleDecided: false })).toMatch(/^You get \$45, paid on /);
+    // Holds still come first: no payout account, an open problem, a sent payout's own day.
+    expect(payoutLine(p, false, { handedOverAt: HANDED, now: NOW, saleDecided: true, payoutReady: false })).toBe("You get $45 once you set up payouts in Settings.");
+    expect(payoutLine(p, true, { handedOverAt: HANDED, now: NOW, saleDecided: true })).toMatch(/held while Louisiana Helpr looks/);
+    expect(payoutLine({ ...p, status: "succeeded", executed_at: HANDED }, false, { saleDecided: true })).toMatch(/, paid on /);
+    // The card reads both: the last problem (the decided-problem panel's own key) and the handover's confirmed_by.
+    const views = code("src/components/declutter/DeclutterHandoverViews.tsx");
+    expect(views).toContain('const saleDecided = lastProblem.data?.status === "decided" || handoverRow.data?.confirmed_by === "admin";');
+    expect(views).toMatch(/queryKey: \["declutter", "problem", order\.orderId\], queryFn: \(\) => fetchOrderProblem\(order\.orderId\)/);
+    expect(views).toMatch(/refundAgreed: refundStatus === "agreed" \? refund\.data\?\.request\?\.refund_status \?\? "unknown" : null, saleDecided, \}\)/);
   });
 });

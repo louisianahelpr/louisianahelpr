@@ -36,4 +36,8 @@ export const esPublic: Record<keyof typeof enPublic, string> = {
   "safety.idChecked": "Se verifica la identidad de cada miembro: una identificación con foto, una sola vez por cuenta, antes de publicar, ser contratado, vender o comprar por primera vez.",
   "safety.moneyHeld": "Su dinero se guarda de forma segura hasta que usted apruebe el trabajo.",
   "safety.report": "Puede reportar un problema desde cualquier trabajo.",
+
+  "legal.tab.terms": "Términos",
+  "legal.tab.community": "Reglas",
+  "legal.tab.privacy": "Privacidad",
 };

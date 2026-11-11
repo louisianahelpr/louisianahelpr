@@ -41,6 +41,11 @@ export const enPublic = {
   "safety.idChecked": "Every member is ID checked: a photo ID, once per account, before they first post, get hired, list or buy.",
   "safety.moneyHeld": "Your money is held safely until you approve the work.",
   "safety.report": "You can report a problem from any job.",
+
+  // /legal's tab strip (LegalTabBar.tsx); the English is TAB_LABELS (legalSections.ts), held equal by the test.
+  "legal.tab.terms": "Terms",
+  "legal.tab.community": "Rules",
+  "legal.tab.privacy": "Privacy",
 } as const;
 
 addEnglish(enPublic);

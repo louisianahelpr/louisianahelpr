@@ -169,6 +169,8 @@ const PROVEN_PRIMITIVES = [
 ];
 // @two-way src/test/clientCountdownsMoveWithTheClock.test.tsx:a NOT_PROVEN module that keeps no clock state any more
 const NOT_PROVEN: Record<string, string> = {
+  "src/components/job-card/NoShowDialog.tsx":
+    "F284: the no-show sheet's Confirm turns on at start + 30 minutes (a one-shot timeout, re-armed at most every 60 s); the server is the gate: report_helper_no_show refuses a timed job before start + 30 minutes (GUARD 2, 20261111202421) with a worded hint, so a late tick only keeps Confirm off a little longer",
   "src/components/jobs/InstantBookingCard.tsx":
     "CMP-4: the booked Helpr's 2-hour decline window (instant_decline_until, a 30 s tick) hides Confirm and Decline; the server is the gate: rpc_instant_book_decline refuses once now() >= instant_decline_until (decline_window_closed, 20261101071621), so a late tick only shows the buttons up to 30 s longer and the refusal is worded",
   "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx":

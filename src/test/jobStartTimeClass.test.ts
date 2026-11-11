@@ -185,9 +185,21 @@ describe("job start time — one rule, every surface", () => {
     expect(new Set(sites.map((s) => s.file)).size).toBeGreaterThan(2);
   });
 
+  // Sites that read a start time but print a DIFFERENT clock, each with why (exact file + expression; a stale
+  // entry fails below).
+  const NOT_A_START_TIME: Record<string, string> = {
+    "src/components/job-card/NoShowDialog.tsx|waitLine":
+      "F284: prints when the no-show report OPENS (start + 30 minutes) through noShowOpensLine (src/lib/noShowOpens.ts), " +
+      "which words a null start time as 'any time that day ... once the day is over', never 'Flexible' or a blank",
+  };
+  it("every NOT_A_START_TIME entry still matches a render site", () => {
+    const keys = new Set(renderSites().map((s) => `${s.file}|${s.expression}`));
+    expect(Object.keys(NOT_A_START_TIME).filter((k) => !keys.has(k))).toEqual([]);
+  });
+
   it("renders no job start time except through jobStartTimeLabel", () => {
     const offenders = renderSites()
-      .filter((s) => !s.viaRule)
+      .filter((s) => !s.viaRule && !(`${s.file}|${s.expression}` in NOT_A_START_TIME))
       .map((s) => `${s.file}:${s.line}  ${s.expression}`);
     expect(
       offenders,

@@ -5,6 +5,7 @@ import {
   getPushPermission,
 } from "@/lib/pushNotifications";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
+import { getLang } from "@/lib/i18n/language";
 
 /**
  * Listens for new notifications via Supabase Realtime and triggers
@@ -52,11 +53,15 @@ export function useRealtimePush(userId: string | null) {
         // is native-safe, and `showLocalNotification` is itself a no-op on
         // native (the OS already delivered the real APNs alert).
         if (document.hidden && getPushPermission() === "granted") {
-          showLocalNotification(
-            notification.title,
-            notification.message,
-            notification.link
-          );
+          // F260q (owner 11-11): a Spanish reader gets the notice's known shape in Spanish (noticeEs.ts, loaded
+          // only for Spanish readers).
+          if (getLang() === "es") {
+            void import("@/lib/i18n/noticeEs").then(({ noticeInSpanish }) =>
+              showLocalNotification(noticeInSpanish(notification.title), noticeInSpanish(notification.message), notification.link),
+            );
+          } else {
+            showLocalNotification(notification.title, notification.message, notification.link);
+          }
         }
       },
     );

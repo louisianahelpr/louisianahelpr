@@ -9,6 +9,8 @@
  * @mutate src/components/NotificationPanelView.tsx | <NotificationMessage text={say(n.message)} /> | <NotificationMessage text={n.message} />
  * @mutate src/lib/i18n/noticeEs.ts |       vals[tok] = tok === "date" ? dateInSpanish(m[i + 1]) : m[i + 1]; |       vals[tok] = m[i + 1];
  * @mutate src/lib/i18n/noticeEs.ts |     return { re: new RegExp(`^${body}$`), tokens, spanish }; |     return { re: new RegExp(body), tokens, spanish };
+ * @mutate src/lib/nativePush.ts |           toast(say(notification.title) \|\| t("notif.toastNew"), { |           toast(notification.title \|\| t("notif.toastNew"), {
+ * @mutate src/hooks/useRealtimePush.ts | showLocalNotification(noticeInSpanish(notification.title), noticeInSpanish(notification.message), notification.link) | showLocalNotification(notification.title, notification.message, notification.link)
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -54,5 +56,14 @@ describe("F260q: server-written notices in Spanish", () => {
     expect(view).toContain('(lang === "es" ? noticeInSpanish(text) : text)');
     expect(view).toContain("{say(n.title)}");
     expect(view).toContain("<NotificationMessage text={say(n.message)} />");
+  });
+
+  it("the foreground push toast and the web's background notification follow the language too", () => {
+    const push = blankComments(readFileSync("src/lib/nativePush.ts", "utf8"));
+    expect(push).toContain('const say = (text: string | undefined) => (text && getLang() === "es" ? noticeInSpanish(text) : text);');
+    expect(push).toContain('toast(say(notification.title) || t("notif.toastNew"), {');
+    expect(push).toContain("description: say(notification.body) || undefined,");
+    const web = blankComments(readFileSync("src/hooks/useRealtimePush.ts", "utf8"));
+    expect(web).toContain("showLocalNotification(noticeInSpanish(notification.title), noticeInSpanish(notification.message), notification.link)");
   });
 });

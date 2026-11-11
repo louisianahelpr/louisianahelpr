@@ -329,10 +329,15 @@ export function useNativePushSetup() {
             ? appendRef(link as string, "notif")
             : link;
           const { toast } = await import("sonner");
-          toast(notification.title || "New notification", {
-            description: notification.body || undefined,
+          // F260q (owner 11-11): the in-app toast in the reader's language; the notice's known shapes via noticeEs.ts.
+          const [{ t, getLang }, { noticeInSpanish }] = await Promise.all([
+            import("@/lib/i18n/language"), import("@/lib/i18n/noticeEs"), import("@/lib/i18n/enNotifications"),
+          ]);
+          const say = (text: string | undefined) => (text && getLang() === "es" ? noticeInSpanish(text) : text);
+          toast(say(notification.title) || t("notif.toastNew"), {
+            description: say(notification.body) || undefined,
             action: hasInternalLink
-              ? { label: "View", onClick: () => navigate(linkWithRef as string) }
+              ? { label: t("notif.view"), onClick: () => navigate(linkWithRef as string) }
               : undefined,
           });
         });

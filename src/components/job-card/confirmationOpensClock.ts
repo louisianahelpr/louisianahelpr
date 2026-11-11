@@ -2,8 +2,22 @@ import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs, confirmOpensMs 
 import { JOB_TIMEZONE } from "../../../supabase/functions/_shared/cancellationFee";
 import type { CountdownClock } from "./CountdownRows";
 
-/** The confirm window's countdown words: "1d 21h 0m until you can confirm" (Q2597). */
-const CONFIRM_OPENS_TEXT = "until you can confirm";
+/** Beyond this the words name the date too ("Thu, Nov 12"): a bare weekday 8 days out reads as this week's. */
+const WEEKDAY_ONLY_MS = 6 * 86_400_000;
+
+/**
+ * PLAIN WORDS, NO RUNNING CLOCK (owner 11-11, F270): "1d 10h 23m until you can confirm" became
+ * "Confirm opens Thu at 12:00 AM." The day and the time, in the job's own timezone (JOB_TIMEZONE), so the
+ * reader sees the moment, not a number to do arithmetic on. The shared CountdownRows row, the Posted
+ * card's collapsed line and JobConfirmation's strip all print this.
+ */
+export function confirmOpensWords(opensMs: number, now: Date = new Date()): string {
+  const at = new Date(opensMs);
+  const far = opensMs - now.getTime() > WEEKDAY_ONLY_MS;
+  const day = at.toLocaleDateString("en-US", { timeZone: JOB_TIMEZONE, weekday: "short", ...(far ? { month: "short", day: "numeric" } : {}) });
+  const time = at.toLocaleTimeString("en-US", { timeZone: JOB_TIMEZONE, hour: "numeric", minute: "2-digit" });
+  return `Confirm opens ${day} at ${time}.`;
+}
 
 /**
  * JobConfirmation's not-yet-open state ("Confirmation opens in ...") as a clock row (owner, 2026-10-07, Q1399): the
@@ -33,7 +47,8 @@ export function confirmationOpensClock(
   });
   return {
     // Q2597 (Jobs audit 1102b row 11, JA-5 seen again): "until confirmation opens" was app jargon on a countdown.
-    clock: { id: "confirm-opens", at: new Date(opensMs), text: CONFIRM_OPENS_TEXT, expiredText: "You can confirm now" },
+    // F270 (owner 11-11): a plain row ("Confirm opens Thu at 12:00 AM."), never a d/h/m clock.
+    clock: { id: "confirm-opens", at: new Date(opensMs), text: confirmOpensWords(opensMs, now), plain: true, expiredText: "You can confirm now" },
     note: isOwner
       ? "The day before, we ask you both to confirm you're still on."
       : `The day before, we ask you both to confirm you're still on. Confirm by ${confirmBy} (${CONFIRM_DEADLINE_HOURS_BEFORE_START} hours before it starts), or it's reposted to other Helprs.`,

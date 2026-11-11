@@ -23,7 +23,8 @@
  * @mutate src/components/job-card/jobStatusLine.ts |     case "confirm_still_on":\n      return posterConfirmDeadline(job); |     case "confirm_still_on":\n      return null;
  * A3-9 (audit 11-01): the poster's clock ends at the start, like the line's "by" (posterConfirmClosesMs).
  * @mutate src/components/job-card/jobStatusLine.ts |     case "confirm_still_on":\n      return posterConfirmDeadline(job); |     case "confirm_still_on":\n      return confirmDeadline(job);
- * @mutate src/components/job-card/collapsedClocks.ts |   if (opens) return [{ ...opens.clock, farLabel: "Confirm from" }]; |   if (opens) return [{ ...opens.clock }];
+ * @mutate src/components/job-card/collapsedClocks.ts |   if (opens) return [opens.clock]; |   if (opens) return [{ ...opens.clock, plain: false }];
+ * @mutate src/components/job-card/CountdownRows.tsx |         ) : c.plain ? ( |         ) : false ? (
  * @mutate src/components/job-card/collapsedClocks.ts |   if (!start \|\| Date.now() - start.getTime() > PAST_START_DROP_MS) return []; |   if (!start) return [];
  * @mutate src/lib/activityBuckets.ts |   waiting: "Waiting",\n  scheduled: "Booked", |   waiting: "Applied",\n  scheduled: "Booked",
  * @mutate src/components/job-card/activityFilters.ts |     if (app.job?.helper_arrived_at && !arrivalEstablished(app.job) && !beforePhotoIsThePrimary(app.job)) return "waiting"; |
@@ -43,6 +44,7 @@ import { helperFaceAction, helperFaceNextStep, ON_MY_WAY_LEAD_MS } from "@/pages
 import { requestFaceAction, takeFaceAction } from "@/components/job-card/faceActionRequest";
 import { posterStatusLine, helperStatusLine } from "@/components/job-card/jobStatusLine";
 import { collapsedClocks } from "@/components/job-card/collapsedClocks";
+import { CountdownRows } from "@/components/job-card/CountdownRows";
 import { postedActivityBucket, appliedActivityBucket } from "@/components/job-card/activityFilters";
 import { WORKING_GROUP_LABEL } from "@/lib/activityBuckets";
 import { JobCardMetaRow } from "@/components/job-card/JobCardMetaRow";
@@ -118,9 +120,21 @@ describe("job card polish (owner 2026-10-23)", () => {
   it("7: one clock, the next one, as a date when more than 2 days out; 8: none days after the start", () => {
     const far = collapsedClocks({ date_needed: "2037-11-12", start_time: "15:00:00", status: "accepted", helper_confirmed_at: T }, true);
     expect(far).toHaveLength(1);
-    // Q2597 (Jobs audit 1102b row 11): plain words, never "until confirmation opens".
-    // @mutate src/components/job-card/confirmationOpensClock.ts | const CONFIRM_OPENS_TEXT = "until you can confirm"; | const CONFIRM_OPENS_TEXT = "until confirmation opens";
-    expect(far[0]).toMatchObject({ farLabel: "Confirm from", text: "until you can confirm", expiredText: "You can confirm now" });
+    // F270 (owner 11-11): plain words with the day and time in the job's timezone, no running "1d 10h 23m" clock.
+    // More than 6 days out the date rides along ("Wed, Nov 11"); inside that the weekday alone.
+    // @mutate src/components/job-card/confirmationOpensClock.ts |     clock: { id: "confirm-opens", at: new Date(opensMs), text: confirmOpensWords(opensMs, now), plain: true, | clock: { id: "confirm-opens", at: new Date(opensMs), text: "until you can confirm", plain: false,
+    // @mutate src/components/job-card/confirmationOpensClock.ts |   const far = opensMs - now.getTime() > WEEKDAY_ONLY_MS; |   const far = false;
+    expect(far[0]).toMatchObject({ plain: true, text: "Confirm opens Wed, Nov 11 at 12:00 AM.", expiredText: "You can confirm now" });
+    const near = collapsedClocks({ date_needed: "2037-10-24", start_time: "15:00:00", status: "accepted", helper_confirmed_at: T }, true);
+    expect(near[0]).toMatchObject({ id: "confirm-opens", plain: true, text: "Confirm opens Fri at 12:00 AM." });
+    for (const [clocks, words] of [[far, "Confirm opens Wed, Nov 11 at 12:00 AM."], [near, "Confirm opens Fri at 12:00 AM."]] as const) {
+      for (const variant of ["bare", "box"] as const) {
+        const r = render(<CountdownRows clocks={clocks} variant={variant} />);
+        expect(r.container.textContent).toBe(words);
+        expect(r.container.textContent).not.toMatch(/\d+[dhm]\b/);
+        r.unmount();
+      }
+    }
     const soon = collapsedClocks({ date_needed: "2037-10-22", start_time: "15:00:00", status: "accepted", helper_confirmed_at: T }, true);
     expect(soon.map((c) => c.id)).toEqual(["start"]);
     expect(collapsedClocks({ date_needed: "2037-10-12", start_time: "15:00:00", status: "accepted", helper_confirmed_at: T }, true)).toEqual([]);

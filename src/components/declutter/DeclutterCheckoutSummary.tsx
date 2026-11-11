@@ -22,7 +22,11 @@ const exact = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 export const SUMMARY_TIPS = {
   items: "What the seller asked. The seller keeps all of it.",
   discount: "The seller's bundle discount for buying more than one item.",
-  serviceFee: "It keeps Declutter running and pays for card processing. You pay it once per checkout, however many items you buy from this seller.",
+  // Audit 11-10 F354: how the fee is worked out, as declutter_start_checkout charges it (declutter_buyer_fee_cents:
+  // 5% of the items after any bundle discount, plus 70c; the seller's delivery rate or the shipping counts too).
+  serviceFee: "$0.70 plus 5% of the items, once per checkout, however many items you buy from this seller. It pays for card processing and keeps Declutter running. The seller gets the full item price.",
+  serviceFeeSellerDelivery: "$0.70 plus 5% of the items and the seller's delivery, once per checkout. It pays for card processing and keeps Declutter running. The seller gets the full item price.",
+  serviceFeeShip: "$0.70 plus 5% of the items and the shipping, once per checkout. It pays for card processing and keeps Declutter running. The seller gets the full item price.",
   pickup: "Picking it up yourself is always free.",
   delivery: "A local Helpr picks it up and brings it to you. The price is set by road miles and size. If no Helpr takes it within 48 hours, what you paid for delivery comes back.",
   sellerDelivery: "The seller brings it to you at the time you picked.",
@@ -91,7 +95,8 @@ export function CheckoutPriceSummary({
     <dl className="space-y-2.5" data-checkout-price-summary="">
       <Line data="items" label={itemCount > 1 ? `${itemCount} items` : "Item"} tip={SUMMARY_TIPS.items} value={exact(itemsCents)} />
       {discountCents > 0 && <Line data="discount" label="Bundle discount" tip={SUMMARY_TIPS.discount} value={`−${exact(discountCents)}`} />}
-      <Line data="service-fee" label="Service fee" tip={SUMMARY_TIPS.serviceFee} value={exact(serviceFeeCents)} />
+      <Line data="service-fee" label="Service fee" value={exact(serviceFeeCents)}
+        tip={way === "seller_delivery" ? SUMMARY_TIPS.serviceFeeSellerDelivery : way === "ship" ? SUMMARY_TIPS.serviceFeeShip : SUMMARY_TIPS.serviceFee} />
       {/* A delivery or postage not priced yet has no line: the Total says "+ delivery" until it is. */}
       {way && !unpriced && (
         <Line data="way" label={pickup ? "Pickup" : way === "delivery" ? "Helpr delivery" : way === "ship" ? "Shipping" : "Seller delivery"} tip={wayTip}

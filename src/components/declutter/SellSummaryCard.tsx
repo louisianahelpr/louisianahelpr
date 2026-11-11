@@ -56,13 +56,14 @@ function Row({ field, title, value, empty, open, onToggle, busy, children, extra
     if (!open) return;
     li.current?.querySelector<HTMLElement>("input:not([type=checkbox]):not([type=search]), textarea, [role=radio][aria-checked=true]")?.focus();
   }, [open]);
+  // Audit 11-10 F330: the written Details read as a bold heading; a paragraph of details is regular weight.
   return (
     <li ref={li} className="space-y-3 px-4 py-3.5" data-summary-row={field} data-sell-row={field}>
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p id={`sell-row-${field}-title`} className="text-ds-13 font-semibold text-muted-foreground">{title}</p>
           {!open && (
-            <p onClick={instead ? undefined : onToggle} className={`text-ds-15 [overflow-wrap:anywhere] ${instead ? "" : "cursor-pointer"} ${empty ? "text-muted-foreground" : "font-semibold text-foreground"}`} data-summary-value="">
+            <p onClick={instead ? undefined : onToggle} className={`text-ds-15 [overflow-wrap:anywhere] ${instead ? "" : "cursor-pointer"} ${empty ? "text-muted-foreground" : field === "description" ? "text-foreground" : "font-semibold text-foreground"}`} data-summary-value="">
               {busy && empty ? "We're filling this in…" : empty ? `Add ${FIELD_WORD[field] === "details" ? "details" : `a ${FIELD_WORD[field]}`}` : value}
             </p>
           )}

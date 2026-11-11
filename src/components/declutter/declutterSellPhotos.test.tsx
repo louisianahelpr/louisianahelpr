@@ -477,6 +477,10 @@ describe("photo-first selling, one screen", () => {
     expect(rowValue("title")).toBe("TEST - please ignore");
     expect(rowValue("price")).toBe("$15");
     expect(rowValue("description")).toBe(DRAFT.description);
+    // Audit 11-10 F330: Details is regular weight, the short rows stay semibold.
+    const value = (field: string) => document.querySelector(`[data-summary-row="${field}"] [data-summary-value]`)!;
+    expect(value("description").className).not.toMatch(/\bfont-semibold\b/);
+    expect(value("title").className).toMatch(/\bfont-semibold\b/);
   });
 
   // F326: with no item in the photo the writer's advice went into the title, details and price, ready to post.
@@ -635,6 +639,7 @@ describe("photo-first selling, one screen", () => {
   // Audit posting 1030 #12, #13: a giveaway talked about selling and offered a price.
   // @mutate src/components/declutter/SellOneScreen.tsx | title={form.free ? "Give it away" : "Sell an item"} | title="Sell an item"
   // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free}> | phoneHidesTitle>
+  // @mutate src/components/declutter/SellSummaryCard.tsx | : field === "description" ? "text-foreground" : "font-semibold text-foreground"} | : "font-semibold text-foreground"}
   // @mutate src/components/declutter/SellSummaryCard.tsx | instead={form.free ? { label: "Charge for it", onClick: () => { set("free", false); setOpen(() => "price"); } } : undefined} | instead={undefined}
   // @mutate src/components/declutter/SellOneScreen.tsx | {!form.free && ai.state.status !== "done" && !s.keptWork.restored && <SellItForMeEntry />} | {<SellItForMeEntry />}
   it("Free: the words are a giveaway's, no price is suggested, and Edit price is Charge for it", async () => {

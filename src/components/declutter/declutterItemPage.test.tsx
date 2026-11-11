@@ -228,6 +228,23 @@ describe("the photo-first Declutter item page", () => {
     vi.unstubAllGlobals();
   });
 
+  // Owner 11-11 F229: a protection line under a paid price, naming porch pickup only where the listing offers it.
+  // @mutate src/components/declutter/DeclutterItemView.tsx | {it.current_price_cents > 0 && !isSeller && ( |  {false && (
+  // @mutate src/components/declutter/DeclutterItemView.tsx | ${it.porch_ok !== false ? ", pick up from the porch" : ""} | , pick up from the porch
+  it("F229: a paid listing says what protects the buyer; porch only where it is offered; none on a free item", async () => {
+    const { unmount } = open();
+    expect((await screen.findByText(/^Protected:/)).textContent).toBe("Protected: pay in the app, pick up from the porch, 24 hours to report a problem.");
+    unmount();
+    state.item = { ...ITEM, porch_ok: false };
+    const second = open();
+    expect((await screen.findByText(/^Protected:/)).textContent).toBe("Protected: pay in the app, 24 hours to report a problem.");
+    second.unmount();
+    state.item = { ...ITEM, price_cents: 0, current_price_cents: 0 };
+    open();
+    await screen.findByText("Oak rocking chair", { selector: "h2" });
+    expect(screen.queryByText(/^Protected:/)).toBeNull();
+  });
+
   it("three photos: one full-width track, a counter and dots that follow the swipe, and a tap opens the full-screen viewer", async () => {
     state.photos = [0, 1, 2].map((i) => ({ id: `p${i}`, item_id: ID, storage_path: `a/${i}.jpg`, position: i }));
     open();

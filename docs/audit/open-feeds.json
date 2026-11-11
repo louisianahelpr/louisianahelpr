@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-11T07:03Z",
+  "measured_at": "2026-11-11T08:50Z",
   "issues": {
     "readable": true,
     "open": [
@@ -106,7 +106,7 @@
         "number": 4258,
         "title": "nightly-red: prod-errors",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42935084348",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42987059645",
         "runTruncated": false
       },
       {
@@ -120,7 +120,7 @@
         "number": 4281,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42973909668",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42987093227",
         "runTruncated": false
       },
       {
@@ -203,14 +203,6 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
-        "issue": null
-      },
-      {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -315,7 +307,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
+        "issue": 4222
       },
       {
         "fingerprint": "5be6011a46f6328f224c01fc99b85e95",

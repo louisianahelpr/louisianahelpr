@@ -301,7 +301,7 @@ export function ChatHeader({
           <DropdownMenuItem onClick={onReportUser} className="items-start">
             <Flag className="w-4 h-4 mr-2 mt-0.5 shrink-0" />
             <span className="flex flex-col">
-              <span>Report user</span>
+              <span data-menu-label="">Report user</span>
               <span className="text-ds-12 text-muted-foreground">Tell our team about a problem.</span>
             </span>
           </DropdownMenuItem>

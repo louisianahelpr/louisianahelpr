@@ -19,7 +19,7 @@ export const HELPR_LIST_ROWS: readonly { title: string; line: string }[] = [
   // seller approves each before it goes on sale (SELL_FOR_ME_NO_ACCOUNT_LINE says the same in the job). No login is shared.
   { title: "What you do", line: "Be there, and approve each listing before it goes on sale. The Helpr writes them in the app for you; they never need your password." },
   { title: "What you pay", line: "You set a price for the Helpr's time, like any job, and see the total before you pay. The Helpr gets that price, not a share of your sales." },
-  { title: "Who keeps the sale money", line: `You keep the whole price of what sells. Your first paid listing has a one-time ${formatPrice(ONBOARDING_FEE_CENTS)} setup fee (it covers the ID check), unless you already paid it for Jobs.` },
+  { title: "Who keeps the sale money", line: `You keep the whole price of what sells. Your first paid listing has a one-time ${formatPrice(ONBOARDING_FEE_CENTS)} setup fee, unless you already paid it for Jobs.` },
   { title: "What doesn't sell", line: "It stays yours. You can lower the price, give it away free or book a haul-away." },
 ];
 

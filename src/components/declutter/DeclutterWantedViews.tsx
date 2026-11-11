@@ -131,7 +131,7 @@ function feeLine(maxPrice: string): string {
   const cents = valid ? typed : 3000;
   // Q2578 (audit 1102a): with nothing typed the field shows a grey "30" and this line used to say "A $30 item costs...",
   // so the empty field read as filled in. Until a price is typed the line says it is an example.
-  return `${valid ? "A" : "For example, a"} ${formatPrice(cents)} item costs ${formatMoneyExact(checkoutAmounts([cents]).totalCents)} with our fee. A first purchase also has a one-time ${formatPrice(ONBOARDING_FEE_CENTS)} setup fee (it covers the ID check).`;
+  return `${valid ? "A" : "For example, a"} ${formatPrice(cents)} item costs ${formatMoneyExact(checkoutAmounts([cents]).totalCents)} with our fee. A first purchase also has a one-time ${formatPrice(ONBOARDING_FEE_CENTS)} setup fee.`;
 }
 
 function formatMoneyExact(cents: number): string {

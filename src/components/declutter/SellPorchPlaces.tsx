@@ -116,6 +116,8 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
   });
   const hoursProblem = pickupWindowsProblem(d.windows);
   const ready = d.label.trim().length > 0 && d.address.trim().length >= 5 && !hoursProblem;
+  // F410b (audit 11-10): Save place sat grey with no reason beside it. The first thing still missing is said next to it.
+  const notReady = d.label.trim().length === 0 ? "Add a name to save this place." : d.address.trim().length < 5 ? "Add the address to save this place." : hoursProblem;
   const weekdays = [...new Set(d.windows.map((w) => w.weekday))].sort((a, b) => a - b);
   return (
     <div className={`space-y-3 rounded-[16px] border border-border bg-card p-4 ${PLACE_CARD_EDGE}`} data-porch-place-form="">
@@ -137,10 +139,12 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
       {problem && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-place-problem="">{problem}</p>}
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" className="rounded-full" disabled={save.isPending} onClick={onDone}>Cancel</Button>
-        <Button type="button" className="rounded-full" disabled={!ready || save.isPending} onClick={() => save.mutate()}>
+        <Button type="button" className="rounded-full" disabled={!ready || save.isPending} onClick={() => save.mutate()}
+          aria-describedby={!ready && notReady ? `${uid}-not-ready` : undefined}>
           {save.isPending ? "Saving…" : "Save place"}
         </Button>
       </div>
+      {!ready && notReady && <p id={`${uid}-not-ready`} className="text-ds-13 font-semibold text-foreground" data-place-not-ready="">{notReady}</p>}
     </div>
   );
 }

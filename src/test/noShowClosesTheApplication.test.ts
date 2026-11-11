@@ -15,7 +15,7 @@
  *
  * PGlite proof (old body RED, new migration 3x GREEN): src/test/pglite/noShowClosesTheApplication.pglite.mjs
  *
- * @mutate supabase/migrations/20261108202000_no_show_notice_server_side.sql |      SET status = 'rejected',\n         closed_reason = 'no_show'\n |      SET status = 'rejected',\n         closed_reason = NULL\n
+ * @mutate supabase/migrations/20261111202421_no_show_report_opens_30_minutes_after_start.sql |      SET status = 'rejected',\n         closed_reason = 'no_show'\n |      SET status = 'rejected',\n         closed_reason = NULL\n
  * @mutate src/pages/posts/postedJobs/applicantBadge.ts |   no_show: "No-show", |   no_show: "Declined",
  * @mutate src/components/job-card/jobStatusLine.ts |   if (app.status === "rejected" && app.closed_reason === "no_show") return "reported_no_show"; |
  * @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts |   if (app.closed_reason === "no_show") return "This job was reported as a no-show"; |
@@ -45,7 +45,8 @@ describe("a no-show report closes the reported Helpr's application as a no-show"
     expect(defs.size).toBeGreaterThan(100);
     // 20261102100421 (Q2588) restates it with a no-start-time job's no-show gate at its day's end only.
     // 20261108202000 (Jobs audit 11-08 #7/#12) restates it again with the Helpr's notice and the series release.
-    expect(fn?.file).toBe("20261108202000_no_show_notice_server_side.sql");
+    // 20261111202421 (F284) restates it with only GUARD 2 changed (a timed job opens 30 minutes after its start).
+    expect(fn?.file).toBe("20261111202421_no_show_report_opens_30_minutes_after_start.sql");
     const body = blankSqlComments(fn!.stmt).replace(/\s+/g, " ");
     expect(body).toMatch(/UPDATE public\.applications SET status = 'rejected', closed_reason = 'no_show' WHERE job_id = p_job_id AND helper_id = v_helper_id AND status = 'accepted';/);
     // One close, not two: the reason rides on A2-B14's own UPDATE.

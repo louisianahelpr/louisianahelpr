@@ -112,7 +112,7 @@ export const COMMON_PROBLEMS: readonly CommonProblem[] = [
     id: "helpr-did-not-show-up",
     title: "My Helpr did not show up",
     steps: [
-      "Once the start time has passed, open the job and tap Report no-show.",
+      "From 30 minutes after the start time, open the job and tap Report no-show.",
       "The Helpr comes off your job and it goes on their record. Our team is told about every no-show.",
       "To hire someone else, change the date right away; otherwise the job is cancelled and refunded.",
     ],
@@ -271,7 +271,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       {
         // F411 (audit 11-10): the no-show steps, in the words of the Report no-show dialog (ActivityDialogs.tsx).
         q: "What if my Helpr doesn't show up?",
-        a: "Once the start time has passed, open the job and tap Report no-show. The Helpr comes off your job and it goes on their record. To hire someone else, change the date right away; otherwise the job is cancelled and refunded. Our team is told about every no-show.",
+        a: "From 30 minutes after the start time, open the job and tap Report no-show. The Helpr comes off your job and it goes on their record. To hire someone else, change the date right away; otherwise the job is cancelled and refunded. Our team is told about every no-show.",
       },
       {
         q: "Can I cancel after someone applies?",

@@ -15,6 +15,7 @@ import { beginSignOutAbortScope, endSignOutAbortScope } from "@/lib/signOutAbort
 import { forceSignedOutSnapshot } from "@/hooks/useAuthReady";
 import { noteAuthState } from "@/lib/signedInRequestGuard";
 import { loadModule } from "@/lib/loadModule";
+import { clearSignupDraft } from "@/lib/signupDraft";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
@@ -172,6 +173,8 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   clearGreetingName();
   // Q1942: an Add a Helpr order link left for PaymentSuccess to retry (ids only) is this account's, never the next.
   clearPendingSetupLink();
+  // F259c: a sign-up draft (names, email) left in this tab is never the next person's.
+  clearSignupDraft();
   // ── THE FLOOR UNDER A FAILED SIGN-OUT ────────────────────────────────────
   // Owner, 2026-09-11: "i had to click log out twice to actually log out."
   //

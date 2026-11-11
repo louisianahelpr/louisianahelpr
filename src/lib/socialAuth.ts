@@ -212,11 +212,14 @@ export function appleFullName(result: unknown): string | null {
 async function saveAppleName(userId: string | null | undefined, appleName: string | null | undefined): Promise<void> {
   if (!userId || !appleName) return;
   try {
+    // profiles.user_id is the auth id (profiles.id is its own key). Zero rows back
+    // is fine: the profile already had a name, and that name wins.
     const { error } = await supabase
       .from("profiles")
       .update({ full_name: appleName })
-      .eq("id", userId)
-      .or("full_name.is.null,full_name.eq.");
+      .eq("user_id", userId)
+      .or("full_name.is.null,full_name.eq.")
+      .select("id");
     if (error) report(error, { severity: "warning", tags: { area: "auth", op: "saveAppleName" } });
   } catch (err) {
     report(err, { severity: "warning", tags: { area: "auth", op: "saveAppleName" } });

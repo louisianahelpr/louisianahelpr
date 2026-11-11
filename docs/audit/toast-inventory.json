@@ -13415,7 +13415,7 @@
     },
     {
       "file": "src/pages/info/Support.tsx",
-      "line": 272,
+      "line": 274,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

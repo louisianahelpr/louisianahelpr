@@ -40,5 +40,9 @@ describe("Sign in with Apple never asks for a name", () => {
     const src = readFileSync("src/lib/socialAuth.ts", "utf8");
     expect(src).toMatch(/await saveAppleName\(data\?\.user\?\.id, appleName\)/);
     expect(src).toMatch(/await saveAppleName\(signedIn\?\.user\?\.id, choice\.appleName\)/);
+    // profiles.id is its own key; the auth id is profiles.user_id (review 11-11).
+    const body = src.slice(src.indexOf("async function saveAppleName"));
+    expect(body.slice(0, 900)).toMatch(/\.eq\("user_id", userId\)/);
+    expect(body.slice(0, 900)).not.toMatch(/\.eq\("id", userId\)/);
   });
 });

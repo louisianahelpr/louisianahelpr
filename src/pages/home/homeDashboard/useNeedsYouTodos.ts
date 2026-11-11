@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { fetchPostedActivity, fetchAppliedActivity, CORE_STALE } from "@/hooks/useActivityData";
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
@@ -14,6 +14,7 @@ import type { BadgeSection } from "@/lib/badgeReads";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { inProgressJobIds, useContinueDays } from "@/hooks/useContinueDays";
 import type { TodoItem } from "./needsYouTodos";
+import { buyerProblemOrderIds } from "@/lib/declutter/buyingTodo";
 
 /**
  * HOME'S DERIVATIONS LOAD BESIDE THE DATA, NOT WITH THE FIRST DRAW (B51, 11-03, Q1158).
@@ -55,6 +56,8 @@ export function useHomeDerive(): HomeDerive | null {
 const shopOrdersApi = () => loadModule(() => import("@/lib/shops/orders"));
 // A3-81: Declutter's own cart and offers reads (the Buying / Selling tabs' sources), loaded only when signed in.
 const declutterApi = () => loadModule(() => import("@/lib/declutter/api"));
+// F363 (owner 11-11): open problems on my purchases (the Buying tab's own read and key, useOpenProblems).
+const declutterProblemsApi = () => loadModule(() => import("@/lib/declutter/handover"));
 // Blockers 7: the badge's ONE read for six sections (src/lib/badgeReads.ts, my_badge_reads).
 const badgeReadsApi = () => loadModule(() => import("@/lib/badgeReads"));
 
@@ -75,6 +78,7 @@ const EMPTY_CART: CartLine[] = [];
 const EMPTY_OFFERS: MyOffer[] = [];
 const EMPTY_REFUNDS: MyRefundTodo[] = [];
 const EMPTY_FREE_ASKS: FreeAskToPick[] = [];
+const EMPTY_PROBLEMS: import("@/lib/declutter/declutterTodos").TodoProblem[] = [];
 const EMPTY_TODOS: TodoItem[] = [];
 
 /**
@@ -225,11 +229,37 @@ export function useNeedsYouTodos(
   const offerRows = (declutterOn ? dOffers.data : undefined) ?? EMPTY_OFFERS;
   const refundRows = (declutterOn && refundsOn ? dRefunds.data : undefined) ?? EMPTY_REFUNDS;
   const freeAskRows = (declutterOn ? dFreeAsks.data : undefined) ?? EMPTY_FREE_ASKS;
+  // F363 side effect (b) (owner 11-11): a seller's problem report puts the purchase under Needs you, here and on the
+  // Buying tab alike. Same ids rule and key as the tab (buyerProblemOrderIds, useOpenProblems), so one read serves both.
+  const problemIds = useMemo(() => buyerProblemOrderIds(cartLines), [cartLines]);
+  const dProblems = useQuery({
+    queryKey: ["declutter", "problems", problemIds.join(",")],
+    queryFn: () => declutterProblemsApi().then((m) => (m ? m.fetchOpenProblems(problemIds) : untilReload())),
+    enabled: !!uid && declutterOn && problemIds.length > 0,
+    staleTime: CORE_STALE,
+  });
+  // Only a SELLER's report can be the buyer's move; whether their side is still missing is in the problem's own read
+  // (declutter_order_problem, the order card's key), asked only for those orders (usually none).
+  const sellerReported = (declutterOn && problemIds.length > 0 ? dProblems.data ?? [] : []).filter((p) => p.reporter_side === "seller");
+  const problemDetails = useQueries({
+    queries: sellerReported.map((p) => ({
+      queryKey: ["declutter", "problem", p.order_id],
+      queryFn: () => declutterProblemsApi().then((m) => (m ? m.fetchOrderProblem(p.order_id) : untilReload())),
+      staleTime: CORE_STALE,
+    })),
+  });
+  const awaitingKey = sellerReported
+    .filter((_, i) => { const d = problemDetails[i]?.data; return !!d && d.status === "open" && !d.other_side_note; })
+    .map((p) => p.order_id).sort().join(",");
+  const problemRows = useMemo(
+    () => (awaitingKey ? awaitingKey.split(",").map((order_id) => ({ order_id, reporter_side: "seller", awaits_buyer: true })) : EMPTY_PROBLEMS),
+    [awaitingKey],
+  );
   const continueDays = useContinueDays(inProgressJobIds([...postedJobs, ...apps.map((a) => a.job)]));
   const derive = useHomeDerive();
   const todos = useMemo(
-    () => (derive ? derive.deriveNeedsYouTodos({ postedJobs, pendingApplicantCounts: pending, appliedApps: apps, shopOrders: orders, backout, declutterCart: cartLines, declutterOffers: offerRows, declutterRefunds: refundRows, declutterFreeAsks: freeAskRows, continueDays }) : EMPTY_TODOS),
-    [derive, postedJobs, pending, apps, orders, backout, cartLines, offerRows, refundRows, freeAskRows, continueDays],
+    () => (derive ? derive.deriveNeedsYouTodos({ postedJobs, pendingApplicantCounts: pending, appliedApps: apps, shopOrders: orders, backout, declutterCart: cartLines, declutterOffers: offerRows, declutterRefunds: refundRows, declutterFreeAsks: freeAskRows, declutterProblems: problemRows, continueDays }) : EMPTY_TODOS),
+    [derive, postedJobs, pending, apps, orders, backout, cartLines, offerRows, refundRows, freeAskRows, problemRows, continueDays],
   );
   // onOldCall: whether a section is on its old single call right now. Home's own reads of the same keys
   // (useHomeSummary's cart and shop orders) wait on it too, so the badge's one read is not repeated on Home.

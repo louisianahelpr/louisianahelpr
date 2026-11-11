@@ -45,6 +45,8 @@ export interface NeedsYouInputs {
   /** A3-81: refund requests waiting on the member (declutter_my_refund_todos) and the giver's free asks to pick from. */
   declutterRefunds?: readonly MyRefundTodo[];
   declutterFreeAsks?: readonly FreeAskToPick[];
+  /** F363 (owner 11-11): open problems on the member's purchases (a seller's report puts the order under Needs you). */
+  declutterProblems?: readonly import("@/lib/declutter/declutterTodos").TodoProblem[];
   /** The active continue days of my jobs under way, by job id (useContinueDays). */
   continueDays?: Readonly<Record<string, ContinueDay>>;
 }
@@ -186,7 +188,7 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
       },
     });
   }
-  for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now, i.declutterRefunds ?? [], i.declutterFreeAsks ?? [])) {
+  for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now, i.declutterRefunds ?? [], i.declutterFreeAsks ?? [], i.declutterProblems ?? [])) {
     const [tier, at] = rank(d.due, d.waiting, Infinity, now);
     ranked.push({ tier, at, item: d.item });
   }

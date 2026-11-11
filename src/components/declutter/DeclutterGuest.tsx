@@ -155,9 +155,22 @@ export function DeclutterGuestJoin({ free, offers = true, trades = false }: { fr
   );
 }
 
+/**
+ * Audit 11-10 F402: what a signed-out order, offer or order-talk link (from an email or text) is asking for, in words;
+ * null for a plain Browse visit. The link already comes back here after log in; the card just has to say so.
+ */
+function guestWants(search: string): string | null {
+  const q = new URLSearchParams(search);
+  if (q.has("offer")) return "your offer";
+  if (q.has("order") || q.has("order_talk") || q.get("tab") === "buying") return "your order";
+  if (q.get("tab") === "selling") return "your sales";
+  return null;
+}
+
 /** Above a guest's Browse (BUY-16): one line and the two ways in, coming back to Browse after. */
 export function DeclutterGuestBrowseJoin() {
   const location = useLocation();
+  const want = guestWants(location.search);
   // AUD31-67 follow-up (lead 10-31): the desktop guest top bar has the logo; the H stays on the phone only.
   const barShown = useIsWebDesktop();
   // Owner 11-10: at desktop width the guest top bar already carries Log in / Sign up, so this card is not repeated there.
@@ -166,14 +179,24 @@ export function DeclutterGuestBrowseJoin() {
     <section data-guest-join="browse" aria-label="Join to buy or sell" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-border bg-card p-3">
       {!barShown && <GuestBrand />}
       <p className="min-w-0 flex-1 basis-48 text-sm">
-        <span className="font-semibold">Sign up to buy, make offers or sell.</span>{" "}
-        <span className="text-muted-foreground">It's free.</span>
+        {want ? (
+          // F402: the link is to something of theirs; Log in is the main button, Sign up the aside.
+          <>
+            <span className="font-semibold">Log in to see {want}</span>{" "}
+            <span className="text-muted-foreground">New here?</span>
+          </>
+        ) : (
+          <>
+            <span className="font-semibold">Sign up to buy, make offers or sell.</span>{" "}
+            <span className="text-muted-foreground">It's free.</span>
+          </>
+        )}
       </p>
       <div className="flex shrink-0 gap-2" data-guest-join-buttons="">
-        <Button asChild size="sm" variant="outline" className="rounded-full">
+        <Button asChild size="sm" variant={want ? "default" : "outline"} className="rounded-full">
           <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
         </Button>
-        <Button asChild size="sm" className="rounded-full">
+        <Button asChild size="sm" variant={want ? "outline" : "default"} className="rounded-full">
           <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
         </Button>
       </div>

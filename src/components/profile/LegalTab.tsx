@@ -9,11 +9,12 @@ import { PrivacyContent } from "@/pages/info/legal/PrivacySection";
 import {
   type TabKey,
   VALID_TABS,
-  TAB_LABELS,
   TAB_ICONS,
 } from "@/pages/info/legal/legalSections";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { SharedLayoutPill } from "@/components/ui/SharedLayoutPill";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enPublic";
 
 // THIS TAB STATES NO POLICY OF ITS OWN. It composes the three policy
 // documents (the GDPR/CCPA data export lives inside the Privacy one).
@@ -118,6 +119,8 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
   // Users who ask the OS to reduce motion get the pill snapped into place and
   // the panel swapped without a slide, rather than spring-animated.
   const reduceMotion = useReducedMotion();
+  // F260q (owner 11-11): tab names in the reader's language (same keys as /legal's LegalTabBar).
+  const { t: tr } = useLanguage();
   const fadeMotion = reduceMotion
     ? {}
     : {
@@ -202,7 +205,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
                   />
                 )}
                 <Icon className="relative w-3.5 h-3.5 shrink-0" aria-hidden />
-                <span className="relative truncate">{TAB_LABELS[key]}</span>
+                <span className="relative truncate">{tr(`legal.tab.${key}` as const)}</span>
               </TabsTrigger>
             );
           })}

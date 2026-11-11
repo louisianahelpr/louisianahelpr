@@ -40,6 +40,7 @@ import {
   fetchMyBookings,
   fetchMyHandover,
   fetchMyPayouts,
+  fetchOrderProblem,
   porchNote,
   porchPhoto,
   sellerPickedUp,
@@ -188,6 +189,12 @@ function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnkn
   });
   const refundStatus = refund.data?.request?.status;
   const fullRefund = refundedInFull(refund.data);
+  // F360b loose end (lead 11-11): the sale is final at once when Louisiana Helpr decided a problem or confirmed the
+  // handover itself (declutter_sale_decided), so an unsent payout goes in the next run, not 24 hours after the handover.
+  // The same read and key as DeclutterProblemDecided. A failed read keeps the 24-hour day (later, never earlier).
+  const lastProblem = useQuery({ queryKey: ["declutter", "problem", order.orderId], queryFn: () => fetchOrderProblem(order.orderId),
+    enabled: done && order.side === "seller" && !!payout && items > 0 && !problem });
+  const saleDecided = lastProblem.data?.status === "decided" || handoverRow.data?.confirmed_by === "admin";
   // Buying's tracker: the card shows its steps and ONE next action; the rest opens under Details, at that action.
   const [open, setOpen] = useState(false);
   // Audit 1c D3-7: a Helpr delivery's "I got it" opened Details only; it now opens the "Do you have it?" sheet too.
@@ -245,10 +252,10 @@ function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnkn
           {order.side === "seller" && items > 0 && <ManagerSaleShareGate orderId={order.orderId} itemsCents={items} itemCount={order.lines.length} />}
           {/* An unsent payout's day waits on every hold read: the fee inputs, the open problems, and the refund request
               (declutter_payouts_due holds on an open problem or a running request; a declined one moves the day). */}
-          {order.side === "seller" && payout && items > 0 && !((holdUnknown || (refundRequests && !refund.isSuccess)) && (payout.status === "pending" || payout.status === "failed")) && <p className="text-sm">{payoutLine(payout, !!problem, {
+          {order.side === "seller" && payout && items > 0 && !((holdUnknown || (refundRequests && !refund.isSuccess) || lastProblem.isLoading) && (payout.status === "pending" || payout.status === "failed")) && <p className="text-sm">{payoutLine(payout, !!problem, {
             handedOverAt: handoverRow.data?.confirmed_at ?? null, refundOpen: refundIsOpen(refundStatus), setupFeeAhead, payoutReady,
             declinedAt: refundStatus === "declined" ? refund.data?.request?.declined_at ?? null : null,
-            refundAgreed: refundStatus === "agreed" ? refund.data?.request?.refund_status ?? "unknown" : null, })}
+            refundAgreed: refundStatus === "agreed" ? refund.data?.request?.refund_status ?? "unknown" : null, saleDecided, })}
             {payout.status === "failed" && <FailedPayoutLink />}</p>}
           {refundRequests && items > 0 && (
             <Suspense fallback={null}>

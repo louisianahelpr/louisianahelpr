@@ -226,6 +226,10 @@ function RequestView({ id }: { id: string }) {
     return (
       <QuotesNotice title="We can't find this quote request.">
         <p>It may have been cancelled, or the link is not yours. Your requests are under Jobs · Posted.</p>
+        {/* F273a: a dead-end with a way on (the poster's quote home). */}
+        <Button asChild size="sm" className="mt-3">
+          <Link to={QUOTE_HOMES.myRequests}>Go to your jobs</Link>
+        </Button>
       </QuotesNotice>
     );
   }

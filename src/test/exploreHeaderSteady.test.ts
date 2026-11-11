@@ -87,7 +87,7 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     expect(header).toBeGreaterThan(0);
     expect(scroll).toBeGreaterThan(header);
     // The header's own block closes before the scroll column opens.
-    expect(screen.slice(header, scroll)).toMatch(/<AppTopBar title=\{title\} explore section=\{section\} search=\{barSearch\} mine=\{mine\} \/>\s*\{tabs\}\s*\{globalSearch && <ExploreSearchEntry \/>\}\s*<\/div>/);
+    expect(screen.slice(header, scroll)).toMatch(/<AppTopBar title=\{title\} explore section=\{section\} search=\{barSearch\} mine=\{mine\} showAdd=\{showAdd\} \/>\s*\{tabs\}\s*\{globalSearch && <ExploreSearchEntry \/>\}\s*<\/div>/);
     for (const f of ["src/components/declutter/DeclutterHomeView.tsx", "src/components/shops/ShopsHomeView.tsx", "src/components/rentals/RentalsHomeView.tsx"]) {
       expect({ f, tabsProp: /<SectionScreen[^>]*\btabs=\{/.test(code(f)) }).toEqual({ f, tabsProp: true });
     }

@@ -299,6 +299,11 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   const customRequestId = body.custom_request_id === undefined ? null
     : typeof body.custom_request_id === "string" && UUID_RE.test(body.custom_request_id) ? body.custom_request_id : "invalid";
   if (customRequestId === "invalid") return json({ error: "request_not_found" }, 404);
+  // Q2105 step 2: ONE gift card the buyer picked pays first (the jobs and Declutter shape); the card page holds only
+  // what is left. Optional; a malformed id is a bad request before anything freezes.
+  const giftCardId = body.gift_card_id === undefined || body.gift_card_id === null ? null
+    : typeof body.gift_card_id === "string" && UUID_RE.test(body.gift_card_id) ? body.gift_card_id : "invalid";
+  if (giftCardId === "invalid") return json({ error: "gift_not_found" }, 404);
   if (!customRequestId && !Array.isArray(body.lines)) return json({ error: "invalid_order_lines" }, 400);
   const note = typeof body.note === "string" ? body.note : "";
   const delivery = deliveryAddressFrom(body.delivery);
@@ -654,6 +659,50 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   if (depositPlan) meta.payment_plan = "deposit_50";
   if (preorderLine) meta.preorder = "1";
   const chargedCents = o.items_cents + o.premium_cents + deliveryCents + setupFeeCents + tax.cents;
+  // Q2105 step 2: the gift, applied in one transaction (redeem_gift_card_for_shop_order, 20261111015126) on the tax
+  // just figured, so the gift and the 50-cent check are sized on the real price and the order carries that tax. It is
+  // RESERVED, not spent: the capture redeems it, and a close before capture puts it back (its trigger). The page then
+  // holds only the difference; shop_mark_order_held adds gift_cents back (20261111025213). Any refusal closes the
+  // just-frozen order first (the trigger puts a reserved gift back), so nothing is left waiting with no page.
+  let giftCents = 0;
+  if (giftCardId) {
+    const closeOrder = async (why: string) => {
+      const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });
+      if (closeErr) console.error(`[shop-checkout] order ${o.id} not closed after ${why}: ${closeErr.message}`);
+    };
+    const { data: redeemed, error: redeemErr } = await admin.rpc("redeem_gift_card_for_shop_order", {
+      p_credit_id: giftCardId, p_order_id: o.id, p_user_id: user.id, p_tax_cents: tax.cents, p_retired_session: null,
+    });
+    if (redeemErr) {
+      await closeOrder("its gift was refused");
+      // The refusals are sentences for the buyer (P0001), or not-yours / not-found (42501 / PT404).
+      if (redeemErr.code === "P0001" || redeemErr.code === "42501" || redeemErr.code === "PT404") return rpcRefusal(redeemErr);
+      console.error(`[shop-checkout] gift redeem failed: ${redeemErr.message}`);
+      return json({ error: TRY_AGAIN }, 503);
+    }
+    const r = redeemed as { outcome?: string; difference_cents?: number; applied_cents?: number } | null;
+    if (r?.outcome === "covered") {
+      // A gift that pays the WHOLE order needs a no-hold accept path (captured_at set with 'accepted'), not built
+      // yet: the order closes (the gift goes back) and the buyer is told in words.
+      await closeOrder("a gift that covers it all");
+      return json({ error: "gift_covers_whole_order", hint: "Your gift card covers this whole order. Paying a whole Shops order with a gift card is not ready yet: add an item, or pay by card." }, 409);
+    }
+    const rest = Number(r?.difference_cents);
+    const applied = Number(r?.applied_cents);
+    if (r?.outcome !== "needs_hold" || !Number.isInteger(rest) || !Number.isInteger(applied) || rest < 50
+        || applied <= 0 || rest + applied !== chargedCents) {
+      console.error(`[shop-checkout] order ${o.id} gift answer does not add up: ${JSON.stringify(r)}`);
+      await closeOrder("a gift answer that does not add up");
+      return json({ error: TRY_AGAIN }, 500);
+    }
+    giftCents = applied;
+    meta.gift_cents = String(applied);
+    // A gift card is not a Checkout discount: the page holds what is left as ONE line (the app shows the split).
+    lineItems.splice(0, lineItems.length, { quantity: 1, price_data: {
+      currency: "usd", unit_amount: rest, tax_behavior: "exclusive",
+      product_data: { name: "Your Shops order", description: "What is left after your gift card, sales tax included", tax_code: NONTAXABLE_TAX_CODE },
+    } });
+  }
   const expiresAt = Math.floor(Date.now() / 1000) + PAGE_LIFETIME_S;
   // Q2140: a stored customer Stripe no longer has is replaced once and the page retried (":new-wallet" key).
   const session = await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => stripe.checkout.sessions.create(
@@ -677,16 +726,16 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       } : {}),
       ...(preorderLine ? { custom_text: { submit: { message: PREORDER_PAGE_TEXT } } } : {}),
       // Q202: 3D Secure from $300 up (the whole charge, tax included).
-      payment_method_options: threeDSecureOptions(chargedCents),
+      payment_method_options: threeDSecureOptions(chargedCents - giftCents),
       expires_at: expiresAt,
       success_url: buildRedirectUrl("/shops/orders?sent=1", native),
       cancel_url: buildRedirectUrl(`/shops/${shopId}`, native),
     },
     { idempotencyKey: `shop-order-${o.id}${walletRetry ? ":new-wallet" : ""}` },
   ));
-  if (session.amount_subtotal !== chargedCents) {
+  if (session.amount_subtotal !== chargedCents - giftCents) {
     await expirePage(session.id);
-    console.error(`[shop-checkout] Stripe subtotal ${session.amount_subtotal} != order ${chargedCents}`);
+    console.error(`[shop-checkout] Stripe subtotal ${session.amount_subtotal} != order ${chargedCents} less gift ${giftCents}`);
     return json({ error: TRY_AGAIN }, 500);
   }
   const { error: attachErr } = await admin.rpc("shop_attach_checkout_session", { p_order_id: o.id, p_session_id: session.id });

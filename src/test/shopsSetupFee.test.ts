@@ -12,10 +12,10 @@
  *
  * Behaviour: src/test/pglite/shopsSetupFee.pglite.mjs (33/33 applied 3x; --before 30 FAIL).
  *
- * @mutate supabase/migrations/20261108184654_shops_preorders.sql |     WHERE user_id = o.buyer_id AND onboarding_fee_paid IS NOT TRUE\n    RETURNING onboarding_fee_paid INTO v_won; |     WHERE user_id = o.buyer_id\n    RETURNING onboarding_fee_paid INTO v_won;
+ * @mutate supabase/migrations/20261111025213_shops_gift_hold_steps.sql | so the fee is never charged twice.\n  IF v_fee_charged THEN\n    UPDATE public.profiles\n       SET onboarding_fee_paid = true, onboarding_fee_charged_at = now()\n     WHERE user_id = o.buyer_id AND onboarding_fee_paid IS NOT TRUE | so the fee is never charged twice.\n  IF v_fee_charged THEN\n    UPDATE public.profiles\n       SET onboarding_fee_paid = true, onboarding_fee_charged_at = now()\n     WHERE user_id = o.buyer_id
  * @mutate supabase/migrations/20261105181603_shops_setup_fee.sql |   IF p.status NOT IN ('pending', 'failed') OR p.setup_fee_cents > 0 OR p.attempts > 0 OR p.send_tried | IF p.status NOT IN ('pending', 'failed') OR p.setup_fee_cents > 0
  * @mutate supabase/migrations/20261105181603_shops_setup_fee.sql | CREATE TRIGGER trg_shop_orders_setup_fee_put_back BEFORE UPDATE OF hold_released_at ON public.shop_orders | CREATE TRIGGER trg_shop_orders_setup_fee_put_back BEFORE UPDATE OF closed_at ON public.shop_orders
- * @mutate supabase/migrations/20261108184654_shops_preorders.sql |          total_cents = p_amount_total - CASE WHEN v_fee_charged THEN o.setup_fee_cents ELSE 0 END, |          total_cents = p_amount_total,
+ * @mutate supabase/migrations/20261111025213_shops_gift_hold_steps.sql |          total_cents = p_amount_total + o.gift_cents - CASE WHEN v_fee_charged THEN o.setup_fee_cents ELSE 0 END,\n         setup_fee_state = CASE WHEN v_fee_charged THEN 'claimed' WHEN o.setup_fee_cents > 0 THEN 'not_charged' ELSE NULL END,\n         held_at = now(), accept_by = now() + interval |          total_cents = p_amount_total + o.gift_cents,\n         setup_fee_state = CASE WHEN v_fee_charged THEN 'claimed' WHEN o.setup_fee_cents > 0 THEN 'not_charged' ELSE NULL END,\n         held_at = now(), accept_by = now() + interval
  * @mutate supabase/functions/declutter-money/index.ts |               p.amount_cents = shopToSend; |               void shopToSend;
  * @mutate supabase/functions/shop-checkout/index.ts |   const chargedCents = o.items_cents + o.premium_cents + deliveryCents + setupFeeCents + tax.cents; |   const chargedCents = o.items_cents + o.premium_cents + deliveryCents + tax.cents;
  */
@@ -66,7 +66,7 @@ describe("Shops H4: the one-time setup fee", () => {
 
     const held = body("shop_mark_order_held");
     expect(held).toMatch(/SET onboarding_fee_paid = true, onboarding_fee_charged_at = now\(\) WHERE user_id = o\.buyer_id AND onboarding_fee_paid IS NOT TRUE/);
-    expect(held).toContain("total_cents = p_amount_total - CASE WHEN v_fee_charged THEN o.setup_fee_cents ELSE 0 END");
+    expect(held).toContain("total_cents = p_amount_total + o.gift_cents - CASE WHEN v_fee_charged THEN o.setup_fee_cents ELSE 0 END");
     expect(held).toContain("'setup_fee_paid_elsewhere'");
     // The claim only on the branch that holds (after the amount and the day checks).
     expect(held.indexOf("onboarding_fee_paid = true")).toBeGreaterThan(held.indexOf("'day_full'"));

@@ -131,7 +131,8 @@ describe("guest Browse's card tap shows the job first", () => {
   });
 
   it("the dialog it opens is the guest preview, fed the tapped job, with sign-up carrying it", () => {
-    expect(src).toMatch(/<GuestJobPreview job=\{detailJob\} onClose=\{closeDetailJob\} onSignUp=\{requireSignup\} \/>/);
+    // F268a: and Log in for a member, back to the same job.
+    expect(src).toMatch(/<GuestJobPreview job=\{detailJob\} onClose=\{closeDetailJob\} onSignUp=\{requireSignup\} onLogIn=\{\(id\) => navigate\(guestLogInUrl\(id\)\)\} \/>/);
     expect(src).not.toContain("<JobDetailDialog");
   });
 });

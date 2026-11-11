@@ -20,7 +20,7 @@ import { useFeedPhase, useProfileWaitPhase } from "@/hooks/useFeedPhase";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/button";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
-import { GuestJobPreview, guestJobFacts, type GuestJob } from "@/components/dashboard/GuestJobPreview";
+import { GuestJobPreview, guestJobFacts, guestLogInUrl, type GuestJob } from "@/components/dashboard/GuestJobPreview";
 
 // Signed in: the job page itself (boards 15, 42, 168, 169).
 const JobPage = lazy(() => import("./jobPage/JobPage"));
@@ -227,7 +227,7 @@ const JobDetail = () => {
               }
             />
           ) : (
-            <GuestJobPreview job={job} onClose={() => navigate("/browse")} onSignUp={requireSignup} />
+            <GuestJobPreview job={job} onClose={() => navigate("/browse")} onSignUp={requireSignup} onLogIn={(id) => navigate(guestLogInUrl(id))} />
           )}
         </div>
       </div>

@@ -15,6 +15,7 @@
  * Guard: src/test/guestSeesFourFacts.test.tsx.
  */
 import { Dialog, DialogContent, DialogFooter, DialogHero, DialogPrimaryAction } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { categoryLabels } from "@/components/job-card/activityConstants";
 import { computeNet } from "@/components/dashboard/JobPrice";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
@@ -81,11 +82,16 @@ export function guestJobFacts(job: GuestJob, firstPayoutFeeDollars = 0): Array<{
   return facts;
 }
 
-export function GuestJobPreview({ job, onClose, onSignUp }: {
+/** F268a (audit 11-10): "Log in" from the guest preview comes back to this job after sign-in. */
+export const guestLogInUrl = (jobId: string) => `/login?redirect=${encodeURIComponent(`/jobs/${jobId}`)}`;
+
+export function GuestJobPreview({ job, onClose, onSignUp, onLogIn }: {
   job: GuestJob;
   onClose: () => void;
   /** Sign up carrying this job (signupUrlFor(`/jobs/<id>`)), so the job is waiting after sign-up. */
   onSignUp: (jobId: string) => void;
+  /** F268a: a member opening a shared link logs in and comes back to the job (guestLogInUrl). */
+  onLogIn?: (jobId: string) => void;
 }) {
   // A guest has no profile, so this is 0 for them, exactly as on the card's chip.
   const facts = guestJobFacts(job, useFirstPayoutFeeDollars());
@@ -105,6 +111,15 @@ export function GuestJobPreview({ job, onClose, onSignUp }: {
         <DialogFooter>
           <DialogPrimaryAction onClick={() => onSignUp(job.id)}>Sign up to apply</DialogPrimaryAction>
         </DialogFooter>
+        {onLogIn && (
+          // F268a (audit 11-10): someone with an account had to find Log in behind the blur.
+          <p className="text-center font-sans text-ds-13 text-muted-foreground" data-guest-log-in="">
+            Already a member?{" "}
+            <Button type="button" variant="link" size="sm" className="px-1 text-ds-13 font-semibold" onClick={() => onLogIn(job.id)}>
+              Log in
+            </Button>
+          </p>
+        )}
       </DialogContent>
     </Dialog>
   );

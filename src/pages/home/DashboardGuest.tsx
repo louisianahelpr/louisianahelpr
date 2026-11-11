@@ -23,7 +23,7 @@ const BrowseMap = lazy(() =>
 );
 
 // Guests may open a job preview (Apple "preview before signup"): title, category, parish, budget (JOBS-29).
-import { GuestJobPreview } from "@/components/dashboard/GuestJobPreview";
+import { GuestJobPreview, guestLogInUrl } from "@/components/dashboard/GuestJobPreview";
 import { queryKeys } from "@/lib/queryKeys";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -472,7 +472,7 @@ const DashboardGuest = () => {
   );
 
   const detailDialog = detailJob && (
-    <GuestJobPreview job={detailJob} onClose={closeDetailJob} onSignUp={requireSignup} />
+    <GuestJobPreview job={detailJob} onClose={closeDetailJob} onSignUp={requireSignup} onLogIn={(id) => navigate(guestLogInUrl(id))} />
   );
 
   if (isNativePlatform) {

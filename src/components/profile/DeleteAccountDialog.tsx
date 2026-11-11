@@ -1,7 +1,7 @@
 import { Dialog, DialogDestructiveAction, DialogPrimaryAction, DialogSecondaryAction, DialogContent, DialogDescription, DialogFooter, DialogHero } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Check, Loader2, X } from "lucide-react";
-import { useInRouterContext, useLocation } from "react-router-dom";
+import { Link, useInRouterContext, useLocation } from "react-router-dom";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { hapticError } from "@/lib/haptics";
 import { useDeleteReauth } from "@/components/profile/DeleteAccountReauth";
@@ -85,6 +85,30 @@ function WhatHappensRouted() {
   const { pathname } = useLocation();
   const lines = pathname.startsWith("/profile") ? [...WHAT_HAPPENS, DOWNLOAD_LINE] : WHAT_HAPPENS;
   return <WhatHappensList lines={lines} />;
+}
+
+/**
+ * Audit 11-10 F461: a member who only wanted a break had no way out but deleting. From Settings, step 1 ends with
+ * the Notifications tab (closing this dialog); off Settings (the same screens DOWNLOAD_LINE skips) nothing.
+ */
+function TakeABreak({ onGo }: { onGo: () => void }) {
+  const inRouter = useInRouterContext();
+  return inRouter ? <TakeABreakRouted onGo={onGo} /> : null;
+}
+
+function TakeABreakRouted({ onGo }: { onGo: () => void }) {
+  const { pathname } = useLocation();
+  return pathname.startsWith("/profile") ? <TakeABreakLine onGo={onGo} /> : null;
+}
+
+function TakeABreakLine({ onGo }: { onGo: () => void }) {
+  const { t } = useLanguage();
+  return (
+    <p className="text-ds-13 text-foreground" data-delete-take-a-break="">
+      {t("deleteAccount.breakLead")}{" "}
+      <Link to="/profile?tab=notifications" onClick={onGo} className="font-semibold underline underline-offset-2">{t("deleteAccount.breakLink")}</Link>
+    </p>
+  );
 }
 
 function WhatHappensList({ lines }: { lines: readonly MsgKey[] }) {
@@ -293,6 +317,7 @@ export function DeleteAccountDialog({
       >
         <WhatHappens />
         <RetentionSummary extraKeptItems={extraKeptItems} />
+        <TakeABreak onGo={() => handleOpenChange(false)} />
       </BrandConfirmDialog>
     );
   }

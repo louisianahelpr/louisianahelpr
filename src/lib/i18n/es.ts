@@ -269,6 +269,8 @@ export const es: Record<MsgKey, string> = {
   "deleteAccount.whatOpenWork": "Primero se termina el trabajo pendiente. No puede borrar su cuenta mientras un trabajo esté reservado, en curso o en disputa, una venta o un pedido esté en marcha, el pago de un trabajo esté retenido o esperando a pagarse, o todavía le llegue dinero.",
   "deleteAccount.whatMembership": "Si tiene una membresía, se deja de cobrar.",
   "deleteAccount.downloadFirst": "Puede descargar sus datos antes, desde Ajustes.",
+  "deleteAccount.breakLead": "¿Solo necesita un descanso?",
+  "deleteAccount.breakLink": "Mejor apague las notificaciones",
   "deleteAccount.erasedHeading": "Borrado para siempre",
   "deleteAccount.erasedContact": "Su nombre, foto, teléfono, correo electrónico y dirección",
   "deleteAccount.erasedId": "Su documento de identidad y los archivos de verificación",

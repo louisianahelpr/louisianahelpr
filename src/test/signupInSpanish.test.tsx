@@ -62,7 +62,7 @@ describe("Sign up in Spanish", () => {
     expect(screen.queryByTestId("legal-in-english")).toBeNull();
     await spanish();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Cree su cuenta");
-    expect(screen.getByTestId("legal-in-english").textContent).toBe("Los términos legales están en inglés.");
+    expect(screen.getByTestId("legal-in-english").textContent).toBe("Los términos legales están en inglés. Hay un resumen en español en la página de Términos.");
     expect(screen.getByRole("button", { name: es["signup.continue"] })).toBeTruthy();
     // The shared "or" rule and the Apple / Google buttons read in Spanish too.
     expect(screen.queryByText("or")).toBeNull();

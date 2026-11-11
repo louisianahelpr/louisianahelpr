@@ -200,7 +200,7 @@ const LIVE_TASK = new Set(["open", "accepted", "picked_up", "delivered", "confir
  * Audit BUY-31: a handed-over order with a refund still being worked out. The card said "Handed over. It's yours." over
  * a return, or with Louisiana Helpr deciding. Null when no refund is open (the standing above is right).
  */
-export function refundStanding(status: string | null | undefined, inFull = false, request?: RefundTookItBack | null): string | null {
+export function refundStanding(status: string | null | undefined, inFull = false, request?: (RefundTookItBack & { answer_by?: string | null }) | null): string | null {
   // AUD31-36, checked before soldstates-7's inFull (merged by Lander 9): a full refund with the item given back ends
   // "agreed" with returned_at set (20261030071818); the order stays handed_over, so without this line the card read
   // "Handed over. It's yours." over a returned item.
@@ -209,10 +209,19 @@ export function refundStanding(status: string | null | undefined, inFull = false
     if (!back) return "Returned for a refund.";
     return request!.refund_status === "succeeded" ? `Returned. You got ${back} back.` : `Returned. ${back} is on its way back to your card.`;
   }
+  // Audit 11-10 F364: a part refund names the money back; the row read "Handed over. It's yours." over it.
+  if (status === "agreed" && !inFull && request?.refund_cents) {
+    const back = formatPrice(request.refund_cents);
+    return request.refund_status === "succeeded" ? `Partly refunded: ${back} back to your card.` : `Partly refunded: ${back} is on its way back to your card.`;
+  }
   switch (status) {
     // NIGHT-SELL-soldstates-7: a full refund undid the sale (refundedInFull); a part refund leaves it handed over.
     case "agreed": return inFull ? REFUNDED_IN_FULL.buyer : null;
-    case "open": return "Handed over. You asked for a refund.";
+    // F364: who is waiting and until when (declutter_refund_requests.answer_by).
+    case "open": return request?.answer_by
+      ? `Handed over. You asked for a refund; the seller has until ${new Date(request.answer_by).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} to answer.`
+      : "Handed over. You asked for a refund.";
+    case "declined": return "Handed over. The seller said no to your refund.";
     case "offered": return "Handed over. You have a refund offer to answer.";
     case "returning": return "Going back for a refund.";
     case "to_admin": return "On hold while Louisiana Helpr decides the refund.";

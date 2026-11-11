@@ -16,7 +16,7 @@
  * @mutate src/components/landing/HowItWorksSection.tsx |             className="font-display landing-serif text-balance landing-h2" |             className="font-display landing-serif text-balance text-ds-28"
  * @mutate src/index.css |   --lp-band: #2E2F22; |   --lp-band: #262420;
  * @mutate src/components/landing/LandingProof.tsx |         <span className="text-ds-13 font-semibold" style={{ color: "var(--lp-action-strong)" }}> |         <span className="text-ds-13 font-semibold uppercase" style={{ color: "var(--lp-action-strong)" }}>
- * @mutate src/components/landing/LandingBrowseShell.tsx |           {SERVICE_AREA_LINE} |
+ * @mutate src/components/landing/LandingBrowseShell.tsx |           {w(SERVICE_AREA_LINE)} |
  * @mutate src/components/Navbar.tsx |   const phoneHidden = landing ? " max-[639px]:hidden" : ""; |   const phoneHidden = "";
  */
 import { readFileSync } from "node:fs";

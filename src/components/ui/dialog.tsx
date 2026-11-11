@@ -59,7 +59,13 @@ const DialogClose = DialogPrimitive.Close;
  *   plus ~4px of breathing room in every case.
  * Tailwind needs the class as a literal, so these are spelled out rather than
  * computed into a template string — a `pr-[${x}rem]` compiles to nothing.
+ *
+ * Kept as a record, not a dependency: no caller reads it since JobDetailDialog
+ * moved to its own 44px arithmetic (2026-09-19), and
+ * src/test/dialogCornerLaneIsReserved.test.ts reads this table from the file
+ * text to prove the stale numbers under-reserve. Not exported (knip).
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const DIALOG_TOP_RIGHT_RESERVE = {
   0: "pr-[3.375rem]", //  54px — the shared close X on its own
   1: "pr-[5.5rem]",   //  88px — one icon + X

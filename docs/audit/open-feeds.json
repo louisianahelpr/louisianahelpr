@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-11T17:43Z",
+  "measured_at": "2026-11-11T17:57Z",
   "issues": {
     "readable": true,
     "open": [
@@ -127,7 +127,7 @@
         "number": 4302,
         "title": "nightly-red: main: Vitest",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42987092893",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43066297260",
         "runTruncated": false
       },
       {
@@ -141,13 +141,6 @@
         "number": 4401,
         "title": "prod-errors: real users are hitting error screens",
         "label": "prod-errors"
-      },
-      {
-        "number": 4402,
-        "title": "nightly-red: prod-deploy",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43069087358",
-        "runTruncated": false
       }
     ]
   },
@@ -601,7 +594,6 @@
     "issue #4302": "Q1816",
     "issue #4340": "Q1816",
     "issue #4401": "Q2795",
-    "issue #4402": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",

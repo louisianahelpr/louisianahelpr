@@ -103,20 +103,25 @@ describe("email copy, owner's message review 11-09", () => {
 
   // F159 F160 F161 F162 F164 F165 F166 F188: the account emails read like the newer ones (sentence case, "Tap",
   // plain words, "Louisiana Helpr" in subjects), name Declutter where the ID check applies, and drop staff jargon.
-  // @mutate supabase/functions/_shared/email-templates/signup.tsx | first time you post a job, take a job, list an item or buy one. | first time you post or accept a job.
-  // @mutate supabase/functions/_shared/email-templates/recovery.tsx | Tap the button below to choose a new password. | Click the button below to choose a new one.
-  // @mutate supabase/functions/_shared/email-templates/reauthentication.tsx | >Your confirmation code< | >Verify Your Identity<
+  // @mutate supabase/functions/_shared/email-templates/authEmailWords.ts | first time you post a job, take a job, list an item or buy one." | first time you post or accept a job."
+  // @mutate supabase/functions/_shared/email-templates/authEmailWords.ts | Tap the button below to choose a new password.' | Click the button below to choose a new one.'
+  // @mutate supabase/functions/_shared/email-templates/authEmailWords.ts |     heading: 'Your confirmation code', |     heading: 'Verify Your Identity',
   // @mutate supabase/functions/_shared/email-templates/account-status.tsx | buy and sell on\n        Declutter. | help neighbors.
-  // @mutate supabase/functions/auth-email-hook/index.ts |   recovery: 'Reset your Louisiana Helpr password', |   recovery: 'Reset your Helpr password',
+  // @mutate supabase/functions/_shared/email-templates/authEmailWords.ts |     recovery: 'Reset your Louisiana Helpr password', |     recovery: 'Reset your Helpr password',
   it("F159-F166, F188: account emails in sentence case and plain words, with the brand's full name", () => {
     const has: Array<[string, string[], string[]]> = [
-      ["signup.tsx", [">Confirm your email<", 'label="Confirm my email"', "finish setting up your Louisiana Helpr account.",
-        "first time you post a job, take a job, list an item or buy one."], ["mailto:", "<Link", "Verify My Email"]],
-      ["recovery.tsx", [">Reset your password<", "Tap the button below to choose a new password.", 'label="Choose a new password"'], ["Click"]],
+      // F260q: the account emails' words moved to authEmailWords.ts (English + Spanish); the templates render them.
+      ["signup.tsx", ["{w.heading}", "label={w.button}", "{w.idNote}"], ["mailto:", "<Link", "Verify My Email"]],
+      ["authEmailWords.ts", ["heading: 'Confirm your email'", "button: 'Confirm my email'", "finish setting up your Louisiana Helpr account.",
+        "first time you post a job, take a job, list an item or buy one.", "heading: 'Reset your password'",
+        "Tap the button below to choose a new password.", "button: 'Choose a new password'", "heading: 'Your confirmation code'",
+        "heading: 'Confirm your email change'", "button: 'Confirm the change'", "heading: 'Your Louisiana Helpr code'"],
+        ["Click", "Verify Your Identity", "your identity", "Confirm Email Change", "Your Helpr Code", "Verify My Email"]],
+      ["recovery.tsx", ["{w.heading}", "label={w.button}"], ["Click"]],
       ["invite.tsx", [">You've been invited to Louisiana Helpr<", 'label="Accept the invite"'], ["<Link", "Accept Invitation"]],
-      ["reauthentication.tsx", [">Your confirmation code<"], ["Verify Your Identity", "your identity"]],
-      ["email-change.tsx", [">Confirm your email change<", 'label="Confirm the change"'], ["Confirm Email Change"]],
-      ["magic-link.tsx", [">Your Louisiana Helpr code<"], ["Your Helpr Code"]],
+      ["reauthentication.tsx", ["{w.heading}"], ["Verify Your Identity", "your identity"]],
+      ["email-change.tsx", ["{w.heading}", "label={w.button}"], ["Confirm Email Change"]],
+      ["magic-link.tsx", ["{w.heading}"], ["Your Helpr Code"]],
       ["email-changed.tsx", ["Someone from Louisiana Helpr changed the email on your account"], ["administrator", "authorise"]],
       ["account-status.tsx", ["buy and sell on\n        Declutter.", "cta: 'Open Louisiana Helpr'"], ["fully approved", "Go to Dashboard", "copy.note"]],
     ];
@@ -125,7 +130,9 @@ describe("email copy, owner's message review 11-09", () => {
       for (const y of yes) expect(src, `${file} says ${y}`).toContain(y);
       for (const n of no) expect(src, `${file} no longer says ${n}`).not.toContain(n);
     }
-    const hook = blankComments(readFileSync(join(ROOT, "supabase/functions/auth-email-hook/index.ts"), "utf8"));
+    // Subjects live in authEmailWords.ts (AUTH_EMAIL_SUBJECTS, F260q); the hook sends authEmailSubject(type, lang).
+    const hook = T("authEmailWords.ts");
+    expect(hook).toContain("recovery: 'Reset your Louisiana Helpr password',");
     for (const subj of ["You've been invited to Louisiana Helpr", "Your Louisiana Helpr code", "Reset your Louisiana Helpr password", "Your confirmation code"]) {
       expect(hook).toContain(subj);
     }

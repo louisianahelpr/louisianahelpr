@@ -15,7 +15,7 @@
  * @mutate src/pages/posts/CompletionChoiceSheet.tsx |  Their pay goes out {STANDARD_PAYOUT_PHRASE}. |
  * @mutate src/components/GroupJobHelpers.tsx | open. Most of that share comes back to you after the job.` | open. That share is refunded to you after the job.`
  * @mutate src/components/DisputeDialog.tsx | If nobody settles it by the deadline, Helpr support decides, and the payment stays on hold until then. | If nobody resolves or escalates it, the hold simply lapses at the deadline and the payment releases on its normal schedule.
- * @mutate src/components/job-card/ActivityDialogs.tsx | Take them off your job. Its start time has passed, so to hire someone else, change the date right away. Otherwise it's cancelled and refunded | Reopen your job so you can pick another applicant
+ * @mutate src/components/job-card/NoShowDialog.tsx | Take them off your job. Its start time has passed, so to hire someone else, change the date right away. Otherwise it's cancelled and refunded | Reopen your job so you can pick another applicant
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx | We hold the payment. You're paid {STANDARD_PAYOUT_PHRASE}. | Held securely, released when the job is marked complete.
  * @mutate src/components/richMessageInput/ViolationDialog.tsx | Keeping it here is what keeps the work covered, the payment held safely, | Keeping it here is what keeps the work covered, the payment held in escrow,
  */
@@ -28,7 +28,7 @@ const code = (p: string) => blankComments(readFileSync(resolve(__dirname, "../..
 
 const GONE: Array<[string, RegExp]> = [
   ["src/components/DisputeDialog.tsx", /simply lapses|releases on its normal schedule|72 hours only|"Send to Helpr"/],
-  ["src/components/job-card/ActivityDialogs.tsx", /pick another applicant/],
+  ["src/components/job-card/NoShowDialog.tsx", /pick another applicant/],
   ["src/components/job-card/activityActions/useLifecycleHandlers.ts", /your job is open again/],
   ["src/components/CancellationDialog.tsx", /Free cancellation/],
   ["src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx", /released when the job is marked complete/],

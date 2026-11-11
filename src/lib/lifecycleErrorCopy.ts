@@ -615,7 +615,8 @@ export const RPC_ERROR_COPY = {
     not_authorized: LIFECYCLE_REASONS.not_authorized,
     no_helper_assigned: LIFECYCLE_REASONS.no_helper_assigned,
     job_not_funded: LIFECYCLE_REASONS.job_not_funded,
-    job_not_started: LIFECYCLE_REASONS.job_not_started,
+    // F284 (20261111202421): a timed job opens 30 minutes after its start; the sheet names the clock time.
+    job_not_started: "It's too early to report a no-show. You can report one from 30 minutes after the start time, or once the day is over if the job has no set time.",
     already_reported: LIFECYCLE_REASONS.already_reported,
     // Q1180 (20261003193541): an offer that was never accepted is not a no-show.
     helper_never_accepted: "This Helpr never accepted the offer, so it can't be a no-show. You can pick someone else from your applicants.",

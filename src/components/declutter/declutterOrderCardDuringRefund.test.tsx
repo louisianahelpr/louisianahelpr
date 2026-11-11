@@ -13,6 +13,9 @@
  * @mutate src/components/declutter/BuyingOrders.tsx | `Returned. You got ${back} back.` | `Handed over. It's yours.`
  * @mutate src/components/declutter/BuyingOrders.tsx | value={standing ? { who: "info", text: standing } : view.next} | value={view.next}
  * @mutate src/lib/declutter/refundRequests.ts |   return status === "returning" \|\| status === "to_admin"; |   return false;
+ *
+ * Audit 11-10 F366 (rest): with a refund still being worked out (no problem row) the card's step bar ended on "Done".
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |  refundOpen={refundIsOpen(refundStatus)} open={open} |  open={open}
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -174,5 +177,20 @@ describe("BUY-31: the order card agrees with a refund", () => {
     fireEvent.click(screen.getByRole("button", { name: "Details" }));
     await waitFor(() => expect(container.querySelector("[data-order-body]")).not.toBeNull());
     expect(container.textContent?.match(/Handed over/g)).toHaveLength(1);
+  });
+});
+
+describe("F366 (rest): the step bar never ends on Done over a refund still being worked out", () => {
+  it.each(["open", "offered", "returning", "to_admin"])("refund %s: the last step says Refund asked", async (status) => {
+    state.refund = status;
+    const { container } = show();
+    await waitFor(() => expect(container.querySelector('[aria-label="Step 4 of 4: Refund asked"]')).not.toBeNull());
+    expect(container.querySelector('[aria-label="Step 4 of 4: Done"]')).toBeNull();
+  });
+  it.each([null, "declined"])("refund %s: Done stays Done", async (status) => {
+    state.refund = status;
+    const { container } = show();
+    await waitFor(() => expect(container.querySelector('[aria-label="Step 4 of 4: Done"]')).not.toBeNull());
+    expect(container.textContent).not.toContain("Refund asked");
   });
 });

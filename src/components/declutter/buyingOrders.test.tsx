@@ -246,7 +246,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
 
   // Q2630 (audit 1102c R5): a refunded order read as one still in progress: the step bar stopped at "Paid" and the line
   // gave no amount. It now has no step bar and says what came back and when.
-  // @mutate src/components/declutter/BuyingOrders.tsx |       {!view.facts.cancelled && <OrderSteps facts={view.facts} />} |       {<OrderSteps facts={view.facts} />}
+  // @mutate src/components/declutter/BuyingOrders.tsx |       {!view.facts.cancelled && <OrderSteps facts={view.facts} refundOpen={refundOpen} />} |       {<OrderSteps facts={view.facts} refundOpen={refundOpen} />}
   // @mutate src/components/declutter/BuyingOrders.tsx |       next: facts.cancelled ? cancelledStep(back, o.lines[0]?.closed_at ?? null) : buyerNextStep( |       next: buyerNextStep(
   // @mutate src/components/declutter/BuyingOrders.tsx | return { who: "info", text: `Cancelled${day ? ` on ${day}` : ""}. Your payment is refunded to your card.${when}` }; | return { who: "info", text: "Cancelled and refunded to your card." };
   it("Q2630: a refunded order has no step bar and says the amount refunded and the day", async () => {

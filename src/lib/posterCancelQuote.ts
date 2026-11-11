@@ -33,9 +33,11 @@ const isCents = (v: unknown): v is number => typeof v === "number" && Number.isI
  * have the action yet): the dialog then shows no amount and passes no expected
  * fee, the behaviour before the quote existed.
  */
-export async function fetchPosterCancelQuote(jobId: string): Promise<PosterCancelQuote | null> {
+export async function fetchPosterCancelQuote(jobId: string, opts?: { asNoShow?: boolean }): Promise<PosterCancelQuote | null> {
   try {
-    const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "cancel_quote", jobId } });
+    // F272: asNoShow quotes the refund a no-show report leads to (the job reopened, no late-cancel fee).
+    const body = opts?.asNoShow ? { action: "cancel_quote", jobId, asNoShow: true } : { action: "cancel_quote", jobId };
+    const { data, error } = await supabase.functions.invoke("create-payment", { body });
     if (error || !data || typeof data !== "object" || typeof (data as { can_cancel?: unknown }).can_cancel !== "boolean") {
       if (error) report(error, { severity: "warning", tags: { source: "posterCancelQuote" }, context: { job_id: jobId } });
       return null;

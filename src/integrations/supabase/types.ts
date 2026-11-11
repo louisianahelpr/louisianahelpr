@@ -10721,6 +10721,7 @@ export type Database = {
           is_legacy_user: boolean
           is_licensed: boolean
           is_seed: boolean
+          language: string
           last_approval_email_at: string | null
           last_denial_email_at: string | null
           last_drip_at: string | null
@@ -10833,6 +10834,7 @@ export type Database = {
           is_legacy_user?: boolean
           is_licensed?: boolean
           is_seed?: boolean
+          language?: string
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null
@@ -10945,6 +10947,7 @@ export type Database = {
           is_legacy_user?: boolean
           is_licensed?: boolean
           is_seed?: boolean
+          language?: string
           last_approval_email_at?: string | null
           last_denial_email_at?: string | null
           last_drip_at?: string | null

@@ -162,10 +162,18 @@ export function orderBucket(f: OrderFacts): OrderBucket {
 
 /** The order's tracker bar: the shared StepTracker with this order's words and step. */
 export function OrderSteps({ facts }: { facts: OrderFacts }) {
-  const at = orderStepAt(facts);
+  const words = orderStepWords(facts);
+  const last = words.length - 1;
+  // Audit 11-10 F366: an open problem holds the money, so the bar never ends on "Done" (or "Delivered") over it. Once
+  // the item changed hands the last step says "Problem reported" and is the current one; before that the bar stays
+  // where the facts put it, with the same last word, so no step is claimed that did not happen.
+  const handedOver = !!(facts.done || facts.pickedUp || facts.delivered);
+  const marked = !!facts.problem && handedOver;
+  const steps = marked ? [...words.slice(0, last), "Problem reported"] : words;
+  const at = marked ? last : orderStepAt(facts);
   return (
-    <div data-order-steps={facts.handover} data-order-step={at}>
-      <StepTracker steps={orderStepWords(facts)} at={at} />
+    <div data-order-steps={facts.handover} data-order-step={at} data-order-problem={facts.problem ? "" : undefined}>
+      <StepTracker steps={steps} at={at} />
     </div>
   );
 }

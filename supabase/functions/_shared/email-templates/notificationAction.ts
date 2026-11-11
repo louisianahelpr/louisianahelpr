@@ -35,6 +35,33 @@ const ACTION_BY_TITLE: Record<string, string> = {
   "Your listings are live": "See your listings",
 };
 
+/**
+ * The button's words in Spanish, for a member who picked Spanish (F260q, owner 11-11 "Spanish everything"). Keyed on
+ * the English label notificationActionLabel returns; one with no entry stays English. Brand names stay as they are.
+ */
+const ACTION_LABEL_ES: Record<string, string> = {
+  "Confirm I'm still on": "Confirmar que sigo en pie",
+  "Add your side": "Agregar mi versión",
+  "Answer the request": "Responder la solicitud",
+  "Answer the counteroffer": "Responder la contraoferta",
+  "Answer the trade offer": "Responder la oferta de cambio",
+  "See your listings": "Ver mis anuncios",
+  "See the item": "Ver el artículo",
+  "See your order": "Ver mi pedido",
+  "See your sale": "Ver mi venta",
+  "See your cart": "Ver mi carrito",
+  "Open Declutter": "Abrir Declutter",
+  "Read the message": "Leer el mensaje",
+  "See your shop's orders": "Ver los pedidos de mi tienda",
+  "See the job": "Ver el trabajo",
+  "See your earnings": "Ver mis ganancias",
+  "Open Louisiana Helpr": "Abrir Louisiana Helpr",
+};
+
+export function actionLabelInLanguage(label: string, lang: "en" | "es"): string {
+  return lang === "es" ? (ACTION_LABEL_ES[label] ?? label) : label;
+}
+
 /** The notice email's sign-off: the site's own name (AUD31-20: it read "The Helpr Team"). */
 export const NOTICE_SIGNOFF = "Louisiana Helpr";
 

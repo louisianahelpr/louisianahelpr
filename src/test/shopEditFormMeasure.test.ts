@@ -6,6 +6,10 @@
  *
  * @mutate src/components/shops/ShopEditView.tsx |   <form className={`space-y-5 pb-8 ${SHOP_FORM_MEASURE}`} onSubmit={onSubmit} noValidate> |   <form className="space-y-5 pb-8" onSubmit={onSubmit} noValidate>
  * @mutate src/components/shops/ShopEditView.tsx | const SHOP_FORM_MEASURE = "max-w-[40rem]"; | const SHOP_FORM_MEASURE = "lg:max-w-[40rem]";
+ * @mutate src/components/shops/ShopEditView.tsx | <div className={`w-full ${SHOP_FORM_MEASURE}`}> | <div className="w-full">
+ *
+ * Q1958 pass (Builder 1, 11-10): the "Add an item" screen (/shops/mine#add-item) still stretched its fields to
+ * ~1540px at 1440 (~/.lh-shots/b1-owner-1110c/shops-mine#add-item-editor-H-1440-dark.png); it now wears the measure.
  */
 import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
@@ -23,7 +27,7 @@ describe("/shops/mine: the shop form has a line measure, the page column stays w
     const uses = view.match(/\$\{SHOP_FORM_MEASURE\}/g) ?? [];
     expect(uses.length).toBeGreaterThan(3);
     expect(view).toMatch(/<form className=\{`[^`]*\$\{SHOP_FORM_MEASURE\}`\}/);
-    for (const section of ["<ShopPickupAddressSection />", "<ShopPermitSection ", "<ShopFaqsEditor "]) {
+    for (const section of ["<ShopPickupAddressSection />", "<ShopPermitSection ", "<ShopFaqsEditor ", "<ShopItemsSection shopId={myId.data} ownerId={user.id} startAdding "]) {
       const at = view.indexOf(section);
       expect(at).toBeGreaterThan(0);
       const wrapper = view.slice(view.lastIndexOf("<div", at), at);

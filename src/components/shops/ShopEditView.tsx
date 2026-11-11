@@ -554,7 +554,10 @@ export default function ShopEditView() {
   if (startAdding && myId.data && user?.id) {
     return (
       <AppPage title={itemTitle} backTo="/shops/mine">
-        <ShopItemsSection shopId={myId.data} ownerId={user.id} startAdding onTitle={setItemTitle} onLeave={() => navigate("/shops/mine")} />
+        {/* The item editor's fields carry the shop form's line measure (Q1958 pass: ~1540px wide at 1440). */}
+        <div className={`w-full ${SHOP_FORM_MEASURE}`}>
+          <ShopItemsSection shopId={myId.data} ownerId={user.id} startAdding onTitle={setItemTitle} onLeave={() => navigate("/shops/mine")} />
+        </div>
       </AppPage>
     );
   }

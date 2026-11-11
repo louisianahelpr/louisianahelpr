@@ -10,6 +10,9 @@
  * @mutate src/components/declutter/OrderSteps.tsx |       return buyer ? !f.booked \|\| (!!f.out && !f.pickedUp) : f.booked && !f.out; |       return buyer ? !f.booked : f.booked && !f.out;
  * @mutate src/components/declutter/OrderSteps.tsx |   if (f.cancelled) return "cancelled"; |   if (false) return "cancelled";
  * @mutate src/components/declutter/OrderSteps.tsx |   return f.booked && !f.pickedUp && !f.delivered ? "upcoming" : "waiting"; |   return f.booked ? "upcoming" : "waiting";
+ * Audit 11-10 F366: an open problem after the handover ends the bar on "Problem reported", never "Done".
+ * @mutate src/components/declutter/OrderSteps.tsx |   const marked = !!facts.problem && handedOver; |   const marked = false;
+ * @mutate src/components/declutter/OrderSteps.tsx |   const handedOver = !!(facts.done \|\| facts.pickedUp \|\| facts.delivered); |   const handedOver = true;
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
@@ -123,5 +126,30 @@ describe("OrderSteps: one tracker for every Declutter order", () => {
     const { container } = render(<OrderSteps facts={{ handover: "porch", side: "buyer", booked: true, out: true, done: false }} />);
     expect(container.querySelector('[aria-label="Step 3 of 4: On the porch"]')).not.toBeNull();
     expect(container.querySelector("[data-order-step]")?.getAttribute("data-order-step")).toBe("2");
+  });
+
+  it("F366: an open problem after the handover ends the bar on Problem reported, never Done; before it, the facts' step", () => {
+    let n = 0;
+    for (const handover of HANDOVERS) for (const side of SIDES) {
+      const states = life(handover, side);
+      const handed = states.filter((f) => f.done || f.pickedUp || f.delivered);
+      expect(handed.length, handover).toBeGreaterThan(0);
+      for (const f of handed) {
+        const { container, unmount } = render(<OrderSteps facts={{ ...f, problem: true }} />);
+        expect(container.querySelector('[aria-label="Step 4 of 4: Problem reported"]'), `${handover} ${side}`).not.toBeNull();
+        expect(container.textContent).not.toContain("Done");
+        unmount();
+        n++;
+      }
+      // Booked, nothing handed over yet: the bar stays on Time booked (or Helpr found) and keeps its last word.
+      const { container, unmount } = render(<OrderSteps facts={{ ...states[1], problem: true }} />);
+      expect(container.querySelector("[data-order-step]")?.getAttribute("data-order-step"), handover).toBe("1");
+      expect(container.textContent).not.toContain("Problem reported");
+      unmount();
+    }
+    expect(n).toBeGreaterThan(10);
+    // No problem: Done stays Done.
+    const { container } = render(<OrderSteps facts={{ handover: "pickup_home", side: "buyer", booked: true, pickedUp: true, done: true }} />);
+    expect(container.querySelector('[aria-label="Step 4 of 4: Done"]')).not.toBeNull();
   });
 });

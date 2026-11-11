@@ -320,19 +320,24 @@ describe("dates, calendar file and CSV", () => {
   });
 });
 
-describe("sign-up deadline (owner 2026-11-09: claim your day by Nov 30)", () => {
+describe("sign-up deadline (owner 2026-11-11: claim your day by Nov 22; the giveaway stays Dec 1-25)", () => {
   it("the content file and the server agree on the date", () => {
     expect(sponsorPage.event.signup_deadline).toBe(SPONSOR_SIGNUP_DEADLINE);
+    expect(sponsorPage.hero.deadline).toBe("Sign up by Nov 22.");
+    expect(sponsorPage.claim.deadline).toBe("Sign up by Nov 22.");
+    expect(sponsorPage.claim.closed).toContain("closed on November 22");
   });
-  it("open through Nov 30 in Louisiana, closed from midnight Dec 1 (06:00 UTC)", () => {
-    expect(sponsorSignupsOpen(Date.UTC(2026, 11, 1, 5, 59, 59))).toBe(true);
-    expect(sponsorSignupsOpen(Date.UTC(2026, 11, 1, 6, 0, 0))).toBe(false);
+  it("open through Nov 22 in Louisiana, closed from midnight Nov 23 (2026-11-23T06:00:00Z)", () => {
+    expect(SPONSOR_SIGNUP_DEADLINE).toBe("2026-11-22");
+    expect(sponsorSignupsOpen(Date.parse("2026-11-23T05:59:59Z"))).toBe(true);
+    expect(sponsorSignupsOpen(Date.parse("2026-11-23T06:00:00Z"))).toBe(false);
+    expect(sponsorSignupsOpen(Date.parse("2026-11-30T12:00:00Z"))).toBe(false);
     expect(sponsorSignupsOpen(Date.UTC(2026, 10, 9))).toBe(true);
     expect(sponsorSignupsOpen(0, "not a date")).toBe(false);
   });
   it("after the deadline the form is gone and says sign-ups are closed; before it, the deadline line shows", () => {
     const st: SponsorPublicState = { on: true, greetingBrand: null, dayCounts: {}, maxPerDay: null, wall: [], testimonials: [], stats: {}, hasFounderPhoto: false };
-    const closed = render(<ClaimSection state={st} greetingBrand={null} refCode={null} nowMs={Date.UTC(2026, 11, 2)} onSubmit={async () => ({ ok: false, kind: "error" })} />);
+    const closed = render(<ClaimSection state={st} greetingBrand={null} refCode={null} nowMs={Date.UTC(2026, 10, 24)} onSubmit={async () => ({ ok: false, kind: "error" })} />);
     expect(closed.getByTestId("sponsor-closed").textContent).toContain(sponsorPage.claim.closedTitle);
     expect(closed.container.querySelector("form")).toBeNull();
     closed.unmount();

@@ -178,7 +178,7 @@ const NOT_PROVEN: Record<string, string> = {
   "src/components/shops/ShopOrderCard.tsx":
     "HelprPickup: the shop's \"The Helpr didn't come\" button shows 15 minutes after the booked pickup slot (one timer to that instant, no tick); the server is the gate: shop_report_helpr_no_show refuses before pickup_slot_start + 15 minutes (too_early, 20261106211136), so an early or late timer only moves when the button shows, and an early press is refused with words",
   "src/components/sponsor/Sections.tsx":
-    "the 25 Days hero countdown to December 1 (a 1 s tick, re-read from Date.now() on every tick, so it never drifts); display only: it gates nothing, and the sign-up deadline is enforced by the server (sponsor-25days answers 410 closed after Nov 30, Louisiana time)",
+    "the 25 Days hero countdown to December 1 (a 1 s tick, re-read from Date.now() on every tick, so it never drifts); display only: it gates nothing, and the sign-up deadline is enforced by the server (sponsor-25days answers 410 closed after Nov 22, Louisiana time)",
   "src/components/declutter/DeliveryOnlinePill.tsx":
     "the Online for deliveries pill hides at the auto-off (online_until, a 60 s tick); display only: the offers trigger reads online_until > now() on the server, so a late tick only shows the pill up to a minute longer",
 };

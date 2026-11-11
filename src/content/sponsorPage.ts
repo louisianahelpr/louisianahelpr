@@ -30,7 +30,7 @@ export const sponsorPage = {
      * sponsor-25days function refuses new sign-ups too (SPONSOR_SIGNUP_DEADLINE in
      * supabase/functions/_shared/sponsorSignup.ts must say the same date; src/test/sponsor25days.test.tsx checks).
      */
-    signup_deadline: "2026-11-30",
+    signup_deadline: "2026-11-22",
     firstDay: 1,
     lastDay: 25,
     timeZone: "America/Chicago",
@@ -60,7 +60,7 @@ export const sponsorPage = {
     countdownLabel: "Giveaways start in",
     countdownLive: "The giveaways are live! Day {day} of 25",
     /** Under the countdown and in Claim Your Day while sign-ups are open. */
-    deadline: "Sign up by Nov 30.",
+    deadline: "Sign up by Nov 22.",
     countdownUnits: { days: "days", hours: "hours", minutes: "min", seconds: "sec" },
   },
 
@@ -173,10 +173,10 @@ export const sponsorPage = {
     intro: "Pick one day or as many as you like. More than one brand can share a day, and every sponsor gets their own spotlight post.",
     dayCount: { one: "{n} brand joined", many: "{n} brands joined", none: "Open" },
     full: "Full",
-    deadline: "Sign up by Nov 30.",
+    deadline: "Sign up by Nov 22.",
     /** Shown in place of the calendar and form after signup_deadline. */
     closedTitle: "Sign-ups are closed",
-    closed: "Sign-ups for the 25 Days of Louisiana Giveaways closed on November 30. Thank you to every brand that joined! Questions? Email admin@louisianahelpr.com.",
+    closed: "Sign-ups for the 25 Days of Louisiana Giveaways closed on November 22. Thank you to every brand that joined! Questions? Email admin@louisianahelpr.com.",
     anyDay: "Any day is fine",
     selectedNone: "Pick at least one day, or tick the any-day box.",
     form: {
@@ -211,7 +211,7 @@ export const sponsorPage = {
       url: "Enter a full web address that starts with https://",
       full: "Sorry, {days} just filled up. Pick another day?",
       rateLimited: "Too many tries in a short time. Please wait a few minutes and try again.",
-      closed: "Sign-ups closed on November 30, so this one was not saved. Questions? Email admin@louisianahelpr.com.",
+      closed: "Sign-ups closed on November 22, so this one was not saved. Questions? Email admin@louisianahelpr.com.",
       generic: "Something went wrong and your sign-up was NOT saved. Please try again, or email admin@louisianahelpr.com.",
     },
   },

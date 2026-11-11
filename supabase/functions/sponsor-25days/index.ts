@@ -186,7 +186,7 @@ async function handleSignup(req: Request): Promise<Response> {
   const userId = await verifiedUserId(req)
   if (!(await switchOn(admin, userId))) return notFound()
 
-  // After the sign-up deadline (Nov 30, Louisiana time) nothing new is saved.
+  // After the sign-up deadline (Nov 22, Louisiana time) nothing new is saved.
   if (!sponsorSignupsOpen(Date.now())) return json({ error: 'closed' }, 410)
 
   const form = await req.formData().catch(() => null)

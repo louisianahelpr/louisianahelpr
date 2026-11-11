@@ -161,9 +161,12 @@ export function DeclutterGuestJoin({ free, offers = true, trades = false }: { fr
  */
 function guestWants(search: string): string | null {
   const q = new URLSearchParams(search);
-  if (q.has("offer")) return "your offer";
-  if (q.has("order") || q.has("order_talk") || q.get("tab") === "buying") return "your order";
-  if (q.get("tab") === "selling") return "your sales";
+  if (q.has("offer")) return "Log in to see your offer";
+  if (q.has("order") || q.has("order_talk") || q.get("tab") === "buying") return "Log in to see your order";
+  if (q.get("tab") === "selling") return "Log in to see your sales";
+  // F359k: the "post what you want" link (?tab=wanted&post=1) and the Wanted tab itself.
+  if (q.has("post")) return "Log in to post what you want";
+  if (q.get("tab") === "wanted") return "Log in to see your Wanted posts";
   return null;
 }
 
@@ -182,7 +185,7 @@ export function DeclutterGuestBrowseJoin() {
         {want ? (
           // F402: the link is to something of theirs; Log in is the main button, Sign up the aside.
           <>
-            <span className="font-semibold">Log in to see {want}</span>{" "}
+            <span className="font-semibold">{want}</span>{" "}
             <span className="text-muted-foreground">New here?</span>
           </>
         ) : (

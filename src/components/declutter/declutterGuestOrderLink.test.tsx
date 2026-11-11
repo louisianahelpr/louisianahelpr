@@ -3,11 +3,14 @@
  * public Browse grid with only "Sign up to buy, make offers or sell."; nothing said the order was waiting behind a log
  * in. The join card now reads the link: "Log in to see your order" (offer: "your offer"; tab=selling: "your sales"),
  * Log in is the filled button and keeps ?redirect= to the same link, and "New here?" leads the Sign up link. A plain
- * Browse visit keeps the old line.
+ * Browse visit keeps the old line. F359k (same problem, older id): ?tab=wanted&post=1 reads "Log in to post what you
+ * want", ?tab=wanted "Log in to see your Wanted posts".
  *
  * @mutate src/components/declutter/DeclutterGuest.tsx |   const want = guestWants(location.search); |   const want = null;
- * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.has("offer")) return "your offer"; |   if (q.has("offer")) return "your order";
- * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.get("tab") === "selling") return "your sales"; |
+ * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.has("offer")) return "Log in to see your offer"; |   if (q.has("offer")) return "Log in to see your order";
+ * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.get("tab") === "selling") return "Log in to see your sales"; |
+ * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.has("post")) return "Log in to post what you want"; |
+ * @mutate src/components/declutter/DeclutterGuest.tsx |   if (q.get("tab") === "wanted") return "Log in to see your Wanted posts"; |
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -42,6 +45,15 @@ describe("F402: a guest's order link says the order is behind a log in", () => {
     cleanup();
     show("/declutter?tab=selling");
     expect(screen.getByText("Log in to see your sales")).toBeInTheDocument();
+  });
+
+  it("F359k: ?tab=wanted&post=1 says log in to post; ?tab=wanted says your Wanted posts", () => {
+    show("/declutter?tab=wanted&post=1");
+    expect(screen.getByText("Log in to post what you want")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login?redirect=" + encodeURIComponent("/declutter?tab=wanted&post=1"));
+    cleanup();
+    show("/declutter?tab=wanted");
+    expect(screen.getByText("Log in to see your Wanted posts")).toBeInTheDocument();
   });
 
   it("plain Browse keeps the join line", () => {

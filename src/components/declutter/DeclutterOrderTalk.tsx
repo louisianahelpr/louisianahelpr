@@ -10,7 +10,7 @@
  * Its own module: DeclutterHandoverViews is at the component-size limit.
  */
 import { lazy, Suspense, useState } from "react";
-import { useInRouterContext, useSearchParams } from "react-router-dom";
+import { Link, useInRouterContext, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
@@ -117,6 +117,11 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
           <div className="mt-2 space-y-3">
             {/* A3-27 (audit 11-01): the same next step the order card shows, with its one button. */}
             {(t.side === "buyer" || t.side === "seller") && <Suspense fallback={null}><OrderTalkStep orderId={orderId} side={t.side} /></Suspense>}
+            {/* Audit 11-10 F360e: from Messages there was no way back to the order itself; the order's own tab link
+                (BUY-30's &order=) opens and scrolls to its card, and leaving this address closes the chat. */}
+            {(t.side === "buyer" || t.side === "seller") && (
+              <Link to={`/declutter?tab=${t.side === "seller" ? "selling" : "buying"}&order=${orderId}`} className="link-standard inline-flex min-h-11 items-center text-ds-14 font-semibold" data-order-talk-see-order="">See the order</Link>
+            )}
             <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
               Only you and the {other} can read this. Keep phone numbers, emails and payment out of the chat.
               {open && t.open_until ? ` It's open until ${when(t.open_until)}.` : ""}

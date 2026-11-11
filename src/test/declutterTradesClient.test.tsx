@@ -9,6 +9,8 @@
  * @mutate src/lib/declutter/sellerDefaults.ts |   const trades = d.acceptsTrades === undefined ? {} : { accepts_trades: d.acceptsTrades }; |   const trades = { accepts_trades: d.acceptsTrades === true };
  * @mutate src/components/declutter/DeclutterManageListing.tsx |               <DeclutterTradeRules itemId={item.id} rowClassName={ROW} />\n |
  * @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && user && !free && it.status === "live" && <Suspense fallback={null}><OfferTradeButton item={it} userId={user.id} /></Suspense>}\n |
+ * Audit 1110 F359g: one line under Offer a trade says what a trade is.
+ * @mutate src/components/declutter/DeclutterOfferTrade.tsx |         Swap one of your listings for this. No money changes hands, and each of you picks up the other's item.\n |
  * Audit 1110 F359f: the buyer's open trade offer on this item shows in place of Offer a trade.
  * @mutate src/components/declutter/DeclutterOfferTrade.tsx |   if (myOpen) { |   if (false) {
  * @mutate src/components/declutter/DeclutterOfferTrade.tsx | t.status === "open" && t.item?.id === item.id | t.status === "open"
@@ -108,6 +110,13 @@ describe("Declutter trades, client (slice 2)", () => {
     fireEvent.click(chair);
     fireEvent.click(screen.getByRole("button", { name: "Send trade offer" }));
     await waitFor(() => expect(state.sent).toEqual([["want", "chair"]]));
+  });
+
+  it("F359g: under Offer a trade, one line says what a trade is (no money, each picks up the other's item)", async () => {
+    const { container } = renderButton();
+    await screen.findByRole("button", { name: "Offer a trade" });
+    expect(container.querySelector("[data-offer-trade-what]")?.textContent?.trim())
+      .toBe("Swap one of your listings for this. No money changes hands, and each of you picks up the other's item.");
   });
 
   it("F359f: the buyer's open trade offer on this item replaces Offer a trade; one on another item does not", async () => {

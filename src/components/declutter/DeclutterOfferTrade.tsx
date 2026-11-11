@@ -66,6 +66,11 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
       <Button type="button" variant="outline" className="w-full" onClick={() => setOpen(true)}>
         Offer a trade
       </Button>
+      {/* Audit 11-10 F359g: what a trade is, before the sheet. Trades move no money and are pickup only
+          (declutter_checkout_free for the $0 lines; TRADE_CHECKOUT_LINE in the cart). */}
+      <p className="mt-1.5 text-ds-13 text-muted-foreground" data-offer-trade-what="">
+        Swap one of your listings for this. No money changes hands, and each of you picks up the other's item.
+      </p>
       <Sheet open={open} onOpenChange={(o) => { if (!send.isPending) setOpen(o); }}>
         <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-offer-trade-sheet="">
           <SheetHero title="Offer a trade" />

@@ -223,7 +223,7 @@ describe("Q345: every hire RPC refuses across a block", () => {
 });
 
 // Each hire RPC's check removed, one at a time.
-// @mutate supabase/migrations/20261108184654_shops_preorders.sql |     IF public.are_users_blocked(o.buyer_id, o.seller_id) THEN\n      UPDATE public.shop_orders SET status = 'expired' |     IF false THEN\n      UPDATE public.shop_orders SET status = 'expired'
+// @mutate supabase/migrations/20261111025213_shops_gift_hold_steps.sql |     IF public.are_users_blocked(o.buyer_id, o.seller_id) THEN\n      UPDATE public.shop_orders SET status = 'expired' |     IF false THEN\n      UPDATE public.shop_orders SET status = 'expired'
 // @mutate supabase/migrations/20261103032330_series_claim_takes_helpr_schedule_lock.sql |   IF public.are_users_blocked(v_job.customer_id, v_uid) THEN\n    RAISE EXCEPTION 'applicant_blocked'; |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked';
 // @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql | IF public.are_users_blocked(v_helper_id, v_job_customer) THEN | IF false THEN
 // @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql | IF public.are_users_blocked(v_job_customer, v_helper_id) THEN | IF false THEN

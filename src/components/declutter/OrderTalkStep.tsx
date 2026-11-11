@@ -25,7 +25,7 @@ import { paidOrdersFromCart } from "./paidOrders";
 import { useOpenProblems } from "./useOpenProblems";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { fetchOrderPickupTimes, orderPickupTimesKey, orderTimeWords } from "@/lib/declutter/orderPickupTimes";
+import { chatTimeWords, fetchOrderPickupTimes, orderPickupTimesKey } from "@/lib/declutter/orderPickupTimes";
 
 type Side = "buyer" | "seller";
 
@@ -69,7 +69,7 @@ function SellerStep({ orderId }: { orderId: string }) {
       done: done || handover.data?.status === "handed_over",
     };
     step = standing(kind, "seller", orderStepAt(facts), b?.pickup_day ?? null, free,
-      { ...orderTimeWords(times.data?.[0], kind, b?.slot_start ?? null), buyer: other.first, photoDay: kind === "porch" && b ? porchPhotoDay(b) : null });
+      { ...chatTimeWords(times.data?.[0], kind, b), buyer: other.first, photoDay: kind === "porch" && b ? porchPhotoDay(b) : null });
   } else if (delivers && sd.data) {
     const facts: OrderFacts = {
       handover: "seller_delivery", side: "seller", free,

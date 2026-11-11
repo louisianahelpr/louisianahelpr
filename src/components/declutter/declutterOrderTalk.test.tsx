@@ -37,6 +37,7 @@ const state = {
   sendError: null as unknown,
   openUntil: null as string | null,
   title: "Oak rocking chair" as string | null,
+  photoPath: null as string | null,
 };
 
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
@@ -69,7 +70,8 @@ vi.mock("@/lib/declutter/orderTalk", () => ({
       { id: "m2", mine: false, body: "Yes, after 9.", created_at: "2026-10-29T10:05:00Z" },
     ],
   }),
-  fetchMyOrderTalks: async () => [{ order_id: ORDER, side: state.side, title: state.title, last_at: "2026-10-29T10:05:00Z", last_mine: false, open: state.open }],
+  fetchMyOrderTalks: async () => [{ order_id: ORDER, side: state.side, title: state.title, photo_path: state.photoPath, last_at: "2026-10-29T10:05:00Z", last_mine: false, open: state.open }],
+  orderTalkPhotoUrl: (r: { photo_path?: string | null }) => (r.photo_path ? `https://photos.test/${r.photo_path}` : null),
   sendOrderMessage: async (_id: string, body: string) => {
     if (state.sendError) throw state.sendError;
     state.sent.push(body);
@@ -103,6 +105,7 @@ beforeEach(() => {
   state.sendError = null;
   state.openUntil = null;
   state.title = "Oak rocking chair";
+  state.photoPath = null;
   vi.mocked(toast.error).mockClear();
 });
 
@@ -212,12 +215,30 @@ describe("D2-1: the paid-order chat", () => {
   });
 
   // AUD31-13 (audit 2026-10-31): the sheet said only "Message the seller", not which item.
-  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | {itemTitle && <p className="mt-1 truncate text-ds-14 text-muted-foreground" data-order-talk-item="">About &ldquo;{itemTitle}&rdquo;</p>} | {null}
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | {itemTitle && <p className="min-w-0 truncate text-ds-14 text-muted-foreground" data-order-talk-item="">About &ldquo;{itemTitle}&rdquo;</p>} | {null}
   // @mutate src/components/declutter/DeclutterOrderTalk.tsx |     onError: (err) => setRefusal(declutterErrorMessage(err)), |     onError: () => {},
   it("the chat names the item it is about; with no title known it says nothing extra", async () => {
     renderAt(`/declutter?order_talk=${ORDER}`, <OrderTalkFromLink />);
     expect((await screen.findByText(/About “Oak rocking chair”/)).getAttribute("data-order-talk-item")).toBe("");
     expect(screen.getByRole("heading", { name: "Message the seller" })).toBeTruthy();
+  });
+
+  // Audit 11-10 F360e: "Pin a mini order header in the chat (photo, title, status, See the order)". The photo was the
+  // missing part (declutter_my_order_talks had none until 20261111155616); it shows beside the title, never a broken box.
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | {itemPhoto && <img | {false && <img
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | const itemPhoto = itemRow ? orderTalkPhotoUrl(itemRow) : null; | const itemPhoto = itemRow ? null : null;
+  it("F360e: the chat's head shows the item photo beside its title; none without a photo", async () => {
+    state.photoPath = "items/oak/1.jpg";
+    const a = renderAt(`/declutter?order_talk=${ORDER}`, <OrderTalkFromLink />);
+    await screen.findByText(/About “Oak rocking chair”/);
+    const img = await waitFor(() => { const el = document.querySelector("[data-order-talk-photo]"); expect(el).not.toBeNull(); return el as HTMLImageElement; });
+    expect(img.getAttribute("src")).toBe("https://photos.test/items/oak/1.jpg");
+    expect(img.closest("[data-order-talk-head]")?.textContent).toContain("Oak rocking chair");
+    a.unmount();
+    state.photoPath = null;
+    renderAt(`/declutter?order_talk=${ORDER}`, <OrderTalkFromLink />);
+    await screen.findByText(/About “Oak rocking chair”/);
+    expect(document.querySelector("[data-order-talk-photo]")).toBeNull();
   });
 
   // AUD31-31 (audit 2026-10-31): an ended chat was still titled "Message the seller", with "This chat has ended."

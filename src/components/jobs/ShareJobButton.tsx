@@ -6,23 +6,13 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
 import { shareNative } from "@/lib/nativeShare";
-import { isNativePlatform } from "@/lib/nativeInit";
 import { JOB_ROW_LABEL_CLASS } from "@/components/job-card/JobActionRow";
-import { helprFlatTakeHomeCents, isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
+import { deviceOpensShareSheet, jobShareContent, type ShareableJob } from "@/lib/jobShareContent";
 
 interface ShareJobButtonProps {
   /** The job being shared — only the title/budget/category/id/city are referenced. */
-  job: {
-    id: string;
-    title: string;
-    budget?: number;
-    category?: string;
-    /** City string (no state suffix) shown in the share text. */
-    city?: string;
-    /** The fee stamp: the giveaway shares the amount its page shows, not its budget. */
-    helper_fee_flat_cents?: number | string | null;
-    helper_fee_percent?: number | string | null;
-  };
+  job: ShareableJob;
+
   /**
    * Optional className passthrough so the host action row can size and
    * tint the button consistently with its siblings (Edit/Cancel, Save,
@@ -159,11 +149,7 @@ export function ShareJobButton({
    * of the page, and calling it in render would make the label depend on
    * whether a re-render happened to run before hydration finished.
    */
-  const [canNativeShare] = useState(
-    () =>
-      isNativePlatform ||
-      (typeof navigator !== "undefined" && typeof navigator.share === "function"),
-  );
+  const [canNativeShare] = useState(deviceOpensShareSheet);
   const restLabel = canNativeShare ? "Share" : "Copy link";
   // The accessible name CONTAINS the visible label (WCAG 2.5.3, label in
   // name): on a browser with no share sheet the button reads "Copy link", so
@@ -183,30 +169,15 @@ export function ShareJobButton({
     setSharing(true);
     // Light haptic on press — confirms the tap on native, no-ops on web.
     void hapticLight();
-    const location = job.city || "Louisiana";
-    // Append ?ref=share so recipients who tap the link are attributed to
-    // the share surface (OS Share Sheet / clipboard) when they open the job.
-    const url = `https://www.louisianahelpr.com/jobs/${job.id}?ref=share`;
-    const title = `${job.title} — Need help in ${location}`;
-    // Every job now has a set budget — bidding (and its "Open to bids" share
-    // wording) was removed after zero production usage.
-    const price = job.budget != null && isGiveawayFixedPayJob(job)
-      ? Math.floor(helprFlatTakeHomeCents(Math.round(job.budget * 100), job) / 100)
-      : job.budget;
-    const priceLabel = `$${price != null ? price : "?"}`;
-    const text = `${job.title} · ${priceLabel} · ${location}\n\nApply on Helpr:`;
-    const clipText = `${text}\n${url}`;
+    // The words, price and ?ref=share link are jobShareContent's, shared with the Posted card's "Share job" (F265).
+    const content = jobShareContent(job);
 
     try {
       // One ladder, shared with every other share surface in the app.
       // `shareNative` owns the platform branching, the cancellation test, the
       // clipboard recovery after a failed sheet, and the error toast.
       const outcome = await shareNative({
-        title,
-        text,
-        url,
-        dialogTitle: "Share this job",
-        clipboardText: clipText,
+        ...content,
         // This button confirms a copy on itself; without this it would ALSO
         // get shareNative's "Link copied" toast for the same one copy.
         suppressCopyConfirmation: true,

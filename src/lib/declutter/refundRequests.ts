@@ -32,7 +32,7 @@ interface RefundRequest {
   report_until: string | null;
   /** A settled request: what the buyer gets back, and whether Stripe took it yet. */
   refund_cents: number | null;
-  refund_status: "pending" | "succeeded" | "failed" | null;
+  refund_status: "pending" | "succeeded" | "failed" | "held_for_review" | "settled_by_hand" | null;
   created_at: string;
   /** D2-5 (20261029224147): the request ended with Louisiana Helpr's decision, not the seller's answer. Absent before that migration. */
   admin_decided?: boolean;

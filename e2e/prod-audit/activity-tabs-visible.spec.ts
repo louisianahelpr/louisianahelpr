@@ -426,11 +426,11 @@ async function readInbox(page: Page) {
       // The default inbox's empty state paints this and no rows. Read off the
       // page, never assumed from which account is signed in.
       empty: /No messages yet/i.test(document.body.innerText || ""),
-      // One per painted thread — ConversationRow's own name element, which
+      // One per painted thread — ConversationRow's line-1 headline (row-title since owner 11-11, F421), which
       // exists on every row and nowhere else. Counting rows this way means
       // "is this inbox empty" is read off the SCREEN, not inferred from which
       // account was signed in.
-      rows: document.querySelectorAll('[data-testid="row-name"]').length,
+      rows: document.querySelectorAll('[data-testid="row-title"]').length,
       search: sb ? { w: Math.round(sb.width), h: Math.round(sb.height) } : null,
     };
   });

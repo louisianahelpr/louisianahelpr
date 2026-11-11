@@ -46,10 +46,11 @@ describe("a support thread's row (F131)", () => {
     expect(container.textContent).not.toContain("Direct message");
   });
 
-  it("a job thread keeps its caption: the job's title", () => {
+  it("a job thread: the job's title is the headline and the caption names the person (owner 11-11, F421)", () => {
     const job = { ...base, otherUserName: "Pat", jobTitle: "Mow the lawn", jobId: "job-1", jobStatus: "accepted" } as unknown as Conversation;
     const { container } = render(<ConversationRow convo={job} currentUserId="me" openConvo={() => {}} />);
-    expect(container.querySelector("[data-thread-caption]")?.textContent).toContain("Mow the lawn");
+    expect(screen.getByTestId("row-title").textContent).toBe("Mow the lawn");
+    expect(container.querySelector("[data-thread-caption]")?.textContent).toContain("Pat");
     expect(screen.queryByText("Louisiana Helpr team")).toBeNull();
   });
 });

@@ -305,7 +305,7 @@ const NO_SECTION_STACK = new Set([
  * log), never passed; with two or more and no stack it still fails.
  */
 const DATA_ROW_STACKS: Record<string, string> = {
-  messages: '[data-testid="row-name"]',
+  messages: '[data-testid="row-title"]', // the line-1 headline, one per row (owner 11-11, F421)
   // Q437 (2026-10-07): the job feeds, My Posts and My Reviews are stacks of the
   // account's own rows too. Since the launch switch hid seed jobs from browse
   // (Q552) prod's feed holds ONE public job, poster-e2e's default My Posts view

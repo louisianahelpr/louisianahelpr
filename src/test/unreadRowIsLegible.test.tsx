@@ -172,7 +172,9 @@ function readRow(c: Conversation): RowSignals {
   );
   const mark = screen.queryByTestId("unread-mark");
   const chip = screen.queryByTestId("row-status-chip");
-  const name = screen.getByTestId("row-name");
+  // Owner 11-11 (F421): the row is TITLE FIRST, so the line-1 headline (the job title) is what carries the unread
+  // weight; the person's name moved to line 2.
+  const name = screen.getByTestId("row-title");
   const preview = screen.getByTestId("row-preview");
   const avatarBox = container.querySelector(".relative.shrink-0.self-center");
   return {

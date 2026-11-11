@@ -42,16 +42,24 @@ const counterExample = (o: MyOffer) =>
  * the server's (declutter_respond_offer, 20261029162620): at least $1 and at most the price now; a buyer's at least half
  * the price now; never the amount already on the table (that is Accept).
  */
-function counterRange(o: Pick<MyOffer, "my_side" | "current_price_cents">): { min: number; max: number } {
-  return { min: o.my_side === "buyer" ? Math.max(100, Math.ceil(o.current_price_cents / 2)) : 100, max: o.current_price_cents };
+function counterRange(o: Pick<MyOffer, "my_side" | "current_price_cents" | "amount_cents">): { min: number; max: number } {
+  // Audit 11-10 F355: inside the server's range, a counter also has to MOVE the other way: the seller's above the
+  // buyer's offer on the table, the buyer's below the seller's counter (a price equal to it is Accept, one past it is
+  // nonsense: "$10" to someone who already offered $13.50).
+  const serverMin = o.my_side === "buyer" ? Math.max(100, Math.ceil(o.current_price_cents / 2)) : 100;
+  const serverMax = o.current_price_cents;
+  const min = o.my_side === "seller" ? Math.min(serverMax, Math.max(serverMin, o.amount_cents + 1)) : serverMin;
+  const max = o.my_side === "buyer" ? Math.max(min, Math.min(serverMax, o.amount_cents - 1)) : serverMax;
+  return { min, max };
 }
 
 /** Why a typed counter can't be sent, in words; null when it can. */
 function counterProblem(o: Pick<MyOffer, "my_side" | "current_price_cents" | "amount_cents">, cents: number | null): string | null {
   if (!cents) return null;
   const { min, max } = counterRange(o);
+  if (o.my_side === "seller" && cents <= o.amount_cents && cents >= 100) return `They already offered ${formatPrice(o.amount_cents)}. Answer with more than that, or tap Accept.`;
+  if (o.my_side === "buyer" && cents >= o.amount_cents && cents <= o.current_price_cents) return `They're asking ${formatPrice(o.amount_cents)}. Answer with less than that, or tap Accept.`;
   if (cents < min || cents > max) return `Your price has to be between ${formatPrice(min)} and ${formatPrice(max)}.`;
-  if (cents === o.amount_cents) return `${formatPrice(cents)} is the offer already on the table. To agree to it, tap Accept.`;
   return null;
 }
 

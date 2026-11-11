@@ -9,6 +9,9 @@
  *
  * @mutate src/components/tracker/jobProgressState.ts | const started = status === "in_progress" \|\| | const started = false &&
  * @mutate src/components/job-card/jobStatusLine.ts |       if (!job.is_group_job && !setOutOrArrived(job)) return "today"; |
+ * F284 (audit 11-10): past the start's grace, the Helpr's line says how late they are and who to message, as the poster's
+ * late line does (the poster is already offered Report no-show then).
+ * @mutate src/components/tracker/jobProgressState.ts |     next: helprLateBy ? `You're ${helprLateBy} late. Tap I'm on my way or message ${o.otherFirst \|\| "them"}` : helprBothIn ? base.next : |     next: helprBothIn ? base.next :
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jobProgress, type ProgressJob } from "./jobProgressState";
@@ -29,13 +32,21 @@ const page = (j: ProgressJob) =>
 describe("AUD31-76: the tracker for an auto-started job the Helpr has not set out for", () => {
   afterEach(() => vi.useRealTimers());
 
-  it("50 minutes after the start: On the way is the current step (your move), never Working, and the line says it's time", () => {
+  it("50 minutes after the start: On the way is the current step (your move), never Working, and the line says how late (F284)", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2024-10-30T19:50:00Z"));
     const p = page(row());
     expect(p.stage).toBe(4);
     expect(p.waitingOnYou).toBe(true);
     expect(p.word).toBe("On the way");
+    expect(p.next).toBe("You're 50 min late. Tap I'm on my way or message them");
+  });
+
+  it("inside the grace after the start: the line says it's time", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-10-30T19:05:00Z"));
+    const p = page(row());
+    expect(p.stage).toBe(4);
     expect(p.next).toBe("It's time — tap I'm on my way");
   });
 

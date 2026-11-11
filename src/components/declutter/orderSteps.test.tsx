@@ -11,13 +11,16 @@
  * @mutate src/components/declutter/OrderSteps.tsx |   if (f.cancelled) return "cancelled"; |   if (false) return "cancelled";
  * @mutate src/components/declutter/OrderSteps.tsx |   return f.booked && !f.pickedUp && !f.delivered ? "upcoming" : "waiting"; |   return f.booked ? "upcoming" : "waiting";
  * Audit 11-10 F366: an open problem after the handover ends the bar on "Problem reported", never "Done".
- * @mutate src/components/declutter/OrderSteps.tsx |   const marked = !!facts.problem && handedOver; |   const marked = false;
+ * @mutate src/components/declutter/OrderSteps.tsx |   const marked = (!!facts.problem \|\| refundOpen) && handedOver; |   const marked = refundOpen && handedOver;
  * @mutate src/components/declutter/OrderSteps.tsx |   const handedOver = !!(facts.done \|\| facts.pickedUp \|\| facts.delivered); |   const handedOver = true;
+ * F366 (rest): a refund request still being worked out, with no problem row, holds the bar on "Refund asked".
+ * @mutate src/components/declutter/OrderSteps.tsx |   const marked = (!!facts.problem \|\| refundOpen) && handedOver; |   const marked = !!facts.problem && handedOver;
+ * @mutate src/components/declutter/OrderSteps.tsx |   return status === "open" \|\| status === "offered" \|\| status === "returning" \|\| status === "to_admin"; |   return status === "open";
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
 import {
-  ORDER_BUCKETS, OrderSteps, orderBucket, orderStepAt, orderStepWords, orderWaitsOnYou,
+  ORDER_BUCKETS, OrderSteps, orderBucket, orderStepAt, orderStepWords, orderWaitsOnYou, refundIsOpen,
   type OrderBucket, type OrderFacts, type OrderHandover, type OrderSide,
 } from "./OrderSteps";
 
@@ -151,5 +154,25 @@ describe("OrderSteps: one tracker for every Declutter order", () => {
     // No problem: Done stays Done.
     const { container } = render(<OrderSteps facts={{ handover: "pickup_home", side: "buyer", booked: true, pickedUp: true, done: true }} />);
     expect(container.querySelector('[aria-label="Step 4 of 4: Done"]')).not.toBeNull();
+  });
+
+  it("F366 (rest): a refund still being worked out ends a handed-over bar on Refund asked; a settled one leaves Done", () => {
+    const open = ["open", "offered", "returning", "to_admin"].filter(refundIsOpen);
+    expect(open).toHaveLength(4);
+    for (const s of ["agreed", "declined", null, undefined]) expect(refundIsOpen(s), String(s)).toBe(false);
+    const done: OrderFacts = { handover: "porch", side: "buyer", booked: true, out: true, pickedUp: true, done: true };
+    const asked = render(<OrderSteps facts={done} refundOpen />);
+    expect(asked.container.querySelector('[aria-label="Step 4 of 4: Refund asked"]')).not.toBeNull();
+    expect(asked.container.textContent).not.toContain("Problem reported");
+    asked.unmount();
+    // A problem row wins the name; nothing handed over keeps the facts' step.
+    const both = render(<OrderSteps facts={{ ...done, problem: true }} refundOpen />);
+    expect(both.container.querySelector('[aria-label="Step 4 of 4: Problem reported"]')).not.toBeNull();
+    both.unmount();
+    const early = render(<OrderSteps facts={{ handover: "pickup_home", side: "buyer", booked: true, done: false }} refundOpen />);
+    expect(early.container.textContent).not.toContain("Refund asked");
+    early.unmount();
+    const settled = render(<OrderSteps facts={done} />);
+    expect(settled.container.querySelector('[aria-label="Step 4 of 4: Picked up"]')).not.toBeNull();
   });
 });

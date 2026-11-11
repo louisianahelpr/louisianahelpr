@@ -41,7 +41,7 @@ import { isWeakPasswordError, recognizedAuthError, weakPasswordWords } from "@/l
 import { completeSignupErrorCopy, isSignupAlreadyFinished, isSignupResumedOldAccount, SIGNUP_ALREADY_FINISHED_COPY, SIGNUP_RESUMED_OLD_ACCOUNT_COPY } from "./signup/completeSignupError";
 import { useParishForZip } from "@/hooks/useParishForZip";
 import { useCityZipMismatch } from "./signup/useCityZipMismatch";
-import { useLanguage } from "@/lib/i18n/language";
+import { getLang, useLanguage } from "@/lib/i18n/language";
 import { joinName } from "@/lib/splitName";
 import { LanguageToggle } from "@/components/LanguageToggle";
 
@@ -316,10 +316,11 @@ const Signup = () => {
       // retry that would have fixed it.
       safeStorage.setItem(SIGNUP_COOLDOWN_KEY, String(Date.now()));
 
+      // F260q: `lang` (switch, else browser) -> confirm email (auth-email-hook) + profiles.language (handle_new_user).
       const { data: authData, error: authError } = await captcha.run((captchaToken) => supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: { emailRedirectTo: getSignupConfirmRedirect(peekJobIntent(), peekSignupRedirectItem()), data: { full_name: fullName }, captchaToken },
+        options: { emailRedirectTo: getSignupConfirmRedirect(peekJobIntent(), peekSignupRedirectItem()), data: { full_name: fullName, lang: getLang() }, captchaToken },
       }));
       // A refused security check (Q1314) is not a real attempt: lift the cooldown.
       if (authError && isCaptchaError(authError.message)) safeStorage.removeItem(SIGNUP_COOLDOWN_KEY);

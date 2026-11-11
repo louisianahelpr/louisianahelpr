@@ -17,6 +17,7 @@ import { publicErrorMessage } from "../_shared/publicError.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { carriesStandardWebhookHeaders } from "../_shared/standardWebhookHeaders.ts";
 import { HOOK_ANSWER_BY_MS, answerBudgetMs, answerOrFinishInBackground } from "../_shared/answerWithin.ts";
+import { authEmailLang, authEmailSubject, type EmailLang } from '../_shared/email-templates/authEmailWords.ts'
 import { confirmLinkItemFromRedirect, confirmLinkJobFromRedirect, confirmLinkUrl } from "../_shared/confirmLink.ts";
 
 
@@ -58,21 +59,9 @@ const corsHeaders = {
     'authorization, x-client-info, apikey, content-type, webhook-id, webhook-timestamp, webhook-signature',
 }
 
-// Map Supabase email_action_type values to template + subject.
-// Supabase's full enum: signup, invite, magiclink, recovery, email_change,
-// email_change_current, email_change_new, reauthentication.
-const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Confirm your email',
-  // F188 (owner's message review 11-09): "Louisiana Helpr" in every subject.
-  invite: "You've been invited to Louisiana Helpr",
-  magiclink: 'Your Louisiana Helpr code',
-  recovery: 'Reset your Louisiana Helpr password',
-  email_change: 'Confirm your new email',
-  email_change_current: 'Email change requested',
-  email_change_new: 'Confirm your new email',
-  reauthentication: 'Your confirmation code',
-}
-
+// Map Supabase email_action_type values to template + subject. Subjects (English and Spanish) live in
+// _shared/email-templates/authEmailWords.ts (AUTH_EMAIL_SUBJECTS; F260q). Supabase's full enum: signup, invite,
+// magiclink, recovery, email_change, email_change_current, email_change_new, reauthentication.
 const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
   signup: SignupEmail,
   invite: InviteEmail,
@@ -308,7 +297,27 @@ async function deliver(user: any, emailData: any, emailType: string, EmailTempla
         confirmLinkItemFromRedirect(emailData.redirect_to))
     : verifyUrl.toString()
 
+  // F260q (owner 11-11 "Spanish everything"; lead 11-11): the email follows the recipient's language. A brand-new
+  // sign-up has no saved language yet (its profile row is not committed while Auth waits on this hook), so the sign-up
+  // form writes the visitor's pick (the English/Español switch, or the browser's language) into user metadata `lang`,
+  // and the signup email reads that. Every other email reads the member's saved profiles.language first (they may
+  // have switched since signing up; review note 11-11), the metadata only when there is no row. A failed read falls
+  // back to the metadata, then English, and never blocks the email.
+  const metaLang = user?.user_metadata?.lang
+  let lang: EmailLang = authEmailLang(metaLang)
+  if (emailType !== 'signup' && user?.id) {
+    try {
+      const { data: langRow, error: langErr } = await supabase.from('profiles').select('language').eq('user_id', user.id).maybeSingle()
+      // Not a failure of the email. Warn only (no ops alert for a language read).
+      if (langErr) console.warn('[auth-email-hook] language read failed; using sign-up metadata or English', { message: langErr.message })
+      else if (langRow) lang = authEmailLang(langRow.language)
+    } catch (e) {
+      console.warn('[auth-email-hook] language read threw; using sign-up metadata or English', { message: caughtMessage(e) })
+    }
+  }
+
   const templateProps = {
+    lang,
     siteName: SITE_NAME,
     siteUrl: getAppUrl(),
     recipient: user.email,
@@ -347,7 +356,7 @@ async function deliver(user: any, emailData: any, emailType: string, EmailTempla
       to: user.email,
       from: FROM_DEFAULT,
       sender_domain: SENDER_DOMAIN,
-      subject: EMAIL_SUBJECTS[emailType] || 'Notification',
+      subject: authEmailSubject(emailType, lang),
       html,
       text,
       purpose: 'transactional',

@@ -13,21 +13,27 @@ import {
   codeStyle,
 } from './styles.ts'
 import { BaseLayout, TransactionalFooter } from './components.tsx'
+import { REAUTH_WORDS, wordsFor, type EmailLang } from './authEmailWords.ts'
 
 interface ReauthenticationEmailProps {
   token: string
+  /** F260q: the recipient's language; English when omitted. */
+  lang?: EmailLang
 }
 
-export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => (
-  <BaseLayout preheader="Your Louisiana Helpr confirmation code">
+export const ReauthenticationEmail = ({ token, lang }: ReauthenticationEmailProps) => {
+  const w = wordsFor(REAUTH_WORDS, lang)
+  return (
+  <BaseLayout lang={lang} preheader={w.preheader}>
       {/* Owner's message review 11-09, F165: "Verify your identity" read like the photo-ID check; this is only a code. */}
-      <Heading className="e-h1" style={h1}>Your confirmation code</Heading>
-      <Text className="e-text" style={text}>Enter this code in the app to confirm it&apos;s you:</Text>
+      <Heading className="e-h1" style={h1}>{w.heading}</Heading>
+      <Text className="e-text" style={text}>{w.body}</Text>
       <Text className="e-h1" style={codeStyle}>{token}</Text>
       <TransactionalFooter>
-        It expires soon. If you didn&apos;t ask for it, you can ignore this email; nothing changes without the code.
+        {w.footer}
         {/* F460 (audit 11-10): say who sent it. */}
         <br />- Louisiana Helpr
       </TransactionalFooter>
   </BaseLayout>
-)
+  )
+}

@@ -261,6 +261,8 @@ export interface BaseLayoutProps {
   footer?: React.ReactNode
   /** Rendered after the card — the open-rate beacon, which must not take layout space. */
   trailing?: React.ReactNode
+  /** The email's language (F260q): sets <html lang>. English when omitted. */
+  lang?: 'en' | 'es'
 }
 
 /**
@@ -270,8 +272,8 @@ export interface BaseLayoutProps {
  * `<table align="center">`, which is the layout Outlook's Word engine can
  * actually centre.
  */
-export const BaseLayout = ({ preheader, children, footer, trailing }: BaseLayoutProps) => (
-  <Html lang="en" dir="ltr">
+export const BaseLayout = ({ preheader, children, footer, trailing, lang = 'en' }: BaseLayoutProps) => (
+  <Html lang={lang === 'es' ? 'es' : 'en'} dir="ltr">
     <EmailHead />
     <Preview>{preheader}</Preview>
     <Body className="e-bg" style={main}>

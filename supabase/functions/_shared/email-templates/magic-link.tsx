@@ -13,6 +13,7 @@ import {
   codeStyle,
 } from './styles.ts'
 import { BaseLayout, TransactionalFooter } from './components.tsx'
+import { MAGIC_LINK_WORDS, wordsFor, type EmailLang } from './authEmailWords.ts'
 
 // Sent when the app calls supabase.auth.signInWithOtp, which today happens in
 // one place: confirming it's you before deleting your account, for members
@@ -23,18 +24,23 @@ import { BaseLayout, TransactionalFooter } from './components.tsx'
 // through this hook.
 interface MagicLinkEmailProps {
   token: string
+  /** F260q: the recipient's language; English when omitted. */
+  lang?: EmailLang
 }
 
-export const MagicLinkEmail = ({ token }: MagicLinkEmailProps) => (
-  <BaseLayout preheader="Your Louisiana Helpr code">
+export const MagicLinkEmail = ({ token, lang }: MagicLinkEmailProps) => {
+  const w = wordsFor(MAGIC_LINK_WORDS, lang)
+  return (
+  <BaseLayout lang={lang} preheader={w.preheader}>
       {/* Owner's message review 11-09: F159 sentence case, F188 the full name. */}
-      <Heading className="e-h1" style={h1}>Your Louisiana Helpr code</Heading>
-      <Text className="e-text" style={text}>Enter this code in the app to confirm it&apos;s you:</Text>
+      <Heading className="e-h1" style={h1}>{w.heading}</Heading>
+      <Text className="e-text" style={text}>{w.body}</Text>
       <Text className="e-h1" style={codeStyle}>{token}</Text>
       <TransactionalFooter>
-        This code expires soon. If you didn&apos;t ask for it, you can ignore this email; nothing changes without the code.
+        {w.footer}
         {/* F461 (audit 11-10): say who sent it. */}
         <br />- Louisiana Helpr
       </TransactionalFooter>
   </BaseLayout>
-)
+  )
+}

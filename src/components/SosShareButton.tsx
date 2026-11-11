@@ -134,7 +134,7 @@ export function SosShareButton({ onOpen }: { onOpen: () => void }) {
       size="sm"
       className={JOB_ACTION_CHIP_CLASS}
       style={{ ...SOS_TINT, border: SOS_TINT.border }}
-      aria-label="SOS — share your location"
+      aria-label="SOS — call 911, share your location or reach Helpr support"
       // The 320px density gate measures every `[data-job-action-chip]` (Q1080).
       data-job-action-chip=""
       // No stopPropagation any more: the click has to reach the `More`

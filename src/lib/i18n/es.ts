@@ -85,6 +85,7 @@ export const es: Record<MsgKey, string> = {
   "login.password": "Contraseña",
   "login.forgot": "¿Olvidó su contraseña?",
   "login.resendVerify": "Enviar el correo otra vez",
+  "login.forgotNudge": "¿Olvidó su contraseña? Podemos enviarle un enlace por correo para restablecerla.",
   "login.emailInvalid": "Escriba un correo electrónico válido",
   "login.emailMissing": "Escriba su correo electrónico",
   "login.passwordMissing": "Escriba su contraseña",

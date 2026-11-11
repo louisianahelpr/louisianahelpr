@@ -20,6 +20,11 @@ export function SmsOptInBody() {
     <div className="page-measure mx-auto space-y-section font-sans text-ds-15 leading-relaxed text-foreground">
       {/* F417 (audit 11-10): the page opened on a wall of compliance text with nothing to do. Three short steps and
           the one button come first; every sentence Twilio's review reads is still below, unchanged. */}
+      {/* F250 (audit 11-10): the one-line answer first; a first-timer could not tell from the compliance wording
+          whether alerts were on, required, or where the switch lives. */}
+      <p className="font-semibold" data-sms-opt-in-lead="">
+        Text alerts are optional. Turn them on in Profile, Notifications, Text alerts.
+      </p>
       <section className="space-y-3" aria-labelledby="sms-opt-in-steps">
         <h2 id="sms-opt-in-steps" className="font-display text-ds-20 font-semibold">Three steps</h2>
         <ol className="list-decimal space-y-1 pl-5">

@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-11T03:33:02.257Z",
-  "guards": 3849,
-  "registered": 3848,
+  "generated": "2026-11-11T03:38:51.786Z",
+  "guards": 3876,
+  "registered": 3875,
   "unregistered": [
     "src/lib/shops/preorders.test.ts"
   ],
@@ -10,6 +10,8 @@
     "src/pages/jobs/jobPage/expiredRepost.test.tsx",
     "src/test/audit1110BellRepostOnlyForPoster.test.tsx",
     "src/test/audit1110CopyAndRedirects.test.tsx",
+    "src/test/audit1110InlineTrashUnreadPillReplyTime.test.tsx",
+    "src/test/audit1110ReplyPromiseAndSmallCopy.test.tsx",
     "src/test/declutterActiveFilters.test.tsx",
     "src/test/declutterTradesClient.test.tsx",
     "src/test/fabClearsLastRow.test.tsx",

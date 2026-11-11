@@ -83,8 +83,7 @@ describe("Report a bug: the in-app support form (Q1028)", () => {
     const src = readFileSync(join(__dirname, "profileLanding", "useProfileLandingDerived.tsx"), "utf8");
     expect(src).toMatch(/label: REPORT_BUG_TITLE[^\n]*href: "\/profile\?tab=support&topic=report" \}/);
     const help = readFileSync(join(__dirname, "..", "..", "pages", "info", "HelpCenter.tsx"), "utf8");
-    // the shared text-link class, spelled in two parts so this test file is not counted as one of its users (q248HoverUnderlineRatchet)
-    const linkClass = ["link", "standard"].join("-");
-    expect(help).toMatch(new RegExp(`<Link to="/support\\?topic=report" className="${linkClass}[^>]*>\\s*Report a bug\\s*</Link>`));
+    // F232 (audit 11-10): a full-width outline Button wrapping the link, not a small text link.
+    expect(help).toMatch(/<Button asChild variant="outline" size="md" className="w-full">\s*<Link to="\/support\?topic=report" data-help-report-bug="">Report a bug<\/Link>/);
   });
 });

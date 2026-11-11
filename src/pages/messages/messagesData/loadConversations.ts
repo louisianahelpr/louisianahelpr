@@ -436,11 +436,18 @@ export async function fetchConversations(
  * because the caller builds this in parallel with the confirming inbox refetch
  * (Q380) and a thread that refetch finds must not also show "couldn't open".
  */
+/** Audit 11-10 F448: what a chat link addressed to nobody we could talk to says, instead of an empty composer. */
+export const CONVERSATION_NOT_FOUND = "We can't find this conversation.";
+
 export async function buildDeepLinkPlaceholder(
   uid: string,
   deepLinkJobId: string,
   deepLinkUserId: string,
 ): Promise<Conversation | { problem: string }> {
+  // Audit 11-10 F448: `?chat=<job>&with=<my own id>` used to open an empty "Say hello" thread with me as the
+  // other person, a live message box and the wrong price. A thread is one job and one OTHER person; my own id
+  // names no conversation, so say so and leave the inbox alone (the caller toasts `problem`).
+  if (deepLinkUserId === uid) return { problem: CONVERSATION_NOT_FOUND };
   // No existing conversation — fetch profile + job to build a
   // placeholder thread so the user can start messaging.
   const [profileRes, jobRes, closesAtMap, offerTargets, threadTitles] = await Promise.all([

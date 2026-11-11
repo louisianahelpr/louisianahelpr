@@ -33,6 +33,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { timeLeft } from "@/lib/declutter/timeLeft";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { checkoutAmounts } from "@/lib/declutter/money";
+import { ONBOARDING_FEE_CENTS } from "@/lib/moneyLimits";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { photoPublicUrl } from "@/lib/declutter/api";
 import { WANTED_CATEGORY_PARAM, WANTED_POST_PARAM, WANTED_WHAT_PARAM } from "@/lib/declutter/sellChooser";
@@ -130,7 +131,7 @@ function feeLine(maxPrice: string): string {
   const cents = valid ? typed : 3000;
   // Q2578 (audit 1102a): with nothing typed the field shows a grey "30" and this line used to say "A $30 item costs...",
   // so the empty field read as filled in. Until a price is typed the line says it is an example.
-  return `${valid ? "A" : "For example, a"} ${formatPrice(cents)} item costs ${formatMoneyExact(checkoutAmounts([cents]).totalCents)} with our fee. A first purchase also has a one-time setup fee.`;
+  return `${valid ? "A" : "For example, a"} ${formatPrice(cents)} item costs ${formatMoneyExact(checkoutAmounts([cents]).totalCents)} with our fee. A first purchase also has a one-time ${formatPrice(ONBOARDING_FEE_CENTS)} setup fee.`;
 }
 
 function formatMoneyExact(cents: number): string {
@@ -249,6 +250,20 @@ function WantedFormSheet({ open, at, userId, onClose, where, editing = null, pre
       toast.error(msg === DECLUTTER_OFFLINE_COPY || msg === CONNECTION_TROUBLE_COPY ? `${msg} We kept what you typed.` : msg);
     },
   });
+  // Audit 11-10 F347: once Post has shown the field problems, each change re-checks the form and drops the lines under
+  // fields that are now right (the others stay; no new line appears for a field the member has not fixed yet).
+  const edit = (next: (f: WantedForm) => WantedForm) => setForm((f) => {
+    const after = next(f);
+    setProblems((shown) => {
+      const keys = Object.keys(shown) as (keyof WantedFormProblems)[];
+      if (keys.length === 0) return shown;
+      const now = wantedFormProblems(after);
+      const kept: WantedFormProblems = {};
+      for (const k of keys) if (now[k]) kept[k] = now[k];
+      return kept;
+    });
+    return after;
+  });
   const submit = () => {
     if (post.isPending) return;
     const p = wantedFormProblems(form);
@@ -264,7 +279,7 @@ function WantedFormSheet({ open, at, userId, onClose, where, editing = null, pre
         className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-wanted-sheet="">
         <SheetHero title={editing ? "Edit your post" : "What are you looking for?"} />
         <div className="mt-2">
-          <WantedFormFields form={form} setForm={setForm} problems={problems} onSubmit={submit}
+          <WantedFormFields form={form} setForm={edit} problems={problems} onSubmit={submit}
             photos={editing ? null : <ProblemPhotoPicker files={files} onChange={setFiles} disabled={post.isPending} />} where={editing ? "Measured from where you first posted it." : where} />
         </div>
         {/* Audit 10-30 #18: at 375 the form is taller than the sheet; the buttons stay in view as it scrolls. */}

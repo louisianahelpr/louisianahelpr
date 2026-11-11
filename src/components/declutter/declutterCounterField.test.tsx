@@ -93,42 +93,53 @@ describe("counter-offer field: a shown label and a $ (deep audit #47)", () => {
 });
 
 // NIGHT-SELL-offers,sale-4: "Answer with a price" took any number and said nothing; the box wasn't focused.
-// @mutate src/components/declutter/DeclutterOffersSection.tsx |   return { min: o.my_side === "buyer" ? Math.max(100, Math.ceil(o.current_price_cents / 2)) : 100, max: o.current_price_cents }; |   return { min: 100, max: o.current_price_cents };
+// @mutate src/components/declutter/DeclutterOffersSection.tsx |   const serverMin = o.my_side === "buyer" ? Math.max(100, Math.ceil(o.current_price_cents / 2)) : 100; |   const serverMin = 100;
+// Audit 11-10 F355: the seller's counter sits above the buyer's offer, the buyer's below the seller's counter.
+// @mutate src/components/declutter/DeclutterOffersSection.tsx | Math.max(serverMin, o.amount_cents + 1)) : serverMin; | serverMin) : serverMin;
+// @mutate src/components/declutter/DeclutterOffersSection.tsx | Math.min(serverMax, o.amount_cents - 1)) : serverMax; | serverMax) : serverMax;
+// @mutate src/components/declutter/DeclutterOffersSection.tsx |   if (o.my_side === "seller" && cents <= o.amount_cents && cents >= 100) return |   if (o.my_side === "seller" && cents === o.amount_cents) return
+// @mutate src/components/declutter/DeclutterOffersSection.tsx |   if (o.my_side === "buyer" && cents >= o.amount_cents && cents <= o.current_price_cents) return |   if (o.my_side === "buyer" && cents === o.amount_cents) return
 // @mutate src/components/declutter/DeclutterOffersSection.tsx | disabled={act.isPending \|\| !counterCents \|\| !!counterBad}> | disabled={act.isPending \|\| !counterCents}>
 // @mutate src/components/declutter/DeclutterOffersSection.tsx |   useEffect(() => { if (countering) counterBox.current?.focus(); }, [countering]); |   useEffect(() => {}, [countering]);
-// @mutate src/components/declutter/DeclutterOffersSection.tsx |   if (cents === o.amount_cents) return | if (cents === -1) return
 describe("the counter box says its range and refuses a price outside it (NIGHT-SELL-offers,sale-4)", () => {
   beforeEach(() => {
     state.offers = [{ ...OFFER, current_price_cents: 4500 }];
     state.responded = [];
   });
 
-  it("seller: focused on opening, $1 to the price now; $99 and the buyer's own amount keep Send off with the reason", async () => {
+  it("seller: focused on opening, above the buyer's $22 up to the $45 price; $99, $22 and $10 keep Send off with the reason", async () => {
     show();
     fireEvent.click(await screen.findByRole("button", { name: "Answer with a price" }));
     const input = screen.getByLabelText("Your price");
     expect(input).toHaveFocus();
-    expect(input).toHaveAccessibleDescription("Between $1 and $45.");
+    expect(input).toHaveAccessibleDescription("Between $22.01 and $45.");
     fireEvent.change(input, { target: { value: "99" } });
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
-    expect(input).toHaveAccessibleDescription("Your price has to be between $1 and $45.");
+    expect(input).toHaveAccessibleDescription("Your price has to be between $22.01 and $45.");
     fireEvent.change(input, { target: { value: "22" } });
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
-    expect(input).toHaveAccessibleDescription("$22 is the offer already on the table. To agree to it, tap Accept.");
+    expect(input).toHaveAccessibleDescription("They already offered $22. Answer with more than that, or tap Accept.");
+    // F355: less than the offer on the table is not a counter.
+    fireEvent.change(input, { target: { value: "10" } });
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    expect(input).toHaveAccessibleDescription("They already offered $22. Answer with more than that, or tap Accept.");
     fireEvent.change(input, { target: { value: "40" } });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
     await waitFor(() => expect(state.responded).toHaveLength(1));
     expect(state.responded[0]).toEqual(expect.arrayContaining(["o1", "counter", 4000]));
   });
 
-  it("buyer: at least half the price now", async () => {
+  it("buyer: at least half the price now, and under the seller's $40 counter (F355)", async () => {
     state.offers = [{ ...OFFER, current_price_cents: 4500, my_side: "buyer", awaiting: "buyer", amount_cents: 4000 }];
     show("buyer");
     fireEvent.click(await screen.findByRole("button", { name: "Answer with a price" }));
     const input = screen.getByLabelText("Your price");
-    expect(input).toHaveAccessibleDescription("Between $22.50 and $45.");
+    expect(input).toHaveAccessibleDescription("Between $22.50 and $39.99.");
     fireEvent.change(input, { target: { value: "1" } });
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    fireEvent.change(input, { target: { value: "42" } });
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    expect(input).toHaveAccessibleDescription("They're asking $40. Answer with less than that, or tap Accept.");
     fireEvent.change(input, { target: { value: "23" } });
     expect(screen.getByRole("button", { name: "Send" })).toBeEnabled();
   });

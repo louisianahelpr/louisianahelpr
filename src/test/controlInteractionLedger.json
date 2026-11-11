@@ -72,7 +72,6 @@
     "notTint  src/components/admin/userDetail/DocumentsTab.tsx:105 <a>  hover:border-primary",
     "notTint  src/components/dashboard/filterSheet/FilterSheetRows.tsx:38 <Link>  hover:border-primary/50",
     "notTint  src/components/dashboard/PhotoLightbox.tsx:474 <button>  hover:opacity-100",
-    "notTint  src/components/messages/MessageBubble.tsx:362 <button>  hover:opacity-100",
     "notTint  src/components/reviewPanel/ReviewForm.tsx:357 <button>  hover:opacity-80",
     "notTint  src/components/reviewPanel/ReviewList.tsx:136 <button>  hover:opacity-90",
     "notTint  src/pages/auth/Login.tsx:457 <button>  hover:opacity-70",

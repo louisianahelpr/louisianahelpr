@@ -65,7 +65,7 @@ import {
   type DeclutterTodo,
   type OldDeclutterView,
 } from "@/lib/declutter/tabs";
-import { HaulAwayCard, HaulAwayItemActions, HaulAwayItemLine } from "./DeclutterHaulAway";
+import { HaulAwayCard, HaulAwayItemActions, HaulAwayItemLine, HaulAwayTooSoonTip } from "./DeclutterHaulAway";
 import { DonationReceipts } from "./DeclutterDonate";
 import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
 import { report } from "@/lib/errorLogger";
@@ -160,6 +160,7 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
     },
   });
   const haulById = useMemo(() => new Map<string, HaulAwayRow>((haul.data?.rows ?? []).map((r) => [r.item_id, r])), [haul.data]);
+  const freeIds = useMemo(() => new Set((mine.data ?? []).filter((i) => i.current_price_cents === 0).map((i) => i.id)), [mine.data]);
   // An unpaid haul-away's job is deleted first (its checkout can then never be opened again), then the item is put back
   // or booked on a new job. Only a 'job_open' job is deleted (never a cancelled one, whose photos and record stay). A
   // declined card's job ('job_stuck') can't be deleted by its poster, so it is never tried: reported, and the seller is
@@ -251,6 +252,7 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
     {haulOn && haul.isError && (
       <ErrorState variant="inline" title="We couldn't check your haul-aways." body={declutterErrorMessage(haul.error)} onRetry={() => void haul.refetch()} />
     )}
+      {haulOn && !haul.isError && <HaulAwayTooSoonTip rows={haul.data?.rows ?? []} isFree={(id) => freeIds.has(id)} />}
       {/* Board 26: one card of rows; each row = thumb (the Browse card's photo or category icon), title, ONE status
           line, the price in money ink; the actions sit at the row's right end from sm up (owner 2026-10-28). */}
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card" data-selling-list="">

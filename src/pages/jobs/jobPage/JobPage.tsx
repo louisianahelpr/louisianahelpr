@@ -133,10 +133,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const posterId = q.data?.job.customer_id ?? null;
   const posterCard = useQuery({ queryKey: ["declutter", "seller-card", posterId], queryFn: () => fetchSellerCard(posterId!), enabled: !!posterId && !isPoster });
   const posterFirst = (posterCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
-  // The hired Helpr's first name, off the same card read the poster's Message button uses (posterPageActions), so
-  // the tracker line names who the page names: "Eli is working", not "Your Helpr is working" (B49 375 look, 10-31).
-  // JA-49 (lead 11-01, B107): a direct offer out names the OFFERED Helpr (no helper_id yet; offered_to_helper_id is not
-  // selectable, so the poster reads it through get_job_offer_targets, as Messages does).
+  // The hired Helpr's first name, off the card the poster's Message button reads (posterPageActions), so the tracker
+  // names who the page names: "Eli is working" (B49, 10-31). JA-49 (B107): a direct offer out names the OFFERED Helpr
+  // (no helper_id yet; offered_to_helper_id is not selectable, so the poster reads get_job_offer_targets, as Messages does).
   const offerPending = isPoster && q.data?.job.status === "open" && q.data?.job.direct_offer_status === "pending";
   const offerTarget = useQuery({
     queryKey: ["job-offer-target", id],
@@ -247,10 +246,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
 
   // Every viewer state, one table (viewerState.ts): applied, offered, hired, declined, closed, own job.
   const viewer = jobPageViewerState({ isPoster, userId: userId ?? null, job, myApplication: myApplication.data, posterFirst, onCrew, offeredToMe });
-  // Q2595 (Jobs audit 1102b row 9): someone never hired, on a job that is over (expired, cancelled, filled by someone
-  // else), has no pay to read and no address coming: no money box, no address line, and a way on (Browse jobs).
-  // Q2673 (audit 1102e row 5): a Helpr who cancelled has given the job up, even though it is open again for others: no
-  // pay, no "street address is shared once you're offered the job" line.
+  // Q2595 (1102b row 9): someone never hired, on a job that is over (expired, cancelled, filled by someone else), has no
+  // pay to read and no address coming: no money box, no address line, a way on (Browse jobs). Q2673 (1102e row 5): a
+  // Helpr who cancelled has given the job up, even though it is open again: no pay, no "street address is shared" line.
   const cancelledByMe = myApplication.data?.status === "rejected" && myApplication.data.closed_reason === "helper_cancelled";
   const closedToMe = !isPoster && !isHired && !instantUntil && viewer.action.kind === "none" && ((!party && !open) || cancelledByMe);
   // The job's own Working card, in its live bucket, opened (F10): `?job=` names a job on Working (`?highlight=` there
@@ -275,12 +273,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     // LEAD-JOBPAGE-LAYOUT (owner 2026-10-31): the step due now, or the next useful thing; never "Manage job"
     // (posterPageActions.tsx: confirm, approve, cancel and the card's steps all on this page).
     : undefined;
-  // The hired Helpr's row (owner 2026-11-01, the same rules as the poster's, JobPageActionRow.tsx): the Working card's
-  // step leads on the right, with Message and "Open in working" beside it (one, or More options); when the face's
-  // button IS Message or Open in working, it leads and the other sits beside it.
-  // JA-30 (Jobs audit 11-01): while a dispute is open "See the case" opens the case itself (the cards' own
-  // DisputeTimelineDialog). Owner pick 11-08 (JP2): it is the bar's primary while no step of the page's own is due
-  // (the case is what happens next), Message beside it.
+  // The hired Helpr's row (owner 2026-11-01, the poster's rules, JobPageActionRow.tsx): the Working card's step leads on
+  // the right, Message and "Open in working" beside it (one, or More options); when the face's button IS Message or Open
+  // in working, it leads and the other sits beside it. JA-30: while a dispute is open "See the case" opens the case itself
+  // (DisputeTimelineDialog); owner pick 11-08 (JP2): it is the primary while no step of the page's own is due, Message beside it.
   const seeCase: RowAction | null = party && (isPoster || isHired) && (job.status === "disputed" || !!job.has_active_dispute)
     ? { key: "see-case", label: t("jobPage.seeCase"), go: () => setCaseOpen(true) } : null;
   const { row: hiredRow, leaveInMenu } = (() => {

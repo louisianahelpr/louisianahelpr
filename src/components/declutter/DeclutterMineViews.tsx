@@ -118,11 +118,12 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
         </DeclutterNotice>
       )}
       {showCart && <CartView />}
-      {offers.has && offers.toAnswer && <OffersSection side="buyer" />}
+      {/* Audit 11-10 F374: the chip on narrows the offers and trade offers too (buyingBucket), not only the orders. */}
+      {offers.has && offers.toAnswer && <OffersSection side="buyer" only={only} />}
       {/* Q2268: the buyer's asks for several items, and what the seller answered. */}
       <BundleRequestsSection side="buyer" userId={user?.id ?? null} />
       {/* Declutter trades slice 3: the buyer's trade offers from the last 7 days, with Take it back while open. */}
-      <TradeOffersSection side="buyer" userId={user?.id ?? null} />
+      <TradeOffersSection side="buyer" userId={user?.id ?? null} only={only} />
       <PaidOrders side="buyer" views={t.views} scope={(id) => !refunded(id)} show={(id) => only === null || t.views.get(id)?.bucket === only} />
       {(ended.length > 0 || endedOrders > 0) && (
         <section className="space-y-2" aria-label="Ended">
@@ -138,7 +139,7 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
           )}
         </section>
       )}
-      {offers.has && !offers.toAnswer && <OffersSection side="buyer" />}
+      {offers.has && !offers.toAnswer && <OffersSection side="buyer" only={only} />}
       {/* The Free change (Q2487): the free items this member asked for, until the giver picks. */}
       <MyFreeAsks />
       {/* SS-5: the items the member hearted, so they can be found again. */}

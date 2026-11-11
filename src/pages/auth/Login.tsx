@@ -1,3 +1,4 @@
+import { LoginForgotNudge } from "./loginForgotNudge";
 import { useEffect, useRef, useState } from "react";
 import { loginNotice } from "./loginNotice";
 import { hadSessionOnThisBrowser } from "@/lib/hadSession";
@@ -521,9 +522,7 @@ const Login = () => {
                   {t("login.resendVerify")}
                 </Link>
               ) : (
-                <Link to="/forgot-password" state={forgotState} className="font-bold underline underline-offset-4" style={{ color: "hsl(var(--bark))" }}>
-                  {t("login.forgot")}
-                </Link>
+                <LoginForgotNudge state={forgotState} />
               )}
             </p>
           )}

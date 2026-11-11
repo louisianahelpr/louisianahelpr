@@ -41,6 +41,31 @@ function NewPill({ n }: { n: number }) {
   );
 }
 
+/** F468: the per-row "Alerts" switch; its own mutation so a failed flip puts that one row back. */
+function RowAlertSwitch({ search, userId, paused }: { search: SavedSearch; userId: string; paused: boolean }) {
+  const qc = useQueryClient();
+  const change = useMutation({
+    mutationFn: (notify_enabled: boolean) => updateSavedSearch(userId, search.id, { notify_enabled }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: SAVED_SEARCHES_KEY }),
+    onError: (err) => {
+      report(err, { tags: { source: "SavedSearchesTab.rowAlert" } });
+      hapticError();
+      toast.error(mutationErrorMessage(err, "We couldn't change that alert. Please try again."));
+      void qc.invalidateQueries({ queryKey: SAVED_SEARCHES_KEY });
+    },
+  });
+  return (
+    <Switch
+      checked={search.notify_enabled}
+      disabled={paused || change.isPending}
+      onCheckedChange={(v) => change.mutate(v)}
+      aria-label={`Alerts for ${search.name}`}
+      data-saved-search-alerts=""
+      className="shrink-0"
+    />
+  );
+}
+
 /** One search's settings: its alerts, its email, and delete. */
 function SearchSheet({ search, userId, onClose }: { search: SavedSearch | null; userId: string; onClose: () => void }) {
   const qc = useQueryClient();
@@ -185,6 +210,9 @@ export default function SavedSearchesTab({ onBack }: { onBack: () => void }) {
                     </span>
                     <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />
                   </ListRow>
+                  {/* F468 (audit 11-10): a row that read "Alerts off" gave no way to turn that one search back on from
+                      the list; each row carries its own Alerts switch (the sheet keeps Email and Delete). */}
+                  <RowAlertSwitch search={s} userId={userId} paused={!!paused.data} />
                   {/* The shared compact ghost icon (44 tap, 40 wash), not a hand-made button; 16px glyph kept (B47 10-31). */}
                   <Button type="button" variant="ghost" size="iconCompact" onClick={() => setEditing(s)} aria-label={`Settings for ${s.name}`}
                     className="shrink-0 mr-1 rounded-full text-muted-foreground [&_svg]:size-4">

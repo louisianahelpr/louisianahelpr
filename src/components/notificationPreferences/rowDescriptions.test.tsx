@@ -40,9 +40,9 @@ describe("the money rows' descriptions", () => {
     for (const r of rows) expect(r.description ?? "").not.toMatch(/escrow|\bfee\b/i);
   });
 
-  it("only the two money rows, Messages and Helpr's progress carry one (floor: the list still has its rows)", () => {
+  it("only the two money rows, Messages, Helpr's progress and Helpr on the way (F452) carry one (floor: the list still has its rows)", () => {
     expect(rows.length).toBeGreaterThan(10);
-    expect(rows.filter((r) => r.description).map((r) => r.key).sort()).toEqual(["financial_alerts", "messages", "payments", "work_status"]);
+    expect(rows.filter((r) => r.description).map((r) => r.key).sort()).toEqual(["financial_alerts", "messages", "payments", "transit_updates", "work_status"]);
   });
 
   // F102 (owner UI audit 11-09): plain outcome names, not overlapping category words.

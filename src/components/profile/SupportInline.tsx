@@ -124,6 +124,9 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
   const [category, setCategory] = useState<SupportCategory>(
     () => supportCategories.find((c) => c.key === searchParams.get("topic"))?.key ?? "message",
   );
+  // F464 (audit 11-10): opened from "Report a bug", the seven-topic dropdown is noise under a page titled
+  // Report a bug; the topic is shown as one line with "Not a bug? Change topic" to bring the dropdown back.
+  const [topicCollapsed, setTopicCollapsed] = useState(() => searchParams.get("topic") === "report");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -286,8 +289,23 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
         noValidate
         className="rounded-2xl liquid-glass p-card space-y-4"
       >
+        {/* F235 (audit 11-10): say the reply time before the member writes, not only after. */}
+        <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.85)" }} data-support-reply-time="">
+          A real person reads every message. {SUPPORT_REPLY_PROMISE}
+        </p>
         {/* Reason — the click-to-change control. Same three options the
             public /support <Select> renders, from the one shared list. */}
+        {topicCollapsed ? (
+          <div className="flex items-center justify-between gap-3" data-support-topic-collapsed="">
+            <p className="font-sans text-ds-13 min-w-0">
+              <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>Topic: </span>
+              <span className="font-semibold">{selected.label}</span>
+            </p>
+            <Button type="button" variant="ghost" size="sm" className="shrink-0 text-ds-13" onClick={() => setTopicCollapsed(false)} data-support-change-topic="">
+              Not a bug? Change topic
+            </Button>
+          </div>
+        ) : (
         <div>
           {/* A real <Label htmlFor> now that the control is a <Select> — the
               same pairing /support uses. It was a bare <p> + aria-labelledby
@@ -367,6 +385,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
             {selected.description}
           </p>
         </div>
+        )}
 
         <div className="space-y-1.5">
           <Label htmlFor="support-subject" className="text-ds-11">

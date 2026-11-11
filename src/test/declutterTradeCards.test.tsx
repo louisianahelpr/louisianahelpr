@@ -167,7 +167,7 @@ describe("Declutter trade cards (slice 3)", () => {
     expect(views).toMatch(/\+ bundleAsks \+ tradeAsks;/);
     expect(views).toMatch(/const tradeAsks = useTradeOffersToAnswer\(userId\)/);
     expect(views).toMatch(/<TradeOffersSection side="seller" userId=\{userId\} \/>/);
-    expect(views).toMatch(/<TradeOffersSection side="buyer" userId=\{user\?\.id \?\? null\} \/>/);
+    expect(views).toMatch(/<TradeOffersSection side="buyer" userId=\{user\?\.id \?\? null\}[^>]*\/>/);
     const cards = src("src/components/declutter/DeclutterTradeOffers.tsx");
     expect(cards).toMatch(/\.filter\(\(t\) => t\.status === "open"\)\.length/);
   });

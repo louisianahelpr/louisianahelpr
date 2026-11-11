@@ -112,7 +112,9 @@ export const rows: Row[] = [
   { key: "job_matches", emailKey: "email_job_matches", label: "New matches", icon: <Sparkles className="w-3.5 h-3.5" />, group: "Jobs" },
   // Owner 11-08 (20261108160000): this row's switches pick push and email (both real now); the notice is always
   // kept in the notifications list.
-  { key: "transit_updates", emailKey: "email_transit_updates", label: "Helpr on the way", icon: <Navigation className="w-3.5 h-3.5" />, group: "Jobs" },
+  // Audit 11-10 F452: the email switch starts OFF for everyone (notification_preferences.email_transit_updates
+  // DEFAULT false since 20260418215317, a live "heading your way" notice is for push), so the row says so.
+    { key: "transit_updates", emailKey: "email_transit_updates", label: "Helpr on the way", description: "As your Helpr heads your way. Email is off unless you turn it on.", icon: <Navigation className="w-3.5 h-3.5" />, group: "Jobs" },
   { key: "work_status", emailKey: "email_work_status", label: "Helpr's progress", description: "When the work starts and when it's marked done.", icon: <CheckCircle2 className="w-3.5 h-3.5" />, group: "Jobs" },
   { key: "payments", emailKey: "email_payments", label: "Receipts and refunds", description: "Finished jobs, refunds and saved cards.", icon: <Receipt className="w-3.5 h-3.5" />, group: "Money" },
   { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payouts and tips", description: "Money held for a job, payout setup, payouts and tips.", icon: <DollarSign className="w-3.5 h-3.5" />, group: "Money" },

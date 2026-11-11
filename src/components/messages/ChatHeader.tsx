@@ -296,10 +296,16 @@ export function ChatHeader({
             </DropdownMenuItem>
           )}
           <div role="separator" className="my-1 h-px bg-border" />
-          <DropdownMenuItem onClick={onReportUser}>
-            <Flag className="w-4 h-4 mr-2" /> Report user
+          {/* F429 (audit 11-10): Report says in one line what it does, and Block user is the red item, the way
+              Nextdoor colours the harsh option so a thumb does not take it for Report. */}
+          <DropdownMenuItem onClick={onReportUser} className="items-start">
+            <Flag className="w-4 h-4 mr-2 mt-0.5 shrink-0" />
+            <span className="flex flex-col">
+              <span data-menu-label="">Report user</span>
+              <span className="text-ds-12 text-muted-foreground">Tell our team about a problem.</span>
+            </span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={onBlockUser}>
+          <DropdownMenuItem onClick={onBlockUser} data-chat-block-user="" className="text-[hsl(var(--destructive-ink))] focus:text-[hsl(var(--destructive-ink))]">
             <Ban className="w-4 h-4 mr-2" /> Block user
           </DropdownMenuItem>
         </DropdownMenuContent>

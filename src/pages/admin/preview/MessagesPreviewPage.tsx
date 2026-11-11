@@ -108,7 +108,8 @@ function useOpenOnDraw(labels: string[] | null, key: string) {
     const tryPress = () => {
       const name = labels[step];
       const b = Array.from(document.querySelectorAll<HTMLElement>("button, [role='menuitem']"))
-        .find((x) => !x.closest("[data-preview-controls]") && (x.getAttribute("aria-label") === name || x.textContent?.trim() === name));
+        // A menu item with a line under its name (F429's Report user) marks the name itself with data-menu-label.
+        .find((x) => !x.closest("[data-preview-controls]") && (x.getAttribute("aria-label") === name || (x.querySelector("[data-menu-label]") ?? x).textContent?.trim() === name));
       if (!b) return;
       step++;
       if (step >= labels.length) stop();

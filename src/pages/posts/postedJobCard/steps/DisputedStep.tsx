@@ -60,14 +60,14 @@ export function DisputedStep(ctx: PosterStepCtx) {
         <p className="text-ds-13 text-foreground font-semibold flex items-center gap-1.5">
           <AlertTriangle className="w-4 h-4 text-[hsl(var(--alert-ink))]" aria-hidden />
           {disputeStatus === "escalated"
-            ? "Escalated to an admin"
+            ? "With Helpr support to decide"
             : disputeStatus === "resolved"
               ? "Dispute resolved"
               : "Dispute under review"}
         </p>
         {awaitingAdmin && (
           <p className="text-ds-12 text-muted-foreground mt-1">
-            An admin is reviewing this dispute. You'll be told the outcome, and nothing is charged or released until then.
+            Helpr support is reviewing this dispute. You'll be told the outcome, and nothing is charged or released until then.
           </p>
         )}
         {job.dispute_reason && <p className="text-ds-11 text-muted-foreground mt-1">"{job.dispute_reason}"</p>}
@@ -161,8 +161,8 @@ export function DisputedStep(ctx: PosterStepCtx) {
           <JobActionChip
             key="escalate"
             icon={AlertTriangle}
-            label="Escalate"
-            ariaLabel="Escalate — send this dispute to a Helpr admin to decide"
+            label="Ask support to decide"
+            ariaLabel="Ask support to decide — send this dispute to Helpr support for a decision"
             tone="danger"
             disabled={disputeActing}
             onClick={(e) => {
@@ -197,8 +197,8 @@ export function DisputedStep(ctx: PosterStepCtx) {
         <JobActionChip
           key="timeline"
           icon={History}
-          label="Timeline & Evidence"
-          ariaLabel="Timeline & Evidence — this dispute's full history, and a place to attach proof"
+          label="What's been sent"
+          ariaLabel="What's been sent — this dispute's full history so far, and a place to add your proof"
           tone="neutral"
           onClick={() => onViewDispute(job)}
         />,
@@ -213,8 +213,8 @@ export function DisputedStep(ctx: PosterStepCtx) {
         <JobActionChip
           key="admin"
           icon={LifeBuoy}
-          label="Contact admin"
-          ariaLabel="Contact admin — get help from a Helpr admin about this dispute"
+          label="Helpr support"
+          ariaLabel="Helpr support — talk to Helpr support about this dispute"
           tone="neutral"
           /* CARRIES THE JOB — `?topic=` and `?subject=` are the two params
              Support.tsx reads, and it carries the job TITLE plus a short id
@@ -259,10 +259,10 @@ export function DisputedStep(ctx: PosterStepCtx) {
             <BrandConfirmDialog
               open={escalateConfirmOpen}
               onOpenChange={setEscalateConfirmOpen}
-              title="Send this to an admin?"
-              description="A Helpr admin will review the dispute and decide the outcome. Nothing is charged or released until they do, and you won't be able to resolve it yourself afterwards."
+              title="Ask Helpr support to decide?"
+              description="Helpr support will look at the dispute and decide the outcome. Nothing is charged or released until they do, and you won't be able to settle it yourself afterwards."
               callout={{ icon: AlertTriangle, text: "Use this when you and your Helpr can't settle it between you." }}
-              primaryLabel="Escalate to Admin"
+              primaryLabel="Ask support to decide"
               primaryTone="sienna"
               primaryDisabled={disputeActing}
               onPrimary={() => { setEscalateConfirmOpen(false); void escalateDispute(); }}

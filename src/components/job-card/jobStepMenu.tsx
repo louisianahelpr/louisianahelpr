@@ -71,6 +71,10 @@ export function MenuTextAction({ chip }: { chip: ReactElement }) {
 }
 
 /** A JobActionChip drawn as a full-size Button (its own label, tone and onClick); any other chip as itself. */
+/** Audit 11-10 W2 F280: the sheet's SOS item said only "SOS" (calls 911? alerts Helpr?). In the list it says what the
+ *  sheet offers; in the page's side-by-side pair the short word stays, the full words are its name. */
+const SOS_MENU_LABEL = "SOS — call 911 or share where you are";
+
 export function MenuAction({ chip, className = "", lead = false, pair = false }: { chip: ReactNode; className?: string; lead?: boolean; pair?: boolean }) {
   // Owner 11-01: a button in the page's side-by-side pair wears its SHORT label on one line (pairLabel.ts); the sheet's
   // list (a button alone on its row) keeps the full words. The accessible name keeps the full words either way.
@@ -103,9 +107,9 @@ export function MenuAction({ chip, className = "", lead = false, pair = false }:
     return (
       <Button type="button" variant="outline" size="wrap" data-menu-action="SOS" data-sos-secondary=""
         className={`min-w-0 gap-1.5 rounded-full ${pairCls} leading-tight ${className}`}
-        aria-label="SOS — share your location" onClick={onOpen}>
+        aria-label="SOS — call 911, share your location or reach Helpr support" onClick={onOpen}>
         <ShieldAlert aria-hidden="true" className="h-4 w-4 shrink-0 text-destructive-ink" />
-        SOS
+        {pair ? "SOS" : SOS_MENU_LABEL}
       </Button>
     );
   }

@@ -27,7 +27,7 @@
  *
  * F006: the footer's links and tagline were 11px, and the links 16px tall tap targets. They are 13px, and every link
  * has a 44px tall tap area on a touch screen (pointer: coarse).
- * @mutate src/components/Footer.tsx | const FOOTER_LINK = "link-standard inline-flex items-center min-h-6 [@media(pointer:coarse)]:min-h-11"; | const FOOTER_LINK = "link-standard";
+ * @mutate src/components/Footer.tsx | const FOOTER_LINK = "link-standard inline-flex items-center min-h-11"; | const FOOTER_LINK = "link-standard";
  * @mutate src/components/Footer.tsx |           <p className="text-ds-13 text-[hsl(var(--olivewood))]/80 max-w-xs | <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-xs
  *
  * F008: How a job works' "I need help / I want to work" switch had 11px labels. It uses SegmentedControl's 13px label
@@ -155,7 +155,7 @@ describe("landing UI audit 2026-11-09", () => {
     expect(links.length).toBeGreaterThan(6);
     for (const a of links) {
       expect(a.closest("ul")!.className, a.textContent!).toContain("text-ds-13");
-      expect(a.className.split(" "), a.textContent!).toContain("[@media(pointer:coarse)]:min-h-11");
+      expect(a.className.split(" "), a.textContent!).toContain("min-h-11"); // every pointer since F214 (11-10)
       expect(a.className.split(" "), a.textContent!).toContain("inline-flex");
     }
     const tagline = [...container.querySelectorAll("footer p")].find((p) => /for Louisiana\.$/.test(p.textContent ?? ""))!;

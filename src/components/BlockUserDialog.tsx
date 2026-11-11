@@ -211,6 +211,9 @@ export function BlockUserDialog({
                 {/* Q2676 (audit 1102e row 9): both seats, never only the poster's ("apply to your jobs"). */}
                 <li>They can&apos;t apply to your jobs, offer you a job, or message you.</li>
                 <li>They won&apos;t be notified that you blocked them.</li>
+                {/* Owner 11-11 (F359h): what a block does to Declutter, as the server does it (migration 20261111195156
+                    closes the open offers and trade offers between you; a paid order is not touched). */}
+                <li data-block-declutter="">Open Declutter offers and trades between you close. Paid orders still finish.</li>
                 {hasJobs && jobs.length > 0 && (
                   // F428: the titles are a nested list, never a run-on. F260i: three show, late ones first and marked.
                   <li>

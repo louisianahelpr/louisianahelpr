@@ -4,11 +4,15 @@ import { ReceiptToggleButton } from "@/components/ui/ReceiptToggleButton";
 /**
  * Presence dot. Online is the assumed default, so we render nothing when the
  * other user is online — a dot only appears (muted) when they're offline.
+ * F441 (audit 11-10): the grey dot was "unexplained"; `title` never fires on touch and is not an accessible name,
+ * so it is also named Offline (role img) for screen readers.
  */
 export const OnlineIndicator = ({ isOnline }: { isOnline: boolean }) => {
   if (isOnline) return null;
   return (
     <span
+      role="img"
+      aria-label="Offline"
       className="inline-block w-2 h-2 rounded-full bg-muted-foreground/30"
       title="Offline"
     />

@@ -11,7 +11,7 @@
  *
  * @mutate src/components/declutter/DeclutterHomeView.tsx |     { value: "buying", label: "Buying", count: needsYou.declutterBuying }, |     { value: "buying", label: "Buying", count: todo?.buying },
  * @mutate src/components/declutter/DeclutterHomeView.tsx |     { value: "selling", label: "Selling", quiet: forSale, count: needsYou.declutterSelling }, |     { value: "selling", label: "Selling", quiet: forSale, count: todo ? todo.selling + questions.count : undefined },
- * @mutate src/components/NeedsYouBridge.tsx |   const declutterBuying = todos.filter((t) => t.section === "declutter" && t.to.includes("tab=buying")).length; |   const declutterBuying = todos.filter((t) => t.section === "declutter").length;
+ * @mutate src/lib/declutter/buyingTodo.ts |   return t.section === "declutter" && t.to.includes("tab=buying"); |   return t.section === "declutter";
  * @mutate src/components/mobileNav/dockBadgeCount.ts |             ? todo.declutter |             ? todo.total
  */
 import { describe, expect, it, vi } from "vitest";

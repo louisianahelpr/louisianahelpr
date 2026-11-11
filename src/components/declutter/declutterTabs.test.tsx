@@ -79,6 +79,7 @@ vi.mock("@/lib/declutter/saveCounts", async (orig) => ({ ...(await orig<typeof i
 vi.mock("@/lib/declutter/tradesPrompt", async (orig) => ({ ...(await orig<object>()), fetchTradesPromptDue: async () => false })); // owner 11-08 card
 vi.mock("@/lib/declutter/trades", async (orig) => ({ ...(await orig<object>()), fetchMyTrades: async () => [] }));
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
+vi.mock("@/lib/declutter/refundRequests", async (orig) => ({ ...(await orig<object>()), fetchMyRefundTodos: async () => [] })); // F363 option b: the Needs you group reads it
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => null,
@@ -692,7 +693,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // order tracker like Jobs > Posted. The class: the chips are exactly the ORDER_BUCKETS groups that hold orders, in
   // that order, and each chip's count is exactly how many orders (a checkout, a paid order, one that ended) it shows.
   // Offers are their own group and never a chip.
-  // @mutate src/components/declutter/BuyingOrders.tsx |   counts.needs_you += checkouts; |   counts.needs_you += 0;
+  // @mutate src/components/declutter/BuyingOrders.tsx |   counts.needs_you = homeRows.length; |   counts.needs_you = checkouts;
+  // @mutate src/components/declutter/BuyingOrders.tsx |     const bucket: OrderBucket = needsYouOrders.has(o.orderId) ? "needs_you" : | const bucket: OrderBucket = false ? "needs_you" :
   // @mutate src/components/declutter/BuyingOrders.tsx |   counts.cancelled += ended.length; |   counts.cancelled += 0;
   // @mutate src/components/declutter/BuyingOrders.tsx |   return ORDER_BUCKETS.filter((b) => counts[b.key] > 0).map( |   return ORDER_BUCKETS.map(
   // @mutate src/components/declutter/DeclutterMineViews.tsx | scope={(id) => !refunded(id)} show={(id) => only === null \|\| t.views.get(id)?.bucket === only} /> | scope={(id) => !refunded(id)} />
@@ -721,7 +723,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     state.cart = [
       LINE, // a checkout to pay: Needs you
       { ...LINE, line_id: "p1", item_id: "p1", item_title: "Porch lamp", status: "paid", order_id: "o-porch", order_status: "paid", handover: "porch" }, // pick a day: Needs you
-      { ...LINE, line_id: "p2", item_id: "p2", item_title: "Desk", status: "paid", order_id: "o-booked", order_status: "paid", handover: "pickup_home" }, // booked: Upcoming
+      { ...LINE, line_id: "p2", item_id: "p2", item_title: "Desk", status: "paid", order_id: "o-booked", order_status: "paid", handover: "pickup_home" }, // booked: Needs you (owner 11-11, option b: a Home To-do row)
       { ...LINE, line_id: "p3", item_id: "p3", item_title: "Sofa", status: "paid", order_id: "o-helpr", order_status: "paid", handover: "delivery" }, // finding a Helpr: Waiting
       { ...LINE, line_id: "p4", item_id: "p4", item_title: "Mug", status: "paid", order_id: "o-done", order_status: "handed_over", handover: "porch" }, // Done
       { ...LINE, line_id: "p5", item_id: "p5", item_title: "Vase", status: "paid", order_id: "o-refunded", order_status: "refunded", handover: "pickup_home" }, // Cancelled
@@ -731,12 +733,19 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     state.bookings = [{ order_id: "o-booked", slot_start: LATER, slot_end: LATER, porch_mode: null, porch_until: null }];
     const { container } = at("/declutter?tab=buying");
     await screen.findByText("paid order o-porch as buyer");
-    const want: [string, string, number][] = [["needs_you", "Needs you", 2], ["waiting", "Waiting", 1], ["upcoming", "Upcoming", 1], ["done", "Done", 1], ["cancelled", "Cancelled", 2]];
+    // Owner 11-11 (F363, option b): Needs you is exactly the Home To-do list's Buying rows (the checkout, the porch
+    // order, the booked pickup), so it counts 3 and nothing is Upcoming; the chip, its cards and the badge agree.
+    const want: [string, string, number][] = [["needs_you", "Needs you", 3], ["waiting", "Waiting", 1], ["done", "Done", 1], ["cancelled", "Cancelled", 2]];
     await vi.waitFor(() => {
       const boxes = Array.from(container.querySelectorAll("[data-status-box]")) as HTMLElement[];
       expect(boxes.map((b) => [b.getAttribute("data-status-box"), b.querySelector("[data-chip-label]")?.textContent, Number(b.getAttribute("data-count"))])).toEqual(want);
     });
     expect(container.querySelector("[data-status-all]")?.getAttribute("data-count")).toBe("7");
+    // The guard the owner asked for: the Needs you chip equals the Home To-do Buying count for the same fixture.
+    const home = deriveNeedsYouTodos({ postedJobs: [], pendingApplicantCounts: {}, appliedApps: [], shopOrders: [], backout: new Map(), declutterCart: state.cart as never, declutterOffers: state.offers as never })
+      .filter((x) => x.section === "declutter" && x.to.includes("tab=buying")).length;
+    expect(Number(container.querySelector('[data-status-box="needs_you"]')?.getAttribute("data-count"))).toBe(home);
+    expect(tab(/^Buying/)).toHaveAccessibleName(new RegExp(String(home)));
     // Offers are their own group, never a chip.
     expect(screen.getByRole("region", { name: "Your offers" })).toBeInTheDocument();
     const shown = () =>
@@ -750,7 +759,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
       await vi.waitFor(() => expect(shown(), key).toBe(n));
       checked++;
     }
-    expect(checked).toBeGreaterThan(4);
+    expect(checked).toBeGreaterThan(3);
     // Cancelled shows the refunded order and the checkout that ran out, and says nothing was charged for it.
     expect(screen.getByText("paid order o-refunded as buyer")).toBeInTheDocument();
     expect(screen.getByText(/The time to check out ran out\. Nothing was charged\./)).toBeInTheDocument();

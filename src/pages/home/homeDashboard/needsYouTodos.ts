@@ -4,6 +4,7 @@ import { backoutNoticeApplies, type BackoutNotice } from "@/lib/backoutNotices";
 import type { ShopOrder } from "@/lib/shops/orders";
 import type { CartLine, FreeAskToPick, MyOffer } from "@/lib/declutter/api";
 import { openCheckouts } from "@/lib/declutter/tabs";
+import { isDeclutterBuyingTodo } from "@/lib/declutter/buyingTodo";
 import type { MyRefundTodo } from "@/lib/declutter/refundRequests";
 import { formatCents } from "@/lib/shops/formatCents";
 import { posterStatusLine, helperStatusLine, type JobStatusLine } from "@/components/job-card/jobStatusLine";
@@ -270,6 +271,13 @@ function rank(due: number | null, waiting: boolean, date: number, now: number): 
  * out exactly as My Posts leaves them out (jobIsUnfundedDraft, Q1734): a count
  * must point at something the member can open.
  */
+/** The Home To-do list's Declutter Buying rows from the Buying tab's own reads (cart, offers, refund to-dos). */
+export function declutterBuyingTodos(
+  cart: readonly CartLine[], offers: readonly MyOffer[], refunds: readonly MyRefundTodo[], now: number = Date.now(),
+): TodoItem[] {
+  return declutterTodos(cart, offers, now, refunds).map((x) => x.item).filter(isDeclutterBuyingTodo);
+}
+
 export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now()): TodoItem[] {
   const posted = i.postedJobs.filter((j) => !jobIsUnfundedDraft(j)).map((j) => withBackout(j, i.backout));
   const applied = i.appliedApps.map((a) => (a.job ? { ...a, job: withBackout(a.job, i.backout) } : a));

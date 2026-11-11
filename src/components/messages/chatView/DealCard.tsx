@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -218,8 +219,11 @@ export function usePersonFacts(otherUserId: string | null): string {
   return youCardFacts(!!data.is_id_verified, data.avg_rating, data.review_count ?? 0);
 }
 
-export function DealCard({ convo, userId }: { convo: Conversation; userId: string }) {
+export function DealCard({ convo, userId, hasMessages = false }: { convo: Conversation; userId: string; hasMessages?: boolean }) {
   const navigate = useNavigate();
+  // F308 (audit 11-10): once the thread has messages the card folds to its title row and Open job, so the talk starts
+  // on the first screen; "Show progress" opens the tracker again. A step that waits on the viewer never folds.
+  const [showProgress, setShowProgress] = useState(false);
   const { data } = useDealCard(convo, userId);
   const rescheduled = useJobRescheduled(data?.job.id, data?.job.status === "accepted");
   useDealCardLive(data?.job.id, data?.job.status);
@@ -256,6 +260,7 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
     otherFirst,
     approveLeft: approveDue ? hoursLeft(Date.parse(job.helper_completed_at!) + hoursToMs(APPROVAL_WINDOW_HOURS)) : null,
   });
+  const folded = hasMessages && !showProgress && !stage.waitingOnYou && !approveDue;
   const Icon = getCategoryIcon(job.category);
   const when = [job.date_needed ? jobDayLabel(job) : null, clock(job.start_time)].filter(Boolean).join(" · ");
   const meta = [when || null, job.parish ? `${job.parish} Parish` : null].filter(Boolean).join(" · ");
@@ -296,10 +301,19 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
 
       {/* The shared next step below replaces the bar's own line; the step tips (the current step's "why") stay
           (Q2369, e2e/journeys/messages-thread.spec.ts). */}
-      <JobProgress progress={stage} compact noLine={!!step} />
+      {!folded && <JobProgress progress={stage} compact noLine={!!step} />}
 
       <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0 flex-1 text-ds-14">{step && <NextStep value={step} compact />}</div>
+        {folded ? (
+          <div className="min-w-0 flex-1">
+            <Button type="button" variant="ghost" size="sm" data-deal-expand="" aria-expanded={false} onClick={() => setShowProgress(true)} className="-ml-3 text-muted-foreground">
+              Show progress
+              <ChevronDown className="ml-1 h-4 w-4" aria-hidden />
+            </Button>
+          </div>
+        ) : (
+          <div className="min-w-0 flex-1 text-ds-14">{step && <NextStep value={step} compact />}</div>
+        )}
         <Button
           type="button"
           variant="primary"

@@ -358,6 +358,9 @@ test.describe("Messages thread — fit, a11y and tap targets", () => {
     // The card's tracker draws once the job read lands: wait for a step tip, so the sweep below measures them too.
     await expect(page.locator("[data-step-tip]").first()).toBeVisible();
 
+    // F308: a thread with messages folds the deal card to its title row; open the tracker before measuring its tips.
+    const showProgress = page.locator('[data-testid="deal-card"] [data-deal-expand]');
+    if (await showProgress.isVisible()) await showProgress.click();
     const sweep = await page.evaluate(() => {
       const out: string[] = [];
       const stepTipsExcepted: string[] = [];

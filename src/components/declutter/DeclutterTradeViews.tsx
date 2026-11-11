@@ -379,8 +379,10 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       </p>
       {/* Owner 11-07 (Vinted review): ONE Pay button; on a phone it stays in reach at the bottom of the screen while the
           buyer scrolls the choices, above the floating dock (AppShell's own bottom clearance; measured 11-07: a bottom-3
-          bar sat under the dock at 375). lg: it sits in the summary column on the right. */}
-      <div className="max-lg:sticky max-lg:bottom-[calc(var(--safe-area-bottom,0px)+var(--bottom-nav-h,96px))] max-lg:z-20 max-lg:space-y-2 max-lg:rounded-2xl max-lg:border max-lg:border-border max-lg:bg-[hsl(var(--card))] max-lg:p-2 max-lg:shadow-md lg:space-y-3" data-pay-bar="">
+          bar sat under the dock at 375). lg: it sits in the summary column on the right. F361/F352 (audit 11-10): while
+          Pay still waits on a choice above, the bar stays in place under the bill instead of floating over the very
+          choices and totals it points at; it sticks once Pay can be pressed. */}
+      <div className={`${payWaitsOn ? "" : "max-lg:sticky max-lg:bottom-[calc(var(--safe-area-bottom,0px)+var(--bottom-nav-h,96px))] max-lg:z-20 "}max-lg:space-y-2 max-lg:rounded-2xl max-lg:border max-lg:border-border max-lg:bg-[hsl(var(--card))] max-lg:p-2 max-lg:shadow-md lg:space-y-3`} data-pay-bar="">
       {!held && !opening && payWaitsOn && (
         <p id={`${addressId}-pay-waits`} className="text-ds-14 font-semibold text-foreground max-lg:px-2" data-pay-waits-on="">
           {payWaitsOn}

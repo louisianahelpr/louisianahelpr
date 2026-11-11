@@ -65,6 +65,19 @@ import { useDraftCheckout } from "./useDraftCheckoutState";
  */
 export const ENTRY_BASE_CARD_COUNT = 3;
 
+/**
+ * Audit 11-10 W2 F305: the "Pick up your draft" card never said WHICH draft. It now opens with the draft's own title
+ * and price ("Clean the kitchen · $45. Continue the request...") when the draft has a title; an untitled draft keeps
+ * the plain line. `budget` is the form's string field, so a blank or non-number adds nothing.
+ */
+export function draftCardLine(draft: { title: string; budget: string }, line: string): string {
+  const title = draft.title.trim();
+  if (!title) return line;
+  const budget = Number(draft.budget);
+  const price = draft.budget.trim() && Number.isFinite(budget) && budget > 0 ? ` · $${formatPrice(budget)}` : "";
+  return `${title}${price}. ${line}`;
+}
+
 /** Data-dependent rows (links, plus the draft card) the column will hold, from what is known so far. */
 export function entryCardCount(known: { draftCard: boolean; repostCard: boolean }): number {
   return ENTRY_BASE_CARD_COUNT + (known.draftCard ? 1 : 0) + (known.repostCard ? 1 : 0);
@@ -411,7 +424,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           t("postJob.draftTitle"),
           draftCheckout === "open"
             ? "You started paying for this one. If you finished, it will show in Posts shortly, so check there before paying again."
-            : t("postJob.draftBody"),
+            : draftCardLine(form.draft, t("postJob.draftBody")),
           () => {
             // F25: a draft with its category picked opens at Details, as a template does.
             if (form.loadDraftAndContinue()) form.setFormPage(2);

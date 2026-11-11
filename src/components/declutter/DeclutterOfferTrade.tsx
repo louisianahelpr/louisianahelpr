@@ -24,9 +24,12 @@ import { myItemsQuery } from "./myItemsQuery";
 import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 import { timeLeft } from "@/lib/declutter/timeLeft";
 import { useMyTrades } from "./useMyTrades";
+import "@/lib/i18n/enDeclPanels";
+import { useLanguage } from "@/lib/i18n/language";
 
 export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "id" | "title" | "accepts_trades">; userId: string }) {
   const qc = useQueryClient();
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState("");
   const mine = useQuery({ ...myItemsQuery(userId), enabled: open });
@@ -39,7 +42,7 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
   const send = useMutation({
     mutationFn: (offeredId: string) => offerSwap(item.id, offeredId),
     onSuccess: () => {
-      toast("Trade offer sent. The seller has 48 hours to answer.");
+      toast(t("dp.tradeSent"));
       setOpen(false);
       setPicked("");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
@@ -51,11 +54,11 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
     return (
       <div className="rounded-[20px] border border-border bg-background p-3 space-y-1" data-my-open-trade="">
         <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-ds-14 font-semibold text-foreground">
-          <span className="[overflow-wrap:anywhere]">You offered your {myOpen.offered?.title ?? "listing"} in trade</span>
+          <span className="[overflow-wrap:anywhere]">{t("dp.youOffered", { title: myOpen.offered?.title ?? t("dp.yourListing") })}</span>
           <span className="text-ds-13 tabular-nums text-muted-foreground">{timeLeft(myOpen.respond_by)}</span>
         </p>
         <p className="text-ds-13 text-muted-foreground">
-          Waiting on the seller. <Link to="/declutter?tab=buying" className="font-semibold underline underline-offset-2">See it in Buying</Link>
+          {t("dp.waitingSeller")} <Link to="/declutter?tab=buying" className="font-semibold underline underline-offset-2">{t("dp.seeInBuying")}</Link>
         </p>
       </div>
     );
@@ -64,30 +67,30 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
   return (
     <div data-offer-trade="">
       <Button type="button" variant="outline" className="w-full" onClick={() => setOpen(true)}>
-        Offer a trade
+        {t("dp.offerTrade")}
       </Button>
       {/* Audit 11-10 F359g: what a trade is, before the sheet. Trades move no money and are pickup only
           (declutter_checkout_free for the $0 lines; TRADE_CHECKOUT_LINE in the cart). */}
       <p className="mt-1.5 text-ds-13 text-muted-foreground" data-offer-trade-what="">
-        Swap one of your listings for this. No money changes hands, and each of you picks up the other's item.
+        {t("dp.tradeWhat")}
       </p>
       <Sheet open={open} onOpenChange={(o) => { if (!send.isPending) setOpen(o); }}>
         <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-offer-trade-sheet="">
-          <SheetHero title="Offer a trade" />
+          <SheetHero title={t("dp.offerTrade")} />
           <p className="text-ds-14 text-muted-foreground [overflow-wrap:anywhere]">
-            Pick one of your listings to trade for "{item.title}". No money changes hands. The seller has 48 hours to answer.
+            {t("dp.tradePick", { title: item.title })}
           </p>
-          {mine.isLoading && <p role="status" className="mt-3 text-sm text-muted-foreground">Loading your listings…</p>}
+          {mine.isLoading && <p role="status" className="mt-3 text-sm text-muted-foreground">{t("dp.loadingListings")}</p>}
           {mine.isError && <p role="alert" className="mt-3 text-sm text-destructive-ink">{declutterErrorMessage(mine.error)}</p>}
           {mine.isSuccess && choices.length === 0 && (
             <p className="mt-3 text-ds-14" data-offer-trade-empty="">
-              You have no listings up to trade. <Link to={SELL_CHOOSER_PATH} className="font-semibold underline underline-offset-2">List an item</Link> first.
+              {t("dp.noListings")} <Link to={SELL_CHOOSER_PATH} className="font-semibold underline underline-offset-2">{t("dp.listAnItem")}</Link> {t("dp.first")}
             </p>
           )}
           {choices.length > 0 && (
             <div className="mt-3">
               <RadioCardList
-                label="Your listing to trade"
+                label={t("dp.tradeListLabel")}
                 required
                 options={choices.map((c) => ({ value: c.id, label: c.title, sub: formatPrice(c.current_price_cents) }))}
                 value={picked}
@@ -96,9 +99,9 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
             </div>
           )}
           <SheetFooter className="mt-4">
-            <SheetSecondaryAction disabled={send.isPending} onClick={() => setOpen(false)}>Cancel</SheetSecondaryAction>
+            <SheetSecondaryAction disabled={send.isPending} onClick={() => setOpen(false)}>{t("dp.cancel")}</SheetSecondaryAction>
             <SheetPrimaryAction disabled={!picked || send.isPending} onClick={() => picked && send.mutate(picked)}>
-              {send.isPending ? "Sending…" : "Send trade offer"}
+              {send.isPending ? t("dp.sending") : t("dp.sendTrade")}
             </SheetPrimaryAction>
           </SheetFooter>
         </SheetContent>

@@ -5003,6 +5003,13 @@ html.page-scrolled .sticky-title-row-name { opacity: 1; }
 /* The desktop website's list pane is ~330px and a mouse can't swipe a row sideways: the chips wrap instead. */
 html.web-desktop .chip-row {
   flex-wrap: wrap !important; overflow-x: visible !important;
+  gap: 0.375rem !important;
+}
+/* Audit 11-10 W5 F483: at 1440 the inbox pane is ~327px wide and All / Unread / Jobs / Declutter wrapped onto a second
+   line (shot d-chat-P-1440-light). Desktop chips wear tighter sides (0.7rem, was 0.95rem) and a 6px gap so the four
+   share one row; the chips stay 36px tall for the mouse. */
+html.web-desktop .chip-row > button {
+  padding: 0 0.7rem !important;
 }
 .category-chip-row { border-bottom: 0 !important; padding-top: 0.25rem !important; padding-bottom: 0.5rem !important; }
 .chip-row { background: transparent !important; padding: 0 !important; border: 0 !important; box-shadow: none !important; }

@@ -433,8 +433,8 @@ export function DisputedSection({
         <JobActionChip
           key="admin"
           icon={LifeBuoy}
-          label="Contact admin"
-          ariaLabel="Contact an admin about this dispute"
+          label="Helpr support"
+          ariaLabel="Helpr support — talk to Helpr support about this dispute"
           tone="neutral"
           /* Carries the job, same as the poster's chip in PostedJobActions —
              `?topic=` / `?subject=` are the only params Support.tsx reads. The
@@ -463,8 +463,8 @@ export function DisputedSection({
           // but a four-word label in a three-up row is three lines of 11px
           // type — the label carries the same meaning at a third the width,
           // and the full phrasing survives in the spoken name below.
-          label="Timeline & Evidence"
-          ariaLabel="View dispute timeline and add evidence"
+          label="What's been sent"
+          ariaLabel="What's been sent — the dispute so far, and a place to add your proof"
           tone="neutral"
           onClick={() => onViewDispute(job)}
         />,

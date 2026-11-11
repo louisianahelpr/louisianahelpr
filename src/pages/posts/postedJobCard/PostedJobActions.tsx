@@ -230,7 +230,7 @@ export function PostedJobActions({
       hapticSuccess();
       // Escalating froze the payout and handed the decision to a
       // human, and the card said nothing about it.
-      confirmConsequential("Escalated — an admin will review this and decide.");
+      confirmConsequential("Sent to Helpr support — they will look at it and decide.");
       onActionComplete();
     } finally {
       disputeInFlight.current = false;

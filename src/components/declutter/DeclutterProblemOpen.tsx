@@ -40,6 +40,9 @@ function noShowAnsweredWords(side: "buyer" | "seller", delivery: boolean) {
  * Audit 1b D2-2: after "Report a problem", both order cards say a problem is open, with its reason and who reported
  * it. The money is held until an admin decides (declutter_report_problem's notice; the payout waits on it).
  */
+/** F360a: the buyer's choice in a sentence (the form says "Refund me" / "Swap / fix it"). */
+const WANTS_WORDS: Record<NonNullable<OpenProblem["buyer_wants"]>, string> = { refund: "a refund", swap_fix: "a swap or a fix" };
+
 export function ProblemOpenNote({ problem, side, answered = false, delivery = false }: { problem: OpenProblem; side: "buyer" | "seller"; answered?: boolean; delivery?: boolean }) {
   // NIGHT-BUYINGopenpr-8: "the helpr" was written with a small h; Helpr is a name (the next box says "The Helpr").
   const by = problem.reporter_side === side ? "you" : problem.reporter_side === "helpr" ? "the Helpr" : `the ${problem.reporter_side}`;
@@ -60,6 +63,10 @@ export function ProblemOpenNote({ problem, side, answered = false, delivery = fa
             only while it is really held, so the note no longer says it a second time. A free giveaway has no money. */}
         {side === "seller" ? reported : `${reported} Nobody is paid until they decide.`}
       </p>
+      {/* F360a (owner 11-11): what the reporting buyer asked for, to both sides; Louisiana Helpr still decides. */}
+      {problem.reporter_side === "buyer" && problem.buyer_wants && (
+        <p className="text-foreground" data-problem-wants="">{side === "buyer" ? "You asked for" : "The buyer asks for"}: {WANTS_WORDS[problem.buyer_wants]}.</p>
+      )}
       <p className="text-muted-foreground" data-problem-next="">{PROBLEM_NEXT}</p>
     </div>
   );

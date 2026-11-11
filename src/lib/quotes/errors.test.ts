@@ -38,6 +38,7 @@ const NOT_FROM_QUOTE_INSERT: Record<string, { columns: string[]; reason: string 
   enforce_group_job_has_no_lead: { columns: ["helper_id", "is_group_job", "helpers_needed"], reason: "raises on a group job with a helper_id, or on an UPDATE of the crew shape" },
   jobs_instant_book_server_only: { columns: ["instant_booked_at", "instant_decline_until"], reason: "CMP-4 (20261101065105): an INSERT raises only when the client writes an instant-book stamp" },
   enforce_jobs_fee_model_lock: { columns: ["helper_fee_flat_cents"], reason: "raises only when the client writes the fee stamp" },
+  enforce_no_show_marker_server_owned: { columns: ["no_show_reported_at"], reason: "20261111213317: an INSERT raises only when the client writes the no-show marker, which only report_helper_no_show sets" },
   enforce_chargeback_due_server_owned: { columns: ["chargeback_evidence_due_by"], reason: "raises only when the client writes the chargeback deadline" },
   enforce_dispute_markers_server_owned: { columns: ["status", "disputed_at", "disputed_by", "dispute_status", "dispute_deadline", "dispute_resolved_at", "dispute_reason", "dispute_helper_response"], reason: "raises only when the client writes a dispute marker" },
   enforce_jobs_dispute_evidence_append_only: { columns: ["dispute_evidence_urls"], reason: "an INSERT has its evidence cleared, never refused; raises only on an UPDATE" },

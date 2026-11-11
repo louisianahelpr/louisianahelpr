@@ -7,7 +7,7 @@
  * @mutate src/components/profile/earningsTab/earningsTabHelpers.ts |   j.payment_status === "escrow" && (j.status === "disputed" \|\| (j.has_active_dispute === true && !j.dispute_resolved_at)); |   j.payment_status === "escrow" && j.status === "disputed";
  * @mutate src/components/profile/earningsTab/earningsTabHelpers.ts |   !isHeldInDispute(j) &&\n | \n
  * @mutate src/components/profile/earningsTab/earningsTabHelpers.ts |   !j.poster_completed_at &&\n | \n
- * @mutate src/components/profile/earningsTab/earningsTabHelpers.ts | const WAITING_FOR_APPROVAL_STATUSES: readonly string[] = ["in_progress", "pending_approval", "accepted"]; | const WAITING_FOR_APPROVAL_STATUSES: readonly string[] = ["in_progress", "pending_approval", "accepted", "revision_requested"];
+ * @mutate src/components/profile/earningsTab/earningsTabHelpers.ts | const AWAITING_SIGN_OFF_JOB_STATUSES: readonly string[] = ["in_progress", "pending_approval", "accepted"]; | const AWAITING_SIGN_OFF_JOB_STATUSES: readonly string[] = ["in_progress", "pending_approval", "accepted", "revision_requested"];
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |       {stack && stack.disputeCents > 0 && ( |       {false && (
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   const comingLabel = placement === "money" ? "On its way" : "Coming to you"; |   const comingLabel = "Coming to you";
  */

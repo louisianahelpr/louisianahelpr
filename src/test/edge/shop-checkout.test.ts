@@ -39,6 +39,8 @@
  * @mutate supabase/functions/shop-checkout/index.ts |      await closeOrder("a gift that covers it all"); |      void 0;
  * @mutate supabase/functions/shop-checkout/index.ts |      await closeOrder("its gift was refused"); |      void 0;
  * @mutate supabase/functions/shop-checkout/index.ts |    meta.gift_cents = String(applied); |    void 0;
+ * @mutate supabase/functions/shop-checkout/index.ts |    if (giftCents > 0) await closeOrder("its page did not match"); |    void 0;
+ * @mutate supabase/functions/shop-checkout/index.ts |    if (giftCents > 0) await closeOrder("its page was not attached"); |    void 0;
  * H6 (tax at capture, not at the hold):
  * @mutate supabase/functions/shop-checkout/index.ts |    customer_details: { address, address_source: addressSource }, |    customer_details: { address: { ...address, postal_code: "70112" }, address_source: addressSource },
  * @mutate supabase/functions/shop-checkout/index.ts |  }, { idempotencyKey: `shop-tax-${orderId}` }); |  });
@@ -440,6 +442,19 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     // The tax the hold step checks is still the whole order's (the gift was sized on it).
     expect(params.metadata.job_tax_cents).toBe("150");
     expect(rpcs("shops_cancel_order_request")).toHaveLength(0);
+  });
+
+  it("Q2105: a gift order whose page does not match, or is not attached, closes at once (the gift goes back now)", async () => {
+    const fn = await load();
+    frozen();
+    scenario.rpc.redeem_gift_card_for_shop_order = { outcome: "needs_hold", difference_cents: 2625, applied_cents: 4000 };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6625 });
+    expect((await fn.fetch(askGift(fn, GIFT))).status).toBe(500);
+    expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 2625 });
+    scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), shop_attach_checkout_session: { message: "order_closed", code: "55000" } };
+    expect((await fn.fetch(askGift(fn, GIFT))).status).toBe(409);
+    expect(rpcs("shops_cancel_order_request")).toHaveLength(2);
   });
 
   it("Q2105: a gift answer that does not add up to the price closes the order and opens no page", async () => {

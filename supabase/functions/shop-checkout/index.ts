@@ -304,6 +304,13 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   const giftCardId = body.gift_card_id === undefined || body.gift_card_id === null ? null
     : typeof body.gift_card_id === "string" && UUID_RE.test(body.gift_card_id) ? body.gift_card_id : "invalid";
   if (giftCardId === "invalid") return json({ error: "gift_not_found" }, 404);
+  // Lead 11-10 (money): a gift card is REFUSED on Shops, server side, until the payout path (a gift order's charge is
+  // smaller than the shop's payout, so a source_transaction transfer is refused) and refunds sized on total_cents are
+  // fixed and proven. No app build sending gift_card_id is no safeguard: anyone can call this function. Only the
+  // SHOP_GIFT_CARDS=on secret opens it (never set on prod until both land); refused before anything freezes.
+  if (giftCardId && Deno.env.get("SHOP_GIFT_CARDS") !== "on") {
+    return json({ error: "gift_card_not_accepted", hint: "Gift cards can't be used at Shops yet. Pay this order by card." }, 409);
+  }
   if (!customRequestId && !Array.isArray(body.lines)) return json({ error: "invalid_order_lines" }, 400);
   const note = typeof body.note === "string" ? body.note : "";
   const delivery = deliveryAddressFrom(body.delivery);
@@ -665,11 +672,11 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   // holds only the difference; shop_mark_order_held adds gift_cents back (20261111025213). Any refusal closes the
   // just-frozen order first (the trigger puts a reserved gift back), so nothing is left waiting with no page.
   let giftCents = 0;
+  const closeOrder = async (why: string) => {
+    const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });
+    if (closeErr) console.error(`[shop-checkout] order ${o.id} not closed after ${why}: ${closeErr.message}`);
+  };
   if (giftCardId) {
-    const closeOrder = async (why: string) => {
-      const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });
-      if (closeErr) console.error(`[shop-checkout] order ${o.id} not closed after ${why}: ${closeErr.message}`);
-    };
     const { data: redeemed, error: redeemErr } = await admin.rpc("redeem_gift_card_for_shop_order", {
       p_credit_id: giftCardId, p_order_id: o.id, p_user_id: user.id, p_tax_cents: tax.cents, p_retired_session: null,
     });
@@ -736,11 +743,14 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   if (session.amount_subtotal !== chargedCents - giftCents) {
     await expirePage(session.id);
     console.error(`[shop-checkout] Stripe subtotal ${session.amount_subtotal} != order ${chargedCents} less gift ${giftCents}`);
+    // Q2105 (review note 3): a gift set aside for this order goes back now, not at the 2-hour unpaid sweep.
+    if (giftCents > 0) await closeOrder("its page did not match");
     return json({ error: TRY_AGAIN }, 500);
   }
   const { error: attachErr } = await admin.rpc("shop_attach_checkout_session", { p_order_id: o.id, p_session_id: session.id });
   if (attachErr) {
     await expirePage(session.id);
+    if (giftCents > 0) await closeOrder("its page was not attached");
     return json({ error: TRY_AGAIN }, 409);
   }
   return json({ url: session.url, order_id: o.id });

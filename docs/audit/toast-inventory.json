@@ -17,7 +17,7 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 501,
+      "literal": 500,
       "template": 107,
       "dynamic": 675,
       "jsx": 0
@@ -4814,17 +4814,17 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 127,
+      "line": 130,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Your ask is taken back."
+        "form": "dynamic",
+        "text": "t(\"free.taken\")"
       },
       "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 130,
+      "line": 133,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4834,7 +4834,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 234,
+      "line": 237,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4844,7 +4844,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 237,
+      "line": 240,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4854,7 +4854,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 384,
+      "line": 387,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4864,7 +4864,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 390,
+      "line": 393,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

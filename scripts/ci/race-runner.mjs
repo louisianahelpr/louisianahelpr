@@ -38,15 +38,28 @@
  *           own UPDATE minus its status predicate. Without the flag B is
  *           refused with accept_required whatever A does, and the CONTROL fails.
  *           BAD = a cancelled job with helper_confirmed_at stamped.
- *   race 3  Done vs cancel (cancel first). A = poster_cancel_job; B = the
- *           Helpr's Done through rpc_helper_mark_done (since 20260915073143 the
- *           one sanctioned writer of helper_completed_at; a direct client stamp
- *           is refused). Once cancel commits, the RPC finds a non-live job and
- *           raises job_not_completable — the live-job rule enforced inside it.
- *           BAD = a cancelled job carrying a done stamp.
- *   race 4  Done vs cancel (Done first). A = the Helpr's Done RPC (holds the row
- *           FOR UPDATE); B = poster_cancel_job, queued behind it.
- *           BAD = a cancelled job carrying a done stamp (finished work cancelled).
+ *   race 3  arrival vs cancel (cancel first). A = poster_cancel_job; B = the
+ *           Helpr's "I'm here" through mark_helper_arrival (FOR UPDATE on the
+ *           job). Once cancel commits, the RPC finds a cancelled job and raises
+ *           job_not_active. BAD = a cancelled job carrying an arrival stamp.
+ *   race 4  arrival vs cancel (arrival first). A = mark_helper_arrival (holds
+ *           the row); B = poster_cancel_job, queued behind it. Since
+ *           20261108200000 a cancel is refused with work_started once the Helpr
+ *           is on site (job_work_started() reads helper_arrived_at), and it
+ *           reads that under its own FOR UPDATE, so the arrival that committed
+ *           first must be seen. BAD = a cancelled job carrying an arrival stamp
+ *           (a started job cancelled on the start-time fee ladder).
+ *           Red proof: exclude_migrations=20261108200000.
+ *           RETIRED 2026-11-11 (#4245): races 3 and 4 used to be Done vs cancel
+ *           in both orders. A Done needs the Helpr on site (arrival is one of
+ *           rpc_helper_mark_done's gates), and since 20261108200000 an on-site
+ *           Helpr makes poster_cancel_job refuse with work_started before any
+ *           lock matters, so that pair can no longer meet: CI run 43093217374
+ *           showed race 3 erroring on every round and race 4's CONTROL failing
+ *           with work_started. The refusal of a cancel on a job marked done
+ *           stays covered statically (raceClassGuard: poster_cancel_job refuses
+ *           a job marked done); the race that still exists is the one a step
+ *           earlier, arrival vs cancel, and it took their numbers.
  *   race 6  Done vs block. A = the Helpr's Done RPC (holds the row); B = the
  *           poster's block_user_and_settle, queued behind it (review follow-up).
  *           BAD = a cancelled job carrying a done stamp.
@@ -127,6 +140,10 @@ async function fixture(admin, race) {
           SET full_name = $2, email_verified = true,
               stripe_account_id = $3, stripe_payouts_enabled = true,
               stripe_identity_verified = true,
+              -- Stripe Identity done (identity_is_verified needs both), so
+              -- enforce_identity_before_start lets the Helpr's arrival through
+              -- (races 3-4) whatever the identity_check switch says.
+              idv_status = 'verified',
               -- Current Terms: require_current_terms (20261108154435) refuses
               -- a commitment (apply, post) from a member on an older version.
               terms_version_accepted = public.current_terms_version()
@@ -136,7 +153,9 @@ async function fixture(admin, race) {
       [id, `Race ${who}`, `acct_ci_race_${id.replace(/-/g, "")}`],
     );
   }
-  if (race <= 2) {
+  // Races 3-4 (arrival vs cancel) use race 2's booked job: hired, nobody on
+  // site yet, so both the arrival and the cancel land when run alone.
+  if (race <= 4) {
     // seed-policy: not prod — the throwaway localhost Postgres race-runner.yml boots (this file refuses a non-localhost PGHOST)
     const { rows } = await admin.query(
       // Funded (escrow): an award or confirmation on an unfunded job is refused
@@ -215,7 +234,7 @@ async function fixture(admin, race) {
     return f;
   }
   if (race >= 7) return escrowDoneFixture(admin, poster, helper, race >= 8);
-  // Races 3-5: a job underway whose completion gates (arrival verified, both
+  // Races 5-6: a job underway whose completion gates (arrival verified, both
   // photos, 30-minute floor) are all satisfied, so the only thing that can
   // refuse the Helpr's Done is the guard under test.
   // seed-policy: not prod — the throwaway localhost Postgres race-runner.yml boots (this file refuses a non-localhost PGHOST)
@@ -287,6 +306,8 @@ const CANCEL = { as: "poster", run: (c, f) => c.query("SELECT public.poster_canc
  * clock or error.
  */
 const DONE = { as: "helper", run: (c, f) => c.query("SELECT public.rpc_helper_mark_done($1)", [f.job]) };
+/** The Helpr's "I'm here", as the app calls it with no location fix (recorded, not verified). */
+const ARRIVE = { as: "helper", run: (c, f) => c.query("SELECT public.mark_helper_arrival($1)", [f.job]) };
 /** create-payment release completing a job both sides confirmed (service role, conditional as in index.ts). */
 const RELEASE = {
   as: "service",
@@ -412,19 +433,20 @@ const RACES = {
     refusal: /job_not_confirmable/,
     bad: (s) => s.status === "cancelled" && s.confirmed,
   },
+  // Done vs cancel retired 2026-11-11 (#4245), see the header; 3-4 are now arrival vs cancel.
   3: {
-    name: "helper Done vs cancel (cancel holds the lock)",
+    name: "helper arrival vs cancel (cancel holds the lock)",
     A: CANCEL,
-    B: DONE,
-    refusal: /job_not_completable/,
-    bad: (s) => s.status === "cancelled" && s.done,
+    B: ARRIVE,
+    refusal: /job_not_active/,
+    bad: (s) => s.status === "cancelled" && s.arrived,
   },
   4: {
-    name: "helper Done vs cancel (Done holds the lock)",
-    A: DONE,
+    name: "helper arrival vs cancel (arrival holds the lock)",
+    A: ARRIVE,
     B: CANCEL,
-    refusal: /not_cancellable/,
-    bad: (s) => s.status === "cancelled" && s.done,
+    refusal: /work_started/,
+    bad: (s) => s.status === "cancelled" && s.arrived,
   },
   6: {
     name: "helper Done vs poster block (Done holds the lock)",
@@ -606,6 +628,7 @@ async function round(admin, race) {
     const { rows } = await admin.query(
       `SELECT j.status::text AS status, j.helper_confirmed_at IS NOT NULL AS confirmed,
               j.helper_completed_at IS NOT NULL AS done, j.helper_completed_at::text AS hc,
+              j.helper_arrived_at IS NOT NULL AS arrived,
               j.completed_at::text AS completed_at,
               (j.completed_at IS NOT NULL AND j.helper_completed_at > j.completed_at) AS done_after_completion,
               (SELECT count(*)::int FROM public.applications a WHERE a.job_id = j.id) AS apps,

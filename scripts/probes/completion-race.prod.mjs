@@ -9,7 +9,7 @@
 // satisfied: arrival verified, both photos, work started 2h ago), fires both
 // parties with Promise.allSettled, judges committed state, then deletes what it
 // made. Prod cannot HOLD a lock across REST calls, so which side wins each
-// round is timing — the CI race runner (scripts/ci/race-runner.mjs, races 3-5)
+// round is timing — the CI race runner (scripts/ci/race-runner.mjs, races 5-6)
 // forces both orders with two real connections; this probe proves the same
 // guarantees hold on the deployed schema and the deployed client write.
 //

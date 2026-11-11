@@ -12,6 +12,7 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <section ref={panel} tabIndex={-1} className | <section ref={panel} className
  * @mutate src/components/declutter/ListedWhatNext.tsx |   const drop = live ? nextPriceDrop(it) : null; |   const drop = live ? { at: new Date(), lowestCents: 1 } : null;
  * @mutate src/components/declutter/useSellFlowState.ts |       navigate("/declutter?tab=selling", { state: { justListed: { itemId: id, status } } }); |       navigate("/declutter?tab=selling");
+ * @mutate src/components/declutter/ListedWhatNext.tsx | never below your lowest price</>, state: "later" as const }] | never below your lowest price</>, state: "now" as const }]
  */
 import { useRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -124,8 +125,14 @@ describe("board 80: after listing", () => {
     expect(await screen.findByRole("heading", { name: "Your listing is live" })).toBeTruthy();
     const text = screen.getByTestId("what-next-sheet").textContent ?? "";
     expect(text).toContain("Listed at $40");
-    expect(text).toMatch(/Price can drop/);
-    expect(text).toContain("As low as $38");
+    expect(text).toContain("Price can drop to $38");
+    expect(text).toContain("That's $2 less.");
+    // F332: a later drop is never marked Now; buyers can ask or buy now.
+    const steps = screen.getByTestId("what-next-sheet").querySelectorAll("[data-state]");
+    const drop = [...steps].find((s) => /Price can drop/.test(s.textContent ?? ""));
+    const buyers = [...steps].find((s) => /Buyers ask/.test(s.textContent ?? ""));
+    expect(drop?.getAttribute("data-state")).toBe("later");
+    expect(buyers?.getAttribute("data-state")).toBe("now");
   });
 
   // LEAD-BUNCH-DROPS-IGNORED (owner 2026-10-31): the sheet reads the listing's own saved step. Drops off (0) promises

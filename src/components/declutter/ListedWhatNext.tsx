@@ -45,9 +45,11 @@ export function ListedWhatNext() {
     ? [
         { key: "listed", label: free ? "Listed for free" : <>Listed at <Money cents={it.current_price_cents} /></>, detail: "Today", state: "done" },
         ...(drop
-          ? [{ key: "drop", label: `Price can drop ${dropWhenLabel(drop.at)}`, detail: <>As low as <Money cents={drop.lowestCents} />, then {drop.pct}% less each evening (rounded down to a whole dollar), never below your lowest price</>, state: "now" as const }]
+          // Audit 11-10 F332: a drop that can only come later is never the "Now" step (buyers can buy now), and the
+          // first step is said in dollars: on a $4 item, 5% rounded down to a whole dollar is $1 off, not 5%.
+          ? [{ key: "drop", label: <>Price can drop to <Money cents={drop.lowestCents} /> {dropWhenLabel(drop.at)}</>, detail: <>That's {formatPrice(it.current_price_cents - drop.lowestCents)} less. After that, {drop.pct}% less each evening (rounded down to a whole dollar), never below your lowest price</>, state: "later" as const }]
           : []),
-        { key: "buyers", label: askOrGet, detail: "We'll tell you each time", state: drop ? "later" : "now" },
+        { key: "buyers", label: askOrGet, detail: "We'll tell you each time", state: "now" },
         { key: "sold", label: free ? "When it's claimed" : "When it sells", detail: "We show you how to hand it off", state: "later" },
       ]
     : [

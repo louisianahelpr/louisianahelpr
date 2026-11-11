@@ -875,12 +875,14 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   /* Past the day without the Helpr's day-before confirm: On my way needs it (Q1570) and a cancel is refused after
      the start, so the card offers only Manage job; the line states what happened instead of naming a button. */
   overdue_unconfirmed_day: { detail: "Day passed — you never confirmed" },
-  overdue_not_arrived: { detail: "Day passed — tap I've arrived" },
+  /* F290a (audit 11-10): "Day passed" read as a scolding while the Helpr was on the way the same day. It says
+     what happened (the start time went by) and the one tap that tells the poster they are there. */
+  overdue_not_arrived: { detail: "Past the start time — tap I've arrived" },
   overdue_unfinished: { detail: "Day passed — finish and mark it done" },
   /* Past the day, at the job, and the before photo is still the primary. */
   overdue_before_photo: { detail: "Day passed — take the before photo" },
   /* Past the day, at the job, work not started (tracking row): the next step is Start working. */
-  overdue_start_working: { detail: "Day passed — tap Start" }, // A3-11: the pair's word, as start_working says it
+  overdue_start_working: { detail: "Past the start time — tap Start" }, // A3-11: the pair's word, as start_working says it
   /* Shorter than its on-the-day twin: the 320 line has room for no name here. */
   overdue_arrival_unconfirmed: { detail: "Day passed — arrival not confirmed" },
   overdue_after_photo: { detail: "Day passed — take the after photo" },

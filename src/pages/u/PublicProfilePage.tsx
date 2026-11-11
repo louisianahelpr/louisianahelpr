@@ -276,7 +276,7 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null }: { p: Publ
             {listingsShown.map((l) => (
               <li key={l.id}>
                 {/* Guests may open an item (BUY-16); buying there asks them to sign up. */}
-                <Link to={`/declutter/item/${l.id}`} className="block overflow-hidden rounded-xl border border-border bg-background">
+                <Link to={`/declutter/item/${l.id}`} className="block h-full overflow-hidden rounded-xl border border-border bg-background">
                   <div className="flex aspect-square w-full items-center justify-center bg-muted">
                     {l.photo_id ? (
                       <img loading="lazy" decoding="async" src={listingPhotoUrl(l.photo_id, 320)} alt="" className="h-full w-full object-cover" />

@@ -10,6 +10,7 @@
  * @mutate src/pages/info/Fees.tsx |         <p>{t("fees.postFree")}</p> |         <p>Posting a job is free.</p>
  * @mutate src/pages/info/Safety.tsx |         <li>{t("safety.moneyHeld")}</li> |         <li>Your money is held safely until you approve the work.</li>
  * @mutate src/components/landing/useHeroWords.ts |     window.addEventListener("helpr:lang", read); |     void read;
+ * @mutate src/components/profile/LegalTab.tsx | <span className="relative truncate">{tr(`legal.tab.${key}` as const)}</span> | <span className="relative truncate">{`${key}`}</span>
  * @mutate src/pages/info/legal/LegalTabBar.tsx | <span className="relative">{tr(`legal.tab.${t}` as const)}</span> | <span className="relative">{`${t}`}</span>
  */
 import { readFileSync } from "node:fs";
@@ -138,5 +139,14 @@ describe("F260q: /legal's tab names", () => {
     await act(async () => { await ensureLangLoaded(); });
     draw();
     for (const k of VALID_TABS) expect(screen.getByRole("tab", { name: new RegExp(esPublic[`legal.tab.${k}` as const]) })).toBeTruthy();
+  });
+});
+
+describe("F260q: Profile > Legal's tab names follow the language", () => {
+  it("LegalTab.tsx prints the legal.tab.* keys through t(), not TAB_LABELS", () => {
+    const src = blankComments(readFileSync("src/components/profile/LegalTab.tsx", "utf8"));
+    const hits = src.match(/tr\(`legal\.tab\.\$\{key\}` as const\)/g) ?? [];
+    expect(hits.length).toBeGreaterThan(0);
+    expect(src).not.toMatch(/\{TAB_LABELS\[key\]\}/);
   });
 });

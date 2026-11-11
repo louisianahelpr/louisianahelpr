@@ -9,6 +9,7 @@
  * @mutate src/components/declutter/useBunchStartingPlace.ts |     setPickupAddress((a) => (a.trim() ? a : s.pickup!.address)); |     setPickupAddress(s.pickup!.address);
  * @mutate src/components/declutter/useBunchStartingPlace.ts |     setPoint((c) => c ?? { ...s.pickup! }); |     void place;
  * @mutate src/components/declutter/DeclutterBunchView.tsx | Smaller copies, with location data removed, are sent to sort them and write your listings. | Location data is removed before anything is sent, and nothing goes up until you list.
+ * @mutate src/components/declutter/DeclutterBunchMovingSale.tsx | "Add photos of everything. We'll group them and write each listing."; | "Add photos of everything you want to sell. We sort them into items and write each listing. You check them all, then list them together.";
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -117,5 +118,10 @@ describe("Sell a bunch: the photo step says what is sent", () => {
     expect(words).toContain("Smaller copies, with location data removed, are sent to sort them and write your listings.");
     expect(words).toContain("Nothing is saved or shown to buyers until you list.");
     expect(words).not.toMatch(/nothing goes up/i);
+    // Audit 11-10 F339: the privacy line sits under the Add photos button; the intro is one short line.
+    const note = document.querySelector("[data-bunch-privacy]")!;
+    const add = screen.getByText("Add photos", { selector: "label" });
+    expect(add.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText("Add photos of everything. We'll group them and write each listing.")).toBeTruthy();
   });
 });

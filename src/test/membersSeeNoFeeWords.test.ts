@@ -151,6 +151,14 @@ export function allHits(): string[] {
  * (the scope test below), so Jobs, Shops and Homes still cannot show fee words.
  */
 const OWNER_1107_DECLUTTER_FEE = "owner 2026-11-07 ~5:10 PM (Vinted review): Declutter shows its service fee, Declutter only";
+/**
+ * Owner 11-11 ~12:25 AM (audit 11-10 F380, via the lead): "Declutter RECEIPTS show a 'Service fee' line", an exception
+ * to the 10-25 no-fee-words rule for receipts only. The one surface is the opened Declutter receipt in You > Money >
+ * Receipts (src/pages/profile/Receipts.tsx), whose lines add up to what the card was charged. An entry citing it must be
+ * that file (the scope test below); no other screen may use it.
+ */
+const OWNER_1111_RECEIPT_FEE = "owner 2026-11-11 ~12:25 AM (audit 11-10 F380): Declutter receipts show a Service fee line, receipts only";
+const RECEIPT_FEE_SURFACE = "src/pages/profile/Receipts.tsx";
 // @two-way src/test/membersSeeNoFeeWords.test.ts:the allowlist is exact: no entry nobody hits any more
 export const MEMBER_FEE_COPY_ALLOWED: Record<string, string> = {
   "src/components/declutter/DeclutterCheckoutSummary.tsx::Service fee": `${OWNER_1107_DECLUTTER_FEE}: the checkout summary's "Service fee" line with its amount and an info tip`,
@@ -160,7 +168,7 @@ export const MEMBER_FEE_COPY_ALLOWED: Record<string, string> = {
   "src/components/declutter/DeclutterCheckoutSummary.tsx::$0.70 plus 5% of the items and the shipping, once per checkout. It pays for card processing and keeps Declutter running. The seller gets the full item price.": `${OWNER_1107_DECLUTTER_FEE}: the info tip on the checkout summary's "Service fee" line for shipping (audit 11-10 F354)`,
   "src/lib/refundWords.ts::Card processing cost isn't refunded.": "owner decision 2026-11-09 (UI audit F089, via the lead): an expired, never-hired job keeps the card fee, and Receipts may say so in these plain words, no number",
   "src/lib/refundWords.ts::If no one is hired, you get your money back, less the small card processing cost if your card was already charged.": "owner decision 2026-11-09 (UI audit F089/F105, via the lead): Help's cancel answer says the card processing cost is kept when nobody is hired, no number",
-  "src/pages/profile/Receipts.tsx::Includes a small Louisiana Helpr service fee.": "owner decision 2026-10-28 (#20, \"Words only\"; DB-13, audit 2026-10-30): a Declutter receipt's total says it includes the same service fee the checkout total said, with no name of a rate and no number",
+  "src/pages/profile/Receipts.tsx::Service fee": `${OWNER_1111_RECEIPT_FEE}: the opened Declutter receipt's "Service fee" line, the order's premium_cents (the figure checkout charged)`,
   "src/components/TipCostBreakdown.tsx::Includes a small Louisiana Helpr service fee.": "owner decision 2026-10-28 (#20, \"Words only\"; F30, lead): the tip's You pay total says it includes a service fee, with no name of a rate and no number",
   "src/components/reviewPanel/ReviewForm.tsx::Your Helpr gets the whole tip. Includes a small Louisiana Helpr service fee. Most people tip 10–15% for great work.": "owner decision 2026-10-28 (#20, \"Words only\"; F30, lead): the tip prompt says a service fee is included, with no number (10–15% is a tip suggestion, not a fee)",
   "sql:admin_alert_manual_close::'cancellation fee transfer failed'": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
@@ -208,7 +216,7 @@ export const MEMBER_FEE_COPY_ALLOWED: Record<string, string> = {
   "src/pages/info/legal/TermsSection.tsx::The poster pays the job price plus the service fee shown at checkout, before they pay.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
   "src/pages/info/legal/TermsSection.tsx::You pay the agreed job price plus any applicable sales tax (and, on your first paid job, the one-time account setup fee). Louisiana taxes only the services its law lists (La. R.S. 47:301.3), such as repairing a movable item and cleaning carpets, rugs, furniture or clothes, so most jobs carry no sales tax at all; where it does apply it is charged on the labor line only, never on Helpr's fees. Workers are": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
   "src/pages/info/legal/TermsSection.tsx::minimum bonus, added by the poster for priority placement. It is part of the job price the poster pays and goes to the Helpr (split among the crew on a group job), with the service fee above taken from each Helpr's share of the job price, bonus included.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
-  "src/pages/info/helpCenter/helpCenterContent.ts::List your own used household things with 1 to 12 photos you took, a price from $1 to $1,000 and a private lowest price you'll accept. The listing goes live when you post it. Buyers see your area name, never your address. Each evening an unsold item's price drops 5%, stopping above your lowest price. You set up payouts with Stripe at your first paid sale, and you receive the whole item price: the buyer pays a buyer's fee of ${} on top, once per checkout.": "F236/F258 (audit 11-10) under owner 2026-11-07 (Declutter shows its fee): Help and the Terms name the Declutter buyer's fee from checkoutAmounts' own numbers (DECLUTTER_BUYER_FEE_WORDS, never retyped); the Jobs fee stays unnumbered (owner 10-25)",
+  "src/pages/info/helpCenter/helpCenterContent.ts::List your own used household things with 1 to 12 photos you took, a price from $1 to $1,000 and a private lowest price you'll accept. The listing goes live when you post it. Buyers see your area name, never your address. Price drops are off unless you turn them on; then an unsold item's price drops each evening by the step you pick (5% to 20%), stopping above your lowest price. You set up payouts with Stripe at your first paid sale, and you receive the whole item price: the buyer pays a buyer's fee of ${} on top, once per checkout.": "F236/F258 (audit 11-10) under owner 2026-11-07 (Declutter shows its fee): Help and the Terms name the Declutter buyer's fee from checkoutAmounts' own numbers (DECLUTTER_BUYER_FEE_WORDS, never retyped); the Jobs fee stays unnumbered (owner 10-25)",
   "src/pages/info/helpCenter/helpCenterContent.ts::On Declutter, the buyer pays the item price plus a buyer's fee of ${}, once per checkout.": "F236/F258 (audit 11-10) under owner 2026-11-07 (Declutter shows its fee): Help and the Terms name the Declutter buyer's fee from checkoutAmounts' own numbers (DECLUTTER_BUYER_FEE_WORDS, never retyped); the Jobs fee stays unnumbered (owner 10-25)",
   "src/pages/info/helpCenter/helpCenterContent.ts::When you post a job, you pay the job price (including any urgent bonus you add), plus Louisiana sales tax on the labor for taxable job types (auto and appliance repair). Your first paid job also carries ${}, charged once per account, unless you already paid it on a job you did or on Declutter. On Declutter, the buyer pays the item price plus a buyer's fee of ${}, once per checkout, and the seller keeps the whole item price. When you do a job, every job shows exactly what you will take home before you apply. Job payouts are rounded down to the whole dollar (tips are paid in full). If a paid job is cancelled, the cancel screen shows exactly what you will get back before you confirm. If the mistake was ours, you get everything back.": "F236/F258 (audit 11-10) under owner 2026-11-07 (Declutter shows its fee): Help and the Terms name the Declutter buyer's fee from checkoutAmounts' own numbers (DECLUTTER_BUYER_FEE_WORDS, never retyped); the Jobs fee stays unnumbered (owner 10-25)",
   "src/pages/info/legal/TermsSection.tsx::, once per checkout, which covers running Declutter and card processing. You see one total before you pay, delivery included.": "F236/F258 (audit 11-10) under owner 2026-11-07 (Declutter shows its fee): Help and the Terms name the Declutter buyer's fee from checkoutAmounts' own numbers (DECLUTTER_BUYER_FEE_WORDS, never retyped); the Jobs fee stays unnumbered (owner 10-25)",
@@ -288,6 +296,15 @@ describe("members see no fee words (owner 2026-10-25)", () => {
       // F179 (11-09): Declutter's own receipt email, the one edge file the allowance covers.
       && f !== "supabase/functions/_shared/declutterSellerEmail.ts");
     expect(outside, "the 11-07 fee allowance is for Declutter only").toEqual([]);
+  });
+
+  // @mutate src/test/membersSeeNoFeeWords.test.ts | RECEIPT_FEE_SURFACE = "src/pages/profile/Receipts.tsx";\n// @two-way | RECEIPT_FEE_SURFACE = "src/pages/profile/Spent.tsx";\n// @two-way
+  it("owner 11-11: the receipt fee allowance is used only by the Declutter receipt", () => {
+    const scoped = Object.entries(MEMBER_FEE_COPY_ALLOWED).filter(([, why]) => why.startsWith(OWNER_1111_RECEIPT_FEE));
+    expect(scoped.length).toBeGreaterThan(0);
+    expect(scoped.map(([k]) => k.split("::")[0]).filter((f) => f !== RECEIPT_FEE_SURFACE), "the 11-11 fee allowance is for the Declutter receipt only").toEqual([]);
+    // Nothing else in that file may lean on an older allowance to name a fee.
+    expect(Object.keys(MEMBER_FEE_COPY_ALLOWED).filter((k) => k.startsWith(`${RECEIPT_FEE_SURFACE}::`) && !MEMBER_FEE_COPY_ALLOWED[k].startsWith(OWNER_1111_RECEIPT_FEE))).toEqual([]);
   });
 
   it("the allowlist is exact: no entry nobody hits any more", () => {

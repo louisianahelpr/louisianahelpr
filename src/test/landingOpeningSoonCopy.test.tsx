@@ -34,7 +34,7 @@
  * gone. The owner's sentence form ("Homes is opening soon", openingSoonLine,
  * youBoard18) is a sentence, not the label, and is not matched.
  * @mutate src/lib/i18n/enCore.ts |   "soon.full": "Coming soon", |   "soon.full": "Opening soon",
- * @mutate src/pages/search/SearchPage.tsx |         Coming soon\n |         Opening soon\n
+ * @mutate src/pages/search/SearchPage.tsx | ? "is" : "are"} coming soon.`; | ? "is" : "are"} Opening soon.`;
  * @mutate src/components/profile/SettingsTab.tsx | sub={on ? SECTION_BLURB[s.key] : "Coming soon"} | sub={on ? SECTION_BLURB[s.key] : "Opening soon"}
  */
 import { readFileSync } from "node:fs";

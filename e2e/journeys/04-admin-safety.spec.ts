@@ -606,7 +606,7 @@ test.describe.serial("admin and safety journeys", () => {
 /** The poster's No-Show control: the open card's step chip ("No-Show", InProgressStep) or, once the start has passed
  *  with no check-in, the face's own button ("Report no-show", posterFaceAction). Both call the card's onNoShow and
  *  open the one "Report no-show" dialog; a "not offered" check must see either. */
-const NO_SHOW = /^(No-Show|Report no-show)/;
+const NO_SHOW = /^(No-show|Report no-show)/;
 
 async function openCard(page: Page, jobId: string, jobTitle: string): Promise<boolean> {
   await page.goto(`/posts?job=${jobId}`);

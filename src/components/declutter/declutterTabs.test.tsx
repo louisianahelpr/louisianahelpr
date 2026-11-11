@@ -42,6 +42,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { declutterTodo, oldDeclutterView } from "@/lib/declutter/tabs";
 import { deriveNeedsYouTodos } from "@/pages/home/homeDashboard/needsYouTodos";
+import NeedsYouBridge from "@/components/NeedsYouBridge";
 
 const SOON = new Date(Date.now() + 20 * 3_600_000).toISOString();
 
@@ -78,6 +79,7 @@ vi.mock("@/lib/declutter/saveCounts", async (orig) => ({ ...(await orig<typeof i
 vi.mock("@/lib/declutter/tradesPrompt", async (orig) => ({ ...(await orig<object>()), fetchTradesPromptDue: async () => false })); // owner 11-08 card
 vi.mock("@/lib/declutter/trades", async (orig) => ({ ...(await orig<object>()), fetchMyTrades: async () => [] }));
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
+vi.mock("@/lib/declutter/refundRequests", async (orig) => ({ ...(await orig<object>()), fetchMyRefundTodos: async () => [] })); // F363 option b: the Needs you group reads it
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => null,
@@ -109,6 +111,14 @@ vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1"
 // The payout prompt is its own test (sellerPayoutPrompt.test.tsx); it reads prod-only hooks.
 vi.mock("@/components/declutter/SellerPayoutPrompt", () => ({ SellerPayoutPrompt: () => null }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
+// Owner 11-11 (F363/F396): the tab badges read the Home To-do count, which App's NeedsYouBridge publishes. Here the
+// bridge runs on the Home list's own rule (deriveNeedsYouTodos) over this file's cart and offers.
+vi.mock("@/pages/home/homeDashboard/useNeedsYouTodos", () => ({
+  useNeedsYouTodos: () => ({
+    todos: deriveNeedsYouTodos({ postedJobs: [], pendingApplicantCounts: {}, appliedApps: [], shopOrders: [], backout: new Map(), declutterCart: state.cart as never, declutterOffers: state.offers as never }),
+    loading: false,
+  }),
+}));
 // Q2352: the cart's one-time setup fee answer (the live platform setting) is not this spec's subject: paid.
 // Q2106: Pay's gift picker reads the buyer's gift cards; none here.
 vi.mock("@/hooks/useSpendableGiftCards", () => ({ useSpendableGiftCards: () => ({ userId: "u1", ids: [], cards: [], settled: true }) }));
@@ -251,7 +261,7 @@ function at(path: string, routerState?: unknown) {
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[routerState ? { pathname: path.split("?")[0], search: `?${path.split("?")[1]}`, state: routerState } : path]}>
         <Routes>
-          <Route path="/declutter" element={<><DeclutterPage /><Where /></>} />
+          <Route path="/declutter" element={<><NeedsYouBridge user={{ id: "u1" } as never} /><DeclutterPage /><Where /></>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -683,7 +693,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // order tracker like Jobs > Posted. The class: the chips are exactly the ORDER_BUCKETS groups that hold orders, in
   // that order, and each chip's count is exactly how many orders (a checkout, a paid order, one that ended) it shows.
   // Offers are their own group and never a chip.
-  // @mutate src/components/declutter/BuyingOrders.tsx |   counts.needs_you += checkouts; |   counts.needs_you += 0;
+  // @mutate src/components/declutter/BuyingOrders.tsx |   counts.needs_you = homeRows.length; |   counts.needs_you = checkouts;
+  // @mutate src/components/declutter/BuyingOrders.tsx |     const bucket: OrderBucket = needsYouOrders.has(o.orderId) ? "needs_you" : | const bucket: OrderBucket = false ? "needs_you" :
   // @mutate src/components/declutter/BuyingOrders.tsx |   counts.cancelled += ended.length; |   counts.cancelled += 0;
   // @mutate src/components/declutter/BuyingOrders.tsx |   return ORDER_BUCKETS.filter((b) => counts[b.key] > 0).map( |   return ORDER_BUCKETS.map(
   // @mutate src/components/declutter/DeclutterMineViews.tsx | scope={(id) => !refunded(id)} show={(id) => only === null \|\| t.views.get(id)?.bucket === only} /> | scope={(id) => !refunded(id)} />
@@ -712,7 +723,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     state.cart = [
       LINE, // a checkout to pay: Needs you
       { ...LINE, line_id: "p1", item_id: "p1", item_title: "Porch lamp", status: "paid", order_id: "o-porch", order_status: "paid", handover: "porch" }, // pick a day: Needs you
-      { ...LINE, line_id: "p2", item_id: "p2", item_title: "Desk", status: "paid", order_id: "o-booked", order_status: "paid", handover: "pickup_home" }, // booked: Upcoming
+      { ...LINE, line_id: "p2", item_id: "p2", item_title: "Desk", status: "paid", order_id: "o-booked", order_status: "paid", handover: "pickup_home" }, // booked: Needs you (owner 11-11, option b: a Home To-do row)
       { ...LINE, line_id: "p3", item_id: "p3", item_title: "Sofa", status: "paid", order_id: "o-helpr", order_status: "paid", handover: "delivery" }, // finding a Helpr: Waiting
       { ...LINE, line_id: "p4", item_id: "p4", item_title: "Mug", status: "paid", order_id: "o-done", order_status: "handed_over", handover: "porch" }, // Done
       { ...LINE, line_id: "p5", item_id: "p5", item_title: "Vase", status: "paid", order_id: "o-refunded", order_status: "refunded", handover: "pickup_home" }, // Cancelled
@@ -722,12 +733,19 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     state.bookings = [{ order_id: "o-booked", slot_start: LATER, slot_end: LATER, porch_mode: null, porch_until: null }];
     const { container } = at("/declutter?tab=buying");
     await screen.findByText("paid order o-porch as buyer");
-    const want: [string, string, number][] = [["needs_you", "Needs you", 2], ["waiting", "Waiting", 1], ["upcoming", "Upcoming", 1], ["done", "Done", 1], ["cancelled", "Cancelled", 2]];
+    // Owner 11-11 (F363, option b): Needs you is exactly the Home To-do list's Buying rows (the checkout, the porch
+    // order, the booked pickup), so it counts 3 and nothing is Upcoming; the chip, its cards and the badge agree.
+    const want: [string, string, number][] = [["needs_you", "Needs you", 3], ["waiting", "Waiting", 1], ["done", "Done", 1], ["cancelled", "Cancelled", 2]];
     await vi.waitFor(() => {
       const boxes = Array.from(container.querySelectorAll("[data-status-box]")) as HTMLElement[];
       expect(boxes.map((b) => [b.getAttribute("data-status-box"), b.querySelector("[data-chip-label]")?.textContent, Number(b.getAttribute("data-count"))])).toEqual(want);
     });
     expect(container.querySelector("[data-status-all]")?.getAttribute("data-count")).toBe("7");
+    // The guard the owner asked for: the Needs you chip equals the Home To-do Buying count for the same fixture.
+    const home = deriveNeedsYouTodos({ postedJobs: [], pendingApplicantCounts: {}, appliedApps: [], shopOrders: [], backout: new Map(), declutterCart: state.cart as never, declutterOffers: state.offers as never })
+      .filter((x) => x.section === "declutter" && x.to.includes("tab=buying")).length;
+    expect(Number(container.querySelector('[data-status-box="needs_you"]')?.getAttribute("data-count"))).toBe(home);
+    expect(tab(/^Buying/)).toHaveAccessibleName(new RegExp(String(home)));
     // Offers are their own group, never a chip.
     expect(screen.getByRole("region", { name: "Your offers" })).toBeInTheDocument();
     const shown = () =>
@@ -741,7 +759,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
       await vi.waitFor(() => expect(shown(), key).toBe(n));
       checked++;
     }
-    expect(checked).toBeGreaterThan(4);
+    expect(checked).toBeGreaterThan(3);
     // Cancelled shows the refunded order and the checkout that ran out, and says nothing was charged for it.
     expect(screen.getByText("paid order o-refunded as buyer")).toBeInTheDocument();
     expect(screen.getByText(/The time to check out ran out\. Nothing was charged\./)).toBeInTheDocument();
@@ -819,17 +837,17 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(tab(/^Selling/)).toHaveAccessibleName(/2/);
   });
 
-  // Audit DC-9 (lead 2026-10-30): the Selling badge counts what "To answer" counts, so a question waiting on a live
-  // listing shows on the tab too; the tab row waits for that read (no late re-wrap).
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | const sellingToDo = todo ? todo.selling + questions.count : undefined; | const sellingToDo = todo?.selling;
+  // Audit DC-9 (lead 2026-10-30) made the Selling badge count questions too. Owner 11-11 (F363/F396): every Declutter
+  // badge is the Home To-do count, which has no question rows, so the badge stays at the offer and the sale ("To
+  // answer" still lists the question). The tab row still waits for the questions read (no late re-wrap).
   // @mutate src/components/declutter/SellerQuestionsToAnswer.tsx |     enabled: mine.isSuccess && ids.length > 0, |     enabled: mine.isSuccess,
-  it("DC-9: the Selling badge counts unanswered questions too, and the read is made only with a listing on sale", async () => {
+  it("DC-9 / owner 11-11: the Selling badge is the To-do count (no questions); the read is made only with a listing on sale", async () => {
     everything();
     state.questions = [{ id: "q1", item_id: "i1", question: "Is it sturdy?", created_at: "2026-10-29" }];
     const first = at("/declutter");
     await screen.findByRole("tablist", { name: "Declutter view" });
-    // An offer, a sale to hand over and a question.
-    expect(tab(/^Selling/)).toHaveAccessibleName(/3/);
+    // An offer and a sale to hand over: the Home To-do's Selling rows.
+    expect(tab(/^Selling/)).toHaveAccessibleName(/2/);
     expect(state.questionReads).toBe(1);
     first.unmount();
     // Nothing on sale: no question read at all.
@@ -1061,7 +1079,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // Audit 11-10 F363 (Medium): the Buying badge counted cart LINES (8) while Home's to-dos and the dock counted
   // checkouts, one per seller (7). One rule now: openCheckouts, read by both.
   // @mutate src/lib/declutter/tabs.ts |   const toPay = openCheckouts(cart, now).size; |   const toPay = cart.filter((l) => l.my_side === "buyer" && l.status === "in_cart" && new Date(l.checkout_by).getTime() > now).length;
-  // @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   for (const [k, lines] of openCheckouts(cart, now)) { |   for (const [k, lines] of cart.filter((l) => l.my_side === "buyer" && l.status === "in_cart").map((l) => [l.seller_id ?? l.line_id, [l]] as const)) {
+  // @mutate src/lib/declutter/declutterTodos.ts |   for (const [k, lines] of openCheckouts(cart, now)) { |   for (const [k, lines] of cart.filter((l) => l.my_side === "buyer" && l.status === "in_cart").map((l) => [l.seller_id ?? l.line_id, [l]] as const)) {
   it("F363: two cart items from one seller are one checkout on the Buying badge and one to-do on Home", () => {
     const cart = [
       { ...LINE, line_id: "a", seller_id: "s1" },

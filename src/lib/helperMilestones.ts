@@ -172,6 +172,15 @@ export function markCelebrated(
 export const MILESTONE_FRESHNESS_MS = 24 * 60 * 60 * 1000;
 
 /**
+ * F266a (whole-app audit 2026-11-10): a Helpr with 142 jobs saw "25 jobs done" on a device with no markers yet, because
+ * the 24-hour gate only asks whether the LAST job is recent, not whether this threshold was crossed by it. A job-count
+ * milestone is crossed just now only while the count is at most this many jobs past its threshold (a couple of jobs
+ * can finish between visits); further past, it is back-filled silently like any old milestone.
+ */
+const JOB_MILESTONE_THRESHOLD: Partial<Record<HelperMilestoneId, number>> = { first_job: 1, five_jobs: 5, ten_jobs: 10, twenty_five_jobs: 25 };
+const JUST_CROSSED_SLACK_JOBS = 2;
+
+/**
  * Diff helper: from the reached set, return the milestones that have NOT yet
  * been celebrated for this helper, split by whether they are still worth
  * celebrating. Preserves the order defined in `HELPER_MILESTONES` so the toast
@@ -205,7 +214,10 @@ export function selectNewMilestones(
   const ts = lastQualifyingEventAt ? Date.parse(lastQualifyingEventAt) : NaN;
   const isFresh = Number.isFinite(ts) && now - ts <= MILESTONE_FRESHNESS_MS;
 
-  return isFresh
-    ? { fresh: uncelebrated, stale: [] }
-    : { fresh: [], stale: uncelebrated };
+  if (!isFresh) return { fresh: [], stale: uncelebrated };
+  const longPast = (m: HelperMilestoneDef) => {
+    const at = JOB_MILESTONE_THRESHOLD[m.id];
+    return at !== undefined && stats.completedJobCount - at > JUST_CROSSED_SLACK_JOBS;
+  };
+  return { fresh: uncelebrated.filter((m) => !longPast(m)), stale: uncelebrated.filter(longPast) };
 }

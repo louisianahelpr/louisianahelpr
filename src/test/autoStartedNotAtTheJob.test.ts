@@ -77,6 +77,6 @@ describe("a job the clock started never says the Helpr is there (A2-B12)", () =>
   });
 
   it("the named line says who", () => {
-    expect(posterStatusLine(base, 0, NOW, undefined, false, "Eli H.").detail).toBe("Eli hasn't checked in");
+    expect(posterStatusLine(base, 0, NOW, undefined, false, "Eli H.").detail).toBe("Eli hasn't said they're on the way");
   });
 });

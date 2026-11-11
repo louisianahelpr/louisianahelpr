@@ -43,6 +43,8 @@ function readRpc(name: string, body: Record<string, unknown>, s: DeclutterPrevie
     case "declutter_my_manager_grants": return [];
     // Item views (owner request 11-05): the sample listings have no views yet, so Selling draws no "N views".
     case "declutter_my_item_view_counts": return [];
+    // Refund to-dos (F363, owner 11-11: the Buying Needs you group reads the Home To-do rows, refunds included): none in the samples.
+    case "declutter_my_refund_todos": return [];
     case "declutter_my_handover": {
       const id = typeof body.p_order_id === "string" ? body.p_order_id : "";
       return s.handovers[id] as unknown as Record<string, unknown> | undefined;

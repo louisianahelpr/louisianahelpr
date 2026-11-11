@@ -10,11 +10,11 @@
  * buyer's answer to a part offer), from the new member-wide read declutter_my_refund_todos (20261102002217); (b) the
  * free giver's "Pick who gets <item>", with how many asked.
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now, i.declutterRefunds ?? [], i.declutterFreeAsks ?? [])) { |   for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now)) {
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |     if (!Number.isFinite(due) \|\| due < now) continue;\n    const seller = r.my_side === "seller"; |     const seller = r.my_side === "seller";
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         meta: `${seller ? "Selling" : "Buying"} · ${what} · by ${byWhen(due)}`, |         meta: `${seller ? "Selling" : "Buying"} · ${what}`,
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         meta: `Free · ${f.asked} asked`, |         meta: "Free",
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |     if (f.asked < 1) continue; |     continue;
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |     if (o.status !== "open" \|\| o.awaiting !== o.my_side) continue; |     if (o.status !== "open") continue;
+ * @mutate src/lib/declutter/declutterTodos.ts |     if (!Number.isFinite(due) \|\| due < now) continue;\n    const seller = r.my_side === "seller"; |     const seller = r.my_side === "seller";
+ * @mutate src/lib/declutter/declutterTodos.ts |         meta: `${seller ? "Selling" : "Buying"} · ${what} · by ${byWhen(due)}`, |         meta: `${seller ? "Selling" : "Buying"} · ${what}`,
+ * @mutate src/lib/declutter/declutterTodos.ts |         meta: `Free · ${f.asked} asked`, |         meta: "Free",
+ * @mutate src/lib/declutter/declutterTodos.ts |     if (f.asked < 1) continue; |     continue;
+ * @mutate src/lib/declutter/declutterTodos.ts |     if (o.status !== "open" \|\| o.awaiting !== o.my_side) continue; |     if (o.status !== "open") continue;
  * @mutate src/lib/declutter/tabs.ts |     if (l.my_side !== "buyer" \|\| l.status !== "in_cart" \|\| !(new Date(l.checkout_by).getTime() > now)) continue; |     if (l.my_side !== "buyer" \|\| l.status !== "in_cart") continue;
  * @mutate src/components/NeedsYouBridge.tsx |   const declutter = todos.filter((t) => t.section === "declutter").length; |   const declutter = 0;
  * @mutate src/components/DesktopSidebarNav.tsx |     if (key === "todoDeclutter") return todo.declutter; |     if (key === "todoDeclutter") return 0;

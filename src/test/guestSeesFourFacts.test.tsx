@@ -1,7 +1,7 @@
 /**
  * A GUEST SEES A JOB'S TITLE, CATEGORY, PARISH AND TAKE-HOME, THEN "SIGN UP TO APPLY" (JOBS-29, lead decision
  * 2026-10-31, under the owner's 9-2 rule "Guests see shared jobs: no poster, address, coordinates").
- * The figure is the guest Browse card's own ("You'd take home $74"), never "Budget $85" beside a card that said $74
+ * The figure is the guest Browse card's own ("You'd earn after fees $74"), never "Budget $85" beside a card that said $74
  * (lead 10-31, b49's finding); the sheet has its X and no drag bar (owner 10-31 14:22).
  * The 10-30 jobs audit: on guest Browse, tapping a card went straight to the sign-up form with no job shown first.
  * Holds, for both guest surfaces (the Browse tap and a shared /jobs/:id link, guestOpensSharedJobLink covers the link):
@@ -16,7 +16,13 @@
  * @mutate src/pages/home/useGuestJobSheet.ts |     setDetailJob(job);\n | \n
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1; |   const helpers = 1;
  * @mutate src/components/dashboard/GuestJobPreview.tsx | computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, firstPayoutFee, job) | computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, firstPayoutFee, null)
- * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (net != null) facts.push({ label: isGiveawayFixedPayJob(job) ? "Pay" : "You'd take home", value: `$${formatPriceFloor(net)}` }); |   if (job.budget) facts.push({ label: "Budget", value: `$${job.budget}` });
+ * F217 (whole-app audit 2026-11-10): the sheet also prints the card's town, day and time ("When"), and the pay reads
+ * "You'd earn after fees", never "take home" beside the card's bare price.
+ * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (when) facts.push({ label: "When", value: when }); |
+ * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (town && area && area !== town) facts.push({ label: "Town", value: town }); |
+ * @mutate src/components/dashboard/GuestJobPreview.tsx | const GUEST_PAY_LABEL = "You'd earn after fees"; | const GUEST_PAY_LABEL = "You'd take home";
+ * @mutate src/pages/jobs/JobDetail.tsx | date_needed, date_window_end, start_time, is_flexible_schedule, status, expires_at", | status, expires_at",
+ * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (net != null) facts.push({ label: isGiveawayFixedPayJob(job) ? "Pay" : GUEST_PAY_LABEL, value: `$${formatPriceFloor(net)}` }); |   if (job.budget) facts.push({ label: "Budget", value: `$${job.budget}` });
  * @mutate src/components/dashboard/GuestJobPreview.tsx |         <DialogFooter>\n | <DialogFooter><button onClick={onClose}>Not now</button>\n
  * @mutate src/pages/home/DashboardGuest.tsx | <GuestJobPreview job={detailJob} | <GuestJobPreview job={{ ...detailJob, title: detailJob.description ?? "" }}
  */
@@ -32,6 +38,8 @@ import { JobPrice } from "@/components/dashboard/JobPrice";
 // (useFirstPayoutFeeCents returns 0 with no profile); both read this one hook.
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeCents: () => 0 }));
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { jobLocalDateISO } from "./helpers/jobLocalDate";
+import { formatJobDate } from "@/lib/dateUtils";
 
 const JOB = {
   id: "3f0c9a4e-0000-4000-8000-0000000000b9",
@@ -54,9 +62,11 @@ describe("the guest job preview", () => {
     expect(sheet).toBeTruthy();
     expect(screen.getByText("Haul off an old couch")).toBeTruthy();
     const facts = guestJobFacts(JOB);
-    expect(facts.map((f) => f.label)).toEqual(["Category", "Parish", "You'd take home"]);
+    expect(facts.map((f) => f.label)).toEqual(["Category", "Town", "Parish", "When", "You'd earn after fees"]);
+    expect(facts.find((f) => f.label === "Town")?.value).toBe("Lafayette");
+    expect(facts.find((f) => f.label === "When")?.value).toBe("Flexible");
     expect(facts.find((f) => f.label === "Parish")?.value).toBe("Lafayette Parish");
-    expect(facts.find((f) => f.label === "You'd take home")?.value).toBe(`$${Math.floor(guestTakeHome(JOB)!)}`);
+    expect(facts.find((f) => f.label === "You'd earn after fees")?.value).toBe(`$${Math.floor(guestTakeHome(JOB)!)}`);
     expect(sheet.textContent).not.toContain("$85");
     for (const f of facts) expect(sheet.textContent).toContain(f.value);
     for (const secret of ["Oak St", "4411", "337-555", "Ann", "Guidry", "30.22", "-92.02", JOB.customer_id]) {
@@ -65,6 +75,7 @@ describe("the guest job preview", () => {
     expect([...GUEST_JOB_FIELDS]).toEqual([
       "id", "title", "category", "budget", "location",
       "urgent_fee", "is_group_job", "helpers_needed", "helper_fee_flat_cents", "helper_fee_percent",
+      "date_needed", "date_window_end", "start_time", "is_flexible_schedule",
     ]);
   });
 
@@ -99,7 +110,7 @@ describe("the guest job preview", () => {
       );
       const chip = (container.textContent ?? "").replace(/[^0-9]/g, "");
       unmount();
-      const value = guestJobFacts(row).find((f) => f.label === "You'd take home")?.value;
+      const value = guestJobFacts(row).find((f) => f.label === "You'd earn after fees")?.value;
       expect(value, JSON.stringify(row)).toBe(`$${chip}`);
       expect(value).not.toBe(`$${row.budget}`);
     }
@@ -109,7 +120,22 @@ describe("the guest job preview", () => {
     expect(guestJobArea("Baton Rouge, LA")).toBe("East Baton Rouge Parish");
     expect(guestJobArea("Nowhere Special, LA")).toBe("Nowhere Special");
     expect(guestJobArea(null)).toBeNull();
-    expect(guestJobFacts({ ...JOB, budget: null, location: null }).map((f) => f.label)).toEqual(["Category"]);
+    expect(guestJobFacts({ ...JOB, budget: null, location: null }).map((f) => f.label)).toEqual(["Category", "When"]);
+    // A town that is its own area is not printed twice.
+    expect(guestJobFacts({ ...JOB, location: "Nowhere Special, LA" }).map((f) => f.label)).toEqual(["Category", "Parish", "When", "You'd earn after fees"]);
+  });
+
+  it("F217: the sheet prints the card's day and time, and the pay never says take home", () => {
+    const day = jobLocalDateISO(3);
+    const facts = guestJobFacts({ ...JOB, date_needed: day, start_time: "14:30:00" });
+    expect(facts.find((f) => f.label === "When")?.value).toBe(`${formatJobDate(day)} · 2:30 PM`);
+    expect(guestJobFacts({ ...JOB, date_needed: day }).find((f) => f.label === "When")?.value).toBe(formatJobDate(day));
+    render(<GuestJobPreview job={{ ...JOB, date_needed: day, start_time: "14:30:00" }} onClose={vi.fn()} onSignUp={vi.fn()} />);
+    const sheet = document.querySelector("[data-guest-job-preview]") as HTMLElement;
+    expect(sheet.textContent).toContain(`${formatJobDate(day)} · 2:30 PM`);
+    expect(sheet.textContent).toContain("Lafayette Parish");
+    expect(sheet.textContent).toContain("You'd earn after fees");
+    expect(sheet.textContent).not.toMatch(/take home/i);
   });
 });
 
@@ -135,7 +161,8 @@ describe("guest Browse's card tap shows the job first", () => {
   });
 
   it("the dialog it opens is the guest preview, fed the tapped job, with sign-up carrying it", () => {
-    expect(src).toMatch(/<GuestJobPreview job=\{detailJob\} onClose=\{closeDetailJob\} onSignUp=\{requireSignup\} \/>/);
+    // F268a: and Log in for a member, back to the same job.
+    expect(src).toMatch(/<GuestJobPreview job=\{detailJob\} onClose=\{closeDetailJob\} onSignUp=\{requireSignup\} onLogIn=\{\(id\) => navigate\(guestLogInUrl\(id\)\)\} \/>/);
     expect(src).not.toContain("<JobDetailDialog");
   });
 });

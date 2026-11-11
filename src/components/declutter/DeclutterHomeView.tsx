@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeatureStatus } from "@/hooks/useFeature";
+import { useNeedsYouCounts } from "@/lib/needsYouStore";
 import { ListedWhatNext } from "./ListedWhatNext";
 import { ListedForYouCard } from "./ListedForYouCard";
 import { YourPageLink } from "@/components/profile/YourPageLink";
@@ -377,7 +378,7 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
       <ListedWhatNext />
       <ListedForYouCard />
       <ManagerWaitingForOkGate userId={userId} />
-      <ManagerPanelGate />
+      <ManagerPanelGate only="status" />
       <TabletSellRow />
       <Suspense fallback={<DeclutterTabBones />}><SellingDash
         todo={todo}
@@ -395,6 +396,8 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
           </div>
         }
         settings={<>
+          {/* Audit 11-10 F399: "Let a friend sell for you" is a promo until used, so it waits under the to-dos. */}
+          <ManagerPanelGate only="setup" />
           {/* Owner 2026-10-30: the seller's settings moved to /declutter/settings, behind the gear that ends the tabs row
               (Jobs' pattern). This one row keeps them findable from where they used to be, under the lists. */}
           <SellingSettingsEntry />
@@ -479,7 +482,8 @@ function DeclutterMemberHome() {
   // painted would widen its tab and could re-wrap the row (Q?declutter-settle).
   // The same reads fill the Buying and Selling tabs, so those open filled.
   const { todo, settled: todoSettled } = useDeclutterTodo();
-  // Audit DC-9: the Selling badge counts what "To answer" counts, questions too (the chip's own cached read).
+  const needsYou = useNeedsYouCounts(user?.id);
+  // The questions read is waited for with the tab row (Selling's "To answer" chip counts it).
   const questions = useUnansweredQuestions(user?.id);
   // Owner request 11-05: Selling's number is how many items are for sale; its to-dos stay as a dot beside it. The same
   // cached read useUnansweredQuestions makes (and the tab row already waits for), so nothing new is fetched.
@@ -521,10 +525,10 @@ function DeclutterMemberHome() {
       else next.set("tab", v);
       return next;
     }, { replace: true });
-  const sellingToDo = todo ? todo.selling + questions.count : undefined;
+  // Owner 11-11 (F363/F396): the Buying and Selling badges are the Home To-do count (the bottom bar's), by side.
   const lists: Array<{ value: Exclude<DeclutterTab, "browse">; label: string; count?: number; quiet?: number }> = [
-    { value: "buying", label: "Buying", count: todo?.buying },
-    { value: "selling", label: "Selling", quiet: forSale, count: sellingToDo },
+    { value: "buying", label: "Buying", count: needsYou.declutterBuying },
+    { value: "selling", label: "Selling", quiet: forSale, count: needsYou.declutterSelling },
     { value: "deliver", label: "Deliver" },
     ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []),
     { value: "free", label: "Free" },

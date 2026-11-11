@@ -9,8 +9,8 @@
  * @mutate src/components/declutter/ManagerPanel.tsx | disabled={!picked \|\| !anyPart \|\| !valueOk \|\| send.isPending} | disabled={!picked \|\| !valueOk \|\| send.isPending}
  * @mutate src/components/declutter/ManagerPanel.tsx | onClick={() => answer.mutate(true)}>Accept | onClick={() => answer.mutate(false)}>Accept
  * @mutate src/components/declutter/ManagerPanel.tsx |   if (payoutPrompt.kind !== "setup") return null;\n  if (paused) return <PayoutSetupPausedNotice />;\n  return (\n    <div className="mt-3 | if (paused) return <PayoutSetupPausedNotice />;\n  return (\n    <div className="mt-3
- * @mutate src/components/declutter/ManagerPanel.tsx |       {mineAsSeller ? <ManagedBy g={mineAsSeller} /> : <GrantSetup />} |       <GrantSetup />
- * @mutate src/components/declutter/DeclutterHomeView.tsx |       <ManagerPanelGate />\n |
+ * @mutate src/components/declutter/ManagerPanel.tsx |       {setup && !mineAsSeller && <GrantSetup />} |       {setup && <GrantSetup />}
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |       <ManagerPanelGate only="status" />\n |
  * @mutate src/lib/declutter/managerMode.ts |   if (s.paid_cents != null) return s.paid_cents;\n |
  * @mutate src/lib/declutter/managerMode.ts | (s.share_cents ?? 0) * Math.max(1, itemCount) | (s.share_cents ?? 0)
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | <ManagerSaleShareGate orderId={order.orderId} itemsCents={items} itemCount={order.lines.length} /> | null
@@ -73,9 +73,9 @@ function grant(over: Partial<ManagerGrant>): ManagerGrant {
   };
 }
 
-function mount() {
+function mount(only?: "status" | "setup") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<MemoryRouter><QueryClientProvider client={qc}><ManagerPanel /></QueryClientProvider></MemoryRouter>);
+  return render(<MemoryRouter><QueryClientProvider client={qc}><ManagerPanel only={only} /></QueryClientProvider></MemoryRouter>);
 }
 
 beforeEach(() => {
@@ -216,7 +216,44 @@ describe("the manager's side", () => {
     expect(gate).toContain('const ManagerPanel = lazy(() => import("./ManagerPanel"));');
     expect(gate).toContain('const on = useFeature("declutter_manager");\n  if (!on) return null;');
     const home = readFileSync(resolve(__dirname, "DeclutterHomeView.tsx"), "utf8");
-    expect(home).toContain("<ManagerPanelGate />");
+    expect(home).toContain('<ManagerPanelGate only="status" />');
+    expect(home).toContain('<ManagerPanelGate only="setup" />');
+  });
+});
+
+// Audit 11-10 F399: "Let a friend sell for you" sat at the top of Selling, above the to-dos. The live half (offers,
+// Managing, Managed by) stays at the top; the ask moves under the to-dos and lists (the settings rows' slot).
+// @mutate src/components/declutter/ManagerPanel.tsx |   const setup = only !== "status"; |   const setup = true;
+// @mutate src/components/declutter/ManagerPanel.tsx |   const status = only !== "setup"; |   const status = true;
+describe("F399: the panel's two places on Selling", () => {
+  it("the top (status) half has no setup ask, and with nothing live it draws nothing", () => {
+    const { container } = mount("status");
+    expect(screen.queryByRole("button", { name: "Ask someone" })).toBeNull();
+    expect(container.querySelector("[data-manager-panel]")).toBeNull();
+  });
+  it("the top half keeps what is live: an offer to answer and the seller's Managed by", () => {
+    st.grants = [grant({}), grant({ id: "g2", role: "manager", status: "offered", seller_id: "k2" })];
+    mount("status");
+    expect(screen.getByText("Managed by Dana")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Accept" })).toBeTruthy();
+  });
+  it("the lower (setup) half is only the ask, and nothing once someone manages", () => {
+    st.grants = [grant({ id: "g2", role: "manager", status: "offered", seller_id: "k2" })];
+    mount("setup");
+    expect(screen.getByRole("button", { name: "Ask someone" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Accept" })).toBeNull();
+  });
+  it("the setup half draws nothing for a seller who is already managed", () => {
+    st.grants = [grant({})];
+    const { container } = mount("setup");
+    expect(container.querySelector("[data-manager-panel]")).toBeNull();
+  });
+  it("on Selling, the ask comes after the to-dos: inside the settings slot SellingDash draws last", () => {
+    const home = readFileSync(resolve(__dirname, "DeclutterHomeView.tsx"), "utf8");
+    const slot = home.indexOf("settings={<>");
+    expect(slot).toBeGreaterThan(-1);
+    expect(home.indexOf('<ManagerPanelGate only="setup" />')).toBeGreaterThan(slot);
+    expect(home.indexOf('<ManagerPanelGate only="status" />')).toBeLessThan(home.indexOf("<SellingDash"));
   });
 });
 

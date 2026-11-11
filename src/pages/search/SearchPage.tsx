@@ -205,17 +205,21 @@ function ChipsSkeleton() {
   );
 }
 
-function SoonRow({ name }: { name: string }) {
-  // The iPhone app shows no closed section (owner 10-31, src/lib/hideUnopenedInApp.ts); the website keeps the row.
-  if (hideUnopenedInApp()) return null;
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl px-4 min-h-[52px]" style={{ background: "hsl(var(--card))" }}>
-      <span className="font-sans font-semibold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>{name}</span>
-      <span className="font-sans font-semibold text-ds-11 rounded-full px-2.5 py-1" style={{ background: "hsl(var(--sand))", color: "hsl(var(--olivewood))" }}>
-        Coming soon
-      </span>
-    </div>
-  );
+/** "Shops and Homes are coming soon." from the closed sections, in order; "" when none is closed. */
+function soonSentence(names: string[]): string {
+  if (names.length === 0) return "";
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  return `${list} ${names.length === 1 ? "is" : "are"} coming soon.`;
+}
+
+/**
+ * F224 (whole-app audit 2026-11-10): each closed section was a full card-sized "Coming soon" row, as big as a real
+ * result. They are now one small line under the results.
+ */
+function SoonLine({ names }: { names: string[] }) {
+  // The iPhone app shows no closed section (owner 10-31, src/lib/hideUnopenedInApp.ts); the website keeps the line.
+  if (hideUnopenedInApp() || names.length === 0) return null;
+  return <p data-search-soon="" className="font-sans text-ds-13 text-muted-foreground px-1">{soonSentence(names)}</p>;
 }
 
 export default function SearchPage() {
@@ -409,11 +413,7 @@ export default function SearchPage() {
         )}
 
         {q && section === "all" && switchesSettled && (
-          <div className="space-y-2">
-            {!declutter.on && <SoonRow name="Declutter" />}
-            {!shops.on && <SoonRow name="Shops" />}
-            {!homes.on && <SoonRow name="Homes" />}
-          </div>
+          <SoonLine names={[...(declutter.on ? [] : ["Declutter"]), ...(shops.on ? [] : ["Shops"]), ...(homes.on ? [] : ["Homes"])]} />
         )}
       </div>
     </AppPage>

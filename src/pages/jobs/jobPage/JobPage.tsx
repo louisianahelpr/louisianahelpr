@@ -349,7 +349,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               ? { label: "Browse jobs", go: () => navigate("/browse") }
               : null;
 
-  const share = open ? (
+  const share = open && !jobIsUnfundedDraft(job) ? (
     <ShareJobButton
       variant="icon"
       bare

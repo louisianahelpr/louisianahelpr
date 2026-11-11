@@ -223,7 +223,10 @@ const HOME_SCHEDULE_READS = /[\\/]src[\\/]lib[\\/](scheduleChange|scheduleClashe
 // the moment the feature switches answered, before /home's money tile drew. src/test/homeLazyReadsStayLight.test.ts.
 const HOME_SHOP_READS = /[\\/]src[\\/]lib[\\/]shops[\\/](orders|rpcErrorCopy|errors)\.ts$/;
 const HOME_DERIVE_LEAVES = /[\\/]src[\\/](pages[\\/]home[\\/]homeDashboard[\\/]useNeedsYouTodos|components[\\/]tracker[\\/]jobProgressSteps|components[\\/]job-card[\\/]helperStepRequest)\.ts$/;
-const BROWSE_GROUP_SKIPS = /[\\/]src[\\/](components[\\/]ui[\\/]skeleton\.tsx|hooks[\\/](useMembershipsOn|useArrivalGate)\.ts)$/;
+// Builder 1, 11-11: and BrowseViewToggle (the filter sheet's List/Map control): Declutter's browse bar imports it, and in
+// browse-first-screen that one 0.4 KB module put the whole 20.6 KB gz guest-browse chunk on /declutter (481 -> 456 KB gz
+// with feedPhase.ts in feed-phase). It rides alone.
+const BROWSE_GROUP_SKIPS = /[\\/]src[\\/](components[\\/]ui[\\/]skeleton\.tsx|hooks[\\/](useMembershipsOn|useArrivalGate)\.ts|components[\\/]dashboard[\\/]browseTasksToolbar[\\/]BrowseViewToggle\.tsx)$/;
 // Builder 3, 11-04: the dialog primitives guest /browse shares with Money (EarningsTab) and other signed-in screens. In
 // browse-first-screen, Money's static import of them put that whole 28.9 KB gz guest-browse chunk on its critical path.
 const DECLUTTER_CATEGORY_ICONS = /[\\/]src[\\/]lib[\\/]declutter[\\/]categoryIcons\.ts$/;
@@ -1209,9 +1212,11 @@ export default defineConfig(({ mode, command }) => ({
             },
             // Its own chunk, not small-leaves: Profile's first screen also imports it, and must not reach the
             // signed-in-deep modules above (check-deferred-vendors).
+            // + lib/feedPhase.ts (Builder 1, 11-11): useFeedPhase's only import. In browse-first-screen it made this chunk import
+            // that whole guest-browse chunk, onto /declutter's first screen.
             {
               name: "feed-phase",
-              test: /[\\/]src[\\/]hooks[\\/]useFeedPhase\.ts$/,
+              test: /[\\/]src[\\/](hooks[\\/]useFeedPhase|lib[\\/]feedPhase)\.ts$/,
               priority: 20,
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,

@@ -214,7 +214,7 @@ describe("the job page runs the Posted card's own flows (usePosterPageFlows)", (
       await waitFor(() => expect(screen.getByTestId("count").textContent).toBe("1"));
       const second = screen.getByTestId("second");
       const noShow = second.querySelector("button") as HTMLButtonElement;
-      expect(noShow.textContent).toBe("No-Show");
+      expect(noShow.textContent).toBe("No-show");
       expect(second.textContent).not.toMatch(/Message/);
     } finally {
       Object.assign(JOB, saved);

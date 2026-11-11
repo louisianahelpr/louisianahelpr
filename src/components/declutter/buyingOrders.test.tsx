@@ -65,8 +65,8 @@ vi.mock("@/components/DateTimeField", () => ({
 }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "me" } }) }));
-vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
-vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false, useFeatureStatus: () => ({ on: false, settled: true, lastAnswer: false }) }));
+vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart, fetchMyOffers: async () => [] }));
 vi.mock("@/lib/declutter/refundedCents", () => ({
   fetchMyRefundedCents: async (ids: string[]) => new Map(ids.filter((id) => id in state.refunded).map((id) => [id, state.refunded[id]])),
 }));
@@ -200,6 +200,18 @@ function load(cases: Case[]) {
 
 const card = (id: string) => screen.getByText(`Item ${id}`).closest("article") as HTMLElement;
 
+/**
+ * Owner 11-11 (F363, option b): the tracker files an order under Needs you exactly when the Home To-do list has a
+ * Buying row for it (a paid order waiting on its handover; a Helpr delivery is the Helpr's); what the facts rule calls
+ * Needs you otherwise goes to Done (handed over, no problem) or Waiting.
+ */
+function shownBucket(c: Case): string {
+  const l = line(c.id, c.line) as unknown as CartLine;
+  if (l.status === "paid" && l.order_status === "paid" && l.handover !== "delivery") return "needs_you";
+  if (c.bucket !== "needs_you") return c.bucket;
+  return l.order_status === "handed_over" && !state.problems.some((p) => p.order_id === c.id) ? "done" : "waiting";
+}
+
 describe("Buying tracker: every order card shows its steps and its ONE next action", () => {
   beforeEach(() => load([]));
 
@@ -227,7 +239,8 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     load(pick(["refunded", "done", "home1", "porch3", "porch0"]));
     show();
     const order = () => Array.from(document.querySelectorAll("article")).map((a) => /Item ([a-z0-9]+)/.exec(a.textContent ?? "")?.[1]);
-    await waitFor(() => expect(order()).toEqual(["porch0", "porch3", "home1", "done", "refunded"]));
+    // Owner 11-11 (option b): the three paid pickups are all Home To-do rows, so all Needs you, in cart order.
+    await waitFor(() => expect(order()).toEqual(["home1", "porch3", "porch0", "done", "refunded"]));
     expect(order().length).toBeGreaterThan(4);
   });
 
@@ -303,7 +316,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
       const el = card(c.id);
       // Q2630: a refunded (cancelled) order has no step bar; every other card shows its step.
       expect(el.querySelector("[data-order-step]")?.getAttribute("data-order-step") ?? null, c.id).toBe(c.bucket === "cancelled" ? null : String(c.step));
-      expect(el.querySelector("[data-buyer-order]")?.getAttribute("data-buyer-order"), c.id).toBe(c.bucket);
+      expect(el.querySelector("[data-buyer-order]")?.getAttribute("data-buyer-order"), c.id).toBe(shownBucket(c));
       const primaries = Array.from(el.querySelectorAll(".btn-grad-primary")).map((b) => b.textContent);
       expect(primaries, c.id).toEqual(c.action ? [c.action] : []);
       // The rest of the card waits under Details.
@@ -471,7 +484,9 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // @mutate src/components/declutter/BuyingOrders.tsx |       problemAwaitsYou: problemAwaitsBuyer( |       problemAwaitsYou: false && problemAwaitsBuyer(
   // @mutate src/components/declutter/BuyingOrders.tsx |   return !!p && p.status === "open" && p.reporter_side !== "buyer" && !p.other_side_note; |   return !!p && p.status === "open" && !p.other_side_note;
   // @mutate src/components/declutter/BuyingOrders.tsx |   if (f.problem && f.problemAwaitsYou && !f.cancelled) return "Add your side"; |
-  it("openpr-2: a handed-over order with the seller's open report is Needs you with Add your side, then Waiting once answered", async () => {
+  // Owner 11-11 (F363, option b): Needs you is exactly the Home To-do list's Buying rows, and that list has no row for a
+  // handed-over order's report, so "rep" is filed under Waiting; its card still leads with "Add your side".
+  it("openpr-2: a handed-over order with the seller's open report shows Add your side (Waiting under option b), then Waiting once answered", async () => {
     load([
       { id: "rep", line: { order_status: "handed_over", handover: "porch" }, step: 3, bucket: "needs_you", action: "Add your side" },
       { id: "mine", line: { order_status: "handed_over", handover: "porch" }, step: 3, bucket: "waiting", action: null },
@@ -485,8 +500,8 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
       ans: { ...base, id: "p-ans", reporter_side: "seller", other_side_note: "I was there at 3." },
     };
     show();
-    await waitFor(() => expect(card("rep").querySelector("[data-buyer-order]")?.getAttribute("data-buyer-order")).toBe("needs_you"));
-    expect(within(card("rep")).getByRole("button", { name: "Add your side" })).toBeInTheDocument();
+    await waitFor(() => expect(within(card("rep")).getByRole("button", { name: "Add your side" })).toBeInTheDocument());
+    expect(card("rep").querySelector("[data-buyer-order]")?.getAttribute("data-buyer-order")).toBe("waiting");
     for (const id of ["mine", "ans"]) {
       expect(card(id).querySelector("[data-buyer-order]")?.getAttribute("data-buyer-order")).toBe("waiting");
       expect(within(card(id)).queryByRole("button", { name: "Add your side" })).toBeNull();

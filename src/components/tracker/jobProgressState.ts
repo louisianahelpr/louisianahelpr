@@ -244,6 +244,9 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
   // scheduled" while the poster read what happens next. The Helpr reads the tracker's own step, "Tap I'm on my way
   // when you leave" (the face offers the button only from 3 hours before, owner 2026-10-23: "when you leave", not now).
   const helprBothIn = o.viewer === "helpr" && !job.is_group_job && card.line.id === "confirmed" && base.stage === 4;
+  // F284 (audit 11-10): past the start (and its grace) with no I'm on my way, the Helpr reads how late they are, as the
+  // poster's late line does, never a calm "It's time" while the other side is already offered Report no-show.
+  const helprLateBy = o.viewer === "helpr" && !job.is_group_job && bar.tone === "progress" && bar.stage === 4 && !job.helper_on_the_way_at ? minutesLate(job, now.getTime()) : null;
   return withBegun({
     ...base,
     stage: bar.stage,
@@ -255,7 +258,7 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
     // JA-12 / JA-13: the poster's late line wins over the card's calm one while the bar is on On the way.
     // Owner 11-01 (job 7b1da54b): after photos in, not marked done: the base's line says so, unless the card owes the
     // poster a step first (confirm the arrival) or the Helpr is waiting on one.
-    next: helprBothIn ? base.next : ((/after photos/.test(base.next) && bar.stage === 6 && bar.waitingOnYou === (o.viewer !== "poster")) || posterLate || noApplicantsYet || ((sameStep || offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail),
+    next: helprLateBy ? `You're ${helprLateBy} late. Tap I'm on my way or message ${o.otherFirst || "them"}` : helprBothIn ? base.next : ((/after photos/.test(base.next) && bar.stage === 6 && bar.waitingOnYou === (o.viewer !== "poster")) || posterLate || noApplicantsYet || ((sameStep || offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail),
   }, job, card.line.id, o.workUnderway);
 }
 

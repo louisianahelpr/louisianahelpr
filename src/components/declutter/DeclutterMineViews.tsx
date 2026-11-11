@@ -201,8 +201,6 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
           ...(history > 0 ? [{ key: "taken" as const, label: "History", count: history }] : []),
         ]}
       />
-      {/* Owner 11-08: the one-time "Turn on trades for all your listings?" card, until answered (on the account). */}
-      {only === null && <DeclutterTradesPrompt userId={userId} />}
       {soldFirst && sold}
       {only === "offers" && toAnswer === 0 && todo && <DeclutterNotice title="Nothing to answer right now." />}
       {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} />}
@@ -215,6 +213,9 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
       {show("waiting") && <SalesWaiting emptyNotice={only === "waiting"} />}
       {!soldFirst && sold}
       {show("taken") && <TakenDownSection items={takenDown} ended={ended} />}
+      {/* Owner 11-08: the one-time "Turn on trades for all your listings?" card, until answered (on the account).
+          Audit 11-10 F399: after the to-dos and the lists, so the work that waits on the seller comes first. */}
+      {only === null && <DeclutterTradesPrompt userId={userId} />}
       {/* The seller's settings belong to the whole tab, not to one chip's list (DC-9). */}
       {only === null && settings}
     </div>

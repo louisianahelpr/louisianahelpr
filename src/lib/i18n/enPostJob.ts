@@ -49,6 +49,7 @@ export const enPostJob = {
   "postJob.matchingCategories": "Matching categories",
   "postJob.matches": "Matches",
   "postJob.noMatch": "No category matches \"{query}\". Pick a group below, or Something else.",
+  "postJob.postUnderOther": "Post it under Something else",
   "postJob.categoryGroups": "Category groups",
   "postJob.inGroup": "In {group}",
   "postJob.group.home": "Home",

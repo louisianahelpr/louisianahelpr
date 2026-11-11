@@ -3,7 +3,9 @@
  * "Guests see shared jobs: no poster, address, coordinates").
  *
  * A guest who taps a job on the public Browse list, or opens a shared job link, sees the job's title, category,
- * parish and what they would take home, and one way forward: "Sign up to apply". Nothing else: no poster name, no address, no
+ * town and parish, its day and time, and what they would earn after fees, and one way forward: "Sign up to apply".
+ * F217 (whole-app audit 2026-11-10): the sheet dropped the day, time and town the card had just shown, and "You'd take
+ * home" read as a different figure from the card's bare price. Nothing else: no poster name, no address, no
  * coordinates, no description or photos (a description is free text and can carry a street address or a phone
  * number). Before this, the Browse tap went straight to the sign-up form with no job shown first.
  *
@@ -15,6 +17,7 @@
  * Guard: src/test/guestSeesFourFacts.test.tsx.
  */
 import { Dialog, DialogContent, DialogFooter, DialogHero, DialogPrimaryAction } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { categoryLabels } from "@/components/job-card/activityConstants";
 import { computeNet } from "@/components/dashboard/JobPrice";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
@@ -23,14 +26,18 @@ import { isGiveawayFixedPayJob, type FlatFeeStamp } from "@/lib/helprFlatFee";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { getCity } from "@/lib/locationUtils";
 import { parishForCity, parishLabel } from "@/lib/parishes";
+import { jobDayLabel } from "@/lib/jobDateWindow";
+import { FLEXIBLE_TIME_LABEL, jobStartTimeLabel } from "@/lib/jobDate";
 
 /**
  * The only fields this preview reads. The guest's job read selects exactly these (plus status and expiry). The
- * last five are what the take-home needs (the card's JobPrice reads the same ones); none is private.
+ * next five are what the take-home needs (the card's JobPrice reads the same ones); the last four are the day and time
+ * the card prints (F217). None is private.
  */
 export const GUEST_JOB_FIELDS = [
   "id", "title", "category", "budget", "location",
   "urgent_fee", "is_group_job", "helpers_needed", "helper_fee_flat_cents", "helper_fee_percent",
+  "date_needed", "date_window_end", "start_time", "is_flexible_schedule",
 ] as const;
 
 export type GuestJob = FlatFeeStamp & {
@@ -44,7 +51,14 @@ export type GuestJob = FlatFeeStamp & {
   is_group_job?: boolean | null;
   helpers_needed?: number | null;
   status?: string | null;
+  date_needed?: string | null;
+  date_window_end?: string | null;
+  start_time?: string | null;
+  is_flexible_schedule?: boolean | null;
 };
+
+/** The pay label: the same words on the sheet for every paid job, so it never reads as a second figure (F217). */
+const GUEST_PAY_LABEL = "You'd earn after fees";
 
 /** The fee rate a guest card is priced at (DashboardGuest passes the same to every guest JobCard). */
 export const GUEST_FEE_PERCENT = TIER_PERKS.free.platformFeePercent;
@@ -73,19 +87,31 @@ export function guestJobArea(location: string | null | undefined): string | null
 export function guestJobFacts(job: GuestJob, firstPayoutFeeDollars = 0): Array<{ label: string; value: string }> {
   const facts: Array<{ label: string; value: string }> = [];
   if (job.category) facts.push({ label: "Category", value: categoryLabels[job.category] ?? formatCategory(job.category) });
+  const town = job.location ? getCity(job.location).trim() : "";
   const area = guestJobArea(job.location);
+  if (town && area && area !== town) facts.push({ label: "Town", value: town });
   if (area) facts.push({ label: "Parish", value: area });
+  // The card's own "when": its day (or window) and clock time, else Flexible (JobCard's meta row).
+  const day = jobDayLabel(job);
+  const time = jobStartTimeLabel(job.start_time, job.is_flexible_schedule);
+  const when = [day, time].filter(Boolean).join(" · ") || (job.date_needed || job.start_time ? "" : FLEXIBLE_TIME_LABEL);
+  if (when) facts.push({ label: "When", value: when });
   const net = guestTakeHome(job, firstPayoutFeeDollars);
   // Owner 2026-10-30: the giveaway shows its pay with no "take home" words.
-  if (net != null) facts.push({ label: isGiveawayFixedPayJob(job) ? "Pay" : "You'd take home", value: `$${formatPriceFloor(net)}` });
+  if (net != null) facts.push({ label: isGiveawayFixedPayJob(job) ? "Pay" : GUEST_PAY_LABEL, value: `$${formatPriceFloor(net)}` });
   return facts;
 }
 
-export function GuestJobPreview({ job, onClose, onSignUp }: {
+/** F268a (audit 11-10): "Log in" from the guest preview comes back to this job after sign-in. */
+export const guestLogInUrl = (jobId: string) => `/login?redirect=${encodeURIComponent(`/jobs/${jobId}`)}`;
+
+export function GuestJobPreview({ job, onClose, onSignUp, onLogIn }: {
   job: GuestJob;
   onClose: () => void;
   /** Sign up carrying this job (signupUrlFor(`/jobs/<id>`)), so the job is waiting after sign-up. */
   onSignUp: (jobId: string) => void;
+  /** F268a: a member opening a shared link logs in and comes back to the job (guestLogInUrl). */
+  onLogIn?: (jobId: string) => void;
 }) {
   // A guest has no profile, so this is 0 for them, exactly as on the card's chip.
   const facts = guestJobFacts(job, useFirstPayoutFeeDollars());
@@ -105,6 +131,15 @@ export function GuestJobPreview({ job, onClose, onSignUp }: {
         <DialogFooter>
           <DialogPrimaryAction onClick={() => onSignUp(job.id)}>Sign up to apply</DialogPrimaryAction>
         </DialogFooter>
+        {onLogIn && (
+          // F268a (audit 11-10): someone with an account had to find Log in behind the blur.
+          <p className="text-center font-sans text-ds-13 text-muted-foreground" data-guest-log-in="">
+            Already a member?{" "}
+            <Button type="button" variant="link" size="sm" className="px-1 text-ds-13 font-semibold" onClick={() => onLogIn(job.id)}>
+              Log in
+            </Button>
+          </p>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -502,7 +502,7 @@ test.describe("My Posts — card density + header", () => {
     // assertion here is about tap-target height, not wording — anchoring it to
     // the visible label keeps it green through the next re-phrasing of the
     // trailing context while still failing if the chip disappears.
-    for (const name of [/^Message\b/, /^No-Show\b/]) {
+    for (const name of [/^Message\b/, /^No-show\b/]) {
       const box = await page.getByRole("button", { name }).first().boundingBox();
       expect(box, `${name} has no box`).not.toBeNull();
       expect(box!.height, `${name} tap target`).toBeGreaterThanOrEqual(44);

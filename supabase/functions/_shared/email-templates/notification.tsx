@@ -60,7 +60,7 @@ export interface NotificationEmailProps {
 }
 
 /** The email's own words, per language. Brand names stay as they are. */
-export const NOTICE_EMAIL_WORDS = {
+const NOTICE_EMAIL_WORDS = {
   en: {
     preheader: 'open Louisiana Helpr for the details.',
     hey: 'Hey',

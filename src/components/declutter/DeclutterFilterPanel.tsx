@@ -92,7 +92,7 @@ export function declutterFilterSections({
   const toggleWay = (w: OtherWay) =>
     onChange({ ...filters, ways: filters.ways.includes(w) ? filters.ways.filter((x) => x !== w) : [...filters.ways, w] });
   const located = ask.origin.status === "ready";
-  const sorts: DeclutterSort[] = located ? ["closest", "newest", "price_low"] : ["newest", "price_low"];
+  const sorts: DeclutterSort[] = located ? ["closest", "newest", "price_low", "price_high"] : ["newest", "price_low", "price_high"];
   const sortNow: DeclutterSort = !located && filters.sort === "closest" ? "newest" : filters.sort;
   const words = originWords(ask);
   const sections: FilterSheetSection[] = [

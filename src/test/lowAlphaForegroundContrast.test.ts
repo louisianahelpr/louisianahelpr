@@ -92,6 +92,9 @@ const ACCEPTED = new Map<string, number>([
 
   // (b) painted on a dark ground the static scan cannot see
   ["src/components/ui/SelectBarExitButton.tsx --parchment/0.85", 1], // "1.00:1" — near-white on bark (the Posts and Messages select bars' ✕)
+  // F277a: a DARK-THEME-only rule ([data-theme="dark"] .btn-grad-primary:disabled): the dark ink #F1EEE7 at 0.6 on the
+  // dark --sand #3A3731 is ~4.9:1 (and a disabled control is exempt under 1.4.3 anyway); the scan composites on the light page.
+  ["src/index.css --olivewood/0.6", 1], // "3.70:1" light — never drawn on light; ~4.9:1 on its real dark-grey ground
 
   // (c) a different WCAG threshold applies, and is met
   //

@@ -39,6 +39,11 @@
  * @mutate supabase/functions/shop-checkout/index.ts |      await closeOrder("a gift that covers it all"); |      void 0;
  * @mutate supabase/functions/shop-checkout/index.ts |      await closeOrder("its gift was refused"); |      void 0;
  * @mutate supabase/functions/shop-checkout/index.ts |    meta.gift_cents = String(applied); |    void 0;
+ * @mutate supabase/functions/shop-checkout/index.ts |    if (giftCents > 0) await closeOrder("its page did not match"); |    void 0;
+ * @mutate supabase/functions/shop-checkout/index.ts |    if (giftCents > 0) await closeOrder("its page was not attached"); |    void 0;
+ * Launch rule (gift cards refused on Shops while SHOP_GIFT_CARDS is not "on"):
+ * @mutate supabase/functions/shop-checkout/index.ts |  if (giftCardId && Deno.env.get("SHOP_GIFT_CARDS") !== "on") { |  if (false) {
+ * @mutate supabase/functions/shop-checkout/index.ts |  if (giftCardId && Deno.env.get("SHOP_GIFT_CARDS") !== "on") { |  if (giftCardId && Deno.env.get("SHOP_GIFT_CARDS") === "off") {
  * H6 (tax at capture, not at the hold):
  * @mutate supabase/functions/shop-checkout/index.ts |    customer_details: { address, address_source: addressSource }, |    customer_details: { address: { ...address, postal_code: "70112" }, address_source: addressSource },
  * @mutate supabase/functions/shop-checkout/index.ts |  }, { idempotencyKey: `shop-tax-${orderId}` }); |  });
@@ -107,8 +112,9 @@ const SHOP = "0000000b-0000-4000-8000-0000000000cc";
 const ORDER = "0000000b-0000-4000-8000-0000000000aa";
 const ITEM = "0000000b-0000-4000-8000-0000000000bb";
 
-function env() {
+function env(extra: Record<string, string> = {}) {
   setEnv({
+    ...extra,
     SUPABASE_URL: "https://x.supabase.co",
     SUPABASE_ANON_KEY: "anon-key",
     SUPABASE_SERVICE_ROLE_KEY: "service-key",
@@ -417,13 +423,31 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     ]);
   });
 
-  // Q2105 step 2: a gift card pays first; the page holds only what is left.
-  const askGift = (fn: Awaited<ReturnType<typeof load>>, giftId: unknown) => fn.request({
+  // Q2105 step 2: a gift card pays first; the page holds only what is left. These cases run with the
+  // SHOP_GIFT_CARDS=on switch (never set on prod until the payout and refund paths take gift orders).
+  const askGift = (fn: Awaited<ReturnType<typeof load>>, giftId: unknown, giftsOn = true) => (env(giftsOn ? { SHOP_GIFT_CARDS: "on" } : {}), fn.request({
     headers: { Authorization: "Bearer buyer-jwt" },
     body: { action: "order", shop_id: SHOP, lines: [{ item_id: ITEM, quantity: 2 }], ready_date: "2026-10-30", note: "",
       terms: { cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before" }, gift_card_id: giftId },
-  });
+  }));
   const GIFT = "0000000b-0000-4000-8000-0000000000dd";
+  it("Q2105 launch rule: with the switch off (prod), any gift card is refused before anything freezes or redeems", async () => {
+    const fn = await load();
+    frozen();
+    for (const flag of [undefined, "off", "true", "ON"]) {
+      env(flag === undefined ? {} : { SHOP_GIFT_CARDS: flag });
+      const res = await fn.fetch(fn.request({
+        headers: { Authorization: "Bearer buyer-jwt" },
+        body: { action: "order", shop_id: SHOP, lines: [{ item_id: ITEM, quantity: 2 }], ready_date: "2026-10-30", note: "",
+          terms: { cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before" }, gift_card_id: GIFT },
+      }));
+      expect(res.status).toBe(409);
+      expect((await json(res)).error).toBe("gift_card_not_accepted");
+    }
+    expect(rpcs("shops_request_order")).toHaveLength(0);
+    expect(rpcs("redeem_gift_card_for_shop_order")).toHaveLength(0);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
   it("Q2105: a gift is applied AS THE SERVICE on the tax just figured, and the page holds only the remainder as one line", async () => {
     const fn = await load();
     frozen();
@@ -440,6 +464,19 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     // The tax the hold step checks is still the whole order's (the gift was sized on it).
     expect(params.metadata.job_tax_cents).toBe("150");
     expect(rpcs("shops_cancel_order_request")).toHaveLength(0);
+  });
+
+  it("Q2105: a gift order whose page does not match, or is not attached, closes at once (the gift goes back now)", async () => {
+    const fn = await load();
+    frozen();
+    scenario.rpc.redeem_gift_card_for_shop_order = { outcome: "needs_hold", difference_cents: 2625, applied_cents: 4000 };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6625 });
+    expect((await fn.fetch(askGift(fn, GIFT))).status).toBe(500);
+    expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 2625 });
+    scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), shop_attach_checkout_session: { message: "order_closed", code: "55000" } };
+    expect((await fn.fetch(askGift(fn, GIFT))).status).toBe(409);
+    expect(rpcs("shops_cancel_order_request")).toHaveLength(2);
   });
 
   it("Q2105: a gift answer that does not add up to the price closes the order and opens no page", async () => {

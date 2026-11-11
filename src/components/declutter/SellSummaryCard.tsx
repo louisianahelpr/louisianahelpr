@@ -17,6 +17,9 @@ import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL } from "./
 import { CategoryDrillDown } from "./CategoryDrillDown";
 import { FieldLabel, SELL_INPUT, SellPriceInput, SellYouGet } from "./SellFormParts";
 import { SellTradesRow } from "./SellTradesRow";
+import "@/lib/i18n/enDeclPanels";
+import { t, useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 import type { SellFlow } from "./useSellFlowState";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -24,14 +27,8 @@ import { Input } from "@/components/ui/input";
 
 export type SummaryField = "title" | "price" | "category" | "condition" | "size" | "description";
 
-const FIELD_WORD: Record<SummaryField, string> = {
-  title: "title",
-  price: "price",
-  category: "category",
-  condition: "condition",
-  size: "size",
-  description: "details",
-};
+/** F260q: the field's name in an Edit/Add button ("Edit price"), in the member's language. */
+const fieldWord = (f: SummaryField) => t(`sell.field.${f}`);
 
 function Row({ field, title, value, empty, open, onToggle, busy, children, extra, problem, instead }: {
   field: SummaryField;
@@ -48,7 +45,7 @@ function Row({ field, title, value, empty, open, onToggle, busy, children, extra
   /** In place of Edit: a row with nothing to edit says what the seller can do instead (a free item's price). */
   instead?: { label: string; onClick: () => void };
 }) {
-  const verb = open ? "Done" : empty ? "Add" : "Edit";
+  const verb = t(open ? "sell.done" : empty ? "sell.add" : "sell.edit");
   // Opening a row puts the cursor in it (audit posting 1030 #8): Edit, tap the box, type, Done was one tap too many.
   // Not the category search box (11-07): a phone keyboard would cover the headings the seller came to tap.
   const li = useRef<HTMLLIElement>(null);
@@ -64,7 +61,7 @@ function Row({ field, title, value, empty, open, onToggle, busy, children, extra
           <p id={`sell-row-${field}-title`} className="text-ds-13 font-semibold text-muted-foreground">{title}</p>
           {!open && (
             <p onClick={instead ? undefined : onToggle} className={`text-ds-15 [overflow-wrap:anywhere] ${instead ? "" : "cursor-pointer"} ${empty ? "text-muted-foreground" : field === "description" ? "text-foreground" : "font-semibold text-foreground"}`} data-summary-value="">
-              {busy && empty ? "We're filling this in…" : empty ? `Add ${FIELD_WORD[field] === "details" ? "details" : `a ${FIELD_WORD[field]}`}` : value}
+              {busy && empty ? t("sell.filling") : empty ? t(`sell.addField.${field}`) : value}
             </p>
           )}
         </div>
@@ -73,7 +70,7 @@ function Row({ field, title, value, empty, open, onToggle, busy, children, extra
         {instead ? (
           <Button type="button" variant="link" size="sm" onClick={instead.onClick} className="shrink-0 px-2 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">{instead.label}</Button>
         ) : (
-          <Button type="button" variant="link" size="sm" onClick={onToggle} aria-expanded={open} aria-label={`${verb} ${FIELD_WORD[field]}`} className="shrink-0 px-2 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">
+          <Button type="button" variant="link" size="sm" onClick={onToggle} aria-expanded={open} aria-label={`${verb} ${fieldWord(field)}`} className="shrink-0 px-2 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">
             {verb}
           </Button>
         )}
@@ -95,33 +92,34 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems, setti
   problems?: Partial<Record<SummaryField, ReactNode>>;
 }) {
   const { form, set, ai, hintAt, priceCents, sizeKnown, setSizePicked } = s;
+  useLanguage();
   const busy = ai.state.status === "busy";
   const toggle = (f: SummaryField) => setOpen((o) => (o === f ? null : f));
   const row = (field: SummaryField) => ({ field, open: open === field, onToggle: () => toggle(field), busy, problem: problems?.[field] });
   const draft = ai.state.status === "done" ? ai.state.draft : null;
   return (
     <section className="space-y-2" aria-labelledby="sell-summary-head">
-      <h2 id="sell-summary-head" className="font-display font-moment text-ds-24 font-semibold leading-tight text-foreground">Your listing</h2>
+      <h2 id="sell-summary-head" className="font-display font-moment text-ds-24 font-semibold leading-tight text-foreground">{t("sell.yourListing")}</h2>
       <p className="text-ds-14 text-muted-foreground">
-        {busy ? "We're writing it from your photos." : draft ? "We wrote this from your photos. Change anything." : "Add photos and we'll write it for you, or fill it in yourself."}
+        {t(busy ? "sell.writing" : draft ? "sell.wrote" : "sell.addPhotos")}
       </p>
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card" aria-busy={busy} data-sell-summary={busy ? "busy" : draft ? "done" : "empty"}>
-        <Row {...row("title")} title="Title" value={form.title.trim()} empty={!form.title.trim()}>
+        <Row {...row("title")} title={t("sell.title")} value={form.title.trim()} empty={!form.title.trim()}>
           {/* Audit 11-10 F329: the row's own heading names the box (it read "Title" twice, a header and a label); a
               long pasted title was cut at 80 with no word, so the count shows and turns red at the limit. */}
           <div className="space-y-1.5">
-            <Input look="card" id="sell-title" aria-labelledby="sell-row-title-title" maxLength={80} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Oak rocking chair" />
+            <Input look="card" id="sell-title" aria-labelledby="sell-row-title-title" maxLength={80} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder={t("sell.titlePlaceholder")} />
             <p data-title-count="" className={`text-right text-ds-12 ${form.title.length >= 80 ? "font-semibold text-destructive-ink" : "text-muted-foreground"}`} aria-live="polite">
-              {form.title.length}/80{form.title.length >= 80 ? " · That's the limit." : ""}
+              {form.title.length}/80{form.title.length >= 80 ? t("sell.limit") : ""}
             </p>
           </div>
         </Row>
         <Row
           {...row("price")}
-          title="Price"
-          value={form.free ? "Free" : priceCents ? formatPrice(priceCents) : ""}
+          title={t("sell.price")}
+          value={form.free ? t("sell.free") : priceCents ? formatPrice(priceCents) : ""}
           empty={!form.free && !priceCents}
-          instead={form.free ? { label: "Charge for it", onClick: () => { set("free", false); setOpen(() => "price"); } } : undefined}
+          instead={form.free ? { label: t("sell.chargeForIt"), onClick: () => { set("free", false); setOpen(() => "price"); } } : undefined}
           extra={<>
             {draft && !form.free && <AiPriceLine draft={draft} />}
             {!form.free && !!priceCents && <SellYouGet priceCents={priceCents} />}
@@ -131,26 +129,26 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems, setti
         >
           {!form.free && <SellPriceInput s={s} />}
         </Row>
-        <Row {...row("category")} title="Category" value={CATEGORY_LABEL[form.category] ?? form.category} empty={false}>
-          <CategoryDrillDown label="Category" groups={CATEGORY_GROUPS} value={form.category} onChange={(v) => { set("category", v); setOpen(() => null); }} />
+        <Row {...row("category")} title={t("sell.category")} value={CATEGORY_LABEL[form.category] ? t(`decl.cat.${form.category}` as MsgKey) : form.category} empty={false}>
+          <CategoryDrillDown label={t("sell.category")} groups={CATEGORY_GROUPS} value={form.category} onChange={(v) => { set("category", v); setOpen(() => null); }} />
           {/* I1 (Q1836 a): "Other" always works; this sends a missing category to the admin queue (hidden switch suggest_category). */}
           <SuggestCategory area="declutter" />
         </Row>
-        <Row {...row("condition")} title="Condition" value={CONDITION_LABEL[form.conditionStars] ?? ""} empty={false}>
-          <ChipGroup label="Condition" options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />
+        <Row {...row("condition")} title={t("sell.condition")} value={CONDITION_LABEL[form.conditionStars] ? t(`decl.cond.${form.conditionStars}` as MsgKey) : ""} empty={false}>
+          <ChipGroup label={t("sell.condition")} options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: t(`decl.cond.${n}` as MsgKey) }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />
         </Row>
         {/* Owner 11-08: "Open to trades?", one compact row below Condition (priced listings only). */}
         <SellTradesRow s={s} />
         {/* Not one of the owner's six: asked only when the photo tool didn't answer it (and while it is writing, never guessed). */}
         {!sizeKnown && !busy && (
-          <Row {...row("size")} title="Size" value="" empty>
-            <ChipGroup label="Size" options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: SIZE_LABEL[k] }))} value="" onChange={(v) => { set("deliverySize", v as DeliverySize); setSizePicked(true); }} />
+          <Row {...row("size")} title={t("sell.size")} value="" empty>
+            <ChipGroup label={t("sell.size")} options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: t(`decl.size.${k}`) }))} value="" onChange={(v) => { set("deliverySize", v as DeliverySize); setSizePicked(true); }} />
           </Row>
         )}
-        <Row {...row("description")} title="Details" value={form.description.trim()} empty={!form.description.trim()}>
+        <Row {...row("description")} title={t("sell.details")} value={form.description.trim()} empty={!form.description.trim()}>
           <div className="space-y-2">
-            <FieldLabel htmlFor="sell-desc" text="Anything else?" extra="(optional)" />
-            <Textarea id="sell-desc" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="e.g. Works great. Small scuff on the base." />
+            <FieldLabel htmlFor="sell-desc" text={t("sell.anythingElse")} extra={t("sell.optional")} />
+            <Textarea id="sell-desc" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder={t("sell.detailsPlaceholder")} />
           </div>
         </Row>
         {settingsRows}

@@ -351,6 +351,7 @@
     "shops_close_my_shop()": "client",
     "shops_get_shop(uuid)": "client",
     "shops_my_shop_id()": "client",
+    "shops_my_strikes()": "client",
     "shops_remove_photo(uuid)": "client",
     "shops_save_my_shop(text, text, text, text[], text, boolean, numeric, numeric, boolean, boolean, text)": "client",
     "shops_set_follow(uuid, boolean)": "client",

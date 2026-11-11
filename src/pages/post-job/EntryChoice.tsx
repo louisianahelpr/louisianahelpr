@@ -252,6 +252,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     <JobCategoryGroups
       category={form.category}
       setCategory={form.setCategory}
+      setTitle={form.setTitle}
       group={null}
       setGroup={(g) => {
         if (atOpenJobLimit || !g) return;

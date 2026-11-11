@@ -74,23 +74,39 @@ function oneEditApart(a: string, b: string): boolean {
   return a.length > b.length ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
 }
 
+/** Common household words in Spanish (stemmed, no accents) and the English word listings use. Suggestions only. */
+const SPANISH_WORDS: Readonly<Record<string, string>> = {
+  lampara: "lamp", silla: "chair", mesa: "table", cama: "bed", sillon: "couch", bicicleta: "bike", juguete: "toy",
+  libro: "book", zapato: "shoe", espejo: "mirror", escritorio: "desk", ventilador: "fan", alfombra: "rug",
+  plato: "plate", taza: "mug", olla: "pot", cuna: "crib", cortina: "curtain", almohada: "pillow", cobija: "blanket",
+  estante: "shelf", lavadora: "washer", secadora: "dryer", cochecito: "stroller", reloj: "clock", bolsa: "bag",
+};
+
 /**
  * Audit 11-10 F310: "lamb" found nothing while "lamp" had 5 items. When a search finds nothing, the nearest search
  * that would: each query word no item holds is swapped for a word the items do hold one typo away (words of 4 letters
  * or more, so "cup" never turns into "cap"). Null when no such swap finds an item. It only SUGGESTS (Browse offers it
  * as a button); matchesSearch, the one rule shared with the server, is unchanged.
+ * F310 second half: "lampara" (or "lámpara") also found nothing. Accents are dropped first, and a common household
+ * word in Spanish that no item holds is tried as its English word (SPANISH_WORDS) before the typo swap.
  */
 export function closeSearch(
   query: string,
   items: readonly { title: string; description?: string | null; category?: string | null }[],
 ): string | null {
-  const words = searchWords(query);
+  const words = searchWords(query.normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
   if (words.length === 0) return null;
   const texts = items.map((it) => itemText(it.title, it.description, it.category));
   const vocab = new Set(texts.flatMap((t) => t.split(" ")));
   let changed = false;
   const fixed = words.map((w) => {
-    if (w.length < 4 || texts.some((t) => t.includes(w))) return w;
+    if (texts.some((t) => t.includes(w))) return w;
+    const english = SPANISH_WORDS[w];
+    if (english && texts.some((t) => t.includes(english))) {
+      changed = true;
+      return english;
+    }
+    if (w.length < 4) return w;
     const near = [...vocab].find((v) => v.length >= 4 && oneEditApart(w, v));
     if (!near) return w;
     changed = true;

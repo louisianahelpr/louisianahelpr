@@ -2,7 +2,7 @@
  * F266a (owner 11-11 ~2:10 PM): the Money page shows ONE stack for the Helpr: "On its way / Waiting for approval /
  * Held in a dispute". "On its way" is the approved pay not sent yet (comingToYou, unchanged); the other two come from
  * earningsTabHelpers.moneyStack over the same earnings read, priced as the Helpr's take-home. Home's strip keeps
- * "Coming to you" alone. Definitions: DECISIONS-FOR-OWNER-1111.md "## Builder 3".
+ * "Coming to you" alone (the hook half: homeMoneyGating.test.tsx). Definitions: DECISIONS-FOR-OWNER-1111.md "## Builder 3".
  *
  * @mutate src/components/profile/earningsTab/earningsTabHelpers.ts |   j.payment_status === "escrow" && (j.status === "disputed" \|\| (j.has_active_dispute === true && !j.dispute_resolved_at)); |   j.payment_status === "escrow" && j.status === "disputed";
  * @mutate src/components/profile/earningsTab/earningsTabHelpers.ts |   !isHeldInDispute(j) &&\n | \n
@@ -10,7 +10,6 @@
  * @mutate src/components/profile/earningsTab/earningsTabHelpers.ts | const WAITING_FOR_APPROVAL_STATUSES: readonly string[] = ["in_progress", "pending_approval", "accepted"]; | const WAITING_FOR_APPROVAL_STATUSES: readonly string[] = ["in_progress", "pending_approval", "accepted", "revision_requested"];
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |       {stack && stack.disputeCents > 0 && ( |       {false && (
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   const comingLabel = placement === "money" ? "On its way" : "Coming to you"; |   const comingLabel = "Coming to you";
- * @mutate src/pages/home/homeDashboard/homeMoney.ts |     if (st.waitingCents > 0 \|\| st.disputeCents > 0) stack = st; |
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";

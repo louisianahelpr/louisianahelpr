@@ -115,7 +115,8 @@ function drawn(): string[] {
   return Array.from(box.children).map((el) => {
     const order = el.querySelector("[data-order-talk-row]");
     if (order) return `order:${order.querySelector("[title]")?.getAttribute("title")}`;
-    const m = /Job ([a-z0-9-]+)\(words\)/.exec(el.textContent ?? "");
+    // Owner 11-11 (F421): a thread row is title first; its headline is the job title.
+    const m = /^Job ([a-z0-9-]+)$/.exec(el.querySelector('[data-testid="row-title"]')?.textContent ?? "");
     return `thread:${m?.[1] ?? "?"}`;
   });
 }

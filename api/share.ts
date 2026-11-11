@@ -59,7 +59,7 @@
  *     `get_public_open_jobs`, and is shown on the public browse grid.
  *   • The free-text `description` IS anon-readable, but is user-written and
  *     could contain a street address or gate code the poster typed. It is
- *     therefore excluded here on purpose — see the note on jobDescription().
+ *     therefore excluded here on purpose — see the note on jobShareDescription.
  */
 
 import { SHELL_HTML } from "../scripts/generated/og-shell.js";
@@ -69,6 +69,7 @@ import { OG_PROFILE_HEIGHT, OG_PROFILE_WIDTH, ogProfileImageUrl } from "../src/l
 import { browseShellRowsUrl, browseShellSeedsHiddenUrl, shellRowsWhenSeedsHidden, withBrowseShell } from "../src/lib/browseShellCards.mjs";
 import { declutterGuestPreviewUrl, declutterPhotoPreloadHeader, firstPhotoPaths } from "../src/lib/declutterFirstPhotos.mjs";
 import { shareCardPriceLabel } from "../src/lib/declutter/shareCardPrice.mjs";
+import { jobShareDescription } from "../src/lib/jobShareLine.mjs";
 
 /**
  * og:url and the canonical link are built from this constant, never from the
@@ -288,6 +289,14 @@ interface PublicJob {
   date_needed: string | null;
   pricing_mode: string | null;
   expires_at: string | null;
+  /** The share line's parish, window and take-home inputs (F269a): all public columns of open_jobs_browse. */
+  parish: string | null;
+  date_window_end: string | null;
+  urgent_fee: number | null;
+  is_group_job: boolean | null;
+  helpers_needed: number | null;
+  helper_fee_flat_cents: number | null;
+  helper_fee_percent: number | null;
   /** Public job-photos URLs (the guest page already shows them). Only whether one exists is used here. */
   photos: string[] | null;
 }
@@ -315,7 +324,8 @@ type JobLookup =
 
 async function fetchPublicJob(id: string): Promise<JobLookup> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { state: "unknown" };
-  const columns = "id,title,category,budget,location,date_needed,pricing_mode,expires_at,photos";
+  const columns =
+    "id,title,category,budget,location,date_needed,pricing_mode,expires_at,photos,parish,date_window_end,urgent_fee,is_group_job,helpers_needed,helper_fee_flat_cents,helper_fee_percent";
   const endpoint =
     `${SUPABASE_URL}/rest/v1/open_jobs_browse` +
     `?select=${encodeURIComponent(columns)}&id=eq.${encodeURIComponent(id)}&limit=1`;
@@ -350,55 +360,12 @@ function humaniseCategory(category: string | null): string {
 }
 
 /**
- * `date_needed` is a bare YYYY-MM-DD. Formatting it in the server's local zone
- * would slide it a day either way, so pin the format to UTC.
+ * The card body for a job: the ONE share line (owner 11-11, F269a), "Cleaning · Iberia Parish · Sun, Nov 29 · $116",
+ * from src/lib/jobShareLine.mjs, the same function the page's usePageMeta calls, so og:description,
+ * twitter:description and name=description agree before and after JS runs. Structured, already-public fields only,
+ * never the job's free-text `description`: it is the one field a customer can type a street address or a gate code
+ * into, and this string is cached by third parties indefinitely and shown to people who never open the link.
  */
-function formatDate(dateNeeded: string | null): string {
-  if (!dateNeeded || !/^\d{4}-\d{2}-\d{2}$/.test(dateNeeded)) return "";
-  const parsed = new Date(`${dateNeeded}T00:00:00Z`);
-  if (Number.isNaN(parsed.getTime())) return "";
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(parsed);
-}
-
-function formatBudget(job: PublicJob): string {
-  if (job.pricing_mode !== "set_price") return "";
-  const budget = typeof job.budget === "number" ? job.budget : Number(job.budget);
-  if (!Number.isFinite(budget) || budget <= 0) return "";
-  return Number.isInteger(budget) ? `$${budget}` : `$${budget.toFixed(2)}`;
-}
-
-/**
- * The card body for a job.
- *
- * Composed from structured, already-public fields rather than the job's
- * free-text `description`. The description is anon-readable and the guest page
- * renders it, but it is the one field a customer can type a street address or
- * a gate code into — and unlike the page, this string gets cached by third
- * parties indefinitely and shown to people who never open the link. A
- * structured line is both safer and reads better on a card.
- *
- * (Note for whoever owns src/pages/jobs/JobDetail.tsx: `usePageMeta` there does put
- * the raw description into og:description. Today that reaches nobody, because
- * crawlers don't run the SPA — but it does reach a JS-executing crawler like
- * Googlebot. Worth a look; it is outside this lane.)
- */
-function jobDescription(job: PublicJob): string {
-  const parts: string[] = [];
-  const city = clean(job.location, 60);
-  const category = humaniseCategory(job.category);
-  parts.push(city ? `${category} job in ${city}` : `${category} on Helpr`);
-  const when = formatDate(job.date_needed);
-  if (when) parts.push(`needed ${when}`);
-  const budget = formatBudget(job);
-  if (budget) parts.push(budget);
-  return `${parts.join(" · ")}. Payment is held safely until the work is confirmed done.`;
-}
-
 /**
  * A job id that resolves to nothing — deleted, filled, expired, or simply
  * never existed. It must NOT produce a confident card for a job that isn't
@@ -656,7 +623,7 @@ async function metaForJob(id: string, url: string): Promise<Meta | null> {
     // a non-executing one agree on the card.
     title: `${title} — Helpr`,
     ogTitle: title,
-    description: clean(jobDescription(job), 200),
+    description: clean(jobShareDescription(job), 200),
     url,
     // Same rationale as unavailableJobMeta above.
     robots: "noindex, follow",
@@ -669,7 +636,8 @@ async function metaForJob(id: string, url: string): Promise<Meta | null> {
  * kind=job keyed by the JOB id (already in the shared URL). Never the photo's own URL: its storage path starts
  * with the poster's user id, and this URL sits in third-party preview caches for good (the shop card's
  * lh-authz-rls must-fix 1). shop-photo re-reads open_jobs_browse on every fetch, so a filled, expired or
- * removed job stops serving its photo. No photo: no image block (the shell's own card image stays).
+ * removed job stops serving its photo. No photo: no image block, so the shell's own card image, the Helpr mark
+ * (index.html og-image.png), stays: the logo fallback the owner asked for (owner 11-11, F269a).
  */
 function jobImage(job: PublicJob, title: string): Meta["image"] | undefined {
   const first = Array.isArray(job.photos) ? job.photos.find((p) => typeof p === "string" && p.length > 0) : undefined;

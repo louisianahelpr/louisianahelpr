@@ -55,6 +55,8 @@ export type GuestJob = FlatFeeStamp & {
   date_window_end?: string | null;
   start_time?: string | null;
   is_flexible_schedule?: boolean | null;
+  /** The view's parish stem, read only for the share line (jobShareLine.mjs, F269a); the sheet derives its own. */
+  parish?: string | null;
 };
 
 /** The pay label: the same words on the sheet for every paid job, so it never reads as a second figure (F217). */

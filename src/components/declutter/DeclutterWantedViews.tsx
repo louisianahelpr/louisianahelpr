@@ -33,6 +33,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { timeLeft } from "@/lib/declutter/timeLeft";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { checkoutAmounts } from "@/lib/declutter/money";
+import { ONBOARDING_FEE_CENTS } from "@/lib/moneyLimits";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { photoPublicUrl } from "@/lib/declutter/api";
 import { WANTED_CATEGORY_PARAM, WANTED_POST_PARAM, WANTED_WHAT_PARAM } from "@/lib/declutter/sellChooser";
@@ -130,7 +131,7 @@ function feeLine(maxPrice: string): string {
   const cents = valid ? typed : 3000;
   // Q2578 (audit 1102a): with nothing typed the field shows a grey "30" and this line used to say "A $30 item costs...",
   // so the empty field read as filled in. Until a price is typed the line says it is an example.
-  return `${valid ? "A" : "For example, a"} ${formatPrice(cents)} item costs ${formatMoneyExact(checkoutAmounts([cents]).totalCents)} with our fee. A first purchase also has a one-time setup fee.`;
+  return `${valid ? "A" : "For example, a"} ${formatPrice(cents)} item costs ${formatMoneyExact(checkoutAmounts([cents]).totalCents)} with our fee. A first purchase also has a one-time ${formatPrice(ONBOARDING_FEE_CENTS)} setup fee (it covers the ID check).`;
 }
 
 function formatMoneyExact(cents: number): string {

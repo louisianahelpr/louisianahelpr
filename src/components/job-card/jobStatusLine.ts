@@ -1179,7 +1179,8 @@ const POSTER_NAMED: Partial<Record<PosterWait, (name: string, job: Job) => strin
   overdue_not_arrived: (n) => `${firstName(n)} never arrived — cancel?`,
   overdue_no_show: (n) => `${firstName(n)} never arrived — No-Show?`,
   overdue_unfinished: (n) => `Waiting on ${firstName(n)} to finish`,
-  started_no_checkin: (n) => `${firstName(n)} hasn't checked in`,
+  // F272 (audit 11-10): "checked in" was jargon. This wait is no on-the-way and no arrival past the start.
+  started_no_checkin: (n) => `${firstName(n)} hasn't said they're on the way`,
 };
 const HELPER_NAMED: Partial<Record<HelperWait, (name: string) => string>> = {
   applied: (n) => `${n} hasn't replied yet`,

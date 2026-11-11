@@ -251,8 +251,9 @@ export function InProgressStep(ctx: PosterStepCtx) {
           <JobActionChip
             key="noshow"
             icon={XCircle}
-            label="No-Show"
-            ariaLabel="No-Show — report that the Helpr never turned up"
+            // F272 (audit 11-10): sentence case, as every other control.
+            label="No-show"
+            ariaLabel="No-show — report that the Helpr never turned up"
             tone="danger"
             onClick={() => onNoShow(job.id)}
           />

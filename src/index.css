@@ -2862,6 +2862,22 @@ button,
   box-shadow: none;
 }
 
+/* F277a (audit 11-10): in dark mode the primary is a LIGHT olive with dark words, so the 50% dim left dark words on
+   a mid-olive ("Tip" before an amount, "Send new time"), hard to read and not plainly off. Dark mode's disabled
+   primary is the quiet dark-grey surface with light words at 60% instead: clearly off, still readable. Guard:
+   src/test/darkDisabledPrimaryReadable.test.ts. */
+[data-theme="dark"] .btn-grad-primary:disabled,
+[data-theme="dark"] .btn-grad-primary[aria-disabled="true"] {
+  opacity: 1;
+  background-color: hsl(var(--sand)) !important;
+  background-image: none !important;
+  color: hsl(var(--olivewood) / 0.6) !important;
+}
+[data-theme="dark"] .btn-grad-primary:disabled *,
+[data-theme="dark"] .btn-grad-primary[aria-disabled="true"] * {
+  color: inherit !important;
+}
+
 /* UNDER 18: GREYED OUT, NOT GONE (owner, 2026-10-12, Q1586(c)). An Apply or
    Post a Job entry point a member under 18 cannot use carries
    `data-age-gated` + aria-disabled (useAgeGate().gatedProps): the same 50%

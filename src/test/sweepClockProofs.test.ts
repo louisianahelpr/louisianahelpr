@@ -69,6 +69,7 @@ const PROVEN: Record<string, string> = {
   sweep_job_match_queue: "sweepNotifyQueueClock.pglite.mjs",
   sweep_job_start_reminders: "sweepClockBoundaries.pglite.mjs",
   sweep_job_post_drafts: "jobPostDrafts.pglite.mjs",
+  sweep_unpaid_job_drafts: "sweepUnpaidJobDrafts.pglite.mjs",
   sweep_no_show_alerts: "sweepCentralStartClock.pglite.mjs",
   sweep_old_email_send_log: "sweepClockBoundaries.pglite.mjs",
   sweep_old_error_logs: "sweepClockBoundaries.pglite.mjs",

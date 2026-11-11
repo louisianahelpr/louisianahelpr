@@ -18028,6 +18028,7 @@ export type Database = {
         Returns: number
       }
       sweep_needs_you_reminders: { Args: { p_now?: string }; Returns: number }
+      sweep_unpaid_job_drafts: { Args: { p_now?: string }; Returns: Json }
       sweep_unread_message_reminders: {
         Args: { p_now?: string }
         Returns: number

@@ -31,23 +31,33 @@ function heroLangIsSpanish(): boolean {
 export function useHeroWords(): HeroWords | null {
   const [words, setWords] = useState<HeroWords | null>(null);
   useEffect(() => {
-    if (!heroLangIsSpanish()) return;
     let live = true;
-    esModule()
-      .then((m) => m ?? untilReload())
-      .then(
-      ({ es }) => {
-        if (!live) return;
-        setWords({
-          titleLead: es["hero.titleLead"], titleAccent: es["hero.titleAccent"], subhead: es["hero.subhead"],
-          searchLabel: es["hero.searchLabel"], searchButton: es["hero.searchButton"],
-          searchDeclutter: es["hero.searchDeclutter"], tabJobs: es["hero.tabJobs"],
-        });
-      },
-      (err: unknown) => console.warn("[hero] Spanish words failed to load; showing English", err),
-    );
+    const read = () => {
+      // F260q: a switch made on the page (the footer's English / Español) re-reads; English is the locked copy (null).
+      if (!heroLangIsSpanish()) {
+        setWords(null);
+        return;
+      }
+      esModule()
+        .then((m) => m ?? untilReload())
+        .then(
+          ({ es }) => {
+            if (!live) return;
+            setWords({
+              titleLead: es["hero.titleLead"], titleAccent: es["hero.titleAccent"], subhead: es["hero.subhead"],
+              searchLabel: es["hero.searchLabel"], searchButton: es["hero.searchButton"],
+              searchDeclutter: es["hero.searchDeclutter"], tabJobs: es["hero.tabJobs"],
+            });
+          },
+          (err: unknown) => console.warn("[hero] Spanish words failed to load; showing English", err),
+        );
+    };
+    read();
+    // "helpr:lang" is fired by src/lib/i18n/language.ts setLang (useGuestSpanish.ts LANG_EVENT; a literal, so no import).
+    window.addEventListener("helpr:lang", read);
     return () => {
       live = false;
+      window.removeEventListener("helpr:lang", read);
     };
   }, []);
   return words;

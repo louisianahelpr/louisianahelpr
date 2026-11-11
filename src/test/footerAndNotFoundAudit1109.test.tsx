@@ -7,7 +7,7 @@
  *   L038 the 404's canonical link pointed at the home page: the 404 drops it.
  *
  * @mutate src/components/Footer.tsx | const FOOTER_LINK = "link-standard inline-flex items-center min-h-11"; | const FOOTER_LINK = "link-standard inline-flex items-center";
- * @mutate src/components/Footer.tsx |             aria-label="love" |
+ * @mutate src/components/Footer.tsx |             aria-label={w("footer.love", "love")} |
  * @mutate src/pages/info/NotFound.tsx |     noCanonical: true, |
  * @mutate src/components/Footer.tsx |               <Link to="/helprs" className={FOOTER_LINK}> |               <Link to="/help" className={FOOTER_LINK}>
  */

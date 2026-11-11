@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-11T16:08:54.607Z",
-  "guards": 3917,
-  "registered": 3916,
+  "generated": "2026-11-11T18:22:28.735Z",
+  "guards": 3923,
+  "registered": 3922,
   "unregistered": [
     "src/lib/shops/preorders.test.ts"
   ],
@@ -16,6 +16,9 @@
     "src/test/declutterTradesClient.test.tsx",
     "src/test/fabClearsLastRow.test.tsx",
     "src/test/feeAmountsFromCheckout.test.tsx",
+    "src/test/jobShareLine.test.ts",
+    "src/test/needsYouCountsEachOrderOnce.test.ts",
+    "src/test/sellerProblemIsBuyersNeedsYou.test.ts",
     "src/test/unavailableProfileDoesNotSayTheyLeft.test.ts"
   ],
   "classD_selfReferential": [

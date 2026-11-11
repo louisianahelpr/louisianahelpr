@@ -23,7 +23,7 @@
  *
  * F005: the footer's Facebook (bright blue) and Instagram (rainbow gradient) chips were off brand. Every social chip is
  * the olive monochrome chip (olivewood fill, parchment glyph), with no brand colour or gradient of its own.
- * @mutate src/components/Footer.tsx | rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:brightness-110"\n              aria-label="Follow us on Facebook | rounded-full bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:brightness-110"\n              aria-label="Follow us on Facebook
+ * @mutate src/components/Footer.tsx | rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:brightness-110"\n              aria-label={w("footer.facebook", "Follow us on Facebook | rounded-full bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:brightness-110"\n              aria-label={w("footer.facebook", "Follow us on Facebook
  *
  * F006: the footer's links and tagline were 11px, and the links 16px tall tap targets. They are 13px, and every link
  * has a 44px tall tap area on a touch screen (pointer: coarse).

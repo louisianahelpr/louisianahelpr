@@ -6,8 +6,10 @@
  * in English and say so ("lang.legalInEnglish").
  */
 import type { MsgKey } from "./en";
+import { esPublic } from "./esPublic";
 
 export const es: Record<MsgKey, string> = {
+  ...esPublic,
   "chat.back": "Volver a las conversaciones",
   "chat.options": "Opciones de la conversación",
   "chat.cancelReply": "Cancelar la respuesta",

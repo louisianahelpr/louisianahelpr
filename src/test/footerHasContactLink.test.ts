@@ -1,4 +1,4 @@
-// @mutate src/components/Footer.tsx |               <Link to="/support" className={FOOTER_LINK}>\n                Contact us | <Link to="/help" className={FOOTER_LINK}>\n                Contact us
+// @mutate src/components/Footer.tsx |               <Link to="/support" className={FOOTER_LINK}>\n                {w("footer.contact", "Contact us")} | <Link to="/help" className={FOOTER_LINK}>\n                {w("footer.contact", "Contact us")}
 /**
  * The footer has a way to reach us (lead item 14, 2026-10-25: /contact 404'd
  * and the footer had no contact link). /contact now redirects to /support
@@ -11,7 +11,8 @@ import { blankComments } from "./helpers/blankNonCode";
 
 describe("the footer links Contact us to /support", () => {
   const footer = blankComments(readFileSync("src/components/Footer.tsx", "utf8"));
-  const links = [...footer.matchAll(/<Link\s+to="([^"]+)"[^>]*>\s*([^<{]+?)\s*<\/Link>/g)].map((m) => ({ to: m[1], text: m[2] }));
+  // F260q: a label is plain text or the English of {w("footer.x", "English")} (Spanish comes from the dictionary).
+  const links = [...footer.matchAll(/<Link\s+to="([^"]+)"[^>]*>\s*(?:\{w\("[\w.]+", "([^"]+)"\)\}|([^<{]+?))\s*<\/Link>/g)].map((m) => ({ to: m[1], text: m[2] ?? m[3] }));
 
   it("reads the footer's links", () => {
     expect(links.length).toBeGreaterThan(3);

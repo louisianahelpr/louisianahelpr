@@ -80,6 +80,8 @@ const state = {
   trades: [] as unknown[],
 };
 const calls: [string, unknown[]][] = [];
+const GUEST_CARD: { display_name: string; avg_rating: number | null; review_count: number; id_checked: boolean } = { display_name: "Dana R.", avg_rating: 4.5, review_count: 2, id_checked: true };
+const guestCard = { row: { ...GUEST_CARD } };
 // A PostgREST builder that records each call and resolves to state.tableRows.
 const builder: object = new Proxy({}, {
   get: (_t, k) =>
@@ -124,12 +126,17 @@ vi.mock("@/integrations/supabase/client", () => ({
     // The pickup-times, pickup-places and bundle reads answer their own shapes: no windows, no places (so the usual
     // times are the item's pickup times, ItemHandoverTimes), no discountable items. Without its own answer the places
     // read got the seller-card rows an earlier case left in state.safeRows, and DA-6 lost its pickup-times read.
-    rpc: async (fn: string) =>
-      fn === "declutter_item_pickup_windows" || fn === "declutter_item_pickup_places" || fn === "declutter_bundle_applies"
+    rpc: async (fn: string) => {
+      calls.push(["rpc", [fn]]);
+      return fn === "declutter_item_pickup_windows" || fn === "declutter_item_pickup_places" || fn === "declutter_bundle_applies"
         ? { data: [], error: null }
         : fn === "declutter_guest_seller_first_name"
           ? { data: "Dana", error: null }
-          : { data: state.safeRows, error: null },
+          : fn === "declutter_guest_seller_card"
+            // F227/F319: the server's four fields, exactly (20261111205821).
+            ? { data: [guestCard.row], error: null }
+            : { data: state.safeRows, error: null };
+    },
     from: (t: string) => { calls.push(["from", [t]]); return builder; },
   },
 }));
@@ -223,6 +230,7 @@ describe("the photo-first Declutter item page", () => {
     state.manage = null;
     state.trades = [];
     calls.length = 0;
+    guestCard.row = { ...GUEST_CARD };
   });
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -900,8 +908,12 @@ describe("the photo-first Declutter item page", () => {
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && (\n            <DeclutterSellerCard |           {!isSeller && (\n            <DeclutterSellerCard
   // @mutate src/components/declutter/DeclutterGuest.tsx |   if (failed \|\| open?.has("declutter")) return <><DeclutterGuestTopBar />{children}</>; |   return <><DeclutterGuestTopBar />{children}</>;
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!user && <DeclutterGuestSeller itemId={it.id} free={free} />} |
-  // @mutate src/lib/declutter/api.ts |   const res = await supabase.rpc("declutter_guest_seller_first_name", { p_item_id: itemId }); |   const res = await supabase.rpc("get_safe_profiles", { user_ids: [itemId] });
-  it("BUY-16 + owner pick 1 (11-08): a guest sees the REAL Make offer / Buy now, each going to sign up and back; no seller name; the wall while Declutter isn't open", async () => {
+  // @mutate src/lib/declutter/api.ts |   const res = await supabase.rpc("declutter_guest_seller_card", { p_item_id: itemId }); |   const res = await supabase.rpc("get_safe_profiles", { user_ids: [itemId] });
+  // F227/F319 (owner 11-11): the guest card is "Dana R.", the rating and ID checked, and nothing else (no photo, no link).
+  // @mutate src/components/declutter/DeclutterGuest.tsx |         {c.idChecked && ( |         {true && (
+  // @mutate src/components/declutter/DeclutterGuest.tsx |         {c.avg !== null && c.count > 0 && ( |         {false && (
+  // @mutate src/components/declutter/DeclutterGuest.tsx |         <span className="block truncate font-semibold">{c.name}</span> |         <a href="/u/x" className="block truncate font-semibold">{c.name}</a>
+  it("BUY-16 + owner pick 1 (11-08): a guest sees the REAL Make offer / Buy now, each going to sign up and back; only the small guest seller card (F227); the wall while Declutter isn't open", async () => {
     guest.on = true;
     state.item = { ...ITEM, live_at: new Date(Date.now() - 60_000).toISOString() };
     const first = open();
@@ -921,12 +933,25 @@ describe("the photo-first Declutter item page", () => {
     expect(screen.queryByRole("button", { name: "Save this item" })).toBeNull();
     // AUD31-67: the guest has the brand and a way to the rest of Louisiana Helpr.
     expect(within(join).getByRole("link", { name: "Helpr home" })).toHaveAttribute("href", "/");
-    // The seller's first name only (declutter_guest_seller_first_name), never the member card's "Dana R." or its link.
-    const seller = await screen.findByText("Dana");
-    expect(seller.closest("[data-guest-seller]")).not.toBeNull();
-    expect(screen.queryByText(/Dana R/)).toBeNull();
+    // F227/F319 (owner 11-11, narrow exception to BUY-16): the small guest card from declutter_guest_seller_card,
+    // exactly "Dana R.", the rating and ID checked. Never the member card, its photo, join date or profile link, and no
+    // member-only read (get_safe_profiles, get_public_profile_stats) for a guest.
+    const seller = await screen.findByText("Dana R.");
+    const guestCard = seller.closest("[data-guest-seller]") as HTMLElement;
+    expect(guestCard).not.toBeNull();
+    expect(guestCard.textContent).toBe("DSold byDana R.4.5 stars from · 2 reviewsID checked");
+    expect(guestCard.querySelector("[data-guest-seller-rating]")?.textContent).toBe("4.5 stars from · 2 reviews");
+    expect(guestCard.querySelector("[data-guest-seller-id]")?.textContent).toBe("ID checked");
+    expect(guestCard.querySelectorAll("a, img, button")).toHaveLength(0);
+    expect(guestCard.closest("a")).toBeNull();
+    expect(document.querySelector("[data-seller-card]")).toBeNull();
     expect(screen.queryByText(/Robichaux/)).toBeNull();
+    expect(screen.queryByText(/^Joined /)).toBeNull();
     expect(screen.queryByRole("link", { name: /See the seller/ })).toBeNull();
+    const rpcs = calls.filter(([k]) => k === "rpc").map(([, a]) => a[0]);
+    expect(rpcs).toContain("declutter_guest_seller_card");
+    expect(rpcs).not.toContain("get_safe_profiles");
+    expect(rpcs).not.toContain("get_public_profile_stats");
     expect(screen.queryByText("LOGIN WALL")).toBeNull();
     first.unmount();
     // AUD31-68: a Buy-now-only listing (accepts_offers false) asks a guest to sign up to buy it, never to make an offer.
@@ -994,13 +1019,15 @@ describe("the photo-first Declutter item page", () => {
   // F049 (UI audit 11-09): a free item said "Sold by Lexi" and "Exact address if the giver picks you".
   // @mutate src/components/declutter/DeclutterGuest.tsx | {free ? "Given by" : "Sold by"} | {"Sold by"}
   // @mutate src/components/declutter/ItemPickupBlock.tsx | `You'll get the exact address if ${giver ?? "the giver"} picks you.` | "exact address if the giver picks you"
-  it("F049: a guest on a free item reads 'Given by Dana' and 'You'll get the exact address if Dana picks you.'", async () => {
+  it("F049: a guest on a free item reads 'Given by Dana R.' and 'You'll get the exact address if Dana picks you.'", async () => {
     guest.on = true;
     state.handovers = ["porch"];
     state.item = { ...ITEM, price_cents: 0, current_price_cents: 0, live_at: new Date(Date.now() - 60_000).toISOString() };
+    // A seller with no public review and no ID check: the name alone, no stars, no badge (F227: never a false claim).
+    guestCard.row = { display_name: "Dana R.", avg_rating: null, review_count: 0, id_checked: false };
     open();
-    const seller = await screen.findByText("Dana");
-    expect(seller.closest("[data-guest-seller]")?.textContent).toBe("DGiven byDana");
+    const seller = await screen.findByText("Dana R.");
+    expect(seller.closest("[data-guest-seller]")?.textContent).toBe("DGiven byDana R.");
     await vi.waitFor(() => expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("You'll get the exact address if Dana picks you."));
     expect(document.body.textContent).not.toMatch(/Sold by|giver picks you/);
   });

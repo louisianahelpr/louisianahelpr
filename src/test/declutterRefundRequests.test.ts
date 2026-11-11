@@ -25,8 +25,8 @@
  *     calls declutter_refund_after_handover('refund_request_full').
  *  8. The app shows the panel only behind the switch, and every amount it shows is the server's.
  *
- * @mutate supabase/migrations/20261105032500_declutter_gift_payouts.sql |      AND public.declutter_sale_final(p.order_id)\n | \n
- * @mutate supabase/migrations/20261105032500_declutter_gift_payouts.sql | rf.order_id = p.order_id AND rf.stripe_payment_intent_id = o.stripe_payment_intent_id\n                        AND rf.reason = 'refund_request_part' AND rf.status IN ('pending', 'failed')) | rf.order_id = p.order_id AND rf.stripe_payment_intent_id = o.stripe_payment_intent_id\n                        AND rf.reason = 'refund_request_part' AND rf.status IN ('failed'))
+ * @mutate supabase/migrations/20261111211749_declutter_payout_waits_for_held_refund.sql |      AND public.declutter_sale_final(p.order_id)\n | \n
+ * @mutate supabase/migrations/20261111211749_declutter_payout_waits_for_held_refund.sql | rf.order_id = p.order_id AND rf.stripe_payment_intent_id = o.stripe_payment_intent_id\n                        AND rf.reason = 'refund_request_part' AND rf.status IN ('pending', 'failed')) | rf.order_id = p.order_id AND rf.stripe_payment_intent_id = o.stripe_payment_intent_id\n                        AND rf.reason = 'refund_request_part' AND rf.status IN ('failed'))
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |                            + interval '10 minutes' |                            + interval '0 minutes'
  * @mutate supabase/migrations/20261102002217_declutter_my_refund_todos.sql |   IF NOT public.feature_enabled_for('declutter_refund_requests') THEN\n    RETURN;\n  END IF;\n | \n
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHERE r.order_id = o.id AND r.status IN ('open', 'offered', 'returning')) THEN false | WHERE r.order_id = o.id AND r.status IN ('open', 'returning')) THEN false
@@ -42,6 +42,8 @@
  * @mutate supabase/migrations/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql |     IF v_side <> 'buyer' OR NOT public.declutter_problem_window_open(o.id) THEN |     IF v_side <> 'buyer' THEN
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |      WHERE (x.status = 'open' AND x.answer_by <= now()) OR (x.status = 'offered' AND x.offer_answer_by <= now()) |      WHERE (x.status = 'offered' AND x.offer_answer_by <= now())
  * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   IF o.status IN ('paid', 'refunded', 'handed_over') THEN |   IF o.status IN ('paid', 'refunded') THEN
+ * @mutate supabase/migrations/20261111211749_declutter_payout_waits_for_held_refund.sql | WHERE rh.order_id = p.order_id AND rh.status = 'held_for_review'\n                      AND rh.stripe_payment_intent_id IS NOT DISTINCT FROM o.stripe_payment_intent_id AND rh.reason <> 'delivery_damage')\n   ORDER BY p.next_attempt_at | WHERE rh.order_id = p.order_id AND rh.status = 'held_for_reviewX'\n                      AND rh.stripe_payment_intent_id IS NOT DISTINCT FROM o.stripe_payment_intent_id AND rh.reason <> 'delivery_damage')\n   ORDER BY p.next_attempt_at
+ * @mutate supabase/migrations/20261111211749_declutter_payout_waits_for_held_refund.sql | WHERE rh.order_id = m.order_id AND rh.status = 'held_for_review'\n                      AND rh.stripe_payment_intent_id IS NOT DISTINCT FROM o.stripe_payment_intent_id AND rh.reason <> 'delivery_damage')\n     AND NOT EXISTS (SELECT 1 FROM public.user_blocks | WHERE rh.order_id = m.order_id AND false)\n     AND NOT EXISTS (SELECT 1 FROM public.user_blocks
  * @mutate supabase/functions/declutter-money/index.ts |     admin.rpc("declutter_payouts_due", { p_limit: BATCH }), |     admin.from("declutter_payouts").select("*"),
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {true && items > 0 && (
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | then gets ${refundDollars(v.full_refund_cents)} back | then gets ${refundDollars(v.items_cents + 130)} back
@@ -78,6 +80,11 @@ describe("Declutter refunds after the handover (board 141, 20261026155251)", () 
     // lh-money-escrow review should-fix 1: after an agreed part refund the seller is paid once that refund went through.
     expect(flat(body("declutter_payouts_due"))).toMatch(/rf\.reason = 'refund_request_part' AND rf\.status IN \('pending', 'failed'\)\)/);
     expect(MONEY).toMatch(/admin\.rpc\("declutter_payouts_due"/);
+    // Money review 11-11 (20261111211749): a refund on the order held for an admin's review holds the seller's payout
+    // and the manager's share; it is paid once the refund is settled by hand or released and gone through.
+    // PGlite: src/test/pglite/declutterPayoutWaitsForHeldRefund.pglite.mjs.
+    expect(flat(body("declutter_payouts_due"))).toMatch(/NOT EXISTS \(SELECT 1 FROM public\.declutter_refunds rh WHERE rh\.order_id = p\.order_id AND rh\.status = 'held_for_review' AND rh\.stripe_payment_intent_id IS NOT DISTINCT FROM o\.stripe_payment_intent_id AND rh\.reason <> 'delivery_damage'\)/);
+    expect(flat(body("declutter_manager_payouts_due"))).toMatch(/NOT EXISTS \(SELECT 1 FROM public\.declutter_refunds rh WHERE rh\.order_id = m\.order_id AND rh\.status = 'held_for_review' AND rh\.stripe_payment_intent_id IS NOT DISTINCT FROM o\.stripe_payment_intent_id AND rh\.reason <> 'delivery_damage'\)/);
     // Q1934 (train 7): the damaged-in-delivery refund reads ONLY the payout's status, to page when the refund went
     // out first; it sends nothing. Any other read straight from the table (a payout list) still fails.
     const statusOnly = MONEY.replace(/admin\.from\("declutter_payouts"\)\.select\("status"\)\.eq\("order_id", r\.order_id\)\.maybeSingle\(\)/g, "");

@@ -36,7 +36,8 @@
  * a request 'agreed') and final at once, so no "paid on" day 24 hours out.
  * @mutate src/components/declutter/declutterPayoutWords.ts | if (ctx.refundAgreed && REFUND_HOLDS.has(ctx.refundAgreed)) return | if (false) return
  * @mutate src/components/declutter/declutterPayoutWords.ts |   if (ctx.refundAgreed) return `${gets}. The sale is final, so we send it next.`; |
- * @mutate src/components/declutter/declutterPayoutWords.ts | new Set(["pending", "failed", "unknown"]) | new Set(["pending", "failed", "unknown", "held_for_review", "settled_by_hand"])
+ * @mutate src/components/declutter/declutterPayoutWords.ts | new Set(["pending", "failed", "held_for_review", "unknown"]) | new Set(["pending", "failed", "unknown", "settled_by_hand"])
+ * @mutate src/components/declutter/declutterPayoutWords.ts | new Set(["pending", "failed", "held_for_review", "unknown"]) | new Set(["pending", "failed", "unknown"])
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | refundAgreed: refundStatus === "agreed" ? refund.data?.request?.refund_status ?? "unknown" : null, | refundAgreed: null,
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx | ` (${formatPrice(itemsCents)} + ${formatPrice(deliveryCents)} delivery)` | ` (${formatPrice(itemsCents)} for the sale and ${formatPrice(deliveryCents)} for delivering it)`
  */
@@ -125,11 +126,12 @@ describe("F360b: the seller card's one money line", () => {
 
   it("an agreed part refund: on hold until the buyer's refund goes through, then sent next (no day 24 hours out)", () => {
     const part = row({ refunded_cents: 2000, amount_cents: 2500 });
-    for (const st of ["pending", "failed", "unknown"] as const) {
+    // Money review 11-11 (20261111211749): a part refund held for review holds the payout too.
+    for (const st of ["pending", "failed", "held_for_review", "unknown"] as const) {
       expect(payoutLine(part, false, { handedOverAt: HANDED, now: NOW, refundAgreed: st })).toBe("You get $25 after the $20 refund. It's on hold until the buyer's refund goes through.");
     }
     // Not held by the run (lh-money-escrow review 11-11): sent next.
-    for (const st of ["succeeded", "settled_by_hand", "held_for_review"] as const) {
+    for (const st of ["succeeded", "settled_by_hand"] as const) {
       expect(payoutLine(part, false, { handedOverAt: HANDED, now: NOW, refundAgreed: st })).toBe("You get $25 after the $20 refund. The sale is final, so we send it next.");
     }
     // No payout account still says so first; a sent payout still says its day.

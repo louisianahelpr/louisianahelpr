@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-11T06:40Z",
+  "measured_at": "2026-11-11T07:03Z",
   "issues": {
     "readable": true,
     "open": [
@@ -127,7 +127,7 @@
         "number": 4302,
         "title": "nightly-red: main: Vitest",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42962219697",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42971270531",
         "runTruncated": false
       },
       {

@@ -111,7 +111,7 @@ describe("a guest opening a shared link", () => {
     expect(net).toBeGreaterThan(0);
     expect(net).toBeLessThan(120);
     expect(screen.getByText(`$${Math.floor(net!)}`)).toBeTruthy();
-    expect(screen.getByText("You'd take home")).toBeTruthy();
+    expect(screen.getByText("You'd earn after fees")).toBeTruthy();
     expect(screen.queryByText("$120")).toBeNull();
     expect(screen.queryByText(/Oak St/)).toBeNull();
     expect(screen.queryByTestId("where")).toBeNull();
@@ -125,6 +125,7 @@ describe("a guest opening a shared link", () => {
     expect(state.columns).toEqual([
       "id", "title", "category", "budget", "location",
       "urgent_fee", "is_group_job", "helpers_needed", "helper_fee_flat_cents", "helper_fee_percent",
+      "date_needed", "date_window_end", "start_time", "is_flexible_schedule",
       "status", "expires_at",
     ]);
     for (const column of ["customer_id", "latitude", "longitude", "description", "photos", "offered_to_helper_id", "direct_offer_status", "applicant_count", "special_requirements"]) {

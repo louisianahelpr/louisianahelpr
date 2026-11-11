@@ -16,7 +16,7 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { fetchMyCart, fetchMyOffers, type CartLine } from "@/lib/declutter/api";
 import { fetchMyRefundTodos } from "@/lib/declutter/refundRequests";
 import { useFeatureStatus } from "@/hooks/useFeature";
-import { declutterBuyingTodos } from "@/pages/home/homeDashboard/needsYouTodos";
+import { declutterBuyingTodos } from "@/lib/declutter/declutterTodos";
 import { fetchMyBookings, fetchMyHandover, fetchOrderProblem, type MyBooking, type MyHandover, type OrderProblem } from "@/lib/declutter/handover";
 import { fetchSellerDeliveryBooking, slotLabel, type SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";

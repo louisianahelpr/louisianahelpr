@@ -1079,7 +1079,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // Audit 11-10 F363 (Medium): the Buying badge counted cart LINES (8) while Home's to-dos and the dock counted
   // checkouts, one per seller (7). One rule now: openCheckouts, read by both.
   // @mutate src/lib/declutter/tabs.ts |   const toPay = openCheckouts(cart, now).size; |   const toPay = cart.filter((l) => l.my_side === "buyer" && l.status === "in_cart" && new Date(l.checkout_by).getTime() > now).length;
-  // @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   for (const [k, lines] of openCheckouts(cart, now)) { |   for (const [k, lines] of cart.filter((l) => l.my_side === "buyer" && l.status === "in_cart").map((l) => [l.seller_id ?? l.line_id, [l]] as const)) {
+  // @mutate src/lib/declutter/declutterTodos.ts |   for (const [k, lines] of openCheckouts(cart, now)) { |   for (const [k, lines] of cart.filter((l) => l.my_side === "buyer" && l.status === "in_cart").map((l) => [l.seller_id ?? l.line_id, [l]] as const)) {
   it("F363: two cart items from one seller are one checkout on the Buying badge and one to-do on Home", () => {
     const cart = [
       { ...LINE, line_id: "a", seller_id: "s1" },

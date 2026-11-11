@@ -133,7 +133,9 @@ const distinctive = distinctiveColumns(schema);
 // `gift_card_id` (declutter_orders, Q2106 20261105030604, its only table column) is the everyday key of every job
 // payment's Stripe metadata and RPC answer (`{ gift_card_id: "gift-1" }` in fundedJobPaymentFailed / release-payout);
 // a Declutter order row is still attributed by its own columns (gift_cents, delivery_cents, handover, ...).
-const NOT_A_ROW_MARKER = ["state", "step", "gift_card_id"];
+// `language` (profiles, F260q 20261111213927) is every pg_proc fixture's `{ language: "plpgsql" }` (raceClassGuard);
+// a profile row is still attributed by its own columns (full_name, user_id, ...).
+const NOT_A_ROW_MARKER = ["state", "step", "gift_card_id", "language"];
 for (const k of NOT_A_ROW_MARKER) distinctive.delete(k);
 
 // ---------------------------------------------------------------------------

@@ -7,7 +7,7 @@
  *
  * Remembered per device in safeStorage ("helpr_lang", mirrored to native
  * Preferences). With nothing saved it follows the browser/phone language.
- * A profile column (so emails and texts can follow it too) is phase 2.
+ * A signed-in member's pick is also saved to profiles.language (saveLanguage.ts) for server-written words.
  */
 import { useSyncExternalStore } from "react";
 import { safeStorage } from "@/lib/safeStorage";
@@ -18,6 +18,8 @@ import { loadModule } from "@/lib/loadModule";
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
 const esModule = () => loadModule(() => import("./es"));
+// F260q: the account's copy (profiles.language), on its own chunk so boot never carries the Supabase write.
+const saveModule = () => loadModule(() => import("./saveLanguage"));
 
 export type Lang = "en" | "es";
 export const LANG_KEY = "helpr_lang";
@@ -89,6 +91,8 @@ export function setLang(next: Lang) {
   // The signed-out first screens (landing/useGuestSpanish.ts) read the language without this module; tell them.
   if (typeof window !== "undefined") window.dispatchEvent(new Event("helpr:lang"));
   void ensureLangLoaded();
+  // The member PICKED it: save it to their account too (a signed-out visitor writes nothing; see saveLanguage.ts).
+  void saveModule().then((m) => m?.saveLanguage(next), (err: unknown) => console.warn("[i18n] language save skipped", err));
 }
 
 function fill(s: string, vars?: Record<string, string | number>): string {

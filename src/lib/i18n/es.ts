@@ -8,10 +8,12 @@
 import type { MsgKey } from "./en";
 import { esPublic } from "./esPublic";
 import { esLanding } from "./esLanding";
+import { esNotifications } from "./esNotifications";
 
 export const es: Record<MsgKey, string> = {
   ...esPublic,
   ...esLanding,
+  ...esNotifications,
   "chat.back": "Volver a las conversaciones",
   "chat.options": "Opciones de la conversación",
   "chat.cancelReply": "Cancelar la respuesta",

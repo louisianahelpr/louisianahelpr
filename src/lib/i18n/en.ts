@@ -14,8 +14,9 @@ import { enJobCard } from "./enJobCard";
 import { enSettings } from "./enSettings";
 import { enPublic } from "./enPublic";
 import { enLanding } from "./enLanding";
+import { enNotifications } from "./enNotifications";
 
 /** The whole dictionary (boot words + screen words). Tests and es.ts's type read it; app code calls t(). */
-export const en = { ...enCore, ...enScreens, ...enPostJob, ...enJobs, ...enJobCard, ...enSettings, ...enPublic, ...enLanding } as const;
+export const en = { ...enCore, ...enScreens, ...enPostJob, ...enJobs, ...enJobCard, ...enPublic, ...enLanding, ...enNotifications, ...enSettings } as const;
 
 export type MsgKey = keyof typeof en;

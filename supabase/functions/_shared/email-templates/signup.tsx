@@ -13,25 +13,29 @@ import {
   subtext,
 } from './styles.ts'
 import { BaseLayout, BrandButton, TransactionalFooter } from './components.tsx'
+import { SIGNUP_WORDS, wordsFor, type EmailLang } from './authEmailWords.ts'
 
 interface SignupEmailProps {
   siteName: string
   siteUrl: string
   recipient: string
   confirmationUrl: string
+  /** F260q: the recipient's language (sign-up metadata); English when omitted. */
+  lang?: EmailLang
 }
 
 export const SignupEmail = ({
   confirmationUrl,
-}: SignupEmailProps) => (
-  <BaseLayout preheader="Confirm your email to get started on Louisiana Helpr">
+  lang,
+}: SignupEmailProps) => {
+  const w = wordsFor(SIGNUP_WORDS, lang)
+  return (
+  <BaseLayout lang={lang} preheader={w.preheader}>
       {/* Owner's message review 11-09: F159 sentence case; F160 plain text, no stray "Helpr" link or repeated
           address line; F161 the ID check timing names Declutter too (owner's ID-check rule). */}
-      <Heading className="e-h1" style={h1}>Confirm your email</Heading>
-      <Text className="e-text" style={text}>
-        Tap the button below to confirm your email and finish setting up your Louisiana Helpr account.
-      </Text>
-      <BrandButton href={confirmationUrl} label="Confirm my email" />
+      <Heading className="e-h1" style={h1}>{w.heading}</Heading>
+      <Text className="e-text" style={text}>{w.body}</Text>
+      <BrandButton href={confirmationUrl} label={w.button} />
       {/* This line used to read: "Once verified, our team will review your
           profile and ID. This usually takes 24–48 hours. We'll email you when
           you're approved!"
@@ -51,14 +55,10 @@ export const SignupEmail = ({
           It also contradicted the in-app screen, which promises "under 2 hours"
           — two different invented numbers for the same non-existent step. The
           copy now describes what the code actually does. */}
-      <Text className="e-text e-rule" style={subtext}>
-        Confirming takes a moment and you're in. We'll only ask for an ID check the
-        first time you post a job, take a job, list an item or buy one.
-      </Text>
-      <TransactionalFooter>
-        If you didn't create an account on Louisiana Helpr, you can safely ignore this email.
-      </TransactionalFooter>
+      <Text className="e-text e-rule" style={subtext}>{w.idNote}</Text>
+      <TransactionalFooter>{w.footer}</TransactionalFooter>
   </BaseLayout>
-)
+  )
+}
 
 export default SignupEmail

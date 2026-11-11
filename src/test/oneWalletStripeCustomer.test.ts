@@ -25,7 +25,7 @@
  * @mutate supabase/functions/pro-customer-portal/index.ts |     let customerId: string \| null = null; |     let customerId: string \| null = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id ?? null;
  * @mutate supabase/functions/pro-customer-portal/index.ts |     const portalSession = await stripe.billingPortal.sessions.create({ |     await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: "pm_x" } });\n    const portalSession = await stripe.billingPortal.sessions.create({
  * @mutate supabase/migrations/20261108202546_declutter_notices_email_and_honest_sold.sql | 'We saved this card for your next Declutter buy. It''s charged only when you press Pay, or automatically where you turned on automatic charges.' | 'Your card is saved for Declutter. It is never charged until you check out and pay.'
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx | We save your card now; you're only charged if the seller says yes and you check out. | We save your card now; your card is never charged until you check out and pay.
+ * @mutate src/lib/i18n/enOffer.ts | We save your card now; you're only charged if the seller says yes and you check out. | We save your card now; your card is never charged until you check out and pay.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

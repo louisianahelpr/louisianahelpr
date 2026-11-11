@@ -77,7 +77,7 @@ const JobDetail = () => {
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id ?? "")) return null;
       const data = unwrap<unknown>(
         await readJobsAheadOfDb(
-          "id, title, category, budget, location, urgent_fee, is_group_job, helpers_needed, helper_fee_flat_cents, helper_fee_percent, status, expires_at",
+          "id, title, category, budget, location, urgent_fee, is_group_job, helpers_needed, helper_fee_flat_cents, helper_fee_percent, date_needed, date_window_end, start_time, is_flexible_schedule, status, expires_at",
           (columns) => supabase.from("open_jobs_browse").select(columns).eq("id", id!).maybeSingle(),
           { browseView: true },
         ),
@@ -91,6 +91,8 @@ const JobDetail = () => {
         id: row.id ?? id!, title: row.title, category: row.category, budget: row.budget, location: row.location,
         urgent_fee: row.urgent_fee, is_group_job: row.is_group_job, helpers_needed: row.helpers_needed,
         helper_fee_flat_cents: row.helper_fee_flat_cents, helper_fee_percent: row.helper_fee_percent,
+        date_needed: row.date_needed, date_window_end: row.date_window_end, start_time: row.start_time,
+        is_flexible_schedule: row.is_flexible_schedule,
       };
     },
     enabled: !!id && !authLoading && !user,
@@ -112,7 +114,7 @@ const JobDetail = () => {
   // one only set the tab title — every social/search preview of a shared job
   // link fell back to the generic homepage description and canonical instead
   // of the job's own. usePageMeta covers both.
-  // The preview's own facts, never the description (JOBS-29: a guest sees title, category, parish and take-home only).
+  // The preview's own facts, never the description (JOBS-29: a guest sees title, category, town, parish, day and pay only (F217)).
   const jobFacts = job ? guestJobFacts(job).map((f) => f.value).join(" · ") : "";
   const jobDescription = jobFacts
     ? `${jobFacts}. Payment is held safely until the work is confirmed done. Sign up to apply.`

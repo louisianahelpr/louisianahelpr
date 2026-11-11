@@ -73,9 +73,9 @@ describe("Q2789: a continue day's tracker and Helpr face read the new day's chec
   it("the job page's tracker no longer ticks Arrived on the new day before the Helpr checks in", () => {
     const before = jobProgress(jobOnContinueDay(job, setDay()), { viewer: "poster", otherFirst: "Yusef", tracking: { status: "job_confirmed" } });
     const after = jobProgress(jobOnContinueDay(job, setDay(), "job_confirmed"), { viewer: "poster", otherFirst: "Yusef", tracking: { status: "job_confirmed" } });
-    expect(before.stamps[5]).toBe(job.helper_arrived_at);
-    expect(after.stamps[4]).toBeNull();
-    expect(after.stamps[5]).toBeNull();
+    expect(before.stamps?.[5]).toBe(job.helper_arrived_at);
+    expect(after.stamps?.[4]).toBeNull();
+    expect(after.stamps?.[5]).toBeNull();
   });
 
   it("the Helpr's face offers I'm on my way, then I've arrived, on the new day", () => {

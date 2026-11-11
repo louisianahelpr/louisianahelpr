@@ -8938,7 +8938,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 114,
+      "line": 139,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8948,7 +8948,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 206,
+      "line": 232,
       "kind": "toast",
       "title": {
         "form": "dynamic",

@@ -248,7 +248,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         wantsMutual
           ? supabase
               .from("jobs")
-              .select("status", { count: "exact" })
+              .select("status, is_seed", { count: "exact" })
               .or(
                 `and(customer_id.eq.${currentUserId},helper_id.eq.${userId}),and(customer_id.eq.${userId},helper_id.eq.${currentUserId})`,
               )
@@ -560,7 +560,10 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       const mutualJobsCount = wantsMutual ? (mutualRes?.count ?? 0) : 0;
       // The tile's number (Q965): finished together, not merely paired.
       const workedTogetherCount = wantsMutual
-        ? ((mutualRes?.data ?? []) as Array<{ status: string | null }>).filter((j) => j.status === "completed").length
+        // F359i (audit 11-10): test jobs never count (b62), as in get_public_profile_stats beside this tile, which read
+        // "0 Jobs completed · 0 Jobs posted · 142 Worked together" on a test account. The messaging gate keeps every pair.
+        ? ((mutualRes?.data ?? []) as Array<{ status: string | null, is_seed?: boolean | null }>)
+            .filter((j) => j.status === "completed" && j.is_seed !== true).length
         : 0;
       /* See the two queries above. TRUE when there is no viewer to gate
          (own profile / signed out) because the button is not rendered in those

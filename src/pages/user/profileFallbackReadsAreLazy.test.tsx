@@ -18,7 +18,9 @@ import { useUserProfileData } from "./useUserProfileData";
  * @mutate src/pages/user/useUserProfileData.ts |         int(publicStats?.on_time_sample) === null \|\| int(publicStats?.revision_sample) === null; |         true;
  * @mutate src/pages/user/useUserProfileData.ts |       const needsPostedTotal = int(publicStats?.posted_jobs_total) === null; |       const needsPostedTotal = false;
  * @mutate src/pages/user/useUserProfileData.ts |         int(publicStats?.on_time_sample) === null \|\| int(publicStats?.revision_sample) === null; |         false;
- * @mutate src/pages/user/useUserProfileData.ts | .filter((j) => j.status === "completed").length | .length
+ * @mutate src/pages/user/useUserProfileData.ts | .filter((j) => j.status === "completed" && j.is_seed !== true).length | .length
+ * F359i (audit 11-10): a test job never counts toward Worked together, as in the public stats beside it.
+ * @mutate src/pages/user/useUserProfileData.ts | .filter((j) => j.status === "completed" && j.is_seed !== true).length | .filter((j) => j.status === "completed").length
  * Lead 11-05: no direct reviews read at all any more (the server readers apply the same-person rule); a failed list
  * is the error state and a failed stats call shows no count.
  * @mutate src/pages/user/useUserProfileData.ts | reviewsLoadFailed: !hasPublicReviewRpc && reviewsRpcRes.error?.code !== "42501", | reviewsLoadFailed: !hasPublicReviewRpc,
@@ -34,7 +36,7 @@ const VIEWER = "9b1c2d3e-0000-4000-8000-000000000001";
 type Call = { table: string; ops: Array<[string, unknown[]]> };
 const calls = vi.hoisted(() => [] as Array<{ table: string; ops: Array<[string, unknown[]]> }>);
 const rpcAnswers = vi.hoisted(() => ({}) as Record<string, { data: unknown; error: { code: string; message: string } | null }>);
-const pairRows = vi.hoisted(() => ({ rows: [] as Array<{ status: string }> }));
+const pairRows = vi.hoisted(() => ({ rows: [] as Array<{ status: string; is_seed?: boolean }> }));
 
 vi.mock("@/integrations/supabase/client", () => {
   function chainFor(table: string) {
@@ -145,6 +147,19 @@ describe("/user/:id fallback reads are lazy (Q946)", () => {
     expect(jobsReads().filter(isPairRead)).toHaveLength(1);
     expect(r.mutualJobsCount).toBe(2);
     expect(r.canMessage).toBe(true);
+  });
+
+  it("F359i: test jobs never count toward Worked together, but still open messaging", async () => {
+    pairRows.rows = [{ status: "completed", is_seed: true }, { status: "completed", is_seed: true }, { status: "completed", is_seed: false }];
+    const r = await load();
+    const pair = jobsReads().filter(isPairRead);
+    expect(pair).toHaveLength(1);
+    expect(pair[0].ops.some(([m, a]) => m === "select" && /\bis_seed\b/.test(String(a[0])))).toBe(true);
+    expect(r.mutualJobsCount).toBe(1);
+    pairRows.rows = [{ status: "completed", is_seed: true }];
+    const seedOnly = await load();
+    expect(seedOnly.mutualJobsCount).toBe(0);
+    expect(seedOnly.canMessage).toBe(true);
   });
 
   it("paired only on a cancelled job: tile 0, messaging still open", async () => {

@@ -32,8 +32,13 @@
 import { apiBase } from "./lib/apiBase.mjs";
 import { TURNSTILE_LOADER, captchaVerdict, referencedChunks, siteKeysIn } from "./lib/authCaptcha.mjs";
 
-/** The live site has ~380 chunks; the loader sits one hop from the entry (measured 2026-10-15). */
-const MAX_FETCHES = 60;
+/**
+ * The live site has ~380 chunks; the loader sat one hop from the entry (measured 2026-10-15). On 2026-11-11
+ * it had moved into assets/shared-late-*.js, the 74th chunk this breadth-first walk reads (measured against
+ * www with the same walk), so a cap of 60 made prod-errors red with "no chunk among the 60 read". The walk
+ * stops at the loader, so the cap only bounds a site that has lost it: above the whole chunk count.
+ */
+const MAX_FETCHES = 500;
 
 function couldNot(msg) {
   console.error(`::error::could not check auth captcha against the web build: ${msg} — refusing to report clean`);

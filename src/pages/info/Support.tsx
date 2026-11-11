@@ -545,6 +545,14 @@ const Support = () => {
                   )}
                 </Button>}
 
+                {/* F414 (audit 11-10): nothing on the form said when to expect a reply; the sent screen's promise
+                    now also sits under the Send button. */}
+                {!suggestion && (
+                  <p className="text-center font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-support-reply-promise="">
+                    We reply by email. {SUPPORT_REPLY_PROMISE}
+                  </p>
+                )}
+
                 {/* No "Still needed: …" recap. Every required field already
                     carries a `*` in its own label, so the line restated
                     information the form was showing three inches above it. */}

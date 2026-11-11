@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PolicySearchContext } from "@/components/policy/CollapsedPolicy";
+import { SUPPORT_REPLY_PROMISE } from "@/lib/supportTopics";
 
 /**
  * The "General guidance only" tax row in the Terms and the Community Rules.
@@ -104,7 +105,8 @@ export const PolicyFooter = ({ updated, cta = false }: { updated?: string; cta?:
     <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
       {cta ? (
         <>
-          <span className="font-semibold">Still stuck?</span> A real person reads every message.
+          {/* F413 (audit 11-10): the help footer promised a person but never a time; the shared reply promise sits here too. */}
+          <span className="font-semibold">Still stuck?</span> A real person reads every message. {SUPPORT_REPLY_PROMISE}
         </>
       ) : (
         <>

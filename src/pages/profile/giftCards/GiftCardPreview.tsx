@@ -114,7 +114,7 @@ export function GiftCardPreview({
               name and broke mid-token. */}
           <span
             className={`font-sans font-bold tabular-nums leading-none whitespace-nowrap shrink-0 ${
-              compact ? "text-ds-20" : "text-ds-28"
+              hasAmount ? (compact ? "text-ds-20" : "text-ds-28") : compact ? "text-ds-13" : "text-ds-16"
             }`}
             style={{
               color: design.ink,
@@ -124,7 +124,8 @@ export function GiftCardPreview({
               opacity: hasAmount ? 1 : 0.5,
             }}
           >
-            {hasAmount ? `$${formatPrice(amount!)}` : "$—"}
+            {/* F467 (audit 11-10): "$—" read as a broken amount; the slot says what to do instead. */}
+            {hasAmount ? `$${formatPrice(amount!)}` : "Pick an amount"}
           </span>
 
           {/* ── What they wrote, and who signed it ──────────────────────── */}

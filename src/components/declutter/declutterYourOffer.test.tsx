@@ -329,7 +329,7 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     expect(await rules()).toMatch(/you'll get the address to pick it up at their home or from their porch\./);
   });
 
-  // @mutate src/components/declutter/DeclutterFreeClaim.tsx | value={{ who: "them", text: `Waiting on ${giverFirstName === "The giver" ? "the giver" : giverFirstName} to pick who gets it. We'll tell you either way.` }} | value={{ who: "info", text: "The giver picks who gets it. We'll tell you either way." }}
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx | value={{ who: "them", text: giverFirstName ? t("free.waitingOn", { name: giverFirstName }) : t("free.waitingOnGiver") }} | value={{ who: "info", text: "The giver picks who gets it. We'll tell you either way." }}
   it("with the member's ask open: You asked for this, and Take back my ask withdraws that ask", async () => {
     state.asks = [
       { id: "r1", item_id: "i1", status: "open", created_at: "2026-10-30T00:00:00Z" },

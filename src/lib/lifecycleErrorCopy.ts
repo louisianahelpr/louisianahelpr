@@ -277,7 +277,8 @@ export const RPC_ERROR_COPY = {
     not_a_crew_job: "This job has one Helpr. Use Report No-Show on the job instead.",
     job_not_active: "This job isn't active any more, so a no-show can't be reported.",
     job_not_funded: "A no-show can only be reported on a paid job.",
-    job_not_started: "Wait until the start time before reporting a no-show.",
+    // F284 (20261111214523): a timed job opens 30 minutes after its start, as the one-Helpr report.
+    job_not_started: "It's too early to report a no-show. You can report one from 30 minutes after the start time, or once the day is over if the job has no set time.",
     already_reported: "You already reported this crew member as a no-show.",
     not_on_this_crew: "That Helpr isn't on this crew any more. Refresh the page.",
     helper_never_accepted: "This Helpr never confirmed their spot, so it closes on its own with no strike.",

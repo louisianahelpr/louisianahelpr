@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { confirmOpensMs, isPastDue, jobDateMs, todayMs } from "@/lib/jobDate";
 import { jobStartDateTime } from "@/lib/dateUtils";
+import { noShowOpensAt } from "@/lib/noShowOpens";
 import { useExpiryClock } from "@/lib/useExpiryClock";
 import { isDirectOffer, offerClock } from "@/components/job-card/offerClock";
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
@@ -312,9 +313,10 @@ function posterMoveDueWhileInProgress(
   if (!j.poster_confirmed_arrival_at && (j.helper_arrived_at || arrivalNearMissWithin12h(j, now.getTime()))) return true;
   // On the way, at the job, or working: the Helpr's move.
   if (j.helper_on_the_way_at || j.helper_arrived_at || j.poster_confirmed_arrival_at || j.poster_confirmed_working_at) return false;
-  // Started by the clock with no check-in: the poster's Report no-show, once the start time has passed.
-  const start = jobStartDateTime(j.date_needed ?? null, j.start_time ?? null);
-  return !(start && start.getTime() > now.getTime());
+  // Started by the clock with no check-in: the poster's Report no-show, once it opens. F284 (owner 11-11): a timed
+  // job opens 30 minutes after its start (noShowOpensAt, the server's GUARD 2); a job with no start time keeps its rule.
+  const opens = j.start_time ? noShowOpensAt(j.date_needed ?? null, j.start_time) : jobStartDateTime(j.date_needed ?? null, null);
+  return !(opens && opens.getTime() > now.getTime());
 }
 
 export function postedActivityBucket(

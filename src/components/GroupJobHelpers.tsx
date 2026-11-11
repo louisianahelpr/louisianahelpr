@@ -16,6 +16,7 @@ import { CrewActionError, crewRosterPill, crewNobodyLeft, posterApproveMember, p
 import { payoutDayLabel, STANDARD_PAYOUT_DAYS_AFTER_APPROVAL } from "../../supabase/functions/_shared/escrowTiming";
 import { Button } from "@/components/ui/button";
 import { hasJobStarted } from "@/lib/dateUtils";
+import { noShowReportOpen } from "@/lib/noShowOpens";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import type { GroupHelper } from "./groupHelper";
 
@@ -259,7 +260,8 @@ export function GroupJobHelpers({
     !h.poster_confirmed_arrival_at &&
     !h.helper_completed_at &&
     (jobStatus === "accepted" || jobStatus === "in_progress" || jobStatus === "revision_requested") &&
-    hasJobStarted(dateNeeded, startTime);
+    // F284 (owner 11-11): 30 minutes after a timed start, as rpc_poster_report_member_no_show (20261111214523).
+    noShowReportOpen(dateNeeded, startTime);
 
   const reportNoShow = async (h: GroupHelper) => {
     if (!h.helper_id || reportingId) return;

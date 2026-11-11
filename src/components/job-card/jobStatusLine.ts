@@ -22,7 +22,8 @@ import { derivePosterStep, posterConfirmationRung } from "../../pages/posts/post
 import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from "@/lib/jobPaymentCardState";
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../supabase/functions/_shared/escrowTiming";
 import { confirmDeadlineMs, confirmOpensMs, posterConfirmClosesMs } from "@/lib/jobDate";
-import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
+import { EXPIRED_WORD } from "@/lib/dateUtils";
+import { noShowOpensAt } from "@/lib/noShowOpens";
 import { CREW_TODAY_LINE, TODAY_ANY_TIME_LINE, hasStartTime } from "@/lib/anyTimeThatDay";
 import { workHasBegun } from "@/components/tracker/workHasBegun";
 
@@ -632,8 +633,10 @@ export function derivePosterWait(
         // Q2588: a no-start-time job ("any time that day") has no start to pass on its day; past the day, the
         // overdue lines above take over.
         if (!hasStartTime(job)) return "confirmed";
-        const start = jobStartDateTime(job.date_needed, job.start_time);
-        return start && start.getTime() > now.getTime() ? "confirmed" : "started_no_checkin";
+        // F284 (owner 11-11): "hasn't checked in" names the poster's Report no-show, which opens 30 minutes after the
+        // start (noShowOpensAt, the server's GUARD 2). Until then the booking still reads confirmed.
+        const opens = noShowOpensAt(job.date_needed, job.start_time);
+        return opens && opens.getTime() > now.getTime() ? "confirmed" : "started_no_checkin";
       }
       if (job.status === "in_progress") return "working";
       if (agreedJobStage(job, "poster", now) === "confirm_owed") return "confirm_still_on";

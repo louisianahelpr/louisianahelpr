@@ -6,7 +6,7 @@
  *
  * @mutate src/components/shops/shopsUi.tsx | search={null} showAdd={false}> | search={null}>
  * @mutate src/components/sections/AppTopBar.tsx | isWebDesktop && showAdd && section && | isWebDesktop && section &&
- * @mutate src/components/sections/SectionScreen.tsx | mine={mine} showAdd={showAdd} /> | mine={mine} />
+ * @mutate src/components/sections/SectionScreen.tsx | mine={mine} showAdd={showAdd} add={add} /> | mine={mine} add={add} />
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";

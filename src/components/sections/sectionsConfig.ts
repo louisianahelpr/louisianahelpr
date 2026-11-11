@@ -9,6 +9,9 @@ import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
  */
 export type SectionKey = "jobs" | "declutter" | "shops" | "homes";
 
+/** A section's "add one" action: its accessible label, where it goes, and the shorter button word when it has one. */
+export type SectionAdd = { label: string; path: string; cta?: string };
+
 export interface SectionDef {
   key: SectionKey;
   label: string;
@@ -21,7 +24,7 @@ export interface SectionDef {
    *  (AppTopBar; owner 2026-10-28, later the same day: "add the post a job and post an item or whatever buttons
    *  back on the top nav maybe just make it the lighter green") and Declutter's "Sell an item". `cta`: shorter
    *  visible words when `label` is long (the label stays the accessible name). */
-  add: { label: string; path: string; cta?: string };
+  add: SectionAdd;
 }
 
 export const SECTIONS: readonly SectionDef[] = [

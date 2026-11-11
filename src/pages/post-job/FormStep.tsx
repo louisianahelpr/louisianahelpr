@@ -280,6 +280,7 @@ export function FormStep({ form }: FormStepProps) {
           <JobCategoryGroups
             category={form.category}
             setCategory={form.setCategory}
+            setTitle={form.setTitle}
             group={form.categoryGroup}
             setGroup={form.setCategoryGroup}
             onPicked={() => {

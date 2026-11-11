@@ -20,6 +20,8 @@ export const enNotifications = {
   "notif.landHere": "Applications, messages and payouts land here.",
   "notif.showingNewest": "Showing your newest {count}. Mark all read clears all {unread} unread.",
   "notif.turnOnPush": "Turn on push notifications",
+  "notif.more": "More",
+  "notif.less": "Less",
 } as const;
 
 addEnglish(enNotifications);

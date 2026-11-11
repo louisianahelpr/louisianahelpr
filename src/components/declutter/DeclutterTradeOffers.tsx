@@ -27,6 +27,17 @@ export function useTradeOffersToAnswer(userId: string | null): number {
   return (useMyTrades("seller", userId).data ?? []).filter((t) => t.status === "open").length;
 }
 
+/** F360c: the cart checkout holding this trade's item, scrolled to and focused; false when it is not on this page. */
+export function goToTradeCheckout(itemId: string | null | undefined): boolean {
+  if (!itemId) return false;
+  const box = document.querySelector<HTMLElement>(`[data-cart-item="${CSS.escape(itemId)}"]`)?.closest<HTMLElement>("[data-checkout-seller]");
+  if (!box) return false;
+  box.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  box.setAttribute("tabindex", "-1");
+  box.focus({ preventScroll: true });
+  return true;
+}
+
 function Pair({ t }: { t: MyTrade }) {
   const give = t.my_side === "seller" ? t.item : t.offered;
   const get = t.my_side === "seller" ? t.offered : t.item;
@@ -97,9 +108,13 @@ function TradeCard({ t }: { t: MyTrade }) {
         <Button type="button" variant="outline" data-trade-withdraw="" disabled={act.isPending} onClick={() => act.mutate("withdraw")}>Take it back</Button>
       )}
       {/* Only while this member's own $0 line still waits for its pickup choice (checked out: the order card has it). */}
+      {/* Audit 11-10 F360c: the accepted trade is also the cart's trade checkout, which holds the one pickup step. This
+          link opens that checkout (scrolled to and focused when it is on the page) instead of a second, differently worded
+          action that only reloaded the Buying tab. */}
       {t.status === "accepted" && t.my_line_status === "in_cart" && (
-        <Link to="/declutter?tab=buying" data-trade-pickup="" className="inline-flex min-h-11 items-center text-ds-14 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">
-          Choose your pickup
+        <Link to="/declutter?tab=buying" data-trade-pickup="" className="inline-flex min-h-11 items-center text-ds-14 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2"
+          onClick={(e) => { if (goToTradeCheckout((t.my_side === "seller" ? t.offered : t.item)?.id)) e.preventDefault(); }}>
+          Go to my trade in the cart
         </Link>
       )}
       {t.talk_order_id && <TradeTalkButton orderId={t.talk_order_id} />}

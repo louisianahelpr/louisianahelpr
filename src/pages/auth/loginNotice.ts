@@ -2,6 +2,23 @@ import type { OAuthRedirectError } from "@/lib/oauthRedirectError";
 import { SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
 
 /**
+ * Reads a one-shot sessionStorage note (another screen left it for Login) and clears it, so a refresh does not repeat
+ * the line. Silent by design in the catch: sessionStorage throws in private mode, and the note only decides whether
+ * an explanatory line shows; not showing it is the correct degradation, with nothing for anyone to act on.
+ */
+export function takeOneShotFlag(key: string, value: string): boolean {
+  try {
+    const hit = sessionStorage.getItem(key) === value;
+    if (hit) sessionStorage.removeItem(key);
+    return hit;
+  } catch {
+    // Silent by design: sessionStorage throws in private mode, and this note only decides whether an explanatory
+    // line shows on Login. Not showing it is the correct degradation; there is nothing for anyone to act on.
+    return false;
+  }
+}
+
+/**
  * The one notice line above the Login form, and the Q446 account choice.
  * A sign-in that found no account asks the one-account question in a dialog
  * (SocialAuthButtons), not in this slot; "I already have an account" arrives

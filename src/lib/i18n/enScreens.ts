@@ -99,6 +99,7 @@ export const enScreens = {
   "forgot.contactSupport": "Contact support",
   "forgot.useAnother": "Use another email",
   "forgot.sending": "Sending…",
+  "forgot.stillSending": "Still sending. This can take a few seconds.",
   "forgot.resendIn": "Resend in {s}s",
   "forgot.resend": "Resend email",
   "forgot.emailInvalid": "Enter a valid email address.",

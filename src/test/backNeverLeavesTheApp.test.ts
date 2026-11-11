@@ -17,6 +17,7 @@ const REPO = resolve(__dirname, "..", "..");
 /** navigate(-1) sites that know an in-app entry is behind them some other way. */
 const GUARDED_OTHERWISE: Record<string, string> = {
   "src/pages/messages/Messages.tsx": "closeThread pops only an entry it pushed itself (isThreadOpenEntry(location.state))",
+  "src/pages/auth/signup/useSignupStepHistory.ts": "backToStep1 pops only the step-2 entry goToStep2 pushed itself (signupStepFromHistory(routerLocation.state) === 2), else setStep(1) (F260n)",
 };
 
 describe("L005: back never walks out of the app", () => {

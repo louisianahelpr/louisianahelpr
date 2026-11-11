@@ -8,9 +8,9 @@
  * visible copy; the sentence stays as the list's aria-label.
  *
  * @mutate src/pages/auth/signup/signupHelpers.ts |   return (state as { step?: unknown } \| null \| undefined)?.step === 2 ? 2 : 1; |   return 1;
- * @mutate src/pages/auth/Signup.tsx |     setStep(signupStepFromHistory(routerLocation.state)); |     setStep(1);
+ * @mutate src/pages/auth/signup/useSignupStepHistory.ts |     setStep(signupStepFromHistory(routerLocation.state)); |     setStep(1);
  * @mutate src/pages/auth/Signup.tsx |               goToStep2(); |               setStep(2);
- * @mutate src/pages/auth/Signup.tsx |     if (signupStepFromHistory(routerLocation.state) === 2) navigate(-1); |     if (false) navigate(-1);
+ * @mutate src/pages/auth/signup/useSignupStepHistory.ts |     if (signupStepFromHistory(routerLocation.state) === 2) navigate(-1); |     if (false) navigate(-1);
  * @mutate src/components/auth/PasswordRuleList.tsx |       <ul className="flex flex-wrap gap-x-3 gap-y-1" aria-label={hint}> |       <p className="text-ds-11 text-muted-foreground">{hint}</p><ul className="flex flex-wrap gap-x-3 gap-y-1" aria-label={hint}>
  */
 import { describe, expect, it } from "vitest";
@@ -36,18 +36,22 @@ describe("F260n: sign-up step 2 is a history entry", () => {
   });
 
   it("Continue pushes the entry, popstate reads it, and the header's back walks history", () => {
-    const s = src("src/pages/auth/Signup.tsx");
+    const page = src("src/pages/auth/Signup.tsx");
+    // The step-history logic lives in its own hook (Signup.tsx sits under the 600-line size ratchet).
+    const s = src("src/pages/auth/signup/useSignupStepHistory.ts");
+    expect(page).toContain("useSignupStepHistory(navigate, setStep, () => setStep2Errors({}))");
     // Continue on step 1 pushes a same-URL entry whose state says step 2 (other state, like ?redirect, is kept).
-    expect(s).toContain("goToStep2();");
+    expect(page).toContain("goToStep2();");
     expect(s).toMatch(/navigate\(\{ pathname: routerLocation\.pathname, search: routerLocation\.search \}, \{ state: \{ \.\.\.\(\(routerLocation\.state as object \| null\) \?\? \{\}\), step: 2 \} \}\);/);
     // The step follows the history entry after the first render (dev-only ?step seed kept).
     expect(s).toContain("setStep(signupStepFromHistory(routerLocation.state));");
-    expect(s).toMatch(/\}, \[routerLocation\.key, routerLocation\.state\]\);/);
+    expect(s).toMatch(/\}, \[routerLocation\.key, routerLocation\.state, setStep\]\);/);
     // Back from a pushed step 2 pops the entry instead of forking the history.
     expect(s).toContain("if (signupStepFromHistory(routerLocation.state) === 2) navigate(-1);");
-    expect(s).toContain("backOnClick: backToStep1 }");
-    // No bare jump to step 2 remains.
-    expect(s.match(/setStep\(2\)/g) ?? []).toHaveLength(1); // inside goToStep2 only
+    expect(page).toContain("backOnClick: backToStep1 }");
+    // No bare jump to step 2 remains in the page; the hook sets 2 only inside goToStep2.
+    expect(page.match(/setStep\(2\)/g) ?? []).toHaveLength(0);
+    expect(s.match(/setStep\(2\)/g) ?? []).toHaveLength(1);
   });
 });
 

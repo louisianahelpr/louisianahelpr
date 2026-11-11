@@ -373,7 +373,7 @@ test("overflowing labels: the payout setup card's controls fit at 320/375 (helpe
     // The BUTTON, not the card's heading: the heading draws while the start
     // button is still hidden (payout_setup_hire_allowed_for_me pending or
     // refused), and a run measuring that card has measured nothing.
-    const start = page.getByRole("button", { name: /Set up payouts with Stripe|Complete Stripe verification/ });
+    const start = page.getByRole("button", { name: /Add your bank \(with Stripe\)|Complete Stripe verification/ });
     await expect(start, `helper-e2e's Money tab drew no payout setup button at ${vw}`).toBeVisible({ timeout: 30_000 });
     // Measure in the app's own font: the fallback is narrower.
     await page.evaluate(() => document.fonts.ready);

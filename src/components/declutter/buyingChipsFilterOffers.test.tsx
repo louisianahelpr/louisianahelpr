@@ -68,9 +68,12 @@ describe("the Buying chips file offers and trade offers like orders (F374)", () 
     expect(screen.queryByText("Item won")).toBeNull();
     cancelled.unmount();
 
-    const upcoming = wrap(<OffersSection side="buyer" only="upcoming" />);
-    await vi.waitFor(() => expect(upcoming.container.querySelector("section")).toBeNull());
-    expect(screen.queryByText("Your offers")).toBeNull();
+    // An "upcoming" section next to a "cancelled" one on the same query: once "Item lost" shows, the shared
+    // fetch has resolved, so the missing second section is the filter dropping out, not a first paint.
+    const upcoming = wrap(<><OffersSection side="buyer" only="upcoming" /><OffersSection side="buyer" only="cancelled" /></>);
+    await screen.findByText("Item lost");
+    expect(upcoming.container.querySelectorAll("section")).toHaveLength(1);
+    expect(screen.getAllByText("Your offers")).toHaveLength(1);
   });
 
   it("Your trade offers keeps only the chip's rows and goes away when none fit", async () => {

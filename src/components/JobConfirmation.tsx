@@ -24,6 +24,7 @@ import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mut
 import { report } from "@/lib/errorLogger";
 import { recordConfirmInActivityCache } from "@/lib/confirmActivityCache";
 import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
+import { confirmOpensWords } from "@/components/job-card/confirmationOpensClock";
 // The row's own done-state surface, so the poster's "already confirmed" box
 // matches the Tipped / Reviewed boxes rather than inventing a fourth grey.
 import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
@@ -222,13 +223,9 @@ export function JobConfirmation({
        ("Message Lexi") holds the slot; the tracker line says the moment it opens ("Confirm the day before.
        Opens Wed 12:00 AM") and the card's clock counts down to it, so nothing is added here. */
     if (hideNotYetOpen) return null;
-    // The shared helper, not midnight minus 24h: that is 23:00 or 01:00 on the two DST days.
-    const opensAt = new Date(opensMs);
-    const minsUntilOpen = Math.max(0, Math.round((opensAt.getTime() - now.getTime()) / 60_000));
-    const d = Math.floor(minsUntilOpen / 1440);
-    const h = Math.floor((minsUntilOpen % 1440) / 60);
-    const m = minsUntilOpen % 60;
-    const untilOpen = d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
+    // The shared helper, not midnight minus 24h: that is 23:00 or 01:00 on the two DST days. F270 (owner 11-11):
+    // the day and time in words ("Confirm opens Thu at 12:00 AM."), never a running "1d 10h" clock.
+    const opensWords = confirmOpensWords(opensMs, now);
     // The window AND the deadline, quoted together: a confirm is owed until 2 hours
     // before the start, then the job is reposted (owner, 2026-10-08).
     const confirmBy = new Date(deadlineMs);
@@ -246,8 +243,8 @@ export function JobConfirmation({
         >
           <CalendarClock className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
           <div className="min-w-0">
-            <p className="text-ds-11 font-semibold tabular-nums">
-              Confirmation opens in {untilOpen}
+            <p className="text-ds-11 font-semibold" data-confirm-opens-words="">
+              {opensWords}
             </p>
             <p className="text-ds-10 mt-0.5">
               The day before, we ask you both to confirm you're still on — that's

@@ -65,6 +65,8 @@ const OWNERS = {
   "/helpdesk": ["lh-copy-content"],
   "/hire/:service/:town": ["lh-seo-web", "lh-copy-content"],
   "/sms-opt-in": ["lh-copy-content"],
+  "/fees": ["lh-copy-content"],
+  "/safety": ["lh-trust-safety", "lh-copy-content"],
   "/terms/full": ["lh-compliance-store"],
   "/privacy/full": ["lh-compliance-store"],
   // /gift-card (a redirect onto this tab) was deleted with Q194, 2026-09-23.

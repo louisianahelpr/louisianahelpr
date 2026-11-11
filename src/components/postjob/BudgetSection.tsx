@@ -89,7 +89,8 @@ export function BudgetSection({
   // needs MIN_JOB_BUDGET_DOLLARS and no line on the form named it. Said here,
   // in place of the lowball hint (a budget that cannot be posted at all is the
   // stronger message, and two amber boxes would say the same thing twice).
-  const underBudgetMin = budgetNum > 0 && budgetNum < MIN_JOB_BUDGET_DOLLARS;
+  // F302 (audit 11-10): a typed 0 (or anything under the minimum) says so too; it only greyed the button.
+  const underBudgetMin = budget.trim() !== "" && budgetNum < MIN_JOB_BUDGET_DOLLARS;
 
   // Urgent bonus has a hard floor. Surface it inline (same pattern as the
   // lowball warning) the moment a user types a sub-floor amount, so the rule
@@ -145,7 +146,8 @@ export function BudgetSection({
               id="budget"
               hero
               value={budget === "" ? undefined : Number.parseFloat(budget) || undefined}
-              onChange={(next) => setBudget(next === undefined ? "" : next.toString())}
+              // F302: a minus sign is dropped as it is typed (a price is never negative).
+              onChange={(next) => setBudget(next === undefined ? "" : Math.abs(next).toString())}
               required
               aria-label="Job budget in dollars"
               enterKeyHint="done"

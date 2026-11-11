@@ -13,7 +13,7 @@ export const DECLUTTER_PREVIEW_READ_RPCS: ReadonlySet<string> = new Set([
   "declutter_bundle_applies", "declutter_bundle_preview", "declutter_bundle_rule", "declutter_bundle_sellers",
   "declutter_checkout_porch_days", "declutter_chosen_meetup_hours", "declutter_delivery_open_times",
   "declutter_delivery_raise_status", "declutter_donation_partners_near", "declutter_dropped_into_budget",
-  "declutter_free_requests_for_item", "declutter_guest_seller_first_name", "declutter_has_agreed_sales",
+  "declutter_free_requests_for_item", "declutter_guest_seller_card", "declutter_guest_seller_first_name", "declutter_has_agreed_sales",
   "declutter_haul_away_state", "declutter_helpr_job_listings", "declutter_i_reviewed", "declutter_item_address", "declutter_item_save_counts",
   "declutter_item_pickup_places", "declutter_item_pickup_windows", "declutter_item_questions",
   "declutter_keep_up_state", "declutter_listed_for_me", "declutter_listing_manage_state", "declutter_managed_overview",

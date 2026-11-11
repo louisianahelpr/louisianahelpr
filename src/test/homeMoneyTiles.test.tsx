@@ -22,8 +22,8 @@
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (!c.hasPayoutAccount) return "Add your payout account to get it"; | 
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (c.overdue) return "Approved, not sent yet"; | 
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   return `Sent ${STANDARD_PAYOUT_PHRASE}`; |   return `Payout ${walletDay(new Date().toISOString())}`;
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx | navigate(money.coming!.hasPayoutAccount \|\| setupPaused ? "/profile?tab=earnings" : "/profile?tab=payment") | navigate("/profile?tab=earnings")
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (!money.coming && !money.held) return null; |   if (!money.coming && !money.held) return <div data-home-money="empty" />;
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx | navigate(!money.coming \|\| money.coming.hasPayoutAccount \|\| setupPaused ? "/profile?tab=earnings" : "/profile?tab=payment") | navigate("/profile?tab=earnings")
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (!money.coming && !money.held && !stack) return null; |   if (!money.coming && !money.held && !stack) return <div data-home-money="empty" />;
  * @mutate src/components/profile/EarningsTab.tsx |   const money = useHomeMoney(user); |   const money = { coming: null, held: null };
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |           label={heldWords(money.held).label} |           label="Held for you"
  */
@@ -173,7 +173,7 @@ describe("the tiles (boards 7, 11)", () => {
     expect(at(coming({ overdue: true, at: null }))).toContain("Approved, not sent yet");
     expect(at(coming({ overdue: true }))).not.toMatch(/Reaches/);
     expect(at(coming({ severalDates: true }))).toMatch(/First reaches your wallet Fri, Oct 23/);
-    expect(src("pages/home/homeDashboard/HomeMoneyTiles.tsx")).toContain('navigate(money.coming!.hasPayoutAccount || setupPaused ? "/profile?tab=earnings" : "/profile?tab=payment")');
+    expect(src("pages/home/homeDashboard/HomeMoneyTiles.tsx")).toContain('navigate(!money.coming || money.coming.hasPayoutAccount || setupPaused ? "/profile?tab=earnings" : "/profile?tab=payment")');
   });
 
   it("a tile with nothing is not drawn, and with nothing at all there is no strip", () => {

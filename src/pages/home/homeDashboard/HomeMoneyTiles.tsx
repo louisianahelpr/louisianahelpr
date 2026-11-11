@@ -63,35 +63,42 @@ export function HomeMoneyTiles({
   // CLS 0.385 of 0.41-0.51. On that page the row holds a tile's shape while the reads are out, and a member with
   // nothing coming or held sees "Coming to you $0.00". Home's strip is unchanged (hidden at $0; its own hold, B98).
   // src/pages/home/homeDashboard/moneyTabTileRowNeverMoves.test.tsx.
+  // F266a (owner 11-11): on You > Money the Helpr's tile is ONE stack: "On its way" (the approved pay, comingToYou),
+  // then "Waiting for approval" and "Held in a dispute" (earningsTabHelpers.moneyStack), each row only when it holds
+  // money. Home's strip keeps "Coming to you" alone.
+  const stack = placement === "money" && money.stack && (money.stack.waitingCents > 0 || money.stack.disputeCents > 0) ? money.stack : null;
+  const comingLabel = placement === "money" ? "On its way" : "Coming to you";
   if (placement === "money" && money.pending && !money.coming && !money.held) return <MoneyTilesLoading />;
-  if (placement === "money" && !money.failed && !money.coming && !money.held) {
+  if (placement === "money" && !money.failed && !money.coming && !money.held && !stack) {
     return (
       <div data-home-money="money" className="grid grid-cols-2 gap-3">
-        <MoneyTile kind="coming" span="col-span-2" label="Coming to you" cents={0} caption="Nothing on its way yet"
+        <MoneyTile kind="coming" span="col-span-2" label={comingLabel} cents={0} caption="Nothing on its way yet"
           onClick={() => (onOpen ? onOpen("coming") : navigate("/profile?tab=earnings"))} />
       </div>
     );
   }
-  if (!money.coming && !money.held) return null;
+  if (!money.coming && !money.held && !stack) return null;
   // A lone tile takes the row everywhere (half a row of empty ground reads as a missing tile). F082 (owner UI audit
   // 11-09): the desktop column used to keep it at half width, a small card alone with a gap beside it.
-  const span = money.coming && money.held ? "" : "col-span-2";
+  const showComing = !!money.coming || !!stack;
+  const span = showComing && money.held ? "" : "col-span-2";
   const where = placement === "main" ? "xl:hidden" : placement === "side" ? "hidden xl:grid xl:mb-2" : "";
   return (
     <div
       data-home-money={placement}
       className={`grid grid-cols-2 gap-3 ${where}`}
     >
-      {money.coming && (
+      {showComing && (
         <MoneyTile
           kind="coming"
           span={span}
-          label="Coming to you"
-          cents={money.coming.cents}
-          caption={comingCaption(money.coming, setupPaused)}
+          label={comingLabel}
+          cents={money.coming?.cents ?? 0}
+          caption={money.coming ? comingCaption(money.coming, setupPaused) : "Nothing on its way yet"}
+          stack={stack}
           // No payout account: open the screen that sets one up (the cron's own notification links there),
           // or, while setup is paused, You › Money (the pay is kept there).
-          onClick={() => (onOpen ? onOpen("coming") : navigate(money.coming!.hasPayoutAccount || setupPaused ? "/profile?tab=earnings" : "/profile?tab=payment"))}
+          onClick={() => (onOpen ? onOpen("coming") : navigate(!money.coming || money.coming.hasPayoutAccount || setupPaused ? "/profile?tab=earnings" : "/profile?tab=payment"))}
         />
       )}
       {money.held && (
@@ -108,7 +115,12 @@ export function HomeMoneyTiles({
   );
 }
 
-function MoneyTile({ kind, span, label, cents, caption, onClick }: { kind: string; span: string; label: string; cents: number; caption: string; onClick: () => void }) {
+function MoneyTile({ kind, span, label, cents, caption, stack, onClick }: {
+  kind: string; span: string; label: string; cents: number; caption: string;
+  /** F266a: the rest of the Helpr's stack on You > Money; a row only when it holds money. */
+  stack?: { waitingCents: number; disputeCents: number } | null;
+  onClick: () => void;
+}) {
   const amount = formatCents(cents);
   return (
     <GlassTileButton
@@ -121,6 +133,18 @@ function MoneyTile({ kind, span, label, cents, caption, onClick }: { kind: strin
       <span className="text-ds-13 text-muted-foreground">{label}</span>
       <span data-money-amount className="text-ds-24 font-bold tabular-nums leading-tight" style={{ color: "hsl(var(--accent-ink))" }}>{amount}</span>
       <span className="text-ds-13 text-muted-foreground leading-snug">{caption}</span>
+      {stack && stack.waitingCents > 0 && (
+        <span data-money-stack="waiting" className="mt-2 flex justify-between gap-2 text-ds-13">
+          <span className="text-muted-foreground">Waiting for approval</span>
+          <span className="font-semibold tabular-nums">{formatCents(stack.waitingCents)}</span>
+        </span>
+      )}
+      {stack && stack.disputeCents > 0 && (
+        <span data-money-stack="dispute" className={`${stack.waitingCents > 0 ? "mt-1" : "mt-2"} flex justify-between gap-2 text-ds-13`}>
+          <span className="text-muted-foreground">Held in a dispute</span>
+          <span className="font-semibold tabular-nums">{formatCents(stack.disputeCents)}</span>
+        </span>
+      )}
     </GlassTileButton>
   );
 }

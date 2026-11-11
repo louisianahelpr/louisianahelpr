@@ -9,7 +9,10 @@
  * ID check on read $20 for a sale that pays $18. lh-money-escrow reviews (11-11): an input not in yet (the switch,
  * the admin check, the fee read) shows no figure rather than one too high by the fee; seeded test accounts pay none.
  *
- * @mutate src/components/declutter/SellFormParts.tsx | formatPrice(sellerGetsTodayCents(priceCents, fee.cents)) | formatPrice(priceCents)
+ * @mutate src/components/declutter/SellFormParts.tsx | formatPrice(sellerGetsTodayCents(priceCents, feeCents)) | formatPrice(priceCents)
+ * @mutate src/components/declutter/SellFormParts.tsx | const feeCents = fee.server && fee.orderId ? 0 : fee.cents; | const feeCents = fee.cents;
+ * @mutate src/components/declutter/useSellerSetupFee.ts |   if (!fallback) return { cents: 0, unknown: true, server: false }; |   if (!fallback) return { cents: 0, unknown: false, server: false };
+ * @mutate src/components/declutter/useSellerSetupFee.ts | return { cents: Math.min(mine.data.feeCents, SETUP_FEE_CAP_CENTS), unknown: false, server: true, orderId: mine.data.orderId }; | return { cents: 0, unknown: false, server: true, orderId: mine.data.orderId };
  * @mutate src/lib/declutter/sellerGetsToday.ts | priceCents - fee >= 100 ? | priceCents - fee >= 0 ?
  * @mutate src/components/declutter/useSellerSetupFee.ts | profile.onboarding_fee_paid !== true && profile.is_seed !== true | profile.is_seed !== true
  * @mutate src/components/declutter/useSellerSetupFee.ts | && profile.is_seed !== true && adminStatus | && adminStatus
@@ -21,6 +24,7 @@
  * @mutate src/components/declutter/useSellerSetupFee.ts | const idSettled = idAnswer !== null; | const idSettled = true;
  */
 import { render } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -28,11 +32,16 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const state = vi.hoisted(() => ({
   fee: 200, loaded: true, idOn: true, idSettled: true, admin: "not_admin" as "admin" | "not_admin" | "unknown", paid: false, seed: false,
+  // Owner 11-11 ~3:25 PM: declutter_my_setup_fee's answer; null = not deployed (PGRST202: the client's own reading).
+  server: null as null | "loading" | { feeCents: number; orderId: string | null },
+}));
+vi.mock("@/lib/declutter/mySetupFee", () => ({
+  fetchMySetupFee: () => (state.server === "loading" ? new Promise(() => {}) : Promise.resolve(state.server)),
 }));
 vi.mock("@/hooks/useOnboardingFee", () => ({ useOnboardingFeeQuery: (enabled: boolean) => ({ data: enabled && state.loaded ? state.fee : undefined, isSuccess: enabled && state.loaded }) }));
 vi.mock("@/lib/identityCheckSwitch", () => ({ useIdentityCheckLastAnswerStore: () => (state.idSettled ? state.idOn : null) }));
 vi.mock("@/hooks/useCurrentUser", () => ({
-  useCurrentUser: () => ({ isAdmin: state.admin === "admin", adminStatus: state.admin, profile: { onboarding_fee_paid: state.paid, is_seed: state.seed }, user: null }),
+  useCurrentUser: () => ({ isAdmin: state.admin === "admin", adminStatus: state.admin, profile: { onboarding_fee_paid: state.paid, is_seed: state.seed }, user: { id: "u1" } }),
 }));
 
 import { sellerGetsTodayCents } from "@/lib/declutter/sellerGetsToday";
@@ -41,15 +50,19 @@ import { BuyerPreviewCard } from "@/components/declutter/BuyerPreviewCard";
 
 const REPO = resolve(__dirname, "..", "..");
 const code = (p: string) => blankComments(readFileSync(resolve(REPO, p), "utf8"));
-const line = () => {
-  const { container, unmount } = render(<SellYouGet priceCents={2000} />);
+/** The rendered line once the setup-fee read has settled (or not, for "loading"). */
+const line = async () => {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const { container, unmount } = render(<QueryClientProvider client={qc}><SellYouGet priceCents={2000} /></QueryClientProvider>);
+  for (let i = 0; i < 20; i++) await Promise.resolve();
+  await new Promise((r) => setTimeout(r, 0));
   const text = container.querySelector("[data-sell-keep]")?.textContent ?? null;
   unmount();
   return text;
 };
 
 beforeEach(() => {
-  Object.assign(state, { fee: 200, loaded: true, idOn: true, idSettled: true, admin: "not_admin", paid: false, seed: false });
+  Object.assign(state, { fee: 200, loaded: true, idOn: true, idSettled: true, admin: "not_admin", paid: false, seed: false, server: null });
 });
 
 describe("F328: the sell form's 'You get' is the payout", () => {
@@ -59,22 +72,35 @@ describe("F328: the sell form's 'You get' is the payout", () => {
     for (const [price, fee, want] of cases) expect(sellerGetsTodayCents(price, fee), `${price} - ${fee}`).toBe(want);
   });
 
-  it("the line shows the payout figure: fee off for a first-time seller with the ID check on, never for the exempt", () => {
-    expect(line()).toContain("$18");
-    expect(line()).toContain("You get");
-    expect(line()).not.toMatch(/fee/i);
-    state.idOn = false; expect(line()).toContain("$20"); state.idOn = true;
-    state.paid = true; expect(line()).toContain("$20"); state.paid = false;
-    state.seed = true; expect(line()).toContain("$20"); state.seed = false;
-    state.admin = "admin"; expect(line()).toContain("$20"); state.admin = "not_admin";
+  it("the line shows the payout figure: fee off for a first-time seller with the ID check on, never for the exempt", async () => {
+    expect(await line()).toContain("$18");
+    expect(await line()).toContain("You get");
+    expect(await line()).not.toMatch(/fee/i);
+    state.idOn = false; expect(await line()).toContain("$20"); state.idOn = true;
+    state.paid = true; expect(await line()).toContain("$20"); state.paid = false;
+    state.seed = true; expect(await line()).toContain("$20"); state.seed = false;
+    state.admin = "admin"; expect(await line()).toContain("$20"); state.admin = "not_admin";
   });
 
-  it("an input not in yet shows no figure (never one too high by the fee)", () => {
-    state.loaded = false; expect(line()).toBeNull(); state.loaded = true;
-    state.idSettled = false; expect(line()).toBeNull(); state.idSettled = true;
-    state.admin = "unknown"; expect(line()).toBeNull(); state.admin = "not_admin";
+  it("an input not in yet shows no figure (never one too high by the fee)", async () => {
+    state.loaded = false; expect(await line()).toBeNull(); state.loaded = true;
+    state.idSettled = false; expect(await line()).toBeNull(); state.idSettled = true;
+    state.admin = "unknown"; expect(await line()).toBeNull(); state.admin = "not_admin";
     // Not possible at all (already paid): no wait for the switch.
-    state.paid = true; state.idSettled = false; expect(line()).toContain("$20");
+    state.paid = true; state.idSettled = false; expect(await line()).toContain("$20");
+  });
+
+  it("owner 11-11 ~3:25 PM: the server's answer decides (fee, exemption, and whether an earlier sale takes it)", async () => {
+    // The client's own inputs say "no fee" (a seeded account, switch off); the server says the fee applies: the server wins.
+    state.seed = true; state.idOn = false;
+    state.server = { feeCents: 200, orderId: null }; expect(await line()).toContain("$18");
+    // An earlier sale takes the fee: this new listing's sale does not.
+    state.server = { feeCents: 200, orderId: "o-earlier" }; expect(await line()).toContain("$20");
+    // The server says no fee (an exempt test account, an admin, paid, switch off): none, whatever the client reads.
+    state.seed = false; state.idOn = true;
+    state.server = { feeCents: 0, orderId: null }; expect(await line()).toContain("$20");
+    // The server's answer not in yet: no figure.
+    state.server = "loading"; expect(await line()).toBeNull();
   });
 
   it("both sell forms render the line; the switch's settled state is published; the buyer preview has no incl. fee", () => {

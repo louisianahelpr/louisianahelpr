@@ -52,7 +52,7 @@ import {
 import { buyerOnWayToday } from "@/lib/declutter/pickupDay";
 import { ProblemOpenNote } from "./DeclutterProblemOpen";
 import { OrderGetHelpNow } from "@/components/jobs/GetHelpNow";
-import { payoutLine, setupFeeAheadByOrder, setupFeeUnsureOrders } from "./declutterPayoutWords";
+import { payoutLine, setupFeeAheadByOrder, setupFeeAheadFromServer, setupFeeUnsureOrders } from "./declutterPayoutWords";
 import { payoutAccountReady } from "@/lib/payoutAfterHire";
 import { ManagerSaleShareGate } from "./ManagerSaleShareGate";
 import { useOpenProblemsRead } from "./useOpenProblems";
@@ -127,8 +127,11 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   // the sales still to hand over, then handed over, then refunded.
   const shown = views ? byBucket(chosen, views) : liveSalesFirst(chosen);
   if (shown.length === 0 || !userId) return null;
-  const feeAhead = setupFeeAheadByOrder(payouts.data ?? [], setupFee.cents);
-  const feeUnsure = setupFeeUnsureOrders(payouts.data ?? [], setupFee.cents);
+  // Owner 11-11 ~3:25 PM: the server names the one sale the fee comes out of (declutter_my_setup_fee); before it is
+  // deployed, the client's own reading (one row only, else no figure).
+  const feeAhead = setupFee.server ? setupFeeAheadFromServer(payouts.data ?? [], setupFee.cents, setupFee.orderId)
+    : setupFeeAheadByOrder(payouts.data ?? [], setupFee.cents);
+  const feeUnsure = setupFee.server ? new Set<string>() : setupFeeUnsureOrders(payouts.data ?? [], setupFee.cents);
   if (bookings.isError) {
     return <ErrorState variant="inline" title="We couldn't load your pickups." body={declutterErrorMessage(bookings.error)} onRetry={() => void bookings.refetch()} />;
   }

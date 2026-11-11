@@ -5,7 +5,7 @@
  * authz and hold lines that proof exercises, so a later restatement cannot quietly drop one.
  *
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   IF NOT v_want.accepts_trades THEN |   IF false THEN
- * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   PERFORM public.declutter_identity_gate(v_uid, 'identity_required_to_buy');\n  SELECT * INTO v_ok |   PERFORM 1;\n  SELECT * INTO v_ok
+ * @mutate supabase/migrations/20261111201159_trade_offer_notice_leads_with_no_money.sql |   PERFORM public.declutter_identity_gate(v_uid, 'identity_required_to_buy');\n  SELECT * INTO v_ok |   PERFORM 1;\n  SELECT * INTO v_ok
  * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |   PERFORM set_config('declutter.bundle_take', 'on', true);\n  v_buyer_line := public.declutter_take_item( |   PERFORM 1;\n  v_buyer_line := public.declutter_take_item(
  * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |   IF (p_action = 'withdraw') <> (s.buyer_id = v_uid) THEN |   IF false THEN
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   AFTER UPDATE OF status, seller_hidden, current_price_cents ON public.declutter_items |   AFTER UPDATE OF price_cents ON public.declutter_items

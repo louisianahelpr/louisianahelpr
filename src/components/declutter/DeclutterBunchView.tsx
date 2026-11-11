@@ -468,7 +468,6 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       <p className="text-sm text-muted-foreground">{moving ? MOVING_INTRO : BUNCH_INTRO}</p>
       )}
       {results && <BunchResults results={results} userId={user.id} inSale={!!moveDate} onFix={jumpTo} onListMore={() => { setResults(null); focusBunchFilesNextPaint(); }} />}
-      <SellerPayoutPrompt />
       {feeDue != null && <BunchFeeGate cents={feeDue} />}
       <BunchDraftsSection userId={user.id} exclude={draftsOnTheList} busy={busy} feeDue={feeDue != null} onBusy={setListingDrafts} attested={attested} setAttested={setAttested} listStepShown={items.length > 0} onPricedOffered={setPricedDraftsOffered} />
 
@@ -592,6 +591,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
         />
       )}
 
+      <SellerPayoutPrompt />{/* F342: last, so its late arrival moves nothing */}
       <BunchBar sorting={sorting} found={found} listing={listing} runNames={runNames.current} undo={undo} itemCount={items.length} readyCount={ready.length} needs={needs} onNeeds={firstUnready ? () => { setItems(unreadyFirst); jumpTo(firstUnready.key); } : null} onNext={focusBunchListStep} onUndo={onUndo}
         onUseOtherPrice={() => { const { intoKey, price } = undo!.otherPrice!; setItems((its) => bulkEdit(its, new Set([intoKey]), { price })); setUndo({ ...undo!, otherPrice: undefined }); }} />
     </AppPage>

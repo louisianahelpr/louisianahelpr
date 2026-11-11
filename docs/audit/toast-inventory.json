@@ -5586,7 +5586,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterProblemForm.tsx",
-      "line": 40,
+      "line": 41,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5596,7 +5596,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterProblemForm.tsx",
-      "line": 46,
+      "line": 47,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5992,7 +5992,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeOffers.tsx",
-      "line": 71,
+      "line": 82,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6022,7 +6022,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeOffers.tsx",
-      "line": 76,
+      "line": 87,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -42,7 +42,7 @@ export function SellPriceInput({ s }: { s: SellFlow }) {
       {/* text-ds-40 on the WRAPPER too (deep audit #43): on a phone index.css floors every input at
           max(16px, 1em), which beats the input's own text-ds-40, and 1em is this wrapper's size. Without it
           the digits drew at 16px beside a 40px "$". Guard: src/test/bigDigitInputsKeepTheirSize.test.ts. */}
-      <div className="flex min-w-0 items-baseline justify-center text-ds-40 text-[hsl(var(--burnt-sienna))]">
+      <div className="flex min-w-0 items-baseline justify-center text-ds-40 text-foreground">
         <span className="text-ds-40 font-bold" aria-hidden>$</span>
         <input
           id="sell-price"

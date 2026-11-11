@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import { useLanguage } from "@/lib/i18n/language";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
  * between the error and the one on the Password row.
  */
 export const LoginForgotNudge = ({ state }: { state: unknown }) => {
-  const { t } = useTranslation();
+  const { t } = useLanguage();
   return (
     <Button asChild variant="outline" size="wrapSm" className="basis-full mt-1 text-ds-13">
       <Link to="/forgot-password" state={state} data-login-forgot-nudge="">

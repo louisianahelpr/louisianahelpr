@@ -5,8 +5,8 @@
  *         line: "Forgot your password? We can email you a reset link." (still /forgot-password, still carrying the email).
  *   F232 /help: "Report a bug" was an 88x19 text link; it is a full-width outline button (44px tap box).
  *
- * @mutate src/pages/auth/Login.tsx | <Link to="/forgot-password" state={forgotState} data-login-forgot-nudge=""> | <Link to="/forgot-password" data-login-forgot-nudge="">
- * @mutate src/pages/auth/Login.tsx |                 <Button asChild variant="outline" size="wrapSm" className="basis-full mt-1 text-ds-13"> |                 <Button asChild variant="ghost" size="sm" className="mt-1 text-ds-13">
+ * @mutate src/pages/auth/loginForgotNudge.tsx | <Link to="/forgot-password" state={state} data-login-forgot-nudge=""> | <Link to="/forgot-password" data-login-forgot-nudge="">
+ * @mutate src/pages/auth/loginForgotNudge.tsx |     <Button asChild variant="outline" size="wrapSm" className="basis-full mt-1 text-ds-13"> |     <Button asChild variant="ghost" size="sm" className="mt-1 text-ds-13">
  * @mutate src/lib/i18n/enScreens.ts |   "login.forgotNudge": "Forgot your password? We can email you a reset link.", |   "login.forgotNudge": "Forgot password?",
  * @mutate src/pages/info/HelpCenter.tsx |             <Button asChild variant="outline" size="md" className="w-full"> |             <Button asChild variant="outline" size="md" className="w-auto">
  */
@@ -69,8 +69,9 @@ describe("F259g: the wrong-password nudge is a full-width button that offers the
   });
 
   it("the Password-row link keeps the short 'Forgot password?' and the nudge carries the typed email in router state", () => {
-    const src = blankComments(readFileSync("src/pages/auth/Login.tsx", "utf8"));
-    expect(src).toMatch(/<Link to="\/forgot-password" state=\{forgotState\} data-login-forgot-nudge="">\s*\{t\("login\.forgotNudge"\)\}/);
+    expect(blankComments(readFileSync("src/pages/auth/Login.tsx", "utf8"))).toMatch(/<LoginForgotNudge state=\{forgotState\} \/>/);
+    const src = blankComments(readFileSync("src/pages/auth/loginForgotNudge.tsx", "utf8"));
+    expect(src).toMatch(/<Link to="\/forgot-password" state=\{state\} data-login-forgot-nudge="">\s*\{t\("login\.forgotNudge"\)\}/);
     expect(enScreens["login.forgot"]).toBe("Forgot password?");
     expect(enScreens["login.forgotNudge"]).toBe(NUDGE);
     expect(es["login.forgotNudge"]).toMatch(/^¿Olvidó su contraseña\? /);

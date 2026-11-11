@@ -20,7 +20,8 @@ import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
 /** `trigger={false}`: the caller has its own "Report a problem" button (seller delivery), so this one shows only the open form (#51). */
-export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange, trigger = true }: { orderId: string; side: "buyer" | "seller"; stage: ProblemStage; open?: boolean; onOpenChange?: (open: boolean) => void; trigger?: boolean }) {
+/** `triggerLabel`: owner 11-11 (F382), after a seller says no to a refund the same report reads "Ask Louisiana Helpr to look". */
+export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange, trigger = true, triggerLabel = "Report a problem" }: { orderId: string; side: "buyer" | "seller"; stage: ProblemStage; open?: boolean; onOpenChange?: (open: boolean) => void; trigger?: boolean; triggerLabel?: string }) {
   const qc = useQueryClient();
   const [openState, setOpenState] = useState(false);
   // Controlled from the order card when "Something's not right" opens it (board 159).
@@ -45,7 +46,7 @@ export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  if (!open) return trigger ? <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" onClick={() => setOpen(true)}>Report a problem</Button> : null;
+  if (!open) return trigger ? <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" onClick={() => setOpen(true)}>{triggerLabel}</Button> : null;
   return (
     <div ref={formRef} className="space-y-2 rounded-xl border border-border p-3">
       {/* F388: the floating "+ Sell" pill sat on the photos row next to Send; it steps aside while the form is open. */}

@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { noDeliveryWay, totalPhrase } from "@/lib/declutter/pickupWords";
 import { fetchItemHandovers, fetchMyOffers, respondOffer, type MyOffer } from "@/lib/declutter/api";
+import { offerBucket, underChip } from "@/lib/declutter/buyingBucket";
+import type { OrderBucket } from "./OrderSteps";
 import { closeWanted } from "@/lib/declutter/wanted";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
@@ -282,7 +284,8 @@ function OfferRow({ o, linked = false }: { o: MyOffer; linked?: boolean }) {
  * (side="buyer", the Buying tab): rows 57-58.
  */
 /** onlyMyTurn (audit DC-9, Selling's "To answer"): only the open offers waiting for this member, nothing else. */
-export function OffersSection({ side, onlyMyTurn = false }: { side: "buyer" | "seller"; onlyMyTurn?: boolean }) {
+/** only (audit 11-10 F374, Buying's chips): just the offers that chip files (offerBucket); nothing at all when none. */
+export function OffersSection({ side, onlyMyTurn = false, only = null }: { side: "buyer" | "seller"; onlyMyTurn?: boolean; only?: OrderBucket | null }) {
   const offers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers });
   const seller = side === "seller";
   const title = seller ? "Offers on your items" : "Your offers";
@@ -293,7 +296,8 @@ export function OffersSection({ side, onlyMyTurn = false }: { side: "buyer" | "s
     return <ErrorState variant="inline" title="We couldn't load offers." body={declutterErrorMessage(offers.error)} onRetry={() => void offers.refetch()} />;
   }
   if (offers.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading offers…</p>;
-  const mine = (offers.data ?? []).filter((o) => o.my_side === side);
+  const mine = underChip((offers.data ?? []).filter((o) => o.my_side === side), only, (o) => offerBucket(o, side));
+  if (only && mine.length === 0) return null;
   const toAnswer = mine.filter((o) => o.status === "open" && o.awaiting === side).length;
   if (onlyMyTurn) {
     const waiting = mine.filter((o) => o.status === "open" && o.awaiting === side);

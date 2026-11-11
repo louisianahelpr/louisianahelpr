@@ -53,7 +53,7 @@ export const es: Record<MsgKey, string> = {
   "lang.spanish": "Español",
   "lang.saved": "Listo. Idioma: Español.",
   "lang.switchTo": "Cambiar el idioma a {lang}",
-  "lang.legalInEnglish": "Los términos legales están en inglés.",
+  "lang.legalInEnglish": "Los términos legales están en inglés. Hay un resumen en español en la página de Términos.",
 
   "nav.home": "Panel",
   "nav.dockHome": "Inicio",

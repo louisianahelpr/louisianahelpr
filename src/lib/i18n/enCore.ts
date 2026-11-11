@@ -12,7 +12,7 @@ export const enCore = {
   "lang.spanish": "Español",
   "lang.saved": "Language saved: English",
   "lang.switchTo": "Switch language to {lang}",
-  "lang.legalInEnglish": "The legal terms are in English.",
+  "lang.legalInEnglish": "The legal terms are in English. A Spanish summary is on the Terms page.",
 
   // Main nav (desktop rail + phone dock)
   "nav.home": "Dashboard",

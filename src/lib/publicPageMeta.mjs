@@ -93,6 +93,21 @@ export const PUBLIC_PAGE_META = {
     ogTitle: "How to opt in to Louisiana Helpr text alerts",
     ogDescription: "The Louisiana Helpr text alerts opt-in, step by step.",
   },
+  // F255 (audit 11-10, owner 2026-11-11): what it costs (words only, no rate) and how members are kept safe.
+  "/fees": {
+    title: "Fees — Helpr",
+    description: "Posting a job on Louisiana Helpr is free. A service fee is included in the total you pay.",
+    canonical: `${SITE_ORIGIN}/fees`,
+    ogTitle: "Fees on Louisiana Helpr",
+    ogDescription: "Posting a job is free. Helprs see their pay before they apply.",
+  },
+  "/safety": {
+    title: "Safety — Helpr",
+    description: "How Louisiana Helpr keeps members safe: money held until you approve the work, and a problem can be reported from any job.",
+    canonical: `${SITE_ORIGIN}/safety`,
+    ogTitle: "Safety on Louisiana Helpr",
+    ogDescription: "Money held until you approve the work. Report a problem from any job.",
+  },
   // Owner 2026-10-23: the Terms and the Privacy Policy as one open page each, for Twilio's A2P review (LegalFullText).
   "/terms/full": {
     title: "Terms of Service, full text — Helpr",

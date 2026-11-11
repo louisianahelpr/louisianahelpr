@@ -79,6 +79,8 @@ const DOCUMENT_SCROLL_ROUTES = [
   // Public marketing / informational pages (document-scroll)
   "/help",         // Help Center — static FAQ / support page
   "/sms-opt-in",   // How to opt in to text alerts (Twilio A2P review, 2026-10-23)
+  "/fees",         // F255 (owner 2026-11-11): what it costs, words only
+  "/safety",       // F255 (owner 2026-11-11): how members are kept safe
   // 25 Days of Louisiana Giveaways (owner 2026-11-09): the public sponsor page and /25days/rules, document scroll.
   "/sponsor",
   "/25days",
@@ -115,7 +117,7 @@ const DOCUMENT_SCROLL_ROUTES = [
 // /help and /support (Q965): PublicLayout renders AppShell for them on native
 // (useAppChrome), the same internal-scroll container as Legal, so they need
 // the same lock; they were on DOCUMENT_SCROLL_ROUTES only.
-const NATIVE_APP_SHELL_ROUTES = ["/legal", "/terms", "/privacy", "/rules", "/browse", "/help", "/support", "/sms-opt-in"];
+const NATIVE_APP_SHELL_ROUTES = ["/legal", "/terms", "/privacy", "/rules", "/browse", "/help", "/support", "/sms-opt-in", "/fees", "/safety"];
 
 /**
  * The pathname currently rendering the `path="*"` catch-all (NotFound), or

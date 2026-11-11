@@ -2048,7 +2048,7 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     renderPage();
     // The When row reads the next visit (Q2680), not day 1.
     await waitFor(() => expect(document.querySelector("[data-job-meta]")?.textContent).toBe("Continuing Thu, Nov 5 at 9:00 AM"));
-    expect(document.querySelector("[data-next-step]")?.textContent).toBe("Continuing Thu, Nov 5 at 9:00 AM · waiting on Rhonda to confirm");
+    expect(document.querySelector("[data-next-step]")?.textContent).toBe("Rhonda comes back Thu, Nov 5 at 9:00 AM · nothing for you to do; Rhonda confirms next"); // F289a
   });
 
   it("a Helpr's ask: 'Confirm new day' leads on the right (one tap) over Approve", async () => {

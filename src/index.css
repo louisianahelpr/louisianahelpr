@@ -3534,6 +3534,12 @@ button,
   .job-steps-grid { grid-template-columns: repeat(6, minmax(0, auto)) !important; }
   .job-step-cur-icon { display: none; }
 }
+/* F260k (whole-app audit 11-10): under Bigger text the step words grew to 16px, so "Arrived" and "Working" broke
+   mid-word ("Ar-" / "rived") and "Working" ran into "Done" on the Home card at 375. The six step words keep their
+   default 11px there, the size the rules above fit to every width (guards trackerWordsFitNarrow,
+   trackerFullWordsFromMidWidth); the line under the bar ("Next: ...") and the rest of the card still grow, and the
+   tracker's aria-label names every step. Guard: src/test/trackerWordsBiggerText.test.ts. */
+html.senior-mode .job-steps-grid .text-ds-11 { font-size: 11px !important; line-height: 1.25 !important; }
 
 /* THE MONEY RANGE ROW SIZES ITS WORDS TO ITS OWN TRACK (audit 2026-10-28 P4-3; EarningsRangeToggle.tsx). The
    four full names ("Lifetime / This week / This month / This year") need a 324px track at the default text size;

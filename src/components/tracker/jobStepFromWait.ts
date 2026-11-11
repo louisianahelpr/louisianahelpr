@@ -48,6 +48,10 @@ function stuck(job: StampJob): Stage {
 const NO_SHOW: Entry = (job) => at(stuck(job), "problem", "No-show?");
 const OVERDUE: Entry = (job) => at(stuck(job), "problem", "Overdue");
 const OVERDUE_AT = (stage: Stage): WaitStep => at(stage, "problem", "Overdue");
+/** F290a (audit 11-10): on the Helpr's own bar a late step keeps its name (Arrived, Working) in the warning
+ *  colour; the word "Late" in its place hid which step was next. The poster's bar still says Late. */
+const LATE_STEP: Entry = (job) => at(stuck(job), "problem");
+const LATE_AT = (stage: Stage): WaitStep => at(stage, "problem");
 
 /** Booked and accepted: Hired until the day-before window opens, then Confirmed until BOTH are in (the old rail's
  *  job_confirmed step lit on the mutual stamp, kept), then On the way. */
@@ -130,14 +134,14 @@ export const HELPER_STEP: Record<HelperWait, Entry> = {
   submitted: at(7),
   revision: at(6),
   revision_sent: at(7),
-  overdue_not_started: OVERDUE,
-  overdue_unconfirmed_day: OVERDUE,
-  overdue_not_arrived: OVERDUE,
-  overdue_unfinished: OVERDUE,
-  overdue_before_photo: OVERDUE_AT(5),
-  overdue_start_working: OVERDUE_AT(6),
-  overdue_arrival_unconfirmed: OVERDUE_AT(5),
-  overdue_after_photo: OVERDUE_AT(6),
+  overdue_not_started: LATE_STEP,
+  overdue_unconfirmed_day: LATE_STEP,
+  overdue_not_arrived: LATE_STEP,
+  overdue_unfinished: LATE_STEP,
+  overdue_before_photo: LATE_AT(5),
+  overdue_start_working: LATE_AT(6),
+  overdue_arrival_unconfirmed: LATE_AT(5),
+  overdue_after_photo: LATE_AT(6),
   dispute: DISPUTE,
   dispute_escalated: DISPUTE,
   dispute_settling: DISPUTE,

@@ -74,7 +74,7 @@ export function jobStepsLabel(stage: Stage, waitingOnYou: boolean, tone: StepTon
   const done = steps.slice(0, Math.max(0, at));
   const later = steps.slice(at + 1);
   return [
-    `Job progress, step ${at + 1} of ${n}: ${steps[at]}, ${tone === "problem" ? `${label ?? "needs attention"}, needs attention` : waitingOnYou ? "waiting on you" : "waiting on the other person"}.`,
+    `Job progress, step ${at + 1} of ${n}: ${steps[at]}, ${tone === "problem" ? `${label ? `${label}, ` : ""}needs attention` : waitingOnYou ? "waiting on you" : "waiting on the other person"}.`,
     done.length ? `Done: ${done.join(", ")}.` : "",
     later.length ? `Still to come: ${later.join(", ")}.` : "",
   ].filter(Boolean).join(" ");

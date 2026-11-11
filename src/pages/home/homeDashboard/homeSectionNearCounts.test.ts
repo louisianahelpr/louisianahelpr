@@ -96,7 +96,7 @@ describe("Home's section cards: live near-you counts (owner 2026-11-01)", () => 
     // audit A D4, owner 11-08) the chip row is the LAST block of Home's main reading order: it sits after Coming up, so a
     // count that widens a chip moves nothing above it.
     const home = code("src/pages/home/HomeDashboard.tsx");
-    expect(home.indexOf('data-section-chips=""')).toBeGreaterThan(home.lastIndexOf('title="Coming up"'));
-    expect(home.lastIndexOf('title="Coming up"')).toBeGreaterThan(0);
+    expect(home.indexOf('data-section-chips=""')).toBeGreaterThan(home.lastIndexOf('title={t("home.comingUp")}'));
+    expect(home.lastIndexOf('title={t("home.comingUp")}')).toBeGreaterThan(0);
   });
 });

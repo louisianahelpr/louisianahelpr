@@ -188,9 +188,9 @@ describe("the tiles (boards 7, 11)", () => {
     const home = src("pages/home/HomeDashboard.tsx");
     const main = home.indexOf('<HomeMoneyTiles money={money} placement="main" />');
     expect(main).toBeGreaterThan(home.indexOf('data-testid="next-up"'));
-    expect(main).toBeLessThan(home.indexOf('<GroupSection title="Coming up">'));
+    expect(main).toBeLessThan(home.indexOf('<GroupSection title={t("home.comingUp")}>'));
     const side = home.indexOf('<HomeMoneyTiles money={money} placement="side" />');
     expect(side).toBeGreaterThan(home.indexOf("<section data-home-side"));
-    expect(side).toBeLessThan(home.indexOf(">Your sections</h2>"));
+    expect(side).toBeLessThan(home.indexOf('>{t("home.yourSections")}</h2>'));
   });
 });

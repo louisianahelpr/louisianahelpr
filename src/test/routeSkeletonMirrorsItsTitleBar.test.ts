@@ -46,7 +46,7 @@ const classOf = (el: string) => el.match(/className="([^"]*)"/)?.[1] ?? "";
 describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
   it("is not vacuous: every file was read", () => {
     for (const s of [skeleton, bar, frame, home]) expect(s.length).toBeGreaterThan(500);
-    expect(home).toMatch(/<SectionScreen search=\{<SectionSearchBar noun="jobs and items" home="\/search" \/>\} fab=\{<SectionCreateFab \/>\}>/);
+    expect(home).toMatch(/<SectionScreen search=\{<SectionSearchBar noun=\{t\("home\.searchNoun"\)\} home="\/search" \/>\} fab=\{<SectionCreateFab \/>\}>/);
   });
 
   it("wears SectionScreen's frame: the same AppShell props and column classes", () => {
@@ -87,7 +87,7 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     // Home: the Next up card (2026-10-20, it replaced the three stat boxes); the skeleton draws the same card.
     // The card measures and holds its own height while to-dos load (ref + a reserved minHeight style), so match
     // the tag's shell classes, not the whole tag.
-    expect(home).toMatch(/<section (?:ref=\{nextUpRef\} )?data-testid="next-up" aria-label=\{NEEDS_YOU_LABEL\} className="liquid-glass p-card flex flex-col gap-1\.5"[ >]/);
+    expect(home).toMatch(/<section (?:ref=\{nextUpRef\} )?data-testid="next-up" aria-label=\{t\(NEEDS_YOU_KEY\)\} className="liquid-glass p-card flex flex-col gap-1\.5"[ >]/);
     expect(skeleton).toContain('<div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton-part="next-up">');
     expect(skeleton).toMatch(/data-skeleton-part="next-up">[\s\S]*?<Skeleton className="h-11 w-36 mt-2 rounded-full" \/>/);
     // The section chips (owner 11-08): the same wrapping row, 44px pills (Button size sm is h-11).
@@ -95,8 +95,8 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(skeleton).toContain('<div className="flex flex-wrap gap-2" data-skeleton-part="tiles">');
     expect(skeleton).toMatch(/<Skeleton key=\{i\} className="h-11 w-32 rounded-full" \/>/);
     // Board 7: Coming up sits ABOVE the sections in both.
-    expect(home.lastIndexOf('title="Coming up"')).toBeGreaterThan(0);
-    expect(home.lastIndexOf('title="Coming up"')).toBeLessThan(home.indexOf('aria-label="Your sections"'));
+    expect(home.lastIndexOf('title={t("home.comingUp")}')).toBeGreaterThan(0);
+    expect(home.lastIndexOf('title={t("home.comingUp")}')).toBeLessThan(home.indexOf('aria-label={t("home.yourSections")}'));
     expect(skeleton.indexOf('data-skeleton-part="coming-up"')).toBeGreaterThan(0);
     expect(skeleton.indexOf('data-skeleton-part="coming-up"')).toBeLessThan(skeleton.indexOf('data-skeleton-part="tiles"'));
     // Same column gap as Home's stack.

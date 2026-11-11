@@ -33,7 +33,7 @@ describe("Home's See all and Jobs near you rows use the shared controls (owner 1
     const el = elementWith(src, 'data-testid="next-up-see-all"', "Button");
     expect(el).toMatch(/variant="link"/);
     expect(el).toMatch(/size="sm"/);
-    expect(el).toContain("See all (${todoCount})");
+    expect(el).toContain('t("home.seeAll", { n: todoCount })');
     expect(src).toMatch(/import \{ Button \} from "@\/components\/ui\/button";/);
   });
 

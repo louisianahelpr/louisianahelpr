@@ -44,7 +44,8 @@ CREATE TABLE public.jobs (id uuid primary key, title text, customer_id uuid, hel
   helper_on_the_way_at timestamptz, helper_arrived_at timestamptz, poster_confirmed_arrival_at timestamptz,
   helper_completed_at timestamptz, proof_after_urls text[]);
 CREATE TABLE public.job_continue_days (job_id uuid, new_date date, done_without_new_photo_at timestamptz, created_at timestamptz default now());
-CREATE TABLE public.notifications (id uuid primary key default gen_random_uuid(), user_id uuid, title text not null, message text not null, type text, link text, job_id uuid, created_at timestamptz NOT NULL DEFAULT clock_timestamp());
+CREATE TABLE public.notifications (id uuid primary key default gen_random_uuid(), user_id uuid, title text not null, message text not null, type text, link text, job_id uuid, created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+  seq bigserial); -- PGlite's clock ticks in milliseconds: two rows in one ms tie on created_at, so order by insert
 CREATE TABLE public.emails (user_id uuid, title text, message text, type text);
 CREATE TABLE public.profiles (user_id uuid, full_name text);
 CREATE FUNCTION public.member_display_name(p_full text, p_fallback text) RETURNS text LANGUAGE sql AS $$
@@ -71,7 +72,7 @@ async function job(title) {
     [id, title, P, H]);
   return id;
 }
-const last = async (id) => (await db.query(`SELECT title, message, type FROM notifications WHERE job_id = $1 ORDER BY created_at DESC LIMIT 1`, [id])).rows[0];
+const last = async (id) => (await db.query(`SELECT title, message, type FROM notifications WHERE job_id = $1 ORDER BY seq DESC LIMIT 1`, [id])).rows[0];
 const arrive = (id) => db.query(`UPDATE jobs SET helper_arrived_at = now() WHERE id = $1`, [id]);
 
 const a = await job("Mow two lawns");

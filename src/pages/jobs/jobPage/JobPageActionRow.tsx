@@ -127,10 +127,10 @@ export function JobPageActionRow({
   const menuCount = menuExtras.length + (loneCard ? 0 : cardCount);
   const pair = (!!secondAction || loneCard) && (cardLead || !!lead);
   const leadNode = cardLead
-    ? <div key="lead" ref={setCardLeadHost} data-card-lead="" className="flex min-w-0" />
+    ? <div key="lead" ref={setCardLeadHost} data-card-lead="" className="flex min-w-0 flex-1" />
     : lead ? <ActionButton key="lead" a={lead} lead={!plainLead} pair={pair} /> : null;
   const second = loneCard
-    ? <div key="second" ref={setCardSecondHost} data-row-one-action="" className="flex min-w-0" />
+    ? <div key="second" ref={setCardSecondHost} data-row-one-action="" className="flex min-w-0 flex-1" />
     : secondAction ? <ActionButton key="second" a={secondAction} pair={pair} /> : null;
   const cells = (stepRight ? [second, leadNode] : [leadNode, second]).filter(Boolean);
   const more = menuCount > 0 ? (

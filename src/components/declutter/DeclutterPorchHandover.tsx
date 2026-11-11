@@ -18,7 +18,8 @@
  *     seller-delivers sale uses SellerDeliveryStatus: the same three parts, its steps read from the delivery booking.
  */
 import { useState } from "react";
-import { checkWindowEnds, orderWhen } from "@/lib/declutter/timeLeft";
+import { checkWindowEnds, orderWhen, payoutDayAfterWindow } from "@/lib/declutter/timeLeft";
+import { payoutAccountReady } from "@/lib/payoutAfterHire";
 import { useQuery } from "@tanstack/react-query";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { fetchMyHandover, handoverPhotoUrl } from "@/lib/declutter/handover";
@@ -211,11 +212,13 @@ function sellerRefundStep(v: RefundRequestView): NextStepValue {
 }
 
 /** F394: the seller's handed-over line: the payout day while the buyer's 24 hours run, or that they are over. */
-function sellerPaidWhen(cents: number, handedOverAt: string | null, held: boolean) {
+function sellerPaidWhen(cents: number, handedOverAt: string | null, held: boolean, payoutReady: boolean) {
   if (held || !handedOverAt) return null;
+  // F360b (lh-money-escrow review): with no ready payout account the run puts the payout off, so no day is promised.
+  if (!payoutReady) return <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong> once you set up payouts in Settings.</>;
   const ends = checkWindowEnds(handedOverAt);
   return ends
-    ? <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong> on {orderWhen(ends)} unless the buyer reports a problem before then.</>
+    ? <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong>, paid on {payoutDayAfterWindow(ends)} unless the buyer reports a problem before then.</>
     : <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong>. The buyer's 24 hours to report a problem are over.</>;
 }
 
@@ -228,15 +231,18 @@ function MoneyNote({ side, kind, free, done, problemOpen, refunded = false, item
   deliveryCents?: number;
 }) {
   const [ruleOpen, setRuleOpen] = useState(false);
+  const { profile } = useCurrentUser();
+  const payoutReady = payoutAccountReady(profile);
   const sellerCents = itemsCents + Math.max(0, deliveryCents);
-  const parts = deliveryCents > 0 ? ` (${formatPrice(itemsCents)} for the sale and ${formatPrice(deliveryCents)} for delivering it)` : "";
+  // F398 (owner 11-11 ~2:10 PM): "You get $50 ($45 + $5 delivery)", the payout's own parts (items + v_rate).
+  const parts = deliveryCents > 0 ? ` (${formatPrice(itemsCents)} + ${formatPrice(deliveryCents)} delivery)` : "";
   const money = free ? null
     : side === "buyer"
       // NIGHT-BUYINGopenpr-8 (buyer's held card): while a problem is open the note says "Nobody is paid until they
       // decide.", so the money line no longer says the seller is paid after the pickup right above it.
       ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done || problemOpen ? "." : `. The seller is paid after you ${after}.`}</> : null
       : done
-        ? sellerPaidWhen(sellerCents, handedOverAt, refunded || problemOpen)
+        ? sellerPaidWhen(sellerCents, handedOverAt, refunded || problemOpen, payoutReady)
         : problemOpen
           ? <>Your <strong className="tabular-nums">{formatPrice(sellerCents)}</strong> is held while Louisiana Helpr looks at the problem.</>
         // Deep audit #31: one payout rule, the live one. LEAD-DOOR-PAYLINE: said per handover kind from the owner's

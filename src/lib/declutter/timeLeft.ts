@@ -38,6 +38,22 @@ export function orderWhen(iso: string): string {
   return new Date(iso).toLocaleString("en-US", { timeZone: CENTRAL, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
+const PAYOUT_SEND_MARGIN_MS = 10 * 60_000;
+
+/**
+ * F360b (lh-money-escrow review): a payout day, date only ("Thu, Nov 12", Central). The run sends a final sale within
+ * about 10 minutes of the time it allows and the bank shows it later, so the minute would claim more than is known.
+ */
+export function payoutDay(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { timeZone: CENTRAL, weekday: "short", month: "short", day: "numeric" });
+}
+
+/** The day an unsent payout goes, from the end of the buyer's window: declutter_sale_final allows the send 10 minutes
+ *  after the 24 hours, so a window ending 11:55 PM pays the next day (lh-money-escrow re-review). */
+export function payoutDayAfterWindow(windowEnds: string): string {
+  return payoutDay(new Date(Date.parse(windowEnds) + PAYOUT_SEND_MARGIN_MS).toISOString());
+}
+
 /** The buyer's time to check an item after the handover: 24 hours (declutter_sale_final / declutter_problem_window_open). */
 const CHECK_WINDOW_MS = 24 * 3_600_000;
 

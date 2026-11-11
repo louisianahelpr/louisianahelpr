@@ -22,9 +22,7 @@ import { DROPS_SWITCH_LABEL, priceTooLowForDrops } from "./sellForm";
 import type { SellFlow } from "./useSellFlowState";
 import { formatPrice } from "@/lib/declutter/distance";
 import { sellerGetsTodayCents } from "@/lib/declutter/sellerGetsToday";
-import { useFirstPayoutFeeCents } from "@/hooks/useFirstPayoutFee";
-import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useSellerSetupFee } from "./useSellerSetupFee";
 
 /** The Sell form field look, shared with the card-look Input (src/components/ui/input.tsx). */
 export const SELL_INPUT = CARD_FIELD_CLS;
@@ -44,13 +42,13 @@ export function FieldLabel({ htmlFor, text, extra }: { htmlFor: string; text: st
  * figure and no fee words on the sell form.
  */
 export function SellYouGet({ priceCents }: { priceCents: number }) {
-  const setupFeeCents = useFirstPayoutFeeCents();
-  const idCheckOn = useIdentityCheckOnStore();
-  const { isAdmin } = useCurrentUser();
+  const fee = useSellerSetupFee();
+  // lh-money-escrow reviews: an input still loading or failed is not "no fee"; no figure until it answers.
+  if (fee.unknown) return null;
   return (
     <p className="flex items-baseline justify-between text-ds-14 text-foreground" data-sell-keep="">
       You get if it sells today
-      <span className="font-bold text-[hsl(var(--burnt-sienna))]">{formatPrice(sellerGetsTodayCents(priceCents, { setupFeeCents, idCheckOn, isAdmin }))}</span>
+      <span className="font-bold text-[hsl(var(--burnt-sienna))]">{formatPrice(sellerGetsTodayCents(priceCents, fee.cents))}</span>
     </p>
   );
 }

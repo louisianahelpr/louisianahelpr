@@ -52,7 +52,32 @@ export interface NotificationEmailProps {
    * and no item, fee, delivery or pickup). Display only: each line is a figure the order already recorded.
    */
   receipt?: EmailReceipt
+  /**
+   * The recipient's language (profiles.language; F260q, owner 11-11 "Spanish everything"). 'es' writes the email's
+   * own words (preheader, greeting, footer) in Spanish; the sender passes the title and message already re-written.
+   */
+  lang?: 'en' | 'es'
 }
+
+/** The email's own words, per language. Brand names stay as they are. */
+export const NOTICE_EMAIL_WORDS = {
+  en: {
+    preheader: 'open Louisiana Helpr for the details.',
+    hey: 'Hey',
+    there: 'there',
+    why: "You're getting this because email alerts are on for this kind of notice.",
+    change: 'Change which emails you get',
+    open: 'Open Louisiana Helpr',
+  },
+  es: {
+    preheader: 'abra Louisiana Helpr para ver los detalles.',
+    hey: 'Hola',
+    there: '',
+    why: 'Recibe esto porque las alertas por correo están activadas para este tipo de aviso.',
+    change: 'Cambiar qué correos recibe',
+    open: 'Abrir Louisiana Helpr',
+  },
+} as const
 
 /** A receipt's lines ([label, amount]), its total line, and an optional note under it (the pickup time). */
 export interface EmailReceipt {
@@ -116,11 +141,15 @@ export const NotificationEmail = ({
   prefsUrl,
   host,
   unsubscribeUrl,
-  actionLabel = 'Open Louisiana Helpr',
+  actionLabel,
   receipt,
-}: NotificationEmailProps) => (
+  lang = 'en',
+}: NotificationEmailProps) => {
+  const w = NOTICE_EMAIL_WORDS[lang]
+  const name = userName || w.there
+  return (
   <BaseLayout
-    preheader={`${title} — open Louisiana Helpr for the details.`}
+    preheader={`${title} — ${w.preheader}`}
     footer={
       unsubscribeUrl ? (
         <MarketingFooter unsubscribeUrl={unsubscribeUrl} />
@@ -128,13 +157,13 @@ export const NotificationEmail = ({
         <TransactionalFooter>
           {/* F173 (owner's message review 11-09): email alerts are ON by default, so "because you enabled" was untrue
               for most members. `host` stays in the props for callers; the sentence no longer needs it. */}
-          You&apos;re getting this because email alerts are on for this kind of notice.{' '}
+          {w.why}{' '}
           <Link
             href={prefsUrl}
             className="e-footer"
             style={{ color: brand.footerOlive, textDecoration: 'underline' }}
           >
-            Change which emails you get
+            {w.change}
           </Link>
           .
         </TransactionalFooter>
@@ -145,17 +174,18 @@ export const NotificationEmail = ({
       {title}
     </Heading>
     <Text className="e-text" style={{ ...textStyle, margin: '0 0 8px' }}>
-      Hey {userName || 'there'},
+      {name ? `${w.hey} ${name},` : `${w.hey},`}
     </Text>
     <Text className="e-text" style={textStyle}>
       {keepNumberUnitsTogether(message)}
     </Text>
     {receipt ? <ReceiptBlock receipt={receipt} /> : null}
-    <BrandButton href={actionUrl} label={actionLabel} widthPx={230} />
+    <BrandButton href={actionUrl} label={actionLabel ?? w.open} widthPx={230} />
     <Text className="e-text" style={{ ...textStyle, fontSize: '14px', margin: '28px 0 4px' }}>
       — {SIGNOFF}
     </Text>
   </BaseLayout>
-)
+  )
+}
 
 export default NotificationEmail

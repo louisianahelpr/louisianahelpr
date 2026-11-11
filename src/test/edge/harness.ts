@@ -157,6 +157,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/rpcNotDeployed.ts";`,
   );
 
+  // F260q: `_shared/noticeEs.ts` has ZERO imports (the Spanish notice shapes), so
+  // point at the REAL module.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/noticeEs\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/noticeEs.ts";`,
+  );
+
   // F466/F502: `_shared/strikeRule.ts` has ZERO imports (one wording constant), so
   // point at the REAL module.
   out = out.replace(

@@ -6,7 +6,8 @@ import { FROM_DEFAULT, sendWithResend } from '../_shared/resend.ts'
 import { isTestRecipient, TEST_RECIPIENT_REASON } from '../_shared/testRecipient.ts'
 import { buildUnsubscribeUrl, unsubscribeHeaders } from '../_shared/unsubscribe.ts'
 import { NotificationEmail } from '../_shared/email-templates/notification.tsx'
-import { notificationActionLabel } from '../_shared/email-templates/notificationAction.ts'
+import { actionLabelInLanguage, notificationActionLabel } from '../_shared/email-templates/notificationAction.ts'
+import { noticeInSpanish } from '../_shared/noticeEs.ts'
 import { renderEmail } from '../_shared/email-templates/render.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
@@ -52,6 +53,8 @@ async function renderNotificationEmail(
   link: string | null,
   userName: string,
   unsubscribeUrl?: string,
+  lang: 'en' | 'es' = 'en',
+  englishTitle: string = title,
 ): Promise<{ html: string; text: string }> {
   const siteUrl = getAppUrl()
   const actionUrl = link ? `${siteUrl}${link}` : siteUrl
@@ -63,7 +66,9 @@ async function renderNotificationEmail(
       title,
       message,
       actionUrl,
-      actionLabel: notificationActionLabel(link, title),
+      // The label is keyed on the English title (the caller passes the original), then put in the reader's language.
+      actionLabel: actionLabelInLanguage(notificationActionLabel(link, englishTitle), lang),
+      lang,
       userName,
       prefsUrl,
       host: siteUrl.replace(/^https?:\/\//, ''),
@@ -461,19 +466,32 @@ serve(async (req) => {
       ? ((await buildUnsubscribeUrl(profile.email)) ?? undefined)
       : undefined
 
+    // F260q (owner 11-11 "Spanish everything"): a member who picked Spanish (profiles.language) gets the subject, the
+    // message and the email's own words in Spanish (known shapes via _shared/noticeEs.ts; anything else stays as
+    // written). Its own read, after every gate: a failed read (or a database without the column yet) sends English.
+    const { data: langRow, error: langErr } = await supabase
+      .from('profiles')
+      .select('language')
+      .eq('user_id', user_id)
+      .maybeSingle()
+    if (langErr) console.warn('profiles.language read failed; sending English:', langErr.message)
+    const lang: 'en' | 'es' = !langErr && langRow?.language === 'es' ? 'es' : 'en'
+    const subject = lang === 'es' ? noticeInSpanish(title) : title
     const { html, text } = await renderNotificationEmail(
-      title,
-      message,
+      subject,
+      lang === 'es' ? noticeInSpanish(message) : message,
       safeLink,
       profile.full_name || '',
       unsubscribeUrl,
+      lang,
+      title,
     )
     const messageId = crypto.randomUUID()
 
     const emailPayload = {
       to: profile.email,
       from: FROM_DEFAULT,
-      subject: title,
+      subject,
       html,
       text,
       message_id: messageId,
@@ -529,7 +547,7 @@ serve(async (req) => {
         await sendWithResend(resendApiKey, {
           to: profile.email,
           from: FROM_DEFAULT,
-          subject: title,
+          subject,
           html,
           text,
           // Same headers the queued path would have carried. Without this the

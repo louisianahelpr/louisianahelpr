@@ -131,7 +131,7 @@ describe("Home's columns wait for the first-week cards' reads (Q2706/Q2708)", ()
     const nextUp = home.indexOf('data-testid="next-up"');
     const held = home.indexOf("{!holdBelowNextUp && <>");
     const money = home.indexOf('<HomeMoneyTiles money={money} placement="main" />');
-    const coming = home.indexOf('<GroupSection title="Coming up">');
+    const coming = home.indexOf('<GroupSection title={t("home.comingUp")}>');
     expect(nextUp).toBeGreaterThan(0);
     expect(held).toBeGreaterThan(nextUp);
     expect(money).toBeGreaterThan(held);

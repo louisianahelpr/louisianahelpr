@@ -21,6 +21,8 @@
  * @mutate src/lib/i18n/enScreens.ts | "hero.subhead": "Hire help, find work, or buy and sell. One account, real neighbors.", | "hero.subhead": "Hire help or find work.",
  * @mutate src/components/MobileNav.tsx |     const shown = shownKey ? tr(shownKey) : label; |     const shown = label;
  * @mutate src/lib/i18n/navLabels.ts |   "/messages": "nav.messages",\n | \n
+ * @mutate src/pages/home/HomeDashboard.tsx | >{t("home.caughtUp")}</p> | >You're all caught up</p>
+ * @mutate src/pages/home/HomeDashboard.tsx | <GroupSection title={t("home.comingUp")}> | <GroupSection title="Coming up">
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -57,11 +59,14 @@ const CONVERTED = [
   "src/components/declutter/DeclutterCategoryChips.tsx",
   "src/components/declutter/DeclutterActiveFilters.tsx",
   "src/components/declutter/DeclutterItemCard.tsx",
+  // F260q: Home (the Dashboard) chrome; its to-do lines are data (useNeedsYouTodos.ts).
+  "src/pages/home/HomeDashboard.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */
 // @two-way src/test/spanishScreensUseDictionary.test.ts:stale ALLOWED
 const ALLOWED: Record<string, string[]> = {
+  "src/pages/home/HomeDashboard.tsx": ["SmsPhonePrompt"],
   // Report tags and a thrown Error the member never reads (userFacingError shows the t() fallback).
   "src/pages/auth/Signup.tsx": ["Account creation failed", "Signup.completeProfile", "Signup.createAccountAndFinish"],
   // A report tag (CompleteProfile's save path, moved out of CompleteProfile.tsx, Q806).

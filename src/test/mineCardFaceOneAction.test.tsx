@@ -152,7 +152,7 @@ describe("the Posted card face (board 14)", () => {
     // The Home tile and the rail's closed section keep their two labels apart the same way (a space text node).
     // Home's section chip (design audit A D4, 11-08): the count line starts with its own " · ", so the name and the line
     // never run together.
-    expect(blankComments(readFileSync(resolve(__dirname, "../pages/home/HomeDashboard.tsx"), "utf8"))).toMatch(/\{s\.label\}\s+\{line && <span data-tile-line[^>]*> · \{line\}<\/span>\}/);
+    expect(blankComments(readFileSync(resolve(__dirname, "../pages/home/HomeDashboard.tsx"), "utf8"))).toMatch(/\{sectionLabel\(s\)\}\s+\{line && <span data-tile-line[^>]*> · \{line\}<\/span>\}/);
     expect(blankComments(readFileSync(resolve(__dirname, "../components/DesktopSidebarNav.tsx"), "utf8"))).toMatch(/\{soon && " "\}\s+(?:\{\s*\}\s+)*\{soon && <SoonPill/);
   });
 

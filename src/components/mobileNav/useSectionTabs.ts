@@ -80,11 +80,15 @@ const OPEN_FOR_THOSE_WHO_HAVE_IT: ReadonlySet<string> = new Set(["declutter"]);
  * "Opening soon" cards): "Declutter, Shops and Homes are opening soon",
  * "Homes is opening soon"; null when every section is open.
  */
-export function openingSoonLine(labels: readonly string[]): string | null {
+/** Home's words for the line (F260q: Spanish passes its own); `{names}` is filled in. */
+type SoonWords = { and: string; one: string; many: string };
+const SOON_EN: SoonWords = { and: "and", one: "{names} is opening soon", many: "{names} are opening soon" };
+
+export function openingSoonLine(labels: readonly string[], w: SoonWords = SOON_EN): string | null {
   // The iPhone app says nothing about sections that are not open (owner 10-31, hideUnopenedInApp).
   if (labels.length === 0 || hideUnopenedInApp()) return null;
-  const names = labels.length === 1 ? labels[0] : `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
-  return `${names} ${labels.length === 1 ? "is" : "are"} opening soon`;
+  const names = labels.length === 1 ? labels[0] : `${labels.slice(0, -1).join(", ")} ${w.and} ${labels[labels.length - 1]}`;
+  return (labels.length === 1 ? w.one : w.many).replace("{names}", names);
 }
 
 const shownComingSoon = new Set<string>();

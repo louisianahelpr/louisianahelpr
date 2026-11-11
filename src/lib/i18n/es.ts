@@ -417,6 +417,7 @@ export const es: Record<MsgKey, string> = {
   "jobPage.showLess": "Ver menos",
   "jobPage.where": "Dónde va el trabajo",
   "jobPage.seeCase": "Ver el caso",
+  "jobPage.addYourSide": "Agregue su versión",
   "jobPage.photos": "Fotos del trabajo",
   "jobPage.crew": "Su equipo",
   "jobPage.side": "Precio y acciones",

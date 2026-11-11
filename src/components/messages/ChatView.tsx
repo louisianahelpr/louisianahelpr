@@ -26,6 +26,7 @@ import { ChatComposer } from "./chatView/ChatComposer";
 import { JumpToBottomButton } from "./chatView/JumpToBottomButton";
 import { useChatScroll } from "./chatView/useChatScroll";
 import { useTimestampReveal } from "./chatView/useTimestampReveal";
+import { useChatDraft } from "./chatView/useChatDraft";
 import { ApplicationNoteCard } from "./chatView/ApplicationNoteCard";
 import { buildTimeline, resolveLastOwnMessageId } from "./chatView/chatViewHelpers";
 import { CHAT_RULES_DISMISSED_KEY, readBannerDismissed } from "./chatView/chatRulesBanner";
@@ -121,8 +122,7 @@ interface ChatViewProps {
  * header (avatar / status chip / options), the community-rules banner, the
  * scrolling thread (the poster sees the applicant's note at its top, then
  * messages with attachments, read receipts, typing indicator), and the
- * quick-reply + composer dock. Extracted from Messages.tsx; the draft and
- * banner-dismissed state are local to this surface, so they live here.
+ * quick-reply + composer dock. Extracted from Messages.tsx; the draft (useChatDraft) and banner state live here.
  */
 export function ChatView({
   activeConvo,
@@ -155,7 +155,7 @@ export function ChatView({
   embedded = false,
 }: ChatViewProps) {
   const navigate = useNavigate();
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useChatDraft(userId, `${activeConvo.jobId ?? ""}:${activeConvo.otherUserId ?? ""}`); // F425: survives a reload
   // Community-rules banner dismissal — persisted so once the user has read &
   // dismissed it, it stays gone across thread switches and app relaunches
   // instead of shouting on every thread open.

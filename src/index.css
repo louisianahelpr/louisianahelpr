@@ -3534,6 +3534,13 @@ button,
   .job-steps-grid { grid-template-columns: repeat(6, minmax(0, auto)) !important; }
   .job-step-cur-icon { display: none; }
 }
+/* F278a (audit 11-10): with Bigger text and buttons on, the six names ran into each other on a phone-width tracker
+   ("Con- firmedthe", "Work-Done", "On the way" on three lines). The owner's 11-08 pick keeps every FULL name, so
+   instead of hiding words, under a 640px tracker Bigger text lays the six steps out three to a row (two rows): each
+   name gets twice the room. Guard: src/test/biggerTextTrackerTwoRows.test.ts. */
+@container (max-width: 639px) {
+  html.senior-mode .job-steps-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; row-gap: 6px; }
+}
 
 /* THE MONEY RANGE ROW SIZES ITS WORDS TO ITS OWN TRACK (audit 2026-10-28 P4-3; EarningsRangeToggle.tsx). The
    four full names ("Lifetime / This week / This month / This year") need a 324px track at the default text size;

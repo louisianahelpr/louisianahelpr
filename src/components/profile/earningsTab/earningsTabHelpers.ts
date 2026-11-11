@@ -201,6 +201,41 @@ export const isAwaitingTransfer = (job: MoneyJob): boolean =>
   );
 
 /**
+ * F266a (owner 11-11 ~2:10 PM): the Money page's one stack, "On its way / Waiting for approval / Held in a dispute".
+ * Definitions (decided by recommendation, DECISIONS-FOR-OWNER-1111.md "## Builder 3"), all over the Money tab's own
+ * read (useProfileEarnings) and priced as comingToYou prices "On its way" (sumHelperTakeHomeDollars, the Helpr's
+ * take-home), so the three cannot disagree with the rest of the page:
+ *  - Held in a dispute: the poster's payment is still held (payment_status 'escrow') and the job is disputed
+ *    (status 'disputed', or an active dispute not resolved yet: reviewWindow.ts's rule).
+ *  - Waiting for approval: still held, not in a dispute, the Helpr marked it done (helper_completed_at) and the
+ *    poster has not approved it (no poster_completed_at), on a job still under way (in_progress / pending_approval /
+ *    accepted). A job sent back for changes (revision_requested) is the Helpr's move, so it is not counted.
+ * The one-time setup fee comes off "On its way" (comingToYou); these two show the full take-home.
+ */
+type StackJob = MoneyJob & {
+  helper_completed_at?: string | null;
+  poster_completed_at?: string | null;
+  has_active_dispute?: boolean | null;
+  dispute_resolved_at?: string | null;
+};
+export const isHeldInDispute = (j: StackJob): boolean =>
+  j.payment_status === "escrow" && (j.status === "disputed" || (j.has_active_dispute === true && !j.dispute_resolved_at));
+const WAITING_FOR_APPROVAL_STATUSES: readonly string[] = ["in_progress", "pending_approval", "accepted"];
+export const isWaitingForApproval = (j: StackJob): boolean =>
+  j.payment_status === "escrow" &&
+  !isHeldInDispute(j) &&
+  !!j.helper_completed_at &&
+  !j.poster_completed_at &&
+  WAITING_FOR_APPROVAL_STATUSES.includes(j.status);
+export function moneyStack(
+  jobs: readonly (HelperEarningsJob & StackJob)[],
+  feeFallbackPercent: number,
+): { waitingCents: number; disputeCents: number } {
+  const cents = (set: readonly HelperEarningsJob[]) => Math.round(sumHelperTakeHomeDollars(set, feeFallbackPercent, 0) * 100);
+  return { waitingCents: cents(jobs.filter(isWaitingForApproval)), disputeCents: cents(jobs.filter(isHeldInDispute)) };
+}
+
+/**
  * The one-time setup fee (Q753) still to come out of a set of jobs: the fee
  * while any of them awaits its transfer (the server takes it from a payout
  * that has not happened), else 0. A set of settled rows never pays it again,

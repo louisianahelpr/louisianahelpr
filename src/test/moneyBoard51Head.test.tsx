@@ -8,7 +8,7 @@
  * @mutate src/components/profile/EarningsTab.tsx |         placement="money" |         placement="side"
  * @mutate src/components/profile/EarningsTab.tsx |           if (kind === "held") setView("spent"); |           if (kind === "held") setView("earned");
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |           onClick={() => (onOpen ? onOpen("held") : navigate("/profile?tab=earnings&view=spent"))} |           onClick={() => navigate("/profile?tab=earnings&view=spent")}
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   const span = money.coming && money.held ? "" : "col-span-2"; |   const span = money.coming && money.held ? "" : placement === "side" ? "" : "col-span-2";
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   const span = showComing && money.held ? "" : "col-span-2"; |   const span = showComing && money.held ? "" : placement === "side" ? "" : "col-span-2";
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -48,7 +48,8 @@ describe("You › Money opens on board 51's two tiles", () => {
     const strip = container.querySelector('[data-home-money="money"]') as HTMLElement;
     expect(strip.className).not.toMatch(/hidden/);
     fireEvent.click(screen.getByRole("button", { name: /^Held for 1 job/ }));
-    fireEvent.click(screen.getByRole("button", { name: /^Coming to you/ }));
+    // F266a: on You > Money the Helpr tile is the "On its way" stack.
+    fireEvent.click(screen.getByRole("button", { name: /^On its way/ }));
     expect(opened).toEqual(["held", "coming"]);
     // ...and the Money tab's own onOpen sends "held" to Spent (EarningsTab is not rendered here).
     expect(read("components/profile/EarningsTab.tsx")).toMatch(/if \(kind === "held"\) setView\("spent"\);/);

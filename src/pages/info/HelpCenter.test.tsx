@@ -55,7 +55,7 @@ describe("/help answers keep a reading measure (F033)", () => {
 
 // F034 (owner UI audit 11-09; owner decided 11-09 to ADD the search back, reversing the 2026-08-22 removal):
 // "Search help" at the top filters the questions as you type.
-// @mutate src/pages/info/HelpCenter.tsx |         return words.every((w) => text.includes(w)); |         return true;
+// @mutate src/pages/info/HelpCenter.tsx |         return terms.every((forms) => forms.some((w) => text.includes(w))); |         return true;
 // @mutate src/pages/info/HelpCenter.tsx |   const open = searching \|\| manualOpen \|\| (targeted && !dismissed); |   const open = manualOpen \|\| (targeted && !dismissed);
 // @mutate src/pages/info/HelpCenter.tsx |   const sections = filterFaqSections(allSections, query); |   const sections = allSections;
 describe("/help search (F034)", () => {

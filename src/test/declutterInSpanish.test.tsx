@@ -10,6 +10,9 @@
  * @mutate src/components/declutter/DeclutterActiveFilters.tsx | label: t("decl.filter.drops"), | label: "Price drops",
  * @mutate src/components/sections/SectionSearchBar.tsx |   return { search: t("section.search"), noun: key ? t(key) : noun }; |   return { search: "Search", noun };
  * @mutate src/components/declutter/DeclutterHomeView.tsx |     items: lists.map((l) => ({ key: l.value, label: tr(l.labelKey), |     items: lists.map((l) => ({ key: l.value, label: l.label,
+ * @mutate src/components/declutter/declutterUi.tsx |   const label = CONDITION_LABEL[stars] ? t(`decl.cond.${stars}` as MsgKey) : null; |   const label = CONDITION_LABEL[stars];
+ * @mutate src/components/declutter/DeclutterItemView.tsx | className="text-base font-semibold">{t("decl.item.about")}</h2> | className="text-base font-semibold">About this item</h2>
+ * @mutate src/components/declutter/DeclutterItemView.tsx | <Detail label={t("decl.item.category")}>{CATEGORY_LABEL[it.category] ? t(`decl.cat.${it.category}` as MsgKey) : t("decl.cat.other")}</Detail> | <Detail label={t("decl.item.category")}>{CATEGORY_LABEL[it.category] ?? "Other"}</Detail>
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
@@ -25,6 +28,7 @@ import { enDeclutter } from "@/lib/i18n/enDeclutter";
 import { esDeclutter } from "@/lib/i18n/esDeclutter";
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
+import { ConditionChip } from "@/components/declutter/declutterUi";
 
 const item = {
   id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
@@ -90,5 +94,17 @@ describe("F260q: Declutter Browse in Spanish", () => {
     for (const k of ["buying", "selling", "deliver", "wanted", "free"]) expect(home).toContain(`labelKey: "decl.tab.${k}"`);
     expect(home).toContain('title: tr("decl.myDeclutter"),');
     expect(home).toContain("label: tr(l.labelKey),");
+  });
+
+  it("the item page: the condition chip renders Spanish, and the page draws its words from the dictionary", async () => {
+    setLang("es");
+    await act(async () => { await ensureLangLoaded(); });
+    render(<ConditionChip stars={5} />);
+    expect(screen.getByText("Como nuevo")).toBeTruthy();
+    const view = blankComments(readFileSync("src/components/declutter/DeclutterItemView.tsx", "utf8"));
+    const keys = ["decl.item.about", "decl.item.category", "decl.item.size", "decl.item.freePorch", "decl.item.save", "decl.item.share", "decl.item.bought", "decl.item.messageSeller", "decl.card.trades"];
+    for (const k of keys) expect(view, k).toContain(`t("${k}")`);
+    expect(view).toContain("t(`decl.cat.${it.category}` as MsgKey)");
+    expect(view).not.toMatch(/>About this item<|>Free porch pickup|"Save this item"|"Share this item"/);
   });
 });

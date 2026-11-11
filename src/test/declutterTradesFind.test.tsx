@@ -96,7 +96,7 @@ describe("Trades audit 11-08 #3: buyers can find trades", () => {
 
   it("the item page shows Trades OK and the guest's trade line from the item read's accepts_trades", () => {
     const view = src("src/components/declutter/DeclutterItemView.tsx");
-    expect(view).toMatch(/\{it\.accepts_trades === true && !free && \(\s*<span data-item-trades="" [^>]+>Trades OK<\/span>/);
+    expect(view).toMatch(/\{it\.accepts_trades === true && !free && \(\s*<span data-item-trades="" [^>]+>\{t\("decl\.card\.trades"\)\}<\/span>/);
     expect(view).toMatch(/<DeclutterGuestJoin free=\{free\} offers=\{it\.accepts_offers !== false\} trades=\{!free && it\.accepts_trades === true\} \/>/);
   });
 });

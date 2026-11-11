@@ -48,11 +48,11 @@ const Instagram = ({ className }: { className?: string }) => (
 // screen it is the ONLY way out of a blocked app, so the two copies must not
 // be allowed to drift.
 /**
- * Footer links (owner's UI audit 11-09, F006): 13px, and a 44px tall tap area on a touch screen (they were 16px tall
- * targets at 11px). On a mouse they keep the list's normal rhythm.
+ * Footer links (owner's UI audit 11-09, F006): 13px text with a 44px tall tap area. F006 gave the 44px to touch
+ * screens only and L017 (landing audit 11-09) kept 24px for a mouse; F214 (whole-app audit 11-10) measured 24px rows
+ * on a phone emulator with a fine pointer while /browse's shell showed 44px, so the 44px now holds on every pointer.
  */
-// L017 (landing audit 11-09): at least 24px tall everywhere (19px with a mouse-less phone emulator), 44px on touch.
-const FOOTER_LINK = "link-standard inline-flex items-center min-h-6 [@media(pointer:coarse)]:min-h-11";
+const FOOTER_LINK = "link-standard inline-flex items-center min-h-11";
 
 const FACEBOOK_URL = "https://www.facebook.com/louisianahelpr";
 // Live since 2026-10-20 (owner: "i created a instagram").

@@ -35,13 +35,14 @@ export const REASONS: Record<ReportedType, readonly Reason[]> = {
     { label: "Payment requested off Helpr" },
     { label: "Something else" },
   ],
+  // F430 (audit 11-10): most chat reports are for off-Helpr payment or harassment, so those lead.
   user: [
-    { label: "Fake profile or impersonation" },
-    { label: "Spam or scam" },
+    { label: "Payment requested off Helpr" },
     { label: "Harassment or abuse" },
+    { label: "Spam or scam" },
+    { label: "Fake profile or impersonation" },
     { label: "Unsafe or threatening behavior" },
     { label: "Inappropriate content" },
-    { label: "Payment requested off Helpr" },
     { label: "Something else" },
   ],
   // Q366 (TS-006): an application is the first place a scam reaches a poster.

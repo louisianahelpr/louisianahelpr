@@ -62,7 +62,8 @@ describe("F445: Mark all read is a button with an icon", () => {
     const src = read("src/components/NotificationPanelView.tsx");
     const at = src.indexOf('data-testid="mark-all-read"');
     expect(at).toBeGreaterThan(-1);
-    expect(src.slice(at, at + 400)).toMatch(/<CheckCheck [^>]*\/>\s*Mark all read/);
+    // F260q: the label is the dictionary's ("notif.markAllRead": "Mark all read").
+    expect(src.slice(at, at + 400)).toMatch(/<CheckCheck [^>]*\/>\s*\{t\("notif\.markAllRead"\)\}/);
   });
 });
 

@@ -6,7 +6,7 @@
  *
  * @mutate src/components/NotificationPanelView.tsx |                                   style={{ background: "hsl(var(--bark))" }} |                                   style={{ background: "hsl(var(--burnt-sienna))" }}
  * @mutate src/components/NotificationPanelView.tsx |                       color: "hsl(var(--muted-foreground))",\n |                       color: "hsl(var(--burnt-sienna))",\n
- * @mutate src/components/NotificationPanelView.tsx |                 Mark all read\n |                 <CheckCheck />\n
+ * @mutate src/components/NotificationPanelView.tsx |                 {t("notif.markAllRead")}\n |                 <CheckCheck />\n
  * @mutate src/components/notificationPanel/notificationPanelHelpers.tsx | new Set(["payment", "financial_alerts", "declutter_sales", "declutter_refunds"]) | new Set(["payment", "financial_alerts", "declutter_sales", "declutter_refunds", "application"])
  * @mutate src/components/NotificationPanelView.tsx | className="min-w-0 flex-1 font-sans font-bold | className="min-w-0 flex-1 font-display font-bold
  * @mutate src/components/notificationPanel/NotificationLeading.tsx |   const money = MONEY_TYPES.has(n.type); |   const money = true;
@@ -28,7 +28,8 @@ describe("the notifications sheet matches board 28", () => {
   });
 
   it("'Mark all read' in words", () => {
-    expect(src).toMatch(/onClick=\{markAllRead\}[\s\S]{0,400}>\s*Mark all read\s*</);
+    // F260q: the words come from the dictionary (enNotifications.ts "Mark all read").
+    expect(src).toMatch(/onClick=\{markAllRead\}[\s\S]{0,400}>\s*\{t\("notif\.markAllRead"\)\}\s*</);
   });
 
   it("rust only on money: muted day label, olive unread dot, no rust wash, money tint only for money kinds", () => {
@@ -41,7 +42,7 @@ describe("the notifications sheet matches board 28", () => {
     expect(sienna).toBe(2);
     expect(leading).toMatch(/const money = MONEY_TYPES\.has\(n\.type\);/);
     expect(rows).toMatch(/money\s*\?\s*\{ background: "hsl\(var\(--burnt-sienna\) \/ 0\.12\)"/);
-    expect(rows).toMatch(/aria-label="Unread"[\s\S]{0,200}background: "hsl\(var\(--bark\)\)"/);
+    expect(rows).toMatch(/aria-label=\{t\("notif\.unreadDot"\)\}[\s\S]{0,200}background: "hsl\(var\(--bark\)\)"/);
     expect(rows).toMatch(/className="min-w-0 flex-1 font-sans font-bold/);
   });
 });

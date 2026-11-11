@@ -23,6 +23,8 @@ import { NotificationTrigger } from "@/components/notificationPanel/Notification
 import { NotificationMessage } from "@/components/notificationPanel/NotificationMessage";
 import { quickActionFor } from "@/components/notificationPanel/quickActions";
 import type { NotificationPanelModel } from "./NotificationPanel";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enNotifications";
 
 export function NotificationPanelView({
   anchorRef,
@@ -67,6 +69,8 @@ export function NotificationPanelView({
 }: NotificationPanelModel) {
   // Owner 11-08 (Declutter's slim bar): the bell is also the way to Messages; its badge counts both.
   const messagesUnread = useBellMessagesUnread(withMessages);
+  // F260q (owner 11-11): the panel's own words in the member's language (enNotifications.ts / esNotifications.ts).
+  const { t } = useLanguage();
   return (
     /* `modal` is load-bearing, not decoration — and it is KEPT even though the
        scrim is gone. It is what locks the page (so the FEED can't scroll under
@@ -141,7 +145,7 @@ export function NotificationPanelView({
         <div data-record-id="notifications-panel" className="flex-1 min-h-0 flex flex-col overflow-hidden w-full max-w-lg mx-auto [.web-desktop_&]:w-[28rem]">
         <AnchoredPanelHeader
           titleId={titleId}
-          title="Notifications"
+          title={t("notif.title")}
           onClose={() => setOpen(false)}
           actions={
             unreadCount > 0 ? (
@@ -149,7 +153,7 @@ export function NotificationPanelView({
                 className="shrink-0 px-2 tracking-normal focus-visible:ring-[hsl(var(--bark))]" style={{ color: "hsl(var(--bark))" }}>
                 {/* F445 (audit 11-10): the action read as plain text; the check icon marks it as a button. */}
                 <CheckCheck className="w-4 h-4 mr-1" aria-hidden />
-                Mark all read
+                {t("notif.markAllRead")}
               </Button>
             ) : undefined
           }
@@ -160,12 +164,12 @@ export function NotificationPanelView({
               because the fetch caps at 50 rows, and a capped number here
               would be a figure the panel can't stand behind. */}
           <AnchoredPanelSegmented<Filter>
-            label="Filter notifications"
+            label={t("notif.filter")}
             value={filter ?? "all"}
             onChange={setFilter}
             options={[
-              { key: "unread", label: "Unread", count: unreadCount },
-              { key: "all", label: "All" },
+              { key: "unread", label: t("notif.unread"), count: unreadCount },
+              { key: "all", label: t("notif.all") },
             ]}
           />
         </AnchoredPanelHeader>
@@ -174,11 +178,11 @@ export function NotificationPanelView({
           <ListRow
             data-testid="bell-messages-row"
             onClick={() => { setOpen(false); navigate("/messages"); }}
-            aria-label={messagesUnread > 0 ? `Messages, ${formatUnreadBadge(messagesUnread)} unread` : "Messages"}
+            aria-label={messagesUnread > 0 ? t("notif.messagesUnread", { n: formatUnreadBadge(messagesUnread) }) : t("nav.messages")}
             className="mx-4 my-2 w-auto shrink-0 gap-3 rounded-2xl border border-border bg-card px-4 py-3"
           >
             <MessageSquare className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
-            <span className="min-w-0 flex-1 text-ds-15 font-semibold text-foreground">Messages</span>
+            <span className="min-w-0 flex-1 text-ds-15 font-semibold text-foreground">{t("nav.messages")}</span>
             {messagesUnread > 0 && (
               <span aria-hidden className="min-w-[20px] h-5 rounded-full px-1.5 text-ds-11 font-bold leading-5 text-center" style={{ background: "hsl(var(--alert))", color: "#fff" }}>
                 {formatUnreadBadge(messagesUnread)}
@@ -296,16 +300,16 @@ export function NotificationPanelView({
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
               >
                 {filter === "unread" && notifications.length > 0
-                  ? "Nothing unread."
-                  : "Nothing new yet."}
+                  ? t("notif.nothingUnread")
+                  : t("notif.nothingNew")}
               </p>
               <p
                 className="font-sans text-ds-12 leading-snug"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
                 {filter === "unread" && notifications.length > 0
-                  ? "Switch to All to see everything."
-                  : "Applications, messages and payouts land here."}
+                  ? t("notif.switchToAll")
+                  : t("notif.landHere")}
               </p>
             </div>
           ) : (
@@ -390,7 +394,7 @@ export function NotificationPanelView({
                               {!n.read && (
                                 <span
                                   role="status"
-                                  aria-label="Unread"
+                                  aria-label={t("notif.unreadDot")}
                                   className="w-2 h-2 rounded-full flex-shrink-0"
                                   style={{ background: "hsl(var(--bark))" }}
                                 />
@@ -489,7 +493,7 @@ export function NotificationPanelView({
           >
             {/* F434 (whole-app audit 2026-11-10): "Showing 100 · 723 unread in total" left a first-timer with no next
                 step; Mark all read now clears every unread notice, so the footer says so. */}
-            Showing your newest {notifications.length}. Mark all read clears all {unreadTotal} unread.
+            {t("notif.showingNewest", { count: notifications.length, unread: unreadTotal })}
           </p>
         )}
 
@@ -506,7 +510,7 @@ export function NotificationPanelView({
               marginBottom: "var(--safe-area-bottom, 0px)",
             }}
           >
-            <BellRing className="w-4 h-4" /> Turn on push notifications
+            <BellRing className="w-4 h-4" /> {t("notif.turnOnPush")}
           </ListRow>
         )}
         </div>

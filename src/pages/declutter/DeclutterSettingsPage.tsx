@@ -10,6 +10,10 @@ import { SellPorchPlaces } from "@/components/declutter/SellPorchPlaces";
 import { SellMeetupSpots } from "@/components/declutter/SellMeetupSpots";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
+
+/** The page's index (F346): each name is the aria-label of a section on this page. */
+const SETTINGS_INDEX = ["Pickup places", "Listing defaults", "Notifications"] as const;
 
 /**
  * /declutter/settings (owner 2026-10-30: "a settings gear like Jobs"): pickup places (each with its own days and hours;
@@ -29,7 +33,16 @@ function DeclutterSettings() {
             is for selling; places still come first in it (sellers couldn't find how to add a second address). */}
         <section className="space-y-2" aria-label="Selling" data-settings-selling="">
           <SectionHeading title="Selling" />
-          <p className="text-ds-13 text-muted-foreground">Notifications for buying and selling are at the end.</p>
+          {/* Audit 11-10 F346: "Notifications ... are at the end." was an odd first line; a short index says what is on
+              the page and still takes a buyer straight to Notifications (Q2574). */}
+          <nav aria-label="On this page" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-ds-13 text-muted-foreground" data-settings-index="">
+            {SETTINGS_INDEX.map((name, i) => (
+              <span key={name} className="inline-flex items-center gap-2">
+                {i > 0 && <span aria-hidden>·</span>}
+                <InlineTextButton className="font-medium text-foreground" onClick={() => document.querySelector(`section[aria-label="${name}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>{name}</InlineTextButton>
+              </span>
+            ))}
+          </nav>
           <div className="space-y-section">
             <SellPorchPlaces card />
             {/* B110 (owner 11-01): the seller's own public meet spots, for buyers choosing Meet up. */}

@@ -151,6 +151,18 @@ export const esDeclutter: Record<keyof typeof enDeclutter, string> = {
   "decl.group.Hobbies and fun": "Pasatiempos",
   "decl.group.More": "Más",
 
+  "decl.buy.now": "Comprar ahora",
+  "decl.buy.short": "Comprar",
+  "decl.buy.from": "desde",
+  "decl.buy.delivered": "con entrega",
+  "decl.buy.someoneBuying": "Alguien está comprando este artículo.",
+  "decl.buy.someoneBuyingBody": "Si no paga a tiempo, vuelve a estar a la venta.",
+  "decl.buy.underAge": "Debe tener 18 años o más para comprar en Declutter.",
+  "decl.buy.bar": "Comprar o hacer una oferta",
+  "decl.buy.yourOffer": "Su oferta",
+  "decl.buy.makeOffer": "Hacer oferta",
+  "decl.buy.offersOff": "El vendedor no acepta ofertas en este artículo.",
+
   "decl.cat.furniture": "Muebles",
   "decl.cat.appliances": "Electrodomésticos",
   "decl.cat.electronics": "Electrónica",

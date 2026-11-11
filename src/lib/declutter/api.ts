@@ -1292,6 +1292,9 @@ export interface MyOffer {
   /** BUY-29 (20261031095146): on the poster's own row only, the id of the still-open Wanted post this offer answers,
    *  so the card can ask to close it after an accept. Null otherwise; absent before that migration is on prod. */
   open_wanted_id?: string | null;
+  /** F356 (20261111223500, owner 11-11): on the SELLER's row, the buyer as first name + last initial ("Ann S.").
+   *  Null on the buyer's own row and on a reply to a Wanted post; absent before that migration is on prod. */
+  buyer_display?: string | null;
 }
 
 export interface CartLine {

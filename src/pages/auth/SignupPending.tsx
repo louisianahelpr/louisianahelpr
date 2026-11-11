@@ -190,7 +190,10 @@ const SignupPending = () => {
         return;
       }
       const msg = (error.message ?? "").toLowerCase();
-      if (msg.includes("rate") || msg.includes("limit") || msg.includes("too many")) {
+      // F260c (audit 11-10): a 429 whose words were "For security purposes, you can only request this after 46
+      // seconds" matched none of these and fell through to "Resent". The status says it, whatever the words.
+      const limited = (error as { status?: number }).status === 429 || msg.includes("only request this after");
+      if (limited || msg.includes("rate") || msg.includes("limit") || msg.includes("too many")) {
         toast.error("Too many requests — try again in a minute.");
         return;
       }

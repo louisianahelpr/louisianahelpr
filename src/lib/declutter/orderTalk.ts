@@ -58,7 +58,7 @@ export interface OrderTalkListRow {
 }
 
 /** The row's 44px photo: a small square from the image transform (2x), the original when no transform URL forms. */
-export const ORDER_TALK_PHOTO_PX = 96;
+const ORDER_TALK_PHOTO_PX = 96;
 export function orderTalkPhotoUrl(row: Pick<OrderTalkListRow, "photo_path">): string | null {
   if (!row.photo_path) return null;
   const original = photoPublicUrl(row.photo_path);

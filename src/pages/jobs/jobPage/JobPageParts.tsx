@@ -7,7 +7,8 @@
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enJobs";
-import { formatPrice, formatPriceFloor } from "@/lib/format";
+import { formatPrice, formatPriceExact, formatPriceFloor } from "@/lib/format";
+import { useHelprPaidOut } from "@/hooks/useHelprPaidOut";
 import { setupFeeWords } from "@/lib/takeHomeFeeWords";
 import { computeNet } from "@/components/dashboard/JobPrice";
 import { helperShareCount } from "@/lib/helperEarnings";
@@ -250,6 +251,15 @@ export function HelprPrice({ job, noShow = false }: { job: JobPageRow; noShow?: 
   );
 }
 
+/** F287 (audit 11-10): a paid job names what was sent and when ("Paid out $83 on Mon, Nov 9 at 2:10 PM."), from the
+ *  Helpr's own paid payout_transfers rows (useHelprPaidOut); the old words until that read answers. */
+function PaidOutLine({ jobId, fallback }: { jobId: string; fallback: string }) {
+  const { user } = useCurrentUser();
+  const out = useHelprPaidOut(jobId, user?.id, true);
+  const words = out ? `Paid out $${formatPriceExact(out.cents / 100)} on ${payoutWhen(out.at)}.` : fallback;
+  return <p data-helpr-paid="" className="text-ds-14 font-semibold text-foreground">{words}</p>;
+}
+
 /**
  * Under the header: a crew share and the one-time setup fee; and for the hired Helpr of a finished, approved job, that
  * it is paid and when the pay goes out (JA-22, Jobs audit 11-01: the poster's page said it, the Helpr's did not).
@@ -272,7 +282,8 @@ export function HelprMoneyNotes({ job, hired, noShow = false }: { job: JobPageRo
   if (!paid && lines.length === 0) return null;
   return (
     <div data-helpr-money-notes="" className="space-y-1.5">
-      {paid && <p data-helpr-paid="" className="text-ds-14 font-semibold text-foreground">{paid}</p>}
+      {paid && job.payment_status === "released" ? <PaidOutLine jobId={job.id} fallback={paid} />
+        : paid && <p data-helpr-paid="" className="text-ds-14 font-semibold text-foreground">{paid}</p>}
       {lines.length > 0 && <p className="text-ds-13 text-muted-foreground">{lines.join(" ")}</p>}
     </div>
   );

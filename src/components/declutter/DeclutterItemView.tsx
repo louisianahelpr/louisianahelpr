@@ -61,6 +61,7 @@ import { PRICE_PAID, TYPE } from "@/components/ui/designScale";
 import { SellerTrustBadges } from "./SellerTrustBadges";
 import { useAfterPaint } from "./useAfterPaint";
 import { listedAgo } from "@/lib/declutter/sellerBadges";
+import { useTradedFor } from "./useMyTrades";
 
 // B67 (DECL-ITEM-SPEED): only the seller sees the manage panel, so its edit flow (sell steps, handover choices)
 // loads when it shows, not on every buyer's and guest's cold item page.
@@ -107,6 +108,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
   // AUD31-15: the Questions hint's "Make an offer" opens the offer box (OfferPanel's askSignal).
   const [offerAsk, setOfferAsk] = useState(0);
   const isSeller = ownListing && !preview;
+  // Audit 1110 F359e: the owner's listing in an accepted trade said "Someone is buying it"; it says what it is traded
+  // for, as the Selling row does (lead 11-08). Read only for the owner of a reserved or sold listing.
+  const tradedFor = useTradedFor(isSeller && ["reserved", "sold", "completed"].includes(item.data?.status ?? "") ? user?.id ?? null : null);
   // A failed read hides the drop line (nothing is promised); the item itself still shows.
   const dropState = useQuery({
     queryKey: ["declutter", "item-drop", itemId],
@@ -305,7 +309,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
           {isSeller && it.status === "live" && free && <FreeRequestsForGiver item={it} />}
           {isSeller && (it.status === "live" || it.status === "paused") && <Suspense fallback={null}><SellerListingPanel item={it} coverUrl={urls[0] ?? null} onDeleted={() => navigate("/declutter?tab=selling")} /></Suspense>}
           {isSeller && it.status !== "live" && it.status !== "paused" && (
-            <DeclutterNotice title={`Your listing: ${sellerStatusLabel(it)}`}>
+            <DeclutterNotice title={`Your listing: ${sellerStatusLabel(it, tradedFor.get(it.id) ?? null)}`}>
               {STATUS_HELP[it.status] ?? null}
               {(it.status === "rejected" || it.status === "removed") && review.data?.review_note ?<p className="mt-1">Reason: {review.data.review_note}</p> : null}
               {/* SE-1 (deep audit 2026-10-28): a taken-down listing can come back, from its own page too. */}

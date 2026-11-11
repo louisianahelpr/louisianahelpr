@@ -37,7 +37,7 @@
  * @mutate src/components/declutter/DeclutterMineViews.tsx | (i) => i.status === "withdrawn" \|\| i.status === "sold_elsewhere") | (i) => i.status === "never" \|\| i.status === "sold_elsewhere")
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "sold") return "Claimed · waiting for pickup"; |   void 0;
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "reserved") return "Claimed"; |   void 0;
- * @mutate src/components/declutter/DeclutterItemView.tsx | title={`Your listing: ${sellerStatusLabel(it)}`} | title={`Your listing: ${STATUS_LABEL[it.status]}`}
+ * @mutate src/components/declutter/DeclutterItemView.tsx | title={`Your listing: ${sellerStatusLabel(it, tradedFor.get(it.id) ?? null)}`} | title={`Your listing: ${STATUS_LABEL[it.status]}`}
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   const cents = SOLD.has(item.status) ? sold : item.current_price_cents; |   const cents = item.current_price_cents;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} /> |                 <ListingPrice item={item} sold={item.current_price_cents} />
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   if (cents === undefined) return null; |   if (cents === undefined) return <span data-listing-price="">{itemPriceLabel(item.current_price_cents)}</span>;

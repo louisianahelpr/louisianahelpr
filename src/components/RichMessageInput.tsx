@@ -363,13 +363,16 @@ export const RichMessageInput = ({
               <span className="text-ds-11 text-foreground truncate">{stagedFile.name}</span>
             </div>
           )}
+          {/* Audit 11-10 W5 F478: with no min-size the global 44px button floor drew this as a 44px red disc half over
+              the 80px thumbnail. It is a 28px disc at the thumbnail's top-right corner; the 44px hit target is the
+              ::after halo, the same trick as the Switch, so the finger still has its 44px. */}
           <button
             onClick={clearStaged}
-            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+            className="absolute -top-2 -right-2 h-7 w-7 min-h-[28px] min-w-[28px] rounded-full bg-destructive text-destructive-foreground flex items-center justify-center after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-['']"
             disabled={uploading}
             aria-label={t("chat.removeAttachment")}
           >
-            <X className="w-3 h-3" />
+            <X className="w-3.5 h-3.5" />
           </button>
           {stagedIsPdf && <p className="text-ds-10 text-muted-foreground mt-1">PDF · {(stagedFile.size / 1024).toFixed(0)} KB</p>}
         </div>

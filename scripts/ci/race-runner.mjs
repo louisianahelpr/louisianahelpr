@@ -126,7 +126,10 @@ async function fixture(admin, race) {
       `UPDATE public.profiles
           SET full_name = $2, email_verified = true,
               stripe_account_id = $3, stripe_payouts_enabled = true,
-              stripe_identity_verified = true
+              stripe_identity_verified = true,
+              -- Current Terms: require_current_terms (20261108154435) refuses
+              -- a commitment (apply, post) from a member on an older version.
+              terms_version_accepted = public.current_terms_version()
         WHERE user_id = $1`,
       // One payout account per user: profiles_stripe_account_id_unique
       // (20261103082037) refuses two profiles sharing one account id.
@@ -669,7 +672,10 @@ async function disputeFixture(admin) {
       `UPDATE public.profiles
           SET full_name = $2, email_verified = true,
               stripe_account_id = $3, stripe_payouts_enabled = true,
-              stripe_identity_verified = true
+              stripe_identity_verified = true,
+              -- Current Terms: require_current_terms (20261108154435) refuses
+              -- a commitment (apply, post) from a member on an older version.
+              terms_version_accepted = public.current_terms_version()
         WHERE user_id = $1`,
       // One payout account per user: profiles_stripe_account_id_unique
       // (20261103082037) refuses two profiles sharing one account id.

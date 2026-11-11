@@ -17,16 +17,22 @@ import { Switch } from "@/components/ui/switch";
 // rebuilt — and the browser dropped focus to <body> (audit, 2026-09-12:
 // "focus drops to body after toggling the push master switch").
 // `loaded` and `savingKey` therefore arrive as props instead of closures.
+// Audit 11-10 F476: a switch is 51x31px, under the 44px tap guide, and the Notifications screen stacks ~50 of them
+// in tight rows, so a thumb can hit the neighbour. The visible pill stays 31px (the column header and the
+// loading silhouette match it); the TAP area is the switch plus a 7px pseudo-element band above and below
+// (45px tall), and the slot itself is 44px tall so rows cannot pack switches closer than that.
+export const SWITCH_TAP_AREA_CLASS = "relative before:absolute before:inset-x-0 before:-inset-y-[7px] before:content-['']";
+
 export const SwitchSlot = ({
   checked, onCheckedChange, disabled, ariaLabel, savingId, title, loaded, savingKey,
 }: {
   checked: boolean; onCheckedChange: () => void; disabled: boolean; ariaLabel: string; savingId: string; title?: string;
   loaded: boolean; savingKey: string | null;
 }) => (
-  <div className="w-[51px] flex justify-center relative" title={title}>
+  <div className="w-[51px] min-h-11 flex items-center justify-center relative" title={title}>
     {loaded ? (
       <>
-        <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} aria-label={ariaLabel} />
+        <Switch className={SWITCH_TAP_AREA_CLASS} checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} aria-label={ariaLabel} />
         {savingKey === savingId && (
           <Loader2
             className="w-3 h-3 animate-spin absolute -top-1.5 -right-0.5 z-10 pointer-events-none"

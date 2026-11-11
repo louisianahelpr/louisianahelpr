@@ -4,7 +4,7 @@
  * tries a common household word in Spanish as its English word, so Browse offers "Search for lamp instead".
  *
  * @mutate src/lib/declutter/searchMatch.ts |     const english = SPANISH_WORDS[w]; |     const english = undefined as string \| undefined;
- * @mutate src/lib/declutter/searchMatch.ts |   const words = searchWords(query.normalize("NFD").replace(/[̀-ͯ]/g, "")); |   const words = searchWords(query);
+ * @mutate src/lib/declutter/searchMatch.ts | searchWords(query.normalize("NFD") | searchWords(query.normalize("NFC")
  */
 import { describe, expect, it } from "vitest";
 import { closeSearch } from "@/lib/declutter/searchMatch";

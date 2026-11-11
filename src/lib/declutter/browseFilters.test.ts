@@ -27,6 +27,9 @@ describe("Declutter Browse filters", () => {
     expect(ids({ ...NO_FILTERS, category: "kitchen" })).toEqual(["c"]);
     expect(ids(NO_FILTERS, "item B")).toEqual(["b"]);
     expect(ids({ ...NO_FILTERS, sort: "price_low" })).toEqual(["b", "a", "c"]);
+    // Audit 11-10 F315: Highest price is the reverse.
+    // @mutate src/lib/declutter/browseFilters.ts |   if (f.sort === "price_high") return [...kept].sort((a, b) => b.item.current_price_cents - a.item.current_price_cents); |
+    expect(ids({ ...NO_FILTERS, sort: "price_high" })).toEqual(["a", "c", "b"]);
     expect(activeFilterCount({ ...NO_FILTERS, porchOnly: true, minDollars: 1 }, 25)).toBe(3);
     expect(activeFilterCount(NO_FILTERS, null)).toBe(0);
   });

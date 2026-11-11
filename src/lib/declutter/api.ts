@@ -575,6 +575,34 @@ export async function fetchGuestSellerFirstName(itemId: string): Promise<string 
   return typeof name === "string" && name.trim() !== "" ? name.trim() : null;
 }
 
+/** F227/F319: what a guest's seller card shows. Exactly these four fields; no photo, id, link or contact. */
+export interface GuestSellerCard {
+  /** "Ann S." (member_display_name on the server): first name + last initial, never the full name. */
+  name: string;
+  /** The public star average, null while the seller has no public review. */
+  avg: number | null;
+  count: number;
+  idChecked: boolean;
+}
+
+/**
+ * F227/F319 (owner 11-11): a guest's small seller card from declutter_guest_seller_card (20261111205821): "Ann S.",
+ * the rating and the ID-checked badge, only for a listing a guest can read. Null when the server gives no row, or
+ * before the function is deployed (the page then shows no seller card, as before BUY-16's first-name line).
+ */
+export async function fetchGuestSellerCard(itemId: string): Promise<GuestSellerCard | null> {
+  const res = await supabase.rpc("declutter_guest_seller_card", { p_item_id: itemId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_guest_seller_card")) return null;
+  // The function raises nothing of its own (no row instead), so a failure is the transport's: thrown as is.
+  const rows = (unwrap(res) ?? []) as { display_name: string | null; avg_rating: number | string | null; review_count: number | null; id_checked: boolean | null }[];
+  const row = rows[0];
+  const name = typeof row?.display_name === "string" ? row.display_name.trim() : "";
+  if (!row || name === "") return null;
+  const count = Number(row.review_count ?? 0);
+  const avg = row.avg_rating == null ? null : Number(row.avg_rating);
+  return { name, avg: count > 0 && avg !== null && Number.isFinite(avg) ? avg : null, count: count > 0 ? count : 0, idChecked: row.id_checked === true };
+}
+
 /**
  * SS-5 (Watching under Buying): the hearted items the member can still read. An item RLS no longer shows (sold to
  * someone else, taken down) is left out; the caller counts those from fetchWatching's ids.

@@ -8,7 +8,8 @@
  */
 import { useRef, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchGuestSellerFirstName } from "@/lib/declutter/api";
+import { IdCard, Star } from "lucide-react";
+import { fetchGuestSellerCard } from "@/lib/declutter/api";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
@@ -208,22 +209,41 @@ export function DeclutterGuestBrowseJoin() {
 }
 
 /**
- * A guest's seller line (BUY-16): the first name only, never the full name, no avatar, no link to the profile (a
- * member's page). Nothing while it loads, on a failed read, or with no name: the listing reads the same without it.
+ * A guest's seller card (BUY-16; F227/F319, owner 11-11: "first name + last initial, rating, ID-checked badge (no
+ * photo, no profile page)"). From declutter_guest_seller_card: "Ann S.", stars only when the seller has reviews, and
+ * "ID checked" only when the server says so. A monogram, never the photo; not a link (a member's page is for members).
+ * Nothing while it loads, on a failed read, or with no row: the listing reads the same without it.
  */
 export function DeclutterGuestSeller({ itemId, free = false }: { itemId: string; free?: boolean }) {
-  const first = useQuery({ queryKey: ["declutter", "guest-seller", itemId], queryFn: () => fetchGuestSellerFirstName(itemId) });
-  if (!first.data) return null;
+  const card = useQuery({ queryKey: ["declutter", "guest-seller-card", itemId], queryFn: () => fetchGuestSellerCard(itemId) });
+  const c = card.data;
+  if (!c) return null;
   return (
-    <p data-guest-seller="" className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+    <div data-guest-seller="" className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
       <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted font-semibold">
-        {first.data.charAt(0).toUpperCase()}
+        {c.name.charAt(0).toUpperCase()}
       </span>
       <span className="min-w-0">
         {/* F049 (UI audit 11-09): a giveaway is given, not sold. */}
         <span className="block text-xs text-muted-foreground">{free ? "Given by" : "Sold by"}</span>
-        <span className="block truncate font-semibold">{first.data}</span>
+        <span className="block truncate font-semibold">{c.name}</span>
+        {c.avg !== null && c.count > 0 && (
+          <span data-guest-seller-rating="" className="flex items-center gap-1 text-xs text-foreground">
+            <Star className="h-3.5 w-3.5 fill-primary text-primary" aria-hidden />
+            <span className="font-semibold">{c.avg.toFixed(1)}</span>
+            <span className="text-muted-foreground">
+              <span className="sr-only"> stars from </span>
+              <span aria-hidden>·</span> {c.count} review{c.count === 1 ? "" : "s"}
+            </span>
+          </span>
+        )}
+        {c.idChecked && (
+          <span data-guest-seller-id="" className="mt-1 inline-flex items-center gap-1 rounded-full bg-[hsl(var(--bark)/0.08)] px-2 py-0.5 text-xs font-semibold text-foreground">
+            <IdCard className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            ID checked
+          </span>
+        )}
       </span>
-    </p>
+    </div>
   );
 }

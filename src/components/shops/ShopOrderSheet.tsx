@@ -231,7 +231,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
           <p className="text-xs text-muted-foreground">{ORDER_HOLD_TEXT}</p>
         )}
       </div>
-      {/* Q2110: a buyer with Shops strikes sees them here, and at 3 the day Shops opens again. */}
+      {/* Q2110: a buyer with Shops strikes sees them here, and at the strike limit the day Shops opens again. */}
       <ShopMyStrikes />
 
       <ul className="space-y-3">

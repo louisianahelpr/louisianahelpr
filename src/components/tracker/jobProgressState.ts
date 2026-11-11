@@ -481,8 +481,9 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     if (!Number.isNaN(opens) && now < opens) {
       // JA-5 (audit 11-01): the day, never "Opens Mon 12:00 AM" (a midnight time reads like a system stamp).
       const day = new Date(opens).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short" });
-      // F442 (audit 11-10): say WHAT is confirmed ("Confirm on Thu, the day before" left a Helpr asking confirm what).
-      const wait = poster ? `${other} confirms on ${day}, the day before, that they can still come` : `Confirm on ${day}, the day before, that you can still do this job`;
+      // F442 (audit 11-10): say WHAT is confirmed. F270: "Hallie confirms on Thu" over a clock "until you can confirm"
+      // left the poster asking who confirms; both do (the note under it says so), so the poster's line says "You both".
+      const wait = poster ? `You both confirm on ${day}, the day before, that the job is still on` : `Confirm on ${day}, the day before, that you can still do this job`;
       return at(2, false, "Hired", slot ? `New time ${slot}. ${wait}` : wait, held);
     }
     const helprIn = !!job.helper_dayof_confirmed_at;

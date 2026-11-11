@@ -7,21 +7,22 @@
 import type { DeliverySize } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
 import { DELIVERY_BASE_CENTS, DELIVERY_PER_MILE_CENTS, DELIVERY_SIZE_CENTS, type DeliveryQuote } from "@/lib/declutter/delivery";
+import "@/lib/i18n/enDeclPanels";
+import { useLanguage } from "@/lib/i18n/language";
 
 /** "$6", "$1.50": whole dollars without cents. */
 const money = (cents: number) => formatPrice(cents);
-
-const DELIVERY_RATE_WORDS = `${money(DELIVERY_BASE_CENTS)} + ${money(DELIVERY_PER_MILE_CENTS)} a mile`;
 
 /**
  * `size` marks a size before any quote (A3-48, the item page: the item's own size, owner 11-01 11:49 AM); a quote's
  * size wins once the server has priced it.
  */
 export function DeliveryPriceList({ quote, size = null }: { quote: DeliveryQuote | null; size?: DeliverySize | null }) {
+  const { t } = useLanguage();
   const rows: { size: DeliverySize; label: string; words: string }[] = [
-    { size: "small", label: "Small or medium", words: DELIVERY_RATE_WORDS },
-    { size: "large", label: "Large", words: `+${money(DELIVERY_SIZE_CENTS.large)}` },
-    { size: "xl", label: "Extra large", words: `+${money(DELIVERY_SIZE_CENTS.xl)}` },
+    { size: "small", label: t("dp.sizeSmall"), words: t("dp.perMile", { base: money(DELIVERY_BASE_CENTS), mile: money(DELIVERY_PER_MILE_CENTS) }) },
+    { size: "large", label: t("dp.sizeLarge"), words: `+${money(DELIVERY_SIZE_CENTS.large)}` },
+    { size: "xl", label: t("dp.sizeXl"), words: `+${money(DELIVERY_SIZE_CENTS.xl)}` },
   ];
   return (
     <div className="space-y-1" data-delivery-price-list="">
@@ -38,7 +39,9 @@ export function DeliveryPriceList({ quote, size = null }: { quote: DeliveryQuote
       </ul>
       {quote && (
         <p className="text-ds-14 font-semibold text-foreground" data-delivery-total="">
-          About {quote.road_miles} {quote.road_miles === 1 ? "mile" : "miles"} · {money(quote.delivery_cents)}
+          {quote.road_miles === 1
+            ? t("dp.aboutMile", { price: money(quote.delivery_cents) })
+            : t("dp.aboutMiles", { n: quote.road_miles, price: money(quote.delivery_cents) })}
         </p>
       )}
     </div>

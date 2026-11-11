@@ -9,8 +9,11 @@
 import { ArrowDown } from "lucide-react";
 import { formatPrice } from "@/lib/declutter/distance";
 import { dropWhenLabel } from "@/lib/declutter/priceDrop";
+import "@/lib/i18n/enDeclPanels";
+import { useLanguage } from "@/lib/i18n/language";
 
 export function PriceDropBanner({ lowestCents, at, pct = 5, mine = false }: { lowestCents: number; at: Date; pct?: number; mine?: boolean }) {
+  const { t } = useLanguage();
   return (
     <div
       data-price-drop=""
@@ -19,13 +22,11 @@ export function PriceDropBanner({ lowestCents, at, pct = 5, mine = false }: { lo
       <ArrowDown className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
       <div className="min-w-0">
         <p className="text-ds-15 font-bold leading-snug">
-          Next possible drop: {formatPrice(lowestCents)}, {dropWhenLabel(at)}
+          {t("dp.nextDrop", { price: formatPrice(lowestCents), when: dropWhenLabel(at) })}
         </p>
         <p className="text-sm leading-snug">
           {/* The seller reads about their own rule; never "the seller chose" (lead, 2026-10-20). */}
-          {mine
-            ? `Each evening it can drop ${pct}%, rounded down to a whole dollar. It never goes below your lowest price, and may stop sooner.`
-            : `Each evening it can drop ${pct}%, rounded down to a whole dollar, until it reaches a price the seller chose.`}
+          {t(mine ? "dp.dropRuleMine" : "dp.dropRule", { pct })}
         </p>
       </div>
     </div>

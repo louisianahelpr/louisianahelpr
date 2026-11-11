@@ -21,6 +21,9 @@
  */
 
 /** The cron's minute and hour, in UTC (cron.job 'declutter-price-drops'). */
+import "@/lib/i18n/enDeclPanels";
+import { getLang, t } from "@/lib/i18n/language";
+
 export const PRICE_DROP_RUN_UTC = { hour: 23, minute: 7 } as const;
 const MIN_LIVE_MS = 12 * 60 * 60 * 1000;
 
@@ -112,11 +115,13 @@ export function sellerStateStopsDrops(state: { floor_price_cents: number; drops_
 
 /** "this evening at 6:07 PM" / "tomorrow at 6:07 PM" / "Thursday at 5:07 PM", in Louisiana time. */
 export function dropWhenLabel(at: Date, now: Date = new Date()): string {
-  const time = at.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
+  // F260q: the viewer's language (dp.* in enDeclPanels.ts) and its clock words.
+  const locale = getLang() === "es" ? "es-US" : "en-US";
+  const time = at.toLocaleTimeString(locale, { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
   const today = chicagoDay(now);
   const day = chicagoDay(at);
-  if (day === today) return `this evening at ${time}`;
+  if (day === today) return t("dp.dropThisEvening", { time });
   const tomorrow = chicagoDay(new Date(now.getTime() + 24 * 60 * 60 * 1000));
-  if (day === tomorrow) return `tomorrow at ${time}`;
-  return `${at.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "long" })} at ${time}`;
+  if (day === tomorrow) return t("dp.dropTomorrow", { time });
+  return t("dp.dropDay", { day: at.toLocaleDateString(locale, { timeZone: "America/Chicago", weekday: "long" }), time });
 }

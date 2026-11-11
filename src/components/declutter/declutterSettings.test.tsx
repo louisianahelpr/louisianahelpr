@@ -229,7 +229,7 @@ describe("Declutter settings", () => {
     const spy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function (this: Element) { scrolled.push(this); });
     for (const name of ["Pickup places", "Listing defaults", "Notifications"]) {
       fireEvent.click(within(index).getByRole("button", { name }));
-      expect(scrolled.at(-1)).toBe(screen.getByRole("region", { name }));
+      expect(scrolled[scrolled.length - 1]).toBe(screen.getByRole("region", { name }));
     }
     spy.mockRestore();
     for (const name of ["Pickup places", "Listing defaults"]) expect(within(selling).getByRole("region", { name })).toBeInTheDocument();

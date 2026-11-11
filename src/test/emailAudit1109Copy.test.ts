@@ -73,7 +73,7 @@ describe("email copy, owner's message review 11-09", () => {
   // one Declutter line.
   // @mutate supabase/functions/_shared/email-templates/drip.tsx |       Clear out a closet on Declutter\n |       Explore what Louisiana Helpr has to offer\n
   // @mutate supabase/functions/engagement-automations/index.ts |     path: '/declutter', |     path: '/home',
-  // @mutate supabase/functions/engagement-automations/index.ts |               dashboardUrl: `${getAppUrl()}${step.path}`, |               dashboardUrl: `${getAppUrl()}/home`,
+  // @mutate supabase/functions/engagement-automations/index.ts | greetingName: person.full_name \|\| '',\n              dashboardUrl: `${getAppUrl()}${step.path}`, | greetingName: person.full_name \|\| '',\n              dashboardUrl: `${getAppUrl()}/home`,
   // @mutate supabase/functions/_shared/comeBackEmail.ts |       ["Got stuff to sell?", "List it on Declutter in a minute."],\n | \n
   it("F169: day 3 is the Declutter intro and opens /declutter; day 1 and come-back 1 name Declutter", () => {
     const drip = T("drip.tsx");

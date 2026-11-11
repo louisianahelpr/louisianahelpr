@@ -28,7 +28,7 @@
  * @mutate src/components/declutter/DeclutterOfferRules.tsx | onClick={() => saveFloor.mutate(suggestion.floorCents)} | onClick={() => saveFloor.mutate(floorCents ?? 0)}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -138,6 +138,21 @@ describe("Manage a listing (board 158)", () => {
       expect(screen.getByText(t)).toBeTruthy();
     }
     expect(screen.getByText("Hide it without losing it. Open offers close.")).toBeTruthy();
+  });
+
+  // Audit 11-10 F336: the rows sit in headed groups, Price / How it gets to buyers / Listing, with Delete last.
+  // @mutate src/components/declutter/DeclutterManageListing.tsx |               <ManageGroup title="Price">\n | \n
+  // @mutate src/components/declutter/DeclutterManageListing.tsx |               <ManageGroup title="Listing">\n | \n
+  it("groups the rows under Price and Listing, with Delete the last row", async () => {
+    sheet();
+    await screen.findByText("Now $38 · lowest $30");
+    const price = screen.getByRole("region", { name: "Price" });
+    const listing = screen.getByRole("region", { name: "Listing" });
+    for (const t of ["Change price or lowest price", "Lower the price over time"]) expect(within(price).getByText(t)).toBeTruthy();
+    for (const t of ["Pause listing", "Mark sold elsewhere", "Delete listing"]) expect(within(listing).getByText(t)).toBeTruthy();
+    const rows = listing.querySelectorAll("li");
+    expect(rows.length).toBeGreaterThan(2);
+    expect(rows[rows.length - 1].textContent).toBe("Delete listing");
   });
 
   it("D1-1: a live listing offers Edit listing, which opens the edit form; a paused one does not", async () => {

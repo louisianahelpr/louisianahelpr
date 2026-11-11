@@ -55,16 +55,18 @@ export function payoutStatusWords(p: Pick<MyPayout, "status" | "items_cents" | "
 }
 
 /**
- * What the payout is made of: "after the buyer's refund" (board 141d), or
- * "($30.00 + $15.00 delivery minus $1.50 you owed)". A seller delivery's rate is
- * paid with the items (20261027153244), so the payout is items + rate - refunded - debt,
- * each read from the row's own columns. A free delivery adds no delivery part.
+ * What the payout is made of, in the owner's words (11-11 ~2:10 PM, F360b/F398/F404): "after the $20 refund", or
+ * "($45 + $5 delivery)", or "($30 + $15 delivery minus $1.50 you owed)". A seller delivery's rate is paid with the
+ * items (20261027153244), so the payout is items + rate - refunded - debt, each read from the row's own columns. A
+ * free delivery adds no delivery part. No fee words.
  */
 export function payoutBreakdown(p: Pick<MyPayout, "items_cents" | "delivery_cents" | "refunded_cents" | "debt_cents">): string {
   // D2-6: a refund and an amount owed can both come off one sale; each is named from what was actually taken.
-  if ((p.refunded_cents ?? 0) > 0) return p.debt_cents > 0 ? ` after the buyer's refund and ${formatPrice(p.debt_cents)} you owed` : " after the buyer's refund";
+  const owed = p.debt_cents > 0 ? `${formatPrice(p.debt_cents)} you owed` : "";
+  const refunded = p.refunded_cents ?? 0;
+  if (refunded > 0) return owed ? ` after the ${formatPrice(refunded)} refund and ${owed}` : ` after the ${formatPrice(refunded)} refund`;
   const rate = p.delivery_cents ?? 0;
-  if (rate <= 0 && p.debt_cents <= 0) return "";
+  if (rate <= 0 && !owed) return "";
   const parts = rate > 0 ? `${formatPrice(p.items_cents)} + ${formatPrice(rate)} delivery` : formatPrice(p.items_cents);
-  return p.debt_cents > 0 ? ` (${parts} minus ${formatPrice(p.debt_cents)} you owed)` : ` (${parts})`;
+  return owed ? ` (${parts} minus ${owed})` : ` (${parts})`;
 }

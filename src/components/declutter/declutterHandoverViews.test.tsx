@@ -742,12 +742,12 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.handover = { status: "handed_over", confirmed_at: "2026-10-20T15:00:00Z" };
     state.problemPhotos = false;
     const off = show([line({ order_status: "handed_over" })]);
-    fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Ask Louisiana Helpr to look" }));
     expect(screen.queryByRole("group", { name: "Photos" })).toBeNull();
     off.unmount();
     state.problemPhotos = true;
     const { container } = show([line({ order_status: "handed_over" })]);
-    fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Ask Louisiana Helpr to look" }));
     const input = container.querySelector('[data-problem-photos] input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(["x"], "crack.jpg", { type: "image/jpeg" })] } });
     expect(within(screen.getByRole("group", { name: "Photos" })).getAllByRole("img")).toHaveLength(1);
@@ -1235,7 +1235,7 @@ describe("boards 159 + 160: handover sheets", () => {
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |         porch={order.handover === "porch"} free={free} |         porch={order.handover === "porch"}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} free={free} pending={pickedUp.isPending} | who={who} pending={pickedUp.isPending}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {refundRequests && (
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && payout && items > 0 && <p | {order.side === "seller" && payout && <p
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && payout && items > 0 && !((holdUnknown | {order.side === "seller" && payout && !((holdUnknown
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | you have it${payWords ? "; they're paid 24 hours later." : "."} | you have it${"; they're paid 24 hours later."}
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const paid = free ? "Claimed." : "Paid."; |   const paid = false ? "Claimed." : "Paid.";
 describe("#6: a free claim never reads like a paid order", () => {
@@ -1307,7 +1307,7 @@ describe("#6: a free claim never reads like a paid order", () => {
     show([line({ order_status: "handed_over", my_side: "seller" })]);
     expect(await screen.findByText("Refund panel")).toBeInTheDocument();
     // Awaited: the payout read and the refund panel's lazy chunk settle in either order.
-    expect(await screen.findByText(/We send it once the sale is final/)).toBeInTheDocument();
+    expect(await screen.findByText(/^You get \$40 once you set up payouts in Settings\.$/)).toBeInTheDocument(); // the mock user has no payout account
   });
 });
 
@@ -1564,9 +1564,9 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | problemForm={problem ? null : <ProblemForm | problemForm={false ? null : <ProblemForm
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen} |           {<ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {booking?.slot_start && !problem && <NoShowButton | {booking?.slot_start && <NoShowButton
-// @mutate src/components/declutter/declutterPayoutWords.ts | problemOpen && payout.status === "pending" ? PAYOUT_HELD | false ? PAYOUT_HELD
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {payoutLine(payout, !!problem)} | {payoutLine(payout, false)}
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const problems = useOpenProblems(ids); |   const problems = new Map<string, OpenProblem>();
+// @mutate src/components/declutter/declutterPayoutWords.ts | if (problemOpen && payout.status === "pending") return | if (false) return
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {payoutLine(payout, !!problem, { | {payoutLine(payout, false, {
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const { problems, settled: problemsSettled } = useOpenProblemsRead(ids); |   const problems = new Map<string, OpenProblem>(); const problemsSettled = true;
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         : problemOpen\n | : false\n
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD }\n        : side === "seller" | : false ? { who: "info", text: PROBLEM_ON_HOLD }\n        : side === "seller"
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | problemOpen={!!problem}\n          refunded={fullRefund}\n          part= | refunded={fullRefund}\n          part=
@@ -1668,17 +1668,17 @@ describe("D2-2: an open problem shows on both cards", () => {
     state.payouts = [{ order_id: "o1", amount_cents: 4000, items_cents: 4000, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, status: "pending" }];
     const before = show([line({ order_status: "handed_over" })]);
     await screen.findByText("Refund panel");
-    expect(screen.getByRole("button", { name: "Report a problem" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ask Louisiana Helpr to look" })).toBeInTheDocument();
     before.unmount();
     state.problems = [damaged];
     const buyer = show([line({ order_status: "handed_over" })]);
     expect(await screen.findByText("Problem reported: Louisiana Helpr is looking.")).toBeInTheDocument();
     expect(screen.getByText("Refund panel")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Ask Louisiana Helpr to look" })).toBeNull();
     buyer.unmount();
     show([line({ order_status: "handed_over", my_side: "seller" })]);
     expect(await screen.findByText(/It's held while Louisiana Helpr looks at the problem\./)).toBeInTheDocument();
-    expect(screen.queryByText(/We send it once the sale is final/)).toBeNull();
+    expect(screen.queryByText(/paid on/)).toBeNull();
   });
 });
 
@@ -1879,7 +1879,7 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
     state.sd = { order_id: "o1", side: "seller", order_status: "paid", status: "booked", slot_start: "2026-10-31T14:00:00Z", slot_end: "2026-10-31T15:00:00Z", delivered_at: null, delivery_cents: 1000 };
     show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 4500, delivery_cents: 1000 })]);
     const note = await screen.findByText(/^You get/);
-    expect(note.textContent).toMatch(/^You get \$55 \(\$45 for the sale and \$10 for delivering it\) after the handover\./);
+    expect(note.textContent).toMatch(/^You get \$55 \(\$45 \+ \$10 delivery\) after the handover\./);
     expect(await openPayoutRule()).toMatch(/^You're paid 24 hours after the buyer taps "I got it"/);
   });
 

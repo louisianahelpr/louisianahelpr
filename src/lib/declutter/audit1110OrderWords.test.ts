@@ -45,14 +45,14 @@ describe("F392: the seller's payout line", () => {
     for (const status of statuses) {
       const line = payoutLine(row({ status: status as MyPayout["status"], executed_at: "2026-11-09T18:31:00Z" }), false);
       expect(line, status).not.toMatch(/undefined|null/);
-      expect(line, status).toMatch(/^Your earnings: \$50(\.00)?\. \S/);
+      expect(line, status).toMatch(/^(You get \$50(\.00)?[.,] \S|Nothing to pay out)/);
     }
   });
 
   it("held and paid-by-hand payouts say where they stand; a sent one says when", () => {
     expect(payoutStatusWords(row({ status: "held_for_review" }))).toMatch(/^On hold while Louisiana Helpr checks this payout/);
     expect(payoutStatusWords(row({ status: "settled_by_hand" }))).toBe("Paid to you by Louisiana Helpr.");
-    expect(payoutLine(row({ status: "succeeded", executed_at: "2026-11-09T18:31:00Z" }), false)).toMatch(/Sent Mon, Nov 9, 12:31 PM\.$/);
+    expect(payoutLine(row({ status: "succeeded", executed_at: "2026-11-09T18:31:00Z" }), false)).toBe("You get $50, paid on Mon, Nov 9.");
     expect(payoutStatusWords(row({ status: "brand_new" as MyPayout["status"] }))).toMatch(/message Support/);
   });
 });

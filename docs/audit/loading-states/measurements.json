@@ -28490,6 +28490,32 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 2
+    },
+    {
+      "url": "/safety",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4391",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/safety",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/fees",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4391",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/fees",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -28500,6 +28526,15 @@
         "anon /25days",
         "anon /sponsor",
         "anon /25days/rules"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-11-11T16:56:58.956Z",
+      "base": "http://127.0.0.1:4391",
+      "surfaces": [
+        "anon /safety",
+        "anon /fees"
       ],
       "replaced": []
     }

@@ -10,6 +10,7 @@
  * @mutate src/pages/info/Fees.tsx |         <p>{t("fees.postFree")}</p> |         <p>Posting a job is free.</p>
  * @mutate src/pages/info/Safety.tsx |         <li>{t("safety.moneyHeld")}</li> |         <li>Your money is held safely until you approve the work.</li>
  * @mutate src/components/landing/useHeroWords.ts |     window.addEventListener("helpr:lang", read); |     void read;
+ * @mutate src/pages/info/legal/LegalTabBar.tsx | <span className="relative">{tr(`legal.tab.${t}` as const)}</span> | <span className="relative">{`${t}`}</span>
  */
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -31,6 +32,9 @@ import Safety from "@/pages/info/Safety";
 import { enPublic } from "@/lib/i18n/enPublic";
 import { esPublic } from "@/lib/i18n/esPublic";
 import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
+import { Tabs } from "@/components/ui/tabs";
+import { LegalTabBar } from "@/pages/info/legal/LegalTabBar";
+import { TAB_LABELS, VALID_TABS } from "@/pages/info/legal/legalSections";
 
 const footerSrc = blankComments(readFileSync("src/components/Footer.tsx", "utf8"));
 const pairs = [...footerSrc.matchAll(/\bw\("([\w.]+)", "([^"]+)"\)/g)].map((m) => [m[1], m[2]] as const);
@@ -117,5 +121,22 @@ describe("F260q: the landing hero follows a switch made on the page", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Louisiana’s local partner.");
     act(() => setLang("es"));
     await waitFor(() => expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(`${es["hero.titleLead"]} ${es["hero.titleAccent"]}`));
+  });
+});
+
+describe("F260q: /legal's tab names", () => {
+  const draw = () => render(<Tabs value="terms"><LegalTabBar tab="terms" hideIconsOnPhone={false} /></Tabs>);
+  it("English: exactly TAB_LABELS", async () => {
+    draw();
+    for (const k of VALID_TABS) {
+      expect(enPublic[`legal.tab.${k}` as const]).toBe(TAB_LABELS[k]);
+      expect(screen.getByRole("tab", { name: new RegExp(TAB_LABELS[k]) })).toBeTruthy();
+    }
+  });
+  it("Spanish: Términos, Reglas, Privacidad", async () => {
+    setLang("es");
+    await act(async () => { await ensureLangLoaded(); });
+    draw();
+    for (const k of VALID_TABS) expect(screen.getByRole("tab", { name: new RegExp(esPublic[`legal.tab.${k}` as const]) })).toBeTruthy();
   });
 });

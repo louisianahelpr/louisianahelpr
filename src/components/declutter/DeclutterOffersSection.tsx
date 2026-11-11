@@ -96,7 +96,7 @@ function AcceptedOfferNext({ o }: { o: MyOffer }) {
   return <p className="text-ds-13 text-foreground" data-accepted-next="seller">Waiting on the buyer to pay by {orderWhen(line.checkout_by)}.</p>;
 }
 
-function OfferRow({ o, linked = false }: { o: MyOffer; linked?: boolean }) {
+function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: boolean; closed?: boolean }) {
   const qc = useQueryClient();
   // Q2660: the offer a notice opened scrolls into view and takes focus, once.
   const rowRef = useRef<HTMLLIElement>(null);
@@ -151,8 +151,9 @@ function OfferRow({ o, linked = false }: { o: MyOffer; linked?: boolean }) {
   const ways = useQuery({ queryKey: ["declutter", "item-handovers", o.item_id], queryFn: () => fetchItemHandovers(o.item_id), enabled: myTurn && o.my_side === "buyer" });
   return (
     // Boards 68-70: the offer as a card (Declutter has no pre-purchase chat): the amount in money ink with who set it,
-    // the asking price, whose turn it is, and what the answer means in money, from the real rules.
-    <li ref={rowRef} tabIndex={linked ? -1 : undefined} className="rounded-[20px] border border-border bg-card p-4 space-y-2.5" data-offer-row="" data-linked-offer={linked ? "" : undefined}>
+    // the asking price, whose turn it is, and what the answer means in money, from the real rules. Audit 11-10 F359a: a
+    // closed offer (in the fold) sits on the muted card ground, so it reads as finished next to the live ones.
+    <li ref={rowRef} tabIndex={linked ? -1 : undefined} className={`rounded-[20px] border border-border p-4 space-y-2.5 ${closed ? "bg-muted/50" : "bg-card"}`} data-offer-row="" data-closed-offer={closed ? "" : undefined} data-linked-offer={linked ? "" : undefined}>
       <div className="flex items-start justify-between gap-3 min-w-0">
         <div className="min-w-0">
           {wantedReply && <p className="text-ds-12 font-semibold text-[hsl(var(--sage-ink))]" data-wanted-reply="">Reply to your Wanted</p>}
@@ -357,7 +358,7 @@ export function OffersSection({ side, onlyMyTurn = false, only = null }: { side:
             onClick={() => setShowClosed(!closedOpen)} data-closed-offers-toggle="">
             {closedOpen ? "Hide closed offers" : `Show ${closed.length} closed ${closed.length === 1 ? "offer" : "offers"} from the last 30 days`}
           </InlineTextButton>
-          {closedOpen && <ul className="space-y-3" data-closed-offers="">{closed.map((o) => <OfferRow key={o.offer_id} o={o} linked={o.offer_id === linkedOffer} />)}</ul>}
+          {closedOpen && <ul className="space-y-3" data-closed-offers="">{closed.map((o) => <OfferRow key={o.offer_id} o={o} linked={o.offer_id === linkedOffer} closed />)}</ul>}
         </>
       )}
     </section>

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Job } from "@/components/job-card/activityConstants";
 import type { PosterStepCtx } from "./posterStepContract";
 import { openMore } from "@/test/helpers/openMore";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 /**
  * F278 (audit 11-10): on a paid, reviewed job the poster's More options showed a DISABLED "Reviewed" chip, a status
@@ -49,7 +50,7 @@ function ctx(job: Job): PosterStepCtx {
 
 const job = {
   id: "job-1", title: "Hang three shelves", customer_id: POSTER, helper_id: HELPR, is_group_job: false,
-  status: "completed", payment_status: "released", proof_before_urls: [], proof_after_urls: [], date_needed: "2026-11-01",
+  status: "completed", payment_status: "released", proof_before_urls: [], proof_after_urls: [], date_needed: jobLocalDateISO(-9),
 } as unknown as Job;
 
 describe("F278: the poster sees the review they left", () => {

@@ -2,6 +2,7 @@ import { t } from "@/lib/i18n/language";
 import { Button } from "@/components/ui/button";
 import "@/lib/i18n/enScreens";
 import { useEffect, useRef, useState } from "react";
+import { chatDraftKey, useChatDraft } from "./chatView/useChatDraft";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, X } from "lucide-react";
@@ -155,7 +156,8 @@ export function ChatView({
   embedded = false,
 }: ChatViewProps) {
   const navigate = useNavigate();
-  const [draft, setDraft] = useState("");
+  // F472: the draft survives a reload, kept per chat in this browser.
+  const [draft, setDraft] = useChatDraft(chatDraftKey(userId, activeConvo.jobId, activeConvo.otherUserId));
   // Community-rules banner dismissal — persisted so once the user has read &
   // dismissed it, it stays gone across thread switches and app relaunches
   // instead of shouting on every thread open.
@@ -359,7 +361,7 @@ export function ChatView({
              already shows it. */
           inboxVisible={embedded}
           ownsSafeArea={!embedded}
-          onBack={() => { setDraft(""); setLightboxPhoto(null); onCloseThread(); }}
+          onBack={() => { setLightboxPhoto(null); onCloseThread(); }}
           onOpenMuteSheet={() => setMuteSheetOpen(true)}
           onToggleMute={onToggleMute}
           // Q262: ChatHeader offers none of these for a deleted-account thread (otherUserId null); the guards keep a null out.

@@ -358,8 +358,8 @@ describe("every chip the row draws is wide enough to show its label", () => {
 describe("the phone widths get the same treatment as 1440, not a lesser one", () => {
   /** The two rows the owner photographed, as the allocator sees them. */
   const DISPUTED = {
-    poster: { chips: ["Escalate", "Photos", "Timeline & Evidence", "Message", "Contact admin"], primary: "Resolve & pay" },
-    helper: { chips: ["Contact admin", "Message", "Timeline & Evidence", "Before photo"], primary: "Respond to dispute" },
+    poster: { chips: ["Ask support to decide", "Photos", "What's been sent", "Message", "Helpr support"], primary: "Resolve & pay" },
+    helper: { chips: ["Helpr support", "Message", "What's been sent", "Before photo"], primary: "Respond to dispute" },
   };
 
   for (const [side, row] of Object.entries(DISPUTED)) {

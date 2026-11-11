@@ -122,7 +122,7 @@ function setNavigator(overrides: Partial<Navigator>) {
 }
 
 describe("ShareJobButton", () => {
-  // @mutate src/components/jobs/ShareJobButton.tsx | job.budget != null && isGiveawayFixedPayJob(job) | false
+  // @mutate src/lib/jobShareContent.ts | job.budget != null && isGiveawayFixedPayJob(job) | false
   it("shares the giveaway at the $50 its page shows, and any other job at its budget", async () => {
     const shareMock = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "share", { value: shareMock, configurable: true, writable: true });
@@ -383,6 +383,6 @@ describe("ShareJobButton", () => {
 // The label must follow what actually runs: drop `isNativePlatform` from
 // canNativeShare and the shipped app draws "Copy link" on a button that opens
 // the OS share sheet (the 2026-08-30 report).
-// @mutate src/components/jobs/ShareJobButton.tsx | isNativePlatform \|\| |
+// @mutate src/lib/jobShareContent.ts |   return isNativePlatform \|\| |   return 
 // The shared URL itself — the attribution param every rung carries.
-// @mutate src/components/jobs/ShareJobButton.tsx | /jobs/${job.id}?ref=share | /jobs/${job.id}
+// @mutate src/lib/jobShareContent.ts | /jobs/${job.id}?ref=share | /jobs/${job.id}

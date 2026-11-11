@@ -80,7 +80,8 @@ export const TOPICS: { label: string; desc: string }[] = [
     label: "Payments & how your money is held",
     desc: "How money is held, released, and paid.",
   },
-  { label: "Trust & Safety", desc: "Verification, disputes, and reporting." },
+  // Audit 11-10 W5 F470: the card says it is where a job that went wrong is handled.
+  { label: "Trust & Safety", desc: "Something went wrong with a job? Disputes, reporting, and ID checks." },
   { label: "Account & Settings", desc: "Email, password, deletion, bigger text." },
 ];
 

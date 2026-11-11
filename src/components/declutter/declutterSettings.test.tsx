@@ -215,13 +215,23 @@ describe("Declutter settings", () => {
   // Q2574 (audit 1102a): Browse's gear opens this page; the seller setup is one block headed Selling that says where
   // the notifications are, and Notifications stands outside it.
   // @mutate src/pages/declutter/DeclutterSettingsPage.tsx |           <SectionHeading title="Selling" /> |           {null}
-  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | <p className="text-ds-13 text-muted-foreground">Notifications for buying and selling are at the end.</p> | {null}
+  // Audit 11-10 F346: the pointer line became a short index whose links reach each section, Notifications included.
+  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | document.querySelector(`section[aria-label="${name}"]`)?.scrollIntoView | document.querySelector(`[data-none="${name}"]`)?.scrollIntoView
+  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | const SETTINGS_INDEX = ["Pickup places", "Listing defaults", "Notifications"] as const; | const SETTINGS_INDEX = ["Pickup places", "Listing defaults"] as const;
   it("Q2574: the seller setup is headed Selling and points a buyer to the notifications", async () => {
     open();
     await screen.findByRole("button", { name: "Add a pickup place" });
     const selling = screen.getByRole("region", { name: "Selling" });
     expect(within(selling).getByRole("heading", { level: 2, name: "Selling" })).toBeInTheDocument();
-    expect(within(selling).getByText("Notifications for buying and selling are at the end.")).toBeInTheDocument();
+    expect(screen.queryByText("Notifications for buying and selling are at the end.")).toBeNull();
+    const index = within(selling).getByRole("navigation", { name: "On this page" });
+    const scrolled: Element[] = [];
+    const spy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function (this: Element) { scrolled.push(this); });
+    for (const name of ["Pickup places", "Listing defaults", "Notifications"]) {
+      fireEvent.click(within(index).getByRole("button", { name }));
+      expect(scrolled.at(-1)).toBe(screen.getByRole("region", { name }));
+    }
+    spy.mockRestore();
     for (const name of ["Pickup places", "Listing defaults"]) expect(within(selling).getByRole("region", { name })).toBeInTheDocument();
     expect(selling.contains(screen.getByRole("region", { name: "Notifications" }))).toBe(false);
   });

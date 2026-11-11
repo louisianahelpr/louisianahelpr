@@ -8,7 +8,7 @@
  * @mutate src/components/messages/ChatHeader.tsx | <DropdownMenuItem onClick={onBlockUser} data-chat-block-user="" className="text-[hsl(var(--destructive-ink))] focus:text-[hsl(var(--destructive-ink))]"> | <DropdownMenuItem onClick={onBlockUser} data-chat-block-user="">
  * @mutate src/components/messages/ChatHeader.tsx | <span className="text-ds-12 text-muted-foreground">Tell our team about a problem.</span> | <span className="text-ds-12 text-muted-foreground"></span>
  * @mutate src/pages/profile/SavedSearchesTab.tsx | <RowAlertSwitch search={s} userId={userId} paused={!!paused.data} /> | {null}
- * @mutate src/pages/profile/SavedSearchesTab.tsx | disabled={paused || change.isPending} | disabled={change.isPending}
+ * @mutate src/pages/profile/SavedSearchesTab.tsx | disabled={paused \|\| change.isPending} | disabled={change.isPending}
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

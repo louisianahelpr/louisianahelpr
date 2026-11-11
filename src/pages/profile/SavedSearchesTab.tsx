@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SAVED_SEARCHES_KEY } from "@/components/savedSearches/SaveSearchSheet";
+import { SavedSearchNewPill } from "@/components/savedSearches/SavedSearchNewPill";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { mutationErrorMessage } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
@@ -31,15 +32,6 @@ import {
 
 const card = { background: "hsl(var(--card))" } as const;
 
-/** The olive "3 new" pill (board 91). Hidden at 0: every number is real or hidden. */
-function NewPill({ n }: { n: number }) {
-  if (n <= 0) return null;
-  return (
-    <span className="shrink-0 rounded-full px-2 py-0.5 font-sans font-semibold text-ds-11 tabular-nums" style={{ background: "hsl(var(--bark))", color: "hsl(var(--primary-foreground))" }} data-testid="saved-search-new">
-      {n} new
-    </span>
-  );
-}
 
 /** F468: the per-row "Alerts" switch; its own mutation so a failed flip puts that one row back. */
 function RowAlertSwitch({ search, userId, paused }: { search: SavedSearch; userId: string; paused: boolean }) {
@@ -204,7 +196,7 @@ export default function SavedSearchesTab({ onBack }: { onBack: () => void }) {
                     <span className="flex-1 min-w-0">
                       <span className="flex items-center gap-2 min-w-0">
                         <span className="font-sans font-semibold text-ds-15 truncate" style={{ color: "hsl(var(--ink-deep))" }} title={s.name}>{s.name}</span>
-                        <NewPill n={counts.data?.get(s.id) ?? 0} />
+                        <SavedSearchNewPill n={counts.data?.get(s.id) ?? 0} />
                       </span>
                       <span className="block font-sans text-ds-13 text-muted-foreground truncate" title={rowSummary(s, !!paused.data)}>{rowSummary(s, !!paused.data)}</span>
                     </span>

@@ -44,6 +44,9 @@ export const SHORT_FIELD_MEASURE = "max-w-[22rem]";
 export const AREA_FIELD_MEASURE = "max-w-[36rem]";
 
 /** Q2648: the About-you counter counts UP to the 20-character minimum ("2 more characters to go"). */
+/** Audit 11-10 F457: the words under a ZIP left with 1-4 digits. */
+export const ZIP_FIELD_ERROR = "ZIP is 5 digits.";
+
 export function bioCharsToGo(bio: string): string {
   const left = Math.max(0, 20 - bio.trim().length);
   return `${left} more character${left === 1 ? "" : "s"} to go`;
@@ -100,9 +103,10 @@ export function ProfileEditForm({
   // Enter in a field submits the form too: an invalid phone shows its words
   // instead of a round-trip that counts toward save_my_phone's limit.
   const submit = (e: React.FormEvent) => {
-    if (phoneError) {
+    if (phoneError || zipError) {
       e.preventDefault();
       setPhoneLeft(true);
+      setZipLeft(true);
       return;
     }
     onSave(e);
@@ -139,6 +143,11 @@ export function ProfileEditForm({
   const { parish: zipParish, unknownZip } = useParishForZip(zipCode, location, setLocation);
   // Recognised, not merely five digits — an unknown ZIP shows its own warning.
   const zipValid = zipCode.length === 5 && !unknownZip && !!zipParish;
+  // Audit 11-10 F457: "123" left in ZIP showed nothing (only the tick was gone). Said under the field once left,
+  // and Save waits for it like the phone: a 1-4 digit ZIP is one the parish lookup can never resolve.
+  const [zipLeft, setZipLeft] = useState(false);
+  const zipError = zipCode.length > 0 && zipCode.length < 5 ? ZIP_FIELD_ERROR : null;
+  const saveBlockedReason = phoneError ? `Fix the phone first: ${phoneError}` : zipError ? `Fix the ZIP first: ${zipError}` : null;
 
   // "Other" skills free-text — kept as its own local buffer (not derived
   // fresh from `skills` on every render) so typing a comma doesn't
@@ -235,7 +244,7 @@ export function ProfileEditForm({
             <div className={SHORT_FIELD_MEASURE}>
               <Label htmlFor="phone" className="text-ds-11 mb-1.5 block">Phone</Label>
               <div className="relative">
-                <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next" value={displayUsPhone(phone)} onChange={(e) => setPhone(e.target.value)} onBlur={() => setPhoneLeft(true)} aria-invalid={phoneLeft && !!phoneError} aria-describedby={phoneLeft && phoneError ? "phone-error" : undefined} className={`h-10 ${phoneValid ? "pr-10" : ""}`} />
+                <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next" value={displayUsPhone(phone)} onChange={(e) => setPhone(e.target.value)} onBlur={() => setPhoneLeft(true)} aria-invalid={phoneLeft && !!phoneError} aria-describedby={phoneLeft && phoneError ? "phone-error" : undefined} className={`h-12 ${phoneValid ? "pr-10" : ""}`} />
                 {phoneValid && (
                   <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
                 )}
@@ -255,7 +264,7 @@ export function ProfileEditForm({
                 {/* Board 41: "Area" (it is shown as an area, never an address). */}
                 <Label htmlFor="location" className="text-ds-11 mb-1.5 block">Area</Label>
                 <div className="relative">
-                  <Input id="location" autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" value={location} onChange={(e) => setLocation(e.target.value)} className={`h-10 px-3 ${locationValid ? "pr-9" : ""}`} />
+                  <Input id="location" autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" value={location} onChange={(e) => setLocation(e.target.value)} className={`h-12 px-3 ${locationValid ? "pr-9" : ""}`} />
                   {locationValid && (
                     <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
                   )}
@@ -271,14 +280,18 @@ export function ProfileEditForm({
                     inputMode="numeric"
                     autoComplete="postal-code"
                     maxLength={5}
+                    onBlur={() => setZipLeft(true)}
+                    aria-invalid={zipLeft && !!zipError}
+                    aria-describedby={zipLeft && zipError ? "zip-error" : undefined}
                     // px-3, not the Input default px-4: the last digit of "70808"
                     // once clipped here at 375 (scrollWidth 83 vs clientWidth 80).
-                    className={`h-10 px-3 ${zipValid ? "pr-9" : ""}`}
+                    className={`h-12 px-3 ${zipValid ? "pr-9" : ""}`}
                   />
                   {zipValid && (
                     <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
                   )}
                 </div>
+                {zipLeft && zipError && <div className="mt-1"><FieldError id="zip-error">{zipError}</FieldError></div>}
               </div>
             </div>
             {/* A ZIP that resolves to nothing must say so — silence used to
@@ -486,7 +499,8 @@ export function ProfileEditForm({
           softly blurs through. */}
       <SaveBar
         dirty={dirty}
-        blocked={!!phoneError}
+        blocked={!!phoneError || !!zipError}
+        reason={saveBlockedReason}
         saving={saving}
         justSaved={justSaved}
         onBack={onBack}

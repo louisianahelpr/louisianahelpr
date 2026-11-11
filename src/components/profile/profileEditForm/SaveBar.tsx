@@ -6,6 +6,8 @@ interface SaveBarProps {
   dirty: boolean;
   /** A field holds something the server would refuse (Q2654: an invalid phone): Save stays off. */
   blocked?: boolean;
+  /** Audit 11-10 F457: why Save is off, said above the buttons (a grey button with no reason read as broken). */
+  reason?: string | null;
   saving: boolean;
   justSaved: boolean;
   onBack: () => void;
@@ -20,7 +22,7 @@ interface SaveBarProps {
  * around it. Frosted glass surface so content behind softly blurs through.
  * It takes the dock's strip, so the dock yields while it shows (Q1646).
  */
-export function SaveBar({ dirty, blocked = false, saving, justSaved, onBack, onSave }: SaveBarProps) {
+export function SaveBar({ dirty, blocked = false, reason = null, saving, justSaved, onBack, onSave }: SaveBarProps) {
   // Only while there is something to save, a save in flight, or the brief
   // "Saved" confirmation. Owner, 2026-09-14 (VN-40): "i don't like that bottom
   // cancel or up to date" — with nothing changed the bar showed a disabled
@@ -35,7 +37,7 @@ export function SaveBar({ dirty, blocked = false, saving, justSaved, onBack, onS
   return (
     <div
       data-rail-inset
-      className="fixed bottom-0 left-0 right-0 z-40 px-4 pt-3 pb-3 flex items-center gap-2"
+      className="fixed bottom-0 left-0 right-0 z-40 px-4 pt-3 pb-3 flex flex-col gap-2"
       style={{
         // `var(--safe-area-bottom)`, never a bare `env(safe-area-inset-bottom)`.
         // This bar is `position: fixed` inside <PageTransition>, whose motion.div
@@ -54,6 +56,12 @@ export function SaveBar({ dirty, blocked = false, saving, justSaved, onBack, onS
           "0 -8px 22px -10px hsl(var(--olivewood) / 0.18)",
       }}
     >
+      {blocked && reason && (
+        <p role="status" data-save-reason="" className="text-ds-12 font-semibold leading-snug" style={{ color: "hsl(var(--burnt-sienna))" }}>
+          {reason}
+        </p>
+      )}
+      <div className="flex items-center gap-2">
       <Button
         type="button"
         variant="ghost"
@@ -83,6 +91,7 @@ export function SaveBar({ dirty, blocked = false, saving, justSaved, onBack, onS
       >
         {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? (<><Check className="w-4 h-4" /> Saved</>) : "Save changes"}
       </Button>
+      </div>
     </div>
   );
 }

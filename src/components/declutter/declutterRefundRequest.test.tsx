@@ -20,7 +20,7 @@
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | We decide and tell you both.{decidesBy(r.decide_by)}</p>; | We decide and tell you both.</p>;
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | Your payout waits until we decide.{decidesBy(r.decide_by)}</p>; | Your payout waits until we decide.</p>;
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | You keep the item.</p>\n          <SellerSideShown note={r.seller_note} photos={r.seller_photo_paths} who={who} /> | You keep the item.</p>
- * @mutate src/components/declutter/DeclutterRefundRequest.tsx | Louisiana Helpr decides.` : ""}\n          </p>\n          <SellerSideShown note={r.seller_note} photos={r.seller_photo_paths} who={who} /> | Louisiana Helpr decides.` : ""}\n          </p>
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | , and we decide.` : ""}\n          </p>\n          <SellerSideShown note={r.seller_note} photos={r.seller_photo_paths} who={who} /> | , and we decide.` : ""}\n          </p>
  * @mutate src/lib/declutter/decideBy.ts | Louisiana Helpr usually decides within 2 days (by ${decideByWords(decideBy)}). | Louisiana Helpr decides soon.
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |           {v.can_report && problemForm} |           {problemForm}
  * D2-5 (audit 1b #5): a request Louisiana Helpr decided says so on both sides, never "is looking" or "said no".
@@ -403,6 +403,8 @@ describe("DeclutterRefundPanel", () => {
   it("buyer: Report a problem shows only after the seller says no, while the server allows it", async () => {
     const { unmount } = show({ ...BASE, can_ask: false, request: { ...REQ, status: "declined", declined_at: "2026-10-23T19:00:00Z", report_until: "2026-10-24T19:00:00Z" } });
     expect(await screen.findByText("PROBLEM FORM")).toBeTruthy();
+    // Owner 11-11 F382: the buyer is told to ask Louisiana Helpr to look (the report path; no refund on its own).
+    expect(screen.getByText(/If you still think something is wrong, ask Louisiana Helpr to look by .+, and we decide\./)).toBeTruthy();
     unmount();
     show({ ...BASE, can_ask: false, can_report: false, request: { ...REQ, status: "declined", declined_at: "2026-10-23T19:00:00Z", report_until: null } });
     expect(await screen.findByText(/Nikki said no to a refund\./)).toBeTruthy();

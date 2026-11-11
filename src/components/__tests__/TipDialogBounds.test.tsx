@@ -48,20 +48,22 @@ describe("TipDialog custom amount bounds (ME-017 #2)", () => {
     expect(invoke).not.toHaveBeenCalled();
   });
 
-  it("shows only the total the poster pays before sending, and that the Helpr gets the whole tip (owner 2026-10-25)", () => {
+  // F277 (owner 2026-11-11 morning pop-up): the tip sheet shows Tip and Service fee rows (replaces owner 2026-10-25
+  // "only the total"), both from tipChargeBreakdown, adding up to the Pay button.
+  it("shows the tip and the service fee before sending, adding up to the Pay button (owner 2026-11-11, F277)", () => {
     render(<TipDialog jobId="job-1" open onClose={() => {}} />);
     // With no job price the presets are whole dollars; picking one quotes it.
     fireEvent.click(screen.getByRole("button", { name: "$5" }));
-    expect(screen.getByLabelText("Tip cost breakdown").textContent).toBe("You pay$5.46");
-    expect(document.body.textContent).toContain("Your Helpr receives the whole $5.00 tip.");
-    expect(document.body.textContent).not.toMatch(/card processing|card fee|processing/i);
+    expect(screen.getByLabelText("Tip cost breakdown").textContent).toBe("Tip$5.00Service fee$0.46");
+    expect(screen.getByRole("button", { name: "Pay $5.46" })).toBeTruthy();
+    expect(document.body.textContent).toContain("Your Helpr receives the whole tip.");
+    expect(document.body.textContent).not.toMatch(/card processing|card fee|processing|%/i);
     openOther();
     fireEvent.change(screen.getByLabelText("Tip amount in dollars"), { target: { value: "10" } });
     const breakdown = screen.getByLabelText("Tip cost breakdown");
-    expect(breakdown.textContent).toBe("You pay$10.61");
-    // A3-42: the only row draws no divider over itself.
+    expect(breakdown.textContent).toBe("Tip$10.00Service fee$0.61");
+    expect(screen.getByRole("button", { name: "Pay $10.61" })).toBeTruthy();
     expect(breakdown.querySelector(".border-t")).toBeNull();
-    expect(document.body.textContent).toContain("Your Helpr receives the whole $10.00 tip.");
     expect(invoke).not.toHaveBeenCalled();
   });
 
@@ -71,7 +73,8 @@ describe("TipDialog custom amount bounds (ME-017 #2)", () => {
     openOther();
     fireEvent.change(screen.getByLabelText("Tip amount in dollars"), { target: { value: "25" } });
     // A3-41: the button names the charge (the "You pay" figure), not the tip alone.
-    const pay = screen.getByLabelText("Tip cost breakdown").textContent!.replace("You pay", "");
+    const fee = screen.getByLabelText("Tip cost breakdown").textContent!.replace(/^Tip\$25\.00Service fee\$/, "");
+    const pay = `$${(25 + Number(fee)).toFixed(2)}`;
     expect(pay).not.toBe("$25.00");
     expect(screen.queryByRole("button", { name: "Tip $25.00" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: `Pay ${pay}` }));

@@ -1,5 +1,7 @@
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { type TabKey, VALID_TABS, TAB_LABELS, TAB_ICONS } from "./legalSections";
+import { type TabKey, VALID_TABS, TAB_ICONS } from "./legalSections";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enPublic";
 
 // ONE size, always. Below `sm` the three tabs share the full width as an
 // even 3-column grid stacked above the search input; from `sm` up they
@@ -11,6 +13,9 @@ import { type TabKey, VALID_TABS, TAB_LABELS, TAB_ICONS } from "./legalSections"
 // compact trio the moment you touched the search icon.)
 // Moved out of Legal.tsx unchanged (Q806).
 export function LegalTabBar({ tab, hideIconsOnPhone }: { tab: TabKey; hideIconsOnPhone: boolean }) {
+  // F260q (owner 11-11): the tab names in the reader's language; the policy text itself stays English (the Terms tab
+  // carries the Spanish summary, TermsSummaryEs.tsx).
+  const { t: tr } = useLanguage();
   return (
     <TabsList
       data-print-hide
@@ -53,7 +58,7 @@ export function LegalTabBar({ tab, hideIconsOnPhone }: { tab: TabKey; hideIconsO
               />
             )}
             <Icon className={`relative w-3.5 h-3.5 shrink-0 ${hideIconsOnPhone ? "hidden sm:block" : ""}`} />
-            <span className="relative">{TAB_LABELS[t]}</span>
+            <span className="relative">{tr(`legal.tab.${t}` as const)}</span>
           </TabsTrigger>
         );
       })}

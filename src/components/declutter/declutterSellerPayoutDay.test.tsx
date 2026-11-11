@@ -31,6 +31,12 @@ vi.mock("./useMyPaidCents", () => ({ useMyPaidCents: () => new Map() }));
 
 import { PickupStatus } from "./DeclutterPorchHandover";
 
+/**
+ * The money line's own words: "You get " + <strong>$30</strong> + ", paid on ...". A plain text matcher reads only a
+ * node's own text ("You get , paid on ..."), so /You get \$/ never matched and a held payout's day went unseen.
+ */
+const youGetLine = (_: string, el: Element | null) => el?.tagName === "P" && /You get \$/.test(el.textContent ?? "");
+
 function wrap(ui: React.ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<QueryClientProvider client={qc}><MemoryRouter>{ui}</MemoryRouter></QueryClientProvider>);
@@ -54,10 +60,10 @@ describe("the seller's handed-over card says when it was handed over and when th
   it("says nothing about the payout while a problem is open or after a refund", async () => {
     const { unmount } = wrap(<PickupStatus orderId="o1" handover="pickup_home" side="seller" slot={null} itemsCents={3000} problemOpen />);
     await screen.findByText(`Handed over ${orderWhen(HANDED)}.`); // the handover row is in: the money line has decided
-    expect(screen.queryByText(/You get \$/)).toBeNull();
+    expect(screen.queryByText(youGetLine)).toBeNull();
     unmount();
     wrap(<PickupStatus orderId="o1" handover="pickup_home" side="seller" slot={null} itemsCents={3000} refunded />);
     await screen.findByText(/refund/i);
-    expect(screen.queryByText(/You get \$/)).toBeNull();
+    expect(screen.queryByText(youGetLine)).toBeNull();
   });
 });

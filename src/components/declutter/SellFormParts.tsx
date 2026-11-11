@@ -20,6 +20,11 @@ import { SavedPlacesComeFirst, useHasPorchPlaces } from "./SellPorchPlaces";
 import { TaxStatementsCheck } from "./declutterUi";
 import { DROPS_SWITCH_LABEL, priceTooLowForDrops } from "./sellForm";
 import type { SellFlow } from "./useSellFlowState";
+import { formatPrice } from "@/lib/declutter/distance";
+import { sellerGetsTodayCents } from "@/lib/declutter/sellerGetsToday";
+import { useFirstPayoutFeeCents } from "@/hooks/useFirstPayoutFee";
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 /** The Sell form field look, shared with the card-look Input (src/components/ui/input.tsx). */
 export const SELL_INPUT = CARD_FIELD_CLS;
@@ -30,6 +35,23 @@ export function FieldLabel({ htmlFor, text, extra }: { htmlFor: string; text: st
       {text}
       {extra && <span className="font-normal text-muted-foreground"> {extra}</span>}
     </label>
+  );
+}
+
+/**
+ * F328 (owner 11-11 ~2:10 PM): the sell form's one money line, "You get $Y", by the payout SQL's own rule
+ * (sellerGetsTodayCents: the one-time setup fee comes out of a first payout while the ID check is on). No buyer-pays
+ * figure and no fee words on the sell form.
+ */
+export function SellYouGet({ priceCents }: { priceCents: number }) {
+  const setupFeeCents = useFirstPayoutFeeCents();
+  const idCheckOn = useIdentityCheckOnStore();
+  const { isAdmin } = useCurrentUser();
+  return (
+    <p className="flex items-baseline justify-between text-ds-14 text-foreground" data-sell-keep="">
+      You get if it sells today
+      <span className="font-bold text-[hsl(var(--burnt-sienna))]">{formatPrice(sellerGetsTodayCents(priceCents, { setupFeeCents, idCheckOn, isAdmin }))}</span>
+    </p>
   );
 }
 

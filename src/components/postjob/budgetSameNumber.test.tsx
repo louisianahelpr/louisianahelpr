@@ -9,7 +9,9 @@
  * Audit 11-01 JA-43: ONE budget control. The big number is the field; the separate "Budget * $0.00" field
  * under it (the same value twice) is gone, and − / + move that one field.
  * @mutate src/components/postjob/BudgetSection.tsx |               hero\n | \n
- * @mutate src/components/postjob/BudgetSection.tsx |   const underBudgetMin = budgetNum > 0 && budgetNum < MIN_JOB_BUDGET_DOLLARS; |   const underBudgetMin = false;
+ * @mutate src/components/postjob/BudgetSection.tsx |   const underBudgetMin = budget.trim() !== "" && budgetNum < MIN_JOB_BUDGET_DOLLARS; |   const underBudgetMin = false;
+ * @mutate src/components/postjob/BudgetSection.tsx |   const underBudgetMin = budget.trim() !== "" && budgetNum < MIN_JOB_BUDGET_DOLLARS; |   const underBudgetMin = budgetNum > 0 && budgetNum < MIN_JOB_BUDGET_DOLLARS;
+ * @mutate src/components/postjob/BudgetSection.tsx | setBudget(next === undefined ? "" : Math.abs(next).toString()) | setBudget(next === undefined ? "" : next.toString())
  */
 import { describe, it, expect } from "vitest";
 import { useState } from "react";
@@ -50,6 +52,27 @@ describe("Post a job budget: the poster's own number", () => {
 
   it("no minimum message at or above the minimum", () => {
     render(<Harness initial="10" />);
+    expect(screen.queryByText(/minimum budget is/i)).toBeNull();
+  });
+
+  // F302 (audit 11-10): '0' and '-5' only greyed the button; letters never reach the field (stripFormatting).
+  it("a typed 0 says what the minimum is", () => {
+    cleanup();
+    render(<Harness />);
+    fireEvent.change(screen.getByRole("textbox", { name: "Job budget in dollars" }), { target: { value: "0" } });
+    expect(screen.getByText(/minimum budget is \$10/i).closest('[role="status"]')).not.toBeNull();
+  });
+
+  it("a minus sign is dropped as it is typed, and letters are ignored", () => {
+    cleanup();
+    render(<Harness />);
+    const field = screen.getByRole("textbox", { name: "Job budget in dollars" }) as HTMLInputElement;
+    fireEvent.focus(field);
+    fireEvent.change(field, { target: { value: "-25" } });
+    expect(field.value).toBe("25");
+    expect(screen.queryByText(/minimum budget is/i)).toBeNull();
+    fireEvent.change(field, { target: { value: "abc" } });
+    expect(field.value).toBe("");
     expect(screen.queryByText(/minimum budget is/i)).toBeNull();
   });
 

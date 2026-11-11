@@ -66,6 +66,21 @@ describe("usePageMeta", () => {
     expect(og?.getAttribute("content")).toBe("OG description here");
   });
 
+  it("F269a: twitter:title and twitter:description follow og:title and og:description", () => {
+    // The server (api/share.ts applyMeta) writes og:* and twitter:* from the same strings. Before, the hook updated
+    // only og:*, so after the app loaded twitter:description kept the server's words while og:description had the
+    // page's: two descriptions for one job depending on the app it was shared in (W2 F269a).
+    const stale = document.createElement("meta");
+    stale.setAttribute("name", "twitter:description");
+    stale.setAttribute("content", "server words");
+    document.head.appendChild(stale);
+    renderHook(() => usePageMeta({ title: "T", description: "D", ogTitle: "Job title", ogDescription: "page words" }));
+    expect(document.querySelector('meta[property="og:description"]')?.getAttribute("content")).toBe("page words");
+    expect(document.querySelector('meta[name="twitter:description"]')?.getAttribute("content")).toBe("page words");
+    expect(document.querySelector('meta[name="twitter:title"]')?.getAttribute("content")).toBe("Job title");
+    expect(document.querySelectorAll('meta[name="twitter:description"]').length).toBe(1);
+  });
+
   it("sets canonical link", () => {
     renderHook(() =>
       usePageMeta({

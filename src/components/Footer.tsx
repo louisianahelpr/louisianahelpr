@@ -1,5 +1,5 @@
 import { Apple, Heart } from "lucide-react";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Link } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -7,6 +7,12 @@ import { browseDestinationFor } from "@/lib/browseDestination";
 import { prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
 import { APP_STORE_URL, APP_STORE_LISTING_LIVE } from "@/lib/appStore";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
+import { optionalLazy } from "@/lib/optionalLazy";
+import { useGuestSpanish } from "@/components/landing/useGuestSpanish";
+
+// F260q (owner 11-11): the English / Español switch for signed-out visitors, in its own chunk so the landing's first
+// paint carries none of the i18n modules (the footer is below the fold).
+const LanguageToggle = optionalLazy(() => import("@/components/LanguageToggle").then((m) => ({ default: m.LanguageToggle })), "LanguageToggle");
 
 // Inline Facebook glyph — lucide-react v1.x removed brand icons including
 // `Facebook`. Inlining the standard "f" mark keeps the social link working
@@ -73,6 +79,10 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
   // The footer renders on public AND authed surfaces (App.tsx, PageHeader,
   // AuthShell, PublicLayout), so its "Jobs" link cannot be a constant.
   const { user } = useAuthReady();
+  // F260q (owner 11-11, Spanish everything): the Spanish words when the visitor's language is Spanish (fetched only
+  // then); otherwise the English written here, which enPublic.ts mirrors (publicPagesInSpanish.test.tsx).
+  const es = useGuestSpanish();
+  const w = (key: string, english: string) => es?.[key] ?? english;
 
   /* WARM THE FOOTER'S OWN DESTINATIONS WHILE THE READER IS STILL READING.
      Legal and the Help Center are lazy chunks, and the footer used to be the
@@ -131,9 +141,9 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
               link columns around. */}
           <p className="text-ds-13 text-[hsl(var(--olivewood))]/80 max-w-xs leading-relaxed">
             {/* L036 (landing audit 11-09): only the sections open today (Shops and Homes are Coming soon). */}
-            Jobs and Declutter
+            {w("footer.taglineLead", "Jobs and Declutter")}
             <br />
-            for Louisiana.
+            {w("footer.taglineTail", "for Louisiana.")}
           </p>
         </div>
 
@@ -150,7 +160,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
-            Explore
+            {w("footer.explore", "Explore")}
           </h2>
           {/* The footer is the site's full index, so it carries the top nav's
               destinations PLUS the secondary ones the nav has no room for.
@@ -180,7 +190,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
                   authed feed and a visitor to the guest one. Same label either
                   way — one feature, one noun (see browseDestinationFor). */}
               <Link to={browseDestinationFor(user)} className={FOOTER_LINK}>
-                Jobs
+                {w("footer.jobs", "Jobs")}
               </Link>
             </li>
             <li>
@@ -193,30 +203,30 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
               {/* L035 (landing audit 11-09): the Helpr directory (open to guests, F071) had no link from the landing or
                   the footer. */}
               <Link to="/helprs" className={FOOTER_LINK}>
-                Find a Helpr
+                {w("footer.findHelpr", "Find a Helpr")}
               </Link>
             </li>
             <li>
               <Link to="/help" className={FOOTER_LINK}>
-                Help center
+                {w("footer.help", "Help center")}
               </Link>
             </li>
             {/* F255 (audit 11-10, owner 2026-11-11): what it costs and how members are kept safe. */}
             <li>
               <Link to="/fees" className={FOOTER_LINK}>
-                Fees
+                {w("footer.fees", "Fees")}
               </Link>
             </li>
             <li>
               <Link to="/safety" className={FOOTER_LINK}>
-                Safety
+                {w("footer.safety", "Safety")}
               </Link>
             </li>
             <li>
               {/* /contact redirects here too (vercel.json); this is where a
                   person who wants to reach us lands. */}
               <Link to="/support" className={FOOTER_LINK}>
-                Contact us
+                {w("footer.contact", "Contact us")}
               </Link>
             </li>
           </ul>
@@ -250,22 +260,22 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
-            Legal
+            {w("footer.legal", "Legal")}
           </h2>
           <ul className="space-y-2 [@media(pointer:coarse)]:space-y-0 text-ds-13 text-[hsl(var(--olivewood))]/85">
             <li>
               <Link to="/terms" className={FOOTER_LINK}>
-                Terms
+                {w("footer.terms", "Terms")}
               </Link>
             </li>
             <li>
               <Link to="/rules" className={FOOTER_LINK}>
-                Rules
+                {w("footer.rules", "Rules")}
               </Link>
             </li>
             <li>
               <Link to="/privacy" className={FOOTER_LINK}>
-                Privacy
+                {w("footer.privacy", "Privacy")}
               </Link>
             </li>
           </ul>
@@ -278,7 +288,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--muted-foreground))" }}
           >
-            Follow
+            {w("footer.follow", "Follow")}
           </h2>
           {/* One olive monochrome chip for every network (owner's UI audit
               11-09, F005: Facebook blue and the Instagram gradient were off
@@ -299,8 +309,8 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:brightness-110"
-                aria-label="Download Helpr on the App Store (opens in a new tab)"
-                title="Download on the App Store"
+                aria-label={w("footer.appStore", "Download Helpr on the App Store (opens in a new tab)")}
+                title={w("footer.appStoreTitle", "Download on the App Store")}
               >
                 <Apple className="h-[18px] w-[18px]" fill="currentColor" />
               </a>
@@ -310,8 +320,8 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
               target="_blank"
               rel="noopener noreferrer"
               className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:brightness-110"
-              aria-label="Follow us on Facebook (opens in a new tab)"
-              title="Follow us on Facebook"
+              aria-label={w("footer.facebook", "Follow us on Facebook (opens in a new tab)")}
+              title={w("footer.facebookTitle", "Follow us on Facebook")}
             >
               <Facebook
                 className="h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110"
@@ -323,8 +333,8 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
               target="_blank"
               rel="noopener noreferrer"
               className="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--olivewood))] text-[hsl(var(--parchment))] shadow-sm transition-all duration-300 ease-out hover:brightness-110"
-              aria-label="Follow us on Instagram (opens in a new tab)"
-              title="Follow us on Instagram"
+              aria-label={w("footer.instagram", "Follow us on Instagram (opens in a new tab)")}
+              title={w("footer.instagramTitle", "Follow us on Instagram")}
             >
               <Instagram className="h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110" />
             </a>
@@ -343,21 +353,25 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
         <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 whitespace-nowrap">
           © {new Date().getFullYear()} Louisiana Helpr · Helpr LLC
         </p>
+        {/* F260q (owner 11-11): signed-out visitors pick English or Español here (Log in and Sign up carry it too). */}
+        <Suspense fallback={null}>
+          <LanguageToggle />
+        </Suspense>
         <p className="text-ds-11 text-[hsl(var(--olivewood))]/80 flex items-center gap-1.5">
-          Made with{" "}
+          {w("footer.madeWith", "Made with")}{" "}
           {/* L018 (landing audit 11-09): the icon was aria-hidden, so it read "Made with for Louisiana communities". */}
           <Heart
             className="w-3 h-3"
             role="img"
             aria-hidden={false}
-            aria-label="love"
+            aria-label={w("footer.love", "love")}
             style={{
               // Olive, not rust: rust is for money only (audit #14).
               color: "hsl(var(--bark))",
               fill: "hsl(var(--bark))",
             }}
           />{" "}
-          for Louisiana communities
+          {w("footer.forCommunities", "for Louisiana communities")}
         </p>
       </div>
     </div>

@@ -86,6 +86,8 @@ export function setLang(next: Lang) {
   safeStorage.setItem(LANG_KEY, next);
   applyHtmlLang();
   emit();
+  // The signed-out first screens (landing/useGuestSpanish.ts) read the language without this module; tell them.
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("helpr:lang"));
   void ensureLangLoaded();
 }
 

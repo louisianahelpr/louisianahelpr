@@ -29,8 +29,17 @@ export interface PayoutLineContext {
   payoutReady?: boolean;
   /** A refund request the seller declined: declutter_sale_final waits for the later of handover + 24 h and declined_at + 24 h. */
   declinedAt?: string | null;
+  /**
+   * F360b loose end (lead 11-11): a refund request the two sides AGREED (a part refund), with that refund's Stripe
+   * status ("unknown" while the view has none). declutter_payouts_due holds the payout while the refund_request_part
+   * refund is pending or failed; once it went through the sale is decided (declutter_sale_decided) and final at once.
+   */
+  refundAgreed?: "pending" | "succeeded" | "failed" | "held_for_review" | "settled_by_hand" | "unknown" | null;
   now?: number;
 }
+
+/** The part-refund states that hold the seller's payout (declutter_payouts_due), plus a status not read yet. */
+const REFUND_HOLDS: ReadonlySet<string> = new Set(["pending", "failed", "unknown"]);
 
 /** The SQL caps the fee at $100 (declutter_setup_fee_due_cents: least(10000, ...)). */
 const SETUP_FEE_CAP = 10_000;
@@ -56,6 +65,10 @@ export function payoutLine(payout: MyPayout, problemOpen: boolean, ctx: PayoutLi
   if (payout.status !== "pending" || (payout.attempts ?? 0) >= PAYOUT_TRIES) return `${gets}. ${payoutStatusWords(payout)}`;
   if (ctx.refundOpen) return `${gets}. It waits until the refund request is settled.`;
   if (ctx.payoutReady === false) return `${gets} once you set up payouts in Settings.`;
+  // declutter_payouts_due holds only while the part refund is pending or failed (unknown: not promised); succeeded,
+  // settled_by_hand and held_for_review do not hold it (lh-money-escrow review 11-11), so it goes in the next run.
+  if (ctx.refundAgreed && REFUND_HOLDS.has(ctx.refundAgreed)) return `${gets}. It's on hold until the buyer's refund goes through.`;
+  if (ctx.refundAgreed) return `${gets}. The sale is final, so we send it next.`;
   if (!ctx.handedOverAt) return `${gets}, paid 24 hours after the handover unless the buyer asks for a refund.`;
   // declutter_sale_final: the later of the handover and a declined refund request, plus 24 hours.
   const from = ctx.declinedAt && Date.parse(ctx.declinedAt) > Date.parse(ctx.handedOverAt) ? ctx.declinedAt : ctx.handedOverAt;

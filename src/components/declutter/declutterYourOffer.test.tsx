@@ -39,7 +39,7 @@ const state = {
   /** requestFreeAt: the pickup time the asker picked in the Ask sheet (owner 11-01, Mockup 3). */
   askedAt: null as string | null,
   /** The member's own open asks for free items (the Free change, Q2487). */
-  asks: [] as { id: string; item_id: string; status: string; created_at: string }[],
+  asks: [] as { id: string; item_id: string; status: string; created_at: string; pickup_at?: string | null }[],
   giverAsks: undefined as unknown[] | undefined,
   withdrawn: [] as string[],
   /** fetchItemHandovers: the ways the giver ticked (null = an older item with none recorded). DA-5. */
@@ -336,6 +336,16 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     expect(state.withdrawn).toEqual([]);
     fireEvent.click(screen.getByRole("button", { name: "Take it back" }));
     await waitFor(() => expect(state.withdrawn).toEqual(["r1"]));
+  });
+
+  // Audit 1110 F359c: the asker sees the pickup time they chose (the giver already sees it beside their name).
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |         {myAsk.pickup_at && <p | {false && <p
+  it("F359c: with the member's ask open, the page shows the pickup time they asked for", async () => {
+    // 2027-11-13 16:00Z is Sat 10 AM in Lafayette (a year out, so never "Today").
+    state.asks = [{ id: "r1", item_id: "i1", status: "open", created_at: "2026-10-30T00:00:00Z", pickup_at: "2027-11-13T16:00:00Z" }];
+    show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
+    expect(await screen.findByText("You asked for this.")).toBeInTheDocument();
+    expect(document.querySelector("[data-my-ask-time]")?.textContent).toBe("Pickup Sat, 11/13, 10 AM");
   });
 
   // @mutate src/components/declutter/DeclutterFreeClaim.tsx |           onClick={() => setTakingBack(true)}> |           onClick={() => takeBack.mutate(myAsk.id)}>

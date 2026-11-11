@@ -23,6 +23,7 @@
  * @mutate supabase/functions/_shared/posterCancelSplit.ts |       backCents: Math.max(0, cents(i.charge.amountCents) - captureCents), |       backCents: cents(i.charge.amountCents),
  * @mutate supabase/functions/create-payment/index.ts |       if ((qGift?.length ?? 0) > 0) return unquoted("gift", feeCents); |
  * @mutate supabase/functions/create-payment/index.ts |         if (alreadyRefundedCents > 0) return unquoted("earlier_refund", feeCents); |
+ * @mutate supabase/functions/create-payment/index.ts | let qNoShowFull = asNoShow; | let qNoShowFull = false;
  *
  * Q1415 (e): a confirmed Helpr who is banned or under an open ban review is owed no fee. poster_cancel_job records 0
  * and writes a job_cancel_id_waivers row (reason payee_frozen); the quote asks cancel_fee_payee_frozen, so the fee it
@@ -62,7 +63,7 @@ function resetAll() {
   resetSharedMocks();
 }
 
-async function quote(job: Job, pi: Record<string, unknown>, opts: { taxCents?: number; gift?: boolean; frozen?: boolean; frozenErr?: { message: string; code?: string } } = {}) {
+async function quote(job: Job, pi: Record<string, unknown>, opts: { taxCents?: number; gift?: boolean; frozen?: boolean; frozenErr?: { message: string; code?: string }; asNoShow?: boolean } = {}) {
   resetAll();
   setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "anon-key", SUPABASE_SERVICE_ROLE_KEY: "service-key", STRIPE_SECRET_KEY: "sk_test_quote" });
   scenario.authUser = POSTER;
@@ -73,7 +74,7 @@ async function quote(job: Job, pi: Record<string, unknown>, opts: { taxCents?: n
   stripeMock.paymentIntents.retrieve.mockResolvedValue(pi);
   stripeMock.checkout.sessions.list.mockResolvedValue({ data: [{ total_details: { amount_tax: opts.taxCents ?? 0 } }] });
   const fn = await loadEdgeFunction("create-payment");
-  const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer test-jwt" }, body: { action: "cancel_quote", jobId: "job-q" } }));
+  const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer test-jwt" }, body: opts.asNoShow ? { action: "cancel_quote", jobId: "job-q", asNoShow: true } : { action: "cancel_quote", jobId: "job-q" } }));
   expect(res.status).toBe(200);
   // Read only: nothing written, nothing moved.
   expect(stripeMock.refunds.create).not.toHaveBeenCalled();
@@ -84,12 +85,13 @@ async function quote(job: Job, pi: Record<string, unknown>, opts: { taxCents?: n
 }
 
 /** The sweep on the same job once poster_cancel_job recorded it at NOW with the quoted fee. */
-async function sweep(job: Job, pi: Record<string, unknown>, feeCents: number, opts: { taxCents?: number; waiver?: boolean } = {}) {
+async function sweep(job: Job, pi: Record<string, unknown>, feeCents: number, opts: { taxCents?: number; waiver?: boolean; noShow?: boolean } = {}) {
   resetAll();
   setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "anon-key", SUPABASE_SERVICE_ROLE_KEY: "service-key", STRIPE_SECRET_KEY: "sk_test_quote", CRON_SECRET });
   const cancelled = { ...job, status: "cancelled", cancelled_at: NOW.toISOString(), cancellation_fee: feeCents / 100, cancellation_fee_status: feeCents > 0 ? "pending" : null };
   scenario.reads.jobs = { selectOverrides: [{ includes: "cancellation_fee", result: { rows: [cancelled] } }], rows: [] };
   if (opts.waiver) scenario.reads.job_cancel_id_waivers = { rows: [{ job_id: job.id }] };
+  if (opts.noShow) scenario.reads.user_violations = { rows: [{ id: 7 }] };
   stripeMock.paymentIntents.retrieve.mockResolvedValue(pi);
   stripeMock.paymentIntents.capture.mockResolvedValue({ ...pi, status: "succeeded" });
   stripeMock.paymentIntents.cancel.mockResolvedValue({ ...pi, status: "canceled" });
@@ -122,6 +124,19 @@ describe("cancel_quote == the sweep's refund (posterCancelSplit, called from bot
     expect(q).toMatchObject({ can_cancel: true, fee_cents: 2500, charge_state: "captured", unquoted_reason: null });
     expect(q.back_to_you_cents).toBeGreaterThan(0);
     await sweep(job, pi, q.fee_cents ?? -1, { taxCents: 896 });
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0].amount).toBe(q.back_to_you_cents);
+  });
+
+  // F272 (owner 11-11 ~2:50 PM): the no-show sheet's "full refund of $X" is the quote with asNoShow, taken while the
+  // Helpr is still booked (6 h out here, so an ordinary cancel would owe the 25% fee); the sweep later refunds the job
+  // as the report leaves it (helper_id and helper_confirmed_at cleared, a 'no_show' row on the job): every cent.
+  it("F272: the no-show quote is the full charge, and the sweep refunds exactly that after the report", async () => {
+    const job = baseJob({ onboarding_fee_amount: 2 });
+    const pi = captured(12096, 381);
+    const q = await quote(job, pi, { taxCents: 896, asNoShow: true });
+    expect(q).toMatchObject({ can_cancel: true, fee_cents: 0, charge_state: "captured", unquoted_reason: null, back_to_you_cents: 12096 });
+    await sweep({ ...job, status: "open", helper_id: null, helper_confirmed_at: null }, pi, 0, { taxCents: 896, noShow: true });
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create.mock.calls[0][0].amount).toBe(q.back_to_you_cents);
   });

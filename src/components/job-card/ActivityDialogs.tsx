@@ -1,20 +1,6 @@
 import { lazy, Suspense } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHero,
-  DialogBody,
-  DialogFooter,
-  DialogSecondaryAction,
-  DialogDestructiveAction,
-} from "@/components/ui/dialog";
 import { formatName } from "@/lib/utils";
-// The consequence this dialog promises is stated ONCE, next to the ladder the
-// RPC actually runs (report_helper_no_show → apply_consequence_ladder). This
-// bullet used to hard-code "a permanent ban (2nd offense)", which was true of
-// the old bespoke ladder and became false the moment migration 20260831183302
-// moved the top rung to a reversible 7-day restriction pending admin review.
-import { NO_SHOW_LADDER_SENTENCE } from "@/lib/reliabilityLadder";
+import { NoShowDialog, type NoShowJob } from "./NoShowDialog";
 import { helperIsCommitted } from "../../../supabase/functions/_shared/cancellationFee";
 import { crewMemberCommitted } from "../../../supabase/functions/_shared/crewShares";
 import type { GroupHelperLite } from "@/hooks/useActivityData";
@@ -67,6 +53,8 @@ interface ActivityDialogsProps {
   setNoShowJobId: (id: string | null) => void;
   onNoShow: (jobId: string) => void;
   reportingNoShow: boolean;
+  /** The job behind noShowJobId: the sheet says when a report opens (F284). */
+  noShowJob?: NoShowJob | null;
   // Cancel
   cancelDialogJob: Job | null;
   setCancelDialogJob: (job: Job | null) => void;
@@ -156,37 +144,14 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
         </Suspense>
       )}
 
-      {/* No-Show Confirmation Dialog */}
-      <Dialog open={!!props.noShowJobId} onOpenChange={() => props.setNoShowJobId(null)}>
-        <DialogContent>
-          <DialogHero
-            title="Report no-show"
-          />
-          {/* THE HOUSE VOICE, not shadcn's grey default. Copy is untouched —
-              same question, same three consequences, same ladder sentence —
-              but it now reads in the serif italic every other popup uses
-              instead of `text-ds-11 text-muted-foreground`. This was the
-              "upright sans + bullets" dialog in the owner's screenshot set,
-              sitting one tap away from four serif-italic siblings.
-              A serif-italic bulleted consequence list is not new here:
-              BlockUserDialog already renders its effects list exactly this
-              way. Same treatment, now from the shared primitive. */}
-          <DialogBody>
-            <p>Are you sure the Helpr didn't show up? This will:</p>
-            <ul className="space-y-1 list-disc pl-5">
-              <li>Go on the Helpr's record — {NO_SHOW_LADDER_SENTENCE}</li>
-              <li>Take them off your job. Its start time has passed, so to hire someone else, change the date right away. Otherwise it's cancelled and refunded</li>
-              <li>Notify the admin team</li>
-            </ul>
-          </DialogBody>
-          <DialogFooter>
-            <DialogSecondaryAction onClick={() => props.setNoShowJobId(null)}>Cancel</DialogSecondaryAction>
-            <DialogDestructiveAction onClick={() => props.noShowJobId && props.onNoShow(props.noShowJobId)} disabled={props.reportingNoShow}>
-              {props.reportingNoShow ? "Reporting…" : "Confirm No-Show"}
-            </DialogDestructiveAction>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* No-Show Confirmation Dialog (F284: opens 30 minutes after the start; NoShowDialog). */}
+      <NoShowDialog
+        jobId={props.noShowJobId}
+        job={props.noShowJob ?? null}
+        onClose={() => props.setNoShowJobId(null)}
+        onConfirm={props.onNoShow}
+        reporting={props.reportingNoShow}
+      />
 
       {/* Cancellation Dialog.
 

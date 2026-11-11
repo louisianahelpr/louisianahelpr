@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-// @mutate supabase/migrations/20261108202000_no_show_notice_server_side.sql | p_copy                      => jsonb_build_array(null::jsonb, null::jsonb),\n    p_permanent_requires_review => true,\n    p_suspension_days           => 7,\n    p_clamp_to_worse_status     => true,\n    p_admin_message_format      => '%s has %s no-show reports on file from different people who posted jobs | p_copy                      => jsonb_build_array(null::jsonb, null::jsonb),\n    p_permanent_requires_review => false,\n    p_suspension_days           => 7,\n    p_clamp_to_worse_status     => true,\n    p_admin_message_format      => '%s has %s no-show reports on file from different people who posted jobs
+// @mutate supabase/migrations/20261111202421_no_show_report_opens_30_minutes_after_start.sql | p_copy                      => jsonb_build_array(null::jsonb, null::jsonb),\n    p_permanent_requires_review => true,\n    p_suspension_days           => 7,\n    p_clamp_to_worse_status     => true,\n    p_admin_message_format      => '%s has %s no-show reports on file from different people who posted jobs | p_copy                      => jsonb_build_array(null::jsonb, null::jsonb),\n    p_permanent_requires_review => false,\n    p_suspension_days           => 7,\n    p_clamp_to_worse_status     => true,\n    p_admin_message_format      => '%s has %s no-show reports on file from different people who posted jobs
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -206,7 +206,7 @@ describe("no-show ladder — NO_SHOW_LADDER_SENTENCE ↔ report_helper_no_show (
     // confirm). A third that retypes it is the drift this test exists to stop.
     for (const file of [
       "src/pages/info/legal/CommunitySection.tsx",
-      "src/components/job-card/ActivityDialogs.tsx",
+      "src/components/job-card/NoShowDialog.tsx",
     ]) {
       expect(
         repoFile(file),

@@ -10,10 +10,10 @@
  *     call is an exact duplicate the server drops instead of a second notice;
  *   - the app no longer sends it; a recurring visit's date is released for the no-show Helpr.
  *
- * @mutate supabase/migrations/20261108202000_no_show_notice_server_side.sql |          ELSE 'You received a no-show warning for "' |          ELSE 'You got a no-show warning for "'
- * @mutate supabase/migrations/20261108202000_no_show_notice_server_side.sql |     CASE WHEN v_result->>'action' = 'pending_ban_review' THEN 'warning' ELSE 'job_updates' END, |     'warning',
+ * @mutate supabase/migrations/20261111202421_no_show_report_opens_30_minutes_after_start.sql |          ELSE 'You received a no-show warning for "' |          ELSE 'You got a no-show warning for "'
+ * @mutate supabase/migrations/20261111202421_no_show_report_opens_30_minutes_after_start.sql |     CASE WHEN v_result->>'action' = 'pending_ban_review' THEN 'warning' ELSE 'job_updates' END, |     'warning',
  * @mutate supabase/functions/_shared/notification-templates.ts |         type: legacyBanned \|\| restricted ? "warning" : "job_updates", |         type: "warning",
- * @mutate supabase/migrations/20261108202000_no_show_notice_server_side.sql |   IF v_parent_job_id IS NOT NULL THEN\n    v_released | IF false THEN\n    v_released
+ * @mutate supabase/migrations/20261111202421_no_show_report_opens_30_minutes_after_start.sql |   IF v_parent_job_id IS NOT NULL THEN\n    v_released | IF false THEN\n    v_released
  * @mutate supabase/migrations/20261108202000_no_show_notice_server_side.sql |                     WHEN p_reason = 'no_show'\n |                     WHEN false\n
  */
 import { describe, expect, it } from "vitest";
@@ -32,8 +32,9 @@ function built(action: string) {
 }
 
 describe("the solo no-show notice is the server's (Jobs audit 11-08 #7)", () => {
-  it("the newest report_helper_no_show is the 20261108202000 one and writes the Helpr's notice", () => {
-    expect(defs.get("report_helper_no_show")?.file).toMatch(/^20261108202000_/);
+  // 20261111202421 (F284) restates it with only GUARD 2 changed; the notice is unchanged.
+  it("the newest report_helper_no_show (20261111202421, restated from 20261108202000) writes the Helpr's notice", () => {
+    expect(defs.get("report_helper_no_show")?.file).toMatch(/^20261111202421_/);
     expect(rns).toMatch(/INSERT INTO public\.notifications \(user_id, title, message, type, link, job_id\) VALUES \( v_helper_id,/);
   });
   it("the warning is word for word the template's (type and link too)", () => {

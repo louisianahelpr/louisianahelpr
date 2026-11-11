@@ -15,7 +15,7 @@
  * no-show reading; a new one fails until it is classified (exact both ways).
  *
  * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |        AND ((CASE WHEN j.start_time IS NULL THEN (j.date_needed + 1) + '00:00'::time ELSE j.date_needed + j.start_time END)\n              AT TIME ZONE 'America/Chicago') <= now() |        AND ((j.date_needed + COALESCE(j.start_time, '00:00'::time))\n              AT TIME ZONE 'America/Chicago') <= now()
- * @mutate supabase/migrations/20261108202000_no_show_notice_server_side.sql |   v_starts_at := (CASE WHEN v_start_time IS NULL THEN (v_date_needed + 1) + '00:00'::time ELSE v_date_needed + v_start_time END) |   v_starts_at := (v_date_needed + COALESCE(v_start_time, '00:00'::time))
+ * @mutate supabase/migrations/20261111202421_no_show_report_opens_30_minutes_after_start.sql |   v_starts_at := (CASE WHEN v_start_time IS NULL THEN (v_date_needed + 1) + '00:00'::time ELSE v_date_needed + v_start_time END) |   v_starts_at := (v_date_needed + COALESCE(v_start_time, '00:00'::time))
  * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |   v_starts_at := (CASE WHEN v_job.start_time IS NULL THEN (v_job.date_needed + 1) + '00:00'::time ELSE v_job.date_needed + v_job.start_time END) |   v_starts_at := (v_job.date_needed + COALESCE(v_job.start_time, '00:00'::time))
  * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |         WHERE CASE WHEN any_time THEN arrived_local < scheduled_start | WHERE CASE WHEN any_time THEN arrived_local < scheduled_start - interval '1 day'
  * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |       helper_arrived_at AT TIME ZONE 'America/Chicago' AS arrived_local, |       helper_arrived_at::timestamp AS arrived_local,
@@ -62,15 +62,16 @@ describe("a job with no start time is never started, late or a no-show on its da
   it("the four fixed functions run from 20261102100421 and read a NULL start as the day's end", () => {
     expect(defs.size).toBeGreaterThan(100);
     for (const fn of ["auto_start_due_jobs", "report_helper_no_show", "rpc_poster_report_member_no_show", "get_helper_on_time_percents"]) {
-      // 20261108202000 (Jobs audit 11-08 #7/#12) restates report_helper_no_show with this gate unchanged.
-      expect(defs.get(fn)?.file, fn).toBe(fn === "report_helper_no_show" ? "20261108202000_no_show_notice_server_side.sql" : THIS);
+      // 20261108202000 (Jobs audit 11-08 #7/#12) restated report_helper_no_show with this gate unchanged; 20261111202421
+      // (F284) keeps the no-time day's end and opens a TIMED job 30 minutes after its start.
+      expect(defs.get(fn)?.file, fn).toBe(fn === "report_helper_no_show" ? "20261111202421_no_show_report_opens_30_minutes_after_start.sql" : THIS);
       expect(body(fn), `${fn} still reads a NULL start_time as 00:00`).not.toMatch(MIDNIGHT);
     }
     const auto = body("auto_start_due_jobs");
     // The start gate, the 7-day backstop and the order: three reads, all of the day's end.
     expect(auto.match(new RegExp(dueAt("j.date_needed", "j.start_time").source, "g"))?.length).toBe(3);
     expect(auto).toMatch(new RegExp(String.raw`AND \(\(${dueAt("j.date_needed", "j.start_time").source}\) AT TIME ZONE 'America/Chicago'\) <= now\(\)`));
-    expect(body("report_helper_no_show")).toMatch(new RegExp(String.raw`v_starts_at := \(${dueAt("v_date_needed", "v_start_time").source}\) AT TIME ZONE 'America/Chicago'; IF v_starts_at IS NULL OR now\(\) < v_starts_at THEN RAISE EXCEPTION 'job_not_started'`));
+    expect(body("report_helper_no_show")).toMatch(new RegExp(String.raw`v_starts_at := \(${dueAt("v_date_needed", "v_start_time").source}\) AT TIME ZONE 'America/Chicago'; v_opens_at := v_starts_at \+ CASE WHEN v_start_time IS NULL THEN interval '0 minutes' ELSE interval '30 minutes' END; IF v_starts_at IS NULL OR now\(\) < v_opens_at THEN RAISE EXCEPTION 'job_not_started'`));
     expect(body("rpc_poster_report_member_no_show")).toMatch(new RegExp(String.raw`v_starts_at := \(${dueAt("v_job.date_needed", "v_job.start_time").source}\) AT TIME ZONE 'America/Chicago'; IF v_starts_at IS NULL OR v_now < v_starts_at THEN RAISE EXCEPTION 'job_not_started'`));
     const onTime = body("get_helper_on_time_percents");
     expect(onTime).toMatch(/helper_arrived_at AT TIME ZONE 'America\/Chicago' AS arrived_local/);

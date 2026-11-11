@@ -544,6 +544,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
         tip={actions.tip}
         noShowJobId={actions.noShowJobId}
         setNoShowJobId={actions.setNoShowJobId}
+        noShowJob={actions.noShowJobId ? postedJobs.find((j) => j.id === actions.noShowJobId) ?? null : null}
         onNoShow={actions.handleNoShow}
         reportingNoShow={actions.reportingNoShow}
         cancelDialogJob={actions.cancelDialogJob}

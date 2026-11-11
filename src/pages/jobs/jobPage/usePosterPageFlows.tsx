@@ -226,6 +226,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
       tip={tip}
       noShowJobId={noShowJobId}
       setNoShowJobId={setNoShowJobId}
+      noShowJob={job}
       onNoShow={(id) => void handlers.handleNoShow(id)}
       reportingNoShow={reportingNoShow}
       cancelDialogJob={cancelDialogJob}

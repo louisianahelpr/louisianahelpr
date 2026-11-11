@@ -824,6 +824,8 @@ describe("Declutter slice 3 screens", () => {
     ];
     show(<><OffersSection side="seller" /><OffersSection side="buyer" /></>);
     // @mutate src/components/declutter/DeclutterOffersSection.tsx | {o.my_side === "buyer" && (o.status === "declined" \|\| o.status === "expired") && ( | {false && (
+    // Audit 11-10 F360d: the buyer's closed offers fold too; open the fold to read them.
+    fireEvent.click(within(await screen.findByRole("region", { name: "Your offers" })).getByRole("button", { name: "Show 2 closed offers from the last 30 days" }));
     const ended = await screen.findAllByText(/^Nothing was charged\./);
     expect(ended).toHaveLength(2);
     expect(screen.getAllByRole("link", { name: "See the item" })[0].getAttribute("href")).toBe(`/declutter/item/${OFFER.item_id}`);
@@ -832,7 +834,7 @@ describe("Declutter slice 3 screens", () => {
 
   // Deep audit #30 (2026-10-28, shot 125): "Offers on your items" kept every closed offer (Declined, Taken back,
   // Accepted) above the live ones. The seller sees the open offers; the closed ones fold under one dated button.
-  // @mutate src/components/declutter/DeclutterOffersSection.tsx |   const shown = seller ? mine.filter((o) => o.status === "open") : mine; |   const shown = mine;
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx |   const closed = mine.filter(folds); |   const closed = mine.filter(() => false);
   // @mutate src/components/declutter/DeclutterOffersSection.tsx |       ) : shown.length === 0 ? ( |       ) : false ? (
   // @mutate src/components/declutter/DeclutterOffersSection.tsx |           {closedOpen && <ul className="space-y-3" data-closed-offers=""> |           {true && <ul className="space-y-3" data-closed-offers="">
   it("deep audit #30: the seller sees open offers; closed ones fold under one button, and open again on tap", async () => {
@@ -840,7 +842,7 @@ describe("Declutter slice 3 screens", () => {
     state.offers = [
       { ...OFFER, offer_id: "open1", item_title: "Oak desk" },
       ...CLOSED.map((st, n) => ({ ...OFFER, offer_id: `c${n}`, status: st, item_title: `Closed ${st}` })),
-      // A buyer's own closed offer stays in "Your offers" as before.
+      // A buyer's own closed offer is in "Your offers" (folded there too since F360d, not in the seller's fold).
       { ...OFFER, offer_id: "b1", my_side: "buyer", status: "declined", floor_price_cents: null, item_title: "Porch swing" },
     ];
     show(<><OffersSection side="seller" /><OffersSection side="buyer" /></>);
@@ -852,7 +854,9 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(toggle);
     for (const st of CLOSED) expect(within(selling).getByText(`Closed ${st}`), st).toBeInTheDocument();
     expect(within(selling).getByRole("button", { name: "Hide closed offers" })).toHaveAttribute("aria-expanded", "true");
-    expect(within(screen.getByRole("region", { name: "Your offers" })).getByText("Porch swing")).toBeInTheDocument();
+    const yours = screen.getByRole("region", { name: "Your offers" });
+    fireEvent.click(within(yours).getByRole("button", { name: "Show 1 closed offer from the last 30 days" }));
+    expect(within(yours).getByText("Porch swing")).toBeInTheDocument();
   });
 
   it("deep audit #30: only closed offers left: 'No open offers.' and the fold, never the first-time empty state", async () => {

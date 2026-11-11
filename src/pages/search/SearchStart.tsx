@@ -12,7 +12,8 @@ import { SEARCH_PARAM } from "@/components/landing/heroSearch";
 /** How many saved searches the first screen lists; the rest stay in You › Settings › Saved searches. */
 const START_SAVED_MAX = 5;
 /** How many categories each open section offers as a chip (each section's own picker order). */
-const START_CHIPS_PER_SECTION = 4;
+// F223 (audit 11-10): five, so Jobs offers Errands as Browse does (cleaning, yard work, handyman, moving, errands).
+const START_CHIPS_PER_SECTION = 5;
 
 /**
  * Q2645 (account audit 1102d row 4): /search with nothing typed was an empty page with one line, although the
@@ -86,7 +87,7 @@ export function SearchStart({ userId, declutterOn, signedIn = true }: { userId: 
                 <Link
                   key={c.key}
                   to={c.to}
-                  className="inline-flex items-center rounded-full px-4 min-h-[40px] border border-border font-sans font-semibold text-ds-13 ctl-tint"
+                  className="inline-flex items-center rounded-full px-4 min-h-11 border border-border font-sans font-semibold text-ds-13 ctl-tint"
                   style={{ background: "hsl(var(--card))", color: "hsl(var(--ink-deep))" }}
                 >
                   {c.label}

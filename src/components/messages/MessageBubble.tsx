@@ -1,7 +1,7 @@
 import { t } from "@/lib/i18n/language";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import "@/lib/i18n/enScreens";
-import { Trash2, Loader2, RotateCw, MapPin } from "lucide-react";
+import { Loader2, RotateCw, MapPin } from "lucide-react";
 import { MessageAttachment } from "@/components/MessageAttachment";
 import { MessageText } from "./MessageText";
 import { ReadReceipt } from "@/components/ChatPresence";
@@ -102,7 +102,6 @@ export function MessageBubble({
   activeConvo,
   retryMessage,
   setLightboxPhoto,
-  onDelete,
   onLongPress,
 }: {
   m: Message;
@@ -129,7 +128,8 @@ export function MessageBubble({
   activeConvo: Conversation;
   retryMessage: (clientId: string) => void;
   setLightboxPhoto: (url: string | null) => void;
-  onDelete: (id: string) => void;
+  /** Kept in the props shape for the thread map; the bubble itself has no delete control (F427). */
+  onDelete?: (id: string) => void;
   onLongPress: (m: Message) => void;
 }) {
   const isSending = m.sendStatus === "sending";
@@ -369,18 +369,10 @@ export function MessageBubble({
                 a long press on the bubble opens MessageActionSheet, which
                 reports THIS message. A third affordance, 10px wide, hung off
                 every inbound timestamp for the whole conversation. */}
-            {mine && (
-              <button
-                onClick={() => onDelete(m.id)}
-                // before:-inset-3 grows the tap target to 44px without
-                // changing the 20px visual footprint.
-                className="ml-0.5 opacity-50 hover:opacity-100 hover:text-destructive-ink transition-opacity flex items-center justify-center w-5 h-5 rounded-full relative before:absolute before:-inset-3 before:content-['']"
-                title={t("chat.delete")}
-                aria-label={t("chat.deleteMessage")}
-              >
-                <Trash2 className="w-2.5 h-2.5" />
-              </button>
-            )}
+            {/* No inline trash either (F427, audit 11-10): an unlabelled 44px
+                delete sat one tap from a confirm beside every message you sent.
+                Delete is in the long-press MessageActionSheet (onDelete there,
+                same "Delete this message?" confirm), as iMessage and WhatsApp. */}
           </>
         )}
       </div>

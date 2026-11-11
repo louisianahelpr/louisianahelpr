@@ -132,7 +132,9 @@ function renderSites(): RenderSite[] {
         line: sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1,
         expression,
         resolved,
-        viaRule: resolved.includes("jobStartTimeLabel"),
+        // noShowOpensLine (src/lib/noShowOpens.ts, F284) prints when a no-show report OPENS, not the start time: it
+        // never shows a raw column, answers a no-time job with its own sentence and never says "Flexible".
+        viaRule: resolved.includes("jobStartTimeLabel") || /\bnoShowOpensLine\(/.test(resolved),
       });
     });
   }

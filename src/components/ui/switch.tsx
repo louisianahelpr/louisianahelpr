@@ -1,6 +1,8 @@
 import * as React from "react";
 import * as SwitchPrimitives from "@radix-ui/react-switch";
 
+import { Check } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
 
@@ -21,7 +23,8 @@ const Switch = React.forwardRef<
     <SwitchPrimitives.Root
       className={cn(
         // iOS-style track: 31×51 px, pill shape, smooth transition.
-        "peer inline-flex h-[31px] w-[51px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent",
+        // `group`: the thumb's check glyph reads this root's data-state (F484).
+        "group peer inline-flex h-[31px] w-[51px] shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent",
         // 44px hit area WITHOUT touching the 31px visual. Apple's own switch
         // is 31pt tall and still satisfies the 44pt minimum, because UIKit
         // gives it a hit region larger than its artwork — this reproduces
@@ -71,8 +74,20 @@ const Switch = React.forwardRef<
           "shadow-[0_2px_4px_rgba(0,0,0,0.20),0_1px_2px_rgba(0,0,0,0.12)]",
           "ring-0 transition-transform duration-200 ease-in-out",
           "data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
+          // The glyph below is centred in the thumb.
+          "flex items-center justify-center",
         )}
-      />
+      >
+        {/* F484 (whole-app audit 11-10, dark mode): ON and OFF differed only by knob side and track tint, hard to
+            read at a glance on the dark notification rows. A small olive check inside the thumb shows while the
+            switch is on, so the state has a glyph as well as a colour. Decorative: the control's aria-checked is
+            the state. Guard: src/test/switchOnStateShowsACheck.test.tsx. */}
+        <Check
+          aria-hidden="true"
+          strokeWidth={3.5}
+          className="h-3.5 w-3.5 text-[hsl(var(--bark))] opacity-0 transition-opacity duration-200 group-data-[state=checked]:opacity-100"
+        />
+      </SwitchPrimitives.Thumb>
     </SwitchPrimitives.Root>
   );
 });

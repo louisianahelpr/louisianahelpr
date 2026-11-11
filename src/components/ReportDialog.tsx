@@ -22,6 +22,11 @@ import {
 import { toast } from "sonner";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 
+// F260h (audit 11-10): the Cancel / Send report row sticks to the sheet's bottom
+// edge (the sheet scrolls, DialogContent is overflow-y-auto with p-4), so the
+// buttons stay in reach while the reason list and the details box are long.
+const REPORT_FOOTER_PINNED = "sticky bottom-0 -mx-4 -mb-4 px-4 pb-4 pt-3 bg-card";
+
 /**
  * WHY THIS IS ONE COLUMN OF FULL-WIDTH ROWS, NOT A GRID OF CHIPS
  *
@@ -193,7 +198,12 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
     }
   };
 
-  const title = step === "confirmation" ? "Report sent" : `Report ${noun.toLowerCase()}`;
+  // F260h: a report about a person names them in the title ("Report Hallie H.").
+  const title = step === "confirmation"
+    ? "Report sent"
+    : reportedType === "user" && alsoBlock
+      ? `Report ${alsoBlock.name}`
+      : `Report ${noun.toLowerCase()}`;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
@@ -282,7 +292,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
               The Louisiana Helpr team reviews every report. We never tell the other person who reported them.
             </p>
 
-            <DialogFooter>
+            <DialogFooter className={REPORT_FOOTER_PINNED}>
               <DialogSecondaryAction type="button" onClick={handleClose} disabled={submitting}>
                 Cancel
               </DialogSecondaryAction>

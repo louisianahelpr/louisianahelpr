@@ -46,7 +46,7 @@ const live = async () => ({ mode: "live", detail: "cs_live_ probe" });
 
 /** Every visible label of a control that makes the app write to Stripe, and the file that renders it. */
 const STRIPE_WRITE_LABELS: Array<[label: string, source: string]> = [
-  ["Set up payouts with Stripe", "src/components/PayoutSetupForm.tsx"], // stripe-connect onboard → accounts.create (run 36784893957)
+  ["Add your bank (with Stripe)", "src/components/PayoutSetupForm.tsx"], // stripe-connect onboard → accounts.create (run 36784893957)
   ["Complete Stripe verification", "src/components/PayoutSetupForm.tsx"], // update_onboarding → accountLinks.create
   ["Manage payouts on Stripe", "src/components/PayoutSetupForm.tsx"], // dashboard → accounts.update + login link
   ["Set up payouts", "src/lib/awardGate.ts"], // AwardGateDialog → onboard

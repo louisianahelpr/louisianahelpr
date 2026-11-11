@@ -1,6 +1,6 @@
 import { LoginForgotNudge } from "./loginForgotNudge";
 import { useEffect, useRef, useState } from "react";
-import { loginNotice } from "./loginNotice";
+import { loginNotice, takeOneShotFlag } from "./loginNotice";
 import { hadSessionOnThisBrowser } from "@/lib/hadSession";
 import { AlertCircle, Clock } from "lucide-react";
 import { postAuthDestination, rememberSignupRedirect, signupUrlFor } from "@/lib/jobIntent";
@@ -52,36 +52,13 @@ const Login = () => {
   // `helpr_signed_out_reason` and this banner cannot currently render. It is
   // kept, like the hook and its tests, so restoring idle sign-out stays the
   // one-line revert App.tsx documents. Do not read it as live behaviour.
-  const [signedOutForInactivity] = useState<boolean>(() => {
-    try {
-      const hit = sessionStorage.getItem("helpr_signed_out_reason") === "inactivity";
-      if (hit) sessionStorage.removeItem("helpr_signed_out_reason");
-      return hit;
-    } catch {
-      // Silent by design: this only decides whether to show a one-shot
-      // "you were signed out for inactivity" note. sessionStorage throws in
-      // private mode; not showing an explanatory line is the correct
-      // degradation, and there is nothing for anyone to act on.
-      return false;
-    }
-  });
+  const [signedOutForInactivity] = useState<boolean>(() => takeOneShotFlag("helpr_signed_out_reason", "inactivity"));
   // One-shot note from Signup's already-registered branch. That branch
   // deliberately refuses to confess whether the address exists (enumeration
   // oracle), but it used to redirect here in total silence — the user pressed
   // "Create account" and simply arrived on a different screen. The neutral
   // line its own comment promised is shown here instead.
-  const [arrivedFromSignup] = useState<boolean>(() => {
-    try {
-      const hit = sessionStorage.getItem("helpr_signup_redirect") === "1";
-      if (hit) sessionStorage.removeItem("helpr_signup_redirect");
-      return hit;
-    } catch {
-      // Silent by design: same one-shot-note case as above — this only picks
-      // whether to render the neutral line explaining the redirect from
-      // Signup. Losing it degrades copy, nothing else.
-      return false;
-    }
-  });
+  const [arrivedFromSignup] = useState<boolean>(() => takeOneShotFlag("helpr_signup_redirect", "1"));
   // The default landing. "Log in → home" is still the rule for an ordinary
   // sign-in: a user who opens /login of their own accord lands on the
   // dashboard, and the app's main tabs are never a post-login destination the

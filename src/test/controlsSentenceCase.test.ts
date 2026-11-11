@@ -14,7 +14,7 @@
  * Plus `label: "…"` entries in tab and range arrays (the segmented toggles).
  *
  * @mutate src/pages/info/HelpCenter.tsx | <PublicHeaderPage title="Help center" | <PublicHeaderPage title="Help Center"
- * @mutate src/components/PayoutSetupForm.tsx | Set up payouts with Stripe | Set Up Payouts with Stripe
+ * @mutate src/components/PayoutSetupForm.tsx | Add your bank (with Stripe) | Add Your Bank (with Stripe)
  * @mutate src/components/profile/earningsTab/EarningsRangeToggle.tsx | label: "This week" | label: "This Week"
  * @mutate src/pages/posts/EditJobDialog.tsx | <DialogPrimaryAction onClick={confirmDiscard}>Discard changes</DialogPrimaryAction> | <DialogPrimaryAction onClick={confirmDiscard}>Discard Changes</DialogPrimaryAction>
  * @mutate src/components/SuggestCategory.tsx |               Send suggestion\n | Send Suggestion\n

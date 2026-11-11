@@ -491,7 +491,7 @@ export function PayoutSetupForm({ onSettled }: {
             ) : needsMoreInfo ? (
               <><RefreshCw className="w-4 h-4 mr-2" /> Complete Stripe verification</>
             ) : (
-              <><ExternalLink className="w-4 h-4 mr-2" /> Set up payouts with Stripe</>
+              <><ExternalLink className="w-4 h-4 mr-2" /> Add your bank (with Stripe)</>
             )}
           </Button>
           {startError && (

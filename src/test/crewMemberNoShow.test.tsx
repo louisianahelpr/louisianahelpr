@@ -11,14 +11,16 @@
  * src/test/pglite/crewMemberNoShow.pglite.mjs (--before red 7/7). This file pins the newest definition's load-bearing
  * clauses, so a later restatement that drops one is red here, and the poster's "Didn't show" chip on the crew roster.
  *
- * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql | IF v_job.customer_id IS DISTINCT FROM v_uid THEN | IF false THEN
- * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql | WHERE job_id = _job_id AND violation_type = 'no_show' AND user_id = _member_id | WHERE false
- * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |   DELETE FROM public.group_job_helpers WHERE id = v_slot.id; |   PERFORM 1;
- * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql | IF v_remaining = 0 AND v_done >= 1 | IF false AND v_remaining = 0 AND v_done >= 1
- * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql | REVOKE ALL ON FUNCTION public.rpc_poster_report_member_no_show(uuid, uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.rpc_poster_report_member_no_show(uuid, uuid) FROM PUBLIC;
- * @mutate src/components/GroupJobHelpers.tsx |     hasJobStarted(dateNeeded, startTime); |     true;
+ * @mutate supabase/migrations/20261111214523_crew_no_show_opens_30_minutes_after_start.sql | IF v_job.customer_id IS DISTINCT FROM v_uid THEN | IF false THEN
+ * @mutate supabase/migrations/20261111214523_crew_no_show_opens_30_minutes_after_start.sql | WHERE job_id = _job_id AND violation_type = 'no_show' AND user_id = _member_id | WHERE false
+ * @mutate supabase/migrations/20261111214523_crew_no_show_opens_30_minutes_after_start.sql |   DELETE FROM public.group_job_helpers WHERE id = v_slot.id; |   PERFORM 1;
+ * @mutate supabase/migrations/20261111214523_crew_no_show_opens_30_minutes_after_start.sql | IF v_remaining = 0 AND v_done >= 1 | IF false AND v_remaining = 0 AND v_done >= 1
+ * @mutate supabase/migrations/20261111214523_crew_no_show_opens_30_minutes_after_start.sql | REVOKE ALL ON FUNCTION public.rpc_poster_report_member_no_show(uuid, uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.rpc_poster_report_member_no_show(uuid, uuid) FROM PUBLIC;
+ * @mutate src/components/GroupJobHelpers.tsx |     noShowReportOpen(dateNeeded, startTime); |     true;
  * @mutate src/components/GroupJobHelpers.tsx |     !!h.helper_confirmed_at && |     true &&
  * @mutate src/components/GroupJobHelpers.tsx |               {noShowReportable(h) && ( |               {false && (
+ * @mutate supabase/migrations/20261111214523_crew_no_show_opens_30_minutes_after_start.sql | ELSE interval '30 minutes' END; | ELSE interval '0 minutes' END;
+ * @mutate src/components/GroupJobHelpers.tsx |     noShowReportOpen(dateNeeded, startTime); |     hasJobStarted(dateNeeded, startTime);
  * @mutate src/lib/crewLifecycle.ts |   if (!d \|\| d.helper_id !== memberId) { |   if (!d) {
  * @mutate src/lib/crewLifecycle.ts |     if (isMissingRpcNamed(error, "rpc_poster_report_member_no_show")) { |     if (false) {
  * @mutate src/components/GroupJobHelpers.tsx |  If someone never shows, tap Didn&apos;t show: they aren&apos;t paid and most of their share comes back to you. | 
@@ -26,7 +28,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { latestFunctionDefs } from "./helpers/rpcErrorInventory";
 import { blankSqlComments } from "./helpers/blankNonCode";
@@ -54,6 +56,9 @@ describe("the server: the newest rpc_poster_report_member_no_show keeps every ru
   it.each([
     ["the poster only", "IF v_job.customer_id IS DISTINCT FROM v_uid THEN RAISE EXCEPTION 'not_authorized'"],
     ["after the start", "RAISE EXCEPTION 'job_not_started'"],
+    // F284 (20261111214523): a timed job opens 30 minutes after its start, the hint names the time.
+    ["30 minutes after a timed start", "v_opens_at := v_starts_at + CASE WHEN v_job.start_time IS NULL THEN interval '0 minutes' ELSE interval '30 minutes' END; IF v_starts_at IS NULL OR v_now < v_opens_at THEN RAISE EXCEPTION 'job_not_started'"],
+    ["the hint names when it opens", "ELSE 'You can report a no-show from '"],
     ["once per member per job", "WHERE job_id = _job_id AND violation_type = 'no_show' AND user_id = _member_id ) THEN RAISE EXCEPTION 'already_reported'"],
     ["a confirmed member only", "IF v_slot.helper_confirmed_at IS NULL THEN RAISE EXCEPTION 'helper_never_accepted'"],
     ["never one who arrived", "IF v_slot.helper_arrived_at IS NOT NULL OR v_slot.poster_confirmed_arrival_at IS NOT NULL THEN RAISE EXCEPTION 'helper_already_arrived'"],
@@ -93,11 +98,17 @@ describe("the poster's crew roster offers \"Didn't show\"", () => {
   it("after the start, on a confirmed member who has not checked in", () => {
     roster({});
     expect(chip()).toBeInTheDocument();
+    cleanup();
+    // F284: exactly 30 minutes after a 12:30 PM start (1 PM) it opens.
+    roster({ startTime: "12:30" });
+    expect(chip()).toBeInTheDocument();
     // "How crew jobs work" says what the chip does.
     expect(document.body.textContent).toContain("If someone never shows, tap Didn't show: they aren't paid and most of their share comes back to you.");
   });
   it.each([
     ["before the start", { startTime: "15:00" }],
+    // F284 (owner 11-11): 1 PM is 20 minutes after a 12:40 PM start; the report opens at 1:10 PM.
+    ["inside the 30 minutes after the start", { startTime: "12:40" }],
     ["to anyone but the poster", { isOwner: false }],
     ["on a member who checked in", { h: { helper_arrived_at: "2032-10-30T14:05:00Z" } }],
     ["on a member the poster confirmed on site", { h: { poster_confirmed_arrival_at: "2032-10-30T14:05:00Z" } }],

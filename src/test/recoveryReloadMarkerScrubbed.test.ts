@@ -5,7 +5,7 @@
  * watchdog reads `_v` from the address until then), and the storage-blocked guard
  * (landedFromRecentRecoveryReload) still knows this page was a recovery reload.
  */
-// @mutate src/lib/chunkReload.ts | url.searchParams.delete("_v"); | url.searchParams.delete("_nope");
+// @mutate src/lib/chunkReload.ts | scrubbedRecoveryMarker = Number(url.searchParams.get("_v") \|\| "0") \|\| 0;\n  url.searchParams.delete("_v"); | scrubbedRecoveryMarker = Number(url.searchParams.get("_v") \|\| "0") \|\| 0;\n  url.searchParams.delete("_nope");
 // @mutate src/lib/chunkReload.ts | const booted = () => document.readyState !== "loading" && !document.getElementById("boot-loader"); | const booted = () => true;
 // @mutate src/lib/chunkReload.ts | const v = scrubbedRecoveryMarker \|\| Number( | const v = Number(
 // @mutate src/main.tsx | scrubRecoveryReloadMarker();\n// WebKit | // WebKit

@@ -83,13 +83,13 @@ export const TAX_STATEMENTS = [
  */
 export const TAX_TICK_LABEL = "All of this is true for what I'm listing";
 /** The same promises for a give-away, where nothing is sold (lead's wording, audit single-free #14), one per line (audit 1110 F340). */
-export const TAX_FREE_STATEMENTS = [
+const TAX_FREE_STATEMENTS = [
   "I own this.",
   "It's from my own household.",
   "I don't do this as a business.",
   "I'll keep it until it's picked up.",
 ] as const;
-export const TAX_FREE_TICK_LABEL = "All of this is true";
+const TAX_FREE_TICK_LABEL = "All of this is true";
 
 /** The four statements as one short list, and the one checkbox that confirms them. Shared by every sell form. */
 export function TaxStatementsCheck({ id, checked, onChange, free = false }: { id: string; checked: boolean; onChange: (on: boolean) => void; free?: boolean }) {

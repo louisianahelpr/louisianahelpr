@@ -60,7 +60,7 @@ const DialogClose = DialogPrimitive.Close;
  * Tailwind needs the class as a literal, so these are spelled out rather than
  * computed into a template string — a `pr-[${x}rem]` compiles to nothing.
  */
-export const DIALOG_TOP_RIGHT_RESERVE = {
+const DIALOG_TOP_RIGHT_RESERVE = {
   0: "pr-[3.375rem]", //  54px — the shared close X on its own
   1: "pr-[5.5rem]",   //  88px — one icon + X
   2: "pr-[8rem]",     // 128px — two icons + X

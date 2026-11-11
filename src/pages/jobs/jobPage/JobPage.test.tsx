@@ -628,15 +628,15 @@ describe("job page, poster side (boards 15, 168)", () => {
   // Audit 11-10 W2 F291: the hired Helpr on a cancelled job had "Message <poster>" as the only big button; the job is
   // over for them, so a way to other work leads and Message stays beside it.
   // @mutate src/pages/jobs/jobPage/JobPage.tsx |     if (job.status === "cancelled") { |     if (false) {
-  it("F291: the hired Helpr on a cancelled job: 'Find another job' leads (Browse), Message stays in the row", async () => {
+  it("F291: the hired Helpr on a cancelled job: 'Find a job' leads (Browse), Message stays in the row", async () => {
     state.job = row({ customer_id: POSTER, helper_id: ME, status: "cancelled", payment_status: "refunded" });
     state.party = true;
     renderPage();
     await waitFor(() => expect(document.querySelector('[data-job-row="helpr"]')).toBeTruthy());
     const names = barNames(document.querySelector('[data-job-row="helpr"]') as HTMLElement);
     // The lead (green) sits on the right, so it reads last; Message is its outlined partner on the left.
-    expect(names).toEqual(["Message them", "Find another job"]);
-    fireEvent.click(screen.getByRole("button", { name: "Find another job" }));
+    expect(names).toEqual(["Message them", "Find a job"]);
+    fireEvent.click(screen.getByRole("button", { name: "Find a job" }));
     expect(screen.getByTestId("where").textContent).toBe("/browse");
   });
 });

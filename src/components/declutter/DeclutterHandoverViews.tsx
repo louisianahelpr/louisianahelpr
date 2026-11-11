@@ -299,10 +299,8 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
         </>
       )}
       {order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} handedOver={done} bookedOnly={!!problem || refundHoldsTheItem(refundStatus) || refundTookItBack(refund.data?.request) || fullRefund} /></Suspense>}
-      {/* D2-1: the paid order's chat with the other side (DeclutterOrderTalk, ?order_talk=). Audit 1110 F397: "Message the
-          buyer" jumped around (above the tracker on a delivery, shipped or finished sale; at the bottom on an open porch,
-          door or meetup sale). It is the body's LAST control on every card now, after the tracker, the money line, the
-          problem note and each side (openpr-8); the open pickup sale keeps it in SellerAfterActions (soldstates-3). */}
+      {/* D2-1: the paid order's chat (DeclutterOrderTalk, ?order_talk=). F397 (audit 1110): "Message the buyer" jumped around
+          by stage; it is now the body's LAST control on every card (openpr-8); the open pickup sale keeps it in SellerAfterActions. */}
       {!sellerNextFirst && !(cancelled && order.side === "seller") && <div data-order-talk-row=""><OrderTalkButton orderId={order.orderId} side={order.side} trade={trade} /></div>}
       </div>}
       {/* CMP-3: outside Details, so it is one tap from the card; BUY-22: only on an order with a problem open. */}

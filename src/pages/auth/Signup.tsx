@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { removeShellOncePainted } from "@/components/landing/landingShell";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { contactLeakFieldError } from "@/lib/contactLeakField";
@@ -19,6 +19,7 @@ import { TurnstileField } from "@/components/auth/TurnstileField";
 import { useCaptcha } from "@/hooks/useCaptcha";
 import { isCaptchaError } from "@/lib/turnstile";
 import { peekJobIntent, peekSignupRedirectItem, signupSubtitle } from "@/lib/jobIntent";
+import { useSignupStepHistory } from "./signup/useSignupStepHistory";
 import { useSignupEntry } from "./signup/useSignupEntry";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
@@ -30,7 +31,6 @@ import {
   passwordProblem,
   isAlreadyRegistered,
   noteSignupRedirect,
-  signupStepFromHistory,
 } from "./signup/signupHelpers";
 import { SignupStep1 } from "./signup/SignupStep1";
 import { SignupStep2 } from "./signup/SignupStep2";
@@ -59,24 +59,7 @@ const Signup = () => {
     const n = Number(new URLSearchParams(window.location.search).get("step"));
     return n === 2 ? 2 : 1;
   });
-  // F260n (audit 11-10): step 2 is its own history entry, so Back returns to step 1 (fields kept in state, not
-  // retyped) and Forward returns to step 2. The entry's state says which step; popstate lands here through
-  // location.key. The first render keeps the dev-only ?step seed above.
-  const routerLocation = useLocation();
-  const firstLocationKey = useRef(routerLocation.key);
-  useEffect(() => {
-    if (routerLocation.key === firstLocationKey.current) return;
-    setStep(signupStepFromHistory(routerLocation.state));
-  }, [routerLocation.key, routerLocation.state]);
-  const goToStep2 = () => {
-    navigate({ pathname: routerLocation.pathname, search: routerLocation.search }, { state: { ...((routerLocation.state as object | null) ?? {}), step: 2 } });
-    setStep(2);
-  };
-  const backToStep1 = () => {
-    setStep2Errors({});
-    if (signupStepFromHistory(routerLocation.state) === 2) navigate(-1);
-    else setStep(1);
-  };
+  const { goToStep2, backToStep1 } = useSignupStepHistory(setStep, () => setStep2Errors({})); // F260n
   const [loading, setLoading] = useState(false);
   // OA-002: one tap, one signUp(). `loading` is only set inside
   // createAccountAndFinish, AFTER the awaited validateAboutYouStep, so a second

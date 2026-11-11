@@ -4,7 +4,7 @@
  * now come first; the Twilio-reviewed text below is unchanged (src/test/staticPagesRawHtml.test.ts guards it).
  *
  * @mutate src/pages/info/SmsOptInBody.tsx |           <Link to={SMS_OPT_IN_ACTION_HREF}>Turn on text alerts</Link> |           <Link to="/login">Turn on text alerts</Link>
- * @mutate src/pages/info/SmsOptInBody.tsx |         <h2 id="sms-opt-in-steps" className="font-serif text-ds-20 font-semibold">Three steps</h2> |         <p>Three steps</p>
+ * @mutate src/pages/info/SmsOptInBody.tsx |         <h2 id="sms-opt-in-steps" className="font-display text-ds-20 font-semibold">Three steps</h2> |         <p>Three steps</p>
  */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";

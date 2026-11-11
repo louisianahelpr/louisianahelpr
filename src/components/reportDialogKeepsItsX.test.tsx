@@ -1,7 +1,7 @@
 // F359j (audit 11-10): the Report dialog is a sheet on a phone, and a sheet keeps its corner X (owner 10-31) even
 // though it also carries a labelled Cancel; the one-dismissal rule had dropped the X. Same opt-in as the Job done
 // review (JA-54, src/test/reviewSheetKeepsItsX.test.tsx).
-// @mutate src/components/ReportDialog.tsx | <DialogContent keepClose\n | <DialogContent\n
+// @mutate src/components/ReportDialog.tsx | stepped keepClose onOpenAutoFocus | stepped onOpenAutoFocus
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 

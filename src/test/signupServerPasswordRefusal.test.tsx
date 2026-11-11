@@ -60,7 +60,7 @@ describe("a server refusal of the password lands on the password field", () => {
     const branch = code.indexOf("if (isWeakPasswordError(err)) {");
     expect(branch).toBeGreaterThan(0);
     expect(branch).toBeLessThan(code.indexOf("toast.error(authCopy ?? userFacingError("));
-    expect(code.slice(branch, branch + 200)).toMatch(/setServerPasswordError\(weakPasswordWords\(err\)\);[\s\S]*setStep\(1\);[\s\S]*return;/);
+    expect(code.slice(branch, branch + 200)).toMatch(/setServerPasswordError\(weakPasswordWords\(err\)\);[\s\S]*(?:setStep\(1\)|backToStep1\(\));[\s\S]*return;/);
     expect(code).toContain("setPassword={(v: string) => { setServerPasswordError(null); setPassword(v); }}");
   });
 });

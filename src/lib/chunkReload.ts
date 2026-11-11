@@ -455,7 +455,7 @@ export { isRecoveryReloadInFlight };
  * every reloaded page (recoverFromChunkError), so a storage-blocked visitor keeps the odd address rather than a loop.
  * Other params and the hash stay; a refused replaceState leaves the address as it was.
  */
-export const stripRecoveryCacheBuster = (): void => {
+const stripRecoveryCacheBuster = (): void => {
   try {
     if (typeof window === "undefined" || typeof history === "undefined") return;
     const url = new URL(window.location.href);

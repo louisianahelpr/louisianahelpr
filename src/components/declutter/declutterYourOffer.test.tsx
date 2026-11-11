@@ -344,7 +344,8 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
     fireEvent.click(await screen.findByRole("button", { name: "Take back my ask" }));
     fireEvent.click(await screen.findByRole("button", { name: "Keep my ask" }));
-    await waitFor(() => expect(screen.queryByText("Take back your ask?")).toBeNull());
+    expect(await screen.findByRole("button", { name: "Take back my ask" })).toBeInTheDocument();
+    expect(screen.queryByText("Take back your ask?")).toBeNull();
     expect(state.withdrawn).toEqual([]);
   });
 });

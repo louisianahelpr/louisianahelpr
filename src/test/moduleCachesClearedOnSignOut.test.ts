@@ -31,6 +31,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/components/declutter/firstRowPhotoGate.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the per-page 'first row of photos is in' gate (B77, 2026-11-01); a yes or no about loading, nothing about the account" },
   "src/components/profile/earningsTab/useEarningsData.ts:lastReported": { kind: "not-user-data", why: "the last payout-read warning sent per read name (error text + time, B77 2026-11-01), so one failure is reported once a minute; holds no rows, amounts or ids" },
   "src/components/sections/useSectionPrefs.ts:pulled": { kind: "not-user-data", why: "which account ids already read their Customize row this app run (Q2199), so each account reads its own once; holds no choice or other data" },
+  "src/components/declutter/useLinkedOrder.ts:noticed": { kind: "not-user-data", why: "the raw order-link values already warned about once (audit 11-10), so a bad link logs one warning; holds no account data" },
   "src/lib/proofPhotoStorage.ts:signed": { kind: "cleared-on-sign-out", reset: "resetProofPhotoSignCache" },
   "src/lib/declutter/itemViewsSent.ts:sent": { kind: "cleared-on-sign-out", reset: "resetSentItemViews" },
   "src/lib/activityCoreContinueDays.ts:kept": { kind: "cleared-on-sign-out", reset: "resetActiveContinueDays" },

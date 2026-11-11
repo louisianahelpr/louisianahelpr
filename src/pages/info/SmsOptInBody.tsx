@@ -21,7 +21,7 @@ export function SmsOptInBody() {
       {/* F417 (audit 11-10): the page opened on a wall of compliance text with nothing to do. Three short steps and
           the one button come first; every sentence Twilio's review reads is still below, unchanged. */}
       <section className="space-y-3" aria-labelledby="sms-opt-in-steps">
-        <h2 id="sms-opt-in-steps" className="font-serif text-ds-20 font-semibold">Three steps</h2>
+        <h2 id="sms-opt-in-steps" className="font-display text-ds-20 font-semibold">Three steps</h2>
         <ol className="list-decimal space-y-1 pl-5">
           <li>Log in, then open Profile, Notifications, Text alerts.</li>
           <li>Type your mobile number and tick the consent box.</li>
@@ -32,7 +32,7 @@ export function SmsOptInBody() {
         </Button>
       </section>
       <section className="space-y-3" aria-labelledby="sms-opt-in-how">
-        <h2 id="sms-opt-in-how" className="font-serif text-ds-20 font-semibold">How the opt-in works</h2>
+        <h2 id="sms-opt-in-how" className="font-display text-ds-20 font-semibold">How the opt-in works</h2>
         <p>
           Signed-in members turn on text alerts in Profile, Notifications, Text alerts: they type their mobile number and
           tick the consent box, which is never pre-checked and is not a condition of using Louisiana Helpr.

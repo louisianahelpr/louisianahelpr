@@ -477,7 +477,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
               <div className="flex flex-col items-center gap-2">
                 {zipSearch && (
                   <Button type="button" variant="default" size="sm" className="rounded-full" data-testid="declutter-open-distance" onClick={() => setFiltersOpen(true)}>
-                    Open Distance
+                    Open distance
                   </Button>
                 )}
                 {searched && (

@@ -8,11 +8,16 @@ import { fetchOpenProblems, type OpenProblem } from "@/lib/declutter/handover";
  * and a no-show while a problem is open (problem_open).
  */
 export function useOpenProblems(orderIds: string[], enabled = true): Map<string, OpenProblem> {
+  return useOpenProblemsRead(orderIds, enabled).problems;
+}
+
+/** The same read, plus whether it has answered (F360b: a payout day is promised only once no open problem is known). */
+export function useOpenProblemsRead(orderIds: string[], enabled = true): { problems: Map<string, OpenProblem>; settled: boolean } {
   const ids = [...new Set(orderIds)].sort();
   const q = useQuery({
     queryKey: ["declutter", "problems", ids.join(",")],
     queryFn: () => fetchOpenProblems(ids),
     enabled: enabled && ids.length > 0,
   });
-  return new Map((q.data ?? []).map((p) => [p.order_id, p]));
+  return { problems: new Map((q.data ?? []).map((p) => [p.order_id, p])), settled: q.isSuccess || ids.length === 0 };
 }

@@ -398,7 +398,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/profile/CredentialsTab.tsx` | input×1 | text |  | business-name · e.g. Bayou Plumbing LLC · business-name-help |
 | `src/components/profile/credentialsTab/CredentialCard.tsx` | input×2 | text, file |  |  |
 | `src/components/profile/MonthlyGoalCard.tsx` | input×1 | number |  | Edit monthly goal · Monthly earnings goal in dollars · Save goal · Cancel |
-| `src/components/profile/ProfileEditForm.tsx` | input×4, textarea×1 | tel, text | 5 | phone · phone-error · location · zipCode · bio · bio-contact-leak · skillsOther · Anything else you offer… |
+| `src/components/profile/ProfileEditForm.tsx` | input×4, textarea×1 | tel, text | 5 | phone · phone-error · location · zipCode · zip-error · bio · bio-contact-leak · skillsOther |
 | `src/components/profile/profileEditForm/PhotoNameSection.tsx` | input×2 | text |  |  |
 | `src/components/profile/profileEditForm/RecentWorkSection.tsx` | input×1 | file |  | Remove this photo |
 | `src/components/profile/ProfileLinkRow.tsx` | input×1 | text | 30 | profile-link-panel · profile-handle · profile-handle-hint |
@@ -419,7 +419,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/pages/profile/HomeHistory.tsx` | date/calendar×1 |  |  |  |
 | `src/pages/profile/InstantBookTab.tsx` | select×1 |  |  | instant-book-tab · Your instant book work · instant-book-category · Choose one · instant-book-amount · 50.00 |
 | `src/pages/profile/petProfiles/PetForm.tsx` | input×9, textarea×3 | text, number, tel |  | pet-species-label · pet-name · pet-name-error · pet-breed · Lab mix · pet-breed-suggestions · pet-age · pet-age-error |
-| `src/pages/profile/SavedSearchesTab.tsx` | checkbox/switch/radio×3 |  |  | saved-search-new · saved-search-sheet · Alerts for this search · Email · saved-searches-tab · Pause all alerts · pause-all-alerts |
+| `src/pages/profile/SavedSearchesTab.tsx` | checkbox/switch/radio×4 |  |  | saved-search-new · saved-search-sheet · Alerts for this search · Email · saved-searches-tab · Pause all alerts · pause-all-alerts |
 | `src/pages/profile/strSettings/AddCalendarForm.tsx` | input×5, checkbox/switch/radio×1 | url, text, number |  | ical-url · ical-url-error · str-property-name · e.g. Lakehouse · str-property-address · e.g. New Orleans, LA · str-auto-create-cleaning-label · str-auto-create-cleaning |
 | `src/pages/profile/WorkRecord.tsx` | date/calendar×1 |  |  |  |
 

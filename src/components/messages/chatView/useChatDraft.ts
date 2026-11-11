@@ -7,13 +7,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
-export const CHAT_DRAFT_KEY_PREFIX = "helpr.chatDraft";
+const CHAT_DRAFT_KEY_PREFIX = "helpr.chatDraft";
 
 export function chatDraftKey(userId: string | null, jobId: string, otherUserId: string | null): string {
   return `${CHAT_DRAFT_KEY_PREFIX}:${userId ?? "anon"}:${jobId}:${otherUserId ?? "team"}`;
 }
 
-export function readChatDraft(key: string): string {
+function readChatDraft(key: string): string {
   try {
     return window.localStorage.getItem(key) ?? "";
   } catch {
@@ -22,7 +22,7 @@ export function readChatDraft(key: string): string {
   }
 }
 
-export function writeChatDraft(key: string, draft: string): void {
+function writeChatDraft(key: string, draft: string): void {
   try {
     if (draft.length === 0) window.localStorage.removeItem(key);
     else window.localStorage.setItem(key, draft);

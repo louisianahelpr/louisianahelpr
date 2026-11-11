@@ -20,6 +20,7 @@
  * @mutate src/pages/jobs/JobDetail.tsx | navigate(`/login?redirect=${encodeURIComponent(`/jobs/${id}`)}`) | navigate("/login")
  * @mutate src/pages/auth/loginNotice.ts | if (/^\/jobs\/[0-9a-f-]{36}$/i.test(path)) return JOB_LINK_NOTICE; | 
  * @mutate src/pages/auth/loginNotice.ts | notice !== JOB_LINK_NOTICE && notice.endsWith(BACK_TO_IT) | notice.endsWith(BACK_TO_IT)
+ * @mutate src/pages/jobs/JobDetail.tsx | onSignUp={requireSignup} onLogIn={(id) => navigate(guestLogInUrl(id))} /> | onSignUp={requireSignup} />
  * @mutate src/pages/auth/Login.tsx | const signupHref = signupUrlFor(pendingRedirect); | const signupHref = pendingRedirect?.match(/^\/jobs\/([^/?#]+)$/) ? signupUrlFor(pendingRedirect) : "/signup";
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -147,6 +148,14 @@ describe("a guest opening a shared link", () => {
     await screen.findByText("Sign up to apply");
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.getByTestId("where").textContent).toBe("/browse");
+  });
+
+  // F268a (audit 11-10): a member opening a shared link had to find Log in behind the blur.
+  it("a member can log in from the preview and comes back to the job", async () => {
+    openLink();
+    await screen.findByText("Sign up to apply");
+    fireEvent.click(screen.getByRole("button", { name: "Log in" }));
+    expect(screen.getByTestId("where").textContent).toBe(`/login?redirect=${encodeURIComponent(`/jobs/${JOB_ID}`)}`);
   });
 
   // F286a (audit 11-10, High): an email or push link to a hired, done or cancelled job, opened signed out,

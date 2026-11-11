@@ -35,7 +35,17 @@ export function tipPayLabel(tipDollars: number | undefined): string {
  * Tip / card processing / you pay / <name> receives, for one amount (boards
  * 180 and 182: one card, rust amounts, "You pay" the big line).
  */
-export function TipCostBreakdown({ tipDollars, receiverName }: { tipDollars: number; receiverName?: string }) {
+export function TipCostBreakdown({ tipDollars, receiverName, feeSplit = false }: {
+  tipDollars: number;
+  receiverName?: string;
+  /**
+   * F277 (owner 2026-11-11 morning pop-up): the job page's tip sheet (TipDialog) ONLY shows "Tip $14.25" and
+   * "Service fee $0.73" above its "Pay $14.98" button. A scoped exception to rule #20 (membersSeeNoFeeWords
+   * OWNER_1111_TIP_SHEET_FEE). Both numbers are this same `tipChargeBreakdown` the server charges with, so
+   * tip + fee is the button's figure to the cent.
+   */
+  feeSplit?: boolean;
+}) {
   const q = tipQuoteForDollars(tipDollars);
   if (q.tipCents <= 0) return null;
   const row = (label: string, cents: number, big = false) => (
@@ -45,6 +55,19 @@ export function TipCostBreakdown({ tipDollars, receiverName }: { tipDollars: num
       <dd className={`tabular-nums font-sans font-bold ${big ? "text-ds-22" : "text-ds-14"}`} style={{ color: MONEY }}>{centsLabel(cents)}</dd>
     </div>
   );
+  if (feeSplit) {
+    return (
+      <div className="rounded-ds-lg p-4" style={{ background: "hsl(var(--card))", boxShadow: "0 4px 18px rgba(32,30,26,0.06)" }}>
+        <dl className="space-y-1" aria-label="Tip cost breakdown" data-tip-fee-split="">
+          {row("Tip", q.tipCents)}
+          {row("Service fee", q.feeCents)}
+        </dl>
+        <p className="font-sans text-ds-12 mt-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          {receiverName ? receiverName.trim().split(/\s+/)[0] : "Your Helpr"} receives the whole tip.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="rounded-ds-lg p-4" style={{ background: "hsl(var(--card))", boxShadow: "0 4px 18px rgba(32,30,26,0.06)" }}>
       <dl className="space-y-1" aria-label="Tip cost breakdown">

@@ -152,6 +152,14 @@ export function allHits(): string[] {
  */
 const OWNER_1107_DECLUTTER_FEE = "owner 2026-11-07 ~5:10 PM (Vinted review): Declutter shows its service fee, Declutter only";
 /**
+ * Owner 11-11 morning pop-up (audit 11-10 F277, via the lead): the job tip sheet SHOWS the fee split, "Tip $14.25 /
+ * Service fee $0.73" above "Pay $14.98", an exception to rule #20 for the tip sheet only (like F380 receipts). The one
+ * surface is TipCostBreakdown's `feeSplit` branch, which only TipDialog turns on (tipSaysFeeIsIncluded.test.tsx pins
+ * that). An entry citing it must be that file (the scope test below).
+ */
+const OWNER_1111_TIP_SHEET_FEE = "owner 2026-11-11 morning pop-up (audit 11-10 F277): the job tip sheet shows a Service fee line, tip sheet only";
+const TIP_SHEET_FEE_SURFACE = "src/components/TipCostBreakdown.tsx";
+/**
  * Owner 11-11 ~12:25 AM (audit 11-10 F380, via the lead): "Declutter RECEIPTS show a 'Service fee' line", an exception
  * to the 10-25 no-fee-words rule for receipts only. The one surface is the opened Declutter receipt in You > Money >
  * Receipts (src/pages/profile/Receipts.tsx), whose lines add up to what the card was charged. An entry citing it must be
@@ -169,6 +177,7 @@ export const MEMBER_FEE_COPY_ALLOWED: Record<string, string> = {
   "src/lib/refundWords.ts::Card processing cost isn't refunded.": "owner decision 2026-11-09 (UI audit F089, via the lead): an expired, never-hired job keeps the card fee, and Receipts may say so in these plain words, no number",
   "src/lib/refundWords.ts::If no one is hired, you get your money back, less the small card processing cost if your card was already charged.": "owner decision 2026-11-09 (UI audit F089/F105, via the lead): Help's cancel answer says the card processing cost is kept when nobody is hired, no number",
   "src/pages/profile/Receipts.tsx::Service fee": `${OWNER_1111_RECEIPT_FEE}: the opened Declutter receipt's "Service fee" line, the order's premium_cents (the figure checkout charged)`,
+  "src/components/TipCostBreakdown.tsx::Service fee": `${OWNER_1111_TIP_SHEET_FEE}: the tip sheet's "Service fee" row, tipChargeBreakdown's feeCents (the figure create-payment adds to the tip)`,
   "src/components/TipCostBreakdown.tsx::Includes a small Louisiana Helpr service fee.": "owner decision 2026-10-28 (#20, \"Words only\"; F30, lead): the tip's You pay total says it includes a service fee, with no name of a rate and no number",
   "src/components/reviewPanel/ReviewForm.tsx::Your Helpr gets the whole tip. Includes a small Louisiana Helpr service fee. Most people tip 10–15% for great work.": "owner decision 2026-10-28 (#20, \"Words only\"; F30, lead): the tip prompt says a service fee is included, with no number (10–15% is a tip suggestion, not a fee)",
   "sql:admin_alert_manual_close::'cancellation fee transfer failed'": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
@@ -305,6 +314,15 @@ describe("members see no fee words (owner 2026-10-25)", () => {
     expect(scoped.map(([k]) => k.split("::")[0]).filter((f) => f !== RECEIPT_FEE_SURFACE), "the 11-11 fee allowance is for the Declutter receipt only").toEqual([]);
     // Nothing else in that file may lean on an older allowance to name a fee.
     expect(Object.keys(MEMBER_FEE_COPY_ALLOWED).filter((k) => k.startsWith(`${RECEIPT_FEE_SURFACE}::`) && !MEMBER_FEE_COPY_ALLOWED[k].startsWith(OWNER_1111_RECEIPT_FEE))).toEqual([]);
+  });
+
+  // @mutate src/test/membersSeeNoFeeWords.test.ts | TIP_SHEET_FEE_SURFACE = "src/components/TipCostBreakdown.tsx";\n/** | TIP_SHEET_FEE_SURFACE = "src/components/TipDialog.tsx";\n/**
+  it("owner 11-11: the tip sheet fee allowance is used only by the tip sheet's breakdown", () => {
+    const scoped = Object.entries(MEMBER_FEE_COPY_ALLOWED).filter(([, why]) => why.startsWith(OWNER_1111_TIP_SHEET_FEE));
+    expect(scoped.length).toBeGreaterThan(0);
+    expect(scoped.map(([k]) => k.split("::")[0]).filter((f) => f !== TIP_SHEET_FEE_SURFACE), "the 11-11 tip sheet fee allowance is for the tip sheet only").toEqual([]);
+    // Narrow: it allows the bare "Service fee" row label and nothing else (no rate, no sentence).
+    expect(scoped.map(([k]) => k.split("::")[1])).toEqual(["Service fee"]);
   });
 
   it("the allowlist is exact: no entry nobody hits any more", () => {

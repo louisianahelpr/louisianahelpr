@@ -228,7 +228,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "How do I sell?",
-        a: `List your own used household things with 1 to 12 photos you took, a price from $1 to $1,000 and a private lowest price you'll accept. The listing goes live when you post it. Buyers see your area name, never your address. Each evening an unsold item's price drops 5%, stopping above your lowest price. You set up payouts with Stripe at your first paid sale, and you receive the whole item price: the buyer pays a buyer's fee of ${DECLUTTER_BUYER_FEE_WORDS} on top, once per checkout.`,
+        a: `List your own used household things with 1 to 12 photos you took, a price from $1 to $1,000 and a private lowest price you'll accept. The listing goes live when you post it. Buyers see your area name, never your address. Price drops are off unless you turn them on; then an unsold item's price drops each evening by the step you pick (5% to 20%), stopping above your lowest price. You set up payouts with Stripe at your first paid sale, and you receive the whole item price: the buyer pays a buyer's fee of ${DECLUTTER_BUYER_FEE_WORDS} on top, once per checkout.`,
       },
       {
         q: "How do I get the item?",

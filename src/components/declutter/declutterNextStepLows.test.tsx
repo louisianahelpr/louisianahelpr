@@ -13,7 +13,7 @@
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {(t.side === "buyer" \|\| t.side === "seller") && <Suspense | {false && <Suspense
  * @mutate src/components/declutter/OrderTalkStep.tsx |   return `/declutter?tab=${side === "buyer" ? "buying" : "selling"}&order=${orderId}`; |   return `/declutter?tab=${side === "buyer" ? "buying" : "selling"}`;
  * @mutate src/components/declutter/OrderTalkStep.tsx | action={step.who === "you" ? "See the order" : null} | action={null}
- * @mutate src/components/declutter/OrderTalkStep.tsx |       { ...orderTimeWords(times.data?.[0], kind, b?.slot_start ?? null), buyer: other.first, photoDay: |       { chosen: null, by: null, photoDay:
+ * @mutate src/components/declutter/OrderTalkStep.tsx |       { ...chatTimeWords(times.data?.[0], kind, b), buyer: other.first, photoDay: |       { chosen: null, by: null, photoDay:
  * @mutate src/pages/profile/PayoutHistory.tsx | action: { label: "Payout settings", to: "/profile?tab=payment" } | action: null
  * @mutate src/pages/profile/PayoutHistory.tsx |       return { step: { who: "them", text: "Waiting on the bank", by: `arrives about ${payoutDay(p.arrival_date)}` }, action: null }; |       return null;
  */

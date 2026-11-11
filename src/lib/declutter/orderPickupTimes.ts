@@ -73,3 +73,15 @@ export function orderTimeWords(t: OrderPickupTimes | null | undefined, handover:
     : null;
   return { chosen, by: !booked && t.book_by ? bookByWords(t.book_by) : null };
 }
+
+/**
+ * F424 (whole-app audit 2026-11-10): the order CHAT has no booking panel below its step line, so a booked time the
+ * checkout row does not name (moved, or an old booking) is said from the booking itself, never "the pickup time below".
+ */
+export function chatTimeWords(t: OrderPickupTimes | null | undefined, handover: string | null,
+  booking: { slot_start: string | null; slot_end: string | null } | null): { chosen: string | null; by: string | null } {
+  const words = orderTimeWords(t, handover, booking?.slot_start ?? null);
+  // A porch line never points below (it names the day or the photo), so only the door and meetup lines need it.
+  if (words.chosen || !booking?.slot_start || handover === "porch") return words;
+  return { ...words, chosen: pickupWhenWords(booking.slot_start, booking.slot_end, false) };
+}

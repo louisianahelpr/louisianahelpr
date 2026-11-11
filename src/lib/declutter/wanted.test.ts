@@ -6,7 +6,7 @@
  *
  * @mutate src/lib/declutter/priceHint.ts |   if (!h \|\| !Number.isInteger(h.sales) \|\| h.sales < 10 \|\| h.sales % 10 !== 0) return null; |   if (!h) return null;
  * @mutate src/lib/declutter/wanted.ts |   if (WANTED_LINK.test(what)) return "Leave out web addresses, or put a space after the dot."; |
- * @mutate src/lib/declutter/priceHint.ts |   const where = place === "near_you" ? "near you" : "in this area"; |   const where = "near you";
+ * @mutate src/lib/declutter/priceHint.ts |     headline: t(place === "near_you" ? "dp.hintNearYou" : "dp.hintInArea", { range }), |     headline: t("dp.hintNearYou", { range }),
  */
 import { describe, expect, it } from "vitest";
 

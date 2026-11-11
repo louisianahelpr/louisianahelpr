@@ -7,6 +7,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchPriceHint, priceHintWords, type HintPlace } from "@/lib/declutter/priceHint";
+import { useLanguage } from "@/lib/i18n/language";
 
 /**
  * The fair-price hint for one category + condition near a point. `at` null
@@ -20,6 +21,7 @@ export default function PriceHint({ category, conditionStars, at, place }: {
   place: HintPlace;
 }) {
   const on = useFeature("declutter_price_hint");
+  const { t } = useLanguage();
   // Round the point the way the server does (2 decimals), so a moving device
   // fix does not refetch the same answer.
   const lat = at ? Math.round(at.lat * 100) / 100 : null;
@@ -37,7 +39,7 @@ export default function PriceHint({ category, conditionStars, at, place }: {
   const words = priceHintWords(hint.data, place);
   if (!on || !words) return null;
   return (
-    <div className="rounded-xl border border-border bg-muted/40 p-3" role="note" aria-label="Recent sale prices">
+    <div className="rounded-xl border border-border bg-muted/40 p-3" role="note" aria-label={t("dp.hintAria")}>
       <p className="text-sm font-semibold">{words.headline}</p>
       <p className="text-xs text-muted-foreground">{words.basis}</p>
     </div>

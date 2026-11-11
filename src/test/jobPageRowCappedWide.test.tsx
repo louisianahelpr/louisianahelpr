@@ -30,4 +30,16 @@ describe("the job page row is capped at desktop width (A3-13)", () => {
     expect(row().className.split(/\s+/)).toEqual(expect.arrayContaining(CAP));
     expect(row().querySelectorAll(":scope > [data-row-cell]")).toHaveLength(1);
   });
+
+  // F275 (audit 11-10, Trim the hedges, paid): Message filled its half but the card's Tip sat as an 88px pill, because
+  // the card's slot (where its button is portaled, w-full) shrank to its content. Both card slots fill their cell.
+  // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx | data-card-lead="" className="flex min-w-0 flex-1" | data-card-lead="" className="flex min-w-0"
+  // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx | data-row-one-action="" className="flex min-w-0 flex-1" | data-row-one-action="" className="flex min-w-0"
+  it("F275: the card's lead and lone-action slots fill their cell, so Tip is as wide as Message", () => {
+    render(<JobPageActionRow tag="t" lead={null} leadIsStep={false} cardLead cardCount={1} extras={[{ key: "message", label: "Message", go }]} setCardLeadHost={() => {}} setCardSecondHost={() => {}} />);
+    expect(document.querySelector("[data-card-lead]")!.className.split(/\s+/)).toContain("flex-1");
+    document.body.innerHTML = "";
+    render(<JobPageActionRow tag="t" lead={{ key: "step", label: "Approve", go }} leadIsStep cardCount={1} extras={[]} setCardSecondHost={() => {}} />);
+    expect(document.querySelector("[data-row-one-action]")!.className.split(/\s+/)).toContain("flex-1");
+  });
 });

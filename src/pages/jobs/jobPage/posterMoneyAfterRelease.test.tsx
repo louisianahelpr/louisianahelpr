@@ -11,6 +11,8 @@
  *
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | const RELEASED = new Set(["payout_pending", "released"]); | const RELEASED = new Set(["released"]);
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       {released && ( |       {false && (
+ * F276: the link carries the job, so Receipts opens this job's receipt (src/pages/profile/moneyRecords.test.tsx).
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | to={`/profile?tab=receipts&job=${job.id}`} | to="/profile?tab=receipts"
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | released ? (waitsOnBank ? paidWaitsOnBankLine(waitsOnBank.firstName) : releasedLine(job)) | released ? releasedLine(job)
  * @mutate src/hooks/useHelprTakesTips.ts |   return a && !a.payoutReady ? { firstName: a.firstName } : null; |   return null;
  */
@@ -59,7 +61,7 @@ describe("the poster's money after the release (F32)", () => {
     expect(price()).toBe("$40");
     const day = at.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
     expect(notes()).toContain(`Paid and released to your Helpr. Their pay goes out ${day} at `);
-    expect(screen.getByRole("link", { name: "See your receipt" }).getAttribute("href")).toBe("/profile?tab=receipts");
+    expect(screen.getByRole("link", { name: "See your receipt" }).getAttribute("href")).toBe("/profile?tab=receipts&job=j");
   });
 
   // F108 (owner UI audit 2026-11-09): job 28f8cff5 said "on its way to their bank" while its Helpr had no bank yet.

@@ -304,7 +304,8 @@ describe("D. a money problem files the card under Needs You, for both parties", 
 
   it("the tab counts come from the same bucket functions (badges stay in sync)", () => {
     const src = blankComments(readFileSync(join(process.cwd(), "src", "components", "job-card", "activityFilters.ts"), "utf8"));
-    expect(src).toMatch(/counts\[appliedActivityBucket\(a\)\]\+\+/);
+    // F260 (2026-11-10) names the bucket first so the All count can read it: `const box = appliedActivityBucket(a); counts[box]++`.
+    expect(src).toMatch(/const box = appliedActivityBucket\(a\);\s*counts\[box\]\+\+/);
     expect(src).toMatch(/counts\[postedActivityBucket\(j,/);
   });
 });

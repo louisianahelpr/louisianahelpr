@@ -7,14 +7,14 @@
  * @mutate src/components/sections/SectionTabs.tsx | cut && (tab !== selected \|\| memberMoved.current) | cut && tab !== selected
  * @mutate src/components/sections/SectionTabs.tsx | if (t.right > box.right) list.scrollLeft += t.right - box.right; | if (t.right > box.right) list.scrollLeft += 0;
  * @mutate src/components/sections/SectionTabs.tsx | else if (t.left < box.left) list.scrollLeft -= box.left - t.left; | else if (t.left < box.left) list.scrollLeft -= 0;
- * @mutate src/components/sections/SectionTabs.tsx |     memberMoved.current = true;\n    const edge = list.getBoundingClientRect().right; |     const edge = list.getBoundingClientRect().right;
- * @mutate src/components/sections/SectionTabs.tsx | if (next) list.scrollLeft += next.getBoundingClientRect().right - edge; | if (next) list.scrollLeft += 0;
+ * @mutate src/components/sections/SectionTabs.tsx |     memberMoved.current = true;\n    const box = list.getBoundingClientRect();\n    const next = |     const box = list.getBoundingClientRect();\n    const next =
+ * @mutate src/components/sections/SectionTabs.tsx | if (next) list.scrollLeft += next.getBoundingClientRect().left - box.left; | if (next) list.scrollLeft += 0;
  * @mutate src/components/sections/SectionTabs.tsx |           if (onlySelected && !active) return null;\n |
  * @mutate src/components/job-card/embeddedActivity.tsx | searchOpen ? "ml-2 min-w-0 flex-1" | "ml-2 min-w-0 flex-1"
  * @mutate src/pages/home/Dashboard.tsx | <SectionSearchBar noun="jobs" home="/jobs" value={filters.searchQuery} | <InlineListSearch label="Search jobs" value={filters.searchQuery}
  * T12: the way back, and room between the tab and an open search.
  * @mutate src/components/sections/SectionTabs.tsx | {less && !onlySelected && ( | {false && (
- * @mutate src/components/sections/SectionTabs.tsx | list.scrollLeft = previous ? list.scrollLeft - (edge - previous.getBoundingClientRect().left) : 0; | list.scrollLeft = list.scrollLeft;
+ * @mutate src/components/sections/SectionTabs.tsx | list.scrollLeft = previous ? Math.max(0, list.scrollLeft - (box.right - previous.getBoundingClientRect().right)) : 0; | list.scrollLeft = list.scrollLeft;
  * @mutate src/components/job-card/embeddedActivity.tsx |       {searchOpen && <SearchTriggerSlot width="40px" />} |       {null}
  * @mutate src/components/job-card/embeddedActivity.tsx | ${searchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"} | ${searchOpen ? "-ml-1 min-w-0 flex-1" : "-ml-1 shrink-0"}
  */
@@ -72,7 +72,8 @@ describe("a tab row that doesn't fit", () => {
     row("selling");
     const list = screen.getByRole("tablist");
     fireEvent.click(screen.getByRole("button", { name: /^\d+ more tabs$/ }));
-    expect(list.scrollLeft).toBe(174 + TAB_W - TRACK);
+    // Audit 11-10 F320: a page, not a few pixels: Deliver (174) goes to the start, Wanted and Free come in with it.
+    expect(list.scrollLeft).toBe(174);
     act(() => { list.dispatchEvent(new Event("scroll")); });
     expect(cut()).not.toContain("Deliver");
     expect(cut()).toContain("Browse");
@@ -105,8 +106,8 @@ describe("a tab row that doesn't fit", () => {
     const list = screen.getByRole("tablist");
     fireEvent.click(screen.getByRole("button", { name: /^\d+ more tabs$/ }));
     act(() => { list.dispatchEvent(new Event("scroll")); });
-    // Browse is at -54..-4: the chevron moved it off, and the row does not pull it back.
-    expect(list.scrollLeft).toBe(54);
+    // Browse is at -174..-124: the chevron moved it off, and the row does not pull it back.
+    expect(list.scrollLeft).toBe(174);
     expect(cut()).toContain("Browse");
     // Swiping too: a partly hidden selected tab isn't painted.
     fireEvent.pointerDown(list);
@@ -124,7 +125,7 @@ describe("a tab row that doesn't fit", () => {
     fireEvent.click(screen.getByRole("button", { name: /^\d+ more tabs$/ }));
     act(() => { list.dispatchEvent(new Event("scroll")); });
     expect(cut()).toContain("Browse");
-    // At 54 Browse is off (-54..-4), so it's the one brought back: the selected tab is one tap away.
+    // (2026-11-10, F320) At a 174px-wide row, a page back (Selling to the end) brings Browse back too: the selected tab is one tap away.
     fireEvent.click(screen.getByRole("button", { name: "Earlier tabs" }));
     expect(list.scrollLeft).toBe(0);
     act(() => { list.dispatchEvent(new Event("scroll")); });

@@ -1,3 +1,4 @@
+import { useRef, useState, type ClipboardEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Check } from "lucide-react";
@@ -38,6 +39,15 @@ export function TitleField({ title, setTitle, category }: TitleFieldProps) {
   // here, while it is still being typed, rather than on a failed post.
   const leak = contactLeakFieldError(title, "job title");
   const valid = title.trim().length > 0 && !overLimit && !leak;
+  // F306 (audit 11-10): a pasted title longer than TITLE_MAX was cut by maxLength with nothing said. A paste that does
+  // not fit says so, until the next edit.
+  const pasteCut = useRef(false);
+  const [cut, setCut] = useState(false);
+  const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
+    const el = e.currentTarget;
+    const kept = el.value.length - ((el.selectionEnd ?? el.value.length) - (el.selectionStart ?? el.value.length));
+    pasteCut.current = kept + e.clipboardData.getData("text").length > TITLE_MAX;
+  };
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between gap-2">
@@ -71,7 +81,8 @@ export function TitleField({ title, setTitle, category }: TitleFieldProps) {
         <Input
           id="title"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => { setCut(pasteCut.current); pasteCut.current = false; setTitle(e.target.value); }}
+          onPaste={onPaste}
           placeholder={titlePlaceholders[category] ?? titlePlaceholders.other}
           required
           maxLength={TITLE_MAX}
@@ -87,6 +98,9 @@ export function TitleField({ title, setTitle, category }: TitleFieldProps) {
         </p>
       )}
       {!overLimit && leak && <FieldError id="title-contact-leak">{leak}</FieldError>}
+      {!overLimit && !leak && cut && (
+        <p data-title-paste-cut="" className="text-ds-11 text-muted-foreground">Titles can be {TITLE_MAX} characters, so the end of what you pasted was cut.</p>
+      )}
     </div>
   );
 }

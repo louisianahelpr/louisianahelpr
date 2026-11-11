@@ -377,7 +377,7 @@ export function NotificationPanelView({
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p
-                                className="min-w-0 flex-1 font-sans font-bold leading-tight truncate text-ds-15"
+                                className="min-w-0 flex-1 font-sans font-bold leading-tight line-clamp-2 [overflow-wrap:anywhere] text-ds-15"
                                 style={{
                                   color: !n.read ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)",
                                   letterSpacing: "-0.012em",
@@ -480,14 +480,16 @@ export function NotificationPanelView({
         {/* The list is a page; the badge is a fact. When they differ, say so.
             The alternative — quietly shrinking the badge to match what was
             fetched — is what produced a bell reading 47 over a database
-            holding 76. "Mark all read" still only claims the rows on screen,
-            which is why this line names the shown count first. */}
+            holding 76. "Mark all read" clears every unread row, not only the
+            ones on screen (F434), which is what this line tells the member. */}
         {hasMoreThanPage && (
           <p
             className="shrink-0 px-4 py-2 text-ds-11 font-sans text-center border-t border-[hsl(var(--olivewood)/0.12)]"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            Showing {notifications.length} · {unreadTotal} unread in total
+            {/* F434 (whole-app audit 2026-11-10): "Showing 100 · 723 unread in total" left a first-timer with no next
+                step; Mark all read now clears every unread notice, so the footer says so. */}
+            Showing your newest {notifications.length}. Mark all read clears all {unreadTotal} unread.
           </p>
         )}
 

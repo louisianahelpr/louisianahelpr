@@ -20,6 +20,7 @@ import {
 import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { fetchMyPickupWindows, type PickupWindow } from "@/lib/declutter/api";
+import { fetchLastSetup } from "@/lib/declutter/lastSetup";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PickupTimesEditor, pickupWindowsProblem, placeHoursLine } from "./DeclutterPickupTimes";
 import { SellerAddressField } from "./SellerAddressField";
@@ -116,6 +117,8 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
   });
   const hoursProblem = pickupWindowsProblem(d.windows);
   const ready = d.label.trim().length > 0 && d.address.trim().length >= 5 && !hoursProblem;
+  // F410b (audit 11-10): Save place sat grey with no reason beside it. The first thing still missing is said next to it.
+  const notReady = d.label.trim().length === 0 ? "Add a name to save this place." : d.address.trim().length < 5 ? "Add the address to save this place." : hoursProblem;
   const weekdays = [...new Set(d.windows.map((w) => w.weekday))].sort((a, b) => a - b);
   return (
     <div className={`space-y-3 rounded-[16px] border border-border bg-card p-4 ${PLACE_CARD_EDGE}`} data-porch-place-form="">
@@ -137,10 +140,12 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
       {problem && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-place-problem="">{problem}</p>}
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" className="rounded-full" disabled={save.isPending} onClick={onDone}>Cancel</Button>
-        <Button type="button" className="rounded-full" disabled={!ready || save.isPending} onClick={() => save.mutate()}>
+        <Button type="button" className="rounded-full" disabled={!ready || save.isPending} onClick={() => save.mutate()}
+          aria-describedby={!ready && notReady ? `${uid}-not-ready` : undefined}>
           {save.isPending ? "Saving…" : "Save place"}
         </Button>
       </div>
+      {!ready && notReady && <p id={`${uid}-not-ready`} className="text-ds-13 font-semibold text-foreground" data-place-not-ready="">{notReady}</p>}
     </div>
   );
 }
@@ -213,6 +218,12 @@ export function SellPorchPlaces({ card = false, free = false, helprOnly = false 
   const { user } = useCurrentUser();
   const usualRead = useQuery({ queryKey: ["declutter", "windows", user?.id], queryFn: () => fetchMyPickupWindows(user!.id), enabled: !!user });
   const usual = usualHours(usualRead.data);
+  // Audit 11-10 F344: with no place saved, settings showed only "Add a pickup place" while every sell form said "From
+  // your settings: Pickup · <area> · <times>". That area is the last listing's (useSavedPickup, the same read and key)
+  // and the times are the usual ones; settings now says so.
+  const noPlaces = card && Array.isArray(mine.data) && mine.data.length === 0;
+  const last = useQuery({ queryKey: ["declutter", "last-setup", user?.id], queryFn: () => fetchLastSetup(user!.id), enabled: noPlaces && !!user, staleTime: 60_000 });
+  const lastArea = last.data?.areaLabel?.trim() ?? "";
   // null: no form open; a draft: adding (id null) or editing that place.
   const [draft, setDraft] = useState<Draft | null>(null);
   if (mine.data === PORCH_PLACES_NOT_DEPLOYED) return null;
@@ -230,6 +241,14 @@ export function SellPorchPlaces({ card = false, free = false, helprOnly = false 
       <p className="text-ds-14 font-semibold text-foreground">Pickup places</p>
       <p className="text-ds-13 text-muted-foreground">{placesWords(places.length, free, helprOnly, card)}</p>
       {places.length > 0 && <p className="text-ds-13 text-muted-foreground" data-place-days-rule="">{PLACE_DAYS_RULE}</p>}
+      {noPlaces && !usualRead.isLoading && !usualRead.isError && !last.isLoading && (
+        <p className="rounded-[14px] border border-border bg-background px-3 py-2.5 text-ds-13 text-foreground" data-pickup-now="">
+          {lastArea
+            ? `New listings now use ${lastArea}, from your last listing, with pickup ${placeHoursLine(usual, null)}.`
+            : `New listings now use the address you give each one, with pickup ${placeHoursLine(usual, null)}.`}{" "}
+          Add a pickup place to save one here and change it.
+        </p>
+      )}
       {places.length > 0 && (
         <ul className="grid gap-2 lg:grid-cols-2">
           {places.map((p) => <PlaceRow key={p.id} place={p} onEdit={() => setDraft({ id: p.id, label: p.label, address: p.address, area: p.area, windows: placeHours(p, usual), saved: { address: p.address, lat: p.lat, lng: p.lng } })} />)}

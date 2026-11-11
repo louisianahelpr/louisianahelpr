@@ -18,6 +18,7 @@ const REPO = resolve(__dirname, "..", "..");
 const GUARDED_OTHERWISE: Record<string, string> = {
   "src/pages/messages/Messages.tsx": "closeThread pops only an entry it pushed itself (isThreadOpenEntry(location.state))",
   "src/pages/auth/signup/useSignupStepHistory.ts": "backToStep1 pops only the step-2 entry it pushed itself (signupStepFromHistory(location.state) === 2, F260n 2026-11-10)",
+  "src/pages/home/useGuestJobSheet.ts": "closeDetailJob pops only the ?job= entry openDetailJob pushed itself (isSheetEntry(location.state)), else drops the param in place (F260u)",
 };
 
 describe("L005: back never walks out of the app", () => {

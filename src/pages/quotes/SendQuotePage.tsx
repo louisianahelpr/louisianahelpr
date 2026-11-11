@@ -95,6 +95,10 @@ function SendQuoteForm({ requestId, userId }: { requestId: string; userId: strin
     return (
       <QuotesNotice title="This request isn't taking quotes anymore">
         It may have closed, been booked, or been cancelled.
+        {/* F273a: a dead-end with a way on (the jobs still taking quotes). */}
+        <Button type="button" size="sm" className="mt-3" onClick={() => navigate(QUOTE_HOMES.openRequests)}>
+          Browse jobs
+        </Button>
       </QuotesNotice>
     );
   }

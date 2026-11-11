@@ -106,6 +106,10 @@ function rowsOf(arrayText: string): string[] {
  * that could simply be corrected.
  */
 const ACKNOWLEDGED: Record<string, string> = {
+  "src/test/declutterTradesClient.test.tsx: declutter_items.status":
+    "Not a declutter_items row: the F359f fixture is a fetchMyTrades() trade row (id, status, respond_by, my_side, " +
+    "item, offered, my_line_status, talk_order_id), and 'open' is a live declutter_trades status. The shape match " +
+    "picks declutter_items because the trade row has no table of its own in the generated types (lead, 2026-11-10).",
   "src/test/edge/create-payment.test.ts: jobs.budget":
     "The '$0 refund' scenario models a capture consumed entirely by the service " +
     "fee, seeded as budget 0 + customer_fee_amount 2. `jobs_budget_range` has " +

@@ -3,7 +3,7 @@
  * both sides read while a job continues ("Continuing Thu, Nov 5 at 9:00 AM · waiting on Yusef"). The server's own words
  * (continue_day_label, migration 20261101231015) are proven in src/test/pglite/jobContinueDay.pglite.mjs.
  *
- * @mutate src/lib/continueDayWords.ts |       : { who: "them", text: `Continuing ${when}`, by: `waiting on ${other \|\| "your Helpr"} to confirm` }; |       : null;
+ * @mutate src/lib/continueDayWords.ts | { who: "them", text: `${other \|\| "Your Helpr"} comes back ${when}`, by: `nothing for you to do; ${other \|\| "your Helpr"} confirms next` }; | null;
  * @mutate src/lib/continueDayWords.ts | ${h12}:${String(mm \|\| 0).padStart(2, "0")} ${hh < 12 | ${h12} ${hh < 12
  * @mutate src/lib/continueDayWords.ts |       ? { who: "you", text: `Confirm ${other ? `${other}'s` : "your Helpr's"} new day`, by: when } |       ? null
  * @mutate src/lib/continueDayWords.ts |       ? { who: "info", text: `${other \|\| "Your Helpr"} confirmed ${when}` } |       ? { who: "them", text: `Continuing ${when}`, by: `waiting on ${other \|\| "your Helpr"} to confirm` }
@@ -28,7 +28,7 @@ describe("continueDayLabel", () => {
 
 describe("continueDayNextStep", () => {
   it("both sides see the set day; the poster waits on the Helpr by name", () => {
-    expect(nextStepWords(continueDayNextStep(row(), { side: "poster", otherFirst: "Yusef" })!)).toBe("Continuing Thu, Nov 5 at 9:00 AM · waiting on Yusef to confirm");
+    expect(nextStepWords(continueDayNextStep(row(), { side: "poster", otherFirst: "Yusef" })!)).toBe("Yusef comes back Thu, Nov 5 at 9:00 AM · nothing for you to do; Yusef confirms next"); // F289a
     // Auditor 11 (11-01): once the Helpr confirms, the poster's line says so.
     expect(nextStepWords(continueDayNextStep(row({ helper_confirmed_at: "2026-11-02T12:00:00Z" }), { side: "poster", otherFirst: "Yusef" })!)).toBe("Yusef confirmed Thu, Nov 5 at 9:00 AM");
     expect(nextStepWords(continueDayNextStep(row(), { side: "helpr", otherFirst: "Dana" })!)).toBe("Next: confirm you'll be there · continuing Thu, Nov 5 at 9:00 AM");

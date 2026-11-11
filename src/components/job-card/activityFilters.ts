@@ -735,7 +735,9 @@ export function useActivityFilters({
       ) {
         statusMatch = appliedActivityBucket(a) === statusFilter;
       }
-      else if (statusFilter === "all") statusMatch = bucketAppliedApp(a) !== "cancelled";
+      // F260 (audit 11-10: chip "Needs you · 30", All's NEEDS YOU header 13): the chip could count rows the All view
+      // dropped (e.g. a cancelled job with a back-out notice to acknowledge). What Needs you counts, All shows.
+      else if (statusFilter === "all") statusMatch = bucketAppliedApp(a) !== "cancelled" || appliedActivityBucket(a) === "needs_you";
       // F107: the Working chips (Applied / Active / Completed), one rule with their counts below.
       else if (statusFilter === "applied" || statusFilter === "active" || statusFilter === "completed") statusMatch = workingChip(a) === statusFilter;
       else if (statusFilter === "direct_offer") statusMatch = !!a.job?.offered_to_helper_id && a.job?.offered_to_helper_id === userId && a.job?.direct_offer_status === "pending";
@@ -786,9 +788,10 @@ export function useActivityFilters({
       // `else if` chain below — an app belongs to exactly one bucket AND to one
       // legacy status, and folding them together would let whichever branch
       // matched first swallow the row from the other tally.
-      counts[appliedActivityBucket(a)]++;
-      // "all" excludes not-selected (rejected / cancelled) — mirrors filteredAppliedApps.
-      if (bucket !== "cancelled") counts.all++;
+      const box = appliedActivityBucket(a);
+      counts[box]++;
+      // "all" excludes not-selected (rejected / cancelled), except what Needs you counts (F260) — mirrors filteredAppliedApps.
+      if (bucket !== "cancelled" || box === "needs_you") counts.all++;
       // F107: the Working chips, counted on their own line (they overlap the single-status counters below, so they
       // must not consume an `else if` branch and steal rows from them). Needs you is the bucket tally above.
       const chip = workingChip(a);

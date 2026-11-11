@@ -85,7 +85,21 @@ describe("a poster's late cancel says the money on both sides (Q2701, Q2696)", (
   it("the Helpr's line: when it was cancelled and the dollars they get, with no fee words", () => {
     const t = render(<MemoryRouter><HelprMoneyNotes job={job} hired /></MemoryRouter>).container.textContent ?? "";
     // $30 less the flat 5% + 70c ($2.20) is $27.80, sent rounded down: $27.
-    expect(t).toBe("It was cancelled less than 3 hours before the start, so you get $27 for your time.");
+    // F285 (audit 11-10): the cancel rule's own step (under 24 h), never the rounded-up gap ("less than 3 hours").
+    expect(t).toBe("It was cancelled less than 24 hours before the start, so you get $27 for your time.");
     expect(t).not.toMatch(/\bfee\b/i);
+  });
+
+  // F285 (audit 11-10): 22 h 18 min before read "less than 23 hours", a different rule from the 24-hour one.
+  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   return `It was cancelled less than ${hours < 2 ? 2 : 24} hours before the start`; |   return `It was cancelled less than ${Math.ceil(hours)} hours before the start`;
+  it("names the cancel ladder's step: under 24 hours, under 2 hours, under an hour (F285)", () => {
+    const line = (cancelled_at: string) => {
+      const t = render(<MemoryRouter><HelprMoneyNotes job={{ ...job, cancelled_at }} hired /></MemoryRouter>).container.textContent ?? "";
+      cleanup();
+      return t;
+    };
+    expect(line("2037-10-19T15:42:00Z")).toMatch(/^It was cancelled less than 24 hours before the start, so you get /);
+    expect(line("2037-10-20T12:30:00Z")).toMatch(/^It was cancelled less than 2 hours before the start, so you get /);
+    expect(line("2037-10-20T13:30:00Z")).toMatch(/^It was cancelled less than an hour before the start, so you get /);
   });
 });

@@ -6,7 +6,7 @@
  * sentence-case label.
  *
  * @mutate src/components/BlockUserDialog.tsx |               "Block"\n |               "Just Block"\n
- * @mutate src/components/BlockUserDialog.tsx | <li className="not-italic font-sans font-medium text-foreground">\n                      Blocking | <li className="not-italic font-sans font-medium" style={{ color: "hsl(var(--burnt-sienna))" }}>\n                      Blocking
+ * @mutate src/components/BlockUserDialog.tsx | <p className="mb-2 not-italic font-sans font-medium text-foreground">\n                    Blocking | <p className="mb-2 not-italic font-sans font-medium" style={{ color: "hsl(var(--burnt-sienna))" }}>\n                    Blocking
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -21,7 +21,7 @@ describe("the block sheet speaks plainly", () => {
     expect(src).toMatch(/"Block"\n/);
   });
   it("only the money is rust", () => {
-    expect(src).not.toMatch(/<li[^>]*burnt-sienna/);
+    expect(src).not.toMatch(/<(li|p)[^>]*burnt-sienna/);
     expect(src).toMatch(/sienna-ink\)\)" \}\}>\$\{formatPriceExact\(estimatedFee\)\}/);
   });
   it("the reason label is not uppercase", () => {

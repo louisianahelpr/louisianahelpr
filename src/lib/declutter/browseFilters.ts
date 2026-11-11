@@ -13,7 +13,7 @@
 import { nextPriceDrop, type PriceDropFields } from "@/lib/declutter/priceDrop";
 import { matchesSearch } from "@/lib/declutter/searchMatch";
 
-export type DeclutterSort = "closest" | "newest" | "price_low";
+export type DeclutterSort = "closest" | "newest" | "price_low" | "price_high";
 
 /**
  * A3-109: the ways besides porch pickup a buyer can narrow to, in checkout's words (handoverCopy HANDOVER_TITLE). Porch
@@ -59,6 +59,8 @@ export const SORT_LABEL: Record<DeclutterSort, string> = {
   closest: "Closest first",
   newest: "Newest",
   price_low: "Lowest price",
+  // Audit 11-10 F315: sort had only Newest / Lowest price.
+  price_high: "Highest price",
 };
 
 /** The drop columns Browse reads per item (fetchDropStates). */
@@ -99,7 +101,7 @@ function positive(v: string | null): number | null {
   return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
 }
 
-const SORTS: readonly DeclutterSort[] = ["closest", "newest", "price_low"];
+const SORTS: readonly DeclutterSort[] = ["closest", "newest", "price_low", "price_high"];
 
 export type BrowseState = { query: string; filters: DeclutterFilters; maxMiles: number | null };
 
@@ -252,6 +254,7 @@ export function applyBrowseFilters<T extends BrowseItem & { id: string; title: s
     return true;
   });
   if (f.sort === "price_low") return [...kept].sort((a, b) => a.item.current_price_cents - b.item.current_price_cents);
+  if (f.sort === "price_high") return [...kept].sort((a, b) => b.item.current_price_cents - a.item.current_price_cents);
   if (f.sort === "newest") {
     const at = (i: BrowseItem) => new Date(i.live_at ?? i.created_at).getTime() || 0;
     return [...kept].sort((a, b) => at(b.item) - at(a.item));

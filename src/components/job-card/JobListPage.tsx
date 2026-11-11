@@ -12,7 +12,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
 import { ActivityDialogs } from "@/components/job-card/ActivityDialogs";
 import { ActivityOfferDialogs } from "@/components/job-card/ActivityOfferDialogs";
-import { notOnPostedCopy, onPostedList, useFollowOpenCard, useManageDeepLink, useOpenWorkingDeepLink, useReviewApplicantsDeepLink } from "./useManageDeepLink";
+import { applicantsLinkJobId, notOnPostedCopy, onPostedList, useFollowOpenCard, useManageDeepLink, useOpenWorkingDeepLink, useReviewApplicantsDeepLink } from "./useManageDeepLink";
 import { useToastClearance } from "@/hooks/useToastClearance";
 import { RecurringVisitPayments } from "@/pages/posts/postedJobs/RecurringVisitPayments";
 import { PendingBankPayments } from "@/pages/posts/postedJobs/PendingBankPayments";
@@ -71,7 +71,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   );
   const manageJobId = defaultTab === "posted" && searchParams.get("manage") === "1" ? searchParams.get("highlight") : null;
   // `&applicants=1` (the job page's "Review N applicants"): open that job's applicants, not just its card.
-  const applicantsJobId = defaultTab === "posted" && searchParams.get("applicants") === "1" ? searchParams.get("highlight") : null;
+  const applicantsJobId = applicantsLinkJobId(searchParams, defaultTab);
 
   // Deep-link to ONE JOB — `?job=<jobId>`.
   //

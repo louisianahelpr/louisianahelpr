@@ -136,12 +136,9 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   postNow.current = post;
 
   return (
-    <AppPage title={form.free ? "Give it away" : "Sell an item"} backTo="/declutter?tab=selling" phoneHidesTitle>
+    // Audit 11-10 F341: a giveaway keeps its title on a phone too, so the first heading there is not just "Show it off".
+    <AppPage title={form.free ? "Give it away" : "Sell an item"} backTo="/declutter?tab=selling" phoneHidesTitle={!form.free}>
       <div className="mx-auto w-full max-w-xl space-y-6" data-sell-one-screen="">
-        {/* Payouts: only once money is owed (owner 2026-10-27, list first, set up at first sale); never on a give-away,
-            which earns nothing (audit 1110 F340). */}
-        {!form.free && <SellerPayoutPrompt />}
-
         {s.keptWork.restored && (
           <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-[20px] border border-border bg-card p-4" data-sell-kept="">
             <p className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">We kept your listing from last time.</p>
@@ -227,6 +224,10 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
           {s.publishing ? (s.postStep ?? "Posting…") : "Post it"}
         </Button>
         <p role="status" className="sr-only" data-post-step="">{s.publishing ? s.postStep : ""}</p>
+        {/* Payouts: only once money is owed (owner 2026-10-27, list first, set up at first sale); never on a give-away,
+            which earns nothing (audit 1110 F340). Audit 11-10 F327: under Post it, not over the form: it arrives after
+            its reads and pushed the whole form down (layout shift 0.169). */}
+        {!form.free && <SellerPayoutPrompt />}
       </div>
     </AppPage>
   );

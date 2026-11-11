@@ -72,13 +72,18 @@ export function BlockUserDialog({
   const [isPosterOnAny, setIsPosterOnAny] = useState(false);
   // Q2676: hired on any of them (the blocker is the Helpr): block_user_and_settle treats that like the Helpr cancelling.
   const [isHelprOnAny, setIsHelprOnAny] = useState(false);
-  // Q2675 (audit 1102e row 8): the sheet counted "2 active jobs" and never named them.
-  const [jobTitles, setJobTitles] = useState<string[]>([]);
+  // Q2675 (audit 1102e row 8): the sheet counted "2 active jobs" and never named them. F260i: `late` marks a job whose
+  // block costs the poster an amount (it starts within 24 hours), so the sheet can say WHICH job, not "it".
+  const [jobs, setJobs] = useState<{ title: string; late: boolean }[]>([]);
+  const [lateCount, setLateCount] = useState(0);
+  // F260i (whole-app audit 2026-11-10): ten titles were a wall; three show, the rest behind "Show all".
+  const [showAllJobs, setShowAllJobs] = useState(false);
 
   // Look up active jobs between the two users so we can warn the user
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
+    setShowAllJobs(false);
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -102,29 +107,36 @@ export function BlockUserDialog({
       if (cancelled) return;
       const rows = data ?? [];
       setActiveJobCount(rows.length);
-      setJobTitles(rows.map((r) => (r.title ?? "").trim()).filter(Boolean));
-      const mine = rows.filter((r) => r.customer_id === user.id);
-      setIsPosterOnAny(mine.length > 0);
+      setIsPosterOnAny(rows.some((r) => r.customer_id === user.id));
       setIsHelprOnAny(rows.some((r) => r.helper_id === user.id));
-      setEstimatedFee(
-        // Q236(c) (owner, 2026-09-27): NO fee on an offer the Helpr never
-        // accepted. block_user_and_settle prices each job on commitment
-        // (helper_confirmed_at) and its start time; this quote used to price
-        // any assigned Helpr at midnight of the day, so it promised a fee the
-        // server never charges. computeCancellationFee is the server's own rule.
-        mine.reduce(
-          (sum, r) =>
-            sum +
-            computeCancellationFee({
-              budget: r.budget == null ? null : Number(r.budget),
-              date_needed: r.date_needed,
-              start_time: r.start_time ?? null,
-              cancelled_at: null,
-              helper_id: r.helper_id,
-              helper_confirmed_at: r.helper_confirmed_at ?? null,
-            }),
-          0,
-        ),
+      // Q236(c) (owner, 2026-09-27): NO fee on an offer the Helpr never
+      // accepted. block_user_and_settle prices each job on commitment
+      // (helper_confirmed_at) and its start time; this quote used to price
+      // any assigned Helpr at midnight of the day, so it promised a fee the
+      // server never charges. computeCancellationFee is the server's own rule.
+      // Only the poster pays, so a job where the blocker is the Helpr costs 0.
+      const priced = rows.map((r) => ({
+        title: (r.title ?? "").trim(),
+        fee:
+          r.customer_id !== user.id
+            ? 0
+            : computeCancellationFee({
+                budget: r.budget == null ? null : Number(r.budget),
+                date_needed: r.date_needed,
+                start_time: r.start_time ?? null,
+                cancelled_at: null,
+                helper_id: r.helper_id,
+                helper_confirmed_at: r.helper_confirmed_at ?? null,
+              }),
+      }));
+      setEstimatedFee(priced.reduce((sum, j) => sum + j.fee, 0));
+      setLateCount(priced.filter((j) => j.fee > 0).length);
+      // Late jobs first, so the three that show are the ones the amount is for.
+      setJobs(
+        priced
+          .filter((j) => j.title)
+          .map((j) => ({ title: j.title, late: j.fee > 0 }))
+          .sort((a, b) => Number(b.late) - Number(a.late)),
       );
     })();
     return () => {
@@ -162,6 +174,9 @@ export function BlockUserDialog({
     }
   };
 
+  const hasJobs = activeJobCount !== null && activeJobCount > 0;
+  const lateTitle = jobs.find((j) => j.late)?.title;
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && !submitting && onClose()}>
       <DialogContent>
@@ -170,46 +185,57 @@ export function BlockUserDialog({
         />
         <div className="space-y-3 mt-2">
               <DialogBody>
+                {hasJobs && (
+                  // F260i (whole-app audit 2026-11-10): the summary comes FIRST, in one short line: how many jobs, the
+                  // amount, the strike. Before, the strike sat at the bottom of a 10-title wall. Q2675 + Q2676 (lead
+                  // 11-02, migration 20261102131745): a poster's block is a strike only inside 24 hours of the start;
+                  // a hired Helpr's block costs the poster nothing and is the Helpr's strike only inside 24 hours.
+                  // "The Helpr's time", never "your Helpr's" (F428). Plain words; only the money is rust (audit #51).
+                  <p className="mb-2 not-italic font-sans font-medium text-foreground">
+                    Blocking {blockedUserName} also cancels {activeJobCount} job{activeJobCount === 1 ? "" : "s"}.
+                    {isPosterOnAny && (estimatedFee > 0 ? (
+                      <>
+                        {" "}You will pay about{" "}
+                        <span className="tabular-nums" style={{ color: "hsl(var(--sienna-ink))" }}>${formatPriceExact(estimatedFee)}</span> for the Helpr&rsquo;s time and it counts as a strike against you.
+                      </>
+                    ) : (
+                      <> Nothing is kept for the Helpr&rsquo;s time and it isn&rsquo;t a strike.</>
+                    ))}
+                    {isHelprOnAny && (
+                      <> A job you were hired for that starts within 24 hours counts as a strike, the same as cancelling.</>
+                    )}
+                  </p>
+                )}
                 <ul className="space-y-1 list-disc pl-5">
                 <li>You won&apos;t see their messages, applications, or profile.</li>
                 {/* Q2676 (audit 1102e row 9): both seats, never only the poster's ("apply to your jobs"). */}
                 <li>They can&apos;t apply to your jobs, offer you a job, or message you.</li>
                 <li>They won&apos;t be notified that you blocked them.</li>
-                {activeJobCount !== null && activeJobCount > 0 && (
-                  // F428 (whole-app audit 2026-11-10): one short bullet per fact, never a 90-word run-on next to the
-                  // red Block button. Plain words, not a red paragraph; only the money is rust (audit #51).
-                  <>
-                    <li className="not-italic font-sans font-medium text-foreground">
-                      Blocking {blockedUserName} also cancels {activeJobCount} job{activeJobCount === 1 ? "" : "s"}{jobTitles.length > 0 ? ":" : "."}
-                      {jobTitles.length > 0 && (
-                        <ul className="list-[circle] pl-5 font-normal" aria-label="Jobs that will be cancelled">
-                          {jobTitles.map((t, i) => <li key={i}>&ldquo;{t}&rdquo;</li>)}
-                        </ul>
-                      )}
-                    </li>
-                    {/* Q2675 + Q2676 (lead 11-02, migration 20261102131745): the server's rules, said as they are. A
-                        poster's block is a strike only inside 24 hours of the start (with an amount for the Helpr's
-                        time); a hired Helpr's block costs the poster nothing and is the Helpr's strike only inside
-                        24 hours, exactly like cancelling. "The Helpr's time", never "your Helpr's" (F428). */}
-                    {isPosterOnAny && (estimatedFee > 0 ? (
-                      <>
-                        <li className="not-italic font-sans font-medium text-foreground">
-                          You will pay about{" "}
-                          <span className="tabular-nums" style={{ color: "hsl(var(--sienna-ink))" }}>${formatPriceExact(estimatedFee)}</span> for the Helpr&rsquo;s time (it starts within 24 hours).
-                        </li>
-                        <li>You get most of the rest back.</li>
-                        <li className="not-italic font-sans font-medium text-foreground">This counts as a strike against you.</li>
-                      </>
-                    ) : (
-                      <>
-                        <li>Nothing is kept for the Helpr&rsquo;s time; you get most of your payment back.</li>
-                        <li>This isn&rsquo;t a strike.</li>
-                      </>
-                    ))}
-                    {isHelprOnAny && (
-                      <li>For a job you were hired for, it counts as a strike if it starts within 24 hours, the same as cancelling.</li>
+                {hasJobs && jobs.length > 0 && (
+                  // F428: the titles are a nested list, never a run-on. F260i: three show, late ones first and marked.
+                  <li>
+                    Jobs cancelled:
+                    <ul className="list-[circle] pl-5" aria-label="Jobs that will be cancelled">
+                      {(showAllJobs ? jobs : jobs.slice(0, 3)).map((j, i) => (
+                        <li key={i}>&ldquo;{j.title}&rdquo;{j.late && <> (starts within 24 hours)</>}</li>
+                      ))}
+                    </ul>
+                    {!showAllJobs && jobs.length > 3 && (
+                      <Button type="button" variant="ghost" size="sm" className="-ml-2 mt-1" onClick={() => setShowAllJobs(true)}>
+                        Show all {jobs.length} jobs
+                      </Button>
                     )}
-                  </>
+                  </li>
+                )}
+                {hasJobs && isPosterOnAny && lateCount > 0 && (
+                  // F260i: say WHICH job the amount is for; "(it starts within 24 hours)" never named one.
+                  <li>
+                    {lateCount === 1 && lateTitle ? (
+                      <>That covers &ldquo;{lateTitle}&rdquo;, which starts within 24 hours.</>
+                    ) : (
+                      <>That covers {lateCount} job{lateCount === 1 ? " that starts" : "s that start"} within 24 hours.</>
+                    )}{" "}You get most of the rest back.
+                  </li>
                 )}
                 </ul>
               </DialogBody>

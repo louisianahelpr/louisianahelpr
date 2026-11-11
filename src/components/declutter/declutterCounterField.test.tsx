@@ -9,13 +9,13 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const state = vi.hoisted(() => ({ offers: [] as unknown[], responded: [] as unknown[][] }));
+const state = vi.hoisted(() => ({ offers: [] as unknown[], responded: [] as unknown[][], cart: [] as unknown[] }));
 
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchMyOffers: async () => state.offers,
-  fetchMyCart: async () => [],
+  fetchMyCart: async () => state.cart,
   respondOffer: async (...a: unknown[]) => {
     state.responded.push(a);
     return "countered";
@@ -47,6 +47,40 @@ describe("counter-offer field: a shown label and a $ (deep audit #47)", () => {
   beforeEach(() => {
     state.offers = [OFFER];
     state.responded = [];
+    state.cart = [];
+  });
+
+  // Audit 11-10 F359: an accepted offer says what is next, from its cart line: the buyer checks out by its deadline,
+  // the seller waits on the payment. A paid line says nothing more here.
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx |       {o.status === "accepted" && <AcceptedOfferNext o={o} />}\n |
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | l.my_side === o.my_side && l.status === "in_cart" | l.my_side === o.my_side
+  it("F359: an accepted offer says In your cart with Check out (buyer) or Waiting on the buyer to pay (seller)", async () => {
+    const by = "2027-11-12T20:23:00Z";
+    const line = (side: string, status: string) => ({ line_id: `l-${side}`, item_id: "i1", item_title: "Blue enamel mug", my_side: side, seller_id: "s1", price_cents: 2200, status, checkout_by: by, order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true });
+    state.offers = [{ ...OFFER, my_side: "buyer", status: "accepted" }];
+    state.cart = [line("buyer", "in_cart")];
+    const buyer = show("buyer");
+    const next = await waitFor(() => {
+      const el = document.querySelector('[data-accepted-next="buyer"]');
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
+    expect(next.textContent).toContain("In your cart. Check out by ");
+    expect(within(next).getByRole("link", { name: "Check out" })).toHaveAttribute("href", "/declutter?tab=buying&checkout=s1");
+    buyer.unmount();
+    state.offers = [{ ...OFFER, status: "accepted" }];
+    state.cart = [line("seller", "in_cart")];
+    const seller = show("seller");
+    // The seller's accepted offer sits under the closed-offers fold (deep audit #30).
+    fireEvent.click(await screen.findByRole("button", { name: /^Show 1 closed offer/ }));
+    await waitFor(() => expect(document.querySelector('[data-accepted-next="seller"]')?.textContent ?? "").toMatch(/^Waiting on the buyer to pay by .+\.$/));
+    seller.unmount();
+    state.cart = [line("seller", "paid")];
+    show("seller");
+    fireEvent.click(await screen.findByRole("button", { name: /^Show 1 closed offer/ }));
+    await screen.findByText("Blue enamel mug");
+    await new Promise((r) => setTimeout(r, 30));
+    expect(document.querySelector("[data-accepted-next]")).toBeNull();
   });
 
   // @mutate src/components/declutter/DeclutterOffersSection.tsx | <label className="block text-sm font-semibold" htmlFor={`counter-${o.offer_id}`}>Your price</label> | <label className="sr-only" htmlFor={`counter-${o.offer_id}`}>Your price</label>

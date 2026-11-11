@@ -45,8 +45,17 @@ export const usePageMeta = (meta: PageMeta) => {
     } else if (meta.noCanonical) {
       document.querySelector('link[rel="canonical"]')?.remove();
     }
-    if (meta.ogTitle) setMeta("og:title", meta.ogTitle, "property");
-    if (meta.ogDescription) setMeta("og:description", meta.ogDescription, "property");
+    // F269a (whole-app audit 11-10): the server (api/share.ts applyMeta) writes og:* and twitter:* from the same
+    // strings; the hook used to update only og:*, leaving twitter:* with the server's words once the app loaded, so
+    // one job read with two descriptions depending on the app it was shared in. Both families move together.
+    if (meta.ogTitle) {
+      setMeta("og:title", meta.ogTitle, "property");
+      setMeta("twitter:title", meta.ogTitle);
+    }
+    if (meta.ogDescription) {
+      setMeta("og:description", meta.ogDescription, "property");
+      setMeta("twitter:description", meta.ogDescription);
+    }
     // og:url falls back to the canonical so social unfurls always point at
     // the indexable URL even when only `canonical` is supplied.
     const ogUrl = meta.ogUrl ?? meta.canonical;

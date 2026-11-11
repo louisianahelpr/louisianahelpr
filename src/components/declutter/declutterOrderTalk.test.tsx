@@ -179,6 +179,27 @@ describe("D2-1: the paid-order chat", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  // Audit 11-10 F360e: the chat links back to its order (Buying for the buyer, Selling for the seller).
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | to={`/declutter?tab=${t.side === "seller" ? "selling" : "buying"}&order=${orderId}`} | to={`/declutter?tab=buying`}
+  it("See the order goes to this order on the viewer's own tab", async () => {
+    renderAt(`/declutter?order_talk=${ORDER}`, <OrderTalkFromLink />);
+    const link = await screen.findByRole("link", { name: "See the order" });
+    expect(link.getAttribute("href")).toMatch(new RegExp(`^/declutter\\?tab=buying&order=${ORDER}$`));
+  });
+
+  // Audit 11-10 F390: a phone number typed in the chat was only refused after Send; it is said while typing.
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx |   const leak = draft.trim() ? scanMessage(draft)[0] ?? null : null; |   const leak = null as ReturnType<typeof scanMessage>[number] \| null;
+  it("a phone number typed in the box is flagged before Send, and the note goes once it is taken out", async () => {
+    renderAt(`/declutter?order_talk=${ORDER}`, <OrderTalkFromLink />);
+    const box = await screen.findByLabelText("Message");
+    fireEvent.change(box, { target: { value: "text me at 225-555-0142" } });
+    const note = document.querySelector("[data-order-talk-leak]");
+    expect(note?.textContent).toMatch(/Phone number detected .*Keep contact details and payment out of the chat/);
+    expect(box.getAttribute("aria-describedby")).toBe(note?.id);
+    fireEvent.change(box, { target: { value: "see you at 10" } });
+    expect(document.querySelector("[data-order-talk-leak]")).toBeNull();
+  });
+
   // AUD31-13 (audit 2026-10-31): the sheet said only "Message the seller", not which item.
   // @mutate src/components/declutter/DeclutterOrderTalk.tsx | {itemTitle && <p className="mt-1 truncate text-ds-14 text-muted-foreground" data-order-talk-item="">About &ldquo;{itemTitle}&rdquo;</p>} | {null}
   // @mutate src/components/declutter/DeclutterOrderTalk.tsx |     onError: (err) => setRefusal(declutterErrorMessage(err)), |     onError: () => {},

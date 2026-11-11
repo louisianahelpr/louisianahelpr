@@ -1233,6 +1233,27 @@ describe("Declutter slice 3 screens", () => {
     expect(within(within(home).getByRole("group", { name: /Pickup time on/ })).getAllByRole("button")[0].textContent).toMatch(/^\d{1,2}:\d\d [AP]M$/);
   });
 
+  // F361/F352 (audit 11-10): the phone's sticky Pay box floated over the porch choices and the bill while it still
+  // said "Choose a pickup day and time above to pay." While Pay waits it stays in place; it sticks once it can be pressed.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | className={`${payWaitsOn ? "" : "max-lg:sticky | className={`${"" ? "" : "max-lg:sticky
+  it("F361: the phone Pay box does not float over the choices while Pay still waits on one", async () => {
+    state.pickupWindows = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts: "09:00", ends: "17:00" }));
+    state.cart = [{ line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true }];
+    show(<CartView />);
+    await screen.findAllByRole("radio");
+    const porch = document.querySelector('[data-handover-option="porch"]') as HTMLElement;
+    await waitFor(() => expect(within(porch).getByText("When you'll pick it up")).toBeInTheDocument());
+    const pay = screen.getByRole("button", { name: /^Pay / });
+    const bar = document.querySelector("[data-pay-bar]") as HTMLElement;
+    expect(bar.contains(pay)).toBe(true);
+    expect(screen.getByText("Choose a pickup day and time above to pay.")).toBeInTheDocument();
+    expect(bar.className.split(/\s+/)).not.toContain("max-lg:sticky");
+    fireEvent.click(within(within(porch).getByRole("group", { name: /Pickup time on/ })).getAllByRole("button")[0]);
+    await waitFor(() => expect(pay).toBeEnabled());
+    expect(bar.className.split(/\s+/)).toEqual(expect.arrayContaining(["max-lg:sticky", "max-lg:bottom-[calc(var(--safe-area-bottom,0px)+var(--bottom-nav-h,96px))]"]));
+  });
+
   // B112 (B110 leftover 2): a porch pickup with no place of its own offers only the seller's porch days, so Pay never
   // carries a day the server refuses ("Pick a time inside the seller's pickup times"). A door pickup keeps every day.
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |     : porchNoPlace ? onPorchDays(sellerTimes.data ?? [], porchDays.data) : (sellerTimes.data ?? [])) |     : (sellerTimes.data ?? []))

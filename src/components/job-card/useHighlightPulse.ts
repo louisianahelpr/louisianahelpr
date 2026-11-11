@@ -30,7 +30,8 @@ import { useEffect, useRef, type RefObject } from "react";
  *
  * `ring: false` scrolls to the card without the burnt-sienna ring. Posts uses
  * it (owner, 2026-10-09): the orange outline around a job the poster had just
- * posted read as an error state, not a "here it is".
+ * posted read as an error state, not a "here it is". It still gets a soft olive
+ * wash that fades (F436).
  */
 export function useHighlightPulse(
   highlight: boolean,
@@ -46,11 +47,14 @@ export function useHighlightPulse(
     // Small delay so the list has finished laying out before we scroll.
     const raf = requestAnimationFrame(() => {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
-      if (!ring) return;
-      el.classList.add("highlight-pulse");
+      // F436 (whole-app audit 2026-11-10): `ring: false` used to mark nothing, so a poster tapping "Hallie H. has
+      // arrived" landed in a long list without knowing which card was theirs. It now gets `.highlight-soft`, an olive
+      // wash that fades by itself: no outline, no burnt sienna, nothing static under Reduce Motion.
+      const cls = ring ? "highlight-pulse" : "highlight-soft";
+      el.classList.add(cls);
       // Remove the class after the animation ends so a future re-render
       // doesn't re-apply it and so the outline doesn't persist.
-      const onEnd = () => el.classList.remove("highlight-pulse");
+      const onEnd = () => el.classList.remove(cls);
       el.addEventListener("animationend", onEnd, { once: true });
     });
     return () => cancelAnimationFrame(raf);

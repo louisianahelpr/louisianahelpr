@@ -10,6 +10,7 @@ export const enCore = {
   "lang.label": "Language",
   "lang.english": "English",
   "lang.spanish": "Español",
+  "lang.saved": "Language saved: English",
   "lang.switchTo": "Switch language to {lang}",
   "lang.legalInEnglish": "The legal terms are in English.",
 

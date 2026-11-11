@@ -11,6 +11,9 @@
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |       {trade ? "Message about the trade" : | {false ? "Message about the trade" :
  * @mutate src/components/declutter/declutterUi.tsx |   if (tradedFor && (item.status === "reserved" | if (false && (item.status === "reserved"
  * @mutate src/lib/declutter/trades.ts |     const mine = t.my_side === "seller" ? t.item : t.offered; |     const mine = t.item;
+ * Audit 1110 F359e: the owner's item page said "Your listing: Someone is buying it" for a listing in an accepted trade,
+ * because its sellerStatusLabel call passed no trade. Class inventory: every sellerStatusLabel call passes one.
+ * @mutate src/components/declutter/DeclutterItemView.tsx | sellerStatusLabel(it, tradedFor.get(it.id) ?? null) | sellerStatusLabel(it)
  */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -70,6 +73,22 @@ describe("lead 11-08: a trade order reads as a trade", () => {
       }
     }
     expect(sites.length).toBeGreaterThan(2);
+    expect(bare).toEqual([]);
+  });
+
+  it("F359e inventory: every sellerStatusLabel call outside its own file passes the trade", () => {
+    const files = walkSource([join(REPO, "src")]).filter((f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f) && !/\/test\//.test(f));
+    expect(files.length).toBeGreaterThan(500);
+    const sites: string[] = [];
+    const bare: string[] = [];
+    for (const f of files) {
+      const src = blankComments(readSource(f) ?? "");
+      for (const m of src.matchAll(/(?<!function )\bsellerStatusLabel\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g)) {
+        sites.push(f);
+        if (!m[1].includes(",")) bare.push(`${f}: ${m[0]}`);
+      }
+    }
+    expect(sites.length).toBeGreaterThan(1);
     expect(bare).toEqual([]);
   });
 });

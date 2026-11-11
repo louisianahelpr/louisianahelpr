@@ -91,7 +91,7 @@ function GrantSetup() {
       <section className={card} data-manager-setup="closed">
         <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-[12rem] flex-1">
-            <h2 className="text-base font-semibold">Have someone sell for you</h2>
+            <h2 className="text-base font-semibold">Let a friend sell for you</h2>
             <p className="text-ds-13 text-muted-foreground">Someone you trust lists and answers for you, and keeps a share of each sale.</p>
           </div>
           <Button className="rounded-full" onClick={() => setOpen(true)}>Ask someone</Button>
@@ -102,7 +102,7 @@ function GrantSetup() {
 
   return (
     <section className={card} aria-labelledby="manager-setup-title" data-manager-setup="open">
-      <h2 id="manager-setup-title" className="text-base font-semibold">Have someone sell for you</h2>
+      <h2 id="manager-setup-title" className="text-base font-semibold">Let a friend sell for you</h2>
       <NextStep className="mt-1" value={{ who: "you", text: picked ? "Choose what they handle and their share" : "Pick who helps you" }} />
       <form className="mt-3 space-y-4" onSubmit={(e) => { e.preventDefault(); if (picked && anyPart && valueOk) send.mutate(); }}>
         {picked ? (

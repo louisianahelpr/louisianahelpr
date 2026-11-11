@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
+import { setConnectivity } from "@/lib/connectivity";
 import { ErrorState } from "./ErrorState";
 import { report } from "@/lib/errorLogger";
 
@@ -115,3 +116,31 @@ describe("ErrorState", () => {
 // @mutate src/components/ui/ErrorState.tsx | if (typeof navigator !== "undefined" && navigator.onLine === false) return; | if (typeof navigator !== "undefined") return;
 // The in-flight lock on retry: without it a double-tap fires two fetches.
 // @mutate src/components/ui/ErrorState.tsx | <BarkPillButton onClick={onRetry} disabled={retryDisabled}> | <BarkPillButton onClick={onRetry}>
+
+// F280a (audit 11-10): offline (confirmed) the default words blamed "our end", and after reconnecting the card sat
+// until Try again was tapped. Offline it says so; the flip back online retries once by itself.
+// @mutate src/components/ui/ErrorState.tsx |   const shownBody = body ?? (online ? DEFAULT_BODY : onRetry ? OFFLINE_BODY : OFFLINE_BODY_NO_RETRY); |   const shownBody = body ?? DEFAULT_BODY;
+// @mutate src/components/ui/ErrorState.tsx |     onRetry?.(); |
+describe("ErrorState offline (F280a)", () => {
+  it("offline: says so, never 'our end'; back online: retries once by itself", () => {
+    setConnectivity(false);
+    try {
+      const onRetry = vi.fn();
+      render(<ErrorState onRetry={onRetry} />);
+      expect(screen.getByText("You're offline. This reloads as soon as you're back.")).toBeInTheDocument();
+      expect(document.body.textContent).not.toMatch(/our end/);
+      act(() => setConnectivity(true));
+      expect(onRetry).toHaveBeenCalledTimes(1);
+      expect(screen.getByText(/our end is having a hiccup/)).toBeInTheDocument();
+    } finally {
+      setConnectivity(true);
+    }
+  });
+
+  it("online from the start: the default words, and no retry by itself", () => {
+    const onRetry = vi.fn();
+    render(<ErrorState onRetry={onRetry} />);
+    expect(onRetry).not.toHaveBeenCalled();
+    expect(screen.getByText(/our end is having a hiccup/)).toBeInTheDocument();
+  });
+});

@@ -7,7 +7,8 @@
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enJobs";
-import { formatPrice, formatPriceFloor } from "@/lib/format";
+import { formatPrice, formatPriceExact, formatPriceFloor } from "@/lib/format";
+import { useHelprPaidOut } from "@/hooks/useHelprPaidOut";
 import { setupFeeWords } from "@/lib/takeHomeFeeWords";
 import { computeNet } from "@/components/dashboard/JobPrice";
 import { helperShareCount } from "@/lib/helperEarnings";
@@ -159,7 +160,7 @@ export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; tot
     <div data-poster-money-notes="" className="space-y-1.5">
       {line && <p className="text-ds-13 text-muted-foreground">{line}</p>}
       {released && (
-        <Link data-receipt-link="" to="/profile?tab=receipts" className="inline-block text-ds-14 font-semibold text-primary underline underline-offset-2">
+        <Link data-receipt-link="" to={`/profile?tab=receipts&job=${job.id}`} className="inline-block text-ds-14 font-semibold text-primary underline underline-offset-2">
           See your receipt
         </Link>
       )}
@@ -192,14 +193,20 @@ function helprNoPayWords(job: JobPageRow, noShow = false): { title: string; line
   return { title: "Not paid", line: "This job was cancelled, so there's nothing to pay out." };
 }
 
-/** "It was cancelled less than 3 hours before the start" (Louisiana start time), or "close to the start" without one. */
+/**
+ * "It was cancelled less than 24 hours before the start" (Louisiana start time), or "close to the start" without one.
+ * F285 (audit 11-10): it named the rounded-up gap ("less than 23 hours"), which read as a different rule from the
+ * 24-hour one everywhere else. It names the cancel ladder's own step instead (cancellationFeePercent: under 24 h,
+ * under 2 h), with "an hour" kept for the last hour.
+ */
 function lateBy(job: Pick<JobPageRow, "cancelled_at" | "date_needed" | "start_time">): string {
   const start = job.date_needed && job.start_time ? jobStartDateTime(job.date_needed, job.start_time) : null;
   const atMs = Date.parse(job.cancelled_at ?? "");
   const left = start && !Number.isNaN(atMs) ? start.getTime() - atMs : NaN;
   if (Number.isNaN(left) || left <= 0) return "It was cancelled close to the start";
-  const hours = Math.ceil(left / 3_600_000);
-  return hours <= 1 ? "It was cancelled less than an hour before the start" : `It was cancelled less than ${hours} hours before the start`;
+  const hours = left / 3_600_000;
+  if (hours <= 1) return "It was cancelled less than an hour before the start";
+  return `It was cancelled less than ${hours < 2 ? 2 : 24} hours before the start`;
 }
 
 /** The Helpr's take-home and the words that go with it (one computation: takeHomeOneComputation.test.ts). */
@@ -250,6 +257,15 @@ export function HelprPrice({ job, noShow = false }: { job: JobPageRow; noShow?: 
   );
 }
 
+/** F287 (audit 11-10): a paid job names what was sent and when ("Paid out $83 on Mon, Nov 9 at 2:10 PM."), from the
+ *  Helpr's own paid payout_transfers rows (useHelprPaidOut); the old words until that read answers. */
+function PaidOutLine({ jobId, fallback }: { jobId: string; fallback: string }) {
+  const { user } = useCurrentUser();
+  const out = useHelprPaidOut(jobId, user?.id, true);
+  const words = out ? `Paid out $${formatPriceExact(out.cents / 100)} on ${payoutWhen(out.at)}.` : fallback;
+  return <p data-helpr-paid="" className="text-ds-14 font-semibold text-foreground">{words}</p>;
+}
+
 /**
  * Under the header: a crew share and the one-time setup fee; and for the hired Helpr of a finished, approved job, that
  * it is paid and when the pay goes out (JA-22, Jobs audit 11-01: the poster's page said it, the Helpr's did not).
@@ -272,7 +288,8 @@ export function HelprMoneyNotes({ job, hired, noShow = false }: { job: JobPageRo
   if (!paid && lines.length === 0) return null;
   return (
     <div data-helpr-money-notes="" className="space-y-1.5">
-      {paid && <p data-helpr-paid="" className="text-ds-14 font-semibold text-foreground">{paid}</p>}
+      {paid && job.payment_status === "released" ? <PaidOutLine jobId={job.id} fallback={paid} />
+        : paid && <p data-helpr-paid="" className="text-ds-14 font-semibold text-foreground">{paid}</p>}
       {lines.length > 0 && <p className="text-ds-13 text-muted-foreground">{lines.join(" ")}</p>}
     </div>
   );

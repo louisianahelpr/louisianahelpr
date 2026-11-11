@@ -3695,6 +3695,21 @@ button,
   }
 }
 
+/* F436 (whole-app audit 2026-11-10): the Posts card a notification opened. No ring (owner, 2026-10-09: the orange
+   outline read as an error), just a soft olive wash that fades by itself; with Reduce Motion nothing is painted. */
+@keyframes highlight-soft-fade {
+  0%   { background-color: hsl(var(--bark) / 0.14); }
+  100% { background-color: transparent; }
+}
+.highlight-soft {
+  animation: highlight-soft-fade 2.4s var(--ease-out) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .highlight-soft {
+    animation: none;
+  }
+}
+
 /* Status-tier gold treatments — used by Pro / Elite subscription
    badges and by earned prestige (Top Rated, Elite Helpr). Matches the
    wrought-iron logo's gold finials. Burnt-Sienna text for contrast on

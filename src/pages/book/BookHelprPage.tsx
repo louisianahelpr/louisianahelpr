@@ -132,7 +132,9 @@ export default function BookHelprPage() {
     <EmptyState
       icon={UserX}
       title="This Helpr isn't available"
-      body="The link may be old, or the account is no longer on Helpr. You can still post a job for anyone nearby."
+      // F271a: no row from get_safe_profiles means unverified, banned, anonymised or a hidden test account as often as
+      // a departed member; the page cannot tell which, so it never says the person left.
+      body="The link may be old, or this profile isn't public right now. You can still post a job for anyone nearby."
       action={
         <Button asChild className="btn-grad-primary rounded-full">
           <Link to={user ? "/post-job" : "/signup"}>Post a job</Link>

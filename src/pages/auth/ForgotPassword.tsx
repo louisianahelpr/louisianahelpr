@@ -22,6 +22,9 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 const RESEND_COOLDOWN_S = 60;
+// F260b (audit 11-10): the reset-link send can take 4-10 s on prod. After this
+// long the screen says the send is still going, so nobody presses twice or leaves.
+const SLOW_SEND_MS = 3000;
 
 const ForgotPassword = () => {
   // Tab title tracks the h1 verbatim. The screen used to carry three nouns for
@@ -37,6 +40,12 @@ const ForgotPassword = () => {
   const carried = (useLocation().state as { email?: unknown } | null)?.email;
   const [email, setEmail] = useState(typeof carried === "string" ? carried : "");
   const [loading, setLoading] = useState(false);
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (!loading) { setSlow(false); return; }
+    const id = window.setTimeout(() => setSlow(true), SLOW_SEND_MS);
+    return () => window.clearTimeout(id);
+  }, [loading]);
   const [sent, setSent] = useState(false);
   // Resend cooldown — counts down from 60s after each send so users can
   // re-trigger the email without spam-clicking but also know how long to
@@ -222,6 +231,7 @@ const ForgotPassword = () => {
                     : t("forgot.resend")}
               </Button>
             </div>
+            {slow && <p role="status" data-forgot-slow="" className="text-ds-12 text-center font-sans text-muted-foreground">{t("forgot.stillSending")}</p>}
           </div>
         ) : (
             <form
@@ -299,6 +309,7 @@ const ForgotPassword = () => {
               >
                 {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t("forgot.sending")}</> : t("forgot.send")}
               </Button>
+              {slow && <p role="status" data-forgot-slow="" className="text-ds-12 text-center font-sans text-muted-foreground">{t("forgot.stillSending")}</p>}
             </form>
         )}
         {/* Turnstile for resetPasswordForEmail (Q1314), mounted in BOTH states

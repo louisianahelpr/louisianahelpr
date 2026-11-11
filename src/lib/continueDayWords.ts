@@ -71,7 +71,9 @@ export function continueDayNextStep(
   if (o.side === "poster") {
     return row.helper_confirmed_at
       ? { who: "info", text: `${other || "Your Helpr"} confirmed ${when}` }
-      : { who: "them", text: `Continuing ${when}`, by: `waiting on ${other || "your Helpr"} to confirm` };
+      : // F289a (audit 11-10): "Continuing … · waiting on Hallie to confirm" over Change day and Message left a
+        // first-time poster unsure whether they owed something. It names the visit and says they owe nothing.
+        { who: "them", text: `${other || "Your Helpr"} comes back ${when}`, by: `nothing for you to do; ${other || "your Helpr"} confirms next` };
   }
   return row.helper_confirmed_at
     ? { who: "info", text: `You're set for ${when}`, by: "mark it done when you finish" }

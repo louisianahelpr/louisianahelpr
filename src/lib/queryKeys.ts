@@ -168,6 +168,10 @@ export const queryKeys = {
       feeFallbackPercent: number,
     ) => ["earnings-forecast", helperId, startISO, endISO, feeFallbackPercent] as const,
   },
+  /** The reviews the signed-in member wrote on one job (F278 "See your review"). */
+  yourReviews: {
+    forJob: (userId: string, jobId: string) => ["your-reviews", userId, jobId] as const,
+  },
   /** Public review wall rendered on /user/:userId. */
   publicReviewWall: {
     all: ["public-review-wall"] as const,

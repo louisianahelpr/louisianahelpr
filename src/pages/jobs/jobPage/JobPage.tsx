@@ -31,11 +31,11 @@ import { seriesSummary } from "@/lib/format";
 import { JobTracker, PosterPrice, PosterMoneyNotes, HelprPrice, HelprMoneyNotes, PostedBy, HiredHelpr, RevisionAsk } from "./JobPageParts";
 import { OnTheWayNow, showsNow } from "./OnTheWayNow";
 import { JobPageActionRow, type RowAction } from "./JobPageActionRow";
+import { ReportJobControl } from "./ReportJobControl";
 import { useExpiredRepost } from "./ExpiredRepost";
 import { StickyActionBar, StickyActionSpacer } from "@/components/ui/StickyActionBar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
-import { reviewTimeLeft } from "./reviewTimeLeft";
+import { approveDeadlineMs, reviewTimeLeft } from "./reviewTimeLeft";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { mapsSearchUrl } from "@/lib/mapsLink";
 import { canLeaveSeries, HiredSeriesSection, useJobSeriesState, withLeaveSeries } from "./HiredSeriesSection";
@@ -278,7 +278,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // in working, it leads and the other sits beside it. JA-30: while a dispute is open "See the case" opens the case itself
   // (DisputeTimelineDialog); owner pick 11-08 (JP2): it is the primary while no step of the page's own is due, Message beside it.
   const seeCase: RowAction | null = party && (isPoster || isHired) && (job.status === "disputed" || !!job.has_active_dispute)
-    ? { key: "see-case", label: t("jobPage.seeCase"), go: () => setCaseOpen(true) } : null;
+    ? { key: "see-case", label: t(isHired && job.has_active_dispute ? "jobPage.addYourSide" : "jobPage.seeCase"), go: () => setCaseOpen(true) } : null;
   const { row: hiredRow, leaveInMenu } = (() => {
     if (!hiredFace) return { row: null, leaveInMenu: false };
     const msg: RowAction | null = job.customer_id && !job.is_group_job ? { key: "message", label: `Message ${posterFirst ?? "them"}`, go: messagePoster } : null;
@@ -293,9 +293,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     const lead: RowAction = faceIs === "message" && msg ? msg
       : faceIs === "working" ? { ...work, label: doneLocked ? work.label : hiredFace.label }
       : { key: "step", label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled };
-    // L27 JA-F2: a cancelled job is in no live Working list, so "Open in working" there is a dead end: not offered.
-    // With a step of the Working card's own due, "See the case" is the first of the others (the secondary).
-    const extras = [faceIs === "step" ? seeCase : null, msg, job.status === "cancelled" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
+    // L27 JA-F2: a cancelled job is in no live Working list, so "Open in working" there is a dead end: not offered; nor on
+    // a paid job (F287, audit 11-10: it only went back to the list). "See the case" leads the others when a step is due.
+    const extras = [faceIs === "step" ? seeCase : null, msg, job.status === "cancelled" || job.payment_status === "released" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
     // Continue another day: a set day the Helpr has not confirmed leads; "Not finished? Set a day" sits with the others.
     // A3-44: "Leave series" joins More options only when that makes 2+ items (owner 5:42 PM); else it stays a link.
     const leaveAction: RowAction = { key: "leave-series", label: "Leave series", go: () => setLeaveOpen(true), danger: true };
@@ -369,9 +369,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const helprCancelled = cancelledRow ? { name: cancelledHelprFirst, at: cancelledRow.at } : null;
   // The review window, IN the next-step line (owner 11-01: "Next: approve Yusef's work · 23h 52m left, then Helpr
   // support steps in"); nothing releases on a timer (owner 2026-10-23), so the words say who steps in.
-  const approveLeft = isPoster && posterWait === "approve" && job.helper_completed_at && !instantRelease
-    ? reviewTimeLeft(new Date(job.helper_completed_at).getTime() + hoursToMs(APPROVAL_WINDOW_HOURS))
-    : null;
+  // F274: a sent fix is timed by revision_acceptance_deadline, a fix not sent yet has no clock (approveDeadlineMs).
+  const approveBy = isPoster && posterWait === "approve" && !instantRelease ? approveDeadlineMs(job) : null;
+  const approveLeft = approveBy == null ? null : reviewTimeLeft(approveBy);
   const posterDetails = job.description?.trim() ?? "";
   // On a phone the details read two lines with "Show more" (mockup 5); a short one has nothing more to show.
   const detailsLong = posterDetails.length > 90 || posterDetails.includes("\n");
@@ -397,7 +397,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     <AppPage
       title={job.title}
       backTo={isPoster ? "/posts" : "/jobs"}
-      titleActions={<>{share}<span ref={setMenuHost} data-job-menu-host="" className="contents" /></>}
+      titleActions={<>{share}{!isPoster && <ReportJobControl jobId={job.id} posterId={job.customer_id ?? null} posterFirst={posterFirst} />}<span ref={setMenuHost} data-job-menu-host="" className="contents" /></>}
     >
       <div data-job-page="" data-layout="v2" className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-x-6 lg:gap-y-5">
         <section aria-label={t("jobPage.summary")} data-job-head="" className="space-y-2 lg:col-span-2">

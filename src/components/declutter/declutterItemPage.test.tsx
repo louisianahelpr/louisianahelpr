@@ -43,6 +43,9 @@
  * @mutate src/components/declutter/DeclutterBundleRow.tsx |   if (!enabled \|\| buyable.length === 0 \|\| card.isLoading) return null; |   if (!enabled \|\| card.isLoading) return null;
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const isSeller = ownListing && !preview; |   const isSeller = ownListing;
  * Tester 5, 10-30: pressing Buy now in the preview showed nothing, because toast.info renders nothing in the app.
+ * Audit 11-10 F359f: the owner's item page shows the open trade offer for it with Accept / Decline.
+ * @mutate src/components/declutter/DeclutterItemView.tsx |           {isSeller && user && it.status === "live" && it.accepts_trades === true && <Suspense fallback={null}><ItemTradeOffers itemId={it.id} userId={user.id} /></Suspense>}\n |
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx | (t) => t.status === "open" && t.item?.id === itemId | (t) => t.status === "open"
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const noteOwnListing = () => setPreviewPressed(true); |   const noteOwnListing = () => toast.info(PREVIEW_ACTION_NOTE);
  * @mutate src/components/declutter/DeclutterItemView.tsx |               onClickCapture={(e) => { e.preventDefault(); e.stopPropagation(); noteOwnListing(); }} |               onClickCapture={() => noteOwnListing()}
  */
@@ -73,6 +76,8 @@ const state = {
   reads: 0,
   geo: { status: "idle" } as unknown,
   handovers: null as string[] | null,
+  /** Audit 11-10 F359f: the member's trade offers (both sides read the same mock). */
+  trades: [] as unknown[],
 };
 const calls: [string, unknown[]][] = [];
 // A PostgREST builder that records each call and resolves to state.tableRows.
@@ -161,6 +166,10 @@ vi.mock("@/lib/declutter/api", async () => {
     startCardSave: async () => "https://stripe",
   };
 });
+vi.mock("@/lib/declutter/trades", async () => ({
+  ...(await vi.importActual<typeof import("@/lib/declutter/trades")>("@/lib/declutter/trades")),
+  fetchMyTrades: async () => state.trades,
+}));
 vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
 
 import DeclutterItemPage from "@/pages/declutter/DeclutterItemPage";
@@ -212,6 +221,7 @@ describe("the photo-first Declutter item page", () => {
     state.sold = null;
     state.drop = null;
     state.manage = null;
+    state.trades = [];
     calls.length = 0;
   });
   afterEach(() => {
@@ -315,6 +325,14 @@ describe("the photo-first Declutter item page", () => {
     expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("Buyers see your exact address only after they pay");
     expect(document.body.textContent).not.toMatch(/after you pay/);
     state.geo = { status: "idle" };
+  });
+
+  // Audit 11-10 F359d: the giver of a free item reads who sees the address in giver words, not "buyers ... picked".
+  // @mutate src/components/declutter/ItemPickupBlock.tsx | "they'll see your exact address only once you pick them" | "buyers see your exact address only once they're picked"
+  it("F359d: the giver's own free item says they'll see the address once you pick them", async () => {
+    state.item = { ...ITEM, seller_id: "u1", price_cents: 0, current_price_cents: 0 };
+    open();
+    await waitFor(() => expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("They'll see your exact address only once you pick them"));
   });
 
   // Deep audit #23: a free item is claimed, never offered on; its page must not end with "Make an offer".
@@ -712,6 +730,27 @@ describe("the photo-first Declutter item page", () => {
     await waitFor(() => expect(state.reads).toBe(2));
     await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
     expect(document.querySelector("[data-price-drop]")).toBeNull();
+  });
+
+  it("F359f: the owner's page shows the open trade offer for this listing with Accept / Decline; one for another listing does not show", async () => {
+    state.item = { ...ITEM, seller_id: "u1", accepts_trades: true, live_at: new Date(Date.now() - 60_000).toISOString() };
+    const trade = (id: string, itemId: string, offered: string) => ({ id, status: "open", respond_by: new Date(Date.now() + 47 * 3_600_000).toISOString(),
+      created_at: "2026-11-10T00:00:00Z", item: { id: itemId, title: "Oak rocking chair", current_price_cents: 4000 },
+      offered: { id: `o-${id}`, title: offered, current_price_cents: 2500 }, my_side: "seller", my_line_status: null, talk_order_id: null });
+    state.trades = [trade("t-other", "elsewhere", "Desk lamp"), trade("t1", ID, "Bluetooth speaker")];
+    open();
+    await screen.findByText("Your listing is for sale");
+    const card = await waitFor(() => {
+      const el = document.querySelector('[data-trade-card="t1"]') as HTMLElement | null;
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
+    expect(card.textContent).toContain("Trade offer");
+    expect(card.textContent).toContain("Bluetooth speaker");
+    expect(within(card).getByRole("button", { name: "Accept trade" })).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Decline" })).toBeInTheDocument();
+    expect(document.querySelector('[data-trade-card="t-other"]')).toBeNull();
+    expect(screen.queryByText("Desk lamp")).toBeNull();
   });
 
   it("seller: a lowest price at the price can't drop, so nothing is said about drops (owner 2026-10-30)", async () => {

@@ -8,10 +8,15 @@
  * @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |       {way && !unpriced && ( |       {way && (
  * @mutate src/components/declutter/DeclutterCheckoutSummary.tsx | value={wayCents === 0 \|\| pickup ? | value={pickup ? exact(0) :
  * @mutate src/components/declutter/DeclutterCheckoutSummary.tsx | {exact(gift.onCardCents)} | {exact(payCents)}
+ * Audit 11-10 F354: the Service fee tip says how the fee is worked out, per way, matching the fee the server charges.
+ * @mutate src/components/declutter/DeclutterCheckoutSummary.tsx | tip={way === "seller_delivery" ? SUMMARY_TIPS.serviceFeeSellerDelivery : way === "ship" ? SUMMARY_TIPS.serviceFeeShip : SUMMARY_TIPS.serviceFee} /> | tip={SUMMARY_TIPS.serviceFee} />
+ * @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |   serviceFee: "$0.70 plus 5% of the items, | serviceFee: "It keeps Declutter running,
  */
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { CheckoutPriceSummary, SUMMARY_TIPS } from "@/components/declutter/DeclutterCheckoutSummary";
+import { checkoutAmounts } from "@/lib/declutter/money";
+import { sellerDeliveryAmounts } from "@/lib/declutter/sellerDelivery";
 
 const cents = (el: Element | null) => Math.round(Number((el?.textContent ?? "").replace(/[^0-9.]/g, "") || "0") * 100);
 const line = (k: string) => document.querySelector(`[data-summary-line="${k}"]`);
@@ -29,6 +34,25 @@ describe("owner 11-07: the checkout price summary", () => {
       .toBe(cents(line("total")!.querySelector("dd")));
     fireEvent.click(screen.getByRole("button", { name: "About Service fee" }));
     expect(await screen.findByText(SUMMARY_TIPS.serviceFee)).toBeInTheDocument();
+  });
+
+  it("F354: the Service fee tip says how it is worked out, and the words agree with the fee charged", async () => {
+    // The tip's rule, checked against the preview of declutter_buyer_fee_cents: $0.70 + 5% ($2.45 on $35, $0.85 on $3).
+    expect(SUMMARY_TIPS.serviceFee.startsWith("$0.70 plus 5% of the items, once per checkout")).toBe(true);
+    expect(checkoutAmounts([3500]).premiumCents).toBe(70 + Math.round(3500 * 0.05));
+    expect(checkoutAmounts([300]).premiumCents).toBe(85);
+    expect(SUMMARY_TIPS.serviceFeeSellerDelivery.startsWith("$0.70 plus 5% of the items and the seller's delivery")).toBe(true);
+    expect(sellerDeliveryAmounts(3000, 1000).premiumCents).toBe(70 + Math.round(4000 * 0.05));
+    for (const t of [SUMMARY_TIPS.serviceFee, SUMMARY_TIPS.serviceFeeSellerDelivery, SUMMARY_TIPS.serviceFeeShip]) expect(t).toContain("The seller gets the full item price.");
+    const { unmount } = render(<CheckoutPriceSummary itemCount={1} itemsCents={3000} discountCents={0} way="seller_delivery" wayCents={1000} serviceFeeCents={270}
+      setupFeeCents={0} setupFeeKnown taxCents={0} payCents={4270} />);
+    fireEvent.click(screen.getByRole("button", { name: "About Service fee" }));
+    expect(await screen.findByText(SUMMARY_TIPS.serviceFeeSellerDelivery)).toBeInTheDocument();
+    unmount();
+    render(<CheckoutPriceSummary itemCount={1} itemsCents={3000} discountCents={0} way="ship" wayCents={900} serviceFeeCents={265}
+      setupFeeCents={0} setupFeeKnown taxCents={0} payCents={4165} />);
+    fireEvent.click(screen.getByRole("button", { name: "About Service fee" }));
+    expect(await screen.findByText(SUMMARY_TIPS.serviceFeeShip)).toBeInTheDocument();
   });
 
   it("Helpr delivery priced: its own line with the amount; not priced yet: no line, the Total says + delivery", () => {

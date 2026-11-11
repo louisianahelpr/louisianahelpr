@@ -44,7 +44,7 @@
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const gotIt = !payBy && accepted.some((r) => r.paid === true \|\| r.paid === undefined); |   const gotIt = false;
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const payBy = accepted.find((r) => r.checkout_by && !r.paid); |   const payBy = undefined as WantedReply \| undefined;
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | r.respond_by ? `Answer by ${byWords(r.respond_by)}` : "Waiting for you" | "Waiting for you"
- * @mutate src/components/declutter/DeclutterWantedViews.tsx | {post.status === "open" && post.expires_at && ` · Open until | {false && ` · Open until
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | {post.status === "open" && post.expires_at && postTimeLeft(post.expires_at) && | {false &&
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const matches = post.matches.filter((m) => !answered.has(m.id)); |   const matches = post.matches;
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | onConfirm={() => remove.mutate()} | onConfirm={() => {}}
  * Audit 10-30 #13: the address drops post=1 once the form is open, and what was typed survives a reload.
@@ -182,7 +182,10 @@ describe("the Wanted hub", () => {
     closed.length = 0;
     vi.mocked(toast).mockClear();
     open();
-    fireEvent.click(await screen.findByRole("button", { name: "Close" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Stop looking" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet.getAttribute("data-confirm-sheet")).toBe("wanted-stop");
+    fireEvent.click(within(sheet).getByRole("button", { name: "Stop looking" }));
     await waitFor(() => expect(closed).toEqual(["w9"]));
     await waitFor(() => expect(vi.mocked(toast)).toHaveBeenCalledWith(
       "Closed. No more alerts or answers. The answer you already have stays in Buying until you accept or decline."));
@@ -278,7 +281,7 @@ describe("the Wanted hub", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Post again" }));
     await waitFor(() => expect(lifecycle).toEqual([["reopen", "w9"]]));
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Stop looking" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));
     const confirm = await screen.findByRole("dialog");
     expect(lifecycle).toHaveLength(1);
@@ -302,12 +305,13 @@ describe("the Wanted hub", () => {
   it("A3-77: a reply says answer by when, an accepted one says check out by when, and the post says open until", async () => {
     const due = "2026-11-03T20:00:00Z";
     const words = new Date(due).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
-    mine.rows = [{ ...POST, replies: [{ ...POST.replies[0], respond_by: due }] }];
+    const in20 = new Date(Date.now() + 20.5 * 86_400_000).toISOString();
+    mine.rows = [{ ...POST, expires_at: in20, replies: [{ ...POST.replies[0], respond_by: due }] }];
     open();
     const card = (await screen.findByText("Red bike")).closest("li[data-wanted-post]") as HTMLElement;
     expect(card.querySelector('[data-wanted-reply="o1"]')!.textContent).toBe(`Red bike · Sam G. · $25 · Answer by ${words}`);
     expect(within(card).getByText(`Next: answer Sam G.'s $25 offer · by ${words}`)).toBeInTheDocument();
-    expect(card.textContent).toContain(`Open until ${new Date(POST.expires_at).toLocaleDateString([], { month: "short", day: "numeric" })}`);
+    expect(card.textContent).toContain(" · 20 days left");
     cleanup();
     mine.rows = [{ ...POST, replies: [{ ...POST.replies[0], status: "accepted", checkout_by: due, paid: false }] }];
     open();
@@ -335,7 +339,6 @@ describe("the Wanted hub", () => {
   // @mutate src/components/declutter/DeclutterWantedViews.tsx |       <NextStep value={wantedNextStep(post, gotIt, payBy?.checkout_by ?? null)} /> |
   // @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (yours > 0) return { who: "you", |   if (yours < 0) return { who: "you",
   // @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (post.status === "expired") return { who: "you", text: "Post it again to keep looking" }; |
-  // @mutate src/components/declutter/DeclutterWantedViews.tsx | text: "Waiting on sellers near you to answer", by: postTimeLeft(post.expires_at, now) | text: "Waiting on sellers near you to answer"
   // @mutate src/components/declutter/DeclutterWantedViews.tsx |   return ms > 2 * 86_400_000 ? `${Math.floor(ms / 86_400_000)} days left` : timeLeft(expiresAt, now); |   return timeLeft(expiresAt, now);
   it("Next-step line: your move on each post, or who it waits on and the days left", async () => {
     const line = async (rows: WantedPost[]) => {
@@ -355,7 +358,7 @@ describe("the Wanted hub", () => {
     expect(l.getAttribute("data-next-step")).toBe("info");
     const in12 = new Date(Date.now() + 12.5 * 86_400_000).toISOString();
     l = await line([{ ...POST, expires_at: in12, replies: [] }]);
-    expect(l.textContent).toBe("Waiting on sellers near you to answer · 12 days left");
+    expect(l.textContent).toBe("Waiting on sellers near you to answer");
     expect(l.getAttribute("data-next-step")).toBe("them");
   });
 
@@ -479,5 +482,34 @@ describe("the Wanted hub", () => {
       expect(screen.queryByRole("dialog")).toBeNull();
     });
     expect(posted[0]).toEqual([{ what: "Kids bike, 16 inch", maxPrice: "30", category: "baby_kids", radius: 25 }, { lat: 30, lng: -92 }]);
+  });
+
+  // F349 (audit 11-10): the card said "Open", "Open until Dec 10" and "29 days left" at once, and "Close" sat next to
+  // "Edit" with no confirm while "Remove" had one. Now one "29 days left" on the card's own line, no chip while open,
+  // and "Stop looking" asks first.
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |         {post.status !== "open" && ( |         {true && (
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx | onClick={() => setConfirmStop(true)}> | onClick={() => close.mutate()}>
+  it("F349: an open post says the days left once, with no Open chip; Stop looking asks before closing", async () => {
+    const in29 = new Date(Date.now() + 29.5 * 86_400_000).toISOString();
+    mine.rows = [{ ...POST, expires_at: in29, replies: [] }];
+    closed.length = 0;
+    open();
+    const card = (await screen.findByText("Kids bike")).closest("li[data-wanted-post]") as HTMLElement;
+    expect(card.querySelector("[data-status]")).toBeNull();
+    expect(card.textContent).not.toMatch(/Open until/);
+    expect(card.textContent?.match(/29 days left/g)).toHaveLength(1);
+    expect(within(card).queryByRole("button", { name: "Close" })).toBeNull();
+    fireEvent.click(within(card).getByRole("button", { name: "Stop looking" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet.getAttribute("data-confirm-sheet")).toBe("wanted-stop");
+    expect(sheet.textContent).toContain("Stop looking?");
+    expect(closed).toEqual([]);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Stop looking" }));
+    await waitFor(() => expect(closed).toEqual(["w9"]));
+    cleanup();
+    mine.rows = [{ ...POST, status: "closed", replies: [] }];
+    open();
+    const done = (await screen.findByText("Kids bike")).closest("li[data-wanted-post]") as HTMLElement;
+    expect(done.querySelector("[data-status='closed']")?.textContent).toBe("Closed");
   });
 });

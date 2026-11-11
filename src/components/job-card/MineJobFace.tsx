@@ -102,6 +102,102 @@ export function MineJobFace({
   const navigate = useNavigate();
   const onOpen = () => navigate(`/jobs/${encodeURIComponent(jobId)}`);
   const chipFaceLabel = action?.chip ? buttonLabel(action.label) : null;
+  const actionNode = action?.also ? (
+        // A waiting card (owner, 2026-10-23, card critique item 13): its one button is "Message <name>", and the
+        // card's controls are a small text link beside it, not a second full-width pill.
+        <div className="order-3 mt-2 flex items-center gap-3 md:order-none md:mt-0 md:shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            data-mine-face-action={action.tone}
+            size="sm"
+            className="min-w-0 flex-1 rounded-full font-semibold md:min-w-40 md:flex-none md:px-6"
+            onClick={(e) => {
+              e.stopPropagation();
+              action.onClick();
+            }}
+          >
+            {action.label}
+          </Button>
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            data-mine-face-also=""
+            className="shrink-0 px-0 text-ds-13 text-muted-foreground"
+            onClick={(e) => {
+              e.stopPropagation();
+              action.also?.onClick();
+            }}
+          >
+            {action.also.label}
+          </Button>
+        </div>
+      ) : action?.chip ? (
+        // One primary with the face's usual button stepped down to a chip beside it (lead 11-05, a proposed new day).
+        <div className="order-3 mt-2 flex items-center gap-2 md:order-none md:mt-0 md:shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            data-mine-face-chip=""
+            className="shrink-0 rounded-full px-4 font-semibold"
+            onClick={(e) => {
+              e.stopPropagation();
+              action.chip?.onClick();
+            }}
+          >
+            {action.chip.label}
+          </Button>
+          <Button
+            type="button"
+            variant={action.tone === "primary" ? "primary" : "outline"}
+            disabled={action.disabled}
+            data-mine-face-action={action.tone}
+            size="sm"
+            className="min-w-0 flex-1 rounded-full font-semibold md:min-w-40 md:flex-none md:px-6"
+            aria-label={buttonLabel(action.label) !== action.label ? action.label : undefined}
+            onClick={(e) => {
+              e.stopPropagation();
+              action.onClick();
+            }}
+          >
+            {chipFaceLabel}
+          </Button>
+        </div>
+      ) : action && (
+        <Button
+          type="button"
+          variant={action.tone === "primary" ? "primary" : "outline"}
+          disabled={action.disabled}
+          data-mine-face-action={action.tone}
+          size="sm"
+          className="order-3 mt-2 w-full rounded-full font-semibold md:mt-0 md:w-auto md:min-w-40 md:px-6 md:shrink-0 md:order-none"
+          aria-label={buttonLabel(action.label) !== action.label ? action.label : undefined}
+          onClick={(e) => {
+            e.stopPropagation();
+            action.onClick();
+          }}
+        >
+          {/* Owner 11-01: every confirm reads just "Confirm" (pairLabel.ts buttonLabel); the full words are its name. */}
+          {buttonLabel(action.label)}
+        </Button>
+      );
+  const underNode = action?.under && (
+        <Button
+          type="button"
+          variant="link"
+          size="sm"
+          data-mine-face-under-action=""
+          className="mt-1 w-full px-0 text-ds-14 font-semibold md:w-auto md:justify-end"
+          onClick={(e) => {
+            e.stopPropagation();
+            action.under?.onClick();
+          }}
+        >
+          {action.under.label}
+        </Button>
+      );
   return (
     <div data-mine-face="" className="flex flex-col px-3.5 py-3 md:flex-row md:flex-wrap md:items-center md:gap-x-6 md:gap-y-2">
       {/* Tight like Browse's card (owner 2026-10-25, "polish these cards, kind of a lot of spacing"): 14px sides, 12px
@@ -193,103 +289,15 @@ export function MineJobFace({
           </div>
         )}
       </div>
-      {action?.also ? (
-        // A waiting card (owner, 2026-10-23, card critique item 13): its one button is "Message <name>", and the
-        // card's controls are a small text link beside it, not a second full-width pill.
-        <div className="order-3 mt-2 flex items-center gap-3 md:order-none md:mt-0 md:shrink-0">
-          <Button
-            type="button"
-            variant="outline"
-            data-mine-face-action={action.tone}
-            size="sm"
-            className="min-w-0 flex-1 rounded-full font-semibold md:min-w-40 md:flex-none md:px-6"
-            onClick={(e) => {
-              e.stopPropagation();
-              action.onClick();
-            }}
-          >
-            {action.label}
-          </Button>
-          <Button
-            type="button"
-            variant="link"
-            size="sm"
-            data-mine-face-also=""
-            className="shrink-0 px-0 text-ds-13 text-muted-foreground"
-            onClick={(e) => {
-              e.stopPropagation();
-              action.also?.onClick();
-            }}
-          >
-            {action.also.label}
-          </Button>
+      {/* F275a (audit 11-10): from 768px the step's other answer ("Something's not right") sat on its own row ~60px
+          under the button it belongs to. The button and its answer are one right-aligned column. */}
+      {action?.under ? (
+        <div data-mine-face-action-group="" className="order-3 flex flex-col md:order-none md:mt-0 md:shrink-0 md:items-end">
+          {actionNode}
+          {underNode}
         </div>
-      ) : action?.chip ? (
-        // One primary with the face's usual button stepped down to a chip beside it (lead 11-05, a proposed new day).
-        <div className="order-3 mt-2 flex items-center gap-2 md:order-none md:mt-0 md:shrink-0">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            data-mine-face-chip=""
-            className="shrink-0 rounded-full px-4 font-semibold"
-            onClick={(e) => {
-              e.stopPropagation();
-              action.chip?.onClick();
-            }}
-          >
-            {action.chip.label}
-          </Button>
-          <Button
-            type="button"
-            variant={action.tone === "primary" ? "primary" : "outline"}
-            disabled={action.disabled}
-            data-mine-face-action={action.tone}
-            size="sm"
-            className="min-w-0 flex-1 rounded-full font-semibold md:min-w-40 md:flex-none md:px-6"
-            aria-label={buttonLabel(action.label) !== action.label ? action.label : undefined}
-            onClick={(e) => {
-              e.stopPropagation();
-              action.onClick();
-            }}
-          >
-            {chipFaceLabel}
-          </Button>
-        </div>
-      ) : action && (
-        <Button
-          type="button"
-          variant={action.tone === "primary" ? "primary" : "outline"}
-          disabled={action.disabled}
-          data-mine-face-action={action.tone}
-          size="sm"
-          className="order-3 mt-2 w-full rounded-full font-semibold md:mt-0 md:w-auto md:min-w-40 md:px-6 md:shrink-0 md:order-none"
-          aria-label={buttonLabel(action.label) !== action.label ? action.label : undefined}
-          onClick={(e) => {
-            e.stopPropagation();
-            action.onClick();
-          }}
-        >
-          {/* Owner 11-01: every confirm reads just "Confirm" (pairLabel.ts buttonLabel); the full words are its name. */}
-          {buttonLabel(action.label)}
-        </Button>
-      )}
+      ) : actionNode}
       <MineFaceNote note={action?.note} className="order-3 mt-1 md:order-none md:basis-full md:mt-0 md:text-right" />
-      {action?.under && (
-        <Button
-          type="button"
-          variant="link"
-          size="sm"
-          data-mine-face-under-action=""
-          className="order-3 mt-1 w-full px-0 text-ds-14 font-semibold md:order-none md:basis-full md:mt-0 md:justify-end"
-          onClick={(e) => {
-            e.stopPropagation();
-            action.under?.onClick();
-          }}
-        >
-          {action.under.label}
-        </Button>
-      )}
       {/* The tracker under the face, above the button on phone (order); from 768px a full-width row of its own under face + button, so the
           eight full step names fit beside the rail. */}
       {/* A2-L19 (2026-10-29): no bar for a cancelled (or refunded) card. Its "cancelled" tone is eight empty grey

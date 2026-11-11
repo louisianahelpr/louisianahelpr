@@ -10,16 +10,18 @@
  * Its own module: DeclutterHandoverViews is at the component-size limit.
  */
 import { lazy, Suspense, useState } from "react";
-import { useInRouterContext, useSearchParams } from "react-router-dom";
+import { Link, useInRouterContext, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { scanMessage } from "@/lib/messageScanner";
 import { useManagerLabels } from "@/lib/declutter/managerMode";
 import { fetchMyOrderTalks, fetchOrderTalk, MY_ORDER_TALKS_KEY, sendOrderMessage } from "@/lib/declutter/orderTalk";
 import { talkTime } from "@/lib/declutter/talkTime";
+import { dateDividerLabel } from "@/components/messages/chatView/chatViewHelpers";
 import { focusSheetItself } from "./focusSheetItself";
 import { useMarkTalkRead } from "./useMarkTalkRead";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +31,10 @@ const OrderTalkStep = lazy(() => import("./OrderTalkStep"));
 
 // AUD31-12: the weekday alone only within 6 days; older lines carry their date.
 const when = (iso: string) => talkTime(iso);
+// F424 (audit 11-10): each line said "Mon 12:32 PM" where the job chat has Today / Yesterday dividers. Lines now sit
+// under the job chat's own day dividers (dateDividerLabel) and carry the clock time only.
+const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+const dayKey = (iso: string) => new Date(iso).toDateString();
 
 /** "Message the seller" / "Message the buyer" on a paid order card: puts ?order_talk=<order id> on the address. */
 export function OrderTalkButton(props: { orderId: string; side: "buyer" | "seller"; trade?: boolean }) {
@@ -82,6 +88,7 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
   const labels = useManagerLabels("order_talk", (talk.data?.messages ?? []).map((m) => m.id));
   const itemTitle = talks.data?.find((r) => r.order_id === orderId)?.title ?? null;
   const [draft, setDraft] = useState("");
+  const leak = draft.trim() ? scanMessage(draft)[0] ?? null : null;
   // AUD31-11: a refused message is said under the box, as Questions does, never in a toast over the box and draft.
   const [refusal, setRefusal] = useState<string | null>(null);
   const send = useMutation({
@@ -110,6 +117,11 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
           <div className="mt-2 space-y-3">
             {/* A3-27 (audit 11-01): the same next step the order card shows, with its one button. */}
             {(t.side === "buyer" || t.side === "seller") && <Suspense fallback={null}><OrderTalkStep orderId={orderId} side={t.side} /></Suspense>}
+            {/* Audit 11-10 F360e: from Messages there was no way back to the order itself; the order's own tab link
+                (BUY-30's &order=) opens and scrolls to its card, and leaving this address closes the chat. */}
+            {(t.side === "buyer" || t.side === "seller") && (
+              <Link to={`/declutter?tab=${t.side === "seller" ? "selling" : "buying"}&order=${orderId}`} className="link-standard inline-flex min-h-11 items-center text-ds-14 font-semibold" data-order-talk-see-order="">See the order</Link>
+            )}
             <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
               Only you and the {other} can read this. Keep phone numbers, emails and payment out of the chat.
               {open && t.open_until ? ` It's open until ${when(t.open_until)}.` : ""}
@@ -122,22 +134,32 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
             )}
             <ol className="space-y-2" aria-label="Messages">
               {t.messages.length === 0 && <li className="text-ds-13 text-muted-foreground">No messages yet.</li>}
-              {t.messages.map((m) => (
+              {t.messages.map((m, i) => [
+                (i === 0 || dayKey(t.messages[i - 1].created_at) !== dayKey(m.created_at)) && (
+                  <li key={`day-${m.id}`} role="separator" aria-label={`Date: ${dateDividerLabel(new Date(m.created_at))}`} data-order-talk-day=""
+                    className="pt-2 text-center text-ds-10 font-semibold uppercase tracking-wider text-muted-foreground">
+                    {dateDividerLabel(new Date(m.created_at))}
+                  </li>
+                ),
                 <li key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[85%] rounded-2xl px-3 py-2 ${m.mine ? "bg-[hsl(var(--bark)/0.1)]" : "border border-border bg-card"}`}>
-                    <p className="text-ds-12 font-semibold text-muted-foreground">{labels.data?.get(m.id) ?? (m.mine ? "You" : `The ${other}`)} · {when(m.created_at)}</p>
+                    <p className="text-ds-12 font-semibold text-muted-foreground">{labels.data?.get(m.id) ?? (m.mine ? "You" : `The ${other}`)} · {clock(m.created_at)}</p>
                     <p className="whitespace-pre-wrap break-words text-ds-14 text-foreground">{m.body}</p>
                   </div>
-                </li>
-              ))}
+                </li>,
+              ])}
             </ol>
             {open && (
               <form id={formId} className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (draft.trim()) send.mutate(); }}>
                 <label htmlFor={`order-talk-${orderId}`} className="block text-ds-13 font-medium">Message</label>
                 <Textarea id={`order-talk-${orderId}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
                   maxLength={1000} value={draft} onChange={(e) => { setDraft(e.target.value); setRefusal(null); }}
-                  aria-invalid={refusal ? true : undefined} aria-describedby={refusal ? `order-talk-refusal-${orderId}` : undefined} />
+                  placeholder={`Write to the ${other}`}
+                  aria-invalid={refusal ? true : undefined} aria-describedby={refusal ? `order-talk-refusal-${orderId}` : leak ? `order-talk-leak-${orderId}` : undefined} />
                 {refusal && <p id={`order-talk-refusal-${orderId}`} role="alert" className="text-ds-13 text-destructive-ink" data-order-talk-refusal="">{refusal}</p>}
+                {/* Audit 11-10 F390: said while typing, before Send, in the words the server refuses it with
+                    (reject_contact_leak_in_declutter_order_talk); the server stays the authority. */}
+                {!refusal && leak && <p id={`order-talk-leak-${orderId}`} className="text-ds-13 text-foreground" data-order-talk-leak="">{leak.label} (&ldquo;{leak.match}&rdquo;). Keep contact details and payment out of the chat: this message won&apos;t send with it.</p>}
               </form>
             )}
           </div>

@@ -7,7 +7,8 @@
  * relationship); the tile counts only the completed rows. Q946 (2026-11-04):
  * both numbers come from ONE pair read (its exact count, its statuses).
  *
- * @mutate src/pages/user/useUserProfileData.ts | .filter((j) => j.status === "completed").length | .length
+ * @mutate src/pages/user/useUserProfileData.ts | .filter((j) => j.status === "completed" && j.is_seed !== true).length | .length
+ * F359i (audit 11-10): test jobs never count (b62), so the select also reads is_seed.
  * @mutate src/pages/user/useUserProfileData.ts |         mutualJobsCount: workedTogetherCount, |         mutualJobsCount,
  */
 import { describe, it, expect } from "vitest";
@@ -26,14 +27,14 @@ describe("Worked together counts completed jobs (Q965)", () => {
     const names = /\[([^\]]*)\]\s*=\s*await Promise\.all\(\[/.exec(src)?.[1].split(",").map((x) => x.trim()) ?? [];
     expect(names).toContain("mutualRes");
     expect(names).not.toContain("mutualCompletedRes");
-    expect(src).toMatch(/const workedTogetherCount = wantsMutual\s*\?\s*\(\(mutualRes\?\.data \?\? \[\]\)[^;]*\.filter\(\(j\) => j\.status === "completed"\)\.length/);
+    expect(src).toMatch(/const workedTogetherCount = wantsMutual\s*\?\s*\(\(mutualRes\?\.data \?\? \[\]\)[^;]*\.filter\(\(j\) => j\.status === "completed" && j\.is_seed !== true\)\.length/);
     expect(src).toMatch(/mutualJobsCount: workedTogetherCount,/);
     // Every pair filter in the hook, and the select each one hangs off.
     const pairFilters = [...src.matchAll(/\.or\(\s*`and\(customer_id\.eq\.\$\{currentUserId\},helper_id/g)];
     expect(pairFilters.length).toBe(1);
     const before = src.slice(0, pairFilters[0].index);
     const pairQueries = [before.slice(before.lastIndexOf(".select(")).match(/^\.select\(([^)]*)\)/)?.[1]];
-    expect(pairQueries[0]).toBe('"status", { count: "exact" }');
+    expect(pairQueries[0]).toBe('"status, is_seed", { count: "exact" }');
   });
 
   it("messaging still gates on the broad pair count", () => {

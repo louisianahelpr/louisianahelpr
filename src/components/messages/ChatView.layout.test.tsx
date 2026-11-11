@@ -148,6 +148,16 @@ describe.each([
     const text = screen.getByText(/Keep chats & payments on Helpr/);
     expect(ancestorsWithinPane(text).filter(capped)).toEqual([]);
   });
+
+  // F308 (audit 11-10): "it feels like I'm being accused before I've typed". The banner says why (the job stays
+  // covered, the app's own words for off-Helpr payments), not a threat of an account restriction.
+  // @mutate src/components/messages/ChatView.tsx | Keep chats &amp; payments on Helpr so your job stays covered. | Keep chats &amp; payments on Helpr — going off-platform risks an account restriction.
+  it("F308: the safety banner says the job stays covered, not that the account is at risk", () => {
+    renderChat(embedded);
+    const banner = document.querySelector("[data-off-platform-note]")!;
+    expect(banner.textContent).toBe("Keep chats & payments on Helpr so your job stays covered.");
+    expect(banner.textContent).not.toMatch(/restriction/);
+  });
 });
 
 /* BLIND SPOTS, stated rather than implied. jsdom computes NO style, so every

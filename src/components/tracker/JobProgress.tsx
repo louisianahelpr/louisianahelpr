@@ -56,7 +56,7 @@ const TEXT: Record<StepState, string> = {
 };
 
 /** One problem word at every width, short enough for its column at 375 (JOBS2-38: "Overdue" at 1440 and "Late" at 375 for one step). The aria sentence keeps the full word. */
-const PROBLEM_SHORT: Record<string, string> = { "No-show?": "No-show", Overdue: "Late", Dispute: "Issue" };
+const PROBLEM_SHORT: Record<string, string> = { "No-show?": "No-show", Overdue: "Late", "Running late": "Late", Dispute: "Issue" };
 
 /** "Oct 22, 3:00 PM": when a done step happened. */
 const stampText = (ts: string) => new Date(ts).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -74,7 +74,7 @@ export function jobStepsLabel(stage: Stage, waitingOnYou: boolean, tone: StepTon
   const done = steps.slice(0, Math.max(0, at));
   const later = steps.slice(at + 1);
   return [
-    `Job progress, step ${at + 1} of ${n}: ${steps[at]}, ${tone === "problem" ? `${label ?? "needs attention"}, needs attention` : waitingOnYou ? "waiting on you" : "waiting on the other person"}.`,
+    `Job progress, step ${at + 1} of ${n}: ${steps[at]}, ${tone === "problem" ? `${label ? `${label}, ` : ""}needs attention` : waitingOnYou ? "waiting on you" : "waiting on the other person"}.`,
     done.length ? `Done: ${done.join(", ")}.` : "",
     later.length ? `Still to come: ${later.join(", ")}.` : "",
   ].filter(Boolean).join(" ");

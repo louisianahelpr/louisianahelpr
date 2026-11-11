@@ -9,6 +9,9 @@
  * @mutate src/components/dashboard/helprTakeHome.tsx |   const net = computeNet(job.budget, tierPct, job.urgent_fee ?? 0, helpers, job.status === "disputed" ? 0 : firstPayoutFee, job).netEarnings; |   const net = job.budget;
  * @mutate src/components/whatNext/WhatNextSheet.tsx |           event.preventDefault(); |
  * @mutate src/components/whatNext/WhatNextSheet.tsx | className={`bg-premium-page focus:outline-none | className={`focus:outline-none
+ * F293 (audit 11-10): the pay step gives the apply sheet's timing, "3 days after the job is approved", not a vaguer
+ * "once it's confirmed done".
+ * @mutate src/components/dashboard/ApplicationSentDialog.tsx | after={`, paid ${STANDARD_PAYOUT_PHRASE}`} | after=", paid once it's confirmed done"
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
@@ -66,7 +69,7 @@ describe("board 77: what next after applying", () => {
     const job = { id: "j1", title: "Fence repair", budget: 85, helper_fee_flat_cents: 70, helper_fee_percent: 10, category: "x", description: "", date_needed: "2037-10-31", location: "", customer_id: "p", status: "open", created_at: "" };
     render(<ApplicationSentDialog sent={{ ...sent, job: job as never }} platformFee={10} onClose={() => {}} onView={() => {}} />);
     const steps = within(screen.getByTestId("what-next-sheet")).getAllByRole("listitem");
-    expect(steps[3].textContent).toContain("Your pay $75, paid once it's confirmed done");
+    expect(steps[3].textContent).toContain("Your pay $75, paid 3 days after the job is approved");
     expect(steps[3].textContent).not.toMatch(/Job price/);
     const money = steps[3].querySelector("span.tabular-nums");
     expect(money?.className).toContain("--accent-ink");

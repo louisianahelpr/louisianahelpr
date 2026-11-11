@@ -37,7 +37,7 @@
  * @mutate src/components/declutter/DeclutterMineViews.tsx | (i) => i.status === "withdrawn" \|\| i.status === "sold_elsewhere") | (i) => i.status === "never" \|\| i.status === "sold_elsewhere")
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "sold") return "Claimed · waiting for pickup"; |   void 0;
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "reserved") return "Claimed"; |   void 0;
- * @mutate src/components/declutter/DeclutterItemView.tsx | title={`Your listing: ${sellerStatusLabel(it)}`} | title={`Your listing: ${STATUS_LABEL[it.status]}`}
+ * @mutate src/components/declutter/DeclutterItemView.tsx | title={`Your listing: ${sellerStatusLabel(it, tradedFor.get(it.id) ?? null)}`} | title={`Your listing: ${STATUS_LABEL[it.status]}`}
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   const cents = SOLD.has(item.status) ? sold : item.current_price_cents; |   const cents = item.current_price_cents;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} /> |                 <ListingPrice item={item} sold={item.current_price_cents} />
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   if (cents === undefined) return null; |   if (cents === undefined) return <span data-listing-price="">{itemPriceLabel(item.current_price_cents)}</span>;
@@ -71,6 +71,8 @@ const state = {
   problems: [] as unknown[],
   /** NIGHT-BUYINGopenpr-3: declutter_order_problem per order (the seller's side of each open report). */
   problemRows: {} as Record<string, unknown>,
+  /** F359b: the giver's free listings people asked for. */
+  freeAsks: [] as Array<{ item_id: string; title: string; asked: number; first_at: string }>,
 };
 
 // Q2268: the bundle-request reads (no request here).
@@ -200,6 +202,8 @@ vi.mock("@/lib/declutter/api", () => ({
   sellerCancelSale: async () => 1,
   startCheckoutPayment: async () => ({ url: "https://checkout.stripe.test/pay", paid: false }),
   fetchHasAgreedSales: async () => false,
+  fetchFreeAsksToPick: async () => state.freeAsks,
+  fetchOpenFreeRequestCounts: async () => new Map(state.freeAsks.map((f) => [f.item_id, f.asked])),
 }));
 
 import DeclutterPage from "@/pages/declutter/DeclutterPage";
@@ -323,6 +327,16 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     await screen.findByText("Old radio");
     const lines = Array.from(container.querySelectorAll("[data-listing-status]")).map((e) => e.textContent);
     expect(lines).toEqual(["For sale · Porch pickup · Meet at a safe spot", "For sale · Porch pickup"]);
+  });
+
+  // F359b (audit 11-10): a free listing's row said "For sale · Porch pickup".
+  // @mutate src/components/declutter/listingStatusLine.ts | item.current_price_cents === 0 ? "Free" : "For sale" | "For sale"
+  it("F359b: a live free listing's line says Free, not For sale", async () => {
+    state.mine = [{ ...ITEM, title: "Box of mason jars", current_price_cents: 0, handovers: ["porch"] }, { ...ITEM, id: "i9", title: "Old radio", current_price_cents: 0, handovers: null }];
+    const { container } = at("/declutter?tab=selling");
+    await screen.findByText("Old radio");
+    const lines = Array.from(container.querySelectorAll("[data-listing-status]")).map((e) => e.textContent);
+    expect(lines).toEqual(["Free · Porch pickup", "Free · Porch pickup"]);
   });
 
   // Next-step line (owner 2026-11-01: "people aren't told what to do next"): a row that waits on the seller (a draft,
@@ -870,7 +884,7 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
 
   // NIGHT-BUYINGopenpr-3 (lead 10-31): "To answer" was empty with a buyer's report waiting on the seller's side. It
   // now counts each sale whose report waits on the seller and lists those sale cards (a chip never counts what it hides).
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks + tradeAsks; |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + bundleAsks + tradeAsks;
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks + tradeAsks + freeAsks.length; |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + bundleAsks + tradeAsks + freeAsks.length;
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} />}\n |
   // @mutate src/components/declutter/useSellerReportsToAnswer.ts |   return !!p && p.status === "open" && p.reporter_side !== "seller" && !p.other_side_note; |   return !!p && p.status === "open" && !p.other_side_note;
   // @mutate src/components/declutter/useSellerReportsToAnswer.ts |   return !!p && p.status === "open" && p.reporter_side !== "seller" && !p.other_side_note; |   return !!p && p.status === "open" && p.reporter_side !== "seller";
@@ -896,6 +910,29 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
       state.cart = [];
       state.problems = [];
       state.problemRows = {};
+    }
+  });
+
+  // F359b (audit 11-10): a new ask on a free listing never reached "To answer" (the count stayed put, no card).
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | + bundleAsks + tradeAsks + freeAsks.length; | + bundleAsks + tradeAsks;
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <FreeAsksToPick rows={freeAsks} />}\n |
+  it("F359b: a free listing people asked for counts under To answer and lists there with Pick", async () => {
+    state.mine = [{ ...ITEM, id: "f1", title: "Box of mason jars", current_price_cents: 0 }];
+    state.freeAsks = [{ item_id: "f1", title: "Box of mason jars", asked: 2, first_at: "2026-11-10T12:00:00Z" }];
+    try {
+      const { container } = at("/declutter?tab=selling");
+      const chip = () => container.querySelector('[data-status-box="offers"]') as HTMLElement;
+      await waitFor(() => expect(chip().textContent).toBe("To answer · 1"));
+      fireEvent.click(chip());
+      const list = await waitFor(() => container.querySelector("[data-free-asks-to-pick]") as HTMLElement);
+      expect(list).not.toBeNull();
+      const link = within(list).getByRole("link", { name: /Box of mason jars/ });
+      expect(link.getAttribute("href")).toBe("/declutter/item/f1");
+      expect(link.textContent).toContain("Free · 2 asked");
+      expect(link.textContent).toContain("Pick");
+      expect(screen.queryByText("Nothing to answer right now.")).toBeNull();
+    } finally {
+      state.freeAsks = [];
     }
   });
 

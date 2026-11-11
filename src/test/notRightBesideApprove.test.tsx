@@ -8,7 +8,7 @@
  *
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |         ...(h.notRight ? { under: { label: NOT_RIGHT_LABEL, onClick: h.notRight } } : {}), |
  * @mutate src/components/job-card/MineJobFace.tsx |             action.under?.onClick(); |
- * @mutate src/components/job-card/MineJobFace.tsx |       {action?.under && ( |       {false && action?.under && (
+ * @mutate src/components/job-card/MineJobFace.tsx |   const underNode = action?.under && ( |   const underNode = false && action?.under && (
  * @mutate src/pages/posts/CompletionChoiceSheet.tsx |     if (open) setMode(startMode); |     if (open) setMode("choice");
  * @mutate src/pages/posts/postedJobCard/PostedJobActions.tsx |     if (revisionRequest > 0 && !job.poster_completed_at) { setCompletionStartMode("revision"); setSheetOpen(true); } |     if (revisionRequest > 0 && !job.poster_completed_at) { setSheetOpen(true); }
  * @mutate src/pages/posts/postedJobCard/PostedJobActions.tsx |     if (!o) setCompletionStartMode("choice"); |
@@ -79,6 +79,14 @@ describe("A3-8: Something's not right beside Approve", () => {
     fireEvent.click(screen.getByRole("button", { name: NOT_RIGHT_LABEL }));
     expect(notRight).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("where").textContent).toBe("/posts");
+    // F275a (audit 11-10): from 768px it sat on its own row ~60px under the button. The button and its answer are one
+    // right-aligned column (jsdom draws no layout: this reads the grouping and its classes, not a measured gap).
+    // @mutate src/components/job-card/MineJobFace.tsx |       {action?.under ? ( |       {false ? (
+    const approve = screen.getByRole("button", { name: "Approve and release" });
+    const group = approve.closest("[data-mine-face-action-group]") as HTMLElement;
+    expect(group).not.toBeNull();
+    expect(group.contains(screen.getByRole("button", { name: NOT_RIGHT_LABEL }))).toBe(true);
+    expect(group.className.split(/\s+/)).toEqual(expect.arrayContaining(["flex-col", "md:items-end"]));
   });
 
   it("the face's tap asks the card for the sheet at the fix form (revisionRequest), never the Approve request", () => {

@@ -141,6 +141,22 @@ describe("Activity — the Active bucket", () => {
     expect(appliedCounts.active).toBe(0);
     expect(appliedCounts.not_selected).toBe(4);
   });
+
+  // F260 (audit 11-10): the Working chip read "Needs you · 30" while All's NEEDS YOU header read 13. Every row the
+  // Needs you chip counts is in the All list, so the header (All grouped by the same bucket) says the same number.
+  // @mutate src/components/job-card/activityFilters.ts | statusMatch = bucketAppliedApp(a) !== "cancelled" \|\| appliedActivityBucket(a) === "needs_you"; | statusMatch = bucketAppliedApp(a) !== "cancelled";
+  // @mutate src/components/job-card/activityFilters.ts |       if (bucket !== "cancelled" \|\| box === "needs_you") counts.all++; |       if (bucket !== "cancelled") counts.all++;
+  it("F260: what the Needs you chip counts, the All view shows (a back-out notice on a cancelled job)", () => {
+    const backedOut = { ...app({ status: "accepted", jobStatus: "cancelled" }), id: "app-backout" } as AppliedApp;
+    (backedOut.job as unknown as Record<string, unknown>).backout_notice = { at: "2026-11-09T12:00:00Z" };
+    const apps = [backedOut, app({ status: "accepted", jobStatus: "in_progress" }), app({ status: "rejected", jobStatus: "cancelled" })];
+    expect(appliedActivityBucket(backedOut)).toBe("needs_you");
+    const { filteredAppliedApps, appliedCounts } = run(apps, "all");
+    const inAll = filteredAppliedApps.filter((a) => appliedActivityBucket(a) === "needs_you").length;
+    expect(inAll).toBe(appliedCounts.needs_you);
+    expect(filteredAppliedApps.map((a) => a.id)).toContain("app-backout");
+    expect(appliedCounts.all).toBe(filteredAppliedApps.length);
+  });
 });
 
 describe("Activity — whose move is it", () => {

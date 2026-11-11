@@ -51,6 +51,7 @@ export const es: Record<MsgKey, string> = {
   "lang.label": "Idioma",
   "lang.english": "English",
   "lang.spanish": "Español",
+  "lang.saved": "Listo. Idioma: Español.",
   "lang.switchTo": "Cambiar el idioma a {lang}",
   "lang.legalInEnglish": "Los términos legales están en inglés.",
 
@@ -117,6 +118,7 @@ export const es: Record<MsgKey, string> = {
   "forgot.contactSupport": "Contacte a soporte",
   "forgot.useAnother": "Usar otro correo",
   "forgot.sending": "Enviando…",
+  "forgot.stillSending": "Todavía enviando. Puede tardar unos segundos.",
   "forgot.resendIn": "Reenviar en {s} s",
   "forgot.resend": "Reenviar correo",
   "forgot.emailInvalid": "Escriba un correo válido.",
@@ -426,6 +428,7 @@ export const es: Record<MsgKey, string> = {
   "jobPage.showLess": "Ver menos",
   "jobPage.where": "Dónde va el trabajo",
   "jobPage.seeCase": "Ver el caso",
+  "jobPage.addYourSide": "Agregue su versión",
   "jobPage.photos": "Fotos del trabajo",
   "jobPage.crew": "Su equipo",
   "jobPage.side": "Precio y acciones",

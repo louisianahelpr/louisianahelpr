@@ -42,4 +42,4 @@ describe("useHighlightPulse", () => {
   });
 });
 
-// @mutate src/components/job-card/useHighlightPulse.ts |       if (!ring) return; |
+// @mutate src/components/job-card/useHighlightPulse.ts | const cls = ring ? "highlight-pulse" : "highlight-soft"; | const cls = "highlight-pulse";

@@ -13,7 +13,7 @@
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (area) facts.push({ label: "Parish", value: area }); |
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   return parish ? parishLabel(parish) : town; |   return town;
  * @mutate src/components/dashboard/GuestJobPreview.tsx | onClick={() => onSignUp(job.id)} | onClick={() => onSignUp("")}
- * @mutate src/pages/home/DashboardGuest.tsx |     setDetailJob(job);\n | \n
+ * @mutate src/pages/home/useGuestJobSheet.ts |     setDetailJob(job);\n | \n
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1; |   const helpers = 1;
  * @mutate src/components/dashboard/GuestJobPreview.tsx | computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, firstPayoutFee, job) | computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, firstPayoutFee, null)
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (net != null) facts.push({ label: isGiveawayFixedPayJob(job) ? "Pay" : "You'd take home", value: `$${formatPriceFloor(net)}` }); |   if (job.budget) facts.push({ label: "Budget", value: `$${job.budget}` });
@@ -115,10 +115,12 @@ describe("the guest job preview", () => {
 
 describe("guest Browse's card tap shows the job first", () => {
   const src = blankComments(readFileSync(resolve(import.meta.dirname, "../pages/home/DashboardGuest.tsx"), "utf8"));
+  // F260u: the open/close pair moved to useGuestJobSheet (the sheet is its own history entry).
+  const hookSrc = blankComments(readFileSync(resolve(import.meta.dirname, "../pages/home/useGuestJobSheet.ts"), "utf8"));
   const body = (name: string) => {
-    const start = src.indexOf(`const ${name} = useCallback(`);
+    const start = hookSrc.indexOf(`const ${name} = useCallback(`);
     expect(start, name).toBeGreaterThan(0);
-    return src.slice(start, src.indexOf("}, [", start));
+    return hookSrc.slice(start, hookSrc.indexOf("}, [", start));
   };
 
   it("the card's onSelect opens the preview and does not go to sign-up", () => {
@@ -127,7 +129,9 @@ describe("guest Browse's card tap shows the job first", () => {
     for (const c of cards) expect(c).toContain("onSelect={openDetailJob}");
     const open = body("openDetailJob");
     expect(open).toContain("setDetailJob(job)");
-    expect(open).not.toMatch(/navigate\(|signupUrlFor/);
+    // Its one navigate stays on this page (pushes ?job=), never to sign-up.
+    expect(open).not.toMatch(/signupUrlFor|\/signup/);
+    expect(open).toMatch(/navigate\(\s*\{ pathname: location\.pathname,/);
   });
 
   it("the dialog it opens is the guest preview, fed the tapped job, with sign-up carrying it", () => {

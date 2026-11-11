@@ -21,6 +21,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { timeLeft } from "@/lib/declutter/timeLeft";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { isTradeLine } from "./DeclutterCartWords";
 
 /** The buyer's own open offer on this item, or null. */
 export function myOpenOfferOn(offers: readonly MyOffer[] | undefined, itemId: string): MyOffer | null {
@@ -45,21 +46,25 @@ export function HoldChecking() {
 
 export function ReservedForYou({ line, free }: { line: CartLine; free: boolean }) {
   const by = orderWhen(line.checkout_by); // F367
+  // Audit 1110 F359e: an accepted trade is not a purchase. Its $0 line goes back with no strike when the 48 hours run
+  // out, and the whole trade ends (declutter_deadline_sweep, trades #2 in 20261108195151).
+  const trade = isTradeLine(line);
   return (
     <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="Reserved for you" data-reserved-for-you="">
       <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-ds-15 font-semibold text-foreground">
-        <span>{free ? "It's yours. Choose how you'll pick it up." : "Reserved for you, not paid yet."}</span>
+        <span>{trade ? "Trade accepted. Choose how you'll pick it up." : free ? "It's yours. Choose how you'll pick it up." : "Reserved for you, not paid yet."}</span>
         <span className="text-ds-13 font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{timeLeft(line.checkout_by)}</span>
       </p>
       <p className="text-ds-13 text-muted-foreground">
         {/* DA-12: a free item goes back up with no strike when its 48 hours run out (declutter_deadline_sweep).
             DB-5: so does a Buy now line (source "buy"); only an accepted offer still carries a strike. */}
-        {free ? `Choose it by ${by}. If you don't, it goes back up. No strike.`
+        {trade ? `Choose it by ${by}. If you don't, the trade ends. No strike.`
+          : free ? `Choose it by ${by}. If you don't, it goes back up. No strike.`
           : holdHasNoStrike([line]) ? `Pay by ${by}. If you don't, it goes back up for sale. No strike.`
             : `Check out by ${by}. If you don't, you get a strike and it goes back up for sale.`}
       </p>
       <Button asChild size="wrap" className="w-full rounded-full">
-        <Link to={free ? CHECKOUT_LINK : checkoutLinkFor(line.seller_id)}>{free ? "Choose a pickup" : "Go to checkout"}</Link>
+        <Link to={free ? CHECKOUT_LINK : checkoutLinkFor(line.seller_id)}>{free || trade ? "Choose a pickup" : "Go to checkout"}</Link>
       </Button>
     </section>
   );

@@ -383,7 +383,7 @@ describe("PayoutSetupForm, board 87's four states", () => {
     await screen.findByText("Where should we send your money?");
     expect(text()).toContain("Add a bank once. Every payout from Jobs goes there.");
     expect(text()).toContain("Handled by our payments partner. Helpr never sees your login");
-    expect(screen.getByRole("button", { name: /Set up payouts with Stripe/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Add your bank \(with Stripe\)/ })).toBeInTheDocument();
   });
 
   // Audit 2026-10-28 P4-1: the line named Jobs, Declutter and your shop for
@@ -410,7 +410,7 @@ describe("PayoutSetupForm, board 87's four states", () => {
     renderForm();
     await screen.findByText("Checking your bank");
     expect(text()).toContain("Money you earn meanwhile is kept for you.");
-    expect(screen.queryByRole("button", { name: /Set up payouts with Stripe|Complete Stripe verification/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Add your bank \(with Stripe\)|Complete Stripe verification/ })).toBeNull();
   });
 
   it("READY: payouts are on, with the default bank's last 4", async () => {
@@ -460,7 +460,7 @@ describe("PayoutSetupForm — a refused start says why, on screen", () => {
       opts?.body?.action === "onboard" ? refused() : { data: statusFixture, error: null });
     vi.spyOn(console, "error").mockImplementation(() => {});
     renderForm();
-    fireEvent.click(await screen.findByRole("button", { name: /Set up payouts with Stripe/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Add your bank \(with Stripe\)/ }));
 
     const alert = await screen.findByTestId("payout-start-error");
     expect(alert.getAttribute("role")).toBe("alert");
@@ -470,7 +470,7 @@ describe("PayoutSetupForm — a refused start says why, on screen", () => {
 
     // The next press starts clean: a success leaves no stale refusal behind.
     invokeMock.mockImplementation(async () => ({ data: { url: "https://connect.stripe.com/setup/x" }, error: null }));
-    fireEvent.click(screen.getByRole("button", { name: /Set up payouts with Stripe/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Add your bank \(with Stripe\)/ }));
     await waitFor(() => expect(openExternalUrlMock).toHaveBeenCalledTimes(1));
     expect(screen.queryByTestId("payout-start-error")).toBeNull();
   });
@@ -489,7 +489,7 @@ describe("PayoutSetupForm, the start button fits at 320", () => {
   it("the start/continue button wraps its label rather than running it past its edges", async () => {
     statusFixture = { connected: false, details_submitted: false, payouts_enabled: false, requirements: [] };
     renderForm();
-    const button = await screen.findByRole("button", { name: /Set up payouts with Stripe/ });
+    const button = await screen.findByRole("button", { name: /Add your bank \(with Stripe\)/ });
     expect(button.className).toMatch(/\bwhitespace-normal\b/);
     expect(button.className).toMatch(/\bh-auto\b/);
     expect(button.className).not.toMatch(/\bwhitespace-nowrap\b/);
@@ -526,7 +526,7 @@ describe("PayoutSetupForm, a registered business sets up a business payout accou
     renderForm();
     fireEvent.click(await screen.findByRole("checkbox", { name: /registered business \(LLC or corporation\)/ }));
     fireEvent.change(screen.getByLabelText("Business legal name"), { target: { value: "  Dana's Bakery LLC " } });
-    fireEvent.click(screen.getByRole("button", { name: /Set up payouts with Stripe/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Add your bank \(with Stripe\)/ }));
 
     await waitFor(() => expect(onboardBodies().length).toBeGreaterThan(0));
     expect(onboardBodies()[0]).toMatchObject({ action: "onboard", business_type: "company", company_name: "Dana's Bakery LLC" });
@@ -535,7 +535,7 @@ describe("PayoutSetupForm, a registered business sets up a business payout accou
   it("unticked, the onboard call carries no business fields", async () => {
     statusFixture = noAccount;
     renderForm();
-    fireEvent.click(await screen.findByRole("button", { name: /Set up payouts with Stripe/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Add your bank \(with Stripe\)/ }));
 
     await waitFor(() => expect(onboardBodies().length).toBeGreaterThan(0));
     expect(onboardBodies()[0]).not.toHaveProperty("business_type");
@@ -546,7 +546,7 @@ describe("PayoutSetupForm, a registered business sets up a business payout accou
     statusFixture = noAccount;
     renderForm();
     fireEvent.click(await screen.findByRole("checkbox", { name: /registered business/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Set up payouts with Stripe/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Add your bank \(with Stripe\)/ }));
 
     expect((await screen.findByTestId("payout-start-error")).textContent).toMatch(/business's legal name/);
     expect(onboardBodies()).toEqual([]);

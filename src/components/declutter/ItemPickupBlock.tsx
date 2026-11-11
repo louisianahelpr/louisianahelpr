@@ -32,7 +32,8 @@ const ORDER: SellerHandover[] = ["porch", "meetup", "seller_delivery", "delivery
  * Lexi picks you."); "the giver" only while no first name is known.
  */
 function addressNote(free: boolean, isSeller: boolean, giver: string | null): string {
-  if (isSeller) return free ? "buyers see your exact address only once they're picked" : "buyers see your exact address only after they pay";
+  // Audit 11-10 F359d: a free item has no buyers; the giver picks who gets it.
+  if (isSeller) return free ? "they'll see your exact address only once you pick them" : "buyers see your exact address only after they pay";
   return free ? `You'll get the exact address if ${giver ?? "the giver"} picks you.` : "exact address after you pay";
 }
 

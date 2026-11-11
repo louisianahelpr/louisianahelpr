@@ -6,8 +6,8 @@
  * "the Helpr's time" (never "your Helpr's"), and "Mute instead" as the FIRST button wherever a thread can be muted.
  * @mutate src/components/BlockUserDialog.tsx |               {onMuteInstead && ( |               {false && (
  * @mutate src/components/BlockUserDialog.tsx |                   onClick={() => { onClose(); onMuteInstead(); }}> |                   onClick={() => { onMuteInstead(); }}>
- * @mutate src/components/BlockUserDialog.tsx |                         <li>You get most of the rest back.</li> |                         {" "}You get most of the rest back.
- * @mutate src/components/BlockUserDialog.tsx | for the Helpr&rsquo;s time (it starts within 24 hours). | for your Helpr&rsquo;s time (it starts within 24 hours).
+ * @mutate src/components/BlockUserDialog.tsx | )}{" "}You get most of the rest back. | )}
+ * @mutate src/components/BlockUserDialog.tsx | for the Helpr&rsquo;s time and it counts | for your Helpr&rsquo;s time and it counts
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
@@ -58,16 +58,21 @@ describe("F428: the block sheet is a short list, with Mute instead first", () =>
     const dialog = open();
     await screen.findByText(/also cancels/);
     const list = within(dialog).getByRole("list", { name: "Jobs that will be cancelled" });
-    expect(within(list).getAllByRole("listitem")).toHaveLength(10);
+    // F260i (2026-11-10): three show; the rest wait behind "Show all 10 jobs" (this fixture has 10).
+    expect(within(list).getAllByRole("listitem")).toHaveLength(3);
     const top = within(dialog).getAllByRole("listitem").filter((li) => !list.contains(li));
     // A bullet's own words: what sits outside its nested list.
     const texts = top.map((li) => Array.from(li.childNodes).filter((n) => (n as HTMLElement).tagName !== "UL").map((n) => n.textContent ?? "").join(""));
-    expect(texts.length).toBeGreaterThanOrEqual(7);
+    expect(texts.length).toBeGreaterThanOrEqual(5);
     for (const t of texts) expect(words(t), t).toBeLessThanOrEqual(20);
-    expect(texts).toContain("Blocking Hallie also cancels 10 jobs:");
-    expect(texts.join("\n")).toMatch(/^You will pay about \$\d[\d.,]* for the Helpr’s time \(it starts within 24 hours\)\.$/m);
-    expect(texts).toContain("You get most of the rest back.");
-    expect(texts).toContain("This counts as a strike against you.");
+    expect(texts).toContain("Jobs cancelled:Show all 10 jobs");
+    expect(texts).toContain("That covers 10 jobs that start within 24 hours. You get most of the rest back.");
+    // F260i: the amount and the strike are in the one summary line above the bullets.
+    const summary = within(dialog).getByText(/^Blocking Hallie also cancels 10 jobs\./).textContent ?? "";
+    expect(words(summary), summary).toBeLessThanOrEqual(25);
+    expect(summary).toMatch(/You will pay about \$\d[\d.,]* for the Helpr’s time and it counts as a strike against you\.$/);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Show all 10 jobs" }));
+    expect(within(list).getAllByRole("listitem")).toHaveLength(10);
     expect(dialog.textContent).not.toMatch(/your Helpr/);
     expect(dialog.textContent).not.toMatch(/active jobs? between you/);
   });

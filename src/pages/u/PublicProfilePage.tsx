@@ -395,11 +395,27 @@ export default function PublicProfilePage() {
     queryClient.setQueryData(["public-profile", current], q.data);
     navigate({ pathname: `/u/${encodeURIComponent(current)}`, search: location.search, hash: location.hash }, { replace: true });
   }, [handle, current, q.data, queryClient, navigate, location.search, location.hash]);
-  const unavailable = (
+  // F282a (whole-app audit 11-10): the member's own "Your page" link landed on the stranger's "link may be old" card
+  // when public_profile_by_handle hid them (unverified email, a ban, a seed/test account, under 18, anonymised:
+  // profile_page_hidden, 20261105172514). The owner gets told it is their page and why it is hidden; everyone else
+  // keeps the generic card, which never says why (test: publicProfileOwnHiddenPage).
+  const ownHidden = !!handle && !!me?.handle && me.handle === handle;
+  const unavailable = ownHidden ? (
+    <EmptyState
+      icon={UserX}
+      title="Your page is hidden right now"
+      body="Neighbors can't open it yet. Your page shows once your email is verified and your account is in good standing. A test account never has a public page."
+      action={
+        <Button asChild className="btn-grad-primary rounded-full">
+          <Link to="/profile">Go to You</Link>
+        </Button>
+      }
+    />
+  ) : (
     <EmptyState
       icon={UserX}
       title="This profile isn't available"
-      body="The link may be old, or the account is no longer on Helpr."
+      body="The link may be old, or this profile isn't public right now."
       action={
         <Button asChild className="btn-grad-primary rounded-full">
           <Link to={user ? "/home" : "/"}>Go to Louisiana Helpr</Link>

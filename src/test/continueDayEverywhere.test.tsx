@@ -17,6 +17,7 @@
  * @mutate src/components/jobs/ContinueDaySheet.tsx |           {helprMarkedDone && ( |           {false && (
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   if (step?.key === "done" && s.continueDayNote) { |   if (step?.key === "done" && s.continueDayNote && false) {
  * @mutate src/pages/jobs/AppliedJobCard.tsx |     continueDayNote: continueDayDoneNote(continueDay), |     continueDayNote: null,
+ * @mutate src/lib/continueDayWords.ts | by: `nothing for you to do; ${other \|\| "your Helpr"} confirms next` | by: `waiting on ${other \|\| "your Helpr"} to confirm`
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
@@ -80,7 +81,8 @@ describe("Home: Live now, Waiting, Coming up", () => {
   it("the poster waits on the continue day in the job page's words", () => {
     const w = deriveWaiting([yusefJob()], {}, [], null, { yusef: "Yusef Brown" }, { "7b1da54b": day() });
     expect(w?.label).toBe("Waiting on Yusef");
-    expect(w?.detail).toBe(`Continuing ${label(AHEAD)} · waiting on Yusef to confirm`);
+    // F289a: the poster reads the visit and that they owe nothing, not "Continuing … · waiting on Yusef to confirm".
+    expect(w?.detail).toBe(`Yusef comes back ${label(AHEAD)} · nothing for you to do; Yusef confirms next`);
     const after = deriveWaiting([yusefJob()], {}, [], null, { yusef: "Yusef Brown" }, { "7b1da54b": day({ helper_confirmed_at: "t" }) });
     expect(after?.detail).toBe(`Yusef confirmed ${label(AHEAD)}`);
   });

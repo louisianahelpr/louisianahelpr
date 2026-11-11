@@ -89,7 +89,8 @@ export function YourActivity() {
                     label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491). The space keeps the two lines two words;
                     whitespace between flex items draws nothing. */}
                 <span className="text-ds-12 text-muted-foreground">{s.label}</span>{" "}
-                <span className="text-ds-15 font-bold text-foreground truncate">
+                {/* F449 (audit 11-10): at 375 "Buying · 1 in progress" was cut to "Buying · 1 in ..." by truncate; it wraps. */}
+                <span className="text-ds-15 font-bold text-foreground break-words">
                   {t.label}
                   {n > 0 && <><span aria-hidden="true"> ·</span> {n} {word}</>}
                 </span>

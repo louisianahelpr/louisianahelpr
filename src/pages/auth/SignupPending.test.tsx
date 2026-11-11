@@ -155,6 +155,21 @@ describe("SignupPending", () => {
       expect(screen.queryByRole("status")).not.toBeInTheDocument();
     });
 
+    // F260c (audit 11-10): a 429 worded "For security purposes, you can only request this after 46 seconds." fell
+    // through to "Resent". Any 429 is the rate-limit toast, never the result panel.
+    // @mutate src/pages/auth/SignupPending.tsx |       const limited = (error as { status?: number }).status === 429 \|\| msg.includes("only request this after"); |       const limited = false;
+    // @mutate src/pages/auth/SignupPending.tsx |       const limited = (error as { status?: number }).status === 429 \|\| msg.includes("only request this after"); |       const limited = msg.includes("only request this after");
+    for (const message of ["For security purposes, you can only request this after 46 seconds.", "Request refused"]) {
+      it(`a 429 is the rate-limit toast, never "Resent" (F260c: ${message})`, async () => {
+        resendMock.mockResolvedValue({ error: { message, status: 429 } });
+        renderWithRouterState(EMAIL);
+        fireEvent.click(await screen.findByRole("button", { name: /resend/i }));
+        await waitFor(() => expect(toastError).toHaveBeenCalled());
+        expect(screen.queryByRole("status")).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /^resend$/i })).toBeInTheDocument();
+      });
+    }
+
     it("hides every other failure — this screen is not an account oracle", async () => {
       // Supabase with enumeration protection OFF answers like this for an
       // address that has no account. Reporting it would let anyone test which

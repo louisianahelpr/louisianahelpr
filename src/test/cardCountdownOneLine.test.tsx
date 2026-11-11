@@ -9,7 +9,7 @@
  * units at most and never wraps. Measured at 375 and 390: ~/.lh-shots/b9-countdown/.
  *
  * @mutate src/components/job-card/jobStatusLine.ts |     "until support decides", |     "until the Helpr support team makes a decision",
- * @mutate src/components/job-card/jobStatusLine.ts |         "for them to review",\n        "Helpr support is stepping in", |         "for them to review",\n        "No response — Helpr support is stepping in",
+ * @mutate src/components/job-card/jobStatusLine.ts |         "for them to review",\n        HELPR_NO_REPLY, |         "for them to review",\n        "No response — Helpr support is stepping in",
  * @mutate src/components/job-card/DeadlineCountdown.tsx |   if (days > 0) return `${days}d ${hours}h`; |   if (days > 0) return `${days}d ${hours}h ${m % 60}m`;
  * @mutate src/components/job-card/DeadlineCountdown.tsx |           <span className="whitespace-nowrap">\n            <span className="tabular-nums">{compactTimeStr}</span> |           <span>\n            <span className="tabular-nums">{compactTimeStr}</span>
  * @mutate src/components/job-card/DeadlineCountdown.tsx |             <span className="tabular-nums">{compactTimeStr}</span> {consequenceText} |             <span className="tabular-nums">{timeStr}</span> {consequenceText}

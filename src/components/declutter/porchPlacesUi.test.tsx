@@ -117,6 +117,24 @@ describe("the seller's pickup places", () => {
     })));
   });
 
+  // F410b (audit 11-10): Save place was grey with no reason beside it. The first thing missing is said, and the
+  // button points at it; once everything is in, the line goes.
+  // @mutate src/components/declutter/SellPorchPlaces.tsx | {!ready && notReady && <p id= | {false && <p id=
+  // @mutate src/components/declutter/SellPorchPlaces.tsx | const notReady = d.label.trim().length === 0 ? "Add a name to save this place." | const notReady = d.label.trim().length === 0 ? null
+  it("a grey Save place says what is missing (F410b)", async () => {
+    answers({ declutter_my_porch_places: [] });
+    wrap(<SellPorchPlaces />);
+    fireEvent.click(await screen.findByRole("button", { name: "Add a pickup place" }));
+    const save = screen.getByRole("button", { name: "Save place" });
+    expect(save).toBeDisabled();
+    expect(save).toHaveAccessibleDescription("Add a name to save this place.");
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Camp" } });
+    expect(save).toHaveAccessibleDescription("Add the address to save this place.");
+    fireEvent.change(screen.getByLabelText("Address"), { target: { value: "99 Camp Road, New Orleans" } });
+    expect(save).not.toBeDisabled();
+    expect(document.querySelector("[data-place-not-ready]")).toBeNull();
+  });
+
   it("an address the map can't find saves nothing", async () => {
     answers({ declutter_my_porch_places: [] });
     h.lookup.mockResolvedValue({ status: "not_found" });

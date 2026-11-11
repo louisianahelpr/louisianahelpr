@@ -18,6 +18,9 @@
  * live-looking tiles. They carry the Coming soon badge inside, slightly dimmed (owner 11-09 badge rule).
  * @mutate src/components/profile/profileLanding/YourActivity.tsx |                 {preview && <>{" "}<PreviewPill className="self-start mt-1" /></>} |
  * @mutate src/components/profile/profileLanding/YourActivity.tsx | style={preview ? { opacity: 0.75 } : undefined} | style={undefined}
+ *
+ * F449 (audit 11-10): at 375 the tile's count line read "Buying · 1 in ..." (truncate); the words wrap instead.
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx | text-foreground break-words"> | text-foreground truncate">
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -103,6 +106,14 @@ describe("You matches board 18", () => {
     expect(home).not.toMatch(/>Opening soon</);
   });
 
+  it("F449: a tile's count line wraps rather than cutting off (no truncate on it)", () => {
+    const { container } = render(<MemoryRouter><YourActivity /><Where /></MemoryRouter>);
+    const tile = container.querySelector('[data-activity-tile="declutter:Buying"]') as HTMLElement;
+    const line = [...tile.querySelectorAll("span")].find((el) => el.textContent?.includes("in progress")) as HTMLElement;
+    expect(line.textContent).toBe("Buying · 3 in progress");
+    expect(line.className.split(/\s+/)).not.toContain("truncate");
+    expect(line.className.split(/\s+/)).toContain("break-words");
+  });
   it("the line names every closed section, in one sentence", () => {
     expect(openingSoonLine([])).toBeNull();
     expect(openingSoonLine(["Homes"])).toBe("Homes is opening soon");

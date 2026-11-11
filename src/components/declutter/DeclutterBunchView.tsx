@@ -188,6 +188,8 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   // While the setup fee is due only free items can go (the server asks no fee at price 0); priced ones stay on the list.
   const ready = bunchListable(items, feeDue != null);
   const heldForFee = feeDue != null ? bunchListable(items, false).length - ready.length : 0;
+  // F337 (audit 11-10): a pile of photos not sorted yet is not an item; "0 of 1 ready" with no item shown read as a contradiction.
+  const sortedCount = items.filter((it) => !it.notSorted).length;
   const savedWays = ways.filter((w) => w !== "delivery" && (w !== "seller_delivery" || sellerDeliveryOpen));
   const busy = !!sorting || !!listing || listingDrafts;
   const blocked = busy;
@@ -466,7 +468,6 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       <p className="text-sm text-muted-foreground">{moving ? MOVING_INTRO : BUNCH_INTRO}</p>
       )}
       {results && <BunchResults results={results} userId={user.id} inSale={!!moveDate} onFix={jumpTo} onListMore={() => { setResults(null); focusBunchFilesNextPaint(); }} />}
-      <SellerPayoutPrompt />
       {feeDue != null && <BunchFeeGate cents={feeDue} />}
       <BunchDraftsSection userId={user.id} exclude={draftsOnTheList} busy={busy} feeDue={feeDue != null} onBusy={setListingDrafts} attested={attested} setAttested={setAttested} listStepShown={items.length > 0} onPricedOffered={setPricedDraftsOffered} />
 
@@ -501,9 +502,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
 
       {!allListed && (
       <BunchSection id="bunch-photos" title={`${firstStep}. Add photos`}>
-        <p className="text-xs text-muted-foreground">
-          Pick them all at once, up to {BUNCH_MAX_PHOTOS}. Take a few of each thing, one thing at a time. Smaller copies, with location data removed, are sent to sort them and write your listings. Nothing is saved or shown to buyers until you list.
-        </p>
+        <p className="text-xs text-muted-foreground">Pick them all at once, up to {BUNCH_MAX_PHOTOS}. Take a few of each thing, one thing at a time.</p>
         <HiddenFileInput ref={fileRef} accept="image/*" multiple id="bunch-files" aria-label="Add photos" disabled={blocked} onChange={(e) => void onPhotos(e.target.files)} />
         {blocked ? (
           <Button type="button" variant="outline" size="sm" disabled>Add photos</Button>
@@ -512,6 +511,8 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
             <label htmlFor="bunch-files">{photos.length > 0 ? "Add more photos" : "Add photos"}</label>
           </Button>
         )}
+        {/* F339: what is sent, in small grey under the button, not before the seller has done anything. */}
+        <p className="text-xs text-muted-foreground" data-bunch-privacy="">Smaller copies, with location data removed, are sent to sort them and write your listings. Nothing is saved or shown to buyers until you list.</p>
         {sorting && <ReadingPhotos adding={adding} sorting={sorting} found={found} />}
         {sorting && (
           <BunchIntake keys={photos.filter((p) => !items.some((it) => it.photoKeys.includes(p.key))).map((p) => p.key)} urls={thumbs}
@@ -522,7 +523,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       )}
 
       {items.length > 0 && (
-        <BunchSection id="bunch-check" title={`${firstStep + 1}. Check each item (${ready.length + heldForFee} of ${items.length} ready)`}>
+        <BunchSection id="bunch-check" title={sortedCount > 0 ? `${firstStep + 1}. Check each item (${ready.length + heldForFee} of ${sortedCount} ready)` : `${firstStep + 1}. Check each item`}>
           <p className="text-xs text-muted-foreground">
             Fix anything we got wrong. Tap an item to open it. If two items are the same thing, merge them; if one holds two things, split it.
           </p>
@@ -590,6 +591,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
         />
       )}
 
+      <SellerPayoutPrompt />{/* F342: last, so its late arrival moves nothing */}
       <BunchBar sorting={sorting} found={found} listing={listing} runNames={runNames.current} undo={undo} itemCount={items.length} readyCount={ready.length} needs={needs} onNeeds={firstUnready ? () => { setItems(unreadyFirst); jumpTo(firstUnready.key); } : null} onNext={focusBunchListStep} onUndo={onUndo}
         onUseOtherPrice={() => { const { intoKey, price } = undo!.otherPrice!; setItems((its) => bulkEdit(its, new Set([intoKey]), { price })); setUndo({ ...undo!, otherPrice: undefined }); }} />
     </AppPage>

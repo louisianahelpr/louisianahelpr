@@ -23,6 +23,7 @@ import {
   withSetupFeeAmount,
 } from "./helpCenter/helpCenterContent";
 import { formatFeeLabel, useOnboardingFeeCents } from "@/hooks/useOnboardingFee";
+import { helpSearchTerms } from "./helpCenter/helpSearchWords";
 
 /**
  * Help Center — ONE component serving two surfaces, and now ONE visual block.
@@ -255,14 +256,14 @@ type FaqSection = { topic: string; items: Array<{ q: string; a: string }> };
  * An empty query returns the sections unchanged. Exported for the guard.
  */
 export function filterFaqSections(sections: readonly FaqSection[], query: string): FaqSection[] {
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return [...sections];
+  const terms = helpSearchTerms(query); // F412: filler words dropped, point words matched with their synonyms
+  if (terms.length === 0) return [...sections];
   return sections
     .map((s) => ({
       ...s,
       items: s.items.filter((i) => {
         const text = `${s.topic} ${i.q} ${i.a}`.toLowerCase();
-        return words.every((w) => text.includes(w));
+        return terms.every((forms) => forms.some((w) => text.includes(w)));
       }),
     }))
     .filter((s) => s.items.length > 0);

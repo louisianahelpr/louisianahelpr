@@ -85,6 +85,18 @@ describe("search with nothing typed starts somewhere (Q2645)", () => {
     expect(within(cats).getByRole("link", { name: "Cleaning" })).toBeInTheDocument();
   });
 
+  // F223 (audit 11-10): the Jobs chips stopped before Errands (Browse offers it), and the chips were 40px tall.
+  // @mutate src/pages/search/SearchStart.tsx | const START_CHIPS_PER_SECTION = 5; | const START_CHIPS_PER_SECTION = 4;
+  // @mutate src/pages/search/SearchStart.tsx | rounded-full px-4 min-h-11 border | rounded-full px-4 min-h-[40px] border
+  it("the Jobs chips include Errands, and every chip is a 44px target (F223)", () => {
+    mount("/search");
+    const cats = screen.getByRole("region", { name: "Browse by category" });
+    expect(within(cats).getByRole("link", { name: "Errands" })).toHaveAttribute("href", "/jobs?tab=browse&cat=errands");
+    const chips = within(cats).getAllByRole("link");
+    expect(chips.length).toBeGreaterThan(5);
+    for (const c of chips) expect(c.className.split(/\s+/)).toContain("min-h-11");
+  });
+
   it("a typed search shows results, not the start screen", () => {
     mount("/search?q=zzqx");
     expect(screen.queryByTestId("search-start")).toBeNull();

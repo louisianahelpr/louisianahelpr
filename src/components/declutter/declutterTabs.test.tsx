@@ -413,6 +413,24 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(within(sheet).getByText("Distance")).toBeInTheDocument();
   });
 
+  // Audit 11-10 F310: "lamb" found nothing while "lamp" had items; a one-typo search is offered the one that finds them.
+  // @mutate src/components/declutter/DeclutterBrowseView.tsx |                 {nearFinds && ( |                 {false && (
+  // @mutate src/lib/declutter/searchMatch.ts |     const near = [...vocab].find((v) => v.length >= 4 && oneEditApart(w, v)); |     const near = [...vocab].find((v) => v.length >= 4 && v === w);
+  it("a one-letter typo that finds nothing offers the search that would", async () => {
+    state.live = [{ ...ITEM, id: "e2", seller_id: "s9", title: "Brass floor lamp" }];
+    at("/declutter?q=lamb");
+    expect(await screen.findByText("Nothing matches that search.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Search for lamp instead" }));
+    expect(await screen.findByText("Brass floor lamp")).toBeInTheDocument();
+  });
+
+  it("a search with no near word offers nothing (no guess)", async () => {
+    state.live = [{ ...ITEM, id: "e3", seller_id: "s9", title: "Brass floor lamp" }];
+    at("/declutter?q=sofa");
+    expect(await screen.findByText("Nothing matches that search.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Search for .* instead$/ })).toBeNull();
+  });
+
   // Audit 1110 F311: an emoji alone has no words to match, so every item shows; the list says so.
   // @mutate src/components/declutter/DeclutterBrowseView.tsx |   const wordlessSearch = q !== "" && searchWords(query).length === 0; |   const wordlessSearch = false;
   it("searching only an emoji shows every item with a 'Search with words' line", async () => {
@@ -920,7 +938,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
 
   // Audit DC-9: "To answer" left out unanswered questions and showed buyer-turn offers and the settings. It counts
   // and shows the seller-turn offers AND the unanswered questions on listings on sale, and nothing else.
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks + tradeAsks; |   const toAnswer = (todo?.sellerOffers ?? 0) + reports.size + bundleAsks + tradeAsks;
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks + tradeAsks + freeAsks.length; |   const toAnswer = (todo?.sellerOffers ?? 0) + reports.size + bundleAsks + tradeAsks + freeAsks.length;
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <QuestionsToAnswer userId={userId} />} |
   // @mutate src/components/declutter/DeclutterOffersSection.tsx |     const waiting = mine.filter((o) => o.status === "open" && o.awaiting === side); |     const waiting = mine.filter((o) => o.status === "open");
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === null && settings} |       {settings}

@@ -178,4 +178,7 @@ export function resetConnectivityForTests(nextProbe?: ConnectivityProbe): void {
   if (reprobeTimer !== null) clearInterval(reprobeTimer);
   reprobeTimer = null;
   state = { online: true, lastChangedAt: Date.now() };
+  // Tell the subscribers (TanStack's onlineManager among them): a test that ended offline must not leave the next
+  // test's queries paused while the store already says online.
+  notify();
 }

@@ -14,7 +14,7 @@
  * Plus `label: "…"` entries in tab and range arrays (the segmented toggles).
  *
  * @mutate src/pages/info/HelpCenter.tsx | <PublicHeaderPage title="Help center" | <PublicHeaderPage title="Help Center"
- * @mutate src/components/PayoutSetupForm.tsx | Set up payouts with Stripe | Set Up Payouts with Stripe
+ * @mutate src/components/PayoutSetupForm.tsx | Add your bank (with Stripe) | Add Your Bank (with Stripe)
  * @mutate src/components/profile/earningsTab/EarningsRangeToggle.tsx | label: "This week" | label: "This Week"
  * @mutate src/pages/posts/EditJobDialog.tsx | <DialogPrimaryAction onClick={confirmDiscard}>Discard changes</DialogPrimaryAction> | <DialogPrimaryAction onClick={confirmDiscard}>Discard Changes</DialogPrimaryAction>
  * @mutate src/components/SuggestCategory.tsx |               Send suggestion\n | Send Suggestion\n
@@ -83,10 +83,11 @@ const TITLE_PROPS = /<(PageHeader|PublicHeaderPage|EmptyState|ProfileTabHeader|A
 /** Product and badge NAMES, written as names everywhere they appear (exact text). */
 // "Terms of Service": the legal document's name, the H1 of /terms/full (lead, 2026-10-23, Twilio's A2P review).
 // "Answer in Buying" / "Your Wanted posts" (B77/B82, 1030e): Buying and Wanted are the Declutter tabs' names, written as on the tab row.
+// "See it in Buying" (audit 11-10 F359f, the item page's open-trade note): Buying is the Declutter tab's name.
 // "Find something in Browse" (B169 Q2569): Browse is the Declutter tab's name, written as on the tab row.
 // "Post a Wanted" (Sell chooser More ways, owner pick 5, 11-08): Wanted is the Declutter tab's name, as in "Your Wanted posts".
 // "Share your Book me link" (B99 UX-4): Book me is the profile button's name, written as on that button.
-const NAMES = new Set(["Licensed & Insured", "Licensed & Insured Only", "Top Rated", "Terms of Service", "Answer in Buying", "Your Wanted posts", "Share your Book me link", "Find something in Browse", "Post a Wanted"]);
+const NAMES = new Set(["Licensed & Insured", "Licensed & Insured Only", "Top Rated", "Terms of Service", "Answer in Buying", "Your Wanted posts", "Share your Book me link", "Find something in Browse", "Post a Wanted", "See it in Buying"]);
 
 function findings(): string[] {
   const bad: string[] = [];

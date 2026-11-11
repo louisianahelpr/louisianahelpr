@@ -15,6 +15,8 @@
  * @mutate src/components/declutter/DeclutterItemView.tsx | <Detail label={t("decl.item.category")}>{CATEGORY_LABEL[it.category] ? t(`decl.cat.${it.category}` as MsgKey) : t("decl.cat.other")}</Detail> | <Detail label={t("decl.item.category")}>{CATEGORY_LABEL[it.category] ?? "Other"}</Detail>
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx |       title: t("decl.sheet.distance"), |       title: "Distance",
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx |               {SORT_LABEL[s] ? t(`decl.sort.${s}` as MsgKey) : s} |               {SORT_LABEL[s]}
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <span data-offer-label="">{t("decl.buy.makeOffer")}</span> | <span data-offer-label="">Make offer</span>
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | data-buy-label="">{t("decl.buy.now")}</span>; | data-buy-label="">Buy now</span>;
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
@@ -124,5 +126,13 @@ describe("F260q: Declutter Browse in Spanish", () => {
     expect(screen.getByText("Más cerca primero")).toBeTruthy();
     expect(screen.getByText("Las millas se cuentan desde donde está usted.")).toBeTruthy();
     expect(screen.getByText("Exterior")).toBeTruthy();
+  });
+
+  it("the buy bar: Buy now, Make offer, Your offer and its notices draw from the dictionary", () => {
+    const offer = blankComments(readFileSync("src/components/declutter/DeclutterOfferPanel.tsx", "utf8"));
+    const keys = ["decl.buy.now", "decl.buy.makeOffer", "decl.buy.yourOffer", "decl.buy.bar", "decl.buy.someoneBuying", "decl.buy.underAge", "decl.buy.offersOff"];
+    for (const k of keys) expect(offer, k).toContain(`t("${k}")`);
+    expect(offer).not.toMatch(/>Buy now<|>Make offer<|"Buy or make an offer"/);
+    expect(esDeclutter["decl.buy.now"]).toBe("Comprar ahora");
   });
 });

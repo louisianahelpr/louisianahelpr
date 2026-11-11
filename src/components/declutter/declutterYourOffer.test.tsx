@@ -450,7 +450,7 @@ describe("the item page knows the buyer's own open offer (#4)", () => {
 // settles it the other way round: the button names NO figure, so it can never disagree with the charge; the price
 // block's "$42.70 incl. fee" is the price, and the one-time fee is its own line in the checkout summary
 // (DeclutterCheckoutSummary "One-time setup fee", guarded in declutterCheckoutSummary tests).
-// @mutate src/components/declutter/DeclutterOfferPanel.tsx |   if (way !== "none") return <span className="whitespace-nowrap font-semibold" data-buy-label="">Buy now</span>; |
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx |   if (way !== "none") return <span className="whitespace-nowrap font-semibold" data-buy-label="">{t("decl.buy.now")}</span>; |
 describe("Buy now names no second figure; the setup fee is a checkout line (A1-B2, owner pick 2 11-08)", () => {
   it("an account that still owes the setup fee sees plain Buy now: no $44.70, no setup-fee words on the bar", async () => {
     state.setupFeeCents = 200;
@@ -477,7 +477,7 @@ describe("Buy now names no second figure; the setup fee is a checkout line (A1-B
 // Owner pick 1 (11-08, replacing 11-01's bar-only pair and 11-07's stacked three): ONE sticky bar with Make offer (an
 // outline, left) and Buy now (the one filled button, right), side by side, one line each. Message is on the seller
 // row (declutterItemPage.test.tsx), not in this bar.
-// @mutate src/components/declutter/DeclutterOfferPanel.tsx |             <span data-offer-label="">Make offer</span> |             <span data-offer-label="">Make an offer to the seller now</span>
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx |             <span data-offer-label="">{t("decl.buy.makeOffer")}</span> |             <span data-offer-label="">Make an offer to the seller now</span>
 // @mutate src/components/ui/StickyActionBar.tsx | className="mx-auto flex w-full max-w-xl gap-2 [&>*]:min-w-0 [&>*]:flex-1" | className="mx-auto grid w-full max-w-xl gap-2"
 describe("one sticky bar: Make offer then Buy now, side by side (owner pick 1, 11-08)", () => {
   it("two buttons in one row, the secondary first and the one primary last, no Ask the seller", async () => {

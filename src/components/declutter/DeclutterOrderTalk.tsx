@@ -19,7 +19,7 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { scanMessage } from "@/lib/messageScanner";
 import { useManagerLabels } from "@/lib/declutter/managerMode";
-import { fetchMyOrderTalks, fetchOrderTalk, MY_ORDER_TALKS_KEY, sendOrderMessage } from "@/lib/declutter/orderTalk";
+import { fetchMyOrderTalks, fetchOrderTalk, MY_ORDER_TALKS_KEY, orderTalkPhotoUrl, sendOrderMessage } from "@/lib/declutter/orderTalk";
 import { talkTime } from "@/lib/declutter/talkTime";
 import { dateDividerLabel } from "@/components/messages/chatView/chatViewHelpers";
 import { focusSheetItself } from "./focusSheetItself";
@@ -86,7 +86,11 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
   // Manager mode: a message the seller's manager wrote says "Dana (helping Kaci)" to everyone, not "The seller" (nor
   // "You" to the seller: it was sent under her account, but she did not write it).
   const labels = useManagerLabels("order_talk", (talk.data?.messages ?? []).map((m) => m.id));
-  const itemTitle = talks.data?.find((r) => r.order_id === orderId)?.title ?? null;
+  const itemRow = talks.data?.find((r) => r.order_id === orderId) ?? null;
+  const itemTitle = itemRow?.title ?? null;
+  // Audit 11-10 F360e: the chat's head shows the item's photo beside its title (the same photo_path the Messages row
+  // shows, declutter_my_order_talks 20261111155616); none when the item or its photos are gone.
+  const itemPhoto = itemRow ? orderTalkPhotoUrl(itemRow) : null;
   const [draft, setDraft] = useState("");
   const leak = draft.trim() ? scanMessage(draft)[0] ?? null : null;
   // AUD31-11: a refused message is said under the box, as Questions does, never in a toast over the box and draft.
@@ -108,7 +112,12 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
       <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={focusSheetItself}
         className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-order-talk="">
         <SheetHero title={!t ? "Order chat" : open ? `Message the ${other}` : `Your chat with the ${other}`} />
-        {itemTitle && <p className="mt-1 truncate text-ds-14 text-muted-foreground" data-order-talk-item="">About &ldquo;{itemTitle}&rdquo;</p>}
+        {(itemTitle || itemPhoto) && (
+          <div className="mt-1 flex items-center gap-3" data-order-talk-head="">
+            {itemPhoto && <img src={itemPhoto} alt="" className="h-11 w-11 shrink-0 rounded-xl bg-photo-empty object-cover" data-order-talk-photo="" />}
+            {itemTitle && <p className="min-w-0 truncate text-ds-14 text-muted-foreground" data-order-talk-item="">About &ldquo;{itemTitle}&rdquo;</p>}
+          </div>
+        )}
         {talk.isError ? (
           <ErrorState variant="inline" title="We couldn't load this chat." body={declutterErrorMessage(talk.error)} onRetry={() => void talk.refetch()} />
         ) : talk.isPending || !t ? (

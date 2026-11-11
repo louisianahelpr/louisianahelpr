@@ -7,7 +7,7 @@
  * @mutate src/components/profile/DeleteAccountDialog.tsx |         <TakeABreak onGo={() => handleOpenChange(false)} /> |         <TakeABreak onGo={() => {}} />
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { useState } from "react";
 
@@ -49,7 +49,7 @@ describe("F461: Delete account offers a break instead", () => {
     expect(screen.getByText(/Just need a break\?/)).toBeInTheDocument();
     fireEvent.click(link);
     expect(screen.getByTestId("where").textContent).toBe("/profile?tab=notifications");
-    await waitFor(() => expect(screen.queryByRole("link", { name: "Turn off notifications instead" })).toBeNull());
+    expect(screen.queryByRole("link", { name: "Turn off notifications instead" })).toBeNull();
   });
 
   it("off Settings (sign-up, banned) it is not offered", async () => {

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
@@ -40,6 +40,34 @@ function useFabClearance(on: boolean) {
 }
 
 /**
+ * F262 (audit 11-10): bottom room clears only the LAST row; mid-list the pill sat on a card's progress bar, its
+ * "Manage job" row and Browse's town and time. While the member scrolls DOWN the pill folds to its round "+" (the
+ * TaskRabbit / Gmail pattern; its name stays on aria-label), and scrolling back up (or reaching the top) opens it
+ * again. The app scrolls inside its own panels, not the window, so this listens to every scroll in capture phase
+ * and reads the scrolled element's own position.
+ */
+export function useFoldsWhileScrollingDown(on: boolean): boolean {
+  const [folded, setFolded] = useState(false);
+  useEffect(() => {
+    if (!on || typeof document === "undefined") return;
+    const last = new WeakMap<EventTarget, number>();
+    const onScroll = (e: Event) => {
+      const el = e.target === document ? document.scrollingElement : (e.target as Element | null);
+      if (!el || typeof (el as Element).scrollTop !== "number") return;
+      const top = (el as Element).scrollTop;
+      const before = last.get(el) ?? 0;
+      last.set(el, top);
+      if (top <= 8) setFolded(false);
+      else if (top - before > 4) setFolded(true);
+      else if (before - top > 4) setFolded(false);
+    };
+    document.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    return () => document.removeEventListener("scroll", onScroll, { capture: true });
+  }, [on]);
+  return folded;
+}
+
+/**
  * `add`: this member's own action when it is not the section's usual one (Shops: a member who already has a shop is
  * offered "+ Add an item", not "+ Open a shop"; ShopsHomeView). Guard: src/test/shopOwnerAddNotOpenShop.test.tsx.
  */
@@ -56,6 +84,7 @@ export function SectionCreateFab({ section, text: given, add: own }: { section?:
   const add = own ?? (section ? sectionByKey(section).add : null);
   const shown = !desktop && !hidden && !(section && !add);
   useFabClearance(shown);
+  const folded = useFoldsWhileScrollingDown(shown);
   if (!shown || typeof document === "undefined") return null;
   const isPost = add?.path === "/post-job";
   const go = () => { hapticMedium(); if (add) navigate(add.path); else setCreateSheetOpen((o) => !o); };
@@ -65,16 +94,17 @@ export function SectionCreateFab({ section, text: given, add: own }: { section?:
       variant="primary"
       size="md"
       data-testid="section-create-fab"
+      data-folded={folded ? "" : undefined}
       data-create-section={section ?? "sheet"}
       aria-label={add ? add.label : text}
       {...(add ? {} : { "aria-haspopup": "dialog" as const, "aria-expanded": sheetOpen })}
       onClick={isPost ? gate.gate("post", go) : go}
       {...(isPost ? gate.gatedProps("post") : {})}
-      className="fixed bottom-safe-nav right-4 z-40 gap-1.5 rounded-full pl-4 pr-5 font-semibold shadow-lg [&>svg]:h-5 [&>svg]:w-5"
+      className={`fixed bottom-safe-nav right-4 z-40 rounded-full font-semibold shadow-lg [&>svg]:h-5 [&>svg]:w-5 ${folded ? "w-12 px-0" : "gap-1.5 pl-4 pr-5"}`}
       style={{ marginRight: "var(--safe-area-right, 0px)" }}
     >
       <Plus aria-hidden />
-      {text}
+      {!folded && text}
     </Button>,
     document.body,
   );

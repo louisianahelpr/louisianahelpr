@@ -14,6 +14,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { reviewText, withReviewTags } from "@/lib/reviewTags";
 import { STAR_ON_CLS } from "@/lib/starColor";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 /**
  * F278 (audit 11-10): the poster's done job used to show a disabled "Reviewed"
@@ -47,7 +48,7 @@ export function YourReviewDialog({
   /** Reviewee names by user id (helperNames); a missing name reads "your Helpr". */
   names: Record<string, string>;
 }) {
-  const { data, isLoading, isError } = useQuery<YourReview[]>({
+  const { data, isLoading, isError, refetch } = useQuery<YourReview[]>({
     queryKey: queryKeys.yourReviews.forJob(userId, jobId),
     enabled: open && !!userId && !!jobId,
     queryFn: async () => {
@@ -79,7 +80,7 @@ export function YourReviewDialog({
           {isLoading ? (
             <p className="text-ds-14 text-muted-foreground">Loading your review…</p>
           ) : isError ? (
-            <p className="text-ds-14 text-muted-foreground" role="alert">Your review couldn't load. Try again in a moment.</p>
+            <ErrorState variant="inline" title="Your review couldn't load." onRetry={() => void refetch()} />
           ) : !data || data.length === 0 ? (
             <p className="text-ds-14 text-muted-foreground">We couldn't find your review for this job.</p>
           ) : (

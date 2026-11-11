@@ -55,6 +55,6 @@ describe("an ended job or a closed application offers the Helpr no tracker step 
 
   it("the page passes the Helpr's own application row in", () => {
     const src = blankComments(readFileSync(resolve(__dirname, "../pages/jobs/jobPage/JobPage.tsx"), "utf8"));
-    expect(src).toMatch(/hiredHelprFace\(job, \{[^}]*application: myApplication\.data/);
+    expect(src).toMatch(/hiredHelprFace\(dayJob, \{[^}]*application: myApplication\.data/);
   });
 });

@@ -115,6 +115,12 @@ const UNREACHABLE: Allowlist = {
   },
   // Q2104 (20261106170629): fetchShopOrderBuyerNames feeds the Shop dashboard's card headings ("New order from Ana");
   // a failed read leaves the plain heading ("New order") and the orders still show, so no code's words exist there.
+  // Q2110 (20261111011855): fetchMyShopStrikes feeds ShopMyStrikes, which renders nothing on an empty or failed read,
+  // so no code's words exist there.
+  shops_my_strikes: {
+    feature_disabled: { reason: "no code's words at this site: a failed strikes read hides the strikes card" },
+    not_authenticated: { reason: ANON_REVOKED },
+  },
   shops_my_order_buyer_names: {
     account_restricted: { reason: "no code's words at this site: a failed name read leaves the dashboard's plain headings" },
     feature_disabled: { reason: "no code's words at this site: a failed name read leaves the dashboard's plain headings" },

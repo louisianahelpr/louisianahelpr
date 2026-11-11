@@ -1,3 +1,9 @@
+import "@/lib/i18n/enDeclPanels";
+import { getLang, t } from "@/lib/i18n/language";
+
+/** The viewer's locale for clock words (F260q). */
+const locale = () => (getLang() === "es" ? "es-US" : "en-US");
+
 /**
  * "19 hours left" / "5 minutes left" / "time is up": a Declutter deadline (a cart line's checkout_by, an offer's
  * respond_by) in the words the cart and the seller's waiting sales show. Moved out of DeclutterTradeViews.tsx
@@ -5,13 +11,13 @@
  */
 export function timeLeft(iso: string, now = Date.now()): string {
   const ms = new Date(iso).getTime() - now;
-  if (ms <= 0) return "time is up";
+  if (ms <= 0) return t("dp.timeUp");
   const h = Math.floor(ms / 3_600_000);
   // Audit 11-10 F368: "118 hours left" became days from 48 hours up.
-  if (h >= 48) return `${Math.floor(h / 24)} days left`;
-  if (h >= 1) return `${h} hour${h === 1 ? "" : "s"} left`;
+  if (h >= 48) return t("dp.daysLeft", { n: Math.floor(h / 24) });
+  if (h >= 1) return h === 1 ? t("dp.hourLeft") : t("dp.hoursLeft", { n: h });
   const m = Math.max(1, Math.floor(ms / 60_000));
-  return `${m} minute${m === 1 ? "" : "s"} left`;
+  return m === 1 ? t("dp.minuteLeft") : t("dp.minutesLeft", { n: m });
 }
 
 /**
@@ -21,10 +27,10 @@ export function timeLeft(iso: string, now = Date.now()): string {
  */
 export function byClock(iso: string, now = Date.now()): string {
   const at = new Date(iso);
-  if (at.getTime() <= now) return "time is up";
-  const time = at.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  if (at.getTime() <= now) return t("dp.timeUp");
+  const time = at.toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" });
   const sameDay = at.toDateString() === new Date(now).toDateString();
-  return sameDay ? `by ${time}` : `by ${at.toLocaleDateString("en-US", { weekday: "short" })} ${time}`;
+  return t("dp.byTime", { time: sameDay ? time : `${at.toLocaleDateString(locale(), { weekday: "short" })} ${time}` });
 }
 
 /** Louisiana Helpr's own clock (Central), so every order date reads the same on every device. */
@@ -35,7 +41,7 @@ const CENTRAL = "America/Chicago";
  * 12-hour time, Central time).
  */
 export function orderWhen(iso: string): string {
-  return new Date(iso).toLocaleString("en-US", { timeZone: CENTRAL, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return new Date(iso).toLocaleString(locale(), { timeZone: CENTRAL, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 const PAYOUT_SEND_MARGIN_MS = 10 * 60_000;

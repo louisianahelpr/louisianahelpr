@@ -85,6 +85,7 @@ const CONVERTED = [
   "src/components/declutter/DeclutterPriceHint.tsx",
   "src/components/declutter/DeliveryPriceList.tsx",
   "src/components/declutter/DeclutterOfferTrade.tsx",
+  "src/components/declutter/ItemPickupBlock.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */
@@ -106,6 +107,8 @@ const ALLOWED: Record<string, string[]> = {
   // Keyboard key names; the Browse tab reads tr("tabs.browse") (F260q, 11-11).
   "src/components/sections/SectionTabs.tsx": ["ArrowRight", "ArrowLeft", "Home", "End"],
   "src/components/sections/SectionSearchBar.tsx": ["Escape"],
+  // itemTimesPlan's plan.usual values, compared as identifiers (never rendered by ItemPickupBlock).
+  "src/components/declutter/ItemPickupBlock.tsx": ["Pickup times", "Pickup and meetup times", "Meetup times", "Pickup and meetup times"],
 };
 
 function findRawStrings(src: string): string[] {

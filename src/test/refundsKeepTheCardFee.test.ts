@@ -852,7 +852,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
       // Q2106 S2 (20261105032500, Builder 3 11-04, WIP: lead money review owed): restated verbatim, plus o.gift_cents in
       // the returned row. It still records no refund and reads no amount but the order's own gift share.
-      declutter_payouts_due: "20261105032500_declutter_gift_payouts.sql 93a5d93ea25f2818",
+      // Money review 11-11 (20261111211749, Builder 1, lh-money-escrow): restated verbatim plus one wait: a refund on the
+      // order's own payment held for review (not delivery_damage) holds the payout. Reads declutter_refunds' status only.
+      declutter_payouts_due: "20261111211749_declutter_payout_waits_for_held_refund.sql 4b5b891fd69f5c69",
       // Board 141: reads what a full refund would return (keep_card_fee's own formula, for the screen); writes nothing.
       declutter_full_refund_cents: "20261026155251_declutter_refund_requests.sql c6fc4e29fa827449",
       // Board 141: a party's view of the refund request; reads the settled refund row's amount and status only.
@@ -938,7 +940,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // the manager's payout queue: reads declutter_refunds only to wait while a part refund is pending; no amount.
       // Q2106 S2(d) (20261105032500, Builder 3 11-04 night): restated verbatim plus o.gift_cents in the output; the
       // declutter_refunds read (wait while a part refund is pending) is unchanged; no amount.
-      declutter_manager_payouts_due: "20261105032500_declutter_gift_payouts.sql db40337447c05f28",
+      // Money review 11-11 (20261111211749): the same held-refund wait as the seller's queue; no amount.
+      declutter_manager_payouts_due: "20261111211749_declutter_payout_waits_for_held_refund.sql eb7c0948ce2f3da9",
       // pushes next_attempt_at of a pending / failed row; no try used, no amount.
       payout_defer: "20261101233256_declutter_manager_payout_kind.sql 0e08cb79f90f76e5",
       // pages ops and tells the payee once per held row; writes only held_notified_at.

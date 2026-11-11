@@ -1,5 +1,5 @@
 /**
- * Q2110: a member sees their own Shops strikes and when each ends; at 3 the screen says the day Shops opens again
+ * Q2110: a member sees their own Shops strikes and when each ends; at the strike limit the screen says the day Shops opens again
  * (the soonest strike's end). The read is shops_my_strikes() (20261111011855): own active rows only, never
  * removed_by. Behaviour on a real database: src/test/pglite/shopsMyStrikes.pglite.mjs (3x, NEW_MIGRATION=skip red).
  *

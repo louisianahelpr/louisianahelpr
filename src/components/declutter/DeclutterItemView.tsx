@@ -291,6 +291,13 @@ export default function ItemView({ itemId }: { itemId: string }) {
               {it.porch_ok !== false && <span data-item-porch-free="" className="font-semibold text-foreground">Free porch pickup · </span>}
               {[it.area_label, away].filter(Boolean).join(" · ")}
             </p>
+            {/* Owner 11-11 (F229): a buyer-protection line under a paid price, naming only what the app does: payment in
+                the app, porch pickup where this listing offers it, and 24 hours after the handover to report a problem. */}
+            {it.current_price_cents > 0 && !isSeller && (
+              <p data-item-protected="" className="text-ds-13 text-muted-foreground">
+                {`Protected: pay in the app${it.porch_ok !== false ? ", pick up from the porch" : ""}, 24 hours to report a problem.`}
+              </p>
+            )}
             {isSeller && <ItemViewsCount sellerId={it.seller_id} itemId={it.id} />}
             {drop && (
               <PriceDropBanner lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} mine={isSeller} />

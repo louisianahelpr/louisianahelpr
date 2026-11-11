@@ -5366,6 +5366,8 @@ export type Database = {
           restored_declutter_refund_key: string | null
           restored_from_declutter_order_id: string | null
           split_for_declutter_order_id: string | null
+          shop_order_id: string | null
+          split_for_shop_order_id: string | null
           amount: number
           category: string | null
           claim_token: string | null
@@ -5394,6 +5396,8 @@ export type Database = {
           restored_declutter_refund_key?: string | null
           restored_from_declutter_order_id?: string | null
           split_for_declutter_order_id?: string | null
+          shop_order_id?: string | null
+          split_for_shop_order_id?: string | null
           amount: number
           category?: string | null
           claim_token?: string | null
@@ -5422,6 +5426,8 @@ export type Database = {
           restored_declutter_refund_key?: string | null
           restored_from_declutter_order_id?: string | null
           split_for_declutter_order_id?: string | null
+          shop_order_id?: string | null
+          split_for_shop_order_id?: string | null
           amount?: number
           category?: string | null
           claim_token?: string | null
@@ -14227,6 +14233,8 @@ export type Database = {
           delivery_cents: number
           delivery_miles: number | null
           fulfillment: string
+          gift_card_id: string | null
+          gift_cents: number
           handed_over_at: string | null
           handover_mode: string
           held_at: string | null
@@ -14287,6 +14295,8 @@ export type Database = {
           delivery_cents?: number
           delivery_miles?: number | null
           fulfillment?: string
+          gift_card_id?: string | null
+          gift_cents?: number
           handed_over_at?: string | null
           handover_mode?: string
           held_at?: string | null
@@ -14347,6 +14357,8 @@ export type Database = {
           delivery_cents?: number
           delivery_miles?: number | null
           fulfillment?: string
+          gift_card_id?: string | null
+          gift_cents?: number
           handed_over_at?: string | null
           handover_mode?: string
           held_at?: string | null
@@ -16745,6 +16757,16 @@ export type Database = {
           p_credit_id: string
           p_order_id: string
           p_retired_session?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      redeem_gift_card_for_shop_order: {
+        Args: {
+          p_credit_id: string
+          p_order_id: string
+          p_retired_session?: string
+          p_tax_cents: number
           p_user_id: string
         }
         Returns: Json

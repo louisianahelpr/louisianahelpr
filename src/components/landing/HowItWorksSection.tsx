@@ -5,6 +5,7 @@ import { signupUrlFor } from "@/lib/jobIntent";
 import { goSignedInOr } from "./goSignedInOr";
 import { HIRE_STEPS } from "./hireSteps";
 import { useLandingMode, type LandingMode } from "./landingMode";
+import { useGuestSpanish } from "./useGuestSpanish";
 import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 import {
   SegmentedControl,
@@ -118,6 +119,10 @@ const HowItWorksSection = () => {
   useEffect(() => setSide(sideForMode(mode)), [mode]);
   const navigate = useNavigate();
   const action = SIDE_ACTION[side];
+  // F260q (owner 11-11): the Spanish words when the visitor's language is Spanish (enLanding.ts / esLanding.ts).
+  const es = useGuestSpanish();
+  const w = (key: string, english: string) => es?.[key] ?? english;
+  const ACTION_KEY: Record<Side, string> = { hire: "landing.postJob", work: "landing.browseJobs", sell: "landing.sell" };
 
   useLayoutEffect(() => {
     if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
@@ -158,7 +163,7 @@ const HowItWorksSection = () => {
             className="font-display landing-serif text-balance landing-h2"
             style={{ color: "var(--lp-ink)" }}
           >
-            How it works
+            {w("landing.how.title", "How it works")}
           </h2>
           {/* The app's shared control (selected = the olive primary), so the
               marketing page and the app agree on what "selected" looks like.
@@ -170,8 +175,8 @@ const HowItWorksSection = () => {
               semantics="tab"
               labelSize="md"
               tone="quiet"
-              ariaLabel="Which side of Helpr are you on"
-              options={SIDE_OPTIONS}
+              ariaLabel={w("landing.how.sidesLabel", "Which side of Helpr are you on")}
+              options={SIDE_OPTIONS.map((o) => ({ ...o, label: w(`landing.how.side.${o.value}`, o.label) }))}
               value={side}
               onChange={setSide}
             />
@@ -185,7 +190,7 @@ const HowItWorksSection = () => {
               className="inline-flex items-center gap-1.5 min-h-11 text-ds-15 font-bold link-standard"
               style={{ color: "var(--lp-action-strong)" }}
             >
-              {action.label}
+              {w(ACTION_KEY[side], action.label)}
               <ArrowRight className="w-4 h-4" aria-hidden />
             </Link>
           </div>
@@ -222,10 +227,10 @@ const HowItWorksSection = () => {
                 className="min-w-0 mt-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-1 motion-safe:duration-300"
               >
                 <h3 className="font-sans font-bold text-ds-17 lg:text-ds-20 tracking-tight leading-snug" style={{ color: "var(--lp-ink)" }}>
-                  {step.title}
+                  {w(`landing.how.${side}${i + 1}Title`, step.title)}
                 </h3>
                 <p className="mt-2 font-sans text-ds-15 leading-relaxed" style={{ color: "var(--lp-body)" }}>
-                  {step.desc}
+                  {w(`landing.how.${side}${i + 1}Desc`, step.desc)}
                 </p>
               </div>
             </div>

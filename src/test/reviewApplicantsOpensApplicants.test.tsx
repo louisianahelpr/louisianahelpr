@@ -9,7 +9,8 @@
  * @mutate src/components/job-card/JobListPage.tsx |   useReviewApplicantsDeepLink(applicantsJobId, postedJobs, actions.loadApplications, onPostedList); |
  * @mutate src/components/job-card/useManageDeepLink.ts |     if (isOnList(job)) void open(job as never); |     void open(job as never);
  * @mutate src/components/job-card/useManageDeepLink.ts |     if (!target \|\| done.current === target) return;\n    const job | if (!target) return;\n    const job
- * @mutate src/components/job-card/JobListPage.tsx |   const applicantsJobId = defaultTab === "posted" && searchParams.get("applicants") === "1" ? searchParams.get("highlight") : null; |   const applicantsJobId = null;
+ * @mutate src/components/job-card/JobListPage.tsx |   const applicantsJobId = applicantsLinkJobId(searchParams, defaultTab); |   const applicantsJobId = null;
+ * @mutate src/components/job-card/useManageDeepLink.ts |   return params.get("highlight") ?? params.get("job"); |   return params.get("highlight");
  * @mutate src/components/job-card/JobListPage.tsx |     } else if (tab === "posted" && highlightJobId && !onList) { |     } else if (false) {
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -128,5 +129,13 @@ describe("Review N applicants opens the applicants (boards 22 / 170)", () => {
     renderAt("/posts?highlight=j-draft&applicants=1", "posted");
     await waitFor(() => expect(toastShown).toHaveBeenCalledWith("That job isn't paid yet, so it isn't on Posted. Open it to pay for it."));
     expect(loadApplications).not.toHaveBeenCalled();
+  });
+
+  // F287a (audit 11-10): the bell/email link is /jobs?job=<id>&applicants=1&tab=posted&filter=needs_you. After log-in it
+  // opened only the list: just `highlight` was read for the applicants.
+  it("F287a: the bell link (?job=<id>&applicants=1) opens that job's applicants too", async () => {
+    renderAt("/jobs?job=j-open&applicants=1&tab=posted&filter=needs_you", "posted");
+    await waitFor(() => expect(loadApplications).toHaveBeenCalledTimes(1));
+    expect(loadApplications.mock.calls[0][0]).toMatchObject({ id: "j-open" });
   });
 });

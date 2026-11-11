@@ -7,7 +7,7 @@
  * Client: the sheet (NoShowDialog) says "You can report a no-show from 9:30 AM." and keeps Confirm off until then,
  * from the same instant (src/lib/noShowOpens.ts).
  *
- * @mutate supabase/migrations/20261111202421_no_show_report_opens_30_minutes_after_start.sql | ELSE interval '30 minutes' END; | ELSE interval '0 minutes' END;
+ * @mutate supabase/migrations/20261111213317_no_show_reported_at_marker.sql | ELSE interval '30 minutes' END; | ELSE interval '0 minutes' END;
  * @mutate src/lib/noShowOpens.ts | export const NO_SHOW_WAIT_MINUTES = 30; | export const NO_SHOW_WAIT_MINUTES = 0;
  * @mutate src/components/job-card/NoShowDialog.tsx | disabled={reporting \|\| !open} | disabled={reporting}
  * @mutate src/components/job-card/NoShowDialog.tsx | {waitLine && <p data-testid="no-show-opens-line"> | {false && <p data-testid="no-show-opens-line">
@@ -32,7 +32,7 @@ const central = (h: number, m = 0, s = 0, day = 12) => new Date(Date.UTC(2026, 1
 describe("F284: a no-show report opens 30 minutes after the start", () => {
   it("the server's newest report_helper_no_show refuses a timed job until start + 30 minutes", () => {
     expect(defs.size).toBeGreaterThan(100);
-    expect(defs.get("report_helper_no_show")?.file).toBe("20261111202421_no_show_report_opens_30_minutes_after_start.sql");
+    expect(defs.get("report_helper_no_show")?.file).toBe("20261111213317_no_show_reported_at_marker.sql");
     const b = body("report_helper_no_show");
     expect(b).toContain("v_opens_at := v_starts_at + CASE WHEN v_start_time IS NULL THEN interval '0 minutes' ELSE interval '30 minutes' END;");
     expect(b).toContain("IF v_starts_at IS NULL OR now() < v_opens_at THEN RAISE EXCEPTION 'job_not_started'");

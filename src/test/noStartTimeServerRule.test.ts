@@ -15,7 +15,7 @@
  * no-show reading; a new one fails until it is classified (exact both ways).
  *
  * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |        AND ((CASE WHEN j.start_time IS NULL THEN (j.date_needed + 1) + '00:00'::time ELSE j.date_needed + j.start_time END)\n              AT TIME ZONE 'America/Chicago') <= now() |        AND ((j.date_needed + COALESCE(j.start_time, '00:00'::time))\n              AT TIME ZONE 'America/Chicago') <= now()
- * @mutate supabase/migrations/20261111202421_no_show_report_opens_30_minutes_after_start.sql |   v_starts_at := (CASE WHEN v_start_time IS NULL THEN (v_date_needed + 1) + '00:00'::time ELSE v_date_needed + v_start_time END) |   v_starts_at := (v_date_needed + COALESCE(v_start_time, '00:00'::time))
+ * @mutate supabase/migrations/20261111213317_no_show_reported_at_marker.sql |   v_starts_at := (CASE WHEN v_start_time IS NULL THEN (v_date_needed + 1) + '00:00'::time ELSE v_date_needed + v_start_time END) |   v_starts_at := (v_date_needed + COALESCE(v_start_time, '00:00'::time))
  * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |   v_starts_at := (CASE WHEN v_job.start_time IS NULL THEN (v_job.date_needed + 1) + '00:00'::time ELSE v_job.date_needed + v_job.start_time END) |   v_starts_at := (v_job.date_needed + COALESCE(v_job.start_time, '00:00'::time))
  * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |         WHERE CASE WHEN any_time THEN arrived_local < scheduled_start | WHERE CASE WHEN any_time THEN arrived_local < scheduled_start - interval '1 day'
  * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |       helper_arrived_at AT TIME ZONE 'America/Chicago' AS arrived_local, |       helper_arrived_at::timestamp AS arrived_local,
@@ -64,7 +64,7 @@ describe("a job with no start time is never started, late or a no-show on its da
     for (const fn of ["auto_start_due_jobs", "report_helper_no_show", "rpc_poster_report_member_no_show", "get_helper_on_time_percents"]) {
       // 20261108202000 (Jobs audit 11-08 #7/#12) restated report_helper_no_show with this gate unchanged; 20261111202421
       // (F284) keeps the no-time day's end and opens a TIMED job 30 minutes after its start.
-      expect(defs.get(fn)?.file, fn).toBe(fn === "report_helper_no_show" ? "20261111202421_no_show_report_opens_30_minutes_after_start.sql" : THIS);
+      expect(defs.get(fn)?.file, fn).toBe(fn === "report_helper_no_show" ? "20261111213317_no_show_reported_at_marker.sql" : THIS);
       expect(body(fn), `${fn} still reads a NULL start_time as 00:00`).not.toMatch(MIDNIGHT);
     }
     const auto = body("auto_start_due_jobs");

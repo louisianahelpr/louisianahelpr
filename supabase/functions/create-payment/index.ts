@@ -2889,15 +2889,20 @@ serve(async (req) => {
         .from("declutter_order_jobs").select("seller_fault_refund_id").eq("job_id", jobId).maybeSingle();
       if (qFaultErr && !["42P01", "42703", "PGRST204", "PGRST205"].includes(qFaultErr.code ?? "")) return unquoted("unreadable", feeCents);
       const qSellerFault = !qFaultErr && !!qFault?.seller_fault_refund_id;
-      // F272 (owner 11-11 ~2:50 PM): void-cancelled-payments refunds a no-show job IN FULL (a user_violations
-      // 'no_show' row on the job, a solo job with no confirmed Helpr). asNoShow quotes the job as the report will
-      // leave it; a job already reopened by a report is read the same way the sweep reads it.
+      // F272 (owner 11-11 ~2:50 PM): void-cancelled-payments refunds a no-show job IN FULL (the server-owned marker
+      // jobs.no_show_reported_at, a solo job with no confirmed Helpr; 20261111213317). asNoShow quotes the job as the
+      // report will leave it; a job already reopened by a report is read the same way the sweep reads it. qJob is the
+      // whole row (select "*"); before the column is deployed it is absent and the old key, the violation row, is read.
       let qNoShowFull = asNoShow;
       if (!qNoShowFull && qJob.is_group_job !== true && qJob.helper_confirmed_at == null) {
-        const { data: qNoShow, error: qNoShowErr } = await supabaseAdmin
-          .from("user_violations").select("id").eq("job_id", jobId).eq("violation_type", "no_show").limit(1);
-        if (qNoShowErr) return unquoted("unreadable", feeCents);
-        qNoShowFull = (qNoShow?.length ?? 0) > 0;
+        if ("no_show_reported_at" in qJob) {
+          qNoShowFull = qJob.no_show_reported_at != null;
+        } else {
+          const { data: qNoShow, error: qNoShowErr } = await supabaseAdmin
+            .from("user_violations").select("id").eq("job_id", jobId).eq("violation_type", "no_show").limit(1);
+          if (qNoShowErr) return unquoted("unreadable", feeCents);
+          qNoShowFull = (qNoShow?.length ?? 0) > 0;
+        }
       }
       // The sweep's own fee rule: no fee on a seller-fault setup job or an unfilled / ban-ended series visit.
       const owedFeeCents = qSellerFault || qNoShowFull || refundsSeriesVisitInFull(qJob) ? 0 : feeCents;

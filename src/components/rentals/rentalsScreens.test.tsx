@@ -883,7 +883,7 @@ describe("Rentals screens", () => {
     });
   });
 
-  // @mutate src/components/sections/SectionTabs.tsx | { value: BROWSE as string, label: "Browse" }, ...tabs.map | ...tabs.map
+  // @mutate src/components/sections/SectionTabs.tsx | { value: BROWSE as string, label: tr("tabs.browse") }, ...tabs.map | ...tabs.map
   describe("Homes section dashboard (owner, 2026-10-19)", () => {
     it("phone: opens on Browse with no tabs row; Renting and Owning are in My Homes, and a list names itself with the way back (the Vinted header, owner 11-08)", async () => {
       state.homeLoads = false;

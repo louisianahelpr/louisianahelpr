@@ -7,7 +7,7 @@
  * - Category chips: no icons on the row; "Free" is a chip right after "All" and sets the freeOnly filter.
  * - StickyActionBar: the buttons render ONCE (inline on a wide screen), never a second copy.
  *
- * @mutate src/components/declutter/DeclutterItemCard.tsx | {item.accepts_trades === true && <PhotoTag data-card-trades="">Trades OK</PhotoTag>} | {null}
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | {item.accepts_trades === true && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>} | {null}
  * @mutate src/components/declutter/DeclutterCategoryChips.tsx | <FilterChip pressed={free} onClick={() => onFree?.(!free)} | <FilterChip pressed={free} onClick={() => undefined}
  */
 import { describe, expect, it, vi } from "vitest";

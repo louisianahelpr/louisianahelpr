@@ -183,7 +183,7 @@ describe("F073: Declutter's desktop Browse shows a visible search field (Jobs ke
   });
   it("Browse pins it; Jobs does not", () => {
     const browse = blankComments(readFileSync(join(SRC, "components/declutter/DeclutterBrowseView.tsx"), "utf8"));
-    expect(browse).toContain('<InlineListSearch value={query} onChange={setQuery} label="Search items" pinned />');
+    expect(browse).toContain('<InlineListSearch value={query} onChange={setQuery} label={t("decl.searchItems")} pinned />');
     const others = walk(join(SRC, "components")).concat(walk(join(SRC, "pages")))
       .filter((f) => !f.endsWith("DeclutterBrowseView.tsx"))
       .map((f) => blankComments(readFileSync(f, "utf8")))

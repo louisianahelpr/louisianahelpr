@@ -13,11 +13,14 @@ import { CARD_PHOTO_PX, photoCardUrl, photoPublicUrl, type DeclutterItem, type D
 import { cardPhotoSrcSet, CARD_PHOTO_SIZES } from "@/lib/declutter/photoSizes";
 import { useLoadPhotoAhead } from "./useLoadPhotoAhead";
 import { holdForFirstRowPhoto, useLaterPhotosOpen } from "./firstRowPhotoGate";
-import { formatPrice, milesLabelShort, itemPriceLabel } from "@/lib/declutter/distance";
+import { formatPrice, milesLabelShort, itemPriceLabel as englishPriceLabel } from "@/lib/declutter/distance";
 import { PriceInclFee } from "./PriceInclFee";
 import { PhotoTag, PhotoTagStack } from "@/components/ui/PhotoTag";
 import { PRICE_BASE, PRICE_DEAL, PRICE_PAID } from "@/components/ui/designScale";
 import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enDeclutter";
 
 export function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
   const out = new Map<string, string>();
@@ -55,7 +58,8 @@ function savesWord(n: number | null | undefined): string | null {
  */
 export type CardTag = "drop" | "delivery" | "new";
 
-const TAG_WORDS: Record<CardTag, string> = { drop: "May drop tonight", delivery: "Helpr delivery", new: "New" };
+// F260q (owner 11-11): the card's words come from the dictionary (enDeclutter.ts / esDeclutter.ts).
+const TAG_WORDS: Record<CardTag, MsgKey> = { drop: "decl.card.drop", delivery: "decl.card.delivery", new: "decl.card.new" };
 
 /** The first row's photo is usually the page's largest paint: it does not wait for the browser's lazy-load check. */
 const FIRST_ROW_PHOTO: Record<string, string> = { loading: "eager", fetchpriority: "high" };
@@ -70,8 +74,10 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
   /** F052 (UI audit 11-09): a guest's heart, a link to sign-up ("Sign up to save items.") that comes back here. */
   guestSaveTo?: string }) {
   // Audit 11-10 F321: the short form ("3 mi", "About 1 mi"), so the condition beside it is not cut to "Lightly u...".
-  const away = milesLabelShort(miles, approximate);
-  const condition = CONDITION_LABEL[item.condition_stars] ?? null;
+  const { t } = useLanguage();
+  const itemPriceLabel = (cents: number) => (cents === 0 ? t("decl.chip.free") : englishPriceLabel(cents));
+  const away = milesLabelShort(miles, approximate)?.replace(/^Under /, `${t("decl.card.under")} `).replace(/^About /, `${t("decl.card.about")} `) ?? null;
+  const condition = CONDITION_LABEL[item.condition_stars] ? t(`decl.cond.${item.condition_stars}` as MsgKey) : null;
   // A photo that fails to load drops out, leaving the icon under it (never a blank tile). The card-sized thumbnail
   // comes first (owner 10-31: pictures were slow while scrolling); if it fails, the full photo; then the icon.
   const [photoStage, setPhotoStage] = useState<PhotoStage>("card");
@@ -132,11 +138,11 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
             Builder 3's trades badge), with the card's one rule tag (drop / delivery / new) under them. */}
         {(item.porch_ok || item.accepts_trades === true || tag) && (
           <PhotoTagStack>
-            {item.porch_ok && <PhotoTag data-card-porch="">Porch pickup</PhotoTag>}
-            {item.accepts_trades === true && <PhotoTag data-card-trades="">Trades OK</PhotoTag>}
+            {item.porch_ok && <PhotoTag data-card-porch="">{t("decl.card.porch")}</PhotoTag>}
+            {item.accepts_trades === true && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>}
             {tag && (
-              <PhotoTag data-card-tag={tag} tone={tag === "delivery" ? "plain" : "deal"} title={tag === "new" ? "New since you last looked at this search" : TAG_WORDS[tag]}>
-                {TAG_WORDS[tag]}
+              <PhotoTag data-card-tag={tag} tone={tag === "delivery" ? "plain" : "deal"} title={tag === "new" ? t("decl.card.newTitle") : t(TAG_WORDS[tag])}>
+                {t(TAG_WORDS[tag])}
               </PhotoTag>
             )}
           </PhotoTagStack>
@@ -164,7 +170,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
                 {itemPriceLabel(item.current_price_cents)}
                 {item.current_price_cents < item.price_cents && (
                   <span className={`ml-1.5 text-ds-11 ${PRICE_BASE}`}>
-                    <span className="sr-only">Price dropped, was </span>
+                    <span className="sr-only">{t("decl.card.wasPrice")}</span>
                     <s aria-hidden>{formatPrice(item.price_cents)}</s>
                   </span>
                 )}
@@ -178,7 +184,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
       </span>
       {/* D-NEW12 (lead 2026-10-30): the seller has a bundle discount on. Under the text, never a second photo tag.
           Trades audit 11-08 #3 ("Trades OK", guests too) is a PhotoTag on the photo since owner pick 4 (11-08). */}
-      {bundle && <Badge variant="sienna" data-card-bundle="" className="ml-0.5 mt-1 w-fit text-ds-11 leading-none">Bundle deal</Badge>}
+      {bundle && <Badge variant="sienna" data-card-bundle="" className="ml-0.5 mt-1 w-fit text-ds-11 leading-none">{t("decl.card.bundle")}</Badge>}
     </Link>
   );
   const savesText = savesWord(saves);
@@ -192,7 +198,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
           data-card-heart=""
           data-card-guest-heart=""
           data-card-saves={saves ?? undefined}
-          aria-label={`Sign up to save ${item.title}${savesText ? `, saved by ${saves}` : ""}`}
+          aria-label={`${t("decl.card.signUpToSave", { title: item.title })}${savesText ? t("decl.card.savedByShort", { n: saves ?? 0 }) : ""}`}
           className="absolute right-0.5 top-0.5 flex h-11 min-w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span className={`flex h-8 items-center justify-center gap-1 rounded-full bg-background/90 shadow-sm ${savesText ? "px-2.5" : "w-8"}`}>
@@ -212,7 +218,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
         <span data-card-saves={saves ?? 0} className="pointer-events-none absolute right-1.5 top-1.5 flex h-8 items-center gap-1 rounded-full bg-background/90 px-2.5 text-ds-13 font-semibold tabular-nums text-foreground shadow-sm">
           <Heart className="h-3.5 w-3.5" aria-hidden />
           <span aria-hidden>{savesText}</span>
-          <span className="sr-only">{`Saved by ${saves} ${saves === 1 ? "person" : "people"}`}</span>
+          <span className="sr-only">{saves === 1 ? t("decl.card.savedBy1") : t("decl.card.savedByN", { n: saves ?? 0 })}</span>
         </span>
       </div>
     );
@@ -228,7 +234,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
         data-card-heart=""
         aria-pressed={save.on}
         // A3-98 (audit 7, 11-01): one word for keeping something for later, app-wide: Save (the owner's word; Jobs' "Save job").
-        aria-label={`${save.on ? `Remove ${item.title} from saved` : `Save ${item.title}`}${savesText ? `, saved by ${saves}` : ""}`}
+        aria-label={`${save.on ? t("decl.card.unsave", { title: item.title }) : t("decl.card.save", { title: item.title })}${savesText ? t("decl.card.savedByShort", { n: saves ?? 0 }) : ""}`}
         data-card-saves={saves ?? undefined}
         disabled={save.pending}
         onClick={save.toggle}

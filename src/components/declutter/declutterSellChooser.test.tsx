@@ -29,7 +29,7 @@
  * @mutate src/lib/declutter/sellChooser.ts |   return params.get("mode") === "choose"; |   return params.get("mode") !== "bunch";
  * @mutate src/components/sections/sectionsConfig.ts | add: { label: "Sell an item", path: SELL_CHOOSER_PATH } | add: { label: "Sell an item", path: "/declutter/sell" }
  * @mutate src/components/create/CreateSheet.tsx |       { label: "Sell an item", path: SELL_CHOOSER_PATH }, |       { label: "Sell an item", path: "/declutter/sell" },
- * @mutate src/components/declutter/DeclutterBrowseView.tsx | { label: "Sell something", to: SELL_CHOOSER_PATH } | { label: "Sell something", to: "/declutter/sell" }
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | { label: t("decl.sellSomething"), to: SELL_CHOOSER_PATH } | { label: t("decl.sellSomething"), to: "/declutter/sell" }
  * @mutate src/components/declutter/SellChooserEntry.tsx |       to={SELL_CHOOSER_PATH} |       to="/declutter/sell"
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/post-job", "/declutter/sell"]; | "/post-job"];
  * @mutate src/pages/post-job/EntryChoice.tsx |     <ChoiceCard key={key} icon={icon} title={title} line={line} onClick={onClick} extra={extra} /> |     <button key={key} type="button" onClick={onClick}>{title}{line}</button>

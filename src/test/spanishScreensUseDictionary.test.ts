@@ -52,6 +52,11 @@ const CONVERTED = [
   "src/components/sections/ExploreSwitcher.tsx",
   "src/components/sections/SoonPill.tsx",
   "src/components/sections/AppTopBar.tsx",
+  // F260q (owner 11-11 "Spanish everything"): the section search bar and Declutter Browse's chips and cards.
+  "src/components/sections/SectionSearchBar.tsx",
+  "src/components/declutter/DeclutterCategoryChips.tsx",
+  "src/components/declutter/DeclutterActiveFilters.tsx",
+  "src/components/declutter/DeclutterItemCard.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */
@@ -66,8 +71,9 @@ const ALLOWED: Record<string, string[]> = {
   // English config names (tests and the @mutate lines read them); the member sees each tab's labelKey and
   // the gear's labelKey through t() (jobsTabsInSpanish.test.tsx renders them in Spanish).
   "src/pages/jobs/JobsSection.tsx": ["Jobs settings", "Posted", "Working"],
-  // "Browse" is the config name; the tab shows tr("tabs.browse"). The rest are keyboard key names.
-  "src/components/sections/SectionTabs.tsx": ["Browse", "ArrowRight", "ArrowLeft", "Home", "End"],
+  // Keyboard key names; the Browse tab reads tr("tabs.browse") (F260q, 11-11).
+  "src/components/sections/SectionTabs.tsx": ["ArrowRight", "ArrowLeft", "Home", "End"],
+  "src/components/sections/SectionSearchBar.tsx": ["Escape"],
 };
 
 function findRawStrings(src: string): string[] {

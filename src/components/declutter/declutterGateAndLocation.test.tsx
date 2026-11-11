@@ -571,7 +571,7 @@ describe("Declutter location ask", () => {
 
   it("DA-16: how you get it shows the same at every width: no breakpoint hides the distance or the porch tag", async () => {
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-place="" className="flex min-w-0 text-ds-11 | <span data-card-place="" className="hidden lg:flex min-w-0 text-ds-11
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | {item.porch_ok && <PhotoTag data-card-porch="">Porch pickup</PhotoTag>} | {null}
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | {item.porch_ok && <PhotoTag data-card-porch="">{t("decl.card.porch")}</PhotoTag>} | {null}
     const { ItemCard } = await import("./DeclutterItemCard");
     const item = {
       id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
@@ -619,7 +619,7 @@ describe("Declutter location ask", () => {
     const away = place.querySelector("[data-card-away]")!;
     // Audit 11-10 F321: the short form on the card; the item page keeps "3 mi away".
     expect(away.textContent).toBe("3 mi");
-    // @mutate src/components/declutter/DeclutterItemCard.tsx |   const away = milesLabelShort(miles, approximate); |   const away = milesLabelShort(miles, approximate)?.concat(" away") ?? null;
+    // @mutate src/components/declutter/DeclutterItemCard.tsx |   const away = milesLabelShort(miles, approximate)?.replace( |   const away = milesLabelShort(miles, approximate)?.concat(" away")?.replace(
     // The distance is its own piece that never shrinks or truncates; only the condition does (owner pick 4, 11-08:
     // the town line is gone).
     expect(away.className).toMatch(/\bshrink-0\b/);

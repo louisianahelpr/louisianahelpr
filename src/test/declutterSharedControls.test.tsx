@@ -7,7 +7,7 @@
  *
  * @mutate src/components/declutter/DeclutterActiveFilters.tsx | <RemoveFilterChip\n | <button type="button" className="h-10"\n
  * @mutate src/components/declutter/DeclutterGallery.tsx | <PhotoDotButton key={url} current={i === at} | <button key={url} type="button" data-current={i === at}
- * @mutate src/components/declutter/DeclutterCategoryChips.tsx | <RowNudgeButton aria-label="More categories" onClick={() => nudge(1)}> | <button type="button" aria-label="More categories" onClick={() => nudge(1)}>
+ * @mutate src/components/declutter/DeclutterCategoryChips.tsx | <RowNudgeButton aria-label={t("decl.moreCategories")} onClick={() => nudge(1)}> | <button type="button" aria-label={t("decl.moreCategories")} onClick={() => nudge(1)}>
  * @mutate src/components/ui/PhotoDotButton.tsx | aria-current={current ? "true" : undefined} | aria-current={undefined}
  * @mutate src/components/ui/RemoveFilterChip.tsx |       <X className="h-3.5 w-3.5" aria-hidden />\n |
  */

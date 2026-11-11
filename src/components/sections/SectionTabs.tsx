@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
 import { BROWSE } from "./sectionsConfig";
 import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclutter";
 import type { MsgKey } from "@/lib/i18n/en";
 
 export interface SectionTabDef<T extends string> {
@@ -84,7 +85,7 @@ export function SectionTabs<T extends string>({
   onlySelected?: boolean;
 }) {
   const { t: tr } = useLanguage();
-  const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map((t) => ({ value: t.value as string, label: t.labelKey ? tr(t.labelKey) : t.label, count: t.count, quiet: t.quiet, countAsDot: t.countAsDot }))] as Array<{ value: string; label: string; count?: number; quiet?: number; countAsDot?: boolean }>;
+  const options = [{ value: BROWSE as string, label: tr("tabs.browse") }, ...tabs.map((t) => ({ value: t.value as string, label: t.labelKey ? tr(t.labelKey) : t.label, count: t.count, quiet: t.quiet, countAsDot: t.countAsDot }))] as Array<{ value: string; label: string; count?: number; quiet?: number; countAsDot?: boolean }>;
   options[0].quiet = browseCount;
   const dense = options.length >= DENSE_TAB_COUNT;
   const denser = options.length >= DENSER_TAB_COUNT;

@@ -37,6 +37,10 @@ export function declutterTodos(
   freeAsks: readonly FreeAskToPick[] = [],
 ): { item: TodoItem; due: number | null; waiting: boolean }[] {
   const out: { item: TodoItem; due: number | null; waiting: boolean }[] = [];
+  // F363 side effect (owner 11-11): each ORDER is one to-do, even with two moves on it (a refund offer to answer AND
+  // its handover). The dated refund row wins; the order's handover row is dropped. Home, the badges and the Buying
+  // "Needs you" chip all count these rows, so all three count the order once.
+  const ordersWithRow = new Set<string>();
   // A3-81 (a), first: a refund request waiting on the member. The seller answers within 24 hours (answer_by), or it
   // goes to Louisiana Helpr; a buyer answers the seller's part offer by offer_answer_by.
   for (const r of refunds) {
@@ -44,6 +48,7 @@ export function declutterTodos(
     if (!Number.isFinite(due) || due < now) continue;
     const seller = r.my_side === "seller";
     const what = r.title ? (r.item_count > 1 ? `${r.title} + ${r.item_count - 1} more` : r.title) : "your order";
+    ordersWithRow.add(r.order_id);
     out.push({
       due,
       waiting: true,
@@ -100,6 +105,7 @@ export function declutterTodos(
     if (!orders.has(l.order_id)) orders.set(l.order_id, l);
   }
   for (const [id, l] of orders) {
+    if (ordersWithRow.has(id)) continue;
     const seller = l.my_side === "seller";
     out.push({
       due: null,

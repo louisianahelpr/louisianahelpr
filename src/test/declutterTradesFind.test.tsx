@@ -12,7 +12,7 @@
  * @mutate src/lib/declutter/browseFilters.ts |   put("trades", s.filters.tradesOnly ? "1" : null);\n |
  * @mutate src/lib/declutter/browseFilters.ts |     + (f.tradesOnly ? 1 : 0)\n |
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx |             <Chip on={filters.tradesOnly} onClick={() => onChange({ ...filters, tradesOnly: !filters.tradesOnly })}>Open to trades</Chip>\n |
- * @mutate src/components/declutter/DeclutterItemCard.tsx | {item.accepts_trades === true && <PhotoTag data-card-trades="">Trades OK</PhotoTag>} | {false && <PhotoTag data-card-trades="">Trades OK</PhotoTag>}
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | {item.accepts_trades === true && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>} | {false && <PhotoTag data-card-trades="">{t("decl.card.trades")}</PhotoTag>}
  * @mutate src/components/declutter/DeclutterGuest.tsx |       {trades && <p data-guest-trades="" | {false && <p data-guest-trades=""
  * @mutate src/components/declutter/DeclutterItemView.tsx |               {it.accepts_trades === true && !free && ( |               {false && (
  * @mutate src/components/declutter/DeclutterItemView.tsx | trades={!free && it.accepts_trades === true} /> | trades={false} />

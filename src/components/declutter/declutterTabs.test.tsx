@@ -18,16 +18,16 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx | {view === "buying" ? <><BoughtWhatNext /><Suspense fallback={<DeclutterTabBones />}><BuyingDash todo={todo} /></Suspense></> | {view === "buying" ? <WantedView />
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />} |       {show("offers") && null}
  * @mutate src/components/declutter/DeclutterMineViews.tsx |   const show = (g: SellingGroup) => only === null \|\| only === g; |   const show = (_g: SellingGroup) => true;
- * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(
- * @mutate src/components/declutter/DeclutterHomeView.tsx |         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []), |         ...[],
- * @mutate src/components/declutter/DeclutterHomeView.tsx |         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []), |         ...[{ value: "wanted" as const, label: "Wanted" }],
+ * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: tr("tabs.browse") }, ...tabs.map( |   const options = [...tabs.map(
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted", labelKey: "decl.tab.wanted" as const }] : []), |         ...[],
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted", labelKey: "decl.tab.wanted" as const }] : []), |         ...[{ value: "wanted" as const, label: "Wanted", labelKey: "decl.tab.wanted" as const }],
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |             footnote={<WantedLink query={query} category={filters.category} />} |             footnote={null}
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |   if (!on) return null; |   if (on === undefined) return null;
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 <WantedLink query={query} category={filters.category} />\n              </div> |                 {null}\n              </div>
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |             title={zipSearch ? `Looking for items near ${q}?` : q ? "Nothing matches that search." : |             title={others.length === 0 ? "Opens soon" : zipSearch ? `Looking for items near ${q}?` : q ? "Nothing matches that search." :
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |             title={zipSearch ? t("decl.empty.zip", { q }) : q ? t("decl.empty.search") : |             title={others.length === 0 ? "Opens soon" : zipSearch ? t("decl.empty.zip", { q }) : q ? t("decl.empty.search") :
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 {searched && ( |                 {false && (
  * Owner 2026-10-30: nothing for sale at all is a real empty state (Sell something, Post what you're looking for).
- * @mutate src/components/declutter/DeclutterBrowseView.tsx | others.length === 0 ? "Nothing for sale near you yet." | others.length === 0 ? "Opens soon"
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | others.length === 0 ? t("decl.empty.none") | others.length === 0 ? "Opens soon"
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |               !searched && others.length === 0 ? <NothingForSaleActions guest={!member} /> : |               false ? <NothingForSaleActions guest={!member} /> :
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         secondary={wanted ? { |         secondary={true ? {
  * @mutate src/components/declutter/DeclutterTabParts.tsx |   const lines = (cart.data ?? []).filter((l) => l.my_side === side && (!scope \|\| !l.order_id \|\| scope(l.order_id))); |   const lines = (cart.data ?? []).filter((l) => !scope \|\| !l.order_id \|\| scope(l.order_id));
@@ -453,7 +453,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
 
   // OWN-FREE (owner via the lead, 2026-10-30): a Free tab next to Wanted, for everyone (the Free section has no
   // switch of its own), listing the live free items of OTHER members by Browse's own read and "Free" rule.
-  // @mutate src/components/declutter/DeclutterHomeView.tsx |         { value: "free", label: "Free" },\n |
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |         { value: "free", label: "Free", labelKey: "decl.tab.free" },\n |
   // @mutate src/components/declutter/DeclutterHomeView.tsx |               : view === "free" ? <FreeView userId={user.id} /> |               : view === "free" ? <WantedView />
   // @mutate src/components/declutter/DeclutterFreeView.tsx | const FREE_ONLY = { ...NO_FILTERS, freeOnly: true }; | const FREE_ONLY = { ...NO_FILTERS };
   // @mutate src/components/declutter/DeclutterFreeView.tsx | (items.data ?? []).filter((i) => i.seller_id !== userId) | (items.data ?? [])
@@ -496,7 +496,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
 
   // A3-99 (audit 7, 11-01): the link under an empty search carries the words into the open Wanted form.
   // @mutate src/components/declutter/DeclutterBrowseView.tsx |         to={what \|\| category ? wantedAskHref(what, category) : "/declutter?tab=wanted"} |         to="/declutter?tab=wanted"
-  // @mutate src/components/declutter/DeclutterBrowseView.tsx | {what ? `Ask for “${what}”` : "Post what you're looking for"} | Post what you're looking for
+  // @mutate src/components/declutter/DeclutterBrowseView.tsx | {what ? t("decl.askFor", { what }) : t("decl.postWanted")} | Post what you're looking for
   // @mutate src/components/declutter/DeclutterBrowseView.tsx |                 <WantedLink query={query} category={filters.category} />\n |                 <WantedLink />\n
   it("A3-99: under a search that found nothing, the link reads Ask for “treadmill” and opens the form with the words", async () => {
     at("/declutter?q=Treadmill");
@@ -1116,4 +1116,4 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   });
 });
 
-// @mutate src/components/declutter/DeclutterHomeView.tsx |         { value: "deliver", label: "Deliver" },\n |
+// @mutate src/components/declutter/DeclutterHomeView.tsx |         { value: "deliver", label: "Deliver", labelKey: "decl.tab.deliver" },\n |

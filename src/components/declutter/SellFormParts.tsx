@@ -45,10 +45,13 @@ export function SellYouGet({ priceCents }: { priceCents: number }) {
   const fee = useSellerSetupFee();
   // lh-money-escrow reviews: an input still loading or failed is not "no fee"; no figure until it answers.
   if (fee.unknown) return null;
+  // Owner 11-11 ~3:25 PM: the fee comes out of the first payout sent. When the server already names a sale that takes
+  // it (declutter_my_setup_fee), this new listing's sale does not.
+  const feeCents = fee.server && fee.orderId ? 0 : fee.cents;
   return (
     <p className="flex items-baseline justify-between text-ds-14 text-foreground" data-sell-keep="">
       You get if it sells today
-      <span className="font-bold text-[hsl(var(--burnt-sienna))]">{formatPrice(sellerGetsTodayCents(priceCents, fee.cents))}</span>
+      <span className="font-bold text-[hsl(var(--burnt-sienna))]">{formatPrice(sellerGetsTodayCents(priceCents, feeCents))}</span>
     </p>
   );
 }

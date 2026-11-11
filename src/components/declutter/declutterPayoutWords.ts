@@ -99,6 +99,32 @@ export function setupFeeAheadByOrder(payouts: MyPayout[], feeCents: number): Map
 }
 
 /**
+ * Owner 11-11 ~3:25 PM: with the server's answer (declutter_my_setup_fee) the fee shows on the ONE sale it names, and
+ * only while that sale's payout row is still unsent with no fee taken (a row that took it already shows its own
+ * smaller amount). No row is unsure: the server named the sale.
+ */
+export function setupFeeAheadFromServer(payouts: MyPayout[], feeCents: number, orderId: string | null | undefined): Map<string, number> {
+  const out = new Map<string, number>();
+  const fee = Math.min(feeCents, SETUP_FEE_CAP);
+  if (fee <= 0 || !orderId) return out;
+  const row = payouts.find((p) => p.order_id === orderId);
+  if (row && (row.status === "pending" || row.status === "failed") && (row.setup_fee_cents ?? 0) === 0) out.set(orderId, fee);
+  return out;
+}
+
+/**
+ * Owner 11-11 ~3:25 PM: the seller's pre-handover "You get" (no payout row yet): items + delivery, less the one-time
+ * setup fee only on the sale the server names (declutter_my_setup_fee). `fee` null: the server's answer is not used
+ * (the pre-deploy fallback shows no fee here, as before).
+ */
+export function preHandoverSellerCents(orderId: string, itemsCents: number, deliveryCents: number,
+  fee: { cents: number; orderId?: string | null } | null): number {
+  const gross = itemsCents + Math.max(0, deliveryCents);
+  const cut = fee && fee.orderId === orderId ? Math.min(Math.max(0, fee.cents), SETUP_FEE_CAP) : 0;
+  return cut > 0 && gross - cut >= 100 ? gross - cut : gross;
+}
+
+/**
  * lh-money-escrow review 4: the unsent rows whose figure cannot be told, so they show none rather than one too high
  * by the fee: when two or more could take it (the run's next_attempt_at order is not readable), and any unsent row
  * whose try count is unknown (the read without `attempts`).

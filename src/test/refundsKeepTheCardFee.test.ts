@@ -852,6 +852,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
       // Q2106 S2 (20261105032500, Builder 3 11-04, WIP: lead money review owed): restated verbatim, plus o.gift_cents in
       // the returned row. It still records no refund and reads no amount but the order's own gift share.
+      // Owner 11-11 ~3:25 PM (20261111212343, Builder 1): the caller's setup fee and the one sale that takes it; reads
+      // declutter_refunds' status only (the payout queue's own holds, to order the rows); records no refund, writes nothing.
+      declutter_my_setup_fee: "20261111212343_declutter_my_setup_fee.sql 19bb25e02076dae2",
       // Money review 11-11 (20261111211749, Builder 1, lh-money-escrow): restated verbatim plus one wait: a refund on the
       // order's own payment held for review (not delivery_damage) holds the payout. Reads declutter_refunds' status only.
       declutter_payouts_due: "20261111211749_declutter_payout_waits_for_held_refund.sql 4b5b891fd69f5c69",

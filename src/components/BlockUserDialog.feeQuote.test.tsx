@@ -65,7 +65,8 @@ function open() {
   render(<BlockUserDialog open onClose={vi.fn()} blockedUserId="helper-1" blockedUserName="Marie" />);
 }
 const liText = async (re: RegExp) =>
-  (await screen.findByText((_, el) => el?.tagName === "LI" && re.test(el.textContent ?? ""))).textContent ?? "";
+  // F260i: the summary line is a <p> above the bullets; the details stay <li>.
+  (await screen.findByText((_, el) => (el?.tagName === "LI" || el?.tagName === "P") && re.test(el.textContent ?? ""))).textContent ?? "";
 
 beforeEach(() => {
   rows.length = 0;

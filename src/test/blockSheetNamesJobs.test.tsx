@@ -5,10 +5,10 @@
  * The strike words follow the server (migration 20261102131745, lead 11-02): a poster's block is a strike only inside
  * 24 hours; a hired Helpr's block is their strike only inside 24 hours, the same as cancelling, and costs the poster
  * nothing.
- * @mutate src/components/BlockUserDialog.tsx | <li>This isn&rsquo;t a strike.</li> | <li>A cancellation strike is still recorded on your account.</li>
+ * @mutate src/components/BlockUserDialog.tsx | and it isn&rsquo;t a strike.</> | and a cancellation strike is still recorded.</>
  * @mutate src/components/BlockUserDialog.tsx |       setIsHelprOnAny(rows.some((r) => r.helper_id === user.id)); |       setIsHelprOnAny(false);
  *
- * @mutate src/components/BlockUserDialog.tsx |                       {jobTitles.length > 0 && ( |                       {false && (
+ * @mutate src/components/BlockUserDialog.tsx | {hasJobs && jobs.length > 0 && ( | {false && (
  * @mutate src/components/BlockUserDialog.tsx | They can&apos;t apply to your jobs, offer you a job, or message you. | They won&apos;t be able to apply to your jobs or message you.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -60,7 +60,8 @@ function open() {
   render(<BlockUserDialog open onClose={vi.fn()} blockedUserId="helper-1" blockedUserName="Marie" />);
 }
 const liText = async (re: RegExp) =>
-  (await screen.findByText((_, el) => el?.tagName === "LI" && re.test(el.textContent ?? ""))).textContent ?? "";
+  // F260i: the summary line is a <p> above the bullets; the details stay <li>.
+  (await screen.findByText((_, el) => (el?.tagName === "LI" || el?.tagName === "P") && re.test(el.textContent ?? ""))).textContent ?? "";
 
 beforeEach(() => {
   rows.length = 0;
@@ -73,27 +74,26 @@ describe("the block sheet names the jobs and speaks to both seats (Q2675, Q2676)
     rows.push(job({ id: "a", title: "Rake the front yard" }), job({ id: "b", title: "Haul off a couch", helper_confirmed_at: "2026-09-20T12:00:00Z" }));
     open();
     const text = await liText(/also cancels/);
-    // F428: the count in the bullet, the titles as a nested list under it.
-    expect(text).toContain("Blocking Marie also cancels 2 jobs:");
+    // F428 + F260i: the count in the summary line, the titles as a nested list (the late one first, marked).
+    expect(text).toMatch(/^Blocking Marie also cancels 2 jobs\./);
     const titles = within(screen.getByRole("list", { name: "Jobs that will be cancelled" })).getAllByRole("listitem").map((li) => li.textContent);
-    expect(titles).toEqual(["\u201cRake the front yard\u201d", "\u201cHaul off a couch\u201d"]);
+    expect(titles).toEqual(["\u201cHaul off a couch\u201d (starts within 24 hours)", "\u201cRake the front yard\u201d"]);
   });
 
   it("the poster's strike words follow the 24-hour rule (Q2675)", async () => {
     // Committed, 3 days out: no fee, no strike.
     rows.push(job({ title: "Mow", date_needed: jobLocalDateISO(3, NOW), start_time: "12:00:00", helper_confirmed_at: "2026-09-20T12:00:00Z" }));
     open();
-    expect(await liText(/a strike/)).toBe("This isn\u2019t a strike.");
+    expect(await liText(/a strike/)).toBe("Blocking Marie also cancels 1 job. Nothing is kept for the Helpr\u2019s time and it isn\u2019t a strike.");
     expect(screen.queryByText(/strike is still recorded/)).toBeNull();
   });
 
   it("inside 24 hours the poster reads the amount and the strike", async () => {
     rows.push(job({ title: "Mow", helper_confirmed_at: "2026-09-20T12:00:00Z" }));
     open();
-    // F428: three short bullets, "the Helpr's time" (never "your Helpr's").
-    expect(await liText(/You will pay/)).toMatch(/^You will pay about \$\d[\d.,]* for the Helpr.s time \(it starts within 24 hours\)\.$/);
-    expect(await liText(/the rest back/)).toBe("You get most of the rest back.");
-    expect(await liText(/strike/)).toBe("This counts as a strike against you.");
+    // F428 + F260i: the summary carries the amount and the strike; the detail names the job. "The Helpr's time".
+    expect(await liText(/You will pay/)).toMatch(/You will pay about \$\d[\d.,]* for the Helpr.s time and it counts as a strike against you\.$/);
+    expect(await liText(/the rest back/)).toBe("That covers \u201cMow\u201d, which starts within 24 hours. You get most of the rest back.");
     expect(screen.queryByText(/your Helpr/)).toBeNull();
   });
 
@@ -101,7 +101,7 @@ describe("the block sheet names the jobs and speaks to both seats (Q2675, Q2676)
     rows.push(job({ customer_id: "helper-1", helper_id: "poster-1", title: "Mow", helper_confirmed_at: "2026-09-20T12:00:00Z" }));
     open();
     await liText(/also cancels/);
-    expect(await liText(/hired for/)).toBe("For a job you were hired for, it counts as a strike if it starts within 24 hours, the same as cancelling.");
+    expect(await liText(/hired for/)).toBe("Blocking Marie also cancels 1 job. A job you were hired for that starts within 24 hours counts as a strike, the same as cancelling.");
     expect(screen.queryByText(/Helpr.s time/)).toBeNull();
   });
 

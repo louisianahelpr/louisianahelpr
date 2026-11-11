@@ -165,13 +165,23 @@ export function HaulAwayItemLine({ row, itemStatus }: { row: HaulAwayRow | undef
       </p>
     );
   }
-  if (row.state === "too_soon") {
-    const d = daysUntil(row.eligible_at);
-    return (
-      <p className="text-xs text-muted-foreground" data-haul-state="too_soon">
-        Not selling? In {d} {d === 1 ? "day" : "days"} you can have a Helpr haul it away.
-      </p>
-    );
-  }
+  // too_soon: said once for the whole list by HaulAwayTooSoonTip (audit 11-10 F400), not under every row.
   return null;
+}
+
+/**
+ * F400: the "not selling yet" tip, once at the top of Your listings, with the soonest day count. A free item cannot
+ * "sell", so when every waiting item is free it asks whether anyone has claimed it instead.
+ */
+export function HaulAwayTooSoonTip({ rows, isFree }: { rows: HaulAwayRow[]; isFree: (itemId: string) => boolean }) {
+  const waiting = rows.filter((r) => r.state === "too_soon");
+  if (waiting.length === 0) return null;
+  const d = Math.min(...waiting.map((r) => daysUntil(r.eligible_at)));
+  const days = `${d} ${d === 1 ? "day" : "days"}`;
+  const allFree = waiting.every((r) => isFree(r.item_id));
+  return (
+    <p className="text-xs text-muted-foreground" data-haul-tip="too_soon">
+      {allFree ? `Nobody's claimed it? In ${days} you can have a Helpr haul it away.` : `Not selling? In ${days} you can have a Helpr haul away what hasn't sold.`}
+    </p>
+  );
 }

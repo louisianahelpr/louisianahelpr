@@ -111,10 +111,10 @@ describe("HaulAwayItemLine", () => {
     expect(screen.getByText(/A Helpr hauled this away/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "See the job" }).getAttribute("href")).toBe("/jobs/j2");
   });
-  it("too soon: says how many days", () => {
+  it("too soon: no line under the row (audit 11-10 F400: HaulAwayTooSoonTip says it once, at the top)", () => {
     const at = new Date(Date.now() + 3 * 86_400_000 - 60_000).toISOString();
-    wrap(<HaulAwayItemLine row={row({ state: "too_soon", eligible_at: at })} />);
-    expect(screen.getByText("Not selling? In 3 days you can have a Helpr haul it away.")).toBeTruthy();
+    const { container } = wrap(<HaulAwayItemLine row={row({ state: "too_soon", eligible_at: at })} />);
+    expect(container.textContent).toBe("");
   });
   it("eligible, in a sale, booked, hauled or no row: no extra buttons; eligible / in a sale / no row: no line either", () => {
     for (const r of [row({ state: "eligible" }), row({ state: "in_sale" }), row({ state: "booked" }), row({ state: "hauled" }), undefined]) {

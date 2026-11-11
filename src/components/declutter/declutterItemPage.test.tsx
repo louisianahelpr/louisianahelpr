@@ -327,6 +327,14 @@ describe("the photo-first Declutter item page", () => {
     state.geo = { status: "idle" };
   });
 
+  // Audit 11-10 F359d: the giver of a free item reads who sees the address in giver words, not "buyers ... picked".
+  // @mutate src/components/declutter/ItemPickupBlock.tsx | "they'll see your exact address only once you pick them" | "buyers see your exact address only once they're picked"
+  it("F359d: the giver's own free item says they'll see the address once you pick them", async () => {
+    state.item = { ...ITEM, seller_id: "u1", price_cents: 0, current_price_cents: 0 };
+    open();
+    await waitFor(() => expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("They'll see your exact address only once you pick them"));
+  });
+
   // Deep audit #23: a free item is claimed, never offered on; its page must not end with "Make an offer".
   // @mutate src/components/declutter/DeclutterItemView.tsx | canAsk={canAct && !preview} preview={preview} free={free} onMakeOffer={ | canAsk={canAct && !preview} preview={preview} onMakeOffer={
   it("a free item's page never says 'Make an offer'; a priced one keeps the line", async () => {

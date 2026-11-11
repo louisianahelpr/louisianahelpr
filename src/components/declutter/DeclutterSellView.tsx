@@ -40,7 +40,7 @@ import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { SellAiDraftPanel } from "./SellAiDraft";
 import { HANDOVER_CHOICE, handoverSummary } from "./SellHandoverChoices";
 import { sellStepProblem } from "./sellForm";
-import { FieldLabel, SELL_INPUT, SellDropsCard, SellFreeToggle, SellPriceInput, SellTaxBox, SellWaysFields } from "./SellFormParts";
+import { FieldLabel, SELL_INPUT, SellDropsCard, SellFreeToggle, SellPriceInput, SellTaxBox, SellWaysFields, SellYouGet } from "./SellFormParts";
 import { SellOneScreen } from "./SellOneScreen";
 import { useSellFlowState } from "./useSellFlowState";
 import { Textarea } from "@/components/ui/textarea";
@@ -216,10 +216,7 @@ function SellSteps({ itemId }: { itemId: string }) {
 
       {stepProblem && step < 5 && triedStep === step && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-problem">{stepProblem}</p>}
       {step === 3 && priceCents && (
-        <p className="flex items-baseline justify-between text-ds-14 text-foreground" data-sell-keep="">
-          You get if it sells today
-          <span className="font-bold text-[hsl(var(--burnt-sienna))]">{formatPrice(priceCents)}</span>
-        </p>
+        <SellYouGet priceCents={priceCents} />
       )}
       {step < 5 ? (
         <Button type="button" className="w-full rounded-full" disabled={saving} onClick={() => void next()}>

@@ -61,6 +61,9 @@ const state = {
   pickupTimes: [] as { id: string; book_by: string | null; pickup_slot_start: string | null; pickup_slot_end: string | null }[],
 };
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
+// Owner 11-11 ~3:25 PM: declutter_my_setup_fee not deployed in these specs (PGRST202): the client's own fee reading.
+const setupFeeAnswer = vi.hoisted(() => ({ v: null as null | "loading" | { feeCents: number; orderId: string | null } }));
+vi.mock("@/lib/declutter/mySetupFee", () => ({ fetchMySetupFee: () => (setupFeeAnswer.v === "loading" ? new Promise(() => {}) : Promise.resolve(setupFeeAnswer.v)) }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
 vi.mock("@/lib/declutter/sellerDelivery", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/declutter/sellerDelivery")>()),
@@ -1873,7 +1876,7 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
   });
 
   // AUD31-1: the seller who delivers is paid the items AND the delivery; the note says both, once.
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const sellerCents = itemsCents + Math.max(0, deliveryCents); |   const sellerCents = itemsCents;
+  // @mutate src/components/declutter/declutterPayoutWords.ts |   const gross = itemsCents + Math.max(0, deliveryCents); |   const gross = itemsCents;
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         deliveryCents={b.data.delivery_cents ?? 0} /> |         />
   it("AUD31-1: a seller-delivers sale's money note names the item price plus the delivery", async () => {
     state.sd = { order_id: "o1", side: "seller", order_status: "paid", status: "booked", slot_start: "2026-10-31T14:00:00Z", slot_end: "2026-10-31T15:00:00Z", delivered_at: null, delivery_cents: 1000 };
@@ -1881,6 +1884,35 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
     const note = await screen.findByText(/^You get/);
     expect(note.textContent).toMatch(/^You get \$55 \(\$45 \+ \$10 delivery\) after the handover\./);
     expect(await openPayoutRule()).toMatch(/^You're paid 24 hours after the buyer taps "I got it"/);
+  });
+
+  // Owner 11-11 ~3:25 PM: before the handover, "You get" is less the one-time setup fee only on the sale the server
+  // names (declutter_my_setup_fee); the parts are then not shown (they would not add up) and no fee words appear.
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | const parts = deliveryCents > 0 && feeHere === 0 ? | const parts = deliveryCents > 0 ?
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         : setupFee.unknown ? null\n |         : false ? null\n
+  it("owner 11-11: the pre-handover 'You get' takes the setup fee off only on the sale the server names", async () => {
+    try {
+      state.sd = { order_id: "o1", side: "seller", order_status: "paid", status: "booked", slot_start: "2026-10-31T14:00:00Z", slot_end: "2026-10-31T15:00:00Z", delivered_at: null, delivery_cents: 1000 };
+      setupFeeAnswer.v = { feeCents: 200, orderId: "o1" };
+      show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 4500, delivery_cents: 1000 })]);
+      const note = await screen.findByText(/^You get/);
+      expect(note.textContent).toMatch(/^You get \$53 after the handover\./);
+      expect(note.textContent).not.toMatch(/fee/i);
+      cleanup();
+      // Another sale takes it: this one shows the full figure and its parts.
+      setupFeeAnswer.v = { feeCents: 200, orderId: "o-other" };
+      show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 4500, delivery_cents: 1000 })]);
+      expect((await screen.findByText(/^You get/)).textContent).toMatch(/^You get \$55 \(\$45 \+ \$10 delivery\) after the handover\./);
+      cleanup();
+      // The answer not in yet: no figure (never one too high by the fee).
+      setupFeeAnswer.v = "loading";
+      show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 4500, delivery_cents: 1000 })]);
+      await screen.findByText(/^Next:/);
+      await new Promise((r) => setTimeout(r, 50));
+      expect(screen.queryByText(/^You get/)).toBeNull();
+    } finally {
+      setupFeeAnswer.v = null;
+    }
   });
 
   // AUD31-3, the seller's side: a move the buyer asked for waits on the seller's answer, and the sentence said "Booked".

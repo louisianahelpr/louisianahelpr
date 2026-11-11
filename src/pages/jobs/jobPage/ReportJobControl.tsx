@@ -14,7 +14,7 @@ const BlockUserDialog = lazy(() => import("@/components/BlockUserDialog").then((
 export function ReportJobControl({ jobId, posterId, posterFirst }: { jobId: string; posterId: string | null; posterFirst: string | null }) {
   const [reportOpen, setReportOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
-  const name = posterFirst ?? "the poster";
+  const name = posterFirst ?? "the person who posted this job";
   return (
     <>
       <IconActionButton ariaLabel="Report this job" onClick={() => setReportOpen(true)} bare icon={<Flag className="w-4 h-4" />} />

@@ -11,7 +11,7 @@
  *   L1 the column exists, NOT NULL, default 'en' (an existing row reads 'en')
  *   L2 only 'en' or 'es' can be stored (CHECK), and NULL cannot
  *   L3 a member can set their OWN language (column grant + own-row policy)
- *   L4 a member cannot change another member's language (own-row policy: 0 rows)
+ *   L4 a member cannot change another member's language (own-row policy: no row changes)
  *   L5 anon holds no UPDATE on the column
  *   L6 the grant is column-level: the same member still cannot write a column that was never granted (is_seed)
  *   L7 replay-safe: three applies leave exactly one CHECK constraint

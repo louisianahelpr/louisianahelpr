@@ -179,6 +179,14 @@ describe("D2-1: the paid-order chat", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
+  // Audit 11-10 F360e: the chat links back to its order (Buying for the buyer, Selling for the seller).
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | to={`/declutter?tab=${t.side === "seller" ? "selling" : "buying"}&order=${orderId}`} | to={`/declutter?tab=buying`}
+  it("See the order goes to this order on the viewer's own tab", async () => {
+    renderAt(`/declutter?order_talk=${ORDER}`, <OrderTalkFromLink />);
+    const link = await screen.findByRole("link", { name: "See the order" });
+    expect(link.getAttribute("href")).toMatch(new RegExp(`^/declutter\\?tab=buying&order=${ORDER}$`));
+  });
+
   // Audit 11-10 F390: a phone number typed in the chat was only refused after Send; it is said while typing.
   // @mutate src/components/declutter/DeclutterOrderTalk.tsx |   const leak = draft.trim() ? scanMessage(draft)[0] ?? null : null; |   const leak = null as ReturnType<typeof scanMessage>[number] \| null;
   it("a phone number typed in the box is flagged before Send, and the note goes once it is taken out", async () => {

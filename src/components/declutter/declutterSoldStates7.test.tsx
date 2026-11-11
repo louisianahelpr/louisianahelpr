@@ -22,6 +22,8 @@ const state = vi.hoisted(() => ({
   refund: null as Record<string, unknown> | null,
 }));
 
+// Owner 11-11 ~3:25 PM: declutter_my_setup_fee not deployed in these specs (PGRST202): the client's own fee reading.
+vi.mock("@/lib/declutter/mySetupFee", () => ({ fetchMySetupFee: async () => null }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "me" } }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "declutter_refund_requests", useFeatureStatus: () => ({ on: false, settled: true, lastAnswer: false }) }));

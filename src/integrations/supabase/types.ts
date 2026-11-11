@@ -18525,6 +18525,7 @@ export type Database = {
         }[]
       }
       declutter_my_move_out_date: { Args: never; Returns: string }
+      declutter_my_setup_fee: { Args: never; Returns: Json }
       declutter_my_order_talks: { Args: never; Returns: Json }
       declutter_my_question_ids: { Args: { p_item_id: string }; Returns: string[] }
       declutter_miles_between: {

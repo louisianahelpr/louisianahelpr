@@ -59,6 +59,8 @@ const aiAnswer = {
 };
 
 // The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
+// Owner 11-11 ~3:25 PM: declutter_my_setup_fee not deployed in these specs (PGRST202): the client's own fee reading.
+vi.mock("@/lib/declutter/mySetupFee", () => ({ fetchMySetupFee: async () => null }));
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 // Whether a photo can be prepared is a browser matter (jsdom has no canvas): "bad*" can't.
 vi.mock("@/lib/declutter/photos", async (orig) => ({

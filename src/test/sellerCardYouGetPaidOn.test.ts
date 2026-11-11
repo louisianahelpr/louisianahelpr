@@ -40,11 +40,19 @@
  * @mutate src/components/declutter/declutterPayoutWords.ts | new Set(["pending", "failed", "held_for_review", "unknown"]) | new Set(["pending", "failed", "unknown"])
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | refundAgreed: refundStatus === "agreed" ? refund.data?.request?.refund_status ?? "unknown" : null, | refundAgreed: null,
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx | ` (${formatPrice(itemsCents)} + ${formatPrice(deliveryCents)} delivery)` | ` (${formatPrice(itemsCents)} for the sale and ${formatPrice(deliveryCents)} for delivering it)`
+ * Owner 11-11 ~3:25 PM: the fee comes out of the FIRST payout actually sent; every card shows it on that sale only. The
+ * server names the sale (declutter_my_setup_fee, 20261111212343); the card takes the fee off only there, including the
+ * pre-handover "You get".
+ * @mutate src/components/declutter/declutterPayoutWords.ts | if (row && (row.status === "pending" \|\| row.status === "failed") && (row.setup_fee_cents ?? 0) === 0) out.set(orderId, fee); | out.set(orderId, fee);
+ * @mutate src/components/declutter/declutterPayoutWords.ts | const cut = fee && fee.orderId === orderId ? | const cut = fee ?
+ * @mutate src/components/declutter/declutterPayoutWords.ts | return cut > 0 && gross - cut >= 100 ? gross - cut : gross; | return gross - cut;
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | const feeAhead = setupFee.server ? setupFeeAheadFromServer(payouts.data ?? [], setupFee.cents, setupFee.orderId) | const feeAhead = false ? setupFeeAheadFromServer(payouts.data ?? [], setupFee.cents, setupFee.orderId)
+ * @mutate src/components/declutter/DeclutterPorchHandover.tsx | preHandover && setupFee.server ? setupFee : null | null
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { payoutLine, setupFeeAheadByOrder, setupFeeUnsureOrders } from "@/components/declutter/declutterPayoutWords";
+import { payoutLine, preHandoverSellerCents, setupFeeAheadByOrder, setupFeeAheadFromServer, setupFeeUnsureOrders } from "@/components/declutter/declutterPayoutWords";
 import type { MyPayout } from "@/lib/declutter/payoutReads";
 import { payoutDay, payoutDayAfterWindow } from "@/lib/declutter/timeLeft";
 import { blankComments } from "./helpers/blankNonCode";
@@ -149,5 +157,27 @@ describe("F360b: the seller card's one money line", () => {
     expect(views).toMatch(/!\(\(holdUnknown \|\| \(refundRequests && !refund\.isSuccess\)\) && \(payout\.status === "pending" \|\| payout\.status === "failed"\)\) && <p/);
     expect(views).toMatch(/setupFeeAhead=\{feeAhead\.get\(o\.orderId\) \?\? 0\}/);
     expect(code("src/components/declutter/DeclutterPorchHandover.tsx")).toContain("` (${formatPrice(itemsCents)} + ${formatPrice(deliveryCents)} delivery)`");
+  });
+
+  it("owner 11-11 ~3:25 PM: the fee shows only on the sale the server names, before and after the handover", () => {
+    const rows = [row(), row({ order_id: "o2" })];
+    // Two unsent rows: the server names o2, so only o2 loses it (the client alone could not tell, and hid both).
+    const ahead = setupFeeAheadFromServer(rows, 200, "o2");
+    expect([...ahead]).toEqual([["o2", 200]]);
+    expect(payoutLine(rows[1], false, { handedOverAt: HANDED, now: NOW, setupFeeAhead: ahead.get("o2") })).toMatch(/^You get \$43, paid on /);
+    expect(payoutLine(rows[0], false, { handedOverAt: HANDED, now: NOW, setupFeeAhead: ahead.get("o1") ?? 0 })).toMatch(/^You get \$45, paid on /);
+    // No sale named, no fee, or the named row already took it / was sent: nothing comes off any card.
+    expect(setupFeeAheadFromServer(rows, 200, null).size).toBe(0);
+    expect(setupFeeAheadFromServer(rows, 0, "o2").size).toBe(0);
+    expect(setupFeeAheadFromServer([row({ order_id: "o2", setup_fee_cents: 200, amount_cents: 4300 })], 200, "o2").size).toBe(0);
+    expect(setupFeeAheadFromServer([row({ order_id: "o2", status: "succeeded" })], 200, "o2").size).toBe(0);
+    // Before the handover (no payout row): "You get" less the fee only on the named sale, and only with $1 left.
+    expect(preHandoverSellerCents("o1", 4500, 500, { cents: 200, orderId: "o1" })).toBe(4800);
+    expect(preHandoverSellerCents("o1", 4500, 500, { cents: 200, orderId: "o2" })).toBe(5000);
+    expect(preHandoverSellerCents("o1", 4500, 0, null)).toBe(4500);
+    expect(preHandoverSellerCents("o1", 250, 0, { cents: 200, orderId: "o1" })).toBe(250);
+    // The card and the note use the server's answer.
+    expect(code("src/components/declutter/DeclutterHandoverViews.tsx")).toContain("const feeAhead = setupFee.server ? setupFeeAheadFromServer(payouts.data ?? [], setupFee.cents, setupFee.orderId)");
+    expect(code("src/components/declutter/DeclutterPorchHandover.tsx")).toContain("preHandoverSellerCents(orderId, itemsCents, deliveryCents, preHandover && setupFee.server ? setupFee : null)");
   });
 });

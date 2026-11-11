@@ -40,6 +40,8 @@ import { fetchRefundRequestView, type RefundRequestView } from "@/lib/declutter/
 import { bookByWords } from "@/lib/declutter/orderPickupTimes";
 import { useFeature } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useSellerSetupFee } from "./useSellerSetupFee";
+import { preHandoverSellerCents } from "./declutterPayoutWords";
 
 type Pickup = "porch" | "pickup_home" | "meetup";
 
@@ -190,7 +192,7 @@ export function PickupStatus({
   // Audit 11-10 F394: the seller's handed-over card said only "Picked up."; now it says when, and the money line
   // names the payout day (24 hours after the handover row's confirmed_at, the buyer's window: checkWindowEnds).
   const handedOverAt = done ? h.data?.confirmed_at ?? null : null;
-  const money = <MoneyNote side={side} kind={handover} free={free} done={done} problemOpen={problemOpen} refunded={refunded} itemsCents={itemsCents} totalCents={totalCents} after="pick it up" handedOverAt={payoutShown ? null : handedOverAt} />;
+  const money = <MoneyNote orderId={orderId} side={side} kind={handover} free={free} done={done} problemOpen={problemOpen} refunded={refunded} itemsCents={itemsCents} totalCents={totalCents} after="pick it up" handedOverAt={payoutShown ? null : handedOverAt} />;
   if (part === "money") return money;
   const stands = standing(handover, side, at, day, free, { ...orderTimeWords(times.data?.[0], handover, slot), buyer: side === "seller" ? other.first : null, photoDay: handover === "porch" ? porchPhotoDay({ pickup_day: day, slot_start: slot }) : null });
   const doneWhen = handedOverAt && stands.who === "info" && stands.text.endsWith(".") ? { ...stands, text: `${stands.text.slice(0, -1)} ${orderWhen(handedOverAt)}.` } : stands;
@@ -223,8 +225,8 @@ function sellerPaidWhen(cents: number, handedOverAt: string | null, held: boolea
 }
 
 /** The one money note on a sale card: what the buyer paid, or what the seller gets and when (DC-16: every kind). */
-function MoneyNote({ side, kind, free, done, problemOpen, refunded = false, itemsCents, totalCents, after, deliveryCents = 0, handedOverAt = null }: {
-  side: "buyer" | "seller"; kind: SellerPayoutKind; free: boolean; done: boolean; problemOpen: boolean; refunded?: boolean; itemsCents: number; totalCents: number | null; after: string;
+function MoneyNote({ orderId, side, kind, free, done, problemOpen, refunded = false, itemsCents, totalCents, after, deliveryCents = 0, handedOverAt = null }: {
+  orderId: string; side: "buyer" | "seller"; kind: SellerPayoutKind; free: boolean; done: boolean; problemOpen: boolean; refunded?: boolean; itemsCents: number; totalCents: number | null; after: string;
   /** F394: the handover row's confirmed_at once handed over; the seller is paid 24 hours after it unless the buyer reports a problem. */
   handedOverAt?: string | null;
   /** AUD31-1: a seller who delivers is paid this on top of the items (declutter_complete_handover's v_rate). */
@@ -233,9 +235,15 @@ function MoneyNote({ side, kind, free, done, problemOpen, refunded = false, item
   const [ruleOpen, setRuleOpen] = useState(false);
   const { profile } = useCurrentUser();
   const payoutReady = payoutAccountReady(profile);
-  const sellerCents = itemsCents + Math.max(0, deliveryCents);
-  // F398 (owner 11-11 ~2:10 PM): "You get $50 ($45 + $5 delivery)", the payout's own parts (items + v_rate).
-  const parts = deliveryCents > 0 ? ` (${formatPrice(itemsCents)} + ${formatPrice(deliveryCents)} delivery)` : "";
+  // Owner 11-11 ~3:25 PM: before the handover, "You get" is less the one-time setup fee on the ONE sale the server
+  // says takes it (declutter_my_setup_fee); while that answer is not in, no figure rather than one too high.
+  const preHandover = side === "seller" && !free && !done;
+  const setupFee = useSellerSetupFee(preHandover);
+  const sellerCents = preHandoverSellerCents(orderId, itemsCents, deliveryCents, preHandover && setupFee.server ? setupFee : null);
+  const feeHere = itemsCents + Math.max(0, deliveryCents) - sellerCents;
+  // F398 (owner 11-11 ~2:10 PM): "You get $50 ($45 + $5 delivery)", the payout's own parts (items + v_rate); not
+  // shown when the fee comes off, so the parts never fail to add up and no fee words appear.
+  const parts = deliveryCents > 0 && feeHere === 0 ? ` (${formatPrice(itemsCents)} + ${formatPrice(deliveryCents)} delivery)` : "";
   const money = free ? null
     : side === "buyer"
       // NIGHT-BUYINGopenpr-8 (buyer's held card): while a problem is open the note says "Nobody is paid until they
@@ -243,6 +251,7 @@ function MoneyNote({ side, kind, free, done, problemOpen, refunded = false, item
       ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done || problemOpen ? "." : `. The seller is paid after you ${after}.`}</> : null
       : done
         ? sellerPaidWhen(sellerCents, handedOverAt, refunded || problemOpen, payoutReady)
+        : setupFee.unknown ? null
         : problemOpen
           ? <>Your <strong className="tabular-nums">{formatPrice(sellerCents)}</strong> is held while Louisiana Helpr looks at the problem.</>
         // Deep audit #31: one payout rule, the live one. LEAD-DOOR-PAYLINE: said per handover kind from the owner's
@@ -311,7 +320,7 @@ export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = 
     <div className="space-y-2" data-pickup-status={at} data-delivery-status="">
       <OrderSteps facts={facts} />
       <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : moveAskedOfMe ? { who: "you", text: moveAskedOfMe } : deliveryStanding(side, at, free, late, reportedBy, bookBy)} />
-      <MoneyNote side={side} kind="seller_delivery" free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="have it"
+      <MoneyNote orderId={orderId} side={side} kind="seller_delivery" free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="have it"
         deliveryCents={b.data.delivery_cents ?? 0} />
     </div>
   );

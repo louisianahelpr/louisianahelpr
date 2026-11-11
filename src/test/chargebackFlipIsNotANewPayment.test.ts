@@ -27,9 +27,9 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  *
  * (The 20261003184911 predicates are restated by 20261005064123, the newest
  * definition, so the mutations target that file.)
- * @mutate supabase/migrations/20261108201000_jobs_notices_email.sql | IF NEW.payment_status = 'escrow' AND (OLD.payment_status IS DISTINCT FROM 'escrow')\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n | IF NEW.payment_status = 'escrow' AND (OLD.payment_status IS DISTINCT FROM 'escrow')\n
- * @mutate supabase/migrations/20261108201000_jobs_notices_email.sql | AND NEW.helper_id IS NOT NULL\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n | AND NEW.helper_id IS NOT NULL\n
- * @mutate supabase/migrations/20261108201000_jobs_notices_email.sql | AND OLD.payment_status IS DISTINCT FROM 'released'\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n | AND OLD.payment_status IS DISTINCT FROM 'released'\n
+ * @mutate supabase/migrations/20261111200206_payout_notice_says_the_amount.sql | IF NEW.payment_status = 'escrow' AND (OLD.payment_status IS DISTINCT FROM 'escrow')\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n | IF NEW.payment_status = 'escrow' AND (OLD.payment_status IS DISTINCT FROM 'escrow')\n
+ * @mutate supabase/migrations/20261111200206_payout_notice_says_the_amount.sql | AND NEW.helper_id IS NOT NULL\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n | AND NEW.helper_id IS NOT NULL\n
+ * @mutate supabase/migrations/20261111200206_payout_notice_says_the_amount.sql | AND OLD.payment_status IS DISTINCT FROM 'released'\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n | AND OLD.payment_status IS DISTINCT FROM 'released'\n
  */
 
 const REPO = resolve(__dirname, "../..");

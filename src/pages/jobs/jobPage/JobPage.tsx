@@ -38,6 +38,7 @@ import { seriesSummary } from "@/lib/format";
 import { JobTracker, PosterPrice, PosterMoneyNotes, HelprPrice, HelprMoneyNotes, PostedBy, HiredHelpr, RevisionAsk } from "./JobPageParts";
 import { OnTheWayNow, showsNow } from "./OnTheWayNow";
 import { JobPageActionRow, type RowAction } from "./JobPageActionRow";
+import { ReportJobControl } from "./ReportJobControl";
 import { useExpiredRepost } from "./ExpiredRepost";
 import { StickyActionBar, StickyActionSpacer } from "@/components/ui/StickyActionBar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -398,7 +399,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     <AppPage
       title={job.title}
       backTo={isPoster ? "/posts" : "/jobs"}
-      titleActions={<>{share}<span ref={setMenuHost} data-job-menu-host="" className="contents" /></>}
+      titleActions={<>{share}{!isPoster && <ReportJobControl jobId={job.id} posterId={job.customer_id ?? null} posterFirst={posterFirst} />}<span ref={setMenuHost} data-job-menu-host="" className="contents" /></>}
     >
       <div data-job-page="" data-layout="v2" className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-x-6 lg:gap-y-5">
         <section aria-label={t("jobPage.summary")} data-job-head="" className="space-y-2 lg:col-span-2">

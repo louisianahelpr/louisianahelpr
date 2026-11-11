@@ -404,6 +404,22 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     }
   });
 
+  // F260j (audit 11-10): the job page had no Report or Block, only Help. Someone else's job has a Report flag beside
+  // Share (the job sheet's Report sheet, with "Also block" the poster); the poster's own job has none.
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && <ReportJobControl | {false && <ReportJobControl
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && <ReportJobControl | {<ReportJobControl
+  // @mutate src/pages/jobs/jobPage/ReportJobControl.tsx | alsoBlock={posterId ? { name, onBlock: () => setBlockOpen(true) } : undefined} | alsoBlock={undefined}
+  it("someone else's job has Report this job (with Also block the poster); the poster's own has none", async () => {
+    state.job = row();
+    const first = renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "Report this job" }));
+    expect(await screen.findByText(/Also block Rhonda/)).toBeTruthy();
+    first.unmount();
+    state.job = row({ customer_id: ME });
+    renderPage();
+    expect(screen.queryByRole("button", { name: "Report this job" })).toBeNull();
+  });
+
   // Owner bug 2026-10-21: a member who already applied saw "Apply". Now: the applied state and View application.
   it("an applicant sees 'You applied · Waiting on Rhonda' and View application, never Apply", async () => {
     state.job = row();

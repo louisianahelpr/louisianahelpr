@@ -20,6 +20,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { useManagerLabels } from "@/lib/declutter/managerMode";
 import { fetchMyOrderTalks, fetchOrderTalk, MY_ORDER_TALKS_KEY, sendOrderMessage } from "@/lib/declutter/orderTalk";
 import { talkTime } from "@/lib/declutter/talkTime";
+import { dateDividerLabel } from "@/components/messages/chatView/chatViewHelpers";
 import { focusSheetItself } from "./focusSheetItself";
 import { useMarkTalkRead } from "./useMarkTalkRead";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +30,10 @@ const OrderTalkStep = lazy(() => import("./OrderTalkStep"));
 
 // AUD31-12: the weekday alone only within 6 days; older lines carry their date.
 const when = (iso: string) => talkTime(iso);
+// F424 (audit 11-10): each line said "Mon 12:32 PM" where the job chat has Today / Yesterday dividers. Lines now sit
+// under the job chat's own day dividers (dateDividerLabel) and carry the clock time only.
+const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+const dayKey = (iso: string) => new Date(iso).toDateString();
 
 /** "Message the seller" / "Message the buyer" on a paid order card: puts ?order_talk=<order id> on the address. */
 export function OrderTalkButton(props: { orderId: string; side: "buyer" | "seller"; trade?: boolean }) {
@@ -122,14 +127,20 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
             )}
             <ol className="space-y-2" aria-label="Messages">
               {t.messages.length === 0 && <li className="text-ds-13 text-muted-foreground">No messages yet.</li>}
-              {t.messages.map((m) => (
+              {t.messages.map((m, i) => [
+                (i === 0 || dayKey(t.messages[i - 1].created_at) !== dayKey(m.created_at)) && (
+                  <li key={`day-${m.id}`} role="separator" aria-label={`Date: ${dateDividerLabel(new Date(m.created_at))}`} data-order-talk-day=""
+                    className="pt-2 text-center text-ds-10 font-semibold uppercase tracking-wider text-muted-foreground">
+                    {dateDividerLabel(new Date(m.created_at))}
+                  </li>
+                ),
                 <li key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[85%] rounded-2xl px-3 py-2 ${m.mine ? "bg-[hsl(var(--bark)/0.1)]" : "border border-border bg-card"}`}>
-                    <p className="text-ds-12 font-semibold text-muted-foreground">{labels.data?.get(m.id) ?? (m.mine ? "You" : `The ${other}`)} · {when(m.created_at)}</p>
+                    <p className="text-ds-12 font-semibold text-muted-foreground">{labels.data?.get(m.id) ?? (m.mine ? "You" : `The ${other}`)} · {clock(m.created_at)}</p>
                     <p className="whitespace-pre-wrap break-words text-ds-14 text-foreground">{m.body}</p>
                   </div>
-                </li>
-              ))}
+                </li>,
+              ])}
             </ol>
             {open && (
               <form id={formId} className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (draft.trim()) send.mutate(); }}>

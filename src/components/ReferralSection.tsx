@@ -191,6 +191,18 @@ const ReferralSection = ({ userId }: { userId: string }) => {
       {/* Spec v2 rebuild (audit 2026-10-21): the one card; no rust wash, no
           olive double border (olive is for actions, and the code is not one). */}
       <div className="rounded-[20px] liquid-glass p-6 space-y-4 text-center">
+        {/* Audit 11-10 W5 F466: the rule reads ABOVE the code ("Signed up 2" beside "Total earned $0" asked why). */}
+        <p className="font-sans leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+          {/* "Up to 5 friends ($25 max)" was wrong for exactly the users this
+              program creates. `enforce_referral_cap` counts a user's
+              referrer_bonus AND first_job_bonus rows against one cap of 5, so
+              anyone who themselves arrived through a referral link has already
+              spent a slot and can only ever be paid for FOUR friends. Verified
+              by running the live trigger in PGlite: the referrer topped out at
+              $25 across 5 credits and the 6th was silently suppressed. The
+              enforced ceiling is the dollar figure, so that is what we state. */}
+          When a friend completes their first job using your code, <span className="font-semibold not-italic" style={{ color: "hsl(var(--ink-deep))" }}>you both earn $5</span>, up to $25 in referral credits.
+        </p>
         <p className="text-ds-13 font-sans text-muted-foreground">
           Your referral code
         </p>
@@ -239,17 +251,6 @@ const ReferralSection = ({ userId }: { userId: string }) => {
             {copied ? "Copied" : "Copy"}
           </Button>
         </div>
-        <p className="font-sans leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          {/* "Up to 5 friends ($25 max)" was wrong for exactly the users this
-              program creates. `enforce_referral_cap` counts a user's
-              referrer_bonus AND first_job_bonus rows against one cap of 5, so
-              anyone who themselves arrived through a referral link has already
-              spent a slot and can only ever be paid for FOUR friends. Verified
-              by running the live trigger in PGlite: the referrer topped out at
-              $25 across 5 credits and the 6th was silently suppressed. The
-              enforced ceiling is the dollar figure, so that is what we state. */}
-          When a friend completes their first job using your code, <span className="font-semibold not-italic" style={{ color: "hsl(var(--ink-deep))" }}>you both earn $5</span>, up to $25 in referral credits.
-        </p>
       </div>
 
       {/* Stat tiles.
@@ -345,7 +346,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           {[
             "Share your code with friends",
             "They enter it at sign-up, or within 7 days of joining",
-            "Once their first job is fully completed — whether they posted it or worked it — you both earn $5",
+            "Once their first job is fully completed — whether they posted it or worked it — you earn",
             "Cash out directly to your Stripe account",
           ].map((step, i) => (
             <div key={i} className="flex items-start gap-3">

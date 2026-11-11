@@ -27,7 +27,8 @@
  * @mutate supabase/functions/_shared/comeBackEmail.ts | "Describe the job and set your price. See who applied and chat before you hire." | "Describe the job and set your budget. See who applied and chat before you hire."
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { centralDateLabel } from "../../supabase/functions/_shared/centralDateTime";

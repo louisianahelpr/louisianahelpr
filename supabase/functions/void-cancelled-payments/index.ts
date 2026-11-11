@@ -2326,6 +2326,30 @@ serve(async (req) => {
         }
       }
 
+      // ── F272 (owner 11-11 ~2:50 PM): a no-show job's refund is FULL ──
+      // report_helper_no_show reopens the job; if the poster does not pick a new date and nobody new is hired, the
+      // job is cancelled (auto-expire-jobs, or the poster's own cancel) and refunded here. That refund returns every
+      // cent paid: no card fee, no service fee, no first job's setup fee (the business absorbs them). Keyed on the
+      // job's recorded no-show (user_violations 'no_show') with no confirmed Helpr now; a crew is not covered
+      // (report_helper_no_show refuses a crew). Ordinary cancellations keep today's rule. A failed read moves no
+      // money this run (the same fail-closed rule as the hold read above).
+      let noShowFullRefund = false;
+      if (job.is_group_job !== true && job.helper_confirmed_at == null) {
+        const { data: noShowRows, error: noShowErr } = await supabaseAdmin
+          .from("user_violations")
+          .select("id")
+          .eq("job_id", job.id)
+          .eq("violation_type", "no_show")
+          .limit(1);
+        if (noShowErr) {
+          console.error(`[void-cancelled-payments] no-show read failed for job ${job.id}; not settling:`, noShowErr.message);
+          defects.record(`no-show read ${job.id}: ${noShowErr.message} — not settled`);
+          results.push({ job_id: job.id, title: job.title, status: "no_show_read_failed" });
+          continue;
+        }
+        noShowFullRefund = (noShowRows?.length ?? 0) > 0;
+      }
+
       // ── What this cancellation owes, priced before any money moves ───────
       // A single job: recomputed from trusted job fields (F-MONEY-32). A crew
       // (Q407): the sum of its ledger shares, each re-priced from the same job
@@ -2412,7 +2436,7 @@ serve(async (req) => {
           continue;
         }
         const noFeeRecorded = idWaivedJobs.has(job.id);
-        jobCancellationFee = sellerFault || raceChargedNobodyHired || refundsSeriesVisitInFull(job) || noFeeRecorded ? 0 : computeCancellationFee(job);
+        jobCancellationFee = sellerFault || raceChargedNobodyHired || noShowFullRefund || refundsSeriesVisitInFull(job) || noFeeRecorded ? 0 : computeCancellationFee(job);
         // Q1938: what the jobs rule pays the booked Helpr, owed by the seller (see sellerFaultHelprFee).
         sellerFaultHelprFee = sellerFault && job.helper_id && !raceChargedNobodyHired && !refundsSeriesVisitInFull(job) && !noFeeRecorded
           ? computeCancellationFee(job)
@@ -2654,9 +2678,10 @@ serve(async (req) => {
       const cardNonRefundableCents = (capturedCents: number, actualFeeCents: number) =>
         refundToPayerCents({
           capturedCents,
-          actualFeeCents: sellerFault || raceChargedNobodyHired ? 0 : actualFeeCents,
-          customerFeeCents: refundsSeriesVisitInFull(job) || sellerFault || raceChargedNobodyHired ? 0 : Math.round(Number(job.customer_fee_amount ?? 0) * 100),
-          setupFeeCents: setupFeeKeptCents(job),
+          actualFeeCents: sellerFault || raceChargedNobodyHired || noShowFullRefund ? 0 : actualFeeCents,
+          customerFeeCents: refundsSeriesVisitInFull(job) || sellerFault || raceChargedNobodyHired || noShowFullRefund ? 0 : Math.round(Number(job.customer_fee_amount ?? 0) * 100),
+          // F272: a no-show refund keeps no setup fee either.
+          setupFeeCents: noShowFullRefund ? 0 : setupFeeKeptCents(job),
         }).nonRefundableCents;
 
       /**
@@ -2883,7 +2908,7 @@ serve(async (req) => {
           // quoted from (create-payment cancel_quote, "Back to you"), so the
           // quote and what this hold releases cannot disagree.
           const holdSplit = posterCancelSplit({
-            job, sellerFault, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents: blockCents,
+            job, sellerFault, noShowFullRefund, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents: blockCents,
             charge: { state: "hold", amountCents: Number(pi.amount ?? 0), capturableCents: holdRoomCents },
           });
           if (holdSplit.state !== "hold") throw new Error("posterCancelSplit answered a hold with a captured split");
@@ -3137,7 +3162,7 @@ serve(async (req) => {
           // A10: a seller-fault Declutter setup job keeps no card fee (the seller
           // owes it: declutter_setup_job_fee_debt below); its setup fee is still kept.
           const capturedSplit = posterCancelSplit({
-            job, sellerFault, platformFault: raceChargedNobodyHired, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents,
+            job, sellerFault, platformFault: raceChargedNobodyHired, noShowFullRefund, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents,
             charge: {
               state: "captured",
               capturedCents,
@@ -3284,6 +3309,8 @@ serve(async (req) => {
             // too and the SELLER owes it (declutter_setup_job_fee_debt below).
             // Q2447: and when raceChargedNobodyHired: our own capture-then-refused-hire
             // race charged the card, so the card fee comes back and nobody owes it.
+            // F272 (owner 11-11): and when noShowFullRefund: the Helpr did not show up, so everything comes back
+            // (card fee and setup fee included) and the business absorbs it.
             const refund = await stripe.refunds.create(
               { payment_intent: paymentIntentId, amount: refundAmount, metadata: jobTaxBackMetadata },
               { idempotencyKey: `cancel-refund-${job.id}` },
@@ -3294,7 +3321,7 @@ serve(async (req) => {
             if (refund?.id) {
               // Q1674: nonRefundableCents also holds a first job's kept $2 setup
               // fee; it is named on its own, never as "card processing fee".
-              const setupKeptCents = Math.min(setupFeeKeptCents(job), nonRefundableCents);
+              const setupKeptCents = noShowFullRefund ? 0 : Math.min(setupFeeKeptCents(job), nonRefundableCents);
               // A job priced after the no-service-fee change (platform_fee_percent
               // 0) paid its card cost as customer_fee_amount: that is the card
               // processing fee, not a service fee (cardCostFeeCents; lh-money-escrow
@@ -3334,7 +3361,9 @@ serve(async (req) => {
               currency: refund.currency ?? "usd",
               is_partial: cancellationFee > 0 || nonRefundableCents > 0,
               reason: sellerFault
-                ? `Declutter seller backed out: full refund, card fee billed to the seller${setupFeeKeptCents(job) > 0 ? " (the $2 setup fee kept)" : ""}`
+                ? `Declutter seller backed out: full refund, card fee billed to the seller${setupFeeKeptCents(job) > 0 && !noShowFullRefund ? " (the $2 setup fee kept)" : ""}`
+                : noShowFullRefund
+                ? "Helpr no-show, nobody new hired (F272): full refund, card fee and any setup fee included"
                 : raceChargedNobodyHired
                 ? `Card charged for a hire that was then refused, nobody hired (Q2447): full refund, card fee included${setupFeeKeptCents(job) > 0 ? " (the one-time $2 setup fee kept; the account stays marked paid)" : ""}`
                 // What was REALLY kept, in dollars (jobs 375000de / 1251173a,

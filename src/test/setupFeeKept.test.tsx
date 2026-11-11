@@ -160,7 +160,8 @@ describe("Q1674: a first job's $2 setup fee is kept on every refund", () => {
     // Owner 2026-10-18 ~22:30Z: `split` is generalSplit or the Helpr-fault split, and both keep the $2.
     expect(cp).toContain("const keptSetupCents = isPartial ? 0 : split.setupKeptCents;");
     expect(code("src/components/admin/adminJobs/RefundJobDialog.tsx")).toContain("also keeps its one-time $2 setup fee");
-    expect(code("supabase/functions/void-cancelled-payments/index.ts")).toMatch(/setupFeeCents: setupFeeKeptCents\(job\),/);
+    // F272 (owner 11-11 ~2:50 PM): the one exception, a no-show job's full refund (noShowFullRefund), returns it too.
+    expect(code("supabase/functions/void-cancelled-payments/index.ts")).toMatch(/setupFeeCents: noShowFullRefund \? 0 : setupFeeKeptCents\(job\),/);
     expect(code("supabase/functions/void-cancelled-payments/index.ts")).toMatch(/customer_fee_amount, platform_fee_percent, onboarding_fee_amount, cancellation_fee/); // platform_fee_percent joined the select in lane-b-money-1
     const split = code("supabase/functions/execute-dispute-split/index.ts");
     expect(split).toMatch(/setupFeeCents: pi \? setupFeeKeptCents\(job\) : 0,/);

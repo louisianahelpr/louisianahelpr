@@ -129,7 +129,7 @@ describe("void-cancelled-payments: an unfilled or ban-ended series visit is refu
   });
 
   // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is KEPT on a cancel.
-  // @mutate supabase/functions/_shared/posterCancelSplit.ts |     setupFeeCents: setupFeeKeptCents(i.job),\n    otherKeptCents: | setupFeeCents: 0,\n    otherKeptCents:
+  // @mutate supabase/functions/_shared/posterCancelSplit.ts |     setupFeeCents: i.noShowFullRefund === true ? 0 : setupFeeKeptCents(i.job),\n    otherKeptCents: | setupFeeCents: 0,\n    otherKeptCents:
   it("a cancelled FIRST job (no Helpr yet) keeps the service fee and the $2 setup fee; the rest comes back (Q1674)", async () => {
     seed({ helper_id: null, helper_confirmed_at: null, onboarding_fee_amount: 2 });
     expect(await refundedCents()).toBe(11000 - 1000 - 200);
@@ -138,7 +138,7 @@ describe("void-cancelled-payments: an unfilled or ban-ended series visit is refu
   // The refund notice names the kept $2 as the setup fee, never as part of
   // the "card processing fee" (the setup-fee train's merge with the Q1714
   // refund notice, 2026-10-12).
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |               const setupKeptCents = Math.min(setupFeeKeptCents(job), nonRefundableCents); |               const setupKeptCents = 0;
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |               const setupKeptCents = noShowFullRefund ? 0 : Math.min(setupFeeKeptCents(job), nonRefundableCents); |               const setupKeptCents = 0;
   it("the first job's refund notice says the $2 was the one-time setup fee (Q1674)", async () => {
     seed({ helper_id: null, helper_confirmed_at: null, onboarding_fee_amount: 2 });
     stripeMock.refunds.create.mockImplementation(async (p: { amount?: number }) => ({ id: "re_visit", amount: p.amount }));

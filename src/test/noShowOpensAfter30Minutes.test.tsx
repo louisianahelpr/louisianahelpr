@@ -18,6 +18,8 @@ import { join, resolve } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { NO_SHOW_WAIT_MINUTES, noShowOpensAt, noShowOpensLine, noShowReportOpen } from "@/lib/noShowOpens";
+// F272: the sheet asks the server for the refund; not under test here.
+vi.mock("@/lib/posterCancelQuote", () => ({ fetchPosterCancelQuote: async () => null }));
 import { NoShowDialog } from "@/components/job-card/NoShowDialog";
 
 const ROOT = resolve(__dirname, "../..");

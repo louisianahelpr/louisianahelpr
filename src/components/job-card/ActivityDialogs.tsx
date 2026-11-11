@@ -148,6 +148,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       <NoShowDialog
         jobId={props.noShowJobId}
         job={props.noShowJob ?? null}
+        helperName={props.noShowJob?.helper_id ? props.helperNames?.[props.noShowJob.helper_id] ?? null : null}
         onClose={() => props.setNoShowJobId(null)}
         onConfirm={props.onNoShow}
         reporting={props.reportingNoShow}

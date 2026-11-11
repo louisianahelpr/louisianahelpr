@@ -2807,6 +2807,11 @@ serve(async (req) => {
     if (action === "cancel_quote") {
       const jobId = typeof body?.jobId === "string" ? body.jobId : "";
       if (!jobId) throw new PublicError("Missing jobId");
+      // F272 (owner 11-11): the no-show sheet's "you get a full refund of $X". report_helper_no_show refunds nothing
+      // itself: it reopens the job. If the poster picks no new date and nobody new is hired, the job is cancelled
+      // (auto-expire-jobs once its day is past) and void-cancelled-payments refunds it IN FULL (owner 11-11 ~2:50 PM).
+      // asNoShow quotes that refund, with the job as the report leaves it. Display only; a quote moves no money.
+      const asNoShow = body?.asNoShow === true;
       const quoteJson = (payload: Record<string, unknown>, status = 200) =>
         new Response(JSON.stringify(payload), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status });
       const { data: qJob, error: qJobErr } = await supabaseAdmin.from("jobs").select("*").eq("id", jobId).maybeSingle();
@@ -2818,6 +2823,11 @@ serve(async (req) => {
       }
       // Only the poster: anyone else is told nothing about the job (no oracle).
       if (!qJob || qJob.customer_id !== user.id) return quoteJson({ error: "Job not found" }, 404);
+      if (asNoShow) {
+        // A solo booking only (report_helper_no_show refuses a crew); the quote prices the job after the reopen.
+        if (qJob.is_group_job || !qJob.helper_id) return quoteJson({ can_cancel: false, quoted_at: new Date().toISOString() });
+        Object.assign(qJob, { helper_id: null, helper_confirmed_at: null });
+      }
       const nowIso = new Date().toISOString();
       // poster_cancel_job's own refusals, read the same way (it re-decides under its lock).
       if (!["open", "accepted", "in_progress", "revision_requested"].includes(String(qJob.status)) || qJob.helper_completed_at) {
@@ -2879,8 +2889,18 @@ serve(async (req) => {
         .from("declutter_order_jobs").select("seller_fault_refund_id").eq("job_id", jobId).maybeSingle();
       if (qFaultErr && !["42P01", "42703", "PGRST204", "PGRST205"].includes(qFaultErr.code ?? "")) return unquoted("unreadable", feeCents);
       const qSellerFault = !qFaultErr && !!qFault?.seller_fault_refund_id;
+      // F272 (owner 11-11 ~2:50 PM): void-cancelled-payments refunds a no-show job IN FULL (a user_violations
+      // 'no_show' row on the job, a solo job with no confirmed Helpr). asNoShow quotes the job as the report will
+      // leave it; a job already reopened by a report is read the same way the sweep reads it.
+      let qNoShowFull = asNoShow;
+      if (!qNoShowFull && qJob.is_group_job !== true && qJob.helper_confirmed_at == null) {
+        const { data: qNoShow, error: qNoShowErr } = await supabaseAdmin
+          .from("user_violations").select("id").eq("job_id", jobId).eq("violation_type", "no_show").limit(1);
+        if (qNoShowErr) return unquoted("unreadable", feeCents);
+        qNoShowFull = (qNoShow?.length ?? 0) > 0;
+      }
       // The sweep's own fee rule: no fee on a seller-fault setup job or an unfilled / ban-ended series visit.
-      const owedFeeCents = qSellerFault || refundsSeriesVisitInFull(qJob) ? 0 : feeCents;
+      const owedFeeCents = qSellerFault || qNoShowFull || refundsSeriesVisitInFull(qJob) ? 0 : feeCents;
       if (owedFeeCents > 0) {
         // A fee owed to a payee of the other Stripe mode goes back with the refund instead (the sweep's feePayeesShareMode).
         try {
@@ -2904,7 +2924,7 @@ serve(async (req) => {
         const qPi = await stripe.paymentIntents.retrieve(qPiId, { expand: ["latest_charge.balance_transaction"] });
         if (qPi.status === "requires_capture") {
           const holdSplit = posterCancelSplit({
-            job: qJob, sellerFault: qSellerFault, cancellationFeeCents: owedFeeCents, blockFeeCents: 0,
+            job: qJob, sellerFault: qSellerFault, noShowFullRefund: qNoShowFull, cancellationFeeCents: owedFeeCents, blockFeeCents: 0,
             charge: {
               state: "hold",
               amountCents: Number(qPi.amount ?? 0),
@@ -2930,7 +2950,7 @@ serve(async (req) => {
         const taxCents = await checkoutChargeTaxCents(stripe, qPi);
         if (taxCents === null) return unquoted("unreadable", feeCents);
         const capturedSplit = posterCancelSplit({
-          job: qJob, sellerFault: qSellerFault, cancellationFeeCents: owedFeeCents, blockFeeCents: 0,
+          job: qJob, sellerFault: qSellerFault, noShowFullRefund: qNoShowFull, cancellationFeeCents: owedFeeCents, blockFeeCents: 0,
           charge: { state: "captured", capturedCents, actualFeeCents: realFeeCents, alreadyRefundedCents, taxCents, taxableCents: jobSiteTaxableCents(qPi.metadata as Record<string, string> | null) },
         });
         if (capturedSplit.state !== "captured" || !capturedSplit.feesFitCard) return unquoted("fees_exceed_payment", feeCents);

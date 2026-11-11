@@ -35,6 +35,11 @@ export interface PayoutLineContext {
    * refund is pending or failed; once it went through the sale is decided (declutter_sale_decided) and final at once.
    */
   refundAgreed?: "pending" | "succeeded" | "failed" | "held_for_review" | "settled_by_hand" | "unknown" | null;
+  /**
+   * F360b loose end (lead 11-11): Louisiana Helpr decided a problem on this order, or confirmed the handover itself
+   * (declutter_sale_decided: a 'decided' problem or confirmed_by = 'admin'): the sale is final at once.
+   */
+  saleDecided?: boolean;
   now?: number;
 }
 
@@ -74,6 +79,7 @@ export function payoutLine(payout: MyPayout, problemOpen: boolean, ctx: PayoutLi
   // holds the payout on the server, and this line would still say "send it next" (rare; no day is promised).
   if (ctx.refundAgreed && REFUND_HOLDS.has(ctx.refundAgreed)) return `${gets}. It's on hold until the buyer's refund goes through.`;
   if (ctx.refundAgreed) return `${gets}. The sale is final, so we send it next.`;
+  if (ctx.saleDecided) return `${gets}. The sale is final, so we send it next.`;
   if (!ctx.handedOverAt) return `${gets}, paid 24 hours after the handover unless the buyer asks for a refund.`;
   // declutter_sale_final: the later of the handover and a declined refund request, plus 24 hours.
   const from = ctx.declinedAt && Date.parse(ctx.declinedAt) > Date.parse(ctx.handedOverAt) ? ctx.declinedAt : ctx.handedOverAt;

@@ -96,7 +96,7 @@ export const PUBLIC_PAGE_META = {
   // F255 (audit 11-10, owner 2026-11-11): what it costs (words only, no rate) and how members are kept safe.
   "/fees": {
     title: "Fees — Helpr",
-    description: "Posting a job on Louisiana Helpr is free. A service fee is included in the total you pay.",
+    description: "Posting a job on Louisiana Helpr is free. A small one-time setup fee applies to your first paid job. Any service fee is shown before you pay.",
     canonical: `${SITE_ORIGIN}/fees`,
     ogTitle: "Fees on Louisiana Helpr",
     ogDescription: "Posting a job is free. Helprs see their pay before they apply.",

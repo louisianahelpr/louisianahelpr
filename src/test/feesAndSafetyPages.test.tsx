@@ -1,8 +1,9 @@
 /**
  * F255 (audit 11-10, owner 2026-11-11 morning pop-up): there was no Fees or Safety page (both 404), so a first-timer
  * could not find what Louisiana Helpr charges or how members are kept safe. Now /fees says, in words only (owner rule
- * #20: no rate, no number), "Posting a job is free. A service fee is included in the total you pay. Helprs see their
- * pay before they apply." and /safety says members are ID checked (only while the identity_check switch is on),
+ * #20: no rate, no number), "Posting a job is free. A small one-time setup fee applies to your first paid job. Any
+ * service fee is shown before you pay. Helprs see their pay before they apply." (wording made exact by the owner
+ * 2026-11-11 afternoon, OWNER-DECISIONS.md) and /safety says members are ID checked (only while the identity_check switch is on),
  * money is held until you approve the work, and a problem can be reported from any job. Both are lazy routes, served
  * by vercel.json (else the catch-all serves Not found) and linked from the footer.
  *
@@ -33,10 +34,10 @@ const ROOT = resolve(__dirname, "../..");
 const read = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"));
 
 describe("F255: /fees and /safety (owner 2026-11-11)", () => {
-  it("/fees: the owner's three sentences, words only (no number, no rate)", () => {
+  it("/fees: the owner's exact sentences, words only (no number, no rate)", () => {
     const { container } = render(<MemoryRouter><Fees /></MemoryRouter>);
     const body = container.querySelector("[data-fees-body]")!.textContent!;
-    expect(body).toBe("Posting a job is free.A service fee is included in the total you pay.Helprs see their pay before they apply.");
+    expect(body).toBe("Posting a job is free.A small one-time setup fee applies to your first paid job.Any service fee is shown before you pay.Helprs see their pay before they apply.");
     expect(body).not.toMatch(/\d|%|¢|\$/);
   });
 

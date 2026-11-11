@@ -419,7 +419,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/pages/profile/HomeHistory.tsx` | date/calendar×1 |  |  |  |
 | `src/pages/profile/InstantBookTab.tsx` | select×1 |  |  | instant-book-tab · Your instant book work · instant-book-category · Choose one · instant-book-amount · 50.00 |
 | `src/pages/profile/petProfiles/PetForm.tsx` | input×9, textarea×3 | text, number, tel |  | pet-species-label · pet-name · pet-name-error · pet-breed · Lab mix · pet-breed-suggestions · pet-age · pet-age-error |
-| `src/pages/profile/SavedSearchesTab.tsx` | checkbox/switch/radio×4 |  |  | saved-search-new · saved-search-sheet · Alerts for this search · Email · saved-searches-tab · Pause all alerts · pause-all-alerts |
+| `src/pages/profile/SavedSearchesTab.tsx` | checkbox/switch/radio×4 |  |  | saved-search-sheet · Alerts for this search · Email · saved-searches-tab · Pause all alerts · pause-all-alerts |
 | `src/pages/profile/strSettings/AddCalendarForm.tsx` | input×5, checkbox/switch/radio×1 | url, text, number |  | ical-url · ical-url-error · str-property-name · e.g. Lakehouse · str-property-address · e.g. New Orleans, LA · str-auto-create-cleaning-label · str-auto-create-cleaning |
 | `src/pages/profile/WorkRecord.tsx` | date/calendar×1 |  |  |  |
 
@@ -484,7 +484,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/savedSearches/SaveSearchSheet.tsx` | checkbox/switch/radio×1 |  |  | save-search-sheet · Which section · save-search-summary · Email · save-search-email |
-| `src/pages/search/SearchPage.tsx` | input×1 | search |  | search-loading · search-loading-row · search-loading-chips · search-page · Search Helpr · Clear search · Show results from · Declutter |
+| `src/pages/search/SearchPage.tsx` | input×1 | search |  | search-loading · search-loading-row · search-loading-chips · search-page · Search Helpr · Clear search · Show results from |
 
 ## /shops
 

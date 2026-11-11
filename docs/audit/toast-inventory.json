@@ -15204,7 +15204,7 @@
     },
     {
       "file": "src/pages/profile/SavedSearchesTab.tsx",
-      "line": 53,
+      "line": 45,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15214,7 +15214,7 @@
     },
     {
       "file": "src/pages/profile/SavedSearchesTab.tsx",
-      "line": 78,
+      "line": 70,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15224,7 +15224,7 @@
     },
     {
       "file": "src/pages/profile/SavedSearchesTab.tsx",
-      "line": 91,
+      "line": 83,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15234,7 +15234,7 @@
     },
     {
       "file": "src/pages/profile/SavedSearchesTab.tsx",
-      "line": 164,
+      "line": 156,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

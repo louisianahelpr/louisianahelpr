@@ -13,7 +13,7 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 import type { Job } from "@/components/job-card/activityConstants";
 
 // A fixed past afternoon (2 PM in Louisiana) under fake time, so the job's day and start never drift.
-const NOW = new Date("2026-06-10T19:00:00Z");
+const NOW = new Date("2024-06-10T19:00:00Z");
 
 describe("F272: the late-start line and the no-show control use plain words", () => {
   beforeAll(() => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(NOW); });
@@ -22,8 +22,8 @@ describe("F272: the late-start line and the no-show control use plain words", ()
   it("started, not on the way, not arrived: '<name> hasn't said they're on the way'", () => {
     const job = {
       id: "j272", status: "in_progress", helper_id: "h", customer_id: "p", payment_status: "escrow",
-      date_needed: "2026-06-10", start_time: "11:00:00", helper_confirmed_at: "2026-06-09T15:00:00Z",
-      helper_dayof_confirmed_at: "2026-06-09T16:00:00Z", poster_confirmed_at: "2026-06-09T16:00:00Z",
+      date_needed: "2024-06-10", start_time: "11:00:00", helper_confirmed_at: "2024-06-09T15:00:00Z",
+      helper_dayof_confirmed_at: "2024-06-09T16:00:00Z", poster_confirmed_at: "2024-06-09T16:00:00Z",
       helper_on_the_way_at: null, helper_arrived_at: null, poster_confirmed_arrival_at: null, poster_confirmed_working_at: null,
     } as unknown as Job;
     const line = posterStatusLine(job, 0, NOW, undefined, false, "Hallie H.");

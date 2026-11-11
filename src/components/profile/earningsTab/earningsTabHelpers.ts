@@ -220,13 +220,13 @@ type StackJob = MoneyJob & {
 };
 export const isHeldInDispute = (j: StackJob): boolean =>
   j.payment_status === "escrow" && (j.status === "disputed" || (j.has_active_dispute === true && !j.dispute_resolved_at));
-const WAITING_FOR_APPROVAL_STATUSES: readonly string[] = ["in_progress", "pending_approval", "accepted"];
+const AWAITING_SIGN_OFF_JOB_STATUSES: readonly string[] = ["in_progress", "pending_approval", "accepted"];
 export const isWaitingForApproval = (j: StackJob): boolean =>
   j.payment_status === "escrow" &&
   !isHeldInDispute(j) &&
   !!j.helper_completed_at &&
   !j.poster_completed_at &&
-  WAITING_FOR_APPROVAL_STATUSES.includes(j.status);
+  AWAITING_SIGN_OFF_JOB_STATUSES.includes(j.status);
 export function moneyStack(
   jobs: readonly (HelperEarningsJob & StackJob)[],
   feeFallbackPercent: number,

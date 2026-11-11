@@ -93,6 +93,7 @@ export const JOB_READABLE_COLUMN_LIST = [
   "location",
   "longitude",
   "no_show_alert_sent_at",
+  "no_show_reported_at",
   "parent_job_id",
   "parish",
   "payment_confirm_notif_sent",

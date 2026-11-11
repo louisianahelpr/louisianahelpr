@@ -312,3 +312,13 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.report_helper_no_show(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.report_helper_no_show(uuid) TO authenticated, service_role;
+
+-- The new column gets the same column-level SELECT grant as every other readable jobs column (offeredHelperPrivacy (d):
+-- `authenticated` has column grants on jobs, so a new column has none until synced; a read naming it would 42501).
+GRANT SELECT (no_show_reported_at) ON public.jobs TO authenticated;
+DO $$
+BEGIN
+  IF to_regprocedure('public.sync_jobs_select_grants()') IS NOT NULL THEN
+    PERFORM public.sync_jobs_select_grants();
+  END IF;
+END $$;

@@ -263,7 +263,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const messagePoster = () => navigate(job.customer_id ? `/messages?jobId=${encodeURIComponent(job.id)}&userId=${job.customer_id}` : "/messages");
   const openWorking = () => navigate(highlight);
   const hiredFace = isHired && viewer.action.kind === "open_working"
-    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: openWorking, message: messagePoster, owesReview, review: () => setReviewOpen(true), crewSlot: crewSlot.data, application: myApplication.data, markFixDone: () => void fixDone.mark(), markingFix: fixDone.marking })
+    // Q2789: on a SET continue day the face reads the new day (its date, and day 1's check-ins only once the tracking
+    // row says the new day reached them), so the Helpr is offered "I'm on my way" and "I've arrived" again.
+    ? hiredHelprFace(jobOnContinueDay(job, continueDay.row, trackingStatus), { userId, posterFirst, trackingStatus, doneFloorMinutes, open: openWorking, message: messagePoster, owesReview, review: () => setReviewOpen(true), crewSlot: crewSlot.data, application: myApplication.data, markFixDone: () => void fixDone.mark(), markingFix: fixDone.marking })
     : null;
   // The poster's own step on this page, over posterPageActions' (undefined: theirs).
   const posterStep = posterWait === "confirm_arrival"
@@ -456,7 +458,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {/* A continue day replaces the first day's "arrived" line: the next visit is what matters now. */}
           {isPoster && !continueDay.row && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />}
           {/* A SET continue day: the bar reads the new day, never day 1's passed date ("Late" on Arrived). */}
-          <JobTracker job={jobOnContinueDay(job, continueDay.row)} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
+          <JobTracker job={jobOnContinueDay(job, continueDay.row, trackingStatus)} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
             hideNext={refundOpen || (isPoster && !continueDay.row && showsNow(job, trackingStatus))}
             otherFirst={isPoster ? helperFirst : posterFirst}
             pendingApplicants={isPoster && applicants.data ? pending : undefined}

@@ -2034,8 +2034,8 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
   });
 
   // B118 follow-up (lead 11-01): with a SET day the bar read day 1 ("Late" on Arrived on a day that had passed).
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx | <JobTracker job={jobOnContinueDay(job, continueDay.row)} side= | <JobTracker job={job} side=
-  // @mutate src/lib/continueDayWords.ts |   return { ...job, date_needed: row.new_date, start_time: row.new_start_time.slice(0, 5) }; |   return job;
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | <JobTracker job={jobOnContinueDay(job, continueDay.row, trackingStatus)} side= | <JobTracker job={job} side=
+  // @mutate src/lib/continueDayWords.ts |   const dated = { ...job, date_needed: row.new_date, start_time: row.new_start_time.slice(0, 5) }; |   const dated = job;
   // Owner 11-10 ("Mow and Weed Eat" 7b1da54b): the set day passed with no done from the Helpr and the poster had only
   // "Change day" and "Message". Now "Mark done and release" leads, its confirm names the amount, and it runs the flows'
   // finish (the poster's release with posterFinishes; src/test/edge/posterFinishesAndPays.test.ts).

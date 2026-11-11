@@ -23140,6 +23140,10 @@ export type Database = {
         Args: { p_byte_size: number; p_ext: string; p_file_name: string; p_item_id: string }
         Returns: Json
       }
+      shops_my_strikes: {
+        Args: never
+        Returns: { expires_at: string; given_at: string; id: string; offender_side: string; reason: string }[]
+      }
       shops_my_order_buyer_names: {
         Args: { p_order_ids: string[] }
         Returns: { first_name: string; order_id: string }[]

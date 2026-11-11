@@ -39,6 +39,7 @@ import { ShopOrderCard } from "./ShopOrderCard";
 import { ShopTalkFromLink } from "./ShopTalk";
 import CancelPolicyPicker from "./ShopCancelPolicyPicker";
 import ShopPayoutRow, { useShopPayoutRowSettled } from "./ShopPayoutRow";
+import ShopMyStrikes from "./ShopMyStrikes";
 import HandoverModePicker from "./ShopHandoverModePicker";
 import ShopDeliveryPicker from "./ShopDeliveryPicker";
 import CustomOrdersPicker from "./ShopCustomOrdersPicker";
@@ -180,6 +181,8 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
         )}
         {/* Only while payouts are not set up (SH12): an accepted order pays out to this account. */}
         <ShopPayoutRow />
+        {/* Q2110: the member's own Shops strikes and when each ends (nothing when there are none). */}
+        <ShopMyStrikes />
         {/* Q1947: the chat an order card's Message opens (?talk=). */}
         <ShopTalkFromLink />
         {orders.isError ? (

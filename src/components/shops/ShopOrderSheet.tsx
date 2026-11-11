@@ -49,6 +49,7 @@ import { isLouisianaZip } from "@/lib/shipping/policy";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
 import { ShopsNotice } from "./shopsUi";
+import ShopMyStrikes from "./ShopMyStrikes";
 import { HandoverModeNote } from "./ShopHandoverModePicker";
 import ShopOrderOptions, { lineKey, QuantityStepper } from "./ShopOrderOptions";
 import { fetchItemPreorders, preorderLabel, requestPreorder, type ItemPreorder } from "@/lib/shops/preorders";
@@ -230,6 +231,8 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
           <p className="text-xs text-muted-foreground">{ORDER_HOLD_TEXT}</p>
         )}
       </div>
+      {/* Q2110: a buyer with Shops strikes sees them here, and at 3 the day Shops opens again. */}
+      <ShopMyStrikes />
 
       <ul className="space-y-3">
         {orderable.map((i) => {

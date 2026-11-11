@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { hapticMedium } from "@/lib/haptics";
-import { sectionByKey, type SectionKey } from "@/components/sections/sectionsConfig";
+import { sectionByKey, type SectionAdd, type SectionKey } from "@/components/sections/sectionsConfig";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/i18n/language";
 import { setCreateSheetOpen, useCreateSheetOpen } from "@/components/mobileNav/createSheetStore";
@@ -39,9 +39,13 @@ function useFabClearance(on: boolean) {
   }, [on]);
 }
 
-export function SectionCreateFab({ section, text: given }: { section?: SectionKey; text?: string }) {
+/**
+ * `add`: this member's own action when it is not the section's usual one (Shops: a member who already has a shop is
+ * offered "+ Add an item", not "+ Open a shop"; ShopsHomeView). Guard: src/test/shopOwnerAddNotOpenShop.test.tsx.
+ */
+export function SectionCreateFab({ section, text: given, add: own }: { section?: SectionKey; text?: string; add?: SectionAdd }) {
   const { t: tr } = useLanguage();
-  const text = given ?? tr("nav.create");
+  const text = own?.cta ?? own?.label ?? given ?? tr("nav.create");
   const navigate = useNavigate();
   const desktop = useIsWebDesktop();
   const gate = useAgeGate();
@@ -49,7 +53,7 @@ export function SectionCreateFab({ section, text: given }: { section?: SectionKe
   // An empty state showing its own create button hides the pill, so the action is never on screen twice (createFabHidden).
   const hidden = useSectionCreateFabHidden();
   // No section (Dashboard): the pill opens the Create sheet ("What are we doing?"), as the bar's "+" did there.
-  const add = section ? sectionByKey(section).add : null;
+  const add = own ?? (section ? sectionByKey(section).add : null);
   const shown = !desktop && !hidden && !(section && !add);
   useFabClearance(shown);
   if (!shown || typeof document === "undefined") return null;

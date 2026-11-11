@@ -5,7 +5,7 @@ import AppShell from "@/components/AppShell";
 import { AppTopBar } from "./AppTopBar";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { ExploreSearchEntry } from "./ExploreSearchEntry";
-import type { SectionKey } from "./sectionsConfig";
+import type { SectionAdd, SectionKey } from "./sectionsConfig";
 import type { SectionMineMenu } from "./sectionMine";
 
 /**
@@ -29,6 +29,7 @@ export function SectionScreen({
   mine,
   fab,
   showAdd = true,
+  add,
   children,
 }: {
   /** A section screen (not Home): draws the Explore header (chips row, tabs, search) above the scroll column. */
@@ -63,6 +64,8 @@ export function SectionScreen({
    * over a "Coming soon" screen. Guard: src/test/shopsClosedNoAddButton.test.tsx.
    */
   showAdd?: boolean;
+  /** This member's own add action on the desktop bar when it differs from the section's (Shops: "+ Add an item"). */
+  add?: SectionAdd;
   children: ReactNode;
 }) {
   // D12 (Cowork audit 2026-10-20): every section screen names itself in the browser tab; a page that sets a more
@@ -80,7 +83,7 @@ export function SectionScreen({
         {section && (
           // py/gap = JobsSection's header stack (section-shell-alignment): the bar, 4px, the tabs, 4px, the search.
           <div data-explore-header="" className="explore-header page-measure w-full shrink-0 flex flex-col gap-1">
-            <AppTopBar title={title} explore section={section} search={barSearch} mine={mine} showAdd={showAdd} />
+            <AppTopBar title={title} explore section={section} search={barSearch} mine={mine} showAdd={showAdd} add={add} />
             {tabs}
             {globalSearch && <ExploreSearchEntry />}
           </div>

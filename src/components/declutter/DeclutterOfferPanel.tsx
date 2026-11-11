@@ -409,13 +409,13 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
               const chip = offerChipCents(item.current_price_cents, pct);
               if (chip === null) return null;
               return (
-                // F117 (UI audit 11-09): each chip shows what the buyer would pay, incl. fee (Buy now's price block says
-                // the same), with the offer itself small under it. Display only: the offer sent is still `chip`.
-                <ChoicePill key={pct} selected={cents === chip} data-offer-chip={pct} aria-label={`${pct}% off, ${inclFeeText(chip)} (an offer of ${formatPrice(chip)})`}
+                // Owner 11-11 (F358, the 11-09 rule as on the item page): the offer itself is the big figure and what the
+                // buyer would pay, "$X incl. fee", sits small under it. Display only: the offer sent is still `chip`.
+                <ChoicePill key={pct} selected={cents === chip} data-offer-chip={pct} aria-label={`${pct}% off, an offer of ${formatPrice(chip)} (${inclFeeText(chip)})`}
                   className="flex-col justify-center px-2 py-1 leading-tight" onClick={() => setAmount(centsToDollars(chip))}>
                   <span>{pct}% off</span>
-                  <PriceInclFee priceCents={chip} className="block text-ds-13 font-bold tabular-nums" wordsClassName="block text-ds-11 font-medium" />
-                  <span className="text-ds-11 font-normal tabular-nums text-muted-foreground" data-offer-chip-amount="">offer {formatPrice(chip)}</span>
+                  <span className="block text-ds-13 font-bold tabular-nums" data-offer-chip-amount="">{formatPrice(chip)}</span>
+                  <PriceInclFee priceCents={chip} className="block text-ds-11 font-normal tabular-nums text-muted-foreground" />
                 </ChoicePill>
               );
             })}

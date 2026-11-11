@@ -3533,6 +3533,10 @@ button,
 @container (min-width: 640px) {
   .job-step-wide { display: block; }
   .job-steps-grid { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
+  /* F275a (audit 11-10): on a wide card the step words were 11px grey with ~100px a column to spare; from a 640px
+     tracker they read at 13px (0.8125rem, on the type scale; not under Bigger text, which already sets the row to 16px). The widest, "Confirmed", is
+     ~65px at 13px. Guard: src/test/wideTrackerWordsRead13.test.ts. */
+  html:not(.senior-mode) .job-step-full { font-size: 0.8125rem; }
 }
 /* NARROW TRACKERS KEEP EVERY SHORT WORD WHOLE (audit 2026-10-28 F17). Measured on a local build, prod data:
    /payment-success's tracker is 277px at 375 ("Hired" 30 in 29, "Done" 30 in 29) and 222px at 320 (7 of 8 cut);

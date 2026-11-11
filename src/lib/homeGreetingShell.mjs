@@ -26,15 +26,18 @@ export const GREETING_TITLE_CLASS = "text-ds-20 font-bold leading-tight text-for
 /** The markup the inline script draws (empty text), for the CSS inliner's first-frame inventory. */
 export const GREETING_SHELL_MARKUP = `<div><p class="${GREETING_TITLE_CLASS}"></p></div>`;
 
-/** "Good morning" before noon, "Good afternoon" before 5 PM, else "Good evening" (local time). */
-export function greetingFor(d = new Date()) {
+/** "Good morning" before noon, "Good afternoon" before 5 PM, else "Good evening" (local time). F260q: Spanish
+ *  ("es") reads Buenos días / Buenas tardes / Buenas noches; index.html's script picks the same language
+ *  (saved "helpr_lang", else the browser's) so the first paint never flips. */
+export function greetingFor(d = new Date(), lang = "en") {
   const h = d.getHours();
+  if (lang === "es") return h < 12 ? "Buenos días" : h < 17 ? "Buenas tardes" : "Buenas noches";
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
-/** The date line: "Friday, Nov 6". */
-export function greetingDate(d = new Date()) {
-  return d.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+/** The date line: "Friday, Nov 6" ("miércoles, 11 nov" in Spanish). */
+export function greetingDate(d = new Date(), lang = "en") {
+  return d.toLocaleDateString(lang === "es" ? "es-US" : "en-US", { weekday: "long", month: "short", day: "numeric" });
 }
 
 function store() {

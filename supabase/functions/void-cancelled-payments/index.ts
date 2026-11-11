@@ -2330,24 +2330,41 @@ serve(async (req) => {
       // report_helper_no_show reopens the job; if the poster does not pick a new date and nobody new is hired, the
       // job is cancelled (auto-expire-jobs, or the poster's own cancel) and refunded here. That refund returns every
       // cent paid: no card fee, no service fee, no first job's setup fee (the business absorbs them). Keyed on the
-      // job's recorded no-show (user_violations 'no_show') with no confirmed Helpr now; a crew is not covered
-      // (report_helper_no_show refuses a crew). Ordinary cancellations keep today's rule. A failed read moves no
-      // money this run (the same fail-closed rule as the hold read above).
+      // job's server-owned no-show marker (jobs.no_show_reported_at, stamped by report_helper_no_show and never
+      // cleared, 20261111213317) with no confirmed Helpr now; a crew is not covered (report_helper_no_show refuses a
+      // crew). Not the struck Helpr's user_violations row: account deletion and an admin reversal delete that row
+      // (F272 review note 1). Read apart from the sweep's select so a function deployed before the column exists
+      // still settles every other job; until then (42703) the old key, the violation row, is read instead.
+      // Ordinary cancellations keep today's rule. A failed read moves no money this run (the same fail-closed rule
+      // as the hold read above).
       let noShowFullRefund = false;
       if (job.is_group_job !== true && job.helper_confirmed_at == null) {
-        const { data: noShowRows, error: noShowErr } = await supabaseAdmin
-          .from("user_violations")
-          .select("id")
-          .eq("job_id", job.id)
-          .eq("violation_type", "no_show")
-          .limit(1);
+        const { data: markRow, error: markErr } = await supabaseAdmin
+          .from("jobs")
+          .select("no_show_reported_at")
+          .eq("id", job.id)
+          .maybeSingle();
+        const markNotDeployed = !!markErr && (markErr.code === "42703" || markErr.code === "PGRST204" ||
+          (!markErr.code && /no_show_reported_at[^"]*does not exist|could not find the 'no_show_reported_at' column/i.test(markErr.message ?? "")));
+        let noShowErr: { message: string } | null = markErr && !markNotDeployed ? markErr : null;
+        if (!markErr) {
+          noShowFullRefund = markRow?.no_show_reported_at != null;
+        } else if (markNotDeployed) {
+          const { data: noShowRows, error: violErr } = await supabaseAdmin
+            .from("user_violations")
+            .select("id")
+            .eq("job_id", job.id)
+            .eq("violation_type", "no_show")
+            .limit(1);
+          noShowErr = violErr;
+          noShowFullRefund = !violErr && (noShowRows?.length ?? 0) > 0;
+        }
         if (noShowErr) {
           console.error(`[void-cancelled-payments] no-show read failed for job ${job.id}; not settling:`, noShowErr.message);
           defects.record(`no-show read ${job.id}: ${noShowErr.message} — not settled`);
           results.push({ job_id: job.id, title: job.title, status: "no_show_read_failed" });
           continue;
         }
-        noShowFullRefund = (noShowRows?.length ?? 0) > 0;
       }
 
       // ── What this cancellation owes, priced before any money moves ───────

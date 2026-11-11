@@ -17,7 +17,7 @@ type Row = { type: string; title: string; message: string };
  *
  * MATCHES STORED TEXT written by Postgres (helprCancelCopy.ts says which).
  */
-export function quickActionFor(n: Row, destinationOf: (n: Row) => string | null): QuickAction | null {
+export function quickActionFor<T extends Row>(n: T, destinationOf: (n: T) => string | null): QuickAction | null {
   if (n.type === "expired") return { label: "Repost", href: "/post-job" };
   const cancelled = n.title.toLowerCase().includes("cancelled") || n.message.toLowerCase().includes("cancelled");
   if (!cancelled && !n.message.toLowerCase().includes("auto-cancel")) return null;

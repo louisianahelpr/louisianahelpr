@@ -325,7 +325,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     if (job.status === "cancelled") {
       const findAnother: RowAction = { key: "find-another", label: "Find another job", go: () => navigate("/browse") };
       const withLeaveGone = withLeaveSeries([...(faceIs === "step" ? [] : [lead]), ...extras, ...dayExtras], canLeave, leaveAction);
-      return { row: <JobPageActionRow tag="helpr" lead={findAnother} extras={withLeaveGone.extras} menuHost={menuHost} />, leaveInMenu: withLeaveGone.inMenu };
+      return { row: <JobPageActionRow tag="helpr" lead={findAnother} leadIsStep={false} extras={withLeaveGone.extras} menuHost={menuHost} />, leaveInMenu: withLeaveGone.inMenu };
     }
     const withLeave = withLeaveSeries([...extras, ...dayExtras], canLeave, leaveAction);
     return { row: <JobPageActionRow tag="helpr" lead={lead} leadIsStep={faceIs === "step"} extras={withLeave.extras} menuHost={menuHost} />, leaveInMenu: withLeave.inMenu };

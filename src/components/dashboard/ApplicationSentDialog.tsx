@@ -3,6 +3,7 @@ import { jobDayLabel } from "@/lib/jobDateWindow";
 import { seriesSummary } from "@/lib/format";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { JobPriceTakeHome } from "@/components/dashboard/helprTakeHome";
+import { STANDARD_PAYOUT_PHRASE } from "../../../supabase/functions/_shared/escrowTiming";
 
 /** What the pop-up reports: the job, and whether the server held the note back. The
  *  poster's name and the job's date are optional: each step leaves out what it lacks. */
@@ -65,7 +66,8 @@ export function ApplicationSentDialog({
         {
           key: "do",
           label: doLabel(sent),
-          detail: job ? <JobPriceTakeHome job={job} after=", paid once it's confirmed done" fallback="Then you're paid once it's confirmed done" /> : "Then you're paid once it's confirmed done",
+          // F293: the apply sheet's timing ("3 days after the job is approved"), never a vaguer third wording.
+          detail: job ? <JobPriceTakeHome job={job} after={`, paid ${STANDARD_PAYOUT_PHRASE}`} fallback={`Then you're paid ${STANDARD_PAYOUT_PHRASE}`} /> : `Then you're paid ${STANDARD_PAYOUT_PHRASE}`,
           state: "later",
         },
       ]}

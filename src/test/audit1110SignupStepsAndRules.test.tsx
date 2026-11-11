@@ -43,7 +43,7 @@ describe("F260n: sign-up step 2 is a history entry", () => {
     // The step follows the history entry after the first render (dev-only ?step seed kept).
     expect(s).toContain("setStep(signupStepFromHistory(routerLocation.state));");
     expect(s).toMatch(/\}, \[routerLocation\.key, routerLocation\.state\]\);/);
-    // Back from a pushed step 2 pops the entry instead of forking the history.
+    // Back from the pushed second step pops that entry instead of forking the history.
     expect(s).toContain("if (signupStepFromHistory(routerLocation.state) === 2) navigate(-1);");
     expect(s).toContain("backOnClick: backToStep1 }");
     // No bare jump to step 2 remains.

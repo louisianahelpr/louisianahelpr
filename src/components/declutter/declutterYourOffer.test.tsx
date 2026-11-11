@@ -183,6 +183,18 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     expect(await screen.findByText(/If you don't, you get a strike and it goes back up for sale\./)).toBeInTheDocument();
   });
 
+  // Audit 1110 F359e: an accepted trade read as a purchase ("Reserved for you, not paid yet ... Pay by ... Go to checkout").
+  // @mutate src/components/declutter/DeclutterYourOffer.tsx |   const trade = isTradeLine(line); |   const trade = false;
+  it("F359e: an accepted trade says Trade accepted and Choose a pickup, never pay or checkout", async () => {
+    state.cart = [{ ...LINE, source: "swap", price_cents: 0 }];
+    show(<OfferPanel item={{ ...ITEM, status: "reserved" }} userId="u1" />);
+    expect(await screen.findByText("Trade accepted. Choose how you'll pick it up.")).toBeInTheDocument();
+    expect(screen.getByText(/^Choose it by .+\. If you don't, the trade ends\. No strike\.$/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Choose a pickup" })).toHaveAttribute("href", "/declutter?tab=buying&checkout=s1");
+    expect(screen.queryByText(/not paid yet|Pay by/)).toBeNull();
+    expect(screen.queryByRole("link", { name: "Go to checkout" })).toBeNull();
+  });
+
   it("reserved to someone else (or this buyer's line already paid): someone is buying it", async () => {
     state.cart = [{ ...LINE, item_id: "other" }, { ...LINE, status: "paid" }, { ...LINE, my_side: "seller" }];
     show(<OfferPanel item={{ ...ITEM, status: "reserved" }} userId="u1" />);

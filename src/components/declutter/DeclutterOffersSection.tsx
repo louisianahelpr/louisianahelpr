@@ -321,7 +321,8 @@ export function OffersSection({ side, onlyMyTurn = false, only = null }: { side:
   if (offers.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading offers…</p>;
   const mine = underChip((offers.data ?? []).filter((o) => o.my_side === side), only, (o) => offerBucket(o, side));
   if (only && mine.length === 0) return null;
-  const toAnswer = mine.filter((o) => o.status === "open" && o.awaiting === side).length;
+  const myTurn = (o: MyOffer) => o.status === "open" && o.awaiting === side;
+  const toAnswer = mine.filter(myTurn).length;
   if (onlyMyTurn) {
     const waiting = mine.filter((o) => o.status === "open" && o.awaiting === side);
     if (waiting.length === 0) return null;
@@ -334,8 +335,12 @@ export function OffersSection({ side, onlyMyTurn = false, only = null }: { side:
   }
   // Deep audit #30: closed offers (said no, taken back, ran out, sold) piled up above the seller's live ones. The
   // seller sees the open ones; the closed ones fold under one button. declutter_my_offers keeps a closed offer 30 days.
-  const shown = seller ? mine.filter((o) => o.status === "open") : mine;
-  const closed = seller ? mine.filter((o) => o.status !== "open") : [];
+  // Audit 11-10 F360d: Buying folds its finished offers the same way (said no, taken back, ran out, sold). An accepted
+  // offer stays out: it is in the buyer's cart with a check-out-by time. A chosen chip already picked its rows, so
+  // nothing folds under one, and an offer waiting on this member's answer comes first.
+  const folds = (o: MyOffer) => (seller ? o.status !== "open" : only === null && o.status !== "open" && o.status !== "accepted");
+  const shown = mine.filter((o) => !folds(o)).sort((a, b) => Number(myTurn(b)) - Number(myTurn(a)));
+  const closed = mine.filter(folds);
   // Q2660: a notice's offer that has since closed opens the fold, so the card it names is on screen.
   const closedOpen = showClosed ?? (linkedOffer !== null && closed.some((o) => o.offer_id === linkedOffer));
   return (

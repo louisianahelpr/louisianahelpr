@@ -7,22 +7,30 @@
  * @mutate src/lib/declutter/buyingBucket.ts |  if (o.status === "accepted") return "done"; |  if (o.status === "accepted") return "cancelled";
  * @mutate src/lib/declutter/buyingBucket.ts |  if (t.status === "open") return side === "seller" ? "needs_you" : "waiting"; |  if (t.status === "open") return "needs_you";
  * @mutate src/components/declutter/DeclutterOffersSection.tsx |  if (only && mine.length === 0) return null; |  if (false) return null;
+ *
+ * Audit 11-10 F360d: Buying folds its finished offers (said no, taken back, ran out) under "Show N closed offers", the
+ * same as Selling; an accepted offer stays out (it is in the cart), nothing folds under a chip, and an offer waiting
+ * on the buyer's answer comes first.
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | seller ? o.status !== "open" : only === null && o.status !== "open" && o.status !== "accepted" | seller ? o.status !== "open" : false
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | .sort((a, b) => Number(myTurn(b)) - Number(myTurn(a))) | .slice()
  */
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { offerBucket, tradeBucket } from "@/lib/declutter/buyingBucket";
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => 0, useFirstPayoutFeeKnown: () => true, useFirstPayoutFeeDollars: () => 0 }));
 const offer = (offer_id: string, status: string, awaiting: "buyer" | "seller" = "seller") => ({
   offer_id, item_id: `i-${offer_id}`, item_title: `Item ${offer_id}`, my_side: "buyer", amount_cents: 600, awaiting, status,
   respond_by: new Date(Date.now() + 47 * 3_600_000).toISOString(), counter_count: 0, current_price_cents: 1000, floor_price_cents: null, updated_at: "2026-11-10",
 });
+let offerRows = [offer("open", "open"), offer("won", "accepted"), offer("lost", "declined")];
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/api")>()),
-  fetchMyOffers: async () => [offer("open", "open"), offer("won", "accepted"), offer("lost", "declined")],
+  fetchMyOffers: async () => offerRows,
   fetchItemHandovers: async () => [],
   // Audit 11-10 F359: an accepted offer reads its cart line (none here).
   fetchMyCart: async () => [],
@@ -61,6 +69,9 @@ describe("the Buying chips file offers and trade offers like orders (F374)", () 
     const all = wrap(<OffersSection side="buyer" />);
     await screen.findByText("Item open");
     expect(screen.getByText("Item won")).toBeInTheDocument();
+    // F360d: with no chip the declined offer folds under the closed-offers button, as on Selling.
+    expect(screen.queryByText("Item lost")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show 1 closed offer from the last 30 days" }));
     expect(screen.getByText("Item lost")).toBeInTheDocument();
     all.unmount();
 
@@ -87,5 +98,17 @@ describe("the Buying chips file offers and trade offers like orders (F374)", () 
     const done = wrap(<TradeOffersSection side="buyer" userId="u1" only="done" />);
     await new Promise((r) => setTimeout(r, 50));
     expect(done.container.querySelector("[data-trade-offers]")).toBeNull();
+  });
+});
+
+describe("Buying folds closed offers like Selling (F360d)", () => {
+  it("open and accepted offers show, the buyer's turn first; declined ones wait behind the fold", async () => {
+    offerRows = [offer("open", "open"), offer("lost", "declined"), offer("won", "accepted"), offer("turn", "open", "buyer")];
+    wrap(<OffersSection side="buyer" />);
+    const list = await screen.findByRole("region", { name: "Your offers" });
+    const titles = () => Array.from(list.querySelectorAll("li")).map((li) => /Item ([a-z]+)/.exec(li.textContent ?? "")?.[1]).filter(Boolean);
+    expect(titles()).toEqual(["turn", "open", "won"]);
+    expect(within(list).queryByText("Item lost")).toBeNull();
+    expect(list.querySelector("[data-closed-offers-toggle]")?.textContent).toBe("Show 1 closed offer from the last 30 days");
   });
 });

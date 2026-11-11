@@ -7,6 +7,12 @@
  * @mutate src/pages/search/SearchStart.tsx |   const open = (s: SavedSearch) => s.section === "jobs" \|\| (s.section === "declutter" && declutterOn); |   const open = (s: SavedSearch) => !!s;
  * @mutate src/pages/search/SearchStart.tsx |     ...(declutterOn ? [{ key: "declutter" | ...(true ? [{ key: "declutter"
  * @mutate src/pages/search/SearchStart.tsx | <Link key={s.id} to={resultsPath(s)} | <Link key={s.id} to="/profile?tab=saved_searches"
+ *
+ * F259l (whole-app audit 2026-11-10): each saved search shows its "N new" (saved_search_new_counts, as in Settings),
+ * and opening one marks it seen.
+ * @mutate src/pages/search/SearchStart.tsx |                 <SavedSearchNewPill n={counts.data?.get(s.id) ?? 0} />\n |
+ * @mutate src/pages/search/SearchStart.tsx | onClick={() => openSaved(s)} |
+ * @mutate src/pages/search/SearchStart.tsx |     if (!userId \|\| !(counts.data?.get(s.id) ?? 0)) return; |     return;
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
@@ -14,7 +20,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 
-const state = vi.hoisted(() => ({ declutter: true }));
+const state = vi.hoisted(() => ({ declutter: true, counts: [] as { search_id: string; new_count: number }[], updates: [] as unknown[] }));
 
 const SAVED = [
   { id: "s1", name: "Lawn mowing", section: "jobs", query: "lawn", category: null, min_budget: null, max_budget: null, radius_miles: null, parish: null, location_keyword: null, notify_enabled: true, notify_email: false, last_seen_at: null, created_at: "2026-11-01T00:00:00Z" },
@@ -34,11 +40,15 @@ vi.mock("@/integrations/supabase/client", () => {
   const builder = (table: string) => {
     const b: Record<string, unknown> = {};
     for (const m of ["select", "ilike", "not", "in", "or", "order", "limit", "eq"]) b[m] = () => b;
+    b.update = (row: unknown) => {
+      state.updates.push({ table, row });
+      return b;
+    };
     const data = table === "saved_searches" ? SAVED : [];
     b.then = (res: (v: unknown) => unknown) => Promise.resolve({ data, error: null, count: data.length }).then(res);
     return b;
   };
-  return { supabase: { from: (t: string) => builder(t), rpc: async () => ({ data: [], error: null }) } };
+  return { supabase: { from: (t: string) => builder(t), rpc: async (fn: string) => ({ data: fn === "saved_search_new_counts" ? state.counts : [], error: null }) } };
 });
 
 import SearchPage from "./SearchPage";
@@ -56,6 +66,8 @@ function mount(url: string) {
 
 beforeEach(() => {
   state.declutter = true;
+  state.counts = [];
+  state.updates = [];
 });
 
 describe("search with nothing typed starts somewhere (Q2645)", () => {
@@ -64,6 +76,19 @@ describe("search with nothing typed starts somewhere (Q2645)", () => {
     const saved = await screen.findByRole("region", { name: "Your saved searches" });
     expect(within(saved).getByRole("link", { name: /Lawn mowing/ })).toHaveAttribute("href", "/jobs?tab=browse&q=lawn");
     expect(within(saved).getByRole("link", { name: /Couches/ }).getAttribute("href")).toMatch(/^\/declutter\?q=couch&cat=furniture/);
+  });
+
+  it("F259l: each saved search says how many new matches it has; opening one marks it seen", async () => {
+    state.counts = [{ search_id: "s1", new_count: 3 }, { search_id: "s2", new_count: 0 }];
+    mount("/search");
+    const saved = await screen.findByRole("region", { name: "Your saved searches" });
+    const lawn = within(saved).getByRole("link", { name: /Lawn mowing/ });
+    expect(await within(lawn).findByText("3 new")).toBeInTheDocument();
+    // Hidden at 0: every number is real or hidden.
+    expect(within(within(saved).getByRole("link", { name: /Couches/ })).queryByText(/new$/)).toBeNull();
+    fireEvent.click(lawn);
+    await vi.waitFor(() => expect(state.updates).toHaveLength(1));
+    expect(state.updates[0]).toMatchObject({ table: "saved_searches", row: { last_seen_at: expect.any(String) } });
   });
 
   it("offers a few categories of each open section, each opening that Browse", async () => {

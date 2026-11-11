@@ -13,6 +13,8 @@
  * @mutate src/components/declutter/declutterUi.tsx |   const label = CONDITION_LABEL[stars] ? t(`decl.cond.${stars}` as MsgKey) : null; |   const label = CONDITION_LABEL[stars];
  * @mutate src/components/declutter/DeclutterItemView.tsx | className="text-base font-semibold">{t("decl.item.about")}</h2> | className="text-base font-semibold">About this item</h2>
  * @mutate src/components/declutter/DeclutterItemView.tsx | <Detail label={t("decl.item.category")}>{CATEGORY_LABEL[it.category] ? t(`decl.cat.${it.category}` as MsgKey) : t("decl.cat.other")}</Detail> | <Detail label={t("decl.item.category")}>{CATEGORY_LABEL[it.category] ?? "Other"}</Detail>
+ * @mutate src/components/declutter/DeclutterFilterPanel.tsx |       title: t("decl.sheet.distance"), |       title: "Distance",
+ * @mutate src/components/declutter/DeclutterFilterPanel.tsx |               {SORT_LABEL[s] ? t(`decl.sort.${s}` as MsgKey) : s} |               {SORT_LABEL[s]}
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
@@ -29,6 +31,8 @@ import { esDeclutter } from "@/lib/i18n/esDeclutter";
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
 import { ConditionChip } from "@/components/declutter/declutterUi";
+import { declutterFilterSections } from "@/components/declutter/DeclutterFilterPanel";
+import { SORT_LABEL } from "@/lib/declutter/browseFilters";
 
 const item = {
   id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
@@ -54,6 +58,7 @@ afterEach(() => { cleanup(); __resetLangForTests(); });
 describe("F260q: Declutter Browse in Spanish", () => {
   it("the dictionary's English is the app's own words", () => {
     for (const [k, v] of Object.entries(CATEGORY_LABEL)) expect(enDeclutter[`decl.cat.${k}` as keyof typeof enDeclutter], k).toBe(v);
+    for (const [k, v] of Object.entries(SORT_LABEL)) expect(enDeclutter[`decl.sort.${k}` as keyof typeof enDeclutter], k).toBe(v);
     for (const [k, v] of Object.entries(CONDITION_LABEL)) expect(enDeclutter[`decl.cond.${k}` as keyof typeof enDeclutter], k).toBe(v);
     expect(Object.keys(CATEGORY_LABEL).length).toBeGreaterThan(20);
     for (const k of Object.keys(enDeclutter) as (keyof typeof enDeclutter)[]) {
@@ -106,5 +111,18 @@ describe("F260q: Declutter Browse in Spanish", () => {
     for (const k of keys) expect(view, k).toContain(`t("${k}")`);
     expect(view).toContain("t(`decl.cat.${it.category}` as MsgKey)");
     expect(view).not.toMatch(/>About this item<|>Free porch pickup|"Save this item"|"Share this item"/);
+  });
+
+  it("the filter sheet: section titles and sort chips in Spanish", async () => {
+    setLang("es");
+    await act(async () => { await ensureLangLoaded(); });
+    const ask = { origin: { status: "ready", source: "device" }, guest: false, asked: false, asking: false, askDevice: () => {} } as never;
+    const sections = declutterFilterSections({ filters, onChange: () => {}, maxMiles: null, onMaxMiles: () => {}, ask, showDrops: true });
+    expect(sections.length).toBeGreaterThan(5);
+    expect(sections.map((x) => x.title)).toEqual(["Ordenar", "Distancia", "Cómo lo recibe", "Precio", "Estado", "Categoría", "Mostrar"]);
+    render(<>{sections.map((x) => <div key={x.key}>{x.content}</div>)}</>);
+    expect(screen.getByText("Más cerca primero")).toBeTruthy();
+    expect(screen.getByText("Las millas se cuentan desde donde está usted.")).toBeTruthy();
+    expect(screen.getByText("Exterior")).toBeTruthy();
   });
 });

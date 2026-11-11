@@ -84,7 +84,6 @@ const Switch = React.forwardRef<
             the state. Guard: src/test/switchOnStateShowsACheck.test.tsx. */}
         <Check
           aria-hidden="true"
-          strokeWidth={3.5}
           className="h-3.5 w-3.5 text-[hsl(var(--bark))] opacity-0 transition-opacity duration-200 group-data-[state=checked]:opacity-100"
         />
       </SwitchPrimitives.Thumb>

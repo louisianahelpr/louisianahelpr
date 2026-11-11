@@ -22,6 +22,8 @@ import { useManagerLabels } from "@/lib/declutter/managerMode";
 import { DeclutterSuggestedReply } from "./DeclutterSuggestedReply";
 import { Textarea } from "@/components/ui/textarea";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
+import { t as tr, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enQuestions";
 
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 
@@ -32,9 +34,9 @@ export function askedWhen(iso: string, nowMs: number = Date.now()): string {
   const then = new Date(iso);
   const startOf = (ms: number) => new Date(new Date(ms).toDateString()).getTime();
   const days = Math.round((startOf(nowMs) - startOf(then.getTime())) / DAY_MS);
-  if (days <= 0) return "today";
-  if (days === 1) return "yesterday";
-  if (days < 7) return `${days} days ago`;
+  if (days <= 0) return tr("dq.today");
+  if (days === 1) return tr("dq.yesterday");
+  if (days < 7) return tr("dq.daysAgo", { n: days });
   return then.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
@@ -73,6 +75,8 @@ function QuestionCard({
   /** The viewer sells this item, so the answer is their own words. */
   isSeller: boolean;
 }) {
+  const { t } = useLanguage();
+  const waitingOn = sellerName ?? t("dq.theSeller");
   const asked = askedWhen(q.created_at);
   const [reporting, setReporting] = useState<"declutter_question" | "declutter_answer" | null>(null);
   const reportLink = (type: "declutter_question" | "declutter_answer", label: string) => (
@@ -85,27 +89,28 @@ function QuestionCard({
       <p className="text-ds-15 font-semibold [overflow-wrap:anywhere]">{q.question}</p>
       {q.answer ? (
         <>
-          <p className="text-ds-13 text-muted-foreground">{mine ? "Your question" : "Asked by a neighbor"} · {asked}</p>
+          <p className="text-ds-13 text-muted-foreground">{mine ? t("dq.yourQuestion") : t("dq.askedByNeighbor")} · {asked}</p>
           <p className="mt-1 border-l-2 border-[hsl(var(--primary)/0.4)] pl-3 text-ds-15 [overflow-wrap:anywhere]" data-answer="">
             {q.answer}
-            {managerLabel ? <span className="text-muted-foreground" data-manager-label=""> — {managerLabel}</span>
-              : sellerName ? <span className="text-muted-foreground"> — {sellerName}</span> : null}
+            {(managerLabel || sellerName) && (
+              <span className="text-muted-foreground" data-manager-label={managerLabel ? "" : undefined}> — {managerLabel || sellerName}</span>
+            )}
           </p>
         </>
       ) : (
         <p className="text-ds-13 text-muted-foreground">
-          {mine ? "Your question · asked" : "Asked"} {asked} · {listingDown && isSeller ? "relist it to answer" : onAnswer ? "waiting for your answer" : `waiting for ${sellerName ?? "the seller"}`}
+          {mine ? t("dq.yourQuestionAsked") : t("dq.asked")} {asked} · {listingDown && isSeller ? t("dq.relistToAnswer") : onAnswer ? t("dq.waitingForYou") : t("dq.waitingFor", { name: waitingOn })}
         </p>
       )}
       {!q.answer && onAnswer && (
         <Button type="button" size="sm" className="mt-2" onClick={onAnswer}>
-          Answer
+          {t("dq.answer")}
         </Button>
       )}
       {canReport && (!mine || (q.answer && !isSeller)) && (
         <div className="flex flex-wrap">
-          {!mine && reportLink("declutter_question", "Report question")}
-          {q.answer && !isSeller && reportLink("declutter_answer", "Report answer")}
+          {!mine && reportLink("declutter_question", t("dq.reportQuestion"))}
+          {q.answer && !isSeller && reportLink("declutter_answer", t("dq.reportAnswer"))}
         </div>
       )}
       {reporting && (
@@ -118,6 +123,7 @@ function QuestionCard({
 }
 
 function AnswerSheet({ q, itemId, onClose }: { q: DeclutterQuestion | null; itemId: string; onClose: () => void }) {
+  const { t } = useLanguage();
   const qc = useQueryClient();
   const [answer, setAnswer] = useState("");
   // AUD31-30: a refused answer is said under the box (the draft stays), as Ask does, never a toast over the box.
@@ -127,7 +133,7 @@ function AnswerSheet({ q, itemId, onClose }: { q: DeclutterQuestion | null; item
     onSuccess: () => {
       setAnswer("");
       setRefusal(null);
-      toast("Answer posted.");
+      toast(t("dq.answerPosted"));
       void qc.invalidateQueries({ queryKey: ["declutter", "questions", itemId] });
       onClose();
     },
@@ -146,7 +152,7 @@ function AnswerSheet({ q, itemId, onClose }: { q: DeclutterQuestion | null; item
       }}
     >
       <SheetContent side="bottom" floor className="max-h-[90dvh] overflow-y-auto" data-answer-sheet="">
-        <SheetHero title="Answer publicly" />
+        <SheetHero title={t("dq.answerPublicly")} />
         {q && (
           <div className="space-y-2">
             <p className="text-ds-15 font-semibold [overflow-wrap:anywhere]">"{q.question}"</p>
@@ -155,14 +161,14 @@ function AnswerSheet({ q, itemId, onClose }: { q: DeclutterQuestion | null; item
               <DeclutterSuggestedReply
                 questionId={q.id}
                 sending={send.isPending}
-                onSend={(t) => send.mutate({ id: q.id, text: t })}
-                onEdit={(t) => {
-                  setAnswer(t);
+                onSend={(reply) => send.mutate({ id: q.id, text: reply })}
+                onEdit={(reply) => {
+                  setAnswer(reply);
                   requestAnimationFrame(() => document.getElementById("declutter-answer")?.focus());
                 }}
               />
             )}
-            <label htmlFor="declutter-answer" className="block pt-2 text-ds-15 font-semibold">Your answer</label>
+            <label htmlFor="declutter-answer" className="block pt-2 text-ds-15 font-semibold">{t("dq.yourAnswer")}</label>
             <Textarea
               id="declutter-answer"
               className={field}
@@ -174,12 +180,12 @@ function AnswerSheet({ q, itemId, onClose }: { q: DeclutterQuestion | null; item
               aria-describedby={refusal ? "declutter-answer-error" : undefined}
             />
             {refusal && <p id="declutter-answer-error" role="alert" className="text-ds-13 text-destructive-ink">{refusal}</p>}
-            <p className="text-ds-13 text-muted-foreground">Everyone viewing the item sees this.</p>
+            <p className="text-ds-13 text-muted-foreground">{t("dq.everyoneSeesAnswer")}</p>
           </div>
         )}
         <SheetFooter>
           <SheetPrimaryAction disabled={!q || !text || send.isPending} onClick={() => q && send.mutate({ id: q.id, text })}>
-            Post answer
+            {t("dq.postAnswer")}
           </SheetPrimaryAction>
         </SheetFooter>
       </SheetContent>
@@ -215,6 +221,7 @@ export function DeclutterQuestions({
   /** AUD31-15: opens the offer box on the item page; without it the hint stays plain words. */
   onMakeOffer?: () => void;
 }) {
+  const { t } = useLanguage();
   const qc = useQueryClient();
   const sellerName = useSellerFirstName(sellerId);
   const [question, setQuestion] = useState("");
@@ -231,7 +238,7 @@ export function DeclutterQuestions({
     mutationFn: (text: string) => askQuestion(itemId, text),
     onSuccess: () => {
       setQuestion("");
-      toast("Question posted. The answer will show here.");
+      toast(t("dq.questionPosted"));
       void qc.invalidateQueries({ queryKey: ["declutter", "questions", itemId] });
     },
   });
@@ -252,13 +259,13 @@ export function DeclutterQuestions({
     <section className="space-y-3" aria-labelledby="declutter-questions">
       <h2 id="declutter-questions" className="text-base font-semibold">
         {/* Owner mockup 11-01: "Questions (N)", the count always. */}
-        Questions ({questions.isLoading ? 0 : list.length})
+        {t("dq.heading", { n: questions.isLoading ? 0 : list.length })}
       </h2>
       {questions.isError ? (
-        <ErrorState variant="inline" title="We couldn't load the questions." body={declutterErrorMessage(questions.error)} onRetry={() => void questions.refetch()} />
+        <ErrorState variant="inline" title={t("dq.loadFailed")} body={declutterErrorMessage(questions.error)} onRetry={() => void questions.refetch()} />
       ) : questions.isLoading ? null : list.length === 0 ? (
         // Owner mockup 11-01: the one-line box says it already; "No questions yet" only where nobody can ask here.
-        canAsk ? null : <p className="text-sm text-muted-foreground">No questions yet.</p>
+        canAsk ? null : <p className="text-sm text-muted-foreground">{t("dq.none")}</p>
       ) : (
         <ul className="space-y-2">
           {list.map((q) => (
@@ -274,7 +281,7 @@ export function DeclutterQuestions({
             if (text.length >= 2) ask.mutate(text);
           }}
         >
-          <label htmlFor="declutter-question" className="sr-only">Ask a question</label>
+          <label htmlFor="declutter-question" className="sr-only">{t("dq.askLabel")}</label>
           <div className="flex gap-2">
             <input
               id="declutter-question"
@@ -282,35 +289,35 @@ export function DeclutterQuestions({
               value={question}
               maxLength={500}
               onChange={(e) => { setQuestion(e.target.value); if (ask.isError) ask.reset(); }}
-              placeholder="Ask about size, condition…"
+              placeholder={t("dq.placeholder")}
               aria-invalid={askError ? true : undefined}
               aria-describedby={askError ? "declutter-question-error" : undefined}
             />
             {/* Outline: Buy now is the item page's one filled button (Declutter audit 2026-10-28: two olive buttons, Buy now
                 and Ask, competed). Guard: declutterItemPage.test.tsx "one filled button". */}
             <Button type="submit" variant="outline" className="h-auto shrink-0" disabled={ask.isPending || text.length < 2}>
-              Ask
+              {t("dq.ask")}
             </Button>
           </div>
           {askError && <p id="declutter-question-error" role="alert" className="text-ds-13 text-destructive-ink">{askError}</p>}
           {/* AUD31-15: "Make an offer" opens the offer box on this page (DeclutterItemView's onMakeOffer), not plain text. */}
-          <p className="text-ds-13 text-muted-foreground">Everyone can see questions and answers. Contact info is not allowed.{free ? null : onMakeOffer
-            ? <>{" Want to make a deal? "}<InlineTextButton className="font-semibold text-foreground underline underline-offset-2" onClick={onMakeOffer} data-question-make-offer="">Make an offer</InlineTextButton>.</>
-            : " Want to make a deal? Make an offer."}</p>
+          <p className="text-ds-13 text-muted-foreground">{t("dq.rules")}{free ? null : onMakeOffer
+            ? <>{t("dq.wantDeal")}<InlineTextButton className="font-semibold text-foreground underline underline-offset-2" onClick={onMakeOffer} data-question-make-offer="">{t("dq.makeOffer")}</InlineTextButton>.</>
+            : t("dq.wantDealPlain")}</p>
         </form>
       )}
       {preview && (
         // LEAD-PREVIEW-ASK (owner 2026-10-31): the seller sees where buyers ask, but can't ask on their own listing.
         <div className="space-y-2" aria-disabled="true" data-preview-ask="">
-          <label htmlFor="declutter-question-preview" className="block text-ds-15 font-semibold text-muted-foreground">Ask a question</label>
+          <label htmlFor="declutter-question-preview" className="block text-ds-15 font-semibold text-muted-foreground">{t("dq.askLabel")}</label>
           <div className="flex gap-2">
-            <input id="declutter-question-preview" className={`${field} bg-muted`} disabled placeholder="Ask about size, condition…" aria-describedby="declutter-question-preview-note" />
+            <input id="declutter-question-preview" className={`${field} bg-muted`} disabled placeholder={t("dq.placeholder")} aria-describedby="declutter-question-preview-note" />
             <Button type="button" variant="outline" className="h-auto shrink-0" disabled>
-              Ask
+              {t("dq.ask")}
             </Button>
           </div>
           <p id="declutter-question-preview-note" className="text-ds-13 text-muted-foreground">
-            Buyers ask here. You'll get a notice and answer from this page.
+            {t("dq.previewNote")}
           </p>
         </div>
       )}

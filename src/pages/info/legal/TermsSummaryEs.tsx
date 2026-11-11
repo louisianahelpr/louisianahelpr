@@ -19,7 +19,7 @@ const buyerFeeEs = `${DECLUTTER_BUYER_FEE_PERCENT}% del precio del artículo má
   DECLUTTER_BUYER_FEE_FIXED_CENTS < 100 ? `${DECLUTTER_BUYER_FEE_FIXED_CENTS} centavos` : `$${(DECLUTTER_BUYER_FEE_FIXED_CENTS / 100).toFixed(2)}`
 }`;
 
-export function termsSummaryEsItems({ idOn, feeLabel, posterPaysNothing }: { idOn: boolean; feeLabel: string | null; posterPaysNothing: boolean }): string[] {
+function termsSummaryEsItems({ idOn, feeLabel, posterPaysNothing }: { idOn: boolean; feeLabel: string | null; posterPaysNothing: boolean }): string[] {
   return [
     `Debe tener 18 años o más. Cada cuenta verifica su correo electrónico antes de publicar o aceptar trabajos.${
       idOn

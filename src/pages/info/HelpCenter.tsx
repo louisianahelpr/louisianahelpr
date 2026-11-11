@@ -4,6 +4,7 @@ import { ChevronDown, Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
 import { FieldClearButton } from "@/components/ui/FieldClearButton";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import FaqRow from "@/components/marketing/FaqRow";
 // The card that closes every legal policy tab. Shared, not copied, so the
@@ -368,12 +369,13 @@ const HelpCenter = () => {
               "Something's not working", which attaches the screen, route,
               device, build and recent errors. /support, not the Profile tab:
               this page is public, and /support serves guests and members. */}
-          <p className="text-center text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
-            Something not working?{" "}
-            <Link to="/support?topic=report" className="link-standard font-semibold" style={{ color: "hsl(var(--bark))" }}>
-              Report a bug
-            </Link>
-          </p>
+          {/* F232 (audit 11-10): the 88x19 "Report a bug" text link is a full-width outline button (44px tap box). */}
+          <div className="space-y-2">
+            <p className="text-center text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>Something not working?</p>
+            <Button asChild variant="outline" size="md" className="w-full">
+              <Link to="/support?topic=report" data-help-report-bug="">Report a bug</Link>
+            </Button>
+          </div>
         </div>
       </section>
     </PublicHeaderPage>

@@ -45,7 +45,10 @@ function stuck(job: StampJob): Stage {
   if (!job.helper_arrived_at) return 5;
   return 6;
 }
-const NO_SHOW: Entry = (job) => at(stuck(job), "problem", "No-show?");
+/** F283 (audit 11-10): a Helpr who set out and has not arrived is running late, not a no-show: the bar said No-show
+ *  under a header that said "on the way". The card's line and its Report no-show button are unchanged. */
+const NO_SHOW: Entry = (job) =>
+  at(stuck(job), "problem", job.helper_on_the_way_at && !job.helper_arrived_at ? "Running late" : "No-show?");
 const OVERDUE: Entry = (job) => at(stuck(job), "problem", "Overdue");
 const OVERDUE_AT = (stage: Stage): WaitStep => at(stage, "problem", "Overdue");
 /** F290a (audit 11-10): on the Helpr's own bar a late step keeps its name (Arrived, Working) in the warning

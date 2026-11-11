@@ -176,7 +176,7 @@ describe("every pop-up title is sentence case", () => {
     // 228: +3 Shops preorders (20261108184654): "Move ready-by to ${shortDate(pushTo)}?" / "Move ready-by?" (ShopItemPreorderEditor
     // push confirm) and "Cancel this preorder?" (ShopOrderCancel).
     // 229: +1 "Log out?" (DesktopTopNav, the top bar photo's Profile / Settings / Log out menu confirms, F086 b3-jobs-2 11-09).
-    // 234: +1 PosterFinish, +3 the service words of the Shops handover (ShopHandoverActions, shops audit 11-08 #3): "Work done?",
+    // 234: +1 PosterFinish, +3 the service words of the Shops handover (ShopHandoverActions, shops audit 11-08 #3): "Mark complete?",
     // "Is the work done?" and "Problem with the work?" beside the goods titles,
     // +1 "Turn down this permit?" (ShopsPaperworkCard, the admin's Shops paperwork queue, Q1952 20261110195956).
     expect(all.length).toBe(234);

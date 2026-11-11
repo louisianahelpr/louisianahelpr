@@ -289,6 +289,10 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
         noValidate
         className="rounded-2xl liquid-glass p-card space-y-4"
       >
+        {/* F235 (audit 11-10): say the reply time before the member writes, not only after. */}
+        <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.85)" }} data-support-reply-time="">
+          A real person reads every message. {SUPPORT_REPLY_PROMISE}
+        </p>
         {/* Reason — the click-to-change control. Same three options the
             public /support <Select> renders, from the one shared list. */}
         {topicCollapsed ? (

@@ -369,6 +369,11 @@ const Support = () => {
                 className="rounded-2xl p-5 sm:p-6 lg:p-8 space-y-5"
                 style={PANEL_STYLE}
               >
+                {/* F235 (audit 11-10): the reply time was only said AFTER sending; a first-timer
+                    deciding whether to write wants it up front. */}
+                <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.85)" }} data-support-reply-time="">
+                  A real person reads every message. {SUPPORT_REPLY_PROMISE}
+                </p>
                 {/* Identity — asked of guests, shown read-only to signed-in users. */}
                 {identityPending ? (
                   <p

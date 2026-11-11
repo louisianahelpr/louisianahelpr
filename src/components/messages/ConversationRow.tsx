@@ -400,6 +400,19 @@ const ConversationRowBase = ({
                   and only the Pinned chip (Q1090) shares this corner. */}
               <span data-testid="row-time-cluster" className="ml-auto shrink-0 flex items-center gap-1.5 min-h-[1.36rem]">
                 {pinned && !selectMode && <PinnedChip />}
+                {/* F432 (audit 11-10): a first-timer could not tell which rows were unread from the weight
+                    alone; the count rides the right edge as a bark pill ("2"), the way Vinted and
+                    WhatsApp do. The dot on the avatar stays (UNREAD_MARK) and announces the count. */}
+                {hasUnreadFromOther && (
+                  <span
+                    aria-hidden="true"
+                    data-testid="row-unread-count"
+                    className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-ds-11 font-sans font-semibold tabular-nums"
+                    style={{ background: "hsl(var(--bark))", color: "hsl(var(--parchment))" }}
+                  >
+                    {c.unread > 99 ? "99+" : c.unread}
+                  </span>
+                )}
                 <span
                   className="text-ds-11 whitespace-nowrap"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}

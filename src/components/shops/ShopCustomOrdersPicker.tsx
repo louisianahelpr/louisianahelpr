@@ -5,7 +5,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { RadioCardList } from "@/components/ui/RadioCardList";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PICKABLE_CUSTOM_ORDER_MODES, CUSTOM_ORDER_TEXT, fetchCustomOrders, setCustomOrders, type CustomOrderMode } from "@/lib/shops/orders";
@@ -22,6 +22,8 @@ export default function CustomOrdersPicker({ shopId }: { shopId: string }) {
     },
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
+  // A shop still on the hidden half-up-front choice is paid in full (the server moved it).
+  const current = choice.data === "deposit_50" ? "full_hold" : choice.data ?? "";
   return (
     <section className="space-y-2" aria-labelledby="shop-custom-orders">
       <h2 id="shop-custom-orders" className="text-sm font-semibold">Custom orders</h2>
@@ -31,32 +33,18 @@ export default function CustomOrdersPicker({ shopId }: { shopId: string }) {
       ) : choice.isError ? (
         <ErrorState variant="inline" title="We couldn't load this setting." body={shopsErrorMessage(choice.error)} onRetry={() => void choice.refetch()} />
       ) : (
-        <div className="space-y-2" role="group" aria-label="Custom orders">
+        <div className="space-y-2">
           {choice.data === "deposit_50" ? (
             <p className="text-xs text-muted-foreground" role="note">
               Half up front isn't open yet, so your custom orders are paid in full for now.
             </p>
           ) : null}
-          {PICKABLE_CUSTOM_ORDER_MODES.map((m) => {
-            // A shop still on the hidden half-up-front choice is paid in full (the server moved it).
-            const on = (choice.data === "deposit_50" ? "full_hold" : choice.data) === m;
-            return (
-              <Button
-                key={m}
-                type="button"
-                variant={on ? "default" : "outline"}
-                className={`${on ? "btn-grad-primary " : ""}h-auto w-full justify-start whitespace-normal py-2 text-left`}
-                aria-pressed={on}
-                disabled={save.isPending}
-                onClick={() => { if (!on) save.mutate(m); }}
-              >
-                <span className="block">
-                  <span className="block text-sm font-semibold">{CUSTOM_ORDER_TEXT[m].label}</span>
-                  <span className="block text-xs font-normal">{CUSTOM_ORDER_TEXT[m].hint}</span>
-                </span>
-              </Button>
-            );
-          })}
+          <RadioCardList
+            label="Custom orders"
+            options={PICKABLE_CUSTOM_ORDER_MODES.map((m) => ({ value: m, label: CUSTOM_ORDER_TEXT[m].label, sub: CUSTOM_ORDER_TEXT[m].hint }))}
+            value={current}
+            onChange={(m) => { if (m !== current && !save.isPending) save.mutate(m as CustomOrderMode); }}
+          />
         </div>
       )}
     </section>

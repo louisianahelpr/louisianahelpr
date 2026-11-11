@@ -6,7 +6,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { RadioCardList } from "@/components/ui/RadioCardList";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { READY_TAP_CANCELS, READY_TAP_CANCEL_TEXT, fetchReadyTapCancel, setReadyTapCancel, type ReadyTapCancel } from "@/lib/shops/orders";
@@ -32,27 +32,12 @@ export default function ReadyTapCancelPicker({ shopId }: { shopId: string }) {
       ) : choice.isError ? (
         <ErrorState variant="inline" title="We couldn't load this setting." body={shopsErrorMessage(choice.error)} onRetry={() => void choice.refetch()} />
       ) : (
-        <div className="space-y-2" role="group" aria-label="If you mark an order ready early">
-          {READY_TAP_CANCELS.map((c) => {
-            const on = choice.data === c;
-            return (
-              <Button
-                key={c}
-                type="button"
-                variant={on ? "default" : "outline"}
-                className={`${on ? "btn-grad-primary " : ""}h-auto w-full justify-start whitespace-normal py-2 text-left`}
-                aria-pressed={on}
-                disabled={save.isPending}
-                onClick={() => { if (!on) save.mutate(c); }}
-              >
-                <span className="block">
-                  <span className="block text-sm font-semibold">{READY_TAP_CANCEL_TEXT[c].label}</span>
-                  <span className="block text-xs font-normal">{READY_TAP_CANCEL_TEXT[c].hint}</span>
-                </span>
-              </Button>
-            );
-          })}
-        </div>
+        <RadioCardList
+          label="If you mark an order ready early"
+          options={READY_TAP_CANCELS.map((c) => ({ value: c, label: READY_TAP_CANCEL_TEXT[c].label, sub: READY_TAP_CANCEL_TEXT[c].hint }))}
+          value={choice.data ?? ""}
+          onChange={(c) => { if (c !== choice.data && !save.isPending) save.mutate(c as ReadyTapCancel); }}
+        />
       )}
     </div>
   );

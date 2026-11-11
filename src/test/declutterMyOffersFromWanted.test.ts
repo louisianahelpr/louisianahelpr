@@ -12,11 +12,18 @@
  * 20261031095146), so the card can ask "Close your Wanted post?" after an accept. Never on the seller's row, never for
  * a closed post. Behaviour: src/test/pglite/declutterMyOffersOpenWantedId.pglite.mjs (14 PASS, 3x; skip -> 5 FAIL).
  *
- * @mutate supabase/migrations/20261101175510_declutter_buying_lists_hide_seed.sql |          (o.wanted_id IS NOT NULL),\n |          false,\n
- * @mutate supabase/migrations/20261101175510_declutter_buying_lists_hide_seed.sql |          (o.wanted_id IS NOT NULL),\n         w.id | (o.wanted_id IS NOT NULL),\n         o.wanted_id
- * @mutate supabase/migrations/20261101175510_declutter_buying_lists_hide_seed.sql | ON w.id = o.wanted_id AND w.user_id = v_uid AND o.buyer_id = v_uid AND w.status = 'open' | ON w.id = o.wanted_id AND w.status = 'open'
+ * @mutate supabase/migrations/20261111223500_declutter_my_offers_buyer_display.sql |          (o.wanted_id IS NOT NULL),\n |          false,\n
+ * @mutate supabase/migrations/20261111223500_declutter_my_offers_buyer_display.sql |          (o.wanted_id IS NOT NULL),\n         w.id | (o.wanted_id IS NOT NULL),\n         o.wanted_id
+ * @mutate supabase/migrations/20261111223500_declutter_my_offers_buyer_display.sql | ON w.id = o.wanted_id AND w.user_id = v_uid AND o.buyer_id = v_uid AND w.status = 'open' | ON w.id = o.wanted_id AND w.status = 'open'
  * @mutate supabase/migrations/20261031095146_declutter_my_offers_open_wanted_id.sql | REVOKE ALL ON FUNCTION public.declutter_my_offers() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_my_offers() FROM PUBLIC;
- * @mutate supabase/migrations/20261101175510_declutter_buying_lists_hide_seed.sql |          CASE WHEN o.seller_id = v_uid THEN p.floor_price_cents END, |          p.floor_price_cents,
+ * @mutate supabase/migrations/20261111223500_declutter_my_offers_buyer_display.sql |          CASE WHEN o.seller_id = v_uid THEN p.floor_price_cents END, |          p.floor_price_cents,
+ *
+ * F356 (audit 11-10, owner 11-11 ~4:35 PM): the seller's row names the buyer as first name + last initial
+ * (buyer_display, member_display_name), never on the buyer's own row and never on a Wanted reply (the poster stays
+ * unnamed). Behaviour: src/test/pglite/declutterMyOffersBuyerDisplay.pglite.mjs (12 PASS with 20261111223500 applied
+ * 3x; NEW_MIGRATION=skip -> 6 FAIL).
+ * @mutate supabase/migrations/20261111223500_declutter_my_offers_buyer_display.sql | AND o.wanted_id IS NULL AND bp.user_id IS NOT NULL | AND bp.user_id IS NOT NULL
+ * @mutate supabase/migrations/20261111223500_declutter_my_offers_buyer_display.sql | THEN public.member_display_name(bp.full_name) END | THEN bp.full_name END
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -28,12 +35,12 @@ const flat = (s: string) => blankSqlComments(s).replace(/\s+/g, " ");
 
 describe("D4-3: declutter_my_offers says which offers answer a Wanted post", () => {
   it("reads the newest definition (BUY-29's migration)", () => {
-    expect(newestFunction("declutter_my_offers").file).toContain("20261101175510");
+    expect(newestFunction("declutter_my_offers").file).toContain("20261111223500");
   });
 
   it("from_wanted is a yes/no from wanted_id; the id leaves only as open_wanted_id, the poster's own open post", () => {
     const body = flat(newestFunction("declutter_my_offers").body);
-    expect(body).toContain("o.updated_at, (o.wanted_id IS NOT NULL), w.id FROM public.declutter_offers o");
+    expect(body).toContain("o.updated_at, (o.wanted_id IS NOT NULL), w.id, CASE WHEN");
     expect(body).toContain("LEFT JOIN public.declutter_wanted w ON w.id = o.wanted_id AND w.user_id = v_uid AND o.buyer_id = v_uid AND w.status = 'open'");
     const sql = flat(readFileSync(`supabase/migrations/${FILE}`, "utf8"));
     expect(sql).toContain("current_price_cents integer, floor_price_cents integer, updated_at timestamptz, from_wanted boolean, open_wanted_id uuid)");
@@ -41,6 +48,18 @@ describe("D4-3: declutter_my_offers says which offers answer a Wanted post", () 
     const select = body.slice(body.indexOf("RETURN QUERY SELECT") + "RETURN QUERY SELECT".length, body.indexOf(" FROM public.declutter_offers o"));
     expect(select.length).toBeGreaterThan(100);
     expect(select).not.toMatch(/,\s*o\.wanted_id\b/);
+  });
+
+  it("F356: the seller sees the buyer as first name + last initial only; never on a Wanted reply or the buyer's own row", () => {
+    const body = flat(newestFunction("declutter_my_offers").body);
+    expect(body).toContain(
+      "CASE WHEN o.seller_id = v_uid AND o.buyer_id IS DISTINCT FROM v_uid AND o.wanted_id IS NULL AND bp.user_id IS NOT NULL THEN public.member_display_name(bp.full_name) END FROM public.declutter_offers o",
+    );
+    expect(body).toContain("LEFT JOIN public.profiles bp ON bp.user_id = o.buyer_id");
+    // Nothing else of the buyer's profile leaves: bp is read only inside that CASE.
+    const select = body.slice(body.indexOf("RETURN QUERY SELECT"), body.indexOf(" FROM public.declutter_offers o"));
+    expect(select.match(/\bbp\./g)?.length).toBe(2);
+    expect(select).not.toMatch(/o\.buyer_id\s*,/);
   });
 
   it("prod's rules kept: caller required, both sides only, the seller's floor to the seller only, 30-day window", () => {

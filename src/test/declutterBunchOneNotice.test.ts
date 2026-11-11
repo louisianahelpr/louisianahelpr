@@ -3,10 +3,10 @@
  * Reads the EFFECTIVE definition. The behaviour is proved in src/test/pglite/declutterBunchOneNotice.pglite.mjs
  * (applied 3x, red on today's body and on 7 planted defects); this keeps the rules from being restated away.
  *
- * @mutate supabase/migrations/20261030174314_declutter_listings_one_summary_notice.sql |        AND n.read = false\n |        AND true\n
- * @mutate supabase/migrations/20261030174314_declutter_listings_one_summary_notice.sql |              created_at = now()\n |              message = message\n
- * @mutate supabase/migrations/20261030174314_declutter_listings_one_summary_notice.sql | AND n.link LIKE '/declutter/item/%') | AND n.link LIKE '/declutter%')
- * @mutate supabase/migrations/20261030174314_declutter_listings_one_summary_notice.sql |       v_n := COALESCE(substring(v_prior_message FROM '^([0-9]+) listings ')::integer, 1) + 1; |       v_n := 2;
+ * @mutate supabase/migrations/20261111200834_listings_live_notice_names_them.sql |        AND n.read = false\n |        AND true\n
+ * @mutate supabase/migrations/20261111200834_listings_live_notice_names_them.sql |              created_at = now()\n |              message = message\n
+ * @mutate supabase/migrations/20261111200834_listings_live_notice_names_them.sql | AND n.link LIKE '/declutter/item/%') | AND n.link LIKE '/declutter%')
+ * @mutate supabase/migrations/20261111200834_listings_live_notice_names_them.sql |       v_n := COALESCE(substring(v_prior_message FROM '^([0-9]+) listings ')::integer, 1) + 1; |       v_n := 2;
  */
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";

@@ -445,4 +445,15 @@ describe("ApplyConfirmDialog offline toast (Q131)", () => {
     expect(document.activeElement?.getAttribute("role")).toBe("dialog");
     expect(document.activeElement?.getAttribute("aria-expanded")).toBeNull();
   });
+
+  // F279a (audit 11-10): with Bigger text at 375 the sticky Apply row covered the "Keep it on Helpr" line while the
+  // member typed, because it sat UNDER the field. It now sits above it, still describing it.
+  // @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx |           Keep it on Helpr. Phone numbers, emails and links can't be sent until you're hired.\n        </p>\n        <Textarea | </p>\n        <Textarea
+  it("the keep-it-on-Helpr line sits above the note field and still describes it", () => {
+    render(<ApplyConfirmDialog {...makeProps()} />);
+    const field = document.getElementById("apply-message") as HTMLElement;
+    const help = screen.getByText(/Keep it on Helpr\. Phone numbers/);
+    expect(field.getAttribute("aria-describedby")).toBe(help.id);
+    expect(help.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

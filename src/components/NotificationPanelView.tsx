@@ -24,6 +24,7 @@ import { NotificationMessage } from "@/components/notificationPanel/Notification
 import { quickActionFor } from "@/components/notificationPanel/quickActions";
 import type { NotificationPanelModel } from "./NotificationPanel";
 import { useLanguage } from "@/lib/i18n/language";
+import { noticeInSpanish } from "@/lib/i18n/noticeEs";
 import "@/lib/i18n/enNotifications";
 
 export function NotificationPanelView({
@@ -70,7 +71,9 @@ export function NotificationPanelView({
   // Owner 11-08 (Declutter's slim bar): the bell is also the way to Messages; its badge counts both.
   const messagesUnread = useBellMessagesUnread(withMessages);
   // F260q (owner 11-11): the panel's own words in the member's language (enNotifications.ts / esNotifications.ts).
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  // F260q (owner 11-11): the server writes notices in English; Spanish readers see the known shapes re-written (noticeEs.ts).
+  const say = (text: string) => (lang === "es" ? noticeInSpanish(text) : text);
   return (
     /* `modal` is load-bearing, not decoration — and it is KEPT even though the
        scrim is gone. It is what locks the page (so the FEED can't scroll under
@@ -387,7 +390,7 @@ export function NotificationPanelView({
                                   letterSpacing: "-0.012em",
                                 }}
                               >
-                                {n.title}
+                                {say(n.title)}
                               </p>
                               {/* Colour alone cannot carry "unread" — labelled
                                   the same way ConversationRow's dot is. */}
@@ -400,7 +403,7 @@ export function NotificationPanelView({
                                 />
                               )}
                             </div>
-                            <NotificationMessage text={n.message} />
+                            <NotificationMessage text={say(n.message)} />
                             {/* Inline quick-action pills — only for actionable
                                 types so chat/review/payment rows stay clean. */}
                             {(() => {

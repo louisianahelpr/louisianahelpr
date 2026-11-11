@@ -15,7 +15,9 @@ import { blankComments } from "./helpers/blankNonCode";
 import { enNotifications } from "@/lib/i18n/enNotifications";
 import { esNotifications } from "@/lib/i18n/esNotifications";
 
-const view = blankComments(readFileSync("src/components/NotificationPanelView.tsx", "utf8"));
+// The row's More | Less toggle lives in NotificationMessage.tsx; read as part of the panel.
+const view = blankComments(readFileSync("src/components/NotificationPanelView.tsx", "utf8")) +
+  blankComments(readFileSync("src/components/notificationPanel/NotificationMessage.tsx", "utf8"));
 
 describe("F260q: the notifications panel speaks the member's language", () => {
   const keys = Object.keys(enNotifications) as (keyof typeof enNotifications)[];

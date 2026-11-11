@@ -2,6 +2,7 @@
 // Apple must not ask for a name Apple already gave. Guards both halves: Apple's
 // name is read off the native result, and an Apple account is never held at the
 // profile gate for a missing name.
+// @mutate src/lib/socialAuth.ts | .eq("user_id", userId) | .eq("id", userId)
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 import { appleFullName } from "@/lib/socialAuth";

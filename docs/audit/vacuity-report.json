@@ -1,10 +1,9 @@
 {
-  "generated": "2026-11-11T15:58:13.308Z",
+  "generated": "2026-11-11T16:08:54.607Z",
   "guards": 3917,
-  "registered": 3915,
+  "registered": 3916,
   "unregistered": [
-    "src/lib/shops/preorders.test.ts",
-    "src/test/signInWithAppleNeverAsksName.test.ts"
+    "src/lib/shops/preorders.test.ts"
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",

@@ -18,6 +18,12 @@ import { OTHER_WAYS, SORT_LABEL, priceRangeSwapped, type DeclutterFilters, type 
 import { HANDOVER_TITLE } from "./handoverCopy";
 import { CONDITION_LABEL } from "./declutterUi";
 import { offerAsk, type OriginAsk } from "./DeclutterBrowseBar";
+import { t } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enDeclutter";
+
+// F260q (owner 11-11): the sheet's words come from the dictionary (enDeclutter.ts / esDeclutter.ts). The caller
+// (DeclutterBrowse) re-renders on a language change through useLanguage().
 
 /** Declutter's one choice chip: the filter sheet's, and Wanted's "Within" (the same distances, the same look). */
 export function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
@@ -36,14 +42,13 @@ function Row({ children }: { children: ReactNode }) {
 function originWords(o: OriginAsk): string | null {
   const { origin } = o;
   if (origin.status === "ready") {
-    if (origin.source === "device") return "Miles are counted from where you are.";
-    const from = origin.source === "profile" ? "your saved location" : origin.source === "zip" ? "your ZIP code's area" : "your parish's center";
-    return `Miles are counted from ${from}.`;
+    if (origin.source === "device") return t("decl.sheet.fromDevice");
+    return t(origin.source === "profile" ? "decl.sheet.fromSaved" : origin.source === "zip" ? "decl.sheet.fromZip" : "decl.sheet.fromParish");
   }
-  if (origin.status === "none" && origin.zipOnFile) return "We couldn't find the area for the ZIP code on your profile, so items show without miles for now.";
+  if (origin.status === "none" && origin.zipOnFile) return t("decl.sheet.zipNotFound");
   // AUD31-75: a guest has no profile; their location is the one way to miles.
-  if (o.guest) return o.asked ? "Without your location, items show without miles." : "Use your location to see how far each item is.";
-  return o.asked ? "Add your ZIP code in your profile to see how far each item is." : "Use your location, or add your ZIP code in your profile, to see how far each item is.";
+  if (o.guest) return o.asked ? t("decl.sheet.guestNoLocation") : t("decl.sheet.guestUseLocation");
+  return o.asked ? t("decl.sheet.addZip") : t("decl.sheet.useLocationOrZip");
 }
 
 /** Whole dollars typed into a price box; "" = no bound. */
@@ -56,7 +61,7 @@ function DollarBox({ label, value, onCommit }: { label: string; value: number | 
       <input
         aria-label={label}
         inputMode="numeric"
-        placeholder={label === "Lowest price" ? "Min" : "Max"}
+        placeholder={label === t("decl.sheet.lowest") ? t("decl.sheet.min") : t("decl.sheet.max")}
         value={text}
         onChange={(e) => {
           const t = e.target.value.replace(/[^0-9]/g, "").slice(0, 5);
@@ -98,12 +103,12 @@ export function declutterFilterSections({
   const sections: FilterSheetSection[] = [
     {
       key: "sort",
-      title: "Sort",
+      title: t("decl.sheet.sort"),
       content: (
         <Row>
           {sorts.map((s) => (
             <Chip key={s} on={sortNow === s} onClick={() => onChange({ ...filters, sort: s })}>
-              {SORT_LABEL[s]}
+              {SORT_LABEL[s] ? t(`decl.sort.${s}` as MsgKey) : s}
             </Chip>
           ))}
         </Row>
@@ -111,24 +116,24 @@ export function declutterFilterSections({
     },
     {
       key: "distance",
-      title: "Distance",
+      title: t("decl.sheet.distance"),
       content: (
         <div className="space-y-2.5">
           {located && (
             <Row>
               {DISTANCE_CHOICES.map((m) => (
                 <Chip key={m ?? "any"} on={maxMiles === m} onClick={() => onMaxMiles(m)}>
-                  {m === null ? "Any distance" : `${m} mi`}
+                  {m === null ? t("decl.anyDistance") : `${m} mi`}
                 </Chip>
               ))}
             </Row>
           )}
           {words && <p className="text-ds-13 text-muted-foreground">{words}</p>}
-          {ask.asking && <p className="text-xs text-muted-foreground" role="status">Finding you…</p>}
+          {ask.asking && <p className="text-xs text-muted-foreground" role="status">{t("decl.sheet.finding")}</p>}
           {ask.deviceNote && <p className="text-xs text-muted-foreground" role="status">{ask.deviceNote}</p>}
           {offerAsk(ask) && (
             <Button type="button" variant="outline" size="sm" onClick={ask.askDevice}>
-              {ask.asked ? "Try my location again" : "Use my location"}
+              {ask.asked ? t("decl.sheet.tryAgain") : t("decl.sheet.useLocation")}
             </Button>
           )}
         </div>
@@ -136,49 +141,49 @@ export function declutterFilterSections({
     },
     {
       key: "handover",
-      title: "How you get it",
+      title: t("decl.sheet.howYouGetIt"),
       content: (
         // DA-19 (audit 2026-10-30): the one square checkbox among the pills; now the same Chip as every filter.
         // A3-109: every way checkout offers, in its words; pick any and an item offering one of them shows.
         <Row>
-          <Chip on={filters.porchOnly} onClick={() => onChange({ ...filters, porchOnly: !filters.porchOnly })}>{HANDOVER_TITLE.porch}</Chip>
+          <Chip on={filters.porchOnly} onClick={() => onChange({ ...filters, porchOnly: !filters.porchOnly })}>{t("decl.way.porch")}</Chip>
           {otherWays.map((w) => (
-            <Chip key={w} on={filters.ways.includes(w)} onClick={() => toggleWay(w)}>{HANDOVER_TITLE[w]}</Chip>
+            <Chip key={w} on={filters.ways.includes(w)} onClick={() => toggleWay(w)}>{HANDOVER_TITLE[w] ? t(`decl.way.${w}` as MsgKey) : w}</Chip>
           ))}
         </Row>
       ),
     },
     {
       key: "price",
-      title: "Price",
+      title: t("decl.sheet.price"),
       content: (
         <div className="space-y-2.5">
           {/* The Free section (20261027170717): items given away, $0. */}
           <Row>
-            <Chip on={filters.freeOnly} onClick={() => onChange({ ...filters, freeOnly: !filters.freeOnly })}>Free</Chip>
+            <Chip on={filters.freeOnly} onClick={() => onChange({ ...filters, freeOnly: !filters.freeOnly })}>{t("decl.chip.free")}</Chip>
             {/* Trades audit 11-08 #3: listings that take one of the buyer's own listings in trade. */}
-            <Chip on={filters.tradesOnly} onClick={() => onChange({ ...filters, tradesOnly: !filters.tradesOnly })}>Open to trades</Chip>
+            <Chip on={filters.tradesOnly} onClick={() => onChange({ ...filters, tradesOnly: !filters.tradesOnly })}>{t("decl.filter.trades")}</Chip>
           </Row>
           <div className="flex items-center gap-2">
-            <DollarBox label="Lowest price" value={filters.minDollars} onCommit={(v) => onChange({ ...filters, minDollars: v })} />
-            <span className="text-ds-13 text-muted-foreground">to</span>
-            <DollarBox label="Highest price" value={filters.maxDollars} onCommit={(v) => onChange({ ...filters, maxDollars: v })} />
+            <DollarBox label={t("decl.sheet.lowest")} value={filters.minDollars} onCommit={(v) => onChange({ ...filters, minDollars: v })} />
+            <span className="text-ds-13 text-muted-foreground">{t("decl.sheet.to")}</span>
+            <DollarBox label={t("decl.sheet.highest")} value={filters.maxDollars} onCommit={(v) => onChange({ ...filters, maxDollars: v })} />
           </div>
           {/* Min above max (audit 1110 F312): say so in red; the list keeps showing the swapped range meanwhile. */}
-          {priceRangeSwapped(filters) && <p className="text-ds-13 text-destructive-ink" role="alert" data-price-swapped="">Min is more than max</p>}
+          {priceRangeSwapped(filters) && <p className="text-ds-13 text-destructive-ink" role="alert" data-price-swapped="">{t("decl.sheet.swapped")}</p>}
         </div>
       ),
     },
     {
       key: "condition",
-      title: "Condition",
+      title: t("decl.sheet.condition"),
       content: (
         <Row>
           {[5, 4, 3, 2, 1].map((n) => {
             const on = filters.conditions.includes(n);
             return (
               <Chip key={n} on={on} onClick={() => onChange({ ...filters, conditions: on ? filters.conditions.filter((c) => c !== n) : [...filters.conditions, n] })}>
-                {CONDITION_LABEL[n]}
+                {CONDITION_LABEL[n] ? t(`decl.cond.${n}` as MsgKey) : n}
               </Chip>
             );
           })}
@@ -187,20 +192,20 @@ export function declutterFilterSections({
     },
     {
       key: "category",
-      title: "Category",
+      title: t("decl.item.category"),
       content: (
         // About 32 categories (owner 2026-10-30), so they sit under the same headings as the Sell picker.
         <div className="space-y-3">
           <Row>
-            <Chip on={!filters.category} onClick={() => onChange({ ...filters, category: null })}>All</Chip>
+            <Chip on={!filters.category} onClick={() => onChange({ ...filters, category: null })}>{t("decl.chip.all")}</Chip>
           </Row>
           {CATEGORY_GROUPS.map((g) => (
-            <div key={g.heading} role="group" aria-label={g.heading} className="space-y-1.5" data-category-group={g.heading}>
-              <p className="text-ds-13 text-muted-foreground" aria-hidden>{g.heading}</p>
+            <div key={g.heading} role="group" aria-label={t(`decl.group.${g.heading}` as MsgKey)} className="space-y-1.5" data-category-group={g.heading}>
+              <p className="text-ds-13 text-muted-foreground" aria-hidden>{t(`decl.group.${g.heading}` as MsgKey)}</p>
               <Row>
                 {g.values.map((key) => (
                   <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: filters.category === key ? null : key })}>
-                    {CATEGORY_LABEL[key]}
+                    {CATEGORY_LABEL[key] ? t(`decl.cat.${key}` as MsgKey) : key}
                   </Chip>
                 ))}
               </Row>
@@ -213,9 +218,9 @@ export function declutterFilterSections({
   if (showDrops) {
     sections.push({
       key: "show",
-      title: "Show",
+      title: t("decl.sheet.show"),
       content: (
-        <Row><Chip on={filters.dropsOnly} onClick={() => onChange({ ...filters, dropsOnly: !filters.dropsOnly })}>Only items with nightly price drops</Chip></Row>
+        <Row><Chip on={filters.dropsOnly} onClick={() => onChange({ ...filters, dropsOnly: !filters.dropsOnly })}>{t("decl.sheet.dropsOnly")}</Chip></Row>
       ),
     });
   }

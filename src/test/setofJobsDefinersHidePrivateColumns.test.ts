@@ -52,7 +52,7 @@ const APPLICANT_VISIBLE = [
   "helper_confirmed_at", "helper_dayof_confirmed_at", "helper_fee_flat_cents", "helper_fee_percent", "helper_id",
   "helper_on_the_way_at", "helpers_needed", "id", "instant_booked_at", "instant_decline_until", "is_auto_created",
   "is_flexible_schedule", "is_group_job", "is_recurring", "is_seed", "is_urgent", "last_edit_notice_at",
-  "late_cancellation", "materials_note", "no_show_alert_sent_at", "onboarding_fee_amount", "parent_job_id", "parish",
+  "late_cancellation", "materials_note", "no_show_alert_sent_at", "no_show_reported_at", "onboarding_fee_amount", "parent_job_id", "parish",
   "payment_confirm_notif_sent", "payment_status", "photos", "platform_fee_amount", "platform_fee_percent",
   "poster_completed_at", "poster_confirmed_arrival_at", "poster_confirmed_at", "poster_confirmed_working_at",
   "poster_fee_flat_cents", "poster_marked_done_at", "pricing_mode", "protection_fee", "recurrence_days",

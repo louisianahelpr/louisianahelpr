@@ -29,7 +29,7 @@ export const CORES_JOB_COLUMNS = [
   "helper_arrival_near_miss_ft", "helper_arrived_at", "helper_completed_at", "helper_confirmed_at",
   "helper_dayof_confirmed_at", "helper_fee_flat_cents", "helper_fee_percent", "helper_id", "helper_on_the_way_at",
   "helpers_needed", "id", "instant_decline_until", "is_auto_created", "is_flexible_schedule", "is_group_job",
-  "is_recurring", "is_seed", "is_urgent", "latitude", "location", "longitude", "parent_job_id", "parish",
+  "is_recurring", "is_seed", "is_urgent", "latitude", "location", "longitude", "no_show_reported_at", "parent_job_id", "parish",
   "payment_confirm_notif_sent", "payment_status", "payout_scheduled_at", "photos", "platform_fee_amount",
   "platform_fee_percent", "poster_completed_at", "poster_confirmed_arrival_at", "poster_confirmed_at",
   "poster_confirmed_working_at", "poster_fee_flat_cents", "pricing_mode", "proof_after_urls", "proof_before_urls",

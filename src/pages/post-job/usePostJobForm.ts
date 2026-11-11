@@ -640,6 +640,7 @@ export function usePostJobForm() {
     setOfferResponseHours,
     clearOffer,
     // draft prompt
+    draft, // F305: the draft card names the draft (title · price)
     hasDraft,
     draftLoaded,
     draftConsumed,

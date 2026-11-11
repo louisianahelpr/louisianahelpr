@@ -377,7 +377,7 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
       <ListedWhatNext />
       <ListedForYouCard />
       <ManagerWaitingForOkGate userId={userId} />
-      <ManagerPanelGate />
+      <ManagerPanelGate only="status" />
       <TabletSellRow />
       <Suspense fallback={<DeclutterTabBones />}><SellingDash
         todo={todo}
@@ -395,6 +395,8 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
           </div>
         }
         settings={<>
+          {/* Audit 11-10 F399: "Let a friend sell for you" is a promo until used, so it waits under the to-dos. */}
+          <ManagerPanelGate only="setup" />
           {/* Owner 2026-10-30: the seller's settings moved to /declutter/settings, behind the gear that ends the tabs row
               (Jobs' pattern). This one row keeps them findable from where they used to be, under the lists. */}
           <SellingSettingsEntry />

@@ -8,8 +8,9 @@ import { useFeature } from "@/hooks/useFeature";
 
 const ManagerPanel = lazy(() => import("./ManagerPanel"));
 
-export function ManagerPanelGate() {
+/** `only`: which half to draw here (ManagerPanel; audit 11-10 F399 puts the setup ask under Selling's to-dos). */
+export function ManagerPanelGate({ only }: { only: "status" | "setup" }) {
   const on = useFeature("declutter_manager");
   if (!on) return null;
-  return <Suspense fallback={null}><ManagerPanel /></Suspense>;
+  return <Suspense fallback={null}><ManagerPanel only={only} /></Suspense>;
 }

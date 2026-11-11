@@ -18,6 +18,8 @@ import { useMyTrades } from "./useMyTrades";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { orderWhen } from "@/lib/declutter/timeLeft";
 import { respondSwap, tradeStatusWords, type MyTrade, type SwapAction } from "@/lib/declutter/trades";
+import { tradeBucket, underChip } from "@/lib/declutter/buyingBucket";
+import type { OrderBucket } from "./OrderSteps";
 
 
 /** Selling's "To answer" chip counts the open trade offers too (the same read and key the section uses). */
@@ -106,9 +108,10 @@ function TradeCard({ t }: { t: MyTrade }) {
 }
 
 /** Selling: open trade offers to answer and accepted ones. Buying: each trade offer from the last 7 days. */
-export function TradeOffersSection({ side, userId }: { side: "buyer" | "seller"; userId: string | null }) {
+/** only (audit 11-10 F374, Buying's chips): just the trades that chip files (tradeBucket); nothing at all when none. */
+export function TradeOffersSection({ side, userId, only = null }: { side: "buyer" | "seller"; userId: string | null; only?: OrderBucket | null }) {
   const q = useMyTrades(side, userId);
-  const rows = q.data ?? [];
+  const rows = underChip(q.data ?? [], only, (t) => tradeBucket(t, side));
   // A failed read says nothing here: the offers and orders around it are what the tab is for.
   if (!rows.length) return null;
   const title = side === "seller" ? "Trade offers" : "Your trade offers";

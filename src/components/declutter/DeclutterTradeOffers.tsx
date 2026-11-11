@@ -107,6 +107,20 @@ function TradeCard({ t }: { t: MyTrade }) {
   );
 }
 
+/**
+ * Audit 11-10 F359f: on the owner's own item page, the open trade offers for THIS listing with Accept / Decline (the page
+ * said only "Your listing is for sale" while a trade waited). The same read, key and card as Selling's section.
+ */
+export function ItemTradeOffers({ itemId, userId }: { itemId: string; userId: string }) {
+  const rows = (useMyTrades("seller", userId).data ?? []).filter((t) => t.status === "open" && t.item?.id === itemId);
+  if (!rows.length) return null;
+  return (
+    <section className="space-y-2" aria-label="Trade offers" data-item-trade-offers={itemId}>
+      <ul className="space-y-3">{rows.map((t) => <TradeCard key={t.id} t={t} />)}</ul>
+    </section>
+  );
+}
+
 /** Selling: open trade offers to answer and accepted ones. Buying: each trade offer from the last 7 days. */
 /** only (audit 11-10 F374, Buying's chips): just the trades that chip files (tradeBucket); nothing at all when none. */
 export function TradeOffersSection({ side, userId, only = null }: { side: "buyer" | "seller"; userId: string | null; only?: OrderBucket | null }) {

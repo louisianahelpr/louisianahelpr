@@ -68,6 +68,7 @@ import { useTradedFor } from "./useMyTrades";
 const SellerListingPanel = lazy(() => import("./DeclutterManageListing").then((m) => ({ default: m.SellerListingPanel })));
 // Off the critical path (Q178: the item page went 400 -> 441 KB gz with it eager). The button shows only after its own
 // "open to trades" read answers, so loading its chunk alongside that read adds no visible wait.
+const ItemTradeOffers = lazy(() => import("./DeclutterTradeOffers").then((m) => ({ default: m.ItemTradeOffers })));
 const OfferTradeButton = lazy(() => import("./DeclutterOfferTrade").then((m) => ({ default: m.OfferTradeButton })));
 
 /** What a pressed Buy or Offer says in the seller's own preview. */
@@ -311,6 +312,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
           {/* The Free change (Q2487): the giver sees who asked and picks one. */}
           {isSeller && it.status === "live" && free && <FreeRequestsForGiver item={it} />}
           {isSeller && (it.status === "live" || it.status === "paused") && <Suspense fallback={null}><SellerListingPanel item={it} coverUrl={urls[0] ?? null} onDeleted={() => navigate("/declutter?tab=selling")} /></Suspense>}
+          {isSeller && user && it.status === "live" && it.accepts_trades === true && <Suspense fallback={null}><ItemTradeOffers itemId={it.id} userId={user.id} /></Suspense>}
           {isSeller && it.status !== "live" && it.status !== "paused" && (
             <DeclutterNotice title={`Your listing: ${sellerStatusLabel(it, tradedFor.get(it.id) ?? null)}`}>
               {STATUS_HELP[it.status] ?? null}

@@ -13,6 +13,7 @@ import { esDeclutter } from "./esDeclutter";
 import { esHome } from "./esHome";
 import { esMessages } from "./esMessages";
 import { esOffer } from "./esOffer";
+import { esFree } from "./esFree";
 
 export const es: Record<MsgKey, string> = {
   ...esPublic,
@@ -22,6 +23,7 @@ export const es: Record<MsgKey, string> = {
   ...esHome,
   ...esMessages,
   ...esOffer,
+  ...esFree,
   "chat.back": "Volver a las conversaciones",
   "chat.options": "Opciones de la conversación",
   "chat.cancelReply": "Cancelar la respuesta",

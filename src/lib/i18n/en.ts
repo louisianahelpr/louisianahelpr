@@ -19,8 +19,9 @@ import { enDeclutter } from "./enDeclutter";
 import { enHome } from "./enHome";
 import { enMessages } from "./enMessages";
 import { enOffer } from "./enOffer";
+import { enFree } from "./enFree";
 
 /** The whole dictionary (boot words + screen words). Tests and es.ts's type read it; app code calls t(). */
-export const en = { ...enCore, ...enScreens, ...enPostJob, ...enJobs, ...enJobCard, ...enPublic, ...enLanding, ...enNotifications, ...enDeclutter, ...enHome, ...enMessages, ...enOffer, ...enSettings } as const;
+export const en = { ...enCore, ...enScreens, ...enPostJob, ...enJobs, ...enJobCard, ...enPublic, ...enLanding, ...enNotifications, ...enDeclutter, ...enHome, ...enMessages, ...enOffer, ...enFree, ...enSettings } as const;
 
 export type MsgKey = keyof typeof en;

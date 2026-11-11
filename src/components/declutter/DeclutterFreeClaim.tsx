@@ -37,6 +37,8 @@ import { HoldChecking, myHoldOn, ReservedForYou } from "./DeclutterYourOffer";
 import { cn, formatName } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { NativeRadio } from "@/components/ui/NativeRadio";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enFree";
 
 // Owner 11-01 (Mockup 3): the "Ask for it" sheet loads when the button is pressed, never with the item page.
 const FreeAskSheet = lazy(() => import("./FreeAskSheet"));
@@ -89,6 +91,7 @@ function freeAskLine(offered: FreeHandover[] | undefined, oneTimeCheckAhead = fa
 
 export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   const qc = useQueryClient();
+  const { t } = useLanguage();
   // Same query (and cache) as the item page's "You can get it by" lines (ItemPickupWays). A failed read keeps the
   // older behaviour (null: every free way), as there.
   const ticks = useQuery({ queryKey: ["declutter", "item-handovers", item.id], queryFn: () => fetchItemHandovers(item.id) });
@@ -120,11 +123,11 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   const askBarShown = useOffScreen(askButton) && item.status === "live" && !underAge && !myAsk;
   useDockYield(askBarShown);
   const giver = useQuery({ queryKey: ["declutter", "seller-card", item.seller_id], queryFn: () => fetchSellerCard(item.seller_id) });
-  const giverFirstName = giver.data?.name?.trim() ? formatName(giver.data.name).split(" ")[0] : "The giver";
+  const giverFirstName = giver.data?.name?.trim() ? formatName(giver.data.name).split(" ")[0] : null;
   const takeBack = useMutation({
     mutationFn: (id: string) => withdrawFreeRequest(id),
     onSuccess: () => {
-      toast("Your ask is taken back.");
+      toast(t("free.taken"));
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -137,48 +140,48 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
     return <ReservedForYou line={myHold} free />;
   }
   if (item.status === "reserved") {
-    return <DeclutterNotice title="The giver picked someone for this item.">If they don't choose a pickup in time, it's free again.</DeclutterNotice>;
+    return <DeclutterNotice title={t("free.pickedSomeone")}>{t("free.pickedSomeoneBody")}</DeclutterNotice>;
   }
   if (underAge) {
-    return <DeclutterNotice tone="warn" title="You must be 18 or older to use Declutter." />;
+    return <DeclutterNotice tone="warn" title={t("free.underAge")} />;
   }
   if (myAsk) {
     return (
-      <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="You asked for this item" data-free-claim="">
-        <p className="text-ds-15 font-semibold text-foreground">You asked for this.</p>
+      <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label={t("free.youAskedAria")} data-free-claim="">
+        <p className="text-ds-15 font-semibold text-foreground">{t("free.youAsked")}</p>
         {/* Audit 1110 F359c: the pickup time the asker chose, the one the giver sees beside their name. */}
         {myAsk.pickup_at && (
           <p className="flex flex-wrap items-center justify-between gap-x-3 text-ds-14 text-foreground">
-            <span data-my-ask-time="">Pickup {pickedTimeLabel(myAsk.pickup_at)}</span>
+            <span data-my-ask-time="">{t("free.pickup", { time: pickedTimeLabel(myAsk.pickup_at) })}</span>
             <InlineTextButton className="text-ds-14 font-semibold underline underline-offset-2" onClick={() => setChanging(true)} data-my-ask-change="">
-              Change time
+              {t("free.changeTime")}
             </InlineTextButton>
           </p>
         )}
         {changing && (
           <Suspense fallback={null}>
-            <FreeAskSheet item={item} giverFirstName={giverFirstName} open={changing} onClose={() => setChanging(false)} oneTimeCheckAhead={oneTimeCheckAhead} change />
+            <FreeAskSheet item={item} giverFirstName={giverFirstName ?? "The giver"} open={changing} onClose={() => setChanging(false)} oneTimeCheckAhead={oneTimeCheckAhead} change />
           </Suspense>
         )}
         {/* The shared next-step line (owner 11-01 12:02 PM): nothing is the asker's to do; it waits on the giver. */}
-        <NextStep className="!text-sm" value={{ who: "them", text: `Waiting on ${giverFirstName === "The giver" ? "the giver" : giverFirstName} to pick who gets it. We'll tell you either way.` }} />
+        <NextStep className="!text-sm" value={{ who: "them", text: giverFirstName ? t("free.waitingOn", { name: giverFirstName }) : t("free.waitingOnGiver") }} />
         <Button type="button" variant="outline" size="wrap" className="w-full rounded-full" disabled={takeBack.isPending}
           onClick={() => setTakingBack(true)}>
-          Take back my ask
+          {t("free.takeBack")}
         </Button>
         <ConfirmSheet open={takingBack} pending={takeBack.isPending} onConfirm={() => takeBack.mutate(myAsk.id)} onClose={() => setTakingBack(false)}
-          title="Take back your ask?" confirmLabel="Take it back" cancelLabel="Keep my ask" testId="withdraw-ask">
-          {`"${item.title}": your ask ends. Nothing is charged.`}
+          title={t("free.takeBackTitle")} confirmLabel={t("free.takeItBack")} cancelLabel={t("free.keepAsk")} testId="withdraw-ask">
+          {t("free.takeBackBody", { title: item.title })}
         </ConfirmSheet>
       </section>
     );
   }
   return (
-    <section className="rounded-2xl border border-border bg-card p-4 space-y-2" aria-label="Ask for this item" data-free-claim="">
+    <section className="rounded-2xl border border-border bg-card p-4 space-y-2" aria-label={t("free.askAria")} data-free-claim="">
       {/* Owner mockup 11-01: ONE button; the asker picks the pickup time in the sheet it opens (Mockup 3). */}
       <div ref={askButton}>
         <Button type="button" size="wrap" className="w-full rounded-full" disabled={asks.isLoading} onClick={() => setAsking(true)}>
-          Ask for it
+          {t("free.askForIt")}
         </Button>
       </div>
       {askBarShown && typeof document !== "undefined" &&
@@ -186,31 +189,31 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
           // Portaled to <body> (a fixed bar inside the page would be placed by its transformed ancestor), flush on the
           // bottom edge while the dock yields: the paid item's bar (data-declutter-buybar) with one button.
           <div data-declutter-askbar="" data-rail-inset="" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card px-4 pt-2 pb-[calc(var(--safe-area-bottom,0px)+0.5rem)] shadow-[0_-4px_16px_rgb(0_0_0/0.06)] sm:hidden">
-            <div role="group" aria-label="Ask for this item" className="mx-auto flex max-w-xl">
+            <div role="group" aria-label={t("free.askAria")} className="mx-auto flex max-w-xl">
               <Button type="button" size="wrap" className="flex-1 min-w-0 rounded-full px-3 font-semibold" disabled={asks.isLoading} onClick={() => setAsking(true)}>
-                Ask for it
+                {t("free.askForIt")}
               </Button>
             </div>
           </div>,
           document.body,
         )}
       <p className="text-xs text-muted-foreground" data-free-ask-note="">
-        {oneTimeCheckAhead ? "Asking is free." : "Free, nothing is charged."} You pick a pickup time when you ask.{" "}
+        {oneTimeCheckAhead ? t("free.askingFree") : t("free.freeNothing")} {t("free.pickWhenAsk")}{" "}
         {/* A text link inside the sentence (B106: as a <Button> it kept the global 44px button box, so the note's two
             lines sat 30px apart). InlineTextButton (the shared text link) gives it the 44px tap area as an overlay on a touch screen instead. */}
         <InlineTextButton className="text-xs font-semibold text-foreground underline underline-offset-2" onClick={() => setRules(true)} data-free-how="">
-          How it works
+          {t("free.howItWorks")}
         </InlineTextButton>
       </p>
       {asking && (
         <Suspense fallback={null}>
-          <FreeAskSheet item={item} giverFirstName={giverFirstName} open={asking} onClose={() => setAsking(false)} oneTimeCheckAhead={oneTimeCheckAhead} />
+          <FreeAskSheet item={item} giverFirstName={giverFirstName ?? "The giver"} open={asking} onClose={() => setAsking(false)} oneTimeCheckAhead={oneTimeCheckAhead} />
         </Suspense>
       )}
       {/* The long rules sit behind the link (owner mockup 11-01). */}
       <Sheet open={rules} onOpenChange={setRules}>
         <SheetContent side="bottom" className="bg-premium-page max-h-[90dvh] overflow-y-auto" data-free-rules="">
-          <SheetHero title="How free items work" />
+          <SheetHero title={t("free.howTitle")} />
           <p className="mt-2 text-ds-14 text-foreground">{freeAskLine(offered, oneTimeCheckAhead)}</p>
         </SheetContent>
       </Sheet>

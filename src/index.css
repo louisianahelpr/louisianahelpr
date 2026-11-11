@@ -2862,6 +2862,14 @@ button,
   box-shadow: none;
 }
 
+/* F279a (audit 11-10): with Bigger text on a phone, Post a job's three "Who can apply" choices clipped their words
+   ("Licensed + Insured") in a third of the row each. Under 640px, Bigger text stacks them, one full-width row each,
+   icon beside its words. Guard: src/test/biggerTextStacksWhoCanApply.test.ts. */
+@media (max-width: 639px) {
+  html.senior-mode [data-cred-tiers] { grid-template-columns: minmax(0, 1fr); }
+  html.senior-mode [data-cred-tiers] > button { flex-direction: row; justify-content: flex-start; padding-left: 0.75rem; padding-right: 0.75rem; }
+}
+
 /* F277a (audit 11-10): in dark mode the primary is a LIGHT olive with dark words, so the 50% dim left dark words on
    a mid-olive ("Tip" before an amount, "Send new time"), hard to read and not plainly off. Dark mode's disabled
    primary is the quiet dark-grey surface with light words at 60% instead: clearly off, still readable. Guard:

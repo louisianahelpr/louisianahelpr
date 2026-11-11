@@ -87,6 +87,8 @@ export function CredentialTierSelector({
       <div
         role="radiogroup"
         aria-labelledby="who-can-apply-label"
+        // F279a: Bigger text on a phone stacks the three choices (index.css, data-cred-tiers).
+        data-cred-tiers=""
         className="grid grid-cols-3 gap-1.5"
       >
         {CREDENTIAL_TIERS.map(({ value, label, sub, Icon }, index) => {

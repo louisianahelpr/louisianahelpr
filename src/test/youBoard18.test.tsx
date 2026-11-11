@@ -102,7 +102,8 @@ describe("You matches board 18", () => {
   it("Home's Your sections: a box per OPEN section, and the same one line for the rest", () => {
     const home = blankComments(readFileSync(resolve(__dirname, "../pages/home/HomeDashboard.tsx"), "utf8"));
     expect(home).toContain("{visible.filter(isLive).map((s) => {");
-    expect(home).toContain("openingSoonLine(visible.filter((s) => !isLive(s)).map((s) => s.label))");
+    expect(home).toContain("openingSoonLine(visible.filter((s) => !isLive(s)).map(sectionLabel), { and: t(\"home.and\"), one: t(\"home.soonOne\"), many: t(\"home.soonMany\") })");
+    expect(openingSoonLine(["Casas", "Tiendas"], { and: "y", one: "{names} abre pronto", many: "{names} abren pronto" })).toBe("Casas y Tiendas abren pronto");
     expect(home).not.toMatch(/>Opening soon</);
   });
 

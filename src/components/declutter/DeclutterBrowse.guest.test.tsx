@@ -15,7 +15,7 @@
  * @mutate src/components/declutter/DeclutterGuest.tsx |   // AUD31-67 follow-up (lead 10-31): the desktop guest top bar has the logo; the H stays on the phone only.\n  const barShown = useIsWebDesktop(); |   const barShown = false;
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         primary={guest |         primary={false
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |         secondary={wanted ? { |         secondary={true ? {
- * @mutate src/components/declutter/DeclutterBrowseView.tsx | { label: "Sign up to sell", to: `/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}` } | { label: "Sign up to sell", to: "/signup" }
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | { label: t("decl.signUpToSell"), to: `/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}` } | { label: t("decl.signUpToSell"), to: "/signup" }
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | queryFn: () => fetchBundleSellers(sellerIds), enabled: member && sellerIds.length > 0, | queryFn: () => fetchBundleSellers(sellerIds), enabled: sellerIds.length > 0,
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

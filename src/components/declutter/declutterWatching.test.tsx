@@ -8,7 +8,7 @@
  * @mutate src/components/declutter/DeclutterWatching.tsx | aria-label="Saved" data-watching="" | aria-label="Watching" data-watching=""
  * @mutate src/components/declutter/declutterLightActions.ts | Find it under Buying, in Saved. | Find it under Buying, in Watching.
  * @mutate src/components/declutter/DeclutterItemCard.tsx | : t("decl.card.save", { title: item.title })} | : `Watch ${item.title}`}
- * @mutate src/components/declutter/DeclutterItemView.tsx | : "Save this item"} | : "Watch this item"}
+ * @mutate src/components/declutter/DeclutterItemView.tsx | : t("decl.item.save")} | : "Watch this item"}
  * @mutate src/components/declutter/DeclutterWatching.tsx |   if (item.status === "reserved") return "On hold for another buyer"; |   if (item.status === "reserved") return "No longer for sale";
  * @mutate src/components/declutter/DeclutterWatching.tsx |   const gone = goneLine(list.length - rows.length); |   const gone = null;
  * @mutate src/components/declutter/useWatchToggle.ts |       if (on) onWatched?.(); |       if (!on) onWatched?.();
@@ -106,6 +106,7 @@ describe("Watching under Buying (SS-5)", () => {
     expect(en).toContain('"decl.card.save": "Save {title}",');
     expect(en).toContain('"decl.card.unsave": "Remove {title} from saved",');
     const page = blankComments(readFileSync("src/components/declutter/DeclutterItemView.tsx", "utf8"));
-    expect(page).toContain(': "Save this item"}');
+    expect(page).toContain(': t("decl.item.save")}');
+    expect(en).toContain('"decl.item.save": "Save this item",');
   });
 });

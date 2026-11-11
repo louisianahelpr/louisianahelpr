@@ -18,7 +18,7 @@ import { blankComments } from "./helpers/blankNonCode";
 const REPO = resolve(__dirname, "..", "..");
 const CASES: Array<[file: string, label: RegExp]> = [
   ["src/components/declutter/DeclutterPriceNudge.tsx", /Drop the price\?/],
-  ["src/components/declutter/DeclutterQuestions.tsx", /Make an offer/],
+  ["src/components/declutter/DeclutterQuestions.tsx", /dq\.makeOffer/],
   ["src/components/declutter/DeclutterTabParts.tsx", /data-done-sales-toggle/],
   // 11-05 night: the price sheet's "Also set lowest to $X" (was a hand-made 44px-tall text button on its own line).
   ["src/components/declutter/DeclutterManageListing.tsx", /Also set lowest to/],

@@ -5,17 +5,17 @@
  * sheet. Declutter has no messaging before a sale, so the note never offers
  * "Message".
  *
- * @mutate src/components/declutter/DeclutterQuestions.tsx | `waiting for ${sellerName ?? "the seller"}` | `waiting for the seller`
- * @mutate src/components/declutter/DeclutterQuestions.tsx | " Want to make a deal? Make an offer." | " Want to make a deal? Message or Make offer."
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | t("dq.waitingFor", { name: waitingOn }) | t("dq.waitingFor", { name: t("dq.theSeller") })
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | : t("dq.wantDealPlain")} | : " Want to make a deal? Message or Make offer."}
  * @mutate src/components/declutter/DeclutterQuestions.tsx | answerQuestion(args.id, args.text) | answerQuestion(args.id, "")
- * @mutate src/components/declutter/DeclutterQuestions.tsx |   if (days === 1) return "yesterday"; |   if (days === 1) return "today";
+ * @mutate src/components/declutter/DeclutterQuestions.tsx |   if (days === 1) return tr("dq.yesterday"); |   if (days === 1) return tr("dq.today");
  *
  * AUD31-15 (audit 10-31): the asker's own questions say "Your question"; nobody else is told who asked. The client reads
  * declutter_my_question_ids (20261031183631) only when signed in and not the seller; the server answers only the
  * caller's own ids (newest definition read below; behaviour: src/test/pglite/declutterMyQuestionIds.pglite.mjs,
  * 12 PASS; NEW_MIGRATION=skip 10 FAIL).
- * @mutate src/components/declutter/DeclutterQuestions.tsx | {mine ? "Your question" : "Asked by a neighbor"} | {"Asked by a neighbor"}
- * @mutate src/components/declutter/DeclutterQuestions.tsx | {mine ? "Your question · asked" : "Asked"} {asked} | Asked {asked}
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | {mine ? t("dq.yourQuestion") : t("dq.askedByNeighbor")} | {t("dq.askedByNeighbor")}
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | {mine ? t("dq.yourQuestionAsked") : t("dq.asked")} {asked} | {t("dq.asked")} {asked}
  * @mutate src/components/declutter/DeclutterQuestions.tsx | enabled: !!user && !isSeller }); | enabled: true });
  * @mutate src/components/declutter/DeclutterQuestions.tsx | mine={!!myIds.data?.has(q.id)} | mine={!!myIds.data}
  * @mutate supabase/migrations/20261031183631_declutter_my_question_ids.sql |        AND q.asker_id = v_uid\n |\n
@@ -33,7 +33,7 @@
  *
  * Suggested reply (owner 2026-10-29, builder 26 feature 1): Claude's draft shows in the seller's sheet; Send posts
  * exactly it, Edit only fills the box, nothing is ever posted without a tap, and a reply with a blank cannot be sent.
- * @mutate src/components/declutter/DeclutterQuestions.tsx |                 onSend={(t) => send.mutate({ id: q.id, text: t })} |                 onSend={() => send.mutate({ id: q.id, text: "" })}
+ * @mutate src/components/declutter/DeclutterQuestions.tsx |                 onSend={(reply) => send.mutate({ id: q.id, text: reply })} |                 onSend={() => send.mutate({ id: q.id, text: "" })}
  * @mutate src/components/declutter/DeclutterSuggestedReply.tsx |         {!needsSeller && ( |         {true && (
  * @mutate src/components/declutter/DeclutterSuggestedReply.tsx |   const { reply, needsSeller } = s.data; |   const { reply, needsSeller } = s.data; if (!needsSeller) onSend(reply);
  */
@@ -346,8 +346,8 @@ describe("board 162: public questions", () => {
 
 // B48 (owner decision 10-31, App Store 1.2): Report on every question and answer, through the shared report flow,
 // never on your own words (the server refuses that too: report_own_content, declutterQuestionReport.pglite.mjs).
-// @mutate src/components/declutter/DeclutterQuestions.tsx | {!mine && reportLink("declutter_question", "Report question")} | {reportLink("declutter_question", "Report question")}
-// @mutate src/components/declutter/DeclutterQuestions.tsx | {q.answer && !isSeller && reportLink("declutter_answer", "Report answer")} | {q.answer && reportLink("declutter_answer", "Report answer")}
+// @mutate src/components/declutter/DeclutterQuestions.tsx | {!mine && reportLink("declutter_question", t("dq.reportQuestion"))} | {reportLink("declutter_question", t("dq.reportQuestion"))}
+// @mutate src/components/declutter/DeclutterQuestions.tsx | {q.answer && !isSeller && reportLink("declutter_answer", t("dq.reportAnswer"))} | {q.answer && reportLink("declutter_answer", t("dq.reportAnswer"))}
 // @mutate src/components/declutter/DeclutterQuestions.tsx | <ReportDialog open onClose={() => setReporting(null)} reportedType={reporting} reportedId={q.id} /> | <ReportDialog open onClose={() => setReporting(null)} reportedType="declutter_question" reportedId={q.id} />
 describe("B48: report a question or an answer", () => {
   it("a buyer can report each question and the seller's answer; each opens the report flow for exactly that", async () => {

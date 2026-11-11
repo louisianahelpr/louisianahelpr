@@ -27,6 +27,7 @@
  * @mutate src/pages/messages/useMessageSections.tsx | aria-label={t("msg.filterAria")} | aria-label="Filter messages"
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <dt className="font-bold text-foreground">{t("offer.youPayIfYes")}</dt> | <dt className="font-bold text-foreground">You pay if the seller says yes</dt>
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |           {t("free.takeBack")}\n |           Take back my ask\n
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | text-muted-foreground">{t("dq.none")}</p> | text-muted-foreground">No questions yet.</p>
  * @mutate src/components/messages/ConversationListBody.tsx |                 {t("msg.noneMatch")}\n |                 No conversations match\n
  */
 import { describe, it, expect } from "vitest";
@@ -77,6 +78,7 @@ const CONVERTED = [
   "src/pages/messages/useMessageSections.tsx",
   // F260q: Declutter's buy bar and offer box (enOffer.ts).
   "src/components/declutter/DeclutterOfferPanel.tsx",
+  "src/components/declutter/DeclutterQuestions.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */

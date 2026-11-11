@@ -10,6 +10,8 @@ import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import { URGENT_FEE_FLOOR_DOLLARS, FORM_1099K_TRANSACTION_THRESHOLD, form1099kGrossLabel, formatDollarsWhole } from "@/lib/moneyLimits";
 import { GUARANTEE_RULES } from "@/lib/guarantee/rules";
 import { HideOnSearch, TldrCard, PolicyFooter, TaxGuidanceLine } from "./LegalChrome";
+import { TermsSummaryEs } from "./TermsSummaryEs";
+import { useLanguage } from "@/lib/i18n/language";
 import { useOnboardingFeeCents, formatFeeLabel } from "@/hooks/useOnboardingFee";
 // F236/F258 (audit 11-10): the Declutter buyer's fee, from the numbers checkoutAmounts charges (never retyped).
 import { DECLUTTER_BUYER_FEE_WORDS } from "@/lib/declutter/money";
@@ -55,9 +57,12 @@ export const TermsContent = () => {
   // The setup fee is quoted from platform_settings (what is charged), never a code constant (see useOnboardingFeeCents),
   // and named the "account setup fee" as everywhere else. Null while loading or on failure: the row quotes no number.
   const feeLabel = formatFeeLabel(useOnboardingFeeCents());
+  const { lang } = useLanguage();
   const shippingOn = useFeature("declutter_shipping"); // Shipping rules only where the switch is on (declutterShippingCopy.ts).
   return (
   <div className="space-y-3">
+    {/* F260r (owner 11-11): the Spanish summary, a courtesy translation; open when Spanish is chosen. */}
+    <TermsSummaryEs open={lang === "es"} idOn={idOn} feeLabel={feeLabel} posterPaysNothing={POSTER_FEE_ON_DEFAULT_CENTS === 0} />
     <TldrCard
       items={[
         `You must be 18+. Every account verifies its email address before it can post or take jobs.${idOn ? ` You also verify ${ID_ONCE_PER_ACCOUNT}.` : ""}`,

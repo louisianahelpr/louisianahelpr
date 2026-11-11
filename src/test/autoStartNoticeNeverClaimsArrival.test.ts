@@ -9,7 +9,7 @@
  *
  * The body is read as the migrations leave it (effectiveDefs: the newest CREATE, any dollar-quote tag).
  *
- * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql |     IF NEW.helper_arrived_at IS NULL AND NEW.poster_confirmed_arrival_at IS NULL THEN |     IF false THEN
+ * @mutate supabase/migrations/20261111194335_arrival_notice_leads_with_the_job.sql |     IF NEW.helper_arrived_at IS NULL AND NEW.poster_confirmed_arrival_at IS NULL THEN |     IF false THEN
  */
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";

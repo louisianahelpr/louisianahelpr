@@ -12624,15 +12624,15 @@
     },
     {
       "file": "src/lib/nativePush.ts",
-      "line": 332,
+      "line": 337,
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "notification.title || \"New notification\""
+        "text": "say(notification.title) || t(\"notif.toastNew\")"
       },
       "description": {
         "form": "dynamic",
-        "text": "notification.body || undefined"
+        "text": "say(notification.body) || undefined"
       },
       "renders": true
     },

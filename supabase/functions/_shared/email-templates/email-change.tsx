@@ -13,6 +13,7 @@ import {
   text,
   linkStyle,
 } from './styles.ts'
+import { EMAIL_CHANGE_WORDS, wordsFor, type EmailLang } from './authEmailWords.ts'
 import { BaseLayout, BrandButton, TransactionalFooter } from './components.tsx'
 import { getAppUrl } from '../appUrl.ts'
 
@@ -21,6 +22,8 @@ interface EmailChangeEmailProps {
   email: string
   newEmail: string
   confirmationUrl: string
+  /** F260q: the recipient's language; English when omitted. */
+  lang?: EmailLang
 }
 
 export const EmailChangeEmail = ({
@@ -28,31 +31,35 @@ export const EmailChangeEmail = ({
   email,
   newEmail,
   confirmationUrl,
-}: EmailChangeEmailProps) => (
-  <BaseLayout preheader="Confirm your email change on Louisiana Helpr">
+  lang,
+}: EmailChangeEmailProps) => {
+  const w = wordsFor(EMAIL_CHANGE_WORDS, lang)
+  return (
+  <BaseLayout lang={lang} preheader={w.preheader}>
       {/* Owner's message review 11-09, F159: sentence case. */}
-      <Heading className="e-h1" style={h1}>Confirm your email change</Heading>
+      <Heading className="e-h1" style={h1}>{w.heading}</Heading>
       <Text className="e-text" style={text}>
-        You requested to change your email from{' '}
+        {w.from}{' '}
         <Link href={`mailto:${email}`} className="e-accent" style={linkStyle}>
           {email}
         </Link>{' '}
-        to{' '}
+        {w.to}{' '}
         <Link href={`mailto:${newEmail}`} className="e-accent" style={linkStyle}>
           {newEmail}
         </Link>
         .
       </Text>
-      <BrandButton href={confirmationUrl} label="Confirm the change" />
+      <BrandButton href={confirmationUrl} label={w.button} />
       <TransactionalFooter>
         {/* F462 (audit 11-10): the "not you" line names the step and links it. */}
-        Didn&apos;t ask for this? Don&apos;t confirm it, and reset your password so no one else can sign in:{' '}
+        {w.notYou}{' '}
         <Link href={`${getAppUrl()}/forgot-password`} className="e-accent" style={linkStyle}>
-          reset my password
+          {w.reset}
         </Link>
         . - Louisiana Helpr
       </TransactionalFooter>
   </BaseLayout>
-)
+  )
+}
 
 export default EmailChangeEmail

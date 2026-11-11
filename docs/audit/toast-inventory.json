@@ -13123,7 +13123,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 379,
+      "line": 380,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13133,7 +13133,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 448,
+      "line": 449,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

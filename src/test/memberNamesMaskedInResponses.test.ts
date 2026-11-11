@@ -102,7 +102,8 @@ const RESTATED_LATER: Record<string, string> = {
   // Train 7 (20261103210601): a banned offeree files no declined notice; the name read is verbatim.
   record_backout_notice: "20261103210601_banned_offeree_files_no_declined_notice.sql",
   // Messages audit H1/M4/M6 (owner 2026-10-30): mute, 15-minute throttle, preview switch, email; the name read is verbatim.
-  notify_message_recipient: "20261030212051_message_snooze_ends.sql",
+  // F443 (20261111194802): a system row's bell message names the job; the name read is verbatim.
+  notify_message_recipient: "20261111194802_thread_notices_name_the_job.sql",
 };
 
 /** Blank every call to the masking helpers, balanced parentheses, so what is left reads names raw. */

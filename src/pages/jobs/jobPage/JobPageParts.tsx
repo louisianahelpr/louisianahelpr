@@ -160,7 +160,7 @@ export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; tot
     <div data-poster-money-notes="" className="space-y-1.5">
       {line && <p className="text-ds-13 text-muted-foreground">{line}</p>}
       {released && (
-        <Link data-receipt-link="" to="/profile?tab=receipts" className="inline-block text-ds-14 font-semibold text-primary underline underline-offset-2">
+        <Link data-receipt-link="" to={`/profile?tab=receipts&job=${job.id}`} className="inline-block text-ds-14 font-semibold text-primary underline underline-offset-2">
           See your receipt
         </Link>
       )}

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ListRow } from "@/components/ui/ListRow";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -177,7 +177,16 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
   const owed = useFeesOwed();
   // The names only: a failed read keeps the plain title, it never hides a receipt.
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: !!uid, staleTime: 60_000 });
-  const [open, setOpen] = useState<string | null>(null);
+  // F276: the job page's "See your receipt" sends ?job=<id>; that job's receipt opens on arrival, not the bare list.
+  const [params] = useSearchParams();
+  const jobParam = params.get("job");
+  const [open, setOpen] = useState<string | null>(jobParam ? `job-${jobParam}` : null);
+  const scrolled = useRef(false);
+  const scrollOnce = (el: HTMLLIElement | null) => {
+    if (!el || scrolled.current) return;
+    scrolled.current = true;
+    el.scrollIntoView?.({ block: "center" });
+  };
   // The card charge per paid order (the "You paid" lines' read and cache key). A failed read is a failed load: never a
   // receipt $2 under what Stripe charged. Null (not deployed) falls back to total_cents.
   const paidIds = [...new Set((orders.data ?? []).filter((o) => o.paid_at).map((o) => o.id))].sort();
@@ -243,6 +252,10 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
         ) : receipts.length === 0 ? (
           <p className="text-ds-13 px-1" style={quiet}>Nothing paid by card yet. Jobs and Declutter buys you pay for show here.</p>
         ) : (
+          <>
+          {jobParam && !receipts.some((r) => r.key === `job-${jobParam}`) && (
+            <p data-receipt-job-missing="" className="text-ds-13 px-1" style={quiet}>No card receipt for this job yet.</p>
+          )}
           <ul data-receipts="" className={`${card} px-4 divide-y`} style={{ borderColor: "hsl(var(--border))" }}>
             {receipts.map((r) => {
               const row = (
@@ -260,7 +273,7 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
               if (!r.lines) return <li key={r.key} className="py-3 flex items-center justify-between gap-3">{row}</li>;
               const shown = open === r.key;
               return (
-                <li key={r.key} className="py-3">
+                <li key={r.key} className="py-3" ref={shown && r.key === `job-${jobParam}` ? scrollOnce : undefined}>
                   <ListRow className="-mx-2 w-[calc(100%+1rem)] gap-3 px-2 py-0" aria-expanded={shown}
                     onClick={() => setOpen(shown ? null : r.key)} data-receipt-toggle="">
                     {row}
@@ -288,6 +301,7 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
               );
             })}
           </ul>
+          </>
         )}
 
         {owed.data && owed.data.length > 0 && (

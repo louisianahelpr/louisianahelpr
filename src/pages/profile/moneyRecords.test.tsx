@@ -209,6 +209,26 @@ describe("receipts, fees owed, tax forms (board 177)", () => {
     expect(receiptTitle("GIVE AWAY!!")).toBe("Give away!!");
   });
 
+  // F276: the job page's "See your receipt" links ?job=<id>; that receipt is open on arrival. A job with no receipt
+  // says so instead of leaving the poster to hunt the list.
+  // @mutate src/pages/profile/Receipts.tsx | useState<string \| null>(jobParam ? `job-${jobParam}` : null) | useState<string \| null>(null)
+  // @mutate src/pages/profile/Receipts.tsx |           {jobParam && !receipts.some((r) => r.key === `job-${jobParam}`) && ( |           {false && (
+  it("F276: ?job= opens that job's receipt; a job with no receipt says so", async () => {
+    tables.jobs = [{
+      id: "j7", title: "Trim the hedges", budget: 40, status: "completed", payment_status: "released",
+      stripe_payment_intent_id: "pi_7", poster_completed_at: "2026-10-01T12:00:00Z", helper_completed_at: null, created_at: "2026-09-30T12:00:00Z",
+    }];
+    const first = renderAt(<Receipts />, "?tab=receipts&job=j7");
+    await screen.findByText("Trim the hedges");
+    expect(document.querySelector("[data-receipt-detail]")?.textContent).toContain("Total$40.00");
+    expect(document.querySelector("[data-receipt-job-missing]")).toBeNull();
+    first.unmount();
+    renderAt(<Receipts />, "?tab=receipts&job=other");
+    await screen.findByText("Trim the hedges");
+    expect(document.querySelector("[data-receipt-detail]")).toBeNull();
+    expect(document.querySelector("[data-receipt-job-missing]")?.textContent).toBe("No card receipt for this job yet.");
+  });
+
   // AUD31-55 (lead decision 10-31): a job refunded in full stays on Receipts, "Refunded in full", $0 net; a partly
   // refunded one says what came back. Jobs with nothing charged stay out.
   // @mutate src/pages/profile/Receipts.tsx |       if (r.cents <= 0 && !r.refundedInFull) continue; |       if (r.cents <= 0) continue;

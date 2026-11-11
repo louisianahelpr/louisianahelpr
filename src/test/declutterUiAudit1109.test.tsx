@@ -237,9 +237,9 @@ describe("F119: on a computer the item page's Make offer / Buy now stay pinned w
   it("the item page's member and guest bars pin, and their panels are lg:contents (sticky stays inside its parent)", () => {
     const offer = blankComments(readFileSync(join(SRC, "components/declutter/DeclutterOfferPanel.tsx"), "utf8"));
     const guest = blankComments(readFileSync(join(SRC, "components/declutter/DeclutterGuest.tsx"), "utf8"));
-    expect(offer).toContain('className="space-y-3 scroll-mt-4 focus:outline-none lg:contents" aria-label="Buy or make an offer"');
+    expect(offer).toContain('className="space-y-3 scroll-mt-4 focus:outline-none lg:contents" aria-label={t("decl.buy.bar")}');
     expect(guest).toContain('<section data-guest-join="" aria-label={label} className="space-y-3 lg:contents">');
-    expect(offer).toContain('<StickyActionBar label="Buy or make an offer" data-declutter-buybar="" spacer={false} pinWide>');
+    expect(offer).toContain('<StickyActionBar label={t("decl.buy.bar")} data-declutter-buybar="" spacer={false} pinWide>');
     expect(guest).toContain('<StickyActionBar label={label} spacer={false} data-guest-buttons="" pinWide>');
   });
 });

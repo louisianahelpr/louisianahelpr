@@ -65,10 +65,10 @@ describe("Selling tab: how many items are for sale, to-dos as a dot", () => {
     const home = code("src/components/declutter/DeclutterHomeView.tsx");
     // One list row feeds both the desktop tabs (Selling's to-dos as a dot) and the phone's My Declutter sheet (the
     // Vinted header, owner 11-08: the same quiet for-sale number beside the row).
-    expect(home).toMatch(/\{ value: "selling", label: "Selling", quiet: forSale, count: sellingToDo \}/);
+    // Owner 11-11 (F363/F396): its to-do dot is the Home To-do Selling count (declutterBadgesReadHomeTodo.test.tsx).
+    expect(home).toMatch(/\{ value: "selling", label: "Selling", quiet: forSale, count: needsYou\.declutterSelling \}/);
     expect(home).toContain('const tabDefs = lists.map((l) => l.value === "selling" ? { ...l, countAsDot: true } : l);');
     expect(home.match(/tabs=\{tabDefs\}/g)?.length, "desktop and (F153) phone rows").toBe(2);
-    expect(home).toContain("const sellingToDo = todo ? todo.selling + questions.count : undefined;");
     expect(home).toContain("count: l.count, quiet: l.quiet }))");
     expect(home).toMatch(/const forSale = mineForCount\.data \? liveListingCount\(mineForCount\.data\) : undefined;/);
     expect(code("src/pages/home/homeDashboard/useHomeSummary.ts")).toContain("selling: liveListingCount(items),");

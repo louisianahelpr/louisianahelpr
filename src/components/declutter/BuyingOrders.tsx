@@ -13,7 +13,10 @@
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
+import { fetchMyCart, fetchMyOffers, type CartLine } from "@/lib/declutter/api";
+import { fetchMyRefundTodos } from "@/lib/declutter/refundRequests";
+import { useFeatureStatus } from "@/hooks/useFeature";
+import { declutterBuyingTodos } from "@/pages/home/homeDashboard/needsYouTodos";
 import { fetchMyBookings, fetchMyHandover, fetchOrderProblem, type MyBooking, type MyHandover, type OrderProblem } from "@/lib/declutter/handover";
 import { fetchSellerDeliveryBooking, slotLabel, type SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";
@@ -314,6 +317,17 @@ export function useBuyingTracker(): BuyingTracker {
   useEffect(() => {
     if (hasHelpr) void import("./DeclutterDeliveryViews");
   }, [hasHelpr]);
+  // Owner 11-11 (F363, option b): Needs you is exactly the Home To-do list's Buying rows (declutterBuyingTodos, the
+  // badges' rule), from the same reads and keys Home uses: an order is under Needs you when it has such a row (a paid
+  // order waiting on its handover, a refund offer to answer), and the chip counts those rows. Anything else the old
+  // rule called Needs you goes to Done (handed over, the 24 hours to check still open) or Waiting.
+  const myOffers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers });
+  const refundsOn = useFeatureStatus("declutter_refund_requests").on;
+  const myRefunds = useQuery({ queryKey: ["declutter", "my-refund-todos"], queryFn: fetchMyRefundTodos, enabled: refundsOn });
+  const refundRows = refundsOn ? myRefunds.data ?? [] : [];
+  const homeRows = declutterBuyingTodos(lines, myOffers.data ?? [], refundRows);
+  const refundOrder = new Map(refundRows.map((r) => [`dr-${r.request_id}`, r.order_id]));
+  const needsYouOrders = new Set(homeRows.map((r) => (r.id.startsWith("dh-") ? r.id.slice(3) : refundOrder.get(r.id))).filter((x): x is string => !!x));
   const views = new Map<string, BuyerOrderView>();
   const counts: Record<OrderBucket, number> = { needs_you: 0, waiting: 0, upcoming: 0, done: 0, cancelled: 0 };
   for (const o of orders) {
@@ -334,8 +348,9 @@ export function useBuyingTracker(): BuyingTracker {
     };
     const checkUntil = facts.done ? checkWindowEnds(doneRows[handedOver.indexOf(o)]?.data?.confirmed_at) : null;
     facts.checkOpen = !!checkUntil;
-    const bucket = orderBucket(facts);
-    counts[bucket]++;
+    const ruled = orderBucket(facts);
+    const bucket: OrderBucket = needsYouOrders.has(o.orderId) ? "needs_you" : ruled !== "needs_you" ? ruled : facts.done && !facts.problem ? "done" : "waiting";
+    if (bucket !== "needs_you") counts[bucket]++;
     const whenIso = o.handover === "seller_delivery" ? sdRow?.slot_start ?? null
       : o.handover === "delivery" ? task?.pickup_slot_start ?? null : slot;
     // A1-C2: a porch pickup is a DAY (pickup_day); its slot_start is only the day's start, so never show it as a time.
@@ -358,7 +373,7 @@ export function useBuyingTracker(): BuyingTracker {
     });
   }
   const checkouts = openCheckouts(lines, Date.now());
-  counts.needs_you += checkouts;
+  counts.needs_you = homeRows.length;
   const ended = endedLines(lines);
   counts.cancelled += ended.length;
   return { ready: !!cart.data, views, checkouts, ended, counts, live, bookings: bookings.data };

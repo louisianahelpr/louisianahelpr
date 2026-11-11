@@ -179,6 +179,7 @@ const EXPECTED_CALLERS = [
   // The application notice (20261021174935) names the applicant only when neither has blocked the other:
   // a trigger, it passes both parties (NEW.helper_id, the job's owner) and reads the pg_trigger_depth() arm.
   "notify_on_application",
+  "notify_poster_on_application_withdrawn", // F297: (OLD.helper_id, the job's poster), both parties
   "offer_series_dates",
   // Continue another day (20261101231015): the caller (auth.uid()) and the job's other party (poster or Helpr).
   "propose_job_continue_day",

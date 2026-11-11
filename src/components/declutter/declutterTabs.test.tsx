@@ -42,6 +42,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { declutterTodo, oldDeclutterView } from "@/lib/declutter/tabs";
 import { deriveNeedsYouTodos } from "@/pages/home/homeDashboard/needsYouTodos";
+import NeedsYouBridge from "@/components/NeedsYouBridge";
 
 const SOON = new Date(Date.now() + 20 * 3_600_000).toISOString();
 
@@ -109,6 +110,14 @@ vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1"
 // The payout prompt is its own test (sellerPayoutPrompt.test.tsx); it reads prod-only hooks.
 vi.mock("@/components/declutter/SellerPayoutPrompt", () => ({ SellerPayoutPrompt: () => null }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
+// Owner 11-11 (F363/F396): the tab badges read the Home To-do count, which App's NeedsYouBridge publishes. Here the
+// bridge runs on the Home list's own rule (deriveNeedsYouTodos) over this file's cart and offers.
+vi.mock("@/pages/home/homeDashboard/useNeedsYouTodos", () => ({
+  useNeedsYouTodos: () => ({
+    todos: deriveNeedsYouTodos({ postedJobs: [], pendingApplicantCounts: {}, appliedApps: [], shopOrders: [], backout: new Map(), declutterCart: state.cart as never, declutterOffers: state.offers as never }),
+    loading: false,
+  }),
+}));
 // Q2352: the cart's one-time setup fee answer (the live platform setting) is not this spec's subject: paid.
 // Q2106: Pay's gift picker reads the buyer's gift cards; none here.
 vi.mock("@/hooks/useSpendableGiftCards", () => ({ useSpendableGiftCards: () => ({ userId: "u1", ids: [], cards: [], settled: true }) }));
@@ -251,7 +260,7 @@ function at(path: string, routerState?: unknown) {
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[routerState ? { pathname: path.split("?")[0], search: `?${path.split("?")[1]}`, state: routerState } : path]}>
         <Routes>
-          <Route path="/declutter" element={<><DeclutterPage /><Where /></>} />
+          <Route path="/declutter" element={<><NeedsYouBridge user={{ id: "u1" } as never} /><DeclutterPage /><Where /></>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -819,17 +828,17 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(tab(/^Selling/)).toHaveAccessibleName(/2/);
   });
 
-  // Audit DC-9 (lead 2026-10-30): the Selling badge counts what "To answer" counts, so a question waiting on a live
-  // listing shows on the tab too; the tab row waits for that read (no late re-wrap).
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | const sellingToDo = todo ? todo.selling + questions.count : undefined; | const sellingToDo = todo?.selling;
+  // Audit DC-9 (lead 2026-10-30) made the Selling badge count questions too. Owner 11-11 (F363/F396): every Declutter
+  // badge is the Home To-do count, which has no question rows, so the badge stays at the offer and the sale ("To
+  // answer" still lists the question). The tab row still waits for the questions read (no late re-wrap).
   // @mutate src/components/declutter/SellerQuestionsToAnswer.tsx |     enabled: mine.isSuccess && ids.length > 0, |     enabled: mine.isSuccess,
-  it("DC-9: the Selling badge counts unanswered questions too, and the read is made only with a listing on sale", async () => {
+  it("DC-9 / owner 11-11: the Selling badge is the To-do count (no questions); the read is made only with a listing on sale", async () => {
     everything();
     state.questions = [{ id: "q1", item_id: "i1", question: "Is it sturdy?", created_at: "2026-10-29" }];
     const first = at("/declutter");
     await screen.findByRole("tablist", { name: "Declutter view" });
-    // An offer, a sale to hand over and a question.
-    expect(tab(/^Selling/)).toHaveAccessibleName(/3/);
+    // An offer and a sale to hand over: the Home To-do's Selling rows.
+    expect(tab(/^Selling/)).toHaveAccessibleName(/2/);
     expect(state.questionReads).toBe(1);
     first.unmount();
     // Nothing on sale: no question read at all.

@@ -546,7 +546,7 @@ export function CartView() {
               <CheckoutCardHead allFree={allFree} count={lines.length} trade={trade} />
               <ul className="space-y-2">
                 {lines.map((l) => (
-                  <li key={l.line_id} className="flex items-center justify-between gap-3 text-sm min-w-0" data-cart-line="">
+                  <li key={l.line_id} className="flex items-center justify-between gap-3 text-sm min-w-0" data-cart-line="" data-cart-item={l.item_id ?? undefined}>
                     <CartThumb path={l.item_id ? cover.get(l.item_id) : undefined} />
                     {l.item_id ? (
                       // NIGHT-BUYINGpresse-3: the title link was 20 px tall on a phone; it is now a 44 px tap.

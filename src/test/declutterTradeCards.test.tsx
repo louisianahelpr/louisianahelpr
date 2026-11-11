@@ -14,6 +14,8 @@
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx |     next.set("order_talk", orderId); |     next.set("talk", orderId);
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx | "Answer by" : "Waiting on the seller until" | "Answer:" : "Waiting on the seller until"
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx | variant="outline" data-trade-decline="" | variant="ghost" data-trade-decline=""
+ * Audit 11-10 F360c: the accepted trade's link opens the cart's trade checkout (the one pickup step), not a reload.
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx | if (goToTradeCheckout((t.my_side === "seller" ? t.offered : t.item)?.id)) e.preventDefault(); | void e;
  */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -122,6 +124,22 @@ describe("Declutter trade cards (slice 3)", () => {
     const links = container.querySelectorAll("[data-trade-pickup]");
     expect(links.length).toBe(1);
     expect(links[0].closest("[data-trade-card]")?.getAttribute("data-trade-card")).toBe("a");
+  });
+
+  it("F360c: the accepted trade's link opens the cart's trade checkout and focuses it", async () => {
+    state.rows = [row({ id: "a", status: "accepted", my_line_status: "in_cart" })];
+    const { container } = show("seller");
+    // The seller gets the buyer's chair; the cart's trade checkout holds it (DeclutterTradeViews' markers).
+    const box = document.createElement("section");
+    box.setAttribute("data-checkout-seller", "u-buyer");
+    box.setAttribute("data-checkout-kind", "trade");
+    box.innerHTML = `<ul><li data-cart-line="" data-cart-item="${chair.id}">Chair</li></ul>`;
+    document.body.appendChild(box);
+    const link = await screen.findByText("Go to my trade in the cart");
+    expect(link.closest("[data-trade-card]")).toBe(container.querySelector('[data-trade-card="a"]'));
+    fireEvent.click(link);
+    expect(document.activeElement).toBe(box);
+    box.remove();
   });
 
   // Trades audit 11-08 #10: both trade cards open the trade's one existing order chat (?order_talk=, DeclutterPage).

@@ -8,6 +8,8 @@
  * @mutate src/components/landing/SectionsShowcase.tsx |     if (!es) return onTheWayLine(labels); |     return onTheWayLine(labels);
  * @mutate src/components/landing/HowItWorksSection.tsx |                   {w(`landing.how.${side}${i + 1}Title`, step.title)} |                   {step.title}
  * @mutate src/components/landing/HowItWorksSection.tsx |               options={SIDE_OPTIONS.map((o) => ({ ...o, label: w(`landing.how.side.${o.value}`, o.label) }))} |               options={SIDE_OPTIONS}
+ * @mutate src/components/landing/LandingBrowseShell.tsx |                 {w(title)}\n              </h2> |                 {title}\n              </h2>
+ * @mutate src/components/landing/LandingProof.tsx |           {w("landing.proof.justFinished", "Just finished")} |           Just finished
  */
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -32,6 +34,9 @@ import { enLanding } from "@/lib/i18n/enLanding";
 import { esLanding } from "@/lib/i18n/esLanding";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import { HIRE_STEPS } from "@/components/landing/hireSteps";
+import { LandingBrowseShell, JOBS_SHELL, DECLUTTER_SHELL, NO_JOBS_DECLUTTER_SHELL, SERVICE_AREA_LINE } from "@/components/landing/LandingBrowseShell";
+import { LandingProof, proofLine } from "@/components/landing/LandingProof";
+import { liveJobDate } from "@/components/landing/LiveJobsSection";
 
 const SRC = "src/components/landing/SectionsShowcase.tsx";
 const src = blankComments(readFileSync(SRC, "utf8"));
@@ -114,5 +119,39 @@ describe("F260q: How it works speaks the visitor's language", () => {
     expect(text).toContain(esLanding["landing.postJob"]);
     expect(text).not.toContain(enLanding["landing.how.hire1Title"]);
     expect(text).not.toContain(enLanding["landing.how.side.sell"]);
+  });
+});
+
+describe("F260q: the browse block under the hero speaks the visitor's language", () => {
+  const shells = [JOBS_SHELL, DECLUTTER_SHELL, NO_JOBS_DECLUTTER_SHELL];
+  it("every shell sentence (and both proof lines) has its English in enLanding", () => {
+    const english = new Set<string>(Object.values(enLanding));
+    for (const sh of shells) for (const wd of [sh.title, sh.line, sh.seeAll.label]) expect(english.has(wd), wd).toBe(true);
+    for (const wd of [proofLine(true), proofLine(false), SERVICE_AREA_LINE]) expect(english.has(wd), wd).toBe(true);
+  });
+
+  it("Spanish saved: each shell's title, line, link and the service area are Spanish; the proof card too", async () => {
+    window.localStorage.setItem("helpr_lang", "es");
+    render(
+      <MemoryRouter>
+        {[...shells.map((sh, i) => ({ ...sh, line: i === 0 ? proofLine(true) : sh.line }))].map((sh, i) => (
+          <LandingBrowseShell key={i} testId={`s${i}`} titleId={`t${i}`} title={sh.title} line={sh.line} seeAll={sh.seeAll}>{null}</LandingBrowseShell>
+        ))}
+        <LandingProof />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByText(esLanding["landing.shell.jobsTitle"])).toBeTruthy());
+    const text = document.body.textContent ?? "";
+    for (const sh of shells) for (const wd of [sh.title, sh.seeAll.label]) expect(text, wd).not.toContain(wd);
+    expect(text).not.toContain(proofLine(true));
+    expect(text).not.toContain(SERVICE_AREA_LINE);
+    expect(text).toContain(esLanding["landing.shell.jobsLineId"]);
+    expect(text).toContain(esLanding["landing.proof.justFinished"]);
+    expect(text).not.toContain("Just finished");
+  });
+
+  it("a job's date reads in Spanish when asked", () => {
+    expect(liveJobDate("2026-10-24")).toBe("Sat, Oct 24");
+    expect(liveJobDate("2026-10-24", "es-US")).toMatch(/sáb/i);
   });
 });

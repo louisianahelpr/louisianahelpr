@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 500,
+      "literal": 498,
       "template": 107,
-      "dynamic": 675,
+      "dynamic": 677,
       "jsx": 0
     }
   },
@@ -5656,21 +5656,21 @@
     },
     {
       "file": "src/components/declutter/DeclutterQuestions.tsx",
-      "line": 130,
+      "line": 136,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Answer posted."
+        "form": "dynamic",
+        "text": "t(\"dq.answerPosted\")"
       },
       "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterQuestions.tsx",
-      "line": 234,
+      "line": 241,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Question posted. The answer will show here."
+        "form": "dynamic",
+        "text": "t(\"dq.questionPosted\")"
       },
       "renders": true
     },

@@ -128,6 +128,8 @@ describe("a guest opening a shared link", () => {
       "urgent_fee", "is_group_job", "helpers_needed", "helper_fee_flat_cents", "helper_fee_percent",
       "date_needed", "date_window_end", "start_time", "is_flexible_schedule",
       "status", "expires_at",
+      // F269a (owner 11-11): the share line names the parish from the view's own column, as api/share.ts does.
+      "parish",
     ]);
     for (const column of ["customer_id", "latitude", "longitude", "description", "photos", "offered_to_helper_id", "direct_offer_status", "applicant_count", "special_requirements"]) {
       expect(state.columns, column).not.toContain(column);

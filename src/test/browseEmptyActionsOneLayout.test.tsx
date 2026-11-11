@@ -15,7 +15,7 @@
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |       <EmptyStateActions\n        primary={guest |       <BarkPillButtonList\n        primary={guest
  * @mutate src/components/ui/EmptyStateActions.tsx |   const plus = <Plus className="w-4 h-4 mr-1 shrink-0" aria-hidden />; |   const plus = null;
  * @mutate src/components/ui/EmptyStateActions.tsx |   const quiet = <SecondaryIcon className="w-4 h-4 mr-1 shrink-0" aria-hidden />; |   const quiet = null;
- * @mutate src/components/declutter/DeclutterBrowseView.tsx | : others.length === 0 ? "New items show up here as people list them." | : others.length === 0 ? "Be the first to sell something."
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | : others.length === 0 ? t("decl.emptyBody.none") | : others.length === 0 ? "Be the first to sell something."
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -66,9 +66,14 @@ describe("the empty Browse screens share one layout (owner 11-02)", () => {
 
   it("parallel headline and one-line subline", () => {
     for (const [name, { file, title, body }] of Object.entries(SECTIONS)) {
-      const s = src(file);
+      // F260q (11-11): Declutter's words moved into the dictionary (enDeclutter.ts); its source draws the keys.
+      const s = name === "declutter" ? src("src/lib/i18n/enDeclutter.ts") : src(file);
       expect(s, name).toContain(`"${title}"`);
       expect(s, name).toContain(`"${body}"`);
+      if (name === "declutter") {
+        expect(src(file)).toContain('others.length === 0 ? t("decl.empty.none")');
+        expect(src(file)).toContain('others.length === 0 ? t("decl.emptyBody.none")');
+      }
     }
   });
 

@@ -15,6 +15,7 @@ import { esMessages } from "./esMessages";
 import { esOffer } from "./esOffer";
 import { esFree } from "./esFree";
 import { esQuestions } from "./esQuestions";
+import { esDeclPanels } from "./esDeclPanels";
 
 export const es: Record<MsgKey, string> = {
   ...esPublic,
@@ -26,6 +27,7 @@ export const es: Record<MsgKey, string> = {
   ...esOffer,
   ...esFree,
   ...esQuestions,
+  ...esDeclPanels,
   "chat.back": "Volver a las conversaciones",
   "chat.options": "Opciones de la conversación",
   "chat.cancelReply": "Cancelar la respuesta",

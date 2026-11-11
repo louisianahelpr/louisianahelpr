@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 498,
+      "literal": 497,
       "template": 107,
-      "dynamic": 677,
+      "dynamic": 678,
       "jsx": 0
     }
   },
@@ -5396,17 +5396,17 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferTrade.tsx",
-      "line": 42,
+      "line": 45,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Trade offer sent. The seller has 48 hours to answer."
+        "form": "dynamic",
+        "text": "t(\"dp.tradeSent\")"
       },
       "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterOfferTrade.tsx",
-      "line": 47,
+      "line": 50,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

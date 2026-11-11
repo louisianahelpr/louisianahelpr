@@ -28,6 +28,7 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <dt className="font-bold text-foreground">{t("offer.youPayIfYes")}</dt> | <dt className="font-bold text-foreground">You pay if the seller says yes</dt>
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |           {t("free.takeBack")}\n |           Take back my ask\n
  * @mutate src/components/declutter/DeclutterQuestions.tsx | text-muted-foreground">{t("dq.none")}</p> | text-muted-foreground">No questions yet.</p>
+ * @mutate src/components/declutter/DeclutterOfferTrade.tsx | label={t("dp.tradeListLabel")} | label="Your listing to trade"
  * @mutate src/components/messages/ConversationListBody.tsx |                 {t("msg.noneMatch")}\n |                 No conversations match\n
  */
 import { describe, it, expect } from "vitest";
@@ -79,6 +80,11 @@ const CONVERTED = [
   // F260q: Declutter's buy bar and offer box (enOffer.ts).
   "src/components/declutter/DeclutterOfferPanel.tsx",
   "src/components/declutter/DeclutterQuestions.tsx",
+  // F260q: the item page's panels (enDeclPanels.ts): price drop, price hint, delivery prices, trade offer.
+  "src/components/declutter/DeclutterPriceDrop.tsx",
+  "src/components/declutter/DeclutterPriceHint.tsx",
+  "src/components/declutter/DeliveryPriceList.tsx",
+  "src/components/declutter/DeclutterOfferTrade.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */

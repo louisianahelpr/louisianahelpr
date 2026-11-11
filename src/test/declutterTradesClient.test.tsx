@@ -10,7 +10,7 @@
  * @mutate src/components/declutter/DeclutterManageListing.tsx |               <DeclutterTradeRules itemId={item.id} rowClassName={ROW} />\n |
  * @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && user && !free && it.status === "live" && <Suspense fallback={null}><OfferTradeButton item={it} userId={user.id} /></Suspense>}\n |
  * Audit 1110 F359g: one line under Offer a trade says what a trade is.
- * @mutate src/components/declutter/DeclutterOfferTrade.tsx |         Swap one of your listings for this. No money changes hands, and each of you picks up the other's item.\n |
+ * @mutate src/components/declutter/DeclutterOfferTrade.tsx |         {t("dp.tradeWhat")}\n |
  * Audit 1110 F359f: the buyer's open trade offer on this item shows in place of Offer a trade.
  * @mutate src/components/declutter/DeclutterOfferTrade.tsx |   if (myOpen) { |   if (false) {
  * @mutate src/components/declutter/DeclutterOfferTrade.tsx | t.status === "open" && t.item?.id === item.id | t.status === "open"

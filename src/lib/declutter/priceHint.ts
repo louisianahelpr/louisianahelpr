@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { rpcData } from "@/lib/declutter/api";
+import "@/lib/i18n/enDeclPanels";
+import { t } from "@/lib/i18n/language";
 
 export interface PriceHint {
   low_cents: number;
@@ -28,11 +30,11 @@ export type HintPlace = "near_you" | "this_area";
 export function priceHintWords(h: PriceHint | null | undefined, place: HintPlace): { headline: string; basis: string } | null {
   if (!h || !Number.isInteger(h.sales) || h.sales < 10 || h.sales % 10 !== 0) return null;
   if (!Number.isFinite(h.low_cents) || !Number.isFinite(h.high_cents) || h.low_cents < 100 || h.high_cents < h.low_cents) return null;
-  const where = place === "near_you" ? "near you" : "in this area";
   const range = h.low_cents === h.high_cents ? formatPrice(h.low_cents) : `${formatPrice(h.low_cents)}–${formatPrice(h.high_cents)}`;
+  // F260q: the viewer's language (enDeclPanels.ts / esDeclPanels.ts).
   return {
-    headline: `Most items like this sold for ${range} ${where}`,
-    basis: `Based on ${h.sales}+ Declutter sales of items in the same category and condition, within about 25 miles, in the last year.`,
+    headline: t(place === "near_you" ? "dp.hintNearYou" : "dp.hintInArea", { range }),
+    basis: t("dp.hintBasis", { n: h.sales }),
   };
 }
 

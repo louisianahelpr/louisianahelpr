@@ -22,6 +22,8 @@ export const enNotifications = {
   "notif.turnOnPush": "Turn on push notifications",
   "notif.more": "More",
   "notif.less": "Less",
+  "notif.toastNew": "New notification",
+  "notif.view": "View",
 } as const;
 
 addEnglish(enNotifications);

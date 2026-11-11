@@ -54,6 +54,7 @@ import { WatchingList } from "./DeclutterWatching";
 import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 import { BundleRequestsSection, useBundleAsksToAnswer } from "./DeclutterBundleRequests";
 import { TradeOffersSection, useTradeOffersToAnswer } from "./DeclutterTradeOffers";
+import { FreeAsksToPick, useFreeAsksToPick } from "./FreeAsksToPick";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useMyTrades } from "./useMyTrades";
 
@@ -171,7 +172,9 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   const reports = useSellerReportsToAnswer();
   const bundleAsks = useBundleAsksToAnswer(userId); // Q2268
   const tradeAsks = useTradeOffersToAnswer(userId); // Declutter trades slice 3: open trade offers wait on the seller too
-  const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks + tradeAsks;
+  // F359b: free listings people asked for wait on the giver's pick (read only while one is up).
+  const freeAsks = useFreeAsksToPick(userId, (mine.data ?? []).some((i) => i.status === "live" && i.current_price_cents === 0));
+  const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks + tradeAsks + freeAsks.length;
   const waitingLabel = useWaitingChipLabel();
   // AUD31-4: a sale to hand over is the seller's next move, so on the whole tab it comes before the offers, the
   // listings and their empty cards (at 375 it sat at the very bottom, behind the floating +).
@@ -204,6 +207,7 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
       {only === "offers" && toAnswer === 0 && todo && <DeclutterNotice title="Nothing to answer right now." />}
       {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} />}
       {show("offers") && <QuestionsToAnswer userId={userId} />}
+      {show("offers") && <FreeAsksToPick rows={freeAsks} />}
       {show("offers") && <BundleRequestsSection side="seller" userId={userId} />}
       {show("offers") && <TradeOffersSection side="seller" userId={userId} />}
       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />}

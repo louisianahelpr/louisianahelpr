@@ -8,7 +8,7 @@
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx |       {open && t.my_side === "buyer" && ( |       {t.my_side === "buyer" && (
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx |       {t.status === "accepted" && t.my_line_status === "in_cart" && ( |       {t.status === "accepted" && (
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx |   return (useMyTrades("seller", userId).data ?? []).filter((t) => t.status === "open").length; |   return 0;
- * @mutate src/components/declutter/DeclutterMineViews.tsx | + bundleAsks + tradeAsks; | + bundleAsks;
+ * @mutate src/components/declutter/DeclutterMineViews.tsx | + bundleAsks + tradeAsks + freeAsks.length; | + bundleAsks + freeAsks.length;
  * @mutate src/lib/declutter/trades.ts |     my_line_status: (side === "seller" ? seller_line : buyer_line)?.status ?? null, |     my_line_status: (side === "seller" ? buyer_line : seller_line)?.status ?? null,
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx |       {t.talk_order_id && <TradeTalkButton orderId={t.talk_order_id} />}\n |
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx |     next.set("order_talk", orderId); |     next.set("talk", orderId);
@@ -164,7 +164,7 @@ describe("Declutter trade cards (slice 3)", () => {
 
   it("Selling's To answer counts the open trade offers, and both tabs show the section", () => {
     const views = src("src/components/declutter/DeclutterMineViews.tsx");
-    expect(views).toMatch(/\+ bundleAsks \+ tradeAsks;/);
+    expect(views).toMatch(/\+ bundleAsks \+ tradeAsks \+ freeAsks\.length;/);
     expect(views).toMatch(/const tradeAsks = useTradeOffersToAnswer\(userId\)/);
     expect(views).toMatch(/<TradeOffersSection side="seller" userId=\{userId\} \/>/);
     expect(views).toMatch(/<TradeOffersSection side="buyer" userId=\{user\?\.id \?\? null\}[^>]*\/>/);

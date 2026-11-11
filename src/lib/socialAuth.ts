@@ -69,6 +69,8 @@ export type AccountChoice = AccountChoiceRef & {
   idToken?: string;
   /** Q1791: iOS Apple only, the one-time code apple-token-store exchanges once the account exists. */
   appleCode?: string | null;
+  /** App Store 4 (11-11): the name Apple handed over on this sign-in, saved once the account exists. */
+  appleName?: string | null;
 };
 
 /** Thrown inside the native path; never escapes signInWithProvider. */
@@ -162,7 +164,9 @@ function providerLabel(provider: SocialProvider): string {
 
 // Internal: the native sign-in path. Throws on any non-cancel failure so
 // the caller's catch can run friendlyProviderError + hapticError.
-async function nativeIdToken(provider: SocialProvider): Promise<{ idToken: string; appleCode: string | null }> {
+async function nativeIdToken(
+  provider: SocialProvider,
+): Promise<{ idToken: string; appleCode: string | null; appleName: string | null }> {
   await initSocialLogin();
   const options =
     provider === "apple"
@@ -174,7 +178,49 @@ async function nativeIdToken(provider: SocialProvider): Promise<{ idToken: strin
   >[0]);
   const idToken = (result as { idToken?: string })?.idToken;
   if (!idToken) throw new Error(`${providerLabel(provider)} sign-in returned no idToken`);
-  return { idToken, appleCode: provider === "apple" ? appleAuthorizationCode(result) : null };
+  return {
+    idToken,
+    appleCode: provider === "apple" ? appleAuthorizationCode(result) : null,
+    appleName: provider === "apple" ? appleFullName(result) : null,
+  };
+}
+
+/**
+ * App Store Review Guideline 4 (rejection 11-11, 1.0.4 build 7601): Sign in
+ * with Apple must not ask for a name Apple already gave. Apple puts the name
+ * in the native result (never in the id token), and only on the FIRST
+ * authorization, so it is read here and saved right after sign-in.
+ */
+export function appleFullName(result: unknown): string | null {
+  const r = result as {
+    profile?: { givenName?: unknown; familyName?: unknown } | null;
+    givenName?: unknown;
+    familyName?: unknown;
+  } | null;
+  const part = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  const given = part(r?.profile?.givenName) || part(r?.givenName);
+  const family = part(r?.profile?.familyName) || part(r?.familyName);
+  const full = [given, family].filter(Boolean).join(" ");
+  return full || null;
+}
+
+/**
+ * Save Apple's name onto the new profile, only where the profile has none (a
+ * member's own edit always wins). Awaited before the app routes on, so Complete
+ * Profile already sees it; a failure is reported and never blocks sign-in.
+ */
+async function saveAppleName(userId: string | null | undefined, appleName: string | null | undefined): Promise<void> {
+  if (!userId || !appleName) return;
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ full_name: appleName })
+      .eq("id", userId)
+      .or("full_name.is.null,full_name.eq.");
+    if (error) report(error, { severity: "warning", tags: { area: "auth", op: "saveAppleName" } });
+  } catch (err) {
+    report(err, { severity: "warning", tags: { area: "auth", op: "saveAppleName" } });
+  }
 }
 
 /**
@@ -205,13 +251,14 @@ function storeAppleToken(appleCode: string | null): void {
 }
 
 async function nativeSignIn(provider: SocialProvider): Promise<void> {
-  const { idToken, appleCode } = await nativeIdToken(provider);
-  const { error } = await supabase.auth.signInWithIdToken({ provider, token: idToken });
+  const { idToken, appleCode, appleName } = await nativeIdToken(provider);
+  const { data, error } = await supabase.auth.signInWithIdToken({ provider, token: idToken });
   // Q446: the server refused to create an account nobody chose.
   const choice = error ? accountChoiceFrom(error) : null;
-  if (choice) throw new AccountChoiceRequired({ ...choice, provider, idToken, appleCode });
+  if (choice) throw new AccountChoiceRequired({ ...choice, provider, idToken, appleCode, appleName });
   if (error) throw error;
   storeAppleToken(appleCode);
+  await saveAppleName(data?.user?.id, appleName);
 }
 
 /** The hook's refusal, read off a GoTrue error (any shape). */
@@ -346,10 +393,11 @@ export async function continueAsNewAccount(
   if (!choice.provider) return { kind: "marked" };
   const provider = choice.provider;
   if (choice.idToken) {
-    const { error: signInError } = await supabase.auth.signInWithIdToken({ provider, token: choice.idToken });
+    const { data: signedIn, error: signInError } = await supabase.auth.signInWithIdToken({ provider, token: choice.idToken });
     if (!signInError) {
       setLastAuthMethod(provider);
       storeAppleToken(choice.appleCode ?? null);
+      await saveAppleName(signedIn?.user?.id, choice.appleName);
       return { kind: "success" };
     }
     // An expired token or a second refusal: start the native sheet over.

@@ -16,7 +16,7 @@ import { AlertCircle, Check, Loader2, ShieldCheck, Trash2, X } from "lucide-reac
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
 import { cn } from "@/lib/utils";
-import { isProfileComplete } from "@/components/ProtectedRoute";
+import { isAppleAccount, isProfileComplete } from "@/components/ProtectedRoute";
 import { splitName } from "@/lib/splitName";
 import { isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
@@ -82,6 +82,8 @@ const CompleteProfile = () => {
   // the same rule as ProtectedRoute's isProfileComplete.
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const ageBoxShown = user?.app_metadata?.provider !== "email";
+  // App Store 4 (11-11): never ask an Apple sign-in for a name (socialAuth saves Apple's; Profile can add one).
+  const nameAsked = !isAppleAccount(user);
   const ageDone = ageConfirmed || !ageBoxShown;
   const [location, setLocation] = useState("");
   // Optional — mirrors the same field on Signup.tsx's email path (S-001).
@@ -164,7 +166,7 @@ const CompleteProfile = () => {
   // value already on the profile row (e.g. an avatar uploaded previously).
   const checklist = useMemo(() => {
     return [
-      { label: t("profileGate.needName"), step: t("profileGate.stepName"), done: firstName.trim().length > 0 && lastName.trim().length > 0 },
+      ...(nameAsked ? [{ label: t("profileGate.needName"), step: t("profileGate.stepName"), done: firstName.trim().length > 0 && lastName.trim().length > 0 }] : []),
       ...(ageBoxShown ? [{ label: t("profileGate.needAge"), step: t("profileGate.stepAge"), done: ageConfirmed }] : []),
       // City and ZIP left the checklist (owner 2026-10-26: optional, as on
       // sign-up step 2); a typed ZIP is still checked on submit.
@@ -177,8 +179,7 @@ const CompleteProfile = () => {
     ];
   }, [
     lang, t,
-    firstName,
-    lastName,
+    firstName, lastName, nameAsked,
     ageBoxShown,
     ageConfirmed,
     acceptedPolicies,
@@ -221,7 +222,7 @@ const CompleteProfile = () => {
     if (!user) return;
 
     const fail = (msg: string) => { hapticError(); toast.error(msg); };
-    if (!firstName.trim() || !lastName.trim()) return fail(t("profileGate.nameToast"));
+    if (nameAsked && (!firstName.trim() || !lastName.trim())) return fail(t("profileGate.nameToast"));
     // The same words Signup.tsx says when step 1's 18+ box is left empty.
     if (!ageDone) return fail(t("signup.ageToast"));
     // City and ZIP are optional (owner 2026-10-26); a typed ZIP is five digits.
@@ -354,7 +355,7 @@ const CompleteProfile = () => {
             {/* Asked only when the provider gave no full name (owner 2026-10-26:
                 "Apple/Google: ask first+last only if the provider gave no full
                 name"). Google usually returns one; Apple often does not. */}
-            {!providerGaveName && (
+            {nameAsked && !providerGaveName && (
             <div className="grid grid-cols-2 gap-3" data-testid="complete-profile-names">
               <div className="space-y-1.5">
                 <Label htmlFor="firstName">{t("signup.firstName")} <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>

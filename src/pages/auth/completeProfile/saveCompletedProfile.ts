@@ -52,7 +52,8 @@ export async function saveCompletedProfile({
 
   // Single, lightweight DB update — no large JSON over the wire
   const updates: ProfileCompletionUpdates = {
-    full_name: fullName,
+    // An empty name never overwrites one already saved (an Apple account may skip it).
+    ...(fullName ? { full_name: fullName } : {}),
     bio: bio.trim(),
     // Optional: an empty field never overwrites what the profile has.
     ...(location.trim() ? { location: location.trim() } : {}),

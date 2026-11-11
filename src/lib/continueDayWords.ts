@@ -193,7 +193,7 @@ const ON_THE_WAY_OR_LATER = new Set(["on_the_way", "arrived", "working", "done"]
 const ARRIVED_OR_LATER = new Set(["arrived", "working", "done"]);
 const ARRIVAL_STAMPS = ["helper_arrived_at", "helper_arrival_verified_at", "poster_confirmed_arrival_at"] as const;
 function withNewDayCheckIns<J extends object>(job: J, trackingStatus: string | null): J {
-  const out: Record<string, unknown> = { ...job };
+  const out = { ...job } as Record<string, unknown>;
   const st = trackingStatus ?? "";
   if (!ON_THE_WAY_OR_LATER.has(st) && "helper_on_the_way_at" in out) out.helper_on_the_way_at = null;
   if (!ARRIVED_OR_LATER.has(st)) for (const k of ARRIVAL_STAMPS) if (k in out) out[k] = null;

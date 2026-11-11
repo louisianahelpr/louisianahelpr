@@ -213,7 +213,7 @@ describe("photo-first selling, one screen", () => {
   // Owner 2026-10-29: a new listing is ONE screen. No step walk ("Continue", "1 of 5"); the summary rows and one Post.
   // @mutate src/components/declutter/DeclutterSellView.tsx |   if (!itemId) return <SellOneScreen />; |   void SellOneScreen;
   // @mutate src/components/declutter/SellOneScreen.tsx |           {s.publishing ? (s.postStep ?? "Posting…") : "Post it"} |           {s.publishing ? (s.postStep ?? "Posting…") : "Continue"}
-  // @mutate src/components/declutter/SellSummaryCard.tsx |           <Row {...row("size")} title="Size" value="" empty> | <Row {...row("size")} title="Size" value="" empty field="title">
+  // @mutate src/components/declutter/SellSummaryCard.tsx |           <Row {...row("size")} title={t("sell.size")} value="" empty> | <Row {...row("size")} title={t("sell.size")} value="" empty field="title">
   it("a NEW listing is one screen: photos, the summary rows, the tax box and Post it; no step walk, and no settings on it (owner 2026-10-30)", async () => {
     open();
     expect(await screen.findByRole("heading", { name: "Show it off" })).toBeInTheDocument();
@@ -547,13 +547,15 @@ describe("photo-first selling, one screen", () => {
   // Audit 11-10 F329: the open Title row read "Title" twice (the row header and a label over the box), and a long
   // pasted title was cut at 80 characters with no word.
   // @mutate src/components/declutter/SellSummaryCard.tsx | aria-labelledby="sell-row-title-title" maxLength={80} | aria-label="Title" maxLength={80}
-  // @mutate src/components/declutter/SellSummaryCard.tsx | {form.title.length}/80{form.title.length >= 80 ? " · That's the limit." : ""} | {form.title.length}/80
+  // @mutate src/components/declutter/SellSummaryCard.tsx | {form.title.length}/80{form.title.length >= 80 ? t("sell.limit") : ""} | {form.title.length}/80
   it("F329: the open Title row names the box once, and counts the characters, red at the 80 limit", async () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });
     fireEvent.click(screen.getByRole("button", { name: /^(Add|Edit) title$/ }));
     const box = screen.getByLabelText("Title");
     expect(box.id).toBe("sell-title");
+    // Named BY the row's own heading (one name, in the member's language), not a second hard-coded label.
+    expect(box.getAttribute("aria-labelledby")).toBe("sell-row-title-title");
     expect(screen.getAllByText("Title")).toHaveLength(1);
     expect(document.querySelector("[data-title-count]")?.textContent).toBe("0/80");
     fireEvent.change(box, { target: { value: "Oak rocking chair" } });
@@ -641,7 +643,7 @@ describe("photo-first selling, one screen", () => {
   // @mutate src/components/declutter/SellOneScreen.tsx | title={form.free ? "Give it away" : "Sell an item"} | title="Sell an item"
   // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free}> | phoneHidesTitle>
   // @mutate src/components/declutter/SellSummaryCard.tsx | : field === "description" ? "text-foreground" : "font-semibold text-foreground"} | : "font-semibold text-foreground"}
-  // @mutate src/components/declutter/SellSummaryCard.tsx | instead={form.free ? { label: "Charge for it", onClick: () => { set("free", false); setOpen(() => "price"); } } : undefined} | instead={undefined}
+  // @mutate src/components/declutter/SellSummaryCard.tsx | instead={form.free ? { label: t("sell.chargeForIt"), onClick: () => { set("free", false); setOpen(() => "price"); } } : undefined} | instead={undefined}
   // @mutate src/components/declutter/SellOneScreen.tsx | {!form.free && ai.state.status !== "done" && !s.keptWork.restored && <SellItForMeEntry />} | {<SellItForMeEntry />}
   it("Free: the words are a giveaway's, no price is suggested, and Edit price is Charge for it", async () => {
     open("/declutter/sell?free=1");

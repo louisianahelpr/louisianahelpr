@@ -5,6 +5,9 @@
  *
  * @mutate src/components/declutter/DeclutterBunchBar.tsx |   const nextRow = !listing && !sorting && itemCount > 0 && !(listStepInView && !(needs && onNeeds)); |   const nextRow = !listing && !sorting && itemCount > 0;
  * @mutate src/components/declutter/DeclutterBunchBar.tsx |     const io = new IntersectionObserver((entries) => setInView(entries.some((e) => e.isIntersecting)), { threshold: 0.15 }); |     const io = new IntersectionObserver(() => setInView(false), { threshold: 0.15 });
+ *
+ * F337 (audit 11-10): with nothing ready the bar said "All set." beside a greyed "Next: list 0 items".
+ * @mutate src/components/declutter/DeclutterBunchBar.tsx | {readyCount === 0 ? "Nothing ready yet." : `All | {readyCount === -1 ? "Nothing ready yet." : `All
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
@@ -49,5 +52,12 @@ describe("Sell a bunch has one list button on screen", () => {
     act(() => seen.forEach((cb) => cb([{ isIntersecting: true }])));
     expect(screen.getByRole("button", { name: "1 item needs a price" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^Next: list/ })).toBeNull();
+  });
+
+  it("with nothing ready the bar says so, never All set. (F337)", () => {
+    render(<BunchBar sorting={null} found={0} listing={null} runNames={[]} undo={null} itemCount={1} readyCount={0} needs={null} onNeeds={null}
+      onNext={() => {}} onUndo={() => {}} onUseOtherPrice={() => {}} />);
+    expect(screen.getByText("Nothing ready yet.")).toBeTruthy();
+    expect(screen.queryByText(/All .*set\./)).toBeNull();
   });
 });

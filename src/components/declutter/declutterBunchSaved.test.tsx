@@ -1,4 +1,5 @@
 /**
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |   const sortedCount = items.filter((it) => !it.notSorted).length; |   const sortedCount = items.length;
  * @mutate src/lib/declutter/bunchSaved.ts |         await set(photoPrefix + photo.key, await photo.file.arrayBuffer()); |         throw blobRefused;
  * @mutate src/components/declutter/useDeviceSaved.ts |     window.addEventListener("pagehide", now); |     void now;
  * @mutate src/components/declutter/useDeviceSaved.ts |       if (document.visibilityState === "hidden") flush(); |       void 0;
@@ -206,6 +207,8 @@ describe("Sell a bunch survives leaving", () => {
     renderFlow();
     expect(await screen.findByRole("heading", { name: "3 photos not sorted yet" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sort again" })).toBeTruthy();
+    // F337: a pile is not an item, so no "(0 of 1 ready)" with no item shown.
+    expect(screen.getByRole("heading", { name: /^\d\. Check each item$/ })).toBeTruthy();
   }
 
   it("3 photos mid-sort, the screen goes (unmount) before the save delay: coming back brings all 3 back", async () => {

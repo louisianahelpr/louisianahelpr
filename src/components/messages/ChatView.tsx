@@ -343,7 +343,7 @@ export function ChatView({
             <div data-off-platform-note className="w-full mt-3 shrink-0 rounded-md bg-muted border border-border px-2.5 py-1.5 relative flex items-start gap-1.5 pr-11 mb-2">
               <AlertTriangle className="w-3 h-3 text-foreground mt-[3px] shrink-0" />
               <p className="text-ds-11 leading-snug text-foreground">
-                Keep chats &amp; payments on Helpr — going off-platform risks an account restriction.
+                Keep chats &amp; payments on Helpr so your job stays covered.
               </p>
               {/* Absolutely positioned so the 44px hit target doesn't force the
                   compact banner to expand to 44px in height. The button is

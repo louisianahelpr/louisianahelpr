@@ -22,6 +22,8 @@ import { offerSwap, tradeableListings } from "@/lib/declutter/trades";
 import { focusSheetItself } from "./focusSheetItself";
 import { myItemsQuery } from "./myItemsQuery";
 import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
+import { timeLeft } from "@/lib/declutter/timeLeft";
+import { useMyTrades } from "./useMyTrades";
 
 export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "id" | "title" | "accepts_trades">; userId: string }) {
   const qc = useQueryClient();
@@ -29,6 +31,11 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
   const [picked, setPicked] = useState("");
   const mine = useQuery({ ...myItemsQuery(userId), enabled: open });
   const choices = tradeableListings(mine.data ?? [], item.id);
+  // Audit 1110 F359f: an open trade offer of the viewer's on this item was invisible here ("Offer a trade" as if none
+  // was sent), unlike a cash offer's "Your offer". The same read and key as Buying's trade section, only on a listing
+  // that takes trades.
+  const myTrades = useMyTrades("buyer", item.accepts_trades === true ? userId : null);
+  const myOpen = myTrades.data?.find((t) => t.status === "open" && t.item?.id === item.id) ?? null;
   const send = useMutation({
     mutationFn: (offeredId: string) => offerSwap(item.id, offeredId),
     onSuccess: () => {
@@ -40,6 +47,19 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   if (item.accepts_trades !== true) return null;
+  if (myOpen) {
+    return (
+      <div className="rounded-[20px] border border-border bg-background p-3 space-y-1" data-my-open-trade="">
+        <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-ds-14 font-semibold text-foreground">
+          <span className="[overflow-wrap:anywhere]">You offered your {myOpen.offered?.title ?? "listing"} in trade</span>
+          <span className="text-ds-13 tabular-nums text-muted-foreground">{timeLeft(myOpen.respond_by)}</span>
+        </p>
+        <p className="text-ds-13 text-muted-foreground">
+          Waiting on the seller. <Link to="/declutter?tab=buying" className="font-semibold underline underline-offset-2">See it in Buying</Link>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div data-offer-trade="">

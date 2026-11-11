@@ -2,7 +2,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useFeature } from "@/hooks/useFeature";
 import { useIdentityCheckStatus } from "@/hooks/useIdentityCheckOn";
-import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
+import { setIdentityCheckLastAnswer, setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 import { setPayoutAfterHireOn } from "@/lib/payoutAfterHireSwitch";
 import { markIdentitySheetUnavailable, useIdentityCheckSheet } from "@/lib/identityCheck";
 import { loadModule, untilReload } from "@/lib/loadModule";
@@ -39,8 +39,11 @@ export function hasIdentityEntryParam(params: URLSearchParams): boolean {
  * Guard: src/test/chromeWaitsOnlyForItsOwnCode.test.tsx.
  */
 export function IdentityCheckMount() {
-  const { on: idOn } = useIdentityCheckStatus();
+  const { on: idOn, lastAnswer: idLastAnswer } = useIdentityCheckStatus();
   useEffect(() => setIdentityCheckOn(idOn), [idOn]);
+  useEffect(() => setIdentityCheckLastAnswer(idLastAnswer), [idLastAnswer]);
+  // Unmounted on sign-out: the next account starts from "not known", never this one's answer (lh-money-escrow review 4).
+  useEffect(() => () => setIdentityCheckLastAnswer(null), []);
   // Payout setup after the hire (owner 2026-10-25): published the same way, for
   // the accept-gate mirror and the job card's "Finish payout setup" line.
   const payoutAfterHire = useFeature("payout_after_hire");

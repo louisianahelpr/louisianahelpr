@@ -52,9 +52,11 @@ import {
 import { buyerOnWayToday } from "@/lib/declutter/pickupDay";
 import { ProblemOpenNote } from "./DeclutterProblemOpen";
 import { OrderGetHelpNow } from "@/components/jobs/GetHelpNow";
-import { payoutLine } from "./declutterPayoutWords";
+import { payoutLine, setupFeeAheadByOrder, setupFeeUnsureOrders } from "./declutterPayoutWords";
+import { payoutAccountReady } from "@/lib/payoutAfterHire";
 import { ManagerSaleShareGate } from "./ManagerSaleShareGate";
-import { useOpenProblems } from "./useOpenProblems";
+import { useOpenProblemsRead } from "./useOpenProblems";
+import { useSellerSetupFee } from "./useSellerSetupFee";
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { BuyerCheckWindow } from "./BuyerCheckWindow";
 import { CancelledOrderNote } from "./CancelledOrderNote";
@@ -94,7 +96,7 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   /** Which orders the chosen chip shows (all when absent). */
   show?: (orderId: string) => boolean;
 }) {
-  const { user } = useCurrentUser();
+  const { user, profile } = useCurrentUser();
   const userId = user?.id ?? "";
   const orders = paidOrdersFromCart(cart);
   const ids = orders.map((o) => o.orderId);
@@ -108,8 +110,16 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
     queryFn: () => fetchMyPayouts(userId),
     enabled: !!userId && orders.some((o) => o.side === "seller"),
   });
+  // F360b: the one-time setup fee comes out of a first payout at its send while the ID check is on (never an admin's;
+  // declutter_setup_fee_from_payout_cents), so the card's "You get" is the row's amount less it. Read only when it can
+  // apply: the seller has not paid it (profiles.onboarding_fee_paid, the SQL's own test) and a payout is still unsent.
+  // Read only when a row could take it: a payout still unsent. Unknown inputs (switch, admin check, fee read) hide the
+  // unsent rows' figure rather than show one too high by the fee (lh-money-escrow reviews 11-11).
+  const setupFee = useSellerSetupFee((payouts.data ?? []).some((p) => p.status === "pending" || p.status === "failed"));
+  const feeUnknown = setupFee.unknown;
+  const payoutReady = payoutAccountReady(profile);
   // Audit 1b D2-2: an open problem shows on both cards and hides booking and a second report.
-  const problems = useOpenProblems(ids);
+  const { problems, settled: problemsSettled } = useOpenProblemsRead(ids);
   // BUY-30: the order a notice opened shows whatever the chip.
   const linked = useLinkedOrder();
   const chosen = show ? orders.filter((o) => show(o.orderId) || o.orderId === linked) : orders;
@@ -117,6 +127,8 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   // the sales still to hand over, then handed over, then refunded.
   const shown = views ? byBucket(chosen, views) : liveSalesFirst(chosen);
   if (shown.length === 0 || !userId) return null;
+  const feeAhead = setupFeeAheadByOrder(payouts.data ?? [], setupFee.cents);
+  const feeUnsure = setupFeeUnsureOrders(payouts.data ?? [], setupFee.cents);
   if (bookings.isError) {
     return <ErrorState variant="inline" title="We couldn't load your pickups." body={declutterErrorMessage(bookings.error)} onRetry={() => void bookings.refetch()} />;
   }
@@ -132,6 +144,9 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
           userId={userId}
           booking={(bookings.data ?? []).find((b) => b.order_id === o.orderId) ?? null}
           payout={(payouts.data ?? []).find((p) => p.order_id === o.orderId) ?? null}
+          setupFeeAhead={feeAhead.get(o.orderId) ?? 0}
+          holdUnknown={feeUnknown || !problemsSettled || feeUnsure.has(o.orderId)}
+          payoutReady={payoutReady}
           problem={problems.get(o.orderId) ?? null}
           linked={o.orderId === linked}
         />
@@ -140,7 +155,7 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   );
 }
 
-function OrderCard({ order, userId, booking, payout, view, problem, linked }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; view?: BuyerOrderView; problem: OpenProblem | null; linked: boolean }) {
+function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnknown = false, payoutReady = true, view, problem, linked }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; setupFeeAhead?: number; holdUnknown?: boolean; payoutReady?: boolean; view?: BuyerOrderView; problem: OpenProblem | null; linked: boolean }) {
   const title = order.lines.map((l) => l.item_title).join(", ");
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
   const done = order.status === "handed_over";
@@ -152,7 +167,9 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
   // The same row and key HandoverPanel, NoShowButton and NoShowAnswer read: a buyer's no-show report and its 24 hours.
   // F156 (lab 11-09): only a PAID order is asked. declutter_my_handover answers paid and handed-over orders only, so a
   // refunded order's card (enabled: !done) got item_not_found and logged a QueryCache error on every Buying load.
-  const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId), enabled: order.status === "paid" });
+  const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId),
+    // F360b: a seller's handed-over card reads it too, for the payout day (24 hours after confirmed_at).
+    enabled: order.status === "paid" || (order.status === "handed_over" && order.side === "seller" && !!payout) });
   const noShowWaiting = !!handoverRow.data?.no_show_reported_at;
   const porchSeller = order.handover === "porch" && order.side === "seller"; // Q2627: its no-show and Report a problem wait for the porch window's end (noShowFrom).
   const [problemOpen, setProblemOpen] = useState(false);
@@ -223,7 +240,11 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {/* BUY-31: said once (the buyer's head line; SellerDeliveryStatus to the seller). NIGHT-SELL-soldstates-7: a finished delivery shows the tracker at its end too. */}
           {order.handover === "delivery" && !view && <DeliveryDoneStatus free={items === 0} refunded={fullRefund} />}
           {order.side === "seller" && items > 0 && <ManagerSaleShareGate orderId={order.orderId} itemsCents={items} itemCount={order.lines.length} />}
-          {order.side === "seller" && payout && items > 0 && <p className="text-sm">{payoutLine(payout, !!problem)}
+          {/* An unsent payout's day waits on every hold read: the fee inputs, the open problems, and the refund request
+              (declutter_payouts_due holds on an open problem or a running request; a declined one moves the day). */}
+          {order.side === "seller" && payout && items > 0 && !((holdUnknown || (refundRequests && !refund.isSuccess)) && (payout.status === "pending" || payout.status === "failed")) && <p className="text-sm">{payoutLine(payout, !!problem, {
+            handedOverAt: handoverRow.data?.confirmed_at ?? null, refundOpen: refundIsOpen(refundStatus), setupFeeAhead, payoutReady,
+            declinedAt: refundStatus === "declined" ? refund.data?.request?.declined_at ?? null : null })}
             {payout.status === "failed" && <FailedPayoutLink />}</p>}
           {refundRequests && items > 0 && (
             <Suspense fallback={null}>

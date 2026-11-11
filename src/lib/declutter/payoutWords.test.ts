@@ -6,7 +6,7 @@
  * @mutate src/lib/declutter/payoutWords.ts |   if ((p.refunded_cents ?? 0) >= sale) return "Nothing to pay out: the buyer was refunded for this sale."; |
  * @mutate src/lib/declutter/payoutWords.ts |   if (p.debt_cents > 0) return "Nothing to pay out: this sale covered an amount you owed from an earlier refund."; |
  * @mutate src/lib/declutter/payoutWords.ts |   const sale = p.items_cents + (p.delivery_cents ?? 0); |   const sale = p.items_cents + (p.delivery_cents ?? 0) + 1;
- * @mutate src/lib/declutter/payoutWords.ts | p.debt_cents > 0 ? ` after the buyer's refund and ${formatPrice(p.debt_cents)} you owed` : | false ? "" :
+ * @mutate src/lib/declutter/payoutWords.ts | owed ? ` after the ${formatPrice(refunded)} refund and ${owed}` : | false ? "" :
  *
  * NIGHT-SELL-soldstates-4 (buying.md #47): a failed payout says honestly whether we are still trying. The payout run
  * stops after its last try (the NEWEST declutter_payouts_due: attempts < 12, read below) and nothing restarts it but
@@ -34,7 +34,7 @@ describe("D2-6: the $0 payout says why, from the payout row", () => {
   it("refunded in full (the audit's case): the refund, never an amount owed", () => {
     const p = row({ refunded_cents: 2000 });
     expect(payoutStatusWords(p)).toBe("Nothing to pay out: the buyer was refunded for this sale.");
-    expect(payoutBreakdown(p)).toBe(" after the buyer's refund");
+    expect(payoutBreakdown(p)).toBe(" after the $20 refund");
   });
 
   it("a seller delivery refunded in full counts its rate too", () => {
@@ -49,7 +49,7 @@ describe("D2-6: the $0 payout says why, from the payout row", () => {
   it("a part refund plus an amount owed: both named, each from what was taken", () => {
     const p = row({ refunded_cents: 1931, debt_cents: 69 });
     expect(payoutStatusWords(p)).toBe("Nothing to pay out: this sale covered an amount you owed from an earlier refund.");
-    expect(payoutBreakdown(p)).toBe(" after the buyer's refund and $0.69 you owed");
+    expect(payoutBreakdown(p)).toBe(" after the $19.31 refund and $0.69 you owed");
   });
 
   it("other statuses keep their words; nothing owed and no refund says only that", () => {

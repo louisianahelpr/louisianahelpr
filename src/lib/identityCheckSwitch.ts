@@ -32,6 +32,34 @@ export function setIdentityCheckOn(next: boolean): void {
   listeners.forEach((l) => l());
 }
 
+let lastAnswer: boolean | null = null;
+const answerListeners = new Set<() => void>();
+
+/**
+ * IdentityCheckMount publishes the switch's last REAL answer: null until one arrives, and kept through a failed
+ * refetch (useFeatureStatus.lastAnswer). Not `on`, which reads a failed read as off.
+ */
+export function setIdentityCheckLastAnswer(next: boolean | null): void {
+  if (next === lastAnswer) return;
+  lastAnswer = next;
+  answerListeners.forEach((l) => l());
+}
+
+/**
+ * F360b (lh-money-escrow reviews 11-11): a money figure that depends on the switch (the setup fee from a first payout)
+ * must tell "off" from "not known": null is not known, and a failed read is never taken for off.
+ */
+export function useIdentityCheckLastAnswerStore(): boolean | null {
+  return useSyncExternalStore(
+    (l) => {
+      answerListeners.add(l);
+      return () => answerListeners.delete(l);
+    },
+    () => lastAnswer,
+    () => lastAnswer,
+  );
+}
+
 /** The same answer for a component that renders from it. */
 export function useIdentityCheckOnStore(): boolean {
   return useSyncExternalStore(

@@ -275,7 +275,7 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
       return (
         <div className="space-y-2">
           <p className="text-sm">
-            {cap(who)} said no to a refund.{v.can_report && r.report_until ? ` If you still think something is wrong, report a problem by ${at(r.report_until)} and Louisiana Helpr decides.` : ""}
+            {cap(who)} said no to a refund.{v.can_report && r.report_until ? ` If you still think something is wrong, ask Louisiana Helpr to look by ${at(r.report_until)}, and we decide.` : ""}
           </p>
           <SellerSideShown note={r.seller_note} photos={r.seller_photo_paths} who={who} />
           {v.can_report && problemForm}

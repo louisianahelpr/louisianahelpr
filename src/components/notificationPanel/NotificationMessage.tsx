@@ -7,12 +7,15 @@
  */
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enNotifications";
 
 /** Past this a 2-line clamp can cut the text on a phone (about 40 characters a line at 375). */
 const MESSAGE_FITS_TWO_LINES = 80;
 
 export function NotificationMessage({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
+  const { t } = useLanguage();
   const long = text.length > MESSAGE_FITS_TWO_LINES;
   return (
     <>
@@ -37,7 +40,7 @@ export function NotificationMessage({ text }: { text: string }) {
           className="-my-2.5 px-0 justify-start font-sans text-ds-12 font-semibold tracking-normal underline decoration-current decoration-auto underline-offset-2"
           style={{ color: "hsl(var(--bark))" }}
         >
-          {open ? "Less" : "More"}
+          {open ? t("notif.less") : t("notif.more")}
         </Button>
       )}
     </>

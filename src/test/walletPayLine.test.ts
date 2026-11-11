@@ -23,7 +23,8 @@ describe("board 186: the pay line names only live wallets", () => {
 
   it("the Post a Job pay button carries it (not on a gift-covered post, which has no payment page)", () => {
     const src = blankComments(readFileSync("src/components/postjob/CheckoutStep.tsx", "utf8"));
-    expect(src).toMatch(/giftCoversEverything \? "Held safely until the job's done\." : `\$\{payNextLine\(\)\} Held safely until the job's done\.`/);
+    // F304 (owner 2026-11-11): a plain job's card says "Held safely until you approve the work.", so its line is the pay line alone.
+    expect(src).toMatch(/giftCoversEverything \? "Held safely until the job's done\." : plainYouPay \? payNextLine\(\) : `\$\{payNextLine\(\)\} Held safely until the job's done\.`/);
   });
 
   it("the charge moment is said early (owner 2026-10-21, friction 2): price screen, review screen, button", () => {

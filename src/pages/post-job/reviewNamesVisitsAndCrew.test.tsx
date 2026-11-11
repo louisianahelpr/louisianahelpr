@@ -48,7 +48,8 @@ function makeForm(over: Record<string, unknown> = {}): ReturnType<typeof usePost
 function totalRow(): string {
   const notes = screen.getByTestId("checkout-total-notes");
   const card = notes.parentElement!;
-  expect(card.textContent, "the breakdown has its Total").toMatch(/Total/);
+  // F304 (owner 2026-11-11): a plain job's card says "You pay" instead of "Total".
+  expect(card.textContent, "the breakdown has its Total").toMatch(/Total|You pay/);
   return (card.textContent ?? "").replace(/\s+/g, " ");
 }
 

@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1228,
+    "calls": 1229,
     "files": 355,
-    "rendering": 1147,
+    "rendering": 1148,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 10,
       "successToast": 2,
       "toast": 245,
-      "toast.error": 823,
+      "toast.error": 824,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 501,
       "template": 107,
-      "dynamic": 674,
+      "dynamic": 675,
       "jsx": 0
     }
   },
@@ -4884,7 +4884,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 317,
+      "line": 338,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4904,7 +4904,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 323,
+      "line": 344,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4914,7 +4914,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 398,
+      "line": 419,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4924,7 +4924,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 402,
+      "line": 423,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4934,7 +4934,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 415,
+      "line": 436,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4944,7 +4944,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 508,
+      "line": 529,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4954,7 +4954,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 509,
+      "line": 530,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4964,7 +4964,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 535,
+      "line": 556,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4984,7 +4984,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 536,
+      "line": 557,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4994,7 +4994,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 537,
+      "line": 558,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5004,7 +5004,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 538,
+      "line": 559,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5014,7 +5014,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 541,
+      "line": 562,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5586,7 +5586,17 @@
     },
     {
       "file": "src/components/declutter/DeclutterProblemForm.tsx",
-      "line": 41,
+      "line": 54,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterProblemForm.tsx",
+      "line": 57,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5596,7 +5606,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterProblemForm.tsx",
-      "line": 47,
+      "line": 63,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

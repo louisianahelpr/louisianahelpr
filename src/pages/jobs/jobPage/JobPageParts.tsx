@@ -193,14 +193,20 @@ function helprNoPayWords(job: JobPageRow, noShow = false): { title: string; line
   return { title: "Not paid", line: "This job was cancelled, so there's nothing to pay out." };
 }
 
-/** "It was cancelled less than 3 hours before the start" (Louisiana start time), or "close to the start" without one. */
+/**
+ * "It was cancelled less than 24 hours before the start" (Louisiana start time), or "close to the start" without one.
+ * F285 (audit 11-10): it named the rounded-up gap ("less than 23 hours"), which read as a different rule from the
+ * 24-hour one everywhere else. It names the cancel ladder's own step instead (cancellationFeePercent: under 24 h,
+ * under 2 h), with "an hour" kept for the last hour.
+ */
 function lateBy(job: Pick<JobPageRow, "cancelled_at" | "date_needed" | "start_time">): string {
   const start = job.date_needed && job.start_time ? jobStartDateTime(job.date_needed, job.start_time) : null;
   const atMs = Date.parse(job.cancelled_at ?? "");
   const left = start && !Number.isNaN(atMs) ? start.getTime() - atMs : NaN;
   if (Number.isNaN(left) || left <= 0) return "It was cancelled close to the start";
-  const hours = Math.ceil(left / 3_600_000);
-  return hours <= 1 ? "It was cancelled less than an hour before the start" : `It was cancelled less than ${hours} hours before the start`;
+  const hours = left / 3_600_000;
+  if (hours <= 1) return "It was cancelled less than an hour before the start";
+  return `It was cancelled less than ${hours < 2 ? 2 : 24} hours before the start`;
 }
 
 /** The Helpr's take-home and the words that go with it (one computation: takeHomeOneComputation.test.ts). */

@@ -27,7 +27,6 @@ import {
 } from "@/lib/declutter/api";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { wayAllowed } from "@/lib/declutter/handovers";
-import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { freeClaimGateRefusal } from "@/lib/declutter/setupFee";
 import { firstPickSteps } from "@/lib/declutter/freePickSteps";
@@ -41,6 +40,9 @@ import { NativeRadio } from "@/components/ui/NativeRadio";
 
 // Owner 11-01 (Mockup 3): the "Ask for it" sheet loads when the button is pressed, never with the item page.
 const FreeAskSheet = lazy(() => import("./FreeAskSheet"));
+// "None of the ways works" shows only when the giver offers no way this item can use: its chat module (2.7 KB gz) loads
+// then, not with every cold item page (critical-path budget, 11-11).
+const NoWayWorks = lazy(() => import("./DeclutterHandoverTalk").then((m) => ({ default: m.NoWayWorks })));
 
 /** "Today 3 PM" for a time the asker picked (the sheet's own words), without loading the sheet. */
 function pickedTimeLabel(iso: string): string {
@@ -405,7 +407,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone, 
           </label>
         ))}
         {!porchOk && ways === null && <p className="text-xs text-muted-foreground">The giver asked to meet at their home for this item, so porch pickup isn't available.</p>}
-        {offered.length === 0 && <NoWayWorks sellerId={sellerId} who="giver" />}
+        {offered.length === 0 && <Suspense fallback={null}><NoWayWorks sellerId={sellerId} who="giver" /></Suspense>}
       </fieldset>
       {atPlace && <PorchPlacePicker sellerId={sellerId} cartKey={0} places={porchPlaces.places} free refused={porchPlaces.refused} loadError={porchPlaces.query.error}
         onRetry={() => void porchPlaces.reread()} />}

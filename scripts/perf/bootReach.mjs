@@ -273,7 +273,9 @@ export function declutterItemSplit(root, split = signedInSplit(root)) {
 }
 
 /** Modules vite.config.ts pins into declutter-item-pages by path, whatever the split says (L32, L46). */
-export const ITEM_PAGES_PINNED_RE = /[\\/]src[\\/](components[\\/]declutter[\\/]useMarkTalkRead|lib[\\/]declutter[\\/]orderTalk|hooks[\\/](useWheelStep|useSpendableGiftCards))\.ts$/;
+// talkTime/talkRead (Builder 1, 11-11): the item page used to reach them through DeclutterHandoverTalk, now lazy; unpinned
+// they fell to signed-in-pages, which useMarkTalkRead/orderTalk here then imported (+23 KB gz on the item page).
+export const ITEM_PAGES_PINNED_RE = /[\\/]src[\\/](components[\\/]declutter[\\/]useMarkTalkRead|lib[\\/]declutter[\\/](orderTalk|talkTime|talkRead)|hooks[\\/](useWheelStep|useSpendableGiftCards))\.ts$/;
 
 /**
  * Profile's page and its first-screen panels (B90, 11-01): Money's tab and bank card, Notifications' settings list.

@@ -3,8 +3,8 @@
  * pickup only" (and "Only items with nightly price drops"), which were square checkboxes. Owner rule: pill buttons.
  * Inventory from source: every section declutterFilterSections returns (with the drops section on), rendered. None
  * holds a checkbox; the two yes/no filters are pressed-state pill buttons that toggle the filter.
- * @mutate src/components/declutter/DeclutterFilterPanel.tsx | <Chip on={filters.porchOnly} onClick={() => onChange({ ...filters, porchOnly: !filters.porchOnly })}>{HANDOVER_TITLE.porch}</Chip> | <label><input type="checkbox" checked={filters.porchOnly} onChange={() => onChange({ ...filters, porchOnly: !filters.porchOnly })} />{HANDOVER_TITLE.porch}</label>
- * @mutate src/components/declutter/DeclutterFilterPanel.tsx | <Row><Chip on={filters.dropsOnly} onClick={() => onChange({ ...filters, dropsOnly: !filters.dropsOnly })}>Only items with nightly price drops</Chip></Row> | <label><input type="checkbox" checked={filters.dropsOnly} onChange={() => onChange({ ...filters, dropsOnly: !filters.dropsOnly })} />Only items with nightly price drops</label>
+ * @mutate src/components/declutter/DeclutterFilterPanel.tsx | <Chip on={filters.porchOnly} onClick={() => onChange({ ...filters, porchOnly: !filters.porchOnly })}>{t("decl.way.porch")}</Chip> | <label><input type="checkbox" checked={filters.porchOnly} onChange={() => onChange({ ...filters, porchOnly: !filters.porchOnly })} />{t("decl.way.porch")}</label>
+ * @mutate src/components/declutter/DeclutterFilterPanel.tsx | <Row><Chip on={filters.dropsOnly} onClick={() => onChange({ ...filters, dropsOnly: !filters.dropsOnly })}>{t("decl.sheet.dropsOnly")}</Chip></Row> | <label><input type="checkbox" checked={filters.dropsOnly} onChange={() => onChange({ ...filters, dropsOnly: !filters.dropsOnly })} />{t("decl.sheet.dropsOnly")}</label>
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx | {priceRangeSwapped(filters) && <p | {false && <p
  */
 import { describe, expect, it, vi } from "vitest";

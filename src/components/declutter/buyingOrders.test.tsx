@@ -486,7 +486,9 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // @mutate src/components/declutter/BuyingOrders.tsx |   if (f.problem && f.problemAwaitsYou && !f.cancelled) return "Add your side"; |
   // Owner 11-11 (F363, option b): Needs you is exactly the Home To-do list's Buying rows, and that list has no row for a
   // handed-over order's report, so "rep" is filed under Waiting; its card still leads with "Add your side".
-  it("openpr-2: a handed-over order with the seller's open report shows Add your side (Waiting under option b), then Waiting once answered", async () => {
+  // Owner 11-11 (F363 side effect b): the seller's open report, the buyer's side still missing, puts the order under
+  // Needs you (it was Waiting under option b); once answered, or when the buyer reported it, it is Waiting.
+  it("openpr-2: a handed-over order with the seller's open report shows Add your side under Needs you, then Waiting once answered", async () => {
     load([
       { id: "rep", line: { order_status: "handed_over", handover: "porch" }, step: 3, bucket: "needs_you", action: "Add your side" },
       { id: "mine", line: { order_status: "handed_over", handover: "porch" }, step: 3, bucket: "waiting", action: null },
@@ -501,7 +503,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     };
     show();
     await waitFor(() => expect(within(card("rep")).getByRole("button", { name: "Add your side" })).toBeInTheDocument());
-    expect(card("rep").querySelector("[data-buyer-order]")?.getAttribute("data-buyer-order")).toBe("waiting");
+    expect(card("rep").querySelector("[data-buyer-order]")?.getAttribute("data-buyer-order")).toBe("needs_you");
     for (const id of ["mine", "ans"]) {
       expect(card(id).querySelector("[data-buyer-order]")?.getAttribute("data-buyer-order")).toBe("waiting");
       expect(within(card(id)).queryByRole("button", { name: "Add your side" })).toBeNull();

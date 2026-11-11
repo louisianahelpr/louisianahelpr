@@ -325,9 +325,17 @@ export function useBuyingTracker(): BuyingTracker {
   const refundsOn = useFeatureStatus("declutter_refund_requests").on;
   const myRefunds = useQuery({ queryKey: ["declutter", "my-refund-todos"], queryFn: fetchMyRefundTodos, enabled: refundsOn });
   const refundRows = refundsOn ? myRefunds.data ?? [] : [];
-  const homeRows = declutterBuyingTodos(lines, myOffers.data ?? [], refundRows);
+  // F363 side effect (b) (owner 11-11): a seller's problem report still waiting on the buyer's side is a Home To-do
+  // Buying row (dp-<order>), so the order moves into Needs you here too. Home reads the same problem rows
+  // (declutter_order_problem under the same key) and the same rule (declutterTodos).
+  const homeProblems = [...problems.values()].map((p) => ({
+    order_id: p.order_id,
+    reporter_side: p.reporter_side,
+    awaits_buyer: problemAwaitsBuyer(problemRows[problemIds.indexOf(p.order_id)]?.data ?? null),
+  }));
+  const homeRows = declutterBuyingTodos(lines, myOffers.data ?? [], refundRows, Date.now(), homeProblems);
   const refundOrder = new Map(refundRows.map((r) => [`dr-${r.request_id}`, r.order_id]));
-  const needsYouOrders = new Set(homeRows.map((r) => (r.id.startsWith("dh-") ? r.id.slice(3) : refundOrder.get(r.id))).filter((x): x is string => !!x));
+  const needsYouOrders = new Set(homeRows.map((r) => (r.id.startsWith("dh-") || r.id.startsWith("dp-") ? r.id.slice(3) : refundOrder.get(r.id))).filter((x): x is string => !!x));
   const views = new Map<string, BuyerOrderView>();
   const counts: Record<OrderBucket, number> = { needs_you: 0, waiting: 0, upcoming: 0, done: 0, cancelled: 0 };
   for (const o of orders) {

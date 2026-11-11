@@ -58,7 +58,7 @@ describe("F428: the block sheet is a short list, with Mute instead first", () =>
     const dialog = open();
     await screen.findByText(/also cancels/);
     const list = within(dialog).getByRole("list", { name: "Jobs that will be cancelled" });
-    // F260i: three show; the rest wait behind "Show all 10 jobs".
+    // F260i (2026-11-10): three show; the rest wait behind "Show all 10 jobs" (this fixture has 10).
     expect(within(list).getAllByRole("listitem")).toHaveLength(3);
     const top = within(dialog).getAllByRole("listitem").filter((li) => !list.contains(li));
     // A bullet's own words: what sits outside its nested list.

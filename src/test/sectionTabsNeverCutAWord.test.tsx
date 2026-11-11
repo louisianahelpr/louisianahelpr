@@ -125,7 +125,7 @@ describe("a tab row that doesn't fit", () => {
     fireEvent.click(screen.getByRole("button", { name: /^\d+ more tabs$/ }));
     act(() => { list.dispatchEvent(new Event("scroll")); });
     expect(cut()).toContain("Browse");
-    // At 174 a page back (Selling to the end) brings Browse back too: the selected tab is one tap away.
+    // (2026-11-10, F320) At a 174px-wide row, a page back (Selling to the end) brings Browse back too: the selected tab is one tap away.
     fireEvent.click(screen.getByRole("button", { name: "Earlier tabs" }));
     expect(list.scrollLeft).toBe(0);
     act(() => { list.dispatchEvent(new Event("scroll")); });

@@ -33,6 +33,7 @@
  * @mutate src/components/declutter/SellChooserEntry.tsx |       to={SELL_CHOOSER_PATH} |       to="/declutter/sell"
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/post-job", "/declutter/sell"]; | "/post-job"];
  * @mutate src/pages/post-job/EntryChoice.tsx |     <ChoiceCard key={key} icon={icon} title={title} line={line} onClick={onClick} extra={extra} /> |     <button key={key} type="button" onClick={onClick}>{title}{line}</button>
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx | sub={continueTo ? undefined : "What would you like to do?"} | sub={continueTo ? undefined : "How many things?"}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -99,6 +100,9 @@ describe("What do you want to sell?", () => {
     state.switches = { declutter: true, declutter_moving_out: true, declutter_wanted: true };
     at(SELL_CHOOSER_PATH);
     expect(await screen.findByRole("heading", { name: "Sell something" })).toBeTruthy();
+    // Audit 11-10 F324: the question fits a giveaway too.
+    expect(screen.getByText("What would you like to do?")).toBeTruthy();
+    expect(screen.queryByText("How many things?")).toBeNull();
     expect(choices()).toEqual([
       ["one", "/declutter/sell"],
       ["bunch", "/declutter/sell?mode=bunch"],

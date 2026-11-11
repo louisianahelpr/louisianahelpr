@@ -151,6 +151,11 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
   // Preorders (money review 11-08): the ready tap counts only from 14 days before ready-by (the server refuses earlier).
   const readyFrom = order.preorder_item_id && !h?.ready_at ? preorderReadyFrom(order.ready_date) : null;
   const tooEarly = readyFrom !== null && today < readyFrom;
+  const intro = [
+    handoverIntro(order, side),
+    h?.ready_at ? (side === "buyer" ? "The shop marked it ready." : "You marked it ready.") : "",
+    side === "buyer" && h?.shop_confirmed_at ? w.buyerShopSaysDone.trim() : "",
+  ].filter(Boolean).join(" ");
 
   if (side === "shop" && order.status === "handed_over") {
     const p = (payouts.data ?? []).find((x) => x.order_id === order.id);
@@ -171,11 +176,9 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
 
   return (
     <div className="space-y-2" data-testid="shop-handover-actions">
-      <p className="text-xs text-muted-foreground">
-        {handoverIntro(order)}{" "}
-        {h?.ready_at ? (side === "buyer" ? "The shop marked it ready." : "You marked it ready.") : ""}
-        {side === "buyer" && h?.shop_confirmed_at ? w.buyerShopSaysDone : ""}
-      </p>
+      {intro && (
+        <p className="text-xs text-muted-foreground" data-testid="shop-handover-intro">{intro}</p>
+      )}
       {side === "shop" && tooEarly && readyFrom ? (
         <p className="text-xs text-muted-foreground" data-testid="shop-preorder-ready-from">
           {`This is a preorder. You can mark it ready from ${shortDate(readyFrom)}.`}

@@ -11,12 +11,18 @@ export function isServiceOrder(order: Pick<ShopOrder, "shop_order_lines">): bool
   return order.shop_order_lines.some((l) => l.kind === "service" || !!l.at_buyer);
 }
 
-/** How the order reaches the buyer, in one short line (#14: never "Pick up in person" on a delivery). */
-export function handoverIntro(order: Pick<ShopOrder, "shop_order_lines" | "handover_mode" | "fulfillment" | "helpr_unfilled_at">): string {
-  if (isServiceOrder(order)) return "The shop marks it done when the work is finished.";
-  if (order.fulfillment === "shop_delivers") return "The shop delivers.";
+/**
+ * How the order reaches the buyer, in one short line (#14: never "Pick up in person" on a delivery), in the words of
+ * the side reading it (Q2154 screenshot pass 11-10: the shop read "The shop marks it done ..." and "The shop
+ * delivers." about itself). A service's shop side has no intro: its wait line already says "Tap Mark complete ...".
+ */
+export function handoverIntro(order: Pick<ShopOrder, "shop_order_lines" | "handover_mode" | "fulfillment" | "helpr_unfilled_at">, side: "buyer" | "shop"): string {
+  const shop = side === "shop";
+  if (isServiceOrder(order)) return shop ? "" : "The shop marks it done when the work is finished.";
+  if (order.fulfillment === "shop_delivers") return shop ? "You deliver it." : "The shop delivers.";
   if (order.fulfillment === "helpr_delivers" && !order.helpr_unfilled_at) return "A Helpr delivers.";
-  return order.handover_mode === "porch" ? "Left out for pickup." : "Pick up in person.";
+  if (order.handover_mode === "porch") return shop ? "You leave it out for pickup." : "Left out for pickup.";
+  return shop ? "The buyer picks it up from you." : "Pick up in person.";
 }
 
 export interface HandoverWords {

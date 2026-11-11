@@ -7,7 +7,7 @@
  *
  * @mutate src/lib/shops/handoverWords.ts |   return order.shop_order_lines.some((l) => l.kind === "service" \|\| !!l.at_buyer); |   return false;
  * @mutate src/components/shops/ShopHandoverActions.tsx |       ) : side === "shop" && service ? ( |       ) : side === "shop" && false ? (
- * @mutate src/lib/shops/handoverWords.ts |   if (order.fulfillment === "shop_delivers") return "The shop delivers."; |
+ * @mutate src/lib/shops/handoverWords.ts |   if (order.fulfillment === "shop_delivers") return shop ? "You deliver it." : "The shop delivers."; |
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -63,7 +63,9 @@ describe("a service's shop side", () => {
     expect(screen.queryByRole("button", { name: /photo/i })).toBeNull();
     expect(screen.queryByRole("button", { name: "Mark ready" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Handed over" })).toBeNull();
-    expect(screen.getByTestId("shop-handover-actions").textContent).toContain("The shop marks it done when the work is finished.");
+    // Q2154: the shop is never told what "the shop" does; its wait line names its own step.
+    expect(screen.getByTestId("shop-handover-actions").textContent).not.toContain("The shop");
+    expect(screen.getByTestId("shop-handover-wait").textContent).toContain("Tap \"Mark complete\" when the work is finished.");
     fireEvent.click(done);
     fireEvent.click(screen.getByRole("button", { name: "confirm Mark complete" }));
     await vi.waitFor(() => expect(handover.markHandedOver).toHaveBeenCalledWith("o1"));

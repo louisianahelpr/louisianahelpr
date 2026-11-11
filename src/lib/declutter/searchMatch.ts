@@ -64,3 +64,39 @@ export function searchOrFilter(query: string): string | null {
   };
   return `and(${words.map(any).join(",")})`;
 }
+
+/** At most one letter added, dropped or changed between two words (a one-letter typo). */
+function oneEditApart(a: string, b: string): boolean {
+  if (a === b || Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  if (a.length === b.length) return a.slice(i + 1) === b.slice(i + 1);
+  return a.length > b.length ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+}
+
+/**
+ * Audit 11-10 F310: "lamb" found nothing while "lamp" had 5 items. When a search finds nothing, the nearest search
+ * that would: each query word no item holds is swapped for a word the items do hold one typo away (words of 4 letters
+ * or more, so "cup" never turns into "cap"). Null when no such swap finds an item. It only SUGGESTS (Browse offers it
+ * as a button); matchesSearch, the one rule shared with the server, is unchanged.
+ */
+export function closeSearch(
+  query: string,
+  items: readonly { title: string; description?: string | null; category?: string | null }[],
+): string | null {
+  const words = searchWords(query);
+  if (words.length === 0) return null;
+  const texts = items.map((it) => itemText(it.title, it.description, it.category));
+  const vocab = new Set(texts.flatMap((t) => t.split(" ")));
+  let changed = false;
+  const fixed = words.map((w) => {
+    if (w.length < 4 || texts.some((t) => t.includes(w))) return w;
+    const near = [...vocab].find((v) => v.length >= 4 && oneEditApart(w, v));
+    if (!near) return w;
+    changed = true;
+    return near;
+  });
+  if (!changed) return null;
+  const next = fixed.join(" ");
+  return items.some((it) => matchesSearch(next, it)) ? next : null;
+}

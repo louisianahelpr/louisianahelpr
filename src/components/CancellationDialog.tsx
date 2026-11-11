@@ -464,7 +464,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                 for a state already past turned the confirm sheet into a policy page). */}
             {!hasHelper && (<>
             <div className="flex items-start gap-2.5 p-3 rounded-ds-sm border transition-all bg-primary/10 border-primary/30 ring-1 ring-primary/20">
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-ds-10 font-bold ${!hasHelper ? "bg-primary text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>1</div>
+              <div data-cancel-step-number="1" className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-ds-10 font-bold ${!hasHelper ? "bg-primary text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>1</div>
               <div className="flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <p className="text-ds-11 font-semibold text-foreground">Before a Helpr is selected</p>
@@ -498,7 +498,9 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             {/* Step 2: After helpr selected */}
             <div className={`p-3 rounded-ds-sm border space-y-2 transition-all ${hasHelper ? "bg-card border-border ring-1 ring-border" : "bg-muted/20 border-border opacity-50"}`}>
               <div className="flex items-start gap-2.5">
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-ds-10 font-bold ${hasHelper ? "bg-foreground text-background" : "bg-muted-foreground/20 text-muted-foreground"}`}>2</div>
+                {/* Audit 11-10 W2 F269: with step 1 not drawn (a Helpr is hired, Q2674) a lone "2" read as a missing list;
+                    the number is drawn only beside step 1, and the YOU ARE HERE pill marks the step. */}
+                {!hasHelper && <div data-cancel-step-number="2" className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-ds-10 font-bold bg-muted-foreground/20 text-muted-foreground">2</div>}
                 <div className="flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="text-ds-11 font-semibold text-foreground">After a Helpr is selected</p>

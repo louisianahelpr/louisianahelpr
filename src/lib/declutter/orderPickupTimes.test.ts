@@ -41,6 +41,21 @@ describe("the time words", () => {
     expect(orderTimeWords(order({ pickup_slot_start: START, pickup_slot_end: END }), "porch", "2026-11-09T21:00:00Z")).toEqual({ chosen: null, by: null });
     expect(orderTimeWords(null, "porch", null)).toEqual({ chosen: null, by: null });
   });
+
+  // Audit 1110 F405: the seller's order chat said "have it ready at the pickup time below" with nothing below it, while
+  // the buyer's chat named the time. A door (or meetup) booking that is not the checkout time, or one with no order
+  // times read, names the booking's own time; a porch booking stays a day (A1-C2), never a clock time.
+  // @mutate src/lib/declutter/orderPickupTimes.ts |   const own = booked && handover !== "porch" ? pickupWhenWords(bookedSlotStart!, null, false) : null; |   const own = null;
+  // @mutate src/lib/declutter/orderPickupTimes.ts |   if (!t) return { chosen: own, by: null }; |   if (!t) return { chosen: null, by: null };
+  it("F405: a door or meetup booking at another time, or with no order times, names the booking's own time", () => {
+    const MOVED = "2026-11-09T21:30:00Z"; // Mon Nov 9, 3:30 PM Central
+    expect(orderTimeWords(order({ pickup_slot_start: START, pickup_slot_end: END }), "pickup_home", MOVED)).toEqual({ chosen: "Mon 11/9, 3:30 PM", by: null });
+    expect(orderTimeWords(null, "pickup_home", MOVED)).toEqual({ chosen: "Mon 11/9, 3:30 PM", by: null });
+    expect(orderTimeWords(undefined, "meetup", MOVED)).toEqual({ chosen: "Mon 11/9, 3:30 PM", by: null });
+    expect(orderTimeWords(null, "porch", MOVED)).toEqual({ chosen: null, by: null });
+    expect(nextStepWords(standing("pickup_home", "seller", 1, null, false, orderTimeWords(null, "pickup_home", MOVED)))).toBe("Next: have it ready at the door · Pickup Mon 11/9, 3:30 PM");
+    expect(nextStepWords(buyerNextStep(facts("pickup_home", true), null, null, null, null, orderTimeWords(null, "pickup_home", MOVED)))).toBe("Pickup Mon 11/9, 3:30 PM · at the door");
+  });
 });
 
 describe("A3-19: the buyer's order card", () => {

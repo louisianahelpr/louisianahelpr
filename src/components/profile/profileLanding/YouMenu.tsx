@@ -150,17 +150,21 @@ export function YouMenu({
         >
           <LogOut className="w-4 h-4" aria-hidden /> Log out
         </Button>
-        {/* Quiet: a small muted text button, never a second pill. Its confirm dialog does the warning. */}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onRequestDelete}
-          data-testid="profile-delete-account"
-          className="w-full px-0 text-ds-13 font-semibold tracking-normal text-muted-foreground"
-        >
-          Delete account
-        </Button>
+        {/* Quiet: a small muted text button, never a second pill. Its confirm dialog does the warning.
+            F485 (audit 11-10): it sat 4px under Log out, so a thumb meant for Log out could open the delete steps;
+            a divider and 32px keep the two apart. */}
+        <div className="mt-8 border-t border-border pt-4" data-delete-account-apart="">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onRequestDelete}
+            data-testid="profile-delete-account"
+            className="w-full px-0 text-ds-13 font-semibold tracking-normal text-muted-foreground"
+          >
+            Delete account
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import NotFound from "@/pages/info/NotFound";
 import { JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
+import { MATCHMAKER_PARAM } from "@/lib/matchmakerLink";
 import { HIRE_STEPS } from "@/components/landing/hireSteps";
 import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, findTownPage, townPageMeta, townPagePath, type TownPageService, type TownPageTown } from "@/lib/townPages.mjs";
 
@@ -45,7 +46,11 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
   // Under 18 (Q1586(c)): the link greys out and says why instead of opening the form. It stays a real link, so
   // search engines and signed-out visitors still follow it.
   const { underAge, explain, gatedProps } = useAgeGate();
-  const post = user ? "/post-job" : `/signup?redirect=${encodeURIComponent("/post-job")}`;
+  // F244 (audit 11-10): the link carries the service and town into the form (the matchmaker-link shape, every value
+  // re-checked by readMatchmakerLink), so someone who chose Cleaning in Baton Rouge does not start from a blank form
+  // after signing up. The form opens at Details with the category and town filled, all still editable.
+  const form = `/post-job?${new URLSearchParams({ [MATCHMAKER_PARAM]: "1", cat: service.category, town: town.name }).toString()}`;
+  const post = user ? form : `/signup?redirect=${encodeURIComponent(form)}`;
   const ink = { color: "hsl(var(--ink-deep))" };
   return (
     // F063 (owner UI audit 11-09): the page is a ~760px column, centred, title included (the header's max width is the
@@ -71,11 +76,12 @@ function TownPage({ service, town }: { service: TownPageService; town: TownPageT
             </Link>
           </Button>
           {/* L014: the page named no Helprs; the directory, filtered to this town, is one tap away. */}
-          <p className="text-ds-15">
-            <Link to={`/helprs?town=${encodeURIComponent(town.name)}`} className="link-standard font-semibold" data-town-helprs="" style={ink}>
+          {/* F260t (audit 11-10): read as plain text at 1440 and in dark; now the secondary button it is. */}
+          <Button asChild variant="outline" size="sm" className="squircle">
+            <Link to={`/helprs?town=${encodeURIComponent(town.name)}`} data-town-helprs="">
               See Helprs in {town.name}
             </Link>
-          </p>
+          </Button>
         </section>
         <section aria-labelledby="town-how" className="space-y-3">
           <h2 id="town-how" className="text-ds-17 font-semibold" style={ink}>How it works</h2>

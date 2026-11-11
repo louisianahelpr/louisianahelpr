@@ -735,6 +735,10 @@ describe("the photo-first Declutter item page", () => {
     state.buys = 0;
     const first = open("?preview=buyer");
     await screen.findByText("This is what buyers see");
+    // The way back is a 44px outline button, not a 16px text link (audit 1110 F333).
+    const back = screen.getByRole("link", { name: "Back to your listing" });
+    expect(back.className).toMatch(/\bh-11\b/);
+    expect(back.className).not.toMatch(/\bunderline\b/);
     // The buyer's words and the buyer's actions.
     expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("Exact address after you pay");
     expect(await screen.findByText(/until it reaches a price the seller chose/)).toBeInTheDocument();
@@ -833,10 +837,10 @@ describe("the photo-first Declutter item page", () => {
 
   // BUY-16 (audit 10-30, High; owner 10-30: guests see item pages, sign up to buy or offer, no seller full name).
   // @mutate src/components/declutter/declutterUi.tsx |   if (!user) return <DeclutterGuestGate skeleton={skeleton}>{children}</DeclutterGuestGate>; |
-  // @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && !user && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} trades={!free && it.accepts_trades === true} />} |
+  // @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && !user && !signedOutOwner && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} trades={!free && it.accepts_trades === true} />} |
   // @mutate src/components/declutter/DeclutterItemView.tsx | <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} trades={!free && it.accepts_trades === true} /> | <DeclutterGuestJoin free={free} trades={!free && it.accepts_trades === true} />
   // @mutate src/components/declutter/DeclutterGuest.tsx |         {!free && offers && ( |         {!free && (
-  // @mutate src/components/declutter/DeclutterGuest.tsx |         {!barShown && <GuestBrand />}\n      </div> |       </div>
+  // @mutate src/components/declutter/DeclutterGuest.tsx |             <GuestBrand />\n          </div>\n        )} |           </div>\n        )}
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && (\n            <DeclutterSellerCard |           {!isSeller && (\n            <DeclutterSellerCard
   // @mutate src/components/declutter/DeclutterGuest.tsx |   if (failed \|\| open?.has("declutter")) return <><DeclutterGuestTopBar />{children}</>; |   return <><DeclutterGuestTopBar />{children}</>;
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!user && <DeclutterGuestSeller itemId={it.id} free={free} />} |

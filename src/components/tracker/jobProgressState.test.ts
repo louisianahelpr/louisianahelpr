@@ -16,7 +16,7 @@
 // @mutate src/components/tracker/jobProgressState.ts |     const pending = o.pendingApplicants ?? (o.application === "pending" ? 1 : 0); |     const pending = o.application === "pending" ? 1 : 0;
 // @mutate src/components/tracker/jobProgressState.ts |   if (isExpiredListing(job)) return at(null, false, poster ? EXPIRED_WORD | if (false) return at(null, false, poster ? EXPIRED_WORD
 // @mutate src/components/tracker/jobProgressState.ts |   if (isExpiredListing(job)) return { ...base, stage: 0 | if (false) return { ...base, stage: 0
-// @mutate src/components/tracker/jobProgressState.ts | const wait = poster ? `${other} confirms on ${day}, the day before` | const wait = poster ? `${other} confirms the day before. Opens ${when(opens)}`
+// @mutate src/components/tracker/jobProgressState.ts | const wait = poster ? `${other} confirms on ${day}, the day before, that they can still come` | const wait = poster ? `${other} confirms the day before, that they can still come. Opens ${when(opens)}`
 // JA-4 (audit 11-01): the line named a button ("I'm still on") the job page calls "Confirm it's still on"; it now says the step.
 // @mutate src/components/tracker/jobProgressState.ts | !posterIn ? `Confirm the job is still on by ${posterBy}` : | !posterIn ? "Tap I'm still on to confirm" :
 // A3-9 (audit 11-01): both confirm lines say by when; the poster's closes at the start (posterConfirmClosesMs).
@@ -68,8 +68,8 @@ describe("jobProgress (the one tracker)", () => {
   it("Accepted, before the day-before window: says when confirming opens (the server's rule)", () => {
     // Job Fri 2037-10-23 9:00; the window opens Thu 2037-10-22 00:00 Louisiana time.
     const j = { status: "accepted", helper_id: JO, date_needed: "2037-10-23", start_time: "09:00" };
-    expect(poster(j)).toMatchObject({ stage: 2, waitingOnYou: false, word: "Hired", next: "Jolie confirms on Thu, the day before" });
-    expect(helpr({ ...j, helper_id: ME })).toMatchObject({ stage: 2, waitingOnYou: false, next: "Confirm on Thu, the day before" });
+    expect(poster(j)).toMatchObject({ stage: 2, waitingOnYou: false, word: "Hired", next: "Jolie confirms on Thu, the day before, that they can still come" });
+    expect(helpr({ ...j, helper_id: ME })).toMatchObject({ stage: 2, waitingOnYou: false, next: "Confirm on Thu, the day before, that you can still do this job" });
   });
 
   // A2-C40 (audit 2026-10-29, AA9 1a): between the start and the next auto-start sweep (up to 15 min) the
@@ -110,7 +110,7 @@ describe("jobProgress (the one tracker)", () => {
     // Both in: the normal confirmed state.
     expect(rp({ ...j, poster_confirmed_at: "t", helper_dayof_confirmed_at: "t" })).toMatchObject({ next: "You're both confirmed. Yusef taps On my way when they leave" });
     // Moved to a day whose window has not opened: the new slot, then when confirming opens.
-    expect(rp({ ...j, date_needed: "2037-10-23" })).toMatchObject({ next: "New time Fri 9:00 AM. Yusef confirms on Thu, the day before" });
+    expect(rp({ ...j, date_needed: "2037-10-23" })).toMatchObject({ next: "New time Fri 9:00 AM. Yusef confirms on Thu, the day before, that they can still come" });
     // No start time: the weekday alone.
     expect(rp({ ...j, start_time: null })).toMatchObject({ next: "Confirm the new time, Thu" });
   });
@@ -175,12 +175,12 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
     // A real cancel (a person did it) stays Cancelled.
     expect(jobProgress({ ...expired, cancelled_by: "p" }, { viewer: "poster", now: NOW })).toMatchObject({ label: "Cancelled" });
   });
-  // @mutate src/components/tracker/jobProgressState.ts | return at(8, false, "Done", Number.isNaN(doneMs) ? "Finished" : `Finished ${when(doneMs)}`, held); | return at(8, false, "Done", "", held);
+  // @mutate src/components/tracker/jobProgressState.ts | return at(8, false, "Done", Number.isNaN(doneMs) ? "Finished" : `Finished ${whenDated(doneMs)}`, held); | return at(8, false, "Done", "", held);
   it("JA-11: a finished job's line says when it finished, on both sides", () => {
     const done: ProgressJob = { ...base, status: "completed", helper_id: "h", helper_confirmed_at: "t", payment_status: "payout_pending",
       helper_completed_at: "2037-10-21T14:00:00Z", poster_completed_at: "2037-10-21T14:20:00Z" };
-    expect(jobProgress(done, { viewer: "poster", otherFirst: "Yusef", now: NOW })).toMatchObject({ stage: 8, next: "Finished Wed 9:20 AM" });
-    expect(jobProgress(done, { viewer: "helpr", otherFirst: "Dana", now: NOW })).toMatchObject({ stage: 8, next: "Finished Wed 9:20 AM" });
+    expect(jobProgress(done, { viewer: "poster", otherFirst: "Yusef", now: NOW })).toMatchObject({ stage: 8, next: "Finished Wed, Oct 21 at 9:20 AM" });
+    expect(jobProgress(done, { viewer: "helpr", otherFirst: "Dana", now: NOW })).toMatchObject({ stage: 8, next: "Finished Wed, Oct 21 at 9:20 AM" });
   });
   // @mutate src/components/tracker/jobProgressState.ts |   return [who, reason, kept, refund, cardCost].filter(Boolean).join(" · "); |   return "This job was cancelled";
   // @mutate src/components/tracker/jobProgressState.ts |   const posterDid = !!by && by === job.customer_id; |   const posterDid = false;
@@ -209,7 +209,7 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
   // @mutate src/components/tracker/jobProgressState.ts |     const checkBy = autoCompleteAt({ helper_completed_at: job.helper_completed_at }); |     const checkBy = null;
   it("JA-21: the Helpr who marked it done is told until when the poster has to check", () => {
     const j: ProgressJob = { ...base, status: "in_progress", helper_id: ME, helper_confirmed_at: "t", poster_confirmed_arrival_at: "t", helper_completed_at: "2037-10-21T14:30:00Z" };
-    expect(jobProgress(j, { viewer: "helpr", otherFirst: "Dana", threadHelprId: ME, now: NOW }).next).toMatch(/^You marked it done\. Dana has until \w{3} \d{1,2}:\d{2} [AP]M to check it$/);
+    expect(jobProgress(j, { viewer: "helpr", otherFirst: "Dana", threadHelprId: ME, now: NOW }).next).toMatch(/^You marked it done\. Dana has until \w{3}, \w{3} \d{1,2} at \d{1,2}:\d{2} [AP]M to check it$/);
   });
   // @mutate src/components/tracker/jobProgressState.ts |   if (mins <= LATE_GRACE_MIN) return null; |   return null;
   // @mutate src/components/tracker/jobProgressState.ts | \|\| posterLate \|\| noApplicantsYet | \|\| false \|\| noApplicantsYet

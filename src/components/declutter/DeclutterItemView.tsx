@@ -44,7 +44,7 @@ import { DeclutterMovingSaleNote } from "./DeclutterMovingSaleNote";
 import { DeclutterItemRows, NewestItemsRow, SoldItemCard } from "./DeclutterItemRows";
 import { BundleLine, BundleSaveBox, useBundleSummary } from "./DeclutterBundleRow";
 import { DeclutterQuestions } from "./DeclutterQuestions";
-import { DeclutterGuestJoin, DeclutterGuestSeller } from "./DeclutterGuest";
+import { DeclutterGuestJoin, DeclutterGuestSeller, DeclutterSignedOutOwner, useSignedOutOwner } from "./DeclutterGuest";
 import { ItemPickupBlock } from "./ItemPickupBlock";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
 import { nextPriceDrop, sellerStateStopsDrops } from "@/lib/declutter/priceDrop";
@@ -98,6 +98,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
     enabled: !!user,
   });
   const ownListing = !!user && item.data?.seller_id === user.id;
+  // F359o: the seller whose session ended on their own listing is told so, not shown the guest view.
+  const signedOutOwner = useSignedOutOwner(ownListing, !!user);
   // "See what buyers see" (owner 2026-10-30, ?preview=buyer): the seller's own listing as a buyer reads it. The seller's
   // panels and private reads are off, as for anyone else; actions show but only say this is their listing. Only the
   // seller gets it: the same link for anyone else is the ordinary page. No server read changes.
@@ -190,7 +192,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
     {/* Declutter trades (owner 10-31): a listing Open to trades also takes one of the buyer's own listings in trade. */}
     {canAct && user && !free && it.status === "live" && <Suspense fallback={null}><OfferTradeButton item={it} userId={user.id} /></Suspense>}
     {/* BUY-16: a guest signs up (or logs in) to buy, offer or ask, and comes back here. */}
-    {canAct && !user && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} trades={!free && it.accepts_trades === true} />}
+    {signedOutOwner && <DeclutterSignedOutOwner />}
+    {canAct && !user && !signedOutOwner && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} trades={!free && it.accepts_trades === true} />}
   </>);
   const urls = (photos.data ?? []).map((p) => photoPublicUrl(p.storage_path));
   // B67 (DECL-ITEM-SPEED): the frame shows a resized WebP (462 -> 124 KB measured on a live photo), the viewer the original.
@@ -292,7 +295,10 @@ export default function ItemView({ itemId }: { itemId: string }) {
           {preview && (
             <div data-item-preview="">
               <DeclutterNotice title="This is what buyers see">
-                <Link to={`/declutter/item/${it.id}`} className="font-semibold underline underline-offset-2">Back to your listing</Link>
+                {/* A 44px button, not a 16px text link (audit 1110 F333). */}
+                <Button asChild variant="outline" size="sm" className="mt-1 rounded-full">
+                  <Link to={`/declutter/item/${it.id}`} data-preview-back="">Back to your listing</Link>
+                </Button>
                 {previewPressed && <p role="status" className="mt-1 font-semibold text-foreground" data-preview-note="">{PREVIEW_ACTION_NOTE}</p>}
               </DeclutterNotice>
             </div>

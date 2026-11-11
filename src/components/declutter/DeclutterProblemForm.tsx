@@ -15,6 +15,7 @@ import { DISPUTE_DETAILS_MIN } from "@/components/disputeReasons";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
@@ -47,6 +48,8 @@ export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange
   if (!open) return trigger ? <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" onClick={() => setOpen(true)}>Report a problem</Button> : null;
   return (
     <div ref={formRef} className="space-y-2 rounded-xl border border-border p-3">
+      {/* F388: the floating "+ Sell" pill sat on the photos row next to Send; it steps aside while the form is open. */}
+      <HideSectionCreateFab />
       {/* BUY-35: the shared pick-one list, as Jobs' dispute and Declutter's refund use. */}
       <p className="text-xs font-medium" aria-hidden="true">What went wrong?</p>
       <RadioCardList label="What went wrong?" value={reason ?? ""} onChange={(r) => setReason(r as ProblemReason)}

@@ -33,6 +33,7 @@ import { freeClaimGateRefusal } from "@/lib/declutter/setupFee";
 import { firstPickSteps } from "@/lib/declutter/freePickSteps";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { DeclutterNotice } from "./declutterUi";
+import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { HoldChecking, myHoldOn, ReservedForYou } from "./DeclutterYourOffer";
 import { cn, formatName } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
@@ -106,6 +107,8 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   const myAsk = (asks.data ?? []).find((r) => r.item_id === item.id) ?? null;
   const [asking, setAsking] = useState(false);
   const [rules, setRules] = useState(false);
+  // Audit 1110 F359c: Take back my ask asks first, as Take back my offer does (DeclutterOffersSection).
+  const [takingBack, setTakingBack] = useState(false);
   // Q2560 (Auditor 1, audit 1102a): a paid item keeps Offer / Buy in a bar pinned to the bottom once its buttons
   // scroll away; a free item had nothing, so after reading the description, pickup and questions there was no way to
   // ask without scrolling back. The same trigger (useOffScreen) and dock hand-off (useDockYield) as OfferPanel.
@@ -121,6 +124,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
+    onSettled: () => setTakingBack(false),
   });
 
   // Until the cart read is in, say nothing yet: "Someone is buying" would flash before "Reserved for you".
@@ -141,9 +145,13 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
         {/* The shared next-step line (owner 11-01 12:02 PM): nothing is the asker's to do; it waits on the giver. */}
         <NextStep className="!text-sm" value={{ who: "them", text: `Waiting on ${giverFirstName === "The giver" ? "the giver" : giverFirstName} to pick who gets it. We'll tell you either way.` }} />
         <Button type="button" variant="outline" size="wrap" className="w-full rounded-full" disabled={takeBack.isPending}
-          onClick={() => takeBack.mutate(myAsk.id)}>
+          onClick={() => setTakingBack(true)}>
           Take back my ask
         </Button>
+        <ConfirmSheet open={takingBack} pending={takeBack.isPending} onConfirm={() => takeBack.mutate(myAsk.id)} onClose={() => setTakingBack(false)}
+          title="Take back your ask?" confirmLabel="Take it back" cancelLabel="Keep my ask" testId="withdraw-ask">
+          {`"${item.title}": your ask ends. Nothing is charged.`}
+        </ConfirmSheet>
       </section>
     );
   }

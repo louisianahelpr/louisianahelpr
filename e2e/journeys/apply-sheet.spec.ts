@@ -371,7 +371,7 @@ test(`${titleFor("one-step")} · one sheet, one step: the apply form is on the j
   await expect(sheet.getByText(DESC_START)).toBeVisible();
   const note = sheet.getByRole("textbox");
   await expect(note).toBeVisible();
-  await expect(sheet.getByRole("checkbox", { name: /save as my default pitch/i })).toBeVisible();
+  await expect(sheet.getByRole("checkbox", { name: /use this message next time/i })).toBeVisible();
   const applyNow = sheet.getByRole("button", { name: /^apply now$/i });
   await expect(applyNow).toBeVisible();
 

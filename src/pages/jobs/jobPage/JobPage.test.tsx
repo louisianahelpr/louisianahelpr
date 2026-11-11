@@ -624,6 +624,21 @@ describe("job page, poster side (boards 15, 168)", () => {
     // No misleading progress colour (lead review 2026-10-22): an all-grey bar that says Cancelled.
     expect(screen.getByLabelText(/^Job progress: Cancelled/).getAttribute("data-tone")).toBe("cancelled");
   });
+
+  // Audit 11-10 W2 F291: the hired Helpr on a cancelled job had "Message <poster>" as the only big button; the job is
+  // over for them, so a way to other work leads and Message stays beside it.
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |     if (job.status === "cancelled") { |     if (false) {
+  it("F291: the hired Helpr on a cancelled job: 'Find a job' leads (Browse), Message stays in the row", async () => {
+    state.job = row({ customer_id: POSTER, helper_id: ME, status: "cancelled", payment_status: "refunded" });
+    state.party = true;
+    renderPage();
+    await waitFor(() => expect(document.querySelector('[data-job-row="helpr"]')).toBeTruthy());
+    const names = barNames(document.querySelector('[data-job-row="helpr"]') as HTMLElement);
+    // The lead (green) sits on the right, so it reads last; Message is its outlined partner on the left.
+    expect(names).toEqual(["Message them", "Find a job"]);
+    fireEvent.click(screen.getByRole("button", { name: "Find a job" }));
+    expect(screen.getByTestId("where").textContent).toBe("/browse");
+  });
 });
 
 describe("job page, the poster confirms the arrival here (F14)", () => {
@@ -736,7 +751,7 @@ describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => 
     state.party = true;
     renderPage();
     const block = document.querySelector("[data-on-the-way]") as HTMLElement;
-    await waitFor(() => expect(block.textContent).toContain("Rhonda is on the way · since 8:51 AM"));
+    await waitFor(() => expect(block.textContent).toContain("Rhonda is on the way · since Wed, Oct 28 at 8:51 AM"));
     expect(block.textContent).toContain("You'll confirm once they say they've arrived.");
     const tracker = document.querySelector("[data-job-tracker]") as HTMLElement;
     expect(block.compareDocumentPosition(tracker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -767,7 +782,8 @@ describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => 
     state.party = true;
     const { unmount } = renderPage();
     const block = await screen.findByLabelText("Arrived");
-    await waitFor(() => expect(block.textContent).toContain("Rhonda arrived · 9:20 AM"));
+    // Audit 11-10 W2 F283: on any day but today the time carries its date (OnTheWayNow.onTheWaySince).
+    await waitFor(() => expect(block.textContent).toContain("Rhonda arrived · Wed, Oct 28 at 9:20 AM"));
     expect(block.textContent).not.toMatch(/GPS|on the way/i);
     await waitFor(() => expect(block.querySelector("[data-on-the-way-map]")).toBeTruthy());
     const tracker = document.querySelector("[data-job-tracker]") as HTMLElement;

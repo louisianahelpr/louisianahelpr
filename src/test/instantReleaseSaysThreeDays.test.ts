@@ -9,7 +9,7 @@
  * fails here until the words change with it.
  *
  * @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts | when your Helpr marks done with photo proof. They're paid 3 days later. | and payment goes out the moment your Helpr marks done with photo proof.
- * @mutate src/pages/profile/AutoTip.tsx | with no 24-hour review. They're paid 3 days later. | with no 24-hour review.
+ * @mutate src/pages/profile/AutoTip.tsx | The 48-hour Helpr Guarantee still applies. They're paid 3 days later. | The 48-hour Helpr Guarantee still applies.
  * @mutate supabase/functions/_shared/escrowTiming.ts | export const STANDARD_PAYOUT_DAYS_AFTER_APPROVAL = 3; | export const STANDARD_PAYOUT_DAYS_AFTER_APPROVAL = 2;
  * @mutate supabase/functions/auto-release-payment/index.ts | const payoutTime = standardPayoutAtIso(instantIds.has(job.id) ? null : job.poster_completed_at); | const payoutTime = new Date().toISOString();
  */

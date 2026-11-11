@@ -4,9 +4,10 @@
  * @mutate src/lib/declutter/browseFilters.ts |   if (way === "porch") return item.porch_ok; |   if (way === "porch") return true;
  * @mutate src/lib/declutter/browseFilters.ts |     if (maxC !== null && item.current_price_cents > maxC) return false; |
  * @mutate src/lib/declutter/browseFilters.ts |   return { planned: true, tonight: chicagoDay(next.at) === chicagoDay(now) }; |   return { planned: true, tonight: true };
+ * @mutate src/lib/declutter/browseFilters.ts |   return priceRangeSwapped(f) ? [f.maxDollars, f.minDollars] : [f.minDollars, f.maxDollars]; |   return [f.minDollars, f.maxDollars];
  */
 import { describe, expect, it } from "vitest";
-import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, browseStateInParams, dropOutlook } from "./browseFilters";
+import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, browseStateInParams, dropOutlook, priceBounds, priceRangeSwapped } from "./browseFilters";
 
 const item = (id: string, over: Record<string, unknown> = {}) => ({
   id, title: `Item ${id}`, status: "live", category: "furniture", condition_stars: 4, current_price_cents: 4000,
@@ -65,5 +66,16 @@ describe("Browse's state survives the URL", () => {
     const f = browseStateFromParams(new URLSearchParams("sort=zzz&cond=9,a,2")).filters;
     expect(f.sort).toBe("closest");
     expect(f.conditions).toEqual([2]);
+  });
+
+  // Audit 1110 F312: a min typed above the max is read as the range the member meant, so the list never goes blank.
+  it("a min above the max keeps the items between the two bounds", () => {
+    const all = rows([item("a"), item("b", { current_price_cents: 900 }), item("c", { current_price_cents: 9000 })]);
+    const ids = (f: typeof NO_FILTERS) => applyBrowseFilters(all, f, "", undefined).map((r) => r.item.id);
+    expect(ids({ ...NO_FILTERS, minDollars: 50, maxDollars: 5 })).toEqual(["a", "b"]);
+    expect(priceBounds({ minDollars: 50, maxDollars: 5 })).toEqual([5, 50]);
+    expect(priceBounds({ minDollars: 5, maxDollars: null })).toEqual([5, null]);
+    expect(priceRangeSwapped({ minDollars: 50, maxDollars: 5 })).toBe(true);
+    expect(priceRangeSwapped({ minDollars: 5, maxDollars: 50 })).toBe(false);
   });
 });

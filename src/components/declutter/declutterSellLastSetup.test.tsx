@@ -64,7 +64,8 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus:
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false, explain: () => {}, gatedProps: () => ({}) }) }));
-vi.mock("@/components/declutter/SellerPayoutPrompt", () => ({ SellerPayoutPrompt: () => null }));
+// A marker with no words, so the free-form test below can see whether the payout prompt is on the page at all.
+vi.mock("@/components/declutter/SellerPayoutPrompt", () => ({ SellerPayoutPrompt: () => <div data-payout-prompt-mock="" /> }));
 vi.mock("@/hooks/useUserLocation", () => ({
   useUserLocation: () => ({ status: "idle" }),
   getCachedUserLocation: () => null,
@@ -331,9 +332,16 @@ describe("Give it away free (?free=1)", () => {
     open("/declutter/sell?free=1");
     await addPhotoAndWait();
     expect(document.querySelector("[data-sell-free-note]")).not.toBeNull();
-    // Nothing is sold, so the box says so (audit single-free #14; the server keeps the same record).
-    const box = document.querySelector("[data-tax-statements]")!;
-    expect(box.textContent).toBe("I own this, it's from my own household, I don't do this as a business, and I'll keep it until it's picked up.");
+    // Nothing is sold, so the box says so (audit single-free #14; the server keeps the same record), one promise per
+    // line like the paid form, under one tick (audit 1110 F340).
+    const box = document.querySelector("[data-tax-statements='free']")!;
+    expect(Array.from(box.querySelectorAll("li"), (li) => li.textContent)).toEqual([
+      "I own this.",
+      "It's from my own household.",
+      "I don't do this as a business.",
+      "I'll keep it until it's picked up.",
+    ]);
+    expect(within(box as HTMLElement).getByLabelText("All of this is true")).toBe(document.getElementById("sell-tax"));
     expect(document.querySelector("[data-sell-tax]")!.textContent).not.toMatch(/\b(sale|sell|selling|buyer)\b/i);
     fireEvent.click(document.getElementById("sell-tax")!);
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
@@ -343,6 +351,18 @@ describe("Give it away free (?free=1)", () => {
 
   // LEAD-FREE-MOVE (owner 2026-10-31): free is picked on the chooser's first screen, never ticked on the Price row.
   // @mutate src/components/declutter/SellOneScreen.tsx | priceExtras={form.free ? <div className="pt-1"><SellFreeNote /></div> : <div className="pt-1"><SellOffersToggle s={s} /></div>} | priceExtras={<div className="pt-1" data-sell-free="">Give it away free</div>}
+  // A give-away earns nothing, so the "set up payouts" prompt has no place on it (audit 1110 F340).
+  // @mutate src/components/declutter/SellOneScreen.tsx | {!form.free && <SellerPayoutPrompt />} | <SellerPayoutPrompt />
+  it("the payout prompt shows on a priced listing, never on a give-away", async () => {
+    open("/declutter/sell");
+    await screen.findByRole("heading", { name: "Show it off" });
+    expect(document.querySelector("[data-payout-prompt-mock]")).not.toBeNull();
+    cleanup();
+    open("/declutter/sell?free=1");
+    await screen.findByRole("heading", { name: "Show it off" });
+    expect(document.querySelector("[data-payout-prompt-mock]")).toBeNull();
+  });
+
   it("the one screen has no Give it away free tick; a free listing can still go back to a price", async () => {
     open("/declutter/sell");
     await addPhotoAndWait();

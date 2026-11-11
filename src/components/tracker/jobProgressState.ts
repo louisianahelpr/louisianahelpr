@@ -129,6 +129,18 @@ function when(ms: number): string {
   return new Date(ms).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
 }
 
+/**
+ * "Mon, Nov 9 at 12:28 PM": the house date style (continueDayLabel) for a stamp that may be days or weeks old. The
+ * finished line reads long after the fact, where a bare weekday ("Finished Mon 12:28 PM") no longer says which Monday
+ * (audit 11-10 W2 F275); every other line on the page already carries the date.
+ */
+function whenDated(ms: number): string {
+  const d = new Date(ms);
+  const day = d.toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
+  const clock = d.toLocaleString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
+  return `${day} at ${clock}`;
+}
+
 /** The job's slot in Louisiana time: "Thu 9:00 AM", or the weekday alone when it has no start time. */
 export function slotLabel(dateNeeded: string | null | undefined, startTime: string | null | undefined): string {
   if (!dateNeeded) return "";
@@ -340,7 +352,7 @@ function revisionLine(job: ProgressJob, poster: boolean, other: string, held: bo
   }
   const checkMs = Date.parse(job.revision_acceptance_deadline ?? "");
   if (poster) return at(7, true, "Done", `${other} sent the fix. Check it and approve`, held);
-  return at(7, false, "Done", Number.isNaN(checkMs) ? `You sent the fix. Waiting on ${other} to check it` : `You sent the fix. ${other} has until ${when(checkMs)} to check it`, held);
+  return at(7, false, "Done", Number.isNaN(checkMs) ? `You sent the fix. Waiting on ${other} to check it` : `You sent the fix. ${other} has until ${whenDated(checkMs)} to check it`, held);
 }
 
 /**
@@ -388,7 +400,7 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     // JA-30 (Jobs audit 11-01): say WHEN they hear back (the dispute's own deadline, after which support decides) and
     // the brand in full. Guard: src/test/disputeLineSaysWhen.test.ts.
     const decideMs = Date.parse(job.dispute_deadline ?? "");
-    const by = Number.isNaN(decideMs) ? "" : decideMs > now ? `, with an answer by ${when(decideMs)}` : "";
+    const by = Number.isNaN(decideMs) ? "" : decideMs > now ? `, with an answer by ${whenDated(decideMs)}` : "";
     // Q2600 (Jobs audit 1102b row 14): a short title, with the explanation as body text under it (a full sentence).
     // Guard: src/test/disputeLineTitleAndBody.test.tsx.
     return { ...at(null, false, "Under review", "We're looking into it", held), body: `A real person at Louisiana Helpr is looking at the problem${by}. The money stays held.` };
@@ -412,7 +424,7 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   // JA-11 (audit 11-01): a finished job's tracker says when it finished, never a blank line under eight full steps.
   if (status === "completed" || job.poster_completed_at) {
     const doneMs = Date.parse(job.poster_completed_at ?? job.completed_at ?? job.helper_completed_at ?? "");
-    return at(8, false, "Done", Number.isNaN(doneMs) ? "Finished" : `Finished ${when(doneMs)}`, held);
+    return at(8, false, "Done", Number.isNaN(doneMs) ? "Finished" : `Finished ${whenDated(doneMs)}`, held);
   }
   if (!LIVE.has(status) || !someoneHired(job)) return at(null, false, "", "", held);
 
@@ -429,7 +441,13 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   if (job.helper_completed_at) {
     // JA-21 (audit 11-01): the Helpr is told until when the poster has to check (the card's own auto_complete clock).
     const checkBy = autoCompleteAt({ helper_completed_at: job.helper_completed_at });
-    const helprLine = checkBy ? `You marked it done. ${other} has until ${when(Date.parse(checkBy))} to check it` : `You marked it done. Waiting on ${otherLow}`;
+    const checkMs = checkBy ? Date.parse(checkBy) : NaN;
+    // Audit 11-10 W2 F286: the deadline carries its date (it is read a day later), and once it has passed the line says
+    // what happens now (the poster's window closed; support steps in, as the poster's side already says) instead of
+    // "has until <a time already gone>".
+    const helprLine = !checkBy ? `You marked it done. Waiting on ${otherLow}`
+      : checkMs <= now ? `You marked it done. ${other} didn't answer in time, so Helpr support is checking it. The money stays held.`
+      : `You marked it done. ${other} has until ${whenDated(checkMs)} to check it`;
     return at(7, poster, "Done", poster ? `${other} marked it done. Check the work and approve` : helprLine, held);
   }
   // Owner 11-01 11:55 AM (job 7b1da54b): after photos are in but the Helpr has not marked it done. The page said
@@ -463,7 +481,8 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     if (!Number.isNaN(opens) && now < opens) {
       // JA-5 (audit 11-01): the day, never "Opens Mon 12:00 AM" (a midnight time reads like a system stamp).
       const day = new Date(opens).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short" });
-      const wait = poster ? `${other} confirms on ${day}, the day before` : `Confirm on ${day}, the day before`;
+      // F442 (audit 11-10): say WHAT is confirmed ("Confirm on Thu, the day before" left a Helpr asking confirm what).
+      const wait = poster ? `${other} confirms on ${day}, the day before, that they can still come` : `Confirm on ${day}, the day before, that you can still do this job`;
       return at(2, false, "Hired", slot ? `New time ${slot}. ${wait}` : wait, held);
     }
     const helprIn = !!job.helper_dayof_confirmed_at;

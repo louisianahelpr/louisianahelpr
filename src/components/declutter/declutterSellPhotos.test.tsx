@@ -19,6 +19,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DropSchedule } from "./DeclutterSellSteps";
 import { SellHandoverChoices } from "./SellHandoverChoices";
+import { inclFeeText } from "./PriceInclFee";
 
 const PLACE = { id: "pl", position: 1, label: "Home", address: "100 Main Street, Baton Rouge, LA 70802", area: "Mid-City, Baton Rouge", lat: 30.45, lng: -91.15, weekdays: [6] };
 const savedRow = vi.hoisted(() => ({ value: null as unknown, places: [] as unknown[] }));
@@ -671,6 +672,8 @@ describe("photo-first selling, one screen", () => {
     const preview = document.querySelector("[data-sell-preview]")!;
     expect(preview.textContent).toContain(DRAFT.title);
     expect(preview.textContent).toContain("$45");
+    // Buyers see "$X.XX incl. fee" under the price on the card, so the preview says it too (audit 1110 F333).
+    expect(preview.querySelector("[data-price-incl-fee]")?.textContent).toBe(inclFeeText(4500));
   });
 
   // Audit posting 1030 #4: a photo that looked fine was lost at Post, with the AI panel taking the blame.
@@ -810,6 +813,24 @@ describe("photo-first selling, one screen", () => {
     expect(drafts[0]).toEqual(expect.objectContaining({ deliverySize: "large" }));
     // A new listing uses the saved pickup times: Post never writes over them.
     expect(calls).not.toContain("windows");
+  });
+
+  // Nobody buys a give-away, so its Size nudge names the person picking it up (audit 1110 F340).
+  // @mutate src/components/declutter/SellOneScreen.tsx | message: s.form.free ? SIZE_PROBLEM_FREE : SIZE_PROBLEM, | message: SIZE_PROBLEM,
+  it("the photo tool failed on a give-away: the Size nudge talks about the person picking it up, not buyers", async () => {
+    aiAnswer.fails = true;
+    open("/declutter/sell?free=1");
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg");
+    await waitFor(() => expect(aiCalls).toHaveLength(1));
+    await waitFor(() => expect(document.querySelector('[data-summary-row="size"]')).not.toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Add title" }));
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Blue couch" } });
+    fireEvent.click(document.getElementById("sell-tax")!);
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await screen.findByText("Pick a size, so the person picking it up knows what it takes to move it.");
+    expect(screen.queryByText(/so buyers know/)).toBeNull();
+    expect(calls).toEqual([]);
   });
 
   // Audit DC-1: the one-screen form still said "these go up when you save on step 4" and "change anything on the

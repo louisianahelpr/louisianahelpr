@@ -10,7 +10,9 @@
  * @mutate src/pages/info/HireTownPage.tsx |   return (JOB_CATEGORY_VALUES as readonly string[]).includes(value) ? value : null; |   return value \|\| null;
  * @mutate src/pages/info/HireTownPage.tsx |   if (!page) return <NotFound />; |   if (!page) return <TownPage service={TOWN_PAGE_SERVICES[0]} town={TOWN_PAGE_TOWNS[0]} />;
  * @mutate src/pages/info/HireTownPage.tsx |   usePageMeta(townPageMeta(service, town)); |
- * @mutate src/pages/info/HireTownPage.tsx |   const post = user ? "/post-job" : `/signup?redirect=${encodeURIComponent("/post-job")}`; |   const post = "/post-job";
+ * @mutate src/pages/info/HireTownPage.tsx |   const post = user ? form : `/signup?redirect=${encodeURIComponent(form)}`; |   const post = form;
+ * F244 (audit 11-10): Post a job carries the service and town into the form.
+ * @mutate src/pages/info/HireTownPage.tsx | cat: service.category, town: town.name }).toString()}`; | cat: service.category }).toString()}`;
  * @mutate src/lib/townPages.mjs |   { slug: "baton-rouge", name: "Baton Rouge" }, |
  * @mutate src/lib/townPages.mjs |   { category: "handyman", label: "Handyman", phrase: "a handyman" }, |   { category: "plumbing", label: "Plumbing", phrase: "a plumber" },
  * @mutate src/lib/townPages.mjs |   { category: "yard_work", label: "Yard work", phrase: "yard work" }, |   { category: "yard_work", label: "Yard Work", phrase: "yard work" },
@@ -52,6 +54,8 @@ import { TOWN_PAGE_SERVICES, TOWN_PAGE_TOWNS, allTownPagePaths } from "@/lib/tow
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
 import { publicPageMetaFor } from "@/lib/publicPageMeta.mjs";
 import { HIRE_STEPS } from "@/components/landing/hireSteps";
+import { readMatchmakerLink } from "@/lib/matchmakerLink";
+import { safeInternalRedirect } from "@/lib/authRedirects";
 
 function BrowseAt() {
   const { search } = useLocation();
@@ -78,7 +82,7 @@ describe("OPS-4: town + service pages", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Handyman in Baton Rouge");
     expect(meta[0]).toMatchObject({ title: "Handyman in Baton Rouge, LA — Helpr", canonical: "https://www.louisianahelpr.com/hire/handyman/baton-rouge" });
     expect(meta[0].description).toMatch(/Baton Rouge/);
-    expect(screen.getByRole("link", { name: "Post a job" })).toHaveAttribute("href", `/signup?redirect=${encodeURIComponent("/post-job")}`);
+    expect(screen.getByRole("link", { name: "Post a job" })).toHaveAttribute("href", `/signup?redirect=${encodeURIComponent("/post-job?mm=1&cat=handyman&town=Baton+Rouge")}`);
     expect(screen.getByRole("link", { name: "Handyman in Lafayette" })).toHaveAttribute("href", "/hire/handyman/lafayette");
     expect(screen.getByRole("link", { name: "Cleaning in Baton Rouge" })).toHaveAttribute("href", "/hire/cleaning/baton-rouge");
     expect(screen.queryByRole("link", { name: "Handyman in Baton Rouge" })).toBeNull();
@@ -91,7 +95,25 @@ describe("OPS-4: town + service pages", () => {
     who.user = { id: "me" };
     at("/hire/yard-work/new-iberia");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Yard work in New Iberia");
-    expect(screen.getByRole("link", { name: "Post a job" })).toHaveAttribute("href", "/post-job");
+    expect(screen.getByRole("link", { name: "Post a job" })).toHaveAttribute("href", "/post-job?mm=1&cat=yard_work&town=New+Iberia");
+  });
+
+  it("F244: the service and town ride along to the form, through sign-up too, and read back as the category and town", () => {
+    at("/hire/cleaning/baton-rouge");
+    const href = screen.getByRole("link", { name: "Post a job" }).getAttribute("href") ?? "";
+    // A guest goes through /signup; the redirect must survive the same-origin check and still carry the fields.
+    const after = safeInternalRedirect(new URL(href, "https://www.louisianahelpr.com").searchParams.get("redirect"));
+    expect(after).toBe("/post-job?mm=1&cat=cleaning&town=Baton+Rouge");
+    const fields = readMatchmakerLink(new URL(after ?? "", "https://www.louisianahelpr.com").searchParams);
+    expect(fields).toMatchObject({ category: "cleaning", town: "Baton Rouge", title: "Cleaning", price: null });
+    // Every service page on the site reads back as its own category and town.
+    for (const s of TOWN_PAGE_SERVICES) for (const t of TOWN_PAGE_TOWNS) {
+      cleanup();
+      who.user = { id: "me" };
+      at(`/hire/${s.slug}/${t.slug}`);
+      const got = readMatchmakerLink(new URL(screen.getByRole("link", { name: "Post a job" }).getAttribute("href") ?? "", "https://www.louisianahelpr.com").searchParams);
+      expect(got, `${s.slug}/${t.slug}`).toMatchObject({ category: s.category, town: t.name });
+    }
   });
 
   it("under 18, Post a job is greyed out and says why instead of opening the form", () => {

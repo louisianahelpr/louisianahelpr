@@ -205,7 +205,6 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
       {done && order.side === "buyer" && order.handover === "delivery" && order.deliveryTaskId && <Suspense fallback={null}><OrderDeliveryPanel taskId={order.deliveryTaskId} side="buyer" orderId={order.orderId} tipOnly /></Suspense>}
       {body && <div ref={bodyRef} className="space-y-3" data-order-body="">
       {/* DC-16: ONE sale card: every handover kind shows the tracker, where it stands and the money note (Helpr delivery's is in OrderDeliveryPanel). */}
-      {!sellerNextFirst && !problem && !(cancelled && order.side === "seller") && <OrderTalkButton orderId={order.orderId} side={order.side} trade={trade} />}
       {!view && !cancelled && order.handover === "seller_delivery" && <SellerDeliveryStatus orderId={order.orderId} side={order.side} itemsCents={items} problemOpen={!!problem} refunded={fullRefund} />}
       {!view && !cancelled && (order.handover === "porch" || order.handover === "pickup_home" || order.handover === "meetup") && (
         <PickupStatus
@@ -223,9 +222,6 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
       {/* NIGHT-BUYINGopenpr-8: the same order as the buyer's card: the tracker, then the problem note, then each side. */}
       {problem && !view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />}
       <Suspense fallback={null}><DeclutterProblemSides orderId={order.orderId} side={order.side} /></Suspense>
-      {/* D2-1: the paid order's chat with the other side (DeclutterOrderTalk, ?order_talk=). On a held order it comes after
-          the tracker, the note and each side (openpr-8); otherwise above the tracker (soldstates-3). */}
-      {!sellerNextFirst && problem && <OrderTalkButton orderId={order.orderId} side={order.side} trade={trade} />}
       {done ? (
         <>
           {/* BUY-31: said once (the buyer's head line; SellerDeliveryStatus to the seller). NIGHT-SELL-soldstates-7: a finished delivery shows the tracker at its end too. */}
@@ -290,7 +286,8 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {order.handover === "meetup" && <MeetupPanel orderId={order.orderId} side={order.side} slotStart={booking?.slot_start ?? null} />}
           {/* NIGHT-BUYINGopenpr-7: door tips only for a pickup still to come; a held order says what happens instead. */}
           {order.handover === "pickup_home" && !problem && !noShowWaiting && <DoorPickupTips side={order.side} />}
-          {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
+          {/* F378: the buyer's "Report it before you take your pickup photo" has its button; it opens the card's form below. */}
+          {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} onProblem={problem ? undefined : () => { setAtHandover(true); setProblemOpen(true); }} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} held={!!problem} />}
           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
           {booking?.slot_start && !problem && <NoShowButton order={order} slotStart={noShowFrom(booking, porchSeller) ?? booking.slot_start} who={who} />}
@@ -302,6 +299,9 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
         </>
       )}
       {order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} handedOver={done} bookedOnly={!!problem || refundHoldsTheItem(refundStatus) || refundTookItBack(refund.data?.request) || fullRefund} /></Suspense>}
+      {/* D2-1: the paid order's chat (DeclutterOrderTalk, ?order_talk=). F397 (audit 1110): "Message the buyer" jumped around
+          by stage; it is now the body's LAST control on every card (openpr-8); the open pickup sale keeps it in SellerAfterActions. */}
+      {!sellerNextFirst && !(cancelled && order.side === "seller") && <div data-order-talk-row=""><OrderTalkButton orderId={order.orderId} side={order.side} trade={trade} /></div>}
       </div>}
       {/* CMP-3: outside Details, so it is one tap from the card; BUY-22: only on an order with a problem open. */}
       <OrderGetHelpNow order={{ orderId: order.orderId, title, status: order.status }} problemOpen={!!problem} />

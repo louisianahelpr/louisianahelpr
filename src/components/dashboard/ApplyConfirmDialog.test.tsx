@@ -201,13 +201,13 @@ describe("ApplyConfirmDialog", () => {
     // travelling toward it. Present-but-disabled says the same thing and moves
     // nothing, so the row is here on an empty field too.
     render(<ApplyConfirmDialog {...makeProps()} />);
-    const empty = screen.getByRole("checkbox", { name: /save as my default pitch/i });
+    const empty = screen.getByRole("checkbox", { name: /use this message next time/i });
     expect(empty).toHaveAttribute("data-state", "unchecked");
     expect(empty).toBeDisabled();
     cleanup();
 
     render(<ApplyConfirmDialog {...makeProps({ applyMessage: "I have done this before." })} />);
-    const box = screen.getByRole("checkbox", { name: /save as my default pitch/i });
+    const box = screen.getByRole("checkbox", { name: /use this message next time/i });
     // Shared Radix control, not a native input: index.css forces
     // `input[type="checkbox"] { min-width/height: 44px }` for the HIG touch
     // minimum, which would override the designed 20px box and draw a 44px
@@ -217,7 +217,7 @@ describe("ApplyConfirmDialog", () => {
     // double-forwarded click would toggle twice and land back on unchecked.
     expect(box).toHaveAttribute("data-state", "unchecked");
     expect(box).toBeEnabled();
-    fireEvent.click(screen.getByText("Save as my default pitch"));
+    fireEvent.click(screen.getByText("Use this message next time"));
     expect(box).toHaveAttribute("data-state", "checked");
   });
 

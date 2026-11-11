@@ -16,7 +16,7 @@ import { initNative, hideSplash, isNativePlatform } from "./lib/nativeInit";
 import { installGlobalErrorHandlers, report } from "./lib/errorLogger";
 import { USER_ERROR_SCREEN } from "./lib/currentScreen";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
-import { backgroundImport, handleVitePreloadError, trackFailedAssetLoads, trackPageLeaving } from "./lib/chunkReload";
+import { backgroundImport, handleVitePreloadError, scrubRecoveryReloadMarker, trackFailedAssetLoads, trackPageLeaving } from "./lib/chunkReload";
 import { blockReplayIfTestProfile } from "./lib/replayTestProfile";
 import { initSimpleMode } from "./lib/simpleMode";
 import { applyToastPolicy } from "./lib/toastPolicy";
@@ -87,6 +87,8 @@ initSimpleMode();
 // boundaries keep the same detection as a backstop for throws that bypass
 // this event (e.g. a bare `import()` rejection inside an effect).
 trackFailedAssetLoads();
+// A recovery reload lands on `?_v=<time>`; take it off the address once the app has booted (F359n).
+scrubRecoveryReloadMarker();
 // WebKit cancels the old page's chunk imports on a hard navigation; those are
 // not a stale deploy, and reloading would eat the navigation (chunkReload.ts).
 trackPageLeaving();

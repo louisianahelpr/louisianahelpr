@@ -19,6 +19,7 @@ import { TurnstileField } from "@/components/auth/TurnstileField";
 import { useCaptcha } from "@/hooks/useCaptcha";
 import { isCaptchaError } from "@/lib/turnstile";
 import { peekJobIntent, peekSignupRedirectItem, signupSubtitle } from "@/lib/jobIntent";
+import { useSignupStepHistory } from "./signup/useSignupStepHistory";
 import { useSignupEntry } from "./signup/useSignupEntry";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
@@ -58,6 +59,7 @@ const Signup = () => {
     const n = Number(new URLSearchParams(window.location.search).get("step"));
     return n === 2 ? 2 : 1;
   });
+  const { goToStep2, backToStep1 } = useSignupStepHistory(setStep, () => setStep2Errors({})); // F260n
   const [loading, setLoading] = useState(false);
   // OA-002: one tap, one signUp(). `loading` is only set inside
   // createAccountAndFinish, AFTER the awaited validateAboutYouStep, so a second
@@ -436,8 +438,7 @@ const Signup = () => {
       // under the password.
       if (isWeakPasswordError(err)) {
         setServerPasswordError(weakPasswordWords(err));
-        setStep2Errors({});
-        setStep(1);
+        backToStep1();
         return;
       }
       const authCopy = recognizedAuthError((err as { message?: string } | null | undefined)?.message);
@@ -494,8 +495,18 @@ const Signup = () => {
       noWebChrome
       // Board 55: step 1 sits in the Log in card's width with its heading inside the card and no
       // back (the H links home); step 2 keeps the row title and walks the wizard back.
-      {...(step === 1 ? { hideBack: true } : { backOnClick: () => { setStep2Errors({}); setStep(1); } })}
-      title={step === 1 ? undefined : stepHeading.title}
+      {...(step === 1 ? { hideBack: true } : { backOnClick: backToStep1 })}
+      // F259a (audit 11-10): step 2 says where it sits in the wizard; the row title carries "Step 2 of 2" under it.
+      title={
+        step === 1 ? undefined : (
+          <>
+            {stepHeading.title}
+            <span className="mt-0.5 block font-sans text-ds-12 font-normal text-muted-foreground" data-signup-step-of="">
+              {t("signup.stepTwoOfTwo")}
+            </span>
+          </>
+        )
+      }
     >
       {/* F024 (owner UI audit 11-09): at 1440x900 the card sat 24px under the top edge of the window; 48px from lg up
           (the shell's 24 + 24 here), and the page scrolls naturally below. */}
@@ -564,7 +575,7 @@ const Signup = () => {
               if (!(await validateAccountStep())) return;
               track(AhaEvent.SignupStepCompleted, { step: 1, ...ppoTrackingProps() });
               captureLead(email); // ONE "finish signing up" reminder (owner 2026-10-09); never blocks
-              setStep(2);
+              goToStep2();
             }}
           />
         )}

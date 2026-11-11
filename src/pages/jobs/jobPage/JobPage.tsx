@@ -1,16 +1,9 @@
 /**
- * /jobs/:id for a signed-in member: the job page (boards 15 and 42 on a
- * phone, 168 and 169 on a desktop). Before this, a signed-in visitor was
- * bounced to /home?quickApply=<id>; the job now has a page of its own and
- * that quick-apply sheet is what the page's Apply button opens.
- *
- * One layout, two sides (spec §1.4, every member is both):
- *  - the POSTER of the job sees their budget, how the money is held, where
- *    the job is (a four-step tracker) and their applicants;
- *  - anyone else sees what they would take home (the real 5% + 70c rule,
- *    helprFlatFee.ts via JobPrice's computeNet) and Apply.
- * Every number is real or hidden (§1.5); no street address before a hire
- * (§1.6): the page prints the city only.
+ * /jobs/:id for a signed-in member: the job page (boards 15/42 phone, 168/169 desktop). Before this a signed-in visitor
+ * was bounced to /home?quickApply=<id>; the job now has a page of its own and that quick-apply sheet is what Apply opens.
+ * One layout, two sides (spec §1.4, every member is both): the POSTER sees budget, how the money is held, a four-step
+ * tracker and applicants; anyone else sees what they would take home (5% + 70c, helprFlatFee.ts via JobPrice's
+ * computeNet) and Apply. Every number is real or hidden (§1.5); no street address before a hire (§1.6): city only.
  */
 import { InstantBookPanel } from "@/components/jobs/InstantBookPanel";
 import { useFeature } from "@/hooks/useFeature";
@@ -319,6 +312,12 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     if (seeCase && faceIs !== "step") {
       const withLeaveCase = withLeaveSeries([lead, ...extras, ...dayExtras], canLeave, leaveAction);
       return { row: <JobPageActionRow tag="helpr" lead={seeCase} leadIsStep extras={withLeaveCase.extras} menuHost={menuHost} />, leaveInMenu: withLeaveCase.inMenu };
+    }
+    // F291 (audit 11-10): on a cancelled job the Helpr's row leads with a way to other work ("Find a job"), Message beside it.
+    if (job.status === "cancelled") {
+      const findAnother: RowAction = { key: "find-another", label: "Find a job", go: () => navigate("/browse") };
+      const withLeaveGone = withLeaveSeries([...(faceIs === "step" ? [] : [lead]), ...extras, ...dayExtras], canLeave, leaveAction);
+      return { row: <JobPageActionRow tag="helpr" lead={findAnother} leadIsStep={false} extras={withLeaveGone.extras} menuHost={menuHost} />, leaveInMenu: withLeaveGone.inMenu };
     }
     const withLeave = withLeaveSeries([...extras, ...dayExtras], canLeave, leaveAction);
     return { row: <JobPageActionRow tag="helpr" lead={lead} leadIsStep={faceIs === "step"} extras={withLeave.extras} menuHost={menuHost} />, leaveInMenu: withLeave.inMenu };

@@ -15,7 +15,7 @@ import { declutterTodo } from "@/lib/declutter/tabs";
 import { SectionHeading } from "./DeclutterTabHeads";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
 import type { BuyerOrderView } from "./BuyingOrders";
-import { useLinkedOrder } from "./useLinkedOrder";
+import { useLinkedOrder, useLinkedOrderOutcome } from "./useLinkedOrder";
 import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 
@@ -53,6 +53,7 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
   const todo = declutterTodo(lines, []);
   const [showDone, setShowDone] = useState(false);
   const linked = useLinkedOrder(); // BUY-30: the order a notice opened is never folded away or hidden by a chip
+  useLinkedOrderOutcome(side, cart.data); // F403: a bad or wrong-side link says so instead of a silent empty tab
   // Q2631 (audit 1102c R6): an order on hold for a problem is not "to hand over" (its card says "On hold until the
   // problem is decided."). The same read and key the order cards make (useOpenProblems), so it adds no request.
   const problems = useOpenProblems(lines.filter((l) => l.status === "paid" && l.order_id).map((l) => l.order_id as string), side === "seller");

@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef, type RefObject } from "react";
 import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -81,3 +82,34 @@ export function useScrollToLinkedOrder(ref: RefObject<HTMLElement>, linked: bool
 
 /** What the member does that ends the keep-in-place (their own scroll wins). */
 const USER_MOVES = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
+
+/**
+ * Audit 11-10 F403: a link to an order this account cannot show was ignored silently (?order=abc, an unknown or
+ * another account's id, or a seller link opened by the buyer): the tab loaded with no card and no word. Once the cart
+ * is read, a linked id that is on this side's list is fine; one on the OTHER side moves the tab there (the card then
+ * opens as usual); one on neither side gets a toast. Said once per id per page load (both tabs render PaidOrders,
+ * Buying twice), so the toast never repeats as the sections re-render.
+ */
+const noticed = new Set<string>();
+
+export const LINKED_ORDER_MISSING = "We couldn't find that order. It may have been cancelled or belong to another account.";
+
+export function useLinkedOrderOutcome(side: "buyer" | "seller", lines: readonly { order_id: string | null; my_side: string }[] | undefined) {
+  const [params, setParams] = useSearchParams();
+  const raw = params.get("paid") ? null : params.get("order");
+  useEffect(() => {
+    if (!raw || !lines || noticed.has(raw)) return;
+    const mine = lines.filter((l) => l.order_id === raw);
+    if (mine.some((l) => l.my_side === side)) return;
+    noticed.add(raw);
+    const other = mine.find((l) => l.my_side !== side);
+    if (other) {
+      setParams((p) => { const n = new URLSearchParams(p); n.set("tab", other.my_side === "buyer" ? "buying" : "selling"); return n; }, { replace: true });
+      return;
+    }
+    toast(LINKED_ORDER_MISSING);
+  }, [raw, lines, side, setParams]);
+}
+
+/** Tests only: forget what was already said (the set lives for the page). */
+export function resetLinkedOrderNotices() { noticed.clear(); }

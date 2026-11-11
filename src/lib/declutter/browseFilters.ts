@@ -176,6 +176,16 @@ export function browseStateInParams(current: URLSearchParams, s: BrowseState): U
   return next;
 }
 
+/** True when both price bounds are set and the min sits above the max (audit 1110 F312): the sheet says so. */
+export function priceRangeSwapped(f: Pick<DeclutterFilters, "minDollars" | "maxDollars">): boolean {
+  return f.minDollars !== null && f.maxDollars !== null && f.minDollars > f.maxDollars;
+}
+
+/** The price range as [lower, higher], whichever box each was typed into. */
+export function priceBounds(f: Pick<DeclutterFilters, "minDollars" | "maxDollars">): [number | null, number | null] {
+  return priceRangeSwapped(f) ? [f.maxDollars, f.minDollars] : [f.minDollars, f.maxDollars];
+}
+
 /** How many filters (beyond the sort) are on: the filter button's count dot. */
 export function activeFilterCount(f: DeclutterFilters, maxMiles: number | null): number {
   return (
@@ -223,8 +233,11 @@ export function applyBrowseFilters<T extends BrowseItem & { id: string; title: s
   now: Date = new Date(),
   ways?: ItemWays,
 ): { item: T; miles: number | null }[] {
-  const minC = f.minDollars !== null ? f.minDollars * 100 : null;
-  const maxC = f.maxDollars !== null ? f.maxDollars * 100 : null;
+  // A min above the max (audit 1110 F312) is read as the range the member meant: the lower bound is the min, the
+  // higher the max, so the list keeps showing items in between while the sheet points out the mix-up.
+  const [lo, hi] = priceBounds(f);
+  const minC = lo !== null ? lo * 100 : null;
+  const maxC = hi !== null ? hi * 100 : null;
   const kept = rows.filter(({ item }) => {
     // Every word, in the title, description or category, plurals folded (DA-1; the server's alerts use the same rule).
     if (!matchesSearch(query, item)) return false;

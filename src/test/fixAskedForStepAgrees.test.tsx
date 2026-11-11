@@ -95,7 +95,7 @@ describe("Fix asked for: the step line, the box and the button agree (Q2668)", (
   it("fix sent: the Helpr waits on the poster's check (revision_acceptance_deadline); the poster checks it", () => {
     const h = line(sent, "helpr");
     expect(h.p.waitingOnYou).toBe(false);
-    expect(h.words).toBe("You sent the fix. Lexi has until Sat 10:00 AM to check it");
+    expect(h.words).toBe("You sent the fix. Lexi has until Sat, Oct 24 at 10:00 AM to check it");
     const p = line(sent, "poster");
     expect(p.p.waitingOnYou).toBe(true);
     expect(p.words).toMatch(/^Next: Approve Eli's work/);

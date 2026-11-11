@@ -112,7 +112,8 @@ const Unsubscribe = () => {
         <div className="space-y-2">
           <h1 className="text-page-title leading-tight text-balance">{link ? heading : "This link isn't valid"}</h1>
           <p className="font-sans text-ds-13 [overflow-wrap:anywhere]" style={muted}>
-            {link ? body : "It may have been changed, or it's from an older email."}
+            {/* F416 (audit 11-10): say what to do, not only what went wrong. */}
+            {link ? body : "It may have been changed, or it's from an older email. Open the newest email from us and tap Unsubscribe again, or log in below."}
           </p>
         </div>
 

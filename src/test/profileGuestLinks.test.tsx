@@ -74,6 +74,28 @@ describe("the share profile brings a guest back where they were going (audit L3,
     expect(join.getAttribute("href")).toContain(encodeURIComponent("/u/eli-b?hire=1"));
   });
 
+  // F230 / F231 (audit 11-10): Join free measured 58x16 and Log in 36x14 (tap-44 gives each a 44px hit area in
+  // place), and a guest asked what Hire me costs: free to look, pay only when you hire. A member keeps the old line.
+  // @mutate src/pages/u/PublicProfilePage.tsx | className="tap-44 font-semibold text-foreground underline underline-offset-2">Join free</Link> | className="font-semibold text-foreground underline underline-offset-2">Join free</Link>
+  // @mutate src/pages/u/PublicProfilePage.tsx | className="tap-44 font-semibold text-foreground underline underline-offset-2">Log in</Link> | className="font-semibold text-foreground underline underline-offset-2">Log in</Link>
+  // @mutate src/pages/u/PublicProfilePage.tsx | {signedIn ? "Offer a job directly. Your payment is held safely until the work is done." : "Free to look. You pay only when you hire, and your payment is held safely until the work is done."} | {"Offer a job directly. Your payment is held safely until the work is done."}
+  it("F230/F231: a guest's Join free and Log in are 44px targets and the line says it is free to look", async () => {
+    show();
+    const join = await screen.findByTestId("pp-hire-join");
+    for (const a of Array.from(join.querySelectorAll("a"))) expect(a.className, a.textContent ?? "").toMatch(/\btap-44\b/);
+    expect(screen.getByTestId("pp-hire").textContent).toContain(
+      "Free to look. You pay only when you hire, and your payment is held safely until the work is done.",
+    );
+  });
+
+  it("F231: a member keeps the plain 'Offer a job directly' line", async () => {
+    signedIn = { id: "u1" };
+    show();
+    const hire = await screen.findByTestId("pp-hire");
+    expect(hire.textContent).toContain("Offer a job directly. Your payment is held safely until the work is done.");
+    expect(hire.textContent).not.toContain("Free to look");
+  });
+
   it("L3: a member sees no Log in link", async () => {
     signedIn = { id: "u1" };
     show();

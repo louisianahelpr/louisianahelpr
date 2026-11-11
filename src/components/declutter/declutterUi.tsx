@@ -82,17 +82,30 @@ export const TAX_STATEMENTS = [
  * a move, one tick covers every item in the run.
  */
 export const TAX_TICK_LABEL = "All of this is true for what I'm listing";
-const TAX_FREE_LABEL = "I own this, it's from my own household, I don't do this as a business, and I'll keep it until it's picked up.";
+/** The same promises for a give-away, where nothing is sold (lead's wording, audit single-free #14), one per line (audit 1110 F340). */
+const TAX_FREE_STATEMENTS = [
+  "I own this.",
+  "It's from my own household.",
+  "I don't do this as a business.",
+  "I'll keep it until it's picked up.",
+] as const;
+const TAX_FREE_TICK_LABEL = "All of this is true";
 
 /** The four statements as one short list, and the one checkbox that confirms them. Shared by every sell form. */
 export function TaxStatementsCheck({ id, checked, onChange, free = false }: { id: string; checked: boolean; onChange: (on: boolean) => void; free?: boolean }) {
   const box = <Checkbox id={id} className="mt-0.5" checked={checked} onCheckedChange={(v) => onChange(v === true)} />;
-  // Nothing is sold in a giveaway, so it says so (lead's wording, audit single-free #14). The server keeps the same record.
+  // Nothing is sold in a giveaway, so it says so (lead's wording, audit single-free #14), as bullets like the paid form
+  // rather than one long line (audit 1110 F340). The server keeps the same record.
   if (free) {
     return (
-      <div className="flex items-start gap-3 text-ds-14" data-tax-statements="free">
-        {box}
-        <label htmlFor={id} className="min-h-11 flex-1">{TAX_FREE_LABEL}</label>
+      <div className="space-y-2" data-tax-statements="free">
+        <ul className="list-disc space-y-1 pl-5 text-ds-13 text-foreground">
+          {TAX_FREE_STATEMENTS.map((s) => <li key={s}>{s}</li>)}
+        </ul>
+        <div className="flex items-start gap-3 text-ds-14 font-semibold">
+          {box}
+          <label htmlFor={id} className="min-h-11 flex-1">{TAX_FREE_TICK_LABEL}</label>
+        </div>
       </div>
     );
   }

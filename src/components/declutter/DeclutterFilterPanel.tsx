@@ -14,7 +14,7 @@ import { ToggleChip } from "@/components/ui/ToggleChip";
 import type { FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import { DISTANCE_CHOICES } from "@/lib/declutter/distance";
 import { CATEGORY_GROUPS, CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
-import { OTHER_WAYS, SORT_LABEL, type DeclutterFilters, type DeclutterSort, type OtherWay } from "@/lib/declutter/browseFilters";
+import { OTHER_WAYS, SORT_LABEL, priceRangeSwapped, type DeclutterFilters, type DeclutterSort, type OtherWay } from "@/lib/declutter/browseFilters";
 import { HANDOVER_TITLE } from "./handoverCopy";
 import { CONDITION_LABEL } from "./declutterUi";
 import { offerAsk, type OriginAsk } from "./DeclutterBrowseBar";
@@ -164,6 +164,8 @@ export function declutterFilterSections({
             <span className="text-ds-13 text-muted-foreground">to</span>
             <DollarBox label="Highest price" value={filters.maxDollars} onCommit={(v) => onChange({ ...filters, maxDollars: v })} />
           </div>
+          {/* Min above max (audit 1110 F312): say so in red; the list keeps showing the swapped range meanwhile. */}
+          {priceRangeSwapped(filters) && <p className="text-ds-13 text-destructive-ink" role="alert" data-price-swapped="">Min is more than max</p>}
         </div>
       ),
     },

@@ -395,7 +395,7 @@ export default function PublicProfilePage() {
     <EmptyState
       icon={UserX}
       title="This profile isn't available"
-      body="The link may be old, or the account is no longer on Helpr."
+      body="The link may be old, or this profile isn't public right now."
       action={
         <Button asChild className="btn-grad-primary rounded-full">
           <Link to={user ? "/home" : "/"}>Go to Louisiana Helpr</Link>

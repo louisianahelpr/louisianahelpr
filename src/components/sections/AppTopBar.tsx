@@ -80,6 +80,7 @@ export function AppTopBar({
   desktopGap = true,
   search,
   mine,
+  showAdd = true,
 }: {
   /** Omit on Dashboard: the logo shows instead. */
   title?: string;
@@ -101,6 +102,8 @@ export function AppTopBar({
   search?: ReactNode;
   /** The section's "My …" menu, opened from the photo (which wears a dot while any row has a to-do). */
   mine?: SectionMineMenu;
+  /** False while the section is closed to this member (SectionScreen's showAdd): no "+ Open a shop" on the desktop bar. */
+  showAdd?: boolean;
 }) {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
@@ -114,7 +117,7 @@ export function AppTopBar({
   void explore;
   const title = sectionTitle;
   if (isWebDesktop && !title) return null;
-  const actions = isWebDesktop && section && sectionByKey(section).add ? <SectionAddButton section={section} /> : undefined;
+  const actions = isWebDesktop && showAdd && section && sectionByKey(section).add ? <SectionAddButton section={section} /> : undefined;
   // The phone bar's right side (F148): the bell, then You. Help is INTO You (You > Help, one tap).
   const personal = (
     <>

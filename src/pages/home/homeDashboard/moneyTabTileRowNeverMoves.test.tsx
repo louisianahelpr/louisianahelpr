@@ -6,8 +6,8 @@
  * guess). Home's strip is unchanged: hidden at $0 (its own hold, B98).
  *
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (placement === "money" && money.pending && !money.coming && !money.held) return <MoneyTilesLoading />; |   if (false) return <MoneyTilesLoading />;
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (placement === "money" && !money.failed && !money.coming && !money.held) { |   if (placement === "money" && !money.coming && !money.held) {
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (placement === "money" && !money.failed && !money.coming && !money.held) { |   if (false) {
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (placement === "money" && !money.failed && !money.coming && !money.held && !stack) { |   if (placement === "money" && !money.coming && !money.held) {
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (placement === "money" && !money.failed && !money.coming && !money.held && !stack) { |   if (false) {
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
@@ -32,10 +32,10 @@ describe("You > Money's tile row holds its place", () => {
     expect(row!.querySelectorAll("span")).toHaveLength(3);
   });
 
-  it("shows Coming to you $0.00 when the reads answered with nothing", () => {
+  it("shows On its way $0.00 when the reads answered with nothing (F266a: the stack's head)", () => {
     const c = draw({ coming: null, held: null, pending: false }, "money");
     const tile = c.querySelector('[data-money-tile="coming"]');
-    expect(tile?.textContent).toContain("Coming to you");
+    expect(tile?.textContent).toContain("On its way");
     expect(tile?.textContent).toContain("$0.00");
     expect(tile?.textContent).toContain("Nothing on its way yet");
   });
@@ -57,6 +57,6 @@ describe("You > Money's tile row holds its place", () => {
 
   it("useHomeMoney reports a failed read", () => {
     const src = readFileSync("src/pages/home/homeDashboard/homeMoney.ts", "utf8");
-    expect(src).toContain("return { coming, held, pending, failed };");
+    expect(src).toContain("return { coming, held, ...(stack ? { stack } : {}), pending, failed };");
   });
 });

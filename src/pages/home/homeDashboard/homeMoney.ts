@@ -3,7 +3,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useProfileEarnings } from "@/hooks/useProfileTabData";
 import { useFirstPayoutFeeDollars, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
-import { comingToYou } from "@/components/profile/earningsTab/earningsTabHelpers";
+import { comingToYou, moneyStack } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { usePosterSpendData } from "@/components/profile/earningsTab/usePosterSpendData";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +24,12 @@ export interface HomeMoney {
    * one such job the tile names it and who it is paid to ("First L.", null until the name is read).
    */
   held: { cents: number; jobs: number; only: { title: string; helper: string | null } | null } | null;
+  /**
+   * F266a: the Helpr's take-home still held for them: on jobs waiting for the poster's approval, and on jobs held in
+   * a dispute (earningsTabHelpers.moneyStack). Absent while loading, on a failed read and when both are $0. Only
+   * You > Money shows it.
+   */
+  stack?: { waitingCents: number; disputeCents: number } | null;
   /** Q2706 (B98): a tile's read has not answered yet (layout only: Home holds the strip's last height meanwhile). */
   pending?: boolean;
   /** One of the reads failed: You > Money draws no "$0.00" tile on a guess. */
@@ -51,9 +57,12 @@ export function useHomeMoney(user: SupaUser | null): HomeMoney {
   const spend = usePosterSpendData(uid);
 
   let coming: HomeMoney["coming"] = null;
+  let stack: HomeMoney["stack"] = null;
   if (profile && feeKnown && earnings.data && !earnings.isError) {
     const pct = tierFeePercent(profile.subscription_tier ?? "free", profile.subscription_expires_at ?? null);
     const c = comingToYou(earnings.data.jobs, pct, firstPayoutFee);
+    const st = moneyStack(earnings.data.jobs, pct);
+    if (st.waitingCents > 0 || st.disputeCents > 0) stack = st;
     // No payout account: the cron leaves the money payout_pending and asks for one (process-scheduled-payouts).
     if (c.cents > 0) coming = { ...c, hasPayoutAccount: !!profile.stripe_account_id };
   }
@@ -82,5 +91,5 @@ export function useHomeMoney(user: SupaUser | null): HomeMoney {
   const pending = !!uid && ((spend.data === undefined && !spend.isError) || (earnings.data === undefined && !earnings.isError));
   // A failed read is never shown as $0.00 (You > Money's empty tile only stands for reads that answered).
   const failed = !!uid && (spend.isError || earnings.isError);
-  return { coming, held, pending, failed };
+  return { coming, held, ...(stack ? { stack } : {}), pending, failed };
 }

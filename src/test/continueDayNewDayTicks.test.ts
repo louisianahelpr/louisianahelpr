@@ -10,8 +10,8 @@
  * @mutate src/lib/continueDayWords.ts |   if (!ON_THE_WAY_OR_LATER.has(st) && "helper_on_the_way_at" in out) out.helper_on_the_way_at = null; |   if (false && "helper_on_the_way_at" in out) out.helper_on_the_way_at = null;
  * @mutate src/lib/continueDayWords.ts |   if (!ARRIVED_OR_LATER.has(st)) for (const k of ARRIVAL_STAMPS) if (k in out) out[k] = null; |   if (false) for (const k of ARRIVAL_STAMPS) if (k in out) out[k] = null;
  * @mutate src/lib/continueDayWords.ts |   return trackingStatus === undefined ? dated : withNewDayCheckIns(dated, trackingStatus); |   return dated;
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | <JobTracker job={jobOnContinueDay(job, continueDay.row, trackingStatus)} | <JobTracker job={jobOnContinueDay(job, continueDay.row)}
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |     ? hiredHelprFace(jobOnContinueDay(job, continueDay.row, trackingStatus), { userId, |     ? hiredHelprFace(job, { userId,
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const dayJob = jobOnContinueDay(job, continueDay.row, trackingStatus); |   const dayJob = jobOnContinueDay(job, continueDay.row);
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |     ? hiredHelprFace(dayJob, { userId, |     ? hiredHelprFace(job, { userId,
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -87,10 +87,11 @@ describe("Q2789: a continue day's tracker and Helpr face read the new day's chec
 
   it("the job page passes its tracking row to the tracker and to the Helpr's face", () => {
     const page = blankComments(readFileSync(join(__dirname, "..", "pages/jobs/jobPage/JobPage.tsx"), "utf8"));
+    // One computation (size ratchet), with the tracking row, feeding both the face and the tracker.
     const calls = page.match(/jobOnContinueDay\([^)]*\)/g) ?? [];
-    expect(calls.length).toBeGreaterThan(1);
-    for (const c of calls) expect(c).toBe("jobOnContinueDay(job, continueDay.row, trackingStatus)");
-    expect(page).toContain("hiredHelprFace(jobOnContinueDay(job, continueDay.row, trackingStatus),");
-    expect(page).toContain("<JobTracker job={jobOnContinueDay(job, continueDay.row, trackingStatus)}");
+    expect(calls).toEqual(["jobOnContinueDay(job, continueDay.row, trackingStatus)"]);
+    expect(page).toContain("const dayJob = jobOnContinueDay(job, continueDay.row, trackingStatus);");
+    expect(page).toContain("hiredHelprFace(dayJob,");
+    expect(page).toContain("<JobTracker job={dayJob}");
   });
 });

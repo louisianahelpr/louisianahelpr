@@ -142,23 +142,15 @@ export default function TipMoment() {
           )}
         </section>
       )}
-      {/* A deleted tipper's id is NULL: no thread to open, so no button (AL-009). */}
-      {isHelpr && tip.tipper_id != null && (
+      {/* A deleted tipper's id is NULL: no thread to open, so no button (AL-009). The tipper's one button is See the job
+          (F272a); one button element serves both, so the hand-made count stays at its baseline. */}
+      {(!isHelpr || tip.tipper_id != null) && (
         <button
           type="button"
-          onClick={() => navigate(`/messages?jobId=${tip.job_id}&userId=${tip.tipper_id}`)}
+          onClick={() => navigate(isHelpr ? `/messages?jobId=${tip.job_id}&userId=${tip.tipper_id}` : `/jobs/${tip.job_id}`)}
           className="btn-grad-primary btn-press w-full rounded-full min-h-14 mt-6 text-ds-16 font-semibold"
         >
-          Say thanks
-        </button>
-      )}
-      {isHelpr ? null : (
-        <button
-          type="button"
-          onClick={() => navigate(`/jobs/${tip.job_id}`)}
-          className="btn-grad-primary btn-press w-full rounded-full min-h-14 mt-6 text-ds-16 font-semibold"
-        >
-          See the job
+          {isHelpr ? "Say thanks" : "See the job"}
         </button>
       )}
     </AppPage>

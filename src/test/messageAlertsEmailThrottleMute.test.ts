@@ -9,12 +9,12 @@
  * runs in src/test/pglite/messageAlertThrottleMute.pglite.mjs (migration applied
  * 3x; red with NEW_MIGRATION=skip, 14 checks fail on prod's code, measured 2026-10-30).
  *
- * @mutate supabase/migrations/20261030212051_message_snooze_ends.sql |   IF NEW.job_id IS NOT NULL AND EXISTS (\n    SELECT 1 FROM public.thread_mutes tm | IF NEW.job_id IS NOT NULL AND false AND EXISTS (\n    SELECT 1 FROM public.thread_mutes tm
- * @mutate supabase/migrations/20261030212051_message_snooze_ends.sql |        AND n.created_at > now() - interval '15 minutes' |        AND n.created_at > now() - interval '15 seconds'
- * @mutate supabase/migrations/20261030212051_message_snooze_ends.sql |     CASE WHEN v_show_preview THEN preview ELSE 'Sent you a message.' END, |     preview,
- * @mutate supabase/migrations/20261030212051_message_snooze_ends.sql |  sent you a message on Louisiana Helpr. Open the conversation to read it and reply.', |  sent you a message: ' \|\| preview,
- * @mutate supabase/migrations/20261030212051_message_snooze_ends.sql |   IF v_email_on THEN |   IF false THEN
- * @mutate supabase/migrations/20261030212051_message_snooze_ends.sql |        AND (tm.mute_until IS NULL OR tm.mute_until > now())\n |
+ * @mutate supabase/migrations/20261111194802_thread_notices_name_the_job.sql |   IF NEW.job_id IS NOT NULL AND EXISTS (\n    SELECT 1 FROM public.thread_mutes tm | IF NEW.job_id IS NOT NULL AND false AND EXISTS (\n    SELECT 1 FROM public.thread_mutes tm
+ * @mutate supabase/migrations/20261111194802_thread_notices_name_the_job.sql |        AND n.created_at > now() - interval '15 minutes' |        AND n.created_at > now() - interval '15 seconds'
+ * @mutate supabase/migrations/20261111194802_thread_notices_name_the_job.sql |     CASE WHEN v_show_preview THEN preview ELSE 'Sent you a message.' END, |     preview,
+ * @mutate supabase/migrations/20261111194802_thread_notices_name_the_job.sql |  sent you a message on Louisiana Helpr. Open the conversation to read it and reply.', |  sent you a message: ' \|\| preview,
+ * @mutate supabase/migrations/20261111194802_thread_notices_name_the_job.sql |   IF v_email_on THEN |   IF false THEN
+ * @mutate supabase/migrations/20261111194802_thread_notices_name_the_job.sql |        AND (tm.mute_until IS NULL OR tm.mute_until > now())\n |
  * @mutate src/components/notificationPreferences/constants.tsx | email_job_updates: true, email_messages: true, | email_job_updates: true, email_messages: false,
  * @mutate src/components/NotificationPreferences.tsx |             <MessagePreviewRow | <div
  */

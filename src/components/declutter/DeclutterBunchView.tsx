@@ -188,6 +188,8 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   // While the setup fee is due only free items can go (the server asks no fee at price 0); priced ones stay on the list.
   const ready = bunchListable(items, feeDue != null);
   const heldForFee = feeDue != null ? bunchListable(items, false).length - ready.length : 0;
+  // F337 (audit 11-10): a pile of photos not sorted yet is not an item; "0 of 1 ready" with no item shown read as a contradiction.
+  const sortedCount = items.filter((it) => !it.notSorted).length;
   const savedWays = ways.filter((w) => w !== "delivery" && (w !== "seller_delivery" || sellerDeliveryOpen));
   const busy = !!sorting || !!listing || listingDrafts;
   const blocked = busy;
@@ -522,7 +524,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       )}
 
       {items.length > 0 && (
-        <BunchSection id="bunch-check" title={`${firstStep + 1}. Check each item (${ready.length + heldForFee} of ${items.length} ready)`}>
+        <BunchSection id="bunch-check" title={sortedCount > 0 ? `${firstStep + 1}. Check each item (${ready.length + heldForFee} of ${sortedCount} ready)` : `${firstStep + 1}. Check each item`}>
           <p className="text-xs text-muted-foreground">
             Fix anything we got wrong. Tap an item to open it. If two items are the same thing, merge them; if one holds two things, split it.
           </p>

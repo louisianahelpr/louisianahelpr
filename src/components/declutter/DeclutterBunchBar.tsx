@@ -74,7 +74,7 @@ export function BunchBar({ sorting, found, listing, runNames, undo, itemCount, r
           {needs && onNeeds ? (
             <Button type="button" variant="link" size="sm" className="h-auto min-w-0 flex-1 justify-start whitespace-normal p-0 text-left underline" data-bunch-needs="" onClick={onNeeds}>{needs}</Button>
           ) : (
-            <span className="min-w-0 flex-1 text-sm text-muted-foreground">All {itemCount === 1 ? "set" : `${itemCount} set`}.</span>
+            <span className="min-w-0 flex-1 text-sm text-muted-foreground">{readyCount === 0 ? "Nothing ready yet." : `All ${itemCount === 1 ? "set" : `${itemCount} set`}.`}</span>
           )}
           {!listStepInView && <Button type="button" size="sm" className="rounded-full" disabled={readyCount === 0} data-bunch-next="" onClick={onNext}>Next: list {readyCount} {readyCount === 1 ? "item" : "items"}</Button>}
         </div>

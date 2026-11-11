@@ -52,7 +52,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     from: (t: string) => builder(t),
     // DB-13: declutter_my_cart gives a receipt its item names (the order card's read).
     // B96: declutter_my_paid_cents gives a receipt the card charge (the sale plus a first purchase's setup fee).
-    rpc: (fn: string) => Promise.resolve({ data: fn === "declutter_my_cart" ? (tables.my_cart ?? []) : fn === "declutter_my_paid_cents" ? (tables.my_paid ?? []) : [], error: null }),
+    rpc: (fn: string) => Promise.resolve({ data: fn === "declutter_my_cart" ? (tables.my_cart ?? []) : fn === "declutter_my_paid_cents" ? (tables.my_paid ?? []) : fn === "declutter_my_refunded_cents" ? (tables.my_refunded ?? []) : [], error: null }),
     functions: {
       invoke: (_fn: string, opts: { body: Record<string, unknown> }) => {
         invokes.push(opts.body);
@@ -86,7 +86,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 import PayoutHistory from "./PayoutHistory";
-import Receipts, { orderReceipts, receiptTitle } from "./Receipts";
+import Receipts, { orderReceipts, receiptTitle, type PaidOrderRow } from "./Receipts";
 
 let where = "";
 function Where() {
@@ -229,10 +229,11 @@ describe("receipts, fees owed, tax forms (board 177)", () => {
   // Audit 2026-10-30 DB-13: the receipt was bare ("Declutter purchase" and a total) and did nothing when tapped.
   // @mutate src/pages/profile/Receipts.tsx |         title: itemsTitle(titles.get(o.id)), |         title: "Declutter purchase",
   // @mutate src/pages/profile/Receipts.tsx |               if (!r.lines) return | if (true) return
-  // @mutate src/pages/profile/Receipts.tsx |       const feeWords = o.items_cents != null && o.total_cents > lines.reduce((s, l) => s + l.cents, 0); |       const feeWords = false;
-  it("DB-13: a Declutter receipt names its items and opens to its lines, the total, the fee in words and the order", async () => {
+  // F380 (owner 11-11): the fee is now its own "Service fee" line (it was words only), so the lines add up to the total.
+  // @mutate src/pages/profile/Receipts.tsx |             { label: "Service fee", cents: o.premium_cents ?? 0 }, |
+  it("DB-13: a Declutter receipt names its items and opens to its lines, the total and the order", async () => {
     tables.declutter_orders = [{ id: "o1", status: "handed_over", total_cents: 3540, paid_at: "2026-10-05T12:00:00Z",
-      items_cents: 2200, delivery_cents: 800, shipping_cents: 0, tax_cents: 0 }];
+      items_cents: 2200, premium_cents: 540, delivery_cents: 800, shipping_cents: 0, tax_cents: 0 }];
     tables.my_cart = [
       { line_id: "l1", order_id: "o1", item_title: "Blue mug", my_side: "buyer" },
       { line_id: "l2", order_id: "o1", item_title: "Green vase", my_side: "buyer" },
@@ -245,19 +246,19 @@ describe("receipts, fees owed, tax forms (board 177)", () => {
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     const detail = document.querySelector("[data-receipt-detail]")!;
-    expect(detail.textContent).toBe("Paid onOct 5, 2026Items$22.00Delivery$8.00Total$35.40Includes a small Louisiana Helpr service fee.See the order");
+    expect(detail.textContent).toBe("Paid onOct 5, 2026Items$22.00Service fee$5.40Delivery$8.00Total paid$35.40See the order");
     expect(screen.getByRole("link", { name: "See the order" })).toHaveAttribute("href", "/declutter?view=buying");
     expect(text()).not.toContain("Someone else's sale");
   });
 
   // B96 (B93's DB-13 note): a first purchase's one-time account setup fee is charged outside total_cents, so the receipt
   // read ~$2 under what Stripe charged. It now shows the card charge (declutter_my_paid_cents) with the setup fee as
-  // the cart's own words under the total (board 161: never a fee line).
+  // the cart's own words under the total. F380 (owner 11-11): the setup fee is its own line now, beside the service fee.
   // @mutate src/pages/profile/Receipts.tsx | null : netOfRefund(charged, refundedBack?.get(o.id)).cents, | null : netOfRefund(o.total_cents, refundedBack?.get(o.id)).cents,
-  // @mutate src/pages/profile/Receipts.tsx |                       {!!r.setupCents && <p | {false && <p
-  it("a first purchase's receipt shows what the card was charged, and says the setup fee in words under the total", async () => {
+  // @mutate src/pages/profile/Receipts.tsx |             { label: "One-time account setup fee", cents: setup }, |
+  it("a first purchase's receipt shows what the card was charged, with the setup fee as its own line", async () => {
     tables.declutter_orders = [{ id: "o1", status: "paid", total_cents: 3220, paid_at: "2026-10-05T12:00:00Z",
-      items_cents: 3000, delivery_cents: 0, shipping_cents: 0, tax_cents: 0 }];
+      items_cents: 3000, premium_cents: 220, delivery_cents: 0, shipping_cents: 0, tax_cents: 0 }];
     tables.my_cart = [{ line_id: "l1", order_id: "o1", item_title: "Blue mug", my_side: "buyer" }];
     tables.my_paid = [{ order_id: "o1", paid_cents: 3420 }];
     renderAt(<Receipts />, "?tab=receipts");
@@ -266,15 +267,71 @@ describe("receipts, fees owed, tax forms (board 177)", () => {
     expect(toggle.textContent).not.toContain("$32.20");
     fireEvent.click(toggle);
     expect(document.querySelector("[data-receipt-detail]")!.textContent)
-      .toBe("Paid onOct 5, 2026Items$30.00Total$34.20Includes a small Louisiana Helpr service fee.Includes the one-time $2.00 account setup fee.See the order");
+      .toBe("Paid onOct 5, 2026Items$30.00Service fee$2.20One-time account setup fee$2.00Total paid$34.20See the order");
     tables.my_paid = [];
   });
 
   it("without a setup fee (or before the card-charge read answers an order) the receipt is the order's total", () => {
-    const o = { id: "a", status: "paid", total_cents: 3220, paid_at: "2026-10-01T00:00:00Z", items_cents: 3000 };
-    expect(orderReceipts([o], new Map(), new Map([["a", 3220]]))[0]).toMatchObject({ cents: 3220, lines: [{ label: "Items", cents: 3000 }] });
+    const o = { id: "a", status: "paid", total_cents: 3220, paid_at: "2026-10-01T00:00:00Z", items_cents: 3000, premium_cents: 220 };
+    expect(orderReceipts([o], new Map(), new Map([["a", 3220]]))[0]).toMatchObject({ cents: 3220, lines: [{ label: "Items", cents: 3000 }, { label: "Service fee", cents: 220 }] });
     expect(orderReceipts([o], new Map(), null)[0].cents).toBe(3220);
     expect(orderReceipts([{ ...o, status: "refunded" }], new Map(), new Map([["a", 3420]]))[0].cents).toBeNull();
+  });
+
+  // F380 (audit 11-10; owner 11-11 ~12:25 AM): a Declutter receipt shows a "Service fee" line, and its lines add up to
+  // exactly what the card was charged in each fee situation. Every figure is the order row's frozen column (the fee is
+  // premium_cents, never a recomputed 5% + 70c) and the setup fee is the card charge (declutter_my_paid_cents) less
+  // total_cents. The fixtures keep CHECK declutter_orders_total (20261020024605): total = items + premium + tax +
+  // delivery + shipping.
+  // @mutate src/pages/profile/Receipts.tsx |       const setup = Math.max(0, charged - o.total_cents); |       const setup = 0;
+  // @mutate src/pages/profile/Receipts.tsx |             { label: "Delivery", cents: o.delivery_cents ?? 0 }, |
+  // @mutate src/pages/profile/Receipts.tsx |             { label: "Shipping", cents: o.shipping_cents ?? 0 }, |
+  // @mutate src/pages/profile/Receipts.tsx |       const known = o.items_cents != null && o.premium_cents != null; |       const known = o.items_cents != null;
+  describe("F380: the receipt's lines add up to what was paid", () => {
+    const at = "2026-10-01T00:00:00Z";
+    const cases: { name: string; row: PaidOrderRow; paid: number; want: [string, number][] }[] = [
+      { name: "plain pickup", paid: 2170,
+        row: { id: "p", status: "paid", total_cents: 2170, paid_at: at, items_cents: 2000, premium_cents: 170, delivery_cents: 0, shipping_cents: 0, tax_cents: 0 },
+        want: [["Items", 2000], ["Service fee", 170]] },
+      { name: "Helpr delivery", paid: 5320,
+        row: { id: "d", status: "handed_over", total_cents: 5320, paid_at: at, items_cents: 4500, premium_cents: 295, delivery_cents: 525, shipping_cents: 0, tax_cents: 0 },
+        want: [["Items", 4500], ["Service fee", 295], ["Delivery", 525]] },
+      { name: "shipping", paid: 3484,
+        row: { id: "s", status: "paid", total_cents: 3484, paid_at: at, items_cents: 2500, premium_cents: 254, delivery_cents: 0, shipping_cents: 730, tax_cents: 0 },
+        want: [["Items", 2500], ["Service fee", 254], ["Shipping", 730]] },
+      { name: "first purchase with the setup fee", paid: 3420,
+        row: { id: "f", status: "paid", total_cents: 3220, paid_at: at, items_cents: 3000, premium_cents: 220, delivery_cents: 0, shipping_cents: 0, tax_cents: 0 },
+        want: [["Items", 3000], ["Service fee", 220], ["One-time account setup fee", 200]] },
+    ];
+    for (const c of cases) {
+      it(c.name, () => {
+        const r = orderReceipts([c.row], new Map(), new Map([[c.row.id, c.paid]]))[0];
+        expect(r.lines!.map((l) => [l.label, l.cents])).toEqual(c.want);
+        expect(r.chargedCents).toBe(c.paid);
+        expect(r.lines!.reduce((sum, l) => sum + l.cents, 0)).toBe(c.paid);
+        expect(r.cents).toBe(c.paid);
+      });
+    }
+
+    it("an older read without the fee column shows only the total it can prove, never a guessed fee", () => {
+      const r = orderReceipts([{ id: "o", status: "paid", total_cents: 2170, paid_at: at, items_cents: 2000 }], new Map(), new Map([["o", 2170]]))[0];
+      expect(r.lines).toEqual([]);
+      expect(r.chargedCents).toBe(2170);
+    });
+
+    it("a part refund shows under Total paid, and what stayed paid", async () => {
+      tables.declutter_orders = [{ id: "o1", status: "handed_over", total_cents: 5320, paid_at: "2026-10-05T12:00:00Z",
+        items_cents: 4500, premium_cents: 295, delivery_cents: 525, shipping_cents: 0, tax_cents: 0 }];
+      tables.my_cart = [{ line_id: "l1", order_id: "o1", item_title: "Accent chair", my_side: "buyer" }];
+      tables.my_paid = [{ order_id: "o1", paid_cents: 5320 }];
+      tables.my_refunded = [{ order_id: "o1", refunded_cents: 525 }];
+      renderAt(<Receipts />, "?tab=receipts");
+      fireEvent.click(await screen.findByRole("button", { name: /Accent chair/ }));
+      expect(document.querySelector("[data-receipt-detail]")!.textContent)
+        .toBe("Paid onOct 5, 2026Items$45.00Service fee$2.95Delivery$5.25Total paid$53.20Refunded−$5.25You paid$47.95See the order");
+      tables.my_paid = [];
+      tables.my_refunded = [];
+    });
   });
 
   it("an order counts only once it was paid (paid, handed over, or refunded and said so)", () => {

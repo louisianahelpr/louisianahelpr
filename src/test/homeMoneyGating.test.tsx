@@ -13,6 +13,7 @@
  * @mutate src/hooks/useOnboardingFee.ts |       const data = unwrap(res); |       const data = res.error ? null : res.data;
  * @mutate src/pages/home/homeDashboard/homeMoney.ts | hasPayoutAccount: !!profile.stripe_account_id | hasPayoutAccount: true
  * @mutate src/pages/home/homeDashboard/homeMoney.ts |   const failed = !!uid && (spend.isError \|\| earnings.isError); |   const failed = false;
+ * @mutate src/pages/home/homeDashboard/homeMoney.ts |     if (st.waitingCents > 0 \|\| st.disputeCents > 0) stack = st; |
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
@@ -59,6 +60,17 @@ beforeEach(() => {
   state.spend = { data: spendOf([hired]), isError: false };
   state.feePending = false;
   state.feeFailed = false;
+});
+
+describe("F266a: the Money page's stack comes from the same earnings read", () => {
+  it("a job waiting for approval and one in a dispute fill the stack; none leaves it out", () => {
+    const waiting = { id: "w", status: "in_progress", payment_status: "escrow", budget: 100, helper_fee_percent: 10, helper_completed_at: "2026-11-10T18:00:00Z", poster_completed_at: null };
+    const disputed = { id: "d", status: "disputed", payment_status: "escrow", budget: 200, helper_fee_percent: 10 };
+    state.earnings = { data: { jobs: [approved, waiting, disputed], tips: [] }, isError: false };
+    expect(renderHook(() => useHomeMoney(user)).result.current.stack).toEqual({ waitingCents: 8800, disputeCents: 17600 }); // priced as On its way is (the viewer's tier fee)
+    state.earnings = { data: { jobs: [approved], tips: [] }, isError: false };
+    expect(renderHook(() => useHomeMoney(user)).result.current.stack).toBeUndefined();
+  });
 });
 
 describe("Home money tiles: a real number or no tile", () => {

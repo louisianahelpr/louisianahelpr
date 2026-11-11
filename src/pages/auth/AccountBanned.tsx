@@ -94,7 +94,9 @@ const AccountBanned = () => {
   // forever (a history trap on all three account-gate screens).
   useEffect(() => {
     if (isLoading) return;
-    if (!user) { navigate("/login", { replace: true }); return; }
+    // Signed out: no bounce to /login (F251, audit 11-10). A restricted member who follows the email link
+    // used to land on a bare login form; the guest card below says what this page is and how to appeal.
+    if (!user) return;
     if (!profile?.ban_status || !(BAN_STATUSES as readonly string[]).includes(profile.ban_status)) {
       navigate("/home", { replace: true });
     }
@@ -156,7 +158,7 @@ const AccountBanned = () => {
   // Don't paint the ban card for a visitor we're about to bounce — a
   // signed-out guest hitting this URL used to see a flash of "Account
   // suspended" before the redirect effect ran.
-  if (isLoading || !user) {
+  if (isLoading) {
     return (
       // `centerColumn`: AuthShell defaults to `items-start`, and with no brand
       // panel to balance it the card pinned to the LEFT edge — measured at 1440:
@@ -167,6 +169,35 @@ const AccountBanned = () => {
       // no marketing footer under it (owner, 2026-10-03).
       <AuthShell hideBack hideHeader hideFooter centerColumn maxWidth="md">
         <div className="liquid-glass p-7 sm:p-8 min-h-[16rem] animate-pulse" aria-busy="true" />
+      </AuthShell>
+    );
+  }
+
+  if (!user) {
+    return (
+      <AuthShell hideBack hideHeader hideFooter centerColumn maxWidth="md">
+        <div className="liquid-glass p-7 sm:p-8 space-y-6 text-center" data-account-banned-guest="">
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
+            style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
+          >
+            <Ban className="w-8 h-8" style={{ color: "hsl(var(--burnt-sienna))" }} />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-page-title leading-tight mt-2 text-balance">This account is restricted.</h1>
+            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Log in to see why and for how long, or write to our support team with your account email and we will review it.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Button asChild variant="primary" className="w-full" size="lg">
+              <Link to="/support?topic=message&subject=Account%20restricted">Contact support</Link>
+            </Button>
+            <Button asChild variant="ghost" className="w-full" size="sm">
+              <Link to="/login">Log in</Link>
+            </Button>
+          </div>
+        </div>
       </AuthShell>
     );
   }

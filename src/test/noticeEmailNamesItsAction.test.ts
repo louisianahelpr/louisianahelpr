@@ -7,15 +7,15 @@
  * @mutate supabase/functions/_shared/email-templates/notificationAction.ts |     if (/[?&](tab\|view)=buying\b/.test(link ?? "")) return "See your order"; |
  * @mutate supabase/functions/_shared/email-templates/notificationAction.ts |   if (path.startsWith("/messages")) return "Read the message"; |
  * @mutate supabase/functions/_shared/email-templates/notificationAction.ts |   if (path.startsWith("/shops/dashboard")) return "See your shop's orders"; |
- * @mutate supabase/functions/_shared/email-templates/notification.tsx | <BrandButton href={actionUrl} label={actionLabel} widthPx={230} /> | <BrandButton href={actionUrl} label="View Details" widthPx={230} />
- * @mutate supabase/functions/send-notification-email/index.ts |       actionLabel: notificationActionLabel(link, title),\n |       actionLabel: notificationActionLabel(link),\n
+ * @mutate supabase/functions/_shared/email-templates/notification.tsx | <BrandButton href={actionUrl} label={actionLabel ?? w.open} widthPx={230} /> | <BrandButton href={actionUrl} label="View Details" widthPx={230} />
+ * @mutate supabase/functions/send-notification-email/index.ts | notificationActionLabel(link, englishTitle), lang), | notificationActionLabel(link), lang),
  *
  * F174 F175 F180 (owner's message review 11-09): a notice that asks for one action names it on the button.
  * @mutate supabase/functions/_shared/email-templates/notificationAction.ts |   "Still on for tomorrow?": "Confirm I'm still on", |
  * @mutate supabase/functions/_shared/email-templates/notificationAction.ts |   if (byTitle) return byTitle; |
  *
  * F173: the footer no longer says "because you enabled email notifications" (they are on by default).
- * @mutate supabase/functions/_shared/email-templates/notification.tsx | You&apos;re getting this because email alerts are on for this kind of notice. | You're receiving this because you enabled email notifications on {host}.
+ * @mutate supabase/functions/_shared/email-templates/notification.tsx |     why: "You're getting this because email alerts are on for this kind of notice.", |     why: "You're receiving this because you enabled email notifications.",
  *
  * AUD31-21: the email broke "7-" / "day pickup deadline" across lines at 1440; the number and its unit now hold.
  * @mutate supabase/functions/_shared/email-templates/notificationAction.ts | "$1\u2011$2" | "$1-$2"
@@ -58,10 +58,10 @@ describe("the notice email names its action and signs off as Louisiana Helpr (AU
     expect(NOTICE_SIGNOFF).toBe("Louisiana Helpr");
     const tpl = read("supabase/functions/_shared/email-templates/notification.tsx");
     expect(tpl).toContain("const SIGNOFF = NOTICE_SIGNOFF");
-    expect(tpl).toContain("<BrandButton href={actionUrl} label={actionLabel} widthPx={230} />");
+    expect(tpl).toContain("<BrandButton href={actionUrl} label={actionLabel ?? w.open} widthPx={230} />");
     expect(tpl).not.toMatch(/View Details|The Helpr Team|open Helpr for/);
     const sender = read("supabase/functions/send-notification-email/index.ts");
-    expect(sender).toContain("actionLabel: notificationActionLabel(link, title),");
+    expect(sender).toContain("actionLabel: actionLabelInLanguage(notificationActionLabel(link, englishTitle), lang),");
   });
 
   it("F174 F175 F180: a notice asking for one action names that action, whatever its link", () => {
@@ -80,7 +80,7 @@ describe("the notice email names its action and signs off as Louisiana Helpr (AU
 
   it("F173: the footer says email alerts are on, not that the member enabled them", () => {
     const tpl = read("supabase/functions/_shared/email-templates/notification.tsx");
-    expect(tpl).toContain("You&apos;re getting this because email alerts are on for this kind of notice.");
+    expect(tpl).toContain(`why: "You're getting this because email alerts are on for this kind of notice."`);
     expect(tpl).toContain("Change which emails you get");
     expect(tpl).not.toMatch(/because you enabled email notifications/);
   });

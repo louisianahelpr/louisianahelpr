@@ -1,6 +1,6 @@
 Louisiana Helpr is a local marketplace for Louisiana: members hire local help for in-person jobs, and buy, sell or give away used household items with people nearby. Every account can do both; there is no separate role or account switch.
 
-Sign in with the demo email and password in Sign-In Information. Sign in with Apple and Google also work natively.
+Sign in with the demo email and password in Sign-In Information. Sign in with Apple and Google also work natively. Sign in with Apple never asks for your name or email: the app uses the name Apple shares, and if Apple shares none, the name stays optional.
 
 Declutter (in the section switcher) shows live listings from members nearby. Browse the items, open one, save it, and start a purchase up to the payment sheet. The money is held until the handover is confirmed, and items are picked up in person or delivered locally.
 

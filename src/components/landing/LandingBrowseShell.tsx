@@ -1,6 +1,7 @@
 import type { ReactNode, Ref } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { useGuestSpanish } from "./useGuestSpanish";
 
 /**
  * The one section frame under the landing's Jobs | Declutter switch (owner 11-09, 10:35 PM: browsing Jobs and browsing
@@ -46,6 +47,9 @@ export function LandingBrowseShell({
   /** A loading placeholder: hidden from assistive tech, no heading, no link. */
   hidden?: boolean;
 }) {
+  // F260q (owner 11-11): the Spanish words for the English this shell is handed, when the visitor's language is Spanish.
+  const es = useGuestSpanish();
+  const w = (english: string) => (SHELL_WORD_KEYS[english] && es?.[SHELL_WORD_KEYS[english]]) || english;
   return (
     <section
       ref={sectionRef}
@@ -61,20 +65,20 @@ export function LandingBrowseShell({
             {/* D015 (landing design audit 11-10): no "LIVE NOW" / "POPULAR NOW" eyebrow over the heading; the heading
                 says it. */}
             {hidden ? (
-              <span className="block font-display landing-serif landing-h2" style={{ color: "var(--lp-ink)" }}>{title}</span>
+              <span className="block font-display landing-serif landing-h2" style={{ color: "var(--lp-ink)" }}>{w(title)}</span>
             ) : (
               <h2 id={titleId} className="font-display landing-serif landing-h2" style={{ color: "var(--lp-ink)" }}>
-                {title}
+                {w(title)}
               </h2>
             )}
             <p className="text-ds-14 lg:text-ds-15" style={{ color: "var(--lp-body)" }} data-landing-browse-line="">
-              {line}
+              {w(line)}
             </p>
           </div>
-          {hidden ? <span className="hidden sm:block min-h-11" /> : <LandingSeeAll to={seeAll.to} label={seeAll.label} className="hidden sm:inline-flex" />}
+          {hidden ? <span className="hidden sm:block min-h-11" /> : <LandingSeeAll to={seeAll.to} label={w(seeAll.label)} className="hidden sm:inline-flex" />}
         </div>
         {children}
-        {hidden ? <span className="sm:hidden self-center block min-h-11" /> : <LandingSeeAll to={seeAll.to} label={seeAll.label} className="sm:hidden self-center inline-flex" />}
+        {hidden ? <span className="sm:hidden self-center block min-h-11" /> : <LandingSeeAll to={seeAll.to} label={w(seeAll.label)} className="sm:hidden self-center inline-flex" />}
       </div>
     </section>
   );
@@ -109,3 +113,19 @@ export const NO_JOBS_DECLUTTER_SHELL = {
 
 /** The words a browse section draws: heading, one line, its see-all link. */
 export type BrowseShellCopy = { readonly title: string; readonly line: string; readonly seeAll: { readonly to: string; readonly label: string } };
+
+/**
+ * F260q: the dictionary key for each English sentence the shell draws (enLanding.ts), so the shells above stay the one
+ * English source. A sentence not listed here stays English (landingInSpanish.test.tsx lists every shell's words).
+ */
+const SHELL_WORD_KEYS: Record<string, string> = {
+  "Open jobs near you": "landing.shell.jobsTitle",
+  "You pick who helps. Paid only when it’s done.": "landing.shell.jobsLine",
+  "Photo ID checked before anyone posts or heads out. Paid only when it’s done.": "landing.shell.jobsLineId",
+  "Popular on Declutter": "landing.shell.declutterTitle",
+  "Pick it up, meet up, or have a Helpr deliver it.": "landing.shell.declutterLine",
+  "New on Declutter near you": "landing.shell.noJobsTitle",
+  "Every job is taken right now. Here’s what neighbors are selling.": "landing.shell.noJobsLine",
+  "Browse jobs": "landing.browseJobs",
+  "Shop Declutter": "landing.shopDeclutter",
+};

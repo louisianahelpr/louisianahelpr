@@ -25,6 +25,7 @@
  *     choose. It takes the ID line's place while the ID check is off.
  */
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
+import { useGuestSpanish } from "./useGuestSpanish";
 
 /** The Jobs section's one line under its heading: the two facts, ID first while the ID check is on. */
 export function proofLine(idOn: boolean): string {
@@ -39,6 +40,9 @@ export function useProofLine(): string {
 
 /** The finished job, as the first card of the Jobs grid: photo beside the words at every width, so from lg it fits the row's 176px like the job cards (a column was 203px tall and the row's other card 176px, 11-10 screenshot). */
 export function LandingProof() {
+  // F260q (owner 11-11): Spanish when the visitor's language is Spanish (enLanding.ts / esLanding.ts).
+  const es = useGuestSpanish();
+  const w = (key: string, english: string) => es?.[key] ?? english;
   return (
     <div
       data-testid="landing-proof"
@@ -48,7 +52,7 @@ export function LandingProof() {
       <img
         loading="lazy"
         src="/landing/new-iberia-yard.jpg"
-        alt="A freshly mowed yard in New Iberia"
+        alt={w("landing.proof.photoAlt", "A freshly mowed yard in New Iberia")}
         width={72}
         height={72}
         decoding="async"
@@ -57,13 +61,13 @@ export function LandingProof() {
       <div className="flex flex-col gap-0.5 lg:gap-1 min-w-0">
         {/* D015 (landing design audit 11-10): sentence case, not a tracked-out JUST FINISHED template label. */}
         <span className="text-ds-13 font-semibold" style={{ color: "var(--lp-action-strong)" }}>
-          Just finished
+          {w("landing.proof.justFinished", "Just finished")}
         </span>
         <span className="text-ds-15 lg:text-ds-16 font-semibold" style={{ color: "var(--lp-ink)" }}>
-          2 yards in New Iberia
+          {w("landing.proof.yards", "2 yards in New Iberia")}
         </span>
         <span className="text-ds-13 lg:text-ds-14" style={{ color: "var(--lp-body)" }}>
-          <span role="img" aria-label="5 stars" style={{ color: "var(--lp-money)" }}>★★★★★</span> · $20 tip
+          <span role="img" aria-label={w("landing.proof.stars", "5 stars")} style={{ color: "var(--lp-money)" }}>★★★★★</span> · {w("landing.proof.tip", "$20 tip")}
         </span>
       </div>
     </div>

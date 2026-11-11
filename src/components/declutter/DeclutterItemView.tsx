@@ -62,6 +62,9 @@ import { SellerTrustBadges } from "./SellerTrustBadges";
 import { useAfterPaint } from "./useAfterPaint";
 import { listedAgo } from "@/lib/declutter/sellerBadges";
 import { useTradedFor } from "./useMyTrades";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enDeclutter";
 
 // B67 (DECL-ITEM-SPEED): only the seller sees the manage panel, so its edit flow (sell steps, handover choices)
 // loads when it shows, not on every buyer's and guest's cold item page.
@@ -87,6 +90,8 @@ function Detail({ label, children }: { label: string; children: ReactNode }) {
 export default function ItemView({ itemId }: { itemId: string }) {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
+  // F260q (owner 11-11): the item page's own words from the dictionary (enDeclutter.ts / esDeclutter.ts).
+  const { t } = useLanguage();
   // Miles from what we already know; this screen never asks for location.
   const { origin: geo } = useDeclutterOrigin();
   // A link whose id is not an item id at all can never load one: say so at
@@ -186,7 +191,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
   // never an all-in total a member reads as the delivery charge ("from $70.20" on a $40 chair).
   const deliveredLine = canAct && !free ? (
     <div data-item-delivered="" className="space-y-1">
-      <p className="text-sm text-muted-foreground">Or a local Helpr delivers it, priced by size:</p>
+      <p className="text-sm text-muted-foreground">{t("decl.item.delivered")}</p>
       <DeliveryPriceList quote={null} size={it.delivery_size} />
     </div>
   ) : null;
@@ -212,7 +217,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
           variant="ghost"
           size="iconCompact"
           aria-pressed={isWatching}
-          aria-label={isWatching ? "Remove from saved" : "Save this item"}
+          aria-label={isWatching ? t("decl.item.unsave") : t("decl.item.save")}
           className={`border border-border bg-card ${isWatching ? "text-[hsl(var(--burnt-sienna))]" : ""}`}
           disabled={toggleWatch.isPending}
           onClick={() => (preview ? noteOwnListing() : toggleWatch.mutate({ id: itemId, on: !isWatching }))}
@@ -224,7 +229,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
         type="button"
         variant="ghost"
         size="iconCompact"
-        aria-label="Share this item"
+        aria-label={t("decl.item.share")}
         className="border border-border bg-card"
         onClick={() => shareListing(it)}
       >
@@ -250,7 +255,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
 
         {/* Owner mockup 11-01: on a computer the item column stays in view while the photos scroll. */}
         <div className="mt-4 lg:mt-0 min-w-0 space-y-5 lg:sticky lg:top-0" data-item-column="">
-          <section aria-label="Price and condition" className="space-y-2">
+          <section aria-label={t("decl.item.priceAndCondition")} className="space-y-2">
             <div className="flex items-start justify-between gap-3">
               {/* The title once (audit #47), with Save and Share beside it (owner mockup 11-01). */}
               <h2 className="min-w-0 text-ds-22 font-bold leading-snug [overflow-wrap:anywhere] lg:text-ds-28">{it.title}</h2>
@@ -266,7 +271,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
                     {itemPriceLabel(it.current_price_cents)}
                     {dropped && (
                       <span className="ml-2 text-ds-13 font-medium tabular-nums text-muted-foreground">
-                        <span className="sr-only">Price dropped, was </span>
+                        <span className="sr-only">{t("decl.card.wasPrice")}</span>
                         <s aria-hidden>{formatPrice(it.price_cents)}</s>
                       </span>
                     )}
@@ -283,12 +288,12 @@ export default function ItemView({ itemId }: { itemId: string }) {
               {forSale && listedAgo(it.live_at) && <span data-item-listed="" className="text-sm text-muted-foreground">{listedAgo(it.live_at)}</span>}
               {/* Trades audit 11-08 #3: a listing Open to trades says so up front, for guests too. */}
               {it.accepts_trades === true && !free && (
-                <span data-item-trades="" className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-ds-13 font-medium text-foreground">Trades OK</span>
+                <span data-item-trades="" className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-ds-13 font-medium text-foreground">{t("decl.card.trades")}</span>
               )}
             </div>
             <p data-item-where="" className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
               {/* Owner 11-07: lead with free porch pickup where it applies (nothing is charged to pick it up). */}
-              {it.porch_ok !== false && <span data-item-porch-free="" className="font-semibold text-foreground">Free porch pickup · </span>}
+              {it.porch_ok !== false && <span data-item-porch-free="" className="font-semibold text-foreground">{t("decl.item.freePorch")} · </span>}
               {[it.area_label, away].filter(Boolean).join(" · ")}
             </p>
             {/* Owner 11-11 (F229): a buyer-protection line under a paid price, naming only what the app does: payment in
@@ -306,10 +311,10 @@ export default function ItemView({ itemId }: { itemId: string }) {
 
           {preview && (
             <div data-item-preview="">
-              <DeclutterNotice title="This is what buyers see">
+              <DeclutterNotice title={t("decl.item.previewTitle")}>
                 {/* A 44px button, not a 16px text link (audit 1110 F333). */}
                 <Button asChild variant="outline" size="sm" className="mt-1 rounded-full">
-                  <Link to={`/declutter/item/${it.id}`} data-preview-back="">Back to your listing</Link>
+                  <Link to={`/declutter/item/${it.id}`} data-preview-back="">{t("decl.item.previewBack")}</Link>
                 </Button>
                 {previewPressed && <p role="status" className="mt-1 font-semibold text-foreground" data-preview-note="">{PREVIEW_ACTION_NOTE}</p>}
               </DeclutterNotice>
@@ -331,9 +336,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
 
           {boughtByMe && (
             <div data-item-bought="">
-              <DeclutterNotice title={free ? "You claimed this." : "You bought this."}>
-                Your pickup and messages are in{" "}
-                <Link to="/declutter?tab=buying" className="font-semibold underline underline-offset-2">Buying</Link>.
+              <DeclutterNotice title={free ? t("decl.item.claimed") : t("decl.item.bought")}>
+                {t("decl.item.pickupIn")}{" "}
+                <Link to="/declutter?tab=buying" className="font-semibold underline underline-offset-2">{t("decl.tab.buying")}</Link>.
               </DeclutterNotice>
             </div>
           )}
@@ -359,7 +364,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
               // before a sale (lead 11-07: no new messaging path), so it opens the public Questions box, as "Ask the
               // seller" did.
               action={canAct && !preview ? (
-                <Button type="button" variant="outline" size="iconMd" aria-label="Message the seller" data-ask-seller="" className="shrink-0 rounded-full" onClick={askSeller}>
+                <Button type="button" variant="outline" size="iconMd" aria-label={t("decl.item.messageSeller")} data-ask-seller="" className="shrink-0 rounded-full" onClick={askSeller}>
                   <MessageCircle className="h-5 w-5" aria-hidden />
                 </Button>
               ) : null}
@@ -378,11 +383,11 @@ export default function ItemView({ itemId }: { itemId: string }) {
 
           {/* Owner mockup 11-01: "About this item" (the description) first, then the Category and Size rows. */}
           <section className="space-y-1" aria-labelledby="declutter-details">
-            <h2 id="declutter-details" className="text-base font-semibold">About this item</h2>
+            <h2 id="declutter-details" className="text-base font-semibold">{t("decl.item.about")}</h2>
             {it.description && <p className="pb-1 text-ds-15 whitespace-pre-line [overflow-wrap:anywhere]" data-item-description="">{it.description}</p>}
             <dl className="divide-y divide-border border-t border-border">
-              <Detail label="Category">{CATEGORY_LABEL[it.category] ?? "Other"}</Detail>
-              <Detail label="Size">{SIZE_LABEL[it.delivery_size]}</Detail>
+              <Detail label={t("decl.item.category")}>{CATEGORY_LABEL[it.category] ? t(`decl.cat.${it.category}` as MsgKey) : t("decl.cat.other")}</Detail>
+              <Detail label={t("decl.item.size")}>{SIZE_LABEL[it.delivery_size] ? t(`decl.size.${it.delivery_size}` as MsgKey) : null}</Detail>
             </dl>
           </section>
 

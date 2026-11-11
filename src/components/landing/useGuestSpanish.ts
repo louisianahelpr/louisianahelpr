@@ -13,11 +13,11 @@ import { loadModule, untilReload } from "@/lib/loadModule";
 const esModule = () => loadModule(() => import("@/lib/i18n/es"));
 
 /** Fired on window by language.ts setLang (kept as a plain string so neither file imports the other). */
-export const LANG_EVENT = "helpr:lang";
+const LANG_EVENT = "helpr:lang";
 
 type EsDict = Record<string, string>;
 
-export function guestLangIsSpanish(): boolean {
+function guestLangIsSpanish(): boolean {
   let saved: string | null;
   try {
     saved = typeof localStorage !== "undefined" ? localStorage.getItem("helpr_lang") : null;

@@ -7,7 +7,7 @@
  * @mutate supabase/functions/send-notification-email/index.ts |     const lang: 'en' \| 'es' = !langErr && langRow?.language === 'es' ? 'es' : 'en' |     const lang: 'en' \| 'es' = 'en'
  * @mutate supabase/functions/send-notification-email/index.ts |       lang === 'es' ? noticeInSpanish(message) : message, |       message,
  * @mutate supabase/functions/send-notification-email/index.ts |       subject,\n      html, |       subject: title,\n      html,
- * @mutate supabase/functions/send-notification-email/index.ts |       lang,\n    }), |     }),
+ * @mutate supabase/functions/send-notification-email/index.ts |       lang,\n      userName, |       userName,
  * @mutate supabase/functions/_shared/email-templates/notificationAction.ts |   return lang === "es" ? (ACTION_LABEL_ES[label] ?? label) : label; |   return label;
  * @mutate supabase/functions/_shared/email-templates/notification.tsx |   const w = NOTICE_EMAIL_WORDS[lang] |   const w = NOTICE_EMAIL_WORDS.en
  */

@@ -1400,14 +1400,15 @@ export async function withdrawFreeRequest(requestId: string): Promise<void> {
   );
 }
 
-export type MyFreeRequest = { id: string; item_id: string; status: string; created_at: string; declutter_items?: { title: string } | null };
+/** pickup_at: the time the asker chose (20261101174857); null for an older ask. */
+export type MyFreeRequest = { id: string; item_id: string; status: string; created_at: string; pickup_at?: string | null; declutter_items?: { title: string } | null };
 
 /** The member's own open asks, with each item's title (RLS: the asker or the giver reads a row). */
 export async function fetchMyFreeRequests(userId: string): Promise<MyFreeRequest[]> {
   return (unwrap(
     // declutter_items!inner: an ask whose item the caller may not read (a test item, hidden by the items read policy's
     // seed rule, 20261020033623) is left out, as the offers and cart lists leave it out (owner 2026-11-01).
-    await supabase.from("declutter_free_requests").select("id, item_id, status, created_at, declutter_items!inner(title)")
+    await supabase.from("declutter_free_requests").select("id, item_id, status, created_at, pickup_at, declutter_items!inner(title)")
       .eq("requester_id", userId).eq("status", "open").order("created_at", { ascending: true }),
   ) ?? []) as MyFreeRequest[];
 }

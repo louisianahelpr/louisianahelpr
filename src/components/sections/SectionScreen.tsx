@@ -28,6 +28,7 @@ export function SectionScreen({
   searchSlot = false,
   mine,
   fab,
+  showAdd = true,
   children,
 }: {
   /** A section screen (not Home): draws the Explore header (chips row, tabs, search) above the scroll column. */
@@ -57,6 +58,11 @@ export function SectionScreen({
   mine?: SectionMineMenu;
   /** A floating action (Declutter's "+ Sell"): drawn over the screen, with room under the last row so it covers none. */
   fab?: ReactNode;
+  /**
+   * False while the section is closed to this member (ShopsOpensSoon, Q2005): the desktop bar draws no "+ Open a shop"
+   * over a "Coming soon" screen. Guard: src/test/shopsClosedNoAddButton.test.tsx.
+   */
+  showAdd?: boolean;
   children: ReactNode;
 }) {
   // D12 (Cowork audit 2026-10-20): every section screen names itself in the browser tab; a page that sets a more
@@ -74,7 +80,7 @@ export function SectionScreen({
         {section && (
           // py/gap = JobsSection's header stack (section-shell-alignment): the bar, 4px, the tabs, 4px, the search.
           <div data-explore-header="" className="explore-header page-measure w-full shrink-0 flex flex-col gap-1">
-            <AppTopBar title={title} explore section={section} search={barSearch} mine={mine} />
+            <AppTopBar title={title} explore section={section} search={barSearch} mine={mine} showAdd={showAdd} />
             {tabs}
             {globalSearch && <ExploreSearchEntry />}
           </div>

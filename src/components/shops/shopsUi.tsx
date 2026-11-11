@@ -153,7 +153,7 @@ function ShopsOpensSoon({ title, backTo, sectionRoot }: { title: string; backTo?
   );
   if (sectionRoot) {
     return (
-      <SectionScreen section="shops" title="Shops" globalSearch={false} search={null}>
+      <SectionScreen section="shops" title="Shops" globalSearch={false} search={null} showAdd={false}>
         {empty}
       </SectionScreen>
     );

@@ -9,8 +9,8 @@
  * counts (DeclutterHomeView), and every nav that knows the "todoDeclutter" badge key (the phone dock, the desktop
  * rail), must read NeedsYouCounts; no tab count may read declutterTodo's buying / selling.
  *
- * @mutate src/components/declutter/DeclutterHomeView.tsx |     { value: "buying", label: "Buying", count: needsYou.declutterBuying }, |     { value: "buying", label: "Buying", count: todo?.buying },
- * @mutate src/components/declutter/DeclutterHomeView.tsx |     { value: "selling", label: "Selling", quiet: forSale, count: needsYou.declutterSelling }, |     { value: "selling", label: "Selling", quiet: forSale, count: todo ? todo.selling + questions.count : undefined },
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |     { value: "buying", label: "Buying", labelKey: "decl.tab.buying", count: needsYou.declutterBuying }, |     { value: "buying", label: "Buying", labelKey: "decl.tab.buying", count: todo?.buying },
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |     { value: "selling", label: "Selling", labelKey: "decl.tab.selling", quiet: forSale, count: needsYou.declutterSelling }, |     { value: "selling", label: "Selling", labelKey: "decl.tab.selling", quiet: forSale, count: todo ? todo.selling + questions.count : undefined },
  * @mutate src/lib/declutter/buyingTodo.ts |   return t.section === "declutter" && t.to.includes("tab=buying"); |   return t.section === "declutter";
  * @mutate src/components/mobileNav/dockBadgeCount.ts |             ? todo.declutter |             ? todo.total
  */

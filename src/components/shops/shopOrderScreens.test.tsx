@@ -522,7 +522,7 @@ describe("the handover: the buyer confirms, the shop never finishes its own orde
 });
 
 describe("the dashboard entries", () => {
-  // @mutate src/components/sections/SectionTabs.tsx | { value: BROWSE as string, label: "Browse" }, ...tabs.map | ...tabs.map
+  // @mutate src/components/sections/SectionTabs.tsx | { value: BROWSE as string, label: tr("tabs.browse") }, ...tabs.map | ...tabs.map
   it("phone: Shops opens on Browse with no tabs row; Orders and Shop are in My Shops, and a list names itself with the way back (the Vinted header, owner 11-08)", async () => {
     api.fetchMyShopId.mockResolvedValue("s1");
     renderAt("/shops", "/shops", <ShopsPage />);

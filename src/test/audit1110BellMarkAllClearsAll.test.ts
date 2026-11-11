@@ -6,7 +6,7 @@
  * words, and a title wraps to two lines before it clips.
  * @mutate src/components/NotificationPanel.tsx | .update({ read: true }).eq("user_id", uid).eq("read", false) | .update({ read: true }).in("id", unreadIds)
  * @mutate src/components/NotificationPanel.tsx |     setUnreadTotal((t) => (t === null ? t : 0)); |     setUnreadTotal((t) => (t === null ? t : Math.max(0, t - unreadIds.length)));
- * @mutate src/components/NotificationPanelView.tsx | Showing your newest {notifications.length}. Mark all read clears all {unreadTotal} unread. | Showing {notifications.length} · {unreadTotal} unread in total
+ * @mutate src/lib/i18n/enNotifications.ts | "Showing your newest {count}. Mark all read clears all {unread} unread." | "Showing {count} · {unread} unread in total"
  * @mutate src/components/NotificationPanelView.tsx | font-sans font-bold leading-tight line-clamp-2 [overflow-wrap:anywhere] text-ds-15 | font-sans font-bold leading-tight truncate text-ds-15
  */
 import { describe, it, expect } from "vitest";
@@ -34,8 +34,11 @@ describe("F434: Mark all read clears every unread notice, and the bell says so",
   });
 
   it("the footer says what the button does; a title wraps to two lines", () => {
-    expect(view).toContain("Showing your newest {notifications.length}. Mark all read clears all {unreadTotal} unread.");
-    expect(view).not.toContain("unread in total");
+    // F260q: the words are in the dictionary (enNotifications.ts), filled with the page count and the true unread total.
+    const words = readFileSync("src/lib/i18n/enNotifications.ts", "utf8");
+    expect(words).toContain('"notif.showingNewest": "Showing your newest {count}. Mark all read clears all {unread} unread."');
+    expect(words).not.toContain("unread in total");
+    expect(view).toContain('{t("notif.showingNewest", { count: notifications.length, unread: unreadTotal })}');
     expect(view).toMatch(/className="min-w-0 flex-1 font-sans font-bold leading-tight line-clamp-2 \[overflow-wrap:anywhere\] text-ds-15"/);
   });
 });

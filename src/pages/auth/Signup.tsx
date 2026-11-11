@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useSignupDraftField } from "./signup/useSignupDraftField";
+import { clearSignupDraft, useSignupDraftField } from "./signup/useSignupDraftField";
 import { removeShellOncePainted } from "@/components/landing/landingShell";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -335,6 +335,7 @@ const Signup = () => {
       if (authError) throw authError;
       const userId = authData.user?.id;
       if (!userId) throw new Error("Account creation failed");
+      clearSignupDraft(); // F259c: the account exists, so the reload draft goes
 
       // Complete profile with uploads (no ID — Stripe handles identity).
       // This call also records the referral and the legal consent — see the

@@ -41,8 +41,7 @@ import { JobPageActionRow, type RowAction } from "./JobPageActionRow";
 import { useExpiredRepost } from "./ExpiredRepost";
 import { StickyActionBar, StickyActionSpacer } from "@/components/ui/StickyActionBar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
-import { reviewTimeLeft } from "./reviewTimeLeft";
+import { approveDeadlineMs, reviewTimeLeft } from "./reviewTimeLeft";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { mapsSearchUrl } from "@/lib/mapsLink";
 import { canLeaveSeries, HiredSeriesSection, useJobSeriesState, withLeaveSeries } from "./HiredSeriesSection";
@@ -373,9 +372,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const helprCancelled = cancelledRow ? { name: cancelledHelprFirst, at: cancelledRow.at } : null;
   // The review window, IN the next-step line (owner 11-01: "Next: approve Yusef's work · 23h 52m left, then Helpr
   // support steps in"); nothing releases on a timer (owner 2026-10-23), so the words say who steps in.
-  const approveLeft = isPoster && posterWait === "approve" && job.helper_completed_at && !instantRelease
-    ? reviewTimeLeft(new Date(job.helper_completed_at).getTime() + hoursToMs(APPROVAL_WINDOW_HOURS))
-    : null;
+  // F274: a sent fix is timed by revision_acceptance_deadline, a fix not sent yet has no clock (approveDeadlineMs).
+  const approveBy = isPoster && posterWait === "approve" && !instantRelease ? approveDeadlineMs(job) : null;
+  const approveLeft = approveBy == null ? null : reviewTimeLeft(approveBy);
   const posterDetails = job.description?.trim() ?? "";
   // On a phone the details read two lines with "Show more" (mockup 5); a short one has nothing more to show.
   const detailsLong = posterDetails.length > 90 || posterDetails.includes("\n");

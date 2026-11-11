@@ -17,6 +17,7 @@ const REPO = resolve(__dirname, "..", "..");
 /** navigate(-1) sites that know an in-app entry is behind them some other way. */
 const GUARDED_OTHERWISE: Record<string, string> = {
   "src/pages/messages/Messages.tsx": "closeThread pops only an entry it pushed itself (isThreadOpenEntry(location.state))",
+  "src/pages/post-job/usePostStepHistory.ts": "pops only entries the post flow pushed on the same page (postStepFromHistory(location.state) === depth); a forward POP returns to the entry it was pushed from",
 };
 
 describe("L005: back never walks out of the app", () => {

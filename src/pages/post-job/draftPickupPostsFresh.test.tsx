@@ -202,6 +202,8 @@ describe("F25: 'Pick up your draft' opens at Details, not the category screen", 
     const { result } = renderHook(() => useJobEntry(entryParams));
     const form = {
       draftLoaded: true, hasDraft: true, openJobCount: 0, entryPanel: null,
+      // F305: the card names the draft (draftCardLine reads its title and price).
+      draft: { title: "Clean the kitchen", budget: "" },
       loadDraftAndContinue: result.current.loadDraftAndContinue, setFormPage, startFresh: vi.fn(), setEntryPanel: vi.fn(),
     } as unknown as Form;
     render(<MemoryRouter initialEntries={["/post-job"]}><EntryChoice form={form} /></MemoryRouter>);

@@ -18,6 +18,7 @@ import { useJobFormEffects } from "./useJobFormEffects";
 import { usePostJobGiftCard } from "./usePostJobGiftCard";
 import { useSavedJobAddress } from "./useSavedJobAddress";
 import { useHaulAwayPrefill } from "./useHaulAwayPrefill";
+import { postScreenDepth, usePostStepHistory } from "./usePostStepHistory";
 import { SELL_FOR_ME_PARAM } from "@/lib/declutter/sellForMe";
 import { MOVING_DAY_PARAM } from "@/lib/declutter/movingDayJob";
 import { prefillOpensDetails } from "./usePrefillOpensDetails";
@@ -600,6 +601,9 @@ export function usePostJobForm() {
     }
   };
 
+  // F303: browser and Android Back walk the same screens (usePostStepHistory); the back arrow uses it too.
+  const goBack = usePostStepHistory(postScreenDepth({ step, formPage, entryPanel, categoryGroup, skipEntry }), handlePostJobBack);
+
   // "First job, easy yes" (B59): Review shows the Helpr Guarantee on a member's first post. Same 3-row
   // query and cache key as the entry screen; unknown (still loading) counts as not first.
   const isFirstPost = usePostedBefore(useRecentPostedJobs(3)) === false;
@@ -625,7 +629,7 @@ export function usePostJobForm() {
     setEntryPanel,
     categoryGroup,
     setCategoryGroup,
-    handlePostJobBack,
+    handlePostJobBack: goBack,
     // overlay / status
     saving,
     redirecting,

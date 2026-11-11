@@ -42,7 +42,7 @@ vi.mock("@/lib/threadMutes", () => ({
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
-import { fetchConversations, buildDeepLinkPlaceholder } from "./loadConversations";
+import { fetchConversations, buildDeepLinkPlaceholder, CONVERSATION_NOT_FOUND } from "./loadConversations";
 import { ConversationRow } from "@/components/messages/ConversationRow";
 import { avatarInitials } from "@/lib/avatarImage";
 
@@ -426,5 +426,23 @@ describe("fetchConversations — a thread's job title when row security hides th
     );
     const [c] = await fetchConversations(ME, thumbRef());
     expect(c.jobTitle).toBe("a job");
+  });
+});
+
+// Audit 11-10 F448: a chat link whose `with=` is my OWN id opened an empty "Say hello" thread for the job with me as
+// the other person, a live message box and the wrong price. My own id names no conversation: the builder says so
+// (the caller toasts the problem and leaves the inbox alone) and never asks the server for a profile or job.
+// @mutate src/pages/messages/messagesData/loadConversations.ts |   if (deepLinkUserId === uid) return { problem: CONVERSATION_NOT_FOUND }; |
+describe("buildDeepLinkPlaceholder — with= is my own id (F448)", () => {
+  it("says the conversation cannot be found and reads nothing", async () => {
+    fromMock.mockImplementation(() =>
+      makeBuilder({ data: { id: "job-1", title: "Fix the fence", status: "open", customer_id: ME, helper_id: null }, error: null }),
+    );
+    rpcMock.mockImplementation(async () => ({ data: [], error: null }));
+    const convo = await buildDeepLinkPlaceholder(ME, "job-1", ME);
+    expect(convo).toEqual({ problem: CONVERSATION_NOT_FOUND });
+    expect(CONVERSATION_NOT_FOUND).toBe("We can't find this conversation.");
+    expect(rpcMock).not.toHaveBeenCalled();
+    expect(fromMock).not.toHaveBeenCalled();
   });
 });

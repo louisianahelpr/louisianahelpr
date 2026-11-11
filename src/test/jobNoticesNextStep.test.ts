@@ -14,10 +14,10 @@
  * Behaviour (real Postgres): src/test/pglite/jobNoticesNextStep.pglite.mjs (23 PASS; 15 FAIL with NEW_MIGRATION=skip;
  * 7 planted defects each red).
  *
- * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql | (NEW.helper_completed_at + interval '24 hours') | (NEW.helper_completed_at + interval '48 hours')
- * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql | '. Next: review them and approve by ' | '. Review them and confirm. '
- * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql | NEW.title \|\| '". Next: nothing for you to do until they arrive.' | NEW.title \|\| '"'
- * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql | NEW.title \|\| '". Next: nothing for you to do; they mark it done when they finish.' | NEW.title \|\| '"'
+ * @mutate supabase/migrations/20261111194335_arrival_notice_leads_with_the_job.sql | (NEW.helper_completed_at + interval '24 hours') | (NEW.helper_completed_at + interval '48 hours')
+ * @mutate supabase/migrations/20261111194335_arrival_notice_leads_with_the_job.sql | '. Next: review them and approve by ' | '. Review them and confirm. '
+ * @mutate supabase/migrations/20261111194335_arrival_notice_leads_with_the_job.sql | NEW.title \|\| '". Next: nothing for you to do until they arrive.' | NEW.title \|\| '"'
+ * @mutate supabase/migrations/20261111194335_arrival_notice_leads_with_the_job.sql | NEW.title \|\| '". Next: nothing for you to do; they mark it done when they finish.' | NEW.title \|\| '"'
  * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | '". Next: review and pick a Helpr' | '"'
  * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | AND (job_expires IS NULL OR v_start < job_expires) | AND true
  * @mutate supabase/migrations/20261108201000_jobs_notices_email.sql | - interval '2 hours'; | - interval '12 hours';

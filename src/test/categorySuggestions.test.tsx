@@ -138,7 +138,7 @@ describe("Suggest a category: hidden, gated, closed (20261015051141)", () => {
  */
 const PICKERS: ReadonlyArray<{ file: string; picker: RegExp; area: "jobs" | "declutter" }> = [
   { file: "src/components/postjob/JobCategoryGroups.tsx", picker: /JOB_CATEGORY_GROUPS\.map\(groupTile\)/, area: "jobs" },
-  { file: "src/components/declutter/SellSummaryCard.tsx", picker: /<CategoryDrillDown label="Category"/, area: "declutter" },
+  { file: "src/components/declutter/SellSummaryCard.tsx", picker: /<CategoryDrillDown label=\{t\("sell\.category"\)\}/, area: "declutter" },
   { file: "src/components/declutter/DeclutterSellView.tsx", picker: /<CategoryDrillDown label="Category"/, area: "declutter" },
   { file: "src/components/declutter/DeclutterEditListing.tsx", picker: /<ChipGroup label="Category"/, area: "declutter" },
 ];

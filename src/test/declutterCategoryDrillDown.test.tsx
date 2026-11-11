@@ -10,7 +10,7 @@
 // @mutate src/components/declutter/CategoryDrillDown.tsx | onClick={() => setOpen(g.heading)} | onClick={() => setOpen(null)}
 // @mutate src/components/declutter/CategoryDrillDown.tsx |               const Icon = CATEGORY_GROUP_ICON[g.heading]; |               const Icon = () => null;
 // @mutate src/components/declutter/CategoryDrillDown.tsx | <FieldClearButton aria-label="Clear search" onClick={() => setQuery("")} | <FieldClearButton aria-label="Clear search" onClick={() => undefined}
-// @mutate src/components/declutter/SellSummaryCard.tsx | <CategoryDrillDown label="Category" | <ChipGroup options={[]} label="Category"
+// @mutate src/components/declutter/SellSummaryCard.tsx | <CategoryDrillDown label={t("sell.category")} | <ChipGroup options={[]} label={t("sell.category")}
 // @mutate src/components/declutter/DeclutterSellView.tsx | <CategoryDrillDown label="Category" | <ChipGroup options={[]} label="Category"
 import { readFileSync } from "node:fs";
 import { useState } from "react";
@@ -84,7 +84,8 @@ describe("Sell form category drill-down", () => {
   it("both posting screens use the drill-down (no category chip list)", () => {
     for (const f of ["src/components/declutter/SellSummaryCard.tsx", "src/components/declutter/DeclutterSellView.tsx"]) {
       const src = blankComments(readFileSync(f, "utf8"));
-      expect(src, f).toMatch(/<CategoryDrillDown label="Category" groups=\{CATEGORY_GROUPS\}/);
+      // F260q: the Sell summary card reads its label from the dictionary.
+      expect(src, f).toMatch(/<CategoryDrillDown label=(?:"Category"|\{t\("sell\.category"\)\}) groups=\{CATEGORY_GROUPS\}/);
       expect(src, f).not.toMatch(/<ChipGroup[^>]*label="Category"/);
     }
   });

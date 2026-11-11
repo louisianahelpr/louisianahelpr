@@ -29,6 +29,7 @@
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |           {t("free.takeBack")}\n |           Take back my ask\n
  * @mutate src/components/declutter/DeclutterQuestions.tsx | text-muted-foreground">{t("dq.none")}</p> | text-muted-foreground">No questions yet.</p>
  * @mutate src/components/declutter/DeclutterOfferTrade.tsx | label={t("dp.tradeListLabel")} | label="Your listing to trade"
+ * @mutate src/components/declutter/SellSummaryCard.tsx | placeholder={t("sell.detailsPlaceholder")} | placeholder="e.g. Works great. Small scuff on the base."
  * @mutate src/components/messages/ConversationListBody.tsx |                 {t("msg.noneMatch")}\n |                 No conversations match\n
  */
 import { describe, it, expect } from "vitest";
@@ -86,6 +87,8 @@ const CONVERTED = [
   "src/components/declutter/DeliveryPriceList.tsx",
   "src/components/declutter/DeclutterOfferTrade.tsx",
   "src/components/declutter/ItemPickupBlock.tsx",
+  // F260q: the Sell form's summary card (sell.* in enDeclPanels.ts).
+  "src/components/declutter/SellSummaryCard.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */

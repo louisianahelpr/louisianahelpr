@@ -47,6 +47,10 @@ import { fetchMyRefundedCents, netOfRefund } from "@/lib/declutter/refundedCents
  * to members, so the receipt said ~$2 less than the card was charged. The figure is now the card charge from
  * declutter_my_paid_cents (20261029161237, the read every "You paid" line uses), and the setup fee is said under the
  * total in the cart's own words ("Includes the one-time $2 account setup fee.", board 161: never a fee line).
+ *
+ * F380 (audit 11-10; owner 11-11 ~12:25 AM, an exception to the 10-25 rule for receipts only): the opened Declutter
+ * receipt shows a "Service fee" line (the order's premium_cents, the figure checkout charged) and the one-time setup
+ * fee as its own line, so the lines add up to "Total paid", the card charge, to the cent; a refund shows under it.
  */
 
 interface Receipt {
@@ -58,10 +62,10 @@ interface Receipt {
   note: string;
   /** A Declutter order's lines (what the order row holds), shown when the receipt is opened. */
   lines?: { label: string; cents: number }[];
-  /** The total holds more than the lines (the buyer's service fee), said in words only. */
-  feeWords?: boolean;
-  /** The one-time account setup fee the card paid on top of the order (a first purchase), said in words under the total. */
-  setupCents?: number;
+  /** F380: a Declutter order's card charge, the sum of its lines ("Total paid"). */
+  chargedCents?: number;
+  /** F380: what came back to the card for that order (declutter_my_refunded_cents), 0 when nothing did. */
+  refundedCents?: number;
   /** F089: the amount's caption ("You paid") when the row is net of a refund, so the figure is never a bare number. */
   amountCaption?: string;
   /** Where the opened receipt links (a Declutter order: the Buying list). */
@@ -79,6 +83,8 @@ export interface PaidOrderRow {
   paid_at: string | null;
   /** The items after any bundle discount, and the delivery, shipping and tax the order froze (absent in older reads). */
   items_cents?: number | null;
+  /** F380: the service fee the order froze and checkout charged (absent in older reads). */
+  premium_cents?: number | null;
   delivery_cents?: number | null;
   shipping_cents?: number | null;
   tax_cents?: number | null;
@@ -115,16 +121,27 @@ export function orderReceipts(
   return orders
     .filter((o) => o.paid_at && (o.status === "paid" || o.status === "handed_over" || o.status === "refunded"))
     .map((o) => {
-      const lines = [
-        { label: "Items", cents: o.items_cents ?? 0 },
-        { label: "Delivery", cents: o.delivery_cents ?? 0 },
-        { label: "Shipping", cents: o.shipping_cents ?? 0 },
-        { label: "Tax", cents: o.tax_cents ?? 0 },
-      ].filter((l) => l.cents > 0);
-      // The service fee is what total_cents holds beyond its lines; the setup fee is what the card paid beyond total_cents.
-      const feeWords = o.items_cents != null && o.total_cents > lines.reduce((s, l) => s + l.cents, 0);
       const charged = paid?.get(o.id) ?? o.total_cents;
+      const back = Math.max(0, refundedBack?.get(o.id) ?? 0);
+      // F380 (owner 11-11): the receipt's lines add up to what the card was charged, to the cent. Each figure is the
+      // order row's own frozen column (declutter_orders, the buyer's granted read), never a recomputed rule:
+      //   items_cents (after any bundle discount) + premium_cents (the service fee checkout charged) + delivery_cents
+      //   (Helpr or seller delivery) + shipping_cents + tax_cents = total_cents (CHECK declutter_orders_total,
+      //   20261020024605), and the card charge (declutter_my_paid_cents) = total_cents + the one-time setup fee that
+      //   stood, so the setup line is that charge less total_cents.
+      // Without items_cents or premium_cents (an older read) the parts can't be proven, so only the total shows.
+      const known = o.items_cents != null && o.premium_cents != null;
       const setup = Math.max(0, charged - o.total_cents);
+      const lines = known
+        ? [
+            { label: "Items", cents: o.items_cents ?? 0 },
+            { label: "Service fee", cents: o.premium_cents ?? 0 },
+            { label: "Delivery", cents: o.delivery_cents ?? 0 },
+            { label: "Shipping", cents: o.shipping_cents ?? 0 },
+            { label: "Tax", cents: o.tax_cents ?? 0 },
+            { label: "One-time account setup fee", cents: setup },
+          ].filter((l) => l.cents > 0)
+        : [];
       return {
         key: `order-${o.id}`,
         title: itemsTitle(titles.get(o.id)),
@@ -134,8 +151,8 @@ export function orderReceipts(
         cents: o.status === "refunded" ? null : netOfRefund(charged, refundedBack?.get(o.id)).cents,
         note: o.status === "refunded" ? " · Refunded" : netOfRefund(charged, refundedBack?.get(o.id)).note,
         lines,
-        feeWords,
-        setupCents: setup,
+        chargedCents: charged,
+        refundedCents: Math.min(back, charged),
         detailLink: { to: "/declutter?view=buying", label: "See the order" },
       };
     });
@@ -169,7 +186,7 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
       (unwrap(
         await supabase
           .from("declutter_orders")
-          .select("id, status, total_cents, paid_at, items_cents, delivery_cents, shipping_cents, tax_cents")
+          .select("id, status, total_cents, paid_at, items_cents, premium_cents, delivery_cents, shipping_cents, tax_cents")
           .eq("buyer_id", uid!)
           .not("paid_at", "is", null),
       ) ?? []) as PaidOrderRow[],
@@ -287,13 +304,22 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
                         {r.lines.map((l) => (
                           <div key={l.label} className="flex justify-between gap-3"><dt style={quiet}>{l.label}</dt><dd className="tabular-nums" style={ink}>{formatCents(l.cents)}</dd></div>
                         ))}
-                        {r.cents != null && (
+                        {r.chargedCents != null ? (
+                          <>
+                            {/* F380: the lines above add up to this, what the card was charged. */}
+                            <div className="flex justify-between gap-3 font-semibold" data-receipt-total-paid=""><dt style={ink}>Total paid</dt><dd className="tabular-nums" style={ink}>{formatCents(r.chargedCents)}</dd></div>
+                            {!!r.refundedCents && (
+                              <div className="flex justify-between gap-3"><dt style={quiet}>Refunded</dt><dd className="tabular-nums" style={ink}>−{formatCents(r.refundedCents)}</dd></div>
+                            )}
+                            {!!r.refundedCents && r.cents != null && (
+                              <div className="flex justify-between gap-3 font-semibold"><dt style={ink}>You paid</dt><dd className="tabular-nums" style={ink}>{formatCents(r.cents)}</dd></div>
+                            )}
+                          </>
+                        ) : r.cents != null && (
                           <div className="flex justify-between gap-3 font-semibold"><dt style={ink}>{r.amountCaption ?? "Total"}</dt><dd className="tabular-nums" style={ink}>{formatCents(r.cents)}</dd></div>
                         )}
                       </dl>
                       {r.detailNote && <p className="text-ds-12" style={quiet} data-receipt-detail-note="">{r.detailNote}</p>}
-                      {r.feeWords && <p className="text-ds-12" style={quiet}>Includes a small Louisiana Helpr service fee.</p>}
-                      {!!r.setupCents && <p className="text-ds-12" style={quiet} data-receipt-setup-fee="">Includes the one-time {formatCents(r.setupCents)} account setup fee.</p>}
                       {r.detailLink && <Link to={r.detailLink.to} className="link-standard text-ds-13 font-medium">{r.detailLink.label}</Link>}
                     </div>
                   )}

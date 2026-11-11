@@ -379,7 +379,7 @@ const TS_MONEY_TOUCHES: string[] = [
   'src/lib/declutter/reviews.ts: .from("declutter_orders").select("buyer_id, seller_id").eq("id", orderId).maybeSingle(), ) as { buyer_id: string | null',
   // Board 177 Receipts: READS the buyer's own paid orders (total and date) to list what left their card; no fee column, no write.
   // DB-13 (audit 2026-10-30): also the order's item, delivery, shipping and tax amounts for the receipt's lines; still no fee column.
-  'src/pages/profile/Receipts.tsx: .from("declutter_orders") .select("id, status, total_cents, paid_at, items_cents, delivery_cents, shipping_cents, tax_cents") .eq("buyer_id", uid!) .not("paid_at", "is", null), ) ?? []) as PaidOrderRow[], })',
+  'src/pages/profile/Receipts.tsx: .from("declutter_orders") .select("id, status, total_cents, paid_at, items_cents, premium_cents, delivery_cents, shipping_cents, tax_cents") .eq("buyer_id", uid!) .not("paid_at", "is", null), ) ?? []) as PaidOrderRow[], })',
   // Q2171 (b94-fee-debt-blocks-delete): the .or() filter findFeeDebtOwed READS job_helpr_fault_rulings with (select id) to block
   // self-delete while a fault ruling's card fee is unpriced or unpaid; no write, refund or fee change.
   'supabase/functions/_shared/accountPurge.ts: export const FEE_DEBT_RULING_FILTER = "card_fee_cents.is.null,card_fee_remaining_cents.gt.0";',

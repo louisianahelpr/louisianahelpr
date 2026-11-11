@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-11T14:32Z",
+  "measured_at": "2026-11-11T14:44Z",
   "issues": {
     "readable": true,
     "open": [
@@ -120,7 +120,7 @@
         "number": 4281,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43039165267",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43041155690",
         "runTruncated": false
       },
       {
@@ -128,13 +128,6 @@
         "title": "nightly-red: main: Vitest",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42987092893",
-        "runTruncated": false
-      },
-      {
-        "number": 4317,
-        "title": "nightly-red: code-scanning-alerts",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42841895039",
         "runTruncated": false
       },
       {
@@ -585,7 +578,6 @@
     "issue #4270": "Q1816",
     "issue #4281": "Q1816",
     "issue #4302": "Q1816",
-    "issue #4317": "Q1816",
     "issue #4340": "Q1816",
     "issue #4388": "Q1816",
     "ledger 0411d219f410": "Q1810",

@@ -28,6 +28,9 @@ export interface CountdownClock {
   /** More than 2 days out, a DATE, not a minute-precise timer (owner, 2026-10-23, card critique item 7):
    *  "Starts" -> "Starts Thu, Nov 12". */
   farLabel?: string;
+  /** Static words, not a running clock (owner 11-11, F270): `text` is the whole row ("Confirm opens Thu at
+   *  12:00 AM."), shown until the instant passes, then `expiredText`. */
+  plain?: boolean;
 }
 
 /** Beyond this the bare (collapsed) row says a date instead of counting. */
@@ -82,6 +85,8 @@ export function CountdownRows({
         <Timer className={variant === "box" ? "w-3.5 h-3.5 shrink-0" : "w-3 h-3 shrink-0"} aria-hidden />
         {left <= 0 ? (
           <span>{c.expiredText}</span>
+        ) : c.plain ? (
+          <span data-countdown-plain="">{c.text}</span>
         ) : variant === "bare" && c.farLabel && left > FAR_CLOCK_MS ? (
           <span data-countdown-far="">{c.farLabel} {farDay(c.at)}</span>
         ) : (

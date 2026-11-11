@@ -1118,7 +1118,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.handover = { status: "handed_over", confirmed_at: "2026-10-20T15:00:00Z" };
     show([line({ order_status: "handed_over" })]);
     expect(await screen.findByRole("list", { name: "Step 4 of 4: Done" })).toBeInTheDocument();
-    expect(screen.getByText("Handed over.")).toBeInTheDocument();
+    expect(screen.getByText("Handed over Tue, Oct 20, 10:00 AM.")).toBeInTheDocument(); // F394: with the time
   });
 
   // Lead review (71/72): the app's own day + time pickers and a real photo button, never the bare browser controls.
@@ -1296,11 +1296,11 @@ describe("#6: a free claim never reads like a paid order", () => {
     state.handover = { status: "handed_over", confirmed_at: "2026-10-20T15:00:00Z" };
     state.payouts = [{ order_id: "o1", amount_cents: 0, items_cents: 0, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, status: "nothing_due" }];
     const a = show([free({ order_status: "handed_over" })]);
-    expect(await screen.findByText("Handed over.")).toBeInTheDocument();
+    expect(await screen.findByText(/^Handed over Tue, Oct 20, 10:00 AM\.$/)).toBeInTheDocument(); // F394: with the time
     expect(screen.queryByText("Refund panel")).toBeNull();
     a.unmount();
     const b = show([free({ order_status: "handed_over", my_side: "seller" })]);
-    expect(await screen.findByText("Handed over.")).toBeInTheDocument();
+    expect(await screen.findByText(/^Handed over Tue, Oct 20, 10:00 AM\.$/)).toBeInTheDocument(); // F394: with the time
     expect(b.container.querySelector("article")?.textContent).not.toMatch(MONEY);
     b.unmount();
     state.payouts = [{ order_id: "o1", amount_cents: 4000, items_cents: 4000, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, status: "pending" }];

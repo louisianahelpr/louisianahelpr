@@ -217,6 +217,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           problemOpen={!!problem}
           refunded={fullRefund}
           part={sellerNextFirst ? "status" : "all"}
+          payoutShown={order.side === "seller" && !!payout && items > 0}
         />
       )}
       {/* NIGHT-BUYINGopenpr-8: the same order as the buyer's card: the tracker, then the problem note, then each side. */}

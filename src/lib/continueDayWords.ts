@@ -174,7 +174,28 @@ export function continueDayHeader(row: ContinueDay | null | undefined): string |
 export function jobOnContinueDay<J extends { date_needed?: string | null; start_time?: string | null }>(
   job: J,
   row: Pick<ContinueDay, "status" | "new_date" | "new_start_time"> | null | undefined,
+  trackingStatus?: string | null,
 ): J {
   if (!row || row.status !== "set" || !row.new_date) return job;
-  return { ...job, date_needed: row.new_date, start_time: row.new_start_time.slice(0, 5) };
+  const dated = { ...job, date_needed: row.new_date, start_time: row.new_start_time.slice(0, 5) };
+  return trackingStatus === undefined ? dated : withNewDayCheckIns(dated, trackingStatus);
+}
+
+/**
+ * Q2789 (Yusef's job 7b1da54b, ledger a0597e872e21): the job row keeps day 1's "On the way" and "Arrived" stamps for good
+ * (the no-show rule reads them; the RPCs COALESCE them), so on a SET continue day the job page drew day 1's ticks and the
+ * Helpr's face never offered "I'm on my way" or "I've arrived" again. The new day's check-ins live on the tracking row:
+ * agreeing a day puts it back to 'job_confirmed' (continue_day_on_agreed, 20261108160000), and On my way / I've arrived
+ * move it on. So a day-1 stamp counts only once the tracking row says the new day reached that step. `trackingStatus`
+ * null = no check-in yet on the new day; leave it out (undefined) where the tracking row is not read at all.
+ */
+const ON_THE_WAY_OR_LATER = new Set(["on_the_way", "arrived", "working", "done"]);
+const ARRIVED_OR_LATER = new Set(["arrived", "working", "done"]);
+const ARRIVAL_STAMPS = ["helper_arrived_at", "helper_arrival_verified_at", "poster_confirmed_arrival_at"] as const;
+function withNewDayCheckIns<J extends object>(job: J, trackingStatus: string | null): J {
+  const out: Record<string, unknown> = { ...job };
+  const st = trackingStatus ?? "";
+  if (!ON_THE_WAY_OR_LATER.has(st) && "helper_on_the_way_at" in out) out.helper_on_the_way_at = null;
+  if (!ARRIVED_OR_LATER.has(st)) for (const k of ARRIVAL_STAMPS) if (k in out) out[k] = null;
+  return out as J;
 }

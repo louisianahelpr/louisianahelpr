@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-11T13:08Z",
+  "measured_at": "2026-11-11T13:20Z",
   "issues": {
     "readable": true,
     "open": [
@@ -120,7 +120,7 @@
         "number": 4281,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43026280085",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43028035710",
         "runTruncated": false
       },
       {
@@ -342,6 +342,14 @@
         "issue": null
       },
       {
+        "fingerprint": "acf4ea2ff2836a53bb404727997b217a",
+        "source_kind": "error_logs",
+        "source": "stripe-connect",
+        "status": "open",
+        "title": "stripe-connect cleared unusable payout account <id>",
+        "issue": null
+      },
+      {
         "fingerprint": "b8b42cf124da685c1fe0087a97455b48",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
@@ -462,19 +470,19 @@
         "issue": null
       },
       {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: declutter-money returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
         "issue": null
       },
       {
@@ -601,6 +609,7 @@
     "ledger a0597e872e21": "Q2789",
     "ledger a8ceee56bbd5": "Q1816",
     "ledger ab6fdbe8c882": "Q1816",
+    "ledger acf4ea2ff283": "Q2794",
     "ledger aeedd2495772": "Q2409",
     "ledger b757f9393658": "Q2790",
     "ledger b8b42cf124da": "Q2506",

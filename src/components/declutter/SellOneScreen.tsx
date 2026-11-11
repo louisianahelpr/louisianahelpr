@@ -136,7 +136,8 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   postNow.current = post;
 
   return (
-    <AppPage title={form.free ? "Give it away" : "Sell an item"} backTo="/declutter?tab=selling" phoneHidesTitle>
+    // Audit 11-10 F341: a giveaway keeps its title on a phone too, so the first heading there is not just "Show it off".
+    <AppPage title={form.free ? "Give it away" : "Sell an item"} backTo="/declutter?tab=selling" phoneHidesTitle={!form.free}>
       <div className="mx-auto w-full max-w-xl space-y-6" data-sell-one-screen="">
         {s.keptWork.restored && (
           <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-[20px] border border-border bg-card p-4" data-sell-kept="">

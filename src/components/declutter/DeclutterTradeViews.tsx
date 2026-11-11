@@ -46,6 +46,7 @@ import { PaidOrders, SectionHeading } from "./DeclutterTabParts";
 import { FreeCheckoutForSeller } from "./DeclutterFreeClaim";
 import { MeetupSpotPicker } from "./DeclutterMeetup";
 import { Button } from "@/components/ui/button";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { DeliveryPriceList } from "./DeliveryPriceList";
 import { DropoffAddressField } from "./DropoffAddressField";
 import { PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
@@ -389,10 +390,10 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           {tradeFirst && (
             <>
               {" "}
-              <button type="button" className="underline underline-offset-2" data-go-to-trade=""
+              <InlineTextButton data-go-to-trade=""
                 onClick={() => document.querySelector(`[data-checkout-seller="${sellerId}"][data-checkout-kind="trade"]`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>
                 Go to my trade
-              </button>
+              </InlineTextButton>
             </>
           )}
         </p>

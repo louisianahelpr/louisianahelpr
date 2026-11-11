@@ -12,18 +12,25 @@
  * "Report no-show" on the face.
  *
  * @mutate src/components/job-card/jobStatusLine.ts |       if (job.status === "in_progress" && !job.helper_arrived_at && !job.poster_confirmed_arrival_at && !job.poster_confirmed_working_at) { |       if (false) {
- * @mutate src/components/job-card/jobStatusLine.ts |         return start && start.getTime() > now.getTime() ? "confirmed" : "started_no_checkin"; |         return "started_no_checkin";
+ * @mutate src/components/job-card/jobStatusLine.ts |         return opens && opens.getTime() > now.getTime() ? "confirmed" : "started_no_checkin"; |         return "started_no_checkin";
+ * @mutate src/components/job-card/jobStatusLine.ts |         return opens && opens.getTime() > now.getTime() ? "confirmed" : "started_no_checkin"; |         return opens && opens.getTime() - 30 * 60_000 > now.getTime() ? "confirmed" : "started_no_checkin";
+ * @mutate src/components/job-card/activityFilters.ts |   const opens = j.start_time ? noShowOpensAt(j.date_needed ?? null, j.start_time) : | const opens = j.start_time ? jobStartDateTime(j.date_needed ?? null, j.start_time) :
+ *
+ * F284 (owner 11-11): the line and the Needs You bucket wait for the no-show report to open, 30 minutes after the
+ * start (src/lib/noShowOpens.ts, the server's GUARD 2). Before that the booking still reads confirmed / Waiting.
  * @mutate src/components/tracker/jobStepFromWait.ts |   started_no_checkin: NO_SHOW, |   started_no_checkin: at(6),
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |     case "started_no_checkin":\n      // started_no_checkin: |       // started_no_checkin:
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { posterStatusLine, POSTER_WAIT } from "@/components/job-card/jobStatusLine";
+import { postedActivityBucket } from "@/components/job-card/activityFilters";
 import { POSTER_STEP } from "@/components/tracker/jobStepFromWait";
 import { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";
 import type { Job } from "@/components/job-card/activityConstants";
 import { jobLocalDateISO } from "./helpers/jobLocalDate";
 
-const NOW = new Date("2026-10-29T15:40:00Z"); // 10:40 CT, 25 minutes after a 10:15 start
+const NOW = new Date("2026-10-29T15:50:00Z"); // 10:50 CT, 35 minutes after a 10:15 start (F284: past 10:45)
+const EARLY = new Date("2026-10-29T15:40:00Z"); // 10:40 CT, 25 minutes after the start: the report is not open yet
 const base = {
   id: "job-1", customer_id: "poster-1", helper_id: "eli-1", title: "Mow", status: "in_progress",
   payment_status: "held", date_needed: jobLocalDateISO(0, NOW), start_time: "10:15:00", is_flexible_schedule: false,
@@ -74,6 +81,17 @@ describe("a job the clock started never says the Helpr is there (A2-B12)", () =>
     const ahead = { ...base, start_time: "23:00:00" } as Job;
     expect(posterStatusLine(ahead, 0, NOW).id).toBe("confirmed");
     expect(posterStatusLine(ahead, 0, NOW).eyebrow).not.toBe("Start time passed");
+  });
+
+  it("F284: 25 minutes after the start the report is not open: still confirmed and Waiting, not Needs you", () => {
+    vi.setSystemTime(EARLY);
+    expect(posterStatusLine(base, 0, EARLY).id).toBe("confirmed");
+    expect(postedActivityBucket(base as never, 0, EARLY)).toBe("waiting");
+    // At 10:45 sharp (start + 30 minutes) it opens.
+    const at = new Date("2026-10-29T15:45:00Z");
+    vi.setSystemTime(at);
+    expect(posterStatusLine(base, 0, at).id).toBe("started_no_checkin");
+    expect(postedActivityBucket(base as never, 0, at)).toBe("needs_you");
   });
 
   it("the named line says who", () => {

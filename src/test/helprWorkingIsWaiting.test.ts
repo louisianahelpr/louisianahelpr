@@ -13,7 +13,7 @@
  *
  * @mutate src/components/job-card/activityFilters.ts |     return posterMoveDueWhileInProgress(j, now) ? "needs_you" : "waiting"; |     return "needs_you";
  * @mutate src/components/job-card/activityFilters.ts |   if (!j.poster_confirmed_arrival_at && (j.helper_arrived_at \|\| arrivalNearMissWithin12h(j, now.getTime()))) return true; |   if (!j.poster_confirmed_arrival_at && j.helper_arrived_at && false) return true;
- * @mutate src/components/job-card/activityFilters.ts |   return !(start && start.getTime() > now.getTime()); |   return false;
+ * @mutate src/components/job-card/activityFilters.ts |   return !(opens && opens.getTime() > now.getTime()); |   return false;
  * @mutate src/components/job-card/activityFilters.ts |   if (j.is_group_job) return false; |   if (j.is_group_job) return true;
  * @mutate src/components/job-card/activityFilters.ts |  \|\| Number(b.status === "in_progress") - Number(a.status === "in_progress")), | ),
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |     if (j.id === liveJobId) continue; |     if (j.id === liveJobId && false) continue;

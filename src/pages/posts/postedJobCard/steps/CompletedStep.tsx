@@ -9,6 +9,7 @@ import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { bookAgainLabel, bookAgainLink } from "@/lib/bookAgain";
 import { isSellForMeJob, SELL_FOR_ME_LISTINGS_PATH } from "@/lib/declutter/sellForMe";
+import { YourReviewDialog } from "./YourReviewDialog";
 import { tipsNotReadyLine, useHelprTakesTips, useTipWaitsOnId } from "@/hooks/useHelprTakesTips";
 
 /**
@@ -76,6 +77,7 @@ function CrewTipRow({ member: m, onTip }: { member: { id: string; name: string; 
 
 export function CompletedStep({
   job,
+  userId,
   helperNames,
   completedJobMeta,
   navigate,
@@ -83,6 +85,7 @@ export function CompletedStep({
   onReview,
 }: PosterStepCtx) {
   const [photosOpen, setPhotosOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   // Q1586(c): Hire again / Re-Post start a post; greyed out under 18, a tap says why.
   const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
   const meta = completedJobMeta[job.id];
@@ -119,7 +122,7 @@ export function CompletedStep({
   // Approving completion leaves the job at 'payout_pending' until the transfer
   // settles, so gating Review on 'released' hid it during exactly the window
   // when the app auto-opens the rating sheet. Matches the reviews INSERT policy.
-  // DH-003: once the review window has closed, "Reviewed" still shows but an
+  // DH-003: once the review window has closed, "See your review" still shows but an
   // unreviewed job no longer offers a Review the server would refuse.
   // AL-009: a helper who deleted their account leaves helper_id NULL, and
   // openReviewForPosted returns silently on a NULL helper, so the chip would
@@ -136,7 +139,7 @@ export function CompletedStep({
       /* REVIEW AND TIP ARE THE ROW'S PRIMARIES, right of More (owner,
          2026-10-08: "tip and review is also a primary button ... all primary
          buttons should be to the right of more"). Once done they are the
-         quiet "Reviewed" / "Tipped" chips inside More. */
+         quiet "See your review" / "Tipped" chips inside More. */
       primary={
         (canReview && !hasReviewed) || offerTip ? (
           <>
@@ -191,14 +194,14 @@ export function CompletedStep({
           ? !hasReviewed
             ? null
             : (
+              /* F278 (audit 11-10): an action, not a disabled status: it opens the review the poster left, read-only. */
               <JobActionChip
                 key="review"
-                icon={CheckCircle2}
-                label="Reviewed"
-                ariaLabel={`Reviewed — you already reviewed ${reviewName}`}
-                tone="done"
-                disabled
-                onClick={() => {}}
+                icon={Star}
+                label="See your review"
+                ariaLabel={`See your review — read the review you left for ${reviewName}`}
+                tone="neutral"
+                onClick={() => setReviewOpen(true)}
               />
             )
           : null,
@@ -242,12 +245,15 @@ export function CompletedStep({
         ),
       ]}
       dialogs={
-        <PhotoProofDialog
-          open={photosOpen}
-          onOpenChange={setPhotosOpen}
-          beforeUrls={job.proof_before_urls || []}
-          afterUrls={job.proof_after_urls || []}
-        />
+        <>
+          <PhotoProofDialog
+            open={photosOpen}
+            onOpenChange={setPhotosOpen}
+            beforeUrls={job.proof_before_urls || []}
+            afterUrls={job.proof_after_urls || []}
+          />
+          <YourReviewDialog open={reviewOpen} onOpenChange={setReviewOpen} jobId={job.id} userId={userId} names={helperNames} />
+        </>
       }
     />
   );

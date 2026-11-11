@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-11T14:06Z",
+  "measured_at": "2026-11-11T14:17Z",
   "issues": {
     "readable": true,
     "open": [
@@ -120,7 +120,7 @@
         "number": 4281,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43035144442",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43036845225",
         "runTruncated": false
       },
       {
@@ -142,6 +142,13 @@
         "title": "nightly-red: e2e-abuse-notifications",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42860928141",
+        "runTruncated": false
+      },
+      {
+        "number": 4388,
+        "title": "nightly-red: main: E2E happy-path smoke",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43032857116",
         "runTruncated": false
       }
     ]
@@ -220,6 +227,14 @@
         "status": "open",
         "title": "nightly-red: nightly-red-age",
         "issue": 2244
+      },
+      {
+        "fingerprint": "3a55e8af09089860199b4adb8d01fe1b",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: e2e happy-path smoke",
+        "issue": null
       },
       {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
@@ -470,19 +485,19 @@
         "issue": null
       },
       {
-        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: declutter-money returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "aeedd249577285330a97e04195cee7d8",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: refund-request-sweep returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: declutter-money returned 502",
         "issue": null
       },
       {
@@ -572,6 +587,7 @@
     "issue #4302": "Q1816",
     "issue #4317": "Q1816",
     "issue #4340": "Q1816",
+    "issue #4388": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",
@@ -585,6 +601,7 @@
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 3712b62a9839": "Q2510",
     "ledger 3a3460b71be7": "Q1816",
+    "ledger 3a55e8af0908": "Q1816",
     "ledger 3c0d6b003e08": "Q1810",
     "ledger 3c528ace98fd": "Q2350",
     "ledger 41f88aeb227f": "Q1777",

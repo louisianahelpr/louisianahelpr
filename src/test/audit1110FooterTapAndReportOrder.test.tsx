@@ -31,7 +31,7 @@ describe("F214: footer links are 44px tap areas on every pointer", () => {
       expect(classes, a.textContent!).not.toContain("[@media(pointer:coarse)]:min-h-11");
     }
     expect(SHELL_FOOTER_HTML).not.toContain("min-h-6 ");
-    expect(SHELL_FOOTER_HTML.match(/class="link-standard inline-flex items-center min-h-11"/g)?.length).toBe(8);
+    expect(SHELL_FOOTER_HTML.match(/class="link-standard inline-flex items-center min-h-11"/g)?.length).toBe(10); // 8 + Fees and Safety (F255)
   });
 });
 

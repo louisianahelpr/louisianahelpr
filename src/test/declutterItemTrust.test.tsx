@@ -126,7 +126,7 @@ describe("the item page wiring", () => {
   });
   it("Listed beside the condition; Free porch pickup leads the where-line; the bundle box", () => {
     expect(src).toMatch(/<ConditionChip stars=\{it\.condition_stars\} \/>\s*(?:\{\s*\}\s*)?\{forSale && listedAgo\(it\.live_at\) &&/);
-    expect(src).toMatch(/\{it\.porch_ok !== false && <span data-item-porch-free=""[^>]*>Free porch pickup · <\/span>\}/);
+    expect(src).toMatch(/\{it\.porch_ok !== false && <span data-item-porch-free=""[^>]*>\{t\("decl\.item\.freePorch"\)\} · <\/span>\}/);
     expect(src).toMatch(/<BundleSaveBox summary=\{bundle\} \/>/);
   });
 });

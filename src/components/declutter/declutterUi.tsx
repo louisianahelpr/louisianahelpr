@@ -14,6 +14,9 @@ import { DeclutterGuestGate } from "./DeclutterGuest";
 import { fetchHasAgreedSales, type DeclutterStatus, type DeliverySize } from "@/lib/declutter/api";
 import type { ReactNode } from "react";
 import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enDeclutter";
 
 const STATUS_LABEL: Record<DeclutterStatus, string> = {
   draft: "Not listed yet",
@@ -131,14 +134,16 @@ export const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday",
  * second rating). Pill, card white, hairline border, 13px.
  */
 export function ConditionChip({ stars }: { stars: number }) {
-  const label = CONDITION_LABEL[stars];
+  const { t } = useLanguage();
+  // F260q (owner 11-11): the condition in the reader's language.
+  const label = CONDITION_LABEL[stars] ? t(`decl.cond.${stars}` as MsgKey) : null;
   if (!label) return null;
   return (
     <span
       data-condition-chip=""
       className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-ds-13 font-medium text-foreground"
     >
-      <span className="sr-only">Condition: </span>
+      <span className="sr-only">{t("decl.item.conditionSr")}</span>
       {label}
     </span>
   );

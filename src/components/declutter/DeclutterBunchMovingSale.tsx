@@ -16,6 +16,10 @@ import { fetchMyMoveItems, fetchMyMoveOutDate, formatMoveDate, moveDateProblem, 
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { MovingSaleDetails } from "./DeclutterMovingSaleDetails";
 
+/** Sell a bunch's intro; the moving sale gets its own (audit 11-10 F343: the two pages opened word for word alike). */
+export const BUNCH_INTRO = "Add photos of everything you want to sell. We sort them into items and write each listing. You check them all, then list them together.";
+export const MOVING_INTRO = "Moving? List everything at once. With a move-out date, buyers see it as one moving sale on your profile.";
+
 export function BunchMovingSale({ userId, date, setDate, today }: { userId: string; date: string; setDate: (d: string) => void; today: string }) {
   const qc = useQueryClient();
   const myDate = useQuery({ queryKey: ["declutter", "my-move-date", userId], queryFn: fetchMyMoveOutDate });
@@ -69,23 +73,22 @@ export function BunchMovingSale({ userId, date, setDate, today }: { userId: stri
         </Button>
       )}
       {current && <MovingSaleDetails userId={userId} moveOutOn={current} today={today} />}
-      {(current || date) && (
-        <div className="space-y-2 border-t border-border pt-3" data-bunch-moving-day="">
-          <p className="text-sm text-muted-foreground">Need a hand carrying things out, or a truck for whatever doesn't sell? Hire a Helpr for the job.</p>
-          <div className="flex flex-wrap gap-2">
-            {/* D4-6: both open a pre-filled job, never a blank Post a job. */}
-            <Button asChild variant="outline" size="sm" className="rounded-full">
-              <Link to={movingDayPostJobPath(current ?? date)}>Hire a Helpr for moving day</Link>
-            </Button>
-            <Button asChild variant="outline" size="sm" className="rounded-full">
-              <Link to={haulIds.length > 0 ? haulAwayPostJobPath(haulIds) : movingDayPostJobPath(current ?? date)}>Haul away what's left</Link>
-            </Button>
-            {current && (
-              <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={changing} onClick={() => setAskEnd(true)}>End the moving sale</Button>
-            )}
-          </div>
+      {/* F343: the moving-day help shows from the start, not only once a date is picked (a dateless job is fine). */}
+      <div className="space-y-2 border-t border-border pt-3" data-bunch-moving-day="">
+        <p className="text-sm text-muted-foreground">Need a hand carrying things out, or a truck for whatever doesn't sell? Hire a Helpr for the job.</p>
+        <div className="flex flex-wrap gap-2">
+          {/* D4-6: both open a pre-filled job, never a blank Post a job. */}
+          <Button asChild variant="outline" size="sm" className="rounded-full">
+            <Link to={movingDayPostJobPath(current ?? date)}>Hire a Helpr for moving day</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="rounded-full">
+            <Link to={haulIds.length > 0 ? haulAwayPostJobPath(haulIds) : movingDayPostJobPath(current ?? date)}>Haul away what's left</Link>
+          </Button>
+          {current && (
+            <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={changing} onClick={() => setAskEnd(true)}>End the moving sale</Button>
+          )}
         </div>
-      )}
+      </div>
       {note && <p className="text-sm text-foreground" role="status" data-bunch-move-note="">{note}</p>}
       <ConfirmSheet open={askEnd} title="End the moving sale?" confirmLabel="End the moving sale" pending={changing}
         onConfirm={() => { setAskEnd(false); void change(null); }} onClose={() => setAskEnd(false)} testId="move-end-sale">

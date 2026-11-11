@@ -6,7 +6,7 @@
  *   L035 the Helpr directory had no link from the landing or the footer: the footer's Explore lists Find a Helpr.
  *   L038 the 404's canonical link pointed at the home page: the 404 drops it.
  *
- * @mutate src/components/Footer.tsx | const FOOTER_LINK = "link-standard inline-flex items-center min-h-6 [@media(pointer:coarse)]:min-h-11"; | const FOOTER_LINK = "link-standard inline-flex items-center [@media(pointer:coarse)]:min-h-11";
+ * @mutate src/components/Footer.tsx | const FOOTER_LINK = "link-standard inline-flex items-center min-h-11"; | const FOOTER_LINK = "link-standard inline-flex items-center";
  * @mutate src/components/Footer.tsx |             aria-label="love" |
  * @mutate src/pages/info/NotFound.tsx |     noCanonical: true, |
  * @mutate src/components/Footer.tsx |               <Link to="/helprs" className={FOOTER_LINK}> |               <Link to="/help" className={FOOTER_LINK}>
@@ -28,7 +28,7 @@ describe("landing audit 11-09: footer and 404 Lows", () => {
     const { container } = render(<MemoryRouter><Footer /></MemoryRouter>);
     const links = [...container.querySelectorAll("a.link-standard")];
     expect(links.length).toBeGreaterThan(5);
-    for (const a of links) expect(a.className.split(/\s+/)).toContain("min-h-6");
+    for (const a of links) expect(a.className.split(/\s+/)).toContain("min-h-11"); // 44px on every pointer since F214 (11-10)
     expect(screen.getByText(/Made with/).textContent).toMatch(/Made with\s*for/);
     expect(screen.getByRole("img", { name: "love" })).toBeTruthy();
     expect(container.textContent).toMatch(/Jobs and Declutter\s*for Louisiana\./);

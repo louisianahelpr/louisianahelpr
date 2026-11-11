@@ -7,7 +7,7 @@
  *
  * @mutate src/components/tracker/jobProgressSteps.ts | export const JOB_TRACKER_FIRST = 2; | export const JOB_TRACKER_FIRST = 0;
  * @mutate src/components/tracker/JobProgress.tsx |   you: "bg-[hsl(var(--amber-solid))]", |   you: "bg-primary",
- * @mutate src/components/tracker/JobProgress.tsx | {(s === "problem" \|\| s === "alarm") && label ? PROBLEM_SHORT[label] ?? label : JOB_PROGRESS_DRAWN[i]}</span> | {(s === "problem" \|\| s === "alarm") && label ? PROBLEM_SHORT[label] ?? label : JOB_PROGRESS_DRAWN[i].slice(0, 4)}</span>
+ * @mutate src/components/tracker/JobProgress.tsx | {problemWord ?? JOB_PROGRESS_DRAWN[i]}</span> | {problemWord ?? JOB_PROGRESS_DRAWN[i].slice(0, 4)}</span>
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";

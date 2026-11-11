@@ -34,6 +34,10 @@ type Entry = WaitStep | ((job: StampJob, nowMs: number) => WaitStep);
 
 const at = (stage: Stage | null, tone: StepTone = "progress", label?: string): WaitStep => ({ stage, tone, ...(label ? { label } : {}) });
 const DISPUTE = at(7, "problem", "Dispute");
+/** F274 (audit 11-10): while a fix is asked for, the current step reads "Fix" (Working while it is owed, Done once it
+ *  is sent), so the bar no longer shows a plain "Done" the poster cannot tell apart from a finished job. */
+const FIX_OWED = at(6, "progress", "Fix");
+const FIX_SENT = at(7, "progress", "Fix");
 const CANCELLED = at(0, "cancelled", "Cancelled");
 
 /** The first step a past-due job never got past, from its own stamps: the problem marker sits THERE, so a step
@@ -83,8 +87,8 @@ export const POSTER_STEP: Record<PosterWait, Entry> = {
   confirm_arrival: at(5),
   working: at(6),
   approve: at(7),
-  revision_out: at(6),
-  revision_fixed: at(7),
+  revision_out: FIX_OWED,
+  revision_fixed: FIX_SENT,
   stalled: OVERDUE_AT(6),
   overdue_unhired: OVERDUE_AT(0),
   overdue_unconfirmed: OVERDUE,
@@ -135,8 +139,8 @@ export const HELPER_STEP: Record<HelperWait, Entry> = {
   after_photo: at(6),
   working: at(6),
   submitted: at(7),
-  revision: at(6),
-  revision_sent: at(7),
+  revision: FIX_OWED,
+  revision_sent: FIX_SENT,
   overdue_not_started: LATE_STEP,
   overdue_unconfirmed_day: LATE_STEP,
   overdue_not_arrived: LATE_STEP,

@@ -25,6 +25,8 @@ import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useLanguage } from "@/lib/i18n/language";
+import { enSettings } from "@/lib/i18n/enSettings";
+import type { MsgKey } from "@/lib/i18n/en";
 import { ProfileLinkRow } from "@/components/profile/ProfileLinkRow";
 
 /** Both sides of each section, the spec v2 §11 wording. */
@@ -45,7 +47,26 @@ export function sentenceCase(label: string): string {
   return label.split(" ").map((w, i) => (i === 0 || w === "Helpr" || w === "Helprs" ? w : w.toLowerCase())).join(" ");
 }
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
+/** F410c (audit 11-10 High): the English words this screen draws, mapped to their dictionary key. */
+const SETTINGS_KEY_BY_ENGLISH: ReadonlyMap<string, MsgKey> = new Map(
+  (Object.entries(enSettings) as [MsgKey, string][]).map(([k, v]) => [v, k]),
+);
+
+/**
+ * The screen's words in the member's language: each row, heading and line is looked up by the English it already
+ * draws (enSettings.ts), so the English sources (TAB_TITLES, BIGGER_TEXT_LABEL...) stay the one place they are
+ * written. Words that are not listed (an email, a membership plan line) stay as they are.
+ */
+function useSettingsWord(): (english: string) => string {
+  const { t } = useLanguage();
+  return (english) => {
+    const key = SETTINGS_KEY_BY_ENGLISH.get(english);
+    return key ? t(key) : english;
+  };
+}
+
+function Group({ title: english, children }: { title: string; children: ReactNode }) {
+  const title = useSettingsWord()(english);
   return (
     <section className="liquid-glass overflow-hidden" aria-label={title}>
       <h2 className="px-4 pt-3.5 pb-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">{title}</h2>
@@ -63,7 +84,10 @@ export function accountLine(email: string | null | undefined, identities: { prov
   return parts.length ? parts.join(" · ") : null;
 }
 
-function Row({ label, badge, sub, onClick, right, testId, danger = false, busy = false }: { label: string; badge?: ReactNode; sub?: string; onClick?: () => void; right?: ReactNode; testId?: string; danger?: boolean; busy?: boolean }) {
+function Row({ label: englishLabel, badge, sub: englishSub, onClick, right, testId, danger = false, busy = false }: { label: string; badge?: ReactNode; sub?: string; onClick?: () => void; right?: ReactNode; testId?: string; danger?: boolean; busy?: boolean }) {
+  const word = useSettingsWord();
+  const label = word(englishLabel);
+  const sub = englishSub === undefined ? undefined : word(englishSub);
   const name = (
     <span className={`block text-ds-15 font-semibold leading-tight ${danger ? "" : "text-foreground"}`} style={danger ? { color: "hsl(var(--alert-ink))" } : undefined}>{label}</span>
   );
@@ -94,6 +118,7 @@ function Row({ label, badge, sub, onClick, right, testId, danger = false, busy =
  */
 function ShareJobPhotosRow({ profile }: { profile: Profile | null }) {
   const { refresh } = useCurrentUser();
+  const word = useSettingsWord();
   const [on, setOn] = useState<boolean>(profile?.share_job_photos ?? true);
   const [saving, setSaving] = useState(false);
   // The profile can arrive (or refresh) after first paint: follow it unless a write is in flight.
@@ -121,7 +146,7 @@ function ShareJobPhotosRow({ profile }: { profile: Profile | null }) {
       testId="share-job-photos"
       label={SHARE_JOB_PHOTOS_LABEL}
       sub="Before and after photos may show what Helprs do. Faces and addresses are hidden."
-      right={<Switch checked={on} disabled={saving} onCheckedChange={(v) => void change(v)} aria-label={SHARE_JOB_PHOTOS_LABEL} />}
+      right={<Switch checked={on} disabled={saving} onCheckedChange={(v) => void change(v)} aria-label={word(SHARE_JOB_PHOTOS_LABEL)} />}
     />
   );
 }
@@ -164,10 +189,11 @@ export function SettingsTab({
   const open = (item: MenuItem) => (item.href ? navigate(item.href) : onSelectTab(item.key));
   const more = MORE_KEYS.map((k) => byKey.get(k)).filter((i): i is MenuItem => !!i);
   const { t } = useLanguage();
+  const word = useSettingsWord();
 
   return (
     <ProfileTabBody>
-      <ProfileTabHeader title="Settings" onBack={onBack} />
+      <ProfileTabHeader title={word("Settings")} onBack={onBack} />
 
       <Group title="Look">
         <Row testId="color-mode" label="Color mode" sub={COLOR_MODE_LABEL[theme]} onClick={() => onSelectTab("accessibility")} />
@@ -176,7 +202,7 @@ export function SettingsTab({
             testId="bigger-text"
             label={BIGGER_TEXT_LABEL}
             sub={BIGGER_TEXT_SUB}
-            right={<Switch checked={seniorMode} onCheckedChange={onToggleSeniorMode} aria-label={BIGGER_TEXT_LABEL} />}
+            right={<Switch checked={seniorMode} onCheckedChange={onToggleSeniorMode} aria-label={word(BIGGER_TEXT_LABEL)} />}
           />
         )}
         {/* Spanish language option (2026-10-29): the ONE shared switch, remembered on this device. Guard: src/test/settingsLanguageSwitch.test.tsx. */}

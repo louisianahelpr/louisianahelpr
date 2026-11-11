@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react";
-import { useEffect, type CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
+import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { report } from "@/lib/errorLogger";
 import { currentScreen, USER_ERROR_SCREEN } from "@/lib/currentScreen";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -31,6 +32,10 @@ interface ErrorStateProps {
   surfaceStyle?: CSSProperties;
 }
 
+const DEFAULT_BODY = "Tap Try again. If it sticks, our end is having a hiccup — not yours.";
+const OFFLINE_BODY = "You're offline. This reloads as soon as you're back.";
+const OFFLINE_BODY_NO_RETRY = "You're offline. Reconnect to load this.";
+
 /**
  * ErrorState — a thin specialization of EmptyState for failed data
  * fetches. Same frosted card, but with an alert icon and an optional
@@ -46,7 +51,7 @@ export function ErrorState({
   // grant misses, edge-function timeouts), so "check your connection" sent
   // users hunting for a problem that wasn't theirs to fix. See PR #357 for
   // the dashboard-specific fix this generalizes.
-  body = "Tap Try again. If it sticks, our end is having a hiccup — not yours.",
+  body,
   onRetry,
   retryLabel = "Try again",
   retryDisabled = false,
@@ -68,13 +73,25 @@ export function ErrorState({
       tags: { source: "ErrorState", kind: USER_ERROR_SCREEN, screen: currentScreen(), title },
     });
   }, [title]);
+  // F280a (audit 11-10): offline (confirmed, src/lib/connectivity.ts) the default words blamed "our end", and after
+  // reconnecting the card sat there until Try again was tapped. Offline it says so; back online it retries by itself.
+  const { online } = useOnlineStatus();
+  const wasOffline = useRef(!online);
+  useEffect(() => {
+    if (!online) { wasOffline.current = true; return; }
+    if (!wasOffline.current) return;
+    wasOffline.current = false;
+    onRetry?.();
+    // Only the flip back online retries; a new onRetry identity is not a reconnect.
+  }, [online]);
+  const shownBody = body ?? (online ? DEFAULT_BODY : onRetry ? OFFLINE_BODY : OFFLINE_BODY_NO_RETRY);
   return (
     <EmptyState
       icon={AlertTriangle}
       variant={variant}
       surfaceStyle={surfaceStyle}
       title={title}
-      body={body}
+      body={shownBody}
       action={
         onRetry || secondaryAction ? (
           <div className="flex flex-col items-center gap-2.5 w-full">

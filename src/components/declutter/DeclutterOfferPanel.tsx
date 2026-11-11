@@ -35,6 +35,7 @@ import { Input } from "@/components/ui/input";
 import { OfferSuggestion } from "./OfferSuggestion";
 import { ChoicePill } from "@/components/ui/ChoicePill";
 import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enOffer";
 import "@/lib/i18n/enDeclutter";
 
 /**
@@ -45,7 +46,7 @@ import "@/lib/i18n/enDeclutter";
  * browser). Nothing is charged by saving a card.
  */
 /** NIGHT-BUYING0-7: the step's line when the member came back from the card page without saving one. */
-const CARD_NOT_SAVED = "No card was saved, so nothing happened yet.";
+const CARD_NOT_SAVED = "offer.cardNotSaved" as const;
 
 function AddCardStep({ action, itemId, offerAmount, onReturned, onCancel, note }: {
   action: AfterCardAction;
@@ -58,14 +59,15 @@ function AddCardStep({ action, itemId, offerAmount, onReturned, onCancel, note }
   onCancel: () => void;
 }) {
   const [opening, setOpening] = useState(false);
+  const { t } = useLanguage();
   return (
-    <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-2" role="group" aria-label="Add a card">
+    <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-2" role="group" aria-label={t("offer.addCard")}>
       {note && <p className="text-sm text-foreground" role="status" data-card-not-saved="">{note}</p>}
       {/* Q2573 (audit 1102a): "Add a card to finish." on the first tap, before anything had started. */}
       {/* Owner 11-07: only an offer asks for a card first (Buy now's one pay page saves it), so the step names the offer. */}
-      <p className="text-sm font-semibold" data-card-step-title="">To send your offer, add a card first.</p>
+      <p className="text-sm font-semibold" data-card-step-title="">{t("offer.cardStepTitle")}</p>
       <p className="text-xs text-muted-foreground">
-        We save your card now; you're only charged if the seller says yes and you check out. Then you send your offer.
+        {t("offer.cardStepBody")}
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         <Button
@@ -85,10 +87,10 @@ function AddCardStep({ action, itemId, offerAmount, onReturned, onCancel, note }
             }
           }}
         >
-          {opening ? "Opening…" : "Add a card"}
+          {opening ? t("offer.opening") : t("offer.addCard")}
         </Button>
         <Button type="button" variant="outline" size="sm" className="w-full rounded-full" onClick={onCancel}>
-          Not now
+          {t("offer.notNow")}
         </Button>
       </div>
     </div>
@@ -220,9 +222,9 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
   const minCents = minOfferCents(item.current_price_cents);
   const cents = dollarsInputToCents(amount);
   const offerProblem =
-    cents === null ? "Enter an amount, like 25 or 25.50."
-      : cents >= item.current_price_cents ? "Offer less than the price. To pay the price, tap Buy now."
-        : cents < minCents ? `Offers must be at least ${formatPrice(minCents)} (half the price).`
+    cents === null ? t("offer.enterAmount")
+      : cents >= item.current_price_cents ? t("offer.lessThanPrice")
+        : cents < minCents ? t("offer.atLeast", { min: formatPrice(minCents) })
           : null;
   // Board 79: the offer just sent, for the "What next" sheet (replaces the toast).
   const [sentCents, setSentCents] = useState<number | null>(null);
@@ -337,7 +339,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
         void card.refetch();
       }}
       onCancel={() => { setNeedCard(null); setCardCancelled(null); }}
-      note={cardCancelled === action ? CARD_NOT_SAVED : undefined}
+      note={cardCancelled === action ? t(CARD_NOT_SAVED) : undefined}
     />
   );
 
@@ -405,20 +407,20 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
             sendOffer();
           }}
         >
-          {cardSaved && <p role="status" className="text-sm font-medium" data-card-saved="">Card saved. Now send your offer.</p>}
-          <label htmlFor="declutter-offer" className="text-sm font-medium">Your offer</label>
+          {cardSaved && <p role="status" className="text-sm font-medium" data-card-saved="">{t("offer.cardSaved")}</p>}
+          <label htmlFor="declutter-offer" className="text-sm font-medium">{t("decl.buy.yourOffer")}</label>
           {/* Owner 11-07 (Vinted review): quick chips, "10% off" and "20% off" the price (shown only where the server would
               take them: at least half the price, under the price), and Custom, the amount field below. */}
-          <div role="radiogroup" aria-label="Quick offer amounts" className="grid grid-cols-3 gap-2" data-offer-chips="">
+          <div role="radiogroup" aria-label={t("offer.quickAmounts")} className="grid grid-cols-3 gap-2" data-offer-chips="">
             {OFFER_CHIP_PERCENTS.map((pct) => {
               const chip = offerChipCents(item.current_price_cents, pct);
               if (chip === null) return null;
               return (
                 // Owner 11-11 (F358, the 11-09 rule as on the item page): the offer itself is the big figure and what the
                 // buyer would pay, "$X incl. fee", sits small under it. Display only: the offer sent is still `chip`.
-                <ChoicePill key={pct} selected={cents === chip} data-offer-chip={pct} aria-label={`${pct}% off, an offer of ${formatPrice(chip)} (${inclFeeText(chip)})`}
+                <ChoicePill key={pct} selected={cents === chip} data-offer-chip={pct} aria-label={t("offer.chipAria", { pct, total: inclFeeText(chip), amount: formatPrice(chip) })}
                   className="flex-col justify-center px-2 py-1 leading-tight" onClick={() => setAmount(centsToDollars(chip))}>
-                  <span>{pct}% off</span>
+                  <span>{t("offer.pctOff", { pct })}</span>
                   <span className="block text-ds-13 font-bold tabular-nums" data-offer-chip-amount="">{formatPrice(chip)}</span>
                   <PriceInclFee priceCents={chip} className="block text-ds-11 font-normal tabular-nums text-muted-foreground" />
                 </ChoicePill>
@@ -426,7 +428,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
             })}
             <ChoicePill selected={amount.trim() !== "" && !OFFER_CHIP_PERCENTS.some((p) => offerChipCents(item.current_price_cents, p) === cents)}
               data-offer-chip="custom" className="justify-center px-2" onClick={() => { setAmount(""); offerBox.current?.focus(); }}>
-              Custom
+              {t("offer.custom")}
             </ChoicePill>
           </div>
           {/* Q2471 (2): Claude's suggested amount, one tap to fill the box. */}
@@ -438,17 +440,17 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
             className="w-full min-w-0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            placeholder={`Custom amount, at least ${formatPrice(minCents)}`}
+            placeholder={t("offer.customPlaceholder", { min: formatPrice(minCents) })}
             aria-describedby="declutter-offer-help"
           />
           {cents !== null && !offerProblem && (
             // Board 67: what the buyer would pay if the seller says yes, from the same fee rule as Buy now and
             // checkout (buyNowTotalCents = checkoutAmounts for one item, pickup). Delivery is added at checkout.
             <dl className="space-y-1 rounded-[20px] border border-border bg-background p-3 text-ds-14" data-offer-bill="">
-              <div className="flex justify-between gap-3"><dt>Your offer</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(cents)}</dd></div>
+              <div className="flex justify-between gap-3"><dt>{t("decl.buy.yourOffer")}</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(cents)}</dd></div>
               <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1.5">
-                <dt className="font-bold text-foreground">You pay if the seller says yes</dt>
-                <dd className="text-right text-ds-18 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]"><BuyerTotal priceCents={cents} /><span className="block whitespace-nowrap text-right text-ds-12 font-medium text-muted-foreground" data-offer-incl-fee="">incl. fee</span></dd>
+                <dt className="font-bold text-foreground">{t("offer.youPayIfYes")}</dt>
+                <dd className="text-right text-ds-18 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]"><BuyerTotal priceCents={cents} /><span className="block whitespace-nowrap text-right text-ds-12 font-medium text-muted-foreground" data-offer-incl-fee="">{t("offer.inclFee")}</span></dd>
               </div>
               {/* lh-money-escrow re-review #2: a ceiling. Accepting charges the lower of the offer and the price now,
                   and more items from this seller share one 70¢. Delivery, if chosen, is added at checkout. */}
@@ -458,7 +460,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
           <p id="declutter-offer-help" className="text-xs text-muted-foreground">
             {amount.trim() && offerProblem
               ? offerProblem
-              : `The seller has 48 hours to accept, say no or answer with another price. If they accept, you have 24 hours to check out. Nothing is charged until you pay.`}
+              : t("offer.help")}
           </p>
           {/* Owner 11-07: ONE offer button, under the total. */}
           <Button
@@ -468,7 +470,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
             className="w-full rounded-full px-3"
             disabled={send.isPending || !!offerProblem || card.isLoading || checkingCard}
           >
-            Send offer
+            {t("offer.send")}
           </Button>
         </form>
       )}
@@ -479,10 +481,10 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
       {offersOff && !myOffer && <p className="text-xs text-muted-foreground" data-offers-off="">{t("decl.buy.offersOff")}</p>}
       {/* LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31): no reassurance lines under the buttons; the card step says when the card is charged. */}
       {card.isError && (
-        <ErrorState variant="inline" title="We couldn't check your saved card." body={declutterErrorMessage(card.error)} onRetry={() => void card.refetch()} />
+        <ErrorState variant="inline" title={t("offer.cardCheckFailed")} body={declutterErrorMessage(card.error)} onRetry={() => void card.refetch()} />
       )}
       {checkingCard && (
-        <p role="status" className="text-sm text-muted-foreground">Checking for your card…</p>
+        <p role="status" className="text-sm text-muted-foreground">{t("offer.checkingCard")}</p>
       )}
       <OfferSentWhatNext way={way} cents={sentCents} returnFocusTo={panel} onClose={() => setSentCents(null)} onBrowse={() => { setSentCents(null); navigate("/declutter"); }} />
     </section>

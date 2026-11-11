@@ -56,7 +56,8 @@ function realRow() {
   );
   const line = screen.getByTestId("row-line-1");
   const chip = screen.getByTestId("row-status-chip");
-  const name = screen.getByTestId("row-name");
+  // Owner 11-11 (F421): line 1's text box is the job-title headline now (title first); the geometry is unchanged.
+  const name = screen.getByTestId("row-title");
   cleanup();
   return { line, group: chip.parentElement!, name };
 }

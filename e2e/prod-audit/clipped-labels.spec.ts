@@ -32,7 +32,7 @@ import { getSession, selectAs, writeFirewall, POSTER_ID, type Session } from "./
 import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
 import { spacingScreens, type SpacingScreen } from "./shellSpacing";
 
-// @mutate src/components/messages/ConversationRow.tsx | title={c.jobTitle} | data-q119-mutant={c.jobTitle}
+// @mutate src/components/messages/ConversationRow.tsx | title={headline} | data-q119-mutant={headline}
 // @mutate src/pages/post-job/PaymentSuccess.tsx | grid gap-2.5 grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] | grid grid-cols-2 gap-2.5
 
 const WIDTHS = [320, 375, 1440] as const;

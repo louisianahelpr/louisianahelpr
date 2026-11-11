@@ -8,7 +8,7 @@
  *   NEW_MIGRATION=skip node src/test/pglite/declutterPayoutWaitsForHeldRefund.pglite.mjs  # RED: the held order is paid
  *
  * Grant checks fail with NEW_MIGRATION=skip only because the old bodies are loaded without their GRANT lines; the
- * bug's own red is the 4 hold checks. Release and settle are plain status UPDATEs here (the admin functions' writes,
+ * bug's own red is the 4 hold checks (2026-11-11). Release and settle are plain status UPDATEs here (the admin functions' writes,
  * read in 20261101234732 and 20261106203016), not calls to them.
  * Real: both queue bodies (the newest definition before this file, then this file applied 3x) and the real
  * declutter_order_gift_net_cents. Stubbed, said so: tables reduced to the columns read; declutter_sale_final and

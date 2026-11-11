@@ -21,7 +21,7 @@
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (when) facts.push({ label: "When", value: when }); |
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (town && area && area !== town) facts.push({ label: "Town", value: town }); |
  * @mutate src/components/dashboard/GuestJobPreview.tsx | const GUEST_PAY_LABEL = "You'd earn after fees"; | const GUEST_PAY_LABEL = "You'd take home";
- * @mutate src/pages/jobs/JobDetail.tsx | date_needed, date_window_end, start_time, is_flexible_schedule, status, expires_at", | status, expires_at",
+ * @mutate src/pages/jobs/JobDetail.tsx | date_needed, date_window_end, start_time, is_flexible_schedule, status, expires_at, parish", | status, expires_at, parish",
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (net != null) facts.push({ label: isGiveawayFixedPayJob(job) ? "Pay" : GUEST_PAY_LABEL, value: `$${formatPriceFloor(net)}` }); |   if (job.budget) facts.push({ label: "Budget", value: `$${job.budget}` });
  * @mutate src/components/dashboard/GuestJobPreview.tsx |         <DialogFooter>\n | <DialogFooter><button onClick={onClose}>Not now</button>\n
  * @mutate src/pages/home/DashboardGuest.tsx | <GuestJobPreview job={detailJob} | <GuestJobPreview job={{ ...detailJob, title: detailJob.description ?? "" }}

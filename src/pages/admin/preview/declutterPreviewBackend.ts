@@ -45,6 +45,8 @@ function readRpc(name: string, body: Record<string, unknown>, s: DeclutterPrevie
     case "declutter_my_item_view_counts": return [];
     // Refund to-dos (F363, owner 11-11: the Buying Needs you group reads the Home To-do rows, refunds included): none in the samples.
     case "declutter_my_refund_todos": return [];
+    // The setup fee (declutter_my_setup_fee, 20261111212343): the sample sellers owe none, so no card names a sale for it.
+    case "declutter_my_setup_fee": return { fee_cents: 0, order_id: null };
     case "declutter_my_handover": {
       const id = typeof body.p_order_id === "string" ? body.p_order_id : "";
       return s.handovers[id] as unknown as Record<string, unknown> | undefined;

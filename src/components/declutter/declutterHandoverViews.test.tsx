@@ -12,7 +12,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home" && order.handover !== "meetup") { |     if (true) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (Date.now() < new Date(slotStart).getTime()) { |     if (false) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && !problem && !noShowWaiting && <DoorPickupTips side={order.side} />} |
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!booked && order.side === "seller") return null; |   if (false) return null;
+ * @mutate src/components/declutter/DeclutterBookingPanel.tsx |   if (!booked && order.side === "seller") return null; |   if (false) return null;
  * @mutate src/components/declutter/paidOrders.ts |     if (l.status !== "paid" \|\| !l.order_id) continue; |     if (!l.order_id) continue;
  * @mutate src/components/declutter/DeclutterOrderBits.tsx |     queries: lines.map((l) => ({ |     queries: lines.slice(0, 1).map((l) => ({
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "delivery" ? ( |       ) : false ? (
@@ -273,7 +273,7 @@ describe("Q2425: a safe-spot meetup order", () => {
   // pickup ("Move the pickup", "Picked up", "from the pickup time"). A meeting reads as a meeting; the door is unchanged.
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |     const done = meet ? "Handed over" : "Picked up"; |     const done = "Picked up";
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |     const from = meet ? "the meeting time" : "the pickup time"; |     const from = "the pickup time";
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const what = order.handover === "meetup" ? "meeting" : "pickup"; |   const what = "pickup";
+  // @mutate src/components/declutter/DeclutterBookingPanel.tsx |   const what = order.handover === "meetup" ? "meeting" : "pickup"; |   const what = "pickup";
   // @mutate src/components/declutter/DeclutterHandoverSheets.tsx | disabled={pending}>{label}</SheetPrimaryAction> | disabled={pending}>Picked up</SheetPrimaryAction>
   it("Q2632: at the meeting time the seller gets Handed over (the door keeps Picked up)", async () => {
     state.bookings = [slot(5)];
@@ -372,9 +372,9 @@ describe("Declutter slice 4: paid-order cards", () => {
     // Q2432: the buyer is told about the 1-hour reminder and the existing no-show rule, in one line, no money words.
     // Q2635 (audit 1102c R10): before a time is booked the picker comes first; the rule shows under it once a time is
     // chosen, never above the picker.
-    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const noShowRule = order.side === "buyer" && <p | const noShowRule = false && <p
-    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |         {!booked && !!(slot ?? localInputToIso(value)) && noShowRule} |         {!booked && noShowRule}
-    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {booked && noShowRule}\n |       {noShowRule}\n
+    // @mutate src/components/declutter/DeclutterBookingPanel.tsx |   const noShowRule = order.side === "buyer" && <p | const noShowRule = false && <p
+    // @mutate src/components/declutter/DeclutterBookingPanel.tsx |         {!booked && !!(slot ?? localInputToIso(value)) && noShowRule} |         {!booked && noShowRule}
+    // @mutate src/components/declutter/DeclutterBookingPanel.tsx |       {booked && noShowRule}\n |       {noShowRule}\n
     expect(screen.queryByTestId("declutter-no-show-warning")).toBeNull();
     const picker = screen.getByLabelText("Pick a pickup time");
     fireEvent.change(picker, { target: { value: "2026-10-20T12:00" } });
@@ -393,7 +393,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   });
 
   // A3-49 (audit 11-01): the seller's unbooked sale says "waiting on the buyer" ONCE, naming the buyer.
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!booked && order.side === "seller") return null; |   if (!booked && order.side === "seller") return <p>Waiting for the buyer to book a pickup time (within 7 days of paying).</p>;
+  // @mutate src/components/declutter/DeclutterBookingPanel.tsx |   if (!booked && order.side === "seller") return null; |   if (!booked && order.side === "seller") return <p>Waiting for the buyer to book a pickup time (within 7 days of paying).</p>;
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const buyer = times.buyer \|\| "the buyer"; |   const buyer = "the buyer";
   it("the seller's unbooked sale says the wait once, with the buyer's first name (A3-49)", async () => {
     for (const handover of ["porch", "pickup_home", "meetup"]) {
@@ -432,7 +432,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   });
 
   // Deep audit #25: each side moves a booked time once; after that the Move control is gone and the card says so.
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const movedAlready = !!booked && | const movedAlready = false &&
+  // @mutate src/components/declutter/DeclutterBookingPanel.tsx |   const movedAlready = !!booked && | const movedAlready = false &&
   it("after a side has moved the pickup once, it is no longer offered Move", async () => {
     state.bookings = [{ ...slot(-24 * 60), buyer_reschedules: 1, seller_reschedules: 0 }];
     const { unmount } = show([line()]);
@@ -449,7 +449,7 @@ describe("Declutter slice 4: paid-order cards", () => {
 
   // Night audit sold states #3 (door-card-375.png): past the booked time the seller still had "Move the pickup", the
   // door tips told the seller to "Pick a daytime slot" (the buyer's step), and a porch card said "Put it out <day>" twice.
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |         Date.now() >= new Date(booked).getTime() ? null : <FoldedTimePicker |         <FoldedTimePicker
+  // @mutate src/components/declutter/DeclutterBookingPanel.tsx |         Date.now() >= new Date(booked).getTime() ? null : <FoldedTimePicker |         <FoldedTimePicker
   // @mutate src/components/declutter/DeclutterOrderBits.tsx |         {side === "buyer" && <li>Pick a daytime slot.</li>} |         <li>Pick a daytime slot.</li>
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | data-porch-not-yet="">You can take the porch photo {onDay( | data-porch-not-yet="">Put it out {onDay(
   it("sold states #3: no Move once the seller's time has started, seller door tips are the seller's, the porch day is said once", async () => {
@@ -1126,7 +1126,7 @@ describe("Declutter slice 4: paid-order cards", () => {
 
   // Lead review (71/72): the app's own day + time pickers and a real photo button, never the bare browser controls.
   it("pickup times use the shared DateTimeField and the porch photo is a button, not a bare file box", () => {
-    for (const f of ["src/components/declutter/DeclutterHandoverViews.tsx", "src/components/declutter/DeclutterPickupWindows.tsx", "src/components/declutter/DeclutterFoldedTime.tsx"]) {
+    for (const f of ["src/components/declutter/DeclutterBookingPanel.tsx", "src/components/declutter/DeclutterPickupWindows.tsx", "src/components/declutter/DeclutterFoldedTime.tsx"]) {
       const src = blankComments(readFileSync(f, "utf8"));
       expect(src, f).not.toMatch(/type="datetime-local"/);
       expect(src, f).toMatch(/<DateTimeField\b/);
@@ -1135,6 +1135,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     // DeclutterDeliveryViews still never draws a bare datetime box.
     expect(blankComments(readFileSync("src/components/declutter/DeclutterDeliveryViews.tsx", "utf8"))).not.toMatch(/type="datetime-local"/);
     const hv = blankComments(readFileSync("src/components/declutter/DeclutterHandoverViews.tsx", "utf8"));
+    expect(hv).not.toMatch(/type="datetime-local"/);
     expect(hv).toMatch(/Take the porch photo/);
   });
 });
@@ -1338,7 +1339,7 @@ describe("#51: one Report a problem on a seller-delivery card", () => {
 // Deep audit #2: the buyer booked with a free date and a 12-hour wheel, and the server refused any time outside the
 // seller's pickup times, which were never shown. The buyer now picks a day chip, then a time chip, every one inside
 // the seller's windows and before the deadline (pickupSlots.ts, tested on its own in declutterPickupSlots.test.ts).
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | <PickupSlotPicker orderId={order.orderId} value={slot} onPick={setSlot} | <PickupSlotPicker orderId={order.orderId} value={slot} onPick={() => {}}
+// @mutate src/components/declutter/DeclutterBookingPanel.tsx | <PickupSlotPicker orderId={order.orderId} value={slot} onPick={setSlot} | <PickupSlotPicker orderId={order.orderId} value={slot} onPick={() => {}}
 describe("#2: the buyer books from the seller's pickup times", () => {
   const windows = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts: "09:00:00", ends: "11:00:00" }));
   beforeEach(() => {
@@ -1486,7 +1487,7 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
 
   // LEAD-PLACE-TIMES: a new porch order books a TIME, so "none left" is the time picker's "No pickup times are open"
   // (the place has no hours before the deadline); the buyer, who cannot book, can still report it there.
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | noTimes={booked ? null : noTimes} | noTimes={null}
+  // @mutate src/components/declutter/DeclutterBookingPanel.tsx | noTimes={booked ? null : noTimes} | noTimes={null}
   // @mutate src/components/declutter/DeclutterPickupWindows.tsx | : "No pickup times are open before the pickup deadline. Message the seller to agree a time."}</p>{noTimes}</div>; | : "No pickup times are open before the pickup deadline. Message the seller to agree a time."}</p></div>;
   it("no pickup times left at the place: the porch buyer, who cannot book, can still report it", async () => {
     state.windows = { windows: [], latestPickupAt: new Date(Date.now() + 60_000).toISOString() };
@@ -2067,7 +2068,7 @@ describe("A3-63: a porch booking says its 2-hour window, not (30 minutes)", () =
 // A3-63 follow-up (lead 11-01): "Move the pickup" on a porch order offers 2-hour windows, as checkout does; a door
 // order keeps its 30-minute times.
 // @mutate src/components/declutter/DeclutterPickupWindows.tsx |     return (porch ? porchWindowDays : pickupDays)(q.data.windows, |     return (pickupDays)(q.data.windows,
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | noTimes={booked ? null : noTimes} porch={porch} | noTimes={booked ? null : noTimes}
+// @mutate src/components/declutter/DeclutterBookingPanel.tsx | noTimes={booked ? null : noTimes} porch={porch} | noTimes={booked ? null : noTimes}
 // @mutate src/components/declutter/paidOrders.ts |   void qc.invalidateQueries({ queryKey: ["declutter", "order-pickup-times"] }); |
 describe("A3-63 follow-up: moving a porch pickup offers 2-hour windows", () => {
   const windows = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts: "09:00:00", ends: "13:00:00" }));

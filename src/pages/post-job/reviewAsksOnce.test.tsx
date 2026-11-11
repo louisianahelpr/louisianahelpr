@@ -5,6 +5,11 @@
 //
 // @mutate src/components/postjob/CheckoutStep.tsx |           {budgetRowShown && <p className="text-ds-12 font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>} |           <p className="text-ds-12 font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>
 // @mutate src/components/postjob/CheckoutStep.tsx |                   // A3-96: the checkbox above is the one ask; | : !confirmed ? "Confirm details to continue" // A3-96: the checkbox above is the one ask;
+//
+// F304 (audit 11-10, owner 2026-11-11 morning pop-up): a plain job's card was "Payment breakdown", an empty divider
+// and "Total $25". Now it is "You pay $25" and "Held safely until you approve the work.", with no heading; the line
+// under the button no longer repeats the hold. Anything with parts to break down keeps the heading and its Total.
+// @mutate src/components/postjob/CheckoutStep.tsx |   const plainYouPay = !hasGift && !taxableLine && !budgetRowShown; |   const plainYouPay = false;
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { CheckoutStepView } from "./CheckoutStepView";
@@ -30,10 +35,28 @@ function makeForm(over: Record<string, unknown> = {}): ReturnType<typeof usePost
 }
 
 describe("A3-96: Review breaks down only what has parts, and asks once", () => {
-  it("a plain job: no 'Your charges' header over the lone Total", () => {
+  it("a plain job: no 'Your charges' header over the lone total", () => {
     render(<CheckoutStepView form={makeForm()} />);
-    expect(screen.getByText("Total")).toBeTruthy();
+    expect(screen.getByText("You pay")).toBeTruthy();
     expect(screen.queryByText("Your charges")).toBeNull();
+  });
+
+  it("F304 owner 11-11: a plain job reads 'You pay $40' and 'Held safely until you approve the work.', no heading or divider", () => {
+    const { container } = render(<CheckoutStepView form={makeForm()} />);
+    const row = container.querySelector("[data-plain-you-pay]");
+    expect(row?.textContent?.replace(/\s+/g, "")).toBe("Youpay$40");
+    expect(screen.getByText("Held safely until you approve the work.")).toBeTruthy();
+    expect(screen.queryByText(/Payment breakdown/)).toBeNull();
+    expect(screen.queryByText("Total")).toBeNull();
+    // The hold is said once on the step.
+    expect((container.textContent ?? "").split("Held safely").length - 1).toBe(1);
+  });
+
+  it("F304: a job with parts (an urgent bonus) keeps the Payment breakdown heading and its Total", () => {
+    const { container } = render(<CheckoutStepView form={makeForm({ isUrgent: true, urgentFeeNum: 10, totalCharge: 50 })} />);
+    expect(screen.getByText(/Payment breakdown/)).toBeTruthy();
+    expect(screen.getByText("Total")).toBeTruthy();
+    expect(container.querySelector("[data-plain-you-pay]")).toBeNull();
   });
 
   it("a job with a line to break down keeps the header", () => {

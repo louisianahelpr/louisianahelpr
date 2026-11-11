@@ -49,7 +49,9 @@ describe("F18: the review step's Total says each number once", () => {
   it("JA-45: one Total on the whole step", () => {
     const { container } = render(<CheckoutStepView form={makeForm()} />);
     const text = (container.textContent ?? "").replace(/\s+/g, " ");
-    expect(count(text, "Total")).toBe(1);
+    // F304 (owner 2026-11-11): a plain job's one total reads "You pay", with no "Total" anywhere.
+    expect(count(text, "You pay")).toBe(1);
+    expect(count(text, "Total")).toBe(0);
     // The money once: the Total (the other "$40" on the step is the preview card's price tag, "How your post will look").
     expect(count(text.split("How your post will look")[0], "$40")).toBe(1);
     expect(text).not.toMatch(/Job budget/);

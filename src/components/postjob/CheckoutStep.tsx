@@ -12,6 +12,7 @@ import type { HelprActivity } from "@/hooks/useHelprActivity";
 // 50 + 7 + 7 against a printed total of 63 — the poster can see it not add
 // up, on the screen where they decide whether to trust us with a card.
 import { formatPriceExact } from "@/lib/format";
+import { CheckoutPlainYouPay } from "@/components/postjob/CheckoutPlainYouPay";
 import { CheckoutSummaryRow } from "./CheckoutSummaryRow";
 import { CheckoutBudgetLine } from "./CheckoutBudgetLine";
 import { recurringVisitDates } from "@/lib/recurringSchedule";
@@ -192,6 +193,8 @@ export function CheckoutStep({
   // and the total both change wording for it, because "Continue to payment"
   // in front of a $0.00 total is the screen contradicting itself.
   const giftCoversEverything = hasGift && totalCharge <= 0;
+  // F304 (owner 2026-11-11): a plain job's card is "You pay" + the hold line (CheckoutPlainYouPay), no heading.
+  const plainYouPay = !hasGift && !taxableLine && !budgetRowShown;
   return (
     <>
       {/* No "Review your job before paying" line or step rail (owner): the
@@ -205,11 +208,13 @@ export function CheckoutStep({
 
       {quoteAsk ? <QuoteAskButton {...quoteAsk} underAge={underAge} /> : <>
       <div className="rounded-2xl liquid-glass overflow-hidden">
+        {!plainYouPay && (
         <div className="px-5 py-4 border-b border-border">
           <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-primary" /> Payment breakdown
           </h3>
         </div>
+        )}
         <div className="p-5 space-y-3">
           {/* What the customer pays. A3-96: only over lines to break down; a plain job's Total stands alone. */}
           {budgetRowShown && <p className="text-ds-12 font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>}
@@ -355,6 +360,7 @@ export function CheckoutStep({
             // total is exact, not an estimate. No $0.00 tax row and no
             // "No Louisiana sales tax applies…" note under the total (owner,
             // 2026-10-09: remove it); the Total line says it all.
+            if (plainYouPay) return <CheckoutPlainYouPay total={totalWithTax} />;
             if (!taxableLine) {
               return (
                 <>
@@ -581,7 +587,8 @@ export function CheckoutStep({
             it no longer echoes a fuller panel above, because there isn't one. */}
         <p className="flex items-center justify-center gap-1.5 text-ds-11 text-muted-foreground">
           <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
-          {giftCoversEverything ? "Held safely until the job's done." : `${payNextLine()} Held safely until the job's done.`}
+          {/* F304: a plain job's card already says the money is held, so this line does not say it twice. */}
+          {giftCoversEverything ? "Held safely until the job's done." : plainYouPay ? payNextLine() : `${payNextLine()} Held safely until the job's done.`}
         </p>
         {/* A second "Back to edit" ghost button used to sit under the CTA. Removed on owner instruction: the
             page-header arrow already goes back, and a back control under the pay button competes with it. */}

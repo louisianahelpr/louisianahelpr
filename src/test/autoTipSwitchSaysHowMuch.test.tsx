@@ -4,6 +4,10 @@
  * description now leads with the amount: "Tips 15% ($23 on a $150 job)." / "Tips $5 per job.". Off says nothing.
  *
  * @mutate src/pages/profile/AutoTip.tsx | {on && example != null ? (isPercent ? | {false && example != null ? (isPercent ?
+ * @mutate src/pages/profile/AutoTip.tsx | on a $150 job${cappedByMax ? ", held to your max" : ""}). ` | on a $150 job). `
+ *
+ * Lead, train D review: with a max set below the percent, the figure is the capped one, so the line says so
+ * ("Tips 20% ($25 on a $150 job, held to your max).") instead of reading like broken arithmetic.
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -29,6 +33,12 @@ describe("F265a: the auto-tip switch says how much it tips", () => {
   it("percent: names the percent and what it is on a $150 job", async () => {
     expect(await description({ auto_tip_mode: "percent", auto_tip_value: 15 })).toBe(
       "Tips 15% ($23 on a $150 job). Charged after the job is finished, never before.",
+    );
+  });
+
+  it("percent held by a max: says the max produced the figure", async () => {
+    expect(await description({ auto_tip_mode: "percent", auto_tip_value: 20, auto_tip_cap: 25 })).toBe(
+      "Tips 20% ($25 on a $150 job, held to your max). Charged after the job is finished, never before.",
     );
   });
 

@@ -21,7 +21,6 @@ import { isCaptchaError } from "@/lib/turnstile";
 import { peekJobIntent, peekSignupRedirectItem, signupSubtitle } from "@/lib/jobIntent";
 import { useSignupStepHistory } from "./signup/useSignupStepHistory";
 import { useSignupEntry } from "./signup/useSignupEntry";
-import { useSignupStepHistory } from "./signup/useSignupStepHistory";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
   ALLOWED_IMAGE_TYPES,

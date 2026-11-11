@@ -323,7 +323,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
               {/* F265a (audit 11-10): the switch said nothing about HOW MUCH it tips; the worked example sat below
                   the chips. While on, its first line names the amount on the same $150 job the example uses. */}
               <p id="auto-tip-desc" className="font-sans text-ds-12 leading-snug text-muted-foreground">
-                {on && example != null ? (isPercent ? `Tips ${numericValue}% ($${formatPriceExact(example)} on a $150 job). ` : `Tips $${formatPriceExact(numericValue)} per job. `) : ""}
+                {on && example != null ? (isPercent ? `Tips ${numericValue}% ($${formatPriceExact(example)} on a $150 job${cappedByMax ? ", held to your max" : ""}). ` : `Tips $${formatPriceExact(numericValue)} per job. `) : ""}
                 Charged after the job is finished, never before.
               </p>
             </div>

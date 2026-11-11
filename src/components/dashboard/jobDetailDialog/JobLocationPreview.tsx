@@ -62,11 +62,16 @@ interface MapKitRuntime {
  * viewer, every load, forever, sees the same cell, and there is nothing to
  * average.
  *
- * The circle is drawn at 1.1km to match the cell the centre was rounded into,
- * so the true address is somewhere inside the shape rather than at its middle.
+ * The circle is a soft half mile (owner, 2026-11-10: "Job map: soft ~half-mile
+ * circle instead of a pin"). The true address is still inside it: rounding to 2
+ * decimals moves the centre at most 0.005 deg each way, about 556 m north-south
+ * and about 482 m east-west at 30 deg N (Louisiana's middle), about 736 m on the
+ * diagonal, under 805 m. Further north the east-west step only shrinks.
  */
 const MASK_DECIMALS = 2;
-const MASK_RADIUS_M = 1100;
+const MASK_RADIUS_M = 805;
+const CIRCLE_FILL_OPACITY = 0.14;
+const CIRCLE_STROKE_OPACITY = 0.3;
 const maskCoordinate = (v: number) => Math.round(v * 10 ** MASK_DECIMALS) / 10 ** MASK_DECIMALS;
 
 /**
@@ -157,9 +162,10 @@ export function JobLocationPreview({ address }: { address: string }) {
     const mk = window.mapkit as unknown as MapKitRuntime;
     try {
       const center = new mk.Coordinate(resolved.lat, resolved.lng);
-      // Wide enough to hold the whole masked circle with margin. The old
-      // 0.01 span framed a single address tightly, which is its own tell.
-      const span = new mk.CoordinateSpan(0.035, 0.035);
+      // Wide enough to hold the whole half-mile circle (about 0.0145 deg
+      // across) with margin. The old 0.01 span framed a single address
+      // tightly, which is its own tell.
+      const span = new mk.CoordinateSpan(0.03, 0.03);
       const region = new mk.CoordinateRegion(center, span);
       mapRef.current = new mk.Map(containerRef.current, {
         region,
@@ -187,10 +193,12 @@ export function JobLocationPreview({ address }: { address: string }) {
           new Circle(center, MASK_RADIUS_M, StyleCtor ? {
             style: new StyleCtor({
               fillColor: tint,
-              fillOpacity: 0.16,
+              // Soft (owner 11-10): a light wash with a faint edge, never a ring
+              // that reads as a boundary line.
+              fillOpacity: CIRCLE_FILL_OPACITY,
               strokeColor: tint,
-              strokeOpacity: 0.55,
-              lineWidth: 1.5,
+              strokeOpacity: CIRCLE_STROKE_OPACITY,
+              lineWidth: 1,
             }),
           } : undefined),
         );

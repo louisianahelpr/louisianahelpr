@@ -306,7 +306,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
 
           {/* The Free change (Q2487): the giver sees who asked and picks one. */}
           {isSeller && it.status === "live" && free && <FreeRequestsForGiver item={it} />}
-          {isSeller && (it.status === "live" || it.status === "paused") && <Suspense fallback={null}><SellerListingPanel item={it} coverUrl={urls[0] ?? null} /></Suspense>}
+          {isSeller && (it.status === "live" || it.status === "paused") && <Suspense fallback={null}><SellerListingPanel item={it} coverUrl={urls[0] ?? null} onDeleted={() => navigate("/declutter?tab=selling")} /></Suspense>}
           {isSeller && it.status !== "live" && it.status !== "paused" && (
             <DeclutterNotice title={`Your listing: ${sellerStatusLabel(it)}`}>
               {STATUS_HELP[it.status] ?? null}

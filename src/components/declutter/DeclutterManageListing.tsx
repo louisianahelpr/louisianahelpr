@@ -96,6 +96,7 @@ export function ManageListingSheet({
   onOpenChange,
   startOn = "menu",
   suggestDrop = false,
+  onDeleted,
 }: {
   item: DeclutterItem;
   coverUrl: string | null;
@@ -104,6 +105,8 @@ export function ManageListingSheet({
   startOn?: View;
   /** CMP-5: opened from the "drop the price?" nudge: Change price starts at the suggested price (the seller saves it). */
   suggestDrop?: boolean;
+  /** Audit 11-10 F335: after Delete, the item page leaves (to Selling) instead of showing the dead listing. */
+  onDeleted?: () => void;
 }) {
   const [view, setView] = useState<View>(startOn);
   const close = () => onOpenChange(false);
@@ -122,8 +125,10 @@ export function ManageListingSheet({
   const pause = useListingAction(() => pauseListing(item.id), "Paused. It's hidden from buyers.", close);
   const relist = useListingAction(() => relistListing(item.id), "Back on sale.", close);
   // A2-5: "Mark sold elsewhere" keeps the listing in the seller's history; Delete stays a withdraw.
+  // F335: the toast names the listing and where it went (it stays under Taken down in Selling, with Relist).
   const takeDown = useListingAction(() => (view === "sold" ? markSoldElsewhere(item.id) : withdrawItem(item.id)),
-    view === "sold" ? "Marked sold elsewhere. It's off sale and in your selling history." : "Listing deleted.", close);
+    view === "sold" ? "Marked sold elsewhere. It's off sale and in your selling history." : `Deleted. ${item.title} is gone from buyers; it's kept under Taken down in Selling.`,
+    () => { close(); if (view !== "sold") onDeleted?.(); });
   const busy = drops.isPending || pause.isPending || relist.isPending || takeDown.isPending;
   const paused = item.status === "paused";
   // A free item (20261027170717) has no price to change, no drops and no seller delivery: only pause, relist, take down.
@@ -384,7 +389,7 @@ function PriceEditor({
  * The seller's own card on the item page (board 158): live -> "Manage
  * listing"; paused -> Relist / Relist at a new price.
  */
-export function SellerListingPanel({ item, coverUrl }: { item: DeclutterItem; coverUrl: string | null }) {
+export function SellerListingPanel({ item, coverUrl, onDeleted }: { item: DeclutterItem; coverUrl: string | null; onDeleted?: () => void }) {
   const [open, setOpen] = useState<null | "menu" | "price">(null);
   const relist = useListingAction(() => relistListing(item.id), "Back on sale.");
   const paused = item.status === "paused";
@@ -435,6 +440,7 @@ export function SellerListingPanel({ item, coverUrl }: { item: DeclutterItem; co
           coverUrl={coverUrl}
           open
           startOn={open}
+          onDeleted={onDeleted}
           onOpenChange={(o) => {
             if (!o) setOpen(null);
           }}

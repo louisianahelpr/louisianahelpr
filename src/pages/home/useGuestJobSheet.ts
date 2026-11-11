@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import type { EnrichedJob } from "@/components/dashboard/types";
+import { KEEP_PAGE } from "@/lib/keepPage";
 
 /** The history-state key on the entry openDetailJob pushes. */
 const SHEET_ENTRY = "guestJobSheet";
@@ -32,7 +33,7 @@ export function useGuestJobSheet(jobs: EnrichedJob[]) {
     next.set("job", job.id);
     navigate(
       { pathname: location.pathname, search: `?${next.toString()}` },
-      { state: { ...stateObject(location.state), [SHEET_ENTRY]: true } },
+      { state: { ...stateObject(location.state), [SHEET_ENTRY]: true, [KEEP_PAGE]: true } },
     );
   }, [location.pathname, location.search, location.state, navigate]);
 

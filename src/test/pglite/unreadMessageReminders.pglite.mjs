@@ -25,6 +25,8 @@ await db.exec(`
   create role anon; create role authenticated; create role service_role bypassrls;
   create schema auth; create table auth.users (id uuid primary key);
   insert into auth.users values ('${P}'), ('${H}');
+  -- F443 (20261111194802): the reminder reads the job's title; no rows here, so it keeps the old words.
+  create table public.jobs (id uuid primary key, title text);
   create table public.profiles (user_id uuid primary key, full_name text);
   insert into public.profiles values ('${P}', 'Lexi Lombas'), ('${H}', 'Hallie Hebert');
   create table public.messages (id uuid primary key default gen_random_uuid(), job_id uuid, sender_id uuid, receiver_id uuid,

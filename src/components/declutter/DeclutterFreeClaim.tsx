@@ -106,6 +106,8 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   });
   const myAsk = (asks.data ?? []).find((r) => r.item_id === item.id) ?? null;
   const [asking, setAsking] = useState(false);
+  // Audit 1110 F359c: "Change time" on the asker's own open ask (the same sheet; the server moves its pickup_at).
+  const [changing, setChanging] = useState(false);
   const [rules, setRules] = useState(false);
   // Audit 1110 F359c: Take back my ask asks first, as Take back my offer does (DeclutterOffersSection).
   const [takingBack, setTakingBack] = useState(false);
@@ -143,7 +145,19 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
       <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="You asked for this item" data-free-claim="">
         <p className="text-ds-15 font-semibold text-foreground">You asked for this.</p>
         {/* Audit 1110 F359c: the pickup time the asker chose, the one the giver sees beside their name. */}
-        {myAsk.pickup_at && <p className="text-ds-14 text-foreground" data-my-ask-time="">Pickup {pickedTimeLabel(myAsk.pickup_at)}</p>}
+        {myAsk.pickup_at && (
+          <p className="flex flex-wrap items-center justify-between gap-x-3 text-ds-14 text-foreground">
+            <span data-my-ask-time="">Pickup {pickedTimeLabel(myAsk.pickup_at)}</span>
+            <InlineTextButton className="text-ds-14 font-semibold underline underline-offset-2" onClick={() => setChanging(true)} data-my-ask-change="">
+              Change time
+            </InlineTextButton>
+          </p>
+        )}
+        {changing && (
+          <Suspense fallback={null}>
+            <FreeAskSheet item={item} giverFirstName={giverFirstName} open={changing} onClose={() => setChanging(false)} oneTimeCheckAhead={oneTimeCheckAhead} change />
+          </Suspense>
+        )}
         {/* The shared next-step line (owner 11-01 12:02 PM): nothing is the asker's to do; it waits on the giver. */}
         <NextStep className="!text-sm" value={{ who: "them", text: `Waiting on ${giverFirstName === "The giver" ? "the giver" : giverFirstName} to pick who gets it. We'll tell you either way.` }} />
         <Button type="button" variant="outline" size="wrap" className="w-full rounded-full" disabled={takeBack.isPending}

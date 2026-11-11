@@ -351,13 +351,31 @@ describe("the item page knows the buyer's own hold (#3)", () => {
   });
 
   // Audit 1110 F359c: the asker sees the pickup time they chose (the giver already sees it beside their name).
-  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |         {myAsk.pickup_at && <p | {false && <p
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |         {myAsk.pickup_at && ( |         {false && (
   it("F359c: with the member's ask open, the page shows the pickup time they asked for", async () => {
     // 2027-11-13 16:00Z is Sat 10 AM in Lafayette (a year out, so never "Today").
     state.asks = [{ id: "r1", item_id: "i1", status: "open", created_at: "2026-10-30T00:00:00Z", pickup_at: "2027-11-13T16:00:00Z" }];
     show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
     expect(await screen.findByText("You asked for this.")).toBeInTheDocument();
     expect(document.querySelector("[data-my-ask-time]")?.textContent).toBe("Pickup Sat, 11/13, 10 AM");
+  });
+
+  // Audit 1110 F359c: Change time opens the same sheet; the new time goes to declutter_request_free_at, which moves the
+  // open ask's pickup_at (20261101174857).
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |         {changing && ( |         {false && (
+  // @mutate src/components/declutter/FreeAskSheet.tsx |             {slot ? `${change ? "Change to" : "Ask for it ·"} | {slot ? `${"Ask for it ·"}
+  it("F359c: Change time on the member's open ask sends the new time and says Change to", async () => {
+    state.asks = [{ id: "r1", item_id: "i1", status: "open", created_at: "2026-10-30T00:00:00Z", pickup_at: "2027-11-13T16:00:00Z" }];
+    show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Change time" }));
+    expect(await screen.findByText("Change your pickup time")).toBeInTheDocument();
+    const times = await screen.findByRole("group", { name: /^Pickup time on / });
+    fireEvent.click(within(times).getAllByRole("button")[0]);
+    const send = screen.getByRole("button", { name: /^Change to / });
+    expect(state.claimed).toBe(0);
+    fireEvent.click(send);
+    await waitFor(() => expect(state.claimed).toBe(1));
+    expect(new Date(state.askedAt!).getTime()).toBeGreaterThan(Date.now());
   });
 
   // @mutate src/components/declutter/DeclutterFreeClaim.tsx |           onClick={() => setTakingBack(true)}> |           onClick={() => takeBack.mutate(myAsk.id)}>

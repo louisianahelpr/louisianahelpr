@@ -33,8 +33,12 @@ function askTimeLabel(iso: string, nowMs = Date.now()): string {
   return `${wd}, ${time}`;
 }
 
-export default function FreeAskSheet({ item, giverFirstName, open, onClose, oneTimeCheckAhead = false }: {
+export default function FreeAskSheet({ item, giverFirstName, open, onClose, oneTimeCheckAhead = false, change = false }: {
   item: DeclutterItem; giverFirstName: string; open: boolean; onClose: () => void;
+  /** Audit 11-10 F359c: the asker moves the time of their open ask. declutter_request_free_at on an item already asked
+   *  for returns that same ask and sets its pickup_at (20261101174857; the 20261102011547 trigger re-arms the giver's
+   *  reminder), so the same sheet and call serve. */
+  change?: boolean;
   /** 11-07: a member whose first pick carries the one-time ID check (FreeClaimPanel's reading): no "nothing is charged",
    *  and their asked time is not booked at the pick (declutter_pick_free_request books it only for a verified member). */
   oneTimeCheckAhead?: boolean;
@@ -69,7 +73,7 @@ export default function FreeAskSheet({ item, giverFirstName, open, onClose, oneT
   const ask = useMutation({
     mutationFn: (iso: string) => requestFreeAt(item.id, iso),
     onSuccess: () => {
-      toast(`Asked. ${giverFirstName} picks who gets it, and we'll tell you.`);
+      toast(change ? "Time changed. The giver sees your new time." : `Asked. ${giverFirstName} picks who gets it, and we'll tell you.`);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
       onClose();
     },
@@ -86,7 +90,7 @@ export default function FreeAskSheet({ item, giverFirstName, open, onClose, oneT
         onOpenAutoFocus={focusSheetItself}
         data-free-ask-sheet=""
       >
-        <SheetHero title="Ask for it" />
+        <SheetHero title={change ? "Change your pickup time" : "Ask for it"} />
         <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
           {item.title} · <span className="font-semibold text-[hsl(var(--burnt-sienna))]">Free</span>
         </p>
@@ -133,7 +137,7 @@ export default function FreeAskSheet({ item, giverFirstName, open, onClose, oneT
         </p>
         <SheetFooter className="mt-4">
           <SheetPrimaryAction onClick={() => slot && ask.mutate(slot)} disabled={!slot || ask.isPending}>
-            {slot ? `Ask for it · ${askTimeLabel(slot)}` : "Pick a time to ask"}
+            {slot ? `${change ? "Change to" : "Ask for it ·"} ${askTimeLabel(slot)}` : change ? "Pick a new time" : "Pick a time to ask"}
           </SheetPrimaryAction>
         </SheetFooter>
         <p className="mt-2 text-center text-ds-13 text-muted-foreground">You can ask for up to 3 free items at a time.</p>

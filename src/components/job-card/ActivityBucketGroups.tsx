@@ -1,5 +1,5 @@
 import { ListRow } from "@/components/ui/ListRow";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { ChevronRight } from "lucide-react";
 import type { ActivityBucket } from "@/lib/activityBuckets";
@@ -23,11 +23,15 @@ export function ActivityBucketGroups<T>({
   bucketOf,
   renderItem,
   labels,
+  revealKey = null,
 }: {
   items: T[];
   getKey: (item: T) => string;
   bucketOf: (item: T) => ActivityBucket;
   renderItem: (item: T) => ReactNode;
+  /** F433 (audit 11-10): the card a notification or link opened. Its group opens (past "See all" or a closed
+   *  Done/Cancelled row) once, so the card is drawn and can scroll into view and pulse. */
+  revealKey?: string | null;
   labels: Record<ActivityBucket, string>;
 }) {
   const groups = useMemo(() => {
@@ -37,6 +41,16 @@ export function ActivityBucketGroups<T>({
   }, [items, bucketOf]);
   const [expanded, setExpanded] = useState<Partial<Record<ActivityBucket, boolean>>>({});
   const toggle = (b: ActivityBucket) => setExpanded((p) => ({ ...p, [b]: !p[b] }));
+  const revealedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!revealKey || revealedFor.current === revealKey) return;
+    const target = items.find((it) => getKey(it) === revealKey);
+    if (!target) return; // not loaded yet (or not on this list): try again when the items change
+    revealedFor.current = revealKey;
+    const b = bucketOf(target);
+    const hidden = OPEN_GROUPS.includes(b) ? groups[b].findIndex((it) => getKey(it) === revealKey) >= PREVIEW : true;
+    if (hidden) setExpanded((p) => ({ ...p, [b]: true }));
+  }, [revealKey, items, groups, getKey, bucketOf]);
 
   return (
     <div className="flex flex-col gap-4" data-testid="activity-bucket-groups">

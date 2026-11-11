@@ -7,7 +7,7 @@
  * rows to the top, a stable partition), so the tail is the older work.
  */
 import { ListRow } from "@/components/ui/ListRow";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 
 export const ACTIVITY_PAGE_SIZE = 50;
@@ -17,6 +17,7 @@ export function PagedActivityList<TItem>({
   getKey,
   renderItem,
   onHiddenChange,
+  revealKey = null,
 }: {
   items: TItem[];
   getKey: (item: TItem) => string;
@@ -24,8 +25,19 @@ export function PagedActivityList<TItem>({
   /** How many cards are still behind "Show older" — so an end-of-list line
    *  never says "that's everything" while some are hidden. */
   onHiddenChange?: (hidden: number) => void;
+  /** F433 (audit 11-10): the card a notification or link opened. When it sits behind "Show older" (a 703-job list
+   *  opened on a card 50 places down), enough pages open once that it is drawn and can scroll into view and pulse. */
+  revealKey?: string | null;
 }) {
   const [shown, setShown] = useState(ACTIVITY_PAGE_SIZE);
+  const revealedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!revealKey || revealedFor.current === revealKey) return;
+    const at = items.findIndex((item) => getKey(item) === revealKey);
+    if (at < 0) return; // not loaded yet (or not on this list): try again when the items change
+    revealedFor.current = revealKey;
+    setShown((n) => (at < n ? n : Math.ceil((at + 1) / ACTIVITY_PAGE_SIZE) * ACTIVITY_PAGE_SIZE));
+  }, [revealKey, items, getKey]);
   const hidden = Math.max(0, items.length - shown);
   useEffect(() => {
     onHiddenChange?.(hidden);

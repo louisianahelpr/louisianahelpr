@@ -329,6 +329,7 @@ export const AppliedJobsTab = ({
       bucketOf={appliedActivityBucket}
       renderItem={renderAppliedCard}
       labels={WORKING_GROUP_LABEL}
+      revealKey={highlightAppId ?? null}
     />
   ) : (
     // Flat (single-status) list rendered in normal document flow — the
@@ -342,7 +343,7 @@ export const AppliedJobsTab = ({
     // "All" ↔ a single status visibly jump. Normal flow keeps the two views
     // structurally identical, so toggling between them stays stable.
     <>
-      <PagedActivityList items={apps} getKey={(app) => app.id} renderItem={renderAppliedCard} />
+      <PagedActivityList items={apps} getKey={(app) => app.id} renderItem={renderAppliedCard} revealKey={highlightAppId ?? null} />
       {/* The "That's everything here." trailing line (mirrored from
           PostedJobsTab) was removed (owner, 2026-08-30). */}
     </>

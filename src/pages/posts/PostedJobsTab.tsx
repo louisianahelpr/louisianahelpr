@@ -251,6 +251,7 @@ export const PostedJobsTab = ({
       bucketOf={(job) => postedActivityBucket(job, pendingApplicantCounts?.[job.id] ?? 0)}
       renderItem={renderJobCard}
       labels={POSTED_GROUP_LABEL}
+      revealKey={highlightJobId ?? null}
     />
   ) : visibleJobs.length === 0 ? (
     <EmptyState
@@ -271,7 +272,7 @@ export const PostedJobsTab = ({
     // "All" ↔ a single status visibly jump. Normal flow keeps the two views
     // structurally identical, so toggling between them stays stable.
     <>
-      <PagedActivityList items={visibleJobs} getKey={(job) => job.id} renderItem={renderJobCard} />
+      <PagedActivityList items={visibleJobs} getKey={(job) => job.id} renderItem={renderJobCard} revealKey={highlightJobId ?? null} />
       {/* The "That's everything here." trailing line (which used to fill the
           blank space a 1-2 card bucket leaves in the fixed-height AppShell
           panel) was removed (owner, 2026-08-30). */}

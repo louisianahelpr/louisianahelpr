@@ -398,7 +398,7 @@ const ResetPassword = () => {
         )}
         {!done && (
           <p className="text-center text-ds-13 text-muted-foreground">
-            <Link to="/login" className="font-bold" style={{ color: "hsl(var(--bark))" }}>
+            <Link to="/login" className="font-bold inline-flex items-center min-h-11 px-2" style={{ color: "hsl(var(--bark))" }}>
               Back to log in
             </Link>
           </p>

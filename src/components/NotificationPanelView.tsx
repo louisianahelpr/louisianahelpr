@@ -147,6 +147,8 @@ export function NotificationPanelView({
             unreadCount > 0 ? (
               <Button type="button" variant="ghost" size="sm" onClick={markAllRead} data-testid="mark-all-read"
                 className="shrink-0 px-2 tracking-normal focus-visible:ring-[hsl(var(--bark))]" style={{ color: "hsl(var(--bark))" }}>
+                {/* F445 (audit 11-10): the action read as plain text; the check icon marks it as a button. */}
+                <CheckCheck className="w-4 h-4 mr-1" aria-hidden />
                 Mark all read
               </Button>
             ) : undefined

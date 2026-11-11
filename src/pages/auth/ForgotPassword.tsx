@@ -306,7 +306,8 @@ const ForgotPassword = () => {
         <TurnstileField ref={turnstileRef} action="password_reset" />
         <p className="text-center text-ds-13 text-muted-foreground">
           {t("forgot.remembered")}{" "}
-          <Link to="/login" className="font-bold" style={{ color: "hsl(var(--bark))" }}>
+          {/* F259h (audit 11-10): the 16px-tall link now has a 44px tap box. */}
+          <Link to="/login" className="font-bold inline-flex items-center min-h-11 px-2" style={{ color: "hsl(var(--bark))" }}>
             {t("forgot.backToLogin")}
           </Link>
         </p>

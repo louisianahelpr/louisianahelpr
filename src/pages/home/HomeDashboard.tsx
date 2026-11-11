@@ -413,6 +413,10 @@ function HomeDashboardScreen() {
 
           {holdBelowNextUp && <HeldBlocksSkeleton side />}
           {!holdBelowNextUp && <section data-home-side className="flex flex-col gap-2 min-w-0" aria-label="Your sections">
+            {/* Owner request 11-05: "add their URL to the home page somewhere so they can easily find it to share". The
+                handle comes from the profile row Home already has, so this makes no request; outline buttons only, so
+                Home keeps its one primary action. Owner 11-10: the card sits at the TOP of the right column. */}
+            {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" />}
             <HomeMoneyTiles money={money} placement="side" />
             <div className="flex items-baseline justify-between px-1">
               <h2 className="text-ds-15 font-semibold text-foreground">Your sections</h2>
@@ -448,10 +452,6 @@ function HomeDashboardScreen() {
               })}
             </div>
             {soonLine && <p data-testid="sections-opening-soon" className="px-1 text-ds-13 text-muted-foreground">{soonLine}</p>}
-            {/* Owner request 11-05: "add their URL to the home page somewhere so they can easily find it to share". The
-                handle comes from the profile row Home already has, so this makes no request; outline buttons only, so
-                Home keeps its one primary action. */}
-            {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mt-2" />}
           </section>}
         </div>}
 

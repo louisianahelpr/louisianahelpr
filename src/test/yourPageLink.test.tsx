@@ -17,7 +17,8 @@
  * @mutate src/components/profile/YourPageLink.tsx |     enabled: !knownHandle, |     enabled: true,
  * @mutate src/components/profile/YourPageLink.tsx |   if (publicPage === null) { |   if (publicPage === undefined && false) {
  * @mutate src/components/profile/YourPageLink.tsx |     queryFn: () => fetchPublicProfile(handle as string), |     queryFn: async () => fetchPublicProfile(handle as string).catch(() => null),
- * @mutate src/pages/home/HomeDashboard.tsx | {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mt-2" />} | {null}
+ * @mutate src/pages/home/HomeDashboard.tsx | {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" />} | {null}
+ * @mutate src/pages/home/HomeDashboard.tsx | className="mb-2" />}\n            <HomeMoneyTiles money={money} placement="side" /> | className="mb-2" />}\n            {null}
  * @mutate supabase/migrations/20261104142602_profile_handle_at_signup.sql |   BEFORE INSERT ON public.profiles\n  FOR EACH ROW EXECUTE FUNCTION public.profile_handle_default_on_insert(); |   BEFORE UPDATE OF bio ON public.profiles\n  FOR EACH ROW EXECUTE FUNCTION public.profile_handle_default_on_insert();
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -114,7 +115,22 @@ describe("Your page link (made at sign-up, easy to find)", () => {
     expect(screen.getByRole("link", { name: "louisianahelpr.com/u/eli-b" })).toBeTruthy();
     expect(rpc).not.toHaveBeenCalledWith("rpc_ensure_my_handle");
     const home = code("src/pages/home/HomeDashboard.tsx");
-    expect(home).toContain("{profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className=\"mt-2\" />}");
+    expect(home).toContain("{profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className=\"mb-2\" />}");
+  });
+
+  it("Home puts the card at the TOP of the right column, above the money tiles and sections (owner 11-10)", () => {
+    const home = code("src/pages/home/HomeDashboard.tsx");
+    const side = home.indexOf('<section data-home-side');
+    expect(side).toBeGreaterThan(0);
+    const end = home.indexOf("</section>}", side);
+    const body = home.slice(home.indexOf(">", side) + 1, end);
+    // The first JSX child of the right column is the Your page card; the money tiles and the chips come after it.
+    // (Comments are blanked to spaces, so a comment line reads "{   }" and is skipped.)
+    const firstChild = body.split("\n").map((l) => l.trim()).find((l) => l.replace(/[{}\s]/g, "") !== "") ?? "";
+    expect(firstChild).toContain("<YourPageLink");
+    expect(body).toContain('<HomeMoneyTiles money={money} placement="side" />');
+    expect(body.indexOf("<YourPageLink")).toBeLessThan(body.indexOf("<HomeMoneyTiles"));
+    expect(body.indexOf("<YourPageLink")).toBeLessThan(body.indexOf("data-section-chips"));
   });
 
   // F259k (audit 11-10, lead confirmed live): the card offered Copy and Share for a link that opened "This profile isn't

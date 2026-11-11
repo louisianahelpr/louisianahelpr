@@ -303,8 +303,8 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
           at 375 and hid the third pill). */}
       <div className="flex flex-wrap items-center gap-2">
         {[
-          { label: "Weekdays 9–5", apply: weekdays9to5 },
-          { label: "Weekends off", apply: weekendsOff },
+          { label: "Set weekdays 9–5", apply: weekdays9to5 },
+          { label: "Turn weekends off", apply: weekendsOff },
           { label: "Copy Mon to all", apply: mondayToAll },
         ].map((preset) => (
           <button

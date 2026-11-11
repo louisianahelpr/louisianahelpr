@@ -75,7 +75,7 @@ import { useLinkedOrder, useScrollToLinkedOrder } from "./useLinkedOrder";
 // Helpr task module rode in signed-in-shared and put /posts over its critical-path budget.
 import { DeliveryDoneStatus, onDay, PickupStatus, PorchOutPhoto, SellerDeliveryMoney, SellerDeliveryStatus } from "./DeclutterPorchHandover";
 import { DateTimeField } from "@/components/DateTimeField";
-import { gotItOpen, gotItOpensAt } from "./OrderSteps";
+import { gotItOpen, gotItOpensAt, refundIsOpen } from "./OrderSteps";
 import { FoldedTimePicker } from "./DeclutterFoldedTime";
 import { PickupSlotPicker } from "./DeclutterPickupWindows";
 import { ProblemForm } from "./DeclutterProblemForm";
@@ -191,7 +191,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
       <OrderCardHead order={order} userId={userId} />
       {/* Boards 71/72: one tracker, where it stands and the money note, from the real handover row
           (delivery has its own, in OrderDeliveryPanel). */}
-      {view && <BuyerOrderHead view={view} standing={problem ? null : refundStanding(refundStatus, fullRefund, refund.data?.request)} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskGot(false); }}
+      {view && <BuyerOrderHead view={view} standing={problem ? null : refundStanding(refundStatus, fullRefund, refund.data?.request)} refundOpen={refundIsOpen(refundStatus)} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskGot(false); }}
         onAction={() => { setOpen(true); setAskGot(order.handover === "delivery" && view.action === "I got it"); }} />}
       {problem && view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />}
       {done && !problem && <Suspense fallback={null}><DeclutterProblemDecided orderId={order.orderId} side={order.side} /></Suspense>}

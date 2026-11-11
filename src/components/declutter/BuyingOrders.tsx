@@ -423,8 +423,10 @@ export function bucketChips(counts: Record<OrderBucket, number>) {
  * the card (the pickup panel, the address, reporting a problem, the review) opens under "Details", and the next
  * action opens it at that control.
  */
-export function BuyerOrderHead({ view, standing, open, onOpen, onClose, onAction = onOpen }: {
+export function BuyerOrderHead({ view, standing, refundOpen = false, open, onOpen, onClose, onAction = onOpen }: {
   view: BuyerOrderView; open: boolean; onOpen: () => void; onClose: () => void;
+  /** F366 (rest): a refund still being worked out; the step bar ends on "Refund asked", never "Done". */
+  refundOpen?: boolean;
   /** Says more than the tracker's sentence: a refund being worked out (refundStanding). */
   standing?: string | null;
   /** The next-action button; defaults to opening Details (D3-7: a Helpr delivery's "I got it" also asks at once). */
@@ -433,7 +435,7 @@ export function BuyerOrderHead({ view, standing, open, onOpen, onClose, onAction
   return (
     <div className="space-y-2" data-buyer-order={view.bucket}>
       {/* Q2630: a refunded order did not go ahead, so no step bar stopped at "Paid" as if it were still in progress. */}
-      {!view.facts.cancelled && <OrderSteps facts={view.facts} />}
+      {!view.facts.cancelled && <OrderSteps facts={view.facts} refundOpen={refundOpen} />}
       <NextStep value={standing ? { who: "info", text: standing } : view.next} className="!text-ds-14" />
       {view.money && <p className="text-ds-13 text-muted-foreground">{view.money}</p>}
       <div className="flex flex-wrap items-center gap-3">

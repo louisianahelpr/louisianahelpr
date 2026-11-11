@@ -53,9 +53,9 @@ export function smsConfirmText(code: string): string {
 }
 
 /** F499 (audit 11-10): the one opt-out wording; every text Helpr sends ends with it. */
-export const SMS_STOP_LINE = "Reply STOP to opt out.";
+const SMS_STOP_LINE = "Reply STOP to opt out.";
 /** F499: the one rates wording (spaced "Msg & data", never "Msg&data"). */
-export const SMS_RATES_LINE = "Msg & data rates may apply.";
+const SMS_RATES_LINE = "Msg & data rates may apply.";
 
 /** The reply to a YES without the code (nothing changes). */
 export const SMS_CONFIRM_HINT =

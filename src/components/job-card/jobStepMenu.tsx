@@ -73,7 +73,7 @@ export function MenuTextAction({ chip }: { chip: ReactElement }) {
 /** A JobActionChip drawn as a full-size Button (its own label, tone and onClick); any other chip as itself. */
 /** Audit 11-10 W2 F280: the sheet's SOS item said only "SOS" (calls 911? alerts Helpr?). In the list it says what the
  *  sheet offers; in the page's side-by-side pair the short word stays, the full words are its name. */
-export const SOS_MENU_LABEL = "SOS — call 911 or share where you are";
+const SOS_MENU_LABEL = "SOS — call 911 or share where you are";
 
 export function MenuAction({ chip, className = "", lead = false, pair = false }: { chip: ReactNode; className?: string; lead?: boolean; pair?: boolean }) {
   // Owner 11-01: a button in the page's side-by-side pair wears its SHORT label on one line (pairLabel.ts); the sheet's

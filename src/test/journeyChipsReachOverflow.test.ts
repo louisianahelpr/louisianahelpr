@@ -138,7 +138,7 @@ describe("journeys reach a job-card chip parked in the More overflow", () => {
     expect(chipFiles.length).toBeGreaterThan(8);
     expect(names.length).toBeGreaterThan(30);
     expect(names).toContain("Message Helpr");
-    expect(names).toContain("No-Show — report that the Helpr never turned up");
+    expect(names).toContain("No-show — report that the Helpr never turned up");
     expect(names).toContain("See your review");
 
     const files = walk(join(root, "e2e/journeys"), /\.ts$/);

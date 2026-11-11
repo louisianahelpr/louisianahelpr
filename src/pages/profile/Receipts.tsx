@@ -62,7 +62,7 @@ interface Receipt {
   note: string;
   /** A Declutter order's lines (what the order row holds), shown when the receipt is opened. */
   lines?: { label: string; cents: number }[];
-  /** F380: a Declutter order's card charge, the sum of its lines ("Total paid"). */
+  /** F380: what the order cost in all (declutter_my_paid_cents: order total plus a standing setup fee), the sum of its lines ("Total paid"). On a gift-card order the card itself was charged less; this is not the card charge. */
   chargedCents?: number;
   /** F380: what came back to the card for that order (declutter_my_refunded_cents), 0 when nothing did. */
   refundedCents?: number;

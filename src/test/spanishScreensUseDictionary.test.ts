@@ -25,6 +25,7 @@
  * @mutate src/pages/home/HomeDashboard.tsx | <GroupSection title={t("home.comingUp")}> | <GroupSection title="Coming up">
  * @mutate src/components/messages/chatView/ChatTimeline.tsx | {composerLocked ? t("msg.noneYet") : t("msg.sayHello")} | {composerLocked ? "No messages yet." : "Say hello."}
  * @mutate src/pages/messages/useMessageSections.tsx | aria-label={t("msg.filterAria")} | aria-label="Filter messages"
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <dt className="font-bold text-foreground">{t("offer.youPayIfYes")}</dt> | <dt className="font-bold text-foreground">You pay if the seller says yes</dt>
  * @mutate src/components/messages/ConversationListBody.tsx |                 {t("msg.noneMatch")}\n |                 No conversations match\n
  */
 import { describe, it, expect } from "vitest";
@@ -73,6 +74,8 @@ const CONVERTED = [
   "src/components/messages/chatView/ChatTimeline.tsx",
   "src/components/messages/chatView/JumpToBottomButton.tsx",
   "src/pages/messages/useMessageSections.tsx",
+  // F260q: Declutter's buy bar and offer box (enOffer.ts).
+  "src/components/declutter/DeclutterOfferPanel.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */

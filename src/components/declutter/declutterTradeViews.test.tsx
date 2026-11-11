@@ -393,10 +393,10 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
     expect(await screen.findByText(/Then you send your offer\./)).toBeInTheDocument();
     // Q2573 (audit 1102a): the step names what it is for, never "to finish" on the first tap.
-    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | data-card-step-title="">To send your offer, add a card first.</p> | data-card-step-title="">Add a card to finish.</p>
+    // @mutate src/lib/i18n/enOffer.ts | "offer.cardStepTitle": "To send your offer, add a card first.", | "offer.cardStepTitle": "Add a card to finish.",
     expect(screen.getByText("To send your offer, add a card first.")).toBeInTheDocument();
     // Owner 11-07: an offer is charged only if the seller says yes; the step says so.
-    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | you're only charged if the seller says yes and you check out. | you're only charged when you check out.
+    // @mutate src/lib/i18n/enOffer.ts | you're only charged if the seller says yes and you check out. | you're only charged when you check out.
     expect(screen.getByText("We save your card now; you're only charged if the seller says yes and you check out. Then you send your offer.")).toBeInTheDocument();
     expect(screen.getAllByText(/only charged/)).toHaveLength(1);
     // Nothing went to the server, the amount is still there, and "Add a card" is the one primary.
@@ -491,7 +491,7 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.change(await screen.findByLabelText("Your offer"), { target: { value: "30" } });
     // $30 + round($30 x 5%) + 70c = $30 + $2.20 = $32.20 (checkoutAmounts, the rule declutter_start_checkout charges).
     // @mutate src/components/declutter/DeclutterOfferPanel.tsx | <BuyerTotal priceCents={cents} /><span | {formatPrice(cents)}<span
-    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | data-offer-incl-fee="">incl. fee</span> | data-offer-incl-fee=""></span>
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | data-offer-incl-fee="">{t("offer.inclFee")}</span> | data-offer-incl-fee=""></span>
     const bill = document.querySelector("[data-offer-bill]")!;
     expect(bill.textContent).toMatch(/Your offer\$30/);
     // Owner 11-07 (Vinted review, Declutter only): the buyer's total says it includes the fee; no rate or fee figure.
@@ -588,7 +588,7 @@ describe("Declutter slice 3 screens", () => {
 
   // NIGHT-BUYING0-7: cancelling on the card page came back with no words and the buy dropped.
   // @mutate src/lib/declutter/afterCard.ts |   return { cardCancelled: next.action, ...amount }; |   return next.offerAmount ? amount : null;
-  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       note={cardCancelled === action ? CARD_NOT_SAVED : undefined} |       note={undefined}
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       note={cardCancelled === action ? t(CARD_NOT_SAVED) : undefined} |       note={undefined}
   // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (!cardCancelled \|\| cardCancelled === "buy") return; |     if (!cardCancelled) return;
   it("0-7: back from the card page with none saved, the offer's card step opens again and says so; a buy opens nothing", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: afterCardReturnState(false, { action: "offer", offerAmount: "30" }) });

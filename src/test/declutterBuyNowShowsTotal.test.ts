@@ -110,7 +110,7 @@ describe("D6: Buy now names what checkout will charge", () => {
     // The buyer-total screens (lead 2026-10-29): each renders BuyerTotal beside its label.
     const SITES: [string, string][] = [
       ["DeclutterOfferPanel.tsx", '<span className="sr-only">{t("decl.buy.now")} ·</span>'],
-      ["DeclutterOfferPanel.tsx", "You pay if the seller says yes"],
+      ["DeclutterOfferPanel.tsx", '{t("offer.youPayIfYes")}'],
       // "Total with pickup" left with the Buy now reserve sheet (DB-5, 2026-10-30: Buy now goes straight to checkout).
       // DB-4 (2026-10-30): the way words follow the seller's ticks (pickupWords.ts), so the label is built, not literal.
       ["DeclutterOffersSection.tsx", "You pay {totalPhrase("],

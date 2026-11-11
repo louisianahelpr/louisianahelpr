@@ -27,7 +27,7 @@ function Host() {
   return (
     <>
       <Where />
-      <DeleteAccountDialog open={open} onOpenChange={setOpen} deleteStep={1} setDeleteStep={() => {}} deleteConfirmText="" setDeleteConfirmText={() => {}} deletingAccount={false} onDelete={() => {}} />
+      <DeleteAccountDialog open={open} onOpenChange={setOpen} deleteStep={1} setDeleteStep={() => {}} deleteConfirmText="" setDeleteConfirmText={() => {}} deletingAccount={false} onDelete={() => {}} accountDeleted={false} onAcknowledgeDeleted={() => {}} />
     </>
   );
 }

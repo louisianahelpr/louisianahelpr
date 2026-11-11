@@ -6,7 +6,7 @@ Items for areas that have not launched (Homes / Rentals, Quotes, Shops) live in 
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 46** (27 to do, 19 fixed with protection pending; 2220 done). Feeds mirrored in: 31 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 20 red overnight checks), 0 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 47** (28 to do, 19 fixed with protection pending; 2220 done). Feeds mirrored in: 32 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 20 red overnight checks), 0 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 0 left of 34** (0 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 20 red, 12 stale, 3 unknown, 46 green of 81 — [SCOREBOARD](SCOREBOARD.md). _(2026-11-10T03:38Z)_
@@ -106,7 +106,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 2266 items — 2220 done, 19 partly done (fixed, protection pending), 27 open.**
+**Queue: 2267 items — 2220 done, 19 partly done (fixed, protection pending), 28 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -574,12 +574,12 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - staleness-watch: issue #3784, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42877915088. feed: issue #3784 · feed: ledger db0fb15c4ec3
   - e2e-real-backend: issue #3813, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42830665183. feed: issue #3813 · feed: ledger 3a3460b71be7
   - core-loop-canary: issue #4222, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42935034595. feed: issue #4222 · feed: ledger 18539240a894
-  - race-runner: issue #4245, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43059143672. feed: issue #4245 · feed: ledger 4c89303184fb
+  - race-runner: issue #4245, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43076754453. feed: issue #4245 · feed: ledger 4c89303184fb
   - loading-states-refresh: issue #4253, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42914097145. feed: issue #4253 · feed: ledger 6389f98a9f66
   - prod-errors: issue #4258, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43060375860. feed: issue #4258 · feed: ledger 1ef4b10bb74a
   - nightly-live-smoke: issue #4270, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42757091233. feed: issue #4270 · feed: ledger feb363ff214a
   - main: Sensitive review record: issue #4281, newest red run: see the issue's latest comment. feed: issue #4281 · feed: ledger e41c806b9175
-  - main: Vitest: issue #4302, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43066297260. feed: issue #4302 · feed: ledger f22e3275d50d
+  - main: Vitest: issue #4302, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43066719900. feed: issue #4302 · feed: ledger f22e3275d50d
   - e2e-abuse-notifications: issue #4340, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42860928141. feed: issue #4340 · feed: ledger 5be6011a46f6
   - main: e2e happy-path smoke: no open issue. feed: ledger 3a55e8af0908
 - [~] **Q2347 MEDIUM error: held a signed-in request while the sign-in refreshed.** Mirrored 2026-10-22 from alert-ledger row 15cc2d7f63f3 (sentry: sentry:assets/app-shared; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 15cc2d7f63f3. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '15cc2d7f63f3c53e80755673bf18e8c0'` => closed **TRIAGE 2026-10-30: still applies.** **LEAD DECISION 2026-11-02 (Option A): the hold is the guard working as designed, so this warning is counted in error_logs only and never sent to Sentry (report() localOnly; src/integrations/supabase/client.ts). prod-errors-check classes its source as 'other', so nothing pages. Guard: src/lib/heldSignedInRequestStaysLocal.test.ts. Builder 5, wip/b4-1102.**
@@ -606,6 +606,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
 - [ ] **Q2795 MEDIUM prod-errors: real users are hitting error screens.** Mirrored 2026-11-11 from prod-errors issue #4401 and alert-ledger row fad6897fcfae by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #4401 · feed: ledger fad6897fcfae. done-when: issue #4401 closed, done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'fad6897fcfae4dbab07ce7af920ad671'` => closed
 - [ ] **Q2796 MEDIUM functions-deploy failed on main.** Mirrored 2026-11-11 from alert-ledger row 1bbb3f41bbe7 (workflow: functions-deploy; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 1bbb3f41bbe7. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '1bbb3f41bbe73f8632d7284e87e40948'` => closed
 - [ ] **Q2797 MEDIUM p.** Mirrored 2026-11-11 from alert-ledger row 5d3f8521e785 (sentry: sentry:unknown; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 5d3f8521e785. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '5d3f8521e785f288481d68f8027786cd'` => closed
+- [ ] **Q2798 MEDIUM cron http failure: stuck-payment-check returned 520.** Mirrored 2026-11-11 from alert-ledger row 4fa3a43d27c0 (error_logs: cron-http; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 4fa3a43d27c0. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '4fa3a43d27c008020ff0b5e36d711915'` => closed
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

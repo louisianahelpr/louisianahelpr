@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-11T17:57Z",
+  "measured_at": "2026-11-11T18:41Z",
   "issues": {
     "readable": true,
     "open": [
@@ -92,7 +92,7 @@
         "number": 4245,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43059143672",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43076754453",
         "runTruncated": false
       },
       {
@@ -127,7 +127,7 @@
         "number": 4302,
         "title": "nightly-red: main: Vitest",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43066297260",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43066719900",
         "runTruncated": false
       },
       {
@@ -570,6 +570,14 @@
         "status": "open",
         "title": "p",
         "issue": null
+      },
+      {
+        "fingerprint": "4fa3a43d27c008020ff0b5e36d711915",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: stuck-payment-check returned 520",
+        "issue": null
       }
     ]
   },
@@ -615,6 +623,7 @@
     "ledger 43d77e26f272": "Q1816",
     "ledger 4840f1c5d1e7": "Q2779",
     "ledger 4c89303184fb": "Q1816",
+    "ledger 4fa3a43d27c0": "Q2798",
     "ledger 5a28db44e912": "Q2410",
     "ledger 5be6011a46f6": "Q1816",
     "ledger 5d3f8521e785": "Q2797",

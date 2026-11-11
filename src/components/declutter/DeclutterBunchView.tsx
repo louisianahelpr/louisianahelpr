@@ -503,9 +503,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
 
       {!allListed && (
       <BunchSection id="bunch-photos" title={`${firstStep}. Add photos`}>
-        <p className="text-xs text-muted-foreground">
-          Pick them all at once, up to {BUNCH_MAX_PHOTOS}. Take a few of each thing, one thing at a time. Smaller copies, with location data removed, are sent to sort them and write your listings. Nothing is saved or shown to buyers until you list.
-        </p>
+        <p className="text-xs text-muted-foreground">Pick them all at once, up to {BUNCH_MAX_PHOTOS}. Take a few of each thing, one thing at a time.</p>
         <HiddenFileInput ref={fileRef} accept="image/*" multiple id="bunch-files" aria-label="Add photos" disabled={blocked} onChange={(e) => void onPhotos(e.target.files)} />
         {blocked ? (
           <Button type="button" variant="outline" size="sm" disabled>Add photos</Button>
@@ -514,6 +512,8 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
             <label htmlFor="bunch-files">{photos.length > 0 ? "Add more photos" : "Add photos"}</label>
           </Button>
         )}
+        {/* F339: what is sent, in small grey under the button, not before the seller has done anything. */}
+        <p className="text-xs text-muted-foreground" data-bunch-privacy="">Smaller copies, with location data removed, are sent to sort them and write your listings. Nothing is saved or shown to buyers until you list.</p>
         {sorting && <ReadingPhotos adding={adding} sorting={sorting} found={found} />}
         {sorting && (
           <BunchIntake keys={photos.filter((p) => !items.some((it) => it.photoKeys.includes(p.key))).map((p) => p.key)} urls={thumbs}

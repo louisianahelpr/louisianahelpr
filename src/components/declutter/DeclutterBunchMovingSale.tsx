@@ -17,7 +17,8 @@ import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { MovingSaleDetails } from "./DeclutterMovingSaleDetails";
 
 /** Sell a bunch's intro; the moving sale gets its own (audit 11-10 F343: the two pages opened word for word alike). */
-export const BUNCH_INTRO = "Add photos of everything you want to sell. We sort them into items and write each listing. You check them all, then list them together.";
+// Audit 11-10 F339: one short line (it was three long sentences before the seller had done anything).
+export const BUNCH_INTRO = "Add photos of everything. We'll group them and write each listing.";
 export const MOVING_INTRO = "Moving? List everything at once. With a move-out date, buyers see it as one moving sale on your profile.";
 
 export function BunchMovingSale({ userId, date, setDate, today }: { userId: string; date: string; setDate: (d: string) => void; today: string }) {

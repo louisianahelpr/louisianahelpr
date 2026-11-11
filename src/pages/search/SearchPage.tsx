@@ -101,7 +101,10 @@ function useItemHits(q: string, on: boolean) {
         .order("live_at", { ascending: false })
         .limit(MAX_ROWS);
       const all = (unwrap(res) ?? []) as ItemHit[];
-      const rows = all.filter((it) => matchesSearch(q, it));
+      // F222 (audit 11-10): "chair" led with a blanket whose long description said chair, so results read as random.
+      // Items whose TITLE has every word come first; newest first within each (the sort is stable).
+      const titleHit = (it: ItemHit) => (matchesSearch(q, { title: it.title }) ? 0 : 1);
+      const rows = all.filter((it) => matchesSearch(q, it)).sort((a, b) => titleHit(a) - titleHit(b));
       const total = res.count ?? 0;
       return { rows, count: total <= all.length ? rows.length : total };
     },

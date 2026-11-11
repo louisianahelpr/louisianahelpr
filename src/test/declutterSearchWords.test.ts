@@ -14,7 +14,7 @@
  * @mutate src/lib/declutter/searchMatch.ts |   if (w.length > 3 && w.endsWith("s") && !w.endsWith("ss")) return w.slice(0, -1); |
  * @mutate src/lib/declutter/searchMatch.ts |   return [title, description ?? "", (category ?? "").replace(/_/g, " ")] |   return [title]
  * @mutate src/pages/search/SearchPage.tsx |         .or(searchOrFilter(q) ?? "title.ilike.*") |         .ilike("title", likePattern(q))
- * @mutate src/pages/search/SearchPage.tsx |       const rows = all.filter((it) => matchesSearch(q, it)); |       const rows = all;
+ * @mutate src/pages/search/SearchPage.tsx |       const rows = all.filter((it) => matchesSearch(q, it)).sort( |       const rows = all.sort(
  * @mutate src/lib/declutter/searchMatch.ts |     const loose = w.length >= 3 && w.endsWith("y") ? w.slice(0, -1) : w; |     const loose = w;
  * @mutate src/lib/declutter/searchMatch.ts |     return `or(title.ilike.*${loose}*,description.ilike.*${loose}*,category.ilike.*${loose}*)`; |     return `or(title.ilike.*${loose}*)`;
  * @mutate supabase/migrations/20261102025235_declutter_saved_search_alerts_wanted_matches.sql |       AND public.declutter_search_matches(s.query, v_item.title, v_item.description, v_item.category) |       AND (s.query IS NULL OR strpos(lower(v_item.title), lower(btrim(s.query))) > 0)

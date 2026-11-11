@@ -4,12 +4,12 @@
  * all caught up". Home's list now takes the Declutter Buying / Selling sources (cart + offers, the same reads and the
  * same rules as the tab badges, src/lib/declutter/tabs.ts) and the bridge publishes their count to the navs.
  *
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now, i.declutterRefunds ?? [], i.declutterFreeAsks ?? [])) { |   for (const d of declutterTodos([], [], now, i.declutterRefunds ?? [], i.declutterFreeAsks ?? [])) {
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now, i.declutterRefunds ?? [], i.declutterFreeAsks ?? [], i.declutterProblems ?? [])) { |   for (const d of declutterTodos([], [], now, i.declutterRefunds ?? [], i.declutterFreeAsks ?? [], i.declutterProblems ?? [])) {
  *
  * The remainder (B124): (a) a refund request waiting on the member (the seller's answer, due by answer_by; or the
  * buyer's answer to a part offer), from the new member-wide read declutter_my_refund_todos (20261102002217); (b) the
  * free giver's "Pick who gets <item>", with how many asked.
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now, i.declutterRefunds ?? [], i.declutterFreeAsks ?? [])) { |   for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now)) {
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now, i.declutterRefunds ?? [], i.declutterFreeAsks ?? [], i.declutterProblems ?? [])) { |   for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now, [], [], i.declutterProblems ?? [])) {
  * @mutate src/lib/declutter/declutterTodos.ts |     if (!Number.isFinite(due) \|\| due < now) continue;\n    const seller = r.my_side === "seller"; |     const seller = r.my_side === "seller";
  * @mutate src/lib/declutter/declutterTodos.ts |         meta: `${seller ? "Selling" : "Buying"} · ${what} · by ${byWhen(due)}`, |         meta: `${seller ? "Selling" : "Buying"} · ${what}`,
  * @mutate src/lib/declutter/declutterTodos.ts |         meta: `Free · ${f.asked} asked`, |         meta: "Free",

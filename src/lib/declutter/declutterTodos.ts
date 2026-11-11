@@ -2,6 +2,14 @@ import type { CartLine, FreeAskToPick, MyOffer } from "@/lib/declutter/api";
 import { openCheckouts } from "@/lib/declutter/tabs";
 import { isDeclutterBuyingTodo } from "@/lib/declutter/buyingTodo";
 import type { MyRefundTodo } from "@/lib/declutter/refundRequests";
+
+/** An open problem on one of the member's orders, and whether its next move is the buyer's (their side still missing). */
+export interface TodoProblem {
+  order_id: string;
+  reporter_side: string;
+  /** The buyer has not added their side yet (declutter_order_problem's other_side_note is empty). Unknown = false. */
+  awaits_buyer: boolean;
+}
 import { formatCents } from "@/lib/shops/formatCents";
 import type { TodoItem } from "@/pages/home/homeDashboard/needsYouTodos";
 
@@ -35,18 +43,46 @@ export function declutterTodos(
   now: number,
   refunds: readonly MyRefundTodo[] = [],
   freeAsks: readonly FreeAskToPick[] = [],
+  problems: readonly TodoProblem[] = [],
 ): { item: TodoItem; due: number | null; waiting: boolean }[] {
   const out: { item: TodoItem; due: number | null; waiting: boolean }[] = [];
   // F363 side effect (owner 11-11): each ORDER is one to-do, even with two moves on it (a refund offer to answer AND
   // its handover). The dated refund row wins; the order's handover row is dropped. Home, the badges and the Buying
   // "Needs you" chip all count these rows, so all three count the order once.
   const ordersWithRow = new Set<string>();
+  // F363 side effect (b) (owner 11-11): an open problem the SELLER reported on the member's purchase, with the buyer's
+  // side still missing, is the buyer's to answer, so the order is under Needs you (it used to fall to Waiting). It is
+  // that order's one row: it comes first, ahead of a refund offer or the handover on the same order. A purchase that
+  // ended (cancelled, refunded) has none; once the buyer has added their side it is back on the seller / the team.
+  const buyerOrders = new Map<string, CartLine>();
+  for (const l of cart) {
+    if (l.my_side !== "buyer" || !l.order_id || (l.order_status !== "paid" && l.order_status !== "handed_over")) continue;
+    if (!buyerOrders.has(l.order_id)) buyerOrders.set(l.order_id, l);
+  }
+  for (const p of problems) {
+    const l = buyerOrders.get(p.order_id);
+    if (!l || p.reporter_side !== "seller" || !p.awaits_buyer || ordersWithRow.has(p.order_id)) continue;
+    ordersWithRow.add(p.order_id);
+    out.push({
+      due: null,
+      waiting: true,
+      item: {
+        id: `dp-${p.order_id}`,
+        section: "declutter",
+        title: `Add your side: the seller reported a problem with ${l.item_title}`,
+        meta: "Buying · the seller reported a problem",
+        to: "/declutter?tab=buying",
+        action: "Add your side",
+      },
+    });
+  }
   // A3-81 (a), first: a refund request waiting on the member. The seller answers within 24 hours (answer_by), or it
   // goes to Louisiana Helpr; a buyer answers the seller's part offer by offer_answer_by.
   for (const r of refunds) {
     const due = Date.parse(r.due_at);
     if (!Number.isFinite(due) || due < now) continue;
     const seller = r.my_side === "seller";
+    if (ordersWithRow.has(r.order_id)) continue;
     const what = r.title ? (r.item_count > 1 ? `${r.title} + ${r.item_count - 1} more` : r.title) : "your order";
     ordersWithRow.add(r.order_id);
     out.push({
@@ -141,6 +177,7 @@ export function declutterTodos(
 
 export function declutterBuyingTodos(
   cart: readonly CartLine[], offers: readonly MyOffer[], refunds: readonly MyRefundTodo[], now: number = Date.now(),
+  problems: readonly TodoProblem[] = [],
 ): TodoItem[] {
-  return declutterTodos(cart, offers, now, refunds).map((x) => x.item).filter(isDeclutterBuyingTodo);
+  return declutterTodos(cart, offers, now, refunds, [], problems).map((x) => x.item).filter(isDeclutterBuyingTodo);
 }

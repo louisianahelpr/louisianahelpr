@@ -118,7 +118,8 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
               <Link to={`/declutter?tab=${t.side === "seller" ? "selling" : "buying"}&order=${orderId}`} className="link-standard inline-flex min-h-11 items-center text-ds-14 font-semibold" data-order-talk-see-order="">See the order</Link>
             )}
             <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
-              Only you and the {other} can read this. Keep phone numbers, emails and payment out of the chat.
+              {/* Audit 11-10 F390: one short line; a phone number or email is flagged under the box as it is typed. */}
+              <span data-order-talk-rule="">Only you two can read this. Keep payment in the app.</span>
               {open && t.open_until ? ` It's open until ${when(t.open_until)}.` : ""}
             </p>
             {!open && (

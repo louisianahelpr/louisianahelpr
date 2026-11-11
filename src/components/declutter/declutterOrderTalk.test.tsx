@@ -200,6 +200,17 @@ describe("D2-1: the paid-order chat", () => {
     expect(document.querySelector("[data-order-talk-leak]")).toBeNull();
   });
 
+  // Audit 11-10 F390 (banner half): the rules banner took three lines on every open; the inline note above now
+  // warns about a phone or email as it is typed, so the banner says the two things in one short line.
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | <span data-order-talk-rule="">Only you two can read this. Keep payment in the app.</span> | <span data-order-talk-rule="">Only you and the {other} can read this. Keep phone numbers, emails and payment out of the chat.</span>
+  it("the rules banner is one short line: who can read it, and payment stays in the app", async () => {
+    renderAt(`/declutter?order_talk=${ORDER}`, <OrderTalkFromLink />);
+    await screen.findByLabelText("Message");
+    const rule = document.querySelector("[data-order-talk-rule]");
+    expect(rule?.textContent).toBe("Only you two can read this. Keep payment in the app.");
+    expect((rule?.textContent ?? "").length).toBeLessThan(56);
+  });
+
   // AUD31-13 (audit 2026-10-31): the sheet said only "Message the seller", not which item.
   // @mutate src/components/declutter/DeclutterOrderTalk.tsx | {itemTitle && <p className="mt-1 truncate text-ds-14 text-muted-foreground" data-order-talk-item="">About &ldquo;{itemTitle}&rdquo;</p>} | {null}
   // @mutate src/components/declutter/DeclutterOrderTalk.tsx |     onError: (err) => setRefusal(declutterErrorMessage(err)), |     onError: () => {},

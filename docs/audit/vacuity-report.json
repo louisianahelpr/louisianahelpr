@@ -1,16 +1,18 @@
 {
-  "generated": "2026-11-10T20:15:12.252Z",
-  "guards": 3804,
-  "registered": 3803,
+  "generated": "2026-11-11T01:12:18.720Z",
+  "guards": 3827,
+  "registered": 3826,
   "unregistered": [
     "src/lib/shops/preorders.test.ts"
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/pages/jobs/jobPage/expiredRepost.test.tsx",
+    "src/test/audit1110CopyAndRedirects.test.tsx",
     "src/test/declutterActiveFilters.test.tsx",
     "src/test/declutterTradesClient.test.tsx",
-    "src/test/fabClearsLastRow.test.tsx"
+    "src/test/fabClearsLastRow.test.tsx",
+    "src/test/feeAmountsFromCheckout.test.tsx"
   ],
   "classD_selfReferential": [
     {
@@ -18,6 +20,12 @@
       "why": [
         "blocked (literal declared in this file) is both input and oracle",
         "all (literal declared in this file) is both input and oracle"
+      ]
+    },
+    {
+      "file": "src/test/noticeTitlesByOutcome.test.ts",
+      "why": [
+        "TITLES (literal declared in this file) is both input and oracle"
       ]
     },
     {

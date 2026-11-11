@@ -26,6 +26,7 @@
  * @mutate src/components/messages/chatView/ChatTimeline.tsx | {composerLocked ? t("msg.noneYet") : t("msg.sayHello")} | {composerLocked ? "No messages yet." : "Say hello."}
  * @mutate src/pages/messages/useMessageSections.tsx | aria-label={t("msg.filterAria")} | aria-label="Filter messages"
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <dt className="font-bold text-foreground">{t("offer.youPayIfYes")}</dt> | <dt className="font-bold text-foreground">You pay if the seller says yes</dt>
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx |           {t("free.takeBack")}\n |           Take back my ask\n
  * @mutate src/components/messages/ConversationListBody.tsx |                 {t("msg.noneMatch")}\n |                 No conversations match\n
  */
 import { describe, it, expect } from "vitest";
@@ -139,6 +140,28 @@ describe("converted screens take every word from the dictionary", () => {
   it("ALLOWED names only converted files", () => {
     expect(Object.keys(ALLOWED).filter((f) => !CONVERTED.includes(f))).toEqual([]);
   });
+});
+
+/** Converted FUNCTIONS inside a file that is only partly converted (F260q): the function's own body, start to the next
+ *  top-level export/function. DeclutterFreeClaim.tsx: the asker's panel is done; the giver's list and checkout not yet. */
+const CONVERTED_FUNCTIONS: [string, string, string[]][] = [
+  ["src/components/declutter/DeclutterFreeClaim.tsx", "export function FreeClaimPanel(", ["The giver"]],
+];
+describe("converted functions take every word from the dictionary", () => {
+  for (const [file, start, allowed] of CONVERTED_FUNCTIONS) {
+    it(`${file} ${start} has no written-in words`, () => {
+      const src = readFileSync(join(ROOT, file), "utf8");
+      const at = src.indexOf(start);
+      expect(at).toBeGreaterThan(-1);
+      const rest = src.slice(at + start.length);
+      const end = rest.search(/\n(?:export )?(?:function|const) [A-Za-z]/);
+      const body = end < 0 ? rest : rest.slice(0, end);
+      expect(body.length).toBeGreaterThan(1000);
+      const found = findRawStrings(body);
+      expect(found.filter((x) => !allowed.includes(x)), file).toEqual([]);
+      expect(allowed.filter((x) => !found.includes(x)), `${file} stale allowed`).toEqual([]);
+    });
+  }
 });
 
 describe("the detector itself", () => {

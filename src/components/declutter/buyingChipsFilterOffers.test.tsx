@@ -13,6 +13,9 @@
  * on the buyer's answer comes first.
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | seller ? o.status !== "open" : only === null && o.status !== "open" && o.status !== "accepted" | seller ? o.status !== "open" : false
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | .sort((a, b) => Number(myTurn(b)) - Number(myTurn(a))) | .slice()
+ *
+ * Audit 11-10 F359a: a closed offer, once the fold is open, sits on the muted card ground; live ones keep the card.
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | linked={o.offer_id === linkedOffer} closed /> | linked={o.offer_id === linkedOffer} />
  */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
@@ -110,5 +113,20 @@ describe("Buying folds closed offers like Selling (F360d)", () => {
     expect(titles()).toEqual(["turn", "open", "won"]);
     expect(within(list).queryByText("Item lost")).toBeNull();
     expect(list.querySelector("[data-closed-offers-toggle]")?.textContent).toBe("Show 1 closed offer from the last 30 days");
+  });
+});
+
+describe("closed offers read as finished (F359a)", () => {
+  it("the opened fold's cards are muted; the live cards are not", async () => {
+    offerRows = [offer("open", "open"), offer("lost", "declined"), offer("gone", "expired")];
+    wrap(<OffersSection side="buyer" />);
+    const list = await screen.findByRole("region", { name: "Your offers" });
+    fireEvent.click(list.querySelector("[data-closed-offers-toggle]") as HTMLElement);
+    const rows = Array.from(list.querySelectorAll<HTMLElement>("[data-offer-row]"));
+    expect(rows.length).toBeGreaterThan(2);
+    const muted = rows.filter((r) => r.hasAttribute("data-closed-offer"));
+    expect(muted.map((r) => /Item ([a-z]+)/.exec(r.textContent ?? "")?.[1])).toEqual(["lost", "gone"]);
+    for (const r of muted) expect(r.className).toContain("bg-muted/50");
+    for (const r of rows.filter((x) => !muted.includes(x))) expect(r.className).toContain("bg-card");
   });
 });

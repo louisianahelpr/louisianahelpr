@@ -4,7 +4,7 @@
  * it") and offers "See the job". The Helpr's own view is unchanged (Say thanks, its pay card).
  *
  * @mutate src/pages/tips/TipMoment.tsx | `To ${helprName} · ${tipWhen(tip.created_at)} · ${helprName} got all of it` | `To ${helprName}`
- * @mutate src/pages/tips/TipMoment.tsx |           onClick={() => navigate(`/jobs/${tip.job_id}`)} |           onClick={() => navigate("/home")}
+ * @mutate src/pages/tips/TipMoment.tsx | : `/jobs/${tip.job_id}`)} | : "/home")}
  */
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";

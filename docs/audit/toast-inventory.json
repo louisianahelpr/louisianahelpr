@@ -12903,7 +12903,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 213,
+      "line": 214,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -12913,7 +12913,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 223,
+      "line": 224,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12923,7 +12923,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 255,
+      "line": 256,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13163,7 +13163,7 @@
     },
     {
       "file": "src/pages/auth/completeProfile/saveCompletedProfile.ts",
-      "line": 133,
+      "line": 134,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13415,7 +13415,7 @@
     },
     {
       "file": "src/pages/info/Support.tsx",
-      "line": 272,
+      "line": 274,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

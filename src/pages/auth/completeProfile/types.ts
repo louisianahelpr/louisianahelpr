@@ -5,7 +5,8 @@
  * left untouched by omitting the key).
  */
 export interface ProfileCompletionUpdates {
-  full_name: string;
+  /** Not sent when empty (an Apple account may skip its name, App Store 4, 11-11). */
+  full_name?: string;
   bio: string;
   /** Optional (owner 2026-10-26); an empty field is not sent, so it never overwrites. */
   location?: string;

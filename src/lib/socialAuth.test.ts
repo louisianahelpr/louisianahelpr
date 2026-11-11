@@ -347,7 +347,7 @@ describe("one account per person (Q446)", () => {
     const result = await signInWithProvider("apple");
     expect(result).toEqual({
       kind: "choose",
-      choice: { provider: "apple", choiceId: "0f8c4a52-6a0e-4d55-9a53-1b2c3d4e5f60", relay: true, idToken: "apple-jwt", appleCode: null },
+      choice: { provider: "apple", choiceId: "0f8c4a52-6a0e-4d55-9a53-1b2c3d4e5f60", relay: true, idToken: "apple-jwt", appleCode: null, appleName: null },
     });
     expect(signInWithIdTokenMock).toHaveBeenCalledTimes(1);
     expect(reportMock).not.toHaveBeenCalled();

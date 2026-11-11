@@ -266,6 +266,10 @@ serve(async (req) => {
       const profileEmail = cleanLine(profile?.email, EMAIL_MAX).toLowerCase()
       if (profileName) name = profileName
       if (profileEmail) email = profileEmail
+      // App Store 4 (11-11): an Apple sign-in may have no name on file (Apple
+      // gives it only once) and is never asked to type one; the account is the
+      // identity, so the inbox shows a stand-in instead of refusing the message.
+      if (name.length < NAME_MIN) name = 'Helpr member'
     }
 
     // Guests must supply both; a signed-in sender has them filled above.

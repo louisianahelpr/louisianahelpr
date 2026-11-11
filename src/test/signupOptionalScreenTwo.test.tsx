@@ -25,7 +25,7 @@
  * @mutate src/pages/auth/signup/SignupStep2.tsx |         onClick={onSkip} |         onClick={onContinue}
  * @mutate src/pages/auth/signup/SignupStep2.tsx |         {t("signup.skip")}\n |         Skip for now\n
  * @mutate src/components/ProtectedRoute.tsx |   { key: "full_name", label: "Full name" }, |   { key: "full_name", label: "Full name" }, { key: "location", label: "City" },
- * @mutate src/pages/auth/CompleteProfile.tsx |             {!providerGaveName && ( |             {true && (
+ * @mutate src/pages/auth/CompleteProfile.tsx |             {nameAsked && !providerGaveName && ( |             {true && (
  * @mutate src/pages/auth/CompleteProfile.tsx |     { const zip = zipCode.replace(/\D/g, ""); if (zip && zip.length !== 5) return fail( |     { const zip = zipCode.replace(/\D/g, ""); if (zip.length !== 5) return fail(
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -177,7 +177,7 @@ describe("the gate lets a skipped city through", () => {
 describe("Complete Profile (Apple/Google)", () => {
   it("asks first and last only when the provider gave no full name", () => {
     expect(COMPLETE).toContain("if (parsedFirst && parsedLast) setProviderGaveName(true);");
-    expect(COMPLETE).toMatch(/\{!providerGaveName && \(\s*<div className="grid grid-cols-2 gap-3" data-testid="complete-profile-names">/);
+    expect(COMPLETE).toMatch(/\{nameAsked && !providerGaveName && \(\s*<div className="grid grid-cols-2 gap-3" data-testid="complete-profile-names">/);
   });
 
   it("City and ZIP are optional there too; a typed ZIP is five digits; empty never overwrites", () => {

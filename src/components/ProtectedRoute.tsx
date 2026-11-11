@@ -141,7 +141,15 @@ const isFieldComplete = (
 };
 
 /** Who signed up how: only an email sign-up passed sign-up step 1's 18+ box. */
-export type GateUser = { app_metadata?: { provider?: string } } | null | undefined;
+export type GateUser = { app_metadata?: { provider?: string; providers?: string[] } } | null | undefined;
+
+/**
+ * App Store Review Guideline 4 (rejection 11-11): an Apple sign-in is never
+ * required to type a name. Apple gives it only on the first authorization
+ * (saved by socialAuth); when it did not, the name is optional for this account.
+ */
+export const isAppleAccount = (user: GateUser): boolean =>
+  user?.app_metadata?.provider === "apple" || (user?.app_metadata?.providers ?? []).includes("apple");
 
 const filled = (v: string | null | undefined): boolean => typeof v === "string" && v.trim() !== "";
 
@@ -173,7 +181,7 @@ const signupFinished = (profile: GateProfile): boolean => filled(profile.locatio
 
 export const isProfileComplete = (profile: GateProfile | null, user: GateUser): boolean => {
   if (!profile) return false;
-  if (!PROFILE_GATE_FIELDS.every((f) => isFieldComplete(profile, f.key))) return false;
+  if (!PROFILE_GATE_FIELDS.every((f) => (f.key === "full_name" && isAppleAccount(user)) || isFieldComplete(profile, f.key))) return false;
   if (!signupFinished(profile)) return false;
   if (user?.app_metadata?.provider === "email") return true;
   return filled(profile.age_attested_at) || filled(profile.date_of_birth);

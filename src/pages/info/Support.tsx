@@ -187,8 +187,10 @@ const Support = () => {
   // that visitor a 400 with no field to fix, fall back to ASKING — prefilled
   // with whatever the profile did have.
   const identityPending = !isReady || (!!user && profileLoading);
-  const profileHasIdentity =
-    !!profile?.full_name?.trim() && !!profile?.email?.trim();
+  // App Store 4 (11-11): the email is what matters; a signed-in member with no
+  // name on file (an Apple sign-in) is not asked to type one, contact-support
+  // fills a stand-in.
+  const profileHasIdentity = !!profile?.email?.trim();
   const identified = isReady && !!user && !profileLoading && profileHasIdentity;
 
   useEffect(() => {

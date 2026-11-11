@@ -13,7 +13,7 @@
  * shows no "N people saved it": no read gives the seller that count.
  */
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -66,6 +66,17 @@ type View = "menu" | "price" | "sold" | "delete" | "edit";
 
 /** The grouped list's rows (Q2709): the shared flush ListRow; its non-button siblings wear the same tokens. */
 const ROW = LIST_ROW_FLUSH;
+const MANAGE_GROUP = "divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card";
+
+/** F336: one headed group of Manage listing rows; hidden when none of its rows render. */
+function ManageGroup({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section aria-label={title} className="space-y-1.5 [&:not(:has(li))]:hidden" data-manage-group={title}>
+      <h3 className="px-1 text-ds-13 font-semibold text-muted-foreground">{title}</h3>
+      <ul className={MANAGE_GROUP}>{children}</ul>
+    </section>
+  );
+}
 
 function useManageState(itemId: string, enabled: boolean) {
   return useQuery({
@@ -147,7 +158,9 @@ export function ManageListingSheet({
         {view === "menu" && (
           <div className="space-y-3">
             <ListingSummary item={item} coverUrl={coverUrl} />
-            <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
+            {/* Audit 11-10 F336: 13 rows in one list; now grouped under Price, How it gets to buyers and Listing, with
+                Delete last. A group whose rows all render nothing (a setting not deployed, shipping off) hides itself. */}
+            <ul className={`${MANAGE_GROUP} [&:not(:has(li))]:hidden`}>
               {item.status === "live" ? (
               <li>
                 <Link to={`/declutter/item/${item.id}?preview=buyer`} className={`${LIST_ROW_FLUSH} ${LIST_ROW_TINT}`} data-manage-preview="" onClick={close}>
@@ -164,8 +177,9 @@ export function ManageListingSheet({
                 </ListRow>
               </li>
               )}
-              {deployed && (<>
-              {!free && (<>
+            </ul>
+              {deployed && !free && (<>
+              <ManageGroup title="Price">
               <li>
                 <ListRow variant="flush" onClick={() => setView("price")} disabled={busy} trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}>
                   <RowText title="Change price or lowest price">
@@ -190,12 +204,17 @@ export function ManageListingSheet({
               <DeclutterOfferRules itemId={item.id} priceCents={item.current_price_cents} acceptsOffers={item.accepts_offers} floorCents={manage?.floor_price_cents ?? null} rowClassName={ROW} />
               {/* Declutter trades (owner 10-31): this listing's own "Open to trades", beside Accept offers. */}
               <DeclutterTradeRules itemId={item.id} rowClassName={ROW} />
-              <ItemDeliveryRow itemId={item.id} rowClassName={ROW} />
               {/* OWN-FREE: make it free after Never/7/14/21/30 days if unsold (only while it is live or paused and still priced). */}
               <AutoFreeRow itemId={item.id} rowClassName={ROW} />
+              </ManageGroup>
+              <ManageGroup title="How it gets to buyers">
+              <ItemDeliveryRow itemId={item.id} rowClassName={ROW} />
               {/* Shipping (Q2259): the box a small item ships in; testers only until the owner flips declutter_shipping. */}
               <ShipItRow itemId={item.id} small={item.delivery_size === "small"} category={item.category} rowClassName={ROW} />
+              </ManageGroup>
               </>)}
+              <ManageGroup title="Listing">
+              {deployed && (<>
               {/* Owner 2026-10-29: renews every 30 days until it sells (free listings run in the same rounds). */}
               <KeepUpRow itemId={item.id} rowClassName={ROW} />
 
@@ -221,7 +240,7 @@ export function ManageListingSheet({
                   <span className="flex-1 min-w-0 text-ds-15 font-semibold text-[hsl(var(--alert,4_71%_41%))]">Delete listing</span>
                 </ListRow>
               </li>
-            </ul>
+              </ManageGroup>
           </div>
         )}
         {view === "edit" && <DeclutterEditListing item={item} onDone={close} />}

@@ -21,6 +21,8 @@ const SEARCH_HINTS: [RegExp, JobCategory[]][] = [
   [/\b(?:driveway|sidewalk|siding|patio)\b/, ["pressure_washing", "concrete_masonry"]],
   [/\b(?:lawn|mow|weeds?|leaves|hedges?)\b/, ["yard_work"]],
   [/\b(?:furniture|boxes|haul)\b/, ["moving", "declutter_help"]],
+  // F301 (audit 11-10): "hang shelves" and "shelves" found nothing, the commonest handyman asks.
+  [/\b(?:shel(?:f|ves)|hang(?:ing)?|curtains?|blinds|pictures?|mirrors?|tv|mount(?:ing)?)\b/, ["handyman", "assembly"]],
 ];
 
 /* A tile's title and examples are t("postJob.group.<id>") / t("postJob.groupEx.<id>"): their English is

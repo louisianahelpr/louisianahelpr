@@ -70,6 +70,17 @@ describe("Post a Job start (owner 2026-10-21)", () => {
     expect(p.onPicked).toHaveBeenCalledTimes(1);
   });
 
+  // F301 (audit 11-10): "hang shelves" and "shelves" said "No category matches".
+  // @mutate src/components/postjob/JobCategoryGroups.tsx |   [/\b(?:shel(?:f\|ves)\|hang(?:ing)?\|curtains?\|blinds\|pictures?\|mirrors?\|tv\|mount(?:ing)?)\b/, ["handyman", "assembly"]], |
+  it("F301: what people type for a handyman job (hang shelves, shelves, curtains) offers Handyman and Assembly", () => {
+    setup();
+    for (const q of ["hang shelves", "shelves", "put up curtains"]) {
+      fireEvent.change(screen.getByRole("searchbox"), { target: { value: q } });
+      expect(screen.getByRole("button", { name: /^Handyman/ })).toBeTruthy();
+      expect(screen.getByRole("button", { name: /^Assembly/ })).toBeTruthy();
+    }
+  });
+
   it("the first screen is the groups with three small start links; screen 1 has no floating button; the flow has no dock", () => {
     const entry = read("src/pages/post-job/EntryChoice.tsx");
     // A3-3 (Spanish): the links read t(); their English is unchanged (enPostJob.ts).

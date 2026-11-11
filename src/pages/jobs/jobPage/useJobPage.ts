@@ -114,18 +114,24 @@ function toRow(raw: Record<string, unknown>): JobPageRow {
   } as JobPageRow;
 }
 
-/** A job id is a uuid; anything else in the URL (`/jobs/abc`) names no job. */
-const JOB_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-export const isJobId = (id: string): boolean => JOB_ID_RE.test(id);
+/** Postgres refusing the id as a uuid (`/jobs/abc`): no job can have that id. */
+export const isNoSuchJobId = (e: unknown): boolean => (e as { code?: string } | null)?.code === "22P02";
 
 export async function fetchJobPage(id: string): Promise<{ job: JobPageRow; party: boolean } | null> {
   // Audit 11-10 W2 F270a: a non-uuid id made Postgres reject the `eq` (22P02), so the page said "couldn't load this
   // job, check your connection" with a Retry that can never work. No such job exists: the page says it isn't available.
-  if (!isJobId(id)) return null;
-  const own = unwrap<Record<string, unknown> | null>(
-    // Q2408: readJobsAheadOfDb, because PARTY_COLUMNS names date_window_end (20261104073000).
-    await readJobsAheadOfDb(PARTY_COLUMNS, (columns) => supabase.from("jobs").select(columns).eq("id", id).maybeSingle<Record<string, unknown>>()),
-  );
+  // The check reads the database's own verdict rather than a client-side uuid regex, so a test double (or any backend
+  // that accepts the id) answers with the row.
+  let own: Record<string, unknown> | null;
+  try {
+    own = unwrap<Record<string, unknown> | null>(
+      // Q2408: readJobsAheadOfDb, because PARTY_COLUMNS names date_window_end (20261104073000).
+      await readJobsAheadOfDb(PARTY_COLUMNS, (columns) => supabase.from("jobs").select(columns).eq("id", id).maybeSingle<Record<string, unknown>>()),
+    );
+  } catch (e) {
+    if (isNoSuchJobId(e)) return null;
+    throw e;
+  }
   if (own) return { job: toRow(own), party: true };
   const browse = unwrap<Record<string, unknown> | null>(
     // readJobsAheadOfDb: BASE_COLUMNS names helper_fee_percent, which the view gains in 20261025235701 (Q2400).

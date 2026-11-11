@@ -4,6 +4,16 @@ import { jobIsUnfundedDraft } from "./activityFilters";
 /** On Posted's list: everything but a never-paid draft (jobIsUnfundedDraft, Q1668). */
 export const onPostedList = (j: { payment_status?: string | null }): boolean => !jobIsUnfundedDraft(j);
 
+/**
+ * The job whose applicants a Posted link asks to open: `?highlight=<id>&applicants=1` (the job page) or, F287a (audit
+ * 11-10), `?job=<id>&applicants=1` (the bell and email link, which kept its query through log-in and then opened only
+ * the Needs you list because just `highlight` was read).
+ */
+export function applicantsLinkJobId(params: URLSearchParams, tab: string): string | null {
+  if (tab !== "posted" || params.get("applicants") !== "1") return null;
+  return params.get("highlight") ?? params.get("job");
+}
+
 /** What a job-page link to a job not on Posted says, instead of landing silently. */
 export function notOnPostedCopy(job: { payment_status?: string | null } | undefined): string {
   return job && jobIsUnfundedDraft(job)

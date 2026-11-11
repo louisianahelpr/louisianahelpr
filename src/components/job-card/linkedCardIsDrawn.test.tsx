@@ -1,5 +1,5 @@
 /**
- * F433 (audit 11-10): tapping "Hallie H. has arrived for Paint a fence" opened Jobs > Needs you (703 jobs) on a
+ * F433 (audit 2026-11-10): tapping "Hallie H. has arrived for Paint a fence" opened Jobs > Needs you (703 jobs) on a
  * different card: the url named the right job, but its card sat behind "Show older" (50 a page) or a group's
  * "See all", so it was never drawn and could not scroll into view or pulse. Now the list opens far enough, once,
  * that the linked card is drawn, in both the flat list and the grouped view, and on both tabs.

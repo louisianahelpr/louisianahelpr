@@ -291,7 +291,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/dashboard/applyConfirmDialog/ApplyBody.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | apply-message · apply-message-help · save-default-pitch |
+| `src/components/dashboard/applyConfirmDialog/ApplyBody.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | apply-message-help · apply-message · save-default-pitch |
 
 ## /jobs, /posts
 

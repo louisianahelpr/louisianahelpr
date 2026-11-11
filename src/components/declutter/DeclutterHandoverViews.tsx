@@ -79,18 +79,12 @@ import { gotItOpen, gotItOpensAt } from "./OrderSteps";
 import { FoldedTimePicker } from "./DeclutterFoldedTime";
 import { PickupSlotPicker } from "./DeclutterPickupWindows";
 import { ProblemForm } from "./DeclutterProblemForm";
-const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.OrderDeliveryPanel })));
+import { DeclutterProblemDecided, DeclutterProblemSides, DeclutterRefundPanel, OrderDeliveryPanel, ReturnLabelPanel, SellerDeliveryOrderPanel, ShipOrderPanel } from "./handoverLazyPanels";
 // Seller delivery (20261027153244) loads with its own orders only (Q178).
 import { NoShowAnswer, NoShowButton } from "./DeclutterNoShowAnswer";
 import { NoHelprChoice } from "./DeclutterNoHelpr";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
-const ShipOrderPanel = lazy(() => import("./ShipOrderPanel").then((m) => ({ default: m.ShipOrderPanel }))); // B134: label (seller) and tracking (buyer), ship orders only (Q178).
-const ReturnLabelPanel = lazy(() => import("./ReturnLabelPanel").then((m) => ({ default: m.ReturnLabelPanel }))); // 20261103212046: the buyer's return label, ship orders only.
-const SellerDeliveryOrderPanel = lazy(() => import("./SellerDeliveryOrder").then((m) => ({ default: m.SellerDeliveryOrderPanel })));
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel }))); // Add a Helpr: the buyer's card only (Q178).
-const DeclutterRefundPanel = lazy(() => import("./DeclutterRefundRequest").then((m) => ({ default: m.DeclutterRefundPanel }))); // Board 141: handed-over orders only.
-const DeclutterProblemSides = lazy(() => import("./DeclutterProblemSides").then((m) => ({ default: m.DeclutterProblemSides }))); // D2-3: both sides of a problem.
-const DeclutterProblemDecided = lazy(() => import("./DeclutterProblemSides").then((m) => ({ default: m.DeclutterProblemDecided })));
 
 /** Every paid order in `cart` (the cart's paid lines). The Buying and Selling tabs pass one side's lines and their own heading (PaidOrders in DeclutterTradeViews). */
 export function PaidOrdersSection({ cart, heading, label, views, show }: {

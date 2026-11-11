@@ -6,8 +6,8 @@
  * status. Behaviour proof: src/test/pglite/escrowNoticeSkipsClosedJobs.pglite.mjs (cancelled/completed silent, open
  * and accepted still told, planted defects red).
  *
- * @mutate supabase/migrations/20261108201000_jobs_notices_email.sql |      AND COALESCE(NEW.status::text, '') NOT IN ('cancelled', 'completed') THEN |      AND COALESCE(NEW.status::text, '') NOT IN ('completed') THEN
- * @mutate supabase/migrations/20261108201000_jobs_notices_email.sql |      AND COALESCE(NEW.status::text, '') NOT IN ('cancelled', 'completed') THEN |      AND true THEN
+ * @mutate supabase/migrations/20261111200206_payout_notice_says_the_amount.sql |      AND COALESCE(NEW.status::text, '') NOT IN ('cancelled', 'completed') THEN |      AND COALESCE(NEW.status::text, '') NOT IN ('completed') THEN
+ * @mutate supabase/migrations/20261111200206_payout_notice_says_the_amount.sql |      AND COALESCE(NEW.status::text, '') NOT IN ('cancelled', 'completed') THEN |      AND true THEN
  */
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";

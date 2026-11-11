@@ -10,7 +10,8 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
-import { rpcData } from "@/lib/declutter/api";
+import { photoPublicUrl, rpcData } from "@/lib/declutter/api";
+import { squarePhotoUrl } from "@/lib/declutter/photoSizes";
 
 interface OrderTalkMessage {
   id: string;
@@ -47,10 +48,21 @@ export interface OrderTalkListRow {
   side: "buyer" | "seller";
   /** The order's first item, or null if it was removed. */
   title: string | null;
+  /** Storage path of that item's first photo, or null (F422, owner 11-11; 20261111155616). Absent before that
+   *  migration deploys, which reads as no photo. */
+  photo_path?: string | null;
   last_at: string;
   /** True when the caller sent the last message. */
   last_mine: boolean;
   open: boolean;
+}
+
+/** The row's 44px photo: a small square from the image transform (2x), the original when no transform URL forms. */
+export const ORDER_TALK_PHOTO_PX = 96;
+export function orderTalkPhotoUrl(row: Pick<OrderTalkListRow, "photo_path">): string | null {
+  if (!row.photo_path) return null;
+  const original = photoPublicUrl(row.photo_path);
+  return squarePhotoUrl(original, ORDER_TALK_PHOTO_PX) ?? original;
 }
 
 /** Shared by the Declutter chip's list and the hook that decides whether that chip shows (one request). */

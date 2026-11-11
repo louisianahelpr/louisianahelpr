@@ -18,7 +18,8 @@ import { Sofa } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ListRow } from "@/components/ui/ListRow";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import type { OrderTalkListRow } from "@/lib/declutter/orderTalk";
+import { orderTalkPhotoUrl, type OrderTalkListRow } from "@/lib/declutter/orderTalk";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 import { CONVERSATION_ROW_AVATAR, CONVERSATION_ROW_FRAME } from "./ConversationRow";
 import { rowAge } from "./rowAge";
 
@@ -53,13 +54,20 @@ export function OrderTalkRow({ row }: { row: OrderTalkListRow }) {
     next.set("order_talk", orderId);
     setParams(next);
   };
+  const photo = orderTalkPhotoUrl(row);
   return (
     <ListRow className={`${CONVERSATION_ROW_FRAME} justify-start`}
       onClick={() => openTalk(row.order_id)} data-order-talk-row={row.order_id}>
-      <span className={`${CONVERSATION_ROW_AVATAR} shrink-0 rounded-full inline-flex items-center justify-center bg-muted text-muted-foreground`}
-        aria-hidden="true">
-        <Sofa className="w-5 h-5" />
-      </span>
+      {/* F422 (owner 11-11): title first with its photo, like a job row; the sofa only when the item has no photo. */}
+      {photo ? (
+        <OptimizedImage data-order-talk-photo="" src={photo} width={44} height={44} alt="" fadeIn
+          className={`${CONVERSATION_ROW_AVATAR} shrink-0 rounded-ds-md object-cover bg-muted`} />
+      ) : (
+        <span className={`${CONVERSATION_ROW_AVATAR} shrink-0 rounded-full inline-flex items-center justify-center bg-muted text-muted-foreground`}
+          aria-hidden="true">
+          <Sofa className="w-5 h-5" />
+        </span>
+      )}
       <span className="flex-1 min-w-0">
         <span className="flex items-center gap-1.5">
           <span className="font-sans font-semibold truncate min-w-0 grow text-ds-15" title={orderTalkRowTitle(row)}>{orderTalkRowTitle(row)}</span>

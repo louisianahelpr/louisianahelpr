@@ -7,6 +7,10 @@
  *   node src/test/pglite/declutterOrderTalk.pglite.mjs                    # GREEN
  *   NEW_MIGRATION=skip node src/test/pglite/declutterOrderTalk.pglite.mjs # RED: no such functions
  *   MIGRATION_PATH=<planted copy> node ...                                # RED on a planted defect
+ *   PHOTO_MIGRATION=skip node src/test/pglite/declutterOrderTalk.pglite.mjs # RED: the list has no photo_path
+ *
+ * F422 (owner 11-11): 20261111155616_declutter_order_talks_item_photo.sql redefines declutter_my_order_talks to add
+ * `photo_path` (the listed item's first photo by position, null without one); it is applied 3x after this one.
  *
  * World: the admin-problems proof's chain (scripts/declutter/slice3Harness.mjs + slice 4, the refund requests and
  * seller delivery), then this migration 3x. pglite is loaded from ~/.lh-pglite.
@@ -17,6 +21,7 @@ import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FIL
 
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const NEW_FILE = "20261030004216_declutter_order_talk.sql";
+const PHOTO_FILE = "20261111155616_declutter_order_talks_item_photo.sql";
 const NAMES_FILE = "20261021131322_member_names_first_and_initial.sql";
 const BUNDLE_FILE = "20261027211754_declutter_bundle_discount.sql";
 const CHAIN_AFTER = [
@@ -121,6 +126,13 @@ if (!skip) {
     ok(!r?.error, `the migration applies (run ${i + 1} of 3)${r?.error ? `: ${r.error}` : ""}`);
   }
 }
+if (!skip && process.env.PHOTO_MIGRATION !== "skip") {
+  const sql = readFileSync(`${MIG_DIR}${PHOTO_FILE}`, "utf8");
+  for (let i = 0; i < 3; i++) {
+    const r = await run(sql);
+    ok(!r?.error, `the F422 photo migration applies (run ${i + 1} of 3)${r?.error ? `: ${r.error}` : ""}`);
+  }
+}
 
 const I = (n) => `66666666-0000-0000-0000-${String(n).padStart(12, "0")}`;
 const refused = (r, re) => !Array.isArray(r) && typeof r?.error === "string" && re.test(r.error);
@@ -169,11 +181,16 @@ ok(refused(await send(BUYER, A, "   "), /invalid_message/), "an empty message is
 ok(refused(await me(BUYER, `SELECT * FROM public.declutter_order_talk_messages`), /permission denied/) && refused(await me(BUYER, `SELECT * FROM public.declutter_order_talks`), /permission denied/), "members cannot read the tables directly");
 // 1b. Messages -> Declutter: each side lists its own order chats, with no person's id or name and no words.
 const list = (uid) => me(uid, `SELECT public.declutter_my_order_talks() AS l`).then((r) => (Array.isArray(r) ? r[0]?.l : r));
+// F422: the listed item's FIRST photo by position (inserted out of order), not the newest or the second.
+await svc(`DELETE FROM public.declutter_item_photos WHERE item_id = '${I(1)}'`);
+await svc(`INSERT INTO public.declutter_item_photos (item_id, seller_id, position, storage_path)
+             VALUES ('${I(1)}', '${SELLER}', 1, '${SELLER}/declutter/${I(1)}/second.jpg'), ('${I(1)}', '${SELLER}', 0, '${SELLER}/declutter/${I(1)}/first.jpg')`);
 const lb = await list(BUYER);
 const ls = await list(SELLER);
 ok(Array.isArray(lb) && lb.length === 1 && lb[0].order_id === A && lb[0].side === "buyer" && lb[0].title === "Brass lamp"
-  && lb[0].last_mine === true && lb[0].open === true && Object.keys(lb[0]).sort().join() === "last_at,last_mine,open,order_id,side,title",
-  `the buyer lists the chat: the item, their side, the last message was theirs, open; nothing else (${JSON.stringify(lb)?.slice(0, 160)})`);
+  && lb[0].last_mine === true && lb[0].open === true && Object.keys(lb[0]).sort().join() === "last_at,last_mine,open,order_id,photo_path,side,title",
+  `the buyer lists the chat: the item and its photo, their side, the last message was theirs, open; nothing else (${JSON.stringify(lb)?.slice(0, 160)})`);
+ok(Array.isArray(lb) && lb[0]?.photo_path === `${SELLER}/declutter/${I(1)}/first.jpg`, `F422: the row carries the item's first photo (${lb?.[0]?.photo_path})`);
 ok(Array.isArray(ls) && ls.length === 1 && ls[0].side === "seller" && ls[0].last_mine === false,
   `the seller lists the same chat from their side (${JSON.stringify(ls)?.slice(0, 120)})`);
 const l2 = await list(BUYER2);

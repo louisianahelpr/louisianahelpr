@@ -413,7 +413,7 @@ describe("Declutter slice 4: paid-order cards", () => {
 
   // A3-78 (audit 11-01): a handed-over sale whose refund request waits on the seller says so in its next-step line,
   // with the deadline, instead of "Handed over."
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         : side === "seller" && refundAwaitsSeller(refund.data) ? sellerRefundStep(refund.data!) : standing( |         : standing(
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         : side === "seller" && refundAwaitsSeller(refund.data) ? sellerRefundStep(refund.data!) : doneWhen} /> |         : doneWhen} />
   it("A3-78: the seller's handed-over card says 'Next: answer the refund request · by …'", async () => {
     state.features = ["declutter_refund_requests"];
     state.handover = { status: "handed_over", side: "seller", confirmed_at: "2026-10-31T15:00:00Z" };

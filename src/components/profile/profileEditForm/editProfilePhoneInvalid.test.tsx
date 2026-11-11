@@ -12,8 +12,8 @@
  *
  * @mutate src/lib/profilePhone.ts |   return profilePhoneComplete(phone) ? null : PHONE_FIELD_ERROR; |   return null;
  * @mutate src/lib/profilePhone.ts |   return d.length === 10 \|\| (d.length === 11 && d.startsWith("1")); |   return d.length >= 10;
- * @mutate src/components/profile/ProfileEditForm.tsx |         blocked={!!phoneError} |         blocked={false}
- * @mutate src/components/profile/ProfileEditForm.tsx |     if (phoneError) { |     if (false) {
+ * @mutate src/components/profile/ProfileEditForm.tsx |         blocked={!!phoneError \|\| !!zipError} |         blocked={!!zipError}
+ * @mutate src/components/profile/ProfileEditForm.tsx |     if (phoneError \|\| zipError) { |     if (zipError) {
  * @mutate src/components/profile/ProfileEditForm.tsx | onBlur={() => setPhoneLeft(true)} | onBlur={() => undefined}
  * @mutate src/components/profile/ProfileEditForm.tsx | <TrustMarksCard profile={profile} phone={profile?.phone ?? ""} /> | <TrustMarksCard profile={profile} phone={phone} />
  * @mutate src/components/profile/profileEditForm/SaveBar.tsx | disabled={saving \|\| justSaved \|\| blocked} | disabled={saving \|\| justSaved}

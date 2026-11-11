@@ -671,7 +671,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // @mutate src/components/declutter/DeclutterMineViews.tsx | scope={(id) => !refunded(id)} show={(id) => only === null \|\| t.views.get(id)?.bucket === only} /> | scope={(id) => !refunded(id)} />
   // Audit DB-6 (2026-10-30): a seller's counter to answer sat under every order, below the fold. It now comes before
   // the orders; offers that wait on the seller stay below them.
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {offers.has && offers.toAnswer && <OffersSection side="buyer" />}\n |
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {offers.has && offers.toAnswer && <OffersSection side="buyer" only={only} />}\n |
   // @mutate src/components/declutter/DeclutterMineViews.tsx |     toAnswer: mine.some((o) => o.status === "open" && o.awaiting === "buyer"), |     toAnswer: false,
   it("DB-6: a counter to answer puts Your offers above the orders; offers waiting on the seller stay below", async () => {
     const paid = { ...LINE, line_id: "p1", item_id: "p1", item_title: "Desk", status: "paid", order_id: "o-done", order_status: "handed_over", handover: "porch" };

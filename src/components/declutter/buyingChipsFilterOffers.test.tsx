@@ -24,6 +24,8 @@ vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/api")>()),
   fetchMyOffers: async () => [offer("open", "open"), offer("won", "accepted"), offer("lost", "declined")],
   fetchItemHandovers: async () => [],
+  // Audit 11-10 F359: an accepted offer reads its cart line (none here).
+  fetchMyCart: async () => [],
 }));
 vi.mock("@/lib/declutter/trades", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/trades")>()),

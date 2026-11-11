@@ -81,9 +81,9 @@ vi.mock("@/hooks/useUserLocation", () => ({
 }));
 vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: async () => ({ status: "exact", lat: 30.45, lng: -91.15 }) }));
 vi.mock("@/components/AppPage", () => ({
-  default: ({ title, children }: { title: string; children: React.ReactNode }) => (
+  default: ({ title, children, phoneHidesTitle }: { title: string; children: React.ReactNode; phoneHidesTitle?: boolean }) => (
     <main>
-      <h1>{title}</h1>
+      <h1 data-phone-hides-title={phoneHidesTitle ? "" : undefined}>{title}</h1>
       {children}
     </main>
   ),
@@ -634,11 +634,14 @@ describe("photo-first selling, one screen", () => {
 
   // Audit posting 1030 #12, #13: a giveaway talked about selling and offered a price.
   // @mutate src/components/declutter/SellOneScreen.tsx | title={form.free ? "Give it away" : "Sell an item"} | title="Sell an item"
+  // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free}> | phoneHidesTitle>
   // @mutate src/components/declutter/SellSummaryCard.tsx | instead={form.free ? { label: "Charge for it", onClick: () => { set("free", false); setOpen(() => "price"); } } : undefined} | instead={undefined}
   // @mutate src/components/declutter/SellOneScreen.tsx | {!form.free && ai.state.status !== "done" && !s.keptWork.restored && <SellItForMeEntry />} | {<SellItForMeEntry />}
   it("Free: the words are a giveaway's, no price is suggested, and Edit price is Charge for it", async () => {
     open("/declutter/sell?free=1");
-    await screen.findByRole("heading", { name: "Give it away" });
+    const title = await screen.findByRole("heading", { name: "Give it away" });
+    // Audit 11-10 F341: on a phone the giveaway still says what it is.
+    expect(title.hasAttribute("data-phone-hides-title")).toBe(false);
     expect(screen.queryByText("Photos that sell")).toBeNull();
     expect(screen.queryByText(/Sell it for me/)).toBeNull();
     expect(screen.getByText("Good photos")).toBeInTheDocument();

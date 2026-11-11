@@ -343,7 +343,7 @@ function postTimeLeft(expiresAt: string, now = Date.now()): string | null {
  * seller's reply waits on you (answered in Buying), when you accepted one (close the post) or when it ran out (post it
  * again); otherwise who it waits on (sellers near you) and how long it stays up.
  */
-function wantedNextStep(post: WantedPost, gotIt: boolean, payBy: string | null = null, now = Date.now()): NextStepValue {
+function wantedNextStep(post: WantedPost, gotIt: boolean, payBy: string | null = null): NextStepValue {
   if (post.status === "closed") return { who: "info", text: "Closed. No more alerts or answers." };
   if (post.status === "expired") return { who: "you", text: "Post it again to keep looking" };
   const yours = post.replies.filter((r) => r.status === "open" && r.awaiting === "buyer").length;
@@ -351,7 +351,8 @@ function wantedNextStep(post: WantedPost, gotIt: boolean, payBy: string | null =
   // A3-77: an accepted answer still in the cart is "check out by <time>", never "close this post".
   if (payBy) return { who: "you", text: `Check out by ${byWords(payBy)}: choose pickup or delivery and pay` };
   if (gotIt) return { who: "you", text: "Close this post if you got what you needed" };
-  return { who: "them", text: "Waiting on sellers near you to answer", by: postTimeLeft(post.expires_at, now) };
+  // F349 (audit 11-10): the days left sit on the card's own line, so this line says only who it waits on.
+  return { who: "them", text: "Waiting on sellers near you to answer" };
 }
 
 /** Your post's photos: each with Remove, and Add a photo while it is open and has fewer than 3. */
@@ -417,6 +418,8 @@ const STATUS_WORDS: Record<WantedPost["status"], string> = {
 function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string | null; onEdit: (post: WantedPost) => void }) {
   const qc = useQueryClient();
   const [confirmRemove, setConfirmRemove] = useState(false);
+  // F349 (audit 11-10): "Close" sat next to "Edit" with no confirm while "Remove" had one; it is "Stop looking" behind a sheet.
+  const [confirmStop, setConfirmStop] = useState(false);
   const refresh = () => void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
   const again = useMutation({
     mutationFn: () => reopenWanted(post.id),
@@ -443,6 +446,7 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
       toast(openReplies > 0
         ? `Closed. No more alerts or answers. ${openReplies === 1 ? "The answer you already have stays" : `The ${openReplies} answers you already have stay`} in Buying until you accept or decline.`
         : "Closed. No more alerts or answers for this one.");
+      setConfirmStop(false);
       void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -457,13 +461,15 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
           <p className="font-semibold truncate" title={post.what}>{post.what}</p>
           <p className="text-sm text-muted-foreground">
             {CATEGORY_LABEL[post.category] ?? "Other"} · up to {formatPrice(post.max_price_cents)} · within {post.radius_miles} mi
-            {/* A3-62: the post's own end date was shown nowhere on the card. */}
-            {post.status === "open" && post.expires_at && ` · Open until ${new Date(post.expires_at).toLocaleDateString([], { month: "short", day: "numeric" })}`}
+            {/* A3-62 / F349: the card said "Open", "Open until Dec 10" and "29 days left" at once; now one "29 days left" here. */}
+            {post.status === "open" && post.expires_at && postTimeLeft(post.expires_at) && ` · ${postTimeLeft(post.expires_at)}`}
           </p>
         </div>
-        <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium" data-status={post.status}>
-          {STATUS_WORDS[post.status]}
-        </span>
+        {post.status !== "open" && (
+          <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium" data-status={post.status}>
+            {STATUS_WORDS[post.status]}
+          </span>
+        )}
       </div>
       <NextStep value={wantedNextStep(post, gotIt, payBy?.checkout_by ?? null)} />
       {userId && <WantedPostPhotos post={post} userId={userId} />}
@@ -495,8 +501,8 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
       {post.status === "open" ? (
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => onEdit(post)}>Edit</Button>
-          <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={close.isPending} onClick={() => close.mutate()}>
-            Close
+          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => setConfirmStop(true)}>
+            Stop looking
           </Button>
         </div>
       ) : (
@@ -505,6 +511,9 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
           <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => setConfirmRemove(true)}>Remove</Button>
         </div>
       )}
+      <ConfirmSheet open={confirmStop} title="Stop looking?" confirmLabel="Stop looking" pending={close.isPending} onConfirm={() => close.mutate()} onClose={() => setConfirmStop(false)} testId="wanted-stop">
+        Sellers near you stop seeing it and you get no more alerts. Any answer you already have stays in Buying.
+      </ConfirmSheet>
       <ConfirmSheet open={confirmRemove} title="Remove this post?" confirmLabel="Remove" pending={remove.isPending} onConfirm={() => remove.mutate()} onClose={() => setConfirmRemove(false)} testId="wanted-remove">
         It comes off your list for good, with its photos. Any answer you already have stays in Buying.
       </ConfirmSheet>

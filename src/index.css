@@ -4045,6 +4045,20 @@ html.senior-mode .text-muted-foreground { color: hsl(var(--ink-deep) / 0.78) !im
 html.senior-mode .line-clamp-1 { -webkit-line-clamp: 2; }
 html.senior-mode .line-clamp-2 { -webkit-line-clamp: 3; }
 html.senior-mode .line-clamp-3 { -webkit-line-clamp: 4; }
+/* F359r (whole-app audit 11-10): under Bigger text a Declutter card cut its condition to one letter ("L... · About 1 mi
+   away") and its title to two words. There the title takes up to two lines, and the condition and the distance each
+   get their own line, whole (no " · " between them). Default text keeps owner pick 4's three lines (DeclutterItemCard).
+   Guard: src/test/declutterCardBiggerText.test.ts. */
+html.senior-mode [data-card-title] {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+html.senior-mode [data-card-place] { flex-direction: column; }
+html.senior-mode [data-card-place] [data-card-sep] { display: none; }
+html.senior-mode [data-card-place] [data-card-condition] { white-space: normal; overflow: visible; text-overflow: clip; }
 
 /* The horizontal twin of that defect — `truncate` eating words at 14px that
    were fully visible at 11px — is NOT fixed here, and the attempt is recorded

@@ -50,6 +50,15 @@ describe("counter-offer field: a shown label and a $ (deep audit #47)", () => {
     state.cart = [];
   });
 
+  // Audit 11-10 F356 (owner 11-11): the seller's card names the buyer, first name + last initial, as the server gives it.
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | {o.my_side === "seller" && o.buyer_display && | {false && o.buyer_display &&
+  it("F356: the seller's card says From Ann S.; nothing when the server sends no name", async () => {
+    state.offers = [{ ...OFFER, buyer_display: "Ann S." }, { ...OFFER, offer_id: "o2", item_id: "i2", item_title: "Oak chair", buyer_display: null }];
+    show("seller");
+    await waitFor(() => expect(document.querySelectorAll("[data-offer-buyer]").length).toBe(1));
+    expect(document.querySelector("[data-offer-buyer]")?.textContent).toBe("From Ann S.");
+  });
+
   // Audit 11-10 F359: an accepted offer says what is next, from its cart line: the buyer checks out by its deadline,
   // the seller waits on the payment. A paid line says nothing more here.
   // @mutate src/components/declutter/DeclutterOffersSection.tsx |       {o.status === "accepted" && <AcceptedOfferNext o={o} />}\n |

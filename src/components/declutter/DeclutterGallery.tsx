@@ -6,9 +6,8 @@
  * double-tap zoom, arrows, keyboard). No photos: the category icon on its
  * soft tint (PhotoPlaceholder), never a blank box.
  */
-import { useRef, useState } from "react";
+import { lazy, Suspense, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
-import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { FallbackImg } from "./FallbackImg";
@@ -16,6 +15,10 @@ import { ITEM_PHOTO_ASPECT, ITEM_PHOTO_FRAME_BASE } from "./itemPhotoFrame";
 import { PhotoArrowButton } from "@/components/ui/PhotoArrowButton";
 import { PhotoDotButton } from "@/components/ui/PhotoDotButton";
 import { PHONE_PHOTO_MEDIA, PHONE_PHOTO_SIZES } from "@/lib/declutter/pagePhoto";
+
+// The full-screen viewer opens on a tap, so it loads then, not with every cold item page (2.9 KB gz on its critical
+// path, 11-11). Closed, it rendered nothing, so mounting it only while open changes nothing on screen.
+const PhotoLightbox = lazy(() => import("@/components/dashboard/PhotoLightbox").then((m) => ({ default: m.PhotoLightbox })));
 
 const FRAME_BASE = ITEM_PHOTO_FRAME_BASE;
 const ASPECT = ITEM_PHOTO_ASPECT;
@@ -119,7 +122,11 @@ export function DeclutterGallery({ urls, display, category, title, icon, shape =
           ))}
         </div>
       )}
-      <PhotoLightbox photos={urls} lightboxIndex={open} setLightboxIndex={setOpen} />
+      {open !== null && (
+        <Suspense fallback={null}>
+          <PhotoLightbox photos={urls} lightboxIndex={open} setLightboxIndex={setOpen} />
+        </Suspense>
+      )}
     </div>
   );
 }

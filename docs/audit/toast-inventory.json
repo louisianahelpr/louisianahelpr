@@ -1,15 +1,15 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1227,
-    "files": 354,
-    "rendering": 1146,
+    "calls": 1228,
+    "files": 355,
+    "rendering": 1147,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 10,
       "successToast": 2,
-      "toast": 244,
+      "toast": 245,
       "toast.error": 823,
       "toast.loading": 1,
       "toast.message": 1,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 501,
       "template": 108,
-      "dynamic": 672,
+      "dynamic": 673,
       "jsx": 0
     }
   },
@@ -46,7 +46,7 @@
     },
     {
       "file": "src/components/BlockUserDialog.tsx",
-      "line": 142,
+      "line": 154,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -56,7 +56,7 @@
     },
     {
       "file": "src/components/BlockUserDialog.tsx",
-      "line": 147,
+      "line": 159,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -644,6 +644,16 @@
       "renders": true
     },
     {
+      "file": "src/components/LanguageToggle.tsx",
+      "line": 36,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "t(\"lang.saved\")"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/NotificationPanel.tsx",
       "line": 177,
       "kind": "toast.error",
@@ -675,7 +685,7 @@
     },
     {
       "file": "src/components/NotificationPanel.tsx",
-      "line": 364,
+      "line": 365,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -815,7 +825,7 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 124,
+      "line": 129,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -825,7 +835,7 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 125,
+      "line": 130,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -835,7 +845,7 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 137,
+      "line": 142,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -845,7 +855,7 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 142,
+      "line": 147,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -855,7 +865,7 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 158,
+      "line": 163,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -865,7 +875,7 @@
     },
     {
       "file": "src/components/ReportDialog.tsx",
-      "line": 192,
+      "line": 197,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4794,7 +4804,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 216,
+      "line": 218,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4804,7 +4814,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 219,
+      "line": 221,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4814,7 +4824,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 366,
+      "line": 368,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4824,7 +4834,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 372,
+      "line": 374,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5386,7 +5396,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferTrade.tsx",
-      "line": 35,
+      "line": 42,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5396,7 +5406,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferTrade.tsx",
-      "line": 40,
+      "line": 47,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6062,7 +6072,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 417,
+      "line": 419,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6072,7 +6082,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 423,
+      "line": 425,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6082,7 +6092,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 440,
+      "line": 442,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6107,7 +6117,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 446,
+      "line": 448,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6292,21 +6302,11 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 361,
+      "line": 362,
       "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Your post is up. A photo is waiting for a quick look before sellers see it."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 369,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
       },
       "renders": true
     },
@@ -6322,7 +6322,17 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 423,
+      "line": 371,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterWantedViews.tsx",
+      "line": 426,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6332,7 +6342,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 424,
+      "line": 427,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6342,7 +6352,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 428,
+      "line": 431,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6352,7 +6362,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 429,
+      "line": 432,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6362,7 +6372,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 443,
+      "line": 446,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6382,7 +6392,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 448,
+      "line": 452,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6392,7 +6402,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterYourOffer.tsx",
-      "line": 76,
+      "line": 81,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6402,7 +6412,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterYourOffer.tsx",
-      "line": 82,
+      "line": 87,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12913,7 +12923,7 @@
     },
     {
       "file": "src/pages/auth/ForgotPassword.tsx",
-      "line": 83,
+      "line": 92,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12923,7 +12933,7 @@
     },
     {
       "file": "src/pages/auth/ForgotPassword.tsx",
-      "line": 89,
+      "line": 98,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12933,7 +12943,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 196,
+      "line": 173,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12943,7 +12953,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 212,
+      "line": 189,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12953,7 +12963,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 233,
+      "line": 210,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12963,7 +12973,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 248,
+      "line": 225,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12973,7 +12983,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 276,
+      "line": 253,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12983,7 +12993,7 @@
     },
     {
       "file": "src/pages/auth/Login.tsx",
-      "line": 310,
+      "line": 287,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13003,7 +13013,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 176,
+      "line": 177,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13013,7 +13023,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 177,
+      "line": 178,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13023,7 +13033,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 178,
+      "line": 179,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13033,7 +13043,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 198,
+      "line": 199,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13043,7 +13053,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 199,
+      "line": 200,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13053,7 +13063,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 200,
+      "line": 201,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13063,7 +13073,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 216,
+      "line": 217,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13073,7 +13083,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 299,
+      "line": 300,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13083,7 +13093,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 307,
+      "line": 308,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13093,7 +13103,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 377,
+      "line": 378,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13103,7 +13113,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 446,
+      "line": 447,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15652,7 +15662,7 @@
     },
     {
       "file": "src/pages/user/useUserProfileData.ts",
-      "line": 966,
+      "line": 969,
       "kind": "toast.error",
       "title": {
         "form": "literal",

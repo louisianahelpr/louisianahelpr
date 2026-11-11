@@ -17,6 +17,7 @@ import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetS
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { scanMessage } from "@/lib/messageScanner";
 import { useManagerLabels } from "@/lib/declutter/managerMode";
 import { fetchMyOrderTalks, fetchOrderTalk, MY_ORDER_TALKS_KEY, sendOrderMessage } from "@/lib/declutter/orderTalk";
 import { talkTime } from "@/lib/declutter/talkTime";
@@ -82,6 +83,7 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
   const labels = useManagerLabels("order_talk", (talk.data?.messages ?? []).map((m) => m.id));
   const itemTitle = talks.data?.find((r) => r.order_id === orderId)?.title ?? null;
   const [draft, setDraft] = useState("");
+  const leak = draft.trim() ? scanMessage(draft)[0] ?? null : null;
   // AUD31-11: a refused message is said under the box, as Questions does, never in a toast over the box and draft.
   const [refusal, setRefusal] = useState<string | null>(null);
   const send = useMutation({
@@ -137,8 +139,11 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
                 <Textarea id={`order-talk-${orderId}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
                   maxLength={1000} value={draft} onChange={(e) => { setDraft(e.target.value); setRefusal(null); }}
                   placeholder={`Write to the ${other}`}
-                  aria-invalid={refusal ? true : undefined} aria-describedby={refusal ? `order-talk-refusal-${orderId}` : undefined} />
+                  aria-invalid={refusal ? true : undefined} aria-describedby={refusal ? `order-talk-refusal-${orderId}` : leak ? `order-talk-leak-${orderId}` : undefined} />
                 {refusal && <p id={`order-talk-refusal-${orderId}`} role="alert" className="text-ds-13 text-destructive-ink" data-order-talk-refusal="">{refusal}</p>}
+                {/* Audit 11-10 F390: said while typing, before Send, in the words the server refuses it with
+                    (reject_contact_leak_in_declutter_order_talk); the server stays the authority. */}
+                {!refusal && leak && <p id={`order-talk-leak-${orderId}`} className="text-ds-13 text-foreground" data-order-talk-leak="">{leak.label} (&ldquo;{leak.match}&rdquo;). Keep contact details and payment out of the chat: this message won&apos;t send with it.</p>}
               </form>
             )}
           </div>

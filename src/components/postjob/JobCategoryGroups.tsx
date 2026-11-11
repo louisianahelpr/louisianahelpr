@@ -11,6 +11,7 @@ import type { LucideIcon } from "lucide-react";
 import { categoryFromTitle } from "@/lib/categoryFromTitle";
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
 import { JOB_CATEGORY_GROUPS, sentenceCaseLabel, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
+import { TITLE_MAX } from "@/components/postjob/detailsSection/detailsSectionConstants";
 
 
 /**
@@ -37,6 +38,8 @@ interface Props {
   setGroup: (g: JobCategoryGroupId | null) => void;
   /** A category was tapped: go on to Details. The tap IS the choice (owner 2026-10-21). */
   onPicked: () => void;
+  /** F301: "Post it under Something else" fills the title with what was typed (cut to TITLE_MAX). */
+  setTitle?: (v: string) => void;
 }
 
 /**
@@ -52,7 +55,7 @@ interface Props {
  * (`categoryFromTitle`) and SEARCH_HINTS ("wash my driveway" offers Pressure washing and Concrete & masonry); a match is a tile, and its
  * tap goes on too. Nothing is picked without a tap.
  */
-export function JobCategoryGroups({ category, setCategory, group, setGroup, onPicked }: Props) {
+export function JobCategoryGroups({ category, setCategory, group, setGroup, onPicked, setTitle }: Props) {
   const [query, setQuery] = useState("");
   // Post a job in Spanish (A3-3): the grid's words follow the member's language.
   const { t } = useLanguage();
@@ -162,9 +165,25 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
               {matches.length > 0 ? (
                 <div className="pj-tiles grid gap-2.5">{matches.map(categoryTile)}</div>
               ) : (
-                <p className="font-sans text-ds-14 text-muted-foreground">
-                  {t("postJob.noMatch", { query: query.trim() })}
-                </p>
+                <div className="space-y-2.5">
+                  <p className="font-sans text-ds-14 text-muted-foreground">
+                    {t("postJob.noMatch", { query: query.trim() })}
+                  </p>
+                  {/* F301 (audit 11-10): no match is not a dead end. Something else (Other) is picked and the title
+                      starts as what they typed; they go on to Details as any tap does. */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    data-post-under-other=""
+                    onClick={() => {
+                      const typed = query.trim().slice(0, TITLE_MAX);
+                      pick("other");
+                      setTitle?.(typed);
+                    }}
+                  >
+                    {t("postJob.postUnderOther")}
+                  </Button>
+                </div>
               )}
             </section>
           ) : null}

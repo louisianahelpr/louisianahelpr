@@ -361,6 +361,7 @@ export const es: Record<MsgKey, string> = {
   "postJob.matchingCategories": "Categorías que coinciden",
   "postJob.matches": "Coincidencias",
   "postJob.noMatch": "Ninguna categoría coincide con \"{query}\". Elija un grupo abajo, u Otra cosa.",
+  "postJob.postUnderOther": "Publicarlo en Otra cosa",
   "postJob.categoryGroups": "Grupos de categorías",
   "postJob.inGroup": "En {group}",
   "postJob.group.home": "Hogar",

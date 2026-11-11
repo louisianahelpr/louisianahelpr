@@ -78,7 +78,6 @@ const GATED_PAGE_LINES: readonly [prefix: string, line: string][] = [
   ["/post-job", "Posting a job needs a free account."],
   ["/tips", "Sending a tip needs a free account."],
   ["/shops", "Shops needs a free account."],
-  ["/messages", "Your messages need an account."],
   ["/jobs", "Your jobs need an account."],
   ["/profile", "Your profile needs an account."],
   ["/home", "Your home page needs an account."],
@@ -92,6 +91,9 @@ const GATED_PAGE_LINES: readonly [prefix: string, line: string][] = [
 const RETURNING_PAGE_LINES: readonly [prefix: string, line: string][] = [
   ["/payment-success", "Log in to see your payment."],
   ["/complete-profile", "Log in to finish your profile."],
+  // F418 (audit 11-10): a link into /messages comes from a message email, notice or a member's own app, so the
+  // person holding it already has an account. Log in leads.
+  ["/messages", "Log in to see your messages."],
 ];
 const LOG_BACK_IN = "We'll take you straight back to it.";
 

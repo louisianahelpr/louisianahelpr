@@ -77,6 +77,13 @@ describe("F428: the block sheet is a short list, with Mute instead first", () =>
     expect(dialog.textContent).not.toMatch(/active jobs? between you/);
   });
 
+  // Owner 11-11 F359h: the sheet says what a block does to Declutter (20261111195156 closes open offers and trades).
+  // @mutate src/components/BlockUserDialog.tsx | <li data-block-declutter="">Open Declutter offers and trades between you close. Paid orders still finish.</li> | <li data-block-declutter="" />
+  it("F359h: the sheet says open Declutter offers and trades close and paid orders finish", async () => {
+    const dialog = open();
+    expect(await within(dialog).findByText("Open Declutter offers and trades between you close. Paid orders still finish.")).toBeTruthy();
+  });
+
   it("with a thread to mute, Mute instead is the first button; it closes the sheet and opens the mute picker", async () => {
     rows.push(job(1));
     const onMuteInstead = vi.fn();

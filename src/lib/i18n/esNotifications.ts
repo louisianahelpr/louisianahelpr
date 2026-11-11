@@ -17,4 +17,6 @@ export const esNotifications: Record<keyof typeof enNotifications, string> = {
   "notif.turnOnPush": "Activar las notificaciones push",
   "notif.more": "Más",
   "notif.less": "Menos",
+  "notif.toastNew": "Notificación nueva",
+  "notif.view": "Ver",
 };

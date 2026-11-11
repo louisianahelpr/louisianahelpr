@@ -17,7 +17,9 @@ import { esNotifications } from "@/lib/i18n/esNotifications";
 
 // The row's More | Less toggle lives in NotificationMessage.tsx; read as part of the panel.
 const view = blankComments(readFileSync("src/components/NotificationPanelView.tsx", "utf8")) +
-  blankComments(readFileSync("src/components/notificationPanel/NotificationMessage.tsx", "utf8"));
+  blankComments(readFileSync("src/components/notificationPanel/NotificationMessage.tsx", "utf8")) +
+  // The foreground push toast's own words (New notification, View) are panel words too (F260q).
+  blankComments(readFileSync("src/lib/nativePush.ts", "utf8"));
 
 describe("F260q: the notifications panel speaks the member's language", () => {
   const keys = Object.keys(enNotifications) as (keyof typeof enNotifications)[];

@@ -159,6 +159,8 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
           {wantedReply && <p className="text-ds-12 font-semibold text-[hsl(var(--sage-ink))]" data-wanted-reply="">Reply to your Wanted</p>}
           {/* Audit 1110 F408: an offer title wraps to two lines instead of an ellipsis at 375 / Bigger text. */}
           <Link to={`/declutter/item/${o.item_id}`} className="line-clamp-2 break-words block text-ds-15 font-semibold leading-snug" title={o.item_title}>{o.item_title}</Link>
+          {/* Audit 1110 F356 (owner 11-11): the seller sees who made the offer, first name + last initial only. */}
+          {o.my_side === "seller" && o.buyer_display && <p className="text-ds-13 text-foreground" data-offer-buyer="">From {o.buyer_display}</p>}
           <p className="text-ds-13 text-muted-foreground">Price now {formatPrice(o.current_price_cents)}</p>
         </div>
         <div className="shrink-0 text-right">

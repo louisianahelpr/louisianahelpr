@@ -18654,6 +18654,7 @@ export type Database = {
         Returns: {
           amount_cents: number
           awaiting: string
+          buyer_display: string
           counter_count: number
           current_price_cents: number
           floor_price_cents: number | null

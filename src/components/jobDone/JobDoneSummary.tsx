@@ -223,21 +223,19 @@ export function JobDoneSummary({
           held={job.dispute_status === "reversal_hold"}
           scheduledAt={job.payout_scheduled_at}
           viewerId={viewerId}
-          posterFirstName={firstName}
         />
       )}
     </div>
   );
 }
 
-function HelprPayNote({ transfers, held, scheduledAt, viewerId, posterFirstName }: {
+function HelprPayNote({ transfers, held, scheduledAt, viewerId }: {
   transfers: readonly TransferRow[];
   /** jobs.payout_scheduled_at: before a transfer exists, the headline names the day (A3-59). */
   scheduledAt: string | null;
   /** A clawed-back transfer frozen for review (transferReversed). */
   held: boolean;
   viewerId: string;
-  posterFirstName: string;
 }) {
   // THE NUMBER IS THE TRANSFER. Before a transfer row exists no headline
   // amount is shown: account-level deductions (the one-time setup fee, a
@@ -296,10 +294,8 @@ function HelprPayNote({ transfers, held, scheduledAt, viewerId, posterFirstName 
           <Link to="/profile?tab=payment" className="font-bold" style={{ color: "hsl(var(--bark))" }}>Set up payouts</Link>
         </p>
       )}
-      <p className="font-sans text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
-        {/* Not "<name> confirmed": a job can also complete on the auto-release timer. */}
-        The job with {posterFirstName} is confirmed.
-      </p>
+      {/* F288 (audit 11-10): no "The job with <name> is confirmed." here; it read as a job not done yet, and the
+          progress row below already starts at Confirmed. */}
       <ol className="grid grid-cols-3 gap-2" aria-label="Payout progress">
         {steps.map((s) => (
           <li key={s.label} className="space-y-1">

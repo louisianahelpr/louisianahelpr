@@ -7,6 +7,11 @@
  *
  * @mutate src/pages/search/SearchPage.tsx |     guest ? { on: !!openToAll.open?.has(key), settled: openToAll.settled } : member; |     member;
  * @mutate src/pages/search/SearchStart.tsx |   return signedIn ? `/jobs?tab=browse&cat=${cat}` : `/browse?cat=${cat}`; |   return `/jobs?tab=browse&cat=${cat}`;
+ * F224 (whole-app audit 2026-11-10): the closed sections are one small line ("Shops and Homes are coming soon."), not a
+ * card-sized "Coming soon" row each.
+ * @mutate src/pages/search/SearchPage.tsx |   return `${list} ${names.length === 1 ? "is" : "are"} coming soon.`; |   return `${names[0]} Coming soon`;
+ * @mutate src/pages/search/SearchPage.tsx |   if (hideUnopenedInApp() \|\| names.length === 0) return null; |   if (hideUnopenedInApp()) return null;
+ * @mutate src/pages/search/SearchPage.tsx |   if (hideUnopenedInApp() \|\| names.length === 0) return null; |   if (names.length === 0) return null;
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -14,7 +19,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 
-const state = vi.hoisted(() => ({ open: new Set<string>(["declutter"]) as Set<string> | null, signedIn: false }));
+const state = vi.hoisted(() => ({ open: new Set<string>(["declutter"]) as Set<string> | null, signedIn: false, native: false }));
+
+// The iPhone app hides closed sections (src/lib/hideUnopenedInApp.ts); only its first answer is stubbed here.
+vi.mock("@/lib/hideUnopenedInApp", async (orig) => ({ ...(await orig<typeof import("@/lib/hideUnopenedInApp")>()), hideUnopenedInApp: () => state.native }));
 
 vi.mock("@/hooks/useFeature", () => ({ useFeatureStatus: () => ({ on: false, settled: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: state.signedIn ? { id: "u1" } : null, profile: null }) }));
@@ -55,6 +63,7 @@ function mount(path: string) {
 }
 
 beforeEach(() => {
+  state.native = false;
   state.open = new Set(["declutter"]);
   state.signedIn = false;
 });
@@ -64,10 +73,9 @@ describe("L001: a signed-out visitor's /search covers the sections open to every
     mount("/search?q=pillow");
     expect(await screen.findByRole("link", { name: /Feather pillow/ })).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search jobs and items")).toBeInTheDocument();
-    // Shops and Homes are not open to everyone: they still say so; Declutter does not.
-    const soon = screen.queryAllByText("Coming soon");
-    expect(soon.length).toBeGreaterThan(0);
-    expect(document.body.textContent).not.toMatch(/Declutter\s*Coming soon/);
+    // Shops and Homes are not open to everyone: they still say so, in one small line (F224); Declutter does not.
+    expect(screen.getByText("Shops and Homes are coming soon.")).toBeInTheDocument();
+    expect(document.querySelector("[data-search-soon]")?.textContent).not.toContain("Declutter");
   });
 
   it("Declutter not open to everyone: no items, and it says Coming soon", async () => {
@@ -75,6 +83,24 @@ describe("L001: a signed-out visitor's /search covers the sections open to every
     mount("/search?q=pillow");
     expect(await screen.findByPlaceholderText("Search jobs")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Feather pillow/ })).toBeNull();
+    expect(await screen.findByText("Declutter, Shops and Homes are coming soon.")).toBeInTheDocument();
+    // F224: one line, never a card-sized row per closed section.
+    expect(document.querySelectorAll("[data-search-soon]")).toHaveLength(1);
+    expect(screen.queryByText("Coming soon")).toBeNull();
+  });
+
+  it("F224: the iPhone app shows no coming-soon line (owner 10-31)", async () => {
+    state.native = true;
+    mount("/search?q=pillow");
+    expect(await screen.findByRole("link", { name: /Feather pillow/ })).toBeInTheDocument();
+    expect(document.querySelector("[data-search-soon]")).toBeNull();
+  });
+
+  it("F224: every section open, no coming-soon line at all", async () => {
+    state.open = new Set(["declutter", "shops", "rentals"]);
+    mount("/search?q=pillow");
+    expect(await screen.findByRole("link", { name: /Feather pillow/ })).toBeInTheDocument();
+    expect(document.querySelector("[data-search-soon]")).toBeNull();
   });
 });
 

@@ -16,7 +16,8 @@
  * @mutate src/components/quotes/PostJobQuoteChoice.tsx |   if (quotesComingSoon && hideUnopenedInApp()) return null; |
  * @mutate src/components/mobileNav/useSectionTabs.ts |   if (hideUnopenedInApp()) return; |
  * @mutate src/components/mobileNav/useSectionTabs.ts |   if (labels.length === 0 \|\| hideUnopenedInApp()) return null; |   if (labels.length === 0) return null;
- * @mutate src/pages/search/SearchPage.tsx |   if (hideUnopenedInApp()) return null; |
+ * (/search's closed-section line, F224, is a sentence rather than a soon mark; its native case is in
+ *  src/pages/search/searchGuestSections.test.tsx.)
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // The account's Customize row (useSectionPrefs, Q2199) is data, not what this spec measures: answered locally

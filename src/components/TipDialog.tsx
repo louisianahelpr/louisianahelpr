@@ -123,7 +123,7 @@ export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDia
             Optional.{tipJob ? ` ${tipJob.title} · $${formatPriceExact(tipJob.shareDollars)}` : ""}
           </p>
           <TipPicker jobPriceDollars={tipJob?.shareDollars ?? null} valueDollars={amount} onChange={setAmount} />
-          {tipValid && <TipCostBreakdown tipDollars={amount!} receiverName={helperName} />}
+          {tipValid && <TipCostBreakdown tipDollars={amount!} receiverName={helperName} feeSplit />}
         </div>
         <DialogFooter>
           <DialogSecondaryAction onClick={onClose}>No tip</DialogSecondaryAction>

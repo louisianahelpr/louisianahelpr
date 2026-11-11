@@ -246,20 +246,43 @@ describe("selectNewMilestones", () => {
   });
 
   it("preserves the canonical milestone order (smallest first)", () => {
-    const { fresh } = selectNewMilestones(
+    const { fresh, stale } = selectNewMilestones(
       storage,
       "helper-1",
       { completedJobCount: 25, totalEarningsDollars: 2000, fiveStarStreak: 8 },
       JUST_NOW,
     );
     expect(fresh.map((m) => m.id)).toEqual([
-      "first_job",
-      "five_jobs",
-      "ten_jobs",
       "twenty_five_jobs",
       "first_1k_earnings",
       "first_five_star_streak_of_5",
     ]);
+    // F266a: the job counts this helper passed long ago are back-filled, never celebrated now.
+    expect(stale.map((m) => m.id)).toEqual(["first_job", "five_jobs", "ten_jobs"]);
+  });
+
+  // F266a (audit 2026-11-10): 142 jobs, last one today, a device with no markers: "25 jobs done" went off.
+  it("a job-count milestone far behind the count is back-filled, even when the last job is recent", () => {
+    const { fresh, stale } = selectNewMilestones(
+      storage,
+      "helper-1",
+      { completedJobCount: 142, totalEarningsDollars: 0, fiveStarStreak: 0 },
+      JUST_NOW,
+    );
+    expect(fresh).toEqual([]);
+    expect(stale.map((m) => m.id)).toEqual(["first_job", "five_jobs", "ten_jobs", "twenty_five_jobs"]);
+  });
+
+  it("a count a couple of jobs past its threshold still celebrates it", () => {
+    markCelebrated(storage, "helper-1", "first_job");
+    markCelebrated(storage, "helper-1", "five_jobs");
+    const { fresh } = selectNewMilestones(
+      storage,
+      "helper-1",
+      { completedJobCount: 12, totalEarningsDollars: 0, fiveStarStreak: 0 },
+      JUST_NOW,
+    );
+    expect(fresh.map((m) => m.id)).toEqual(["ten_jobs"]);
   });
 
   it("each milestone fires only ONCE — second call returns empty", () => {
@@ -269,7 +292,8 @@ describe("selectNewMilestones", () => {
       fiveStarStreak: 8,
     };
     const first = selectNewMilestones(storage, "helper-1", stats, JUST_NOW);
-    first.fresh.forEach((m) => markCelebrated(storage, "helper-1", m.id));
+    // The hook marks both: fresh after its toast, stale silently (useHelperMilestones).
+    [...first.fresh, ...first.stale].forEach((m) => markCelebrated(storage, "helper-1", m.id));
     const second = selectNewMilestones(storage, "helper-1", stats, JUST_NOW);
     expect(second).toEqual({ fresh: [], stale: [] });
   });
@@ -361,3 +385,4 @@ describe("HELPER_MILESTONES — copy contract", () => {
 // sets off "🎉 Your first completed job" with confetti for a job finished last
 // month — and again on every new device, since the marker is device-local.
 // @mutate src/lib/helperMilestones.ts | Number.isFinite(ts) && now - ts <= MILESTONE_FRESHNESS_MS | true
+// @mutate src/lib/helperMilestones.ts |     return at !== undefined && stats.completedJobCount - at > JUST_CROSSED_SLACK_JOBS; |     return false;

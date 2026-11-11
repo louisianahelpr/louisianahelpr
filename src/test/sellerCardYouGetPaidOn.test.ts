@@ -31,6 +31,13 @@
  * @mutate src/components/declutter/declutterPayoutWords.ts | const parts = addsUp ? payoutBreakdown(payout) : ""; | const parts = payoutBreakdown(payout);
  * @mutate src/components/declutter/declutterPayoutWords.ts | if (ctx.refundOpen) return | if (false) return
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | refundOpen: refundIsOpen(refundStatus), setupFeeAhead, payoutReady, | refundOpen: false, setupFeeAhead: 0, payoutReady,
+ * F360b loose ends (lead 11-11): an agreed part refund holds the payout until the buyer's refund went through
+ * (declutter_payouts_due: no refund_request_part refund pending/failed), then the sale is decided (declutter_sale_decided:
+ * a request 'agreed') and final at once, so no "paid on" day 24 hours out.
+ * @mutate src/components/declutter/declutterPayoutWords.ts | if (ctx.refundAgreed && REFUND_HOLDS.has(ctx.refundAgreed)) return | if (false) return
+ * @mutate src/components/declutter/declutterPayoutWords.ts |   if (ctx.refundAgreed) return `${gets}. The sale is final, so we send it next.`; |
+ * @mutate src/components/declutter/declutterPayoutWords.ts | new Set(["pending", "failed", "unknown"]) | new Set(["pending", "failed", "unknown", "held_for_review", "settled_by_hand"])
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | refundAgreed: refundStatus === "agreed" ? refund.data?.request?.refund_status ?? "unknown" : null, | refundAgreed: null,
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx | ` (${formatPrice(itemsCents)} + ${formatPrice(deliveryCents)} delivery)` | ` (${formatPrice(itemsCents)} for the sale and ${formatPrice(deliveryCents)} for delivering it)`
  */
 import { readFileSync } from "node:fs";
@@ -116,9 +123,23 @@ describe("F360b: the seller card's one money line", () => {
     expect(payoutLine(row(), false, { handedOverAt: HANDED, now: NOW })).not.toMatch(/\d:\d\d/);
   });
 
+  it("an agreed part refund: on hold until the buyer's refund goes through, then sent next (no day 24 hours out)", () => {
+    const part = row({ refunded_cents: 2000, amount_cents: 2500 });
+    for (const st of ["pending", "failed", "unknown"] as const) {
+      expect(payoutLine(part, false, { handedOverAt: HANDED, now: NOW, refundAgreed: st })).toBe("You get $25 after the $20 refund. It's on hold until the buyer's refund goes through.");
+    }
+    // Not held by the run (lh-money-escrow review 11-11): sent next.
+    for (const st of ["succeeded", "settled_by_hand", "held_for_review"] as const) {
+      expect(payoutLine(part, false, { handedOverAt: HANDED, now: NOW, refundAgreed: st })).toBe("You get $25 after the $20 refund. The sale is final, so we send it next.");
+    }
+    // No payout account still says so first; a sent payout still says its day.
+    expect(payoutLine(part, false, { handedOverAt: HANDED, now: NOW, refundAgreed: "succeeded", payoutReady: false })).toBe("You get $25 after the $20 refund once you set up payouts in Settings.");
+    expect(payoutLine({ ...part, status: "succeeded", executed_at: HANDED }, false, { refundAgreed: "pending" })).toMatch(/, paid on /);
+  });
+
   it("the card passes the handover time, the refund state and the setup fee; the open sale uses the same parts", () => {
     const views = code("src/components/declutter/DeclutterHandoverViews.tsx");
-    expect(views).toMatch(/payoutLine\(payout, !!problem, \{\s*handedOverAt: handoverRow\.data\?\.confirmed_at \?\? null, refundOpen: refundIsOpen\(refundStatus\), setupFeeAhead, payoutReady,\s*declinedAt: refundStatus === "declined" \? refund\.data\?\.request\?\.declined_at \?\? null : null \}\)/);
+    expect(views).toMatch(/payoutLine\(payout, !!problem, \{\s*handedOverAt: handoverRow\.data\?\.confirmed_at \?\? null, refundOpen: refundIsOpen\(refundStatus\), setupFeeAhead, payoutReady,\s*declinedAt: refundStatus === "declined" \? refund\.data\?\.request\?\.declined_at \?\? null : null,\s*refundAgreed: refundStatus === "agreed" \? refund\.data\?\.request\?\.refund_status \?\? "unknown" : null, \}\)/);
     // A hold read not answered yet (fee inputs, open problems, the refund request): unsent rows show no line rather than
     // a figure too high by the fee or a day the server will not keep (lh-money-escrow re-review 11-11).
     expect(views).toContain("const feeUnknown = setupFee.unknown;");

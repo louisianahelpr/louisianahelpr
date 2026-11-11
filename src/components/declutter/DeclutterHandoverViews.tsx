@@ -244,7 +244,8 @@ function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnkn
               (declutter_payouts_due holds on an open problem or a running request; a declined one moves the day). */}
           {order.side === "seller" && payout && items > 0 && !((holdUnknown || (refundRequests && !refund.isSuccess)) && (payout.status === "pending" || payout.status === "failed")) && <p className="text-sm">{payoutLine(payout, !!problem, {
             handedOverAt: handoverRow.data?.confirmed_at ?? null, refundOpen: refundIsOpen(refundStatus), setupFeeAhead, payoutReady,
-            declinedAt: refundStatus === "declined" ? refund.data?.request?.declined_at ?? null : null })}
+            declinedAt: refundStatus === "declined" ? refund.data?.request?.declined_at ?? null : null,
+            refundAgreed: refundStatus === "agreed" ? refund.data?.request?.refund_status ?? "unknown" : null, })}
             {payout.status === "failed" && <FailedPayoutLink />}</p>}
           {refundRequests && items > 0 && (
             <Suspense fallback={null}>

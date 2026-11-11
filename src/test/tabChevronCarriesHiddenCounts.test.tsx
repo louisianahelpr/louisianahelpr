@@ -11,6 +11,7 @@
  * @mutate src/components/sections/SectionTabs.tsx | {aheadCount > 0 && <span data-testid="tabs-more-count" | {false && <span data-testid="tabs-more-count"
  * @mutate src/components/sections/SectionTabs.tsx | data-tabs-more-button="" onClick={showNext}\n          className="inline-flex h-11 min-w-11 | data-tabs-more-button="" onClick={showNext}\n          className="inline-flex h-11 w-7 !min-w-0
  * @mutate src/components/sections/SectionTabs.tsx | data-tabs-less-button="" onClick={showPrevious}\n          className="inline-flex h-11 min-w-11 | data-tabs-less-button="" onClick={showPrevious}\n          className="inline-flex h-11 w-7 !min-w-0
+ * @mutate src/components/sections/SectionTabs.tsx |     if (next) list.scrollLeft += next.getBoundingClientRect().left - box.left; |     if (next) list.scrollLeft += next.getBoundingClientRect().right - box.right;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
@@ -77,6 +78,20 @@ describe("A3-97: a hidden tab's to-do count shows on the chevron", () => {
     expect(list.scrollLeft).toBeGreaterThan(58);
     expect(screen.getByRole("button", { name: "Earlier tabs, 2 to do" })).toBeInTheDocument();
     expect(screen.getByTestId("tabs-less-count").textContent).toBe("2");
+  });
+
+  // Audit 11-10 F320: "3 more" moved the row a few pixels per tap; it took 4 taps to see Deliver, Wanted and Free.
+  it("one tap on the more pill brings every hidden tab that fits in whole", () => {
+    layOut();
+    row({});
+    const list = screen.getByRole("tablist");
+    fireEvent.click(screen.getByRole("button", { name: "3 more tabs" }));
+    const shown = ["deliver", "wanted", "free"].map((v) => list.querySelector(`[data-section-tab="${v}"]`)!.getBoundingClientRect());
+    expect(shown).toHaveLength(3);
+    for (const r of shown) {
+      expect(r.left).toBeGreaterThanOrEqual(0);
+      expect(r.right).toBeLessThanOrEqual(track);
+    }
   });
 
   it("both chevrons are 44 px targets, not the old 28 px (w-7) strip", () => {

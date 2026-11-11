@@ -279,7 +279,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/sections/SectionSearchBar.tsx` | input×1 | search |  | Clear search |
+| `src/components/sections/SectionSearchBar.tsx` | input×1 | search |  |  |
 
 ## /jobs
 

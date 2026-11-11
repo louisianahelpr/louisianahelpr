@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-11T16:03Z",
+  "measured_at": "2026-11-11T17:43Z",
   "issues": {
     "readable": true,
     "open": [
@@ -92,7 +92,7 @@
         "number": 4245,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42994963997",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43059143672",
         "runTruncated": false
       },
       {
@@ -106,7 +106,7 @@
         "number": 4258,
         "title": "nightly-red: prod-errors",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42987059645",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43060375860",
         "runTruncated": false
       },
       {
@@ -120,8 +120,8 @@
         "number": 4281,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43053800324",
-        "runTruncated": false
+        "run": null,
+        "runTruncated": true
       },
       {
         "number": 4302,
@@ -138,10 +138,15 @@
         "runTruncated": false
       },
       {
-        "number": 4388,
-        "title": "nightly-red: main: E2E happy-path smoke",
+        "number": 4401,
+        "title": "prod-errors: real users are hitting error screens",
+        "label": "prod-errors"
+      },
+      {
+        "number": 4402,
+        "title": "nightly-red: prod-deploy",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43032857116",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43069087358",
         "runTruncated": false
       }
     ]
@@ -222,12 +227,20 @@
         "issue": 2244
       },
       {
+        "fingerprint": "1bbb3f41bbe73f8632d7284e87e40948",
+        "source_kind": "workflow",
+        "source": "functions-deploy",
+        "status": "open",
+        "title": "functions-deploy failed on main",
+        "issue": null
+      },
+      {
         "fingerprint": "3a55e8af09089860199b4adb8d01fe1b",
         "source_kind": "nightly_red",
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: main: e2e happy-path smoke",
-        "issue": null
+        "issue": 4388
       },
       {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
@@ -358,6 +371,14 @@
         "issue": null
       },
       {
+        "fingerprint": "fad6897fcfae4dbab07ce7af920ad671",
+        "source_kind": "nightly_red",
+        "source": "prod-errors",
+        "status": "open",
+        "title": "prod-errors: real users are hitting error screens",
+        "issue": 4401
+      },
+      {
         "fingerprint": "b8b42cf124da685c1fe0087a97455b48",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
@@ -438,14 +459,6 @@
         "issue": null
       },
       {
-        "fingerprint": "c2e77e40435efc12778adbbdcb9fc240",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: code-scanning-alerts",
-        "issue": 4317
-      },
-      {
         "fingerprint": "4840f1c5d1e74cf39f68000b5c6580da",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
@@ -478,19 +491,19 @@
         "issue": null
       },
       {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: declutter-money returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
         "issue": null
       },
       {
@@ -556,6 +569,14 @@
         "status": "open",
         "title": "unhandledrejection: non-error promise rejection captured with value: object not found matching id:#, methodname:update, paramcount:#",
         "issue": null
+      },
+      {
+        "fingerprint": "5d3f8521e785f288481d68f8027786cd",
+        "source_kind": "sentry",
+        "source": "sentry:unknown",
+        "status": "open",
+        "title": "p",
+        "issue": null
       }
     ]
   },
@@ -579,7 +600,8 @@
     "issue #4281": "Q1816",
     "issue #4302": "Q1816",
     "issue #4340": "Q1816",
-    "issue #4388": "Q1816",
+    "issue #4401": "Q2795",
+    "issue #4402": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",
@@ -588,6 +610,7 @@
     "ledger 15cc2d7f63f3": "Q2347",
     "ledger 16e6e91f6701": "Q1816",
     "ledger 18539240a894": "Q1816",
+    "ledger 1bbb3f41bbe7": "Q2796",
     "ledger 1ef4b10bb74a": "Q1816",
     "ledger 2e4f3e726722": "Q1816",
     "ledger 36bcfb8c2391": "Q1696",
@@ -602,6 +625,7 @@
     "ledger 4c89303184fb": "Q1816",
     "ledger 5a28db44e912": "Q2410",
     "ledger 5be6011a46f6": "Q1816",
+    "ledger 5d3f8521e785": "Q2797",
     "ledger 60298a019ea3": "Q1776",
     "ledger 60dd730d868e": "Q2781",
     "ledger 6205197429d4": "Q1816",
@@ -624,7 +648,6 @@
     "ledger b8b42cf124da": "Q2506",
     "ledger ba04c0f07725": "Q2532",
     "ledger bbdaee370c35": "Q1631",
-    "ledger c2e77e40435e": "Q1816",
     "ledger c540527c8265": "Q2517",
     "ledger c5d2aafd1f77": "Q2410",
     "ledger cae29df0662b": "Q2351",
@@ -635,6 +658,7 @@
     "ledger e41c806b9175": "Q1816",
     "ledger f1bfed973a2a": "Q2734",
     "ledger f22e3275d50d": "Q1816",
+    "ledger fad6897fcfae": "Q2795",
     "ledger feb363ff214a": "Q1816"
   }
 }

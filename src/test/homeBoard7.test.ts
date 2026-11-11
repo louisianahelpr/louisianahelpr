@@ -7,7 +7,7 @@
  *   - no price on a Coming up job row (rust is money only; the board shows none).
  *
  * @mutate src/pages/home/homeDashboard/comingUp.ts |   posted: "You hired", |   posted: "Posted",
- * @mutate src/pages/home/HomeDashboard.tsx | meta={<span data-coming-up-role={c.role}>{[COMING_UP_ROLE[c.role], whenLine(c)].filter(Boolean).join(" · ")}</span>} | meta={whenLine(c)}
+ * @mutate src/pages/home/HomeDashboard.tsx | meta={<span data-coming-up-role={c.role}>{[t(`home.role.${c.role}`), whenLine(c)].filter(Boolean).join(" · ")}</span>} | meta={whenLine(c)}
  * @mutate src/pages/home/HomeDashboard.tsx |                       onClick={() => navigate(c.to)}\n                      last={last} |                       onClick={() => navigate(c.to)}\n                      right={<span className="text-ds-15 font-bold shrink-0">$1</span>}\n                      last={last}
  * @mutate src/pages/home/HomeDashboard.tsx | <span data-testid="next-up-section" | <span data-testid="next-up-section" hidden
  * @mutate src/pages/home/HomeDashboard.tsx | <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1"> | <div className="flex items-center gap-x-3 gap-y-1 mt-1">
@@ -39,12 +39,12 @@ describe("Home matches board 7", () => {
       ordered: "You ordered",
       shop: "Your shop",
     });
-    const block = src.slice(src.indexOf('<GroupSection title="Coming up">'), src.indexOf('aria-label="Your sections"'));
+    const block = src.slice(src.indexOf('<GroupSection title={t("home.comingUp")}>'), src.indexOf('aria-label={t("home.yourSections")}'));
     expect(block.length).toBeGreaterThan(300);
     expect(block).toContain("data-coming-up-role={c.role}");
-    expect(block).toContain("COMING_UP_ROLE[c.role]");
+    expect(block).toContain("t(`home.role.${c.role}`)");
     // The phone row's caption: "<your side> · <when>".
-    expect(block).toMatch(/meta=\{<span data-coming-up-role=\{c\.role\}>\{\[COMING_UP_ROLE\[c\.role\], whenLine\(c\)\]/);
+    expect(block).toMatch(/meta=\{<span data-coming-up-role=\{c\.role\}>\{\[t\(`home\.role\.\$\{c\.role\}`\), whenLine\(c\)\]/);
     expect(block).toMatch(/leading=\{\s*<span aria-hidden data-coming-up-section=\{c\.section\} className="w-10 h-10 shrink-0 rounded-full/);
     // The row's icon is ITS section's (spec v2 §5.4: Declutter and Shops rows sit beside jobs).
     expect(block).toMatch(/const d = sectionDef\(c\.section\);\s*const Icon = d\.icon;/);
@@ -57,7 +57,7 @@ describe("Home matches board 7", () => {
   });
 
   it("the dots + See all + action row wraps, so the action never covers a dot (axe target-size at 320/375, TRAIN23)", () => {
-    const m = src.match(/<div className="([^"]*)">\s*\{todoCount > 1 && \(\s*<div className="flex items-center -ml-2[^"]*" role="group" aria-label="Your to-dos">/);
+    const m = src.match(/<div className="([^"]*)">\s*\{todoCount > 1 && \(\s*<div className="flex items-center -ml-2[^"]*" role="group" aria-label=\{t\("home\.yourTodos"\)\}>/);
     expect(m, "the Next up dots row").not.toBeNull();
     expect(m![1]).toMatch(/\bflex-wrap\b/);
     // See all + the action are ONE group that grows to the row's width when it wraps.
@@ -76,17 +76,17 @@ describe("Home matches board 7", () => {
     expect(cols![1]).toMatch(/\bxl:grid\b/);
     expect(cols![1]).toMatch(/xl:grid-cols-\[minmax\(0,3fr\)_minmax\(0,2fr\)\]/);
     const main = src.indexOf("<div data-home-main");
-    const side = src.indexOf('<section data-home-side className="flex flex-col gap-2 min-w-0" aria-label="Your sections">');
+    const side = src.indexOf('<section data-home-side className="flex flex-col gap-2 min-w-0" aria-label={t("home.yourSections")}>');
     expect(main).toBeGreaterThan(src.indexOf("<div data-home-columns"));
-    expect(side).toBeGreaterThan(src.indexOf('<GroupSection title="Coming up">'));
+    expect(side).toBeGreaterThan(src.indexOf('<GroupSection title={t("home.comingUp")}>'));
     expect(src.indexOf('data-testid="next-up"')).toBeGreaterThan(main);
     // Coming up on desktop: day · time · title · "<Section> · <your side>" columns.
     const table = src.slice(src.indexOf("if (isWebDesktop) {"), src.indexOf("data-coming-up-table-row") + 1100);
     expect(table).toContain("grid-cols-[6.5rem_4.5rem_minmax(0,1fr)_auto]");
-    expect(table).toMatch(/\{d\.label\} · \{COMING_UP_ROLE\[c\.role\]\}/);
+    expect(table).toMatch(/\{sectionLabel\(d\)\} · \{t\(`home\.role\.\$\{c\.role\}`\)\}/);
     expect(table).not.toMatch(/budget|price|money/);
     // Next up on desktop: the action, then See all; no dots (board 11).
-    expect(src).toMatch(/<div className="flex items-center -ml-2 lg:hidden" role="group" aria-label="Your to-dos">/);
+    expect(src).toMatch(/<div className="flex items-center -ml-2 lg:hidden" role="group" aria-label=\{t\("home\.yourTodos"\)\}>/);
     expect(src).toMatch(/data-next-up-actions className="[^"]*lg:flex-row-reverse lg:justify-end/);
   });
 });

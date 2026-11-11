@@ -4,7 +4,7 @@
  * "Nothing else booked." whenever the member has a booked job on either side.
  *
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |   return postedJobs.some((j) => BOOKED_STATUSES.has(j.status) && (!!j.helper_id \|\| j.is_group_job === true)) |   return false
- * @mutate src/pages/home/HomeDashboard.tsx | {summary.hasBookedJob ? "Nothing else booked." : "Nothing booked yet."} | Nothing booked yet.
+ * @mutate src/pages/home/HomeDashboard.tsx | {summary.hasBookedJob ? t("home.nothingElse") : t("home.nothingYet")} | {t("home.nothingYet")}
  */
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -27,6 +27,6 @@ describe("Coming up's empty line knows a job is booked (JA-36)", () => {
     const src = blankComments(readFileSync(resolve(__dirname, "../pages/home/HomeDashboard.tsx"), "utf8"));
     const empties = src.match(/data-testid="coming-up-empty"[^\n]*/g) ?? [];
     expect(empties.length).toBeGreaterThan(0);
-    for (const e of empties) expect(e).toContain('{summary.hasBookedJob ? "Nothing else booked." : "Nothing booked yet."}');
+    for (const e of empties) expect(e).toContain('{summary.hasBookedJob ? t("home.nothingElse") : t("home.nothingYet")}');
   });
 });

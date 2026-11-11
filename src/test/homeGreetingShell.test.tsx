@@ -10,7 +10,10 @@
  *
  * @mutate index.html |           if (uid && kept && kept.u === uid && typeof kept.n === "string") name = kept.n; |           if (kept && typeof kept.n === "string") name = kept.n;
  * @mutate index.html |         title.textContent = name ? hello + ", " + name : hello; |         title.innerHTML = name ? hello + ", " + name : hello;
- * @mutate index.html |         var hello = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; |         var hello = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+ * @mutate index.html | : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; | : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+ * @mutate index.html |           es = saved === "es" \|\| (saved !== "en" && | es = (saved !== "en" &&
+ * @mutate index.html | (h < 12 ? "Buenos d\u00edas" : h < 17 ? "Buenas tardes" | (h < 12 ? "Buenos d\u00edas" : h < 18 ? "Buenas tardes"
+ * @mutate src/lib/homeGreetingShell.mjs |   if (lang === "es") return | if (lang === "xx") return
  * @mutate index.html |         title.className = "text-ds-20 font-bold leading-tight text-foreground"; |         title.className = "text-ds-20 font-bold text-foreground";
  * @mutate index.html |         if (document.documentElement.getAttribute("data-lh-app-shell") !== "home") return; |
  * @mutate src/lib/homeGreetingShell.mjs |     return v && v.u === userId && typeof v.n === "string" ? v.n : ""; |     return v && typeof v.n === "string" ? v.n : "";
@@ -47,13 +50,14 @@ const scripts = [...INDEX.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script[^>]*>/gi)
 const fillScript = scripts.find((b) => b.includes('[data-skeleton-part="greeting"]')) ?? "";
 
 /** Run index.html's greeting script on a document carrying the home shell's greeting slot (with its one bone). */
-function draw(opts: { shown?: boolean; session?: string | null; kept?: string | null } = {}) {
+function draw(opts: { shown?: boolean; session?: string | null; kept?: string | null; lang?: string } = {}) {
   document.body.innerHTML = '<div id="lh-home-shell"><div data-skeleton-part="greeting"><div data-skeleton=""></div></div></div>';
   if (opts.shown === false) document.documentElement.removeAttribute("data-lh-app-shell");
   else document.documentElement.setAttribute("data-lh-app-shell", "home");
   localStorage.clear();
   if (opts.session !== null) localStorage.setItem(TOKEN, JSON.stringify({ access_token: "x", user: { id: opts.session ?? ME } }));
   if (opts.kept != null) localStorage.setItem(GREETING_NAME_KEY, opts.kept);
+  if (opts.lang) localStorage.setItem("helpr_lang", opts.lang);
   new Function(fillScript)();
   const slot = document.querySelector('[data-skeleton-part="greeting"]')!;
   // The greeting is a <p> (design audit A D1, owner 11-08: one 20px line; the page's h1 is hidden, Q236e).
@@ -104,6 +108,22 @@ describe("the Dashboard greeting is drawn by the HTML, with only this account's 
     expect(greetingFor(new Date(2026, 10, 6, 12, 0))).toBe("Good afternoon");
     expect(greetingFor(new Date(2026, 10, 6, 16, 59))).toBe("Good afternoon");
     expect(greetingFor(new Date(2026, 10, 6, 17, 0))).toBe("Good evening");
+  });
+
+  it("F260q: a Spanish member's greeting is Spanish in the HTML and in HomeDashboard, at every hour, so it never flips", () => {
+    const seen = new Set<string>();
+    for (let h = 0; h < 24; h++) {
+      const at = new Date(2026, 10, 6, h, 5);
+      vi.setSystemTime(at);
+      const { title } = draw({ kept: null, lang: "es" });
+      expect(title, `${h}:05`).toBe(greetingFor(at, "es"));
+      seen.add(title!);
+    }
+    expect([...seen].sort()).toEqual(["Buenas noches", "Buenas tardes", "Buenos días"]);
+    vi.setSystemTime(new Date(2026, 10, 6, 15, 30));
+    expect(draw({ kept: keep(ME, "Hallie"), lang: "es" }).title).toBe("Buenas tardes, Hallie");
+    expect(draw({ kept: null, lang: "en" }).title, "English saved wins over a Spanish phone").toBe("Good afternoon");
+    expect(greetingFor(new Date(2026, 10, 6, 9, 0), "es")).toBe("Buenos días");
   });
 
   it("never draws another account's name, and draws no name without one of its own", () => {

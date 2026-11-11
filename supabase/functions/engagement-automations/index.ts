@@ -662,7 +662,7 @@ serve(async (_req) => {
           (unsubscribeUrl) =>
             React.createElement(step.component, {
               greetingName: person.full_name || '',
-              dashboardUrl: `${getAppUrl()}/home`,
+              dashboardUrl: `${getAppUrl()}${step.path}`,
               unsubscribeUrl,
             }),
           step.subject,

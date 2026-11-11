@@ -73,6 +73,7 @@ describe("email copy, owner's message review 11-09", () => {
   // one Declutter line.
   // @mutate supabase/functions/_shared/email-templates/drip.tsx |       Clear out a closet on Declutter\n |       Explore what Louisiana Helpr has to offer\n
   // @mutate supabase/functions/engagement-automations/index.ts |     path: '/declutter', |     path: '/home',
+  // @mutate supabase/functions/engagement-automations/index.ts |               dashboardUrl: `${getAppUrl()}${step.path}`, |               dashboardUrl: `${getAppUrl()}/home`,
   // @mutate supabase/functions/_shared/comeBackEmail.ts |       ["Got stuff to sell?", "List it on Declutter in a minute."],\n | \n
   it("F169: day 3 is the Declutter intro and opens /declutter; day 1 and come-back 1 name Declutter", () => {
     const drip = T("drip.tsx");
@@ -91,6 +92,11 @@ describe("email copy, owner's message review 11-09", () => {
     const fn = blankComments(readFileSync(join(ROOT, "supabase/functions/engagement-automations/index.ts"), "utf8"));
     expect(fn).toMatch(/2: \{\s*component: WelcomeDripStep2Email,\s*subject: 'Clear out a closet on Declutter',\s*path: '\/declutter',/);
     expect(fn).toContain("dashboardUrl: `${getAppUrl()}${step.path}`,");
+    // #4281 review (b31573466): the dead-letter re-send also builds a drip step, and it kept a hard-coded /home,
+    // so a re-sent day 3 said "Open Declutter" and opened /home. Every drip-step build uses its step's path.
+    const stepBuilds = [...fn.matchAll(/React\.createElement\(step\.component, \{[^}]*?dashboardUrl: ([^\n]*)/g)].map((m) => m[1].trim());
+    expect(stepBuilds.length).toBeGreaterThan(1);
+    for (const url of stepBuilds) expect(url).toBe("`${getAppUrl()}${step.path}`,");
     const comeBack = blankComments(readFileSync(join(ROOT, "supabase/functions/_shared/comeBackEmail.ts"), "utf8"));
     expect(comeBack).toContain('["Got stuff to sell?", "List it on Declutter in a minute."],');
   });

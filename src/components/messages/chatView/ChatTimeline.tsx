@@ -1,3 +1,4 @@
+import "@/lib/i18n/enMessages";
 import { t } from "@/lib/i18n/language";
 import "@/lib/i18n/enScreens";
 import type { Dispatch, Ref, SetStateAction } from "react";
@@ -119,7 +120,7 @@ export function ChatTimeline({
             disabled={loadingMore}
           >
             {loadingMore && <Loader2 className="w-3 h-3 animate-spin" />}
-            {loadingMore ? "Loading…" : "Load earlier Messages"}
+            {loadingMore ? t("msg.loading") : t("msg.loadEarlier")}
           </Button>
         </div>
       )}
@@ -149,19 +150,18 @@ export function ChatTimeline({
               className="font-display font-bold text-ds-17"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
-              Couldn't load this conversation.
+              {t("msg.loadFailedThread")}
             </p>
             <p
               className="font-sans text-ds-13 max-w-[260px]"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
-              Tap Retry. If it sticks, our end is having a hiccup —
-              not yours.
+              {t("msg.loadFailedBody")}
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={onRetryLoad}>
             <RotateCw className="w-3.5 h-3.5 mr-1.5" />
-            Retry
+            {t("msg.retry")}
           </Button>
         </div>
       )}
@@ -185,15 +185,15 @@ export function ChatTimeline({
               className="font-display font-bold text-ds-17"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
-              {composerLocked ? "No messages yet." : "Say hello."}
+              {composerLocked ? t("msg.noneYet") : t("msg.sayHello")}
             </p>
             <p
               className="font-sans text-ds-13 max-w-[260px]"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
               {composerLocked
-                ? "The person who posted this job starts this conversation."
-                : "Send the first message to get the job moving."}
+                ? t("msg.posterStarts")
+                : t("msg.sendFirst")}
             </p>
           </div>
         </div>
@@ -209,7 +209,7 @@ export function ChatTimeline({
             <div
               key={item.key}
               role="separator"
-              aria-label={`Date: ${item.label}`}
+              aria-label={t("msg.date", { date: item.label })}
               className="flex items-center gap-3 px-2 pt-3 pb-1"
             >
               <span

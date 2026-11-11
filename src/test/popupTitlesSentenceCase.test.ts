@@ -12,7 +12,7 @@
  *
  * @mutate src/components/profile/AvatarCropDialog.tsx | "Position your photo" | "Position Your Photo"
  * @mutate src/components/PhotoProof.tsx | "After"} photos`} | "After"} Photos`}
- * @mutate src/components/messages/ChatView.tsx | title="Edit message" | title="Edit Message"
+ * @mutate src/lib/i18n/enMessages.ts | "msg.editTitle": "Edit message", | "msg.editTitle": "Edit Message",
  * @mutate src/components/profile/EarningsTab.tsx | "Unlock instant cash out" | "Unlock Instant Cash out"
  */
 import { execFileSync } from "node:child_process";
@@ -181,7 +181,8 @@ describe("every pop-up title is sentence case", () => {
     // +1 "Turn down this permit?" (ShopsPaperworkCard, the admin's Shops paperwork queue, Q1952 20261110195956).
     // 235: +1 "Change your pickup time" (FreeAskSheet's change mode, the asker moves an open free ask, audit 11-10 F359c).
     // 236: +1 "Your review" (YourReviewDialog, the poster reads the review they left, audit 11-10 F278).
-    expect(all.length).toBe(236);
+    // 237: Messages' batch hide title is two dictionary branches (one / n conversations), F260q 11-11.
+    expect(all.length).toBe(237);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

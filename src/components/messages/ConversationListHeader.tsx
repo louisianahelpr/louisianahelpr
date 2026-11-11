@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enMessages";
 import type { Dispatch, SetStateAction } from "react";
 import { Pin, Trash2, X } from "lucide-react";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
@@ -19,7 +21,7 @@ export function InboxFilterTabs({ isWebDesktop, activeThreads, allTabConversatio
          the non-dense `py-[13px]` is what carries the 44px touch target —
          see UnderlineTabs' own note. */
       dense={isWebDesktop}
-      ariaLabel="Filter conversations"
+      ariaLabel={t("msg.filterConvos")}
       /* TWO tabs, Active then All (owner, 2026-09-19, confirmed twice).
          Narrow to wide, and the tab the inbox lands on comes first — "here,
          or everything", rather than the old strip's "All, and some filters".
@@ -69,7 +71,7 @@ export function PinnedFilterChip({ inboxTab, setInboxFilter }: { inboxTab: Inbox
         className="gap-1.5 text-ds-13 font-semibold text-[hsl(var(--bark))] [&_svg]:size-3"
       >
         {inboxTab === "pinned" ? <Pin className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />}
-        {inboxTab === "pinned" ? "Showing pinned only" : "Showing recently deleted"}
+        {inboxTab === "pinned" ? t("msg.showingPinned") : t("msg.showingDeleted")}
         <X className="w-3 h-3" />
       </Button>
       {/* Two honesty notes, since "Recently Deleted" as a name implies both
@@ -85,7 +87,7 @@ export function PinnedFilterChip({ inboxTab, setInboxFilter }: { inboxTab: Inbox
           differing by an alpha nobody chose. */}
       {inboxTab === "recentlyDeleted" && (
         <p className="px-4 pb-1 text-ds-10 font-sans" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-          Hidden threads stay here until restored — not on a timer. Very old ones may take a refresh to appear.
+          {t("msg.hiddenNote")}
         </p>
       )}
     </div>

@@ -10,7 +10,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { noDeliveryWay, totalPhrase } from "@/lib/declutter/pickupWords";
-import { fetchItemHandovers, fetchMyOffers, respondOffer, type MyOffer } from "@/lib/declutter/api";
+import { fetchItemHandovers, fetchMyCart, fetchMyOffers, respondOffer, type MyOffer } from "@/lib/declutter/api";
 import { offerBucket, underChip } from "@/lib/declutter/buyingBucket";
 import type { OrderBucket } from "./OrderSteps";
 import { closeWanted } from "@/lib/declutter/wanted";
@@ -20,7 +20,7 @@ import { dollarsInputToCents } from "@/lib/declutter/money";
 import { BuyerTotal } from "./BuyerTotal";
 import { NoSellerOffers, SectionHeading } from "./DeclutterTabParts";
 import { GOOD_NEWS_NOTE } from "./goodNews";
-import { timeLeft } from "@/lib/declutter/timeLeft";
+import { orderWhen, timeLeft } from "@/lib/declutter/timeLeft";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { invalidateTrades } from "./declutterLightActions";
 import { useLinkedOffer, useScrollToLinkedOrder } from "./useLinkedOrder";
@@ -75,6 +75,26 @@ const OFFER_STATUS_WORDS: Record<MyOffer["status"], string> = {
 };
 
 const noop = () => {};
+
+/**
+ * Audit 11-10 F359: an accepted offer said only "Accepted" on both sides. Its line in the cart (the cart read and key
+ * the item page uses) says what is next: the buyer checks out by the line's deadline, the seller waits on the payment.
+ * Nothing while the cart read is out or the line has moved on (paid: the order card says the rest).
+ */
+function AcceptedOfferNext({ o }: { o: MyOffer }) {
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
+  const line = (cart.data ?? []).find((l) => l.item_id === o.item_id && l.my_side === o.my_side && l.status === "in_cart") ?? null;
+  if (!line) return null;
+  if (o.my_side === "buyer") {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-2" data-accepted-next="buyer">
+        <p className="text-ds-13 text-foreground">In your cart. Check out by {orderWhen(line.checkout_by)}.</p>
+        <Button asChild size="sm"><Link to={`/declutter?tab=buying&checkout=${line.seller_id ?? ""}`}>Check out</Link></Button>
+      </div>
+    );
+  }
+  return <p className="text-ds-13 text-foreground" data-accepted-next="seller">Waiting on the buyer to pay by {orderWhen(line.checkout_by)}.</p>;
+}
 
 function OfferRow({ o, linked = false }: { o: MyOffer; linked?: boolean }) {
   const qc = useQueryClient();
@@ -151,6 +171,7 @@ function OfferRow({ o, linked = false }: { o: MyOffer; linked?: boolean }) {
       {o.status !== "open" && (
         <span className="inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{OFFER_STATUS_WORDS[o.status]}</span>
       )}
+      {o.status === "accepted" && <AcceptedOfferNext o={o} />}
       {/* Board 160: an offer that ended unpaid never charged anything (offers charge only at checkout). The item page says
           whether it can still be bought; this card does not know, so it never promises "Offer again". */}
       {o.my_side === "buyer" && (o.status === "declined" || o.status === "expired") && (

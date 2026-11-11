@@ -758,8 +758,8 @@ async function settleCheckoutSession(
             // delivery already flipped it to 'paid', this matches zero rows and
             // we must NOT re-notify or re-email.
             .eq("payment_status", "pending")
-            .select("id")
-          : await supabase.from("gift_cards").insert(mintRow).select("id");
+            .select("id, expires_at")
+          : await supabase.from("gift_cards").insert(mintRow).select("id, expires_at");
 
         if (mintErr) {
           logStep("ERROR minting gift card", { error: mintErr.message, sessionId: session.id });
@@ -815,6 +815,9 @@ async function settleCheckoutSession(
           // UNLESS the donor is a seed (test) account and the recipient is not
           // (Q139: test data never notifies a real person). The gift itself is
           // minted either way; only the email is withheld.
+          // F497 (audit 11-10): the email names the day the credit expires. The row's expires_at comes from
+          // the column default (now() + 90 days, migration 20260612310000); nothing else sets it at mint.
+          const expiresAt = (minted[0] as { expires_at?: string | null }).expires_at ?? null;
           const seedGate = await giftEmailCrossesSeedBoundary(supabase, donorId, recipientId);
           if (seedGate.checkFailed) {
             // Fails closed, and loudly: a withheld gift email to a REAL
@@ -835,6 +838,7 @@ async function settleCheckoutSession(
               amountCents,
               message: giftMessage,
               claimToken,
+              expiresAt,
             });
             if (!emailed) logStep("WARNING: gift card email not sent", { recipientEmail, sessionId: session.id });
           }

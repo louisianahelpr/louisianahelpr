@@ -9,6 +9,7 @@
  * Members see no fee numbers here, only amounts they offered or were offered.
  */
 import { NextStep } from "@/components/ui/NextStep";
+import { orderWhen } from "@/lib/declutter/timeLeft";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -43,7 +44,7 @@ export function HoldChecking() {
 }
 
 export function ReservedForYou({ line, free }: { line: CartLine; free: boolean }) {
-  const by = new Date(line.checkout_by).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+  const by = orderWhen(line.checkout_by); // F367
   return (
     <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="Reserved for you" data-reserved-for-you="">
       <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-ds-15 font-semibold text-foreground">

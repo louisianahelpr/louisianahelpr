@@ -2,6 +2,8 @@
  * Declutter Browse: nearest first, area + miles only (rows 5, 27).
  *
  * @mutate src/lib/declutter/distance.ts |   if (approximate) return `About ${Math.max(1, Math.round(miles))} mi away`; |   if (false) return `About ${Math.max(1, Math.round(miles))} mi away`;
+ * @mutate src/lib/declutter/distance.ts |   if (long === "Less than 1 mi away") return "Under 1 mi"; |
+ * @mutate src/lib/declutter/distance.ts |   return long.replace(/ away$/, ""); |   return long;
  * @mutate src/lib/declutter/distance.ts |     .sort((x, y) => (x.miles as number) - (y.miles as number) \|\| tie(x.item, y.item)); |     ;
  * @mutate src/lib/declutter/distance.ts |     .filter((r) => maxMiles === null \|\| (r.miles as number) <= maxMiles) |     .filter(() => true)
  * @mutate src/lib/declutter/distance.ts |   if (miles > MAX_SHOWN_MILES) return null; |   if (miles > 1e9) return null;
@@ -10,7 +12,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
-import { MAX_SHOWN_MILES, formatPrice, milesBetween, milesLabel, nearestFirst } from "./distance";
+import { MAX_SHOWN_MILES, formatPrice, milesBetween, milesLabel, nearestFirst, milesLabelShort } from "./distance";
 
 // Baton Rouge (30.45, -91.15), New Orleans (29.95, -90.07), Lafayette (30.22, -92.02).
 const items = [
@@ -82,6 +84,13 @@ describe("Declutter nearest first (rows 5, 27)", () => {
     expect(milesLabel(0.4, true)).toBe("About 1 mi away");
     expect(milesLabel(12.6, true)).toBe("About 13 mi away");
     expect(milesLabel(null, true)).toBeNull();
+    // Audit 11-10 F321: the card's short form keeps the figure and "About", and drops "away".
+    expect(milesLabelShort(0.4)).toBe("Under 1 mi");
+    expect(milesLabelShort(12.6)).toBe("13 mi");
+    expect(milesLabelShort(0.4, true)).toBe("About 1 mi");
+    expect(milesLabelShort(12.6, true)).toBe("About 13 mi");
+    expect(milesLabelShort(null)).toBeNull();
+    expect(milesLabelShort(2000)).toBeNull();
     expect(formatPrice(4000)).toBe("$40");
     expect(formatPrice(1999)).toBe("$19.99");
   });

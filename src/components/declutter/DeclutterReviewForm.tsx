@@ -29,6 +29,8 @@ import { REVIEW_TAGS } from "@/lib/declutter/reviewTags";
 import { fetchRefundRequestView, refundedInFull, refundHoldsTheItem, type RefundRequestView } from "@/lib/declutter/refundRequests";
 import { clearReviewPrompt, reviewPromptWaiting } from "@/lib/declutter/reviewPrompt";
 import { focusSheetItself } from "./focusSheetItself";
+import { useBuyerCheckWindow } from "./BuyerCheckWindow";
+import { useFeature } from "@/hooks/useFeature";
 import { Textarea } from "@/components/ui/textarea";
 
 const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days.";
@@ -59,8 +61,10 @@ function rememberReviewed(orderId: string, side: "buyer" | "seller") {
 
 /**
  * Audit 1028 part 2, D2-15: a solid "Leave a review" under an open refund request pulled the eye from the refund
- * itself. While a request is still being worked out the button is the outline one. The refund panel's own read
- * (same key, same fetch, so one request on the wire), only when the card shows the refund panel.
+ * itself. Audit 11-10 F381/F395: an outline button still offered a review of a sale whose refund was not settled, so
+ * while a request is open or offered (still being worked out) no review is asked for; it comes back once the request
+ * is settled and the order still stands. The refund panel's own read (same key, same fetch, so one request on the
+ * wire), only when the card shows the refund panel.
  * Audit BUY-31: while the item is going back, with Louisiana Helpr, or under an open problem, no review is asked for.
  * It comes back when that ends and the order still stands.
  */
@@ -76,6 +80,10 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
   /** An open problem on this order (BUY-31). */
   problemOpen?: boolean;
 }) {
+  // Audit 11-10 F376: while the buyer's 24 hours to check it run (the card's BuyerCheckWindow, shown when the refund
+  // switch is off), "Report a problem" is the main move and the review is the second button.
+  const refundSwitch = useFeature("declutter_refund_requests");
+  const checkOpen = !!useBuyerCheckWindow(orderId, side === "buyer" && !refundSwitch);
   const refund = useQuery({
     queryKey: ["declutter", "refund-request", orderId],
     queryFn: () => fetchRefundRequestView(orderId),
@@ -120,11 +128,11 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
 
   if (sent) return <p className="text-sm text-muted-foreground" data-review-sent="">Review sent. {REVIEW_SHOWS}</p>;
   // NIGHT-SELL-soldstates-7: a sale refunded in full was undone, so the card asks for no review.
-  if (problemOpen || refundHoldsTheItem(refund.data?.request?.status) || refundedInFull(refund.data)) return null;
+  if (problemOpen || refundStillOpen(refund.data) || refundHoldsTheItem(refund.data?.request?.status) || refundedInFull(refund.data)) return null;
   return (
     <>
       {/* Full width on a phone; from sm it sizes to its words like the card's other buttons (deep audit #51: a ~1100px bar at 1440). */}
-      <Button type="button" variant={refundStillOpen(refund.data) ? "outline" : "default"} className="w-full sm:w-auto" onClick={() => setOpen(true)}>
+      <Button type="button" variant={checkOpen ? "outline" : "default"} className="w-full sm:w-auto" onClick={() => setOpen(true)}>
         Leave a review
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>

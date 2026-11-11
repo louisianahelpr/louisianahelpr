@@ -6,7 +6,7 @@
  * The "arrives broken" claim matches spec 5.3: reported in the 2-day (48 h) window -> everything back after an admin
  * check; the spent label is the seller's debt. No return-label promise: the admin cannot request one yet (lead 11-03).
  *
- * @mutate src/pages/info/HelpCenter.tsx | const allSections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS; | const allSections = withDeclutterShipping(FAQ_SECTIONS);
+ * @mutate src/pages/info/HelpCenter.tsx | const allSections = withSetupFeeAmount(shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS, setupFeeLabel); | const allSections = withSetupFeeAmount(withDeclutterShipping(FAQ_SECTIONS), setupFeeLabel);
  * @mutate src/pages/info/legal/TermsSection.tsx | {shippingOn ? TERMS_SHIPPING_GET_ITEM : "Shipping is not offered."} | {TERMS_SHIPPING_GET_ITEM}
  * @mutate src/pages/info/legal/TermsSection.tsx |       {shippingOn && (\n        <PolicyRowItem |       {true && (\n        <PolicyRowItem
  * @mutate src/pages/info/declutterShippingCopy.ts | report a problem on your order within those 2 days: we check, and you get everything back | report a problem on your order: you get everything back
@@ -63,7 +63,8 @@ describe("Declutter shipping copy (S8), only where shipping is on", () => {
   it("HelpCenter and the Terms read the switch and keep the not-offered line when it is off", () => {
     const help = src("src/pages/info/HelpCenter.tsx");
     expect(help).toContain('const shippingOn = useFeature("declutter_shipping");');
-    expect(help).toContain("const allSections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS;");
+    // F236/F258 (audit 11-10) wrapped the gated list in withSetupFeeAmount; the gate itself is unchanged.
+    expect(help).toContain("const allSections = withSetupFeeAmount(shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS, setupFeeLabel);");
     expect(help).toContain("{sections.map((section) => (");
     expect(help).not.toContain("{FAQ_SECTIONS.filter(");
     const terms = src("src/pages/info/legal/TermsSection.tsx");

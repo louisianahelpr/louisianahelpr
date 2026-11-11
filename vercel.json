@@ -460,6 +460,18 @@
       "destination": "/index.html"
     },
     {
+      "source": "/helpdesk",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/settings",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/profile/security",
+      "destination": "/index.html"
+    },
+    {
       "source": "/hire/:service/:town",
       "destination": "/index.html"
     },

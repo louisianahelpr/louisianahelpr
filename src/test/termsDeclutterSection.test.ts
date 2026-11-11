@@ -11,7 +11,7 @@
  * src/lib/declutter/money.ts) is pinned ABSENT: no fee sentence in the section carries an amount or a percent,
  * and the one-time account setup fee sentence stays.
  *
- * @mutate src/pages/info/legal/TermsSection.tsx | the item price plus a buyer&apos;s fee, once per checkout | the item price plus a buyer&apos;s fee of 5% of the item total + $0.70, once per checkout
+ * @mutate src/pages/info/legal/TermsSection.tsx | the item price plus a buyer&apos;s fee of {DECLUTTER_BUYER_FEE_WORDS}, once per checkout | the item price plus a buyer&apos;s fee of 5% of the item total + $0.70, once per checkout
  * @mutate src/pages/info/legal/TermsSection.tsx | everything back, delivery included. | everything back, the $24 delivery fee too.
  * @mutate src/pages/info/legal/TermsSection.tsx | at least 1 and at most 12 photos | at least 3 and at most 12 photos
  * @mutate src/pages/info/legal/TermsSection.tsx | $6, plus $1.50 for each road mile, plus $20 for each large item and $40 for each extra-large item | $6, plus $3 for each road mile, plus $20 for each large item and $40 for each extra-large item

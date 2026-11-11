@@ -17,6 +17,9 @@ import { Button } from "@/components/ui/button";
 import { MessageThreadSkeleton } from "@/components/ui/skeletons/MessageThreadSkeleton";
 import { VirtualList, type VirtualListHandle } from "@/components/VirtualList";
 import { ConversationRow } from "./ConversationRow";
+import { OrderTalkFromLink } from "@/components/declutter/DeclutterOrderTalk";
+import { OrderTalkLoadError, OrderTalkRow, type OrderTalkInbox } from "./DeclutterOrderTalkInbox";
+import { inboxItemKey, mixInboxItems, visibleOrderTalks } from "./inboxItems";
 import { RestoreConversationButton } from "./RestoreConversationButton";
 import { SwipeableConversationRow } from "./SwipeableConversationRow";
 import { HiddenUnreadBar } from "./HiddenUnreadBar";
@@ -30,6 +33,8 @@ import { THREAD_AGE_OUT_DAYS } from "./threadAgeOut";
  * every piece of state and passes it down; this file only renders.
  */
 export interface ConversationListBodyProps {
+  /** F420: the Declutter order chats that belong under this chip (useMessageSections), or null when none do. */
+  orderTalks: OrderTalkInbox | null;
   loading: boolean;
   loadError: boolean;
   conversations: Conversation[];
@@ -80,6 +85,7 @@ export interface ConversationListBodyProps {
 }
 
 export function ConversationListBody({
+  orderTalks,
   loading,
   loadError,
   conversations,
@@ -126,6 +132,14 @@ export function ConversationListBody({
   maxSelect: MAX_SELECT,
   convoLimit: CONVO_LIMIT,
 }: ConversationListBodyProps) {
+  // F420: the order chats that sit in THIS view (inboxItems.ts), under the same tab and search as the threads.
+  const orderTalkRows = visibleOrderTalks(orderTalks, { selectMode, isSpecialFilterView, inboxTab, searchQuery });
+  /* The order-chat answer is still out: hold the empty state rather than flash "No messages yet" at someone whose
+     only conversations are order chats (D2-1's "not before the answer is in"). */
+  const orderTalksComing = !!orderTalks && orderTalks.pending && !selectMode && !isSpecialFilterView;
+  const nothingToList = noTabMatches && orderTalkRows.length === 0;
+  const nothingFound = noSearchMatches && orderTalkRows.length === 0;
+  const items = mixInboxItems(filteredConversations, orderTalkRows, pinnedSetForRender);
   return (
     <>
           {/* NO horizontal padding on these two branches. EmptyState/ErrorState
@@ -141,7 +155,7 @@ export function ConversationListBody({
                 onRetry={() => { void retryInbox(); }}
               />
             </div>
-          ) : !loading && conversations.length === 0 && !isSpecialFilterView ? (
+          ) : !loading && conversations.length === 0 && !isSpecialFilterView && orderTalkRows.length === 0 && !orderTalksComing ? (
             // `conversations` (the default inbox, archived threads already dropped) being empty does NOT mean
             // Pinned/Recently Deleted are empty too — they read a DIFFERENT source (orderedConversations /
             // allConversations, see filteredConversations above). Gating this global "No messages yet" state on the
@@ -295,7 +309,7 @@ export function ConversationListBody({
                 <MessageThreadSkeleton key={i} />
               ))}
             </div>
-          ) : noTabMatches ? (
+          ) : nothingToList ? (
             <div className="flex flex-col items-center text-center py-14 gap-2">
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center"
@@ -370,7 +384,7 @@ export function ConversationListBody({
                 </BarkPillButton>
               )}
             </div>
-          ) : noSearchMatches ? (
+          ) : nothingFound ? (
             /* Active search filtered every thread out — a tidy in-place
                message rather than an empty list. */
             <div className="flex flex-col items-center text-center py-14 gap-2">
@@ -404,14 +418,15 @@ export function ConversationListBody({
             </div>
           ) : (
             <div className="space-y-2">{sectionEmpty?.Lead && !searchQuery.trim() && !selectMode && <sectionEmpty.Lead empty={null} />}
+              {orderTalks && orderTalks.error != null && !selectMode && !isSpecialFilterView && (
+                <OrderTalkLoadError error={orderTalks.error} retry={orderTalks.reload} />
+              )}
               {(() => {
-                const visibleConvos = showAllConvos
-                  ? filteredConversations
-                  : filteredConversations.slice(0, CONVO_LIMIT);
+                const visibleItems = showAllConvos ? items : items.slice(0, CONVO_LIMIT);
                 return (
                   <VirtualList
-                    items={visibleConvos}
-                    getKey={(c) => `${c.jobId}_${c.otherUserId}`}
+                    items={visibleItems}
+                    getKey={inboxItemKey}
                     estimateSize={80}
                     overscan={6}
                     /* /messages is an AppShell route, deliberately OFF
@@ -424,7 +439,9 @@ export function ConversationListBody({
                        panel was blank. */
                     scrollElementRef={containerRef}
                     virtualizerRef={listHandleRef}
-                    renderItem={(c) => {
+                    renderItem={(it) => {
+                      if (it.kind === "order") return <OrderTalkRow row={it.row} />;
+                      const c = it.c;
                       const key = `${c.jobId}_${c.otherUserId}`;
                       const pinned =
                         c.otherUserId !== null &&
@@ -469,7 +486,9 @@ export function ConversationListBody({
                   />
                 );
               })()}
-              {!showAllConvos && filteredConversations.length > CONVO_LIMIT && (
+              {/* F420: the chat sheet for a tapped order row (?order_talk=<order id>), over Messages; closing it takes the parameter off. */}
+              {orderTalks && <OrderTalkFromLink />}
+              {!showAllConvos && items.length > CONVO_LIMIT && (
                 <div className="flex justify-center py-3">
                   {/* The shared Button (outline, sm; Q2709 11-05), bark ink. */}
                   <Button
@@ -479,7 +498,7 @@ export function ConversationListBody({
                     onClick={() => setShowAllConvos(true)}
                     className="text-ds-13 font-medium text-[hsl(var(--bark))]"
                   >
-                    Show all {filteredConversations.length} conversations
+                    Show all {items.length} conversations
                   </Button>
                 </div>
               )}

@@ -6,7 +6,7 @@
  * Owner 2026-10-29 (Q2477, "once they pay it can only be rescheduled once. never cancelled."): neither side
  * has a cancel button on a paid delivery (migration 20261030002630 makes both cancel RPCs refuse).
  *
- * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         <Button type="button" variant="outline" size="sm" onClick={onProblem}>Report a problem</Button> |         <Button type="button" variant="outline" size="sm">Cancel order</Button><Button type="button" variant="outline" size="sm">Cancel delivery</Button><Button type="button" variant="outline" size="sm" onClick={onProblem}>Report a problem</Button>
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         <Button type="button" variant="link" size="sm" onClick={onProblem}>Report a problem</Button> |         <Button type="button" variant="outline" size="sm">Cancel order</Button><Button type="button" variant="outline" size="sm">Cancel delivery</Button><Button type="button" variant="link" size="sm" onClick={onProblem}>Report a problem</Button>
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | onClick={() => setAsk("notDelivered")}>It wasn't delivered</Button>} | onClick={() => notDelivered.mutate(undefined)}>It wasn't delivered</Button>}
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |   const late = can.notDelivered && !noShowWaiting; |   const late = false;
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | !late && <Button type="button" variant="primary" size="sm" disabled={busy} onClick={() => setAsk("gotIt")}>I got it</Button>} | !late && <Button type="button" variant="primary" size="sm" disabled={busy} onClick={() => gotIt.mutate(undefined)}>I got it</Button>}
@@ -91,6 +91,12 @@ describe("seller-delivery order: the money moments ask in the app", () => {
       const { unmount } = show();
       expect(await screen.findByRole("button", { name: "Report a problem" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Ask for a new time" })).toBeInTheDocument();
+      // Audit 11-10 F385: these two are text links under the choice, never outlined buttons that look like the chips.
+      for (const name of ["Ask for a new time", "Report a problem"]) {
+        const el = screen.getByRole("button", { name });
+        expect(el.className).toContain("link-standard");
+        expect(el.className).not.toContain("border-");
+      }
       expect(screen.queryAllByRole("button").map((b) => b.textContent ?? "").filter((t) => /cancel/i.test(t))).toEqual([]);
       unmount();
     }
@@ -180,7 +186,7 @@ describe("seller-delivery order: the money moments ask in the app", () => {
 // second "Report a problem". While a problem is open the panel offers none of them; the card's note says why.
 // @mutate src/components/declutter/SellerDeliveryOrder.tsx | {can.gotIt && !problemOpen && !late && <Button | {can.gotIt && !late && <Button
 // @mutate src/components/declutter/SellerDeliveryOrder.tsx | {problemOpen ? null : b.side === "buyer" ? | {b.side === "buyer" ?
-// @mutate src/components/declutter/SellerDeliveryOrder.tsx | {!problemOpen && <Button type="button" variant="outline" size="sm" onClick={onProblem}> | {<Button type="button" variant="outline" size="sm" onClick={onProblem}>
+// @mutate src/components/declutter/SellerDeliveryOrder.tsx | {!problemOpen && <Button type="button" variant="link" size="sm" onClick={onProblem}> | {<Button type="button" variant="link" size="sm" onClick={onProblem}>
 // @mutate src/components/declutter/SellerDeliveryOrder.tsx | !can.gotIt && !problemOpen && b.order_status | !can.gotIt && b.order_status
 describe("DB-2: a problem is open on the delivery", () => {
   beforeEach(() => {

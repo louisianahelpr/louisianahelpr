@@ -29,9 +29,8 @@ export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange
   useEffect(() => { if (open && openProp) formRef.current?.scrollIntoView?.({ block: "center" }); }, [open, openProp]);
   const reasons = PROBLEM_REASONS[side][stage];
   const [picked, setReason] = useState<ProblemReason | null>(null);
-  // Q2627 (audit 1102c R2, lead 11-02): the seller picks; nothing is preselected. "The buyer didn't come" was, though
-  // that path is "They didn't show"; Send waits for a pick (and says so).
-  const reason: ProblemReason | null = picked && reasons.some(([r]) => r === picked) ? picked : side === "seller" ? null : reasons[0][0];
+  // Q2627 (seller) and audit 11-10 F387 (buyer): nothing is preselected, so a rushed tap never sends the wrong reason.
+  const reason: ProblemReason | null = picked && reasons.some(([r]) => r === picked) ? picked : null;
   const [note, setNote] = useState("");
   const [photos, setPhotos] = useState<File[]>([]); // D2-7: up to 3, uploaded on Send (once the server takes them)
   const send = useMutation({
@@ -53,16 +52,20 @@ export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange
       <RadioCardList label="What went wrong?" value={reason ?? ""} onChange={(r) => setReason(r as ProblemReason)}
         options={reasons.map(([r, words]) => ({ value: r, label: words }))} />
       <label htmlFor={`dcl-note-${orderId}`} className="block text-xs font-medium">Tell us what happened</label>
-      <Textarea id={`dcl-note-${orderId}`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+      <Textarea id={`dcl-note-${orderId}`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)}
+        placeholder="What's wrong, and what would make it right?" />
       {/* BUY-35: one letter isn't a report; the same floor as Jobs' dispute (and said, so Send isn't dark for no reason). */}
       {note.trim().length > 0 && note.trim().length < DISPUTE_DETAILS_MIN && (
-        <p className="text-ds-12 text-muted-foreground" data-problem-note-short="">A few more words, please, so Louisiana Helpr can help.</p>
+        <p className="text-ds-12 text-muted-foreground" data-problem-note-short="">{DISPUTE_DETAILS_MIN - note.trim().length} more characters, please, so Louisiana Helpr can help.</p>
       )}
       {!reason && <p className="text-ds-12 text-muted-foreground" data-problem-pick="">Pick what went wrong.</p>}
       {PROBLEM_FORM_PHOTOS_READY && <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={send.isPending} />}
-      <div className="flex gap-2">
-        <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" onClick={() => setOpen(false)}>Not now</Button>
-        <Button type="button" variant="primary" size="sm" className="text-sm font-semibold" disabled={send.isPending || !reason || note.trim().length < DISPUTE_DETAILS_MIN} onClick={() => send.mutate()}>Send</Button>
+      {/* Audit 11-10 F387: what Send does, in the toast's own words (onSuccess). */}
+      <p className="text-ds-12 text-muted-foreground" data-problem-after="">Once you send it, nobody is paid until Louisiana Helpr looks at it and decides.</p>
+      {/* F388: one main button; "Not now" is the quiet way out, not a second button the same size. */}
+      <div className="flex flex-col items-start gap-1">
+        <Button type="button" variant="primary" size="sm" className="w-full text-sm font-semibold sm:w-auto" disabled={send.isPending || !reason || note.trim().length < DISPUTE_DETAILS_MIN} onClick={() => send.mutate()}>Send</Button>
+        <Button type="button" variant="link" size="sm" className="px-0 text-sm font-semibold" onClick={() => setOpen(false)}>Not now</Button>
       </div>
     </div>
   );

@@ -15,6 +15,10 @@
 // @mutate src/lib/lifecycleErrorCopy.ts |     quote_changed: "The amount for your Helpr's time changed | quote_changed_old: "The amount for your Helpr's time changed
 // @mutate src/components/CancellationDialog.tsx |         p_expected_fee_cents: expectedFeeCents, |         p_expected_fee_cents: undefined,
 // @mutate src/components/CancellationDialog.tsx |   const backToYouCents = typeof quote?.back_to_you_cents === "number" ? quote.back_to_you_cents : null; |   const backToYouCents = Math.round(jobBudget * 100) - (typeof quote?.fee_cents === "number" ? quote.fee_cents : 0);
+// F268 (audit 11-10): the sheet shows the money before the red button, or says why it cannot.
+// @mutate src/components/cancellationDialog/CancelDialogNotices.tsx |               : unquotedBackToYou(quote?.unquoted_reason ?? null)} |               : "Your refund notice will show the exact amount."}
+// @mutate src/components/CancellationDialog.tsx | {backToYouCents !== null ? "you see the exact amount here before you confirm." : "your refund notice shows the exact amount."} | you see the exact amount here before you confirm.
+// @mutate src/components/CancellationDialog.tsx | : backToYouCents !== null && backToYouCents > 0 ? `Cancel · refund $${formatPrice(backToYouCents / 100)}` : "Cancel job"} | : "Cancel job"}
 // @mutate src/components/CancellationDialog.tsx |         setQuoteNonce((n) => n + 1); |
 // @mutate src/components/CancellationDialog.tsx |       if (error && (await rpcErrorCode("poster_cancel_job", error)) === "quote_changed") { |       if (error) await supabase.rpc("poster_cancel_job", { p_job_id: jobId, p_reason: reason.trim() \|\| undefined });\n      if (error && (await rpcErrorCode("poster_cancel_job", error)) === "quote_changed") {
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -112,12 +116,27 @@ describe("the dialog shows the server's number and nothing else", () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("poster_cancel_job", expect.objectContaining({ p_job_id: "job-1", p_expected_fee_cents: 2500 })));
   });
 
-  it("no quote, no number: the refund notice carries it", async () => {
+  it("no quote, no number: the line says why, by the server's reason, and the policy stops promising a number here (F268)", async () => {
     invoke.mockResolvedValue({ data: { can_cancel: true, fee_cents: 2500, back_to_you_cents: null, unquoted_reason: "earlier_refund", charge_state: null }, error: null });
-    render(<CancellationDialog {...props} />);
+    const { unmount } = render(<CancellationDialog {...props} />);
     const box = await screen.findByTestId("cancel-back-to-you");
-    await waitFor(() => expect(box).toHaveTextContent("Your refund notice will show the exact amount."));
+    await waitFor(() => expect(box).toHaveTextContent("Part of this job was refunded earlier, so your refund notice will show the exact amount that comes back this time."));
     expect(box.textContent).not.toMatch(/\$/);
+    expect(screen.getByRole("dialog").textContent).toContain("your refund notice shows the exact amount.");
+    expect(screen.getByRole("dialog").textContent).not.toContain("you see the exact amount here before you confirm");
+    unmount();
+    invoke.mockResolvedValue({ data: { can_cancel: true, fee_cents: 0, fee_percent: 0, back_to_you_cents: null, unquoted_reason: "not_in_escrow", charge_state: null }, error: null });
+    render(<CancellationDialog {...props} />);
+    await waitFor(() => expect(screen.getByTestId("cancel-back-to-you")).toHaveTextContent("This job's payment isn't held in escrow, so there's nothing to refund from it."));
+    expect(screen.getByRole("button", { name: /^cancel job$/i })).toBeTruthy();
+  });
+
+  it("the red button carries the refund when the server quoted one and no fee is due (F268)", async () => {
+    invoke.mockResolvedValue({ data: { can_cancel: true, fee_cents: 0, fee_percent: 0, back_to_you_cents: 14000, unquoted_reason: null, charge_state: "captured" }, error: null });
+    render(<CancellationDialog {...props} />);
+    await waitFor(() => expect(screen.getByTestId("cancel-back-to-you")).toHaveTextContent("$140"));
+    expect(screen.getByRole("button", { name: /^cancel · refund \$140(\.00)?$/i })).toBeTruthy();
+    expect(screen.getByRole("dialog").textContent).toContain("you see the exact amount here before you confirm.");
   });
 
   it("one call with the quoted fee: a PGRST202 is never retried the old unchecked way (Q2190)", async () => {
@@ -146,7 +165,7 @@ describe("the dialog shows the server's number and nothing else", () => {
     rpc.mockResolvedValue({ data: null, error: { message: "quote_changed", hint: "The amount for your Helpr's time is now $25.00.", code: "P0001" } });
     render(<CancellationDialog {...props} />);
     await waitFor(() => expect(screen.getByTestId("cancel-back-to-you")).toHaveTextContent("$106.51"));
-    fireEvent.click(screen.getByRole("button", { name: /^cancel job$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^cancel · refund \$106\.51$/i }));
     await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/The amount for your Helpr's time changed/)));
     expect(props.onCancelled).not.toHaveBeenCalled();
     await waitFor(() => expect(invoke).toHaveBeenCalledTimes(2));

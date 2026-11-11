@@ -3,6 +3,7 @@ import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
 import { backoutNoticeApplies, type BackoutNotice } from "@/lib/backoutNotices";
 import type { ShopOrder } from "@/lib/shops/orders";
 import type { CartLine, FreeAskToPick, MyOffer } from "@/lib/declutter/api";
+import { openCheckouts } from "@/lib/declutter/tabs";
 import type { MyRefundTodo } from "@/lib/declutter/refundRequests";
 import { formatCents } from "@/lib/shops/formatCents";
 import { posterStatusLine, helperStatusLine, type JobStatusLine } from "@/components/job-card/jobStatusLine";
@@ -113,13 +114,8 @@ function declutterTodos(
       },
     });
   }
-  const checkouts = new Map<string, CartLine[]>();
-  for (const l of cart) {
-    if (l.my_side !== "buyer" || l.status !== "in_cart" || !(Date.parse(l.checkout_by) > now)) continue;
-    const k = l.seller_id ?? l.line_id;
-    checkouts.set(k, [...(checkouts.get(k) ?? []), l]);
-  }
-  for (const [k, lines] of checkouts) {
+  // F363: the same one-per-seller rule the Buying badge counts (tabs.ts openCheckouts), so the two numbers agree.
+  for (const [k, lines] of openCheckouts(cart, now)) {
     const due = Math.min(...lines.map((l) => Date.parse(l.checkout_by)));
     out.push({
       due,

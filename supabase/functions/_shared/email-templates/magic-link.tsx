@@ -33,8 +33,8 @@ export const MagicLinkEmail = ({ token }: MagicLinkEmailProps) => (
       <Text className="e-h1" style={codeStyle}>{token}</Text>
       <TransactionalFooter>
         This code expires soon. If you didn&apos;t ask for it, you can ignore this email; nothing changes without the code.
+        {/* F461 (audit 11-10): say who sent it. */}
+        <br />- Louisiana Helpr
       </TransactionalFooter>
   </BaseLayout>
 )
-
-export default MagicLinkEmail

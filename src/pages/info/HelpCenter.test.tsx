@@ -6,13 +6,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import HelpCenter, { LEGACY_TOPIC_ANCHORS, filterFaqSections } from "./HelpCenter";
-import { FAQ_SECTIONS } from "./helpCenter/helpCenterContent";
+import { COMMON_PROBLEMS, FAQ_SECTIONS } from "./helpCenter/helpCenterContent";
 import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
 import { CREDENTIAL_TIER_CATEGORIES } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { shouldShowDisputeLink } from "@/components/jobs/DisputeLink";
 
 vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
 vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: () => {} }));
+// F236/F258: the setup fee amount is read live (a query); the tests give it the prod value.
+vi.mock("@/hooks/useOnboardingFee", async (orig) => ({ ...(await orig<typeof import("@/hooks/useOnboardingFee")>()), useOnboardingFeeCents: () => 200 }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { auth: { onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }) } },
 }));
@@ -279,7 +281,7 @@ describe("/help dispute answer matches the cards (VN-28)", () => {
 // @mutate src/pages/info/HelpCenter.tsx | const open = searching \|\| manualOpen \|\| (targeted && !dismissed); | const open = searching \|\| manualOpen;
 
 // Q2259 S8: the shipping answers show only where declutter_shipping is on; elsewhere "Shipping isn't offered." stays.
-// @mutate src/pages/info/HelpCenter.tsx | const allSections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS; | const allSections = FAQ_SECTIONS;
+// @mutate src/pages/info/HelpCenter.tsx | const allSections = withSetupFeeAmount(shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS, setupFeeLabel); | const allSections = withSetupFeeAmount(FAQ_SECTIONS, setupFeeLabel);
 describe("/help Declutter shipping answers follow the switch", () => {
   const open = async () => {
     window.history.replaceState({}, "", "/help#faq-declutter");
@@ -299,5 +301,69 @@ describe("/help Declutter shipping answers follow the switch", () => {
     for (const q of ["How does shipping work when I buy?", "What if my package doesn't come, or arrives broken?", "How do I ship something I sold?"]) {
       expect(screen.getByText(q)).toBeTruthy();
     }
+  });
+});
+
+// F411 (audit 11-10, High): someone with a problem in hand had to guess which of seven topics held the answer, no
+// answer was called "How do I cancel a job?" or covered a no-show, and "What is the cancellation rate?" did not say
+// where it shows. A "Common problems" card row at the top opens three steps per problem.
+// @mutate src/pages/info/HelpCenter.tsx | {!searching && <CommonProblems setupFeeLabel={setupFeeLabel} />} | {false && <CommonProblems setupFeeLabel={setupFeeLabel} />}
+// @mutate src/pages/info/HelpCenter.tsx | onClick={() => setOpenId(open ? null : problem.id)} | onClick={() => setOpenId(null)}
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts | q: "What does the cancellation rate on a profile mean?", | q: "What is the cancellation rate?",
+describe("/help Common problems (F411)", () => {
+  const TITLES = ["Cancel a job", "My Helpr did not show up", "I don't like the work", "I was charged too much"];
+
+  it("four cards, the finding's words, each with exactly three steps that name a real control", () => {
+    expect(COMMON_PROBLEMS.map((p) => p.title)).toEqual(TITLES);
+    for (const p of COMMON_PROBLEMS) expect(p.steps).toHaveLength(3);
+    const steps = Object.fromEntries(COMMON_PROBLEMS.map((p) => [p.title, p.steps.join(" ")]));
+    expect(steps["Cancel a job"]).toContain("Cancel job");
+    expect(steps["My Helpr did not show up"]).toContain("Report no-show");
+    expect(steps["I don't like the work"]).toContain("Something's not right");
+    expect(steps["I was charged too much"]).toContain("Receipts");
+  });
+
+  it("the row sits above the topics; a card opens its three steps, one card at a time; a search hides the row", () => {
+    const { container } = renderHelp();
+    const row = container.querySelector("[data-help-common-problems]") as HTMLElement;
+    expect(row).not.toBeNull();
+    // Above the first topic in document order.
+    const firstTopic = container.querySelector("#faq-getting-started")!;
+    expect(row.compareDocumentPosition(firstTopic) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const cards = TITLES.map((t) => screen.getByRole("button", { name: t }));
+    for (const c of cards) expect(c.getAttribute("aria-expanded")).toBe("false");
+    expect(container.querySelectorAll("[id^='help-problem-'] li")).toHaveLength(0);
+
+    fireEvent.click(cards[0]);
+    expect(cards[0].getAttribute("aria-expanded")).toBe("true");
+    const items = [...container.querySelectorAll("#help-problem-cancel-a-job li")].map((li) => li.textContent ?? "");
+    expect(items).toHaveLength(3);
+    expect(items[0]).toContain("Cancel job");
+
+    fireEvent.click(cards[1]);
+    expect(cards[0].getAttribute("aria-expanded")).toBe("false");
+    expect(cards[1].getAttribute("aria-expanded")).toBe("true");
+    expect(container.querySelectorAll("[id^='help-problem-'] li")).toHaveLength(3);
+    fireEvent.click(cards[1]);
+    expect(container.querySelectorAll("[id^='help-problem-'] li")).toHaveLength(0);
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search help" }), { target: { value: "refund" } });
+    expect(container.querySelector("[data-help-common-problems]")).toBeNull();
+  });
+
+  it("the charged-too-much steps carry the live setup fee amount, as the fee answer does (F236/F258)", () => {
+    const { container } = renderHelp();
+    fireEvent.click(screen.getByRole("button", { name: "I was charged too much" }));
+    const text = container.querySelector("#help-problem-charged-too-much")?.textContent ?? "";
+    expect(text).toContain("a one-time $2 account setup fee");
+    expect(text).not.toContain("a one-time account setup fee");
+  });
+
+  it("the FAQ answers cancelling, a no-show, and says what the cancellation rate on a profile means", () => {
+    const questions = FAQ_SECTIONS.flatMap((s) => s.items.map((i) => i.q));
+    expect(questions).toContain("How do I cancel a job?");
+    expect(questions).toContain("What if my Helpr doesn't show up?");
+    expect(questions).toContain("What does the cancellation rate on a profile mean?");
+    expect(questions).not.toContain("What is the cancellation rate?");
   });
 });

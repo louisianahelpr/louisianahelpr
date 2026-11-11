@@ -4,8 +4,8 @@
  * line now says they come straight back to it, in the member's language; the notify line keeps its place.
  * (The Log in side: a guest bounced to /login with an item redirect reads AUD31-16's item notice, loginNotice.test.ts.)
  *
- * @mutate src/lib/jobIntent.ts |   if (safe && new URL(safe, "https://x.invalid").pathname.startsWith("/declutter/item/")) return t("signup.itemSubtitle"); |
- * @mutate src/lib/jobIntent.ts |   const safe = safeInternalRedirect(redirect);\n  if (safe && | const safe = redirect;\n  if (safe &&
+ * @mutate src/lib/jobIntent.ts |   if (path.startsWith("/declutter/item/")) return t("signup.itemSubtitle"); |
+ * @mutate src/lib/jobIntent.ts |   const safe = safeInternalRedirect(redirect);\n  const path = | const safe = redirect;\n  const path =
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -20,6 +20,8 @@ describe("AUD31-69: Sign up from a Declutter item says the guest comes back to i
     expect(signupSubtitle(null, "/declutter/item/00000000-0000-4000-8000-000000000001")).toBe(ITEM_SIGNUP_SUBTITLE);
     expect(signupSubtitle(null, "/declutter")).toBeUndefined();
     expect(signupSubtitle(null, "/jobs")).toBeUndefined();
+    // F218 (audit 11-10): a guest sent from a job's "Sign up to apply" is told why they are here.
+    expect(signupSubtitle(null, "/jobs/00000000-0000-4000-8000-000000000001")).toBe("Sign up to apply, and we'll take you straight back to this job.");
     expect(signupSubtitle(null, null)).toBeUndefined();
     expect(signupSubtitle(null, "https://evil.example/declutter/item/x")).toBeUndefined();
     expect(signupSubtitle(null, "//evil.example/declutter/item/x")).toBeUndefined();

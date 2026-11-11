@@ -311,6 +311,12 @@ const FREE_HANDOVER: Record<FreeHandover, { title: string; words: string }> = {
   porch: { title: "Porch pickup", words: "The giver leaves it out for you, no need to meet. Address once you confirm." },
   pickup_home: { title: "Meet at the giver's home", words: "Pick it up at their door. Address once you confirm." },
 };
+/** Audit 11-10 F362: an accepted trade in the cart is worded as a trade, never as a free item from a "giver". */
+const TRADE_HANDOVER: Record<FreeHandover, { title: string; words: string }> = {
+  porch: { title: "Porch pickup", words: "The other trader leaves it out for you, no need to meet. Address once you confirm." },
+  pickup_home: { title: "Meet at their home", words: "Pick it up at their door. Address once you confirm." },
+};
+const TRADE_CHECKOUT_LINE = "Trades are pickup only. No money changes hands.";
 
 const FREE_CHECKOUT_LINE = "Free items are picked up only. Nothing is charged.";
 const FREE_CHECKOUT_FIRST_LINE = "Free items are picked up only. The item stays free. Your first claim has a one-time ID check next, and we'll show you the cost first.";
@@ -321,8 +327,10 @@ const FREE_CHECKOUT_FIRST_LINE = "Free items are picked up only. The item stays 
  * are not offered for a free order. declutter_checkout_free sets the order at once, and the pickup time is
  * then booked like any paid pickup.
  */
-export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }: {
+export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone, trade = false }: {
   sellerId: string; porchOk: boolean; onDone: () => void;
+  /** F362: every line here is one side of an accepted trade (cart line source "swap"). */
+  trade?: boolean;
   /** Owner 2026-10-28: the ways the giver ticked for every item here (null = older items: as before). */
   ways?: Handover[] | null;
 }) {
@@ -361,14 +369,14 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
   return (
     <div className="space-y-3" data-free-checkout="">
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">How you'll get it</legend>
+        <legend className="text-sm font-semibold">How you'll get it</legend>
         {offered.map((h) => (
           <label key={h} className="flex items-start gap-3 rounded-xl border border-border p-3 text-sm">
             <NativeRadio className="mt-1" name={`free-handover-${sellerId}`} value={h}
               checked={chosen === h} onChange={() => setHandover(h)} />
             <span className="min-w-0">
-              <span className="block font-semibold">{FREE_HANDOVER[h].title}</span>
-              <span className="block text-muted-foreground">{FREE_HANDOVER[h].words}</span>
+              <span className="block font-semibold">{(trade ? TRADE_HANDOVER : FREE_HANDOVER)[h].title}</span>
+              <span className="block text-muted-foreground">{(trade ? TRADE_HANDOVER : FREE_HANDOVER)[h].words}</span>
             </span>
           </label>
         ))}
@@ -380,7 +388,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
       <Button type="button" size="wrap" className="w-full rounded-full" disabled={confirm.isPending || offered.length === 0 || !placeReady} onClick={() => confirm.mutate()}>
         {confirm.isPending ? "Confirming…" : "Confirm and pick a time"}
       </Button>
-      <p className="text-xs text-muted-foreground">{oneTimeCheckAhead ? FREE_CHECKOUT_FIRST_LINE : FREE_CHECKOUT_LINE}</p>
+      <p className="text-xs text-muted-foreground">{trade ? TRADE_CHECKOUT_LINE : oneTimeCheckAhead ? FREE_CHECKOUT_FIRST_LINE : FREE_CHECKOUT_LINE}</p>
     </div>
   );
 }

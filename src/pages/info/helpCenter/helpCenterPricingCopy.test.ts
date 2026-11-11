@@ -64,12 +64,15 @@ describe("Help Center describes today's job fee (Q1842)", () => {
     expect(fees).toBeTruthy();
     // What a poster pays besides the job price.
     expect(fees!.a).toMatch(/plus Louisiana sales tax on the labor for taxable job types/);
-    expect(fees!.a).toMatch(/first paid job also carries a small one-time account setup fee/);
+    expect(fees!.a).toMatch(/first paid job also carries a one-time account setup fee, charged once per account/);
     expect(fees!.a).not.toMatch(/nothing on top|costs nothing extra/);
     // The Helpr side: the take-home, never the fee.
     expect(fees!.a).toMatch(/every job shows exactly what you will take home before you apply/);
     expect(fees!.a).toMatch(/rounded down to the whole dollar \(tips are paid in full\)/);
-    expect(fees!.a).not.toMatch(/\d+%|\$0\.70|on a \$100 job|service fee|card-processing|cancellation fee/);
+    // Owner 11-07: Declutter shows its buyer's fee (F236/F258 name it here); the Jobs part still names no rate.
+    const jobsPart = fees!.a.replace(/On Declutter[^.]*\./, "");
+    expect(jobsPart).not.toBe(fees!.a);
+    expect(jobsPart).not.toMatch(/\d+%|\$0\.70|on a \$100 job|service fee|card-processing|cancellation fee/);
     // A cancel: the screen shows what comes back, no fee list.
     expect(fees!.a).toMatch(/the cancel screen shows exactly what you will get back before you confirm/);
   });

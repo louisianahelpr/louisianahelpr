@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { safeStorage } from "@/lib/safeStorage";
 import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
 import { DeclutterNotice } from "./declutterUi";
@@ -243,16 +244,20 @@ export function isItemId(id: string | undefined): id is string {
  * know before loading anything that no item will arrive, so a skeleton of
  * photos would be a promise the page then breaks.
  */
-export function DeclutterItemUnavailable({ detail, more, top }: { detail?: string; more?: ReactNode; top?: ReactNode }) {
+export function DeclutterItemUnavailable({ detail, more, top, notFound }: { detail?: string; more?: ReactNode; top?: ReactNode; notFound?: boolean }) {
   // Q2565 (Auditor 1, audit 1102a): a sold or taken-down item opened from a share, a notice or a saved link was a
   // dead end (a notice and an empty screen). It now offers the way on, and the page is titled for where it is.
+  // Audit 11-10 F316: a link whose id is not an item id at all (/declutter/item/abc) is a broken link, not a sale:
+  // "We couldn't find that item." and a tab titled for it, never "It sold". This effect runs after AppPage's own
+  // usePageTitle (a child's effect runs first), so its title wins.
+  usePageTitle(notFound ? "Item not found — Helpr" : "Declutter — Helpr");
   return (
     <AppPage title="Declutter" backTo="/declutter">
       {/* F061 (lead rule 11-09): a sold item's greyed card (the item page passes SoldItemCard); nothing else of a
           listing that was pulled or removed. */}
       {top}
-      <DeclutterNotice tone="warn" title="No longer available.">
-        {detail ?? "It sold or is no longer on Declutter."}
+      <DeclutterNotice tone="warn" title={notFound ? "We couldn't find that item." : "No longer available."}>
+        {notFound ? "The link may be broken." : detail ?? "It sold or is no longer on Declutter."}
       </DeclutterNotice>
       <Button asChild variant="primary" className="mt-4 w-full sm:w-auto" data-item-unavailable-onward="">
         <Link to="/declutter">See more on Declutter</Link>

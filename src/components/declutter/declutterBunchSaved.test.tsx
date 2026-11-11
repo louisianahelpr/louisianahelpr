@@ -382,7 +382,7 @@ describe("Sell a bunch survives leaving", () => {
     for (const n of names) h.disk.set(`lh-bunch-v1-photo:${n}`, new File([n], `${n}.jpg`, { type: "image/jpeg" }));
     renderFlow();
     fireEvent.click(await screen.findByRole("button", { name: "These are one item" }));
-    expect(await screen.findByRole("button", { name: /^Write it with AI/ })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /^Write it for me/ })).toBeTruthy();
     expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(1);
     expect(document.querySelector("[data-bunch-not-sorted]")).toBeNull();
   });

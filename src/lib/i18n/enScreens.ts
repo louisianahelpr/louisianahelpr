@@ -23,6 +23,8 @@ export const enScreens = {
   "chat.options": "Conversation options",
   "chat.cancelReply": "Cancel reply",
   "chat.search": "Search conversations",
+  // F480 (audit 11-10): the field finds job titles too, and the placeholder says so.
+  "chat.searchHint": "Search names, jobs and messages",
   "chat.closeSearch": "Close search",
   "chat.clearSearch": "Clear search",
   "chat.loadFailed": "We couldn't load your messages.",
@@ -64,6 +66,7 @@ export const enScreens = {
   "login.email": "Email",
   "login.password": "Password",
   "login.forgot": "Forgot password?",
+  "login.resendVerify": "Send the email again",
   "login.emailInvalid": "Enter a valid email address",
   "login.emailMissing": "Add your email address",
   "login.passwordMissing": "Add your password",
@@ -91,6 +94,8 @@ export const enScreens = {
   "forgot.sentLead": "If",
   "forgot.sentTail": "is registered, we've sent a reset link. It expires in 1 hour.",
   "forgot.spamHint": "Don't see it? Check your spam folder or wait a minute — emails can take a moment to arrive.",
+  "forgot.stillNothing": "Still nothing after a few minutes?",
+  "forgot.contactSupport": "Contact support",
   "forgot.useAnother": "Use another email",
   "forgot.sending": "Sending…",
   "forgot.resendIn": "Resend in {s}s",
@@ -140,6 +145,7 @@ export const enScreens = {
   "signup.zip": "ZIP",
   // A3-102 (audit 11-01): "70801" alone read as a ZIP already filled in.
   "signup.zipExample": "e.g. 70801",
+  "signup.cityExample": "e.g. Lafayette",
   "signup.about": "About you",
   "signup.aboutPlaceholder": "Tell us a bit about yourself — whether you're looking for work or need help around the house…",
   "signup.aboutHelp": "You can add it later from your profile.",
@@ -170,6 +176,7 @@ export const enScreens = {
 
   // Finish your profile (CompleteProfile, the gate after sign-up)
   "profileGate.pageTitle": "Complete your profile — Helpr",
+  "profileGate.alreadyComplete": "Your profile is already complete.",
   "profileGate.zipMismatch": "That ZIP usually maps to {zipParish} Parish, not where {city} is ({cityParish} Parish) — double check it.",
   "profileGate.fileType": "{label} — that file type isn't supported.",
   "profileGate.fileSize": "{label} is over 5 MB — try a smaller file.",

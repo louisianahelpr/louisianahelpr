@@ -65,6 +65,12 @@ const NOT_APP_ADDRESSES: Record<string, string> = {
 const OWNER_REDIRECT_ROUTES: Record<string, string> = {
   "/declutter/wanted/new":
     "owner 2026-11-09 (UI audit F130, the owner-approved fix list: \"Route it to the Wanted composer (or redirect to /declutter?tab=wanted)\"): the obvious address for a new Wanted post opens the composer (wantedAskHref(\"\")) instead of the 404",
+  "/helpdesk":
+    "owner's whole-app audit 11-10, findings F471/F415/F234 (fix list the owner sent to Builder 2): \"Redirect /helpdesk to /help\" — people told to go to 'helpdesk' landed on the 404",
+  "/settings":
+    "owner's whole-app audit 11-10, finding F415 (fix list the owner sent to Builder 2): \"Redirect ... /settings to ... /profile?tab=settings\" — the address people type for their settings was a 404",
+  "/profile/security":
+    "owner's whole-app audit 11-10, finding F455 (fix list the owner sent to Builder 2): \"Redirect /profile/security to /profile?tab=security\" — old links and emails that say 'security' dead-ended",
   "/quotes":
     "owner 2026-10-19: the quotes hub is retired into Post a job / Jobs / My Jobs / Posts and old hub links (stored quote notices, Q2177) send the person to the new home (QuotesHubRedirect)",
 };

@@ -27,7 +27,7 @@
  * @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |       v_crew_setup_unfinished := public.helper_accept_block_reason(v_slot.helper_id) IS NOT NULL | PERFORM public.apply_job_denial_consequence(v_slot.helper_id, v_cjob.id, 'expired');\n      v_crew_setup_unfinished := public.helper_accept_block_reason(v_slot.helper_id) IS NOT NULL
  * @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |                ELSE '" and it went back to everyone. No strike.' |                ELSE '" and it went back to everyone. Letting an offer expire counts the same as declining it.'
  * @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql |                ELSE '" and you lost your spot. No strike.' |                ELSE '" and you lost your spot.'
- * @mutate supabase/migrations/20261021062609_memberships_off_paid_perks.sql | One more — backing out of a job you accepted — and | One more — declining, ignoring, or cancelling a job you committed to — and
+ * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql | One more — backing out of a job you accepted — and | One more — declining, ignoring, or cancelling a job you committed to — and
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | Declining isn't a strike." | Backing out now counts against your account."
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | Declining isn't a strike.` | Backing out now counts against your account.`
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | "If you don't answer in time, the job reopens to everyone. No strike." | "No answer counts the same as declining, and the job reopens to everyone."
@@ -119,7 +119,8 @@ describe("an offer is free to refuse (Q1281)", () => {
   it("the strike ladder's own words no longer count declining or ignoring (money review of 250d0d72a, #1)", () => {
     const ladder = now.get("apply_job_denial_consequence")!;
     // Q1848 restated it with the memberships switch on the Elite shield; the ladder's words are unchanged.
-    expect([FIX, "20261021062609_memberships_off_paid_perks.sql"]).toContain(ladder.file);
+    // F503 (20261110202142) restated it with the notice titles by outcome; the ladder's words are asserted below either way.
+    expect([FIX, "20261021062609_memberships_off_paid_perks.sql", "20261110202142_notice_titles_by_outcome_plain_words.sql"]).toContain(ladder.file);
     const literals = [...blankSqlComments(ladder.stmt).matchAll(/'(?:[^']|'')*'/g)].map((m) => m[0]).join(" ");
     expect(literals).toContain("backing out of a job you accepted");
     expect(literals, "a ladder notice still says declining or ignoring is a strike").not.toMatch(/declin|ignor/i);

@@ -36,6 +36,18 @@ export function milesLabel(miles: number | null, approximate = false): string | 
   return `${Math.round(miles)} mi away`;
 }
 
+/**
+ * Audit 11-10 F321: the Browse card's one "condition · distance" line (owner pick 4, 11-08) cut the condition to
+ * "Lightly u..." beside "About 1 mi away" at 375. The card gets the short form ("About 1 mi", "Under 1 mi", "3 mi"):
+ * the same figure and the same "About" for a rough origin, without the words "away" that cost the condition its room.
+ */
+export function milesLabelShort(miles: number | null, approximate = false): string | null {
+  const long = milesLabel(miles, approximate);
+  if (long === null) return null;
+  if (long === "Less than 1 mi away") return "Under 1 mi";
+  return long.replace(/ away$/, "");
+}
+
 /** The distance-filter choices on Browse; null = any distance, first because it is the default (owner, 2026-10-19). */
 export const DISTANCE_CHOICES: readonly (number | null)[] = [null, 5, 10, 25, 50];
 

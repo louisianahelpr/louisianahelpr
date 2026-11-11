@@ -12,6 +12,8 @@
  * @mutate src/lib/declutter/trades.ts |     my_line_status: (side === "seller" ? seller_line : buyer_line)?.status ?? null, |     my_line_status: (side === "seller" ? buyer_line : seller_line)?.status ?? null,
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx |       {t.talk_order_id && <TradeTalkButton orderId={t.talk_order_id} />}\n |
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx |     next.set("order_talk", orderId); |     next.set("talk", orderId);
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx | "Answer by" : "Waiting on the seller until" | "Answer:" : "Waiting on the seller until"
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx | variant="outline" data-trade-decline="" | variant="ghost" data-trade-decline=""
  */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -20,6 +22,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 import type { MyTrade } from "@/lib/declutter/trades";
+import { orderWhen } from "@/lib/declutter/timeLeft";
 
 const later = new Date(Date.now() + 10 * 3_600_000).toISOString();
 const lamp = { id: "lamp", title: "Lamp", current_price_cents: 2000 };
@@ -86,7 +89,12 @@ describe("Declutter trade cards (slice 3)", () => {
     show("seller");
     fireEvent.click(await screen.findByRole("button", { name: "Accept trade" }));
     await waitFor(() => expect(state.sent).toEqual([["t1", "accept"]]));
-    fireEvent.click(screen.getByRole("button", { name: "Decline" }));
+    // Audit 11-10 F401: a sentence with the deadline, not "Answer: 119 hours left"; Decline is an outlined button.
+    expect(screen.getByText(`Answer by ${orderWhen(later)}. No money changes hands.`)).toBeTruthy();
+    expect(screen.queryByText(/Answer:/)).toBeNull();
+    const decline = screen.getByRole("button", { name: "Decline" });
+    expect(decline.className).toContain("border");
+    fireEvent.click(decline);
     await waitFor(() => expect(state.sent).toEqual([["t1", "accept"], ["t1", "decline"]]));
     expect(screen.queryByRole("button", { name: "Take it back" })).toBeNull();
     // The seller gives their own listing and gets the buyer's.

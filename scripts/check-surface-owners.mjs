@@ -61,6 +61,8 @@ const OWNERS = {
   "/rules": ["lh-trust-safety", "lh-copy-content"],
   "/support": ["lh-copy-content"],
   "/help": ["lh-copy-content"],
+  // F471/F415 (audit 11-10): a redirect to /help (the name people type and old emails use).
+  "/helpdesk": ["lh-copy-content"],
   "/hire/:service/:town": ["lh-seo-web", "lh-copy-content"],
   "/sms-opt-in": ["lh-copy-content"],
   "/terms/full": ["lh-compliance-store"],
@@ -97,6 +99,9 @@ const OWNERS = {
 
   // ── settings / profile / long tail ───────────────────────────────────────
   "/profile": ["lh-input-boundary"],
+  // F415 / F455 (audit 11-10): redirects into Profile tabs (/profile?tab=settings, /profile?tab=security).
+  "/settings": ["lh-input-boundary"],
+  "/profile/security": ["lh-input-boundary"],
   // The Jobs rows that left Profile (dashboards build, 2026-10-19).
   "/jobs/settings": ["lh-input-boundary", "lh-design-holes"],
   "/user/:userId": ["lh-trust-safety"],

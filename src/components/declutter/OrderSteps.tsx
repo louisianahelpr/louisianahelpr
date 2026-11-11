@@ -57,6 +57,8 @@ export type OrderFacts = {
    * side yet ("Add your side" waits on them).
    */
   problemAwaitsYou?: boolean;
+  /** Audit 11-10 F375: a handed-over order still in the buyer's 24 hours to check it (never Done while it runs). */
+  checkOpen?: boolean;
 };
 
 export type OrderBucket = "needs_you" | "waiting" | "upcoming" | "done" | "cancelled";
@@ -85,6 +87,11 @@ const STEPS: Record<OrderHandover, readonly [string, string, string, string]> = 
  * the card's action and the button under Details.
  */
 const GOT_IT_OPENS_MINUTES_BEFORE = 60;
+/** Audit 11-10 F384: the ISO time "I got it" opens (an hour before the booked time), for the card's waiting line. */
+export function gotItOpensAt(slotStart: string): string {
+  return new Date(new Date(slotStart).getTime() - GOT_IT_OPENS_MINUTES_BEFORE * 60_000).toISOString();
+}
+
 export function gotItOpen(slotStart: string | null | undefined, now: number = Date.now()): boolean {
   if (!slotStart) return false;
   const t = new Date(slotStart).getTime();
@@ -145,7 +152,8 @@ export function orderBucket(f: OrderFacts): OrderBucket {
   // NIGHT-BUYINGopenpr-2: an open problem holds the money, so a handed-over order with one is never Done; when the
   // other side reported it and this viewer's side is still missing, the move is theirs.
   if (f.problem) return f.problemAwaitsYou ? "needs_you" : "waiting";
-  if (f.done) return "done";
+  // F375: the buyer's 24 hours to check it are theirs to use; the order is not Done until they end.
+  if (f.done) return f.checkOpen ? "needs_you" : "done";
   if (orderWaitsOnYou(f)) return "needs_you";
   // A day or time is set, the handover has not happened and nothing is asked of the viewer before it: coming up.
   // Otherwise it is on the other person or the clock (a buyer's day to pick, a Helpr to take it, the sale to settle).

@@ -12,6 +12,17 @@
 const BUYER_FEE_RATE = 0.05;
 const BUYER_FEE_FIXED_CENTS = 70;
 
+/**
+ * F236/F258 (audit 11-10): Help and the Terms name the buyer's fee from THESE numbers, the ones checkoutAmounts
+ * charges, never a hand-typed copy. Owner 11-07: Declutter shows its fee (the 10-25 no-fee-words rule stays for Jobs).
+ */
+export const DECLUTTER_BUYER_FEE_PERCENT = Math.round(BUYER_FEE_RATE * 100);
+export const DECLUTTER_BUYER_FEE_FIXED_CENTS = BUYER_FEE_FIXED_CENTS;
+/** "5% of the item price plus 70 cents". */
+export const DECLUTTER_BUYER_FEE_WORDS = `${DECLUTTER_BUYER_FEE_PERCENT}% of the item price plus ${
+  DECLUTTER_BUYER_FEE_FIXED_CENTS < 100 ? `${DECLUTTER_BUYER_FEE_FIXED_CENTS} cents` : `$${(DECLUTTER_BUYER_FEE_FIXED_CENTS / 100).toFixed(2)}`
+}`;
+
 export function checkoutAmounts(itemPricesCents: number[]): { itemsCents: number; premiumCents: number; totalCents: number } {
   const itemsCents = itemPricesCents.reduce((a, b) => a + b, 0);
   // Postgres round() on numeric rounds half away from zero; Math.round agrees for positives.

@@ -12,6 +12,7 @@ export const es: Record<MsgKey, string> = {
   "chat.options": "Opciones de la conversación",
   "chat.cancelReply": "Cancelar la respuesta",
   "chat.search": "Buscar conversaciones",
+  "chat.searchHint": "Buscar nombres, trabajos y mensajes",
   "chat.closeSearch": "Cerrar la búsqueda",
   "chat.clearSearch": "Borrar la búsqueda",
   "chat.loadFailed": "No pudimos cargar sus mensajes.",
@@ -83,6 +84,7 @@ export const es: Record<MsgKey, string> = {
   "login.email": "Correo electrónico",
   "login.password": "Contraseña",
   "login.forgot": "¿Olvidó su contraseña?",
+  "login.resendVerify": "Enviar el correo otra vez",
   "login.emailInvalid": "Escriba un correo electrónico válido",
   "login.emailMissing": "Escriba su correo electrónico",
   "login.passwordMissing": "Escriba su contraseña",
@@ -110,6 +112,8 @@ export const es: Record<MsgKey, string> = {
   "forgot.sentLead": "Si",
   "forgot.sentTail": "está registrado, le enviamos un enlace para restablecerla. Vence en 1 hora.",
   "forgot.spamHint": "¿No lo ve? Revise la carpeta de spam o espere un minuto: los correos pueden tardar un poco.",
+  "forgot.stillNothing": "¿Sigue sin llegar después de unos minutos?",
+  "forgot.contactSupport": "Contacte a soporte",
   "forgot.useAnother": "Usar otro correo",
   "forgot.sending": "Enviando…",
   "forgot.resendIn": "Reenviar en {s} s",
@@ -158,6 +162,7 @@ export const es: Record<MsgKey, string> = {
   "signup.city": "Ciudad",
   "signup.zip": "Código postal",
   "signup.zipExample": "p. ej. 70801",
+  "signup.cityExample": "p. ej. Lafayette",
   "signup.about": "Sobre usted",
   "signup.aboutPlaceholder": "Cuéntenos un poco sobre usted: si busca trabajo o necesita ayuda en la casa…",
   "signup.aboutHelp": "Puede agregarla después desde su perfil.",
@@ -188,6 +193,7 @@ export const es: Record<MsgKey, string> = {
 
   // Finish your profile (CompleteProfile, the gate after sign-up)
   "profileGate.pageTitle": "Complete su perfil — Helpr",
+  "profileGate.alreadyComplete": "Su perfil ya está completo.",
   "profileGate.zipMismatch": "Ese código postal suele corresponder a la parroquia {zipParish}, no a donde está {city} (parroquia {cityParish}). Revíselo, por favor.",
   "profileGate.fileType": "{label}: ese tipo de archivo no se admite.",
   "profileGate.fileSize": "{label} pesa más de 5 MB. Pruebe con un archivo más pequeño.",
@@ -251,6 +257,7 @@ export const es: Record<MsgKey, string> = {
   "profileGate.saveLabel": "Guardar el perfil",
   "signup.notifySubtitle": "Regístrese para recibir un aviso cuando llegue trabajo pagado.",
   "signup.itemSubtitle": "Regístrese y le llevaremos directamente de vuelta a este artículo.",
+  "signup.jobSubtitle": "Regístrese para postularse y le llevaremos directamente de vuelta a este trabajo.",
   "signup.saveItemSubtitle": "Regístrese para guardar artículos. Le llevaremos directamente de vuelta a donde estaba.",
   "zip.unknown": "No reconocemos ese código postal como de Louisiana. Los trabajos se asignan por parroquia, así que revíselo; si no, el trabajo cercano no le llegará.",
 

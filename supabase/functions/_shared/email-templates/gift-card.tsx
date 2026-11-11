@@ -30,6 +30,8 @@ export interface GiftCardEmailProps {
   claimUrl: string
   /** Optional note the donor wrote. */
   note?: string | null
+  /** The day the credit expires, already formatted ("Feb 8, 2027"); null drops the line. */
+  expiresOn?: string | null
 }
 
 const noteBox = {
@@ -50,7 +52,7 @@ const noteText = {
 /** "Paul" from "Paul Broussard"; the whole name when it has one word. */
 const donorFirstName = (name: string): string => name.trim().split(/\s+/)[0] || name
 
-export const GiftCardEmail = ({ donorName, amount, claimUrl, note }: GiftCardEmailProps) => (
+export const GiftCardEmail = ({ donorName, amount, claimUrl, note, expiresOn }: GiftCardEmailProps) => (
   <BaseLayout
     preheader={`${donorName} sent you a ${amount} credit to spend on Louisiana Helpr.`}
     footer={
@@ -70,6 +72,13 @@ export const GiftCardEmail = ({ donorName, amount, claimUrl, note }: GiftCardEma
       <strong style={{ color: brand.olivewood }}>{amount} credit</strong> works on any job on Helpr: cleaning,
       yard work, handyman help, groceries and more, and on Declutter buys.
     </Text>
+    {expiresOn ? (
+      // F497 (audit 11-10): the term, read off the gift_cards row itself. Credits expire 90 days after the gift
+      // (column default, migration 20260612310000). No minimum spend exists in the claim or redeem paths, so none is stated.
+      <Text className="e-text" style={textStyle}>
+        Credit expires {expiresOn}.
+      </Text>
+    ) : null}
     {note ? (
       // Translucent olive wash, so unlike the admin-action callouts this one
       // reads correctly over the dark card too — hence it KEEPS `e-text` and

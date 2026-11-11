@@ -60,7 +60,7 @@ function Row({ field, title, value, empty, open, onToggle, busy, children, extra
     <li ref={li} className="space-y-3 px-4 py-3.5" data-summary-row={field} data-sell-row={field}>
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-ds-13 font-semibold text-muted-foreground">{title}</p>
+          <p id={`sell-row-${field}-title`} className="text-ds-13 font-semibold text-muted-foreground">{title}</p>
           {!open && (
             <p onClick={instead ? undefined : onToggle} className={`text-ds-15 [overflow-wrap:anywhere] ${instead ? "" : "cursor-pointer"} ${empty ? "text-muted-foreground" : "font-semibold text-foreground"}`} data-summary-value="">
               {busy && empty ? "We're filling this in…" : empty ? `Add ${FIELD_WORD[field] === "details" ? "details" : `a ${FIELD_WORD[field]}`}` : value}
@@ -106,9 +106,13 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems, setti
       </p>
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card" aria-busy={busy} data-sell-summary={busy ? "busy" : draft ? "done" : "empty"}>
         <Row {...row("title")} title="Title" value={form.title.trim()} empty={!form.title.trim()}>
-          <div className="space-y-2">
-            <FieldLabel htmlFor="sell-title" text="Title" />
-            <Input look="card" id="sell-title" maxLength={80} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Oak rocking chair" />
+          {/* Audit 11-10 F329: the row's own heading names the box (it read "Title" twice, a header and a label); a
+              long pasted title was cut at 80 with no word, so the count shows and turns red at the limit. */}
+          <div className="space-y-1.5">
+            <Input look="card" id="sell-title" aria-labelledby="sell-row-title-title" maxLength={80} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Oak rocking chair" />
+            <p data-title-count="" className={`text-right text-ds-12 ${form.title.length >= 80 ? "font-semibold text-destructive-ink" : "text-muted-foreground"}`} aria-live="polite">
+              {form.title.length}/80{form.title.length >= 80 ? " · That's the limit." : ""}
+            </p>
           </div>
         </Row>
         <Row

@@ -53,7 +53,7 @@ export function DoorPickupTips({ side }: { side: "buyer" | "seller" }) {
         {side === "buyer" && <li>Pick a daytime slot.</li>}
         <li>{side === "seller" ? "Have someone home with you." : "Bring someone with you."}</li>
         <li>Meet at the door; nobody needs to go inside.</li>
-        {side === "buyer" && <li>Too big to carry? Add a Helpr below.</li>}
+        {/* Audit 11-10 F384: no "Add a Helpr below" promise here; the Add a Helpr panel carries its own heading when it applies. */}
       </ul>
     </div>
   );

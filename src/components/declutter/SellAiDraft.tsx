@@ -18,6 +18,7 @@ import type { AiDraft, DeliverySize } from "@/lib/declutter/api";
 import { AI_DRAFT_PHOTOS } from "@/lib/declutter/photoRules";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
+import { NO_ITEM_SEEN, WRITER_WARNING_RE } from "@/lib/declutter/writerWarning";
 
 export type AiState =
   | { status: "idle" }
@@ -69,6 +70,14 @@ function mergeAiDraft<F extends AiFields>(current: F, before: AiMemory, d: AiDra
   return { form: { ...current, ...next }, memory: { base: next, theirs } };
 }
 
+/**
+ * Audit 11-10 F326 (High): with no item in the photo the writer put its advice into the title ("Item photo unclear -
+ * please retake photos"), the details and the price, and the form took them. An answer that says so (noItem, from the
+ * function), or whose title reads as a note about the photos (an older function), fills NOTHING; the panel says
+ * "We couldn't see an item" by the photos instead, and formProblem (sellForm.ts) blocks Post on such a title.
+ */
+const noItemDraft = (d: AiDraft): boolean => d.noItem === true || WRITER_WARNING_RE.test(d.title);
+
 const aiFieldsOf = (f: AiFields): AiFields => ({ title: f.title, description: f.description, category: f.category, deliverySize: f.deliverySize, conditionStars: f.conditionStars, price: f.price });
 
 /**
@@ -119,6 +128,7 @@ export function useSellAiDraft<F extends AiFields>({
   autoFillEmpty = false,
   photosAdded = 0,
   onDraft,
+  blank,
 }: {
   ask: (() => Promise<AiDraft>) | null;
   form: F;
@@ -129,6 +139,12 @@ export function useSellAiDraft<F extends AiFields>({
   photosAdded?: number;
   /** Called with each answer (the photo coach's cover pick). */
   onDraft?: (d: AiDraft & { coverFile?: File }) => void;
+  /**
+   * Audit 11-10 F326 (High): the form's EMPTY start. The first answer compared the form with itself as the run began,
+   * so a title and price typed BEFORE the first photo counted as ours and were overwritten. Against the blank form
+   * they are the seller's from the start. Without it (a saved draft's step form), the run's start is the base.
+   */
+  blank?: AiFields;
 }) {
   const [state, setState] = useState<AiState>({ status: "idle" });
   const formRef = useRef(form);
@@ -142,18 +158,20 @@ export function useSellAiDraft<F extends AiFields>({
     if (!ask) return;
     ran.current = true;
     readPhotos.current = photosNow.current;
-    if (!memory.current) memory.current = { base: aiFieldsOf(formRef.current), theirs: [] };
+    if (!memory.current) memory.current = { base: aiFieldsOf(blank ?? formRef.current), theirs: [] };
     setState({ status: "busy" });
     try {
       const d = await ask();
-      if (onlyEmpty) {
+      if (noItemDraft(d)) {
+        // Nothing is filled: the panel says no item was seen, and the next photo is read again.
+      } else if (onlyEmpty) {
         setForm((f) => fillEmptyFields(f, d));
       } else {
         const merged = mergeAiDraft(formRef.current, memory.current, d);
         memory.current = merged.memory;
         setForm(() => merged.form);
       }
-      onDraft?.(d);
+      if (!noItemDraft(d)) onDraft?.(d);
       setState({ status: "done", draft: d });
     } catch (err) {
       // Not silent: the panel shows the seller the plain-words reason and a "Try again" button
@@ -161,7 +179,7 @@ export function useSellAiDraft<F extends AiFields>({
       console.warn("[declutter] Claude's listing draft failed", err);
       setState({ status: "error", message: declutterErrorMessage(err) });
     }
-  }, [ask, setForm, onDraft]);
+  }, [ask, setForm, onDraft, blank]);
   useEffect(() => {
     if ((autoStart || autoFillEmpty) && ask && !ran.current) void run(!autoStart);
   }, [autoStart, autoFillEmpty, ask, run]);
@@ -182,7 +200,8 @@ export function useSellAiDraft<F extends AiFields>({
 
 /** Claude's suggested price and its one-line reason (owner 2026-10-29); nothing when there is none. */
 export function AiPriceLine({ draft }: { draft: AiDraft }) {
-  if (typeof draft.priceDollars !== "number" || draft.priceDollars < 1) return null;
+  // F326: an answer with no item seen suggests no price either (its "$5" was advice, not a price).
+  if (noItemDraft(draft) || typeof draft.priceDollars !== "number" || draft.priceDollars < 1) return null;
   return (
     <p className="text-ds-14 text-foreground [overflow-wrap:anywhere]" data-ai-price="">
       <span className="font-semibold">Suggested price: ${draft.priceDollars}</span>
@@ -205,6 +224,14 @@ export function SellAiDraftPanel({ state, onRun, oneScreen = false, free = false
           <p className="text-ds-15 font-semibold text-foreground">We're writing your listing…</p>
           <p className="mt-0.5 text-ds-13 text-muted-foreground">It looks at your photos for the name, details, category, size, condition{free ? "" : " and a fair price"}. This takes a few seconds.</p>
         </div>
+      </div>
+    );
+  }
+  if (state.status === "done" && noItemDraft(state.draft)) {
+    return (
+      <div role="status" aria-live="polite" data-ai-draft="no-item" className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-border bg-card p-4">
+        <p className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">{NO_ITEM_SEEN}</p>
+        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onRun}>Try again</Button>
       </div>
     );
   }

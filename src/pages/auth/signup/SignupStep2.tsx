@@ -209,6 +209,7 @@ export function SignupStep2(props: SignupStep2Props) {
             <div className="relative">
               <CityAutocomplete
                 id="location"
+                placeholder={t("signup.cityExample")}
                 value={location}
                 onChange={(v) => { setLocation(v); clearFieldError?.("location"); }}
                 className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-8" : ""}${fieldErrors.location ? " border-destructive" : ""}`}

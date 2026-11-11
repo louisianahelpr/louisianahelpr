@@ -622,7 +622,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // 20261028232338: only the buyer's "Enjoy your item" is not sent on this path; the refund it records is unchanged.
       // 20261031184929 (AUD31-34): only the Helpr's and the buyer's notice words name the item; the refund is unchanged.
       // Q2390 p40 (20261103230126): restated with its not-found as PT404 only (ERRCODE only); no refund logic changed.
-      declutter_admin_decide_delivery_damage: "20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql 50f9cd04e2b69ca1",
+      declutter_admin_decide_delivery_damage: "20261110202142_notice_titles_by_outcome_plain_words.sql 037f5f077837f222", // F503 (11-10): the two decision notice titles only; the refund rows are unchanged
       declutter_card_fee_estimate: "20261014224914_declutter_slice3b_payments.sql c3eec727dc09fe3e",
       // Q2419 (20261027170717), reviewed: a FREE order (paid_with 'free', $0, no payment) closes with the strike rules
       // and records NO refund; every card order runs the unchanged body below it. declutter_checkout_free records none.
@@ -768,7 +768,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // sms_messages status/due_at only; no refund row, amount or fee.
       sms_claim_due: "20261102034632_sms_needs_you_step_done.sql c1a41f8e65f5dc47",
       // 20261108200000 (Jobs audit 11-08, lander read): only adds work_status / job_updates to two SMS kind rows; no amount or fee.
-      sms_kind_for: "20261108200000_poster_cancel_refused_once_work_started.sql 85f98656374b6661",
+      sms_kind_for: "20261110205345_push_titles_fit_lock_screen.sql b66a20a55af3740a", // F508 (11-10): one more crew-reminder title in its list; no money in it
       // A3-85 (20261102002011, read by Builder 151): deadline reminders for an open offer or refund request; reads the
       // request's answer-by times, writes needs_you_reminder_sends and sends a notice of kind 'declutter_refunds'. No
       // refund row, amount or fee is read or written.
@@ -780,7 +780,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // 20261030170443 (Q2488, lead lh-authz-rls approve "no money") adds the declutter_questions kind; still records nothing.
       // Re-pinned (Lander 36, train 1, 11-02): 20261102103524 restates it with four shipping titles added to its lists; a title-to-kind map, no amount.
       // Re-pinned (Lander 68, batch 7 fold, 11-04): 20261104123305 (Q2268, lead PASS) restates it with the bundle request titles added to its lists; a title-to-kind map, no amount.
-      declutter_notice_type: "20261104123305_bundle_request_export_and_notice_kinds.sql 56e1e2ff71ff2657",
+      declutter_notice_type: "20261110205345_push_titles_fit_lock_screen.sql 2e4ce87b2d2dd476", // F503 + F508 (11-10): the retitled notices added to its title lists; no money in it
       // Q2307 (20261021204947), reviewed: a payment on an order a party has left is refunded in full as 'order_closed'
       // (full_platform_absorbs: nobody at the table did anything wrong); a replay answers the same refund row, and the
       // payment that already paid a settled order answers already_paid (money re-review R1).
@@ -810,7 +810,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_withdraw_problem: "20261109224952_notices_card_fee_and_our_team.sql 81c3efae142629c2",
       // T9 (20261031004529): names declutter_refunds only as its notice kind, since the notice moved to that switch; records no refund and moves no money (the seller's answer becomes an open problem, which holds the money).
       // Q2390 p37 (20261103222939): restated with its not-found as PT404 only (ERRCODE only); still records no refund.
-      declutter_answer_no_show: "20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql c5eaf736034ab643",
+      declutter_answer_no_show: "20261110205345_push_titles_fit_lock_screen.sql 15c7192fc52f2354", // F508 (11-10): one notice title shortened; the refund call is unchanged
       // BUY-2 (20261031133938, owner 10-31; money verdict owed): the buyer's cancel after no Helpr took the delivery. Its
       // only refund is declutter_close_paid_order(o.id, 'buyer_cancelled'), already pinned (keep_card_fee: the buyer bears
       // the card fee, as the owner chose); it refuses once a pickup is booked or a problem is open, and a replay answers already.

@@ -374,7 +374,7 @@ describe("stripe-webhook: Declutter order paid", () => {
       expect(receiptOf("Your Declutter receipt")).toEqual({
         lines: [['"Ceramic planter"', "$43.00"], ["Service fee", "$3.00"], ["Pickup", "Free"]],
         total: ["Total", "$46.00 (incl. fee)"],
-        note: "Pickup: Sat, Nov 14 at 10:00 AM. The address is in the app.",
+        note: "Pickup: Sat, Nov 14 at 10:00 AM Central. The address is in the app.",
       });
     });
 

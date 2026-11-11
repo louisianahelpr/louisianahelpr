@@ -137,6 +137,19 @@ const Unsubscribe = () => {
           </div>
         )}
 
+        {/* F249 (audit 11-10): a bad link was a dead end for someone who just wants the emails to stop; a signed-out
+            person has no profile to open. Two ways on: log in to the email settings, or ask us to stop them. */}
+        {!link && (
+          <div className="space-y-3" data-unsubscribe-bad-link-actions="">
+            <Button asChild variant="primary" size="lg" className="w-full">
+              <Link to={`/login?redirect=${encodeURIComponent("/profile?tab=notifications")}`}>Log in to manage emails</Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="w-full">
+              <Link to={`/support?topic=message&subject=${encodeURIComponent("Please stop all emails")}`}>Ask us to stop all emails</Link>
+            </Button>
+          </div>
+        )}
+
         <p className="font-sans text-ds-11" style={muted}>
           Manage every kind of email under Notifications in your{" "}
           <Link to="/profile?tab=notifications" className="underline underline-offset-2">

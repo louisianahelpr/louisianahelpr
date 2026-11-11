@@ -357,7 +357,11 @@ export default function SearchPage() {
           <EmptyState
             icon={Search}
             title={`Nothing matches “${q}” yet`}
-            body="Save this search and we'll tell you when something new matches, or look through everything open now."
+            // F221 (audit 11-10): a guest has no Save button (SaveSearchButton needs an account), so the guest copy
+            // makes no promise there is nothing to tap for.
+            body={user
+              ? "Save this search and we'll tell you when something new matches, or look through everything open now."
+              : "Try fewer words, or look through everything open now."}
             // AUD31-32: it searched Declutter too, so it offers Declutter's Browse as well.
             action={
               <span className="inline-flex flex-wrap justify-center gap-x-4 gap-y-2">

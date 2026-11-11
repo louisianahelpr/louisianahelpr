@@ -2,7 +2,7 @@
  * AUD31-16 (audit 2026-10-31, Guests on Declutter pages): a guest who opened a shared Declutter link got "That page
  * needs an account" over "Welcome back, neighbor.", with Create an account only as the small last line and nothing
  * saying what the page was. The notice names the Declutter page and Login leads with Create an account.
- * @mutate src/pages/auth/loginNotice.ts |   const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && (notice === declutterPage \|\| notice.endsWith(BACK_TO_IT)); |   const leadWithSignup = false;
+ * @mutate src/pages/auth/loginNotice.ts |   const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && notice !== JOB_LINK_NOTICE && notice.endsWith(BACK_TO_IT); |   const leadWithSignup = false;
  * F080 (owner UI audit 11-09): every gated page names itself and leads with Create an account (the Sell pattern).
  * @mutate src/pages/auth/loginNotice.ts |   ["/post-job", "Posting a job needs a free account."], |
  * @mutate src/pages/auth/loginNotice.ts |   if (url.pathname.startsWith("/declutter/item/")) return | if (false) return
@@ -22,9 +22,12 @@ describe("Login for a guest who opened a Declutter link (AUD31-16)", () => {
       ["/declutter/sell", /^Selling on Declutter needs an account/],
       ["/declutter?tab=buying", /^Your Declutter orders need an account/],
       ["/declutter?tab=selling", /^Your Declutter listings need an account/],
+      // Audit 11-10 F359l: settings and the moving-sale planner name themselves too.
+      ["/declutter/settings", /^Your Declutter settings need an account/],
+      ["/declutter/move", /^Planning a moving sale\? That needs an account/],
       ["/declutter", /^That's Declutter/],
     ];
-    expect(cases.length).toBeGreaterThan(4);
+    expect(cases.length).toBeGreaterThan(6);
     for (const [path, words] of cases) {
       const n = declutterGatedNotice(path);
       expect(n, path).toMatch(words);

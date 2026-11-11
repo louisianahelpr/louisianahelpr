@@ -5,7 +5,7 @@ import { Copy, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { copyToClipboard } from "@/lib/nativeShare";
-import { MY_HANDLE_KEY, ensureMyHandle, profileLinkLabel, profileLinkUrl, shareMyProfile } from "@/lib/profileLink/api";
+import { MY_HANDLE_KEY, ensureMyHandle, fetchPublicProfile, profileLinkLabel, profileLinkUrl, shareMyProfile } from "@/lib/profileLink/api";
 
 
 /**
@@ -28,7 +28,25 @@ export function YourPageLink({ name, className = "", forSale = 0, knownHandle, s
     staleTime: 10 * 60_000,
   });
   const handle = knownHandle || readHandle;
+  // F259k (audit 11-10, lead confirmed live): the card offered Copy and Share for a page that opened "This profile isn't
+  // available" (public_profile_by_handle answers nothing for a hidden, restricted or test account). Ask the same read
+  // the page uses (same cache key, so opening the page is instant); when it answers "no page", say so and offer no link
+  // to share. A failed read keeps the card: a network blip must not hide a working link.
+  const { data: publicPage } = useQuery({
+    enabled: !!handle,
+    queryKey: ["public-profile", handle],
+    queryFn: () => fetchPublicProfile(handle as string),
+    staleTime: 10 * 60_000,
+  });
   if (!handle) return null;
+  if (publicPage === null) {
+    return (
+      <p data-your-page-link="" data-your-page-hidden="" className={`text-ds-13 text-muted-foreground ${className}`}>
+        Your page is hidden right now, so others can't open it.{" "}
+        <Link to="/support?topic=message&subject=My%20profile%20page" className="link-standard font-semibold text-foreground">Ask us why</Link>
+      </p>
+    );
+  }
   const copy = async () => {
     if (await copyToClipboard(profileLinkUrl(handle))) toast("Link copied");
     else toast.error("Couldn't copy the link. Press and hold it to copy.");

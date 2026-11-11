@@ -19,6 +19,7 @@ import { fetchSellerDeliveryBooking, slotLabel, type SellerDeliveryBooking } fro
 import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";
 import { fetchMyShipTracking, shipByWords, shipTrackingKey, trackingStatusWords, type ShipTracking } from "@/lib/declutter/shipOrder";
 import { heldPastADay, stillInHandLine } from "@/lib/declutter/stillInHand";
+import { checkWindowEnds, orderWhen } from "@/lib/declutter/timeLeft";
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { refundTookItBack, type RefundTookItBack } from "@/lib/declutter/refundRequests";
@@ -128,12 +129,15 @@ export function buyerNextAction(f: OrderFacts): string | null {
  */
 export function buyerNextStep(f: OrderFacts, when: string | null, helprName: string | null = null, taskPickedUpAt: string | null = null,
   taskStatus: string | null = null, times: { chosen: string | null; by: string | null } = { chosen: null, by: null },
-  ship: Pick<ShipTracking, "ship_by" | "tracking_status"> | null = null): NextStepValue {
+  ship: Pick<ShipTracking, "ship_by" | "tracking_status"> | null = null, checkUntil: string | null = null): NextStepValue {
   const you = (text: string, by?: string | null): NextStepValue => ({ who: "you", text, by: by ?? null });
   const them = (text: string): NextStepValue => ({ who: "them", text });
   const info = (text: string): NextStepValue => ({ who: "info", text });
-  if (f.cancelled) return info("Cancelled and refunded to your card.");
+  // Audit 11-10 F370: the tracker passes the refund figure and day through cancelledStep; this is the words-only fallback.
+  if (f.cancelled) return cancelledStep(null, null);
   if (f.problem) return f.problemAwaitsYou ? you("Add your side to the problem") : info(PROBLEM_ON_HOLD);
+  // Audit 11-10 F365: inside the buyer's 24 hours the row says until when they can report a problem.
+  if (f.done && checkUntil) return info(`You have it. Check it over: you can report a problem until ${orderWhen(checkUntil)}, then the sale is final.`);
   if (f.done) return info("Handed over. It's yours.");
   const at = orderStepAt(f);
   // A3-19 (lead 11-01 5:01 PM): nothing booked says "by <book_by>"; a checkout time once booked is named, no "by".
@@ -285,6 +289,9 @@ export function useBuyingTracker(): BuyingTracker {
   const shipOrders = live.filter((o) => o.handover === "ship");
   const shipRows = useQueries({ queries: shipOrders.map((o) => ({ queryKey: shipTrackingKey(o.orderId), queryFn: () => fetchMyShipTracking(o.orderId) })) });
   const handovers = useQueries({ queries: pickups.map((o) => ({ queryKey: ["declutter", "handover", o.orderId], queryFn: () => fetchMyHandover(o.orderId) })) });
+  // F365/F375: a handed-over order's handover row says when the buyer's 24 hours to check it end (the same key).
+  const handedOver = orders.filter((o) => o.status === "handed_over");
+  const doneRows = useQueries({ queries: handedOver.map((o) => ({ queryKey: ["declutter", "handover", o.orderId], queryFn: () => fetchMyHandover(o.orderId) })) });
   const sd = live.filter((o) => o.handover === "seller_delivery");
   const sdRows = useQueries({ queries: sd.map((o) => ({ queryKey: ["declutter", "seller-delivery-booking", o.orderId], queryFn: () => fetchSellerDeliveryBooking(o.orderId) })) });
   const helpr = live.filter((o) => o.handover === "delivery" && o.taskId);
@@ -316,6 +323,8 @@ export function useBuyingTracker(): BuyingTracker {
       problem: problems.has(o.orderId),
       problemAwaitsYou: problemAwaitsBuyer(problemRows[problemIds.indexOf(o.orderId)]?.data ?? null),
     };
+    const checkUntil = facts.done ? checkWindowEnds(doneRows[handedOver.indexOf(o)]?.data?.confirmed_at) : null;
+    facts.checkOpen = !!checkUntil;
     const bucket = orderBucket(facts);
     counts[bucket]++;
     const whenIso = o.handover === "seller_delivery" ? sdRow?.slot_start ?? null
@@ -332,9 +341,9 @@ export function useBuyingTracker(): BuyingTracker {
       facts,
       bucket,
       action: buyerNextAction(facts),
-      next: back != null && back > 0 ? refundedStep(back, o.lines[0]?.closed_at ?? null) : buyerNextStep(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
+      next: facts.cancelled ? cancelledStep(back, o.lines[0]?.closed_at ?? null) : buyerNextStep(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
         o.handover === "delivery" ? task?.status ?? null : null,
-        orderTimeWords(orderTimes, o.handover, slot), shipRows[shipOrders.indexOf(o)]?.data ?? null),
+        orderTimeWords(orderTimes, o.handover, slot), shipRows[shipOrders.indexOf(o)]?.data ?? null, checkUntil),
       // #6: a free item never reads like a paid order ("You paid $0").
       money: facts.free ? "Free." : total != null && !facts.cancelled ? `You paid ${formatPrice(total)}.` : null,
     });
@@ -346,10 +355,16 @@ export function useBuyingTracker(): BuyingTracker {
   return { ready: !!cart.data, views, checkouts, ended, counts, live, bookings: bookings.data };
 }
 
-/** Q2630: "Cancelled. $42.70 was refunded to your card on Nov 2." (the day only when the server sends closed_at). */
-function refundedStep(cents: number, closedAt: string | null): NextStepValue {
+/**
+ * Q2630: "Cancelled. $42.70 was refunded to your card on Nov 2." (the day only when the server sends closed_at).
+ * Audit 11-10 F370: with no figure yet the row still gives the day and says when the money shows up, instead of a bare
+ * "Cancelled and refunded to your card." (no amount, no date). Card refunds take 5-10 business days to show on a statement.
+ */
+function cancelledStep(cents: number | null, closedAt: string | null): NextStepValue {
   const day = closedAt && !Number.isNaN(Date.parse(closedAt)) ? new Date(closedAt).toLocaleDateString([], { month: "short", day: "numeric" }) : null;
-  return { who: "info", text: `Cancelled. ${formatPrice(cents)} was refunded to your card${day ? ` on ${day}` : ""}.` };
+  const when = " It shows on your statement in 5-10 business days.";
+  if (cents != null && cents > 0) return { who: "info", text: `Cancelled. ${formatPrice(cents)} was refunded to your card${day ? ` on ${day}` : ""}.${when}` };
+  return { who: "info", text: `Cancelled${day ? ` on ${day}` : ""}. Your payment is refunded to your card.${when}` };
 }
 
 /**

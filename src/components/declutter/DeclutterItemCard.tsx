@@ -13,7 +13,7 @@ import { CARD_PHOTO_PX, photoCardUrl, photoPublicUrl, type DeclutterItem, type D
 import { cardPhotoSrcSet, CARD_PHOTO_SIZES } from "@/lib/declutter/photoSizes";
 import { useLoadPhotoAhead } from "./useLoadPhotoAhead";
 import { holdForFirstRowPhoto, useLaterPhotosOpen } from "./firstRowPhotoGate";
-import { formatPrice, milesLabel, itemPriceLabel } from "@/lib/declutter/distance";
+import { formatPrice, milesLabelShort, itemPriceLabel } from "@/lib/declutter/distance";
 import { PriceInclFee } from "./PriceInclFee";
 import { PhotoTag, PhotoTagStack } from "@/components/ui/PhotoTag";
 import { PRICE_BASE, PRICE_DEAL, PRICE_PAID } from "@/components/ui/designScale";
@@ -69,7 +69,8 @@ type PhotoStage = "card" | "full" | "failed";
 export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag, bundle, firstRow, aboveFold, guestSaveTo }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; saves?: number | null; tag?: CardTag | null; bundle?: boolean; firstRow?: boolean; aboveFold?: boolean;
   /** F052 (UI audit 11-09): a guest's heart, a link to sign-up ("Sign up to save items.") that comes back here. */
   guestSaveTo?: string }) {
-  const away = milesLabel(miles, approximate);
+  // Audit 11-10 F321: the short form ("3 mi", "About 1 mi"), so the condition beside it is not cut to "Lightly u...".
+  const away = milesLabelShort(miles, approximate);
   const condition = CONDITION_LABEL[item.condition_stars] ?? null;
   // A photo that fails to load drops out, leaving the icon under it (never a blank tile). The card-sized thumbnail
   // comes first (owner 10-31: pictures were slow while scrolling); if it fails, the full photo; then the icon.
@@ -146,7 +147,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
       <span className="block min-w-0 px-0.5 pt-2">
         <span data-card-title className="block truncate text-ds-13 font-semibold leading-snug" title={item.title}>{item.title}</span>
         {(condition || away) && (
-          // "Like new · 16 mi away" on ONE line. #45 (deep audit 2026-10-28): the distance always shows whole (it never
+          // "Like new · 16 mi" on ONE line. #45 (deep audit 2026-10-28): the distance always shows whole (it never
           // shrinks); the condition gives way first.
           <span data-card-place="" className="flex min-w-0 text-ds-11 text-muted-foreground" title={[condition, away].filter(Boolean).join(" · ")}>
             {condition && <span data-card-condition={item.condition_stars} title={condition} className="min-w-0 truncate">{condition}</span>}

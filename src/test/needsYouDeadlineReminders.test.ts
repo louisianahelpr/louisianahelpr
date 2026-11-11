@@ -70,8 +70,8 @@ describe("needs-you deadline reminders (A3-85)", () => {
     expect(quiet).toContain("< time '08:00'");
   });
 
-  // @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |     WHEN p_type = 'payment' AND p_title IN ('Check out within 24 hours', '2 hours left to check out') THEN 'needs_you' |     WHEN p_type = 'payment' AND p_title IN ('Check out within 24 hours') THEN 'needs_you'
-  // @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |     WHEN p_type IN ('warning', 'work_status') AND p_title = 'Please review the work' THEN 'needs_you' |     WHEN p_type IN ('warning', 'work_status') AND p_title = 'Please review the work' THEN 'job_update'
+  // @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |     WHEN p_type = 'payment' AND p_title IN ('Check out within 24 hours', '2 hours left to check out') THEN 'needs_you' |     WHEN p_type = 'payment' AND p_title IN ('Check out within 24 hours') THEN 'needs_you'
+  // @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |     WHEN p_type IN ('warning', 'work_status') AND p_title = 'Please review the work' THEN 'needs_you' |     WHEN p_type IN ('warning', 'work_status') AND p_title = 'Please review the work' THEN 'job_update'
   // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |                      'declutter_offers', 'declutter_refunds', 'declutter_pickups')) |                      'declutter_refunds', 'declutter_pickups'))
   // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql |       OR (r.kind = 'needs_you' AND n.created_at < v_now - interval '1 hour') |       OR false
   it("every needs-you notice is texted as 'needs_you', the trigger wakes for its types, and a late text is dropped", () => {
@@ -113,7 +113,7 @@ describe("needs-you deadline reminders (A3-85)", () => {
 
   // @mutate supabase/functions/_shared/smsPolicy.ts |   if (kind === "needs_you") return "/declutter"; |   if (kind === "needs_you") return "/jobs";
   it("the text: a fixed phrase, the job link for a job step, Declutter for the rest, one segment", () => {
-    expect(SMS_KIND_PHRASES.needs_you).toBe("Something needs you before a deadline.");
+    expect(SMS_KIND_PHRASES.needs_you).toBe("A reply or approval is due soon.");
     expect(smsLinkPath("needs_you", null)).toBe("/declutter");
     const job = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
     expect(smsLinkPath("needs_you", job)).toBe(`/jobs?job=${job}`);

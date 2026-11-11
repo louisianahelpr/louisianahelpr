@@ -26,8 +26,8 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
       <Text className="e-h1" style={codeStyle}>{token}</Text>
       <TransactionalFooter>
         It expires soon. If you didn&apos;t ask for it, you can ignore this email; nothing changes without the code.
+        {/* F460 (audit 11-10): say who sent it. */}
+        <br />- Louisiana Helpr
       </TransactionalFooter>
   </BaseLayout>
 )
-
-export default ReauthenticationEmail

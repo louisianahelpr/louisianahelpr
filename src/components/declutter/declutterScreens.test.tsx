@@ -658,6 +658,12 @@ describe("Sell form checks mirror the server", () => {
     expect(formProblem({ ...ok, price: "", floor: "" })).toMatch(/price/);
     expect(dollarsToCents("$1,250.50")).toBe(125050);
   });
+  // Audit 11-10 F326 (High): the photo writer's note in the title box would have gone live.
+  // @mutate src/components/declutter/sellForm.ts |   if (WRITER_WARNING_RE.test(f.title)) return WRITER_WARNING_TITLE; |   if (false) return WRITER_WARNING_TITLE;
+  it("F326: a title that is the photo writer's warning never posts, and says it is about the name", () => {
+    expect(formProblem({ ...ok, title: "Item photo unclear - please retake photos" })).toMatch(/not the item's name/);
+    expect(formProblem({ ...ok, title: "TEST - please ignore" })).toBeNull();
+  });
   it("refuses a floor above the price, a street address as the area, and a missing name", () => {
     expect(formProblem({ ...ok, floor: "50" })).toMatch(/lowest price/);
     // Owner 2026-10-28: with drops on, the lowest price must be under the price and the step one of the choices;

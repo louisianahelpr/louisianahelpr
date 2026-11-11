@@ -41,6 +41,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { declutterTodo, oldDeclutterView } from "@/lib/declutter/tabs";
+import { deriveNeedsYouTodos } from "@/pages/home/homeDashboard/needsYouTodos";
 
 const SOON = new Date(Date.now() + 20 * 3_600_000).toISOString();
 
@@ -1012,6 +1013,23 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
       [{ ...OFFER, status: "declined" }, { ...OFFER, offer_id: "w", awaiting: "buyer" }] as never,
     );
     expect(t).toMatchObject({ toPay: 0, purchasesOpen: 1, sellerOffers: 0, buying: 1, selling: 0 });
+  });
+
+  // Audit 11-10 F363 (Medium): the Buying badge counted cart LINES (8) while Home's to-dos and the dock counted
+  // checkouts, one per seller (7). One rule now: openCheckouts, read by both.
+  // @mutate src/lib/declutter/tabs.ts |   const toPay = openCheckouts(cart, now).size; |   const toPay = cart.filter((l) => l.my_side === "buyer" && l.status === "in_cart" && new Date(l.checkout_by).getTime() > now).length;
+  // @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   for (const [k, lines] of openCheckouts(cart, now)) { |   for (const [k, lines] of cart.filter((l) => l.my_side === "buyer" && l.status === "in_cart").map((l) => [l.seller_id ?? l.line_id, [l]] as const)) {
+  it("F363: two cart items from one seller are one checkout on the Buying badge and one to-do on Home", () => {
+    const cart = [
+      { ...LINE, line_id: "a", seller_id: "s1" },
+      { ...LINE, line_id: "b", seller_id: "s1", item_title: "Chair" },
+      { ...LINE, line_id: "c", seller_id: "s2", item_title: "Rug" },
+    ] as never;
+    const t = declutterTodo(cart, []);
+    expect(t).toMatchObject({ toPay: 2, buying: 2 });
+    const todos = deriveNeedsYouTodos({ postedJobs: [], pendingApplicantCounts: {}, appliedApps: [], shopOrders: [], backout: new Map(), declutterCart: cart as never }).filter((x) => x.id.startsWith("dc-"));
+    expect(todos.length).toBe(t.toPay);
+    expect(todos.map((x) => x.title).sort()).toEqual(["Check out 2 items", "Check out Rug"]);
   });
 
   // Audit 2026-10-28 #37 (SE2-4): the seller's Helpr notices ("A Helpr will pick it up", "Helpr pickup

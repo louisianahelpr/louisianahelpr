@@ -85,7 +85,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/declutter/DeclutterNoHelpr.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/declutter/DeclutterPickupWindows.tsx` | input×1, date/calendar×1 | datetime-local |  | declutter-no-pickup-slots · declutter-slot-picker · Pickup day · helpr-same-pickup-slot |
-| `src/components/declutter/DeclutterProblemForm.tsx` | textarea×1 |  | 1000 |  |
+| `src/components/declutter/DeclutterProblemForm.tsx` | textarea×1 |  | 1000 | What |
 | `src/components/declutter/DeclutterWantedReplies.tsx` | input×1 | text |  | Photos · wanted-reply-pick · wanted-reply-price · wanted-near-title |
 | `src/components/declutter/DeclutterWantedViews.tsx` | input×2 | text | 60 | What are you looking for? · wanted-what · Kids bike · wanted-what-problem · wanted-category · Pick one · wanted-category-problem · wanted-max |
 | `src/components/declutter/DeliverVehicleForm.tsx` | checkbox/switch/radio×3 |  |  | Your vehicle |
@@ -571,6 +571,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/BlockUserDialog.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | Block reason (optional, admin-only) |
+| `src/components/BlockUserDialog.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | Jobs that will be cancelled · Block reason (optional, admin-only) |
 | `src/components/ReportDialog.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | Start with when it happened… |
 

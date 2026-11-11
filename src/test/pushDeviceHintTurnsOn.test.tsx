@@ -25,7 +25,7 @@ beforeEach(() => {
   NATIVE = false;
 });
 
-const tap = () => fireEvent.click(screen.getByRole("button", { name: "Turn on app notifications" }));
+const tap = () => fireEvent.click(screen.getByRole("button", { name: "Get alerts on this phone" }));
 
 describe("PushDeviceHint: a button that turns push on and says what happened (A3-90)", () => {
   it("granted: the request ran once and the hint says On, with no button left", async () => {
@@ -58,7 +58,7 @@ describe("PushDeviceHint: a button that turns push on and says what happened (A3
     render(<PushDeviceHint />);
     tap();
     await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(1));
-    await vi.waitFor(() => expect((screen.getByRole("button", { name: "Turn on app notifications" }) as HTMLButtonElement).disabled).toBe(false));
+    await vi.waitFor(() => expect((screen.getByRole("button", { name: "Get alerts on this phone" }) as HTMLButtonElement).disabled).toBe(false));
     expect(screen.queryByTestId("push-device-hint-result")).toBeNull();
   });
 });

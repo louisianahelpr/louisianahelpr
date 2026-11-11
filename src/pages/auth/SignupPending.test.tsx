@@ -113,7 +113,7 @@ describe("SignupPending", () => {
           options: { emailRedirectTo: expect.stringMatching(/\/signup-pending$/) },
         });
       });
-      const button = await screen.findByRole("button", { name: /resent/i });
+      const button = await screen.findByRole("button", { name: /resend in \d+s/i });
       expect(button).toBeDisabled();
     });
 
@@ -163,7 +163,7 @@ describe("SignupPending", () => {
       renderWithRouterState(EMAIL);
       fireEvent.click(await screen.findByRole("button", { name: /resend/i }));
 
-      expect(await screen.findByRole("button", { name: /resent/i })).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: /resend in \d+s/i })).toBeInTheDocument();
       expect(toastError).not.toHaveBeenCalled();
     });
   });

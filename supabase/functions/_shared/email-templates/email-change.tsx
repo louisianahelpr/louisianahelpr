@@ -14,6 +14,7 @@ import {
   linkStyle,
 } from './styles.ts'
 import { BaseLayout, BrandButton, TransactionalFooter } from './components.tsx'
+import { getAppUrl } from '../appUrl.ts'
 
 interface EmailChangeEmailProps {
   siteName: string
@@ -44,7 +45,12 @@ export const EmailChangeEmail = ({
       </Text>
       <BrandButton href={confirmationUrl} label="Confirm the change" />
       <TransactionalFooter>
-        If you didn't request this change, please secure your account immediately.
+        {/* F462 (audit 11-10): the "not you" line names the step and links it. */}
+        Didn&apos;t ask for this? Don&apos;t confirm it, and reset your password so no one else can sign in:{' '}
+        <Link href={`${getAppUrl()}/forgot-password`} className="e-accent" style={linkStyle}>
+          reset my password
+        </Link>
+        . - Louisiana Helpr
       </TransactionalFooter>
   </BaseLayout>
 )

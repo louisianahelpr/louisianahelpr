@@ -1052,6 +1052,8 @@ export interface AiDraft {
   coverPhoto?: number | null;
   /** At most one "one more photo would help" tip, or null. */
   photoTip?: string | null;
+  /** Audit 11-10 F326: the photos showed no sellable item; the form fills nothing from this answer. Absent from an older function. */
+  noItem?: boolean | null;
 }
 
 /** Where the fair-price hint looks, sent so the server can ground Claude's price in our sold prices. */

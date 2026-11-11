@@ -357,7 +357,8 @@ const SignupPending = () => {
                 className="font-semibold disabled:no-underline"
                 style={{ color: resendCooldown > 0 ? "hsl(var(--olivewood) / 0.8)" : "hsl(var(--bark))" }}
               >
-                {resending ? "Sending…" : resent ? `Resent${resendCooldown > 0 ? ` (${resendCooldown}s)` : ""}` : "Resend"}
+                {/* F259e (audit 11-10): "Resent (58s)" read as a broken label; it now says when you can send again. */}
+                {resending ? "Sending…" : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend"}
               </InlineTextButton>
             </p>
           )}
@@ -385,6 +386,13 @@ const SignupPending = () => {
             Wrong address?{" "}
             <Link to="/signup" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
               Start over
+            </Link>
+          </p>
+          {/* F260a (audit 11-10): a person whose email never comes had no way on but waiting. */}
+          <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-pending-support="">
+            Still nothing after a few minutes?{" "}
+            <Link to={`/support?topic=login&subject=${encodeURIComponent("My confirmation email didn't arrive")}`} className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
+              Contact support
             </Link>
           </p>
           <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

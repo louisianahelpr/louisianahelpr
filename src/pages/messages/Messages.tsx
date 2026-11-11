@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { BlockUserDialog } from "@/components/BlockUserDialog";
+import { BlockUserDialog, type BlockTarget } from "@/components/BlockUserDialog";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import { MESSAGE_MAX_LENGTH } from "@/lib/messageLimits";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -57,7 +57,7 @@ const Messages = () => {
   // messages can be missed on every thread switch).
   const activeConvoRef = useRef<Conversation | null>(null);
   const [reportTarget, setReportTarget] = useState<{ type: "message" | "user"; id: string } | null>(null);
-  const [blockTarget, setBlockTarget] = useState<{ id: string; name: string } | null>(null);
+  const [blockTarget, setBlockTarget] = useState<BlockTarget | null>(null);
   const [deleteConvoConfirm, setDeleteConvoConfirm] = useState<Conversation | null>(null);
   const [deleteMessageConfirm, setDeleteMessageConfirm] = useState<string | null>(null);
   // Multi-select batch delete: the threads staged for the combined
@@ -429,7 +429,7 @@ const Messages = () => {
       allConversations={inbox.allConversations}
       sectionTabs={inbox.strip}
       sectionEmpty={inbox.sectionEmpty}
-      mainEmptyBody={inbox.mainEmptyBody}
+      mainEmptyBody={inbox.mainEmptyBody} orderTalks={inbox.orderTalks}
       loading={loading}
       loadError={loadError}
       retryInbox={retryInbox}
@@ -514,6 +514,7 @@ const Messages = () => {
           onClose={() => setBlockTarget(null)}
           blockedUserId={blockTarget.id}
           blockedUserName={blockTarget.name}
+          onMuteInstead={blockTarget.muteInstead} // F428: the first button, where the chat can be muted instead
           onBlocked={() => {
             // Drop the conversation locally and exit chat view
             setConversations((prev) => prev.filter((c) => c.otherUserId !== blockTarget.id));
@@ -521,10 +522,8 @@ const Messages = () => {
             // close, or the `?chat=1` flag outlives the thread again.
             if (activeConvo?.otherUserId === blockTarget.id) closeThread();
           }}
-          // Block-and-report combo: after the block succeeds, open the
-          // multi-step Report dialog so the trust team gets a flag in
-          // the same gesture. Captures the user id before clearing
-          // `blockTarget` so the report target stays stable.
+          // Block-and-report combo: after the block succeeds, open the multi-step Report dialog so the trust team
+          // gets a flag in the same gesture. Captures the user id before clearing `blockTarget` (stable report target).
           onReportAndBlock={() => {
             const id = blockTarget.id;
             setBlockTarget(null);

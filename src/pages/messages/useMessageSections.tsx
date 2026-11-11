@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useFeature } from "@/hooks/useFeature";
 import { useOpenToEveryoneAnswer } from "@/components/landing/useSectionsOpen";
 import type { Conversation } from "@/components/messages/types";
-import { DeclutterOrderTalkRows } from "@/components/messages/DeclutterOrderTalkInbox";
+import type { OrderTalkInbox } from "@/components/messages/DeclutterOrderTalkInbox";
 import type { SectionEmpty } from "@/components/messages/SectionInboxEmpty";
 import { fetchMyOrderTalks, MY_ORDER_TALKS_KEY } from "@/lib/declutter/orderTalk";
 import {
@@ -145,7 +145,6 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     // A closed section only has a chip while it holds threads, so its chip never shows an empty list.
     empty = { icon: def.icon, title: `No ${copy.noun} messages yet`, body: copy.body, action: { label: copy.browse, to: def.path } };
     // D2-1: Declutter lists the member's order chats above its threads, in place of this empty state when it has any.
-    if (section === "declutter") empty.Lead = DeclutterOrderTalkRows;
     // Q1947: Shops lists the member's shop chats the same way (shops_my_talks needs the switch, so only while it's on).
     if (section === "shops" && live.shops) empty.Lead = ShopTalkLead;
     // Q2209: Homes the same way (rentals_my_talks needs the rentals switch, so only while it's on).
@@ -157,8 +156,14 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     empty = { icon: MailCheck, title: "No unread messages", body: "You're all caught up. New messages show up here.", action: { label: "See all messages", to: "/messages" } };
   }
 
+  // F420 (audit 11-10): the order chats are inbox rows, mixed with the threads newest first, under All and under the
+  // Declutter chip (ConversationListBody). Not under Unread (the server has no unread flag for them), Jobs, Shops or Homes.
+  const orderTalkInbox: OrderTalkInbox | null =
+    section === "all" || section === "declutter"
+      ? { rows: orderTalks.data ?? [], pending: orderTalks.isPending, error: orderTalks.isError ? orderTalks.error : null, reload: () => void orderTalks.refetch() }
+      : null;
   return {
-    section, strip, conversations: shown, allConversations: shownAll, sectionEmpty: empty,
+    section, strip, conversations: shown, allConversations: shownAll, sectionEmpty: empty, orderTalks: orderTalkInbox,
     mainEmptyBody: mainInboxEmptyBody(live.declutter),
   };
 }

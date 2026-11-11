@@ -39,11 +39,15 @@ export function loginNotice(o: {
           : null;
   // AUD31-16: a guest who followed a Declutter link is most likely new, so the notice leads with Create an account.
   // F080 (owner UI audit 11-09): every gated page does the same (the Sell pattern), with its own line.
-  const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && (notice === declutterPage || notice.endsWith(BACK_TO_IT));
+  // F252: the returning-member lines (payment, finish profile) end with LOG_BACK_IN, so they do not lead with sign-up.
+  // F286a: a private job link is the poster's or Helpr's, so it leads with Log in too.
+  const leadWithSignup = o.bouncedFromGatedRoute && notice !== null && notice !== JOB_LINK_NOTICE && notice.endsWith(BACK_TO_IT);
   return { accountChoice, notice, leadWithSignup };
 }
 
 const BACK_TO_IT = "Create an account, or log in and we'll take you straight back to it.";
+/** F286a: the one gated line that does not end with BACK_TO_IT, so the form leads with Log in. */
+export const JOB_LINK_NOTICE = "This job is only visible to the person who posted it and the person doing it. Log in and we'll take you straight back to it.";
 
 /**
  * F080 (owner UI audit 11-09): most gated pages said a generic "That page needs an account" over the Log in form,
@@ -60,10 +64,27 @@ const GATED_PAGE_LINES: readonly [prefix: string, line: string][] = [
   ["/home", "Your home page needs an account."],
 ];
 
+/**
+ * F252 (audit 11-10): /payment-success and /complete-profile are only reached by someone who already has an account
+ * (back from Stripe; mid sign-up), so "Create an account" was the wrong lead. These say log in, and Login does not
+ * lead with Create an account for them.
+ */
+const RETURNING_PAGE_LINES: readonly [prefix: string, line: string][] = [
+  ["/payment-success", "Log in to see your payment."],
+  ["/complete-profile", "Log in to finish your profile."],
+];
+const LOG_BACK_IN = "We'll take you straight back to it.";
+
 export function gatedPageNotice(redirect: string | null | undefined): string | null {
   const declutter = declutterGatedNotice(redirect);
   if (declutter || !redirect) return declutter;
-  const first = `/${new URL(redirect, "https://x.invalid").pathname.split("/")[1] ?? ""}`;
+  const path = new URL(redirect, "https://x.invalid").pathname;
+  // F286a (audit 11-10): a link to one job that is not public (hired, done, cancelled) comes from the
+  // job's own poster or Helpr, who already has an account. Lead with Log in, not Create an account.
+  if (/^\/jobs\/[0-9a-f-]{36}$/i.test(path)) return JOB_LINK_NOTICE;
+  const first = `/${path.split("/")[1] ?? ""}`;
+  const returning = RETURNING_PAGE_LINES.find(([prefix]) => prefix === first)?.[1];
+  if (returning) return `${returning} ${LOG_BACK_IN}`;
   const line = GATED_PAGE_LINES.find(([prefix]) => prefix === first)?.[1];
   return line ? `${line} ${BACK_TO_IT}` : null;
 }
@@ -81,6 +102,9 @@ export function declutterGatedNotice(redirect: string | null | undefined): strin
   if (url.pathname.startsWith("/declutter/item/")) return `That's an item for sale on Declutter, neighbors selling what they don't need. ${back}`;
   // Every Sell address (the one-item form, a bunch, the chooser) starts with the one-item form's path.
   if (url.pathname.startsWith(SELL_ONE_PATH)) return `Selling on Declutter needs an account. ${back}`;
+  // Audit 11-10 F359l: the settings page and the moving-sale planner were "That's Declutter..." too; they say what they are.
+  if (url.pathname.startsWith("/declutter/settings")) return `Your Declutter settings need an account. ${back}`;
+  if (url.pathname.startsWith("/declutter/move")) return `Planning a moving sale? That needs an account. ${back}`;
   const tab = url.searchParams.get("tab");
   if (tab === "buying") return `Your Declutter orders need an account. ${back}`;
   if (tab === "selling") return `Your Declutter listings need an account. ${back}`;

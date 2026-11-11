@@ -201,6 +201,18 @@ const CompleteProfile = () => {
      
   }, [user?.id, Boolean(profile), isLoading]);
 
+  // F455 (audit 11-10): a finished profile that opens this page (an old link, a back button) is sent on to /home below;
+  // it used to go with no word. One toast says why. Not after a save made here: the cache turns complete a render
+  // before navigate() runs, and that member just finished, nothing was "already" done.
+  const alreadyComplete = !!profile && (profile.is_legacy_user === true || isProfileComplete(profile, user));
+  const savedHereRef = useRef(false);
+  const toldAlreadyCompleteRef = useRef(false);
+  useEffect(() => {
+    if (!alreadyComplete || submitting || savedHereRef.current || toldAlreadyCompleteRef.current) return;
+    toldAlreadyCompleteRef.current = true;
+    toast(t("profileGate.alreadyComplete"));
+  }, [alreadyComplete, submitting, t]);
+
   // After a failed save: a profile complete anyway is read back and the member goes on (completeProfile/saveCompletedProfile.ts).
   const recover = () => recoverCompletedProfile({ user, t, queryClient, navigate, nextDestination });
 
@@ -228,6 +240,7 @@ const CompleteProfile = () => {
       await saveCompletedProfile({
         user, profile, firstName, lastName, bio, location, zipCode, resolvedZipParish, ageBoxShown, avatarFile, t, queryClient,
       });
+      savedHereRef.current = true;
       hapticSuccess();
       navigate(nextDestination, { replace: true });
     } catch (err: unknown) {
@@ -274,7 +287,7 @@ const CompleteProfile = () => {
   // gets bounced straight to the dashboard instead of staring at an empty
   // checklist they can't dismiss.
   // See the divergence note on `checklist` above before touching this gate.
-  if (profile && (profile.is_legacy_user === true || isProfileComplete(profile, user))) {
+  if (alreadyComplete) {
     return <Navigate to="/home" replace />;
   }
 

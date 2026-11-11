@@ -119,7 +119,7 @@ beforeEach(() => {
 });
 
 // Audit 2026-10-30 DB-11: "Take it back" ended the refund request in one tap, with no word on what follows.
-// @mutate src/components/declutter/DeclutterRefundRequest.tsx | disabled={withdraw.isPending} onClick={() => setConfirmWithdraw(true)}>Take it back</Button> | disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Take it back</Button>
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx | disabled={withdraw.isPending} onClick={() => setConfirmWithdraw(true)}>Cancel my refund request</Button> | disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Cancel my refund request</Button>
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx |             {`${cap(who)} is told, and is paid once the sale is final. You can't ask for a refund on this sale again.`} |             {""}
 async function sendAnswer() {
   fireEvent.click(screen.getByRole("button", { name: "Send answer" }));
@@ -169,7 +169,7 @@ describe("DeclutterRefundPanel: answering a part refund asks first (BUY-10)", ()
 describe("DeclutterRefundPanel: taking a refund request back asks first (DB-11)", () => {
   it("Take it back opens a sheet that says what follows; Keep my request sends nothing; the sheet's button withdraws", async () => {
     show({ ...BASE, can_ask: false, request: REQ });
-    fireEvent.click(await screen.findByRole("button", { name: "Take it back" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel my refund request" }));
     const sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent("Take back your refund request?");
     expect(sheet).toHaveTextContent("Nikki is told, and is paid once the sale is final. You can't ask for a refund on this sale again.");
@@ -177,7 +177,7 @@ describe("DeclutterRefundPanel: taking a refund request back asks first (DB-11)"
     fireEvent.click(within(sheet).getByRole("button", { name: "Keep my request" }));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(state.withdrawn).toEqual([]);
-    fireEvent.click(screen.getByRole("button", { name: "Take it back" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel my refund request" }));
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Take it back" }));
     await waitFor(() => expect(state.withdrawn).toEqual([["r1"]]));
   });
@@ -310,6 +310,19 @@ describe("DeclutterRefundPanel", () => {
     expect(send.disabled).toBe(false);
     await sendAnswer();
     await waitFor(() => expect(state.answered).toEqual([["r1", "part", 1250, "", []]]));
+  });
+
+  // Audit 11-10 F395 (Medium): "then gets $36.06 back" under a $37.45 payment, with nothing explaining the gap.
+  it("F395: the seller's Refund in full says why the amount is less than the payment", async () => {
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: REQ });
+    const sub = await screen.findByText(/then gets \$41\.20 back once you confirm you have it/);
+    expect(sub.textContent).toContain("That's all they paid, less the small part the card network kept for the payment, which it doesn't give back. You get no payout for this sale.");
+  });
+
+  it("F395: with a Helpr delivery kept, the seller's Refund in full names the item price instead", async () => {
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, delivery_kept_cents: 1500, request: REQ });
+    const sub = await screen.findByText(/then gets \$41\.20 back once you confirm you have it/);
+    expect(sub.textContent).toContain("That's what they paid for the item, less the small part the card network kept");
   });
 
   it("seller: Refund in full sends no amount (the server decides it), even after typing an offer", async () => {
@@ -465,7 +478,8 @@ describe("DeclutterRefundPanel", () => {
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx |         <NextStep value={sellerReturnStep(r, who)} /> |
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx |   if (r.return_dropped_off_at && r.return_way === "drop_off") return | if (false) return
 describe("the refund panel says the next step in the shared line (A3-20, A3-79)", () => {
-  const atWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+  // Audit 11-10 F367: the deadline has its date, in Central time (orderWhen).
+  const atWords = (iso: string) => new Date(iso).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   const line = async (who: "you" | "them") => {
     await waitFor(() => expect(document.querySelector(`[data-next-step="${who}"]`)).not.toBeNull());
     return document.querySelector(`[data-next-step="${who}"]`)!.textContent;

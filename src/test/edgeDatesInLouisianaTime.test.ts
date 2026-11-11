@@ -61,7 +61,7 @@ describe("edge functions write dates in Louisiana time (F183)", () => {
   it("the shared label is the house style in America/Chicago", () => {
     // 2026-11-17 01:42 UTC is Mon, Nov 16 at 7:42 PM in Louisiana (CST, UTC-6): the UTC date would say Nov 17.
     const lateEvening = new Date(Date.UTC(2026, 10, 17, 1, 42));
-    expect(centralDateTimeLabel(lateEvening)).toBe("Mon, Nov 16 at 7:42 PM");
+    expect(centralDateTimeLabel(lateEvening)).toBe("Mon, Nov 16 at 7:42 PM Central");
     expect(centralDayLabel(lateEvening)).toBe("Nov 16");
   });
 });

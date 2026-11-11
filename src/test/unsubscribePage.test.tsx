@@ -133,5 +133,8 @@ describe("the /unsubscribe page", () => {
     expect(screen.getByRole("heading", { name: "This link isn't valid" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Unsubscribe|Turn Off/ })).toBeNull();
     expect(supabaseCalls()).toHaveLength(0);
+    // F249 (audit 11-10): never a dead end: log in to the email settings, or ask us to stop every email.
+    expect(screen.getByRole("link", { name: "Log in to manage emails" }).getAttribute("href")).toBe(`/login?redirect=${encodeURIComponent("/profile?tab=notifications")}`);
+    expect(screen.getByRole("link", { name: "Ask us to stop all emails" }).getAttribute("href")).toMatch(/^\/support\?topic=message&subject=/);
   });
 });

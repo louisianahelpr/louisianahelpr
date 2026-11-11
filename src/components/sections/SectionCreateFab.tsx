@@ -46,7 +46,7 @@ function useFabClearance(on: boolean) {
  * again. The app scrolls inside its own panels, not the window, so this listens to every scroll in capture phase
  * and reads the scrolled element's own position.
  */
-export function useFoldsWhileScrollingDown(on: boolean): boolean {
+function useFoldsWhileScrollingDown(on: boolean): boolean {
   const [folded, setFolded] = useState(false);
   useEffect(() => {
     if (!on || typeof document === "undefined") return;

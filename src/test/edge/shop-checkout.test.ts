@@ -13,7 +13,7 @@
  * @mutate supabase/functions/shop-checkout/index.ts |        metadata: meta, capture_method: "manual", transfer_group: `shop_order_${o.id}`, |        metadata: meta, transfer_group: `shop_order_${o.id}`,
  * @mutate supabase/functions/shop-checkout/index.ts |       billing_address_collection: "required", |       automatic_tax: { enabled: true },\n      billing_address_collection: "required",
  * @mutate supabase/functions/shop-checkout/index.ts |     { idempotencyKey: `shop-order-${o.id}${walletRetry ? ":new-wallet" : ""}` }, |     {},
- * @mutate supabase/functions/shop-checkout/index.ts |   if (session.amount_subtotal !== chargedCents) { |   if (false) {
+ * @mutate supabase/functions/shop-checkout/index.ts |   if (session.amount_subtotal !== chargedCents - giftCents) { |   if (false) {
  * @mutate supabase/functions/shop-checkout/index.ts |   if (frozen.superseded_session_id) await expirePage(frozen.superseded_session_id); |
  * @mutate supabase/functions/shop-checkout/index.ts |     customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; |     customerId = undefined;
  * @mutate supabase/functions/shop-checkout/index.ts | await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => | await ((_a: unknown, _b: unknown, _c: unknown, _d: unknown, c: string \| undefined, f: (c: string \| undefined, r: boolean) => unknown) => f(c, false))(admin, stripe, user, mode, customerId, (payer, walletRetry) =>
@@ -33,6 +33,12 @@
  * @mutate supabase/functions/declutter-money/index.ts |     const swept = await admin.rpc("shop_order_sweep", {}); |     const swept = { error: null, data: {} };
  * @mutate supabase/functions/shop-checkout/index.ts |     if (addr === "missing") return json({ error: "pickup_address_missing" }, 409); |
  * @mutate supabase/functions/shop-checkout/index.ts |   if (!mode \|\| !taxAddress \|\| o.seller_id !== ownerId) { |   if (!mode \|\| !taxAddress) {
+ * Q2105 step 2 (a gift card pays first):
+ * @mutate supabase/functions/shop-checkout/index.ts |      p_credit_id: giftCardId, p_order_id: o.id, p_user_id: user.id, p_tax_cents: tax.cents, p_retired_session: null, |      p_credit_id: giftCardId, p_order_id: o.id, p_user_id: user.id, p_tax_cents: 0, p_retired_session: null,
+ * @mutate supabase/functions/shop-checkout/index.ts |        \|\| applied <= 0 \|\| rest + applied !== chargedCents) { |        \|\| applied <= 0) {
+ * @mutate supabase/functions/shop-checkout/index.ts |      await closeOrder("a gift that covers it all"); |      void 0;
+ * @mutate supabase/functions/shop-checkout/index.ts |      await closeOrder("its gift was refused"); |      void 0;
+ * @mutate supabase/functions/shop-checkout/index.ts |    meta.gift_cents = String(applied); |    void 0;
  * H6 (tax at capture, not at the hold):
  * @mutate supabase/functions/shop-checkout/index.ts |    customer_details: { address, address_source: addressSource }, |    customer_details: { address: { ...address, postal_code: "70112" }, address_source: addressSource },
  * @mutate supabase/functions/shop-checkout/index.ts |  }, { idempotencyKey: `shop-tax-${orderId}` }); |  });
@@ -409,6 +415,65 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     expect(params.line_items.map((l: any) => [l.price_data.product_data.name, l.price_data.unit_amount]).slice(-2)).toEqual([
       ["One-time account setup fee", 200], ["Sales tax", 150],
     ]);
+  });
+
+  // Q2105 step 2: a gift card pays first; the page holds only what is left.
+  const askGift = (fn: Awaited<ReturnType<typeof load>>, giftId: unknown) => fn.request({
+    headers: { Authorization: "Bearer buyer-jwt" },
+    body: { action: "order", shop_id: SHOP, lines: [{ item_id: ITEM, quantity: 2 }], ready_date: "2026-10-30", note: "",
+      terms: { cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before" }, gift_card_id: giftId },
+  });
+  const GIFT = "0000000b-0000-4000-8000-0000000000dd";
+  it("Q2105: a gift is applied AS THE SERVICE on the tax just figured, and the page holds only the remainder as one line", async () => {
+    const fn = await load();
+    frozen();
+    // 6100 + 375 + 150 tax = 6625; a $40 gift leaves 2625.
+    scenario.rpc.redeem_gift_card_for_shop_order = { outcome: "needs_hold", difference_cents: 2625, applied_cents: 4000, leftover_cents: 0 };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 2625 });
+    expect((await fn.fetch(askGift(fn, GIFT))).status).toBe(200);
+    const [call] = rpcs("redeem_gift_card_for_shop_order");
+    expect(call.args).toEqual({ p_credit_id: GIFT, p_order_id: ORDER, p_user_id: BUYER, p_tax_cents: 150, p_retired_session: null });
+    expect(clientOf(call)?.key).toBe("service-key");
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+    expect(params.line_items.map((l: any) => l.price_data.unit_amount)).toEqual([2625]);
+    expect(params.metadata.gift_cents).toBe("4000");
+    // The tax the hold step checks is still the whole order's (the gift was sized on it).
+    expect(params.metadata.job_tax_cents).toBe("150");
+    expect(rpcs("shops_cancel_order_request")).toHaveLength(0);
+  });
+
+  it("Q2105: a gift answer that does not add up to the price closes the order and opens no page", async () => {
+    const fn = await load();
+    frozen();
+    scenario.rpc.redeem_gift_card_for_shop_order = { outcome: "needs_hold", difference_cents: 2600, applied_cents: 4000 };
+    expect((await fn.fetch(askGift(fn, GIFT))).status).toBe(500);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+  });
+
+  it("Q2105: a gift that covers the whole order is not taken yet: the order closes (gift back) and the buyer is told", async () => {
+    const fn = await load();
+    frozen();
+    scenario.rpc.redeem_gift_card_for_shop_order = { outcome: "covered", difference_cents: 0, applied_cents: 6625 };
+    const res = await fn.fetch(askGift(fn, GIFT));
+    expect(res.status).toBe(409);
+    expect((await json(res)).error).toBe("gift_covers_whole_order");
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+  });
+
+  it("Q2105: a refused gift is passed through in its words and closes the order; a malformed id freezes nothing", async () => {
+    const fn = await load();
+    frozen();
+    scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), redeem_gift_card_for_shop_order: { message: "This gift has expired", code: "P0001" } };
+    const res = await fn.fetch(askGift(fn, GIFT));
+    expect(res.status).toBe(409);
+    expect((await json(res)).error).toBe("This gift has expired");
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+    const bad = await fn.fetch(askGift(fn, "not-a-uuid"));
+    expect(bad.status).toBe(404);
+    expect(rpcs("shops_request_order")).toHaveLength(1);
   });
 
   it("no pickup address: refused in its own words, no tax call, nothing frozen and no page", async () => {

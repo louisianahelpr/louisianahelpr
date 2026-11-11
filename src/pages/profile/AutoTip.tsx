@@ -320,7 +320,10 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
               <h2 id="auto-tip-heading" className="font-sans font-semibold text-ds-14 text-foreground">
                 Tip automatically after each job
               </h2>
+              {/* F265a (audit 11-10): the switch said nothing about HOW MUCH it tips; the worked example sat below
+                  the chips. While on, its first line names the amount on the same $150 job the example uses. */}
               <p id="auto-tip-desc" className="font-sans text-ds-12 leading-snug text-muted-foreground">
+                {on && example != null ? (isPercent ? `Tips ${numericValue}% ($${formatPriceExact(example)} on a $150 job). ` : `Tips $${formatPriceExact(numericValue)} per job. `) : ""}
                 Charged after the job is finished, never before.
               </p>
             </div>

@@ -136,6 +136,7 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
                 <label htmlFor={`order-talk-${orderId}`} className="block text-ds-13 font-medium">Message</label>
                 <Textarea id={`order-talk-${orderId}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
                   maxLength={1000} value={draft} onChange={(e) => { setDraft(e.target.value); setRefusal(null); }}
+                  placeholder={`Write to the ${other}`}
                   aria-invalid={refusal ? true : undefined} aria-describedby={refusal ? `order-talk-refusal-${orderId}` : undefined} />
                 {refusal && <p id={`order-talk-refusal-${orderId}`} role="alert" className="text-ds-13 text-destructive-ink" data-order-talk-refusal="">{refusal}</p>}
               </form>

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bookmark, Clock } from "lucide-react";
 import { SAVED_SEARCHES_KEY } from "@/components/savedSearches/SaveSearchSheet";
-import { fetchSavedSearches, resultsPath, SECTION_LABEL, type SavedSearch } from "@/lib/savedSearches";
+import { SavedSearchNewPill } from "@/components/savedSearches/SavedSearchNewPill";
+import { fetchNewCounts, fetchSavedSearches, markSeen, resultsPath, SECTION_LABEL, type SavedSearch } from "@/lib/savedSearches";
+import { report } from "@/lib/errorLogger";
 import { JOB_CATEGORIES } from "@/lib/jobCategories";
 import { CATEGORIES } from "@/lib/declutter/categoryIcons";
 import { getRecentSearches } from "@/lib/searchHistory";
@@ -38,6 +40,19 @@ export function SearchStart({ userId, declutterOn, signedIn = true }: { userId: 
   const saved = useQuery({ queryKey: [...SAVED_SEARCHES_KEY, "list", userId ?? ""], enabled: !!userId, queryFn: () => fetchSavedSearches(userId!) });
   const open = (s: SavedSearch) => s.section === "jobs" || (s.section === "declutter" && declutterOn);
   const rows = (saved.data ?? []).filter(open).slice(0, START_SAVED_MAX);
+  // F259l (whole-app audit 2026-11-10): each row says how many new matches it has, from the same count and cache entry
+  // as Settings › Saved searches; opening one marks it seen there too, so the count never goes stale.
+  const qc = useQueryClient();
+  const counts = useQuery({ queryKey: [...SAVED_SEARCHES_KEY, "counts", userId], enabled: !!userId && rows.length > 0, queryFn: fetchNewCounts, staleTime: 30_000 });
+  const openSaved = (s: SavedSearch) => {
+    if (!userId || !(counts.data?.get(s.id) ?? 0)) return;
+    markSeen(userId, s.id)
+      .then(() => qc.invalidateQueries({ queryKey: [...SAVED_SEARCHES_KEY, "counts"] }))
+      .catch((err: unknown) => {
+        // The results still open; only the "new" count stays as it was (as in Settings).
+        report(err, { tags: { source: "SearchStart.markSeen" } });
+      });
+  };
   const groups: { key: string; title: string; chips: { key: string; label: string; to: string }[] }[] = [
     { key: "jobs", title: "Jobs", chips: JOB_CATEGORIES.slice(0, START_CHIPS_PER_SECTION).map((c) => ({ key: `jobs-${c.value}`, label: c.label, to: jobsCategoryHref(c.value, signedIn) })) },
     ...(declutterOn ? [{ key: "declutter", title: "Declutter", chips: CATEGORIES.slice(0, START_CHIPS_PER_SECTION).map((c) => ({ key: `declutter-${c.key}`, label: c.label, to: `/declutter?cat=${c.key}` })) }] : []),
@@ -66,12 +81,13 @@ export function SearchStart({ userId, declutterOn, signedIn = true }: { userId: 
           <h2 className="font-sans font-bold text-ds-15 px-1" style={{ color: "hsl(var(--ink-deep))" }}>Your saved searches</h2>
           <div className="rounded-2xl overflow-hidden" style={{ background: "hsl(var(--card))" }}>
             {rows.map((s) => (
-              <Link key={s.id} to={resultsPath(s)} title={`${s.name} · ${SECTION_LABEL[s.section as keyof typeof SECTION_LABEL]}`} className="flex items-center gap-3 px-4 py-3 min-h-[56px] border-b border-border last:border-b-0 ctl-tint">
+              <Link key={s.id} to={resultsPath(s)} title={`${s.name} · ${SECTION_LABEL[s.section as keyof typeof SECTION_LABEL]}`} onClick={() => openSaved(s)} className="flex items-center gap-3 px-4 py-3 min-h-[56px] border-b border-border last:border-b-0 ctl-tint">
                 <Bookmark className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />
                 <span className="flex-1 min-w-0">
                   <span className="block font-sans font-semibold text-ds-14 leading-snug truncate" style={{ color: "hsl(var(--ink-deep))" }}>{s.name}</span>
                   <span className="block font-sans text-ds-12 text-muted-foreground truncate">{SECTION_LABEL[s.section as keyof typeof SECTION_LABEL]}</span>
                 </span>
+                <SavedSearchNewPill n={counts.data?.get(s.id) ?? 0} />
               </Link>
             ))}
           </div>

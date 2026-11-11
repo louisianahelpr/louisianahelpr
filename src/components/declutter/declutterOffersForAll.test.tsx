@@ -1,6 +1,7 @@
 /**
  * LEAD-OFFERS-CHOICE (3), owner 2026-10-31: Listing defaults' "Listings already up" row turns offers off or on for
- * every listing that is up, and says how many changed.
+ * every listing that is up, and says how many changed. Audit 11-10 F345: one line says how many listings have offers
+ * on; the buttons are "Turn all on" / "Turn all off".
  *
  * @mutate src/components/declutter/DeclutterOffersForAll.tsx |    mutationFn: (on: boolean) => setOffersForAll(items, on), |    mutationFn: async (on: boolean) => ({ changed: 0, failed: 0, on }),
  * @mutate src/components/declutter/DeclutterOffersForAll.tsx |        {toOn > 0 && ( |        {false && (
@@ -37,8 +38,9 @@ const mount = () =>
 describe("Turn offers off / on for all my listings", () => {
   it("counts the listings each button changes, and off changes only the listings up that take offers", async () => {
     mount();
-    const off = await screen.findByRole("button", { name: "Turn offers off for all my listings (2)" });
-    expect(screen.getByRole("button", { name: "Turn offers on for all my listings (1)" })).toBeInTheDocument();
+    const off = await screen.findByRole("button", { name: "Turn all off" });
+    expect(screen.getByRole("button", { name: "Turn all on" })).toBeInTheDocument();
+    expect(screen.getByText("Offers are on for 2 of 3 listings.")).toBeInTheDocument();
     fireEvent.click(off);
     await vi.waitFor(() => expect(toast).toHaveBeenCalledWith("Offers turned off for 2 listings."));
     expect(h.calls).toEqual([["a", false, false], ["b", false, false]]);

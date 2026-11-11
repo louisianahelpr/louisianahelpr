@@ -27,19 +27,23 @@ export function OffersForAllListings({ userId }: { userId: string }) {
     onError: () => toast.error("We couldn't change your listings. Try again."),
   });
   if (mine.isLoading || mine.isError || (toOff === 0 && toOn === 0)) return null;
+  // Audit 11-10 F345: one line says where offers stand across the listings up; the two buttons are short.
+  const total = toOff + toOn;
   return (
     <div className="space-y-2 border-t border-border pt-4" role="group" aria-labelledby="offers-for-all" data-offers-for-all="">
       <p id="offers-for-all" className="text-ds-14 font-semibold text-foreground">Listings already up</p>
-      <p className="text-ds-13 text-muted-foreground">Change offers on every listing you have up now, in one tap.</p>
+      <p className="text-ds-13 text-muted-foreground" data-offers-standing="">
+        Offers are on for {toOff} of {listingsWord(total)}.
+      </p>
       <div className="flex flex-wrap gap-2">
-        {toOff > 0 && (
-          <Button type="button" size="sm" variant="outline" disabled={run.isPending} onClick={() => run.mutate(false)}>
-            Turn offers off for all my listings ({toOff})
-          </Button>
-        )}
         {toOn > 0 && (
           <Button type="button" size="sm" variant="outline" disabled={run.isPending} onClick={() => run.mutate(true)}>
-            Turn offers on for all my listings ({toOn})
+            Turn all on
+          </Button>
+        )}
+        {toOff > 0 && (
+          <Button type="button" size="sm" variant="outline" disabled={run.isPending} onClick={() => run.mutate(false)}>
+            Turn all off
           </Button>
         )}
       </div>

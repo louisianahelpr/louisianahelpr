@@ -174,23 +174,27 @@ export function SectionTabs<T extends string>({
       list.removeEventListener("scroll", update);
     };
   }, [options.length, value, onlySelected]);
-  /** The first tab the end of the row hides comes in whole. */
+  /**
+   * The row moves on a page: the first tab the end hides goes to the start, so every tab after it that fits comes in
+   * whole. Audit 11-10 F320: bringing in only that first tab's cut-off end moved the row a few pixels per tap (the cut
+   * tab is invisible), so "3 more" took 4 taps to show Deliver, Wanted and Free.
+   */
   const showNext = () => {
     const list = listRef.current;
     if (!list) return;
     memberMoved.current = true;
-    const edge = list.getBoundingClientRect().right;
-    const next = Array.from(list.children).find((tab) => tab.getBoundingClientRect().right > edge + 1);
-    if (next) list.scrollLeft += next.getBoundingClientRect().right - edge;
+    const box = list.getBoundingClientRect();
+    const next = Array.from(list.children).find((tab) => tab.getBoundingClientRect().right > box.right + 1);
+    if (next) list.scrollLeft += next.getBoundingClientRect().left - box.left;
   };
-  /** The last tab the start of the row hides comes back whole. */
+  /** A page back, the mirror of showNext: the last tab the start hides goes to the end, with the tabs before it that fit. */
   const showPrevious = () => {
     const list = listRef.current;
     if (!list) return;
     memberMoved.current = true;
-    const edge = list.getBoundingClientRect().left;
-    const previous = Array.from(list.children).reverse().find((tab) => tab.getBoundingClientRect().left < edge - 1);
-    list.scrollLeft = previous ? list.scrollLeft - (edge - previous.getBoundingClientRect().left) : 0;
+    const box = list.getBoundingClientRect();
+    const previous = Array.from(list.children).reverse().find((tab) => tab.getBoundingClientRect().left < box.left - 1);
+    list.scrollLeft = previous ? Math.max(0, list.scrollLeft - (box.right - previous.getBoundingClientRect().right)) : 0;
   };
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;

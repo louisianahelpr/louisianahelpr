@@ -347,7 +347,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/messages/ChatView.tsx` | textarea×1 |  |  | Dismiss safety reminder |
+| `src/components/messages/ChatView.tsx` | textarea×1 |  |  |  |
 | `src/components/messages/ConversationList.tsx` | input×1 | search |  | messages-section-tabs |
 | `src/components/messages/MessagesSearchRow.tsx` | input×1 | search |  | messages-search-row |
 | `src/components/RichMessageInput.tsx` | input×5 | file, text |  |  |

@@ -5024,7 +5024,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 196,
+      "line": 193,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5044,7 +5044,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 199,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5054,7 +5054,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 204,
+      "line": 201,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5064,7 +5064,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 219,
+      "line": 216,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5074,7 +5074,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 222,
+      "line": 219,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8330,7 +8330,7 @@
     },
     {
       "file": "src/components/messages/ChatView.tsx",
-      "line": 151,
+      "line": 152,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8357,7 +8357,7 @@
     },
     {
       "file": "src/components/messages/ChatView.tsx",
-      "line": 161,
+      "line": 162,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8451,7 +8451,7 @@
     },
     {
       "file": "src/components/mobileNav/useSectionTabs.ts",
-      "line": 98,
+      "line": 102,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -13951,19 +13951,53 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 345,
+      "line": 346,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "error && /message_locked/.test(error.message) ? \"This message can't be deleted now. The conversation has ended or is being reviewed.\" : \"Couldn't delete that one — give it another try?\"",
+        "text": "error && /message_locked/.test(error.message) ? t(\"msg.lockedDelete\") : t(\"msg.deleteFailed\")",
         "branches": [
           {
-            "form": "literal",
-            "text": "This message can't be deleted now. The conversation has ended or is being reviewed."
+            "form": "dynamic",
+            "text": "t(\"msg.lockedDelete\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
           },
           {
-            "form": "literal",
-            "text": "Couldn't delete that one — give it another try?"
+            "form": "dynamic",
+            "text": "t(\"msg.deleteFailed\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -13971,7 +14005,7 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 385,
+      "line": 386,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -13981,7 +14015,7 @@
     },
     {
       "file": "src/pages/messages/Messages.tsx",
-      "line": 395,
+      "line": 396,
       "kind": "toast.error",
       "title": {
         "form": "literal",

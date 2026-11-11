@@ -81,7 +81,8 @@ export default function DeclutterSellChooser() {
           // three: One item (photos first), Several at once (the bunch flow) and Give away free. Moving sale, a Helpr
           // listing it and a Wanted post sit in one small "More ways" row under them (they were three more cards).
           <section className={`flex flex-col ${SPACE.cardGap}`} aria-labelledby="sell-step">
-            <StepHead title="Sell something" sub={continueTo ? undefined : "How many things?"} />
+            {/* Audit 11-10 F324: "How many things?" did not fit Give away free; the question now fits all three cards. */}
+            <StepHead title="Sell something" sub={continueTo ? undefined : "What would you like to do?"} />
             {/* LEAD-BUNCH-DRAFT-KEEP (owner 10-31): kept work is ONE compact row first; both kinds kept, it opens a small choice. */}
             {continueTo && (
               <ChoiceCard slim data-sell-choice="continue" to={continueTo.to} onClick={continueTo.to ? undefined : () => setChoosingKept(true)}

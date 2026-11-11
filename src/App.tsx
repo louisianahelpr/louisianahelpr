@@ -1,4 +1,4 @@
-import { lazy, Suspense, forwardRef, useState, type ComponentType, type ReactElement, type ReactNode } from "react";
+import { lazy, Suspense, forwardRef, type ReactElement } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { RoutedBoundary } from "@/components/RoutedBoundary";
@@ -6,6 +6,7 @@ import { lazyWithPreload } from "@/lib/lazyWithPreload";
 // Q1816: every lazy piece mounted beside the routes (outside RoutedBoundary) fails quietly; guard chromeLaziesFailQuietly.
 import { optionalLazy } from "@/lib/optionalLazy";
 import { whenPageSettled } from "@/lib/routePrefetch";
+import { loadAnimatedPageTransition, RoutePageTransition } from "@/components/RoutePageTransition";
 import { HomeShellLeaves } from "@/components/landing/HomeShellLeaves";
 
 import QueryCacheHydrator from "@/components/QueryCacheHydrator";
@@ -44,20 +45,8 @@ import { SessionManager } from "@/components/SessionManager";
 import { SignedInChrome, SignedInOnly } from "@/components/SignedInChrome";
 import { WebDesktopOnly } from "@/components/WebDesktopOnly";
 
-// PageTransition (the iPhone edge swipe-back) and ScrollToTop no longer use
-// framer-motion (Q1356; check-deferred-vendors.mjs holds them to it). Q178: a
-// lazy wrapper suspends its CHILDREN until its chunk lands, so no route could
-// REQUEST its page chunk before PageTransition arrived (Index at 3.9 s on a slow
-// phone). So the wrapper never suspends: until the gesture component has
-// loaded it renders a plain keyed <div> (a cold first page has no history to
-// swipe back to). It loads once the page has settled. The pick is made once
-// per navigation (keyed by location.key), so a page never swaps wrappers
-// (which would remount it) mid-life.
-let AnimatedPageTransition: ComponentType<{ children: ReactNode }> | null = null;
-const loadAnimatedPageTransition = () =>
-  import("@/components/PageTransition").then((m) => {
-    AnimatedPageTransition = m.default;
-  });
+// The route wrapper (the iPhone edge swipe-back, never suspending its page) lives in
+// src/components/RoutePageTransition.tsx; its gesture chunk loads once the page has settled, here.
 whenPageSettled(() => {
   // B53: index.html holds the landing hero's Bodoni preloads back off "/" (no other first screen draws Bodoni, and
   // they took Home's bandwidth); warm them now, so a later Bodoni heading finds them cached.
@@ -68,19 +57,7 @@ whenPageSettled(() => {
     /* the swipe-back is a convenience: without it pages still render, and the back button still works */
   });
 });
-const PageTransitionPick = ({ children }: { children: ReactNode }) => {
-  const location = useLocation();
-  const [Animated] = useState(() => AnimatedPageTransition);
-  if (!Animated) return <div key={location.key}>{children}</div>;
-  return <Animated>{children}</Animated>;
-};
-// Keyed so each navigation re-picks: React reuses this across same-shaped
-// routes, and a once-per-mount pick kept a cold start's plain div, without the
-// swipe-back, for the whole session (/login -> /signup, 2026-10-12).
-const PageTransition = ({ children }: { children: ReactNode }) => {
-  const location = useLocation();
-  return <PageTransitionPick key={location.key}>{children}</PageTransitionPick>;
-};
+const PageTransition = RoutePageTransition;
 // Q2705 (11-09): Vercel Analytics + Speed Insights only inject Vercel's async script; off every page's boot (see the module).
 const VercelInsights = optionalLazy(() => import("@/components/VercelInsights"), "VercelInsights");
 const ScrollToTop = optionalLazy(() => import("@/components/ScrollToTop"), "ScrollToTop");

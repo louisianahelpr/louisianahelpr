@@ -3,7 +3,7 @@
  * had no history entry of its own: Back left a stale URL or walked off the page. Now opening the sheet pushes one
  * entry; Back pops it and the sheet closes with it; the sheet's own close pops only the entry it pushed (a fresh
  * /browse?job= link just drops the param in place).
- * @mutate src/pages/home/useGuestJobSheet.ts | { state: { ...stateObject(location.state), [SHEET_ENTRY]: true } } | { replace: true, state: { ...stateObject(location.state), [SHEET_ENTRY]: true } }
+ * @mutate src/pages/home/useGuestJobSheet.ts | { state: { ...stateObject(location.state), [SHEET_ENTRY]: true, [KEEP_PAGE]: true } } | { replace: true, state: { ...stateObject(location.state), [SHEET_ENTRY]: true, [KEEP_PAGE]: true } }
  * @mutate src/pages/home/useGuestJobSheet.ts |     if (!jobParam) setDetailJob(null); |     void jobParam;
  * @mutate src/pages/home/useGuestJobSheet.ts |     if (isSheetEntry(location.state)) { |     if (false) {
  */

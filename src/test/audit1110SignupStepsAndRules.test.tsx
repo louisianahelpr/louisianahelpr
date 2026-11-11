@@ -40,10 +40,11 @@ describe("F260n: sign-up step 2 is a history entry", () => {
     const hook = src("src/pages/auth/signup/useSignupStepHistory.ts");
     // Continue on step 1 pushes a same-URL entry whose state says step 2 (other state, like ?redirect, is kept).
     expect(s).toContain("goToStep2();");
-    expect(hook).toMatch(/navigate\(\{ pathname: routerLocation\.pathname, search: routerLocation\.search \}, \{ state: \{ \.\.\.\(\(routerLocation\.state as object \| null\) \?\? \{\}\), step: 2 \} \}\);/);
+    expect(hook).toMatch(/navigate\(\{ pathname: routerLocation\.pathname, search: routerLocation\.search \}, \{ state: \{ \.\.\.\(\(routerLocation\.state as object \| null\) \?\? \{\}\), step: 2, \[KEEP_PAGE\]: true \} \}\);/);
     // The step follows the history entry on Back/Forward only (a replace or push elsewhere never resets the wizard;
     // the lead's 11-10 fix for the signed-in bounce), and the first render keeps the dev-only ?step seed.
-    expect(hook).toContain('if (navigationType === "POP" && routerLocation.key !== "default") setStep(signupStepFromHistory(routerLocation.state));');
+    expect(hook).toContain("if (routerLocation.key === seenKey.current) return;");
+    expect(hook).toContain('if (navigationType === "POP") setStep(signupStepFromHistory(routerLocation.state));');
     expect(hook).toMatch(/\}, \[navigationType, routerLocation\.key, routerLocation\.state, setStep\]\);/);
     // Back from the pushed second step pops that entry instead of forking the history.
     expect(hook).toContain("if (signupStepFromHistory(routerLocation.state) === 2) navigate(-1);");

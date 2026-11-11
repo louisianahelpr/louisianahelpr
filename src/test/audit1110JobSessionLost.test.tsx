@@ -73,14 +73,14 @@ describe("F260o: the job page after the session ends", () => {
     markIntentionalSignOut();
     state.auth = { user: null, profile: null, isLoading: false };
     again();
-    expect(await screen.findByText("This job isn't available.")).toBeTruthy();
+    expect(await screen.findByText("Log in to see this job.")).toBeTruthy();
     expect(screen.queryByText("You've been signed out.")).toBeNull();
   });
 
   it("a visitor who never had a session sees the guest page", async () => {
     state.auth = { user: null, profile: null, isLoading: false };
     open();
-    expect(await screen.findByText("This job isn't available.")).toBeTruthy();
+    expect(await screen.findByText("Log in to see this job.")).toBeTruthy();
     expect(screen.queryByText("You've been signed out.")).toBeNull();
   });
 });

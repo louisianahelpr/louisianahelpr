@@ -1708,7 +1708,8 @@ describe("one row of buttons at every stage (B93)", () => {
     state.job = row({ ...disputed, customer_id: POSTER, helper_id: ME, helper_completed_at: null });
     state.tracking = "working";
     renderPage();
-    await untilOffered("See the case");
+    // F291a (audit 11-10): the Helpr's button says what the case sheet lets them do.
+    await untilOffered("Add your side");
     expect(pageActions()).not.toContain("Not finished? Set a day");
   });
 
@@ -1917,15 +1918,17 @@ describe("job page: the booked job's clock, as its card shows it (JA-34)", () =>
 /**
  * JA-30 (Jobs audit 11-01): a disputed job's page says when they hear back AND links to the case.
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | const seeCase: RowAction \| null = party && (isPoster \|\| isHired) && | const seeCase: RowAction \| null = false && party && (isPoster \|\| isHired) &&
+ * F291a (audit 11-10): the hired Helpr's name for it is "Add your side" (the case sheet takes their photos); the poster's stays.
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | label: t(isHired && job.has_active_dispute ? "jobPage.addYourSide" : "jobPage.seeCase") | label: t("jobPage.seeCase")
  */
 describe("job page, a disputed job (JA-30)", () => {
-  it("both parties get 'See the case', which opens the dispute's own case view", async () => {
+  it("both parties get the case button (the Helpr's 'Add your side', the poster's 'See the case'), which opens the dispute's own case view", async () => {
     for (const viewer of [ME, POSTER]) {
       state.job = row({ customer_id: POSTER, helper_id: ME, status: "disputed", payment_status: "escrow", has_active_dispute: true });
       state.party = true;
       renderPage(viewer);
       // Owner pick 11-08 (JP2): one of the bar's actions (the secondary, or in its "..." menu).
-      await pressWhenOffered("See the case");
+      await pressWhenOffered(viewer === ME ? "Add your side" : "See the case");
       expect((await screen.findByTestId("dispute-case")).getAttribute("data-job")).toBe(state.job.id);
       cleanup();
     }

@@ -279,7 +279,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // in working, it leads and the other sits beside it. JA-30: while a dispute is open "See the case" opens the case itself
   // (DisputeTimelineDialog); owner pick 11-08 (JP2): it is the primary while no step of the page's own is due, Message beside it.
   const seeCase: RowAction | null = party && (isPoster || isHired) && (job.status === "disputed" || !!job.has_active_dispute)
-    ? { key: "see-case", label: t("jobPage.seeCase"), go: () => setCaseOpen(true) } : null;
+    ? { key: "see-case", label: t(isHired && job.has_active_dispute ? "jobPage.addYourSide" : "jobPage.seeCase"), go: () => setCaseOpen(true) } : null;
   const { row: hiredRow, leaveInMenu } = (() => {
     if (!hiredFace) return { row: null, leaveInMenu: false };
     const msg: RowAction | null = job.customer_id && !job.is_group_job ? { key: "message", label: `Message ${posterFirst ?? "them"}`, go: messagePoster } : null;

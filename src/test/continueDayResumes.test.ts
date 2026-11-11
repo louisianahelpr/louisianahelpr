@@ -14,7 +14,7 @@
  *
  * @mutate supabase/migrations/20261108160000_continue_day_resumes_checks_in_and_new_photos.sql |           'Your Helpr hasn''t confirmed today', 'Did you finish today?', 'Not marked done yet')) |           'Your Helpr hasn''t confirmed today', 'Did you finish today?'))
  * @mutate supabase/migrations/20261108160000_continue_day_resumes_checks_in_and_new_photos.sql |     UPDATE public.job_continue_days SET done_without_new_photo_at = NEW.helper_completed_at WHERE id = v_id; |     NULL;
- * @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql |       v_msg := 'No new photos from ' \|\| to_char(v_moved_day, 'FMDy FMMM/FMDD') \|\| ' — check the work before approving. ' \|\| v_msg; |       NULL;
+ * @mutate supabase/migrations/20261111194335_arrival_notice_leads_with_the_job.sql |       v_msg := 'No new photos from ' \|\| to_char(v_moved_day, 'FMDy FMMM/FMDD') \|\| ' — check the work before approving. ' \|\| v_msg; |       NULL;
  * @mutate supabase/migrations/20261108160000_continue_day_resumes_checks_in_and_new_photos.sql |   IF NEW.helper_completed_at IS NULL OR OLD.helper_completed_at IS NOT NULL THEN\n    RETURN NEW;\n  END IF;\n  SELECT c.id, c.new_date | \n  IF public.is_server_context() OR NEW.helper_completed_at IS NULL OR OLD.helper_completed_at IS NOT NULL THEN\n    RETURN NEW;\n  END IF;\n  SELECT c.id, c.new_date
  * @mutate supabase/functions/auto-release-payment/index.ts |       if (instantIds.has(job.id) && !job.poster_completed_at && (!noNewPhoto.ok \|\| noNewPhoto.jobs.has(job.id))) { |       if (false) {
  * @mutate src/lib/jobProgressIndex.ts |   const helperArrivedAt = onContinueDay ? null : arrivedStamp; |   const helperArrivedAt = arrivedStamp;

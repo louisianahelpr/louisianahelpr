@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 1229,
-    "files": 355,
+    "files": 356,
     "rendering": 1148,
     "suppressedByPolicy": 81,
     "byKind": {
@@ -4499,6 +4499,36 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/DeclutterBookingPanel.tsx",
+      "line": 27,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "r.result === \"booked\" ? \"Pickup booked.\" : \"Pickup time changed.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Pickup booked."
+          },
+          {
+            "form": "literal",
+            "text": "Pickup time changed."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterBookingPanel.tsx",
+      "line": 33,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/DeclutterBundleRequests.tsx",
       "line": 66,
       "kind": "toast",
@@ -4884,37 +4914,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 338,
-      "kind": "toast",
-      "title": {
-        "form": "dynamic",
-        "text": "r.result === \"booked\" ? \"Pickup booked.\" : \"Pickup time changed.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Pickup booked."
-          },
-          {
-            "form": "literal",
-            "text": "Pickup time changed."
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 344,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 419,
+      "line": 357,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4924,7 +4924,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 423,
+      "line": 361,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4934,7 +4934,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 436,
+      "line": 374,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4944,7 +4944,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 529,
+      "line": 467,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4954,7 +4954,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 530,
+      "line": 468,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4964,7 +4964,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 556,
+      "line": 494,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4984,7 +4984,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 557,
+      "line": 495,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4994,7 +4994,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 558,
+      "line": 496,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5004,7 +5004,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 559,
+      "line": 497,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5014,7 +5014,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 562,
+      "line": 500,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

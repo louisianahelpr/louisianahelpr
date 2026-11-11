@@ -161,19 +161,32 @@ export function orderBucket(f: OrderFacts): OrderBucket {
 }
 
 /** The order's tracker bar: the shared StepTracker with this order's words and step. */
-export function OrderSteps({ facts }: { facts: OrderFacts }) {
+export function OrderSteps({ facts, refundOpen = false }: {
+  facts: OrderFacts;
+  /** F366 (rest): the buyer's refund request is still being worked out (refundIsOpen); no problem row is needed. */
+  refundOpen?: boolean;
+}) {
   const words = orderStepWords(facts);
   const last = words.length - 1;
   // Audit 11-10 F366: an open problem holds the money, so the bar never ends on "Done" (or "Delivered") over it. Once
   // the item changed hands the last step says "Problem reported" and is the current one; before that the bar stays
   // where the facts put it, with the same last word, so no step is claimed that did not happen.
   const handedOver = !!(facts.done || facts.pickedUp || facts.delivered);
-  const marked = !!facts.problem && handedOver;
-  const steps = marked ? [...words.slice(0, last), "Problem reported"] : words;
+  const marked = (!!facts.problem || refundOpen) && handedOver;
+  // F366 (rest): a refund still being worked out holds the bar the same way, named for what it is.
+  const steps = marked ? [...words.slice(0, last), facts.problem ? "Problem reported" : "Refund asked"] : words;
   const at = marked ? last : orderStepAt(facts);
   return (
     <div data-order-steps={facts.handover} data-order-step={at} data-order-problem={facts.problem ? "" : undefined}>
       <StepTracker steps={steps} at={at} />
     </div>
   );
+}
+
+/**
+ * F366 (rest): a refund request still being worked out (declutter_refund_requests.status): asked, a counter-offer to
+ * answer, the item going back, or Louisiana Helpr deciding. "agreed" and "declined" are settled.
+ */
+export function refundIsOpen(status: string | null | undefined): boolean {
+  return status === "open" || status === "offered" || status === "returning" || status === "to_admin";
 }

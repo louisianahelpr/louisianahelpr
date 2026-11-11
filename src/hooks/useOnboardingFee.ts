@@ -21,10 +21,14 @@ export function useOnboardingFeeCents(): number | null {
   return useOnboardingFeeQuery().data ?? null;
 }
 
-/** The read behind {@link useOnboardingFeeCents}; `isPending` says the answer is not in yet. */
-export function useOnboardingFeeQuery() {
+/**
+ * The read behind {@link useOnboardingFeeCents}; `isPending` says the answer is not in yet. `enabled` false skips the
+ * read where no fee can apply (F360b: a seller card list with no unsent payout, or a seller who already paid it).
+ */
+export function useOnboardingFeeQuery(enabled = true) {
   return useQuery({
     queryKey: ["platform-settings", "onboarding-fee-cents"],
+    enabled,
     meta: { reportsItself: true },
     // An admin-edited price does not need to be fresh to the second, but it
     // must not be pinned for the life of the session either.

@@ -11,7 +11,8 @@
  * Not mirrored here, by design: a card-fee debt (only after a seller-fault refund) and a manager's share (only for a
  * managed seller) are not knowable on the form; the order card states the payout row's own figure once it exists.
  */
-export function sellerGetsTodayCents(priceCents: number, o: { setupFeeCents: number; idCheckOn: boolean; isAdmin: boolean }): number {
-  const fee = o.idCheckOn && !o.isAdmin ? Math.max(0, o.setupFeeCents) : 0;
+export function sellerGetsTodayCents(priceCents: number, setupFeeCents: number): number {
+  // setupFeeCents: useSellerSetupFee's answer (0 for an admin, an exempt seller, or one who already paid it).
+  const fee = Math.max(0, setupFeeCents);
   return fee > 0 && priceCents - fee >= 100 ? priceCents - fee : priceCents;
 }

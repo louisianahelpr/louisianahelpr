@@ -141,6 +141,8 @@ export interface StatusDeadline {
  */
 /** The longest one-line countdown a card prints ("99d 23h " + the clause, or the expired text): one line at 375. */
 export const CARD_COUNTDOWN_MAX_CHARS = 30;
+/** The Helpr's expired approve / fix-review clock (F264): why support steps in, beside "With <name> for approval". */
+const HELPR_NO_REPLY = "No reply, so support checks it";
 
 export type DeadlineSource =
   | "direct_offer_expires_at"
@@ -1091,7 +1093,7 @@ export function helperDeadline(id: HelperWait, job: Job, posterInstantRelease = 
         "revision_acceptance_deadline",
         job.revision_acceptance_deadline,
         "for them to review",
-        "Helpr support is stepping in",
+        HELPR_NO_REPLY,
       );
     case "dispute":
       return disputeDeadline(job);
@@ -1102,7 +1104,9 @@ export function helperDeadline(id: HelperWait, job: Job, posterInstantRelease = 
             source: "auto_complete",
             at,
             consequenceText: "for them to approve",
-            expiredText: "Helpr support is stepping in",
+            // F264 (audit 11-10): under "With E2E for approval", "Helpr support is stepping in" read as a second,
+            // contrary state (a problem?). It says why support looks: no reply in time. One line at 375 (30 chars).
+            expiredText: HELPR_NO_REPLY,
           }
         : null;
     }

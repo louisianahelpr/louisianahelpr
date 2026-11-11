@@ -319,18 +319,28 @@ function Managing({ g }: { g: ManagerGrant }) {
   );
 }
 
-export default function ManagerPanel() {
+/**
+ * Audit 11-10 F399: Selling draws the panel in two places. `only="status"` (top of the tab) is what is live: offers
+ * to answer, sellers being managed, and the seller's own "Managed by". `only="setup"` (after the to-dos and lists)
+ * is the "Let a friend sell for you" ask, a promo until it is used. Without `only`, both, in that order.
+ */
+export default function ManagerPanel({ only }: { only?: "status" | "setup" }) {
   const { data: grants } = useMyManagerGrants();
   if (!grants) return null;
   const open = grants.filter((g) => g.status === "offered" || g.status === "active");
   const mineAsSeller = open.find((g) => g.role === "seller");
   const offers = open.filter((g) => g.role === "manager" && g.status === "offered");
   const managing = open.filter((g) => g.role === "manager" && g.status === "active");
+  const status = only !== "setup";
+  const setup = only !== "status";
+  // Nothing at all rather than an empty box (Selling's column is a flex gap, so an empty child still takes a gap).
+  if (!(setup && !mineAsSeller) && !(status && (mineAsSeller || offers.length || managing.length))) return null;
   return (
-    <div className="space-y-4" data-manager-panel="">
-      {offers.map((g) => <OfferCard key={g.id} g={g} />)}
-      {managing.map((g) => <Managing key={g.id} g={g} />)}
-      {mineAsSeller ? <ManagedBy g={mineAsSeller} /> : <GrantSetup />}
+    <div className="space-y-4" data-manager-panel={only ?? ""}>
+      {status && offers.map((g) => <OfferCard key={g.id} g={g} />)}
+      {status && managing.map((g) => <Managing key={g.id} g={g} />)}
+      {status && mineAsSeller && <ManagedBy g={mineAsSeller} />}
+      {setup && !mineAsSeller && <GrantSetup />}
     </div>
   );
 }

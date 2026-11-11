@@ -1,5 +1,5 @@
 /**
- * Audit 11-10 F461: step 1 of Delete account offered no softer way out. A member who only wanted a break had to
+ * Audit 11-10 F461: the first step of Delete account offered no softer way out. A member who only wanted a break had to
  * delete everything. From Settings (/profile) it now ends with "Just need a break? Turn off notifications instead",
  * which closes the dialog and opens the Notifications tab. Elsewhere (the sign-up and banned screens) it is not shown.
  *

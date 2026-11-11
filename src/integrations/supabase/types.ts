@@ -18281,6 +18281,15 @@ export type Database = {
       }
       declutter_guest_first_screen: { Args: never; Returns: Json }
       declutter_guest_preview: { Args: never; Returns: Json }
+      declutter_guest_seller_card: {
+        Args: { p_item_id: string }
+        Returns: {
+          avg_rating: number
+          display_name: string
+          id_checked: boolean
+          review_count: number
+        }[]
+      }
       declutter_guest_seller_first_name: {
         Args: { p_item_id: string }
         Returns: string

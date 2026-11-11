@@ -372,7 +372,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
           )}
           {/* Owner 11-07: "Bundle and save" when the seller's bundle discount can apply here. */}
           {!isSeller && user && bundle && canAct && <BundleSaveBox summary={bundle} />}
-          {/* BUY-16: a guest sees the seller's first name only (declutter_guest_seller_first_name). */}
+          {/* BUY-16 + F227/F319: a guest sees a small seller card ("Ann S.", rating, ID checked), no photo or link. */}
           {!user && <DeclutterGuestSeller itemId={it.id} free={free} />}
           {!isSeller && user && <DeclutterMovingSaleNote itemId={it.id} sellerId={it.seller_id} />}
 

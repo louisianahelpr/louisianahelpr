@@ -13,16 +13,22 @@ import { Gift } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { tipChargeBreakdown } from "../../../supabase/functions/_shared/tipFees";
 import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
+import { formatName } from "@/lib/utils";
 
 const TIP_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MONEY = { color: "hsl(var(--sienna-ink))" };
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+/** F272a: when the tip was left, in Louisiana time ("Tue, Nov 10, 1:11 AM"). */
+const tipWhen = (iso: string) =>
+  new Date(iso).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
 
 interface TipMomentData {
-  tip: { id: string; amount: number; job_id: string; tipper_id: string; helper_id: string; payment_status: string };
+  tip: { id: string; amount: number; job_id: string; tipper_id: string; helper_id: string; payment_status: string; created_at: string };
   job: { title: string; budget: number; urgent_fee: number | null; helpers_needed: number | null; is_group_job: boolean | null; status: string; payment_status: string | null; disputed_at: string | null; helper_fee_flat_cents: number | null; helper_fee_percent: number | null } | null;
   paidCents: number | null;
   tipperFirst: string;
+  /** The Helpr's name as "First L." (formatName), for the tipper's view; null when unknown. */
+  helprName: string | null;
 }
 
 /**
@@ -47,12 +53,12 @@ export default function TipMoment() {
       // "our end is having a hiccup": the uuid column refuses it (22P02) and that read as an outage (Q1695,
       // loading-states-refresh 42123572431). No request is sent for it.
       if (!TIP_ID.test(tipId!)) return null;
-      const tip = unwrap(await supabase.from("tips").select("id, amount, job_id, tipper_id, helper_id, payment_status").eq("id", tipId!).maybeSingle());
+      const tip = unwrap(await supabase.from("tips").select("id, amount, job_id, tipper_id, helper_id, payment_status, created_at").eq("id", tipId!).maybeSingle());
       if (!tip) return null;
       const [jobRes, paidRes, tipperRes] = await Promise.all([
         supabase.from("jobs").select("title, budget, urgent_fee, helpers_needed, is_group_job, status, payment_status, disputed_at, helper_fee_flat_cents, helper_fee_percent").eq("id", tip.job_id).maybeSingle(),
         supabase.from("payout_transfers").select("amount_cents").eq("job_id", tip.job_id).eq("helper_id", tip.helper_id).eq("status", "paid"),
-        supabase.rpc("get_safe_profiles", { user_ids: [tip.tipper_id] }),
+        supabase.rpc("get_safe_profiles", { user_ids: [tip.tipper_id, tip.helper_id] }),
       ]);
       const job = unwrap(jobRes);
       const paid = unwrap(paidRes) ?? [];
@@ -63,6 +69,7 @@ export default function TipMoment() {
         job: job as TipMomentData["job"],
         paidCents: paid.length ? paid.reduce((s, r) => s + Number(r.amount_cents ?? 0), 0) : null,
         tipperFirst: name.trim().split(/\s+/)[0] || "Someone",
+        helprName: formatName(tipper.find((p) => p.user_id === tip.helper_id)?.full_name, "") || null,
       };
     },
   });
@@ -90,7 +97,7 @@ export default function TipMoment() {
       </AppPage>
     );
   }
-  const { tip, job, paidCents, tipperFirst } = q.data;
+  const { tip, job, paidCents, tipperFirst, helprName } = q.data;
   const tipCents = tipChargeBreakdown(Math.round(Number(tip.amount) * 100)).helperCents;
   const isHelpr = user?.id === tip.helper_id;
   // The job's take-home: paid (a transfer row) or the take-home the money function computes, floored as every payout figure is.
@@ -113,6 +120,13 @@ export default function TipMoment() {
         <h2 className="font-moment text-page-title text-foreground">{isHelpr ? `${tipperFirst} tipped you` : "You left a tip"}</h2>
         <p className="text-ds-40 font-bold leading-none" style={MONEY}>{dollars(tipCents)}</p>
         <p className="text-ds-13 text-muted-foreground">{[job?.title, isHelpr ? "all of it is yours" : null].filter(Boolean).join(" · ")}</p>
+        {/* F272a (audit 11-10): the tipper asked who got it and when. The tip is charged on its own with card
+            processing on top (tipChargeBreakdown), so the Helpr gets the whole amount shown. */}
+        {isHelpr ? null : (
+          <p className="text-ds-14 text-foreground" data-testid="tip-to-when">
+            {helprName ? `To ${helprName} · ${tipWhen(tip.created_at)} · ${helprName} got all of it` : `${tipWhen(tip.created_at)} · your Helpr got all of it`}
+          </p>
+        )}
       </div>
       {isHelpr && (
         <section aria-label="This job's pay" className="liquid-glass p-card flex flex-col gap-1.5 mt-2">
@@ -136,6 +150,15 @@ export default function TipMoment() {
           className="btn-grad-primary btn-press w-full rounded-full min-h-14 mt-6 text-ds-16 font-semibold"
         >
           Say thanks
+        </button>
+      )}
+      {isHelpr ? null : (
+        <button
+          type="button"
+          onClick={() => navigate(`/jobs/${tip.job_id}`)}
+          className="btn-grad-primary btn-press w-full rounded-full min-h-14 mt-6 text-ds-16 font-semibold"
+        >
+          See the job
         </button>
       )}
     </AppPage>

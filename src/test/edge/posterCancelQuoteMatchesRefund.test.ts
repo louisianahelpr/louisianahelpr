@@ -24,6 +24,7 @@
  * @mutate supabase/functions/create-payment/index.ts |       if ((qGift?.length ?? 0) > 0) return unquoted("gift", feeCents); |
  * @mutate supabase/functions/create-payment/index.ts |         if (alreadyRefundedCents > 0) return unquoted("earlier_refund", feeCents); |
  * @mutate supabase/functions/create-payment/index.ts | let qNoShowFull = asNoShow; | let qNoShowFull = false;
+ * @mutate supabase/functions/create-payment/index.ts |          qNoShowFull = qJob.no_show_reported_at != null; |          qNoShowFull = false;
  *
  * Q1415 (e): a confirmed Helpr who is banned or under an open ban review is owed no fee. poster_cancel_job records 0
  * and writes a job_cancel_id_waivers row (reason payee_frozen); the quote asks cancel_fee_payee_frozen, so the fee it
@@ -53,6 +54,7 @@ const baseJob = (over: Job = {}): Job => ({
   helper_fee_percent: 5, helper_fee_flat_cents: 70, helper_completed_at: null, is_group_job: false,
   stripe_payment_intent_id: "pi_q", stripe_session_id: null, customer_fee_amount: 10, poster_fee_flat_cents: null,
   onboarding_fee_amount: null, parent_job_id: null, recurrence_days: null, cancellation_fee: 0, cancelled_at: null,
+  no_show_reported_at: null,
   ...over,
 });
 
@@ -89,9 +91,13 @@ async function sweep(job: Job, pi: Record<string, unknown>, feeCents: number, op
   resetAll();
   setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "anon-key", SUPABASE_SERVICE_ROLE_KEY: "service-key", STRIPE_SECRET_KEY: "sk_test_quote", CRON_SECRET });
   const cancelled = { ...job, status: "cancelled", cancelled_at: NOW.toISOString(), cancellation_fee: feeCents / 100, cancellation_fee_status: feeCents > 0 ? "pending" : null };
-  scenario.reads.jobs = { selectOverrides: [{ includes: "cancellation_fee", result: { rows: [cancelled] } }], rows: [] };
+  // The no-show key is the server-owned marker (20261111213317), read apart from the sweep's select. No violation
+  // row is seeded: the struck Helpr's row can be gone (account deletion), the marker is what counts.
+  scenario.reads.jobs = { selectOverrides: [
+    { includes: "cancellation_fee", result: { rows: [cancelled] } },
+    { includes: "no_show_reported_at", result: { rows: [{ no_show_reported_at: opts.noShow ? "2024-10-21T15:00:00Z" : null }] } },
+  ], rows: [] };
   if (opts.waiver) scenario.reads.job_cancel_id_waivers = { rows: [{ job_id: job.id }] };
-  if (opts.noShow) scenario.reads.user_violations = { rows: [{ id: 7 }] };
   stripeMock.paymentIntents.retrieve.mockResolvedValue(pi);
   stripeMock.paymentIntents.capture.mockResolvedValue({ ...pi, status: "succeeded" });
   stripeMock.paymentIntents.cancel.mockResolvedValue({ ...pi, status: "canceled" });
@@ -139,6 +145,17 @@ describe("cancel_quote == the sweep's refund (posterCancelSplit, called from bot
     await sweep({ ...job, status: "open", helper_id: null, helper_confirmed_at: null }, pi, 0, { taxCents: 896, noShow: true });
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create.mock.calls[0][0].amount).toBe(q.back_to_you_cents);
+  });
+
+  // F272 review note 1: a job ALREADY reopened by a report is quoted from its marker alone (the struck Helpr's
+  // violation row may be gone), and the sweep refunds exactly that.
+  it("F272: a reopened no-show job is quoted from its marker, and the sweep refunds exactly that", async () => {
+    const job = baseJob({ onboarding_fee_amount: 2, status: "open", helper_id: null, helper_confirmed_at: null, no_show_reported_at: "2024-10-21T15:00:00Z" });
+    const pi = captured(12096, 381);
+    const q = await quote(job, pi, { taxCents: 896 });
+    expect(q).toMatchObject({ can_cancel: true, fee_cents: 0, charge_state: "captured", back_to_you_cents: 12096 });
+    await sweep(job, pi, 0, { taxCents: 896, noShow: true });
+    expect(stripeMock.refunds.create.mock.calls[0]?.[0]?.amount).toBe(q.back_to_you_cents);
   });
 
   it("a free cancel (48 h out) on a poster-fee job: only Stripe's real fee is kept", async () => {

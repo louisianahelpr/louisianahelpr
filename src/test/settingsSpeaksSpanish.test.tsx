@@ -87,7 +87,7 @@ describe("You › Settings in Spanish (F410c)", () => {
     expect(words.length).toBeGreaterThan(15);
     const english = new Set<string>(Object.values(enSettings));
     // Words that are the same in both languages (none today) would be allowed; anything else English is a miss.
-    const same = new Set(Object.entries(enSettings).filter(([k, v]) => es[k as keyof typeof es] === v).map(([, v]) => v));
+    const same = new Set<string>(Object.entries(enSettings).filter(([k, v]) => es[k as keyof typeof es] === v).map(([, v]) => v));
     const left = words.filter((w) => english.has(w) && !same.has(w));
     expect(left).toEqual([]);
     expect(screen.getByRole("region", { name: "Apariencia" })).toBeTruthy();

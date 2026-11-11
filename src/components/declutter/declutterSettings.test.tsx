@@ -10,6 +10,9 @@
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | {sellerDeliveryOpen && draft.handovers.includes("seller_delivery") && <SellerDeliveryDetails />} |
  * @mutate src/components/declutter/SellerDeliverySettings.tsx |       {!embedded && (\n      <div className="flex items-center justify-between gap-3"> |       {(\n      <div className="flex items-center justify-between gap-3">
  * @mutate src/components/declutter/SellerDeliverySettings.tsx |   const [enabled, setEnabled] = useState(embedded ? true : current.enabled); |   const [enabled, setEnabled] = useState(current.enabled);
+ * Audit 11-10 F344: with no place saved, the card says which area and times new listings use now.
+ * @mutate src/components/declutter/SellPorchPlaces.tsx |   const noPlaces = card && Array.isArray(mine.data) && mine.data.length === 0; |   const noPlaces = false;
+ * @mutate src/components/declutter/SellPorchPlaces.tsx | `New listings now use ${lastArea}, from your last listing, with pickup ${placeHoursLine(usual, null)}.` | `New listings now use your last listing's area.`
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <SellPorchPlaces card />\n |
  * @mutate src/components/declutter/SellPorchPlaces.tsx |     return card ? inCard(<><span className="block text-sm font-semibold">Pickup places</span><span className="block text-xs text-muted-foreground">Loading…</span></>) : null; |     return null;
  * @mutate src/components/declutter/SellPorchPlaces.tsx | (card\n    ? <section className="rounded-2xl border border-border bg-card px-4 py-3" aria-label="Pickup places" data-porch-places-card="">{body}</section>\n    : body) | body
@@ -26,7 +29,7 @@
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |     if (!unsaved) return;\n |
  */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -68,6 +71,9 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
 vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/api")>()), fetchMyPickupWindows: async () => [], fetchMyItems: async () => [] }));
 // B110: the seller's own meet spots card reads its list and the suggestions (none here).
 vi.mock("@/lib/declutter/meetup", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/meetup")>()), fetchMyMeetupSpots: async () => [], fetchMeetupSuggestions: async () => [] }));
+// F344: the last listing's area, the one a new listing uses while no place is saved (useSavedPickup's read).
+vi.mock("@/lib/declutter/lastSetup", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/lastSetup")>()), fetchLastSetup: async () => lastSetup.value }));
+const lastSetup = { value: null as unknown };
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/porchPlaces")>()), fetchMyPorchPlaces: async () => state.places }));
 
 function open() {
@@ -88,6 +94,7 @@ beforeEach(() => {
   state.saveResult = true;
   state.saves = [];
   state.places = [];
+  lastSetup.value = null;
   state.features = { declutter: true, declutter_seller_delivery: true };
   vi.mocked(toast).mockClear();
   vi.mocked(toast.error).mockClear();
@@ -227,6 +234,26 @@ describe("Declutter settings", () => {
     // B110: the seller's own meet spots come next, then the listing defaults.
     expect(card.nextElementSibling).toBe(await screen.findByRole("region", { name: "Meet spots" }));
     expect(card.tagName).toBe("SECTION");
+  });
+
+  it("F344: with no place saved, the card says the area and times new listings use now; none of it once a place is saved", async () => {
+    lastSetup.value = { itemId: "i1", areaLabel: "Lafayette", ways: ["porch"], pickup: null };
+    const first = open();
+    const now = await waitFor(() => {
+      const el = document.querySelector("[data-pickup-now]");
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
+    expect(now.textContent).toBe("New listings now use Lafayette, from your last listing, with pickup Sat 9:00 AM–12:00 PM. Add a pickup place to save one here and change it.");
+    first.unmount();
+    lastSetup.value = null;
+    const second = open();
+    await waitFor(() => expect(document.querySelector("[data-pickup-now]")?.textContent).toBe("New listings now use the address you give each one, with pickup Sat 9:00 AM–12:00 PM. Add a pickup place to save one here and change it."));
+    second.unmount();
+    state.places = [{ id: "p1", label: "Porch", address: "1 Main St, Lafayette, LA", area: "Lafayette", lat: 30.2, lng: -92, weekdays: [6], windows: [{ weekday: 6, starts: "09:00", ends: "12:00" }], position: 0 }];
+    open();
+    await screen.findByText("Porch");
+    expect(document.querySelector("[data-pickup-now]")).toBeNull();
   });
 
   it("while the places read, their row holds the spot like its neighbours", async () => {

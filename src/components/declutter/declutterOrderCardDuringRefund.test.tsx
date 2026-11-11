@@ -30,8 +30,8 @@ const state = vi.hoisted(() => ({
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "me" } }) }));
-vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "declutter_refund_requests" }));
-vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "declutter_refund_requests", useFeatureStatus: () => ({ on: false, settled: true, lastAnswer: false }) }));
+vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart, fetchMyOffers: async () => [] }));
 vi.mock("@/lib/declutter/paidCents", () => ({ fetchMyPaidCents: async () => new Map() }));
 vi.mock("@/lib/declutter/refundedCents", async (orig) => ({ ...(await orig<object>()), fetchMyRefundedCents: async () => new Map() }));
 vi.mock("@/lib/declutter/refundRequests", async (orig) => ({

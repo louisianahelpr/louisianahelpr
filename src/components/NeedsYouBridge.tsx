@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { useNeedsYouTodos } from "@/pages/home/homeDashboard/useNeedsYouTodos";
+import { isDeclutterBuyingTodo } from "@/lib/declutter/buyingTodo";
 import { clearNeedsYou, publishNeedsYou } from "@/lib/needsYouStore";
 
 /**
@@ -21,7 +22,7 @@ export default function NeedsYouBridge({ user }: { user: SupaUser }) {
   const declutter = todos.filter((t) => t.section === "declutter").length;
   // Owner 11-11 (F363/F396): the Declutter to-dos split by side. A buyer's to-do opens the Buying tab
   // (needsYouTodos: tab=buying); every other one is the seller's or the giver's (tab=selling, a free item to pick).
-  const declutterBuying = todos.filter((t) => t.section === "declutter" && t.to.includes("tab=buying")).length;
+  const declutterBuying = todos.filter(isDeclutterBuyingTodo).length;
   const declutterSelling = declutter - declutterBuying;
   useEffect(() => {
     // Nothing read yet: publish nothing, rather than a "0" that is not a fact.

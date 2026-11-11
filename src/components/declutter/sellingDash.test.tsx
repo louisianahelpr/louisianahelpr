@@ -97,6 +97,7 @@ vi.mock("@/lib/declutter/handover", async (orig) => ({
 }));
 vi.mock("@/lib/declutter/refundRequests", async (orig) => ({
   ...(await orig<object>()),
+  fetchMyRefundTodos: async () => [], // F363 option b: the Buying tracker reads it
   fetchRefundRequestView: async (id: string) => state.refunds[id] ?? { order_id: id, side: "seller", handed_over: true, can_ask: false, can_report: false, items_cents: 0, full_refund_cents: 0, delivery_kept_cents: 0, window_ends_at: null, request: null },
 }));
 // Q2629: a sale waiting for payment draws SalesWaiting, which lists open handover chats.

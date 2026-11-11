@@ -74,7 +74,7 @@ export function jobStepsLabel(stage: Stage, waitingOnYou: boolean, tone: StepTon
   const done = steps.slice(0, Math.max(0, at));
   const later = steps.slice(at + 1);
   return [
-    `Job progress, step ${at + 1} of ${n}: ${steps[at]}, ${tone === "problem" ? `${label ? `${label}, ` : ""}needs attention` : waitingOnYou ? "waiting on you" : "waiting on the other person"}.`,
+    `Job progress, step ${at + 1} of ${n}: ${steps[at]}${tone === "progress" && label ? ` (${label})` : ""}, ${tone === "problem" ? `${label ? `${label}, ` : ""}needs attention` : waitingOnYou ? "waiting on you" : "waiting on the other person"}.`,
     done.length ? `Done: ${done.join(", ")}.` : "",
     later.length ? `Still to come: ${later.join(", ")}.` : "",
   ].filter(Boolean).join(" ");
@@ -137,7 +137,8 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
         // "Arr." at 375 and the soft-hyphenated "Ar-rived" from a 368px tracker), and the name comes from one hidden
         // line with the full step name the wider tracker shows: "Arrived: what this step is waiting on". A problem
         // step's drawn word ("Late", "No-show") leads, since it replaces the step name on screen.
-        const problemWord = (s === "problem" || s === "alarm") && label ? PROBLEM_SHORT[label] ?? label : null;
+        // F274: a progress step's own word ("Fix" while a fix is asked for) replaces its name on the current step too.
+        const problemWord = (s === "problem" || s === "alarm") && label ? PROBLEM_SHORT[label] ?? label : (s === "you" || s === "them") && label ? label : null;
         const named = problemWord ? `${problemWord}, ${full}` : full;
         const body = (
           <>
@@ -158,7 +159,7 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
               {s === "done" && <Check className="job-step-wide h-3 w-3 shrink-0" />}
               {/* THE FULL NAME AT EVERY WIDTH (owner pick 11-08: full words): six columns leave room, and a name may
                   take two lines (a soft hyphen or its space), never an ellipsis or a short form (A2-L15). */}
-              <span className="job-step-full min-w-0 text-center">{(s === "problem" || s === "alarm") && label ? PROBLEM_SHORT[label] ?? label : JOB_PROGRESS_DRAWN[i]}</span>
+              <span className="job-step-full min-w-0 text-center">{problemWord ?? JOB_PROGRESS_DRAWN[i]}</span>
             </span>
           </>
         );

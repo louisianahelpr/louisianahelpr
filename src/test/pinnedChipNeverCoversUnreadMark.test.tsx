@@ -85,8 +85,9 @@ describe("the Pinned chip sits beside the timestamp, never over the unread mark 
     if (chip) {
       expect(chip.getAttribute("aria-label")).toBe("Pinned");
       expect(positionedAncestor(chip, container), "the chip is laid out in flow, not overlaid").toBeNull();
-      const name = Array.from(container.querySelectorAll("*")).find((e) => e.children.length === 0 && e.textContent === "Hallie Hebert");
-      expect(name, "name rendered").toBeTruthy();
+      // Owner 11-11 (F421): title first, so line 1 opens with the job title; the chip follows it in the time cluster.
+      const name = Array.from(container.querySelectorAll("*")).find((e) => e.children.length === 0 && e.textContent === "Trim crepe myrtles and haul the limbs");
+      expect(name, "headline rendered").toBeTruthy();
        
       expect(name!.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING, "chip comes after the name, in the timestamp cluster").toBeTruthy();
       const when = chip.parentElement?.textContent ?? "";

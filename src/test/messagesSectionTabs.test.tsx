@@ -170,7 +170,8 @@ describe("the rule: one inbox, filtered by chips", () => {
     render(<ConversationRow convo={convo({ jobStatus: "completed", viewerIsAssignedHelper: true })} currentUserId="me" openConvo={() => {}} />);
     expect(screen.getByTestId("row-status-chip").textContent).toBe("Completed");
     const caption = document.querySelector("[data-thread-caption]")?.textContent ?? "";
-    expect(caption).toContain("Mow the lawn");
+    // Owner 11-11 (F421): title first; the job title is the headline, the caption is the person's line.
+    expect(screen.getByTestId("row-title").textContent).toContain("Mow the lawn");
     expect(caption, "two statuses on one row").not.toContain("You're working");
   });
 });

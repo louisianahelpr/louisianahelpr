@@ -301,7 +301,8 @@ export async function fetchConversations(
     // No offered_to_helper_id here: it is not selectable (20260915045110,
     // owner decision 2026-09-14). Whether *I* am a job's offeree comes from
     // get_job_offer_targets, which answers only the poster and the offeree.
-    supabase.from("jobs").select("id, title, status, customer_id, helper_id, cancelled_by, cancellation_reason").in("id", jobIds),
+    // `photos`: the row leads with the job's first photo (F421, owner 11-11: title first, with its photo).
+    supabase.from("jobs").select("id, title, status, customer_id, helper_id, cancelled_by, cancellation_reason, photos").in("id", jobIds),
     getMessageAttachmentSignedUrls(imageThumbPaths),
     getMutedThreadMap(uid, mutePairs),
     fetchActiveBands(otherIds),
@@ -345,7 +346,7 @@ export async function fetchConversations(
       tags: { source: "loadConversations.jobs" },
     });
   }
-  const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, status: j.status, expired: jobIsExpiredListing(j), customer_id: j.customer_id, helper_id: j.helper_id, offered_to_helper_id: offerTargets.get(j.id) ?? null }]) || []);
+  const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, photo: j.photos?.[0] ?? null, status: j.status, expired: jobIsExpiredListing(j), customer_id: j.customer_id, helper_id: j.helper_id, offered_to_helper_id: offerTargets.get(j.id) ?? null }]) || []);
 
   const convos: Conversation[] = [...convoMap.entries()].map(([, v]) => {
     const last = v.messages[0];
@@ -378,6 +379,7 @@ export async function fetchConversations(
     otherUserName: otherDeleted ? FORMER_MEMBER_LABEL : other?.name || UNRESOLVED_PERSON,
     otherUserAvatarUrl: other?.avatarUrl ?? null,
     jobTitle: jobMap.get(v.jobId)?.title || threadTitles.get(v.jobId) || "a job",
+    jobPhotoUrl: jobMap.get(v.jobId)?.photo ?? null,
     jobId: v.jobId,
     jobStatus: jobMap.get(v.jobId)?.status ?? null,
     jobExpired: jobMap.get(v.jobId)?.expired ?? false,

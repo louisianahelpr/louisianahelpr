@@ -7,6 +7,7 @@ import { LastMessageImageThumb } from "./LastMessageImageThumb";
 import { threadJobChipLabel } from "@/lib/expiredListingInThread";
 import { MESSAGE_STATUS_CHIP } from "./messageStatusChip";
 import UserAvatar from "@/components/UserAvatar";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 import type { Conversation } from "./types";
 import { rowAge } from "./rowAge";
 import { threadRoleCaption } from "./messageSections";
@@ -185,18 +186,11 @@ const ConversationRowBase = ({
     ? "Photo"
     : (c.lastMessage || "—");
 
-  // Presence label — quiet trust signal that the other person was around
-  // today (drives the olive "Active today" dot).
-  //
-  // We intentionally only surface "today" and never a numeric
-  // "Xm/Xh/Xd ago" presence age: the far-right `when` already shows a
-  // relative last-message time, and a second relative-vs-absolute age
-  // sitting beside it read as two conflicting timestamps for one moment
-  // ("6h ago" presence next to "May 30" last-message). One timestamp per
-  // row — `when` — plus the live dot, no stale presence age.
-  // Pulled from the batched `get_user_last_active` read in `loadConversations`:
-  // a coarse band, never a time (20261108001932). Only "today" shows here.
-  const lastActiveLabel = c.otherUserActiveBand === "today" ? { text: "Active today", isLive: true } : null;
+  // F421/F437/F439 (owner 11-11): TITLE FIRST. The job is the headline with its photo, the other person's
+  // name is line 2, and the "Active today" presence label is gone (it read the same on every row).
+  // A Team thread has no job: its headline is the team name and line 2 keeps the team badge (F131).
+  const headline = c.teamThread ? c.otherUserName : c.jobTitle;
+  const roleCaption = c.teamThread ? null : threadRoleCaption(c);
   return (
     <div
       className={`${CONVERSATION_ROW_FRAME} transition-colors`}
@@ -289,14 +283,28 @@ const ConversationRowBase = ({
           have shifted every READ row sideways, and in select mode the leading
           space already belongs to the checkbox. */}
       <div className="relative shrink-0 self-center">
-        <UserAvatar
-          userId={c.otherUserId}
-          src={c.otherUserAvatarUrl}
-          name={c.otherUserName}
-          pixelSize={44}
-          className={CONVERSATION_ROW_AVATAR}
-          fallbackClassName="text-ds-13"
-        />
+        {/* F421 (owner 11-11): the job's photo leads the row, so a member finds "my Pressure wash" by its
+            picture; a job with no photo (or a Team thread) keeps the person's avatar. */}
+        {c.jobPhotoUrl && !c.teamThread ? (
+          <OptimizedImage
+            data-testid="row-job-photo"
+            src={c.jobPhotoUrl}
+            width={44}
+            height={44}
+            alt=""
+            fadeIn
+            className={`${CONVERSATION_ROW_AVATAR} rounded-ds-md object-cover bg-muted`}
+          />
+        ) : (
+          <UserAvatar
+            userId={c.otherUserId}
+            src={c.otherUserAvatarUrl}
+            name={c.otherUserName}
+            pixelSize={44}
+            className={CONVERSATION_ROW_AVATAR}
+            fallbackClassName="text-ds-13"
+          />
+        )}
         {hasUnreadFromOther && (
           <span
             aria-label={`${c.unread} unread message${c.unread === 1 ? "" : "s"}`}
@@ -365,8 +373,8 @@ const ConversationRowBase = ({
                   class on the same element is one declaration fighting
                   another; the value is set in exactly one place. */}
               <p
-                data-testid="row-name"
-                title={c.otherUserName}
+                data-testid="row-title"
+                title={headline}
                 className="font-sans truncate min-w-0 basis-[7.5rem] grow text-ds-15"
                 style={{
                   color: "hsl(var(--ink-deep))",
@@ -374,7 +382,7 @@ const ConversationRowBase = ({
                   fontWeight: hasUnreadFromOther ? NAME_WEIGHT_UNREAD : NAME_WEIGHT_READ,
                 }}
               >
-                {c.otherUserName}
+                {headline}
               </p>
               {statusChip && (
                 // Plain inert label for every status, cancelled included.
@@ -456,13 +464,17 @@ const ConversationRowBase = ({
                 </p>
               ) : (
               <p
-                title={c.jobTitle}
+                title={roleCaption ? `${c.otherUserName} · ${roleCaption}` : c.otherUserName}
                 data-thread-caption
                 className="flex-1 min-w-0 basis-[9rem] text-ds-12 truncate senior-clamp-2 font-sans"
                 style={{ color: "hsl(var(--muted-foreground))" }}
               >
                 <Briefcase aria-label="Jobs" className="inline w-3.5 h-3.5 mr-1 -mt-0.5 align-middle" />
-                {threadRoleCaption(c) ? `${threadRoleCaption(c)} · ${c.jobTitle}` : c.jobTitle}
+                {/* Line 2 = who (F421, owner 11-11): the name first, so a long role caption is what truncates. */}
+                <span data-testid="row-name" className="font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
+                  {c.otherUserName}
+                </span>
+                {roleCaption ? ` · ${roleCaption}` : null}
               </p>
               )}
               {/* Muted bell-slash — quiet visual mark that this thread
@@ -476,37 +488,6 @@ const ConversationRowBase = ({
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   aria-label="Muted"
                 />
-              )}
-              {/* Last-active pill — quiet trust signal so a member knows
-                  whether the other person was around today ("Active
-                  today", olive dot). Nothing for an older or unknown band. */}
-              {lastActiveLabel && (
-                <span role="img"
-                  aria-label={`Last active ${lastActiveLabel.text}`}
-                  className="inline-flex items-center gap-1 shrink-0"
-                >
-                  {lastActiveLabel.isLive && (
-                    <span
-                      aria-hidden="true"
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{
-                        // Spec palette, not a bright green (audit #53): olive presence dot.
-                        background: "hsl(var(--bark))",
-                      }}
-                    />
-                  )}
-                  <span
-                    className="text-ds-10 font-sans"
-                    style={{
-                      color: lastActiveLabel.isLive
-                        ? "hsl(var(--bark))"
-                        : "hsl(var(--olivewood) / 0.8)",
-                      letterSpacing: "0.02em",
-                    }}
-                  >
-                    {lastActiveLabel.text}
-                  </span>
-                </span>
               )}
             </div>
             {/* iMessage-style rich preview row. The image thumbnail (when

@@ -37,7 +37,7 @@
  * row carries it (~/.lh-shots/q116/{before,after}/measure.txt).
  */
 // @mutate src/components/profile/credentialsTab/CredentialCard.tsx | text-ds-13 text-primary underline break-words | text-ds-13 text-primary underline truncate
-// @mutate src/components/messages/ConversationRow.tsx | title={c.jobTitle} | data-q116-mutant={c.jobTitle}
+// @mutate src/components/messages/ConversationRow.tsx | title={headline} | data-q116-mutant={headline}
 // @mutate src/test/truncatedActionLabel.test.ts | ?.label":\n    "MEASURED NOT CLIPPED | ?.label":\n    "Q119 not yet measured
 // @mutate src/components/policy/CollapsedPolicy.tsx | <span className="text-ds-13 font-semibold text-foreground leading-snug"> | <span className="text-ds-13 font-semibold text-foreground line-clamp-2 leading-snug">
 // @mutate src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx | <span className="truncate" title={q}>{q}</span> | <span className="truncate">{q}</span>

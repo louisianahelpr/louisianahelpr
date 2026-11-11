@@ -67,6 +67,9 @@ export type Conversation = {
   otherUserName: string;
   otherUserAvatarUrl?: string | null;
   jobTitle: string;
+  /** The job's first photo (`jobs.photos[0]`), the row's leading picture (F421, owner 11-11: title first, with
+      its photo). Null when the job has none or its row is hidden from the viewer; the row then shows the avatar. */
+  jobPhotoUrl?: string | null;
   jobId: string;
   /** Job status — surfaced as a chip in the chat header so participants
       see at a glance whether they're discussing an open posting, an
@@ -141,9 +144,8 @@ export type Conversation = {
       `isMuted` back to false once the snooze expires locally. */
   muteUntil?: string | null;
   /** The other user's activity band from `get_user_last_active`
-      (20261108001932: a coarse band, never a sign-in time). "today" drives
-      the quiet "Active today" label on the row so a member can gauge how
-      likely a reply is soon. Null when the RPC is undeployed (PGRST202) or
+      (20261108001932: a coarse band, never a sign-in time). The row no
+      longer shows it (F421, owner 11-11 dropped "Active today"). Null when the RPC is undeployed (PGRST202) or
       gave no band (no sign-in in 7 days, blocked, suspended, test user). */
   otherUserActiveBand?: import("@/lib/activeBand").ActiveBand | null;
   /** Present only on a "Louisiana Helpr Team" thread (no job; `jobId` is the

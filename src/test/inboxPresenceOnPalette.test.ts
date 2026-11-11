@@ -2,8 +2,10 @@
  * Audit #53 (2026-10-21; lead: "Active now" is real, the bright green is not):
  * the presence dot and its label wear the spec's olive, the status chip is
  * sentence case at a readable size, and the composer placeholder fits at 375.
+ * Owner 11-11 (F421) dropped the row's "Active today" label and its dot; the row's olive unread pill is the
+ * presence-dot mutation's new target (no bright green may enter the row).
  *
- * @mutate src/components/messages/ConversationRow.tsx | olive presence dot.\n                        background: "hsl(var(--bark))", | olive presence dot.\n                        background: "hsl(var(--live))",
+ * @mutate src/components/messages/ConversationRow.tsx | style={{ background: "hsl(var(--bark))", color: "hsl(var(--parchment))" }} | style={{ background: "hsl(var(--live))", color: "hsl(var(--parchment))" }}
  * @mutate src/components/messages/ConversationRow.tsx | className="text-ds-11 font-sans font-semibold px-1.5 py-0.5 rounded-full shrink-0" | className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
  * @mutate src/components/RichMessageInput.tsx |               : t("chat.placeholder") |               : "Type a message…"
  */

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-11T18:57Z",
+  "measured_at": "2026-11-11T22:33Z",
   "issues": {
     "readable": true,
     "open": [
@@ -22,7 +22,7 @@
         "number": 2353,
         "title": "nightly-red: press-every-control",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42830678182",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43007456468",
         "runTruncated": false
       },
       {
@@ -92,7 +92,7 @@
         "number": 4245,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43076754453",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43111046061",
         "runTruncated": false
       },
       {
@@ -127,7 +127,7 @@
         "number": 4302,
         "title": "nightly-red: main: Vitest",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43066719900",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43103265228",
         "runTruncated": false
       },
       {
@@ -141,6 +141,13 @@
         "number": 4401,
         "title": "prod-errors: real users are hitting error screens",
         "label": "prod-errors"
+      },
+      {
+        "number": 4415,
+        "title": "nightly-red: db-drift-detect",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43094034042",
+        "runTruncated": false
       }
     ]
   },
@@ -602,6 +609,7 @@
     "issue #4302": "Q1816",
     "issue #4340": "Q1816",
     "issue #4401": "Q2795",
+    "issue #4415": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",

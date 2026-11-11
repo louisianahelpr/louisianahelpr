@@ -320,8 +320,8 @@ dismissible, and correct in every state.
 | `src/components/identity/FreeClaimFirstTime.tsx` | 1 | Dialog |
 | `src/components/identity/IdentityCheckSheet.tsx` | 1 | Sheet |
 | `src/components/InstantPayoutDialog.tsx` | 2 | Dialog×2 |
-| `src/components/job-card/ActivityDialogs.tsx` | 1 | Dialog |
 | `src/components/job-card/JobActionRow.tsx` | 1 | Popover |
+| `src/components/job-card/NoShowDialog.tsx` | 1 | Dialog |
 | `src/components/job-card/RunningLateSheet.tsx` | 1 | Sheet |
 | `src/components/JobBoostDialog.tsx` | 1 | Dialog |
 | `src/components/JobConfirmation.tsx` | 1 | Dialog |

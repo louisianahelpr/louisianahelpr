@@ -92,6 +92,8 @@ const state = {
   offeredToMe: false,
   /** useOwesReview: the hired Helpr has not reviewed the poster on this finished job. */
   owesReview: false,
+  /** useHelprPaidOut (F287): what was sent to the hired Helpr on a paid job, or null. */
+  paidOut: null as { cents: number; at: string } | null,
 };
 
 vi.mock("@/hooks/useCrewSlot", () => ({ useCrewSlot: () => ({ data: state.crewSlot }) }));
@@ -119,6 +121,8 @@ vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => st
 vi.mock("@/hooks/useHelprTakesTips", async (orig) => ({ ...(await orig<typeof import("@/hooks/useHelprTakesTips")>()), useHelprPayoutWaitsOnBank: () => null }));
 // Q2701: the refunded-amount read (payment_refunds); covered by src/test/refundSaidOnce.test.tsx and lateCancelByPosterSaysTheMoney.test.tsx.
 vi.mock("@/hooks/useJobRefundedCents", () => ({ useJobRefundedCents: () => null }));
+// F287: the hired Helpr's paid-out read (payout_transfers).
+vi.mock("@/hooks/useHelprPaidOut", () => ({ useHelprPaidOut: () => state.paidOut }));
 // The poster's confirm-arrival write (src/lib/posterArrival.ts), shared with the Posted card; F14 checks the page calls it.
 const confirmArrivalMock = vi.hoisted(() => vi.fn(async (_job: { id: string; helper_id: string | null }) => {}));
 vi.mock("@/lib/posterArrival", () => ({ confirmPosterArrival: confirmArrivalMock }));
@@ -373,6 +377,7 @@ beforeEach(() => {
   state.moreCount = 2;
   state.leadCount = 0;
   state.owesReview = false;
+  state.paidOut = null;
   state.position = null;
 });
 
@@ -1739,6 +1744,30 @@ describe("one row of buttons at every stage (B93)", () => {
     expect(await list.findByRole("button", { name: "Open in Jobs" })).toBeTruthy();
     expect(list.queryByText("Open in working")).toBeNull();
   });
+
+  // F287 (audit 11-10): a paid job's Helpr page said only "Approved and paid out to you." beside Message and an
+  // "Open in Jobs" that only went back to the list. Now it names what was sent and when, and drops Open in Jobs.
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | job.status === "cancelled" \|\| job.payment_status === "released" ? null : work] | job.status === "cancelled" ? null : work]
+  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       {paid && job.payment_status === "released" ? <PaidOutLine jobId={job.id} fallback={paid} /> |       {paid && false ? <PaidOutLine jobId={job.id} fallback={paid} />
+  it("F287: a paid job says 'Paid out $X on <when>' and offers no Open in Jobs", async () => {
+    state.paidOut = { cents: 8340, at: "2026-11-09T20:10:00Z" };
+    state.job = row({ helper_id: ME, status: "completed", payment_status: "released", helper_completed_at: "2026-11-09T15:00:00Z",
+      poster_completed_at: "2026-11-09T15:10:00Z" });
+    state.party = true;
+    renderPage();
+    await waitFor(() => expect(document.querySelector("[data-helpr-paid]")?.textContent).toBe("Paid out $83.40 on Mon, Nov 9 at 2:10 PM."));
+    const more = screen.queryByRole("button", { name: "More options" });
+    if (more) fireEvent.click(more);
+    expect(screen.queryByRole("button", { name: "Open in Jobs" })).toBeNull();
+    expect(pageActions()).not.toContain("Open in Jobs");
+  });
+
+  it("F287: a paid job with no paid-out row read yet keeps the old words", async () => {
+    state.job = row({ helper_id: ME, status: "completed", payment_status: "released" });
+    state.party = true;
+    renderPage();
+    await waitFor(() => expect(document.querySelector("[data-helpr-paid]")?.textContent).toBe("Approved and paid out to you."));
+  });
 });
 
 
@@ -1750,7 +1779,7 @@ describe("one row of buttons at every stage (B93)", () => {
  * @mutate src/components/tracker/jobProgressState.ts |   if (status === "in_progress" && !job.is_group_job && (job.proof_after_urls |   if (false && status === "in_progress" && !job.is_group_job && (job.proof_after_urls
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const offerOut = isPoster && offerIsOut(job); |   const offerOut = false;
  * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |  && job.direct_offer_status !== "pending"; | ;
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | msg, job.status === "cancelled" ? null : work] | msg, work]
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | msg, job.status === "cancelled" \|\| job.payment_status === "released" ? null : work] | msg, job.payment_status === "released" ? null : work]
  */
 describe("job page layout V2 (owner 11-01, mockups 4 and 5)", () => {
   const LONG = "Mow and weed eat an empty lot in New Iberia. The edge of the bank near the water has become overgrown and needs to be weed eaten.";

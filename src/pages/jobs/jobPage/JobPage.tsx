@@ -296,9 +296,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     const lead: RowAction = faceIs === "message" && msg ? msg
       : faceIs === "working" ? { ...work, label: doneLocked ? work.label : hiredFace.label }
       : { key: "step", label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled };
-    // L27 JA-F2: a cancelled job is in no live Working list, so "Open in working" there is a dead end: not offered.
-    // With a step of the Working card's own due, "See the case" is the first of the others (the secondary).
-    const extras = [faceIs === "step" ? seeCase : null, msg, job.status === "cancelled" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
+    // L27 JA-F2: a cancelled job is in no live Working list, so "Open in working" there is a dead end: not offered; nor on
+    // a paid job (F287, audit 11-10: it only went back to the list). "See the case" leads the others when a step is due.
+    const extras = [faceIs === "step" ? seeCase : null, msg, job.status === "cancelled" || job.payment_status === "released" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
     // Continue another day: a set day the Helpr has not confirmed leads; "Not finished? Set a day" sits with the others.
     // A3-44: "Leave series" joins More options only when that makes 2+ items (owner 5:42 PM); else it stays a link.
     const leaveAction: RowAction = { key: "leave-series", label: "Leave series", go: () => setLeaveOpen(true), danger: true };

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { queryKeys } from "@/lib/queryKeys";
+import { unwrap } from "@/lib/supabaseResult";
 import { reviewText, withReviewTags } from "@/lib/reviewTags";
 import { STAR_ON_CLS } from "@/lib/starColor";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
@@ -50,7 +51,7 @@ export function YourReviewDialog({
     queryKey: queryKeys.yourReviews.forJob(userId, jobId),
     enabled: open && !!userId && !!jobId,
     queryFn: async () => {
-      const { data: rows, error } = await withReviewTags(
+      const rows = unwrap(await withReviewTags(
         () =>
           supabase
             .from("reviews")
@@ -65,8 +66,7 @@ export function YourReviewDialog({
             .eq("job_id", jobId)
             .eq("reviewer_id", userId)
             .order("created_at", { ascending: true }),
-      );
-      if (error) throw error;
+      ));
       return (rows ?? []) as YourReview[];
     },
   });

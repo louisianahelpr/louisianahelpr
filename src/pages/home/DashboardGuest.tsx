@@ -1,7 +1,7 @@
-import { useEffect, useCallback, useState, useRef, lazy, Suspense } from "react";
+import { useCallback, useState, useRef, lazy, Suspense } from "react";
 import { browseFilteredEmptyCopy } from "@/lib/browseEmptyCopy";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,6 @@ const BrowseMap = lazy(() =>
 import { GuestJobPreview } from "@/components/dashboard/GuestJobPreview";
 import { queryKeys } from "@/lib/queryKeys";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
-import type { EnrichedJob } from "@/components/dashboard/types";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { DashboardTitleBar, TITLE_BAR_PADDING } from "@/components/dashboard/DashboardTitleBar";
@@ -42,6 +41,7 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { GuestAuthActions } from "./GuestAuthActions";
 import { useGuestPosterEnrichment } from "./useGuestPosterEnrichment";
 import { useGuestSessionCheck } from "./useGuestSessionCheck";
+import { useGuestJobSheet } from "./useGuestJobSheet";
 
 /**
  * DashboardGuest — read-only "browse" view shown to logged-out visitors,
@@ -217,55 +217,13 @@ const DashboardGuest = () => {
     navigate(signupUrlFor(jobId ? `/jobs/${jobId}` : null));
   }, [navigate]);
 
-  // Read-only detail view for guests. Selecting a card opens the job's
-  // public info; every action inside the dialog still routes to signup.
-  const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
+  // Read-only detail view for guests (JOBS-29); the sheet is its own history entry (F260u, useGuestJobSheet).
+  const { detailJob, openDetailJob, closeDetailJob } = useGuestJobSheet(jobs);
 
-  // JOBS-29 (lead decision 2026-10-31, under the owner's 9-2 rule): tapping a card shows the job first, then
-  // "Sign up to apply". The preview is GuestJobPreview: title, category, parish and budget only (no poster, address,
-  // coordinates or description). This reverses the 2026-08-22 tap-straight-to-sign-up. The id rides in ?job= so a
-  // back or a reload restores it (below), and Sign up carries the job as `?redirect=/jobs/<id>` (lib/jobIntent).
-  const openDetailJob = useCallback((job: EnrichedJob) => {
-    setDetailJob(job);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set("job", job.id);
-      return next;
-    }, { replace: true });
-  }, [setSearchParams]);
-
-  const closeDetailJob = useCallback(() => {
-    setDetailJob(null);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete("job");
-      return next;
-    }, { replace: true });
-  }, [setSearchParams]);
-
-  // Re-open the detail dialog from the URL on mount (?job=<id>). One-shot and
-  // add-only: it restores the dialog after returning from /subscription, but
-  // never clears the param (close handles that), so it can't race the writers
-  // above. Retries until the guest feed has loaded.
   // Anchors the desktop-web filter popover to the Filters button, exactly as
   // Dashboard does — the sheet is rendered by BrowseTasksToolbar, a different
   // component, so the two are joined by this ref.
   const filtersButtonRef = useRef<HTMLButtonElement>(null);
-  const restoredJobParam = useRef(false);
-  useEffect(() => {
-    if (restoredJobParam.current) return;
-    const id = searchParams.get("job");
-    if (!id) {
-      restoredJobParam.current = true;
-      return;
-    }
-    const match = jobs.find((j) => j.id === id);
-    if (match) {
-      setDetailJob(match);
-      restoredJobParam.current = true;
-    }
-  }, [searchParams, jobs]);
 
   // Pull-to-refresh: re-runs the guestDashboardJobs query so swiping down on
   // the empty-state / list surface fetches fresh open_jobs_browse rows.

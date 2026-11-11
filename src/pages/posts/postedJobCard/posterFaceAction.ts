@@ -5,6 +5,8 @@ import type { Job } from "../../../components/job-card/activityConstants";
 import { requestFaceAction } from "@/components/job-card/faceActionRequest";
 import { useHelprTakesTips } from "@/hooks/useHelprTakesTips";
 import { NOT_RIGHT_LABEL } from "@/lib/releaseCopy";
+import { shareNative } from "@/lib/nativeShare";
+import { deviceOpensShareSheet, jobShareContent } from "@/lib/jobShareContent";
 
 /**
  * The ONE button on the poster's Posted card face (board 14; lead 2026-10-20:
@@ -20,6 +22,7 @@ import { NOT_RIGHT_LABEL } from "@/lib/releaseCopy";
  *   done_*_open       -> onReview / onTip (a crew's per-member tips live in the card)
  *   stalled           -> Message <Helpr> (there is no poster "done" path)
  *   cancelled         -> Post again (/post-job?rebook=)
+ *   no_applicants     -> Share job (F265), with More options as the small link beside it
  * Everything else opens the card's own controls in place.
  */
 export interface PosterFaceHandlers {
@@ -47,6 +50,10 @@ export interface PosterFaceHandlers {
   cancel: () => void;
   /** The dispute's timeline and evidence (the card's View dispute). */
   viewDispute: () => void;
+  /** F265: share the open job's link (jobShareContent through shareNative). Absent: no share on the face. */
+  share?: () => void;
+  /** "Share job" where a share sheet opens, "Copy job link" where the device only copies (deviceOpensShareSheet). */
+  shareLabel?: string;
 }
 
 /**
@@ -103,6 +110,12 @@ export function posterFaceAction(
       return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "secondary" };
     case "cancelled":
       return { label: "Post again", onClick: h.postAgain, tone: "secondary" };
+    case "no_applicants":
+      // F265 (audit 11-10): an open job nobody has applied to. The help is getting it seen, so the button shares it;
+      // the card's controls stay the small "More options" link beside it (the waiting-card shape, critique item 13).
+      return h.share
+        ? { label: h.shareLabel ?? "Share job", onClick: h.share, tone: "secondary", also: { label: POSTER_CONTROLS_LABEL, onClick: h.manage } }
+        : { label: POSTER_CONTROLS_LABEL, onClick: h.manage, tone: "secondary" };
     /* THE BUTTON DOES WHAT THE LINE ASKS (owner, 2026-10-23, card critique items 1, 2, 15). The day-before
        confirm is owed: the confirm itself, through the card's own dialog. Past the day: the line's own action
        (No-Show? / cancel?), secondary because it is not the job's next step. A dispute: open it. */
@@ -155,6 +168,7 @@ export function usePosterFaceAction(a: {
   const [completionRequest, setCompletionRequest] = useState(0);
   // Bumped by "Something's not right": the same sheet, at the fix form.
   const [revisionRequest, setRevisionRequest] = useState(0);
+  const [opensSheet] = useState(deviceOpensShareSheet);
   const faceAction = posterFaceAction(a.wait, job, {
     pendingApplicants: a.pendingApplicants,
     helperName: a.helperName,
@@ -183,6 +197,9 @@ export function usePosterFaceAction(a: {
     noShow: () => a.onNoShow(job.id),
     cancel: () => a.onCancel(job),
     viewDispute: () => a.onViewDispute(job),
+    // shareNative confirms a copy itself (the bare toast the toast policy leaves alive) and reports a failure.
+    share: () => void shareNative(jobShareContent(job)),
+    shareLabel: opensSheet ? "Share job" : "Copy job link",
   });
   return { faceAction, completionRequest, revisionRequest };
 }

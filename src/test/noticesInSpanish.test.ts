@@ -7,8 +7,8 @@
  * @mutate src/components/NotificationPanelView.tsx |   const say = (text: string) => (lang === "es" ? noticeInSpanish(text) : text); |   const say = (text: string) => (void lang, text);
  * @mutate src/components/NotificationPanelView.tsx |                                 {say(n.title)} |                                 {n.title}
  * @mutate src/components/NotificationPanelView.tsx | <NotificationMessage text={say(n.message)} /> | <NotificationMessage text={n.message} />
- * @mutate src/lib/i18n/noticeEs.ts |       vals[tok] = tok === "date" ? dateInSpanish(m[i + 1]) : m[i + 1]; |       vals[tok] = m[i + 1];
- * @mutate src/lib/i18n/noticeEs.ts |     return { re: new RegExp(`^${body}$`), tokens, spanish }; |     return { re: new RegExp(body), tokens, spanish };
+ * @mutate supabase/functions/_shared/noticeEs.ts |       vals[tok] = tok === "date" ? dateInSpanish(m[i + 1]) : m[i + 1]; |       vals[tok] = m[i + 1];
+ * @mutate supabase/functions/_shared/noticeEs.ts |     return { re: new RegExp(`^${body}$`), tokens, spanish }; |     return { re: new RegExp(body), tokens, spanish };
  * @mutate src/lib/nativePush.ts |           toast(say(notification.title) \|\| t("notif.toastNew"), { |           toast(notification.title \|\| t("notif.toastNew"), {
  * @mutate src/hooks/useRealtimePush.ts | showLocalNotification(noticeInSpanish(notification.title), noticeInSpanish(notification.message), notification.link) | showLocalNotification(notification.title, notification.message, notification.link)
  */

@@ -123,7 +123,8 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
     return <ErrorState variant="inline" title="We couldn't load your pickups." body={declutterErrorMessage(bookings.error)} onRetry={() => void bookings.refetch()} />;
   }
   return (
-    <section className="space-y-3" aria-label={label ?? "Paid sales"}>
+    // Audit 11-10 F407: at 1440 each card stretched ~1,590px, the price stranded far from its title; capped like a reading column.
+    <section className="max-w-3xl space-y-3" aria-label={label ?? "Paid sales"}>
       {heading ?? <h2 className="text-base font-semibold">Paid: pickup and handover</h2>}
       {shown.map((o) => (
         <OrderCard

@@ -249,6 +249,20 @@ function WantedFormSheet({ open, at, userId, onClose, where, editing = null, pre
       toast.error(msg === DECLUTTER_OFFLINE_COPY || msg === CONNECTION_TROUBLE_COPY ? `${msg} We kept what you typed.` : msg);
     },
   });
+  // Audit 11-10 F347: once Post has shown the field problems, each change re-checks the form and drops the lines under
+  // fields that are now right (the others stay; no new line appears for a field the member has not fixed yet).
+  const edit = (next: (f: WantedForm) => WantedForm) => setForm((f) => {
+    const after = next(f);
+    setProblems((shown) => {
+      const keys = Object.keys(shown) as (keyof WantedFormProblems)[];
+      if (keys.length === 0) return shown;
+      const now = wantedFormProblems(after);
+      const kept: WantedFormProblems = {};
+      for (const k of keys) if (now[k]) kept[k] = now[k];
+      return kept;
+    });
+    return after;
+  });
   const submit = () => {
     if (post.isPending) return;
     const p = wantedFormProblems(form);
@@ -264,7 +278,7 @@ function WantedFormSheet({ open, at, userId, onClose, where, editing = null, pre
         className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-wanted-sheet="">
         <SheetHero title={editing ? "Edit your post" : "What are you looking for?"} />
         <div className="mt-2">
-          <WantedFormFields form={form} setForm={setForm} problems={problems} onSubmit={submit}
+          <WantedFormFields form={form} setForm={edit} problems={problems} onSubmit={submit}
             photos={editing ? null : <ProblemPhotoPicker files={files} onChange={setFiles} disabled={post.isPending} />} where={editing ? "Measured from where you first posted it." : where} />
         </div>
         {/* Audit 10-30 #18: at 375 the form is taller than the sheet; the buttons stay in view as it scrolls. */}

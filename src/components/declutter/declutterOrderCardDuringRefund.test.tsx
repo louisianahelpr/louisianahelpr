@@ -99,7 +99,7 @@ beforeEach(() => {
 
 // F156 (lab 11-09): a refunded order's card asked declutter_my_handover, which answers paid and handed-over orders
 // only, so every Buying load logged an item_not_found QueryCache error. Only a paid order's card asks.
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | queryFn: () => fetchMyHandover(order.orderId), enabled: order.status === "paid" }); | queryFn: () => fetchMyHandover(order.orderId), enabled: order.status !== "handed_over" });
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | enabled: order.status === "paid" \|\| (order.status === "handed_over" && order.side === "seller" && !!payout) }); | enabled: true });
 describe("F156: the order card asks for the handover row only where the server answers it", () => {
   it("a refunded order's card is drawn and never asks", async () => {
     state.cart = [line({ order_id: "o-refunded", order_status: "refunded" })];

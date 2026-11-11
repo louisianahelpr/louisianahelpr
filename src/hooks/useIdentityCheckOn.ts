@@ -14,7 +14,8 @@ import { useFeatureStatus } from "@/hooks/useFeature";
  */
 // (A bare useIdentityCheckOn(): boolean was exported here and read by nothing; deadcodeRatchet. Read .on.)
 /** The answer plus whether it is IN yet (an entry link waits for it rather than being dropped). */
-export function useIdentityCheckStatus(): { on: boolean; settled: boolean } {
-  const { on, settled } = useFeatureStatus("identity_check");
-  return { on, settled };
+export function useIdentityCheckStatus(): { on: boolean; settled: boolean; lastAnswer: boolean | null } {
+  // lastAnswer: the last REAL answer (kept through a failed refetch), null before one (F360b money figures).
+  const { on, settled, lastAnswer } = useFeatureStatus("identity_check");
+  return { on, settled, lastAnswer };
 }

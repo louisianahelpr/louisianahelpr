@@ -27,7 +27,7 @@ const EXEMPT = new Set([
   "posts/BulkDismissBar.tsx:35",
   "admin/preview/DeclutterPreviewPage.tsx:141",
   "admin/preview/JobPreviewPage.tsx:174",
-  "admin/preview/MessagesPreviewPage.tsx:162",
+  "admin/preview/MessagesPreviewPage.tsx:163",
 ]);
 
 function walk(dir: string): string[] {

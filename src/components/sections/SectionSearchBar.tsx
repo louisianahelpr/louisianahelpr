@@ -3,6 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enDeclutter";
 
 /** Router state that asks a section's Browse field to take focus (a tap on another tab's bar). */
 const FOCUS_SEARCH_STATE = { focusSectionSearch: true } as const;
@@ -12,8 +15,21 @@ const FOCUS_SEARCH_STATE = { focusSectionSearch: true } as const;
  * where the bell and the photo leave the field about 100px (320: "Search Dec" was cut at the Filters edge). Drawn as a
  * span over the empty field, since a placeholder cannot change its words by width.
  */
+// F260q (owner 11-11): the bar's words in the reader's language; a noun not listed here is shown as given.
+const NOUN_KEY: Record<string, MsgKey> = {
+  jobs: "section.noun.jobs", "jobs and items": "section.noun.jobsAndItems", "posted jobs": "section.noun.postedJobs",
+  "jobs you're working": "section.noun.jobsWorking", homes: "section.noun.homes", shops: "section.noun.shops",
+  Declutter: "section.noun.declutter",
+};
+function useNoun(noun: string): { search: string; noun: string } {
+  const { t } = useLanguage();
+  const key = NOUN_KEY[noun];
+  return { search: t("section.search"), noun: key ? t(key) : noun };
+}
+
 function Words({ noun }: { noun: string }) {
-  return <>Search<span className="max-[359px]:hidden"> {noun}</span></>;
+  const w = useNoun(noun);
+  return <>{w.search}<span className="max-[359px]:hidden"> {w.noun}</span></>;
 }
 
 const BAR = "flex h-11 w-full min-w-0 items-center gap-2 rounded-full border border-border bg-card pl-4 pr-1";
@@ -36,7 +52,9 @@ export function SectionSearchBar(props: { noun: string; home: string } & (FieldP
   useEffect(() => {
     if (focusAsked) inputRef.current?.focus({ preventScroll: true });
   }, [focusAsked]);
-  const label = `Search ${noun}`;
+  const words = useNoun(noun);
+  const { t } = useLanguage();
+  const label = `${words.search} ${words.noun}`;
 
   if (props.onChange === undefined) {
     return (
@@ -74,7 +92,7 @@ export function SectionSearchBar(props: { noun: string; home: string } & (FieldP
       />
       </span>
       {value && (
-        <Button type="button" variant="ghost" size="iconCompact" aria-label="Clear search" onClick={() => { onChange(""); inputRef.current?.focus(); }}
+        <Button type="button" variant="ghost" size="iconCompact" aria-label={t("section.clearSearch")} onClick={() => { onChange(""); inputRef.current?.focus(); }}
           className="ctl-exit -my-px shrink-0 text-muted-foreground hover:text-foreground [&_svg]:size-4">
           <X className="h-4 w-4" aria-hidden />
         </Button>

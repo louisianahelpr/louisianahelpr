@@ -98,7 +98,7 @@ describe("design tweaks (owner 2026-10-18)", () => {
     // The fade marks only a row that really continues (Messages chips, 2026-10-28): .chip-row[data-more].
     expect(rule(".chip-row[data-more]")).toMatch(/mask-image:\s*linear-gradient/);
     // Declutter's distance chips moved into the slide-up filter sheet; its search and filters end the tabs row (owner 10-30).
-    expect(code("src/components/declutter/DeclutterBrowseView.tsx")).toMatch(/<InlineListSearch[^>]*label="Search items"/);
+    expect(code("src/components/declutter/DeclutterBrowseView.tsx")).toMatch(/<InlineListSearch[^>]*label=\{t\("decl\.searchItems"\)\}/);
   });
 
   it("T8: cards and buttons dip under the finger, never under Reduce Motion", () => {

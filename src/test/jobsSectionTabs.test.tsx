@@ -7,7 +7,7 @@
  * status boxes filter: tap one = only that group, tap it again = all groups.
  *
  * @mutate src/components/sections/sectionsConfig.ts | export const BROWSE = "browse" as const; | export const BROWSE = "posted" as const;
- * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map | const options = [...tabs.map
+ * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: tr("tabs.browse") }, ...tabs.map | const options = [...tabs.map
  * @mutate src/lib/i18n/enCore.ts |   "jobs.tabPosted": "Posted", |   "jobs.tabPosted": "Jobs I posted",
  * @mutate src/pages/jobs/JobsSection.tsx |   return MY_JOBS_LINK_PARAMS.some((k) => params.has(k)) ? "working" : "browse"; |   return "browse";
  * @mutate src/components/job-card/embeddedActivity.tsx |   return current === tapped ? "all" : tapped; |   return tapped;

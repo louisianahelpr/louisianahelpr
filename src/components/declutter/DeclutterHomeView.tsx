@@ -81,6 +81,9 @@ import { useOpenProblems } from "./useOpenProblems";
 import { TAKE_DOWN_WORDS } from "./takeDownWords";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { nextStepWords } from "@/components/ui/NextStep";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enDeclutter";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
 const haulLib = () => loadModule(() => import("@/lib/declutter/haulAway"));
@@ -514,6 +517,8 @@ function DeclutterMemberHome() {
     }, { replace: true, state: location.state });
   }, [fromView, tabsReady, setParams, location.state]);
   useWarmMineViews(view === "buying" || view === "selling");
+  // F260q (owner 11-11): the tab names and My Declutter in the reader's language.
+  const { t: tr } = useLanguage();
   if (!user) return null;
   if (!tabsReady) return <DeclutterHomeSkeleton />;
   const goTab = (v: string) =>
@@ -526,20 +531,20 @@ function DeclutterMemberHome() {
       return next;
     }, { replace: true });
   // Owner 11-11 (F363/F396): the Buying and Selling badges are the Home To-do count (the bottom bar's), by side.
-  const lists: Array<{ value: Exclude<DeclutterTab, "browse">; label: string; count?: number; quiet?: number }> = [
-    { value: "buying", label: "Buying", count: needsYou.declutterBuying },
-    { value: "selling", label: "Selling", quiet: forSale, count: needsYou.declutterSelling },
-    { value: "deliver", label: "Deliver" },
-    ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []),
-    { value: "free", label: "Free" },
+  const lists: Array<{ value: Exclude<DeclutterTab, "browse">; label: string; labelKey: MsgKey; count?: number; quiet?: number }> = [
+    { value: "buying", label: "Buying", labelKey: "decl.tab.buying", count: needsYou.declutterBuying },
+    { value: "selling", label: "Selling", labelKey: "decl.tab.selling", quiet: forSale, count: needsYou.declutterSelling },
+    { value: "deliver", label: "Deliver", labelKey: "decl.tab.deliver" },
+    ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted", labelKey: "decl.tab.wanted" as const }] : []),
+    { value: "free", label: "Free", labelKey: "decl.tab.free" },
   ];
   // PHONE (owner 11-08, the Vinted header): the bar is "Search Declutter" (Filters inside it on Browse) with the bell
   // and the photo; under it Browse's category chips, or a list's name and the way back. Buying, Selling and the rest,
   // with their to-do counts, and the settings live in "My Declutter" under the photo; Sell is the floating pill.
   // DESKTOP keeps its row: the tabs, then Browse's search, filters and map, and the gear last (Jobs, owner 2026-10-30).
   const mine: SectionMineMenu = {
-    title: "My Declutter",
-    items: lists.map((l) => ({ key: l.value, label: l.label, to: `/declutter?tab=${l.value}`, count: l.count, quiet: l.quiet })),
+    title: tr("decl.myDeclutter"),
+    items: lists.map((l) => ({ key: l.value, label: tr(l.labelKey), to: `/declutter?tab=${l.value}`, count: l.count, quiet: l.quiet })),
     settings: { label: DECLUTTER_SETTINGS.label, to: DECLUTTER_SETTINGS.path },
   };
   // The tab row's tabs, on desktop and (F153) on a phone: Selling's to-dos are a dot beside its for-sale count.

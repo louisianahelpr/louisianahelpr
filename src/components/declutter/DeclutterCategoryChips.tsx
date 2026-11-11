@@ -23,6 +23,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { CATEGORIES, CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enDeclutter";
 
 export function DeclutterCategoryChips({ items, value, onChange, free = false, onFree }: {
   items: readonly { category: string; current_price_cents?: number }[];
@@ -47,6 +50,7 @@ export function DeclutterCategoryChips({ items, value, onChange, free = false, o
   const anyFree = useMemo(() => items.some((i) => i.current_price_cents === 0), [items]);
   const freeChip = !!onFree && (anyFree || free);
   const desktop = useIsWebDesktop();
+  const { t } = useLanguage();
   const row = useRef<HTMLDivElement>(null);
   const [more, setMore] = useState({ left: false, right: false });
   const measure = useCallback(() => {
@@ -71,14 +75,14 @@ export function DeclutterCategoryChips({ items, value, onChange, free = false, o
   };
   if (chips.length < 2 && !value && !freeChip) return null;
   const list = (
-    <div ref={row} onScroll={desktop ? measure : undefined} role="group" aria-label="Categories" data-chip-row="categories" className="flex min-w-0 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <FilterChip pressed={value === null && !free} onClick={() => { onChange(null); if (free) onFree?.(false); }} size="tall" className="shrink-0" data-category-chip="all">All</FilterChip>
+    <div ref={row} onScroll={desktop ? measure : undefined} role="group" aria-label={t("decl.categories")} data-chip-row="categories" className="flex min-w-0 gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <FilterChip pressed={value === null && !free} onClick={() => { onChange(null); if (free) onFree?.(false); }} size="tall" className="shrink-0" data-category-chip="all">{t("decl.chip.all")}</FilterChip>
       {freeChip && (
-        <FilterChip pressed={free} onClick={() => onFree?.(!free)} size="tall" className="shrink-0" data-category-chip="free">Free</FilterChip>
+        <FilterChip pressed={free} onClick={() => onFree?.(!free)} size="tall" className="shrink-0" data-category-chip="free">{t("decl.chip.free")}</FilterChip>
       )}
       {chips.map((k) => (
         <FilterChip key={k} pressed={value === k} onClick={() => onChange(value === k ? null : k)} size="tall" className="shrink-0" data-category-chip={k}>
-          {CATEGORY_LABEL[k]}
+          {CATEGORY_LABEL[k] && t(`decl.cat.${k}` as MsgKey)}
         </FilterChip>
       ))}
     </div>
@@ -89,14 +93,14 @@ export function DeclutterCategoryChips({ items, value, onChange, free = false, o
       {list}
       {more.left && (
         <div data-chip-edge="left" className="pointer-events-none absolute inset-y-0 left-0 flex w-16 items-start bg-gradient-to-r from-background via-background/90 to-transparent pb-1">
-          <RowNudgeButton aria-label="Earlier categories" onClick={() => nudge(-1)}>
+          <RowNudgeButton aria-label={t("decl.earlierCategories")} onClick={() => nudge(-1)}>
             <ChevronLeft className="h-5 w-5" aria-hidden />
           </RowNudgeButton>
         </div>
       )}
       {more.right && (
         <div data-chip-edge="right" className="pointer-events-none absolute inset-y-0 right-0 flex w-16 items-start justify-end bg-gradient-to-l from-background via-background/90 to-transparent pb-1">
-          <RowNudgeButton aria-label="More categories" onClick={() => nudge(1)}>
+          <RowNudgeButton aria-label={t("decl.moreCategories")} onClick={() => nudge(1)}>
             <ChevronRight className="h-5 w-5" aria-hidden />
           </RowNudgeButton>
         </div>

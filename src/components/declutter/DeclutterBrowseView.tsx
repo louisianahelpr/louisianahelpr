@@ -60,6 +60,9 @@ import { previewIsTopOfList, readFirstScreenPreview, type FirstScreenAnswer } fr
 import { readGuestPreview } from "@/lib/declutter/guestBootPrefetch";
 import { useFirstRowPhotosSettled } from "./firstRowPhotoGate";
 import { toastWatching } from "./declutterLightActions";
+import { useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enDeclutter";
 
 // The map (and the MapKit script it asks for) loads only when a map is shown.
 const DeclutterMap = lazy(() => import("./DeclutterMap"));
@@ -121,6 +124,7 @@ function useFillHeight() {
  */
 function WantedLink({ query = "", category = null }: { query?: string; category?: string | null }) {
   const on = useFeature("declutter_wanted");
+  const { t } = useLanguage();
   if (!on) return null;
   // A3-99: the search words go with it, into the open form (wantedAskHref).
   const what = query.trim();
@@ -132,7 +136,7 @@ function WantedLink({ query = "", category = null }: { query?: string; category?
         data-testid="declutter-wanted-link"
         className="link-standard text-ds-15 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
       >
-        <span className="font-normal text-muted-foreground">Can't find it?</span> {what ? `Ask for “${what}”` : "Post what you're looking for"}
+        <span className="font-normal text-muted-foreground">{t("decl.cantFind")}</span> {what ? t("decl.askFor", { what }) : t("decl.postWanted")}
       </Link>
     </p>
   );
@@ -146,6 +150,7 @@ function WantedLink({ query = "", category = null }: { query?: string; category?
  */
 function NothingForSaleActions({ guest }: { guest: boolean }) {
   const wanted = useFeature("declutter_wanted");
+  const { t } = useLanguage();
   // Owner 11-02 (1.0.4): the same layout as Jobs' empty Browse (EmptyStateActions): "+ Sell something", then the quiet
   // "Post what you're looking for" link. A guest can't sell yet (lead 10-31): Sign up to sell, back to the chooser after.
   return (
@@ -154,9 +159,9 @@ function NothingForSaleActions({ guest }: { guest: boolean }) {
       <HideSectionCreateFab active={!guest} />
       <EmptyStateActions
         primary={guest
-          ? { label: "Sign up to sell", to: `/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}` }
-          : { label: "Sell something", to: SELL_CHOOSER_PATH }}
-        secondary={wanted ? { label: "Post what you're looking for", to: "/declutter?tab=wanted" } : null}
+          ? { label: t("decl.signUpToSell"), to: `/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}` }
+          : { label: t("decl.sellSomething"), to: SELL_CHOOSER_PATH }}
+        secondary={wanted ? { label: t("decl.postWanted"), to: "/declutter?tab=wanted" } : null}
         secondaryIcon={Search}
       />
     </div>
@@ -175,6 +180,8 @@ const GUEST_FULL_LIST_WAIT_MS = 3000;
  */
 export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string | null; chrome: (browse: DeclutterBrowseHeader) => DeclutterChrome; top?: ReactNode; fab?: ReactNode }) {
   const desktop = useIsWebDesktop();
+  // F260q (owner 11-11): Browse's words come from the dictionary (enDeclutter.ts / esDeclutter.ts).
+  const { t } = useLanguage();
   const member = userId !== null;
   const location = useLocation();
   // F052: a guest's heart opens sign-up and comes back to this exact Browse (filters and search kept).
@@ -375,7 +382,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
         end: (
           <div data-feed-strip="" className="ml-auto flex shrink-0 items-center gap-1 pb-0.5">
             {/* F073 (UI audit 11-09, lead 11-09): a visible field on desktop, as on the phone. */}
-            <InlineListSearch value={query} onChange={setQuery} label="Search items" pinned />
+            <InlineListSearch value={query} onChange={setQuery} label={t("decl.searchItems")} pinned />
             <FiltersIconButton open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen((o) => !o)} />
             {member && <MapToggleButton visible={mapVisible} onToggle={toggleMap} disabled={items.isError} />}
           </div>
@@ -424,7 +431,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
 
   let body: ReactNode;
   if (items.isError) {
-    body = <ErrorState variant="inline" title="We couldn't load items." body={declutterErrorMessage(items.error)} onRetry={() => void items.refetch()} />;
+    body = <ErrorState variant="inline" title={t("decl.loadFailed")} body={declutterErrorMessage(items.error)} onRetry={() => void items.refetch()} />;
   } else if (listLoading) {
     // ONE PAINT: the origin line and the cards arrive together (Q?declutter-settle: CLS 0.0322 at 375 on prod).
     body = <DeclutterBrowseBones map={desktop && mapVisible} full={desktop && !mapVisible} />;
@@ -462,18 +469,18 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
         {desktop && itemsPhase !== "offline-empty" && rows.length > 0 && <DeclutterMilesFrom ask={ask} />}
         {/* Audit 1110 F311: an emoji alone is no search, so every item shows; say why instead of looking like a match. */}
         {wordlessSearch && rows.length > 0 && (
-          <p className="text-ds-13 text-muted-foreground" role="status" data-search-wordless="">Search with words, like chair. Showing every item.</p>
+          <p className="text-ds-13 text-muted-foreground" role="status" data-search-wordless="">{t("decl.wordless")}</p>
         )}
         {itemsPhase === "offline-empty" ? (
-          <OfflineEmptyState body="Items for sale will show here once you're back online." onRetry={() => void items.refetch()} />
+          <OfflineEmptyState body={t("decl.offline")} onRetry={() => void items.refetch()} />
         ) : rows.length === 0 ? (
           // The shared empty state every Browse wears (owner, 2026-10-19: Homes' style, same place).
           <BrowseEmptyState
             icon={Sofa}
-            title={zipSearch ? `Looking for items near ${q}?` : q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.tradesOnly && filterCount === 1 ? "No listings open to trades right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_LABEL[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : others.length === 0 ? "Nothing for sale near you yet." : "Nothing for sale this close."}
+            title={zipSearch ? t("decl.empty.zip", { q }) : q ? t("decl.empty.search") : filters.freeOnly && filterCount === 1 ? t("decl.empty.free") : filters.tradesOnly && filterCount === 1 ? t("decl.empty.trades") : filters.category && filterCount === 1 ? t("decl.empty.category", { category: CATEGORY_LABEL[filters.category] ? t(`decl.cat.${filters.category}` as MsgKey) : t("decl.empty.thisCategory") }) : filterCount > 0 ? t("decl.empty.filters") : others.length === 0 ? t("decl.empty.none") : t("decl.empty.close")}
             // The category line no longer says "tap it again": the category chips left Browse for the filter sheet
             // (owner 2026-10-21); the Clear button below is the way back to everything.
-            body={zipSearch ? "Search looks at the words in a listing. Set where you are under Filters > Distance > Use my location." : q ? "Try another word." : filters.freeOnly && filterCount === 1 ? "Check back soon, or give something away yourself." : filters.tradesOnly && filterCount === 1 ? "Check back soon, or open your own listings to trades." : filters.category && filterCount === 1 ? "Try another category." : filterCount > 0 ? "Try fewer filters." : others.length === 0 ? "New items show up here as people list them." : "Try a bigger distance."}
+            body={zipSearch ? t("decl.emptyBody.zip") : q ? t("decl.emptyBody.search") : filters.freeOnly && filterCount === 1 ? t("decl.emptyBody.free") : filters.tradesOnly && filterCount === 1 ? t("decl.emptyBody.trades") : filters.category && filterCount === 1 ? t("decl.emptyBody.category") : filterCount > 0 ? t("decl.emptyBody.filters") : others.length === 0 ? t("decl.emptyBody.none") : t("decl.emptyBody.close")}
             action={
               // Owner 2026-10-30 (via the lead): nothing for sale at all is a real empty state for everyone who has
               // Declutter, never "Opens soon": Sell something, and Post what you're looking for (NothingForSaleActions).
@@ -481,18 +488,18 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
               <div className="flex flex-col items-center gap-2">
                 {zipSearch && (
                   <Button type="button" variant="default" size="sm" className="rounded-full" data-testid="declutter-open-distance" onClick={() => setFiltersOpen(true)}>
-                    Open distance
+                    {t("decl.openDistance")}
                   </Button>
                 )}
                 {nearFinds && (
                   <Button type="button" size="sm" className="rounded-full" data-near-search={nearSearch} onClick={() => setQuery(nearSearch!)}>
-                    Search for {nearSearch} instead
+                    {t("decl.searchInstead", { word: nearSearch ?? "" })}
                   </Button>
                 )}
                 {searched && (
                   <Button type="button" variant="outline" size="sm" className="rounded-full" data-testid="declutter-clear-search" onClick={() => { setQuery(""); clearAll(); }}>
                     {/* Not "Clear search": that name is the search field's own ✕ (searchFieldsAllChecked). */}
-                    Show all items
+                    {t("decl.showAll")}
                   </Button>
                 )}
                 <WantedLink query={query} category={filters.category} />
@@ -525,7 +532,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
             // Widen one step (DISTANCE_CHOICES), up to "Any distance"; none when the distance is already any (lead,
             // 2026-10-19).
             onWiden={from && maxMiles !== null ? () => setMaxMiles(widerMiles(maxMiles)) : undefined}
-            widenLabel={from && maxMiles !== null ? (widerMiles(maxMiles) === null ? "Any distance" : `Widen to ${widerMiles(maxMiles)} mi`) : undefined}
+            widenLabel={from && maxMiles !== null ? (widerMiles(maxMiles) === null ? t("decl.anyDistance") : t("decl.widenTo", { miles: widerMiles(maxMiles) ?? "" })) : undefined}
             footnote={<WantedLink query={query} category={filters.category} />}
           />
         )}

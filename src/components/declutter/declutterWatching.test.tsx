@@ -7,7 +7,7 @@
  * @mutate src/components/declutter/DeclutterWatching.tsx | <h2 className="text-base font-semibold">Saved</h2> | <h2 className="text-base font-semibold">Watching</h2>
  * @mutate src/components/declutter/DeclutterWatching.tsx | aria-label="Saved" data-watching="" | aria-label="Watching" data-watching=""
  * @mutate src/components/declutter/declutterLightActions.ts | Find it under Buying, in Saved. | Find it under Buying, in Watching.
- * @mutate src/components/declutter/DeclutterItemCard.tsx | : `Save ${item.title}`} | : `Watch ${item.title}`}
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | : t("decl.card.save", { title: item.title })} | : `Watch ${item.title}`}
  * @mutate src/components/declutter/DeclutterItemView.tsx | : "Save this item"} | : "Watch this item"}
  * @mutate src/components/declutter/DeclutterWatching.tsx |   if (item.status === "reserved") return "On hold for another buyer"; |   if (item.status === "reserved") return "No longer for sale";
  * @mutate src/components/declutter/DeclutterWatching.tsx |   const gone = goneLine(list.length - rows.length); |   const gone = null;
@@ -100,7 +100,11 @@ describe("Watching under Buying (SS-5)", () => {
     // The card's heart (ItemCard) and the item page's control carry the one word the toast and the Saved list use.
     const card = blankComments(readFileSync("src/components/declutter/DeclutterItemCard.tsx", "utf8"));
     // Owner 11-07: the name may end ", saved by N" when the heart shows its count; the word stays Save.
-    expect(card).toContain("aria-label={`${save.on ? `Remove ${item.title} from saved` : `Save ${item.title}`}");
+    // F260q (11-11): the words come from the dictionary now; the card draws those keys, and the English says Save.
+    expect(card).toContain('aria-label={`${save.on ? t("decl.card.unsave", { title: item.title }) : t("decl.card.save", { title: item.title })}');
+    const en = readFileSync("src/lib/i18n/enDeclutter.ts", "utf8");
+    expect(en).toContain('"decl.card.save": "Save {title}",');
+    expect(en).toContain('"decl.card.unsave": "Remove {title} from saved",');
     const page = blankComments(readFileSync("src/components/declutter/DeclutterItemView.tsx", "utf8"));
     expect(page).toContain(': "Save this item"}');
   });

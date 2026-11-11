@@ -65,6 +65,25 @@ export const enLanding = {
   "landing.how.sell2Desc": "They tap Buy now or send you an offer. You choose.",
   "landing.how.sell3Title": "Hand it over, get paid",
   "landing.how.sell3Desc": "Meet up or leave it on the porch. You're paid once the buyer says they got it.",
+  // The browse block under the hero (LandingBrowseShell.tsx, LiveJobsSection.tsx, LandingProof.tsx), looked up by
+  // the English those files draw.
+  "landing.shell.jobsTitle": "Open jobs near you",
+  "landing.shell.jobsLine": "You pick who helps. Paid only when it’s done.",
+  "landing.shell.jobsLineId": "Photo ID checked before anyone posts or heads out. Paid only when it’s done.",
+  "landing.shell.declutterTitle": "Popular on Declutter",
+  "landing.shell.declutterLine": "Pick it up, meet up, or have a Helpr deliver it.",
+  "landing.shell.noJobsTitle": "New on Declutter near you",
+  "landing.shell.noJobsLine": "Every job is taken right now. Here’s what neighbors are selling.",
+  "landing.shell.serviceArea": "Serving New Iberia, Lafayette, Abbeville and nearby.",
+  "landing.live.getQuotes": "Get quotes",
+  "landing.live.namePrice": "Name a price",
+  "landing.live.parish": "{parish} Parish",
+  "landing.live.failed": "We couldn’t load the newest jobs just now. The full board has every open job.",
+  "landing.proof.justFinished": "Just finished",
+  "landing.proof.yards": "2 yards in New Iberia",
+  "landing.proof.stars": "5 stars",
+  "landing.proof.tip": "$20 tip",
+  "landing.proof.photoAlt": "A freshly mowed yard in New Iberia",
 } as const;
 
 addEnglish(enLanding);

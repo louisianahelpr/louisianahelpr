@@ -5,6 +5,7 @@ import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { LandingProof, useProofLine } from "./LandingProof";
 import { JOBS_SHELL, LandingBrowseShell, NO_JOBS_DECLUTTER_SHELL } from "./LandingBrowseShell";
 import { FreshDeclutterSection } from "./FreshDeclutterSection";
+import { useGuestSpanish } from "./useGuestSpanish";
 
 /**
  * "Live now: Open jobs near you" (owner, 2026-10-23, landing option B): the
@@ -79,11 +80,11 @@ export function liveJobPrice(j: Pick<LiveJob, "budget" | "pricing_mode" | "take_
 
 
 /** "Sat, Oct 24", read as a calendar date (no timezone shift). */
-export function liveJobDate(d: string | null): string | null {
+export function liveJobDate(d: string | null, locale = "en-US"): string | null {
   const m = d?.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!m) return null;
   const date = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  return date.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" });
 }
 
 export function LiveJobsSection() {
@@ -164,6 +165,12 @@ export function LiveJobsSection() {
   }, []);
 
   const line = useProofLine();
+  // F260q (owner 11-11): Spanish when the visitor's language is Spanish (enLanding.ts / esLanding.ts); the shell's
+  // title, line and link are translated in LandingBrowseShell.
+  const es = useGuestSpanish();
+  const w = (key: string, english: string) => es?.[key] ?? english;
+  const priceWords = (price: string) =>
+    price === "Get quotes" ? w("landing.live.getQuotes", price) : price === "Name a price" ? w("landing.live.namePrice", price) : price;
   // D003 (landing design audit 11-10, High): no open job means real Declutter listings here, never an empty card.
   if (state.kind === "ok" && state.jobs.length === 0) return <FreshDeclutterSection shell={NO_JOBS_DECLUTTER_SHELL} />;
   // The finished job is the grid's first card (owner 11-09, 10:31 PM: no block of its own), so the row holds it plus
@@ -183,7 +190,7 @@ export function LiveJobsSection() {
         <>
           <ReportErrorScreen source="LiveJobsSection" title="Couldn't load the newest jobs." />
           <p className="text-ds-15" style={{ color: "var(--lp-body)" }} data-testid="landing-live-jobs-failed">
-            We couldn’t load the newest jobs just now. The full board has every open job.
+            {w("landing.live.failed", "We couldn’t load the newest jobs just now. The full board has every open job.")}
           </p>
         </>
       )}
@@ -203,8 +210,9 @@ export function LiveJobsSection() {
           ))}
         {state.kind === "ok" &&
           state.jobs.slice(0, LIVE_JOBS_LIMIT).map((j) => {
-            const date = liveJobDate(j.date_needed);
-            const where = [j.parish ? `${j.parish} Parish` : null, date].filter(Boolean).join(" · ");
+            const date = liveJobDate(j.date_needed, es ? "es-US" : "en-US");
+            const parish = j.parish ? w("landing.live.parish", "{parish} Parish").replace("{parish}", j.parish) : null;
+            const where = [parish, date].filter(Boolean).join(" · ");
             return (
               <li key={j.id} data-live-job="">
                 <Link
@@ -224,7 +232,7 @@ export function LiveJobsSection() {
                     )}
                   </span>
                   <span className="flex flex-col gap-3 shrink-0 text-right lg:text-left">
-                    <span className="landing-serif-text text-ds-24 lg:text-ds-32">{liveJobPrice(j)}</span>
+                    <span className="landing-serif-text text-ds-24 lg:text-ds-32">{priceWords(liveJobPrice(j))}</span>
                     {where && (
                       <span className="hidden lg:block text-ds-14" style={{ color: "var(--lp-body)" }}>{where}</span>
                     )}

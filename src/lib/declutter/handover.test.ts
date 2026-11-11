@@ -163,9 +163,9 @@ describe("reads", () => {
   });
 
   // Audit 1b D2-2: both order cards read the order's OPEN problem (RLS lets the two sides read their own orders').
-  // @mutate src/lib/declutter/handover.ts | rows = unwrap(await q.in("order_id", orderIds).eq("status", "open")); | rows = unwrap(await q.in("order_id", orderIds));
+  // @mutate src/lib/declutter/handover.ts |     .in("order_id", orderIds).eq("status", "open");\n | .in("order_id", orderIds);\n
   // @mutate src/lib/declutter/handover.ts |   if (!orderIds.length) return []; |
-  // @mutate src/lib/declutter/handover.ts | const rows = unwrap(await q.in("order_id", orderIds).eq("status", "open")); | const rows = (await q.in("order_id", orderIds).eq("status", "open")).data;
+  // @mutate src/lib/declutter/handover.ts |   const rows = unwrap(res);\n  return (rows ?? []) as OpenProblem[]; |   const rows = res.data;\n  return (rows ?? []) as OpenProblem[];
   it("fetchOpenProblems reads only open problems on these orders, skips an empty list, and surfaces a read error", async () => {
     expect(await fetchOpenProblems([])).toEqual([]);
     expect(h.queries).toHaveLength(0);

@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { reportProblem, type ProblemReason } from "@/lib/declutter/handover";
+import { reportProblem, setProblemWants, type ProblemReason, type ProblemWants } from "@/lib/declutter/handover";
 import { invalidate } from "./paidOrders";
 import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhotos";
 import { PROBLEM_FORM_PHOTOS_READY } from "@/lib/declutter/problemPhotos";
@@ -18,6 +18,14 @@ import { Button } from "@/components/ui/button";
 import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
+
+/**
+ * F360a (owner 11-11 ~2:10 PM): the buyer says what would make it right, for an item problem (a no-show, a delivery
+ * that never came or a safety report has no swap). Saved on the report and shown to the seller; the refund rules and
+ * amounts do not change (Louisiana Helpr still decides). Not required: a report never waits on it.
+ */
+const PROBLEM_WANTS: readonly (readonly [ProblemWants, string])[] = [["refund", "Refund me"], ["swap_fix", "Swap / fix it"]];
+const WANTS_REASONS: readonly ProblemReason[] = ["damaged", "not_as_described", "other"];
 
 /** `trigger={false}`: the caller has its own "Report a problem" button (seller delivery), so this one shows only the open form (#51). */
 /** `triggerLabel`: owner 11-11 (F382), after a seller says no to a refund the same report reads "Ask Louisiana Helpr to look". */
@@ -35,8 +43,16 @@ export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange
   const reason: ProblemReason | null = picked && reasons.some(([r]) => r === picked) ? picked : null;
   const [note, setNote] = useState("");
   const [photos, setPhotos] = useState<File[]>([]); // D2-7: up to 3, uploaded on Send (once the server takes them)
+  const [wantsPicked, setWants] = useState<ProblemWants | null>(null);
+  const asksWants = side === "buyer" && !!reason && WANTS_REASONS.includes(reason);
+  const wants = asksWants ? wantsPicked : null;
   const send = useMutation({
-    mutationFn: async () => reportProblem(orderId, reason as ProblemReason, note.trim(), PROBLEM_FORM_PHOTOS_READY && photos.length ? await uploadProblemPhotos(orderId, photos) : []),
+    mutationFn: async () => {
+      const id = await reportProblem(orderId, reason as ProblemReason, note.trim(), PROBLEM_FORM_PHOTOS_READY && photos.length ? await uploadProblemPhotos(orderId, photos) : []);
+      if (!wants || !id) return;
+      // The report is sent either way; a failed save of the choice is said, never swallowed.
+      try { await setProblemWants(id, wants); } catch (err) { toast.error(declutterErrorMessage(err)); }
+    },
     onSuccess: () => {
       toast("Reported. Nobody is paid until Louisiana Helpr decides.");
       setOpen(false);
@@ -55,6 +71,11 @@ export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange
       <p className="text-xs font-medium" aria-hidden="true">What went wrong?</p>
       <RadioCardList label="What went wrong?" value={reason ?? ""} onChange={(r) => setReason(r as ProblemReason)}
         options={reasons.map(([r, words]) => ({ value: r, label: words }))} />
+      {asksWants && (<>
+        <p className="text-xs font-medium" aria-hidden="true">What would make it right?</p>
+        <RadioCardList label="What would make it right?" value={wants ?? ""} onChange={(w) => setWants(w as ProblemWants)}
+          options={PROBLEM_WANTS.map(([w, words]) => ({ value: w, label: words }))} />
+      </>)}
       <label htmlFor={`dcl-note-${orderId}`} className="block text-xs font-medium">Tell us what happened</label>
       <Textarea id={`dcl-note-${orderId}`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)}
         placeholder="What's wrong, and what would make it right?" />

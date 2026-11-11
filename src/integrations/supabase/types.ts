@@ -3656,6 +3656,7 @@ export type Database = {
           other_side_note: string | null
           other_side_photo_paths: string[]
           admin_note: string | null
+          buyer_wants: string | null
           created_at: string
           decided_at: string | null
           decided_by: string | null
@@ -3679,6 +3680,7 @@ export type Database = {
           other_side_note?: string | null
           other_side_photo_paths?: string[]
           admin_note?: string | null
+          buyer_wants?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
@@ -3702,6 +3704,7 @@ export type Database = {
           other_side_note?: string | null
           other_side_photo_paths?: string[]
           admin_note?: string | null
+          buyer_wants?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
@@ -18915,6 +18918,10 @@ export type Database = {
       declutter_problem_add_side: {
         Args: { p_note: string; p_photo_paths?: string[]; p_problem_id: string }
         Returns: Json
+      }
+      declutter_problem_set_wants: {
+        Args: { p_problem_id: string; p_wants: string }
+        Returns: string
       }
       declutter_problem_window_open: { Args: { p_order_id: string }; Returns: boolean }
       declutter_propose_delivery_time: { Args: { p_order_id: string; p_slot_start: string }; Returns: Json }

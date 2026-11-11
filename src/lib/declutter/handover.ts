@@ -295,6 +295,21 @@ export async function reportProblem(orderId: string, reason: ProblemReason, note
   ) as string;
 }
 
+/** F360a (owner 11-11): what the reporting buyer says would make it right. Words only: no refund rule reads it. */
+export type ProblemWants = "refund" | "swap_fix";
+
+/**
+ * F360a (20261111204024): the buyer who reported an OPEN problem saves "Refund me" or "Swap / fix it". A build newer
+ * than the database (PGRST202) says so instead of failing silently; the report itself is already sent.
+ */
+export async function setProblemWants(problemId: string, wants: ProblemWants): Promise<ProblemWants> {
+  const res = await supabase.rpc("declutter_problem_set_wants", { p_problem_id: problemId, p_wants: wants });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_problem_set_wants")) {
+    throw new Error("Your report is sent. Saving what you'd like isn't available yet, so say it in the order chat.");
+  }
+  return rpcData(res, (e) => rpcErrorMessage("declutter_problem_set_wants", e)) as unknown as ProblemWants;
+}
+
 /** D2-3 (20261029225634): an order's newest problem as either side reads it (RLS: the two sides and admins). */
 export interface OrderProblem {
   id: string;
@@ -361,6 +376,8 @@ export interface OpenProblem {
   // "helpr": the Helpr on a Helpr delivery can report too (declutter_problems allows it; NIGHT-BUYINGopenpr-8 saw one).
   reporter_side: "buyer" | "seller" | "helpr" | "system";
   reason: ProblemReason;
+  /** F360a (20261111204024): the reporting buyer's "Refund me" / "Swap / fix it"; absent before that is deployed. */
+  buyer_wants?: ProblemWants | null;
 }
 
 /**
@@ -369,8 +386,16 @@ export interface OpenProblem {
  */
 export async function fetchOpenProblems(orderIds: string[]): Promise<OpenProblem[]> {
   if (!orderIds.length) return [];
-  const q = supabase.from("declutter_problems").select("id, order_id, reporter_side, reason");
-  const rows = unwrap(await q.in("order_id", orderIds).eq("status", "open"));
+  const res = await supabase.from("declutter_problems").select("id, order_id, reporter_side, reason, buyer_wants")
+    .in("order_id", orderIds).eq("status", "open");
+  // F360a: until 20261111204024 is live the column does not exist (42703 / PGRST204 naming buyer_wants); the problems
+  // are read as before, without the buyer's choice. Not silent: said here. Any other error is thrown as before.
+  if (res.error && /42703|PGRST204/.test(String(res.error.code ?? "")) && /buyer_wants/.test(res.error.message ?? "")) {
+    console.warn("[declutter] the buyer's refund-or-swap choice is not readable yet; reading problems without it", res.error);
+    const q = supabase.from("declutter_problems").select("id, order_id, reporter_side, reason");
+    return (unwrap(await q.in("order_id", orderIds).eq("status", "open")) ?? []) as OpenProblem[];
+  }
+  const rows = unwrap(res);
   return (rows ?? []) as OpenProblem[];
 }
 

@@ -10,7 +10,7 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { Button } from "@/components/ui/button";
 import { PageTitleBar } from "@/components/header/PageTitleBar";
-import { sectionByKey, type SectionKey } from "./sectionsConfig";
+import { sectionByKey, type SectionAdd, type SectionKey } from "./sectionsConfig";
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import { avatarButtonLabel } from "@/lib/avatarImage";
@@ -26,14 +26,14 @@ const SECTION_ADD_TINT = "rounded-full shadow-none bg-[hsl(var(--bark)/0.12)] te
 
 /** The section's soft "+ Post a job" (etc.) for the DESKTOP bar; the /jobs loading frame draws the same one so the bar
  *  does not change when the page settles (src/test/sectionLoadingHeaderIsSettled.test.tsx). */
-export function SectionAddButton({ section }: { section: SectionKey }) {
+export function SectionAddButton({ section, add: own }: { section: SectionKey; add?: SectionAdd }) {
   const navigate = useNavigate();
   const gate = useAgeGate();
   // DESKTOP WEBSITE ONLY: the section's own "+ Post a job" (etc.) beside the bell, in the LIGHTER green, a soft
   // olive tint, clearly second to the rail's solid "+ Create" (owner 2026-10-28: "add the post a job and post an
   // item or whatever buttons back on the top nav maybe just make it the lighter green"). A phone keeps the
   // bottom bar's center "+" and no "+" here. Guard: src/test/topBarAddMatchesBell.test.tsx.
-  const add = sectionByKey(section).add;
+  const add = own ?? sectionByKey(section).add;
   const isPost = add?.path === "/post-job";
   const go = () => add && navigate(add.path);
   if (!add) return null;
@@ -81,6 +81,7 @@ export function AppTopBar({
   search,
   mine,
   showAdd = true,
+  add,
 }: {
   /** Omit on Dashboard: the logo shows instead. */
   title?: string;
@@ -104,6 +105,8 @@ export function AppTopBar({
   mine?: SectionMineMenu;
   /** False while the section is closed to this member (SectionScreen's showAdd): no "+ Open a shop" on the desktop bar. */
   showAdd?: boolean;
+  /** This member's own add action when it differs from the section's (SectionCreateFab's `add`). */
+  add?: SectionAdd;
 }) {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
@@ -117,7 +120,7 @@ export function AppTopBar({
   void explore;
   const title = sectionTitle;
   if (isWebDesktop && !title) return null;
-  const actions = isWebDesktop && showAdd && section && sectionByKey(section).add ? <SectionAddButton section={section} /> : undefined;
+  const actions = isWebDesktop && showAdd && section && sectionByKey(section).add ? <SectionAddButton section={section} add={add} /> : undefined;
   // The phone bar's right side (F148): the bell, then You. Help is INTO You (You > Help, one tap).
   const personal = (
     <>

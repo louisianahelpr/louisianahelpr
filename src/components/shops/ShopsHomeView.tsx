@@ -28,6 +28,7 @@ import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import { SectionListBack } from "@/components/sections/SectionListBack";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
+import type { SectionAdd } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useNeedsYouCounts } from "@/lib/needsYouStore";
@@ -35,7 +36,7 @@ import ShopMyOrdersView from "./ShopMyOrdersView";
 import ShopDashboardView from "./ShopDashboardView";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { browseShops, fetchShopCardExtras } from "@/lib/shops/api";
+import { browseShops, fetchMyShopId, fetchShopCardExtras } from "@/lib/shops/api";
 import { ShopBrowseCard } from "./ShopBrowseCard";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { useDeclutterOrigin } from "@/components/declutter/useDeclutterOrigin";
@@ -113,6 +114,14 @@ function ShopSettings() {
 }
 
 /** "My Shops" (owner 11-08): Shop carries my shop's orders waiting for its answer (Home's to-dos, needsYouStore). */
+/**
+ * A member who already has a shop is offered "+ Add an item" (to the item editor), never "+ Open a shop" over their
+ * open shop (Builder 1 Shops pass 11-10: helper-e2e owns a shop and /shops still floated "+ Open a shop", which landed
+ * on "Edit my shop"). The center "+" sheet makes the same switch (CreateSheet). Until the answer is in, neither shows,
+ * so the pill never changes its words under the member's thumb. Guard: src/test/shopOwnerAddNotOpenShop.test.tsx.
+ */
+const ADD_AN_ITEM: SectionAdd = { label: "Add an item to my shop", cta: "Add an item", path: "/shops/mine#add-item" };
+
 const myShops = (shopToDo: number): SectionMineMenu => ({
   title: "My Shops",
   items: SHOPS_TABS.map((t) => ({ key: t.value, label: t.label, to: `/shops?tab=${t.value}`, count: t.value === "shop" ? shopToDo : undefined })),
@@ -122,6 +131,9 @@ export default function ShopsHomeView() {
   const [tab, setTab] = useSectionTab(SHOPS_TAB_VALUES);
   const desktop = useIsWebDesktop();
   const shopToDo = useNeedsYouCounts(useAuthReady().user?.id).shops;
+  const myShop = useQuery({ queryKey: ["shops", "mine"], queryFn: fetchMyShopId });
+  const known = myShop.isSuccess || myShop.isError;
+  const add = myShop.data ? ADD_AN_ITEM : undefined;
   // PHONE (owner 11-08, the Vinted header): Browse's "Search shops" row draws itself in the bar (searchSlot) beside
   // the bell and the photo; Orders and Shop live in "My Shops" under the photo, and a list names itself with the way
   // back to Browse; "+ Open a shop" floats. DESKTOP keeps its tabs row.
@@ -133,7 +145,8 @@ export default function ShopsHomeView() {
     // ONE search on Browse ("Search shops"); Explore's "Search all sections" only on the other tabs on desktop (owner 2026-10-21).
     <SectionScreen section="shops" title="Shops" tabs={tabs} globalSearch={desktop && tab !== "browse"}
       searchSlot={tab === "browse"} search={desktop || tab === "browse" ? undefined : <SectionSearchBar noun="shops" home="/shops" />}
-      mine={desktop ? undefined : myShops(shopToDo)} fab={desktop ? undefined : <SectionCreateFab section="shops" text="Open a shop" />}>
+      mine={desktop ? undefined : myShops(shopToDo)} showAdd={known} add={add}
+      fab={desktop || !known ? undefined : <SectionCreateFab section="shops" text="Open a shop" add={add} />}>
       {tab === "orders" ? (
         <ShopMyOrdersView embedded />
       ) : tab === "shop" ? (

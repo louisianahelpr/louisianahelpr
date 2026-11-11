@@ -421,7 +421,7 @@ describe("Explore", () => {
     expect(screens.length).toBe(3); // vacuity floor (#2894)
     for (const f of screens) expect(code(f), f).toMatch(/<SectionScreen section="(declutter|shops|homes)"/);
     expect(code("src/pages/jobs/JobsSection.tsx")).toMatch(/<AppTopBar [^>]*\bexplore section="jobs"/);
-    expect(code("src/components/sections/SectionScreen.tsx")).toContain("<AppTopBar title={title} explore section={section} search={barSearch} mine={mine} showAdd={showAdd} />");
+    expect(code("src/components/sections/SectionScreen.tsx")).toContain("<AppTopBar title={title} explore section={section} search={barSearch} mine={mine} showAdd={showAdd} add={add} />");
     expect(code("src/components/sections/AppTopBar.tsx")).not.toMatch(/PhoneMessagesButton|PhoneCreateButton/);
     expect(code("src/components/sections/AppTopBar.tsx")).not.toContain("<ExploreSwitcher");
   });

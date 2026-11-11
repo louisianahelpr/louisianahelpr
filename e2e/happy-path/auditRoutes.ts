@@ -175,6 +175,9 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "help", url: "/help" },
   { name: "support", url: "/support" },
   { name: "sms-opt-in", url: "/sms-opt-in" },
+  // F255 (owner 2026-11-11).
+  { name: "fees", url: "/fees" },
+  { name: "safety", url: "/safety" },
   // OPS-4 town + service pages (src/lib/townPages.mjs): one of the 40 stands in for the shared page.
   { name: "hire-town", url: "/hire/handyman/lafayette" },
   { name: "terms-full", url: "/terms/full" },

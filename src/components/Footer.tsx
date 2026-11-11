@@ -201,6 +201,17 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
                 Help center
               </Link>
             </li>
+            {/* F255 (audit 11-10, owner 2026-11-11): what it costs and how members are kept safe. */}
+            <li>
+              <Link to="/fees" className={FOOTER_LINK}>
+                Fees
+              </Link>
+            </li>
+            <li>
+              <Link to="/safety" className={FOOTER_LINK}>
+                Safety
+              </Link>
+            </li>
             <li>
               {/* /contact redirects here too (vercel.json); this is where a
                   person who wants to reach us lands. */}

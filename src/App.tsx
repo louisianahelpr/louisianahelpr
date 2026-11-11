@@ -166,6 +166,9 @@ const DashboardGuest = lazyWithPreload(() => import("./pages/home/DashboardGuest
 const HelpCenter = lazyWithPreload(() => import("./pages/info/HelpCenter"));
 const HireTownPage = lazyWithPreload(() => import("./pages/info/HireTownPage"));
 const SmsOptIn = lazyWithPreload(() => import("./pages/info/SmsOptIn"));
+// F255 (audit 11-10, owner 2026-11-11): /fees and /safety, lazy so the critical path is unchanged.
+const Fees = lazyWithPreload(() => import("./pages/info/Fees"));
+const Safety = lazyWithPreload(() => import("./pages/info/Safety"));
 const LegalFullText = lazyWithPreload(() => import("./pages/info/LegalFullText"));
 const Support = lazyWithPreload(() => import("./pages/info/Support"));
 
@@ -452,6 +455,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/hire/:service/:town" element={<RouteErrorBoundary>{routeEl(<PageTransition><HireTownPage /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Twilio A2P review (owner 2026-10-23): a public link to how members opt in to texts. */}
       <Route path="/sms-opt-in" element={<RouteErrorBoundary>{routeEl(<PageTransition><SmsOptIn /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* F255 (owner 2026-11-11): what it costs (words only) and how members are kept safe. */}
+      <Route path="/fees" element={<RouteErrorBoundary>{routeEl(<PageTransition><Fees /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/safety" element={<RouteErrorBoundary>{routeEl(<PageTransition><Safety /></PageTransition>)}</RouteErrorBoundary>} />
       {/* /parishes, /parish/:slug, /impact, /local-guide, /community and
           /browse-jobs were removed along with their redirect stubs (2352466e).
           Same as above: no redirect exists, and none is warranted on current

@@ -136,6 +136,14 @@
       "destination": "/api/share?_og=page&_id=sms-opt-in"
     },
     {
+      "source": "/fees",
+      "destination": "/api/share?_og=page&_id=fees"
+    },
+    {
+      "source": "/safety",
+      "destination": "/api/share?_og=page&_id=safety"
+    },
+    {
       "source": "/legal",
       "destination": "/api/share?_og=page&_id=legal"
     },
@@ -477,6 +485,14 @@
     },
     {
       "source": "/sms-opt-in",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/fees",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/safety",
       "destination": "/index.html"
     },
     {

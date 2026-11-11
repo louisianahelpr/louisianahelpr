@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-10T22:24Z",
+  "measured_at": "2026-11-11T04:06Z",
   "issues": {
     "readable": true,
     "open": [
@@ -85,28 +85,28 @@
         "number": 4222,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42820730788",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42935034595",
         "runTruncated": false
       },
       {
         "number": 4245,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42893114101",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42952831300",
         "runTruncated": false
       },
       {
         "number": 4253,
         "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42730313054",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42914097145",
         "runTruncated": false
       },
       {
         "number": 4258,
         "title": "nightly-red: prod-errors",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42897084347",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42935084348",
         "runTruncated": false
       },
       {
@@ -120,14 +120,14 @@
         "number": 4281,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42914062682",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42956174858",
         "runTruncated": false
       },
       {
         "number": 4302,
         "title": "nightly-red: main: Vitest",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42817734855",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42943463499",
         "runTruncated": false
       },
       {
@@ -206,6 +206,14 @@
         "issue": null
       },
       {
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
+        "status": "open",
+        "title": "db-deploy failed on main",
+        "issue": null
+      },
+      {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -220,14 +228,6 @@
         "status": "open",
         "title": "nightly-red: nightly-red-age",
         "issue": 2244
-      },
-      {
-        "fingerprint": "8018e82cb1674eba274a494805d751d1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: db-drift-detect",
-        "issue": 4149
       },
       {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
@@ -315,7 +315,15 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": 4222
+        "issue": null
+      },
+      {
+        "fingerprint": "5be6011a46f6328f224c01fc99b85e95",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: e2e-abuse-notifications",
+        "issue": 4340
       },
       {
         "fingerprint": "f1bfed973a2a75d4ef5bb8ce2a1785df",
@@ -348,14 +356,6 @@
         "status": "open",
         "title": "error: usesearchparammirror runaway writes",
         "issue": null
-      },
-      {
-        "fingerprint": "e275ee325abe1633e514acaa78fef874",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main-batch",
-        "issue": 4321
       },
       {
         "fingerprint": "41f88aeb227f0f23692853cc857a3f79",
@@ -470,19 +470,19 @@
         "issue": null
       },
       {
-        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: declutter-money returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "aeedd249577285330a97e04195cee7d8",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: refund-request-sweep returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: declutter-money returned 502",
         "issue": null
       },
       {
@@ -591,14 +591,15 @@
     "ledger 43d77e26f272": "Q1816",
     "ledger 4840f1c5d1e7": "Q2779",
     "ledger 4c89303184fb": "Q1816",
+    "ledger 54ef0bfdcec3": "Q2793",
     "ledger 5a28db44e912": "Q2410",
+    "ledger 5be6011a46f6": "Q1816",
     "ledger 60298a019ea3": "Q1776",
     "ledger 60dd730d868e": "Q2781",
     "ledger 6205197429d4": "Q1816",
     "ledger 6389f98a9f66": "Q1816",
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
-    "ledger 8018e82cb167": "Q1816",
     "ledger 88b4addefbcd": "Q2503",
     "ledger 88ecf6e765df": "Q1816",
     "ledger 8b1b5ac42f94": "Q2782",
@@ -622,7 +623,6 @@
     "ledger db0fb15c4ec3": "Q1816",
     "ledger dd2ccbc600ce": "Q2780",
     "ledger e19cffc1cc66": "Q2783",
-    "ledger e275ee325abe": "Q1816",
     "ledger e41c806b9175": "Q1816",
     "ledger f1bfed973a2a": "Q2734",
     "ledger f22e3275d50d": "Q1816",

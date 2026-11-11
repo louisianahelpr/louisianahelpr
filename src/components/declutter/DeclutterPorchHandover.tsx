@@ -18,7 +18,7 @@
  *     seller-delivers sale uses SellerDeliveryStatus: the same three parts, its steps read from the delivery booking.
  */
 import { useState } from "react";
-import { orderWhen } from "@/lib/declutter/timeLeft";
+import { checkWindowEnds, orderWhen } from "@/lib/declutter/timeLeft";
 import { useQuery } from "@tanstack/react-query";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { fetchMyHandover, handoverPhotoUrl } from "@/lib/declutter/handover";
@@ -140,6 +140,7 @@ export function PickupStatus({
   problemOpen = false,
   refunded = false,
   part = "all",
+  payoutShown = false,
 }: {
   orderId: string;
   handover: Pickup;
@@ -157,6 +158,8 @@ export function PickupStatus({
   /** NIGHT-SELL-soldstates-3: the seller's open sale shows the tracker and its line first ("status") and the money
    *  note below the next action ("money"); every other card shows all three together. */
   part?: "all" | "status" | "money";
+  /** F394: the card already shows its "Your earnings" payout line (a payout row is in), so the money note does not repeat the payout day. */
+  payoutShown?: boolean;
 }) {
   const h = useMyHandover(orderId);
   const times = useQuery({ queryKey: orderPickupTimesKey([orderId]), queryFn: () => fetchOrderPickupTimes([orderId]) });
@@ -183,13 +186,18 @@ export function PickupStatus({
   };
   const at = orderStepAt(facts);
   const done = facts.done || at === 3;
-  const money = <MoneyNote side={side} kind={handover} free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="pick it up" />;
+  // Audit 11-10 F394: the seller's handed-over card said only "Picked up."; now it says when, and the money line
+  // names the payout day (24 hours after the handover row's confirmed_at, the buyer's window: checkWindowEnds).
+  const handedOverAt = done ? h.data?.confirmed_at ?? null : null;
+  const money = <MoneyNote side={side} kind={handover} free={free} done={done} problemOpen={problemOpen} refunded={refunded} itemsCents={itemsCents} totalCents={totalCents} after="pick it up" handedOverAt={payoutShown ? null : handedOverAt} />;
   if (part === "money") return money;
+  const stands = standing(handover, side, at, day, free, { ...orderTimeWords(times.data?.[0], handover, slot), buyer: side === "seller" ? other.first : null, photoDay: handover === "porch" ? porchPhotoDay({ pickup_day: day, slot_start: slot }) : null });
+  const doneWhen = handedOverAt && stands.who === "info" && stands.text.endsWith(".") ? { ...stands, text: `${stands.text.slice(0, -1)} ${orderWhen(handedOverAt)}.` } : stands;
   return (
     <div className="space-y-2" data-pickup-status={at}>
       <OrderSteps facts={facts} />
       <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD }
-        : side === "seller" && refundAwaitsSeller(refund.data) ? sellerRefundStep(refund.data!) : standing(handover, side, at, day, free, { ...orderTimeWords(times.data?.[0], handover, slot), buyer: side === "seller" ? other.first : null, photoDay: handover === "porch" ? porchPhotoDay({ pickup_day: day, slot_start: slot }) : null })} />
+        : side === "seller" && refundAwaitsSeller(refund.data) ? sellerRefundStep(refund.data!) : doneWhen} />
       {part === "all" && money}
     </div>
   );
@@ -202,9 +210,20 @@ function sellerRefundStep(v: RefundRequestView): NextStepValue {
   return { who: "you", text: "Confirm you got the item back", by: r.return_deadline ? bookByWords(r.return_deadline) : null };
 }
 
+/** F394: the seller's handed-over line: the payout day while the buyer's 24 hours run, or that they are over. */
+function sellerPaidWhen(cents: number, handedOverAt: string | null, held: boolean) {
+  if (held || !handedOverAt) return null;
+  const ends = checkWindowEnds(handedOverAt);
+  return ends
+    ? <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong> on {orderWhen(ends)} unless the buyer reports a problem before then.</>
+    : <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong>. The buyer's 24 hours to report a problem are over.</>;
+}
+
 /** The one money note on a sale card: what the buyer paid, or what the seller gets and when (DC-16: every kind). */
-function MoneyNote({ side, kind, free, done, problemOpen, itemsCents, totalCents, after, deliveryCents = 0 }: {
-  side: "buyer" | "seller"; kind: SellerPayoutKind; free: boolean; done: boolean; problemOpen: boolean; itemsCents: number; totalCents: number | null; after: string;
+function MoneyNote({ side, kind, free, done, problemOpen, refunded = false, itemsCents, totalCents, after, deliveryCents = 0, handedOverAt = null }: {
+  side: "buyer" | "seller"; kind: SellerPayoutKind; free: boolean; done: boolean; problemOpen: boolean; refunded?: boolean; itemsCents: number; totalCents: number | null; after: string;
+  /** F394: the handover row's confirmed_at once handed over; the seller is paid 24 hours after it unless the buyer reports a problem. */
+  handedOverAt?: string | null;
   /** AUD31-1: a seller who delivers is paid this on top of the items (declutter_complete_handover's v_rate). */
   deliveryCents?: number;
 }) {
@@ -217,7 +236,7 @@ function MoneyNote({ side, kind, free, done, problemOpen, itemsCents, totalCents
       // decide.", so the money line no longer says the seller is paid after the pickup right above it.
       ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done || problemOpen ? "." : `. The seller is paid after you ${after}.`}</> : null
       : done
-        ? null
+        ? sellerPaidWhen(sellerCents, handedOverAt, refunded || problemOpen)
         : problemOpen
           ? <>Your <strong className="tabular-nums">{formatPrice(sellerCents)}</strong> is held while Louisiana Helpr looks at the problem.</>
         // Deep audit #31: one payout rule, the live one. LEAD-DOOR-PAYLINE: said per handover kind from the owner's

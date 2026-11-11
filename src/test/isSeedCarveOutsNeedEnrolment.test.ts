@@ -105,6 +105,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_seller_on_time_handovers: "hides", // Vinted item (20261107235110): a seed seller gets no badge while test data is hidden from the caller (seed_hidden_for); display only
   declutter_seller_sold_count: "hides",
   declutter_guest_seller_first_name: "hides", // BUY-16 (20261031062900): a seed listing or seed seller gives a guest no name
+  declutter_guest_seller_card: "hides", // F227/F319 (20261111205821): a seed listing or seed seller gives a guest no seller card; display only
   declutter_apply_seller_fault: "alerts",
   declutter_ask_question: "hides",
   // #36 (20261028214524): a test listing is left out of the answer for a member it is hidden from.

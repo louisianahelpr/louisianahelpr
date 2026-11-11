@@ -325,6 +325,16 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     expect(lines).toEqual(["For sale · Porch pickup · Meet at a safe spot", "For sale · Porch pickup"]);
   });
 
+  // F359b (audit 11-10): a free listing's row said "For sale · Porch pickup".
+  // @mutate src/components/declutter/listingStatusLine.ts | item.current_price_cents === 0 ? "Free" : "For sale" | "For sale"
+  it("F359b: a live free listing's line says Free, not For sale", async () => {
+    state.mine = [{ ...ITEM, title: "Box of mason jars", current_price_cents: 0, handovers: ["porch"] }, { ...ITEM, id: "i9", title: "Old radio", current_price_cents: 0, handovers: null }];
+    const { container } = at("/declutter?tab=selling");
+    await screen.findByText("Old radio");
+    const lines = Array.from(container.querySelectorAll("[data-listing-status]")).map((e) => e.textContent);
+    expect(lines).toEqual(["Free · Porch pickup", "Free · Porch pickup"]);
+  });
+
   // Next-step line (owner 2026-11-01: "people aren't told what to do next"): a row that waits on the seller (a draft,
   // a rejected listing) says "Next: …" in the shared NextStep words; a live, paused or checked one says where it stands.
   // @mutate src/components/declutter/listingStatusLine.ts |   rejected: "Open it to see why it wasn't approved", |

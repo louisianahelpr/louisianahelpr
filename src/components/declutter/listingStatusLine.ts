@@ -41,8 +41,10 @@ export function listingNextStep(item: DeclutterItem, saleCents?: number, payout?
 function listingStatusLine(item: DeclutterItem, saleCents?: number, payout?: MyPayout | null, problemOpen = false, tradedFor: string | null = null): string {
   // B48 live check 2026-10-29: porch + meetup read only "Porch pickup". Every ticked way, in checkout's order and words.
   const ways = WAY_ORDER.filter((w) => item.handovers?.includes(w));
-  if (item.status === "live" && ways.length) return ["For sale", ...ways.map((w) => HANDOVER_TITLE[w])].join(" · ");
-  if (item.status === "live" && item.porch_ok) return "For sale · Porch pickup";
+  // F359b (audit 11-10): a free listing read "For sale · Porch pickup"; it is Free, as on its card.
+  const live = item.current_price_cents === 0 ? "Free" : "For sale";
+  if (item.status === "live" && ways.length) return [live, ...ways.map((w) => HANDOVER_TITLE[w])].join(" · ");
+  if (item.status === "live" && item.porch_ok) return `${live} · Porch pickup`;
   const base = SELLER_STATUS_LINE[item.status] ?? sellerStatusLabel(item, tradedFor);
   // Lead 11-08: a trade moves no money, so no payout words follow "Traded for <item>".
   if (tradedFor && base.startsWith("Traded for ")) return base;

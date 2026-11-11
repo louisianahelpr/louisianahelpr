@@ -50,6 +50,8 @@ const PLACE = { id: "p1", position: 1, label: "Home", address: "100 Main Street,
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
 const places = vi.hoisted(() => ({ value: [] as unknown[] }));
 // The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
+// Owner 11-11 ~3:25 PM: declutter_my_setup_fee not deployed in these specs (PGRST202): the client's own fee reading.
+vi.mock("@/lib/declutter/mySetupFee", () => ({ fetchMySetupFee: async () => null }));
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => places.value, fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
 // Whether a photo can be prepared is a browser matter (jsdom has no canvas): "bad*" can't.

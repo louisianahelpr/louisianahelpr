@@ -44,6 +44,7 @@
  * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   IF o.status IN ('paid', 'refunded', 'handed_over') THEN |   IF o.status IN ('paid', 'refunded') THEN
  * @mutate supabase/migrations/20261111211749_declutter_payout_waits_for_held_refund.sql | WHERE rh.order_id = p.order_id AND rh.status = 'held_for_review'\n                      AND rh.stripe_payment_intent_id IS NOT DISTINCT FROM o.stripe_payment_intent_id AND rh.reason <> 'delivery_damage')\n   ORDER BY p.next_attempt_at | WHERE rh.order_id = p.order_id AND rh.status = 'held_for_reviewX'\n                      AND rh.stripe_payment_intent_id IS NOT DISTINCT FROM o.stripe_payment_intent_id AND rh.reason <> 'delivery_damage')\n   ORDER BY p.next_attempt_at
  * @mutate supabase/migrations/20261111211749_declutter_payout_waits_for_held_refund.sql | WHERE rh.order_id = m.order_id AND rh.status = 'held_for_review'\n                      AND rh.stripe_payment_intent_id IS NOT DISTINCT FROM o.stripe_payment_intent_id AND rh.reason <> 'delivery_damage')\n     AND NOT EXISTS (SELECT 1 FROM public.user_blocks | WHERE rh.order_id = m.order_id AND false)\n     AND NOT EXISTS (SELECT 1 FROM public.user_blocks
+ * @mutate supabase/migrations/20261111212343_declutter_my_setup_fee.sql | AND rh.status = 'held_for_review'\n | AND rh.status = 'held_for_reviewX'\n
  * @mutate supabase/functions/declutter-money/index.ts |     admin.rpc("declutter_payouts_due", { p_limit: BATCH }), |     admin.from("declutter_payouts").select("*"),
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {true && items > 0 && (
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | then gets ${refundDollars(v.full_refund_cents)} back | then gets ${refundDollars(v.items_cents + 130)} back
@@ -85,6 +86,14 @@ describe("Declutter refunds after the handover (board 141, 20261026155251)", () 
     // PGlite: src/test/pglite/declutterPayoutWaitsForHeldRefund.pglite.mjs.
     expect(flat(body("declutter_payouts_due"))).toMatch(/NOT EXISTS \(SELECT 1 FROM public\.declutter_refunds rh WHERE rh\.order_id = p\.order_id AND rh\.status = 'held_for_review' AND rh\.stripe_payment_intent_id IS NOT DISTINCT FROM o\.stripe_payment_intent_id AND rh\.reason <> 'delivery_damage'\)/);
     expect(flat(body("declutter_manager_payouts_due"))).toMatch(/NOT EXISTS \(SELECT 1 FROM public\.declutter_refunds rh WHERE rh\.order_id = m\.order_id AND rh\.status = 'held_for_review' AND rh\.stripe_payment_intent_id IS NOT DISTINCT FROM o\.stripe_payment_intent_id AND rh\.reason <> 'delivery_damage'\)/);
+    // Owner 11-11 ~3:25 PM (20261111212343): declutter_my_setup_fee orders the seller's rows by "due now" with the
+    // queue's own holds, restated; every hold in the queue's WHERE is in it, word for word (drift guard, money review).
+    const queue = flat(body("declutter_payouts_due"));
+    const where = queue.slice(queue.indexOf("p.next_attempt_at <= now()"), queue.indexOf("ORDER BY"));
+    const holds = [...where.matchAll(/NOT EXISTS \((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)|public\.declutter_sale_final\(p\.order_id\)|p\.attempts < 12/g)].map((m) => m[0]);
+    expect(holds.length).toBeGreaterThan(4);
+    const fee = flat(body("declutter_my_setup_fee"));
+    for (const h of holds) expect(fee, h).toContain(h);
     // Q1934 (train 7): the damaged-in-delivery refund reads ONLY the payout's status, to page when the refund went
     // out first; it sends nothing. Any other read straight from the table (a payout list) still fails.
     const statusOnly = MONEY.replace(/admin\.from\("declutter_payouts"\)\.select\("status"\)\.eq\("order_id", r\.order_id\)\.maybeSingle\(\)/g, "");

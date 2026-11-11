@@ -17,6 +17,8 @@ import { orderWhen, payoutDayAfterWindow } from "@/lib/declutter/timeLeft";
 
 const HANDED = new Date(Date.now() - 3_600_000).toISOString();
 
+// Owner 11-11 ~3:25 PM: declutter_my_setup_fee not deployed in these specs (PGRST202): the client's own fee reading.
+vi.mock("@/lib/declutter/mySetupFee", () => ({ fetchMySetupFee: async () => null }));
 vi.mock("./useOrderOtherPerson", () => ({ useOrderOtherPerson: () => ({ otherId: null, name: null, avatarUrl: null, first: null, who: "the buyer" }) }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));

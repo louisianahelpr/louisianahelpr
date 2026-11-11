@@ -116,9 +116,6 @@ function SellSteps({ itemId }: { itemId: string }) {
         <span className="text-ds-13 font-semibold text-muted-foreground">{step} of 5</span>
       </div>
 
-      {/* Payouts: only once money is owed (owner 2026-10-27, list first, set up at first sale). */}
-      {step === 1 && <SellerPayoutPrompt />}
-
       {step === 1 && (
         <section className="space-y-4" aria-labelledby="sell-step">
           <StepHead title="Show it off" sub={`Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}, up to ${MAX_PHOTOS}. The first one is the cover.`} />
@@ -133,6 +130,10 @@ function SellSteps({ itemId }: { itemId: string }) {
           />
         </section>
       )}
+
+      {/* Payouts: only once money is owed (owner 2026-10-27, list first, set up at first sale). Audit 11-10 F327: under
+          the step, so its late arrival pushes nothing down. */}
+      {step === 1 && <SellerPayoutPrompt />}
 
       {step === 2 && (
         <section className="space-y-4" aria-labelledby="sell-step">

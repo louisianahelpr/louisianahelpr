@@ -153,19 +153,24 @@ async function fixture(admin, race) {
       [id, `Race ${who}`, `acct_ci_race_${id.replace(/-/g, "")}`],
     );
   }
-  // Races 3-4 (arrival vs cancel) use race 2's booked job: hired, nobody on
-  // site yet, so both the arrival and the cancel land when run alone.
+  // Races 3-4 (arrival vs cancel) use race 2's booked job with the Helpr's
+  // accept already stamped: enforce_helper_award_gate refuses an arrival on an
+  // unaccepted offer with accept_required (CI run 43110156076). Nobody is on
+  // site yet and the job is a week out (no late-cancel fee), so both the
+  // arrival and the cancel land when run alone.
   if (race <= 4) {
     // seed-policy: not prod — the throwaway localhost Postgres race-runner.yml boots (this file refuses a non-localhost PGHOST)
     const { rows } = await admin.query(
       // Funded (escrow): an award or confirmation on an unfunded job is refused
       // by enforce_job_funded_before_award(), which is not the guard under test.
       `INSERT INTO public.jobs (title, description, category, budget, location, parish, status,
-                                customer_id, helper_id, date_needed, created_at, payment_status, start_time)
+                                customer_id, helper_id, date_needed, created_at, payment_status, start_time,
+                                helper_confirmed_at, accepted_at)
        VALUES ('[CI race] job', 'race-runner.mjs fixture', 'cleaning', 100, 'Test Address', 'Orleans',
-               $1::job_status, $2, $3, CURRENT_DATE + 7, now() - interval '30 days', 'escrow', '00:00')
+               $1::job_status, $2, $3, CURRENT_DATE + 7, now() - interval '30 days', 'escrow', '00:00',
+               CASE WHEN $4 THEN now() - interval '1 day' END, CASE WHEN $4 THEN now() - interval '1 day' END)
        RETURNING id`,
-      race === 1 ? ["open", poster, null] : ["accepted", poster, helper],
+      race === 1 ? ["open", poster, null, false] : ["accepted", poster, helper, race >= 3],
     );
     return { poster, helper, job: rows[0].id };
   }

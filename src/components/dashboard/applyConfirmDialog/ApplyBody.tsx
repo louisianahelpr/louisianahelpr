@@ -329,6 +329,11 @@ export function ApplyBody({
           )}
         </div>
 
+        {/* The scanner above blocks these before sending (Messages' rule, 85). F279a (audit 11-10): ABOVE the field,
+            not under it: under it, the sticky Apply row covered the line while the member typed (Bigger text at 375). */}
+        <p id="apply-message-help" className="font-sans text-ds-12 text-muted-foreground">
+          Keep it on Helpr. Phone numbers, emails and links can't be sent until you're hired.
+        </p>
         <Textarea
           id="apply-message"
           value={applyMessage}
@@ -338,10 +343,6 @@ export function ApplyBody({
           className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-sans text-ds-14 leading-relaxed"
           aria-describedby="apply-message-help"
         />
-        {/* The scanner above blocks these before sending (Messages' rule, 85). */}
-        <p id="apply-message-help" className="font-sans text-ds-12 text-muted-foreground">
-          Keep it on Helpr. Phone numbers, emails and links can't be sent until you're hired.
-        </p>
 
         {/* Saved pitch, as ONE control instead of two. Restoring the template
             and saving a new one used to be a sage text button above the field

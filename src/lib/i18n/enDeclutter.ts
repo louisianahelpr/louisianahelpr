@@ -155,6 +155,18 @@ export const enDeclutter = {
   "decl.group.Hobbies and fun": "Hobbies and fun",
   "decl.group.More": "More",
 
+  "decl.buy.now": "Buy now",
+  "decl.buy.short": "Buy",
+  "decl.buy.from": "from",
+  "decl.buy.delivered": "delivered",
+  "decl.buy.someoneBuying": "Someone is buying this item.",
+  "decl.buy.someoneBuyingBody": "If they don't check out in time, it goes back up for sale.",
+  "decl.buy.underAge": "You must be 18 or older to buy on Declutter.",
+  "decl.buy.bar": "Buy or make an offer",
+  "decl.buy.yourOffer": "Your offer",
+  "decl.buy.makeOffer": "Make offer",
+  "decl.buy.offersOff": "The seller isn't taking offers on this one.",
+
   "decl.cat.furniture": "Furniture",
   "decl.cat.appliances": "Appliances",
   "decl.cat.electronics": "Electronics",

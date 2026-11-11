@@ -34,6 +34,8 @@ import { invalidateTrades } from "./declutterLightActions";
 import { Input } from "@/components/ui/input";
 import { OfferSuggestion } from "./OfferSuggestion";
 import { ChoicePill } from "@/components/ui/ChoicePill";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclutter";
 
 /**
  * Row 36, as the step INSIDE an offer (owner, 2026-10-19; owner 11-07: offers
@@ -115,21 +117,22 @@ const CARD_POLL_MS = 1_500;
  * button said $32.20 while Stripe charged $34.20). Screen readers hear "Buy now · $37.45 total" (and the setup-fee words while they apply).
  */
 function BuyNowLabel({ priceCents, way, size }: { priceCents: number; way: NoDeliveryWay; size: DeliverySize }) {
+  const { t } = useLanguage();
   // Owner pick 2 (11-08, one price story): the item's "$X incl. fee" right above is the price; the button says
   // "Buy now" and names no second figure. The one-time setup fee is its own line in the checkout summary
   // (DeclutterCheckoutSummary "One-time setup fee"), never folded into a button a first-time buyer compares to the card.
   // Audit BUY-3 stays: on an item the seller offers only delivered (way "none"), the pickup price is a figure nobody can
   // pay, so the label names the least it costs delivered (the least a Helpr delivery can cost, one road mile).
-  if (way !== "none") return <span className="whitespace-nowrap font-semibold" data-buy-label="">Buy now</span>;
+  if (way !== "none") return <span className="whitespace-nowrap font-semibold" data-buy-label="">{t("decl.buy.now")}</span>;
   return (
     <span className="whitespace-nowrap font-semibold" data-buy-label="">
       {/* Text nodes carry the spaces: a space at a span's edge is dropped from the accessible name. */}
-      <span aria-hidden>Buy ·</span><span className="sr-only">Buy now ·</span>{" "}
-      from{" "}
+      <span aria-hidden>{t("decl.buy.short")} ·</span><span className="sr-only">{t("decl.buy.now")} ·</span>{" "}
+      {t("decl.buy.from")}{" "}
       <BuyerTotal
         priceCents={priceCents}
         addCents={deliveryPriceCents(1, [size])}
-        suffix={<>{" "}<span className="sr-only">delivered</span></>}
+        suffix={<>{" "}<span className="sr-only">{t("decl.buy.delivered")}</span></>}
         pendingClassName="sr-only"
       />
     </span>
@@ -144,6 +147,8 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
   footer?: ReactNode;
 }) {
   const qc = useQueryClient();
+  // F260q (owner 11-11): the buy bar's and notices' words from the dictionary (enDeclutter.ts / esDeclutter.ts).
+  const { t } = useLanguage();
   const { underAge } = useAgeGate();
   const location = useLocation();
   const navigate = useNavigate();
@@ -342,25 +347,25 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
     return <ReservedForYou line={myHold} free={false} />;
   }
   if (item.status === "reserved") {
-    return <DeclutterNotice title="Someone is buying this item.">If they don't check out in time, it goes back up for sale.</DeclutterNotice>;
+    return <DeclutterNotice title={t("decl.buy.someoneBuying")}>{t("decl.buy.someoneBuyingBody")}</DeclutterNotice>;
   }
   if (underAge) {
-    return <DeclutterNotice tone="warn" title="You must be 18 or older to buy on Declutter." />;
+    return <DeclutterNotice tone="warn" title={t("decl.buy.underAge")} />;
   }
   return (
     // F119: lg:contents lifts the panel's children into the item column, so the pinned buy bar can stay in view the
     // whole length of the column (a sticky box never leaves its parent).
-    <section ref={panel} tabIndex={-1} className="space-y-3 scroll-mt-4 focus:outline-none lg:contents" aria-label="Buy or make an offer">
+    <section ref={panel} tabIndex={-1} className="space-y-3 scroll-mt-4 focus:outline-none lg:contents" aria-label={t("decl.buy.bar")}>
       {/* Owner pick 1 (11-08, replacing 11-07's stacked buttons): ONE sticky bar with Make offer and Buy now, the one
           primary on the right. Fixed on the bottom edge of a phone (the dock yields), in the page on a wider screen.
           Message moved to the seller row (DeclutterItemView). Offers off: Buy now alone; an offer already sent: "Your
           offer" in Make offer's place. */}
       {/* F119 (UI audit 11-09): on a computer the pair stays pinned while the description and questions scroll. */}
-      <StickyActionBar label="Buy or make an offer" data-declutter-buybar="" spacer={false} pinWide>
+      <StickyActionBar label={t("decl.buy.bar")} data-declutter-buybar="" spacer={false} pinWide>
         {myOffer ? (
           <Button type="button" variant="outline" size="wrap" className="whitespace-nowrap rounded-full px-3 font-semibold"
             onClick={() => panel.current?.querySelector("[data-your-offer]")?.scrollIntoView({ behavior: "smooth", block: "center" })}>
-            Your offer
+            {t("decl.buy.yourOffer")}
           </Button>
         ) : offersOff ? null : (
           <Button
@@ -372,7 +377,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
             disabled={offers.isLoading}
             onClick={() => (open ? setOpen(false) : tap("offer"))}
           >
-            <span data-offer-label="">Make offer</span>
+            <span data-offer-label="">{t("decl.buy.makeOffer")}</span>
           </Button>
         )}
         {/* ONE primary at a time (audit #47): while the card step asks for a card, "Add a card" is the primary
@@ -471,7 +476,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
       </div>
       {footer}
       {myOffer && <div data-your-offer=""><YourOfferBox offer={myOffer} onChange={() => setOpen(true)} /></div>}
-      {offersOff && !myOffer && <p className="text-xs text-muted-foreground" data-offers-off="">The seller isn't taking offers on this one.</p>}
+      {offersOff && !myOffer && <p className="text-xs text-muted-foreground" data-offers-off="">{t("decl.buy.offersOff")}</p>}
       {/* LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31): no reassurance lines under the buttons; the card step says when the card is charged. */}
       {card.isError && (
         <ErrorState variant="inline" title="We couldn't check your saved card." body={declutterErrorMessage(card.error)} onRetry={() => void card.refetch()} />

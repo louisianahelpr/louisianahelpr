@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useSignupDraftField } from "./signup/useSignupDraftField";
 import { removeShellOncePainted } from "@/components/landing/landingShell";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,10 +76,10 @@ const Signup = () => {
   const turnstile = <TurnstileField ref={captcha.ref} action="signup" />;
 
   // Step 1 fields
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstName] = useSignupDraftField("firstName"); // F259c: kept over a reload
+  const [lastName, setLastName] = useSignupDraftField("lastName");
   const fullName = joinName(firstName, lastName);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useSignupDraftField("email");
   const [password, setPassword] = useState("");
   const [location, setLocation] = useState("");
   // ZIP is optional (owner 2026-10-26); a typed one must be 5 digits. It resolves

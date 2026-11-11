@@ -1,5 +1,5 @@
 /**
- * Builder 1 Shops screenshot pass (Q1958, 11-10, prod, helper-e2e, read-only): helper-e2e owns a shop, yet /shops at
+ * Builder 1 Shops screenshot pass (Q1958, 2026-11-10, prod, helper-e2e, read-only): helper-e2e owns a shop, yet /shops at
  * 375 floated "+ Open a shop" over its own open shop card (~/.lh-shots/b1-owner-1110c/shops-discover-H-375-light.png),
  * and the pill landed on "Edit my shop". The desktop bar's "+ Open a shop" did the same. A member with a shop is now
  * offered "+ Add an item" (the item editor, /shops/mine#add-item) on both; a member without one keeps "+ Open a shop";

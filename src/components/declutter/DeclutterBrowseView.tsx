@@ -33,7 +33,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, nearestFirst } from "@/lib/declutter/distance";
 import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, browseStateInParams, dropOutlook, droppedQueryFromParams, isNewSince, newSinceFromParams, type DeclutterFilters } from "@/lib/declutter/browseFilters";
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
-import { searchWords } from "@/lib/declutter/searchMatch";
+import { closeSearch, searchWords } from "@/lib/declutter/searchMatch";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
 import { SectionScreen } from "@/components/sections/SectionScreen";
@@ -310,7 +310,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   const showDrops = [...outlook.values()].some((o) => o.planned);
   // F205: a tie (one spot, one live_at) keeps the first answer's order when the full list replaces it, so nothing moves.
   const firstOrder = useMemo(() => (capped ? new Map(capped.items.map((it, n) => [String(it.id), n])) : undefined), [capped]);
-  const rows = applyBrowseFilters(nearestFirst(others, from, from ? maxMiles : null, firstOrder), filters, query, drops.data, now, itemWays.data);
+  const nearest = nearestFirst(others, from, from ? maxMiles : null, firstOrder);
+  const rows = applyBrowseFilters(nearest, filters, query, drops.data, now, itemWays.data);
   const q = query.trim().toLowerCase();
   // Audit 1110 F311: a zip code in the search box finds no listing (location lives in Filters > Distance), and a search
   // with no words in it (an emoji alone) matches everything; each gets told so instead of a blank "Nothing matches".
@@ -324,6 +325,9 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   // A search or a filter that found nothing is never "Opens soon" (lead walkthrough 2026-10-28, shot 04): it says
   // nothing matched, with a way to clear it and the Wanted link.
   const searched = q !== "" || filterCount > 0;
+  // F310: a one-letter typo ("lamb") that finds nothing is offered the search that would ("lamp"), within the filters.
+  const nearSearch = rows.length === 0 && q !== "" && !zipSearch ? closeSearch(query, others) : null;
+  const nearFinds = nearSearch !== null && applyBrowseFilters(nearest, filters, nearSearch, drops.data, now, itemWays.data).length > 0;
   // ONE gate for the list and its cover photos, so the cards arrive in one paint instead of the list first and its
   // photos in a second wave (oneLoadingGatePerScreen.test.ts). The photos query is disabled (never loading) when
   // there is nothing to show.
@@ -478,6 +482,11 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
                 {zipSearch && (
                   <Button type="button" variant="default" size="sm" className="rounded-full" data-testid="declutter-open-distance" onClick={() => setFiltersOpen(true)}>
                     Open distance
+                  </Button>
+                )}
+                {nearFinds && (
+                  <Button type="button" size="sm" className="rounded-full" data-near-search={nearSearch} onClick={() => setQuery(nearSearch!)}>
+                    Search for {nearSearch} instead
                   </Button>
                 )}
                 {searched && (

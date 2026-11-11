@@ -48,6 +48,10 @@ const FIX = "20261019020032_backout_notices_close_on_closed_job.sql";
  */
 // @two-way src/test/cronJobNotificationsCheckJobStatus.test.ts:listed but now checks status, or no longer a cron producer reading jobs
 const NO_STATUS_CHECK: Record<string, string> = {
+  // F443 (20261111194802), cron 'sweep-unread-message-reminders'.
+  sweep_unread_message_reminders:
+    "it reminds about an unread MESSAGE, not a job: it reads jobs only for the job's title to name it in the " +
+    "reminder (F443), and a message is still unread whatever the job's status, so no status can make it wrong.",
   // OPS-3 (20261030223154), cron 'job-post-draft-reminder'.
   sweep_job_post_drafts:
     "it notifies about a draft, not a job: it reads jobs only to stay quiet when the member made ANY job around or " +

@@ -26,8 +26,8 @@ const ROOT = resolve(__dirname, "../..");
 const defs = effectiveDefs(join(ROOT, "supabase", "migrations"));
 const body = (fn: string) => blankSqlComments(defs.get(fn)?.stmt ?? "").replace(/\s+/g, " ");
 
-// 2026-11-12 is a Thursday; Louisiana is CST (UTC-6).
-const central = (h: number, m = 0, s = 0, day = 12) => new Date(Date.UTC(2026, 10, day, h + 6, m, s));
+// 2037-11-12 is a Thursday; Louisiana is CST (UTC-6). Far-future on purpose: a present-era job day ages (jobDayFixtureTimezone).
+const central = (h: number, m = 0, s = 0, day = 12) => new Date(Date.UTC(2037, 10, day, h + 6, m, s));
 
 describe("F284: a no-show report opens 30 minutes after the start", () => {
   it("the server's newest report_helper_no_show refuses a timed job until start + 30 minutes", () => {
@@ -46,25 +46,25 @@ describe("F284: a no-show report opens 30 minutes after the start", () => {
   });
 
   it("opens at 9:30 AM for a 9:00 AM job, at the day's end for a job with no time", () => {
-    expect(noShowOpensAt("2026-11-12", "09:00:00")?.toISOString()).toBe(central(9, 30).toISOString());
-    expect(noShowReportOpen("2026-11-12", "09:00:00", central(9))).toBe(false);
-    expect(noShowReportOpen("2026-11-12", "09:00:00", central(9, 29, 59))).toBe(false);
-    expect(noShowReportOpen("2026-11-12", "09:00:00", central(9, 30))).toBe(true);
-    expect(noShowOpensAt("2026-11-12", null)?.toISOString()).toBe(central(0, 0, 0, 13).toISOString());
+    expect(noShowOpensAt("2037-11-12", "09:00:00")?.toISOString()).toBe(central(9, 30).toISOString());
+    expect(noShowReportOpen("2037-11-12", "09:00:00", central(9))).toBe(false);
+    expect(noShowReportOpen("2037-11-12", "09:00:00", central(9, 29, 59))).toBe(false);
+    expect(noShowReportOpen("2037-11-12", "09:00:00", central(9, 30))).toBe(true);
+    expect(noShowOpensAt("2037-11-12", null)?.toISOString()).toBe(central(0, 0, 0, 13).toISOString());
     expect(noShowOpensAt(null, "09:00")).toBeNull();
   });
 
   it("says when it opens, in the server hint's words", () => {
-    expect(noShowOpensLine("2026-11-12", "09:00:00", central(9, 5))).toBe("You can report a no-show from 9:30 AM.");
-    expect(noShowOpensLine("2026-11-12", "13:45:00", central(14))).toBe("You can report a no-show from 2:15 PM.");
-    expect(noShowOpensLine("2026-11-12", "09:00:00", central(20, 0, 0, 11))).toBe("You can report a no-show from Thu, Nov 12 at 9:30 AM.");
-    expect(noShowOpensLine("2026-11-12", null, central(10))).toMatch(/once the day is over/);
+    expect(noShowOpensLine("2037-11-12", "09:00:00", central(9, 5))).toBe("You can report a no-show from 9:30 AM.");
+    expect(noShowOpensLine("2037-11-12", "13:45:00", central(14))).toBe("You can report a no-show from 2:15 PM.");
+    expect(noShowOpensLine("2037-11-12", "09:00:00", central(20, 0, 0, 11))).toBe("You can report a no-show from Thu, Nov 12 at 9:30 AM.");
+    expect(noShowOpensLine("2037-11-12", null, central(10))).toMatch(/once the day is over/);
   });
 });
 
 describe("F284: the sheet keeps Confirm off until the report opens", () => {
   afterEach(() => { cleanup(); vi.useRealTimers(); });
-  const job = { id: "j1", date_needed: "2026-11-12", start_time: "09:00:00" };
+  const job = { id: "j1", date_needed: "2037-11-12", start_time: "09:00:00" };
   const confirm = () => screen.getByRole("button", { name: /Confirm No-Show/ });
 
   it("at 9:10 AM: says it opens at 9:30 AM and Confirm is off", () => {

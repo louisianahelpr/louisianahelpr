@@ -168,6 +168,8 @@ BEGIN
         )
       );
     EXCEPTION WHEN OTHERS THEN
+      -- seed-policy: this logs a failed email queue for a message, not a money or job-state alert; it reads jobs only
+      -- for the title (F443). A seed conversation's failed queue is the same defect as a real one, so both are logged.
       INSERT INTO public.error_logs (severity, message, tags, context)
       VALUES ('error', 'new-message email could not be queued',
               jsonb_build_object('source', 'notify_message_recipient'),

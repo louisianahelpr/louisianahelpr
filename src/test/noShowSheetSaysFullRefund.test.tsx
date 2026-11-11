@@ -17,7 +17,7 @@ vi.mock("@/lib/posterCancelQuote", () => ({ fetchPosterCancelQuote: (...a: unkno
 
 import { NoShowDialog, noShowRefundLine } from "@/components/job-card/NoShowDialog";
 
-const job = { id: "j1", date_needed: "2026-11-12", start_time: "09:00:00", helper_id: "h1" };
+const job = { id: "j1", date_needed: "2037-11-12", start_time: "09:00:00", helper_id: "h1" };
 
 describe("F272: the no-show sheet states the full refund and the strike", () => {
   afterEach(() => { cleanup(); quoteMock.mockReset(); });

@@ -159,6 +159,7 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:notify_on_application": { driven: { spec: MARKET, evidence: "poster gets a notification for the application" } },
   "sql:notify_on_job_update": { uncovered: GAP("the 02-marketplace hire and day-of ladder (jobs status updates)") },
   "sql:notify_on_payment_escrowed": { uncovered: GAP("any funded journey job (stripe-webhook flips payment_status to escrow)") },
+  "sql:notify_poster_on_application_withdrawn": { uncovered: "F297 (20261111195445): tells the poster when an applicant withdraws a pending application; no journey leg withdraws an application yet. Proven in src/test/pglite/withdrawnApplicationTellsThePoster.pglite.mjs." },
   "sql:notify_poster_on_status_change": { uncovered: GAP("the 02-marketplace day-of ladder") },
   "sql:notify_user_on_review": {
     uncovered: GAP("02-marketplace J5 reviews both ways (the row is written after the blind-period reveal)"),

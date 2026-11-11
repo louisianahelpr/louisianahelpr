@@ -180,7 +180,8 @@ describe("every pop-up title is sentence case", () => {
     // "Is the work done?" and "Problem with the work?" beside the goods titles,
     // +1 "Turn down this permit?" (ShopsPaperworkCard, the admin's Shops paperwork queue, Q1952 20261110195956).
     // 235: +1 "Change your pickup time" (FreeAskSheet's change mode, the asker moves an open free ask, audit 11-10 F359c).
-    expect(all.length).toBe(235);
+    // 236: +1 "Your review" (YourReviewDialog, the poster reads the review they left, audit 11-10 F278).
+    expect(all.length).toBe(236);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

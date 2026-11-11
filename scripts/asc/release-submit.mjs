@@ -40,9 +40,16 @@ if (!build) fail(`build ${buildNumber} not found`);
 console.log(`build ${build.attributes.version} processing=${build.attributes.processingState} expired=${build.attributes.expired}`);
 if (build.attributes.processingState !== "VALID" || build.attributes.expired) fail("build is not VALID yet");
 
-const open = (await ascAll(`/v1/reviewSubmissions?filter[app]=${app.id}&filter[platform]=IOS&limit=50`, token))
-  .filter((s) => ["WAITING_FOR_REVIEW", "IN_REVIEW", "UNRESOLVED_ISSUES"].includes(s.attributes.state));
+const allSubs = await ascAll(`/v1/reviewSubmissions?filter[app]=${app.id}&filter[platform]=IOS&limit=50`, token);
+const open = allSubs.filter((s) => ["WAITING_FOR_REVIEW", "IN_REVIEW"].includes(s.attributes.state));
 if (open.length) fail(`a review submission is already open: ${open.map((s) => `${s.id} ${s.attributes.state}`).join(", ")}`);
+// A rejected submission (UNRESOLVED_ISSUES) is RESUBMITTED, the API form of App
+// Store Connect's "Resubmit to App Review": new build attached, its rejected
+// items marked resolved, the same submission submitted again (11-11, Guideline 4).
+const unresolved = allSubs.filter((s) => s.attributes.state === "UNRESOLVED_ISSUES");
+if (unresolved.length > 1) fail(`more than one unresolved submission: ${unresolved.map((s) => s.id).join(", ")}`);
+const rejectedSub = unresolved[0] ?? null;
+if (rejectedSub) console.log(`resubmitting rejected review submission ${rejectedSub.id}`);
 
 const locs = await ascAll(`/v1/appStoreVersions/${version.id}/appStoreVersionLocalizations?limit=50`, token);
 for (const l of locs) {
@@ -56,7 +63,7 @@ for (const l of locs) {
 }
 
 if (!APPLY) {
-  console.log(`DRY RUN: would attach build ${buildNumber}, set releaseType AFTER_APPROVAL, and submit for review`);
+  console.log(`DRY RUN: would attach build ${buildNumber}, set releaseType AFTER_APPROVAL, and ${rejectedSub ? `resubmit ${rejectedSub.id}` : "submit for review"}`);
   process.exit(0);
 }
 
@@ -68,6 +75,25 @@ await asc(`/v1/appStoreVersions/${version.id}`, {
   body: { data: { type: "appStoreVersions", id: version.id, attributes: { releaseType: "AFTER_APPROVAL" } } },
 });
 console.log(`attached build ${buildNumber}; releaseType AFTER_APPROVAL`);
+
+if (rejectedSub) {
+  const rejectedItems = await ascAll(`/v1/reviewSubmissions/${rejectedSub.id}/items?limit=50`, token);
+  for (const it of rejectedItems) {
+    if (it.attributes?.state !== "REJECTED") continue;
+    await asc(`/v1/reviewSubmissionItems/${it.id}`, {
+      method: "PATCH", token,
+      body: { data: { type: "reviewSubmissionItems", id: it.id, attributes: { resolved: true } } },
+    });
+    console.log(`  item ${it.id} marked resolved`);
+  }
+  await asc(`/v1/reviewSubmissions/${rejectedSub.id}`, {
+    method: "PATCH", token,
+    body: { data: { type: "reviewSubmissions", id: rejectedSub.id, attributes: { submitted: true } } },
+  });
+  const again = await asc(`/v1/reviewSubmissions/${rejectedSub.id}`, { token });
+  console.log(`RESUBMITTED: review submission ${rejectedSub.id} state=${again.data.attributes.state}`);
+  process.exit(0);
+}
 
 // Reuse a not-yet-submitted submission if one exists, else create one.
 const drafts = (await ascAll(`/v1/reviewSubmissions?filter[app]=${app.id}&filter[platform]=IOS&filter[state]=READY_FOR_REVIEW&limit=10`, token));

@@ -55,7 +55,7 @@ describe("source: no multi-line pill choice in Shops", () => {
 });
 
 const PICKERS: Array<{ name: string; C: ComponentType<{ shopId: string }>; checked: string; options: Array<{ label: string; sub: string }> }> = [
-  { name: "Cancel rule", C: CancelPolicyPicker, checked: CANCEL_POLICY_TEXT.until_accept.label, options: Object.values(CANCEL_POLICY_TEXT).map((t) => ({ label: t.label, sub: t.detail })) },
+  { name: "Cancel rule", C: CancelPolicyPicker, checked: CANCEL_POLICY_TEXT.until_accept.shop.label, options: Object.values(CANCEL_POLICY_TEXT).map((t) => ({ label: t.shop.label, sub: t.shop.hint })) },
   { name: "How buyers get their orders", C: HandoverModePicker, checked: HANDOVER_MODE_TEXT.porch.label, options: Object.values(HANDOVER_MODE_TEXT).map((t) => ({ label: t.label, sub: t.detail })) },
   { name: "Custom orders", C: CustomOrdersPicker, checked: CUSTOM_ORDER_TEXT.off.label, options: PICKABLE_CUSTOM_ORDER_MODES.map((m) => ({ label: CUSTOM_ORDER_TEXT[m].label, sub: CUSTOM_ORDER_TEXT[m].hint })) },
   { name: "If you mark an order ready early", C: ReadyTapCancelPicker, checked: READY_TAP_CANCEL_TEXT.from_day_before.label, options: Object.values(READY_TAP_CANCEL_TEXT).map((t) => ({ label: t.label, sub: t.hint })) },
@@ -78,6 +78,24 @@ describe("mounted: each Shops picker is a radio group with every word shown", ()
           expect(String(el.getAttribute("class") ?? "")).not.toMatch(/\b(truncate|line-clamp-\d|text-ellipsis|whitespace-nowrap)\b/);
         }
       });
+    });
+  }
+});
+
+// S022 (Shops audit 11-12): the shop's own settings speak to the SHOP. The cancel-rule picker showed the buyer's
+// words ("you can cancel ... until your order is ready", "the shop accepts"), so "you" pointed at the wrong person.
+// @mutate src/components/shops/ShopCancelPolicyPicker.tsx | label: CANCEL_POLICY_TEXT[p].shop.label, sub: CANCEL_POLICY_TEXT[p].shop.hint | label: CANCEL_POLICY_TEXT[p].label, sub: CANCEL_POLICY_TEXT[p].detail
+describe("S022: the shop's cancel-rule settings use shop-side words", () => {
+  const BUYER_WORDS = /\byour (order|ready date)\b|\byou can cancel\b|\bthe shop (accepts|marks)\b/i;
+  for (const p of PICKERS.filter((x) => x.name === "Cancel rule" || x.name === "If you mark an order ready early")) {
+    it(p.name, async () => {
+      row.cancel_policy = "until_handover";
+      const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      render(<QueryClientProvider client={qc}><p.C shopId="s1" /></QueryClientProvider>);
+      const group = await screen.findByRole("radiogroup", { name: p.name });
+      expect(within(group).getAllByRole("radio").length).toBeGreaterThan(1);
+      expect(group.textContent ?? "").not.toMatch(BUYER_WORDS);
+      row.cancel_policy = "until_accept";
     });
   }
 });

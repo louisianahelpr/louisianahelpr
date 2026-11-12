@@ -18,15 +18,24 @@ import { openShopsIdentityCheckFor } from "./errors";
 
 export type CancelPolicy = "until_24h_before_ready" | "until_accept" | "until_handover";
 
-/** The three presets a shop picks from (O2), in the words a buyer reads before paying. */
-export const CANCEL_POLICY_TEXT: Record<CancelPolicy, { label: string; detail: string }> = {
+/** The three presets a shop picks from (O2): `label`/`detail` are the words a buyer reads before paying; `shop` is
+ * the shop's own settings words (S022, Shops audit 11-12: the picker spoke to the buyer, "your order"). */
+export const CANCEL_POLICY_TEXT: Record<CancelPolicy, { label: string; detail: string; shop: { label: string; hint: string } }> = {
   until_24h_before_ready: {
     label: "Free to cancel until 24 hours before the ready date",
     detail: "After the shop accepts, you can cancel for a refund of the price until 24 hours before the ready date. A small card processing cost isn't refunded.",
+    shop: {
+      label: "Free cancel until 24 hours before the ready date",
+      hint: "After you accept, buyers can cancel for a refund of the price until 24 hours before the ready date.",
+    },
   },
   until_accept: {
     label: "Free to cancel until the shop accepts",
     detail: "Once the shop accepts, the order is final.",
+    shop: {
+      label: "Free cancel until you accept",
+      hint: "Buyers can cancel for free until you accept. Once you accept, the order is final.",
+    },
   },
   // Owner 2026-10-18 ~22:30Z (Q2155): free cancel closes when the ready date begins, or earlier when the shop
   // marks the order ready, never at pickup. What an early ready tap does is the SHOP's choice (owner 2026-10-19:
@@ -34,6 +43,10 @@ export const CANCEL_POLICY_TEXT: Record<CancelPolicy, { label: string; detail: s
   until_handover: {
     label: "Free to cancel until your order is ready",
     detail: "After the shop accepts, you can cancel for a refund of the price until your ready date begins, or until the shop marks your order ready if its rule says so. A small card processing cost isn't refunded.",
+    shop: {
+      label: "Free cancel until the order is ready",
+      hint: "After you accept, buyers can cancel for a refund of the price until the ready date begins. Below, choose whether marking an order ready ends it sooner.",
+    },
   },
 };
 export const CANCEL_POLICIES = Object.keys(CANCEL_POLICY_TEXT) as CancelPolicy[];

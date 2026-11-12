@@ -366,6 +366,7 @@ export const enListingParts = {
   "lp.bv.removedLast": "Removed {name}: that was its last photo.",
   "lp.bv.photoRemoved": "Photo removed.",
   "lp.bv.removed": "Removed {name}.",
+  "lp.m.takeDownWords": "Its photos are removed and open offers close. Nothing is charged. You can relist it from History, but you'll need new photos.",
   "lp.sh.line": "Buyers in Louisiana can have it mailed. Pick the box it fits in. Under 4 oz ships cheapest.",
 } as const;
 

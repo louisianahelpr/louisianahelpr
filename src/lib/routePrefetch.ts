@@ -130,7 +130,8 @@ export function whenPageSettled(cb: () => void, quietMs = 1000, maxWaitMs = 10_0
     cb();
   };
   const check = () => {
-    if (done) return;
+    // A timer can outlive its page (a test environment torn down, a webview gone): no window, nothing to wait for.
+    if (done || typeof window === "undefined") return;
     const now = performance.now();
     const quietFor = now - lastActivity;
     if (quietFor >= quietMs || now - loadedAt >= maxWaitMs) finish();

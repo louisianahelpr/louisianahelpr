@@ -33,7 +33,7 @@ describe("the Selling list follows the member's language (F260q)", () => {
   it("the screen says none of those words in English", () => {
     for (const k of ["takenDown", "manage", "takeDownQ", "deleteQ", "finish", "empty", "yours", "backOnSale"] as const) {
       const words = enDeclutter[`decl.sl.${k}`];
-      expect(home, words).not.toMatch(new RegExp(`[>"]\\s*${words.replace(/[.?()]/g, "\\$&")}\\s*[<"]`));
+      expect(home, words).not.toMatch(new RegExp(`[>"]\\s*${words.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*[<"]`));
     }
   });
 });

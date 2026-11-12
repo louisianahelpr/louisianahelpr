@@ -203,7 +203,7 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
     ranked.push({
       tier,
       at,
-      item: { id: ID_PAYOUT_TODO_ID, section: "declutter", title: `Verify your ID to get paid ${money}`, meta: "You sold · Declutter", to: "/declutter?tab=selling&verify_id=1&verify_reason=get_paid", action: "Verify your ID", money },
+      item: { id: ID_PAYOUT_TODO_ID, section: "declutter", title: tr("todo.idPayout", { money }), meta: tr("todo.idPayoutMeta"), to: "/declutter?tab=selling&verify_id=1&verify_reason=get_paid", action: tr("todo.verifyId"), money },
     });
   }
   // The task is the job card's own status sentence (jobStatusLine), so Home and the

@@ -70,7 +70,7 @@ const NOT_GATED: Readonly<Record<string, string>> = {
   "src/lib/i18n/enLanding.ts": "F260q: the landing's English dictionary; its ID words are drawn only by SectionsShowcase.tsx and LandingProof.tsx, which read the switch",
   "src/lib/i18n/enFree.ts": "F260q: the free-item English dictionary; its ID words are drawn only by freePickSteps.ts (identityCheckOn()) and DeclutterFreeClaim.tsx (useIdentityCheckOnStore()), which read the switch",
   "src/lib/i18n/enPublic.ts": "F260q: the public pages' English dictionary; safety.idChecked is drawn only by Safety.tsx, which reads the switch",
-  "src/pages/home/homeDashboard/needsYouTodos.ts": "owner 11-12: the 'Verify your ID to get paid' to-do is drawn only when declutterIdPayoutCents > 0, which idPayoutWait.ts computes through needsIdentityCheck() (the switch)",
+  "src/lib/i18n/enTodos.ts": "owner 11-12: todo.idPayout / todo.verifyId are drawn only by needsYouTodos.ts's 'Verify your ID to get paid' to-do, which shows only when declutterIdPayoutCents > 0, which idPayoutWait.ts computes through needsIdentityCheck() (the switch)",
   "src/components/landing/LandingBrowseShell.tsx": "F260q: the Spanish lookup for the line its caller passes; the ID line is picked by proofLine(useIdentityCheckOnStore()) in LandingProof.tsx",
 };
 

@@ -418,6 +418,18 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   const frozen = data as { order_id?: string; items_cents?: number; premium_cents?: number; superseded_session_id?: string | null } | null;
   if (!frozen?.order_id) return json({ error: TRY_AGAIN }, 500);
   if (frozen.superseded_session_id) await expirePage(frozen.superseded_session_id);
+  // S038 (Shops audit 11-12): every failure after the order froze closes it at once (no money has moved), so it never
+  // sits unpaid until the 2-hour sweep; the buyer taps again.
+  const frozenId: string = frozen.order_id;
+  const closeFrozen = async (why: string) => {
+    const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozenId });
+    if (closeErr) console.error(`[shop-checkout] order ${frozenId} not closed after ${why}: ${closeErr.message}`);
+    // The closed order keeps no copy of the buyer's drop-off or service address (as the delivery and tax branches).
+    for (const table of ["shop_order_delivery_addresses", "shop_order_service_addresses"] as const) {
+      const { error: purgeErr } = await admin.from(table).delete().eq("order_id", frozenId);
+      if (purgeErr) console.error(`[shop-checkout] order ${frozenId} ${table} not purged after ${why}: ${purgeErr.message}`);
+    }
+  };
 
   // The terms the order froze (the shop row was locked while it was written)
   // must be the ones the buyer read, when the buyer's app sent them; else the
@@ -466,7 +478,10 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   }
 
   const o = await readOrder(admin, frozen.order_id);
-  if (!o || o.status !== "awaiting_hold" || !o.seller_id) return json({ error: TRY_AGAIN }, 500);
+  if (!o || o.status !== "awaiting_hold" || !o.seller_id) {
+    if (o?.status === "awaiting_hold") await closeFrozen("an order with no seller");
+    return json({ error: TRY_AGAIN }, 500);
+  }
   // The delivery the order froze. Columns not deployed yet (42703): a pickup order, as before; a delivery asked for
   // then already failed above (shop_set_order_delivery does not exist either).
   const { data: delRow, error: delReadErr } = await admin.from("shop_orders")
@@ -488,18 +503,21 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     .select("title, kind, tax_kind, at_buyer, unit_cents, quantity, line_cents").eq("order_id", o.id);
   if (linesErr) {
     console.error(`[shop-checkout] lines read failed: ${linesErr.message}`);
+    await closeFrozen("its lines read failed");
     return json({ error: TRY_AGAIN }, 503);
   }
   const lines = (lineRows ?? []) as Array<{ title: string; kind: string; tax_kind: string | null; at_buyer: boolean; unit_cents: number; quantity: number; line_cents: number }>;
   const itemsCents = lines.reduce((a, l) => a + l.line_cents, 0);
   if (lines.length === 0 || itemsCents !== o.items_cents || o.items_cents !== frozen.items_cents || o.premium_cents !== frozen.premium_cents) {
     console.error(`[shop-checkout] order ${o.id} amounts do not add up`);
+    await closeFrozen("its amounts did not add up");
     return json({ error: TRY_AGAIN }, 500);
   }
 
   // The mode and address were read for the shop's owner; the order must be theirs.
   if (!mode || !taxAddress || o.seller_id !== ownerId) {
     console.error(`[shop-checkout] order ${o.id} seller is not the shop's owner read before it`);
+    await closeFrozen("a seller check failed");
     return json({ error: TRY_AGAIN }, 500);
   }
   // H8 (b): an at-home cleaning (frozen on its line) is taxed where the work is done: the buyer's address, kept
@@ -544,6 +562,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined;
   } catch (e) {
     console.error(`[shop-checkout] ${caughtMessage(e)}`);
+    await closeFrozen("the Stripe customer read failed");
     return json({ error: TRY_AGAIN }, 503);
   }
 
@@ -618,11 +637,13 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   const { data: feeRow, error: feeErr } = await admin.from("shop_orders").select("setup_fee_cents").eq("id", o.id).maybeSingle();
   if (feeErr && (feeErr as { code?: string }).code !== "42703") {
     console.error(`[shop-checkout] setup fee read failed: ${feeErr.message}`);
+    await closeFrozen("the setup fee read failed");
     return json({ error: TRY_AGAIN }, 503);
   }
   const setupFeeCents = feeErr ? 0 : Number((feeRow as { setup_fee_cents?: number | null } | null)?.setup_fee_cents ?? 0);
   if (!Number.isInteger(setupFeeCents) || setupFeeCents < 0) {
     console.error(`[shop-checkout] order ${o.id} setup fee is not a whole amount`);
+    await closeFrozen("a setup fee that is not a whole amount");
     return json({ error: TRY_AGAIN }, 500);
   }
   if (setupFeeCents > 0) {
@@ -660,6 +681,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   const { data: planRow, error: planErr } = await admin.from("shop_orders").select("payment_plan").eq("id", o.id).maybeSingle();
   if (planErr && (planErr as { code?: string }).code !== "42703") {
     console.error(`[shop-checkout] payment plan read failed: ${planErr.message}`);
+    await closeFrozen("the payment plan read failed");
     return json({ error: TRY_AGAIN }, 503);
   }
   const depositPlan = !planErr && (planRow as { payment_plan?: string | null } | null)?.payment_plan === "deposit_50";

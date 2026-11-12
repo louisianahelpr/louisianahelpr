@@ -10,7 +10,7 @@
  * @mutate src/components/declutter/DeclutterProblemPhotos.tsx | <AddPhotoTile disabled={disabled} | <button type="button" disabled={disabled}
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | <AddPhotoTile disabled={busy} | <button type="button" disabled={busy}
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx | <PhotoTileButton className="block h-20 w-20 rounded-xl" | <button type="button" className="block h-20 w-20 rounded-xl"
- * @mutate src/components/declutter/DeclutterBunchPhotos.tsx | <PhotoTileButton aria-label={`See ${name}, photo ${i + 1}`} | <button type="button" aria-label={`See ${name}, photo ${i + 1}`}
+ * @mutate src/components/declutter/DeclutterBunchPhotos.tsx | <PhotoTileButton aria-label={t("lp.bp.see", { name, n: i + 1 })} | <button type="button" aria-label={t("lp.bp.see", { name, n: i + 1 })}
  * @mutate src/components/declutter/DeclutterSellPhotos.tsx | <InlineTextButton onClick={coverUndo} | <button type="button" onClick={coverUndo}
  * @mutate src/components/ui/AddPhotoTile.tsx | onClick={onClick} disabled={disabled} className | onClick={onClick} className
  */
@@ -36,7 +36,7 @@ describe("Declutter photo tiles are the shared controls (Q2709)", () => {
 
   it("tap-to-see photos are PhotoTileButton", () => {
     expect(read("src/components/declutter/DeclutterWantedReplies.tsx")).toMatch(/<PhotoTileButton className="block h-20 w-20 rounded-xl" aria-label=\{`See photo/);
-    expect(read("src/components/declutter/DeclutterBunchPhotos.tsx")).toMatch(/<PhotoTileButton aria-label=\{`See \$\{name\}, photo/);
+    expect(read("src/components/declutter/DeclutterBunchPhotos.tsx")).toMatch(/<PhotoTileButton aria-label=\{t\("lp\.bp\.see"/);
   });
 
   it("the cover Undo is InlineTextButton", () => {

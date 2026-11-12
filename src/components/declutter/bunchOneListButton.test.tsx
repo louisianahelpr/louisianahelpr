@@ -7,7 +7,7 @@
  * @mutate src/components/declutter/DeclutterBunchBar.tsx |     const io = new IntersectionObserver((entries) => setInView(entries.some((e) => e.isIntersecting)), { threshold: 0.15 }); |     const io = new IntersectionObserver(() => setInView(false), { threshold: 0.15 });
  *
  * F337 (audit 11-10): with nothing ready the bar said "All set." beside a greyed "Next: list 0 items".
- * @mutate src/components/declutter/DeclutterBunchBar.tsx | {readyCount === 0 ? "Nothing ready yet." : `All | {readyCount === -1 ? "Nothing ready yet." : `All
+ * @mutate src/components/declutter/DeclutterBunchBar.tsx | {readyCount === 0 ? t("lp.bb.nothingReady") : itemCount | {readyCount === -1 ? t("lp.bb.nothingReady") : itemCount
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";

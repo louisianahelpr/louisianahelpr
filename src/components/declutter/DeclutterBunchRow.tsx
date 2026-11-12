@@ -13,6 +13,8 @@ import { FallbackImg } from "./FallbackImg";
 import { bunchPhotoDrag } from "./bunchPhotoDrag";
 import { Input } from "@/components/ui/input";
 import { ListRow } from "@/components/ui/ListRow";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 export function BunchRow({ item, index, url, open, nextPriceId, canDrop, onToggleOpen, onPrice, onPhotoDrop, children }: {
   item: BunchItem;
@@ -60,7 +62,7 @@ export function BunchRow({ item, index, url, open, nextPriceId, canDrop, onToggl
         onPhotoDrop(from.photo);
       }}>
       <div className="flex items-center gap-2 p-2">
-        <ListRow aria-expanded={open} aria-label={`${open ? "Close" : "Open"} ${name}`} data-bunch-expand=""
+        <ListRow aria-expanded={open} aria-label={open ? t("lp.br.close", { name }) : t("lp.br.open", { name })} data-bunch-expand=""
           className="min-h-14 min-w-0 flex-1 p-0" onClick={onToggleOpen}>
           <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
             {url?.startsWith("blob:") && <FallbackImg src={url} alt="" loading="lazy" decoding="async" className="h-14 w-14 object-cover" data-bunch-row-thumb="" />}
@@ -73,7 +75,7 @@ export function BunchRow({ item, index, url, open, nextPriceId, canDrop, onToggl
           <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
         </ListRow>
         {!open && (item.free ? (
-          <span className="w-[4.5rem] shrink-0 text-center text-ds-14 font-semibold" data-bunch-row-free="">Free</span>
+          <span className="w-[4.5rem] shrink-0 text-center text-ds-14 font-semibold" data-bunch-row-free="">{t("lp.br.free")}</span>
         ) : (
           // A3-68: a fixed "$" inside the box (it was only the placeholder, so a filled box read a bare "25").
           <span className="relative w-[4.5rem] shrink-0" data-bunch-row-price="">

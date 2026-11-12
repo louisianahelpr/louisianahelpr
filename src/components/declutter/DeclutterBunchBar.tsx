@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { listingProgressLine, sortProgressLine, type BunchItem, type BunchPhoto } from "@/lib/declutter/bunch";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 /** The last change that can be taken back: what the list and photos were, and what to say about it. */
 export interface BunchUndo {
@@ -50,23 +52,23 @@ export function BunchBar({ sorting, found, listing, runNames, undo, itemCount, r
     <div className="sticky bottom-3 z-20 space-y-2 rounded-2xl border border-border bg-card p-3 shadow-md" data-bunch-bar="">
       {sorting && (
         <p className="text-sm text-foreground" role="status" aria-live="polite" data-bunch-sorting="">
-          {sortProgressLine(sorting.done, sorting.total, found)} {sorting.retrying ? "The connection dropped, so we're trying again. " : ""}Keep this page open.
+          {sortProgressLine(sorting.done, sorting.total, found)} {sorting.retrying ? `${t("lp.b.retry")} ` : ""}{t("lp.bb.keepOpen")}
         </p>
       )}
       {listing && (
         <p className="text-sm text-foreground" role="status" aria-live="polite" data-bunch-progress="">
-          {listingProgressLine(listing.done, listing.total, runNames)} Keep this page open.
+          {listingProgressLine(listing.done, listing.total, runNames)} {t("lp.bb.keepOpen")}
         </p>
       )}
       {undo && !listing && (
         <div className="flex flex-wrap items-center gap-2" role="status" data-bunch-undo="">
-          <p className="min-w-0 flex-1 text-sm">{undo.said}{undo.otherPrice ? " We kept its price." : ""}</p>
+          <p className="min-w-0 flex-1 text-sm">{undo.said}{undo.otherPrice ? ` ${t("lp.bb.keptPrice")}` : ""}</p>
           {undo.otherPrice && (
             <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onUseOtherPrice}>
-              Use ${undo.otherPrice.price} instead
+              {t("lp.bb.useOther", { price: undo.otherPrice.price })}
             </Button>
           )}
-          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onUndo}>Undo</Button>
+          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onUndo}>{t("lp.bb.undo")}</Button>
         </div>
       )}
       {nextRow && (
@@ -74,9 +76,9 @@ export function BunchBar({ sorting, found, listing, runNames, undo, itemCount, r
           {needs && onNeeds ? (
             <Button type="button" variant="link" size="sm" className="h-auto min-w-0 flex-1 justify-start whitespace-normal p-0 text-left underline" data-bunch-needs="" onClick={onNeeds}>{needs}</Button>
           ) : (
-            <span className="min-w-0 flex-1 text-sm text-muted-foreground">{readyCount === 0 ? "Nothing ready yet." : `All ${itemCount === 1 ? "set" : `${itemCount} set`}.`}</span>
+            <span className="min-w-0 flex-1 text-sm text-muted-foreground">{readyCount === 0 ? t("lp.bb.nothingReady") : itemCount === 1 ? t("lp.bb.allSet1") : t("lp.bb.allSetN", { n: itemCount })}</span>
           )}
-          {!listStepInView && <Button type="button" size="sm" className="rounded-full" disabled={readyCount === 0} data-bunch-next="" onClick={onNext}>Next: list {readyCount} {readyCount === 1 ? "item" : "items"}</Button>}
+          {!listStepInView && <Button type="button" size="sm" className="rounded-full" disabled={readyCount === 0} data-bunch-next="" onClick={onNext}>{readyCount === 1 ? t("lp.bb.next1") : t("lp.bb.nextN", { n: readyCount })}</Button>}
         </div>
       )}
     </div>

@@ -5,6 +5,8 @@ import { fetchItem, fetchItemDropState } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
 import { dropWhenLabel, nextPriceDrop } from "@/lib/declutter/priceDrop";
 import { ListingLinkCard, copyListingLink } from "./DeclutterShareCard";
+import "@/lib/i18n/enDeclutter";
+import { t } from "@/lib/i18n/language";
 
 /** Router state DeclutterSellView hands the Selling tab after a publish (board 80). */
 type JustListed = { itemId: string; status: string };
@@ -38,35 +40,35 @@ export function ListedWhatNext() {
   const live = listed.status === "live";
   // A giveaway reads as one (audit posting 1030 #12): claimed, never bought.
   const free = it.current_price_cents === 0;
-  const askOrGet = free ? "Someone asks a question or claims it" : "Buyers ask questions or buy";
+  const askOrGet = free ? t("decl.lwn.askFree") : t("decl.lwn.askPaid");
   const drop = live ? nextPriceDrop(it) : null;
   const shareable = live && it.status === "live";
   const steps: WhatNextStep[] = live
     ? [
-        { key: "listed", label: free ? "Listed for free" : <>Listed at <Money cents={it.current_price_cents} /></>, detail: "Today", state: "done" },
+        { key: "listed", label: free ? t("decl.lwn.listedFree") : <>{t("decl.lwn.listedAt")} <Money cents={it.current_price_cents} /></>, detail: t("decl.lwn.today"), state: "done" },
         ...(drop
           // Audit 11-10 F332: a drop that can only come later is never the "Now" step (buyers can buy now), and the
           // first step is said in dollars: on a $4 item, 5% rounded down to a whole dollar is $1 off, not 5%.
-          ? [{ key: "drop", label: <>Price can drop to <Money cents={drop.lowestCents} /> {dropWhenLabel(drop.at)}</>, detail: <>That's {formatPrice(it.current_price_cents - drop.lowestCents)} less. After that, {drop.pct}% less each evening (rounded down to a whole dollar), never below your lowest price</>, state: "later" as const }]
+          ? [{ key: "drop", label: <>{t("decl.lwn.dropTo")} <Money cents={drop.lowestCents} /> {dropWhenLabel(drop.at)}</>, detail: t("decl.lwn.dropDetail", { less: formatPrice(it.current_price_cents - drop.lowestCents), pct: drop.pct }), state: "later" as const }]
           : []),
-        { key: "buyers", label: askOrGet, detail: "We'll tell you each time", state: "now" },
-        { key: "sold", label: free ? "When it's claimed" : "When it sells", detail: "We show you how to hand it off", state: "later" },
+        { key: "buyers", label: askOrGet, detail: t("decl.lwn.tellEach"), state: "now" },
+        { key: "sold", label: free ? t("decl.lwn.whenClaimed") : t("decl.lwn.whenSells"), detail: t("decl.lwn.handOff"), state: "later" },
       ]
     : [
-        { key: "sent", label: "Sent for a review", detail: "Today", state: "done" },
-        { key: "review", label: "Someone from Louisiana Helpr checks it", detail: free ? "We'll let you know when it's up" : "We'll let you know when it's up for sale", state: "now" },
-        { key: "buyers", label: askOrGet, detail: "We'll tell you each time", state: "later" },
+        { key: "sent", label: t("decl.lwn.sent"), detail: t("decl.lwn.today"), state: "done" },
+        { key: "review", label: t("decl.lwn.checks"), detail: free ? t("decl.lwn.upFree") : t("decl.lwn.upPaid"), state: "now" },
+        { key: "buyers", label: askOrGet, detail: t("decl.lwn.tellEach"), state: "later" },
       ];
   return (
     <WhatNextSheet
       open
       onClose={close}
-      title={live ? (free ? "Your free listing is live" : "Your listing is live") : "Sent for a review"}
-      lead={<><strong>{it.title}</strong>{live ? (free ? " is listed for free now." : " is up for sale now.") : " goes up once it's checked."}</>}
+      title={live ? (free ? t("decl.lwn.titleFree") : t("decl.lwn.titleLive")) : t("decl.lwn.sent")}
+      lead={<><strong>{it.title}</strong>{" "}{live ? (free ? t("decl.lwn.leadFree") : t("decl.lwn.leadLive")) : t("decl.lwn.leadReview")}</>}
       steps={steps}
-      primary={{ label: "Preview", onClick: () => navigate(`/declutter/item/${it.id}?preview=buyer`) }}
+      primary={{ label: t("decl.lwn.preview"), onClick: () => navigate(`/declutter/item/${it.id}?preview=buyer`) }}
       // Board 192 (Builder 3c): share only a listing buyers can open now, never one paused or in review.
-      secondary={shareable ? { label: "Copy link for local groups", onClick: () => void copyListingLink(it) } : undefined}
+      secondary={shareable ? { label: t("decl.lwn.copy"), onClick: () => void copyListingLink(it) } : undefined}
     >
       {shareable ? <ListingLinkCard item={it} /> : null}
     </WhatNextSheet>

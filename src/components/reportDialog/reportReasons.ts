@@ -1,6 +1,6 @@
 
 // Moved out of ReportDialog.tsx unchanged (component-size ratchet, Q806).
-export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item" | "declutter_wanted" | "declutter_question" | "declutter_answer" | "declutter_review" | "shop" | "shop_item" | "shop_talk_message" | "home_listing" | "home_talk_message";
+export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item" | "declutter_wanted" | "declutter_question" | "declutter_answer" | "declutter_review" | "shop" | "shop_item" | "shop_talk_message" | "home_listing" | "home_talk_message" | "shop_review";
 
 interface Reason {
   label: string;
@@ -102,6 +102,14 @@ export const REASONS: Record<ReportedType, readonly Reason[]> = {
     { label: "Shares contact info" },
     { label: "Something else" },
   ],
+  // Q1948 (20261112094500): a Shops review, as a Declutter review.
+  shop_review: [
+    { label: "Fake or dishonest review" },
+    { label: "Harassment or abuse" },
+    { label: "Inappropriate content" },
+    { label: "Shares contact info" },
+    { label: "Something else" },
+  ],
   // Shops H2 (audit 11-05): shops and items go live at once, so members report the ones that slip through.
   shop: [
     { label: "Scam or fake shop" },
@@ -169,6 +177,7 @@ export const REPORTED_NOUN: Record<ReportedType, string> = {
   declutter_question: "Question",
   declutter_answer: "Answer",
   declutter_review: "Review",
+  shop_review: "Review",
   shop: "Shop",
   shop_item: "Item",
   shop_talk_message: "Message",
@@ -193,6 +202,7 @@ export const REPORTED_NOUN_INLINE: Record<ReportedType, string> = {
   declutter_question: "question",
   declutter_answer: "answer",
   declutter_review: "review",
+  shop_review: "review",
   shop: "shop",
   shop_item: "item",
   shop_talk_message: "message",
@@ -216,6 +226,7 @@ export const REASON_PROMPT: Record<ReportedType, string> = {
   declutter_question: "What's wrong with this question?",
   declutter_answer: "What's wrong with this answer?",
   declutter_review: "What's wrong with this review?",
+  shop_review: "What's wrong with this review?",
   shop: "What's wrong with this shop?",
   shop_item: "What's wrong with this item?",
   shop_talk_message: "What's wrong with this message?",

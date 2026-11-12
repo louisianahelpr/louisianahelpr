@@ -38,7 +38,7 @@ describe("F434: Mark all read clears every unread notice, and the bell says so",
     const words = readFileSync("src/lib/i18n/enNotifications.ts", "utf8");
     expect(words).toContain('"notif.showingNewest": "Showing your newest {count}. Mark all read clears all {unread} unread."');
     expect(words).not.toContain("unread in total");
-    expect(view).toContain('{t("notif.showingNewest", { count: notifications.length, unread: unreadTotal })}');
+    expect(view).toContain('{t("notif.showingNewest", { count: notifications.length, unread: unreadTotal ?? 0 })}');
     expect(view).toMatch(/className="min-w-0 flex-1 font-sans font-bold leading-tight line-clamp-2 \[overflow-wrap:anywhere\] text-ds-15"/);
   });
 });

@@ -56,6 +56,7 @@ import { ShopsNotice } from "./shopsUi";
 import ShopDigitalFiles from "./ShopDigitalFiles";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { NativeSelect } from "@/components/ui/select";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 
 interface Draft {
   kind: ShopItemKind;
@@ -137,6 +138,18 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
   // Audit 11-10 F11: a refused title or price shows under its own field, not only in a toast. S041: lead time and
   // stock too, from Save, Publish and "Save stock and ready time" alike.
   const [fieldError, setFieldError] = useState<{ field: ItemField; msg: string } | null>(null);
+  // S2-007 (Shops audit 2): leaving with typed changes or held photos asks first (Cancel), and closing the tab warns.
+  const unsaved = held.length > 0 || JSON.stringify(d) !== JSON.stringify(fromItem(item));
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  useEffect(() => {
+    if (!unsaved) return;
+    const warnNow = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnNow);
+    return () => window.removeEventListener("beforeunload", warnNow);
+  }, [unsaved]);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => {
     setD((x) => ({ ...x, [k]: v }));
     if (fieldError?.field === k) setFieldError(null);
@@ -483,8 +496,17 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
             {hasOptions ? "Save ready time" : "Save stock and ready time"}
           </Button>
         )}
-        <Button type="button" variant="ghost" onClick={onDone}>Cancel</Button>
+        <Button type="button" variant="ghost" onClick={() => (unsaved ? setConfirmLeave(true) : onDone())}>Cancel</Button>
       </div>
+      <BrandConfirmDialog
+        open={confirmLeave}
+        onOpenChange={setConfirmLeave}
+        title="Leave without saving?"
+        description={held.length > 0 ? "Your changes and the photos you picked aren't saved yet." : "Your changes aren't saved yet."}
+        primaryLabel="Leave"
+        onPrimary={() => { setConfirmLeave(false); onDone(); }}
+        secondaryLabel="Keep editing"
+      />
 
       {id && photosEditable && (
         <section className="space-y-2" aria-labelledby="item-photos">

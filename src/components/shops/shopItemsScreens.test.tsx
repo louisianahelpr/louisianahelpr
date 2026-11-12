@@ -492,6 +492,24 @@ describe("ShopItemEditor", () => {
     expect((screen.getByLabelText("Description") as HTMLTextAreaElement).value).toBe("Soy wax.");
   });
 
+  it("S2-007: Cancel with typed changes asks first; with nothing changed it just closes", async () => {
+    const done = vi.fn();
+    const { unmount } = renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft" })} onCreated={() => {}} onDone={done} />);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(done).toHaveBeenCalledTimes(1);
+    unmount();
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft" })} onCreated={() => {}} onDone={done} />);
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Fig candle, large" } });
+    const ev = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(await screen.findByText("Leave without saving?")).toBeTruthy();
+    expect(done).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Leave" }));
+    expect(done).toHaveBeenCalledTimes(2);
+  });
+
   it("S2-006: a suggestion keeps typed words and a kind the owner picked; it fills only empty fields", async () => {
     api.requestShopItemAiDraft.mockResolvedValue({ kind: "farm", subtype: "produce", title: "Satsumas", description: "A bag.", flagged: false });
     renderWith(

@@ -9,6 +9,7 @@
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | action: n > 0 ? tr("todo.seeApplicants") : | action: n > 0 ? "See applicants" :
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   return tr("todo.by", { task, day: day.replace(",", "") }); |   return `${task} · by ${day.replace(",", "")}`;
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | toLocaleString(getLang() === "es" ? "es-US" : "en-US", { | toLocaleString("en-US", {
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | ?? (line.id === "on_the_way" ? tr("todo.onTheWayTask") : todoTask(a.job!, "helpr", line, now, { application: a.status })), | ?? (todoTask(a.job!, "helpr", line, now, { application: a.status })),
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         meta: tr("todo.shopMeta"), |         meta: "Your shop · waiting for your answer",
  */
 import { afterEach, describe, expect, it } from "vitest";
@@ -61,5 +62,16 @@ describe("Home's To-do lines follow the language (F260q)", () => {
     expect(by).toMatch(/^Hágalo · antes del dom/);
     expect(by).toMatch(/8:00/);
     expect(by).not.toMatch(/\bby\b|Sun/);
+  });
+
+  it("Spanish: a Helpr on the way reads the arrival task and button in Spanish (JA-39)", async () => {
+    setLang("es");
+    await ensureLangLoaded();
+    const onTheWay = {
+      id: "a1", job_id: "j1", helper_id: "me", status: "accepted", created_at: "2026-10-01T00:00:00Z",
+      job: job({ id: "j1", title: "Haul off a couch", status: "accepted", helper_id: "me", customer_id: "p", date_needed: day(0), start_time: null, helper_confirmed_at: "2026-10-01T00:00:00Z", helper_dayof_confirmed_at: "2026-10-01T00:00:00Z", poster_confirmed_at: "2026-10-01T00:00:00Z", helper_on_the_way_at: new Date(NOW - 600_000).toISOString() } as Partial<Job>),
+    } as unknown as AppliedApp;
+    const t = deriveNeedsYouTodos({ ...inputs, postedJobs: [], shopOrders: [], appliedApps: [onTheWay] }, NOW).find((x) => x.id === "a-a1")!;
+    expect(t).toMatchObject({ title: "Toque Ya llegué cuando llegue", meta: "Va en camino · Haul off a couch", action: "Ya llegué" });
   });
 });

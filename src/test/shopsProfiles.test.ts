@@ -206,6 +206,10 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
         raised.add(code);
       }
     }
+    // Q1956: shop-photo-check's own answer when a photo's bytes are not a picture, not a SQL code.
+    const PHOTO_CHECK = readFileSync(join(process.cwd(), "supabase/functions/shop-photo-check/index.ts"), "utf8");
+    expect(PHOTO_CHECK).toContain('json({ error: "photo_not_an_image" }, 400)');
+    raised.add("photo_not_an_image");
     expect(raised.size).toBeGreaterThan(20);
     expect([...raised].filter((c) => !(c in SHOPS_ERROR_COPY)).sort()).toEqual([]);
     expect(Object.keys(SHOPS_ERROR_COPY).filter((c) => !raised.has(c)).sort()).toEqual([]);

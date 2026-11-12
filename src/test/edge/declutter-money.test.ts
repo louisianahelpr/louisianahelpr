@@ -256,6 +256,20 @@ describe("declutter-money: seller payouts (B53)", () => {
     expect(r?.props.message).toMatch(/^Your \$38\.50 payout for "Lamp" was sent\. It lands in your bank on your usual payout schedule, usually within 2 business days\.$/);
     expect(JSON.stringify({ sent: sent[0], message: r?.props.message })).not.toMatch(/fee|%/i);
   });
+  // F260q: a seller who picked Spanish reads the payout email in Spanish, with the same amount.
+  // @mutate supabase/functions/_shared/declutterSellerEmail.ts |       subject: "Su pago va en camino", |       subject: "Your payout is on its way",
+  it("F260q: a Spanish seller's payout email is in Spanish", async () => {
+    scenario.rpc.declutter_order_items_named = '"Lamp"';
+    scenario.reads.profiles = { rows: [{ user_id: BUYER, email: "buyer@example.test" }],
+      eqOverrides: [{ column: "user_id", value: SELLER, result: { rows: [{ user_id: SELLER, email: "seller@example.test", language: "es", ban_status: null, auto_suspended_until: null }] } }] };
+    const { status } = await run({ payouts: [payoutRow()] });
+    expect(status).toBe(200);
+    const sent = queuedEmails.filter((e: any) => e.templateName === "declutter_payout_sent") as Array<Record<string, string>>;
+    expect(sent.map((e) => e.subject)).toEqual(["Su pago va en camino"]);
+    const r = (emailRenders as Array<{ type: { name: string }; props: Record<string, string> }>).find((e) => e.props.title === "Su pago va en camino");
+    expect(r?.props.message).toBe('Se envió su pago de $38.50 por "Lamp". Llega a su banco según su calendario de pagos habitual, normalmente en 2 días hábiles.');
+    expect(r?.props.lang).toBe("es");
+  });
   it("a reconciled payout (sent earlier, recorded now) is emailed once; a failed or unrecorded one is not emailed", async () => {
     scenario.reads.profiles = { rows: [{ user_id: BUYER, email: "buyer@example.test" }],
       eqOverrides: [{ column: "user_id", value: SELLER, result: { rows: [{ user_id: SELLER, email: "seller@example.test", ban_status: null, auto_suspended_until: null }] } }] };

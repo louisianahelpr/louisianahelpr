@@ -43,7 +43,11 @@ const firstName = (fullName: string | null | undefined): string => (fullName ?? 
  * button naming where it goes, the Louisiana Helpr sign-off and the notification-settings footer.
  */
 export async function declutterEmailParts(
-  opts: { title: string; message: string; path: string; actionLabel: string; fullName?: string | null; receipt?: EmailReceipt | null },
+  opts: {
+    title: string; message: string; path: string; actionLabel: string; fullName?: string | null; receipt?: EmailReceipt | null;
+    /** F260q: the recipient's language (profiles.language); the email's own words follow it. */
+    lang?: "en" | "es";
+  },
 ): Promise<{ html: string; text: string }> {
   const site = getAppUrl();
   return await renderEmail(React.createElement(NotificationEmail, {
@@ -55,6 +59,7 @@ export async function declutterEmailParts(
     prefsUrl: `${site}/profile?tab=notifications`,
     host: site.replace(/^https?:\/\//, ""),
     receipt: opts.receipt ?? undefined,
+    lang: opts.lang ?? "en",
   }));
 }
 
@@ -146,13 +151,33 @@ async function itemsNamed(db: Db, orderId: string, log: Log): Promise<string> {
   return data;
 }
 
-/** The email for `kind`. */
+/** The email for `kind`, in the seller's language (F260q: 'es' only on an exact profiles.language 'es'). */
 function sellerEmailCopy(
   kind: SellerEmailKind,
   items: string,
   cents: number,
   deliveryCents: number,
-): { templateName: string; subject: string; body: string } {
+  lang: "en" | "es" = "en",
+): { templateName: string; subject: string; body: string; actionLabel: string } {
+  if (lang === "es") {
+    // "your item" (itemsNamed's fallback) reads "su artículo"; the item titles are the member's own words.
+    const named = items === "your item" ? "su artículo" : items;
+    if (kind === "sold") {
+      const plus = deliveryCents > 0 ? `, más ${dollars(deliveryCents)} por entregarlo` : "";
+      return {
+        templateName: "declutter_sold",
+        subject: `Vendió ${named}`,
+        body: `Vendió ${named} por ${dollars(cents)}${plus}. El comprador ya pagó. Entréguelo como acordaron; recibe su pago después de la entrega.`,
+        actionLabel: "Abrir Vendiendo",
+      };
+    }
+    return {
+      templateName: "declutter_payout_sent",
+      subject: "Su pago va en camino",
+      body: `Se envió su pago de ${dollars(cents)} por ${named}. Llega a su banco según su calendario de pagos habitual, normalmente en 2 días hábiles.`,
+      actionLabel: "Abrir Vendiendo",
+    };
+  }
   if (kind === "sold") {
     // AUD31-35: a seller who delivers is paid the delivery too; the email names it, as checkout did.
     const plus = deliveryCents > 0 ? `, plus ${dollars(deliveryCents)} for delivering it` : "";
@@ -160,12 +185,14 @@ function sellerEmailCopy(
       templateName: "declutter_sold",
       subject: `You sold ${items}`,
       body: `You sold ${items} for ${dollars(cents)}${plus}. The buyer has paid. Hand it over as planned; you get paid after the handover.`,
+      actionLabel: "Open Selling",
     };
   }
   return {
     templateName: "declutter_payout_sent",
     subject: "Your payout is on its way",
     body: `Your ${dollars(cents)} payout for ${items} was sent. It lands in your bank on your usual payout schedule, usually within 2 business days.`,
+    actionLabel: "Open Selling",
   };
 }
 
@@ -192,6 +219,11 @@ export async function emailSeller(
     const { data: profile, error } = await db.from("profiles").select("email, full_name").eq("user_id", sellerId).maybeSingle();
     const to = (profile as { email?: string | null } | null)?.email;
     const fullName = (profile as { full_name?: string | null } | null)?.full_name;
+    // F260q: a seller who picked Spanish reads it in Spanish. Its own read (as send-notification-email does), so a
+    // missing column or a failed read sends English instead of dropping the email.
+    const { data: langRow, error: langErr } = await db.from("profiles").select("language").eq("user_id", sellerId).maybeSingle();
+    if (langErr) log("Declutter seller email: language unreadable, English", { kind, error: langErr.message });
+    const lang: "en" | "es" = !langErr && (langRow as { language?: string | null } | null)?.language === "es" ? "es" : "en";
     if (error || !to) {
       log("Declutter seller email skipped (no address)", { kind, error: error?.message ?? null });
       return;
@@ -199,9 +231,9 @@ export async function emailSeller(
     const items = await itemsNamed(db, orderId, log);
     const extra = kind === "sold" && typeof deliveryCents === "number" && Number.isInteger(deliveryCents) && deliveryCents > 0
       ? deliveryCents : 0;
-    const { templateName, subject, body } = sellerEmailCopy(kind, items, cents, extra);
+    const { templateName, subject, body, actionLabel } = sellerEmailCopy(kind, items, cents, extra, lang);
     const { html, text } = await declutterEmailParts({
-      title: subject, message: body, path: "/declutter?tab=selling", actionLabel: "Open Selling", fullName,
+      title: subject, message: body, path: "/declutter?tab=selling", actionLabel, fullName, lang,
     });
     const result = await queueEmail(db, { to, subject, templateName, html, text });
     if (!result.ok) log("Declutter seller email not queued", { kind, error: String(result.error) });

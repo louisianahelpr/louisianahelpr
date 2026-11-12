@@ -104,6 +104,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_item_save_counts: "hides", // Vinted browse (20261107232700): a seed item counts no saves for a member while test data is hidden (NOT is_seed / seed_hidden_in_discovery); display only
   declutter_seller_on_time_handovers: "hides", // Vinted item (20261107235110): a seed seller gets no badge while test data is hidden from the caller (seed_hidden_for); display only
   declutter_seller_sold_count: "hides",
+  declutter_free_requests_for_item: "hides", // F359d asker half (20261112053500): test orders, test sellers and test askers never count toward pickup_count; display only
   declutter_seller_pickup_count: "hides", // F359d (20261112002528): test orders, test buyers and test sellers never count (is_seed / is_test_member); display only
   declutter_guest_seller_first_name: "hides", // BUY-16 (20261031062900): a seed listing or seed seller gives a guest no name
   declutter_guest_seller_card: "hides", // F227/F319 (20261111205821): a seed listing or seed seller gives a guest no seller card; display only

@@ -40,4 +40,23 @@ describe("the desktop top bar and rail come before the page in the tab order", (
   it("both are fixed to the screen, so the mount order moves nothing", () => {
     expect(read("src/components/DesktopTopNav.tsx")).toMatch(/className="fixed top-0 left-0 right-0 z-50/);
   });
+
+  // The two screens the audit walked: the job page (F276a) and the Declutter home (F359p). Both are routes drawn inside
+  // <main> by AnimatedRoutes, and neither paints a fixed top bar of its own, so the reorder above puts the top bar and
+  // the rail ahead of each one's own controls (the job page's poster card and Apply; Declutter's Browse tab and Search).
+  it.each([
+    ["the job page (F276a)", "/jobs/:id", "JobDetail", "src/pages/jobs/jobPage/JobPage.tsx"],
+    ["the Declutter home (F359p)", "/declutter", "DeclutterPage", "src/components/declutter/DeclutterHomeView.tsx"],
+  ])("%s is a route inside <main>, after the chrome, with no top bar of its own", (_name, path, el, file) => {
+    const route = app.match(new RegExp(`<Route path="${path.replace(/[/:]/g, (c) => `\\${c}`)}" element=\\{[^\\n]*<${el} />`));
+    expect(route, path).not.toBeNull();
+    const routes = app.indexOf("const AnimatedRoutes");
+    expect(routes).toBeGreaterThan(-1);
+    expect(app.indexOf(route![0])).toBeGreaterThan(routes);
+    const main = app.search(/<main\b/);
+    const mounted = app.indexOf("<AnimatedRoutes />", main);
+    expect(mounted).toBeGreaterThan(main);
+    expect(mounted).toBeGreaterThan(app.search(/<DesktopSidebarNav\s*\/>/));
+    expect(read(file)).not.toMatch(/fixed top-0/);
+  });
 });

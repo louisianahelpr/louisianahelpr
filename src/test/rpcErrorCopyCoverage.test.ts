@@ -82,6 +82,9 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // The seller's setup fee read (20261111212343, owner 11-11): useSellerSetupFee runs it only with a signed-in user
+  // (enabled: !!uid), and any failure leaves the fee "not known" so no figure shows (useSellerSetupFee): no words to show.
+  declutter_my_setup_fee: { not_authenticated: { reason: "read only with a signed-in user; a failed read shows no fee figure, never words" } },
   // Sponsor giveaway page view counter (20261109162829, 2026-11-09): the page calls it only after sponsor_public_state said on=true for the
   // same visitor, it shows nothing, and a failure is dropped (src/pages/sponsor/SponsorPage.tsx): no words to show.
   sponsor_log_visit: { feature_disabled: { reason: "a page-view counter with no screen; called only after the page read on=true, and a refusal is dropped silently" } },

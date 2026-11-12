@@ -405,7 +405,9 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
             {tab === "posted" && user && <RecurringVisitPayments userId={user.id} className="mx-4 mt-3" />}
             {/* A job whose bank payment is on its way is not a post (no bucket, no count); with nothing else posted its poster lands here (owner, 2026-10-17). */}
             {tab === "posted" && <PendingBankPayments jobs={postedJobs} className="mx-4 mt-3" />}
-            <JobListQuotesSlot tab={tab} className="mx-4 mt-3" />
+            {/* F280a (audit 11-10, offline on Working): a failed tab read already shows the page's one ErrorState below; the
+                quotes block's own inline error stacked a second box above it saying the same thing. */}
+            {!loadError && <JobListQuotesSlot tab={tab} className="mx-4 mt-3" />}
             {/* Empty state — a liquid-glass card that fills the panel and bleeds beneath the
                 dock (flat bottom, no hard edge), matching the Dashboard / Messages pattern. */}
             <ActivityEmptyState

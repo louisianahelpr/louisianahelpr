@@ -1099,7 +1099,7 @@ export default defineConfig(({ mode, command }) => ({
               test: /[\\/]src[\\/]lib[\\/]i18n[\\/](enJobLines|enJobSteps)\.ts$/,
               priority: 20,
               minSize: 0,
-              includeDependenciesRecursively: false,
+              includeDependenciesRecursively: false
             },
             // The next-step line's words alone: jobNextStep (leaves) is on routes that never draw the tracker (the item page).
             {
@@ -1107,7 +1107,7 @@ export default defineConfig(({ mode, command }) => ({
               test: /[\\/]src[\\/]lib[\\/]i18n[\\/]enNextStep\.ts$/,
               priority: 20,
               minSize: 0,
-              includeDependenciesRecursively: false,
+              includeDependenciesRecursively: false
             },
             // The Spanish notice shapes (supabase/functions/_shared/noticeEs.ts, ~31 KB): as a supabase/functions file,
             // shared-late (every route's boot) took it. Its own chunk: only es.ts and the lazy push paths reach it.

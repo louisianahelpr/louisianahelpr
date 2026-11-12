@@ -22,7 +22,7 @@ import { DECLUTTER_PREVIEW_STAGES, declutterPreviewSample } from "@/pages/admin/
 
 const BASE = "https://unit.supabase.co";
 const ADMIN = "00000000-0000-4000-a000-000000000001";
-const READS = new Set(["declutter_my_cart", "declutter_my_offers", "declutter_my_paid_cents", "declutter_haul_away_state", "declutter_my_donations", "declutter_my_handover", "declutter_my_manager_grants", "declutter_my_item_view_counts", "declutter_my_refund_todos", "declutter_my_setup_fee", "get_safe_profiles"]);
+const READS = new Set(["declutter_my_cart", "declutter_my_offers", "declutter_my_paid_cents", "declutter_haul_away_state", "declutter_my_donations", "declutter_my_handover", "declutter_my_manager_grants", "declutter_my_item_view_counts", "declutter_my_refund_todos", "declutter_my_setup_fee", "declutter_my_trade_buyer_names", "get_safe_profiles"]);
 
 function harness(stage: (typeof DECLUTTER_PREVIEW_STAGES)[number]["key"] = "paid", side: "buyer" | "seller" = "buyer") {
   const realFetch = vi.fn(async () => new Response("{}", { status: 200 }));

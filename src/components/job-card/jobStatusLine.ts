@@ -1077,7 +1077,7 @@ export function helperStatusLine(
     id,
     eyebrow: expired ? inLang("cl.closed", APPLICANT_CLOSED_EYEBROW) : eyebrowInLang("h", id, copy.eyebrow ?? BUCKET_LABEL[bucket]),
     // Q2588: "It's time" never on a no-start-time job (anyTimeThatDay.ts): today, any time.
-    detail: expired ? inLang("cl.noLongerOpen", APPLICANT_CLOSED_DETAIL) : id === "today" && app.job?.is_group_job === true ? CREW_TODAY_LINE : id === "today" && app.job && !hasStartTime(app.job) ? TODAY_ANY_TIME_LINE : named ?? inLang(`cl.h.${id}`, copy.detail),
+    detail: expired ? inLang("cl.noLongerOpen", APPLICANT_CLOSED_DETAIL) : id === "today" && app.job?.is_group_job === true ? inLang("cl.crewToday", CREW_TODAY_LINE) : id === "today" && app.job && !hasStartTime(app.job) ? inLang("cl.todayAnyTime", TODAY_ANY_TIME_LINE) : named ?? inLang(`cl.h.${id}`, copy.detail),
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_booking" || id === "confirm_spot",
     suffix:

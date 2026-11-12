@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-12T11:42Z",
+  "measured_at": "2026-11-12T20:31Z",
   "issues": {
     "readable": true,
     "open": [
@@ -43,7 +43,7 @@
         "number": 2436,
         "title": "nightly-red: e2e-journeys",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42830670102",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43271351952",
         "runTruncated": false
       },
       {
@@ -71,21 +71,21 @@
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43080682884",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43285490093",
         "runTruncated": false
       },
       {
         "number": 3813,
         "title": "nightly-red: e2e-real-backend",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42830665183",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43230701222",
         "runTruncated": false
       },
       {
         "number": 4222,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43154158898",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43225844091",
         "runTruncated": false
       },
       {
@@ -106,7 +106,7 @@
         "number": 4302,
         "title": "nightly-red: main: Vitest",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43199313262",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43222172711",
         "runTruncated": false
       },
       {
@@ -121,6 +121,25 @@
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43094034042",
+        "runTruncated": false
+      },
+      {
+        "number": 4450,
+        "title": "🔴 1 scheduled workflow(s) have stopped running",
+        "label": "schedule-stalled"
+      },
+      {
+        "number": 4451,
+        "title": "nightly-red: schedule-heartbeat",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43285271257",
+        "runTruncated": false
+      },
+      {
+        "number": 4453,
+        "title": "nightly-red: main: Sensitive review record",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43300360140",
         "runTruncated": false
       }
     ]
@@ -185,14 +204,6 @@
         "issue": null
       },
       {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
-        "issue": null
-      },
-      {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -239,14 +250,6 @@
         "status": "open",
         "title": "nightly-red: slow-network",
         "issue": 3454
-      },
-      {
-        "fingerprint": "1ef4b10bb74a3a15e67e4fbd811e7a0c",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: prod-errors",
-        "issue": 4258
       },
       {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
@@ -564,6 +567,9 @@
     "issue #4302": "Q1816",
     "issue #4340": "Q1816",
     "issue #4415": "Q1816",
+    "issue #4450": "Q2800",
+    "issue #4451": "Q1816",
+    "issue #4453": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",
@@ -572,7 +578,6 @@
     "ledger 15cc2d7f63f3": "Q2347",
     "ledger 16e6e91f6701": "Q1816",
     "ledger 18539240a894": "Q1816",
-    "ledger 1ef4b10bb74a": "Q1816",
     "ledger 2e4f3e726722": "Q1816",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 3712b62a9839": "Q2510",

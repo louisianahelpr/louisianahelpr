@@ -10,7 +10,7 @@
  * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |   IF (p_action = 'withdraw') <> (s.buyer_id = v_uid) THEN |   IF false THEN
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   AFTER UPDATE OF status, seller_hidden, current_price_cents ON public.declutter_items |   AFTER UPDATE OF price_cents ON public.declutter_items
  * @mutate supabase/migrations/20261106184913_declutter_trades_handover.sql | GRANT EXECUTE ON FUNCTION public.declutter_swap_sweep() TO service_role; | GRANT EXECUTE ON FUNCTION public.declutter_swap_sweep() TO authenticated;
- * @mutate supabase/migrations/20261110200630_shops_talk_export.sql |   v_out := v_out \|\| jsonb_build_object('declutter_swap_offers', | v_out := v_out; PERFORM ('declutter_swap_offers',
+ * @mutate supabase/migrations/20261112081700_shops_export_rest.sql |   v_out := v_out \|\| jsonb_build_object('declutter_swap_offers', | v_out := v_out; PERFORM ('declutter_swap_offers',
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

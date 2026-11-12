@@ -39,7 +39,7 @@
 // @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |     WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish', 'label_says_home_kitchen', | WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish',
 // @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |   IF p_kind IS NULL OR p_kind NOT IN ('made', 'home_food', 'farm', 'service', 'rental', 'digital') THEN |   IF p_kind IS NULL OR p_kind NOT IN ('made', 'home_food', 'farm', 'service', 'digital') THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon;
-// @mutate supabase/migrations/20261110200630_shops_talk_export.sql |   v_out := v_out \|\| jsonb_build_object('shop_items', | v_out := v_out \|\| jsonb_build_object('shop_items_gone',
+// @mutate supabase/migrations/20261112081700_shops_export_rest.sql |   v_out := v_out \|\| jsonb_build_object('shop_items', | v_out := v_out \|\| jsonb_build_object('shop_items_gone',
 // @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |   IF v_submitted IS DISTINCT FROM p_submitted_at THEN | IF false THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql |      SET admin_approved_at = NULL\n   WHERE id = (CASE | SET updated_at = updated_at\n   WHERE id = (CASE
 // @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |   SELECT owner_id, shop_id, kind, submitted_at INTO | SELECT owner_id, shop_id, kind, p_submitted_at INTO

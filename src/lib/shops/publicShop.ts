@@ -54,7 +54,8 @@ export function isPausedShop(shop: PublicShop | PausedPublicShop): shop is Pause
   return (shop as PausedPublicShop).paused === true;
 }
 
-type PublicShopItem = Omit<ShopItem, "photos"> & { photos: { id: string; position: number }[] };
+/** S2-038 (20261112210500): has_options says the item has option lists, so price_cents is its lowest option ("From"). */
+type PublicShopItem = Omit<ShopItem, "photos"> & { photos: { id: string; position: number }[]; has_options?: boolean };
 
 /**
  * A public page photo, by id, through the shop-photo edge function: it serves

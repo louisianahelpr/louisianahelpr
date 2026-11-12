@@ -766,14 +766,16 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // A3-85 (20261102002011) / 20261102034632 (read by Builder 151): the text-message queue and its kind map name
       // 'declutter_refunds' only as a NOTICE KIND (which refund-request reminders count as "needs you"). They write
       // sms_messages status/due_at only; no refund row, amount or fee.
-      sms_claim_due: "20261102034632_sms_needs_you_step_done.sql c1a41f8e65f5dc47",
+      // S016 (20261112075428, Shops audit 11-12): one more needs-you step (shop_order) dropped at claim when answered; no refund, amount or fee.
+      sms_claim_due: "20261112075428_shops_accept_reminders.sql 885f7853da13a223",
       // 20261108200000 (Jobs audit 11-08, lander read): only adds work_status / job_updates to two SMS kind rows; no amount or fee.
-      sms_kind_for: "20261110205345_push_titles_fit_lock_screen.sql b66a20a55af3740a", // F508 (11-10): one more crew-reminder title in its list; no money in it
+      sms_kind_for: "20261112075428_shops_accept_reminders.sql d598175083bb528a", // F508 (11-10) + S016 (11-12): two more needs-you titles; no money in it
       // A3-85 (20261102002011, read by Builder 151): deadline reminders for an open offer or refund request; reads the
       // request's answer-by times, writes needs_you_reminder_sends and sends a notice of kind 'declutter_refunds'. No
       // refund row, amount or fee is read or written.
       // Part 3 F197/F198/F193 (20261109224952, Builder 6, 11-09): notice wording only, md5 == LIVE before; no amount (PGlite S1).
-      sweep_needs_you_reminders: "20261109224952_notices_card_fee_and_our_team.sql bc1535c1dd9b9d32",
+      // S016 (20261112075428): one more reminder branch (the shop's answer to a waiting Shops order); no refund, amount or fee.
+      sweep_needs_you_reminders: "20261112075428_shops_accept_reminders.sql 50fdfc13ec1b998d",
       // Not a refund path: it only NAMES the notice kind 'declutter_refunds' (20261028162048 / 20261028171944), so
       // the touches() test matches it. It maps a notice title to a push switch and records nothing.
       // 20261029194046 restates it verbatim plus two smart-offer titles under declutter_offers; still records nothing.

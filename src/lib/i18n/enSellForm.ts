@@ -129,6 +129,18 @@ export const enSellForm = {
   "sf.ps.retrying": "Uploading photo {n} of {total}. The connection dropped, so we're trying again",
   "sf.ps.saving": "Saving your listing",
   "sf.ps.puttingUp": "Putting it up",
+  "sf.t.priceRange": "Set a price between $1 and $1,000.",
+  "sf.t.saved": "Saved.",
+  "sf.t.alreadyPosted": "Already posted.",
+  "sf.t.maxPhotos": "A listing can have up to 12 photos.",
+  "sf.t.whereKeepUp": "You can turn on \"Keep it up\" from Manage listing.",
+  "sf.t.whereOffers": "You can turn offers off from Manage listing.",
+  "sf.t.whereTrades": "You can turn trades on from Manage listing.",
+  "sf.t.whereFree": "You can choose when it becomes free from Manage listing.",
+  "sf.t.sentAt": "Listed and sent at {price}. They have 48 hours to accept.",
+  "sf.t.checking": "Listed. We're checking it first; answer their Wanted from Wanted near you once it's live.",
+  "sf.t.freeNoWanted": "Listed for free. A free listing can't answer a Wanted; they can find it in Browse.",
+  "sf.t.answerFailed": "Listed, but the answer wasn't sent: {why}",
 } as const;
 
 addEnglish(enSellForm);

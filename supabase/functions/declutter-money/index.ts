@@ -404,7 +404,7 @@ serve(async (req) => {
     shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
     shop_balances_paid: 0, shop_balances_to_buyer: 0, shop_balance_retries: 0, shop_balances_lapsed: 0, shop_unpaid_close_tax: 0,
     shop_handed_over: 0, shop_payouts_sent: 0, shop_payouts_reconciled: 0, shop_payouts_failed: 0,
-    shop_no_photo_refunded: 0, shop_preorder_refunded: 0, shop_refunds_sent: 0, shop_refunds_reconciled: 0, shop_refunds_failed: 0,
+    shop_no_photo_refunded: 0, shop_preorder_refunded: 0, shop_custom_requests_closed: 0, shop_refunds_sent: 0, shop_refunds_reconciled: 0, shop_refunds_failed: 0,
   };
 
   // Payouts a payee cannot receive yet (/code-review of f6551863a, 20261019070737). Every row a
@@ -800,6 +800,20 @@ serve(async (req) => {
   //     under the order's row lock (reason -> fee policy -> amount are table
   //     CHECKs); _shared/shopRefunds.ts reconciles, then sends with key
   //     shop-refund-<row id>. Its own try, like step 5.
+  // S045 (20261112091830): custom order requests the shop never answered lapse (wanted date passed or 7 days), freeing
+  // the buyer's 3-per-shop slot, and quotes past their 7 days are stored expired; both sides are told. No money (a
+  // request holds no card). Its own try, so a failure never stops the refunds below.
+  try {
+    const custom = await admin.rpc("shop_custom_request_sweep", {});
+    if (custom.error && (custom.error as { code?: string }).code !== "PGRST202") {
+      defects.record(`shop_custom_request_sweep failed: ${custom.error.message}`);
+    } else if (!custom.error) {
+      const c = (custom.data ?? {}) as { lapsed?: number; expired?: number };
+      out.shop_custom_requests_closed = Number(c.lapsed ?? 0) + Number(c.expired ?? 0);
+    }
+  } catch (e) {
+    defects.record(`shop_custom_request_sweep threw: ${e instanceof Error ? e.message : String(e)}`);
+  }
   try {
     const noPhoto = await admin.rpc("shop_refund_sweep", {});
     if (noPhoto.error) defects.record(`shop_refund_sweep failed: ${noPhoto.error.message}`);

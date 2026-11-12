@@ -22,7 +22,8 @@ export async function sendCustomRequest(shopId: string, description: string, wan
   return data;
 }
 
-type CustomRequestStatus = "requested" | "quoted" | "declined" | "withdrawn" | "expired" | "accepted";
+/** S045 (20261112091830): "lapsed" = the shop never answered (wanted date passed or 7 days). */
+type CustomRequestStatus = "requested" | "quoted" | "declined" | "withdrawn" | "expired" | "accepted" | "lapsed";
 /** One row of shops_my_custom_requests (the caller's asks as a buyer and as a shop owner). */
 export interface CustomRequest {
   id: string;

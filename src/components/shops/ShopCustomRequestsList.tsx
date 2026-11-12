@@ -24,6 +24,7 @@ const STATUS_WORDS: Record<CustomRequest["status"], { buyer: string; shop: strin
   declined: { buyer: "The shop declined", shop: "Declined" },
   withdrawn: { buyer: "You withdrew it", shop: "The buyer withdrew it" },
   expired: { buyer: "The price expired", shop: "The price expired" },
+  lapsed: { buyer: "The shop didn't answer in time", shop: "Not answered in time" },
 };
 const OPEN = new Set<CustomRequest["status"]>(["requested", "quoted"]);
 

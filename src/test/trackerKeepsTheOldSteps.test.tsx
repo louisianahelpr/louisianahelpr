@@ -35,7 +35,7 @@
  * @mutate src/components/job-card/trackerSteps.ts |   { key: "arrived", label: "Arrived", action: "I've arrived", icon: MapPin, color: "text-primary" }, |   { key: "arrived", label: "Arrived", action: null, icon: MapPin, color: "text-primary" },
  * Q1816 (WCAG 2.5.3, lead 11-04): a step tip's name reads the whole step name ("Arrived: what this step is waiting
  * on"), never the drawn "Arr., Ar-rived"; the drawn words are aria-hidden and the button carries no aria-label.
- * @mutate src/components/tracker/JobProgress.tsx | const named = problemWord ? `${problemWord}, ${full}` : full; | const named = problemWord ? `${problemWord}, ${full}` : `${JOB_PROGRESS_DRAWN[i]}`;
+ * @mutate src/components/tracker/JobProgress.tsx | const named = problemWord ? `${problemWord}, ${stepName(i)}` : stepName(i); | const named = problemWord ? `${problemWord}, ${stepName(i)}` : stepDrawn(i);
  * @mutate src/components/tracker/JobProgress.tsx | <span aria-hidden="true" className="block">{body}</span> | <span className="block">{body}</span>
  * @mutate src/components/tracker/JobProgress.tsx | <span className="sr-only">{ts ? `${named} — ${tipText}` : `${named}: what this step is waiting on`}</span> | <span className="sr-only" aria-label={named}>{ts ? `${named} — ${tipText}` : `${named}: what this step is waiting on`}</span>
  */

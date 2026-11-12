@@ -7,7 +7,7 @@
 // @mutate src/components/tracker/JobProgress.tsx |   if (tone === "cancelled") { |   if (false) {
 // @mutate src/components/tracker/JobProgress.tsx |   done: "bg-[hsl(var(--bark))]", |   done: "bg-[hsl(var(--success-ink))]",
 // @mutate src/components/tracker/JobProgress.tsx |               {s === "you" && <Hand className="job-step-cur-icon h-3 w-3 shrink-0" />} |
-// @mutate src/components/tracker/JobProgress.tsx |     `Job progress, step ${at + 1} of ${n}: ${steps[at]}${tone === "progress" | `Job progress, step ${at + 1} of ${n}: ${tone === "progress"
+// @mutate src/components/tracker/JobProgress.tsx | t("js.aria.at", { at: at + 1, n, step: steps[at], where }) | t("js.aria.at", { at: at + 1, n, step: "", where })
 // @mutate src/components/tracker/JobProgress.tsx | const DRAWN_STEPS = JOB_PROGRESS_STEPS.map((full, i) => ({ full, i })).slice(JOB_TRACKER_FIRST); | const DRAWN_STEPS = JOB_PROGRESS_STEPS.map((full, i) => ({ full, i }));
 // @mutate src/components/tracker/JobProgress.tsx |   const drawsBar = progress.stage !== null && (progress.stage >= JOB_TRACKER_FIRST \|\| progress.tone === "cancelled"); |   const drawsBar = progress.stage !== null;
 import { describe, it, expect } from "vitest";

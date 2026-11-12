@@ -68,7 +68,9 @@ describe("the tracker says its full names from a 368px tracker (A2-L15)", () => 
     const span = tracker.match(/<span className="(job-step-full[^"]*)">\{([^}]*)\}<\/span>/);
     expect(span, "the full-name span").not.toBeNull();
     expect(span![1].split(/\s+/)).not.toContain("truncate");
-    expect(span![2]).toContain("JOB_PROGRESS_DRAWN[i]");
+    expect(span![2]).toContain("stepDrawn(i)");
+    // The drawn name comes from enJobSteps (F260q); its English is JOB_PROGRESS_DRAWN word for word (jobStepsInSpanish).
+    expect(tracker).toContain("const stepDrawn = (i: number): string => t(`js.d.${i}` as MsgKey);");
     expect(JOB_PROGRESS_DRAWN.map((d) => d.replace(new RegExp(SHY, "g"), ""))).toEqual([...JOB_PROGRESS_STEPS]);
   });
 

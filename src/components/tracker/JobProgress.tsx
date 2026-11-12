@@ -1,7 +1,14 @@
 import { AlertTriangle, CalendarCheck, Check, CheckCircle2, Clock, FileText, Hand, Hourglass, MapPin, PartyPopper, Truck, Wrench, XCircle, type LucideIcon } from "lucide-react";
 import { useStepTooltip } from "@/hooks/useStepTooltip";
-import { JOB_PROGRESS_DRAWN, JOB_PROGRESS_STEPS, JOB_TRACKER_FIRST } from "@/components/tracker/jobProgressSteps";
+import { JOB_PROGRESS_STEPS, JOB_TRACKER_FIRST } from "@/components/tracker/jobProgressSteps";
 import type { JobProgressState, Stage, StepTone } from "@/components/tracker/jobProgressState";
+import "@/lib/i18n/enJobSteps";
+import { t } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+
+/** A step's full name and its drawn (soft-hyphenated) name in the member's language (F260q, enJobSteps). */
+const stepName = (i: number): string => t(`js.s.${i}` as MsgKey);
+const stepDrawn = (i: number): string => t(`js.d.${i}` as MsgKey);
 
 /**
  * THE job tracker (owner, 2026-10-21: "we need 1 tracker"). SIX STEPS (owner pick 11-08, design audit A JP3; it was
@@ -66,17 +73,18 @@ const DRAWN_STEPS = JOB_PROGRESS_STEPS.map((full, i) => ({ full, i })).slice(JOB
 
 /** The bar as one sentence: every drawn step's full name and where the job is. */
 export function jobStepsLabel(stage: Stage, waitingOnYou: boolean, tone: StepTone = "progress", label?: string): string {
-  const steps = JOB_PROGRESS_STEPS.slice(JOB_TRACKER_FIRST);
+  const steps = JOB_PROGRESS_STEPS.slice(JOB_TRACKER_FIRST).map((_, k) => stepName(k + JOB_TRACKER_FIRST));
   const n = steps.length;
   const at = stage - JOB_TRACKER_FIRST;
-  if (tone === "cancelled") return `Job progress: ${label ?? "Cancelled"}. No steps ahead.`;
-  if (at >= n) return `Job progress: all ${n} steps done (${steps.join(", ")}).`;
+  if (tone === "cancelled") return t("js.aria.cancelled", { label: label ?? t("js.cancelled") });
+  if (at >= n) return t("js.aria.allDone", { n, steps: steps.join(", ") });
   const done = steps.slice(0, Math.max(0, at));
   const later = steps.slice(at + 1);
+  const where = tone === "problem" ? (label ? t("js.aria.needsWord", { label }) : t("js.aria.needs")) : waitingOnYou ? t("js.aria.you") : t("js.aria.them");
   return [
-    `Job progress, step ${at + 1} of ${n}: ${steps[at]}${tone === "progress" && label ? ` (${label})` : ""}, ${tone === "problem" ? `${label ? `${label}, ` : ""}needs attention` : waitingOnYou ? "waiting on you" : "waiting on the other person"}.`,
-    done.length ? `Done: ${done.join(", ")}.` : "",
-    later.length ? `Still to come: ${later.join(", ")}.` : "",
+    tone === "progress" && label ? t("js.aria.atWord", { at: at + 1, n, step: steps[at], label, where }) : t("js.aria.at", { at: at + 1, n, step: steps[at], where }),
+    done.length ? t("js.aria.done", { steps: done.join(", ") }) : "",
+    later.length ? t("js.aria.later", { steps: later.join(", ") }) : "",
   ].filter(Boolean).join(" ");
 }
 
@@ -102,7 +110,7 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
             the one word says where it stands. */}
         <span className="flex items-center gap-1 text-ds-11 font-semibold leading-tight text-muted-foreground" aria-hidden="true">
           <XCircle className="h-3 w-3 shrink-0" />
-          {label ?? "Cancelled"}
+          {label ?? t("js.cancelled")}
         </span>
       </div>
     );
@@ -139,7 +147,7 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
         // step's drawn word ("Late", "No-show") leads, since it replaces the step name on screen.
         // F274: a progress step's own word ("Fix" while a fix is asked for) replaces its name on the current step too.
         const problemWord = (s === "problem" || s === "alarm") && label ? PROBLEM_SHORT[label] ?? label : (s === "you" || s === "them") && label ? label : null;
-        const named = problemWord ? `${problemWord}, ${full}` : full;
+        const named = problemWord ? `${problemWord}, ${stepName(i)}` : stepName(i);
         const body = (
           <>
             {detailed && (
@@ -159,7 +167,7 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
               {s === "done" && <Check className="job-step-wide h-3 w-3 shrink-0" />}
               {/* THE FULL NAME AT EVERY WIDTH (owner pick 11-08: full words): six columns leave room, and a name may
                   take two lines (a soft hyphen or its space), never an ellipsis or a short form (A2-L15). */}
-              <span className="job-step-full min-w-0 text-center">{problemWord ?? JOB_PROGRESS_DRAWN[i]}</span>
+              <span className="job-step-full min-w-0 text-center">{problemWord ?? stepDrawn(i)}</span>
             </span>
           </>
         );

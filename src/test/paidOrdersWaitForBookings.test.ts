@@ -1,4 +1,4 @@
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | const waitingOnReads = bookings.isLoading || payouts.isLoading; | const waitingOnReads = false as boolean;
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | const waitingOnReads = bookings.isLoading \|\| payouts.isLoading; | const waitingOnReads = false as boolean;
 // @mutate src/components/declutter/DeclutterTabParts.tsx | {Array.from({ length: Math.min(4, Math.max(1, cards)) }, (_, i) => ( | {Array.from({ length: 1 }, (_, i) => (
 // @mutate src/components/declutter/DeclutterMineViews.tsx | if (t.ready && t.live.length > 0 && !t.pickupsSettled) return <DeclutterTabBones />; | void DeclutterTabBones;
 /**

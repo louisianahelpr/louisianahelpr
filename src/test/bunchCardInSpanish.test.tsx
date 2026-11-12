@@ -8,7 +8,7 @@
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | {on ? t("lp.ld.offersOn") : t("lp.ld.offersOff")}</span> | {on ? "Buyers can offer a lower price, and you say yes or no." : t("lp.ld.offersOff")}</span>
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | {on ? t("lp.ld.tradesOn") : t("lp.ld.tradesOff")}</span> | {on ? t("lp.ld.tradesOn") : "Off. Buyers can't offer a trade."}</span>
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | onClick={onDrop}>{t("lp.bc.drop")}</Button> | onClick={onDrop}>Don't sell this</Button>
- * @mutate src/components/declutter/DeclutterBunchCard.tsx | return it.title.trim() || t("lp.b.item", { n: index + 1 }); | return it.title.trim() || `Item ${index + 1}`;
+ * @mutate src/components/declutter/DeclutterBunchCard.tsx | t("lp.b.item", { n: index + 1 }); | `Item ${index + 1}`;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";

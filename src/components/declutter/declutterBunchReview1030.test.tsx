@@ -31,7 +31,7 @@
  * Finding 18, a split item:
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       void writeItem(made, `Item ${next.indexOf(made) + 1}`, true); |       void made;
  * Finding 20, names:
- * @mutate src/components/declutter/DeclutterBunchCard.tsx | aria-label={`Don't sell ${name}`} | aria-label="Don't sell this"
+ * @mutate src/components/declutter/DeclutterBunchCard.tsx | aria-label={t("lp.bc.dropAria", { name })} | aria-label="Don't sell this"
  * Size only when the tool didn't answer (lead 10-30):
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |         {item.sizeUnknown && ( |         {true && (
  * @mutate src/lib/declutter/bunch.ts |   return it.sizeUnknown ? BUNCH_SIZE_PROBLEM : null; |   return null;

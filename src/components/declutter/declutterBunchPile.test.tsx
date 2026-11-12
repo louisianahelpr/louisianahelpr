@@ -4,7 +4,7 @@
  * "Write it for me", says why it is blank, and shows on that card why writing failed.
  *
  * @mutate src/components/declutter/DeclutterBunchPile.tsx | {item.sortReason}</p> | </p>
- * @mutate src/components/declutter/DeclutterBunchCard.tsx | {rewriting ? "Writing…" : noWords ? "Write it for me" : "Write it again"} | {rewriting ? "Writing…" : "Write it again"}
+ * @mutate src/components/declutter/DeclutterBunchCard.tsx | {rewriting ? t("lp.bc.writing") : noWords ? t("lp.bc.writeForMe") : t("lp.bc.writeAgain")} | {rewriting ? t("lp.bc.writing") : t("lp.bc.writeAgain")}
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |       {rewriteNote && <p | {false && <p
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |       {mergeTarget && ( |       {false && (
  */

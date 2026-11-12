@@ -205,13 +205,13 @@ export function payoutText(p: Pick<ShopPayout, "status" | "amount_cents" | "debt
   const setup = Math.max(0, Number(p.setup_fee_cents ?? 0));
   const cardDebt = Math.max(0, p.debt_cents - setup);
   const parts = [
-    ...(cardDebt > 0 ? [`${dollars(cardDebt)} card fee you owed`] : []),
+    ...(cardDebt > 0 ? [`${dollars(cardDebt)} card processing cost you owed`] : []),
     ...(setup > 0 ? [`the one-time ${dollars(setup)} account setup fee`] : []),
   ];
   const debt = parts.length > 0 ? ` (${parts.join(" and ")} ${parts.length > 1 ? "were" : "was"} taken out)` : "";
   switch (p.status) {
     case "succeeded": return `${dollars(p.amount_cents)} sent to your payout account${debt}.`;
-    case "nothing_due": return `This order paid off ${dollars(cardDebt)} of card fees you owed, so nothing was sent.`;
+    case "nothing_due": return `This order paid off ${dollars(cardDebt)} of card processing costs you owed, so nothing was sent.`;
     // Not "on its way": a pending payout may still wait for payout setup, a payout hold or a review (money review 6).
     case "failed": return `${dollars(p.amount_cents)} is owed to you${debt}. Sending it hasn't worked yet; we keep trying, and Louisiana Helpr steps in if it keeps failing.`;
     case "pending": return `${dollars(p.amount_cents)} is owed to you${debt}. It's sent to your payout account once payouts are set up in Settings and nothing is on hold.`;

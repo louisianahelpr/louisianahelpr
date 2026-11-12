@@ -24,6 +24,7 @@ import {
   ORDER_HOLD_TEXT,
   readyDateProblem,
   requestCustomOrder,
+  SHOP_SERVICE_FEE_INCLUDED,
 } from "@/lib/shops/orders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 
@@ -110,8 +111,8 @@ export default function ShopCustomOrderForm({ request, onDone }: { request: Cust
       </div>
       <dl className="space-y-1 text-sm">
         <div className="flex justify-between gap-2"><dt>Price</dt><dd>{formatCents(price)}</dd></div>
-        <div className="flex justify-between gap-2"><dt>Service fee (5% + $0.70)</dt><dd>{formatCents(buyerFeeCents(price))}</dd></div>
-        <p className="text-xs text-muted-foreground">Any sales tax is added on the payment page.</p>
+        <div className="flex justify-between gap-2 font-semibold"><dt>You pay before tax</dt><dd data-testid="shop-custom-order-total">{formatCents(price + buyerFeeCents(price))}</dd></div>
+        <p className="text-xs text-muted-foreground">{`${SHOP_SERVICE_FEE_INCLUDED} Any sales tax is added on the payment page.`}</p>
       </dl>
       <div className="space-y-1">
         <p className="text-sm font-semibold">{`Cancel rule: ${policy.label}`}</p>

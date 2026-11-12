@@ -118,7 +118,7 @@ export default function ShopCustomQuoteForm({ requestId, onDone }: { requestId: 
         <Input id={id("price")} inputMode="decimal" value={price} placeholder="40" onChange={(e) => setPrice(e.target.value)}
           aria-invalid={price !== "" && !priceOk} aria-describedby={id("price-help")} />
         <p id={id("price-help")} className="text-xs text-muted-foreground">
-          {`From $1 to ${dollars(SHOP_ITEM_MAX_PRICE_CENTS)}. The buyer pays this plus the service fee and any sales tax.`}
+          {`From $1 to ${dollars(SHOP_ITEM_MAX_PRICE_CENTS)}. The buyer's total adds any sales tax.`}
         </p>
       </div>
       <div className="space-y-1.5">

@@ -137,7 +137,7 @@ export function preorderChargeText(p: Pick<ItemPreorder, "ready_by" | "goal" | "
     words.push(`If it doesn't reach ${p.goal} by ${shortDate(p.goal_by)}, you get a full refund automatically.`);
   }
   words.push(`If the shop doesn't have it ready by ${shortDate(addDays(p.ready_by, PREORDER_LATE_DAYS))}, you get a full refund automatically.`);
-  words.push("You can cancel until the shop marks it ready. You get back what you paid, less the card-processing cost and the sales tax on it.");
+  words.push("You can cancel until the shop marks it ready. You get back what you paid, less a small card processing cost and the sales tax on it.");
   return words;
 }
 
@@ -147,7 +147,7 @@ export function preorderCancelText(order: { total_cents: number; ready_date: str
   if (order.preorder_moved_at || late) {
     return `You get everything you paid back: ${formatCents(order.total_cents)}. The shop is told.`;
   }
-  return `You get back ${formatCents(order.total_cents)}, less the card-processing cost and the sales tax on it. The shop is told.`;
+  return `You get back ${formatCents(order.total_cents)}, less a small card processing cost and the sales tax on it. The shop is told.`;
 }
 
 /** The first day the shop may mark a preorder ready (ready-by - 14), for "You can mark it ready from Dec 1". */

@@ -43,7 +43,7 @@
 // @mutate supabase/migrations/20261019015018_shop_ready_tap_cancel_choice.sql | ((o.ready_date - 1)::timestamp AT TIME ZONE 'America/Chicago'))) | '-infinity'::timestamptz))
 // @mutate src/lib/shops/orders.ts | label: "Free to cancel until your order is ready", | label: "Free to cancel any time before you pick it up",
 // @mutate src/lib/shops/orders.ts | , but never before the day before your ready date. | .
-// @mutate src/lib/shops/orders.ts | free cancel ends then. The card fee is not refunded.", | free cancel never ends early. The card fee is not refunded.",
+// @mutate src/lib/shops/orders.ts | free cancel ends then. A small card processing cost isn't refunded.", | free cancel never ends early. A small card processing cost isn't refunded.",
 // @mutate src/lib/shops/orders.ts |     detail: READY_TAP_CANCEL_TEXT[tap].buyer, |     detail: READY_TAP_CANCEL_TEXT.from_day_before.buyer,
 // @mutate supabase/migrations/20261019015018_shop_ready_tap_cancel_choice.sql |                                                   COALESCE(h.ready_at, 'infinity'::timestamptz)) |                                                   greatest(COALESCE(h.ready_at, 'infinity'::timestamptz), ((o.ready_date - 1)::timestamp AT TIME ZONE 'America/Chicago')))
 // @mutate supabase/migrations/20261019015018_shop_ready_tap_cancel_choice.sql |                     WHEN 'never_shortens' THEN (o.ready_date::timestamp AT TIME ZONE 'America/Chicago') |                     WHEN 'never_shortens' THEN least((o.ready_date::timestamp AT TIME ZONE 'America/Chicago'), COALESCE(h.ready_at, 'infinity'::timestamptz))

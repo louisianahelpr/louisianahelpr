@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { fetchPublicShop, isShopId, shareShop, shopLink, type PublicShop } from "@/lib/shops/publicShop";
+import { fetchPublicShop, isPausedShop, isShopId, shareShop, shopLink, type PausedPublicShop, type PublicShop } from "@/lib/shops/publicShop";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice, ShopUnavailable } from "./shopsUi";
 import { ShopCard, ShopGallery, ShopHero, ShopHoursCard, ShopItemsGrid } from "./ShopProfile";
@@ -25,10 +25,10 @@ import { ShopReportShop } from "./ShopReport";
 
 const SHOP_PAGE_ROBOTS = "noindex, follow";
 
-function ShopMeta({ shop, id }: { shop: PublicShop | null | undefined; id: string }) {
+function ShopMeta({ shop, id }: { shop: PublicShop | PausedPublicShop | null | undefined; id: string }) {
   usePageMeta({
     title: shop ? `${shop.name} — Helpr` : "Shop — Helpr",
-    description: shop ? `${shop.category_label ?? "Local shop"} in ${shop.area_label}.` : "A local shop on Louisiana Helpr.",
+    description: shop && !isPausedShop(shop) ? `${shop.category_label ?? "Local shop"} in ${shop.area_label}.` : "A local shop on Louisiana Helpr.",
     canonical: shopLink(id),
     robots: SHOP_PAGE_ROBOTS,
   });
@@ -142,6 +142,9 @@ export default function PublicShopView() {
         </ShopsNotice>
       ) : !shop.data ? (
         <ShopUnavailable />
+      ) : isPausedShop(shop.data) ? (
+        // S044: a paused shop's shared link says so, not "not found".
+        <ShopUnavailable title={`${shop.data.name} is paused for now`} body="The shop isn't taking orders right now. Check back later, or find another local shop." />
       ) : (
         <PublicShopBody shop={shop.data} signedIn={!!user} />
       )}

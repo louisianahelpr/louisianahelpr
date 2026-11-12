@@ -348,7 +348,7 @@
     "shops_admin_check_registration(uuid, boolean)": "reviewed 2026-10-15 (Q14): Shops slice 1 (20261017061155): client RPC behind switch 'shops' (require_feature first); admin only (has_role(auth.uid(), 'admin')), not their own shop; audited in admin_audit_log.",
     "shops_admin_set_hidden(uuid, boolean, text)": "reviewed 2026-10-15 (Q14): Shops slice 1 (20261017061155): client RPC behind switch 'shops' (require_feature first); admin only (has_role(auth.uid(), 'admin')), not their own shop; audited in admin_audit_log.",
     "shops_attach_photo(text, text)": "client",
-    "shops_browse(numeric, numeric, text, text, integer, integer)": "client",
+    "shops_browse(numeric, numeric, text, text, integer, integer, text)": "client",
     "shops_close_my_shop()": "client",
     "shops_get_shop(uuid)": "client",
     "shops_my_shop_id()": "client",

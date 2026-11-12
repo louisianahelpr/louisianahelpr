@@ -127,7 +127,17 @@ export async function fetchShopCategories(): Promise<ShopCategory[]> {
 
 /** One Browse page: shops_browse returns at most 60 rows (LEAST(p_limit, 60)); S043 pages on with p_offset. */
 export const SHOPS_BROWSE_PAGE = 60;
-export async function browseShops(args: { lat: number | null; lng: number | null; category?: string | null; group?: string | null; offset?: number }): Promise<ShopCard[]> {
+/** S043: how long Browse waits after the last key before it asks the server to search. */
+export const SHOPS_SEARCH_WAIT_MS = 300;
+/** query (S043): shops_browse matches every word in the shop's name, category, area or a live item's title. */
+export async function browseShops(args: {
+  lat: number | null;
+  lng: number | null;
+  category?: string | null;
+  group?: string | null;
+  offset?: number;
+  query?: string;
+}): Promise<ShopCard[]> {
   const rows = rpcData(
     await supabase.rpc("shops_browse", {
       p_lat: args.lat as number,
@@ -136,6 +146,7 @@ export async function browseShops(args: { lat: number | null; lng: number | null
       ...(args.group ? { p_group: args.group } : {}),
       p_limit: SHOPS_BROWSE_PAGE,
       ...(args.offset ? { p_offset: args.offset } : {}),
+      ...(args.query?.trim() ? { p_query: args.query.trim().slice(0, 80) } : {}),
     }),
     (e) => rpcErrorMessage("shops_browse", e),
   );

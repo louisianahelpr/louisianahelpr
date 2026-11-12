@@ -102,6 +102,7 @@ export default function ShopDigitalFiles({ itemId }: { itemId: string }) {
         <label className="inline-flex">
           <span className="sr-only">Add a file</span>
           <HiddenFileInput
+            peer
             accept={DIGITAL_FILE_ACCEPT}
             disabled={busy}
             onChange={(e) => {
@@ -110,7 +111,8 @@ export default function ShopDigitalFiles({ itemId }: { itemId: string }) {
               if (f) add.mutate(f);
             }}
           />
-          <span className="inline-flex h-11 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-ds-13" aria-hidden>
+          {/* S2-012: keyboard focus shows on the visible control (peer ring). */}
+          <span className="inline-flex h-11 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-ds-13 peer-focus-visible:ring-2 peer-focus-visible:ring-ring" aria-hidden>
             {add.isPending ? "Uploading…" : "Add a file"}
           </span>
         </label>

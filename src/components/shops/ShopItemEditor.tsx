@@ -10,6 +10,7 @@
  * the server's words when it refuses. A first item, or one the photo or word
  * check flags, waits for an admin (L52), and the form says so.
  */
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -417,11 +418,10 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
           <div className="flex flex-wrap gap-2">
             <label className="inline-flex">
               <span className="sr-only">Add photos</span>
-              <input
-                type="file"
+              <HiddenFileInput
+                peer
                 accept="image/*"
                 multiple
-                className="peer sr-only"
                 disabled={busy || held.length >= 12}
                 onChange={(e) => {
                   const files = Array.from(e.target.files ?? []);
@@ -432,7 +432,8 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
                   setHeld((h) => [...h, ...files].slice(0, 12));
                 }}
               />
-              <span className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-ds-13 peer-focus-visible:ring-2 peer-focus-visible:ring-ring" aria-hidden>
+              {/* S2-012: 44px tall (h-11), the shared tap size. */}
+              <span className="inline-flex h-11 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-ds-13 peer-focus-visible:ring-2 peer-focus-visible:ring-ring" aria-hidden>
                 Add photos
               </span>
             </label>
@@ -617,10 +618,9 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
             <label className="inline-flex">
               <span className="sr-only">Add a photo</span>
               {/* S2-010: an item holds up to 12 photos; the control says so and stops at 12. */}
-              <input
-                type="file"
+              <HiddenFileInput
+                peer
                 accept="image/*"
-                className="peer sr-only"
                 disabled={busy || shown.length >= 12}
                 onChange={(e) => {
                   const f = e.target.files?.[0];
@@ -628,7 +628,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
                   if (f) addPhoto.mutate(f);
                 }}
               />
-              <span className={`inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-ds-13 peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${shown.length >= 12 ? "cursor-not-allowed text-muted-foreground" : "cursor-pointer"}`} aria-hidden>
+              <span className={`inline-flex h-11 items-center rounded-md border border-input bg-background px-3 text-ds-13 peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${shown.length >= 12 ? "cursor-not-allowed text-muted-foreground" : "cursor-pointer"}`} aria-hidden>
                 {shown.length >= 12 ? "12 photos (the most)" : "Add a photo"}
               </span>
             </label>

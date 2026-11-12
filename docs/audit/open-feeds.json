@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-12T00:01Z",
+  "measured_at": "2026-11-12T00:23Z",
   "issues": {
     "readable": true,
     "open": [
@@ -89,17 +89,10 @@
         "runTruncated": false
       },
       {
-        "number": 4245,
-        "title": "nightly-red: race-runner",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43111046061",
-        "runTruncated": false
-      },
-      {
         "number": 4253,
         "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42914097145",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43120075714",
         "runTruncated": false
       },
       {
@@ -115,13 +108,6 @@
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42757091233",
         "runTruncated": false
-      },
-      {
-        "number": 4281,
-        "title": "nightly-red: main: Sensitive review record",
-        "label": "nightly-red",
-        "run": null,
-        "runTruncated": true
       },
       {
         "number": 4302,
@@ -580,11 +566,9 @@
     "issue #3784": "Q1816",
     "issue #3813": "Q1816",
     "issue #4222": "Q1816",
-    "issue #4245": "Q1816",
     "issue #4253": "Q1816",
     "issue #4258": "Q1816",
     "issue #4270": "Q1816",
-    "issue #4281": "Q1816",
     "issue #4302": "Q1816",
     "issue #4340": "Q1816",
     "issue #4415": "Q1816",

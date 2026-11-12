@@ -10,7 +10,7 @@
  * the server's words when it refuses. A first item, or one the photo or word
  * check flags, waits for an admin (L52), and the form says so.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
@@ -26,6 +26,7 @@ import {
   createShopItem,
   fetchCottageStatus,
   fetchMyItemReview,
+  formatItemPrice,
   HOME_KITCHEN_NOTICE,
   itemPhotoUrl,
   publishShopItem,
@@ -33,6 +34,7 @@ import {
   requestShopItemAiCheck,
   requestShopItemAiDraft,
   requestShopItemAiDraftFromPhotos,
+  mergeShopItemSuggestion,
   requiredStatements,
   serviceTypeHint,
   setShopItemAtBuyer,
@@ -158,6 +160,11 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
   const id = item?.id ?? null;
   const status = item?.status ?? "draft";
   const [d, setD] = useState<Draft>(() => fromItem(item));
+  // The form as of the last render, for an AI answer that lands after more typing (S2-006).
+  const dRef = useRef(d);
+  dRef.current = d;
+  // S2-006: true once the owner picks a kind or type themselves; a suggestion then leaves both alone.
+  const [kindPicked, setKindPicked] = useState(false);
   const [ticked, setTicked] = useState<string[]>([]);
   const [underCap, setUnderCap] = useState(false);
   // S054 (Shops audit 11-12): a NEW item's photos, held on the device (Declutter's photos-first draft). The AI reads
@@ -286,15 +293,19 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
 
+  // S2-006: one handler for both suggestion buttons. It fills only empty fields and keeps a kind and type the owner
+  // picked (a listed item's own kind counts as picked; a draft's may still be the default), against the form as it is when the answer lands.
   const applySuggestion = (s: ShopItemAiDraft) => {
+    const merged = mergeShopItemSuggestion(dRef.current, s, kindPicked || (!!item && item.status !== "draft"));
+    dRef.current = merged.form;
+    setD(merged.form);
     // A new kind or type asks for its own confirmations (review nit 9).
-    if (s.kind !== d.kind || s.subtype !== d.subtype) setTicked([]);
-    setD((x) => ({ ...x, kind: s.kind, subtype: s.subtype, title: s.title, description: s.description }));
+    if (merged.kindChanged) setTicked([]);
     // The suggestion's own verdict is not saved; the check at Publish decides (review should-fix 1).
     toast.success(
       s.flagged
         ? "Suggested. Our checks may send this item to an admin before it's listed."
-        : "Suggested from your photos. Check it, then save.",
+        : merged.filled ? "Suggested from your photos. Check it, then save." : "Your words are kept. Clear a field to get a suggestion for it.",
     );
   };
   // S054: suggestions for a new item from its held photos (nothing uploaded by this call).
@@ -305,17 +316,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
   });
   const ai = useMutation({
     mutationFn: () => requestShopItemAiDraft(id as string),
-    onSuccess: (s) => {
-      // A new kind or type asks for its own confirmations (review nit 9).
-      if (s.kind !== d.kind || s.subtype !== d.subtype) setTicked([]);
-      setD((x) => ({ ...x, kind: s.kind, subtype: s.subtype, title: s.title, description: s.description }));
-      // The suggestion's own verdict is not saved; the check at Publish decides (review should-fix 1).
-      toast.success(
-        s.flagged
-          ? "Suggested. Our checks may send this item to an admin before it's listed."
-          : "Suggested from your photos. Check it, then save.",
-      );
-    },
+    onSuccess: applySuggestion,
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
 
@@ -436,6 +437,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
             const kind = e.target.value as ShopItemKind;
             setD((x) => ({ ...x, kind, subtype: SHOP_ITEM_TYPES[kind][0] }));
             setTicked([]);
+            setKindPicked(true);
           }}
         >
           {(Object.keys(SHOP_ITEM_TYPES) as ShopItemKind[]).map((k) => (
@@ -452,6 +454,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
           onChange={(e) => {
             set("subtype", e.target.value);
             setTicked([]);
+            setKindPicked(true);
           }}
         >
           {SHOP_ITEM_TYPES[d.kind].map((t) => (
@@ -496,12 +499,21 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
         <p className="text-xs text-muted-foreground">No phone numbers, emails or websites: Shops does not allow contact details.</p>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {hasOptions && item ? (
+          // S2-004: with options the price is each option's own; the item's price is the lowest of them (the server's
+          // rollup), so an editable box here only snapped back after Save.
+          <div className="space-y-1.5" data-testid="item-price-per-option">
+            <p className="text-sm font-medium">Price</p>
+            <p className="text-sm text-muted-foreground">From {formatItemPrice(item.price_cents)}, set per option below.</p>
+          </div>
+        ) : (
         <div className="space-y-1.5">
           <Label htmlFor="item-price">Price (dollars)</Label>
           <Input id="item-price" inputMode="decimal" value={d.price} placeholder="e.g. 18" onChange={(e) => set("price", e.target.value)}
             aria-invalid={fieldError?.field === "price" || undefined} aria-describedby={fieldError?.field === "price" ? "item-price-error" : undefined} />
           {fieldError?.field === "price" && <p id="item-price-error" className="text-sm text-destructive-ink" role="alert">{fieldError.msg}</p>}
         </div>
+        )}
         {!digital && (
         <div className="space-y-1.5">
           <Label htmlFor="item-lead">Days you need to make it</Label>

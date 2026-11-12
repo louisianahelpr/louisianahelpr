@@ -17,6 +17,7 @@ import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/langu
 import { es } from "@/lib/i18n/es";
 import { enDeclErrors } from "@/lib/i18n/enDeclErrors";
 import { esDeclErrors } from "@/lib/i18n/esDeclErrors";
+import { englishWords } from "@/lib/i18n/enRegistry";
 import { DECLUTTER_CLIENT_ERROR_COPY, DECLUTTER_ERROR_COPY, DECLUTTER_OFFLINE_COPY, declutterErrorMessage } from "@/lib/declutter/errors";
 
 const TABLE: Record<string, string> = { ...DECLUTTER_ERROR_COPY, ...DECLUTTER_CLIENT_ERROR_COPY };
@@ -45,8 +46,13 @@ describe("F260q: Declutter's refusals follow the member's language", () => {
   });
 
   it("Spanish chosen but not loaded yet: the English, never a raw key", () => {
+    // At runtime no English de.* words are registered (enDeclErrors is not imported by the app; this test imports it).
+    const saved = englishWords["de.photos_required"];
+    delete englishWords["de.photos_required"];
     setLang("es");
-    expect(declutterErrorMessage({ message: "photos_required" })).toBe(DECLUTTER_ERROR_COPY.photos_required);
+    try {
+      expect(declutterErrorMessage({ message: "photos_required" })).toBe(DECLUTTER_ERROR_COPY.photos_required);
+    } finally { englishWords["de.photos_required"] = saved; }
     expect(declutterErrorMessage({ message: "nope_not_a_code" })).not.toMatch(/^de\./);
   });
 

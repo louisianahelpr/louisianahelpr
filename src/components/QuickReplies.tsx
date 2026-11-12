@@ -2,6 +2,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Clock, CheckCircle2, ThumbsUp, AlertTriangle, Navigation, X, HelpCircle, MapPin, Key, Car, Send } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { getLang, t } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
+import "@/lib/i18n/enMessages";
 
 // Audience-specific quick replies. Helpers communicate logistics
 // outbound ("running late", "en route"); posters typically coordinate
@@ -15,21 +18,22 @@ import type { LucideIcon } from "lucide-react";
 //   • "send" — fires the message immediately on tap. Used for the
 //     status-aware smart replies ("On my way", "Running 5 min late",
 //     "Done") which are designed for one-tap use during an active job.
-type QuickReply = { label: string; icon: LucideIcon; message: string; mode?: "populate" | "send" };
+/** F260q: label and message are dictionary keys (enMessages msg.qr.*), worded in the member's language when drawn. */
+type QuickReply = { label: MsgKey; icon: LucideIcon; message: MsgKey; mode?: "populate" | "send" };
 
 const helperReplies: QuickReply[] = [
-  { label: "Running late", icon: Clock, message: "⏰ Running about 10 minutes late — sorry for the delay!" },
-  { label: "Job complete", icon: CheckCircle2, message: "✅ All done! Please review the work and mark as complete." },
-  { label: "Sounds good", icon: ThumbsUp, message: "👍 Sounds good, thanks!" },
-  { label: "Need more info", icon: AlertTriangle, message: "Could you share a few more details so I can prepare?" },
+  { label: "msg.qr.late10", icon: Clock, message: "msg.qr.late10.m" },
+  { label: "msg.qr.complete", icon: CheckCircle2, message: "msg.qr.complete.m" },
+  { label: "msg.qr.good", icon: ThumbsUp, message: "msg.qr.good.m" },
+  { label: "msg.qr.moreInfo", icon: AlertTriangle, message: "msg.qr.moreInfo.m" },
 ];
 
 const posterReplies: QuickReply[] = [
-  { label: "When can you start?", icon: Clock, message: "Hi — when's the earliest you could start? Trying to plan around it." },
-  { label: "Door's unlocked", icon: Key, message: "🔑 Door's unlocked — go on in. Let me know when you arrive." },
-  { label: "Quick question", icon: HelpCircle, message: "Quick question about the job — got a sec?" },
-  { label: "Sounds good", icon: ThumbsUp, message: "👍 Sounds good, thanks!" },
-  { label: "Address details", icon: MapPin, message: "Quick note on the address: " },
+  { label: "msg.qr.start", icon: Clock, message: "msg.qr.start.m" },
+  { label: "msg.qr.door", icon: Key, message: "msg.qr.door.m" },
+  { label: "msg.qr.question", icon: HelpCircle, message: "msg.qr.question.m" },
+  { label: "msg.qr.good", icon: ThumbsUp, message: "msg.qr.good.m" },
+  { label: "msg.qr.address", icon: MapPin, message: "msg.qr.address.m" },
 ];
 
 // ── Status-aware smart-replies (handoff item #15) ─────────────────────
@@ -43,13 +47,13 @@ const posterReplies: QuickReply[] = [
 // fall back to the generic helper replies — no special status chip
 // makes sense once the job is wrapped.
 const helperSmartRepliesAccepted: QuickReply[] = [
-  { label: "On my way", icon: Car, message: "🚗 On my way!", mode: "send" },
-  { label: "Running 5 min late", icon: Clock, message: "⏰ Running about 5 minutes late — sorry!", mode: "send" },
+  { label: "msg.qr.onMyWay", icon: Car, message: "msg.qr.onMyWay.m", mode: "send" },
+  { label: "msg.qr.late5", icon: Clock, message: "msg.qr.late5.m", mode: "send" },
 ];
 
 const helperSmartRepliesInProgress: QuickReply[] = [
-  { label: "Running 5 min late", icon: Clock, message: "⏰ Running about 5 minutes late — sorry!", mode: "send" },
-  { label: "Done", icon: CheckCircle2, message: "✅ All done! Please review and mark complete when you can.", mode: "send" },
+  { label: "msg.qr.late5", icon: Clock, message: "msg.qr.late5.m", mode: "send" },
+  { label: "msg.qr.done", icon: CheckCircle2, message: "msg.qr.done.m", mode: "send" },
 ];
 
 const ETA_PRESETS = [5, 10, 15, 20, 30] as const;
@@ -99,26 +103,26 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus,
 
   const handlePick = (qr: QuickReply) => {
     if (qr.mode === "send" && onSend) {
-      onSend(qr.message);
+      onSend(t(qr.message));
       return;
     }
-    onSelect(qr.message);
+    onSelect(t(qr.message));
   };
 
   const pickEnRoute = (minutes: number) => {
-    const arrives = new Date(Date.now() + minutes * 60_000).toLocaleTimeString("en-US", {
+    const arrives = new Date(Date.now() + minutes * 60_000).toLocaleTimeString(getLang() === "es" ? "es-US" : "en-US", {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
     });
-    onSelect(`🚗 I'm en route — ETA about ${minutes} minutes (around ${arrives}). See you soon!`);
+    onSelect(t("msg.qr.enRoute.m", { minutes, arrives }));
     setShowEta(false);
   };
 
   if (showEta) {
     return (
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pr-5 scrollbar-none [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)] [mask-image:linear-gradient(to_right,black_calc(100%-20px),transparent)]">
-        <span className="shrink-0 text-ds-11 font-semibold text-muted-foreground pr-1">ETA:</span>
+        <span className="shrink-0 text-ds-11 font-semibold text-muted-foreground pr-1">{t("msg.qr.eta")}</span>
         {ETA_PRESETS.map((m) => (
           <Button
             key={m}
@@ -126,7 +130,7 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus,
             className="shrink-0 text-ds-11 min-h-[44px] px-3 rounded-full"
             onClick={() => pickEnRoute(m)}
           >
-            {m} min
+            {t("msg.qr.min", { m })}
           </Button>
         ))}
         <Button
@@ -134,7 +138,7 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus,
           size="sm"
           className="shrink-0 text-ds-11 min-h-[44px] min-w-[44px] px-2 ctl-exit"
           onClick={() => setShowEta(false)}
-          aria-label="Cancel"
+          aria-label={t("msg.qr.cancel")}
         >
           <X className="w-3 h-3" />
         </Button>
@@ -173,10 +177,10 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus,
             color: "hsl(var(--ink-deep))",
           }}
           onClick={() => handlePick(qr)}
-          aria-label={`Send "${qr.label}"`}
+          aria-label={t("msg.qr.sendAria", { label: t(qr.label) })}
         >
           <qr.icon className="w-3 h-3" />
-          <span>{qr.label}</span>
+          <span>{t(qr.label)}</span>
           <Send className="w-2.5 h-2.5 opacity-70" />
         </Button>
       ))}
@@ -193,7 +197,7 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus,
           onClick={() => setShowEta(true)}
         >
           <Navigation className="w-3 h-3" />
-          I'm en route
+          {t("msg.qr.enRoute")}
         </Button>
       )}
       {replies.map((qr) => (
@@ -205,7 +209,7 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus,
           onClick={() => handlePick(qr)}
         >
           <qr.icon className="w-3 h-3" />
-          {qr.label}
+          {t(qr.label)}
         </Button>
       ))}
     </div>

@@ -14,7 +14,7 @@
  * @mutate src/lib/declutter/bunch.ts |     else unusable.push({ key: p.key, name: p.file.name, error: r.error });\n  }\n  return { photos: kept, unusable }; |     else kept.push(p);\n  }\n  return { photos: kept, unusable };
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       setSortNote(unusablePhotosNote(back.unusable)); |       void back.unusable;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     for (const { id, item } of draftsLeftBehind(items, next)) void takeDownDraft(id, item); |     void next;
- * @mutate src/components/declutter/DeclutterBunchView.tsx | with their photos{items.some((it) => it.price.trim() !== "") ? " and prices" : ""}. | with their photos and prices.
+ * @mutate src/components/declutter/DeclutterBunchView.tsx | {t(items.some((it) => it.price.trim() !== "") ? | {t(true ?
  * @mutate src/lib/declutter/bunchSaved.ts |   if (saved.userId !== userId \|\| now - saved.savedAt > MAX_AGE_MS) { |   if (false) {
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |   const continueTo = kept.data?.bunch && kept.data.one ? { to: undefined } : kept.data?.bunch ? { to: bunchTo } |   const continueTo = kept.data?.bunch && kept.data.one ? { to: bunchTo } : kept.data?.bunch ? { to: bunchTo }
  * @mutate src/components/declutter/DeclutterSellChooser.tsx | onClick={continueTo.to ? undefined : () => setChoosingKept(true)} | onClick={undefined}

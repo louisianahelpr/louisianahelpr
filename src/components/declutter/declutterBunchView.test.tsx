@@ -12,7 +12,7 @@
  *   - "A bunch of things" is a choice in "What do you want to sell?" (DeclutterSellChooser, owner 2026-10-30).
  *
  * @mutate src/lib/declutter/bunch.ts |   return items.filter((it) => !bunchItemProblem(it) && (!feeDue \|\| !!it.free)); |   return items;
- * @mutate src/components/declutter/DeclutterBunchView.tsx |       ?? (!attested ? "Tick the box under the four statements before you list these items." : null) |       ?? null
+ * @mutate src/components/declutter/DeclutterBunchView.tsx |       ?? (!attested ? t("lp.bv.tickBox") : null) |       ?? null
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |       {item.flagged && ( |       {false && (
  * @mutate src/components/declutter/DeclutterBunchView.tsx |         setItems((its) => addSorted(its, made)); |         void made;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     if (!sorting) setPhotos((ps) => photosInItems(ps, items)); |     void photosInItems;
@@ -32,6 +32,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { BunchItem } from "@/lib/declutter/bunch";
+import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
 
 const calls = { listed: [] as string[][] };
 
@@ -231,11 +232,33 @@ describe("Sell a bunch", () => {
 // @mutate src/components/declutter/DeclutterBunchCard.tsx |             <div className="w-full" data-bunch-merge-row=""> |             <div className="min-w-0 flex-1" data-bunch-merge-row="">
 // T3 at 375 (10-30): "Sell a bunch" twice, in the bar and as a heading under it. AppPage's title is the one.
 // @mutate src/components/declutter/DeclutterBunchView.tsx |       <SellerPayoutPrompt /> |       <p>Sell a bunch</p><SellerPayoutPrompt />
+// F260q: the page's own words in Spanish (enListingParts lp.bv.*): title, steps, photo words, the sort note.
+// @mutate src/components/declutter/DeclutterBunchView.tsx | title={t("lp.bv.whereHead")} | title="1. Where buyers pick up"
+// @mutate src/components/declutter/DeclutterBunchView.tsx | {photos.length > 0 ? t("lp.bv.addMore") : t("lp.bv.addPhotos")} | {photos.length > 0 ? "Add more photos" : t("lp.bv.addPhotos")}
+// @mutate src/components/declutter/DeclutterBunchView.tsx | const pageTitle = moving ? t("lp.bv.moveTitle") : t("lp.bv.title"); | const pageTitle = moving ? t("lp.bv.moveTitle") : "Sell a bunch";
+// @mutate src/components/declutter/DeclutterBunchView.tsx | : t("lp.bv.checkHead", { step: firstStep + 1 })} | : `${firstStep + 1}. Check each item`}
+describe("Sell a bunch in Spanish (F260q)", () => {
+  afterEach(() => __resetLangForTests());
+  it("the page's title, steps and photo words read Spanish", async () => {
+    setLang("es");
+    await ensureLangLoaded();
+    renderPage();
+    expect(await screen.findByRole("heading", { level: 1, name: "Vender varios" }, { timeout: 15_000 })).toBeTruthy();
+    expect(document.body.textContent).toContain("1. Dónde recogen los compradores");
+    const files = ["a", "b", "c"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" }));
+    fireEvent.change(document.getElementById("bunch-files")!, { target: { files } });
+    await screen.findByRole("heading", { name: /^3\. Revise cada artículo/ });
+    expect(document.body.textContent).toContain("Agregar más fotos");
+    expect(document.body.textContent).not.toMatch(/Sell a bunch|Where buyers pick up|Add more photos|Check each item/);
+  });
+});
+
 describe("the page's name", () => {
   it("is not said again under AppPage's title", () => {
     const source = readFileSync(resolve(process.cwd(), "src/components/declutter/DeclutterBunchView.tsx"), "utf8");
     expect(blankComments(source).match(/>Sell a bunch</g)).toBeNull();
-    expect(blankComments(source)).toContain('const pageTitle = moving ? "Moving out sale" : "Sell a bunch";');
+    expect(blankComments(source).match(/>\{t\("lp\.bv\.title"\)\}</g)).toBeNull();
+    expect(blankComments(source)).toContain('const pageTitle = moving ? t("lp.bv.moveTitle") : t("lp.bv.title");');
     expect(blankComments(source)).toContain("<AppPage title={pageTitle}");
   });
 });

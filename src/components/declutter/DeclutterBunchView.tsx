@@ -63,6 +63,8 @@ import { useBunchStager } from "./useBunchStager";
 import { BunchIntake } from "./DeclutterBunchIntake";
 import { ReadingPhotos } from "./SellProgress";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
 
@@ -168,16 +170,16 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   if (!user) return null;
   if (underAge) {
     return (
-      <AppPage title="Sell a bunch" backTo="/declutter?view=selling">
-        <DeclutterNotice tone="warn" title="You must be 18 or older to sell on Declutter.">
-          You can still look around. Selling opens when your birthday on file says you're 18.
+      <AppPage title={t("lp.bv.title")} backTo="/declutter?view=selling">
+        <DeclutterNotice tone="warn" title={t("lp.bv.under18")}>
+          {t("lp.bv.under18Body")}
         </DeclutterNotice>
       </AppPage>
     );
   }
 
   const placeProblem =
-    pickupAddress.trim().length < 5 ? "Add the pickup address. Buyers only see it after they pay."
+    pickupAddress.trim().length < 5 ? t("lp.bv.addAddress")
       : areaLabel.trim().length < 2 || AREA_ADDRESS_RE.test(areaLabel) ? NO_CITY_IN_ADDRESS
         : null;
   // The setup gate (SellerSetup) has them save it first; the boxes are only for a saved address that stopped reading.
@@ -212,12 +214,12 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     if (picked.length === 0) return;
     const room = BUNCH_MAX_PHOTOS - photos.length;
     if (room <= 0) {
-      setSortNote(`That's the most for one go (${BUNCH_MAX_PHOTOS} photos). List these first, then start another.`);
+      setSortNote(t("lp.bv.mostPhotos", { max: BUNCH_MAX_PHOTOS }));
       return;
     }
     const added = picked.slice(0, room).map((file) => ({ key: `ph${Date.now().toString(36)}_${++photoSeq}`, file }));
     setPhotos((ps) => [...ps, ...added]);
-    setSortNote(picked.length > room ? `Only the first ${room} were added: one go takes up to ${BUNCH_MAX_PHOTOS} photos.` : null);
+    setSortNote(picked.length > room ? t("lp.bv.onlyFirst", { room, max: BUNCH_MAX_PHOTOS }) : null);
     await sortPhotos(added);
   }
 
@@ -246,10 +248,10 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       // A photo that couldn't be read is kept, with why, in a pile the seller can Sort again (it is read again then).
       if (res.unusable.length > 0) {
         const n = res.unusable.length;
-        setItems((its) => addSorted(its, [notSortedPile(res.unusable.map((u) => u.key), `We couldn't read ${n === 1 ? "this photo" : `these ${n} photos`}. Tap Sort again to try once more.`)]));
+        setItems((its) => addSorted(its, [notSortedPile(res.unusable.map((u) => u.key), n === 1 ? t("lp.bv.cantRead1") : t("lp.bv.cantReadN", { n }))]));
       }
       const n = res.failed.reduce((s, f) => s + f.photos, 0);
-      const notSorted = n > 0 ? `${n} ${n === 1 ? "photo isn't" : "photos aren't"} sorted yet: ${declutterErrorMessage(res.failed[0].error)} ${n === 1 ? "It's" : "They're"} kept together below. Tap Sort again.` : null;
+      const notSorted = n > 0 ? t(n === 1 ? "lp.bv.notSorted1" : "lp.bv.notSortedN", { n, why: declutterErrorMessage(res.failed[0].error) }) : null;
       const note = [notSorted, unusablePhotosNote(res.unusable)].filter(Boolean).join(" ");
       if (note) setSortNote(note);
     } finally {
@@ -315,7 +317,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     if (picked.length === 0) return;
     const room = BUNCH_MAX_PHOTOS - photos.length;
     if (room <= 0) {
-      setSortNote(`That's the most for one go (${BUNCH_MAX_PHOTOS} photos). List these first, then start another.`);
+      setSortNote(t("lp.bv.mostPhotos", { max: BUNCH_MAX_PHOTOS }));
       return;
     }
     const added = picked.slice(0, room).map((file) => ({ key: `ph${Date.now().toString(36)}_${++photoSeq}`, file }));
@@ -332,10 +334,10 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       const done = await removeBunchDraft(id);
       // Undo must not bring back an item that is already up.
       if (done === "already_listed") setUndo(null);
-      if (done === "already_listed") setSortNote(`"${name}" was already listed, so it's still up. You can take it down under Selling.`);
+      if (done === "already_listed") setSortNote(t("lp.bv.alreadyListed", { name }));
     } catch (err) {
       // Not silent: the draft is still under Selling, and the seller is told, with the reason, where to take it down.
-      setSortNote(`We couldn't remove the draft of "${name}": ${declutterErrorMessage(err)} You can take it down under Selling.`);
+      setSortNote(t("lp.bv.draftNotRemoved", { name, why: declutterErrorMessage(err) }));
     } finally {
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     }
@@ -356,7 +358,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       }));
     } catch (err) {
       // Not silent: the reason is shown on its card; the seller can try again or fill the item in themselves.
-      setRewriteNote({ key, text: `We couldn't write "${name}": ${declutterErrorMessage(err)}` });
+      setRewriteNote({ key, text: t("lp.bv.cantWrite", { name, why: declutterErrorMessage(err) }) });
     } finally {
       setRewriting(null);
     }
@@ -376,13 +378,13 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     const made = next.find((x) => !had.has(x.key));
     if (made) {
       setOpenRows((m) => new Map(m).set(made.key, true));
-      void writeItem(made, `Item ${next.indexOf(made) + 1}`, true);
+      void writeItem(made, t("lp.b.item", { n: next.indexOf(made) + 1 }), true);
     }
   }
 
   function onMerge(fromKey: string, intoKey: string) {
     const other = mergePriceClash(items, fromKey, intoKey);
-    const said = `Merged ${nameOf(fromKey)} into ${nameOf(intoKey)}.`;
+    const said = t("lp.bv.merged", { from: nameOf(fromKey), into: nameOf(intoKey) });
     regroup((its) => mergeItems(its, fromKey, intoKey), said, other ? { intoKey, price: other } : undefined);
   }
 
@@ -392,11 +394,11 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     setProblem(null);
     const toList = only ? [only] : ready;
     const p = placeProblem
-      ?? (savedWays.length === 0 ? "Tick at least one way buyers can get your items." : null)
+      ?? (savedWays.length === 0 ? t("lp.bv.tickWay") : null)
       ?? (moveDate ? moveDateProblem(moveDate, today) : null)
-      ?? (!attested ? "Tick the box under the four statements before you list these items." : null)
+      ?? (!attested ? t("lp.bv.tickBox") : null)
       ?? (only ? bunchItemProblem(only) : null)
-      ?? (toList.length === 0 ? "No item is ready to list yet." : null);
+      ?? (toList.length === 0 ? t("lp.bv.noneReady") : null);
     if (p) {
       setProblem(p);
       // Beside the thing it's about, so the seller isn't left hunting up the page.
@@ -420,7 +422,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     });
     if (!started) {
       setListing(null);
-      setProblem("Your last listing run is still going. Wait for it to finish, then try again.");
+      setProblem(t("lp.bv.stillGoing"));
     }
   }
 
@@ -457,7 +459,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   const needs = bunchNeedsLine(items);
   const firstUnready = items.find((it) => bunchItemNeed(it));
   const showMove = movingOpen && (moving || !!moveDate);
-  const pageTitle = moving ? "Moving out sale" : "Sell a bunch";
+  const pageTitle = moving ? t("lp.bv.moveTitle") : t("lp.bv.title");
   const isRowOpen = (it: BunchItem) => openRows.get(it.key) ?? bunchRowStartsOpen(it);
 
   return (
@@ -474,45 +476,45 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       {saved.note && <p className="text-sm text-foreground" role="alert" data-bunch-not-saved="">{saved.note}</p>}
       {saved.restoredCount > 0 && items.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-4 text-sm" role="status" data-bunch-restored="">
-          <p className="min-w-0 flex-1">We kept your work from last time: {saved.restoredCount} {saved.restoredCount === 1 ? "item" : "items"}, with their photos{items.some((it) => it.price.trim() !== "") ? " and prices" : ""}.</p>
-          <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={busy} onClick={() => setAskingStartOver(true)}>Start over</Button>
+          <p className="min-w-0 flex-1">{t(items.some((it) => it.price.trim() !== "") ? (saved.restoredCount === 1 ? "lp.bv.keptPrices1" : "lp.bv.keptPricesN") : (saved.restoredCount === 1 ? "lp.bv.kept1" : "lp.bv.keptN"), { n: saved.restoredCount })}</p>
+          <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={busy} onClick={() => setAskingStartOver(true)}>{t("lp.bv.startOver")}</Button>
         </div>
       )}
-      <ConfirmSheet open={askingStartOver} title="Start over?" confirmLabel="Start over" onConfirm={startOver} onClose={() => setAskingStartOver(false)} testId="bunch-start-over">
-        Your photos, item details and prices on this page are removed from this device. Listings you already posted stay up.
+      <ConfirmSheet open={askingStartOver} title={t("lp.bv.startOverQ")} confirmLabel={t("lp.bv.startOver")} onConfirm={startOver} onClose={() => setAskingStartOver(false)} testId="bunch-start-over">
+        {t("lp.bv.startOverBody")}
       </ConfirmSheet>
 
       {showMove && <BunchMovingSale userId={user.id} date={moveDate} setDate={setMoveDate} today={today} />}
 
       {whereFolded || allListed ? null : (
-      <BunchSection id="bunch-where" title="1. Where buyers pick up">
+      <BunchSection id="bunch-where" title={t("lp.bv.whereHead")}>
         {/* Q2492: the same rule and words as the one-item form; the server's rule is the same (declutter_start_checkout). */}
         <PlacesComeFirstLine />
-        <label className="block text-sm font-medium" htmlFor="bunch-address">Pickup address</label>
-        <SellerAddressField id="bunch-address" ariaLabel="Pickup address" className={input} value={pickupAddress} place={place}
+        <label className="block text-sm font-medium" htmlFor="bunch-address">{t("lp.bv.address")}</label>
+        <SellerAddressField id="bunch-address" ariaLabel={t("lp.bv.address")} className={input} value={pickupAddress} place={place}
           onChange={(a, city) => { setPickupAddress(a); setAreaLabel(city); }} onBlurred={() => {
             if (pickupAddress.trim().length < 5) return;
             // Early, for the note under the address and the price hints. A failure is said at "List": nothing was asked for yet.
             place.locate(pickupAddress).catch((e: unknown) => console.warn("[bunch] address check on blur:", e instanceof Error ? e.message : "unknown"));
           }} />
         <AddressNeedsExactSpot typedAddress={pickupAddress} inexact={place.inexact} locating={place.locating} shareMyLocation={place.shareMyLocation} />
-        <p className="text-xs text-muted-foreground">It's the same for every item. Only the buyer who pays sees the address.</p>
+        <p className="text-xs text-muted-foreground">{t("lp.bv.sameForAll")}</p>
       </BunchSection>
       )}
 
       {!allListed && (
-      <BunchSection id="bunch-photos" title={`${firstStep}. Add photos`}>
-        <p className="text-xs text-muted-foreground">Pick them all at once, up to {BUNCH_MAX_PHOTOS}. Take a few of each thing, one thing at a time.</p>
-        <HiddenFileInput ref={fileRef} accept="image/*" multiple id="bunch-files" aria-label="Add photos" disabled={blocked} onChange={(e) => void onPhotos(e.target.files)} />
+      <BunchSection id="bunch-photos" title={t("lp.bv.photosHead", { step: firstStep })}>
+        <p className="text-xs text-muted-foreground">{t("lp.bv.pickAll", { max: BUNCH_MAX_PHOTOS })}</p>
+        <HiddenFileInput ref={fileRef} accept="image/*" multiple id="bunch-files" aria-label={t("lp.bv.addPhotos")} disabled={blocked} onChange={(e) => void onPhotos(e.target.files)} />
         {blocked ? (
-          <Button type="button" variant="outline" size="sm" disabled>Add photos</Button>
+          <Button type="button" variant="outline" size="sm" disabled>{t("lp.bv.addPhotos")}</Button>
         ) : (
           <Button asChild variant="outline" size="sm" className="cursor-pointer">
-            <label htmlFor="bunch-files">{photos.length > 0 ? "Add more photos" : "Add photos"}</label>
+            <label htmlFor="bunch-files">{photos.length > 0 ? t("lp.bv.addMore") : t("lp.bv.addPhotos")}</label>
           </Button>
         )}
         {/* F339: what is sent, in small grey under the button, not before the seller has done anything. */}
-        <p className="text-xs text-muted-foreground" data-bunch-privacy="">Smaller copies, with location data removed, are sent to sort them and write your listings. Nothing is saved or shown to buyers until you list.</p>
+        <p className="text-xs text-muted-foreground" data-bunch-privacy="">{t("lp.bv.privacy")}</p>
         {sorting && <ReadingPhotos adding={adding} sorting={sorting} found={found} />}
         {sorting && (
           <BunchIntake keys={photos.filter((p) => !items.some((it) => it.photoKeys.includes(p.key))).map((p) => p.key)} urls={thumbs}
@@ -523,9 +525,9 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       )}
 
       {items.length > 0 && (
-        <BunchSection id="bunch-check" title={sortedCount > 0 ? `${firstStep + 1}. Check each item (${ready.length + heldForFee} of ${sortedCount} ready)` : `${firstStep + 1}. Check each item`}>
+        <BunchSection id="bunch-check" title={sortedCount > 0 ? t("lp.bv.checkHeadN", { step: firstStep + 1, ready: ready.length + heldForFee, total: sortedCount }) : t("lp.bv.checkHead", { step: firstStep + 1 })}>
           <p className="text-xs text-muted-foreground">
-            Fix anything we got wrong. Tap an item to open it. If two items are the same thing, merge them; if one holds two things, split it.
+            {t("lp.bv.fixIt")}
           </p>
           {/* Nothing on a card can change while a run works on it: a draft dropped mid-run would be listed or lost. */}
           <fieldset disabled={!!listing || listingDrafts} className="contents">
@@ -538,7 +540,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
                 busy={busy}
                 onSortAgain={() => void onSortAgain(it.key)}
                 onOneItem={() => { setOpenRows((m) => new Map(m).set(it.key, true)); setItems((its) => editBunchItem(its, it.key, { notSorted: false, sortReason: undefined })); }}
-                onDrop={() => regroup((its) => dropItem(its, it.key), `Removed ${it.photoKeys.length} ${it.photoKeys.length === 1 ? "photo" : "photos"}.`)}
+                onDrop={() => regroup((its) => dropItem(its, it.key), t(it.photoKeys.length === 1 ? "lp.bv.removedPhotos1" : "lp.bv.removedPhotosN", { n: it.photoKeys.length }))}
               />
             ) : (
               <BunchRow
@@ -548,7 +550,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
                 url={thumbs.get(it.photoKeys[0])}
                 open={isRowOpen(it)}
                 canDrop={!listing && !listingDrafts}
-                onPhotoDrop={(k) => regroup((its) => movePhoto(its, k, it.key), `Moved a photo to ${nameOf(it.key)}.`)}
+                onPhotoDrop={(k) => regroup((its) => movePhoto(its, k, it.key), t("lp.bv.movedOne", { name: nameOf(it.key) }))}
                 nextPriceId={items.slice(i + 1).find((x) => !x.free && !x.notSorted) ? `price-${items.slice(i + 1).find((x) => !x.free && !x.notSorted)!.key}` : null}
                 onToggleOpen={() => setOpenRows((m) => new Map(m).set(it.key, !isRowOpen(it)))}
                 onPrice={(price) => { setUndo(null); setItems((its) => editBunchItem(its, it.key, { price })); }}
@@ -565,15 +567,15 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
                   rewriting={rewriting === it.key}
                   rewriteNote={rewriteNote?.key === it.key ? rewriteNote.text : null}
                   onChange={(patch) => { setUndo(null); setOpenRows((m) => new Map(m).set(it.key, true)); setItems((its) => editBunchItem(its, it.key, patch)); }}
-                  onMove={(keys, to) => regroup((its) => keys.reduce((acc, k) => movePhoto(acc, k, to), its), `Moved ${keys.length === 1 ? "a photo" : `${keys.length} photos`} to ${nameOf(to)}.`)}
+                  onMove={(keys, to) => regroup((its) => keys.reduce((acc, k) => movePhoto(acc, k, to), its), keys.length === 1 ? t("lp.bv.movedOne", { name: nameOf(to) }) : t("lp.bv.movedN", { n: keys.length, name: nameOf(to) }))}
                   onSplit={(keys) => onSplit(it.key, keys)}
-                  onRemovePhoto={(k) => regroup((its) => takePhotoOff(its, it.key, k), it.photoKeys.length === 1 ? `Removed ${nameOf(it.key)}: that was its last photo.` : "Photo removed.")}
+                  onRemovePhoto={(k) => regroup((its) => takePhotoOff(its, it.key, k), it.photoKeys.length === 1 ? t("lp.bv.removedLast", { name: nameOf(it.key) }) : t("lp.bv.photoRemoved"))}
                   onCover={(k) => setItems((its) => makeCover(its, it.key, k))}
                   onReorder={(k, before) => setItems((its) => movePhotoWithin(its, it.key, k, before))}
                   canDrag={!listing && !listingDrafts}
                   onAddPhotos={(list) => void onAddPhotos(it.key, list)}
                   onMerge={(into) => onMerge(it.key, into)}
-                  onDrop={() => regroup((its) => dropItem(its, it.key), `Removed ${nameOf(it.key)}.`)}
+                  onDrop={() => regroup((its) => dropItem(its, it.key), t("lp.bv.removed", { name: nameOf(it.key) }))}
                   onRewrite={() => void onRewrite(it.key)}
                   onRetryUpload={() => void onListAll(it)}
                 />

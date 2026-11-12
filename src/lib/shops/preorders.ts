@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcErrorMessage } from "./rpcErrorCopy";
 import { formatCents } from "./formatCents";
-import { invokeShopCheckoutAction, type OrderTerms } from "./orders";
+import { invokeShopCheckoutAction, setupFeeChargedCents, type OrderTerms, type ShopOrder } from "./orders";
 
 /** The most days out a ready-by may be when it is set, and the one push (the SQL's limits). */
 export const PREORDER_MAX_DAYS = 120;
@@ -137,17 +137,20 @@ export function preorderChargeText(p: Pick<ItemPreorder, "ready_by" | "goal" | "
     words.push(`If it doesn't reach ${p.goal} by ${shortDate(p.goal_by)}, you get a full refund automatically.`);
   }
   words.push(`If the shop doesn't have it ready by ${shortDate(addDays(p.ready_by, PREORDER_LATE_DAYS))}, you get a full refund automatically.`);
-  words.push("You can cancel until the shop marks it ready. You get back what you paid, less a small card processing cost and the sales tax on it.");
+  // S2-019 (owner-approved preorder rule): a buyer cancel before ready is a full refund; the shop carries the card cost.
+  words.push("You can cancel until the shop marks it ready, for a full refund.");
   return words;
 }
 
-/** The buyer's order: what Cancel preorder gives back now (the server files the refund; this says the same). */
-export function preorderCancelText(order: { total_cents: number; ready_date: string; preorder_moved_at?: string | null }, today: string): string {
-  const late = today > addDays(order.ready_date, PREORDER_LATE_DAYS);
-  if (order.preorder_moved_at || late) {
-    return `You get everything you paid back: ${formatCents(order.total_cents)}. The shop is told.`;
-  }
-  return `You get back ${formatCents(order.total_cents)}, less a small card processing cost and the sales tax on it. The shop is told.`;
+/** The buyer's order: what Cancel preorder gives back now (the server files the refund; this says the same).
+ * S2-019 (20261112160014, owner-approved): every preorder cancel before ready is a full refund, the one-time setup
+ * fee the charge carried included (shop_write_refund's full_shop_pays_fee rule). */
+export function preorderCancelText(
+  order: { total_cents: number; ready_date: string; preorder_moved_at?: string | null } & Partial<Pick<ShopOrder, "setup_fee_cents" | "setup_fee_state">>,
+  _today: string,
+): string {
+  const back = order.total_cents + setupFeeChargedCents({ setup_fee_cents: order.setup_fee_cents ?? 0, setup_fee_state: order.setup_fee_state ?? null } as Pick<ShopOrder, "setup_fee_cents" | "setup_fee_state">);
+  return `You get everything you paid back: ${formatCents(back)}. The shop is told.`;
 }
 
 /** The first day the shop may mark a preorder ready (ready-by - 14), for "You can mark it ready from Dec 1". */

@@ -151,6 +151,18 @@ function ShopTalkSheet({ talkId, onClose, initialDraft = "" }: { talkId: string;
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [newestId]);
+  // S2-025 (Shops audit 2): a message from the other side that arrives while the chat is open is read out (a polite
+  // live region); the ones already there when it opens are not.
+  const seenNewest = useRef<string | null | undefined>(undefined);
+  const [announce, setAnnounce] = useState("");
+  useEffect(() => {
+    if (!t) return;
+    const last = t.messages[t.messages.length - 1];
+    if (seenNewest.current === undefined) { seenNewest.current = last?.id ?? null; return; }
+    if (!last || last.id === seenNewest.current) return;
+    seenNewest.current = last.id;
+    if (!last.mine) setAnnounce(`New message from ${t.other_label}: ${last.body}`);
+  }, [t]);
   return (
     <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={focusSheetItself}
@@ -172,6 +184,7 @@ function ShopTalkSheet({ talkId, onClose, initialDraft = "" }: { talkId: string;
                 This chat is closed. You can still read it.
               </p>
             )}
+            <p className="sr-only" aria-live="polite" data-shop-talk-live="">{announce}</p>
             <ol className="space-y-2" aria-label="Messages">
               {t.messages.length === 0 && <li className="text-ds-13 text-muted-foreground">No messages yet. Ask about an item, an order or a pickup time.</li>}
               {t.messages.map((m) => (
@@ -197,7 +210,12 @@ function ShopTalkSheet({ talkId, onClose, initialDraft = "" }: { talkId: string;
                 <label htmlFor={`shop-talk-${talkId}`} className="block text-ds-13 font-medium">Message</label>
                 <Textarea id={`shop-talk-${talkId}`} className="min-h-16 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
                   maxLength={1000} value={draft} onChange={(e) => { setDraft(e.target.value); setRefusal(null); }}
-                  aria-invalid={refusal ? true : undefined} aria-describedby={refusal ? `shop-talk-refusal-${talkId}` : undefined} />
+                  aria-invalid={refusal ? true : undefined}
+                  aria-describedby={`shop-talk-count-${talkId}${refusal ? ` shop-talk-refusal-${talkId}` : ""}`} />
+                {/* S2-025: the 1,000-character limit is shown, not a silent cut. */}
+                <p id={`shop-talk-count-${talkId}`} className="text-right text-ds-12 text-muted-foreground" data-shop-talk-count="">
+                  {draft.length}/1000
+                </p>
                 {refusal && <p id={`shop-talk-refusal-${talkId}`} role="alert" className="text-ds-13 text-destructive-ink">{refusal}</p>}
               </form>
             )}

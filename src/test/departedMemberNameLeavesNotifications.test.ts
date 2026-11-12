@@ -14,7 +14,8 @@
  * Backend proof: src/test/pglite/departedMemberNameLeavesNotifications.pglite.mjs (3x; NEW_MIGRATION=skip RED).
  *
  * @mutate supabase/migrations/20261103022806_departed_member_name_leaves_notifications.sql |   AFTER UPDATE OF anonymized_at ON public.profiles |   AFTER UPDATE OF phone ON public.profiles
- * @mutate supabase/migrations/20261104050109_notices_name_the_person.sql |        AND n.job_id IS NOT NULL\n |
+ * @mutate supabase/migrations/20261112005443_declutter_departed_member_name_leaves_notices.sql |        AND ((n.job_id IS NOT NULL\n |        AND ((true\n
+ * @mutate supabase/migrations/20261112005443_declutter_departed_member_name_leaves_notices.sql |              AND coalesce(n.link, '') LIKE '/declutter%'\n |
  * @mutate supabase/migrations/20261103022806_departed_member_name_leaves_notifications.sql | REVOKE ALL ON FUNCTION public.scrub_departed_member_name_from_notifications() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.scrub_departed_member_name_from_notifications() FROM PUBLIC;
  */
 import { describe, expect, it } from "vitest";
@@ -60,7 +61,14 @@ describe("a deleted member's name leaves other members' notifications (Q2330)", 
     expect(b).toContain("'\\m' ||");
     expect(b).toContain("'(?!\\w)'");
     expect(b).toMatch(/n\.user_id IS DISTINCT FROM OLD\.user_id/);
-    expect(b).toMatch(/AND n\.job_id IS NOT NULL/);
+    // 20261112005443: the job branch is now one of two (job notices as before, OR Declutter notices).
+    expect(b).toMatch(/AND \(\(n\.job_id IS NOT NULL/);
+    // F356 follow-up privacy fix: a Declutter notice (no job, a /declutter link) to someone who traded with the departed
+    // member, through each Declutter table, either way round.
+    expect(b).toMatch(/OR \(n\.job_id IS NULL\s+AND coalesce\(n\.link, ''\) LIKE '\/declutter%'/);
+    for (const t of ["declutter_offers", "declutter_swap_offers", "declutter_cart_items", "declutter_orders", "declutter_bundle_requests", "declutter_free_requests"]) {
+      expect(b).toContain(`FROM public.${t} `);
+    }
     for (const party of [/OLD\.user_id IN \(j\.customer_id, j\.helper_id\)/, /a\.helper_id = OLD\.user_id/, /g\.helper_id = OLD\.user_id/]) {
       expect(b).toMatch(party);
     }

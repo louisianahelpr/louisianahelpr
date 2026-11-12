@@ -81,6 +81,8 @@ const COPY_MODULES: Readonly<Record<string, readonly string[]>> = {
   "src/lib/seriesDates.ts": ["claimSetupStep"],
   // checkHelperStripeConnect has no caller today (dead export, reported); a new caller must gate.
   "src/hooks/useStripeConnectCheck.ts": ["checkHelperStripeConnect"],
+  // payoutLine(payout, problemOpen, { payoutReady, setupPaused }) -> DeclutterHandoverViews (reads usePayoutSetupPaused()).
+  "src/components/declutter/declutterPayoutWords.ts": ["payoutLine"],
 };
 
 /** Files whose payout words send nobody to setup. EXACT. */

@@ -23,7 +23,7 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 const state = { cart: [] as unknown[], payouts: [] as unknown[], allowed: true };
 
 vi.mock("@/hooks/usePayoutSetupHireAllowed", () => ({ usePayoutSetupHireAllowed: () => state.allowed }));
-vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupBlock: () => null }));
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupBlock: () => null, usePayoutSetupPaused: () => false }));
 vi.mock("@/hooks/useStripeConnectStatus", () => ({ useStripeConnectStatus: () => ({ payoutPrompt: { kind: "setup" } }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 vi.mock("@/components/payouts/PayoutSetupPausedNotice", () => ({ PayoutSetupPausedNotice: () => <p>paused</p> }));

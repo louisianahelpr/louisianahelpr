@@ -1308,10 +1308,14 @@ describe("#6: a free claim never reads like a paid order", () => {
     expect(b.container.querySelector("article")?.textContent).not.toMatch(MONEY);
     b.unmount();
     state.payouts = [{ order_id: "o1", amount_cents: 4000, items_cents: 4000, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, status: "pending" }];
+    // Payout setup offered (payout_setup on): the no-account line says to set it up; paused, it never does.
+    const before = state.features;
+    state.features = [...before, "payout_setup"];
     show([line({ order_status: "handed_over", my_side: "seller" })]);
     expect(await screen.findByText("Refund panel")).toBeInTheDocument();
     // Awaited: the payout read and the refund panel's lazy chunk settle in either order.
     expect(await screen.findByText(/^You get \$40 once you set up payouts in Settings\.$/)).toBeInTheDocument(); // the mock user has no payout account
+    state.features = before;
   });
 });
 

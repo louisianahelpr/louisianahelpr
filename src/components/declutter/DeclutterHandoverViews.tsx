@@ -53,6 +53,7 @@ import { ProblemOpenNote } from "./DeclutterProblemOpen";
 import { OrderGetHelpNow } from "@/components/jobs/GetHelpNow";
 import { payoutLine, setupFeeAheadByOrder, setupFeeAheadFromServer, setupFeeUnsureOrders } from "./declutterPayoutWords";
 import { payoutAccountReady } from "@/lib/payoutAccountReady";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { ManagerSaleShareGate } from "./ManagerSaleShareGate";
 import { useOpenProblemsRead } from "./useOpenProblems";
 import { useSellerSetupFee } from "./useSellerSetupFee";
@@ -116,6 +117,7 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   const setupFee = useSellerSetupFee((payouts.data ?? []).some((p) => p.status === "pending" || p.status === "failed"));
   const feeUnknown = setupFee.unknown;
   const payoutReady = payoutAccountReady(profile);
+  const setupPaused = usePayoutSetupPaused();
   // Audit 1b D2-2: an open problem shows on both cards and hides booking and a second report.
   const { problems, settled: problemsSettled } = useOpenProblemsRead(ids);
   // BUY-30: the order a notice opened shows whatever the chip.
@@ -148,6 +150,7 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
           setupFeeAhead={feeAhead.get(o.orderId) ?? 0}
           holdUnknown={feeUnknown || !problemsSettled || feeUnsure.has(o.orderId)}
           payoutReady={payoutReady}
+          setupPaused={setupPaused}
           problem={problems.get(o.orderId) ?? null}
           linked={o.orderId === linked}
         />
@@ -156,7 +159,7 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   );
 }
 
-function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnknown = false, payoutReady = true, view, problem, linked }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; setupFeeAhead?: number; holdUnknown?: boolean; payoutReady?: boolean; view?: BuyerOrderView; problem: OpenProblem | null; linked: boolean }) {
+function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnknown = false, payoutReady = true, setupPaused = true, view, problem, linked }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; setupFeeAhead?: number; holdUnknown?: boolean; payoutReady?: boolean; setupPaused?: boolean; view?: BuyerOrderView; problem: OpenProblem | null; linked: boolean }) {
   const title = order.lines.map((l) => l.item_title).join(", ");
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
   const done = order.status === "handed_over";
@@ -250,7 +253,7 @@ function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnkn
           {/* An unsent payout's day waits on every hold read: the fee inputs, the open problems, and the refund request
               (declutter_payouts_due holds on an open problem or a running request; a declined one moves the day). */}
           {order.side === "seller" && payout && items > 0 && !((holdUnknown || (refundRequests && !refund.isSuccess) || lastProblem.isLoading) && (payout.status === "pending" || payout.status === "failed")) && <p className="text-sm">{payoutLine(payout, !!problem, {
-            handedOverAt: handoverRow.data?.confirmed_at ?? null, refundOpen: refundIsOpen(refundStatus), setupFeeAhead, payoutReady,
+            handedOverAt: handoverRow.data?.confirmed_at ?? null, refundOpen: refundIsOpen(refundStatus), setupFeeAhead, payoutReady, setupPaused,
             declinedAt: refundStatus === "declined" ? refund.data?.request?.declined_at ?? null : null,
             refundAgreed: refundStatus === "agreed" ? refund.data?.request?.refund_status ?? "unknown" : null, saleDecided, })}
             {payout.status === "failed" && <FailedPayoutLink />}</p>}

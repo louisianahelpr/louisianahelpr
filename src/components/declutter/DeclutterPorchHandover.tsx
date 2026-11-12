@@ -20,6 +20,7 @@
 import { useState } from "react";
 import { checkWindowEnds, orderWhen, payoutDayAfterWindow } from "@/lib/declutter/timeLeft";
 import { payoutAccountReady } from "@/lib/payoutAccountReady";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { useQuery } from "@tanstack/react-query";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { fetchMyHandover, handoverPhotoUrl } from "@/lib/declutter/handover";
@@ -214,10 +215,13 @@ function sellerRefundStep(v: RefundRequestView): NextStepValue {
 }
 
 /** F394: the seller's handed-over line: the payout day while the buyer's 24 hours run, or that they are over. */
-function sellerPaidWhen(cents: number, handedOverAt: string | null, held: boolean, payoutReady: boolean) {
+function sellerPaidWhen(cents: number, handedOverAt: string | null, held: boolean, payoutReady: boolean, setupPaused: boolean) {
   if (held || !handedOverAt) return null;
   // F360b (lh-money-escrow review): with no ready payout account the run puts the payout off, so no day is promised.
-  if (!payoutReady) return <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong> once you set up payouts in Settings.</>;
+  // While payout setup is not offered (usePayoutSetupPaused), the line never sends the seller to set it up.
+  if (!payoutReady) return setupPaused
+    ? <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong> once your payout account is ready.</>
+    : <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong> once you set up payouts in Settings.</>;
   const ends = checkWindowEnds(handedOverAt);
   return ends
     ? <>You get <strong className="tabular-nums">{formatPrice(cents)}</strong>, paid on {payoutDayAfterWindow(ends)} unless the buyer reports a problem before then.</>
@@ -235,6 +239,7 @@ function MoneyNote({ orderId, side, kind, free, done, problemOpen, refunded = fa
   const [ruleOpen, setRuleOpen] = useState(false);
   const { profile } = useCurrentUser();
   const payoutReady = payoutAccountReady(profile);
+  const setupPaused = usePayoutSetupPaused();
   // Owner 11-11 ~3:25 PM: before the handover, "You get" is less the one-time setup fee on the ONE sale the server
   // says takes it (declutter_my_setup_fee); while that answer is not in, no figure rather than one too high.
   const preHandover = side === "seller" && !free && !done;
@@ -250,7 +255,7 @@ function MoneyNote({ orderId, side, kind, free, done, problemOpen, refunded = fa
       // decide.", so the money line no longer says the seller is paid after the pickup right above it.
       ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done || problemOpen ? "." : `. The seller is paid after you ${after}.`}</> : null
       : done
-        ? sellerPaidWhen(sellerCents, handedOverAt, refunded || problemOpen, payoutReady)
+        ? sellerPaidWhen(sellerCents, handedOverAt, refunded || problemOpen, payoutReady, setupPaused)
         : setupFee.unknown ? null
         : problemOpen
           ? <>Your <strong className="tabular-nums">{formatPrice(sellerCents)}</strong> is held while Louisiana Helpr looks at the problem.</>

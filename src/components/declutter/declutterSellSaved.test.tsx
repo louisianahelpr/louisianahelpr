@@ -32,6 +32,8 @@ const h = vi.hoisted(() => ({
   floors: [] as [number, number][],
 }));
 
+// Owner 11-11: the sell form's "You get" reads declutter_my_setup_fee; not deployed in these specs (the client's own reading).
+vi.mock("@/lib/declutter/mySetupFee", () => ({ fetchMySetupFee: async () => null }));
 vi.mock("idb-keyval", () => ({
   get: async (k: string) => h.disk.get(k),
   set: async (k: string, v: unknown) => void h.disk.set(k, v),

@@ -4,6 +4,10 @@
  * login wall with no job, price or town, and the wall's "Create an account" link
  * was a bare /signup whenever the link carried ?ref=share.
  *
+ * F268a (owner 11-12): the guest sees the job's own read-only page (GuestJobPage), not the sheet over a blur: the
+ * title as the page heading, the facts, and the description as the public view hands it to anon (phone numbers and
+ * street addresses masked on the server, mask_guest_contact, proven in guestsReadMaskedJobDescription.pglite.mjs).
+ *
  * Holds: the guest sees the job from the masked public view with nothing private
  * asked for; every way on goes to sign-up carrying the job; a signed-in visitor
  * still meets ProtectedRoute's gates, because allowGuest widens it for guests only.
@@ -12,9 +16,12 @@
  * @mutate src/components/ProtectedRoute.tsx |   if (!user && allowGuest) return <>{children}</>;\n | \n
  * @mutate src/components/ProtectedRoute.tsx |   if (!user && allowGuest) return <>{children}</>; |   if (allowGuest) return <>{children}</>;
  * @mutate src/pages/jobs/JobDetail.tsx | category, budget, location, urgent_fee, | category, budget, location, customer_id, urgent_fee,
- * @mutate src/pages/jobs/JobDetail.tsx | "id, title, category, budget, location, urgent_fee, | "id, title, description, category, budget, location, urgent_fee,
+ * @mutate src/pages/jobs/JobDetail.tsx | "id, title, description, category, budget, location, urgent_fee, | "id, title, category, budget, location, urgent_fee,
  * @mutate src/pages/jobs/JobDetail.tsx | navigate(signupUrlFor(id ? `/jobs/${id}` : null)) | navigate("/signup")
- * @mutate src/pages/jobs/JobDetail.tsx | onClose={() => navigate("/browse")} | onClose={() => navigate("/home")}
+ * @mutate src/pages/jobs/JobDetail.tsx | onBrowse={() => navigate("/browse")} | onBrowse={() => navigate("/home")}
+ * @mutate src/pages/jobs/JobDetail.tsx |             <GuestJobPage job={job} | <GuestJobPreview onClose={() => navigate("/browse")} job={job}
+ * @mutate src/components/dashboard/GuestJobPage.tsx |       {details && ( |       {false && (
+ * @mutate src/pages/jobs/JobDetail.tsx | parish: row.parish, description: row.description, | parish: row.parish,
  * @mutate src/pages/jobs/JobDetail.tsx | if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id ?? "")) return null; | if (id === "") return null;
  * @mutate src/pages/jobs/JobDetail.tsx | ) : !job && id && UUID_RE.test(id) ? ( | ) : !job && id && !UUID_RE.test(id) ? (
  * @mutate src/pages/jobs/JobDetail.tsx | navigate(`/login?redirect=${encodeURIComponent(`/jobs/${id}`)}`) | navigate("/login")
@@ -50,7 +57,7 @@ vi.mock("@/hooks/usePendingSaveConsumer", () => ({ usePendingSaveConsumer: vi.fn
 vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: vi.fn() }));
 vi.mock("@/components/marketing/PublicLayout", () => ({ default: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));
 vi.mock("@/pages/jobs/jobPage/JobPage", () => ({ default: () => <div>MEMBER JOB PAGE</div> }));
-// The real guest preview (GuestJobPreview, JOBS-29): title, category, parish, budget, "Sign up to apply".
+// The real guest page (GuestJobPage, F268a): title, facts, description, "Sign up to apply".
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => ({
@@ -63,6 +70,9 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 import ProtectedRoute from "@/components/ProtectedRoute";
+
+/** What open_jobs_browse hands anon for "Gate code 1234, 12 Oak St, call 337-555-0100" (mask_guest_contact). */
+const GUEST_COPY = "Gate code 1234, [address hidden], call [phone hidden]";
 import JobDetail from "@/pages/jobs/JobDetail";
 
 const Where = () => {
@@ -88,7 +98,7 @@ beforeEach(() => {
   localStorage.clear();
   state.auth = { user: null, profile: null, isLoading: false };
   state.columns = [];
-  state.row = { id: JOB_ID, title: "Move a sofa", category: "moving", budget: 120, location: "Lafayette, LA", description: "Gate code 1234, 12 Oak St", expires_at: null, boost_expires_at: null };
+  state.row = { id: JOB_ID, title: "Move a sofa", category: "moving", budget: 120, location: "Lafayette, LA", description: GUEST_COPY, expires_at: null, boost_expires_at: null };
 });
 
 describe("the route", () => {
@@ -118,20 +128,50 @@ describe("a guest opening a shared link", () => {
     expect(screen.queryByTestId("where")).toBeNull();
   });
 
+  it("F268a: a full page, not a sheet: the title is the visible heading and the description shows as the view gives it", async () => {
+    openLink();
+    await screen.findByText("Sign up to apply");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.querySelector("[data-guest-job-page]")).toBeTruthy();
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(h1.textContent).toBe("Move a sofa");
+    expect(h1.className).not.toMatch(/\bsr-only\b/);
+    expect(document.querySelectorAll("h1").length).toBe(1);
+    expect(screen.getByRole("heading", { name: "Details" })).toBeTruthy();
+    expect(document.querySelector("[data-guest-job-description]")?.textContent).toBe(GUEST_COPY);
+    // No poster and no Message button on a guest's page.
+    expect(screen.queryByText(/Posted by/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Message/ })).toBeNull();
+  });
+
+  it("F268a: no description, no Details block (nothing guessed)", async () => {
+    state.row = { ...state.row!, description: null };
+    openLink();
+    await screen.findByText("Sign up to apply");
+    expect(screen.queryByRole("heading", { name: "Details" })).toBeNull();
+  });
+
+  it("F268a: a state that is not the job (not available) keeps the heading for readers only", async () => {
+    state.row = null;
+    openLink();
+    await screen.findAllByText(/isn't available|Log in/);
+    expect(screen.getByRole("heading", { level: 1 }).className).toMatch(/\bsr-only\b/);
+  });
+
   it("asks the public view for nothing private", async () => {
     openLink();
     await screen.findByText("Sign up to apply");
-    // JOBS-29 (lead 2026-10-31): exactly the preview's facts (the take-home's inputs among them) plus id, status
-    // and expiry.
+    // JOBS-29 (lead 2026-10-31): the facts (the take-home's inputs among them) plus id, status and expiry; F268a
+    // (owner 11-12): plus the description, which the view masks for anon on the server.
     expect(state.columns).toEqual([
-      "id", "title", "category", "budget", "location",
+      "id", "title", "description", "category", "budget", "location",
       "urgent_fee", "is_group_job", "helpers_needed", "helper_fee_flat_cents", "helper_fee_percent",
       "date_needed", "date_window_end", "start_time", "is_flexible_schedule",
       "status", "expires_at",
       // F269a (owner 11-11): the share line names the parish from the view's own column, as api/share.ts does.
       "parish",
     ]);
-    for (const column of ["customer_id", "latitude", "longitude", "description", "photos", "offered_to_helper_id", "direct_offer_status", "applicant_count", "special_requirements"]) {
+    for (const column of ["customer_id", "latitude", "longitude", "photos", "offered_to_helper_id", "direct_offer_status", "applicant_count", "special_requirements"]) {
       expect(state.columns, column).not.toContain(column);
     }
   });
@@ -145,10 +185,10 @@ describe("a guest opening a shared link", () => {
     expect(postAuthDestination()).toBe(`/jobs/${JOB_ID}`);
   });
 
-  it("closing goes to the public Browse list, never a page that bounces them to log in", async () => {
+  it("its way out goes to the public Browse list, never a page that bounces them to log in", async () => {
     openLink();
     await screen.findByText("Sign up to apply");
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: "See other open jobs" }));
     expect(screen.getByTestId("where").textContent).toBe("/browse");
   });
 

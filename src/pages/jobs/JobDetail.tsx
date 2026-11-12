@@ -21,7 +21,8 @@ import { useFeedPhase, useProfileWaitPhase } from "@/hooks/useFeedPhase";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/button";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
-import { GuestJobPreview, guestLogInUrl, type GuestJob } from "@/components/dashboard/GuestJobPreview";
+import { guestLogInUrl, type GuestJob } from "@/components/dashboard/GuestJobPreview";
+import { GuestJobPage } from "@/components/dashboard/GuestJobPage";
 import { jobShareDescription } from "@/lib/jobShareLine.mjs";
 
 // Signed in: the job page itself (boards 15, 42, 168, 169).
@@ -66,13 +67,12 @@ const JobDetail = () => {
 
   // Guests fetch the single job from the RLS-public masked view. We skip
   // the fetch entirely for authed users: they get the job page below.
-  // This column list is the guest's whole view of a job (JOBS-29, lead
-  // 2026-10-31, under the owner's 9-2 rule): title, category, parish (from the
-  // view's town) and the take-home (budget, rush fee, crew split, fee stamp: the
-  // guest card's own figure), plus status and expiry to know it is still open.
-  // No poster, no address, no coordinates, no description (free text can carry
-  // an address or a phone number). Guards: src/test/guestOpensSharedJobLink.test.tsx,
-  // src/test/guestSeesFourFacts.test.tsx.
+  // This column list is the guest's whole view of a job (F268a, owner 2026-11-12, replacing the lead's 10-31
+  // four-facts sheet here; still the owner's 9-2 rule): title, the description (the view's guest copy, phone numbers
+  // and street addresses masked on the server: mask_guest_contact, 20261112202620), category, parish (from the
+  // view's town), day and time, and the take-home (budget, rush fee, crew split, fee stamp: the guest card's own
+  // figure), plus status and expiry to know it is still open. No poster, no address, no coordinates, no photos.
+  // Guards: src/test/guestOpensSharedJobLink.test.tsx, src/test/guestSeesFourFacts.test.tsx (the Browse sheet).
   const { data: job, isLoading, isError, refetch, status, fetchStatus } = useQuery({
     queryKey: queryKeys.jobs.publicDetail(id ?? ""),
     queryFn: async (): Promise<GuestJob | null> => {
@@ -81,7 +81,7 @@ const JobDetail = () => {
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id ?? "")) return null;
       const data = unwrap<unknown>(
         await readJobsAheadOfDb(
-          "id, title, category, budget, location, urgent_fee, is_group_job, helpers_needed, helper_fee_flat_cents, helper_fee_percent, date_needed, date_window_end, start_time, is_flexible_schedule, status, expires_at, parish",
+          "id, title, description, category, budget, location, urgent_fee, is_group_job, helpers_needed, helper_fee_flat_cents, helper_fee_percent, date_needed, date_window_end, start_time, is_flexible_schedule, status, expires_at, parish",
           (columns) => supabase.from("open_jobs_browse").select(columns).eq("id", id!).maybeSingle(),
           { browseView: true },
         ),
@@ -96,7 +96,7 @@ const JobDetail = () => {
         urgent_fee: row.urgent_fee, is_group_job: row.is_group_job, helpers_needed: row.helpers_needed,
         helper_fee_flat_cents: row.helper_fee_flat_cents, helper_fee_percent: row.helper_fee_percent,
         date_needed: row.date_needed, date_window_end: row.date_window_end, start_time: row.start_time,
-        is_flexible_schedule: row.is_flexible_schedule, parish: row.parish,
+        is_flexible_schedule: row.is_flexible_schedule, parish: row.parish, description: row.description,
       };
     },
     enabled: !!id && !authLoading && !user,
@@ -142,6 +142,9 @@ const JobDetail = () => {
   }
 
   const requireSignup = () => navigate(signupUrlFor(id ? `/jobs/${id}` : null));
+  // F268a: the branch below that draws the guest's job page (every other branch is a state: offline, signed out,
+  // loading, error, not available).
+  const showsGuestPage = !!job && !authLoading && !isLoading && !isError && !sessionLost && phase !== "offline-empty";
 
   // Every branch of this page (loading / error / not-found / job) needs its
   // own <h1>: this is the share-link landing page, and it previously rendered
@@ -158,8 +161,9 @@ const JobDetail = () => {
   return (
     <PublicLayout noNavSpacer>
       <div className="pt-20 pb-safe-nav px-5">
-        <div className="container mx-auto max-w-md">
-          <h1 className="sr-only">{headingText}</h1>
+        <div className="container mx-auto max-w-lg">
+          {/* F268a: on the job's own page the title is the visible heading; every other branch keeps it for readers. */}
+          <h1 data-job-detail-title="" className={showsGuestPage ? "mb-4 text-page-title leading-tight break-words" : "sr-only"}>{headingText}</h1>
           {(authLoading ? authPhase : phase) === "offline-empty" ? (
             <OfflineEmptyState
               body="This job will load here as soon as you're back online."
@@ -253,7 +257,8 @@ const JobDetail = () => {
               }
             />
           ) : (
-            <GuestJobPreview job={job} onClose={() => navigate("/browse")} onSignUp={requireSignup} onLogIn={(id) => navigate(guestLogInUrl(id))} />
+            /* F268a (owner 11-12): the job's own read-only page, not the sheet over a blur. */
+            <GuestJobPage job={job} onBrowse={() => navigate("/browse")} onSignUp={requireSignup} onLogIn={(id) => navigate(guestLogInUrl(id))} />
           )}
         </div>
       </div>

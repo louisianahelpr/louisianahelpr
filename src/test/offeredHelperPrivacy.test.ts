@@ -35,7 +35,7 @@
 // statement text. Every group-(b) and group-(d) assertion now reads the
 // comment-BLANKED form (`DbObject.code`, `maskComments(...)`), and the
 // registered mutation below IS the comment shape, so both doors are pinned.
-// @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql | CASE\n            WHEN customer_id = auth.uid() OR offered_to_helper_id = auth.uid() THEN offered_to_helper_id\n            ELSE NULL::uuid\n        END AS offered_to_helper_id, | offered_to_helper_id, -- CASE WHEN customer_id = auth.uid() OR offered_to_helper_id = auth.uid() THEN offered_to_helper_id ELSE NULL::uuid END AS offered_to_helper_id
+// @mutate supabase/migrations/20261112202620_guests_read_masked_job_description.sql | CASE\n            WHEN customer_id = auth.uid() OR offered_to_helper_id = auth.uid() THEN offered_to_helper_id\n            ELSE NULL::uuid\n        END AS offered_to_helper_id, | offered_to_helper_id, -- CASE WHEN customer_id = auth.uid() OR offered_to_helper_id = auth.uid() THEN offered_to_helper_id ELSE NULL::uuid END AS offered_to_helper_id
 
 import { describe, it, expect } from "vitest";
 import { walkSource, readSource } from "./helpers/walkSource";

@@ -16,7 +16,7 @@
  * @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql |      AND NOT EXISTS (SELECT 1 FROM public.crew_block_fees b WHERE b.job_id = v_job_id AND b.slot_no = s); |      AND true;
  * @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |         ON CONFLICT (job_id, slot_no) DO NOTHING; |         ;
  * @mutate supabase/migrations/20261112081700_shops_export_rest.sql |   v_out := v_out \|\| jsonb_build_object('crew_block_fees', |   v_out := v_out \|\| jsonb_build_object('crew_block_fees_x',
- * @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql | - (SELECT count(*)::integer AS count FROM crew_block_fees b WHERE b.job_id = jobs.id)) ELSE 0 END) > 0)) | ) ELSE 0 END) > 0))
+ * @mutate supabase/migrations/20261112202620_guests_read_masked_job_description.sql | - (SELECT count(*)::integer AS count FROM crew_block_fees b WHERE b.job_id = jobs.id)) ELSE 0 END) > 0)) | ) ELSE 0 END) > 0))
  * @mutate supabase/functions/void-cancelled-payments/index.ts | cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents, | cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents: 0,
  */
 import { describe, expect, it } from "vitest";

@@ -25,13 +25,13 @@
  * blanked with the shared helper.
  */
 // Registered mutations - each turns this guard RED on its own:
-// @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = false) | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = true)
-// @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql |     round(latitude, 2) AS latitude, |     latitude,
-// @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql | AND (created_at <= early_access_cutoff() OR | AND (early_access_cutoff() IS NOT NULL OR created_at <= now() OR
-// @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql |     date_window_end\n   FROM jobs |     date_window_end,\n    is_seed\n   FROM jobs
+// @mutate supabase/migrations/20261112202620_guests_read_masked_job_description.sql | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = false) | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = true)
+// @mutate supabase/migrations/20261112202620_guests_read_masked_job_description.sql |     round(latitude, 2) AS latitude, |     latitude,
+// @mutate supabase/migrations/20261112202620_guests_read_masked_job_description.sql | AND (created_at <= early_access_cutoff() OR | AND (early_access_cutoff() IS NOT NULL OR created_at <= now() OR
+// @mutate supabase/migrations/20261112202620_guests_read_masked_job_description.sql |     date_window_end\n   FROM jobs |     date_window_end,\n    is_seed\n   FROM jobs
 // @mutate supabase/migrations/20260312230239_44ebecc0-fa86-48da-af48-936d4c12e1a1.sql | USING (\n  auth.uid() = customer_id\n  OR auth.uid() = helper_id\n); | USING (\n  status = 'open'::job_status\n  OR auth.uid() = customer_id\n  OR auth.uid() = helper_id\n);
-// @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql |     CASE WHEN CURRENT_USER = 'anon'::name THEN '00000000-0000-0000-0000-000000000000'::uuid ELSE customer_id END AS customer_id, |     customer_id,
-// @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql |     CASE WHEN CURRENT_USER = 'anon'::name THEN '00000000-0000-0000-0000-000000000000'::uuid ELSE customer_id END AS customer_id, |     CASE WHEN CURRENT_USER = 'anon'::name THEN NULL::uuid ELSE customer_id END AS customer_id,
+// @mutate supabase/migrations/20261112202620_guests_read_masked_job_description.sql |     CASE WHEN CURRENT_USER = 'anon'::name THEN '00000000-0000-0000-0000-000000000000'::uuid ELSE customer_id END AS customer_id, |     customer_id,
+// @mutate supabase/migrations/20261112202620_guests_read_masked_job_description.sql |     CASE WHEN CURRENT_USER = 'anon'::name THEN '00000000-0000-0000-0000-000000000000'::uuid ELSE customer_id END AS customer_id, |     CASE WHEN CURRENT_USER = 'anon'::name THEN NULL::uuid ELSE customer_id END AS customer_id,
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";

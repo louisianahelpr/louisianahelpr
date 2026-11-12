@@ -7,6 +7,7 @@
  */
 import type { NextStepValue } from "@/components/ui/NextStep";
 import type { JobProgressState } from "./jobProgressState";
+import { nextLineCode } from "./nextLineCode";
 import "@/lib/i18n/enNextStep";
 import { getLang, t } from "@/lib/i18n/language";
 
@@ -55,14 +56,14 @@ export function jobNextStep(
   }
   // The poster's Working step, before the Helpr marks it done: who the job waits on (unless after photos say more).
   // ("Yusef is at the job" keeps its words: work has not begun, so it is not yet theirs to mark done.)
-  if (o.side === "poster" && progress.stage === 6 && !progress.waitingOnYou && / is working$/.test(progress.next)) {
+  if (o.side === "poster" && progress.stage === 6 && !progress.waitingOnYou && nextLineCode(progress) === "working") {
     return { who: "them", text: t("ns.waitDone", { name: other || t("ns.yourHelpr") }) };
   }
   const line = progress.next.trim();
   if (!line) return null;
   // Q2601 (Jobs audit 1102b row 15): "Next: Lexi offered you this job" is news, not a step. The step is the answer,
   // with who offered it and the offer's own clock when the page has it.
-  if (o.side === "helpr" && progress.waitingOnYou && / offered you this job$/.test(line)) {
+  if (o.side === "helpr" && progress.waitingOnYou && nextLineCode(progress) === "offered_you") {
     const untilMs = Date.parse(o.offerUntil ?? "");
     return { who: "you", text: other ? t("ns.answerName", { name: other }) : t("ns.answer"), by: Number.isNaN(untilMs) || untilMs <= Date.now() ? null : t("ns.by", { when: laTime(untilMs) }) };
   }

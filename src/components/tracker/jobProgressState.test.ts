@@ -2,7 +2,7 @@
 // @mutate src/components/tracker/jobProgressState.ts | const picking = poster && (o.pendingApplicants ?? 0) > 0; | const picking = false;
 // Board 2 (deal-room chat) and the chat halves of 59, 61, 62, 63, now the ONE tracker (owner, 2026-10-21):
 // the stage is named from the job's own stamps and never runs ahead of them, and the deal card never writes.
-// @mutate src/components/tracker/jobProgressState.ts | (workHasBegun(job, { workUnderway: o.workUnderway }) ? `${other} is working` : `${other} is at the job`) | `${other} is working`
+// @mutate src/components/tracker/jobProgressState.ts |     if (poster && workHasBegun(job, { workUnderway: o.workUnderway })) return withCode( |     if (poster) return withCode(
 // @mutate src/components/tracker/jobProgressState.ts | !!(job.poster_confirmed_working_at \|\| job.poster_confirmed_arrival_at \|\| job.helper_arrival_verified_at) | !!(job.poster_confirmed_working_at \|\| job.poster_confirmed_arrival_at \|\| job.helper_arrival_verified_at \|\| job.helper_arrived_at)
 // @mutate src/components/tracker/jobProgressState.ts | if (job.helper_id && o.threadHelprId && job.helper_id !== o.threadHelprId) { | if (false) {
 // @mutate src/components/tracker/jobProgressState.ts |     if (!Number.isNaN(opens) && now < opens) { |     if (false) {

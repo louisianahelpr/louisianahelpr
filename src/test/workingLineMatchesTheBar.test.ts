@@ -9,7 +9,7 @@
  *
  * @mutate src/components/tracker/workHasBegun.ts |   if (job.poster_confirmed_working_at) return true; |   if (job.poster_confirmed_working_at) return false;
  * @mutate src/components/tracker/workHasBegun.ts |   if (o.lineId && HELPR_NOT_STARTED.has(o.lineId)) return false; |
- * @mutate src/components/tracker/jobProgressState.ts | poster ? (workHasBegun(job, { workUnderway: o.workUnderway }) ? | poster ? (job.poster_confirmed_working_at ?
+ * @mutate src/components/tracker/jobProgressState.ts | if (poster && workHasBegun(job, { workUnderway: o.workUnderway })) return withCode( | if (poster && job.poster_confirmed_working_at) return withCode(
  * @mutate src/components/job-card/jobStatusLine.ts |   const atTheJob = id === "working" && !workHasBegun(job, { workUnderway: progress?.workUnderway }); |   const atTheJob = id === "working" && !job.poster_confirmed_working_at;
  * @mutate src/components/job-card/jobStatusLine.ts |   working: (n) => `${firstName(n)} is working`, |   working: (n) => `${firstName(n)} is at the job`,
  * @mutate src/components/job-card/jobStatusLine.ts |   working: { detail: "Your Helpr is working", eyebrow: BUCKET_LABEL.waiting, tone: "them" }, |   working: { detail: "Work is underway", eyebrow: BUCKET_LABEL.waiting, tone: "them" },

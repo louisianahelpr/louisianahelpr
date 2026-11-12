@@ -4,7 +4,7 @@
  * declutterBunchKeepOpen.test.tsx (the list run) and declutterSellPhotos.test.tsx (Post it).
  *
  * @mutate src/components/declutter/SellProgress.tsx |     if (done >= n + i + 1) return "live"; |     if (done >= n + i + 2) return "live";
- * @mutate src/components/declutter/SellProgress.tsx |   if (/^Putting it up/i.test(words)) return "live"; |   if (/^Putting it up/i.test(words)) return "checking";
+ * @mutate src/components/declutter/SellProgress.tsx |   if (key === "sf.ps.puttingUp") return "live"; |   if (key === "sf.ps.puttingUp") return "checking";
  */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";

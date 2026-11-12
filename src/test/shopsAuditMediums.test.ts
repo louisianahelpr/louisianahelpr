@@ -11,6 +11,8 @@
  *   S011 the shop's payout notice names the amount really sent (setup fee out of the first payout) and "Verify your ID"
  *        while the payout waits for it; S017 ready / handed over / problem / done notices say "done" for a service and
  *        "delivered" for a delivery (20261112081213, proof src/test/pglite/shopsNoticeWords.pglite.mjs).
+ *   S035 a refund that is not the buyer's doing gives the one-time setup fee back too and puts the account's fee back
+ *        (20261112082518, proof src/test/pglite/shopsSetupFeeRefund.pglite.mjs).
  *   S016 the needs-you reminder sweep reminds the shop about an order waiting on its answer (20261112075428, proof
  *        src/test/pglite/shopsAcceptReminders.pglite.mjs).
  *
@@ -26,6 +28,9 @@
  * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql |     v_setup_fee := COALESCE(public.declutter_setup_fee_from_payout_cents(o.seller_id), 0); |     v_setup_fee := 0;
  * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql |       WHEN public.payout_waits_on_identity(o.seller_id) THEN |       WHEN false THEN
  * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql | (l.kind = 'service' OR COALESCE(l.at_buyer, false)) | (l.kind = 'service')
+ * @mutate supabase/migrations/20261112082518_shops_setup_fee_refund.sql | CASE WHEN o.policy IN ('full_shop_pays_fee', 'full_platform_absorbs') THEN o.setup_fee ELSE 0 END | o.setup_fee
+ * @mutate supabase/migrations/20261112082518_shops_setup_fee_refund.sql | CASE WHEN so.setup_fee_state = 'claimed' THEN so.setup_fee_cents ELSE 0 END | so.setup_fee_cents
+ * @mutate supabase/migrations/20261112082518_shops_setup_fee_refund.sql |     UPDATE public.profiles SET onboarding_fee_paid = false, onboarding_fee_charged_at = NULL WHERE user_id = o.buyer_id; | 
  * @mutate src/components/shops/ShopMyOrdersView.tsx |   if (o.status === "accepted") return "accepted"; |   if (o.status === "accepted" \|\| o.status === "handed_over") return "accepted";
  * @mutate src/components/shops/ShopOrderCard.tsx |           {CANCEL_RULE_VISIBLE.has(order.status) && !order.handed_over_at | {true
  * @mutate src/components/shops/ShopHandoverActions.tsx |           {!porch && !byHelpr && due && !h?.shop_confirmed_at && ( |           {!porch && due && !h?.shop_confirmed_at && (
@@ -102,5 +107,13 @@ describe("Shops audit 11-12 Mediums", () => {
     expect(body("shops_mark_handed_over")).toContain("CASE WHEN public.shop_order_is_service(o.id) THEN 'The shop says the work is done'");
     expect(body("shops_report_not_received")).toContain("WHEN o.fulfillment IN ('shop_delivers', 'helpr_delivers') THEN 'Delivery problem reported'");
     expect(body("shop_complete_handover")).toContain("WHEN public.shop_order_is_service(o.id) THEN 'The work is done and the order is final.");
+  });
+  it("S035: a refund that is not the buyer's doing gives the setup fee back and puts the account's fee back", () => {
+    const a = body("shop_refund_amounts");
+    expect(a).toContain("CASE WHEN so.setup_fee_state = 'claimed' THEN so.setup_fee_cents ELSE 0 END AS setup_fee");
+    expect(a).toContain("CASE WHEN o.policy IN ('full_shop_pays_fee', 'full_platform_absorbs') THEN o.setup_fee ELSE 0 END AS fee_back");
+    expect(a).toContain("+ k.fee_back, k.fee_back FROM k;");
+    const w = body("shop_write_refund");
+    expect(w).toContain("IF a.setup_fee_refund_cents > 0 AND o.buyer_id IS NOT NULL THEN UPDATE public.profiles SET onboarding_fee_paid = false, onboarding_fee_charged_at = NULL WHERE user_id = o.buyer_id;");
   });
 });

@@ -12,11 +12,12 @@
  * @mutate src/components/tracker/jobNextStep.ts |   const next = t("ns.openAgain"); |   const next = "Your job is open again, so other Helprs can apply.";
  * @mutate src/components/tracker/jobNextStep.ts | toLocaleString(getLang() === "es" ? "es-US" : "en-US", { | toLocaleString("en-US", {
  * @mutate src/components/tracker/jobProgressState.ts | : withCode(at(1, true, "Offered", `${other} offered you this job`, held), "offered_you"); | : at(1, true, "Offered", `${other} offered you this job`, held);
- * @mutate src/components/tracker/jobProgressState.ts | return withCode(at(6, false, "Working", `${other} is working`, held), "working"); | return at(6, false, "Working", `${other} is working`, held);
  * @mutate src/components/tracker/nextLineCode.ts |   return p.nextCode && p.nextCode.line === p.next ? p.nextCode.id : null; |   return p.nextCode ? p.nextCode.id : null;
  *
  * jobNextStep keys off the line's CODE (JobProgressState.nextCode, made where the line is made), never its English words,
- * so the tracker's line can be worded in Spanish next without breaking the step (decision 11-12 spanish12).
+ * so the tracker's line can be worded in Spanish next without breaking the step (decision 11-12 spanish12). The poster's
+ * "is working" base line also carries its code, but on every job this file can build the card's own line wins (and
+ * carries the same code), so no mutate is registered on the base one.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";

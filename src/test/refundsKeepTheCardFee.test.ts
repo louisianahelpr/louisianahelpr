@@ -910,7 +910,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_setup_job_fee_debt: "20261103214533_declutter_seller_fault_pays_helpr.sql e3fac1112e34e309",
       // Shops M1: records the card fee Stripe kept when a held order is captured (or the 2.9% + 30c estimate),
       // for a later refund to keep; it records no refund and decides no refund amount.
-      shop_order_captured: "20261112095500_shops_card_fee_without_setup_fee.sql e7584f04ae967a22", // S053 (20261112095500, lh-money-escrow PASS-with-notes on 80006657a1; lander re-pin 11-12): the recorded card fee now leaves out the setup fee's share; still no refund recorded. Before: Shops H4 setup fee (lh-money-escrow PASS on 0a306f59cb): the card fee it records is Stripe's estimate on total + the one-time setup fee, capped at the order total; it records no refund. Helpr delivery (20261106194913, money review owed): it also opens the Helpr task; still no refund. Digital downloads (20261108185110, reviewed 11-08): the card-fee UPDATE is unchanged and runs before the digital branch, which only sends the two notices and returns; still no refund
+      shop_order_captured: "20261112095500_shops_card_fee_without_setup_fee.sql e7584f04ae967a22", // S053 (20261112095500, lh-money-escrow PASS-with-notes on 80006657a1): the recorded card fee is the sale share of Stripe fee x paid / (paid + setup fee), capped at paid; still no refund. Shops H4 setup fee (lh-money-escrow PASS on 0a306f59cb): the card fee it records is Stripe's estimate on total + the one-time setup fee, capped at the order total; it records no refund. Helpr delivery (20261106194913, money review owed): it also opens the Helpr task; still no refund. Digital downloads (20261108185110, reviewed 11-08): the card-fee UPDATE is unchanged and runs before the digital branch, which only sends the two notices and returns; still no refund
       // Payout readiness (20261019070737, lander33 pin for the lead's review). None of these decides or changes a refund
       // amount; each touches declutter_refunds only by status / time / review columns:
       // the admin page's list of held rows (a read; shows refund_cents as recorded).
@@ -1094,7 +1094,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_hand_refund_failed: "20261019071055_shops_refunds_cancels_strikes.sql ba27ff33a9f0c110",
       shop_hold_order_for_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 1e75907ab8fb3269",
       shop_money_rows_seed: "20261018211820_shops_handover_payout.sql 55e7c11ee19013d2",
-      shop_order_captured: "20261112095500_shops_card_fee_without_setup_fee.sql e7584f04ae967a22", // S053 (20261112095500, lh-money-escrow PASS-with-notes on 80006657a1; lander re-pin 11-12): the recorded card fee now leaves out the setup fee's share; still no refund recorded. Before: Shops H4 setup fee (lh-money-escrow PASS on 0a306f59cb): the card fee it records is Stripe's estimate on total + the one-time setup fee, capped at the order total; it records no refund. Helpr delivery (20261106194913, money review owed): it also opens the Helpr task; still no refund. Digital downloads (20261108185110, reviewed 11-08): the card-fee UPDATE is unchanged and runs before the digital branch, which only sends the two notices and returns; still no refund
+      shop_order_captured: "20261112095500_shops_card_fee_without_setup_fee.sql e7584f04ae967a22", // S053 (20261112095500, lh-money-escrow PASS-with-notes on 80006657a1): the recorded card fee is the sale share of Stripe fee x paid / (paid + setup fee), capped at paid; still no refund. Shops H4 setup fee (lh-money-escrow PASS on 0a306f59cb): the card fee it records is Stripe's estimate on total + the one-time setup fee, capped at the order total; it records no refund. Helpr delivery (20261106194913, money review owed): it also opens the Helpr task; still no refund. Digital downloads (20261108185110, reviewed 11-08): the card-fee UPDATE is unchanged and runs before the digital branch, which only sends the two notices and returns; still no refund
       // 11-07 (20261107162454, option B): the order is found by the rest's PaymentIntent too; records a hand refund, no amount.
       shop_record_hand_refund: "20261107162454_shops_custom_two_charge_payout.sql fa8034d933a81b13",
       // 11-07 (20261107162454, option B): a two-charge order's refund row is held for a person (status + reason only; the
@@ -1117,7 +1117,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_refund_reversed: "20261019071055_shops_refunds_cancels_strikes.sql df880e58ddff9ccd",
       // 20261030150104 (lead lh-authz-rls approve "refunds ... unchanged"): only the admin alert skips test accounts.
       // Preorders (20261108184654): only "AND so.preorder_item_id IS NULL" added to the scan; refunds unchanged.
-      shop_refund_sweep: "20261108184654_shops_preorders.sql ab613feee3e07f99",
+      shop_refund_sweep: "20261112200351_shops_card_cost_words.sql 30e775fe81aa5518", // 11-12 S010 leftover (lh-money-escrow PASS-with-notes): only the shop notice words changed; refund via shop_write_refund unchanged
       shop_refund_tax_kept: "20261019071055_shops_refunds_cancels_strikes.sql 55fb2a820bce5eca",
       shop_refund_to_send: "20261019071055_shops_refunds_cancels_strikes.sql b349bdd3f8d3b813",
       shop_refunds_due: "20261019071055_shops_refunds_cancels_strikes.sql bbfc70978e922056",
@@ -1135,7 +1135,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shops_buyer_cancel_order: "20261109224952_notices_card_fee_and_our_team.sql 94a1a93d8482aa86", // Q2390 11-04: ERRCODE P0002 -> PT404 only
       shops_order_cancel_quote: "20261106194913_shops_helpr_delivery.sql 68b55433d93cc393", // Q2390 p22 read-only quote; Helpr delivery (20261106194913, money review owed): a late cancel quotes the delivery no Helpr picked up coming back
       shop_order_refunds_recorded_cents: "20261106194913_shops_helpr_delivery.sql 0637300959ca02d6", // Helpr delivery money review: a read-only sum of the Stripe-confirmed delivery and order refunds on the charge, so a payout from it reads it whole; records no refund
-      shops_shop_cancel_order: "20261103162420_q2390_handover_paid_refund_shop_cancel_photo_no_show_decline_not_found_is_404.sql ae7a26b0a9ef9269",
+      shops_shop_cancel_order: "20261112200351_shops_card_cost_words.sql 8ab48d1da9d2827a", // 11-12 S010 leftover (lh-money-escrow PASS-with-notes): only the shop notice words changed; refund via shop_write_refund unchanged
     },
     statements: {
       "shop_orders 20261018164442_shops_orders_checkout.sql": ["c270fbd5dcbf5fcd"],

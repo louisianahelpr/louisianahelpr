@@ -55,6 +55,8 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
   const [handingOver, setHandingOver] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [note, setNote] = useState("");
+  // S018 (Shops audit 11-12): one optional photo with the problem report, kept on the device until "Report it".
+  const [problemPhoto, setProblemPhoto] = useState<File | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const open = order.status === "accepted" && !!order.captured_at;
   // Services and at-home work: "Mark complete" (the jobs card owns the name "Mark done", AppliedJobCard.doneFloorFace guard), never a ready photo (shops audit 11-08 #3; the server keeps them in person).
@@ -104,11 +106,12 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
     onError: (err) => { setConfirming(false); onError(err); },
   });
   const report = useMutation({
-    mutationFn: () => reportNotReceived(order.id, note),
+    mutationFn: () => reportNotReceived(order.id, note, problemPhoto ? { userId, file: problemPhoto } : null),
     onSuccess: () => {
       toast.success("Reported. Louisiana Helpr looks at it before anyone is paid.");
       setReporting(false);
       setNote("");
+      setProblemPhoto(null);
       refresh();
     },
     onError,
@@ -140,6 +143,31 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
       <div className="space-y-1">
         <Label htmlFor={`${fileId}-note`}>What happened?</Label>
         <Textarea id={`${fileId}-note`} value={note} maxLength={NOTE_MAX} onChange={(e) => setNote(e.target.value)} placeholder={w.buyerProblemPlaceholder} />
+      </div>
+      <div className="space-y-1" data-testid="shop-problem-photo">
+        <input
+          id={`${fileId}-problem-photo`}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          disabled={report.isPending}
+          onChange={(e) => {
+            const f = e.target.files?.[0] ?? null;
+            e.target.value = "";
+            if (f) setProblemPhoto(f);
+          }}
+        />
+        {problemPhoto ? (
+          <p className="flex items-center gap-2 text-xs">
+            <span className="truncate" data-testid="shop-problem-photo-name">Photo added: {problemPhoto.name}</span>
+            <Button type="button" size="sm" variant="ghost" disabled={report.isPending} onClick={() => setProblemPhoto(null)}>Remove</Button>
+          </p>
+        ) : (
+          <Button type="button" size="sm" variant="outline" disabled={report.isPending} asChild>
+            <label htmlFor={`${fileId}-problem-photo`}>Add a photo (optional)</label>
+          </Button>
+        )}
+        <p className="text-xs text-muted-foreground">Only Louisiana Helpr sees the photo, not the shop.</p>
       </div>
     </BrandConfirmDialog>
   );
@@ -252,7 +280,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
             </Button>
           )}
           {(due || !!h?.ready_at || !!h?.shop_confirmed_at) && (
-            <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { setNote(""); setReporting(true); }}>
+            <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { setNote(""); setProblemPhoto(null); setReporting(true); }}>
               {w.buyerProblem}
             </Button>
           )}

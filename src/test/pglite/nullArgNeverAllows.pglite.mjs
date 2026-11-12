@@ -290,6 +290,9 @@ CREATE TABLE public.shop_orders (id uuid PRIMARY KEY, buyer_id uuid, seller_id u
   tax_cents integer, total_cents integer, stripe_payment_intent_id text,
   -- Shops digital downloads (20261108182917): the columns shop_digital_access_ok reads and the fixture's order 0404 writes.
   is_digital boolean NOT NULL DEFAULT false, digital_access_revoked_at timestamptz);
+-- S018 (20261112090512): shop_problem_photo_unattached reads the problem photo column (and the photo access helper's
+-- problem arm the ready column).
+CREATE TABLE public.shop_handovers (order_id uuid PRIMARY KEY, ready_at timestamptz, problem_at timestamptz, problem_photo_path text);
 CREATE TABLE public.shop_hand_refunds (stripe_refund_id text PRIMARY KEY, order_id uuid NOT NULL, failed_at timestamptz);
 CREATE TABLE public.shop_reviews (id uuid PRIMARY KEY, order_id uuid NOT NULL, shop_id uuid NOT NULL, reviewer_id uuid, reviewee_id uuid,
   reviewer_side text NOT NULL, stars smallint NOT NULL, is_seed boolean NOT NULL DEFAULT false, removed_at timestamptz);
@@ -362,6 +365,8 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "declutter_is_porch_day",
   // Audit 1a #10 (20261029222816): may the uploader delete this unattached handover photo.
   "declutter_handover_photo_unattached",
+  // S018 (20261112090512): may the buyer delete this unsent shop problem photo.
+  "shop_problem_photo_unattached",
   // Shipping S2 (20261030000030): may the label worker buy this rate.
   "shipping_rate_buyable",
   // Porch places (D-NEW14, 20261030164712): after declutter_is_porch_day, which its SQL body calls.

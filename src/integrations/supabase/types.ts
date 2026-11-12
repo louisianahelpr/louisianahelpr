@@ -23115,6 +23115,7 @@ export type Database = {
         Args: { p_name: string; p_write: boolean }
         Returns: boolean
       }
+      shop_problem_photo_unattached: { Args: { p_name: string }; Returns: boolean }
       shop_handover_sweep: { Args: never; Returns: Json }
       shop_order_free_cancel_until: {
         Args: { p_order_id: string }
@@ -23162,7 +23163,7 @@ export type Database = {
         Returns: Json
       }
       shops_report_not_received: {
-        Args: { p_note: string; p_order_id: string }
+        Args: { p_note: string; p_order_id: string; p_photo_path?: string | null }
         Returns: Json
       }
       shops_set_handover_mode: { Args: { p_mode: string }; Returns: string }

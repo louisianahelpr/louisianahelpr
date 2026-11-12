@@ -44,7 +44,8 @@ import {
   type ShopItem,
   type ShopItemKind,
 } from "@/lib/shops/items";
-import { shopsErrorMessage } from "@/lib/shops/errors";
+import { SHOP_ITEM_MAX_PRICE_CENTS, shopsErrorMessage } from "@/lib/shops/errors";
+import { fetchMyDigitalFiles } from "@/lib/shops/digitalFiles";
 import { ShopsNotice } from "./shopsUi";
 import ShopDigitalFiles from "./ShopDigitalFiles";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
@@ -86,23 +87,38 @@ function wholeNumber(s: string, code: string): number {
 }
 const dollars = (c: number) => `$${(c / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 
-/** The title / price a save refusal is about (its code as a whole word in the message), or null. */
-function itemFieldOfError(err: unknown): "title" | "price" | null {
+/** The field a refusal is about, by its code as a whole word in the message (S041: lead time and stock too). */
+type ItemField = "title" | "price" | "lead" | "stock";
+const FIELD_OF_CODE: Record<string, ItemField> = {
+  invalid_title: "title", invalid_price: "price", invalid_lead_time: "lead", invalid_stock: "stock",
+};
+function itemFieldOfError(err: unknown): ItemField | null {
   const msg = String((err as { message?: unknown } | null)?.message ?? "");
-  if (/(^|[^a-z_])invalid_title($|[^a-z_])/.test(msg)) return "title";
-  if (/(^|[^a-z_])invalid_price($|[^a-z_])/.test(msg)) return "price";
+  for (const [code, field] of Object.entries(FIELD_OF_CODE)) {
+    if (new RegExp(`(^|[^a-z_])${code}($|[^a-z_])`).test(msg)) return field;
+  }
   return null;
 }
 
 /** Audit 11-10 F11: each thing a draft still needs before Publish, in plain words (the server's own limits). */
-export function publishBlockers(x: { photos: number; title: string; price: string; unticked: number; cottageNeedsTick: boolean; cottageUnknown: boolean }): string[] {
+export function publishBlockers(x: {
+  photos: number; title: string; price: string; unticked: number; cottageNeedsTick: boolean; cottageUnknown: boolean;
+  /** A download's file count (S041): 0 blocks Publish (files_required); undefined/null while unknown or not a download. */
+  digitalFiles?: number | null;
+}): string[] {
   const out: string[] = [];
   if (x.photos < 3) out.push(`Add ${3 - x.photos} more photo${3 - x.photos === 1 ? "" : "s"} (3 to 12).`);
+  if (x.photos > 12) out.push(`Remove ${x.photos - 12} photo${x.photos - 12 === 1 ? "" : "s"} (3 to 12).`);
   const t = x.title.trim().length;
   if (t < 3 || t > 80) out.push("Give it a title of 3 to 80 characters.");
   // Read the price the way the save does (cents(): "$", "," and spaces dropped), so "1,200" never blocks Publish.
   const price = x.price.replace(/[$,\s]/g, "");
   if (!/^\d+(\.\d{1,2})?$/.test(price) || Number(price) <= 0) out.push("Enter a price.");
+  // S041: the server's own range (invalid_price), said here instead of a refusal toast after Publish.
+  else if (Math.round(Number(price) * 100) < 100 || Math.round(Number(price) * 100) > SHOP_ITEM_MAX_PRICE_CENTS) {
+    out.push(`Set a price from $1 to $${(SHOP_ITEM_MAX_PRICE_CENTS / 100).toLocaleString("en-US")}.`);
+  }
+  if (x.digitalFiles === 0) out.push("Add 1 to 5 files for buyers to download.");
   if (x.unticked > 0) out.push(`Tick ${x.unticked === 1 ? "the confirmation" : `the ${x.unticked} confirmations`} above.`);
   if (x.cottageNeedsTick) out.push("Confirm this year's home-kitchen sales above.");
   if (x.cottageUnknown) out.push("Wait for this year's home-kitchen limit to load.");
@@ -130,12 +146,30 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
   const [d, setD] = useState<Draft>(() => fromItem(item));
   const [ticked, setTicked] = useState<string[]>([]);
   const [underCap, setUnderCap] = useState(false);
-  // Audit 11-10 F11: a refused title or price shows under its own field, not only in a toast.
-  const [fieldError, setFieldError] = useState<{ field: "title" | "price"; msg: string } | null>(null);
+  // Audit 11-10 F11: a refused title or price shows under its own field, not only in a toast. S041: lead time and
+  // stock too, from Save, Publish and "Save stock and ready time" alike.
+  const [fieldError, setFieldError] = useState<{ field: ItemField; msg: string } | null>(null);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => {
     setD((x) => ({ ...x, [k]: v }));
-    if ((k === "title" || k === "price") && fieldError?.field === k) setFieldError(null);
+    if (fieldError?.field === k) setFieldError(null);
   };
+  const errorUnderFieldOrToast = (err: unknown) => {
+    const field = itemFieldOfError(err);
+    if (field) {
+      setFieldError({ field, msg: shopsErrorMessage(err) });
+      const el = document.getElementById(`item-${field}`);
+      el?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+      el?.focus?.({ preventScroll: true });
+    } else {
+      toast.error(shopsErrorMessage(err));
+    }
+  };
+  const fieldErrorProps = (f: ItemField) => ({
+    "aria-invalid": fieldError?.field === f || undefined,
+    "aria-describedby": fieldError?.field === f ? `item-${f}-error` : undefined,
+  });
+  const fieldErrorLine = (f: ItemField) =>
+    fieldError?.field === f ? <p id={`item-${f}-error`} className="text-sm text-destructive-ink" role="alert">{fieldError.msg}</p> : null;
   const digital = d.kind === "digital";
   const refresh = () => void qc.invalidateQueries({ queryKey: ["shops", "items"] });
 
@@ -169,17 +203,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
       await qc.invalidateQueries({ queryKey: ["shops", "items"] });
       if (!id) onCreated(savedId);
     },
-    onError: (err) => {
-      const field = itemFieldOfError(err);
-      if (field) {
-        setFieldError({ field, msg: shopsErrorMessage(err) });
-        const el = document.getElementById(field === "title" ? "item-title" : "item-price");
-        el?.scrollIntoView?.({ block: "center", behavior: "smooth" });
-        el?.focus?.({ preventScroll: true });
-      } else {
-        toast.error(shopsErrorMessage(err));
-      }
-    },
+    onError: errorUnderFieldOrToast,
   });
 
   const stock = useMutation({
@@ -191,7 +215,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
       toast.success("Stock and ready time saved.");
       refresh();
     },
-    onError: (err) => toast.error(shopsErrorMessage(err)),
+    onError: errorUnderFieldOrToast,
   });
 
   // H8 (b): carpet or furniture cleaning done at the buyer's place is taxed there; saved on its own, like stock.
@@ -253,7 +277,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
       void qc.invalidateQueries({ queryKey: ["shops", "cottage"] });
       onDone();
     },
-    onError: (err) => toast.error(shopsErrorMessage(err)),
+    onError: errorUnderFieldOrToast,
   });
 
   const draft = status === "draft";
@@ -263,7 +287,14 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
   // Home food cannot publish until the yearly status is known (review should-fix 5).
   const cottageUnknown = d.kind === "home_food" && !cottage.data;
   // F11: what still stands between this draft and Publish, said beside the button.
+  // S041: a download's files, the same read (and cache key) as ShopDigitalFiles, so Publish says when none are added.
+  const digitalFiles = useQuery({
+    queryKey: ["shops", "digital-files", id],
+    queryFn: () => fetchMyDigitalFiles(id as string),
+    enabled: !!id && digital && item?.kind === "digital" && status === "draft",
+  });
   const blockers = publishBlockers({
+    digitalFiles: digital && digitalFiles.isSuccess ? digitalFiles.data.length : null,
     photos: shown.length,
     title: d.title,
     price: d.price,
@@ -364,7 +395,8 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
         {!digital && (
         <div className="space-y-1.5">
           <Label htmlFor="item-lead">Days you need to make it</Label>
-          <Input id="item-lead" type="number" min={0} max={60} value={d.lead} onChange={(e) => set("lead", e.target.value)} />
+          <Input id="item-lead" type="number" min={0} max={60} value={d.lead} onChange={(e) => set("lead", e.target.value)} {...fieldErrorProps("lead")} />
+          {fieldErrorLine("lead")}
         </div>
         )}
       </div>
@@ -389,7 +421,8 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
         {d.readyNow && !hasOptions && (
           <div className="space-y-1.5">
             <Label htmlFor="item-stock">How many are ready</Label>
-            <Input id="item-stock" type="number" min={0} max={9999} value={d.stock} onChange={(e) => set("stock", e.target.value)} />
+            <Input id="item-stock" type="number" min={0} max={9999} value={d.stock} onChange={(e) => set("stock", e.target.value)} {...fieldErrorProps("stock")} />
+            {fieldErrorLine("stock")}
           </div>
         )}
       </div>

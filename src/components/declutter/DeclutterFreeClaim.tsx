@@ -23,7 +23,7 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   checkoutFree, fetchFreeRequestsForItem, fetchSellerCard, fetchItemHandovers, fetchMyCart, fetchMyFreePause, fetchMyFreeRequests, pickFreeRequest,
-  withdrawFreeRequest, type DeclutterItem, type Handover,
+  pickupsLabel, withdrawFreeRequest, type DeclutterItem, type Handover,
 } from "@/lib/declutter/api";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { wayAllowed } from "@/lib/declutter/handovers";
@@ -273,6 +273,8 @@ export function FreeRequestsForGiver({ item }: { item: DeclutterItem }) {
                 <span className="block text-xs text-muted-foreground">
                   {r.review_count ? t(r.review_count === 1 ? "free.starsOne" : "free.stars", { rating: Number(r.avg_rating ?? 0).toFixed(1), n: r.review_count }) : t("free.noReviews")}
                 </span>
+                {/* F359d: the asker's completed pickups, a count only (like the seller card); none shown at 0. */}
+                {(r.pickup_count ?? 0) > 0 && <span data-free-ask-pickups="" className="block text-xs text-foreground">{pickupsLabel(r.pickup_count ?? 0)}</span>}
               </span>
               {passed ? null : (
                 <Button type="button" size="sm" className="shrink-0 rounded-full" disabled={pick.isPending} onClick={() => pick.mutate(r.request_id)}>

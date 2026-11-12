@@ -28,6 +28,8 @@ interface ShopReview {
   stars: number;
   comment: string | null;
   created_at: string;
+  /** S052: "First L." (member_display_name); absent until 20261112201612 is deployed. */
+  reviewer_name?: string;
 }
 
 export interface ShopReviews {

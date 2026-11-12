@@ -9,7 +9,7 @@
  * @mutate src/components/declutter/useBunchStartingPlace.ts |     setPickupAddress((a) => (a.trim() ? a : s.pickup!.address)); |     setPickupAddress(s.pickup!.address);
  * @mutate src/components/declutter/useBunchStartingPlace.ts |     setPoint((c) => c ?? { ...s.pickup! }); |     void place;
  * @mutate src/lib/i18n/enListingParts.ts | Smaller copies, with location data removed, are sent to sort them and write your listings. | Location data is removed before anything is sent, and nothing goes up until you list.
- * @mutate src/components/declutter/DeclutterBunchMovingSale.tsx | "Add photos of everything. We'll group them and write each listing."; | "Add photos of everything you want to sell. We sort them into items and write each listing. You check them all, then list them together.";
+ * @mutate src/lib/i18n/enListingParts.ts | "Add photos of everything. We'll group them and write each listing.", | "Add photos of everything you want to sell. We sort them into items and write each listing. You check them all, then list them together.",
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";

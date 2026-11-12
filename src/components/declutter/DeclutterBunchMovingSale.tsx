@@ -15,11 +15,12 @@ import { movingDayPostJobPath } from "@/lib/declutter/movingDayJob";
 import { fetchMyMoveItems, fetchMyMoveOutDate, formatMoveDate, moveDateProblem, setMoveOutDate } from "@/lib/declutter/moves";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { MovingSaleDetails } from "./DeclutterMovingSaleDetails";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 /** Sell a bunch's intro; the moving sale gets its own (audit 11-10 F343: the two pages opened word for word alike). */
-// Audit 11-10 F339: one short line (it was three long sentences before the seller had done anything).
-export const BUNCH_INTRO = "Add photos of everything. We'll group them and write each listing.";
-export const MOVING_INTRO = "Moving? List everything at once. With a move-out date, buyers see it as one moving sale on your profile.";
+// Audit 11-10 F339: one short line (it was three long sentences before the seller had done anything). Words: lp.mv.*.
+export const bunchIntro = (moving: boolean) => (moving ? t("lp.mv.intro") : t("lp.bv.intro"));
 
 export function BunchMovingSale({ userId, date, setDate, today }: { userId: string; date: string; setDate: (d: string) => void; today: string }) {
   const qc = useQueryClient();
@@ -47,8 +48,8 @@ export function BunchMovingSale({ userId, date, setDate, today }: { userId: stri
     setNote(null);
     try {
       const n = await setMoveOutDate(next);
-      if (n === 0) setNote("None of your moving-sale items are still up, so nothing changed.");
-      else setNote(next === null ? "Moving sale ended. Your items stay up as ordinary listings." : `Move-out date changed on ${n} ${n === 1 ? "item" : "items"}.`);
+      if (n === 0) setNote(t("lp.mv.noneUp"));
+      else setNote(next === null ? t("lp.mv.ended") : n === 1 ? t("lp.mv.changed1") : t("lp.mv.changedN", { n }));
       if (next === null) setDate("");
     } catch (err) {
       // Not silent: the refusal is shown beside these buttons, and the sale stays as it was.
@@ -61,39 +62,39 @@ export function BunchMovingSale({ userId, date, setDate, today }: { userId: stri
 
   return (
     <section className="space-y-3 rounded-2xl border border-border bg-card p-4" aria-labelledby="bunch-move" data-bunch-move="">
-      <h2 id="bunch-move" className="text-base font-semibold">Your move</h2>
+      <h2 id="bunch-move" className="text-base font-semibold">{t("lp.mv.head")}</h2>
       <div className="min-w-0">
-        <label className="block text-sm font-medium" htmlFor="bunch-move-date">Move-out date <span className="font-normal text-muted-foreground">(optional)</span></label>
-        <DatePickerField id="bunch-move-date" value={date} min={today} onChange={setDate} placeholder="Pick a date" />
+        <label className="block text-sm font-medium" htmlFor="bunch-move-date">{t("lp.mv.date")} <span className="font-normal text-muted-foreground">{t("lp.mv.optional")}</span></label>
+        <DatePickerField id="bunch-move-date" value={date} min={today} onChange={setDate} placeholder={t("lp.mv.pick")} />
       </div>
-      <p className="text-xs text-muted-foreground">With a date, what you list here shows together as one moving sale on your profile, and buyers see the date. Without one, they're ordinary listings. Either way nothing is taken down when the date passes.</p>
+      <p className="text-xs text-muted-foreground">{t("lp.mv.how")}</p>
       {problem && <p className="text-xs text-destructive-ink" role="status" data-bunch-move-problem="">{problem}</p>}
       {current && date && date !== current && !problem && (
         <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={changing} onClick={() => void change(date)}>
-          {changing ? "Changing…" : `Change the date on my moving-sale items to ${formatMoveDate(date)}`}
+          {changing ? t("lp.mv.changing") : t("lp.mv.change", { date: formatMoveDate(date) })}
         </Button>
       )}
       {current && <MovingSaleDetails userId={userId} moveOutOn={current} today={today} />}
       {/* F343: the moving-day help shows from the start, not only once a date is picked (a dateless job is fine). */}
       <div className="space-y-2 border-t border-border pt-3" data-bunch-moving-day="">
-        <p className="text-sm text-muted-foreground">Need a hand carrying things out, or a truck for whatever doesn't sell? Hire a Helpr for the job.</p>
+        <p className="text-sm text-muted-foreground">{t("lp.mv.help")}</p>
         <div className="flex flex-wrap gap-2">
           {/* D4-6: both open a pre-filled job, never a blank Post a job. */}
           <Button asChild variant="outline" size="sm" className="rounded-full">
-            <Link to={movingDayPostJobPath(current ?? date)}>Hire a Helpr for moving day</Link>
+            <Link to={movingDayPostJobPath(current ?? date)}>{t("lp.mv.hire")}</Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="rounded-full">
-            <Link to={haulIds.length > 0 ? haulAwayPostJobPath(haulIds) : movingDayPostJobPath(current ?? date)}>Haul away what's left</Link>
+            <Link to={haulIds.length > 0 ? haulAwayPostJobPath(haulIds) : movingDayPostJobPath(current ?? date)}>{t("lp.mv.haul")}</Link>
           </Button>
           {current && (
-            <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={changing} onClick={() => setAskEnd(true)}>End the moving sale</Button>
+            <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={changing} onClick={() => setAskEnd(true)}>{t("lp.mv.end")}</Button>
           )}
         </div>
       </div>
       {note && <p className="text-sm text-foreground" role="status" data-bunch-move-note="">{note}</p>}
-      <ConfirmSheet open={askEnd} title="End the moving sale?" confirmLabel="End the moving sale" pending={changing}
+      <ConfirmSheet open={askEnd} title={t("lp.mv.endQ")} confirmLabel={t("lp.mv.end")} pending={changing}
         onConfirm={() => { setAskEnd(false); void change(null); }} onClose={() => setAskEnd(false)} testId="move-end-sale">
-        Your items stay up as ordinary listings.
+        {t("lp.mv.endBody")}
       </ConfirmSheet>
     </section>
   );

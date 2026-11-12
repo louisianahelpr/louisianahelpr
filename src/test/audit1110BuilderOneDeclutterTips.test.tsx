@@ -9,7 +9,7 @@
  *         mason jars included (a free item cannot "sell"). The tip is drawn once at the top of Your listings, with the
  *         soonest day count; when every waiting item is free it says "Nobody's claimed it?" instead.
  *
- * @mutate src/components/declutter/DeclutterBunchView.tsx | {moving ? MOVING_INTRO : BUNCH_INTRO} | {BUNCH_INTRO}
+ * @mutate src/components/declutter/DeclutterBunchView.tsx | export const bunchIntro = (moving: boolean) => (moving ? t("lp.mv.intro") : t("lp.bv.intro")); | export const bunchIntro = (moving: boolean) => (moving ? t("lp.bv.intro") : t("lp.bv.intro"));
  * @mutate src/components/declutter/DeclutterHaulAway.tsx |   const waiting = rows.filter((r) => r.state === "too_soon"); |   const waiting = rows.filter((r) => r.state === "too_soon").slice(0, 0);
  * @mutate src/components/declutter/DeclutterHaulAway.tsx |   const allFree = waiting.every((r) => isFree(r.item_id)); |   const allFree = false;
  */
@@ -46,10 +46,10 @@ function wrap(ui: React.ReactElement) {
 describe("F343: Moving out sale reads as its own thing", () => {
   it("the Sell a bunch page picks a moving-sale intro when moving, and the two intros differ", async () => {
     const mod = await import("@/components/declutter/DeclutterBunchMovingSale");
-    expect(mod.MOVING_INTRO).toMatch(/^Moving\? /);
-    expect(mod.MOVING_INTRO).toContain("move-out date");
-    expect(mod.MOVING_INTRO).not.toBe(mod.BUNCH_INTRO);
-    expect(code("src/components/declutter/DeclutterBunchView.tsx")).toContain("{moving ? MOVING_INTRO : BUNCH_INTRO}");
+    expect(mod.bunchIntro(true)).toMatch(/^Moving\? /);
+    expect(mod.bunchIntro(true)).toContain("move-out date");
+    expect(mod.bunchIntro(true)).not.toBe(mod.bunchIntro(false));
+    expect(code("src/components/declutter/DeclutterBunchView.tsx")).toContain("{bunchIntro(moving)}");
   });
   it("the moving-day help shows under the date before any date is picked, linking a dateless moving job", async () => {
     wrap(<BunchMovingSale userId="u1" date="" setDate={() => {}} today="2026-11-10" />);

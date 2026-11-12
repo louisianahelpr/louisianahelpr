@@ -2,8 +2,10 @@
  * S026 (Shops audit 11-12): the sticky "Review order (n) $X" bar on a shop's page once the order holds something.
  * It sits right after the order sheet with `sticky bottom-3` (DeclutterBunchBar's pattern), so it rides the bottom of
  * the screen while the buyer looks at items above, and settles under the order sheet once they reach it. Tapping it
- * scrolls to the order sheet. The amount is the items only; the order sheet shows the full total before the card hold.
+ * scrolls to the order sheet's heading. S2-028: while the order sheet is on screen the bar hides, so it never covers the
+ * sheet's note box or hold terms. The amount is the items only; the order sheet shows the full total before the card hold.
  */
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ShoppingBag } from "lucide-react";
 import { fetchShopItems } from "@/lib/shops/items";
@@ -18,9 +20,18 @@ export default function ShopReviewOrderBar({ shopId }: { shopId: string }) {
   const items = useQuery({ queryKey: ["shops", "items", shopId], queryFn: () => fetchShopItems(shopId), enabled: !!shopId });
   const options = useQuery({ queryKey: ["shops", "item-options", shopId], queryFn: () => fetchItemOptions(shopId), enabled: !!shopId });
   const preorders = useQuery({ queryKey: ["shops", "item-preorders", shopId], queryFn: () => fetchItemPreorders(shopId), enabled: !!shopId });
+  // S2-028: hide while the order sheet is in view (no IntersectionObserver, e.g. old browsers: always shown).
+  const [sheetInView, setSheetInView] = useState(false);
+  useEffect(() => {
+    const sheet = document.getElementById("shop-order-sheet");
+    if (!sheet || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((entries) => setSheetInView(entries.some((e) => e.isIntersecting)), { threshold: 0.15 });
+    io.observe(sheet);
+    return () => io.disconnect();
+  }, []);
   const lines = chosenLines(orderableItems(items.data, preorders.data), options.data, qty);
   const count = lines.reduce((s, l) => s + l.n, 0);
-  if (count === 0) return null;
+  if (count === 0 || sheetInView) return null;
   const cents = lines.reduce((s, l) => s + l.unit * l.n, 0);
   return (
     <div className="sticky bottom-3 z-20" data-shop-review-bar="">

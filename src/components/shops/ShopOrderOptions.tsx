@@ -46,14 +46,17 @@ export default function ShopOrderOptions({ item, options, qty, maxPerLine, onQty
       <p className="text-sm font-semibold [overflow-wrap:anywhere]">{item.title}</p>
       <div className="grid grid-cols-2 gap-2">
         {options.option_names.map((name, i) => (
-          <NativeSelect
-            key={name}
-            aria-label={`${name} for ${item.title}`}
-            value={picked[i]}
-            onChange={(e) => setPicked((p) => p.map((x, j) => (j === i ? e.target.value : x)))}
-          >
-            {listValues(options, i).map((v) => <option key={v} value={v}>{v}</option>)}
-          </NativeSelect>
+          // S2-029: each list's name shows above its select ("Scent", "Size"), not only in the aria-label.
+          <label key={name} className="block min-w-0 space-y-1">
+            <span className="block truncate text-xs font-medium text-muted-foreground" aria-hidden data-option-name="">{name}</span>
+            <NativeSelect
+              aria-label={`${name} for ${item.title}`}
+              value={picked[i]}
+              onChange={(e) => setPicked((p) => p.map((x, j) => (j === i ? e.target.value : x)))}
+            >
+              {listValues(options, i).map((v) => <option key={v} value={v}>{v}</option>)}
+            </NativeSelect>
+          </label>
         ))}
       </div>
       <div className="flex items-center justify-between gap-3">

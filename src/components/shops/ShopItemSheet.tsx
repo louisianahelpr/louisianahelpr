@@ -30,13 +30,19 @@ function ItemSheetBody({ item, options, preorder, orderable, preorders, onDone }
   onDone: () => void;
 }) {
   const { qty, setQty } = useShopCart();
-  // The draft starts as what the order already holds of this item (so the sheet can change or remove it).
-  const [draft, setDraft] = useState<ShopQty>(() => onlyItem(qty, item.id));
   const canOrder = orderable.some((i) => i.id === item.id);
   // Lines of OTHER items already in the order (options included), for the preorder rule.
   const otherLines = Object.entries(qty).filter(([k, n]) => n > 0 && !isItemKey(k, item.id));
   const otherHasPreorder = otherLines.some(([k]) => preorders?.has(k.split(":")[0]));
   const locked = preorder ? otherLines.length > 0 : otherHasPreorder;
+  // The draft starts as what the order already holds of this item (so the sheet can change or remove it). S2-027:
+  // an item not in the order yet starts at 1, so "Add to order" is live at once (no greyed main button, no extra +).
+  // Items with options keep 0: the buyer picks a combination first.
+  const [draft, setDraft] = useState<ShopQty>(() => {
+    const held = onlyItem(qty, item.id);
+    if (Object.keys(held).length > 0 || !canOrder || locked || options) return held;
+    return (preorder ? preorderMax(preorder) : maxFor(item)) >= 1 ? { [item.id]: 1 } : held;
+  });
   const draftCount = Object.values(draft).reduce((s, n) => s + n, 0);
   const inOrder = Object.keys(onlyItem(qty, item.id)).length > 0;
   const add = () => {

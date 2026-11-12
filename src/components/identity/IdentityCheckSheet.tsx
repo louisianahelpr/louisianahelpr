@@ -32,11 +32,13 @@ const LEAD: Record<IdentityCheckReason, string> = {
   accept: "Before your first job is booked, Stripe checks a photo ID and a selfie.",
   buy: "Before your first Declutter purchase, Stripe checks a photo ID and a selfie.",
   list: "Before your first Declutter listing goes live, Stripe checks a photo ID and a selfie.",
+  // Owner 11-12 1:00 AM: a Declutter seller is asked before their first payout, not at listing.
+  get_paid: "Your money is held safely until you verify your ID. Stripe checks a photo ID and a selfie once, then we send your payout.",
   shop_buy: "Before your first order from a shop, Stripe checks a photo ID and a selfie.",
   shop_list: "Before your first shop item goes live, Stripe checks a photo ID and a selfie.",
   deliver: "Before you take a delivery, Stripe checks a photo ID and a selfie.",
   claim: "A claim shares a real person's address, so before your first claim Stripe checks a photo ID and a selfie.",
-  general: "Stripe checks a photo ID and a selfie once: before you post, head out on a job or get your first payout, or before your first Declutter purchase, listing or delivery.",
+  general: "Stripe checks a photo ID and a selfie once: before you post, head out on a job or get your first payout, or before your first Declutter purchase, payout or delivery.",
 };
 
 const COPY: Record<Exclude<IdentityView, "start">, { title: string; body: string }> = {
@@ -112,7 +114,7 @@ export function IdentityCheckHost() {
     if (!idSettled) return;
     const next = new URLSearchParams(params);
     // Back from the one-time fee on a first free claim (pay-onboarding-fee): the next step is the check, in its words.
-    const entryReason: IdentityCheckReason = params.get("verify_reason") === "claim" ? "claim" : "general";
+    const entryReason: IdentityCheckReason = params.get("verify_reason") === "claim" ? "claim" : params.get("verify_reason") === "get_paid" ? "get_paid" : "general";
     next.delete("verify_id");
     next.delete("verify_reason");
     next.delete("idv");

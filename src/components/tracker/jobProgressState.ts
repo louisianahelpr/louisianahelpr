@@ -12,7 +12,7 @@ import { continueDayNextStep, jobOnContinueDay, type ContinueDay } from "@/lib/c
 import { nextStepWords } from "@/lib/nextStepWords";
 import { confirmDeadlineMs, confirmOpensMs, jobDayStart, posterConfirmClosesMs } from "@/lib/jobDate";
 import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
-import { TODAY_ANY_TIME_LINE, hasStartTime } from "@/lib/anyTimeThatDay";
+import { hasStartTime } from "@/lib/anyTimeThatDay";
 import { jobIsUnfundedDraft, workIsBackWithHelper } from "@/components/job-card/activityFilters";
 import { JOB_STATUS_LABELS } from "@/lib/statusLabels";
 import { formatPrice, formatPriceExact } from "@/lib/format";
@@ -564,6 +564,6 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   const startAt = jobStartDateTime(job.date_needed, job.start_time ?? null);
   const started = status === "in_progress" || (!!startAt && now >= startAt.getTime());
   // Q2588: a no-start-time job is never "It's time" (anyTimeThatDay.ts); on its day the line says any time.
-  const helprLine = !hasStartTime(job) ? (started ? TODAY_ANY_TIME_LINE : t("jl.tapLeave")) : started ? t("jl.itsTime") : t("jl.tapLeave");
+  const helprLine = !hasStartTime(job) ? (started ? t("jl.todayAnyTime") : t("jl.tapLeave")) : started ? t("jl.itsTime") : t("jl.tapLeave");
   return at(4, !poster, "On the way", poster ? (lateBy ? t("jl.lateNotSet", { name: other, late: lateBy }) : t("jl.bothConfirmed", { name: other })) : helprLine, held);
 }

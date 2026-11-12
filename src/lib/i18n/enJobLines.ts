@@ -66,6 +66,7 @@ export const enJobLines = {
   "jl.waitConfirm": "Waiting on {name} to confirm",
   "jl.confirmYou": "Confirm you'll be at the job",
   "jl.tapLeave": "Tap I'm on my way when you leave",
+  "jl.todayAnyTime": "Today, any time — tap I'm on my way when you leave",
   "jl.itsTime": "It's time — tap I'm on my way",
   "jl.lateNotSet": "{name} is {late} late and hasn't set out",
   "jl.bothConfirmed": "You're both confirmed. {name} taps On my way when they leave",

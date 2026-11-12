@@ -9,6 +9,8 @@
 import { addEnglish } from "./enRegistry";
 
 export const enCardLines = {
+  "cl.todayAnyTime": "Today, any time — tap I'm on my way when you leave",
+  "cl.crewToday": "It's time — tap See your crew steps to set out",
   "cl.p.in_review": "We're checking this post",
   "cl.p.applicants": "Applicants are waiting",
   "cl.p.listing_expired": "The listing has expired",

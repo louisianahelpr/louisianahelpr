@@ -12,7 +12,7 @@
  * @mutate src/components/shops/ShopItemsSection.tsx | useState<string \| "new" \| null>(startAdding ? "new" : null) | useState<string \| "new" \| null>(null)
  * @mutate src/components/shops/ShopEditView.tsx |   if (startAdding && myId.data && user?.id) { |   if (false) {
  * @mutate src/components/shops/ShopItemsSection.tsx | onClick={() => navigate("/shops/mine#add-item")} | onClick={() => {}}
- * @mutate src/components/shops/ShopView.tsx |       title={s.mine ? "My shop" : s.name} |       title={s.name}
+ * @mutate src/components/shops/ShopView.tsx |       title={s.mine ? "My shop" : "Shop"} |       title={"Shop"}
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";

@@ -21,6 +21,8 @@ import { resolve } from "node:path";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+// OfferSentWhatNext's words ride with its one parent, the offer panel (enOffer, RELY_ON_PARENT).
+import "@/lib/i18n/enOffer";
 import { OfferSentWhatNext } from "@/components/declutter/OfferSentWhatNext";
 import { ListedWhatNext } from "@/components/declutter/ListedWhatNext";
 

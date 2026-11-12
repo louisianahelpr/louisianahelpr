@@ -142,6 +142,15 @@ export const enDeclutter = {
   "decl.pay.pending": "Payout once the sale is final",
   "decl.pay.failed": "Payout didn't go through yet",
   "decl.pay.nothing": "Nothing to pay out",
+  // The buyer's no-delivery total words (pickupWords.ts).
+  "decl.total.porch": "with porch pickup",
+  "decl.total.meetup": "at a safe meetup",
+  "decl.total.none": "before delivery",
+  "decl.total.pickup": "with pickup",
+  "decl.for.porch": "for porch pickup",
+  "decl.for.meetup": "for a safe meetup",
+  "decl.for.none": "before delivery",
+  "decl.for.pickup": "for pickup",
 } as const;
 
 addEnglish(enDeclutter);

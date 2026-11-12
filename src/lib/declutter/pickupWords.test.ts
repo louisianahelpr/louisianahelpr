@@ -2,8 +2,8 @@
  * Audit 1030 DB-4: the buyer's plain total said "with pickup" on items whose seller offers no pickup (checkout then
  * had none). The words follow the ways the seller ticked (declutter_items.handovers).
  * @mutate src/lib/declutter/pickupWords.ts |   if (ways.includes("porch")) return "porch"; |   if (ways.length) return "porch";
- * @mutate src/lib/declutter/pickupWords.ts | way === "none" ? "before delivery" : "with pickup"; | "with pickup";
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx | At most, {totalPhrase(way)}. | At most, with pickup.
+ * @mutate src/lib/declutter/pickupWords.ts | way === "none" ? "decl.total.none" : "decl.total.pickup"); | "decl.total.pickup");
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | {t("offer.atMost", { phrase: totalPhrase(way) })} | At most, with pickup.
  * @mutate src/components/declutter/OfferSentWhatNext.tsx | pendingClassName="font-normal" /> {forPhrase(way)}</> | pendingClassName="font-normal" /> for pickup</>
  */
 import { describe, expect, it } from "vitest";

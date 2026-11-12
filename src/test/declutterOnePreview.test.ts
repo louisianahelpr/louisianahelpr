@@ -5,7 +5,7 @@
  * listing as buyers read it (?preview=buyer).
  *
  * @mutate src/components/declutter/DeclutterManageListing.tsx | <RowText title={t("lp.m.preview")}>{t("lp.m.previewBody")}</RowText> | <RowText title="See what buyers see">Your listing as a buyer reads it</RowText>
- * @mutate src/components/declutter/ListedWhatNext.tsx | primary={{ label: "Preview", onClick: () => navigate(`/declutter/item/${it.id}?preview=buyer`) }} | primary={{ label: "See my listing", onClick: () => navigate(`/declutter/item/${it.id}`) }}
+ * @mutate src/components/declutter/ListedWhatNext.tsx | primary={{ label: t("decl.lwn.preview"), onClick: () => navigate(`/declutter/item/${it.id}?preview=buyer`) }} | primary={{ label: "See my listing", onClick: () => navigate(`/declutter/item/${it.id}`) }}
  * @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`Preview ${item.title}`}>Preview</Link> | aria-label={`See what buyers see of ${item.title}`}>See what buyers see</Link>
  */
 import { describe, expect, it } from "vitest";
@@ -37,7 +37,7 @@ describe("LEAD-ONE-PREVIEW: one Preview for the seller", () => {
     expect(manage).toMatch(/<Link to=\{`\/declutter\/item\/\$\{item\.id\}\?preview=buyer`\}[^>]*data-manage-preview=""[^>]*>\s*<RowText title=\{t\("lp\.m\.preview"\)\}>\{t\("lp\.m\.previewBody"\)\}<\/RowText>/);
     // F260q: the words live in enListingParts (Spanish in esListingParts).
     expect(readFileSync(join(process.cwd(), "src/lib/i18n/enListingParts.ts"), "utf8")).toContain('"lp.m.preview": "Preview",\n  "lp.m.previewBody": "See your listing as buyers do",');
-    expect(read("ListedWhatNext.tsx")).toMatch(/primary=\{\{ label: "Preview", onClick: \(\) => navigate\(`\/declutter\/item\/\$\{it\.id\}\?preview=buyer`\) \}\}/);
+    expect(read("ListedWhatNext.tsx")).toMatch(/primary=\{\{ label: t\("decl\.lwn\.preview"\), onClick: \(\) => navigate\(`\/declutter\/item\/\$\{it\.id\}\?preview=buyer`\) \}\}/);
     expect(read("DeclutterHomeView.tsx")).toMatch(/\?preview=buyer`\} aria-label=\{`Preview \$\{item\.title\}`\}>Preview<\/Link>/);
   });
 });

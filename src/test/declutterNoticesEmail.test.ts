@@ -14,7 +14,7 @@
  *   - M4: the "Card saved" notice and the payment page's consent line say the same thing.
  *
  * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |   WHEN (NEW.type IN ('declutter_offers', 'declutter_sales', 'declutter_pickups', 'declutter_refunds') |   WHEN (NEW.type IN ('declutter_offers', 'declutter_sales', 'declutter_pickups')
- * @mutate supabase/migrations/20261112022921_declutter_wanted_reserved_notice_names_seller_again.sql |     PERFORM public.declutter_notify(v_seller, 'declutter_sales', 'Someone''s buying your item',\n      format('"%s" is held | 'Sold: waiting for the buyer to pay',\n      format('"%s" is held
+ * @mutate supabase/migrations/20261112023602_declutter_reserved_notice_says_who_accepted.sql |     PERFORM public.declutter_notify(v_seller, 'declutter_sales', 'Someone''s buying your item',\n      -- CHANGED 20261112023602 |     PERFORM public.declutter_notify(v_seller, 'declutter_sales', 'Sold: waiting for the buyer to pay',\n      -- CHANGED 20261112023602
  * @mutate supabase/migrations/20261108202546_declutter_notices_email_and_honest_sold.sql |             OR (q.pickup_at IS NULL AND q.created_at <= p_now - interval '48 hours')) |             OR false)
  * @mutate supabase/functions/declutter-checkout/index.ts |   "We'll save this card for your next Declutter buy. It's charged only when you press Pay | "We'll save this card. It's charged only when you press Pay
  * @mutate supabase/functions/declutter-checkout/index.ts |       ...consentText, |

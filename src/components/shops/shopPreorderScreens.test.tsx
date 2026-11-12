@@ -127,7 +127,7 @@ describe("the buyer's preorder", () => {
   it("Cancel preorder says what comes back and sends preorder_cancel", async () => {
     wrap(<BuyerCancelPreorder order={order()} />);
     fireEvent.click(await screen.findByRole("button", { name: "Cancel preorder" }));
-    expect(screen.getByText("You get back $21.70, less a small card processing cost and the sales tax on it. The shop is told.")).toBeTruthy();
+    expect(screen.getByText("You get everything you paid back: $21.70. The shop is told.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "confirm Cancel preorder" }));
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("shop-checkout", { body: { action: "preorder_cancel", order_id: "o1", native: false } }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith("Preorder cancelled. $20.81 is on its way back to your card.")); // bare toast(): a confirmation always renders

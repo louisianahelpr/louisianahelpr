@@ -12,9 +12,11 @@
  */
 import { describe, it, expect } from "vitest";
 import { deriveLiveNow, deriveWaiting } from "@/pages/home/homeDashboard/nextUpStates";
-import { deriveNeedsYouTodos, REVIEW_WORK_ACTION } from "@/pages/home/homeDashboard/needsYouTodos";
+import { deriveNeedsYouTodos } from "@/pages/home/homeDashboard/needsYouTodos";
+import { enTodos } from "@/lib/i18n/enTodos";
 import { JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressState";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
+const REVIEW_WORK_ACTION = enTodos["todo.reviewWork"];
 
 const job = (over: Partial<Job>): Job =>
   ({
@@ -93,7 +95,7 @@ describe("the poster's Home lines name their Helpr", () => {
 // A3-83 (audit 11-01): at "Yusef marked it done" Home showed the job in Live now AND Next up, both "Open job",
 // and neither said what to do. Live now steps aside once the work is submitted; Next up's button names the step.
 // @mutate src/pages/home/homeDashboard/nextUpStates.ts | j.status === "in_progress" && !submissionAwaitingPoster(j) && !jobIsOverdue(j) && !continueDayAhead( | j.status === "in_progress" && !jobIsOverdue(j) && !continueDayAhead(
-// @mutate src/pages/home/homeDashboard/needsYouTodos.ts | POSTER_REVIEW_STEPS.has(line.id) ? REVIEW_WORK_ACTION : "Open job" | "Open job"
+// @mutate src/pages/home/homeDashboard/needsYouTodos.ts | POSTER_REVIEW_STEPS.has(line.id) ? tr("todo.reviewWork") : tr("todo.openJob") | tr("todo.openJob")
 describe("done-approve: one row, and it says what to do (A3-83)", () => {
   const submitted = { id: "d1", status: "in_progress", helper_id: "h", helper_confirmed_at: "t", poster_confirmed_arrival_at: "t", helper_completed_at: "2026-11-01T15:00:00Z" } as const;
   it("a job the Helpr marked done is not Live now; one sent back for a fix still is", () => {

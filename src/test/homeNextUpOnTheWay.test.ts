@@ -4,12 +4,12 @@
  * where they are ("You're on the way · ..."), and the task is the arrival tap, not the status repeated.
  * Inventory: the Helpr's own stages that reach Next up (on the way, and the day-before confirm for contrast).
  *
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   if (lineId === "on_the_way") return "You're on the way"; |   if (false) return "You're on the way";
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   return (job as { helper_arrived_at?: string \| null }).helper_arrived_at ? "You're working" : "You're hired"; |   return "You're working";
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   if (lineId === "on_the_way") return tr("todo.onTheWay"); |   if (false) return tr("todo.onTheWay");
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   return (job as { helper_arrived_at?: string \| null }).helper_arrived_at ? tr("todo.working") : tr("todo.hired"); |   return tr("todo.working");
  *
  * A3-84 (audit 11-01): before arrival (hired, confirmed, confirm-due) the side word is "You're hired", never
  * "You're working"; "You're working" only once helper_arrived_at is set.
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | ?? (line.id === "on_the_way" ? ON_THE_WAY_TASK : todoTask(a.job!, "helpr", line, now, { application: a.status })), | ?? (todoTask(a.job!, "helpr", line, now, { application: a.status })),
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | ?? (line.id === "on_the_way" ? tr("todo.onTheWayTask") : todoTask(a.job!, "helpr", line, now, { application: a.status })), | ?? (todoTask(a.job!, "helpr", line, now, { application: a.status })),
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | ...(line.id === "on_the_way" && !a.job!.is_group_job | ...(false
  * @mutate src/pages/home/homeDashboard/useNeedsYouTodos.ts |   if (t.helperStep) request(t.helperStep.jobId, t.helperStep.key); |   void request;
  * @mutate src/pages/home/HomeDashboard.tsx | onClick={() => navigate(todoTarget(next, requestHelperStep))} | onClick={() => navigate(next.to)}
@@ -19,12 +19,15 @@
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { ARRIVED_ACTION, deriveNeedsYouTodos, ON_THE_WAY_TASK, todoTarget } from "@/pages/home/homeDashboard/needsYouTodos";
+import { deriveNeedsYouTodos, todoTarget } from "@/pages/home/homeDashboard/needsYouTodos";
+import { enTodos } from "@/lib/i18n/enTodos";
 import { takeHelperStepRequest, requestHelperStep } from "@/components/job-card/helperStepRequest";
 import { blankComments } from "./helpers/blankNonCode";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import type { ShopOrder } from "@/lib/shops/orders";
 import { jobLocalDateISO } from "./helpers/jobLocalDate";
+const ON_THE_WAY_TASK = enTodos["todo.onTheWayTask"];
+const ARRIVED_ACTION = enTodos["todo.arrived"];
 
 const NOW = Date.now();
 const none = { postedJobs: [] as Job[], pendingApplicantCounts: {} as Record<string, number>, appliedApps: [] as AppliedApp[], shopOrders: [] as ShopOrder[], backout: new Map() };

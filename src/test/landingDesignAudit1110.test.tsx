@@ -9,14 +9,15 @@
  *         56px); none is the flat 28px (text-ds-28) any more. The hero H1 keeps its own sizes.
  *   D010: the dark money band is its own colour (deep olive), never the dark surface (#262420) it vanished into.
  *   D015: no tracked-out ALL-CAPS template labels (LIVE NOW, POPULAR NOW, JUST FINISHED, YOUR MONEY PROTECTED).
- *   D016: the service-area line under the first section.
+ *   D016: no service-area line under the first section (owner 2026-11-11: removed "Serving New Iberia, Lafayette,
+ *         Abbeville and nearby." from under "Browse jobs").
  *   D021: on a phone the landing's bar is the logo, Log in and Join free.
  *
  * @mutate src/index.css |   font-size: clamp(32px, 3.2vw, 48px); |   font-size: 28px;
  * @mutate src/components/landing/HowItWorksSection.tsx |             className="font-display landing-serif text-balance landing-h2" |             className="font-display landing-serif text-balance text-ds-28"
  * @mutate src/index.css |   --lp-band: #2E2F22; |   --lp-band: #262420;
  * @mutate src/components/landing/LandingProof.tsx |         <span className="text-ds-13 font-semibold" style={{ color: "var(--lp-action-strong)" }}> |         <span className="text-ds-13 font-semibold uppercase" style={{ color: "var(--lp-action-strong)" }}>
- * @mutate src/components/landing/LandingBrowseShell.tsx |           {SERVICE_AREA_LINE} |
+ * @mutate src/components/landing/LandingBrowseShell.tsx |         {children}\n | {children}<p>Serving New Iberia, Lafayette, Abbeville and nearby.</p>\n
  * @mutate src/components/Navbar.tsx |   const phoneHidden = landing ? " max-[639px]:hidden" : ""; |   const phoneHidden = "";
  */
 import { readFileSync } from "node:fs";
@@ -42,7 +43,6 @@ import { SectionsShowcase, TrustAndJoin } from "@/components/landing/SectionsSho
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import { LiveJobsSection } from "@/components/landing/LiveJobsSection";
 import FreshDeclutterStrip from "@/components/landing/FreshDeclutterStrip";
-import { SERVICE_AREA_LINE } from "@/components/landing/LandingBrowseShell";
 import Navbar from "@/components/Navbar";
 
 const css = readFileSync(join(process.cwd(), "src/index.css"), "utf8");
@@ -101,10 +101,13 @@ describe("landing design audit 11-10", () => {
     unmount();
   });
 
-  it("D016: the first section says where Helpr is busy", () => {
-    expect(SERVICE_AREA_LINE).toBe("Serving New Iberia, Lafayette, Abbeville and nearby.");
+  it("D016 (owner 2026-11-11): the first section carries no service-area line", () => {
     const { unmount } = render(<MemoryRouter><LiveJobsSection /></MemoryRouter>);
-    expect(within(screen.getByTestId("landing-live-jobs")).getByTestId("landing-service-area").textContent).toBe(SERVICE_AREA_LINE);
+    const section = screen.getByTestId("landing-live-jobs");
+    // Floor: the section did render its heading.
+    expect(section.textContent?.length ?? 0).toBeGreaterThan(10);
+    expect(section.textContent).not.toMatch(/Serving\b/);
+    expect(section.textContent).not.toContain("Abbeville and nearby");
     unmount();
   });
 

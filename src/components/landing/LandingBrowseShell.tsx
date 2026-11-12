@@ -75,20 +75,10 @@ export function LandingBrowseShell({
         </div>
         {children}
         {hidden ? <span className="sm:hidden self-center block min-h-11" /> : <LandingSeeAll to={seeAll.to} label={seeAll.label} className="sm:hidden self-center inline-flex" />}
-        {/* D016 (landing design audit 11-10): where Helpr is busy, under the first section. */}
-        <p className="text-ds-14" style={{ color: "var(--lp-muted)" }} data-testid="landing-service-area">
-          {SERVICE_AREA_LINE}
-        </p>
       </div>
     </section>
   );
 }
-
-/**
- * D016 (landing design audit 11-10): the towns where most members live (non-seed profiles by ZIP, read-only on prod
- * 11-10: Lafayette 7050x 59+, New Iberia 70560/70563 43, Abbeville 70510 24, Erath 70533 15).
- */
-export const SERVICE_AREA_LINE = "Serving New Iberia, Lafayette, Abbeville and nearby.";
 
 /**
  * The two modes' headings, so the placeholder, the failed state and the real section say the same words. D012 (11-10):

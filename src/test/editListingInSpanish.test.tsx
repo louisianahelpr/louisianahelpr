@@ -11,7 +11,7 @@
  * @mutate src/components/declutter/DeclutterEditListing.tsx | label: t(`decl.size.${k}` as MsgKey) })) | label: SIZE_LABEL[k] }))
  */
 import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const calls: string[] = [];

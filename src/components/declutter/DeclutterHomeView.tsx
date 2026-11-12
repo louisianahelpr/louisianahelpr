@@ -27,7 +27,7 @@ import { fetchMySales, fetchOpenFreeRequestCounts, fetchPhotos, fetchDropStates,
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchMyPayouts } from "@/lib/declutter/handover";
-import { listingNextStep } from "./listingStatusLine";
+import { listingNextStep, listingRowLine } from "./listingStatusLine";
 import { ChevronRight, Settings, Tags } from "lucide-react";
 import { ListingShareButton } from "./DeclutterShareCard";
 import { SellChooserEntry } from "./SellChooserEntry";
@@ -80,7 +80,6 @@ import { myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQu
 import { useOpenProblems } from "./useOpenProblems";
 import { TAKE_DOWN_WORDS } from "./takeDownWords";
 import { loadModule, untilReload } from "@/lib/loadModule";
-import { nextStepWords } from "@/components/ui/NextStep";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enDeclutter";
 
@@ -118,6 +117,7 @@ function ListingPrice({ item, sold }: { item: DeclutterItem; sold: number | unde
 export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  useLanguage(); // the rows' status words follow the member's language (F260q)
   // Audit 1028 D1-8: read again while a listing waits for review, and on every new notice (an approval sends one).
   const mine = useQuery(myItemsQuery(userId));
   useMyItemsFollowNotices(userId);
@@ -261,7 +261,7 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
           const drop = dropsTonight.has(item.id);
           const thumb = myCover.get(item.id);
           const next = listingNextStep(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id), tradedFor.get(item.id) ?? null);
-          const statusLine = drop ? "May drop tonight" : nextStepWords(next);
+          const statusLine = listingRowLine(next, drop);
           return (
           <li key={item.id} className="space-y-2 px-4 py-3" data-listing-row="">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

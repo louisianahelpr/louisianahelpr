@@ -6,6 +6,8 @@
  * refund request open.
  */
 import type { MyPayout } from "./handover";
+import "@/lib/i18n/enDeclutter";
+import { getLang, t } from "@/lib/i18n/language";
 
 /** The payout words for a sold or handed-over listing, or null when there is nothing to say (a free item, no sale read). */
 export function soldPayoutWords(
@@ -13,24 +15,24 @@ export function soldPayoutWords(
   saleCents: number | undefined,
   payout: Pick<MyPayout, "status" | "executed_at"> | null | undefined,
   // "Oct 29" never breaks across lines (a no-break space).
-  formatDay: (iso: string) => string = (iso) => new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" }).replace(/ /g, "\u00a0"),
+  formatDay: (iso: string) => string = (iso) => new Date(iso).toLocaleDateString(getLang() === "es" ? "es-US" : [], { month: "short", day: "numeric" }).replace(/ /g, "\u00a0"),
   /** Audit 1b D2-2: the order has an open problem, so the money is held until Louisiana Helpr decides. */
   problemOpen = false,
 ): string | null {
   // A free item is claimed, never paid out; an unread sale has no words yet.
   if (saleCents === undefined || saleCents === 0) return null;
-  if (problemOpen && payout?.status !== "succeeded") return "Held while Louisiana Helpr looks at a problem";
-  if (status === "sold") return "Paid 24 hours after the handover";
+  if (problemOpen && payout?.status !== "succeeded") return t("decl.pay.held");
+  if (status === "sold") return t("decl.pay.after24");
   if (!payout) return null;
   switch (payout.status) {
     case "succeeded":
-      return payout.executed_at ? `Paid out ${formatDay(payout.executed_at)}` : "Paid out";
+      return payout.executed_at ? t("decl.pay.paidOn", { day: formatDay(payout.executed_at) }) : t("decl.pay.paid");
     case "pending":
-      return "Payout once the sale is final";
+      return t("decl.pay.pending");
     case "failed":
-      return "Payout didn't go through yet";
+      return t("decl.pay.failed");
     case "nothing_due":
-      return "Nothing to pay out";
+      return t("decl.pay.nothing");
   }
   return null;
 }

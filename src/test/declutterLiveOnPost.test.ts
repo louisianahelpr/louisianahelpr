@@ -18,7 +18,7 @@
  * @mutate src/components/declutter/useSellFlowState.ts |       void requestAiCheckWithRetry(id); |       void id;
  * @mutate src/components/declutter/DeclutterEditListing.tsx |       await requestAiCheckWithRetry(item.id, { tries: 2 }); |       void item.id;
  * @mutate src/components/declutter/DeclutterItemView.tsx |           {!ownListing && user && <DeclutterReportListing itemId={itemId} />} |           {null}
- * @mutate src/components/declutter/declutterUi.tsx | "Our automatic check flagged something, or it didn't finish, | "Someone from Louisiana Helpr checks a new seller's first 3 listings, and
+ * @mutate src/lib/i18n/enDeclutter.ts | "Our automatic check flagged something, or it didn't finish, | "Someone from Louisiana Helpr checks a new seller's first 3 listings, and
  * @mutate src/pages/info/legal/TermsSection.tsx | a listing goes live when you post it. | your first 3 listings wait for a Louisiana Helpr admin.
  */
 import { readFileSync } from "node:fs";
@@ -118,7 +118,7 @@ describe("item B: a listing goes live when posted; only a failed automatic check
     expect(code("src/components/declutter/DeclutterItemView.tsx")).toContain("{!ownListing && user && <DeclutterReportListing itemId={itemId} />}");
     expect(code("src/components/declutter/DeclutterReportListing.tsx")).toContain('reportedType="declutter_item"');
     // AUD31-59: the Terms still said "your first 3 listings ... wait for a Louisiana Helpr admin".
-    for (const p of ["src/components/declutter/declutterUi.tsx", "src/components/admin/settings/DeclutterReviewCard.tsx", "src/pages/info/legal/TermsSection.tsx"]) {
+    for (const p of ["src/lib/i18n/enDeclutter.ts", "src/components/admin/settings/DeclutterReviewCard.tsx", "src/pages/info/legal/TermsSection.tsx"]) {
       expect(code(p), p).not.toMatch(/first (?:3|three) listings|of 3 approved/);
     }
   });

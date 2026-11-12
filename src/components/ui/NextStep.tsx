@@ -8,6 +8,7 @@
 // The words live in src/lib/nextStepWords.ts (pure, no component), so app-shared code (continueDayWords) can build
 // them without importing a component (libImportsNoPages).
 import { lowerFirst, type NextStepValue } from "@/lib/nextStepWords";
+import { t } from "@/lib/i18n/language";
 export { nextStepWords, type NextStepValue } from "@/lib/nextStepWords";
 
 export function NextStep({ value, className = "", compact = false }: {
@@ -19,7 +20,7 @@ export function NextStep({ value, className = "", compact = false }: {
 }) {
   if (!value || !value.text.trim()) return null;
   // Q2590 (Jobs audit 1102b row 4): a line that starts with a name keeps its capital ("Next: Lexi offered you this job").
-  const lead = value.who === "you" ? `Next: ${value.keepCase ? value.text : lowerFirst(value.text)}` : value.text;
+  const lead = value.who === "you" ? t("next.lead", { step: value.keepCase ? value.text : lowerFirst(value.text) }) : value.text;
   return (
     <p data-next-step={value.who} className={`${compact ? "text-ds-14" : "text-ds-16"} leading-snug ${className}`}>
       <span className={`${compact ? "font-normal" : "font-semibold"} text-foreground`}>{lead}</span>

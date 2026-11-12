@@ -14,26 +14,12 @@ import { DeclutterGuestGate } from "./DeclutterGuest";
 import { fetchHasAgreedSales, type DeclutterStatus, type DeliverySize } from "@/lib/declutter/api";
 import type { ReactNode } from "react";
 import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
-import { useLanguage } from "@/lib/i18n/language";
+import { t as tr, useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclutter";
 
-const STATUS_LABEL: Record<DeclutterStatus, string> = {
-  draft: "Not listed yet",
-  pending_review: "Waiting for a review",
-  live: "For sale",
-  paused: "Paused",
-  reserved: "Someone is buying it",
-  sold: "Sold",
-  completed: "Handed over",
-  ended: "Off sale",
-  withdrawn: "Taken down",
-  rejected: "Not approved",
-  removed: "Removed by Louisiana Helpr",
-  sold_elsewhere: "Sold elsewhere",
-  // LEAD-LIST-FOR-SELLER: written by the seller's Helpr, waiting for the seller's OK.
-  pending_seller_approval: "Waiting for your approval",
-};
+/** A listing's status words (F260q: decl.st.<status> in the member's language). */
+const statusLabel = (status: DeclutterStatus) => tr(`decl.st.${status}` as MsgKey);
 
 /**
  * A seller's own listing's status word. A FREE item is claimed, never sold (deep audit SE-4, 2026-10-28: a claimed
@@ -42,21 +28,17 @@ const STATUS_LABEL: Record<DeclutterStatus, string> = {
  */
 export function sellerStatusLabel(item: { status: DeclutterStatus; current_price_cents: number }, tradedFor?: string | null): string {
   // Lead 11-08: a listing that went in a trade says what it was traded for, never "Someone is buying it".
-  if (tradedFor && (item.status === "reserved" || item.status === "sold" || item.status === "completed")) return `Traded for ${tradedFor}`;
-  if (item.current_price_cents === 0 && item.status === "reserved") return "Claimed";
-  if (item.current_price_cents === 0 && item.status === "sold") return "Claimed · waiting for pickup";
-  return STATUS_LABEL[item.status];
+  if (tradedFor && (item.status === "reserved" || item.status === "sold" || item.status === "completed")) return tr("decl.st.tradedFor", { item: tradedFor });
+  if (item.current_price_cents === 0 && item.status === "reserved") return tr("decl.st.claimed");
+  if (item.current_price_cents === 0 && item.status === "sold") return tr("decl.st.claimedWaiting");
+  return statusLabel(item.status);
 }
 
-export const STATUS_HELP: Partial<Record<DeclutterStatus, string>> = {
-  draft: "Finish the listing to put it up for sale.",
-  pending_review:
-    "Our automatic check flagged something, or it didn't finish, so someone from Louisiana Helpr is looking at it before buyers see it. You'll get a notice when it's done.",
-  rejected: "This listing wasn't approved. The reason is below.",
-  removed: "Louisiana Helpr took this listing down after a report. The reason is below.",
-  paused: "Hidden from buyers. Relist it any time.",
-  withdrawn: "Buyers can't see it. Relist it to put it up again with new photos.",
-};
+const STATUS_HELP_ON = new Set<DeclutterStatus>(["draft", "pending_review", "rejected", "removed", "paused", "withdrawn"]);
+/** What a seller's own listing's status means, when it needs saying (decl.help.<status>), or null. */
+export function statusHelp(status: DeclutterStatus): string | null {
+  return STATUS_HELP_ON.has(status) ? tr(`decl.help.${status}` as MsgKey) : null;
+}
 
 export const SIZE_LABEL: Record<DeliverySize, string> = {
   small: "Small: fits in a car",

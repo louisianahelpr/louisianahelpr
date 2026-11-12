@@ -2,6 +2,7 @@
  * The next-step line's WORDS (owner 2026-11-01 12:05 PM: "people aren't told what to do next"), without the
  * component: src/components/ui/NextStep.tsx draws them and re-exports these. Guard: src/components/ui/NextStep.test.tsx.
  */
+import { t } from "@/lib/i18n/language";
 export type NextStepValue = {
   /** "you": the viewer's move; "them": waiting on someone else; "info": where things stand, nobody owes a move. */
   who: "you" | "them" | "info";
@@ -25,7 +26,7 @@ export function lowerFirst(s: string): string {
 
 /** The words the line prints, for a test or a screen reader label. */
 export function nextStepWords(v: NextStepValue): string {
-  const lead = v.who === "you" ? `Next: ${v.keepCase ? v.text : lowerFirst(v.text)}` : v.text;
+  const lead = v.who === "you" ? t("next.lead", { step: v.keepCase ? v.text : lowerFirst(v.text) }) : v.text;
   const line = v.by ? `${lead} · ${v.by}` : lead;
   return v.body ? `${line}. ${v.body}` : line;
 }

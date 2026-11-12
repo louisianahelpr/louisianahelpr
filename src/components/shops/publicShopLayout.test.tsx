@@ -44,7 +44,7 @@ describe("S2-039: the signed-out shop page layout", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Shop");
     expect(screen.getAllByText("TEST Mae's Bakery")).toHaveLength(1);
     expect(cta.className).toContain("sm:w-auto");
-    expect(cta.className).toContain("min-h-11");
+    expect(cta.className.split(/\s+/)).toContain("h-14");
     for (const name of ["Sign in", "Sign in to report it"]) {
       expect(screen.getByRole("link", { name }).className).toContain("min-h-11");
     }

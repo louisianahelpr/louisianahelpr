@@ -5,6 +5,7 @@
  * shows the error with a retry instead of a blank box that would clear it.
  */
 import { useState } from "react";
+import { useReportUnsaved } from "./unsavedSections";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -23,6 +24,8 @@ export default function ShopDailyCap({ shopId }: { shopId: string }) {
   const shown = value ?? (cap.data != null ? String(cap.data) : "");
   // An empty box removes a saved limit only as its own, named action
   // (lh-silent-failure review should-fix 3).
+  // S2-041: an unsaved limit is named before the main save leaves the page.
+  useReportUnsaved("Daily order limit", value !== null && value !== (cap.data != null ? String(cap.data) : ""));
   const clearing = shown.trim() === "" && cap.data != null;
   const save = useMutation({
     mutationFn: () => {

@@ -70,7 +70,7 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
           ) : (
             // S2-039: sized like other primaries from sm up (not a full-width bar); the text link has a 44px tap area.
             <div className="w-full space-y-1 sm:w-auto">
-              <Button asChild className="btn-grad-primary min-h-11 w-full rounded-full sm:w-auto sm:px-8">
+              <Button asChild className="btn-grad-primary w-full rounded-full sm:w-auto sm:px-8">
                 <Link to={`/signup?redirect=${back}`}>Sign up to order or message</Link>
               </Button>
               <p className="text-center text-sm text-muted-foreground">

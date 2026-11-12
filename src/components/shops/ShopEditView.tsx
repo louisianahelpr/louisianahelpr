@@ -15,7 +15,7 @@
  * when a sale is owed (owner 2026-10-27, migration 20261027163240), so the
  * intro says so (audit 2026-10-28 P5-1).
  */
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -51,6 +51,7 @@ import { ShopCategoryQuickPick } from "./ShopCategoryQuickPick";
 import ShopItemsSection from "./ShopItemsSection";
 import ShopPickupAddressSection from "./ShopPickupAddressSection";
 import ShopFaqsEditor from "./ShopFaqsEditor";
+import { UnsavedSectionsProvider } from "./unsavedSections";
 import ShopPermitSection from "./ShopPermitSection";
 import ShopOpenIntro from "./ShopOpenIntro";
 
@@ -213,6 +214,20 @@ export default function ShopEditView() {
   });
   const [form, setForm] = useState<Form>(EMPTY);
   const [loaded, setLoaded] = useState(false);
+  // S2-041 (Shops audit 2): the sections that save on their own report unsaved edits here. The main save then stays
+  // on the page and names them instead of leaving (which lost them), and closing the tab warns.
+  const loadedForm = useRef<string | null>(null);
+  const [dirtySections, setDirtySections] = useState<string[]>([]);
+  const onSectionsChange = useCallback((d: string[]) => setDirtySections(d), []);
+  const [stillUnsaved, setStillUnsaved] = useState<string[] | null>(null);
+  const mainDirty = loaded && loadedForm.current !== null && JSON.stringify(form) !== loadedForm.current;
+  const anyUnsaved = mainDirty || dirtySections.length > 0;
+  useEffect(() => {
+    if (!anyUnsaved) return;
+    const warnNow = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", warnNow);
+    return () => window.removeEventListener("beforeunload", warnNow);
+  }, [anyUnsaved]);
   const [confirmClose, setConfirmClose] = useState(false);
   // Shops audit 11-10 F4: "Add an item" is its own screen; the item section names it ("Add an item", then "Edit item").
   const [itemTitle, setItemTitle] = useState("Add an item");
@@ -238,7 +253,7 @@ export default function ShopEditView() {
     const s = shop.data;
     const hours = EMPTY_HOURS();
     for (const h of s.hours) hours[h.weekday] = { open: true, opens: h.opens, closes: h.closes };
-    setForm({
+    const next: Form = {
       name: s.name,
       about: s.about,
       category: s.category,
@@ -249,7 +264,9 @@ export default function ShopEditView() {
       offersQuotes: customMode.data ? customMode.data !== "off" : s.offers_quotes,
       sosNumber: s.sos_number ?? "",
       hours,
-    });
+    };
+    loadedForm.current = JSON.stringify(next);
+    setForm(next);
     setLoaded(true);
   }, [shop.data, customMode.data, customMode.isLoading, loaded]);
 
@@ -301,6 +318,12 @@ export default function ShopEditView() {
       if (myId.data) toast.success("Your shop is saved.");
       else confirmConsequential("Your shop is open.");
       void qc.invalidateQueries({ queryKey: ["shops"] });
+      // S2-041: other sections still hold unsaved edits: stay, and name them, instead of leaving and losing them.
+      if (myId.data && dirtySections.length > 0) {
+        loadedForm.current = JSON.stringify(form);
+        setStillUnsaved(dirtySections);
+        return;
+      }
       navigate(`/shops/${id}`);
     },
     onError: (err) => {
@@ -493,7 +516,6 @@ export default function ShopEditView() {
             type="button"
             variant="outline"
             size="sm"
-            className="min-h-11"
             disabled={same}
             data-testid="shop-hours-copy"
             onClick={() => set("hours", Object.fromEntries(Object.entries(form.hours).map(([d, h]) => [d, h.open ? { ...h, opens: src.opens, closes: src.closes } : h])))}
@@ -552,6 +574,11 @@ export default function ShopEditView() {
       {save.isPending ? "Saving…" : myId.data ? "Save my shop" : "Open my shop"}
     </Button>
     {formError && <p className="text-sm text-destructive-ink" role="alert">{formError}</p>}
+    {stillUnsaved && dirtySections.length > 0 && (
+      <p className="rounded-xl bg-muted/70 px-3 py-2 text-sm" role="status" data-testid="shop-still-unsaved">
+        Your shop is saved. These parts below have changes that aren't saved yet: {stillUnsaved.join(", ")}. Use each part's own Save.
+      </p>
+    )}
     {myId.data && (
       <Button
         type="button"
@@ -605,6 +632,7 @@ export default function ShopEditView() {
 
   return (
     <AppPage title={myId.data ? "Edit my shop" : "Open a shop"} backTo="/shops">
+      <UnsavedSectionsProvider onChange={onSectionsChange}>
       {formEl}
       {/* The private pickup address (M1b part 2): saves on its own, needed before orders. */}
       {myId.data && <div className={`pb-6 ${SHOP_FORM_MEASURE}`}><ShopPickupAddressSection /></div>}
@@ -614,6 +642,7 @@ export default function ShopEditView() {
       {myId.data && <div className={`pb-6 ${SHOP_FORM_MEASURE}`}><ShopFaqsEditor shopId={myId.data} /></div>}
       {/* Items (slice 2): outside the shop form, each item saves on its own. */}
       {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} />}
+      </UnsavedSectionsProvider>
       {/* The app's own confirm, never window.confirm (off-brand and
           unreliable inside the iOS WebView; SecurityTab). */}
       <BrandConfirmDialog

@@ -387,7 +387,7 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
             <MyListingsView userId={userId} haulOn={haulOn} />
             {/* Owner 2026-10-30: "More ways to sell" is ONE row that opens "What do you want to sell?" (the chooser holds
                 every way: a bunch, a moving out sale, free, a Helpr lists it, a Wanted), never a second list of them. */}
-            <section aria-label="More ways to sell" data-sell-more="">
+            <section aria-label={t("decl.hv.moreWays")} data-sell-more="">
               <div className="overflow-hidden rounded-[20px] border border-border bg-card">
                 <SellChooserEntry movingOutOn={movingOutOn} />
               </div>
@@ -417,15 +417,15 @@ function SellingSettingsEntry() {
     >
       <Settings className="h-5 w-5 shrink-0" aria-hidden />
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold">Declutter settings</span>
-        <span className="block text-xs text-muted-foreground">Listing defaults, pickup places, pickup times, delivery, bundle discount, notifications</span>
+        <span className="block text-sm font-semibold">{t("decl.hv.settings")}</span>
+        <span className="block text-xs text-muted-foreground">{t("decl.hv.settingsSub")}</span>
       </span>
       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
     </Link>
   );
 }
 
-const DECLUTTER_SETTINGS = { label: "Declutter settings", path: "/declutter/settings" } as const;
+const DECLUTTER_SETTINGS = { get label() { return t("decl.hv.settings"); }, path: "/declutter/settings" } as const;
 
 const MINE_TABS = ["buying", "selling", "deliver"] as const; // Deliver tab: owner 2026-10-28
 // The Wanted tab (owner 2026-10-28, "Both": the tab AND Browse's bottom link), only while 'declutter_wanted' is on.
@@ -449,7 +449,7 @@ function DeclutterGuestHome() {
   const chrome = (browse: DeclutterBrowseHeader): DeclutterChrome => desktop ? {
     tabs: (
       <SectionTabs<DeclutterTab>
-        label="Declutter view"
+        label={t("decl.hv.view")}
         browseCount={browse.count}
         end={browse.end}
         value="browse"
@@ -547,7 +547,7 @@ function DeclutterMemberHome() {
   const chrome = (browse?: DeclutterBrowseHeader): DeclutterChrome => desktop ? {
     tabs: (
       <SectionTabs
-        label="Declutter view"
+        label={t("decl.hv.view")}
         browseCount={browse?.count}
         end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>}
         value={view}
@@ -563,7 +563,7 @@ function DeclutterMemberHome() {
     // The row is the desktop's SectionTabs (it scrolls and never cuts a word); the gear stays in My Declutter.
     tabs: (
       <>
-        <SectionTabs label="Declutter view" value={view} onChange={goTab} tabs={tabDefs} />
+        <SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs={tabDefs} />
         {browse?.chips}
       </>
     ),
@@ -573,7 +573,7 @@ function DeclutterMemberHome() {
   // Audit 11-10 F360: no "+ Sell" pill on Buying either. It sat on the order cards (a price, a pickup chip, a trade
   // card's title, "See the item") and a member looking at what they bought is not here to sell.
   const ownMainButton = view === "wanted" || view === "deliver" || view === "buying";
-  const fab = desktop || ownMainButton ? undefined : <SectionCreateFab section="declutter" text="Sell" />;
+  const fab = desktop || ownMainButton ? undefined : <SectionCreateFab section="declutter" text={t("decl.hv.sell")} />;
   // Browse draws its own section screen, so its header can carry its search, filters, chips, map toggle and count.
   if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} chrome={chrome} top={<StrikeCount userId={user.id} />} fab={fab} /></Suspense>;
   const head = chrome(desktop ? { end: <ExploreSearchEntry variant="icon" /> } : undefined);

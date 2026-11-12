@@ -12,7 +12,7 @@
  *
  * @mutate src/components/declutter/sellForm.ts | return { floorCents: floor, dropPct: floor === price ? 0 : f.dropPct }; | return { floorCents: floor, dropPct: f.dropPct };
  * @mutate src/lib/declutter/priceDrop.ts |   return state.drops_stopped \|\| state.floor_price_cents >= currentCents; |   return state.drops_stopped;
- * @mutate src/lib/declutter/autoFree.ts | if (days === null) return "It won't become free on its own."; | if (days === null) return "It stays at your price until it sells or you change it.";
+ * @mutate src/lib/i18n/enListingParts.ts |   "lp.afNever": "It won't become free on its own.", |   "lp.afNever": "It stays at your price until it sells or you change it.",
  * @mutate supabase/functions/declutter-ai-draft/index.ts | Price it like a local Louisiana garage or yard sale: | Buyers here offer less, so pick the HIGH end of the fair range:
  * @mutate src/components/declutter/useSavedPickup.ts |     .filter((p) => p.address.trim() && p.area.trim() && Number.isFinite(p.lat) && Number.isFinite(p.lng)); |     .filter((p) => p.address.trim() && p.area.trim());
  */

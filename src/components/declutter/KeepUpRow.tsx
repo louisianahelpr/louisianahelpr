@@ -11,9 +11,12 @@ import { Switch } from "@/components/ui/switch";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchKeepUp, setKeepUp } from "@/lib/declutter/api";
+import { enListingParts } from "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
-export const KEEP_UP_TITLE = "Keep it up until it sells";
-export const KEEP_UP_EXPLAINER = "It renews every 30 days until someone buys it. You can turn this off anytime.";
+/** The English words (enListingParts, F260q); the screen says t("lp.keepUp…") so Spanish readers get Spanish. */
+export const KEEP_UP_TITLE = enListingParts["lp.keepUpTitle"];
+export const KEEP_UP_EXPLAINER = enListingParts["lp.keepUpExplainer"];
 
 /**
  * The new-listing form's ONE line under the switch, for the setting it is on now (lead 2026-10-30, shot
@@ -24,9 +27,7 @@ export const KEEP_UP_EXPLAINER = "It renews every 30 days until someone buys it.
  * 20261029154323's sweep); on = no cap and no reminders.
  */
 export function keepUpSettingLine(on: boolean): string {
-  return on
-    ? "On. It renews every 30 days until someone buys it, with no reminders."
-    : "Off. It's up for 30 days at a time, up to 4 times (about 4 months). We'll remind you before each round ends.";
+  return on ? t("lp.keepUpOn") : t("lp.keepUpOff");
 }
 
 /** The switch's saved state and its flip, shared by the sell flow's review row and the switch itself. */
@@ -37,7 +38,7 @@ export function useKeepUp(itemId: string | null) {
   const flip = useMutation({
     mutationFn: (on: boolean) => setKeepUp(itemId!, on),
     onSuccess: (on) => {
-      toast(on ? "It renews every 30 days until it sells." : "It's up for 30 days at a time again, up to 4 times.");
+      toast(on ? t("lp.keepUpToastOn") : t("lp.keepUpToastOff"));
       void qc.invalidateQueries({ queryKey: key });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -52,12 +53,12 @@ export function KeepUpSwitch({ keep, rowClassName, as = "li" }: { keep: KeepUp; 
   const { itemId, state, flip, on } = keep;
   const Row = as;
   if (!itemId || state.data === "not_deployed") return null;
-  if (state.isError) return <Row className={rowClassName}><ErrorState variant="inline" title="We couldn't load this setting." body={declutterErrorMessage(state.error)} onRetry={() => void state.refetch()} /></Row>;
+  if (state.isError) return <Row className={rowClassName}><ErrorState variant="inline" title={t("lp.loadFail")} body={declutterErrorMessage(state.error)} onRetry={() => void state.refetch()} /></Row>;
   return (
     <Row className={rowClassName} data-keep-up={on ? "on" : "off"}>
       <span className="flex-1 min-w-0">
-        <span id={`keep-up-${itemId}`} className="block text-ds-15 font-semibold">{KEEP_UP_TITLE}</span>
-        <span className="block text-ds-13 text-muted-foreground">{KEEP_UP_EXPLAINER}</span>
+        <span id={`keep-up-${itemId}`} className="block text-ds-15 font-semibold">{t("lp.keepUpTitle")}</span>
+        <span className="block text-ds-13 text-muted-foreground">{t("lp.keepUpExplainer")}</span>
       </span>
       <Switch aria-labelledby={`keep-up-${itemId}`} checked={on} disabled={state.isLoading || flip.isPending} onCheckedChange={(v) => flip.mutate(v)} />
     </Row>

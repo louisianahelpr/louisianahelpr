@@ -22,6 +22,8 @@ import { orderTalkPhotoUrl, type OrderTalkListRow } from "@/lib/declutter/orderT
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { CONVERSATION_ROW_AVATAR, CONVERSATION_ROW_FRAME } from "./ConversationRow";
 import { rowAge } from "./rowAge";
+import "@/lib/i18n/enMessages";
+import { t } from "@/lib/i18n/language";
 
 /** What useMessageSections hands the list: the order chats that belong under the chosen chip, or null when none do. */
 export interface OrderTalkInbox {
@@ -37,13 +39,13 @@ export interface OrderTalkInbox {
  * message" was cut at 375 ("The seller sent the l…"); the short words fit, and the line may take a second line.
  */
 export function orderTalkRowLine(row: Pick<OrderTalkListRow, "side" | "last_mine">): string {
-  const other = row.side === "buyer" ? "seller" : "buyer";
-  return row.last_mine ? "You wrote last" : `The ${other} wrote last`;
+  if (row.last_mine) return t("msg.ot.youLast");
+  return row.side === "buyer" ? t("msg.ot.sellerLast") : t("msg.ot.buyerLast");
 }
 
 /** The row's name: the order's first item, or "Your order" once that item is gone. Search matches on this too. */
 export function orderTalkRowTitle(row: Pick<OrderTalkListRow, "title">): string {
-  return row.title ?? "Your order";
+  return row.title ?? t("msg.ot.yourOrder");
 }
 
 /** One order chat as an inbox row; tapping it opens that order's chat sheet (?order_talk=<order id>) over Messages. */
@@ -71,12 +73,12 @@ export function OrderTalkRow({ row }: { row: OrderTalkListRow }) {
       <span className="flex-1 min-w-0">
         <span className="flex items-center gap-1.5">
           <span className="font-sans font-semibold truncate min-w-0 grow text-ds-15" title={orderTalkRowTitle(row)}>{orderTalkRowTitle(row)}</span>
-          {!row.open && <span className="text-ds-11 font-semibold px-1.5 py-0.5 rounded-full shrink-0 bg-muted text-muted-foreground">Ended</span>}
+          {!row.open && <span className="text-ds-11 font-semibold px-1.5 py-0.5 rounded-full shrink-0 bg-muted text-muted-foreground">{t("msg.ot.ended")}</span>}
           <span className="ml-auto shrink-0 text-ds-11 text-muted-foreground whitespace-nowrap">{rowAge(row.last_at)}</span>
         </span>
         <span className="block text-ds-12 text-muted-foreground line-clamp-2 [overflow-wrap:anywhere]" data-order-talk-line=""
-          title={`${row.side !== "buyer" ? "You sold this" : "You bought this"} · ${orderTalkRowLine(row)}`}>
-          {row.side === "buyer" ? "You bought this" : "You sold this"} · {orderTalkRowLine(row)}
+          title={`${row.side !== "buyer" ? t("msg.ot.sold") : t("msg.ot.bought")} · ${orderTalkRowLine(row)}`}>
+          {row.side === "buyer" ? t("msg.ot.bought") : t("msg.ot.sold")} · {orderTalkRowLine(row)}
         </span>
       </span>
     </ListRow>
@@ -87,7 +89,7 @@ export function OrderTalkRow({ row }: { row: OrderTalkListRow }) {
 export function OrderTalkLoadError({ error, retry }: { error: unknown; retry: () => void }) {
   return (
     <div className="px-3 py-3">
-      <ErrorState variant="inline" title="We couldn't load your order chats." body={declutterErrorMessage(error)} onRetry={retry} />
+      <ErrorState variant="inline" title={t("msg.ot.loadFailed")} body={declutterErrorMessage(error)} onRetry={retry} />
     </div>
   );
 }

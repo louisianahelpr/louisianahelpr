@@ -125,6 +125,7 @@ const CONVERTED = [
   "src/components/declutter/DeclutterDeliverEntry.tsx",
   // F260q: the member's own "Your page" card (enYourPage.ts).
   "src/components/profile/YourPageLink.tsx",
+  "src/components/messages/DeclutterOrderTalkInbox.tsx",
   // F260q: Home's money strip and the head of You › Money (enMoneyTiles.ts).
   "src/pages/home/homeDashboard/HomeMoneyTiles.tsx",
   // F260q: the deal room's receipt card and system rows (enChatEvents.ts, built by jobSystemEvents.ts).

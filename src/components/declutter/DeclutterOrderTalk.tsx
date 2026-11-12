@@ -29,6 +29,9 @@ import { Textarea } from "@/components/ui/textarea";
 
 // A3-27: the order card's step line, loaded only with the chat (it reads the cards' queries).
 const OrderTalkStep = lazy(() => import("./OrderTalkStep"));
+// Audit 11-10 F389: the photo picker and a sent photo load only when used, so this chunk does not grow.
+const OrderTalkPhotoPicker = lazy(() => import("./OrderTalkPhotoParts").then((m) => ({ default: m.OrderTalkPhotoPicker })));
+const OrderTalkMessagePhoto = lazy(() => import("./OrderTalkPhotoParts").then((m) => ({ default: m.OrderTalkMessagePhoto })));
 
 // AUD31-12: the weekday alone only within 6 days; older lines carry their date.
 const when = (iso: string) => talkTime(iso);
@@ -93,13 +96,19 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
   // shows, declutter_my_order_talks 20261111155616); none when the item or its photos are gone.
   const itemPhoto = itemRow ? orderTalkPhotoUrl(itemRow) : null;
   const [draft, setDraft] = useState("");
+  // F389: at most one photo waits on the device; it is uploaded (private bucket, cleaned) only when Send is tapped.
+  const [photo, setPhoto] = useState<File | null>(null);
   const leak = draft.trim() ? scanMessage(draft)[0] ?? null : null;
   // AUD31-11: a refused message is said under the box, as Questions does, never in a toast over the box and draft.
   const [refusal, setRefusal] = useState<string | null>(null);
   const send = useMutation({
-    mutationFn: () => sendOrderMessage(orderId, draft.trim()),
+    mutationFn: async () => {
+      // The upload helper (photo cleaning) is loaded only for a photo send.
+      const photoPath = photo ? await (await import("@/lib/declutter/handover")).uploadOrderTalkPhoto(orderId, photo) : null;
+      return sendOrderMessage(orderId, draft.trim(), photoPath);
+    },
     // Messages -> Declutter's list (DeclutterOrderTalkInbox) shows who sent the last message: refresh it too.
-    onSuccess: () => { setDraft(""); setRefusal(null); void qc.invalidateQueries({ queryKey: key }); void qc.invalidateQueries({ queryKey: MY_ORDER_TALKS_KEY }); },
+    onSuccess: () => { setDraft(""); setPhoto(null); setRefusal(null); void qc.invalidateQueries({ queryKey: key }); void qc.invalidateQueries({ queryKey: MY_ORDER_TALKS_KEY }); },
     onError: (err) => setRefusal(declutterErrorMessage(err)),
   });
   const t = talk.data;
@@ -155,18 +164,22 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
                 <li key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[85%] rounded-2xl px-3 py-2 ${m.mine ? "bg-[hsl(var(--bark)/0.1)]" : "border border-border bg-card"}`}>
                     <p className="text-ds-12 font-semibold text-muted-foreground">{labels.data?.get(m.id) ?? (m.mine ? "You" : `The ${other}`)} · {clock(m.created_at)}</p>
-                    <p className="whitespace-pre-wrap break-words text-ds-14 text-foreground">{m.body}</p>
+                    {m.photo_path && <Suspense fallback={<div className="mt-1 h-40 w-40 rounded-xl bg-photo-empty" aria-hidden />}><OrderTalkMessagePhoto path={m.photo_path} /></Suspense>}
+                    {/* F389: the other side's photo is hidden once either blocked the other or either is banned. */}
+                    {m.photo_hidden && <p className="text-ds-13 italic text-muted-foreground" data-order-talk-photo-hidden="">Photo hidden</p>}
+                    {m.body && <p className="whitespace-pre-wrap break-words text-ds-14 text-foreground">{m.body}</p>}
                   </div>
                 </li>,
               ])}
             </ol>
             {open && (
-              <form id={formId} className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (draft.trim()) send.mutate(); }}>
+              <form id={formId} className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (draft.trim() || photo) send.mutate(); }}>
                 <label htmlFor={`order-talk-${orderId}`} className="block text-ds-13 font-medium">Message</label>
                 <Textarea id={`order-talk-${orderId}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
                   maxLength={1000} value={draft} onChange={(e) => { setDraft(e.target.value); setRefusal(null); }}
                   placeholder={`Write to the ${other}`}
                   aria-invalid={refusal ? true : undefined} aria-describedby={refusal ? `order-talk-refusal-${orderId}` : leak ? `order-talk-leak-${orderId}` : undefined} />
+                <Suspense fallback={null}><OrderTalkPhotoPicker file={photo} onChange={(f) => { setPhoto(f); setRefusal(null); }} disabled={send.isPending} /></Suspense>
                 {refusal && <p id={`order-talk-refusal-${orderId}`} role="alert" className="text-ds-13 text-destructive-ink" data-order-talk-refusal="">{refusal}</p>}
                 {/* Audit 11-10 F390: said while typing, before Send, in the words the server refuses it with
                     (reject_contact_leak_in_declutter_order_talk); the server stays the authority. */}
@@ -179,7 +192,7 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
         <SheetFooter className="mt-4">
           <SheetSecondaryAction onClick={onClose}>Close</SheetSecondaryAction>
           {open && (
-            <SheetPrimaryAction type="submit" form={formId} disabled={send.isPending || draft.trim().length === 0}>
+            <SheetPrimaryAction type="submit" form={formId} disabled={send.isPending || (draft.trim().length === 0 && !photo)}>
               {send.isPending ? "Sending…" : "Send"}
             </SheetPrimaryAction>
           )}

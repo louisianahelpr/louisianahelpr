@@ -18,6 +18,11 @@ interface OrderTalkMessage {
   mine: boolean;
   body: string;
   created_at: string;
+  /** F389 (20261112060000): the message's photo, a private declutter-handover path read by signed URL; null when
+   *  none, or when it is the other side's and either blocked the other or either is banned. Absent before deploy. */
+  photo_path?: string | null;
+  /** True when the message has a photo this viewer may not see (block or ban), so the bubble says so. */
+  photo_hidden?: boolean;
 }
 
 interface OrderTalkView {
@@ -36,9 +41,11 @@ export async function fetchOrderTalk(orderId: string): Promise<OrderTalkView> {
     (e) => rpcErrorMessage("declutter_order_talk_view", e)) as unknown as OrderTalkView;
 }
 
-/** Send one message. A message with contact details is refused by the server's filter (its words are shown). */
-export async function sendOrderMessage(orderId: string, body: string): Promise<string> {
-  return rpcData(await supabase.rpc("declutter_send_order_message", { p_order_id: orderId, p_body: body }),
+/** Send one message, optionally with one uploaded photo (F389; words may then be empty). A message with contact
+ *  details is refused by the server's filter (its words are shown). */
+export async function sendOrderMessage(orderId: string, body: string, photoPath?: string | null): Promise<string> {
+  const args = photoPath ? { p_order_id: orderId, p_body: body, p_photo_path: photoPath } : { p_order_id: orderId, p_body: body };
+  return rpcData(await supabase.rpc("declutter_send_order_message", args),
     (e) => rpcErrorMessage("declutter_send_order_message", e)) as string;
 }
 

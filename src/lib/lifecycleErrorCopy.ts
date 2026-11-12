@@ -1351,6 +1351,8 @@ export const RPC_ERROR_COPY = {
     message_rate_limited: DC.message_rate_limited,
     not_authenticated: DC.not_authenticated,
     order_not_paid: DC.order_not_paid,
+    // F389 (20261112060000): a chat photo that is not the sender's own uploaded photo for this order.
+    photo_not_uploaded: DC.photo_not_uploaded,
     talk_blocked: DC.talk_blocked,
     talk_closed: DC.talk_closed,
   },

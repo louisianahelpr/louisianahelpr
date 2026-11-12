@@ -48,7 +48,7 @@ function problemUploadsAfterHandover(): boolean {
 
 describe("D2-7: the photo pickers wait for the server, and turn on when it is ready", () => {
   it("reads the live definitions (floor)", () => {
-    expect(access).toMatch(/split_part\(p_name, '\/', 3\) NOT IN \('handover', 'problem'(, 'return')?\)/);
+    expect(access).toMatch(/split_part\(p_name, '\/', 3\) NOT IN \('handover', 'problem'(, 'return')?(, 'talk')?\)/);
     expect(writeBranch().length).toBeGreaterThan(50);
     expect(writeBranch()).toContain("o.status = 'paid'");
     expect(ask.length).toBeGreaterThan(200);

@@ -82,6 +82,9 @@ const EXPECTED_CALLERS = [
   "declutter_delivery_tip_open",
   // The Free change (Q2487, 20261030064021): the caller (declutter_assert_member() / auth.uid()) and the seller or asker.
   "declutter_free_requests_for_item",
+  // F389 (20261112060000): the storage helper's 'talk' write rule requires the caller to be the order's buyer or seller
+  // (o.buyer_id = v_uid OR o.seller_id = v_uid) in the same EXISTS, then are_users_blocked(o.buyer_id, o.seller_id).
+  "declutter_handover_photo_access",
   "declutter_item_pickup_places",
   "declutter_lock_buyable_item",
   // Manager mode (20261101181005): offer passes v_uid := auth.uid() (the seller) and the manager she names;

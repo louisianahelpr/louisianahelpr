@@ -37,6 +37,7 @@ const PLACE: Record<string, string[]> = {
 const NOT_A_HANDOVER = new Set([
   "declutter_report_problem", // a problem report's evidence (damage, a wrong item) is wherever the buyer is
   "declutter_handover_photo_access", // the storage policy helper (who may read or write the bucket)
+  "declutter_send_order_message", // F389 (20261112060000): an order-chat photo shows the item ("is it scratched?"), taken anywhere, from the camera roll too; not proof of a handover
   "helpr_task_photo_ok", // the path check every Helpr task photo RPC calls; the RPCs carry the place check
   "declutter_refund_item_returned", // returns (Q2486): the seller's "I got it back"; its photo is OPTIONAL evidence of the item (the refund is the same without it), taken wherever the seller has it; the drop-off photo carries the place check
 ]);

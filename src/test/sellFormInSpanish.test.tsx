@@ -9,6 +9,9 @@
  * @mutate src/components/declutter/SellTradesRow.tsx | >{t("sf.tradesTitle")}< | >Open to trades?<
  * @mutate src/components/declutter/SellFormParts.tsx | >{t(offersWanted ? "sf.offersOn" : "sf.offersOff")}</span> | >{offersWanted ? "Buyers can offer a lower price, and you say yes or no." : "Off. Buyers pay your price with Buy now; no offers."}</span>
  * @mutate src/components/declutter/SellFormParts.tsx |       {t("sf.youGet")}\n |       You get if it sells today\n
+ * @mutate src/components/declutter/CategoryDrillDown.tsx | const headingWords = (h: CategoryGroupHeading) => t(HEADING_KEY[h]); | const headingWords = (h: CategoryGroupHeading) => h;
+ * @mutate src/components/declutter/CategoryDrillDown.tsx | const catWords = (k: string) => (CATEGORY_LABEL[k] ? t(`decl.cat.${k}` as MsgKey) : k); | const catWords = (k: string) => CATEGORY_LABEL[k] ?? k;
+ * @mutate src/components/declutter/CategoryDrillDown.tsx |   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() |   return s.toLowerCase()
  * @mutate src/components/declutter/SellOneScreen.tsx | >{tr("sf.stillWriting")}</p> | >Still writing your listing. It posts when that's done.</p>
  * @mutate src/components/declutter/SellOneScreen.tsx | out.push({ message: tr("sf.tickBox"), at: "tax" }); | out.push({ message: "Tick the box about this item before you list it.", at: "tax" });
  */
@@ -21,10 +24,13 @@ import { es } from "@/lib/i18n/es";
 import { enSellForm } from "@/lib/i18n/enSellForm";
 import { esSellForm } from "@/lib/i18n/esSellForm";
 import { OFFERS_TITLE, offersSettingLine } from "@/lib/declutter/offersOnPost";
+import { fireEvent } from "@testing-library/react";
+import { CATEGORY_GROUPS } from "@/lib/declutter/categoryIcons";
 
 vi.mock("@/components/declutter/useSellerSetupFee", () => ({ useSellerSetupFee: () => ({ unknown: false, server: false, orderId: null, cents: 0 }) }));
 
 const { SellTradesRow } = await import("@/components/declutter/SellTradesRow");
+const { CategoryDrillDown } = await import("@/components/declutter/CategoryDrillDown");
 const { SellFreeNote, SellOffersToggle, SellTaxBox, SellPriceInput, SellYouGet } = await import("@/components/declutter/SellFormParts");
 
 type S = Parameters<typeof SellPriceInput>[0]["s"];
@@ -95,6 +101,26 @@ describe("the sell screen follows the member's language (F260q)", () => {
     expect(screen.getByText("Confirme sobre este artículo")).toBeTruthy();
     expect(document.body.textContent).toMatch(/\$20(\.00)?/);
     expect(document.body.textContent).not.toMatch(/Open to trades|You get if|Free items|Accept offers|Confirm about/);
+  });
+
+  it("Spanish: the category drill-down's headings, categories, search (accents optional) and chosen line", async () => {
+    setLang("es");
+    await ensureLangLoaded();
+    const onChange = vi.fn();
+    const { container } = render(<CategoryDrillDown label="Categoría" groups={CATEGORY_GROUPS} value="kitchen" onChange={onChange} />);
+    expect(screen.getByRole("searchbox", { name: "Buscar categorías" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Hogar, Cocina elegida" })).toBeTruthy();
+    expect(screen.getByText("Elegida: Cocina")).toBeTruthy();
+    expect(screen.getByText("Pasatiempos y diversión")).toBeTruthy();
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar categorías" }), { target: { value: "jardin" } });
+    const leaf = container.querySelector('[data-category-leaf="outdoor_garden"]');
+    expect(leaf?.textContent).toBe("Exterior y jardínAire libre");
+    // The English words still find it.
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar categorías" }), { target: { value: "garden" } });
+    expect(container.querySelector('[data-category-leaf="outdoor_garden"]')).not.toBeNull();
+    fireEvent.change(screen.getByRole("searchbox", { name: "Buscar categorías" }), { target: { value: "zzqx" } });
+    expect(screen.getByRole("status").textContent).toBe('Ninguna categoría coincide con "zzqx". Elija Otro en Más, o sugiera una abajo.');
+    expect(container.textContent).not.toMatch(/Search categories|Chosen:|Hobbies/);
   });
 
   it("the sell screen writes none of its dictionary's English in its source", () => {

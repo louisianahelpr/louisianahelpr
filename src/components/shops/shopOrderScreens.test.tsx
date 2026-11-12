@@ -35,8 +35,8 @@
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const policy = cancelPolicyText(t.cancel_policy, t.ready_tap_cancel); |   const policy = cancelPolicyText(t.cancel_policy, undefined);
  * @mutate src/components/shops/ShopCancelPolicyPicker.tsx |       {policy.data === "until_handover" && <ReadyTapCancelPicker shopId={shopId} />} |       {false && <ReadyTapCancelPicker shopId={shopId} />}
  * @mutate src/components/shops/ShopCancelPolicyPicker.tsx |       {policy.data === "until_handover" && <ReadyTapCancelPicker shopId={shopId} />} |       <ReadyTapCancelPicker shopId={shopId} />
- * @mutate src/components/shops/ShopReadyTapCancelPicker.tsx |                 onClick={() => { if (!on) save.mutate(c); }} |                 onClick={() => undefined}
- * @mutate src/components/shops/ShopReadyTapCancelPicker.tsx |             const on = choice.data === c; |             const on = c === "from_day_before";
+ * @mutate src/components/shops/ShopReadyTapCancelPicker.tsx |           onChange={(c) => { if (c !== choice.data && !save.isPending) save.mutate(c as ReadyTapCancel); }} |           onChange={() => undefined}
+ * @mutate src/components/shops/ShopReadyTapCancelPicker.tsx |           value={choice.data ?? ""} |           value="from_day_before"
  * @mutate src/components/shops/ShopOrderSheet.tsx |       await openExternalUrl(url, () => { |       await (async (..._a: unknown[]) => undefined)(url, () => {
  * @mutate src/lib/shops/orders.ts |   if (!terms.open_weekdays.includes(new Date(isoToUtc(iso)).getUTCDay())) return "closed"; |   if (false) return "closed";
  * @mutate src/lib/shops/orders.ts |   if (terms.full_days.includes(iso)) return "full"; |   if (false) return "full";

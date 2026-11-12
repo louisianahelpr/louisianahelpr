@@ -11,7 +11,7 @@
  *      inside an option (jsdom has no layout; the 375 measurement is in the 11-10 handoff).
  *
  * @mutate src/components/shops/ShopCancelPolicyPicker.tsx |         <RadioCardList | <RadioCardListX
- * @mutate src/components/ui/RadioCardList.tsx |             role="radio" |             role="button"
+ * @mutate src/components/ui/RadioCardList.tsx |             aria-checked={on} |             aria-pressed={on}
  * @mutate src/components/ui/RadioCardList.tsx | <span className="flex-1 min-w-0 whitespace-normal break-words"> | <span className="flex-1 min-w-0 truncate">
  */
 import { describe, expect, it, vi } from "vitest";

@@ -866,7 +866,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   });
 
   // Audit posting 1030 #11: on a phone the Selling tab had no way to sell.
-  // @mutate src/components/declutter/TabletSellRow.tsx | <Link to={SELL_ONE_PATH}>Sell an item</Link> | <span>Sell an item</span>
+  // @mutate src/components/declutter/TabletSellRow.tsx | <Link to={SELL_ONE_PATH}>{t("decl.hv.sellOne")}</Link> | <span>{t("decl.hv.sellOne")}</span>
   it("Selling offers Sell an item straight to the photo screen, and one line to the other ways", async () => {
     state.mine = [ITEM];
     at("/declutter?tab=selling");

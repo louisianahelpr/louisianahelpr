@@ -15,6 +15,11 @@
  * @mutate src/components/declutter/DeclutterGallery.tsx |             if (el.clientWidth > 0) setAt(Math.round(el.scrollLeft / el.clientWidth)); |             void el;
  * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {reviews > 0 && (\n              <span data-seller-rating | {true && (\n              <span data-seller-rating
  * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {joined && <span className="block text-xs text-muted-foreground">{joined}</span>} |
+ * F359d (owner 11-11): "12 pickups" on the member and guest seller cards; none at 0.
+ * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {pickupCount > 0 && <span data-seller-pickups | {false && <span data-seller-pickups
+ * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {pickupCount > 0 && <span data-seller-pickups | {pickupCount >= 0 && <span data-seller-pickups
+ * @mutate src/components/declutter/DeclutterGuest.tsx |         {c.pickups > 0 && <span data-guest-seller-pickups | {false && <span data-guest-seller-pickups
+ * @mutate src/lib/declutter/api.ts | idChecked: row.id_checked === true, pickups: pickupCount(row.pickup_count) }; | idChecked: row.id_checked === true, pickups: 0 };
  * @mutate src/components/declutter/DeclutterShareCard.tsx |   void shareNative({ title: it.title, text: shareText(it), url: listingLink(it.id) }); |   void shareNative({ title: it.title, text: shareText(it), url: getPublicOrigin() });
  * @mutate src/components/ui/StickyActionBar.tsx | className="fixed inset-x-0 bottom-0 z-40 border-t | className="inset-x-0 bottom-0 z-40 border-t
  * @mutate src/components/ui/StickyActionBar.tsx |   useDockYield(active && phone); |   void phone;
@@ -61,6 +66,8 @@ const state = {
   item: null as unknown,
   photos: [] as unknown[],
   rating: { avg: 4.8, count: 12 } as { avg: number; count: number } | null,
+  /** F359d: the seller's completed pickups (declutter_seller_pickup_count). */
+  pickups: 7,
   seller: { name: "Dana Robichaux", avatarUrl: null, joinedAt: "2025-03-10T12:00:00Z" } as unknown,
   tags: [] as string[][],
   safeRows: [] as unknown[],
@@ -80,7 +87,7 @@ const state = {
   trades: [] as unknown[],
 };
 const calls: [string, unknown[]][] = [];
-const GUEST_CARD: { display_name: string; avg_rating: number | null; review_count: number; id_checked: boolean } = { display_name: "Dana R.", avg_rating: 4.5, review_count: 2, id_checked: true };
+const GUEST_CARD: { display_name: string; avg_rating: number | null; review_count: number; id_checked: boolean; pickup_count?: number } = { display_name: "Dana R.", avg_rating: 4.5, review_count: 2, id_checked: true, pickup_count: 12 };
 const guestCard = { row: { ...GUEST_CARD } };
 // A PostgREST builder that records each call and resolves to state.tableRows.
 const builder: object = new Proxy({}, {
@@ -161,6 +168,7 @@ vi.mock("@/lib/declutter/api", async () => {
     fetchWatching: async () => new Set(),
     fetchMyItemReview: async () => null,
     fetchSellerRating: async () => state.rating,
+    fetchSellerPickupCount: async () => state.pickups,
     fetchSellerCard: async () => state.seller,
     fetchSellerReviewTags: async () => state.tags,
     fetchMyCard: async () => null,
@@ -218,6 +226,7 @@ describe("the photo-first Declutter item page", () => {
     state.geo = { status: "idle" };
     state.photos = [];
     state.rating = { avg: 4.8, count: 12 };
+    state.pickups = 7;
     state.seller = { name: "Dana Robichaux", avatarUrl: null, joinedAt: "2025-03-10T12:00:00Z" };
     state.tags = [];
     shared.length = 0;
@@ -464,11 +473,17 @@ describe("the photo-first Declutter item page", () => {
     expect(screen.getByText("Joined March 2025")).toBeInTheDocument();
     expect(document.querySelector("[data-seller-rating]")?.textContent).toContain("12 reviews");
     expect(screen.getByRole("link", { name: /^See the seller,\s*Dana R\./ })).toHaveAttribute("href", "/user/u2");
+    // F359d (owner 11-11): the completed pickup count, words and number only.
+    expect((await vi.waitFor(() => document.querySelector("[data-seller-pickups]")!))?.textContent).toBe("7 pickups");
     unmount();
     state.rating = { avg: 0, count: 0 };
+    state.pickups = 0;
     open();
     expect(await screen.findByText("Dana R.")).toBeInTheDocument();
     expect(document.querySelector("[data-seller-rating]")).toBeNull();
+    // No pickups yet: no line at all (never "0 pickups").
+    expect(document.querySelector("[data-seller-pickups]")).toBeNull();
+    expect(screen.queryByText(/^\d+ pickups?$/)).toBeNull();
     expect(screen.queryByText(/No reviews yet/)).toBeNull();
     // Messages open after checkout: the one pre-purchase "Message the seller" (owner pick 1, 11-08) is a button that
     // opens the PUBLIC Questions box, never a link into private messages.
@@ -939,7 +954,9 @@ describe("the photo-first Declutter item page", () => {
     const seller = await screen.findByText("Dana R.");
     const guestCard = seller.closest("[data-guest-seller]") as HTMLElement;
     expect(guestCard).not.toBeNull();
-    expect(guestCard.textContent).toBe("DSold byDana R.4.5 stars from · 2 reviewsID checked");
+    // F359d: "12 pickups" (declutter_guest_seller_card.pickup_count, 20261112002528), a count and nothing else.
+    expect(guestCard.textContent).toBe("DSold byDana R.4.5 stars from · 2 reviews12 pickupsID checked");
+    expect(guestCard.querySelector("[data-guest-seller-pickups]")?.textContent).toBe("12 pickups");
     expect(guestCard.querySelector("[data-guest-seller-rating]")?.textContent).toBe("4.5 stars from · 2 reviews");
     expect(guestCard.querySelector("[data-guest-seller-id]")?.textContent).toBe("ID checked");
     expect(guestCard.querySelectorAll("a, img, button")).toHaveLength(0);

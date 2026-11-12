@@ -36,7 +36,7 @@
  * @mutate src/components/declutter/DeclutterManageListing.tsx | text-muted-foreground">{t("lp.m.fb")} {free ? t("lp.m.fbFree") : t("lp.m.fbPaid")}</p> | text-muted-foreground">Post it in your local Facebook groups. {free ? t("lp.m.fbFree") : t("lp.m.fbPaid")}</p>
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -440,7 +440,7 @@ describe("Manage listing in Spanish (F260q)", () => {
       expect(await screen.findByText("Encendido. Baja cada tarde, nunca menos de su precio más bajo.")).toBeTruthy();
       const text = document.body.textContent ?? "";
       expect(text).not.toMatch(/Manage listing|How it gets to buyers|Mark sold elsewhere|See your listing|It drops each evening|Change price or lowest/);
-      cleanupAll();
+      cleanup();
       wrap(<SellerListingPanel item={item() as never} coverUrl={null} />);
       expect(screen.getByText("Su publicación está a la venta")).toBeTruthy();
       expect(screen.getByText(/^Compártalo en sus grupos locales de Facebook\. El enlace muestra su foto, precio y pueblo\./)).toBeTruthy();
@@ -450,7 +450,3 @@ describe("Manage listing in Spanish (F260q)", () => {
     }
   });
 });
-
-function cleanupAll() {
-  document.body.innerHTML = "";
-}

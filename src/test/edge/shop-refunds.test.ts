@@ -297,8 +297,10 @@ describe("shop-checkout order: the terms the buyer read", () => {
     const res = await ask(fn);
     expect(res.status).not.toBe(400);
     expect(res.status).not.toBe(409);
+    expect(((await res.json()) as { error?: string }).error).not.toBe("terms_changed");
     expect(rpcs("shops_request_order")).toHaveLength(1);
-    expect(rpcs("shops_cancel_order_request")).toHaveLength(0);
+    // Not asserted: shops_cancel_order_request. This fixture stops later (no lines, no tax mock), and since S038
+    // (lander 11-12) any failure after the order froze closes it at once; the terms branch is what is under test.
   });
 
   it("terms sent in the wrong shape: a bad request, nothing frozen", async () => {

@@ -23,10 +23,12 @@ const DEFS = effectiveDefs(MIG);
 const body = (n: string) => blankSqlComments(DEFS.get(n)?.stmt ?? "").replace(/\s+/g, " ");
 
 /** Whether `role` may EXECUTE public.<fn> after every migration (explicit grant needed). */
+// Read and blanked once: each mayRun call re-read every migration, over 20 s on a loaded CI shard (2026-11-11).
+let BLANKED: string[] | null = null;
 function mayRun(fn: string, role: string): boolean {
   let may = false;
-  for (const f of readdirSync(MIG).filter((n) => n.endsWith(".sql")).sort()) {
-    const sql = blankSqlComments(readFileSync(resolve(MIG, f), "utf8"));
+  BLANKED ??= readdirSync(MIG).filter((n) => n.endsWith(".sql")).sort().map((f) => blankSqlComments(readFileSync(resolve(MIG, f), "utf8")));
+  for (const sql of BLANKED) {
     for (const m of sql.matchAll(new RegExp(`\\b(REVOKE|GRANT)\\b[^;]*ON FUNCTION public\\.${fn}\\s*\\([^;]*;`, "g"))) {
       if (new RegExp(`\\b${role}\\b`).test(m[0])) may = m[0].startsWith("GRANT");
     }

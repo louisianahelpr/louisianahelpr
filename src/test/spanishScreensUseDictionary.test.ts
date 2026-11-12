@@ -115,6 +115,7 @@ const CONVERTED = [
   "src/components/declutter/DeclutterBunchResults.tsx",
   "src/components/declutter/DeclutterBunchMovingSale.tsx",
   "src/components/declutter/BunchFeeGate.tsx",
+  "src/components/declutter/BunchDraftsSection.tsx",
   "src/components/declutter/DeclutterBunchView.tsx",
   // F260q: Home's money strip and the head of You › Money (enMoneyTiles.ts).
   "src/pages/home/homeDashboard/HomeMoneyTiles.tsx",

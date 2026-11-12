@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { talkTime } from "@/lib/declutter/talkTime";
 import { shopsErrorMessage } from "@/lib/shops/errors";
-import { fetchMyShopTalks, fetchShopTalk, markShopTalkRead, MY_SHOP_TALKS_KEY, openShopOrderTalk, openShopTalk, sendShopTalkMessage } from "@/lib/shops/talk";
+import { fetchMyShopTalks, fetchShopTalk, markShopTalkRead, MY_SHOP_TALKS_KEY, openShopOrderTalk, openShopRequestTalk, openShopTalk, sendShopTalkMessage } from "@/lib/shops/talk";
 import { focusSheetItself } from "@/components/declutter/focusSheetItself";
 import { ShopCard } from "./ShopProfile";
 
@@ -61,9 +61,14 @@ export function ShopMessageButton({ shopId }: { shopId: string }) {
  * Q1947: "Message" on a shop order's card, for either side (the buyer writes to the shop, the shop to the buyer). It
  * opens the same one thread per shop and member as the shop page's Message, over the orders screen (?talk=).
  */
-export function ShopOrderMessageButton({ orderId, side }: { orderId: string; side: "buyer" | "shop" }) {
+export function ShopOrderMessageButton({ orderId, requestId, side }: { orderId?: string; requestId?: string; side: "buyer" | "shop" }) {
   const [, setTalk] = useTalkParam();
-  const open = useMutation({ mutationFn: () => openShopOrderTalk(orderId), onSuccess: (id) => setTalk(id) });
+  // S2-018 (Shops audit 2): a custom request's card opens the same thread (shops_open_request_talk), so either side
+  // can ask a question before a price is sent or ordered.
+  const open = useMutation({
+    mutationFn: () => (requestId ? openShopRequestTalk(requestId) : openShopOrderTalk(orderId ?? "")),
+    onSuccess: (id) => setTalk(id),
+  });
   return (
     <div className="space-y-1" data-shop-order-message="">
       <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={open.isPending} onClick={() => open.mutate()}>

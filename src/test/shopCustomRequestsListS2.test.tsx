@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 
 const fetchMyCustomRequests = vi.fn();
 vi.mock("@/lib/shops/customRequests", () => ({ fetchMyCustomRequests: () => fetchMyCustomRequests() }));
@@ -20,7 +21,8 @@ const base = { shop_id: "s1", shop_name: "TEST shop", role: "shop", wanted_date:
   quote_cents: null, quote_note: null, quoted_at: null, expires_at: null };
 const mount = () => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}><ShopCustomRequestsList side="shop" /></QueryClientProvider>);
+  // S2-018: the request's Message button reads the URL (?talk=), so the list sits in a router.
+  return render(<MemoryRouter><QueryClientProvider client={qc}><ShopCustomRequestsList side="shop" /></QueryClientProvider></MemoryRouter>);
 };
 
 describe("S2-024 / S2-021 custom request list", () => {

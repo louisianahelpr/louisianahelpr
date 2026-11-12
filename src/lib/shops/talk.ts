@@ -59,6 +59,15 @@ export async function openShopOrderTalk(orderId: string): Promise<string> {
     (e) => rpcErrorMessage("shops_open_order_talk", e)) as string;
 }
 
+/**
+ * S2-018 (Shops audit 2, 20261112223654): the chat about a custom request, for either side (shops_open_request_talk):
+ * the same one thread per shop and member. Made on first use.
+ */
+export async function openShopRequestTalk(requestId: string): Promise<string> {
+  return rpcData(await supabase.rpc("shops_open_request_talk", { p_request_id: requestId }),
+    (e) => rpcErrorMessage("shops_open_request_talk", e)) as string;
+}
+
 /** The caller's thread with a shop, made on first use. */
 export async function openShopTalk(shopId: string): Promise<string> {
   return rpcData(await supabase.rpc("shops_open_talk", { p_shop_id: shopId }), (e) => rpcErrorMessage("shops_open_talk", e)) as string;

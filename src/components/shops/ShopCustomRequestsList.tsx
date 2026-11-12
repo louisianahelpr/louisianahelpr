@@ -17,6 +17,7 @@ import { closeCustomRequest, formatCents } from "@/lib/shops/orders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import ShopCustomQuoteForm from "./ShopCustomQuoteForm";
 import ShopCustomOrderForm from "./ShopCustomOrderForm";
+import { ShopOrderMessageButton } from "./ShopTalk";
 
 const STATUS_WORDS: Record<CustomRequest["status"], { buyer: string; shop: string }> = {
   requested: { buyer: "Waiting for the shop's price", shop: "New request" },
@@ -105,6 +106,8 @@ export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop
           </Button>
         </div>
       )}
+      {/* S2-018 (Shops audit 2): either side can ask a question about an open request (the one shop chat). */}
+      {OPEN.has(r.status) && openId !== r.id && <ShopOrderMessageButton requestId={r.id} side={side} />}
     </li>
   );
   return (

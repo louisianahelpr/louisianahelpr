@@ -52,6 +52,8 @@ export interface SweepClaim {
   itemId: string;
   sellerId: string;
   attempt: number;
+  /** S2-001 (Shops audit 2): a live shop item (shops_check_sweep_claim), judged and given back through the Shops RPCs. */
+  shop?: boolean;
 }
 
 export interface CheckSweepDeps {

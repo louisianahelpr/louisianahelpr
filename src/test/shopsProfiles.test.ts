@@ -198,6 +198,10 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
       "20261112073633_shops_audit_highs.sql": ["helpr_delivery_no_show", "not_ready_yet"],
       // S015: the shop's "Handed over" on a Helpr delivery.
       "20261112075006_shops_audit_mediums.sql": ["helpr_delivers_handover"],
+      // S2-003 (Shops audit 2): a download takes no options.
+      "20261112222000_shops_item_rules_s2.sql": ["options_not_for_downloads"],
+      // S2-018: the chat about a custom request (request_not_found is already raised by the custom request files).
+      "20261112223654_shops_check_sweep_request_talk.sql": ["request_not_found", "own_shop", "talk_closed", "talk_blocked"],
     };
     for (const [file, codes] of Object.entries(HELPR_FILES)) {
       const sql = blankSqlComments(readFileSync(join(MIG_DIR, file), "utf8"));

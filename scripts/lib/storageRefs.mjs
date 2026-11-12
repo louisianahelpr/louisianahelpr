@@ -85,6 +85,7 @@ export const STORAGE_REFERENCE_COLUMNS = [
  * object, each with the reason. Two-way with types.ts in the test.
  */
 export const NOT_STORAGE_COLUMNS = {
+  "shop_photo_byte_checks.storage_path": "Q1956 (20261112095000): a one-use stamp that the shop-photo-check edge function read this object's bytes; the photo itself is in shop_photos / shop_item_photos (checked above), the row is deleted at attach and a day-old one by the next stamp, so it never serves or keeps a file",
   "shop_item_files.file_name": "the name a buyer's download is saved as (Content-Disposition), not a storage path: the object is at shop_item_files.storage_path",
   "profile_job_photos.photo_path": "a copy of one path in jobs.proof_after_urls or group_job_helpers.proof_after_urls (both checked above): a Helpr's pick for their public page (20261105172514), shown only while it is still one of that job's after photos, so a missing file is already found through the job",
   "declutter_wanted.photo_added_at": "a timestamp: when the newest photo was added (20261030225143), not a file reference",

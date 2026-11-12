@@ -116,6 +116,7 @@ const partyWhy = (e: StripeModeRefused, what: string): string =>
     : `a party on ${what} looks like a test account but is not enrolled`;
 import { captureShopHold, releaseShopHold, shopOrderMode, type ShopHoldRow } from "../_shared/shopHolds.ts";
 import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
+import { moveShopPhotoHolds } from "../_shared/shopPhotoHolds.ts";
 import { chargeShopBalance, settleUnpaidCloseTax, type ShopBalanceDueRow, type UnpaidCloseTaxRow } from "../_shared/shopBalance.ts";
 import { heldTipParts, helprPayoutParts, type PayoutPart } from "../_shared/helprPayoutParts.ts";
 import { runShipLabels } from "../_shared/shipLabelRun.ts";
@@ -404,7 +405,7 @@ serve(async (req) => {
     shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
     shop_balances_paid: 0, shop_balances_to_buyer: 0, shop_balance_retries: 0, shop_balances_lapsed: 0, shop_unpaid_close_tax: 0,
     shop_handed_over: 0, shop_payouts_sent: 0, shop_payouts_reconciled: 0, shop_payouts_failed: 0,
-    shop_no_photo_refunded: 0, shop_preorder_refunded: 0, shop_custom_requests_closed: 0, shop_refunds_sent: 0, shop_refunds_reconciled: 0, shop_refunds_failed: 0,
+    shop_no_photo_refunded: 0, shop_preorder_refunded: 0, shop_custom_requests_closed: 0, shop_photos_moved: 0, shop_refunds_sent: 0, shop_refunds_reconciled: 0, shop_refunds_failed: 0,
   };
 
   // Payouts a payee cannot receive yet (/code-review of f6551863a, 20261019070737). Every row a
@@ -800,6 +801,15 @@ serve(async (req) => {
   //     under the order's row lock (reason -> fee policy -> amount are table
   //     CHECKs); _shared/shopRefunds.ts reconciles, then sends with key
   //     shop-refund-<row id>. Its own try, like step 5.
+  // Q1957 (20261112100000): a hidden shop's (or banned owner's) photos move to the private shop-photos-held bucket and
+  // back when it is shown again. Stateless list, so a failed move is retried next run. Its own try: no money.
+  try {
+    const holds = await moveShopPhotoHolds(admin);
+    out.shop_photos_moved = holds.moved;
+    for (const f of holds.failures.slice(0, 5)) defects.record(`shop photo move ${f}`);
+  } catch (e) {
+    defects.record(`shop photo holds: ${caughtMessage(e, "failed")}`.slice(0, 200));
+  }
   // S045 (20261112091830): custom order requests the shop never answered lapse (wanted date passed or 7 days), freeing
   // the buyer's 3-per-shop slot, and quotes past their 7 days are stored expired; both sides are told. No money (a
   // request holds no card). Its own try, so a failure never stops the refunds below.

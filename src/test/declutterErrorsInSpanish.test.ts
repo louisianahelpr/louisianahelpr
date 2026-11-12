@@ -9,7 +9,7 @@
  * @mutate src/lib/declutter/errors.ts |   return w === key ? english : w; |   return w;
  * @mutate src/lib/declutter/errors.ts |     return inLang(message, DECLUTTER_ERROR_COPY[message]); |     return DECLUTTER_ERROR_COPY[message];
  * @mutate src/lib/declutter/errors.ts |     return inLang(message, DECLUTTER_CLIENT_ERROR_COPY[message]); |     return DECLUTTER_CLIENT_ERROR_COPY[message];
- * @mutate src/lib/declutter/errors.ts |   return inLang("generic", GENERIC); |   return GENERIC;
+ * @mutate src/lib/declutter/errors.ts |   if (!err) return inLang("generic", GENERIC); |   if (!err) return GENERIC;
  * @mutate src/lib/i18n/es.ts |   ...esDeclErrors, |
  */
 import { afterEach, describe, expect, it } from "vitest";

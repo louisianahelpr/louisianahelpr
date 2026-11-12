@@ -26,6 +26,12 @@ import { SwipeableConversationRow } from "./SwipeableConversationRow";
 import { HiddenUnreadBar } from "./HiddenUnreadBar";
 import { pinnedKey } from "@/lib/pinnedConversations";
 import type { Conversation } from "./types";
+import type { ReactNode } from "react";
+
+/** S2-016: with no threads, the shop chats (a Lead) take the empty inbox's place, which they show only with none. */
+function InboxLeadOr({ Lead, children }: { Lead: SectionEmpty["Lead"] | null; children: ReactNode }) {
+  return Lead ? <Lead empty={children} /> : <>{children}</>;
+}
 import { THREAD_AGE_OUT_DAYS } from "./threadAgeOut";
 
 /**
@@ -36,6 +42,7 @@ import { THREAD_AGE_OUT_DAYS } from "./threadAgeOut";
 export interface ConversationListBodyProps {
   /** F420: the Declutter order chats that belong under this chip (useMessageSections), or null when none do. */
   orderTalks: OrderTalkInbox | null;
+  inboxLead?: SectionEmpty["Lead"] | null;
   loading: boolean;
   loadError: boolean;
   conversations: Conversation[];
@@ -87,6 +94,7 @@ export interface ConversationListBodyProps {
 
 export function ConversationListBody({
   orderTalks,
+  inboxLead = null,
   loading,
   loadError,
   conversations,
@@ -176,6 +184,7 @@ export function ConversationListBody({
               {sectionEmpty ? (
                 <SectionInboxEmpty empty={sectionEmpty} onGo={(to) => navigate(to)} />
               ) : (
+              <InboxLeadOr Lead={inboxLead}>
               <EmptyState
                 // The same circle-and-icon as My Posts / My Jobs (owner, 2026-10-08,
                 // Q1558: "nearly identical"); the icon is the Messages tab's own.
@@ -189,6 +198,7 @@ export function ConversationListBody({
                   </BarkPillButton>
                 }
               />
+              </InboxLeadOr>
               )}
             </PullToRefreshWrapper>
           ) : (
@@ -419,6 +429,8 @@ export function ConversationListBody({
             </div>
           ) : (
             <div className="space-y-2">{sectionEmpty?.Lead && !searchQuery.trim() && !selectMode && <sectionEmpty.Lead empty={null} />}
+              {/* S2-016: the member's shop chats above the threads under All / Unread. */}
+              {!sectionEmpty?.Lead && inboxLead && !searchQuery.trim() && !selectMode && !isSpecialFilterView && (() => { const Lead = inboxLead; return <Lead empty={null} />; })()}
               {orderTalks && orderTalks.error != null && !selectMode && !isSpecialFilterView && (
                 <OrderTalkLoadError error={orderTalks.error} retry={orderTalks.reload} />
               )}

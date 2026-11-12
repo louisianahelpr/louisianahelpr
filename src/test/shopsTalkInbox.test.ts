@@ -9,7 +9,7 @@
  * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql |      OR (v_uid IS DISTINCT FROM o.buyer_id AND v_uid IS DISTINCT FROM v_owner) THEN |      THEN
  * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql | REVOKE ALL ON FUNCTION public.shops_open_order_talk(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.shops_open_order_talk(uuid) FROM PUBLIC;
  * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql |   IF NOT public.shop_state_ok(o.shop_id) THEN | IF false THEN
- * @mutate src/pages/messages/useMessageSections.tsx |     if (section === "shops" && live.shops) empty.Lead = ShopTalkLead;\n |
+ * @mutate src/pages/messages/useMessageSections.tsx |     if (section === "shops" && shopsOn) empty.Lead = ShopTalkLead;\n |
  * @mutate src/components/shops/ShopOrderCard.tsx |       {order.buyer_id && <ShopOrderMessageButton orderId={order.id} side={side} />}\n |
  * @mutate src/components/shops/ShopTalk.tsx | reportedType="shop_talk_message" | reportedType="message"
  * @mutate src/components/admin/adminReports/reportedShops.ts | ["shop", "shop_item", "shop_talk_message"] | ["shop", "shop_item"]
@@ -60,7 +60,7 @@ describe("Q1947: shop chats in Messages, from an order, and reportable", () => {
   });
 
   it("the screens mount it: the Shops chip lists the chats, the order card has Message, the chat sheet reports", () => {
-    expect(src("src/pages/messages/useMessageSections.tsx")).toContain('if (section === "shops" && live.shops) empty.Lead = ShopTalkLead;');
+    expect(src("src/pages/messages/useMessageSections.tsx")).toContain('if (section === "shops" && shopsOn) empty.Lead = ShopTalkLead;');
     expect(src("src/components/messages/ShopTalkInbox.tsx")).toContain("<ShopTalkFromLink />");
     expect(src("src/components/shops/ShopOrderCard.tsx")).toContain("{order.buyer_id && <ShopOrderMessageButton orderId={order.id} side={side} />}");
     for (const f of ["src/components/shops/ShopMyOrdersView.tsx", "src/components/shops/ShopDashboardView.tsx"]) {

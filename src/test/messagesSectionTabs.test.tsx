@@ -18,7 +18,7 @@
  *
  * @mutate src/components/messages/messageSections.ts |     return s === "support" \|\| s === section; |     return true;
  * @mutate src/components/messages/messageSections.ts |   if (jobThreads > 0) keep.add("jobs"); |   void 0;
- * @mutate src/pages/messages/useMessageSections.tsx |     (k) => live[k] \|\| conversations.some((c) => threadSection(c) === k) \|\| (k === "declutter" && hasOrderTalks), |     (k) => k !== undefined,
+ * @mutate src/pages/messages/useMessageSections.tsx |     (k) => live[k] \|\| conversations.some((c) => threadSection(c) === k) \|\| (k === "declutter" && hasOrderTalks) \|\| (k === "shops" && hasShopTalks), |     (k) => k !== undefined,
  * @mutate src/components/messages/messageSections.ts |   if (filter === "all") return [...list]; |   if (filter === "all") return list.filter((c) => !!c.teamThread);
  * @mutate src/components/messages/messageSections.ts |   if (filter === "unread") return list.filter((c) => c.unread > 0); |   if (filter === "unread") return [...list];
  * @mutate src/components/messages/messageSections.ts |   return "all";\n} |   return "jobs";\n}
@@ -62,6 +62,8 @@ vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 // D2-1: the member's Declutter order chats (the list itself: declutterOrderTalkInbox.test.tsx). None unless a test sets some.
 const orderTalks: { rows: unknown[] } = { rows: [] };
 vi.mock("@/lib/declutter/orderTalk", () => ({ MY_ORDER_TALKS_KEY: ["declutter", "my-order-talks"], fetchMyOrderTalks: async () => orderTalks.rows }));
+// S2-016: the member's shop chats (the hook's shop part: shopTalksInMessages.test.tsx). None here.
+vi.mock("@/lib/shops/talkUnread", () => ({ SHOP_TALKS_SUMMARY_KEY: ["shops", "my-talks", "summary"], SHOP_TALKS_UNREAD_EVENT: "lh-shop-talks-unread", fetchShopTalkSummary: async () => ({ total: 0, unread: 0 }) }));
 vi.mock("@/lib/pinnedConversations", async (io) =>
   (await import("@/test/helpers/threadStoresOffline")).pinnedConversationsOffline(io));
 vi.mock("@/lib/archivedConversations", async (io) =>

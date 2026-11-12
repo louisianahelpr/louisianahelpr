@@ -11,9 +11,15 @@ import { readCachedUnread } from "./mobileNavHelpers";
 export type UnreadListener = (n: number) => void;
 
 export interface UnreadStore {
+  /** What the badge shows: unread message threads plus unread shop chats (S2-016). */
   count: number;
+  /** The unread message threads alone (publish sets it; mark-all-read rolls back to it). */
+  messages: number;
   listeners: Set<UnreadListener>;
+  /** Set the unread MESSAGE threads; the shop chats part is kept. */
   publish: (n: number) => void;
+  /** S2-016: set the unread shop chats (0 while the member has no Shops). */
+  setShop: (n: number) => void;
   close: () => void;
 }
 

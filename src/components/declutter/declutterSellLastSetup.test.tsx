@@ -163,7 +163,8 @@ describe("posting says what the settings will do, and asks nothing (owner 2026-1
   // info"): the settings are three labeled rows inside "Your listing", below Details, with ONE Change to Settings. No
   // bold sentence, no "Uses your settings · Settings" line, no repeated "Pickup at Home", no lone short day.
   // @mutate src/components/declutter/SellSummaryCard.tsx |         {settingsRows}\n |
-  // @mutate src/components/declutter/SellingSettingsRows.tsx |   return c.drops ? t("lp.sr.bunchDrops", { pct: c.dropPct, floor: c.floorPct }) : t("lp.sr.off"); |   return c.drops ? `Price drops: on, ${c.dropPct}% each evening, never below ${c.floorPct}% of each price.` : t("lp.sr.off");
+  // (Sell one's value; Sell a bunch's is guarded in src/test/listingDefaultsInSpanish.test.tsx, the old bunch mutate here never rendered it.)
+  // @mutate src/components/declutter/SellingSettingsRows.tsx |   return t("lp.sr.dropsFloor", { pct: choice.dropPct, floor: formatPrice(choice.floorCents) }); |   return `Price drops: on, ${choice.dropPct}% each evening, never below ${formatPrice(choice.floorCents)}.`;
   it("the settings are labeled rows of Your listing, below Details, with one Change link (owner 2026-11-01)", async () => {
     places.value = [PLACE];
     open();

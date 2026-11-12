@@ -595,6 +595,8 @@ export const SHOPS_RPC_ERROR_COPY = {
     not_authenticated: SC.not_authenticated,
     order_not_found: SC.order_not_found,
     order_not_open: "You can report an order from its ready date until you tap \"I got it\" or it finishes on its own.",
+    // S018 (20261112090512): the optional photo is not the caller's own upload for this order.
+    photo_not_uploaded: SC.photo_not_uploaded,
   },
   // Preorders (20261108184654): the shop's settings and its one date push, and the product page's read.
   shops_set_item_preorder: {

@@ -103,7 +103,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/declutter/DeclutterEditListing.tsx` | input×1, textarea×1 | text | 80, 2000 | edit-title · edit-description · edit-tax |
-| `src/components/declutter/DeclutterManageListing.tsx` | input×2, checkbox/switch/radio×1 | text |  | manage-drops · manage-price · manage-floor · Your listing |
+| `src/components/declutter/DeclutterManageListing.tsx` | input×2, checkbox/switch/radio×1 | text |  | manage-drops · manage-price · manage-floor |
 | `src/components/declutter/DeclutterOfferRules.tsx` | checkbox/switch/radio×2 |  |  |  |
 | `src/components/declutter/DeclutterTradeRules.tsx` | checkbox/switch/radio×1 |  |  |  |
 | `src/components/declutter/ShipItRow.tsx` | checkbox/switch/radio×1 |  |  |  |
@@ -240,7 +240,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/declutter/KeepUpRow.tsx` | checkbox/switch/radio×1 |  |  |  |
 | `src/components/declutter/SellHandoverChoices.tsx` | checkbox/switch/radio×1 |  |  | sell-ways |
-| `src/components/declutter/SellPorchDays.tsx` | checkbox/switch/radio×1 |  |  | sell-porch-only · Porch days |
+| `src/components/declutter/SellPorchDays.tsx` | checkbox/switch/radio×1 |  |  | sell-porch-only |
 
 ## /declutter/settings
 
@@ -248,8 +248,8 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/declutter/DeclutterListingDefaults.tsx` | checkbox/switch/radio×4 |  |  | defaults-ways |
 | `src/components/declutter/SellerDeliverySettings.tsx` | input×3, checkbox/switch/radio×3, date/calendar×1 | text, date |  | Your delivery · Your delivery price and times · sd-enabled · sd-price-label · sd-rate · Delivery price in dollars · sd-rate-help · sd-free-over-on |
-| `src/components/declutter/SellMeetupSpots.tsx` | input×1 | text | 80 | e.g. the bank parking lot on Main St · Days and times you · sell-meetup-spots · meet-spots-title |
-| `src/components/declutter/SellPorchPlaces.tsx` | input×1 | text | 40 | e.g. Home, Mom · Days and hours at this place · Pickup places |
+| `src/components/declutter/SellMeetupSpots.tsx` | input×1 | text | 80 | sell-meetup-spots · meet-spots-title |
+| `src/components/declutter/SellPorchPlaces.tsx` | input×1 | text | 40 |  |
 
 ## /forgot-password
 

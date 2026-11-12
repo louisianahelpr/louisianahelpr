@@ -1,5 +1,7 @@
 /**
  * GUARD (Shops audit 2, 11-12, Builder 1 list S2-034..S2-044).
+ *   S2-034 custom orders have one switch: the shop page reads only shops.custom_orders, and Edit my shop's "Custom
+ *          orders" box shows and sets that switch (no "Quotes for work").
  *   S2-044 an accepted order whose cancel window already closed no longer promises a free cancel.
  */
 import { describe, expect, it } from "vitest";
@@ -36,5 +38,16 @@ describe("Shops audit 2 (Builder 1)", () => {
     const src = readFileSync("src/components/shops/ShopOrderCard.tsx", "utf8");
     expect(src).toContain("orderCancelLine(order)");
     expect(src).not.toContain("cancelPolicyText(order.cancel_policy, order.ready_tap_cancel).label");
+  });
+  it("S2-034: one switch for custom orders", async () => {
+    const { readFileSync } = await import("node:fs");
+    const view = readFileSync("src/components/shops/ShopView.tsx", "utf8");
+    expect(view).toContain('const takesCustom = !!customOrders.data && customOrders.data !== "off";');
+    expect(view).not.toMatch(/takesCustom = s\.offers_quotes/);
+    const edit = readFileSync("src/components/shops/ShopEditView.tsx", "utf8");
+    expect(edit).not.toContain("Quotes for work");
+    expect(edit).toContain("Custom orders (made to order)");
+    expect(edit).toContain('offersQuotes: customMode.data ? customMode.data !== "off" : s.offers_quotes,');
+    expect(edit).toContain('await setCustomOrders(form.offersQuotes ? "full_hold" : "off");');
   });
 });

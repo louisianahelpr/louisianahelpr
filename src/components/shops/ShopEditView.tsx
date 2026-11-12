@@ -45,6 +45,7 @@ import {
   type ShopPhotoKind,
 } from "@/lib/shops/api";
 import { SHOPS_ERROR_COPY, shopsErrorMessage } from "@/lib/shops/errors";
+import { fetchCustomOrders, setCustomOrders } from "@/lib/shops/orders";
 import { categoryGroups, useShopCategories, WEEKDAYS } from "./shopsUi";
 import { ShopCategoryQuickPick } from "./ShopCategoryQuickPick";
 import ShopItemsSection from "./ShopItemsSection";
@@ -203,6 +204,13 @@ export default function ShopEditView() {
     queryFn: () => fetchShop(myId.data as string),
     enabled: !!myId.data,
   });
+  // S2-034 (Shops audit 2): custom orders have ONE switch, shops.custom_orders (the dashboard picker and the server's
+  // request check read it). The "Custom orders" box here shows and sets that same switch; offers_quotes only follows it.
+  const customMode = useQuery({
+    queryKey: ["shops", "custom-orders", myId.data],
+    queryFn: () => fetchCustomOrders(myId.data as string),
+    enabled: !!myId.data,
+  });
   const [form, setForm] = useState<Form>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
@@ -224,7 +232,9 @@ export default function ShopEditView() {
   }, [form.areaLabel, homeParish, myId.data, myId.isLoading, parishesTouched]);
 
   useEffect(() => {
-    if (loaded || !shop.data) return;
+    // A failed custom-order read never blocks the form: the box then shows the saved offers_quotes and Save leaves
+    // the switch alone.
+    if (loaded || !shop.data || customMode.isLoading) return;
     const s = shop.data;
     const hours = EMPTY_HOURS();
     for (const h of s.hours) hours[h.weekday] = { open: true, opens: h.opens, closes: h.closes };
@@ -236,12 +246,12 @@ export default function ShopEditView() {
       storefront: s.storefront,
       parishes: s.parishes_served,
       offersSelling: s.offers_selling,
-      offersQuotes: s.offers_quotes,
+      offersQuotes: customMode.data ? customMode.data !== "off" : s.offers_quotes,
       sosNumber: s.sos_number ?? "",
       hours,
     });
     setLoaded(true);
-  }, [shop.data, loaded]);
+  }, [shop.data, customMode.data, customMode.isLoading, loaded]);
 
   const groups = useMemo(() => categoryGroups(categories.data), [categories.data]);
   const FIELD_OF_FORM_KEY: Partial<Record<keyof Form, FieldKey>> = {
@@ -278,6 +288,10 @@ export default function ShopEditView() {
         .filter(([, h]) => h.open)
         .map(([d, h]) => ({ weekday: Number(d), opens: h.opens, closes: h.closes }));
       await setShopHours(hours);
+      // S2-034: the box turns the one custom-order switch on (paid in full, changeable on the dashboard) or off.
+      // A new shop has no switch yet (off); an existing one whose read failed is left as it is.
+      const known = myId.data ? customMode.data : "off";
+      if (known && form.offersQuotes !== (known !== "off")) await setCustomOrders(form.offersQuotes ? "full_hold" : "off");
       return id;
     },
     onSuccess: (id) => {
@@ -382,7 +396,10 @@ export default function ShopEditView() {
       </div>
       <div className="flex items-center gap-2">
         <Checkbox id="shop-quotes" checked={form.offersQuotes} onCheckedChange={(v) => set("offersQuotes", v === true)} />
-        <Label htmlFor="shop-quotes" className="flex min-h-11 flex-1 items-center font-normal">Quotes for work</Label>
+        <Label htmlFor="shop-quotes" className="flex min-h-11 flex-1 flex-col justify-center font-normal leading-snug">
+          <span>Custom orders (made to order)</span>
+          <span className="text-xs text-muted-foreground">Buyers can ask you for something made just for them. How they pay is on your dashboard.</span>
+        </Label>
       </div>
       <FieldError field="offers" errors={errors} />
     </fieldset>
@@ -528,7 +545,7 @@ export default function ShopEditView() {
   </form>
   );
 
-  if (myId.isLoading || categories.isLoading || (myId.data && shop.isLoading)) {
+  if (myId.isLoading || categories.isLoading || (myId.data && (shop.isLoading || customMode.isLoading))) {
     // The page shell is returned here (not inside the skeleton) so the shell guard can see it.
     return (
       <AppPage title="My shop" backTo="/shops">
@@ -546,7 +563,7 @@ export default function ShopEditView() {
           onRetry={() => {
             void myId.refetch();
             void categories.refetch();
-            if (myId.data) void shop.refetch();
+            if (myId.data) { void shop.refetch(); void customMode.refetch(); }
           }}
         />
       </AppPage>

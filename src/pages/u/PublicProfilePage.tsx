@@ -449,7 +449,11 @@ export default function PublicProfilePage() {
   );
   return guestShell ? (
     <PublicHeaderPage title={title} backTo="/" titleActions={memberActions} bottomPaddingClassName="pb-12 md:pb-16">
-      {body}
+      {/* F253 (whole-app audit 11-10, measured B3g 11-12): /u/nobody shifted 0.405 when the skeleton gave way to the
+          shorter "isn't available" card and the site footer slid up into the first screen. The body holds at least a
+          screen's height in every state, so the footer starts below the fold and never moves into view on load
+          (guard: publicProfileBodyHoldsScreen). */}
+      <div className="min-h-[100dvh]" data-testid="pp-body">{body}</div>
     </PublicHeaderPage>
   ) : (
     <AppPage title={title} backTo={user ? "/home" : "/"} titleActions={memberActions}>

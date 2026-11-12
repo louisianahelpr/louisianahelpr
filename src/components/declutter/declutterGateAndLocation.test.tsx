@@ -501,7 +501,7 @@ describe("Declutter location ask", () => {
   it("phone (owner 11-08, the Vinted header): the Search Declutter bar with Filters inside it, the section tabs under it (F153), then the category chips; the filter sheet's View switches the list to the map, as Jobs' does", async () => {
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: mapShown && others.length > 0 }); |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: others.length > 0 });
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |   } else if (!desktop && mapShown) { |   } else if (false) {
-    // @mutate src/components/declutter/DeclutterHomeView.tsx |         <SectionTabs label="Declutter view" value={view} onChange={goTab} tabs= |         <SectionTabs label="Declutter view" value={view} onChange={goTab} onlySelected tabs=
+    // @mutate src/components/declutter/DeclutterHomeView.tsx |         <SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs= |         <SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} onlySelected tabs=
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |         chips: chipRow ? <div data-declutter-chips-row="" className={CHIPS_ROW_PAD}>{chipRow}</div> : listLoading && !items.isError ? <DeclutterChipBones /> : null, |         chips: null,
     twoItems();
     pins.reads = 0;

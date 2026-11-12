@@ -63,6 +63,18 @@ describe("Selling now and the Buying/Selling chips follow the member's language 
     expect(src).not.toMatch(/label: "|title="(Nothing|Ended)|>\s*All\{/);
   });
 
+  it("Declutter home's settings row, Sell pill, tab row name and More ways to sell read the dictionary", () => {
+    const src = blankComments(readFileSync("src/components/declutter/DeclutterHomeView.tsx", "utf8"));
+    for (const k of ["decl.hv.moreWays", "decl.hv.settings", "decl.hv.settingsSub", "decl.hv.view", "decl.hv.sell"]) expect(src, k).toContain(`t("${k}")`);
+    expect(src).not.toMatch(/"Declutter settings"|"Declutter view"|text="Sell"|"More ways to sell"|>Listing defaults/);
+    const hv = (Object.keys(enDeclutter) as (keyof typeof enDeclutter)[]).filter((k) => k.startsWith("decl.hv."));
+    expect(hv.length).toBe(5);
+    for (const k of hv) {
+      expect(es[k], k).toBe(esDeclutter[k]);
+      expect(esDeclutter[k], `${k} still English`).not.toBe(enDeclutter[k]);
+    }
+  });
+
   it("English: Selling now · 3 and See all", async () => {
     show();
     expect(await screen.findByText("Selling now · 3")).toBeTruthy();

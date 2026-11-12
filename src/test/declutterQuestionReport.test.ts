@@ -32,10 +32,12 @@ describe("Declutter questions and answers can be reported (B48)", () => {
     // Shops H2 (20261105182210) restated both again with the shop types and branch; the question rules are unchanged.
     // Q1947 (20261105225245) restated both once more with shop_talk_message, and the Homes report (20261106165850)
     // with home_listing, and Homes messages (20261106191100) with home_talk_message; the question rules are unchanged.
-    expect(typeFile).toBe("20261106191100_homes_talk_report_and_export.sql");
+    // Q1948 L46 (20261112094500) restated the type CHECK with shop_review; the question rules are unchanged.
+    expect(typeFile).toBe("20261112094500_shops_review_report.sql");
     // Q2390 p37 (20261103222939) restated the trigger function verbatim with its not-found as PT404 only; Shops H2
     // (20261105182210) restated it again with the shop branch added.
-    expect(DEFS.get("report_message_party_and_copy")?.file ?? "").toContain("20261106191100_homes_talk_report_and_export.sql");
+    // Q1948 L46 (20261112094500) restated it with the shop_review branch.
+    expect(DEFS.get("report_message_party_and_copy")?.file ?? "").toContain("20261112094500_shops_review_report.sql");
     expect(flat("report_message_party_and_copy").length).toBeGreaterThan(1500);
   });
 

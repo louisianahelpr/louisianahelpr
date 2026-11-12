@@ -822,7 +822,7 @@ serve(async (req) => {
       out.shop_custom_requests_closed = Number(c.lapsed ?? 0) + Number(c.expired ?? 0);
     }
   } catch (e) {
-    defects.record(`shop_custom_request_sweep threw: ${e instanceof Error ? e.message : String(e)}`);
+    defects.record(`shop_custom_request_sweep threw: ${caughtMessage(e, "sweep failed")}`);
   }
   try {
     const noPhoto = await admin.rpc("shop_refund_sweep", {});

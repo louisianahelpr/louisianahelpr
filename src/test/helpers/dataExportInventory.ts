@@ -639,6 +639,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // Shops digital downloads (20261108182917; Shops is testers only).
   // CMP-4 instant book (20261101063725, 20261101065105); lead 11-01.
   // LEAD-LIST-FOR-SELLER (20261101034159): a private link (item, job, Helpr, seller, sent/decided times), service role only.
+  "shop_photo_byte_checks.owner_id": { reason: "Q1956 (20261112095000): a service-role stamp that a photo's bytes were checked (path, object id, owner, time), dropped after a day; the photo itself is exported as the shop's shop_photos / shop_item_photos row" },
   "declutter_listed_for_seller.seller_id": { reason: "link row; the listing itself is a declutter_items row exported under the seller (seller_id), and the job under its poster" },
   "declutter_listed_for_seller.helpr_id": { reason: "link row; the listing the Helpr wrote is the seller's declutter_items row (exported under the seller), and the Helpr's side is the job, exported under helper_id" },
   "payee_accounts.user_id": { reason: "PayPal phase 1 (20261023223419, 2026-10-23): switch paypal_payments is off, so no member rows exist; export added before the switch goes to everyone (OPEN Q2377, a go-live blocker)" },

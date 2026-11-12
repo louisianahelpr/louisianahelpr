@@ -47,6 +47,7 @@ const DIR = resolve(__dirname, "../../supabase/migrations");
 //          it writes goes to a member it names (never to the admins): checked below, each recipient is that member.
 type Kind = "link" | "caller" | "explicit" | "sum" | "gap" | "member";
 const ADMIN_NOTIFIERS: Record<string, Kind> = {
+  admin_activity_notice: "explicit", // 20261112061000 (owner 11-12): the admin bell activity helper; is_test_subject on the actor and the other party, and every trigger skips an is_seed row
   apply_consequence_ladder: "link",
   apply_low_rating_flag: "link",
   auto_escalate_reports: "link",

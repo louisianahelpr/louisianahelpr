@@ -135,6 +135,8 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   invalid_option_name: "Name each option list (like Size or Scent) in 1 to 30 characters, each with its own name.",
   invalid_option_value: "Keep each choice from 1 to 30 characters.",
   too_many_option_lists: "An item can have up to 3 option lists.",
+  // S2-003 (20261112222000): a download sells at one price; options are for things made or handed over.
+  options_not_for_downloads: "A download has one price. Remove its options first, or pick another kind.",
   too_many_option_values: "Each option list can have up to 10 choices.",
   too_many_variants: "An item can have up to 100 combinations.",
   invalid_variants: "Give each combination a price and offer at least one of them.",

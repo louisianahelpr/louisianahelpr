@@ -29,10 +29,12 @@ describe("S009: photos on a live shop item", () => {
     expect(b).toContain("IF v_item.status = 'live' AND (SELECT count(*) FROM public.shop_item_photos WHERE item_id = v_item_id) <= 3 THEN RAISE EXCEPTION 'photos_required'");
   });
 
-  it("the AI check judges a changed live item once and holds it only on a flag", () => {
+  it("the AI check judges a changed live item once and holds it on a flag or inside the 30-day hold (S2-002)", () => {
     const b = flat("shops_record_item_ai_check");
     expect(b).toContain("AND (i.status = 'draft' OR (i.status = 'live' AND i.admin_approved_at IS NULL AND EXISTS (SELECT 1 FROM public.shop_item_private pv WHERE pv.item_id = i.id AND pv.ai_checked_at IS NULL))) FOR UPDATE;");
-    expect(b).toContain("IF v_item.status = 'live' AND v_flag IS NOT NULL THEN UPDATE public.shop_items SET status = 'pending_review', submitted_at = v_at, live_at = NULL, updated_at = v_at WHERE id = p_item_id AND status = 'live';");
+    // S2-002 (20261112222000): a rejection in the last 30 days holds a live photo change on a clean check too.
+    expect(b).toContain("IF v_item.status = 'live' AND (v_flag IS NOT NULL OR v_recent_reject) THEN UPDATE public.shop_items SET status = 'pending_review', submitted_at = v_at, live_at = NULL, updated_at = v_at WHERE id = p_item_id AND status = 'live';");
+    expect(b).toContain("WHERE l.action = 'shop_item_rejected' AND l.details->>'owner_id' = v_item.owner_id::text AND l.created_at > now() - interval '30 days');");
     expect(b).toContain("RAISE EXCEPTION 'ai_check_stale'");
     const edge = readFileSync(resolve(__dirname, "../../supabase/functions/declutter-ai-draft/index.ts"), "utf8");
     expect(edge).toContain('.in("status", mode === "check" ? ["draft", "live"] : ["draft"])');

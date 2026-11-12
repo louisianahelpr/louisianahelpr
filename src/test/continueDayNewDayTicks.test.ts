@@ -12,6 +12,10 @@
  * @mutate src/lib/continueDayWords.ts |   return trackingStatus === undefined ? dated : withNewDayCheckIns(dated, trackingStatus); |   return dated;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const dayJob = jobOnContinueDay(job, continueDay.row, trackingStatus); |   const dayJob = jobOnContinueDay(job, continueDay.row);
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |     ? hiredHelprFace(dayJob, { userId, |     ? hiredHelprFace(job, { userId,
+ * @mutate src/components/tracker/jobProgressState.ts |     const newDay = o.tracking === undefined ? undefined : o.tracking?.status ?? null; |     const newDay = undefined;
+ *
+ * Q2791 (owner screenshot of 7b1da54b): the same rule for every rail that is handed a continue day AND its tracking row
+ * (the chat's job card, DealCard): jobProgress's continue-day branch passes the tracking status on.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -93,5 +97,22 @@ describe("Q2789: a continue day's tracker and Helpr face read the new day's chec
     expect(page).toContain("const dayJob = jobOnContinueDay(job, continueDay.row, trackingStatus);");
     expect(page).toContain("hiredHelprFace(dayJob,");
     expect(page).toContain("<JobTracker job={dayJob}");
+  });
+
+  it("Q2791: a rail given a continue day and its tracking row (the chat's job card) drops day 1's ticks too", () => {
+    const rail = (tracking: { status?: string | null } | null | undefined) =>
+      jobProgress(job, { viewer: "poster", otherFirst: "Yusef", tracking, continueDay: setDay() }).stamps ?? [];
+    for (const tracking of [{ status: "job_confirmed" }, null]) {
+      expect(rail(tracking)[4]).toBeNull();
+      expect(rail(tracking)[5]).toBeNull();
+    }
+    expect(rail({ status: "on_the_way" })[4]).toBe(job.helper_on_the_way_at);
+    expect(rail({ status: "on_the_way" })[5]).toBeNull();
+    expect(rail({ status: "arrived" })[5]).toBe(job.helper_arrived_at);
+    // Home's next-up never reads the tracking row (undefined): unchanged.
+    expect(rail(undefined)[5]).toBe(job.helper_arrived_at);
+    const helpr = jobProgress(job, { viewer: "helpr", otherFirst: "Lexi", tracking: { status: "job_confirmed" }, continueDay: setDay() });
+    expect(helpr.stamps?.[4]).toBeNull();
+    expect(helpr.stamps?.[5]).toBeNull();
   });
 });

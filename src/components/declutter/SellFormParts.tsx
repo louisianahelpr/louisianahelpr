@@ -17,7 +17,8 @@ import { SellHandoverChoices } from "./SellHandoverChoices";
 import { SellerAddressField } from "./SellerAddressField";
 import { SavedPlacesComeFirst, useHasPorchPlaces } from "./SellPorchPlaces";
 import { TaxStatementsCheck } from "./declutterUi";
-import { DROPS_SWITCH_LABEL, priceTooLowForDrops } from "./sellForm";
+import { priceTooLowForDrops } from "./sellForm";
+import "@/lib/i18n/enListingParts";
 import type { SellFlow } from "./useSellFlowState";
 import { formatPrice } from "@/lib/declutter/distance";
 import { sellerGetsTodayCents } from "@/lib/declutter/sellerGetsToday";
@@ -135,7 +136,7 @@ export function SellDropsCard({ s, offerRules }: { s: SellFlow; offerRules?: Rea
     <div className="space-y-4 rounded-[20px] border border-border bg-card p-4" data-sell-drops={on ? "on" : "off"}>
       <div className="flex items-start gap-3">
         <label htmlFor="sell-drops" className="min-w-0 flex-1">
-          <span className="block text-ds-15 font-semibold text-foreground">{DROPS_SWITCH_LABEL}</span>
+          <span className="block text-ds-15 font-semibold text-foreground">{t("lp.dropsSwitch")}</span>
           <span className="block text-ds-13 text-muted-foreground">
             {tooLow ? t("sf.dr.tooLow") : on ? t("sf.dr.on", { pct: form.dropPct, time: dropRunTime() }) : t("sf.dr.off")}
           </span>

@@ -12,12 +12,13 @@ import { parseUsAddress } from "../../../supabase/functions/_shared/addressMatch
 import { WRITER_WARNING_RE } from "@/lib/declutter/writerWarning";
 import type { MsgKey } from "@/lib/i18n/en";
 import { t as tr } from "@/lib/i18n/language";
+import { enListingParts } from "@/lib/i18n/enListingParts";
 
 /**
  * The ONE name of the price-drops switch, on the sell form and in Manage listing (audit DC-5: Manage said "Stop
  * price drops" with on = stopped while the form said this with on = drops). On always means it drops.
  */
-export const DROPS_SWITCH_LABEL = "Lower the price over time";
+export const DROPS_SWITCH_LABEL = enListingParts["lp.dropsSwitch"];
 
 /**
  * A $1 price has nothing lower to drop to (the lowest price is at least $1 and below the price), so drops don't apply

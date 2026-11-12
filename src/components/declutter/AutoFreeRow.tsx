@@ -11,8 +11,10 @@ import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchAutoFreeDays, setAutoFreeDays } from "@/lib/declutter/api";
-import { AUTO_FREE_LABEL, AUTO_FREE_OPTIONS, autoFreeDaysFrom, autoFreeExplainer, autoFreeSaved, autoFreeValue } from "@/lib/declutter/autoFree";
+import { AUTO_FREE_OPTIONS, autoFreeDaysFrom, autoFreeExplainer, autoFreeSaved, autoFreeValue } from "@/lib/declutter/autoFree";
 import { NativeSelect } from "@/components/ui/select";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 /**
  * One row, the label on the left and a native labelled dropdown on the right (LEAD-FREE-AFTER-DROPDOWN, owner
@@ -24,15 +26,15 @@ export function AutoFreeChoice({ days, onChange }: { days: number | null; onChan
   return (
     <div className="space-y-2" data-auto-free={autoFreeValue(days)}>
       <div className="flex items-center justify-between gap-3" data-auto-free-row="">
-        <label htmlFor={id} className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">{AUTO_FREE_LABEL}</label>
+        <label htmlFor={id} className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">{t("lp.afLabel")}</label>
         <NativeSelect id={id} value={autoFreeValue(days)} onChange={(e) => onChange(autoFreeDaysFrom(e.target.value))}
           wrapperClassName="w-auto max-w-[65%] shrink-0" className="pl-3 pr-7 text-ds-14">
-          {AUTO_FREE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          {AUTO_FREE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.value === "never" ? t("lp.afNeverOption") : t("lp.afDays", { n: o.value })}</option>)}
         </NativeSelect>
       </div>
       <p className="text-ds-13 text-muted-foreground">{autoFreeExplainer(days)}</p>
       {/* Audit 2 SE2-3: with drops stopped, say that the day count wins (declutter_auto_free_due clears the stop). */}
-      {days !== null && <p className="text-ds-13 text-muted-foreground" data-auto-free-wins="">This wins over a stopped price: on day {days} it's free.</p>}
+      {days !== null && <p className="text-ds-13 text-muted-foreground" data-auto-free-wins="">{t("lp.afWins", { n: days })}</p>}
     </div>
   );
 }
@@ -53,7 +55,7 @@ export function AutoFreeRow({ itemId, rowClassName, as = "li" }: { itemId: strin
   const Row = as;
   if (state.data === "not_deployed") return null;
   if (state.isError) {
-    return <Row className={rowClassName}><ErrorState variant="inline" title="We couldn't load this setting." body={declutterErrorMessage(state.error)} onRetry={() => void state.refetch()} /></Row>;
+    return <Row className={rowClassName}><ErrorState variant="inline" title={t("lp.loadFail")} body={declutterErrorMessage(state.error)} onRetry={() => void state.refetch()} /></Row>;
   }
   if (state.isLoading) return null;
   const days = pick.isPending ? (pick.variables ?? null) : (state.data ?? null);

@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button";
 import { SuggestCategory } from "@/components/SuggestCategory";
 import { photoPublicUrl, type DeliverySize } from "@/lib/declutter/api";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
-import { ChipGroup, LISTING_LIFETIME, LISTING_LIFETIME_KEEP_UP, ReviewRow, StepHead, dropRunTime } from "./DeclutterSellSteps";
+import { ChipGroup, ReviewRow, StepHead, dropRunTime } from "./DeclutterSellSteps";
 import { KeepUpSwitch } from "./KeepUpRow";
 import { AutoFreeRow } from "./AutoFreeRow";
 import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL } from "./declutterUi";
@@ -46,6 +46,7 @@ import { useSellFlowState } from "./useSellFlowState";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import "@/lib/i18n/enSellForm";
+import "@/lib/i18n/enListingParts";
 import { t as tr, useLanguage } from "@/lib/i18n/language";
 
 export default function SellFlow() {
@@ -206,7 +207,7 @@ function SellSteps({ itemId }: { itemId: string }) {
             <ReviewRow title={tr("sf.ds.photos")} body={tr(photoCount === 1 ? "sf.ds.photosBodyOne" : "sf.ds.photosBody", { n: photoCount })} onEdit={() => setStep(1)} />
             <ReviewRow title={tr("sf.ds.howGet")} body={handoverSummary(savedWays)} onEdit={() => setStep(4)} />
             {/* Owner 2026-10-28: "it also never said how long it will stay open"; the rule the server runs (Q2461). */}
-            <ReviewRow title={tr("sf.ds.howLong")} body={keepUp.on ? LISTING_LIFETIME_KEEP_UP : LISTING_LIFETIME} />
+            <ReviewRow title={tr("sf.ds.howLong")} body={keepUp.on ? tr("lp.lifeKeepUp") : tr("lp.life")} />
           </ul>
           {/* Owner 2026-10-29: "Keep it up until it sells" (saved on the draft at once; the row above follows it). */}
           <KeepUpSwitch keep={keepUp} as="div" rowClassName="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" />

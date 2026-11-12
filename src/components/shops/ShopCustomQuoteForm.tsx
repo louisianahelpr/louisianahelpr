@@ -63,7 +63,7 @@ export default function ShopCustomQuoteForm({ requestId, onDone }: { requestId: 
       await quoteCustomRequest({ requestId, cents: cents as number, note, subtype, statements: need });
     },
     onSuccess: () => {
-      toast("Price sent. The buyer has 7 days to order it.");
+      toast("Price sent. The buyer has 7 days to order it; you then accept the order within 24 hours.");
       onDone();
     },
     onError: (err) => toast.error(shopsErrorMessage(err)),

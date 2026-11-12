@@ -6,6 +6,11 @@ import type { CartLine } from "@/lib/declutter/api";
 import type { MyBooking } from "@/lib/declutter/handover";
 import type { ShopOrder } from "@/lib/shops/orders";
 import { jobOnContinueDay, type ContinueDay } from "@/lib/continueDayWords";
+import "@/lib/i18n/enHome";
+import { getLang, t } from "@/lib/i18n/language";
+
+/** Day and time words in the member's language (F260q). */
+const locale = () => (getLang() === "es" ? "es-US" : "en-US");
 
 /** Which side of which section a Coming up row is on (spec v2 §5.4: the role caption). */
 export type ComingUpRole = "posted" | "working" | "buying" | "selling" | "ordered" | "shop";
@@ -50,7 +55,7 @@ interface ComingUpInputs {
   continueDays?: Readonly<Record<string, ContinueDay>>;
 }
 
-const timeOf = (d: Date) => d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+const timeOf = (d: Date) => d.toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" });
 const startOfDay = (ms: number) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
 
 /**
@@ -60,16 +65,16 @@ const startOfDay = (ms: number) => { const d = new Date(ms); d.setHours(0, 0, 0,
  */
 function comingUpDay(day: Date, now: number): string {
   const days = Math.round((startOfDay(day.getTime()) - startOfDay(now)) / 86_400_000);
-  if (days === 0) return "Today";
-  if (days === 1) return "Tomorrow";
-  if (days > 1 && days < 7) return day.toLocaleDateString("en-US", { weekday: "short" });
-  return day.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  if (days === 0) return t("home.day.today");
+  if (days === 1) return t("home.day.tomorrow");
+  if (days > 1 && days < 7) return day.toLocaleDateString(locale(), { weekday: "short" });
+  return day.toLocaleDateString(locale(), { weekday: "short", month: "short", day: "numeric" });
 }
 
 /** "Oak rocking chair", or "Oak rocking chair + 2 more" for a several-item order. */
 function itemsTitle(titles: readonly string[]): string {
-  const first = titles[0] ?? "your item";
-  return titles.length > 1 ? `${first} + ${titles.length - 1} more` : first;
+  const first = titles[0] ?? t("home.yourItem");
+  return titles.length > 1 ? t("home.more", { first, n: titles.length - 1 }) : first;
 }
 
 function jobRow(job: Job, role: "posted" | "working", id: string, now: number): ComingUpItem | null {
@@ -121,12 +126,12 @@ export function deriveComingUp(i: ComingUpInputs, now: number = Date.now()): Com
     if (!at || Number.isNaN(at.getTime())) continue;
     const buyer = lines[0].my_side === "buyer";
     const what = itemsTitle(lines.map((l) => l.item_title));
-    const verb = buyer ? "Pick up" : lines[0].handover === "porch" ? "Put out" : "Hand over";
+    const verb = buyer ? "home.cu.pickUp" : lines[0].handover === "porch" ? "home.cu.putOut" : "home.cu.handOver";
     rows.push({
       id: `d-${orderId}`,
       section: "declutter",
       role: buyer ? "buying" : "selling",
-      title: `${verb} ${what}`,
+      title: t(verb, { what }),
       at: at.getTime(),
       day: comingUpDay(at, now),
       time: timeOf(at),
@@ -142,7 +147,7 @@ export function deriveComingUp(i: ComingUpInputs, now: number = Date.now()): Com
       id: `${side === "ordered" ? "o" : "s"}-${o.id}`,
       section: "shops",
       role: side,
-      title: side === "ordered" ? `Pick up ${what}` : `Get ${what} ready`,
+      title: t(side === "ordered" ? "home.cu.pickUp" : "home.cu.getReady", { what }),
       at: new Date(`${o.ready_date}T00:00:00`).getTime(),
       day: comingUpDay(parseLocalDate(o.ready_date), now),
       time: null,

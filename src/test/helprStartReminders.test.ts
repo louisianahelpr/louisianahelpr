@@ -32,7 +32,7 @@
  * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | AND e.minutes <= 120), 30) AS lead_minutes | ), 30) AS lead_minutes
  * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql |      AND NOT EXISTS (SELECT 1 FROM public.declutter_route_health rh WHERE rh.miss_until > COALESCE(p_now, now()))\n |
  * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE, | user_id uuid NOT NULL,
- * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql | p_title IN ('Your job starts in 2 hours', 'Time to head out') THEN 'starting_soon' | p_title IN ('Your job starts in 2 hours') THEN 'starting_soon'
+ * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql | p_title IN ('Your job starts in 2 hours', 'Time to head out') THEN 'starting_soon' | p_title IN ('Your job starts in 2 hours') THEN 'starting_soon'
  * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | REVOKE ALL ON FUNCTION public.sweep_helpr_start_reminders(timestamptz) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.sweep_helpr_start_reminders(timestamptz) FROM PUBLIC;
  */
 import { readFileSync } from "node:fs";

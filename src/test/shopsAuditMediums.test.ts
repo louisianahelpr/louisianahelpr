@@ -36,8 +36,8 @@
  * @mutate src/components/shops/ShopMyOrdersView.tsx |   if (o.status === "accepted") return "accepted"; |   if (o.status === "accepted" \|\| o.status === "handed_over") return "accepted";
  * @mutate src/components/shops/ShopOrderCard.tsx |           {CANCEL_RULE_VISIBLE.has(order.status) && !order.handed_over_at | {true
  * @mutate src/components/shops/ShopHandoverActions.tsx |           {!porch && !byHelpr && due && !h?.shop_confirmed_at && ( |           {!porch && due && !h?.shop_confirmed_at && (
- * @mutate supabase/migrations/20261112075006_shops_audit_mediums.sql |   IF o.fulfillment = 'helpr_delivers' AND o.helpr_unfilled_at IS NULL THEN\n    RAISE EXCEPTION 'helpr_delivers_handover' |   IF false THEN\n    RAISE EXCEPTION 'helpr_delivers_handover'
- * @mutate supabase/migrations/20261112075006_shops_audit_mediums.sql | The shop says you weren''t there for the delivery | The shop says you didn''t receive the delivery
+ * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql |   IF o.fulfillment = 'helpr_delivers' AND o.helpr_unfilled_at IS NULL THEN\n    RAISE EXCEPTION 'helpr_delivers_handover' |   IF false THEN\n    RAISE EXCEPTION 'helpr_delivers_handover'
+ * @mutate supabase/migrations/20261112084138_shops_service_no_show.sql | The shop says you weren''t there for the delivery | The shop says you didn''t receive the delivery
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

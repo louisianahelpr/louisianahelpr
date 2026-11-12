@@ -4,7 +4,7 @@
  * The server side (hours stored, copied from the usual times, frozen on the order, the buyer's time checked):
  * src/test/pglite/declutterPlaceHours.pglite.mjs.
  *
- * @mutate src/lib/declutter/pickupTimesText.ts |     return `${days.length === 7 ? "Every day" : shortDays(days)} ${range(ws[0])}`; |     return shortDays(days);
+ * @mutate src/lib/declutter/pickupTimesText.ts |     return `${days.length === 7 ? (getLang() === "es" ? "Todos los días" : "Every day") : shortDays(days)} ${range(ws[0])}`; |     return shortDays(days);
  * @mutate src/components/declutter/ItemPickupDisplay.tsx |       {places.map((p, i) => ( |       {places.slice(0, 1).map((p, i) => (
  * @mutate src/components/declutter/SellOneScreen.tsx |   const pickup = usePickupLines(savedWays, form.areaLabel, windows); |   const pickup: string[] = [];
  * @mutate src/components/declutter/ItemHandoverTimes.tsx |     {(plan.places \|\| read.isError) && <ItemPickupPlaces itemId={itemId} />}\n |

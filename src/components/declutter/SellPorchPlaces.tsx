@@ -26,7 +26,7 @@ import { PickupTimesEditor, pickupWindowsProblem, placeHoursLine } from "./Declu
 import { SellerAddressField } from "./SellerAddressField";
 import { NO_CITY_IN_ADDRESS } from "./sellForm";
 import { useExactAddressPoint } from "./useExactAddressPoint";
-import "@/lib/i18n/enListingParts";
+import { enListingParts } from "@/lib/i18n/enListingParts";
 import { t } from "@/lib/i18n/language";
 
 /**
@@ -60,33 +60,20 @@ function placeHours(p: MyPorchPlace, usual: PickupWindow[]): PickupWindow[] {
  */
 export const PLACE_CARD_EDGE = "dark:!border-border";
 
-/** What the server books: the frozen place's days and hours (declutter_order_is_porch_day, declutter_order_pickup_windows). */
-const PLACE_DAYS_RULE = "Buyers come on each place's own days and hours.";
 
 /** Settings words: a buyer sees the address after paying; on a free item, once the seller confirms. */
-export const PLACES_BOTH_KINDS = "Buyers pick one and get its address after paying, or once you confirm on a free item.";
+export const PLACES_BOTH_KINDS: string = enListingParts["lp.pp.bothKinds"];
 
 /** The words over the places. `free`: nobody pays. `helprOnly`: porch is unticked, so only Helpr delivery reads them. */
 function placesWords(count: number, free: boolean, helprOnly: boolean, card = false): string {
   // Declutter settings: one seller's places serve paid AND free listings, so the words name both (Q2495).
-  if (card) {
-    return count > 0
-      ? `${PLACES_BOTH_KINDS} This applies to all your listings.`
-      : `Keep things in more than one place? Save up to ${MAX_PORCH_PLACES}, each with its own days and hours. ${PLACES_BOTH_KINDS}`;
-  }
-  if (free) {
-    return count > 0
-      ? "The person who gets it picks one of these and sees its address once they confirm. This applies to all your listings."
-      : `Keep things in more than one place? Save up to ${MAX_PORCH_PLACES}, each with its own days and hours. The person who gets it picks one and sees its address once they confirm.`;
-  }
-  if (helprOnly) {
-    return count > 0
-      ? "A buyer choosing Helpr delivery picks one of these, and the Helpr picks it up there. This applies to all your listings."
-      : `Keep things in more than one place? Save up to ${MAX_PORCH_PLACES}. A buyer choosing Helpr delivery picks one, and the Helpr picks it up there.`;
-  }
-  return count > 0
-    ? "Buyers pick one of these. They only get its address after paying. This applies to all your listings."
-    : `Keep things in more than one place? Save up to ${MAX_PORCH_PLACES}, each with its own days and hours. Buyers pick one and only get its address after paying.`;
+  // F260q: in the member's language (enListingParts lp.pp.*); English reads the same sentences as before.
+  const all = t("lp.pp.allListings");
+  const more = t("lp.pp.moreThanOne", { n: MAX_PORCH_PLACES });
+  if (card) return count > 0 ? `${t("lp.pp.bothKinds")} ${all}` : `${more} ${t("lp.pp.bothKinds")}`;
+  if (free) return count > 0 ? `${t("lp.pp.freeHas")} ${all}` : `${more} ${t("lp.pp.freeNone")}`;
+  if (helprOnly) return count > 0 ? `${t("lp.pp.helprHas")} ${all}` : `${t("lp.pp.moreThanOneShort", { n: MAX_PORCH_PLACES })} ${t("lp.pp.helprNone")}`;
+  return count > 0 ? `${t("lp.pp.paidHas")} ${all}` : `${more} ${t("lp.pp.paidNone")}`;
 }
 
 function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => void; free: boolean }) {
@@ -120,31 +107,31 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
   const hoursProblem = pickupWindowsProblem(d.windows);
   const ready = d.label.trim().length > 0 && d.address.trim().length >= 5 && !hoursProblem;
   // F410b (audit 11-10): Save place sat grey with no reason beside it. The first thing still missing is said next to it.
-  const notReady = d.label.trim().length === 0 ? "Add a name to save this place." : d.address.trim().length < 5 ? "Add the address to save this place." : hoursProblem;
+  const notReady = d.label.trim().length === 0 ? t("lp.pp.needName") : d.address.trim().length < 5 ? t("lp.pp.needAddress") : hoursProblem;
   const weekdays = [...new Set(d.windows.map((w) => w.weekday))].sort((a, b) => a - b);
   return (
     <div className={`space-y-3 rounded-[16px] border border-border bg-card p-4 ${PLACE_CARD_EDGE}`} data-porch-place-form="">
       <div className="space-y-1.5">
-        <label htmlFor={`${uid}-label`} className="block text-ds-14 font-semibold text-foreground">Name</label>
-        <Input id={`${uid}-label`} maxLength={40} value={d.label} onChange={(e) => set({ label: e.target.value })} placeholder="e.g. Home, Mom's house" />
+        <label htmlFor={`${uid}-label`} className="block text-ds-14 font-semibold text-foreground">{t("lp.f.name")}</label>
+        <Input id={`${uid}-label`} maxLength={40} value={d.label} onChange={(e) => set({ label: e.target.value })} placeholder={t("lp.pp.namePh")} />
       </div>
       <div className="space-y-1.5">
-        <label htmlFor={`${uid}-address`} className="block text-ds-14 font-semibold text-foreground">Address</label>
-        <SellerAddressField id={`${uid}-address`} ariaLabel="Address" value={d.address} place={place}
+        <label htmlFor={`${uid}-address`} className="block text-ds-14 font-semibold text-foreground">{t("lp.f.address")}</label>
+        <SellerAddressField id={`${uid}-address`} ariaLabel={t("lp.f.address")} value={d.address} place={place}
           onChange={(address, area) => { set({ address, area: d.saved && d.saved.address.trim() === address.trim() ? initial.area : area }); setProblem(null); }} />
         <AddressNeedsExactSpot typedAddress={d.address} inexact={place.inexact} locating={place.locating} shareMyLocation={place.shareMyLocation} />
-        <p className="text-ds-13 text-muted-foreground">{free ? "Private. Only the person who picks this place sees it." : "Private. Only the buyer who pays and picks this place sees it."}</p>
+        <p className="text-ds-13 text-muted-foreground">{free ? t("lp.pp.privateFree") : t("lp.pp.privatePaid")}</p>
       </div>
-      <div className="space-y-1.5" role="group" aria-label="Days and hours at this place" data-place-hours="">
-        <p className="text-ds-14 font-semibold text-foreground">Days and hours at this place</p>
+      <div className="space-y-1.5" role="group" aria-label={t("lp.pp.hoursHead")} data-place-hours="">
+        <p className="text-ds-14 font-semibold text-foreground">{t("lp.pp.hoursHead")}</p>
         <PickupTimesEditor windows={d.windows} setWindows={(f) => setD((x) => ({ ...x, windows: f(x.windows) }))} />
       </div>
       {problem && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-place-problem="">{problem}</p>}
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" className="rounded-full" disabled={save.isPending} onClick={onDone}>Cancel</Button>
+        <Button type="button" variant="outline" className="rounded-full" disabled={save.isPending} onClick={onDone}>{t("lp.f.cancel")}</Button>
         <Button type="button" className="rounded-full" disabled={!ready || save.isPending} onClick={() => save.mutate()}
           aria-describedby={!ready && notReady ? `${uid}-not-ready` : undefined}>
-          {save.isPending ? "Saving…" : "Save place"}
+          {save.isPending ? t("lp.f.saving") : t("lp.pp.save")}
         </Button>
       </div>
       {!ready && notReady && <p id={`${uid}-not-ready`} className="text-ds-13 font-semibold text-foreground" data-place-not-ready="">{notReady}</p>}
@@ -176,18 +163,18 @@ function PlaceRow({ place, onEdit }: { place: MyPorchPlace; onEdit: () => void }
           <p className="text-ds-13 text-muted-foreground" data-place-hours-line="">{placeHoursLine(place.windows, place.weekdays)}</p>
         </div>
         <div className="-mr-2 -mt-2.5 flex shrink-0" data-place-actions="">
-          <Button type="button" variant="ghost" size="iconCompact" className={PLACE_ICON_BUTTON} onClick={onEdit} aria-label={`Edit ${place.label}`}>
+          <Button type="button" variant="ghost" size="iconCompact" className={PLACE_ICON_BUTTON} onClick={onEdit} aria-label={t("lp.pp.edit", { name: place.label })}>
             <Pencil className="h-[18px] w-[18px]" aria-hidden="true" />
           </Button>
-          <Button type="button" variant="ghost" size="iconCompact" className={`${PLACE_ICON_BUTTON} hover:text-destructive-ink`} onClick={() => setAsking(true)} aria-label={`Remove ${place.label}`}>
+          <Button type="button" variant="ghost" size="iconCompact" className={`${PLACE_ICON_BUTTON} hover:text-destructive-ink`} onClick={() => setAsking(true)} aria-label={t("lp.pp.remove", { name: place.label })}>
             <Trash2 className="h-[18px] w-[18px]" aria-hidden="true" />
           </Button>
         </div>
       </div>
-      <ConfirmSheet open={asking} onClose={() => setAsking(false)} title={`Remove ${place.label}?`}
-        confirmLabel={remove.isPending ? "Removing…" : "Remove place"} cancelLabel="Keep it" pending={remove.isPending}
+      <ConfirmSheet open={asking} onClose={() => setAsking(false)} title={t("lp.pp.removeQ", { name: place.label })}
+        confirmLabel={remove.isPending ? t("lp.pp.removing") : t("lp.pp.removeBtn")} cancelLabel={t("lp.pp.keep")} pending={remove.isPending}
         onConfirm={() => remove.mutate()}>
-        Buyers can't pick it anymore. Orders already placed still use it.
+        {t("lp.pp.removeBody")}
       </ConfirmSheet>
     </li>
   );
@@ -230,25 +217,25 @@ export function SellPorchPlaces({ card = false, free = false, helprOnly = false 
   const [draft, setDraft] = useState<Draft | null>(null);
   if (mine.data === PORCH_PLACES_NOT_DEPLOYED) return null;
   const inCard = (body: ReactNode) => (card
-    ? <section className="rounded-2xl border border-border bg-card px-4 py-3" aria-label="Pickup places" data-porch-places-card="">{body}</section>
+    ? <section className="rounded-2xl border border-border bg-card px-4 py-3" aria-label={t("lp.pp.title")} data-porch-places-card="">{body}</section>
     : body);
   // In settings a row holds the place, as its neighbours do, so Your delivery and Bundle discount are not pushed down from nothing.
   if (mine.isLoading) {
-    return card ? inCard(<><span className="block text-sm font-semibold">Pickup places</span><span className="block text-xs text-muted-foreground">Loading…</span></>) : null;
+    return card ? inCard(<><span className="block text-sm font-semibold">{t("lp.pp.title")}</span><span className="block text-xs text-muted-foreground">{t("lp.f.loading")}</span></>) : null;
   }
-  if (mine.isError) return inCard(<ErrorState variant="inline" title="We couldn't load your pickup places." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />);
+  if (mine.isError) return inCard(<ErrorState variant="inline" title={t("lp.pp.loadFail")} body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />);
   const places = mine.data ?? [];
   return inCard(
     <div className="space-y-2" data-porch-places="">
-      <p className="text-ds-14 font-semibold text-foreground">Pickup places</p>
+      <p className="text-ds-14 font-semibold text-foreground">{t("lp.pp.title")}</p>
       <p className="text-ds-13 text-muted-foreground">{placesWords(places.length, free, helprOnly, card)}</p>
-      {places.length > 0 && <p className="text-ds-13 text-muted-foreground" data-place-days-rule="">{PLACE_DAYS_RULE}</p>}
+      {places.length > 0 && <p className="text-ds-13 text-muted-foreground" data-place-days-rule="">{t("lp.pp.daysRule")}</p>}
       {noPlaces && !usualRead.isLoading && !usualRead.isError && !last.isLoading && (
         <p className="rounded-[14px] border border-border bg-background px-3 py-2.5 text-ds-13 text-foreground" data-pickup-now="">
           {lastArea
-            ? `New listings now use ${lastArea}, from your last listing, with pickup ${placeHoursLine(usual, null)}.`
-            : `New listings now use the address you give each one, with pickup ${placeHoursLine(usual, null)}.`}{" "}
-          Add a pickup place to save one here and change it.
+            ? t("lp.pp.nowLast", { area: lastArea, hours: placeHoursLine(usual, null) })
+            : t("lp.pp.nowEach", { hours: placeHoursLine(usual, null) })}{" "}
+          {t("lp.pp.addToChange")}
         </p>
       )}
       {places.length > 0 && (
@@ -260,11 +247,11 @@ export function SellPorchPlaces({ card = false, free = false, helprOnly = false 
         ? <PlaceForm key={draft.id ?? "new"} initial={draft} free={free} onDone={() => setDraft(null)} />
         : places.length < MAX_PORCH_PLACES && (usualRead.isError
           // Review 2026-10-31: a failed read of the usual times is said, with a retry, never a silent Sat 9-12.
-          ? <ErrorState variant="inline" title="We couldn't load your usual pickup times." body={declutterErrorMessage(usualRead.error)} onRetry={() => void usualRead.refetch()} />
+          ? <ErrorState variant="inline" title={t("lp.pp.usualFail")} body={declutterErrorMessage(usualRead.error)} onRetry={() => void usualRead.refetch()} />
           : (
             <Button type="button" variant="outline" className="rounded-full" disabled={usualRead.isLoading} aria-busy={usualRead.isLoading || undefined}
               onClick={() => setDraft({ id: null, label: "", address: "", area: "", windows: usual })}>
-              {usualRead.isLoading ? "Loading your times…" : "Add a pickup place"}
+              {usualRead.isLoading ? t("lp.pp.loadingTimes") : t("lp.pp.add")}
             </Button>
           ))}
     </div>,

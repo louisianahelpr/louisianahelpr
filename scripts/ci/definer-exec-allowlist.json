@@ -129,7 +129,7 @@
     "declutter_open_handover_talk(uuid)": "client",
     "declutter_send_handover_message(uuid, text)": "client",
     "declutter_order_talk_view(uuid)": "client",
-    "declutter_send_order_message(uuid, text)": "client",
+    "declutter_send_order_message(uuid, text, text)": "client",
     "declutter_my_order_talks()": "client",
     "declutter_add_handover(uuid, text)": "client",
     "declutter_auto_free_days_state(uuid)": "client",

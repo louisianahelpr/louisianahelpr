@@ -221,6 +221,20 @@ export async function uploadProblemPhoto(orderId: string, file: File): Promise<s
   return putHandoverPhoto(`${uid}/declutter/problem/${orderId}/${photoNonce()}.jpg`, problemPhoto);
 }
 
+/**
+ * Audit 11-10 F389: one photo on an order-chat message ("is it scratched?"), cleaned and shrunk like every Declutter
+ * photo, to `<uid>/declutter/talk/<order>/<file>` in the same private bucket (20261112060000): only the order's two
+ * sides read it (never across a block or a ban), and only while the chat is open may it be uploaded. The camera roll
+ * is fine: it is a picture of the item, not proof of a handover.
+ */
+export async function uploadOrderTalkPhoto(orderId: string, file: File): Promise<string> {
+  const { data: auth } = await supabase.auth.getSession();
+  if (!auth.session?.user.id) throw new Error("not_authenticated");
+  const uid = auth.session.user.id;
+  const talkPhoto = await cleanHandoverPhoto(file);
+  return putHandoverPhoto(`${uid}/declutter/talk/${orderId}/${photoNonce()}.jpg`, talkPhoto);
+}
+
 /** Boards 71/72/159: where the handover stands, for either side (declutter_my_handover; never a code). */
 export interface MyHandover {
   order_id: string;

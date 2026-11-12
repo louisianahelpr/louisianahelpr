@@ -11,7 +11,7 @@
  *
  * @mutate src/lib/declutter/problemPhotos.ts | export const PROBLEM_FORM_PHOTOS_READY = true; | export const PROBLEM_FORM_PHOTOS_READY = false;
  * @mutate src/lib/declutter/problemPhotos.ts | export const REFUND_FORM_PHOTOS_READY = true; | export const REFUND_FORM_PHOTOS_READY = false;
- * @mutate supabase/migrations/20261030071818_declutter_returns.sql | = 'problem' AND o.status = 'handed_over'\n                               AND (public.declutter_problem_window_open(o.id) | = 'problem' AND o.status = 'nope'\n                               AND (true
+ * @mutate supabase/migrations/20261112060000_declutter_order_talk_photos.sql | = 'problem' AND o.status = 'handed_over'\n                               AND (public.declutter_problem_window_open(o.id) | = 'problem' AND o.status = 'nope'\n                               AND (true
  * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql | CREATE OR REPLACE FUNCTION public.declutter_ask_refund(p_order_id uuid, p_reason text, p_note text,\n  p_photo_paths text[] DEFAULT '{}') | CREATE OR REPLACE FUNCTION public.declutter_ask_refund(p_order_id uuid, p_reason text, p_note text,\n  p_photos text[] DEFAULT '{}')
  * @mutate src/components/declutter/DeclutterProblemForm.tsx | {PROBLEM_FORM_PHOTOS_READY && <ProblemPhotoPicker | {true && <ProblemPhotoPicker
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {REFUND_FORM_PHOTOS_READY && <ProblemPhotoPicker | {true && <ProblemPhotoPicker
@@ -48,7 +48,7 @@ function problemUploadsAfterHandover(): boolean {
 
 describe("D2-7: the photo pickers wait for the server, and turn on when it is ready", () => {
   it("reads the live definitions (floor)", () => {
-    expect(access).toMatch(/split_part\(p_name, '\/', 3\) NOT IN \('handover', 'problem'(, 'return')?\)/);
+    expect(access).toMatch(/split_part\(p_name, '\/', 3\) NOT IN \('handover', 'problem'(, 'return')?(, 'talk')?\)/);
     expect(writeBranch().length).toBeGreaterThan(50);
     expect(writeBranch()).toContain("o.status = 'paid'");
     expect(ask.length).toBeGreaterThan(200);

@@ -4,7 +4,7 @@
  * the whole shop-state rule. Reads the EFFECTIVE (newest) definitions and the screens that mount it; behaviour on a
  * real database is src/test/pglite/shopsTalkInbox.pglite.mjs (3x, 10 planted defects each RED).
  *
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql |       IF v_stm_side = stm.sender_side THEN | IF false THEN
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql |       IF v_stm_side = stm.sender_side THEN | IF false THEN
  * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql |   IF NOT public.shop_state_ok(s.id) THEN\n    RAISE EXCEPTION 'talk_closed' |   IF s.hidden_at IS NOT NULL THEN\n    RAISE EXCEPTION 'talk_closed'
  * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql |      OR (v_uid IS DISTINCT FROM o.buyer_id AND v_uid IS DISTINCT FROM v_owner) THEN |      THEN
  * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql | REVOKE ALL ON FUNCTION public.shops_open_order_talk(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.shops_open_order_talk(uuid) FROM PUBLIC;

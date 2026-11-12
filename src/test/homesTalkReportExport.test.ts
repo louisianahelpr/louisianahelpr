@@ -5,8 +5,8 @@
  * side sees only the other's first name). Reads the EFFECTIVE (newest) definitions; behaviour on a real database is
  * src/test/pglite/homesTalkReportExport.pglite.mjs (3x, both worlds, 12 planted defects red).
  *
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql |       IF v_htm_side = htm.sender_side THEN |       IF false THEN
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql | IF v_htm_side IS NULL OR NOT public.feature_enabled_for('rentals') THEN | IF v_htm_side IS NULL THEN
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql |       IF v_htm_side = htm.sender_side THEN |       IF false THEN
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql | IF v_htm_side IS NULL OR NOT public.feature_enabled_for('rentals') THEN | IF v_htm_side IS NULL THEN
  * @mutate supabase/migrations/20261112081700_shops_export_rest.sql | ELSE to_jsonb(t) - 'member_id' - 'member_notified_at' | ELSE to_jsonb(t) - 'member_notified_at'
  * @mutate supabase/migrations/20261112081700_shops_export_rest.sql | jsonb_build_object('home_talk_messages', (SELECT coalesce(jsonb_agg(jsonb_build_object( | jsonb_build_object('home_talk_messages', (SELECT coalesce(jsonb_agg(jsonb_build_object('sender_id', t.sender_id,
  */

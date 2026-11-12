@@ -206,6 +206,7 @@ const EXPECTED_CALLERS = [
   "rpc_hire_target_by_handle", // B113 Hire me (20261104143437): are_users_blocked(v_me := auth.uid(), v_target)
   // Shops preorders (20261108184654): the checkout webhook's mark_order_held asks about (the order's buyer, its seller);
   // EXECUTE is service_role only (stripe-webhook), so is_server_context() is true and a blocked pair cancels the hold.
+  "shop_custom_request_sweep", // S045 (20261112091830): the cron; (the request's buyer, its shop's owner), two parties, service_role
   "shop_items_tell_followers", // L92 follow alerts (20261112070000): a trigger; (the follower, the shop's owner), two parties
   "shop_mark_order_held",
   "shops_accept_order",

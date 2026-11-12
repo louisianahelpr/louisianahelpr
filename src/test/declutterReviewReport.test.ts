@@ -5,8 +5,8 @@
  * anon execute grant emulated; NEW_MIGRATION=skip 22 RED; 15 planted defects each RED).
  *
  * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql | 'declutter_answer'::text, 'declutter_review'::text, 'shop'::text | 'declutter_answer'::text, 'shop'::text
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql |     IF NOT public.is_server_context() AND NEW.reporter_id IS NOT DISTINCT FROM dr.reviewer_id THEN |     IF false THEN
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql |                         OR dro.handed_over_at <= now() - interval '14 days' |                         OR true
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql |     IF NOT public.is_server_context() AND NEW.reporter_id IS NOT DISTINCT FROM dr.reviewer_id THEN |     IF false THEN
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql |                         OR dro.handed_over_at <= now() - interval '14 days' |                         OR true
  * @mutate supabase/migrations/20261102040000_declutter_review_report.sql |      AND r.removed_at IS NULL  -- A3-75: an admin removed it after a report |      AND true
  * @mutate supabase/migrations/20261105171508_public_profile_stats_same_person.sql | after a report never counts.\n      AND dr.removed_at IS NULL | after a report never counts.\n      AND true
  * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql |   IF r.reviewer_id = v_uid OR r.reviewee_id = v_uid THEN |   IF false THEN

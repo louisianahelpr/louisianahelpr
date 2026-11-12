@@ -82,7 +82,7 @@ export function BunchRow({ item, index, url, open, nextPriceId, canDrop, onToggl
           // A3-68: a fixed "$" inside the box (it was only the placeholder, so a filled box read a bare "25").
           <span className="relative w-[4.5rem] shrink-0" data-bunch-row-price="">
             <span aria-hidden className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ds-15 text-muted-foreground">$</span>
-            <Input id={`price-${item.key}`} aria-label="Price ($)" aria-describedby={nameId} className="h-11 w-full pl-5 pr-2 text-center"
+            <Input id={`price-${item.key}`} aria-label={t("lp.bc.price")} aria-describedby={nameId} className="h-11 w-full pl-5 pr-2 text-center"
               inputMode="decimal" enterKeyHint="next" value={item.price} onChange={(e) => onPrice(e.target.value)} onKeyDown={toNext} />
           </span>
         ))}

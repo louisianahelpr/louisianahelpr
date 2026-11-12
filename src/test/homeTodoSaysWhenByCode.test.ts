@@ -8,7 +8,6 @@
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   if (!Number.isFinite(at) \|\| at < now \|\| line.detailSaysWhen) return task; |   if (!Number.isFinite(at) \|\| at < now) return task;
  * @mutate src/components/job-card/jobStatusLine.ts |     ...(saysWhen ? { detailSaysWhen: true as const } : {}), |
  * @mutate src/components/job-card/jobStatusLine.ts | (!!offerBy \|\| !!detailBy \|\| | (!!offerBy \|\|
- * @mutate src/components/job-card/jobStatusLine.ts |   const saysWhen = !expired && | const saysWhen = true &&
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";

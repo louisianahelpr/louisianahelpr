@@ -695,7 +695,7 @@ export function posterStatusLine(
   const expired = id === "cancelled" && isExpiredListing(job);
   const detail = expired ? inLang("cl.expiredDetail", EXPIRED_LISTING_DETAIL) : named ?? (atTheJob ? inLang("cl.atJobHelpr", "Your Helpr is at the job") : inLang(`cl.p.${id}`, copy.detail));
   const detailBy = id === "confirmed" && helperName ? confirmWaitBy(helperName, job, detail) : null;
-  const saysWhen = !expired && (!!offerBy || !!detailBy || (!atTheJob && id === "offer_out" && !!helperName && !!offerAnswerByMs(job)));
+  const saysWhen = (!!offerBy || !!detailBy || (!atTheJob && id === "offer_out" && !!helperName && !!offerAnswerByMs(job)));
   return {
     id,
     eyebrow: expired ? inLang("cl.expiredWord", EXPIRED_WORD) : eyebrowInLang("p", id, copy.eyebrow ?? BUCKET_LABEL[bucket]),

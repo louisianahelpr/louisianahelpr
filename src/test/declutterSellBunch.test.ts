@@ -15,7 +15,7 @@
  *   - listBunch: one item failing never stops the rest, and each failure keeps
  *     its own reason and whether its draft exists.
  *
- * @mutate src/lib/declutter/bunch.ts |   if (unplaced.length > 0) out.push(notSortedPile(unplaced, PILE_NOT_PLACED)); |   void unplaced;
+ * @mutate src/lib/declutter/bunch.ts |   if (unplaced.length > 0) out.push(notSortedPile(unplaced, pileNotPlaced())); |   void unplaced;
  * @mutate src/lib/declutter/bunch.ts |           made = giveUp(good, cleaned, error); |           void good;
  * @mutate src/lib/declutter/bunch.ts |     onProgress(i + 1, batches.length, made); |     onProgress(i + 1, batches.length, []);
  * @mutate src/lib/declutter/bunch.ts | withRetries(() => spacedAsk(cleaned), { delays, | withRetries(() => spacedAsk(part.map((p) => p.file)), { delays,

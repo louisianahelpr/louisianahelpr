@@ -8,7 +8,7 @@
  * crash it again on every reload). A photo the seller dropped is removed, so it never comes back.
  */
 import { useCallback, useRef, useState } from "react";
-import { addSorted, keepCleanablePhotos, keptItemIds, notSortedPile, PILE_PAGE_CLOSED, withoutPosted, type BunchItem, type BunchPhoto, type GroupResult } from "@/lib/declutter/bunch";
+import { addSorted, keepCleanablePhotos, keptItemIds, notSortedPile, pilePageClosed, withoutPosted, type BunchItem, type BunchPhoto, type GroupResult } from "@/lib/declutter/bunch";
 import { fetchItemStatuses } from "@/lib/declutter/api";
 import { bunchStore, type SavedBunch } from "@/lib/declutter/bunchSaved";
 import { useDeviceSaved } from "./useDeviceSaved";
@@ -42,7 +42,7 @@ function restoredItems(items: BunchItem[], photos: BunchPhoto[]): BunchItem[] {
     .filter((it) => it.photoKeys.length > 0);
   const held = new Set(kept.flatMap((it) => it.photoKeys));
   const orphans = photos.filter((p) => !held.has(p.key)).map((p) => p.key);
-  return orphans.length > 0 ? addSorted(kept, [notSortedPile(orphans, PILE_PAGE_CLOSED)]) : kept;
+  return orphans.length > 0 ? addSorted(kept, [notSortedPile(orphans, pilePageClosed())]) : kept;
 }
 
 export function useBunchSaved(

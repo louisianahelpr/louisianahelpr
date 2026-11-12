@@ -16,14 +16,16 @@ import type { DeliverySize } from "@/lib/declutter/api";
 import { bunchItemProblem, bunchItemTakesOffers, bunchItemTakesTrades, type BunchItem } from "@/lib/declutter/bunch";
 import { TwoStepCategoryPicker } from "@/components/ui/TwoStepCategoryPicker";
 import { CATEGORY_PICKER_GROUPS } from "@/lib/declutter/categoryIcons";
-import { CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
+import { SIZE_LABEL } from "./declutterUi";
 import PriceHint from "./DeclutterPriceHint";
 import { BunchPhotos, type BunchOther } from "./DeclutterBunchPhotos";
 import { BuyerPreviewCard } from "./BuyerPreviewCard";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/select";
+import "@/lib/i18n/enDeclutter";
 import "@/lib/i18n/enListingParts";
 import { t } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 
 const field = "h-11 w-full min-w-0 rounded-2xl border border-input glass-field px-3 text-ds-15";
 
@@ -170,7 +172,7 @@ export function BunchCard({ item, offersDefault, tradesDefault, index, others, u
         <div className="min-w-0">
           <label className="block text-ds-13 font-medium" htmlFor={`cond-${id}`}>{t("lp.bc.condition")}</label>
           <NativeSelect id={`cond-${id}`} value={item.conditionStars} onChange={(e) => onChange({ conditionStars: Number(e.target.value) })}>
-            {[5, 4, 3, 2, 1].map((s) => <option key={s} value={s}>{CONDITION_LABEL[s]}</option>)}
+            {[5, 4, 3, 2, 1].map((s) => <option key={s} value={s}>{t(`decl.cond.${s}` as MsgKey)}</option>)}
           </NativeSelect>
         </div>
         {item.sizeUnknown && (

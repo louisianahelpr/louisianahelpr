@@ -354,7 +354,7 @@ describe("Sell a bunch survives leaving", () => {
   });
 
   // The owner's bug, the way a page iOS closed mid-sort reached it: one wordless item per photo, and no word about why.
-  // @mutate src/components/declutter/useBunchSaved.ts |   return orphans.length > 0 ? addSorted(kept, [notSortedPile(orphans, PILE_PAGE_CLOSED)]) : kept; |   return [...kept, ...orphans.map((k) => ({ ...notSortedPile([k], ""), notSorted: false }))];
+  // @mutate src/components/declutter/useBunchSaved.ts |   return orphans.length > 0 ? addSorted(kept, [notSortedPile(orphans, pilePageClosed())]) : kept; |   return [...kept, ...orphans.map((k) => ({ ...notSortedPile([k], ""), notSorted: false }))];
   it("photos mid-sort when the page closed come back together with why, not as an item each", async () => {
     const names = ["a", "b", "c"];
     h.disk.set(META, { userId: "u1", savedAt: Date.now(), areaLabel: "", pickupAddress: "", coords: null, items: [], photos: names.map((n) => ({ key: n, name: `${n}.jpg`, type: "image/jpeg" })) });

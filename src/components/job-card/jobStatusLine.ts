@@ -26,6 +26,7 @@ import { EXPIRED_WORD } from "@/lib/dateUtils";
 import { noShowOpensAt } from "@/lib/noShowOpens";
 import { CREW_TODAY_LINE, TODAY_ANY_TIME_LINE, hasStartTime } from "@/lib/anyTimeThatDay";
 import { workHasBegun } from "@/components/tracker/workHasBegun";
+import { cardLocale, eyebrowInLang, inLang } from "./cardLineLang";
 
 /**
  * WHAT THIS CARD IS WAITING ON — one sentence, on every collapsed job card.
@@ -685,15 +686,15 @@ export function posterStatusLine(
   const atTheJob = id === "working" && !workHasBegun(job, { workUnderway: progress?.workUnderway });
   // JA-49: an offer whose Helpr is not named here still says when the answer is due.
   const offerBy = id === "offer_out" && !helperName ? offerAnswerByMs(job) : null;
-  const named = offerBy ? `Your offer is out · answer due ${dayTime(offerBy)}` : helperName ? (atTheJob ? `${firstName(helperName)} is at the job` : POSTER_NAMED[id]?.(helperName, job)) : undefined;
+  const named = offerBy ? inLang("cl.offerOutDue", `Your offer is out · answer due ${dayTime(offerBy)}`, { when: dayTime(offerBy) }) : helperName ? (atTheJob ? inLang("cl.pn.atJob", `${firstName(helperName)} is at the job`, { name: firstName(helperName) }) : POSTER_NAMED[id]?.(helperName, job)) : undefined;
   // Expired is not cancelled (owner 10-31, src/lib/expiredListing.ts): the poster's
   // own card says "Expired", never "Cancelled", and keeps its Post again.
   const expired = id === "cancelled" && isExpiredListing(job);
-  const detail = expired ? EXPIRED_LISTING_DETAIL : named ?? (atTheJob ? "Your Helpr is at the job" : copy.detail);
+  const detail = expired ? inLang("cl.expiredDetail", EXPIRED_LISTING_DETAIL) : named ?? (atTheJob ? inLang("cl.atJobHelpr", "Your Helpr is at the job") : inLang(`cl.p.${id}`, copy.detail));
   const detailBy = id === "confirmed" && helperName ? confirmWaitBy(helperName, job, detail) : null;
   return {
     id,
-    eyebrow: expired ? EXPIRED_WORD : copy.eyebrow ?? BUCKET_LABEL[bucket],
+    eyebrow: expired ? inLang("cl.expiredWord", EXPIRED_WORD) : eyebrowInLang("p", id, copy.eyebrow ?? BUCKET_LABEL[bucket]),
     detail,
     ...(detailBy ? { detailBy } : {}),
     tone: copy.tone ?? BUCKET_TONE[bucket],
@@ -1069,9 +1070,9 @@ export function helperStatusLine(
   const expired = id === "cancelled" && !!app.job && isExpiredListing(app.job);
   return {
     id,
-    eyebrow: expired ? APPLICANT_CLOSED_EYEBROW : copy.eyebrow ?? BUCKET_LABEL[bucket],
+    eyebrow: expired ? inLang("cl.closed", APPLICANT_CLOSED_EYEBROW) : eyebrowInLang("h", id, copy.eyebrow ?? BUCKET_LABEL[bucket]),
     // Q2588: "It's time" never on a no-start-time job (anyTimeThatDay.ts): today, any time.
-    detail: expired ? APPLICANT_CLOSED_DETAIL : id === "today" && app.job?.is_group_job === true ? CREW_TODAY_LINE : id === "today" && app.job && !hasStartTime(app.job) ? TODAY_ANY_TIME_LINE : named ?? copy.detail,
+    detail: expired ? inLang("cl.noLongerOpen", APPLICANT_CLOSED_DETAIL) : id === "today" && app.job?.is_group_job === true ? CREW_TODAY_LINE : id === "today" && app.job && !hasStartTime(app.job) ? TODAY_ANY_TIME_LINE : named ?? inLang(`cl.h.${id}`, copy.detail),
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_booking" || id === "confirm_spot",
     suffix:
@@ -1131,7 +1132,7 @@ export function helperDeadline(id: HelperWait, job: Job, posterInstantRelease = 
    person. ── */
 const firstName = (n: string) => n.trim().split(/\s+/)[0] || n;
 /** "Sat 1:00 PM" in Louisiana time. */
-const dayTime = (ms: number) => new Date(ms).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
+const dayTime = (ms: number) => new Date(ms).toLocaleString(cardLocale(), { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
 /**
  * Past the day-before confirm deadline (confirmDeadlineMs, 2 hours before the start) with the Helpr's confirm still
  * missing: the line says the window passed, never "confirm by" a time already gone (lead 11-03: "by Fri 8:00 AM" after
@@ -1147,8 +1148,8 @@ export function confirmWindowPassedLine(
   job: { is_group_job?: boolean | null; parent_job_id?: string | null },
 ): string {
   const reposted = job.is_group_job !== true && job.parent_job_id === null;
-  if (!reposted) return name ? `Confirm window passed. ${name} hasn't confirmed` : "Confirm window passed";
-  return name ? `Confirm window passed. ${name} didn't confirm, so it's being reposted` : "Confirm window passed. It's being reposted to other Helprs";
+  if (!reposted) return name ? inLang("cl.passedName", `Confirm window passed. ${name} hasn't confirmed`, { name }) : inLang("cl.passed", "Confirm window passed");
+  return name ? inLang("cl.passedRepostName", `Confirm window passed. ${name} didn't confirm, so it's being reposted`, { name }) : inLang("cl.passedRepost", "Confirm window passed. It's being reposted to other Helprs");
 }
 /** When the offered Helpr's answer is due (the same column offerDeadline reads), or null; never a time already passed. */
 function offerAnswerByMs(job: Job): number | null {
@@ -1158,54 +1159,56 @@ function offerAnswerByMs(job: Job): number | null {
 /** The confirmed line's "Waiting on <name> to confirm" and "by <when>", when the detail shown is exactly that line. */
 function confirmWaitBy(name: string, job: Job, detail: string): { line: string; text: string; by: string } | null {
   if (!job.date_needed) return null;
-  const text = `Waiting on ${firstName(name)} to confirm`;
-  const by = `by ${dayTime(confirmDeadlineMs(job.date_needed, job.start_time ?? null))}`;
+  const when = dayTime(confirmDeadlineMs(job.date_needed, job.start_time ?? null));
+  const text = inLang("cl.pn.waitConfirm", `Waiting on ${firstName(name)} to confirm`, { name: firstName(name) });
+  const by = inLang("cl.by", `by ${when}`, { when });
   return detail === `${text} ${by}` ? { line: detail, text, by } : null;
 }
 const POSTER_NAMED: Partial<Record<PosterWait, (name: string, job: Job) => string>> = {
   // Audit 11-01 JA-49: the name AND the answer-by time ("Yusef has until Mon 6:00 AM to answer").
   offer_out: (n, job) => {
     const by = offerAnswerByMs(job);
-    return by ? `${firstName(n)} has until ${dayTime(by)} to answer` : `Your offer is with ${firstName(n)}`;
+    return by ? inLang("cl.pn.offerUntil", `${firstName(n)} has until ${dayTime(by)} to answer`, { name: firstName(n), when: dayTime(by) }) : inLang("cl.pn.offerWith", `Your offer is with ${firstName(n)}`, { name: firstName(n) });
   },
-  unconfirmed: (n) => `Offer sent — ${firstName(n)} hasn't accepted yet`,
+  unconfirmed: (n) => inLang("cl.pn.unconfirmed", `Offer sent — ${firstName(n)} hasn't accepted yet`, { name: firstName(n) }),
   // WHAT IS NEXT, AND BY WHEN (owner, 2026-10-23, card critique item 5): not just "Hallie accepted".
   confirmed: (n, job) => {
     const f = firstName(n);
-    if (job.helper_dayof_confirmed_at) return job.poster_confirmed_at ? `${f} confirmed · taps On my way when leaving` : `${f} confirmed`;
-    if (!job.date_needed || Date.now() < confirmOpensMs(job.date_needed)) return `${f} accepted · confirms the day before`;
+    if (job.helper_dayof_confirmed_at) return job.poster_confirmed_at ? inLang("cl.pn.confirmedOnWay", `${f} confirmed · taps On my way when leaving`, { name: f }) : inLang("cl.pn.confirmed", `${f} confirmed`, { name: f });
+    if (!job.date_needed || Date.now() < confirmOpensMs(job.date_needed)) return inLang("cl.pn.acceptedDayBefore", `${f} accepted · confirms the day before`, { name: f });
     // A2-C40: past the start the confirm deadline is gone; never "confirm by" a time already passed.
-    if (Date.now() >= posterConfirmClosesMs(job.date_needed, job.start_time)) return `It's start time. ${f} hasn't confirmed`;
+    if (Date.now() >= posterConfirmClosesMs(job.date_needed, job.start_time)) return inLang("cl.pn.startTimeNot", `It's start time. ${f} hasn't confirmed`, { name: f });
     const due = confirmDeadlineMs(job.date_needed, job.start_time ?? null);
     if (Date.now() >= due) return confirmWindowPassedLine(f, job);
-    return `Waiting on ${f} to confirm by ${dayTime(due)}`;
+    return inLang("cl.pn.waitConfirmBy", `Waiting on ${f} to confirm by ${dayTime(due)}`, { name: f, when: dayTime(due) });
   },
-  confirm_still_on: (n, job) =>
-    `${firstName(n)} ${job.helper_dayof_confirmed_at ? "confirmed" : "accepted"} · confirm the job is still on`,
-  on_the_way: (n) => `${firstName(n)} is on the way`,
-  confirm_arrival: (n) => `${firstName(n)} arrived — confirm it`,
+  confirm_still_on: (n, job) => job.helper_dayof_confirmed_at
+    ? inLang("cl.pn.confirmedStillOn", `${firstName(n)} confirmed · confirm the job is still on`, { name: firstName(n) })
+    : inLang("cl.pn.acceptedStillOn", `${firstName(n)} accepted · confirm the job is still on`, { name: firstName(n) }),
+  on_the_way: (n) => inLang("cl.pn.on_the_way", `${firstName(n)} is on the way`, { name: firstName(n) }),
+  confirm_arrival: (n) => inLang("cl.pn.confirm_arrival", `${firstName(n)} arrived — confirm it`, { name: firstName(n) }),
   // Work has begun (posterStatusLine sends the not-begun case to "is at the job"): the tracker's own rule, workHasBegun.
-  working: (n) => `${firstName(n)} is working`,
-  revision_out: (n) => `${firstName(n)} is making the fix`,
-  revision_fixed: (n) => `${firstName(n)} sent the fix — check it`,
-  stalled: (n) => `${firstName(n)} hasn't marked it done`,
-  approve: (n) => `${firstName(n)} marked it done — approve & release pay`,
-  overdue_unconfirmed: (n) => `${firstName(n)} never accepted — cancel?`,
-  overdue_not_started: (n) => `${firstName(n)} never started — cancel?`,
-  overdue_not_arrived: (n) => `${firstName(n)} never arrived — cancel?`,
-  overdue_no_show: (n) => `${firstName(n)} never arrived — No-Show?`,
-  overdue_unfinished: (n) => `Waiting on ${firstName(n)} to finish`,
+  working: (n) => inLang("cl.pn.working", `${firstName(n)} is working`, { name: firstName(n) }),
+  revision_out: (n) => inLang("cl.pn.revision_out", `${firstName(n)} is making the fix`, { name: firstName(n) }),
+  revision_fixed: (n) => inLang("cl.pn.revision_fixed", `${firstName(n)} sent the fix — check it`, { name: firstName(n) }),
+  stalled: (n) => inLang("cl.pn.stalled", `${firstName(n)} hasn't marked it done`, { name: firstName(n) }),
+  approve: (n) => inLang("cl.pn.approve", `${firstName(n)} marked it done — approve & release pay`, { name: firstName(n) }),
+  overdue_unconfirmed: (n) => inLang("cl.pn.overdue_unconfirmed", `${firstName(n)} never accepted — cancel?`, { name: firstName(n) }),
+  overdue_not_started: (n) => inLang("cl.pn.overdue_not_started", `${firstName(n)} never started — cancel?`, { name: firstName(n) }),
+  overdue_not_arrived: (n) => inLang("cl.pn.overdue_not_arrived", `${firstName(n)} never arrived — cancel?`, { name: firstName(n) }),
+  overdue_no_show: (n) => inLang("cl.pn.overdue_no_show", `${firstName(n)} never arrived — No-Show?`, { name: firstName(n) }),
+  overdue_unfinished: (n) => inLang("cl.pn.overdue_unfinished", `Waiting on ${firstName(n)} to finish`, { name: firstName(n) }),
   // F272 (audit 11-10): "checked in" was jargon. This wait is no on-the-way and no arrival past the start.
-  started_no_checkin: (n) => `${firstName(n)} hasn't said they're on the way`,
+  started_no_checkin: (n) => inLang("cl.pn.started_no_checkin", `${firstName(n)} hasn't said they're on the way`, { name: firstName(n) }),
 };
 const HELPER_NAMED: Partial<Record<HelperWait, (name: string) => string>> = {
-  applied: (n) => `${n} hasn't replied yet`,
-  offer: (n) => `${n} offered you this job`,
-  confirm_booking: (n) => `${n} offered you this job`,
-  submitted: (n) => `With ${n} for approval`,
-  revision: (n) => `${n} asked for a fix`,
-  revision_sent: (n) => `Your fix is with ${n}`,
-  arrival_unconfirmed: (n) => `Waiting on ${n} to confirm you arrived`,
+  applied: (n) => inLang("cl.hn.applied", `${n} hasn't replied yet`, { name: n }),
+  offer: (n) => inLang("cl.hn.offer", `${n} offered you this job`, { name: n }),
+  confirm_booking: (n) => inLang("cl.hn.offer", `${n} offered you this job`, { name: n }),
+  submitted: (n) => inLang("cl.hn.submitted", `With ${n} for approval`, { name: n }),
+  revision: (n) => inLang("cl.hn.revision", `${n} asked for a fix`, { name: n }),
+  revision_sent: (n) => inLang("cl.hn.revision_sent", `Your fix is with ${n}`, { name: n }),
+  arrival_unconfirmed: (n) => inLang("cl.hn.arrival_unconfirmed", `Waiting on ${n} to confirm you arrived`, { name: n }),
 };
 
 /** Every id both tables define — the inventory the guard measures against. */

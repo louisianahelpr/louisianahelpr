@@ -3,8 +3,9 @@
  * own words (titles, what blocks Post, the photo trouble box, the progress view, Post it), the parts of SellFormParts
  * it shows (price box steppers, "You get if it sells today", the free note, Accept offers, the tax box head) and the
  * trades switch come from enSellForm.ts / esSellForm.ts. An English member reads the old words, word for word.
- * Not yet: formProblem's own messages (sellForm.ts; SellOneScreen routes them by matching English words), the tax
- * statements (TaxStatementsCheck), the saved draft's step form (DeclutterSellView) and the post steps.
+ * formProblem's messages come from codes (sellForm.ts formProblemCode, "sf.fp.*"); the row Post marks and the price
+ * step's check key off the code, never the words (a Spanish message used to land every problem on Settings).
+ * Not yet: the tax statements (TaxStatementsCheck), the saved draft's step form (DeclutterSellView) and the post steps.
  *
  * @mutate src/components/declutter/SellTradesRow.tsx | >{t("sf.tradesTitle")}< | >Open to trades?<
  * @mutate src/components/declutter/SellFormParts.tsx | >{t(offersWanted ? "sf.offersOn" : "sf.offersOff")}</span> | >{offersWanted ? "Buyers can offer a lower price, and you say yes or no." : "Off. Buyers pay your price with Buy now; no offers."}</span>
@@ -13,6 +14,10 @@
  * @mutate src/components/declutter/CategoryDrillDown.tsx | const catWords = (k: string) => (CATEGORY_LABEL[k] ? t(`decl.cat.${k}` as MsgKey) : k); | const catWords = (k: string) => CATEGORY_LABEL[k] ?? k;
  * @mutate src/components/declutter/CategoryDrillDown.tsx |   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() |   return s.toLowerCase()
  * @mutate src/components/declutter/SellOneScreen.tsx | >{tr("sf.stillWriting")}</p> | >Still writing your listing. It posts when that's done.</p>
+ * @mutate src/components/declutter/sellForm.ts | export const formProblemWords = (code: FormProblemCode): string => tr(`sf.fp.${code}` as MsgKey); | export const formProblemWords = (code: FormProblemCode): string => String(code);
+ * @mutate src/components/declutter/sellForm.ts |   if (code === "price" \|\| code === "floor" \|\| code === "dropPct") return "price"; |   if (code === "price") return "price";
+ * @mutate src/components/declutter/sellForm.ts | if (step === 3) return code && problemRow(code) === "price" ? formProblemWords(code) : null; | if (step === 3) return code && /price/i.test(formProblemWords(code)) ? formProblemWords(code) : null;
+ * @mutate src/components/declutter/SellOneScreen.tsx | const at: Where = problemRow(code); | const at: Where = /name/i.test(formProblemWords(code)) ? "title" : /price\|lowest\|drops/i.test(formProblemWords(code)) ? "price" : "settings";
  * @mutate src/components/declutter/SellOneScreen.tsx | out.push({ message: tr("sf.tickBox"), at: "tax" }); | out.push({ message: "Tick the box about this item before you list it.", at: "tax" });
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -26,6 +31,7 @@ import { esSellForm } from "@/lib/i18n/esSellForm";
 import { OFFERS_TITLE, offersSettingLine } from "@/lib/declutter/offersOnPost";
 import { fireEvent } from "@testing-library/react";
 import { CATEGORY_GROUPS } from "@/lib/declutter/categoryIcons";
+import { formProblem, formProblemCode, problemRow, sellStepProblem, type FormState } from "@/components/declutter/sellForm";
 
 vi.mock("@/components/declutter/useSellerSetupFee", () => ({ useSellerSetupFee: () => ({ unknown: false, server: false, orderId: null, cents: 0 }) }));
 
@@ -141,5 +147,47 @@ describe("the sell screen follows the member's language (F260q)", () => {
         expect(text.includes(english), `${f} still writes "${english}"`).toBe(false);
       }
     }
+  });
+});
+
+describe("the sell form's problems follow the member's language and mark their row by code (F260q)", () => {
+  afterEach(() => __resetLangForTests());
+  const ok = { title: "Oak chair", description: "", category: "furniture", conditionStars: 4, deliverySize: "large", price: "40", floor: "20", drops: true, dropPct: 5, free: false, areaLabel: "Mid-City", pickupAddress: "1234 Example St, Baton Rouge" } as unknown as FormState;
+
+  it("each code has its row: name and the writer's note on the title, price/lowest/step on the price, the rest on Settings", () => {
+    expect(formProblemCode({ ...ok, title: "ab" })).toBe("name");
+    expect(formProblemCode({ ...ok, title: "Item photo unclear - please retake photos" })).toBe("writerNote");
+    expect(formProblemCode({ ...ok, price: "" })).toBe("price");
+    expect(formProblemCode({ ...ok, floor: "50" })).toBe("floor");
+    expect(formProblemCode({ ...ok, dropPct: 7 })).toBe("dropPct");
+    expect(formProblemCode({ ...ok, pickupAddress: "" })).toBe("address");
+    expect(formProblemCode({ ...ok, areaLabel: "1234 Example St" })).toBe("city");
+    expect(["name", "writerNote", "price", "floor", "dropPct", "address", "city"].map((c) => problemRow(c as never))).toEqual(
+      ["title", "title", "price", "price", "price", "settings", "settings"],
+    );
+  });
+
+  it("English: the old words, word for word", () => {
+    expect(formProblem({ ...ok, floor: "50" })).toBe("Set your lowest price: at least $1 and below your price. Or turn price drops off.");
+    expect(formProblem({ ...ok, title: "ab" })).toBe("Give the item a name of at least 3 characters.");
+    expect(sellStepProblem(3, { ...ok, dropPct: 7 }, 3)).toBe("Pick how much the price drops each evening.");
+  });
+
+  it("Spanish: every problem in Spanish, and the price step still stops on a price problem only", async () => {
+    setLang("es");
+    await ensureLangLoaded();
+    expect(formProblem({ ...ok, price: "" })).toBe("Ponga un precio entre $1 y $1,000.");
+    expect(formProblem({ ...ok, areaLabel: "1234 Example St" })).toMatch(/^No pudimos saber la ciudad/);
+    expect(sellStepProblem(2, { ...ok, title: "ab" }, 3)).toMatch(/^Póngale al artículo un nombre/);
+    expect(sellStepProblem(3, { ...ok, floor: "50" }, 3)).toMatch(/^Ponga su precio más bajo/);
+    expect(sellStepProblem(3, { ...ok, dropPct: 7 }, 3)).toBe("Elija cuánto baja el precio cada tarde.");
+    expect(sellStepProblem(3, { ...ok, pickupAddress: "" }, 3)).toBeNull();
+    expect(sellStepProblem(4, { ...ok, pickupAddress: "" }, 3)).toMatch(/^Agregue la dirección de recogida/);
+  });
+
+  it("SellOneScreen marks the row from the code, not by reading the words", () => {
+    const text = blankComments(readFileSync("src/components/declutter/SellOneScreen.tsx", "utf8"));
+    expect(text).toContain("const at: Where = problemRow(code);");
+    expect(text).not.toMatch(/\/name\/i\.test|\/price\|/);
   });
 });

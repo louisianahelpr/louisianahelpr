@@ -11,7 +11,7 @@
  * @mutate src/components/shops/ShopOrderSheet.tsx |       .map((v) => ({ item: i, variantId: v.id as string \| null, unit: v.price_cents, n: qty[lineKey(i.id, v.id)] })); |       .map((v) => ({ item: i, variantId: v.id as string \| null, unit: i.price_cents, n: qty[lineKey(i.id, v.id)] }));
  * @mutate src/components/shops/ShopOrderOptions.tsx |         {variant && inStock && ( |         {variant && (
  * @mutate src/components/shops/ShopProfile.tsx | {withOptions?.has(item.id) ? `From ${formatItemPrice(item.price_cents)}` : formatItemPrice(item.price_cents)} | {formatItemPrice(item.price_cents)}
- * @mutate src/components/shops/ShopItemsList.tsx | withOptions={options.data} preorders={preorders.data} /> | preorders={preorders.data} />
+ * @mutate src/components/shops/ShopItemsList.tsx | withOptions={options.data} preorders={preorders.data} onOrder= | preorders={preorders.data} onOrder=
  * @mutate src/components/shops/ShopItemOptionsEditor.tsx |       if (held) toast( |       if (false) toast(
  * @mutate src/lib/shops/variants.ts |   return (data as { held_for_review?: boolean } \| null)?.held_for_review === true; |   return false;
  * @mutate src/components/shops/ShopItemOptionsEditor.tsx |     rows[variantLabel(values)] ?? { price: String(basePriceCents / 100), stock: "", active: true }; |     rows[variantLabel(values)] ?? { price: "", stock: "", active: true };

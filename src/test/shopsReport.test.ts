@@ -11,7 +11,7 @@
  * @mutate supabase/migrations/20261105182210_shops_report_shop_and_item.sql | REVOKE ALL ON FUNCTION public.shops_admin_take_down_item(uuid, text, uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.shops_admin_take_down_item(uuid, text, uuid) FROM PUBLIC;
  * @mutate supabase/migrations/20261105182210_shops_report_shop_and_item.sql |   IF i.owner_id = v_uid THEN |   IF false THEN
  * @mutate src/components/shops/ShopView.tsx | {!s.mine && <ShopReportShop shopId={s.id} />} | <ShopReportShop shopId={s.id} />
- * @mutate src/components/shops/ShopView.tsx | <ShopItemsList shopId={s.id} reportable={!s.mine} /> | <ShopItemsList shopId={s.id} reportable />
+ * @mutate src/components/shops/ShopView.tsx | <ShopItemsList shopId={s.id} reportable={!s.mine} orderable= | <ShopItemsList shopId={s.id} reportable orderable=
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -76,7 +76,7 @@ describe("a shop or shop item can be reported (Shops H2)", () => {
   it("visitors get Report on the shop and each item; the owner never does", () => {
     const view = src("src/components/shops/ShopView.tsx");
     expect(view).toContain("{!s.mine && <ShopReportShop shopId={s.id} />}");
-    expect(view).toContain("<ShopItemsList shopId={s.id} reportable={!s.mine} />");
+    expect(view).toContain("<ShopItemsList shopId={s.id} reportable={!s.mine} orderable=");
     const pub = src("src/components/shops/PublicShopView.tsx");
     expect(pub).toContain("<ShopReportShop shopId={shop.id} signedIn={signedIn} />");
     expect(pub).toContain("<ShopItemsGrid items={shop.items} reportable={signedIn} />");

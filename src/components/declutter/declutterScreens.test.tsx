@@ -200,6 +200,7 @@ import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
 import DeclutterItemPage from "@/pages/declutter/DeclutterItemPage";
 import { rememberAfterCard } from "@/lib/declutter/afterCard";
 import { formProblem } from "./sellForm";
+import "@/lib/i18n/enSellForm";
 import { dollarsToCents } from "@/lib/declutter/money";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 // Q2428: no partner charity near and no donation receipts (the donate RPCs never reach prod from a test).
@@ -661,7 +662,7 @@ describe("Sell form checks mirror the server", () => {
     expect(dollarsToCents("$1,250.50")).toBe(125050);
   });
   // Audit 11-10 F326 (High): the photo writer's note in the title box would have gone live.
-  // @mutate src/components/declutter/sellForm.ts |   if (WRITER_WARNING_RE.test(f.title)) return WRITER_WARNING_TITLE; |   if (false) return WRITER_WARNING_TITLE;
+  // @mutate src/components/declutter/sellForm.ts |   if (WRITER_WARNING_RE.test(f.title)) return "writerNote"; |   if (false) return "writerNote";
   it("F326: a title that is the photo writer's warning never posts, and says it is about the name", () => {
     expect(formProblem({ ...ok, title: "Item photo unclear - please retake photos" })).toMatch(/not the item's name/);
     expect(formProblem({ ...ok, title: "TEST - please ignore" })).toBeNull();

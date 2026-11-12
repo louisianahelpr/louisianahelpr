@@ -61,6 +61,13 @@ export const enSellForm = {
   "sf.catHeadings": "Category headings",
   "sf.headingChosen": "{heading}, {category} chosen",
   "sf.chosen": "Chosen: {category}",
+  "sf.fp.name": "Give the item a name of at least 3 characters.",
+  "sf.fp.writerNote": "That title is a note about the photo, not the item's name. Type what the item is.",
+  "sf.fp.price": "Set a price between $1 and $1,000.",
+  "sf.fp.floor": "Set your lowest price: at least $1 and below your price. Or turn price drops off.",
+  "sf.fp.dropPct": "Pick how much the price drops each evening.",
+  "sf.fp.address": "Add the pickup address. Buyers only see it after they pay.",
+  "sf.fp.city": "We couldn't tell the city from that address. Pick it from the list, or type it as street, city, ZIP.",
 } as const;
 
 addEnglish(enSellForm);

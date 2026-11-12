@@ -56,4 +56,11 @@ export const esSellForm: Record<keyof typeof enSellForm, string> = {
   "sf.catHeadings": "Grupos de categorías",
   "sf.headingChosen": "{heading}, {category} elegida",
   "sf.chosen": "Elegida: {category}",
+  "sf.fp.name": "Póngale al artículo un nombre de al menos 3 caracteres.",
+  "sf.fp.writerNote": "Ese título es una nota sobre la foto, no el nombre del artículo. Escriba qué es el artículo.",
+  "sf.fp.price": "Ponga un precio entre $1 y $1,000.",
+  "sf.fp.floor": "Ponga su precio más bajo: al menos $1 y menos que su precio. O apague las bajadas de precio.",
+  "sf.fp.dropPct": "Elija cuánto baja el precio cada tarde.",
+  "sf.fp.address": "Agregue la dirección de recogida. Los compradores solo la ven después de pagar.",
+  "sf.fp.city": "No pudimos saber la ciudad con esa dirección. Elíjala de la lista, o escríbala como calle, ciudad, código postal.",
 };

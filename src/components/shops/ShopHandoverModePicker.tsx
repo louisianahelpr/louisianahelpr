@@ -6,7 +6,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { RadioCardList } from "@/components/ui/RadioCardList";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchHandoverMode, HANDOVER_MODES, HANDOVER_MODE_TEXT, setHandoverMode, type HandoverMode } from "@/lib/shops/handover";
@@ -32,27 +32,12 @@ export default function HandoverModePicker({ shopId }: { shopId: string }) {
       ) : mode.isError ? (
         <ErrorState variant="inline" title="We couldn't load this setting." body={shopsErrorMessage(mode.error)} onRetry={() => void mode.refetch()} />
       ) : (
-        <div className="space-y-2" role="group" aria-label="How buyers get their orders">
-          {HANDOVER_MODES.map((m) => {
-            const on = mode.data === m;
-            return (
-              <Button
-                key={m}
-                type="button"
-                variant={on ? "default" : "outline"}
-                className={`${on ? "btn-grad-primary " : ""}h-auto w-full justify-start whitespace-normal py-2 text-left`}
-                aria-pressed={on}
-                disabled={save.isPending}
-                onClick={() => { if (!on) save.mutate(m); }}
-              >
-                <span className="block">
-                  <span className="block text-sm font-semibold">{HANDOVER_MODE_TEXT[m].label}</span>
-                  <span className="block text-xs font-normal">{HANDOVER_MODE_TEXT[m].detail}</span>
-                </span>
-              </Button>
-            );
-          })}
-        </div>
+        <RadioCardList
+          label="How buyers get their orders"
+          options={HANDOVER_MODES.map((m) => ({ value: m, label: HANDOVER_MODE_TEXT[m].label, sub: HANDOVER_MODE_TEXT[m].detail }))}
+          value={mode.data ?? ""}
+          onChange={(m) => { if (m !== mode.data && !save.isPending) save.mutate(m as HandoverMode); }}
+        />
       )}
     </section>
   );

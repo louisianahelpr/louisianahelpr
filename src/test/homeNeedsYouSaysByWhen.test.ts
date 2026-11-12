@@ -5,7 +5,7 @@
  * Inventory: the Helpr's confirm-due row and the poster's approve row, the two clocks the audit named.
  *
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | ?? todoTask(j, "poster", line, now, { pendingApplicants: n }), | ?? line.detail,
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | ON_THE_WAY_TASK : todoTask(a.job!, "helpr", line, now, { application: a.status })), | ON_THE_WAY_TASK : line.detail),
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | tr("todo.onTheWayTask") : todoTask(a.job!, "helpr", line, now, { application: a.status })), | tr("todo.onTheWayTask") : line.detail),
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   if (!step \|\| step.who !== "you") return withTodoBy(line.detail, line, now); |   if (!step) return withTodoBy(line.detail, line, now);
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   return step.by ? `${step.text} · ${step.by}` : withTodoBy(step.text, line, now); |   return withTodoBy(line.detail, line, now);
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   return step.by ? `${step.text} · ${step.by}` : withTodoBy(step.text, line, now); |   return step.text;

@@ -75,7 +75,9 @@ afterEach(() => {
 describe("App.tsx: every chrome piece has its own Suspense", () => {
   it("nothing inside SignedInChrome shares a boundary, and the two dialogs are not mounted directly", () => {
     const app = blankComments(readFileSync(resolve(ROOT, "src/App.tsx"), "utf8"));
-    const block = app.match(/<SignedInChrome>([\s\S]*?)<\/SignedInChrome>/)?.[1] ?? "";
+    // F276a (11-12): the desktop top bar and rail sit in their own SignedInChrome block BEFORE <main> (tab order);
+    // every block is read, so a piece in either one still needs its own boundary.
+    const block = [...app.matchAll(/<SignedInChrome>([\s\S]*?)<\/SignedInChrome>/g)].map((m) => m[1]).join("\n");
     const pieces = [...block.matchAll(/<([A-Z]\w*)\s*\/>/g)].map((m) => m[1]);
     // Floor: the dock and the six pieces beside it.
     expect(pieces.length).toBeGreaterThan(6);

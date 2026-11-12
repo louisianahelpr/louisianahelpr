@@ -15,7 +15,7 @@ import type { SavedPickup } from "./useSavedPickup";
 import { AREA_ADDRESS_RE } from "./sellForm";
 
 /** The same address and area rules as the List check (placeProblem in DeclutterBunchView). */
-export function whereFoldable(saved: SavedPickup | null, pickupAddress: string, areaLabel: string): boolean {
+function whereFoldable(saved: SavedPickup | null, pickupAddress: string, areaLabel: string): boolean {
   if (!saved) return false;
   const address = (pickupAddress.trim() ? pickupAddress : saved.address).trim();
   const area = areaLabel.trim() ? areaLabel : saved.areaLabel;

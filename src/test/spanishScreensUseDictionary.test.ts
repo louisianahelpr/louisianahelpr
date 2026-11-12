@@ -133,6 +133,8 @@ const CONVERTED = [
   "src/components/messages/chatView/SystemEventRow.tsx",
   // F260q: the sell form's photo-tool panel (enAiDraft.ts).
   "src/components/declutter/SellAiDraft.tsx",
+  // F260q: the job page's list-it-for-the-seller panel (enListForSeller.ts).
+  "src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */

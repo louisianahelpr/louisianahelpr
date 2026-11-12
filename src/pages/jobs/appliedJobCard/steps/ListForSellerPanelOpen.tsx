@@ -28,13 +28,12 @@ import {
   type HelprJobListing,
 } from "@/lib/declutter/listForSeller";
 import { NativeSelect } from "@/components/ui/select";
+import type { MsgKey } from "@/lib/i18n/en";
+import { t } from "@/lib/i18n/language";
+import { wordInLang } from "@/lib/i18n/inLang";
+import "@/lib/i18n/enListForSeller";
 
-const STATUS_WORDS: Record<HelprJobListing["status"], string> = {
-  draft: "Not sent yet",
-  pending_seller_approval: "Waiting for their approval",
-  approved: "Approved",
-  declined: "Not used",
-};
+const statusWord = (s: HelprJobListing["status"]) => t(`lfs.st.${s}` as MsgKey);
 
 const dollars = (s: string) => Math.round(Number(s.replace(/[^0-9.]/g, "")) * 100);
 const cents = (n: number) => (n % 100 === 0 ? String(n / 100) : (n / 100).toFixed(2));
@@ -86,60 +85,60 @@ function ListingForm({ jobId, helprId, seller, editing, onDone }: {
       for (const f of photos) await helprUploadListingPhoto(helprId, id, f);
       return id;
     },
-    onSuccess: () => { toast(editing ? "Listing updated." : "Listing saved. Send it when you're ready."); onDone(); },
-    onError: (e: Err) => toast(e.userMessage ?? "We couldn't save that listing. Try again."),
+    onSuccess: () => { toast(editing ? t("lfs.updated") : t("lfs.saved")); onDone(); },
+    onError: (e: Err) => toast(e.userMessage ?? t("lfs.saveFail")),
   });
   const hasPhoto = photos.length > 0 || (editing?.photo_count ?? 0) > 0;
   const ready = title.trim().length >= 3 && dollars(price) >= 100 && (editing || area.trim().length >= 2) && hasPhoto;
   return (
     <form
       className="space-y-3 rounded-2xl border border-border p-3"
-      aria-label={editing ? `Edit ${editing.title}` : `New listing for ${seller}`}
+      aria-label={editing ? t("lfs.editAria", { title: editing.title }) : t("lfs.newAria", { name: seller })}
       onSubmit={(e) => { e.preventDefault(); if (ready && !save.isPending) save.mutate(); }}
     >
-      <label className="block text-ds-13 font-medium">{editing ? `Add photos (has ${editing.photo_count})` : "Photos"}
+      <label className="block text-ds-13 font-medium">{editing ? t("lfs.addPhotos", { count: editing.photo_count }) : t("lfs.photos")}
         <Input type="file" accept="image/*" multiple className="mt-1" onChange={(e) => setPhotos(Array.from(e.target.files ?? []).slice(0, 12))} />
       </label>
       {photos.length > 0 && <SellAiDraftPanel state={ai.state} onRun={ai.run} oneScreen />}
-      <label className="block text-ds-13 font-medium">Title
+      <label className="block text-ds-13 font-medium">{t("lfs.title")}
         <Input className="mt-1" value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} />
       </label>
-      <label className="block text-ds-13 font-medium">Description
+      <label className="block text-ds-13 font-medium">{t("lfs.description")}
         <Textarea className="mt-1" value={description} maxLength={2000} onChange={(e) => setDescription(e.target.value)} />
       </label>
-      <label className="block text-ds-13 font-medium">Category
+      <label className="block text-ds-13 font-medium">{t("lfs.category")}
         <NativeSelect wrapperClassName="mt-1" value={category} onChange={(e) => setCategory(e.target.value)}>
-          {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+          {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{wordInLang(`decl.cat.${c.key}`, c.label)}</option>)}
         </NativeSelect>
       </label>
-      <label className="block text-ds-13 font-medium">Condition
+      <label className="block text-ds-13 font-medium">{t("lfs.condition")}
         <NativeSelect wrapperClassName="mt-1" value={condition} onChange={(e) => setCondition(Number(e.target.value))}>
-          {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{CONDITION_LABEL[n]}</option>)}
+          {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{wordInLang(`decl.cond.${n}`, CONDITION_LABEL[n])}</option>)}
         </NativeSelect>
       </label>
-      <label className="block text-ds-13 font-medium">Size
+      <label className="block text-ds-13 font-medium">{t("lfs.size")}
         <NativeSelect wrapperClassName="mt-1" value={size} onChange={(e) => setSize(e.target.value as keyof typeof SIZE_LABEL)}>
-          {(Object.keys(SIZE_LABEL) as (keyof typeof SIZE_LABEL)[]).map((k) => <option key={k} value={k}>{SIZE_LABEL[k]}</option>)}
+          {(Object.keys(SIZE_LABEL) as (keyof typeof SIZE_LABEL)[]).map((k) => <option key={k} value={k}>{wordInLang(`decl.size.${k}`, SIZE_LABEL[k])}</option>)}
         </NativeSelect>
       </label>
       {/* One per line on a phone: side by side, "Same as price" was cut off at 375. */}
       <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
         {ai.state.status === "done" && <AiPriceLine draft={ai.state.draft} />}
-        <label className="block text-ds-13 font-medium">Price ($)
+        <label className="block text-ds-13 font-medium">{t("lfs.price")}
           <Input className="mt-1" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
         </label>
-        <label className="block text-ds-13 font-medium">Lowest price ($)
-          <Input className="mt-1" inputMode="decimal" value={lowest} placeholder="Same as price" onChange={(e) => setLowest(e.target.value)} />
+        <label className="block text-ds-13 font-medium">{t("lfs.lowest")}
+          <Input className="mt-1" inputMode="decimal" value={lowest} placeholder={t("lfs.samePrice")} onChange={(e) => setLowest(e.target.value)} />
         </label>
       </div>
       {!editing && (
-        <label className="block text-ds-13 font-medium">Neighborhood or town
+        <label className="block text-ds-13 font-medium">{t("lfs.area")}
           <Input className="mt-1" value={area} maxLength={80} onChange={(e) => setArea(e.target.value)} />
         </label>
       )}
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" className="rounded-full" onClick={onDone}>Cancel</Button>
-        <Button type="submit" className="rounded-full" disabled={!ready || save.isPending}>{editing ? "Save changes" : "Save listing"}</Button>
+        <Button type="button" variant="outline" className="rounded-full" onClick={onDone}>{t("lfs.cancel")}</Button>
+        <Button type="submit" className="rounded-full" disabled={!ready || save.isPending}>{editing ? t("lfs.saveChanges") : t("lfs.saveListing")}</Button>
       </div>
     </form>
   );
@@ -161,24 +160,24 @@ export default function ListForSellerPanelOpen({ jobId, posterName }: PanelProps
   const refresh = () => void qc.invalidateQueries({ queryKey: key });
   const send = useMutation({
     mutationFn: () => helprSendListings(jobId),
-    onSuccess: (n) => { toast(n === 1 ? "Sent. They'll approve it on Declutter." : `Sent ${n} listings. They'll approve them on Declutter.`); refresh(); },
-    onError: (e: Err) => toast(e.userMessage ?? "We couldn't send those. Try again."),
+    onSuccess: (n) => { toast(n === 1 ? t("lfs.sentOne") : t("lfs.sentMany", { count: n })); refresh(); },
+    onError: (e: Err) => toast(e.userMessage ?? t("lfs.sendFail")),
   });
   const remove = useMutation({
     mutationFn: (id: string) => helprDeleteListing(user?.id ?? "", id),
     onSuccess: refresh,
-    onError: (e: Err) => toast(e.userMessage ?? "We couldn't delete that. Try again."),
+    onError: (e: Err) => toast(e.userMessage ?? t("lfs.deleteFail")),
   });
   if (!user) return null;
-  const seller = posterFirstName(posterName) || "the seller";
+  const seller = posterFirstName(posterName) || t("lfs.theSeller");
   const drafts = rows.filter((r) => r.status === "draft").length;
   const editing = rows.find((r) => r.item_id === editingId && r.status === "draft");
   const close = () => { setAdding(false); setEditingId(null); refresh(); };
 
   return (
-    <section aria-label={`Listings for ${seller}`} data-list-for-seller="" className="space-y-3 text-left">
+    <section aria-label={t("lfs.aria", { name: seller })} data-list-for-seller="" className="space-y-3 text-left">
       <p className="text-ds-13 text-muted-foreground">
-        Write each listing here. It goes on {seller}&apos;s account and stays off sale until {seller} approves it.
+        {t("lfs.intro", { name: seller })}
       </p>
       {/* The two actions come first, above the list, so on a phone they are on screen without scrolling past every
           listing (b55's 375 check: below the fold, under the bottom bar). */}
@@ -188,10 +187,10 @@ export default function ListForSellerPanelOpen({ jobId, posterName }: PanelProps
           <div className="space-y-2" data-list-for-seller-actions="">
             {drafts > 0 && (
               <Button className="w-full rounded-full" disabled={send.isPending} onClick={() => send.mutate()}>
-                Send {drafts === 1 ? "it" : `all ${drafts}`} to {seller} for approval
+                {drafts === 1 ? t("lfs.sendOne", { name: seller }) : t("lfs.sendAll", { count: drafts, name: seller })}
               </Button>
             )}
-            <Button variant="outline" className="w-full rounded-full" onClick={() => setAdding(true)}>Add listing for {seller}</Button>
+            <Button variant="outline" className="w-full rounded-full" onClick={() => setAdding(true)}>{t("lfs.add", { name: seller })}</Button>
           </div>
         )}
       {rows.length > 0 && (
@@ -200,14 +199,14 @@ export default function ListForSellerPanelOpen({ jobId, posterName }: PanelProps
             <li key={r.item_id} className="flex items-center gap-0.5 py-2 pl-3 pr-1">
               <div className="min-w-0 flex-1">
                 <p className="truncate text-ds-15 font-medium">{r.title}</p>
-                <p className="text-ds-13 text-muted-foreground">{formatPrice(r.price_cents)} · {STATUS_WORDS[r.status]}</p>
+                <p className="text-ds-13 text-muted-foreground">{formatPrice(r.price_cents)} · {statusWord(r.status)}</p>
               </div>
               {r.status === "draft" && (
                 <>
-                  <Button variant="ghost" className="px-2" aria-label={`Edit ${r.title}`} disabled={adding || !!editing}
-                    onClick={() => setEditingId(r.item_id)}>Edit</Button>
-                  <Button variant="ghost" className="px-2" aria-label={`Delete ${r.title}`} disabled={remove.isPending}
-                    onClick={() => remove.mutate(r.item_id)}>Delete</Button>
+                  <Button variant="ghost" className="px-2" aria-label={t("lfs.editAria", { title: r.title })} disabled={adding || !!editing}
+                    onClick={() => setEditingId(r.item_id)}>{t("lfs.edit")}</Button>
+                  <Button variant="ghost" className="px-2" aria-label={t("lfs.deleteAria", { title: r.title })} disabled={remove.isPending}
+                    onClick={() => remove.mutate(r.item_id)}>{t("lfs.delete")}</Button>
                 </>
               )}
             </li>

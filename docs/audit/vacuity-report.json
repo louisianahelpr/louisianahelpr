@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-12T06:14:59.478Z",
-  "guards": 3972,
-  "registered": 3971,
+  "generated": "2026-11-12T06:53:50.934Z",
+  "guards": 3980,
+  "registered": 3979,
   "unregistered": [
     "src/lib/shops/preorders.test.ts"
   ],
@@ -52,7 +52,8 @@
     {
       "module": "src/components/declutter/SellTradesRow.tsx",
       "tests": [
-        "src/test/declutterTradesPrompt.test.tsx"
+        "src/test/declutterTradesPrompt.test.tsx",
+        "src/test/sellFormInSpanish.test.tsx"
       ],
       "parents": [
         "src/components/declutter/SellSummaryCard.tsx"

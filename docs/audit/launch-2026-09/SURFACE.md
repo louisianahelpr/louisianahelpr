@@ -21,16 +21,16 @@ reports coverage against THIS file, not against the route list.
 | Overlay surfaces | **instance** | 238 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
 | Toast messages | **call site** | 1229 (across 356 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 56 |
+| Multi-step flows — confirmed | flow | 57 |
 | Multi-step flows — probable | flow | 35 |
 | Back/next navigation only | flow | 70 |
 | Forms (submittable) | form | 137 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 189 |
 | Email templates | **exported template** | 25 |
 | Notification types (defined in notification_type_pref_map) | type | 29 |
-| **Navigable surfaces** (places a person can stand) | mixed | **857** |
+| **Navigable surfaces** (places a person can stand) | mixed | **858** |
 | **Copy surfaces** (strings a person may read) | mixed | **1283** |
-| **Total auditable surface** | mixed | **2140** |
+| **Total auditable surface** | mixed | **2141** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -72,7 +72,7 @@ they differ, the reason is understood:
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 238 | 130 | agree within method (script counts every menu instance) |
 | Forms | 137 | ~38 | agree |
-| Confirmed multi-step flows | 56 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 57 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -453,6 +453,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/components/declutter/DeclutterTradeViews.tsx` | compare, nav-handler, union-state |
 | `src/components/declutter/DeliveryCantFinish.tsx` | compare, union-state |
 | `src/components/declutter/FallbackImg.tsx` | compare, union-state |
+| `src/components/declutter/OrderCardHead.tsx` | compare, nav-handler, union-state |
 | `src/components/declutter/sellForm.ts` | compare |
 | `src/components/declutter/SellProgress.tsx` | compare |
 | `src/components/firstRun/FirstRun.tsx` | compare, nav-handler, union-state |

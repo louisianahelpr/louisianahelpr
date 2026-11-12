@@ -209,7 +209,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   };
 
   return (
-    <section id="shop-order-sheet" className="space-y-4 rounded-2xl border border-border bg-card p-4" aria-labelledby={headId}>
+    <section id="shop-order-sheet" className="scroll-mt-20 space-y-4 rounded-2xl border border-border bg-card p-4" aria-labelledby={headId}>
       <div className="space-y-1">
         <h2 id={headId} className="text-sm font-semibold">Order</h2>
         {preorder ? <p className="text-xs text-muted-foreground">This is a preorder: you pay in full now.</p> : (

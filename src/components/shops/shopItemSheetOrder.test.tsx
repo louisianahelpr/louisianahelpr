@@ -77,7 +77,7 @@ describe("S026: the item card opens an item sheet that adds to the one order", (
     const sheet = await screen.findByTestId("shop-item-sheet");
     expect(within(sheet).getByText("Hand-poured, 8 oz.")).toBeTruthy();
     expect(screen.queryByText(/^Review order/)).toBeNull();
-    fireEvent.click(within(sheet).getByRole("button", { name: "One more Fig candle" }));
+    // S2-027: the sheet opens at 1, so one + makes 2.
     fireEvent.click(within(sheet).getByRole("button", { name: "One more Fig candle" }));
     fireEvent.click(screen.getByRole("button", { name: "Add to order" }));
     // The order sheet's own stepper shows the same order, and its total counts it.
@@ -97,13 +97,24 @@ describe("S026: the item card opens an item sheet that adds to the one order", (
     fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     expect(document.querySelector("[data-shop-review-bar]")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Tea towel" }));
-    fireEvent.click(within(await screen.findByTestId("shop-item-sheet")).getByRole("button", { name: "One more Tea towel" }));
+    await screen.findByTestId("shop-item-sheet");
     fireEvent.click(screen.getByRole("button", { name: "Add to order" }));
     expect(document.querySelector("[data-shop-review-bar]")?.textContent).toBe("Review order (1)$11.50");
     fireEvent.click(screen.getByRole("button", { name: "Tea towel" }));
     fireEvent.click(within(await screen.findByTestId("shop-item-sheet")).getByRole("button", { name: "One less Tea towel" }));
     fireEvent.click(screen.getByRole("button", { name: "Remove from order" }));
     expect(document.querySelector("[data-shop-review-bar]")).toBeNull();
+  });
+
+  it("S2-027: an item not in the order opens at 1 with Add to order live (one tap to add)", async () => {
+    page();
+    fireEvent.click(await screen.findByRole("button", { name: "Fig candle" }));
+    const sheet = await screen.findByTestId("shop-item-sheet");
+    expect(within(sheet).getByRole("group", { name: "How many Fig candle" }).textContent).toContain("1");
+    const add = screen.getByRole("button", { name: "Add to order" }) as HTMLButtonElement;
+    expect(add.disabled).toBe(false);
+    fireEvent.click(add);
+    expect(document.querySelector("[data-shop-review-bar]")?.textContent).toBe("Review order (1)$20.00");
   });
 
   it("the card's Order button stays; Follow is secondary; the page shares one order", () => {

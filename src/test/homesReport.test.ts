@@ -4,10 +4,10 @@
  * (newest) definitions and the screens; behaviour on a real database is src/test/pglite/homesReport.pglite.mjs
  * (3x, Supabase's default anon execute grant emulated).
  *
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql |     IF NOT public.is_server_context() AND NEW.reporter_id IS NOT DISTINCT FROM hl.owner_id THEN |     IF false THEN
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql | OR NOT public.rentals_listing_visible(hl.id))) THEN | OR false)) THEN
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql | (NOT public.feature_enabled_for('rentals') OR | (false OR
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql |       WHEN 'home_listing' THEN 'a home listing'\n      WHEN 'home_talk_message' |       WHEN 'home_talk_message'
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql |     IF NOT public.is_server_context() AND NEW.reporter_id IS NOT DISTINCT FROM hl.owner_id THEN |     IF false THEN
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql | OR NOT public.rentals_listing_visible(hl.id))) THEN | OR false)) THEN
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql | (NOT public.feature_enabled_for('rentals') OR | (false OR
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql |       WHEN 'home_listing' THEN 'a home listing'\n      WHEN 'home_talk_message' |       WHEN 'home_talk_message'
  * @mutate src/components/rentals/listings/ListingView.tsx | {!l.is_mine && <HomeListingReport listingId={l.id} />} | <HomeListingReport listingId={l.id} />
  * @mutate src/components/admin/adminReports/fetchReports.ts | hydrateReportedShops(reportRows), hydrateReportedHomes(reportRows)] | hydrateReportedShops(reportRows), Promise.resolve({ homes: new Map(), failed: false })]
  * @mutate src/components/admin/adminReports/reportedHomes.ts | ["live", "paused"].includes(h.status) | true

@@ -6,7 +6,7 @@
  * flagged).
  *
  * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql | 'declutter_question'::text, 'declutter_answer'::text, 'declutter_review'::text, | 'declutter_question'::text, 'declutter_review'::text,
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql | it.seller_id)) THEN\n      RAISE EXCEPTION 'report_own_content' USING ERRCODE = '42501'; | it.seller_id)) THEN\n      NULL;
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql | it.seller_id)) THEN\n      RAISE EXCEPTION 'report_own_content' USING ERRCODE = '42501'; | it.seller_id)) THEN\n      NULL;
  * @mutate supabase/migrations/20261103055505_declutter_shops_homes_messages_not_found_is_404.sql |   IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin'::public.app_role) THEN\n    RAISE EXCEPTION 'not_admin' USING ERRCODE = '42501';\n  END IF;\n  IF p_part IS NULL | IF false THEN\n    RAISE EXCEPTION 'not_admin' USING ERRCODE = '42501';\n  END IF;\n  IF p_part IS NULL
  * @mutate supabase/migrations/20261101021934_declutter_question_report.sql | REVOKE ALL ON FUNCTION public.declutter_admin_reported_questions(uuid[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_admin_reported_questions(uuid[]) FROM PUBLIC;
  */

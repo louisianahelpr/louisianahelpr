@@ -104,6 +104,26 @@ export function cancelPolicyText(policy: CancelPolicy, readyTap: ReadyTapCancel 
   };
 }
 
+/** S2-044 (Shops audit 2): the cancel line an order card shows the buyer, or null when there is none to show. An
+ * accepted order only shows its rule while the window can still be open: under until_accept it closed at accept,
+ * and under the date rules it closed once the cutoff passed (the ready date's start, or 24 hours before it). Then
+ * the card says the time has ended instead of promising a cancel the dialog can't give. */
+export function orderCancelLine(
+  order: Pick<ShopOrder, "status" | "handed_over_at" | "preorder_item_id" | "cancel_policy" | "ready_tap_cancel" | "ready_date">,
+  now: Date = new Date(),
+): string | null {
+  if ((order.status !== "held" && order.status !== "accepted") || order.handed_over_at) return null;
+  if (order.preorder_item_id) return "You can cancel until the shop marks it ready.";
+  if (order.status === "accepted") {
+    if (order.cancel_policy === "until_accept") return "The free-cancel time ended when the shop accepted.";
+    const [y, m, d] = (order.ready_date.split("T")[0] ?? "").split("-").map(Number);
+    const readyStart = new Date(y, m - 1, d).getTime();
+    const cutoff = order.cancel_policy === "until_24h_before_ready" ? readyStart - 24 * 3_600_000 : readyStart;
+    if (Number.isFinite(cutoff) && now.getTime() >= cutoff) return "The cancel-for-a-refund time has ended.";
+  }
+  return `${cancelPolicyText(order.cancel_policy, order.ready_tap_cancel).label}.`;
+}
+
 type OrderStatus =
   | "awaiting_hold" | "held" | "accepted" | "declined" | "expired" | "cancelled" | "superseded" | "handed_over" | "refunded"
   | "partially_refunded";

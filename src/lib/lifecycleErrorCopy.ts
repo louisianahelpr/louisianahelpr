@@ -978,6 +978,15 @@ export const RPC_ERROR_COPY = {
     problem_side_is_yours: DC.problem_side_is_yours,
     too_many_problem_photos: DC.too_many_problem_photos,
   },
+  // F360a (20261111204024): the reporting buyer saves "Refund me" or "Swap / fix it" on an OPEN problem.
+  declutter_problem_set_wants: {
+    account_restricted: DC.account_restricted,
+    invalid_choice: "Pick Refund me or Swap / fix it.",
+    // A problem that is not the caller's own buyer report reads as gone (the RPC's own not-found).
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    problem_not_open: "This problem was already decided, so what you'd like can't change now.",
+  },
   // Audit 1030 DB-1 (20261030044444): the order card's problem read (the two sides and admins).
   declutter_order_problem: {
     not_authenticated: DC.not_authenticated,

@@ -10,7 +10,7 @@
  * @mutate src/components/tracker/crewPosterStep.ts |   const done = hired.find((r) => r.helper_completed_at && !r.poster_confirmed_completion_at); |   const done = hired.find((r) => r.helper_completed_at);
  * @mutate src/components/tracker/crewPosterStep.ts |   if (unconfirmed && start && now < start.getTime()) { |   if (unconfirmed) {
  * @mutate src/components/tracker/crewPosterStep.ts |   const hired = (roster ?? []).filter((r) => r.status === "accepted"); |   const hired = roster ?? [];
- * @mutate src/components/tracker/jobNextStep.ts | `Approve ${o.crew ? "your crew's" : other ? | `Approve ${other ?
+ * @mutate src/components/tracker/jobNextStep.ts | text: o.crew ? t("ns.approveCrew") : other ? | text: other ?
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | approveLeft, crew: job.is_group_job === true }); | approveLeft });
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     crewNames: job.is_group_job ? helperNames : undefined, |     crewNames: undefined,
  */

@@ -39,6 +39,7 @@ function initialLang(): Lang {
 
 let lang: Lang = initialLang();
 let esDict: Record<MsgKey, string> | null = null;
+let esNotice: ((text: string) => string) | null = null;
 let loading: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 // Bumps on every change (language or a dictionary arriving) so subscribers re-render.
@@ -65,6 +66,7 @@ export function ensureLangLoaded(): Promise<void> {
           return;
         }
         esDict = m.es;
+        esNotice = m.noticeInSpanish;
         emit();
       },
       (err: unknown) => {
@@ -107,6 +109,14 @@ export function t(key: MsgKey, vars?: Record<string, string | number>): string {
   return fill(dict[key] ?? englishWords[key] ?? key, vars);
 }
 
+/**
+ * A server-written notice in Spanish (noticeEs.ts's known shapes), once the Spanish chunk has arrived; until then (and
+ * in English) the text as written, so it switches in the same render as t()'s words.
+ */
+export function spanishNotice(text: string): string {
+  return esNotice ? esNotice(text) : text;
+}
+
 function subscribe(fn: () => void) {
   listeners.add(fn);
   return () => {
@@ -124,6 +134,7 @@ export function useLanguage(): { lang: Lang; setLang: (l: Lang) => void; t: type
 export function __resetLangForTests() {
   lang = "en";
   esDict = null;
+  esNotice = null;
   loading = null;
   applyHtmlLang();
   emit();

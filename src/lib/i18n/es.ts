@@ -17,6 +17,10 @@ import { esFree } from "./esFree";
 import { esQuestions } from "./esQuestions";
 import { esDeclPanels } from "./esDeclPanels";
 
+// The server-written notices' Spanish shapes ride this chunk, so they arrive with the words (language.ts, no flash)
+// and never sit on an English boot path.
+export { noticeInSpanish } from "./noticeEs";
+
 export const es: Record<MsgKey, string> = {
   ...esPublic,
   ...esLanding,

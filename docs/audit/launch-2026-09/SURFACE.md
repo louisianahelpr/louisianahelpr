@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 238 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1229 (across 356 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1227 (across 356 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 57 |
-| Multi-step flows — probable | flow | 35 |
+| Multi-step flows — probable | flow | 34 |
 | Back/next navigation only | flow | 70 |
 | Forms (submittable) | form | 137 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 189 |
 | Email templates | **exported template** | 25 |
 | Notification types (defined in notification_type_pref_map) | type | 31 |
-| **Navigable surfaces** (places a person can stand) | mixed | **858** |
-| **Copy surfaces** (strings a person may read) | mixed | **1285** |
-| **Total auditable surface** | mixed | **2143** |
+| **Navigable surfaces** (places a person can stand) | mixed | **857** |
+| **Copy surfaces** (strings a person may read) | mixed | **1283** |
+| **Total auditable surface** | mixed | **2140** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -531,7 +531,6 @@ A useState string-union of 2+ states. Some are real flows, some are display-stat
 | `src/components/rentals/RentPanel.tsx` | union-state |
 | `src/components/schedule/ChangeJobSheet.tsx` | union-state |
 | `src/components/shops/ShopDigitalOrder.tsx` | union-state |
-| `src/components/shops/ShopItemEditor.tsx` | union-state |
 | `src/components/shops/ShopOrderCancel.tsx` | union-state |
 | `src/components/TimeRangeField.tsx` | union-state |
 | `src/components/UserAvatar.tsx` | union-state |

@@ -31,7 +31,7 @@
 // @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql | AND v_actor <> p_recipient AND public.is_test_subject(v_actor) THEN | AND v_actor <> p_recipient AND public.is_test_member(v_actor) THEN
 // @mutate supabase/migrations/20261103173728_q2390_haul_price_withdraw_guarantee_raise_refund_admin_delivery_cart_shops_rent_not_found_is_404.sql |     IF NOT (public.is_test_subject(o.buyer_id) OR public.is_test_subject(o.seller_id)) THEN |     IF true THEN
 // @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |   IF v_seed OR public.is_test_subject(p_user_id) THEN |   IF v_seed THEN
-// @mutate supabase/migrations/20261108184654_shops_preorders.sql |       IF NOT (o.is_seed OR public.is_test_subject(o.buyer_id) OR public.is_test_subject(o.seller_id)) THEN |       IF NOT (o.is_seed) THEN
+// @mutate supabase/migrations/20261112200351_shops_card_cost_words.sql |       IF NOT (o.is_seed OR public.is_test_subject(o.buyer_id) OR public.is_test_subject(o.seller_id)) THEN |       IF NOT (o.is_seed) THEN
 // @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |   IF NOT (public.is_test_subject(_uid) OR public.is_test_subject(_customer) OR public.is_test_subject(_helper)) THEN |   IF true THEN
 // @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |                     WHERE NOT d.is_seed AND d.status = 'handed_over'\n                      AND NOT public.is_test_subject(d.buyer_id) AND NOT public.is_test_subject(d.seller_id) |                     WHERE NOT d.is_seed AND d.status = 'handed_over'
 // @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |     OR public.is_test_subject(_opener_id); |     OR false;

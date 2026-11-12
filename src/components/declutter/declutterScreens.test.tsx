@@ -428,7 +428,7 @@ describe("Declutter screens", () => {
   // Audit 1030 DB-4: an item the seller offers only by delivery still said "Pickup", "Pickup in ..." and "Pickup times",
   // and checkout then had no pickup. The block follows the ways the seller ticked; an older item keeps "Pickup".
   // Owner mockup 11-01: the block's first line names the ways (a delivery-only item never says pickup), the second the times.
-  // @mutate src/components/declutter/ItemPickupBlock.tsx |   const heading = way === "none" ? "Delivery" : way === "meetup" ? "Meetup" : "Pickup"; |   const heading = "Pickup";
+  // @mutate src/components/declutter/ItemPickupBlock.tsx |   const heading = t(way === "none" ? "pb.delivery" : way === "meetup" ? "pb.meetup" : "pb.pickup"); |   const heading = t("pb.pickup");
   // @mutate src/components/declutter/ItemPickupBlock.tsx |   const porch = ticked === null ? porchOk : ticked.includes("porch"); |   const porch = porchOk;
   // @mutate src/components/declutter/ItemPickupBlock.tsx |   const note = showAddressNote && rows.some((r) => r.way === "porch" \|\| r.way === "pickup_home") ? addressNote(free, isSeller, giver) : ""; |   const note = showAddressNote ? addressNote(free, isSeller, giver) : "";
   // @mutate src/components/declutter/ItemHandoverTimes.tsx |   if (!meetup) return { places, usual: !hasPlaces && ways === null ? "Pickup times" : null }; |   if (!meetup) return { places, usual: !hasPlaces ? "Pickup times" : null };

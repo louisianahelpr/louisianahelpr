@@ -3,6 +3,8 @@
  * DeclutterTradeViews (the component-size ratchet, 600 lines).
  */
 import type { Handover } from "@/lib/declutter/api";
+import "@/lib/i18n/enDeclPanels";
+import { t } from "@/lib/i18n/language";
 
 export const HANDOVER_TITLE: Record<Handover, string> = {
   porch: "Porch pickup",
@@ -21,6 +23,9 @@ export const HANDOVER_WORDS: Record<Handover, string> = {
   meetup: "Meet at a public place: the seller's own spot, or a police safe exchange spot Louisiana Helpr checked. No home address is shared.",
   ship: "The seller mails it to your Louisiana address. You pay the postage shown.",
 };
+/** F260q: a way's title / line in the member's language (ho.* in enDeclPanels.ts; English is the tables above). */
+export const handoverTitle = (h: Handover): string => t(`ho.title.${h}`);
+export const handoverWords = (h: Handover): string => t(`ho.words.${h}`);
 // BUY-14 (Declutter buying audit 10-30): the porch choice is "Porch pickup" here, as on the item page and in every
 // notice; its line says the seller may use another safe place. "Porch or safe place" used to be its title while seller
 // delivery was open. Guard: declutterTradeViews.test.tsx "seller delivery (20261027153244)".

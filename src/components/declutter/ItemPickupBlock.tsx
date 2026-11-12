@@ -21,7 +21,9 @@ import { fetchItemPickupWindows } from "@/lib/declutter/handover";
 import { weekHoursLine } from "@/lib/declutter/pickupSlots";
 import { fetchItemPickupPlaces } from "@/lib/declutter/porchPlaces";
 import { noDeliveryWay } from "@/lib/declutter/pickupWords";
-import { HANDOVER_TITLE } from "./handoverCopy";
+import { handoverTitle } from "./handoverCopy";
+import "@/lib/i18n/enDeclPanels";
+import { t, useLanguage } from "@/lib/i18n/language";
 import { itemTimesPlan } from "./ItemHandoverTimes";
 
 const ORDER: SellerHandover[] = ["porch", "meetup", "seller_delivery", "delivery"];
@@ -33,8 +35,8 @@ const ORDER: SellerHandover[] = ["porch", "meetup", "seller_delivery", "delivery
  */
 function addressNote(free: boolean, isSeller: boolean, giver: string | null): string {
   // Audit 11-10 F359d: a free item has no buyers; the giver picks who gets it.
-  if (isSeller) return free ? "they'll see your exact address only once you pick them" : "buyers see your exact address only after they pay";
-  return free ? `You'll get the exact address if ${giver ?? "the giver"} picks you.` : "exact address after you pay";
+  if (isSeller) return free ? t("pb.noteFreeSeller") : t("pb.noteSeller");
+  return free ? t("pb.noteFree", { giver: giver ?? t("pb.theGiver") }) : t("pb.noteBuyer");
 }
 
 /**
@@ -52,7 +54,7 @@ function useGiverFirstName(itemId: string, sellerId: string, guest: boolean, ena
 /** "A or B" / "A, B or C". */
 function orList(xs: string[]): string {
   if (xs.length <= 1) return xs[0] ?? "";
-  return `${xs.slice(0, -1).join(", ")} or ${xs[xs.length - 1]}`;
+  return `${xs.slice(0, -1).join(", ")} ${t("pb.or")} ${xs[xs.length - 1]}`;
 }
 
 /**
@@ -64,7 +66,7 @@ export function townsWords(cities: string[], areaLabel: string): string {
   const same = (c: string) => c.trim().toLowerCase() === areaLabel.trim().toLowerCase();
   const others = cities.filter((c) => c && !same(c));
   if (others.length === 0) return "";
-  return cities.some(same) ? ` · also ${orList(others)}` : ` · ${orList(others)}`;
+  return cities.some(same) ? ` · ${t("pb.also")} ${orList(others)}` : ` · ${orList(others)}`;
 }
 
 export function ItemPickupBlock({ itemId, sellerId, guest, porchOk, areaLabel, free, isSeller, showAddressNote, readTimes }: {
@@ -74,6 +76,7 @@ export function ItemPickupBlock({ itemId, sellerId, guest, porchOk, areaLabel, f
   /** Times and places are read only for a signed-in member while the item is for sale (the server answers nothing else). */
   readTimes: boolean;
 }) {
+  useLanguage();
   const ways = useQuery({ queryKey: ["declutter", "item-handovers", itemId], queryFn: () => fetchItemHandovers(itemId) });
   const giver = useGiverFirstName(itemId, sellerId, guest, free && !isSeller && showAddressNote);
   const places = useQuery({ queryKey: ["declutter", "item-pickup-places", itemId], queryFn: () => fetchItemPickupPlaces(itemId), enabled: readTimes, retryOnMount: false });
@@ -85,7 +88,7 @@ export function ItemPickupBlock({ itemId, sellerId, guest, porchOk, areaLabel, f
     enabled: readTimes && !!plan.usual,
   });
   const way = noDeliveryWay(ways.data);
-  const heading = way === "none" ? "Delivery" : way === "meetup" ? "Meetup" : "Pickup";
+  const heading = t(way === "none" ? "pb.delivery" : way === "meetup" ? "pb.meetup" : "pb.pickup");
 
   // A3-47 (owner mockup 11-01): one line per way, its hours under it, the address note once at the end.
   const ticked = Array.isArray(ways.data) ? ORDER.filter((w) => ways.data!.includes(w)) : null;
@@ -100,22 +103,22 @@ export function ItemPickupBlock({ itemId, sellerId, guest, porchOk, areaLabel, f
   const rows: { way: string; title: string; hours: string }[] = [];
   const porch = ticked === null ? porchOk : ticked.includes("porch");
   const towns = townsWords(cities, areaLabel);
-  if (porch) rows.push({ way: "porch", title: `${HANDOVER_TITLE.porch}${towns}`, hours: placeHours || pickupUsual });
-  if (ticked === null && !porchOk) rows.push({ way: "pickup_home", title: `${HANDOVER_TITLE.pickup_home}${towns}`, hours: pickupUsual });
+  if (porch) rows.push({ way: "porch", title: `${handoverTitle("porch")}${towns}`, hours: placeHours || pickupUsual });
+  if (ticked === null && !porchOk) rows.push({ way: "pickup_home", title: `${handoverTitle("pickup_home")}${towns}`, hours: pickupUsual });
   if (ticked?.includes("meetup")) {
     const meetHours = plan.usual === "Meetup times" || plan.usual === "Pickup and meetup times" ? usualLine : "";
-    rows.push({ way: "meetup", title: HANDOVER_TITLE.meetup, hours: [meetHours, "you pick the spot at checkout"].filter(Boolean).join(" · ") });
+    rows.push({ way: "meetup", title: handoverTitle("meetup"), hours: [meetHours, t("pb.pickSpot")].filter(Boolean).join(" · ") });
   }
-  for (const w of ["seller_delivery", "delivery"] as const) if (ticked?.includes(w)) rows.push({ way: w, title: HANDOVER_TITLE[w], hours: "" });
+  for (const w of ["seller_delivery", "delivery"] as const) if (ticked?.includes(w)) rows.push({ way: w, title: handoverTitle(w), hours: "" });
   // Said once, last, and only for a way that goes to the seller's place (never under delivery: A3-55).
   const note = showAddressNote && rows.some((r) => r.way === "porch" || r.way === "pickup_home") ? addressNote(free, isSeller, giver) : "";
-  const cap = (t: string) => t.replace(/^./, (c) => c.toUpperCase());
+  const cap = (s: string) => s.replace(/^./, (c) => c.toUpperCase());
 
   return (
     <section className="space-y-0.5" aria-labelledby="declutter-pickup" data-item-pickup-block="">
       <h2 id="declutter-pickup" className="text-base font-semibold">{heading}</h2>
       {ticked !== null && ticked.length === 0 ? (
-        <p className="text-sm" data-pickup-ways="">The seller hasn't said how buyers can get it yet.</p>
+        <p className="text-sm" data-pickup-ways="">{t("pb.noWays")}</p>
       ) : (
         <ul className="space-y-1.5" data-pickup-ways="">
           {rows.map((r) => (
@@ -128,10 +131,10 @@ export function ItemPickupBlock({ itemId, sellerId, guest, porchOk, areaLabel, f
       )}
       {note && <p className="pt-1 text-sm text-muted-foreground" data-item-address-note="">{cap(note)}</p>}
       {readTimes && places.isError && (
-        <ErrorState variant="inline" title="We couldn't load the pickup places." body={declutterErrorMessage(places.error)} onRetry={() => void places.refetch()} />
+        <ErrorState variant="inline" title={t("pb.placesError")} body={declutterErrorMessage(places.error)} onRetry={() => void places.refetch()} />
       )}
       {readTimes && usual.isError && (
-        <ErrorState variant="inline" title="We couldn't load the pickup times." body={declutterErrorMessage(usual.error)} onRetry={() => void usual.refetch()} />
+        <ErrorState variant="inline" title={t("pb.timesError")} body={declutterErrorMessage(usual.error)} onRetry={() => void usual.refetch()} />
       )}
     </section>
   );

@@ -6,7 +6,7 @@
  * "Pickup in <town>" (ItemPickupBlock says the cities once).
  *
  * @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && (\n            <DeclutterSellerCard | {!isSeller && user && <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={false} preview={preview} free={free} />}{false && (\n            <DeclutterSellerCard
- * @mutate src/components/declutter/ItemPickupBlock.tsx | title: `${HANDOVER_TITLE.porch}${towns}` | title: `${HANDOVER_TITLE.porch} · Pickup in ${orList(cities)}`
+ * @mutate src/components/declutter/ItemPickupBlock.tsx | title: `${handoverTitle("porch")}${towns}` | title: `${handoverTitle("porch")} · Pickup in ${orList(cities)}`
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -45,7 +45,7 @@ describe("the Declutter item page's order (owner 2026-10-31)", () => {
 
   it("the pickup block names the cities once, never \"Pickup in <town>\"", () => {
     const block = blankComments(readFileSync("src/components/declutter/ItemPickupBlock.tsx", "utf8"));
-    expect(block).toContain("title: `${HANDOVER_TITLE.porch}${towns}`");
+    expect(block).toContain("title: `${handoverTitle(\"porch\")}${towns}`");
     // F120: the towns are said once, and only where they differ from the item's area (townsWords).
     expect(block).toContain("const towns = townsWords(cities, areaLabel);");
     expect(block).not.toMatch(/Pickup in /);

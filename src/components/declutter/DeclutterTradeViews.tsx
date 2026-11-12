@@ -50,7 +50,7 @@ import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { DeliveryPriceList } from "./DeliveryPriceList";
 import { DropoffAddressField } from "./DropoffAddressField";
 import { PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
-import { HANDOVER_TITLE, HANDOVER_WORDS } from "./handoverCopy";
+import { handoverTitle, handoverWords } from "./handoverCopy";
 import { fetchChosenMeetupHours, fetchMeetupSpotsNear } from "@/lib/declutter/meetup";
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 import { useBundleDiscount } from "./useBundleDiscount";
@@ -287,8 +287,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           >
             <NativeRadio className="mt-1" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setPicked(h)} />
             <span className="min-w-0 flex-1">
-              <span className="block text-ds-15 font-semibold text-foreground">{HANDOVER_TITLE[h]}</span>
-              <span className="block text-ds-13 text-muted-foreground">{HANDOVER_WORDS[h]}</span>
+              <span className="block text-ds-15 font-semibold text-foreground">{handoverTitle(h)}</span>
+              <span className="block text-ds-13 text-muted-foreground">{handoverWords(h)}</span>
             </span>
             <span className="shrink-0 text-ds-15 font-bold text-[hsl(var(--accent-ink))]">
               {h === "delivery" ? (liveQuote ? formatPrice(liveQuote.delivery_cents) : <span className="font-semibold text-muted-foreground">Get a price</span>)

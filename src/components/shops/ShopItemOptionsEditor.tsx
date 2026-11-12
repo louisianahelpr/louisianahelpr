@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { shopsErrorMessage } from "@/lib/shops/errors";
+import { SHOP_ITEM_MAX_PRICE_CENTS, shopsErrorMessage } from "@/lib/shops/errors";
 import {
   combinations,
   fetchItemOptions,
@@ -22,6 +22,16 @@ import {
   variantLabel,
   type ShopItemOptions,
 } from "@/lib/shops/variants";
+
+/** S042 (Shops audit 11-12): "$1,200" or "1,200" is 120000 cents, as the item editor reads a price. */
+export const optionPriceCents = (s: string) => Math.round(Number(s.replace(/[$,\s]/g, "")) * 100);
+/** The words under a combination's price when the server would refuse it ($1 to $5,000), else null. */
+export function optionPriceProblem(s: string): string | null {
+  const c = optionPriceCents(s);
+  if (s.trim() === "" || !Number.isFinite(c)) return "Type a price, like 12.50.";
+  if (c < 100 || c > SHOP_ITEM_MAX_PRICE_CENTS) return `From $1 to $${(SHOP_ITEM_MAX_PRICE_CENTS / 100).toLocaleString("en-US")}.`;
+  return null;
+}
 
 interface ListDraft { name: string; values: string }
 interface RowDraft { price: string; stock: string; active: boolean }
@@ -96,7 +106,7 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
         const r = rowFor(values);
         return {
           values,
-          price_cents: Math.round(Number(r.price) * 100),
+          price_cents: optionPriceCents(r.price),
           stock_count: r.stock.trim() === "" ? null : Number(r.stock),
           active: r.active,
         };
@@ -154,6 +164,7 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
             const label = variantLabel(values);
             const r = rowFor(values);
             const key = label.replace(/[^A-Za-z0-9]+/g, "-");
+            const priceProblem = r.active ? optionPriceProblem(r.price) : null;
             return (
               <li key={label} className="grid grid-cols-[1fr_5rem_5rem] items-end gap-2">
                 <div className="flex items-center gap-2 pb-3">
@@ -162,7 +173,9 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor={`combo-price-${key}`} className="text-xs">Price ($)</Label>
-                  <Input id={`combo-price-${key}`} inputMode="decimal" value={r.price} onChange={(e) => setRow(values, { price: e.target.value })} />
+                  <Input id={`combo-price-${key}`} inputMode="decimal" value={r.price} onChange={(e) => setRow(values, { price: e.target.value })}
+                    aria-invalid={priceProblem ? true : undefined} aria-describedby={priceProblem ? `combo-price-err-${key}` : undefined} />
+                  {priceProblem && <p id={`combo-price-err-${key}`} className="text-xs text-destructive">{priceProblem}</p>}
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor={`combo-stock-${key}`} className="text-xs">Stock</Label>
@@ -177,7 +190,7 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
 
       <div className="flex flex-wrap gap-2">
         {lists.length > 0 && (
-          <Button type="button" variant="outline" disabled={save.isPending || combos.length === 0 || tooMany} onClick={() => save.mutate(false)}>
+          <Button type="button" variant="outline" disabled={save.isPending || combos.length === 0 || tooMany || combos.some((v) => { const row = rowFor(v); return row.active && optionPriceProblem(row.price) !== null; })} onClick={() => save.mutate(false)}>
             {save.isPending ? "Saving…" : "Save options"}
           </Button>
         )}

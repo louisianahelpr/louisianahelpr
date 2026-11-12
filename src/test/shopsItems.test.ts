@@ -51,6 +51,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
+import { formatCents } from "@/lib/shops/formatCents";
 import { requiredStatements, SHOP_ITEM_STATEMENTS, SHOP_ITEM_TYPE_LABEL, readinessLabel, formatItemPrice } from "@/lib/shops/items";
 import { sanitizeShopItemDraft, SHOP_ITEM_TYPES, type ShopItemKind } from "../../supabase/functions/declutter-ai-draft/shopItemSanitize";
 
@@ -256,6 +257,11 @@ describe("Shops slice 2: items, hidden and gated (20261017061157)", () => {
     expect(readinessLabel({ stock_count: null, lead_time_days: 1 })).toBe("Ready in 1 day");
     expect(formatItemPrice(1800)).toBe("$18");
     expect(formatItemPrice(1850)).toBe("$18.50");
+    // S027 (Shops audit 11-12): thousands get a comma, as everywhere else in the app.
+    expect(formatItemPrice(500000)).toBe("$5,000");
+    expect(formatItemPrice(123450)).toBe("$1,234.50");
+    expect(formatCents(500000)).toBe("$5,000.00");
+    expect(formatCents(1250)).toBe("$12.50");
   });
 
   it("9. an admin's decision and approval cover what the admin saw (lh-authz-rls re-review N1, N3)", () => {

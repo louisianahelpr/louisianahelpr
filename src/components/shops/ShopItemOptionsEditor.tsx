@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { SHOP_ITEM_MAX_PRICE_CENTS, shopsErrorMessage } from "@/lib/shops/errors";
 import { priceBoxText } from "@/lib/shops/items";
 import {
@@ -92,6 +93,7 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
   const start = useMemo(() => draftsFrom(initial), [initial]);
   const [lists, setLists] = useState<ListDraft[]>(start.lists);
   const [rows, setRows] = useState<Record<string, RowDraft>>(start.rows);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const parsed = lists.map((l) => splitChoices(l.values));
   const combos = lists.length > 0 && parsed.every((p) => p.length > 0) ? combinations(parsed) : [];
   const tooMany = combos.length > MAX_VARIANTS || parsed.some((p) => p.length > MAX_OPTION_VALUES);
@@ -180,7 +182,7 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor={`combo-stock-${key}`} className="text-xs">Stock</Label>
-                  <Input id={`combo-stock-${key}`} type="number" min={0} max={9999} value={r.stock} placeholder="Any"
+                  <Input id={`combo-stock-${key}`} type="number" min={0} max={9999} value={r.stock} placeholder="Made to order"
                     onChange={(e) => setRow(values, { stock: e.target.value })} />
                 </div>
               </li>
@@ -196,12 +198,22 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
           </Button>
         )}
         {initial && (
-          <Button type="button" variant="ghost" disabled={save.isPending} onClick={() => save.mutate(true)}>
+          <Button type="button" variant="ghost" disabled={save.isPending} onClick={() => setConfirmRemove(true)}>
             Remove all options
           </Button>
         )}
       </div>
       <p className="text-xs text-muted-foreground">Leave stock blank if you make each one to order.</p>
+      {/* S2-014 (Shops audit 2): removing every combination asks first. */}
+      <BrandConfirmDialog
+        open={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        title="Remove all options?"
+        description="Every combination and its price and stock is deleted. The item goes back to one price."
+        primaryLabel="Remove all options"
+        onPrimary={() => { setConfirmRemove(false); save.mutate(true); }}
+        secondaryLabel="Keep them"
+      />
     </section>
   );
 }

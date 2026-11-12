@@ -62,6 +62,10 @@ describe("custom requests, each side", () => {
     show("shop");
     const card = await screen.findByTestId("shop-custom-request");
     fireEvent.click(within(card).getByRole("button", { name: "Decline" }));
+    // S2-023: Decline asks first; nothing is sent until the owner confirms.
+    expect(await screen.findByText("Decline this request?")).toBeTruthy();
+    expect(sb.invoke).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Decline request" }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith("Request declined. The buyer is told."));
     expect(sb.invoke.mock.calls[0][0]).toBe("shop-checkout");
     expect(sb.invoke.mock.calls[0][1].body).toMatchObject({ action: "close_request", request_id: "r9" });

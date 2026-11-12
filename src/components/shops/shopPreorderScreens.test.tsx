@@ -1,4 +1,5 @@
 /**
+ * @mutate src/components/shops/ShopHandoverActions.tsx |     : !service ? addDays(order.ready_date, -1) : null; |     : null;
  * Shops preorder screens (migration 20261108184654; owner 11-08):
  *
  *  1. The shop's settings: "Sell as a preorder" sends ready-by, goal + goal date and limit to shops_set_item_preorder
@@ -153,6 +154,11 @@ describe("the shop's ready tap on a preorder", () => {
   it("waits until 14 days before ready-by", async () => {
     wrap(<ShopHandoverActions order={order({ ready_date: "2099-12-15" })} side="shop" userId="s1" />);
     expect((await screen.findByTestId("shop-preorder-ready-from")).textContent).toBe("This is a preorder. You can mark it ready from Dec 1.");
+    expect(screen.queryByRole("button", { name: "Mark ready" })).toBeNull();
+  });
+  it("S032: a regular order's ready tap waits until the day before its ready date", async () => {
+    wrap(<ShopHandoverActions order={order({ ready_date: "2099-12-15", preorder_item_id: null })} side="shop" userId="s1" />);
+    expect((await screen.findByTestId("shop-preorder-ready-from")).textContent).toBe("You can mark it ready from Dec 14, the day before it's due.");
     expect(screen.queryByRole("button", { name: "Mark ready" })).toBeNull();
   });
 });

@@ -53,13 +53,18 @@ function cancelQuoteText(q: CancelQuote): string {
   if (q.free) {
     // Builder 1 lane (11-12): shops_order_cancel_quote's refund_cents is shop_refund_amounts' NET refund (after the card
     // cost and its tax), exactly what shop_write_refund writes, so the screen says that exact amount and no cost words.
-    return `You're inside the shop's free-cancel time. You get ${formatCents(q.refund_cents ?? 0)} back. The shop is told not to make it.`;
+    // S2-033 (Shops audit 2): never "free" next to a smaller refund. Both numbers show, and the gap is named.
+    const refund = q.refund_cents ?? 0;
+    const paid = q.paid_cents ?? 0;
+    return paid > refund
+      ? `You can still cancel for a refund. You paid ${formatCents(paid)} and get ${formatCents(refund)} back (a small card processing cost isn't refunded). The shop is told not to make it.`
+      : `You can still cancel for a refund. You get ${formatCents(refund)} back. The shop is told not to make it.`;
   }
   // A late cancel of a Helpr delivery no Helpr has picked up yet gives the delivery back (refund_cents > 0).
   if ((q.refund_cents ?? 0) > 0) {
-    return `The shop's free-cancel time is over. If you cancel now, you get ${formatCents(q.refund_cents ?? 0)} back for the delivery and the shop is paid for the order.`;
+    return `The time to cancel for a refund is over. If you cancel now, you get ${formatCents(q.refund_cents ?? 0)} back for the delivery and the shop is paid for the order.`;
   }
-  return "The shop's free-cancel time is over. If you cancel now, nothing is refunded and the shop is paid.";
+  return "The time to cancel for a refund is over. If you cancel now, nothing is refunded and the shop is paid.";
 }
 
 function useOpenOrder(order: ShopOrder): { cancellable: boolean; markedReady: boolean } {

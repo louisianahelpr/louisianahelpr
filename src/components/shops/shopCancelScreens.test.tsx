@@ -139,7 +139,9 @@ describe("the buyer's Cancel order (M3)", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Cancel order" }));
     const dialog = await screen.findByRole("dialog", { name: "Cancel this order?" });
     // 11-12: the quote's refund_cents is already the net refund, so the dialog says exactly that and nothing about costs.
-    await within(dialog).findByText("You're inside the shop's free-cancel time. You get $22.50 back. The shop is told not to make it.");
+    // S2-033: both numbers, the gap named, and no "free".
+    await within(dialog).findByText("You can still cancel for a refund. You paid $23.70 and get $22.50 back (a small card processing cost isn't refunded). The shop is told not to make it.");
+    expect(dialog.textContent).not.toMatch(/free/i);
     fireEvent.click(within(dialog).getByRole("button", { name: "confirm Cancel order" }));
     await waitFor(() => expect(invoke).toHaveBeenCalled());
     expect(bodies()[0]).toMatchObject({ action: "buyer_cancel", order_id: "o1", expect: "free" });
@@ -153,7 +155,7 @@ describe("the buyer's Cancel order (M3)", () => {
     renderAt("/shops/orders", <ShopOrdersPage />);
     fireEvent.click(await screen.findByRole("button", { name: "Cancel order" }));
     const dialog = await screen.findByRole("dialog", { name: "Cancel this order?" });
-    await within(dialog).findByText(/free-cancel time is over\. If you cancel now, nothing is refunded and the shop is paid\./);
+    await within(dialog).findByText(/time to cancel for a refund is over\. If you cancel now, nothing is refunded and the shop is paid\./);
     fireEvent.click(within(dialog).getByRole("button", { name: "confirm Cancel without a refund" }));
     await waitFor(() => expect(invoke).toHaveBeenCalled());
     expect(bodies()[0]).toMatchObject({ action: "buyer_cancel", expect: "late" });
@@ -194,7 +196,7 @@ describe("the buyer's Cancel order (M3)", () => {
     renderAt("/shops/orders", <ShopOrdersPage />);
     fireEvent.click(await screen.findByRole("button", { name: "Cancel order" }));
     const dialog = await screen.findByRole("dialog", { name: "Cancel this order?" });
-    await within(dialog).findByText(/You get \$22\.50 back/);
+    await within(dialog).findByText(/get \$22\.50 back/);
     expect(quoteCalls()).toHaveLength(1);
     rpc.mockResolvedValue({ data: { can_cancel: true, free: false, refund_cents: 0, kept_cents: 2370 }, error: null });
     fireEvent.click(within(dialog).getByRole("button", { name: "confirm Cancel order" }));

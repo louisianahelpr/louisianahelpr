@@ -5,9 +5,9 @@
  * declutter_free_hold_charge_words(p_buyer), which follows the gate's own rule. Behaviour:
  * src/test/pglite/declutterFreeHoldNoticeFirstTimer.pglite.mjs (applied 3x; red with NEW_MIGRATION=skip).
  *
- * @mutate supabase/migrations/20261112010200_declutter_wanted_reserved_notice_keeps_seller_anonymous.sql | it goes back up. %s',\n               v_title, public.declutter_free_hold_charge_words(p_buyer)), | it goes back up. Nothing is charged.',\n               v_title),
+ * @mutate supabase/migrations/20261112022921_declutter_wanted_reserved_notice_names_seller_again.sql | it goes back up. %s',\n               v_title, public.declutter_free_hold_charge_words(p_buyer)), | it goes back up. Nothing is charged.',\n               v_title),
  * @mutate supabase/migrations/20261107185819_declutter_free_pick_notice_first_timer.sql |       OR (public.declutter_setup_fee_due_cents(p_buyer) = 0 AND public.is_identity_verified(p_buyer))\n |       OR true\n
- * @mutate supabase/migrations/20261112010200_declutter_wanted_reserved_notice_keeps_seller_anonymous.sql |   v_seller uuid;\n  v_title text; |   v_seller uuid;\n  v_title text;\n  v_unused integer;
+ * @mutate supabase/migrations/20261112022921_declutter_wanted_reserved_notice_names_seller_again.sql |   v_seller uuid;\n  v_title text; |   v_seller uuid;\n  v_title text;\n  v_unused integer;
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -61,7 +61,7 @@ describe("the free hold notice tells a first-timer about the ID check (11-07)", 
     // 20261110223800 (audit 11-10 F481) names the checkout deadline in the paid buyer notice only; the free branch is unchanged.
     // 20261112004748 (F356 follow-up) names the buyer in the SELLER's notices only; the buyer's free notice is unchanged.
     // 20261112010200 (Wanted / block / ban anonymity) leaves the buyer's free notice unchanged too.
-    expect([NEW, "20261108202546_declutter_notices_email_and_honest_sold.sql", "20261110205345_push_titles_fit_lock_screen.sql", "20261110223800_declutter_reserved_notice_names_the_deadline.sql", "20261112004748_declutter_seller_notices_name_the_buyer.sql", "20261112010200_declutter_wanted_reserved_notice_keeps_seller_anonymous.sql"]).toContain(newestFunction("declutter_take_item").file);
+    expect([NEW, "20261108202546_declutter_notices_email_and_honest_sold.sql", "20261110205345_push_titles_fit_lock_screen.sql", "20261110223800_declutter_reserved_notice_names_the_deadline.sql", "20261112004748_declutter_seller_notices_name_the_buyer.sql", "20261112010200_declutter_wanted_reserved_notice_keeps_seller_anonymous.sql", "20261112022921_declutter_wanted_reserved_notice_names_seller_again.sql"]).toContain(newestFunction("declutter_take_item").file);
     const body = blankSqlComments(newestFunction("declutter_take_item").body);
     const free = body.slice(body.indexOf("IF p_price = 0 THEN"), body.indexOf("ELSIF p_source = 'buy' THEN"));
     expect(free.length).toBeGreaterThan(200);

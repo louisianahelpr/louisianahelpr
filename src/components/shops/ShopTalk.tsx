@@ -5,7 +5,7 @@
  * in bold. The server is the protection (shops_talk_view / shops_send_talk_message): only the two sides read or write,
  * and the contact-leak filter and the block check run there.
  */
-import { lazy, Suspense, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Flag, MessageCircle } from "lucide-react";
@@ -144,17 +144,26 @@ function ShopTalkSheet({ talkId, onClose, initialDraft = "" }: { talkId: string;
   const t = talk.data;
   const open = !!t?.open;
   const formId = `shop-talk-form-${talkId}`;
+  // S2-036 (Shops audit 2): only the messages scroll; the chat opens (and stays) at the newest message.
+  const listRef = useRef<HTMLDivElement>(null);
+  const newestId = t?.messages[t.messages.length - 1]?.id;
+  useEffect(() => {
+    const el = listRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [newestId]);
   return (
     <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={focusSheetItself}
-        className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-shop-talk="">
+        className={`bg-premium-page flex max-h-[90dvh] flex-col gap-0 overflow-hidden ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-shop-talk="">
+        {/* S2-036: the title and the reply box stay put; only the middle (note + messages) scrolls. */}
         <SheetHero title={t ? `Message ${t.other_label}` : "Messages"} />
         {talk.isError ? (
           <ErrorState variant="inline" title="We couldn't load this chat." body={shopsErrorMessage(talk.error)} onRetry={() => void talk.refetch()} />
         ) : talk.isPending || !t ? (
           <p className="mt-2 text-ds-14 text-muted-foreground">Loading…</p>
         ) : (
-          <div className="mt-2 space-y-3">
+          <>
+          <div ref={listRef} className="mt-2 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain" data-shop-talk-scroll="">
             <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
               Only you and {t.side === "buyer" ? "the shop" : "this shopper"} can read this. Keep phone numbers, emails and payment out of the chat.
             </p>
@@ -182,18 +191,19 @@ function ShopTalkSheet({ talkId, onClose, initialDraft = "" }: { talkId: string;
                 </li>
               ))}
             </ol>
+          </div>
             {open && (
-              <form id={formId} className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (draft.trim()) send.mutate(); }}>
+              <form id={formId} className="mt-3 shrink-0 space-y-2" onSubmit={(e) => { e.preventDefault(); if (draft.trim()) send.mutate(); }}>
                 <label htmlFor={`shop-talk-${talkId}`} className="block text-ds-13 font-medium">Message</label>
-                <Textarea id={`shop-talk-${talkId}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
+                <Textarea id={`shop-talk-${talkId}`} className="min-h-16 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
                   maxLength={1000} value={draft} onChange={(e) => { setDraft(e.target.value); setRefusal(null); }}
                   aria-invalid={refusal ? true : undefined} aria-describedby={refusal ? `shop-talk-refusal-${talkId}` : undefined} />
                 {refusal && <p id={`shop-talk-refusal-${talkId}`} role="alert" className="text-ds-13 text-destructive-ink">{refusal}</p>}
               </form>
             )}
-          </div>
+          </>
         )}
-        <SheetFooter className="mt-4">
+        <SheetFooter className="mt-4 shrink-0">
           <SheetSecondaryAction onClick={onClose}>Close</SheetSecondaryAction>
           {open && (
             <SheetPrimaryAction type="submit" form={formId} disabled={send.isPending || draft.trim().length === 0}>

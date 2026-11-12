@@ -18,6 +18,7 @@ import type { JobSystemEventKind } from "@/lib/jobSystemEvents";
    off the SAME normalised text. Two copies of that regex could drift, and a
    drift there is a row that renders "Job cancelled" beside an open composer. */
 import { stripSystemGlyphs } from "../jobStatusAnnouncement";
+import { getLang, useLanguage } from "@/lib/i18n/language";
 
 /**
  * ONE treatment for every "the app is speaking" row in a thread.
@@ -96,6 +97,8 @@ export function SystemEventRow({
    *  own `created_at` in the timeline and don't repeat it. */
   at?: string;
 }) {
+  // Its words ride with jobSystemEvents.ts (enChatEvents), which builds every derived row.
+  const { t } = useLanguage();
   return (
     <div className="flex justify-center py-0.5">
       {/* Compact pill — was full-size bubble padding/text, which made a
@@ -105,7 +108,7 @@ export function SystemEventRow({
           legible but visibly lighter-weight than a chat message. */}
       <div
         role="note"
-        aria-label={`System update: ${label}`}
+        aria-label={t("ce.update", { label })}
         className="max-w-[80%] px-2.5 py-1 rounded-full text-center"
         style={money ? {
           background: "hsl(var(--burnt-sienna) / 0.10)",
@@ -135,7 +138,7 @@ export function SystemEventRow({
               }}
             >
               ·{" "}
-              {new Date(at).toLocaleTimeString([], {
+              {new Date(at).toLocaleTimeString(getLang() === "es" ? "es-US" : [], {
                 hour: "numeric",
                 minute: "2-digit",
                 hour12: true,

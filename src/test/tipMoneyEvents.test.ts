@@ -9,7 +9,7 @@
  * @mutate src/lib/jobSystemEvents.ts |   if (!job \|\| job.customer_id !== viewerId) return out; |   if (!job) return out;
  * @mutate src/lib/jobSystemEvents.ts |   if (!job.stripe_payment_intent_id \|\| job.disputed_at \|\| ctx.giftOrUnknown) return out; |   if (!job.stripe_payment_intent_id) return out;
  * @mutate src/lib/jobSystemEvents.ts |   if (job.status !== "completed" \|\| !["released", "payout_pending"].includes(job.payment_status ?? "")) return out; |   if (job.status !== "completed") return out;
- * @mutate src/lib/jobSystemEvents.ts |     lines.push({ label: "Tip", cents: q.chargeCents }); |     lines.push({ label: "Tip", cents: q.tipCents });
+ * @mutate src/lib/jobSystemEvents.ts |     lines.push({ label: tr("ce.tip"), cents: q.chargeCents }); |     lines.push({ label: tr("ce.tip"), cents: q.tipCents });
  */
 import { describe, it, expect } from "vitest";
 import { deriveMoneyEvents, type JobCharge, type PaidTip } from "@/lib/jobSystemEvents";

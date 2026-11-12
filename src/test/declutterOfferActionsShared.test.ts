@@ -60,7 +60,7 @@ describe("Declutter's offer answers use the shared Button, primary on the right 
     expect(row, "the data-offer-actions row").not.toBeNull();
     expect(row!.kids.length).toBeGreaterThan(2);
     expect(row!.kids.map((k) => k.tag)).toEqual(["Button", "Button", "Button"]);
-    expect(row!.kids.map((k) => k.text)).toEqual(["Say no", "Answer with a price", "Accept"]);
+    expect(row!.kids.map((k) => k.text)).toEqual(['{t("dof.sayNo")}', '{t("dof.answerPrice")}', '{t("dof.accept")}']);
     for (const k of row!.kids) expect(k.attrs.size, `${k.text} size`).toBe('"sm"');
     // F373: text links, never outlined buttons beside the filled Accept.
     expect(row!.kids.slice(0, 2).map((k) => k.attrs.variant)).toEqual(['"link"', '"link"']);
@@ -69,14 +69,14 @@ describe("Declutter's offer answers use the shared Button, primary on the right 
   });
 
   it("Send is the shared primary Button and no hand-made primary <button> is left", () => {
-    expect(src).toMatch(/<Button type="submit" size="sm"[^>]*>\s*Send\s*<\/Button>/);
+    expect(src).toMatch(/<Button type="submit" size="sm"[^>]*>\s*\{t\("dof\.send"\)\}\s*<\/Button>/);
     expect(src).not.toMatch(/<button\b[^>]*btn-grad-primary/);
   });
 
   it("the two text actions are the shared InlineTextButton and no hand-made <button> is left", () => {
     const tags = [...src.matchAll(/<InlineTextButton\b[^>]*>[\s\S]*?<\/InlineTextButton>/g)].map((m) => m[0]);
     expect(tags.length).toBeGreaterThan(1);
-    const take = tags.find((t) => /Take back my offer/.test(t));
+    const take = tags.find((t) => /dof\.takeBack/.test(t));
     expect(take, "Take back my offer is an InlineTextButton").toBeDefined();
     expect(take!, "it keeps its drawn underline").toMatch(/\bunderline underline-offset-2\b/);
     const closed = tags.find((t) => /data-closed-offers-toggle/.test(t));

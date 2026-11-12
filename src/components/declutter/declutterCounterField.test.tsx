@@ -92,7 +92,7 @@ describe("counter-offer field: a shown label and a $ (deep audit #47)", () => {
     expect(document.querySelector("[data-accepted-next]")).toBeNull();
   });
 
-  // @mutate src/components/declutter/DeclutterOffersSection.tsx | <label className="block text-sm font-semibold" htmlFor={`counter-${o.offer_id}`}>Your price</label> | <label className="sr-only" htmlFor={`counter-${o.offer_id}`}>Your price</label>
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | <label className="block text-sm font-semibold" htmlFor={`counter-${o.offer_id}`}>{t("dof.yourPriceLabel")}</label> | <label className="sr-only" htmlFor={`counter-${o.offer_id}`}>{t("dof.yourPriceLabel")}</label>
   // @mutate src/components/declutter/DeclutterOffersSection.tsx | <span aria-hidden className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-semibold text-muted-foreground">$</span> | <span aria-hidden className="sr-only"></span>
   it("the field is named on screen, shows a $ inside it, and sends the dollars typed as cents", async () => {
     show();
@@ -190,7 +190,7 @@ describe("the counter box says its range and refuses a price outside it (NIGHT-S
 
 // BUY-10 (buying audit 10-30 #10): "Take back my offer" ended the offer in one tap.
 // @mutate src/components/declutter/DeclutterOffersSection.tsx | disabled={act.isPending} onClick={() => setWithdrawing(true)}> | disabled={act.isPending} onClick={() => act.mutate({ action: "withdraw" })}>
-// @mutate src/components/declutter/DeclutterOffersSection.tsx |         {`"${o.item_title}": your offer of ${formatPrice(o.amount_cents)} ends. Nothing is charged.`} |         {""}
+// @mutate src/components/declutter/DeclutterOffersSection.tsx |         {t("dof.wdBody", { title: o.item_title, amount: formatPrice(o.amount_cents) })} |         {""}
 describe("Take back my offer asks first (BUY-10)", () => {
   beforeEach(() => {
     state.offers = [{ ...OFFER, my_side: "buyer", awaiting: "seller" }];

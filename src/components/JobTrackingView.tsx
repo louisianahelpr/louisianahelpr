@@ -19,6 +19,12 @@ import { STATUSES } from "@/components/job-card/trackerSteps";
 import { STATUS_IDX } from "@/lib/jobProgressIndex";
 import type { JobTrackingModel } from "./JobTracking";
 import { TrackingStatusLine } from "./TrackingStatusLine";
+import "@/lib/i18n/enTracker";
+import type { MsgKey } from "@/lib/i18n/en";
+import { t } from "@/lib/i18n/language";
+
+/** The next step's button words in the member's language (F260q); STATUSES keeps the English. */
+const stepAction = (key: string): string => t(`trk.act.${key}` as MsgKey);
 
 // Lazy-load the Leaflet tracking map so the ~45KB Leaflet bundle is only
 // pulled in when a tracking card between On the way and Done is visible.
@@ -509,7 +515,7 @@ export function JobTrackingView(m: JobTrackingModel) {
             icon={nextStatus.icon}
             // The ACTION, not the step's name — see STATUSES. After a
             // refused arrival the same tap is a retry, so it says so.
-            label={arrivalRefusedHere ? "Try my location again" : (nextStatus.action ?? nextStatus.label)}
+            label={arrivalRefusedHere ? t("trk.retryLocation") : nextStatus.action ? stepAction(nextStatus.key) : nextStatus.label}
             // Done asks first — see the dialog below. Every other step is a
             // reversible statement about where the helper is; this one moves
             // money and cannot be taken back from here.

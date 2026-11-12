@@ -45,14 +45,18 @@ $gate$;
 -- The object now at a shop photo path, uploaded by this owner (the edge function asks BEFORE it reads the bytes).
 CREATE OR REPLACE FUNCTION public.shop_photo_object_id(p_path text, p_owner uuid)
 RETURNS uuid
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
-  SELECT o.id FROM storage.objects o
-   WHERE o.bucket_id = 'job-photos' AND o.name = p_path
-     AND (o.owner_id = p_owner::text OR o.owner = p_owner)
-   LIMIT 1;
+-- plpgsql, not sql (lander, train 1112-e): a sql body is checked at CREATE, and the replay image's storage.objects
+-- has no owner_id column, so CREATE failed there; as every other storage.objects owner check here, it reads at run time.
+BEGIN
+  RETURN (SELECT o.id FROM storage.objects o
+           WHERE o.bucket_id = 'job-photos' AND o.name = p_path
+             AND (o.owner_id = p_owner::text OR o.owner = p_owner)
+           LIMIT 1);
+END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shop_photo_object_id(text, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_photo_object_id(text, uuid) TO service_role;

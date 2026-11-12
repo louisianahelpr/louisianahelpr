@@ -53,7 +53,7 @@ export function jobNextStep(
   }
   // The poster's Working step, before the Helpr marks it done: who the job waits on (unless after photos say more).
   // ("Yusef is at the job" keeps its words: work has not begun, so it is not yet theirs to mark done.)
-  if (o.side === "poster" && progress.stage === 6 && !progress.waitingOnYou && nextLineCode(progress) === "working") {
+  if (o.side === "poster" && progress.stage === 6 && !progress.waitingOnYou && nextLineCode(progress) === "working" && progress.begun !== false) {
     return { who: "them", text: t("ns.waitDone", { name: other || t("ns.yourHelpr") }) };
   }
   const line = progress.next.trim();

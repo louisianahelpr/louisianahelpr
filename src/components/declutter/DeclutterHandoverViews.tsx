@@ -214,7 +214,7 @@ function OrderCard({ order, userId, booking, payout, setupFeeAhead = 0, holdUnkn
   const cardRef = useRef<HTMLElement>(null);
   useScrollToLinkedOrder(cardRef, linked, () => setOpen(true));
   return (
-    <article ref={cardRef} tabIndex={linked ? -1 : undefined} data-linked-order={linked ? "" : undefined} className="rounded-[20px] border border-border bg-card p-4 space-y-3">
+    <article ref={cardRef} tabIndex={linked ? -1 : undefined} data-linked-order={linked ? "" : undefined} className="scroll-mt-3 rounded-[20px] border border-border bg-card p-4 space-y-3">
       <OrderCardHead order={order} userId={userId} />
       {/* Boards 71/72: one tracker, where it stands and the money note, from the real handover row
           (delivery has its own, in OrderDeliveryPanel). */}

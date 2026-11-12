@@ -153,7 +153,7 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
     // Boards 68-70: the offer as a card (Declutter has no pre-purchase chat): the amount in money ink with who set it,
     // the asking price, whose turn it is, and what the answer means in money, from the real rules. Audit 11-10 F359a: a
     // closed offer (in the fold) sits on the muted card ground, so it reads as finished next to the live ones.
-    <li ref={rowRef} tabIndex={linked ? -1 : undefined} className={`rounded-[20px] border border-border p-4 space-y-2.5 ${closed ? "bg-muted/50" : "bg-card"}`} data-offer-row="" data-closed-offer={closed ? "" : undefined} data-linked-offer={linked ? "" : undefined}>
+    <li ref={rowRef} tabIndex={linked ? -1 : undefined} className={`scroll-mt-3 rounded-[20px] border border-border p-4 space-y-2.5 ${closed ? "bg-muted/50" : "bg-card"}`} data-offer-row="" data-closed-offer={closed ? "" : undefined} data-linked-offer={linked ? "" : undefined}>
       <div className="flex items-start justify-between gap-3 min-w-0">
         <div className="min-w-0">
           {wantedReply && <p className="text-ds-12 font-semibold text-[hsl(var(--sage-ink))]" data-wanted-reply="">Reply to your Wanted</p>}

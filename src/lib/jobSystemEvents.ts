@@ -19,6 +19,8 @@
 import { type PosterChargedJob } from "@/lib/posterJobCost";
 import { jobIsExpiredListing, EXPIRED_IN_THREAD } from "@/lib/expiredListingInThread";
 import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
+import { t, t as tr } from "@/lib/i18n/language";
+import "@/lib/i18n/enChatEvents";
 export type JobSystemEventKind =
   | "helper_on_the_way"
   | "helper_arrived"
@@ -92,15 +94,15 @@ export function deriveJobSystemEvents(
   // this job ..." to everyone. Now "You ..." to the one who did it, the first name to the other side.
   const nameOf = (id: string | null, fallback: string) =>
     (other?.first && id && other.id === id ? other.first : fallback);
-  const helpr = viewerId && viewerId === job.helper_id ? null : nameOf(job.helper_id, "Your Helpr");
-  const poster = viewerId && viewerId === job.customer_id ? null : nameOf(job.customer_id, "The person who posted it");
+  const helpr = viewerId && viewerId === job.helper_id ? null : nameOf(job.helper_id, t("ce.yourHelpr"));
+  const poster = viewerId && viewerId === job.customer_id ? null : nameOf(job.customer_id, t("ce.thePoster"));
 
   if (job.helper_on_the_way_at) {
     out.push({
       id: `system-helper_on_the_way-${jobId}`,
       kind: "helper_on_the_way",
       at: job.helper_on_the_way_at,
-      label: helpr ? `${helpr} is on the way.` : "You're on the way.",
+      label: helpr ? t("ce.onWay", { name: helpr }) : t("ce.youOnWay"),
     });
   }
   if (job.helper_arrived_at) {
@@ -108,7 +110,7 @@ export function deriveJobSystemEvents(
       id: `system-helper_arrived-${jobId}`,
       kind: "helper_arrived",
       at: job.helper_arrived_at,
-      label: helpr ? `${helpr} arrived.` : "You arrived.",
+      label: helpr ? t("ce.arrived", { name: helpr }) : t("ce.youArrived"),
     });
   }
   if (job.helper_completed_at) {
@@ -116,7 +118,7 @@ export function deriveJobSystemEvents(
       id: `system-helper_completed-${jobId}`,
       kind: "helper_completed",
       at: job.helper_completed_at,
-      label: helpr ? `${helpr} marked it done.` : "You marked it done.",
+      label: helpr ? t("ce.done", { name: helpr }) : t("ce.youDone"),
     });
   }
   if (job.poster_completed_at) {
@@ -124,7 +126,7 @@ export function deriveJobSystemEvents(
       id: `system-poster_confirmed_completed-${jobId}`,
       kind: "poster_confirmed_completed",
       at: job.poster_completed_at,
-      label: poster ? `${poster} approved it.` : "You approved it.",
+      label: poster ? t("ce.approved", { name: poster }) : t("ce.youApproved"),
     });
   }
   if (job.revision_requested_at) {
@@ -132,7 +134,7 @@ export function deriveJobSystemEvents(
       id: `system-revision_requested-${jobId}`,
       kind: "revision_requested",
       at: job.revision_requested_at,
-      label: poster ? `${poster} asked for a fix.` : "You asked for a fix.",
+      label: poster ? t("ce.fix", { name: poster }) : t("ce.youFix"),
     });
   }
   // An expired listing was never cancelled by anyone (owner 10-31): the poster reads that it expired, anyone else
@@ -154,8 +156,8 @@ export function deriveJobSystemEvents(
       kind: "cancelled",
       at: job.cancelled_at,
       label: who
-        ? `Job cancelled by ${who === "poster" ? "the person who posted it" : "the Helpr"}.`
-        : "Job was cancelled.",
+        ? t(who === "poster" ? "ce.cancelledByPoster" : "ce.cancelledByHelpr")
+        : t("ce.cancelled"),
     });
   }
   if (job.disputed_at) {
@@ -170,8 +172,8 @@ export function deriveJobSystemEvents(
       kind: "disputed",
       at: job.disputed_at,
       label: who
-        ? `${who === "poster" ? "The person who posted this job" : "The Helpr"} opened a dispute.`
-        : "A dispute was opened.",
+        ? t(who === "poster" ? "ce.disputePoster" : "ce.disputeHelpr")
+        : t("ce.dispute"),
     });
   }
 
@@ -228,8 +230,9 @@ export function deriveMoneyEvents(
 ): JobSystemEvent[] {
   const out: JobSystemEvent[] = [];
   for (const t of tips) {
-    const who = t.tipper_id === viewerId ? "You" : otherFirstName || "They";
-    out.push({ id: `system-tipped-${t.id}`, kind: "tipped", at: t.created_at, label: `${who} tipped $${(cents(t.amount) / 100).toFixed(2)}`, money: true });
+    const amount = `$${(cents(t.amount) / 100).toFixed(2)}`;
+    const label = t.tipper_id === viewerId ? tr("ce.youTipped", { amount }) : tr("ce.tipped", { name: otherFirstName || tr("ce.they"), amount });
+    out.push({ id: `system-tipped-${t.id}`, kind: "tipped", at: t.created_at, label, money: true });
   }
   if (!job || job.customer_id !== viewerId) return out;
   if (job.status !== "completed" || !["released", "payout_pending"].includes(job.payment_status ?? "")) return out;
@@ -242,19 +245,19 @@ export function deriveMoneyEvents(
   // the job cost them, so it is in the Job line; a tip's card cost is in the
   // Tip line (what the tipper paid). The total is unchanged. The one fee shown
   // is the one-time account setup fee.
-  const lines: { label: string; cents: number }[] = [{ label: "Job", cents: cents(job.budget) + Math.max(0, cents(job.customer_fee_amount)) }];
-  if (cents(job.urgent_fee) > 0) lines.push({ label: "Urgent bonus", cents: cents(job.urgent_fee) });
-  if (cents(job.sales_tax_amount) > 0) lines.push({ label: "Tax", cents: cents(job.sales_tax_amount) });
-  if (cents(job.onboarding_fee_amount) > 0) lines.push({ label: "Account setup fee", cents: cents(job.onboarding_fee_amount) });
+  const lines: { label: string; cents: number }[] = [{ label: tr("ce.job"), cents: cents(job.budget) + Math.max(0, cents(job.customer_fee_amount)) }];
+  if (cents(job.urgent_fee) > 0) lines.push({ label: tr("ce.urgent"), cents: cents(job.urgent_fee) });
+  if (cents(job.sales_tax_amount) > 0) lines.push({ label: tr("ce.tax"), cents: cents(job.sales_tax_amount) });
+  if (cents(job.onboarding_fee_amount) > 0) lines.push({ label: tr("ce.setupFee"), cents: cents(job.onboarding_fee_amount) });
   for (const t of tips.filter((x) => x.tipper_id === viewerId)) {
     const q = tipChargeBreakdown(cents(t.amount));
-    lines.push({ label: "Tip", cents: q.chargeCents });
+    lines.push({ label: tr("ce.tip"), cents: q.chargeCents });
   }
   const totalCents = lines.reduce((sum, l) => sum + l.cents, 0);
   const lastTip = tips.reduce((m, t) => (t.created_at > m ? t.created_at : m), "");
   const at = [job.poster_completed_at ?? "", lastTip].sort().pop() || job.poster_completed_at || new Date().toISOString();
   // A moment after the last money fact, so the receipt reads under its pills.
   const after = new Date(new Date(at).getTime() + 1000).toISOString();
-  out.push({ id: `system-receipt-${jobId}`, kind: "receipt", at: after, label: "Receipt", money: true, receipt: { lines, totalCents } });
+  out.push({ id: `system-receipt-${jobId}`, kind: "receipt", at: after, label: tr("ce.receipt"), money: true, receipt: { lines, totalCents } });
   return out;
 }

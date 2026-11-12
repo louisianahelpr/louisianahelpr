@@ -1,4 +1,5 @@
 import type { ChatReceipt } from "@/lib/jobSystemEvents";
+import { useLanguage } from "@/lib/i18n/language";
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
@@ -9,10 +10,12 @@ const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
  * colour (rust is for money only).
  */
 export function ChatReceiptCard({ receipt }: { receipt: ChatReceipt }) {
+  // Its words ride with jobSystemEvents.ts (enChatEvents), which built this receipt.
+  const { t } = useLanguage();
   return (
     <div className="flex justify-start py-1" data-testid="chat-receipt">
-      <section aria-label="Receipt" className="liquid-glass w-full max-w-[22rem] p-card flex flex-col gap-1.5">
-        <h3 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Receipt</h3>
+      <section aria-label={t("ce.receipt")} className="liquid-glass w-full max-w-[22rem] p-card flex flex-col gap-1.5">
+        <h3 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("ce.receipt")}</h3>
         <dl className="flex flex-col gap-1">
           {receipt.lines.map((l, i) => (
             <div key={`${l.label}-${i}`} className="flex items-baseline justify-between gap-3 text-ds-14">
@@ -21,7 +24,7 @@ export function ChatReceiptCard({ receipt }: { receipt: ChatReceipt }) {
             </div>
           ))}
           <div className="flex items-baseline justify-between gap-3 border-t border-border/60 pt-2 mt-1">
-            <dt className="text-ds-15 font-bold text-foreground">Total</dt>
+            <dt className="text-ds-15 font-bold text-foreground">{t("ce.total")}</dt>
             <dd className="text-ds-18 font-bold tabular-nums" style={{ color: "hsl(var(--sienna-ink))" }}>{money(receipt.totalCents)}</dd>
           </div>
         </dl>

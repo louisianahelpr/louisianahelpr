@@ -414,6 +414,9 @@ describe("ShopItemEditor", () => {
   it("an item with options hides How many are ready and says stock is set per option", async () => {
     renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "live", stock_count: 4 })} hasOptions onCreated={() => {}} onDone={() => {}} />);
     expect(screen.getByTestId("item-stock-per-option").textContent).toBe("How many are ready is set for each option below.");
+    // S2-004: the price is per option too: a read-only "From $X" line, no box that snaps back after Save.
+    expect(screen.queryByLabelText("Price (dollars)")).toBeNull();
+    expect(screen.getByTestId("item-price-per-option").textContent).toContain("From $18, set per option below.");
     expect(screen.queryByLabelText("How many are ready")).toBeNull();
     expect(screen.queryByLabelText("I have some ready now")).toBeNull();
     expect(screen.getByRole("button", { name: "Save ready time" })).toBeTruthy();
@@ -463,7 +466,7 @@ describe("ShopItemEditor", () => {
     renderWith(
       <ShopItemEditor
         ownerId="u1"
-        item={item({ status: "draft", photos: [{ id: "p1", storage_path: "u1/shop-items/it1/a.jpg", position: 0 } as ShopItem["photos"][number]] })}
+        item={item({ status: "draft", title: "", photos: [{ id: "p1", storage_path: "u1/shop-items/it1/a.jpg", position: 0 } as ShopItem["photos"][number]] })}
         onCreated={() => {}}
         onDone={() => {}}
       />,
@@ -477,6 +480,27 @@ describe("ShopItemEditor", () => {
     await waitFor(() => expect((screen.getByLabelText("Title") as HTMLInputElement).value).toBe("Satsumas"));
     expect(common().getAttribute("data-state")).toBe("unchecked");
     expect(boxes().every((c) => c.getAttribute("data-state") === "unchecked")).toBe(true);
+    // S2-006: the owner's description was not empty, so it is kept.
+    expect((screen.getByLabelText("Description") as HTMLTextAreaElement).value).toBe("Soy wax.");
+  });
+
+  it("S2-006: a suggestion keeps typed words and a kind the owner picked; it fills only empty fields", async () => {
+    api.requestShopItemAiDraft.mockResolvedValue({ kind: "farm", subtype: "produce", title: "Satsumas", description: "A bag.", flagged: false });
+    renderWith(
+      <ShopItemEditor
+        ownerId="u1"
+        item={item({ status: "draft", title: "", description: "", photos: [{ id: "p1", storage_path: "u1/shop-items/it1/a.jpg", position: 0 } as ShopItem["photos"][number]] })}
+        onCreated={() => {}}
+        onDone={() => {}}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "My fig candle" } });
+    fireEvent.change(screen.getByLabelText("Type"), { target: { value: "candles" } });
+    fireEvent.click(screen.getByRole("button", { name: "Suggest details from my photos" }));
+    await waitFor(() => expect((screen.getByLabelText("Description") as HTMLTextAreaElement).value).toBe("A bag."));
+    expect((screen.getByLabelText("Title") as HTMLInputElement).value).toBe("My fig candle");
+    expect((screen.getByLabelText("What kind of item") as HTMLSelectElement).value).toBe("made");
+    expect((screen.getByLabelText("Type") as HTMLSelectElement).value).toBe("candles");
   });
 });
 

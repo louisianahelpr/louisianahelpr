@@ -333,6 +333,21 @@ export interface ShopItemAiDraft {
   flagged: boolean;
 }
 
+/** S2-006 (Shops audit 2): a suggestion fills only what the owner left empty, and changes kind and type only when the
+ * owner has not picked them (Declutter's F326 rule). Applied to the form as it is when the answer lands, so words
+ * typed while "Looking…" showed are kept. `filled` is false when nothing changed. */
+export function mergeShopItemSuggestion<F extends { kind: ShopItemKind; subtype: string; title: string; description: string }>(
+  form: F, s: ShopItemAiDraft, kindPicked: boolean,
+): { form: F; filled: boolean; kindChanged: boolean } {
+  const next = { ...form };
+  if (!form.title.trim() && s.title.trim()) next.title = s.title;
+  if (!form.description.trim() && s.description.trim()) next.description = s.description;
+  if (!kindPicked) { next.kind = s.kind; next.subtype = s.subtype; }
+  const kindChanged = next.kind !== form.kind || next.subtype !== form.subtype;
+  const filled = kindChanged || next.title !== form.title || next.description !== form.description;
+  return { form: next, filled, kindChanged };
+}
+
 async function invokeAi(itemId: string, mode: "draft" | "check"): Promise<unknown> {
   return invokeAiBody({ itemId, mode, target: "shop_item" });
 }

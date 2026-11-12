@@ -579,7 +579,7 @@ describe("Selling tab: Taken down, with Relist", () => {
   // rows it opens, from the one shared set.
   // @mutate src/components/declutter/DeclutterMineViews.tsx | .filter((i) => !PAST_LISTING.has(i.status)).length | .filter((i) => ["draft", "pending_review", "live", "paused", "reserved"].includes(i.status)).length
   // Audit 11-10 F406: the chip says "Listings" (the list it opens), not "Listed" (read as still for sale).
-  // @mutate src/components/declutter/DeclutterMineViews.tsx | { key: "listings", label: "Listings", count: listed }, | { key: "listings", label: "Listed", count: listed },
+  // @mutate src/lib/i18n/enDeclutter.ts | "decl.mv.listings": "Listings", | "decl.mv.listings": "Listed",
   it("the Listings chip counts exactly the rows under Your listings (Sellinglist-2, F406)", async () => {
     const statuses = ["draft", "pending_review", "live", "paused", "reserved", "rejected", "sold", "completed", "withdrawn", "sold_elsewhere"] as const;
     state.mine = statuses.map((s, n) => ({ ...ITEM, id: `c${n}`, status: s, title: `Row ${s}` }));

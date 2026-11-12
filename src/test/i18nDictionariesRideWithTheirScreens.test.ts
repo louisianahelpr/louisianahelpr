@@ -45,6 +45,8 @@ const RELY_ON_PARENT = [
   "src/components/declutter/FreeAskSheet.tsx enFree",
   "src/lib/declutter/freePickSteps.ts enFree",
   "src/components/messages/ConversationListBody.tsx enScreens",
+  "src/components/messages/chatView/ChatReceiptCard.tsx enChatEvents",
+  "src/components/messages/chatView/SystemEventRow.tsx enChatEvents",
   "src/components/messages/MessagesSearchRow.tsx enScreens",
   "src/pages/auth/CompleteProfile.tsx enScreens",
   "src/pages/auth/Signup.tsx enScreens",

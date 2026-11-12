@@ -98,6 +98,9 @@ const CONVERTED = [
   "src/components/declutter/FreeAskSheet.tsx",
   // F260q: Home's money strip and the head of You › Money (enMoneyTiles.ts).
   "src/pages/home/homeDashboard/HomeMoneyTiles.tsx",
+  // F260q: the deal room's receipt card and system rows (enChatEvents.ts, built by jobSystemEvents.ts).
+  "src/components/messages/chatView/ChatReceiptCard.tsx",
+  "src/components/messages/chatView/SystemEventRow.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */

@@ -4,8 +4,8 @@
  * the step reads "You ..." and the other side reads their first name ("Yusef is on the way.", "Dana approved it.").
  * A name is used only when the thread's other person IS the one who took the step (a crew thread falls back).
  *
- * @mutate src/lib/jobSystemEvents.ts |   const helpr = viewerId && viewerId === job.helper_id ? null : nameOf(job.helper_id, "Your Helpr"); |   const helpr = nameOf(job.helper_id, "Your Helpr");
- * @mutate src/lib/jobSystemEvents.ts |   const poster = viewerId && viewerId === job.customer_id ? null : nameOf(job.customer_id, "The person who posted it"); |   const poster = "The person who posted this job";
+ * @mutate src/lib/jobSystemEvents.ts |   const helpr = viewerId && viewerId === job.helper_id ? null : nameOf(job.helper_id, t("ce.yourHelpr")); |   const helpr = nameOf(job.helper_id, t("ce.yourHelpr"));
+ * @mutate src/lib/jobSystemEvents.ts |   const poster = viewerId && viewerId === job.customer_id ? null : nameOf(job.customer_id, t("ce.thePoster")); |   const poster = "The person who posted this job";
  * @mutate src/lib/jobSystemEvents.ts |     (other?.first && id && other.id === id ? other.first : fallback); |     (other?.first ? other.first : fallback);
  * @mutate src/pages/messages/useMessagesData.ts | resolvedUserId, { id: convo.otherUserId ?? null, first: otherFirst }), | resolvedUserId),
  */

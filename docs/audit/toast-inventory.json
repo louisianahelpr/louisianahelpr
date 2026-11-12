@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 485,
+      "literal": 483,
       "template": 104,
-      "dynamic": 694,
+      "dynamic": 696,
       "jsx": 0
     }
   },
@@ -9636,21 +9636,55 @@
     },
     {
       "file": "src/components/profile/YourPageLink.tsx",
-      "line": 51,
+      "line": 53,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Link copied"
+        "form": "dynamic",
+        "text": "t(\"yp.copied\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/profile/YourPageLink.tsx",
-      "line": 52,
+      "line": 54,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Couldn't copy the link. Press and hold it to copy."
+        "form": "dynamic",
+        "text": "t(\"yp.copyFailed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },

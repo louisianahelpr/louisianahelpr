@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { copyToClipboard } from "@/lib/nativeShare";
 import { MY_HANDLE_KEY, ensureMyHandle, fetchPublicProfile, profileLinkLabel, profileLinkUrl, shareMyProfile } from "@/lib/profileLink/api";
+import "@/lib/i18n/enYourPage";
+import { t } from "@/lib/i18n/language";
 
 
 /**
@@ -42,14 +44,14 @@ export function YourPageLink({ name, className = "", forSale = 0, knownHandle, s
   if (publicPage === null) {
     return (
       <p data-your-page-link="" data-your-page-hidden="" className={`text-ds-13 text-muted-foreground ${className}`}>
-        Your page is hidden right now, so others can't open it.{" "}
-        <Link to="/support?topic=message&subject=My%20profile%20page" className="link-standard font-semibold text-foreground">Ask us why</Link>
+        {t("yp.hidden")}{" "}
+        <Link to="/support?topic=message&subject=My%20profile%20page" className="link-standard font-semibold text-foreground">{t("yp.askWhy")}</Link>
       </p>
     );
   }
   const copy = async () => {
-    if (await copyToClipboard(profileLinkUrl(handle))) toast("Link copied");
-    else toast.error("Couldn't copy the link. Press and hold it to copy.");
+    if (await copyToClipboard(profileLinkUrl(handle))) toast(t("yp.copied"));
+    else toast.error(t("yp.copyFailed"));
   };
   // F127 (UI audit 11-09; owner 11-05 placed the link on Home and leading Selling, "mine is kind of hidden"; lead 11-09:
   // keep it easy to find, but not a third full card): Selling's is ONE slim line, "Your page · Copy · Share", with the
@@ -57,16 +59,16 @@ export function YourPageLink({ name, className = "", forSale = 0, knownHandle, s
   if (slim) {
     return (
       <p data-your-page-link="" data-your-page-slim="" className={`flex min-w-0 flex-wrap items-center gap-x-1.5 text-ds-13 text-muted-foreground ${className}`}>
-        <Link to={`/u/${encodeURIComponent(handle)}`} className="link-standard font-semibold text-foreground" aria-label={`Your page: ${profileLinkLabel(handle)}`}>
-          Your page
+        <Link to={`/u/${encodeURIComponent(handle)}`} className="link-standard font-semibold text-foreground" aria-label={t("yp.pageAt", { link: profileLinkLabel(handle) })}>
+          {t("yp.page")}
         </Link>
         <span aria-hidden>·</span>
-        <InlineTextButton onClick={() => void copy()} data-your-page-copy="" aria-label="Copy your page link" className="inline-flex items-center gap-1 font-semibold text-foreground">
-          <Copy className="h-3.5 w-3.5" aria-hidden /> Copy
+        <InlineTextButton onClick={() => void copy()} data-your-page-copy="" aria-label={t("yp.copyLabel")} className="inline-flex items-center gap-1 font-semibold text-foreground">
+          <Copy className="h-3.5 w-3.5" aria-hidden /> {t("yp.copy")}
         </InlineTextButton>
         <span aria-hidden>·</span>
-        <InlineTextButton onClick={() => void shareMyProfile(handle, name)} data-your-page-share="" aria-label="Share your page" className="inline-flex items-center gap-1 font-semibold text-foreground">
-          <Share2 className="h-3.5 w-3.5" aria-hidden /> Share
+        <InlineTextButton onClick={() => void shareMyProfile(handle, name)} data-your-page-share="" aria-label={t("yp.shareLabel")} className="inline-flex items-center gap-1 font-semibold text-foreground">
+          <Share2 className="h-3.5 w-3.5" aria-hidden /> {t("yp.share")}
         </InlineTextButton>
       </p>
     );
@@ -75,11 +77,11 @@ export function YourPageLink({ name, className = "", forSale = 0, knownHandle, s
   // "Share your listings" button (the phone's share sheet; copy on a desktop browser), the way other marketplaces do.
   if (forSale > 0) {
     return (
-      <section aria-label="Share your listings" data-your-page-link="" data-share-listings="" className={`rounded-2xl border border-border bg-card px-4 py-3 flex flex-col gap-3 ${className}`}>
+      <section aria-label={t("yp.shareListings")} data-your-page-link="" data-share-listings="" className={`rounded-2xl border border-border bg-card px-4 py-3 flex flex-col gap-3 ${className}`}>
         <div className="min-w-0">
-          <p className="text-ds-15 font-semibold">{forSale === 1 ? "1 item for sale" : `${forSale} items for sale`}</p>
+          <p className="text-ds-15 font-semibold">{forSale === 1 ? t("yp.forSale1") : t("yp.forSaleN", { n: forSale })}</p>
           <p className="text-ds-13 text-muted-foreground min-w-0">
-            Everything you sell is on{" "}
+            {t("yp.everything")}{" "}
             <Link to={`/u/${encodeURIComponent(handle)}`} className="link-standard font-semibold text-foreground break-all">
               {profileLinkLabel(handle)}
             </Link>
@@ -87,19 +89,19 @@ export function YourPageLink({ name, className = "", forSale = 0, knownHandle, s
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" className="gap-1.5" onClick={() => void copy()} data-your-page-copy="">
-            <Copy className="w-4 h-4" aria-hidden /> Copy link
+            <Copy className="w-4 h-4" aria-hidden /> {t("yp.copyLink")}
           </Button>
           <Button type="button" className="gap-1.5" onClick={() => void shareMyProfile(handle, name)} data-your-page-share="">
-            <Share2 className="w-4 h-4" aria-hidden /> Share your listings
+            <Share2 className="w-4 h-4" aria-hidden /> {t("yp.shareListings")}
           </Button>
         </div>
       </section>
     );
   }
   return (
-    <section aria-label="Your page" data-your-page-link="" className={`rounded-2xl border border-border/60 px-4 py-3 flex flex-col gap-2 ${className}`}>
+    <section aria-label={t("yp.page")} data-your-page-link="" className={`rounded-2xl border border-border/60 px-4 py-3 flex flex-col gap-2 ${className}`}>
       <p className="text-ds-13 text-muted-foreground min-w-0">
-        Your page:{" "}
+        {t("yp.pageLead")}{" "}
         {/* In-app route: the page opens here, never in a browser outside the app. */}
         <Link to={`/u/${encodeURIComponent(handle)}`} className="link-standard font-semibold text-foreground break-all">
           {profileLinkLabel(handle)}
@@ -107,10 +109,10 @@ export function YourPageLink({ name, className = "", forSale = 0, knownHandle, s
       </p>
       <div className="flex gap-2">
         <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => void copy()} data-your-page-copy="">
-          <Copy className="w-4 h-4" aria-hidden /> Copy
+          <Copy className="w-4 h-4" aria-hidden /> {t("yp.copy")}
         </Button>
         <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => void shareMyProfile(handle, name)} data-your-page-share="">
-          <Share2 className="w-4 h-4" aria-hidden /> Share
+          <Share2 className="w-4 h-4" aria-hidden /> {t("yp.share")}
         </Button>
       </div>
     </section>

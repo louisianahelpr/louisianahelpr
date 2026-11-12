@@ -7,9 +7,9 @@
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | ?? todoTask(j, "poster", line, now, { pendingApplicants: n }), | ?? line.detail,
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | tr("todo.onTheWayTask") : todoTask(a.job!, "helpr", line, now, { application: a.status })), | tr("todo.onTheWayTask") : line.detail),
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   if (!step \|\| step.who !== "you") return withTodoBy(line.detail, line, now); |   if (!step) return withTodoBy(line.detail, line, now);
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   return step.by ? `${step.text} · ${step.by}` : withTodoBy(step.text, line, now); |   return withTodoBy(line.detail, line, now);
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   return step.by ? `${step.text} · ${step.by}` : withTodoBy(step.text, line, now); |   return step.text;
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   if (!Number.isFinite(at) \|\| at < now \|\| / by (Mon\|Tue\|Wed\|Thu\|Fri\|Sat\|Sun)\b/.test(task)) return task; |   if (!Number.isFinite(at) \|\| / by (Mon\|Tue\|Wed\|Thu\|Fri\|Sat\|Sun)\b/.test(task)) return task;
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   return step.by ? `${step.text} · ${step.by}` : withTodoBy(step.text, { deadline: line.deadline }, now); |   return withTodoBy(line.detail, line, now);
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   return step.by ? `${step.text} · ${step.by}` : withTodoBy(step.text, { deadline: line.deadline }, now); |   return step.text;
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   if (!Number.isFinite(at) \|\| at < now \|\| line.detailSaysWhen) return task; |   if (!Number.isFinite(at) \|\| line.detailSaysWhen) return task;
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   if (line.deadline!.source === "auto_complete") { |   if (false) {
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -61,7 +61,7 @@ describe("A3-17: Home's tasks say by when", () => {
     const ahead = { deadline: { source: "confirm_deadline" as const, at: "2054-11-08T14:00:00Z", consequenceText: "", expiredText: "" } };
     expect(withTodoBy("Do it", { deadline: null }, NOW)).toBe("Do it");
     expect(withTodoBy("Do it", { deadline: { ...ahead.deadline, at: "2054-11-07T21:00:00Z" } }, NOW)).toBe("Do it");
-    expect(withTodoBy("Do it by Sun 8:00 AM", ahead, NOW)).toBe("Do it by Sun 8:00 AM");
+    expect(withTodoBy("Do it by Sun 8:00 AM", { ...ahead, detailSaysWhen: true }, NOW)).toBe("Do it by Sun 8:00 AM");
     expect(withTodoBy("Do it", ahead, NOW)).toBe("Do it · by Sun 8:00 AM");
   });
 });

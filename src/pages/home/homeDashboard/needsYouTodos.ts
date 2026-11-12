@@ -100,11 +100,12 @@ function dueAt(line: JobStatusLine, job: Pick<Job, "date_needed" | "start_time">
 /**
  * A3-17 (audit 11-01): the task says by when, as the cards' next-step line does ("Approve Yusef's work · 23h 49m left",
  * "Confirm you'll be at the job · by Mon 8:00 AM"). From the status line's OWN clock, only while it is still ahead; a
- * task whose words already carry a day keeps them.
+ * status line whose detail already names its day (JobStatusLine.detailSaysWhen, set by code) keeps its words. Never read
+ * off the words: a Spanish line has no English day names (F260q).
  */
-export function withTodoBy(task: string, line: Pick<JobStatusLine, "deadline">, now: number): string {
+export function withTodoBy(task: string, line: Pick<JobStatusLine, "deadline" | "detailSaysWhen">, now: number): string {
   const at = line.deadline?.at ? Date.parse(line.deadline.at) : NaN;
-  if (!Number.isFinite(at) || at < now || / by (Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/.test(task)) return task;
+  if (!Number.isFinite(at) || at < now || line.detailSaysWhen) return task;
   if (line.deadline!.source === "auto_complete") {
     const mins = Math.floor((at - now) / 60_000);
     return tr("todo.left", { task, time: mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m` });
@@ -123,7 +124,7 @@ export function todoTask(job: Job, viewer: "poster" | "helpr", line: JobStatusLi
   const progress = jobProgress(job, { viewer, now: new Date(now), pendingApplicants: o.pendingApplicants, application: o.application });
   const step = jobNextStep(progress, { side: viewer, pendingApplicants: o.pendingApplicants });
   if (!step || step.who !== "you") return withTodoBy(line.detail, line, now);
-  return step.by ? `${step.text} · ${step.by}` : withTodoBy(step.text, line, now);
+  return step.by ? `${step.text} · ${step.by}` : withTodoBy(step.text, { deadline: line.deadline }, now);
 }
 
 /** A job's date for tier 4 ("everything else, by date"); undated last. */

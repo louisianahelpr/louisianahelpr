@@ -92,6 +92,11 @@ export async function uploadDigitalFile(itemId: string, file: File): Promise<voi
   await invokeShopDigital({ action: "confirm", file_id: fileId });
 }
 
+/** S2-005: check a file again whose upload landed but whose check never answered (tab closed, network drop). */
+export async function confirmDigitalFile(fileId: string): Promise<void> {
+  await invokeShopDigital({ action: "confirm", file_id: fileId });
+}
+
 export async function removeDigitalFile(fileId: string): Promise<void> {
   await invokeShopDigital({ action: "remove", file_id: fileId });
 }

@@ -3,9 +3,11 @@
  * one review: the buyer about the shop, the shop about the buyer ("Leave a review" on the order card, the same olive
  * StarRow sheet as Declutter's). Reviews stay hidden until both sides reviewed or 14 days after the handover. The shop
  * page shows its buyers' reviews and the shop's own rating, which appears only at 3 or more reviews. A low review is
- * never hidden for being low (16 CFR 465.7).
+ * never hidden for being low (16 CFR 465.7). Q1948 (L46): each review on the page has "Report" (ReportDialog type
+ * 'shop_review'); the database takes only a review the member is shown, never their own words, and an admin can take it
+ * down from the reports queue (shops_admin_remove_review, migration 20261112094500).
  */
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,6 +20,8 @@ import { shopsErrorMessage } from "@/lib/shops/errors";
 import { fetchMyOrderReview, fetchShopReviews, leaveShopReview, myOrderReviewKey, shopReviewsKey } from "@/lib/shops/reviews";
 import { ShopCard } from "./ShopProfile";
 import { ShopRating } from "./shopsUi";
+
+const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 
 const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days.";
 const monthYear = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "America/Chicago" });
@@ -87,6 +91,7 @@ export function ShopOrderReview({ orderId, handedOver }: { orderId: string; hand
 /** The shop page's reviews: its buyers' public reviews and the shop's own rating (shown at 3 or more). */
 export function ShopReviewsCard({ shopId }: { shopId: string }) {
   const reviews = useQuery({ queryKey: shopReviewsKey(shopId), queryFn: () => fetchShopReviews(shopId) });
+  const [reporting, setReporting] = useState<string | null>(null);
   const d = reviews.data;
   return (
     <ShopCard id="shop-reviews" title="Reviews">
@@ -103,13 +108,23 @@ export function ShopReviewsCard({ shopId }: { shopId: string }) {
             {d.reviews.map((r) => (
               <li key={r.id} className="py-2 text-ds-14">
                 {r.comment && <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{r.comment}</p>}
-                <p className="text-ds-12 text-muted-foreground">
-                  {r.stars} star{r.stars === 1 ? "" : "s"} · {monthYear(r.created_at)}
-                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-ds-12 text-muted-foreground">
+                    {r.stars} star{r.stars === 1 ? "" : "s"} · {monthYear(r.created_at)}
+                  </p>
+                  <Button type="button" variant="ghost" size="sm" className="shrink-0 pl-4 pr-0 text-ds-13 font-normal text-muted-foreground" onClick={() => setReporting(r.id)} data-report="shop_review">
+                    Report
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>
         </div>
+      )}
+      {reporting && (
+        <Suspense fallback={null}>
+          <ReportDialog open onClose={() => setReporting(null)} reportedType="shop_review" reportedId={reporting} />
+        </Suspense>
       )}
     </ShopCard>
   );

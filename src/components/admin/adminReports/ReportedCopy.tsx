@@ -5,13 +5,15 @@
  * answer report also offers the take-down: "Remove Question" takes the whole entry off the listing, "Remove Answer"
  * only the seller's answer (declutter_admin_remove_question); a review report offers "Remove Review", which takes it
  * off the member's profile and out of their rating (declutter_admin_remove_review). The report resolves and the server
- * logs it. Moved out of AdminReports.tsx (size ratchet).
+ * logs it. Q1948 (L46): a Shops review report offers the same "Remove Review" (shops_admin_remove_review), which
+ * takes it off the shop's page and out of the shop's rating. Moved out of AdminReports.tsx (size ratchet).
  */
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { removeReportedQuestion, removeReportedReview } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { removeReportedShopReview } from "@/lib/shops/reviews";
 
 const LABEL: Record<string, string> = {
   message: "Reported message: ",
@@ -40,13 +42,15 @@ export function ReportedCopy({ report, onDone, gone = false }: {
   const label = LABEL[report.reported_type];
   if (!label || !report.reported_content) return null;
   const open = report.status !== "resolved" && report.status !== "dismissed";
-  const isReview = report.reported_type === "declutter_review";
-  // Only a Declutter question, answer or review can be taken down from here; a message's copy is read-only.
-  const removable = report.reported_type.startsWith("declutter_");
+  const isShopReview = report.reported_type === "shop_review";
+  const isReview = report.reported_type === "declutter_review" || isShopReview;
+  // Only a Declutter question, answer or review, or a Shops review, can be taken down from here; a message's copy is read-only.
+  const removable = report.reported_type.startsWith("declutter_") || isShopReview;
   const remove = async (part: Part) => {
     setBusy(true);
     try {
-      if (part === "review") await removeReportedReview(report.reported_id, report.id);
+      if (part === "review" && isShopReview) await removeReportedShopReview(report.reported_id, report.id);
+      else if (part === "review") await removeReportedReview(report.reported_id, report.id);
       else await removeReportedQuestion(report.reported_id, part, report.id);
       toast(DONE[part]);
       onDone();

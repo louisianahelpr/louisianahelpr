@@ -413,6 +413,16 @@ export const ADMIN_RPC_ERROR_COPY = {
     report_not_for_review: "That report is about something else. Refresh the reports list.",
     review_note_too_long: DC.review_note_too_long,
   },
+  // Q1948 (L46): a reported Shops review, from the reports queue (ReportedCopy).
+  shops_admin_reported_reviews: { not_admin: DC.not_admin },
+  shops_admin_remove_review: {
+    account_restricted: DC.account_restricted,
+    not_admin: DC.not_admin,
+    own_review: "Another admin has to decide on a review you wrote or one about you.",
+    review_not_found: "That review is already gone. Refresh the reports list.",
+    report_not_for_review: "That report is about something else. Refresh the reports list.",
+    review_note_too_long: DC.review_note_too_long,
+  },
   // "Suggest a category" review (I1, migration 20261015051141): CategorySuggestionsCard.
   admin_list_category_suggestions: {
     feature_disabled: "Category suggestions are switched off for your account.",

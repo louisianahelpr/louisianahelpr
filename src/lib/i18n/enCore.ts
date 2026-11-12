@@ -59,4 +59,6 @@ export const enCore = {
   "nav.sections": "Sections",
   "soon.short": "Soon",
   "soon.full": "Coming soon",
+  // The shared next-step line (nextStepWords): every screen with a NextStep shows it.
+  "next.lead": "Next: {step}",
 } as const;

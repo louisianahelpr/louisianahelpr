@@ -32,7 +32,7 @@ import {
   ConditionChip,
   DeclutterNotice,
   SIZE_LABEL,
-  STATUS_HELP,
+  statusHelp,
   sellerStatusLabel,
 } from "./declutterUi";
 import { isFreeItem } from "./freeItem";
@@ -342,8 +342,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
           {isSeller && (it.status === "live" || it.status === "paused") && <Suspense fallback={null}><SellerListingPanel item={it} coverUrl={urls[0] ?? null} onDeleted={() => navigate("/declutter?tab=selling")} /></Suspense>}
           {isSeller && user && it.status === "live" && it.accepts_trades === true && <Suspense fallback={null}><ItemTradeOffers itemId={it.id} userId={user.id} /></Suspense>}
           {isSeller && it.status !== "live" && it.status !== "paused" && (
-            <DeclutterNotice title={`Your listing: ${sellerStatusLabel(it, tradedFor.get(it.id) ?? null)}`}>
-              {STATUS_HELP[it.status] ?? null}
+            <DeclutterNotice title={t("decl.yourListing", { status: sellerStatusLabel(it, tradedFor.get(it.id) ?? null) })}>
+              {statusHelp(it.status)}
               {(it.status === "rejected" || it.status === "removed") && review.data?.review_note ?<p className="mt-1">Reason: {review.data.review_note}</p> : null}
               {/* SE-1 (deep audit 2026-10-28): a taken-down listing can come back, from its own page too. */}
               {it.status === "withdrawn" && <div className="mt-3"><ReopenListingButton itemId={it.id} /></div>}

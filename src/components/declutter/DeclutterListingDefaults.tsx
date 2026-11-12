@@ -4,7 +4,6 @@
  * what it has. A failed read shows the retry, never the app's defaults, so a Save can never write defaults over
  * choices we simply failed to read.
  */
-import { OFFERS_TITLE, offersSettingLine } from "@/lib/declutter/offersOnPost";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -22,11 +21,11 @@ import { bundleErrorMessage } from "@/lib/declutter/bundleErrors";
 import { SellerDeliveryDetails } from "./SellerDeliverySettings";
 import { ChipGroup } from "./DeclutterSellSteps";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { KEEP_UP_TITLE, keepUpSettingLine } from "./KeepUpRow";
+import { keepUpSettingLine } from "./KeepUpRow";
 import { SELLER_WAYS, SellWayTiles } from "./SellHandoverChoices";
-import { DROPS_SWITCH_LABEL } from "./sellForm";
 import { OffersForAllListings } from "./DeclutterOffersForAll";
-import { TRADES_TITLE, tradesSettingLine } from "@/lib/declutter/trades";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 
 /** The everyday choices; a saved share that is none of these (from a typed lowest price) is added so it stays selected. */
@@ -42,8 +41,8 @@ const same = (a: SellerDefaults, b: SellerDefaults) =>
 
 export function ListingDefaultsCard({ userId }: { userId: string }) {
   const saved = useQuery({ queryKey: ["declutter", "seller-defaults", userId], queryFn: () => fetchSellerDefaults(userId) });
-  if (saved.isLoading) return <p role="status" className="rounded-[20px] border border-border bg-card p-4 text-sm text-muted-foreground">Loading…</p>;
-  if (saved.isError) return <ErrorState variant="inline" title="We couldn't load your listing defaults." body={declutterErrorMessage(saved.error)} onRetry={() => void saved.refetch()} />;
+  if (saved.isLoading) return <p role="status" className="rounded-[20px] border border-border bg-card p-4 text-sm text-muted-foreground">{t("lp.f.loading")}</p>;
+  if (saved.isError) return <ErrorState variant="inline" title={t("lp.ld.loadFail")} body={declutterErrorMessage(saved.error)} onRetry={() => void saved.refetch()} />;
   return <ListingDefaultsForm userId={userId} current={saved.data ?? SELLER_DEFAULTS} />;
 }
 
@@ -55,39 +54,39 @@ export function ListingChoiceFields({ draft, change, idPrefix = "defaults" }: { 
   return (<>
       <div className="flex items-start gap-3">
         <label htmlFor={`${idPrefix}-drops`} className="min-w-0 flex-1">
-          <span className="block text-ds-15 font-semibold text-foreground">{DROPS_SWITCH_LABEL}</span>
+          <span className="block text-ds-15 font-semibold text-foreground">{t("lp.dropsSwitch")}</span>
           <span className="block text-ds-13 text-muted-foreground">
-            {draft.drops ? `Lowers ${draft.dropPct}% each evening, never below your lowest price.` : "Off. It stays at your price until you change it."}
+            {draft.drops ? t("lp.ld.dropsOn", { pct: draft.dropPct }) : t("lp.ld.dropsOff")}
           </span>
         </label>
         <Switch id={`${idPrefix}-drops`} checked={draft.drops} onCheckedChange={(v) => change({ drops: v === true })} />
       </div>
       {draft.drops && (<>
-        <ChipGroup label="How much each evening" options={DROP_PCT_CHOICES.map((p) => ({ value: String(p), label: `${p}%` }))} value={String(draft.dropPct)} onChange={(v) => change({ dropPct: Number(v) })} compact />
+        <ChipGroup label={t("lp.ld.howMuch")} options={DROP_PCT_CHOICES.map((p) => ({ value: String(p), label: `${p}%` }))} value={String(draft.dropPct)} onChange={(v) => change({ dropPct: Number(v) })} compact />
         <div className="space-y-2">
-          <ChipGroup label="Lowest price" options={floorOptions(draft.floorPct)} value={String(draft.floorPct)} onChange={(v) => change({ floorPct: Number(v) })} compact />
-          <p className="text-ds-13 text-muted-foreground" data-floor-words="">Lowest price: {draft.floorPct}% of your asking price. Only you see it. The drops stop there.</p>
+          <ChipGroup label={t("lp.ld.lowest")} options={floorOptions(draft.floorPct)} value={String(draft.floorPct)} onChange={(v) => change({ floorPct: Number(v) })} compact />
+          <p className="text-ds-13 text-muted-foreground" data-floor-words="">{t("lp.ld.floorWords", { pct: draft.floorPct })}</p>
         </div>
       </>)}
       <div className="flex items-start gap-3">
         <span className="min-w-0 flex-1">
-          <span id={`${idPrefix}-keep-up`} className="block text-ds-15 font-semibold text-foreground">{KEEP_UP_TITLE}</span>
+          <span id={`${idPrefix}-keep-up`} className="block text-ds-15 font-semibold text-foreground">{t("lp.keepUpTitle")}</span>
           <span className="block text-ds-13 text-muted-foreground">{keepUpSettingLine(draft.keepUp)}</span>
         </span>
         <Switch aria-labelledby={`${idPrefix}-keep-up`} checked={draft.keepUp} onCheckedChange={(v) => change({ keepUp: v === true })} />
       </div>
       <div className="flex items-start gap-3">
         <label htmlFor={`${idPrefix}-offers`} className="min-w-0 flex-1">
-          <span className="block text-ds-15 font-semibold text-foreground">{OFFERS_TITLE}</span>
-          <span className="block text-ds-13 text-muted-foreground">{offersSettingLine(draft.acceptsOffers)}</span>
+          <span className="block text-ds-15 font-semibold text-foreground">{t("lp.ld.offersTitle")}</span>
+          <span className="block text-ds-13 text-muted-foreground">{draft.acceptsOffers ? t("lp.ld.offersOn") : t("lp.ld.offersOff")}</span>
         </label>
         <Switch id={`${idPrefix}-offers`} checked={draft.acceptsOffers} onCheckedChange={(v) => change({ acceptsOffers: v === true })} />
       </div>
       {/* Declutter trades (owner 10-31): a new listing's "Open to trades", OFF unless the seller turns it on here. */}
       <div className="flex items-start gap-3" data-trades-default="">
         <label htmlFor={`${idPrefix}-trades`} className="min-w-0 flex-1">
-          <span className="block text-ds-15 font-semibold text-foreground">{TRADES_TITLE}</span>
-          <span className="block text-ds-13 text-muted-foreground">{tradesSettingLine(draft.acceptsTrades === true)}</span>
+          <span className="block text-ds-15 font-semibold text-foreground">{t("lp.ld.tradesTitle")}</span>
+          <span className="block text-ds-13 text-muted-foreground">{draft.acceptsTrades === true ? t("lp.ld.tradesOn") : t("lp.ld.tradesOff")}</span>
         </label>
         <Switch id={`${idPrefix}-trades`} checked={draft.acceptsTrades === true} onCheckedChange={(v) => change({ acceptsTrades: v === true })} />
       </div>
@@ -133,10 +132,10 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
     onSuccess: ({ done, stopped }) => {
       if (stopped) void qc.invalidateQueries({ queryKey: ["declutter"] });
       if (!done) {
-        toast.error("We couldn't save your listing defaults yet. Try again in a little while.");
+        toast.error(t("lp.ld.saveFail"));
         return;
       }
-      toast(stopped ? `Listing defaults saved. ${stopped === 1 ? "1 listing no longer offers" : `${stopped} listings no longer offer`} your delivery.` : "Listing defaults saved.");
+      toast(stopped ? t(stopped === 1 ? "lp.ld.savedStop1" : "lp.ld.savedStopN", { n: stopped }) : t("lp.ld.saved"));
       qc.setQueryData(["declutter", "seller-defaults", userId], draft);
       setEdits({});
       if (bundleDirty) {
@@ -163,26 +162,25 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
   return (
     <div className="space-y-5 rounded-[20px] border border-border bg-card p-4" data-listing-defaults="">
       <p className="text-ds-13 text-muted-foreground">
-        Your next listing starts with these, and you can change them on any listing. What you pick when you post becomes
-        the new start. Listings already up stay as they are.
+        {t("lp.ld.intro")}
       </p>
       <ListingChoiceFields draft={draft} change={change} />
       {/* LEAD-BUNDLE-DROPDOWN: directly under the free-after row, in its own panel (it applies to all the seller's
           listings). A3-91: it saves with this card's Save, like every field here. */}
       <BundleDiscountCard pick={bundlePick} onPick={setBundlePick} disabled={save.isPending} />
       <div className="space-y-2" role="group" aria-labelledby="defaults-ways">
-        <p id="defaults-ways" className="text-ds-14 font-semibold text-foreground">How buyers can get it</p>
+        <p id="defaults-ways" className="text-ds-14 font-semibold text-foreground">{t("lp.ld.waysHead")}</p>
         <SellWayTiles shown={shown} ways={draft.handovers} setWays={(w) => change({ handovers: w })} onSettingsPage />
         {/* LEAD-DELIVER-TWICE: the delivery price and times open under the ticked "I'll deliver" (their own Save). */}
         {sellerDeliveryOpen && draft.handovers.includes("seller_delivery") && <SellerDeliveryDetails />}
-        {deliverOff && <p role="note" className="text-ds-13 text-foreground" data-deliver-off-all="">Off. Your listings stop offering delivery; orders already placed are kept.</p>}
+        {deliverOff && <p role="note" className="text-ds-13 text-foreground" data-deliver-off-all="">{t("lp.ld.deliverOff")}</p>}
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <Button type="button" size="sm" disabled={save.isPending || noWay || !unsaved} onClick={() => save.mutate()}>
-          {save.isPending ? "Saving…" : "Save"}
+          {save.isPending ? t("lp.f.saving") : t("lp.ld.save")}
         </Button>
-        {noWay && <p role="note" className="text-ds-13 font-semibold text-foreground" data-defaults-no-way="">Tick at least one way buyers can get it.</p>}
-        {unsaved && !noWay && !save.isPending && <p role="note" className="text-ds-13 font-semibold text-foreground" data-defaults-unsaved="">Not saved yet. Tap Save to keep these.</p>}
+        {noWay && <p role="note" className="text-ds-13 font-semibold text-foreground" data-defaults-no-way="">{t("lp.ld.noWay")}</p>}
+        {unsaved && !noWay && !save.isPending && <p role="note" className="text-ds-13 font-semibold text-foreground" data-defaults-unsaved="">{t("lp.ld.unsaved")}</p>}
       </div>
       <OffersForAllListings userId={userId} />
     </div>
@@ -207,6 +205,6 @@ function useLeaveWarning(unsaved: boolean) {
     return () => window.removeEventListener("beforeunload", warnNow);
   }, [unsaved]);
   useEffect(() => () => {
-    if (pending.current) toast("Your changes to listing defaults weren't saved.");
+    if (pending.current) toast(t("lp.ld.leftUnsaved"));
   }, []);
 }

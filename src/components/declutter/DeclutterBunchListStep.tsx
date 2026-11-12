@@ -8,7 +8,6 @@ import { BUNCH_SECONDS_EACH, bunchListingMinutes, type BunchItem, type PhotoProg
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { Switch } from "@/components/ui/switch";
 import { BunchChoicesCard, type useBunchChoices } from "./BunchChoices";
-import { DROPS_SWITCH_LABEL } from "./sellForm";
 import { bunchDropsValue, makeFreeValue, SellingSettingsRows, usePickupLines } from "./SellingSettingsRows";
 import { SellProgress, bunchItemSteps } from "./SellProgress";
 import { BunchSection } from "./DeclutterBunchSection";
@@ -16,12 +15,14 @@ import { PickupTimesEditor, pickupWindowsProblem } from "./DeclutterPickupTimes"
 import { SellHandoverChoices } from "./SellHandoverChoices";
 import { TaxStatementsCheck } from "./declutterUi";
 import type { useSavedPickup } from "./useSavedPickup";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 /** "Takes about 1 minute. Keep this page open." (15 seconds for one item.) */
 function bunchTimeLine(count: number): string {
   const min = bunchListingMinutes(count);
-  const time = count <= 1 ? `${BUNCH_SECONDS_EACH} seconds` : `${min} ${min === 1 ? "minute" : "minutes"}`;
-  return `Takes about ${time}. Keep this page open.`;
+  const time = count <= 1 ? t("lp.b.seconds", { n: BUNCH_SECONDS_EACH }) : t(min === 1 ? "lp.b.min1" : "lp.b.minN", { n: min });
+  return t("lp.b.takes", { time });
 }
 
 export function BunchListStep({ step, items, pricedDraftsOffered, readyCount, heldForFee, savedSetup, savedWindows, savedWays, windows, setWindows, choices, ways, setWays, sellerDeliveryOpen, attested, setAttested, problem, blocked, listing, photoProgress, listingProgress = null, runNames = [], onList }: {
@@ -56,7 +57,7 @@ export function BunchListStep({ step, items, pricedDraftsOffered, readyCount, he
   return (
     <>
       <span id="bunch-list-step" tabIndex={-1} className="block focus:outline-none" />
-      <BunchSection id="bunch-list" title={`${step}. List ${readyCount} ${readyCount === 1 ? "item" : "items"}`}>
+      <BunchSection id="bunch-list" title={t(readyCount === 1 ? "lp.b.title1" : "lp.b.titleN", { step, n: readyCount })}>
           {savedSetup.hasSettings && savedWindows.isSuccess && savedWays.length > 0 && !pickupWindowsProblem(windows) ? (
             // The seller's settings as the summary's rows, the same as Sell one's (owner 2026-11-01), with ONE Change (to
             // Settings). LEAD-BUNCH-PCT-LABEL (owner 2026-10-31): price drops can still be switched for this bunch alone,
@@ -68,41 +69,41 @@ export function BunchListStep({ step, items, pricedDraftsOffered, readyCount, he
                 // Sell a bunch never sets "make it free" on what it lists (only Sell one does): it is never, whatever is saved.
                 makeFree={anyPriced ? makeFreeValue(null) : null}
                 dropsControl={anyPriced ? (
-                  <Switch aria-label={`${DROPS_SWITCH_LABEL} for this bunch`} checked={choices.choices.drops} onCheckedChange={(v) => choices.set({ drops: v === true })} data-bunch-drops={choices.choices.drops ? "on" : "off"} />
+                  <Switch aria-label={t("lp.b.forBunch", { label: t("lp.dropsSwitch") })} checked={choices.choices.drops} onCheckedChange={(v) => choices.set({ drops: v === true })} data-bunch-drops={choices.choices.drops ? "on" : "off"} />
                 ) : undefined}
               />
             </ul>
           ) : (<>
-          <h3 className="text-sm font-semibold">Your usual pickup times</h3>
-          <p className="text-xs text-muted-foreground">Buyers pick one of these times. They apply to all your listings.</p>
+          <h3 className="text-sm font-semibold">{t("lp.b.usualHead")}</h3>
+          <p className="text-xs text-muted-foreground">{t("lp.b.usualBody")}</p>
           {savedWindows.isError ? (
-            <ErrorState variant="inline" title="We couldn't load your pickup times." body={declutterErrorMessage(savedWindows.error)} onRetry={() => void savedWindows.refetch()} />
+            <ErrorState variant="inline" title={t("lp.b.timesFail")} body={declutterErrorMessage(savedWindows.error)} onRetry={() => void savedWindows.refetch()} />
           ) : savedWindows.isSuccess ? (
             <PickupTimesEditor windows={windows} setWindows={setWindows} />
           ) : (
-            <p className="text-sm text-muted-foreground" role="status">Loading your pickup times…</p>
+            <p className="text-sm text-muted-foreground" role="status">{t("lp.b.timesLoading")}</p>
           )}
           <BunchChoicesCard c={choices} anyPriced={items.some((it) => !it.free)} />
-          <h3 className="pt-2 text-sm font-semibold">How buyers can get them</h3>
+          <h3 className="pt-2 text-sm font-semibold">{t("lp.b.howHead")}</h3>
           <SellHandoverChoices ways={ways} setWays={setWays} free={false} sellerDeliveryOpen={sellerDeliveryOpen} pickupDays={windows.map((w) => w.weekday)} />
           </>)}
-          {items.some((it) => it.free) && <p className="text-xs text-muted-foreground" data-bunch-free-note="">Free items are claimed, not bought: no offers and no price drops, and they're picked up from your porch.</p>}
-          <h3 className="pt-2 text-sm font-semibold">Confirm about these items</h3>
-          <p className="text-xs text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things. One tick covers every item and saved draft you list now.</p>
+          {items.some((it) => it.free) && <p className="text-xs text-muted-foreground" data-bunch-free-note="">{t("lp.b.freeNote")}</p>}
+          <h3 className="pt-2 text-sm font-semibold">{t("lp.b.confirmHead")}</h3>
+          <p className="text-xs text-muted-foreground">{t("lp.b.taxNote")}</p>
           <TaxStatementsCheck id="bunch-tax" checked={attested} onChange={setAttested} free={items.every((it) => it.free) && !pricedDraftsOffered} />
-          {heldForFee > 0 && <p className="text-sm" data-bunch-fee-held="">{heldForFee} priced {heldForFee === 1 ? "item waits" : "items wait"} for the setup fee above. {heldForFee === 1 ? "It stays" : "They stay"} on this list.</p>}
+          {heldForFee > 0 && <p className="text-sm" data-bunch-fee-held="">{t(heldForFee === 1 ? "lp.b.held1" : "lp.b.heldN", { n: heldForFee })}</p>}
           {problem && <p className="text-sm text-destructive-ink" role="alert" data-bunch-problem-list="">{problem}</p>}
           {/* Owner 2026-11-01: each item's progress while the run works (Uploading photos -> Checking -> Live). */}
           {listing && listingProgress && (
-            <SellProgress title={`Listing ${readyCount} ${readyCount === 1 ? "item" : "items"}…`}
-              rows={bunchItemSteps(listingProgress.done, listingProgress.total).map((step, i) => ({ name: runNames[i]?.trim() || `Item ${i + 1}`, step }))} />
+            <SellProgress title={t(readyCount === 1 ? "lp.b.listing1" : "lp.b.listingN", { n: readyCount })}
+              rows={bunchItemSteps(listingProgress.done, listingProgress.total).map((step, i) => ({ name: runNames[i]?.trim() || t("lp.b.item", { n: i + 1 }), step }))} />
           )}
           <Button type="button" disabled={blocked || readyCount === 0 || !savedWindows.isSuccess} onClick={onList}>
-            {listing ? "Listing…" : `List ${readyCount} ${readyCount === 1 ? "item" : "items"}`}
+            {listing ? t("lp.b.listingBtn") : t(readyCount === 1 ? "lp.b.list1" : "lp.b.listN", { n: readyCount })}
           </Button>
           {listing && photoProgress && (
             <p className="text-sm text-muted-foreground" role="status" aria-live="polite" data-bunch-photo-progress="">
-              Sending photo {photoProgress.photo} of {photoProgress.of}{photoProgress.itemName ? ` (${photoProgress.itemName})` : ""}.{photoProgress.retrying ? " The connection dropped, so we're trying again." : ""}
+              {t("lp.b.photo", { i: photoProgress.photo, of: photoProgress.of })}{photoProgress.itemName ? ` (${photoProgress.itemName})` : ""}.{photoProgress.retrying ? ` ${t("lp.b.retry")}` : ""}
             </p>
           )}
           {/* One line (owner 2026-11-01): how long, honestly (audit finding 3: never "a few seconds each"), and to stay. */}

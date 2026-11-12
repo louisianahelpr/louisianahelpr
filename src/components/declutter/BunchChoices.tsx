@@ -11,8 +11,9 @@ import type { PickupWindow, SellerHandover } from "@/lib/declutter/api";
 import type { BunchChoices } from "@/lib/declutter/bunch";
 import { fetchLastSetup } from "@/lib/declutter/lastSetup";
 import { SELLER_DEFAULTS, fetchSellerDefaults, saveSellerDefaults } from "@/lib/declutter/sellerDefaults";
-import { KEEP_UP_TITLE, keepUpSettingLine } from "./KeepUpRow";
-import { DROPS_SWITCH_LABEL } from "./sellForm";
+import { keepUpSettingLine } from "./KeepUpRow";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 type SavedWindow = { weekday: number; starts_local: string; ends_local: string };
 
@@ -69,9 +70,9 @@ function BunchDropsSwitch({ c }: { c: ReturnType<typeof useBunchChoices> }) {
   return (
     <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" data-bunch-drops={drops ? "on" : "off"}>
       <span className="min-w-0 flex-1">
-        <span id="bunch-drops" className="block text-ds-15 font-semibold">{DROPS_SWITCH_LABEL}</span>
+        <span id="bunch-drops" className="block text-ds-15 font-semibold">{t("lp.dropsSwitch")}</span>
         <span className="block text-ds-13 text-muted-foreground">
-          {drops ? `On. Each priced item drops ${dropPct}% each evening, never below ${floorPct}% of its price.` : "Off. Each priced item stays at its price."}
+          {drops ? t("lp.b.dropsOn", { pct: dropPct, floor: floorPct }) : t("lp.b.dropsOff")}
         </span>
       </span>
       <Switch aria-labelledby="bunch-drops" checked={drops} onCheckedChange={(v) => c.set({ drops: v === true })} />
@@ -86,7 +87,7 @@ export function BunchChoicesCard({ c, anyPriced }: { c: ReturnType<typeof useBun
       {anyPriced && <BunchDropsSwitch c={c} />}
       <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" data-bunch-keep-up={keepUp ? "on" : "off"}>
         <span className="min-w-0 flex-1">
-          <span id="bunch-keep-up" className="block text-ds-15 font-semibold">{KEEP_UP_TITLE}</span>
+          <span id="bunch-keep-up" className="block text-ds-15 font-semibold">{t("lp.keepUpTitle")}</span>
           <span className="block text-ds-13 text-muted-foreground">{keepUpSettingLine(keepUp)}</span>
         </span>
         <Switch aria-labelledby="bunch-keep-up" checked={keepUp} onCheckedChange={(v) => c.set({ keepUp: v === true })} />

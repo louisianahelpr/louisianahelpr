@@ -13,22 +13,25 @@ import type { PickupWindow, SellerHandover } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
 import { fetchMyPorchPlaces, MY_PORCH_PLACES_KEY } from "@/lib/declutter/porchPlaces";
 import { dollarsToCents } from "@/lib/declutter/money";
-import { WEEKDAYS } from "./declutterUi";
 import { sameHoursEveryDay, timeLabel } from "./DeclutterPickupTimes";
-import { HANDOVER_CHOICE, SELLER_WAYS } from "./SellHandoverChoices";
+import { SELLER_WAYS, wayTitle } from "./SellHandoverChoices";
 import { priceChoiceToSave, type FormState } from "./sellForm";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 
 /** The ways under "Pickup": porch pickup is just "Porch" there (the label already says pickup). */
 function waysWords(ways: readonly SellerHandover[]): string {
-  return SELLER_WAYS.filter((w) => ways.includes(w)).map((w) => (w === "porch" ? "Porch" : HANDOVER_CHOICE[w].title)).join(", ");
+  return SELLER_WAYS.filter((w) => ways.includes(w)).map((w) => (w === "porch" ? t("lp.sr.porch") : wayTitle(w))).join(", ");
 }
 
 /** "Saturdays", "Saturdays and Sundays", "Mondays, Wednesdays and Saturdays", "Every day". */
 export function dayWords(days: readonly number[]): string {
   const uniq = [...new Set(days)].filter((d) => d >= 0 && d <= 6).sort((a, b) => a - b);
-  if (uniq.length === 7) return "Every day";
-  const names = uniq.map((d) => `${WEEKDAYS[d]}s`);
-  return names.length <= 1 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  if (uniq.length === 7) return t("lp.sr.everyDay");
+  // F260q: plural day names in the member's language ("Saturdays" / "sábados").
+  const names = uniq.map((d) => t(`lp.dayPl.${d}` as MsgKey));
+  return names.length <= 1 ? (names[0] ?? "") : t("lp.sr.list", { first: names.slice(0, -1).join(", "), last: names[names.length - 1] });
 }
 
 /** Full day names with the hours, as the item page shows them: "Saturdays 9:00 AM–12:00 PM". Days only when no hours. */
@@ -74,19 +77,19 @@ export function usePickupLines(ways: readonly SellerHandover[], areaLabel: strin
 export function dropsValue(f: Pick<FormState, "free" | "price" | "floor" | "drops" | "dropPct">): string | null {
   if (f.free || dollarsToCents(f.price) === null) return null;
   const choice = priceChoiceToSave(f);
-  if (choice && choice.dropPct === 0) return "Off";
-  if (!choice) return `${f.dropPct}% each evening. Set the lowest you'll take.`;
-  return `${choice.dropPct}% each evening, lowest ${formatPrice(choice.floorCents)}`;
+  if (choice && choice.dropPct === 0) return t("lp.sr.off");
+  if (!choice) return t("lp.sr.dropsNoFloor", { pct: f.dropPct });
+  return t("lp.sr.dropsFloor", { pct: choice.dropPct, floor: formatPrice(choice.floorCents) });
 }
 
 /** Sell a bunch's Price drops value: the lowest is a share of each item's own price. */
 export function bunchDropsValue(c: { drops: boolean; dropPct: number; floorPct: number }): string {
-  return c.drops ? `${c.dropPct}% each evening, lowest ${c.floorPct}% of each price` : "Off";
+  return c.drops ? t("lp.sr.bunchDrops", { pct: c.dropPct, floor: c.floorPct }) : t("lp.sr.off");
 }
 
 /** The Make it free value. */
 export function makeFreeValue(days: number | null): string {
-  return days === null ? "Never" : `After ${days} days`;
+  return days === null ? t("lp.sr.never") : t("lp.sr.after", { n: days });
 }
 
 /** `sellRow`: the Pickup row is where Post's settings problem is said and scrolled to (data-sell-row="settings"). */
@@ -118,17 +121,17 @@ export function SellingSettingsRows({ pickup, drops, makeFree, dropsControl, pro
   return (
     <>
       <li className="flex items-center gap-3 bg-muted/40 px-4 py-1" data-selling-settings="">
-        <p className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">From your settings</p>
+        <p className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">{t("lp.sr.from")}</p>
         <Button asChild variant="link" size="sm" className="shrink-0 px-2 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">
-          <Link to="/declutter/settings" aria-label="Change your selling settings" data-settings-change="">Change</Link>
+          <Link to="/declutter/settings" aria-label={t("lp.sr.changeAria")} data-settings-change="">{t("lp.sr.change")}</Link>
         </Button>
       </li>
-      <SettingRow id="pickup" title="Pickup" sellRow="settings">
-        {pickup.length === 0 ? <span className="font-normal text-muted-foreground">Not set yet</span> : pickup.map((l, i) => <p key={i}>{l}</p>)}
+      <SettingRow id="pickup" title={t("lp.sr.pickup")} sellRow="settings">
+        {pickup.length === 0 ? <span className="font-normal text-muted-foreground">{t("lp.sr.notSet")}</span> : pickup.map((l, i) => <p key={i}>{l}</p>)}
         {problem}
       </SettingRow>
-      {drops !== null && <SettingRow id="drops" title="Price drops" extra={dropsControl}>{drops}</SettingRow>}
-      {makeFree !== null && <SettingRow id="free" title="Make it free">{makeFree}</SettingRow>}
+      {drops !== null && <SettingRow id="drops" title={t("lp.sr.drops")} extra={dropsControl}>{drops}</SettingRow>}
+      {makeFree !== null && <SettingRow id="free" title={t("lp.sr.free")}>{makeFree}</SettingRow>}
     </>
   );
 }

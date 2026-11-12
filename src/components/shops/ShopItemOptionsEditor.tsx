@@ -28,6 +28,27 @@ import {
 /** S042 (Shops audit 11-12): "$1,200" or "1,200" is 120000 cents, as the item editor reads a price. */
 export const optionPriceCents = (s: string) => Math.round(Number(s.replace(/[$,\s]/g, "")) * 100);
 /** The words under a combination's price when the server would refuse it ($1 to $5,000), else null. */
+/**
+ * S2-009 (Shops audit 2): stock is a whole number from 0 to 9999, or empty (made to order). The box allowed 2.5,
+ * which the server refused with a message about prices.
+ */
+export function optionStockProblem(s: string): string | null {
+  const t = s.trim();
+  if (t === "") return null;
+  if (!/^\d+$/.test(t) || Number(t) > 9999) return "A whole number from 0 to 9999, or leave it empty.";
+  return null;
+}
+
+/**
+ * S2-009: the price sent for a row. A switched-off row is never sold, but the server still checks its price ($1 to
+ * the most), so a switched-off row with a price that wouldn't pass sends the item's own price instead of failing the
+ * whole save with a toast that names no row.
+ */
+export function optionRowPriceCents(r: { price: string; active: boolean }, basePriceCents: number): number {
+  if (r.active || optionPriceProblem(r.price) === null) return optionPriceCents(r.price);
+  return basePriceCents;
+}
+
 export function optionPriceProblem(s: string): string | null {
   const c = optionPriceCents(s);
   if (s.trim() === "" || !Number.isFinite(c)) return "Type a price, like 12.50.";
@@ -109,7 +130,7 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
         const r = rowFor(values);
         return {
           values,
-          price_cents: optionPriceCents(r.price),
+          price_cents: optionRowPriceCents(r, basePriceCents),
           stock_count: r.stock.trim() === "" ? null : Number(r.stock),
           active: r.active,
         };
@@ -168,6 +189,7 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
             const r = rowFor(values);
             const key = label.replace(/[^A-Za-z0-9]+/g, "-");
             const priceProblem = r.active ? optionPriceProblem(r.price) : null;
+            const stockProblem = optionStockProblem(r.stock);
             return (
               <li key={label} className="grid grid-cols-[1fr_5rem_5rem] items-end gap-2">
                 <div className="flex items-center gap-2 pb-3">
@@ -182,8 +204,10 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor={`combo-stock-${key}`} className="text-ds-11">Stock</Label>
-                  <Input id={`combo-stock-${key}`} type="number" min={0} max={9999} value={r.stock} placeholder="Made to order"
-                    onChange={(e) => setRow(values, { stock: e.target.value })} />
+                  <Input id={`combo-stock-${key}`} type="number" inputMode="numeric" min={0} max={9999} step={1} value={r.stock} placeholder="Made to order"
+                    onChange={(e) => setRow(values, { stock: e.target.value })}
+                    aria-invalid={stockProblem ? true : undefined} aria-describedby={stockProblem ? `combo-stock-err-${key}` : undefined} />
+                  {stockProblem && <p id={`combo-stock-err-${key}`} className="text-ds-11 text-destructive-ink">{stockProblem}</p>}
                 </div>
               </li>
             );
@@ -193,7 +217,7 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
 
       <div className="flex flex-wrap gap-2">
         {lists.length > 0 && (
-          <Button type="button" variant="outline" disabled={save.isPending || combos.length === 0 || tooMany || combos.some((v) => { const row = rowFor(v); return row.active && optionPriceProblem(row.price) !== null; })} onClick={() => save.mutate(false)}>
+          <Button type="button" variant="outline" disabled={save.isPending || combos.length === 0 || tooMany || combos.some((v) => { const row = rowFor(v); return (row.active && optionPriceProblem(row.price) !== null) || optionStockProblem(row.stock) !== null; })} onClick={() => save.mutate(false)}>
             {save.isPending ? "Saving…" : "Save options"}
           </Button>
         )}

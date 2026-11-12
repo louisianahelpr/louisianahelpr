@@ -1,10 +1,10 @@
 /**
  * The shared next-step line (owner 2026-11-01 12:05 PM) and the job's mapping onto it (jobNextStep).
- * @mutate src/components/ui/NextStep.tsx |   const lead = value.who === "you" ? `Next: ${value.keepCase ? value.text : lowerFirst(value.text)}` : value.text; |   const lead = value.text;
+ * @mutate src/components/ui/NextStep.tsx |   const lead = value.who === "you" ? t("next.lead", { step: value.keepCase ? value.text : lowerFirst(value.text) }) : value.text; |   const lead = value.text;
  * @mutate src/components/tracker/jobNextStep.ts |   const v: NextStepValue = m ? { who, text: m[1], by: m[2] } : { who, text: line }; |   const v: NextStepValue = { who, text: line };
  * @mutate src/components/tracker/jobNextStep.ts |   return keepCase ? { ...v, keepCase } : v; |   return v;
- * @mutate src/components/ui/NextStep.tsx | `Next: ${value.keepCase ? value.text : lowerFirst(value.text)}` | `Next: ${lowerFirst(value.text)}`
- * @mutate src/lib/nextStepWords.ts | `Next: ${v.keepCase ? v.text : lowerFirst(v.text)}` | `Next: ${lowerFirst(v.text)}`
+ * @mutate src/components/ui/NextStep.tsx | { step: value.keepCase ? value.text : lowerFirst(value.text) } | { step: lowerFirst(value.text) }
+ * @mutate src/lib/nextStepWords.ts | { step: v.keepCase ? v.text : lowerFirst(v.text) } | { step: lowerFirst(v.text) }
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";

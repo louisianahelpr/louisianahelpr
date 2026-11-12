@@ -6,7 +6,7 @@
  *
  * @mutate src/components/declutter/SellOneScreen.tsx |   if (underAge) { |   if (false) {
  * @mutate src/components/declutter/declutterUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
- * @mutate src/components/declutter/listingStatusLine.ts |   pending_review: "Being checked. We'll send you a notice when it's done.", |   pending_review: "Waiting for a review. We'll send you a notice.",
+ * @mutate src/components/declutter/listingStatusLine.ts |   pending_review: "decl.line.pending_review", |   pending_review: "decl.st.pending_review",
  * @mutate src/components/declutter/DeclutterQuestions.tsx |             <Button type="submit" variant="outline" className="h-auto shrink-0" disabled={ask.isPending \|\| text.length < 2}> |             <Button type="submit" className="h-auto shrink-0 btn-grad-primary" variant="ghost" disabled={ask.isPending \|\| text.length < 2}>
  * @mutate src/components/declutter/DeclutterQuestions.tsx | <p className="text-ds-15 font-semibold [overflow-wrap:anywhere]">{q.question}</p> | <p className="text-ds-15 font-semibold">{q.question}</p>
  * @mutate src/components/declutter/declutterUi.tsx | <Checkbox id={id} className="mt-0.5" checked={checked} onCheckedChange={(v) => onChange(v === true)} />; | <input type="checkbox" id={id} className="mt-0.5" checked={checked} onChange={(e) => onChange(e.target.checked)} />;
@@ -304,8 +304,8 @@ describe("Declutter screens", () => {
     // One status line per row (owner 2026-10-28): the status first, then what happens next.
     expect(await screen.findByText("Being checked. We'll send you a notice when it's done.")).toBeInTheDocument();
     // Next-step line (owner 2026-11-01): a row that waits on the seller says "Next: …".
-    // @mutate src/components/declutter/listingStatusLine.ts |   if (move) return { who: "you", text: move }; |   if (move) return { who: "info", text: move };
-    // @mutate src/components/declutter/listingStatusLine.ts |   draft: "Finish it to sell it", |   draft: "Not listed yet",
+    // @mutate src/components/declutter/listingStatusLine.ts |   if (move) return { who: "you", text: t(move) }; |   if (move) return { who: "info", text: t(move) };
+    // @mutate src/components/declutter/listingStatusLine.ts |   draft: "decl.move.draft", |   draft: "decl.st.draft",
     const draftLine = screen.getByText("Next: finish it to sell it");
     expect(draftLine.getAttribute("data-next-step")).toBe("you");
     expect(screen.getByText("Being checked. We'll send you a notice when it's done.").getAttribute("data-next-step")).toBe("them");

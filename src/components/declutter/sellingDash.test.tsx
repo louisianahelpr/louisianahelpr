@@ -35,16 +35,16 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx | const DECLUTTER_SETTINGS = { label: "Declutter settings", path: "/declutter/settings" } as const; | const DECLUTTER_SETTINGS = { label: "Declutter settings", path: "/declutter" } as const;
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("taken") && <TakenDownSection items={takenDown} ended={ended} />} |
  * @mutate src/components/declutter/DeclutterMineViews.tsx | (i) => i.status === "withdrawn" \|\| i.status === "sold_elsewhere") | (i) => i.status === "never" \|\| i.status === "sold_elsewhere")
- * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "sold") return "Claimed · waiting for pickup"; |   void 0;
- * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "reserved") return "Claimed"; |   void 0;
- * @mutate src/components/declutter/DeclutterItemView.tsx | title={`Your listing: ${sellerStatusLabel(it, tradedFor.get(it.id) ?? null)}`} | title={`Your listing: ${STATUS_LABEL[it.status]}`}
+ * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "sold") return tr("decl.st.claimedWaiting"); |   void 0;
+ * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "reserved") return tr("decl.st.claimed"); |   void 0;
+ * @mutate src/components/declutter/DeclutterItemView.tsx | title={t("decl.yourListing", { status: sellerStatusLabel(it, tradedFor.get(it.id) ?? null) })} | title={t("decl.yourListing", { status: t(`decl.st.${it.status}` as MsgKey) })}
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   const cents = SOLD.has(item.status) ? sold : item.current_price_cents; |   const cents = item.current_price_cents;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} /> |                 <ListingPrice item={item} sold={item.current_price_cents} />
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   if (cents === undefined) return null; |   if (cents === undefined) return <span data-listing-price="">{itemPriceLabel(item.current_price_cents)}</span>;
  * @mutate src/components/declutter/listingStatusLine.ts |   return paid ? `${base} · ${paid}` : base; |   return base;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |     return orderId ? (payouts.data ?? []).find((p) => p.order_id === orderId) ?? null : null; |     return (payouts.data ?? [])[0] ?? null;
  * @mutate src/lib/declutter/soldPayout.ts |   if (saleCents === undefined \|\| saleCents === 0) return null; |   if (saleCents === undefined) return null;
- * @mutate src/lib/declutter/soldPayout.ts |       return payout.executed_at ? `Paid out ${formatDay(payout.executed_at)}` : "Paid out"; |       return "Paid out";
+ * @mutate src/lib/declutter/soldPayout.ts |       return payout.executed_at ? t("decl.pay.paidOn", { day: formatDay(payout.executed_at) }) : t("decl.pay.paid"); |       return t("decl.pay.paid");
  * @mutate src/components/declutter/DeclutterReopenListing.tsx |     mutationFn: (itemId: string) => reopenListing(itemId).then(() => itemId), |     mutationFn: async (itemId: string) => itemId,
  */
 import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest";
@@ -209,7 +209,7 @@ vi.mock("@/lib/declutter/api", () => ({
 
 import DeclutterPage from "@/pages/declutter/DeclutterPage";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
-import { STATUS_HELP } from "./declutterUi";
+import { statusHelp } from "./declutterUi";
 
 function at(path: string) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -331,7 +331,7 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
   });
 
   // F359b (audit 11-10): a free listing's row said "For sale · Porch pickup".
-  // @mutate src/components/declutter/listingStatusLine.ts | item.current_price_cents === 0 ? "Free" : "For sale" | "For sale"
+  // @mutate src/components/declutter/listingStatusLine.ts | t(item.current_price_cents === 0 ? "decl.line.free" : "decl.line.forSale") | t("decl.line.forSale")
   it("F359b: a live free listing's line says Free, not For sale", async () => {
     state.mine = [{ ...ITEM, title: "Box of mason jars", current_price_cents: 0, handovers: ["porch"] }, { ...ITEM, id: "i9", title: "Old radio", current_price_cents: 0, handovers: null }];
     const { container } = at("/declutter?tab=selling");
@@ -342,9 +342,9 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
 
   // Next-step line (owner 2026-11-01: "people aren't told what to do next"): a row that waits on the seller (a draft,
   // a rejected listing) says "Next: …" in the shared NextStep words; a live, paused or checked one says where it stands.
-  // @mutate src/components/declutter/listingStatusLine.ts |   rejected: "Open it to see why it wasn't approved", |
+  // @mutate src/components/declutter/listingStatusLine.ts |   rejected: "decl.move.rejected", |
   // @mutate src/components/declutter/DeclutterHomeView.tsx | : next.who === "you" ? "font-medium text-foreground" : "text-muted-foreground" | : "text-muted-foreground"
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | const statusLine = drop ? "May drop tonight" : nextStepWords(next); | const statusLine = drop ? "May drop tonight" : next.text;
+  // @mutate src/components/declutter/listingStatusLine.ts |   return drop ? t("decl.mayDrop") : nextStepWords(next); |   return drop ? t("decl.mayDrop") : next.text;
   it("Next-step line: a row that waits on the seller says 'Next: …'; the rest say where they stand", async () => {
     const { container } = at("/declutter?tab=selling");
     await screen.findByText("Mirror");
@@ -376,8 +376,8 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
       expect(r.querySelectorAll("[data-listing-thumb]")).toHaveLength(1);
       expect(r.querySelectorAll("[data-listing-status]")).toHaveLength(1);
       expect(r.querySelectorAll("[data-listing-actions]")).toHaveLength(1);
-      // The old second line (STATUS_HELP) never comes back under the status.
-      for (const help of Object.values(STATUS_HELP)) expect(r.textContent).not.toContain(help);
+      // The old second line (statusHelp) never comes back under the status.
+      for (const st of ["draft", "pending_review", "rejected", "removed", "paused", "withdrawn"] as const) expect(r.textContent).not.toContain(statusHelp(st));
     }
     // A photo-less listing shows its category icon (the Browse card's placeholder), never a blank box.
     expect(rows[1].querySelector("[data-photo-placeholder]")).not.toBeNull();
@@ -772,7 +772,7 @@ describe("Selling tab: a claimed free item is never 'Sold'", () => {
     expect(line("Paid desk")).toBe("Sold");
   });
 
-  it("no seller screen reads a listing's status word straight from STATUS_LABEL (only sellerStatusLabel does)", () => {
+  it("no seller screen reads a listing's status word straight from the decl.st.* words (only sellerStatusLabel does)", () => {
     const dirs = ["src/components/declutter", "src/pages/declutter"];
     const files = dirs.flatMap((d) =>
       (readdirSync(join(process.cwd(), d), { recursive: true }) as string[])
@@ -781,7 +781,7 @@ describe("Selling tab: a claimed free item is never 'Sold'", () => {
     );
     expect(files.length).toBeGreaterThan(40);
     const offenders = files.filter(
-      (f) => f !== "src/components/declutter/declutterUi.tsx" && /\bSTATUS_LABEL\s*\[/.test(blankComments(readFileSync(join(process.cwd(), f), "utf8"))),
+      (f) => f !== "src/components/declutter/declutterUi.tsx" && /["'`]decl\.st\./.test(blankComments(readFileSync(join(process.cwd(), f), "utf8"))),
     );
     expect(offenders).toEqual([]);
   });

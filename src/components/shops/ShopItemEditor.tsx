@@ -357,9 +357,15 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
           <p className="[overflow-wrap:anywhere]">{review.data.review_note}</p>
         </ShopsNotice>
       )}
-      {id && !draft && (
+      {/* S2-008 (Shops audit 2): the live line only on a live item; a waiting item is told what Save draft does. */}
+      {id && status === "live" && (
         <p className="text-sm text-muted-foreground">
           Changes stay on your shop right away. Changing what kind of item it is, or its type, takes it off until you publish it again.
+        </p>
+      )}
+      {id && status === "pending_review" && (
+        <p className="text-sm text-muted-foreground" data-testid="item-waiting-save-note">
+          This item is waiting for review. Saving takes it out of review; publish it again after.
         </p>
       )}
       {!id && <ShopItemStartPhotos held={held} setHeld={setHeld} busy={busy} suggesting={aiPhotos.isPending} onSuggest={() => aiPhotos.mutate()} />}

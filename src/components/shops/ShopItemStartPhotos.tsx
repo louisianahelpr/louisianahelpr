@@ -6,6 +6,7 @@
  */
 import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { safeImageSrc } from "@/components/reviewPanel/types";
@@ -49,6 +50,9 @@ export default function ShopItemStartPhotos({ held, setHeld, busy, suggesting, o
             onChange={(e) => {
               const files = Array.from(e.target.files ?? []);
               e.target.value = "";
+              // S2-011: say so when photos past 12 are left out (they were dropped silently).
+              const over = held.length + files.length - MAX_HELD;
+              if (over > 0) toast(`An item can have up to 12 photos. ${over} of them ${over === 1 ? "was" : "were"} left out.`);
               setHeld((h) => [...h, ...files].slice(0, MAX_HELD));
             }}
           />

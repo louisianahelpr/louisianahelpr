@@ -10,7 +10,7 @@
  * @mutate supabase/migrations/20261112010100_declutter_names_hidden_across_block_or_ban.sql |     ELSIF r.source = 'buy' THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', 'Check out within 24 hours', |     ELSIF false THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', 'Check out within 24 hours',
  * @mutate supabase/migrations/20261112010100_declutter_names_hidden_across_block_or_ban.sql |     ELSIF r.source = 'buy' THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', '2 hours left to check out', |     ELSIF false THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', '2 hours left to check out',
  * @mutate supabase/migrations/20261112023602_declutter_reserved_notice_says_who_accepted.sql |   ELSIF p_source = 'buy' THEN |   ELSIF false THEN
- * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |          CASE WHEN c.swap_id IS NOT NULL THEN 'swap' ELSE c.source END  -- DB-5; | NULL::text  -- DB-5;
+ * @mutate supabase/migrations/20261112054500_declutter_my_cart_photo_path.sql |          CASE WHEN c.swap_id IS NOT NULL THEN 'swap' ELSE c.source END,  -- DB-5; | NULL::text,  -- DB-5;
  * @mutate src/components/declutter/DeclutterReserveSheet.tsx | Not ready? Remove it anytime, no strike.` | If you don't, you get a strike.`
  */
 import { readFileSync } from "node:fs";
@@ -71,11 +71,11 @@ describe("Buy now gives no strike for not paying (DB-5)", () => {
   it("the cart read returns each line's source, and the screens word a Buy now hold without a strike", () => {
     const cart = newestFunction("declutter_my_cart");
     expect(cart.body).toMatch(/\bc\.source\b/);
-    // Its row type (the body above holds only what sits between the dollar quotes) ends with source.
+    // Its row type (the body above holds only what sits between the dollar quotes) ends with source, then F372's photo_path.
     const sql = blankSqlComments(readFileSync(`supabase/migrations/${cart.file}`, "utf8"));
     const heads = [...sql.matchAll(/FUNCTION public\.declutter_my_cart\(\)\s+RETURNS TABLE\s*\(([^)]*)\)/gi)];
     expect(heads.length).toBeGreaterThan(0);
-    expect(heads[heads.length - 1][1]).toMatch(/\bsource text\s*$/);
+    expect(heads[heads.length - 1][1]).toMatch(/\bsource text, photo_path text\s*$/);
     // Audit 11-10 F351: the cart hold says it is held and that Remove costs nothing; the item page keeps its line.
     const files: [string, string][] = [
       ["src/components/declutter/DeclutterReserveSheet.tsx", "Not ready? Remove it anytime, no strike.`"],

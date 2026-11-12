@@ -39,7 +39,7 @@ describe("Q2427 bundle discounts: the server", () => {
     // closed_at), and 20261101175510 (test items left out of the cart), the bundle rule kept (asserted below).
     // declutter_seller_delivery_check: restated by 20261102030012 (Q2491, the range from the seller's nearest saved place), the bundle total kept.
     const RESTATED: Record<string, string> = { declutter_start_checkout: "20261103224955", // Q2390 p39: verbatim, PT404 only
-      declutter_my_cart: "20261108195151", // trades fixes: source reads 'swap' for a trade line, bundle rule kept
+      declutter_my_cart: "20261112054500", // F372 photo_path on 20261108195151 (trades fixes: source reads 'swap' for a trade line), bundle rule kept
       declutter_seller_delivery_check: "20261102030012" };
     // declutter_start_checkout: restated again by 20261101191500 (B110: the pickup time, kept and frozen; the bundle rule verbatim), 20261101032626 (BUY-1 follow-up: no new page after the hold + 10 min, two predicates only), 20261030164712 (D-NEW14 porch places, insertion only) and 20261031164337
     // (LEAD-PLACE-TIMES: door pickup at the place, one condition), the bundle rule kept.

@@ -10,6 +10,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { assertNever } from "@/lib/assertNever";
 import { rpcData } from "@/lib/declutter/api";
 import { rpcErrorMessage } from "@/lib/declutter/tradeErrors";
@@ -88,12 +89,17 @@ export interface MyTrade {
    * reads and writes it (declutter_order_talk_view). Null until a side has checked out.
    */
   talk_order_id: string | null;
+  /**
+   * F356 follow-up (owner 11-11): on the SELLER's side only, the trader as first name + last initial ("Ann S."), from
+   * declutter_my_trade_buyer_names (20261112004253). Null on the buyer's side, for a blank name, or before deploy.
+   */
+  buyer_display: string | null;
 }
 
 const TRADE_COLUMNS =
   "id, status, respond_by, created_at, item:declutter_items!declutter_swap_offers_item_id_fkey(id, title, current_price_cents), offered:declutter_items!declutter_swap_offers_offered_item_id_fkey(id, title, current_price_cents), buyer_line:declutter_cart_items!declutter_swap_offers_buyer_line_id_fkey(status, order_id), seller_line:declutter_cart_items!declutter_swap_offers_seller_line_id_fkey(status, order_id)";
 
-type TradeRow = Omit<MyTrade, "my_side" | "my_line_status" | "talk_order_id"> & { buyer_line: TradeLine; seller_line: TradeLine };
+type TradeRow = Omit<MyTrade, "my_side" | "my_line_status" | "talk_order_id" | "buyer_display"> & { buyer_line: TradeLine; seller_line: TradeLine };
 
 /** A checked-out line's order (its chat), or null. */
 const checkedOutOrder = (l: TradeLine) => (l && l.status === "paid" && l.order_id ? l.order_id : null);
@@ -109,12 +115,27 @@ export async function fetchMyTrades(side: "buyer" | "seller", userId: string): P
     : await base.gte("created_at", new Date(Date.now() - 7 * 86_400_000).toISOString()).order("created_at", { ascending: false }).limit(50);
   if (res.error && (res.error.code === "PGRST205" || res.error.code === "PGRST200" || res.error.code === "42P01")) return [];
   const rows = (unwrap(res) ?? []) as unknown as TradeRow[];
+  const names = side === "seller" && rows.length > 0 ? await fetchTradeBuyerNames() : new Map<string, string>();
   return rows.map(({ buyer_line, seller_line, ...r }) => ({
     ...r,
     my_side: side,
+    buyer_display: names.get(r.id) ?? null, // names is empty on the buyer's side (never read there)
     my_line_status: (side === "seller" ? seller_line : buyer_line)?.status ?? null,
     talk_order_id: r.status === "accepted" || r.status === "completed" ? checkedOutOrder(buyer_line) ?? checkedOutOrder(seller_line) : null,
   }));
+}
+
+/**
+ * F356 follow-up: trade id -> "Ann S." for the caller's own trades as seller (declutter_my_trade_buyer_names). Empty
+ * before the function is deployed (the cards then name nobody, as before); any other failure is the transport's: thrown.
+ */
+async function fetchTradeBuyerNames(): Promise<Map<string, string>> {
+  const res = await supabase.rpc("declutter_my_trade_buyer_names");
+  if (res.error && isMissingRpcNamed(res.error, "declutter_my_trade_buyer_names")) return new Map();
+  const rows = (unwrap(res) ?? []) as { swap_id: string; buyer_display: string | null }[];
+  const out = new Map<string, string>();
+  for (const r of rows) if (typeof r.buyer_display === "string" && r.buyer_display.trim() !== "") out.set(r.swap_id, r.buyer_display.trim());
+  return out;
 }
 
 /** What became of a closed trade offer, in one line. */

@@ -35,6 +35,8 @@ import { ShopMessageButton, ShopTalkFromLink, ShopTalksCard } from "./ShopTalk";
 import { ShopReportShop } from "./ShopReport";
 import { ShopReviewsCard } from "./ShopReviews";
 import ShopOrderSheet from "./ShopOrderSheet";
+import ShopReviewOrderBar from "./ShopReviewOrderBar";
+import { ShopCartProvider } from "./shopCart";
 import ShopDigitalBuy from "./ShopDigitalBuy";
 import ShopCustomRequestSheet from "./ShopCustomRequestSheet";
 import { fetchCustomOrders } from "@/lib/shops/orders";
@@ -132,8 +134,9 @@ export default function ShopView() {
           <Button
             type="button"
             size="sm"
-            className={s.following ? "whitespace-nowrap" : "btn-grad-primary whitespace-nowrap"}
-            variant={s.following ? "outline" : "default"}
+            // S026 (Shops audit 11-12): Follow is secondary; ordering (the item cards, Review order) is the primary action.
+            className="whitespace-nowrap"
+            variant="outline"
             disabled={follow.isPending}
             onClick={() => follow.mutate(!s.following)}
             aria-pressed={s.following}
@@ -143,6 +146,8 @@ export default function ShopView() {
         )
       }
     >
+      {/* S026: one order shared by the item cards' item sheet, the order sheet and the Review order bar. */}
+      <ShopCartProvider>
       <div className="space-y-4 pb-6">
         {s.mine && s.hidden && (
           <ShopsNotice title="Louisiana Helpr has hidden your shop." tone="warn">
@@ -208,6 +213,7 @@ export default function ShopView() {
         {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} reportable={!s.mine} orderable={!s.mine && !s.paused} />}
         {s.offers_selling && !s.mine && !s.paused && <ShopDigitalBuy shopId={s.id} />}
         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />}
+        {s.offers_selling && !s.mine && !s.paused && <ShopReviewOrderBar shopId={s.id} />}
         {/* Custom orders: shown only while the shop takes them (its own setting, read by the sheet). */}
         {!s.mine && !s.paused && <ShopCustomRequestSheet shopId={s.id} />}
         {/* Shops H9: the buyers' reviews and the shop's own rating (shown at 3 or more). */}
@@ -247,6 +253,7 @@ export default function ShopView() {
           </Button>
         )}
       </div>
+      </ShopCartProvider>
     </AppPage>
   );
 }

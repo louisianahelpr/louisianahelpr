@@ -31,7 +31,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePickerField } from "@/components/DatePickerField";
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import { fetchShopItems, formatItemPrice, type ShopItem } from "@/lib/shops/items";
+import { fetchShopItems, formatItemPrice } from "@/lib/shops/items";
 import { fetchItemOptions } from "@/lib/shops/variants";
 import { deliveryAddressProblem, fetchDeliveryOffer, fetchHelprDeliveryQuote, type HelprQuote } from "@/lib/shops/delivery";
 import {
@@ -52,21 +52,12 @@ import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirst
 import { ShopsNotice } from "./shopsUi";
 import ShopMyStrikes from "./ShopMyStrikes";
 import { HandoverModeNote } from "./ShopHandoverModePicker";
-import ShopOrderOptions, { lineKey, QuantityStepper } from "./ShopOrderOptions";
-import { fetchItemPreorders, preorderLabel, requestPreorder, type ItemPreorder } from "@/lib/shops/preorders";
+import ShopOrderOptions, { QuantityStepper } from "./ShopOrderOptions";
+import { chosenLines, MAX_PER_LINE, maxFor, orderableItems, preorderMax, useShopCart } from "./shopCart";
+import { fetchItemPreorders, preorderLabel, requestPreorder } from "@/lib/shops/preorders";
 import { PreorderChargeBox } from "./ShopPreorderBits";
 
-const MAX_PER_LINE = 20;
 const NOTE_MAX = 500;
-
-function maxFor(item: ShopItem): number {
-  return item.stock_count == null ? MAX_PER_LINE : Math.min(MAX_PER_LINE, item.stock_count);
-}
-
-/** A preorder's most per order: 20, or what its limit has left (paid items; the server counts unpaid pages too). */
-function preorderMax(p: ItemPreorder): number {
-  return p.cap == null ? MAX_PER_LINE : Math.max(0, Math.min(MAX_PER_LINE, p.cap - p.ordered));
-}
 
 export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   // The first-time account setup fee shop-checkout adds (20261105181603 B; Declutter's BuyerTotal reads the same hook).
@@ -82,7 +73,8 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const options = useQuery({ queryKey: ["shops", "item-options", shopId], queryFn: () => fetchItemOptions(shopId), enabled: !!shopId });
   // Preorders (20261108184654): ordered one item at a time, paid in full now, ready on the shop's ready-by date.
   const preorders = useQuery({ queryKey: ["shops", "item-preorders", shopId], queryFn: () => fetchItemPreorders(shopId), enabled: !!shopId });
-  const [qty, setQty] = useState<Record<string, number>>({});
+  // S026: the page's one order (ShopCartProvider), shared with the item sheet and the Review order bar.
+  const { qty, setQty } = useShopCart();
   const [readyDate, setReadyDate] = useState("");
   const [note, setNote] = useState("");
   const [opening, setOpening] = useState(false);
@@ -100,18 +92,10 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const orderable = useMemo(
     // A closed or full preorder can't be ordered (its card says so). Digital downloads are bought on their own
     // (ShopDigitalBuy), never in a dated order.
-    () => (items.data ?? []).filter((i) => i.status === "live" && i.kind !== "digital" && (i.stock_count == null || i.stock_count > 0)
-      && preorders.data?.get(i.id)?.open !== false),
+    () => orderableItems(items.data, preorders.data),
     [items.data, preorders.data],
   );
-  // Each chosen line: a plain item, or one combination of an item with option lists (keyed item:variant).
-  const chosen = orderable.flatMap((i) => {
-    const opts = options.data?.get(i.id);
-    if (!opts) return (qty[i.id] ?? 0) > 0 ? [{ item: i, variantId: null as string | null, unit: i.price_cents, n: qty[i.id] }] : [];
-    return opts.variants
-      .filter((v) => v.active && (qty[lineKey(i.id, v.id)] ?? 0) > 0)
-      .map((v) => ({ item: i, variantId: v.id as string | null, unit: v.price_cents, n: qty[lineKey(i.id, v.id)] }));
-  });
+  const chosen = chosenLines(orderable, options.data, qty);
   // A preorder is ordered on its own: one item, no day to pick, pickup only (v1).
   const preorder = chosen.length === 1 ? preorders.data?.get(chosen[0].item.id) ?? null : null;
   const preorderChosen = chosen.some((l) => preorders.data?.has(l.item.id));

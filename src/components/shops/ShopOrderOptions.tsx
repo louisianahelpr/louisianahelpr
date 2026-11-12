@@ -11,9 +11,9 @@ import { NativeSelect } from "@/components/ui/select";
 import { formatItemPrice, type ShopItem } from "@/lib/shops/items";
 import { findVariant, listValues, variantLabel, type ShopItemOptions } from "@/lib/shops/variants";
 
-export function lineKey(itemId: string, variantId: string | null): string {
-  return variantId ? `${itemId}:${variantId}` : itemId;
-}
+import { lineKey } from "./shopCart";
+
+export { lineKey };
 
 /** How many of one order line (a plain item, or one combination). */
 export function QuantityStepper({ label, max, value, onChange }: { label: string; max: number; value: number; onChange: (n: number) => void }) {

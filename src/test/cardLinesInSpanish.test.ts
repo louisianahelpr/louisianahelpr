@@ -23,6 +23,7 @@ import { enCardLines } from "@/lib/i18n/enCardLines";
 import { esCardLines } from "@/lib/i18n/esCardLines";
 import { HELPER_WAIT, HELPER_WAIT_IDS, POSTER_WAIT, POSTER_WAIT_IDS, helperStatusLine, posterStatusLine } from "@/components/job-card/jobStatusLine";
 import { BUCKET_LABEL } from "@/lib/activityBuckets";
+import { inLang } from "@/components/job-card/cardLineLang";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 
 // Sat Nov 7 2054, 4:00 PM in Louisiana (CST); the job is Sun Nov 8 at 10:00 AM (confirm window open).
@@ -43,6 +44,9 @@ describe("F260q: the job cards' status line follows the member's language", () =
   it("Spanish chosen but not loaded yet: the English line, never a raw key", () => {
     setLang("es");
     expect(posterStatusLine(job(), 0, NOW, undefined, false, null).detail).not.toMatch(/^cl\./);
+    // At runtime no English cl.* words are registered (enCardLines is not imported by the app): a key with no word yet
+    // gives the English passed in.
+    expect(inLang("cl.p.not_a_state", "Booked: they accepted")).toBe("Booked: they accepted");
   });
 
   it("every written line has its key (English word for word) and its Spanish, and es.ts carries it", () => {

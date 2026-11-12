@@ -21,6 +21,9 @@
  * @mutate src/components/declutter/SellOneScreen.tsx | step: s.postStage | step: "photos" as const
  * @mutate src/components/declutter/SellOneScreen.tsx | const at: Where = problemRow(code); | const at: Where = /name/i.test(formProblemWords(code)) ? "title" : /price\|lowest\|drops/i.test(formProblemWords(code)) ? "price" : "settings";
  * @mutate src/components/declutter/SellOneScreen.tsx | out.push({ message: tr("sf.tickBox"), at: "tax" }); | out.push({ message: "Tick the box about this item before you list it.", at: "tax" });
+ * @mutate src/components/declutter/useSellFlowState.ts | toast.error(tr("sf.t.maxPhotos")); | toast.error("A listing can have up to 12 photos.");
+ * @mutate src/components/declutter/useSellFlowState.ts | toast(tr("sf.t.sentAt", { price: formatPrice(out.cents) })); | toast(`Listed and sent at ${formatPrice(out.cents)}. They have 48 hours to accept.`);
+ * @mutate src/components/declutter/useSellFlowState.ts |         ? tr("sf.t.whereKeepUp") |         ? 'You can turn on "Keep it up" from Manage listing.'
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -206,5 +209,24 @@ describe("the posting progress keys off the step, not its words (F260q)", () => 
     await ensureLangLoaded();
     expect(tr("sf.ps.adding", { n: 1, total: 2 })).toBe("Agregando la foto 1 de 2");
     expect(tr("sf.ps.puttingUp")).toBe("Publicándolo");
+  });
+});
+
+describe("the sell flow's toasts follow the member's language (F260q)", () => {
+  // Every toast the sell flow raises says its words through t(): a literal sentence in a toast() call is English for a
+  // Spanish member. (Error text from declutterErrorMessage is the server's mapped words, not a literal here.)
+  it("useSellFlowState has no literal sentence in a toast, and the toast words have Spanish", () => {
+    const src = blankComments(readFileSync("src/components/declutter/useSellFlowState.ts", "utf8"));
+    const calls = src.match(/toast(?:\.error)?\(([^;]*)\);/g) ?? [];
+    expect(calls.length).toBeGreaterThan(8);
+    for (const c of calls) expect(c, c).not.toMatch(/["'`][A-Z][a-z]+[^"'`]*[.?]["'`]/);
+    const where = src.match(/const where = [\s\S]*?;\n/)?.[0] ?? "";
+    expect(where).toContain('tr("sf.t.whereKeepUp")');
+    expect(where).not.toMatch(/"You can/);
+    for (const k of ["sf.t.priceRange", "sf.t.maxPhotos", "sf.t.sentAt", "sf.t.checking", "sf.t.answerFailed"] as const) {
+      expect(esSellForm[k], k).toBeTruthy();
+      expect(esSellForm[k], k).not.toBe(enSellForm[k]);
+    }
+    expect(enSellForm["sf.t.sentAt"]).toBe("Listed and sent at {price}. They have 48 hours to accept.");
   });
 });

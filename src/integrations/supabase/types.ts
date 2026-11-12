@@ -22772,6 +22772,10 @@ export type Database = {
         Returns: number
       }
       shop_cottage_year: { Args: never; Returns: number }
+      shop_cottage_would_reach: {
+        Args: { p_add_cents: number; p_owner_id: string }
+        Returns: boolean
+      }
       shop_extras_readable: { Args: { p_shop_id: string }; Returns: boolean }
       shop_give_strike: {
         Args: { p_order: string; p_reason: string; p_side: string; p_user: string }

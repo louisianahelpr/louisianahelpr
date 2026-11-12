@@ -6,7 +6,12 @@
  *   S019 the buyer's missed-delivery notice reads the right way round.
  *   S033 the home-food yearly limit refuses an order that reaches EXACTLY $100,000 (">=", La. R.S. 40:4.9(B)), at accept
  *        and at a preorder's hold (20261112075702, proof src/test/pglite/shopsCottageLimitStrict.pglite.mjs).
+ *   S033 follow-up: a custom home-food price counts its own amount (and accepted, not-yet-charged orders) when the shop
+ *        sends it and when the buyer orders it (20261112080238, proof src/test/pglite/shopsCustomCottageLimit.pglite.mjs).
  *
+ * @mutate supabase/migrations/20261112080238_shops_custom_order_cottage_limit.sql |     IF public.shop_cottage_would_reach(v_uid, p_quote_cents) THEN |     IF public.shop_cottage_cap_reached(v_uid) THEN
+ * @mutate supabase/migrations/20261112080238_shops_custom_order_cottage_limit.sql | public.shop_cottage_would_reach(s.owner_id, r.quote_cents) THEN | public.shop_cottage_cap_reached(s.owner_id) THEN
+ * @mutate supabase/migrations/20261112080238_shops_custom_order_cottage_limit.sql |                           + p_add_cents >= c.cap_cents |                           + p_add_cents > c.cap_cents
  * @mutate supabase/migrations/20261112075702_shops_cottage_limit_strict.sql |          + v_home_food >= v_cottage_cap THEN |          + v_home_food > v_cottage_cap THEN
  * @mutate supabase/migrations/20261112075702_shops_cottage_limit_strict.sql |                 + v_pre_home_food >= (SELECT c.cap_cents |                 + v_pre_home_food > (SELECT c.cap_cents *
  * @mutate src/components/shops/ShopMyOrdersView.tsx |   if (o.status === "accepted") return "accepted"; |   if (o.status === "accepted" \|\| o.status === "handed_over") return "accepted";
@@ -51,5 +56,12 @@ describe("Shops audit 11-12 Mediums", () => {
   it("S033: reaching the home-food limit exactly is refused (accept and preorder hold)", () => {
     expect(body("shops_accept_order")).toContain("+ v_home_food >= v_cottage_cap THEN");
     expect(body("shop_mark_order_held")).toContain("+ v_pre_home_food >= (SELECT c.cap_cents FROM public.shop_cottage_settings c WHERE c.id))) THEN");
+  });
+  it("S033 follow-up: a custom home-food price counts its own amount (quote and order)", () => {
+    expect(body("shops_quote_custom_request")).toContain("IF public.shop_cottage_would_reach(v_uid, p_quote_cents) THEN");
+    expect(body("shops_order_custom_quote")).toContain("IF v_kind = 'home_food' AND public.shop_cottage_would_reach(s.owner_id, r.quote_cents) THEN");
+    const h = body("shop_cottage_would_reach");
+    expect(h).toContain("x.status = 'accepted' AND x.captured_at IS NULL");
+    expect(h).toContain("+ p_add_cents >= c.cap_cents");
   });
 });

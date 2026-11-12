@@ -348,6 +348,8 @@ const SHOP_ITEM_AI_COPY: Record<string, string> = {
   ai_unavailable: "Photo suggestions aren't available right now. You can fill in the details yourself.",
   ai_photos_required: "Add a photo first, then we can suggest the details.",
   ai_busy: "Photo suggestions are busy. Try again in a minute.",
+  // S2-011 (Shops audit 2): the photo-draft function refused the photos (Declutter's words).
+  item_photos_invalid: "We couldn't read those photos. Use photos you took, not screenshots, or fill in the details yourself.",
 };
 
 const GENERIC = "Couldn't do that just now. Check your connection and try again.";

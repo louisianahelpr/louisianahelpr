@@ -14,8 +14,8 @@
  * Backend proof: src/test/pglite/departedMemberNameLeavesNotifications.pglite.mjs (3x; NEW_MIGRATION=skip RED).
  *
  * @mutate supabase/migrations/20261103022806_departed_member_name_leaves_notifications.sql |   AFTER UPDATE OF anonymized_at ON public.profiles |   AFTER UPDATE OF phone ON public.profiles
- * @mutate supabase/migrations/20261112024127_departed_member_scrub_manager_first_name.sql |        AND ((n.job_id IS NOT NULL\n |        AND ((true\n
- * @mutate supabase/migrations/20261112024127_departed_member_scrub_manager_first_name.sql |              AND coalesce(n.link, '') LIKE '/declutter%'\n             AND (EXISTS (SELECT 1 FROM public.declutter_offers o\n |              AND (EXISTS (SELECT 1 FROM public.declutter_offers o\n
+ * @mutate supabase/migrations/20261112025718_departed_member_scrub_one_word_names.sql |        AND ((n.job_id IS NOT NULL\n |        AND ((true\n
+ * @mutate supabase/migrations/20261112025718_departed_member_scrub_one_word_names.sql |              AND coalesce(n.link, '') LIKE '/declutter%'\n             AND (EXISTS (SELECT 1 FROM public.declutter_offers o\n |              AND (EXISTS (SELECT 1 FROM public.declutter_offers o\n
  * @mutate supabase/migrations/20261103022806_departed_member_name_leaves_notifications.sql | REVOKE ALL ON FUNCTION public.scrub_departed_member_name_from_notifications() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.scrub_departed_member_name_from_notifications() FROM PUBLIC;
  */
 import { describe, expect, it } from "vitest";
@@ -58,7 +58,8 @@ describe("a deleted member's name leaves other members' notifications (Q2330)", 
     const b = body(FN);
     expect(b).toMatch(/SECURITY DEFINER/i);
     expect(b).toMatch(/public\.member_display_name\(OLD\.full_name, NULL\)/);
-    expect(b).toContain("'\\m' ||");
+    // 20261112025718: a multi-word name is matched as a whole word ('\m'); a one-word name only at the start ('^').
+    expect(b).toContain("CASE WHEN v_one_word THEN '^' ELSE '\\m' END");
     expect(b).toContain("'(?!\\w)'");
     expect(b).toMatch(/n\.user_id IS DISTINCT FROM OLD\.user_id/);
     // 20261112005443: the job branch is now one of two (job notices as before, OR Declutter notices).

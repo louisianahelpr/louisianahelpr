@@ -46,7 +46,9 @@ AS $fn$
     'Stranded', 'Stripe', 'Subscription', 'Sun', 'Sunday', 'Support', 'Take', 'Tap', 'Taxable', 'Taxed', 'Tenancy', 'Tenant', 'Test', 'Thank',
     'Thanks', 'That', 'The', 'These', 'They', 'This', 'Thu', 'Thursday', 'Time', 'Tip', 'Trade', 'Transfer', 'Try', 'Tue',
     'Tuesday', 'Under', 'Unread', 'Unrecorded', 'Untagged', 'Upcoming', 'User', 'Verification', 'Verified', 'Verify', 'Visit', 'Visits', 'Wait', 'Waiting',
-    'We', 'Wed', 'Wednesday', 'When', 'Where', 'Work', 'You', 'Your'
+    'We', 'Wed', 'Wednesday', 'When', 'Where', 'Work', 'You', 'Your',
+    -- Spanish edge-function titles/messages on main (lander 11-12, the guard's scan after rebasing onto #4427):
+    'Enter', 'Escriba', 'Recibimos', 'Se', 'Toque'
   ]::text[];
 $fn$;
 REVOKE ALL ON FUNCTION public.departed_name_stopwords() FROM PUBLIC, anon, authenticated;

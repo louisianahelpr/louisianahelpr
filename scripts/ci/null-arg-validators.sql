@@ -113,7 +113,6 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_pair_talking',        'deny',     'TRUE holds back the "or you get a strike" checkout reminders while a handover chat is open (Q2462, 20261028235249); a NULL side matches no talk (FALSE: the reminders go out as before)'),
   ('are_users_blocked',             'deny',     'TRUE refuses the interaction'),
   ('declutter_member_out',          'deny',     'TRUE = banned or 3 Declutter strikes: the trade is refused (20261014210518)'),
-  ('declutter_names_hidden',        'deny',     'TRUE hides the other side''s name and chat photos across a block or ban (20261112010100)'),
   ('declutter_seller_hidden',       'deny',     'TRUE hides a seller''s Declutter listings (20261014210518)'),
   ('declutter_pair_needs_talk',     'allow',    'TRUE = this buyer and seller have an agreed sale whose shared ways leave out every way that always works, so a handover chat may open and the missed-checkout strike waits (Q2462, 20261028235249); a NULL side matches no cart line and COALESCE makes it FALSE'),
   ('declutter_in_agreed_sale',      'allow',    'TRUE = this member is a side of an agreed sale (in a cart or paid) on this item: may read its pickup details (20261015042253)'),

@@ -68,7 +68,8 @@ describe("the Declutter Free section", () => {
     // Then BUY-36 (20261031231150: B49's body plus the buyer-collects case, reconciled in train 6).
     // Then manager mode phase 2 (20261101230509: the manager's share comes off the seller's row; the free branch is untouched).
     // Part 3 F197/F193 (20261109224952) restated it from LIVE, wording only.
-    expect(newestFunction("declutter_complete_handover").file).toContain("20261109224952_notices_card_fee_and_our_team.sql");
+    // Then the seller ID check at the first payout (20261112065000, owner 11-12; the free branch is untouched).
+    expect(newestFunction("declutter_complete_handover").file).toContain("20261112065000_declutter_seller_id_at_first_payout.sql");
     // declutter_claim_free: the Free change (20261030064021, Q2487) made it ask through declutter_request_free (asserted below).
     expect(newestFunction("declutter_claim_free").file).toContain("20261030064021_declutter_free_requests.sql");
     // declutter_close_paid_order: LEAD-ADMIN-HELPR-FAULT (20261101000817) restated its effective body plus the

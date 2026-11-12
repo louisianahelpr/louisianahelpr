@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchShopItems } from "@/lib/shops/items";
 import { fetchItemOptions } from "@/lib/shops/variants";
 import { fetchItemPreorders } from "@/lib/shops/preorders";
-import { ShopItemsGrid } from "./ShopProfile";
+import { SHOP_ITEMS_GRID, ShopItemsGrid } from "./ShopProfile";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 
 export default function ShopItemsList({ shopId, reportable = false }: { shopId: string; reportable?: boolean }) {
@@ -28,7 +28,7 @@ export default function ShopItemsList({ shopId, reportable = false }: { shopId: 
     <section className="space-y-2 rounded-2xl border border-border bg-card p-4 shadow-sm" aria-labelledby="shop-items">
       <h2 id="shop-items" className="font-sans text-base font-bold not-italic text-foreground">Items</h2>
       {listLoading ? (
-        <div role="status" aria-label="Loading items" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div role="status" aria-label="Loading items" className={SHOP_ITEMS_GRID}>
           <Skeleton className="h-48 w-full rounded-2xl" />
           <Skeleton className="h-48 w-full rounded-2xl" />
         </div>

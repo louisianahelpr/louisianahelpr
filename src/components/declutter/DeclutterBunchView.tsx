@@ -178,8 +178,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     );
   }
 
-  const placeProblem =
-    pickupAddress.trim().length < 5 ? t("lp.bv.addAddress")
+  const placeProblem = pickupAddress.trim().length < 5 ? t("lp.bv.addAddress")
       : areaLabel.trim().length < 2 || AREA_ADDRESS_RE.test(areaLabel) ? NO_CITY_IN_ADDRESS
         : null;
   // The setup gate (SellerSetup) has them save it first; the boxes are only for a saved address that stopped reading.

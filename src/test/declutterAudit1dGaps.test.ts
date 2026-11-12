@@ -18,7 +18,7 @@
  * @mutate src/lib/i18n/enListingParts.ts |   "lp.bc.pricePh": "Set a price", |   "lp.bc.pricePh": "40",
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | placeholder={t("lp.bc.pricePh")} | placeholder="40"
  * @mutate src/components/declutter/DeclutterBunchRow.tsx | <span id={nameId} className="block break-words text-ds-14 font-semibold">{name}</span> | <span id={nameId} className="block truncate text-ds-14 font-semibold">{name}</span>
- * @mutate src/lib/declutter/errors.ts |   if (deviceOffline()) return DECLUTTER_OFFLINE_COPY; |   if (false) return DECLUTTER_OFFLINE_COPY;
+ * @mutate src/lib/declutter/errors.ts |   if (deviceOffline()) return inLang("offline", DECLUTTER_OFFLINE_COPY); |   if (false) return inLang("offline", DECLUTTER_OFFLINE_COPY);
  * @mutate src/lib/declutter/errors.ts |   if (isNetworkFailure(err)) return CONNECTION_TROUBLE_COPY; |   if (false) return CONNECTION_TROUBLE_COPY;
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | ? `${msg} We kept what you typed.` : msg); | ? msg : msg);
  */

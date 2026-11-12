@@ -501,6 +501,14 @@ describe("ShopItemEditor", () => {
     expect(rpcErrorMessage("shops_add_item_photo", { message: "too_many_photos" } as never)).toBe("An item can have up to 12 photos.");
   });
 
+  it("S2-008: a waiting item gets the review note, not the live line; S2-011: item_photos_invalid has words", async () => {
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "pending_review" })} onCreated={() => {}} onDone={() => {}} />);
+    expect(screen.getByTestId("item-waiting-save-note").textContent).toContain("Saving takes it out of review");
+    expect(screen.queryByText(/Changes stay on your shop right away/)).toBeNull();
+    const { shopsErrorMessage } = await import("@/lib/shops/errors");
+    expect(shopsErrorMessage(new Error("item_photos_invalid"))).toMatch(/couldn't read those photos/);
+  });
+
   it("S2-013: a saved price reopens as 18.50, not 18.5", () => {
     renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft", price_cents: 1850 })} onCreated={() => {}} onDone={() => {}} />);
     expect((screen.getByLabelText("Price (dollars)") as HTMLInputElement).value).toBe("18.50");

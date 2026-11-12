@@ -4,12 +4,12 @@
  * sheet and the pickup day words. A Spanish member reads Spanish; an English member reads the old words, word for word.
  * The source of DeclutterFreeClaim.tsx and FreeAskSheet.tsx is checked by spanishScreensUseDictionary (CONVERTED).
  *
- * @mutate src/components/declutter/DeclutterFreeClaim.tsx |   return tr("free.rulesLine", { lead: | return "When you ask, you pick a pickup time." || tr("free.rulesLine", { lead:
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx |   return tr("free.rulesLine", { lead: |   return "When you ask, you pick a pickup time."; tr("free.rulesLine", { lead:
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |     : offered.length === 2 ? tr("free.howBoth") |     : offered.length === 2 ? " to pick it up at their home or from their porch"
  * @mutate src/lib/declutter/freePickSteps.ts |   return idCheckOn ? t("free.stepsId") : t("free.stepsNoId"); |   return idCheckOn ? t("free.stepsId") : "you choose your pickup time and get the address";
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {t((trade ? TRADE_HANDOVER : FREE_HANDOVER)[h].title)} | {(trade ? TRADE_HANDOVER : FREE_HANDOVER)[h].title}
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {t("free.pick")} | Pick
- * @mutate src/components/declutter/FreeAskSheet.tsx | {isToday(d.slots[0].iso) ? t("fask.today") : d.label} | {isToday(d.slots[0].iso) ? "Today" : d.label}
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | >{t("free.requests", { n: rows.length })}</h2> | >Requests ({rows.length})</h2>
  * @mutate src/lib/declutter/pickupSlots.ts | const dayNames = () => (getLang() === "es" ? DAY_ES : DAY_EN); | const dayNames = () => DAY_EN;
  * @mutate src/lib/declutter/pickupSlots.ts |   const everyDay = es ? "Todos los días" : "Every day"; |   const everyDay = "Every day";
  */

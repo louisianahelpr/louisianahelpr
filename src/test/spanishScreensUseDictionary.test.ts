@@ -27,7 +27,8 @@
  * @mutate src/pages/messages/useMessageSections.tsx | aria-label={t("msg.filterAria")} | aria-label="Filter messages"
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <dt className="font-bold text-foreground">{t("offer.youPayIfYes")}</dt> | <dt className="font-bold text-foreground">You pay if the seller says yes</dt>
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |           {t("free.takeBack")}\n |           Take back my ask\n
- * @mutate src/components/declutter/DeclutterFreeClaim.tsx | >{t("free.requests", { n: rows.length })}</h2> | >Requests ({rows.length})</h2>
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {t("free.pick")} | Pick
+ * @mutate src/components/declutter/FreeAskSheet.tsx | {isToday(d.slots[0].iso) ? t("fask.today") : d.label} | {isToday(d.slots[0].iso) ? "Today" : d.label}
  * @mutate src/components/declutter/FreeAskSheet.tsx | text-base font-semibold">{t("fask.when")}</h2> | text-base font-semibold">When can you pick it up?</h2>
  * @mutate src/components/declutter/DeclutterQuestions.tsx | text-muted-foreground">{t("dq.none")}</p> | text-muted-foreground">No questions yet.</p>
  * @mutate src/components/declutter/DeclutterOfferTrade.tsx | label={t("dp.tradeListLabel")} | label="Your listing to trade"

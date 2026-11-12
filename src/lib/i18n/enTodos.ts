@@ -26,6 +26,12 @@ export const enTodos = {
   "todo.arrived": "I've arrived",
   "todo.left": "{task} · {time} left",
   "todo.by": "{task} · by {day}",
+  // Owner 11-12 seller ID at first payout (ready/b2-sellerid-1112, NOT landed when written): its Home to-do
+  // (title `Verify your ID to get paid ${money}`, meta "You sold · Declutter", button "Verify your ID") reads these
+  // once both land: tr("todo.idPayout", { money }), tr("todo.idPayoutMeta"), tr("todo.verifyId").
+  "todo.idPayout": "Verify your ID to get paid {money}",
+  "todo.idPayoutMeta": "You sold · Declutter",
+  "todo.verifyId": "Verify your ID",
 } as const;
 
 addEnglish(enTodos);

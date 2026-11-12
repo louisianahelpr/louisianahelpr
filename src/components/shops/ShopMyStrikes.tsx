@@ -15,15 +15,18 @@ export default function ShopMyStrikes() {
   if (rows.length === 0) return null;
 
   const paused = rows.length >= SHOP_STRIKE_LIMIT;
+  // S046 (Shops audit 11-12): rows come soonest-ending first, and Shops opens once the count is back under the limit,
+  // so the day is when strike number (count - limit + 1) ends, not always the first.
+  const opensWith = rows.length - SHOP_STRIKE_LIMIT;
   const title = paused
-    ? `Shops is paused for you until ${formatShortDate(rows[0].expires_at)}`
+    ? `Shops is paused for you until ${formatShortDate(rows[opensWith].expires_at)}`
     : `You have ${rows.length} Shops strike${rows.length === 1 ? "" : "s"}`;
   return (
     <div data-testid="shop-my-strikes">
       <ShopsNotice title={title} tone={paused ? "warn" : "info"}>
         <p>
           {paused
-            ? `You have ${rows.length} Shops strikes. Shops opens again when the first one ends.`
+            ? `You have ${rows.length} Shops strikes. Shops opens again when ${opensWith === 0 ? "the first one ends" : `${opensWith + 1} of them have ended`}.`
             : `At ${SHOP_STRIKE_LIMIT} strikes Shops pauses for you until one ends.`}
         </p>
         <ul className="mt-2 space-y-1">

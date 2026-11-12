@@ -3,7 +3,10 @@
  * (the soonest strike's end). The read is shops_my_strikes() (20261111011855): own active rows only, never
  * removed_by. Behaviour on a real database: src/test/pglite/shopsMyStrikes.pglite.mjs (3x, NEW_MIGRATION=skip red).
  *
- * @mutate src/components/shops/ShopMyStrikes.tsx | ? `Shops is paused for you until ${formatShortDate(rows[0].expires_at)}` | ? "Shops is paused for you"
+ * @mutate src/components/shops/ShopMyStrikes.tsx | ? `Shops is paused for you until ${formatShortDate(rows[opensWith].expires_at)}` | ? "Shops is paused for you"
+ * @mutate src/components/shops/ShopMyStrikes.tsx |   const opensWith = rows.length - SHOP_STRIKE_LIMIT; |   const opensWith = 0;
+ * @mutate supabase/migrations/20261112083051_shops_strike_notice_words.sql |       CASE WHEN v_count < 3 |       CASE WHEN true
+ * S046 (Shops audit 11-12): at 4 or more strikes the day is when enough have ended; the notice never reads "4 of 3".
  * @mutate src/components/shops/ShopMyStrikes.tsx |               {shopStrikeReasonWords(s.reason)}. Ends {formatShortDate(s.expires_at)}. |               {shopStrikeReasonWords(s.reason)}.
  * @mutate supabase/migrations/20261111011855_shops_my_strikes.sql |      WHERE s.user_id = v_uid |      WHERE true
  * @mutate supabase/migrations/20261111011855_shops_my_strikes.sql |     SELECT s.id, s.offender_side, s.reason, s.given_at, s.expires_at |     SELECT s.id, s.offender_side, s.reason, s.given_at, s.removed_by
@@ -46,6 +49,20 @@ describe("a member's own Shops strikes (Q2110)", () => {
     expect(await screen.findByText(`Shops is paused for you until ${formatShortDate(day(2))}`)).toBeTruthy();
     expect(screen.getByRole("alert")).toBeTruthy();
     expect(screen.getByText(`A Shops order problem. Ends ${formatShortDate(day(40))}.`)).toBeTruthy();
+  });
+
+  it("S046: at 4 strikes the day Shops opens is when the second one ends", async () => {
+    rpc.mockResolvedValue({ data: [strike("a", "no_ready_photo", day(2)), strike("b", "admin_strike", day(9)), strike("c", "buyer_no_show", day(40)), strike("d", "shop_cancelled", day(50))], error: null });
+    show();
+    expect(await screen.findByText(`Shops is paused for you until ${formatShortDate(day(9))}`)).toBeTruthy();
+    expect(screen.getByText(/Shops opens again when 2 of them have ended\./)).toBeTruthy();
+  });
+
+  it("S046: the strike notice never reads 4 of 3 (newest shop_give_strike)", () => {
+    const defs = effectiveDefs(resolve(__dirname, "../../../supabase/migrations"));
+    const body = blankSqlComments(defs.get("shop_give_strike")?.stmt ?? "").replace(/\s+/g, " ");
+    expect(body).toContain("CASE WHEN v_count < 3 THEN format('You got a Shops strike (%s of 3).");
+    expect(body).toContain("ELSE format('You got a Shops strike. You now have %s, so Shops is closed for you until you are back under 3.");
   });
 
   it("shows nothing with no strikes or when the read fails", async () => {

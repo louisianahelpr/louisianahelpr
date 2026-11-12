@@ -487,9 +487,16 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
       {d.kind === "home_food" && (
         <p className="rounded-lg bg-muted/70 px-3 py-2 text-xs">Shown on this item: “{HOME_KITCHEN_NOTICE}”</p>
       )}
+      {/* S2-035 (Shops audit 2): a new item's first screen had only an outline "Save draft", which read as the end.
+          Its main button now says what comes next, and a line names the steps before Publish. */}
+      {!id && (
+        <p className="text-sm text-muted-foreground" data-testid="item-new-next-steps">
+          Saves it as a draft. Next: 3 or more photos, then Publish.
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" disabled={busy} onClick={() => save.mutate()}>
-          {save.isPending ? "Saving…" : status === "live" ? "Save changes" : "Save draft"}
+        <Button type="button" variant={id ? "outline" : "default"} className={id ? undefined : "btn-grad-primary"} disabled={busy} onClick={() => save.mutate()}>
+          {save.isPending ? "Saving…" : !id ? "Save and continue" : status === "live" ? "Save changes" : "Save draft"}
         </Button>
         {id && !draft && status !== "rejected" && !digital && (
           <Button type="button" variant="outline" disabled={stock.isPending} onClick={() => stock.mutate()}>

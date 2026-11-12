@@ -59,8 +59,20 @@ describe("S054: a new shop item starts from photos", () => {
     expect((screen.getByLabelText("Description") as HTMLTextAreaElement).value).toBe("Hand-poured, 8 oz.");
     expect(api.addShopItemPhoto).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText("Price (dollars)"), { target: { value: "18" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith("new-item"));
     expect(api.addShopItemPhoto.mock.calls.map((c) => [c[0], c[1], (c[2] as File).name])).toEqual([["u1", "new-item", "a.jpg"], ["u1", "new-item", "b.jpg"]]);
+  });
+
+  // S2-035 (Shops audit 2): a new item's main button says what comes next and is solid; no lone "Save draft".
+  it("S2-035: a new item's first screen has a solid 'Save and continue' and names the next steps", () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={qc}><MemoryRouter>
+      <ShopItemEditor ownerId="u1" item={null} onCreated={() => {}} onDone={() => {}} />
+    </MemoryRouter></QueryClientProvider>);
+    expect(screen.queryByRole("button", { name: "Save draft" })).toBeNull();
+    const main = screen.getByRole("button", { name: "Save and continue" });
+    expect(main.className).toContain("btn-grad-primary");
+    expect(screen.getByTestId("item-new-next-steps").textContent).toBe("Saves it as a draft. Next: 3 or more photos, then Publish.");
   });
 });

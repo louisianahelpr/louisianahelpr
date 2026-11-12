@@ -1091,6 +1091,24 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
             })),
+            // The job tracker's words (F260q, 11-12): enNextStep, enJobLines and enJobSteps have one importer each, but
+            // signed-in-shared took them, so every signed-in route (/admin, /profile) carried ~2 KB gz of tracker words
+            // (Q178). Their own chunk rides with the tracker's importers only.
+            {
+              name: "i18n-tracker",
+              test: /[\\/]src[\\/]lib[\\/]i18n[\\/](enJobLines|enJobSteps)\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false,
+            },
+            // The next-step line's words alone: jobNextStep (leaves) is on routes that never draw the tracker (the item page).
+            {
+              name: "i18n-next-step",
+              test: /[\\/]src[\\/]lib[\\/]i18n[\\/]enNextStep\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false,
+            },
             // The Spanish notice shapes (supabase/functions/_shared/noticeEs.ts, ~31 KB): as a supabase/functions file,
             // shared-late (every route's boot) took it. Its own chunk: only es.ts and the lazy push paths reach it.
             {
@@ -1340,6 +1358,10 @@ export default defineConfig(({ mode, command }) => ({
               // NextStep and jobNextStep (owner 11-01, the shared next-step line): the job page, Messages and Declutter's
               // cards share them, so on their own they were two more chunks named in the entry (5.3 KB gz, over its band).
               test: (id: string) => profileSharedLeaves.has(id.split("?")[0].replace(/\\/g, "/")) || /[\\/]src[\\/]components[\\/](ui[\\/]NextStep\.tsx|tracker[\\/]jobNextStep\.ts)$/.test(id.split("?")[0])
+                // nextLineCode (F260q, 11-12): dependency-free codes jobNextStep and jobProgressState share; left to the bundler
+                // it rode jobProgressState's chunk, so jobNextStep pulled all of that onto /jobs, the item page, /profile and
+                // Declutter (+11 KB gz each, Q178).
+                || /[\\/]src[\\/]components[\\/]tracker[\\/]nextLineCode\.ts$/.test(id.split("?")[0])
                 // payoutAccountReady (11-11, Q178): one dependency-free check the Declutter Selling cards and the job
                 // payout notices share; in signed-in-pages it put that whole chunk on /declutter?tab=selling (+18 KB gz).
                 || /[\\/]src[\\/]lib[\\/]payoutAccountReady\.ts$/.test(id.split("?")[0]),

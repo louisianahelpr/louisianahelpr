@@ -6,9 +6,9 @@
  * continue_day_label in America/Chicago, the house style every other dated notice uses.
  * Reads the NEWEST definition of declutter_take_item (effectiveDefs), comments blanked.
  *
- * @mutate supabase/migrations/20261110223800_declutter_reserved_notice_names_the_deadline.sql |   RETURNING id, checkout_by INTO v_line, v_by; |   RETURNING id INTO v_line; v_by := now();
- * @mutate supabase/migrations/20261110223800_declutter_reserved_notice_names_the_deadline.sql | Check out by %s to keep it: choose pickup or delivery | Check out within 24 hours: choose pickup or delivery
- * @mutate supabase/migrations/20261110223800_declutter_reserved_notice_names_the_deadline.sql | v_title, v_price, v_by_words) END, | v_title, v_price, 'soon') END,
+ * @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql |   RETURNING id, checkout_by INTO v_line, v_by; |   RETURNING id INTO v_line; v_by := now();
+ * @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql | Check out by %s to keep it: choose pickup or delivery | Check out within 24 hours: choose pickup or delivery
+ * @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql | v_title, v_price, v_by_words) END, | v_title, v_price, 'soon') END,
  */
 import { describe, expect, it } from "vitest";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

@@ -6,8 +6,8 @@
  * (declutter_deadline_sweep's free branch and declutter_my_cart's source).
  *
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   IF v_all_swap THEN\n    PERFORM public.declutter_identity_gate(v_uid, 'identity_required_to_buy');\n  ELSE | IF false THEN\n    PERFORM 1;\n  ELSE
- * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |           IF v_line.swap_id IS NOT NULL THEN\n            PERFORM public.declutter_end_swap(v_line.swap_id, NULL); |           IF false THEN\n            PERFORM 1;
- * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |           v_reopened := v_reopened + public.declutter_reopen_voided_offers(v_line.id);\n          -- CHANGED (trades #2) |           -- CHANGED (trades #2)
+ * @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql |           IF v_line.swap_id IS NOT NULL THEN\n            PERFORM public.declutter_end_swap(v_line.swap_id, NULL); |           IF false THEN\n            PERFORM 1;
+ * @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql |           v_reopened := v_reopened + public.declutter_reopen_voided_offers(v_line.id);\n          -- CHANGED (trades #2) |           -- CHANGED (trades #2)
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |     PERFORM public.declutter_end_swap(v_line.swap_id, v_uid);\n    RETURN public.declutter_active_strike_count(v_uid); |     RETURN public.declutter_give_strike(v_uid, 'seller', 'cancelled_after_offers', p_item_id, 'x', v_line.id);
  * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |   UPDATE public.declutter_cart_items SET swap_id = p_swap_id WHERE id IN (v_buyer_line, v_seller_line); |   NULL;
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |          CASE WHEN c.swap_id IS NOT NULL THEN 'swap' ELSE c.source END  -- DB-5; | c.source  -- DB-5;

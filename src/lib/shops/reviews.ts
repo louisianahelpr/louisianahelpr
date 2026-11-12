@@ -7,6 +7,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "./rpcErrorCopy";
+import type { ReportedReview } from "@/lib/declutter/api";
+import { loadAdminRpcErrorCopy } from "@/lib/lifecycleErrors";
 
 function rpcData<T>(result: { data: T; error: { message: string } | null }, words: (e: unknown) => string | null): T {
   if (!result.error) return result.data;
@@ -58,4 +60,20 @@ export async function fetchMyOrderReview(orderId: string): Promise<MyOrderReview
 export async function leaveShopReview(orderId: string, stars: number, comment: string | null): Promise<string> {
   return rpcData(await supabase.rpc("shops_leave_review", { p_order_id: orderId, p_stars: stars, p_comment: comment ?? "" }),
     (e) => rpcErrorMessage("shops_leave_review", e)) as string;
+}
+
+/** Q1948 (L46): the Shops reviews behind shop review reports, read as admin (members can't read the table). Same row
+ * shape as Declutter's (ReportedReview), so the reports queue hydrates both the same way. */
+export async function fetchReportedShopReviews(reviewIds: string[]): Promise<ReportedReview[]> {
+  if (!reviewIds.length) return [];
+  const res = await supabase.rpc("shops_admin_reported_reviews", { p_review_ids: reviewIds });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return (rpcData(res, (e) => admin?.rpcErrorMessage("shops_admin_reported_reviews", e) ?? null) ?? []) as ReportedReview[];
+}
+
+/** Q1948: an admin removes a reported Shops review (members stop seeing it; it leaves the shop's rating); the report resolves. */
+export async function removeReportedShopReview(reviewId: string, reportId: string): Promise<string> {
+  const res = await supabase.rpc("shops_admin_remove_review", { p_review_id: reviewId, p_note: "", p_report_id: reportId });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return rpcData(res, (e) => admin?.rpcErrorMessage("shops_admin_remove_review", e) ?? null) as string;
 }

@@ -18,6 +18,7 @@ const LABEL: Record<string, string> = {
   declutter_question: "Reported question: ",
   declutter_answer: "Reported answer: ",
   declutter_review: "Reported review: ",
+  shop_review: "Reported shop review: ",
   // Q2209: a Homes chat message (20261106191100 keeps the listing headline and the words, never a name).
   home_talk_message: "Reported Homes message: ",
 };

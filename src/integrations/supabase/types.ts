@@ -17973,6 +17973,11 @@ export type Database = {
       shop_custom_request_sweep: { Args: never; Returns: Json }
       setup_fee_other_payout_first: { Args: { p_user: string; p_except: string; p_fee: number }; Returns: boolean }
       setup_fee_later_words: { Args: { p_fee: number }; Returns: string }
+      shops_admin_remove_review: { Args: { p_review_id: string; p_note: string; p_report_id: string }; Returns: string }
+      shops_admin_reported_reviews: {
+        Args: { p_review_ids: string[] }
+        Returns: { review_id: string; reviewer_id: string; reviewee_id: string; reviewer_side: string; stars: number; comment: string; removed: boolean; is_seed: boolean }[]
+      }
       shop_preorder_units: {
         Args: { p_item_id: string; p_paid_only: boolean }
         Returns: number

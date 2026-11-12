@@ -218,6 +218,14 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   // Shops paperwork (Q1952, 20261110195956, exported by 20261110200630): the owner's own permits, without the admin
   // who checked them (shop_permits.reviewed_by stays EXEMPT).
   shop_permits: { by: ["owner_id"] },
+  // Shops audit 11-12 S014 (20261112081700): reviews (written; received once public, without the writer's id), custom requests
+  // (the shop's copy without the buyer's id), the buyer's own drop-off and service addresses, the seller's download files,
+  // (the handover steps are EXTRA_SECTIONS below: no person column; the problem note only to the buyer).
+  shop_reviews: { by: ["reviewer_id", "reviewee_id"] },
+  shop_custom_requests: { by: ["buyer_id"] },
+  shop_order_delivery_addresses: { by: ["buyer_id"] },
+  shop_order_service_addresses: { by: ["buyer_id"] },
+  shop_item_files: { by: ["owner_id"] },
   // Bundle discounts (20261027211754, exported by 20261028003604): the seller's own setting.
   declutter_bundle_rules: { by: ["seller_id"] },
   // Q2462 (20261028235249, exported by 20261028235250): the handover talks, buyer or seller, and their messages.
@@ -326,6 +334,20 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
  * without the reporter's id, photos or the deciding admin.
  */
 export const EXTRA_SECTIONS: Record<string, { table: string; scope: string; stripped: string[]; noPersonColumn?: true }> = {
+  // Shops audit 11-12 S014 (20261112081700): the handover steps of each order the member is a side of (no person column), without
+  // the problem note; the buyer who wrote a problem note gets it in its own section.
+  shop_handovers: {
+    table: "shop_handovers",
+    scope: "WHERE EXISTS (SELECT 1 FROM public.shop_orders o WHERE o.id = t.order_id AND v_uid IN (o.buyer_id, o.seller_id))",
+    stripped: ["problem_note"],
+    noPersonColumn: true,
+  },
+  shop_handover_problem_notes: {
+    table: "shop_handovers",
+    scope: "WHERE t.problem_note IS NOT NULL AND EXISTS (SELECT 1 FROM public.shop_orders o WHERE o.id = t.order_id AND o.buyer_id = v_uid)",
+    stripped: [],
+    noPersonColumn: true,
+  },
   declutter_problems_about_me: {
     table: "declutter_problems",
     scope:
@@ -615,9 +637,6 @@ export function helperReadableViaJob(tables = publicTables()): Map<string, strin
 // @two-way src/test/dataExportCoversEveryUserTable.test.ts:no stale entry: every EXPORTED/EXEMPT column is a live person column
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // Shops digital downloads (20261108182917; Shops is testers only).
-  "shop_item_files.owner_id": { reason: "A seller's download files (name, type, size). Not in export_my_data yet, the same way as shop_reviews above: it is added with the next export_my_data restatement (its newest body, 20261106191100, is pinned by about 90 @mutate registrations), and then this entry moves to EXPORTED. The item each file belongs to is already exported (shop_items by owner_id), and a buyer's purchases are exported as shop_orders and shop_order_lines" },
-  "shop_reviews.reviewer_id": { reason: "Shop reviews (20261105230819, Shops H9; Shops is testers only). Not in export_my_data yet: added with the shop chats on top of Builder 1's job-photos v3 restatement of export_my_data (lead 11-05); then this entry moves to EXPORTED" },
-  "shop_reviews.reviewee_id": { reason: "Shop reviews (20261105230819, Shops H9; Shops is testers only). Not in export_my_data yet: added with the shop chats on top of Builder 1's job-photos v3 restatement of export_my_data (lead 11-05); then this entry moves to EXPORTED" },
   // CMP-4 instant book (20261101063725, 20261101065105); lead 11-01.
   // LEAD-LIST-FOR-SELLER (20261101034159): a private link (item, job, Helpr, seller, sent/decided times), service role only.
   "declutter_listed_for_seller.seller_id": { reason: "link row; the listing itself is a declutter_items row exported under the seller (seller_id), and the job under its poster" },
@@ -727,10 +746,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "support_replies.admin_id": { reason: "the staff member who answered a support ticket (20261023200521); the member's copy of the reply is their own notification row, exported with their notifications, and the send is in admin_audit_log" },
   "job_approval_escalations.resolved_by": { reason: "the staff member who closed a job waiting on approval (20261023143240); the job is the poster's and the Helpr's, exported with their jobs, and the close is in admin_audit_log" },
   "job_payout_holds.held_by": { reason: "Q1491: the staff member who placed a JOB payout hold (NULL when stripe-webhook placed it); a server-only money-control row about the job, not the person's own data" },
-  "shop_order_delivery_addresses.buyer_id": { reason: "Shops delivery (20261106180902): the buyer's drop-off address for one order the shop delivers, behind the 'shops' switch (testers only, no live members). Purged with the account (ON DELETE CASCADE). Its Download My Data section is owed with Builder 4's shops export (with shop_order_service_addresses), before Shops opens to everyone" },
-  "shop_custom_requests.buyer_id": { reason: "Shops custom orders slice 1a (20261106202917): a buyer's custom order request to one shop and the shop's price, behind the 'shops' switch (testers only, no live members). Purged with the account (ON DELETE CASCADE). Its Download My Data section is owed with Builder 4's shops export (custom orders slice 5), before Shops opens to everyone" },
   "shop_permits.reviewed_by": { reason: "the admin who checked a shop's permit; never returned to the owner (shops_my_permits leaves it out); the permit is the shop owner's and is exported by shop_permits.owner_id with this staff id dropped" },
-  "shop_order_service_addresses.buyer_id": { reason: "Shops H8 (b) (20261106164313): the buyer's service address for one at-home carpet or furniture cleaning order, behind the 'shops' switch (testers only, no live members). Purged with the account (ON DELETE CASCADE). Its Download My Data section is owed with the shops export after job-photos v4 (docs/NOT-LAUNCHED.md Shops H8 note)" },
   "shop_hand_refunds.recorded_by": { reason: "the staff member who recorded a Shops refund made by hand in Stripe (NULL when stripe-webhook recorded it; Shops M3, 20261019071055); a server-only money-control row about the order, not the person's own data" },
   "series_platform_ends.admin_id": { reason: "the staff member who ended a series (Q1735); the series is the poster's, exported with their jobs" },
   "new_member_admin_notices.user_id": { reason: "2026-10-09: the server's once-only marker that admins were told this member joined (when they confirmed their email); a timestamp about the account, none of the person's own data" },

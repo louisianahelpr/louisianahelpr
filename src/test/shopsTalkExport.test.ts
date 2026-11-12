@@ -3,9 +3,9 @@
  * (the shopper's, and every chat with the owner's shop) and their messages, never the other side's id. Reads the
  * EFFECTIVE (newest) definition; behaviour on a real database is src/test/pglite/shopsTalkExport.pglite.mjs (3x).
  *
- * @mutate supabase/migrations/20261110200630_shops_talk_export.sql | ELSE to_jsonb(t) - 'buyer_id' - 'buyer_notified_at' | ELSE to_jsonb(t) - 'buyer_notified_at'
- * @mutate supabase/migrations/20261110200630_shops_talk_export.sql | jsonb_build_object('shop_talk_messages', (SELECT coalesce(jsonb_agg(jsonb_build_object( | jsonb_build_object('shop_talk_messages', (SELECT coalesce(jsonb_agg(jsonb_build_object('sender_id', t.sender_id,
- * @mutate supabase/migrations/20261110200630_shops_talk_export.sql | WHERE t.buyer_id = v_uid OR t.shop_id IN (SELECT s.id FROM public.shops s WHERE s.owner_id = v_uid))); | WHERE t.buyer_id = v_uid)));
+ * @mutate supabase/migrations/20261112081700_shops_export_rest.sql | ELSE to_jsonb(t) - 'buyer_id' - 'buyer_notified_at' | ELSE to_jsonb(t) - 'buyer_notified_at'
+ * @mutate supabase/migrations/20261112081700_shops_export_rest.sql | jsonb_build_object('shop_talk_messages', (SELECT coalesce(jsonb_agg(jsonb_build_object( | jsonb_build_object('shop_talk_messages', (SELECT coalesce(jsonb_agg(jsonb_build_object('sender_id', t.sender_id,
+ * @mutate supabase/migrations/20261112081700_shops_export_rest.sql | WHERE t.buyer_id = v_uid OR t.shop_id IN (SELECT s.id FROM public.shops s WHERE s.owner_id = v_uid))); | WHERE t.buyer_id = v_uid)));
  */
 import { describe, expect, it } from "vitest";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

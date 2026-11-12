@@ -146,6 +146,9 @@ export const EXPORT_SECTIONS = [
   "shop_talks", "shop_talk_messages",
   // Shops paperwork (Q1952, 20261110195956; exported by 20261110200630): the owner's own permits.
   "shop_permits",
+  // Shops audit 11-12 S014: reviews, custom requests, the buyer's addresses, download files, handover steps.
+  "shop_reviews", "shop_custom_requests", "shop_order_delivery_addresses", "shop_order_service_addresses",
+  "shop_item_files", "shop_handovers", "shop_handover_problem_notes",
   // Porch days (20261029161347; exported by 20261029223949).
   "declutter_seller_porch_days",
   // A seller's own meet spots (20261101194608; exported by 20261101210500).

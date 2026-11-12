@@ -7,7 +7,8 @@
  * @mutate supabase/functions/declutter-money/index.ts |     const custom = await admin.rpc("shop_custom_request_sweep", {}); |     const custom = { error: null, data: null };
  * @mutate src/components/shops/ShopCustomRequestsList.tsx |   lapsed: { buyer: "The shop didn't answer in time", shop: "Not answered in time" }, |
  */
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 
 const read = (p: string) => readFileSync(p, "utf8");

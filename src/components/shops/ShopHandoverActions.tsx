@@ -18,6 +18,7 @@
  * Loads its own handover row (one small query per card), so the screens keep
  * their one loading gate.
  */
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -145,11 +146,10 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
         <Textarea id={`${fileId}-note`} value={note} maxLength={NOTE_MAX} onChange={(e) => setNote(e.target.value)} placeholder={w.buyerProblemPlaceholder} />
       </div>
       <div className="space-y-1" data-testid="shop-problem-photo">
-        <input
+        <HiddenFileInput
           id={`${fileId}-problem-photo`}
-          type="file"
           accept="image/*"
-          className="hidden"
+          tabIndex={-1}
           disabled={report.isPending}
           onChange={(e) => {
             const f = e.target.files?.[0] ?? null;

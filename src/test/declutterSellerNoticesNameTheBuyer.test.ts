@@ -7,7 +7,7 @@
  * 6 FAIL without the migration).
  */
 // @mutate supabase/migrations/20261112010100_declutter_names_hidden_across_block_or_ban.sql | CASE WHEN o.wanted_id IS NULL AND NOT public.declutter_names_hidden(o.buyer_id, o.seller_id)\n           THEN (SELECT | CASE WHEN NOT public.declutter_names_hidden(o.buyer_id, o.seller_id)\n           THEN (SELECT
-// @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql |     IF p_offer_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.declutter_offers wo WHERE wo.id = p_offer_id AND wo.wanted_id IS NOT NULL) THEN |     IF true THEN
+// @mutate supabase/migrations/20261112010200_declutter_wanted_reserved_notice_keeps_seller_anonymous.sql |     IF (p_offer_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.declutter_offers wo WHERE wo.id = p_offer_id AND wo.wanted_id IS NOT NULL))\n | IF true\n
 // @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql |           COALESCE(v_buyer, 'A buyer'), cardinality(v_ids) |           v_buyer, cardinality(v_ids)
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
@@ -24,7 +24,7 @@ describe("F356 follow-up part 2: more seller notices name the buyer", () => {
       expect(flat(fn).length).toBeGreaterThan(2000);
     }
     expect(defs.get("declutter_request_bundle")?.file).toMatch(FILE);
-    expect(defs.get("declutter_take_item")?.file).toMatch(FILE);
+    expect(defs.get("declutter_take_item")?.file).toMatch(/20261112010200_declutter_wanted_reserved_notice_keeps_seller_anonymous\.sql$/);
     // Restated with the block/ban rule (20261112010100).
     expect(defs.get("declutter_deadline_sweep")?.file).toMatch(/20261112010100_declutter_names_hidden_across_block_or_ban\.sql$/);
   });
@@ -44,7 +44,7 @@ describe("F356 follow-up part 2: more seller notices name the buyer", () => {
 
   it("take_item: claimed and buying, never on a Wanted thread, titles unchanged", () => {
     const t = flat("declutter_take_item");
-    expect(t).toContain("IF p_offer_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.declutter_offers wo WHERE wo.id = p_offer_id AND wo.wanted_id IS NOT NULL) THEN SELECT public.member_display_name(bp.full_name, NULL) INTO v_buyer");
+    expect(t).toContain("IF (p_offer_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.declutter_offers wo WHERE wo.id = p_offer_id AND wo.wanted_id IS NOT NULL)) AND NOT public.declutter_names_hidden(p_buyer, v_seller) THEN SELECT public.member_display_name(bp.full_name, NULL) INTO v_buyer");
     expect(t).toContain(`THEN format('%s claimed "%s". They have 48 hours to choose a pickup.', v_buyer, v_title)`);
     expect(t).toContain("COALESCE(v_buyer, 'Someone'), v_title, v_price)");
     expect(t).toContain("v_title, COALESCE(v_buyer, 'the buyer'), v_price)");

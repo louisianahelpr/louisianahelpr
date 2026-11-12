@@ -345,7 +345,7 @@ describe("ShopItemEditor", () => {
   it("Q1961: the editor says new items are checked by an admin for 30 days after a rejection", async () => {
     renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft" })} onCreated={() => {}} onDone={() => {}} />);
     expect(await screen.findByText(/After a rejection, new items are checked by an admin for 30 days\./)).toBeTruthy();
-    expect(screen.getByText(/Changing only the price or stock of a live item keeps it live\./)).toBeTruthy();
+    expect(screen.getByText(/Edits to a live item keep it live, unless you change what kind of item it is or its type\./)).toBeTruthy();
   });
 
   it("F11: the price check reads a price the way the save does (\"$1,200\" is a price)", () => {
@@ -366,13 +366,47 @@ describe("ShopItemEditor", () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it("an empty 'days' box is refused, never saved as 0 (same day)", async () => {
+  // S041 (Shops audit 11-12): the refusal now shows under the days box (it was a toast only).
+  // @mutate src/components/shops/ShopItemEditor.tsx |   invalid_title: "title", invalid_price: "price", invalid_lead_time: "lead", invalid_stock: "stock", |   invalid_title: "title", invalid_price: "price",
+  it("an empty 'days' box is refused, never saved as 0 (same day), and says so under the box (S041)", async () => {
     renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft" })} onCreated={() => {}} onDone={() => {}} />);
-    fireEvent.change(screen.getByLabelText("Days you need to make it"), { target: { value: "" } });
+    const lead = screen.getByLabelText("Days you need to make it");
+    fireEvent.change(lead, { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Set how many days you need, from 0 (same day) to 60."));
+    await waitFor(() => expect(lead.getAttribute("aria-invalid")).toBe("true"));
+    expect(document.getElementById("item-lead-error")?.textContent).toBe("Set how many days you need, from 0 (same day) to 60.");
+    expect(document.getElementById("item-lead-error")?.getAttribute("role")).toBe("alert");
+    expect(toast.error).not.toHaveBeenCalled();
     expect(api.updateShopItem).not.toHaveBeenCalled();
     expect(api.createShopItem).not.toHaveBeenCalled();
+    // Typing in the box clears its line.
+    fireEvent.change(lead, { target: { value: "2" } });
+    expect(document.getElementById("item-lead-error")).toBeNull();
+  });
+
+  // @mutate src/components/shops/ShopItemEditor.tsx |       toast.success("Stock and ready time saved.");\n      refresh();\n    },\n    onError: errorUnderFieldOrToast, |       toast.success("Stock and ready time saved.");\n      refresh();\n    },\n    onError: (err) => toast.error(shopsErrorMessage(err)),
+  it("S041: a refused stock count from 'Save stock and ready time' shows under the stock box, not as a toast", async () => {
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "live", stock_count: 3 })} onCreated={() => {}} onDone={() => {}} />);
+    const stock = screen.getByLabelText("How many are ready");
+    fireEvent.change(stock, { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save stock and ready time" }));
+    await waitFor(() => expect(stock.getAttribute("aria-invalid")).toBe("true"));
+    expect(document.getElementById("item-stock-error")?.textContent).toMatch(/^Set how many you have ready, from 0 to 9,999/);
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  // @mutate src/components/shops/ShopItemEditor.tsx |   if (x.photos > 12) out.push( |   if (false) out.push(
+  // @mutate src/components/shops/ShopItemEditor.tsx |   if (x.digitalFiles === 0) out.push( |   if (false) out.push(
+  it("S041: Publish says the server's price range, too many photos, and a download with no files, before it is pressed", () => {
+    const base = { photos: 3, title: "Pecan pie", unticked: 0, cottageNeedsTick: false, cottageUnknown: false };
+    expect(publishBlockers({ ...base, price: "0.50" })).toEqual(["Set a price from $1 to $5,000."]);
+    expect(publishBlockers({ ...base, price: "5,000.01" })).toEqual(["Set a price from $1 to $5,000."]);
+    expect(publishBlockers({ ...base, price: "1" })).toEqual([]);
+    expect(publishBlockers({ ...base, price: "$5,000" })).toEqual([]);
+    expect(publishBlockers({ ...base, price: "18", photos: 13 })).toEqual(["Remove 1 photo (3 to 12)."]);
+    expect(publishBlockers({ ...base, price: "18", digitalFiles: 0 })).toEqual(["Add 1 to 5 files for buyers to download."]);
+    expect(publishBlockers({ ...base, price: "18", digitalFiles: 2 })).toEqual([]);
+    expect(publishBlockers({ ...base, price: "18", digitalFiles: null })).toEqual([]);
   });
 
   // Variants follow-up (11-06): an item with option lists keeps its stock per combination (the server's rollup

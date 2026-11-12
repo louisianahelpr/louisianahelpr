@@ -10,6 +10,7 @@
  * them as the right person, with the right numbers, and moves money once.
  *
  * Registered mutations - each turns this file RED on its own:
+ * @mutate supabase/functions/shop-checkout/index.ts |     await closeFrozen("its lines read failed"); | 
  * @mutate supabase/functions/shop-checkout/index.ts |        metadata: meta, capture_method: "manual", transfer_group: `shop_order_${o.id}`, |        metadata: meta, transfer_group: `shop_order_${o.id}`,
  * @mutate supabase/functions/shop-checkout/index.ts |       billing_address_collection: "required", |       automatic_tax: { enabled: true },\n      billing_address_collection: "required",
  * @mutate supabase/functions/shop-checkout/index.ts |     { idempotencyKey: `shop-order-${o.id}${walletRetry ? ":new-wallet" : ""}` }, |     {},
@@ -686,6 +687,22 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     const res = await fn.fetch(ask(fn));
     expect(res.status).toBe(503);
     expect((await json(res)).error).toMatch(/try again/i);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    // S038: the frozen order closes at once instead of waiting for the 2-hour sweep.
+    expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+  });
+
+  it("S038: a failed read after the order froze (its lines) closes the order and opens no page", async () => {
+    const fn = await load();
+    frozen();
+    scenario.reads.shop_order_lines = { rows: [], error: { message: "connection reset" } };
+    const res = await fn.fetch(ask(fn));
+    expect(res.status).toBe(503);
+    expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+    expect(rpcs("shops_cancel_order_request")[0]?.args).toEqual({ p_order_id: ORDER });
+    // The closed order keeps no copy of a buyer address (money review of 5ea7ff5f4a).
+    expect(scenario.writes.filter((w) => w.table === "shop_order_delivery_addresses").map((w) => w.op)).toEqual(["delete"]);
+    expect(scenario.writes.filter((w) => w.table === "shop_order_service_addresses").map((w) => w.op)).toEqual(["delete"]);
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 

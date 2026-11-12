@@ -527,7 +527,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/shops/ShopCustomQuoteForm.tsx` | input×1, textarea×1, checkbox/switch/radio×2 | text |  | shop-custom-quote-form · 40 · What |
 | `src/components/shops/ShopDigitalOrder.tsx` | textarea×1 |  | 500 | shop-digital-order-shop · shop-digital-order · shop-digital-report |
-| `src/components/shops/ShopHandoverActions.tsx` | input×2, textarea×1 | file |  | shop-problem-photo · shop-problem-photo-name · shop-handover-problem · shop-payout-line · shop-handover-actions · shop-handover-safety · shop-preorder-ready-from · shop-handover-wait |
+| `src/components/shops/ShopHandoverActions.tsx` | input×1, textarea×1 | file |  | shop-problem-photo · shop-problem-photo-name · shop-handover-problem · shop-payout-line · shop-handover-actions · shop-handover-safety · shop-preorder-ready-from · shop-handover-wait |
 | `src/components/shops/ShopOrderCancel.tsx` | textarea×1 |  |  | shop-cancel-terms-changed · shop-cancel-actions · Our oven broke |
 
 ## /shops/orders, /shops/dashboard, /shops/:id

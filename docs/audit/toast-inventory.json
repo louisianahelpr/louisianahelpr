@@ -11700,7 +11700,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 81,
+      "line": 82,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11710,7 +11710,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 87,
+      "line": 88,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11720,7 +11720,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 93,
+      "line": 94,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -11730,7 +11730,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 102,
+      "line": 103,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11740,7 +11740,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 111,
+      "line": 112,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11750,7 +11750,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 126,
+      "line": 127,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

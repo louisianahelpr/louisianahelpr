@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-12T00:02:01.490Z",
-  "guards": 3942,
-  "registered": 3941,
+  "generated": "2026-11-12T01:56:36.747Z",
+  "guards": 3948,
+  "registered": 3947,
   "unregistered": [
     "src/lib/shops/preorders.test.ts"
   ],
@@ -39,6 +39,12 @@
       "file": "src/test/prodSeedGroupJobFixture.test.ts",
       "why": [
         "rows (literal declared in this file) is both input and oracle"
+      ]
+    },
+    {
+      "file": "src/test/sellerCardYouGetPaidOn.test.ts",
+      "why": [
+        "lines (literal declared in this file) is both input and oracle"
       ]
     }
   ],

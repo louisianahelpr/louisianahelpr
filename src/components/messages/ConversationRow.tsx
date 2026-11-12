@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enMessages";
 import { memo } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { BellOff, Briefcase, Check } from "lucide-react";
@@ -183,7 +185,7 @@ const ConversationRowBase = ({
     !!c.lastMessageAttachmentPath && isImageMime(c.lastMessageAttachmentMime);
   const hasUnreadFromOther = c.unread > 0;
   const previewBody = lastIsImage
-    ? "Photo"
+    ? t("msg.photo")
     : (c.lastMessage || "—");
 
   // F421/F437/F439 (owner 11-11): TITLE FIRST. The job is the headline with its photo, the other person's
@@ -251,7 +253,7 @@ const ConversationRowBase = ({
           type="button"
           role="checkbox"
           aria-checked={selected}
-          aria-label={selected ? "Deselect conversation" : "Select conversation"}
+          aria-label={selected ? t("msg.deselect") : t("msg.select")}
           onClick={(e) => { e.stopPropagation(); onToggleSelect?.(); }}
           className="shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center self-center"
         >
@@ -469,7 +471,7 @@ const ConversationRowBase = ({
                 className="flex-1 min-w-0 basis-[9rem] text-ds-12 truncate senior-clamp-2 font-sans"
                 style={{ color: "hsl(var(--muted-foreground))" }}
               >
-                <Briefcase aria-label="Jobs" className="inline w-3.5 h-3.5 mr-1 -mt-0.5 align-middle" />
+                <Briefcase aria-label={t("nav.jobs")} className="inline w-3.5 h-3.5 mr-1 -mt-0.5 align-middle" />
                 {/* Line 2 = who (F421, owner 11-11): the name first, so a long role caption is what truncates. */}
                 <span data-testid="row-name" className="font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
                   {c.otherUserName}
@@ -486,7 +488,7 @@ const ConversationRowBase = ({
                 <BellOff
                   className="w-3 h-3 shrink-0"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                  aria-label="Muted"
+                  aria-label={t("msg.muted")}
                 />
               )}
             </div>
@@ -513,7 +515,7 @@ const ConversationRowBase = ({
                   Messages shows two lines here as well. */}
               <p
                 data-testid="row-preview"
-                title={sentByMe ? `You: ${previewBody}` : previewBody}
+                title={sentByMe ? t("msg.youSaid", { body: previewBody }) : previewBody}
                 className="text-ds-12 truncate senior-clamp-2 min-w-0 flex-1"
                 style={{
                   color: hasUnreadFromOther ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)",
@@ -525,7 +527,7 @@ const ConversationRowBase = ({
                     className="mr-1"
                     style={{ color: "hsl(var(--olivewood) / 0.8)", fontWeight: 400 }}
                   >
-                    You:
+                    {t("msg.youPrefix")}
                   </span>
                 )}
                 {previewBody}

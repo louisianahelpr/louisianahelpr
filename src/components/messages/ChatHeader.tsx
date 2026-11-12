@@ -1,3 +1,4 @@
+import "@/lib/i18n/enMessages";
 import { ListRow } from "@/components/ui/ListRow";
 import { t } from "@/lib/i18n/language";
 import "@/lib/i18n/enScreens";
@@ -210,7 +211,7 @@ export function ChatHeader({
                 <BellOff
                   className="w-3 h-3 shrink-0"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                  aria-label={remaining ?? "Muted"}
+                  aria-label={remaining ?? t("msg.muted")}
                 />
               );
             })()}
@@ -301,8 +302,8 @@ export function ChatHeader({
           <DropdownMenuItem onClick={onReportUser} className="items-start">
             <Flag className="w-4 h-4 mr-2 mt-0.5 shrink-0" />
             <span className="flex flex-col">
-              <span data-menu-label="">Report user</span>
-              <span className="text-ds-12 text-muted-foreground">Tell our team about a problem.</span>
+              <span data-menu-label="">{t("msg.reportUser")}</span>
+              <span className="text-ds-12 text-muted-foreground">{t("msg.reportUserBody")}</span>
             </span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={onBlockUser} data-chat-block-user="" className="text-[hsl(var(--destructive-ink))] focus:text-[hsl(var(--destructive-ink))]">

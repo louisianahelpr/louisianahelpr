@@ -1,3 +1,4 @@
+import "@/lib/i18n/enMessages";
 import { t } from "@/lib/i18n/language";
 import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react";
 import type { NavigateFunction } from "react-router-dom";
@@ -327,7 +328,7 @@ export function ConversationListBody({
                 {/* The "You're all caught up" variant went with the Unread
                     tab on 2026-09-19 — it was that tab's empty state and
                     nothing else can reach it now. */}
-                Nothing here right now
+                {t("msg.nothingHere")}
               </p>
               <p
                 className="font-sans text-ds-13 max-w-[240px]"
@@ -340,9 +341,9 @@ export function ConversationListBody({
                     and "Switch to All" without a number asks you to go and
                     check whether there is anything over there at all. */}
                 {inboxTab === "pinned"
-                  ? "No conversations are pinned. Swipe a thread right to pin it."
+                  ? t("msg.nonePinned")
                   : inboxTab === "recentlyDeleted"
-                    ? "Nothing hidden. Swipe a thread left to hide it — it stays here, not deleted."
+                    ? t("msg.noneHidden")
                     : inboxTab === "active"
                       /* THE ACTIVE EMPTY STATE, and the one the Active
                          default made common: a user whose jobs have all
@@ -351,8 +352,8 @@ export function ConversationListBody({
                          never as "your inbox is broken" — so it names the
                          reason, and the button beneath it names the number
                          waiting under Any status. */
-                      ? "No conversations belong to a job that's still running. Finished ones are under Any status."
-                      : "No conversations match this view."}
+                      ? t("msg.noneActive")
+                      : t("msg.noneMatchView")}
               </p>
               {/* THE COUNT, and a way to ACT on it — the "Show Waiting (3)"
                   button My Jobs puts under the same copy, which is where that
@@ -380,7 +381,7 @@ export function ConversationListBody({
                   nothing at all. */}
               {inboxTab === "active" && allTabConversations.length > 0 && (
                 <BarkPillButton onClick={() => { hapticLight(); setInboxFilter(UNFILTERED_INBOX_TAB); }}>
-                  Show finished ({allTabConversations.length})
+                  {t("msg.showFinished", { n: allTabConversations.length })}
                 </BarkPillButton>
               )}
             </div>
@@ -401,7 +402,7 @@ export function ConversationListBody({
                 className="font-display font-bold text-ds-16"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
-                No conversations match
+                {t("msg.noneMatch")}
               </p>
               <p
                 className="font-sans text-ds-13 max-w-[240px]"
@@ -412,8 +413,8 @@ export function ConversationListBody({
                     "zero X match this search," which is a different claim
                     when X is Pinned or Recently Deleted specifically. */}
                 {isSpecialFilterView
-                  ? `Try a different name or keyword, or clear the search to see all ${inboxTab === "pinned" ? "pinned" : "hidden"} threads.`
-                  : "Try a different name or keyword."}
+                  ? (inboxTab === "pinned" ? t("msg.tryOtherPinned") : t("msg.tryOtherHidden"))
+                  : t("msg.tryOther")}
               </p>
             </div>
           ) : (
@@ -528,7 +529,7 @@ export function ConversationListBody({
           {selectMode && hasThreads && (
             <div
               role="toolbar"
-              aria-label="Bulk hide action bar"
+              aria-label={t("msg.bulkBar")}
               // Embedded (desktop split): anchor inside the list pane so the
               // bar doesn't stretch across the thread pane; standalone keeps
               // the fixed viewport-bottom float above the nav dock.
@@ -549,8 +550,8 @@ export function ConversationListBody({
                   aria-live="polite"
                 >
                   {selectedKeys.size === 0
-                    ? "Tap to select"
-                    : `${selectedKeys.size} of ${MAX_SELECT} selected`}
+                    ? t("msg.tapToSelect")
+                    : t("msg.nSelected", { n: selectedKeys.size, max: MAX_SELECT })}
                 </span>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <SelectBarExitButton
@@ -567,11 +568,11 @@ export function ConversationListBody({
                     // "Hide", not "Delete" — the action is the same honest
                     // local archive every other surface calls hiding ("no
                     // messages are deleted"); the bar must not promise more.
-                    aria-label={`Hide ${selectedKeys.size} selected conversation${selectedKeys.size === 1 ? "" : "s"}`}
+                    aria-label={selectedKeys.size === 1 ? t("msg.hideOne") : t("msg.hideN", { n: selectedKeys.size })}
                     className="gap-1.5 px-3 text-ds-13 font-semibold disabled:opacity-40 [&_svg]:size-4"
                   >
                     <Trash2 className="w-4 h-4" />
-                    Hide
+                    {t("msg.hide")}
                   </Button>
                 </div>
               </div>

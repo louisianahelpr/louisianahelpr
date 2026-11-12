@@ -1,3 +1,4 @@
+import "@/lib/i18n/enMessages";
 import { t } from "@/lib/i18n/language";
 import { Button } from "@/components/ui/button";
 import "@/lib/i18n/enScreens";
@@ -351,7 +352,7 @@ export function ChatView({
                   default) means any slight bleed above/below is fine. */}
               <Button type="button" variant="ghost" size="iconCompact" onClick={dismissBanner}
                 className="absolute right-0 top-1/2 -translate-y-1/2 ctl-exit text-muted-foreground hover:text-foreground"
-                aria-label="Dismiss safety reminder"
+                aria-label={t("msg.dismissSafety")}
               >
                 <X className="w-3 h-3" />
               </Button>
@@ -486,15 +487,13 @@ export function ChatView({
       <BrandConfirmDialog
         open={!!editingMessage}
         onOpenChange={(open) => { if (!open) setEditingMessage(null); }}
-        title="Edit message"
+        title={t("msg.editTitle")}
         description={
           editSecondsLeft !== null
-            ? `Changes are visible to the other person, and the message is marked as edited. Editable for ${
-                editSecondsLeft >= 60 ? `${Math.ceil(editSecondsLeft / 60)}m` : `${editSecondsLeft}s`
-              } more.`
-            : "Changes are visible to the other person, and the message is marked as edited."
+            ? t("msg.editBodyLeft", { left: editSecondsLeft >= 60 ? `${Math.ceil(editSecondsLeft / 60)}m` : `${editSecondsLeft}s` })
+            : t("msg.editBody")
         }
-        primaryLabel={savingEdit ? "Saving…" : "Save"}
+        primaryLabel={savingEdit ? t("msg.saving") : t("msg.save")}
         primaryTone="bark"
         primaryDisabled={savingEdit || !editDraft.trim() || editDraft.length > MESSAGE_MAX_LENGTH}
         primaryHaptic="none"

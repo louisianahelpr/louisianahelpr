@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enMessages";
 import type { MutableRefObject } from "react";
 import { ChevronsDown, ChevronsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,10 +40,10 @@ export function JumpToBottomButton({
         className="pointer-events-auto gap-1 px-3 text-ds-13 [&_svg]:size-3"
         aria-label={
           firstUnreadOffscreen
-            ? `Jump to ${initialUnreadCountRef.current} new message${initialUnreadCountRef.current === 1 ? "" : "s"}`
+            ? (initialUnreadCountRef.current === 1 ? t("msg.jumpNewOneAria") : t("msg.jumpNewNAria", { n: initialUnreadCountRef.current }))
             // Holds the visible "Jump to latest" (WCAG 2.5.3, axe 4.14 label-content-name-mismatch): "Jump to newest
             // message" did not, and the open-thread axe check went red whenever the chip showed (webkit, 11-06).
-            : "Jump to latest message"
+            : t("msg.jumpLatestAria")
         }
         onClick={() => {
           const el = scrollContainerRef.current;
@@ -69,8 +71,8 @@ export function JumpToBottomButton({
             one unread sitting above a screenful of newer messages. */}
         {firstUnreadOffscreen ? <ChevronsUp className="w-3 h-3" /> : <ChevronsDown className="w-3 h-3" />}
         {firstUnreadOffscreen
-          ? `${initialUnreadCountRef.current} New Message${initialUnreadCountRef.current === 1 ? "" : "s"}`
-          : "Jump to latest"}
+          ? (initialUnreadCountRef.current === 1 ? t("msg.jumpNewOne") : t("msg.jumpNewN", { n: initialUnreadCountRef.current }))
+          : t("msg.jumpLatest")}
       </Button>
     </div>
   );

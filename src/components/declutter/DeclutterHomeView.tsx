@@ -82,13 +82,11 @@ import { TAKE_DOWN_WORDS } from "./takeDownWords";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { nextStepWords } from "@/components/ui/NextStep";
 import { useLanguage } from "@/lib/i18n/language";
-import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclutter";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
 const haulLib = () => loadModule(() => import("@/lib/declutter/haulAway"));
 type HaulLib = typeof import("@/lib/declutter/haulAway");
-
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically from two Declutter screens, the shared Helpr task module rode in signed-in-shared and put /posts over its budget.
 const DeliverView = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.DeliverView })));
 
@@ -100,7 +98,6 @@ const WantedView = lazy(() => import("./DeclutterWantedViews").then((m) => ({ de
 // Opened from a listing's Manage button (or a price-drop notice), never part of the first screen.
 const ManageListingSheet = lazy(() => import("./DeclutterManageListing").then((m) => ({ default: m.ManageListingSheet })));
 const FreeView = lazy(() => import("./DeclutterFreeView").then((m) => ({ default: m.FreeView })));
-
 const SOLD = new Set<DeclutterItem["status"]>(["sold", "completed"]);
 
 /**
@@ -517,7 +514,6 @@ function DeclutterMemberHome() {
     }, { replace: true, state: location.state });
   }, [fromView, tabsReady, setParams, location.state]);
   useWarmMineViews(view === "buying" || view === "selling");
-  // F260q (owner 11-11): the tab names and My Declutter in the reader's language.
   const { t: tr } = useLanguage();
   if (!user) return null;
   if (!tabsReady) return <DeclutterHomeSkeleton />;
@@ -531,7 +527,7 @@ function DeclutterMemberHome() {
       return next;
     }, { replace: true });
   // Owner 11-11 (F363/F396): the Buying and Selling badges are the Home To-do count (the bottom bar's), by side.
-  const lists: Array<{ value: Exclude<DeclutterTab, "browse">; label: string; labelKey: MsgKey; count?: number; quiet?: number }> = [
+  const lists: Array<{ value: Exclude<DeclutterTab, "browse">; label: string; labelKey: `decl.tab.${Exclude<DeclutterTab, "browse">}`; count?: number; quiet?: number }> = [
     { value: "buying", label: "Buying", labelKey: "decl.tab.buying", count: needsYou.declutterBuying },
     { value: "selling", label: "Selling", labelKey: "decl.tab.selling", quiet: forSale, count: needsYou.declutterSelling },
     { value: "deliver", label: "Deliver", labelKey: "decl.tab.deliver" },

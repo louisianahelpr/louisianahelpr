@@ -8,8 +8,8 @@
  * Both proven against axe-core 4.14 itself in a lab page (old markup: 1 violation each; new: clean).
  * This renders the real components and holds each control's accessible name to its visible text.
  *
- * @mutate src/components/messages/chatView/JumpToBottomButton.tsx |             : "Jump to latest message" |             : "Jump to newest message"
- * @mutate src/components/messages/MessageBubble.tsx | ${count > 1 ? `, ${count} reactions` : ""} |
+ * @mutate src/lib/i18n/enMessages.ts |   "msg.jumpLatestAria": "Jump to latest message", |   "msg.jumpLatestAria": "Jump to newest message",
+ * @mutate src/components/messages/MessageBubble.tsx | ${count > 1 ? t("msg.nReactions", { n: count }) : ""} |
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

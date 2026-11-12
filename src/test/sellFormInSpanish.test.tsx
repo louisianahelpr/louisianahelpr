@@ -219,7 +219,7 @@ describe("the sell flow's toasts follow the member's language (F260q)", () => {
     const src = blankComments(readFileSync("src/components/declutter/useSellFlowState.ts", "utf8"));
     const calls = src.match(/toast(?:\.error)?\(([^;]*)\);/g) ?? [];
     expect(calls.length).toBeGreaterThan(8);
-    for (const c of calls) expect(c, c).not.toMatch(/["'`][A-Z][a-z]+[^"'`]*[.?]["'`]/);
+    for (const c of calls) expect(c, c).not.toMatch(/["'`][A-Z][^"'`]*\s[^"'`]*[.?]["'`]/);
     const where = src.match(/const where = [\s\S]*?;\n/)?.[0] ?? "";
     expect(where).toContain('tr("sf.t.whereKeepUp")');
     expect(where).not.toMatch(/"You can/);

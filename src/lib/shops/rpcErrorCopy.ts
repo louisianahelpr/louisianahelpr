@@ -99,7 +99,7 @@ export const SHOPS_RPC_ERROR_COPY = {
     photo_not_uploaded: SC.photo_not_uploaded,
     shop_hidden: SC.shop_hidden,
     shop_strikes_blocked: SC.shop_strikes_blocked,
-    too_many_photos: SC.too_many_photos,
+    too_many_photos: "An item can have up to 12 photos.", // S2-010: not the gallery's words
     under_18: SC.under_18,
   },
   shops_admin_pending_items: {

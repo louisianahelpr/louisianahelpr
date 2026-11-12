@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SHOP_ITEM_MAX_PRICE_CENTS, shopsErrorMessage } from "@/lib/shops/errors";
+import { priceBoxText } from "@/lib/shops/items";
 import {
   combinations,
   fetchItemOptions,
@@ -54,7 +55,7 @@ function draftsFrom(opts: ShopItemOptions | undefined): { lists: ListDraft[]; ro
   }));
   const rows: Record<string, RowDraft> = {};
   for (const v of opts.variants) {
-    rows[variantLabel(v.values)] = { price: String(v.price_cents / 100), stock: v.stock_count == null ? "" : String(v.stock_count), active: v.active };
+    rows[variantLabel(v.values)] = { price: priceBoxText(v.price_cents), stock: v.stock_count == null ? "" : String(v.stock_count), active: v.active };
   }
   return { lists, rows };
 }
@@ -95,7 +96,7 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
   const combos = lists.length > 0 && parsed.every((p) => p.length > 0) ? combinations(parsed) : [];
   const tooMany = combos.length > MAX_VARIANTS || parsed.some((p) => p.length > MAX_OPTION_VALUES);
   const rowFor = (values: string[]): RowDraft =>
-    rows[variantLabel(values)] ?? { price: String(basePriceCents / 100), stock: "", active: true };
+    rows[variantLabel(values)] ?? { price: priceBoxText(basePriceCents), stock: "", active: true };
   const setRow = (values: string[], patch: Partial<RowDraft>) =>
     setRows((r) => ({ ...r, [variantLabel(values)]: { ...rowFor(values), ...patch } }));
 

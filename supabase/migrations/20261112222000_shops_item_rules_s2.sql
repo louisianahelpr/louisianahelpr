@@ -98,6 +98,21 @@ GRANT EXECUTE ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], 
 -- 2. A download has one price (S2-003).
 -- Existing downloads with options: switch the options off and clear the lists. The price stays the rolled-up one
 -- (the rollup only acts while option lists exist).
+-- Money review should-fix 1: each owner is told, once per item, before its options go.
+DO $do$
+DECLARE r record;
+BEGIN
+  FOR r IN SELECT i.owner_id, i.title FROM public.shop_items i
+            WHERE i.kind = 'digital'
+              AND (cardinality(i.option_names) > 0
+                   OR EXISTS (SELECT 1 FROM public.shop_item_variants v WHERE v.item_id = i.id AND v.active))
+  LOOP
+    PERFORM public.declutter_notify(r.owner_id, 'info', 'A download has one price now',
+      left(format('"%s" is a download, so buyers can''t pick an option for it. We took its options off; it sells at its current price. Change the price in My shop if you want.',
+                  r.title), 1000), '/shops/mine');
+  END LOOP;
+END
+$do$;
 UPDATE public.shop_item_variants v SET active = false
   FROM public.shop_items i
  WHERE i.id = v.item_id AND i.kind = 'digital' AND v.active;
@@ -107,10 +122,13 @@ UPDATE public.shop_items SET option_names = '{}'::text[], updated_at = now()
 CREATE OR REPLACE FUNCTION public.shop_items_download_has_no_options()
 RETURNS trigger
 LANGUAGE plpgsql
+SECURITY DEFINER
 SET search_path TO ''
 AS $fn$
 BEGIN
-  IF NEW.kind = 'digital' AND cardinality(NEW.option_names) > 0 THEN
+  -- Money review should-fix 2: stale active option rows (lists already cleared) count too.
+  IF NEW.kind = 'digital' AND (cardinality(NEW.option_names) > 0
+       OR EXISTS (SELECT 1 FROM public.shop_item_variants v WHERE v.item_id = NEW.id AND v.active)) THEN
     RAISE EXCEPTION 'options_not_for_downloads' USING ERRCODE = '22023',
       HINT = 'A download has one price. Remove its options first, or pick another kind.';
   END IF;

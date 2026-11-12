@@ -8,7 +8,7 @@
  * named in the steps (jobStepOrder, confirmRepost, backoutNotices,
  * jobTwoHoursNotice).
  *
- * @mutate src/components/job-card/jobStatusLine.ts |   on_the_way: (n) => `${firstName(n)} is on the way`, |   on_the_way: (n) => `${firstName(n)} is coming`,
+ * @mutate src/components/job-card/jobStatusLine.ts |   on_the_way: (n) => inLang("cl.pn.on_the_way", `${firstName(n)} is on the way`, { name: firstName(n) }), |   on_the_way: (n) => inLang("cl.pn.on_the_way", `${firstName(n)} is coming`, { name: firstName(n) }),
  */
 import { describe, expect, it } from "vitest";
 import { appliedActivityBucket, postedActivityBucket } from "@/components/job-card/activityFilters";

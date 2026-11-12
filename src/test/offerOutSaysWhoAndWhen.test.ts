@@ -3,7 +3,7 @@
  * It now says who and until when ("Yusef has until Sat 9:00 AM to answer"); with no name known it still says
  * when the answer is due. A passed or missing time falls back to the plain line (never a time already gone).
  *
- * @mutate src/components/job-card/jobStatusLine.ts |     return by ? `${firstName(n)} has until ${dayTime(by)} to answer` : `Your offer is with ${firstName(n)}`; |     return `Your offer is with ${firstName(n)}`;
+ * @mutate src/components/job-card/jobStatusLine.ts |     return by ? inLang("cl.pn.offerUntil", |     return false ? inLang("cl.pn.offerUntil",
  * @mutate src/components/job-card/jobStatusLine.ts |   const offerBy = id === "offer_out" && !helperName ? offerAnswerByMs(job) : null; |   const offerBy = null as number \| null;
  */
 import { describe, it, expect, vi, afterEach } from "vitest";

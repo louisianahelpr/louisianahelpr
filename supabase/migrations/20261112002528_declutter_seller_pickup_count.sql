@@ -65,7 +65,7 @@ AS $fn$
   SELECT public.member_display_name(p.full_name, NULL)::text AS display_name,
          CASE WHEN COALESCE(s.review_count, 0) > 0 THEN s.avg_rating END AS avg_rating,
          COALESCE(s.review_count, 0)::integer AS review_count,
-         (p.idv_status IS NOT DISTINCT FROM 'verified') AS id_checked,
+         public.identity_is_verified(p.idv_status, p.stripe_identity_verified) AS id_checked,
          -- F359d (20261112002528): the same count the member card reads, computed here without the caller check
          -- (a guest has no auth.uid()); this row only exists for a seller who passed the WHERE below.
          (SELECT count(*)::integer

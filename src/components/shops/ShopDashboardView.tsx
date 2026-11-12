@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { fetchMyShopId } from "@/lib/shops/api";
+import { fetchMyCustomRequests } from "@/lib/shops/customRequests";
 import {
   acceptOrder,
   declineOrder,
@@ -99,6 +100,10 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
   };
   const [status, toggleStatus] = useStatusFilter(SHOP_GROUPS);
   const show = (g: ShopGroup) => status === null || status === g;
+  // S2-017 (Shops audit 2): new custom requests need an answer (they end after 7 days), so they count in "Waiting for
+  // your answer" and show at the top. Same query key as ShopCustomRequestsList: one fetch.
+  const requests = useQuery({ queryKey: ["shops", "custom-requests"], queryFn: fetchMyCustomRequests });
+  const newRequests = (requests.data ?? []).filter((r) => r.role === "shop" && r.status === "requested").length;
   const Frame = embedded ? EmbeddedFrame : AppPage;
   const refresh = () => void qc.invalidateQueries({ queryKey: ["shops", "shop-orders"] });
 
@@ -173,7 +178,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
         {embedded && !orders.isError && (
           <StatusBoxes
             boxes={[
-              { key: "answer", label: SHOP_GROUP_LABEL.answer, count: waiting.length, hot: true },
+              { key: "answer", label: SHOP_GROUP_LABEL.answer, count: waiting.length + newRequests, hot: true },
               { key: "make", label: SHOP_GROUP_LABEL.make, count: accepted.length },
               { key: "earlier", label: SHOP_GROUP_LABEL.earlier, count: earlier.length },
             ]}
@@ -187,6 +192,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
         <ShopMyStrikes />
         {/* Q1947: the chat an order card's Message opens (?talk=). */}
         <ShopTalkFromLink />
+        {show("answer") && <ShopCustomRequestsList side="shop" />}
         {orders.isError ? (
           <ErrorState variant="inline" title="We couldn't load your orders." body={shopsErrorMessage(orders.error)} onRetry={() => void orders.refetch()} />
         ) : (
@@ -265,7 +271,6 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
           <HandoverSettingsRow shopId={myId.data} />
         )}
         <CancelPolicyPicker shopId={myId.data} />
-        <ShopCustomRequestsList side="shop" />
         <CustomOrdersPicker shopId={myId.data} />
         {footer}
       </div>

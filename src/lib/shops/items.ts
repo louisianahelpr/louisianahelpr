@@ -396,6 +396,8 @@ export interface PendingShopItem {
    */
   owner_last_rejected_at: string | null;
   owner_last_rejection_note: string | null;
+  /** S007: a test item, test shop or test owner. Admin screens drop these (withoutTestRows). */
+  is_seed: boolean | null;
 }
 
 export async function fetchPendingShopItems(): Promise<PendingShopItem[]> {

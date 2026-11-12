@@ -59,7 +59,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   get_helper_tiers: "hides", // b62 (20261030015205): test data never counts in this total
   get_neighbor_hire_count: "hides", // b62 (20261030015205): test data never counts in this total
   get_applicant_category_counts: "hides", // b62 (20261030015205): test data never counts in this total
-  shops_admin_pending_items: "hides", // b62 (20261030015205): test data never counts in this total
+  shops_admin_pending_items: "tags", // b62 (20261030015205) hides test items from the approved total; S007 (20261112194629) returns is_seed so the owner's card drops test rows; admin-only, gates no money
   shop_review_public: "hides", // Shops H9 (20261105230819): a test review never shows publicly or counts in the shop rating (seed_jobs_hidden_publicly)
   shops_leave_review: "tags", // Shops H9 (20261105230819): the review row copies its order's is_seed
   is_test_member: "hides", // b62 (20261030015205): test data never counts in this total
@@ -99,6 +99,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_wanted_hold_photos: "alerts", // posting audit #8: a test post's held photo files no report for admin
   report_message_party_and_copy: "hides", // posting audit #8: a member can't report a test post they can't see
   declutter_admin_reported_items: "tags", // B77 (20261030071816): the admin's reported-listings read returns is_seed so a test listing is labelled; admin-only, it hides nothing and gates no money
+  shops_admin_reported_reviews: "tags", // Q1948 (20261112094500): the admin's reported shop reviews return is_seed (review, order or either person) so the queue drops test rows; admin-only, gates no money
   shops_admin_reported: "tags", // Shops H2 (20261105182210): the admin's reported shops/items read returns is_seed so the queue drops test shops and items; admin-only, gates no money
   declutter_popular_items: "hides", // the landing's Declutter preview (20261110054539): seed items are never shown, to anyone (NOT i.is_seed), and seed orders never count as sales; display only
   declutter_item_save_counts: "hides", // Vinted browse (20261107232700): a seed item counts no saves for a member while test data is hidden (NOT is_seed / seed_hidden_in_discovery); display only
@@ -299,6 +300,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   shops_submit_permit: "tags", // 20261110195956 (Q1952): the permit copies its shop's is_seed
   shops_request_order: "tags",
   shops_request_digital_order: "tags", // 20261108185110 (Shops digital downloads): the order line copies its order's is_seed
+  shops_report_not_received: "alerts", // 20261112194629 (Shops audit S048): a test order's pickup problem reaches no admin; no money moves
   shops_report_digital_problem: "alerts", // 20261108185110 (Shops digital downloads): a test order's problem report reaches no admin; no money moves
   shop_item_files_guard: "tags", // 20261108182917 (Shops digital downloads): a file row is seed data with its item
   shops_request_preorder: "tags",

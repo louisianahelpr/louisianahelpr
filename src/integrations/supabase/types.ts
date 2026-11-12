@@ -23202,6 +23202,7 @@ export type Database = {
           ai_flag_reason: string
           approved_items: number
           description: string
+          is_seed: boolean
           item_id: string
           kind: string
           owner_id: string

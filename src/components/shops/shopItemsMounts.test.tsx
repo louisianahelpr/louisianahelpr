@@ -6,8 +6,8 @@
  * -> ShopItemsSection) once the shop exists. The children are stubbed; their own behaviour is pinned in
  * shopItemsScreens.test.tsx.
  *
- * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} reportable={!s.mine} />} |         {false && <ShopItemsList shopId={s.id} reportable={!s.mine} />}
- * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} reportable={!s.mine} />} |         {<ShopItemsList shopId={s.id} reportable={!s.mine} />}
+ * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} reportable={!s.mine} orderable={!s.mine && !s.paused} />} |         {false && <ShopItemsList shopId={s.id} reportable={!s.mine} orderable={!s.mine && !s.paused} />}
+ * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} reportable={!s.mine} orderable={!s.mine && !s.paused} />} |         {<ShopItemsList shopId={s.id} reportable={!s.mine} orderable={!s.mine && !s.paused} />}
  * @mutate src/pages/shops/ShopPage.tsx |   if (lastAnswer === true) return <ShopView />; |   if (lastAnswer === true) return null;
  * @mutate src/pages/shops/ShopEditPage.tsx |       <ShopEditView />\n | \n
  * @mutate src/components/shops/ShopEditView.tsx |       {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} />} |       {null}

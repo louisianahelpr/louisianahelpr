@@ -8,14 +8,19 @@
  *   S005 every Shops notice to a buyer whose words say money is coming back is emailed (and every such title the
  *        newest Shops functions send says so in its body).
  *   S006 no Shops notice promises "add your side on the order".
+ *   S001 shops_admin_set_hidden refunds every charged open order in full ('shop_removed', the shop pays the card cost)
+ *        and closes every waiting one, on every hide; the admin's dialog says so (migration 20261112074135, proof
+ *        src/test/pglite/shopsHideRefunds.pglite.mjs).
  *
  * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |   IF o.fulfillment = 'helpr_delivers' AND o.helpr_unfilled_at IS NULL THEN | IF false THEN
  * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |      AND public.shop_local_today() < o.ready_date\n |      AND false\n
  * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |        OR public.shop_owner_sell_block_reason(o.seller_id) IS NOT NULL\n |
  * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |                 + v_pre_home_food > (SELECT c.cap_cents |                 > (SELECT c.cap_cents
  * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |          AND (NEW.message ILIKE '%refund%' OR NEW.message ILIKE '%back to your card%' OR NEW.message ILIKE '%coming back%')))) |          AND false))
+ * @mutate supabase/migrations/20261112074135_shops_hide_refunds_open_orders.sql |       r := public.shop_write_refund(o.id, 'shop_removed', left(btrim(p_reason), 500)); |       r := NULL;
+ * @mutate supabase/migrations/20261112074135_shops_hide_refunds_open_orders.sql |               WHERE so.shop_id = p_shop_id AND so.status IN ('held', 'awaiting_hold') ORDER BY so.id FOR UPDATE |               WHERE false
  * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && !helprDelivers && markedReady | const noShowOpen = order.handover_mode === "in_person" && markedReady
- * @mutate src/components/shops/ShopHandoverActions.tsx |           {(due || !!h?.ready_at || !!h?.shop_confirmed_at) && (\n            <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setConfirming(true)}> |           {true && (\n            <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setConfirming(true)}>
+ * @mutate src/components/shops/ShopHandoverActions.tsx |           {(due \|\| !!h?.ready_at \|\| !!h?.shop_confirmed_at) && (\n            <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setConfirming(true)}> |           {true && (\n            <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setConfirming(true)}>
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -68,5 +73,15 @@ describe("Shops audit 11-12 Highs", () => {
       if (!/^shops?_/.test(name)) continue;
       expect(flat(def.stmt), name).not.toMatch(/add your side on the order/i);
     }
+  });
+
+  it("S001: hiding a shop refunds its charged open orders in full and closes its waiting ones", () => {
+    const b = body("shops_admin_set_hidden");
+    expect(b).toContain("IF p_hidden THEN FOR c IN SELECT so.id FROM public.shop_orders so WHERE so.shop_id = p_shop_id AND so.status = 'accepted'");
+    expect(b).toContain("o := public.shop_lock_open_charged_order(c.id, true);");
+    expect(b).toContain("r := public.shop_write_refund(o.id, 'shop_removed',");
+    expect(b).toContain("WHERE so.shop_id = p_shop_id AND so.status IN ('held', 'awaiting_hold')");
+    expect(body("shop_refund_fee_policy")).toContain("WHEN p_reason IN ('shop_cancelled', 'no_ready_photo', 'shop_removed', 'problem_shop_fault') THEN 'full_shop_pays_fee'");
+    expect(read("src/components/admin/adminReports/ShopReportPanel.tsx")).toContain("Open orders are refunded in full, and orders still waiting are cancelled with no charge.");
   });
 });

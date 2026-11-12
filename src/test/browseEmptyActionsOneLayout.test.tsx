@@ -66,8 +66,8 @@ describe("the empty Browse screens share one layout (owner 11-02)", () => {
 
   it("parallel headline and one-line subline", () => {
     for (const [name, { file, title, body }] of Object.entries(SECTIONS)) {
-      // F260q (11-11): Declutter's words moved into the dictionary (enDeclutter.ts); its source draws the keys.
-      const s = name === "declutter" ? src("src/lib/i18n/enDeclutter.ts") : src(file);
+      // F260q (11-11): Declutter's words moved into the dictionary (Browse's own: enDeclBrowse.ts); its source draws the keys.
+      const s = name === "declutter" ? src("src/lib/i18n/enDeclBrowse.ts") : src(file);
       expect(s, name).toContain(`"${title}"`);
       expect(s, name).toContain(`"${body}"`);
       if (name === "declutter") {

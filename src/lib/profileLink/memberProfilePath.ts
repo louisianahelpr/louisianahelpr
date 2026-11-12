@@ -7,6 +7,11 @@
  *
  * Guard: src/test/profileLinksGoToTheOnePage.test.tsx (no other file builds a /user/<id> link).
  */
-export function memberProfilePath(userId: string): string {
-  return `/user/${userId}`;
+/** F359i (owner 11-12): where a profile link came from. A seller link on a Declutter listing passes "declutter", and
+ *  /user/:userId then leads with the seller's Declutter (UserProfile's declutterFirst). */
+export const PROFILE_FROM_PARAM = "from";
+export const PROFILE_FROM_DECLUTTER = "declutter";
+
+export function memberProfilePath(userId: string, opts?: { from?: typeof PROFILE_FROM_DECLUTTER }): string {
+  return opts?.from ? `/user/${userId}?${PROFILE_FROM_PARAM}=${opts.from}` : `/user/${userId}`;
 }

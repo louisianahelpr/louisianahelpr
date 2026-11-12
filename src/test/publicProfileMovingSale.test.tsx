@@ -56,7 +56,9 @@ describe("the /u page draws the seller's moving sale (profile leftovers 11-05)",
 
   it("every landing page for 'See the whole sale' mounts the banner (inventory of 2)", () => {
     const pages = ["src/pages/user/UserProfile.tsx", "src/pages/u/PublicProfilePage.tsx"];
-    const mounting = pages.filter((f) => /<(MovingSaleBanner|PublicProfileMovingSale)\b/.test(blankComments(readFileSync(f, "utf8"))));
+    // F359i: /user/:userId mounts the banner through its one Declutter group (ProfileDeclutterSections).
+    expect(blankComments(readFileSync("src/pages/user/ProfileDeclutterSections.tsx", "utf8"))).toMatch(/<MovingSaleBanner\b/);
+    const mounting = pages.filter((f) => /<(MovingSaleBanner|PublicProfileMovingSale|ProfileDeclutterSections)\b/.test(blankComments(readFileSync(f, "utf8"))));
     expect(mounting.length).toBeGreaterThan(1);
     expect(mounting).toEqual(pages);
   });

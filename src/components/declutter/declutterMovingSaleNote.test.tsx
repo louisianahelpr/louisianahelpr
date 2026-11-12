@@ -55,7 +55,7 @@ describe("BUY-33: the item page says it's in a moving sale", () => {
   it("in a sale: says so, and links to the seller's profile, where the sale is", async () => {
     wrap(<DeclutterMovingSaleNote itemId="i1" sellerId="s1" />);
     expect(await screen.findByText("Part of a moving sale.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "See the whole sale" })).toHaveAttribute("href", "/user/s1");
+    expect(screen.getByRole("link", { name: "See the whole sale" })).toHaveAttribute("href", "/user/s1?from=declutter");
   });
 
   it("not in a sale: nothing", async () => {

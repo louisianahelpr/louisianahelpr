@@ -12,7 +12,7 @@ import { fetchBundleRule } from "@/lib/declutter/bundle";
 import { holdHasNoStrike } from "@/lib/declutter/buyNowHold";
 import type { CartLine } from "@/lib/declutter/api";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
-import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
+import { memberProfilePath, PROFILE_FROM_DECLUTTER } from "@/lib/profileLink/memberProfilePath";
 
 /**
  * The cart's hold line for one seller's checkout (lead 2026-10-28): "Reserved for you, not paid yet" and the time
@@ -59,7 +59,7 @@ export function CartHold({ sellerId, checkoutBy, allFree, lines, timeLeft }: {
         {!allFree && rule.data ? (
           <>
             {" Add more from this seller first to save with their bundle discount. "}
-            <Link to={memberProfilePath(sellerId)} data-cart-bundle-more="" className="link-standard font-semibold text-foreground">
+            <Link to={memberProfilePath(sellerId, { from: PROFILE_FROM_DECLUTTER })} data-cart-bundle-more="" className="link-standard font-semibold text-foreground">
               See their other items
             </Link>
           </>

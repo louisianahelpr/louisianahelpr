@@ -472,7 +472,7 @@ describe("the photo-first Declutter item page", () => {
     expect(await screen.findByText("Dana R.")).toBeInTheDocument();
     expect(screen.getByText("Joined March 2025")).toBeInTheDocument();
     expect(document.querySelector("[data-seller-rating]")?.textContent).toContain("12 reviews");
-    expect(screen.getByRole("link", { name: /^See the seller,\s*Dana R\./ })).toHaveAttribute("href", "/user/u2");
+    expect(screen.getByRole("link", { name: /^See the seller,\s*Dana R\./ })).toHaveAttribute("href", "/user/u2?from=declutter");
     // F359d (owner 11-11): the completed pickup count, words and number only.
     expect((await vi.waitFor(() => document.querySelector("[data-seller-pickups]")!))?.textContent).toBe("7 pickups");
     unmount();

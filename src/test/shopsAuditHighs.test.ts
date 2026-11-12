@@ -15,7 +15,7 @@
  * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |   IF o.fulfillment = 'helpr_delivers' AND o.helpr_unfilled_at IS NULL THEN | IF false THEN
  * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |      AND public.shop_local_today() < o.ready_date\n |      AND false\n
  * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |        OR public.shop_owner_sell_block_reason(o.seller_id) IS NOT NULL\n |
- * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |                 + v_pre_home_food > (SELECT c.cap_cents |                 > (SELECT c.cap_cents
+ * @mutate supabase/migrations/20261112075702_shops_cottage_limit_strict.sql |                 + v_pre_home_food >= (SELECT c.cap_cents |                 >= (SELECT c.cap_cents
  * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |          AND (NEW.message ILIKE '%refund%' OR NEW.message ILIKE '%back to your card%' OR NEW.message ILIKE '%coming back%')))) |          AND false))
  * @mutate supabase/migrations/20261112074135_shops_hide_refunds_open_orders.sql |       r := public.shop_write_refund(o.id, 'shop_removed', left(btrim(p_reason), 500)); |       r := NULL;
  * @mutate supabase/migrations/20261112074135_shops_hide_refunds_open_orders.sql |               WHERE so.shop_id = p_shop_id AND so.status IN ('held', 'awaiting_hold') ORDER BY so.id FOR UPDATE |               WHERE false
@@ -56,7 +56,8 @@ describe("Shops audit 11-12 Highs", () => {
     const checks = b.indexOf("SELECT 1 FROM public.shops s WHERE s.id = o.shop_id AND s.hidden_at IS NOT NULL");
     expect(checks).toBeGreaterThan(0);
     for (const c of ["OR public.shop_owner_sell_block_reason(o.seller_id) IS NOT NULL", "pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')",
-      "+ v_pre_home_food > (SELECT c.cap_cents FROM public.shop_cottage_settings c WHERE c.id)"]) {
+      // S033 (20261112075702): ">=", reaching the limit exactly is refused too.
+      "+ v_pre_home_food >= (SELECT c.cap_cents FROM public.shop_cottage_settings c WHERE c.id)"]) {
       expect(b, c).toContain(c);
     }
     expect(checks).toBeLessThan(b.indexOf("SET status = 'accepted', accepted_at = now()"));

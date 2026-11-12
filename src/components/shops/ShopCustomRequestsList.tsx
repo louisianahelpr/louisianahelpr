@@ -33,6 +33,16 @@ function dayText(iso: string): string {
   return parseLocalDate(iso.slice(0, 10)).toLocaleDateString(undefined, { month: "long", day: "numeric" });
 }
 
+/**
+ * S2-021 (Shops audit 2): an unanswered request ends 7 days after it was sent (shops_custom_request_lapse,
+ * 20261112091830), so both sides see the day. A full date-time read in the member's own clock, not a UTC slice.
+ */
+export function answerByText(createdAt: string, side: "buyer" | "shop"): string {
+  const end = new Date(new Date(createdAt).getTime() + 7 * 24 * 60 * 60 * 1000);
+  const day = end.toLocaleDateString(undefined, { month: "long", day: "numeric" });
+  return side === "shop" ? `, answer by ${day}` : `, the shop has until ${day}`;
+}
+
 export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop" }) {
   const qc = useQueryClient();
   // The one request whose price form (shop) or order form (buyer) is open.
@@ -46,49 +56,67 @@ export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop
     onError: (err) => toast.error(shopsErrorMessage(err)),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["shops", "custom-requests"] }),
   });
-  // S2-017: open requests (the ones that need someone to act) first; the rest keep the server's order.
-  const rows = (list.data ?? []).filter((r) => r.role === side).sort((a, b) => Number(OPEN.has(b.status)) - Number(OPEN.has(a.status)));
-  // A failed or empty read shows nothing: the orders around it stand on their own.
-  if (rows.length === 0) return null;
+  // S2-017: open requests (the ones that need someone to act) first; S2-024: closed ones fold under "Earlier".
+  const mine = (list.data ?? []).filter((r) => r.role === side);
+  const open = mine.filter((r) => OPEN.has(r.status));
+  const earlier = mine.filter((r) => !OPEN.has(r.status));
+  // S2-024 (Shops audit 2): a failed read says so, with Try again, instead of showing nothing (a shop could not tell
+  // its requests were missing). An empty read still shows nothing: the orders around it stand on their own.
+  if (list.isError) {
+    return (
+      <section className="space-y-2" role="alert" aria-labelledby={`shop-custom-requests-${side}`} data-testid="shop-custom-requests-error">
+        <h2 id={`shop-custom-requests-${side}`} className="text-sm font-semibold">Custom requests</h2>
+        <p className="text-sm text-destructive-ink">We couldn't load your custom requests.</p>
+        <Button type="button" size="sm" variant="outline" onClick={() => void list.refetch()}>Try again</Button>
+      </section>
+    );
+  }
+  if (mine.length === 0) return null;
+  const card = (r: CustomRequest) => (
+    <li key={r.id} className="space-y-1 rounded-2xl border border-border bg-card p-4" data-testid="shop-custom-request">
+      <div className="flex items-start justify-between gap-2">
+        <p className="min-w-0 font-semibold [overflow-wrap:anywhere]">{side === "buyer" ? (r.shop_name ?? "A shop") : "A buyer's request"}</p>
+        {r.quote_cents !== null && <p className="shrink-0 text-sm font-semibold">{formatCents(r.quote_cents)}</p>}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {STATUS_WORDS[r.status][side]}
+        {r.status === "quoted" && r.expires_at ? `, good until ${dayText(r.expires_at)}` : ""}
+        {r.status === "requested" ? answerByText(r.created_at, side) : ""}
+      </p>
+      <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{r.description}</p>
+      {r.wanted_date && <p className="text-sm">Wanted by {dayText(r.wanted_date)}</p>}
+      {r.quote_note && <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">Shop's note: {r.quote_note}</p>}
+      {openId === r.id && side === "shop" && r.status === "requested" && (
+        <ShopCustomQuoteForm requestId={r.id} onDone={() => setOpenId(null)} />
+      )}
+      {openId === r.id && side === "buyer" && r.status === "quoted" && (
+        <ShopCustomOrderForm request={r} onDone={() => setOpenId(null)} />
+      )}
+      {OPEN.has(r.status) && openId !== r.id && (
+        <div className="flex flex-wrap gap-2">
+          {side === "shop" && r.status === "requested" && (
+            <Button type="button" size="sm" className="btn-grad-primary" onClick={() => setOpenId(r.id)}>Send a price</Button>
+          )}
+          {side === "buyer" && r.status === "quoted" && (
+            <Button type="button" size="sm" className="btn-grad-primary" onClick={() => setOpenId(r.id)}>Order at this price</Button>
+          )}
+          <Button type="button" size="sm" variant="outline" disabled={close.isPending} onClick={() => setClosing(r.id)}>
+            {side === "buyer" ? "Withdraw request" : "Decline"}
+          </Button>
+        </div>
+      )}
+    </li>
+  );
   return (
     <section className="space-y-2" aria-labelledby={`shop-custom-requests-${side}`}>
       <h2 id={`shop-custom-requests-${side}`} className="text-sm font-semibold">Custom requests</h2>
-      <ul className="space-y-3">
-        {rows.map((r) => (
-          <li key={r.id} className="space-y-1 rounded-2xl border border-border bg-card p-4" data-testid="shop-custom-request">
-            <div className="flex items-start justify-between gap-2">
-              <p className="min-w-0 font-semibold [overflow-wrap:anywhere]">{side === "buyer" ? (r.shop_name ?? "A shop") : "A buyer's request"}</p>
-              {r.quote_cents !== null && <p className="shrink-0 text-sm font-semibold">{formatCents(r.quote_cents)}</p>}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {STATUS_WORDS[r.status][side]}
-              {r.status === "quoted" && r.expires_at ? `, good until ${dayText(r.expires_at)}` : ""}
-            </p>
-            <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{r.description}</p>
-            {r.wanted_date && <p className="text-sm">Wanted by {dayText(r.wanted_date)}</p>}
-            {r.quote_note && <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">Shop's note: {r.quote_note}</p>}
-            {openId === r.id && side === "shop" && r.status === "requested" && (
-              <ShopCustomQuoteForm requestId={r.id} onDone={() => setOpenId(null)} />
-            )}
-            {openId === r.id && side === "buyer" && r.status === "quoted" && (
-              <ShopCustomOrderForm request={r} onDone={() => setOpenId(null)} />
-            )}
-            {OPEN.has(r.status) && openId !== r.id && (
-              <div className="flex flex-wrap gap-2">
-                {side === "shop" && r.status === "requested" && (
-                  <Button type="button" size="sm" className="btn-grad-primary" onClick={() => setOpenId(r.id)}>Send a price</Button>
-                )}
-                {side === "buyer" && r.status === "quoted" && (
-                  <Button type="button" size="sm" className="btn-grad-primary" onClick={() => setOpenId(r.id)}>Order at this price</Button>
-                )}
-                <Button type="button" size="sm" variant="outline" disabled={close.isPending} onClick={() => setClosing(r.id)}>
-                  {side === "buyer" ? "Withdraw request" : "Decline"}
-                </Button>
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+      {open.length > 0 && <ul className="space-y-3">{open.map(card)}</ul>}
+      {earlier.length > 0 && (
+        <details className="space-y-3" open={open.length === 0} data-testid="shop-custom-requests-earlier">
+          <summary className="cursor-pointer text-sm text-muted-foreground">Earlier ({earlier.length})</summary>
+          <ul className="mt-3 space-y-3">{earlier.map(card)}</ul>
+        </details>
+      )}
       <BrandConfirmDialog
         open={closing !== null}
         onOpenChange={(o) => { if (!o) setClosing(null); }}

@@ -24,7 +24,8 @@ import { NotificationMessage } from "@/components/notificationPanel/Notification
 import { quickActionFor } from "@/components/notificationPanel/quickActions";
 import type { NotificationPanelModel } from "./NotificationPanel";
 import { useLanguage } from "@/lib/i18n/language";
-import { noticeInSpanish } from "@/lib/i18n/noticeEs";
+// The Spanish notice shapes arrive with the Spanish words (es.ts chunk), never on the English path.
+import { spanishNotice as noticeInSpanish } from "@/lib/i18n/language";
 import "@/lib/i18n/enNotifications";
 
 export function NotificationPanelView({

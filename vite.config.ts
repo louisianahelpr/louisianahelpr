@@ -5,11 +5,16 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { createRequire } from "module";
 import { execSync } from "node:child_process";
+import { readdirSync } from "node:fs";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
 import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, clientReachers, bootIconFiles, declutterItemSplit, guestIconSplit, guestBrowseSplit, sellingIconFiles, homeIconFiles, homePageRoots, itemIconFiles, jobsBrowseFirstScreenModules, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
+/** The register-on-import English screen dictionaries (src/lib/i18n/en*.ts minus enCore/enRegistry and the en.ts type). */
+const I18N_SCREEN_DICTS = readdirSync(path.join(process.cwd(), "src/lib/i18n"))
+  .filter((f) => /^en[A-Z]\w*\.ts$/.test(f) && f !== "enCore.ts" && f !== "enRegistry.ts")
+  .map((f) => f.replace(/\.ts$/, ""));
 
 // Build identity — baked into the bundle at build time so any running app
 // can show exactly which commit it was built from without any API calls.
@@ -1070,9 +1075,22 @@ export default defineConfig(({ mode, command }) => ({
             // app-shared would capture them onto EVERY page's boot (+~2 KB gz
             // on / and /posts; 1030c's bundle check, 2026-10-30). Same shape as
             // rentals: they ride with their importers only. Boot keeps enCore.
+            // Spanish landing (Builder 2, 11-11): EVERY screen dictionary (enDeclutter, enHome, enPublic, enMessages...),
+            // not only enScreens, and each in its own chunk. Home's page reaches enDeclutter/enHome/enPublic, so app-shared
+            // put them on every route's boot (/ 212 vs 197 KB gz, 9 routes over Q178). One chunk per file: a screen ships
+            // only its own words. Boot keeps enCore + enRegistry; Spanish (es*.ts) rides es.ts's dynamic chunk.
+            ...I18N_SCREEN_DICTS.map((dict) => ({
+              name: dict === "enScreens" ? "i18n-screens" : `i18n-${dict}`,
+              test: new RegExp(`[\\\\/]src[\\\\/]lib[\\\\/]i18n[\\\\/]${dict}\\.ts$`),
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            })),
+            // The Spanish notice shapes (supabase/functions/_shared/noticeEs.ts, ~31 KB): as a supabase/functions file,
+            // shared-late (every route's boot) took it. Its own chunk: only es.ts and the lazy push paths reach it.
             {
-              name: "i18n-screens",
-              test: /[\\/]src[\\/]lib[\\/]i18n[\\/]enScreens\.ts$/,
+              name: "i18n-notice-es",
+              test: /[\\/]supabase[\\/]functions[\\/]_shared[\\/]noticeEs\.ts$/,
               priority: 20,
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,

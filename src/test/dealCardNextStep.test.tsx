@@ -4,7 +4,7 @@
  * and the green action on its right.
  *
  * @mutate src/components/messages/chatView/DealCard.tsx |           <div className="min-w-0 flex-1 text-ds-14">{step && <NextStep value={step} compact />}</div> |           <div className="min-w-0 flex-1 text-ds-14" />
- * @mutate src/components/messages/chatView/DealCard.tsx |           {approveDue ? "Approve" : "Open job"} |           Open job
+ * @mutate src/components/messages/chatView/DealCard.tsx |           {approveDue ? t("msg.dc.approve") : t("msg.dc.openJob")} |           {t("msg.dc.openJob")}
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

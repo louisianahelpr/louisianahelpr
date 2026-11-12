@@ -4,7 +4,7 @@
  * client write (saveLanguage.ts: own row, checked with .select + unwrapMutation, nothing for a signed-out visitor),
  * and setLang calling it. The database behaviour itself is proved by src/test/pglite/profileLanguage.pglite.mjs.
  *
- * @mutate src/lib/i18n/language.ts |   void saveModule().then((m) => m?.saveLanguage(next), | void saveModule().then((m) => m,
+ * @mutate src/lib/i18n/language.ts |     .then((m) => m.saveLanguage(next), (err: unknown) | .then((m) => m, (err: unknown)
  * @mutate src/lib/i18n/saveLanguage.ts |     if (!userId) return;\n | \n
  * @mutate src/lib/i18n/saveLanguage.ts | .eq("user_id", userId).select("user_id") | .eq("user_id", userId)
  * @mutate supabase/migrations/20261111213927_profile_language.sql | GRANT UPDATE (language) ON public.profiles TO authenticated; | GRANT UPDATE (language) ON public.profiles TO authenticated, anon;
@@ -54,7 +54,8 @@ describe("the member's language is saved to the account (F260q)", () => {
     expect(src).toMatch(/const saveModule = \(\) => loadModule\(\(\) => import\("\.\/saveLanguage"\)\);/);
     const setLang = src.slice(src.indexOf("export function setLang("), src.indexOf("function fill("));
     expect(setLang.length).toBeGreaterThan(200);
-    expect(setLang).toMatch(/void saveModule\(\)\.then\(\(m\) => m\?\.saveLanguage\(next\),/);
+    // An empty module waits on untilReload() (dynamicImportThenDoesNoWork), then the save runs.
+    expect(setLang).toMatch(/void saveModule\(\)\s*\.then\(\(m\) => m \?\? untilReload\(\)\)\s*\.then\(\(m\) => m\.saveLanguage\(next\),/);
     expect(src).not.toMatch(/^import .*saveLanguage/m);
   });
 });

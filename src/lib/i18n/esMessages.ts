@@ -65,7 +65,7 @@ export const esMessages: Record<keyof typeof enMessages, string> = {
   "msg.saving": "Guardando…",
   "msg.save": "Guardar",
   "msg.hideDeletedBody": "Esto quita de su bandeja la conversación con una cuenta borrada. No se borra ningún mensaje y puede recuperarla en Borradas recientemente.",
-  "msg.hideBody": "Esto quita de su bandeja la conversación con {name}. No se borra ningún mensaje y vuelve si esa persona le envía un mensaje nuevo.",
+  "msg.hideBody": "Esto quita la conversación con {name} de su bandeja. No se borra ningún mensaje y vuelve si esa persona le envía un mensaje nuevo.",
   "msg.thisPerson": "esta persona",
   "msg.hideOneTitle": "¿Ocultar 1 conversación?",
   "msg.hideNTitle": "¿Ocultar {n} conversaciones?",

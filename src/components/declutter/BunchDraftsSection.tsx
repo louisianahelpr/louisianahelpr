@@ -18,6 +18,8 @@ import { fetchPhotos } from "@/lib/declutter/api";
 import { publishMany, type PublishOutcome } from "@/lib/declutter/moves";
 import { myItemsQuery } from "./myItemsQuery";
 import { TaxStatementsCheck } from "./declutterUi";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 export function BunchDraftsSection({ userId, exclude, busy, feeDue, onBusy, attested, setAttested, listStepShown, onPricedOffered }: { userId: string; exclude: ReadonlySet<string>; busy: boolean; feeDue: boolean; onBusy: (on: boolean) => void; attested: boolean; setAttested: (on: boolean) => void; listStepShown: boolean; onPricedOffered: (on: boolean) => void }) {
   const qc = useQueryClient();
@@ -42,7 +44,7 @@ export function BunchDraftsSection({ userId, exclude, busy, feeDue, onBusy, atte
   async function listAll() {
     setProblem(null);
     if (!attested) {
-      setProblem(listStepShown ? "Tick the box in the last step, under the four statements, before you list your drafts." : "Tick the box under the four statements before you list your drafts.");
+      setProblem(listStepShown ? t("lp.dr.tickBelow") : t("lp.dr.tick"));
       document.getElementById(listStepShown ? "bunch-tax" : "bunch-drafts-tax")?.focus();
       return;
     }
@@ -51,7 +53,7 @@ export function BunchDraftsSection({ userId, exclude, busy, feeDue, onBusy, atte
     setProgress({ done: 0, total: going.length });
     try {
       const out = await publishMany(going.map((d) => d.id), (done, total) => setProgress({ done, total }));
-      setResults(out.map((outcome) => ({ title: titles.get(outcome.id) ?? "An item", outcome })));
+      setResults(out.map((outcome) => ({ title: titles.get(outcome.id) ?? t("lp.rs.anItem"), outcome })));
     } catch (err) {
       // Not silent: publishMany returns each refusal, so this is a fault around it; shown beside the button.
       setProblem(declutterErrorMessage(err));
@@ -68,12 +70,13 @@ export function BunchDraftsSection({ userId, exclude, busy, feeDue, onBusy, atte
 
   return (
     <section className="space-y-3 rounded-2xl border border-border bg-card p-4" aria-labelledby="bunch-drafts" data-bunch-drafts="">
-      <h2 id="bunch-drafts" className="text-base font-semibold">Your saved drafts</h2>
+      <h2 id="bunch-drafts" className="text-base font-semibold">{t("lp.dr.head")}</h2>
       {drafts.length > 0 && (
         <>
           <p className="text-xs text-muted-foreground">
-            You have {drafts.length} unfinished {feeDue ? "free " : ""}{drafts.length === 1 ? "listing" : "listings"}. List them together, or finish each one under Selling. One tick counts for every draft you list now{listStepShown ? ", and it's in the last step below" : ""}.
-            {waiting > 0 && ` ${waiting} priced ${waiting === 1 ? "draft waits" : "drafts wait"} for the setup fee.`}
+            {t(feeDue ? (drafts.length === 1 ? "lp.dr.haveFree1" : "lp.dr.haveFreeN") : drafts.length === 1 ? "lp.dr.have1" : "lp.dr.haveN", { n: drafts.length })}{" "}
+            {t("lp.dr.together")} {t(listStepShown ? "lp.dr.oneTickBelow" : "lp.dr.oneTick")}
+            {waiting > 0 && ` ${waiting === 1 ? t("lp.dr.waits1") : t("lp.dr.waitsN", { n: waiting })}`}
           </p>
           <ul className="space-y-1" data-bunch-drafts-list="">
             {drafts.map((d) => (
@@ -81,7 +84,7 @@ export function BunchDraftsSection({ userId, exclude, busy, feeDue, onBusy, atte
                 {noPhotos(d.id) ? (
                   <>
                     <span className="min-w-0 flex-1 break-words">{d.title}</span>
-                    <Link className="shrink-0 underline" to={`/declutter/sell?item=${d.id}`} aria-label={`Add photos to ${d.title}`}>Add photos</Link>
+                    <Link className="shrink-0 underline" to={`/declutter/sell?item=${d.id}`} aria-label={t("lp.dr.addAria", { name: d.title })}>{t("lp.bv.addPhotos")}</Link>
                   </>
                 ) : (
                   <label className="flex min-h-11 min-w-0 flex-1 items-center gap-3">
@@ -95,15 +98,15 @@ export function BunchDraftsSection({ userId, exclude, busy, feeDue, onBusy, atte
           {!listStepShown && <TaxStatementsCheck id="bunch-drafts-tax" checked={attested} onChange={setAttested} />}
           {problem && <p className="text-sm text-destructive-ink" role="alert">{problem}</p>}
           <Button type="button" className="rounded-full" disabled={busy || going.length === 0} onClick={() => void listAll()}>
-            {progress ? `Listing ${Math.min(progress.done + 1, progress.total)} of ${progress.total}…` : going.length === drafts.length ? (feeDue ? "List my free drafts" : "List all my drafts") : `List ${going.length} ${going.length === 1 ? "draft" : "drafts"}`}
+            {progress ? t("lp.dr.listing", { at: Math.min(progress.done + 1, progress.total), n: progress.total }) : going.length === drafts.length ? (feeDue ? t("lp.dr.listFree") : t("lp.dr.listAll")) : going.length === 1 ? t("lp.dr.list1") : t("lp.dr.listN", { n: going.length })}
           </Button>
         </>
       )}
       {results && (
         <div className="space-y-1 text-sm" data-bunch-drafts-done="">
-          {listed > 0 && <p>{listed} listed.</p>}
+          {listed > 0 && <p>{t("lp.dr.listed", { n: listed })}</p>}
           {failed.map((f, i) => (
-            <p key={i}><span className="font-semibold">{f.title}</span> wasn't listed: {declutterErrorMessage((f.outcome as { error: unknown }).error)}</p>
+            <p key={i}><span className="font-semibold">{f.title}</span> {t("lp.rs.notListed")} {declutterErrorMessage((f.outcome as { error: unknown }).error)}</p>
           ))}
         </div>
       )}

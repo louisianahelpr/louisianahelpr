@@ -113,4 +113,17 @@ describe("the shop page's title row on a phone holds the name, not the owner's b
     expect(within(row).getByRole("button", { name: "Follow" })).toBeTruthy();
     for (const name of OWNER) expect(screen.queryByRole("button", { name })).toBeNull();
   });
+
+  // S029 (Shops audit 11-12): a visitor's page named the shop twice (title row, wrapping to 4 lines beside Follow
+  // at 375, and the card right under it). The title row says "Shop"; the card names it once.
+  // @mutate src/components/shops/ShopView.tsx |       title={s.mine ? "My shop" : "Shop"} |       title={s.mine ? "My shop" : s.name}
+  it("a visitor's page names the shop once, in the card (S029)", async () => {
+    bar.desktop = false;
+    api.fetchShop.mockResolvedValue(page({ mine: false, owner_id: "u2" }));
+    renderShop();
+    await screen.findByRole("button", { name: "Share" });
+    expect(within(screen.getByTestId("title-row")).getByRole("heading").textContent).toBe("Shop");
+    expect(screen.getAllByText("Bayou Pottery DD4-AUDIT-1028")).toHaveLength(1);
+    expect(screen.getByTestId("shop-hero-name").textContent).toBe("Bayou Pottery DD4-AUDIT-1028");
+  });
 });

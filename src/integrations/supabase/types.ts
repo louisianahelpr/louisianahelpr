@@ -21284,6 +21284,10 @@ export type Database = {
         }
         Returns: string
       }
+      mask_guest_contact: {
+        Args: { t: string }
+        Returns: string
+      }
       mark_applications_viewed: {
         Args: { p_job_id: string }
         Returns: undefined

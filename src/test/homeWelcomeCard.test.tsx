@@ -6,7 +6,7 @@
  *
  * @mutate src/pages/home/homeDashboard/WelcomeCard.tsx |           onClick={gate.gate("post", post)} |           onClick={post}
  * @mutate src/pages/home/HomeDashboard.tsx | ) : welcome && summary.upcoming.length === 0 ? null : ( | ) : (
- * @mutate src/pages/home/HomeDashboard.tsx |   const welcome = !!firstJob?.isNew && !summary.usesDeclutter && !next | const welcome = false && !!firstJob?.isNew && !summary.usesDeclutter && !next
+ * @mutate src/pages/home/HomeDashboard.tsx |   const welcome = !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && !next | const welcome = false && !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && !next
  */
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -67,10 +67,10 @@ describe("a new member's Dashboard is one welcome card (design audit A D3)", () 
   });
 
   it("the Dashboard swaps it in for the empty Next up and hides an empty Coming up, for a new member only", () => {
-    expect(home).toContain("const welcome = !!firstJob?.isNew && !summary.usesDeclutter && !next && !summary.todosLoading && !summary.waiting;");
+    expect(home).toContain("const welcome = !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && !next && !summary.todosLoading && !summary.waiting;");
     expect(home).toMatch(/\{welcome \? <WelcomeCard sell=\{visible\.filter\(isLive\)\.some\(\(v\) => v\.key === "declutter"\)\} \/> : \(\s*<section ref=\{nextUpRef\} data-testid="next-up"/);
     expect(home).toContain(') : welcome && summary.upcoming.length === 0 ? null : (');
     // The jobs near them still follow (FirstJobHome's read), no new request.
-    expect(home).toContain("{firstJob?.isNew && !summary.usesDeclutter && <FirstJobHome");
+    expect(home).toContain("{firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && <FirstJobHome");
   });
 });

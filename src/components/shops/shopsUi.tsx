@@ -190,14 +190,14 @@ export const SHOP_UNAVAILABLE_TITLE = "This shop isn't taking orders right now."
  * server's own "This shop isn't available." under a title that said the same is left out, and the way on is
  * "Browse shops" (a buyer or a signed-out visitor has no dashboard).
  */
-export function ShopUnavailable({ body }: { body?: string }) {
+export function ShopUnavailable({ body, title }: { body?: string; title?: string }) {
   const sameAsTitle = !body || body === SHOPS_ERROR_COPY.shop_not_found;
   return (
     <div className="flex" role="alert">
       <EmptyState
         variant="inline"
         icon={Store}
-        title={SHOP_UNAVAILABLE_TITLE}
+        title={title ?? SHOP_UNAVAILABLE_TITLE}
         body={sameAsTitle ? "Check back later, or find another local shop." : body}
         action={
           <Button asChild variant="primary" size="lg" className="rounded-full px-8">

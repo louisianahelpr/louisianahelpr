@@ -139,7 +139,7 @@ export function ShopHoursCard({ hours }: { hours: ShopHour[] }) {
  * `withOptions`: the items that have option lists (variants, 20261106165310), keyed by id; their price is the lowest
  * offered combination's (shop_items_variant_rollup), so the card says "From $X".
  */
-/** S024 (Shops audit 11-12): the items grid was 2 columns at every width, so at 1440 each card was ~760px with a huge
+/** S024 (Shops audit 2026-11-12): the items grid was 2 columns at every width, so at 1440 each card was ~760px with a huge
  * photo. Declutter's breakpoints (DECLUTTER_GRID): 2 on a phone, 3 from sm, 4 from lg. The loading skeleton uses it too. */
 export const SHOP_ITEMS_GRID = "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4";
 

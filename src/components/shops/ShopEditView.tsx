@@ -481,6 +481,27 @@ export default function ShopEditView() {
           </div>
         );
       })}
+      {/* S2-042 (Shops audit 2): one tap copies the first open day's hours to the other open days. */}
+      {(() => {
+        const openDays = [1, 2, 3, 4, 5, 6, 0].filter((d) => form.hours[d].open);
+        if (openDays.length < 2) return null;
+        const from = openDays[0];
+        const src = form.hours[from];
+        const same = openDays.every((d) => form.hours[d].opens === src.opens && form.hours[d].closes === src.closes);
+        return (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="min-h-11"
+            disabled={same}
+            data-testid="shop-hours-copy"
+            onClick={() => set("hours", Object.fromEntries(Object.entries(form.hours).map(([d, h]) => [d, h.open ? { ...h, opens: src.opens, closes: src.closes } : h])))}
+          >
+            Copy {WEEKDAYS[from]}'s hours to all open days
+          </Button>
+        );
+      })()}
       <FieldError field="hours" errors={errors} />
     </fieldset>
     {showSos || form.sosNumber.trim() !== "" ? (

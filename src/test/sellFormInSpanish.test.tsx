@@ -23,7 +23,7 @@
  * @mutate src/components/declutter/SellOneScreen.tsx | out.push({ message: tr("sf.tickBox"), at: "tax" }); | out.push({ message: "Tick the box about this item before you list it.", at: "tax" });
  * @mutate src/components/declutter/useSellFlowState.ts | toast.error(tr("sf.t.maxPhotos")); | toast.error("A listing can have up to 12 photos.");
  * @mutate src/components/declutter/useSellFlowState.ts | toast(tr("sf.t.sentAt", { price: formatPrice(out.cents) })); | toast(`Listed and sent at ${formatPrice(out.cents)}. They have 48 hours to accept.`);
- * @mutate src/components/declutter/useSellFlowState.ts |         ? tr("sf.t.whereKeepUp") |         ? 'You can turn on "Keep it up" from Manage listing.'
+ * @mutate src/components/declutter/useSellFlowState.ts |       toast.error(tr(where, { why: declutterErrorMessage(err) })); |       toast.error(`${declutterErrorMessage(err)} ${tr(where)}`);
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -220,8 +220,9 @@ describe("the sell flow's toasts follow the member's language (F260q)", () => {
     const calls = src.match(/toast(?:\.error)?\(([^;]*)\);/g) ?? [];
     expect(calls.length).toBeGreaterThan(8);
     for (const c of calls) expect(c, c).not.toMatch(/["'`][A-Z][^"'`]*\s[^"'`]*[.?]["'`]/);
-    const where = src.match(/const where = [\s\S]*?;\n/)?.[0] ?? "";
-    expect(where).toContain('tr("sf.t.whereKeepUp")');
+    const where = src.match(/const where: MsgKey = [\s\S]*?;\n/)?.[0] ?? "";
+    expect(where).toContain('"sf.t.whereKeepUp"');
+    expect(src).toContain("toast.error(tr(where, { why: declutterErrorMessage(err) }));");
     expect(where).not.toMatch(/"You can/);
     for (const k of ["sf.t.priceRange", "sf.t.maxPhotos", "sf.t.sentAt", "sf.t.checking", "sf.t.answerFailed"] as const) {
       expect(esSellForm[k], k).toBeTruthy();

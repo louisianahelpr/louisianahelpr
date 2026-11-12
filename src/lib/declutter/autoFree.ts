@@ -9,8 +9,6 @@ import { t } from "@/lib/i18n/language";
 
 export const AUTO_FREE_DAY_CHOICES = [7, 14, 21, 30] as const;
 
-export const AUTO_FREE_LABEL = enListingParts["lp.afLabel"];
-
 /** The choices: Never first (the default), named so it can't be read as "never drop", then each day count. */
 export const AUTO_FREE_OPTIONS: { value: string; label: string }[] = [
   { value: "never", label: enListingParts["lp.afNeverOption"] },

@@ -65,15 +65,15 @@ describe("soldstates-2: Selling folds finished sales", () => {
     state.cart = [line(1, "paid"), line(2, "paid")];
     state.problems = [{ id: "p1", order_id: line(2, "x").order_id, reporter_side: "buyer", reason: "not_as_described" }];
     show();
-    const heading = await screen.findByRole("heading", { name: /Sold: pickup and payout/ });
-    await vi.waitFor(() => expect(heading.textContent).toBe("Sold: pickup and payout · 1 to hand over"));
+    // Re-read each time: the paid-order cards load lazily (Q178), so the placeholder's heading gives way to the section's.
+    const heading = () => screen.getByRole("heading", { name: /Sold: pickup and payout/ });
+    await vi.waitFor(() => expect(heading().textContent).toBe("Sold: pickup and payout · 1 to hand over"));
     // Both on hold: no count at all.
     state.problems = [...state.problems, { id: "p2", order_id: line(1, "x").order_id, reporter_side: "buyer", reason: "damaged" }];
     document.body.innerHTML = "";
     show();
-    const again = await screen.findByRole("heading", { name: /Sold: pickup and payout/ });
-    await vi.waitFor(() => expect(again.textContent).toBe("Sold: pickup and payout"));
-    expect(screen.getByText("Sale 1 paid")).toBeInTheDocument();
+    await vi.waitFor(() => expect(heading().textContent).toBe("Sold: pickup and payout"));
+    expect(await screen.findByText("Sale 1 paid")).toBeInTheDocument();
   });
 
   // A3-78 (audit 11-01): a finished sale whose refund request waits on the seller (open, or the item dropped back

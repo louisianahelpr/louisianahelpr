@@ -5,7 +5,7 @@
  * orders on one side. Split out of DeclutterTradeViews to keep it under the
  * component size threshold; DeclutterTradeViews re-exports all three.
  */
-import { useState, type ReactNode } from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 import { useOpenProblems } from "./useOpenProblems";
 import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 import { useQuery } from "@tanstack/react-query";
@@ -13,11 +13,25 @@ import { HandCoins, PackageCheck, type LucideIcon } from "lucide-react";
 import { fetchMyCart } from "@/lib/declutter/api";
 import { declutterTodo } from "@/lib/declutter/tabs";
 import { SectionHeading } from "./DeclutterTabHeads";
-import { PaidOrdersSection } from "./DeclutterHandoverViews";
 import type { BuyerOrderView } from "./BuyingOrders";
 import { useLinkedOrder, useLinkedOrderOutcome } from "./useLinkedOrder";
 import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
+
+// Q178 (11-11): the paid-order cards (DeclutterHandoverViews and the booking, porch, payout and refund panels it
+// imports) load on their own, only when the member has a paid order: statically they sat on the Selling first screen's
+// critical path, over its budget. The section's own heading draws at once with a card-sized placeholder (no jump).
+const PaidOrdersSection = lazy(() => import("./DeclutterHandoverViews").then((m) => ({ default: m.PaidOrdersSection })));
+
+/** The placeholder while the paid-order cards load: the same heading and one card's height. */
+function PaidOrdersLoading({ heading, label }: { heading: ReactNode; label: string }) {
+  return (
+    <section className="max-w-3xl space-y-3" aria-label={label} aria-busy="true" data-paid-orders-loading="">
+      {heading}
+      <div className="h-28 rounded-[20px] border border-border bg-card" />
+    </section>
+  );
+}
 
 // useDeclutterTodo and SectionHeading live in the leaf DeclutterTabHeads (the /declutter first screen loads them without
 // this module's order views); re-exported so every import of them from here still works.
@@ -113,20 +127,22 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
       </section>
     );
   }
+  const paidLabel = ended ? "Ended orders" : side === "buyer" ? "Purchases" : sellerTitle;
+  const paidHeading = ended ? <></>
+    : side === "buyer"
+      ? views ? <SectionHeading title="Your orders" /> : <SectionHeading title="Purchases" todo={todo.purchasesOpen} todoWords="to pick up" />
+      : <SectionHeading title={sellerTitle} todo={toHandOver} todoWords="to hand over" />;
   return (
     <>
+    <Suspense fallback={<PaidOrdersLoading heading={paidHeading} label={paidLabel} />}>
     <PaidOrdersSection
       cart={lines}
       views={views}
       show={done.size > 0 && !showDone ? (id) => !done.has(id) || id === linked : show}
-      label={ended ? "Ended orders" : side === "buyer" ? "Purchases" : sellerTitle}
-      heading={
-        ended ? <></>
-        : side === "buyer"
-          ? views ? <SectionHeading title="Your orders" /> : <SectionHeading title="Purchases" todo={todo.purchasesOpen} todoWords="to pick up" />
-          : <SectionHeading title={sellerTitle} todo={toHandOver} todoWords="to hand over" />
-      }
+      label={paidLabel}
+      heading={paidHeading}
     />
+    </Suspense>
     {doneToggle}
     </>
   );

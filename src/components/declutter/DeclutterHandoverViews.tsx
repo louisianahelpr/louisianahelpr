@@ -132,12 +132,19 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   const feeAhead = setupFee.server ? setupFeeAheadFromServer(payouts.data ?? [], setupFee.cents, setupFee.orderId)
     : setupFeeAheadByOrder(payouts.data ?? [], setupFee.cents);
   const feeUnsure = setupFee.server ? new Set<string>() : setupFeeUnsureOrders(payouts.data ?? [], setupFee.cents);
+  const waitingOnReads = bookings.isLoading || payouts.isLoading;
   if (bookings.isError) {
     return <ErrorState variant="inline" title="We couldn't load your pickups." body={declutterErrorMessage(bookings.error)} onRetry={() => void bookings.refetch()} />;
   }
   return (
     // Audit 11-10 F407: at 1440 each card stretched ~1,590px, the price stranded far from its title; capped like a reading column.
-    <section className="max-w-3xl space-y-3" aria-label={label ?? "Paid sales"}>
+    // F409 (whole-app audit 11-10, measured B3g 11-12): the cards drew before their pickup bookings and payouts
+    // answered, then each grew by its booking or payout block (a seeded seller's "Sold" cards went 337 -> 674 px and
+    // pushed Offers off screen: Selling CLS 0.42-0.78 at 375). Until both reads answer, the section holds a card's
+    // height (16rem, as PaidOrdersLoading's boxes) for each of its first 4 cards, so the cards grow into kept space.
+    // Guard: paidOrdersWaitForBookings.
+    <section className="max-w-3xl space-y-3" aria-label={label ?? "Paid sales"} data-paid-orders-reserve={waitingOnReads ? "" : undefined}
+      style={waitingOnReads ? { minHeight: `${Math.min(4, shown.length) * 16.75 + 2}rem` } : undefined}>
       {heading ?? <h2 className="text-base font-semibold">Paid: pickup and handover</h2>}
       {shown.map((o) => (
         <OrderCard

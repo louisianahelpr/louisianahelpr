@@ -13,6 +13,20 @@
  */
 import { CONNECTION_TROUBLE_COPY, isNetworkFailure } from "@/lib/networkFailure";
 import { isConfirmedOffline } from "@/lib/connectivity";
+import type { MsgKey } from "@/lib/i18n/en";
+import { getLang, t } from "@/lib/i18n/language";
+
+/**
+ * F260q: the refusal in the member's language, by its CODE (de.<code>, esDeclErrors.ts rides es.ts only). English
+ * readers, and a Spanish reader whose Spanish has not loaded yet, get the table's English (never a raw key).
+ * Guard: src/test/declutterErrorsInSpanish.test.ts.
+ */
+function inLang(code: string, english: string): string {
+  if (getLang() !== "es") return english;
+  const key = `de.${code}`;
+  const w = t(key as MsgKey);
+  return w === key ? english : w;
+}
 
 export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   // The Free section (20261027170717).
@@ -398,25 +412,25 @@ function deviceOffline(): boolean {
 
 /** The plain-words message for any error a Declutter call threw or returned. */
 export function declutterErrorMessage(err: unknown): string {
-  if (!err) return GENERIC;
+  if (!err) return inLang("generic", GENERIC);
   if (err instanceof ListingPhotoError && err.message) return err.message;
   const e = err as { message?: unknown; code?: unknown; userMessage?: unknown };
   // Set by src/lib/declutter/api.ts from RPC_ERROR_COPY at the call site.
   if (typeof e.userMessage === "string" && e.userMessage) return e.userMessage;
   const message = typeof e.message === "string" ? e.message.trim() : typeof err === "string" ? err.trim() : "";
   if (message && Object.prototype.hasOwnProperty.call(DECLUTTER_ERROR_COPY, message)) {
-    return DECLUTTER_ERROR_COPY[message];
+    return inLang(message, DECLUTTER_ERROR_COPY[message]);
   }
   if (message && Object.prototype.hasOwnProperty.call(DECLUTTER_CLIENT_ERROR_COPY, message)) {
-    return DECLUTTER_CLIENT_ERROR_COPY[message];
+    return inLang(message, DECLUTTER_CLIENT_ERROR_COPY[message]);
   }
   // D4-14: a call that never reached the server (offline, signal lost) says so, never "Something went wrong".
-  if (deviceOffline()) return DECLUTTER_OFFLINE_COPY;
+  if (deviceOffline()) return inLang("offline", DECLUTTER_OFFLINE_COPY);
   if (isNetworkFailure(err)) return CONNECTION_TROUBLE_COPY;
   // The contact-leak filter (check_violation) speaks to the member already.
   // Other check_violations are table constraints written for developers.
   // NOID-20: the Declutter chats' objectionable-words refusal speaks to the member too (20261030144615, 20261103203202).
   if (e.code === "23514" && /Keep contact details and payment (off the listing|out)|breaks our community rules/.test(message)) return message;
-  if (e.code === "23514") return "Check the details: the title needs 3 to 80 characters and each field must be filled in.";
-  return GENERIC;
+  if (e.code === "23514") return inLang("check", "Check the details: the title needs 3 to 80 characters and each field must be filled in.");
+  return inLang("generic", GENERIC);
 }

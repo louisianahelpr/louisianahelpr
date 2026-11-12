@@ -583,6 +583,8 @@ export interface GuestSellerCard {
   avg: number | null;
   count: number;
   idChecked: boolean;
+  /** F359d: completed handovers (20261112002528); 0 before that migration is deployed. A count only. */
+  pickups: number;
 }
 
 /**
@@ -594,13 +596,35 @@ export async function fetchGuestSellerCard(itemId: string): Promise<GuestSellerC
   const res = await supabase.rpc("declutter_guest_seller_card", { p_item_id: itemId });
   if (res.error && isMissingRpcNamed(res.error, "declutter_guest_seller_card")) return null;
   // The function raises nothing of its own (no row instead), so a failure is the transport's: thrown as is.
-  const rows = (unwrap(res) ?? []) as { display_name: string | null; avg_rating: number | string | null; review_count: number | null; id_checked: boolean | null }[];
+  const rows = (unwrap(res) ?? []) as { display_name: string | null; avg_rating: number | string | null; review_count: number | null; id_checked: boolean | null; pickup_count?: number | null }[];
   const row = rows[0];
   const name = typeof row?.display_name === "string" ? row.display_name.trim() : "";
   if (!row || name === "") return null;
   const count = Number(row.review_count ?? 0);
   const avg = row.avg_rating == null ? null : Number(row.avg_rating);
-  return { name, avg: count > 0 && avg !== null && Number.isFinite(avg) ? avg : null, count: count > 0 ? count : 0, idChecked: row.id_checked === true };
+  return { name, avg: count > 0 && avg !== null && Number.isFinite(avg) ? avg : null, count: count > 0 ? count : 0, idChecked: row.id_checked === true, pickups: pickupCount(row.pickup_count) };
+}
+
+/** A whole number of pickups at or above 0; anything else (missing, NULL, not a number) is 0, which shows nothing. */
+function pickupCount(n: unknown): number {
+  const v = Number(n ?? 0);
+  return Number.isInteger(v) && v > 0 ? v : 0;
+}
+
+/**
+ * F359d (owner 11-11): the seller's completed pickup COUNT for the member seller card, from
+ * declutter_seller_pickup_count (20261112002528): handed-over orders, no test data, never the seller's own second
+ * account. 0 when the server gives none (a test or not-public seller) or before the function is deployed.
+ */
+export async function fetchSellerPickupCount(sellerId: string): Promise<number> {
+  const res = await supabase.rpc("declutter_seller_pickup_count", { p_seller_id: sellerId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_seller_pickup_count")) return 0;
+  return pickupCount(unwrap(res));
+}
+
+/** "1 pickup" / "12 pickups". */
+export function pickupsLabel(n: number): string {
+  return `${n} pickup${n === 1 ? "" : "s"}`;
 }
 
 /**

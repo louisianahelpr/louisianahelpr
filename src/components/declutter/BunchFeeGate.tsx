@@ -18,6 +18,8 @@ import { queryKeys } from "@/lib/queryKeys";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { payAccountSetupFee } from "@/lib/declutter/setupFee";
 import { DeclutterNotice } from "./declutterUi";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 /** The fee this seller must pay before a paid listing, in cents, or null when none is known to be due. */
 export function useSetupFeeDueCents(): number | null {
@@ -45,15 +47,15 @@ export function BunchFeeGate({ cents }: { cents: number }) {
 
   return (
     <div data-bunch-fee-gate="">
-      <DeclutterNotice tone="warn" title={`Your first listing needs a one-time ${formatFeeLabel(cents)} setup fee`}>
+      <DeclutterNotice tone="warn" title={t("lp.fg.title", { fee: formatFeeLabel(cents) })}>
         <p>
-          Pay it now and nothing gets held up later. It's charged once per account, and never again if you already paid it for Jobs. After you pay, you'll land on your listings: come back here to Sell a bunch.
+          {t("lp.fg.body")}
         </p>
         <p className="mt-1">
-          Giving things away? Free items never need it: tick "Give it away free" on each one, and they can list now.
+          {t("lp.fg.free")}
         </p>
         <Button type="button" size="sm" className="mt-3 rounded-full" disabled={opening} onClick={() => void pay()}>
-          {opening ? "Opening…" : `Pay ${formatFeeLabel(cents)}`}
+          {opening ? t("lp.fg.opening") : t("lp.fg.pay", { fee: formatFeeLabel(cents) })}
         </Button>
       </DeclutterNotice>
     </div>

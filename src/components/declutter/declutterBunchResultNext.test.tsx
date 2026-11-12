@@ -6,7 +6,7 @@
  *
  * @mutate src/components/declutter/DeclutterBunchResults.tsx |       <NextStep value={next} /> |
  * @mutate src/components/declutter/DeclutterBunchResults.tsx |           <Button asChild variant="primary" size="sm" className="rounded-full"> |           <Button asChild variant="outline" size="sm" className="rounded-full">
- * @mutate src/components/declutter/DeclutterBunchResults.tsx |             {review > 0 ? ` ${BEING_CHECKED}` : ""} |
+ * @mutate src/components/declutter/DeclutterBunchResults.tsx |             {review > 0 ? ` ${beingChecked()}` : ""} |
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   const allListed = !!results && items.length === 0; |   const allListed = false;
  */
 import { describe, it, expect, vi } from "vitest";
@@ -47,7 +47,7 @@ describe("Sell a bunch result: next step and one primary (A3-69, A3-70)", () => 
   it("the page hides the intro, the pickup step and the photo step once everything is listed", () => {
     const src = blankComments(readFileSync("src/components/declutter/DeclutterBunchView.tsx", "utf8")).replace(/\s+/g, " ");
     expect(src).toContain("const allListed = !!results && items.length === 0;");
-    expect(src).toContain("{!allListed && ( <p className=\"text-sm text-muted-foreground\">{moving ? MOVING_INTRO : BUNCH_INTRO}</p>");
+    expect(src).toContain("{!allListed && ( <p className=\"text-sm text-muted-foreground\">{bunchIntro(moving)}</p>");
     expect(src).toContain("{whereFolded || allListed ? null : (");
     expect(src).toContain("{!allListed && ( <BunchSection id=\"bunch-photos\"");
   });

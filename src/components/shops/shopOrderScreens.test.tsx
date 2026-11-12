@@ -28,7 +28,7 @@
  * @mutate src/components/shops/ShopOrderSheet.tsx |         ...(atHome ? { serviceAddress: | ...(false ? { serviceAddress:
  * @mutate src/components/shops/ShopOrderCard.tsx | const SERVICE_VISIBLE_TO_SHOP = new Set(["accepted", "handed_over"]); | const SERVICE_VISIBLE_TO_SHOP = new Set(["accepted", "handed_over", "held"]);
  * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />} |         {s.offers_selling && !s.mine && <ShopOrderSheet shopId={s.id} />}
- * @mutate src/components/shops/ShopOrderSheet.tsx |     () => (items.data ?? []).filter((i) => i.status === "live" && i.kind !== "digital" && (i.stock_count == null \|\| i.stock_count > 0) |     () => (items.data ?? []).filter((i) => i.status === "live" && i.kind !== "digital"
+ * @mutate src/components/shops/shopCart.tsx | i.kind !== "digital" && (i.stock_count == null \|\| i.stock_count > 0) | i.kind !== "digital"
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const leadDays = chosen.reduce((m, l) => Math.max(m, l.item.lead_time_days), 0); |   const leadDays = 0;
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const feeCents = itemsCents > 0 ? buyerFeeCents(itemsCents) : 0; |   const feeCents = 0;
  * @mutate src/components/shops/ShopOrderSheet.tsx |         <p className="text-sm font-semibold">{policy.label}</p> |         <p className="text-sm font-semibold"></p>

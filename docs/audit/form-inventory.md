@@ -515,7 +515,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/shops/ShopDailyCap.tsx` | input×1 | number |  | shop-daily-cap |
 | `src/components/shops/ShopEditView.tsx` | input×6, textarea×1, checkbox/switch/radio×5, date/calendar×2 | file, text, time | 60, 2000, 80, 20 | Loading your shop · shop-name · shop-category · shop-about · shop-area · e.g. Broussard · shop-storefront · shop-selling |
 | `src/components/shops/ShopFaqsEditor.tsx` | input×1, textarea×1 | text |  | shop-faqs-editor · shop-faqs-heading · Loading your questions · Do you deliver? |
-| `src/components/shops/ShopItemEditor.tsx` | input×5, textarea×1, checkbox/switch/radio×3 | text, number, file | 80, 2000 | item-editor-title · item-kind · item-type · item-where · item-title · item-title-error · item-description · item-price |
+| `src/components/shops/ShopItemEditor.tsx` | input×6, textarea×1, checkbox/switch/radio×3 | file, text, number | 80, 2000 | item-editor-title · item-start-photos · item-kind · item-type · item-where · item-title · item-title-error · item-description |
 | `src/components/shops/ShopItemOptionsEditor.tsx` | input×4, checkbox/switch/radio×1 | text, number | 30 | item-options-title · Size · Small, Medium, Large · Combinations · Any |
 | `src/components/shops/ShopItemPreorderEditor.tsx` | input×2, checkbox/switch/radio×2 | number |  | shop-item-preorder · Pick the new date · shop-item-preorder-blocked · Pick the day it will be ready · 20 · Goal date · 30 · shop-item-preorder-rules |
 | `src/components/shops/ShopPermitSection.tsx` | input×2, select×1, date/calendar×1 | file, date |  | shop-permit · shop-permit-heading · Loading your permits · shop-permit-row |

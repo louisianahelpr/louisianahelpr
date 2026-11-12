@@ -145,6 +145,7 @@ vi.mock("@/lib/declutter/api", () => ({
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
 import * as api from "@/lib/declutter/api";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
+import { enSellForm } from "@/lib/i18n/enSellForm";
 
 /** A settings row's value in the listing summary (owner 2026-11-01): "drops", "free" or "pickup". */
 const settingsValue = (id: string) => document.querySelector(`[data-settings-row="${id}"] [data-settings-value]`)?.textContent ?? null;
@@ -239,11 +240,14 @@ describe("photo-first selling, one screen", () => {
   });
 
   // DA-5 (Declutter audit 2026-10-30): a free listing's private address said "Only the buyer who pays sees it".
-  // @mutate src/components/declutter/SellFormParts.tsx | : (form.free ? "Private. Only the person who gets it sees it." : | : (false ? "Private. Only the person who gets it sees it." :
+  // @mutate src/components/declutter/SellFormParts.tsx | : (form.free ? t("sf.wy.privFree") : | : (false ? t("sf.wy.privFree") :
   it("DA-5: the private pickup address names who sees it: the buyer who pays, or (free) the person who gets it", async () => {
     // The words now live on a saved draft's step form (a new listing has no address box).
     const src = readFileSync(join(process.cwd(), "src/components/declutter/SellFormParts.tsx"), "utf8");
-    expect(src).toContain('(form.free ? "Private. Only the person who gets it sees it." : "Private. Only the buyer who pays sees it.")');
+    // F260q: the words are in enSellForm; the free branch reads the person who gets it, the paid one the buyer who pays.
+    expect(src).toContain('(form.free ? t("sf.wy.privFree") : t("sf.wy.priv"))');
+    expect(enSellForm["sf.wy.privFree"]).toBe("Private. Only the person who gets it sees it.");
+    expect(enSellForm["sf.wy.priv"]).toBe("Private. Only the buyer who pays sees it.");
   });
 
   // LEAD-OFFERS-CHOICE part (2) (owner 2026-10-31): the Price row's own Accept offers starts from the saved default,

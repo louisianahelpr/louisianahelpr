@@ -90,7 +90,7 @@ export function SellFreeToggle({ s }: { s: SellFlow }) {
   return (<>
     <label className="flex min-h-11 items-center gap-3 rounded-[14px] border border-border bg-card px-4 text-ds-15 font-semibold text-foreground" data-sell-free="">
       <Checkbox checked={form.free} onCheckedChange={(v) => setForm((f) => ({ ...f, free: v === true }))} />
-      Give it away free
+      {t("sf.ds.giveFree")}
     </label>
     {form.free && <SellFreeNote />}
   </>);
@@ -137,22 +137,22 @@ export function SellDropsCard({ s, offerRules }: { s: SellFlow; offerRules?: Rea
         <label htmlFor="sell-drops" className="min-w-0 flex-1">
           <span className="block text-ds-15 font-semibold text-foreground">{DROPS_SWITCH_LABEL}</span>
           <span className="block text-ds-13 text-muted-foreground">
-            {tooLow ? "At this price there's nothing lower to drop to, so it stays at your price." : on ? `On. It drops ${form.dropPct}% each evening at ${dropRunTime()}, to a whole dollar, never below your lowest price. Turn this off if it should never drop.` : "Off. It stays at your price until you change it."}
+            {tooLow ? t("sf.dr.tooLow") : on ? t("sf.dr.on", { pct: form.dropPct, time: dropRunTime() }) : t("sf.dr.off")}
           </span>
         </label>
         <Switch id="sell-drops" checked={on} disabled={tooLow} onCheckedChange={(v) => setForm((f) => ({ ...f, drops: v === true }))} />
       </div>
       {on && (<>
-        <ChipGroup label="How much each evening" options={DROP_PCT_CHOICES.map((p) => ({ value: String(p), label: `${p}%` }))} value={String(form.dropPct)} onChange={(v) => set("dropPct", Number(v))} />
+        <ChipGroup label={t("sf.dr.howMuch")} options={DROP_PCT_CHOICES.map((p) => ({ value: String(p), label: `${p}%` }))} value={String(form.dropPct)} onChange={(v) => set("dropPct", Number(v))} />
         {offerRules ?? (
           <div className="space-y-2">
-            <FieldLabel htmlFor="sell-floor" text="Lowest you'll take" />
+            <FieldLabel htmlFor="sell-floor" text={t("sf.dr.lowest")} />
             <div className="flex h-[52px] items-center gap-1 rounded-[14px] border border-border bg-background px-4 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">
               <span className="text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))]" aria-hidden>$</span>
-              <input id="sell-floor" inputMode="decimal" value={form.floor} onChange={(e) => set("floor", e.target.value.replace(/[^0-9.]/g, ""))} placeholder="e.g. 30"
+              <input id="sell-floor" inputMode="decimal" value={form.floor} onChange={(e) => set("floor", e.target.value.replace(/[^0-9.]/g, ""))} placeholder={t("sf.dr.lowestPh")}
                 className="w-full bg-transparent text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))] outline-none focus-visible:outline-none focus-visible:ring-0 placeholder:font-normal placeholder:text-muted-foreground" />
             </div>
-            <p className="text-ds-13 text-muted-foreground">Only you see this. The drops stop here.</p>
+            <p className="text-ds-13 text-muted-foreground">{t("sf.dr.onlyYou")}</p>
           </div>
         )}
         <DropSchedule priceCents={priceCents} floorCents={floorCents} pct={form.dropPct} />
@@ -163,8 +163,8 @@ export function SellDropsCard({ s, offerRules }: { s: SellFlow; offerRules?: Rea
 
 /** How buyers get it: the ways, the area, the private pickup address and the seller's pickup times. */
 /** With saved places these times no longer set porch days (declutter_order_is_porch_day); these ways still read them. */
-const PICKUP_TIMES_WITH_PLACES = "Safe meeting spots and Helpr delivery pickups use these times. They apply to all your listings.";
-const PICKUP_TIMES_FREE_WITH_PLACES = "A free item is picked up on the place's days, so these times are for your other listings.";
+const PICKUP_TIMES_WITH_PLACES = () => t("sf.wy.timesPlaces");
+const PICKUP_TIMES_FREE_WITH_PLACES = () => t("sf.wy.timesFreePlaces");
 
 export function SellWaysFields({ s }: { s: SellFlow }) {
   const { form, set, ways, setWays, sellerDeliveryOpen, windows, setWindows, place } = s;
@@ -174,20 +174,20 @@ export function SellWaysFields({ s }: { s: SellFlow }) {
     {hasPlaces && <SavedPlacesComeFirst free={form.free} />}
     {/* Owner 10-30: no box for the area. Buyers see the city from this address (SellerAddressField). */}
     <div className="space-y-2">
-      <FieldLabel htmlFor="sell-address" text="Pickup address" />
-      <SellerAddressField id="sell-address" ariaLabel="Pickup address" className={SELL_INPUT} value={form.pickupAddress} place={place}
+      <FieldLabel htmlFor="sell-address" text={t("sf.wy.address")} />
+      <SellerAddressField id="sell-address" ariaLabel={t("sf.wy.address")} className={SELL_INPUT} value={form.pickupAddress} place={place}
         onChange={(address, city) => { set("pickupAddress", address); set("areaLabel", city); }} />
       {/* DA-5: nobody pays for a free item; the address shows to the person it goes to once their pickup is set. */}
       <p className="text-ds-13 text-muted-foreground" data-sell-address-note="">
         {hasPlaces
-          ? (form.free ? "Private. Only used if you remove your saved places." : "Private. Only used when a buyer gets it another way, or if you remove your saved places.")
-          : (form.free ? "Private. Only the person who gets it sees it." : "Private. Only the buyer who pays sees it.")}
+          ? (form.free ? t("sf.wy.privFreePlaces") : t("sf.wy.privPlaces"))
+          : (form.free ? t("sf.wy.privFree") : t("sf.wy.priv"))}
       </p>
       <AddressNeedsExactSpot typedAddress={form.pickupAddress} inexact={place.inexact} locating={place.locating} shareMyLocation={place.shareMyLocation} />
     </div>
     <div className="space-y-2" aria-labelledby="sell-pickup">
-      <h3 id="sell-pickup" className="text-ds-14 font-semibold text-foreground">Your usual pickup times</h3>
-      <p className="text-ds-13 text-muted-foreground">{hasPlaces ? (form.free ? PICKUP_TIMES_FREE_WITH_PLACES : PICKUP_TIMES_WITH_PLACES) : "Buyers pick one of these times. They apply to all your listings."}</p>
+      <h3 id="sell-pickup" className="text-ds-14 font-semibold text-foreground">{t("sf.wy.timesHead")}</h3>
+      <p className="text-ds-13 text-muted-foreground">{hasPlaces ? (form.free ? PICKUP_TIMES_FREE_WITH_PLACES() : PICKUP_TIMES_WITH_PLACES()) : t("sf.wy.times")}</p>
       <PickupTimesEditor windows={windows} setWindows={setWindows} />
     </div>
   </>);

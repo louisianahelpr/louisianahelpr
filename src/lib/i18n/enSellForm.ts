@@ -107,6 +107,23 @@ export const enSellForm = {
   "sf.ds.continue": "Continue",
   "sf.ds.listing": "Listing…",
   "sf.ds.listIt": "List it",
+  "sf.ds.giveFree": "Give it away free",
+  "sf.dr.tooLow": "At this price there's nothing lower to drop to, so it stays at your price.",
+  "sf.dr.on": "On. It drops {pct}% each evening at {time}, to a whole dollar, never below your lowest price. Turn this off if it should never drop.",
+  "sf.dr.off": "Off. It stays at your price until you change it.",
+  "sf.dr.howMuch": "How much each evening",
+  "sf.dr.lowest": "Lowest you'll take",
+  "sf.dr.lowestPh": "e.g. 30",
+  "sf.dr.onlyYou": "Only you see this. The drops stop here.",
+  "sf.wy.address": "Pickup address",
+  "sf.wy.privFreePlaces": "Private. Only used if you remove your saved places.",
+  "sf.wy.privPlaces": "Private. Only used when a buyer gets it another way, or if you remove your saved places.",
+  "sf.wy.privFree": "Private. Only the person who gets it sees it.",
+  "sf.wy.priv": "Private. Only the buyer who pays sees it.",
+  "sf.wy.timesHead": "Your usual pickup times",
+  "sf.wy.timesPlaces": "Safe meeting spots and Helpr delivery pickups use these times. They apply to all your listings.",
+  "sf.wy.timesFreePlaces": "A free item is picked up on the place's days, so these times are for your other listings.",
+  "sf.wy.times": "Buyers pick one of these times. They apply to all your listings.",
 } as const;
 
 addEnglish(enSellForm);

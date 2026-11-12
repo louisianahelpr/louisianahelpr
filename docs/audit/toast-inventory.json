@@ -1,9 +1,9 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1230,
+    "calls": 1231,
     "files": 356,
-    "rendering": 1148,
+    "rendering": 1149,
     "suppressedByPolicy": 82,
     "byKind": {
       "confirmConsequential": 33,
@@ -14,10 +14,10 @@
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 88,
-      "toast.warning": 26
+      "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 483,
+      "literal": 484,
       "template": 104,
       "dynamic": 697,
       "jsx": 0
@@ -12011,7 +12011,17 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 264,
+      "line": 267,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Our checks flagged a photo. The item is off your shop until our team looks at it."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 278,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12021,7 +12031,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 269,
+      "line": 286,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12031,7 +12041,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 277,
+      "line": 294,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -12051,7 +12061,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 287,
+      "line": 304,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12061,7 +12071,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 296,
+      "line": 313,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -12081,7 +12091,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 302,
+      "line": 319,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12091,7 +12101,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 323,
+      "line": 340,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",

@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { hasInAppHistory } from "@/lib/inAppHistory";
 import { useQuery } from "@tanstack/react-query";
-import { Search, X, type LucideIcon } from "lucide-react";
+import { Search, Store, X, type LucideIcon } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,6 +44,9 @@ import { tierFeePercent } from "@/lib/subscriptionTiers";
  * the same visibility rules as Jobs Browse), Declutter from `declutter_items`
  * (live or reserved, RLS and the 'declutter' switch decide, as on Declutter
  * Browse). Counts are the database's exact counts, shown only when > 0.
+ * Shops (Q2725) from `shops` once its switch is on for a SIGNED-IN member
+ * (RLS shop_publicly_visible: not hidden, owner not banned, no test shop while
+ * seeds are hidden; anon has no read, so a guest is not searched there).
  * Shops and Homes read "Coming soon" while their switch is off for this
  * member; nothing there is searched until it opens.
  *
@@ -105,6 +108,34 @@ function useItemHits(q: string, on: boolean) {
       // Items whose TITLE has every word come first; newest first within each (the sort is stable).
       const titleHit = (it: ItemHit) => (matchesSearch(q, { title: it.title }) ? 0 : 1);
       const rows = all.filter((it) => matchesSearch(q, it)).sort((a, b) => titleHit(a) - titleHit(b));
+      const total = res.count ?? 0;
+      return { rows, count: total <= all.length ? rows.length : total };
+    },
+  });
+}
+
+type ShopHit = { id: string; name: string; about: string | null; category: string | null; area_label: string | null };
+
+/**
+ * Q2725: shops whose name, about or category has every word (the Declutter rule, searchMatch.ts), name hits first.
+ * Signed-in members only: shops is readable by `authenticated` under shop_publicly_visible, never by anon.
+ */
+function useShopHits(q: string, on: boolean) {
+  return useQuery({
+    queryKey: ["search", "shops", q],
+    enabled: on && q.length > 0,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const res = await supabase
+        .from("shops")
+        .select("id,name,about,category,area_label", { count: "exact" })
+        .or(searchOrFilter(q, ["name", "about", "category"]) ?? "name.ilike.*")
+        .order("created_at", { ascending: false })
+        .limit(MAX_ROWS);
+      const all = (unwrap(res) ?? []) as ShopHit[];
+      const asItem = (s: ShopHit) => ({ title: s.name, description: s.about, category: s.category });
+      const nameHit = (s: ShopHit) => (matchesSearch(q, { title: s.name }) ? 0 : 1);
+      const rows = all.filter((s) => matchesSearch(q, asItem(s))).sort((a, b) => nameHit(a) - nameHit(b));
       const total = res.count ?? 0;
       return { rows, count: total <= all.length ? rows.length : total };
     },
@@ -254,6 +285,9 @@ export default function SearchPage() {
   const switchesSettled = declutter.settled && shops.settled && homes.settled;
   const jobs = useJobHits(q, user?.id ?? null);
   const items = useItemHits(q, declutterOn);
+  // Q2725: a guest's Shops switch can be open to everyone, but anon cannot read shops, so only members search it.
+  const shopsOn = shops.on && !!user;
+  const shopHits = useShopHits(q, shopsOn);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -276,18 +310,20 @@ export default function SearchPage() {
   const cover = firstPhotos(photos.data ?? []);
   const jobCount = jobs.data?.count ?? 0;
   const itemCount = declutterOn ? items.data?.count ?? 0 : 0;
+  const shopCount = shopsOn ? shopHits.data?.count ?? 0 : 0;
   // isPending, not isLoading: a read paused offline stays loading, never the empty state (Q571).
-  const loading = !switchesSettled || jobs.isPending || (declutterOn && items.isPending);
-  const failed = jobs.isError || (declutterOn && items.isError);
+  const loading = !switchesSettled || jobs.isPending || (declutterOn && items.isPending) || (shopsOn && shopHits.isPending);
+  const failed = jobs.isError || (declutterOn && items.isError) || (shopsOn && shopHits.isError);
   const qs = `${SEARCH_PARAM}=${encodeURIComponent(q)}`;
   const chips: { key: SearchSection; label: string; count?: number }[] = [
     { key: "all", label: "All" },
     ...(jobCount > 0 ? [{ key: "jobs" as const, label: "Jobs", count: jobCount }] : []),
     ...(itemCount > 0 ? [{ key: "declutter" as const, label: "Declutter", count: itemCount }] : []),
+    ...(shopCount > 0 ? [{ key: "shops" as const, label: "Shops", count: shopCount }] : []),
   ];
   const show = (s: SearchSection) => section === "all" || section === s;
   // AUD31-39: the box named Shops and Homes, both Coming soon, and was cut at 375; it names what it searches.
-  const fieldLabel = declutterOn ? "Search jobs and items" : "Search jobs";
+  const fieldLabel = declutterOn ? (shopsOn ? "Search jobs, items and shops" : "Search jobs and items") : shopsOn ? "Search jobs and shops" : "Search jobs";
 
   return (
     // L005 (landing audit 11-09): a cold-opened link had no in-app entry behind it, so back went to about:blank.
@@ -348,7 +384,7 @@ export default function SearchPage() {
         {q && failed && (
           <div className="flex items-center justify-between gap-3 px-1" role="alert">
             <p className="font-sans text-ds-13" style={{ color: "hsl(var(--alert-ink))" }}>Search didn't load.</p>
-            <button type="button" onClick={() => { void jobs.refetch(); if (declutterOn) void items.refetch(); }} className="font-sans font-semibold text-ds-13 min-h-[44px] px-2" style={{ color: "hsl(var(--bark))" }}>
+            <button type="button" onClick={() => { void jobs.refetch(); if (declutterOn) void items.refetch(); if (shopsOn) void shopHits.refetch(); }} className="font-sans font-semibold text-ds-13 min-h-[44px] px-2" style={{ color: "hsl(var(--bark))" }}>
               Try again
             </button>
           </div>
@@ -359,7 +395,7 @@ export default function SearchPage() {
             <GroupSkeleton />
           </>
         )}
-        {q && !loading && !failed && jobCount === 0 && itemCount === 0 && (
+        {q && !loading && !failed && jobCount === 0 && itemCount === 0 && shopCount === 0 && (
           // A real empty state (audit #27): what happened, and the way on.
           <EmptyState
             icon={Search}
@@ -389,6 +425,14 @@ export default function SearchPage() {
                 <Row key={it.id} to={`/declutter/item/${it.id}`} title={it.title} sub={it.area_label} thumb={<Thumb photo={cover.get(it.id) ?? null} icon={categoryIcon(it.category)} seed={it.category} />} price={typeof cents === "number" ? itemPriceLabel(cents) : null} />
               );
             })}
+          </Group>
+        )}
+
+        {q && shopsOn && shopCount > 0 && show("shops") && (
+          <Group title="Shops" count={shopCount} onSeeAll={section === "all" ? () => setSection("shops") : undefined}>
+            {shopHits.data!.rows.slice(0, section === "all" ? PER_SECTION : MAX_ROWS).map((s) => (
+              <Row key={s.id} to={`/shops/${s.id}`} title={s.name} sub={s.area_label} thumb={<Thumb icon={Store} seed={s.category} />} />
+            ))}
           </Group>
         )}
 

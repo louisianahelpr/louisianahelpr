@@ -260,6 +260,10 @@ serve(withCheckSweep(async (req) => {
     if (!shopItem && (body?.mode ?? "draft") === "draft" && body?.itemId === undefined && body?.photos !== undefined) {
       return await photosDraft(req, anon, body);
     }
+    // S054 (Shops audit 11-12): a NEW shop item's photos, still on the maker's device, the same way (shopPhotosDraft).
+    if (shopItem && (body?.mode ?? "draft") === "draft" && body?.itemId === undefined && body?.photos !== undefined) {
+      return await shopPhotosDraft(req, admin, userId, body);
+    }
     const itemId = typeof body?.itemId === "string" ? body.itemId : "";
     if (!UUID_RE.test(itemId)) return json({ error: "item_not_found" }, 404);
     const mode: "draft" | "check" = body?.mode === "check" ? "check" : "draft";
@@ -716,6 +720,50 @@ async function photosDraft(req: Request, anon: Client, body: Record<string, unkn
   const draft = answer.parsed ? sanitizeDraft(answer.parsed, photos.length) : null;
   if (!draft) return json({ error: "ai_unavailable" }, 502);
   return json(draftAnswer(await groundWithOurSales(anon, await priceDraftFromLookup(ANTHROPIC_API_KEY, draft), body)));
+}
+
+/**
+ * S054 (Shops audit 11-12): mode 'draft' for a NEW shop item, Declutter's photosDraft for target 'shop_item'. 1-4 of
+ * the item's photos, still on the maker's device, in the request body; never stored, nothing saved. There is no draft
+ * item yet, so the owner check is: the VERIFIED caller has a shop and may sell on it (shop_owner_sell_block_reason,
+ * service role, for that caller's id: ban, Shops strikes, under 18, payout setup). Then the same hourly cap as a new
+ * Declutter listing's photos (30 an hour), in its own bucket, counted after the gates so a refused caller spends nothing.
+ */
+async function shopPhotosDraft(req: Request, admin: Client, userId: string, body: Record<string, unknown>): Promise<Response> {
+  const { data: shop, error: shopErr } = await admin.from("shops").select("id").eq("owner_id", userId).maybeSingle();
+  if (shopErr) {
+    console.error("[declutter-ai-draft] shop photos-draft shop read failed:", shopErr.message);
+    return json({ error: "ai_unavailable" }, 500);
+  }
+  if (!shop) return json({ error: "shop_not_found" }, 403);
+  const { data: block, error: blockErr } = await admin.rpc("shop_owner_sell_block_reason", { p_owner_id: userId });
+  if (blockErr) {
+    // Fail closed, spend nothing.
+    console.error("[declutter-ai-draft] shop photos-draft gate failed:", blockErr.message);
+    return json({ error: "ai_unavailable" }, 500);
+  }
+  if (block) return json({ error: typeof block === "string" ? block : "account_restricted" }, 403);
+  const hourly = await checkRateLimit(req, { windowMs: 3_600_000, maxRequests: 30, keyPrefix: "shops-ai-photos" });
+  if (!hourly.allowed) return rateLimitResponse(hourly.retryAfter!, corsHeaders);
+  const photos = roomPhotosFromBody(body.photos);
+  if (!photos) return json({ error: "item_photos_invalid" }, 400);
+
+  const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+  const answer = await askModel(
+    ANTHROPIC_API_KEY,
+    SHOP_ITEM_SYSTEM_PROMPT,
+    "Draft the listing for this item.",
+    photos.map((p) => ({ mediaType: "image/jpeg", base64: p })),
+    SHOP_ITEM_TOOL.function,
+  );
+  if (!answer.ok) {
+    console.error("[declutter-ai-draft] shop photos-draft model error:", answer.status, answer.detail);
+    return json({ error: "ai_unavailable" }, answer.status === 429 ? 429 : 502);
+  }
+  const shopDraft = answer.parsed ? sanitizeShopItemDraft(answer.parsed) : null;
+  if (!shopDraft) return json({ error: "ai_unavailable" }, 502);
+  return json({ title: shopDraft.title, description: shopDraft.description, kind: shopDraft.kind, subtype: shopDraft.subtype, flagged: shopDraft.flagged });
 }
 
 /**

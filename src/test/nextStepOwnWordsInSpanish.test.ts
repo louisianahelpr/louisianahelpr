@@ -11,6 +11,12 @@
  * @mutate src/components/tracker/jobNextStep.ts | other ? t("ns.answerName", { name: other }) : t("ns.answer") | other ? `Accept or decline ${other}'s offer` : t("ns.answer")
  * @mutate src/components/tracker/jobNextStep.ts |   const next = t("ns.openAgain"); |   const next = "Your job is open again, so other Helprs can apply.";
  * @mutate src/components/tracker/jobNextStep.ts | toLocaleString(getLang() === "es" ? "es-US" : "en-US", { | toLocaleString("en-US", {
+ * @mutate src/components/tracker/jobProgressState.ts | : withCode(at(1, true, "Offered", `${other} offered you this job`, held), "offered_you"); | : at(1, true, "Offered", `${other} offered you this job`, held);
+ * @mutate src/components/tracker/jobProgressState.ts | return withCode(at(6, false, "Working", `${other} is working`, held), "working"); | return at(6, false, "Working", `${other} is working`, held);
+ * @mutate src/components/tracker/nextLineCode.ts |   return p.nextCode && p.nextCode.line === p.next ? p.nextCode.id : null; |   return p.nextCode ? p.nextCode.id : null;
+ *
+ * jobNextStep keys off the line's CODE (JobProgressState.nextCode, made where the line is made), never its English words,
+ * so the tracker's line can be worded in Spanish next without breaking the step (decision 11-12 spanish12).
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
@@ -18,7 +24,7 @@ import { es } from "@/lib/i18n/es";
 import { enNextStep } from "@/lib/i18n/enNextStep";
 import { esNextStep } from "@/lib/i18n/esNextStep";
 import { jobNextStep } from "@/components/tracker/jobNextStep";
-import type { JobProgressState } from "@/components/tracker/jobProgressState";
+import { jobProgress, type JobProgressState, type ProgressJob } from "@/components/tracker/jobProgressState";
 
 const p = (over: Partial<JobProgressState>): JobProgressState => ({ stage: 0, waitingOnYou: false, tone: "progress", word: "Posted", next: "", held: false, ...over });
 const soon = new Date(Date.now() + 3 * 86_400_000).toISOString();
@@ -26,8 +32,8 @@ const lines = () => ({
   offer: jobNextStep(p({ stage: 1 }), { side: "poster", otherFirst: "Eli", offerOut: true, offerUntil: soon }),
   choose: jobNextStep(p({ stage: 0 }), { side: "poster", pendingApplicants: 2 }),
   approve: jobNextStep(p({ stage: 7, waitingOnYou: true }), { side: "poster" }),
-  working: jobNextStep(p({ stage: 6, next: "Eli is working" }), { side: "poster", otherFirst: "Eli" }),
-  answer: jobNextStep(p({ stage: 1, waitingOnYou: true, next: "Lexi offered you this job" }), { side: "helpr", otherFirst: "Lexi" }),
+  working: jobNextStep(p({ stage: 6, next: "Eli is working", nextCode: { id: "working", line: "Eli is working" } }), { side: "poster", otherFirst: "Eli" }),
+  answer: jobNextStep(p({ stage: 1, waitingOnYou: true, next: "Lexi offered you this job", nextCode: { id: "offered_you", line: "Lexi offered you this job" } }), { side: "helpr", otherFirst: "Lexi" }),
   gone: jobNextStep(p({ stage: 0 }), { side: "poster", pendingApplicants: 0, helprCancelled: { name: "Eli", at: "2026-11-09T12:00:00Z" } }),
 });
 
@@ -66,5 +72,21 @@ describe("the next step's own lines follow the member's language (F260q)", () =>
     expect(l.answer?.text).toBe("Aceptar o rechazar la oferta de Lexi");
     expect(l.gone?.text).toMatch(/^Eli canceló el lun/);
     expect(l.gone?.body).toBe("Su trabajo está abierto de nuevo, así que otros Helprs pueden postularse.");
+  });
+
+  it("the real tracker's lines carry their codes, and a reworded line still makes the step; a replaced line drops it", () => {
+    const now = new Date("2037-10-21T15:00:00Z");
+    const job: ProgressJob = { status: "accepted", helper_id: "me", payment_status: "escrow", helper_confirmed_at: null };
+    const offered = jobProgress(job, { viewer: "helpr", otherFirst: "Lexi", threadHelprId: "me", application: null, now });
+    expect(offered.nextCode?.id).toBe("offered_you");
+    expect(jobNextStep(offered, { side: "helpr", otherFirst: "Lexi" })?.text).toBe("Accept or decline Lexi's offer");
+    const working = jobProgress({ ...job, status: "in_progress", helper_id: "jo", helper_confirmed_at: "t", helper_arrived_at: "t", poster_confirmed_arrival_at: "t", poster_confirmed_working_at: "t" }, { viewer: "poster", otherFirst: "Jolie", threadHelprId: "jo", application: null, now });
+    expect(working.nextCode?.id).toBe("working");
+    expect(jobNextStep(working, { side: "poster", otherFirst: "Jolie" })?.text).toBe("Waiting on Jolie to mark it done");
+    // Worded another way (as Spanish will be), the code still says what the line is.
+    const reworded = { ...working, next: "Jolie está trabajando", nextCode: { id: "working" as const, line: "Jolie está trabajando" } };
+    expect(jobNextStep(reworded, { side: "poster", otherFirst: "Jolie" })?.text).toBe("Waiting on Jolie to mark it done");
+    // A later override of the line (a crew line, a late line) leaves a stale code: read as none.
+    expect(jobNextStep({ ...working, next: "Something else" }, { side: "poster", otherFirst: "Jolie" })?.text).toBe("Something else");
   });
 });

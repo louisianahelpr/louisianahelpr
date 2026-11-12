@@ -429,9 +429,12 @@ export default function ShopEditView() {
       {!myId.data && <p className="text-xs text-muted-foreground">Set to Monday to Friday, 9 to 5. Change any day that's different.</p>}
       {WEEKDAYS.map((day, i) => {
         const h = form.hours[i];
+        // S023 (Shops audit 11-12): at 375 the "to" time wrapped to its own line under the checkbox and the clock
+        // icons were clipped by the fixed w-32 fields. Phone: the day on its line, then ONE row "opens to closes"
+        // whose two fields share the width. sm and up: day and times on one row, as before.
         return (
-          <div key={day} className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 w-32">
+          <div key={day} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2" data-testid="shop-hours-day">
+            <div className="flex items-center gap-2 sm:w-32">
               <Checkbox
                 id={`open-${i}`}
                 checked={h.open}
@@ -440,11 +443,11 @@ export default function ShopEditView() {
               <Label htmlFor={`open-${i}`} className="flex min-h-11 flex-1 items-center font-normal">{day}</Label>
             </div>
             {h.open && (
-              <>
+              <div className="flex min-w-0 items-center gap-2" data-testid="shop-hours-times">
                 <Input
                   type="time"
                   aria-label={`${day} opens`}
-                  className="w-32 min-w-0"
+                  className="min-w-0 flex-1 sm:w-36 sm:flex-none"
                   value={h.opens}
                   onChange={(e) => set("hours", { ...form.hours, [i]: { ...h, opens: e.target.value } })}
                 />
@@ -452,11 +455,11 @@ export default function ShopEditView() {
                 <Input
                   type="time"
                   aria-label={`${day} closes`}
-                  className="w-32 min-w-0"
+                  className="min-w-0 flex-1 sm:w-36 sm:flex-none"
                   value={h.closes}
                   onChange={(e) => set("hours", { ...form.hours, [i]: { ...h, closes: e.target.value } })}
                 />
-              </>
+              </div>
             )}
           </div>
         );

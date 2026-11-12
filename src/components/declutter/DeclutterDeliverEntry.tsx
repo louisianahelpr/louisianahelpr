@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { ChevronRight, Truck } from "lucide-react";
+import "@/lib/i18n/enDeclutter";
+import { t } from "@/lib/i18n/language";
 
 /** Deliver for pay, also reachable from Selling (the Deliver tab is ?tab=deliver; old ?view=deliver links still open it). */
 export function DeliverEntry() {
@@ -10,8 +12,8 @@ export function DeliverEntry() {
     >
       <Truck className="h-5 w-5 shrink-0" aria-hidden />
       <span className="flex-1 min-w-0">
-        <span className="block font-semibold text-sm">Deliver for pay</span>
-        <span className="block text-xs text-muted-foreground">Carry Declutter items for buyers near you</span>
+        <span className="block font-semibold text-sm">{t("decl.hv.deliver")}</span>
+        <span className="block text-xs text-muted-foreground">{t("decl.hv.deliverSub")}</span>
       </span>
       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
     </Link>

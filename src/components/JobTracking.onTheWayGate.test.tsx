@@ -191,3 +191,28 @@ describe("the gate keys on the STEP, not on where the rail happens to sit", () =
 // that shipped the dead button: any route that parks the rail on Confirmed
 // (a stale job_tracking row, or the old status floor) walks straight past it.
 // @mutate src/components/JobTrackingView.tsx | if (!helperHasConfirmed && (nextStatus.key === "job_confirmed" \|\| nextStatus.key === "on_the_way")) { | if (!helperHasConfirmed && nextStatus.key === "job_confirmed") {
+
+// F260q (owner 11-11 "Spanish EVERYTHING now"): the tracker's step button speaks the member's language (enTracker /
+// esTracker); "Ya llegué" is the same words Home's To-do button says.
+// @mutate src/components/JobTrackingView.tsx | label={arrivalRefusedHere ? t("trk.retryLocation") : nextStatus.action ? stepAction(nextStatus.key) : nextStatus.label} | label={arrivalRefusedHere ? t("trk.retryLocation") : (nextStatus.action ?? nextStatus.label)}
+// @mutate src/components/JobTrackingView.tsx | const stepAction = (key: string): string => t(`trk.act.${key}` as MsgKey); | const stepAction = (key: string): string => STATUSES.find((s) => s.key === key)?.action ?? key;
+describe("the tracker's step button in Spanish (F260q)", () => {
+  it("a Spanish Helpr reads Voy en camino; the words match trackerSteps' English and Home's Ya llegué", async () => {
+    const { setLang, ensureLangLoaded, __resetLangForTests } = await import("@/lib/i18n/language");
+    const { enTracker } = await import("@/lib/i18n/enTracker");
+    const { esTracker } = await import("@/lib/i18n/esTracker");
+    const { esTodos } = await import("@/lib/i18n/esTodos");
+    const { STATUSES } = await import("./job-card/trackerSteps");
+    for (const s of STATUSES) if (s.action) expect(enTracker[`trk.act.${s.key}` as keyof typeof enTracker], s.key).toBe(s.action);
+    expect(esTracker["trk.act.arrived"]).toBe(esTodos["todo.arrived"]);
+    setLang("es");
+    await ensureLangLoaded();
+    try {
+      renderHelperTracker({ helperConfirmedAt: "2026-09-19T15:00:00.000Z", helperDayofConfirmedAt: "2026-09-19T16:00:00.000Z" });
+      expect(screen.getByRole("button", { name: /Voy en camino/ })).toBeTruthy();
+      expect(screen.queryByRole("button", { name: /I'm on my way/i })).toBeNull();
+    } finally {
+      __resetLangForTests();
+    }
+  });
+});

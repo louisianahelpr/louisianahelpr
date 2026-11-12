@@ -1,6 +1,7 @@
 /**
  * S2-041 (Shops audit 2): Edit my shop has parts that save on their own. The main "Save my shop" no longer leaves the
  * page while another part holds unsaved edits (it names them instead), and closing the tab with unsaved edits warns.
+ * Lead 11-12: the page's back arrow asks before throwing unsaved edits away (like S2-007's item editor).
  * S2-034: the "Custom orders" box shows and sets the one custom-order switch.
  *
  * @mutate src/components/shops/ShopEditView.tsx |       if (myId.data && dirtySections.length > 0) { |       if (false) {
@@ -22,7 +23,9 @@ vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonner
 vi.mock("@/lib/toastPolicy", () => ({ confirmConsequential: vi.fn() }));
 vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => ({ latitude: 30.15, longitude: -91.96 }) }));
 vi.mock("@/components/AppPage", () => ({
-  default: ({ title, children }: { title: string; children: ReactNode }) => <main><h1>{title}</h1>{children}</main>,
+  default: ({ title, onBack, children }: { title: string; onBack?: () => void; children: ReactNode }) => (
+    <main><button type="button" onClick={onBack}>Go back</button><h1>{title}</h1>{children}</main>
+  ),
 }));
 const faqDirty = vi.hoisted(() => ({ on: false }));
 vi.mock("./ShopFaqsEditor", async () => {
@@ -68,6 +71,7 @@ function renderEdit() {
         <Routes>
           <Route path="/shops/mine" element={<ShopEditPage />} />
           <Route path="/shops/:id" element={<p>Shop page</p>} />
+          <Route path="/shops" element={<p>Shops home</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -108,6 +112,29 @@ describe("S2-041: unsaved parts of Edit my shop", () => {
     expect(beforeUnloadBlocked()).toBe(true);
     fireEvent.click(save);
     expect(await screen.findByText("Shop page")).toBeTruthy();
+  });
+});
+
+describe("the back arrow asks before leaving unsaved edits", () => {
+  it("asks when the form has changes; Keep editing stays, Leave goes", async () => {
+    renderEdit();
+    await screen.findByText("FAQs");
+    fireEvent.change(screen.getByLabelText("Shop or business name"), { target: { value: "Bayou Bakes Two" } });
+    fireEvent.click(screen.getByRole("button", { name: "Go back" }));
+    expect(await screen.findByText("Leave without saving?")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
+    await waitFor(() => expect(screen.queryByText("Leave without saving?")).toBeNull());
+    expect(screen.queryByText("Shops home")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Go back" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Leave" }));
+    expect(await screen.findByText("Shops home")).toBeTruthy();
+  });
+
+  it("an untouched page goes straight back", async () => {
+    renderEdit();
+    await screen.findByText("FAQs");
+    fireEvent.click(screen.getByRole("button", { name: "Go back" }));
+    expect(await screen.findByText("Shops home")).toBeTruthy();
   });
 });
 

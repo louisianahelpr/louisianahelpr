@@ -17,6 +17,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { hasInAppHistory } from "@/lib/inAppHistory";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { confirmConsequential } from "@/lib/toastPolicy";
@@ -195,7 +196,8 @@ function PhotoPicker({ label, kind, onPick, busy }: { label: string; kind: ShopP
 export default function ShopEditView() {
   const navigate = useNavigate();
   // The shop page's "Add an item" (an owner's empty shop) opens the item editor here.
-  const startAdding = useLocation().hash === "#add-item";
+  const location = useLocation();
+  const startAdding = location.hash === "#add-item";
   const qc = useQueryClient();
   const { user, profile } = useCurrentUser();
   const categories = useShopCategories();
@@ -220,6 +222,9 @@ export default function ShopEditView() {
   const [dirtySections, setDirtySections] = useState<string[]>([]);
   const onSectionsChange = useCallback((d: string[]) => setDirtySections(d), []);
   const [stillUnsaved, setStillUnsaved] = useState<string[] | null>(null);
+  // The back arrow asks before throwing unsaved edits away (as the item editor's Cancel does, S2-007).
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const leave = () => (hasInAppHistory(location.key) ? navigate(-1) : navigate("/shops"));
   const mainDirty = loaded && loadedForm.current !== null && JSON.stringify(form) !== loadedForm.current;
   const anyUnsaved = mainDirty || dirtySections.length > 0;
   useEffect(() => {
@@ -631,7 +636,7 @@ export default function ShopEditView() {
   }
 
   return (
-    <AppPage title={myId.data ? "Edit my shop" : "Open a shop"} backTo="/shops">
+    <AppPage title={myId.data ? "Edit my shop" : "Open a shop"} backTo="/shops" onBack={() => (anyUnsaved ? setConfirmLeave(true) : leave())}>
       <UnsavedSectionsProvider onChange={onSectionsChange}>
       {formEl}
       {/* The private pickup address (M1b part 2): saves on its own, needed before orders. */}
@@ -643,6 +648,17 @@ export default function ShopEditView() {
       {/* Items (slice 2): outside the shop form, each item saves on its own. */}
       {myId.data && user?.id && <ShopItemsSection shopId={myId.data} ownerId={user.id} />}
       </UnsavedSectionsProvider>
+      <BrandConfirmDialog
+        open={confirmLeave}
+        onOpenChange={setConfirmLeave}
+        title="Leave without saving?"
+        description={dirtySections.length > 0
+          ? `Your changes aren't saved yet${mainDirty ? "" : ` (${dirtySections.join(", ")})`}.`
+          : "Your changes aren't saved yet."}
+        primaryLabel="Leave"
+        onPrimary={() => { setConfirmLeave(false); leave(); }}
+        secondaryLabel="Keep editing"
+      />
       {/* The app's own confirm, never window.confirm (off-brand and
           unreliable inside the iOS WebView; SecurityTab). */}
       <BrandConfirmDialog

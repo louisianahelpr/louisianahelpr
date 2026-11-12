@@ -81,7 +81,9 @@ describe("Declutter notices name the item, and only the right one", () => {
     // Postgres fires same-event row triggers in name order: ours must come first.
     // Exempt, each with why: the admin bell's order trigger (20261112061000) writes admin notices through
     // admin_activity_notice, never through declutter_notify_strict, so it never reads declutter.notice_order.
+    // @two-way src/test/declutterNoticesNameTheItem.test.ts:stale order-trigger exemption
     const EXEMPT = new Set(["trg_admin_activity_declutter_order"]);
+    for (const n of EXEMPT) expect(trg.has(n), `stale order-trigger exemption ${n}: remove it`).toBe(true);
     const before = [...trg.keys()].filter((n) => !EXEMPT.has(n) && n !== "trg_declutter_orders_a_notice_about" && n < "trg_declutter_orders_a_notice_about");
     expect(before).toEqual([]);
   });

@@ -18,6 +18,7 @@ import { CategoryDrillDown } from "./CategoryDrillDown";
 import { FieldLabel, SELL_INPUT, SellPriceInput, SellYouGet } from "./SellFormParts";
 import { SellTradesRow } from "./SellTradesRow";
 import "@/lib/i18n/enDeclPanels";
+import "@/lib/i18n/enSellSummary";
 import { t, useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import type { SellFlow } from "./useSellFlowState";

@@ -15,6 +15,11 @@ const require = createRequire(import.meta.url);
 const I18N_SCREEN_DICTS = readdirSync(path.join(process.cwd(), "src/lib/i18n"))
   .filter((f) => /^en[A-Z]\w*\.ts$/.test(f) && f !== "enCore.ts" && f !== "enRegistry.ts")
   .map((f) => f.replace(/\.ts$/, ""));
+/**
+ * One panel's words, imported by that one panel only (i18nDictionariesRideWithTheirScreens.test.ts checks it): no group,
+ * so each is inlined into its panel's chunk instead of being one more small file on the item page (Q178).
+ */
+const I18N_PANEL_DICTS = new Set(["enOffer", "enQuestions", "enFree", "enOfferTrade", "enSellSummary"]);
 
 // Build identity — baked into the bundle at build time so any running app
 // can show exactly which commit it was built from without any API calls.
@@ -1077,9 +1082,9 @@ export default defineConfig(({ mode, command }) => ({
             // rentals: they ride with their importers only. Boot keeps enCore.
             // Spanish landing (Builder 2, 11-11): EVERY screen dictionary (enDeclutter, enHome, enPublic, enMessages...),
             // not only enScreens, and each in its own chunk. Home's page reaches enDeclutter/enHome/enPublic, so app-shared
-            // put them on every route's boot (/ 212 vs 197 KB gz, 9 routes over Q178). One chunk per file: a screen ships
+            // put them on every route's boot (2026-11-11: / 212 vs 197 KB gz, 9 routes over Q178). One chunk per file: a screen ships
             // only its own words. Boot keeps enCore + enRegistry; Spanish (es*.ts) rides es.ts's dynamic chunk.
-            ...I18N_SCREEN_DICTS.map((dict) => ({
+            ...I18N_SCREEN_DICTS.filter((dict) => !I18N_PANEL_DICTS.has(dict)).map((dict) => ({
               name: dict === "enScreens" ? "i18n-screens" : `i18n-${dict}`,
               test: new RegExp(`[\\\\/]src[\\\\/]lib[\\\\/]i18n[\\\\/]${dict}\\.ts$`),
               priority: 20,
@@ -1321,6 +1326,15 @@ export default defineConfig(({ mode, command }) => ({
             // The few of those the other big signed-in pages also run (profileFirstScreenModules `shared`): a tiny chunk.
             // Short name on purpose: each chunk an entry route reaches is named once in the entry (budget 5.0 KB gz).
             // Not in signed-in-chrome: App mounts that beside Home too, and there they cost Home ~0.1 s (B90 lab).
+            // Builder 2 (11-11, Q178): the push module (30 KB source) on its own. In "leaves" (a Profile first-screen leaf)
+            // every route that needed any other leaf (the item page, Selling: lifecycle errors, openExternalUrl) downloaded it.
+            {
+              name: "native-push",
+              test: /[\\/]src[\\/]lib[\\/]nativePush\.ts$/,
+              priority: 15.9,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
             {
               name: "leaves",
               // NextStep and jobNextStep (owner 11-01, the shared next-step line): the job page, Messages and Declutter's

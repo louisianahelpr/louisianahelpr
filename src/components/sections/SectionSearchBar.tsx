@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
-import "@/lib/i18n/enDeclutter";
+import "@/lib/i18n/enSections";
 
 /** Router state that asks a section's Browse field to take focus (a tap on another tab's bar). */
 const FOCUS_SEARCH_STATE = { focusSectionSearch: true } as const;

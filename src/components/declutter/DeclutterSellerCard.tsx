@@ -2,7 +2,8 @@
  * The seller card on a Declutter item (owner, 2026-10-19, as on Marketplace /
  * OfferUp / Mercari): photo, name ("First L."), stars ONLY when the seller has
  * reviews, and "Joined <month year>". No response time: we hold no reply-time
- * figure for another member, and an invented one would be a lie. The whole
+ * figure for another member, and an invented one would be a lie. F359d (owner 11-11): "12 pickups", the seller's
+ * completed handovers, a count only (no dates, items or buyers). The whole
  * card opens the seller's profile. Messages open after checkout, so there is
  * no "Message seller" here; questions go in the public Questions below.
  */
@@ -12,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, Star } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchSellerCard, fetchSellerRating, fetchSellerReviewTags } from "@/lib/declutter/api";
+import { fetchSellerCard, fetchSellerPickupCount, fetchSellerRating, fetchSellerReviewTags, pickupsLabel } from "@/lib/declutter/api";
 import { topReviewTags } from "@/lib/declutter/reviewTags";
 import { formatName } from "@/lib/utils";
 import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
@@ -41,6 +42,14 @@ export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null, a
     queryFn: () => fetchSellerReviewTags(sellerId),
     enabled: noun === "seller",
   });
+  // F359d (owner 11-11): "12 pickups", the seller's completed handovers; a count only. Declutter only (not the job
+  // page's poster card); none at 0, while loading, or on a failed read.
+  const pickups = useQuery({
+    queryKey: ["declutter", "seller-pickups", sellerId],
+    queryFn: () => fetchSellerPickupCount(sellerId),
+    enabled: noun === "seller",
+  });
+  const pickupCount = noun === "seller" ? pickups.data ?? 0 : 0;
   const top = topReviewTags(tagLists.data ?? []);
   const loading = card.isLoading || stats.isLoading;
   const reviews = stats.data?.count ?? 0;
@@ -89,6 +98,7 @@ export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null, a
                 {top.map((t) => `${t.label} (${t.count})`).join(" · ")}
               </span>
             )}
+            {pickupCount > 0 && <span data-seller-pickups="" className="block text-xs text-foreground">{pickupsLabel(pickupCount)}</span>}
             {joined && <span className="block text-xs text-muted-foreground">{joined}</span>}
             {extra}
           </span>

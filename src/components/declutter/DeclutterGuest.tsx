@@ -9,7 +9,7 @@
 import { useRef, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { IdCard, Star } from "lucide-react";
-import { fetchGuestSellerCard } from "@/lib/declutter/api";
+import { fetchGuestSellerCard, pickupsLabel } from "@/lib/declutter/api";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { StickyActionBar } from "@/components/ui/StickyActionBar";
@@ -211,7 +211,7 @@ export function DeclutterGuestBrowseJoin() {
 /**
  * A guest's seller card (BUY-16; F227/F319, owner 11-11: "first name + last initial, rating, ID-checked badge (no
  * photo, no profile page)"). From declutter_guest_seller_card: "Ann S.", stars only when the seller has reviews, and
- * "ID checked" only when the server says so. A monogram, never the photo; not a link (a member's page is for members).
+ * "ID checked" only when the server says so, and (F359d) "12 pickups" when they have any. A monogram, never the photo; not a link (a member's page is for members).
  * Nothing while it loads, on a failed read, or with no row: the listing reads the same without it.
  */
 export function DeclutterGuestSeller({ itemId, free = false }: { itemId: string; free?: boolean }) {
@@ -237,6 +237,8 @@ export function DeclutterGuestSeller({ itemId, free = false }: { itemId: string;
             </span>
           </span>
         )}
+        {/* F359d (owner 11-11): the completed pickup count, nothing else about them; none at 0. */}
+        {c.pickups > 0 && <span data-guest-seller-pickups="" className="block text-xs text-foreground">{pickupsLabel(c.pickups)}</span>}
         {c.idChecked && (
           <span data-guest-seller-id="" className="mt-1 inline-flex items-center gap-1 rounded-full bg-[hsl(var(--bark)/0.08)] px-2 py-0.5 text-xs font-semibold text-foreground">
             <IdCard className="h-3.5 w-3.5 shrink-0" aria-hidden />

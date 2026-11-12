@@ -71,6 +71,9 @@ export interface Prefs {
   email_shops_messages: boolean;
   shops_updates: boolean;
   email_shops_updates: boolean;
+  /** New from shops you follow (20261112070000): push ON by default; no email sender (email column defaults false). */
+  shops_following: boolean;
+  email_shops_following: boolean;
   /** Admin bell activity (20261112061000): admins only; push and email default false (the bell always has it). */
   admin_activity: boolean;
   email_admin_activity: boolean;

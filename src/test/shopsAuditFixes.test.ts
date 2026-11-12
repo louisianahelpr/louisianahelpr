@@ -89,7 +89,8 @@ describe("shops audit 11-08 #3: services and at-home work are in person", () => 
 });
 
 describe("shops audit 11-08 #6: Shops notices have their own switches", () => {
-  const KINDS = ["shops_orders", "shops_messages", "shops_updates"];
+  // + shops_following (20261112070000, new from shops you follow): written straight to notifications by its trigger, never routed.
+  const KINDS = ["shops_orders", "shops_messages", "shops_updates", "shops_following"];
   it("the newest router files a Shops link under a Shops kind before it keeps any other non-Declutter type", () => {
     const b = body("declutter_notice_type");
     const shops = b.indexOf("WHEN p_link LIKE '/shops%' THEN");

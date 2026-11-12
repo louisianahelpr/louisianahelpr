@@ -60,6 +60,8 @@ const ALLOWED_TYPES = new Set([
   "shops_orders",
   "shops_messages",
   "shops_updates",
+  // New from shops you follow (20261112070000): written by a DB trigger; listed because this allowlist mirrors the CHECK.
+  "shops_following",
 ]);
 
 // Same-origin path check: link must be a server-relative path (starts with `/`,

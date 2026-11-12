@@ -28,7 +28,7 @@ const DECLUTTER_KINDS = [
   "declutter_refunds", "declutter_price_drops", "declutter_wanted", "declutter_questions",
 ] as const;
 
-const SHOPS_KINDS = ["shops_orders", "shops_messages", "shops_updates"] as const;
+const SHOPS_KINDS = ["shops_orders", "shops_messages", "shops_updates", "shops_following"] as const;
 
 const ADMIN_ACTIVITY_KINDS = ["admin_activity"] as const;
 

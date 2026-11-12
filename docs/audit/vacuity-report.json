@@ -1,13 +1,15 @@
 {
-  "generated": "2026-11-12T06:53:50.934Z",
-  "guards": 3980,
-  "registered": 3979,
+  "generated": "2026-11-12T08:17:28.446Z",
+  "guards": 3987,
+  "registered": 3986,
   "unregistered": [
     "src/lib/shops/preorders.test.ts"
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/components/declutter/orderTalkPhotos.test.tsx",
     "src/pages/jobs/jobPage/expiredRepost.test.tsx",
+    "src/test/adminActivityBell.test.ts",
     "src/test/audit1110BellRepostOnlyForPoster.test.tsx",
     "src/test/audit1110CopyAndRedirects.test.tsx",
     "src/test/audit1110InlineTrashUnreadPillReplyTime.test.tsx",

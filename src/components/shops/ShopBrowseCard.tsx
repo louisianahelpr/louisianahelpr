@@ -28,9 +28,19 @@ export function ShopBrowseCard({ shop, category, group, extras }: { shop: ShopCa
   const reviewed = shop.review_count > 0 && shop.rating != null;
   const status = shop.paused ? { open: false, label: "Paused for now" } : openStatus(extras?.hours ?? []);
   const cover = extras?.cover_path ?? null;
+  // S2-040 (Shops audit 2): a short link name (name, rating, category, open or not, place) instead of every line and
+  // badge run together with the logo's letter; the card's text still reads as it shows.
+  const label = [
+    shop.name,
+    reviewed ? `rated ${Number(shop.rating).toFixed(1)} from ${shop.review_count} ${shop.review_count === 1 ? "review" : "reviews"}` : null,
+    category,
+    status?.label ?? null,
+    `${shop.area_label}${shop.miles == null ? "" : shop.miles < 1 ? ", under 1 mile away" : `, ${Math.round(Number(shop.miles))} ${Math.round(Number(shop.miles)) === 1 ? "mile" : "miles"} away`}`,
+  ].filter(Boolean).join(", ");
   return (
     <Link
       to={`/shops/${shop.id}`}
+      aria-label={label}
       data-shop-card=""
       className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >

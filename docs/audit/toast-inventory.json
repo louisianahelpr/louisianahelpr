@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 486,
+      "literal": 485,
       "template": 104,
-      "dynamic": 693,
+      "dynamic": 694,
       "jsx": 0
     }
   },
@@ -5058,19 +5058,53 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 193,
+      "line": 192,
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "status === \"live\" ? \"Back on sale.\" : \"Haul-away cancelled. The item is off sale.\"",
+        "text": "status === \"live\" ? t(\"decl.sl.backOnSale\") : t(\"decl.sl.haulCancelled\")",
         "branches": [
           {
-            "form": "literal",
-            "text": "Back on sale."
+            "form": "dynamic",
+            "text": "t(\"decl.sl.backOnSale\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
           },
           {
-            "form": "literal",
-            "text": "Haul-away cancelled. The item is off sale."
+            "form": "dynamic",
+            "text": "t(\"decl.sl.haulCancelled\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -5078,7 +5112,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 196,
+      "line": 195,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5088,7 +5122,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 201,
+      "line": 200,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5098,17 +5132,34 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 216,
+      "line": 215,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Taken down."
+        "form": "dynamic",
+        "text": "t(\"decl.sl.takenDown\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 219,
+      "line": 218,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5261,7 +5312,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterManageListing.tsx",
-      "line": 96,
+      "line": 95,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5271,7 +5322,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterManageListing.tsx",
-      "line": 100,
+      "line": 99,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

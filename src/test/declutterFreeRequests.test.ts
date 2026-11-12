@@ -7,7 +7,7 @@
  * @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |   SELECT (SELECT count(*) FROM public.declutter_free_requests r WHERE r.requester_id = v_uid AND r.status = 'open')\n       + (SELECT | SELECT (SELECT 0)\n       + (SELECT
  * @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |  WHERE p.user_id = v_uid AND p.free_blocked_until > now(); |  WHERE false;
  * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql |   IF NEW.status <> 'live' OR NEW.current_price_cents <> 0 THEN |   IF NEW.status <> 'live' THEN
- * @mutate src/components/declutter/DeclutterHomeView.tsx | data-free-request-count="">Requests ({freeAsks.data.get(item.id) ?? 0}) | data-free-request-count="">View
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | data-free-request-count="">{t("decl.sl.requests", { n: freeAsks.data.get(item.id) ?? 0 })} | data-free-request-count="">View
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       <MyFreeAsks />\n | \n
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       <FreePauseLine />\n | \n
  * @mutate src/pages/info/legal/TermsSection.tsx | if you don&apos;t choose in time, the item goes back up and you get no strike. | the usual strike rules apply if you don&apos;t confirm.
@@ -53,7 +53,8 @@ describe("free items are asked for, not grabbed", () => {
     const src = (f: string) => blankComments(readFileSync(f, "utf8"));
     const selling = src("src/components/declutter/DeclutterHomeView.tsx");
     expect(selling).toContain('item.status === "live" && item.current_price_cents === 0 && freeAsks.data && (freeAsks.data.get(item.id) ?? 0) > 0 ?');
-    expect(selling).toContain("Requests ({freeAsks.data.get(item.id) ?? 0})");
+    // F260q: the words read enDeclutter (decl.sl.requests = "Requests ({n})").
+    expect(selling).toContain('{t("decl.sl.requests", { n: freeAsks.data.get(item.id) ?? 0 })}');
     const buying = src("src/components/declutter/DeclutterMineViews.tsx");
     const dash = buying.slice(buying.indexOf("export function BuyingDash"), buying.indexOf("export function SellingDash"));
     expect(dash.length).toBeGreaterThan(200);

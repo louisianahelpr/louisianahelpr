@@ -61,7 +61,6 @@ import { DeclutterEditListing } from "./DeclutterEditListing";
 import "@/lib/i18n/enListingParts";
 import { t } from "@/lib/i18n/language";
 import { focusSheetItself } from "./focusSheetItself";
-import { TAKE_DOWN_WORDS } from "./takeDownWords";
 
 type View = "menu" | "price" | "sold" | "delete" | "edit";
 
@@ -267,7 +266,7 @@ export function ManageListingSheet({
             <p className="text-ds-15">
               {view === "sold"
                 ? t("lp.m.soldWords")
-                : TAKE_DOWN_WORDS}
+                : t("lp.m.takeDownWords")}
             </p>
             <SheetFooter>
               <SheetSecondaryAction onClick={() => setView("menu")} disabled={takeDown.isPending}>

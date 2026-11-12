@@ -312,8 +312,8 @@ describe("Declutter screens", () => {
     expect(draftLine.getAttribute("data-next-step")).toBe("you");
     expect(screen.getByText("Being checked. We'll send you a notice when it's done.").getAttribute("data-next-step")).toBe("them");
     // D4-12: every Selling row's actions name their item, so a list of rows is not "Preview, Manage, Preview, Manage".
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`Finish listing ${item.title}`} | aria-label="Finish listing"
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`Preview ${item.title}`} | aria-label="Preview"
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={t("decl.sl.finishAria", { title: item.title })} | aria-label="Finish listing"
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={t("decl.sl.previewAria", { title: item.title })} | aria-label="Preview"
     expect(screen.getByRole("button", { name: "Finish listing Lamp" })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: `Preview ${ITEM.title}` }).length).toBeGreaterThan(0);
     expect(screen.queryByText("pending_review")).toBeNull();

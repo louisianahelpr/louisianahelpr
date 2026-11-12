@@ -37,7 +37,7 @@ import {
   reportNotReceived,
   uploadReadyPhoto,
 } from "@/lib/shops/handover";
-import { preorderReadyFrom, shortDate } from "@/lib/shops/preorders";
+import { addDays, preorderReadyFrom, shortDate } from "@/lib/shops/preorders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { handoverIntro, handoverWords, isServiceOrder } from "@/lib/shops/handoverWords";
 
@@ -152,7 +152,11 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
   // "Handed over" tap (the server refuses it: helpr_delivers_handover), unless it fell back to pickup.
   const byHelpr = order.fulfillment === "helpr_delivers" && !order.helpr_unfilled_at;
   // Preorders (money review 11-08): the ready tap counts only from 14 days before ready-by (the server refuses earlier).
-  const readyFrom = order.preorder_item_id && !h?.ready_at ? preorderReadyFrom(order.ready_date) : null;
+  // S032 (Shops audit 11-12): any other goods order's ready tap counts from the day before its ready date (O2), so an
+  // earlier tap is not offered. A service has no ready tap (its "Mark complete" waits for the ready date itself).
+  const readyFrom = h?.ready_at ? null
+    : order.preorder_item_id ? preorderReadyFrom(order.ready_date)
+    : !service ? addDays(order.ready_date, -1) : null;
   const tooEarly = readyFrom !== null && today < readyFrom;
 
   if (side === "shop" && order.status === "handed_over") {
@@ -181,7 +185,9 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
       </p>
       {side === "shop" && tooEarly && readyFrom ? (
         <p className="text-xs text-muted-foreground" data-testid="shop-preorder-ready-from">
-          {`This is a preorder. You can mark it ready from ${shortDate(readyFrom)}.`}
+          {order.preorder_item_id
+            ? `This is a preorder. You can mark it ready from ${shortDate(readyFrom)}.`
+            : `You can mark it ready from ${shortDate(readyFrom)}, the day before it's due.`}
         </p>
       ) : side === "shop" && service ? (
         <div className="flex flex-wrap gap-2">

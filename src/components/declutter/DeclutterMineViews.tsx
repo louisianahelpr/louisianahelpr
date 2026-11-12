@@ -109,7 +109,7 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
   // and open-problem reads answer; the chips and cart drew first and were pushed down 289px (Buying CLS 0.33-0.58 at 375
   // on a seeded buyer). With a paid order to pick up, the tab shows its bones until those two reads answer (or fail),
   // so the pickup card arrives with the rest. Guard: paidOrdersWaitForBookings.
-  if (t.ready && t.live.length > 0 && !t.pickupsSettled) return <DeclutterTabBones />;
+  if (trk.ready && trk.live.length > 0 && !trk.pickupsSettled) return <DeclutterTabBones />;
   return (
     <div className="space-y-6">
       {/* The Free change (Q2487): a missed free pickup pauses free asks for 30 days; the date shows here. */}

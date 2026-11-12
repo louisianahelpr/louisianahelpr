@@ -94,6 +94,15 @@ export const ADMIN_RPC_ERROR_COPY = {
     hide_reason_required: "Say why the shop is hidden, so its owner knows what to fix.",
     shop_not_found: "This shop is gone. Refresh the reports list.",
     own_shop: "Another admin must act on your own shop.",
+    // S001 (20261112074135): hiding refunds every open order, so one that can't be refunded yet stops the hide.
+    order_not_charged_yet: "An order at this shop is still being charged. Try again in a few minutes.",
+    refunded_in_stripe: "An order at this shop was refunded in Stripe by hand. Settle it in Admin > Shops orders, then hide the shop.",
+    // The lock's other codes can't answer here (the hide only locks accepted orders with problems allowed).
+    order_final: "An order changed while hiding. Try again.",
+    order_not_open: "An order changed while hiding. Try again.",
+    order_not_found: "An order changed while hiding. Try again.",
+    problem_open: "An order changed while hiding. Try again.",
+    digital_not_cancellable: "An order changed while hiding. Try again.",
   },
   // Q1952 (20261110195956): the Shops paperwork queue (permits and Secretary of State numbers).
   shops_admin_paperwork: {

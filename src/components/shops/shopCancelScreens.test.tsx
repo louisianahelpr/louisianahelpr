@@ -20,8 +20,8 @@
  * @mutate src/components/shops/ShopOrderCancel.tsx |   return { cancellable: open && !handover.data?.problem_at && !handover.isLoading, | return { cancellable: open && !handover.isLoading,
  * @mutate src/components/shops/ShopOrderCancel.tsx |           if (q?.can_cancel) cancel.mutate(q.free ? "free" : "late"); |           if (q?.can_cancel) cancel.mutate("free");
  * @mutate src/components/shops/ShopOrderCancel.tsx |         setChanged(true);\n        void quote.refetch();\n        return; |         setChanged(true);
- * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && markedReady && louisianaToday() > order.ready_date; |   const noShowOpen = true;
- * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && markedReady && louisianaToday() > order.ready_date; |   const noShowOpen = order.handover_mode === "in_person" && louisianaToday() > order.ready_date;
+ * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && !helprDelivers && markedReady && louisianaToday() > order.ready_date; |   const noShowOpen = true;
+ * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && !helprDelivers && markedReady && louisianaToday() > order.ready_date; |   const noShowOpen = order.handover_mode === "in_person" && !helprDelivers && louisianaToday() > order.ready_date;
  * @mutate src/lib/shops/orders.ts |   if (error && isMissingRpcNamed(error, "shops_order_cancel_quote")) return { can_cancel: false, unavailable: true }; |
  * @mutate src/lib/shops/orders.ts |   if (closed && o.status === "partially_refunded") { |   if (false) {
  * @mutate src/components/shops/ShopOrderCancel.tsx |     mutationFn: (what: "cancel" \| "no_show") => (what === "cancel" ? shopCancelOrder(order.id, reason) : reportNoShow(order.id)), |     mutationFn: (what: "cancel" \| "no_show") => (what === "cancel" ? shopCancelOrder(order.id, "") : reportNoShow(order.id)),

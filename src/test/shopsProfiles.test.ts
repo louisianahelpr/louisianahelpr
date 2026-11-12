@@ -194,6 +194,8 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
       "20261106211136_shops_report_helpr_no_show.sql": ["not_a_helpr_delivery", "no_helpr_booked", "already_handed_over", "too_early"],
       // Half up front is closed (shops audit 11-10 F15): shops_set_custom_orders refuses 'deposit_50'.
       "20261108195900_shops_deposit_hidden_pickup_private.sql": ["deposit_orders_closed"],
+      // Shops audit 11-12 Highs: S004 (no buyer no-show on a Helpr delivery) and S002 ("I got it" waits for ready).
+      "20261112073633_shops_audit_highs.sql": ["helpr_delivery_no_show", "not_ready_yet"],
     };
     for (const [file, codes] of Object.entries(HELPR_FILES)) {
       const sql = blankSqlComments(readFileSync(join(MIG_DIR, file), "utf8"));

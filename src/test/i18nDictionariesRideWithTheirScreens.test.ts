@@ -43,6 +43,7 @@ function srcFiles(): string[] {
 const RELY_ON_PARENT = [
   "src/components/declutter/DeclutterPriceHint.tsx enDeclPanels",
   "src/components/declutter/FreeAskSheet.tsx enFree",
+  "src/components/declutter/OfferSentWhatNext.tsx enOffer",
   "src/lib/declutter/freePickSteps.ts enFree",
   "src/components/messages/ConversationListBody.tsx enScreens",
   "src/components/messages/chatView/ChatReceiptCard.tsx enChatEvents",

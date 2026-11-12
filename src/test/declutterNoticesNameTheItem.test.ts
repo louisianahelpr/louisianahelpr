@@ -79,7 +79,10 @@ describe("Declutter notices name the item, and only the right one", () => {
     expect(trg.get("trg_declutter_orders_a_notice_about")).toBe("AFTER INSERT OR UPDATE");
     expect(flat("declutter_orders_notice_about")).toContain("PERFORM public.declutter_notice_about(NEW.id);");
     // Postgres fires same-event row triggers in name order: ours must come first.
-    const before = [...trg.keys()].filter((n) => n !== "trg_declutter_orders_a_notice_about" && n < "trg_declutter_orders_a_notice_about");
+    // Exempt, each with why: the admin bell's order trigger (20261112061000) writes admin notices through
+    // admin_activity_notice, never through declutter_notify_strict, so it never reads declutter.notice_order.
+    const EXEMPT = new Set(["trg_admin_activity_declutter_order"]);
+    const before = [...trg.keys()].filter((n) => !EXEMPT.has(n) && n !== "trg_declutter_orders_a_notice_about" && n < "trg_declutter_orders_a_notice_about");
     expect(before).toEqual([]);
   });
 

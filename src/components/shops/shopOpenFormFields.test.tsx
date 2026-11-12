@@ -15,6 +15,10 @@
  * @mutate src/components/shops/ShopEditView.tsx |   const [showSos, setShowSos] = useState(false); |   const [showSos, setShowSos] = useState(true);
  * @mutate src/components/shops/ShopCategoryQuickPick.tsx | onClick={() => { setMore(false); onChange(c.slug); }} | onClick={() => { setMore(false); }}
  * @mutate src/components/shops/ShopEditView.tsx | placeholder="e.g. Broussard" | placeholder="Broussard"
+ *  S023 (Shops audit 11-12) at 375 each open day's "to" time wrapped under the checkbox and the clock icons were
+ *      clipped by fixed w-32 fields. The day sits on its own line; its two times share ONE row and its width.
+ * @mutate src/components/shops/ShopEditView.tsx |                   className="min-w-0 flex-1 sm:w-36 sm:flex-none"\n                  value={h.closes} |                   className="w-32 min-w-0"\n                  value={h.closes}
+ * @mutate src/components/shops/ShopEditView.tsx |           <div key={day} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2" data-testid="shop-hours-day"> |           <div key={day} className="flex flex-wrap items-center gap-2" data-testid="shop-hours-day">
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -136,5 +140,27 @@ describe("open-a-shop form (audit 11-10 F2, F6, F7, F8)", () => {
     renderForm();
     await screen.findByRole("button", { name: "Open my shop" });
     expect(screen.getByLabelText("Town or neighborhood").getAttribute("placeholder")).toBe("e.g. Broussard");
+  });
+  it("S023: each open day is its name, then one row of two times that share the width (no fixed-width fields)", async () => {
+    renderForm();
+    const days = await screen.findAllByTestId("shop-hours-day");
+    expect(days).toHaveLength(7);
+    const open = days.filter((d) => d.querySelector('[data-testid="shop-hours-times"]'));
+    expect(open).toHaveLength(5);
+    for (const d of open) {
+      // Phone: stacked (name line, then the times row), never one wrapping row.
+      expect(d.className.split(/\s+/)).toContain("flex-col");
+      expect(d.className.split(/\s+/)).not.toContain("flex-wrap");
+      const times = d.querySelector('[data-testid="shop-hours-times"]') as HTMLElement;
+      const inputs = [...times.querySelectorAll('input[type="time"]')] as HTMLElement[];
+      expect(inputs).toHaveLength(2);
+      expect(times.textContent).toContain("to");
+      expect(times.querySelector('[role="checkbox"]')).toBeNull();
+      for (const el of inputs) {
+        const cls = el.className.split(/\s+/);
+        expect(cls).toContain("flex-1");
+        expect(cls).not.toContain("w-32");
+      }
+    }
   });
 });

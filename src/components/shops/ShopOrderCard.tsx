@@ -146,6 +146,22 @@ function DepositRest({ order, side }: { order: ShopOrder; side: "buyer" | "shop"
       setOpening(false);
     }
   };
+  // S037 (Shops audit 11-12, copy only): the shop read the BUYER's charged amounts (with the service fee and tax), which
+  // never added up to its own price. The shop's box says the halves in words; its price is the card's own line.
+  if (side === "shop") {
+    return (
+      <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-sm" data-testid="shop-order-deposit">
+        <p>
+          Half was charged to the buyer&apos;s card when you accepted.{" "}
+          {paid
+            ? "The other half is paid."
+            : owedNow
+              ? "The other half didn't go through on the buyer's card. We asked them to pay it; hand over the order once it's paid."
+              : "The other half is charged to the buyer's card on the ready date."}
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-sm" data-testid="shop-order-deposit">
       <p>
@@ -240,14 +256,17 @@ export function ShopOrderCard({
             : ""}
         </p>
       ) : (
-        <p className="text-xs text-muted-foreground">
+        // S037 (Shops audit 11-12, copy only): "You get the item price in full" promised an amount that a card-cost debt
+        // or the first-payout setup fee can lower. The line says the shop's own price; what is paid out (the payout's
+        // own numbers, owner 11-11 F360b) needs the payout read on this card (money lane).
+        <p className="text-xs text-muted-foreground" data-testid="shop-order-your-price">
           {delivered && deliveryCents > 0
-            ? `You get the item price in full plus what the buyer paid for delivery: ${formatCents(shopGets)}. You deliver this order.`
+            ? `Your price plus what the buyer paid for delivery: ${formatCents(shopGets)}. You deliver this order.`
             : delivered
-              ? `You get the item price in full: ${formatCents(shopGets)}. You deliver this order.`
+              ? `Your price: ${formatCents(shopGets)}. You deliver this order.`
               : byHelpr
-                ? `You get the item price in full: ${formatCents(shopGets)}. A Helpr picks it up at your pickup address.`
-                : `You get the item price in full: ${formatCents(shopGets)}.`}
+                ? `Your price: ${formatCents(shopGets)}. A Helpr picks it up at your pickup address.`
+                : `Your price: ${formatCents(shopGets)}.`}
         </p>
       )}
       {side === "shop" && byHelpr && order.status === "accepted" && !order.handed_over_at && <HelprPickup orderId={order.id} />}

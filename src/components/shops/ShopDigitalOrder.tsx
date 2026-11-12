@@ -29,7 +29,7 @@ export default function ShopDigitalOrder({ order, side }: { order: ShopOrder; si
   if (side === "shop") {
     return (
       <p className="text-xs text-muted-foreground" data-testid="shop-digital-order-shop">
-        Digital download. You get the item price in full: {formatCents(order.items_cents)}
+        Digital download. Your price: {formatCents(order.items_cents)}
         {order.status === "accepted" ? ", 72 hours after the sale unless the buyer reports a problem with the file." : "."}
       </p>
     );

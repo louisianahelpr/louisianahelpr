@@ -57,10 +57,17 @@ describe("the order card: a 50% deposit order's rest", () => {
     expect(screen.queryByRole("button", { name: /pay the rest/i })).toBeNull();
   });
 
-  it("the shop reads the same in its own words", () => {
+  // S037 (Shops audit 11-12): the shop's box read the buyer's charged amounts (service fee and tax inside), which never
+  // added up to the shop's price; it now says the halves in words, and the card's own line says "Your price".
+  // @mutate src/components/shops/ShopOrderCard.tsx |   if (side === "shop") {\n    return ( |   if (false) {\n    return (
+  // @mutate src/components/shops/ShopOrderCard.tsx |                 : `Your price: ${formatCents(shopGets)}.`} |                 : `You get the item price in full: ${formatCents(shopGets)}.`}
+  it("the shop reads it in its own terms: no buyer amounts, and 'Your price', never 'in full' (S037)", () => {
     show(order(), "shop");
     expect(screen.getByTestId("shop-order-deposit").textContent).toBe(
-      "The buyer paid when you accepted: $35.20. The rest, $31.45, is charged to the buyer's card on the ready date.");
+      "Half was charged to the buyer's card when you accepted. The other half is charged to the buyer's card on the ready date.");
+    expect(screen.getByTestId("shop-order-deposit").textContent).not.toMatch(/\$/);
+    expect(screen.getByTestId("shop-order-your-price").textContent).toMatch(/^Your price: \$/);
+    expect(document.body.textContent).not.toMatch(/in full/);
   });
 
   it("when the card did not take it, ONLY the buyer gets Pay the rest, which opens the page for exactly this order", async () => {
@@ -77,6 +84,7 @@ describe("the order card: a 50% deposit order's rest", () => {
   it("the shop sees it is waiting on the buyer, with no button", () => {
     show(order({ balance_failed_at: "2026-11-09T15:00:00Z" }), "shop");
     expect(screen.getByTestId("shop-order-deposit").textContent).toContain("We asked them to pay it; hand over the order once it's paid.");
+    expect(screen.getByTestId("shop-order-deposit").textContent).toContain("The other half didn't go through on the buyer's card.");
     expect(screen.queryByRole("button", { name: /pay the rest/i })).toBeNull();
   });
 

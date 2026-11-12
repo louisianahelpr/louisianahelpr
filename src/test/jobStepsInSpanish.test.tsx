@@ -59,6 +59,8 @@ describe("the job tracker's step names follow the member's language (F260q)", ()
     const text = drawn(state());
     for (const w of ["Contratado", "Confirmado", "En camino", "Llegó", "Trabajando", "Hecho"]) expect(text).toContain(w);
     expect(text).not.toContain("Working");
+    // The drawn word keeps its soft hyphens, so a long name breaks in a narrow column.
+    expect(document.body.textContent).toContain(`Con${SHY}tra${SHY}ta${SHY}do`);
     expect(jobStepsLabel(4, true)).toBe("Progreso del trabajo, paso 3 de 6: En camino, esperando por usted. Hechos: Contratado, Confirmado. Faltan: Llegó, Trabajando, Hecho.");
     expect(drawn(state({ stage: 0, tone: "cancelled" }))).toContain("Cancelado");
   });

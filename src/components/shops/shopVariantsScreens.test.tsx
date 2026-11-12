@@ -14,7 +14,7 @@
  * @mutate src/components/shops/ShopItemsList.tsx | withOptions={options.data} preorders={preorders.data} onOrder= | preorders={preorders.data} onOrder=
  * @mutate src/components/shops/ShopItemOptionsEditor.tsx |       if (held) toast( |       if (false) toast(
  * @mutate src/lib/shops/variants.ts |   return (data as { held_for_review?: boolean } \| null)?.held_for_review === true; |   return false;
- * @mutate src/components/shops/ShopItemOptionsEditor.tsx |     rows[variantLabel(values)] ?? { price: String(basePriceCents / 100), stock: "", active: true }; |     rows[variantLabel(values)] ?? { price: "", stock: "", active: true };
+ * @mutate src/components/shops/ShopItemOptionsEditor.tsx |     rows[variantLabel(values)] ?? { price: priceBoxText(basePriceCents), stock: "", active: true }; |     rows[variantLabel(values)] ?? { price: "", stock: "", active: true };
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -167,6 +167,19 @@ describe("the owner's Options section", () => {
     expect(await real.saveItemOptions("c1", ["Fill"], [])).toBe(true);
     rpc.mockResolvedValueOnce({ data: { item_id: "c1", held_for_review: false }, error: null });
     expect(await real.saveItemOptions("c1", ["Fill"], [])).toBe(false);
+  });
+
+  it("S2-014: blank stock reads Made to order, and Remove all options asks first", async () => {
+    variants.saveItemOptions.mockResolvedValue({ held_for_review: false });
+    renderIt(<ShopItemOptionsEditor shopId="s1" itemId="c1" basePriceCents={1500} />);
+    const remove = await screen.findByRole("button", { name: "Remove all options" });
+    expect(screen.getAllByPlaceholderText("Made to order").length).toBeGreaterThan(0);
+    expect(screen.queryByPlaceholderText("Any")).toBeNull();
+    fireEvent.click(remove);
+    expect(await screen.findByText("Remove all options?")).toBeTruthy();
+    expect(variants.saveItemOptions).not.toHaveBeenCalled();
+    fireEvent.click(screen.getAllByRole("button", { name: "Remove all options" }).at(-1)!);
+    await waitFor(() => expect(variants.saveItemOptions).toHaveBeenCalled());
   });
 
   it("splits choices on commas, trimmed, without blanks or repeats", () => {

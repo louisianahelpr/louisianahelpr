@@ -3,8 +3,8 @@
  * lowest $8" or "Off", "Never" or "After N days"). Full weekday names, joined naturally; the hours when there are any.
  * Rendered in Your listing and Sell a bunch's list step: declutterSellLastSetup.test.tsx and declutterBunchChoices.test.tsx.
  *
- * @mutate src/components/declutter/SellingSettingsRows.tsx |   return names.length <= 1 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`; |   return names.join(", ");
- * @mutate src/components/declutter/SellingSettingsRows.tsx |   return days === null ? "Never" : `After ${days} days`; |   return days === null ? "Make it free: never." : `After ${days} days`;
+ * @mutate src/components/declutter/SellingSettingsRows.tsx |   return names.length <= 1 ? (names[0] ?? "") : t("lp.sr.list", { first: names.slice(0, -1).join(", "), last: names[names.length - 1] }); |   return names.join(", ");
+ * @mutate src/components/declutter/SellingSettingsRows.tsx |   return days === null ? t("lp.sr.never") : t("lp.sr.after", { n: days }); |   return days === null ? "Make it free: never." : t("lp.sr.after", { n: days });
  */
 import { describe, expect, it } from "vitest";
 import { EMPTY } from "./sellForm";

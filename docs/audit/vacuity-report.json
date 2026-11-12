@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-12T20:19:01.513Z",
-  "guards": 4034,
-  "registered": 4033,
+  "generated": "2026-11-12T21:08:59.450Z",
+  "guards": 4036,
+  "registered": 4035,
   "unregistered": [
     "src/lib/shops/preorders.test.ts"
   ],

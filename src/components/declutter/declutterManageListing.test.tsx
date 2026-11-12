@@ -263,7 +263,7 @@ describe("Manage a listing (board 158)", () => {
   // "Lower the price over time" (on = drops). Now both say the form's words and on = it drops.
   // @mutate src/components/declutter/DeclutterManageListing.tsx |                   checked={!stopped} |                   checked={stopped}
   // @mutate src/components/declutter/DeclutterManageListing.tsx |                 <RowText title={DROPS_SWITCH_LABEL} id="manage-drops"> |                 <RowText title="Stop price drops" id="manage-drops">
-  // @mutate src/components/declutter/SellFormParts.tsx | <span className="block text-ds-15 font-semibold text-foreground">{DROPS_SWITCH_LABEL}</span> | <span className="block text-ds-15 font-semibold text-foreground">Lower the price?</span>
+  // @mutate src/components/declutter/SellFormParts.tsx | <span className="block text-ds-15 font-semibold text-foreground">{t("lp.dropsSwitch")}</span> | <span className="block text-ds-15 font-semibold text-foreground">Lower the price?</span>
   it("the drops switch has the sell form's name and on = it drops; off turns them off, on turns them back on (DC-5)", async () => {
     const { DROPS_SWITCH_LABEL } = await import("./sellForm");
     const SellFormParts = await import("./SellFormParts");
@@ -273,7 +273,7 @@ describe("Manage a listing (board 158)", () => {
     const { blankComments } = await import("@/test/helpers/blankNonCode");
     const formSrc = blankComments(readFileSync("src/components/declutter/SellFormParts.tsx", "utf8"));
     expect(typeof SellFormParts.SellDropsCard).toBe("function");
-    expect(formSrc).toMatch(/<label htmlFor="sell-drops"[\s\S]{0,200}\{DROPS_SWITCH_LABEL\}/);
+    expect(formSrc).toMatch(/<label htmlFor="sell-drops"[\s\S]{0,200}\{t\("lp\.dropsSwitch"\)\}/);
     const a = sheet();
     const sw = await screen.findByRole("switch", { name: DROPS_SWITCH_LABEL });
     await waitFor(() => expect((sw as HTMLButtonElement).disabled).toBe(false));

@@ -7,6 +7,8 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { Button } from "@/components/ui/button";
 import { ChoicePill } from "@/components/ui/ChoicePill";
 import { PRICE_DROP_RUN_UTC, dropStepCents } from "@/lib/declutter/priceDrop";
+import { enListingParts } from "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 /** A step's Bodoni question and its one-line helper (spec §1.2, §3 "Step-by-step flows"). */
 export function StepHead({ title, sub }: { title: string; sub?: string }) {
@@ -93,14 +95,13 @@ export function ReviewRow({ title, body, onEdit }: { title: string; body: string
  * before a round ends, puts an unsold listing back up for another 30 days up to 3 times (relist_count),
  * then takes it off sale and offers a Helpr haul to donation (spec row 73).
  */
-export const LISTING_LIFETIME =
-  "30 days. If it hasn't sold, it goes back up by itself up to 3 more times (about 4 months). We'll remind you before each round ends.";
+export const LISTING_LIFETIME = enListingParts["lp.life"];
 
 /**
  * The same, with "Keep it up until it sells" on (owner 2026-10-29; migration 20261029154323): the sweep renews it
  * every 30 days with no cap and sends no reminders.
  */
-export const LISTING_LIFETIME_KEEP_UP = "Until it sells. It renews every 30 days by itself, with no reminders.";
+export const LISTING_LIFETIME_KEEP_UP = enListingParts["lp.lifeKeepUp"];
 
 /** The real nightly run (priceDrop.ts PRICE_DROP_RUN_UTC) in Louisiana time: "6:07 PM" (CDT) or "5:07 PM" (CST). */
 export function dropRunTime(now: Date = new Date()): string {
@@ -127,10 +128,10 @@ export function DropSchedule({ priceCents, floorCents, pct }: { priceCents: numb
   return (
     <div className="space-y-3 rounded-[20px] border border-border bg-card p-4" data-drop-schedule="">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="text-ds-14 font-semibold text-foreground">If it doesn't sell</p>
-        <p className="text-ds-12 text-muted-foreground">{pct}% less each evening, {dropRunTime()}</p>
+        <p className="text-ds-14 font-semibold text-foreground">{t("lp.dsHead")}</p>
+        <p className="text-ds-12 text-muted-foreground">{t("lp.dsEach", { pct, time: dropRunTime() })}</p>
       </div>
-      <ol className="flex items-end gap-1.5" aria-label="The lowest it could be each evening">
+      <ol className="flex items-end gap-1.5" aria-label={t("lp.dsAria")}>
         {steps.map((c, i) => (
           <li key={i} className="flex min-w-0 flex-1 flex-col items-center gap-1">
             <span
@@ -143,7 +144,7 @@ export function DropSchedule({ priceCents, floorCents, pct }: { priceCents: numb
         ))}
       </ol>
       <p className="text-ds-12 text-muted-foreground">
-        The first drop comes after it has been up 12 hours. It never goes below {formatPrice(floorCents)}, and may stop sooner.
+        {t("lp.dsFoot", { floor: formatPrice(floorCents) })}
       </p>
     </div>
   );

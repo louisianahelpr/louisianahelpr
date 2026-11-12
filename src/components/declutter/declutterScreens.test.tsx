@@ -611,7 +611,7 @@ describe("Declutter controls are the shared ones", () => {
   // Owner 2026-10-28: "it also never said how long it will stay open"; decided the same day (Q2461 / #3728):
   // "30 days per round". The review step says the rule the server runs (the copy is bound to the migration
   // by src/test/declutterListingRounds.test.ts).
-  // @mutate src/components/declutter/DeclutterSellView.tsx |             <ReviewRow title={tr("sf.ds.howLong")} body={keepUp.on ? LISTING_LIFETIME_KEEP_UP : LISTING_LIFETIME} /> |
+  // @mutate src/components/declutter/DeclutterSellView.tsx |             <ReviewRow title={tr("sf.ds.howLong")} body={keepUp.on ? tr("lp.lifeKeepUp") : tr("lp.life")} /> |
   it("the review step says how long the listing stays up, as the server runs it", async () => {
     state.item = { ...ITEM, status: "draft" };
     state.photos = [{ id: "p1", item_id: "i1", storage_path: "u1/declutter/i1/1.jpg", position: 0 }];
@@ -665,7 +665,7 @@ describe("Declutter controls are the shared ones", () => {
 
   // Owner 2026-10-29: "Keep it up until it sells" on the last step, saved on the draft; the "how long" row follows it.
   // @mutate src/components/declutter/DeclutterSellView.tsx |           <KeepUpSwitch keep={keepUp} as="div" | <KeepUpSwitch keep={{ ...keepUp, itemId: null }} as="div"
-  // @mutate src/components/declutter/DeclutterSellView.tsx | body={keepUp.on ? LISTING_LIFETIME_KEEP_UP : LISTING_LIFETIME} | body={LISTING_LIFETIME}
+  // @mutate src/components/declutter/DeclutterSellView.tsx | body={keepUp.on ? tr("lp.lifeKeepUp") : tr("lp.life")} | body={tr("lp.life")}
   it("the last step offers Keep it up until it sells, and the stays-up row says what it means", async () => {
     state.item = { ...ITEM, status: "draft" };
     state.photos = [{ id: "p1", item_id: "i1", storage_path: "u1/declutter/i1/1.jpg", position: 0 }];

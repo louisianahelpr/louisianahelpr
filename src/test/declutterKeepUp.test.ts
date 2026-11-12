@@ -11,7 +11,7 @@
  * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql |   IF v_was AND NOT p_on AND v_item.status = 'live' THEN |   IF false THEN
  * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql | -- The item's row lock: the sweep reads the switch under the same lock.\n  SELECT * INTO v_item FROM public.declutter_items WHERE id = p_item_id AND seller_id = v_uid FOR UPDATE; | -- The item's row lock: the sweep reads the switch under the same lock.\n  SELECT * INTO v_item FROM public.declutter_items WHERE id = p_item_id FOR UPDATE;
  * @mutate supabase/migrations/20261029154323_declutter_keep_up_until_sold.sql | REVOKE ALL ON FUNCTION public.declutter_set_keep_up(uuid, boolean) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_set_keep_up(uuid, boolean) FROM PUBLIC;
- * @mutate src/components/declutter/KeepUpRow.tsx | export const KEEP_UP_EXPLAINER = "It renews every 30 days until someone buys it. You can turn this off anytime."; | export const KEEP_UP_EXPLAINER = "It stays up.";
+ * @mutate src/lib/i18n/enListingParts.ts |   "lp.keepUpExplainer": "It renews every 30 days until someone buys it. You can turn this off anytime.", |   "lp.keepUpExplainer": "It stays up.",
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

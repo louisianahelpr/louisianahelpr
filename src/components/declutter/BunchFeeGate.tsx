@@ -47,7 +47,7 @@ export function BunchFeeGate({ cents }: { cents: number }) {
 
   return (
     <div data-bunch-fee-gate="">
-      <DeclutterNotice tone="warn" title={t("lp.fg.title", { fee: formatFeeLabel(cents) })}>
+      <DeclutterNotice tone="warn" title={t("lp.fg.title", { fee: formatFeeLabel(cents) ?? "" })}>
         <p>
           {t("lp.fg.body")}
         </p>
@@ -55,7 +55,7 @@ export function BunchFeeGate({ cents }: { cents: number }) {
           {t("lp.fg.free")}
         </p>
         <Button type="button" size="sm" className="mt-3 rounded-full" disabled={opening} onClick={() => void pay()}>
-          {opening ? t("lp.fg.opening") : t("lp.fg.pay", { fee: formatFeeLabel(cents) })}
+          {opening ? t("lp.fg.opening") : t("lp.fg.pay", { fee: formatFeeLabel(cents) ?? "" })}
         </Button>
       </DeclutterNotice>
     </div>

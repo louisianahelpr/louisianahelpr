@@ -168,11 +168,7 @@ async function uploadProblemPhoto(userId: string, orderId: string, file: File): 
   const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
   const path = `${userId}/shops/problem/${orderId}/${nonce}.jpg`;
   // Never overwrites (upsert off), as the ready photo.
-  const { error } = await supabase.storage.from(SHOP_HANDOVER_BUCKET).upload(path, cleaned, {
-    contentType: "image/jpeg",
-    upsert: false,
-    cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL,
-  });
+  const { error } = await supabase.storage.from(SHOP_HANDOVER_BUCKET).upload(path, cleaned, { contentType: "image/jpeg", cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL, upsert: false });
   if (error) throw Object.assign(new Error("photo_not_uploaded"), { userMessage: "That photo didn't finish uploading. Try again." });
   return path;
 }

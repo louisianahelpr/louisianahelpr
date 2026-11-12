@@ -100,7 +100,7 @@ beforeEach(() => {
 });
 
 describe("stripe-webhook: Declutter order paid", () => {
-  async function deliver(answer: unknown, opts: { created?: number; fee?: number | null; chargedAt?: number; orderRow?: Record<string, unknown>; meta?: Record<string, string>; sellerEmail?: string; pi?: Record<string, unknown> } = {}) {
+  async function deliver(answer: unknown, opts: { created?: number; fee?: number | null; chargedAt?: number; orderRow?: Record<string, unknown>; meta?: Record<string, string>; sellerEmail?: string; sellerLang?: string; pi?: Record<string, unknown> } = {}) {
     env();
     const fn = await loadEdgeFunction("stripe-webhook");
     stripeMock.webhooks.constructEventAsync.mockResolvedValue({
@@ -120,7 +120,7 @@ describe("stripe-webhook: Declutter order paid", () => {
     });
     scenario.rpc.declutter_mark_order_paid = answer;
     scenario.reads.profiles = { rows: [{ email: "buyer@test.dev", user_id: BUYER }],
-      ...(opts.sellerEmail ? { eqOverrides: [{ column: "user_id", value: SELLER, result: { rows: [{ email: opts.sellerEmail, user_id: SELLER, full_name: "Sam Seller" }] } }] } : {}) };
+      ...(opts.sellerEmail ? { eqOverrides: [{ column: "user_id", value: SELLER, result: { rows: [{ email: opts.sellerEmail, user_id: SELLER, full_name: "Sam Seller", language: opts.sellerLang ?? null }] } }] } : {}) };
     scenario.reads.declutter_orders = { rows: [opts.orderRow ?? { buyer_id: BUYER, seller_id: SELLER }] };
     const res = await fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=x" } }));
     return res;
@@ -334,6 +334,24 @@ describe("stripe-webhook: Declutter order paid", () => {
     expect(sold.text).toBe("mock");
     expect(rpcs("declutter_order_items_named")[0]?.args).toEqual({ p_order_id: ORDER });
     expect(JSON.stringify({ sold, message: r?.props.message })).not.toMatch(/fee|%/i);
+  });
+  // F260q (owner 11-11 "Spanish everything"): a seller who picked Spanish (profiles.language 'es') reads "You sold" in
+  // Spanish, button and the email's own words too; the amounts are the same figures.
+  // @mutate supabase/functions/_shared/declutterSellerEmail.ts | !langErr && (langRow as { language?: string \| null } \| null)?.language === "es" ? "es" : "en"; | "en" as "en" \| "es";
+  // @mutate supabase/functions/_shared/declutterSellerEmail.ts |       title: subject, message: body, path: "/declutter?tab=selling", actionLabel, fullName, lang, |       title: subject, message: body, path: "/declutter?tab=selling", actionLabel, fullName,
+  it("F260q: a Spanish seller's \"You sold\" email is in Spanish, with the same amounts", async () => {
+    scenario.rpc.declutter_order_items_named = '"Lamp"';
+    await deliver({ result: "paid" }, { orderRow: { buyer_id: BUYER, seller_id: SELLER, items_cents: 4500, delivery_cents: 1000, handover: "seller_delivery" }, sellerEmail: "seller@test.dev", sellerLang: "es" });
+    const sold = queuedEmails.find((e) => e.templateName === "declutter_sold") as Record<string, string>;
+    expect(sold.subject).toBe('Vendió "Lamp"');
+    const r = renderedEmail('Vendió "Lamp"');
+    expect(r?.props.message).toBe('Vendió "Lamp" por $45.00, más $10.00 por entregarlo. El comprador ya pagó. Entréguelo como acordaron; recibe su pago después de la entrega.');
+    expect(r?.props.actionLabel).toBe("Abrir Vendiendo");
+    expect(r?.props.lang).toBe("es");
+    resetEmailMocks();
+    // Anything but an exact 'es' stays English.
+    await deliver({ result: "paid" }, { orderRow: { buyer_id: BUYER, seller_id: SELLER, items_cents: 4500 }, sellerEmail: "seller@test.dev", sellerLang: "fr" });
+    expect(renderedEmail('You sold "Lamp"')?.props.lang).toBe("en");
   });
   // AUD31-35: a seller who delivers is paid items + delivery (declutter_complete_handover's v_rate); the email says so.
   // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |       parties?.handover === "seller_delivery" ? parties?.delivery_cents : 0); |       0);

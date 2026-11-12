@@ -163,4 +163,20 @@ describe("open-a-shop form (audit 11-10 F2, F6, F7, F8)", () => {
       }
     }
   });
+  // S2-042 (Shops audit 2): one tap copies the first open day's hours to the other open days (closed days stay closed).
+  it("S2-042: Copy Monday's hours to all open days", async () => {
+    renderForm();
+    const copy = (await screen.findByRole("button", { name: "Copy Monday's hours to all open days" })) as HTMLButtonElement;
+    expect(copy.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Monday opens"), { target: { value: "07:00" } });
+    fireEvent.change(screen.getByLabelText("Monday closes"), { target: { value: "15:30" } });
+    expect(copy.disabled).toBe(false);
+    fireEvent.click(copy);
+    for (const d of ["Tuesday", "Wednesday", "Thursday", "Friday"]) {
+      expect((screen.getByLabelText(`${d} opens`) as HTMLInputElement).value).toBe("07:00");
+      expect((screen.getByLabelText(`${d} closes`) as HTMLInputElement).value).toBe("15:30");
+    }
+    expect(screen.queryByLabelText("Saturday opens")).toBeNull();
+    expect(copy.disabled).toBe(true);
+  });
 });

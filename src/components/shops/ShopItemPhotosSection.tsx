@@ -35,7 +35,7 @@ export default function ShopItemPhotosSection({ photos, draft, busy, suggesting,
               if (f) onAdd(f);
             }}
           />
-          <span className={`inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-ds-13 peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${full ? "cursor-not-allowed text-muted-foreground" : "cursor-pointer"}`} aria-hidden>
+          <span className={`inline-flex h-11 items-center rounded-md border border-input bg-background px-3 text-ds-13 peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${full ? "cursor-not-allowed text-muted-foreground" : "cursor-pointer"}`} aria-hidden>
             {full ? "12 photos (the most)" : "Add a photo"}
           </span>
         </label>

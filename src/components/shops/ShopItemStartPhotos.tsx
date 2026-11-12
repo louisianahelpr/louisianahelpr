@@ -57,7 +57,7 @@ export default function ShopItemStartPhotos({ held, setHeld, busy, suggesting, o
               setHeld((h) => [...h, ...files].slice(0, MAX_HELD));
             }}
           />
-          <span className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-ds-13 peer-focus-visible:ring-2 peer-focus-visible:ring-ring" aria-hidden>
+          <span className="inline-flex h-11 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-ds-13 peer-focus-visible:ring-2 peer-focus-visible:ring-ring" aria-hidden>
             Add photos
           </span>
         </label>

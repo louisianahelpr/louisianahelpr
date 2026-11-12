@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-12T02:47:19.776Z",
-  "guards": 3950,
-  "registered": 3949,
+  "generated": "2026-11-12T04:33:36.696Z",
+  "guards": 3963,
+  "registered": 3962,
   "unregistered": [
     "src/lib/shops/preorders.test.ts"
   ],
@@ -84,6 +84,15 @@
       ],
       "parents": [
         "src/pages/sponsor/SponsorPage.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/info/legal/LegalTabBar.tsx",
+      "tests": [
+        "src/test/publicPagesInSpanish.test.tsx"
+      ],
+      "parents": [
+        "src/pages/info/Legal.tsx"
       ]
     },
     {

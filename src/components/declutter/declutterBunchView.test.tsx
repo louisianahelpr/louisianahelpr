@@ -236,7 +236,7 @@ describe("Sell a bunch", () => {
 // @mutate src/components/declutter/DeclutterBunchView.tsx | title={t("lp.bv.whereHead")} | title="1. Where buyers pick up"
 // @mutate src/components/declutter/DeclutterBunchView.tsx | {photos.length > 0 ? t("lp.bv.addMore") : t("lp.bv.addPhotos")} | {photos.length > 0 ? "Add more photos" : t("lp.bv.addPhotos")}
 // @mutate src/components/declutter/DeclutterBunchView.tsx | const pageTitle = moving ? t("lp.bv.moveTitle") : t("lp.bv.title"); | const pageTitle = moving ? t("lp.bv.moveTitle") : "Sell a bunch";
-// @mutate src/components/declutter/DeclutterBunchView.tsx | : t("lp.bv.checkHead", { step: firstStep + 1 })} | : `${firstStep + 1}. Check each item`}
+// @mutate src/components/declutter/DeclutterBunchView.tsx |             {t("lp.bv.fixIt")}\n |             Fix anything we got wrong.\n
 describe("Sell a bunch in Spanish (F260q)", () => {
   afterEach(() => __resetLangForTests());
   it("the page's title, steps and photo words read Spanish", async () => {
@@ -249,7 +249,7 @@ describe("Sell a bunch in Spanish (F260q)", () => {
     fireEvent.change(document.getElementById("bunch-files")!, { target: { files } });
     await screen.findByRole("heading", { name: /^3\. Revise cada artículo/ });
     expect(document.body.textContent).toContain("Agregar más fotos");
-    expect(document.body.textContent).not.toMatch(/Sell a bunch|Where buyers pick up|Add more photos|Check each item/);
+    expect(document.body.textContent).not.toMatch(/Sell a bunch|Where buyers pick up|Add more photos|Check each item|Fix anything/);
   });
 });
 

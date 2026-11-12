@@ -9,6 +9,8 @@
  * @mutate src/lib/declutter/priceDrop.ts |   if (day === tomorrow) return t("dp.dropTomorrow", { time }); |   if (day === tomorrow) return `tomorrow at ${time}`;
  * @mutate src/lib/declutter/priceHint.ts |     basis: t("dp.hintBasis", { n: h.sales }), |     basis: `Based on ${h.sales}+ Declutter sales.`,
  * @mutate src/components/declutter/DeclutterPriceDrop.tsx |           {t(mine ? "dp.dropRuleMine" : "dp.dropRule", { pct })} |           {`Each evening it can drop ${pct}%.`}
+ * @mutate src/components/declutter/handoverCopy.ts | export const handoverTitle = (h: Handover): string => t(`ho.title.${h}`); | export const handoverTitle = (h: Handover): string => HANDOVER_TITLE[h];
+ * @mutate src/components/declutter/ItemPickupBlock.tsx |   return cities.some(same) ? ` · ${t("pb.also")} | return cities.some(same) ? ` · also
  * @mutate src/components/declutter/DeliveryPriceList.tsx |     { size: "xl", label: t("dp.sizeXl"), | { size: "xl", label: "Extra large",
  */
 import { afterEach, describe, expect, it } from "vitest";
@@ -22,6 +24,8 @@ import { dropWhenLabel } from "@/lib/declutter/priceDrop";
 import { priceHintWords } from "@/lib/declutter/priceHint";
 import { PriceDropBanner } from "@/components/declutter/DeclutterPriceDrop";
 import { DeliveryPriceList } from "@/components/declutter/DeliveryPriceList";
+import { HANDOVER_TITLE, HANDOVER_WORDS, handoverTitle } from "@/components/declutter/handoverCopy";
+import { townsWords } from "@/components/declutter/ItemPickupBlock";
 
 const NOW = Date.parse("2026-11-11T18:00:00Z");
 const HINT = { sales: 20, low_cents: 1000, high_cents: 2500 } as Parameters<typeof priceHintWords>[0];
@@ -45,6 +49,21 @@ describe("Declutter panels follow the member's language (F260q)", () => {
       expect(es[k], k).toBe(esDeclPanels[k]);
       expect(esDeclPanels[k], `${k} still English`).not.toBe(enDeclPanels[k]);
     }
+  });
+
+  it("the handover ways' English is the checkout's table, word for word", () => {
+    const ways = Object.keys(HANDOVER_TITLE) as (keyof typeof HANDOVER_TITLE)[];
+    expect(ways.length).toBeGreaterThan(4);
+    for (const w of ways) {
+      expect(enDeclPanels[`ho.title.${w}`], w).toBe(HANDOVER_TITLE[w]);
+      expect(enDeclPanels[`ho.words.${w}`], w).toBe(HANDOVER_WORDS[w]);
+    }
+  });
+
+  it("Spanish: the handover ways and the pickup block's town words", async () => {
+    await spanish();
+    expect(handoverTitle("porch")).toBe(esDeclPanels["ho.title.porch"]);
+    expect(townsWords(["Lafayette", "Delcambre", "Erath"], "Lafayette")).toBe(" · también Delcambre o Erath");
   });
 
   it("English: the old words, word for word", () => {

@@ -7,7 +7,7 @@
  * 6 FAIL without the migration).
  */
 // @mutate supabase/migrations/20261112010100_declutter_names_hidden_across_block_or_ban.sql | CASE WHEN o.wanted_id IS NULL AND NOT public.declutter_names_hidden(o.buyer_id, o.seller_id)\n           THEN (SELECT | CASE WHEN NOT public.declutter_names_hidden(o.buyer_id, o.seller_id)\n           THEN (SELECT
-// @mutate supabase/migrations/20261112010200_declutter_wanted_reserved_notice_keeps_seller_anonymous.sql |     IF (p_offer_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.declutter_offers wo WHERE wo.id = p_offer_id AND wo.wanted_id IS NOT NULL))\n | IF true\n
+// @mutate supabase/migrations/20261112022921_declutter_wanted_reserved_notice_names_seller_again.sql |     IF (p_offer_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.declutter_offers wo WHERE wo.id = p_offer_id AND wo.wanted_id IS NOT NULL))\n | IF true\n
 // @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql |           COALESCE(v_buyer, 'A buyer'), cardinality(v_ids) |           v_buyer, cardinality(v_ids)
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
@@ -24,7 +24,7 @@ describe("F356 follow-up part 2: more seller notices name the buyer", () => {
       expect(flat(fn).length).toBeGreaterThan(2000);
     }
     expect(defs.get("declutter_request_bundle")?.file).toMatch(FILE);
-    expect(defs.get("declutter_take_item")?.file).toMatch(/20261112010200_declutter_wanted_reserved_notice_keeps_seller_anonymous\.sql$/);
+    expect(defs.get("declutter_take_item")?.file).toMatch(/20261112022921_declutter_wanted_reserved_notice_names_seller_again\.sql$/);
     // Restated with the block/ban rule (20261112010100).
     expect(defs.get("declutter_deadline_sweep")?.file).toMatch(/20261112010100_declutter_names_hidden_across_block_or_ban\.sql$/);
   });

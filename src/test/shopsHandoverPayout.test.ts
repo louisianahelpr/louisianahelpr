@@ -41,9 +41,9 @@
 // @mutate supabase/migrations/20261112073633_shops_audit_highs.sql | CREATE OR REPLACE FUNCTION public.shops_confirm_pickup(p_order_id uuid)\nRETURNS jsonb\nLANGUAGE plpgsql\nSECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_uid uuid := (SELECT auth.uid());\n  o public.shop_orders;\nBEGIN\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF; | CREATE OR REPLACE FUNCTION public.shops_confirm_pickup(p_order_id uuid)\nRETURNS jsonb\nLANGUAGE plpgsql\nSECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_uid uuid := (SELECT auth.uid());\n  o public.shop_orders;\nBEGIN\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;
 // @mutate supabase/migrations/20261019015018_shop_ready_tap_cancel_choice.sql | greatest(COALESCE(h.ready_at, 'infinity'::timestamptz), | greatest(COALESCE(o.handed_over_at, 'infinity'::timestamptz),
 // @mutate supabase/migrations/20261019015018_shop_ready_tap_cancel_choice.sql | ((o.ready_date - 1)::timestamp AT TIME ZONE 'America/Chicago'))) | '-infinity'::timestamptz))
-// @mutate src/lib/shops/orders.ts | label: "Free to cancel until your order is ready", | label: "Free to cancel any time before you pick it up",
+// @mutate src/lib/shops/orders.ts | label: "Cancel for a refund until your order is ready", | label: "Cancel for a refund any time before you pick it up",
 // @mutate src/lib/shops/orders.ts | , but never before the day before your ready date. | .
-// @mutate src/lib/shops/orders.ts | free cancel ends then. A small card processing cost isn't refunded.", | free cancel never ends early. A small card processing cost isn't refunded.",
+// @mutate src/lib/shops/orders.ts | the refund ends then. A small card processing cost isn't refunded.", | the refund never ends early. A small card processing cost isn't refunded.",
 // @mutate src/lib/shops/orders.ts |     detail: READY_TAP_CANCEL_TEXT[tap].buyer, |     detail: READY_TAP_CANCEL_TEXT.from_day_before.buyer,
 // @mutate supabase/migrations/20261019015018_shop_ready_tap_cancel_choice.sql |                                                   COALESCE(h.ready_at, 'infinity'::timestamptz)) |                                                   greatest(COALESCE(h.ready_at, 'infinity'::timestamptz), ((o.ready_date - 1)::timestamp AT TIME ZONE 'America/Chicago')))
 // @mutate supabase/migrations/20261019015018_shop_ready_tap_cancel_choice.sql |                     WHEN 'never_shortens' THEN (o.ready_date::timestamp AT TIME ZONE 'America/Chicago') |                     WHEN 'never_shortens' THEN least((o.ready_date::timestamp AT TIME ZONE 'America/Chicago'), COALESCE(h.ready_at, 'infinity'::timestamptz))
@@ -259,7 +259,7 @@ describe("Shops M2: the handover and the shop's payout keep their gates (2026101
     expect(ts).toMatch(/detail:\s*READY_TAP_CANCEL_TEXT\[tap\]\.buyer,/);
     expect(ts).toMatch(/ORDER_COLUMNS\s*=[^;]*\bready_tap_cancel\b/);
     const words = (k: string) => new RegExp(String.raw`${k}:\s*\{([\s\S]*?)\}`).exec(ts)?.[1] ?? "";
-    expect(words("ends_at_tap")).toMatch(/buyer:\s*"[^"]*marks your order ready sooner, free cancel ends then[^"]*"/i);
+    expect(words("ends_at_tap")).toMatch(/buyer:\s*"[^"]*marks your order ready sooner, the refund ends then[^"]*"/i);
     expect(words("from_day_before")).toMatch(/buyer:\s*"[^"]*ready date begins[^"]*marks your order ready[^"]*never before the day before your ready date[^"]*"/i);
     expect(words("never_shortens")).toMatch(/buyer:\s*"[^"]*until your ready date begins, even if the shop marks your order ready sooner[^"]*"/i);
     for (const k of ["until_handover", "ends_at_tap", "from_day_before", "never_shortens"]) {

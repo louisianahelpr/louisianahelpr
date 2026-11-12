@@ -30,7 +30,9 @@ import { addPhotoSteadily, AlreadyPosted, createDraft, fetchItemStatuses, invoke
 import { offersOffAfterPublish, offersOffOnDraft } from "@/lib/declutter/offersOnPost";
 import { setTradeRules } from "@/lib/declutter/trades";
 import { AI_CHECK_GAP_MS, createMoveDraft, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
-import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
+import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/photoRules";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 import { floorFromPct } from "@/lib/declutter/sellerDefaults";
 import type { EarlyUploads } from "@/lib/declutter/bunchStage";
 import { priceChoiceToSave } from "@/components/declutter/sellForm";
@@ -564,40 +566,55 @@ export function photosInItems(photos: BunchPhoto[], items: BunchItem[]): BunchPh
  * live at once; admin only on reports or a failed automatic check).
  */
 export function bunchItemProblem(it: BunchItem): string | null {
-  if (it.notSorted) return "These photos aren't sorted yet.";
-  if (it.photoKeys.length < DECLUTTER_MIN_PHOTOS) return `Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}.`;
-  if (it.photoKeys.length > DECLUTTER_MAX_PHOTOS) return `Use at most ${photosWord(DECLUTTER_MAX_PHOTOS)}: split this item or move some photos.`;
-  const row = moveRowProblem({ title: it.title, price: it.free ? "1" : it.price, floor: "" })
-    ?.replace("Give each item a name", "Give it a name")
-    .replace("Give each item a price", "Give it a price");
-  if (row) return row;
-  return it.sizeUnknown ? BUNCH_SIZE_PROBLEM : null;
+  const code = bunchProblemCode(it);
+  if (!code) return null;
+  return t(PROBLEM_WORDS[code], { min: DECLUTTER_MIN_PHOTOS, max: DECLUTTER_MAX_PHOTOS });
 }
 
-const BUNCH_SIZE_PROBLEM = "Pick a size, so buyers know what it takes to move it.";
+/** What stops an item, as a code: the screen keys off this, never the words (they follow the member's language, F260q). */
+type BunchProblem = "notSorted" | "fewPhotos" | "manyPhotos" | "name" | "price" | "size";
+function bunchProblemCode(it: BunchItem): BunchProblem | null {
+  if (it.notSorted) return "notSorted";
+  if (it.photoKeys.length < DECLUTTER_MIN_PHOTOS) return "fewPhotos";
+  if (it.photoKeys.length > DECLUTTER_MAX_PHOTOS) return "manyPhotos";
+  // moveRowProblem stays the one rule for a name (3+ characters) and a price ($1 to $1,000); the floor is the price here.
+  const row = moveRowProblem({ title: it.title, price: it.free ? "1" : it.price, floor: "" });
+  if (row) return it.title.trim().length < 3 ? "name" : "price";
+  return it.sizeUnknown ? "size" : null;
+}
+
+const PROBLEM_WORDS = {
+  notSorted: "lp.bq.notSorted",
+  fewPhotos: DECLUTTER_MIN_PHOTOS === 1 ? "lp.bq.fewPhotos1" : "lp.bq.fewPhotosN",
+  manyPhotos: "lp.bq.manyPhotos",
+  name: "lp.bq.name",
+  price: "lp.bq.price",
+  size: "lp.bq.size",
+} as const;
 
 /** Which field an item's problem is about, so the screen can go straight to it. */
 export type BunchNeed = "photos" | "name" | "price" | "size";
 export function bunchItemNeed(it: BunchItem): BunchNeed | null {
   // A not-sorted pile has its own card and its own Sort again: it isn't an item waiting for a field.
   if (it.notSorted) return null;
-  const p = bunchItemProblem(it);
+  const p = bunchProblemCode(it);
   if (!p) return null;
-  if (p === BUNCH_SIZE_PROBLEM) return "size";
-  if (/photo/i.test(p)) return "photos";
-  return /name/i.test(p) ? "name" : "price";
+  if (p === "fewPhotos" || p === "manyPhotos") return "photos";
+  return p === "notSorted" ? null : p;
 }
+
+const NEEDS_ONE = { photos: "lp.bq.needs1.photos", name: "lp.bq.needs1.name", price: "lp.bq.needs1.price", size: "lp.bq.needs1.size" } as const;
+const NEEDS_MANY = { photos: "lp.bq.needsN.photos", name: "lp.bq.needsN.name", price: "lp.bq.needsN.price", size: "lp.bq.needsN.size" } as const;
 
 /** "1 needs a name, 2 need a price": what is left, in the seller's words. */
 export function bunchNeedsLine(items: BunchItem[]): string | null {
-  const words: Record<BunchNeed, string> = { photos: "photos", name: "a name", price: "a price", size: "a size" };
   const counts = new Map<BunchNeed, number>();
   for (const it of items) {
     const need = bunchItemNeed(it);
     if (need) counts.set(need, (counts.get(need) ?? 0) + 1);
   }
   if (counts.size === 0) return null;
-  return [...counts].map(([need, n]) => `${n} ${n === 1 ? "needs" : "need"} ${words[need]}`).join(", ");
+  return [...counts].map(([need, n]) => (n === 1 ? t(NEEDS_ONE[need]) : t(NEEDS_MANY[need], { n }))).join(", ");
 }
 
 /** What still needs something first, each group in its own order. Run on a tap, never while typing: a row must not jump under the keyboard. */
@@ -639,14 +656,14 @@ export const bunchListingMinutes = (items: number) => Math.ceil((items * BUNCH_S
 
 /** Time left, said plainly. */
 function timeLeft(seconds: number): string {
-  if (seconds < 45) return "Less than a minute left.";
+  if (seconds < 45) return t("lp.bq.underMinute");
   const minutes = Math.round(seconds / 60);
-  return `About ${minutes} ${minutes === 1 ? "minute" : "minutes"} left.`;
+  return minutes === 1 ? t("lp.bq.aboutMinute") : t("lp.bq.aboutMinutes", { n: minutes });
 }
 
 /** Sorting, in the seller's terms: what's been found and how long is left, never batches. */
 export function sortProgressLine(done: number, total: number, found: number): string {
-  const so = found > 0 ? `Found ${found} ${found === 1 ? "item" : "items"} so far.` : "Looking through your photos.";
+  const so = found > 0 ? (found === 1 ? t("lp.bq.found1") : t("lp.bq.foundN", { n: found })) : t("lp.bq.looking");
   return `${so} ${timeLeft(((total - done) * AI_CHECK_GAP_MS) / 1000)}`;
 }
 
@@ -657,7 +674,7 @@ export function listingProgressLine(done: number, total: number, names: readonly
   const at = Math.min(n, (getting ? done : done - n) + 1);
   const name = names[at - 1]?.trim();
   const left = ((total - done) * BUNCH_SECONDS_EACH) / 2;
-  return `${getting ? "Getting" : "Listing"} ${at} of ${n}${getting ? " ready" : ""}${name ? `: ${name}` : ""}. ${timeLeft(left)}`;
+  return `${t(getting ? "lp.bq.getting" : "lp.bq.listing", { at, n })}${name ? `: ${name}` : ""}. ${timeLeft(left)}`;
 }
 
 export type BunchOutcome =

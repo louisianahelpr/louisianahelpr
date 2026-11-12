@@ -20,7 +20,7 @@ import { PLACE_CARD_EDGE, SellPorchPlaces } from "./SellPorchPlaces";
 import { enListingParts } from "@/lib/i18n/enListingParts";
 import { t } from "@/lib/i18n/language";
 
-export const HANDOVER_CHOICE: Record<SellerHandover, { title: string; words: string; icon: ComponentType<{ className?: string }> }> = {
+const HANDOVER_CHOICE: Record<SellerHandover, { title: string; words: string; icon: ComponentType<{ className?: string }> }> = {
   porch: { title: enListingParts["lp.way.porch"], words: enListingParts["lp.way.porch.words"], icon: DoorOpen },
   seller_delivery: { title: enListingParts["lp.way.seller_delivery"], words: enListingParts["lp.way.seller_delivery.words"], icon: Truck },
   meetup: { title: enListingParts["lp.way.meetup"], words: enListingParts["lp.way.meetup.words"], icon: Users },

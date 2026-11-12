@@ -12,6 +12,8 @@
  * @mutate src/lib/nativePush.ts |           toast(say(notification.title) \|\| t("notif.toastNew"), { |           toast(notification.title \|\| t("notif.toastNew"), {
  * @mutate supabase/functions/_shared/noticeEs.ts |       const word = (tok === "name" \|\| tok === "name2") ? NAME_WORDS[v.toLowerCase()] : undefined; |       const word = undefined as string \| undefined;
  * @mutate supabase/functions/_shared/noticeEs.ts |   ['{name} said no to your {amount} price on "{q}".', | ['{name} said NO to your {amount} price on "{q}".',
+ * @mutate supabase/functions/_shared/noticeEs.ts |   "the seller": "el vendedor", |   "the sellers": "el vendedor",
+ * @mutate supabase/functions/_shared/noticeEs.ts |   ['You accepted {name}\'s {amount} price for "{q}". | ['You accepted {name}\'s {amount} offer for "{q}".
  * @mutate src/hooks/useRealtimePush.ts | showLocalNotification(noticeInSpanish(notification.title), noticeInSpanish(notification.message), notification.link) | showLocalNotification(notification.title, notification.message, notification.link)
  */
 import { readFileSync } from "node:fs";
@@ -21,7 +23,7 @@ import { NOTICE_SHAPES, noticeInSpanish } from "@/lib/i18n/noticeEs";
 
 const SAMPLE: Record<string, string> = {
   name: "Ana P.", name2: "Luc B.", q: "Mow the lawn", q2: "Rake leaves", place: "New Iberia", any: "Tue 10:00 PM",
-  cat: "yard_work", amount: "$20.00", amount2: "$45", date: "Fri, Nov 6", time: "10:00 PM", n: "2",
+  cat: "yard_work", amount: "$20.00", amount2: "$45", amount3: "$18.00", amount4: "$17.50", date: "Fri, Nov 6", time: "10:00 PM", n: "2",
 };
 const fill = (tpl: string, vals: Record<string, string>) => tpl.replace(/\{([a-z0-9]+)\}/g, (_, k: string) => vals[k]);
 
@@ -45,6 +47,24 @@ describe("F260q: server-written notices in Spanish", () => {
       expect(noticeInSpanish(fill(english, SAMPLE)), english).toBe(want);
       expect(want, english).not.toMatch(/\{[a-z0-9]+\}/);
     }
+  });
+
+  it("the reserved notice says who accepted, and a departed member reads as un exmiembro (Builder 1, 2de8d159fe / 4c82c8a040)", () => {
+    const tail = " Check out by Wed, Nov 11 at 2:00 PM to keep it: choose pickup or delivery, pick a day and time, and pay. Your card is not charged until you check out. If you miss it, the item goes back up for sale and that counts as a strike.";
+    const tailEs = " Pague antes del mié 11 nov a las 2:00 PM para quedárselo: elija recogida o entrega, escoja un día y una hora, y pague. No se le cobra a su tarjeta hasta que pague. Si no lo hace, el artículo vuelve a estar a la venta y eso cuenta como una falta.";
+    expect(noticeInSpanish("Reserved for you: check out in 24 hours")).toBe("Reservado para usted: pague en las próximas 24 horas");
+    expect(noticeInSpanish(`Sam S. accepted your $35.00 offer for "Lamp".${tail}`)).toBe(`Sam S. aceptó su oferta de $35.00 por "Lamp".${tailEs}`);
+    expect(noticeInSpanish(`The seller accepted your $35.00 offer for "Mirror".${tail}`)).toBe(`El vendedor aceptó su oferta de $35.00 por "Mirror".${tailEs}`);
+    expect(noticeInSpanish(`You accepted Sam S.'s $35.00 price for "Rug".${tail}`)).toBe(`Usted aceptó el precio de $35.00 de Sam S. por "Rug".${tailEs}`);
+    expect(noticeInSpanish(`You accepted the seller's $35.00 price for "Chair".${tail}`)).toBe(`Usted aceptó el precio de $35.00 del vendedor por "Chair".${tailEs}`);
+    expect(noticeInSpanish('Cal C. accepted your $35.00 price for "Desk". They have 24 hours to check out and pay. We\'ll tell you when they pay.'))
+      .toBe('Cal C. aceptó su precio de $35.00 por "Desk". Tiene 24 horas para pagar. Le avisaremos cuando pague.');
+    expect(noticeInSpanish('The buyer accepted your $35.00 price for "Rug". They have 24 hours to check out and pay. We\'ll tell you when they pay.'))
+      .toBe('El comprador aceptó su precio de $35.00 por "Rug". Tiene 24 horas para pagar. Le avisaremos cuando pague.');
+    expect(noticeInSpanish('You earned $4.00 from a former member\'s sale of "Lamp". It is on its way to your payout account.'))
+      .toBe('Ganó $4.00 de la venta de "Lamp" de un exmiembro. Va en camino a su cuenta de pagos.');
+    expect(noticeInSpanish('The handover of "Lamp" is done. $40.00 sale · $4.00 to a former member (10%) · $36.00 to you. We send your $36.00 once the sale is final, 24 hours after the handover, unless the buyer asks for a refund.'))
+      .toBe('La entrega de "Lamp" está hecha. Venta de $40.00 · $4.00 para un exmiembro (10 %) · $36.00 para usted. Le enviamos sus $36.00 cuando la venta sea definitiva, 24 horas después de la entrega, a menos que el comprador pida un reembolso.');
   });
 
   it("b1d's seller notices name the buyer, or a fallback word that is re-written too (lead 11-11)", () => {

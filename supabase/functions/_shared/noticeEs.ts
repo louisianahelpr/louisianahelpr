@@ -123,6 +123,8 @@ export const NOTICE_SHAPES: readonly Shape[] = [
   ["Payout account required", "Se necesita una cuenta de pagos"],
   ["Pick someone today", "Elija a alguien hoy"],
   ["Someone's buying your item", "Alguien está comprando su artículo"],
+  ["Reserved for you: check out in 24 hours", "Reservado para usted: pague en las próximas 24 horas"],
+  ["You earned a share", "Ganó una parte"],
   ["You received a tip!", "¡Recibió una propina!"],
   ["{name} tipped you {amount}", "{name} le dio una propina de {amount}"],
   ["Your tip didn't go through", "Su propina no se pudo cobrar"],
@@ -288,6 +290,22 @@ export const NOTICE_SHAPES: readonly Shape[] = [
   ['{name} claimed "{q}". They have 48 hours to choose a pickup.', '{name} pidió "{q}". Tiene 48 horas para elegir cómo recogerlo.'],
   ['{name} is checking out "{q}" for {amount}. It\'s held for them for 30 minutes. We\'ll tell you when they pay.', '{name} está pagando "{q}" por {amount}. Se le reserva por 30 minutos. Le avisaremos cuando pague.'],
   ['"{q}" is held for {name} at {amount}. They have 24 hours to check out and pay. We\'ll tell you when they pay.', '"{q}" está reservado para {name} por {amount}. Tiene 24 horas para pagar. Le avisaremos cuando pague.'],
+  // Builder 1's 2de8d159fe (HANDOFF-B1.md): declutter_take_item says WHO accepted. A seller's accept keeps "{name}
+  // accepted your offer"; a buyer's accept (a seller's counter, any Wanted reply) reads "You accepted {name}'s price".
+  // The fallbacks The seller / the seller's / The buyer are re-written by NAME_WORDS.
+  ['{name} accepted your {amount} offer for "{q}". Check out by {date} at {time} to keep it: choose pickup or delivery, pick a day and time, and pay. Your card is not charged until you check out. If you miss it, the item goes back up for sale and that counts as a strike.', '{name} aceptó su oferta de {amount} por "{q}". Pague antes del {date} a las {time} para quedárselo: elija recogida o entrega, escoja un día y una hora, y pague. No se le cobra a su tarjeta hasta que pague. Si no lo hace, el artículo vuelve a estar a la venta y eso cuenta como una falta.'],
+  ['You accepted {name}\'s {amount} price for "{q}". Check out by {date} at {time} to keep it: choose pickup or delivery, pick a day and time, and pay. Your card is not charged until you check out. If you miss it, the item goes back up for sale and that counts as a strike.', 'Usted aceptó el precio de {amount} de {name} por "{q}". Pague antes del {date} a las {time} para quedárselo: elija recogida o entrega, escoja un día y una hora, y pague. No se le cobra a su tarjeta hasta que pague. Si no lo hace, el artículo vuelve a estar a la venta y eso cuenta como una falta.'],
+  ['{name} accepted your {amount} price for "{q}". They have 24 hours to check out and pay. We\'ll tell you when they pay.', '{name} aceptó su precio de {amount} por "{q}". Tiene 24 horas para pagar. Le avisaremos cuando pague.'],
+  // The manager's share and the seller's handover notices (20261109224952). The departed-member scrub (Builder 1,
+  // 4c82c8a040) writes "a former member" into the {name} slot mid-message: NAME_WORDS re-writes it.
+  ['You earned {amount} from {name}\'s sale of "{q}". We send it once the sale is final, 24 hours after the handover, unless the buyer asks for a refund.', 'Ganó {amount} de la venta de "{q}" de {name}. Se lo enviamos cuando la venta sea definitiva, 24 horas después de la entrega, a menos que el comprador pida un reembolso.'],
+  ['You earned {amount} from {name}\'s sale of "{q}". Next: set up payouts in Settings to get it. We send it as soon as you do and the sale is final.', 'Ganó {amount} de la venta de "{q}" de {name}. Siguiente: configure sus pagos en Ajustes para recibirlo. Se lo enviamos en cuanto lo haga y la venta sea definitiva.'],
+  ['You earned {amount} from {name}\'s sale of "{q}". It is on its way to your payout account.', 'Ganó {amount} de la venta de "{q}" de {name}. Va en camino a su cuenta de pagos.'],
+  ['The handover of "{q}" is done. We send your {amount} once the sale is final, 24 hours after the handover, unless the buyer asks for a refund.', 'La entrega de "{q}" está hecha. Le enviamos sus {amount} cuando la venta sea definitiva, 24 horas después de la entrega, a menos que el comprador pida un reembolso.'],
+  ['The handover of "{q}" is done. Set up payouts in Settings to get your {amount}. We send it once the sale is final, 24 hours after the handover, unless the buyer asks for a refund.', 'La entrega de "{q}" está hecha. Configure sus pagos en Ajustes para recibir sus {amount}. Se los enviamos cuando la venta sea definitiva, 24 horas después de la entrega, a menos que el comprador pida un reembolso.'],
+  ['The handover of "{q}" is done. {amount} is on its way to your payout account.', 'La entrega de "{q}" está hecha. {amount} va en camino a su cuenta de pagos.'],
+  ['The handover of "{q}" is done. {amount} sale · {amount2} to {name} ({n}%) · {amount3} to you. We send your {amount4} once the sale is final, 24 hours after the handover, unless the buyer asks for a refund.', 'La entrega de "{q}" está hecha. Venta de {amount} · {amount2} para {name} ({n} %) · {amount3} para usted. Le enviamos sus {amount4} cuando la venta sea definitiva, 24 horas después de la entrega, a menos que el comprador pida un reembolso.'],
+  ['The handover of "{q}" is done. {amount} sale · {amount2} to {name} · {amount3} to you. We send your {amount4} once the sale is final, 24 hours after the handover, unless the buyer asks for a refund.', 'La entrega de "{q}" está hecha. Venta de {amount} · {amount2} para {name} · {amount3} para usted. Le enviamos sus {amount4} cuando la venta sea definitiva, 24 horas después de la entrega, a menos que el comprador pida un reembolso.'],
 ];
 
 const MONTHS: Record<string, string> = {
@@ -300,6 +318,7 @@ const DATE_RE = "(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),? (?:Jan|Feb|Mar|Apr|May|Jun|Ju
 const TOKEN_RE: Record<string, string> = {
   name: "(.+?)", name2: "(.+?)", q: "(.+)", q2: "(.+)", place: "(.+?)", any: "(.+?)", cat: "([a-z_]+)",
   amount: "(\\$[\\d,]+(?:\\.\\d{2})?)", amount2: "(\\$[\\d,]+(?:\\.\\d{2})?)",
+  amount3: "(\\$[\\d,]+(?:\\.\\d{2})?)", amount4: "(\\$[\\d,]+(?:\\.\\d{2})?)",
   date: `(${DATE_RE})`, time: "(\\d{1,2}:\\d{2} [AP]M)", n: "(\\d+)",
 };
 
@@ -315,6 +334,7 @@ const NAME_WORDS: Record<string, string> = {
   "a buyer": "un comprador",
   "someone": "alguien",
   "a former member": "un exmiembro",
+  "the seller": "el vendedor",
 };
 
 type Compiled = { re: RegExp; tokens: string[]; spanish: string };

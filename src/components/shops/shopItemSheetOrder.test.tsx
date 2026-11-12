@@ -6,7 +6,7 @@
  *
  * @mutate src/components/shops/ShopItemsList.tsx |           onOpen={orderable && sharesOrder ? setOpenId : undefined} /> |           onOpen={undefined} />
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const { qty, setQty } = useShopCart(); |   const [qty, setQty] = useState<Record<string, number>>({});
- * @mutate src/components/shops/ShopView.tsx |             variant="outline" |             variant="default"
+ * @mutate src/components/shops/ShopView.tsx |             variant="outline"\n            disabled={follow.isPending} |             variant="default"\n            disabled={follow.isPending}
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";

@@ -8,7 +8,7 @@
  *     start), a stock and on/off, and Save sends the lists and every combination.
  *
  * @mutate src/components/shops/ShopOrderSheet.tsx |         lines: chosen.map((l) => (l.variantId ? { item_id: l.item.id, variant_id: l.variantId, quantity: l.n } : { item_id: l.item.id, quantity: l.n })), |         lines: chosen.map((l) => ({ item_id: l.item.id, quantity: l.n })),
- * @mutate src/components/shops/ShopOrderSheet.tsx |       .map((v) => ({ item: i, variantId: v.id as string \| null, unit: v.price_cents, n: qty[lineKey(i.id, v.id)] })); |       .map((v) => ({ item: i, variantId: v.id as string \| null, unit: i.price_cents, n: qty[lineKey(i.id, v.id)] }));
+ * @mutate src/components/shops/shopCart.tsx |       .map((v) => ({ item: i, variantId: v.id as string \| null, unit: v.price_cents, n: qty[lineKey(i.id, v.id)] })); |       .map((v) => ({ item: i, variantId: v.id as string \| null, unit: i.price_cents, n: qty[lineKey(i.id, v.id)] }));
  * @mutate src/components/shops/ShopOrderOptions.tsx |         {variant && inStock && ( |         {variant && (
  * @mutate src/components/shops/ShopProfile.tsx | {withOptions?.has(item.id) ? `From ${formatItemPrice(item.price_cents)}` : formatItemPrice(item.price_cents)} | {formatItemPrice(item.price_cents)}
  * @mutate src/components/shops/ShopItemsList.tsx | withOptions={options.data} preorders={preorders.data} onOrder= | preorders={preorders.data} onOrder=

@@ -16,7 +16,7 @@
  *
  * @mutate supabase/functions/declutter-ai-draft/index.ts |   const { error: gateErr } = await anon.rpc("declutter_assert_can_draft_from_photos");\n  if (gateErr) {\n    // Includes the gate not deployed yet |   const gateErr = null as { message?: string } \| null;\n  if (gateErr) {\n    // Includes the gate not deployed yet
  * @mutate supabase/functions/declutter-ai-draft/index.ts | windowMs: 3_600_000, maxRequests: 30, keyPrefix: "declutter-ai-photos" | windowMs: 3_600_000, maxRequests: 3000, keyPrefix: "declutter-ai-photos"
- * @mutate supabase/functions/declutter-ai-draft/index.ts |   if (!photos) return json({ error: "item_photos_invalid" }, 400); |   if (!photos) return json({ error: "item_photos_invalid" }, 200);
+ * @mutate supabase/functions/declutter-ai-draft/index.ts | keyPrefix: "declutter-ai-photos" });\n  if (!hourly.allowed) return rateLimitResponse(hourly.retryAfter!, corsHeaders);\n  const photos = roomPhotosFromBody(body.photos);\n  if (!photos) return json({ error: "item_photos_invalid" }, 400); | keyPrefix: "declutter-ai-photos" });\n  if (!hourly.allowed) return rateLimitResponse(hourly.retryAfter!, corsHeaders);\n  const photos = roomPhotosFromBody(body.photos);\n  if (!photos) return json({ error: "item_photos_invalid" }, 200);
  * @mutate supabase/migrations/20261028155329_declutter_ai_draft_from_photos.sql |   PERFORM public.declutter_assert_member(true);\nEND; |   NULL;\nEND;
  */
 import { describe, expect, it } from "vitest";

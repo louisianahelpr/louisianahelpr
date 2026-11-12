@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1227,
+    "calls": 1230,
     "files": 356,
-    "rendering": 1146,
-    "suppressedByPolicy": 81,
+    "rendering": 1148,
+    "suppressedByPolicy": 82,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 10,
       "successToast": 2,
       "toast": 245,
-      "toast.error": 822,
+      "toast.error": 824,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 87,
+      "toast.success": 88,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
       "literal": 483,
       "template": 104,
-      "dynamic": 694,
+      "dynamic": 697,
       "jsx": 0
     }
   },
@@ -11931,7 +11931,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 164,
+      "line": 181,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11941,7 +11941,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 201,
+      "line": 218,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -11971,7 +11971,27 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 215,
+      "line": 231,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "failed === 1 ? \"1 photo didn't upload. Add it again under Photos.\" : `${failed} photos didn't upload. Add them again under Photos.`",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "1 photo didn't upload. Add it again under Photos."
+          },
+          {
+            "form": "template",
+            "text": "${failed} photos didn't upload. Add them again under Photos."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 246,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11981,7 +12001,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 227,
+      "line": 258,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11991,7 +12011,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 233,
+      "line": 264,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12001,7 +12021,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 238,
+      "line": 269,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12011,7 +12031,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 248,
+      "line": 277,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -12031,7 +12051,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 254,
+      "line": 287,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12041,7 +12061,37 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 275,
+      "line": 296,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "s.flagged ? \"Suggested. Our checks may send this item to an admin before it's listed.\" : \"Suggested from your photos. Check it, then save.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Suggested. Our checks may send this item to an admin before it's listed."
+          },
+          {
+            "form": "literal",
+            "text": "Suggested from your photos. Check it, then save."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 302,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 323,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -12311,7 +12361,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 186,
+      "line": 170,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12321,7 +12371,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 218,
+      "line": 202,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12419,7 +12469,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 80,
+      "line": 82,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12429,7 +12479,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 85,
+      "line": 87,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -12449,7 +12499,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 88,
+      "line": 90,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12459,7 +12509,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 188,
+      "line": 193,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -40,7 +40,7 @@
  * @mutate src/components/shops/ShopItemEditor.tsx |   const price = x.price.replace(/[$,\s]/g, ""); |   const price = x.price.replace(/[$\s]/g, "");
  * @mutate src/components/shops/ShopItemEditor.tsx |     if (field) {\n      setFieldError({ field, msg: shopsErrorMessage(err) }); |     if (false) {\n      setFieldError({ field, msg: shopsErrorMessage(err) });
  * @mutate src/components/shops/ShopItemEditor.tsx |     enabled: !!id && (status === "rejected" \|\| status === "draft"), |     enabled: !!id && status === "rejected",
- * @mutate src/components/shops/ShopItemEditor.tsx |       if (s.kind !== d.kind \|\| s.subtype !== d.subtype) setTicked([]); |       if (false) setTicked([]);
+ * @mutate src/components/shops/ShopItemEditor.tsx |       // A new kind or type asks for its own confirmations (review nit 9).\n      if (s.kind !== d.kind \|\| s.subtype !== d.subtype) setTicked([]); |       // A new kind or type asks for its own confirmations (review nit 9).\n      if (false) setTicked([]);
  * @mutate src/components/shops/ShopDailyCap.tsx |   const clearing = shown.trim() === "" && cap.data != null; |   const clearing = false;
  * @mutate src/components/shops/ShopDailyCap.tsx |       return setDailyOrderCap(shown.trim() === "" ? null : Number(shown)); |       return setDailyOrderCap(Number(shown));
  * @mutate src/components/shops/ShopProfile.tsx |                 {item.home_kitchen && ( |                 {false && (

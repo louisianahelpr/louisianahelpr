@@ -17008,6 +17008,21 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_activity_money: { Args: { p_cents: number }; Returns: string }
+      admin_activity_name: { Args: { p_user: string }; Returns: string }
+      admin_activity_notice: {
+        Args: {
+          p_actor: string
+          p_bulk?: string
+          p_kind: string
+          p_link: string
+          p_message: string
+          p_other: string
+          p_title: string
+        }
+        Returns: string
+      }
+      admin_activity_order_title: { Args: { p_order: string }; Returns: string }
       admin_set_feature_switch: {
         Args: { p_audience: string; p_key: string }
         Returns: string

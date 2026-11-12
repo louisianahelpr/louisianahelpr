@@ -3,7 +3,8 @@ import { useStepTooltip } from "@/hooks/useStepTooltip";
 import { JOB_PROGRESS_STEPS, JOB_TRACKER_FIRST } from "@/components/tracker/jobProgressSteps";
 import type { JobProgressState, Stage, StepTone } from "@/components/tracker/jobProgressState";
 import "@/lib/i18n/enJobSteps";
-import { t } from "@/lib/i18n/language";
+import { getLang, t } from "@/lib/i18n/language";
+import { problemShort, stepWord } from "@/components/tracker/stepWords";
 import type { MsgKey } from "@/lib/i18n/en";
 
 /** A step's full name and its drawn (soft-hyphenated) name in the member's language (F260q, enJobSteps). */
@@ -62,11 +63,9 @@ const TEXT: Record<StepState, string> = {
   todo: "text-muted-foreground",
 };
 
-/** One problem word at every width, short enough for its column at 375 (JOBS2-38: "Overdue" at 1440 and "Late" at 375 for one step). The aria sentence keeps the full word. */
-const PROBLEM_SHORT: Record<string, string> = { "No-show?": "No-show", Overdue: "Late", "Running late": "Late", Dispute: "Issue" };
 
 /** "Oct 22, 3:00 PM": when a done step happened. */
-const stampText = (ts: string) => new Date(ts).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+const stampText = (ts: string) => new Date(ts).toLocaleString(getLang() === "es" ? "es-US" : "en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /** The six drawn steps (Hired … Done) with their index into JOB_PROGRESS_STEPS. */
 const DRAWN_STEPS = JOB_PROGRESS_STEPS.map((full, i) => ({ full, i })).slice(JOB_TRACKER_FIRST);
@@ -76,13 +75,13 @@ export function jobStepsLabel(stage: Stage, waitingOnYou: boolean, tone: StepTon
   const steps = JOB_PROGRESS_STEPS.slice(JOB_TRACKER_FIRST).map((_, k) => stepName(k + JOB_TRACKER_FIRST));
   const n = steps.length;
   const at = stage - JOB_TRACKER_FIRST;
-  if (tone === "cancelled") return t("js.aria.cancelled", { label: label ?? t("js.cancelled") });
+  if (tone === "cancelled") return t("js.aria.cancelled", { label: label ? stepWord(label) : t("js.cancelled") });
   if (at >= n) return t("js.aria.allDone", { n, steps: steps.join(", ") });
   const done = steps.slice(0, Math.max(0, at));
   const later = steps.slice(at + 1);
-  const where = tone === "problem" ? (label ? t("js.aria.needsWord", { label }) : t("js.aria.needs")) : waitingOnYou ? t("js.aria.you") : t("js.aria.them");
+  const where = tone === "problem" ? (label ? t("js.aria.needsWord", { label: stepWord(label) }) : t("js.aria.needs")) : waitingOnYou ? t("js.aria.you") : t("js.aria.them");
   return [
-    tone === "progress" && label ? t("js.aria.atWord", { at: at + 1, n, step: steps[at], label, where }) : t("js.aria.at", { at: at + 1, n, step: steps[at], where }),
+    tone === "progress" && label ? t("js.aria.atWord", { at: at + 1, n, step: steps[at], label: stepWord(label), where }) : t("js.aria.at", { at: at + 1, n, step: steps[at], where }),
     done.length ? t("js.aria.done", { steps: done.join(", ") }) : "",
     later.length ? t("js.aria.later", { steps: later.join(", ") }) : "",
   ].filter(Boolean).join(" ");
@@ -110,7 +109,7 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
             the one word says where it stands. */}
         <span className="flex items-center gap-1 text-ds-11 font-semibold leading-tight text-muted-foreground" aria-hidden="true">
           <XCircle className="h-3 w-3 shrink-0" />
-          {label ?? t("js.cancelled")}
+          {label ? stepWord(label) : t("js.cancelled")}
         </span>
       </div>
     );
@@ -146,7 +145,7 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
         // line with the full step name the wider tracker shows: "Arrived: what this step is waiting on". A problem
         // step's drawn word ("Late", "No-show") leads, since it replaces the step name on screen.
         // F274: a progress step's own word ("Fix" while a fix is asked for) replaces its name on the current step too.
-        const problemWord = (s === "problem" || s === "alarm") && label ? PROBLEM_SHORT[label] ?? label : (s === "you" || s === "them") && label ? label : null;
+        const problemWord = (s === "problem" || s === "alarm") && label ? problemShort(label) : (s === "you" || s === "them") && label ? stepWord(label) : null;
         const named = problemWord ? `${problemWord}, ${stepName(i)}` : stepName(i);
         const body = (
           <>
@@ -226,7 +225,7 @@ export function JobProgress({ progress, compact = false, barOnly = false, noLine
 }) {
   // Before a hire (Posted, Offered) the six-step bar draws nothing; a cancelled job still draws its one word.
   const drawsBar = progress.stage !== null && (progress.stage >= JOB_TRACKER_FIRST || progress.tone === "cancelled");
-  const line = barOnly || noLine ? "" : progress.next || (!drawsBar ? progress.word : "");
+  const line = barOnly || noLine ? "" : progress.next || (!drawsBar && progress.word ? stepWord(progress.word) : "");
   if (!drawsBar && !line) return null;
   return (
     <div data-job-progress="" className="job-steps space-y-1.5">
@@ -245,7 +244,7 @@ export function JobProgress({ progress, compact = false, barOnly = false, noLine
         <p data-job-progress-next="" className={`${compact ? "text-ds-12" : "text-ds-13"} text-muted-foreground`}>
           {!drawsBar && progress.word && progress.next ? (
             <>
-              <span className="font-semibold text-foreground">{progress.word}</span> · {progress.next}
+              <span className="font-semibold text-foreground">{stepWord(progress.word)}</span> · {progress.next}
             </>
           ) : (
             line

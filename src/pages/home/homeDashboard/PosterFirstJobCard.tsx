@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { ChecklistProgress } from "./FirstJobHome";
+import "@/lib/i18n/enHome";
+import { useLanguage } from "@/lib/i18n/language";
 
 /** The poster's side of the first week (UX-5, owner approved 10-29): read from the member's own posted jobs. */
 export interface PosterFirstJobState {
@@ -48,15 +50,16 @@ export function usePosterFirstJob(userId: string | undefined, enabled = true) {
 export function PosterFirstJobCard({ userId }: { userId: string | undefined }) {
   const navigate = useNavigate();
   const { data } = usePosterFirstJob(userId);
+  const { t } = useLanguage();
   if (!data || !data.posted || data.finished) return null;
   const steps = [
-    { key: "post", label: "Post your first job", done: true, go: () => navigate("/posts") },
-    { key: "hire", label: "Hire a Helpr", done: data.hired, go: () => navigate("/posts") },
-    { key: "approve", label: "Approve the work when it's done", done: false, go: () => navigate("/posts") },
+    { key: "post", label: t("home.pf.post"), done: true, go: () => navigate("/posts") },
+    { key: "hire", label: t("home.pf.hire"), done: data.hired, go: () => navigate("/posts") },
+    { key: "approve", label: t("home.pf.approve"), done: false, go: () => navigate("/posts") },
   ];
   return (
-    <section aria-label="Your first job posted" data-testid="poster-first-job" className="flex flex-col gap-1 px-1">
-      <ChecklistProgress title="Your first job posted" steps={steps} />
+    <section aria-label={t("home.pf.title")} data-testid="poster-first-job" className="flex flex-col gap-1 px-1">
+      <ChecklistProgress title={t("home.pf.title")} steps={steps} />
     </section>
   );
 }

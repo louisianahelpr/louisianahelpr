@@ -13,35 +13,38 @@ import { GroupRow } from "@/components/sections/StatusBoxes";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { hapticMedium } from "@/lib/haptics";
 import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
+import "@/lib/i18n/enHome";
+import { useLanguage } from "@/lib/i18n/language";
 
 const ICON = "w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-muted";
 
 export function WelcomeCard({ sell }: { sell: boolean }) {
   const navigate = useNavigate();
   const gate = useAgeGate();
+  const { t } = useLanguage();
   const post = () => { hapticMedium(); navigate("/post-job"); };
   return (
     <section data-testid="home-welcome" aria-labelledby="home-welcome-title" className="flex flex-col gap-2">
-      <h2 id="home-welcome-title" className="font-moment text-ds-22 leading-tight text-foreground px-1">What brings you here?</h2>
+      <h2 id="home-welcome-title" className="font-moment text-ds-22 leading-tight text-foreground px-1">{t("home.wc.title")}</h2>
       <div className="liquid-glass flex flex-col overflow-hidden">
         <GroupRow
           leading={<span aria-hidden className={ICON}><Briefcase className="w-5 h-5 text-primary" /></span>}
-          title="Post a job"
-          meta="Get help from a neighbor"
+          title={t("home.wc.post")}
+          meta={t("home.wc.postMeta")}
           onClick={gate.gate("post", post)}
         />
         <GroupRow
           leading={<span aria-hidden className={ICON}><Search className="w-5 h-5 text-primary" /></span>}
-          title="Find work near me"
-          meta="See the jobs posted near you"
+          title={t("home.wc.find")}
+          meta={t("home.wc.findMeta")}
           onClick={() => navigate("/jobs")}
           last={!sell}
         />
         {sell && (
           <GroupRow
             leading={<span aria-hidden className={ICON}><Sofa className="w-5 h-5 text-primary" /></span>}
-            title="Sell something"
-            meta="List an item on Declutter"
+            title={t("home.wc.sell")}
+            meta={t("home.wc.sellMeta")}
             onClick={() => navigate(SELL_CHOOSER_PATH)}
             last
           />

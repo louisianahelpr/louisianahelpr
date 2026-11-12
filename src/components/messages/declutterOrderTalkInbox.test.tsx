@@ -29,9 +29,9 @@
  * @mutate src/components/messages/ConversationListBody.tsx |               {orderTalks && orderTalks.error != null && !selectMode && !isSpecialFilterView && ( |               {false && (
  * @mutate src/components/messages/ConversationListBody.tsx |               {orderTalks && <OrderTalkFromLink />} |               {null}
  * @mutate src/components/messages/ConversationListBody.tsx |               {!showAllConvos && items.length > CONVO_LIMIT && ( |               {!showAllConvos && filteredConversations.length > CONVO_LIMIT && (
- * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx |   return row.last_mine ? "You wrote |   return !row.last_mine ? "You wrote
+ * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx |   if (row.last_mine) return t("msg.ot.youLast"); |   if (!row.last_mine) return t("msg.ot.youLast");
  * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx | text-muted-foreground line-clamp-2 [overflow-wrap:anywhere]" data-order-talk-line="" | text-muted-foreground truncate" data-order-talk-line=""
- * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx | {row.side === "buyer" ? "You bought this" : "You sold this"} | {"You bought this"}
+ * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx | {row.side === "buyer" ? t("msg.ot.bought") : t("msg.ot.sold")} | {t("msg.ot.bought")}
  * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx |                   {!row.open && <span |                   {false && <span
  * @mutate src/components/messages/DeclutterOrderTalkInbox.tsx |     next.set("order_talk", orderId); |     next.set("talk", orderId);
  */

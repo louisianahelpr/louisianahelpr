@@ -34,7 +34,7 @@ describe("Q1695: /declutter's loading frame draws the page's own phone header ro
     const slot = r.container.querySelector("[data-slot='tabs']") as HTMLElement;
     expect(slot.children).toHaveLength(1);
     // Q2705 (11-09): the real row's box, a pb-2 row around a pb-1 row of 40px chips (44 + 8 = 52px, as measured).
-    expect((slot.children[0] as HTMLElement).className).toMatch(/\bpb-2\b/);
+    expect((slot.children[0] as HTMLElement).className).toMatch(/\bpb-0\b/); // owner 11-12: CHIPS_ROW_PAD, as Browse's row
     expect(slot.children[0].children).toHaveLength(1);
     const chips = Array.from(slot.children[0].children[0].children) as HTMLElement[];
     expect(chips.length).toBeGreaterThan(1);

@@ -502,7 +502,7 @@ describe("Declutter location ask", () => {
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: mapShown && others.length > 0 }); |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: others.length > 0 });
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |   } else if (!desktop && mapShown) { |   } else if (false) {
     // @mutate src/components/declutter/DeclutterHomeView.tsx |         <SectionTabs label="Declutter view" value={view} onChange={goTab} tabs= |         <SectionTabs label="Declutter view" value={view} onChange={goTab} onlySelected tabs=
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx |         chips: chipRow ? <div data-declutter-chips-row="" className="pb-2">{chipRow}</div> : listLoading && !items.isError ? <DeclutterChipBones /> : null, |         chips: null,
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx |         chips: chipRow ? <div data-declutter-chips-row="" className={CHIPS_ROW_PAD}>{chipRow}</div> : listLoading && !items.isError ? <DeclutterChipBones /> : null, |         chips: null,
     twoItems();
     pins.reads = 0;
     try {

@@ -41,7 +41,9 @@ export function DeclutterCategoryChips({ items, value, onChange, free = false, o
     const n = new Map<string, number>();
     for (const i of items) n.set(i.category, (n.get(i.category) ?? 0) + 1);
     const order = new Map(CATEGORIES.map((c, i) => [c.key, i]));
-    const keys = [...n.keys()].filter((k) => CATEGORY_LABEL[k]);
+    // OWNER 11-12 (iPhone, both Browses empty): the row is there even with nothing listed, as Jobs' All / Home / Moving
+    // & errands is, so the two Browses keep one layout. With no items, All and the first three categories show.
+    const keys = items.length === 0 ? CATEGORIES.slice(0, 3).map((c) => c.key) : [...n.keys()].filter((k) => CATEGORY_LABEL[k]);
     if (value && CATEGORY_LABEL[value] && !n.has(value)) keys.push(value);
     // L021 (landing audit 11-09): "Other" sat mid-row among the real categories (it sorted by count like them). It is
     // always the last chip.

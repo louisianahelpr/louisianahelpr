@@ -16,13 +16,11 @@
  * @mutate src/components/sections/SectionTabs.tsx |   const denser = options.length >= DENSER_TAB_COUNT; |   const denser = false;
  * @mutate src/index.css |     font-size: clamp(11px, 3.3vw, 13px); |     font-size: 13px;
  * @mutate src/components/sections/SectionTabs.tsx | denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : dense | dense
- * @mutate src/components/sections/SectionTabs.tsx | {more && !onlySelected && ( | {false && (
- * @mutate src/components/sections/SectionTabs.tsx | list.scrollWidth - list.clientWidth - list.scrollLeft > 2 | list.scrollWidth - list.clientWidth > 2
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { SectionTabs, DENSE_TAB_COUNT, DENSER_TAB_COUNT } from "@/components/sections/SectionTabs";
 
 const five = [
@@ -53,20 +51,12 @@ describe("five section tabs fit a phone (A3-6)", () => {
     expect(screen.getByRole("tablist").className).not.toMatch(/section-tabs-denser/);
   });
 
-  it("a row that does not fit shows a chevron until the end is reached; a row that fits has none", () => {
-    const { unmount } = render(<SectionTabs label="Declutter view" tabs={[...five, { value: "free", label: "Free" }]} value="free" onChange={() => {}} />);
-    const list = screen.getByRole("tablist");
-    expect(list.hasAttribute("data-tabs-more")).toBe(false);
-    unmount();
+  it("a row that does not fit is one scroll strip with no 'more' pill (owner 11-12)", () => {
     const width = vi.spyOn(Element.prototype, "scrollWidth", "get").mockReturnValue(342);
     const client = vi.spyOn(Element.prototype, "clientWidth", "get").mockReturnValue(287);
     render(<SectionTabs label="Declutter view" tabs={[...five, { value: "free", label: "Free" }]} value="free" onChange={() => {}} />);
-    const over = screen.getByRole("tablist");
-    expect(over.hasAttribute("data-tabs-more")).toBe(true);
-    expect(screen.getByRole("button", { name: /^\d+ more tabs$/ })).toBeInTheDocument();
-    over.scrollLeft = 55;
-    fireEvent.scroll(over);
-    expect(over.hasAttribute("data-tabs-more")).toBe(false);
+    expect(screen.getByRole("tablist").hasAttribute("data-tabs-strip")).toBe(true);
+    expect(screen.queryByRole("button", { name: /more tabs/ })).toBeNull();
     width.mockRestore();
     client.mockRestore();
   });

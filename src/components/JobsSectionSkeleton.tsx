@@ -10,6 +10,7 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { jobChipsRowSeen } from "@/lib/jobChipsSeen";
 import { EmptyStateSkeleton, useCachedListCount } from "@/components/ui/skeletons/EmptyStateSkeleton";
 import type { AppliedActivity, PostedActivity } from "@/hooks/useActivityData";
+import { SEARCH_BAR_PAD } from "@/components/sections/browseHeaderSpacing";
 
 /**
  * ONE silhouette for the Jobs section (/jobs: Browse | Posted | Working), in
@@ -58,7 +59,7 @@ function JobsHeaderBones({ chips = false }: { chips?: boolean }) {
                 </span>
               </div>
             </div>
-            <div className="pb-2 min-w-0">
+            <div className={`${SEARCH_BAR_PAD} min-w-0`}>
               <Skeleton className="h-11 w-full rounded-full" />
             </div>
           </>
@@ -161,6 +162,7 @@ function BrowseFrame({ header }: { header: ReactNode }) {
     <PageScaffold
       animate
       tightGutter
+      tightPanelGap
       panelElevation="raised"
       // No search row under the tabs on any width (owner 2026-10-28): Browse's search is an icon in the tabs row.
       titleCard={header}

@@ -14,7 +14,7 @@
  * and the photo on the right, and the search is its own full-width row right under the bar; Messages is a bottom-bar
  * tab, so it left the bell. The rest (My Declutter, the chips, the + Sell pill) stands.
  *
- * @mutate src/components/sections/AppTopBar.tsx |         {search && <div data-testid="app-top-bar-search" className="pb-2 min-w-0">{search}</div>} | {null}
+ * @mutate src/components/sections/AppTopBar.tsx |         {search && <div data-testid="app-top-bar-search" className={`${SEARCH_BAR_PAD} min-w-0`}>{search}</div>} | {null}
  * @mutate src/components/sections/AppTopBar.tsx | <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> | <h1 className="sr-only">{title}</h1>
  * @mutate src/components/sections/AppTopBar.tsx |           onClick={() => { if (mine) { setMineAsked(true); setMineOpen(true); } else navigate("/profile"); }} |           onClick={() => navigate("/profile")}
  * @mutate src/components/sections/AppTopBar.tsx |           {mineToDo > 0 && <span data-top-bar-badge="mine" | {false && <span data-top-bar-badge="mine"

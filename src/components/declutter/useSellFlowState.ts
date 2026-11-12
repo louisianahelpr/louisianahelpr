@@ -309,7 +309,7 @@ export function useSellFlowState(urlItemId: string | null) {
     }
     const choice = priceChoiceToSave(form);
     if (!choice) {
-      toast.error("Set a price between $1 and $1,000.");
+      toast.error(tr("sf.t.priceRange"));
       return null;
     }
     setSaving(true);
@@ -336,7 +336,7 @@ export function useSellFlowState(urlItemId: string | null) {
         if (!form.free && dropLoadedFor.current === itemId) await setDropPct(itemId, choice.dropPct);
         // A new listing's second Post: only the photos that failed go up again.
         if (!urlItemId && waiting.length > 0) await uploadHeld(itemId, waiting);
-        if (urlItemId) toast("Saved.");
+        if (urlItemId) toast(tr("sf.t.saved"));
         void qc.invalidateQueries({ queryKey: ["declutter"] });
         return itemId;
       }
@@ -379,7 +379,7 @@ export function useSellFlowState(urlItemId: string | null) {
       const posted = err as { message?: unknown; itemId?: unknown; userMessage?: unknown } | null;
       if (posted?.message === "already_posted" && typeof posted.itemId === "string") {
         void keptWork.finish();
-        toast(String(posted.userMessage ?? "Already posted."));
+        toast(String(posted.userMessage ?? tr("sf.t.alreadyPosted")));
         navigate(`/declutter/item/${posted.itemId}`);
         return null;
       }
@@ -449,7 +449,7 @@ export function useSellFlowState(urlItemId: string | null) {
     if (!files) return;
     const room = MAX_PHOTOS - photoCount - held.length;
     const list = Array.from(files).slice(0, Math.max(0, room));
-    if (files.length > room) toast.error("A listing can have up to 12 photos.");
+    if (files.length > room) toast.error(tr("sf.t.maxPhotos"));
     if (!itemId) {
       // Each is tried now, so one that can't be used is said at once, on the screen, instead of being lost at Post.
       const good: File[] = [];
@@ -493,9 +493,9 @@ export function useSellFlowState(urlItemId: string | null) {
       await run();
     } catch (err) {
       const where = setting === "keepUp"
-        ? 'You can turn on "Keep it up" from Manage listing.'
-        : setting === "offers" ? "You can turn offers off from Manage listing."
-        : setting === "trades" ? "You can turn trades on from Manage listing." : "You can choose when it becomes free from Manage listing.";
+        ? tr("sf.t.whereKeepUp")
+        : setting === "offers" ? tr("sf.t.whereOffers")
+        : setting === "trades" ? tr("sf.t.whereTrades") : tr("sf.t.whereFree");
       toast.error(`${declutterErrorMessage(err)} ${where}`);
     }
   }
@@ -505,7 +505,7 @@ export function useSellFlowState(urlItemId: string | null) {
   /** `withoutFailed`: the seller's own choice to post with the photos that went up. */
   async function onPublish({ withoutFailed = false }: { withoutFailed?: boolean } = {}) {
     if (!attested) {
-      toast.error("Tick the box about this item before you list it.");
+      toast.error(tr("sf.tickBox"));
       return;
     }
     setPublishing(true);
@@ -559,16 +559,16 @@ export function useSellFlowState(urlItemId: string | null) {
         try {
           const out = await answerAfterListing(answer, id, status, form.free ? null : dollarsToCents(form.price));
           if (out.kind === "sent") {
-            toast(`Listed and sent at ${formatPrice(out.cents)}. They have 48 hours to accept.`);
+            toast(tr("sf.t.sentAt", { price: formatPrice(out.cents) }));
             navigate("/declutter?view=wanted");
             return;
           }
           toast(out.kind === "checking"
-            ? "Listed. We're checking it first; answer their Wanted from Wanted near you once it's live."
-            : "Listed for free. A free listing can't answer a Wanted; they can find it in Browse.");
+            ? tr("sf.t.checking")
+            : tr("sf.t.freeNoWanted"));
         } catch (err) {
           // The listing is live; only the answer failed. Said, and the seller can answer from Wanted near you.
-          toast.error(`Listed, but the answer wasn't sent: ${declutterErrorMessage(err)}`);
+          toast.error(tr("sf.t.answerFailed", { why: declutterErrorMessage(err) }));
         }
       }
       // Board 80: the Selling tab opens the "What next" sheet (ListedWhatNext) instead of a toast.

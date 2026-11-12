@@ -64,4 +64,6 @@ export const esListingParts: Record<keyof typeof enListingParts, string> = {
   "lp.dayShort.4": "jue",
   "lp.dayShort.5": "vie",
   "lp.dayShort.6": "sáb",
+  "lp.placesFirstFree": "Usted tiene lugares de recogida guardados, así que quien lo reciba elige uno y recibe esa dirección, no la de abajo.",
+  "lp.placesFirst": "Usted tiene lugares de recogida guardados. Un comprador que elige recoger en el porche o entrega por un Helpr elige uno y recibe esa dirección, no la de abajo.",
 };

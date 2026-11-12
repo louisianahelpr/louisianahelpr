@@ -26,6 +26,8 @@ import { PickupTimesEditor, pickupWindowsProblem, placeHoursLine } from "./Declu
 import { SellerAddressField } from "./SellerAddressField";
 import { NO_CITY_IN_ADDRESS } from "./sellForm";
 import { useExactAddressPoint } from "./useExactAddressPoint";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 /**
  * `saved`: a saved place's own point. Kept while its address is unchanged, so editing its hours moves nothing buyers rely on.
@@ -206,8 +208,8 @@ export function SavedPlacesComeFirst({ free }: { free: boolean }) {
   return (
     <p className="rounded-[14px] border border-border bg-card px-3 py-2.5 text-ds-13 text-foreground" data-saved-places-first="">
       {free
-        ? "You have saved pickup places, so the person who gets this picks one and gets that address, not the one below."
-        : "You have saved pickup places. A buyer choosing porch pickup or Helpr delivery picks one and gets that address, not the one below."}
+        ? t("lp.placesFirstFree")
+        : t("lp.placesFirst")}
     </p>
   );
 }

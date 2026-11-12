@@ -71,6 +71,8 @@ export const enListingParts = {
   "lp.dayShort.4": "Thu",
   "lp.dayShort.5": "Fri",
   "lp.dayShort.6": "Sat",
+  "lp.placesFirstFree": "You have saved pickup places, so the person who gets this picks one and gets that address, not the one below.",
+  "lp.placesFirst": "You have saved pickup places. A buyer choosing porch pickup or Helpr delivery picks one and gets that address, not the one below.",
 } as const;
 
 addEnglish(enListingParts);

@@ -13,8 +13,10 @@ import { FallbackImg } from "./FallbackImg";
 import { bunchPhotoDrag } from "./bunchPhotoDrag";
 import { Input } from "@/components/ui/input";
 import { ListRow } from "@/components/ui/ListRow";
+import "@/lib/i18n/enDeclutter";
 import "@/lib/i18n/enListingParts";
 import { t } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 
 export function BunchRow({ item, index, url, open, nextPriceId, canDrop, onToggleOpen, onPrice, onPhotoDrop, children }: {
   item: BunchItem;
@@ -69,7 +71,7 @@ export function BunchRow({ item, index, url, open, nextPriceId, canDrop, onToggl
           </span>
           <span className="min-w-0 flex-1">
             <span id={nameId} className="block break-words text-ds-14 font-semibold">{name}</span>
-            <span className="block truncate text-ds-12 text-muted-foreground">{CATEGORY_LABEL[item.category] ?? "Other"} · {CONDITION_LABEL[item.conditionStars]}</span>
+            <span className="block truncate text-ds-12 text-muted-foreground">{CATEGORY_LABEL[item.category] ? t(`decl.cat.${item.category}` as MsgKey) : t("decl.cat.other")} · {CONDITION_LABEL[item.conditionStars] ? t(`decl.cond.${item.conditionStars}` as MsgKey) : ""}</span>
             {!open && problem && <span className="block truncate text-ds-12 font-medium text-foreground" data-bunch-row-problem="">{problem}</span>}
           </span>
           <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />

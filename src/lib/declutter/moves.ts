@@ -14,6 +14,8 @@ import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { daysBetween, formatMoveDate, louisianaToday } from "@/lib/declutter/moveDates";
 import { attestItem, publishItem, requestAiCheckWithRetry, type DeclutterStatus, type DeliverySize } from "@/lib/declutter/api";
 import { setupFeeRefusal } from "@/lib/declutter/setupFee";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 // The calendar helpers live in moveDates.ts (shared with the banner).
 export { daysBetween, formatMoveDate, louisianaToday };
@@ -26,13 +28,13 @@ const MOVE_DATE_MAX_DAYS = 180;
  */
 export const AI_CHECK_GAP_MS = 5_250;
 
-/** What is wrong with a move-out date, in plain words, or null. Mirrors declutter_move_out_date_problem. */
+/** What is wrong with a move-out date, in plain words (the member's language), or null. Mirrors declutter_move_out_date_problem. */
 export function moveDateProblem(date: string, today: string): string | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "Pick your move-out date.";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return t("lp.mv.datePick");
   const d = daysBetween(today, date);
-  if (Number.isNaN(d)) return "Pick your move-out date.";
-  if (d < 0) return "Your move-out date can't be in the past.";
-  if (d > MOVE_DATE_MAX_DAYS) return "Pick a move-out date within the next 6 months.";
+  if (Number.isNaN(d)) return t("lp.mv.datePick");
+  if (d < 0) return t("lp.mv.datePast");
+  if (d > MOVE_DATE_MAX_DAYS) return t("lp.mv.dateFar");
   return null;
 }
 

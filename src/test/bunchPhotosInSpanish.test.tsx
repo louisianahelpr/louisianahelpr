@@ -11,6 +11,10 @@
  * @mutate src/components/declutter/DeclutterBunchBar.tsx | onClick={onUndo}>{t("lp.bb.undo")}</Button> | onClick={onUndo}>Undo</Button>
  * @mutate src/components/declutter/DeclutterBunchBar.tsx | : t("lp.bb.nextN", { n: readyCount })}</Button> | : `Next: list ${readyCount} items`}</Button>
  * @mutate src/components/declutter/DeclutterBunchBar.tsx | {listingProgressLine(listing.done, listing.total, runNames)} {t("lp.bb.keepOpen")} | {listingProgressLine(listing.done, listing.total, runNames)} Keep this page open.
+ * @mutate src/components/declutter/DeclutterBunchRow.tsx | {CATEGORY_LABEL[item.category] ? t(`decl.cat.${item.category}` as MsgKey) : t("decl.cat.other")} | {CATEGORY_LABEL[item.category] ?? "Other"}
+ * @mutate src/components/declutter/DeclutterBunchRow.tsx | {CONDITION_LABEL[item.conditionStars] ? t(`decl.cond.${item.conditionStars}` as MsgKey) : ""} | {CONDITION_LABEL[item.conditionStars]}
+ *
+ * The row's category and condition words come from enDeclutter's decl.cat.* / decl.cond.* (spanish12).
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -22,6 +26,7 @@ import { blankItem } from "@/lib/declutter/bunch";
 import { BunchPhotos } from "@/components/declutter/DeclutterBunchPhotos";
 import { BunchPileCard } from "@/components/declutter/DeclutterBunchPile";
 import { BunchBar } from "@/components/declutter/DeclutterBunchBar";
+import { BunchRow } from "@/components/declutter/DeclutterBunchRow";
 
 const noop = () => {};
 const show = () => render(
@@ -70,5 +75,23 @@ describe("Sell a bunch's photos, pile and bar follow the member's language (F260
     }
     expect(screen.getByRole("button", { name: "Elegir Lamp, foto 2" })).toBeTruthy();
     expect(container.textContent).not.toMatch(/Cover|Add photo|not sorted|Sort again|Keep this page|Undo|Next: list/);
+  });
+
+  it("the row's category and condition follow the member's language", async () => {
+    const row = (category: string) => {
+      cleanup();
+      const item = { ...blankItem(["p1"]), title: "Lamp", category, conditionStars: 4 };
+      render(<ul><BunchRow item={item} index={0} url={undefined} open={false} nextPriceId={null} canDrop={false}
+        onToggleOpen={() => {}} onPrice={() => {}} onPhotoDrop={() => {}}>{null}</BunchRow></ul>);
+      return document.body.textContent ?? "";
+    };
+    expect(row("furniture")).toContain("Furniture · Lightly used");
+    expect(row("nonsense")).toContain("Other · Lightly used");
+    setLang("es");
+    await ensureLangLoaded();
+    expect(row("furniture")).toContain(`${es["decl.cat.furniture"]} · ${es["decl.cond.4"]}`);
+    expect(row("nonsense")).toContain(`${es["decl.cat.other"]} · ${es["decl.cond.4"]}`);
+    expect(es["decl.cat.other"]).not.toBe("Other");
+    expect(es["decl.cond.4"]).not.toBe("Lightly used");
   });
 });

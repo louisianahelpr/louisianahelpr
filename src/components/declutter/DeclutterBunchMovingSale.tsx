@@ -16,7 +16,7 @@ import { fetchMyMoveItems, fetchMyMoveOutDate, formatMoveDate, moveDateProblem, 
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { MovingSaleDetails } from "./DeclutterMovingSaleDetails";
 import "@/lib/i18n/enListingParts";
-import { t } from "@/lib/i18n/language";
+import { getLang, t } from "@/lib/i18n/language";
 
 /** Sell a bunch's intro; the moving sale gets its own (audit 11-10 F343: the two pages opened word for word alike). */
 // Audit 11-10 F339: one short line (it was three long sentences before the seller had done anything). Words: lp.mv.*.
@@ -71,7 +71,7 @@ export function BunchMovingSale({ userId, date, setDate, today }: { userId: stri
       {problem && <p className="text-xs text-destructive-ink" role="status" data-bunch-move-problem="">{problem}</p>}
       {current && date && date !== current && !problem && (
         <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={changing} onClick={() => void change(date)}>
-          {changing ? t("lp.mv.changing") : t("lp.mv.change", { date: formatMoveDate(date) })}
+          {changing ? t("lp.mv.changing") : t("lp.mv.change", { date: formatMoveDate(date, getLang() === "es") })}
         </Button>
       )}
       {current && <MovingSaleDetails userId={userId} moveOutOn={current} today={today} />}

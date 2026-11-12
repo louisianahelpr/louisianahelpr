@@ -153,7 +153,7 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   // #49 (2026-10-28): the shared camera button behind the Helpr's delivery photos (DeclutterDeliveryViews, StopActions).
   "src/components/ui/PhotoPickButton.tsx": { bucket: "helpr-tasks" },
   "src/components/shops/ShopEditView.tsx": { bucket: "job-photos" },
-  "src/components/shops/ShopItemEditor.tsx": { bucket: "job-photos" },
+  "src/components/shops/ShopItemPhotosSection.tsx": { bucket: "job-photos" }, // the item editor's own photos (split out of ShopItemEditor.tsx, train 1112-j)
   "src/components/shops/ShopItemStartPhotos.tsx": { bucket: "job-photos" }, // S054: held photos go to the item on its first save (same upload path)
   // Shops digital downloads (20261108182917): the seller's download files go to the private shop-digital bucket.
   "src/components/shops/ShopDigitalFiles.tsx": { bucket: "shop-digital", constSrc: "src/lib/shops/digitalFiles.ts" },

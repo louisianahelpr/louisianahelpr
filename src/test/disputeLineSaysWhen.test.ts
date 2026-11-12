@@ -5,7 +5,7 @@
  *
  * Q2600: the sentence is now the line's body (the title is "We're looking into it").
  *
- * @mutate src/components/tracker/jobProgressState.ts | decideMs > now ? `, with an answer by ${whenDated(decideMs)}` : ""; | "";
+ * @mutate src/components/tracker/jobProgressState.ts | const by = !Number.isNaN(decideMs) && decideMs > now ? whenDated(decideMs) : null; | const by = null;
  */
 import { describe, expect, it } from "vitest";
 import { jobProgress } from "@/components/tracker/jobProgressState";

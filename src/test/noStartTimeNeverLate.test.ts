@@ -6,7 +6,7 @@
  * never late and never "It's time" on its day; the face's I'm on my way from 8:00 AM, never the night before.
  *
  * @mutate src/components/tracker/jobProgressState.ts |   if (!hasStartTime(job)) return null; |   if (false) return null;
- * @mutate src/components/tracker/jobProgressState.ts |   const helprLine = !hasStartTime(job) ? (started ? TODAY_ANY_TIME_LINE : "Tap I'm on my way when you leave") : started | const helprLine = started
+ * @mutate src/components/tracker/jobProgressState.ts |   const helprLine = !hasStartTime(job) ? (started ? TODAY_ANY_TIME_LINE : t("jl.tapLeave")) : started |   const helprLine = started
  * @mutate src/components/job-card/jobStatusLine.ts |         if (!hasStartTime(job)) return "confirmed"; |         if (false) return "confirmed";
  * @mutate src/components/job-card/jobStatusLine.ts | id === "today" && app.job && !hasStartTime(app.job) ? TODAY_ANY_TIME_LINE : | false ? TODAY_ANY_TIME_LINE :
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |       if (from && Date.now() < from.getTime()) return null; |       if (false) return null;

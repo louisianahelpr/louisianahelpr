@@ -11,7 +11,7 @@
  * @mutate src/components/job-card/jobStatusLine.ts |       if (!job.is_group_job && !setOutOrArrived(job)) return "today"; |
  * F284 (audit 11-10): past the start's grace, the Helpr's line says how late they are and who to message, as the poster's
  * late line does (the poster is already offered Report no-show then).
- * @mutate src/components/tracker/jobProgressState.ts |     next: helprLateBy ? `You're ${helprLateBy} late. Tap I'm on my way or message ${o.otherFirst \|\| "them"}` : helprBothIn ? base.next : |     next: helprBothIn ? base.next :
+ * @mutate src/components/tracker/jobProgressState.ts |     next: helprLateBy ? t("jl.helprLate", { late: helprLateBy, name: o.otherFirst \|\| t("jl.them") }) : helprBothIn ? base.next : |     next: helprBothIn ? base.next :
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jobProgress, type ProgressJob } from "./jobProgressState";

@@ -4,7 +4,7 @@
  * It is now a short title ("We're looking into it") with the explanation as plain body text under it, ending in a
  * period, on the job page's next-step line, the cards' strips and the tracker's own line.
  *
- * @mutate src/components/tracker/jobProgressState.ts | at(null, false, "Under review", "We're looking into it", held), body: | at(null, false, "Under review", `A real person at Louisiana Helpr is looking at the problem${by}. The money stays held`, held), body:
+ * @mutate src/components/tracker/jobProgressState.ts | at(null, false, "Under review", t("jl.disputeNext"), held), body: | at(null, false, "Under review", t("jl.disputeBody"), held), body:
  * @mutate src/components/tracker/jobNextStep.ts | if (progress.body) v.body = progress.body; | 
  * @mutate src/components/ui/NextStep.tsx | {value.body && <span data-next-step-body="" | {false && <span data-next-step-body=""
  * @mutate src/components/tracker/JobProgress.tsx | {line && progress.body && ( | {false && progress.body && (

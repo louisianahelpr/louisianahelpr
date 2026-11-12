@@ -12,10 +12,8 @@ import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { OFFERS_TITLE, offersSettingLine } from "@/lib/declutter/offersOnPost";
 import type { DeliverySize } from "@/lib/declutter/api";
 import { bunchItemProblem, bunchItemTakesOffers, bunchItemTakesTrades, type BunchItem } from "@/lib/declutter/bunch";
-import { TRADES_TITLE, tradesSettingLine } from "@/lib/declutter/trades";
 import { TwoStepCategoryPicker } from "@/components/ui/TwoStepCategoryPicker";
 import { CATEGORY_PICKER_GROUPS } from "@/lib/declutter/categoryIcons";
 import { CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
@@ -24,6 +22,8 @@ import { BunchPhotos, type BunchOther } from "./DeclutterBunchPhotos";
 import { BuyerPreviewCard } from "./BuyerPreviewCard";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/select";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 const field = "h-11 w-full min-w-0 rounded-2xl border border-input glass-field px-3 text-ds-15";
 
@@ -66,7 +66,7 @@ function parsedPriceCents(price: string): number | null {
 
 /** "Item 3" until it has a name. */
 export function bunchItemName(it: BunchItem, index: number): string {
-  return it.title.trim() || `Item ${index + 1}`;
+  return it.title.trim() || t("lp.b.item", { n: index + 1 });
 }
 
 export function BunchCard({ item, offersDefault, tradesDefault, index, others, urls, files, at, rewriting, rewriteNote, onChange, onMove, onSplit, onRemovePhoto, onCover, onReorder, canDrag, onAddPhotos, onMerge, onDrop, onRewrite, onRetryUpload }: BunchCardProps) {
@@ -83,24 +83,24 @@ export function BunchCard({ item, offersDefault, tradesDefault, index, others, u
     <div className="space-y-3 p-4" data-bunch-card="">
       {/* The row above says its name. */}
       <div className="flex items-center justify-end gap-2">
-        <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" disabled={rewriting} aria-label={rewriting ? undefined : `${noWords ? "Write it for me" : "Write it again"}: ${name}`} onClick={onRewrite}>
+        <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" disabled={rewriting} aria-label={rewriting ? undefined : t("lp.bc.writeAria", { action: noWords ? t("lp.bc.writeForMe") : t("lp.bc.writeAgain"), name })} onClick={onRewrite}>
           {rewriting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden /> : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden />}
-          {rewriting ? "Writing…" : noWords ? "Write it for me" : "Write it again"}
+          {rewriting ? t("lp.bc.writing") : noWords ? t("lp.bc.writeForMe") : t("lp.bc.writeAgain")}
         </Button>
       </div>
 
-      {noWords && !rewriting && <p className="text-ds-13 text-muted-foreground" data-bunch-no-words="">This one has no words yet. Tap Write it for me, or fill it in below.</p>}
+      {noWords && !rewriting && <p className="text-ds-13 text-muted-foreground" data-bunch-no-words="">{t("lp.bc.noWords")}</p>}
       {rewriteNote && <p className="text-ds-13 text-foreground" role="alert" data-bunch-rewrite-note="">{rewriteNote}</p>}
       {mergeTarget && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/40 p-3" data-bunch-merge-hint="">
-          <p className="min-w-0 flex-1 text-ds-13 text-foreground">This may be the same thing as "{mergeTarget.name}".</p>
-          <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => onMerge(mergeTarget.key)}>Merge them</Button>
+          <p className="min-w-0 flex-1 text-ds-13 text-foreground">{t("lp.bc.sameAs", { name: mergeTarget.name })}</p>
+          <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => onMerge(mergeTarget.key)}>{t("lp.bc.mergeThem")}</Button>
         </div>
       )}
 
       {item.flagged && (
         <p className="rounded-xl border border-border bg-muted/40 p-3 text-ds-13 font-semibold text-foreground" data-bunch-flag="">
-          This item may not be allowed. You can still list it: it gets a closer check, and if that check flags it, someone from Louisiana Helpr looks at it before it goes up. If the photos show the wrong thing, move them, then tap Write it again.
+          {t("lp.bc.flagged")}
         </p>
       )}
 
@@ -113,32 +113,32 @@ export function BunchCard({ item, offersDefault, tradesDefault, index, others, u
 
       {item.failedPhoto && item.photoKeys.includes(item.failedPhoto) && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/40 p-3" data-bunch-upload-failed="">
-          <p className="min-w-0 flex-1 text-ds-13 text-foreground" role="alert">Photo {item.photoKeys.indexOf(item.failedPhoto) + 1} didn't finish sending, even after we tried again. It's still here, and so is everything else on this item.</p>
-          <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" onClick={onRetryUpload}>Try again</Button>
+          <p className="min-w-0 flex-1 text-ds-13 text-foreground" role="alert">{t("lp.bc.photoFailed", { n: item.photoKeys.indexOf(item.failedPhoto) + 1 })}</p>
+          <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" onClick={onRetryUpload}>{t("lp.bc.tryAgain")}</Button>
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="min-w-0 sm:col-span-2">
-          <label className="block text-ds-13 font-medium" htmlFor={`title-${id}`}>Title</label>
-          <input id={`title-${id}`} className={field} maxLength={80} value={item.title} onChange={(e) => onChange({ title: e.target.value })} placeholder="Oak rocking chair" />
+          <label className="block text-ds-13 font-medium" htmlFor={`title-${id}`}>{t("lp.bc.title")}</label>
+          <input id={`title-${id}`} className={field} maxLength={80} value={item.title} onChange={(e) => onChange({ title: e.target.value })} placeholder={t("lp.bc.titlePh")} />
         </div>
         {/* Its own row at every width, so opening it never leaves an empty column under the field beside it. */}
         <div className="min-w-0 sm:col-span-2" data-bunch-category-row="">
-          <label className="block text-ds-13 font-medium" htmlFor={`cat-${id}`}>Category</label>
+          <label className="block text-ds-13 font-medium" htmlFor={`cat-${id}`}>{t("lp.bc.category")}</label>
           <TwoStepCategoryPicker id={`cat-${id}`} value={item.category} onChange={(category) => onChange({ category })} groups={CATEGORY_PICKER_GROUPS} triggerClassName="min-h-11 border-input px-3" />
         </div>
         <div className="min-w-0 space-y-2">
           {!item.free && (
             <div>
-              <label className="block text-ds-13 font-medium" htmlFor={`price-${id}`}>Price ($)</label>
-              <input id={`price-${id}`} className={field} inputMode="decimal" value={item.price} onChange={(e) => onChange({ price: e.target.value })} placeholder="Set a price" />
-              {item.aiPrice && item.price === item.aiPrice && <p className="mt-1 text-ds-13 text-muted-foreground" data-bunch-price-suggested="">Our suggestion. Change it if you like.</p>}
+              <label className="block text-ds-13 font-medium" htmlFor={`price-${id}`}>{t("lp.bc.price")}</label>
+              <input id={`price-${id}`} className={field} inputMode="decimal" value={item.price} onChange={(e) => onChange({ price: e.target.value })} placeholder={t("lp.bc.pricePh")} />
+              {item.aiPrice && item.price === item.aiPrice && <p className="mt-1 text-ds-13 text-muted-foreground" data-bunch-price-suggested="">{t("lp.bc.ourSuggestion")}</p>}
             </div>
           )}
           <label className="flex min-h-11 items-center gap-3 text-ds-14 font-medium" data-bunch-free="">
-            <Checkbox aria-label={`Give ${name} away free`} checked={!!item.free} onCheckedChange={(v) => onChange({ free: v === true })} />
-            Give it away free
+            <Checkbox aria-label={t("lp.bc.freeAria", { name })} checked={!!item.free} onCheckedChange={(v) => onChange({ free: v === true })} />
+            {t("lp.bc.free")}
           </label>
         </div>
         {/* A free item is claimed, never offered on, so only a priced one has the switch. */}
@@ -147,10 +147,10 @@ export function BunchCard({ item, offersDefault, tradesDefault, index, others, u
           return (
             <div className="flex min-h-11 items-center gap-3 sm:col-span-2" data-bunch-offers={on ? "on" : "off"}>
               <label htmlFor={`offers-${id}`} className="min-w-0 flex-1">
-                <span className="block text-ds-14 font-medium">{OFFERS_TITLE}</span>
-                <span className="block text-ds-13 text-muted-foreground">{offersSettingLine(on)}</span>
+                <span className="block text-ds-14 font-medium">{t("lp.ld.offersTitle")}</span>
+                <span className="block text-ds-13 text-muted-foreground">{on ? t("lp.ld.offersOn") : t("lp.ld.offersOff")}</span>
               </label>
-              <Switch id={`offers-${id}`} aria-label={`${OFFERS_TITLE} for ${name}`} checked={on} onCheckedChange={(v) => onChange({ acceptsOffers: v === true })} />
+              <Switch id={`offers-${id}`} aria-label={t("lp.bc.forName", { label: t("lp.ld.offersTitle"), name })} checked={on} onCheckedChange={(v) => onChange({ acceptsOffers: v === true })} />
             </div>
           );
         })()}
@@ -160,24 +160,24 @@ export function BunchCard({ item, offersDefault, tradesDefault, index, others, u
           return (
             <div className="flex min-h-11 items-center gap-3 sm:col-span-2" data-bunch-trades={on ? "on" : "off"}>
               <label htmlFor={`trades-${id}`} className="min-w-0 flex-1">
-                <span className="block text-ds-14 font-medium">{TRADES_TITLE}</span>
-                <span className="block text-ds-13 text-muted-foreground">{tradesSettingLine(on)}</span>
+                <span className="block text-ds-14 font-medium">{t("lp.ld.tradesTitle")}</span>
+                <span className="block text-ds-13 text-muted-foreground">{on ? t("lp.ld.tradesOn") : t("lp.ld.tradesOff")}</span>
               </label>
-              <Switch id={`trades-${id}`} aria-label={`${TRADES_TITLE} for ${name}`} checked={on} onCheckedChange={(v) => onChange({ acceptsTrades: v === true })} />
+              <Switch id={`trades-${id}`} aria-label={t("lp.bc.forName", { label: t("lp.ld.tradesTitle"), name })} checked={on} onCheckedChange={(v) => onChange({ acceptsTrades: v === true })} />
             </div>
           );
         })()}
         <div className="min-w-0">
-          <label className="block text-ds-13 font-medium" htmlFor={`cond-${id}`}>Condition</label>
+          <label className="block text-ds-13 font-medium" htmlFor={`cond-${id}`}>{t("lp.bc.condition")}</label>
           <NativeSelect id={`cond-${id}`} value={item.conditionStars} onChange={(e) => onChange({ conditionStars: Number(e.target.value) })}>
             {[5, 4, 3, 2, 1].map((s) => <option key={s} value={s}>{CONDITION_LABEL[s]}</option>)}
           </NativeSelect>
         </div>
         {item.sizeUnknown && (
           <div className="min-w-0 sm:col-span-2" data-bunch-size="">
-            <label className="block text-ds-13 font-medium" htmlFor={`size-${id}`}>Size</label>
+            <label className="block text-ds-13 font-medium" htmlFor={`size-${id}`}>{t("lp.bc.size")}</label>
             <NativeSelect id={`size-${id}`} value="" onChange={(e) => onChange({ deliverySize: e.target.value as DeliverySize })}>
-              <option value="" disabled>Pick a size</option>
+              <option value="" disabled>{t("lp.bc.pickSize")}</option>
               {(Object.keys(SIZE_LABEL) as DeliverySize[]).map((s) => <option key={s} value={s}>{SIZE_LABEL[s]}</option>)}
             </NativeSelect>
           </div>
@@ -185,7 +185,7 @@ export function BunchCard({ item, offersDefault, tradesDefault, index, others, u
       </div>
       {!item.free && <PriceHint category={item.category} conditionStars={item.conditionStars} at={at} place="near_you" />}
       <div className="min-w-0">
-        <label className="block text-ds-13 font-medium" htmlFor={`desc-${id}`}>Description</label>
+        <label className="block text-ds-13 font-medium" htmlFor={`desc-${id}`}>{t("lp.bc.description")}</label>
         <Textarea id={`desc-${id}`} rows={3} maxLength={2000} className="w-full min-w-0 rounded-2xl border border-input glass-field px-3 py-2 text-ds-15"
           value={item.description} onChange={(e) => onChange({ description: e.target.value })} />
       </div>
@@ -196,16 +196,16 @@ export function BunchCard({ item, offersDefault, tradesDefault, index, others, u
         {others.length > 0 && (
           <>
             <div className="w-full" data-bunch-merge-row="">
-              <label className="block text-ds-13 font-medium" htmlFor={`merge-${id}`}>Same thing as another item?</label>
+              <label className="block text-ds-13 font-medium" htmlFor={`merge-${id}`}>{t("lp.bc.sameThing")}</label>
               <NativeSelect id={`merge-${id}`} value={mergeInto} onChange={(e) => setMergeInto(e.target.value)}>
-                <option value="">Pick an item</option>
+                <option value="">{t("lp.bc.pickItem")}</option>
                 {others.map((o) => <option key={o.key} value={o.key}>{o.name}</option>)}
               </NativeSelect>
             </div>
-            <Button type="button" variant="outline" size="sm" disabled={!mergeInto} aria-label={`Merge ${name}`} onClick={() => { onMerge(mergeInto); setMergeInto(""); }}>Merge</Button>
+            <Button type="button" variant="outline" size="sm" disabled={!mergeInto} aria-label={t("lp.bc.mergeAria", { name })} onClick={() => { onMerge(mergeInto); setMergeInto(""); }}>{t("lp.bc.merge")}</Button>
           </>
         )}
-        <Button type="button" variant="outline" size="sm" aria-label={`Don't sell ${name}`} onClick={onDrop}>Don't sell this</Button>
+        <Button type="button" variant="outline" size="sm" aria-label={t("lp.bc.dropAria", { name })} onClick={onDrop}>{t("lp.bc.drop")}</Button>
       </div>
     </div>
   );

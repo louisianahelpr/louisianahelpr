@@ -24,7 +24,7 @@ import { DeclutterNotice } from "./declutterUi";
 import { formProblemCode, formProblemWords, problemRow } from "./sellForm";
 import { dropsValue, makeFreeValue, SellingSettingsRows, usePickupLines } from "./SellingSettingsRows";
 import { SellFreeNote, SellOffersToggle, SellTaxBox } from "./SellFormParts";
-import { SellProgress, postStepOf } from "./SellProgress";
+import { SellProgress } from "./SellProgress";
 import { SellSummaryCard, type SummaryField } from "./SellSummaryCard";
 import { useSellFlowState, type SellFlow } from "./useSellFlowState";
 import { photoPublicUrl } from "@/lib/declutter/api";
@@ -221,7 +221,7 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
         )}
         {/* Owner 2026-11-01: while it goes up, a clear in-progress view (Uploading photos -> Checking -> Live), not only a
             greyed button; the done view after is unchanged. */}
-        {s.publishing && <SellProgress title={tr("sf.posting")} rows={[{ name: form.title.trim() || tr("sf.yourItem"), step: postStepOf(s.postStep) }]} note={s.postStep ? `${s.postStep}. ${tr("sf.keepOpen")}` : tr("sf.keepOpen")} />}
+        {s.publishing && <SellProgress title={tr("sf.posting")} rows={[{ name: form.title.trim() || tr("sf.yourItem"), step: s.postStage }]} note={s.postStep ? `${s.postStep}. ${tr("sf.keepOpen")}` : tr("sf.keepOpen")} />}
         <Button type="button" className="w-full rounded-full" disabled={s.publishing || s.saving || postWhenWritten} onClick={post}>
           {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : tr("sf.postIt")}
         </Button>

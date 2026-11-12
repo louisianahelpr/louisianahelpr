@@ -124,6 +124,11 @@ export const enSellForm = {
   "sf.wy.timesPlaces": "Safe meeting spots and Helpr delivery pickups use these times. They apply to all your listings.",
   "sf.wy.timesFreePlaces": "A free item is picked up on the place's days, so these times are for your other listings.",
   "sf.wy.times": "Buyers pick one of these times. They apply to all your listings.",
+  "sf.ps.adding": "Adding photo {n} of {total}",
+  "sf.ps.uploading": "Uploading photo {n} of {total}",
+  "sf.ps.retrying": "Uploading photo {n} of {total}. The connection dropped, so we're trying again",
+  "sf.ps.saving": "Saving your listing",
+  "sf.ps.puttingUp": "Putting it up",
 } as const;
 
 addEnglish(enSellForm);

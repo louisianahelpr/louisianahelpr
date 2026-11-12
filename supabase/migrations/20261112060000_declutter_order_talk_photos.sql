@@ -41,6 +41,10 @@
 
 -- 1. The column.
 ALTER TABLE public.declutter_order_talk_messages ADD COLUMN IF NOT EXISTS photo_path text;
+-- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.declutter_order_talk_messages.declutter_order_talk_messages_body_check
+-- ACK-REASON: replaced two lines below by declutter_order_talk_messages_body_or_photo, which keeps the same 1-1000
+--   character rule for a text message and only adds the empty-body photo message.
+-- ACK-DATA-LOSS: none. No row is changed or removed; every existing row passed the old check and so passes the new one.
 ALTER TABLE public.declutter_order_talk_messages DROP CONSTRAINT IF EXISTS declutter_order_talk_messages_body_check;
 ALTER TABLE public.declutter_order_talk_messages DROP CONSTRAINT IF EXISTS declutter_order_talk_messages_body_or_photo;
 ALTER TABLE public.declutter_order_talk_messages ADD CONSTRAINT declutter_order_talk_messages_body_or_photo

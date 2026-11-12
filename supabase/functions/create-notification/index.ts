@@ -39,6 +39,8 @@ const ALLOWED_TYPES = new Set([
   // allowlist because create-notification is the shared insert path and an
   // absent entry would 400 the admin alerts, not protect anything.
   "admin_alert",
+  // Admin bell activity (20261112061000): written by DB triggers; listed because this allowlist mirrors the CHECK.
+  "admin_activity",
   "new_offers",
   "expired",
   "financial_alerts",

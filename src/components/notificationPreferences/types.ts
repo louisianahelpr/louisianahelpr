@@ -71,6 +71,9 @@ export interface Prefs {
   email_shops_messages: boolean;
   shops_updates: boolean;
   email_shops_updates: boolean;
+  /** Admin bell activity (20261112061000): admins only; push and email default false (the bell always has it). */
+  admin_activity: boolean;
+  email_admin_activity: boolean;
   declutter_sales: boolean;
   email_declutter_sales: boolean;
   declutter_pickups: boolean;

@@ -30,6 +30,8 @@ const DECLUTTER_KINDS = [
 
 const SHOPS_KINDS = ["shops_orders", "shops_messages", "shops_updates"] as const;
 
+const ADMIN_ACTIVITY_KINDS = ["admin_activity"] as const;
+
 const DEPLOY_LAG_COLUMNS = [
   "email_enabled", "saved_helper_availability", "email_quote_reminders",
   ...DECLUTTER_KINDS,
@@ -39,6 +41,8 @@ const DEPLOY_LAG_COLUMNS = [
   "message_preview",
   ...SHOPS_KINDS,
   ...SHOPS_KINDS.map((k) => `email_${k}` as const),
+  ...ADMIN_ACTIVITY_KINDS,
+  ...ADMIN_ACTIVITY_KINDS.map((k) => `email_${k}` as const),
 ] as const;
 
 type LagColumn = (typeof DEPLOY_LAG_COLUMNS)[number];
@@ -59,6 +63,9 @@ export const declutterColumnsPresent = (present: ColumnPresence): boolean =>
 /** Every Shops switch column is deployed (the Shops group is shown only then). */
 export const shopsColumnsPresent = (present: ColumnPresence): boolean =>
   SHOPS_KINDS.every((k) => present[k] && present[`email_${k}`]);
+
+export const adminActivityColumnsPresent = (present: ColumnPresence): boolean =>
+  ADMIN_ACTIVITY_KINDS.every((k) => present[k] && present[`email_${k}`]);
 
 /** Drops every key whose column is not deployed yet, so the upsert cannot PGRST204. */
 export function stripMissingColumns(payload: object, present: ColumnPresence): void {

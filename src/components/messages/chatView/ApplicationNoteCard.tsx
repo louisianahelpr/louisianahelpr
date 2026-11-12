@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
 import type { Conversation } from "../types";
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enMessages";
 
 /**
  * "Their application" — the applicant's full note, at the top of the poster's
@@ -105,7 +107,7 @@ export function ApplicationNoteCard({
   const applied = new Date(note.createdAt);
   return (
     <section
-      aria-label="Their application"
+      aria-label={t("msg.dc.theirApplication")}
       data-testid="chat-application-note"
       className="mb-3 rounded-ds-md border px-3 py-2.5"
       style={{ borderColor: "hsl(var(--olivewood) / 0.2)", background: "hsl(var(--ivory-sand) / 0.5)" }}

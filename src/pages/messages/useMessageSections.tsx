@@ -13,6 +13,7 @@ import type { Conversation } from "@/components/messages/types";
 import type { OrderTalkInbox } from "@/components/messages/DeclutterOrderTalkInbox";
 import type { SectionEmpty } from "@/components/messages/SectionInboxEmpty";
 import { fetchMyOrderTalks, MY_ORDER_TALKS_KEY } from "@/lib/declutter/orderTalk";
+import { fetchShopTalkSummary, SHOP_TALKS_SUMMARY_KEY, SHOP_TALKS_UNREAD_EVENT } from "@/lib/shops/talkUnread";
 import {
   coerceInboxFilter,
   messageSectionTabs,
@@ -28,6 +29,10 @@ import {
 const ShopTalkRows = lazy(() => import("@/components/messages/ShopTalkInbox").then((m) => ({ default: m.ShopTalkRows })));
 function ShopTalkLead({ empty }: { empty: ReactNode }) {
   return <Suspense fallback={null}><ShopTalkRows empty={empty} /></Suspense>;
+}
+// S2-016 (Shops audit 2): under Unread, only the shop chats with an unread message.
+function ShopTalkUnreadLead({ empty }: { empty: ReactNode }) {
+  return <Suspense fallback={null}><ShopTalkRows empty={empty} onlyUnread /></Suspense>;
 }
 // Q2209 (audit 11-05 A-H1): Messages -> Homes lists the member's Homes chats (HomeTalkInbox), in its own chunk the
 // same way: only a member with Homes on the Homes chip loads it.
@@ -66,10 +71,20 @@ export function useMessageSections(conversations: Conversation[], allConversatio
   // with the switch off (row 62), so a member who has one keeps the Declutter chip that lists it.
   const orderTalks = useQuery({ queryKey: MY_ORDER_TALKS_KEY, queryFn: fetchMyOrderTalks, staleTime: 30_000 });
   const hasOrderTalks = (orderTalks.data?.length ?? 0) > 0;
+  // S2-016 (Shops audit 2): the member's shop chats count under All, Unread and the badge (same key as the badge, so
+  // one request). Read whenever the member has the shops switch, so a tester reaches them before Shops opens.
+  const shopSummary = useQuery({ queryKey: SHOP_TALKS_SUMMARY_KEY, queryFn: fetchShopTalkSummary, enabled: shopsOn, staleTime: 30_000 });
+  const hasShopTalks = shopsOn && (shopSummary.data?.total ?? 0) > 0;
+  const shopUnread = shopsOn ? shopSummary.data?.unread ?? 0 : 0;
+  // The badge takes each fresh count from here (opening a chat refreshes this query), not only on its own reads.
+  const freshShopUnread = shopSummary.data?.unread;
+  useEffect(() => {
+    if (typeof freshShopUnread === "number") window.dispatchEvent(new CustomEvent(SHOP_TALKS_UNREAD_EVENT, { detail: { unread: freshShopUnread } }));
+  }, [freshShopUnread, shopSummary.dataUpdatedAt]);
   // Owner 2026-10-21: no chip for a section that isn't open yet (Declutter / Shops / Homes while their switch is
   // off), unless the member already has threads there, so no thread is ever unreachable by its chip.
   const tabs = messageSectionTabs(visible.map((s) => s.key), prefs.order, jobThreads).filter(
-    (k) => live[k] || conversations.some((c) => threadSection(c) === k) || (k === "declutter" && hasOrderTalks),
+    (k) => live[k] || conversations.some((c) => threadSection(c) === k) || (k === "declutter" && hasOrderTalks) || (k === "shops" && hasShopTalks),
   );
   // A3-L8 (app audit 2026-10-29): a lone section chip ("Jobs" while it is the
   // only section) shows exactly what All shows, so it is not drawn; a
@@ -98,7 +113,7 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     [allConversations, section],
   );
 
-  const unread = conversations.filter((c) => c.unread > 0).length;
+  const unread = conversations.filter((c) => c.unread > 0).length + shopUnread;
   const chips: { value: InboxFilter; label: string }[] = [
     { value: "all", label: t("msg.filterAll") },
     // The real unread-thread count, or no number at all (never "· 0").
@@ -150,7 +165,7 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     empty = { icon: def.icon, title: t("msg.sectionEmpty", { noun: noun ? t(noun) : copy.noun }), body: t(`msg.empty.${section}.body`), action: { label: t(`msg.empty.${section}.browse`), to: def.path } };
     // D2-1: Declutter lists the member's order chats above its threads, in place of this empty state when it has any.
     // Q1947: Shops lists the member's shop chats the same way (shops_my_talks needs the switch, so only while it's on).
-    if (section === "shops" && live.shops) empty.Lead = ShopTalkLead;
+    if (section === "shops" && shopsOn) empty.Lead = ShopTalkLead;
     // Q2209: Homes the same way (rentals_my_talks needs the rentals switch, so only while it's on).
     if (section === "homes" && live.homes) empty.Lead = HomeTalkLead;
   }
@@ -158,7 +173,14 @@ export function useMessageSections(conversations: Conversation[], allConversatio
   // All tab. It says what is true and goes back to All.
   if (section === "unread" && shown.length === 0) {
     empty = { icon: MailCheck, title: t("msg.noUnread"), body: t("msg.noUnreadBody"), action: { label: t("msg.seeAll"), to: "/messages" } };
+    if (shopUnread > 0) empty.Lead = ShopTalkUnreadLead;
   }
+  // S2-016: shop chats sit above the threads under All (every one) and Unread (unread ones), as the Shops chip lists
+  // them; with no threads they take the inbox's empty state's place.
+  const inboxLead =
+    section === "all" && hasShopTalks ? ShopTalkLead
+      : section === "unread" && shopUnread > 0 && !empty ? ShopTalkUnreadLead
+        : null;
 
   // F420 (audit 11-10): the order chats are inbox rows, mixed with the threads newest first, under All and under the
   // Declutter chip (ConversationListBody). Not under Unread (the server has no unread flag for them), Jobs, Shops or Homes.
@@ -167,7 +189,7 @@ export function useMessageSections(conversations: Conversation[], allConversatio
       ? { rows: orderTalks.data ?? [], pending: orderTalks.isPending, error: orderTalks.isError ? orderTalks.error : null, reload: () => void orderTalks.refetch() }
       : null;
   return {
-    section, strip, conversations: shown, allConversations: shownAll, sectionEmpty: empty, orderTalks: orderTalkInbox,
+    section, strip, conversations: shown, allConversations: shownAll, sectionEmpty: empty, orderTalks: orderTalkInbox, inboxLead,
     mainEmptyBody: mainInboxEmptyBody(live.declutter),
   };
 }

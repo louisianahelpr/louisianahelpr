@@ -430,7 +430,7 @@ const Messages = () => {
       allConversations={inbox.allConversations}
       sectionTabs={inbox.strip}
       sectionEmpty={inbox.sectionEmpty}
-      mainEmptyBody={inbox.mainEmptyBody} orderTalks={inbox.orderTalks}
+      mainEmptyBody={inbox.mainEmptyBody} orderTalks={inbox.orderTalks} inboxLead={inbox.inboxLead}
       loading={loading}
       loadError={loadError}
       retryInbox={retryInbox}

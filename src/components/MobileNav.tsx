@@ -7,6 +7,7 @@ import { useMyPublicHandle } from "@/components/mobileNav/useMyPublicHandle";
 import { useNeedsYouCounts } from "@/lib/needsYouStore";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
+import { useShopTalksInBadge } from "@/components/mobileNav/useShopTalksInBadge";
 import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { useCreateSheetOpen, setCreateSheetOpen } from "@/components/mobileNav/createSheetStore";
 import { TabButton } from "@/components/mobileNav/TabButton";
@@ -72,6 +73,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // realtime channel + archive listener, the native app-icon badge mirror,
   // and the best-effort mark-all-read action — all owned by this hook.
   const { unreadCount } = useNavUnreadCount(user);
+  useShopTalksInBadge(user); // S2-016: unread shop chats join the badge
   // BADGE = TO-DO (owner, 2026-10-20): the Explore badge is the number of
   // to-dos on Home (one per job or order that needs you), published by the
   // lazily-mounted NeedsYouBridge. This file reads only the tiny store, never

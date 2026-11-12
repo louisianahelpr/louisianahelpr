@@ -44,4 +44,12 @@ export const esHome: Record<keyof typeof enHome, string> = {
   "home.soonOne": "{names} abre pronto",
   "home.soonMany": "{names} abren pronto",
   "home.and": "y",
+  "home.day.today": "Hoy",
+  "home.day.tomorrow": "Mañana",
+  "home.more": "{first} y {n} más",
+  "home.yourItem": "su artículo",
+  "home.cu.pickUp": "Recoger {what}",
+  "home.cu.putOut": "Dejar afuera {what}",
+  "home.cu.handOver": "Entregar {what}",
+  "home.cu.getReady": "Preparar {what}",
 };

@@ -22,6 +22,8 @@ import { whenPageSettled } from "@/lib/routePrefetch";
 import { useFeature } from "@/hooks/useFeature";
 import { useHomeDerive, useNeedsYouTodos } from "./useNeedsYouTodos";
 import { deriveComingUp, type ComingUpItem } from "./comingUp";
+import "@/lib/i18n/enHome";
+import { useLanguage } from "@/lib/i18n/language";
 import { inProgressJobIds, useContinueDays } from "@/hooks/useContinueDays";
 
 const DAY = 86_400_000;
@@ -126,6 +128,9 @@ export function useHomeSummary(user: SupaUser | null) {
     staleTime: 60_000,
   });
 
+  // Coming up's day words and titles are written in the member's language: a change of language, or its words
+  // arriving (the Spanish chunk loads after the switch), re-derives them.
+  const wordsKey = useLanguage().t("home.day.today");
   return useMemo(() => {
     const now = Date.now();
     const pj = posted.postedJobs ?? [];
@@ -200,5 +205,5 @@ export function useHomeSummary(user: SupaUser | null) {
         homes: countLine([[props.length, "property", "properties"]]),
       },
     };
-  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.helperNames, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, orders.data, orders.isError, todos, todosLoading, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError, jobsNear.data, declutterNear.data, continueDays, derive]);
+  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.helperNames, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, orders.data, orders.isError, todos, todosLoading, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError, jobsNear.data, declutterNear.data, continueDays, derive, wordsKey]);
 }

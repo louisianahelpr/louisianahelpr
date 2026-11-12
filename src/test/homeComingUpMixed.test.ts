@@ -11,7 +11,7 @@
  * @mutate src/pages/home/homeDashboard/comingUp.ts |     if (o.status !== "accepted" \|\| !/^\d{4}-\d{2}-\d{2}$/.test(o.ready_date ?? "")) return null; |     if (!/^\d{4}-\d{2}-\d{2}$/.test(o.ready_date ?? "")) return null;
  * @mutate src/pages/home/homeDashboard/comingUp.ts |   return rows.filter((r) => r.at >= from).sort((x, y) => x.at - y.at); |   return rows.filter((r) => r.at >= from);
  * @mutate src/pages/home/homeDashboard/comingUp.ts |   for (const o of i.shopOrders) { const r = shopRow(o, "shop"); if (r) rows.push(r); } |   void shopRow;
- * @mutate src/pages/home/homeDashboard/comingUp.ts |   if (days > 1 && days < 7) return day.toLocaleDateString("en-US", { weekday: "short" }); |   if (days > 1 && days < 8) return day.toLocaleDateString("en-US", { weekday: "short" });
+ * @mutate src/pages/home/homeDashboard/comingUp.ts |   if (days > 1 && days < 7) return day.toLocaleDateString(locale(), { weekday: "short" }); |   if (days > 1 && days < 8) return day.toLocaleDateString("en-US", { weekday: "short" });
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       cart: (declutterOn ? cart.data : undefined) ?? [], |       cart: [],
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";

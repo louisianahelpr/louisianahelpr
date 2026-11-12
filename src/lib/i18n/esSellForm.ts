@@ -119,4 +119,9 @@ export const esSellForm: Record<keyof typeof enSellForm, string> = {
   "sf.wy.timesPlaces": "Los puntos de encuentro seguros y las recogidas de entrega de Helpr usan estas horas. Aplican a todos sus anuncios.",
   "sf.wy.timesFreePlaces": "Un artículo gratis se recoge en los días del lugar, así que estas horas son para sus otros anuncios.",
   "sf.wy.times": "Los compradores eligen una de estas horas. Aplican a todos sus anuncios.",
+  "sf.ps.adding": "Agregando la foto {n} de {total}",
+  "sf.ps.uploading": "Subiendo la foto {n} de {total}",
+  "sf.ps.retrying": "Subiendo la foto {n} de {total}. Se cortó la conexión, así que lo intentamos de nuevo",
+  "sf.ps.saving": "Guardando su anuncio",
+  "sf.ps.puttingUp": "Publicándolo",
 };

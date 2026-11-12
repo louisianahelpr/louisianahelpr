@@ -17,6 +17,8 @@
  * @mutate src/components/declutter/sellForm.ts | export const formProblemWords = (code: FormProblemCode): string => tr(`sf.fp.${code}` as MsgKey); | export const formProblemWords = (code: FormProblemCode): string => String(code);
  * @mutate src/components/declutter/sellForm.ts |   if (code === "price" \|\| code === "floor" \|\| code === "dropPct") return "price"; |   if (code === "price") return "price";
  * @mutate src/components/declutter/sellForm.ts | if (step === 3) return code && problemRow(code) === "price" ? formProblemWords(code) : null; | if (step === 3) return code && /price/i.test(formProblemWords(code)) ? formProblemWords(code) : null;
+ * @mutate src/components/declutter/useSellFlowState.ts |   const postStage = postStepOf(postStepAt?.key ?? null); |   const postStage = postStepOf(null);
+ * @mutate src/components/declutter/SellOneScreen.tsx | step: s.postStage | step: "photos" as const
  * @mutate src/components/declutter/SellOneScreen.tsx | const at: Where = problemRow(code); | const at: Where = /name/i.test(formProblemWords(code)) ? "title" : /price\|lowest\|drops/i.test(formProblemWords(code)) ? "price" : "settings";
  * @mutate src/components/declutter/SellOneScreen.tsx | out.push({ message: tr("sf.tickBox"), at: "tax" }); | out.push({ message: "Tick the box about this item before you list it.", at: "tax" });
  */
@@ -24,7 +26,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
-import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
+import { setLang, ensureLangLoaded, __resetLangForTests, t as tr } from "@/lib/i18n/language";
 import { es } from "@/lib/i18n/es";
 import { enSellForm } from "@/lib/i18n/enSellForm";
 import { esSellForm } from "@/lib/i18n/esSellForm";
@@ -189,5 +191,20 @@ describe("the sell form's problems follow the member's language and mark their r
     const text = blankComments(readFileSync("src/components/declutter/SellOneScreen.tsx", "utf8"));
     expect(text).toContain("const at: Where = problemRow(code);");
     expect(text).not.toMatch(/\/name\/i\.test|\/price\|/);
+  });
+});
+
+describe("the posting progress keys off the step, not its words (F260q)", () => {
+  afterEach(() => __resetLangForTests());
+  it("the step is a key: its words follow the language and the progress row reads the key", async () => {
+    const hook = blankComments(readFileSync("src/components/declutter/useSellFlowState.ts", "utf8"));
+    expect(hook).toContain("const postStage = postStepOf(postStepAt?.key ?? null);");
+    expect(hook).not.toMatch(/setPostStep\(\s*["`]/);
+    const screenSrc = blankComments(readFileSync("src/components/declutter/SellOneScreen.tsx", "utf8"));
+    expect(screenSrc).toContain("step: s.postStage");
+    setLang("es");
+    await ensureLangLoaded();
+    expect(tr("sf.ps.adding", { n: 1, total: 2 })).toBe("Agregando la foto 1 de 2");
+    expect(tr("sf.ps.puttingUp")).toBe("Publicándolo");
   });
 });

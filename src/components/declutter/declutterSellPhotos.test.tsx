@@ -707,7 +707,7 @@ describe("photo-first selling, one screen", () => {
   });
 
   // Audit posting 1030 #5: a slow Post said only "Posting…".
-  // @mutate src/components/declutter/useSellFlowState.ts |       setPostStep(early ? `Adding photo ${i + 1} of ${list.length}` : `Uploading photo ${i + 1} of ${list.length}`); |       void early;
+  // @mutate src/components/declutter/useSellFlowState.ts |       setPostStep({ key: early ? "sf.ps.adding" : "sf.ps.uploading", n: i + 1, total: list.length }); |       void early;
   it("a slow Post says which photo it is on", async () => {
     let release = () => {};
     upload.gate = new Promise<void>((r) => { release = r; });

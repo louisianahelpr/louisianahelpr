@@ -31,6 +31,7 @@ export type { Stage, StepTone } from "@/components/tracker/jobStepFromWait";
 // file's derivation (B51).
 export { JOB_PROGRESS_DRAWN, JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressSteps";
 import { JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressSteps";
+import type { NextLineId } from "@/components/tracker/nextLineCode";
 
 export type ProgressJob = {
   status: string | null;
@@ -114,7 +115,19 @@ export type JobProgressState = {
    * Guard: src/test/trackerStepWhiteUntilBegun.test.tsx.
    */
   begun?: boolean;
+  /**
+   * WHAT THE LINE SAYS, AS A CODE (F260q): jobNextStep keys off this, never the English words, so the line can be
+   * worded in any language. Paired with the exact `next` it was made for: a later override of `next` (the crew's
+   * line, a continue day, a late line) leaves a code that no longer matches, read as none (nextLineCode).
+   */
+  nextCode?: { id: NextLineId; line: string };
 };
+
+/** A state whose line carries its code. */
+const withCode = (p: JobProgressState, id: NextLineId): JobProgressState => ({ ...p, nextCode: { id, line: p.next } });
+
+/** The card's wait ids whose line is one of NextLineId. */
+const CARD_LINE_CODE: Partial<Record<string, NextLineId>> = { working: "working", offer: "offered_you", confirm_booking: "offered_you" };
 
 const at = (stage: Stage | null, waitingOnYou: boolean, word: string, next: string, held: boolean): JobProgressState => ({ stage, waitingOnYou, tone: "progress", word, next, held });
 
@@ -247,7 +260,8 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
   // F284 (audit 11-10): past the start (and its grace) with no I'm on my way, the Helpr reads how late they are, as the
   // poster's late line does, never a calm "It's time" while the other side is already offered Report no-show.
   const helprLateBy = o.viewer === "helpr" && !job.is_group_job && bar.tone === "progress" && bar.stage === 4 && !job.helper_on_the_way_at ? minutesLate(job, now.getTime()) : null;
-  return withBegun({
+  const fromCard = CARD_LINE_CODE[card.line.id];
+  return withBegun(withCardCode({
     ...base,
     stage: bar.stage,
     waitingOnYou: bar.waitingOnYou,
@@ -259,7 +273,12 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
     // Owner 11-01 (job 7b1da54b): after photos in, not marked done: the base's line says so, unless the card owes the
     // poster a step first (confirm the arrival) or the Helpr is waiting on one.
     next: helprLateBy ? `You're ${helprLateBy} late. Tap I'm on my way or message ${o.otherFirst || "them"}` : helprBothIn ? base.next : ((/after photos/.test(base.next) && bar.stage === 6 && bar.waitingOnYou === (o.viewer !== "poster")) || posterLate || noApplicantsYet || ((sameStep || offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail),
-  }, job, card.line.id, o.workUnderway);
+  }, card.line.detail, fromCard), job, card.line.id, o.workUnderway);
+}
+
+/** The card's line keeps its code when the line shown IS the card's (a base line keeps its own code, matched by its words). */
+function withCardCode(p: JobProgressState, cardLine: string, id: NextLineId | undefined): JobProgressState {
+  return id && p.next === cardLine ? { ...p, nextCode: { id, line: cardLine } } : p;
 }
 
 /**
@@ -436,7 +455,7 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   if (poster && crewBookedOnRow(job)) return at(2, false, "Hired", "Your crew is booked. Each Helpr's step is under Your crew", held);
   // An offer is not a booking: until the Helpr accepts, nobody is hired.
   if (!job.helper_confirmed_at) {
-    return at(1, !poster, "Offered", poster ? `Waiting on ${otherLow} to accept the offer` : `${other} offered you this job`, held);
+    return poster ? at(1, false, "Offered", `Waiting on ${otherLow} to accept the offer`, held) : withCode(at(1, true, "Offered", `${other} offered you this job`, held), "offered_you");
   }
 
   if (status === "revision_requested") return revisionLine(job, poster, other, held);
@@ -466,7 +485,10 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   // they are doing (the Helpr's Start working is not on the job row; the card's line says when it comes).
   // "is working" exactly when the bar's Working step has begun (workHasBegun, the same rule as JobProgressState.begun
   // and the poster's card line), so the line and the step colour can never disagree.
-  if (working) return at(6, !poster, "Working", poster ? (workHasBegun(job, { workUnderway: o.workUnderway }) ? `${other} is working` : `${other} is at the job`) : "Mark it done when you finish", held);
+  if (working) {
+    if (poster && workHasBegun(job, { workUnderway: o.workUnderway })) return withCode(at(6, false, "Working", `${other} is working`, held), "working");
+    return at(6, !poster, "Working", poster ? `${other} is at the job` : "Mark it done when you finish", held);
+  }
   if (job.helper_arrived_at) {
     return at(5, poster, "Arrived", poster ? `${other} arrived. Confirm they've arrived` : `You've arrived. Waiting on ${otherLow} to confirm`, held);
   }

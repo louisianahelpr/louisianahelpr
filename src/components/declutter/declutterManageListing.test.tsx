@@ -254,8 +254,11 @@ describe("Manage a listing (board 158)", () => {
     keepUp = "not_deployed";
     sheet();
     expect(await screen.findByText("Lower the price over time")).toBeTruthy();
-    await act(async () => {});
-    expect(screen.queryByText("Keep it up until it sells")).toBeNull();
+    // The keep-up read is cached from the first two sheets; wait for this sheet's own read to answer not_deployed.
+    await waitFor(() => {
+      expect(screen.getByText("Lower the price over time")).toBeTruthy();
+      expect(screen.queryByText("Keep it up until it sells")).toBeNull();
+    });
     keepUp = false;
   });
 

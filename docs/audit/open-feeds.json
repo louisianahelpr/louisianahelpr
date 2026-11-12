@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-12T07:29Z",
+  "measured_at": "2026-11-12T08:30Z",
   "issues": {
     "readable": true,
     "open": [
@@ -121,6 +121,13 @@
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43094034042",
+        "runTruncated": false
+      },
+      {
+        "number": 4438,
+        "title": "nightly-red: main: Sensitive review record",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43181336375",
         "runTruncated": false
       }
     ]
@@ -564,6 +571,7 @@
     "issue #4302": "Q1816",
     "issue #4340": "Q1816",
     "issue #4415": "Q1816",
+    "issue #4438": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",

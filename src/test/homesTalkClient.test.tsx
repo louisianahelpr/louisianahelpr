@@ -10,7 +10,7 @@
  * @mutate src/components/rentals/listings/ListingView.tsx | {!l.is_mine && <HomeMessageButton listingId={l.id} />} | <HomeMessageButton listingId={l.id} />
  * @mutate src/pages/messages/useMessageSections.tsx | if (section === "homes" && live.homes) empty.Lead = HomeTalkLead; | if (false) empty.Lead = HomeTalkLead;
  * @mutate src/lib/rentals/talk.ts |   if (LEAK_SENTENCE.test(msg)) return msg; |   if (false) return msg;
- * @mutate src/components/admin/adminReports/ReportedCopy.tsx | const removable = report.reported_type.startsWith("declutter_"); | const removable = report.reported_type !== "message";
+ * @mutate src/components/admin/adminReports/ReportedCopy.tsx | const removable = report.reported_type.startsWith("declutter_") \|\| isShopReview; | const removable = report.reported_type !== "message";
  * @mutate src/components/admin/adminReports/fetchReports.ts | && r.reported_type !== HOME_TALK_MESSAGE_REPORT; | ;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";

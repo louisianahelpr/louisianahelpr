@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-12T21:08:59.450Z",
-  "guards": 4036,
-  "registered": 4035,
+  "generated": "2026-11-12T22:32:59.663Z",
+  "guards": 4048,
+  "registered": 4047,
   "unregistered": [
     "src/lib/shops/preorders.test.ts"
   ],
@@ -23,6 +23,7 @@
     "src/test/sellerProblemIsBuyersNeedsYou.test.ts",
     "src/test/sellingPanelsInSpanish.test.tsx",
     "src/test/shopsAuditHighs.test.ts",
+    "src/test/shopsBrowseSearch.test.ts",
     "src/test/unavailableProfileDoesNotSayTheyLeft.test.ts"
   ],
   "classD_selfReferential": [

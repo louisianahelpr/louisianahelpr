@@ -144,7 +144,8 @@ function HeldPhoto({ file }: { file: File }) {
     setSrc(url);
     return () => URL.revokeObjectURL(url);
   }, [file]);
-  return src ? <img src={src} alt="" className="h-full w-full object-cover" /> : null;
+  // A soft tile while the local preview is made (never an empty box; photoPlaceholderEverywhere).
+  return src ? <img src={src} alt="" className="h-full w-full object-cover" /> : <span className="block h-full w-full bg-muted" aria-hidden />;
 }
 
 export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOptions = false, titleHidden = false }: {

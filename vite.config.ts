@@ -1307,7 +1307,10 @@ export default defineConfig(({ mode, command }) => ({
               name: "leaves",
               // NextStep and jobNextStep (owner 11-01, the shared next-step line): the job page, Messages and Declutter's
               // cards share them, so on their own they were two more chunks named in the entry (5.3 KB gz, over its band).
-              test: (id: string) => profileSharedLeaves.has(id.split("?")[0].replace(/\\/g, "/")) || /[\\/]src[\\/]components[\\/](ui[\\/]NextStep\.tsx|tracker[\\/]jobNextStep\.ts)$/.test(id.split("?")[0]),
+              test: (id: string) => profileSharedLeaves.has(id.split("?")[0].replace(/\\/g, "/")) || /[\\/]src[\\/]components[\\/](ui[\\/]NextStep\.tsx|tracker[\\/]jobNextStep\.ts)$/.test(id.split("?")[0])
+                // payoutAccountReady (11-11, Q178): one dependency-free check the Declutter Selling cards and the job
+                // payout notices share; in signed-in-pages it put that whole chunk on /declutter?tab=selling (+18 KB gz).
+                || /[\\/]src[\\/]lib[\\/]payoutAccountReady\.ts$/.test(id.split("?")[0]),
               priority: 15.8,
               minSize: 0,
               includeDependenciesRecursively: false

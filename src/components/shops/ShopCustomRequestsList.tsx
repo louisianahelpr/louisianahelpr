@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { fetchMyCustomRequests, type CustomRequest } from "@/lib/shops/customRequests";
 import { closeCustomRequest, formatCents } from "@/lib/shops/orders";
@@ -36,6 +37,8 @@ export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop
   const qc = useQueryClient();
   // The one request whose price form (shop) or order form (buyer) is open.
   const [openId, setOpenId] = useState<string | null>(null);
+  // S2-023 (Shops audit 2): Decline and Withdraw can't be undone (and Decline tells the buyer), so each asks first.
+  const [closing, setClosing] = useState<string | null>(null);
   const list = useQuery({ queryKey: ["shops", "custom-requests"], queryFn: fetchMyCustomRequests });
   const close = useMutation({
     mutationFn: (id: string) => closeCustomRequest(id),
@@ -78,7 +81,7 @@ export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop
                 {side === "buyer" && r.status === "quoted" && (
                   <Button type="button" size="sm" className="btn-grad-primary" onClick={() => setOpenId(r.id)}>Order at this price</Button>
                 )}
-                <Button type="button" size="sm" variant="outline" disabled={close.isPending} onClick={() => close.mutate(r.id)}>
+                <Button type="button" size="sm" variant="outline" disabled={close.isPending} onClick={() => setClosing(r.id)}>
                   {side === "buyer" ? "Withdraw request" : "Decline"}
                 </Button>
               </div>
@@ -86,6 +89,15 @@ export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop
           </li>
         ))}
       </ul>
+      <BrandConfirmDialog
+        open={closing !== null}
+        onOpenChange={(o) => { if (!o) setClosing(null); }}
+        title={side === "buyer" ? "Withdraw this request?" : "Decline this request?"}
+        description={side === "buyer" ? "The shop won't send a price for it. This can't be undone." : "The buyer is told. This can't be undone."}
+        primaryLabel={side === "buyer" ? "Withdraw request" : "Decline request"}
+        onPrimary={() => { if (closing) close.mutate(closing); setClosing(null); }}
+        secondaryLabel="Keep it"
+      />
     </section>
   );
 }

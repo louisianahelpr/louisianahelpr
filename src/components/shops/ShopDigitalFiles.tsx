@@ -71,7 +71,7 @@ export default function ShopDigitalFiles({ itemId }: { itemId: string }) {
               <Button type="button" size="sm" variant="ghost" disabled={open.isPending} onClick={() => open.mutate(f.id)}>
                 Open
               </Button>
-              <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => remove.mutate(f.id)}>
+              <Button type="button" size="sm" variant="outline" disabled={busy} aria-label={`Remove ${f.file_name}`} onClick={() => remove.mutate(f.id)}>
                 Remove
               </Button>
             </li>

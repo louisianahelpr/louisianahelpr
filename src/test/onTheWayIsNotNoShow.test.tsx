@@ -5,7 +5,7 @@
  * still a No-show on the bar.
  *
  * @mutate src/components/tracker/jobStepFromWait.ts | job.helper_on_the_way_at && !job.helper_arrived_at ? "Running late" : "No-show?" | "No-show?"
- * @mutate src/components/tracker/JobProgress.tsx | "Running late": "Late", |
+ * @mutate src/components/tracker/stepWords.ts | "Running late": "js.l.late",  | 
  */
 import { describe, expect, it } from "vitest";
 import { cardBar } from "@/components/tracker/jobStepFromWait";

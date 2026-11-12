@@ -2,10 +2,11 @@
  * GUARD (Shops audit 2, 11-12, Builder 1 list S2-034..S2-044).
  *   S2-034 custom orders have one switch: the shop page reads only shops.custom_orders, and Edit my shop's "Custom
  *          orders" box shows and sets that switch (no "Quotes for work").
+ *   S2-037 the shop's own order card reads "Waiting for your answer", never the buyer's "Waiting for the shop".
  *   S2-044 an accepted order whose cancel window already closed no longer promises a free cancel.
  */
 import { describe, expect, it } from "vitest";
-import { orderCancelLine } from "@/lib/shops/orders";
+import { orderCancelLine, orderStatusLabel } from "@/lib/shops/orders";
 
 const base = {
   status: "accepted" as const,
@@ -49,5 +50,13 @@ describe("Shops audit 2 (Builder 1)", () => {
     expect(edit).toContain("Custom orders (made to order)");
     expect(edit).toContain('offersQuotes: customMode.data ? customMode.data !== "off" : s.offers_quotes,');
     expect(edit).toContain('await setCustomOrders(form.offersQuotes ? "full_hold" : "off");');
+  });
+  it("S2-037: the shop side reads its own status words", () => {
+    const held = { status: "held" as const, close_reason: null, captured_at: null };
+    expect(orderStatusLabel(held, "shop")).toBe("Waiting for your answer (card held, not charged)");
+    expect(orderStatusLabel(held, "buyer")).toBe("Waiting for the shop (card held, not charged)");
+    const acc = { status: "accepted" as const, close_reason: null, captured_at: null };
+    expect(orderStatusLabel(acc, "shop")).toBe("Accepted (charging the buyer's card)");
+    expect(orderStatusLabel(acc, "buyer")).toBe("Accepted (charging your card)");
   });
 });

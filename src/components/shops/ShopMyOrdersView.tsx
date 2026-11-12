@@ -105,6 +105,9 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
 
   return (
     <Frame>
+      {/* Custom orders: the member's asks to shops (shown only when there are some). S2-017: on top, so a price
+          waiting to be ordered is not buried under the orders or "No orders yet.". */}
+      <ShopCustomRequestsList side="buyer" />
       {orders.isError ? (
         <ErrorState variant="inline" title="We couldn't load your orders." body={shopsErrorMessage(orders.error)} onRetry={() => void orders.refetch()} />
       ) : orders.isLoading || !user ? (
@@ -142,8 +145,6 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
           <ul className="space-y-3">{(orders.data ?? []).map((o) => renderOrder(o, user.id))}</ul>
         )
       )}
-      {/* Custom orders: the member's asks to shops (shown only when there are some). */}
-      <ShopCustomRequestsList side="buyer" />
       {/* Q1947: the chat an order card's Message opens (?talk=). */}
       <ShopTalkFromLink />
       <BrandConfirmDialog

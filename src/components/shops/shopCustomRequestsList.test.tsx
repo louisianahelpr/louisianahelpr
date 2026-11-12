@@ -3,7 +3,7 @@
  * can be withdrawn by the buyer or declined by the shop, through shop-checkout close_request (never the RPC
  * directly, so the buyer's unpaid page for a price is closed too); a closed one offers nothing.
  *
- * @mutate src/components/shops/ShopCustomRequestsList.tsx |   const rows = (list.data ?? []).filter((r) => r.role === side); |   const rows = list.data ?? [];
+ * @mutate src/components/shops/ShopCustomRequestsList.tsx |   const rows = (list.data ?? []).filter((r) => r.role === side).sort( |   const rows = (list.data ?? []).sort(
  * @mutate src/components/shops/ShopCustomRequestsList.tsx |             {OPEN.has(r.status) && openId !== r.id && ( |             {openId !== r.id && (
  * @mutate src/lib/shops/orders.ts |   await invokeShopCheckout({ action: "close_request", request_id: requestId }); |   await invokeShopCheckout({ action: "close_request", order_id: requestId });
  */
@@ -79,5 +79,27 @@ describe("custom requests, each side", () => {
     const { container } = show("buyer");
     await new Promise((r) => setTimeout(r, 20));
     expect(container.textContent).toBe("");
+  });
+});
+
+describe("S2-017: custom requests that need an answer are not buried", () => {
+  it("open requests list first", async () => {
+    sb.rows = [
+      req({ id: "a", role: "shop", status: "declined", description: "Old declined ask" }),
+      req({ id: "b", role: "shop", status: "requested", description: "Fresh ask" }),
+    ];
+    show("shop");
+    const cards = await screen.findAllByTestId("shop-custom-request");
+    expect(cards[0].textContent).toContain("Fresh ask");
+  });
+  it("the dashboard and My orders put the list on top, and new requests count in Waiting for your answer", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const dash = readFileSync(resolve(__dirname, "ShopDashboardView.tsx"), "utf8");
+    expect(dash.indexOf('<ShopCustomRequestsList side="shop" />')).toBeGreaterThan(-1);
+    expect(dash.indexOf('<ShopCustomRequestsList side="shop" />')).toBeLessThan(dash.indexOf('id="shop-waiting"'));
+    expect(dash).toMatch(/count: waiting\.length \+ newRequests/);
+    const mine = readFileSync(resolve(__dirname, "ShopMyOrdersView.tsx"), "utf8");
+    expect(mine.indexOf('<ShopCustomRequestsList side="buyer" />')).toBeLessThan(mine.indexOf("<NoOrdersYet />"));
   });
 });

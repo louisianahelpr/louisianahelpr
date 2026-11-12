@@ -28,6 +28,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { newestFunction } from "./helpers/parityReaders";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { en } from "@/lib/i18n/en";
 
 const MIG = "supabase/migrations";
 const FILES = readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort();
@@ -113,6 +114,7 @@ describe("Messages audit M1/M2/L6: admin reads, locked deletes, party-only repor
 
   it("the Messages screen says why a locked message will not delete", () => {
     const screen = blankComments(readFileSync("src/pages/messages/Messages.tsx", "utf8"));
-    expect(screen).toMatch(/toast\.error\(error && \/message_locked\/\.test\(error\.message\) \? "This message can't be deleted now\./);
+    expect(screen).toMatch(/toast\.error\(error && \/message_locked\/\.test\(error\.message\) \? t\("msg\.lockedDelete"\)/);
+    expect(en["msg.lockedDelete"]).toMatch(/^This message can't be deleted now\./);
   });
 });

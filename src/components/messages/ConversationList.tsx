@@ -1,3 +1,4 @@
+import "@/lib/i18n/enMessages";
 import { t } from "@/lib/i18n/language";
 import { MessagesSearchRow } from "./MessagesSearchRow";
 import "@/lib/i18n/enScreens";
@@ -290,7 +291,7 @@ export function ConversationList({
           onClick={() => { hapticLight(); setTabsOpenPhone((v) => !v); }}
           aria-expanded={tabsOpen}
           aria-controls={tabsOpen ? INBOX_TABS_ID : undefined}
-          aria-label={tabsOpen ? "Hide conversation filters" : "Filter conversations"}
+          aria-label={tabsOpen ? t("msg.hideFilters") : t("msg.filterConvos")}
           className={`${HEADER_ICON_BUTTON_BASE_CLASS} ${
             isDefaultInboxFilter ? HEADER_ICON_BUTTON_INK_CLASS : "text-[hsl(var(--bark))]"
           }`}
@@ -332,7 +333,7 @@ export function ConversationList({
 
   const headerEl = phoneTopBar && !selectMode ? (
     <>
-      <div className="shrink-0 -mt-1"><AppTopBar title="Messages" desktopGap={false} /></div>
+      <div className="shrink-0 -mt-1"><AppTopBar title={t("msg.title")} desktopGap={false} /></div>
       {phoneSearchRow}
       {sectionTabs && (
         <div className="shrink-0 pt-1 pb-1.5" data-testid="messages-section-tabs">
@@ -358,7 +359,7 @@ export function ConversationList({
                it kept its title, and the page had ZERO h1 so a screen reader
                landed on an unnamed screen. Only the Search / disclosure actions
                are gated: those genuinely have nothing to act on. */
-            title="Messages"
+            title={t("msg.title")}
             /* On the desktop website the page name is deleted from this row
                (owner) — the app bar and the side panel both already say where
                you are, so a third "Messages" three rows apart is chrome

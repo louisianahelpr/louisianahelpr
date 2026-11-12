@@ -11,7 +11,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
  *  - the Helpr reads when the job is done: once the listings are SENT for approval (SellForMeDoneNote), not when live.
  *
  * @mutate src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx |         await helprUpdateListing(id, fields); |         await helprCreateListing(jobId, fields, "x");
- * @mutate src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx |                     onClick={() => setEditingId(r.item_id)}>Edit</Button> |                     onClick={() => setAdding(true)}>Edit</Button>
+ * @mutate src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx |                     onClick={() => setEditingId(r.item_id)}>{t("lfs.edit")}</Button> |                     onClick={() => setAdding(true)}>Edit</Button>
  * Lead 11-01: the add form gets Sell one's photo draft and garage-sale price suggestion (useSellAiDraft, AiPriceLine).
  * @mutate src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx | autoStart: !editing && photos.length > 0, | autoStart: false,
  * @mutate src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx |         {ai.state.status === "done" && <AiPriceLine draft={ai.state.draft} />} | 

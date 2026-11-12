@@ -7,7 +7,7 @@
  * @mutate src/components/landing/SectionsShowcase.tsx |                 {w(`landing.trust.${key}`, title)} |                 {title}
  * @mutate src/components/landing/SectionsShowcase.tsx |     if (!es) return onTheWayLine(labels); |     return onTheWayLine(labels);
  * @mutate src/components/landing/HowItWorksSection.tsx |                   {w(`landing.how.${side}${i + 1}Title`, step.title)} |                   {step.title}
- * @mutate src/components/landing/HowItWorksSection.tsx |               options={SIDE_OPTIONS.map((o) => ({ ...o, label: w(`landing.how.side.${o.value}`, o.label) }))} |               options={SIDE_OPTIONS}
+ * @mutate src/components/landing/HowItWorksSection.tsx |               options={SIDE_OPTIONS.map((o) => ({ ...o, label: typeof o.label === "string" ? w(`landing.how.side.${o.value}`, o.label) : o.label }))} |               options={SIDE_OPTIONS}
  * @mutate src/components/landing/LandingBrowseShell.tsx |                 {w(title)}\n              </h2> |                 {title}\n              </h2>
  * @mutate src/components/landing/LandingProof.tsx |           {w("landing.proof.justFinished", "Just finished")} |           Just finished
  */

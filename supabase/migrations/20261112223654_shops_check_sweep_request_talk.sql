@@ -27,6 +27,10 @@
 --   member (shop_talks), like shops_open_order_talk (20261105225245). Same refusals: switch, sign-in, restricted
 --   account, not a side (request_not_found), own shop, a shop the shop-state rule hides (talk_closed), a block.
 --
+-- S2-026 (Suggestion): a closed shop chat said only "This chat is closed." shops_talk_view (restated from its
+--   NEWEST CREATE, 20261112052501) adds shop_off = the shop-state rule closed it, so the sheet can say "This shop
+--   isn't on Helpr right now"; a block is never named (it stays the plain closed line).
+--
 -- Grants by role name. Replay-safe: IF NOT EXISTS, CREATE OR REPLACE, DROP TRIGGER IF EXISTS.
 
 -- ---------------------------------------------------------------------------
@@ -68,6 +72,17 @@ DECLARE
   r record;
   v_at timestamptz := now();
 BEGIN
+  -- Review (authz should-fix 2): tries made before the item last went live say nothing about it now (taken down and
+  -- published again: publish leaves an empty verdict empty, so the reset trigger does not fire). They start over.
+  UPDATE public.shop_item_private pv
+     SET ai_check_attempts = 0
+    FROM public.shop_items i
+   WHERE i.id = pv.item_id
+     AND pv.ai_checked_at IS NULL
+     AND pv.ai_check_attempts > 0
+     AND i.live_at IS NOT NULL
+     AND (pv.ai_check_last_try_at IS NULL OR pv.ai_check_last_try_at < i.live_at);
+
   -- The fail-safe: 3 server tries failed and the last one had its run. Off the shop for an admin (as a flagged live
   -- item, shops_record_item_ai_check), marked judged "didn't finish" so it is held once, and the owner is told.
   -- Orders already placed stand. An admin's approval clears it the usual way.
@@ -80,6 +95,11 @@ BEGIN
        AND pv.ai_check_attempts >= 3
        AND pv.ai_check_last_try_at < v_at - interval '270 seconds'
        AND i.admin_approved_at IS NULL
+       -- The same items the claim tries (review should-fix 2), and never a shop the shop-state rule hides: its photos
+       -- sit in the private held bucket (Q1957), so a check there fails for our reason, not the item's (must-fix 1).
+       AND NOT i.is_seed
+       AND NOT public.is_test_subject(i.owner_id)
+       AND public.shop_state_ok(i.shop_id)
      FOR UPDATE OF i SKIP LOCKED
   LOOP
     UPDATE public.shop_items
@@ -111,6 +131,8 @@ BEGIN
        -- Never test data (owner 10-30: test data never reaches the owner; no model cost on it).
        AND NOT i.is_seed
        AND NOT public.is_test_subject(i.owner_id)
+       -- Review must-fix 1: never a hidden / held shop (its photos are not readable; it is not on sale anyway).
+       AND public.shop_state_ok(i.shop_id)
      ORDER BY i.live_at
      LIMIT LEAST(GREATEST(COALESCE(p_limit, 5), 1), 20)
      FOR UPDATE OF pv SKIP LOCKED
@@ -204,3 +226,53 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shops_open_request_talk(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.shops_open_request_talk(uuid) TO authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- S2-026. Why a closed chat is closed (the shop's state only; never a block).
+CREATE OR REPLACE FUNCTION public.shops_talk_view(p_talk_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  t public.shop_talks%ROWTYPE;
+  s public.shops%ROWTYPE;
+  v_side text;
+  v_messages jsonb;
+BEGIN
+  PERFORM public.require_feature('shops');
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  v_side := public.shop_talk_side(p_talk_id, v_uid);
+  IF v_side IS NULL THEN
+    RAISE EXCEPTION 'talk_not_found' USING ERRCODE = 'PT404';
+  END IF;
+  SELECT * INTO t FROM public.shop_talks WHERE id = p_talk_id;
+  SELECT * INTO s FROM public.shops WHERE id = t.shop_id;
+  SELECT COALESCE(jsonb_agg(jsonb_build_object('id', m.id, 'mine', m.sender_side = v_side, 'body', m.body, 'created_at', m.created_at)
+                            ORDER BY m.created_at, m.id), '[]'::jsonb)
+    INTO v_messages
+    FROM public.shop_talk_messages m WHERE m.talk_id = t.id;
+  RETURN jsonb_build_object(
+    'talk_id', t.id,
+    'shop_id', s.id,
+    'side', v_side,
+    -- The shop's name for the member; the member's first name for the shop (never a full name or an id).
+    'other_label', CASE WHEN v_side = 'buyer' THEN s.name
+                        -- CHANGED 20261112052501: no first name across a block or a ban (either side).
+                        WHEN public.declutter_names_hidden(s.owner_id, t.buyer_id) THEN 'A shopper'
+                        ELSE COALESCE(NULLIF(split_part(btrim((SELECT p.full_name FROM public.profiles p WHERE p.user_id = t.buyer_id)), ' ', 1), ''), 'A shopper') END,
+    -- CHANGED (Q1947): the shop-state rule every viewer shares, as the send refuses by it.
+    'open', public.shop_state_ok(s.id) AND NOT public.are_users_blocked(t.buyer_id, s.owner_id),
+    -- NEW (S2-026, 20261112223654): why a closed chat is closed, when the reason is the shop's own state (hidden,
+    -- paused off Helpr, the owner's standing). A block is never named: it stays the plain "closed".
+    'shop_off', NOT public.shop_state_ok(s.id),
+    'messages', v_messages);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.shops_talk_view(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.shops_talk_view(uuid) TO authenticated, service_role;

@@ -4,6 +4,8 @@
  *           declutter-check-sweep run claims shop items too, judges them like the editor, fails closed) and held for an
  *           admin after 3 failed tries. Behaviour on a real database: src/test/pglite/shopsCheckSweepRequestTalk.pglite.mjs
  *           (3x; NEW_MIGRATION=skip RED; 7 planted defects RED).
+ *   S2-026: a closed shop chat says the shop isn't on Helpr when that is why (shops_talk_view.shop_off); a block keeps
+ *           the plain line.
  *   S2-018: either side of an open custom request can message the other (the one shop chat, shops_open_request_talk).
  *
  * @mutate src/components/shops/ShopCustomRequestsList.tsx |       {OPEN.has(r.status) && openId !== r.id && <ShopOrderMessageButton requestId={r.id} side={side} />} |       {null}
@@ -27,6 +29,7 @@ vi.mock("@/lib/shops/talk", async (io) => ({
 }));
 
 import ShopCustomRequestsList from "@/components/shops/ShopCustomRequestsList";
+import { closedChatText } from "@/components/shops/ShopTalk";
 import { rpcErrorMessage } from "@/lib/shops/rpcErrorCopy";
 import { SHOPS_ERROR_COPY } from "@/lib/shops/errors";
 
@@ -84,5 +87,15 @@ describe("S2-001 the server checks a shop item the editor never checked", () => 
     expect(fn).toContain('admin.rpc("shops_record_item_ai_check"');
     expect(fn).toContain('const judged = answer.parsed ? sanitizeShopItemDraft(answer.parsed) : null;\n  if (!judged) return "failed";');
     expect(fn).toMatch(/if \(!answer\.ok\) \{[\s\S]{0,200}return answer\.status === 429 \|\| answer\.status >= 500 \? "busy" : "defect";/);
+  });
+});
+
+describe("S2-026 a closed chat says why", () => {
+  it("the shop's state is named to each side; a block is not", () => {
+    expect(closedChatText({ side: "buyer", shop_off: true })).toMatch(/^This shop isn't on Helpr right now/);
+    expect(closedChatText({ side: "shop", shop_off: true })).toMatch(/^Your shop isn't showing on Helpr right now/);
+    expect(closedChatText({ side: "buyer", shop_off: false })).toBe("This chat is closed. You can still read it.");
+    expect(closedChatText({ side: "buyer" })).toBe("This chat is closed. You can still read it.");
+    expect(SQL).toContain("'shop_off', NOT public.shop_state_ok(s.id),");
   });
 });

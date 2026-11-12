@@ -11,6 +11,7 @@
  *
  * The Supabase client is a recording fake (calls logged, results queued).
  *
+ * @mutate src/lib/shops/orders.ts |         return side === "buyer" ? "The shop didn't answer in time. Your card was never charged." : "Not answered in time (nothing charged)"; |         return "Not answered in time (nothing charged)";
  * @mutate src/lib/shops/orders.ts |   return { charged: data.charged === true }; |   return { charged: !!data.charged };
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -274,6 +275,7 @@ describe("orderStatusLabel", () => {
       orderStatusLabel(o("declined")),
       orderStatusLabel(o("expired", "no_answer")),
       orderStatusLabel(o("expired")),
+      orderStatusLabel(o("expired", "day_full")),
       orderStatusLabel(o("cancelled", "buyer_cancelled")),
       orderStatusLabel(o("cancelled")),
       orderStatusLabel(o("handed_over")),
@@ -285,6 +287,13 @@ describe("orderStatusLabel", () => {
     expect(new Set(labels).size).toBe(labels.length);
     expect(labels[1]).toMatch(/charging/);
     expect(labels[2]).toMatch(/paid/);
+  });
+
+  it("S031: an order that closed unanswered says why, in each side's words", () => {
+    expect(orderStatusLabel(o("expired", "no_answer"), "buyer")).toBe("The shop didn't answer in time. Your card was never charged.");
+    expect(orderStatusLabel(o("expired", "no_answer"), "shop")).toBe("Not answered in time (nothing charged)");
+    expect(orderStatusLabel(o("expired", "day_full"))).toBe("That day filled up (nothing charged)");
+    expect(orderStatusLabel(o("expired", "amount_mismatch"))).toMatch(/didn't go through/);
   });
 
   it("a charged order's ending reads in the buyer's or the shop's words", () => {

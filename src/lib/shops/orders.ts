@@ -479,7 +479,14 @@ export function orderStatusLabel(
       if (o.preorder_item_id) return o.captured_at ? (side === "buyer" ? "Preorder, paid in full" : "Preorder, paid") : "Preorder (charging the card)";
       return o.captured_at ? "Accepted and paid" : "Accepted (charging your card)";
     case "declined": return "Declined (nothing charged)";
-    case "expired": return o.close_reason === "no_answer" ? "Not answered in time (nothing charged)" : "Closed (nothing charged)";
+    // S031 (Shops audit 11-12): say why the order closed, not only "Closed".
+    case "expired":
+      if (o.close_reason === "no_answer") {
+        return side === "buyer" ? "The shop didn't answer in time. Your card was never charged." : "Not answered in time (nothing charged)";
+      }
+      if (o.close_reason === "day_full") return "That day filled up (nothing charged)";
+      if (o.close_reason === "amount_mismatch") return "The payment didn't go through (nothing charged)";
+      return "Closed (nothing charged)";
     case "cancelled": return o.close_reason === "buyer_cancelled" ? "Withdrawn (nothing charged)" : "Cancelled (nothing charged)";
     case "handed_over": return "Picked up";
     case "refunded": return "Refunded";

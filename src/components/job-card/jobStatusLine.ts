@@ -126,6 +126,9 @@ export interface JobStatusLine {
   /** F260q: the detail's step and deadline handed back separately ("Waiting on Yusef to confirm" + "by Wed 9:00 AM"),
    *  paired with the exact detail, so the tracker's "· by" part never splits English words. */
   detailBy?: { line: string; text: string; by: string };
+  /** F260q: the detail already names its day and time ("· answer due Mon 6:00 AM", "has until ...", "to confirm by ..."),
+   *  so Home's to-do never adds a second "· by" (needsYouTodos withTodoBy). Set by code, never read off the words. */
+  detailSaysWhen?: true;
 }
 
 /** One countdown on the collapsed line. */
@@ -692,11 +695,13 @@ export function posterStatusLine(
   const expired = id === "cancelled" && isExpiredListing(job);
   const detail = expired ? inLang("cl.expiredDetail", EXPIRED_LISTING_DETAIL) : named ?? (atTheJob ? inLang("cl.atJobHelpr", "Your Helpr is at the job") : inLang(`cl.p.${id}`, copy.detail));
   const detailBy = id === "confirmed" && helperName ? confirmWaitBy(helperName, job, detail) : null;
+  const saysWhen = !expired && (!!offerBy || !!detailBy || (!atTheJob && id === "offer_out" && !!helperName && !!offerAnswerByMs(job)));
   return {
     id,
     eyebrow: expired ? inLang("cl.expiredWord", EXPIRED_WORD) : eyebrowInLang("p", id, copy.eyebrow ?? BUCKET_LABEL[bucket]),
     detail,
     ...(detailBy ? { detailBy } : {}),
+    ...(saysWhen ? { detailSaysWhen: true as const } : {}),
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_arrival",
     suffix: id === "cancelled" ? cancelledSuffix(job, progress?.refund) : null,

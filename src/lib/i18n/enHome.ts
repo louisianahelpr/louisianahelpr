@@ -49,6 +49,15 @@ export const enHome = {
   "home.soonOne": "{names} is opening soon",
   "home.soonMany": "{names} are opening soon",
   "home.and": "and",
+  // Coming up rows (comingUp.ts): day words and what to do (F260q).
+  "home.day.today": "Today",
+  "home.day.tomorrow": "Tomorrow",
+  "home.more": "{first} + {n} more",
+  "home.yourItem": "your item",
+  "home.cu.pickUp": "Pick up {what}",
+  "home.cu.putOut": "Put out {what}",
+  "home.cu.handOver": "Hand over {what}",
+  "home.cu.getReady": "Get {what} ready",
 } as const;
 
 addEnglish(enHome);

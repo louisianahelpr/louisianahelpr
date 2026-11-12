@@ -139,7 +139,8 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   options_not_for_downloads: "A download has one price. Remove its options first, or pick another kind.",
   too_many_option_values: "Each option list can have up to 10 choices.",
   too_many_variants: "An item can have up to 100 combinations.",
-  invalid_variants: "Give each combination a price and offer at least one of them.",
+  // S2-009: the server says this for a price out of range, a stock that is not a whole number, or none offered.
+  invalid_variants: "Check each combination: a price from $1, a whole-number stock (or empty), and at least one offered.",
   invalid_note: "Keep the note under 500 characters.",
   ready_date_too_soon: "That date is too soon for these items. Pick a later day.",
   ready_date_too_far: "Pick a date in the next 90 days.",

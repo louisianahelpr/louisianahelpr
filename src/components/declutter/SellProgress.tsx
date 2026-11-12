@@ -17,10 +17,11 @@ const STEP_WORDS: Record<ProgressStep, string> = {
 };
 
 /** Sell one: the step its post is at, from the words useSellFlowState says while posting. */
-export function postStepOf(words: string | null): ProgressStep {
-  if (!words) return "photos";
-  if (/photo/i.test(words)) return "photos";
-  if (/^Putting it up/i.test(words)) return "live";
+export type PostStepKey = "sf.ps.adding" | "sf.ps.uploading" | "sf.ps.retrying" | "sf.ps.saving" | "sf.ps.puttingUp";
+/** The progress row's step from the posting step's KEY (F260q: never its words, which may be Spanish). */
+export function postStepOf(key: PostStepKey | null): ProgressStep {
+  if (!key || key === "sf.ps.adding" || key === "sf.ps.uploading" || key === "sf.ps.retrying") return "photos";
+  if (key === "sf.ps.puttingUp") return "live";
   return "checking";
 }
 

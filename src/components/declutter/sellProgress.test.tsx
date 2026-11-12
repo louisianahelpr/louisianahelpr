@@ -12,10 +12,12 @@ import { bunchItemSteps, postStepOf, ReadingPhotos, SellProgress } from "./SellP
 
 describe("each listing's step while it goes up", () => {
   it("Sell one: from the posting words", () => {
-    expect(postStepOf("Uploading photo 1 of 3")).toBe("photos");
-    expect(postStepOf("Adding photo 2 of 3")).toBe("photos");
-    expect(postStepOf("Saving your listing")).toBe("checking");
-    expect(postStepOf("Putting it up")).toBe("live");
+    expect(postStepOf("sf.ps.uploading")).toBe("photos");
+    expect(postStepOf("sf.ps.adding")).toBe("photos");
+    expect(postStepOf("sf.ps.retrying")).toBe("photos");
+    expect(postStepOf("sf.ps.saving")).toBe("checking");
+    expect(postStepOf("sf.ps.puttingUp")).toBe("live");
+    expect(postStepOf(null)).toBe("photos");
   });
 
   it("Sell a bunch: every item made ready, then every item listed (2 steps each)", () => {

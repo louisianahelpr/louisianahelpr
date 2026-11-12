@@ -14,6 +14,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import "@/lib/i18n/enSellForm";
+import { t as tr } from "@/lib/i18n/language";
+import { postStepOf, type PostStepKey } from "./SellProgress";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
@@ -85,7 +88,8 @@ export function useSellFlowState(urlItemId: string | null) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(0);
   // What Post is doing right now, in words (audit posting 1030 #5: a slow Post only said "Posting…").
-  const [postStep, setPostStep] = useState<string | null>(null);
+  // F260q: the step is a dictionary key (sf.ps.*), so the progress row keys off it, never English words (postStepOf).
+  const [postStepAt, setPostStep] = useState<{ key: PostStepKey; n?: number; total?: number } | null>(null);
   // Why the last photos didn't go up (audit posting 1030 #2); the photos themselves stay in `held`.
   const [photoFailure, setPhotoFailure] = useState<string | null>(null);
   const failedPhotos = useRef(0);
@@ -417,10 +421,10 @@ export function useSellFlowState(urlItemId: string | null) {
     for (const [i, f] of list.entries()) {
       // Already up since it was added (LEAD-POST-SLOW (a)): only attached now.
       const early = id === newItemId.current ? staged.current.get(f) : undefined;
-      setPostStep(early ? `Adding photo ${i + 1} of ${list.length}` : `Uploading photo ${i + 1} of ${list.length}`);
+      setPostStep({ key: early ? "sf.ps.adding" : "sf.ps.uploading", n: i + 1, total: list.length });
       try {
         const uploadedPath = (await early) ?? undefined;
-        await addPhotoSteadily(user!.id, id, f, { ...FULL_LISTING_COPY, uploadedPath, onRetry: () => setPostStep(`Uploading photo ${i + 1} of ${list.length}. The connection dropped, so we're trying again`) });
+        await addPhotoSteadily(user!.id, id, f, { ...FULL_LISTING_COPY, uploadedPath, onRetry: () => setPostStep({ key: "sf.ps.retrying", n: i + 1, total: list.length }) });
         up.add(f);
         staged.current.delete(f);
       } catch (err) {
@@ -505,7 +509,7 @@ export function useSellFlowState(urlItemId: string | null) {
       return;
     }
     setPublishing(true);
-    setPostStep("Saving your listing");
+    setPostStep({ key: "sf.ps.saving" });
     failedPhotos.current = 0;
     try {
       if (withoutFailed) {
@@ -516,7 +520,7 @@ export function useSellFlowState(urlItemId: string | null) {
       if (!id) return;
       // A photo didn't go up: nothing goes live until the seller says what to do (data-photo-trouble in SellOneScreen).
       if (failedPhotos.current > 0) return;
-      setPostStep("Putting it up");
+      setPostStep({ key: "sf.ps.puttingUp" });
       offersAfter.current = false;
       // LEAD-POST-SLOW (owner 2026-10-31: "nothing slow for users, under 2 s"; 20261031152545): the listing goes up at
       // once and the automatic photo check runs right after it. A flag takes it down and tells the seller why; a
@@ -582,11 +586,13 @@ export function useSellFlowState(urlItemId: string | null) {
   const photoTotal = photoCount + held.length;
   const priceCents = form.free ? null : dollarsToCents(form.price);
   const floorCents = form.free ? null : dollarsToCents(form.floor);
+  const postStep = postStepAt ? tr(postStepAt.key, { n: postStepAt.n ?? 0, total: postStepAt.total ?? 0 }) : null;
+  const postStage = postStepOf(postStepAt?.key ?? null);
   return {
     saved, sizeKnown, setSizePicked, user, underAge, itemId, item, photos, form, setForm, set, coords, place, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
     aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, offersWanted, setOffersWanted, tradesWanted, setTradesWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
-    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure, keptWork, refusedNote, makeCover, reorderHeld, coverUndo, undoCover,
+    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, postStage, failedHeld, photoFailure, keptWork, refusedNote, makeCover, reorderHeld, coverUndo, undoCover,
   };
 }
 

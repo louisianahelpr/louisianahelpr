@@ -44,4 +44,4 @@ export const esHome: Record<keyof typeof enHome, string> = {
   "home.soonOne": "{names} abre pronto",
   "home.soonMany": "{names} abren pronto",
   "home.and": "y",
-} as const;
+};

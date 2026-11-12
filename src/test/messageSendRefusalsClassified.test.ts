@@ -20,7 +20,7 @@
 // @mutate src/lib/messageSendRefusal.ts |   { kind: "rate_limited", match: (m) => RATE_LIMIT_RAISE.test(m), retryable: true, toast: RATE_LIMITED_TOAST }, |
 // @mutate src/pages/messages/messagesData/sendHandlers.ts |       if (refusal) { |       if (false) {
 // @mutate src/pages/messages/messagesData/sendHandlers.ts |       if (refusal) {\n | \n      if (refusal) {\n        toast.error(refusal.toast);\n
-// @mutate src/components/messages/MessageBubble.tsx | {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not sent — tap to retry"} | Not sent — tap to retry
+// @mutate src/components/messages/MessageBubble.tsx | {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : t("msg.notSentRetry")} | {t("msg.notSentRetry")}
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";

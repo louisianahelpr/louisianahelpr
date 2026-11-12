@@ -1,3 +1,6 @@
+import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enMessages";
+import { navKey } from "@/lib/i18n/navLabels";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { MailCheck } from "lucide-react";
@@ -97,9 +100,9 @@ export function useMessageSections(conversations: Conversation[], allConversatio
 
   const unread = conversations.filter((c) => c.unread > 0).length;
   const chips: { value: InboxFilter; label: string }[] = [
-    { value: "all", label: "All" },
+    { value: "all", label: t("msg.filterAll") },
     // The real unread-thread count, or no number at all (never "· 0").
-    { value: "unread", label: unread > 0 ? `Unread · ${unread}` : "Unread" },
+    { value: "unread", label: unread > 0 ? t("msg.filterUnreadN", { n: unread }) : t("msg.filterUnread") },
     ...chipTabs.map((k) => ({ value: k, label: sectionByKey(k).label })),
   ];
   // #3 (Declutter walk 2026-10-28, shot 46): the row's right edge was faded ALWAYS, so at 1440 the last chip that
@@ -123,7 +126,7 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     };
   }, [chipCount]);
   const strip = (
-    <div ref={rowRef} className="chip-row" data-more={more ? "" : undefined} role="group" aria-label="Filter messages" data-testid="messages-filter-chips">
+    <div ref={rowRef} className="chip-row" data-more={more ? "" : undefined} role="group" aria-label={t("msg.filterAria")} data-testid="messages-filter-chips">
       {chips.map((c) => (
         <button
           key={c.value}
@@ -143,7 +146,8 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     const def = sectionByKey(section);
     const copy = SECTION_INBOX_EMPTY[section];
     // A closed section only has a chip while it holds threads, so its chip never shows an empty list.
-    empty = { icon: def.icon, title: `No ${copy.noun} messages yet`, body: copy.body, action: { label: copy.browse, to: def.path } };
+    const noun = navKey(def.path, def.label);
+    empty = { icon: def.icon, title: t("msg.sectionEmpty", { noun: noun ? t(noun) : copy.noun }), body: t(`msg.empty.${section}.body`), action: { label: t(`msg.empty.${section}.browse`), to: def.path } };
     // D2-1: Declutter lists the member's order chats above its threads, in place of this empty state when it has any.
     // Q1947: Shops lists the member's shop chats the same way (shops_my_talks needs the switch, so only while it's on).
     if (section === "shops" && live.shops) empty.Lead = ShopTalkLead;
@@ -153,7 +157,7 @@ export function useMessageSections(conversations: Conversation[], allConversatio
   // Q2663 (account audit 1102d row 23): Unread with nothing unread said "No messages yet", even beside a full
   // All tab. It says what is true and goes back to All.
   if (section === "unread" && shown.length === 0) {
-    empty = { icon: MailCheck, title: "No unread messages", body: "You're all caught up. New messages show up here.", action: { label: "See all messages", to: "/messages" } };
+    empty = { icon: MailCheck, title: t("msg.noUnread"), body: t("msg.noUnreadBody"), action: { label: t("msg.seeAll"), to: "/messages" } };
   }
 
   // F420 (audit 11-10): the order chats are inbox rows, mixed with the threads newest first, under All and under the

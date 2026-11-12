@@ -27,6 +27,7 @@ import {
   SHOP_SERVICE_FEE_INCLUDED,
 } from "@/lib/shops/orders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
+import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
 
 /** The payment line for the request's plan: today's card hold, or half now and the rest on the ready date. */
 export const CUSTOM_ORDER_PAY_TEXT: Record<CustomRequest["payment_plan"], string> = {
@@ -46,6 +47,9 @@ export default function ShopCustomOrderForm({ request, onDone }: { request: Cust
   const dateProblem = t && readyDate ? readyDateProblem(readyDate, t, lead) : null;
   const firstDate = t ? firstOpenReadyDate(t, lead) : null;
   const price = request.quote_cents ?? 0;
+  // S2-015 (Shops audit 2): the first-time setup fee shop-checkout adds, shown the order sheet's way.
+  const setupFeeCents = useFirstPayoutFeeCents();
+  const setupFeeKnown = useFirstPayoutFeeKnown();
   const id = (s: string) => `custom-order-${request.id}-${s}`;
 
   if (terms.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading the shop's days…</p>;
@@ -111,8 +115,9 @@ export default function ShopCustomOrderForm({ request, onDone }: { request: Cust
       </div>
       <dl className="space-y-1 text-sm">
         <div className="flex justify-between gap-2"><dt>Price</dt><dd>{formatCents(price)}</dd></div>
-        <div className="flex justify-between gap-2 font-semibold"><dt>You pay before tax</dt><dd data-testid="shop-custom-order-total">{formatCents(price + buyerFeeCents(price))}</dd></div>
-        <p className="text-xs text-muted-foreground">{`${SHOP_SERVICE_FEE_INCLUDED} Any sales tax is added on the payment page.`}</p>
+        {setupFeeCents > 0 ? <div className="flex justify-between gap-2"><dt>One-time account setup fee</dt><dd data-testid="shop-custom-order-setup-fee">{formatCents(setupFeeCents)}</dd></div> : null}
+        <div className="flex justify-between gap-2 font-semibold"><dt>You pay before tax</dt><dd data-testid="shop-custom-order-total">{formatCents(price + buyerFeeCents(price) + setupFeeCents)}</dd></div>
+        <p className="text-xs text-muted-foreground">{`${SHOP_SERVICE_FEE_INCLUDED} ${setupFeeKnown ? "Any sales tax is added on the payment page." : "Any sales tax and one-time setup fee are added on the payment page."}`}</p>
       </dl>
       <div className="space-y-1">
         <p className="text-sm font-semibold">{`Cancel rule: ${policy.label}`}</p>

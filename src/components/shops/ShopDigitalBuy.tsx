@@ -28,6 +28,7 @@ import { fetchShopItems, formatItemPrice, type ShopItem } from "@/lib/shops/item
 import { buyerFeeCents, formatCents, requestDigitalPurchase, SHOP_SERVICE_FEE_INCLUDED } from "@/lib/shops/orders";
 import { billingAddressProblem, digitalBuyUrl, type BillingAddress } from "@/lib/shops/digitalFiles";
 import { shopsErrorMessage } from "@/lib/shops/errors";
+import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
 
 export default function ShopDigitalBuy({ shopId }: { shopId: string }) {
   const headId = useId();
@@ -38,6 +39,9 @@ export default function ShopDigitalBuy({ shopId }: { shopId: string }) {
   const [addr, setAddr] = useState<BillingAddress>({ line1: "", city: "", state: "LA", postal_code: "" });
   const [opening, setOpening] = useState(false);
 
+  // S2-015 (Shops audit 2): shop-checkout adds the first-time setup fee to a download too; say so before paying.
+  const setupFeeCents = useFirstPayoutFeeCents();
+  const setupFeeKnown = useFirstPayoutFeeKnown();
   // The app's link-out lands here with ?buy=<item>: open that item's address step.
   const buyParam = params.get("buy");
   useEffect(() => {
@@ -94,7 +98,7 @@ export default function ShopDigitalBuy({ shopId }: { shopId: string }) {
         <div className="space-y-3 rounded-2xl border border-border p-4" data-testid="shop-digital-billing">
           <p className="text-sm font-medium">{picked.title}</p>
           <p className="text-sm">
-            {`You pay ${formatCents(picked.price_cents + buyerFeeCents(picked.price_cents))} plus sales tax where you live. ${SHOP_SERVICE_FEE_INCLUDED}`} You can download it in Shops &gt; My orders as soon as you pay.
+            {`You pay ${formatCents(picked.price_cents + buyerFeeCents(picked.price_cents) + setupFeeCents)}${setupFeeCents > 0 ? `, including a one-time ${formatCents(setupFeeCents)} account setup fee,` : ""} plus sales tax where you live${setupFeeKnown ? "" : " and any one-time account setup fee"}. ${SHOP_SERVICE_FEE_INCLUDED}`} You can download it in Shops &gt; My orders as soon as you pay.
           </p>
           <div className="space-y-1.5">
             <Label htmlFor="dl-line1">Billing street address</Label>

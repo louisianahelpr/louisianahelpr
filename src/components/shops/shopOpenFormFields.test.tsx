@@ -10,7 +10,7 @@
  * @mutate src/components/shops/ShopEditView.tsx |     if (first) {\n      focusField(first);\n      return;\n    } |     if (first) {\n      focusField(first);\n    }
  * @mutate src/components/shops/ShopEditView.tsx |     toast.dismiss(); // F2: no stale toast from an earlier try stays on screen |     // toast.dismiss() removed
  * @mutate src/components/shops/ShopEditView.tsx |       if (field) {\n        setErrors({ [field]: msg }); |       if (false) {\n        setErrors({ [field]: msg });
- * @mutate src/components/shops/ShopEditView.tsx |   Object.fromEntries(WEEKDAYS.map((_, i) => [i, { open: i >= 1 && i <= 5, opens: "09:00", closes: "17:00" }])); |   Object.fromEntries(WEEKDAYS.map((_, i) => [i, { open: false, opens: "09:00", closes: "17:00" }]));
+ * @mutate src/components/shops/shopEditForm.tsx |   Object.fromEntries(WEEKDAYS.map((_, i) => [i, { open: i >= 1 && i <= 5, opens: "09:00", closes: "17:00" }])); |   Object.fromEntries(WEEKDAYS.map((_, i) => [i, { open: false, opens: "09:00", closes: "17:00" }]));
  * @mutate src/components/shops/ShopEditView.tsx |     const fromTown = parishForCity(form.areaLabel)?.name ?? null; |     const fromTown = null;
  * @mutate src/components/shops/ShopEditView.tsx |   const [showSos, setShowSos] = useState(false); |   const [showSos, setShowSos] = useState(true);
  * @mutate src/components/shops/ShopCategoryQuickPick.tsx | onClick={() => { setMore(false); onChange(c.slug); }} | onClick={() => { setMore(false); }}

@@ -71,7 +71,7 @@ describe("the shop's price form", () => {
     const subtype = (screen.queryByLabelText("Type") as HTMLSelectElement | null)?.value;
     expect(call?.[1]).toEqual({ p_request_id: "req-1", p_quote_cents: 4000, p_note: "Two weeks.", p_subtype: subtype,
       p_statements: requiredStatements("made", subtype as string) });
-    expect(toast).toHaveBeenCalledWith("Price sent. The buyer has 7 days to order it.");
+    expect(toast).toHaveBeenCalledWith("Price sent. The buyer has 7 days to order it; you then accept the order within 24 hours.");
   });
 
   it("a price under $1, over $5,000 or with 3 decimals never sends", () => {

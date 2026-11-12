@@ -6,7 +6,7 @@
 // @mutate src/components/messages/ConversationRow.tsx | className="w-[18px] h-[18px] rounded-full | className="w-6 h-6 rounded-full
 // @mutate src/components/firstRun/FirstRun.tsx | className="shrink-0 w-[18px] h-[18px] rounded-full | className="shrink-0 w-7 h-7 rounded-full
 // @mutate src/components/declutter/declutterUi.tsx | <label htmlFor={id} className="min-h-11 flex-1">{TAX_TICK_LABEL}</label> | <label htmlFor={id}>{TAX_TICK_LABEL}</label>
-// @mutate src/components/shops/ShopEditView.tsx | <Label htmlFor="shop-quotes" className="flex min-h-11 flex-1 items-center font-normal"> | <Label htmlFor="shop-quotes" className="font-normal">
+// @mutate src/components/shops/ShopEditView.tsx | <Label htmlFor="shop-quotes" className="flex min-h-11 flex-1 flex-col justify-center font-normal leading-snug"> | <Label htmlFor="shop-quotes" className="font-normal">
 // @mutate src/components/admin/adminPayoutBatches/BatchRow.tsx | <label className="-m-[13px] flex shrink-0 cursor-pointer p-[13px]"> | <label className="flex shrink-0">
 // @mutate src/components/declutter/ManagerPanel.tsx | <Checkbox checked={value[p]} | <Checkbox className="h-5 w-5" checked={value[p]}
 /**

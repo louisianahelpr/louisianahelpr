@@ -10,7 +10,7 @@
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (result.out.some((o) => "status" in o)) void choices.remember(savedWays); |       void result.out;
  * @mutate src/components/declutter/DeclutterBunchView.tsx | undefined, onStep, { ...choices.choices, moveOutOn: moveDate \|\| null }, | undefined, onStep,
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |           {!item.free && (\n            <div> |           {(\n            <div>
- * @mutate src/components/declutter/DeclutterBunchCard.tsx |             <Checkbox aria-label={`Give ${name} away free`} checked={!!item.free} onCheckedChange={(v) => onChange({ free: v === true })} /> |             <Checkbox checked={!!item.free} />
+ * @mutate src/components/declutter/DeclutterBunchCard.tsx |             <Checkbox aria-label={t("lp.bc.freeAria", { name })} checked={!!item.free} onCheckedChange={(v) => onChange({ free: v === true })} /> |             <Checkbox checked={!!item.free} />
  * Moved here 11-07 (vacuity: their old guards could not see the listing run):
  * @mutate src/lib/declutter/bunch.ts |   return items.filter((it) => !bunchItemProblem(it) && (!feeDue \|\| !!it.free)); |   return items.filter((it) => !bunchItemProblem(it));
  * @mutate src/components/declutter/BunchChoices.tsx | acceptsOffers: row.acceptsOffers, freeAfterDays: row.freeAfterDays, acceptsTrades: row.acceptsTrades }); | acceptsOffers: row.acceptsOffers, acceptsTrades: row.acceptsTrades });

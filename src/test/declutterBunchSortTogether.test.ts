@@ -8,7 +8,7 @@
  *   - an item that straddles two batches joins, or carries a merge suggestion when the check can't run.
  *
  * @mutate src/lib/declutter/bunch.ts |   return { ...blankItem(photoKeys), notSorted: true, sortReason }; |   return { ...blankItem(photoKeys), sortReason };
- * @mutate src/lib/declutter/bunch.ts |   if (it.notSorted) return "These photos aren't sorted yet."; |   void it.notSorted;
+ * @mutate src/lib/declutter/bunch.ts |   if (it.notSorted) return "notSorted"; |   void it.notSorted;
  * @mutate src/lib/declutter/bunch.ts |         made = await sendPart(good, cleaned, connectionDown ? [] : SORT_RETRY_DELAYS_MS); |         made = await sendPart(good, cleaned, []);
  * @mutate src/lib/declutter/bunch.ts |         if (!connectionDown && good.length >= 2 && sizeMayBeWhy(error)) { |         if (false) {
  * @mutate src/lib/declutter/bunch.ts |           made = made.map((it) => (it === first ? { ...it, mergeHint: before.key } : it)); |           void first;

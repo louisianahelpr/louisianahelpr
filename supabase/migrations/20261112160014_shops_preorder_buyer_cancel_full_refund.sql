@@ -86,7 +86,8 @@ BEGIN
    WHERE id = o.id AND status = 'accepted';
   r := public.shop_write_refund(o.id, v_reason, NULL);
   PERFORM public.declutter_notify(o.seller_id, 'warning', 'Preorder cancelled',
-    format('A buyer cancelled their preorder for %s.', to_char(o.ready_date, 'FMMonth FMDD')), '/shops/dashboard', o.buyer_id);
+    -- Money review (S2-019 should-fix 1): the shop is told it carries the card processing cost on this refund.
+    format('A buyer cancelled their preorder for %s. They get a full refund, and the small card processing cost comes out of your next payout.', to_char(o.ready_date, 'FMMonth FMDD')), '/shops/dashboard', o.buyer_id);
   PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Preorder cancelled',
     format('$%s is on its way back to your card%s. Card refunds usually show up in 5 to 10 business days.',
            to_char(r.refund_cents / 100.0, 'FM999999990.00'),

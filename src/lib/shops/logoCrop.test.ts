@@ -14,7 +14,7 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 
 const h = vi.hoisted(() => ({ crop: vi.fn(), clean: vi.fn(), upload: vi.fn(), rpc: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { storage: { from: () => ({ upload: h.upload, remove: vi.fn(), getPublicUrl: () => ({ data: { publicUrl: "" } }) }) }, rpc: h.rpc },
+  supabase: { storage: { from: () => ({ upload: h.upload, remove: vi.fn(), getPublicUrl: () => ({ data: { publicUrl: "" } }) }) }, rpc: h.rpc, functions: { invoke: async () => ({ data: { ok: true }, error: null }) } },
 }));
 vi.mock("@/lib/declutter/photos", () => ({ cleanListingPhoto: h.clean, LISTING_PHOTO_UPLOAD_TYPES: ["image/jpeg"] }));
 vi.mock("./logoCrop", async (orig) => ({ ...(await orig<typeof import("./logoCrop")>()), squareCropLogo: h.crop }));

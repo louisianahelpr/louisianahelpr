@@ -11,6 +11,7 @@ import { rpcErrorMessage } from "./rpcErrorCopy";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { removeShopObjects } from "./storageCleanup";
+import { checkShopPhotoBytes } from "./photoByteCheck";
 import { squareCropLogo } from "./logoCrop";
 
 /** Shop photos live in job-photos under <owner uid>/shops/ (purged with the account). */
@@ -245,6 +246,8 @@ export async function addShopPhoto(ownerId: string, kind: ShopPhotoKind, file: F
     cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL,
   });
   if (upErr) throw new Error("photo_not_uploaded");
+  // Q1956: the server reads the photo's own bytes before the attach takes it.
+  await checkShopPhotoBytes(SHOP_PHOTO_BUCKET, path);
   const { data, error } = await supabase.rpc("shops_attach_photo", { p_kind: kind, p_storage_path: path });
   if (error) {
     await removeShopObjects(SHOP_PHOTO_BUCKET, [path], "refused photo upload");

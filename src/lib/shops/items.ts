@@ -12,6 +12,7 @@ import { openShopsIdentityCheckFor } from "./errors";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { removeShopObjects } from "./storageCleanup";
+import { checkShopPhotoBytes } from "./photoByteCheck";
 import { SHOP_ITEM_TYPES, type ShopItemKind } from "../../../supabase/functions/declutter-ai-draft/shopItemSanitize";
 
 export { SHOP_ITEM_TYPES, type ShopItemKind };
@@ -301,6 +302,8 @@ export async function addShopItemPhoto(ownerId: string, itemId: string, file: Fi
     cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL,
   });
   if (upErr) throw new Error("photo_not_uploaded");
+  // Q1956: the server reads the photo's own bytes before the attach takes it.
+  await checkShopPhotoBytes(ITEM_PHOTO_BUCKET, path);
   const { data, error } = await supabase.rpc("shops_add_item_photo", { p_item_id: itemId, p_storage_path: path });
   if (error) {
     // Counted and reported like a detach (lh-silent-failure re-review).

@@ -62,6 +62,9 @@ const GATED = [
   // Shops digital downloads (20261108182917): shop-digital resolves its caller with getUser() and refuses an unconfirmed
   // one (refuseUnconfirmedEmail) before any file is begun, checked, removed or signed.
   "shop-digital",
+  // Q1956 (20261112095000): shop-photo-check resolves its caller with getUser() and refuses an unconfirmed one before
+  // it reads, removes or stamps a photo.
+  "shop-photo-check",
   // B54 S2 (20261030012052): ship-rates resolves its caller with getUser() and refuses an unconfirmed one.
   "ship-rates",
   "sms-provider-check",

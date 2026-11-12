@@ -22,6 +22,8 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     storage: { from: () => ({ remove: h.remove, upload: h.upload, getPublicUrl: () => ({ data: { publicUrl: "" } }) }) },
     rpc: h.rpc,
+    // Q1956: the bytes check between upload and attach passes here (shopsPhotoByteCheck.test.ts covers it).
+    functions: { invoke: async () => ({ data: { ok: true }, error: null }) },
   },
 }));
 vi.mock("@/lib/errorLogger", async (actual) => ({ ...(await actual<typeof import("@/lib/errorLogger")>()), report: h.capture }));

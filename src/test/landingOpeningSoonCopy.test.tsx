@@ -25,7 +25,7 @@
  * "Opening soon" while the rail and the Explore chips (SoonPill "rail" and
  * "caption") say "Coming soon". The landing badge uses the rail's word, read
  * from the rendered SoonPill so the two cannot drift apart.
- * @mutate src/components/landing/SectionsShowcase.tsx |               Coming soon\n |               Opening soon\n
+ * @mutate src/components/landing/SectionsShowcase.tsx |               {w("landing.comingSoon", "Coming soon")}\n |               {w("landing.comingSoon", "Opening soon")}\n
  *
  * And everywhere else a member sees it (lead, 2026-10-28): SoonPill's "full"
  * pill (Create sheet, Settings, Customize), Settings' section line and /search's
@@ -175,7 +175,8 @@ describe("the landing says what is open today", () => {
 
   it("the closing line is the owner's words", () => {
     const src = blankComments(readFileSync(join(ROOT, "src/components/landing/SectionsShowcase.tsx"), "utf8"));
-    expect(src).toMatch(/>One free account for jobs and Declutter\.<\/p>/);
+    // F260q: the English sits in w("landing.joinSub", ...); Spanish comes from the dictionary.
+    expect(src).toMatch(/>\{w\("landing\.joinSub", "One free account for jobs and Declutter\."\)\}<\/p>/);
     expect(src).not.toMatch(/Jobs are open now/);
   });
 });

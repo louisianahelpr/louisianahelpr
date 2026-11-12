@@ -31,6 +31,7 @@
  * @mutate supabase/migrations/20261112082518_shops_setup_fee_refund.sql | CASE WHEN o.policy IN ('full_shop_pays_fee', 'full_platform_absorbs') THEN o.setup_fee ELSE 0 END | o.setup_fee
  * @mutate supabase/migrations/20261112082518_shops_setup_fee_refund.sql | CASE WHEN so.setup_fee_state = 'claimed' THEN so.setup_fee_cents ELSE 0 END | so.setup_fee_cents
  * @mutate supabase/migrations/20261112082518_shops_setup_fee_refund.sql |     UPDATE public.profiles SET onboarding_fee_paid = false, onboarding_fee_charged_at = NULL WHERE user_id = o.buyer_id; | 
+ * @mutate src/components/shops/ShopDashboardView.tsx | formatCents(accepting.items_cents + (accepting.fulfillment === "shop_delivers" ? accepting.delivery_cents ?? 0 : 0)) | formatCents(accepting.items_cents)
  * @mutate src/components/shops/ShopMyOrdersView.tsx |   if (o.status === "accepted") return "accepted"; |   if (o.status === "accepted" \|\| o.status === "handed_over") return "accepted";
  * @mutate src/components/shops/ShopOrderCard.tsx |           {CANCEL_RULE_VISIBLE.has(order.status) && !order.handed_over_at | {true
  * @mutate src/components/shops/ShopHandoverActions.tsx |           {!porch && !byHelpr && due && !h?.shop_confirmed_at && ( |           {!porch && due && !h?.shop_confirmed_at && (
@@ -115,5 +116,9 @@ describe("Shops audit 11-12 Mediums", () => {
     expect(a).toContain("+ k.fee_back, k.fee_back FROM k;");
     const w = body("shop_write_refund");
     expect(w).toContain("IF a.setup_fee_refund_cents > 0 AND o.buyer_id IS NOT NULL THEN UPDATE public.profiles SET onboarding_fee_paid = false, onboarding_fee_charged_at = NULL WHERE user_id = o.buyer_id;");
+  });
+  it("S047: the accept dialog's amount includes the shop's own delivery fee", () => {
+    const src = read("src/components/shops/ShopDashboardView.tsx");
+    expect(src).toContain('formatCents(accepting.items_cents + (accepting.fulfillment === "shop_delivers" ? accepting.delivery_cents ?? 0 : 0))');
   });
 });

@@ -201,7 +201,9 @@ export function ShopCancelOrder({ order }: { order: ShopOrder }) {
   });
   if (!cancellable) return null;
   // Only an order the shop marked ready can be a no-show (the server says not_ready otherwise).
-  const noShowOpen = order.handover_mode === "in_person" && markedReady && louisianaToday() > order.ready_date;
+  // S004 (Shops audit 11-12): never on a Helpr-delivered order, unless it fell back to pickup (no Helpr took it).
+  const helprDelivers = order.fulfillment === "helpr_delivers" && !order.helpr_unfilled_at;
+  const noShowOpen = order.handover_mode === "in_person" && !helprDelivers && markedReady && louisianaToday() > order.ready_date;
   return (
     <div className="flex flex-wrap gap-2" data-testid="shop-cancel-actions">
       {noShowOpen && (

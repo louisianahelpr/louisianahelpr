@@ -224,7 +224,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/BunchChoices.tsx` | checkbox/switch/radio×2 |  |  | bunch-drops · bunch-keep-up |
 | `src/components/declutter/BunchDraftsSection.tsx` | checkbox/switch/radio×1 |  |  | bunch-drafts · bunch-drafts-tax |
 | `src/components/declutter/CategoryDrillDown.tsx` | input×1 | search |  |  |
-| `src/components/declutter/DeclutterBunchCard.tsx` | input×2, textarea×1, checkbox/switch/radio×3 | text | 80, 2000 | Oak rocking chair · Set a price |
+| `src/components/declutter/DeclutterBunchCard.tsx` | input×2, textarea×1, checkbox/switch/radio×3 | text | 80, 2000 |  |
 | `src/components/declutter/DeclutterBunchListStep.tsx` | checkbox/switch/radio×1 |  |  | bunch-list-step · bunch-list · bunch-tax |
 | `src/components/declutter/DeclutterBunchRow.tsx` | input×1 | text |  | Price ($) |
 | `src/components/declutter/DeclutterMovingSaleDetails.tsx` | input×1 | text | 60 | move-sale-name · Moving to Lafayette · everything goes · move-sale-start · Pick a date |

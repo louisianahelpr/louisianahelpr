@@ -50,7 +50,8 @@ describe("the Declutter Free section", () => {
     // (asserted below).
     // 11-10 (20261110205345, F508): restated with notice titles that fit a lock screen; the free claim is kept (asserted below).
     // 11-10 (20261110223800, reserved notice): restated with the reserved notice naming its deadline; the free claim is kept (asserted below).
-    expect(newestFunction("declutter_take_item").file).toContain("20261110223800_declutter_reserved_notice_names_the_deadline.sql");
+    // 11-11 (20261112004748, F356 follow-up): restated with the buyer named in the seller's notices; the free claim is kept.
+    expect(newestFunction("declutter_take_item").file).toContain("20261112004748_declutter_seller_notices_name_the_buyer.sql");
     // declutter_checkout_free: restated by #26 (20261028204431, its notice line), #37 (20261028223036, its seller link)
     // and the ways the giver ticked (20261028235247_declutter_handover_choices.sql: handover_not_offered).
     // Then D-NEW14 porch places (20261030164712: porch_place_needed and the frozen place, insertion only).

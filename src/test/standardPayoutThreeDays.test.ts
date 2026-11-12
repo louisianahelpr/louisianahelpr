@@ -21,10 +21,12 @@
  * @mutate supabase/functions/auto-release-payment/index.ts | const payoutTime = standardPayoutAtIso(instantIds.has(job.id) ? null : job.poster_completed_at); | const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
  * @mutate supabase/functions/create-payment/index.ts | const payoutTime = standardPayoutAtIso(isPoster ? null : job.poster_completed_at); | const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
  * @mutate supabase/functions/_shared/payoutPromise.ts |   return `$${dollars} will be sent to your account${payDay}${ |   return `$${dollars} will be transferred to your account in 24 hours${
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   return `Sent ${STANDARD_PAYOUT_PHRASE}`; |   return `Sent 24 hours after approval`;
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   return t("mt.sentAfter", { days: STANDARD_PAYOUT_DAYS_AFTER_APPROVAL }); |   return `Sent 24 hours after approval`;
+ * @mutate src/lib/i18n/enMoneyTiles.ts |   "mt.sentAfter": "Sent {days} days after the job is approved", |   "mt.sentAfter": "Sent {days} days after approval",
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { readFileSync, statSync } from "node:fs";
+import { enMoneyTiles } from "@/lib/i18n/enMoneyTiles";
 import { join, resolve } from "node:path";
 import {
   STANDARD_PAYOUT_DAYS_AFTER_APPROVAL,
@@ -123,6 +125,10 @@ describe("standard pay: 3 days after the poster approves (owner 2026-10-23)", ()
     expect(offenders).toEqual([]);
   });
 
+  it("the money tile's English caption is the shared phrase, word for word (F260q)", () => {
+    expect(enMoneyTiles["mt.sentAfter"].replace("{days}", String(STANDARD_PAYOUT_DAYS_AFTER_APPROVAL))).toBe(`Sent ${STANDARD_PAYOUT_PHRASE}`);
+  });
+
   it("the client sites that state the standard timing interpolate the shared phrase", () => {
     const sites = [
       "src/pages/jobs/appliedJobCard/steps/SubmittedStep.tsx",
@@ -133,7 +139,8 @@ describe("standard pay: 3 days after the poster approves (owner 2026-10-23)", ()
     ];
     for (const s of sites) {
       const src = blankComments(readFileSync(join(ROOT, s), "utf8"));
-      expect(src, s).toMatch(/STANDARD_PAYOUT_PHRASE/);
+      // F260q: HomeMoneyTiles reads its words from the dictionary with the shared day count (checked below).
+      expect(src, s).toMatch(/STANDARD_PAYOUT_PHRASE|t\("mt\.sentAfter", \{ days: STANDARD_PAYOUT_DAYS_AFTER_APPROVAL \}\)/);
       expect(src, s).not.toMatch(/hours after (approval|dual confirmation)/);
     }
   });

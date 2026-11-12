@@ -57,7 +57,7 @@ async function send() {
   expect(res.status).toBe(200);
   const queued = (scenario.rpcCalls ?? []).filter((c) => c.name === "enqueue_email").map((c) => (c.args as { payload: Queued }).payload);
   expect(queued).toHaveLength(1);
-  const props = (emailRenders.at(-1) as { props: Props }).props;
+  const props = (emailRenders[emailRenders.length - 1] as { props: Props }).props;
   return { subject: queued[0].subject, props };
 }
 

@@ -176,7 +176,7 @@ const HowItWorksSection = () => {
               labelSize="md"
               tone="quiet"
               ariaLabel={w("landing.how.sidesLabel", "Which side of Helpr are you on")}
-              options={SIDE_OPTIONS.map((o) => ({ ...o, label: w(`landing.how.side.${o.value}`, o.label) }))}
+              options={SIDE_OPTIONS.map((o) => ({ ...o, label: typeof o.label === "string" ? w(`landing.how.side.${o.value}`, o.label) : o.label }))}
               value={side}
               onChange={setSide}
             />

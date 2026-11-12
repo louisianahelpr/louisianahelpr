@@ -497,7 +497,7 @@ export function NotificationPanelView({
           >
             {/* F434 (whole-app audit 2026-11-10): "Showing 100 · 723 unread in total" left a first-timer with no next
                 step; Mark all read now clears every unread notice, so the footer says so. */}
-            {t("notif.showingNewest", { count: notifications.length, unread: unreadTotal })}
+            {t("notif.showingNewest", { count: notifications.length, unread: unreadTotal ?? 0 })}
           </p>
         )}
 

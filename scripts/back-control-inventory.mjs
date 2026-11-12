@@ -145,6 +145,20 @@ export function elementBody(src, start, tag, name) {
 /** Icons that mean "leave this surface". */
 const EXIT_GLYPH = /<(ArrowLeft|ChevronLeft|X)(?=[\s/>])/;
 const LABEL = /(?:aria-label|title)\s*=\s*"([^"]*)"/;
+/** A label from the dictionary (F260q): aria-label={t("msg.qr.cancel")} reads as its English words. */
+const KEY_LABEL = /(?:aria-label|title)\s*=\s*\{\s*(?:t|tr)\(\s*"([\w.]+)"\s*\)\s*\}/;
+let englishWords = null;
+function english(key) {
+  if (!englishWords) {
+    englishWords = new Map();
+    const dir = join(process.cwd(), "src", "lib", "i18n");
+    for (const f of readdirSync(dir).filter((x) => /^en\w*\.ts$/.test(x))) {
+      for (const m of readFileSync(join(dir, f), "utf8").matchAll(/^\s*"([\w.]+)":\s*"((?:[^"\\]|\\.)*)"/gm)) englishWords.set(m[1], m[2]);
+    }
+  }
+  return englishWords.get(key) ?? "";
+}
+const labelOf = (tag) => LABEL.exec(tag)?.[1] ?? (KEY_LABEL.exec(tag) ? english(KEY_LABEL.exec(tag)[1]) : "");
 /** Only whole-surface exits. "Remove", "Clear", "Delete" are value edits. */
 const EXIT_LABEL = /^\s*(go\s+back|back|close|dismiss|cancel)\b/i;
 const GO_BACK_CALL = /navigate\(\s*-1\s*\)|history\.back\(\)|router\.back\(\)|\bonBack\b|\bonDismiss\b/;
@@ -238,7 +252,7 @@ export function scan(files) {
       const name = m[1];
       const tag = openingTag(src, m.index);
       const body = elementBody(src, m.index, tag, name);
-      const label = LABEL.exec(tag)?.[1] ?? "";
+      const label = labelOf(tag);
 
       // A value edit is never a back control, however it is drawn.
       if (VALUE_EDIT_LABEL.test(label)) continue;

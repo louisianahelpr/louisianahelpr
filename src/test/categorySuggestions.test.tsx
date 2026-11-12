@@ -140,7 +140,7 @@ const PICKERS: ReadonlyArray<{ file: string; picker: RegExp; area: "jobs" | "dec
   { file: "src/components/postjob/JobCategoryGroups.tsx", picker: /JOB_CATEGORY_GROUPS\.map\(groupTile\)/, area: "jobs" },
   { file: "src/components/declutter/SellSummaryCard.tsx", picker: /<CategoryDrillDown label=\{t\("sell\.category"\)\}/, area: "declutter" },
   { file: "src/components/declutter/DeclutterSellView.tsx", picker: /<CategoryDrillDown label=\{tr\("sf\.ds\.category"\)\}/, area: "declutter" },
-  { file: "src/components/declutter/DeclutterEditListing.tsx", picker: /<ChipGroup label="Category"/, area: "declutter" },
+  { file: "src/components/declutter/DeclutterEditListing.tsx", picker: /<ChipGroup label=\{t\("lp\.ed\.category"\)\}/, area: "declutter" },
 ];
 
 describe("Suggest a category: every category picker renders the link (Q1836 a)", () => {

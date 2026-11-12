@@ -134,7 +134,8 @@ describe("the day-before confirm: one window, one deadline (Q1647)", () => {
     const bad: string[] = [];
     for (const rel of readers) {
       const c = code(rel);
-      if (!CALLS_SHARED.test(c)) bad.push(`${rel}: reads the confirm window without confirmOpensMs/confirmDeadlineMs`);
+      // A dictionary (src/lib/i18n, F260q) holds words only; its callers compute the window. Its copy is still checked below.
+      if (!CALLS_SHARED.test(c) && !rel.startsWith("src/lib/i18n/")) bad.push(`${rel}: reads the confirm window without confirmOpensMs/confirmDeadlineMs`);
       // A deadline typed into copy instead of interpolated from the constant.
       for (const m of confirmCopy(c)) {
         if (/^\d+$/.test(m[1])) bad.push(`${rel}: types "${m[0]}" (interpolate CONFIRM_DEADLINE_HOURS_BEFORE_START)`);

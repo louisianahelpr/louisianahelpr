@@ -96,6 +96,8 @@ const CONVERTED = [
   // and the Ask for it sheet (enFreeAsk.ts).
   "src/components/declutter/DeclutterFreeClaim.tsx",
   "src/components/declutter/FreeAskSheet.tsx",
+  // F260q: Home's money strip and the head of You › Money (enMoneyTiles.ts).
+  "src/pages/home/homeDashboard/HomeMoneyTiles.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */

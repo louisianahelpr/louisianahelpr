@@ -19,9 +19,9 @@
  * @mutate src/lib/posterSpend.ts | const HELD_UNTIL_CONFIRM_STATUSES = ["accepted", "in_progress", "revision_requested"] as const; | const HELD_UNTIL_CONFIRM_STATUSES = ["accepted", "in_progress", "revision_requested", "disputed", "open"] as const;
  * @mutate src/lib/posterSpend.ts |     const held = r.cents - r.tipCents - setupFeeCents; |     const held = r.cents - setupFeeCents;
  * @mutate src/lib/posterSpend.ts |     const held = r.cents - r.tipCents - setupFeeCents; |     const held = r.cents - r.tipCents;
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (!c.hasPayoutAccount) return "Add your payout account to get it"; | 
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (c.overdue) return "Approved, not sent yet"; | 
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   return `Sent ${STANDARD_PAYOUT_PHRASE}`; |   return `Payout ${walletDay(new Date().toISOString())}`;
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (!c.hasPayoutAccount) return t("mt.addPayout"); | 
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (c.overdue) return t("mt.notSent"); | 
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   return t("mt.sentAfter", { days: STANDARD_PAYOUT_DAYS_AFTER_APPROVAL }); |   return `Payout ${walletDay(new Date().toISOString())}`;
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx | navigate(!money.coming \|\| money.coming.hasPayoutAccount \|\| setupPaused ? "/profile?tab=earnings" : "/profile?tab=payment") | navigate("/profile?tab=earnings")
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (!money.coming && !money.held && !stack) return null; |   if (!money.coming && !money.held && !stack) return <div data-home-money="empty" />;
  * @mutate src/components/profile/EarningsTab.tsx |   const money = useHomeMoney(user); |   const money = { coming: null, held: null };

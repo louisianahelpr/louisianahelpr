@@ -9,7 +9,7 @@
  * @mutate src/components/profile/earningsTab/earningsTabHelpers.ts |   !j.poster_completed_at &&\n | \n
  * @mutate src/components/profile/earningsTab/earningsTabHelpers.ts | const AWAITING_SIGN_OFF_JOB_STATUSES: readonly string[] = ["in_progress", "pending_approval", "accepted"]; | const AWAITING_SIGN_OFF_JOB_STATUSES: readonly string[] = ["in_progress", "pending_approval", "accepted", "revision_requested"];
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |       {stack && stack.disputeCents > 0 && ( |       {false && (
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   const comingLabel = placement === "money" ? "On its way" : "Coming to you"; |   const comingLabel = "Coming to you";
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   const comingLabel = placement === "money" ? t("mt.onItsWay") : t("mt.comingToYou"); |   const comingLabel = t("mt.comingToYou");
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";

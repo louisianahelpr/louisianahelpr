@@ -1,13 +1,15 @@
 import { useNavigate } from "react-router-dom";
 import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers";
-import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/escrowTiming";
+import { STANDARD_PAYOUT_DAYS_AFTER_APPROVAL } from "../../../../supabase/functions/_shared/escrowTiming";
+import { getLang, t, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enMoneyTiles";
 import type { HomeMoney } from "./homeMoney";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { GlassTileButton } from "@/components/ui/GlassTileButton";
 import { MoneyTilesLoading } from "./MoneyTilesLoading";
 
 /** "Fri, Oct 23": the day the approved money reaches the member's wallet. */
-const walletDay = (iso: string) => new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+const walletDay = (iso: string) => new Date(iso).toLocaleDateString(getLang() === "es" ? "es-US" : "en-US", { weekday: "short", month: "short", day: "numeric" });
 
 /**
  * Board 51/7 caption under "Coming to you", always TRUE (lh-money-escrow review, 2026-10-20):
@@ -19,11 +21,12 @@ const walletDay = (iso: string) => new Date(iso).toLocaleDateString("en-US", { w
 function comingCaption(c: NonNullable<HomeMoney["coming"]>, setupPaused: boolean): string {
   // Payout setup switched off (owner 2026-10-23); no "add your account" ask and
   // no "paused" notice (owner 2026-10-25: "its not paused"). The pay is kept.
-  if (!c.hasPayoutAccount && setupPaused) return "Kept for you";
-  if (!c.hasPayoutAccount) return "Add your payout account to get it";
-  if (c.overdue) return "Approved, not sent yet";
-  if (c.at) return `${c.severalDates ? "First reaches" : "Reaches"} your wallet ${walletDay(c.at)}`;
-  return `Sent ${STANDARD_PAYOUT_PHRASE}`;
+  if (!c.hasPayoutAccount && setupPaused) return t("mt.kept");
+  if (!c.hasPayoutAccount) return t("mt.addPayout");
+  if (c.overdue) return t("mt.notSent");
+  if (c.at) return t(c.severalDates ? "mt.firstReaches" : "mt.reaches", { day: walletDay(c.at) });
+  // escrowTiming's STANDARD_PAYOUT_PHRASE, in the dictionary with the same day count.
+  return t("mt.sentAfter", { days: STANDARD_PAYOUT_DAYS_AFTER_APPROVAL });
 }
 
 /**
@@ -34,9 +37,12 @@ function comingCaption(c: NonNullable<HomeMoney["coming"]>, setupPaused: boolean
  */
 function heldWords(h: NonNullable<HomeMoney["held"]>): { label: string; caption: string } {
   if (h.only) {
-    return { label: `Held for ${h.only.title}`, caption: `Paid to ${h.only.helper ?? "your Helpr"} after you confirm it's done` };
+    return { label: t("mt.heldFor", { title: h.only.title }), caption: t("mt.paidToAfter", { name: h.only.helper ?? t("mt.yourHelpr") }) };
   }
-  return { label: `Held for ${h.jobs} job${h.jobs === 1 ? "" : "s"}`, caption: h.jobs === 1 ? "Paid to your Helpr after you confirm it's done" : "Paid to each Helpr after you confirm their job is done" };
+  return {
+    label: h.jobs === 1 ? t("mt.heldForOneJob") : t("mt.heldForJobs", { n: h.jobs }),
+    caption: h.jobs === 1 ? t("mt.paidToAfter", { name: t("mt.yourHelpr") }) : t("mt.paidEach"),
+  };
 }
 
 /**
@@ -57,6 +63,7 @@ export function HomeMoneyTiles({
   onOpen?: (kind: "coming" | "held") => void;
 }) {
   const navigate = useNavigate();
+  useLanguage();
   const setupPaused = usePayoutSetupPaused();
   // Q2706 (lead 11-05, owner may override): You > Money's tile row never appears or collapses. Live lab (prod,
   // helper, 375, Fast 4G + 4x): the tiles landing at the top after their reads (~2.2 s) pushed the page down,
@@ -67,12 +74,12 @@ export function HomeMoneyTiles({
   // then "Waiting for approval" and "Held in a dispute" (earningsTabHelpers.moneyStack), each row only when it holds
   // money. Home's strip keeps "Coming to you" alone.
   const stack = placement === "money" && money.stack && (money.stack.waitingCents > 0 || money.stack.disputeCents > 0) ? money.stack : null;
-  const comingLabel = placement === "money" ? "On its way" : "Coming to you";
+  const comingLabel = placement === "money" ? t("mt.onItsWay") : t("mt.comingToYou");
   if (placement === "money" && money.pending && !money.coming && !money.held) return <MoneyTilesLoading />;
   if (placement === "money" && !money.failed && !money.coming && !money.held && !stack) {
     return (
       <div data-home-money="money" className="grid grid-cols-2 gap-3">
-        <MoneyTile kind="coming" span="col-span-2" label={comingLabel} cents={0} caption="Nothing on its way yet"
+        <MoneyTile kind="coming" span="col-span-2" label={comingLabel} cents={0} caption={t("mt.nothingYet")}
           onClick={() => (onOpen ? onOpen("coming") : navigate("/profile?tab=earnings"))} />
       </div>
     );
@@ -94,7 +101,7 @@ export function HomeMoneyTiles({
           span={span}
           label={comingLabel}
           cents={money.coming?.cents ?? 0}
-          caption={money.coming ? comingCaption(money.coming, setupPaused) : "Nothing on its way yet"}
+          caption={money.coming ? comingCaption(money.coming, setupPaused) : t("mt.nothingYet")}
           stack={stack}
           // No payout account: open the screen that sets one up (the cron's own notification links there),
           // or, while setup is paused, You › Money (the pay is kept there).
@@ -135,13 +142,13 @@ function MoneyTile({ kind, span, label, cents, caption, stack, onClick }: {
       <span className="text-ds-13 text-muted-foreground leading-snug">{caption}</span>
       {stack && stack.waitingCents > 0 && (
         <span data-money-stack="waiting" className="mt-2 flex justify-between gap-2 text-ds-13">
-          <span className="text-muted-foreground">Waiting for approval</span>
+          <span className="text-muted-foreground">{t("mt.waiting")}</span>
           <span className="font-semibold tabular-nums">{formatCents(stack.waitingCents)}</span>
         </span>
       )}
       {stack && stack.disputeCents > 0 && (
         <span data-money-stack="dispute" className={`${stack.waitingCents > 0 ? "mt-1" : "mt-2"} flex justify-between gap-2 text-ds-13`}>
-          <span className="text-muted-foreground">Held in a dispute</span>
+          <span className="text-muted-foreground">{t("mt.dispute")}</span>
           <span className="font-semibold tabular-nums">{formatCents(stack.disputeCents)}</span>
         </span>
       )}

@@ -165,7 +165,7 @@ function stepForWait(entry: Entry, job: StampJob, nowMs: number): WaitStep {
 
 /** What the card itself shows: its status line (id + whose-move tone) and its one face button. */
 export interface CardFace {
-  line: { id: string; tone: JobStatusTone; detail: string };
+  line: { id: string; tone: JobStatusTone; detail: string; detailBy?: { line: string; text: string; by: string } };
   /** The face's one button; "primary" = a real next step the viewer can take now. Null = no button. */
   face?: { tone: "primary" | "secondary"; step?: string } | null;
 }

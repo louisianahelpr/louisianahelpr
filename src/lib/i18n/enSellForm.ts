@@ -48,6 +48,19 @@ export const enSellForm = {
   "sf.offersOff": "Off. Buyers pay your price with Buy now; no offers.",
   "sf.taxHead": "Confirm about this item",
   "sf.taxLine": "Louisiana doesn't charge sales tax on occasional sales of your own things.",
+  "sf.group.home": "Home",
+  "sf.group.outdoors": "Outdoors",
+  "sf.group.family": "Family",
+  "sf.group.hobbies": "Hobbies and fun",
+  "sf.group.more": "More",
+  "sf.catSearch": "Search categories",
+  "sf.clearSearch": "Clear search",
+  "sf.catMatches": "Matching categories",
+  "sf.catNoMatch": "No category matches \"{q}\". Choose Other under More, or suggest one below.",
+  "sf.allCats": "All categories",
+  "sf.catHeadings": "Category headings",
+  "sf.headingChosen": "{heading}, {category} chosen",
+  "sf.chosen": "Chosen: {category}",
 } as const;
 
 addEnglish(enSellForm);

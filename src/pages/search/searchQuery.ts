@@ -1,5 +1,5 @@
 /** Which result group /search shows (board 89's chips). */
-export type SearchSection = "all" | "jobs" | "declutter";
+export type SearchSection = "all" | "jobs" | "declutter" | "shops";
 
 /**
  * A PostgREST `ilike` pattern that matches the typed words as literal text.

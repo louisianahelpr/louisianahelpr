@@ -3,7 +3,7 @@
  * are Coming soon and are not searched. It names what it searches: jobs, and items while Declutter is on.
  * AUD31-32: a search with no results offered only "Browse all jobs" though it searched Declutter too.
  *
- * @mutate src/pages/search/SearchPage.tsx |   const fieldLabel = declutterOn ? "Search jobs and items" : "Search jobs"; |   const fieldLabel = "Search jobs, items, shops and homes";
+ * @mutate src/pages/search/SearchPage.tsx |   const fieldLabel = declutterOn ? (shopsOn ? "Search jobs, items and shops" : "Search jobs and items") : shopsOn ? "Search jobs and shops" : "Search jobs"; |   const fieldLabel = "Search jobs, items, shops and homes";
  * @mutate src/pages/search/SearchPage.tsx |                 {declutterOn && ( |                 {false && (
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";

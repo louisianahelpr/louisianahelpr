@@ -17,6 +17,8 @@ import { focusSheetItself } from "./focusSheetItself";
 import { FallbackImg } from "./FallbackImg";
 import { bunchPhotoDrag } from "./bunchPhotoDrag";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 /** Another item on the list, as a choice: its name and first photo. */
 export interface BunchOther {
@@ -85,20 +87,20 @@ function PhotoSheet({ photoKey, position, itemName, isCover, canSplit, earlierKe
     <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={focusSheetItself} data-bunch-photo-sheet=""
         className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`}>
-        <SheetHero title={`${itemName}, photo ${position}`} />
-        {src && <img src={src} alt={`${itemName}, photo ${position}`} onError={() => setBroken(true)} className="mt-2 max-h-[45dvh] w-full rounded-xl bg-photo-empty object-contain" data-bunch-big-photo="" />}
+        <SheetHero title={t("lp.bp.photoOf", { name: itemName, n: position })} />
+        {src && <img src={src} alt={t("lp.bp.photoOf", { name: itemName, n: position })} onError={() => setBroken(true)} className="mt-2 max-h-[45dvh] w-full rounded-xl bg-photo-empty object-contain" data-bunch-big-photo="" />}
         <div className="mt-3 flex flex-wrap gap-2">
-          {!isCover && <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => act(() => onCover(photoKey))}>Make cover</Button>}
-          {earlierKey && <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => onReorder(photoKey, earlierKey)}>Move earlier</Button>}
-          {laterKey !== undefined && <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => onReorder(photoKey, laterKey)}>Move later</Button>}
-          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => act(() => onRemove(photoKey))}>Remove photo</Button>
-          {canSplit && <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => act(() => onSplit([photoKey]))}>Split into a new item</Button>}
-          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onClose}>Done</Button>
+          {!isCover && <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => act(() => onCover(photoKey))}>{t("lp.bp.makeCover")}</Button>}
+          {earlierKey && <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => onReorder(photoKey, earlierKey)}>{t("lp.bp.earlier")}</Button>}
+          {laterKey !== undefined && <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => onReorder(photoKey, laterKey)}>{t("lp.bp.later")}</Button>}
+          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => act(() => onRemove(photoKey))}>{t("lp.bp.remove")}</Button>
+          {canSplit && <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => act(() => onSplit([photoKey]))}>{t("lp.bp.split")}</Button>}
+          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onClose}>{t("lp.bp.done")}</Button>
         </div>
         {others.length > 0 && (
           <div className="mt-4 space-y-2 pb-2">
-            <p className="text-ds-13 font-medium">Move this photo to</p>
-            <ItemPicker others={others} urls={urls} label={(n) => `Move this photo to ${n}`} onPick={(to) => act(() => onMove([photoKey], to))} />
+            <p className="text-ds-13 font-medium">{t("lp.bp.moveThisTo")}</p>
+            <ItemPicker others={others} urls={urls} label={(n) => t("lp.bp.moveThisToName", { name: n })} onPick={(to) => act(() => onMove([photoKey], to))} />
           </div>
         )}
       </SheetContent>
@@ -153,16 +155,16 @@ export function BunchPhotos({ item, name, others, urls, files, onMove, onSplit, 
                 bunchPhotoDrag.end();
                 onReorder(from.photo, dropBeforeKey(item.photoKeys, from.photo, k));
               }}>
-              <PhotoTileButton aria-label={`See ${name}, photo ${i + 1}`} onClick={() => setBig(k)} data-bunch-photo={k}
+              <PhotoTileButton aria-label={t("lp.bp.see", { name, n: i + 1 })} onClick={() => setBig(k)} data-bunch-photo={k}
                 className={`block w-full rounded-xl bg-photo-empty ring-offset-2 ring-offset-card ${on ? "ring-2 ring-[hsl(var(--bark))]" : ""}`}>
                 {url?.startsWith("blob:") && <FallbackImg src={url} alt="" draggable={false} loading="lazy" decoding="async" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb="" />}
                 {item.failedPhoto === k
-                  ? <span className="absolute inset-x-1 bottom-1 rounded-lg bg-background px-1 py-0.5 text-center text-ds-12 font-semibold text-foreground">Not sent</span>
-                  : i === 0 && <span className="absolute inset-x-1 bottom-1 rounded-lg bg-background px-1 py-0.5 text-center text-ds-12 font-semibold text-foreground" data-bunch-cover="">Cover</span>}
+                  ? <span className="absolute inset-x-1 bottom-1 rounded-lg bg-background px-1 py-0.5 text-center text-ds-12 font-semibold text-foreground">{t("lp.bp.notSent")}</span>
+                  : i === 0 && <span className="absolute inset-x-1 bottom-1 rounded-lg bg-background px-1 py-0.5 text-center text-ds-12 font-semibold text-foreground" data-bunch-cover="">{t("lp.bp.cover")}</span>}
               </PhotoTileButton>
               {/* A corner, never the middle (T8 at 375: the 44 px floor every button gets reached the centre of a 61 px photo, so a tap
                   ticked instead of opening). Under half the photo each way, whatever its size; 44 px once the photo is big enough. */}
-              <button type="button" aria-pressed={on} aria-label={`Choose ${name}, photo ${i + 1}`} onClick={() => toggle(k)} data-bunch-tick={k}
+              <button type="button" aria-pressed={on} aria-label={t("lp.bp.choose", { name, n: i + 1 })} onClick={() => toggle(k)} data-bunch-tick={k}
                 className="absolute right-0 top-0 flex h-[45%] max-h-11 min-h-0 w-[45%] min-w-0 max-w-11 items-start justify-end p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" data-bunch-tick-area="">
                 <span className={`flex h-5 w-5 items-center justify-center rounded-full border border-border shadow ${on ? "btn-grad-primary" : "bg-background text-foreground"}`} aria-hidden>
                   {on && <Check className="h-3.5 w-3.5" />}
@@ -172,12 +174,12 @@ export function BunchPhotos({ item, name, others, urls, files, onMove, onSplit, 
           );
         })}
         <li>
-          <HiddenFileInput id={addId} accept="image/*" multiple peer aria-label={`Add a photo to ${name}`}
+          <HiddenFileInput id={addId} accept="image/*" multiple peer aria-label={t("lp.bp.addTo", { name })}
             onChange={(e) => { onAdd(e.target.files); e.target.value = ""; }} />
           <label htmlFor={addId} data-bunch-add-photo=""
             className="flex aspect-square w-full cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl border border-dashed border-border text-center text-ds-12 font-medium text-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring">
             <Plus className="h-4 w-4" aria-hidden />
-            Add photo
+            {t("lp.bp.add")}
           </label>
         </li>
       </ul>
@@ -185,12 +187,12 @@ export function BunchPhotos({ item, name, others, urls, files, onMove, onSplit, 
         <div className="space-y-2" data-bunch-chosen="">
           {others.length > 0 && (
             <>
-              <p className="text-ds-13 font-medium">Move {live.length === 1 ? "this photo" : `these ${live.length} photos`} to</p>
-              <ItemPicker others={others} urls={urls} label={(n) => `Move ${live.length === 1 ? "this photo" : `these ${live.length} photos`} to ${n}`} onPick={(to) => { onMove(live, to); setChosen([]); }} />
+              <p className="text-ds-13 font-medium">{live.length === 1 ? t("lp.bp.moveThisTo") : t("lp.bp.moveTheseTo", { n: live.length })}</p>
+              <ItemPicker others={others} urls={urls} label={(n) => (live.length === 1 ? t("lp.bp.moveThisToName", { name: n }) : t("lp.bp.moveTheseToName", { n: live.length, name: n }))} onPick={(to) => { onMove(live, to); setChosen([]); }} />
             </>
           )}
           {live.length < item.photoKeys.length && (
-            <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => { onSplit(live); setChosen([]); }}>Split into a new item</Button>
+            <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => { onSplit(live); setChosen([]); }}>{t("lp.bp.split")}</Button>
           )}
         </div>
       )}

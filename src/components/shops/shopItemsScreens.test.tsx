@@ -33,14 +33,14 @@
  * @mutate src/components/admin/settings/ShopItemsReviewCard.tsx |       // item_changed / item_not_pending: show the version waiting now.\n      void qc.invalidateQueries | void 0;\n      void qc.getQueryData
  * @mutate src/components/admin/settings/ShopItemsReviewCard.tsx |           <Button variant="outline" size="sm" onClick={() => void pending.refetch()} disabled={pending.isFetching}> |           <Button variant="outline" size="sm" onClick={() => undefined} disabled={pending.isFetching}>
  * @mutate src/components/admin/settings/ShopItemsReviewCard.tsx |   if (!row.owner_last_rejected_at) return null; |   return null;
- * @mutate src/components/shops/ShopItemEditor.tsx |   if (!/^\d+$/.test(t)) throw new Error(code); |   if (!/^\d*$/.test(t)) throw new Error(code);
+ * @mutate src/components/shops/shopItemEditorInputs.ts |   if (!/^\d+$/.test(t)) throw new Error(code); |   if (!/^\d*$/.test(t)) throw new Error(code);
  * @mutate src/components/shops/ShopItemEditor.tsx |   const cottageUnknown = d.kind === "home_food" && !cottage.data; |   const cottageUnknown = false;
  * @mutate src/components/shops/ShopItemEditor.tsx |   if (x.photos < 3) out.push( |   if (x.photos < 0) out.push(
  * @mutate src/components/shops/ShopItemEditor.tsx | After a rejection, new items are checked by an admin for 30 days. | New items may be checked.
  * @mutate src/components/shops/ShopItemEditor.tsx |   const price = x.price.replace(/[$,\s]/g, ""); |   const price = x.price.replace(/[$\s]/g, "");
  * @mutate src/components/shops/ShopItemEditor.tsx |     if (field) {\n      setFieldError({ field, msg: shopsErrorMessage(err) }); |     if (false) {\n      setFieldError({ field, msg: shopsErrorMessage(err) });
  * @mutate src/components/shops/ShopItemEditor.tsx |     enabled: !!id && (status === "rejected" \|\| status === "draft"), |     enabled: !!id && status === "rejected",
- * @mutate src/components/shops/ShopItemEditor.tsx |       // A new kind or type asks for its own confirmations (review nit 9).\n      if (s.kind !== d.kind \|\| s.subtype !== d.subtype) setTicked([]); |       // A new kind or type asks for its own confirmations (review nit 9).\n      if (false) setTicked([]);
+ * @mutate src/components/shops/ShopItemEditor.tsx |     if (s.kind !== d.kind \|\| s.subtype !== d.subtype) setTicked([]); |     if (false) setTicked([]);
  * @mutate src/components/shops/ShopDailyCap.tsx |   const clearing = shown.trim() === "" && cap.data != null; |   const clearing = false;
  * @mutate src/components/shops/ShopDailyCap.tsx |       return setDailyOrderCap(shown.trim() === "" ? null : Number(shown)); |       return setDailyOrderCap(Number(shown));
  * @mutate src/components/shops/ShopProfile.tsx |                 {item.home_kitchen && ( |                 {false && (
@@ -257,7 +257,7 @@ describe("ShopItemsReviewCard (admin)", () => {
     item_id: "it1", shop_id: "s1", shop_name: "Bayou Bakes", owner_id: "u2", kind: "made", subtype: "candles",
     title: "Fig candle", description: "Soy wax.", price_cents: 1800, submitted_at: "2026-10-17 10:00:00.123456+00",
     ai_checked_at: null, ai_flag_reason: null, text_flag_reason: null, approved_items: 0, photo_paths: [],
-    owner_last_rejected_at: null, owner_last_rejection_note: null,
+    owner_last_rejected_at: null, owner_last_rejection_note: null, is_seed: false,
   };
 
   it("an item held by the 30-day hold shows the owner's last rejection and its reason", async () => {
@@ -367,7 +367,7 @@ describe("ShopItemEditor", () => {
   });
 
   // S041 (Shops audit 11-12): the refusal now shows under the days box (it was a toast only).
-  // @mutate src/components/shops/ShopItemEditor.tsx |   invalid_title: "title", invalid_price: "price", invalid_lead_time: "lead", invalid_stock: "stock", |   invalid_title: "title", invalid_price: "price",
+  // @mutate src/components/shops/shopItemEditorInputs.ts |   invalid_title: "title", invalid_price: "price", invalid_lead_time: "lead", invalid_stock: "stock", |   invalid_title: "title", invalid_price: "price",
   it("an empty 'days' box is refused, never saved as 0 (same day), and says so under the box (S041)", async () => {
     renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft" })} onCreated={() => {}} onDone={() => {}} />);
     const lead = screen.getByLabelText("Days you need to make it");

@@ -1,10 +1,10 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1231,
+    "calls": 1230,
     "files": 356,
     "rendering": 1149,
-    "suppressedByPolicy": 82,
+    "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 10,
@@ -13,13 +13,13 @@
       "toast.error": 824,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 88,
+      "toast.success": 87,
       "toast.warning": 27
     },
     "copyPiecesByForm": {
       "literal": 484,
       "template": 104,
-      "dynamic": 697,
+      "dynamic": 696,
       "jsx": 0
     }
   },
@@ -11931,7 +11931,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 181,
+      "line": 145,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11941,7 +11941,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 218,
+      "line": 182,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -11971,7 +11971,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 231,
+      "line": 195,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11991,7 +11991,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 246,
+      "line": 210,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -12001,7 +12001,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 258,
+      "line": 222,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12011,7 +12011,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 267,
+      "line": 231,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -12021,7 +12021,7 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 278,
+      "line": 242,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12031,7 +12031,47 @@
     },
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 286,
+      "line": 250,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 258,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "s.flagged ? \"Suggested. Our checks may send this item to an admin before it's listed.\" : \"Suggested from your photos. Check it, then save.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Suggested. Our checks may send this item to an admin before it's listed."
+          },
+          {
+            "form": "literal",
+            "text": "Suggested from your photos. Check it, then save."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 268,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopItemEditor.tsx",
+      "line": 273,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12042,66 +12082,6 @@
     {
       "file": "src/components/shops/ShopItemEditor.tsx",
       "line": 294,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "s.flagged ? \"Suggested. Our checks may send this item to an admin before it's listed.\" : \"Suggested from your photos. Check it, then save.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Suggested. Our checks may send this item to an admin before it's listed."
-          },
-          {
-            "form": "literal",
-            "text": "Suggested from your photos. Check it, then save."
-          }
-        ]
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 304,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "shopsErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 313,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "s.flagged ? \"Suggested. Our checks may send this item to an admin before it's listed.\" : \"Suggested from your photos. Check it, then save.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Suggested. Our checks may send this item to an admin before it's listed."
-          },
-          {
-            "form": "literal",
-            "text": "Suggested from your photos. Check it, then save."
-          }
-        ]
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 319,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "shopsErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/shops/ShopItemEditor.tsx",
-      "line": 340,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",

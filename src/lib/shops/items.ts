@@ -363,7 +363,7 @@ export async function requestShopItemAiDraft(itemId: string): Promise<ShopItemAi
 }
 
 /** How many of a new item's photos the AI looks at (the edge function's draft mode reads 4, as Declutter's). */
-export const SHOP_AI_DRAFT_PHOTOS = 4;
+const SHOP_AI_DRAFT_PHOTOS = 4;
 
 /**
  * S054 (Shops audit 11-12): suggestions for a NEW item from photos still on the maker's device (Declutter's

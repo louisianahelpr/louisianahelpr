@@ -6,6 +6,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { ShoppingBag } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { fetchShopItems } from "@/lib/shops/items";
 import { fetchItemOptions } from "@/lib/shops/variants";
 import { fetchItemPreorders } from "@/lib/shops/preorders";
@@ -24,9 +25,10 @@ export default function ShopReviewOrderBar({ shopId }: { shopId: string }) {
   const cents = lines.reduce((s, l) => s + l.unit * l.n, 0);
   return (
     <div className="sticky bottom-3 z-20" data-shop-review-bar="">
-      <button
+      <Button
         type="button"
-        className="btn-grad-primary flex min-h-12 w-full items-center justify-between gap-3 rounded-full px-5 text-sm font-semibold text-primary-foreground shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        size="md"
+        className="btn-grad-primary flex w-full items-center justify-between gap-3 rounded-full px-5 text-sm font-semibold text-primary-foreground shadow-md"
         onClick={() => document.getElementById("shop-order-sheet")?.scrollIntoView({ behavior: "smooth", block: "start" })}
       >
         <span className="inline-flex items-center gap-2">
@@ -34,7 +36,7 @@ export default function ShopReviewOrderBar({ shopId }: { shopId: string }) {
           {`Review order (${count})`}
         </span>
         <span>{formatCents(cents)}</span>
-      </button>
+      </Button>
     </div>
   );
 }

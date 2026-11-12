@@ -8,6 +8,8 @@
  */
 import { ShopReportItem } from "./ShopReport";
 import type { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Clock, House, MapPin, ShoppingBag, Store } from "lucide-react";
 import { shopPhotoUrl, type ShopBadges, type ShopHour, type ShopPhotoKind } from "@/lib/shops/api";
 import type { ItemPreorder } from "@/lib/shops/preorders";
@@ -185,14 +187,14 @@ export function ShopItemsGrid({ items, reportable = false, withOptions, preorder
               </div>
               <div className="space-y-0.5 p-2.5">
                 {onOpen ? (
-                  <button
-                    type="button"
-                    className="line-clamp-2 w-full text-left text-sm font-semibold leading-snug [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  <InlineTextButton
+                    className="line-clamp-2 block w-full text-left text-sm font-semibold leading-snug [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-haspopup="dialog"
+                    title={item.title}
                     onClick={() => onOpen(item.id)}
                   >
                     {item.title}
-                  </button>
+                  </InlineTextButton>
                 ) : (
                   <p className="line-clamp-2 text-sm font-semibold leading-snug [overflow-wrap:anywhere]">{item.title}</p>
                 )}
@@ -214,14 +216,16 @@ export function ShopItemsGrid({ items, reportable = false, withOptions, preorder
                   </p>
                 )}
                 {onOrder && (
-                  <button
+                  <Button
                     type="button"
-                    className="mt-1.5 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-border bg-background text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    variant="outline"
+                    size="sm"
+                    className="mt-1.5 w-full text-sm font-semibold"
                     aria-label={`Order ${item.title}`}
                     onClick={() => onOrder(item.id)}
                   >
                     Order
-                  </button>
+                  </Button>
                 )}
                 {reportable && <ShopReportItem itemId={item.id} title={item.title} />}
               </div>

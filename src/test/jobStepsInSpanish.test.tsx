@@ -6,7 +6,7 @@
  *
  * @mutate src/components/tracker/JobProgress.tsx | const stepName = (i: number): string => t(`js.s.${i}` as MsgKey); | const stepName = (i: number): string => JOB_PROGRESS_STEPS[i];
  * @mutate src/components/tracker/JobProgress.tsx | const stepDrawn = (i: number): string => t(`js.d.${i}` as MsgKey); | const stepDrawn = (i: number): string => stepName(i);
- * @mutate src/components/tracker/JobProgress.tsx | {label ?? t("js.cancelled")} | {label ?? "Cancelled"}
+ * @mutate src/components/tracker/JobProgress.tsx | {label ? stepWord(label) : t("js.cancelled")} | {label ? stepWord(label) : "Cancelled"}
  * @mutate src/components/tracker/JobProgress.tsx | : waitingOnYou ? t("js.aria.you") : t("js.aria.them"); | : waitingOnYou ? "waiting on you" : t("js.aria.them");
  * @mutate src/components/tracker/JobProgress.tsx |     later.length ? t("js.aria.later", { steps: later.join(", ") }) : "", |     later.length ? `Still to come: ${later.join(", ")}.` : "",
  */

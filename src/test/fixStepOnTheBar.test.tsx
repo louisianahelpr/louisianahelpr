@@ -5,7 +5,7 @@
  *
  * @mutate src/components/tracker/jobStepFromWait.ts | const FIX_OWED = at(6, "progress", "Fix"); | const FIX_OWED = at(6, "progress");
  * @mutate src/components/tracker/jobStepFromWait.ts | const FIX_SENT = at(7, "progress", "Fix"); | const FIX_SENT = at(7, "progress");
- * @mutate src/components/tracker/JobProgress.tsx | : (s === "you" \|\| s === "them") && label ? label : null; | : null;
+ * @mutate src/components/tracker/JobProgress.tsx | : (s === "you" \|\| s === "them") && label ? stepWord(label) : null; | : null;
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { cleanup, render } from "@testing-library/react";

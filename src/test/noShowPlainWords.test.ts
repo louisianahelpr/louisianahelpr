@@ -3,7 +3,7 @@
  * header said "Hallie hasn't checked in" (jargon) and the card's control read "No-Show" (title case). The line now says
  * what did not happen, "Hallie hasn't said they're on the way", and the control reads "No-show".
  *
- * @mutate src/components/job-card/jobStatusLine.ts |   started_no_checkin: (n) => `${firstName(n)} hasn't said they're on the way`, |   started_no_checkin: (n) => `${firstName(n)} hasn't checked in`,
+ * @mutate src/components/job-card/jobStatusLine.ts |   started_no_checkin: (n) => inLang("cl.pn.started_no_checkin", `${firstName(n)} hasn't said they're on the way`, { name: firstName(n) }), |   started_no_checkin: (n) => inLang("cl.pn.started_no_checkin", `${firstName(n)} hasn't checked in`, { name: firstName(n) }),
  * @mutate src/pages/posts/postedJobCard/steps/InProgressStep.tsx |             label="No-show" |             label="No-Show"
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";

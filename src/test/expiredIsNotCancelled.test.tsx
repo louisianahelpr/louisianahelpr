@@ -204,7 +204,7 @@ describe("an applicant to the expired listing", () => {
 
 // @mutate src/components/job-card/jobStatusLine.ts |   const expired = id === "cancelled" && !!app.job && isExpiredListing(app.job); |   const expired = false;
 // @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | ? "No longer open" | ? "Expired before anyone was hired"
-// @mutate src/components/job-card/jobStatusLine.ts |     eyebrow: expired ? APPLICANT_CLOSED_EYEBROW : | eyebrow: expired ? "Expired" :
+// @mutate src/components/job-card/jobStatusLine.ts |     eyebrow: expired ? inLang("cl.closed", APPLICANT_CLOSED_EYEBROW) : | eyebrow: expired ? "Expired" :
 // @mutate supabase/functions/auto-expire-jobs/index.ts | expired: the scheduled time passed with no Helpr hired. | was automatically cancelled because the scheduled time passed.
 // @mutate src/lib/expiredListing.ts |     !job.helper_id && |     true &&
 // @mutate src/lib/expiredListing.ts |     !job.cancelled_by && |     true &&

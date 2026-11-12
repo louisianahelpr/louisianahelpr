@@ -1985,7 +1985,7 @@ describe("job page, no dead column at 1440", () => {
 /**
  * JA-49 (lead 11-01, B107): the poster's direct offer out names the offered Helpr and says until when it stands.
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |  ?? (offerPending ? offerTarget.data ?? null : null) : null; |  : null;
- * @mutate src/components/tracker/jobNextStep.ts |     return { who: "them", text: `Waiting on ${other \|\| "the Helpr"} to accept your offer`, by }; |     return { who: "them", text: `Waiting on ${other \|\| "the Helpr"} to accept your offer` };
+ * @mutate src/components/tracker/jobNextStep.ts |     return { who: "them", text: t("ns.waitAccept", { name: other \|\| t("ns.theHelpr") }), by }; |     return { who: "them", text: t("ns.waitAccept", { name: other \|\| t("ns.theHelpr") }) };
  * @mutate src/pages/jobs/jobPage/useJobPage.ts |  completed_at, direct_offer_expires_at, response_deadline, has_active_dispute, |  completed_at, response_deadline, has_active_dispute,
  */
 describe("job page, the poster's direct offer out (JA-49)", () => {

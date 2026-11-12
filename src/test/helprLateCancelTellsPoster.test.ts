@@ -8,7 +8,7 @@
  * @mutate src/pages/jobs/jobPage/useJobPage.ts |   const cancels = rows.filter((r) => r.closed_reason === "helper_cancelled" && r.status !== "pending"); |   const cancels = rows.filter(() => false);
  * @mutate src/pages/jobs/jobPage/useJobPage.ts |   const live = rows.filter((r) => r.closed_reason !== "no_show" && !cancels.includes(r)); |   const live = rows.filter((r) => r.closed_reason !== "no_show");
  * @mutate src/components/tracker/jobNextStep.ts |     if (gone && n === 0) return | if (false) return
- * @mutate src/components/tracker/jobNextStep.ts |     if (n > 0) return { who: "you", text: "Choose a Helpr", by: `${n} applied`, ...(gone ? { body: gone.body } : {}) }; |     if (n > 0) return { who: "you", text: "Choose a Helpr", by: `${n} applied` };
+ * @mutate src/components/tracker/jobNextStep.ts |     if (n > 0) return { who: "you", text: t("ns.choose"), by: t("ns.applied", { n }), ...(gone ? { body: gone.body } : {}) }; |     if (n > 0) return { who: "you", text: t("ns.choose"), by: t("ns.applied", { n }) };
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | helprCancelled={helprCancelled} | helprCancelled={null}
  */
 import { describe, it, expect, vi } from "vitest";

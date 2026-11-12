@@ -235,9 +235,13 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
               See the shop's photo
             </Button>
           )}
-          <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setConfirming(true)}>
-            {w.buyerGotIt}
-          </Button>
+          {/* S002 (Shops audit 11-12): "I got it" pays the shop and ends the order, so it waits for the ready day, the
+              shop's ready mark or its handover (the server refuses before: not_ready_yet). */}
+          {(due || !!h?.ready_at || !!h?.shop_confirmed_at) && (
+            <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setConfirming(true)}>
+              {w.buyerGotIt}
+            </Button>
+          )}
           {(due || !!h?.ready_at || !!h?.shop_confirmed_at) && (
             <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { setNote(""); setReporting(true); }}>
               {w.buyerProblem}

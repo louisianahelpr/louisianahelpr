@@ -13,7 +13,7 @@ import { useSyncExternalStore } from "react";
 import { safeStorage } from "@/lib/safeStorage";
 import type { MsgKey } from "./en";
 import { englishWords } from "./enRegistry";
-import { loadModule } from "@/lib/loadModule";
+import { loadModule, untilReload } from "@/lib/loadModule";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
@@ -94,7 +94,10 @@ export function setLang(next: Lang) {
   if (typeof window !== "undefined") window.dispatchEvent(new Event("helpr:lang"));
   void ensureLangLoaded();
   // The member PICKED it: save it to their account too (a signed-out visitor writes nothing; see saveLanguage.ts).
-  void saveModule().then((m) => m?.saveLanguage(next), (err: unknown) => console.warn("[i18n] language save skipped", err));
+  // An empty module (a recovery reload is on its way) waits on untilReload(), so the account's copy is never dropped.
+  void saveModule()
+    .then((m) => m ?? untilReload())
+    .then((m) => m.saveLanguage(next), (err: unknown) => console.warn("[i18n] language save skipped", err));
 }
 
 function fill(s: string, vars?: Record<string, string | number>): string {

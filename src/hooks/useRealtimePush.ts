@@ -6,6 +6,10 @@ import {
 } from "@/lib/pushNotifications";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { getLang } from "@/lib/i18n/language";
+import { loadModule, untilReload } from "@/lib/loadModule";
+
+// Loaded alone, then called (dynamicImportThenDoesNoWork): the Spanish notice shapes, for Spanish readers only.
+const noticeModule = () => loadModule(() => import("@/lib/i18n/noticeEs"));
 
 /**
  * Listens for new notifications via Supabase Realtime and triggers
@@ -56,9 +60,16 @@ export function useRealtimePush(userId: string | null) {
           // F260q (owner 11-11): a Spanish reader gets the notice's known shape in Spanish (noticeEs.ts, loaded
           // only for Spanish readers).
           if (getLang() === "es") {
-            void import("@/lib/i18n/noticeEs").then(({ noticeInSpanish }) =>
-              showLocalNotification(noticeInSpanish(notification.title), noticeInSpanish(notification.message), notification.link),
-            );
+            // An empty module (a recovery reload is on its way) waits on untilReload(); a failed chunk shows the English.
+            void noticeModule()
+              .then((m) => m ?? untilReload())
+              .then(({ noticeInSpanish }) =>
+                showLocalNotification(noticeInSpanish(notification.title), noticeInSpanish(notification.message), notification.link),
+              )
+              .catch((err: unknown) => {
+                console.warn("[i18n] Spanish notice shapes failed to load; showing English", err);
+                showLocalNotification(notification.title, notification.message, notification.link);
+              });
           } else {
             showLocalNotification(notification.title, notification.message, notification.link);
           }

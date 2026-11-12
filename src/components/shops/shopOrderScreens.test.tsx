@@ -403,7 +403,7 @@ describe("/shops/dashboard", () => {
     fireEvent.change(screen.getByLabelText("Reason for the buyer (optional)"), { target: { value: "Booked up" } });
     fireEvent.click(screen.getByRole("button", { name: "confirm Decline order" }));
     await waitFor(() => expect(orders.declineOrder).toHaveBeenCalledWith("o2", "Booked up"));
-    expect(await screen.findByRole("radio", { name: /Free to cancel until the shop accepts/ })).toBeTruthy();
+    expect(await screen.findByRole("radio", { name: /Free cancel until you accept/ })).toBeTruthy();
   });
 
   it("says who ordered: the buyer's first name on each order, and the plain heading when the server gives none (Q2104)", async () => {
@@ -445,7 +445,7 @@ describe("/shops/dashboard", () => {
     orders.fetchCancelPolicy.mockResolvedValue("until_accept");
     orders.fetchShopOrders.mockResolvedValue([]);
     renderAt("/shops/dashboard", "/shops/dashboard", <ShopDashboardPage />);
-    expect(await screen.findByRole("radio", { name: /Free to cancel until the shop accepts/ })).toBeTruthy();
+    expect(await screen.findByRole("radio", { name: /Free cancel until you accept/ })).toBeTruthy();
     expect(screen.queryByRole("radiogroup", { name: "If you mark an order ready early" })).toBeNull();
     expect(orders.fetchReadyTapCancel).not.toHaveBeenCalled();
   });

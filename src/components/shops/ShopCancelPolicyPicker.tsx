@@ -34,7 +34,7 @@ export default function CancelPolicyPicker({ shopId }: { shopId: string }) {
       ) : (
         <RadioCardList
           label="Cancel rule"
-          options={CANCEL_POLICIES.map((p) => ({ value: p, label: CANCEL_POLICY_TEXT[p].label, sub: CANCEL_POLICY_TEXT[p].detail }))}
+          options={CANCEL_POLICIES.map((p) => ({ value: p, label: CANCEL_POLICY_TEXT[p].shop.label, sub: CANCEL_POLICY_TEXT[p].shop.hint }))}
           value={policy.data ?? ""}
           onChange={(p) => { if (p !== policy.data && !save.isPending) save.mutate(p as CancelPolicy); }}
         />

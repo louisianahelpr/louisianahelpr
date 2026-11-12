@@ -333,6 +333,11 @@ export interface ShopItemAiDraft {
   flagged: boolean;
 }
 
+/** S2-013 (Shops audit 2): a price as the owner's price box shows it: "18" or "18.50", never "18.5". */
+export function priceBoxText(cents: number): string {
+  return cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2);
+}
+
 /** S2-006 (Shops audit 2): a suggestion fills only what the owner left empty, and changes kind and type only when the
  * owner has not picked them (Declutter's F326 rule). Applied to the form as it is when the answer lands, so words
  * typed while "Looking…" showed are kept. `filled` is false when nothing changed. */

@@ -33,7 +33,7 @@ import { KeepUpSwitch } from "./KeepUpRow";
 import { AutoFreeRow } from "./AutoFreeRow";
 import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL } from "./declutterUi";
 import { CategoryDrillDown } from "./CategoryDrillDown";
-import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
+import { DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/photoRules";
 import { pickupWindowsProblem } from "./DeclutterPickupTimes";
 import PriceHint from "./DeclutterPriceHint";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
@@ -45,6 +45,8 @@ import { SellOneScreen } from "./SellOneScreen";
 import { useSellFlowState } from "./useSellFlowState";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import "@/lib/i18n/enSellForm";
+import { t as tr, useLanguage } from "@/lib/i18n/language";
 
 export default function SellFlow() {
   const [params] = useSearchParams();
@@ -56,6 +58,7 @@ export default function SellFlow() {
 
 function SellSteps({ itemId }: { itemId: string }) {
   const navigate = useNavigate();
+  useLanguage(); // re-render in the member's language when it changes or loads (F260q)
   const s = useSellFlowState(itemId);
   const { user, underAge, item, photos, form, set, saving, uploading, held, setHeld, aiAsk, ai, keepUp, savedWays, windows, photoCount, priceCents, floorCents, hintAt } = s;
   // Audit #45: Continue is always a live button, so what a step still needs is said once it is tapped, beside it,
@@ -67,18 +70,18 @@ function SellSteps({ itemId }: { itemId: string }) {
   if (!user) return null;
   if (underAge) {
     return (
-      <AppPage title="Sell an item" backTo="/declutter">
-        <DeclutterNotice tone="warn" title="You must be 18 or older to sell on Declutter.">
-          You can still look around. Selling opens when your birthday on file says you're 18.
+      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter">
+        <DeclutterNotice tone="warn" title={tr("sf.underAgeTitle")}>
+          {tr("sf.underAgeBody")}
         </DeclutterNotice>
       </AppPage>
     );
   }
   if (itemId && item.data && item.data.status !== "draft") {
     return (
-      <AppPage title="Sell an item" backTo="/declutter?view=selling">
-        <DeclutterNotice title="This item is already listed.">
-          <Link to={`/declutter/item/${itemId}`} className="underline">See the listing</Link>
+      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter?view=selling">
+        <DeclutterNotice title={tr("sf.ds.alreadyListed")}>
+          <Link to={`/declutter/item/${itemId}`} className="underline">{tr("sf.ds.seeListing")}</Link>
         </DeclutterNotice>
       </AppPage>
     );
@@ -87,7 +90,7 @@ function SellSteps({ itemId }: { itemId: string }) {
   const photoTotal = s.photoTotal;
   // Step 4 also needs pickup times the server takes (1-21, each ending after it starts).
   const stepProblem = sellStepProblem(step, form, photoTotal)
-    ?? (step === 4 && savedWays.length === 0 ? "Tick at least one way buyers can get it." : null)
+    ?? (step === 4 && savedWays.length === 0 ? tr("sf.ds.tickWay") : null)
     ?? (step === 4 ? pickupWindowsProblem(windows) : null);
   const next = async () => {
     if (stepProblem) {
@@ -104,7 +107,7 @@ function SellSteps({ itemId }: { itemId: string }) {
   };
   const back = () => (step > 1 ? setStep((n) => n - 1) : navigate("/declutter?tab=selling"));
   return (
-    <AppPage title="Sell an item" onBack={back} phoneHidesTitle>
+    <AppPage title={tr("sf.sellAnItem")} onBack={back} phoneHidesTitle>
       {/* Board 31a/48/31b/49/158: one question per step, "n of 5" progress (spec §3 "Step-by-step flows"). */}
       <div className="mx-auto w-full max-w-xl space-y-5">
       <div className="flex items-center gap-3" data-sell-progress={step}>
@@ -113,12 +116,12 @@ function SellSteps({ itemId }: { itemId: string }) {
             <span key={n} className={`h-1 flex-1 rounded-full ${n <= step ? "bg-primary" : "bg-border"}`} />
           ))}
         </div>
-        <span className="text-ds-13 font-semibold text-muted-foreground">{step} of 5</span>
+        <span className="text-ds-13 font-semibold text-muted-foreground">{tr("sf.ds.stepOf", { step, total: 5 })}</span>
       </div>
 
       {step === 1 && (
         <section className="space-y-4" aria-labelledby="sell-step">
-          <StepHead title="Show it off" sub={`Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}, up to ${MAX_PHOTOS}. The first one is the cover.`} />
+          <StepHead title={tr("sf.showItOff")} sub={tr(DECLUTTER_MIN_PHOTOS === 1 ? "sf.ds.photosSubOne" : "sf.ds.photosSub", { n: DECLUTTER_MIN_PHOTOS, max: MAX_PHOTOS })} />
           <SellPhotos
             uploaded={photos.data ?? []}
             held={held}
@@ -137,26 +140,26 @@ function SellSteps({ itemId }: { itemId: string }) {
 
       {step === 2 && (
         <section className="space-y-4" aria-labelledby="sell-step">
-          <StepHead title="What is it?" sub="Plain words work best. Buyers search for what they'd call it." />
+          <StepHead title={tr("sf.ds.whatIsIt")} sub={tr("sf.ds.whatIsItSub")} />
           <div className="space-y-2">
-            <FieldLabel htmlFor="sell-title" text="Title" />
-            <Input look="card" id="sell-title" maxLength={80} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Oak rocking chair" />
+            <FieldLabel htmlFor="sell-title" text={tr("sf.ds.title")} />
+            <Input look="card" id="sell-title" maxLength={80} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder={tr("sf.ds.titlePh")} />
           </div>
-          <CategoryDrillDown label="Category" groups={CATEGORY_GROUPS} value={form.category} onChange={(v) => set("category", v)} />
+          <CategoryDrillDown label={tr("sf.ds.category")} groups={CATEGORY_GROUPS} value={form.category} onChange={(v) => set("category", v)} />
           {/* I1 (Q1836 a): same link as the one-screen form (SellSummaryCard). */}
           <SuggestCategory area="declutter" />
-          <ChipGroup label="Condition" options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />
-          <ChipGroup label="Size" options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: SIZE_LABEL[k] }))} value={form.deliverySize} onChange={(v) => set("deliverySize", v as DeliverySize)} />
+          <ChipGroup label={tr("sf.ds.condition")} options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />
+          <ChipGroup label={tr("sf.ds.size")} options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: SIZE_LABEL[k] }))} value={form.deliverySize} onChange={(v) => set("deliverySize", v as DeliverySize)} />
           <div className="space-y-2">
-            <FieldLabel htmlFor="sell-desc" text="Anything else?" extra="(optional)" />
-            <Textarea id="sell-desc" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="e.g. Works great. Small scuff on the base." />
+            <FieldLabel htmlFor="sell-desc" text={tr("sf.ds.anythingElse")} extra={tr("sf.ds.optional")} />
+            <Textarea id="sell-desc" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder={tr("sf.ds.descPh")} />
           </div>
         </section>
       )}
 
       {step === 3 && (
         <section className="space-y-4" aria-labelledby="sell-step">
-          <StepHead title="What's your price?" sub={form.free ? "Someone nearby picks it up for free." : "You keep the whole price."} />
+          <StepHead title={tr("sf.ds.priceQ")} sub={tr(form.free ? "sf.ds.priceSubFree" : "sf.ds.priceSub")} />
           <SellFreeToggle s={s} />
           {!form.free && (<>
             <SellPriceInput s={s} />
@@ -173,14 +176,14 @@ function SellSteps({ itemId }: { itemId: string }) {
 
       {step === 4 && (
         <section className="space-y-4" aria-labelledby="sell-step">
-          <StepHead title="How can buyers get it?" sub="Choose the ways you're happy with. Buyers only see these." />
+          <StepHead title={tr("sf.ds.waysQ")} sub={tr("sf.ds.waysSub")} />
           <SellWaysFields s={s} />
         </section>
       )}
 
       {step === 5 && (
         <section className="space-y-4" aria-labelledby="sell-step">
-          <StepHead title="Ready to list?" sub="This is your listing." />
+          <StepHead title={tr("sf.ds.readyQ")} sub={tr("sf.ds.readySub")} />
           <div className="rounded-[20px] border border-border bg-card p-4 space-y-2" data-sell-preview="">
             {photos.data?.[0] && (
               <img src={photoPublicUrl(photos.data[0].storage_path)} alt="" className="aspect-[16/10] w-full rounded-2xl object-cover bg-photo-empty" />
@@ -192,25 +195,25 @@ function SellSteps({ itemId }: { itemId: string }) {
             <p className="text-ds-13 text-muted-foreground">
               {[CONDITION_LABEL[form.conditionStars], CATEGORY_LABEL[form.category], form.areaLabel.trim()].filter(Boolean).join(" · ")}
             </p>
-            <ul className="flex flex-wrap gap-2 pt-1" aria-label="How buyers get it">
+            <ul className="flex flex-wrap gap-2 pt-1" aria-label={tr("sf.ds.howGet")}>
               {savedWays.map((w) => <li key={w} className="rounded-full border border-border px-3 py-1 text-ds-13 font-medium">{HANDOVER_CHOICE[w].title}</li>)}
             </ul>
           </div>
           <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
             {form.free
-              ? <ReviewRow title="Price" body="Free: claimed, never bought. No offers or price drops." onEdit={() => setStep(3)} />
-              : <ReviewRow title="Price drops" body={form.drops && priceCents && floorCents && floorCents < priceCents ? `${form.dropPct}% each evening at ${dropRunTime()}, to a whole dollar, never below ${formatPrice(floorCents)}` : "Off: it stays at your price"} onEdit={() => setStep(3)} />}
-            <ReviewRow title="Photos" body={`${photosWord(photoCount)} · the first is the cover`} onEdit={() => setStep(1)} />
-            <ReviewRow title="How buyers get it" body={handoverSummary(savedWays)} onEdit={() => setStep(4)} />
+              ? <ReviewRow title={tr("sf.price")} body={tr("sf.ds.freeBody")} onEdit={() => setStep(3)} />
+              : <ReviewRow title={tr("sf.ds.drops")} body={form.drops && priceCents && floorCents && floorCents < priceCents ? tr("sf.ds.dropsOn", { pct: form.dropPct, time: dropRunTime(), floor: formatPrice(floorCents) }) : tr("sf.ds.dropsOff")} onEdit={() => setStep(3)} />}
+            <ReviewRow title={tr("sf.ds.photos")} body={tr(photoCount === 1 ? "sf.ds.photosBodyOne" : "sf.ds.photosBody", { n: photoCount })} onEdit={() => setStep(1)} />
+            <ReviewRow title={tr("sf.ds.howGet")} body={handoverSummary(savedWays)} onEdit={() => setStep(4)} />
             {/* Owner 2026-10-28: "it also never said how long it will stay open"; the rule the server runs (Q2461). */}
-            <ReviewRow title="How long it stays up" body={keepUp.on ? LISTING_LIFETIME_KEEP_UP : LISTING_LIFETIME} />
+            <ReviewRow title={tr("sf.ds.howLong")} body={keepUp.on ? LISTING_LIFETIME_KEEP_UP : LISTING_LIFETIME} />
           </ul>
           {/* Owner 2026-10-29: "Keep it up until it sells" (saved on the draft at once; the row above follows it). */}
           <KeepUpSwitch keep={keepUp} as="div" rowClassName="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" />
           {/* OWN-FREE: "make it free after __ days", saved on the draft at once (a free listing has nothing to choose). */}
           {!form.free && <AutoFreeRow itemId={itemId} as="div" rowClassName="flex rounded-[20px] border border-border bg-card p-4" />}
           <SellTaxBox s={s} />
-          {photoCount < DECLUTTER_MIN_PHOTOS && <p className="text-ds-14 text-muted-foreground">Add at least {photosWord(DECLUTTER_MIN_PHOTOS)} to list this item.</p>}
+          {photoCount < DECLUTTER_MIN_PHOTOS && <p className="text-ds-14 text-muted-foreground">{tr(DECLUTTER_MIN_PHOTOS === 1 ? "sf.ds.addToListOne" : "sf.ds.addToList", { n: DECLUTTER_MIN_PHOTOS })}</p>}
         </section>
       )}
 
@@ -220,12 +223,12 @@ function SellSteps({ itemId }: { itemId: string }) {
       )}
       {step < 5 ? (
         <Button type="button" className="w-full rounded-full" disabled={saving} onClick={() => void next()}>
-          {step === 4 ? (saving ? "Saving…" : "Save and continue") : "Continue"}
+          {step === 4 ? (saving ? tr("sf.ds.saving") : tr("sf.ds.saveContinue")) : tr("sf.ds.continue")}
         </Button>
       ) : (
         photoCount >= DECLUTTER_MIN_PHOTOS && (
           <Button type="button" className="w-full rounded-full" disabled={s.publishing} onClick={() => void s.onPublish()}>
-            {s.publishing ? "Listing…" : "List it"}
+            {s.publishing ? tr("sf.ds.listing") : tr("sf.ds.listIt")}
           </Button>
         )
       )}

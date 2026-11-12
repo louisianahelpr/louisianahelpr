@@ -24,7 +24,7 @@ describe("F327/F342: the payouts prompt sits under each sell form", () => {
   const screens: [string, string][] = [
     ["src/components/declutter/SellOneScreen.tsx", 'data-post-step=""'],
     ["src/components/declutter/DeclutterBunchView.tsx", "<BunchListStep"],
-    ["src/components/declutter/DeclutterSellView.tsx", 'title="Show it off"'],
+    ["src/components/declutter/DeclutterSellView.tsx", 'title={tr("sf.showItOff")}'],
   ];
   it.each(screens)("%s draws the prompt after its form", (file, formMark) => {
     const src = read(file);

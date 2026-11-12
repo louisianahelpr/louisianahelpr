@@ -8,7 +8,7 @@
  * The Supabase client is a recording fake (as in api.test.ts): the server's
  * behaviour is proven in src/test/pglite/declutterMovingOut.pglite.mjs.
  *
- * @mutate src/lib/declutter/moves.ts |   if (d > MOVE_DATE_MAX_DAYS) return "Pick a move-out date within the next 6 months."; |   if (false) return "Pick a move-out date within the next 6 months.";
+ * @mutate src/lib/declutter/moves.ts |   if (d > MOVE_DATE_MAX_DAYS) return t("lp.mv.dateFar"); |   if (false) return t("lp.mv.dateFar");
  * @mutate src/lib/declutter/moves.ts |   if (price === null \|\| price < 100 \|\| price > 100_000) return | if (price === null \|\| price < 100) return
  * @mutate src/lib/declutter/moves.ts |       floor_price_cents: f.floorPriceCents, |       floor_price_cents: 100,
  * @mutate src/lib/declutter/moves.ts |       if (gap > 0) await wait(gap); |       if (false) await wait(gap);

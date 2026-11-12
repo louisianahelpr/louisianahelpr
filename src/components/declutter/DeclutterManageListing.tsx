@@ -58,7 +58,8 @@ import { FallbackImg } from "./FallbackImg";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { DeclutterEditListing } from "./DeclutterEditListing";
-import { DROPS_SWITCH_LABEL } from "./sellForm";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 import { focusSheetItself } from "./focusSheetItself";
 import { TAKE_DOWN_WORDS } from "./takeDownWords";
 
@@ -132,13 +133,13 @@ export function ManageListingSheet({
   // A lowest price at the price can't drop whatever the switch says, so it never reads "On".
   const atFloor = !!manage && !manage.drops_stopped && !listedOff && manage.floor_price_cents >= item.current_price_cents;
   const stopped = (manage?.drops_stopped ?? false) || listedOff || atFloor;
-  const drops = useListingAction((on: boolean) => setListingDrops(item.id, on), stopped ? "Price drops are back on." : `Price drops are off. It stays at ${formatPrice(item.current_price_cents)}.`);
-  const pause = useListingAction(() => pauseListing(item.id), "Paused. It's hidden from buyers.", close);
-  const relist = useListingAction(() => relistListing(item.id), "Back on sale.", close);
+  const drops = useListingAction((on: boolean) => setListingDrops(item.id, on), stopped ? t("lp.m.tDropsOn") : t("lp.m.tDropsOff", { price: formatPrice(item.current_price_cents) }));
+  const pause = useListingAction(() => pauseListing(item.id), t("lp.m.tPaused"), close);
+  const relist = useListingAction(() => relistListing(item.id), t("lp.m.tBack"), close);
   // A2-5: "Mark sold elsewhere" keeps the listing in the seller's history; Delete stays a withdraw.
   // F335: the toast names the listing and where it went (it stays under Taken down in Selling, with Relist).
   const takeDown = useListingAction(() => (view === "sold" ? markSoldElsewhere(item.id) : withdrawItem(item.id)),
-    view === "sold" ? "Marked sold elsewhere. It's off sale and in your selling history." : `Deleted. ${item.title} is gone from buyers; it's kept under Taken down in Selling.`,
+    view === "sold" ? t("lp.m.tSoldDone") : t("lp.m.tDeleted", { title: item.title }),
     () => { close(); if (view !== "sold") onDeleted?.(); });
   const busy = drops.isPending || pause.isPending || relist.isPending || takeDown.isPending;
   const paused = item.status === "paused";
@@ -154,7 +155,7 @@ export function ManageListingSheet({
       }}
     >
       <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-manage-listing="">
-        <SheetHero title={view === "edit" ? "Edit listing" : view === "price" ? "Change price" : view === "sold" ? "Sold somewhere else?" : view === "delete" ? "Delete this listing?" : "Manage listing"} />
+        <SheetHero title={t(view === "edit" ? "lp.m.tEdit" : view === "price" ? "lp.m.tPrice" : view === "sold" ? "lp.m.tSold" : view === "delete" ? "lp.m.tDelete" : "lp.m.tMenu")} />
         {view === "menu" && (
           <div className="space-y-3">
             <ListingSummary item={item} coverUrl={coverUrl} />
@@ -164,7 +165,7 @@ export function ManageListingSheet({
               {item.status === "live" ? (
               <li>
                 <Link to={`/declutter/item/${item.id}?preview=buyer`} className={`${LIST_ROW_FLUSH} ${LIST_ROW_TINT}`} data-manage-preview="" onClick={close}>
-                  <RowText title="Preview">See your listing as buyers do</RowText>
+                  <RowText title={t("lp.m.preview")}>{t("lp.m.previewBody")}</RowText>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 </Link>
               </li>
@@ -173,25 +174,25 @@ export function ManageListingSheet({
               {item.status === "live" && (
               <li>
                 <ListRow variant="flush" onClick={() => setView("edit")} disabled={busy} trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}>
-                  <RowText title="Edit listing">Title, description, category, condition, size, how buyers get it</RowText>
+                  <RowText title={t("lp.m.tEdit")}>{t("lp.m.editBody")}</RowText>
                 </ListRow>
               </li>
               )}
             </ul>
               {deployed && !free && (<>
-              <ManageGroup title="Price">
+              <ManageGroup title={t("lp.m.gPrice")}>
               <li>
                 <ListRow variant="flush" onClick={() => setView("price")} disabled={busy} trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}>
-                  <RowText title="Change price or lowest price">
-                    Now {itemPriceLabel(item.current_price_cents)}
-                    {manage ? ` · lowest ${formatPrice(manage.floor_price_cents)}` : ""}
+                  <RowText title={t("lp.m.changePrice")}>
+                    {t("lp.m.now", { price: itemPriceLabel(item.current_price_cents) })}
+                    {manage ? ` · ${t("lp.m.lowest", { price: formatPrice(manage.floor_price_cents) })}` : ""}
                   </RowText>
                 </ListRow>
               </li>
               {/* Audit DC-5: the sell form's own words and direction, on = it drops (it said "Stop price drops", on = stopped). */}
               <li className={ROW}>
-                <RowText title={DROPS_SWITCH_LABEL} id="manage-drops">
-                  {listedOff ? "Off: you listed it without price drops" : atFloor ? "Off: its lowest price is its price" : stopped ? `Off. It stays at ${itemPriceLabel(item.current_price_cents)}.` : "On. It drops each evening, never below your lowest price."}
+                <RowText title={t("lp.dropsSwitch")} id="manage-drops">
+                  {listedOff ? t("lp.m.dropsListedOff") : atFloor ? t("lp.m.dropsAtFloor") : stopped ? t("lp.m.dropsStopped", { price: itemPriceLabel(item.current_price_cents) }) : t("lp.m.dropsOn")}
                 </RowText>
                 <Switch
                   aria-labelledby="manage-drops"
@@ -207,13 +208,13 @@ export function ManageListingSheet({
               {/* OWN-FREE: make it free after Never/7/14/21/30 days if unsold (only while it is live or paused and still priced). */}
               <AutoFreeRow itemId={item.id} rowClassName={ROW} />
               </ManageGroup>
-              <ManageGroup title="How it gets to buyers">
+              <ManageGroup title={t("lp.m.gWays")}>
               <ItemDeliveryRow itemId={item.id} rowClassName={ROW} />
               {/* Shipping (Q2259): the box a small item ships in; testers only until the owner flips declutter_shipping. */}
               <ShipItRow itemId={item.id} small={item.delivery_size === "small"} category={item.category} rowClassName={ROW} />
               </ManageGroup>
               </>)}
-              <ManageGroup title="Listing">
+              <ManageGroup title={t("lp.m.gListing")}>
               {deployed && (<>
               {/* Owner 2026-10-29: renews every 30 days until it sells (free listings run in the same rounds). */}
               <KeepUpRow itemId={item.id} rowClassName={ROW} />
@@ -221,23 +222,23 @@ export function ManageListingSheet({
               <li>
                 {paused ? (
                   <ListRow variant="flush" onClick={() => relist.mutate(undefined)} disabled={busy} trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}>
-                    <RowText title="Relist">Back on sale with its photos and price</RowText>
+                    <RowText title={t("lp.m.relist")}>{t("lp.m.relistBody")}</RowText>
                   </ListRow>
                 ) : (
                   <ListRow variant="flush" onClick={() => pause.mutate(undefined)} disabled={busy} trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}>
-                    <RowText title="Pause listing">Hide it without losing it. Open offers close.</RowText>
+                    <RowText title={t("lp.m.pause")}>{t("lp.m.pauseBody")}</RowText>
                   </ListRow>
                 )}
               </li>
               </>)}
               <li>
                 <ListRow variant="flush" onClick={() => setView("sold")} disabled={busy} trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}>
-                  <RowText title="Mark sold elsewhere">Takes it down and keeps it in your history; no fees</RowText>
+                  <RowText title={t("lp.m.soldElsewhere")}>{t("lp.m.soldBody")}</RowText>
                 </ListRow>
               </li>
               <li>
                 <ListRow variant="flush" onClick={() => setView("delete")} disabled={busy} trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}>
-                  <span className="flex-1 min-w-0 text-ds-15 font-semibold text-[hsl(var(--alert,4_71%_41%))]">Delete listing</span>
+                  <span className="flex-1 min-w-0 text-ds-15 font-semibold text-[hsl(var(--alert,4_71%_41%))]">{t("lp.m.delete")}</span>
                 </ListRow>
               </li>
               </ManageGroup>
@@ -265,20 +266,20 @@ export function ManageListingSheet({
           <div className="space-y-4">
             <p className="text-ds-15">
               {view === "sold"
-                ? "We'll take it off sale and keep it in your selling history. There's no fee, and anyone with an open offer is told nothing was charged."
+                ? t("lp.m.soldWords")
                 : TAKE_DOWN_WORDS}
             </p>
             <SheetFooter>
               <SheetSecondaryAction onClick={() => setView("menu")} disabled={takeDown.isPending}>
-                Keep it
+                {t("lp.pp.keep")}
               </SheetSecondaryAction>
               {view === "sold" ? (
                 <SheetPrimaryAction onClick={() => takeDown.mutate(undefined)} disabled={takeDown.isPending}>
-                  {takeDown.isPending ? "Working…" : "Mark sold"}
+                  {takeDown.isPending ? t("lp.m.working") : t("lp.m.markSold")}
                 </SheetPrimaryAction>
               ) : (
                 <SheetDestructiveAction onClick={() => takeDown.mutate(undefined)} disabled={takeDown.isPending}>
-                  {takeDown.isPending ? "Deleting…" : "Delete listing"}
+                  {takeDown.isPending ? t("lp.m.deleting") : t("lp.m.delete")}
                 </SheetDestructiveAction>
               )}
             </SheetFooter>
@@ -300,7 +301,7 @@ function ListingSummary({ item, coverUrl }: { item: DeclutterItem; coverUrl: str
       <span className="min-w-0 flex-1">
         <span className="block truncate text-ds-15 font-semibold">{item.title}</span>
         <span className="block truncate text-ds-13 text-muted-foreground">
-          {[item.area_label, item.porch_ok !== false ? "porch pickup" : null].filter(Boolean).join(" · ")}
+          {[item.area_label, item.porch_ok !== false ? t("lp.m.porchPickup") : null].filter(Boolean).join(" · ")}
         </span>
       </span>
       <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(item.current_price_cents)}</span>
@@ -339,13 +340,13 @@ function PriceEditor({
   const floorC = dollarsToCents(floor);
   const problem =
     priceCents == null || priceCents < 100 || priceCents > 100_000
-      ? "The price must be between $1 and $1,000."
+      ? t("lp.m.pBetween")
       : priceCents > item.price_cents
-        ? `You can lower the price, or raise it back up to ${formatPrice(item.price_cents)}, the price you listed it at.`
+        ? t("lp.m.pRaise", { price: formatPrice(item.price_cents) })
         : floorC != null && floorC >= 100 && floorC > priceCents
-        ? `${formatPrice(priceCents)} is under your lowest price, ${formatPrice(floorC)}.`
+        ? t("lp.m.pUnder", { price: formatPrice(priceCents), floor: formatPrice(floorC) })
         : floorC == null || floorC < 100 || floorC > priceCents
-        ? "Your lowest price must be at least $1 and no more than your price."
+        ? t("lp.m.pFloor")
         : null;
   // NIGHT-SELL-Sellinglist-6: a price typed under the lowest is said at once (not only on Save), with a one-tap fix,
   // so the seller isn't left to find the second box they never touched.
@@ -355,7 +356,7 @@ function PriceEditor({
       await setListingPrice(item.id, priceCents!, floorC!);
       if (relist) await relistListing(item.id);
     },
-    `${relist ? "Back on sale at" : "Price set to"} ${priceCents ? formatPrice(priceCents) : ""}.`,
+    t(relist ? "lp.m.tBackAt" : "lp.m.tPriceSet", { price: priceCents ? formatPrice(priceCents) : "" }),
     onSaved,
   );
   const field = "flex h-[52px] items-center gap-1 rounded-[14px] border border-border bg-card px-4 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring";
@@ -370,34 +371,34 @@ function PriceEditor({
       }}
     >
       <div className="space-y-2">
-        <label htmlFor="manage-price" className="block text-sm font-semibold">Price</label>
+        <label htmlFor="manage-price" className="block text-sm font-semibold">{t("lp.m.gPrice")}</label>
         <div className={field}>
           <span className="text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))]" aria-hidden>$</span>
           <input id="manage-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))} className={inputCls} />
         </div>
       </div>
       <div className="space-y-2">
-        <label htmlFor="manage-floor" className="block text-sm font-semibold">Lowest you'll take</label>
+        <label htmlFor="manage-floor" className="block text-sm font-semibold">{t("lp.m.lowestLabel")}</label>
         <div className={field}>
           <span className="text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))]" aria-hidden>$</span>
           <input id="manage-floor" inputMode="decimal" value={floor} onChange={(e) => setFloor(e.target.value.replace(/[^0-9.]/g, ""))} className={inputCls} />
         </div>
-        <p className="text-ds-13 text-muted-foreground">Only you see this. Prices never drop below it.</p>
+        <p className="text-ds-13 text-muted-foreground">{t("lp.m.lowestNote")}</p>
       </div>
       {(touched || underFloor) && problem && (
         <p role="alert" className="text-ds-13 text-[hsl(var(--alert,4_71%_41%))]">{problem}</p>
       )}
       {underFloor && (
         <InlineTextButton className="text-ds-14 font-semibold underline underline-offset-2" onClick={() => setFloor(price)}>
-          Also set lowest to {formatPrice(priceCents ?? 0)}
+          {t("lp.m.alsoSet", { price: formatPrice(priceCents ?? 0) })}
         </InlineTextButton>
       )}
       <SheetFooter>
         <SheetSecondaryAction type="button" onClick={onBack} disabled={save.isPending}>
-          Back
+          {t("lp.m.back")}
         </SheetSecondaryAction>
         <SheetPrimaryAction type="submit" disabled={save.isPending}>
-          {save.isPending ? "Saving…" : relist ? "Relist at this price" : "Save price"}
+          {save.isPending ? t("lp.f.saving") : relist ? t("lp.m.relistAt") : t("lp.m.savePrice")}
         </SheetPrimaryAction>
       </SheetFooter>
     </form>
@@ -410,47 +411,47 @@ function PriceEditor({
  */
 export function SellerListingPanel({ item, coverUrl, onDeleted }: { item: DeclutterItem; coverUrl: string | null; onDeleted?: () => void }) {
   const [open, setOpen] = useState<null | "menu" | "price">(null);
-  const relist = useListingAction(() => relistListing(item.id), "Back on sale.");
+  const relist = useListingAction(() => relistListing(item.id), t("lp.m.tBack"));
   const paused = item.status === "paused";
   // A free item (20261027170717) has no price and no drops (B106 found "Change the price, stop the drops" on one).
   const free = item.current_price_cents === 0;
   return (
-    <section className="space-y-2" aria-label="Your listing" data-seller-panel={item.status}>
+    <section className="space-y-2" aria-label={t("lp.m.yours")} data-seller-panel={item.status}>
       <div className="rounded-[20px] border border-border bg-card px-4 py-4 space-y-3">
         <div>
-          <p className="text-ds-17 font-bold">{paused ? "Paused" : free ? "Your free item is up" : "Your listing is for sale"}</p>
+          <p className="text-ds-17 font-bold">{t(paused ? "lp.m.paused" : free ? "lp.m.freeUp" : "lp.m.forSale")}</p>
           <p className="text-ds-13 text-muted-foreground" data-seller-panel-line="">
             {paused
-              ? free ? "Hidden from neighbors. Its photos are kept." : "Hidden from buyers. Its photos and price are kept."
-              : free ? "Pause it or take it down." : "Change the price, stop the drops, pause it or take it down."}
+              ? free ? t("lp.m.hidFree") : t("lp.m.hidPaid")
+              : free ? t("lp.m.lineFree") : t("lp.m.linePaid")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {paused ? (
             <>
               <Button type="button" size="sm" onClick={() => relist.mutate(undefined)} disabled={relist.isPending}>
-                {relist.isPending ? "Relisting…" : "Relist"}
+                {relist.isPending ? t("lp.m.relisting") : t("lp.m.relist")}
               </Button>
               <Button type="button" variant="outline" size="sm" onClick={() => setOpen("price")} disabled={relist.isPending}>
-                Relist at a new price
+                {t("lp.m.relistNew")}
               </Button>
             </>
           ) : (
             <Button type="button" variant="outline" size="sm" onClick={() => setOpen("menu")}>
-              Manage listing
+              {t("lp.m.tMenu")}
             </Button>
           )}
         </div>
         {/* Q2426: share only a listing buyers can open now, never a paused one. */}
         {!paused && (
           <div className="border-t border-border pt-3 space-y-2">
-            <p className="text-ds-13 text-muted-foreground">Post it in your local Facebook groups. {free ? "The link shows its photo and town, and that it's free." : "The link shows its photo, price and town."}</p>
+            <p className="text-ds-13 text-muted-foreground">{t("lp.m.fb")} {free ? t("lp.m.fbFree") : t("lp.m.fbPaid")}</p>
             <ShareListingRow item={item} />
           </div>
         )}
       </div>
       {paused && (
-        <p className="px-1 text-ds-13 text-muted-foreground">Relisting brings it back with its photos and price.</p>
+        <p className="px-1 text-ds-13 text-muted-foreground">{t("lp.m.relistNote")}</p>
       )}
       {open && (
         <ManageListingSheet

@@ -77,7 +77,7 @@ export function ShopReportPanel({ shop, reportId, content, open: reportOpen, onD
           <DialogDescription>
             {isItem
               ? `"${shop?.label ?? "This item"}" comes off the shop now, and the owner's next items are checked for 30 days. Orders already placed carry on. The owner reads your reason.`
-              : `"${shop?.label ?? "This shop"}" leaves Shops now: members can no longer find it or open its page. The owner reads your reason.`}
+              : `"${shop?.label ?? "This shop"}" leaves Shops now: members can no longer find it or open its page. Open orders are refunded in full, and orders still waiting are cancelled with no charge. The owner reads your reason.`}
           </DialogDescription>
           <Textarea aria-label="Reason the owner reads" value={note} maxLength={500} rows={3} onChange={(e) => setNote(e.target.value)} />
           <DialogFooter>

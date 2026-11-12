@@ -12,7 +12,7 @@
  * @mutate supabase/migrations/20261030221255_declutter_wanted_match_and_manage.sql |     WHEN 'bikes' THEN ARRAY['outdoors', 'kids'] |     WHEN 'bikes' THEN ARRAY['kids']
  * @mutate supabase/migrations/20261030221255_declutter_wanted_match_and_manage.sql |       '/declutter?tab=wanted&answer=' \|\| w.id::text \|\| '&item=' \|\| i.id::text); |       '/declutter/item/' \|\| i.id::text);
  * @mutate supabase/migrations/20261103142625_q2390_deposit_wanted_dispute_sold_elsewhere_hand_refund_fault_fee_not_found_is_404.sql |   SELECT * INTO v_w FROM public.declutter_wanted WHERE id = p_wanted_id AND user_id = v_uid AND removed_at IS NULL FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'wanted_not_found' USING ERRCODE = 'PT404';\n  END IF;\n  IF v_w.status <> 'open' |   SELECT * INTO v_w FROM public.declutter_wanted WHERE id = p_wanted_id AND removed_at IS NULL FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'wanted_not_found' USING ERRCODE = 'PT404';\n  END IF;\n  IF v_w.status <> 'open'
- * @mutate supabase/migrations/20261102013814_declutter_my_wanted_reply_deadlines.sql |     WHERE w.user_id = v_uid\n       AND w.removed_at IS NULL\n |     WHERE w.user_id = v_uid\n
+ * @mutate supabase/migrations/20261112052501_names_hidden_wanted_listed_shop_talk.sql |     WHERE w.user_id = v_uid\n       AND w.removed_at IS NULL\n |     WHERE w.user_id = v_uid\n
  * @mutate src/lib/declutter/wanted.ts | const LETTER = "A-Za-zÀ-ÖØ-öø-ÿĀ-ſ"; | const LETTER = "A-Za-z";
  */
 import { readFileSync } from "node:fs";

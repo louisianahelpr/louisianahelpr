@@ -65,6 +65,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('shipping_rate_buyable',         'allow',    'may the label worker buy this rate: claimed, and within the shipping the buyer paid (shipping S2, 20261030000030)'),
   ('declutter_held_address_closed', 'deny',     'TRUE closes a held sale''s address to the buyer, 7 days after the time (20261031004529)'),
   ('job_work_started',              'deny',     'Jobs audit 11-08 (20261108200000): TRUE = the Helpr started work, so poster_cancel_job refuses the refund cancel; a NULL job matches no row (FALSE), and its only callers pass a job id they already locked, so NULL never reaches it'),
+  ('declutter_names_hidden',       'deny',     'TRUE hides both members'' names on Declutter cards and notices (a block either way, or either is banned; 20261112010100); service_role only; EXISTS, so NULL arguments are FALSE, never NULL, and every caller passes two known member ids'),
   ('declutter_sale_decided',        'deny',     'TRUE ends the buyer''s refund and problem window (an admin decided, or a request settled; board 141, 20261026155251)'),
   ('declutter_delivery_raise_open', 'allow',    'may the buyer still raise this delivery''s pay (Q1929, 20261021185418)'),
   ('declutter_delivery_tip_open',   'allow',    'A3-8 / A2-18 (20261028210552): TRUE = the buyer of this order can tip its delivery Helpr now, so "Enjoy your item" says so (the notice only; helpr_task_tip_start checks again)'),

@@ -11,7 +11,7 @@
  * @mutate src/components/tracker/jobNextStep.ts | other ? t("ns.answerName", { name: other }) : t("ns.answer") | other ? `Accept or decline ${other}'s offer` : t("ns.answer")
  * @mutate src/components/tracker/jobNextStep.ts |   const next = t("ns.openAgain"); |   const next = "Your job is open again, so other Helprs can apply.";
  * @mutate src/components/tracker/jobNextStep.ts | toLocaleString(getLang() === "es" ? "es-US" : "en-US", { | toLocaleString("en-US", {
- * @mutate src/components/tracker/jobProgressState.ts | : withCode(at(1, true, "Offered", `${other} offered you this job`, held), "offered_you"); | : at(1, true, "Offered", `${other} offered you this job`, held);
+ * @mutate src/components/tracker/jobProgressState.ts | : withCode(at(1, true, "Offered", t("jl.offeredYou", { name: other }), held), "offered_you"); | : at(1, true, "Offered", t("jl.offeredYou", { name: other }), held);
  * @mutate src/components/tracker/nextLineCode.ts |   return p.nextCode && p.nextCode.line === p.next ? p.nextCode.id : null; |   return p.nextCode ? p.nextCode.id : null;
  *
  * jobNextStep keys off the line's CODE (JobProgressState.nextCode, made where the line is made), never its English words,

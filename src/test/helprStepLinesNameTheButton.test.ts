@@ -8,9 +8,9 @@
  *     finish" again and button and line agree (merge of the A3 stack, builder 166).
  * The button words are read from the real step list (job-card/trackerSteps.ts) and pairLabel, not retyped.
  *
- * @mutate src/components/tracker/jobProgressState.ts | : "Tap I've arrived when you get there", held); | : "You're on the way", held);
+ * @mutate src/lib/i18n/enJobLines.ts | "jl.tapArrived": "Tap I've arrived when you get there", | "jl.tapArrived": "You're on the way",
  * @mutate src/components/job-card/jobStatusLine.ts | start_working: { detail: "Tap Start when you begin", | start_working: { detail: "Tap Start working",
- * @mutate src/components/tracker/jobProgressState.ts | : "Mark it done when you finish", held); | : "Complete the job when you finish", held);
+ * @mutate src/lib/i18n/enJobLines.ts | "jl.markDone": "Mark it done when you finish", | "jl.markDone": "Complete the job when you finish",
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jobProgress, type ProgressJob } from "@/components/tracker/jobProgressState";

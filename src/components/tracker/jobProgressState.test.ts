@@ -16,12 +16,12 @@
 // @mutate src/components/tracker/jobProgressState.ts |     const pending = o.pendingApplicants ?? (o.application === "pending" ? 1 : 0); |     const pending = o.application === "pending" ? 1 : 0;
 // @mutate src/components/tracker/jobProgressState.ts |   if (isExpiredListing(job)) return at(null, false, poster ? EXPIRED_WORD | if (false) return at(null, false, poster ? EXPIRED_WORD
 // @mutate src/components/tracker/jobProgressState.ts |   if (isExpiredListing(job)) return { ...base, stage: 0 | if (false) return { ...base, stage: 0
-// @mutate src/components/tracker/jobProgressState.ts | const wait = poster ? `You both confirm on ${day}, the day before, that the job is still on` | const wait = poster ? `${other} confirms on ${day}, the day before, that they can still come`
+// @mutate src/lib/i18n/enJobLines.ts | "jl.bothConfirmOn": "You both confirm on {day}, the day before, that the job is still on", | "jl.bothConfirmOn": "Your Helpr confirms on {day}, the day before, that they can still come",
 // JA-4 (audit 11-01): the line named a button ("I'm still on") the job page calls "Confirm it's still on"; it now says the step.
-// @mutate src/components/tracker/jobProgressState.ts | atBy(3, mine, "Confirmed", "Confirm the job is still on", `by ${posterBy}`, held); | atBy(3, mine, "Confirmed", "Tap I'm still on to confirm", `by ${posterBy}`, held);
+// @mutate src/lib/i18n/enJobLines.ts | "jl.confirmStillOn": "Confirm the job is still on", | "jl.confirmStillOn": "Tap I'm still on to confirm",
 // A3-9 (audit 11-01): both confirm lines say by when; the poster's closes at the start (posterConfirmClosesMs).
-// @mutate src/components/tracker/jobProgressState.ts | atBy(3, mine, "Confirmed", "Confirm the job is still on", `by ${posterBy}`, held); | at(3, mine, "Confirmed", "Confirm the job is still on", held);
-// @mutate src/components/tracker/jobProgressState.ts |   return atBy(3, mine, "Confirmed", `Waiting on ${otherLow} to confirm`, `by ${posterBy}`, held); |   return at(3, mine, "Confirmed", `Waiting on ${otherLow} to confirm`, held);
+// @mutate src/components/tracker/jobProgressState.ts | if (!posterIn) return atBy(3, mine, "Confirmed", t("jl.confirmStillOn"), t("jl.by", { when: posterBy }), held); | if (!posterIn) return at(3, mine, "Confirmed", t("jl.confirmStillOn"), held);
+// @mutate src/components/tracker/jobProgressState.ts |   return atBy(3, mine, "Confirmed", t("jl.waitConfirm", { name: otherLow }), t("jl.by", { when: posterBy }), held); |   return at(3, mine, "Confirmed", t("jl.waitConfirm", { name: otherLow }), held);
 // @mutate src/components/tracker/jobProgressState.ts | const posterBy = when(posterConfirmClosesMs(job.date_needed, job.start_time)); | const posterBy = when(due);
 // @mutate src/pages/jobs/jobPage/useJobPage.ts | has_active_dispute, dispute_deadline, cancellation_reason, cancelled_by, | has_active_dispute, dispute_deadline,
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
@@ -175,7 +175,7 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
     // A real cancel (a person did it) stays Cancelled.
     expect(jobProgress({ ...expired, cancelled_by: "p" }, { viewer: "poster", now: NOW })).toMatchObject({ label: "Cancelled" });
   });
-  // @mutate src/components/tracker/jobProgressState.ts | return at(8, false, "Done", Number.isNaN(doneMs) ? "Finished" : `Finished ${whenDated(doneMs)}`, held); | return at(8, false, "Done", "", held);
+  // @mutate src/components/tracker/jobProgressState.ts | return at(8, false, "Done", Number.isNaN(doneMs) ? t("jl.finished") : t("jl.finishedAt", { when: whenDated(doneMs) }), held); | return at(8, false, "Done", "", held);
   it("JA-11: a finished job's line says when it finished, on both sides", () => {
     const done: ProgressJob = { ...base, status: "completed", helper_id: "h", helper_confirmed_at: "t", payment_status: "payout_pending",
       helper_completed_at: "2037-10-21T14:00:00Z", poster_completed_at: "2037-10-21T14:20:00Z" };

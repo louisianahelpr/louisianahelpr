@@ -2,7 +2,7 @@
  * Q2681 (audit 1102e row 18): the chat's job card. Both confirmed, a day out, the Helpr's line was only the card's
  * status "You're scheduled" while the poster's said what happens next; and the line was a 16px semibold heading that
  * ran to 3 lines at 375. The Helpr now reads the tracker's own step, and the card sets the line in body size and weight.
- * @mutate src/components/tracker/jobProgressState.ts | helprBothIn ? base.next : ((/after photos/ | false ? base.next : ((/after photos/
+ * @mutate src/components/tracker/jobProgressState.ts | helprBothIn ? base.next : ((nextLineCode(base) === "after_photos" | false ? base.next : ((nextLineCode(base) === "after_photos"
  * @mutate src/components/messages/chatView/DealCard.tsx | {step && <NextStep value={step} compact />} | {step && <NextStep value={step} />}
  * @mutate src/components/ui/NextStep.tsx | <span className={`${compact ? "font-normal" : "font-semibold"} text-foreground`}>{lead}</span> | <span className="font-semibold text-foreground">{lead}</span>
  */

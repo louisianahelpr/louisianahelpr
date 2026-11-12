@@ -21,7 +21,7 @@
  *
  * F275: the paid job page's header said "Finished Mon 12:28 PM" with no date while every other line on the page
  * carried one. The Done line now uses the house dated style, "Finished Mon, Nov 9 at 12:28 PM".
- * @mutate src/components/tracker/jobProgressState.ts | `Finished ${whenDated(doneMs)}` | `Finished ${when(doneMs)}`
+ * @mutate src/components/tracker/jobProgressState.ts | t("jl.finishedAt", { when: whenDated(doneMs) }) | t("jl.finishedAt", { when: when(doneMs) })
  *
  * F261a (counter): "2 more characters to go" never said what the minimum was; now "At least 20 characters (2 to go)".
  * @mutate src/components/profile/ProfileEditForm.tsx | return `At least 20 characters (${left} to go)`; | return `${left} more characters to go`;
@@ -32,12 +32,12 @@
  *
  * F286: the Helpr read "E2E has until Tue 12:28 PM to check it" a day later, after that time had passed. The deadline
  * now carries its date, and once it has passed the line says what happens now (support is checking; the money is held).
- * @mutate src/components/tracker/jobProgressState.ts | : checkMs <= now ? `You marked it done. | : false ? `You marked it done.
- * @mutate src/components/tracker/jobProgressState.ts | : `You marked it done. ${other} has until ${whenDated(checkMs)} to check it`; | : `You marked it done. ${other} has until ${when(checkMs)} to check it`;
- * @mutate src/components/tracker/jobProgressState.ts | ${other} has until ${whenDated(checkMs)} to check it`, held); | ${other} has until ${when(checkMs)} to check it`, held);
+ * @mutate src/components/tracker/jobProgressState.ts | : checkMs <= now ? t("jl.youDoneLate" | : false ? t("jl.youDoneLate"
+ * @mutate src/components/tracker/jobProgressState.ts | t("jl.youDoneUntil", { name: other, when: whenDated(checkMs) }) | t("jl.youDoneUntil", { name: other, when: when(checkMs) })
+ * @mutate src/components/tracker/jobProgressState.ts | t("jl.youSentUntil", { name: other, when: whenDated(checkMs) }) | t("jl.youSentUntil", { name: other, when: when(checkMs) })
  *
  * F291a (date part): the disputed job's "answer by Thu 12:28 PM" had no date; it is now "Thu, Nov 12 at 12:28 PM".
- * @mutate src/components/tracker/jobProgressState.ts | `, with an answer by ${whenDated(decideMs)}` | `, with an answer by ${when(decideMs)}`
+ * @mutate src/components/tracker/jobProgressState.ts | decideMs > now ? whenDated(decideMs) : null | decideMs > now ? when(decideMs) : null
  *
  * F283 (time part): "Hallie is on the way · since 12:28 PM" was yesterday's time and read as an hour ago. On any day
  * but today the stamp carries its date: "since Mon, Nov 9 at 12:28 PM".

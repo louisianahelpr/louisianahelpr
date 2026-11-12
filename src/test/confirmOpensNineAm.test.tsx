@@ -6,8 +6,8 @@
  * pins the instant and the words both cards and the tracker print.
  */
 // @mutate supabase/functions/_shared/confirmDeadline.ts |   return jobLocalMidnightMs(previousDay(dateNeeded)); |   return jobLocalMidnightMs(dateNeeded);
-// @mutate src/components/tracker/jobProgressState.ts |  : `Confirm on ${day}, the day before, that you can still do this job`; |  : `Confirm the day before, that you can still do this job.`;
-// @mutate src/components/tracker/jobProgressState.ts | const wait = poster ? `You both confirm on ${day}, the day before, that the job is still on` | const wait = poster ? `${other} confirms on ${day}, the day before, that the job is still on`
+// @mutate src/lib/i18n/enJobLines.ts | "jl.confirmOn": "Confirm on {day}, the day before, that you can still do this job", | "jl.confirmOn": "Confirm the day before, that you can still do this job.",
+// @mutate src/lib/i18n/enJobLines.ts | "jl.bothConfirmOn": "You both confirm on {day}, the day before, that the job is still on", | "jl.bothConfirmOn": "Your Helpr confirms on {day}, the day before, that the job is still on",
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { confirmDeadlineMs, confirmOpensMs } from "@/lib/jobDate";

@@ -279,3 +279,26 @@ describe("the new endings and the lib's bodies", () => {
     expect(bodies()[1]).toMatchObject({ terms: { cancel_policy: "until_accept", ready_tap_cancel: "from_day_before" } });
   });
 });
+
+// S028 (Shops audit 11-12, dashboard CLS 0.63): the nav badge's one read (my_badge_reads) seeds
+// ["shops", "shop-orders", uid] with shorter rows after the page's own reads. On the shared key that replaced the
+// dashboard's cards (measured locally: every card vanished when the badge's answer had none, CLS 0.47 to 0.63).
+// The dashboard now reads its own child key, so the badge seed never touches its rows.
+describe("S028: the badge read's seed never replaces the shop dashboard's orders", () => {
+  it("keeps the dashboard's full rows when the badge read seeds the shared key", async () => {
+    const { badgeSectionKey } = await import("@/lib/badgeReads");
+    orders.fetchShopOrders.mockResolvedValue([order({ id: "keep", fulfillment: "shop_delivers", delivery_cents: 500 })]);
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={["/shops/dashboard"]}><Routes><Route path="/shops/dashboard" element={<ShopDashboardPage />} /></Routes></MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await screen.findByText(/^Accepted order/);
+    qc.setQueryData(badgeSectionKey("shop_orders", "u1"), []);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByText(/^Accepted order/)).toBeTruthy();
+    expect(screen.queryByText("Accepted: make these")).toBeTruthy();
+    expect(orders.fetchShopOrders).toHaveBeenCalledTimes(1);
+  });
+});

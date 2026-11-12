@@ -205,7 +205,7 @@ export default function ShopView() {
             <p className="text-sm whitespace-pre-line break-words">{s.about}</p>
           </ShopCard>
         )}
-        {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} reportable={!s.mine} />}
+        {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} reportable={!s.mine} orderable={!s.mine && !s.paused} />}
         {s.offers_selling && !s.mine && !s.paused && <ShopDigitalBuy shopId={s.id} />}
         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />}
         {/* Custom orders: shown only while the shop takes them (its own setting, read by the sheet). */}

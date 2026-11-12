@@ -1,0 +1,32 @@
+/** Spanish for enSellerDeliveryErrors.ts (F260q): seller delivery's refusals. Loaded only with es.ts. */
+import type { enSellerDeliveryErrors } from "./enSellerDeliveryErrors";
+
+export const esSellerDeliveryErrors: Record<keyof typeof enSellerDeliveryErrors, string> = {
+  "sd.invalid_delivery_setting": "Elija si hace entregas y luego guarde.",
+  "sd.invalid_delivery_rate": "Entregue gratis, o elija una tarifa de entrega en dólares enteros de $5 a $150.",
+  "sd.invalid_free_delivery_amount": "Elija una cantidad en dólares enteros de $1 a $10,000 para la entrega gratis, o apáguela.",
+  "sd.invalid_delivery_distance": "Elija una de las distancias que se muestran.",
+  "sd.invalid_delivery_windows": "Cada hora de entrega necesita un día y un inicio al menos una hora antes de su fin, sin repetirse.",
+  "sd.invalid_days_off": "Elija hasta 60 días libres dentro del próximo año.",
+  "sd.delivery_out_of_range": "Este vendedor no entrega tan lejos. Elija recoger u otra entrega.",
+  "sd.seller_delivery_unavailable": "Este vendedor no puede entregar estos artículos. Elija otra forma de obtenerlos.",
+  "sd.slot_unavailable": "Esa hora de entrega se acaba de tomar o ya no está disponible. Elija otra hora.",
+  "sd.not_a_seller_delivery": "Esta venta no es una entrega del vendedor.",
+  "sd.before_delivery_time": "Puede marcarlo como entregado a partir de la hora de entrega reservada.",
+  "sd.seller_delivered": "El vendedor lo marcó como entregado con una foto. Si algo está mal, reporte un problema.",
+  "sd.not_reschedulable": "Esta entrega no se puede cambiar ahora.",
+  "sd.no_proposal": "No hay ninguna hora nueva esperando respuesta.",
+  "sd.invalid_handoff": "Elija \"Déjelo en mi puerta\" o \"Entréguemelo en mano\".",
+  "sd.cancel_window_closed": "Faltan menos de 24 horas para la entrega, así que ya no puede cancelar. Reporte un problema si algo está mal.",
+  "sd.paid_order_not_cancellable": "Un pedido pagado no se puede cancelar. Puede pedir una nueva hora de entrega una vez, o reportar un problema.",
+  "sd.d.not_booked_yet": "La hora de entrega aún no está reservada.",
+  "sd.d.too_early": "Puede decir que no se entregó 15 minutos después de que termine la hora de entrega.",
+  "sd.d.wrong_side_delivered": "Solo el vendedor lo marca como entregado.",
+  "sd.d.wrong_side_not_delivered": "Solo el comprador puede decir que no se entregó.",
+  "sd.d.wrong_side_accept": "La otra parte acepta la hora que usted pidió.",
+  "sd.d.reschedule_used": "No puede pedir otra hora nueva en este pedido.",
+  "sd.d.location_required_buyer": "Active la ubicación para que podamos confirmar que está en la dirección del comprador.",
+  "sd.d.not_at_dropoff_buyer": "Tome la foto en la dirección del comprador.",
+  "sd.d.handoff_delivered": "El vendedor ya lo marcó como entregado, así que esto no se puede cambiar ahora.",
+  "sd.d.handoff_wrong_side": "Solo el comprador elige cómo se entrega.",
+};

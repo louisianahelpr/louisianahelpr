@@ -83,6 +83,9 @@ describe("the next step's own lines follow the member's language (F260q)", () =>
     const working = jobProgress({ ...job, status: "in_progress", helper_id: "jo", helper_confirmed_at: "t", helper_arrived_at: "t", poster_confirmed_arrival_at: "t", poster_confirmed_working_at: "t" }, { viewer: "poster", otherFirst: "Jolie", threadHelprId: "jo", application: null, now });
     expect(working.nextCode?.id).toBe("working");
     expect(jobNextStep(working, { side: "poster", otherFirst: "Jolie" })?.text).toBe("Waiting on Jolie to mark it done");
+    // Unnamed (no first name on the thread), the codes still come through.
+    expect(jobProgress(job, { viewer: "helpr", otherFirst: null, threadHelprId: "me", application: null, now }).nextCode?.id).toBe("offered_you");
+    expect(jobProgress({ ...job, status: "in_progress", helper_id: "jo", helper_confirmed_at: "t", helper_arrived_at: "t", poster_confirmed_arrival_at: "t", poster_confirmed_working_at: "t" }, { viewer: "poster", otherFirst: null, threadHelprId: "jo", application: null, now }).nextCode?.id).toBe("working");
     // Worded another way (as Spanish will be), the code still says what the line is.
     const reworded = { ...working, next: "Jolie está trabajando", nextCode: { id: "working" as const, line: "Jolie está trabajando" } };
     expect(jobNextStep(reworded, { side: "poster", otherFirst: "Jolie" })?.text).toBe("Waiting on Jolie to mark it done");

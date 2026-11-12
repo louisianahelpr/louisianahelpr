@@ -10,8 +10,8 @@
  * A new column that holds handover photos and is missing from the check turns this red.
  * Backend proof: src/test/pglite/declutterHandoverPhotoCleanup.pglite.mjs (3x; RED without the migration).
  *
- * @mutate supabase/migrations/20261029222816_declutter_handover_photo_cleanup.sql |                      WHERE h.set_out_photo_path = p_name OR h.picked_up_photo_path = p_name), |                      WHERE h.set_out_photo_path = p_name),
- * @mutate supabase/migrations/20261029222816_declutter_handover_photo_cleanup.sql |     AND split_part(p_name, '/', 1) = (SELECT auth.uid())::text\n | \n
+ * @mutate supabase/migrations/20261112060000_declutter_order_talk_photos.sql | WHERE h.set_out_photo_path = p_name OR h.picked_up_photo_path = p_name)) | WHERE h.set_out_photo_path = p_name))
+ * @mutate supabase/migrations/20261112060000_declutter_order_talk_photos.sql |     AND split_part(p_name, '/', 1) = (SELECT auth.uid())::text\n | \n
  * @mutate supabase/migrations/20261029222816_declutter_handover_photo_cleanup.sql |     AND (storage.foldername(name))[3] = 'handover'\n | \n
  * @mutate src/lib/declutter/handover.ts |   if (res.error) await discardRefusedHandoverPhoto(photoPath);\n  return rpcData(res, (e) => rpcErrorMessage("declutter_porch_photo", e)) | return rpcData(res, (e) => rpcErrorMessage("declutter_porch_photo", e))
  */

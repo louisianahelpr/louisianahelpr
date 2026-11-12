@@ -21,9 +21,12 @@
 --        WRITE  your own <uid> folder, an order you are a side of, while that order's chat is OPEN (paid and within
 --               declutter_order_talk_until, both sides still have accounts, neither blocked the other) and you
 --               are not banned.
---        READ   the two sides only, and NOT when the photo is the other side's and either blocked the other or
---               either is banned (declutter_names_hidden, the rule that hides names). An admin reads a talk photo
---               only on an order with a problem report (admin sees reports, not chats).
+--        READ   the two sides only: your own; the other side's only once it is on a sent message of this order,
+--               and NOT when either blocked the other or either is banned (declutter_names_hidden, the rule that
+--               hides names). An admin reads a talk photo only on an order with a problem report that was not
+--               withdrawn (admin sees reports, not chats).
+--   2b. declutter_handover_photo_unattached (the uploader's delete policy, 20261029222816): also a 'talk' photo on no
+--      message, so the app removes a photo whose send was refused (it never stays in storage).
 --   3. declutter_order_talk_view: each message also carries photo_path (null when none, or when hidden as above:
 --      then photo_hidden is true). Restated from 20261103050349 verbatim otherwise.
 --   4. declutter_send_order_message(order, body, photo_path DEFAULT NULL): restated from 20261103055505 verbatim plus
@@ -87,15 +90,19 @@ BEGIN
                         AND public.declutter_order_talk_until(o.id) > now()
                         AND NOT public.are_users_blocked(o.buyer_id, o.seller_id));
     END IF;
-    -- The two sides; the other side's photo not once either blocked the other or either is banned (as names).
-    -- An admin only on an order with a problem report.
+    -- The two sides: your own photo; the other side's only once it is on a sent message of THIS order (a photo
+    -- uploaded but never sent stays the uploader's), and not once either blocked the other or either is banned
+    -- (as names). An admin only on an order with a problem report that was not withdrawn.
     RETURN EXISTS (SELECT 1 FROM public.declutter_orders o
                     WHERE o.id = v_order AND (o.buyer_id = v_uid OR o.seller_id = v_uid)
                       AND (split_part(p_name, '/', 1) = v_uid::text
                            OR (split_part(p_name, '/', 1) IN (o.buyer_id::text, o.seller_id::text)
+                               AND EXISTS (SELECT 1 FROM public.declutter_order_talk_messages m
+                                             JOIN public.declutter_order_talks t ON t.id = m.talk_id
+                                            WHERE m.photo_path = p_name AND t.order_id = o.id)
                                AND NOT public.declutter_names_hidden(o.buyer_id, o.seller_id))))
         OR (public.has_role(v_uid, 'admin')
-            AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = v_order));
+            AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = v_order AND p.status <> 'withdrawn'));
   END IF;
   IF p_write THEN
     -- A return photo (20261030071818): into your own folder, only while the order's refund request is returning.
@@ -129,6 +136,32 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_handover_photo_access(text, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_handover_photo_access(text, boolean) TO authenticated, service_role;
+
+-- 2b. The uploader may delete their own photo while nothing holds it: a handover photo (20261029222816, verbatim) or,
+--     new, an order-chat photo on no message (a refused send).
+CREATE OR REPLACE FUNCTION public.declutter_handover_photo_unattached(p_name text)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT COALESCE(
+    p_name IS NOT NULL
+    AND (SELECT auth.uid()) IS NOT NULL
+    AND array_length(string_to_array(p_name, '/'), 1) = 5
+    AND split_part(p_name, '/', 1) = (SELECT auth.uid())::text
+    AND split_part(p_name, '/', 2) = 'declutter'
+    AND ((split_part(p_name, '/', 3) = 'handover'
+          AND NOT EXISTS (SELECT 1 FROM public.declutter_handovers h
+                           WHERE h.set_out_photo_path = p_name OR h.picked_up_photo_path = p_name))
+         -- CHANGED 20261112060000 (F389): an order-chat photo that no message holds.
+         OR (split_part(p_name, '/', 3) = 'talk'
+             AND NOT EXISTS (SELECT 1 FROM public.declutter_order_talk_messages m WHERE m.photo_path = p_name))),
+    false);
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_handover_photo_unattached(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_handover_photo_unattached(text) TO authenticated, service_role;
 
 -- 3. The chat as the caller sees it (restated from 20261103050349; only the message's photo is new).
 CREATE OR REPLACE FUNCTION public.declutter_order_talk_view(p_order_id uuid)

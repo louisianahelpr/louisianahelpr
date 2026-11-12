@@ -104,8 +104,15 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
   const send = useMutation({
     mutationFn: async () => {
       // The upload helper (photo cleaning) is loaded only for a photo send.
-      const photoPath = photo ? await (await import("@/lib/declutter/handover")).uploadOrderTalkPhoto(orderId, photo) : null;
-      return sendOrderMessage(orderId, draft.trim(), photoPath);
+      const handover = photo ? await import("@/lib/declutter/handover") : null;
+      const photoPath = handover && photo ? await handover.uploadOrderTalkPhoto(orderId, photo) : null;
+      try {
+        return await sendOrderMessage(orderId, draft.trim(), photoPath);
+      } catch (e) {
+        // A refused send (contact details, rate limit, a block) leaves no photo behind in storage (best effort).
+        if (handover && photoPath) await handover.discardRefusedHandoverPhoto(photoPath);
+        throw e;
+      }
     },
     // Messages -> Declutter's list (DeclutterOrderTalkInbox) shows who sent the last message: refresh it too.
     onSuccess: () => { setDraft(""); setPhoto(null); setRefusal(null); void qc.invalidateQueries({ queryKey: key }); void qc.invalidateQueries({ queryKey: MY_ORDER_TALKS_KEY }); },

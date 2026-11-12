@@ -40,6 +40,7 @@ const prevAccess = fnFrom("20261030071818_declutter_returns.sql", "CREATE OR REP
 const prevView = fnFrom("20261103050349_declutter_orders_talk_admin_not_found_is_404.sql", "CREATE OR REPLACE FUNCTION public.declutter_order_talk_view(");
 const prevSend = fnFrom("20261103055505_declutter_shops_homes_messages_not_found_is_404.sql", "CREATE OR REPLACE FUNCTION public.declutter_send_order_message(");
 const until = fnFrom("20261030004216_declutter_order_talk.sql", "CREATE OR REPLACE FUNCTION public.declutter_order_talk_until(");
+const prevUnattached = fnFrom("20261029222816_declutter_handover_photo_cleanup.sql", "CREATE OR REPLACE FUNCTION public.declutter_handover_photo_unattached(");
 const namesHidden = fnFrom("20261112010100_declutter_names_hidden_across_block_or_ban.sql", "CREATE OR REPLACE FUNCTION public.declutter_names_hidden(");
 
 const MUTANTS = {
@@ -48,10 +49,13 @@ const MUTANTS = {
   closedChatWrite: ["                        AND public.declutter_order_talk_until(o.id) > now()\n", ""],
   blockedWrite: ["                        AND NOT public.are_users_blocked(o.buyer_id, o.seller_id));\n    END IF;", "                        );\n    END IF;"],
   bannedWrite: ["         AND NOT public.is_caller_banned()\n", ""],
-  adminAnyOrder: ["            AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = v_order));", "            );"],
+  adminAnyOrder: ["            AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = v_order AND p.status <> 'withdrawn'));", "            );"],
   otherOrderPhoto: ["       OR split_part(p_photo_path, '/', 4) IS DISTINCT FROM o.id::text\n", ""],
   notUploaded: ["       OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'declutter-handover' AND so.name = p_photo_path)\n", ""],
   reusedPhoto: ["       OR EXISTS (SELECT 1 FROM public.declutter_order_talk_messages x WHERE x.photo_path = p_photo_path)) THEN", "       ) THEN"],
+  unsentReadable: ["                               AND EXISTS (SELECT 1 FROM public.declutter_order_talk_messages m\n                                             JOIN public.declutter_order_talks t ON t.id = m.talk_id\n                                            WHERE m.photo_path = p_name AND t.order_id = o.id)\n", ""],
+  adminWithdrawn: ["WHERE p.order_id = v_order AND p.status <> 'withdrawn'));", "WHERE p.order_id = v_order));"],
+  deleteAttached: ["             AND NOT EXISTS (SELECT 1 FROM public.declutter_order_talk_messages m WHERE m.photo_path = p_name))),", "             )),"],
   viewNoHide: ["'photo_path', CASE WHEN m.sender_side <> v_side AND public.declutter_names_hidden(o.buyer_id, o.seller_id)\n                                               THEN NULL ELSE m.photo_path END,", "'photo_path', m.photo_path,"],
 };
 let mig = readFileSync(MIG_DIR + THIS, "utf8");
@@ -94,6 +98,7 @@ await db.exec(`
   CREATE TABLE public.declutter_problems (order_id uuid, status text, decided_at timestamptz);
   CREATE TABLE public.declutter_refund_requests (order_id uuid, status text, updated_at timestamptz);
   CREATE TABLE public.declutter_items (id uuid PRIMARY KEY, title text);
+  CREATE TABLE public.declutter_handovers (order_id uuid, set_out_photo_path text, picked_up_photo_path text);
   CREATE TABLE public.declutter_cart_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), item_id uuid, order_id uuid, created_at timestamptz DEFAULT now());
   CREATE FUNCTION public.declutter_problem_window_open(p uuid) RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT false $f$;
   CREATE FUNCTION public.declutter_order_side(p_buyer uuid, p_seller uuid, p_uid uuid) RETURNS text LANGUAGE sql IMMUTABLE AS
@@ -121,12 +126,13 @@ await db.exec(`
     ('${O(3)}', '${ANN}', '${SAM}', 'paid', 'pickup_home', now() - interval '1 day', NULL, NULL),
     ('${O(4)}', '${ANN}', '${SAM}', 'reserved', 'pickup_home', NULL, NULL, NULL),
     ('${O(5)}', '${CAL}', '${BOB}', 'paid', 'pickup_home', now() - interval '1 day', NULL, NULL);
-  INSERT INTO public.declutter_problems VALUES ('${O(3)}', 'decided', now() - interval '1 hour');
+  INSERT INTO public.declutter_problems VALUES ('${O(3)}', 'decided', now() - interval '1 hour'), ('${O(5)}', 'withdrawn', now() - interval '1 hour');
   INSERT INTO public.declutter_items VALUES ('99999999-0000-0000-0000-000000000001', 'Oak chair');
   INSERT INTO public.declutter_cart_items (item_id, order_id) VALUES ('99999999-0000-0000-0000-000000000001', '${O(1)}');
   ${until}
   ${namesHidden}
   ${prevAccess}
+  ${prevUnattached}
   ${prevView}
   ${prevSend}
 `);
@@ -169,11 +175,12 @@ check((await access(EVE, talk(EVE, O(1)), true)) === false, "someone on neither 
 check((await access(ANN, talk(ANN, O(2)), true)) === false, "not once the chat has ended (handed over 5 days ago)");
 check((await access(ANN, talk(ANN, O(4)), true)) === false, "not on an order never paid");
 // Storage: read.
-check((await access(SAM, talk(ANN, O(1)), false)) === true, "the other side reads a talk photo");
+check((await access(SAM, talk(ANN, O(1)), false)) === false, "the other side does NOT read a talk photo that was never sent");
 check((await access(ANN, talk(ANN, O(1)), false)) === true, "the sender reads her own");
 check((await access(EVE, talk(ANN, O(1)), false)) === false, "someone on neither side does not");
 check((await access(ADM, talk(ANN, O(1)), false)) === false, "an admin does not, on an order with no problem report");
 check((await access(ADM, talk(ANN, O(3)), false)) === true, "an admin does, on an order with a problem report");
+check((await access(ADM, talk(CAL, O(5)), false)) === false, "an admin does not, when the order's only report was withdrawn");
 check((await access(EVE, talk(EVE, O(1)), false)) === false, "a stranger's own-named folder on the order is not readable either");
 // Older kinds unchanged.
 check((await access(ADM, `${ANN}/declutter/handover/${O(1)}/h.jpg`, false)) === true, "a handover photo: admins still read it (unchanged)");
@@ -186,6 +193,12 @@ const s1 = await send(ANN, O(1), "  ", talk(ANN, O(1)));
 check(!!s1.id, `a photo with no words sends -> ${s1.error ?? "ok"}`);
 const row = await db.query(`SELECT body, photo_path FROM public.declutter_order_talk_messages WHERE id = $1`, [s1.id ?? null]).then((r) => r.rows[0], () => undefined);
 check(row?.photo_path === talk(ANN, O(1)) && row?.body === "", "the message keeps the photo path and empty words");
+check((await access(SAM, talk(ANN, O(1)), false)) === true, "once sent, the other side reads it");
+const unattached = async (uid, name) => { await as(uid); try { return (await db.query(`SELECT public.declutter_handover_photo_unattached($1) AS ok`, [name])).rows[0].ok; } catch (e) { return `error: ${e.message}`; } };
+check((await unattached(ANN, talk(ANN, O(1)))) === false, "a sent chat photo can not be deleted by its uploader");
+check((await unattached(ANN, talk(ANN, O(1), "refused.jpg"))) === true, "an unsent chat photo (a refused send) can be deleted by its uploader");
+check((await unattached(SAM, talk(ANN, O(1), "refused.jpg"))) === false, "never by the other side");
+check((await unattached(ANN, `${ANN}/declutter/handover/${O(1)}/h.jpg`)) === true && (await unattached(ANN, `${ANN}/declutter/problem/${O(1)}/p.jpg`)) === false, "handover photos keep their rule, problem photos stay undeletable");
 const note = (await db.query(`SELECT body FROM public.notices WHERE user_id = '${SAM}' ORDER BY body DESC LIMIT 1`)).rows[0];
 check(/sent you a photo about "Oak chair"/.test(note?.body ?? ""), `the seller is told a photo came, not the photo -> ${note?.body}`);
 const again = await send(ANN, O(1), "again", talk(ANN, O(1)));

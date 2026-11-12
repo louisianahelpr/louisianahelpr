@@ -229,8 +229,8 @@ export async function uploadProblemPhoto(orderId: string, file: File): Promise<s
  */
 export async function uploadOrderTalkPhoto(orderId: string, file: File): Promise<string> {
   const { data: auth } = await supabase.auth.getSession();
-  const uid = auth.session?.user.id;
-  if (!uid) throw new Error("not_authenticated");
+  if (!auth.session?.user.id) throw new Error("not_authenticated");
+  const uid = auth.session.user.id;
   const talkPhoto = await cleanHandoverPhoto(file);
   return putHandoverPhoto(`${uid}/declutter/talk/${orderId}/${photoNonce()}.jpg`, talkPhoto);
 }

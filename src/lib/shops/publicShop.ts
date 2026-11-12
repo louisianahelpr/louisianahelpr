@@ -43,6 +43,17 @@ export interface PublicShop {
   items: PublicShopItem[];
 }
 
+/** S044: a paused shop's link answers only its name (shops_public_shop, 20261112195345). */
+export interface PausedPublicShop {
+  id: string;
+  name: string;
+  paused: true;
+}
+
+export function isPausedShop(shop: PublicShop | PausedPublicShop): shop is PausedPublicShop {
+  return (shop as PausedPublicShop).paused === true;
+}
+
 type PublicShopItem = Omit<ShopItem, "photos"> & { photos: { id: string; position: number }[] };
 
 /**
@@ -62,7 +73,7 @@ export function isShopId(value: string): boolean {
   return UUID_RE.test(value);
 }
 
-export async function fetchPublicShop(shopId: string): Promise<PublicShop | null> {
+export async function fetchPublicShop(shopId: string): Promise<PublicShop | PausedPublicShop | null> {
   // Not a uuid: no shop, and no request (Postgres would answer 22P02, which
   // read as "couldn't load, try again" for a link that will never work).
   if (!isShopId(shopId)) return null;
@@ -75,7 +86,7 @@ export async function fetchPublicShop(shopId: string): Promise<PublicShop | null
     const words = rpcErrorMessage("shops_public_shop", error);
     throw Object.assign(new Error(error.message), error, words ? { userMessage: words } : {});
   }
-  return (data as unknown as PublicShop | null) ?? null;
+  return (data as unknown as PublicShop | PausedPublicShop | null) ?? null;
 }
 
 /** The link to a shop's public page. */

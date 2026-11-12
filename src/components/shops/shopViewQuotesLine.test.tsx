@@ -2,8 +2,11 @@
  * Custom orders (lead 11-06 ~3:35 PM): a shop's "What this shop offers" card said "Quotes open here soon." even when
  * the shop takes custom orders, whose request sheet IS how to ask it for work. The line now shows only while custom
  * orders are off (the same shops.custom_orders read as the sheet).
+ * S030 (Shops audit 11-12): "Quotes open here soon." was a dead-end promise. "Gives quotes" now shows only while the
+ * shop takes custom orders, as "takes custom orders" with a button to the request sheet; otherwise the line drops.
  *
- * @mutate src/components/shops/ShopView.tsx |            {s.offers_quotes && customOrders.data === "off" ? " Quotes open here soon." : ""} |            {s.offers_quotes ? " Quotes open here soon." : ""}
+ * @mutate src/components/shops/ShopView.tsx |   const takesCustom = s.offers_quotes && !!customOrders.data && customOrders.data !== "off"; |   const takesCustom = s.offers_quotes;
+ * @mutate src/components/shops/ShopView.tsx |             {takesCustom && !s.mine && !s.paused && ( |             {false && (
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -84,21 +87,33 @@ beforeEach(() => {
   orders.reads = 0;
 });
 
-describe("a shop that gives quotes: the 'opens soon' line goes once it takes custom orders (lead 11-06)", () => {
-  it("custom orders off: the card still says quotes open here soon", async () => {
+describe("S030: 'gives quotes' shows only while the shop takes custom orders, and points at the request sheet", () => {
+  it("custom orders off: no quotes promise; the card says only what the shop sells", async () => {
     api.fetchShop.mockResolvedValue(page());
     renderAt("/shops/s1");
-    const card = await screen.findByText(/Quotes open here soon\./);
-    expect(card.textContent).toBe("Sells items and gives quotes. Quotes open here soon.");
+    const title = await screen.findByRole("heading", { name: "What this shop offers" });
+    await vi.waitFor(() => expect(orders.reads).toBeGreaterThan(0));
+    await new Promise((r) => setTimeout(r, 20));
+    const card = title.closest("section") as HTMLElement;
+    expect(card.querySelector("p")?.textContent).toBe("Sells items.");
+    expect(document.body.textContent).not.toMatch(/open here soon|gives quotes/i);
+    expect(screen.queryByRole("button", { name: "Ask for a custom order" })).toBeNull();
   });
 
-  it.each(["full_hold", "deposit_50"])("custom orders on (%s): no 'opens soon'; the request sheet is how to ask", async (mode) => {
+  it("custom orders off and the shop only gave quotes: the card is not shown", async () => {
+    api.fetchShop.mockResolvedValue(page({ offers_selling: false }));
+    renderAt("/shops/s1");
+    await screen.findByText("Bayou Cakes");
+    await vi.waitFor(() => expect(orders.reads).toBeGreaterThan(0));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByRole("heading", { name: "What this shop offers" })).toBeNull();
+  });
+
+  it.each(["full_hold", "deposit_50"])("custom orders on (%s): 'takes custom orders' with a button to the request sheet", async (mode) => {
     orders.mode = mode;
     api.fetchShop.mockResolvedValue(page());
     renderAt("/shops/s1");
-    const card = await screen.findByText(/Sells items and gives quotes\./);
-    await vi.waitFor(() => expect(orders.reads).toBeGreaterThan(0));
-    await new Promise((r) => setTimeout(r, 20));
-    expect(card.textContent).toBe("Sells items and gives quotes.");
+    expect(await screen.findByText("Sells items and takes custom orders.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Ask for a custom order" })).toBeTruthy();
   });
 });

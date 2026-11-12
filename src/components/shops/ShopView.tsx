@@ -102,6 +102,11 @@ export default function ShopView() {
   const logo = s.photos.find((p) => p.kind === "logo");
   const catLabel = categoryLabel(categories.data, s.category);
   const shareable = { id: s.id, name: s.name, category_label: catLabel, area_label: s.area_label };
+  // S030 (Shops audit 11-12; lead 11-06: quotes ARE the custom-order request sheet): "gives quotes" shows only while
+  // the shop takes custom orders, and then points at that sheet. The old "Quotes open here soon." promise is gone.
+  const takesCustom = s.offers_quotes && !!customOrders.data && customOrders.data !== "off";
+  const offersLine = s.offers_selling && takesCustom ? "Sells items and takes custom orders."
+    : s.offers_selling ? "Sells items." : takesCustom ? "Takes custom orders." : null;
   const ownerEmpty = s.mine && s.offers_selling && ownItems.isSuccess && !ownItems.data.some((i) => i.status === "live");
   const ownerButtons = (size: "sm" | "default", round: string) => (
     <>
@@ -116,8 +121,9 @@ export default function ShopView() {
   return (
     <AppPage
       // Shops audit 11-10 F10: the owner's page said the shop's name twice (the header and the card right under
-      // it); the owner's header says "My shop", a visitor's keeps the name.
-      title={s.mine ? "My shop" : s.name}
+      // it); the owner's header says "My shop". S029 (Shops audit 11-12): a visitor's said it twice too, wrapping to
+      // 4 lines beside Follow at 375; it now says "Shop" and the card under it names the shop once.
+      title={s.mine ? "My shop" : "Shop"}
       backTo="/shops"
       titleActions={
         s.mine ? (
@@ -219,12 +225,21 @@ export default function ShopView() {
         <ShopGallery photos={s.photos} />
         {s.offers_selling && <ShopPolicies shopId={s.id} />}
         <ShopFaqs shopId={s.id} />
-        <ShopCard id="shop-offers" title="What this shop offers">
-          <p className="text-sm text-muted-foreground">
-            {s.offers_selling && s.offers_quotes ? "Sells items and gives quotes." : s.offers_selling ? "Sells items." : "Gives quotes."}
-            {s.offers_quotes && customOrders.data === "off" ? " Quotes open here soon." : ""}
-          </p>
-        </ShopCard>
+        {offersLine && (
+          <ShopCard id="shop-offers" title="What this shop offers">
+            <p className="text-sm text-muted-foreground">{offersLine}</p>
+            {takesCustom && !s.mine && !s.paused && (
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-2 rounded-full"
+                onClick={() => document.getElementById("shop-custom-request")?.closest("section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              >
+                Ask for a custom order
+              </Button>
+            )}
+          </ShopCard>
+        )}
         {!s.mine && <ShopReportShop shopId={s.id} />}
         {s.mine && (
           <Button type="button" variant="outline" disabled={pause.isPending} onClick={() => pause.mutate(!s.paused)}>

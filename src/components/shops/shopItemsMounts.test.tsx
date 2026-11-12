@@ -88,7 +88,7 @@ describe("where the item screens mount", () => {
   it("a quotes-only shop's page shows no item list", async () => {
     api.fetchShop.mockResolvedValue(page({ offers_selling: false, offers_quotes: true }));
     renderAt("/shops/s1", "/shops/:id", <ShopPage />);
-    expect(await screen.findByRole("heading", { name: "Bayou Bakes" })).toBeTruthy();
+    expect(await screen.findByTestId("shop-hero-name")).toBeTruthy();
     expect(screen.queryByText(/Items list for/)).toBeNull();
   });
 

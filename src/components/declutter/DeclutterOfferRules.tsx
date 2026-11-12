@@ -16,6 +16,8 @@ import { fetchMyItemPrivate, setListingPrice, setOfferRules } from "@/lib/declut
 import { requestSuggestedFloor, suggestedReplyErrorMessage, type SuggestedFloor } from "@/lib/declutter/aiReply";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 export function DeclutterOfferRules({
   itemId,
@@ -42,7 +44,7 @@ export function DeclutterOfferRules({
   };
   const rules = useMutation({
     mutationFn: (v: { accepts: boolean; auto: boolean }) => setOfferRules(itemId, v.accepts, v.auto),
-    onSuccess: (_d, v) => done(!v.accepts ? "Offers are off. Buyers can still buy it." : v.auto ? "Offers are answered for you." : "Offers are on."),
+    onSuccess: (_d, v) => done(!v.accepts ? t("lp.or.offersOff") : v.auto ? t("lp.or.offersAuto") : t("lp.or.offersOn")),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const suggest = useMutation({
@@ -54,7 +56,7 @@ export function DeclutterOfferRules({
     mutationFn: (cents: number) => setListingPrice(itemId, priceCents, cents),
     onSuccess: (_d, cents) => {
       setSuggestion(null);
-      done(`Lowest price set to ${formatPrice(cents)}.`);
+      done(t("lp.or.floorSet", { price: formatPrice(cents) }));
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
@@ -64,30 +66,30 @@ export function DeclutterOfferRules({
     <>
       <li className={rowClassName} data-offer-rules="">
         <span className="flex-1 min-w-0">
-          <span id={`offers-on-${itemId}`} className="block text-ds-15 font-semibold">Accept offers</span>
-          <span className="block text-ds-13 text-muted-foreground">{on ? "Buyers can offer less than your price" : "Off: buyers can only buy at your price"}</span>
+          <span id={`offers-on-${itemId}`} className="block text-ds-15 font-semibold">{t("lp.ld.offersTitle")}</span>
+          <span className="block text-ds-13 text-muted-foreground">{on ? t("lp.or.onLine") : t("lp.or.offLine")}</span>
         </span>
         <Switch aria-labelledby={`offers-on-${itemId}`} checked={on} disabled={busy} onCheckedChange={(v) => rules.mutate({ accepts: v, auto: v && auto })} />
       </li>
       {on && (
         <li className={`${rowClassName} flex-wrap`} data-offer-floor="">
           <span className="flex-1 min-w-0">
-            <span className="block text-ds-15 font-semibold">Lowest you'll take</span>
-            <span className="block text-ds-13 text-muted-foreground">{floorCents == null ? "Not set" : formatPrice(floorCents)}</span>
+            <span className="block text-ds-15 font-semibold">{t("lp.or.floor")}</span>
+            <span className="block text-ds-13 text-muted-foreground">{floorCents == null ? t("lp.or.notSet") : formatPrice(floorCents)}</span>
           </span>
           {!suggestion && (
             <InlineTextButton className="shrink-0 text-ds-14 font-semibold text-[hsl(var(--accent-ink))] underline-offset-2" onClick={() => suggest.mutate()} disabled={suggest.isPending || busy}>
-              {suggest.isPending ? "Thinking…" : "Suggest one"}
+              {suggest.isPending ? t("lp.or.thinking") : t("lp.or.suggest")}
             </InlineTextButton>
           )}
           {suggestion && (
             <span className="basis-full flex items-center justify-between gap-3 rounded-xl bg-muted px-3 py-2 text-ds-13" data-floor-suggestion="">
               <span className="min-w-0">
-                Suggested: <span className="font-semibold tabular-nums">{formatPrice(suggestion.floorCents)}</span>
+                {t("lp.or.suggested")} <span className="font-semibold tabular-nums">{formatPrice(suggestion.floorCents)}</span>
                 {suggestion.reason ? `. ${suggestion.reason}` : ""}
               </span>
               <InlineTextButton className="shrink-0 font-semibold text-[hsl(var(--accent-ink))]" onClick={() => saveFloor.mutate(suggestion.floorCents)} disabled={busy}>
-                Use {formatPrice(suggestion.floorCents)}
+                {t("lp.or.use", { price: formatPrice(suggestion.floorCents) })}
               </InlineTextButton>
             </span>
           )}
@@ -96,8 +98,8 @@ export function DeclutterOfferRules({
       {on && (
         <li className={rowClassName} data-offer-auto="">
           <span className="flex-1 min-w-0">
-            <span id={`offers-auto-${itemId}`} className="block text-ds-15 font-semibold">Answer offers for me</span>
-            <span className="block text-ds-13 text-muted-foreground">Accept offers at or above your lowest price; counter lower ones with it</span>
+            <span id={`offers-auto-${itemId}`} className="block text-ds-15 font-semibold">{t("lp.or.auto")}</span>
+            <span className="block text-ds-13 text-muted-foreground">{t("lp.or.autoLine")}</span>
           </span>
           <Switch aria-labelledby={`offers-auto-${itemId}`} checked={auto} disabled={busy || !priv.isSuccess} onCheckedChange={(v) => rules.mutate({ accepts: true, auto: v })} />
         </li>

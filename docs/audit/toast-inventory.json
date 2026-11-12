@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 487,
+      "literal": 486,
       "template": 104,
-      "dynamic": 692,
+      "dynamic": 693,
       "jsx": 0
     }
   },
@@ -5451,7 +5451,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferRules.tsx",
-      "line": 40,
+      "line": 42,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5461,7 +5461,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferRules.tsx",
-      "line": 46,
+      "line": 48,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5471,7 +5471,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferRules.tsx",
-      "line": 51,
+      "line": 53,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5488,7 +5488,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferRules.tsx",
-      "line": 59,
+      "line": 61,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5668,7 +5668,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterPorchPlaces.tsx",
-      "line": 78,
+      "line": 80,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5678,7 +5678,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterPorchPlaces.tsx",
-      "line": 118,
+      "line": 120,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6144,19 +6144,53 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeRules.tsx",
-      "line": 22,
+      "line": 24,
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "v ? \"Trades are on for this listing.\" : \"Trades are off. Open trade offers on it are closed.\"",
+        "text": "v ? t(\"lp.tr.on\") : t(\"lp.tr.off\")",
         "branches": [
           {
-            "form": "literal",
-            "text": "Trades are on for this listing."
+            "form": "dynamic",
+            "text": "t(\"lp.tr.on\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
           },
           {
-            "form": "literal",
-            "text": "Trades are off. Open trade offers on it are closed."
+            "form": "dynamic",
+            "text": "t(\"lp.tr.off\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -6164,7 +6198,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeRules.tsx",
-      "line": 26,
+      "line": 28,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7246,7 +7280,7 @@
     },
     {
       "file": "src/components/declutter/SellerDeliverySettings.tsx",
-      "line": 157,
+      "line": 159,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -7266,7 +7300,7 @@
     },
     {
       "file": "src/components/declutter/SellerDeliverySettings.tsx",
-      "line": 160,
+      "line": 162,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7291,19 +7325,53 @@
     },
     {
       "file": "src/components/declutter/SellerDeliverySettings.tsx",
-      "line": 286,
+      "line": 288,
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "deliver ? \"You'll offer delivery for this item.\" : \"No delivery for this item.\"",
+        "text": "deliver ? t(\"lp.dl.on\") : t(\"lp.dl.off\")",
         "branches": [
           {
-            "form": "literal",
-            "text": "You'll offer delivery for this item."
+            "form": "dynamic",
+            "text": "t(\"lp.dl.on\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
           },
           {
-            "form": "literal",
-            "text": "No delivery for this item."
+            "form": "dynamic",
+            "text": "t(\"lp.dl.off\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -7311,7 +7379,7 @@
     },
     {
       "file": "src/components/declutter/SellerDeliverySettings.tsx",
-      "line": 289,
+      "line": 291,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7386,19 +7454,53 @@
     },
     {
       "file": "src/components/declutter/ShipItRow.tsx",
-      "line": 33,
+      "line": 35,
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "next.preset === null ? \"Shipping is off for this item.\" : \"Saved. Buyers in Louisiana can have it shipped.\"",
+        "text": "next.preset === null ? t(\"lp.sh.offToast\") : t(\"lp.sh.onToast\")",
         "branches": [
           {
-            "form": "literal",
-            "text": "Shipping is off for this item."
+            "form": "dynamic",
+            "text": "t(\"lp.sh.offToast\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
           },
           {
-            "form": "literal",
-            "text": "Saved. Buyers in Louisiana can have it shipped."
+            "form": "dynamic",
+            "text": "t(\"lp.sh.onToast\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -7406,7 +7508,7 @@
     },
     {
       "file": "src/components/declutter/ShipItRow.tsx",
-      "line": 36,
+      "line": 38,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7416,11 +7518,28 @@
     },
     {
       "file": "src/components/declutter/ShipItRow.tsx",
-      "line": 49,
+      "line": 51,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "First confirm nothing in it is on the USPS restricted list."
+        "form": "dynamic",
+        "text": "t(\"lp.sh.tickFirst\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },

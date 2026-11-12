@@ -66,7 +66,6 @@ export const esLanding: Record<keyof typeof enLanding, string> = {
   "landing.shell.declutterLine": "Recójalo, reúnanse o pida que un Helpr se lo entregue.",
   "landing.shell.noJobsTitle": "Lo nuevo en Declutter cerca de usted",
   "landing.shell.noJobsLine": "Todos los trabajos están tomados ahora mismo. Esto es lo que venden sus vecinos.",
-  "landing.shell.serviceArea": "Servimos a New Iberia, Lafayette, Abbeville y sus alrededores.",
   "landing.live.getQuotes": "Pida cotizaciones",
   "landing.live.namePrice": "Ponga un precio",
   "landing.live.parish": "Parroquia {parish}",

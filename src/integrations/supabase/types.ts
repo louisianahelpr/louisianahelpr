@@ -18088,6 +18088,7 @@ export type Database = {
           created_at: string
           display_name: string
           pickup_at: string | null
+          pickup_count: number
           request_id: string
           requester_id: string
           review_count: number

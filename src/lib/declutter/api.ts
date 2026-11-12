@@ -1510,6 +1510,8 @@ export type FreeRequester = {
   request_id: string; requester_id: string; display_name: string; avg_rating: number | null; review_count: number | null; created_at: string;
   /** The pickup time the asker picked (20261101174857); null for an ask made before, or from an older app build. */
   pickup_at?: string | null;
+  /** F359d: how many Declutter pickups the asker completed as a buyer (20261112053500); null across a block or ban, for a test asker, or before deploy. */
+  pickup_count?: number | null;
 };
 
 /** The giver's list of who asked for one of their free items, oldest first. */

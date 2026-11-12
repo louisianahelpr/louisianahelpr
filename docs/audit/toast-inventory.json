@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 489,
+      "literal": 487,
       "template": 104,
-      "dynamic": 690,
+      "dynamic": 692,
       "jsx": 0
     }
   },
@@ -5118,29 +5118,26 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 136,
+      "line": 135,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "We couldn't save your listing defaults yet. Try again in a little while."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 139,
-      "kind": "toast",
-      "title": {
         "form": "dynamic",
-        "text": "stopped ? `Listing defaults saved. ${stopped === 1 ? \"1 listing no longer offers\" : `${stopped} listings no longer offer`} your delivery.` : \"Listing defaults saved.\"",
+        "text": "t(\"lp.ld.saveFail\")",
+        "from": "src/lib/i18n/language.ts",
         "branches": [
           {
-            "form": "template",
-            "text": "Listing defaults saved. ${stopped === 1 ? \"1 listing no longer offers\" : `${stopped} listings no longer offer`} your delivery."
-          },
-          {
-            "form": "literal",
-            "text": "Listing defaults saved."
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
           }
         ]
       },
@@ -5148,7 +5145,61 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 156,
+      "line": 138,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "stopped ? t(stopped === 1 ? \"lp.ld.savedStop1\" : \"lp.ld.savedStopN\", { n: stopped }) : t(\"lp.ld.saved\")",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "t(stopped === 1 ? \"lp.ld.savedStop1\" : \"lp.ld.savedStopN\", { n: stopped })",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "form": "dynamic",
+            "text": "t(\"lp.ld.saved\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterListingDefaults.tsx",
+      "line": 155,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5173,7 +5224,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 159,
+      "line": 158,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5183,11 +5234,28 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 210,
+      "line": 208,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Your changes to listing defaults weren't saved."
+        "form": "dynamic",
+        "text": "t(\"lp.ld.leftUnsaved\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },

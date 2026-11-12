@@ -52,7 +52,7 @@ import { buyerOnWayToday } from "@/lib/declutter/pickupDay";
 import { ProblemOpenNote } from "./DeclutterProblemOpen";
 import { OrderGetHelpNow } from "@/components/jobs/GetHelpNow";
 import { payoutLine, setupFeeAheadByOrder, setupFeeAheadFromServer, setupFeeUnsureOrders } from "./declutterPayoutWords";
-import { payoutAccountReady } from "@/lib/payoutAfterHire";
+import { payoutAccountReady } from "@/lib/payoutAccountReady";
 import { ManagerSaleShareGate } from "./ManagerSaleShareGate";
 import { useOpenProblemsRead } from "./useOpenProblems";
 import { useSellerSetupFee } from "./useSellerSetupFee";

@@ -19,7 +19,7 @@
  */
 import { useState } from "react";
 import { checkWindowEnds, orderWhen, payoutDayAfterWindow } from "@/lib/declutter/timeLeft";
-import { payoutAccountReady } from "@/lib/payoutAfterHire";
+import { payoutAccountReady } from "@/lib/payoutAccountReady";
 import { useQuery } from "@tanstack/react-query";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { fetchMyHandover, handoverPhotoUrl } from "@/lib/declutter/handover";

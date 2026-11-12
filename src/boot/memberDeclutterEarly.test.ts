@@ -23,7 +23,7 @@
 // @mutate src/boot/declutterPrefetch.ts |     takeEarlyMemberRead(session.userId) ?? | (null as Promise<unknown> \| null) ??
 // @mutate src/boot/declutterPrefetch.ts |       if (document.getElementById("lh-declutter-shell")?.hasAttribute("data-lh-photos")) return; |
 // @mutate src/components/declutter/DeclutterSkeletons.tsx |           <div className="h-[110px] space-y-1.5 px-0.5 pt-2"> |           <div className="space-y-1.5 px-0.5 pt-2">
-// @mutate src/components/declutter/DeclutterSkeletons.tsx |     <div className="pb-2" aria-hidden data-declutter-chip-bones=""> |     <div aria-hidden data-declutter-chip-bones="">
+// @mutate src/components/declutter/DeclutterSkeletons.tsx |     <div className={CHIPS_ROW_PAD} aria-hidden data-declutter-chip-bones=""> |     <div className="pb-4" aria-hidden data-declutter-chip-bones="">
 // @mutate src/components/declutter/DeclutterBrowseView.tsx |  : listLoading && !items.isError ? <DeclutterChipBones /> : null, |  : null,
 // @mutate src/components/declutter/DeclutterBrowseView.tsx |     if (!listLoading) releaseDeclutterShellForCards(); |
 // @mutate src/components/declutter/declutterShell.ts |   if (!el.hasAttribute("data-lh-photos")) { |   if (el) {
@@ -301,16 +301,16 @@ describe("the skeleton's boxes are Browse's (no jump when Browse replaces the dr
   it("the chips row and the card text block match Browse's measured geometry at 375", () => {
     const sk = blankComments(readFileSync("src/components/declutter/DeclutterSkeletons.tsx", "utf8"));
     const browse = blankComments(readFileSync("src/components/declutter/DeclutterBrowseView.tsx", "utf8"));
-    // Browse wraps its chips in a pb-2 row (DeclutterCategoryChips: a pb-1 row of 40px chips); measured 11-09 at
+    // Browse wraps its chips in a CHIPS_ROW_PAD row (owner 11-12: pb-0, was pb-2) (DeclutterCategoryChips: a pb-1 row of 40px chips); measured 11-09 at
     // 375: the explore header is 120px and the first photo row starts at 124px, the second at 420px (li 276px:
     // a 166px photo and a 110px text block).
-    expect(sk).toMatch(/<div className="pb-2" aria-hidden data-declutter-chip-bones="">\s*<div className="flex gap-2 overflow-hidden pb-1">\s*(<Skeleton className="h-10 w-\d+ shrink-0 rounded-full" \/>\s*){3}<\/div>/);
+    expect(sk).toMatch(/<div className=\{CHIPS_ROW_PAD\} aria-hidden data-declutter-chip-bones="">\s*<div className="flex gap-2 overflow-hidden pb-1">\s*(<Skeleton className="h-10 w-\d+ shrink-0 rounded-full" \/>\s*){3}<\/div>/);
     expect(sk).toContain('<div className="h-[110px] space-y-1.5 px-0.5 pt-2">');
     // The skeleton's phone tabs slot and Browse's loading chips are the same bones (the header never grows).
     // F153: a member's tab bones (SectionTabs' 44px row over its 1px rule) come first, hidden for a guest.
     expect(sk).toMatch(/\{\(guestJoin \|\| hasPersistedAuthToken\(\)\) && <DeclutterPhoneTabBones \/>\}\s*<DeclutterChipBones \/>/);
     expect(sk).toMatch(/<div className="flex items-end gap-1 border-b border-border\/60" aria-hidden data-lh-member-tabs="">\s*<div className="flex h-11 items-center/);
-    expect(browse).toContain("chips: chipRow ? <div data-declutter-chips-row=\"\" className=\"pb-2\">{chipRow}</div> : listLoading && !items.isError ? <DeclutterChipBones /> : null,");
+    expect(browse).toContain("chips: chipRow ? <div data-declutter-chips-row=\"\" className={CHIPS_ROW_PAD}>{chipRow}</div> : listLoading && !items.isError ? <DeclutterChipBones /> : null,");
     // index.html's shell is rendered from this skeleton (messagesDeclutterShellsMatchSkeletons holds it byte-equal).
     expect(INDEX).toContain('class="h-[110px] space-y-1.5 px-0.5 pt-2"');
   });

@@ -1,25 +1,18 @@
 /**
- * Owner 10-30, Declutter Browse at a phone: search and filter move beside the gear, and "Wanted" was clipped. A tab row
- * that doesn't fit never shows a cut word: a tab the edge would cut waits unpainted, every tab stays reachable, and the
- * chevron brings the next one in. Layout is stubbed here (jsdom has none); the tester's screens at 360 and 375 are the proof of fit.
+ * Owner 10-30, Declutter Browse at a phone: search and filter move beside the gear. Owner 11-12 (iPhone, "3 more >"):
+ * the row is ONE sideways strip of every tab, swipeable with no scrollbar, no "N more" pill and no chevrons, the
+ * selected tab kept in view and every tab keyboard reachable. Layout is stubbed here (jsdom has none).
  *
- * @mutate src/components/sections/SectionTabs.tsx |         tab.toggleAttribute("data-tab-cut", cut && (tab !== selected \|\| memberMoved.current));\n |
- * @mutate src/components/sections/SectionTabs.tsx | cut && (tab !== selected \|\| memberMoved.current) | cut && tab !== selected
- * @mutate src/components/sections/SectionTabs.tsx | if (t.right > box.right) list.scrollLeft += t.right - box.right; | if (t.right > box.right) list.scrollLeft += 0;
- * @mutate src/components/sections/SectionTabs.tsx | else if (t.left < box.left) list.scrollLeft -= box.left - t.left; | else if (t.left < box.left) list.scrollLeft -= 0;
- * @mutate src/components/sections/SectionTabs.tsx |     memberMoved.current = true;\n    const box = list.getBoundingClientRect();\n    const next = |     const box = list.getBoundingClientRect();\n    const next =
- * @mutate src/components/sections/SectionTabs.tsx | if (next) list.scrollLeft += next.getBoundingClientRect().left - box.left; | if (next) list.scrollLeft += 0;
+ * @mutate src/components/sections/SectionTabs.tsx | if (t.right > box.right) list.scrollLeft += t.right - box.right + 16; | if (t.right > box.right) list.scrollLeft += 0;
+ * @mutate src/components/sections/SectionTabs.tsx | else if (t.left < box.left) list.scrollLeft -= box.left - t.left + 16; | else if (t.left < box.left) list.scrollLeft -= 0;
  * @mutate src/components/sections/SectionTabs.tsx |           if (onlySelected && !active) return null;\n |
  * @mutate src/components/job-card/embeddedActivity.tsx | searchOpen ? "ml-2 min-w-0 flex-1" | "ml-2 min-w-0 flex-1"
  * @mutate src/pages/home/Dashboard.tsx | <SectionSearchBar noun="jobs" home="/jobs" value={filters.searchQuery} | <InlineListSearch label="Search jobs" value={filters.searchQuery}
- * T12: the way back, and room between the tab and an open search.
- * @mutate src/components/sections/SectionTabs.tsx | {less && !onlySelected && ( | {false && (
- * @mutate src/components/sections/SectionTabs.tsx | list.scrollLeft = previous ? Math.max(0, list.scrollLeft - (box.right - previous.getBoundingClientRect().right)) : 0; | list.scrollLeft = list.scrollLeft;
  * @mutate src/components/job-card/embeddedActivity.tsx |       {searchOpen && <SearchTriggerSlot width="40px" />} |       {null}
  * @mutate src/components/job-card/embeddedActivity.tsx | ${searchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"} | ${searchOpen ? "-ml-1 min-w-0 flex-1" : "-ml-1 shrink-0"}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -58,93 +51,47 @@ function row(value: string, onlySelected = false) {
 
 afterEach(() => vi.restoreAllMocks());
 
-describe("a tab row that doesn't fit", () => {
-  it("hides a tab the edge would cut, and only that one is hidden while the words beside it stay whole", () => {
+describe("a tab row that doesn't fit (owner 11-12: one sideways strip, no 'N more' pill)", () => {
+  it("every tab is painted and reachable; there is no 'more' pill and no chevron", () => {
     layOut();
     row("browse");
-    // 0-50, 58-108, 116-166 fit; the fourth (174-224) is past the edge, and so on.
-    expect(cut()).toEqual(["Deliver", "Wanted", "Free"]);
-    expect(screen.getByRole("tablist").hasAttribute("data-tabs-more")).toBe(true);
+    expect(cut()).toEqual([]);
+    for (const t of ["Browse", "Buying", "Selling", "Deliver", "Wanted", "Free"]) expect(screen.getByRole("tab", { name: t })).toBeVisible();
+    expect(screen.queryByRole("button", { name: /more tabs/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Earlier tabs/ })).toBeNull();
+    expect(screen.getByRole("tablist").className).toContain("overflow-x-auto");
+    expect(screen.getByRole("tablist").className).toContain("no-scrollbar");
   });
 
-  it("every tab can be reached: the chevron brings the next one in whole, and scrolling re-reads which are cut", () => {
-    layOut();
-    row("selling");
-    const list = screen.getByRole("tablist");
-    fireEvent.click(screen.getByRole("button", { name: /^\d+ more tabs$/ }));
-    // Audit 11-10 F320: a page, not a few pixels: Deliver (174) goes to the start, Wanted and Free come in with it.
-    expect(list.scrollLeft).toBe(174);
-    act(() => { list.dispatchEvent(new Event("scroll")); });
-    expect(cut()).not.toContain("Deliver");
-    expect(cut()).toContain("Browse");
-    for (const t of ["Browse", "Buying", "Selling", "Deliver", "Wanted", "Free"]) expect(screen.getByRole("tab", { name: t, hidden: true })).toBeInTheDocument();
-  });
-
-  it("on load the selected tab is scrolled whole, never left cut at the edge", () => {
+  it("on load the selected tab is scrolled into view, with a little of the next one showing", () => {
     layOut();
     row("wanted");
     // Wanted is the fifth, 232-282 in a 170px track.
-    expect(screen.getByRole("tablist").scrollLeft).toBe(282 - TRACK);
-    expect(cut()).not.toContain("Wanted");
+    expect(screen.getByRole("tablist").scrollLeft).toBe(282 - TRACK + 16);
   });
 
-  it("a selected tab off the row's start comes back whole when a search closes", () => {
+  it("a selected tab off the row's start comes back into view when a search closes", () => {
     layOut();
     const { rerender } = row("browse");
     const list = screen.getByRole("tablist");
-    fireEvent.click(screen.getByRole("button", { name: /^\d+ more tabs$/ }));
-    expect(list.scrollLeft).toBeGreaterThan(0);
+    list.scrollLeft = 120;
     rerender(<MemoryRouter><SectionTabs label="Declutter view" tabs={TABS} value="browse" onChange={() => undefined} onlySelected /></MemoryRouter>);
     rerender(<MemoryRouter><SectionTabs label="Declutter view" tabs={TABS} value="browse" onChange={() => undefined} /></MemoryRouter>);
-    expect(list.scrollLeft).toBe(0);
-    expect(cut()).not.toContain("Browse");
+    expect(list.scrollLeft).toBeLessThanOrEqual(0);
   });
 
-  it("after the chevron the selected tab is whole or not painted: never a lone letter", () => {
-    layOut();
-    row("browse");
-    const list = screen.getByRole("tablist");
-    fireEvent.click(screen.getByRole("button", { name: /^\d+ more tabs$/ }));
-    act(() => { list.dispatchEvent(new Event("scroll")); });
-    // Browse is at -174..-124: the chevron moved it off, and the row does not pull it back.
-    expect(list.scrollLeft).toBe(174);
-    expect(cut()).toContain("Browse");
-    // Swiping too: a partly hidden selected tab isn't painted.
-    fireEvent.pointerDown(list);
-    list.scrollLeft = 20;
-    act(() => { list.dispatchEvent(new Event("scroll")); });
-    expect(list.scrollLeft).toBe(20);
-    expect(cut()).toContain("Browse");
+  it("the keyboard reaches every tab: End goes to the last, Home back to Browse", () => {
+    const changes: string[] = [];
+    render(<MemoryRouter><SectionTabs label="Declutter view" tabs={TABS} value="browse" onChange={(v) => changes.push(v)} /></MemoryRouter>);
+    fireEvent.keyDown(screen.getByRole("tablist"), { key: "End" });
+    expect(changes).toEqual(["free"]);
+    expect(document.activeElement?.textContent).toBe("Free");
   });
 
-  it("moved along, a left chevron brings back the tab before the edge, whole, and the selected one with it; none at the start", () => {
-    layOut();
-    row("browse");
-    const list = screen.getByRole("tablist");
-    expect(screen.queryByRole("button", { name: "Earlier tabs" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /^\d+ more tabs$/ }));
-    act(() => { list.dispatchEvent(new Event("scroll")); });
-    expect(cut()).toContain("Browse");
-    // (2026-11-10, F320) At a 174px-wide row, a page back (Selling to the end) brings Browse back too: the selected tab is one tap away.
-    fireEvent.click(screen.getByRole("button", { name: "Earlier tabs" }));
-    expect(list.scrollLeft).toBe(0);
-    act(() => { list.dispatchEvent(new Event("scroll")); });
-    expect(cut()).not.toContain("Browse");
-    expect(screen.queryByRole("button", { name: "Earlier tabs" })).toBeNull();
-  });
-
-  it("with search open only the selected tab stays, whole, and no chevron", () => {
+  it("with search open only the selected tab stays", () => {
     layOut();
     row("browse", true);
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Browse"]);
-    expect(screen.queryByRole("button", { name: /^\d+ more tabs$/ })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Earlier tabs" })).toBeNull();
-  });
-
-  it("a row that fits has no chevron and hides nothing", () => {
-    render(<MemoryRouter><SectionTabs label="Jobs" tabs={TABS.slice(0, 2)} value="buying" onChange={() => undefined} /></MemoryRouter>);
-    expect(screen.queryByRole("button", { name: /^\d+ more tabs$/ })).toBeNull();
-    expect(cut()).toEqual([]);
   });
 });
 

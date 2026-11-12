@@ -6,17 +6,17 @@
  * StatusBar, the iOS launch screen and the app-switcher privacy cover. A cool
  * hue-220 canvas (#F1F2F4 / #F7F8FA -> #EDEFF3) was what the app had before.
  *
- * @mutate src/index.css |   --parchment:    40 21% 94.5%; |   --parchment:    220 14% 95%;
- * @mutate src/index.css |   --page-gradient: linear-gradient(135deg, #F7F5F1 0%, #F0EDE7 100%); |   --page-gradient: linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);
- * @mutate index.html | <meta name="theme-color" content="#F4F2EE" /> | <meta name="theme-color" content="#F1F2F4" />
- * @mutate capacitor.config.ts |       backgroundColor: '#F4F2EE',\n |       backgroundColor: '#F1F2F4',\n
+ * @mutate src/index.css |   --parchment:    45 40% 98%; |   --parchment:    220 14% 95%;
+ * @mutate src/index.css |   --page-gradient: linear-gradient(135deg, #FDFCFA 0%, #FAF8F4 100%); |   --page-gradient: linear-gradient(135deg, #F7F8FA 0%, #EDEFF3 100%);
+ * @mutate index.html | <meta name="theme-color" content="#FCFBF8" /> | <meta name="theme-color" content="#F1F2F4" />
+ * @mutate capacitor.config.ts |       backgroundColor: '#FCFBF8',\n |       backgroundColor: '#F1F2F4',\n
  * @mutate src/index.css |   --sand:         40 19% 87.8%; |   --sand:         220 14% 90%;
  * @mutate src/index.css |   --sand:         40 8% 21%; |   --sand:         220 8% 21%;
  * @mutate src/index.css |   --border:               40 19% 81.6%; |   --border:               220 14% 82%;
  * @mutate src/index.css |   --input:                40 19% 87.8%; |   --input:                220 13% 90%;
  * @mutate src/index.css |   --stormy-sky:   40 6% 36%; |   --stormy-sky:   198 12% 36%;
  * @mutate src/index.css |   --stormy-sky:   40 6% 36%; |   --stormy-sky:   40 6% 39.6%;
- * @mutate ios/App/App/AppDelegate.swift | UIColor(red: 0.9569, green: 0.9490, blue: 0.9333, alpha: 1) | UIColor(red: 0.9451, green: 0.9490, blue: 0.9569, alpha: 1)
+ * @mutate ios/App/App/AppDelegate.swift | UIColor(red: 0.9882, green: 0.9843, blue: 0.9725, alpha: 1) | UIColor(red: 0.9451, green: 0.9490, blue: 0.9569, alpha: 1)
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -37,14 +37,14 @@ function hslHex(h: number, s: number, l: number) {
   return `#${[f(0), f(8), f(4)].map((v) => v.toString(16).padStart(2, "0")).join("").toUpperCase()}`;
 }
 
-describe("the light ground is warm #F4F2EE everywhere the canvas is painted", () => {
+describe("the light ground is warm near-white #FCFBF8 (owner 11-12) everywhere the canvas is painted", () => {
   it("--parchment (light) is #F4F2EE and the light --page-gradient is warm", () => {
     const parch = [...css.matchAll(/--parchment:\s*([\d.]+) ([\d.]+)% ([\d.]+)%;/g)];
     expect(parch.length).toBeGreaterThan(1);
     const [, h, s, l] = parch[0];
-    expect(hslHex(+h, +s, +l)).toBe("#F4F2EE");
+    expect(hslHex(+h, +s, +l)).toBe("#FCFBF8");
     const grads = [...css.matchAll(/--page-gradient:\s*(linear-gradient\([^;]*\));/g)].map((m) => m[1]);
-    expect(grads[0]).toBe("linear-gradient(135deg, #F7F5F1 0%, #F0EDE7 100%)");
+    expect(grads[0]).toBe("linear-gradient(135deg, #FDFCFA 0%, #FAF8F4 100%)");
   });
 
   it("--sand (light), and --muted / --secondary through it, is the warm line #E6E2DA (2026-10-20)", () => {
@@ -79,17 +79,17 @@ describe("the light ground is warm #F4F2EE everywhere the canvas is painted", ()
       return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
     };
     const ratio = (a: string, b: string) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
-    for (const bg of ["#FFFFFF", "#F4F2EE", "#EFEDE6", "#E6E2DA"]) expect(ratio(muted, bg), `muted on ${bg}`).toBeGreaterThanOrEqual(4.5);
+    for (const bg of ["#FFFFFF", "#FCFBF8", "#F4F2EE", "#EFEDE6", "#E6E2DA"]) expect(ratio(muted, bg), `muted on ${bg}`).toBeGreaterThanOrEqual(4.5);
     expect(css).toMatch(/--muted-foreground:\s*var\(--stormy-sky\);/);
   });
 
   it("the boot shell, theme-color, splash, StatusBar and iOS covers paint the same warm ground", () => {
-    expect(html).toContain('<meta name="theme-color" content="#F4F2EE" />');
-    expect(html.match(/background:linear-gradient\(135deg, #F7F5F1 0%, #F0EDE7 100%\);background-color:#F4F2EE;/g)?.length).toBe(2);
+    expect(html).toContain('<meta name="theme-color" content="#FCFBF8" />');
+    expect(html.match(/background:linear-gradient\(135deg, #FDFCFA 0%, #FAF8F4 100%\);background-color:#FCFBF8;/g)?.length).toBe(2);
     const cap = blankComments(read("capacitor.config.ts"));
-    expect(cap.match(/backgroundColor: '#F4F2EE'/g)?.length).toBe(2);
-    expect(read("ios/App/App/AppDelegate.swift")).toContain("UIColor(red: 0.9569, green: 0.9490, blue: 0.9333, alpha: 1)");
-    expect(read("ios/App/App/Base.lproj/LaunchScreen.storyboard")).toContain('red="0.9569" green="0.9490" blue="0.9333"');
+    expect(cap.match(/backgroundColor: '#FCFBF8'/g)?.length).toBe(2);
+    expect(read("ios/App/App/AppDelegate.swift")).toContain("UIColor(red: 0.9882, green: 0.9843, blue: 0.9725, alpha: 1)");
+    expect(read("ios/App/App/Base.lproj/LaunchScreen.storyboard")).toContain('red="0.9882" green="0.9843" blue="0.9725"');
     for (const f of [html, cap]) expect(f).not.toMatch(/#F1F2F4|#F7F8FA|#EDEFF3|#F0F2F4/);
   });
 });

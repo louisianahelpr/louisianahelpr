@@ -1,5 +1,6 @@
 import AppShell from "@/components/AppShell";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SEARCH_BAR_PAD } from "@/components/sections/browseHeaderSpacing";
 
 /**
  * Suspense / auth-pending fallback for the `/home` route, which is the Home
@@ -43,7 +44,7 @@ const DashboardRouteSkeleton = () => (
               </span>
             </div>
           </div>
-          <div className="pb-2 min-w-0">
+          <div className={`${SEARCH_BAR_PAD} min-w-0`}>
             <Skeleton className="h-11 w-full rounded-full" />
           </div>
           <div className="flex min-h-full flex-col gap-4 pt-1 pb-6">

@@ -64,6 +64,7 @@ import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclutter";
 import "@/lib/i18n/enDeclBrowse";
+import { BROWSE_EMPTY_SLOT, CHIPS_ROW_PAD } from "@/components/sections/browseHeaderSpacing";
 
 // The map (and the MapKit script it asks for) loads only when a map is shown.
 const DeclutterMap = lazy(() => import("./DeclutterMap"));
@@ -374,7 +375,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
 
   // Owner 11-07 (Vinted review; replaces 10-21's "no chip row"): the category chips; on a phone (owner 11-08) they
   // are the steady row under the search bar, on desktop the top of the list.
-  const chipRow = itemsPhase !== "offline-empty" && others.length > 0
+  // Owner 11-12: also with nothing for sale (DeclutterCategoryChips draws All and the first categories), as Jobs does.
+  const chipRow = itemsPhase !== "offline-empty" && (others.length > 0 || (!listLoading && !items.isError))
     ? <DeclutterCategoryChips items={others} value={filters.category} onChange={(category) => setFilters((f) => ({ ...f, category }))} free={filters.freeOnly} onFree={(freeOnly) => setFilters((f) => ({ ...f, freeOnly }))} />
     : null;
   const header: DeclutterBrowseHeader = desktop
@@ -399,7 +401,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
         // 8px under the chips + the column's 4px = 12px to the first cards.
         // While the list loads, the chips' bones in the same box (Q2705, 11-09: the header grew 56px when the chips
         // arrived, CLS 0.062 at 375).
-        chips: chipRow ? <div data-declutter-chips-row="" className="pb-2">{chipRow}</div> : listLoading && !items.isError ? <DeclutterChipBones /> : null,
+        chips: chipRow ? <div data-declutter-chips-row="" className={CHIPS_ROW_PAD}>{chipRow}</div> : listLoading && !items.isError ? <DeclutterChipBones /> : null,
       };
 
   const sheet = (
@@ -475,7 +477,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
         {itemsPhase === "offline-empty" ? (
           <OfflineEmptyState body={t("decl.offline")} onRetry={() => void items.refetch()} />
         ) : rows.length === 0 ? (
-          // The shared empty state every Browse wears (owner, 2026-10-19: Homes' style, same place).
+          // The shared empty state every Browse wears (owner, 2026-10-19: Homes' style, same place), in Jobs' slot (owner 11-12).
+          <div className={BROWSE_EMPTY_SLOT} data-browse-empty-slot="">
           <BrowseEmptyState
             icon={Sofa}
             title={zipSearch ? t("decl.empty.zip", { q }) : q ? t("decl.empty.search") : filters.freeOnly && filterCount === 1 ? t("decl.empty.free") : filters.tradesOnly && filterCount === 1 ? t("decl.empty.trades") : filters.category && filterCount === 1 ? t("decl.empty.category", { category: CATEGORY_LABEL[filters.category] ? t(`decl.cat.${filters.category}` as MsgKey) : t("decl.empty.thisCategory") }) : filterCount > 0 ? t("decl.empty.filters") : others.length === 0 ? t("decl.empty.none") : t("decl.empty.close")}
@@ -507,6 +510,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
               </div>
             }
           />
+          </div>
         ) : (
           <ul className={desktop && !mapVisible ? DECLUTTER_GRID_FULL : DECLUTTER_GRID}>
             {rows.map(({ item, miles }, index) => (

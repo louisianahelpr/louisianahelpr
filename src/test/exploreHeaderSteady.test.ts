@@ -106,7 +106,7 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
   it("3. on a phone the top bar is the section's visible title (the page's one h1), the search its own row under the bar (F148, owner audit 11-09), with no chips row", () => {
     const bar = code("src/components/sections/AppTopBar.tsx");
     expect(bar).toMatch(/<header className="app-top-bar [^"]*"[^>]*>\s*\{title \? \(\s*<h1 className="min-w-0 truncate text-page-title text-foreground" title=\{title\}>\{title\}<\/h1>/);
-    expect(bar).toMatch(/<\/header>\s*\{search && <div data-testid="app-top-bar-search" className="pb-2 min-w-0">\{search\}<\/div>\}/);
+    expect(bar).toMatch(/<\/header>\s*\{search && <div data-testid="app-top-bar-search" className=\{`\$\{SEARCH_BAR_PAD\} min-w-0`\}>\{search\}<\/div>\}/);
     expect(bar).not.toMatch(/<ExploreSwitcher/);
   });
 

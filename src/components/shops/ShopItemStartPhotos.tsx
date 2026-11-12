@@ -44,6 +44,7 @@ export default function ShopItemStartPhotos({ held, setHeld, busy, suggesting, o
         <label className="inline-flex">
           <span className="sr-only">Add photos</span>
           <HiddenFileInput
+            peer
             accept="image/*"
             multiple
             disabled={busy || held.length >= MAX_HELD}
@@ -56,7 +57,7 @@ export default function ShopItemStartPhotos({ held, setHeld, busy, suggesting, o
               setHeld((h) => [...h, ...files].slice(0, MAX_HELD));
             }}
           />
-          <span className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm" aria-hidden>
+          <span className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring" aria-hidden>
             Add photos
           </span>
         </label>
@@ -71,6 +72,7 @@ export default function ShopItemStartPhotos({ held, setHeld, busy, suggesting, o
             <li key={`${f.name}-${i}`} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
               <HeldPhoto file={f} />
               <Button type="button" size="sm" variant="outline" className="absolute bottom-1 right-1 px-2 text-xs" disabled={busy}
+                aria-label={`Remove photo ${i + 1}`}
                 onClick={() => setHeld((h) => h.filter((_, j) => j !== i))}>
                 Remove
               </Button>

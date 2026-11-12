@@ -32,7 +32,7 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |           <SellingSettingsEntry />\n |
  * @mutate src/components/declutter/DeclutterHomeView.tsx | end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>} | end={browse?.end}
  * @mutate src/components/declutter/DeclutterHomeView.tsx | end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>} | end={<><SectionSettingsButton settings={DECLUTTER_SETTINGS} />{browse?.end}</>}
- * @mutate src/components/declutter/DeclutterHomeView.tsx | const DECLUTTER_SETTINGS = { label: "Declutter settings", path: "/declutter/settings" } as const; | const DECLUTTER_SETTINGS = { label: "Declutter settings", path: "/declutter" } as const;
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | path: "/declutter/settings" } as const; | path: "/declutter" } as const;
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("taken") && <TakenDownSection items={takenDown} ended={ended} />} |
  * @mutate src/components/declutter/DeclutterMineViews.tsx | (i) => i.status === "withdrawn" \|\| i.status === "sold_elsewhere") | (i) => i.status === "never" \|\| i.status === "sold_elsewhere")
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "sold") return tr("decl.st.claimedWaiting"); |   void 0;

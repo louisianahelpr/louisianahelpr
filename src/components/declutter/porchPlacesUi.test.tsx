@@ -27,7 +27,7 @@
  * @mutate src/components/declutter/SellPorchPlaces.tsx |       <div className="flex items-start gap-2"> |       <div className="space-y-2">
  * @mutate src/components/declutter/SellHandoverChoices.tsx | on ? "!border-[hsl(var(--bark))]" : `border-border ${PLACE_CARD_EDGE}` | on ? "border-[hsl(var(--bark))]" : "border-border"
  * @mutate src/components/declutter/SellPorchPlaces.tsx | {placesWords(places.length, free, helprOnly, card)} | {placesWords(places.length, free, helprOnly)}
- * @mutate src/components/declutter/DeclutterHomeView.tsx | Listing defaults, pickup places, pickup times, delivery | Listing defaults, pickup times, delivery
+ * @mutate src/lib/i18n/enDeclutter.ts | Listing defaults, pickup places, pickup times, delivery | Listing defaults, pickup times, delivery
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {side === "seller" && place.address ? <> ({place.address})</> : null} | {place.address ? <> ({place.address})</> : null}
  * @mutate src/components/declutter/SellPorchPlaces.tsx | lat: point.lat, lng: point.lng | lat: 0, lng: 0
  * @mutate src/components/declutter/SellPorchPlaces.tsx | : places.length < MAX_PORCH_PLACES && ( | : (
@@ -572,7 +572,7 @@ describe("finding places, and their edges in dark", () => {
   const PAGE = () => blankComments(readFileSync(join(process.cwd(), "src/pages/declutter/DeclutterSettingsPage.tsx"), "utf8"));
 
   it("the Selling row names them and they come first in settings", () => {
-    expect(SRC("DeclutterHomeView.tsx")).toContain("Listing defaults, pickup places, pickup times, delivery, bundle discount, notifications");
+    expect(readFileSync("src/lib/i18n/enDeclutter.ts", "utf8")).toContain("Listing defaults, pickup places, pickup times, delivery, bundle discount, notifications");
     expect(PAGE().indexOf("<SellPorchPlaces card />")).toBeGreaterThan(0);
     expect(PAGE().indexOf("<SellPorchPlaces card />")).toBeLessThan(PAGE().indexOf("<ListingDefaultsCard"));
   });

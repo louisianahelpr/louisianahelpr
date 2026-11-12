@@ -4,7 +4,7 @@
  * The screen keys off a problem code, never the words, so a Spanish reader still lands on the right field.
  *
  * @mutate src/lib/declutter/bunch.ts |   if (row) return it.title.trim().length < 3 ? "name" : "price"; |   if (row) return "price";
- * @mutate src/lib/declutter/bunch.ts |   if (p === "fewPhotos" || p === "manyPhotos") return "photos"; |   if (p === "fewPhotos") return "photos";
+ * @mutate src/lib/declutter/bunch.ts |   if (p === "fewPhotos" \|\| p === "manyPhotos") return "photos"; |   if (p === "fewPhotos") return "photos";
  * @mutate src/lib/declutter/bunch.ts | : t("lp.bq.looking"); | : "Looking through your photos.";
  * @mutate src/lib/declutter/bunch.ts |   if (seconds < 45) return t("lp.bq.underMinute"); |   if (seconds < 45) return "Less than a minute left.";
  * @mutate src/lib/declutter/bunch.ts | t(getting ? "lp.bq.getting" : "lp.bq.listing", { at, n }) | `Getting ${at} of ${n} ready`

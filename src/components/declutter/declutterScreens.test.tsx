@@ -201,6 +201,7 @@ import DeclutterItemPage from "@/pages/declutter/DeclutterItemPage";
 import { rememberAfterCard } from "@/lib/declutter/afterCard";
 import { formProblem } from "./sellForm";
 import "@/lib/i18n/enSellForm";
+import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
 import { dollarsToCents } from "@/lib/declutter/money";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 // Q2428: no partner charity near and no donation receipts (the donate RPCs never reach prod from a test).
@@ -610,7 +611,7 @@ describe("Declutter controls are the shared ones", () => {
   // Owner 2026-10-28: "it also never said how long it will stay open"; decided the same day (Q2461 / #3728):
   // "30 days per round". The review step says the rule the server runs (the copy is bound to the migration
   // by src/test/declutterListingRounds.test.ts).
-  // @mutate src/components/declutter/DeclutterSellView.tsx |             <ReviewRow title="How long it stays up" body={keepUp.on ? LISTING_LIFETIME_KEEP_UP : LISTING_LIFETIME} /> |
+  // @mutate src/components/declutter/DeclutterSellView.tsx |             <ReviewRow title={tr("sf.ds.howLong")} body={keepUp.on ? LISTING_LIFETIME_KEEP_UP : LISTING_LIFETIME} /> |
   it("the review step says how long the listing stays up, as the server runs it", async () => {
     state.item = { ...ITEM, status: "draft" };
     state.photos = [{ id: "p1", item_id: "i1", storage_path: "u1/declutter/i1/1.jpg", position: 0 }];
@@ -621,6 +622,34 @@ describe("Declutter controls are the shared ones", () => {
     expect(row!.textContent).toMatch(/30 days\. If it hasn't sold, it goes back up by itself up to 3 more times/);
     // Not editable: the seller has no length to choose.
     expect(row!.querySelector("button")).toBeNull();
+  });
+
+  // F260q (owner 11-11 "Spanish EVERYTHING now"): the saved draft's step form in Spanish: the progress, each step's
+  // head, the buttons, the review rows. (KeepUpSwitch, the listing lifetime, handover choices and the condition/size
+  // chips are still English.)
+  // @mutate src/components/declutter/DeclutterSellView.tsx | text-muted-foreground">{tr("sf.ds.stepOf", { step, total: 5 })}</span> | text-muted-foreground">{step} of 5</span>
+  // @mutate src/components/declutter/DeclutterSellView.tsx | : tr("sf.ds.saveContinue")) : tr("sf.ds.continue")} | : tr("sf.ds.saveContinue")) : "Continue"}
+  // @mutate src/components/declutter/DeclutterSellView.tsx | <StepHead title={tr("sf.ds.readyQ")} sub={tr("sf.ds.readySub")} /> | <StepHead title="Ready to list?" sub={tr("sf.ds.readySub")} />
+  // @mutate src/components/declutter/DeclutterSellView.tsx | <ReviewRow title={tr("sf.ds.photos")} | <ReviewRow title="Photos"
+  it("F260q: a Spanish member's saved draft reads its steps in Spanish", async () => {
+    setLang("es");
+    await ensureLangLoaded();
+    try {
+      state.item = { ...ITEM, status: "draft" };
+      state.photos = [{ id: "p1", item_id: "i1", storage_path: "u1/declutter/i1/1.jpg", position: 0 }];
+      at("/declutter/sell?item=i1", <DeclutterSellPage />, "/declutter/sell");
+      await screen.findByRole("heading", { name: "Muéstrelo" });
+      expect(screen.getByText("1 de 5")).toBeInTheDocument();
+      for (let i = 0; i < 3; i++) fireEvent.click(await screen.findByRole("button", { name: "Continuar" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Guardar y continuar" }));
+      await screen.findByRole("heading", { name: "¿Listo para anunciar?" });
+      expect(document.querySelector('[data-review-row="Fotos"]')!.textContent).toMatch(/1 foto · la primera es la portada/);
+      expect(document.querySelector('[data-review-row="Cuánto tiempo sigue anunciado"]')).not.toBeNull();
+      expect(screen.getByRole("button", { name: "Anunciarlo" })).toBeInTheDocument();
+      expect(document.body.textContent).not.toMatch(/Ready to list|of 5|Save and continue|the first is the cover/);
+    } finally {
+      __resetLangForTests();
+    }
   });
 
   // Owner 2026-10-29: "Keep it up until it sells" on the last step, saved on the draft; the "how long" row follows it.

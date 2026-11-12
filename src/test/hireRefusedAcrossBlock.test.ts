@@ -223,7 +223,7 @@ describe("Q345: every hire RPC refuses across a block", () => {
 });
 
 // Each hire RPC's check removed, one at a time.
-// @mutate supabase/migrations/20261111025213_shops_gift_hold_steps.sql |     IF public.are_users_blocked(o.buyer_id, o.seller_id) THEN\n      UPDATE public.shop_orders SET status = 'expired' |     IF false THEN\n      UPDATE public.shop_orders SET status = 'expired'
+// @mutate supabase/migrations/20261112075702_shops_cottage_limit_strict.sql |     IF public.are_users_blocked(o.buyer_id, o.seller_id) THEN\n      UPDATE public.shop_orders SET status = 'expired' |     IF false THEN\n      UPDATE public.shop_orders SET status = 'expired'
 // @mutate supabase/migrations/20261103032330_series_claim_takes_helpr_schedule_lock.sql |   IF public.are_users_blocked(v_job.customer_id, v_uid) THEN\n    RAISE EXCEPTION 'applicant_blocked'; |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked';
 // @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql | IF public.are_users_blocked(v_helper_id, v_job_customer) THEN | IF false THEN
 // @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql | IF public.are_users_blocked(v_job_customer, v_helper_id) THEN | IF false THEN
@@ -231,7 +231,7 @@ describe("Q345: every hire RPC refuses across a block", () => {
 // @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |   IF public.are_users_blocked(p_helper, v_customer) THEN |   IF false THEN
 // @mutate supabase/migrations/20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql | IF public.are_users_blocked(v_req.poster_id, v_q.quoter_id) THEN | IF false THEN
 // @mutate supabase/migrations/20261103042402_booking_continue_day_nudge_not_found_is_404.sql | IF public.are_users_blocked(v_uid, v_q.quoter_id) THEN | IF false THEN
-// @mutate supabase/migrations/20261106165310_shops_item_variants.sql |   IF public.are_users_blocked(v_uid, o.buyer_id) THEN\n    RAISE EXCEPTION 'applicant_blocked' |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked'
+// @mutate supabase/migrations/20261112075702_shops_cottage_limit_strict.sql |   IF public.are_users_blocked(v_uid, o.buyer_id) THEN\n    RAISE EXCEPTION 'applicant_blocked' |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked'
 // @mutate src/lib/shops/errors.ts |   applicant_blocked: "This order can't be accepted any more. Decline it so the buyer's card hold is released.",\n |
 // The accept copy removed.
 // @mutate src/lib/lifecycleErrorCopy.ts | applicant_blocked: "This person can no longer be hired for this job.", | x_unused: "x",

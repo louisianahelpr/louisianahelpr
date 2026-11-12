@@ -241,6 +241,7 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   "ts:supabase/functions/weekly-helper-report/index.ts#1": "own weekly stats",
   "ts:src/components/admin/adminusers/useAdminUserActions.ts#1": "own ban lifted (admin actor, never seed)",
   "sql:admin_activity_notice#1": "the admin bell's activity notice (20261112061000): returns before any insert when the actor or the other party is a test subject (is_test_subject), and every trigger caller skips rows marked is_seed",
+  "sql:shop_items_tell_followers#1": "a notice to a shop's followers that it listed something new (20261112070000): returns before any insert when the item or the shop is is_seed or the owner is a test subject (is_test_subject)",
   "sql:send_new_member_daily_summary#1": "an admin alert listing who joined: test and seed members are refused at the queue and checked again at send time (20261031152136)",
   "sql:notify_admins_support_ticket#1": "an admin alert about a ticket: a test or seed reporter is skipped in the function itself, and a guest has no account (fixed words)",
   "sql:review_credential#1": "own credential reviewed",

@@ -55,12 +55,13 @@ export function matchesSearch(
  * matchesSearch accepts. Words are a-z0-9 only (searchWords splits on everything else), so nothing needs escaping.
  * Null for an empty query.
  */
-export function searchOrFilter(query: string): string | null {
+export function searchOrFilter(query: string, columns: readonly [string, string, string] = ["title", "description", "category"]): string | null {
   const words = searchWords(query);
   if (words.length === 0) return null;
+  const [t, d, c] = columns;
   const any = (w: string) => {
     const loose = w.length >= 3 && w.endsWith("y") ? w.slice(0, -1) : w;
-    return `or(title.ilike.*${loose}*,description.ilike.*${loose}*,category.ilike.*${loose}*)`;
+    return `or(${t}.ilike.*${loose}*,${d}.ilike.*${loose}*,${c}.ilike.*${loose}*)`;
   };
   return `and(${words.map(any).join(",")})`;
 }

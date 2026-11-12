@@ -87,6 +87,7 @@ describe("a photo-less card shows its category on a tint, never a blank box", ()
       "src/components/declutter/DeclutterBunchRow.tsx": "an item being sorted always has a photo; only its local blob can be loading",
       "src/components/declutter/DeclutterBunchIntake.tsx": "a photo the seller just picked, while its small copy is made; every tile has a photo",
       "src/components/declutter/SellerDeliveryOrder.tsx": "the delivery proof photo while its link loads; a failed read says so in words",
+      "src/components/declutter/DeclutterOrderTalk.tsx": "F360e: the order chat's head thumbnail beside the item title; with no photo (or a failed one) the title stands alone, no tile is drawn",
     };
     expect(seen).toBeGreaterThan(2);
     expect(blank.filter((b) => !(b.split(":")[0] in notATile)), "this tile is blank when there is no photo; put PhotoPlaceholder under it").toEqual([]);

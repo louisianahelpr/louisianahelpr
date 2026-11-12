@@ -50,10 +50,10 @@ function newestScheduling(job: string): string {
 }
 
 describe("needs-you deadline reminders (A3-85)", () => {
-  // @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |      WHERE o.status = 'open' AND o.awaiting IN ('seller', 'buyer') |      WHERE o.awaiting IN ('seller', 'buyer')
-  // @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |        AND ((q.status = 'open' AND q.answer_by > p_now | AND ((q.answer_by > p_now
-  // @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |                       AND s.sent_at >= v_day_start) >= 2; |                       AND s.sent_at >= v_day_start) >= 3;
-  // @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   IF public.needs_you_reminder_quiet(p_now) THEN\n    RETURN 0; |   IF false THEN\n    RETURN 0;
+  // @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql |      WHERE o.status = 'open' AND o.awaiting IN ('seller', 'buyer') |      WHERE o.awaiting IN ('seller', 'buyer')
+  // @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql |        AND ((q.status = 'open' AND q.answer_by > p_now | AND ((q.answer_by > p_now
+  // @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql |                       AND s.sent_at >= v_day_start) >= 2; |                       AND s.sent_at >= v_day_start) >= 3;
+  // @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql |   IF public.needs_you_reminder_quiet(p_now) THEN\n    RETURN 0; |   IF false THEN\n    RETURN 0;
   it("the sweep reminds only while the step is open and before its deadline, 2 a day per item, never in quiet hours", () => {
     const body = newestFunctionBody("sweep_needs_you_reminders");
     expect(body.length).toBeGreaterThan(2000);
@@ -70,10 +70,10 @@ describe("needs-you deadline reminders (A3-85)", () => {
     expect(quiet).toContain("< time '08:00'");
   });
 
-  // @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |     WHEN p_type = 'payment' AND p_title IN ('Check out within 24 hours', '2 hours left to check out') THEN 'needs_you' |     WHEN p_type = 'payment' AND p_title IN ('Check out within 24 hours') THEN 'needs_you'
-  // @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql |     WHEN p_type IN ('warning', 'work_status') AND p_title = 'Please review the work' THEN 'needs_you' |     WHEN p_type IN ('warning', 'work_status') AND p_title = 'Please review the work' THEN 'job_update'
+  // @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql |     WHEN p_type = 'payment' AND p_title IN ('Check out within 24 hours', '2 hours left to check out') THEN 'needs_you' |     WHEN p_type = 'payment' AND p_title IN ('Check out within 24 hours') THEN 'needs_you'
+  // @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql |     WHEN p_type IN ('warning', 'work_status') AND p_title = 'Please review the work' THEN 'needs_you' |     WHEN p_type IN ('warning', 'work_status') AND p_title = 'Please review the work' THEN 'job_update'
   // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |                      'declutter_offers', 'declutter_refunds', 'declutter_pickups')) |                      'declutter_refunds', 'declutter_pickups'))
-  // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql |       OR (r.kind = 'needs_you' AND n.created_at < v_now - interval '1 hour') |       OR false
+  // @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql |       OR (r.kind = 'needs_you' AND n.created_at < v_now - interval '1 hour') |       OR false
   it("every needs-you notice is texted as 'needs_you', the trigger wakes for its types, and a late text is dropped", () => {
     const kind = newestFunctionBody("sms_kind_for");
     expect(kind).toContain("WHEN p_type IN ('warning', 'work_status') AND p_title = 'Please review the work' THEN 'needs_you'");
@@ -94,9 +94,9 @@ describe("needs-you deadline reminders (A3-85)", () => {
   // 20261102034632 (B137): a needs-you text whose step was done while it waited is dropped at claim time ('step_done'),
   // matched to its reminder's claim row; behaviour (6 scenarios, planted defects) is
   // src/test/pglite/smsNeedsYouStepDone.pglite.mjs. These are the rule's anchors in the newest sms_claim_due.
-  // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql |         v_reason := 'step_done'; |         v_reason := NULL;
-  // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql | o.status = 'open' AND o.respond_by = s.deadline | o.status = 'open'
-  // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql | q.status = 'offered' AND q.offer_answer_by = s.deadline | q.status = 'open' AND q.offer_answer_by = s.deadline
+  // @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql |         v_reason := 'step_done'; |         v_reason := NULL;
+  // @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql | o.status = 'open' AND o.respond_by = s.deadline | o.status = 'open'
+  // @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql | q.status = 'offered' AND q.offer_answer_by = s.deadline | q.status = 'open' AND q.offer_answer_by = s.deadline
   it("a needs-you text whose step is already done is dropped at claim time, matched to its own claim", () => {
     const claim = newestFunctionBody("sms_claim_due").replace(/\s+/g, " ");
     expect(claim).toContain("v_reason := 'step_done';");

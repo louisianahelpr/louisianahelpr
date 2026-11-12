@@ -18,8 +18,8 @@
  * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |       AND ((o.handover_mode = 'in_person' AND h.shop_confirmed_at IS NOT NULL | AND ((o.handover_mode = 'in_person'
  * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |        AND o.is_seed IS NOT TRUE\n |
  * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |               problem_at = COALESCE(problem_at, now()), | problem_at = problem_at,
- * @mutate supabase/migrations/20261105190034_shops_handover_notes.sql |tap "I didn''t get it" by %s; after that the shop is paid.', | %s',
- * @mutate supabase/migrations/20261105190034_shops_handover_notes.sql |                  to_char((greatest(now(), (o.ready_date::timestamp AT TIME ZONE 'America/Chicago')) + interval '48 hours') | to_char((now() + interval '48 hours')
+ * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql |tap "I didn''t get it" by %s; after that the shop is paid.', | %s',
+ * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql |                  to_char((greatest(now(), (o.ready_date::timestamp AT TIME ZONE 'America/Chicago')) + interval '48 hours') | to_char((now() + interval '48 hours')
  * @mutate src/components/shops/ShopHandoverActions.tsx |           {!porch && !byHelpr && due && !h?.shop_confirmed_at && ( |           {false && (
  */
 import { describe, expect, it } from "vitest";

@@ -14,7 +14,20 @@ import { fetchItemPreorders } from "@/lib/shops/preorders";
 import { SHOP_ITEMS_GRID, ShopItemsGrid } from "./ShopProfile";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 
-export default function ShopItemsList({ shopId, reportable = false }: { shopId: string; reportable?: boolean }) {
+/**
+ * S026 (Shops audit 11-12): the item card's "Order" goes to that item's row in the order sheet below (the same page),
+ * scrolls it to the middle and focuses its first live control (the stepper's add, or the first option picker). An
+ * item the sheet has no row for lands on the sheet itself.
+ */
+export function goToOrderRow(itemId: string): void {
+  const row = document.querySelector<HTMLElement>(`[data-order-item="${CSS.escape(itemId)}"]`);
+  const target = row ?? document.getElementById("shop-order-sheet");
+  if (!target) return;
+  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  row?.querySelector<HTMLElement>("button:not(:disabled), select:not(:disabled), [role=combobox]")?.focus({ preventScroll: true });
+}
+
+export default function ShopItemsList({ shopId, reportable = false, orderable = false }: { shopId: string; reportable?: boolean; orderable?: boolean }) {
   const items = useQuery({ queryKey: ["shops", "items", shopId], queryFn: () => fetchShopItems(shopId), enabled: !!shopId });
   // The same query the order sheet reads (one fetch); a failed read only drops the "From" word.
   const options = useQuery({ queryKey: ["shops", "item-options", shopId], queryFn: () => fetchItemOptions(shopId), enabled: !!shopId });
@@ -40,7 +53,7 @@ export default function ShopItemsList({ shopId, reportable = false }: { shopId: 
           </Button>
         </div>
       ) : (
-        <ShopItemsGrid items={live} reportable={reportable} withOptions={options.data} preorders={preorders.data} />
+        <ShopItemsGrid items={live} reportable={reportable} withOptions={options.data} preorders={preorders.data} onOrder={orderable ? goToOrderRow : undefined} />
       )}
     </section>
   );

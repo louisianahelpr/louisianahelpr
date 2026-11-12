@@ -143,9 +143,12 @@ export function ShopHoursCard({ hours }: { hours: ShopHour[] }) {
  * photo. Declutter's breakpoints (DECLUTTER_GRID): 2 on a phone, 3 from sm, 4 from lg. The loading skeleton uses it too. */
 export const SHOP_ITEMS_GRID = "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4";
 
-export function ShopItemsGrid({ items, reportable = false, withOptions, preorders }: {
+export function ShopItemsGrid({ items, reportable = false, withOptions, preorders, onOrder }: {
   items: (Omit<ShopItem, "photos"> & { photos: ItemPhoto[] })[];
   reportable?: boolean;
+  /** S026 (Shops audit 11-12): an "Order" button on each card that takes the buyer to that item's row in the order
+   * sheet (scrolls to it and focuses its add button). Only where this page has an order sheet. */
+  onOrder?: (itemId: string) => void;
   withOptions?: ReadonlyMap<string, unknown>;
   /** Preorder items (20261108184654), keyed by id: the card says "Preorder · ready by ..." and its goal progress. */
   preorders?: ReadonlyMap<string, ItemPreorder>;
@@ -191,6 +194,16 @@ export function ShopItemsGrid({ items, reportable = false, withOptions, preorder
                     <span className="truncate" aria-hidden>{HOME_KITCHEN_CARD_LINE}</span>
                     <span className="sr-only">{HOME_KITCHEN_NOTICE}</span>
                   </p>
+                )}
+                {onOrder && (
+                  <button
+                    type="button"
+                    className="mt-1.5 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-border bg-background text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label={`Order ${item.title}`}
+                    onClick={() => onOrder(item.id)}
+                  >
+                    Order
+                  </button>
                 )}
                 {reportable && <ShopReportItem itemId={item.id} title={item.title} />}
               </div>

@@ -225,7 +225,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   };
 
   return (
-    <section className="space-y-4 rounded-2xl border border-border bg-card p-4" aria-labelledby={headId}>
+    <section id="shop-order-sheet" className="space-y-4 rounded-2xl border border-border bg-card p-4" aria-labelledby={headId}>
       <div className="space-y-1">
         <h2 id={headId} className="text-sm font-semibold">Order</h2>
         {preorder ? <p className="text-xs text-muted-foreground">This is a preorder: you pay in full now.</p> : (
@@ -248,7 +248,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
           // A preorder is ordered on its own: while one kind is chosen, the other kind's steppers stay at 0.
           const locked = (qty[i.id] ?? 0) === 0 && chosen.length > 0 && (pre ? true : preorderChosen);
           return (
-            <li key={i.id} className="flex items-center justify-between gap-3">
+            <li key={i.id} className="flex items-center justify-between gap-3" data-order-item={i.id}>
               <div className="min-w-0">
                 <p className="text-sm font-semibold [overflow-wrap:anywhere]">{i.title}</p>
                 <p className="text-xs text-muted-foreground">{formatItemPrice(i.price_cents)} each{pre ? ` · ${preorderLabel(pre)}` : ""}</p>

@@ -64,6 +64,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   shops_orders: "Shops Orders",
   shops_messages: "Shops Messages",
   shops_updates: "Shops Updates",
+  shops_following: "Shops Following",
   admin_activity: "Admin Activity",
   system: "System",
 };

@@ -27,6 +27,8 @@ export const defaultPrefs: Prefs = {
   declutter_questions: true, email_declutter_questions: true,
   shops_orders: true, email_shops_orders: true, shops_messages: true, email_shops_messages: true,
   shops_updates: true, email_shops_updates: true,
+  // New from shops you follow (20261112070000): in the app and push; no email is sent for it.
+  shops_following: true, email_shops_following: false,
   // Admin bell activity (20261112061000): the notices are always in an admin's bell; push and email default OFF.
   admin_activity: false, email_admin_activity: false,
   declutter_sales: true, email_declutter_sales: true,
@@ -167,4 +169,5 @@ export const shopsRows: Row[] = [
   { key: "shops_orders", emailKey: "email_shops_orders", label: "Orders", description: "New orders, accepts, ready and handovers, payments, refunds and custom orders.", icon: <Store className="w-3.5 h-3.5" /> },
   { key: "shops_messages", emailKey: "email_shops_messages", label: "Shop messages", description: "New messages in a shop chat.", icon: <MessageSquare className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
   { key: "shops_updates", emailKey: "email_shops_updates", label: "Shop updates", description: "Your shop's settings and Shops strikes.", icon: <Info className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
+  { key: "shops_following", emailKey: "email_shops_following", label: "Shops you follow", description: "New items from shops you follow, at most one notice per shop a day.", icon: <Store className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
 ];

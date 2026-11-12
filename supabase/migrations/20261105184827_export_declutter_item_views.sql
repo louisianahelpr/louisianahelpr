@@ -249,8 +249,9 @@ BEGIN
   -- either side of the trade; the saved card's brand + last 4 (the Stripe ids
   -- are ours, not the member's data, and are never shown to them, B31).
   -- Q2274: on the SELLER's side, an offer the buyer never took into a cart carries no buyer_id (an "I have this" answer to a
-  -- Wanted post, or any offer the buyer made, never names the buyer to the seller before a deal; declutter_my_offers
-  -- returns no counterparty id either). The buyer's own rows are unchanged.
+  -- Wanted post, or any offer the buyer made; declutter_my_offers returns no counterparty id either). The buyer's own
+  -- rows are unchanged. Only the id is withheld: since the owner's 11-11 decision (F356) the seller IS shown the buyer's
+  -- first name + last initial before a deal (offer card 20261111223500, notices 20261112003050); a Wanted reply stays unnamed.
   v_out := v_out || jsonb_build_object('declutter_offers', (SELECT coalesce(jsonb_agg(
              CASE WHEN t.seller_id = v_uid AND t.buyer_id IS DISTINCT FROM v_uid AND t.status <> 'accepted'
                   THEN to_jsonb(t) - 'buyer_id' ELSE to_jsonb(t) END), '[]'::jsonb) FROM public.declutter_offers t

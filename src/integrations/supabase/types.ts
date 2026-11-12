@@ -17574,6 +17574,10 @@ export type Database = {
         Args: { p_item_id: string }
         Returns: boolean
       }
+      declutter_seller_pickup_count: {
+        Args: { p_seller_id: string }
+        Returns: number
+      }
       declutter_sold_item_card: {
         Args: { p_item_id: string }
         Returns: Json
@@ -18290,6 +18294,7 @@ export type Database = {
           avg_rating: number
           display_name: string
           id_checked: boolean
+          pickup_count: number
           review_count: number
         }[]
       }

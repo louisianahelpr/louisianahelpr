@@ -91,6 +91,8 @@ const run = async (sql, params) => { try { return { rows: (await db.query(sql, p
 // ---- S2-003
 let p = await price(DL_OPTS);
 check(p.price_cents === 500 && p.option_names.length === 0, "an existing download with options keeps its price and drops its lists", JSON.stringify(p));
+let dn = (await db.query(`SELECT * FROM public.notices WHERE title = 'A download has one price now'`)).rows;
+check(dn.length === 1 && dn[0].user_id === FREE && dn[0].message.includes('"Quilt pattern"'), "its owner is told once (not again on a re-run)", JSON.stringify(dn));
 let v = (await db.query(`SELECT count(*)::int n FROM public.shop_item_variants WHERE item_id = $1 AND active`, [DL_OPTS])).rows[0].n;
 check(v === 0, "its option rows are switched off (kept for any order line)", String(v));
 let r = await run(`INSERT INTO public.shop_item_variants (item_id, option_values, price_cents) VALUES ($1, '{Huge}', 3000)`, [DL_PLAIN]);
@@ -103,6 +105,11 @@ r = await run(`UPDATE public.shop_items SET kind = 'digital' WHERE id = $1`, [MA
 check(/options_not_for_downloads/.test(r.err ?? ""), "an item with options cannot become a download", r.err ?? "updated");
 r = await run(`INSERT INTO public.shop_item_variants (item_id, option_values, price_cents) VALUES ($1, '{Medium}', 1500)`, [MADE_OPTS]);
 check(!r.err, "a made item still takes options", r.err);
+await db.query(`ALTER TABLE public.shop_items DISABLE TRIGGER USER`);
+await db.query(`UPDATE public.shop_items SET option_names = '{}' WHERE id = $1`, [MADE_OPTS]);
+await db.query(`ALTER TABLE public.shop_items ENABLE TRIGGER USER`);
+r = await run(`UPDATE public.shop_items SET kind = 'digital' WHERE id = $1`, [MADE_OPTS]);
+check(/options_not_for_downloads/.test(r.err ?? ""), "stale active option rows (lists cleared) still stop a switch to download", r.err ?? "updated");
 r = await run(`UPDATE public.shop_items SET title = 'Quilt pattern 2', price_cents = 800 WHERE id = $1`, [DL_PLAIN]);
 check(!r.err, "a plain download still saves", r.err);
 r = await run(`UPDATE public.shop_items SET option_names = '{}' WHERE id = $1`, [DL_OPTS]);
@@ -116,7 +123,7 @@ const judge = async (id, owner, flag) => {
     [id, owner, await photos(id), it.kind, it.subtype, it.title, it.description, flag]);
 };
 const st = async (id) => (await db.query(`SELECT status, live_at, submitted_at FROM public.shop_items WHERE id = $1`, [id])).rows[0];
-const notes = async (u) => (await db.query(`SELECT * FROM public.notices WHERE user_id = $1`, [u])).rows;
+const notes = async (u) => (await db.query(`SELECT * FROM public.notices WHERE user_id = $1 AND title <> 'A download has one price now'`, [u])).rows;
 r = await judge(L_HELD, HELD, null);
 let s = await st(L_HELD);
 check(!r.err && s.status === "pending_review" && s.live_at === null && s.submitted_at !== null,

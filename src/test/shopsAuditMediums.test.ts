@@ -4,7 +4,11 @@
  *   S013 the order card shows the cancel rule only while the buyer can still cancel (held / accepted, not handed over).
  *   S015 the shop has no "Handed over" on a Helpr-delivered order (server refuses; button hidden), unless it fell back.
  *   S019 the buyer's missed-delivery notice reads the right way round.
+ *   S033 the home-food yearly limit refuses an order that reaches EXACTLY $100,000 (">=", La. R.S. 40:4.9(B)), at accept
+ *        and at a preorder's hold (20261112075702, proof src/test/pglite/shopsCottageLimitStrict.pglite.mjs).
  *
+ * @mutate supabase/migrations/20261112075702_shops_cottage_limit_strict.sql |          + v_home_food >= v_cottage_cap THEN |          + v_home_food > v_cottage_cap THEN
+ * @mutate supabase/migrations/20261112075702_shops_cottage_limit_strict.sql |                 + v_pre_home_food >= (SELECT c.cap_cents |                 + v_pre_home_food > (SELECT c.cap_cents *
  * @mutate src/components/shops/ShopMyOrdersView.tsx |   if (o.status === "accepted") return "accepted"; |   if (o.status === "accepted" \|\| o.status === "handed_over") return "accepted";
  * @mutate src/components/shops/ShopOrderCard.tsx |           {CANCEL_RULE_VISIBLE.has(order.status) && !order.handed_over_at | {true
  * @mutate src/components/shops/ShopHandoverActions.tsx |           {!porch && !byHelpr && due && !h?.shop_confirmed_at && ( |           {!porch && due && !h?.shop_confirmed_at && (
@@ -43,5 +47,9 @@ describe("Shops audit 11-12 Mediums", () => {
     const b = body("shops_report_no_show");
     expect(b).toContain("The shop says you weren''t there for the delivery");
     expect(b).not.toContain("didn''t receive the delivery");
+  });
+  it("S033: reaching the home-food limit exactly is refused (accept and preorder hold)", () => {
+    expect(body("shops_accept_order")).toContain("+ v_home_food >= v_cottage_cap THEN");
+    expect(body("shop_mark_order_held")).toContain("+ v_pre_home_food >= (SELECT c.cap_cents FROM public.shop_cottage_settings c WHERE c.id))) THEN");
   });
 });

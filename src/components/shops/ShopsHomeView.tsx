@@ -45,7 +45,8 @@ import { categoryGroups, categoryLabel, useShopCategories } from "./shopsUi";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 
 /** The Browse grid: one card across on a phone, 2 on a tablet, 3-4 on a desktop. */
-const SHOP_GRID = "grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+// S2-043: phone rows sit closer (compact row cards); the photo cards keep their 24px.
+const SHOP_GRID = "grid gap-x-4 gap-y-4 sm:grid-cols-2 sm:gap-y-6 lg:grid-cols-3 xl:grid-cols-4";
 
 /** One word each, Browse always first (owner, 2026-10-19). */
 const SHOPS_TABS = [

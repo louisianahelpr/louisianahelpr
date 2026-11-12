@@ -4,7 +4,7 @@
  * (newest) definitions and the screens that offer Report; behaviour on a real database is
  * src/test/pglite/shopsReport.pglite.mjs (3x, Supabase's default anon execute grant emulated).
  *
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql | 'declutter_review'::text, 'shop'::text, 'shop_item'::text, 'shop_talk_message'::text, 'home_listing'::text, 'home_talk_message'::text])); | 'declutter_review'::text, 'shop_talk_message'::text, 'home_listing'::text, 'home_talk_message'::text]));
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql | 'declutter_review'::text, 'shop'::text, 'shop_item'::text, 'shop_talk_message'::text, 'home_listing'::text, 'home_talk_message'::text, 'shop_review'::text])); | 'declutter_review'::text, 'shop_talk_message'::text, 'home_listing'::text, 'home_talk_message'::text, 'shop_review'::text]));
  * @mutate supabase/migrations/20261112094500_shops_review_report.sql |     IF NOT public.is_server_context() AND NEW.reporter_id IS NOT DISTINCT FROM sh.owner_id THEN |     IF false THEN
  * @mutate supabase/migrations/20261112094500_shops_review_report.sql |            AND (NOT public.shop_state_ok(sh.id) |            AND (false
  * @mutate supabase/migrations/20261112094500_shops_review_report.sql |                 OR (NEW.reported_type = 'shop_item' AND si.status IS DISTINCT FROM 'live'))) THEN |                 OR false)) THEN

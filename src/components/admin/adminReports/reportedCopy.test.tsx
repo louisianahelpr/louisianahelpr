@@ -10,7 +10,7 @@
  * @mutate src/components/admin/adminReports/ReportedCopy.tsx |       if (part === "review") await removeReportedReview(report.reported_id, report.id); |       if (part === "review") await removeReportedQuestion(report.reported_id, "question", report.id);
  * @mutate src/components/admin/adminReports/ReportedCopy.tsx | {isReview ? "This review was removed." : "This question was removed."} | {"This question was removed."}
  * @mutate src/components/admin/adminReports/reportedQuestions.ts | !q ? null : isReview(q) ? q.reviewer_id : | !q ? null :
- * @mutate src/components/admin/adminReports/reportedQuestions.ts | const QUESTION_REPORTS: readonly string[] = ["declutter_question", "declutter_answer", REVIEW_REPORT]; | const QUESTION_REPORTS: readonly string[] = ["declutter_question", "declutter_answer"];
+ * @mutate src/components/admin/adminReports/reportedQuestions.ts | const QUESTION_REPORTS: readonly string[] = ["declutter_question", "declutter_answer", REVIEW_REPORT, SHOP_REVIEW_REPORT]; | const QUESTION_REPORTS: readonly string[] = ["declutter_question", "declutter_answer", SHOP_REVIEW_REPORT];
  * @mutate src/components/admin/adminReports/reportedQuestions.ts |     for (const r of rs) questions.set(r.review_id, r); |     void rs;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -18,6 +18,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const calls = vi.hoisted(() => ({ removed: [] as unknown[][], reviewsRemoved: [] as unknown[][], reviewReads: [] as unknown[][] }));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
+vi.mock("@/lib/shops/reviews", () => ({ fetchReportedShopReviews: async () => [], removeReportedShopReview: async () => "removed" }));
 vi.mock("@/lib/declutter/api", () => ({
   removeReportedQuestion: async (...a: unknown[]) => { calls.removed.push(a); return "removed"; },
   removeReportedReview: async (...a: unknown[]) => { calls.reviewsRemoved.push(a); return "removed"; },

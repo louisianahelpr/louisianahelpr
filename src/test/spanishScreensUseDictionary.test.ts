@@ -131,6 +131,8 @@ const CONVERTED = [
   // F260q: the deal room's receipt card and system rows (enChatEvents.ts, built by jobSystemEvents.ts).
   "src/components/messages/chatView/ChatReceiptCard.tsx",
   "src/components/messages/chatView/SystemEventRow.tsx",
+  // F260q: the sell form's photo-tool panel (enAiDraft.ts).
+  "src/components/declutter/SellAiDraft.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */

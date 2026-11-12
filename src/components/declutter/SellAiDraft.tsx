@@ -18,7 +18,10 @@ import type { AiDraft, DeliverySize } from "@/lib/declutter/api";
 import { AI_DRAFT_PHOTOS } from "@/lib/declutter/photoRules";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
-import { NO_ITEM_SEEN, WRITER_WARNING_RE } from "@/lib/declutter/writerWarning";
+import { WRITER_WARNING_RE } from "@/lib/declutter/writerWarning";
+import { t } from "@/lib/i18n/language";
+import { wordInLang } from "@/lib/i18n/inLang";
+import "@/lib/i18n/enAiDraft";
 
 export type AiState =
   | { status: "idle" }
@@ -204,7 +207,7 @@ export function AiPriceLine({ draft }: { draft: AiDraft }) {
   if (noItemDraft(draft) || typeof draft.priceDollars !== "number" || draft.priceDollars < 1) return null;
   return (
     <p className="text-ds-14 text-foreground [overflow-wrap:anywhere]" data-ai-price="">
-      <span className="font-semibold">Suggested price: ${draft.priceDollars}</span>
+      <span className="font-semibold">{t("aid.price", { amount: draft.priceDollars })}</span>
       {draft.priceReason ? <span className="text-muted-foreground"> · {draft.priceReason}</span> : null}
     </p>
   );
@@ -214,15 +217,14 @@ export function AiPriceLine({ draft }: { draft: AiDraft }) {
  * `oneScreen` (audit DC-1): a NEW listing is one screen (SellOneScreen), so Claude's rows are below the panel, not
  * on "the next steps"; a saved draft's step form keeps the step words.
  */
-const AI_CHANGE_HINT = { oneScreen: "Check it below and change anything.", steps: "Check it and change anything on the next steps." } as const;
 export function SellAiDraftPanel({ state, onRun, oneScreen = false, free = false }: { state: AiState; onRun: () => void; oneScreen?: boolean; free?: boolean }) {
   if (state.status === "busy") {
     return (
       <div role="status" aria-live="polite" data-ai-draft="busy" className="flex items-start gap-3 rounded-[20px] border border-border bg-card p-4">
         <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-[hsl(var(--sage-ink))]" aria-hidden />
         <div className="min-w-0">
-          <p className="text-ds-15 font-semibold text-foreground">We're writing your listing…</p>
-          <p className="mt-0.5 text-ds-13 text-muted-foreground">It looks at your photos for the name, details, category, size, condition{free ? "" : " and a fair price"}. This takes a few seconds.</p>
+          <p className="text-ds-15 font-semibold text-foreground">{t("aid.busy")}</p>
+          <p className="mt-0.5 text-ds-13 text-muted-foreground">{free ? t("aid.busyBodyFree") : t("aid.busyBody")}</p>
         </div>
       </div>
     );
@@ -230,8 +232,8 @@ export function SellAiDraftPanel({ state, onRun, oneScreen = false, free = false
   if (state.status === "done" && noItemDraft(state.draft)) {
     return (
       <div role="status" aria-live="polite" data-ai-draft="no-item" className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-border bg-card p-4">
-        <p className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">{NO_ITEM_SEEN}</p>
-        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onRun}>Try again</Button>
+        <p className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">{t("aid.noItem")}</p>
+        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onRun}>{t("aid.tryAgain")}</Button>
       </div>
     );
   }
@@ -241,30 +243,34 @@ export function SellAiDraftPanel({ state, onRun, oneScreen = false, free = false
       <div role="status" aria-live="polite" data-ai-draft="done" className="space-y-3 rounded-[20px] border border-border bg-card p-4">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 shrink-0 text-[hsl(var(--sage-ink))]" aria-hidden />
-          <p className="text-ds-13 font-semibold text-[hsl(var(--sage-ink))]">We wrote your listing. Check it before you post</p>
+          <p className="text-ds-13 font-semibold text-[hsl(var(--sage-ink))]">{t("aid.done")}</p>
         </div>
         {d.photoTip && (
           <p className="text-ds-14 text-foreground [overflow-wrap:anywhere]" data-ai-photo-tip="">
-            <span className="font-semibold">One more photo would help:</span> {d.photoTip}
+            <span className="font-semibold">{t("aid.photoTip")}</span> {d.photoTip}
           </p>
         )}
         {/* On the one screen the rows below hold all of this; said twice, it pushed them off the first screen (audit posting 1030 #17). */}
         {!oneScreen && <div className="space-y-1">
           <p className="text-ds-17 font-bold text-foreground [overflow-wrap:anywhere]" data-ai-title="">{d.title}</p>
           <p className="text-ds-13 text-muted-foreground">
-            {[CATEGORY_LABEL[d.category] ?? d.category, CONDITION_LABEL[d.conditionStars], SIZE_LABEL[d.deliverySize]].filter(Boolean).join(" · ")}
+            {[
+              CATEGORY_LABEL[d.category] ? wordInLang(`decl.cat.${d.category}`, CATEGORY_LABEL[d.category]) : d.category,
+              CONDITION_LABEL[d.conditionStars] && wordInLang(`decl.cond.${d.conditionStars}`, CONDITION_LABEL[d.conditionStars]),
+              SIZE_LABEL[d.deliverySize] && wordInLang(`decl.size.${d.deliverySize}`, SIZE_LABEL[d.deliverySize]),
+            ].filter(Boolean).join(" · ")}
           </p>
           {d.description && <p className="line-clamp-3 text-ds-14 text-foreground [overflow-wrap:anywhere]">{d.description}</p>}
           {!free && <AiPriceLine draft={d} />}
         </div>}
         {d.flagged && (
           <p className="text-ds-13 font-semibold text-foreground">
-            This item may not be allowed, so someone from Louisiana Helpr will look at it before it goes up.
+            {t("aid.flagged")}
           </p>
         )}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-ds-13 text-muted-foreground" data-ai-change-hint="">{oneScreen ? AI_CHANGE_HINT.oneScreen : AI_CHANGE_HINT.steps}</p>
-          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onRun}>Write it again</Button>
+          <p className="text-ds-13 text-muted-foreground" data-ai-change-hint="">{oneScreen ? t("aid.hintOne") : t("aid.hintSteps")}</p>
+          <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onRun}>{t("aid.again")}</Button>
         </div>
       </div>
     );
@@ -273,15 +279,15 @@ export function SellAiDraftPanel({ state, onRun, oneScreen = false, free = false
     return (
       <div role="alert" data-ai-draft="error" className="space-y-2 rounded-[20px] border border-border bg-card p-4">
         <p className="text-ds-14 text-foreground">{state.message}</p>
-        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onRun}>Try again</Button>
+        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onRun}>{t("aid.tryAgain")}</Button>
       </div>
     );
   }
   return (
     <div data-ai-draft="idle" className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-border bg-card p-4">
-      <p className="min-w-0 flex-1 text-ds-14 text-muted-foreground">We can write the name, details, category, size and condition from your photos.</p>
+      <p className="min-w-0 flex-1 text-ds-14 text-muted-foreground">{t("aid.idle")}</p>
       <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onRun}>
-        <Sparkles className="mr-1.5 h-4 w-4" aria-hidden />Write my listing
+        <Sparkles className="mr-1.5 h-4 w-4" aria-hidden />{t("aid.write")}
       </Button>
     </div>
   );

@@ -8,7 +8,7 @@
  * word, so identifiers like ClaudeImage and claudeFetch do not count) anywhere in what is left: JSX text, string
  * and template literals, toasts, notices, emails, i18n JSON. Developer log lines (console.*) are the one exception.
  */
-// @mutate src/components/declutter/SellAiDraft.tsx | We're writing your listing… | Claude is writing your listing…
+// @mutate src/lib/i18n/enAiDraft.ts | We're writing your listing… | Claude is writing your listing…
 // @mutate src/lib/i18n/enListingParts.ts | Fix anything we got wrong. | Fix anything Claude got wrong.
 // @mutate src/lib/declutter/errors.ts | We couldn't read those photos. | Claude couldn't read those photos.
 // @mutate src/pages/info/legal/PrivacySection.tsx | <strong className="text-foreground">Anthropic</strong> | <strong className="text-foreground">Anthropic (Claude)</strong>

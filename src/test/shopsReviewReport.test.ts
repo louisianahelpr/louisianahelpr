@@ -7,7 +7,8 @@
  * @mutate supabase/migrations/20261112094500_shops_review_report.sql |   IF NEW.reported_type = 'shop_review' THEN |   IF NEW.reported_type = 'shop_review_off' THEN
  * @mutate src/components/reportDialog/reportReasons.ts |   shop_review: "What's wrong with this review?", |   shop_review: "",
  */
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 
 const MIG = "supabase/migrations/";

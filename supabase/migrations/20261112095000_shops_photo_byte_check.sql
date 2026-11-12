@@ -25,7 +25,7 @@
 CREATE TABLE IF NOT EXISTS public.shop_photo_byte_checks (
   storage_path text PRIMARY KEY,
   object_id uuid NOT NULL,
-  owner_id uuid NOT NULL,
+  owner_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   checked_at timestamptz NOT NULL DEFAULT now()
 );
 COMMENT ON TABLE public.shop_photo_byte_checks IS

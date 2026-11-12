@@ -10,7 +10,7 @@
  * @mutate src/components/tracker/jobProgressState.ts | if (!helprIn) return helprLate ? at(3, mine, "Confirmed", confirmWindowPassedLine(null, job), held) : atBy(3, mine, "Confirmed", t("jl.confirmYou"), | if (!helprIn) return helprLate ? at(3, mine, "Confirmed", confirmWindowPassedLine(null, job), held) : atBy(3, mine, "Confirmed", "Confirm you'll be at the job",
  * @mutate src/components/tracker/jobProgressState.ts | poster ? t("jl.arrivedPoster", { name: other }) | poster ? `${other} arrived. Confirm they've arrived`
  * @mutate src/components/tracker/jobProgressState.ts | next: t("jl.crewConfirm") }; | next: "Confirm your spot on the crew" };
- * @mutate src/components/tracker/jobProgressState.ts |   return mins < 60 ? t("jl.min", { n: mins }) : |   return mins < 60 ? `${mins} min` :
+ * @mutate src/components/tracker/jobProgressState.ts | (lateBy ? t("jl.onWayLate", { name: other, late: lateBy }) | (lateBy ? `${other} is on the way, ${lateBy} late`
  * @mutate src/lib/i18n/es.ts |   ...esJobLines, |
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";

@@ -65,6 +65,16 @@ export const SHOPS_RPC_ERROR_COPY = {
     talk_blocked: SC.talk_blocked,
     talk_closed: SC.talk_closed,
   },
+  // S2-018 (Shops audit 2, 20261112223654): the chat from a custom request's card, either side.
+  shops_open_request_talk: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+    request_not_found: SC.request_not_found,
+    own_shop: SC.own_shop,
+    talk_blocked: SC.talk_blocked,
+    talk_closed: SC.talk_closed,
+  },
   shops_talk_view: {
     feature_disabled: SC.feature_disabled,
     not_authenticated: SC.not_authenticated,

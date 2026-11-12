@@ -695,6 +695,7 @@
     "shops_my_talks()": "client",
     "shops_mark_talk_read(uuid)": "client",
     "shops_open_order_talk(uuid)": "client",
+    "shops_open_request_talk(uuid)": "client",
     "rentals_open_talk(uuid)": "client",
     "rentals_talk_view(uuid)": "client",
     "rentals_send_talk_message(uuid, text)": "client",

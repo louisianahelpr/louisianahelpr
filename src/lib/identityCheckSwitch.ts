@@ -50,14 +50,20 @@ export function setIdentityCheckLastAnswer(next: boolean | null): void {
  * must tell "off" from "not known": null is not known, and a failed read is never taken for off.
  */
 export function useIdentityCheckLastAnswerStore(): boolean | null {
-  return useSyncExternalStore(
-    (l) => {
-      answerListeners.add(l);
-      return () => answerListeners.delete(l);
-    },
-    () => lastAnswer,
-    () => lastAnswer,
-  );
+  return useSyncExternalStore(subscribeIdentityCheckLastAnswer, identityCheckLastAnswer, identityCheckLastAnswer);
+}
+
+/** The last real answer now (null: not known), for a caller that loads this module lazily (useSellerSetupFee). */
+export function identityCheckLastAnswer(): boolean | null {
+  return lastAnswer;
+}
+
+/** Listen for a new last answer; returns the unsubscribe. */
+export function subscribeIdentityCheckLastAnswer(l: () => void): () => void {
+  answerListeners.add(l);
+  return () => {
+    answerListeners.delete(l);
+  };
 }
 
 /** The same answer for a component that renders from it. */

@@ -23,7 +23,7 @@
  * @mutate src/components/identity/IdentityCheckMount.tsx |   useEffect(() => setIdentityCheckLastAnswer(idLastAnswer), [idLastAnswer]); |
  * @mutate src/components/declutter/useSellerSetupFee.ts | const idSettled = idAnswer !== null; | const idSettled = true;
  */
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -38,8 +38,17 @@ const state = vi.hoisted(() => ({
 vi.mock("@/lib/declutter/mySetupFee", () => ({
   fetchMySetupFee: () => (state.server === "loading" ? new Promise(() => {}) : Promise.resolve(state.server)),
 }));
-vi.mock("@/hooks/useOnboardingFee", () => ({ useOnboardingFeeQuery: (enabled: boolean) => ({ data: enabled && state.loaded ? state.fee : undefined, isSuccess: enabled && state.loaded }) }));
-vi.mock("@/lib/identityCheckSwitch", () => ({ useIdentityCheckLastAnswerStore: () => (state.idSettled ? state.idOn : null) }));
+// useSellerSetupFee loads both modules lazily (Q178: off the Selling route's critical path): the fee through
+// fetchOnboardingFeeCents, the switch through identityCheckLastAnswer.
+vi.mock("@/hooks/useOnboardingFee", () => ({
+  useOnboardingFeeQuery: (enabled: boolean) => ({ data: enabled && state.loaded ? state.fee : undefined, isSuccess: enabled && state.loaded }),
+  fetchOnboardingFeeCents: () => (state.loaded ? Promise.resolve(state.fee) : new Promise(() => {})),
+}));
+vi.mock("@/lib/identityCheckSwitch", () => ({
+  useIdentityCheckLastAnswerStore: () => (state.idSettled ? state.idOn : null),
+  identityCheckLastAnswer: () => (state.idSettled ? state.idOn : null),
+  subscribeIdentityCheckLastAnswer: () => () => {},
+}));
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ isAdmin: state.admin === "admin", adminStatus: state.admin, profile: { onboarding_fee_paid: state.paid, is_seed: state.seed }, user: { id: "u1" } }),
 }));
@@ -54,8 +63,11 @@ const code = (p: string) => blankComments(readFileSync(resolve(REPO, p), "utf8")
 const line = async () => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const { container, unmount } = render(<QueryClientProvider client={qc}><SellYouGet priceCents={2000} /></QueryClientProvider>);
-  for (let i = 0; i < 20; i++) await Promise.resolve();
-  await new Promise((r) => setTimeout(r, 0));
+  // Settled: the server read, then the lazily loaded switch and fee reads (each a module load and a query).
+  for (let round = 0; round < 4; round++) {
+    for (let i = 0; i < 20; i++) await Promise.resolve();
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+  }
   const text = container.querySelector("[data-sell-keep]")?.textContent ?? null;
   unmount();
   return text;

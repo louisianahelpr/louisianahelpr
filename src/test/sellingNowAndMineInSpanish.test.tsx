@@ -70,6 +70,9 @@ describe("Selling now and the Buying/Selling chips follow the member's language 
     const src = blankComments(readFileSync("src/components/declutter/DeclutterHomeView.tsx", "utf8"));
     for (const k of ["decl.hv.moreWays", "decl.hv.settings", "decl.hv.settingsSub", "decl.hv.view", "decl.hv.sell"]) expect(src, k).toContain(`t("${k}")`);
     expect(src).not.toMatch(/"Declutter settings"|"Declutter view"|text="Sell"|"More ways to sell"|>Listing defaults/);
+    // The settings row and the gear's name (DECLUTTER_SETTINGS.label) both read it; the tab row's name is read 3 times.
+    expect(src.split('t("decl.hv.settings")').length - 1).toBe(2);
+    expect(src.split('t("decl.hv.view")').length - 1).toBe(3);
     const hv = (Object.keys(enDeclutter) as (keyof typeof enDeclutter)[]).filter((k) => k.startsWith("decl.hv."));
     expect(hv.length).toBe(5);
     for (const k of hv) {

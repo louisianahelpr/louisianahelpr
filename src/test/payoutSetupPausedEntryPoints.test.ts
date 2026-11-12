@@ -105,6 +105,7 @@ const NOT_AN_ENTRY_POINT: Readonly<Record<string, string>> = {
   "src/pages/info/helpCenter/helpCenterContent.ts": "Help answers that say when payout setup happens; nothing in Help sends anyone to setup",
   // F260q (11-11): Home's English dictionary; home.payoutTitle ("Add your payout account to get $X") is drawn only by
   // HomeDashboard.tsx, which reads usePayoutSetupPaused() (and is an entry point itself).
+  "src/lib/i18n/enMoneyTiles.ts": "the money tiles' English dictionary (F260q): mt.addPayout is drawn only by HomeMoneyTiles.tsx, which reads usePayoutSetupPaused() and shows it only while setup is not paused",
   "src/lib/i18n/enHome.ts": "Home's English dictionary: its payout words are drawn only by HomeDashboard.tsx, which reads usePayoutSetupPaused()",
   "src/lib/payoutSetupPaused.ts": "the notices' own words (\"You'll set up payouts when you're hired\"): they replace setup, they send nobody to it",
 };

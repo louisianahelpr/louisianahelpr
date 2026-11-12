@@ -17508,6 +17508,11 @@ export type Database = {
         Returns: number
       }
       declutter_my_block_partners: { Args: never; Returns: string[] }
+      declutter_names_hidden: {
+        Args: { p_a: string; p_b: string }
+        Returns: boolean
+      }
+      departed_name_stopwords: { Args: never; Returns: string[] }
       declutter_open_handover_talk: {
         Args: { p_other: string }
         Returns: string

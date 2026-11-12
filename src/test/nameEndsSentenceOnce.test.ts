@@ -35,7 +35,6 @@ const NEVER_ENDS_IN_A_PERIOD: Record<string, string> = {
   "src/components/declutter/ManagerActForSeller.tsx::${g.seller_first_name}.": "declutter_manager_first_name(): the seller's first name only (manager mode, 20261101181005)",
   "src/components/declutter/ManagerPanel.tsx::${g.seller_first_name}.": "declutter_manager_first_name(): the seller's first name only (manager mode, 20261101181005)",
   "src/components/declutter/ManagerPanel.tsx::${name}.": "firstName(picked.full_name) or \"them\": a first name only",
-  "src/lib/jobSystemEvents.ts::${who === \"poster\" ? \"the person who posted it\" : \"the Helpr\"}.": "two string literals, neither ends in a period",
   "src/pages/auth/Unsubscribe.tsx::${who}.": "an email address or \"this address\"",
 };
 

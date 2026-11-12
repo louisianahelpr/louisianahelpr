@@ -64,6 +64,15 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   shops_leave_review: "tags", // Shops H9 (20261105230819): the review row copies its order's is_seed
   is_test_member: "hides", // b62 (20261030015205): test data never counts in this total
   admin_sales_tax_adjustments: "hides", // Q1918 tax ledger (20261105021744): the admin export leaves seed and TEST rows out
+  admin_activity_on_application: "alerts", // admin bell (20261112061000): a seed row never rings the admins
+  admin_activity_on_declutter_item: "alerts", // admin bell (20261112061000): a seed row never rings the admins
+  admin_activity_on_declutter_offer: "alerts", // admin bell (20261112061000): a seed row never rings the admins
+  admin_activity_on_declutter_order: "alerts", // admin bell (20261112061000): a seed row never rings the admins
+  admin_activity_on_declutter_refund_request: "alerts", // admin bell (20261112061000): a seed row never rings the admins
+  admin_activity_on_declutter_swap: "alerts", // admin bell (20261112061000): a seed row never rings the admins
+  admin_activity_on_declutter_wanted: "alerts", // admin bell (20261112061000): a seed row never rings the admins
+  admin_activity_on_job: "alerts", // admin bell (20261112061000): a seed row never rings the admins
+  admin_activity_on_shop_order: "alerts", // admin bell (20261112061000): a seed row never rings the admins
   admin_booking_sources: "hides", // B66 Book me (20261030013347): a test Helpr or test poster never counts in the admin tally
   declutter_item_sold_visible: "hides", // F061 (20261109194234): a test item's sold card is never shown publicly (seed_hidden_in_discovery)
   get_helprs_near_me: "hides", // Q2008 (20261104062747): a test member is never shown in Helprs near you (seed_hidden_in_discovery)

@@ -35,6 +35,7 @@ import {
   type ShopOrder,
 } from "@/lib/shops/orders";
 import { fetchHandovers } from "@/lib/shops/handover";
+import { isServiceOrder } from "@/lib/shops/handoverWords";
 import { cancelPreorder, preorderCancelText } from "@/lib/shops/preorders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 
@@ -200,10 +201,11 @@ export function ShopCancelOrder({ order }: { order: ShopOrder }) {
     },
   });
   if (!cancellable) return null;
-  // Only an order the shop marked ready can be a no-show (the server says not_ready otherwise).
+  // Only an order the shop marked ready can be a no-show (the server says not_ready otherwise), or a service.
   // S004 (Shops audit 11-12): never on a Helpr-delivered order, unless it fell back to pickup (no Helpr took it).
+  // S049 (Shops audit 11-12): a service has no ready tap, so its no-show needs only the day to be over (server agrees).
   const helprDelivers = order.fulfillment === "helpr_delivers" && !order.helpr_unfilled_at;
-  const noShowOpen = order.handover_mode === "in_person" && !helprDelivers && markedReady && louisianaToday() > order.ready_date;
+  const noShowOpen = order.handover_mode === "in_person" && !helprDelivers && (markedReady || isServiceOrder(order)) && louisianaToday() > order.ready_date;
   return (
     <div className="flex flex-wrap gap-2" data-testid="shop-cancel-actions">
       {noShowOpen && (
@@ -236,7 +238,7 @@ export function ShopCancelOrder({ order }: { order: ShopOrder }) {
         open={asking === "no_show"}
         onOpenChange={(o) => { if (!o) setAsking(null); }}
         title="The buyer didn't come?"
-        description="A missed pickup counts as a late cancel: you are paid for the order, and the buyer gets a Shops strike. Only report this if they really didn't come."
+        description={`${isServiceOrder(order) ? "A missed appointment" : "A missed pickup"} counts as a late cancel: you are paid for the order, and the buyer gets a Shops strike. Only report this if they really didn't come.`}
         primaryLabel={act.isPending ? "Saving…" : "Report a no-show"}
         primaryDisabled={act.isPending}
         onPrimary={(e) => {

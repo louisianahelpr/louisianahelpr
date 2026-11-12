@@ -42,7 +42,7 @@ export default function ShopOrderOptions({ item, options, qty, maxPerLine, onQty
   const inStock = variant && (variant.stock_count == null || variant.stock_count > 0);
   const others = options.variants.filter((v) => v.id !== variant?.id && (qty[lineKey(item.id, v.id)] ?? 0) > 0);
   return (
-    <li className="space-y-2" data-testid="shop-order-options">
+    <li className="space-y-2" data-testid="shop-order-options" data-order-item={item.id}>
       <p className="text-sm font-semibold [overflow-wrap:anywhere]">{item.title}</p>
       <div className="grid grid-cols-2 gap-2">
         {options.option_names.map((name, i) => (

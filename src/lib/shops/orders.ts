@@ -537,10 +537,11 @@ export function orderStatusLabel(
   }
   if (closed && (o.status === "refunded" || o.status === "cancelled")) return closed[side];
   switch (o.status) {
-    case "held": return "Waiting for the shop (card held, not charged)";
+    // S2-037 (Shops audit 2): the shop reads its own words; "Waiting for the shop" read as if someone else was waiting on it.
+    case "held": return side === "buyer" ? "Waiting for the shop (card held, not charged)" : "Waiting for your answer (card held, not charged)";
     case "accepted":
       if (o.preorder_item_id) return o.captured_at ? (side === "buyer" ? "Preorder, paid in full" : "Preorder, paid") : "Preorder (charging the card)";
-      return o.captured_at ? "Accepted and paid" : "Accepted (charging your card)";
+      return o.captured_at ? "Accepted and paid" : side === "buyer" ? "Accepted (charging your card)" : "Accepted (charging the buyer's card)";
     case "declined": return "Declined (nothing charged)";
     // S031 (Shops audit 11-12): say why the order closed, not only "Closed".
     case "expired":

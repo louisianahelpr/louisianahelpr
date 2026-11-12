@@ -15,7 +15,7 @@
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | raceVisibleDeadlineAbortable((s) => fetchSellerPorchPlaces(sellerId, s), PORCH_PLACES_READ_MS, PORCH_PLACES_SLOW, signal) | fetchSellerPorchPlaces(sellerId, signal)
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | places.length > 0 ? places.some((p) => p.chosen) : !refused | places.length === 0 \|\| places.some((p) => p.chosen)
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx |     if (r.isSuccess && (r.data === PORCH_PLACES_NOT_DEPLOYED \|\| r.data.length === 0)) setRefused(false);\n |
- * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {free ? "You get the exact address once you confirm." : "You get the exact address after you pay."} | {"You get the exact address after you pay."}
+ * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {free ? t("ppk.afterConfirm") : t("ppk.afterPay")} | {t("ppk.afterPay")}
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx |       setRefused(true);\n      // The server has no pick for this cart: the one place is sent again.\n      sent.current = null; |       setRefused(true);
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | places={porchPlaces.places} free refused | places={porchPlaces.places} refused
  * @mutate src/components/declutter/SellHandoverChoices.tsx |       <SellPorchPlaces free={free} helprOnly={!free && !ways.includes("porch")} />\n |

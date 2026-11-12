@@ -16,6 +16,8 @@ import {
 } from "@/lib/declutter/porchPlaces";
 import { shortDays } from "@/lib/declutter/pickupTimesText";
 import { NativeRadio } from "@/components/ui/NativeRadio";
+import { t, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enPorchPlaces";
 
 const placesKey = (sellerId: string, cartKey: number) => ["declutter", "seller-porch-places", sellerId, cartKey] as const;
 
@@ -117,26 +119,27 @@ export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  if (loadError) return <ErrorState variant="inline" title="We couldn't load the pickup places." body={declutterErrorMessage(loadError)} onRetry={onRetry} />;
+  useLanguage();
+  if (loadError) return <ErrorState variant="inline" title={t("ppk.loadErr")} body={declutterErrorMessage(loadError)} onRetry={onRetry} />;
   const refusal = declutterErrorMessage({ message: PLACE_NEEDED });
-  if (places.length === 0) return refused ? <p role="status" className="text-sm font-semibold" data-porch-place-rereading="">{refusal} Loading them…</p> : null;
+  if (places.length === 0) return refused ? <p role="status" className="text-sm font-semibold" data-porch-place-rereading="">{refusal} {t("ppk.loading")}</p> : null;
   // One place: nothing to choose (useSellerPorchPlaces has picked it). Only its city and days: buyers never see the
   // place's own label (owner 2026-10-31; the server sends none, 20261101054401).
   if (places.length === 1) {
     const p = places[0];
     return (
       <div className="space-y-1 rounded-xl border border-border p-3" data-porch-place-one="">
-        <p className="text-xs font-medium">{forDelivery ? "Where the Helpr picks it up" : "Pickup place"}</p>
+        <p className="text-xs font-medium">{forDelivery ? t("ppk.helprPicks") : t("ppk.place")}</p>
         <p className="text-ds-14 font-semibold [overflow-wrap:anywhere]">{p.area}</p>
         {!forDelivery && <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{shortDays(p.weekdays)}</p>}
-        {!forDelivery && <p className="text-xs text-muted-foreground">You get the exact address after you pay.</p>}
+        {!forDelivery && <p className="text-xs text-muted-foreground">{t("ppk.afterPay")}</p>}
       </div>
     );
   }
   return (
     <fieldset className="space-y-2 rounded-xl border border-border p-3" data-porch-place-picker="">
-      <legend className="px-1 text-xs font-medium">{forDelivery ? "Where the Helpr picks it up" : "Pick a pickup place"}</legend>
-      {!forDelivery && <p className="text-xs text-muted-foreground">{free ? "You get the exact address once you confirm." : "You get the exact address after you pay."}</p>}
+      <legend className="px-1 text-xs font-medium">{forDelivery ? t("ppk.helprPicks") : t("ppk.pick")}</legend>
+      {!forDelivery && <p className="text-xs text-muted-foreground">{free ? t("ppk.afterConfirm") : t("ppk.afterPay")}</p>}
       {refused && !places.some((p) => p.chosen) && <p role="alert" className="text-sm font-semibold">{refusal}</p>}
       {places.map((p) => (
         <label key={p.id} className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 ${p.chosen ? "border-2 border-primary" : "border-border"}`}>
@@ -164,7 +167,8 @@ export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry
  */
 export function OrderPorchPlace({ orderId, side }: { orderId: string; side: "buyer" | "seller" }) {
   const q = useQuery({ queryKey: ["declutter", "order-porch-place", orderId], queryFn: () => fetchOrderPorchPlace(orderId) });
-  if (q.isError) return <ErrorState variant="inline" title="We couldn't load the pickup place." body={declutterErrorMessage(q.error)} onRetry={() => void q.refetch()} />;
+  useLanguage();
+  if (q.isError) return <ErrorState variant="inline" title={t("ppk.loadOneErr")} body={declutterErrorMessage(q.error)} onRetry={() => void q.refetch()} />;
   const place = q.data;
   // The buyer gets the city only (label null from the server, 20261101054401); the seller their own label.
   if (!place || place === PORCH_PLACES_NOT_DEPLOYED) return null;
@@ -172,7 +176,7 @@ export function OrderPorchPlace({ orderId, side }: { orderId: string; side: "buy
   if (!name) return null;
   return (
     <p className="text-sm [overflow-wrap:anywhere]" data-order-porch-place="">
-      Pickup place: <span className="font-medium">{name}</span>
+      {t("ppk.orderPlace")} <span className="font-medium">{name}</span>
       {side === "seller" && place.address ? <> ({place.address})</> : null}
     </p>
   );

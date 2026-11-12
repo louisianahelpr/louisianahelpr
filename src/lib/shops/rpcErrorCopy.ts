@@ -198,6 +198,8 @@ export const SHOPS_RPC_ERROR_COPY = {
     item_not_found: SC.item_not_found,
     not_authenticated: SC.not_authenticated,
     photo_not_found: SC.photo_not_found,
+    // S009: a live item keeps the 3 photos publishing asks for.
+    photos_required: "A live item keeps at least 3 photos. Add another one first, then remove this one.",
     shop_hidden: SC.shop_hidden,
   },
   shops_set_daily_order_cap: {

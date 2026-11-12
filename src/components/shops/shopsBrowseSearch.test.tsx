@@ -5,7 +5,7 @@
  * src/test/shopsBrowseSearch.test.ts and proven in src/test/pglite/shopsBrowseSearch.pglite.mjs.
  *
  * @mutate src/lib/shops/api.ts |       ...(args.query?.trim() ? { p_query: args.query.trim().slice(0, 80) } : {}), |
- * @mutate src/components/shops/ShopsHomeView.tsx |   const shown = list; |   const shown = list.filter((s) => !words || s.name.toLowerCase().includes(words));
+ * @mutate src/components/shops/ShopsHomeView.tsx |   const shown = list; |   const shown = list.filter((s) => !words \|\| s.name.toLowerCase().includes(words));
  * @mutate src/components/shops/ShopsHomeView.tsx |     queryKey: ["shops", "browse", from?.lat ?? null, from?.lng ?? null, group, searched], |     queryKey: ["shops", "browse", from?.lat ?? null, from?.lng ?? null, group],
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

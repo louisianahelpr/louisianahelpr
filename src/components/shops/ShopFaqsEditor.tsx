@@ -4,6 +4,7 @@
  * phone numbers, emails and links (members reach the shop with Message).
  */
 import { useEffect, useState } from "react";
+import { useReportUnsaved } from "./unsavedSections";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
@@ -36,6 +37,8 @@ export default function ShopFaqsEditor({ shopId }: { shopId: string }) {
     },
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
+  // S2-041: unsaved questions are named before the main save leaves the page.
+  useReportUnsaved("Questions buyers ask", loaded && JSON.stringify(rows) !== JSON.stringify(current.data ?? []));
   const setRow = (i: number, patch: Partial<ShopFaq>) => setRows((r) => r.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
   return (

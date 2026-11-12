@@ -13,6 +13,7 @@
  * delivery waits until the next save, and the shop is told so.
  */
 import { useEffect, useState, type FormEvent } from "react";
+import { useReportUnsaved } from "./unsavedSections";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,11 @@ export default function ShopPickupAddressSection() {
     setLoaded(true);
   }, [current.data, current.isLoading, current.isError, loaded]);
 
+  // S2-041: an unsaved address is named before the main save leaves the page.
+  const saved = current.data;
+  useReportUnsaved("Pickup address", loaded && (
+    line1 !== (saved?.line1 ?? "") || line2 !== (saved?.line2 ?? "") || city !== (saved?.city ?? "") || zip !== (saved?.postal_code ?? "")
+  ));
   const save = useMutation({
     mutationFn: () => saveMyPickupAddress({ line1, line2, city, postal_code: zip.trim() }),
     onSuccess: async () => {

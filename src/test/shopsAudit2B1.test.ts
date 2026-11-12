@@ -3,6 +3,7 @@
  *   S2-034 custom orders have one switch: the shop page reads only shops.custom_orders, and Edit my shop's "Custom
  *          orders" box shows and sets that switch (no "Quotes for work").
  *   S2-037 the shop's own order card reads "Waiting for your answer", never the buyer's "Waiting for the shop".
+ *   S2-041 each Edit my shop part that saves on its own reports unsaved edits (render guard: shopEditUnsaved.test.tsx).
  *   S2-044 an accepted order whose cancel window already closed no longer promises a free cancel.
  */
 import { describe, expect, it } from "vitest";
@@ -58,5 +59,11 @@ describe("Shops audit 2 (Builder 1)", () => {
     const acc = { status: "accepted" as const, close_reason: null, captured_at: null };
     expect(orderStatusLabel(acc, "shop")).toBe("Accepted (charging the buyer's card)");
     expect(orderStatusLabel(acc, "buyer")).toBe("Accepted (charging your card)");
+  });
+  it("S2-041: the parts that save on their own report unsaved edits", async () => {
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync("src/components/shops/ShopFaqsEditor.tsx", "utf8")).toContain('useReportUnsaved("Questions buyers ask",');
+    expect(readFileSync("src/components/shops/ShopPickupAddressSection.tsx", "utf8")).toContain('useReportUnsaved("Pickup address",');
+    expect(readFileSync("src/components/shops/ShopDailyCap.tsx", "utf8")).toContain('useReportUnsaved("Daily order limit",');
   });
 });

@@ -1061,6 +1061,8 @@ describe("Popup grammar — footer", () => {
     // Opt-out prompts, not confirms. Adding a name here is a deliberate
     // statement that the surface is an invitation being declined.
     const DECLINE_LABELS = new Set([
+      // F261a (ProfileEditForm, eda6b23bce): the unsaved-edits prompt's dismiss keeps the member in the form; "Keep editing" says so, "Cancel" would read as cancel the edits.
+      "Keep editing",
       // "It's gone" answers the still-available ask: it ends the listing as gone elsewhere (an answer, not a dismissal).
       "It's gone",
       // AUD31-71 (TwoFactorCard, f2aaec89f6): turning two-step off is a security downgrade; the dismiss names what stays.

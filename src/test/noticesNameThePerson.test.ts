@@ -9,7 +9,7 @@
  *
  * @mutate supabase/migrations/20261109211412_notices_plain_back_office_words.sql | ELSE public.member_display_name((SELECT p.full_name FROM public.profiles p WHERE p.user_id = v_slot.helper_id), 'A Helpr you picked')\n                    \|\| ' didn''t answer | ELSE 'A Helpr you picked' \|\| ' didn''t answer
  * @mutate supabase/migrations/20261108202000_no_show_notice_server_side.sql | ELSE '%6$s gave up %1$s on | ELSE 'A Helpr gave up %1$s on
- * @mutate supabase/migrations/20261112024127_departed_member_scrub_manager_first_name.sql | WHERE o.parent_job_id = n.job_id AND o.helper_id = OLD.user_id) | WHERE false AND o.parent_job_id = n.job_id AND o.helper_id = OLD.user_id)
+ * @mutate supabase/migrations/20261112025718_departed_member_scrub_one_word_names.sql | WHERE o.parent_job_id = n.job_id AND o.helper_id = OLD.user_id) | WHERE false AND o.parent_job_id = n.job_id AND o.helper_id = OLD.user_id)
  * @mutate src/components/GroupJobHelpers.tsx | message: `${formatName(myName, "The person who posted this job")} is still | message: `The person who posted this job is still
  */
 import { describe, it, expect } from "vitest";

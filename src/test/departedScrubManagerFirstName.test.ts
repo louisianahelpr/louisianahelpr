@@ -7,9 +7,9 @@
  * Reads the EFFECTIVE definition. Backend proof: src/test/pglite/departedScrubManagerFirstName.pglite.mjs
  * (3x; FAILs without the migration; 5 mutants each FAIL).
  */
-// @mutate supabase/migrations/20261112024127_departed_member_scrub_manager_first_name.sql |     v_rx := '^' \|\| v_esc \|\| '(?!\w)(?! \w\.)'; |     v_rx := '\m' \|\| v_esc \|\| '(?!\w)';
-// @mutate supabase/migrations/20261112024127_departed_member_scrub_manager_first_name.sql |             OR coalesce(n.message, '') ~ v_rx_share OR |             OR false OR
-// @mutate supabase/migrations/20261112024127_departed_member_scrub_manager_first_name.sql |                     WHERE (g.seller_id = OLD.user_id AND g.manager_id = n.user_id) |                     WHERE (g.seller_id = OLD.user_id OR g.manager_id = n.user_id)
+// @mutate supabase/migrations/20261112025718_departed_member_scrub_one_word_names.sql |     v_rx := '^' \|\| v_esc \|\| '(?!\w)(?! \w\.)'; |     v_rx := '\m' \|\| v_esc \|\| '(?!\w)';
+// @mutate supabase/migrations/20261112025718_departed_member_scrub_one_word_names.sql |             OR coalesce(n.message, '') ~ v_rx_share OR |             OR false OR
+// @mutate supabase/migrations/20261112025718_departed_member_scrub_one_word_names.sql |                     WHERE (g.seller_id = OLD.user_id AND g.manager_id = n.user_id) |                     WHERE (g.seller_id = OLD.user_id OR g.manager_id = n.user_id)
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

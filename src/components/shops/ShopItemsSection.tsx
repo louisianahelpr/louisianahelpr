@@ -150,8 +150,9 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false,
             onDone={stopEditing}
             titleHidden={startAdding}
           />
-          {/* Variants (20261106165310): option lists for a saved item. */}
-          {open && <ShopItemOptionsEditor shopId={shopId} itemId={open.id} basePriceCents={open.price_cents} />}
+          {/* Variants (20261106165310): option lists for a saved item. S2-003: not for a download, whose checkout
+              charges one price and never asks for an option. */}
+          {open && open.kind !== "digital" && <ShopItemOptionsEditor shopId={shopId} itemId={open.id} basePriceCents={open.price_cents} />}
           {/* Preorders (20261108184654): sell a made, home-food or farm item before it is made. */}
           {open && <ShopItemPreorderEditor shopId={shopId} item={open} hasOptions={!!options.data?.has(open.id)} />}
         </>

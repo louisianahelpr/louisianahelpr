@@ -135,6 +135,14 @@ describe("ShopItemsSection (/shops/mine items)", () => {
     expect(api.fetchShopItems).toHaveBeenCalledTimes(2);
   });
 
+  it("S2-003: a download item has no Options section (its checkout sells one price)", async () => {
+    api.fetchShopItems.mockResolvedValue([item({ id: "it1", kind: "digital", subtype: "coloring_books", status: "draft" } as Partial<ShopItem>), item({ id: "it2", title: "Tea towel" })]);
+    renderWith(<ShopItemsSection shopId="s1" ownerId="u1" />);
+    fireEvent.click((await screen.findAllByRole("button", { name: "Edit" }))[0]);
+    expect(await screen.findByLabelText("Title")).toBeTruthy();
+    expect(document.getElementById("item-options-title")).toBeNull();
+  });
+
   it("opening an item that has option lists hides How many are ready (stock is per option)", async () => {
     api.fetchShopItems.mockResolvedValue([item({ stock_count: 4 })]);
     variantsApi.fetchItemOptions.mockResolvedValue(new Map([["it1", { item_id: "it1", option_names: ["Size"], variants: [] }]]));

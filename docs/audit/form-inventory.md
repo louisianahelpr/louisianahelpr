@@ -496,7 +496,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/shops/ShopCustomRequestSheet.tsx` | textarea×1 |  |  | shop-custom-request · shop-custom-request-text |
+| `src/components/shops/ShopCustomRequestSheet.tsx` | input×1, textarea×1, date/calendar×1 | date |  | shop-custom-request · shop-custom-request-text · shop-custom-request-need-by · shop-custom-request-need-by-hint |
 | `src/components/shops/ShopDigitalBuy.tsx` | input×4 | text | 2, 5 | shop-digital-buy · shop-digital-billing · dl-line1 · dl-city · dl-state · dl-zip |
 | `src/components/shops/ShopOrderSheet.tsx` | input×7, textarea×1 | text | 120, 60, 5 | Loading ordering · shop-order-sheet · shop-order-date · shop-order-date-help · shop-order-service-address · shop-order-svc-line1 · shop-order-svc-city · shop-order-svc-zip |
 | `src/components/shops/ShopReviews.tsx` | textarea×1 |  | 1000 | shop-reviews |

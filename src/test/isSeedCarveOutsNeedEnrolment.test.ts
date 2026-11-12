@@ -110,6 +110,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   report_message_party_and_copy: "hides", // posting audit #8: a member can't report a test post they can't see
   declutter_admin_reported_items: "tags", // B77 (20261030071816): the admin's reported-listings read returns is_seed so a test listing is labelled; admin-only, it hides nothing and gates no money
   shops_admin_reported_reviews: "tags", // Q1948 (20261112094500): the admin's reported shop reviews return is_seed (review, order or either person) so the queue drops test rows; admin-only, gates no money
+  shops_check_sweep_claim: "hides", // S2-001 (20261112223654): the server photo-check sweep never claims a seed item, a test account's item or a hidden shop's; service_role only, gates no money
   shops_admin_reported: "tags", // Shops H2 (20261105182210): the admin's reported shops/items read returns is_seed so the queue drops test shops and items; admin-only, gates no money
   declutter_popular_items: "hides", // the landing's Declutter preview (20261110054539): seed items are never shown, to anyone (NOT i.is_seed), and seed orders never count as sales; display only
   declutter_item_save_counts: "hides", // Vinted browse (20261107232700): a seed item counts no saves for a member while test data is hidden (NOT is_seed / seed_hidden_in_discovery); display only

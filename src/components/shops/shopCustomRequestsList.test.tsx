@@ -7,6 +7,7 @@
  * @mutate src/components/shops/ShopCustomRequestsList.tsx |             {OPEN.has(r.status) && openId !== r.id && ( |             {openId !== r.id && (
  * @mutate src/lib/shops/orders.ts |   await invokeShopCheckout({ action: "close_request", request_id: requestId }); |   await invokeShopCheckout({ action: "close_request", order_id: requestId });
  */
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -31,7 +32,8 @@ const req = (over: Partial<CustomRequest>): CustomRequest => ({
 });
 function show(side: "buyer" | "shop") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}><ShopCustomRequestsList side={side} /></QueryClientProvider>);
+  // S2-018: each request row has a Message button (ShopTalk navigates), so the list renders inside a router.
+  return render(<MemoryRouter><QueryClientProvider client={qc}><ShopCustomRequestsList side={side} /></QueryClientProvider></MemoryRouter>);
 }
 
 beforeEach(() => {

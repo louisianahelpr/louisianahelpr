@@ -12,12 +12,13 @@ export function useOpenProblems(orderIds: string[], enabled = true): Map<string,
 }
 
 /** The same read, plus whether it has answered (F360b: a payout day is promised only once no open problem is known). */
-export function useOpenProblemsRead(orderIds: string[], enabled = true): { problems: Map<string, OpenProblem>; settled: boolean } {
+/** `answered`: the read is in or failed (never waiting on it forever); `settled` stays true only on success. */
+export function useOpenProblemsRead(orderIds: string[], enabled = true): { problems: Map<string, OpenProblem>; settled: boolean; answered: boolean } {
   const ids = [...new Set(orderIds)].sort();
   const q = useQuery({
     queryKey: ["declutter", "problems", ids.join(",")],
     queryFn: () => fetchOpenProblems(ids),
     enabled: enabled && ids.length > 0,
   });
-  return { problems: new Map((q.data ?? []).map((p) => [p.order_id, p])), settled: q.isSuccess || ids.length === 0 };
+  return { problems: new Map((q.data ?? []).map((p) => [p.order_id, p])), settled: q.isSuccess || ids.length === 0, answered: !q.isLoading };
 }

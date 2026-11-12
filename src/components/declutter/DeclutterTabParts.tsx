@@ -24,11 +24,17 @@ import { InlineTextButton } from "@/components/ui/InlineTextButton";
 const PaidOrdersSection = lazy(() => import("./DeclutterHandoverViews").then((m) => ({ default: m.PaidOrdersSection })));
 
 /** The placeholder while the paid-order cards load: the same heading and one card's height. */
-function PaidOrdersLoading({ heading, label }: { heading: ReactNode; label: string }) {
+// F409 (whole-app audit 11-10, measured B3g 11-12): the fallback was ONE 112px box however many sales were coming, so a
+// seller's Offers drew under it and were pushed off screen when the cards came (Selling CLS 0.42 at 375 on a seeded
+// seller). It now holds one card-height box per card it is waiting for (up to 4, a screen and more), the same h-64 as
+// PaidOrdersSection's own bones while its pickup and payout reads answer. Guard: paidOrdersWaitForBookings.
+function PaidOrdersLoading({ heading, label, cards = 1 }: { heading: ReactNode; label: string; cards?: number }) {
   return (
     <section className="max-w-3xl space-y-3" aria-label={label} aria-busy="true" data-paid-orders-loading="">
       {heading}
-      <div className="h-28 rounded-[20px] border border-border bg-card" />
+      {Array.from({ length: Math.min(4, Math.max(1, cards)) }, (_, i) => (
+        <div key={i} className="h-64 rounded-[20px] border border-border bg-card" />
+      ))}
     </section>
   );
 }
@@ -134,7 +140,7 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
       : <SectionHeading title={sellerTitle} todo={toHandOver} todoWords="to hand over" />;
   return (
     <>
-    <Suspense fallback={<PaidOrdersLoading heading={paidHeading} label={paidLabel} />}>
+    <Suspense fallback={<PaidOrdersLoading heading={paidHeading} label={paidLabel} cards={new Set(sold.map((l) => l.order_id as string).filter((id) => showDone || !done.has(id) || id === linked)).size} />}>
     <PaidOrdersSection
       cart={lines}
       views={views}

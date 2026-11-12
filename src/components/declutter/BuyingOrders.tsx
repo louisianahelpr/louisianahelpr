@@ -31,7 +31,7 @@ import { porchDayWords } from "./DeclutterPorchDay";
 import { useMyPaidCents } from "./useMyPaidCents";
 import { fetchMyRefundedCents } from "@/lib/declutter/refundedCents";
 import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
-import { useOpenProblems } from "./useOpenProblems";
+import { useOpenProblemsRead } from "./useOpenProblems";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { fetchOrderPickupTimes, orderPickupTimesKey, orderTimeWords } from "@/lib/declutter/orderPickupTimes";
@@ -272,6 +272,8 @@ export type BuyingTracker = {
   /** D-NEW11: the orders and booked times the pickup-day card reads (the same read as above). */
   live: { orderId: string; handover: string | null; status: string | null; lines: CartLine[] }[];
   bookings: MyBooking[] | undefined;
+  /** F409: the bookings and open-problem reads behind the pickup-day card have answered (or failed). */
+  pickupsSettled: boolean;
 };
 
 export function useBuyingTracker(): BuyingTracker {
@@ -288,7 +290,8 @@ export function useBuyingTracker(): BuyingTracker {
   const refundedIds = orders.filter((o) => o.status === "refunded").map((o) => o.orderId).sort();
   const refundedCents = useQuery({ queryKey: ["declutter", "my-refunded-cents", refundedIds.join(",")], queryFn: () => fetchMyRefundedCents(refundedIds), enabled: refundedIds.length > 0 });
   // Audit 1b D2-2: an open problem puts the order on hold (the same key the order card reads).
-  const problems = useOpenProblems(ids);
+  const problemsRead = useOpenProblemsRead(ids);
+  const problems = problemsRead.problems;
   // NIGHT-BUYINGopenpr-2: whether this buyer still owes their side of each open problem (the card reads the same key).
   const problemIds = ids.filter((id) => problems.has(id));
   const problemRows = useQueries({ queries: problemIds.map((id) => ({ queryKey: ["declutter", "problem", id], queryFn: () => fetchOrderProblem(id) })) });
@@ -384,7 +387,7 @@ export function useBuyingTracker(): BuyingTracker {
   counts.needs_you = homeRows.length;
   const ended = endedLines(lines);
   counts.cancelled += ended.length;
-  return { ready: !!cart.data, views, checkouts, ended, counts, live, bookings: bookings.data };
+  return { ready: !!cart.data, views, checkouts, ended, counts, live, bookings: bookings.data, pickupsSettled: !bookings.isLoading && problemsRead.answered };
 }
 
 /**

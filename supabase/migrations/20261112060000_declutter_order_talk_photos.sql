@@ -25,8 +25,8 @@
 --               and NOT when either blocked the other or either is banned (declutter_names_hidden, the rule that
 --               hides names). An admin reads a talk photo only on an order with a problem report that was not
 --               withdrawn (admin sees reports, not chats).
---   2b. declutter_handover_photo_unattached (the uploader's delete policy, 20261029222816): also a 'talk' photo on no
---      message, so the app removes a photo whose send was refused (it never stays in storage).
+--   2b. declutter_handover_photo_unattached and the uploader's DELETE policy (20261029222816), restated: also a 'talk'
+--      photo on no message, so the app removes a photo whose send was refused (it never stays in storage).
 --   3. declutter_order_talk_view: each message also carries photo_path (null when none, or when hidden as above:
 --      then photo_hidden is true). Restated from 20261103050349 verbatim otherwise.
 --   4. declutter_send_order_message(order, body, photo_path DEFAULT NULL): restated from 20261103055505 verbatim plus
@@ -36,7 +36,7 @@
 --      the new one through the default.
 --
 -- MONEY: none. No switch gate (row 62, as 20261030004216).
--- REPLAY-SAFE: ADD COLUMN IF NOT EXISTS, DROP CONSTRAINT/INDEX IF EXISTS before ADD/CREATE, DROP FUNCTION IF EXISTS,
+-- REPLAY-SAFE: ADD COLUMN IF NOT EXISTS, DROP CONSTRAINT/INDEX/POLICY IF EXISTS before ADD/CREATE, DROP FUNCTION IF EXISTS,
 -- CREATE OR REPLACE. Proof: src/test/pglite/declutterOrderTalkPhotos.pglite.mjs (3x).
 
 -- 1. The column.
@@ -162,6 +162,19 @@ AS $fn$
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_handover_photo_unattached(text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_handover_photo_unattached(text) TO authenticated, service_role;
+
+-- The uploader's DELETE policy (20261029222816) restated: it named the 'handover' folder itself before calling the
+-- helper, so the 'talk' branch above was unreachable without this (lh-authz-rls re-check). Same name, same rules,
+-- plus the 'talk' folder.
+DROP POLICY IF EXISTS "declutter-handover: the uploader deletes an unattached handover photo" ON storage.objects;
+CREATE POLICY "declutter-handover: the uploader deletes an unattached handover photo" ON storage.objects
+  FOR DELETE TO authenticated
+  USING (
+    bucket_id = 'declutter-handover'
+    AND (storage.foldername(name))[1] = (SELECT auth.uid())::text
+    AND ((storage.foldername(name))[3] = 'handover' OR (storage.foldername(name))[3] = 'talk')
+    AND public.declutter_handover_photo_unattached(name)
+  );
 
 -- 3. The chat as the caller sees it (restated from 20261103050349; only the message's photo is new).
 CREATE OR REPLACE FUNCTION public.declutter_order_talk_view(p_order_id uuid)

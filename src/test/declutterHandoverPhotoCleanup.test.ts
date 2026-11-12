@@ -12,7 +12,10 @@
  *
  * @mutate supabase/migrations/20261112060000_declutter_order_talk_photos.sql | WHERE h.set_out_photo_path = p_name OR h.picked_up_photo_path = p_name)) | WHERE h.set_out_photo_path = p_name))
  * @mutate supabase/migrations/20261112060000_declutter_order_talk_photos.sql |     AND split_part(p_name, '/', 1) = (SELECT auth.uid())::text\n | \n
- * @mutate supabase/migrations/20261029222816_declutter_handover_photo_cleanup.sql |     AND (storage.foldername(name))[3] = 'handover'\n | \n
+ * @mutate supabase/migrations/20261112060000_declutter_order_talk_photos.sql | AND ((storage.foldername(name))[3] = 'handover' OR | AND (true OR
+ * F389 (20261112060000): an order-chat photo no message holds is deletable by its uploader (a refused send), a sent one never.
+ * @mutate supabase/migrations/20261112060000_declutter_order_talk_photos.sql |              AND NOT EXISTS (SELECT 1 FROM public.declutter_order_talk_messages m WHERE m.photo_path = p_name))), |              )),
+ * @mutate supabase/migrations/20261112060000_declutter_order_talk_photos.sql | OR (storage.foldername(name))[3] = 'talk') | )
  * @mutate src/lib/declutter/handover.ts |   if (res.error) await discardRefusedHandoverPhoto(photoPath);\n  return rpcData(res, (e) => rpcErrorMessage("declutter_porch_photo", e)) | return rpcData(res, (e) => rpcErrorMessage("declutter_porch_photo", e))
  */
 import { describe, expect, it } from "vitest";
@@ -77,7 +80,8 @@ describe("audit 1a #10: a refused handover photo can be removed, an attached one
   it("the helper answers only for the caller's own handover folder, and is SECURITY DEFINER", () => {
     expect(helper).toContain("SECURITY DEFINER");
     expect(helper).toContain("AND split_part(p_name, '/', 1) = (SELECT auth.uid())::text");
-    expect(helper).toContain("AND split_part(p_name, '/', 3) = 'handover'");
+    // F389 (20261112060000) wraps the folder test in parentheses with a second, 'talk', branch.
+    expect(helper).toMatch(/AND \(*split_part\(p_name, '\/', 3\) = 'handover'/);
   });
 
   it("the delete policy: authenticated, the handover bucket, own folder, the handover folder, unattached", () => {
@@ -87,6 +91,12 @@ describe("audit 1a #10: a refused handover photo can be removed, an attached one
     expect(p).toContain("(storage.foldername(name))[1] = (SELECT auth.uid())::text");
     expect(p).toContain("(storage.foldername(name))[3] = 'handover'");
     expect(p).toContain("public.declutter_handover_photo_unattached(name)");
+  });
+
+  it("F389: an order-chat photo is deletable only while no message holds it, and the policy reaches that folder", () => {
+    expect(helper).toMatch(/OR \(split_part\(p_name, '\/', 3\) = 'talk'/);
+    expect(helper).toContain("NOT EXISTS (SELECT 1 FROM public.declutter_order_talk_messages m WHERE m.photo_path = p_name)");
+    expect(newestPolicy()).toContain("(storage.foldername(name))[3] = 'talk'");
   });
 
   it("the app removes the file when a handover photo RPC refuses it", () => {

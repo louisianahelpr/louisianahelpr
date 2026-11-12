@@ -56,6 +56,7 @@ const MUTANTS = {
   unsentReadable: ["                               AND EXISTS (SELECT 1 FROM public.declutter_order_talk_messages m\n                                             JOIN public.declutter_order_talks t ON t.id = m.talk_id\n                                            WHERE m.photo_path = p_name AND t.order_id = o.id)\n", ""],
   adminWithdrawn: ["WHERE p.order_id = v_order AND p.status <> 'withdrawn'));", "WHERE p.order_id = v_order));"],
   deleteAttached: ["             AND NOT EXISTS (SELECT 1 FROM public.declutter_order_talk_messages m WHERE m.photo_path = p_name))),", "             )),"],
+  policyNoTalk: ["    AND ((storage.foldername(name))[3] = 'handover' OR (storage.foldername(name))[3] = 'talk')", "    AND (storage.foldername(name))[3] = 'handover'"],
   viewNoHide: ["'photo_path', CASE WHEN m.sender_side <> v_side AND public.declutter_names_hidden(o.buyer_id, o.seller_id)\n                                               THEN NULL ELSE m.photo_path END,", "'photo_path', m.photo_path,"],
 };
 let mig = readFileSync(MIG_DIR + THIS, "utf8");
@@ -81,6 +82,11 @@ await db.exec(`
   CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS
     $f$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $f$;
   CREATE TABLE storage.objects (bucket_id text, name text, created_at timestamptz NOT NULL DEFAULT now());
+  CREATE FUNCTION storage.foldername(name text) RETURNS text[] LANGUAGE sql IMMUTABLE AS
+    $f$ SELECT (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $f$;
+  ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+  GRANT USAGE ON SCHEMA storage, auth, public TO authenticated;
+  GRANT SELECT, DELETE ON storage.objects TO authenticated;
   CREATE TABLE public.user_roles (user_id uuid, role text);
   CREATE TABLE public.user_blocks (blocker_id uuid, blocked_id uuid);
   CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, ban_status text, auto_suspended_until timestamptz);
@@ -135,6 +141,13 @@ await db.exec(`
   ${prevUnattached}
   ${prevView}
   ${prevSend}
+  CREATE POLICY "declutter-handover: the two parties and admins read" ON storage.objects
+    FOR SELECT TO authenticated
+    USING (bucket_id = 'declutter-handover' AND public.declutter_handover_photo_access(name, false));
+  CREATE POLICY "declutter-handover: the uploader deletes an unattached handover photo" ON storage.objects
+    FOR DELETE TO authenticated
+    USING (bucket_id = 'declutter-handover' AND (storage.foldername(name))[1] = (SELECT auth.uid())::text
+      AND (storage.foldername(name))[3] = 'handover' AND public.declutter_handover_photo_unattached(name));
 `);
 
 const runs = process.env.NEW_MIGRATION === "skip" ? 0 : 3;
@@ -240,6 +253,19 @@ check((await access(CAL, talk(CAL, O(5), "c.jpg"), true)) === false, "a banned m
 await db.exec(`DELETE FROM public.profiles`);
 check((await access(BOB, talk(CAL, O(5)), false)) === true, "with no block or ban the photo reads again");
 
+// The real storage DELETE, under the policy, as the member (the lh-authz-rls re-check: the old policy named only the
+// 'handover' folder, so the helper's 'talk' branch could not be reached).
+const del = async (uid, name) => {
+  await as(uid);
+  await db.exec("SET ROLE authenticated");
+  try { return (await db.query(`DELETE FROM storage.objects WHERE bucket_id = 'declutter-handover' AND name = $1 RETURNING name`, [name])).rows.length; }
+  catch (e) { return `error: ${e.message}`; }
+  finally { await db.exec("RESET ROLE"); }
+};
+await put(talk(SAM, O(1), "refused.jpg"));
+check((await del(ANN, talk(SAM, O(1), "refused.jpg"))) === 0, "the other side can not delete an unsent chat photo");
+check((await del(SAM, talk(SAM, O(1), "refused.jpg"))) === 1, "the uploader deletes an unsent chat photo (a refused send) through storage");
+check((await del(ANN, talk(ANN, O(1)))) === 0, "a sent chat photo can not be deleted through storage");
 const g = (await db.query(`SELECT has_function_privilege('anon', 'public.declutter_send_order_message(uuid, text, text)', 'EXECUTE') AS anon,
   has_function_privilege('authenticated', 'public.declutter_send_order_message(uuid, text, text)', 'EXECUTE') AS auth,
   (SELECT count(*)::int FROM pg_proc WHERE proname = 'declutter_send_order_message') AS n`)).rows[0];

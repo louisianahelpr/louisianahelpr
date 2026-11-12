@@ -14,7 +14,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
-import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
+import { DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/photoRules";
 import { StepHead } from "./DeclutterSellSteps";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
@@ -30,6 +30,8 @@ import { useSellFlowState, type SellFlow } from "./useSellFlowState";
 import { photoPublicUrl } from "@/lib/declutter/api";
 import { BuyerPreviewCard } from "./BuyerPreviewCard";
 import { DEFAULT_DROP_PCT } from "@/lib/declutter/priceDrop";
+import "@/lib/i18n/enSellForm";
+import { t as tr, useLanguage } from "@/lib/i18n/language";
 
 type Where = "photos" | SummaryField | "settings" | "tax";
 
@@ -37,12 +39,10 @@ type Where = "photos" | SummaryField | "settings" | "tax";
  * The first thing that blocks Post, top to bottom, and the row it belongs to. While the AI is writing, the title and
  * price it is about to fill are not problems yet (audit posting 1030 #7: tapping Post then said "Give the item a name").
  */
-const SIZE_PROBLEM = "Pick a size, so buyers know what it takes to move it.";
-const SIZE_PROBLEM_FREE = "Pick a size, so the person picking it up knows what it takes to move it.";
 
 function postProblems(s: SellFlow): { message: string; at: Where }[] {
   const out: { message: string; at: Where }[] = [];
-  if (s.photoTotal < DECLUTTER_MIN_PHOTOS) out.push({ message: `Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}.`, at: "photos" });
+  if (s.photoTotal < DECLUTTER_MIN_PHOTOS) out.push({ message: DECLUTTER_MIN_PHOTOS === 1 ? tr("sf.addPhotoOne") : tr("sf.addPhotos", { n: DECLUTTER_MIN_PHOTOS }), at: "photos" });
   const writing = s.ai.state.status === "busy";
   // formProblem says the first thing wrong; each answered in turn, so all of them are marked at once (audit posting 1030 #19).
   let probe = writing ? { ...s.form, title: s.form.title.trim() || "Being written", price: s.form.price || "100", floor: s.form.floor || "1" } : s.form;
@@ -52,10 +52,10 @@ function postProblems(s: SellFlow): { message: string; at: Where }[] {
     if (at === "settings") break;
     probe = at === "title" ? { ...probe, title: "Answered" } : { ...probe, price: "100", floor: "1", dropPct: DEFAULT_DROP_PCT };
   }
-  if (s.savedWays.length === 0 && !out.some((p) => p.at === "settings")) out.push({ message: "Choose a way buyers can get it in Settings.", at: "settings" });
+  if (s.savedWays.length === 0 && !out.some((p) => p.at === "settings")) out.push({ message: tr("sf.chooseWay"), at: "settings" });
   // Nobody buys a give-away (audit 1110 F340): that form names the person picking it up.
-  if (!writing && !s.sizeKnown) out.push({ message: s.form.free ? SIZE_PROBLEM_FREE : SIZE_PROBLEM, at: "size" });
-  if (!s.attested) out.push({ message: "Tick the box about this item before you list it.", at: "tax" });
+  if (!writing && !s.sizeKnown) out.push({ message: tr(s.form.free ? "sf.sizeProblemFree" : "sf.sizeProblem"), at: "size" });
+  if (!s.attested) out.push({ message: tr("sf.tickBox"), at: "tax" });
   return out;
 }
 
@@ -82,6 +82,7 @@ export function SellOneScreen() {
 
 function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   const s = useSellFlowState(null);
+  useLanguage(); // re-render in the member's language when it changes or loads (F260q)
   const { user, underAge, form, held, setHeld, photos, uploading, aiAsk, ai, savedWays, windows, autoFreeWanted } = s;
   // LEAD-POST-PLACES (owner 2026-10-31): with saved places, each shows with its own days and hours, not one area.
   const pickup = usePickupLines(savedWays, form.areaLabel, windows);
@@ -104,9 +105,9 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   if (!user) return null;
   if (underAge) {
     return (
-      <AppPage title="Sell an item" backTo="/declutter">
-        <DeclutterNotice tone="warn" title="You must be 18 or older to sell on Declutter.">
-          You can still look around. Selling opens when your birthday on file says you're 18.
+      <AppPage title={tr("sf.sellAnItem")} backTo="/declutter">
+        <DeclutterNotice tone="warn" title={tr("sf.underAgeTitle")}>
+          {tr("sf.underAgeBody")}
         </DeclutterNotice>
       </AppPage>
     );
@@ -137,18 +138,18 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
 
   return (
     // Audit 11-10 F341: a giveaway keeps its title on a phone too, so the first heading there is not just "Show it off".
-    <AppPage title={form.free ? "Give it away" : "Sell an item"} backTo="/declutter?tab=selling" phoneHidesTitle={!form.free}>
+    <AppPage title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} backTo="/declutter?tab=selling" phoneHidesTitle={!form.free}>
       <div className="mx-auto w-full max-w-xl space-y-6" data-sell-one-screen="">
         {s.keptWork.restored && (
           <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-[20px] border border-border bg-card p-4" data-sell-kept="">
-            <p className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">We kept your listing from last time.</p>
-            <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => void s.keptWork.finish().then(onStartOver)}>Start over</Button>
+            <p className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">{tr("sf.kept")}</p>
+            <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => void s.keptWork.finish().then(onStartOver)}>{tr("sf.startOver")}</Button>
           </div>
         )}
         {s.keptWork.note && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-sell-not-kept="">{s.keptWork.note}</p>}
 
         <section className="space-y-4" aria-labelledby="sell-step" data-sell-row="photos">
-          <StepHead title="Show it off" sub={`Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}, up to ${MAX_PHOTOS}. We write the listing from them.`} />
+          <StepHead title={tr("sf.showItOff")} sub={tr(DECLUTTER_MIN_PHOTOS === 1 ? "sf.photosSubOne" : "sf.photosSub", { n: DECLUTTER_MIN_PHOTOS, max: MAX_PHOTOS })} />
           <SellPhotos
             uploaded={photos.data ?? []}
             held={held}
@@ -196,13 +197,13 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
         <BuyerPreview s={s} />
         {s.failedHeld > 0 && (
           <div role="alert" className="space-y-3 rounded-[20px] border border-border bg-card p-4" data-photo-trouble="">
-            <p className="text-ds-15 font-semibold text-foreground">{s.failedHeld === 1 ? "1 photo didn't upload" : `${s.failedHeld} photos didn't upload`}. Your listing isn't up yet.</p>
+            <p className="text-ds-15 font-semibold text-foreground">{s.failedHeld === 1 ? tr("sf.onePhotoFailed") : tr("sf.photosFailed", { n: s.failedHeld })}. {tr("sf.notUpYet")}</p>
             {s.photoFailure && <p className="text-ds-14 text-muted-foreground [overflow-wrap:anywhere]">{s.photoFailure}</p>}
             <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" className="rounded-full" onClick={() => void s.onPublish()}>Try again</Button>
+              <Button type="button" size="sm" className="rounded-full" onClick={() => void s.onPublish()}>{tr("sf.tryAgain")}</Button>
               {s.photoCount > 0 && (
                 <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => void s.onPublish({ withoutFailed: true })}>
-                  Post with {s.photoCount === 1 ? "1 photo" : `${s.photoCount} photos`}
+                  {s.photoCount === 1 ? tr("sf.postWithOne") : tr("sf.postWith", { n: s.photoCount })}
                 </Button>
               )}
             </div>
@@ -210,18 +211,18 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
         )}
         {/* LEAD-POST-SLOW (owner 2026-10-31: "Post it does nothing"): the pointer by the button names what blocks Post, so a
             tap whose marked row is out of sight is never a tap that did nothing. */}
-        {tried && bad && <p className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-pointer">Not posted yet: {bad.message} Fix what's marked above, then post.</p>}
+        {tried && bad && <p className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-pointer">{tr("sf.notPosted", { problem: bad.message })}</p>}
         {postWhenWritten && (
           <div className="flex flex-wrap items-center justify-between gap-2" role="status" data-post-when-written="">
-            <p className="min-w-0 flex-1 text-ds-14 text-foreground">Still writing your listing. It posts when that's done.</p>
-            <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => setPostWhenWritten(false)}>Don't post yet</Button>
+            <p className="min-w-0 flex-1 text-ds-14 text-foreground">{tr("sf.stillWriting")}</p>
+            <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => setPostWhenWritten(false)}>{tr("sf.dontPostYet")}</Button>
           </div>
         )}
         {/* Owner 2026-11-01: while it goes up, a clear in-progress view (Uploading photos -> Checking -> Live), not only a
             greyed button; the done view after is unchanged. */}
-        {s.publishing && <SellProgress title="Posting your listing…" rows={[{ name: form.title.trim() || "Your item", step: postStepOf(s.postStep) }]} note={s.postStep ? `${s.postStep}. Keep this page open.` : "Keep this page open."} />}
+        {s.publishing && <SellProgress title={tr("sf.posting")} rows={[{ name: form.title.trim() || tr("sf.yourItem"), step: postStepOf(s.postStep) }]} note={s.postStep ? `${s.postStep}. ${tr("sf.keepOpen")}` : tr("sf.keepOpen")} />}
         <Button type="button" className="w-full rounded-full" disabled={s.publishing || s.saving || postWhenWritten} onClick={post}>
-          {s.publishing ? (s.postStep ?? "Posting…") : "Post it"}
+          {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : tr("sf.postIt")}
         </Button>
         <p role="status" className="sr-only" data-post-step="">{s.publishing ? s.postStep : ""}</p>
         {/* Payouts: only once money is owed (owner 2026-10-27, list first, set up at first sale); never on a give-away,

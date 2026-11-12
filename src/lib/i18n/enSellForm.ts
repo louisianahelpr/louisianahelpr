@@ -1,0 +1,53 @@
+/**
+ * The new-listing sell screen's own words, in English (F260q, owner 11-11 "Spanish everything"): SellOneScreen, the
+ * parts of SellFormParts it shows (price box, "You get", free note, Accept offers, the tax box head) and the trades
+ * switch. A screen dictionary (its own chunk, vite.config.ts I18N_SCREEN_DICTS): every importer is on the Sell page.
+ * Importing this file registers them with t() (enRegistry.ts). Spanish: esSellForm.ts.
+ */
+import { addEnglish } from "./enRegistry";
+
+export const enSellForm = {
+  "sf.sellAnItem": "Sell an item",
+  "sf.giveItAway": "Give it away",
+  "sf.underAgeTitle": "You must be 18 or older to sell on Declutter.",
+  "sf.underAgeBody": "You can still look around. Selling opens when your birthday on file says you're 18.",
+  "sf.kept": "We kept your listing from last time.",
+  "sf.startOver": "Start over",
+  "sf.showItOff": "Show it off",
+  "sf.photosSubOne": "Add at least 1 photo, up to {max}. We write the listing from them.",
+  "sf.photosSub": "Add at least {n} photos, up to {max}. We write the listing from them.",
+  "sf.addPhotoOne": "Add at least 1 photo.",
+  "sf.addPhotos": "Add at least {n} photos.",
+  "sf.chooseWay": "Choose a way buyers can get it in Settings.",
+  "sf.sizeProblem": "Pick a size, so buyers know what it takes to move it.",
+  "sf.sizeProblemFree": "Pick a size, so the person picking it up knows what it takes to move it.",
+  "sf.tickBox": "Tick the box about this item before you list it.",
+  "sf.onePhotoFailed": "1 photo didn't upload",
+  "sf.photosFailed": "{n} photos didn't upload",
+  "sf.notUpYet": "Your listing isn't up yet.",
+  "sf.tryAgain": "Try again",
+  "sf.postWithOne": "Post with 1 photo",
+  "sf.postWith": "Post with {n} photos",
+  "sf.notPosted": "Not posted yet: {problem} Fix what's marked above, then post.",
+  "sf.stillWriting": "Still writing your listing. It posts when that's done.",
+  "sf.dontPostYet": "Don't post yet",
+  "sf.posting": "Posting your listing…",
+  "sf.yourItem": "Your item",
+  "sf.keepOpen": "Keep this page open.",
+  "sf.postingShort": "Posting…",
+  "sf.postIt": "Post it",
+  "sf.tradesTitle": "Open to trades?",
+  "sf.tradesLine": "Buyers can offer one of their listings instead of cash",
+  "sf.youGet": "You get if it sells today",
+  "sf.price": "Price",
+  "sf.lower": "Lower the price by $1",
+  "sf.raise": "Raise the price by $1",
+  "sf.freeNote": "Free items are claimed, not bought: no offers and no price drops. The person who claims it picks it up from your porch, and nothing is charged.",
+  "sf.offersTitle": "Accept offers",
+  "sf.offersOn": "Buyers can offer a lower price, and you say yes or no.",
+  "sf.offersOff": "Off. Buyers pay your price with Buy now; no offers.",
+  "sf.taxHead": "Confirm about this item",
+  "sf.taxLine": "Louisiana doesn't charge sales tax on occasional sales of your own things.",
+} as const;
+
+addEnglish(enSellForm);

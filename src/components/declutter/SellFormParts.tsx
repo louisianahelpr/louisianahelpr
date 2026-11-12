@@ -10,7 +10,6 @@ import { CARD_FIELD_CLS } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import type { SellerHandover } from "@/lib/declutter/api";
 import { centsToDollars } from "@/lib/declutter/money";
-import { OFFERS_TITLE, offersSettingLine } from "@/lib/declutter/offersOnPost";
 import { DROP_PCT_CHOICES } from "@/lib/declutter/priceDrop";
 import { ChipGroup, DropSchedule, StepperButton, dropRunTime } from "./DeclutterSellSteps";
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
@@ -23,6 +22,8 @@ import type { SellFlow } from "./useSellFlowState";
 import { formatPrice } from "@/lib/declutter/distance";
 import { sellerGetsTodayCents } from "@/lib/declutter/sellerGetsToday";
 import { useSellerSetupFee } from "./useSellerSetupFee";
+import "@/lib/i18n/enSellForm";
+import { t } from "@/lib/i18n/language";
 
 /** The Sell form field look, shared with the card-look Input (src/components/ui/input.tsx). */
 export const SELL_INPUT = CARD_FIELD_CLS;
@@ -50,7 +51,7 @@ export function SellYouGet({ priceCents }: { priceCents: number }) {
   const feeCents = fee.server && fee.orderId ? 0 : fee.cents;
   return (
     <p className="flex items-baseline justify-between text-ds-14 text-foreground" data-sell-keep="">
-      You get if it sells today
+      {t("sf.youGet")}
       <span className="font-bold text-[hsl(var(--burnt-sienna))]">{formatPrice(sellerGetsTodayCents(priceCents, feeCents))}</span>
     </p>
   );
@@ -61,7 +62,7 @@ export function SellPriceInput({ s }: { s: SellFlow }) {
   const { form, set, priceCents } = s;
   return (
     <div className="flex items-center justify-center gap-4">
-      <StepperButton label="Lower the price by $1" disabled={!priceCents || priceCents <= 100} onClick={() => set("price", centsToDollars(Math.max(100, (priceCents ?? 100) - 100)))}>−</StepperButton>
+      <StepperButton label={t("sf.lower")} disabled={!priceCents || priceCents <= 100} onClick={() => set("price", centsToDollars(Math.max(100, (priceCents ?? 100) - 100)))}>−</StepperButton>
       {/* text-ds-40 on the WRAPPER too (deep audit #43): on a phone index.css floors every input at
           max(16px, 1em), which beats the input's own text-ds-40, and 1em is this wrapper's size. Without it
           the digits drew at 16px beside a 40px "$". Guard: src/test/bigDigitInputsKeepTheirSize.test.ts. */}
@@ -69,7 +70,7 @@ export function SellPriceInput({ s }: { s: SellFlow }) {
         <span className="text-ds-40 font-bold" aria-hidden>$</span>
         <input
           id="sell-price"
-          aria-label="Price"
+          aria-label={t("sf.price")}
           inputMode="decimal"
           value={form.price}
           onChange={(e) => set("price", e.target.value.replace(/[^0-9.]/g, ""))}
@@ -78,7 +79,7 @@ export function SellPriceInput({ s }: { s: SellFlow }) {
           className="max-w-[7ch] bg-transparent text-left text-ds-40 font-bold tabular-nums outline-none focus-visible:outline-none placeholder:text-muted-foreground"
         />
       </div>
-      <StepperButton label="Raise the price by $1" disabled={(priceCents ?? 0) >= 100_000} onClick={() => set("price", centsToDollars(Math.min(100_000, (priceCents ?? 0) + 100)))}>+</StepperButton>
+      <StepperButton label={t("sf.raise")} disabled={(priceCents ?? 0) >= 100_000} onClick={() => set("price", centsToDollars(Math.min(100_000, (priceCents ?? 0) + 100)))}>+</StepperButton>
     </div>
   );
 }
@@ -99,8 +100,7 @@ export function SellFreeToggle({ s }: { s: SellFlow }) {
 export function SellFreeNote() {
   return (
     <p className="text-ds-14 text-muted-foreground" data-sell-free-note="">
-      Free items are claimed, not bought: no offers and no price drops. The person who claims it picks it up
-      from your porch, and nothing is charged.
+      {t("sf.freeNote")}
     </p>
   );
 }
@@ -115,8 +115,8 @@ export function SellOffersToggle({ s }: { s: SellFlow }) {
   return (
     <div className="flex min-h-11 items-center gap-3 rounded-[14px] border border-border bg-card px-4 py-3" data-sell-offers={offersWanted ? "on" : "off"}>
       <label htmlFor="sell-offers" className="min-w-0 flex-1">
-        <span className="block text-ds-15 font-semibold text-foreground">{OFFERS_TITLE}</span>
-        <span className="block text-ds-13 text-muted-foreground">{offersSettingLine(offersWanted)}</span>
+        <span className="block text-ds-15 font-semibold text-foreground">{t("sf.offersTitle")}</span>
+        <span className="block text-ds-13 text-muted-foreground">{t(offersWanted ? "sf.offersOn" : "sf.offersOff")}</span>
       </label>
       <Switch id="sell-offers" checked={offersWanted} onCheckedChange={(v) => setOffersWanted(v === true)} />
     </div>
@@ -198,8 +198,8 @@ export function SellTaxBox({ s }: { s: SellFlow }) {
   const { attested, setAttested, form } = s;
   return (
     <div className="space-y-3 rounded-[20px] border border-border bg-card p-4" aria-labelledby="sell-tax-head" data-sell-tax="">
-      <h3 id="sell-tax-head" className="text-ds-15 font-semibold text-foreground">Confirm about this item</h3>
-      {!form.free && <p className="text-ds-13 text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things.</p>}
+      <h3 id="sell-tax-head" className="text-ds-15 font-semibold text-foreground">{t("sf.taxHead")}</h3>
+      {!form.free && <p className="text-ds-13 text-muted-foreground">{t("sf.taxLine")}</p>}
       <TaxStatementsCheck id="sell-tax" checked={attested} onChange={setAttested} free={form.free} />
     </div>
   );

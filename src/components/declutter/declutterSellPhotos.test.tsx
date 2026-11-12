@@ -212,7 +212,7 @@ describe("photo-first selling, one screen", () => {
 
   // Owner 2026-10-29: a new listing is ONE screen. No step walk ("Continue", "1 of 5"); the summary rows and one Post.
   // @mutate src/components/declutter/DeclutterSellView.tsx |   if (!itemId) return <SellOneScreen />; |   void SellOneScreen;
-  // @mutate src/components/declutter/SellOneScreen.tsx |           {s.publishing ? (s.postStep ?? "Posting…") : "Post it"} |           {s.publishing ? (s.postStep ?? "Posting…") : "Continue"}
+  // @mutate src/components/declutter/SellOneScreen.tsx |           {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : tr("sf.postIt")} |           {s.publishing ? (s.postStep ?? tr("sf.postingShort")) : "Continue"}
   // @mutate src/components/declutter/SellSummaryCard.tsx |           <Row {...row("size")} title={t("sell.size")} value="" empty> | <Row {...row("size")} title={t("sell.size")} value="" empty field="title">
   it("a NEW listing is one screen: photos, the summary rows, the tax box and Post it; no step walk, and no settings on it (owner 2026-10-30)", async () => {
     open();
@@ -640,7 +640,7 @@ describe("photo-first selling, one screen", () => {
   });
 
   // Audit posting 1030 #12, #13: a giveaway talked about selling and offered a price.
-  // @mutate src/components/declutter/SellOneScreen.tsx | title={form.free ? "Give it away" : "Sell an item"} | title="Sell an item"
+  // @mutate src/components/declutter/SellOneScreen.tsx | title={tr(form.free ? "sf.giveItAway" : "sf.sellAnItem")} | title={tr("sf.sellAnItem")}
   // @mutate src/components/declutter/SellOneScreen.tsx | phoneHidesTitle={!form.free}> | phoneHidesTitle>
   // @mutate src/components/declutter/SellSummaryCard.tsx | : field === "description" ? "text-foreground" : "font-semibold text-foreground"} | : "font-semibold text-foreground"}
   // @mutate src/components/declutter/SellSummaryCard.tsx | instead={form.free ? { label: t("sell.chargeForIt"), onClick: () => { set("free", false); setOpen(() => "price"); } } : undefined} | instead={undefined}
@@ -830,7 +830,7 @@ describe("photo-first selling, one screen", () => {
   });
 
   // Nobody buys a give-away, so its Size nudge names the person picking it up (audit 1110 F340).
-  // @mutate src/components/declutter/SellOneScreen.tsx | message: s.form.free ? SIZE_PROBLEM_FREE : SIZE_PROBLEM, | message: SIZE_PROBLEM,
+  // @mutate src/components/declutter/SellOneScreen.tsx | message: tr(s.form.free ? "sf.sizeProblemFree" : "sf.sizeProblem"), | message: tr("sf.sizeProblem"),
   it("the photo tool failed on a give-away: the Size nudge talks about the person picking it up, not buyers", async () => {
     aiAnswer.fails = true;
     open("/declutter/sell?free=1");
@@ -1017,7 +1017,7 @@ describe("photo-first selling, one screen", () => {
 
   // The owner's second Post on 10-31 never reached the server (no declutter_create_item in the request log between
   // 14:40:30 and 14:41:47Z): a tap that stops on the device must say why right by the button, in the row's own words.
-  // @mutate src/components/declutter/SellOneScreen.tsx | Not posted yet: {bad.message} Fix | Fix
+  // @mutate src/lib/i18n/enSellForm.ts | "Not posted yet: {problem} Fix | "Fix
   it("LEAD-POST-SLOW: a Post that stops on the device names what stops it, right by the button", async () => {
     open();
     await screen.findByRole("heading", { name: "Show it off" });

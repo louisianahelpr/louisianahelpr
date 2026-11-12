@@ -11,6 +11,10 @@
  * @mutate src/components/admin/adminReports/reportedQuestions.ts |     for (const r of srs) questions.set(r.review_id, r); |     void srs;
  * @mutate src/components/admin/adminReports/reportedQuestions.ts | ${type === SHOP_REVIEW_REPORT ? "Shop" : "Declutter"} review | Declutter review
  * @mutate src/lib/shops/reviews.ts | supabase.rpc("shops_admin_remove_review", | supabase.rpc("declutter_admin_remove_review",
+ *
+ * S052 (Shops audit 11-12): each review row shows star icons (the profile's ReviewStars, "N of 5 stars") and the date,
+ * never the gray text "N stars ·".
+ * @mutate src/components/shops/ShopReviews.tsx |                     <ReviewStars rating={r.stars} /> |                     <span>{r.stars} stars ·</span>
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -51,6 +55,20 @@ import { ReportedCopy } from "@/components/admin/adminReports/ReportedCopy";
 import { hydrateReportedQuestions, isQuestionReport, questionAuthor, questionSubject } from "@/components/admin/adminReports/reportedQuestions";
 
 beforeEach(() => { calls.rpc = []; calls.declutterRemoved = []; calls.dialog = []; });
+
+describe("S052: a shop review row matches the profile's review row", () => {
+  it("star icons named 'N of 5 stars' and the month, then the words", async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={qc}><ShopReviewsCard shopId="s1" /></QueryClientProvider>);
+    expect(await screen.findByText("Late and cold")).toBeInTheDocument();
+    const row = document.querySelector("[data-shop-review-row]") as HTMLElement;
+    const stars = row.querySelector('[role="img"]') as HTMLElement;
+    expect(stars.getAttribute("aria-label")).toBe("2 of 5 stars");
+    expect(stars.querySelectorAll("svg")).toHaveLength(5);
+    expect(row.textContent).toContain("Nov 2026");
+    expect(row.textContent).not.toMatch(/\d stars? ·/);
+  });
+});
 
 describe("Q1948: a Shops review can be reported and taken down", () => {
   it("each review on the shop page has Report, which opens the shop_review report", async () => {

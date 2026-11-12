@@ -20,6 +20,7 @@ import { shopsErrorMessage } from "@/lib/shops/errors";
 import { fetchMyOrderReview, fetchShopReviews, leaveShopReview, myOrderReviewKey, shopReviewsKey } from "@/lib/shops/reviews";
 import { ShopCard } from "./ShopProfile";
 import { ShopRating } from "./shopsUi";
+import { ReviewStars } from "@/components/profile/reviewCard";
 
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 
@@ -106,16 +107,20 @@ export function ShopReviewsCard({ shopId }: { shopId: string }) {
           <ShopRating rating={d.rating} count={d.review_count} />
           <ul className="divide-y divide-border">
             {d.reviews.map((r) => (
-              <li key={r.id} className="py-2 text-ds-14">
-                {r.comment && <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{r.comment}</p>}
+              // S052 (Shops audit 11-12): the profile review row's star icons (ReviewStars, "N of 5 stars" for screen
+              // readers) and date on top, the words under them; it was the gray text "5 stars · Nov 2026" under them.
+              // The buyer's first name needs shops_shop_reviews to return it (a server change, not made here).
+              <li key={r.id} className="py-2 text-ds-14" data-shop-review-row="">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-ds-12 text-muted-foreground">
-                    {r.stars} star{r.stars === 1 ? "" : "s"} · {monthYear(r.created_at)}
-                  </p>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <ReviewStars rating={r.stars} />
+                    <span className="text-ds-12 text-muted-foreground">{monthYear(r.created_at)}</span>
+                  </div>
                   <Button type="button" variant="ghost" size="sm" className="shrink-0 pl-4 pr-0 text-ds-13 font-normal text-muted-foreground" onClick={() => setReporting(r.id)} data-report="shop_review">
                     Report
                   </Button>
                 </div>
+                {r.comment && <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{r.comment}</p>}
               </li>
             ))}
           </ul>

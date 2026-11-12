@@ -5,7 +5,7 @@
  *
  *  1. /shops/orders: "Cancel order" shows only on an accepted, CHARGED order
  *     with no open problem; the dialog reads shops_order_cancel_quote and says
- *     free (the refund, less the card-processing cost and its tax) or late
+ *     free (the refund, less a small card processing cost and its tax) or late
  *     (nothing back, the shop is paid); the tap sends what was shown
  *     (expect 'free' / 'late'); cancel_terms_changed re-reads the quote and
  *     says so instead of cancelling.
@@ -138,7 +138,7 @@ describe("the buyer's Cancel order (M3)", () => {
     renderAt("/shops/orders", <ShopOrdersPage />);
     fireEvent.click(await screen.findByRole("button", { name: "Cancel order" }));
     const dialog = await screen.findByRole("dialog", { name: "Cancel this order?" });
-    await within(dialog).findByText(/You get \$22\.50 back, less the card-processing cost and the sales tax on it/);
+    await within(dialog).findByText(/You get \$22\.50 back, less a small card processing cost and the sales tax on it/);
     fireEvent.click(within(dialog).getByRole("button", { name: "confirm Cancel order" }));
     await waitFor(() => expect(invoke).toHaveBeenCalled());
     expect(bodies()[0]).toMatchObject({ action: "buyer_cancel", order_id: "o1", expect: "free" });
@@ -199,7 +199,7 @@ describe("the shop's Cancel order and Buyer didn't show (M3)", () => {
     // A future ready date: no no-show yet.
     expect(screen.queryByRole("button", { name: "Buyer didn't show" })).toBeNull();
     const dialog = await screen.findByRole("dialog", { name: "Cancel this accepted order?" });
-    expect(within(dialog).getByText(/The buyer gets everything back\. The card fee comes out of your next payout, and it counts as a Shops strike/)).toBeTruthy();
+    expect(within(dialog).getByText(/The buyer gets everything back\. The card processing cost comes out of your next payout, and it counts as a Shops strike/)).toBeTruthy();
     fireEvent.change(within(dialog).getByLabelText("Tell the buyer why (optional)"), { target: { value: "Oven broke" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "confirm Cancel and refund" }));
     await waitFor(() => expect(invoke).toHaveBeenCalled());
@@ -240,7 +240,7 @@ describe("the shop's Cancel order and Buyer didn't show (M3)", () => {
 describe("the new endings and the lib's bodies", () => {
   it("words each ending for each side", () => {
     const o = (status: ShopOrder["status"], close_reason: string) => ({ status, close_reason, captured_at: "x" });
-    expect(orderStatusLabel(o("refunded", "buyer_cancelled_free"))).toBe("Cancelled by you (refunded, less the card-processing cost)");
+    expect(orderStatusLabel(o("refunded", "buyer_cancelled_free"))).toBe("Cancelled by you (refunded, less a small card processing cost)");
     expect(orderStatusLabel(o("cancelled", "buyer_cancelled_late"), "shop")).toBe("Cancelled by the buyer late (you are paid)");
     expect(orderStatusLabel(o("cancelled", "buyer_no_show"))).toBe("Missed pickup (not refunded; the shop is paid)");
     expect(orderStatusLabel(o("refunded", "shop_cancelled"))).toBe("Cancelled by the shop (refunded in full)");

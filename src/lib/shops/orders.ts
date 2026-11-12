@@ -22,7 +22,7 @@ export type CancelPolicy = "until_24h_before_ready" | "until_accept" | "until_ha
 export const CANCEL_POLICY_TEXT: Record<CancelPolicy, { label: string; detail: string }> = {
   until_24h_before_ready: {
     label: "Free to cancel until 24 hours before the ready date",
-    detail: "After the shop accepts, you can cancel for a refund of the price until 24 hours before the ready date. The card fee is not refunded.",
+    detail: "After the shop accepts, you can cancel for a refund of the price until 24 hours before the ready date. A small card processing cost isn't refunded.",
   },
   until_accept: {
     label: "Free to cancel until the shop accepts",
@@ -33,7 +33,7 @@ export const CANCEL_POLICY_TEXT: Record<CancelPolicy, { label: string; detail: s
   // "LET THE SHOPS DECIDE THIS."): READY_TAP_CANCEL_TEXT, and cancelPolicyText for the buyer's exact words.
   until_handover: {
     label: "Free to cancel until your order is ready",
-    detail: "After the shop accepts, you can cancel for a refund of the price until your ready date begins, or until the shop marks your order ready if its rule says so. The card fee is not refunded.",
+    detail: "After the shop accepts, you can cancel for a refund of the price until your ready date begins, or until the shop marks your order ready if its rule says so. A small card processing cost isn't refunded.",
   },
 };
 export const CANCEL_POLICIES = Object.keys(CANCEL_POLICY_TEXT) as CancelPolicy[];
@@ -46,22 +46,36 @@ export const READY_TAP_CANCEL_TEXT: Record<ReadyTapCancel, { label: string; hint
   ends_at_tap: {
     label: "Marking it ready ends free cancel",
     hint: "Buyers can cancel for free until you mark the order ready, or until the ready date begins if that comes first.",
-    buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready sooner, free cancel ends then. The card fee is not refunded.",
+    buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready sooner, free cancel ends then. A small card processing cost isn't refunded.",
   },
   from_day_before: {
     label: "Marking it ready counts from the day before (default)",
     hint: "If you mark an order ready early, buyers can still cancel for free until the day before the ready date begins.",
-    buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready, free cancel ends then, but never before the day before your ready date. The card fee is not refunded.",
+    buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready, free cancel ends then, but never before the day before your ready date. A small card processing cost isn't refunded.",
   },
   never_shortens: {
     label: "Marking it ready never ends free cancel early",
     hint: "Buyers can cancel for free until the ready date begins, however early you mark the order ready.",
-    buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins, even if the shop marks your order ready sooner. The card fee is not refunded.",
+    buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins, even if the shop marks your order ready sooner. A small card processing cost isn't refunded.",
   },
 };
 export const READY_TAP_CANCELS = Object.keys(READY_TAP_CANCEL_TEXT) as ReadyTapCancel[];
 
 /** How paying works, in the words the order sheet and the shop's policies card both show (one source). */
+/** S010 (Shops audit 11-12, lead 11-12 by the 10-25 rule and #20 "Words only"): a buyer total says in words that a
+ * service fee is inside it, with no fee row, rate or number. */
+export const SHOP_SERVICE_FEE_INCLUDED = "Includes a small Louisiana Helpr service fee.";
+
+/** S036 (Shops audit 11-12): the setup fee this order's card really carried (outside total_cents), else 0. */
+export function setupFeeChargedCents(o: Pick<ShopOrder, "setup_fee_cents" | "setup_fee_state">): number {
+  return o.setup_fee_state === "claimed" ? Math.max(0, Number(o.setup_fee_cents ?? 0)) : 0;
+}
+
+/** What the buyer's card paid for this order: total_cents plus a charged setup fee (S036). */
+export function buyerPaidCents(o: Pick<ShopOrder, "total_cents" | "setup_fee_cents" | "setup_fee_state">): number {
+  return o.total_cents + setupFeeChargedCents(o);
+}
+
 export const ORDER_HOLD_TEXT = "Your card is held, not charged. The shop has 24 hours to accept; your card is charged only if it does.";
 
 /** The buyer's words for a shop's cancel rule: the preset, and under 'until_handover' the shop's ready-tap choice. */
@@ -130,6 +144,10 @@ export interface ShopOrder {
   balance_captured_at?: string | null;
   /** The saved card did not take the rest (or none was saved): the buyer pays it from the order. */
   balance_failed_at?: string | null;
+  /** H4 (20261105181603): the one-time setup fee this order's page carried, OUTSIDE total_cents; charged only when
+   * setup_fee_state is 'claimed'. Optional: an older row read has neither. */
+  setup_fee_cents?: number;
+  setup_fee_state?: string | null;
   /** Digital downloads (20261108185110): one download, no ready date, pickup or handover. */
   is_digital?: boolean;
   shop_order_lines: OrderLine[];
@@ -155,7 +173,7 @@ export interface OrderTerms {
 const ORDER_COLUMNS =
   "id, buyer_id, seller_id, shop_id, status, close_reason, ready_date, cancel_policy, ready_tap_cancel, note, decline_reason, items_cents, " +
   "premium_cents, tax_cents, total_cents, created_at, held_at, accept_by, accepted_at, captured_at, closed_at, handover_mode, fulfillment, delivery_cents, helpr_unfilled_at, handed_over_at, " +
-  "payment_plan, deposit_cents, balance_cents, balance_captured_at, balance_failed_at, preorder_item_id, preorder_moved_at, is_digital, " +
+  "payment_plan, deposit_cents, balance_cents, balance_captured_at, balance_failed_at, preorder_item_id, preorder_moved_at, is_digital, setup_fee_cents, setup_fee_state, " +
   "shop_order_lines (id, item_id, title, kind, unit_cents, quantity, line_cents, at_buyer)";
 
 /** The member's orders as a buyer (newest first); a page that was never paid is not an order to show. */
@@ -442,7 +460,7 @@ export { formatCents } from "./formatCents";
 
 /** M3's endings of a charged order, in each side's words. */
 const CLOSE_WORDS: Record<string, { buyer: string; shop: string }> = {
-  buyer_cancelled_free: { buyer: "Cancelled by you (refunded, less the card-processing cost)", shop: "Cancelled by the buyer in your free-cancel time" },
+  buyer_cancelled_free: { buyer: "Cancelled by you (refunded, less a small card processing cost)", shop: "Cancelled by the buyer in your free-cancel time" },
   buyer_cancelled_late: { buyer: "Cancelled by you late (not refunded; the shop is paid)", shop: "Cancelled by the buyer late (you are paid)" },
   buyer_no_show: { buyer: "Missed pickup (not refunded; the shop is paid)", shop: "Buyer didn't show (you are paid)" },
   shop_cancelled: { buyer: "Cancelled by the shop (refunded in full)", shop: "Cancelled by you (buyer refunded in full)" },
@@ -451,7 +469,7 @@ const CLOSE_WORDS: Record<string, { buyer: string; shop: string }> = {
   // A refund Louisiana Helpr made by hand in Stripe (the shop is not paid until an admin decides).
   refunded_by_hand: { buyer: "Refunded by Louisiana Helpr", shop: "Refunded to the buyer by Louisiana Helpr" },
   // Preorders (20261108184654).
-  preorder_cancelled: { buyer: "Preorder cancelled by you (refunded, less the card-processing cost)", shop: "Preorder cancelled by the buyer" },
+  preorder_cancelled: { buyer: "Preorder cancelled by you (refunded, less a small card processing cost)", shop: "Preorder cancelled by the buyer" },
   preorder_date_moved: { buyer: "Preorder cancelled after the date moved (refunded in full)", shop: "Cancelled after you moved the date (buyer refunded in full)" },
   preorder_goal_missed: { buyer: "Preorder didn't reach its goal (refunded in full)", shop: "Goal not reached (buyer refunded in full)" },
   preorder_shop_late: { buyer: "Not ready in time (refunded in full)", shop: "Not marked ready in time (buyer refunded in full)" },

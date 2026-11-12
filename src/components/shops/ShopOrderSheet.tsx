@@ -44,6 +44,7 @@ import {
   formatCents,
   readyDateProblem,
   requestOrder,
+  SHOP_SERVICE_FEE_INCLUDED,
 } from "@/lib/shops/orders";
 import { isLouisianaZip } from "@/lib/shipping/policy";
 import { shopsErrorMessage } from "@/lib/shops/errors";
@@ -407,13 +408,13 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
 
       <dl className="space-y-1 text-sm">
         <div className="flex justify-between"><dt>Items</dt><dd>{formatCents(itemsCents)}</dd></div>
-        <div className="flex justify-between"><dt>Service fee (5% + $0.70)</dt><dd>{formatCents(feeCents)}</dd></div>
         {delivering ? <div className="flex justify-between"><dt>Shop delivery</dt><dd>{deliveryCents > 0 ? formatCents(deliveryCents) : "Free"}</dd></div> : null}
         {helpring && helprCents !== null ? <div className="flex justify-between"><dt>Helpr delivery</dt><dd>{formatCents(helprCents)}</dd></div> : null}
         {/* Shops audit 11-08 #8: shop-checkout adds the first-time setup fee as its own line (Declutter's BuyerTotal rule). */}
         {setupFeeCents > 0 ? <div className="flex justify-between"><dt>One-time account setup fee</dt><dd data-testid="shop-order-setup-fee">{formatCents(setupFeeCents)}</dd></div> : null}
         <div className="flex justify-between font-semibold"><dt>Total before tax</dt><dd data-testid="shop-order-total">{formatCents(itemsCents + feeCents + deliveryCents + (helprCents ?? 0) + setupFeeCents)}</dd></div>
-        <p className="text-xs text-muted-foreground">{setupFeeKnown ? "Sales tax is added at checkout." : "Sales tax and any one-time setup fee are added at checkout."}</p>
+        {/* S010 (Shops audit 11-12): no fee row or formula (10-25 rule); the total says in words a service fee is in it. */}
+        <p className="text-xs text-muted-foreground" data-testid="shop-order-fee-words">{`${SHOP_SERVICE_FEE_INCLUDED} ${setupFeeKnown ? "Sales tax is added at checkout." : "Sales tax and any one-time setup fee are added at checkout."}`}</p>
       </dl>
 
       <Button type="button" className="btn-grad-primary w-full" disabled={!canSend} onClick={() => void send()}>

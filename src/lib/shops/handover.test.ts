@@ -219,7 +219,7 @@ describe("payoutText", () => {
   it("names the amount and the status in the shop's words", () => {
     expect(payoutText({ status: "succeeded", amount_cents: 1250, debt_cents: 0 })).toBe("$12.50 sent to your payout account.");
     expect(payoutText({ status: "nothing_due", amount_cents: 0, debt_cents: 300 })).toBe(
-      "This order paid off $3.00 of card fees you owed, so nothing was sent.",
+      "This order paid off $3.00 of card processing costs you owed, so nothing was sent.",
     );
     expect(payoutText({ status: "pending", amount_cents: 999, debt_cents: 0 })).toMatch(/^\$9\.99 is owed to you\. It's sent/);
     expect(payoutText({ status: "failed", amount_cents: 999, debt_cents: 0 })).toMatch(/^\$9\.99 is owed to you\. Sending it hasn't worked yet/);
@@ -227,9 +227,9 @@ describe("payoutText", () => {
 
   it("says when a card-fee debt was taken out, and only then", () => {
     expect(payoutText({ status: "succeeded", amount_cents: 1000, debt_cents: 250 })).toBe(
-      "$10.00 sent to your payout account ($2.50 card fee you owed was taken out).",
+      "$10.00 sent to your payout account ($2.50 card processing cost you owed was taken out).",
     );
-    expect(payoutText({ status: "pending", amount_cents: 1000, debt_cents: 250 })).toContain("($2.50 card fee you owed was taken out)");
+    expect(payoutText({ status: "pending", amount_cents: 1000, debt_cents: 250 })).toContain("($2.50 card processing cost you owed was taken out)");
     expect(payoutText({ status: "pending", amount_cents: 1000, debt_cents: 0 })).not.toContain("card fee");
   });
 
@@ -238,7 +238,7 @@ describe("payoutText", () => {
       "$8.00 sent to your payout account (the one-time $2.00 account setup fee was taken out).",
     );
     expect(payoutText({ status: "pending", amount_cents: 550, debt_cents: 450, setup_fee_cents: 200 })).toContain(
-      "($2.50 card fee you owed and the one-time $2.00 account setup fee were taken out)",
+      "($2.50 card processing cost you owed and the one-time $2.00 account setup fee were taken out)",
     );
   });
 });

@@ -335,7 +335,7 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     ]);
     for (const l of params.line_items) expect(l.price_data.product_data).not.toHaveProperty("tax_details");
     expect(params.line_items.slice(2).map((l: any) => l.price_data.product_data.name)).toEqual([
-      "Service fee (5% + $0.70), food items", "Service fee (5% + $0.70), made items", "Sales tax",
+      "Service fee, food items", "Service fee, made items", "Sales tax",
     ]);
     const meta = { kind: "shop_order", order_id: ORDER, buyer_id: BUYER, payer_id: BUYER, seller_id: MAKER, tax_calculation_id: "taxcalc_shop", job_tax_cents: "150" };
     expect(params.metadata).toEqual(meta);

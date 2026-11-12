@@ -14,7 +14,7 @@ import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
-import { formatCents, type ShopOrder } from "@/lib/shops/orders";
+import { formatCents, setupFeeChargedCents, SHOP_SERVICE_FEE_INCLUDED, type ShopOrder } from "@/lib/shops/orders";
 import {
   digitalDownloadUrl,
   digitalReportHoursLeft,
@@ -37,8 +37,10 @@ export default function ShopDigitalOrder({ order, side }: { order: ShopOrder; si
   return (
     <div className="space-y-2" data-testid="shop-digital-order">
       <p className="text-xs text-muted-foreground">
-        Download {formatCents(order.items_cents)} + service fee {formatCents(order.premium_cents)}
-        {order.tax_cents > 0 ? ` + tax ${formatCents(order.tax_cents)}` : ""}.
+        Download {formatCents(order.items_cents)}
+        {order.tax_cents > 0 ? ` + tax ${formatCents(order.tax_cents)}` : ""}
+        {setupFeeChargedCents(order) > 0 ? ` + one-time account setup fee ${formatCents(setupFeeChargedCents(order))}` : ""}.
+        {` ${SHOP_SERVICE_FEE_INCLUDED}`}
       </p>
       {paid ? <BuyerFiles order={order} /> : null}
     </div>

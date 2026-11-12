@@ -6,10 +6,10 @@
  *   - a search with no match says so and points at Other;
  *   - both posting screens (the one-screen new listing and a saved draft's steps) use the drill-down, not chips.
  */
-// @mutate src/components/declutter/CategoryDrillDown.tsx | .filter((k) => words(`${CATEGORY_LABEL[k] ?? k} ${g.heading}`).includes(q)) | .filter(() => false)
+// @mutate src/components/declutter/CategoryDrillDown.tsx | .filter((k) => words(`${CATEGORY_LABEL[k] ?? k} ${g.heading} ${catWords(k)} ${headingWords(g.heading)}`).includes(q)) | .filter(() => false)
 // @mutate src/components/declutter/CategoryDrillDown.tsx | onClick={() => setOpen(g.heading)} | onClick={() => setOpen(null)}
 // @mutate src/components/declutter/CategoryDrillDown.tsx |               const Icon = CATEGORY_GROUP_ICON[g.heading]; |               const Icon = () => null;
-// @mutate src/components/declutter/CategoryDrillDown.tsx | <FieldClearButton aria-label="Clear search" onClick={() => setQuery("")} | <FieldClearButton aria-label="Clear search" onClick={() => undefined}
+// @mutate src/components/declutter/CategoryDrillDown.tsx | <FieldClearButton aria-label={t("sf.clearSearch")} onClick={() => setQuery("")} | <FieldClearButton aria-label={t("sf.clearSearch")} onClick={() => undefined}
 // @mutate src/components/declutter/SellSummaryCard.tsx | <CategoryDrillDown label={t("sell.category")} | <ChipGroup options={[]} label={t("sell.category")}
 // @mutate src/components/declutter/DeclutterSellView.tsx | <CategoryDrillDown label="Category" | <ChipGroup options={[]} label="Category"
 import { readFileSync } from "node:fs";

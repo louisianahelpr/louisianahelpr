@@ -93,6 +93,7 @@ const CONVERTED = [
   // F260q: the Sell form's summary card (sell.* in enDeclPanels.ts).
   "src/components/declutter/SellSummaryCard.tsx",
   "src/components/declutter/SellTradesRow.tsx",
+  "src/components/declutter/CategoryDrillDown.tsx",
   "src/components/declutter/SellOneScreen.tsx",
   // F260q: the whole free-item file (asker's panel, rules sentence, giver's list, Buying's asks, free checkout; enFree.ts)
   // and the Ask for it sheet (enFreeAsk.ts).
@@ -110,6 +111,8 @@ const CONVERTED = [
 const ALLOWED: Record<string, string[]> = {
   // Placeholder values postProblems feeds formProblem while the AI is still writing; never shown.
   "src/components/declutter/SellOneScreen.tsx": ["Being written", "Answered"],
+  // The heading value the category list is keyed by (HEADING_KEY maps it to its words).
+  "src/components/declutter/CategoryDrillDown.tsx": ["Hobbies and fun"],
   "src/pages/home/HomeDashboard.tsx": ["SmsPhonePrompt"],
   "src/components/messages/ConversationList.tsx": ["Escape"],
   "src/components/messages/ConversationRow.tsx": ["Louisiana Helpr team", "Enter", "Spacebar", "ConversationRow"],

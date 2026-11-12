@@ -227,6 +227,10 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   order_final: "This order was picked up and is final.",
   not_in_person: "A left-out order can't be a no-show; it finishes on its own after the ready date.",
   too_early_for_no_show: "You can report a no-show once the ready date is over.",
+  // S004 (Shops audit 11-12): a Helpr-delivered order is never the buyer's no-show.
+  helpr_delivery_no_show: "A Helpr delivers this order, so it can't be a buyer no-show. If the Helpr didn't come, report it on the order.",
+  // S002 (Shops audit 11-12): "I got it" waits for the ready day, a ready mark or the shop's handover.
+  not_ready_yet: "You can confirm once it's ready.",
   refunded_in_stripe: "This order was refunded by Louisiana Helpr, so it can't be changed here. Louisiana Helpr will tell you what happens next.",
   not_ready: "Mark the order ready first. A no-show can only be reported for an order you had ready.",
   refund_not_found: "We couldn't find that refund in Stripe for this order. Check the refund id (it starts with re_) and try again.",

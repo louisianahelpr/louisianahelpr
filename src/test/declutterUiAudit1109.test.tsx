@@ -7,8 +7,8 @@
 // @mutate src/components/declutter/DeclutterMineViews.tsx | label: "Pickups to do", | label: "Hand over",
 // @mutate src/components/declutter/ManagerPanel.tsx |       <h2 id="manager-setup-title" className="text-base font-semibold">Let a friend sell for you</h2> |       <h2 id="manager-setup-title" className="text-base font-semibold">Get help selling</h2>
 // @mutate src/App.tsx | <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} /> |
-// @mutate src/components/declutter/DeclutterListingDefaults.tsx | `Lowers ${draft.dropPct}% each evening, never below your lowest price.` | `It drops ${draft.dropPct}% each evening, to a whole dollar, never below your lowest price.`
-// @mutate src/components/declutter/DeclutterListingDefaults.tsx | <ChipGroup label="Lowest price" | <ChipGroup label="Lowest you'll take"
+// @mutate src/components/declutter/DeclutterListingDefaults.tsx | t("lp.ld.dropsOn", { pct: draft.dropPct }) | `It drops ${draft.dropPct}% each evening, to a whole dollar, never below your lowest price.`
+// @mutate src/components/declutter/DeclutterListingDefaults.tsx | <ChipGroup label={t("lp.ld.lowest")} | <ChipGroup label="Lowest you'll take"
 // @mutate src/components/declutter/ItemPickupBlock.tsx |   const others = cities.filter((c) => c && !same(c)); |   const others = cities.filter((c) => !!c);
 // @mutate src/components/declutter/itemPhotoFrame.ts | sm:max-h-[max(55dvh,calc(100dvh-400px))] | sm:max-h-none
 // @mutate src/lib/largeTitles.ts |     doc.documentElement.classList.toggle("page-scrolled-any", t.scrollTop > 0); |     doc.documentElement.classList.toggle("page-scrolled-any", t.scrollTop > 24);

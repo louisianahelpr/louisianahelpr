@@ -415,10 +415,11 @@ export async function reviewShopItem(itemId: string, submittedAt: string | null,
   ) as string;
 }
 
-/** "$18" or "$18.50". */
+/** "$18", "$18.50" or "$5,000" (S027: en-US thousands separator). */
 export function formatItemPrice(cents: number): string {
   const dollars = cents / 100;
-  return Number.isInteger(dollars) ? `$${dollars}` : `$${dollars.toFixed(2)}`;
+  const digits = Number.isInteger(dollars) ? 0 : 2;
+  return `$${dollars.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 }
 
 /** "Ready now (6 left)", "Sold out", "Ready in 2 days", "Ready the same day". */

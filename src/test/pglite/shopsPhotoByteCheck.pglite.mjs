@@ -50,6 +50,8 @@ await db.exec(`
   CREATE TABLE storage.objects (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), bucket_id text, name text, owner uuid, owner_id text, metadata jsonb);
   CREATE FUNCTION public.require_feature(p text) RETURNS void LANGUAGE sql AS $$ SELECT $$;
   CREATE FUNCTION public.is_caller_banned() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+  CREATE TABLE public.held_shops (id uuid PRIMARY KEY);
+  CREATE FUNCTION public.shop_photos_held(p uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT EXISTS (SELECT 1 FROM public.held_shops WHERE id = p) $$;
   CREATE FUNCTION public.shops_assert_owner_eligible() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT auth.uid() $$;
   CREATE TABLE public.shops (id uuid PRIMARY KEY, owner_id uuid UNIQUE, updated_at timestamptz);
   CREATE TABLE public.shop_items (id uuid PRIMARY KEY, shop_id uuid, owner_id uuid, status text, updated_at timestamptz);
@@ -164,6 +166,16 @@ if (!skip) {
     ok(`members cannot run ${fn}`, v === false);
   }
 }
+
+// 4d. A held shop (hidden / owner not in good standing) adds no photo, even with a good stamp (Q1957 review).
+await db.exec(`INSERT INTO public.held_shops VALUES ('${SHOP}')`);
+await stamp(p(8), OWNER);
+r = await attach("gallery", p(8));
+ok("a held shop cannot attach a photo", /shop_hidden/.test(r.err ?? ""), r.err ?? "attached");
+await stamp(ip(8), OWNER);
+r = await addItem(ip(8));
+ok("a held shop cannot attach an item photo", /shop_hidden/.test(r.err ?? ""), r.err ?? "attached");
+await db.exec(`DELETE FROM public.held_shops`);
 
 // 5. Members can neither read nor write stamps; service_role can.
 const priv = async (role, what) => (await db.query(`SELECT has_table_privilege($1, 'public.shop_photo_byte_checks', $2) AS v`, [role, what])).rows[0].v;

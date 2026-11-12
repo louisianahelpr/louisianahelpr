@@ -14,7 +14,8 @@
 -- The clients already re-encode to JPEG (cleanListingPhoto) and now call shop-photo-check between upload and attach.
 -- Follow-up (authz re-review note 1): the object-id binding relies on no member UPDATE policy covering
 -- <uid>/shops/ or <uid>/shop-items/ in job-photos (none today) and the clients uploading with upsert: false.
--- RESTATED FROM THE NEWEST CREATE, checked by name, verbatim plus the stamp condition and the DELETE:
+-- RESTATED FROM THE NEWEST CREATE, checked by name, verbatim plus the stamp condition and the DELETE, and (Q1957
+-- review) a refusal 'shop_hidden' while shop_photos_held (defined in 20261112100000; resolved when called):
 --   shops_attach_photo     from 20261103173728 (newest)
 --   shops_add_item_photo   from 20261017061157 (newest; 20261103071058 only names it in a comment)
 -- REPLAY-SAFE: CREATE TABLE IF NOT EXISTS, CREATE OR REPLACE. Grants unchanged on the RPCs (authenticated +
@@ -96,6 +97,11 @@ BEGIN
   SELECT id INTO v_shop FROM public.shops WHERE owner_id = v_uid FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'shop_not_found' USING ERRCODE = 'PT404';
+  END IF;
+  -- CHANGED (Q1957 review): a held shop (hidden, or its owner not in good standing) adds no photo: its photos sit in
+  -- the private shop-photos-held bucket (20261112100000), and a new one would serve publicly until the mover ran.
+  IF public.shop_photos_held(v_shop) THEN
+    RAISE EXCEPTION 'shop_hidden' USING ERRCODE = '42501';
   END IF;
   IF p_kind IS NULL OR p_kind NOT IN ('logo', 'cover', 'gallery') THEN
     RAISE EXCEPTION 'invalid_photo_kind' USING ERRCODE = '22023';
@@ -187,6 +193,10 @@ BEGIN
   END IF;
   v_uid := public.shops_assert_owner_eligible();
   v_item := public.shops_lock_own_item(p_item_id, v_uid);
+  -- CHANGED (Q1957 review): a held shop adds no item photo either (see shops_attach_photo).
+  IF public.shop_photos_held(v_item.shop_id) THEN
+    RAISE EXCEPTION 'shop_hidden' USING ERRCODE = '42501';
+  END IF;
   IF v_item.status <> 'draft' THEN
     RAISE EXCEPTION 'item_not_editable' USING ERRCODE = '22023';
   END IF;

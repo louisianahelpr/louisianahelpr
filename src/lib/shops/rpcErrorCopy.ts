@@ -302,6 +302,7 @@ export const SHOPS_RPC_ERROR_COPY = {
     payout_setup_incomplete: SC.payout_setup_incomplete,
     photo_already_attached: SC.photo_already_attached,
     photo_not_uploaded: SC.photo_not_uploaded,
+    shop_hidden: SC.shop_hidden,
     shop_not_found: SC.shop_not_found,
     shop_strikes_blocked: SC.shop_strikes_blocked,
     too_many_photos: SC.too_many_photos,

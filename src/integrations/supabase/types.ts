@@ -23152,6 +23152,15 @@ export type Database = {
         Args: { p_object_id: string; p_owner: string; p_path: string }
         Returns: boolean
       }
+      shop_photos_held: { Args: { p_shop_id: string }; Returns: boolean }
+      shop_photos_to_move: {
+        Args: { p_limit?: number }
+        Returns: {
+          from_bucket: string
+          storage_path: string
+          to_bucket: string
+        }[]
+      }
       shop_problem_photo_unattached: { Args: { p_name: string }; Returns: boolean }
       shop_handover_sweep: { Args: never; Returns: Json }
       shop_order_free_cancel_until: {

@@ -7,6 +7,8 @@
  * @mutate supabase/migrations/20261112095000_shops_photo_byte_check.sql |          AND so.name = p_storage_path) THEN\n    RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023';\n  END IF;\n  -- The stamp is used once.\n  DELETE FROM public.shop_photo_byte_checks WHERE storage_path = p_storage_path;\n\n  IF p_kind = 'gallery' THEN |          AND so.name IS NOT NULL) THEN\n    RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023';\n  END IF;\n  -- The stamp is used once.\n  DELETE FROM public.shop_photo_byte_checks WHERE storage_path = p_storage_path;\n\n  IF p_kind = 'gallery' THEN
  * @mutate supabase/migrations/20261112095000_shops_photo_byte_check.sql |         WHERE o.id = p_object_id AND o.bucket_id = 'job-photos' AND o.name = p_path |         WHERE o.bucket_id = 'job-photos' AND o.name = p_path
  * @mutate supabase/migrations/20261112095000_shops_photo_byte_check.sql | REVOKE ALL ON TABLE public.shop_photo_byte_checks FROM PUBLIC, anon, authenticated; | REVOKE ALL ON TABLE public.shop_photo_byte_checks FROM PUBLIC, anon;
+ * @mutate supabase/migrations/20261112095000_shops_photo_byte_check.sql |   IF public.shop_photos_held(v_shop) THEN\n |   IF false THEN\n
+ * @mutate supabase/migrations/20261112095000_shops_photo_byte_check.sql |   IF public.shop_photos_held(v_item.shop_id) THEN\n |   IF false THEN\n
  * @mutate supabase/functions/_shared/digitalFileCheck.ts |   if (bytesMatchExt("jpg", head)) return "jpg"; |   if (head.length > 0) return "jpg";
  * @mutate supabase/functions/shop-photo-check/index.ts |     if (!imageKindFromBytes(head)) { |     if (!head) {
  * @mutate supabase/functions/shop-photo-check/index.ts |   return !!owner && owner === userId; |   return !!owner;
@@ -37,6 +39,8 @@ describe("Q1956: a shop photo is an image by its own bytes", () => {
       // bytes at the same path is a new object (authz review FAIL #1).
       expect(body, fn).toMatch(/OR NOT EXISTS \( SELECT 1 FROM public\.shop_photo_byte_checks c JOIN storage\.objects so ON so\.id = c\.object_id WHERE c\.storage_path = p_storage_path AND c\.owner_id = v_uid AND c\.checked_at > now\(\) - interval '1 hour' AND so\.bucket_id = 'job-photos' AND so\.name = p_storage_path\) THEN RAISE EXCEPTION 'photo_not_uploaded'/);
       expect(body, fn).toContain("DELETE FROM public.shop_photo_byte_checks WHERE storage_path = p_storage_path;");
+      // Q1957 review: a held shop (its photos in the private held bucket) adds no new, public photo.
+      expect(body, fn).toMatch(/IF public\.shop_photos_held\((v_shop|v_item\.shop_id)\) THEN RAISE EXCEPTION 'shop_hidden'/);
     }
   });
 

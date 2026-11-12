@@ -71,6 +71,10 @@ export const IDENTITY_SUBFOLDERS = [
   // Shop item photos (20261017061157, <uid>/shop-items/<item>/): the items
   // CASCADE away with the shop and the account.
   { bucket: "job-photos", folder: "shop-items" },
+  // Q1957 (20261112100000): the same two folders while a shop is held (hidden or the owner banned) sit in the PRIVATE
+  // shop-photos-held bucket at the same path; they go with the account too.
+  { bucket: "shop-photos-held", folder: "shops" },
+  { bucket: "shop-photos-held", folder: "shop-items" },
   // NOT here on purpose: Shops ready photos (20261018211820, the PRIVATE shop-handover
   // bucket, <uid>/shops/handover/<order>/) are the handover evidence of an order that
   // survives the account (parties SET NULL), as the helpr-tasks task photos are.

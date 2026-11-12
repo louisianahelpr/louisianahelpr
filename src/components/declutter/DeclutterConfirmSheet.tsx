@@ -9,13 +9,14 @@ import type { ReactNode } from "react";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { focusSheetItself } from "./focusSheetItself";
+import { t } from "@/lib/i18n/language";
 
 export function ConfirmSheet({
   open,
   title,
   children,
   confirmLabel,
-  cancelLabel = "Not now",
+  cancelLabel,
   pending = false,
   confirmDisabled = false,
   onConfirm,
@@ -50,7 +51,7 @@ export function ConfirmSheet({
           {children}
         </p>
         <SheetFooter className="mt-4">
-          <SheetSecondaryAction onClick={onClose} disabled={pending}>{cancelLabel}</SheetSecondaryAction>
+          <SheetSecondaryAction onClick={onClose} disabled={pending}>{cancelLabel ?? t("core.notNow")}</SheetSecondaryAction>
           <SheetPrimaryAction onClick={onConfirm} disabled={pending || confirmDisabled}>{confirmLabel}</SheetPrimaryAction>
         </SheetFooter>
       </SheetContent>

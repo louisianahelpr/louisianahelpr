@@ -7,9 +7,9 @@
  * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql | v_req.buyer_id, least(v_row.price_cents, v_item.o_price_cents) | v_req.buyer_id, v_row.price_cents
  * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql | IF NOT FOUND OR v_req.seller_id <> v_uid THEN | IF NOT FOUND THEN
  * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql | EXCEPTION WHEN SQLSTATE '55000' OR SQLSTATE 'PT404' OR SQLSTATE 'P0002' OR SQLSTATE '22023' THEN | EXCEPTION WHEN SQLSTATE 'XX999' THEN
- * @mutate supabase/migrations/20261104103528_declutter_bundle_request.sql |   PERFORM public.declutter_identity_gate(v_uid, 'identity_required_to_buy'); |   PERFORM 1;
+ * @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql |   PERFORM public.declutter_identity_gate(v_uid, 'identity_required_to_buy'); |   PERFORM 1;
  * @mutate supabase/migrations/20261104103528_declutter_bundle_request.sql | GRANT EXECUTE ON FUNCTION public.declutter_bundle_sweep() TO service_role; | GRANT EXECUTE ON FUNCTION public.declutter_bundle_sweep() TO authenticated;
- * @mutate supabase/migrations/20261104103528_declutter_bundle_request.sql |     SELECT * INTO v_item FROM public.declutter_lock_buyable_item(v_item_id, v_uid); |     SELECT seller_id AS o_seller_id, current_price_cents AS o_price_cents INTO v_item FROM public.declutter_items WHERE id = v_item_id;
+ * @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql |     SELECT * INTO v_item FROM public.declutter_lock_buyable_item(v_item_id, v_uid); |     SELECT seller_id AS o_seller_id, current_price_cents AS o_price_cents INTO v_item FROM public.declutter_items WHERE id = v_item_id;
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

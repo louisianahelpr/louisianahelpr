@@ -8,7 +8,7 @@
  *   F509 the offer notice title carries no emoji, so the no-escrow copy guard needs no exemption for it.
  * Reads the NEWEST definition of each function (effectiveDefs) and the newest CREATE TRIGGER, comments blanked.
  *
- * @mutate supabase/migrations/20261112022921_declutter_wanted_reserved_notice_names_seller_again.sql | PERFORM public.declutter_notify(p_buyer, 'declutter_sales', 'Reserved: check out within 30 minutes', | PERFORM public.declutter_notify(p_buyer, 'declutter_sales', 'Reserved for you: check out within 30 minutes',
+ * @mutate supabase/migrations/20261112023602_declutter_reserved_notice_says_who_accepted.sql | PERFORM public.declutter_notify(p_buyer, 'declutter_sales', 'Reserved: check out within 30 minutes', | PERFORM public.declutter_notify(p_buyer, 'declutter_sales', 'Reserved for you: check out within 30 minutes',
  * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql | AND NEW.title = 'Revision deadline passed: dispute opened' THEN | AND NEW.title = 'Revision deadline passed — dispute opened' THEN
  * @mutate supabase/migrations/20261110205345_push_titles_fit_lock_screen.sql | THEN format('%s ended your Declutter access', public.declutter_manager_first_name(v_uid)) | THEN 'Declutter managing ended'
  */

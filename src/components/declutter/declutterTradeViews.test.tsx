@@ -36,8 +36,8 @@
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | disabled={act.isPending} onClick={() => setDeclining(true)}> | disabled={act.isPending} onClick={() => act.mutate({ action: "decline" })}>
  * @mutate src/components/declutter/DeclutterOffersSection.tsx |   const wantedReply = o.from_wanted === true && o.my_side === "buyer"; |   const wantedReply = false;
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | o.my_side === "buyer" && o.awaiting === "seller" && ( | o.my_side === "buyer" && (
- * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply ? "their price" : "their counter") | : "their counter")
- * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply\n            ? `"${o.item_title}": this reply ends | : false\n            ? `"${o.item_title}": this reply ends
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply ? t("dof.theirPrice") : t("dof.theirCounter")) | : t("dof.theirCounter"))
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply\n            ? t("dof.noReply" | : false\n            ? t("dof.noReply"
  * @mutate src/components/declutter/DeclutterTabHeads.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               const url = await startCardSave(); |               const url = "https://example.invalid";
@@ -707,7 +707,7 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getAllByRole("button", { name: "Say no" })).toHaveLength(2);
     expect(screen.getByText(/under your lowest price \(\$30\)/)).toBeInTheDocument();
     // The shared next-step line (owner 11-01): the seller's two to answer say "Next: answer their offer"; the buyer's waits.
-    // @mutate src/components/declutter/DeclutterOffersSection.tsx |             ? { who: "you", text: "Answer their offer", by: timeLeft(o.respond_by) } |             ? { who: "info", text: "Your turn to answer.", by: timeLeft(o.respond_by) }
+    // @mutate src/components/declutter/DeclutterOffersSection.tsx |             ? { who: "you", text: t("dof.answerOffer"), by: timeLeft(o.respond_by) } |             ? { who: "info", text: "Your turn to answer.", by: timeLeft(o.respond_by) }
     expect(screen.getByText("Waiting on the seller to answer")).toBeInTheDocument();
     expect(screen.getAllByText("Next: answer their offer")).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Take back my offer" })).toBeInTheDocument();
@@ -887,7 +887,7 @@ describe("Declutter slice 3 screens", () => {
   });
 
   // Audit 1030 DB-4: the counter said "You pay with pickup" on an item the seller offers no pickup for.
-  // @mutate src/components/declutter/DeclutterOffersSection.tsx | You pay {totalPhrase(noDeliveryWay(ways.data))}</dt> | You pay with pickup</dt>
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | t("dof.youPay", { phrase: totalPhrase(noDeliveryWay(ways.data)) }) | t("dof.youPay", { phrase: "with pickup" })
   // @mutate src/components/declutter/DeclutterOffersSection.tsx | queryFn: () => fetchItemHandovers(o.item_id), enabled: myTurn | queryFn: () => fetchItemHandovers(o.item_id), enabled: false && myTurn
   it("DB-4: the counter's total names the way the seller offers", async () => {
     for (const [ways, words] of [[["meetup", "seller_delivery"], "at a safe meetup"], [["delivery"], "before delivery"], [["porch"], "with porch pickup"]] as const) {
@@ -903,7 +903,7 @@ describe("Declutter slice 3 screens", () => {
 
   // Audit 1030 DB-15: accepting a counter asked "Buy it for $28?" with no total; the sheet now says what the buyer pays
   // with pickup, the bill's own figure (BuyerTotal on least(offer, price now)).
-  // @mutate src/components/declutter/DeclutterOffersSection.tsx | you pay at most `}<BuyerTotal priceCents={takeCents} />{` ${totalPhrase | you pay at most `}{` ${totalPhrase
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | {t("dof.buyA", { title: o.item_title })}<BuyerTotal priceCents={takeCents} />{t("dof.buyB" | {t("dof.buyA", { title: o.item_title })}{t("dof.buyB"
   it("DB-15: the buyer's accept sheet says the total with pickup", async () => {
     state.offers = [{ ...OFFER, offer_id: "b1", my_side: "buyer", awaiting: "buyer", amount_cents: 3000, floor_price_cents: null, item_title: "Lamp", counter_count: 1 }];
     show(<OffersSection side="buyer" />);
@@ -914,9 +914,9 @@ describe("Declutter slice 3 screens", () => {
 
   // NIGHT-SELL-offers,sale-1 (audit 10-30 night, High): after a price drop to $40 a $48 offer's Accept asked "Sell it for
   // $48?" while the card said "you keep the whole $40"; declutter_respond_offer sells at least(offer, price now).
-  // @mutate src/components/declutter/DeclutterOffersSection.tsx | `Sell it for ${formatPrice(takeCents)}?` | `Sell it for ${formatPrice(o.amount_cents)}?`
-  // @mutate src/components/declutter/DeclutterOffersSection.tsx | `Buy it for ${formatPrice(takeCents)}?` | `Buy it for ${formatPrice(o.amount_cents)}?`
-  // @mutate src/components/declutter/DeclutterOffersSection.tsx | ${takeCents < o.amount_cents ? `Their ${formatPrice(o.amount_cents)} offer is above your price now, so it sells at ${formatPrice(takeCents)}. ` : ""} |
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | t("dof.sellFor", { price: formatPrice(takeCents) }) | t("dof.sellFor", { price: formatPrice(o.amount_cents) })
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | t("dof.buyFor", { price: formatPrice(takeCents) }) | t("dof.buyFor", { price: formatPrice(o.amount_cents) })
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx | ${takeCents < o.amount_cents ? t("dof.aboveNow", { offer: formatPrice(o.amount_cents), price: formatPrice(takeCents) }) : ""} |
   it("NIGHT-SELL-offers,sale-1: Accept on an offer above a dropped price names the price it sells at", async () => {
     state.offers = [{ ...OFFER, amount_cents: 4800, current_price_cents: 4000, floor_price_cents: null }];
     const seller = show(<OffersSection side="seller" />);

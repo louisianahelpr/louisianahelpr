@@ -16,7 +16,7 @@
  * BUY-20: a failed delivery check never blames the payment page.
  * @mutate src/lib/declutter/delivery.ts | if (!isQuote(quote)) throw new Error("delivery_check_unavailable"); | if (!isQuote(quote)) throw new Error("payment_unavailable");
  * BUY-29: accepting a Wanted reply or a counter says what missing the 48 hours costs (declutter_deadline_sweep: source 'offer').
- * @mutate src/components/declutter/DeclutterOffersSection.tsx | check out and pay, or you get a strike. Nothing is charged until you do. | check out and pay; nothing is charged until you do.
+ * @mutate src/lib/i18n/enDeclOffers.ts | check out and pay, or you get a strike. Nothing is charged until you do. | check out and pay; nothing is charged until you do.
  * BUY-45: a truck owner isn't told to add a truck; there is no medium size; a failed payout isn't "on its way".
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | {vehicle.data?.has_truck ? "New ones show here as buyers book them." : "New ones show here as buyers book them. Large items only show once you add a truck."} | {"New ones show here as buyers book them. Large items only show once you add a truck."}
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | : t.payout_status === "failed" ? "Delivered. Your pay didn't go through yet. Check that your payout account is set up." | : t.payout_status === "failed" ? "Delivered. Your pay is on its way."
@@ -78,7 +78,8 @@ describe("the buying audit's small findings", () => {
   });
 
   it("BUY-29: accepting a reply warns about the strike", () => {
-    expect(code(`${D}DeclutterOffersSection.tsx`)).toContain("check out and pay, or you get a strike. Nothing is charged until you do.");
+    expect(code("src/lib/i18n/enDeclOffers.ts")).toContain("check out and pay, or you get a strike. Nothing is charged until you do.");
+    expect(code(`${D}DeclutterOffersSection.tsx`)).toContain('t("dof.buyB"');
   });
 
   it("BUY-45: the Deliver words are true for this Helpr", () => {

@@ -97,6 +97,8 @@ const CONVERTED = [
   "src/components/declutter/OfferSentWhatNext.tsx",
   "src/pages/home/homeDashboard/WelcomeCard.tsx",
   "src/pages/home/homeDashboard/PosterFirstJobCard.tsx",
+  // F260q: Declutter's offer cards (Buying's "Your offers", Selling's "Offers on your items"; enDeclOffers.ts).
+  "src/components/declutter/DeclutterOffersSection.tsx",
   "src/components/declutter/SellOneScreen.tsx",
   // F260q: the whole free-item file (asker's panel, rules sentence, giver's list, Buying's asks, free checkout; enFree.ts)
   // and the Ask for it sheet (enFreeAsk.ts).

@@ -113,7 +113,7 @@ describe("D6: Buy now names what checkout will charge", () => {
       ["DeclutterOfferPanel.tsx", '{t("offer.youPayIfYes")}'],
       // "Total with pickup" left with the Buy now reserve sheet (DB-5, 2026-10-30: Buy now goes straight to checkout).
       // DB-4 (2026-10-30): the way words follow the seller's ticks (pickupWords.ts), so the label is built, not literal.
-      ["DeclutterOffersSection.tsx", "You pay {totalPhrase("],
+      ["DeclutterOffersSection.tsx", '{t("dof.youPay", { phrase: totalPhrase('],
       ["OfferSentWhatNext.tsx", "{forPhrase(way)}"],
     ];
     for (const [file, label] of SITES) {

@@ -9,6 +9,8 @@
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | {on ? t("lp.ld.tradesOn") : t("lp.ld.tradesOff")}</span> | {on ? t("lp.ld.tradesOn") : "Off. Buyers can't offer a trade."}</span>
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | onClick={onDrop}>{t("lp.bc.drop")}</Button> | onClick={onDrop}>Don't sell this</Button>
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | t("lp.b.item", { n: index + 1 }); | `Item ${index + 1}`;
+ * @mutate src/components/declutter/DeclutterBunchCard.tsx | <option key={s} value={s}>{t(`decl.cond.${s}` as MsgKey)}</option> | <option key={s} value={s}>{String(s)}</option>
+ * @mutate src/components/declutter/DeclutterBunchCard.tsx | <option key={s} value={s}>{t(`decl.size.${s}` as MsgKey)}</option> | <option key={s} value={s}>{s}</option>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -59,5 +61,17 @@ describe("Sell a bunch's item card follows the member's language (F260q)", () =>
     }
     expect(screen.getByRole("button", { name: "No vender Artículo 3" })).toBeTruthy();
     expect(container.textContent).not.toMatch(/Write it|Give it away|Accept offers|Open to trades|Don't sell/);
+  });
+
+  it("the condition and size choices read enDeclutter's names in either language (spanish12)", async () => {
+    const opts = () => [...document.querySelectorAll("option")].map((o) => o.textContent);
+    show();
+    expect(opts()).toEqual(expect.arrayContaining(["Like new", "For parts or repair", "Small: fits in a car", "Extra large: truck and two people"]));
+    cleanup();
+    setLang("es");
+    await ensureLangLoaded();
+    show();
+    expect(opts()).toEqual(expect.arrayContaining([es["decl.cond.5"], es["decl.cond.1"], es["decl.size.small"], es["decl.size.xl"]]));
+    expect(opts()).not.toContain("Like new");
   });
 });

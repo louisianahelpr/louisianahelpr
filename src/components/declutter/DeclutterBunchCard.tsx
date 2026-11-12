@@ -180,7 +180,7 @@ export function BunchCard({ item, offersDefault, tradesDefault, index, others, u
             <label className="block text-ds-13 font-medium" htmlFor={`size-${id}`}>{t("lp.bc.size")}</label>
             <NativeSelect id={`size-${id}`} value="" onChange={(e) => onChange({ deliverySize: e.target.value as DeliverySize })}>
               <option value="" disabled>{t("lp.bc.pickSize")}</option>
-              {(Object.keys(SIZE_LABEL) as DeliverySize[]).map((s) => <option key={s} value={s}>{SIZE_LABEL[s]}</option>)}
+              {(Object.keys(SIZE_LABEL) as DeliverySize[]).map((s) => <option key={s} value={s}>{t(`decl.size.${s}` as MsgKey)}</option>)}
             </NativeSelect>
           </div>
         )}

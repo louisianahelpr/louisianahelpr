@@ -13,7 +13,7 @@
 import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { ChevronRight, ExternalLink, Share2, ShieldCheck, Store } from "lucide-react";
 import { toast } from "sonner";
 import { getPublicOrigin } from "@/lib/authRedirects";
@@ -36,7 +36,8 @@ import ShopMyOrdersView from "./ShopMyOrdersView";
 import ShopDashboardView from "./ShopDashboardView";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { browseShops, fetchMyShopId, fetchShopCardExtras } from "@/lib/shops/api";
+import { browseShops, fetchMyShopId, fetchShopCardExtras, SHOPS_BROWSE_PAGE } from "@/lib/shops/api";
+import { Button } from "@/components/ui/button";
 import { ShopBrowseCard } from "./ShopBrowseCard";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { useDeclutterOrigin } from "@/components/declutter/useDeclutterOrigin";
@@ -164,18 +165,25 @@ function ShopsBrowse() {
   const { origin } = useDeclutterOrigin();
   const from = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
   const categories = useShopCategories();
-  const shops = useQuery({
+  // S043 (Shops audit 11-12): Browse held only the nearest page with no way past it, so search could never reach
+  // a shop beyond it. Pages of SHOPS_BROWSE_PAGE (shops_browse's own cap), "Show more shops" asks for the next.
+  const shops = useInfiniteQuery({
     queryKey: ["shops", "browse", from?.lat ?? null, from?.lng ?? null, group],
-    queryFn: () => browseShops({ lat: from?.lat ?? null, lng: from?.lng ?? null, group }),
+    queryFn: ({ pageParam }) => browseShops({ lat: from?.lat ?? null, lng: from?.lng ?? null, group, offset: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (last, all) => (last.length >= SHOPS_BROWSE_PAGE ? all.length * SHOPS_BROWSE_PAGE : undefined),
     enabled: origin.status !== "pending",
   });
+  const list = shops.data?.pages.flat() ?? [];
   // Cover photos and hours for the cards, inside the same loading gate so the
-  // cards arrive in one paint (oneLoadingGatePerScreen.test.ts).
-  const ids = (shops.data ?? []).map((s) => s.id);
+  // cards arrive in one paint (oneLoadingGatePerScreen.test.ts). A next page keeps the cards already drawn (no
+  // skeleton flash) while its covers load.
+  const ids = list.map((s) => s.id);
   const extras = useQuery({
     queryKey: ["shops", "browse-extras", ids.join(",")],
     queryFn: () => fetchShopCardExtras(ids),
     enabled: shops.isSuccess && ids.length > 0,
+    placeholderData: keepPreviousData,
   });
   const loading = origin.status === "pending" || shops.isLoading || categories.isLoading || (ids.length > 0 && extras.isLoading);
   // Search filters the shops already loaded, by name, category and area (the list is one page).
@@ -184,7 +192,7 @@ function ShopsBrowse() {
   const words = query.trim().toLowerCase();
   // Offline with nothing loaded is never "No shops here yet" (Q571).
   const phase = useFeedPhase(shops);
-  const shown = (shops.data ?? []).filter(
+  const shown = list.filter(
     (s) => !words || [s.name, categoryLabel(categories.data, s.category), s.area_label].some((t) => (t ?? "").toLowerCase().includes(words)),
   );
 
@@ -231,8 +239,8 @@ function ShopsBrowse() {
           icon={Store}
           // Shops audit 11-10 F1 (lead): one message. A tester who can already open a shop is never told "Coming soon"
           // beside "Be the first: open a free shop" (members without the switch get the gate's Coming soon instead).
-          title={words && (shops.data ?? []).length > 0 ? "No shops match that search." : "No shops near you yet."}
-          body={words && (shops.data ?? []).length > 0 ? "Try another word." : "Be the first: open a free shop."}
+          title={words && list.length > 0 ? "No shops match that search." : "No shops near you yet."}
+          body={words && list.length > 0 ? (shops.hasNextPage ? "Try another word, or show more shops." : "Try another word.") : "Be the first: open a free shop."}
         />
       ) : (
         <ul className={SHOP_GRID}>
@@ -248,8 +256,13 @@ function ShopsBrowse() {
           ))}
         </ul>
       )}
+      {!shops.isError && !loading && shops.hasNextPage && (
+        <Button type="button" variant="outline" className="w-full rounded-full" disabled={shops.isFetchingNextPage} onClick={() => void shops.fetchNextPage()}>
+          {shops.isFetchingNextPage ? "Loading…" : "Show more shops"}
+        </Button>
+      )}
       {/* No distance filter in Shops and no shop alerts yet: just the friendly end. */}
-      {!shops.isError && !loading && shown.length > 0 && <BrowseEndCard />}
+      {!shops.isError && !loading && shown.length > 0 && !shops.hasNextPage && <BrowseEndCard />}
       {!from && origin.status !== "pending" && (
         <p className="text-xs text-muted-foreground">Add your ZIP code in your profile to see the nearest shops first.</p>
       )}

@@ -125,14 +125,17 @@ export async function fetchShopCategories(): Promise<ShopCategory[]> {
   return (rows ?? []) as ShopCategory[];
 }
 
-export async function browseShops(args: { lat: number | null; lng: number | null; category?: string | null; group?: string | null }): Promise<ShopCard[]> {
+/** One Browse page: shops_browse returns at most 60 rows (LEAST(p_limit, 60)); S043 pages on with p_offset. */
+export const SHOPS_BROWSE_PAGE = 60;
+export async function browseShops(args: { lat: number | null; lng: number | null; category?: string | null; group?: string | null; offset?: number }): Promise<ShopCard[]> {
   const rows = rpcData(
     await supabase.rpc("shops_browse", {
       p_lat: args.lat as number,
       p_lng: args.lng as number,
       ...(args.category ? { p_category: args.category } : {}),
       ...(args.group ? { p_group: args.group } : {}),
-      p_limit: 60,
+      p_limit: SHOPS_BROWSE_PAGE,
+      ...(args.offset ? { p_offset: args.offset } : {}),
     }),
     (e) => rpcErrorMessage("shops_browse", e),
   );

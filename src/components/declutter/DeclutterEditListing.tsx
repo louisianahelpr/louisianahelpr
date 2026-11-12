@@ -23,7 +23,7 @@ import {
   type DeclutterItem, type DeliverySize, type SellerHandover,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { FULL_LISTING_COPY, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
+import { FULL_LISTING_COPY, DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/photoRules";
 import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL, TaxStatementsCheck } from "./declutterUi";
 import { SuggestCategory } from "@/components/SuggestCategory";
 import { ChipGroup } from "./DeclutterSellSteps";
@@ -32,8 +32,13 @@ import { FieldLabel, SELL_INPUT } from "./SellFormParts";
 import { SellHandoverChoices } from "./SellHandoverChoices";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import "@/lib/i18n/enListingParts";
+import "@/lib/i18n/enDeclutter";
+import type { MsgKey } from "@/lib/i18n/en";
+import { t } from "@/lib/i18n/language";
 
 /** What the seller is told after saving (item B: only a failed automatic check holds a listing). */
+/** The English of each line (F260q: drawn from enListingParts lp.ed.*, whose English is held equal to these). */
 export const EDIT_SAVED = {
   saved: "Saved.",
   live_again: "Saved. It's live with your changes.",
@@ -85,7 +90,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
       return now?.status === "live" ? "live_again" : "held";
     },
     onSuccess: (outcome) => {
-      toast(EDIT_SAVED[outcome]);
+      toast(t(`lp.ed.saved.${outcome}` as MsgKey));
       onDone();
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -99,7 +104,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
   return (
     <form className="space-y-5" data-edit-listing="" onSubmit={(e) => { e.preventDefault(); if (ready) save.mutate(); }}>
       <div className="space-y-2" data-edit-photos="">
-        <p className="text-ds-14 font-semibold text-foreground">Photos</p>
+        <p className="text-ds-14 font-semibold text-foreground">{t("lp.ed.photos")}</p>
         <SellPhotos
           uploaded={kept}
           held={held}
@@ -110,29 +115,29 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
           aiPanel={null}
         />
         {photoTotal < DECLUTTER_MIN_PHOTOS && (
-          <p className="text-ds-13 font-semibold text-destructive-ink" data-edit-photo-min="">Keep at least {photosWord(DECLUTTER_MIN_PHOTOS)}.</p>
+          <p className="text-ds-13 font-semibold text-destructive-ink" data-edit-photo-min="">{DECLUTTER_MIN_PHOTOS === 1 ? t("lp.ed.keepOne") : t("lp.ed.keepN", { n: DECLUTTER_MIN_PHOTOS })}</p>
         )}
       </div>
       <div className="space-y-2">
-        <FieldLabel htmlFor="edit-title" text="Title" />
+        <FieldLabel htmlFor="edit-title" text={t("lp.ed.title")} />
         <Input look="card" id="edit-title" value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} />
       </div>
       <div className="space-y-2">
-        <FieldLabel htmlFor="edit-description" text="Description" />
+        <FieldLabel htmlFor="edit-description" text={t("lp.ed.description")} />
         <Textarea id="edit-description" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
-      <ChipGroup label="Category" options={Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ value: k, label: v }))} groups={CATEGORY_GROUPS} value={category} onChange={setCategory} />
+      <ChipGroup label={t("lp.ed.category")} options={Object.keys(CATEGORY_LABEL).map((k) => ({ value: k, label: t(`decl.cat.${k}` as MsgKey) }))} groups={CATEGORY_GROUPS} value={category} onChange={setCategory} />
       {/* I1 (Q1836 a): same link as the sell forms. */}
       <SuggestCategory area="declutter" />
-      <ChipGroup label="Condition" options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] }))} value={String(condition)} onChange={(v) => setCondition(Number(v))} />
-      <ChipGroup label="Size" options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: SIZE_LABEL[k] }))} value={size} onChange={(v) => setSize(v as DeliverySize)} />
+      <ChipGroup label={t("lp.ed.condition")} options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] ? t(`decl.cond.${n}` as MsgKey) : String(n) }))} value={String(condition)} onChange={(v) => setCondition(Number(v))} />
+      <ChipGroup label={t("lp.ed.size")} options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: t(`decl.size.${k}` as MsgKey) }))} value={size} onChange={(v) => setSize(v as DeliverySize)} />
       <SellHandoverChoices ways={ways} setWays={setWays} free={free} sellerDeliveryOpen={sellerDeliveryOpen} />
       <p className="text-ds-13 text-muted-foreground" data-edit-review={big ? "yes" : "no"} aria-live="polite">
-        {big ? EDIT_RULE.checked : EDIT_RULE.instant}
+        {big ? t("lp.ed.rule.checked") : t("lp.ed.rule.instant")}
       </p>
       <TaxStatementsCheck id="edit-tax" checked={attested} onChange={setAttested} free={free} />
       <Button type="submit" variant="primary" size="sm" className="w-full px-5 text-ds-15 font-semibold" disabled={!ready}>
-        {save.isPending ? "Saving…" : "Save changes"}
+        {save.isPending ? t("lp.ed.saving") : t("lp.ed.save")}
       </Button>
     </form>
   );

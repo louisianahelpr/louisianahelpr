@@ -507,6 +507,21 @@ export const enListingParts = {
   "lp.dr.listed": "{n} listed.",
   "lp.m.takeDownWords": "Its photos are removed and open offers close. Nothing is charged. You can relist it from History, but you'll need new photos.",
   "lp.sh.line": "Buyers in Louisiana can have it mailed. Pick the box it fits in. Under 4 oz ships cheapest.",
+  "lp.ed.saved.saved": "Saved.",
+  "lp.ed.saved.live_again": "Saved. It's live with your changes.",
+  "lp.ed.saved.held": "Saved. Someone from Louisiana Helpr will look at your changes before buyers see it again.",
+  "lp.ed.rule.checked": "A new photo, title, description or category gets a quick automatic check, so it's hidden for a few seconds. Buyers with open offers are told it changed.",
+  "lp.ed.rule.instant": "Condition, size and how buyers get it save at once. It stays up and offers stay open.",
+  "lp.ed.photos": "Photos",
+  "lp.ed.keepOne": "Keep at least 1 photo.",
+  "lp.ed.keepN": "Keep at least {n} photos.",
+  "lp.ed.title": "Title",
+  "lp.ed.description": "Description",
+  "lp.ed.category": "Category",
+  "lp.ed.condition": "Condition",
+  "lp.ed.size": "Size",
+  "lp.ed.saving": "Saving…",
+  "lp.ed.save": "Save changes",
 } as const;
 
 addEnglish(enListingParts);

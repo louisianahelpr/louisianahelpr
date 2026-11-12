@@ -9,11 +9,6 @@
 export const DECLUTTER_MIN_PHOTOS = 1;
 export const DECLUTTER_MAX_PHOTOS = 12;
 
-/** "1 photo" / "3 photos". */
-export function photosWord(n: number): string {
-  return `${n} photo${n === 1 ? "" : "s"}`;
-}
-
 /** How many photos the AI reads for one listing. */
 export const AI_DRAFT_PHOTOS = 4;
 

@@ -9,7 +9,7 @@
  *    check it"; poster "Eli sent the fix. Check it and approve".
  *
  * @mutate src/components/tracker/jobProgressState.ts |   if (status === "revision_requested") return revisionLine(job, poster, other, held); |
- * @mutate src/components/tracker/jobProgressState.ts | atBy(6, !poster, "Working", text, `by ${when(due)}`, held); | atBy(6, !poster, "Working", text, `by ${when(due - 30 * 60_000)}`, held);
+ * @mutate src/components/tracker/jobProgressState.ts | atBy(6, !poster, "Working", text, t("jl.by", { when: when(due) }), held); | atBy(6, !poster, "Working", text, t("jl.by", { when: when(due - 30 * 60_000) }), held);
  * @mutate src/components/job-card/activityFilters.ts |   if (j.revision_completed_at && Date.parse(j.revision_completed_at) >= sentBack) return false; |
  * @mutate src/pages/jobs/jobPage/hiredHelprFace.ts |   if (fixOwed && o.markFixDone) return | if (false) return
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | {side === "poster" ? "The fix is due by" : "Fix it and mark it done by"} | {side === "poster" ? "The fix is due by" : "Send the fix by"}

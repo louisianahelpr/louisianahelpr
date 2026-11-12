@@ -31,7 +31,9 @@ export type { Stage, StepTone } from "@/components/tracker/jobStepFromWait";
 // file's derivation (B51).
 export { JOB_PROGRESS_DRAWN, JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressSteps";
 import { JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressSteps";
-import type { NextBy, NextLineId } from "@/components/tracker/nextLineCode";
+import { nextLineCode, type NextBy, type NextLineId } from "@/components/tracker/nextLineCode";
+import "@/lib/i18n/enJobLines";
+import { getLang, t } from "@/lib/i18n/language";
 
 export type ProgressJob = {
   status: string | null;
@@ -150,7 +152,7 @@ const LIVE = new Set(["accepted", "in_progress", "revision_requested"]);
 
 /** "Wed 9:00 AM" in Louisiana time. */
 function when(ms: number): string {
-  return new Date(ms).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
+  return new Date(ms).toLocaleString(locale(), { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
 }
 
 /**
@@ -160,9 +162,14 @@ function when(ms: number): string {
  */
 function whenDated(ms: number): string {
   const d = new Date(ms);
-  const day = d.toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
-  const clock = d.toLocaleString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
-  return `${day} at ${clock}`;
+  const day = d.toLocaleString(locale(), { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
+  const clock = d.toLocaleString(locale(), { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
+  return t("jl.at", { day, clock });
+}
+
+/** F260q: the tracker's times read in the member's language (es-US for Spanish). */
+function locale(): string {
+  return getLang() === "es" ? "es-US" : "en-US";
 }
 
 /** The job's slot in Louisiana time: "Thu 9:00 AM", or the weekday alone when it has no start time. */
@@ -245,8 +252,8 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
   // JA-33 (audit 11-01): a crew member's own spot, never "<Name> offered you this job" once they confirmed it.
   if (o.viewer === "helpr" && o.crewMember && job.is_group_job === true && job.status === "accepted" && !job.helper_confirmed_at) {
     return o.crewMember.confirmed
-      ? { ...base, stage: 2, waitingOnYou: false, tone: "progress", word: "Hired", next: "You're on the crew. Your spot is confirmed" }
-      : { ...base, stage: 1, waitingOnYou: true, tone: "progress", word: "Offered", next: "Confirm your spot on the crew" };
+      ? { ...base, stage: 2, waitingOnYou: false, tone: "progress", word: "Hired", next: t("jl.crewIn") }
+      : { ...base, stage: 1, waitingOnYou: true, tone: "progress", word: "Offered", next: t("jl.crewConfirm") };
   }
   // JA-32: the crew's own line (the card's single-Helpr rule would read "accept the offer").
   if (o.viewer === "poster" && crewBookedOnRow(job) && base.word === "Hired") return base;
@@ -283,7 +290,7 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
     // JA-12 / JA-13: the poster's late line wins over the card's calm one while the bar is on On the way.
     // Owner 11-01 (job 7b1da54b): after photos in, not marked done: the base's line says so, unless the card owes the
     // poster a step first (confirm the arrival) or the Helpr is waiting on one.
-    next: helprLateBy ? `You're ${helprLateBy} late. Tap I'm on my way or message ${o.otherFirst || "them"}` : helprBothIn ? base.next : ((/after photos/.test(base.next) && bar.stage === 6 && bar.waitingOnYou === (o.viewer !== "poster")) || posterLate || noApplicantsYet || ((sameStep || offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail),
+    next: helprLateBy ? t("jl.helprLate", { late: helprLateBy, name: o.otherFirst || t("jl.them") }) : helprBothIn ? base.next : ((nextLineCode(base) === "after_photos" && bar.stage === 6 && bar.waitingOnYou === (o.viewer !== "poster")) || posterLate || noApplicantsYet || ((sameStep || offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail),
   }, card.line.detail, fromCard, card.line.detailBy), job, card.line.id, o.workUnderway);
 }
 
@@ -335,7 +342,7 @@ function minutesLate(job: ProgressJob, nowMs: number): string | null {
   if (!start || job.helper_arrived_at) return null;
   const mins = Math.floor((nowMs - start.getTime()) / 60_000);
   if (mins <= LATE_GRACE_MIN) return null;
-  return mins < 60 ? `${mins} min` : `${Math.floor(mins / 60)} h${mins % 60 ? ` ${mins % 60} min` : ""}`;
+  return mins < 60 ? t("jl.min", { n: mins }) : mins % 60 ? t("jl.hoursMin", { h: Math.floor(mins / 60), n: mins % 60 }) : t("jl.hours", { h: Math.floor(mins / 60) });
 }
 
 /** The card's line and face for a surface that is not a card, from the same functions the cards call. */
@@ -381,12 +388,12 @@ function revisionLine(job: ProgressJob, poster: boolean, other: string, held: bo
   if (workIsBackWithHelper(job)) {
     const dueMs = Date.parse(job.revision_deadline ?? "");
     const due = Number.isNaN(dueMs) ? null : dueMs;
-    const text = poster ? `Waiting on ${other}'s fix` : "Fix it and mark it done";
-    return due === null ? at(6, !poster, "Working", text, held) : atBy(6, !poster, "Working", text, `by ${when(due)}`, held);
+    const text = poster ? t("jl.fixWait", { name: other }) : t("jl.fixIt");
+    return due === null ? at(6, !poster, "Working", text, held) : atBy(6, !poster, "Working", text, t("jl.by", { when: when(due) }), held);
   }
   const checkMs = Date.parse(job.revision_acceptance_deadline ?? "");
-  if (poster) return at(7, true, "Done", `${other} sent the fix. Check it and approve`, held);
-  return at(7, false, "Done", Number.isNaN(checkMs) ? `You sent the fix. Waiting on ${other} to check it` : `You sent the fix. ${other} has until ${whenDated(checkMs)} to check it`, held);
+  if (poster) return at(7, true, "Done", t("jl.fixSent", { name: other }), held);
+  return at(7, false, "Done", Number.isNaN(checkMs) ? t("jl.youSentWait", { name: other }) : t("jl.youSentUntil", { name: other, when: whenDated(checkMs) }), held);
 }
 
 /**
@@ -420,54 +427,54 @@ function cancelledLine(job: ProgressJob, poster: boolean, other: string, refunde
 
 function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   const poster = o.viewer === "poster";
-  const other = (o.otherFirst ?? "").trim() || (poster ? "Your Helpr" : "The person who posted it");
-  const otherLow = (o.otherFirst ?? "").trim() || (poster ? "your Helpr" : "the person who posted it");
+  const other = (o.otherFirst ?? "").trim() || (poster ? t("jl.yourHelpr") : t("jl.poster"));
+  const otherLow = (o.otherFirst ?? "").trim() || (poster ? t("jl.yourHelprLow") : t("jl.posterLow"));
   const held = job.payment_status === "escrow";
   const status = job.status ?? "";
   const now = (o.now ?? new Date()).getTime();
 
   // JA-23: expired is not cancelled (owner 10-31, src/lib/expiredListing.ts). The poster reads "Expired · No Helpr was
   // hired in time" (the card's own line); anyone else "Closed · No longer open". Never "Cancelled".
-  if (isExpiredListing(job)) return at(null, false, poster ? EXPIRED_WORD : "Closed", poster ? EXPIRED_LISTING_DETAIL : "No longer open", held);
+  if (isExpiredListing(job)) return at(null, false, poster ? EXPIRED_WORD : "Closed", poster ? EXPIRED_LISTING_DETAIL : t("jl.noLongerOpen"), held);
   if (status === "cancelled" || status === "expired") return at(null, false, "Cancelled", cancelledLine(job, poster, other, o.refundedCents, o.refundKeptCents), held);
   if (job.has_active_dispute || status === "disputed") {
     // JA-30 (Jobs audit 11-01): say WHEN they hear back (the dispute's own deadline, after which support decides) and
     // the brand in full. Guard: src/test/disputeLineSaysWhen.test.ts.
     const decideMs = Date.parse(job.dispute_deadline ?? "");
-    const by = Number.isNaN(decideMs) ? "" : decideMs > now ? `, with an answer by ${whenDated(decideMs)}` : "";
+    const by = !Number.isNaN(decideMs) && decideMs > now ? whenDated(decideMs) : null;
     // Q2600 (Jobs audit 1102b row 14): a short title, with the explanation as body text under it (a full sentence).
     // Guard: src/test/disputeLineTitleAndBody.test.tsx.
-    return { ...at(null, false, "Under review", "We're looking into it", held), body: `A real person at Louisiana Helpr is looking at the problem${by}. The money stays held.` };
+    return { ...at(null, false, "Under review", t("jl.disputeNext"), held), body: by ? t("jl.disputeBodyBy", { when: by }) : t("jl.disputeBody") };
   }
 
   if (status === "open" && !job.helper_id) {
     // An applicant waiting on the poster's pick is the poster's move.
-    if (o.application === "pending") return at(0, poster, "Posted", poster ? `${other} applied` : `You applied. Waiting on ${otherLow}`, held);
-    if (o.application === "rejected") return at(null, false, "Not picked", poster ? "You passed on this one" : "Not picked this time", false);
+    if (o.application === "pending") return at(0, poster, "Posted", poster ? t("jl.applied", { name: other }) : t("jl.youApplied", { name: otherLow }), held);
+    if (o.application === "rejected") return at(null, false, "Not picked", poster ? t("jl.passed") : t("jl.notPicked"), false);
     // JOBS-9: nobody can see a job that never got paid for, so it is not waiting for anyone.
-    if (poster && jobIsUnfundedDraft(job)) return at(0, false, "Posted", "Waiting on your payment", false);
+    if (poster && jobIsUnfundedDraft(job)) return at(0, false, "Posted", t("jl.waitPayment"), false);
     // JA-1: applicants waiting are the poster's move (the card's bar says so too, from the same count).
     const picking = poster && (o.pendingApplicants ?? 0) > 0;
-    return at(0, picking, "Posted", poster ? (o.pendingApplicants === 0 ? "Waiting for Helprs to apply" : "Pick your Helpr") : "Open for Helprs", held);
+    return at(0, picking, "Posted", poster ? (o.pendingApplicants === 0 ? t("jl.waitApply") : t("jl.pick")) : t("jl.openForHelprs"), held);
   }
 
   if (job.helper_id && o.threadHelprId && job.helper_id !== o.threadHelprId) {
-    return at(0, false, "Filled", poster ? "You hired someone else" : `${other} hired someone else`, false);
+    return at(0, false, "Filled", poster ? t("jl.hiredElse") : t("jl.hiredElseName", { name: other }), false);
   }
 
   // JA-11 (audit 11-01): a finished job's tracker says when it finished, never a blank line under eight full steps.
   if (status === "completed" || job.poster_completed_at) {
     const doneMs = Date.parse(job.poster_completed_at ?? job.completed_at ?? job.helper_completed_at ?? "");
-    return at(8, false, "Done", Number.isNaN(doneMs) ? "Finished" : `Finished ${whenDated(doneMs)}`, held);
+    return at(8, false, "Done", Number.isNaN(doneMs) ? t("jl.finished") : t("jl.finishedAt", { when: whenDated(doneMs) }), held);
   }
   if (!LIVE.has(status) || !someoneHired(job)) return at(null, false, "", "", held);
 
   // JA-32: a booked crew's job row carries no one Helpr's stamps (each member's are on their roster row), so it is
   // never "Waiting on your Helpr to accept the offer": the poster follows each member on the page's crew roster.
-  if (poster && crewBookedOnRow(job)) return at(2, false, "Hired", "Your crew is booked. Each Helpr's step is under Your crew", held);
+  if (poster && crewBookedOnRow(job)) return at(2, false, "Hired", t("jl.crewBooked"), held);
   // An offer is not a booking: until the Helpr accepts, nobody is hired.
   if (!job.helper_confirmed_at) {
-    return poster ? at(1, false, "Offered", `Waiting on ${otherLow} to accept the offer`, held) : withCode(at(1, true, "Offered", `${other} offered you this job`, held), "offered_you");
+    return poster ? at(1, false, "Offered", t("jl.waitAccept", { name: otherLow }), held) : withCode(at(1, true, "Offered", t("jl.offeredYou", { name: other }), held), "offered_you");
   }
 
   if (status === "revision_requested") return revisionLine(job, poster, other, held);
@@ -479,16 +486,16 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     // Audit 11-10 W2 F286: the deadline carries its date (it is read a day later), and once it has passed the line says
     // what happens now (the poster's window closed; support steps in, as the poster's side already says) instead of
     // "has until <a time already gone>".
-    const helprLine = !checkBy ? `You marked it done. Waiting on ${otherLow}`
-      : checkMs <= now ? `You marked it done. ${other} didn't answer in time, so Helpr support is checking it. The money stays held.`
-      : `You marked it done. ${other} has until ${whenDated(checkMs)} to check it`;
-    return at(7, poster, "Done", poster ? `${other} marked it done. Check the work and approve` : helprLine, held);
+    const helprLine = !checkBy ? t("jl.youDoneWait", { name: otherLow })
+      : checkMs <= now ? t("jl.youDoneLate", { name: other })
+      : t("jl.youDoneUntil", { name: other, when: whenDated(checkMs) });
+    return at(7, poster, "Done", poster ? t("jl.theyDone", { name: other }) : helprLine, held);
   }
   // Owner 11-01 11:55 AM (job 7b1da54b): after photos are in but the Helpr has not marked it done. The page said
   // "Yusef is working"; it now says what it waits on, and the Helpr is told the one step left.
   // Guard: src/components/ui/NextStep.test.tsx ("after photos").
   if (status === "in_progress" && !job.is_group_job && (job.proof_after_urls ?? []).some(Boolean)) {
-    return at(6, !poster, "Working", poster ? `${other} added after photos · waiting for them to mark it done` : "Your after photos are in. Mark it done", held);
+    return withCode(at(6, !poster, "Working", poster ? t("jl.afterPhotosPoster", { name: other }) : t("jl.afterPhotosHelpr"), held), "after_photos");
   }
   const working =
     status === "in_progress" &&
@@ -498,15 +505,15 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   // "is working" exactly when the bar's Working step has begun (workHasBegun, the same rule as JobProgressState.begun
   // and the poster's card line), so the line and the step colour can never disagree.
   if (working) {
-    if (poster && workHasBegun(job, { workUnderway: o.workUnderway })) return withCode(at(6, false, "Working", `${other} is working`, held), "working");
-    return at(6, !poster, "Working", poster ? `${other} is at the job` : "Mark it done when you finish", held);
+    if (poster && workHasBegun(job, { workUnderway: o.workUnderway })) return withCode(at(6, false, "Working", t("jl.working", { name: other }), held), "working");
+    return at(6, !poster, "Working", poster ? t("jl.atJob", { name: other }) : t("jl.markDone"), held);
   }
   if (job.helper_arrived_at) {
-    return at(5, poster, "Arrived", poster ? `${other} arrived. Confirm they've arrived` : `You've arrived. Waiting on ${otherLow} to confirm`, held);
+    return at(5, poster, "Arrived", poster ? t("jl.arrivedPoster", { name: other }) : t("jl.arrivedHelpr", { name: otherLow }), held);
   }
   // JA-12 / JA-13 (audit 11-01): past the start time the poster is told the Helpr is late, never only the calm line.
   const lateBy = minutesLate(job, now);
-  if (job.helper_on_the_way_at) return at(4, !poster, "On the way", poster ? (lateBy ? `${other} is on the way, ${lateBy} late` : `${other} is on the way`) : "Tap I've arrived when you get there", held);
+  if (job.helper_on_the_way_at) return at(4, !poster, "On the way", poster ? (lateBy ? t("jl.onWayLate", { name: other, late: lateBy }) : t("jl.onWay", { name: other })) : t("jl.tapArrived"), held);
 
   // Booked, before setting out: the day-before confirm (the server's rule, _shared/confirmDeadline.ts:
   // opens at midnight the day before, owed until 2 hours before the start).
@@ -517,11 +524,11 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     const slot = o.rescheduled ? slotLabel(job.date_needed, job.start_time) : "";
     if (!Number.isNaN(opens) && now < opens) {
       // JA-5 (audit 11-01): the day, never "Opens Mon 12:00 AM" (a midnight time reads like a system stamp).
-      const day = new Date(opens).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short" });
+      const day = new Date(opens).toLocaleString(locale(), { timeZone: "America/Chicago", weekday: "short" });
       // F442 (audit 11-10): say WHAT is confirmed. F270: "Hallie confirms on Thu" over a clock "until you can confirm"
       // left the poster asking who confirms; both do (the note under it says so), so the poster's line says "You both".
-      const wait = poster ? `You both confirm on ${day}, the day before, that the job is still on` : `Confirm on ${day}, the day before, that you can still do this job`;
-      return at(2, false, "Hired", slot ? `New time ${slot}. ${wait}` : wait, held);
+      const wait = poster ? t("jl.bothConfirmOn", { day }) : t("jl.confirmOn", { day });
+      return at(2, false, "Hired", slot ? t("jl.newTime", { slot, wait }) : wait, held);
     }
     const helprIn = !!job.helper_dayof_confirmed_at;
     const posterIn = !!job.poster_confirmed_at;
@@ -531,12 +538,12 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     if (!helprIn || !posterIn) {
       const mine = poster ? !posterIn : !helprIn;
       if (slot) {
-        return at(3, mine, "Confirmed", mine ? (poster ? `Confirm the new time, ${slot}` : `Confirm you'll be there ${slot}`) : `Waiting for ${otherLow} to confirm ${slot}`, held);
+        return at(3, mine, "Confirmed", mine ? (poster ? t("jl.confirmNewTime", { slot }) : t("jl.confirmThere", { slot })) : t("jl.waitConfirmSlot", { name: otherLow, slot }), held);
       }
       // A2-C40: past the start the poster's "I'm still on" is gone (JobConfirmation, posterConfirmClosesMs), and
       // the auto-start sweep can take up to 15 minutes: say where things stand, never "tap" a button that isn't there.
       if (poster && !posterIn && now >= posterConfirmClosesMs(job.date_needed, job.start_time)) {
-        return at(3, false, "Confirmed", helprIn ? `It's start time. ${other} confirmed they'll be there` : `It's start time. ${other} hasn't confirmed`, held);
+        return at(3, false, "Confirmed", helprIn ? t("jl.startTimeIn", { name: other }) : t("jl.startTimeNot", { name: other }), held);
       }
       // A3-9 (audit 11-01): every confirm line says by when ("Next: <what> · by <deadline>"). The poster's own confirm
       // stays open until the start (posterConfirmClosesMs, JobConfirmation's I'm still on), so both sides name that time.
@@ -545,11 +552,11 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
       // what happens next only where the repost sweep keeps it (confirmWindowPassedLine).
       const helprLate = !helprIn && !Number.isNaN(due) && now >= due;
       if (poster) {
-        if (!posterIn) return atBy(3, mine, "Confirmed", "Confirm the job is still on", `by ${posterBy}`, held);
-        return helprLate ? at(3, mine, "Confirmed", confirmWindowPassedLine(other, job), held) : atBy(3, mine, "Confirmed", `Waiting on ${otherLow} to confirm`, `by ${when(due)}`, held);
+        if (!posterIn) return atBy(3, mine, "Confirmed", t("jl.confirmStillOn"), t("jl.by", { when: posterBy }), held);
+        return helprLate ? at(3, mine, "Confirmed", confirmWindowPassedLine(other, job), held) : atBy(3, mine, "Confirmed", t("jl.waitConfirm", { name: otherLow }), t("jl.by", { when: when(due) }), held);
       }
-      if (!helprIn) return helprLate ? at(3, mine, "Confirmed", confirmWindowPassedLine(null, job), held) : atBy(3, mine, "Confirmed", "Confirm you'll be at the job", `by ${when(due)}`, held);
-      return atBy(3, mine, "Confirmed", `Waiting on ${otherLow} to confirm`, `by ${posterBy}`, held);
+      if (!helprIn) return helprLate ? at(3, mine, "Confirmed", confirmWindowPassedLine(null, job), held) : atBy(3, mine, "Confirmed", t("jl.confirmYou"), t("jl.by", { when: when(due) }), held);
+      return atBy(3, mine, "Confirmed", t("jl.waitConfirm", { name: otherLow }), t("jl.by", { when: posterBy }), held);
     }
   }
   // Both confirmed: setting out is the Helpr's move. AUD31-76: once the start has passed (or auto_start_due_jobs has
@@ -557,6 +564,6 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   const startAt = jobStartDateTime(job.date_needed, job.start_time ?? null);
   const started = status === "in_progress" || (!!startAt && now >= startAt.getTime());
   // Q2588: a no-start-time job is never "It's time" (anyTimeThatDay.ts); on its day the line says any time.
-  const helprLine = !hasStartTime(job) ? (started ? TODAY_ANY_TIME_LINE : "Tap I'm on my way when you leave") : started ? "It's time — tap I'm on my way" : "Tap I'm on my way when you leave";
-  return at(4, !poster, "On the way", poster ? (lateBy ? `${other} is ${lateBy} late and hasn't set out` : `You're both confirmed. ${other} taps On my way when they leave`) : helprLine, held);
+  const helprLine = !hasStartTime(job) ? (started ? TODAY_ANY_TIME_LINE : t("jl.tapLeave")) : started ? t("jl.itsTime") : t("jl.tapLeave");
+  return at(4, !poster, "On the way", poster ? (lateBy ? t("jl.lateNotSet", { name: other, late: lateBy }) : t("jl.bothConfirmed", { name: other })) : helprLine, held);
 }

@@ -27,7 +27,4 @@ export function jobPayoutNextStep(amountLabel: string | null): { who: "you"; tex
 }
 export const SET_UP_PAYOUTS_LABEL = "Set up payouts";
 
-/** Is this profile's payout account ready (Stripe answered payouts on)? The same test the payout paths use. */
-export function payoutAccountReady(profile: { stripe_account_id?: string | null; stripe_payouts_enabled?: boolean | null } | null | undefined): boolean {
-  return !!profile?.stripe_account_id && profile.stripe_payouts_enabled === true;
-}
+export { payoutAccountReady } from "./payoutAccountReady";

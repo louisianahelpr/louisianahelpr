@@ -5,11 +5,11 @@
  *
  * @mutate src/components/declutter/DeclutterPickupTimes.tsx |   const setShared = (r: { starts: string; ends: string }) => setWindows((ws) => ws.map((w) => ({ ...w, starts: r.starts, ends: r.ends }))); |   const setShared = (r: { starts: string; ends: string }) => setWindows((ws) => ws.map((w, i) => (i === 0 ? { ...w, starts: r.starts, ends: r.ends } : w)));
  * @mutate src/components/declutter/DeclutterPickupTimes.tsx |       if (ws.some((w) => w.weekday === d)) return ws.filter((w) => w.weekday !== d); |       if (ws.some((w) => w.weekday === d)) return ws;
- * @mutate src/components/declutter/DeclutterPickupTimes.tsx |   if (windows.some((w) => w.ends <= w.starts)) return "Each pickup time must end after it starts."; |
+ * @mutate src/components/declutter/DeclutterPickupTimes.tsx |   if (windows.some((w) => w.ends <= w.starts)) return t("lp.pt.endAfter"); |
  * @mutate src/components/declutter/DeclutterPickupTimes.tsx |   const [perDay, setPerDay] = useState(() => !sameHoursEveryDay(windows)); |   const [perDay, setPerDay] = useState(() => false);
  * @mutate src/components/declutter/DeclutterPickupTimes.tsx | <ToggleChip pressed={on} disabled={disabled} | <ToggleChip pressed={!on} disabled={disabled}
- * @mutate src/components/declutter/DeclutterPickupTimes.tsx | <ToggleChip pressed={on} disabled={disabled} | <ToggleChip pressed={on} aria-label={WEEKDAYS[day]} disabled={disabled}
- * @mutate src/components/declutter/DeclutterPickupTimes.tsx |       <span aria-hidden="true">{SHORT[day]}</span> |       <span>{SHORT[day]}</span>
+ * @mutate src/components/declutter/DeclutterPickupTimes.tsx | <ToggleChip pressed={on} disabled={disabled} | <ToggleChip pressed={on} aria-label={dayWord(day)} disabled={disabled}
+ * @mutate src/components/declutter/DeclutterPickupTimes.tsx |       <span aria-hidden="true">{dayShort(day)}</span> |       <span>{dayShort(day)}</span>
  */
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";

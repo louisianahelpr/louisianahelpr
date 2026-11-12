@@ -9,6 +9,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchMySellerDelivery } from "@/lib/declutter/sellerDelivery";
 import { SellerDeliveryCard } from "./SellerDeliverySettings";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 export function SellDeliveryOffNotice({ ticked }: { ticked: boolean }) {
   const on = useFeature("declutter_seller_delivery");
@@ -18,7 +20,7 @@ export function SellDeliveryOffNotice({ ticked }: { ticked: boolean }) {
   return (
     <div className="space-y-2" data-seller-delivery-off="">
       <p role="note" className="text-ds-13 font-semibold text-foreground">
-        Buyers won't see "I'll deliver" until you turn on "I can deliver" and set your delivery price.
+        {t("lp.do.note")}
       </p>
       <SellerDeliveryCard />
     </div>

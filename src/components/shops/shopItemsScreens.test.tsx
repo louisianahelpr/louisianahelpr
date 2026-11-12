@@ -38,7 +38,7 @@
  * @mutate src/components/shops/ShopItemEditor.tsx |   if (x.photos < 3) out.push( |   if (x.photos < 0) out.push(
  * @mutate src/components/shops/ShopItemEditor.tsx | After a rejection, new items are checked by an admin for 30 days. | New items may be checked.
  * @mutate src/components/shops/ShopItemEditor.tsx |   const price = x.price.replace(/[$,\s]/g, ""); |   const price = x.price.replace(/[$\s]/g, "");
- * @mutate src/components/shops/ShopItemEditor.tsx |       if (field) {\n        setFieldError({ field, msg: shopsErrorMessage(err) }); |       if (false) {\n        setFieldError({ field, msg: shopsErrorMessage(err) });
+ * @mutate src/components/shops/ShopItemEditor.tsx |     if (field) {\n      setFieldError({ field, msg: shopsErrorMessage(err) }); |     if (false) {\n      setFieldError({ field, msg: shopsErrorMessage(err) });
  * @mutate src/components/shops/ShopItemEditor.tsx |     enabled: !!id && (status === "rejected" \|\| status === "draft"), |     enabled: !!id && status === "rejected",
  * @mutate src/components/shops/ShopItemEditor.tsx |       if (s.kind !== d.kind \|\| s.subtype !== d.subtype) setTicked([]); |       if (false) setTicked([]);
  * @mutate src/components/shops/ShopDailyCap.tsx |   const clearing = shown.trim() === "" && cap.data != null; |   const clearing = false;

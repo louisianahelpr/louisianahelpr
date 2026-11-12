@@ -28,13 +28,19 @@ import { DeclutterCategoryChips } from "@/components/declutter/DeclutterCategory
 import { DeclutterActiveFilters } from "@/components/declutter/DeclutterActiveFilters";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
-import { enDeclutter } from "@/lib/i18n/enDeclutter";
+import { enDeclutter as enDeclutterOwn } from "@/lib/i18n/enDeclutter";
+import { enDeclBrowse } from "@/lib/i18n/enDeclBrowse";
+import { enSections } from "@/lib/i18n/enSections";
 import { esDeclutter } from "@/lib/i18n/esDeclutter";
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
 import { ConditionChip } from "@/components/declutter/declutterUi";
 import { declutterFilterSections } from "@/components/declutter/DeclutterFilterPanel";
 import { SORT_LABEL } from "@/lib/declutter/browseFilters";
+
+// Q178 (11-11): Browse's own words (enDeclBrowse.ts) and the section bar's (enSections.ts) left enDeclutter.ts; Spanish
+// for all three is esDeclutter.ts.
+const enDeclutter = { ...enDeclutterOwn, ...enDeclBrowse, ...enSections };
 
 const item = {
   id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,

@@ -10,6 +10,10 @@
  * @mutate src/components/declutter/ShipItRow.tsx |     if (preset !== null && !confirmed) { |     if (false) {
  * @mutate src/components/declutter/ShipItRow.tsx |     mutationFn: (preset: ShipPreset \| null) => setShipOptions(itemId, preset, preset !== null), |     mutationFn: (preset: ShipPreset \| null) => setShipOptions(itemId, preset, false),
  * @mutate src/lib/declutter/shipOptions.ts | new Set(["electronics", "appliances"]) | new Set(["appliances"])
+ * @mutate src/components/declutter/ShipItRow.tsx | label: t(`lp.sh.p.${p.key}` as MsgKey) | label: p.key
+ * @mutate src/lib/i18n/esListingParts.ts |   "lp.sh.p.small_box": "Caja pequeña, hasta 1 lb",\n |
+ *
+ * F260q: the box words come from the dictionary by key (lp.sh.p.<key>), so a Spanish seller reads them in Spanish.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -32,6 +36,7 @@ vi.mock("@/lib/declutter/api", async (orig) => {
 });
 
 import { ShipItRow } from "./ShipItRow";
+import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
 
 function show(small = true, category = "kitchen") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -75,6 +80,17 @@ describe("Ship it in Manage listing", () => {
     expect(radios.length).toBeGreaterThan(4);
     expect(screen.getByText(/Under 4 oz ships cheapest\./)).toBeTruthy();
     expect(screen.getByRole("radio", { name: "Off" }).getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("F260q: a Spanish seller reads the boxes in Spanish", async () => {
+    setLang("es");
+    await ensureLangLoaded();
+    try {
+      show();
+      const group = await screen.findByRole("radiogroup");
+      const radios = Array.from(group.querySelectorAll('[role="radio"]')).map((r) => r.textContent);
+      expect(radios.slice(1)).toEqual(["Sobre, hasta 8 oz", "Caja pequeña, hasta 1 lb", "Caja mediana, hasta 3 lb", "Caja grande, hasta 10 lb"]);
+    } finally { __resetLangForTests(); }
   });
 
   it("sends nothing until the restricted-items tick; then sends the box with the tick; Off sends no tick", async () => {

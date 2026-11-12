@@ -18,9 +18,10 @@ import { SHIP_PICKUP_ONLY_CATEGORIES, SHIP_PRESETS, type ShipPreset } from "@/li
 import { ChipGroup } from "./DeclutterSellSteps";
 import "@/lib/i18n/enListingParts";
 import { t } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 
 const OFF = "off";
-const choices = () => [{ value: OFF, label: t("lp.sh.off") }, ...SHIP_PRESETS.map((p) => ({ value: p.key as string, label: p.label }))];
+const choices = () => [{ value: OFF, label: t("lp.sh.off") }, ...SHIP_PRESETS.map((p) => ({ value: p.key as string, label: t(`lp.sh.p.${p.key}` as MsgKey) }))];
 
 export function ShipItRow({ itemId, small, category, rowClassName }: { itemId: string; small: boolean; category: string; rowClassName: string }) {
   const on = useFeature("declutter_shipping");

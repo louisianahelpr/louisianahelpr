@@ -14754,6 +14754,7 @@ export type Database = {
           settled_by_hand_cents: number | null
           settled_by_hand_note: string | null
           settled_by_hand_ref: string | null
+          setup_fee_refund_cents: number
           status: string
           stripe_payment_intent_id: string
           stripe_refund_id: string | null
@@ -14783,6 +14784,7 @@ export type Database = {
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
+          setup_fee_refund_cents?: number
           status?: string
           stripe_payment_intent_id: string
           stripe_refund_id?: string | null
@@ -14812,6 +14814,7 @@ export type Database = {
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
+          setup_fee_refund_cents?: number
           status?: string
           stripe_payment_intent_id?: string
           stripe_refund_id?: string | null
@@ -22986,6 +22989,7 @@ export type Database = {
           kept_cents: number
           paid_cents: number
           refund_cents: number
+          setup_fee_refund_cents: number
           tax_cents: number
           tax_kept_cents: number
         }[]

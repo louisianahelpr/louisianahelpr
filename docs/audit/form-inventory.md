@@ -228,8 +228,8 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterBunchListStep.tsx` | checkbox/switch/radio×1 |  |  | bunch-list-step · bunch-list · bunch-tax |
 | `src/components/declutter/DeclutterBunchRow.tsx` | input×1 | text |  | Price ($) |
 | `src/components/declutter/DeclutterMovingSaleDetails.tsx` | input×1 | text | 60 | move-sale-name · Moving to Lafayette · everything goes · move-sale-start · Pick a date |
-| `src/components/declutter/DeclutterSellView.tsx` | input×1, textarea×1 | text | 80, 2000 | sell-title · e.g. Oak rocking chair · sell-desc · How buyers get it · sell-form-problem |
-| `src/components/declutter/SellFormParts.tsx` | input×2, checkbox/switch/radio×3 | text |  | sell-price · sell-offers · sell-drops · sell-floor · e.g. 30 · sell-address · sell-pickup · sell-tax-head |
+| `src/components/declutter/DeclutterSellView.tsx` | input×1, textarea×1 | text | 80, 2000 | sell-title · sell-desc · sell-form-problem |
+| `src/components/declutter/SellFormParts.tsx` | input×2, checkbox/switch/radio×3 | text |  | sell-price · sell-offers · sell-drops · sell-floor · sell-address · sell-pickup · sell-tax-head · sell-tax |
 | `src/components/declutter/SellSummaryCard.tsx` | input×1, textarea×1 | text | 80, 2000 | sell-summary-head · sell-title · sell-desc |
 | `src/components/declutter/SellTradesRow.tsx` | checkbox/switch/radio×1 |  |  | sell-trades |
 | `src/components/SuggestCategory.tsx` | input×1 | text |  | suggest-category-input · e.g. Tutoring · suggest-category-help |

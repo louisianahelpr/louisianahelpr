@@ -3,11 +3,19 @@
  *   S2-034 custom orders have one switch: the shop page reads only shops.custom_orders, and Edit my shop's "Custom
  *          orders" box shows and sets that switch (no "Quotes for work").
  *   S2-037 the shop's own order card reads "Waiting for your answer", never the buyer's "Waiting for the shop".
+ *   S2-038 the public shop page's items carry has_options (20261112210500, proof
+ *          src/test/pglite/shopsPublicItemsFromPrice.pglite.mjs: 3x, skip red, 3 planted defects red); render guard
+ *          publicShopLayout.test.tsx.
  *   S2-041 each Edit my shop part that saves on its own reports unsaved edits (render guard: shopEditUnsaved.test.tsx).
  *   S2-044 an accepted order whose cancel window already closed no longer promises a free cancel.
+ *
+ * @mutate supabase/migrations/20261112210500_shops_public_items_from_price.sql | 'has_options', cardinality(i.option_names) > 0, | 'has_options', true,
  */
 import { describe, expect, it } from "vitest";
+import { resolve } from "node:path";
 import { orderCancelLine, orderStatusLabel } from "@/lib/shops/orders";
+import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
+import { blankSqlComments } from "./helpers/blankNonCode";
 
 const base = {
   status: "accepted" as const,
@@ -65,5 +73,12 @@ describe("Shops audit 2 (Builder 1)", () => {
     expect(readFileSync("src/components/shops/ShopFaqsEditor.tsx", "utf8")).toContain('useReportUnsaved("Questions buyers ask",');
     expect(readFileSync("src/components/shops/ShopPickupAddressSection.tsx", "utf8")).toContain('useReportUnsaved("Pickup address",');
     expect(readFileSync("src/components/shops/ShopDailyCap.tsx", "utf8")).toContain('useReportUnsaved("Daily order limit",');
+  });
+  it("S2-038: the effective public shop read says which items have options, and nothing more about them", () => {
+    const defs = effectiveDefs(resolve(__dirname, "../../supabase/migrations"));
+    const b = blankSqlComments(defs.get("shops_public_shop")?.stmt ?? "").replace(/\s+/g, " ");
+    expect(b).toContain("'stock_count', i.stock_count, 'has_options', cardinality(i.option_names) > 0, 'home_kitchen', i.kind = 'home_food',");
+    expect(b).not.toContain("option_values");
+    expect(b).not.toMatch(/'option_names'/);
   });
 });

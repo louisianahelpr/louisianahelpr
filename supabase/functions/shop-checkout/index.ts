@@ -568,7 +568,8 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
 
   /** The order sheet's own name for the fee; a mixed cart's lines say which items each is for. */
   const feeLineName = (code: string, parts: number) => {
-    const base = "Service fee (5% + $0.70)";
+    // S010 (Shops audit 11-12): the Stripe page/receipt line names no rate (10-25 rule; receipt line as F380).
+    const base = "Service fee";
     if (parts <= 1) return base;
     if (code === SHOP_KIND_TAX_CODE.made) return `${base}, made items`;
     if (code === SHOP_KIND_TAX_CODE.home_food) return `${base}, food items`;
@@ -894,7 +895,7 @@ async function buyDigital(body: Record<string, unknown>, user: { id: string; ema
   }];
   for (const part of feeParts) {
     lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: part.cents, tax_behavior: "exclusive",
-      product_data: taxed("Service fee (5% + $0.70)", part.tax_code) } });
+      product_data: taxed("Service fee", part.tax_code) } });
   }
   const setupFeeCents = Number(o.setup_fee_cents ?? 0);
   if (!Number.isInteger(setupFeeCents) || setupFeeCents < 0) {

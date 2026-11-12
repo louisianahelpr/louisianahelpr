@@ -34,7 +34,7 @@ describe("preorder words", () => {
       "You're charged now, in full.",
       "If it doesn't reach 20 by Dec 1, you get a full refund automatically.",
       "If the shop doesn't have it ready by Dec 22, you get a full refund automatically.",
-      "You can cancel until the shop marks it ready. You get back what you paid, less the card-processing cost and the sales tax on it.",
+      "You can cancel until the shop marks it ready. You get back what you paid, less a small card processing cost and the sales tax on it.",
     ]);
     // No goal (or a goal already met): no goal refund line.
     expect(preorderChargeText({ ...P, goal: null, goal_by: null })).toHaveLength(3);
@@ -50,10 +50,10 @@ describe("preorder words", () => {
 
   it("the buyer's cancel: less the card cost on their own cancel; everything after a moved date or past the late time", () => {
     const o = { total_cents: 2170, ready_date: "2026-12-15", preorder_moved_at: null };
-    expect(preorderCancelText(o, "2026-12-01")).toBe("You get back $21.70, less the card-processing cost and the sales tax on it. The shop is told.");
+    expect(preorderCancelText(o, "2026-12-01")).toBe("You get back $21.70, less a small card processing cost and the sales tax on it. The shop is told.");
     expect(preorderCancelText({ ...o, preorder_moved_at: "2026-12-10T00:00:00Z" }, "2026-12-01")).toBe("You get everything you paid back: $21.70. The shop is told.");
     // The sweep's late time: the end of ready-by + 7 (Dec 22), so from Dec 23.
-    expect(preorderCancelText(o, "2026-12-22")).toContain("less the card-processing cost");
+    expect(preorderCancelText(o, "2026-12-22")).toContain("less a small card processing cost");
     expect(preorderCancelText(o, "2026-12-23")).toBe("You get everything you paid back: $21.70. The shop is told.");
   });
 

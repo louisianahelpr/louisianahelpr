@@ -14,7 +14,7 @@ import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { MapPin } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
-import { cancelPolicyText, formatCents, orderStatusLabel, payOrderRest, type ShopOrder } from "@/lib/shops/orders";
+import { buyerPaidCents, cancelPolicyText, formatCents, orderStatusLabel, payOrderRest, setupFeeChargedCents, SHOP_SERVICE_FEE_INCLUDED, type ShopOrder } from "@/lib/shops/orders";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { fetchOrderPickupAddress, fetchOrderServiceAddress } from "@/lib/shops/pickupAddress";
 import { fetchOrderDeliveryAddress, fetchOrderHelprTask, formatDeliveryAddress, reportHelprNoShow } from "@/lib/shops/delivery";
@@ -200,7 +200,7 @@ export function ShopOrderCard({
     <li className="space-y-2 rounded-2xl border border-border bg-card p-4" data-testid="shop-order-card">
       <div className="flex items-start justify-between gap-2">
         <p className="min-w-0 font-semibold [overflow-wrap:anywhere]">{heading}</p>
-        <p className="shrink-0 text-sm font-semibold">{formatCents(side === "buyer" ? order.total_cents : shopGets)}</p>
+        <p className="shrink-0 text-sm font-semibold">{formatCents(side === "buyer" ? buyerPaidCents(order) : shopGets)}</p>
       </div>
       <p className="text-xs text-muted-foreground">{orderStatusLabel(order, side)}</p>
       <p className="text-sm">{order.preorder_item_id ? "Preorder, ready by" : "Ready"} {readyDateText(order.ready_date)}</p>
@@ -226,10 +226,13 @@ export function ShopOrderCard({
       {byHelpr && side === "buyer" && <DeliveryAddress orderId={order.id} side={side} />}
       {side === "buyer" ? (
         <p className="text-xs text-muted-foreground">
-          Items {formatCents(order.items_cents)} + service fee {formatCents(order.premium_cents)}
+          {/* S010: no fee name or number (10-25 rule); S036: the one-time setup fee the card carried is its own part. */}
+          Items {formatCents(order.items_cents)}
           {delivered ? ` + delivery ${deliveryCents > 0 ? formatCents(deliveryCents) : "(free)"}` : ""}
           {byHelpr ? ` + Helpr delivery ${formatCents(deliveryCents)}` : ""}
-          {order.tax_cents > 0 ? ` + tax ${formatCents(order.tax_cents)}` : ""}.
+          {order.tax_cents > 0 ? ` + tax ${formatCents(order.tax_cents)}` : ""}
+          {setupFeeChargedCents(order) > 0 ? ` + one-time account setup fee ${formatCents(setupFeeChargedCents(order))}` : ""}.
+          {` ${SHOP_SERVICE_FEE_INCLUDED}`}
           {/* S013 (Shops audit 11-12): the cancel rule only while the buyer can still cancel (waiting or accepted, not
               yet handed over); on a finished or closed order it read as if they still could. */}
           {CANCEL_RULE_VISIBLE.has(order.status) && !order.handed_over_at
@@ -267,7 +270,7 @@ function DigitalOrderCard({ order, heading, side }: { order: ShopOrder; heading:
     <li className="space-y-2 rounded-2xl border border-border bg-card p-4" data-testid="shop-order-card">
       <div className="flex items-start justify-between gap-2">
         <p className="min-w-0 font-semibold [overflow-wrap:anywhere]">{heading}</p>
-        <p className="shrink-0 text-sm font-semibold">{formatCents(side === "buyer" ? order.total_cents : order.items_cents)}</p>
+        <p className="shrink-0 text-sm font-semibold">{formatCents(side === "buyer" ? buyerPaidCents(order) : order.items_cents)}</p>
       </div>
       <p className="text-xs text-muted-foreground">{orderStatusLabel(order, side)}</p>
       <ul className="text-sm text-muted-foreground">

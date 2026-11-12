@@ -79,6 +79,6 @@ describe("the order sheet's total", () => {
     fee.cents = 0;
     fee.known = false;
     await pick();
-    expect(screen.getByText("Sales tax and any one-time setup fee are added at checkout.")).toBeTruthy();
+    expect(screen.getByTestId("shop-order-fee-words").textContent).toBe("Includes a small Louisiana Helpr service fee. Sales tax and any one-time setup fee are added at checkout.");
   });
 });

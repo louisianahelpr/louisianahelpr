@@ -274,7 +274,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
         description={
           accepting
             // S047 (Shops audit 11-12): a shop-delivered order also pays the shop its delivery fee (the order card's amount).
-            ? `The buyer's card is charged now, and you get ${formatCents(accepting.items_cents + (accepting.fulfillment === "shop_delivers" ? accepting.delivery_cents ?? 0 : 0))} for it${accepting.fulfillment === "shop_delivers" ? ", with the delivery fee" : ""}. Only accept if you can have it ready on the date.`
+            ? `The buyer's card is charged now, and you get ${formatCents(accepting.items_cents + (accepting.fulfillment === "shop_delivers" ? accepting.delivery_cents ?? 0 : 0))} for it${accepting.fulfillment === "shop_delivers" ? ", including what the buyer paid for delivery" : ""}. Only accept if you can have it ready on the date.`
             : ""
         }
         primaryLabel={accept.isPending ? "Accepting…" : "Accept and charge"}

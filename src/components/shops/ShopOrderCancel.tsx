@@ -52,7 +52,7 @@ function cancelQuoteText(q: CancelQuote): string {
   if (!q.can_cancel) return "This order can't be cancelled any more.";
   if (q.free) {
     return `You're inside the shop's free-cancel time. You get ${formatCents(q.refund_cents ?? 0)} back, `
-      + "less the card-processing cost and the sales tax on it. The shop is told not to make it.";
+      + "less a small card processing cost and the sales tax on it. The shop is told not to make it.";
   }
   return "The shop's free-cancel time is over. If you cancel now, nothing is refunded and the shop is paid.";
 }
@@ -220,7 +220,7 @@ export function ShopCancelOrder({ order }: { order: ShopOrder }) {
         open={asking === "cancel"}
         onOpenChange={(o) => { if (!o) setAsking(null); }}
         title="Cancel this accepted order?"
-        description="The buyer gets everything back. The card fee comes out of your next payout, and it counts as a Shops strike (3 strikes pause Shops for you)."
+        description="The buyer gets everything back. The card processing cost comes out of your next payout, and it counts as a Shops strike (3 strikes pause Shops for you)."
         primaryLabel={act.isPending ? "Cancelling…" : "Cancel and refund"}
         primaryDisabled={act.isPending || reason.length > REASON_MAX}
         onPrimary={(e) => {

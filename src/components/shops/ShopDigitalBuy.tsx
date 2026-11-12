@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { fetchShopItems, formatItemPrice, type ShopItem } from "@/lib/shops/items";
-import { buyerFeeCents, formatCents, requestDigitalPurchase } from "@/lib/shops/orders";
+import { buyerFeeCents, formatCents, requestDigitalPurchase, SHOP_SERVICE_FEE_INCLUDED } from "@/lib/shops/orders";
 import { billingAddressProblem, digitalBuyUrl, type BillingAddress } from "@/lib/shops/digitalFiles";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 
@@ -94,8 +94,7 @@ export default function ShopDigitalBuy({ shopId }: { shopId: string }) {
         <div className="space-y-3 rounded-2xl border border-border p-4" data-testid="shop-digital-billing">
           <p className="text-sm font-medium">{picked.title}</p>
           <p className="text-sm">
-            {formatItemPrice(picked.price_cents)} + {formatCents(buyerFeeCents(picked.price_cents))} service fee, plus sales tax
-            where you live. You can download it in Shops &gt; My orders as soon as you pay.
+            {`You pay ${formatCents(picked.price_cents + buyerFeeCents(picked.price_cents))} plus sales tax where you live. ${SHOP_SERVICE_FEE_INCLUDED}`} You can download it in Shops &gt; My orders as soon as you pay.
           </p>
           <div className="space-y-1.5">
             <Label htmlFor="dl-line1">Billing street address</Label>

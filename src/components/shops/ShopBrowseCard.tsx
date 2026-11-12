@@ -42,9 +42,24 @@ export function ShopBrowseCard({ shop, category, group, extras }: { shop: ShopCa
       to={`/shops/${shop.id}`}
       aria-label={label}
       data-shop-card=""
-      className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      // S2-043 (Shops audit 2): on phones a compact row (logo, name, rating, category, hours, place), so a screen
+      // shows several shops instead of ~2 (each card was ~350px tall at 375); sm and up keep the photo card.
+      className="group flex items-center gap-3 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:block"
     >
-      <span className="relative block">
+      <span
+        data-shop-logo-row=""
+        className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-card text-lg font-bold text-foreground sm:hidden"
+        aria-hidden
+      >
+        {shop.logo_path ? (
+          <img loading="lazy" src={shopPhotoUrl(shop.logo_path)} alt="" className="h-full w-full object-cover" />
+        ) : cover ? (
+          <img loading="lazy" src={shopPhotoUrl(cover)} alt="" className="h-full w-full object-cover" />
+        ) : (
+          shop.name.trim().charAt(0).toUpperCase() || <Store className="h-6 w-6 text-muted-foreground" />
+        )}
+      </span>
+      <span className="relative hidden sm:block">
         <span className="block aspect-[2/1] overflow-hidden rounded-2xl bg-muted">
           {cover ? (
             <img loading="lazy" src={shopPhotoUrl(cover)} alt="" className="h-full w-full object-cover" />
@@ -64,7 +79,7 @@ export function ShopBrowseCard({ shop, category, group, extras }: { shop: ShopCa
           )}
         </span>
       </span>
-      <span className="block min-w-0 space-y-0.5 px-0.5 pt-8">
+      <span className="block min-w-0 flex-1 space-y-0.5 px-0.5 sm:pt-8">
         <span data-card-title className="block truncate text-ds-15 font-semibold" title={shop.name}>{shop.name}</span>
         <span className="flex min-w-0 items-center gap-1.5 text-ds-13 text-muted-foreground">
           {reviewed && (
@@ -90,7 +105,9 @@ export function ShopBrowseCard({ shop, category, group, extras }: { shop: ShopCa
           {shop.area_label}
           {away ? ` · ${away}` : ""}
         </span>
-        <ShopBadgeList badges={shop.badges} compact />
+        <span className="hidden sm:block">
+          <ShopBadgeList badges={shop.badges} compact />
+        </span>
       </span>
     </Link>
   );

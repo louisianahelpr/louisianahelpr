@@ -77,6 +77,14 @@ CREATE TABLE IF NOT EXISTS public.admin_activity_last (
 ALTER TABLE public.admin_activity_last ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.admin_activity_last FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.admin_activity_last TO service_role;
+-- Every public table keeps the unconfirmed-email gate (db-smoke; lander, train 1112-c).
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gate$;
 
 -- 3. The one helper. p_other: the other party (or NULL); p_bulk: the words for N of this kind ('listed %s items'),
 --    NULL to keep the first message with "and N more".

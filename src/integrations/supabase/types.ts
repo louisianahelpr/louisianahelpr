@@ -23381,6 +23381,7 @@ export type Database = {
           p_limit?: number
           p_lng: number
           p_offset?: number
+          p_query?: string
         }
         Returns: {
           area_label: string

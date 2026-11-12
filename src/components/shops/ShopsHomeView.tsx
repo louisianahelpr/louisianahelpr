@@ -11,7 +11,7 @@
  * cards yet (L57-L68, a later slice).
  */
 import { SectionActionPill } from "@/components/ui/SectionActionPill";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { ChevronRight, ExternalLink, Share2, ShieldCheck, Store } from "lucide-react";
@@ -36,7 +36,7 @@ import ShopMyOrdersView from "./ShopMyOrdersView";
 import ShopDashboardView from "./ShopDashboardView";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { browseShops, fetchMyShopId, fetchShopCardExtras, SHOPS_BROWSE_PAGE } from "@/lib/shops/api";
+import { browseShops, fetchMyShopId, fetchShopCardExtras, SHOPS_BROWSE_PAGE, SHOPS_SEARCH_WAIT_MS } from "@/lib/shops/api";
 import { Button } from "@/components/ui/button";
 import { ShopBrowseCard } from "./ShopBrowseCard";
 import { shopsErrorMessage } from "@/lib/shops/errors";
@@ -165,14 +165,25 @@ function ShopsBrowse() {
   const { origin } = useDeclutterOrigin();
   const from = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
   const categories = useShopCategories();
+  // S043 (Shops audit 11-12): search runs on the server (shops_browse p_query: shop name, category, area and the
+  // titles of its live items), a short wait after the last key, so a shop past the loaded page or an item's title
+  // is found. The cards already drawn stay while the next answer loads.
+  const [query, setQuery] = useState("");
+  const words = query.trim().toLowerCase();
+  const [searched, setSearched] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setSearched(words), SHOPS_SEARCH_WAIT_MS);
+    return () => clearTimeout(t);
+  }, [words]);
   // S043 (Shops audit 11-12): Browse held only the nearest page with no way past it, so search could never reach
   // a shop beyond it. Pages of SHOPS_BROWSE_PAGE (shops_browse's own cap), "Show more shops" asks for the next.
   const shops = useInfiniteQuery({
-    queryKey: ["shops", "browse", from?.lat ?? null, from?.lng ?? null, group],
-    queryFn: ({ pageParam }) => browseShops({ lat: from?.lat ?? null, lng: from?.lng ?? null, group, offset: pageParam }),
+    queryKey: ["shops", "browse", from?.lat ?? null, from?.lng ?? null, group, searched],
+    queryFn: ({ pageParam }) => browseShops({ lat: from?.lat ?? null, lng: from?.lng ?? null, group, offset: pageParam, query: searched }),
     initialPageParam: 0,
     getNextPageParam: (last, all) => (last.length >= SHOPS_BROWSE_PAGE ? all.length * SHOPS_BROWSE_PAGE : undefined),
     enabled: origin.status !== "pending",
+    placeholderData: keepPreviousData,
   });
   const list = shops.data?.pages.flat() ?? [];
   // Cover photos and hours for the cards, inside the same loading gate so the
@@ -186,15 +197,11 @@ function ShopsBrowse() {
     placeholderData: keepPreviousData,
   });
   const loading = origin.status === "pending" || shops.isLoading || categories.isLoading || (ids.length > 0 && extras.isLoading);
-  // Search filters the shops already loaded, by name, category and area (the list is one page).
-  const [query, setQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
-  const words = query.trim().toLowerCase();
   // Offline with nothing loaded is never "No shops here yet" (Q571).
   const phase = useFeedPhase(shops);
-  const shown = list.filter(
-    (s) => !words || [s.name, categoryLabel(categories.data, s.category), s.area_label].some((t) => (t ?? "").toLowerCase().includes(words)),
-  );
+  // The server already matched the search (S043): every row it sent is shown.
+  const shown = list;
 
   return (
     <>
@@ -239,8 +246,8 @@ function ShopsBrowse() {
           icon={Store}
           // Shops audit 11-10 F1 (lead): one message. A tester who can already open a shop is never told "Coming soon"
           // beside "Be the first: open a free shop" (members without the switch get the gate's Coming soon instead).
-          title={words && list.length > 0 ? "No shops match that search." : "No shops near you yet."}
-          body={words && list.length > 0 ? (shops.hasNextPage ? "Try another word, or show more shops." : "Try another word.") : "Be the first: open a free shop."}
+          title={searched ? "No shops match that search." : "No shops near you yet."}
+          body={searched ? "Try another word." : "Be the first: open a free shop."}
         />
       ) : (
         <ul className={SHOP_GRID}>

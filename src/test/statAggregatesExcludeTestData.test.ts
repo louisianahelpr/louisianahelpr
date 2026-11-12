@@ -51,6 +51,7 @@ const ALLOWED: Record<string, string> = {
   // 25 Days sponsor admin (20261109162829): counts the visits to each invite link for the owner's admin page. Visits carry
   // no account, and sponsor_log_visit never records a signed-in test account's visit (is_test_member), so no test row is in it.
   sponsor_admin_overview: "counts visits per invite link on the admin page; a visit holds no account, and sponsor_log_visit never records a test account's visit, so the count holds no test data",
+  shops_remove_item_photo: "logic: counts ONE live item's own photos so it keeps at least 3 (photos_required, S009 20261112204756); not a stat",
   shop_digital_file_remove: "logic: counts ONE item's own checked files so a live download keeps its last file (20261108182917); not a stat",
   // Preorders (20261108184654): the units one preorder item holds (its cap and its goal); a cap on one item, not a stat.
   shop_preorder_units: "logic: the units ordered of ONE preorder item, read for its own cap and goal; every order of that item counts, as every order takes a place",

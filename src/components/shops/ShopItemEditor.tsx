@@ -10,7 +10,9 @@
  * the server's words when it refuses. A first item, or one the photo or word
  * check flags, waits for an admin (L52), and the form says so.
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import ShopItemStartPhotos from "./ShopItemStartPhotos";
+import { cents, dollars, itemFieldOfError, wholeNumber, type ItemField } from "./shopItemEditorInputs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
@@ -76,32 +78,6 @@ const fromItem = (i: ShopItem | null): Draft => ({
 });
 
 const STOCK_HINT = "Every order still comes to you to accept.";
-const cents = (s: string) => Math.round(Number(s.replace(/[$,\s]/g, "")) * 100);
-/**
- * A whole number typed in a box, or the server's refusal code when the box is
- * empty or not a number (lh-silent-failure review should-fix 2: an empty box
- * must never quietly become 0, which publishes as "same day" or "sold out").
- */
-function wholeNumber(s: string, code: string): number {
-  const t = s.trim();
-  if (!/^\d+$/.test(t)) throw new Error(code);
-  return Number(t);
-}
-const dollars = (c: number) => `$${(c / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-
-/** The field a refusal is about, by its code as a whole word in the message (S041: lead time and stock too). */
-type ItemField = "title" | "price" | "lead" | "stock";
-const FIELD_OF_CODE: Record<string, ItemField> = {
-  invalid_title: "title", invalid_price: "price", invalid_lead_time: "lead", invalid_stock: "stock",
-};
-function itemFieldOfError(err: unknown): ItemField | null {
-  const msg = String((err as { message?: unknown } | null)?.message ?? "");
-  for (const [code, field] of Object.entries(FIELD_OF_CODE)) {
-    if (new RegExp(`(^|[^a-z_])${code}($|[^a-z_])`).test(msg)) return field;
-  }
-  return null;
-}
-
 /** Audit 11-10 F11: each thing a draft still needs before Publish, in plain words (the server's own limits). */
 export function publishBlockers(x: {
   photos: number; title: string; price: string; unticked: number; cottageNeedsTick: boolean; cottageUnknown: boolean;
@@ -132,18 +108,6 @@ export function publishBlockers(x: {
  * null for a new item; the parent remounts this form (key) when it changes
  * which item is open, and `onCreated` hands it the new item's id.
  */
-/** S054: a held (not yet uploaded) photo's preview; its object URL is let go when it leaves. */
-function HeldPhoto({ file }: { file: File }) {
-  const [src, setSrc] = useState<string | null>(null);
-  useEffect(() => {
-    if (typeof URL.createObjectURL !== "function") return;
-    const url = URL.createObjectURL(file);
-    setSrc(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
-  return src ? <img src={src} alt="" className="h-full w-full object-cover" /> : null;
-}
-
 export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOptions = false, titleHidden = false }: {
   /** The item has option lists: its stock is set per combination in the Options section (20261106165310). */
   hasOptions?: boolean;
@@ -305,17 +269,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
   });
   const ai = useMutation({
     mutationFn: () => requestShopItemAiDraft(id as string),
-    onSuccess: (s) => {
-      // A new kind or type asks for its own confirmations (review nit 9).
-      if (s.kind !== d.kind || s.subtype !== d.subtype) setTicked([]);
-      setD((x) => ({ ...x, kind: s.kind, subtype: s.subtype, title: s.title, description: s.description }));
-      // The suggestion's own verdict is not saved; the check at Publish decides (review should-fix 1).
-      toast.success(
-        s.flagged
-          ? "Suggested. Our checks may send this item to an admin before it's listed."
-          : "Suggested from your photos. Check it, then save.",
-      );
-    },
+    onSuccess: applySuggestion,
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
 
@@ -383,49 +337,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
           Changes stay on your shop right away. Changing what kind of item it is, or its type, takes it off until you publish it again.
         </p>
       )}
-      {!id && (
-        <section className="space-y-2" aria-labelledby="item-start-photos" data-testid="item-start-photos">
-          <h4 id="item-start-photos" className="text-sm font-medium">Start with photos</h4>
-          <p className="text-xs text-muted-foreground">Add photos and we'll suggest the details. They go on the item when you save it.</p>
-          <div className="flex flex-wrap gap-2">
-            <label className="inline-flex">
-              <span className="sr-only">Add photos</span>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="sr-only"
-                disabled={busy || held.length >= 12}
-                onChange={(e) => {
-                  const files = Array.from(e.target.files ?? []);
-                  e.target.value = "";
-                  setHeld((h) => [...h, ...files].slice(0, 12));
-                }}
-              />
-              <span className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm" aria-hidden>
-                Add photos
-              </span>
-            </label>
-            <Button type="button" variant="outline" size="sm" disabled={busy || held.length === 0} onClick={() => aiPhotos.mutate()}>
-              <Sparkles className="mr-1 h-4 w-4" aria-hidden />
-              {aiPhotos.isPending ? "Looking…" : "Suggest details from my photos"}
-            </Button>
-          </div>
-          {held.length > 0 && (
-            <ul className="grid grid-cols-3 gap-2">
-              {held.map((f, i) => (
-                <li key={`${f.name}-${i}`} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
-                  <HeldPhoto file={f} />
-                  <Button type="button" size="sm" variant="outline" className="absolute bottom-1 right-1 px-2 text-xs" disabled={busy}
-                    onClick={() => setHeld((h) => h.filter((_, j) => j !== i))}>
-                    Remove
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+      {!id && <ShopItemStartPhotos held={held} setHeld={setHeld} busy={busy} suggesting={aiPhotos.isPending} onSuggest={() => aiPhotos.mutate()} />}
       <div className="space-y-1.5">
         <Label htmlFor="item-kind">What kind of item</Label>
         <NativeSelect

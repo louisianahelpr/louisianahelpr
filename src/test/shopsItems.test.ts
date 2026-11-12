@@ -247,7 +247,8 @@ describe("Shops slice 2: items, hidden and gated (20261017061157)", () => {
     const edge = blankComments(readFileSync(join(ROOT, "supabase/functions/declutter-ai-draft/index.ts"), "utf8"));
     expect(edge).toContain('const refused = await requireFeature(admin, shopItem ? "shops" : "declutter", authData.user, corsHeaders);');
     expect(edge).toContain('admin.rpc("shops_record_item_ai_check"');
-    expect(edge).toMatch(/from\("shop_items"\)[\s\S]{0,120}\.eq\("owner_id", userId\)\.eq\("status", "draft"\)/);
+    // S009 (2026-11-12): a live item's photo check reads it too; a draft (suggestions) still reads drafts only.
+    expect(edge).toMatch(/from\("shop_items"\)[\s\S]{0,120}\.eq\("owner_id", userId\)\.in\("status", mode === "check" \? \["draft", "live"\] : \["draft"\]\)/);
   });
 
   it("8. the app's words for an item's readiness and price", () => {

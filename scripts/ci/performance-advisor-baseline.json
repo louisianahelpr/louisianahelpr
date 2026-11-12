@@ -157,6 +157,7 @@
     "public.shipments.shipments_shop_order_idx",
     "public.shop_item_files.shop_item_files_item_idx",
     "public.shop_item_files.shop_item_files_owner_idx",
+    "public.shop_items.shop_items_live_title_idx",
     "public.shop_items.shop_items_subtype_idx",
     "public.shop_order_lines.shop_order_lines_item_idx",
     "public.shop_order_lines.shop_order_lines_order_idx",

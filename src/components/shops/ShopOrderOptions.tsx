@@ -13,8 +13,6 @@ import { findVariant, listValues, variantLabel, type ShopItemOptions } from "@/l
 
 import { lineKey } from "./shopCart";
 
-export { lineKey };
-
 /** How many of one order line (a plain item, or one combination). */
 export function QuantityStepper({ label, max, value, onChange }: { label: string; max: number; value: number; onChange: (n: number) => void }) {
   return (

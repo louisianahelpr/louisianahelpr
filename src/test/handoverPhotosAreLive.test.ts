@@ -32,7 +32,9 @@ const flat = (s: string) => blankSqlComments(s).replace(/\s+/g, " ");
 const src = (p: string) => blankComments(readFileSync(resolve(ROOT, p), "utf8"));
 
 // The same reasoned exclusions as the at-the-address guard: not a handover photo.
-const NOT_A_HANDOVER = new Set(["declutter_report_problem", "declutter_handover_photo_access", "helpr_task_photo_ok"]);
+// F389 (20261112060000): declutter_send_order_message's photo is an order-chat picture of the item, from the camera
+// roll too (an old photo of the dent is the point), not proof of a handover; it is not live-only.
+const NOT_A_HANDOVER = new Set(["declutter_report_problem", "declutter_handover_photo_access", "helpr_task_photo_ok", "declutter_send_order_message"]);
 const TOO_OLD = "RAISE EXCEPTION 'photo_too_old'";
 
 function inventory(): string[] {

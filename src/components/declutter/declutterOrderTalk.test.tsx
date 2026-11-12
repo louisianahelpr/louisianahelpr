@@ -15,7 +15,7 @@
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | (m.mine ? "You" : `The ${other}`) | (m.mine ? `The ${other}` : "You")
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {labels.data?.get(m.id) ?? (m.mine ? "You" | {(m.mine ? "You"
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |   const labels = useManagerLabels("order_talk", (talk.data?.messages ?? []).map((m) => m.id)); |   const labels = useManagerLabels("order_talk", []);
- * @mutate src/components/declutter/DeclutterOrderTalk.tsx |     mutationFn: () => sendOrderMessage(orderId, draft.trim()), |     mutationFn: () => sendOrderMessage(orderId, draft),
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx | return await sendOrderMessage(orderId, draft.trim(), photoPath); | return await sendOrderMessage(orderId, draft, photoPath);
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |     onError: (err) => setRefusal(declutterErrorMessage(err)), |     onError: () => setRefusal("Something went wrong."),
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |             {open && (\n              <form |             {(\n              <form
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |           {open && (\n            <SheetPrimaryAction |           {(\n            <SheetPrimaryAction

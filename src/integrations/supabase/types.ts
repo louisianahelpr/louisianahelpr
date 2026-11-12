@@ -19218,7 +19218,7 @@ export type Database = {
         Returns: string
       }
       declutter_send_order_message: {
-        Args: { p_body: string; p_order_id: string }
+        Args: { p_body: string; p_order_id: string; p_photo_path?: string }
         Returns: string
       }
       declutter_set_bundle_discount: {

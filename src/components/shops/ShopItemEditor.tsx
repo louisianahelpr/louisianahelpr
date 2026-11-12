@@ -12,10 +12,10 @@
  */
 import { useEffect, useRef, useState } from "react";
 import ShopItemStartPhotos from "./ShopItemStartPhotos";
+import ShopItemPhotosSection from "./ShopItemPhotosSection";
 import { cents, dollars, itemFieldOfError, wholeNumber, type ItemField } from "./shopItemEditorInputs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +31,6 @@ import {
   formatItemPrice,
   priceBoxText,
   HOME_KITCHEN_NOTICE,
-  itemPhotoUrl,
   publishShopItem,
   removeShopItemPhoto,
   requestShopItemAiCheck,
@@ -528,57 +527,8 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
       />
 
       {id && photosEditable && (
-        <section className="space-y-2" aria-labelledby="item-photos">
-          <h4 id="item-photos" className="text-ds-13 font-medium">Photos (3 to 12)</h4>
-          <div className="flex flex-wrap gap-2">
-            <label className="inline-flex">
-              <span className="sr-only">Add a photo</span>
-              {/* S2-010: an item holds up to 12 photos; the control says so and stops at 12. */}
-              <input
-                type="file"
-                accept="image/*"
-                className="peer sr-only"
-                disabled={busy || shown.length >= 12}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  e.target.value = "";
-                  if (f) addPhoto.mutate(f);
-                }}
-              />
-              <span className={`inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-ds-13 peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${shown.length >= 12 ? "cursor-not-allowed text-muted-foreground" : "cursor-pointer"}`} aria-hidden>
-                {shown.length >= 12 ? "12 photos (the most)" : "Add a photo"}
-              </span>
-            </label>
-            {draft && (
-              <Button type="button" variant="outline" size="sm" disabled={busy || shown.length === 0} onClick={() => ai.mutate()}>
-                <Sparkles className="mr-1 h-4 w-4" aria-hidden />
-                {ai.isPending ? "Looking…" : "Suggest details from my photos"}
-              </Button>
-            )}
-          </div>
-          {!draft && <p className="text-ds-11 text-muted-foreground">New photos get our quick photo check. The item stays on your shop unless it flags one.</p>}
-          {shown.length > 0 && (
-            <ul className="grid grid-cols-3 gap-2">
-              {shown.map((p, i) => (
-                <li key={p.id} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
-                  <img src={itemPhotoUrl(p.storage_path)} alt="" className="h-full w-full object-cover" />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="absolute bottom-1 right-1 px-2 text-ds-11"
-                    // S009: a live item keeps 3 photos (the server says so too).
-                    disabled={busy || (!draft && shown.length <= 3)}
-                    aria-label={`Remove photo ${i + 1}`}
-                    onClick={() => removePhoto.mutate(p.id)}
-                  >
-                    Remove
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <ShopItemPhotosSection photos={shown} draft={draft} busy={busy} suggesting={ai.isPending} onSuggest={() => ai.mutate()}
+          onAdd={(f) => addPhoto.mutate(f)} onRemove={(photoId) => removePhoto.mutate(photoId)} />
       )}
 
       {id && digital && item?.kind === "digital" && status !== "rejected" && <ShopDigitalFiles itemId={id} />}

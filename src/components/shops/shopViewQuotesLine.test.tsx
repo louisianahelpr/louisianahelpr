@@ -5,7 +5,7 @@
  * S030 (Shops audit 11-12): "Quotes open here soon." was a dead-end promise. "Gives quotes" now shows only while the
  * shop takes custom orders, as "takes custom orders" with a button to the request sheet; otherwise the line drops.
  *
- * @mutate src/components/shops/ShopView.tsx |   const takesCustom = s.offers_quotes && !!customOrders.data && customOrders.data !== "off"; |   const takesCustom = s.offers_quotes;
+ * @mutate src/components/shops/ShopView.tsx |   const takesCustom = !!customOrders.data && customOrders.data !== "off"; |   const takesCustom = !!customOrders.data;
  * @mutate src/components/shops/ShopView.tsx |             {takesCustom && !s.mine && !s.paused && ( |             {false && (
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";

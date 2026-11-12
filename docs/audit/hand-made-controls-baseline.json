@@ -413,9 +413,6 @@
     "src/components/shops/ShopHandoverActions.tsx": {
       "input": 1
     },
-    "src/components/shops/ShopItemEditor.tsx": {
-      "input": 1
-    },
     "src/components/shops/ShopPermitSection.tsx": {
       "select": 1
     },

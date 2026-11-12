@@ -6,7 +6,7 @@
  *
  * @mutate src/components/shops/ShopItemEditor.tsx |   const photosEditable = draft \|\| status === "live"; |   const photosEditable = draft;
  * @mutate src/components/shops/ShopItemEditor.tsx |     if (status !== "live" \|\| !id) return; |     return;
- * @mutate src/components/shops/ShopItemEditor.tsx |                     disabled={busy \|\| (!draft && shown.length <= 3)} |                     disabled={busy}
+ * @mutate src/components/shops/ShopItemPhotosSection.tsx |                 disabled={busy \|\| (!draft && photos.length <= 3)} |                 disabled={busy}
  */
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";

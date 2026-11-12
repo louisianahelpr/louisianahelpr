@@ -3,7 +3,7 @@
  * can be withdrawn by the buyer or declined by the shop, through shop-checkout close_request (never the RPC
  * directly, so the buyer's unpaid page for a price is closed too); a closed one offers nothing.
  *
- * @mutate src/components/shops/ShopCustomRequestsList.tsx |   const rows = (list.data ?? []).filter((r) => r.role === side).sort( |   const rows = (list.data ?? []).sort(
+ * @mutate src/components/shops/ShopCustomRequestsList.tsx |   const mine = (list.data ?? []).filter((r) => r.role === side); |   const mine = (list.data ?? []);
  * @mutate src/components/shops/ShopCustomRequestsList.tsx |             {OPEN.has(r.status) && openId !== r.id && ( |             {openId !== r.id && (
  * @mutate src/lib/shops/orders.ts |   await invokeShopCheckout({ action: "close_request", request_id: requestId }); |   await invokeShopCheckout({ action: "close_request", order_id: requestId });
  */

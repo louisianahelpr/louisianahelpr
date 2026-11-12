@@ -19,6 +19,28 @@ export function handoverIntro(order: Pick<ShopOrder, "shop_order_lines" | "hando
   return order.handover_mode === "porch" ? "Left out for pickup." : "Pick up in person.";
 }
 
+/**
+ * S055 (Shops audit 11-12): the buyer's safety net differs by handover, so the order says which one applies. Left out:
+ * no ready photo by 3 days after the ready day refunds the card in full on its own (shop_refund_sweep,
+ * 'no_ready_photo', full_shop_pays_fee). In person: nothing pays on its own; the money stays held until "I got it" or
+ * the shop's "Handed over". Pickup goods only (a delivery or a service has its own words), and only before the step
+ * it describes has happened. null: nothing to add.
+ */
+export function buyerHandoverSafety(
+  order: Pick<ShopOrder, "shop_order_lines" | "handover_mode" | "fulfillment" | "helpr_unfilled_at">,
+  h: { ready_photo_path: string | null; shop_confirmed_at?: string | null } | null,
+): string | null {
+  if (isServiceOrder(order)) return null;
+  const pickup = order.fulfillment !== "shop_delivers" && !(order.fulfillment === "helpr_delivers" && !order.helpr_unfilled_at);
+  if (!pickup) return null;
+  if (order.handover_mode === "porch") {
+    return h?.ready_photo_path ? null
+      : "If the shop hasn't posted its ready photo 3 days after the ready day, your card is refunded in full.";
+  }
+  return h?.shop_confirmed_at ? null
+    : "The shop is paid only after you tap \"I got it\" or the shop marks it handed over, so the money stays held if the pickup doesn't happen.";
+}
+
 export interface HandoverWords {
   shopDone: string;
   shopDoneToast: string;

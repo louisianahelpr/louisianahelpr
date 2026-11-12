@@ -58,6 +58,20 @@ export const enHome = {
   "home.cu.putOut": "Put out {what}",
   "home.cu.handOver": "Hand over {what}",
   "home.cu.getReady": "Get {what} ready",
+  "home.wc.title": "What brings you here?",
+  "home.wc.post": "Post a job",
+  "home.wc.postMeta": "Get help from a neighbor",
+  "home.wc.find": "Find work near me",
+  "home.wc.findMeta": "See the jobs posted near you",
+  "home.wc.sell": "Sell something",
+  "home.wc.sellMeta": "List an item on Declutter",
+  "home.pf.title": "Your first job posted",
+  "home.pf.post": "Post your first job",
+  "home.pf.hire": "Hire a Helpr",
+  "home.pf.approve": "Approve the work when it's done",
+  "home.ck.count": "{done} of {total}",
+  "home.ck.aria": "{title}: {done} of {total} done",
+  "home.ck.next": "Next:",
 } as const;
 
 addEnglish(enHome);

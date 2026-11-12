@@ -16,6 +16,8 @@ import { formatShortDate } from "@/lib/format";
 import { hasDateWindow, jobDayLabel } from "@/lib/jobDateWindow";
 import { takeHomeFirstJobPrefetch } from "./homePrefetchTake";
 import type { Profile } from "@/components/profile/profileLanding/types";
+import "@/lib/i18n/enHome";
+import { t as tr } from "@/lib/i18n/language";
 
 /** Jobs near you shows this many; the count beside the heading is the real total up to NEAR_CAP. */
 const NEAR_SHOWN = 3;
@@ -217,16 +219,16 @@ export function ChecklistProgress({ title, steps }: { title: string; steps: { ke
     <div data-checklist-progress="" className="flex flex-col">
       <div className="flex items-baseline gap-1.5">
         <h2 className="text-ds-15 font-semibold text-foreground">{title}</h2>
-        <span className="text-ds-13 text-muted-foreground">· {doneCount} of {steps.length}</span>
+        <span className="text-ds-13 text-muted-foreground">· {tr("home.ck.count", { done: doneCount, total: steps.length })}</span>
       </div>
-      <div role="progressbar" aria-label={`${title}: ${doneCount} of ${steps.length} done`} aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={doneCount} className="mt-2 flex gap-1">
+      <div role="progressbar" aria-label={tr("home.ck.aria", { title, done: doneCount, total: steps.length })} aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={doneCount} className="mt-2 flex gap-1">
         {steps.map((s) => (
           <span key={s.key} data-step={s.key} data-done={s.done ? "" : undefined} className={`h-1.5 flex-1 rounded-full ${s.done ? "bg-primary" : "bg-border"}`} />
         ))}
       </div>
       {next && (
         <button type="button" onClick={next.go} data-checklist-next={next.key} className="min-h-11 w-full flex items-center gap-1.5 text-left text-ds-13 text-muted-foreground">
-          <span className="min-w-0 flex-1">Next: <span className="font-semibold text-foreground">{next.label}</span></span>
+          <span className="min-w-0 flex-1">{tr("home.ck.next")} <span className="font-semibold text-foreground">{next.label}</span></span>
           <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
         </button>
       )}

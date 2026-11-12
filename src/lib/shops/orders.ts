@@ -199,6 +199,16 @@ export async function fetchMyOrders(userId: string): Promise<ShopOrder[]> {
 }
 
 /** The orders of the member's own shop (the dashboard), newest first. */
+/**
+ * S028 (Shops audit 11-12, dashboard CLS 0.63): the shop dashboard's OWN key for the full order rows. The nav badge's
+ * one read (my_badge_reads, src/lib/badgeReads.ts) seeds ["shops", "shop-orders", uid] with SHORTER rows (no
+ * fulfillment, delivery, deposit, digital, setup-fee or at_buyer columns) after the page's own reads; on the shared
+ * key that overwrote the dashboard's cards (the delivery, deposit and payout lines vanished and the page jumped), and
+ * within the 60 s staleTime a dashboard opened after Home showed the short rows with no read of its own. A child of
+ * the old key, so every ["shops", "shop-orders"] / [..., uid] invalidation still refreshes it.
+ */
+export const shopDashboardOrdersKey = (uid: string | null) => ["shops", "shop-orders", uid, "full"] as const;
+
 export async function fetchShopOrders(userId: string): Promise<ShopOrder[]> {
   const rows = unwrap(
     await supabase.from("shop_orders").select(ORDER_COLUMNS).eq("seller_id", userId)

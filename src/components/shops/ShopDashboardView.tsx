@@ -29,6 +29,7 @@ import {
   declineOrder,
   fetchShopOrders,
   fetchShopOrderBuyerNames,
+  shopDashboardOrdersKey,
   formatCents,
   timeLeftText,
   type ShopOrder,
@@ -80,7 +81,8 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
   const [reason, setReason] = useState("");
   const myId = useQuery({ queryKey: ["shops", "mine"], queryFn: fetchMyShopId });
   const orders = useQuery({
-    queryKey: ["shops", "shop-orders", user?.id ?? null],
+    // S028: its own key; the badge read seeds the shared one with shorter rows (see shopDashboardOrdersKey).
+    queryKey: shopDashboardOrdersKey(user?.id ?? null),
     queryFn: () => fetchShopOrders(user!.id),
     enabled: !!user?.id && !!myId.data,
   });

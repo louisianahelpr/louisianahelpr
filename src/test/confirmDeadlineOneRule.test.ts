@@ -73,8 +73,11 @@ const CALLS_SHARED = /\b(confirmDeadlineMs|confirmOpensMs)\s*\(/;
 const MENTIONS_CONFIRM = /\bConfirm by\b|\bconfirmation opens\b/i;
 
 /** Every non-test TS file, client or edge, that reads the day-before confirm. */
+// noticeEs.ts is the push/email TRANSLATION table: its English side is the server's own notice words, matched
+// verbatim (including "2 hours before it starts"), so it reads no window and decides no deadline.
+const NOT_READERS = new Set(["supabase/functions/_shared/noticeEs.ts"]);
 const readers = [...walk(join(ROOT, "src")), ...walk(join(ROOT, "supabase", "functions"))]
-  .filter((rel) => rel !== SHARED)
+  .filter((rel) => rel !== SHARED && !NOT_READERS.has(rel))
   .filter((rel) => {
     const c = code(rel);
     return CALLS_SHARED.test(c) || MENTIONS_CONFIRM.test(c) || confirmCopy(c).length > 0;

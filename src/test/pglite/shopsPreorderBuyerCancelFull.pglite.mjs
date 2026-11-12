@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261112160014_shops_preorder_buyer_cancel_full_refund.sql (Shops audit 2, S2-019): a buyer who
+ * PGlite proof for 20261112220952_shops_preorder_buyer_cancel_full_refund.sql (Shops audit 2, S2-019): a buyer who
  * cancels a paid preorder before it is marked ready gets every cent back (order + the setup fee its charge carried),
  * and the shop carries Stripe's card fee as seller fee debt. Other buyer cancels (buyer_cancelled) still keep the fee.
  *
@@ -19,7 +19,7 @@ import { readFileSync } from "node:fs";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
-const THIS = process.env.MIGRATION_PATH ?? MIG_DIR + "20261112160014_shops_preorder_buyer_cancel_full_refund.sql";
+const THIS = process.env.MIGRATION_PATH ?? MIG_DIR + "20261112220952_shops_preorder_buyer_cancel_full_refund.sql";
 const skip = process.env.NEW_MIGRATION === "skip";
 let failures = 0;
 const check = (ok, name, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}${!ok && detail ? `  (${detail})` : ""}`); if (!ok) failures++; };

@@ -10,7 +10,7 @@
 // @mutate supabase/migrations/20261112052501_names_hidden_wanted_listed_shop_talk.sql | 'seller_name', CASE WHEN public.declutter_names_hidden(v_uid, o.seller_id) THEN | 'seller_name', CASE WHEN false THEN
 // @mutate supabase/migrations/20261112052501_names_hidden_wanted_listed_shop_talk.sql | CASE WHEN public.declutter_names_hidden(l.seller_id, l.helpr_id) THEN '' | CASE WHEN false THEN ''
 // @mutate supabase/migrations/20261112052501_names_hidden_wanted_listed_shop_talk.sql |                     WHEN public.declutter_names_hidden(s.owner_id, t.buyer_id) THEN 'A shopper'\n                    ELSE |                     WHEN false THEN 'A shopper'\n                    ELSE
-// @mutate supabase/migrations/20261112052501_names_hidden_wanted_listed_shop_talk.sql |                         WHEN public.declutter_names_hidden(s.owner_id, t.buyer_id) THEN 'A shopper'\n |                         WHEN false THEN 'A shopper'\n
+// @mutate supabase/migrations/20261112052501_names_hidden_wanted_listed_shop_talk.sql |                         WHEN public.declutter_names_hidden(s.owner_id, t.buyer_id) THEN 'A shopper'\n                        ELSE |                         WHEN false THEN 'A shopper'\n                        ELSE
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

@@ -16,9 +16,11 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchShipOptions, setShipOptions } from "@/lib/declutter/api";
 import { SHIP_PICKUP_ONLY_CATEGORIES, SHIP_PRESETS, type ShipPreset } from "@/lib/declutter/shipOptions";
 import { ChipGroup } from "./DeclutterSellSteps";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 const OFF = "off";
-const CHOICES = [{ value: OFF, label: "Off" }, ...SHIP_PRESETS.map((p) => ({ value: p.key as string, label: p.label }))];
+const choices = () => [{ value: OFF, label: t("lp.sh.off") }, ...SHIP_PRESETS.map((p) => ({ value: p.key as string, label: p.label }))];
 
 export function ShipItRow({ itemId, small, category, rowClassName }: { itemId: string; small: boolean; category: string; rowClassName: string }) {
   const on = useFeature("declutter_shipping");
@@ -30,14 +32,14 @@ export function ShipItRow({ itemId, small, category, rowClassName }: { itemId: s
   const save = useMutation({
     mutationFn: (preset: ShipPreset | null) => setShipOptions(itemId, preset, preset !== null),
     onSuccess: (next) => {
-      toast(next.preset === null ? "Shipping is off for this item." : "Saved. Buyers in Louisiana can have it shipped.");
+      toast(next.preset === null ? t("lp.sh.offToast") : t("lp.sh.onToast"));
       void qc.invalidateQueries({ queryKey: key });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   if (!on || !allowed || state.data === "not_deployed") return null;
   if (state.isError) {
-    return <li className={rowClassName}><ErrorState variant="inline" title="We couldn't load this setting." body={declutterErrorMessage(state.error)} onRetry={() => void state.refetch()} /></li>;
+    return <li className={rowClassName}><ErrorState variant="inline" title={t("lp.sh.loadFail")} body={declutterErrorMessage(state.error)} onRetry={() => void state.refetch()} /></li>;
   }
   if (state.isLoading || !state.data) return null;
   const cur = state.data;
@@ -46,7 +48,7 @@ export function ShipItRow({ itemId, small, category, rowClassName }: { itemId: s
     if (save.isPending || value === (cur.preset ?? OFF)) return;
     const preset = value === OFF ? null : (value as ShipPreset);
     if (preset !== null && !confirmed) {
-      toast.error("First confirm nothing in it is on the USPS restricted list.");
+      toast.error(t("lp.sh.tickFirst"));
       return;
     }
     save.mutate(preset);
@@ -58,12 +60,12 @@ export function ShipItRow({ itemId, small, category, rowClassName }: { itemId: s
           <label className="flex min-h-11 items-start gap-3 text-ds-13">
             <Checkbox checked={ticked} onCheckedChange={(v) => setTicked(v === true)} aria-labelledby={`ship-restricted-${itemId}`} />
             <span id={`ship-restricted-${itemId}`}>
-              Nothing in it is on the USPS restricted list: no sprays, perfume, nail polish, batteries, matches or lighters.
+              {t("lp.sh.restricted")}
             </span>
           </label>
         )}
-        <ChipGroup label="Ship it" options={CHOICES} value={cur.preset ?? OFF} onChange={pick} />
-        <p className="text-ds-13 text-muted-foreground">Buyers in Louisiana can have it mailed. Pick the box it fits in. Under 4 oz ships cheapest.</p>
+        <ChipGroup label={t("lp.sh.label")} options={choices()} value={cur.preset ?? OFF} onChange={pick} />
+        <p className="text-ds-13 text-muted-foreground">{t("lp.sh.line")}</p>
       </div>
     </li>
   );

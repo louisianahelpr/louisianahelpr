@@ -23,6 +23,8 @@ import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress
 import type { Job } from "@/components/job-card/activityConstants";
 import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 import { jobDayLabel } from "@/lib/jobDateWindow";
+import { getLang, t } from "@/lib/i18n/language";
+import "@/lib/i18n/enMessages";
 
 /**
  * The deal-room chat's pinned card (board 2; chat halves of 59, 61, 62, 63).
@@ -85,16 +87,16 @@ function HelprDealPrice({ job }: { job: TakeHomeJob }) {
 /** "23h left" / "40m left" to the approval deadline; "time's up" once it passed (nothing releases on a timer). */
 function hoursLeft(deadlineMs: number, now = Date.now()): string {
   const mins = Math.floor((deadlineMs - now) / 60_000);
-  if (mins <= 0) return "time's up, Helpr support steps in";
-  return mins >= 60 ? `${Math.floor(mins / 60)}h left` : `${mins}m left`;
+  if (mins <= 0) return t("msg.dc.timesUp");
+  return mins >= 60 ? t("msg.dc.hLeft", { n: Math.floor(mins / 60) }) : t("msg.dc.mLeft", { n: mins });
 }
 
-function clock(t: string | null): string | null {
-  if (!t) return null;
-  const [h, m] = t.split(":").map(Number);
+function clock(hhmm: string | null): string | null {
+  if (!hhmm) return null;
+  const [h, m] = hhmm.split(":").map(Number);
   if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
   const d = new Date(2000, 0, 1, h, m);
-  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return d.toLocaleTimeString(getLang() === "es" ? "es-US" : "en-US", { hour: "numeric", minute: "2-digit" });
 }
 
 function useDealCard(convo: Conversation, userId: string) {
@@ -130,7 +132,7 @@ function useDealCard(convo: Conversation, userId: string) {
       // people the row is about.
       let trackingStatus: string | null = null;
       if (isHiredPairThread(job, convo, userId)) {
-        const t = unwrap(
+        const tracking = unwrap(
           await supabase
             .from("job_tracking")
             .select("status")
@@ -139,7 +141,7 @@ function useDealCard(convo: Conversation, userId: string) {
             .limit(1)
             .maybeSingle(),
         ) as { status: string | null } | null;
-        trackingStatus = t?.status ?? null;
+        trackingStatus = tracking?.status ?? null;
       }
       return { job, application, trackingStatus };
     },
@@ -263,7 +265,7 @@ export function DealCard({ convo, userId, hasMessages = false }: { convo: Conver
   const folded = hasMessages && !showProgress && !stage.waitingOnYou && !approveDue;
   const Icon = getCategoryIcon(job.category);
   const when = [job.date_needed ? jobDayLabel(job) : null, clock(job.start_time)].filter(Boolean).join(" · ");
-  const meta = [when || null, job.parish ? `${job.parish} Parish` : null].filter(Boolean).join(" · ");
+  const meta = [when || null, job.parish ? t("msg.dc.parish", { parish: job.parish }) : null].filter(Boolean).join(" · ");
   const open = () =>
     navigate(
       viewerIsPoster
@@ -275,7 +277,7 @@ export function DealCard({ convo, userId, hasMessages = false }: { convo: Conver
 
   return (
     <section
-      aria-label="This job"
+      aria-label={t("msg.dc.thisJob")}
       data-testid="deal-card"
       className="w-full mt-3 shrink-0 rounded-2xl px-4 py-3 space-y-3"
       style={{ background: "hsl(var(--card))", boxShadow: "0 1px 2px hsl(220 14% 20% / 0.06), 0 4px 14px -6px hsl(220 14% 20% / 0.10)" }}
@@ -322,7 +324,7 @@ export function DealCard({ convo, userId, hasMessages = false }: { convo: Conver
           data-deal-action=""
           className="shrink-0"
         >
-          {approveDue ? "Approve" : "Open job"}
+          {approveDue ? t("msg.dc.approve") : t("msg.dc.openJob")}
         </Button>
       </div>
     </section>

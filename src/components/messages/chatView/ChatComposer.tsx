@@ -1,6 +1,7 @@
 import { t } from "@/lib/i18n/language";
 import { Button } from "@/components/ui/button";
 import "@/lib/i18n/enScreens";
+import "@/lib/i18n/enMessages";
 import type { Dispatch, SetStateAction } from "react";
 import { Lock, X } from "lucide-react";
 import { QuickReplies } from "@/components/QuickReplies";
@@ -366,7 +367,7 @@ export function ChatComposer({
               Replying to {replyTo.sender_id === userId ? "yourself" : (activeConvo?.otherUserName ?? "them")}
             </p>
             <p className="text-ds-11 truncate font-sans" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-              {replyTo.content?.trim() || "Attachment"}
+              {replyTo.content?.trim() || t("msg.dc.attachment")}
             </p>
           </div>
           <Button

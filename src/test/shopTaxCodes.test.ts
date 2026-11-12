@@ -124,6 +124,9 @@ describe("Shops tax codes: one table, every kind mapped (owner O1, lead 2026-10-
       // Helpr delivery (20261106223244): Declutter's Helpr price, non-taxable as Declutter's "Helpr delivery".
       'product_data: taxed(fulfillment === "helpr_delivers" ? "Helpr delivery" : "Shop delivery", NONTAXABLE_TAX_CODE),',
       'product_data: { name: "Sales tax", description: atHome ? "Louisiana sales tax where the work is done" : fulfillment !== "pickup" ? "Louisiana sales tax where the order is delivered" : "Louisiana sales tax where you pick up the order", tax_code: NONTAXABLE_TAX_CODE },',
+      // Q2105 gift cards at Shops (lh-money-escrow PASS-with-notes; refused server-side unless SHOP_GIFT_CARDS is "on"): what is
+      // left after the gift card is one line that already carries the order's tax, so it is not taxed again.
+      'product_data: { name: "Your Shops order", description: "What is left after your gift card, sales tax included", tax_code: NONTAXABLE_TAX_CODE },',
       // Digital downloads (buy_digital, 20261108185110): the same setup fee and sales tax lines, at the billing address.
       'product_data: taxed("One-time account setup fee", NONTAXABLE_TAX_CODE) } });',
       'product_data: { name: "Sales tax", description: "Sales tax where you live (your billing address)", tax_code: NONTAXABLE_TAX_CODE } } });',

@@ -26,7 +26,8 @@ describe("Sellinglist-1: Delete and Take down say the same thing", () => {
     const home = code("src/components/declutter/DeclutterHomeView.tsx");
     const manage = code("src/components/declutter/DeclutterManageListing.tsx");
     expect(home).toMatch(/testId="declutter-take-down"[\s\S]{0,400}: TAKE_DOWN_WORDS\}/);
-    expect(manage).toMatch(/view === "sold"\s+\? "We'll take it off sale[^"]*"\s+: TAKE_DOWN_WORDS\}/);
+    // F260q: the sold sheet's words read enListingParts (lp.m.soldWords); the delete words stay the one shared set.
+    expect(manage).toMatch(/view === "sold"\s+\? t\("lp\.m\.soldWords"\)\s+: TAKE_DOWN_WORDS\}/);
     expect(manage).not.toMatch(/can't be undone/);
   });
 });

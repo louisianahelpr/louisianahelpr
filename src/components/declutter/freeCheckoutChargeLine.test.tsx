@@ -2,7 +2,7 @@
  * The line under "Confirm and pick a time" (Tester 11, 10-30). A first-timer is one tap from the one-time fee there
  * (setup_fee_required_to_claim), so "Nothing is charged" was false for them. Same reading as the ask line.
  *
- * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {trade ? TRADE_CHECKOUT_LINE : oneTimeCheckAhead ? FREE_CHECKOUT_FIRST_LINE : FREE_CHECKOUT_LINE} | {trade ? TRADE_CHECKOUT_LINE : FREE_CHECKOUT_LINE}
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {t(trade ? TRADE_CHECKOUT_LINE : oneTimeCheckAhead ? FREE_CHECKOUT_FIRST_LINE : FREE_CHECKOUT_LINE)} | {t(trade ? TRADE_CHECKOUT_LINE : FREE_CHECKOUT_LINE)}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";

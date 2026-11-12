@@ -7,7 +7,7 @@
  * red). Here: the giver's list marks a passed time and offers no Pick, the refusal has words, and the source anchors.
  *
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | const passed = !!r.pickup_at && new Date(r.pickup_at).getTime() <= Date.now(); | const passed = false;
- * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {passed ? " · time passed" : ""} |
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {passed ? t("free.timePassed") : ""} |
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |               {passed ? null : ( |               {false ? null : (
  * @mutate src/lib/lifecycleErrorCopy.ts |     request_time_passed: DC.request_time_passed,\n |
  * @mutate supabase/migrations/20261107174801_declutter_buy_now_one_page.sql |     v_free_asks := public.sweep_declutter_free_asks(p_now); |     v_free_asks := 0;

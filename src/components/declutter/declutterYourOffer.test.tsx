@@ -20,7 +20,7 @@
  * @mutate src/components/declutter/DeclutterYourOffer.tsx |       onChange();\n | \n
  * @mutate src/components/declutter/DeclutterYourOffer.tsx | onClick={() => setAsking(true)} | onClick={() => takeBack.mutate()}
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |   if (myAsk) { |   if (false) {
- * @mutate src/components/declutter/DeclutterFreeClaim.tsx | "Confirming…" : "Confirm and pick a time" | "Confirming…" : "Ask for it"
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | t("free.confirming") : t("free.confirmPick") | t("free.confirming") : t("free.askForIt")
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {freeAskLine(offered, oneTimeCheckAhead)} | {freeAskLine(["porch", "pickup_home"], oneTimeCheckAhead)}
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | .filter((h) => wayAllowed(ways, h)); | ;
  *   DA-5 (Declutter audit 2026-10-30): the free ask line names only the ways the giver ticked, by the same rule
@@ -217,7 +217,7 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     fireEvent.click(ask);
     // Owner 11-01 (Mockup 3): the button opens the sheet; the asker picks a time, and the ask carries it.
     // @mutate src/components/declutter/FreeAskSheet.tsx |     mutationFn: (iso: string) => requestFreeAt(item.id, iso), |     mutationFn: (iso: string) => requestFreeAt(item.id, new Date().toISOString()),
-    // @mutate src/components/declutter/FreeAskSheet.tsx | : "the time you pick"} is already set, and you'll get the address. | : "the time you pick"}. If it's you, you'll confirm the pickup and get the address.
+    // @mutate src/lib/i18n/enFreeAsk.ts |   "fask.noteTail": " is already set, and you'll get the address.", |   "fask.noteTail": ". If it's you, you'll confirm the pickup and get the address.",
     const times = await screen.findByRole("group", { name: /^Pickup time on / });
     const firstTime = within(times).getAllByRole("button")[0];
     fireEvent.click(firstTime);
@@ -267,7 +267,7 @@ describe("the item page knows the buyer's own hold (#3)", () => {
   });
 
   // identityCheckOffEntryPoints (c2): the ID check is named only while the identity_check switch is on.
-  // @mutate src/lib/declutter/freePickSteps.ts |     : "you choose your pickup time and get the address"; |     : "your first free item has a one-time ID check first, then you choose your pickup time and get the address";
+  // @mutate src/lib/i18n/enFree.ts |   "free.stepsNoId": "you choose your pickup time and get the address", |   "free.stepsNoId": "your first free item has a one-time ID check first, then you choose your pickup time and get the address",
   it("with the ID check switch off, the first-pick steps never name an ID check", async () => {
     const { firstPickSteps } = await import("@/lib/declutter/freePickSteps");
     expect(firstPickSteps(false)).toBe("you choose your pickup time and get the address");
@@ -363,7 +363,7 @@ describe("the item page knows the buyer's own hold (#3)", () => {
   // Audit 1110 F359c: Change time opens the same sheet; the new time goes to declutter_request_free_at, which moves the
   // open ask's pickup_at (20261101174857).
   // @mutate src/components/declutter/DeclutterFreeClaim.tsx |         {changing && ( |         {false && (
-  // @mutate src/components/declutter/FreeAskSheet.tsx |             {slot ? `${change ? "Change to" : "Ask for it ·"} | {slot ? `${"Ask for it ·"}
+  // @mutate src/components/declutter/FreeAskSheet.tsx | {slot ? t(change ? "fask.changeTo" : "fask.askAt", | {slot ? t("fask.askAt",
   it("F359c: Change time on the member's open ask sends the new time and says Change to", async () => {
     state.asks = [{ id: "r1", item_id: "i1", status: "open", created_at: "2026-10-30T00:00:00Z", pickup_at: "2027-11-13T16:00:00Z" }];
     show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
@@ -391,7 +391,7 @@ describe("the item page knows the buyer's own hold (#3)", () => {
 });
 
 // The giver's request list says the giver's move once someone asked (owner 11-01 12:02 PM: the shared next-step line).
-// @mutate src/components/declutter/DeclutterFreeClaim.tsx |         <NextStep className="!text-sm" value={{ who: "you", text: "Pick who gets it", by: `${rows.length} asked` }} /> |         null
+// @mutate src/components/declutter/DeclutterFreeClaim.tsx |         <NextStep className="!text-sm" value={{ who: "you", text: t("free.pickWho"), by: t("free.nAsked", { n: rows.length }) }} /> |         null
 describe("the giver's request list: Next: pick who gets it", () => {
   it("with asks: 'Next: pick who gets it'; with none: it stays up, no step", async () => {
     state.giverAsks = [{ request_id: "r1", requester_id: "u1", display_name: "Kaci B.", avg_rating: 5, review_count: 3, created_at: "2026-10-30T00:00:00Z", pickup_at: null }];

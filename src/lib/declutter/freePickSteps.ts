@@ -9,9 +9,9 @@
  * just: choose the time, get the address.
  */
 import { identityCheckOn } from "@/lib/identityCheckSwitch";
+import { t } from "@/lib/i18n/language";
 
+/** F260q: the words are enFree.ts's (free.stepsId / free.stepsNoId), registered by both callers' panel (DeclutterFreeClaim). */
 export function firstPickSteps(idCheckOn: boolean = identityCheckOn()): string {
-  return idCheckOn
-    ? "your first free item has a one-time ID check first (we show you the cost before you pay), then you choose your pickup time and get the address"
-    : "you choose your pickup time and get the address";
+  return idCheckOn ? t("free.stepsId") : t("free.stepsNoId");
 }

@@ -1,4 +1,5 @@
 /**
+ * S2-043 (Shops audit 2): on phones the card is a compact row (logo, then the lines); the photo card is sm and up.
  * S2-040 (Shops audit 2): a Browse shop card's link has a short name (name, rating, category, open or not, place),
  * not the logo's letter and every line and badge run together ("TTEST Boudin shop 5 Bakery ... ID checked Permit").
  */
@@ -19,5 +20,21 @@ describe("S2-040: shop card link name", () => {
     const link = screen.getByRole("link");
     expect(link.getAttribute("aria-label")).toBe("TEST Boudin shop, rated 4.8 from 12 reviews, Bakery and cakes, Paused for now, Broussard, 4 miles away");
     expect(screen.getByRole("link", { name: /^TEST Boudin shop,/ })).toBe(link);
+  });
+});
+
+describe("S2-043: compact row on phones", () => {
+  it("phones get a row with a round logo; the cover and badges are sm and up only", () => {
+    render(<MemoryRouter><ShopBrowseCard shop={shop} category="Bakery and cakes" group={null} /></MemoryRouter>);
+    const link = screen.getByRole("link");
+    const cls = link.className.split(/\s+/);
+    expect(cls).toContain("flex");
+    expect(cls).toContain("sm:block");
+    const rowLogo = link.querySelector("[data-shop-logo-row]") as HTMLElement;
+    expect(rowLogo.className.split(/\s+/)).toContain("sm:hidden");
+    expect(rowLogo.textContent).toBe("T");
+    const cover = (link.querySelector("[data-shop-logo]") as HTMLElement).parentElement as HTMLElement;
+    expect(cover.className.split(/\s+/)).toEqual(expect.arrayContaining(["hidden", "sm:block"]));
+    expect(screen.getByText("ID checked").closest(".hidden")).not.toBeNull();
   });
 });

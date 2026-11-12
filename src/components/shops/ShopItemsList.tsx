@@ -5,6 +5,7 @@
  * Only LIVE items show here; the owner manages every item on /shops/mine.
  * Ordering is ShopOrderSheet, below this list on the shop's page (M1).
  */
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +14,8 @@ import { fetchItemOptions } from "@/lib/shops/variants";
 import { fetchItemPreorders } from "@/lib/shops/preorders";
 import { SHOP_ITEMS_GRID, ShopItemsGrid } from "./ShopProfile";
 import { shopsErrorMessage } from "@/lib/shops/errors";
+import ShopItemSheet from "./ShopItemSheet";
+import { orderableItems, useHasShopCart } from "./shopCart";
 
 /**
  * S026 (Shops audit 11-12): the item card's "Order" goes to that item's row in the order sheet below (the same page),
@@ -37,6 +40,10 @@ export default function ShopItemsList({ shopId, reportable = false, orderable = 
   // One gate (oneLoadingGatePerScreen): the items, their "From" words and their preorder lines paint together.
   const listLoading = items.isLoading || options.isLoading || preorders.isLoading;
   const live = (items.data ?? []).filter((i) => i.status === "live");
+  // S026 (rest): on a page that shares one order (ShopView's ShopCartProvider), a card opens the item sheet.
+  const sharesOrder = useHasShopCart();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const opened = orderable && sharesOrder ? live.find((i) => i.id === openId) ?? null : null;
   return (
     <section className="space-y-2 rounded-2xl border border-border bg-card p-4 shadow-sm" aria-labelledby="shop-items">
       <h2 id="shop-items" className="font-sans text-base font-bold not-italic text-foreground">Items</h2>
@@ -53,7 +60,13 @@ export default function ShopItemsList({ shopId, reportable = false, orderable = 
           </Button>
         </div>
       ) : (
-        <ShopItemsGrid items={live} reportable={reportable} withOptions={options.data} preorders={preorders.data} onOrder={orderable ? goToOrderRow : undefined} />
+        <ShopItemsGrid items={live} reportable={reportable} withOptions={options.data} preorders={preorders.data} onOrder={orderable ? goToOrderRow : undefined}
+          onOpen={orderable && sharesOrder ? setOpenId : undefined} />
+      )}
+      {orderable && sharesOrder && (
+        <ShopItemSheet item={opened} onClose={() => setOpenId(null)} options={opened ? options.data?.get(opened.id) : undefined}
+          preorder={opened ? preorders.data?.get(opened.id) : undefined} orderable={orderableItems(items.data, preorders.data)}
+          preorders={preorders.data} />
       )}
     </section>
   );

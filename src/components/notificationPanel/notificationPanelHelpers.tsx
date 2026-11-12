@@ -36,6 +36,7 @@ export const typeIcons: Record<string, React.ReactNode> = {
   shops_orders: <Store className="w-4 h-4" />,
   shops_messages: <MessageCircle className="w-4 h-4" />,
   shops_updates: <Info className="w-4 h-4" />,
+  shops_following: <Store className="w-4 h-4" />,
   admin_activity: <Info className="w-4 h-4" />,
 };
 

@@ -9429,6 +9429,7 @@ export type Database = {
           email_declutter_questions: boolean
           email_shops_messages: boolean
           email_shops_orders: boolean
+          email_shops_following: boolean
           email_shops_updates: boolean
           email_enabled: boolean
           email_financial_alerts: boolean
@@ -9469,6 +9470,7 @@ export type Database = {
           saved_searches_paused: boolean
           shops_messages: boolean
           shops_orders: boolean
+          shops_following: boolean
           shops_updates: boolean
           system_alerts: boolean
           sms_phone_prompt_dismissed_at: string | null
@@ -9499,6 +9501,7 @@ export type Database = {
           email_declutter_questions?: boolean
           email_shops_messages?: boolean
           email_shops_orders?: boolean
+          email_shops_following?: boolean
           email_shops_updates?: boolean
           email_enabled?: boolean
           email_financial_alerts?: boolean
@@ -9539,6 +9542,7 @@ export type Database = {
           saved_searches_paused?: boolean
           shops_messages?: boolean
           shops_orders?: boolean
+          shops_following?: boolean
           shops_updates?: boolean
           system_alerts?: boolean
           sms_phone_prompt_dismissed_at?: string | null
@@ -9569,6 +9573,7 @@ export type Database = {
           email_declutter_questions?: boolean
           email_shops_messages?: boolean
           email_shops_orders?: boolean
+          email_shops_following?: boolean
           email_shops_updates?: boolean
           email_enabled?: boolean
           email_financial_alerts?: boolean
@@ -9609,6 +9614,7 @@ export type Database = {
           saved_searches_paused?: boolean
           shops_messages?: boolean
           shops_orders?: boolean
+          shops_following?: boolean
           shops_updates?: boolean
           system_alerts?: boolean
           sms_phone_prompt_dismissed_at?: string | null
@@ -13944,6 +13950,7 @@ export type Database = {
           at_buyer: boolean
           created_at: string
           description: string
+          followers_told_at: string | null
           id: string
           is_seed: boolean
           kind: string
@@ -13974,6 +13981,7 @@ export type Database = {
           at_buyer?: boolean
           created_at?: string
           description?: string
+          followers_told_at?: string | null
           id?: string
           is_seed?: boolean
           kind: string
@@ -14004,6 +14012,7 @@ export type Database = {
           at_buyer?: boolean
           created_at?: string
           description?: string
+          followers_told_at?: string | null
           id?: string
           is_seed?: boolean
           kind?: string

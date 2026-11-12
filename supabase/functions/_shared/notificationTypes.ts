@@ -90,6 +90,8 @@ export const NOTIFICATION_TYPE_MAP: Record<string, { prefCol: string; category: 
   shops_orders:          { prefCol: 'email_shops_orders',          category: 'shops_orders' },
   shops_messages:        { prefCol: 'email_shops_messages',        category: 'shops_messages' },
   shops_updates:         { prefCol: 'email_shops_updates',         category: 'shops_updates' },
+  // New from shops you follow (20261112070000): written by a DB trigger; its email switch defaults OFF.
+  shops_following:       { prefCol: 'email_shops_following',       category: 'shops_following' },
   // Admin bell activity (20261112061000): bell only; its email switch defaults OFF.
   admin_activity:        { prefCol: 'email_admin_activity',        category: 'admin_activity' },
 }

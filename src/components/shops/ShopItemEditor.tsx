@@ -203,13 +203,30 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
 
+  // S009 (Shops audit 11-12): a LIVE item's photos change too. The change clears its photo check, so it runs again
+  // on the live item (best effort, as at Publish: no answer leaves it live). Only a flag takes it off the shop.
+  const recheckLive = async () => {
+    if (status !== "live" || !id) return;
+    try {
+      const v = await requestShopItemAiCheck(id);
+      if (v.flagged) toast.warning("Our checks flagged a photo. The item is off your shop until our team looks at it.");
+    } catch (checkErr) {
+      console.warn("[shops] photo check did not run on the live item; it stays live", checkErr);
+    }
+  };
   const addPhoto = useMutation({
-    mutationFn: (file: File) => addShopItemPhoto(ownerId, id as string, file),
+    mutationFn: async (file: File) => {
+      await addShopItemPhoto(ownerId, id as string, file);
+      await recheckLive();
+    },
     onSuccess: () => refresh(),
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
   const removePhoto = useMutation({
-    mutationFn: (photoId: string) => removeShopItemPhoto(photoId),
+    mutationFn: async (photoId: string) => {
+      await removeShopItemPhoto(photoId);
+      await recheckLive();
+    },
     onSuccess: () => refresh(),
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
@@ -257,6 +274,8 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
   });
 
   const draft = status === "draft";
+  // S009: photos can change on a draft or a live item (not while it waits for an admin).
+  const photosEditable = draft || status === "live";
   const busy = save.isPending || publish.isPending || addPhoto.isPending || removePhoto.isPending || ai.isPending;
   const shown = item?.photos ?? [];
   const cottageNeedsTick = d.kind === "home_food" && !!cottage.data && !cottage.data.confirmed;
@@ -409,7 +428,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
         <Button type="button" variant="ghost" onClick={onDone}>Cancel</Button>
       </div>
 
-      {id && draft && (
+      {id && photosEditable && (
         <section className="space-y-2" aria-labelledby="item-photos">
           <h4 id="item-photos" className="text-sm font-medium">Photos (3 to 12)</h4>
           <div className="flex flex-wrap gap-2">
@@ -430,11 +449,14 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
                 Add a photo
               </span>
             </label>
-            <Button type="button" variant="outline" size="sm" disabled={busy || shown.length === 0} onClick={() => ai.mutate()}>
-              <Sparkles className="mr-1 h-4 w-4" aria-hidden />
-              {ai.isPending ? "Looking…" : "Suggest details from my photos"}
-            </Button>
+            {draft && (
+              <Button type="button" variant="outline" size="sm" disabled={busy || shown.length === 0} onClick={() => ai.mutate()}>
+                <Sparkles className="mr-1 h-4 w-4" aria-hidden />
+                {ai.isPending ? "Looking…" : "Suggest details from my photos"}
+              </Button>
+            )}
           </div>
+          {!draft && <p className="text-xs text-muted-foreground">New photos get our quick photo check. The item stays on your shop unless it flags one.</p>}
           {shown.length > 0 && (
             <ul className="grid grid-cols-3 gap-2">
               {shown.map((p) => (
@@ -445,7 +467,8 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
                     size="sm"
                     variant="outline"
                     className="absolute bottom-1 right-1 px-2 text-xs"
-                    disabled={busy}
+                    // S009: a live item keeps 3 photos (the server says so too).
+                    disabled={busy || (!draft && shown.length <= 3)}
                     onClick={() => removePhoto.mutate(p.id)}
                   >
                     Remove

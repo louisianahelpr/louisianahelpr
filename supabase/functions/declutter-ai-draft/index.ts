@@ -273,8 +273,10 @@ serve(withCheckSweep(async (req) => {
     // reaches a reserved or sold listing that went live with none; record_ai_check holds the payout on a flag.
     const declutterStatuses = mode === "check" ? ["draft", "live", "pending_review", "reserved", "sold"] : ["draft"];
     const { data: item, error: itemErr } = shopItem
+      // S009 (Shops audit 11-12): a `check` may also judge a LIVE shop item whose photos changed;
+      // shops_record_item_ai_check decides whether it may be judged (verdict cleared, not approved since).
       ? await admin.from("shop_items").select("id, kind, subtype, title, description")
-          .eq("id", itemId).eq("owner_id", userId).eq("status", "draft").maybeSingle()
+          .eq("id", itemId).eq("owner_id", userId).in("status", mode === "check" ? ["draft", "live"] : ["draft"]).maybeSingle()
       : await admin.from("declutter_items").select("id, title, description, category")
           .eq("id", itemId).eq("seller_id", userId).in("status", declutterStatuses).maybeSingle();
     if (itemErr) {

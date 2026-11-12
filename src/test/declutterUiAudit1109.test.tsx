@@ -4,7 +4,7 @@
 // @mutate src/components/declutter/DeclutterItemCard.tsx |   if (!save && guestSaveTo) { |   if (!save && guestSaveTo && saves === -1) {
 // @mutate src/lib/jobIntent.ts |   if (reason === SAVE_ITEM_REASON) return t("signup.saveItemSubtitle"); |
 // @mutate src/components/declutter/DeclutterItemCard.tsx |             alt={photoLoaded ? item.title : ""} |             alt=""
-// @mutate src/components/declutter/DeclutterMineViews.tsx | label: "Pickups to do", | label: "Hand over",
+// @mutate src/lib/i18n/enDeclutter.ts | "decl.mv.pickups": "Pickups to do", | "decl.mv.pickups": "Hand over",
 // @mutate src/components/declutter/ManagerPanel.tsx |       <h2 id="manager-setup-title" className="text-base font-semibold">Let a friend sell for you</h2> |       <h2 id="manager-setup-title" className="text-base font-semibold">Get help selling</h2>
 // @mutate src/App.tsx | <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} /> |
 // @mutate src/components/declutter/DeclutterListingDefaults.tsx | t("lp.ld.dropsOn", { pct: draft.dropPct }) | `It drops ${draft.dropPct}% each evening, to a whole dollar, never below your lowest price.`
@@ -96,8 +96,8 @@ describe("F128: Selling's unclear phrases are plain words", () => {
     // Audit 11-10 F323: "Have someone sell for you" read like "How a Helpr helps you list" (paid by the hour, no share).
     const mine = blankComments(readFileSync(join(SRC, "components/declutter/DeclutterMineViews.tsx"), "utf8"));
     const mgr = blankComments(readFileSync(join(SRC, "components/declutter/ManagerPanel.tsx"), "utf8"));
-    expect(mine).toContain('{ key: "sold", label: "Pickups to do", count: todo?.salesOpen ?? 0, hot: true },');
-    expect(mine).not.toContain('label: "Hand over"');
+    expect(mine).toContain('{ key: "sold", label: t("decl.mv.pickups"), count: todo?.salesOpen ?? 0, hot: true },');
+    expect(readFileSync(join(SRC, "lib/i18n/enDeclutter.ts"), "utf8")).toContain('"decl.mv.pickups": "Pickups to do",');
     expect((mgr.match(/>Let a friend sell for you</g) ?? []).length).toBe(2);
     expect(mgr).not.toMatch(/Get help selling|Have someone sell for you|, for a share\./);
     expect(mgr).toContain("keeps a share of each sale.");

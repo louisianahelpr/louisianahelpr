@@ -16,9 +16,9 @@ function StatusChips<K extends string>({ chips, value, onPick }: { chips: readon
     // AUD31-4 (lead 10-31): at 375 the last chip runs off the right edge on purpose: the row scrolls sideways. The right
     // edge fades so the cut chip reads as "more to scroll"; the end padding (>= the fade) lets the last chip scroll clear
     // of it, so nothing stays faded once the row is at its end. Never wrapped.
-    <div role="group" aria-label="Filter by status" data-status-chips="" className="-mx-3 flex items-center gap-2 overflow-x-auto pb-1 pl-3 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div role="group" aria-label={t("decl.mv.filter")} data-status-chips="" className="-mx-3 flex items-center gap-2 overflow-x-auto pb-1 pl-3 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <ToggleChip pressed={value === null} onClick={() => onPick(null)}>
-        All{all > 0 ? ` · ${all}` : ""}
+        {t("decl.mv.all")}{all > 0 ? ` · ${all}` : ""}
       </ToggleChip>
       {chips.map((c) => (
         <ToggleChip key={c.key} pressed={value === c.key} data-status-box={c.key} onClick={() => onPick(value === c.key ? null : c.key)}>
@@ -57,6 +57,8 @@ import { TradeOffersSection, useTradeOffersToAnswer } from "./DeclutterTradeOffe
 import { FreeAsksToPick, useFreeAsksToPick } from "./FreeAsksToPick";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useMyTrades } from "./useMyTrades";
+import "@/lib/i18n/enDeclutter";
+import { t } from "@/lib/i18n/language";
 
 const BUCKET_KEYS = ORDER_BUCKETS.map((b) => b.key);
 
@@ -83,20 +85,20 @@ function useBuyerOffers(): { has: boolean | null; toAnswer: boolean } {
  */
 export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
   const [asked, toggle] = useStatusFilter(BUCKET_KEYS);
-  const t = useBuyingTracker();
-  const chips = bucketChips(t.counts);
+  const trk = useBuyingTracker();
+  const chips = bucketChips(trk.counts);
   // A chip with nothing in it is not shown, so a stale ?status= for an empty group shows every order.
-  const only = asked && t.counts[asked] > 0 ? asked : null;
+  const only = asked && trk.counts[asked] > 0 ? asked : null;
   const offers = useBuyerOffers();
   const settling = usePaySettling();
   const orders = chips.length > 0;
-  const showCart = t.ready && (only === null || only === "needs_you") && (t.checkouts > 0 || settling.settling);
-  const ended = only === null || only === "cancelled" ? t.ended : [];
+  const showCart = trk.ready && (only === null || only === "needs_you") && (trk.checkouts > 0 || settling.settling);
+  const ended = only === null || only === "cancelled" ? trk.ended : [];
   // Q2630 (audit 1102c R5): a paid order refunded in full did not go ahead, so it is filed under Ended (like a checkout
   // that ran out), not under Your orders. Its card keeps the amount and day ("Cancelled. $42.70 was refunded ...").
-  const refunded = (id: string) => !!t.views.get(id)?.facts.cancelled;
-  const endedOrders = only === null || only === "cancelled" ? [...t.views.keys()].filter(refunded).length : 0;
-  const nothingActive = t.ready && chips.every((c) => c.key === "cancelled") && offers.has === false && !showCart;
+  const refunded = (id: string) => !!trk.views.get(id)?.facts.cancelled;
+  const endedOrders = only === null || only === "cancelled" ? [...trk.views.keys()].filter(refunded).length : 0;
+  const nothingActive = trk.ready && chips.every((c) => c.key === "cancelled") && offers.has === false && !showCart;
   // Builder 187 (seen in the preview, the same in the app): a member whose only Buying is an open free ask read
   // "Nothing bought yet." above "Free items you asked for". The notice waits for the asks read and needs none.
   const freeAsks = useMyFreeAsks();
@@ -108,14 +110,14 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       <FreePauseLine />
       {/* D-NEW11: on a day with pickups booked, what to do today comes first. */}
       {/* NIGHT-BUYINGopenpr-1: never on an order on hold (the same open-problem read as its card's "On hold"). */}
-      <PickupDayCard orders={t.live} bookings={t.bookings} held={new Set(t.live.filter((o) => t.views.get(o.orderId)?.facts.problem).map((o) => o.orderId))} />
+      <PickupDayCard orders={trk.live} bookings={trk.bookings} held={new Set(trk.live.filter((o) => trk.views.get(o.orderId)?.facts.problem).map((o) => o.orderId))} />
       {/* Q2569 (audit 1102a): with every order in one group the row read "All · 2" "Cancelled · 2", the chip only
           repeating All; the chips show once there are two groups to choose between. */}
       {chips.length > 1 && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}
       {/* Lead 11-08: never "Nothing bought yet." above the buyer's own trade offers. */}
-      {t.ready && !orders && offers.has === false && !settling.settling && freeAsks.data?.length === 0 && !buyerTrades.isLoading && !buyerTrades.data?.length && (
-        <DeclutterNotice title="Nothing bought yet.">
-          When a seller accepts your offer, or you tap Buy, the item comes here. Buy now holds it 30 minutes; an accepted offer gives you 24 hours to check out.
+      {trk.ready && !orders && offers.has === false && !settling.settling && freeAsks.data?.length === 0 && !buyerTrades.isLoading && !buyerTrades.data?.length && (
+        <DeclutterNotice title={t("decl.mv.noneBought")}>
+          {t("decl.mv.noneBoughtBody")}
         </DeclutterNotice>
       )}
       {showCart && <CartView />}
@@ -125,17 +127,17 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       <BundleRequestsSection side="buyer" userId={user?.id ?? null} />
       {/* Declutter trades slice 3: the buyer's trade offers from the last 7 days, with Take it back while open. */}
       <TradeOffersSection side="buyer" userId={user?.id ?? null} only={only} />
-      <PaidOrders side="buyer" views={t.views} scope={(id) => !refunded(id)} show={(id) => only === null || t.views.get(id)?.bucket === only} />
+      <PaidOrders side="buyer" views={trk.views} scope={(id) => !refunded(id)} show={(id) => only === null || trk.views.get(id)?.bucket === only} />
       {(ended.length > 0 || endedOrders > 0) && (
-        <section className="space-y-2" aria-label="Ended">
+        <section className="space-y-2" aria-label={t("decl.mv.ended")}>
           {/* "Ended", not "Ended before paying": an order cancelled after it was paid or claimed is kept here too (A2-4). */}
-          <SectionHeading title="Ended" />
-          {endedOrders > 0 && <PaidOrders side="buyer" views={t.views} scope={refunded} ended />}
+          <SectionHeading title={t("decl.mv.ended")} />
+          {endedOrders > 0 && <PaidOrders side="buyer" views={trk.views} scope={refunded} ended />}
           {ended.length > 0 && <ul className="space-y-3">{ended.map((l) => <EndedLine key={l.line_id} line={l} />)}</ul>}
           {/* Q2569: only ended orders, nothing on the way and no offer out: a way back to shopping. */}
           {nothingActive && (
             <Link to="/declutter" data-ended-browse="" className="inline-flex min-h-11 items-center text-ds-13 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">
-              Find something in Browse
+              {t("decl.mv.findBrowse")}
             </Link>
           )}
         </section>
@@ -192,19 +194,19 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
         value={only}
         onPick={(k) => (k === null ? only && toggle(only) : toggle(k))}
         chips={[
-          { key: "offers", label: "To answer", count: toAnswer, hot: true },
+          { key: "offers", label: t("decl.mv.toAnswer"), count: toAnswer, hot: true },
           // Audit 11-10 F406: "Listed" read as "still for sale" over rows that are sold, handed over or being bought.
           // "Listings" names the list it opens (Your listings), every row of it, as the count already does.
-          { key: "listings", label: "Listings", count: listed },
+          { key: "listings", label: t("decl.mv.listings"), count: listed },
           { key: "waiting", label: waitingLabel, count: todo?.salesAwaitingPayment ?? 0 },
           // F128 (UI audit 11-09): "Hand over" was unclear; these are the sales still to hand to the buyer.
-          { key: "sold", label: "Pickups to do", count: todo?.salesOpen ?? 0, hot: true },
+          { key: "sold", label: t("decl.mv.pickups"), count: todo?.salesOpen ?? 0, hot: true },
           // Only while there is one (owner 2026-10-28: chips only for lists that hold something).
-          ...(history > 0 ? [{ key: "taken" as const, label: "History", count: history }] : []),
+          ...(history > 0 ? [{ key: "taken" as const, label: t("decl.mv.history"), count: history }] : []),
         ]}
       />
       {soldFirst && sold}
-      {only === "offers" && toAnswer === 0 && todo && <DeclutterNotice title="Nothing to answer right now." />}
+      {only === "offers" && toAnswer === 0 && todo && <DeclutterNotice title={t("decl.mv.nothingToAnswer")} />}
       {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} />}
       {show("offers") && <QuestionsToAnswer userId={userId} />}
       {show("offers") && <FreeAsksToPick rows={freeAsks} />}

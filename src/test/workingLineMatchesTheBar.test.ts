@@ -11,7 +11,7 @@
  * @mutate src/components/tracker/workHasBegun.ts |   if (o.lineId && HELPR_NOT_STARTED.has(o.lineId)) return false; |
  * @mutate src/components/tracker/jobProgressState.ts | if (poster && workHasBegun(job, { workUnderway: o.workUnderway })) return withCode( | if (poster && job.poster_confirmed_working_at) return withCode(
  * @mutate src/components/job-card/jobStatusLine.ts |   const atTheJob = id === "working" && !workHasBegun(job, { workUnderway: progress?.workUnderway }); |   const atTheJob = id === "working" && !job.poster_confirmed_working_at;
- * @mutate src/components/job-card/jobStatusLine.ts |   working: (n) => `${firstName(n)} is working`, |   working: (n) => `${firstName(n)} is at the job`,
+ * @mutate src/components/job-card/jobStatusLine.ts |   working: (n) => inLang("cl.pn.working", `${firstName(n)} is working`, { name: firstName(n) }), |   working: (n) => inLang("cl.pn.working", `${firstName(n)} is at the job`, { name: firstName(n) }),
  * @mutate src/components/job-card/jobStatusLine.ts |   working: { detail: "Your Helpr is working", eyebrow: BUCKET_LABEL.waiting, tone: "them" }, |   working: { detail: "Work is underway", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
  */
 import { describe, it, expect } from "vitest";

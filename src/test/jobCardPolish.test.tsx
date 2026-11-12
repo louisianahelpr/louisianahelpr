@@ -19,7 +19,7 @@
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |       return { label: "Confirm it's still on", onClick: h.confirm, tone: "primary" }; |       return { label: "Manage job", onClick: h.manage, tone: "secondary" };
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |       return { label: "Report no-show", onClick: h.noShow, tone: "secondary" }; |       return { label: "Manage job", onClick: h.manage, tone: "secondary" };
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |     if (start && start.getTime() - Date.now() > ON_MY_WAY_LEAD_MS) return null; |
- * @mutate src/components/job-card/jobStatusLine.ts |     if (!job.date_needed \|\| Date.now() < confirmOpensMs(job.date_needed)) return `${f} accepted · confirms the day before`; |     if (true) return `${f} accepted`;
+ * @mutate src/components/job-card/jobStatusLine.ts |     if (!job.date_needed \|\| Date.now() < confirmOpensMs(job.date_needed)) return inLang("cl.pn.acceptedDayBefore", `${f} accepted · confirms the day before`, { name: f }); |     if (true) return `${f} accepted`;
  * @mutate src/components/job-card/jobStatusLine.ts |     case "confirm_still_on":\n      return posterConfirmDeadline(job); |     case "confirm_still_on":\n      return null;
  * A3-9 (audit 11-01): the poster's clock ends at the start, like the line's "by" (posterConfirmClosesMs).
  * @mutate src/components/job-card/jobStatusLine.ts |     case "confirm_still_on":\n      return posterConfirmDeadline(job); |     case "confirm_still_on":\n      return confirmDeadline(job);

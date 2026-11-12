@@ -94,6 +94,7 @@ const CONVERTED = [
   "src/components/declutter/SellSummaryCard.tsx",
   "src/components/declutter/SellTradesRow.tsx",
   "src/components/declutter/CategoryDrillDown.tsx",
+  "src/components/declutter/OfferSentWhatNext.tsx",
   "src/components/declutter/SellOneScreen.tsx",
   // F260q: the whole free-item file (asker's panel, rules sentence, giver's list, Buying's asks, free checkout; enFree.ts)
   // and the Ask for it sheet (enFreeAsk.ts).

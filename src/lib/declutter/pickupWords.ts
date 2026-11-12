@@ -7,6 +7,8 @@
  * `ways` null = an older item with no ticks (every way, the door included, as before): "pickup".
  */
 import type { SellerHandover } from "./api";
+import "@/lib/i18n/enDeclutter";
+import { t } from "@/lib/i18n/language";
 
 export type NoDeliveryWay = "pickup" | "porch" | "meetup" | "none";
 
@@ -21,10 +23,10 @@ export function noDeliveryWay(ways: SellerHandover[] | null | undefined): NoDeli
 
 /** "with porch pickup" / "at a safe meetup" / "with pickup"; "before delivery" when every way is a delivery. */
 export function totalPhrase(way: NoDeliveryWay): string {
-  return way === "porch" ? "with porch pickup" : way === "meetup" ? "at a safe meetup" : way === "none" ? "before delivery" : "with pickup";
+  return t(way === "porch" ? "decl.total.porch" : way === "meetup" ? "decl.total.meetup" : way === "none" ? "decl.total.none" : "decl.total.pickup");
 }
 
 /** "for porch pickup" / "for a safe meetup" / "for pickup"; "before delivery" when every way is a delivery. */
 export function forPhrase(way: NoDeliveryWay): string {
-  return way === "porch" ? "for porch pickup" : way === "meetup" ? "for a safe meetup" : way === "none" ? "before delivery" : "for pickup";
+  return t(way === "porch" ? "decl.for.porch" : way === "meetup" ? "decl.for.meetup" : way === "none" ? "decl.for.none" : "decl.for.pickup");
 }

@@ -27,6 +27,21 @@ export const enOffer = {
   "offer.send": "Send offer",
   "offer.cardCheckFailed": "We couldn't check your saved card.",
   "offer.checkingCard": "Checking for your card…",
+  "offer.atMost": "At most, {phrase}. A price drop or more items from this seller makes it less.",
+  "osw.title": "Offer sent",
+  "osw.lead": "Your card isn't charged unless the seller accepts and you check out.",
+  "osw.youOffered": "You offered",
+  "osw.48h": "The seller has 48 hours to answer",
+  "osw.answer": "The seller accepts, counters or says no",
+  "osw.letKnow": "We'll let you know",
+  "osw.ifAccepts": "If the seller accepts",
+  "osw.checkout": "You have 24 hours to check out:",
+  "osw.meet": "Meet at the safe spot",
+  "osw.delivered": "Get it delivered",
+  "osw.pickup": "Pick it up",
+  "osw.thenPaid": "Then the seller is paid",
+  "osw.gotIt": "Got it",
+  "osw.keepBrowsing": "Keep browsing",
 } as const;
 
 addEnglish(enOffer);

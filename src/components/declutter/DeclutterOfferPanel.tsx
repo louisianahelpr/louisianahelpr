@@ -454,7 +454,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
               </div>
               {/* lh-money-escrow re-review #2: a ceiling. Accepting charges the lower of the offer and the price now,
                   and more items from this seller share one 70¢. Delivery, if chosen, is added at checkout. */}
-              <p className="text-ds-12 text-muted-foreground">At most, {totalPhrase(way)}. A price drop or more items from this seller makes it less.</p>
+              <p className="text-ds-12 text-muted-foreground">{t("offer.atMost", { phrase: totalPhrase(way) })}</p>
             </dl>
           )}
           <p id="declutter-offer-help" className="text-xs text-muted-foreground">

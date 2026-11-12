@@ -235,4 +235,12 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "decl.pay.pending": "Pago cuando la venta sea definitiva",
   "decl.pay.failed": "El pago todavía no se completó",
   "decl.pay.nothing": "No hay nada que pagar",
+  "decl.total.porch": "con recogida en el porche",
+  "decl.total.meetup": "en un encuentro seguro",
+  "decl.total.none": "antes del envío",
+  "decl.total.pickup": "con recogida",
+  "decl.for.porch": "para recoger en el porche",
+  "decl.for.meetup": "para un encuentro seguro",
+  "decl.for.none": "antes del envío",
+  "decl.for.pickup": "para recoger",
 };

@@ -3,6 +3,7 @@ import { WhatNextSheet } from "@/components/whatNext/WhatNextSheet";
 import { formatPrice } from "@/lib/declutter/distance";
 import { BuyerTotal } from "@/components/declutter/BuyerTotal";
 import { forPhrase, type NoDeliveryWay } from "@/lib/declutter/pickupWords";
+import { t } from "@/lib/i18n/language";
 
 const MONEY = "font-semibold tabular-nums text-[hsl(var(--accent-ink))]";
 const Money = ({ cents }: { cents: number }) => <span className={MONEY}>{formatPrice(cents)}</span>;
@@ -25,16 +26,16 @@ export function OfferSentWhatNext({ cents, onClose, onBrowse, way = "pickup", re
         e.preventDefault();
         returnFocusTo.current.focus({ preventScroll: true });
       }}
-      title="Offer sent"
-      lead="Your card isn't charged unless the seller accepts and you check out."
+      title={t("osw.title")}
+      lead={t("osw.lead")}
       steps={cents === null ? [] : [
-        { key: "offered", label: <>You offered <Money cents={cents} /></>, detail: "The seller has 48 hours to answer", state: "done" },
-        { key: "answer", label: "The seller accepts, counters or says no", detail: "We'll let you know", state: "now" },
-        { key: "accepted", label: "If the seller accepts", detail: <>You have 24 hours to check out: <BuyerTotal priceCents={cents} className={MONEY} pendingClassName="font-normal" /> {forPhrase(way)}</>, state: "later" },
-        { key: "pickup", label: way === "meetup" ? "Meet at the safe spot" : way === "none" ? "Get it delivered" : "Pick it up", detail: "Then the seller is paid", state: "later" },
+        { key: "offered", label: <>{t("osw.youOffered")} <Money cents={cents} /></>, detail: t("osw.48h"), state: "done" },
+        { key: "answer", label: t("osw.answer"), detail: t("osw.letKnow"), state: "now" },
+        { key: "accepted", label: t("osw.ifAccepts"), detail: <>{t("osw.checkout")} <BuyerTotal priceCents={cents} className={MONEY} pendingClassName="font-normal" /> {forPhrase(way)}</>, state: "later" },
+        { key: "pickup", label: t(way === "meetup" ? "osw.meet" : way === "none" ? "osw.delivered" : "osw.pickup"), detail: t("osw.thenPaid"), state: "later" },
       ]}
-      primary={{ label: "Got it", acknowledge: true }}
-      secondary={{ label: "Keep browsing", onClick: onBrowse }}
+      primary={{ label: t("osw.gotIt"), acknowledge: true }}
+      secondary={{ label: t("osw.keepBrowsing"), onClick: onBrowse }}
     />
   );
 }

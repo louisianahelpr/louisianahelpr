@@ -2222,7 +2222,7 @@ describe("audit 11-10: the buyer's Report a problem form", () => {
 });
 
 // Audit 11-10 F407: on a wide screen the order cards ran ~1,590px wide; the list is capped at a reading width.
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |     <section className="max-w-3xl space-y-3" aria-label={label ?? "Paid sales"}> |     <section className="space-y-3" aria-label={label ?? "Paid sales"}>
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |     <section className="max-w-3xl space-y-3" aria-label={label ?? "Paid sales"} data-paid-orders-reserve | <section className="space-y-3" aria-label={label ?? "Paid sales"} data-paid-orders-reserve
 describe("F407: the paid orders list has a reading width", () => {
   it("caps the list at max-w-3xl (768px)", async () => {
     state.bookings = [];

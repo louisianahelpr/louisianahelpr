@@ -1,5 +1,5 @@
 // @mutate src/pages/home/HomeDashboard.tsx | !summary.usesDeclutter && !summary.declutterPending && !next | !summary.usesDeclutter && !next
-// @mutate src/pages/home/homeDashboard/useHomeSummary.ts | declutterPending: !declutterSettled || declutter.isLoading || | declutterPending: declutter.isLoading ||
+// @mutate src/pages/home/homeDashboard/useHomeSummary.ts | declutterPending: !declutterSettled \|\| declutter.isLoading \|\| | declutterPending: declutter.isLoading \|\|
 /**
  * F259p (whole-app audit 11-10; measured B3g 11-12 on a local build against read-only prod data, poster test account,
  * cold /home at 375: CLS 0.21-0.34 before, 0.055-0.085 after). A member with no jobs who sells on Declutter saw the

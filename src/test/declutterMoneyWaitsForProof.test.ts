@@ -39,7 +39,7 @@
  * @mutate supabase/migrations/20261111211749_declutter_payout_waits_for_held_refund.sql |     AND NOT EXISTS (SELECT 1 FROM public.declutter_problems x WHERE x.order_id = p.order_id AND x.status = 'open')\n     -- 141d | -- 141d
  * @mutate supabase/migrations/20261111211749_declutter_payout_waits_for_held_refund.sql |      AND public.declutter_sale_final(p.order_id) | AND true
  * @mutate supabase/migrations/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql |    IF v_side <> 'buyer' OR NOT public.declutter_problem_window_open(o.id) THEN | IF v_side <> 'buyer' THEN
- * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
+ * @mutate supabase/migrations/20261112065000_declutter_seller_id_at_first_payout.sql |   IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
  * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |     CHECK (handover IN ('pickup_home', 'porch', 'delivery', 'seller_delivery', 'meetup', 'ship')); |     CHECK (handover IN ('pickup_home', 'porch', 'delivery', 'seller_delivery', 'meetup', 'ship', 'locker'));
  */
 import { describe, expect, it } from "vitest";

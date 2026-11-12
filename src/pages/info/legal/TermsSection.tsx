@@ -205,7 +205,7 @@ export const TermsContent = () => {
         title="Identity verification"
         body={
           idOn ? <>
-            <p><strong className="text-foreground">We ask for a photo ID and a selfie through Stripe Identity once per person:</strong> when you post a job; when you're hired, and before you head out; or before your first payout. On Declutter, when you list, at your first purchase, or when you take a delivery. It counts everywhere on Louisiana Helpr. We never ask at sign-up or when you apply. Until it's done, your pay waits safely. The one-time {feeLabel ? `${feeLabel} ` : ""}setup fee covers this check. Payout setup is separate: when you set up payouts, Stripe verifies your payment details.</p>
+            <p><strong className="text-foreground">We ask for a photo ID and a selfie through Stripe Identity once per person:</strong> when you post a job; when you're hired, and before you head out; or before your first payout. On Declutter, before your first payout as a seller, at your first purchase, or when you take a delivery. It counts everywhere on Louisiana Helpr. We never ask at sign-up or when you apply. Until it's done, your pay waits safely. The one-time {feeLabel ? `${feeLabel} ` : ""}setup fee covers this check. Payout setup is separate: when you set up payouts, Stripe verifies your payment details.</p>
             <p><strong className="text-foreground">If Stripe can't confirm your ID automatically</strong>, our team reviews it by hand, usually within 24 hours. There is no self-service retry, so make sure your photos are clear, well lit, and show all four corners of the ID.</p>
             <p>Once verified (by Stripe or by our team), you're set for the life of your account.</p>
           </> : <>
@@ -276,7 +276,7 @@ export const TermsContent = () => {
             <p><strong className="text-foreground">In good standing:</strong> signed in, not banned, and with fewer than 3 active Declutter strikes.</p>
             <p><strong className="text-foreground">Items in Louisiana.</strong> Items and pickups are in Louisiana. Buyers may live anywhere.</p>
             <p>Sellers can list without setting up payouts. A seller sets up payouts with Stripe at their first paid sale, and the sale money is held until that setup is finished. Buyers save a card before making an offer or buying.</p>
-            {idOn && <p><strong className="text-foreground">Verify your ID once.</strong> Before your first Declutter purchase or your first listing, you verify your ID with Stripe Identity (a photo ID and a selfie). You do it once for all of Louisiana Helpr: if you already did it for Jobs, you don&apos;t do it again.</p>}
+            {idOn && <p><strong className="text-foreground">Verify your ID once.</strong> Before your first Declutter purchase, or before your first payout as a seller, you verify your ID with Stripe Identity (a photo ID and a selfie). You do it once for all of Louisiana Helpr: if you already did it for Jobs, you don&apos;t do it again.</p>}
             <p>The one-time account setup fee is charged once per account, whichever comes first: your first Jobs payout, or your first Declutter purchase or listing.</p>
           </>
         }

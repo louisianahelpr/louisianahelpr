@@ -199,7 +199,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // and on Declutter at listing, buying, a free claim or taking a delivery (B49, ported 10-31).
         get a() {
           return identityCheckOn()
-            ? "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email. We ask for your ID once: when you post a job, when you're hired, or before your first payout, and on Declutter when you list, buy, claim a free item or take a delivery."
+            ? "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email. We ask for your ID once: when you post a job, when you're hired, or before your first payout, and on Declutter before your first payout as a seller, or when you buy, claim a free item or take a delivery."
             : "No, you can browse without signing up. To post a job or apply for one you'll need an account with a confirmed email.";
         },
       },

@@ -8,9 +8,7 @@
 // @mutate supabase/migrations/20261021202226_declutter_identity_first_buy_or_list.sql |   BEFORE INSERT ON public.declutter_orders |   AFTER INSERT ON public.declutter_orders
 // @mutate supabase/migrations/20261021202226_declutter_identity_first_buy_or_list.sql |   BEFORE INSERT ON public.declutter_offers |   BEFORE UPDATE ON public.declutter_offers
 // @mutate supabase/migrations/20261021202226_declutter_identity_first_buy_or_list.sql |   IF public.is_identity_verified(auth.uid()) THEN | IF true THEN
-// @mutate supabase/migrations/20261021202226_declutter_identity_first_buy_or_list.sql |   IF NEW.status IN ('pending_review', 'live') AND | IF NEW.status IN ('live') AND
 // @mutate supabase/migrations/20261021202226_declutter_identity_first_buy_or_list.sql |   BEFORE UPDATE OF amount_cents ON public.declutter_offers |   BEFORE UPDATE OF status ON public.declutter_offers
-// @mutate supabase/migrations/20261021202226_declutter_identity_first_buy_or_list.sql | (TG_OP = 'INSERT' OR OLD.status IN ('draft', 'paused')) | (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM NEW.status)
 // @mutate src/lib/declutter/api.ts |   openIdentitySheetFor(result.error); |   void result;
 // @mutate src/lib/identityCheck.ts |   if (/(^\|[^a-z_])identity_required_to_buy($\|[^a-z_])/.test(m)) return "buy"; |
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
@@ -70,14 +68,12 @@ describe("Declutter asks for Stripe Identity once, at the first purchase or list
     expect(t[0].text.replace(/\s+/g, " ")).toMatch(/^BEFORE UPDATE OF amount_cents ON declutter_offers FOR EACH ROW WHEN \(NEW\.amount_cents IS DISTINCT FROM OLD\.amount_cents\)/i);
   });
 
-  it("a BEFORE INSERT OR UPDATE OF status trigger on declutter_items judges a listing going up", () => {
-    const t = triggers.filter((x) => x.table === "declutter_items" && x.text.includes("declutter_identity_before_list()"));
-    expect(t.length).toBe(1);
-    expect(t[0].text).toMatch(/^BEFORE\s+INSERT\s+OR\s+UPDATE\s+OF\s+status\s+ON/i);
-    const body = blankSqlComments(DEFS.get("declutter_identity_before_list")?.stmt ?? "").replace(/\s+/g, " ");
-    // Only publish and relist (from draft or paused): an item put back on sale by a sale's own system is not new.
-    expect(body).toContain("IF NEW.status IN ('pending_review', 'live') AND (TG_OP = 'INSERT' OR OLD.status IN ('draft', 'paused')) THEN");
-    expect(body).toContain("PERFORM public.declutter_identity_gate(NEW.seller_id, 'identity_required_to_list')");
+  // Owner 11-12 1:00 AM: the seller's ID check moved to the first payout (20261112065000 drops the listing trigger and
+  // its function); src/test/sellerIdAtFirstPayout.test.ts holds that, and the payout hold.
+  it("no live trigger on declutter_items judges a listing (the seller is asked before the first payout instead)", () => {
+    expect(triggers.some((x) => x.table === "declutter_offers")).toBe(true);
+    expect(triggers.filter((x) => x.table === "declutter_items" && x.text.includes("declutter_identity_before_list()"))).toEqual([]);
+    expect(DEFS.has("declutter_identity_before_list")).toBe(false);
   });
 
   it("the gate is the Jobs rule with the Jobs carve-outs, judged only for the acting member", () => {

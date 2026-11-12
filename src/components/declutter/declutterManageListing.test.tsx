@@ -4,7 +4,7 @@
  * backend proof is ~/.lh-pglite/b3b-manage-listing.mjs, PGlite 3x). "Edit listing" (audit 1028 D1-1, migration
  * 20261029205908, PGlite T11 in src/test/pglite/declutterHandoverChoices.pglite.mjs) shows for a live listing only.
  * @mutate src/components/declutter/DeclutterManageListing.tsx |               {item.status === "live" && ( |               {false && (
- * @mutate src/components/declutter/DeclutterManageListing.tsx |               : free ? "Pause it or take it down." : "Change the price, stop the drops, pause it or take it down."} |               : "Change the price, stop the drops, pause it or take it down."}
+ * @mutate src/components/declutter/DeclutterManageListing.tsx |               : free ? t("lp.m.lineFree") : t("lp.m.linePaid")} |               : t("lp.m.linePaid")}
  * @mutate src/components/declutter/DeclutterManageListing.tsx |         {view === "edit" && <DeclutterEditListing item={item} onDone={close} />} |
  *
  * @mutate src/components/declutter/DeclutterManageListing.tsx |   const deployed = state.data !== "not_deployed"; |   const deployed = true;
@@ -12,7 +12,7 @@
  * @mutate src/components/declutter/DeclutterManageListing.tsx |       if (relist) await relistListing(item.id); |
  * @mutate src/components/declutter/DeclutterManageListing.tsx |         if (!problem) save.mutate(undefined); |         save.mutate(undefined);
  * @mutate src/components/declutter/DeclutterManageListing.tsx |       : priceCents > item.price_cents | : false
- * @mutate src/components/declutter/DeclutterManageListing.tsx |                   <RowText title="Pause listing">Hide it without losing it. Open offers close.</RowText> |                   <RowText title="Pause listing">Hide it without losing it.</RowText>
+ * @mutate src/lib/i18n/enListingParts.ts |   "lp.m.pauseBody": "Hide it without losing it. Open offers close.", |   "lp.m.pauseBody": "Hide it without losing it.",
  * OWN-FREE "make it free after __ days" (AutoFreeRow, replacing Q2430's "Free on day 12"; backend proof
  * src/test/pglite/declutterAutoFreeDays.pglite.mjs).
  * @mutate src/components/declutter/AutoFreeRow.tsx | onChange={(d) => { if (!pick.isPending && d !== days) pick.mutate(d); }} | onChange={(d) => { if (!pick.isPending && d !== days) pick.mutate(days); }}
@@ -26,6 +26,14 @@
  * @mutate src/components/declutter/DeclutterOfferRules.tsx |   const on = acceptsOffers !== false; |   const on = true;
  * @mutate src/components/declutter/DeclutterOfferRules.tsx |   const auto = priv.data?.auto_offers === true; |   const auto = false;
  * @mutate src/components/declutter/DeclutterOfferRules.tsx | onClick={() => saveFloor.mutate(suggestion.floorCents)} | onClick={() => saveFloor.mutate(floorCents ?? 0)}
+ * F260q (owner 11-11 "Spanish EVERYTHING now"): Manage listing and the seller's panel read enListingParts lp.m.*.
+ * @mutate src/components/declutter/DeclutterManageListing.tsx | <SheetHero title={t(view === "edit" ? "lp.m.tEdit" : view === "price" ? "lp.m.tPrice" : view === "sold" ? "lp.m.tSold" : view === "delete" ? "lp.m.tDelete" : "lp.m.tMenu")} /> | <SheetHero title="Manage listing" />
+ * @mutate src/components/declutter/DeclutterManageListing.tsx | <ManageGroup title={t("lp.m.gWays")}> | <ManageGroup title="How it gets to buyers">
+ * @mutate src/components/declutter/DeclutterManageListing.tsx | : stopped ? t("lp.m.dropsStopped", { price: itemPriceLabel(item.current_price_cents) }) : t("lp.m.dropsOn")} | : stopped ? t("lp.m.dropsStopped", { price: itemPriceLabel(item.current_price_cents) }) : "On. It drops each evening, never below your lowest price."}
+ * @mutate src/components/declutter/DeclutterManageListing.tsx | {t("lp.m.now", { price: itemPriceLabel(item.current_price_cents) })} | Now {itemPriceLabel(item.current_price_cents)}
+ * @mutate src/components/declutter/DeclutterManageListing.tsx | <RowText title={t("lp.m.soldElsewhere")}>{t("lp.m.soldBody")}</RowText> | <RowText title="Mark sold elsewhere">Takes it down and keeps it in your history; no fees</RowText>
+ * @mutate src/components/declutter/DeclutterManageListing.tsx | {t(paused ? "lp.m.paused" : free ? "lp.m.freeUp" : "lp.m.forSale")} | {paused ? "Paused" : free ? "Your free item is up" : "Your listing is for sale"}
+ * @mutate src/components/declutter/DeclutterManageListing.tsx | text-muted-foreground">{t("lp.m.fb")} {free ? t("lp.m.fbFree") : t("lp.m.fbPaid")}</p> | text-muted-foreground">Post it in your local Facebook groups. {free ? t("lp.m.fbFree") : t("lp.m.fbPaid")}</p>
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -141,8 +149,8 @@ describe("Manage a listing (board 158)", () => {
   });
 
   // Audit 11-10 F336: the rows sit in headed groups, Price / How it gets to buyers / Listing, with Delete last.
-  // @mutate src/components/declutter/DeclutterManageListing.tsx |               <ManageGroup title="Price">\n | \n
-  // @mutate src/components/declutter/DeclutterManageListing.tsx |               <ManageGroup title="Listing">\n | \n
+  // @mutate src/components/declutter/DeclutterManageListing.tsx |               <ManageGroup title={t("lp.m.gPrice")}>\n | \n
+  // @mutate src/components/declutter/DeclutterManageListing.tsx |               <ManageGroup title={t("lp.m.gListing")}>\n | \n
   it("groups the rows under Price and Listing, with Delete the last row", async () => {
     sheet();
     await screen.findByText("Now $38 · lowest $30");
@@ -262,7 +270,7 @@ describe("Manage a listing (board 158)", () => {
   // Audit DC-5: one label, one direction. Manage said "Stop price drops" (on = stopped) while the sell form said
   // "Lower the price over time" (on = drops). Now both say the form's words and on = it drops.
   // @mutate src/components/declutter/DeclutterManageListing.tsx |                   checked={!stopped} |                   checked={stopped}
-  // @mutate src/components/declutter/DeclutterManageListing.tsx |                 <RowText title={DROPS_SWITCH_LABEL} id="manage-drops"> |                 <RowText title="Stop price drops" id="manage-drops">
+  // @mutate src/components/declutter/DeclutterManageListing.tsx |                 <RowText title={t("lp.dropsSwitch")} id="manage-drops"> |                 <RowText title="Stop price drops" id="manage-drops">
   // @mutate src/components/declutter/SellFormParts.tsx | <span className="block text-ds-15 font-semibold text-foreground">{t("lp.dropsSwitch")}</span> | <span className="block text-ds-15 font-semibold text-foreground">Lower the price?</span>
   it("the drops switch has the sell form's name and on = it drops; off turns them off, on turns them back on (DC-5)", async () => {
     const { DROPS_SWITCH_LABEL } = await import("./sellForm");
@@ -354,7 +362,7 @@ describe("Manage a listing (board 158)", () => {
   // NIGHT-SELL-Sellinglist-6: under the lowest was only said on Save, and the seller had to find the other box.
   // @mutate src/components/declutter/DeclutterManageListing.tsx |       {(touched \|\| underFloor) && problem && ( |       {touched && problem && (
   // @mutate src/components/declutter/DeclutterManageListing.tsx | onClick={() => setFloor(price)}> | onClick={() => setFloor(floor)}>
-  // @mutate src/components/declutter/DeclutterManageListing.tsx |         ? `${formatPrice(priceCents)} is under your lowest price, ${formatPrice(floorC)}.` |         ? "Your lowest price must be at least $1 and no more than your price."
+  // @mutate src/components/declutter/DeclutterManageListing.tsx |         ? t("lp.m.pUnder", { price: formatPrice(priceCents), floor: formatPrice(floorC) }) |         ? t("lp.m.pFloor")
   it("a price typed under the lowest is said at once, with a one-tap Also set lowest", async () => {
     sheet();
     fireEvent.click(await screen.findByText("Change price or lowest price"));
@@ -412,3 +420,34 @@ describe("Paused card (board 158)", () => {
     expect(screen.queryByText("Paused")).toBeNull();
   });
 });
+
+describe("Manage listing in Spanish (F260q)", () => {
+  it("the sheet's title, groups, rows and the seller's panel read Spanish; English words are gone", async () => {
+    const { setLang, ensureLangLoaded, __resetLangForTests } = await import("@/lib/i18n/language");
+    setLang("es");
+    await ensureLangLoaded();
+    try {
+      sheet();
+      expect(await screen.findByText("Administrar publicación")).toBeTruthy();
+      expect(screen.getByText("Vista previa")).toBeTruthy();
+      expect(await screen.findByText("Cómo llega a los compradores")).toBeTruthy();
+      expect(screen.getByText("Marcar vendido en otro lado")).toBeTruthy();
+      expect(screen.getByText("Lo retira y lo guarda en su historial; sin cargos")).toBeTruthy();
+      expect(await screen.findByText(/^Ahora \$38/)).toBeTruthy();
+      expect(await screen.findByText("Encendido. Baja cada tarde, nunca menos de su precio más bajo.")).toBeTruthy();
+      const text = document.body.textContent ?? "";
+      expect(text).not.toMatch(/Manage listing|How it gets to buyers|Mark sold elsewhere|See your listing|It drops each evening|Change price or lowest/);
+      cleanupAll();
+      wrap(<SellerListingPanel item={item() as never} coverUrl={null} />);
+      expect(screen.getByText("Su publicación está a la venta")).toBeTruthy();
+      expect(screen.getByText(/^Compártalo en sus grupos locales de Facebook\. El enlace muestra su foto, precio y pueblo\./)).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Administrar publicación" })).toBeTruthy();
+    } finally {
+      __resetLangForTests();
+    }
+  });
+});
+
+function cleanupAll() {
+  document.body.innerHTML = "";
+}

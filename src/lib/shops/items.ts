@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "./rpcErrorCopy";
 import { openShopsIdentityCheckFor } from "./errors";
-import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
+import { blobToBase64, cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { removeShopObjects } from "./storageCleanup";
 import { checkShopPhotoBytes } from "./photoByteCheck";
@@ -334,7 +334,11 @@ export interface ShopItemAiDraft {
 }
 
 async function invokeAi(itemId: string, mode: "draft" | "check"): Promise<unknown> {
-  const { data, error } = await supabase.functions.invoke("declutter-ai-draft", { body: { itemId, mode, target: "shop_item" } });
+  return invokeAiBody({ itemId, mode, target: "shop_item" });
+}
+
+async function invokeAiBody(body: Record<string, unknown>): Promise<unknown> {
+  const { data, error } = await supabase.functions.invoke("declutter-ai-draft", { body });
   if (error) {
     // FunctionsHttpError keeps the JSON body on its context.
     const ctx = (error as { context?: Response }).context;
@@ -356,6 +360,22 @@ async function invokeAi(itemId: string, mode: "draft" | "check"): Promise<unknow
 /** Suggestions from the photos for the maker to edit. Saves nothing. */
 export async function requestShopItemAiDraft(itemId: string): Promise<ShopItemAiDraft> {
   return (await invokeAi(itemId, "draft")) as ShopItemAiDraft;
+}
+
+/** How many of a new item's photos the AI looks at (the edge function's draft mode reads 4, as Declutter's). */
+export const SHOP_AI_DRAFT_PHOTOS = 4;
+
+/**
+ * S054 (Shops audit 11-12): suggestions for a NEW item from photos still on the maker's device (Declutter's
+ * requestAiDraftFromPhotos for target 'shop_item'). Each photo is cleaned (no location data) and sent once, smaller,
+ * in the request; never uploaded or kept by this call. Saves nothing.
+ */
+export async function requestShopItemAiDraftFromPhotos(files: File[]): Promise<ShopItemAiDraft> {
+  const list = files.slice(0, SHOP_AI_DRAFT_PHOTOS);
+  if (list.length === 0) throw new Error("ai_photos_required");
+  const photos: string[] = [];
+  for (const f of list) photos.push(await blobToBase64(await cleanListingPhoto(f, 1280, 0.75)));
+  return (await invokeAiBody({ mode: "draft", target: "shop_item", photos })) as ShopItemAiDraft;
 }
 
 /**

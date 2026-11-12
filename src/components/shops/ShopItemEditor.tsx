@@ -10,7 +10,7 @@
  * the server's words when it refuses. A first item, or one the photo or word
  * check flags, waits for an admin (L52), and the form says so.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
@@ -32,6 +32,7 @@ import {
   removeShopItemPhoto,
   requestShopItemAiCheck,
   requestShopItemAiDraft,
+  requestShopItemAiDraftFromPhotos,
   requiredStatements,
   serviceTypeHint,
   setShopItemAtBuyer,
@@ -42,6 +43,7 @@ import {
   SHOP_ITEM_TYPES,
   updateShopItem,
   type ShopItem,
+  type ShopItemAiDraft,
   type ShopItemKind,
 } from "@/lib/shops/items";
 import { SHOP_ITEM_MAX_PRICE_CENTS, shopsErrorMessage } from "@/lib/shops/errors";
@@ -130,6 +132,18 @@ export function publishBlockers(x: {
  * null for a new item; the parent remounts this form (key) when it changes
  * which item is open, and `onCreated` hands it the new item's id.
  */
+/** S054: a held (not yet uploaded) photo's preview; its object URL is let go when it leaves. */
+function HeldPhoto({ file }: { file: File }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof URL.createObjectURL !== "function") return;
+    const url = URL.createObjectURL(file);
+    setSrc(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+  return src ? <img src={src} alt="" className="h-full w-full object-cover" /> : null;
+}
+
 export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOptions = false, titleHidden = false }: {
   /** The item has option lists: its stock is set per combination in the Options section (20261106165310). */
   hasOptions?: boolean;
@@ -146,6 +160,9 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
   const [d, setD] = useState<Draft>(() => fromItem(item));
   const [ticked, setTicked] = useState<string[]>([]);
   const [underCap, setUnderCap] = useState(false);
+  // S054 (Shops audit 11-12): a NEW item's photos, held on the device (Declutter's photos-first draft). The AI reads
+  // the first 4; all of them are added to the item right after its first save.
+  const [held, setHeld] = useState<File[]>([]);
   // Audit 11-10 F11: a refused title or price shows under its own field, not only in a toast. S041: lead time and
   // stock too, from Save, Publish and "Save stock and ready time" alike.
   const [fieldError, setFieldError] = useState<{ field: ItemField; msg: string } | null>(null);
@@ -199,6 +216,20 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
     onSuccess: async ({ savedId, next }) => {
       // A live item's edit stays live unless it changes the kind or type, or a check flags the new words (owner 2026-11-05).
       toast.success(next === "live" ? "Saved. It's still on your shop." : next === "pending_review" ? "Saved. Our checks sent it for a quick review." : "Saved as a draft.");
+      // S054: the photos held before the first save go onto the new item now, in order.
+      if (!id && held.length > 0) {
+        let failed = 0;
+        for (const f of held) {
+          try {
+            await addShopItemPhoto(ownerId, savedId, f);
+          } catch (err) {
+            failed += 1;
+            console.warn("[shops] a held photo did not upload", err);
+          }
+        }
+        setHeld([]);
+        if (failed > 0) toast.error(failed === 1 ? "1 photo didn't upload. Add it again under Photos." : `${failed} photos didn't upload. Add them again under Photos.`);
+      }
       // Wait for the list to hold the new item before the form switches to it.
       await qc.invalidateQueries({ queryKey: ["shops", "items"] });
       if (!id) onCreated(savedId);
@@ -238,6 +269,23 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
 
+  const applySuggestion = (s: ShopItemAiDraft) => {
+    // A new kind or type asks for its own confirmations (review nit 9).
+    if (s.kind !== d.kind || s.subtype !== d.subtype) setTicked([]);
+    setD((x) => ({ ...x, kind: s.kind, subtype: s.subtype, title: s.title, description: s.description }));
+    // The suggestion's own verdict is not saved; the check at Publish decides (review should-fix 1).
+    toast.success(
+      s.flagged
+        ? "Suggested. Our checks may send this item to an admin before it's listed."
+        : "Suggested from your photos. Check it, then save.",
+    );
+  };
+  // S054: suggestions for a new item from its held photos (nothing uploaded by this call).
+  const aiPhotos = useMutation({
+    mutationFn: () => requestShopItemAiDraftFromPhotos(held),
+    onSuccess: applySuggestion,
+    onError: (err) => toast.error(shopsErrorMessage(err)),
+  });
   const ai = useMutation({
     mutationFn: () => requestShopItemAiDraft(id as string),
     onSuccess: (s) => {
@@ -281,7 +329,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
   });
 
   const draft = status === "draft";
-  const busy = save.isPending || publish.isPending || addPhoto.isPending || removePhoto.isPending || ai.isPending;
+  const busy = save.isPending || publish.isPending || addPhoto.isPending || removePhoto.isPending || ai.isPending || aiPhotos.isPending;
   const shown = item?.photos ?? [];
   const cottageNeedsTick = d.kind === "home_food" && !!cottage.data && !cottage.data.confirmed;
   // Home food cannot publish until the yearly status is known (review should-fix 5).
@@ -315,6 +363,49 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
         <p className="text-sm text-muted-foreground">
           Changes stay on your shop right away. Changing what kind of item it is, or its type, takes it off until you publish it again.
         </p>
+      )}
+      {!id && (
+        <section className="space-y-2" aria-labelledby="item-start-photos" data-testid="item-start-photos">
+          <h4 id="item-start-photos" className="text-sm font-medium">Start with photos</h4>
+          <p className="text-xs text-muted-foreground">Add photos and we'll suggest the details. They go on the item when you save it.</p>
+          <div className="flex flex-wrap gap-2">
+            <label className="inline-flex">
+              <span className="sr-only">Add photos</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="sr-only"
+                disabled={busy || held.length >= 12}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  e.target.value = "";
+                  setHeld((h) => [...h, ...files].slice(0, 12));
+                }}
+              />
+              <span className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm" aria-hidden>
+                Add photos
+              </span>
+            </label>
+            <Button type="button" variant="outline" size="sm" disabled={busy || held.length === 0} onClick={() => aiPhotos.mutate()}>
+              <Sparkles className="mr-1 h-4 w-4" aria-hidden />
+              {aiPhotos.isPending ? "Looking…" : "Suggest details from my photos"}
+            </Button>
+          </div>
+          {held.length > 0 && (
+            <ul className="grid grid-cols-3 gap-2">
+              {held.map((f, i) => (
+                <li key={`${f.name}-${i}`} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
+                  <HeldPhoto file={f} />
+                  <Button type="button" size="sm" variant="outline" className="absolute bottom-1 right-1 px-2 text-xs" disabled={busy}
+                    onClick={() => setHeld((h) => h.filter((_, j) => j !== i))}>
+                    Remove
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       )}
       <div className="space-y-1.5">
         <Label htmlFor="item-kind">What kind of item</Label>

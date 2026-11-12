@@ -72,6 +72,21 @@ export const enHome = {
   "home.ck.count": "{done} of {total}",
   "home.ck.aria": "{title}: {done} of {total} done",
   "home.ck.next": "Next:",
+  "home.fj.title": "Get your first job",
+  "home.fj.skills": "Pick what you do",
+  "home.fj.skillsWith": "Pick what you do: {skills}",
+  "home.fj.about": "Add a photo and a line about you",
+  "home.fj.payouts": "Add your payout bank",
+  "home.fj.apply": "Apply to your first job",
+  "home.fj.near": "Jobs near you",
+  "home.fj.quotes": "Quotes",
+  "home.fj.alertsAria": "New jobs nearby",
+  "home.fj.alertsTitle": "Get told about new jobs nearby",
+  "home.fj.alertsBody": "Your job alerts are off. Be first to apply.",
+  "home.fj.turnOn": "Turn on",
+  "home.fj.howPaid": "How you get paid",
+  "home.fj.readMore": "Read more",
+  "home.fj.paidBody": "The person who posts the job pays when they hire you. It's held, and released only when they approve the work: it reaches your Helpr account {days} days after the job is approved, and your bank within {bankDays} business days after that. Every job shows what you'll take home before you apply, and tips are paid in full.",
 } as const;
 
 addEnglish(enHome);

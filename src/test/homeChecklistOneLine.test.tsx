@@ -6,7 +6,7 @@
  *
  * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx |   const next = steps.find((s) => !s.done); |   const next = steps[0];
  * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx |   const doneCount = steps.filter((s) => s.done).length; |   const doneCount = steps.length;
- * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx |       <details aria-label="How you get paid" data-how-paid="" className="group px-1"> |       <details open aria-label="How you get paid" data-how-paid="" className="group px-1">
+ * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx |       <details aria-label={tr("home.fj.howPaid")} data-how-paid="" className="group px-1"> |       <details open aria-label={tr("home.fj.howPaid")} data-how-paid="" className="group px-1">
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -54,7 +54,7 @@ describe("Dashboard: Needs you first, the checklist as one line (design audit A 
 
   it("How you get paid is one closed row with Read more", () => {
     const src = read("src/pages/home/homeDashboard/FirstJobHome.tsx");
-    expect(src).toContain('<details aria-label="How you get paid" data-how-paid="" className="group px-1">');
-    expect(src).toContain(">Read more</span>");
+    expect(src).toContain('<details aria-label={tr("home.fj.howPaid")} data-how-paid="" className="group px-1">');
+    expect(src).toContain(">{tr(\"home.fj.readMore\")}</span>");
   });
 });

@@ -103,10 +103,8 @@ const NOT_AN_ENTRY_POINT: Readonly<Record<string, string>> = {
   // Help's Declutter answers (6bd086d8a0) say WHEN setup happens ("at your first paid sale", "after you take your first
   // delivery"); a static answer holds no hook, and no link or control in Help sends anyone to the setup screen.
   "src/pages/info/helpCenter/helpCenterContent.ts": "Help answers that say when payout setup happens; nothing in Help sends anyone to setup",
-  // F260q (11-11): Home's English dictionary; home.payoutTitle ("Add your payout account to get $X") is drawn only by
-  // HomeDashboard.tsx, which reads usePayoutSetupPaused() (and is an entry point itself).
-  "src/lib/i18n/enMoneyTiles.ts": "the money tiles' English dictionary (F260q): mt.addPayout is drawn only by HomeMoneyTiles.tsx, which reads usePayoutSetupPaused() and shows it only while setup is not paused",
-  "src/lib/i18n/enHome.ts": "Home's English dictionary: its payout words are drawn only by HomeDashboard.tsx, which reads usePayoutSetupPaused()",
+  "src/lib/i18n/enMoneyTiles.ts": "the money tiles' words (F260q); HomeMoneyTiles, which shows them, reads usePayoutSetupPaused() and says mt.kept instead while setup is paused",
+  "src/lib/i18n/enHome.ts": "Home's English dictionary (F260q): its payout words are drawn only by HomeDashboard.tsx and FirstJobHome.tsx, which read usePayoutSetupPaused() (FirstJobHome drops the step while setup is paused)",
   "src/lib/payoutSetupPaused.ts": "the notices' own words (\"You'll set up payouts when you're hired\"): they replace setup, they send nobody to it",
 };
 

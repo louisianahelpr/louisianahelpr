@@ -10,8 +10,8 @@ import { unwrap } from "@/lib/supabaseResult";
 import { getCachedUserLocation } from "@/hooks/useUserLocation";
 import { JobPrice } from "@/components/dashboard/JobPrice";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
-import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/escrowTiming";
-import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
+import { STANDARD_PAYOUT_DAYS_AFTER_APPROVAL } from "../../../../supabase/functions/_shared/escrowTiming";
+import { STANDARD_PAYOUT_WINDOW_DAYS } from "@/lib/payoutTiming";
 import { formatShortDate } from "@/lib/format";
 import { hasDateWindow, jobDayLabel } from "@/lib/jobDateWindow";
 import { takeHomeFirstJobPrefetch } from "./homePrefetchTake";
@@ -132,25 +132,25 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
   // AUD31-65: no ID step. Owner rule: the ID check happens once, at hire or first payout, never at sign-up, post,
   // buy or list (the hire and payout doors ask for it themselves).
   const allSteps = [
-    { key: "skills", label: skills ? `Pick what you do: ${skills}` : "Pick what you do", done: !!skills, go: () => navigate(SKILLS_FOCUS_PATH) },
-    { key: "about", label: "Add a photo and a line about you", done: !!profile?.avatar_url && !!(profile?.bio ?? "").trim(), go: () => navigate("/profile?tab=profile") },
-    { key: "payouts", label: "Add your payout bank", done: payoutsDone, go: () => navigate("/profile?tab=payment") },
-    { key: "apply", label: "Apply to your first job", done: false, go: () => navigate("/jobs") },
+    { key: "skills", label: skills ? tr("home.fj.skillsWith", { skills }) : tr("home.fj.skills"), done: !!skills, go: () => navigate(SKILLS_FOCUS_PATH) },
+    { key: "about", label: tr("home.fj.about"), done: !!profile?.avatar_url && !!(profile?.bio ?? "").trim(), go: () => navigate("/profile?tab=profile") },
+    { key: "payouts", label: tr("home.fj.payouts"), done: payoutsDone, go: () => navigate("/profile?tab=payment") },
+    { key: "apply", label: tr("home.fj.apply"), done: false, go: () => navigate("/jobs") },
   ];
   const steps = allSteps.filter((st) => st.key !== "payouts" || !payoutStepPaused);
   const jobs = near.data ?? [];
 
   return (
     <div className="flex flex-col gap-section" data-testid="first-job-home">
-      <section aria-label="Get your first job" className="flex flex-col gap-1 px-1">
-        <ChecklistProgress title="Get your first job" steps={steps} />
+      <section aria-label={tr("home.fj.title")} className="flex flex-col gap-1 px-1">
+        <ChecklistProgress title={tr("home.fj.title")} steps={steps} />
         {payoutStepPaused && <PayoutSetupPausedNotice compact className="mt-2" />}
       </section>
 
       {jobs.length > 0 && (
-        <section aria-label="Jobs near you" className="flex flex-col gap-2">
+        <section aria-label={tr("home.fj.near")} className="flex flex-col gap-2">
           <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            Jobs near you · {jobs.length >= NEAR_CAP ? `${NEAR_CAP}+` : jobs.length}
+            {tr("home.fj.near")} · {jobs.length >= NEAR_CAP ? `${NEAR_CAP}+` : jobs.length}
           </h2>
           <div className="liquid-glass flex flex-col divide-y divide-border/60">
             {jobs.slice(0, NEAR_SHOWN).map((j) => (
@@ -162,7 +162,7 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
                   </span>
                 </span>
                 {j.pricing_mode === "quotes" ? (
-                  <span className="shrink-0 text-ds-13 font-semibold text-foreground">Quotes</span>
+                  <span className="shrink-0 text-ds-13 font-semibold text-foreground">{tr("home.fj.quotes")}</span>
                 ) : (
                   <JobPrice
                     budget={j.budget}
@@ -179,27 +179,27 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
       )}
 
       {alertsOff && (
-        <section aria-label="New jobs nearby" className="liquid-glass p-card flex items-center gap-3">
+        <section aria-label={tr("home.fj.alertsAria")} className="liquid-glass p-card flex items-center gap-3">
           <span className="flex-1 min-w-0">
-            <span className="block text-ds-15 font-semibold text-foreground">Get told about new jobs nearby</span>
-            <span className="block text-ds-13 text-muted-foreground">Your job alerts are off. Be first to apply.</span>
+            <span className="block text-ds-15 font-semibold text-foreground">{tr("home.fj.alertsTitle")}</span>
+            <span className="block text-ds-13 text-muted-foreground">{tr("home.fj.alertsBody")}</span>
           </span>
           <Button type="button" variant="primary" size="sm" onClick={() => navigate("/profile?tab=notifications")} className="shrink-0 px-5 text-ds-15 font-semibold">
-            Turn on
+            {tr("home.fj.turnOn")}
           </Button>
         </section>
       )}
 
       {/* Design audit A D2 (owner 11-08): one row with "Read more", the full words (unchanged) one tap away. */}
-      <details aria-label="How you get paid" data-how-paid="" className="group px-1">
+      <details aria-label={tr("home.fj.howPaid")} data-how-paid="" className="group px-1">
         <summary className="min-h-11 flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
-          <h2 className="text-ds-15 font-semibold text-foreground">How you get paid</h2>
-          <span className="ml-auto text-ds-13 font-semibold text-primary group-open:hidden">Read more</span>
-          <span className="ml-auto hidden text-ds-13 font-semibold text-primary group-open:inline">Hide</span>
+          <h2 className="text-ds-15 font-semibold text-foreground">{tr("home.fj.howPaid")}</h2>
+          <span className="ml-auto text-ds-13 font-semibold text-primary group-open:hidden">{tr("home.fj.readMore")}</span>
+          <span className="ml-auto hidden text-ds-13 font-semibold text-primary group-open:inline">{tr("home.hide")}</span>
         </summary>
         <p className="text-ds-13 text-muted-foreground pb-2">
-          The person who posts the job pays when they hire you. It's held, and released only when they approve the work:
-          it reaches your Helpr account {STANDARD_PAYOUT_PHRASE}, and your bank {STANDARD_PAYOUT_WINDOW} after that. Every job shows what you'll take home before you apply, and tips are paid in full.
+          {/* The day counts are the shared payout constants (the English reads STANDARD_PAYOUT_PHRASE / _WINDOW). */}
+          {tr("home.fj.paidBody", { days: STANDARD_PAYOUT_DAYS_AFTER_APPROVAL, bankDays: STANDARD_PAYOUT_WINDOW_DAYS })}
         </p>
       </details>
     </div>

@@ -46,7 +46,7 @@ import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { BunchCard, bunchItemName } from "./DeclutterBunchCard";
 import { bunchOthers, bunchRowStartsOpen, focusBunchFilesNextPaint, focusBunchListStep } from "./bunchFlowHelpers";
 import { BunchPileCard } from "./DeclutterBunchPile";
-import { BUNCH_INTRO, BunchMovingSale, MOVING_INTRO } from "./DeclutterBunchMovingSale";
+import { bunchIntro, BunchMovingSale } from "./DeclutterBunchMovingSale";
 import { BunchResults } from "./DeclutterBunchResults";
 import { BunchRow } from "./DeclutterBunchRow";
 import { BunchFeeGate, useSetupFeeDueCents } from "./BunchFeeGate";
@@ -466,7 +466,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       {/* A3-69: once everything is listed, the result is the page: the intro and the empty photo step come back with
           List more (a failed item still on the list keeps them, so it can be fixed). */}
       {!allListed && (
-      <p className="text-sm text-muted-foreground">{moving ? MOVING_INTRO : BUNCH_INTRO}</p>
+      <p className="text-sm text-muted-foreground">{bunchIntro(moving)}</p>
       )}
       {results && <BunchResults results={results} userId={user.id} inSale={!!moveDate} onFix={jumpTo} onListMore={() => { setResults(null); focusBunchFilesNextPaint(); }} />}
       {feeDue != null && <BunchFeeGate cents={feeDue} />}

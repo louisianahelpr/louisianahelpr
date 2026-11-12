@@ -16,6 +16,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import "@/lib/i18n/enSellForm";
 import { t as tr } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 import { postStepOf, type PostStepKey } from "./SellProgress";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
@@ -492,11 +493,11 @@ export function useSellFlowState(urlItemId: string | null) {
     try {
       await run();
     } catch (err) {
-      const where = setting === "keepUp"
-        ? tr("sf.t.whereKeepUp")
-        : setting === "offers" ? tr("sf.t.whereOffers")
-        : setting === "trades" ? tr("sf.t.whereTrades") : tr("sf.t.whereFree");
-      toast.error(`${declutterErrorMessage(err)} ${where}`);
+      const where: MsgKey = setting === "keepUp"
+        ? "sf.t.whereKeepUp"
+        : setting === "offers" ? "sf.t.whereOffers"
+        : setting === "trades" ? "sf.t.whereTrades" : "sf.t.whereFree";
+      toast.error(tr(where, { why: declutterErrorMessage(err) }));
     }
   }
 

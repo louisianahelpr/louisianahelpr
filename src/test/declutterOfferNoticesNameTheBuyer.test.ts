@@ -7,9 +7,9 @@
  * Reads the EFFECTIVE definitions (helpers/effectiveFunctionDefs). Backend proof on a real database:
  * src/test/pglite/declutterOfferNoticesNameTheBuyer.pglite.mjs (3x; 6 FAIL without the migration).
  */
-// @mutate supabase/migrations/20261112003050_declutter_offer_notices_name_the_buyer.sql |   IF o.wanted_id IS NULL THEN\n    SELECT public.member_display_name | IF true THEN\n    SELECT public.member_display_name
+// @mutate supabase/migrations/20261112010100_declutter_names_hidden_across_block_or_ban.sql | IF o.wanted_id IS NULL AND NOT public.declutter_names_hidden(o.buyer_id, o.seller_id) THEN\n    SELECT public.member_display_name | IF NOT public.declutter_names_hidden(o.buyer_id, o.seller_id) THEN\n    SELECT public.member_display_name
 // @mutate supabase/migrations/20261112003050_declutter_offer_notices_name_the_buyer.sql | SELECT public.member_display_name(bp.full_name, NULL) INTO v_buyer FROM public.profiles bp WHERE bp.user_id = v_uid; | SELECT bp.full_name INTO v_buyer FROM public.profiles bp WHERE bp.user_id = v_uid;
-// @mutate supabase/migrations/20261112003050_declutter_offer_notices_name_the_buyer.sql |       CASE WHEN v_side = 'buyer' AND v_buyer IS NOT NULL\n        THEN format('%s sent a | CASE WHEN v_buyer IS NOT NULL\n        THEN format('%s sent a
+// @mutate supabase/migrations/20261112010100_declutter_names_hidden_across_block_or_ban.sql |       CASE WHEN v_side = 'buyer' AND v_buyer IS NOT NULL\n        THEN format('%s sent a | CASE WHEN v_buyer IS NOT NULL\n        THEN format('%s sent a
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -25,12 +25,12 @@ describe("F356 follow-up: the seller's offer notices name the buyer", () => {
     expect(make.length).toBeGreaterThan(3000);
     expect(respond.length).toBeGreaterThan(3000);
     expect(defs.get("declutter_make_offer")?.file).toMatch(/20261112003050_declutter_offer_notices_name_the_buyer\.sql$/);
-    expect(defs.get("declutter_respond_offer")?.file).toMatch(/20261112003050_declutter_offer_notices_name_the_buyer\.sql$/);
+    expect(defs.get("declutter_respond_offer")?.file).toMatch(/20261112010100_declutter_names_hidden_across_block_or_ban\.sql$/);
   });
 
   it("the name is member_display_name only, and never on a Wanted reply", () => {
     expect(make).toContain("SELECT public.member_display_name(bp.full_name, NULL) INTO v_buyer FROM public.profiles bp WHERE bp.user_id = v_uid;");
-    expect(respond).toContain("IF o.wanted_id IS NULL THEN SELECT public.member_display_name(bp.full_name, NULL) INTO v_buyer FROM public.profiles bp WHERE bp.user_id = o.buyer_id; END IF;");
+    expect(respond).toContain("IF o.wanted_id IS NULL AND NOT public.declutter_names_hidden(o.buyer_id, o.seller_id) THEN SELECT public.member_display_name(bp.full_name, NULL) INTO v_buyer FROM public.profiles bp WHERE bp.user_id = o.buyer_id; END IF;");
     // No raw full_name reaches a notice: every full_name read sits inside member_display_name.
     for (const body of [make, respond]) {
       expect(body.match(/full_name/g)?.length).toBe(body.match(/member_display_name\(bp\.full_name, NULL\)/g)?.length);

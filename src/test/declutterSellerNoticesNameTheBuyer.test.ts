@@ -6,7 +6,7 @@
  * Reads the EFFECTIVE definitions. Backend proof: src/test/pglite/declutterSellerNoticesNameTheBuyer.pglite.mjs (3x;
  * 6 FAIL without the migration).
  */
-// @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql |       CASE WHEN o.wanted_id IS NULL\n           THEN (SELECT | CASE WHEN true\n           THEN (SELECT
+// @mutate supabase/migrations/20261112010100_declutter_names_hidden_across_block_or_ban.sql | CASE WHEN o.wanted_id IS NULL AND NOT public.declutter_names_hidden(o.buyer_id, o.seller_id)\n           THEN (SELECT | CASE WHEN NOT public.declutter_names_hidden(o.buyer_id, o.seller_id)\n           THEN (SELECT
 // @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql |     IF p_offer_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.declutter_offers wo WHERE wo.id = p_offer_id AND wo.wanted_id IS NOT NULL) THEN |     IF true THEN
 // @mutate supabase/migrations/20261112004748_declutter_seller_notices_name_the_buyer.sql |           COALESCE(v_buyer, 'A buyer'), cardinality(v_ids) |           v_buyer, cardinality(v_ids)
 import { describe, expect, it } from "vitest";
@@ -22,8 +22,11 @@ describe("F356 follow-up part 2: more seller notices name the buyer", () => {
   it("reads the newest definitions (floor)", () => {
     for (const fn of ["declutter_request_bundle", "declutter_deadline_sweep", "declutter_take_item"]) {
       expect(flat(fn).length).toBeGreaterThan(2000);
-      expect(defs.get(fn)?.file).toMatch(FILE);
     }
+    expect(defs.get("declutter_request_bundle")?.file).toMatch(FILE);
+    expect(defs.get("declutter_take_item")?.file).toMatch(FILE);
+    // Restated with the block/ban rule (20261112010100).
+    expect(defs.get("declutter_deadline_sweep")?.file).toMatch(/20261112010100_declutter_names_hidden_across_block_or_ban\.sql$/);
   });
 
   it("bundle request", () => {
@@ -34,7 +37,7 @@ describe("F356 follow-up part 2: more seller notices name the buyer", () => {
 
   it("offer expired: named, never on a Wanted thread", () => {
     const s = flat("declutter_deadline_sweep");
-    expect(s).toContain("CASE WHEN o.wanted_id IS NULL THEN (SELECT public.member_display_name(bp.full_name, NULL) FROM public.profiles bp WHERE bp.user_id = o.buyer_id) END AS buyer_name");
+    expect(s).toContain("CASE WHEN o.wanted_id IS NULL AND NOT public.declutter_names_hidden(o.buyer_id, o.seller_id) THEN (SELECT public.member_display_name(bp.full_name, NULL) FROM public.profiles bp WHERE bp.user_id = o.buyer_id) END AS buyer_name");
     expect(s).toContain(`format('You did not answer %s''s offer on "%s" within 48 hours, so it closed.', r.buyer_name, r.title)`);
     expect(s).toContain(`format('%s did not answer your counteroffer on "%s" within 48 hours, so it closed.', COALESCE(r.buyer_name, 'The buyer'), r.title)`);
   });

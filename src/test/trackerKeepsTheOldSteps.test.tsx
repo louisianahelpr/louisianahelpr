@@ -35,7 +35,7 @@
  * @mutate src/components/job-card/trackerSteps.ts |   { key: "arrived", label: "Arrived", action: "I've arrived", icon: MapPin, color: "text-primary" }, |   { key: "arrived", label: "Arrived", action: null, icon: MapPin, color: "text-primary" },
  * Q1816 (WCAG 2.5.3, lead 11-04): a step tip's name reads the whole step name ("Arrived: what this step is waiting
  * on"), never the drawn "Arr., Ar-rived"; the drawn words are aria-hidden and the button carries no aria-label.
- * @mutate src/components/tracker/JobProgress.tsx | const named = problemWord ? `${problemWord}, ${full}` : full; | const named = problemWord ? `${problemWord}, ${full}` : `${JOB_PROGRESS_DRAWN[i]}`;
+ * @mutate src/components/tracker/JobProgress.tsx | const named = problemWord ? `${problemWord}, ${stepName(i)}` : stepName(i); | const named = problemWord ? `${problemWord}, ${stepName(i)}` : stepDrawn(i);
  * @mutate src/components/tracker/JobProgress.tsx | <span aria-hidden="true" className="block">{body}</span> | <span className="block">{body}</span>
  * @mutate src/components/tracker/JobProgress.tsx | <span className="sr-only">{ts ? `${named} — ${tipText}` : `${named}: what this step is waiting on`}</span> | <span className="sr-only" aria-label={named}>{ts ? `${named} — ${tipText}` : `${named}: what this step is waiting on`}</span>
  */
@@ -101,7 +101,7 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
 
   it("every step action the old rail's button offered is still a step action", () => {
     expect(oldRail().map((s) => s.action).filter(Boolean)).toEqual(["I've accepted", "Confirm this job", "I'm on my way", "I've arrived", "Start working", "Mark it done"]);
-    expect(code("src/components/JobTrackingView.tsx")).toContain('label={arrivalRefusedHere ? "Try my location again" : (nextStatus.action ?? nextStatus.label)}');
+    expect(code("src/components/JobTrackingView.tsx")).toContain('label={arrivalRefusedHere ? t("trk.retryLocation") : nextStatus.action ? stepAction(nextStatus.key) : nextStatus.label}');
   });
 
   it("a done step shows when it happened on tap or hover; a click never hides what the hover showed", () => {

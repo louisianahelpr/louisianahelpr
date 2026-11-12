@@ -1,0 +1,32 @@
+/** Spanish for enJobSteps.ts (F260q): the job tracker's step names and spoken sentence. Soft hyphens let a long name break in a narrow column. */
+import type { enJobSteps } from "./enJobSteps";
+
+export const esJobSteps: Record<keyof typeof enJobSteps, string> = {
+  "js.s.0": "Publicado",
+  "js.s.1": "Ofrecido",
+  "js.s.2": "Contratado",
+  "js.s.3": "Confirmado",
+  "js.s.4": "En camino",
+  "js.s.5": "Llegó",
+  "js.s.6": "Trabajando",
+  "js.s.7": "Hecho",
+  "js.d.0": "Pu­bli­ca­do",
+  "js.d.1": "Ofre­ci­do",
+  "js.d.2": "Con­tra­ta­do",
+  "js.d.3": "Con­fir­ma­do",
+  "js.d.4": "En camino",
+  "js.d.5": "Llegó",
+  "js.d.6": "Tra­ba­jan­do",
+  "js.d.7": "Hecho",
+  "js.cancelled": "Cancelado",
+  "js.aria.cancelled": "Progreso del trabajo: {label}. No quedan pasos.",
+  "js.aria.allDone": "Progreso del trabajo: los {n} pasos hechos ({steps}).",
+  "js.aria.at": "Progreso del trabajo, paso {at} de {n}: {step}, {where}.",
+  "js.aria.atWord": "Progreso del trabajo, paso {at} de {n}: {step} ({label}), {where}.",
+  "js.aria.needs": "necesita atención",
+  "js.aria.needsWord": "{label}, necesita atención",
+  "js.aria.you": "esperando por usted",
+  "js.aria.them": "esperando a la otra persona",
+  "js.aria.done": "Hechos: {steps}.",
+  "js.aria.later": "Faltan: {steps}.",
+};

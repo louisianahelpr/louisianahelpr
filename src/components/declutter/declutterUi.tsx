@@ -107,8 +107,6 @@ export function TaxStatementsCheck({ id, checked, onChange, free = false }: { id
   );
 }
 
-export const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
 /**
  * An item's condition as a word chip ("Lightly used"), never stars (Cowork
  * design audit 2026-10-20, D5; HELPR-DESIGN-SPEC: stars are only for people's

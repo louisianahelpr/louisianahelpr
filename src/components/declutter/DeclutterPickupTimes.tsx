@@ -30,7 +30,7 @@ export { placeHoursLine, sameHoursEveryDay, shortDays, timeLabel };
 const MAX_WINDOWS = 21;
 const DEFAULT_RANGE = { starts: "09:00", ends: "12:00" };
 const SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-/** A weekday in the member's language (F260q; WEEKDAYS keeps the English for other screens). */
+/** A weekday in the member's language (F260q). */
 const dayWord = (d: number) => t(`lp.day.${d}` as MsgKey);
 const dayShort = (d: number) => t(`lp.dayShort.${d}` as MsgKey);
 

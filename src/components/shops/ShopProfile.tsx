@@ -24,7 +24,7 @@ type ItemPhoto = { id: string; storage_path?: string };
 function shopSrc(p: Photo, width: number): string {
   return p.storage_path ? shopPhotoUrl(p.storage_path) : publicPhotoUrl(p.id, "shop", width);
 }
-function itemSrc(p: ItemPhoto): string {
+export function shopItemSrc(p: ItemPhoto): string {
   return p.storage_path ? itemPhotoUrl(p.storage_path) : publicPhotoUrl(p.id, "item", 320);
 }
 
@@ -143,12 +143,14 @@ export function ShopHoursCard({ hours }: { hours: ShopHour[] }) {
  * photo. Declutter's breakpoints (DECLUTTER_GRID): 2 on a phone, 3 from sm, 4 from lg. The loading skeleton uses it too. */
 export const SHOP_ITEMS_GRID = "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4";
 
-export function ShopItemsGrid({ items, reportable = false, withOptions, preorders, onOrder }: {
+export function ShopItemsGrid({ items, reportable = false, withOptions, preorders, onOrder, onOpen }: {
   items: (Omit<ShopItem, "photos"> & { photos: ItemPhoto[] })[];
   reportable?: boolean;
   /** S026 (Shops audit 11-12): an "Order" button on each card that takes the buyer to that item's row in the order
    * sheet (scrolls to it and focuses its add button). Only where this page has an order sheet. */
   onOrder?: (itemId: string) => void;
+  /** S026 (rest): tapping the card's photo or title opens the item sheet (photos, description, options, quantity). */
+  onOpen?: (itemId: string) => void;
   withOptions?: ReadonlyMap<string, unknown>;
   /** Preorder items (20261108184654), keyed by id: the card says "Preorder · ready by ..." and its goal progress. */
   preorders?: ReadonlyMap<string, ItemPreorder>;
@@ -169,15 +171,31 @@ export function ShopItemsGrid({ items, reportable = false, withOptions, preorder
           const cover = item.photos[0];
           return (
             <li key={item.id} className="overflow-hidden rounded-xl border border-border bg-background">
-              <div className="flex aspect-square w-full items-center justify-center bg-muted">
+              {/* S026: with onOpen the photo opens the item sheet too (a mouse target; the title is the one keyboard stop). */}
+              <div
+                className={`flex aspect-square w-full items-center justify-center bg-muted${onOpen ? " cursor-pointer" : ""}`}
+                onClick={onOpen ? () => onOpen(item.id) : undefined}
+                data-item-photo={onOpen ? "" : undefined}
+              >
                 {cover ? (
-                  <img loading="lazy" src={itemSrc(cover)} alt="" className="h-full w-full object-cover" />
+                  <img loading="lazy" src={shopItemSrc(cover)} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <ShoppingBag className="h-8 w-8 text-muted-foreground" aria-hidden />
                 )}
               </div>
               <div className="space-y-0.5 p-2.5">
-                <p className="line-clamp-2 text-sm font-semibold leading-snug [overflow-wrap:anywhere]">{item.title}</p>
+                {onOpen ? (
+                  <button
+                    type="button"
+                    className="line-clamp-2 w-full text-left text-sm font-semibold leading-snug [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-haspopup="dialog"
+                    onClick={() => onOpen(item.id)}
+                  >
+                    {item.title}
+                  </button>
+                ) : (
+                  <p className="line-clamp-2 text-sm font-semibold leading-snug [overflow-wrap:anywhere]">{item.title}</p>
+                )}
                 <p className="text-sm font-bold text-foreground">{withOptions?.has(item.id) ? `From ${formatItemPrice(item.price_cents)}` : formatItemPrice(item.price_cents)}</p>
                 {preorders?.get(item.id) ? (
                   <>

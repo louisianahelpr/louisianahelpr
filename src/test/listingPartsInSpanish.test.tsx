@@ -80,9 +80,12 @@ describe("the listing-setting parts follow the member's language (F260q)", () =>
   });
 
   it("every English word has its Spanish and es.ts carries it", () => {
+    // Keys whose words are only {slots} and punctuation read the same in both languages.
+    const SAME_IN_BOTH = new Set<string>(["lp.bc.writeAria"]);
+    for (const k of SAME_IN_BOTH) expect(enListingParts[k as keyof typeof enListingParts], `stale SAME_IN_BOTH ${k}`).toMatch(/^[{}\w:\s]+$/);
     for (const k of Object.keys(enListingParts) as (keyof typeof enListingParts)[]) {
       expect(esListingParts[k], k).toBeTruthy();
-      expect(esListingParts[k], k).not.toBe(enListingParts[k]);
+      if (!SAME_IN_BOTH.has(k)) expect(esListingParts[k], k).not.toBe(enListingParts[k]);
       expect((es as Record<string, string>)[k], k).toBe(esListingParts[k]);
       // Same {vars} on both sides, so a filled Spanish line never shows a raw {n}.
       expect((esListingParts[k].match(/\{\w+\}/g) ?? []).sort(), k).toEqual((enListingParts[k].match(/\{\w+\}/g) ?? []).sort());

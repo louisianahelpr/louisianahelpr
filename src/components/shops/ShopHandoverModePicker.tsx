@@ -25,8 +25,8 @@ export default function HandoverModePicker({ shopId }: { shopId: string }) {
   });
   return (
     <section className="space-y-2" aria-labelledby="shop-handover-mode">
-      <h2 id="shop-handover-mode" className="text-sm font-semibold">How buyers get their orders</h2>
-      <p className="text-xs text-muted-foreground">Orders already placed keep the way they were placed under.</p>
+      <h2 id="shop-handover-mode" className="text-ds-13 font-semibold">How buyers get their orders</h2>
+      <p className="text-ds-11 text-muted-foreground">Orders already placed keep the way they were placed under.</p>
       {mode.isLoading ? (
         <Skeleton className="h-24 w-full rounded-2xl" />
       ) : mode.isError ? (
@@ -50,8 +50,8 @@ export function HandoverModeNote({ shopId }: { shopId: string }) {
   const t = HANDOVER_MODE_TEXT[mode.data];
   return (
     <div className="space-y-1 rounded-xl bg-muted/60 p-3" data-testid="shop-order-handover-mode">
-      <p className="text-sm font-semibold">{t.label}</p>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-ds-13 font-semibold">{t.label}</p>
+      <p className="text-ds-11 text-muted-foreground">
         {mode.data === "porch"
           ? "The shop leaves your order out with a photo. Tap \"I got it\" when you have it. If you didn't get it, tell us within 48 hours of the photo, or of the start of the ready day if that is later; after that the shop is paid."
           : "You pick your order up from the shop. Tap \"I got it\" when you have it. If the shop says it handed it over and you didn't get it, tell us within 48 hours; after that the shop is paid."}

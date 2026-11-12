@@ -130,7 +130,7 @@ function validate(form: Form): FieldErrors {
 function FieldError({ field, errors }: { field: FieldKey; errors: FieldErrors }) {
   const msg = errors[field];
   if (!msg) return null;
-  return <p id={`${FIELD_ID[field]}-error`} className="text-sm text-destructive-ink" role="alert">{msg}</p>;
+  return <p id={`${FIELD_ID[field]}-error`} className="text-ds-13 text-destructive-ink" role="alert">{msg}</p>;
 }
 const invalidProps = (field: FieldKey, errors: FieldErrors) =>
   errors[field] ? { "aria-invalid": true as const, "aria-describedby": `${FIELD_ID[field]}-error` } : {};
@@ -186,7 +186,7 @@ function PhotoPicker({ label, kind, onPick, busy }: { label: string; kind: ShopP
           if (f) onPick(kind, f);
         }}
       />
-      <span className="inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm cursor-pointer" aria-hidden>
+      <span className="inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-ds-13 cursor-pointer" aria-hidden>
         {label}
       </span>
     </label>
@@ -401,14 +401,14 @@ export default function ShopEditView() {
       <Label htmlFor="shop-about">About</Label>
       <Textarea id="shop-about" value={form.about} maxLength={2000} rows={5} onChange={(e) => set("about", e.target.value)} {...invalidProps("about", errors)} />
       <FieldError field="about" errors={errors} />
-      <p className="text-xs text-muted-foreground">No phone numbers, emails or websites: Shops does not allow contact details.</p>
+      <p className="text-ds-11 text-muted-foreground">No phone numbers, emails or websites: Shops does not allow contact details.</p>
     </div>
     <div className="space-y-1.5">
       <Label htmlFor="shop-area">Town or neighborhood</Label>
       <Input id="shop-area" value={form.areaLabel} maxLength={80} placeholder="e.g. Broussard"
         onChange={(e) => set("areaLabel", e.target.value)} required {...invalidProps("area", errors)} />
       <FieldError field="area" errors={errors} />
-      <p className="text-xs text-muted-foreground">Never your street address. Your pin shows the area, not your house.</p>
+      <p className="text-ds-11 text-muted-foreground">Never your street address. Your pin shows the area, not your house.</p>
     </div>
     <div className="flex items-start gap-2">
       <Checkbox id="shop-storefront" checked={form.storefront} onCheckedChange={(v) => set("storefront", v === true)} />
@@ -417,7 +417,7 @@ export default function ShopEditView() {
       </Label>
     </div>
     <fieldset className="space-y-2">
-      <legend className="text-sm font-medium">What your shop offers</legend>
+      <legend className="text-ds-13 font-medium">What your shop offers</legend>
       <div className="flex items-center gap-2">
         <Checkbox id="shop-selling" checked={form.offersSelling} onCheckedChange={(v) => set("offersSelling", v === true)} />
         <Label htmlFor="shop-selling" className="flex min-h-11 flex-1 items-center font-normal">Selling things I make or have</Label>
@@ -426,17 +426,17 @@ export default function ShopEditView() {
         <Checkbox id="shop-quotes" checked={form.offersQuotes} onCheckedChange={(v) => set("offersQuotes", v === true)} />
         <Label htmlFor="shop-quotes" className="flex min-h-11 flex-1 flex-col justify-center font-normal leading-snug">
           <span>Custom orders (made to order)</span>
-          <span className="text-xs text-muted-foreground">Buyers can ask you for something made just for them. How they pay is on your dashboard.</span>
+          <span className="text-ds-11 text-muted-foreground">Buyers can ask you for something made just for them. How they pay is on your dashboard.</span>
         </Label>
       </div>
       <FieldError field="offers" errors={errors} />
     </fieldset>
     <fieldset id="shop-parishes" tabIndex={-1} className="space-y-2" {...invalidProps("parishes", errors)}>
-      <legend className="text-sm font-medium">Parishes you serve</legend>
+      <legend className="text-ds-13 font-medium">Parishes you serve</legend>
       {form.parishes.length > 0 ? (
         <ul className="flex flex-wrap gap-2" aria-label="Parishes picked">
           {form.parishes.map((name) => (
-            <li key={name} className="inline-flex items-center gap-1 rounded-full border border-border bg-card pl-3 text-sm">
+            <li key={name} className="inline-flex items-center gap-1 rounded-full border border-border bg-card pl-3 text-ds-13">
               {name}
               <button type="button" className="inline-flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground"
                 aria-label={`Remove ${name}`} onClick={() => set("parishes", form.parishes.filter((x) => x !== name))}>×</button>
@@ -444,7 +444,7 @@ export default function ShopEditView() {
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-muted-foreground">None picked yet. Type your town above and its parish is picked for you.</p>
+        <p className="text-ds-13 text-muted-foreground">None picked yet. Type your town above and its parish is picked for you.</p>
       )}
       <Button type="button" variant="outline" size="sm" aria-expanded={showAllParishes} onClick={() => setShowAllParishes((v) => !v)}>
         {showAllParishes ? "Done adding parishes" : "Add other parishes"}
@@ -470,8 +470,8 @@ export default function ShopEditView() {
       )}
     </fieldset>
     <fieldset id="shop-hours" tabIndex={-1} className="space-y-2" {...invalidProps("hours", errors)}>
-      <legend className="text-sm font-medium">Open days and hours</legend>
-      {!myId.data && <p className="text-xs text-muted-foreground">Set to Monday to Friday, 9 to 5. Change any day that's different.</p>}
+      <legend className="text-ds-13 font-medium">Open days and hours</legend>
+      {!myId.data && <p className="text-ds-11 text-muted-foreground">Set to Monday to Friday, 9 to 5. Change any day that's different.</p>}
       {WEEKDAYS.map((day, i) => {
         const h = form.hours[i];
         // S023 (Shops audit 11-12): at 375 the "to" time wrapped to its own line under the checkbox and the clock
@@ -496,7 +496,7 @@ export default function ShopEditView() {
                   value={h.opens}
                   onChange={(e) => set("hours", { ...form.hours, [i]: { ...h, opens: e.target.value } })}
                 />
-                <span className="text-sm text-muted-foreground">to</span>
+                <span className="text-ds-13 text-muted-foreground">to</span>
                 <Input
                   type="time"
                   aria-label={`${day} closes`}
@@ -536,7 +536,7 @@ export default function ShopEditView() {
         <Label htmlFor="shop-sos">Louisiana Secretary of State number (optional)</Label>
         <Input id="shop-sos" value={form.sosNumber} maxLength={20} onChange={(e) => set("sosNumber", e.target.value)} {...invalidProps("sos", errors)} />
         <FieldError field="sos" errors={errors} />
-        <p className="text-xs text-muted-foreground">Once we check it, your shop shows "Registered business". A shop without one is still welcome.</p>
+        <p className="text-ds-11 text-muted-foreground">Once we check it, your shop shows "Registered business". A shop without one is still welcome.</p>
       </div>
     ) : (
       <Button type="button" variant="outline" size="sm" className="self-start" aria-expanded={false} onClick={() => setShowSos(true)}>
@@ -545,7 +545,7 @@ export default function ShopEditView() {
     )}
     {myId.data && (
       <section className="space-y-2" aria-labelledby="shop-edit-photos">
-        <h2 id="shop-edit-photos" className="text-sm font-medium">Logo, cover and photos</h2>
+        <h2 id="shop-edit-photos" className="text-ds-13 font-medium">Logo, cover and photos</h2>
         <div className="flex flex-wrap gap-2">
           <PhotoPicker label="Choose logo" kind="logo" busy={busy} onPick={(kind, file) => photo.mutate({ kind, file })} />
           <PhotoPicker label="Choose cover" kind="cover" busy={busy} onPick={(kind, file) => photo.mutate({ kind, file })} />
@@ -563,7 +563,7 @@ export default function ShopEditView() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="absolute bottom-1 right-1 px-2 text-xs"
+                  className="absolute bottom-1 right-1 px-2 text-ds-11"
                   disabled={busy}
                   onClick={() => unphoto.mutate(p.id)}
                 >
@@ -578,9 +578,9 @@ export default function ShopEditView() {
     <Button type="submit" className="btn-grad-primary w-full" disabled={save.isPending}>
       {save.isPending ? "Saving…" : myId.data ? "Save my shop" : "Open my shop"}
     </Button>
-    {formError && <p className="text-sm text-destructive-ink" role="alert">{formError}</p>}
+    {formError && <p className="text-ds-13 text-destructive-ink" role="alert">{formError}</p>}
     {stillUnsaved && dirtySections.length > 0 && (
-      <p className="rounded-xl bg-muted/70 px-3 py-2 text-sm" role="status" data-testid="shop-still-unsaved">
+      <p className="rounded-xl bg-muted/70 px-3 py-2 text-ds-13" role="status" data-testid="shop-still-unsaved">
         Your shop is saved. These parts below have changes that aren't saved yet: {stillUnsaved.join(", ")}. Use each part's own Save.
       </p>
     )}

@@ -25,8 +25,8 @@ export default function CancelPolicyPicker({ shopId }: { shopId: string }) {
   });
   return (
     <section className="space-y-2" aria-labelledby="shop-cancel-rule">
-      <h2 id="shop-cancel-rule" className="text-sm font-semibold">Your cancel rule</h2>
-      <p className="text-xs text-muted-foreground">Buyers read it before they pay. Orders already placed keep the rule they were placed under.</p>
+      <h2 id="shop-cancel-rule" className="text-ds-13 font-semibold">Your cancel rule</h2>
+      <p className="text-ds-11 text-muted-foreground">Buyers read it before they pay. Orders already placed keep the rule they were placed under.</p>
       {policy.isLoading ? (
         <Skeleton className="h-24 w-full rounded-2xl" />
       ) : policy.isError ? (

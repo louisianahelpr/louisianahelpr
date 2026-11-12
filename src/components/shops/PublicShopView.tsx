@@ -71,7 +71,7 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
         actions={
           signedIn ? (
             // A member without Shops yet (testers-only today): they can look and share; ordering opens later.
-            <p className="w-full rounded-xl bg-muted/70 px-3 py-2.5 text-center text-sm text-muted-foreground">
+            <p className="w-full rounded-xl bg-muted/70 px-3 py-2.5 text-center text-ds-13 text-muted-foreground">
               Ordering from shops opens to everyone soon.
             </p>
           ) : (
@@ -80,7 +80,7 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
               <Button asChild className="btn-grad-primary w-full rounded-full sm:w-auto sm:px-8">
                 <Link to={`/signup?redirect=${back}`}>Sign up to order or message</Link>
               </Button>
-              <p className="text-center text-sm text-muted-foreground">
+              <p className="text-center text-ds-13 text-muted-foreground">
                 Already a member?{" "}
                 <Link className="link-standard inline-flex min-h-11 items-center px-1 font-semibold" to={`/login?redirect=${back}`}>
                   Sign in
@@ -92,7 +92,7 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
       />
       {shop.about && (
         <ShopCard id="shop-about" title="About">
-          <p className="text-sm whitespace-pre-line break-words">{shop.about}</p>
+          <p className="text-ds-13 whitespace-pre-line break-words">{shop.about}</p>
         </ShopCard>
       )}
       {shop.offers_selling && (
@@ -109,7 +109,7 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
         <ShopCard id="shop-parishes" title="Parishes served">
           <ul className="flex flex-wrap gap-1.5">
             {shop.parishes_served.map((p) => (
-              <li key={p} className="rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs">{p}</li>
+              <li key={p} className="rounded-full border border-border bg-muted/60 px-2.5 py-1 text-ds-11">{p}</li>
             ))}
           </ul>
         </ShopCard>

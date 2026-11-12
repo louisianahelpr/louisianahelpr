@@ -48,7 +48,7 @@ export function ShopOrderReview({ orderId, handedOver }: { orderId: string; hand
     },
   });
   if (!handedOver || !state.data) return null;
-  if (state.data.mine) return <p className="text-sm text-muted-foreground" data-shop-review-sent="">Review sent. {REVIEW_SHOWS}</p>;
+  if (state.data.mine) return <p className="text-ds-13 text-muted-foreground" data-shop-review-sent="">Review sent. {REVIEW_SHOWS}</p>;
   if (!state.data.can_review) return null;
   const buyer = state.data.side === "buyer";
   return (
@@ -99,9 +99,9 @@ export function ShopReviewsCard({ shopId }: { shopId: string }) {
       {reviews.isError ? (
         <ErrorState variant="inline" title="We couldn't load the reviews." body={shopsErrorMessage(reviews.error)} onRetry={() => void reviews.refetch()} />
       ) : reviews.isPending || !d ? (
-        <p className="text-sm text-muted-foreground" role="status">Loading…</p>
+        <p className="text-ds-13 text-muted-foreground" role="status">Loading…</p>
       ) : d.reviews.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No reviews yet. Buyers review a shop after they get their order.</p>
+        <p className="text-ds-13 text-muted-foreground">No reviews yet. Buyers review a shop after they get their order.</p>
       ) : (
         <div className="space-y-3" data-shop-reviews="">
           <ShopRating rating={d.rating} count={d.review_count} />

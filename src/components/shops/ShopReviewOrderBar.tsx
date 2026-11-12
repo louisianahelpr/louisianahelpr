@@ -37,7 +37,7 @@ export default function ShopReviewOrderBar({ shopId }: { shopId: string }) {
     <div className="sticky bottom-3 z-20" data-shop-review-bar="">
       <button
         type="button"
-        className="btn-grad-primary flex min-h-12 w-full items-center justify-between gap-3 rounded-full px-5 text-sm font-semibold text-primary-foreground shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="btn-grad-primary flex min-h-12 w-full items-center justify-between gap-3 rounded-full px-5 text-ds-13 font-semibold text-primary-foreground shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={() => document.getElementById("shop-order-sheet")?.scrollIntoView({ behavior: "smooth", block: "start" })}
       >
         <span className="inline-flex items-center gap-2">

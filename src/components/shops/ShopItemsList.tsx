@@ -54,7 +54,7 @@ export default function ShopItemsList({ shopId, reportable = false, orderable = 
         </div>
       ) : items.isError && !items.data ? (
         <div className="space-y-2" role="alert">
-          <p className="text-sm">{shopsErrorMessage(items.error)}</p>
+          <p className="text-ds-13">{shopsErrorMessage(items.error)}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => void items.refetch()} disabled={items.isFetching}>
             Try again
           </Button>

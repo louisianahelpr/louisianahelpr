@@ -22,7 +22,7 @@
  * @mutate src/components/shops/ShopItemEditor.tsx | toast.success(next === "live" ? "Saved. It's still on your shop." : | toast.success(next === "nope" ? "Saved. It's still on your shop." :
  * @mutate src/components/shops/ShopItemsSection.tsx |       ) : items.isError && !items.data ? ( |       ) : items.isError ? (
  * @mutate src/components/shops/ShopItemsSection.tsx |           <Button type="button" variant="outline" size="sm" onClick={() => void items.refetch()} disabled={items.isFetching}> |           <Button type="button" variant="outline" size="sm" onClick={() => undefined} disabled={items.isFetching}>
- * @mutate src/components/shops/ShopItemsSection.tsx |             <p className="text-sm">This item isn't available any more.</p> |             <p className="text-sm">Loading…</p>
+ * @mutate src/components/shops/ShopItemsSection.tsx |             <p className="text-ds-13">This item isn't available any more.</p> |             <p className="text-ds-13">Loading…</p>
  * @mutate src/components/shops/ShopItemsSection.tsx |         ) : items.isError ? (\n          // A reload that failed | ) : false ? (\n          // A reload that failed
  * @mutate src/components/shops/ShopItemsSection.tsx |           {items.isError ? (\n            // The list on screen | {false ? (\n            // The list on screen
  * @mutate src/components/shops/ShopItemEditor.tsx |         {d.readyNow && !hasOptions && ( |         {d.readyNow && (

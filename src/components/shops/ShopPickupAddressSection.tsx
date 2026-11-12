@@ -92,7 +92,7 @@ export default function ShopPickupAddressSection() {
     <section className="space-y-3 rounded-2xl border border-border bg-card p-4" aria-labelledby="shop-pickup-heading" data-testid="shop-pickup-address">
       <div className="space-y-1">
         <h2 id="shop-pickup-heading" className="text-base font-semibold">Pickup address</h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-ds-13 text-muted-foreground">
           Private. It never shows on your shop page: a buyer sees it only after you accept their order. You need one before you can take orders, and sales tax is worked out for this address.
         </p>
       </div>
@@ -106,10 +106,10 @@ export default function ShopPickupAddressSection() {
       ) : (
         <form className="space-y-3" onSubmit={onSubmit} noValidate>
           {!current.data && (
-            <p className="text-sm font-medium">Add your pickup address to start taking orders.</p>
+            <p className="text-ds-13 font-medium">Add your pickup address to start taking orders.</p>
           )}
           {current.data && refused.data && (
-            <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive-ink" role="alert" data-testid="pickup-address-refused">
+            <p className="rounded-lg bg-destructive/10 px-3 py-2 text-ds-13 text-destructive-ink" role="alert" data-testid="pickup-address-refused">
               We couldn't work out sales tax for this address, so buyers can't order right now. Check the street, city and ZIP, then save it again.
             </p>
           )}
@@ -131,8 +131,8 @@ export default function ShopPickupAddressSection() {
               <Input id="pickup-zip" autoComplete="postal-code" inputMode="numeric" value={zip} maxLength={5} onChange={(e) => setZip(e.target.value)} required />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">State: Louisiana</p>
-          {problem && <p className="text-sm text-destructive-ink" role="alert">{problem}</p>}
+          <p className="text-ds-11 text-muted-foreground">State: Louisiana</p>
+          {problem && <p className="text-ds-13 text-destructive-ink" role="alert">{problem}</p>}
           <Button type="submit" className="w-full" variant="outline" disabled={save.isPending}>
             {save.isPending ? "Saving…" : current.data ? "Save pickup address" : "Add pickup address"}
           </Button>

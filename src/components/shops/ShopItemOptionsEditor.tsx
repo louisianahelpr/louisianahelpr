@@ -68,7 +68,7 @@ export default function ShopItemOptionsEditor({ shopId, itemId, basePriceCents }
   if (options.isError) {
     return (
       <div role="alert" className="space-y-2">
-        <p className="text-sm">{shopsErrorMessage(options.error)}</p>
+        <p className="text-ds-13">{shopsErrorMessage(options.error)}</p>
         <Button type="button" variant="outline" size="sm" onClick={() => void options.refetch()}>Try again</Button>
       </div>
     );
@@ -127,8 +127,8 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
   return (
     <section className="space-y-3 rounded-2xl border border-border p-4" aria-labelledby="item-options-title">
       <div className="space-y-1">
-        <h4 id="item-options-title" className="text-sm font-semibold">Options (optional)</h4>
-        <p className="text-xs text-muted-foreground">
+        <h4 id="item-options-title" className="text-ds-13 font-semibold">Options (optional)</h4>
+        <p className="text-ds-11 text-muted-foreground">
           Like Size or Scent. Each combination gets its own price and stock, and buyers pick one when they order.
         </p>
       </div>
@@ -157,7 +157,7 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
       )}
 
       {tooMany && (
-        <p role="alert" className="text-sm">
+        <p role="alert" className="text-ds-13">
           Up to {MAX_OPTION_VALUES} choices in a list and {MAX_VARIANTS} combinations in all.
         </p>
       )}
@@ -175,13 +175,13 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
                   <Label htmlFor={`combo-on-${key}`} className="flex min-h-11 flex-1 items-center [overflow-wrap:anywhere]">{label}</Label>
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor={`combo-price-${key}`} className="text-xs">Price ($)</Label>
+                  <Label htmlFor={`combo-price-${key}`} className="text-ds-11">Price ($)</Label>
                   <Input id={`combo-price-${key}`} inputMode="decimal" value={r.price} onChange={(e) => setRow(values, { price: e.target.value })}
                     aria-invalid={priceProblem ? true : undefined} aria-describedby={priceProblem ? `combo-price-err-${key}` : undefined} />
-                  {priceProblem && <p id={`combo-price-err-${key}`} className="text-xs text-destructive-ink">{priceProblem}</p>}
+                  {priceProblem && <p id={`combo-price-err-${key}`} className="text-ds-11 text-destructive-ink">{priceProblem}</p>}
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor={`combo-stock-${key}`} className="text-xs">Stock</Label>
+                  <Label htmlFor={`combo-stock-${key}`} className="text-ds-11">Stock</Label>
                   <Input id={`combo-stock-${key}`} type="number" min={0} max={9999} value={r.stock} placeholder="Made to order"
                     onChange={(e) => setRow(values, { stock: e.target.value })} />
                 </div>
@@ -203,7 +203,7 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
           </Button>
         )}
       </div>
-      <p className="text-xs text-muted-foreground">Leave stock blank if you make each one to order.</p>
+      <p className="text-ds-11 text-muted-foreground">Leave stock blank if you make each one to order.</p>
       {/* S2-014 (Shops audit 2): removing every combination asks first. */}
       <BrandConfirmDialog
         open={confirmRemove}

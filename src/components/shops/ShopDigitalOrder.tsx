@@ -28,7 +28,7 @@ export default function ShopDigitalOrder({ order, side }: { order: ShopOrder; si
   const paid = !!order.captured_at && (order.status === "accepted" || order.status === "handed_over");
   if (side === "shop") {
     return (
-      <p className="text-xs text-muted-foreground" data-testid="shop-digital-order-shop">
+      <p className="text-ds-11 text-muted-foreground" data-testid="shop-digital-order-shop">
         Digital download. Your price: {formatCents(order.items_cents)}
         {order.status === "accepted" ? ", 72 hours after the sale unless the buyer reports a problem with the file." : "."}
       </p>
@@ -36,7 +36,7 @@ export default function ShopDigitalOrder({ order, side }: { order: ShopOrder; si
   }
   return (
     <div className="space-y-2" data-testid="shop-digital-order">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-ds-11 text-muted-foreground">
         Download {formatCents(order.items_cents)}
         {order.tax_cents > 0 ? ` + tax ${formatCents(order.tax_cents)}` : ""}
         {setupFeeChargedCents(order) > 0 ? ` + one-time account setup fee ${formatCents(setupFeeChargedCents(order))}` : ""}.
@@ -74,7 +74,7 @@ function BuyerFiles({ order }: { order: ShopOrder }) {
     return (
       <div role="alert" className="space-y-1">
         <ReportErrorScreen source="ShopDigitalOrder.files" title="We couldn't load your download." />
-        <p className="text-sm">We couldn't load your download.</p>
+        <p className="text-ds-13">We couldn't load your download.</p>
         <Button type="button" size="sm" variant="outline" onClick={() => void files.refetch()}>Try again</Button>
       </div>
     );
@@ -85,8 +85,8 @@ function BuyerFiles({ order }: { order: ShopOrder }) {
         {(files.data ?? []).map((f) => (
           <li key={f.file_id} className="flex flex-wrap items-center gap-2 rounded-xl border border-border px-3 py-2">
             <FileDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-            <span className="min-w-0 flex-1 truncate text-sm">{f.file_name}</span>
-            <span className="text-xs text-muted-foreground">{fileSizeLabel(f.byte_size)}</span>
+            <span className="min-w-0 flex-1 truncate text-ds-13">{f.file_name}</span>
+            <span className="text-ds-11 text-muted-foreground">{fileSizeLabel(f.byte_size)}</span>
             <Button type="button" size="sm" className="btn-grad-primary" disabled={open.isPending} onClick={() => open.mutate(f.file_id)}>
               Download
             </Button>
@@ -99,12 +99,12 @@ function BuyerFiles({ order }: { order: ShopOrder }) {
       {reporting && (
         <div className="space-y-2 rounded-xl border border-border p-3" data-testid="shop-digital-report">
           <fieldset className="space-y-1">
-            <legend className="text-sm font-medium">What's wrong? ({hoursLeft} hours left to report)</legend>
-            <label className="flex min-h-11 items-center gap-2 text-sm">
+            <legend className="text-ds-13 font-medium">What's wrong? ({hoursLeft} hours left to report)</legend>
+            <label className="flex min-h-11 items-center gap-2 text-ds-13">
               <NativeRadio name={`dl-reason-${order.id}`} checked={reason === "broken"} onChange={() => setReason("broken")} />
               The file is broken or won't open
             </label>
-            <label className="flex min-h-11 items-center gap-2 text-sm">
+            <label className="flex min-h-11 items-center gap-2 text-ds-13">
               <NativeRadio name={`dl-reason-${order.id}`} checked={reason === "not_as_described"} onChange={() => setReason("not_as_described")} />
               It's not what the listing described
             </label>

@@ -22,7 +22,7 @@ export function QuantityStepper({ label, max, value, onChange }: { label: string
       <Button type="button" size="icon" variant="outline" aria-label={`One less ${label}`} disabled={value <= 0} onClick={() => onChange(value - 1)}>
         <Minus className="h-4 w-4" aria-hidden />
       </Button>
-      <span className="w-6 text-center text-sm font-semibold" aria-live="polite">{value}</span>
+      <span className="w-6 text-center text-ds-13 font-semibold" aria-live="polite">{value}</span>
       <Button type="button" size="icon" variant="outline" aria-label={`One more ${label}`} disabled={value >= max} onClick={() => onChange(value + 1)}>
         <Plus className="h-4 w-4" aria-hidden />
       </Button>
@@ -43,12 +43,12 @@ export default function ShopOrderOptions({ item, options, qty, maxPerLine, onQty
   const others = options.variants.filter((v) => v.id !== variant?.id && (qty[lineKey(item.id, v.id)] ?? 0) > 0);
   return (
     <li className="space-y-2" data-testid="shop-order-options" data-order-item={item.id}>
-      <p className="text-sm font-semibold [overflow-wrap:anywhere]">{item.title}</p>
+      <p className="text-ds-13 font-semibold [overflow-wrap:anywhere]">{item.title}</p>
       <div className="grid grid-cols-2 gap-2">
         {options.option_names.map((name, i) => (
           // S2-029: each list's name shows above its select ("Scent", "Size"), not only in the aria-label.
           <label key={name} className="block min-w-0 space-y-1">
-            <span className="block truncate text-xs font-medium text-muted-foreground" aria-hidden data-option-name="">{name}</span>
+            <span className="block truncate text-ds-11 font-medium text-muted-foreground" aria-hidden data-option-name="">{name}</span>
             <NativeSelect
               aria-label={`${name} for ${item.title}`}
               value={picked[i]}
@@ -60,7 +60,7 @@ export default function ShopOrderOptions({ item, options, qty, maxPerLine, onQty
         ))}
       </div>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">
+        <p className="text-ds-11 text-muted-foreground">
           {!variant ? "That combination isn't offered." : !inStock ? "Sold out." : `${formatItemPrice(variant.price_cents)} each`}
         </p>
         {variant && inStock && (
@@ -73,7 +73,7 @@ export default function ShopOrderOptions({ item, options, qty, maxPerLine, onQty
         )}
       </div>
       {others.length > 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-ds-11 text-muted-foreground">
           Also in this order: {others.map((v) => `${variantLabel(v.values)} × ${qty[lineKey(item.id, v.id)]}`).join(", ")}
         </p>
       )}

@@ -54,8 +54,8 @@ export default function ShopDeliveryPicker({ shopId }: { shopId: string }) {
 
   return (
     <section className="space-y-2" aria-labelledby="shop-delivery-offer">
-      <h2 id="shop-delivery-offer" className="text-sm font-semibold">Delivery</h2>
-      <p className="text-xs text-muted-foreground">You deliver the order yourself. Orders already placed keep the delivery they were placed with.</p>
+      <h2 id="shop-delivery-offer" className="text-ds-13 font-semibold">Delivery</h2>
+      <p className="text-ds-11 text-muted-foreground">You deliver the order yourself. Orders already placed keep the delivery they were placed with.</p>
       {offer.isLoading ? (
         <Skeleton className="h-24 w-full rounded-2xl" />
       ) : offer.isError ? (
@@ -76,13 +76,13 @@ export default function ShopDeliveryPicker({ shopId }: { shopId: string }) {
                 <Label htmlFor="shop-delivery-price">Delivery price ($)</Label>
                 <Input id="shop-delivery-price" inputMode="numeric" value={fee} onChange={(e) => setFee(e.target.value)}
                   aria-invalid={feeProblem !== null} aria-describedby="shop-delivery-price-help" />
-                <p id="shop-delivery-price-help" className="text-xs text-muted-foreground">{feeProblem ?? "0 for free, or $5 to $150."}</p>
+                <p id="shop-delivery-price-help" className="text-ds-11 text-muted-foreground">{feeProblem ?? "0 for free, or $5 to $150."}</p>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="shop-delivery-radius">Up to (miles)</Label>
                 <Input id="shop-delivery-radius" inputMode="numeric" value={radius} onChange={(e) => setRadius(e.target.value)}
                   aria-invalid={radiusProblem !== null} aria-describedby="shop-delivery-radius-help" />
-                <p id="shop-delivery-radius-help" className="text-xs text-muted-foreground">{radiusProblem ?? "Road miles from your shop."}</p>
+                <p id="shop-delivery-radius-help" className="text-ds-11 text-muted-foreground">{radiusProblem ?? "Road miles from your shop."}</p>
               </div>
             </div>
           ) : null}
@@ -91,8 +91,8 @@ export default function ShopDeliveryPicker({ shopId }: { shopId: string }) {
             {save.isPending ? "Saving…" : "Save delivery"}
           </Button>
           <div className="space-y-2 border-t border-border pt-3" data-testid="shop-helpr-delivery">
-            <p className="text-sm font-semibold">Helpr delivery</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-ds-13 font-semibold">Helpr delivery</p>
+            <p className="text-ds-11 text-muted-foreground">
               A Helpr picks the order up at your pickup address and delivers it within 50 miles. The buyer pays $6 plus $1.50 a mile; you get your items' price as usual.
             </p>
             <div className="grid grid-cols-2 gap-2" role="group" aria-label="Helpr delivery">

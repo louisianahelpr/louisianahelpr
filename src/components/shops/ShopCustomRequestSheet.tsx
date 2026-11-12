@@ -33,12 +33,12 @@ export default function ShopCustomRequestSheet({ shopId }: { shopId: string }) {
     <ShopCard id="shop-custom-request" title="Ask for a custom order">
       {sent ? (
         <div className="space-y-2" role="status">
-          <p className="text-sm">Sent. The shop will answer with a price, and you can order it from there.</p>
+          <p className="text-ds-13">Sent. The shop will answer with a price, and you can order it from there.</p>
           <Button type="button" variant="outline" onClick={() => setSent(false)}>Ask for something else</Button>
         </div>
       ) : (
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-ds-13 text-muted-foreground">
             {/* Half up front is hidden while deposit_not_ready is on (shops audit 11-08 #1): every request is paid in full. */}
             Describe what you&apos;d like. If you order the shop&apos;s price, it&apos;s paid like any other order.
           </p>
@@ -50,7 +50,7 @@ export default function ShopCustomRequestSheet({ shopId }: { shopId: string }) {
             onChange={(e) => setText(e.target.value)}
             placeholder="Size, colors, flavors, and when you need it"
           />
-          <p className="text-xs text-muted-foreground">{text.length}/{CUSTOM_REQUEST_MAX}. No phone numbers, emails or links.</p>
+          <p className="text-ds-11 text-muted-foreground">{text.length}/{CUSTOM_REQUEST_MAX}. No phone numbers, emails or links.</p>
           <Button type="button" className="btn-grad-primary w-full" disabled={!trimmed || send.isPending} onClick={() => send.mutate()}>
             {send.isPending ? "Sending…" : "Send to the shop"}
           </Button>

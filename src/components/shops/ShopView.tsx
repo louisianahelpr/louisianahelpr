@@ -174,7 +174,7 @@ export default function ShopView() {
             <>
               {ownerEmpty && (
                 <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-2" data-testid="shop-owner-empty">
-                  <p className="text-sm text-muted-foreground">No items listed yet.</p>
+                  <p className="text-ds-13 text-muted-foreground">No items listed yet.</p>
                   <Button type="button" className="btn-grad-primary rounded-full" onClick={() => navigate("/shops/mine#add-item")}>
                     <Plus className="mr-1.5 h-4 w-4" aria-hidden />
                     Add your first item
@@ -201,14 +201,14 @@ export default function ShopView() {
             </>
           }
         />
-        <p className="px-1 text-xs text-muted-foreground">
+        <p className="px-1 text-ds-11 text-muted-foreground">
           {s.follower_count === 1 ? "1 follower" : `${s.follower_count} followers`}
         </p>
         {s.mine && <ShopTalksCard />}
         <ShopTalkFromLink />
         {s.about && (
           <ShopCard id="shop-about" title="About">
-            <p className="text-sm whitespace-pre-line break-words">{s.about}</p>
+            <p className="text-ds-13 whitespace-pre-line break-words">{s.about}</p>
           </ShopCard>
         )}
         {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} reportable={!s.mine} orderable={!s.mine && !s.paused} />}
@@ -224,7 +224,7 @@ export default function ShopView() {
           <ShopCard id="shop-parishes" title="Parishes served">
             <ul className="flex flex-wrap gap-1.5">
               {s.parishes_served.map((p) => (
-                <li key={p} className="rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs">{p}</li>
+                <li key={p} className="rounded-full border border-border bg-muted/60 px-2.5 py-1 text-ds-11">{p}</li>
               ))}
             </ul>
           </ShopCard>
@@ -234,7 +234,7 @@ export default function ShopView() {
         <ShopFaqs shopId={s.id} />
         {offersLine && (
           <ShopCard id="shop-offers" title="What this shop offers">
-            <p className="text-sm text-muted-foreground">{offersLine}</p>
+            <p className="text-ds-13 text-muted-foreground">{offersLine}</p>
             {takesCustom && !s.mine && !s.paused && (
               <Button
                 type="button"

@@ -198,14 +198,14 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
         ) : (
           <>
             {show("answer") && <section className="space-y-2" aria-labelledby="shop-waiting">
-              <h2 id="shop-waiting" className="text-sm font-semibold">Waiting for your answer</h2>
+              <h2 id="shop-waiting" className="text-ds-13 font-semibold">Waiting for your answer</h2>
               {waiting.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No new orders right now.</p>
+                <p className="text-ds-13 text-muted-foreground">No new orders right now.</p>
               ) : (
                 <ul className="space-y-3">
                   {waiting.map((o) => (
                     <ShopOrderCard key={o.id} order={o} side="shop" heading={from(o, "New order", "from")}>
-                      <p className="text-xs font-semibold" data-testid="shop-order-time-left">
+                      <p className="text-ds-11 font-semibold" data-testid="shop-order-time-left">
                         {timeLeftText(o.accept_by, now) ?? "The time to answer has passed; this order is closing."}
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -235,7 +235,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
             </section>}
             {accepted.length > 0 && show("make") && (
               <section className="space-y-2" aria-labelledby="shop-accepted">
-                <h2 id="shop-accepted" className="text-sm font-semibold">Accepted: make these</h2>
+                <h2 id="shop-accepted" className="text-ds-13 font-semibold">Accepted: make these</h2>
                 <ul className="space-y-3">
                   {accepted.map((o) => (
                     <ShopOrderCard key={o.id} order={o} side="shop" heading={from(o, "Accepted order", "for")}>
@@ -248,7 +248,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
             )}
             {earlier.length > 0 && show("earlier") && (
               <section className="space-y-2" aria-labelledby="shop-earlier">
-                <h2 id="shop-earlier" className="text-sm font-semibold">Earlier orders</h2>
+                <h2 id="shop-earlier" className="text-ds-13 font-semibold">Earlier orders</h2>
                 <ul className="space-y-3">
                   {earlier.map((o) => (
                     <ShopOrderCard key={o.id} order={o} side="shop" heading={from(o, "Order", "from")}>
@@ -347,8 +347,8 @@ function HandoverSettingsRow({ shopId }: { shopId: string }) {
         data-testid="shop-handover-settings-toggle"
       >
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">Pickup and delivery</span>
-          <span className="block text-xs text-muted-foreground">Buyers pick up from you unless you change it.</span>
+          <span className="block text-ds-13 font-semibold">Pickup and delivery</span>
+          <span className="block text-ds-11 text-muted-foreground">Buyers pick up from you unless you change it.</span>
         </span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform${open ? " rotate-180" : ""}`} aria-hidden />
       </button>

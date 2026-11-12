@@ -35,11 +35,11 @@ export default function PublicShopItemSheet({ item, signupTo, onClose }: { item:
               )}
               <div className="space-y-0.5">
                 <p className="text-base font-bold">{item.has_options ? `From ${formatItemPrice(item.price_cents)}` : formatItemPrice(item.price_cents)}</p>
-                <p className="text-xs text-muted-foreground">{SHOP_ITEM_TYPE_LABEL[item.subtype] ?? "Item"} · {readinessLabel(item)}</p>
+                <p className="text-ds-11 text-muted-foreground">{SHOP_ITEM_TYPE_LABEL[item.subtype] ?? "Item"} · {readinessLabel(item)}</p>
               </div>
-              {item.description.trim() && <p className="whitespace-pre-line break-words text-sm">{item.description}</p>}
+              {item.description.trim() && <p className="whitespace-pre-line break-words text-ds-13">{item.description}</p>}
               {item.home_kitchen && (
-                <p className="flex gap-1.5 text-xs text-muted-foreground">
+                <p className="flex gap-1.5 text-ds-11 text-muted-foreground">
                   <House className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
                   <span>{HOME_KITCHEN_NOTICE}</span>
                 </p>

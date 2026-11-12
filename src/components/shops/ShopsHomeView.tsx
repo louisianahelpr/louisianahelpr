@@ -272,7 +272,7 @@ function ShopsBrowse() {
       {/* No distance filter in Shops and no shop alerts yet: just the friendly end. */}
       {!shops.isError && !loading && shown.length > 0 && !shops.hasNextPage && <BrowseEndCard />}
       {!from && origin.status !== "pending" && (
-        <p className="text-xs text-muted-foreground">Add your ZIP code in your profile to see the nearest shops first.</p>
+        <p className="text-ds-11 text-muted-foreground">Add your ZIP code in your profile to see the nearest shops first.</p>
       )}
     </>
   );

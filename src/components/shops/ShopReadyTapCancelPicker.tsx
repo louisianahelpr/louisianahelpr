@@ -25,8 +25,8 @@ export default function ReadyTapCancelPicker({ shopId }: { shopId: string }) {
   });
   return (
     <div className="space-y-2" aria-labelledby="shop-ready-tap-cancel">
-      <h3 id="shop-ready-tap-cancel" className="text-sm font-semibold">If you mark an order ready early</h3>
-      <p className="text-xs text-muted-foreground">What marking an order ready before its ready date does to the buyer's free cancel. Buyers read it before they pay.</p>
+      <h3 id="shop-ready-tap-cancel" className="text-ds-13 font-semibold">If you mark an order ready early</h3>
+      <p className="text-ds-11 text-muted-foreground">What marking an order ready before its ready date does to the buyer's free cancel. Buyers read it before they pay.</p>
       {choice.isLoading ? (
         <Skeleton className="h-20 w-full rounded-2xl" />
       ) : choice.isError ? (

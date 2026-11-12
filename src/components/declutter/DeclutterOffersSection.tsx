@@ -27,6 +27,9 @@ import { useLinkedOffer, useScrollToLinkedOrder } from "./useLinkedOrder";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
+import "@/lib/i18n/enDeclOffers";
+import { t as tr, useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 
 /** Every Declutter read refetches after a trade (offers, cart, orders). */
 
@@ -59,20 +62,14 @@ function counterRange(o: Pick<MyOffer, "my_side" | "current_price_cents" | "amou
 function counterProblem(o: Pick<MyOffer, "my_side" | "current_price_cents" | "amount_cents">, cents: number | null): string | null {
   if (!cents) return null;
   const { min, max } = counterRange(o);
-  if (o.my_side === "seller" && cents <= o.amount_cents && cents >= 100) return `They already offered ${formatPrice(o.amount_cents)}. Answer with more than that, or tap Accept.`;
-  if (o.my_side === "buyer" && cents >= o.amount_cents && cents <= o.current_price_cents) return `They're asking ${formatPrice(o.amount_cents)}. Answer with less than that, or tap Accept.`;
-  if (cents < min || cents > max) return `Your price has to be between ${formatPrice(min)} and ${formatPrice(max)}.`;
+  if (o.my_side === "seller" && cents <= o.amount_cents && cents >= 100) return tr("dof.alreadyOffered", { amount: formatPrice(o.amount_cents) });
+  if (o.my_side === "buyer" && cents >= o.amount_cents && cents <= o.current_price_cents) return tr("dof.askingLess", { amount: formatPrice(o.amount_cents) });
+  if (cents < min || cents > max) return tr("dof.mustBeBetween", { min: formatPrice(min), max: formatPrice(max) });
   return null;
 }
 
-const OFFER_STATUS_WORDS: Record<MyOffer["status"], string> = {
-  open: "Waiting",
-  accepted: "Accepted",
-  declined: "Declined",
-  expired: "Ran out of time",
-  withdrawn: "Taken back",
-  voided: "Item went to someone else",
-};
+/** An ended offer's chip: dof.st.<status> (Waiting, Accepted, Declined, Ran out of time, Taken back, went to someone else). */
+const offerStatusWords = (status: MyOffer["status"]) => tr(`dof.st.${status}` as MsgKey);
 
 const noop = () => {};
 
@@ -82,22 +79,24 @@ const noop = () => {};
  * Nothing while the cart read is out or the line has moved on (paid: the order card says the rest).
  */
 function AcceptedOfferNext({ o }: { o: MyOffer }) {
+  const { t } = useLanguage();
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
   const line = (cart.data ?? []).find((l) => l.item_id === o.item_id && l.my_side === o.my_side && l.status === "in_cart") ?? null;
   if (!line) return null;
   if (o.my_side === "buyer") {
     return (
       <div className="flex flex-wrap items-center justify-between gap-2" data-accepted-next="buyer">
-        <p className="text-ds-13 text-foreground">In your cart. Check out by {orderWhen(line.checkout_by)}.</p>
-        <Button asChild size="sm"><Link to={`/declutter?tab=buying&checkout=${line.seller_id ?? ""}`}>Check out</Link></Button>
+        <p className="text-ds-13 text-foreground">{t("dof.inCart", { when: orderWhen(line.checkout_by) })}</p>
+        <Button asChild size="sm"><Link to={`/declutter?tab=buying&checkout=${line.seller_id ?? ""}`}>{t("dof.checkOut")}</Link></Button>
       </div>
     );
   }
-  return <p className="text-ds-13 text-foreground" data-accepted-next="seller">Waiting on the buyer to pay by {orderWhen(line.checkout_by)}.</p>;
+  return <p className="text-ds-13 text-foreground" data-accepted-next="seller">{t("dof.waitPay", { when: orderWhen(line.checkout_by) })}</p>;
 }
 
 function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: boolean; closed?: boolean }) {
   const qc = useQueryClient();
+  const { t } = useLanguage();
   // Q2660: the offer a notice opened scrolls into view and takes focus, once.
   const rowRef = useRef<HTMLLIElement>(null);
   useScrollToLinkedOrder(rowRef, linked, noop);
@@ -121,7 +120,7 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
   const close = useMutation({
     mutationFn: (id: string) => closeWanted(id),
     onSettled: () => setAskClose(false),
-    onSuccess: () => { toast("Your Wanted post is closed."); invalidateTrades(qc); },
+    onSuccess: () => { toast(t("dof.wantedClosed")); invalidateTrades(qc); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const act = useMutation({
@@ -131,10 +130,10 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
       setCountering(false);
       setCounter("");
       toast(
-        res === "accepted" ? (o.my_side === "buyer" ? "Accepted. Check out within 24 hours." : "Accepted. The buyer has 24 hours to pay.")
-          : res === "countered" ? "Sent. They have 48 hours to answer."
-            : res === "withdrawn" ? "Offer taken back."
-              : "Declined.",
+        res === "accepted" ? (o.my_side === "buyer" ? t("dof.acceptedBuyer") : t("dof.acceptedSeller"))
+          : res === "countered" ? t("dof.countered")
+            : res === "withdrawn" ? t("dof.withdrawn")
+              : t("dof.declined"),
       );
       invalidateTrades(qc);
       if (res === "accepted" && wantedId) setAskClose(true);
@@ -156,57 +155,57 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
     <li ref={rowRef} tabIndex={linked ? -1 : undefined} className={`scroll-mt-3 rounded-[20px] border border-border p-4 space-y-2.5 ${closed ? "bg-muted/50" : "bg-card"}`} data-offer-row="" data-closed-offer={closed ? "" : undefined} data-linked-offer={linked ? "" : undefined}>
       <div className="flex items-start justify-between gap-3 min-w-0">
         <div className="min-w-0">
-          {wantedReply && <p className="text-ds-12 font-semibold text-[hsl(var(--sage-ink))]" data-wanted-reply="">Reply to your Wanted</p>}
+          {wantedReply && <p className="text-ds-12 font-semibold text-[hsl(var(--sage-ink))]" data-wanted-reply="">{t("dof.wantedReply")}</p>}
           {/* Audit 1110 F408: an offer title wraps to two lines instead of an ellipsis at 375 / Bigger text. */}
           <Link to={`/declutter/item/${o.item_id}`} className="line-clamp-2 break-words block text-ds-15 font-semibold leading-snug" title={o.item_title}>{o.item_title}</Link>
           {/* Audit 1110 F356 (owner 11-11): the seller sees who made the offer, first name + last initial only. */}
-          {o.my_side === "seller" && o.buyer_display && <p className="text-ds-13 text-foreground" data-offer-buyer="">From {o.buyer_display}</p>}
-          <p className="text-ds-13 text-muted-foreground">Price now {formatPrice(o.current_price_cents)}</p>
+          {o.my_side === "seller" && o.buyer_display && <p className="text-ds-13 text-foreground" data-offer-buyer="">{t("dof.from", { name: o.buyer_display })}</p>}
+          <p className="text-ds-13 text-muted-foreground">{t("dof.priceNow", { price: formatPrice(o.current_price_cents) })}</p>
         </div>
         <div className="shrink-0 text-right">
           {/* Spec v2 §1.1: amounts wear the money ink. */}
           <p className="text-ds-20 font-bold leading-tight tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(o.amount_cents)}</p>
           <p className="text-ds-12 text-muted-foreground">
-            {o.awaiting === o.my_side ? (o.my_side === "seller" ? "their offer" : wantedReply ? "their price" : "their counter") : o.my_side === "buyer" ? "your offer" : "your price"}
+            {o.awaiting === o.my_side ? (o.my_side === "seller" ? t("dof.theirOffer") : wantedReply ? t("dof.theirPrice") : t("dof.theirCounter")) : o.my_side === "buyer" ? t("dof.yourOffer") : t("dof.yourPrice")}
           </p>
         </div>
       </div>
       {o.status !== "open" && (
-        <span className="inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{OFFER_STATUS_WORDS[o.status]}</span>
+        <span className="inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{offerStatusWords(o.status)}</span>
       )}
       {o.status === "accepted" && <AcceptedOfferNext o={o} />}
       {/* Board 160: an offer that ended unpaid never charged anything (offers charge only at checkout). The item page says
           whether it can still be bought; this card does not know, so it never promises "Offer again". */}
       {o.my_side === "buyer" && (o.status === "declined" || o.status === "expired") && (
         <p className="text-ds-13 text-muted-foreground" data-offer-ended="">
-          Nothing was charged.{" "}
-          <Link to={`/declutter/item/${o.item_id}`} className="font-semibold text-foreground underline underline-offset-2">See the item</Link>
+          {t("dof.nothingCharged")}{" "}
+          <Link to={`/declutter/item/${o.item_id}`} className="font-semibold text-foreground underline underline-offset-2">{t("dof.seeItem")}</Link>
         </p>
       )}
-      {underFloor && <p className="text-xs text-amber-700 dark:text-amber-300">This is under your lowest price ({formatPrice(o.floor_price_cents as number)}). Only you can see that.</p>}
+      {underFloor && <p className="text-xs text-amber-700 dark:text-amber-300">{t("dof.underFloor", { price: formatPrice(o.floor_price_cents as number) })}</p>}
       {o.status === "open" && (
         // The shared next-step line (owner 11-01 12:02 PM, "Next: <what> · <deadline>"; replaces lead 10-28's "Your turn to
         // answer. 3 hours left."): the viewer's move, or who it waits on, with the time left.
         <NextStep
           className="!text-ds-13"
           value={myTurn
-            ? { who: "you", text: "Answer their offer", by: timeLeft(o.respond_by) }
-            : { who: "them", text: `Waiting on the ${o.my_side === "buyer" ? "seller" : "buyer"} to answer`, by: timeLeft(o.respond_by) }}
+            ? { who: "you", text: t("dof.answerOffer"), by: timeLeft(o.respond_by) }
+            : { who: "them", text: o.my_side === "buyer" ? t("dof.waitSeller") : t("dof.waitBuyer"), by: timeLeft(o.respond_by) }}
         />
       )}
       {myTurn && o.my_side === "seller" && (
         // Sellers keep the whole price (spec v2 §9.11). Members never see a fee name or number (owner 2026-10-25).
         // Good news, so the sage tint, not the rust one problems use (audit 1030 DC-13).
         <p className={GOOD_NEWS_NOTE} data-offer-note="" data-tone="good">
-          If you accept and the buyer pays, you keep the whole <strong className="tabular-nums">{formatPrice(takeCents)}</strong>.
+          {t("dof.keepA")}<strong className="tabular-nums">{formatPrice(takeCents)}</strong>{t("dof.keepB")}
         </p>
       )}
       {myTurn && o.my_side === "buyer" && (
         // Board 70: what accepting the counter costs at checkout (pickup), from the same rule as Buy now.
         <dl className="space-y-1 rounded-xl border border-border p-3 text-ds-13" data-offer-bill="">
-          <div className="flex justify-between gap-3"><dt>Their price</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(takeCents)}</dd></div>
-          <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1"><dt className="font-bold">You pay {totalPhrase(noDeliveryWay(ways.data))}</dt><dd className="text-ds-16 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]"><BuyerTotal priceCents={takeCents} /></dd></div>
-          <p className="text-ds-12 text-muted-foreground">At most. More items from this seller make it less.</p>
+          <div className="flex justify-between gap-3"><dt>{t("dof.billPrice")}</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(takeCents)}</dd></div>
+          <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1"><dt className="font-bold">{t("dof.youPay", { phrase: totalPhrase(noDeliveryWay(ways.data)) })}</dt><dd className="text-ds-16 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]"><BuyerTotal priceCents={takeCents} /></dd></div>
+          <p className="text-ds-12 text-muted-foreground">{t("dof.atMost")}</p>
         </dl>
       )}
       {myTurn && (
@@ -216,10 +215,10 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
         // other answers are text links (still the shared Button, 44px), so Accept is the one button in the row.
         <div className="flex flex-wrap items-center justify-end gap-2" data-offer-actions="">
           <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}>
-            Say no
+            {t("dof.sayNo")}
           </Button>
           <Button type="button" variant="link" size="sm" disabled={act.isPending} onClick={() => setCountering((v) => !v)} aria-expanded={countering}>
-            Answer with a price
+            {t("dof.answerPrice")}
           </Button>
           <Button
             type="button"
@@ -227,7 +226,7 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
             disabled={act.isPending}
             onClick={() => setAccepting(true)}
           >
-            Accept
+            {t("dof.accept")}
           </Button>
         </div>
       )}
@@ -240,7 +239,7 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
           }}
         >
           {/* A shown label and a "$" in the field (deep audit #47: no "$" and no label). */}
-          <label className="block text-sm font-semibold" htmlFor={`counter-${o.offer_id}`}>Your price</label>
+          <label className="block text-sm font-semibold" htmlFor={`counter-${o.offer_id}`}>{t("dof.yourPriceLabel")}</label>
           <div className="flex gap-2">
             <div className="relative min-w-0 flex-1" data-counter-field="">
               <span aria-hidden className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-semibold text-muted-foreground">$</span>
@@ -257,11 +256,11 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
               />
             </div>
             <Button type="submit" size="sm" disabled={act.isPending || !counterCents || !!counterBad}>
-              Send
+              {t("dof.send")}
             </Button>
           </div>
           <p id={`counter-range-${o.offer_id}`} className={`text-ds-13 ${counterBad ? "text-[hsl(var(--destructive-ink))]" : "text-muted-foreground"}`}>
-            {counterBad ?? `Between ${formatPrice(counterRange(o).min)} and ${formatPrice(counterRange(o).max)}.`}
+            {counterBad ?? t("dof.between", { min: formatPrice(counterRange(o).min), max: formatPrice(counterRange(o).max) })}
           </p>
         </form>
       )}
@@ -269,35 +268,35 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
           while the seller has the turn (which also keeps it off a Wanted reply, D4-3). */}
       {o.status === "open" && o.my_side === "buyer" && o.awaiting === "seller" && (
         <InlineTextButton className="text-sm underline underline-offset-2" disabled={act.isPending} onClick={() => setWithdrawing(true)}>
-          Take back my offer
+          {t("dof.takeBack")}
         </InlineTextButton>
       )}
       <ConfirmSheet open={accepting} pending={act.isPending} onConfirm={() => act.mutate({ action: "accept" })} onClose={() => setAccepting(false)}
         // NIGHT-SELL-offers,sale-1: accepting sells at the lower of the offer and today's price (declutter_respond_offer,
         // B28: least(amount, current_price)), so the title names that figure, never an offer above a dropped price.
-        title={o.my_side === "seller" ? `Sell it for ${formatPrice(takeCents)}?` : `Buy it for ${formatPrice(takeCents)}?`}
-        confirmLabel="Accept" testId="accept-offer">
+        title={o.my_side === "seller" ? t("dof.sellFor", { price: formatPrice(takeCents) }) : t("dof.buyFor", { price: formatPrice(takeCents) })}
+        confirmLabel={t("dof.accept")} cancelLabel={t("dof.notNow")} testId="accept-offer">
         {o.my_side === "seller"
-          ? `${takeCents < o.amount_cents ? `Their ${formatPrice(o.amount_cents)} offer is above your price now, so it sells at ${formatPrice(takeCents)}. ` : ""}"${o.item_title}": every other offer on it closes, and the buyer gets 24 hours to pay.`
-          : <>{`"${o.item_title}": you pay at most `}<BuyerTotal priceCents={takeCents} />{` ${totalPhrase(noDeliveryWay(ways.data))}. You'll have 24 hours to check out and pay, or you get a strike. Nothing is charged until you do.`}</>}
+          ? `${takeCents < o.amount_cents ? t("dof.aboveNow", { offer: formatPrice(o.amount_cents), price: formatPrice(takeCents) }) : ""}${t("dof.sellBody", { title: o.item_title })}`
+          : <>{t("dof.buyA", { title: o.item_title })}<BuyerTotal priceCents={takeCents} />{t("dof.buyB", { phrase: totalPhrase(noDeliveryWay(ways.data)) })}</>}
       </ConfirmSheet>
       <ConfirmSheet open={withdrawing} pending={act.isPending} onConfirm={() => act.mutate({ action: "withdraw" })} onClose={() => setWithdrawing(false)}
-        title="Take back your offer?" confirmLabel="Take it back" cancelLabel="Keep my offer" testId="withdraw-offer">
-        {`"${o.item_title}": your offer of ${formatPrice(o.amount_cents)} ends. Nothing is charged.`}
+        title={t("dof.wdTitle")} confirmLabel={t("dof.wdConfirm")} cancelLabel={t("dof.wdKeep")} testId="withdraw-offer">
+        {t("dof.wdBody", { title: o.item_title, amount: formatPrice(o.amount_cents) })}
       </ConfirmSheet>
       {wantedId && (
         <ConfirmSheet open={askClose} pending={close.isPending} onConfirm={() => close.mutate(wantedId)} onClose={() => setAskClose(false)}
-          title="Close your Wanted post?" confirmLabel="Close it" cancelLabel="Keep it open" testId="close-wanted-after-accept">
-          {`You're getting "${o.item_title}". Closing your Wanted post stops new matches and replies. You can post it again any time from Wanted.`}
+          title={t("dof.cwTitle")} confirmLabel={t("dof.cwConfirm")} cancelLabel={t("dof.cwKeep")} testId="close-wanted-after-accept">
+          {t("dof.cwBody", { title: o.item_title })}
         </ConfirmSheet>
       )}
       <ConfirmSheet open={declining} pending={act.isPending} onConfirm={() => act.mutate({ action: "decline" })} onClose={() => setDeclining(false)}
-        title={`Say no to ${formatPrice(o.amount_cents)}?`} confirmLabel="Say no" testId="decline-offer">
+        title={t("dof.noTitle", { amount: formatPrice(o.amount_cents) })} confirmLabel={t("dof.sayNo")} cancelLabel={t("dof.notNow")} testId="decline-offer">
         {o.my_side === "seller"
-          ? `"${o.item_title}": this offer ends, and the buyer is told you said no.`
+          ? t("dof.noSeller", { title: o.item_title })
           : wantedReply
-            ? `"${o.item_title}": this reply ends, and the seller is told you said no. Nothing is charged.`
-            : `"${o.item_title}": this counter ends. Nothing is charged.`}
+            ? t("dof.noReply", { title: o.item_title })
+            : t("dof.noCounter", { title: o.item_title })}
       </ConfirmSheet>
     </li>
   );
@@ -310,16 +309,17 @@ function OfferRow({ o, linked = false, closed = false }: { o: MyOffer; linked?: 
 /** onlyMyTurn (audit DC-9, Selling's "To answer"): only the open offers waiting for this member, nothing else. */
 /** only (audit 11-10 F374, Buying's chips): just the offers that chip files (offerBucket); nothing at all when none. */
 export function OffersSection({ side, onlyMyTurn = false, only = null }: { side: "buyer" | "seller"; onlyMyTurn?: boolean; only?: OrderBucket | null }) {
+  const { t } = useLanguage();
   const offers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers });
   const seller = side === "seller";
-  const title = seller ? "Offers on your items" : "Your offers";
+  const title = seller ? t("dof.onYourItems") : t("dof.yourOffers");
   const linkedOffer = useLinkedOffer();
   // null until the member taps the fold: then their choice wins over the notice's offer (Q2660).
   const [showClosed, setShowClosed] = useState<boolean | null>(null);
   if (offers.isError) {
-    return <ErrorState variant="inline" title="We couldn't load offers." body={declutterErrorMessage(offers.error)} onRetry={() => void offers.refetch()} />;
+    return <ErrorState variant="inline" title={t("dof.loadError")} body={declutterErrorMessage(offers.error)} onRetry={() => void offers.refetch()} />;
   }
-  if (offers.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading offers…</p>;
+  if (offers.isLoading) return <p className="text-sm text-muted-foreground" role="status">{t("dof.loading")}</p>;
   const mine = underChip((offers.data ?? []).filter((o) => o.my_side === side), only, (o) => offerBucket(o, side));
   if (only && mine.length === 0) return null;
   const myTurn = (o: MyOffer) => o.status === "open" && o.awaiting === side;
@@ -329,7 +329,7 @@ export function OffersSection({ side, onlyMyTurn = false, only = null }: { side:
     if (waiting.length === 0) return null;
     return (
       <section className="space-y-2" aria-label={title} data-offers-my-turn="">
-        <SectionHeading title={title} todo={toAnswer} todoWords="to answer" />
+        <SectionHeading title={title} todo={toAnswer} todoWords={t("dof.toAnswer")} />
         <ul className="space-y-3">{waiting.map((o) => <OfferRow key={o.offer_id} o={o} linked={o.offer_id === linkedOffer} />)}</ul>
       </section>
     );
@@ -346,11 +346,11 @@ export function OffersSection({ side, onlyMyTurn = false, only = null }: { side:
   const closedOpen = showClosed ?? (linkedOffer !== null && closed.some((o) => o.offer_id === linkedOffer));
   return (
     <section className="space-y-2" aria-label={title}>
-      <SectionHeading title={title} todo={toAnswer} todoWords="to answer" />
+      <SectionHeading title={title} todo={toAnswer} todoWords={t("dof.toAnswer")} />
       {mine.length === 0 ? (
-        seller ? <NoSellerOffers /> : <p className="text-sm text-muted-foreground">You haven&apos;t made any offers.</p>
+        seller ? <NoSellerOffers /> : <p className="text-sm text-muted-foreground">{t("dof.noneMade")}</p>
       ) : shown.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No open offers.</p>
+        <p className="text-sm text-muted-foreground">{t("dof.noneOpen")}</p>
       ) : (
         <ul className="space-y-3">{shown.map((o) => <OfferRow key={o.offer_id} o={o} linked={o.offer_id === linkedOffer} />)}</ul>
       )}
@@ -358,7 +358,7 @@ export function OffersSection({ side, onlyMyTurn = false, only = null }: { side:
         <>
           <InlineTextButton className="text-sm font-medium" aria-expanded={closedOpen}
             onClick={() => setShowClosed(!closedOpen)} data-closed-offers-toggle="">
-            {closedOpen ? "Hide closed offers" : `Show ${closed.length} closed ${closed.length === 1 ? "offer" : "offers"} from the last 30 days`}
+            {closedOpen ? t("dof.hideClosed") : closed.length === 1 ? t("dof.showClosed1", { n: 1 }) : t("dof.showClosedN", { n: closed.length })}
           </InlineTextButton>
           {closedOpen && <ul className="space-y-3" data-closed-offers="">{closed.map((o) => <OfferRow key={o.offer_id} o={o} linked={o.offer_id === linkedOffer} closed />)}</ul>}
         </>

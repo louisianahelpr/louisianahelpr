@@ -29,6 +29,7 @@ import {
   fetchCottageStatus,
   fetchMyItemReview,
   formatItemPrice,
+  priceBoxText,
   HOME_KITCHEN_NOTICE,
   itemPhotoUrl,
   publishShopItem,
@@ -74,7 +75,7 @@ const fromItem = (i: ShopItem | null): Draft => ({
   subtype: i?.subtype ?? "crafts",
   title: i?.title ?? "",
   description: i?.description ?? "",
-  price: i ? String(i.price_cents / 100) : "",
+  price: i ? priceBoxText(i.price_cents) : "",
   lead: i ? String(i.lead_time_days) : "1",
   readyNow: i?.stock_count != null,
   stock: i?.stock_count != null ? String(i.stock_count) : "",
@@ -521,19 +522,20 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
           <div className="flex flex-wrap gap-2">
             <label className="inline-flex">
               <span className="sr-only">Add a photo</span>
+              {/* S2-010: an item holds up to 12 photos; the control says so and stops at 12. */}
               <input
                 type="file"
                 accept="image/*"
                 className="sr-only"
-                disabled={busy}
+                disabled={busy || shown.length >= 12}
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   e.target.value = "";
                   if (f) addPhoto.mutate(f);
                 }}
               />
-              <span className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm" aria-hidden>
-                Add a photo
+              <span className={`inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm ${shown.length >= 12 ? "opacity-60" : "cursor-pointer"}`} aria-hidden>
+                {shown.length >= 12 ? "12 photos (the most)" : "Add a photo"}
               </span>
             </label>
             {draft && (

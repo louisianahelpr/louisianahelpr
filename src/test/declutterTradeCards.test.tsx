@@ -30,7 +30,7 @@ const later = new Date(Date.now() + 10 * 3_600_000).toISOString();
 const lamp = { id: "lamp", title: "Lamp", current_price_cents: 2000 };
 const chair = { id: "chair", title: "Chair", current_price_cents: 3000 };
 const row = (over: Partial<MyTrade>): MyTrade => ({
-  id: "t1", status: "open", respond_by: later, created_at: later, my_side: "seller", item: lamp, offered: chair, my_line_status: null, talk_order_id: null, ...over,
+  id: "t1", status: "open", respond_by: later, created_at: later, my_side: "seller", item: lamp, offered: chair, my_line_status: null, talk_order_id: null, buyer_display: null, ...over,
 });
 
 const state = { rows: [] as MyTrade[], sent: [] as [string, string][] };
@@ -46,10 +46,14 @@ vi.mock("@/lib/declutter/trades", async (orig) => ({
 }));
 
 // fetchMyTrades' own mapping (the talk test below): the Supabase read answers these rows.
-const supa = { rows: [] as unknown[], select: "" };
+const supa = { rows: [] as unknown[], select: "", names: [] as unknown[], rpcs: [] as string[] };
 vi.mock("@/integrations/supabase/client", () => {
   const chain = { eq: () => chain, in: () => chain, gte: () => chain, order: () => chain, limit: async () => ({ data: supa.rows, error: null }) };
-  return { supabase: { from: () => ({ select: (cols: string) => { supa.select = cols; return chain; } }) } };
+  return { supabase: {
+    from: () => ({ select: (cols: string) => { supa.select = cols; return chain; } }),
+    // F356 follow-up: declutter_my_trade_buyer_names (20261112004253).
+    rpc: async (fn: string) => { supa.rpcs.push(fn); return { data: supa.names, error: null }; },
+  } };
 });
 
 const { TradeOffersSection } = await import("@/components/declutter/DeclutterTradeOffers");
@@ -178,6 +182,34 @@ describe("Declutter trade cards (slice 3)", () => {
     const got = await fetchMyTrades("seller", "u1");
     expect(Object.fromEntries(got.map((t) => [t.id, t.talk_order_id]))).toEqual({ both: "o-want", second: "o-offered", none: null, ended: null, open: null });
     expect(supa.select).toMatch(/buyer_line:declutter_cart_items!declutter_swap_offers_buyer_line_id_fkey\(status, order_id\)/);
+  });
+
+  // F356 follow-up (owner 11-11 "everywhere"; lead: the trade list counts): the seller's trade card names the trader as
+  // first name + last initial, from the server; the buyer's card never names anyone new, and never asks for names.
+  // @mutate src/lib/declutter/trades.ts |   const names = side === "seller" && rows.length > 0 ? await fetchTradeBuyerNames() : new Map<string, string>(); |   const names = new Map<string, string>();
+  // @mutate src/components/declutter/DeclutterTradeOffers.tsx |       {t.my_side === "seller" && t.buyer_display && <p | {t.buyer_display && <p
+  it("F356 follow-up: the seller's trade card says From Ann S.; the buyer's names nobody", async () => {
+    const { fetchMyTrades } = await vi.importActual<typeof import("@/lib/declutter/trades")>("@/lib/declutter/trades");
+    const base = { respond_by: later, created_at: later, item: lamp, offered: chair, buyer_line: null, seller_line: null, status: "open" };
+    supa.rows = [{ ...base, id: "a" }, { ...base, id: "b" }];
+    supa.names = [{ swap_id: "a", buyer_display: "Ann S." }, { swap_id: "b", buyer_display: null }];
+    supa.rpcs = [];
+    const seller = await fetchMyTrades("seller", "u1");
+    expect(Object.fromEntries(seller.map((t) => [t.id, t.buyer_display]))).toEqual({ a: "Ann S.", b: null });
+    expect(supa.rpcs).toEqual(["declutter_my_trade_buyer_names"]);
+    supa.rpcs = [];
+    const buyer = await fetchMyTrades("buyer", "u1");
+    expect(buyer.map((t) => t.buyer_display)).toEqual([null, null]);
+    expect(supa.rpcs).toEqual([]);
+
+    state.rows = [row({ id: "a", buyer_display: "Ann S." })];
+    const r = show("seller");
+    expect((await screen.findByText("From Ann S.")).closest("[data-trade-card]")?.getAttribute("data-trade-card")).toBe("a");
+    r.unmount();
+    show("buyer");
+    await waitFor(() => expect(settled(client)).toBe(true));
+    expect(document.querySelector("[data-trade-card]")).not.toBeNull();
+    expect(screen.queryByText(/^From /)).toBeNull();
   });
 
   it("Selling's To answer counts the open trade offers, and both tabs show the section", () => {

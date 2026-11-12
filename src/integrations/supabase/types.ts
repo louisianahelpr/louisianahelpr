@@ -16691,6 +16691,13 @@ export type Database = {
       }
     }
     Functions: {
+      declutter_my_trade_buyer_names: {
+        Args: never
+        Returns: {
+          buyer_display: string
+          swap_id: string
+        }[]
+      }
       declutter_order_gift_net_cents: {
         Args: { p_order_id: string }
         Returns: number

@@ -96,6 +96,8 @@ function TradeCard({ t }: { t: MyTrade }) {
           {" "}{open ? `${t.my_side === "seller" ? "Answer by" : "Waiting on the seller until"} ${orderWhen(t.respond_by)}. No money changes hands.` : tradeStatusWords(t)}
         </span>
       </p>
+      {/* F356 follow-up (owner 11-11): the seller sees who offered the trade, first name + last initial only, no link. */}
+      {t.my_side === "seller" && t.buyer_display && <p className="text-ds-13 text-foreground" data-trade-buyer="">From {t.buyer_display}</p>}
       <Pair t={t} />
       {open && t.my_side === "seller" && (
         <div className="flex flex-wrap gap-2">

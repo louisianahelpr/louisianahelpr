@@ -116,7 +116,7 @@ describe("Home money tiles: a real number or no tile", () => {
 
   it("the fee read THROWS on failure, so a failed read is isError, never a success with no fee", () => {
     const feeSrc = blankComments(readFileSync(resolve(__dirname, "../hooks/useOnboardingFee.ts"), "utf8"));
-    expect(feeSrc).toMatch(/export function useOnboardingFeeQuery\(\)/);
+    expect(feeSrc).toMatch(/export function useOnboardingFeeQuery\((?:enabled = true)?\)/);
     expect(feeSrc).toMatch(/const res = await supabase\.rpc\("get_public_platform_settings"\);\s*if \(res\.error\) report\([^;]*\);\s*const data = unwrap\(res\);/);
   });
 

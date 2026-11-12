@@ -17970,6 +17970,7 @@ export type Database = {
         Returns: number
       }
       shop_preorder_sweep: { Args: never; Returns: Json }
+      shop_custom_request_sweep: { Args: never; Returns: Json }
       shop_preorder_units: {
         Args: { p_item_id: string; p_paid_only: boolean }
         Returns: number

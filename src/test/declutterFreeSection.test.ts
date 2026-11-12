@@ -15,7 +15,7 @@
  * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
  * @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
  * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
- * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
+ * @mutate supabase/migrations/20261112065000_declutter_seller_id_at_first_payout.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
  * @mutate supabase/migrations/20261107174801_declutter_buy_now_one_page.sql |   IF v_item.o_price_cents = 0 THEN | IF false THEN
  * @mutate supabase/migrations/20261031214749_seller_setup_fee_from_payout_restated.sql |     IF NEW.current_price_cents = 0 THEN | IF false THEN
  * @mutate src/components/declutter/DeclutterItemView.tsx | (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} footer={deliveredLine} />) | <OfferPanel item={it} userId={user.id} askSignal={offerAsk} />

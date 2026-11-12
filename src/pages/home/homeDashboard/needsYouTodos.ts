@@ -49,7 +49,12 @@ export interface NeedsYouInputs {
   declutterProblems?: readonly import("@/lib/declutter/declutterTodos").TodoProblem[];
   /** The active continue days of my jobs under way, by job id (useContinueDays). */
   continueDays?: Readonly<Record<string, ContinueDay>>;
+  /** Owner 11-12: the seller's Declutter payouts waiting on their ID check, in cents (idPayoutWait.ts); 0 or absent: none. */
+  declutterIdPayoutCents?: number;
 }
+
+/** Owner 11-12 1:00 AM: the seller's ID check is asked before the first payout, so Home says what it unlocks. */
+const ID_PAYOUT_TODO_ID = "declutter-id-payout";
 
 /** An open back-out notice rides on its job, as useActivityData does it (Q1575). */
 function withBackout<J extends { id: string; status?: string | null }>(j: J, backout: ReadonlyMap<string, BackoutNotice>): J {
@@ -191,6 +196,16 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
   for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now, i.declutterRefunds ?? [], i.declutterFreeAsks ?? [], i.declutterProblems ?? [])) {
     const [tier, at] = rank(d.due, d.waiting, Infinity, now);
     ranked.push({ tier, at, item: d.item });
+  }
+  // Owner 11-12: money is held for this seller until they verify their ID; their move, so it ranks as waiting on them.
+  if ((i.declutterIdPayoutCents ?? 0) > 0) {
+    const [tier, at] = rank(null, true, now, now);
+    const money = formatCents(i.declutterIdPayoutCents as number);
+    ranked.push({
+      tier,
+      at,
+      item: { id: ID_PAYOUT_TODO_ID, section: "declutter", title: `Verify your ID to get paid ${money}`, meta: "You sold · Declutter", to: "/declutter?tab=selling&verify_id=1&verify_reason=get_paid", action: "Verify your ID", money },
+    });
   }
   // The task is the job card's own status sentence (jobStatusLine), so Home and the
   // card never name a different step of one job (boards 7, 83, 165).

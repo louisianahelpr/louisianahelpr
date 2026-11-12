@@ -229,6 +229,15 @@ export function useNeedsYouTodos(
   const offerRows = (declutterOn ? dOffers.data : undefined) ?? EMPTY_OFFERS;
   const refundRows = (declutterOn && refundsOn ? dRefunds.data : undefined) ?? EMPTY_REFUNDS;
   const freeAskRows = (declutterOn ? dFreeAsks.data : undefined) ?? EMPTY_FREE_ASKS;
+  // Owner 11-12: a seller's first payout waits on their ID check. Asked only for a member with a paid sale of their own.
+  const hasPaidSale = cartLines.some((l) => l.my_side === "seller" && l.status === "paid" && l.price_cents > 0);
+  const dIdWait = useQuery({
+    queryKey: ["declutter", "id-payout-wait", uid],
+    queryFn: () => loadModule(() => import("@/lib/declutter/idPayoutWait")).then((m) => (m ? m.fetchIdPayoutWaitCents(uid) : untilReload())),
+    enabled: !!uid && declutterOn && hasPaidSale,
+    staleTime: CORE_STALE,
+  });
+  const idPayoutCents = declutterOn && hasPaidSale ? dIdWait.data ?? 0 : 0;
   // F363 side effect (b) (owner 11-11): a seller's problem report puts the purchase under Needs you, here and on the
   // Buying tab alike. Same ids rule and key as the tab (buyerProblemOrderIds, useOpenProblems), so one read serves both.
   const problemIds = useMemo(() => buyerProblemOrderIds(cartLines), [cartLines]);
@@ -258,8 +267,8 @@ export function useNeedsYouTodos(
   const continueDays = useContinueDays(inProgressJobIds([...postedJobs, ...apps.map((a) => a.job)]));
   const derive = useHomeDerive();
   const todos = useMemo(
-    () => (derive ? derive.deriveNeedsYouTodos({ postedJobs, pendingApplicantCounts: pending, appliedApps: apps, shopOrders: orders, backout, declutterCart: cartLines, declutterOffers: offerRows, declutterRefunds: refundRows, declutterFreeAsks: freeAskRows, declutterProblems: problemRows, continueDays }) : EMPTY_TODOS),
-    [derive, postedJobs, pending, apps, orders, backout, cartLines, offerRows, refundRows, freeAskRows, problemRows, continueDays],
+    () => (derive ? derive.deriveNeedsYouTodos({ postedJobs, pendingApplicantCounts: pending, appliedApps: apps, shopOrders: orders, backout, declutterCart: cartLines, declutterOffers: offerRows, declutterRefunds: refundRows, declutterFreeAsks: freeAskRows, declutterProblems: problemRows, continueDays, declutterIdPayoutCents: idPayoutCents }) : EMPTY_TODOS),
+    [derive, postedJobs, pending, apps, orders, backout, cartLines, offerRows, refundRows, freeAskRows, problemRows, continueDays, idPayoutCents],
   );
   // onOldCall: whether a section is on its old single call right now. Home's own reads of the same keys
   // (useHomeSummary's cart and shop orders) wait on it too, so the badge's one read is not repeated on Home.

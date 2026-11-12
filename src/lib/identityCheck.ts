@@ -21,7 +21,8 @@ import { toast } from "sonner";
 
 /** Why the sheet opened: picks the first sentence, never the rule. */
 // "shop_buy" / "shop_list": Shops reuses Declutter's gate and codes (20261105174853), with its own words.
-export type IdentityCheckReason = "start" | "post" | "accept" | "buy" | "list" | "shop_buy" | "shop_list" | "deliver" | "claim" | "general";
+// "get_paid" (owner 11-12): a Declutter seller's first payout waits on the check (20261112065000).
+export type IdentityCheckReason = "start" | "post" | "accept" | "buy" | "list" | "get_paid" | "shop_buy" | "shop_list" | "deliver" | "claim" | "general";
 
 interface SheetState {
   open: boolean;

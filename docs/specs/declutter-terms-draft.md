@@ -16,7 +16,7 @@ read; the notes do not show when the page is published. Earlier versions are in 
 - The seller can decline a refund request; the buyer can then report a problem and an admin decides. If the seller doesn't answer in 24 hours, an admin decides and the payout stays held. A full refund gives back everything except the card fee (the buyer's fee included), and the item goes back to the seller (section 10).
 - A delivery pay raise: the buyer pays the raise plus its card fee, and the Helpr gets the whole raise (section 8).
 - Kept: a Helpr who already picked up is paid for the trip on a seller-fault refund; free take-down with unaccepted offers; the extras' numbers; Helpr delivery at a set price plus raises (sections 3, 8, 15).
-- Stripe Identity once, across Jobs and Declutter, asked at the first Declutter purchase or listing; the $2 setup fee once per account, whichever comes first (section 2).
+- Stripe Identity once, across Jobs and Declutter, asked at the first Declutter purchase or before a seller's first payout (owner 11-12; was: at the first listing); the $2 setup fee once per account, whichever comes first (section 2).
 - Taxes in general words, with no promises on the CPA points (section 20).
 - On account deletion: strikes stay tied to the verified ID; finished sales stay visible to the other side as "Former member" (section 21).
 - Seller delivery is in, and opens with launch (section 9). <!-- MASTER-LIST.md:363; seller-delivery spec "Owner answers 2026-10-22" -->
@@ -27,7 +27,7 @@ You ruled these, so they are in the terms. The app on `main` (42c7557608) does n
 - Refund requests within 24 hours of pickup: the seller refunding, offering part or declining, an admin deciding on a decline or no answer, and the payout held until then (board 141, Declutter side). <!-- MASTER-LIST.md:321, :365 -->
 - A seller's door "Picked up" becoming final 24 hours later unless the buyer reports a problem (Q2151 (a)); today it is final at once. <!-- docs/OPEN.md Q2151 -->
 - Seller delivery (being built behind the `declutter_seller_delivery` switch). <!-- MASTER-LIST.md:347, :363 -->
-- Stripe Identity at the first Declutter purchase or listing, and the setup fee at the first Declutter purchase or listing. Today no Declutter money path takes the setup fee. <!-- MASTER-LIST.md:365 #9; grep "onboarding" in supabase/functions/declutter-money and declutter-checkout: no match (2026-10-21) -->
+- Stripe Identity at the first Declutter purchase or before a seller's first payout (owner 11-12: listings go live right away; the payout waits), and the setup fee at the first Declutter purchase or listing. Today no Declutter money path takes the setup fee. <!-- MASTER-LIST.md:365 #9; grep "onboarding" in supabase/functions/declutter-money and declutter-checkout: no match (2026-10-21) -->
 - Rounding a delivery Helpr's pay down to the whole dollar (jobs payouts already do it). <!-- MASTER-LIST.md:348 -->
 - Strike appeals and the storm pause. <!-- spec rows 39, 49; no appeal or pause function in supabase/migrations (grep, 2026-10-21) -->
 - Not checked against `main` for this text: that strikes stay tied to the verified ID after a deletion, and that the other side sees "Former member" on a finished sale.
@@ -96,9 +96,9 @@ getting paid (see Terms, Payouts & Stripe Connect). <!-- spec row 23 -->
 
 Buyers must have **a saved card** before making an offer or buying (section 6). <!-- spec row 36; B31 -->
 
-**Verify your ID once.** Before your first Declutter purchase or your first listing, you verify your ID
+**Verify your ID once.** Before your first Declutter purchase, or before your first payout as a seller, you verify your ID
 with Stripe Identity (a photo ID and a selfie). You do it only once for all of Louisiana Helpr: if you
-already did it for Jobs, you don't do it again. <!-- MASTER-LIST.md:365 #9 (owner 2026-10-22); MASTER-LIST.md:245 (Stripe Identity = photo ID + selfie) -->
+already did it for Jobs, you don't do it again. <!-- MASTER-LIST.md:365 #9 (owner 2026-10-22; seller timing moved to the first payout by the owner 2026-11-12); MASTER-LIST.md:245 (Stripe Identity = photo ID + selfie) -->
 
 **The one-time account setup fee** in the main Terms is charged once per account, whichever comes first:
 your first Jobs payout, or your first Declutter purchase or listing. <!-- MASTER-LIST.md:365 #9 -->

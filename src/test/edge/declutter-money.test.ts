@@ -34,6 +34,7 @@
  * @mutate supabase/functions/declutter-money/index.ts |         if (byParties !== mode) throw new Error(`refund row says ${mode} but its parties are ${byParties}`); |
  * @mutate supabase/functions/declutter-money/index.ts |     const byPage = sessionIdMode(r.checkout_session_id); |     const byPage = null;
  * @mutate supabase/functions/declutter-money/index.ts |   const gaveUp = await admin.rpc("declutter_refund_gave_up_check", {}); |   const gaveUp = { error: null, data: 0 };
+ * @mutate supabase/functions/declutter-money/index.ts |     if (idHold.kind === "waits") { |     if (false) {
  * @mutate supabase/functions/declutter-money/index.ts |     message: /charge is not whole/.test(why) |     message: false
  * @mutate supabase/functions/declutter-money/index.ts |     if (recorded && byPage && recorded !== byPage) throw new Error(`refund row says ${recorded} but its order's page is ${byPage}`); |
  * @mutate supabase/functions/declutter-money/index.ts |         if (!(await payeeReadyNow(stripe, mode, "declutter", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue; |
@@ -183,6 +184,28 @@ describe("declutter-money: seller payouts (B53)", () => {
     expect(rpcs("declutter_payout_executed")[0]?.args).toEqual({
       p_payout_id: PAYOUT, p_transfer_id: "tr_new1", p_succeeded: true, p_error: null,
     });
+  });
+
+  // Owner 11-12 1:00 AM: the seller's ID check is asked before the first payout, not at listing
+  // (20261112065000). The run holds an unverified seller's payout (no transfer, no try used) and sends it on
+  // the first run after they verify.
+  it("owner 11-12: an unverified seller's payout is held with no transfer, and sent once they verify", async () => {
+    scenario.rpc.payout_waits_on_identity = true;
+    const held = await run({ payouts: [payoutRow()] });
+    expect(held.status).toBe(200);
+    expect(rpcs("payout_waits_on_identity").map((c) => c.args)).toContainEqual({ p_user_id: SELLER });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(held.body.payouts_sent ?? 0).toBe(0);
+    expect(rpcs("declutter_payout_executed")).toHaveLength(0);
+    resetSupabaseMock();
+    scenario.reads.test_accounts = { rows: [] };
+    scenario.reads.ban_settlement_queue = { rows: [] };
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.profiles = { rows: [{ user_id: BUYER, email: "buyer@example.test" }] };
+    scenario.rpc.payout_waits_on_identity = false;
+    const paid = await run({ payouts: [payoutRow()] });
+    expect(paid.body.payouts_sent).toBe(1);
+    expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
   });
 
   it("reconciles: a transfer Stripe already holds for this order is recorded, never sent twice", async () => {

@@ -9,6 +9,8 @@ import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
 import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/handover";
 import { formatPrice } from "@/lib/declutter/distance";
 import { DeclutterNotice } from "./declutterUi";
+import { needsIdentityCheck, openIdentityCheckOrSay, useMyIdentityProfile } from "@/lib/identityCheck";
+import { Button } from "@/components/ui/button";
 
 /**
  * The Declutter money that really waits for this seller (owner 2026-10-28, shots 12 + 19: the banner said "You have
@@ -75,7 +77,30 @@ function DeclutterMoneyPrompt() {
   if (!cart.data || !payouts.data) return null;
   const waiting = declutterMoneyWaiting(cart.data, payouts.data);
   if (waiting.cents <= 0) return null;
-  return <OwedPayoutPrompt cents={waiting.cents} titles={waiting.titles} />;
+  return (
+    <>
+      <IdPayoutPrompt cents={waiting.cents} titles={waiting.titles} />
+      <OwedPayoutPrompt cents={waiting.cents} titles={waiting.titles} />
+    </>
+  );
+}
+
+/**
+ * Owner 11-12 1:00 AM: the seller's ID check is asked before their FIRST PAYOUT, not at listing. The server holds the
+ * payout until they are verified (declutter-money: checkIdentityHold, payout_waits_on_identity); this says so, with
+ * the amount, and opens the one ID sheet. Nothing while the member's own answer is unread (the server still holds).
+ */
+function IdPayoutPrompt({ cents, titles }: { cents: number; titles: string[] }) {
+  const me = useMyIdentityProfile();
+  if (!needsIdentityCheck(me)) return null;
+  return (
+    <div data-declutter-id-payout-prompt="">
+      <DeclutterNotice tone="warn" title={`Verify your ID to get paid ${formatPrice(cents)}.`}>
+        {titles.length ? `You sold ${soldWords(titles)}. ` : ""}Your money is held safely and sent once you're verified. It takes about 2 minutes, once.{" "}
+        <Button type="button" variant="link" size="sm" onClick={() => openIdentityCheckOrSay("get_paid")}>Verify your ID</Button>
+      </DeclutterNotice>
+    </div>
+  );
 }
 
 function OwedPayoutPrompt({ cents, titles }: { cents: number; titles: string[] }) {

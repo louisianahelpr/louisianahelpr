@@ -43,7 +43,8 @@ export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop
     onError: (err) => toast.error(shopsErrorMessage(err)),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["shops", "custom-requests"] }),
   });
-  const rows = (list.data ?? []).filter((r) => r.role === side);
+  // S2-017: open requests (the ones that need someone to act) first; the rest keep the server's order.
+  const rows = (list.data ?? []).filter((r) => r.role === side).sort((a, b) => Number(OPEN.has(b.status)) - Number(OPEN.has(a.status)));
   // A failed or empty read shows nothing: the orders around it stand on their own.
   if (rows.length === 0) return null;
   return (

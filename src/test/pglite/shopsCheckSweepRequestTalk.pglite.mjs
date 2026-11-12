@@ -4,6 +4,7 @@
  *   S2-001: shops_check_sweep_claim claims only live, unchecked, unapproved, real items live 5+ minutes, counts the try
  *           first, waits 4.5 minutes between tries, holds an item after 3 failed tries (once, owner told), and a new
  *           verdict (or a cleared one) resets the tries; shops_check_sweep_give_back gives one back; service role only.
+ *   S2-026: shops_talk_view says shop_off when the shop's state closed the chat, never for a block.
  *   S2-018: shops_open_request_talk opens the ONE shop+member thread for either side of a request, and refuses a
  *           stranger, anon, a blocked pair and a hidden shop.
  *
@@ -44,13 +45,19 @@ CREATE FUNCTION public.is_caller_banned() RETURNS boolean LANGUAGE sql STABLE AS
 CREATE TABLE public.blocks (a uuid, b uuid);
 CREATE FUNCTION public.are_users_blocked(x uuid, y uuid) RETURNS boolean LANGUAGE sql STABLE AS
   $$ SELECT EXISTS (SELECT 1 FROM public.blocks WHERE (a = x AND b = y) OR (a = y AND b = x)) $$;
-CREATE TABLE public.shops (id uuid PRIMARY KEY, owner_id uuid, hidden boolean NOT NULL DEFAULT false);
+CREATE TABLE public.shops (id uuid PRIMARY KEY, owner_id uuid, hidden boolean NOT NULL DEFAULT false, name text DEFAULT 'TEST shop');
+CREATE TABLE public.profiles (user_id uuid, full_name text);
+CREATE TABLE public.shop_talk_messages (id uuid DEFAULT gen_random_uuid(), talk_id uuid, sender_side text, body text, created_at timestamptz DEFAULT now());
+CREATE FUNCTION public.declutter_names_hidden(a uuid, b uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 CREATE FUNCTION public.shop_state_ok(s uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT NOT hidden FROM public.shops WHERE id = s $$;
 CREATE TABLE public.shop_items (id uuid PRIMARY KEY, shop_id uuid, owner_id uuid, status text, title text,
   admin_approved_at timestamptz, submitted_at timestamptz, live_at timestamptz, updated_at timestamptz, is_seed boolean NOT NULL DEFAULT false);
 CREATE TABLE public.shop_item_private (item_id uuid PRIMARY KEY, ai_checked_at timestamptz, ai_flag_reason text, updated_at timestamptz);
 CREATE TABLE public.shop_custom_requests (id uuid PRIMARY KEY, shop_id uuid, buyer_id uuid, status text);
 CREATE TABLE public.shop_talks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), shop_id uuid, buyer_id uuid, UNIQUE (shop_id, buyer_id));
+CREATE FUNCTION public.shop_talk_side(t uuid, u uuid) RETURNS text LANGUAGE sql STABLE AS $$
+  SELECT CASE WHEN st.buyer_id = u THEN 'buyer' WHEN sh.owner_id = u THEN 'shop' END
+    FROM public.shop_talks st JOIN public.shops sh ON sh.id = st.shop_id WHERE st.id = t $$;
 CREATE TABLE public.notices (user_id uuid, type text, title text, message text, link text);
 CREATE FUNCTION public.declutter_notify(u uuid, t text, ti text, m text, l text, a uuid DEFAULT NULL) RETURNS void LANGUAGE sql AS
   $$ INSERT INTO public.notices VALUES (u, t, ti, m, l) $$;
@@ -121,6 +128,29 @@ await db.query(`UPDATE public.shop_item_private SET ai_check_attempts = 2, ai_ch
 r = await claim();
 check((await st(FRESH)).status === "live" && r.rows?.some((x) => x.sweep_item_id === FRESH && x.sweep_attempt === 3),
   "2 failed tries: still live, and tried a third time", r.err ?? JSON.stringify(r.rows));
+// Review must-fix 1: a hidden shop's item is neither tried nor held (its photos are in the held bucket).
+const HID_ITEM = U(28);
+await db.query(`INSERT INTO public.shop_items (id, shop_id, owner_id, status, title, live_at) VALUES ($1, $2, $3, 'live', 'Hidden', now() - interval '30 minutes')`, [HID_ITEM, HIDDEN_SHOP, OWNER]);
+await db.query(`INSERT INTO public.shop_item_private (item_id, ai_check_attempts, ai_check_last_try_at) VALUES ($1, 3, now() - interval '10 minutes')`, [HID_ITEM]);
+const HID_TRY = U(31);
+await db.query(`INSERT INTO public.shop_items (id, shop_id, owner_id, status, title, live_at) VALUES ($1, $2, $3, 'live', 'Hidden 2', now() - interval '30 minutes')`, [HID_TRY, HIDDEN_SHOP, OWNER]);
+await db.query(`INSERT INTO public.shop_item_private (item_id) VALUES ($1)`, [HID_TRY]);
+r = await claim();
+check(!r.rows?.some((x) => x.sweep_item_id === HID_TRY), "a hidden shop's unchecked item is not tried", r.err ?? JSON.stringify(r.rows));
+check(!r.rows?.some((x) => x.sweep_item_id === HID_ITEM) && (await st(HID_ITEM)).status === "live", "a hidden shop's item is neither tried nor held", r.err ?? JSON.stringify(r.rows));
+// Review should-fix 2: tries from before the item last went live start over; it is not held at once.
+const REPUB = U(29);
+await db.query(`INSERT INTO public.shop_items (id, shop_id, owner_id, status, title, live_at) VALUES ($1, $2, $3, 'live', 'Republished', now() - interval '6 minutes')`, [REPUB, SHOP, OWNER]);
+await db.query(`INSERT INTO public.shop_item_private (item_id, ai_check_attempts, ai_check_last_try_at) VALUES ($1, 3, now() - interval '2 days')`, [REPUB]);
+r = await claim();
+check((await st(REPUB)).status === "live" && r.rows?.some((x) => x.sweep_item_id === REPUB && x.sweep_attempt === 1),
+  "tries from before it went live again start over (tried, not held)", r.err ?? JSON.stringify(r.rows));
+// The hold skips test data too.
+const SEEDHOLD = U(30);
+await db.query(`INSERT INTO public.shop_items (id, shop_id, owner_id, status, title, live_at, is_seed) VALUES ($1, $2, $3, 'live', 'Seed hold', now() - interval '3 hours', true)`, [SEEDHOLD, SHOP, OWNER]);
+await db.query(`INSERT INTO public.shop_item_private (item_id, ai_check_attempts, ai_check_last_try_at) VALUES ($1, 3, now() - interval '10 minutes')`, [SEEDHOLD]);
+await claim();
+check((await st(SEEDHOLD)).status === "live", "test data is never held (nor tried)");
 for (const role of ["authenticated", "anon"]) {
   await db.exec(`SET ROLE ${role};`);
   const a = await run(`SELECT * FROM public.shops_check_sweep_claim(5)`);
@@ -154,6 +184,26 @@ await db.exec(`SET ROLE anon;`);
 r = await run(`SELECT public.shops_open_request_talk($1)`, [REQ]);
 await db.exec(`RESET ROLE;`);
 check(/permission denied/.test(r.err ?? ""), "anon cannot call it", r.err ?? "called");
+
+// ---- S2-026
+const view = async (uid, talkId) => {
+  await db.exec(`SET t.uid = '${uid}';`);
+  await db.exec(`SET ROLE authenticated;`);
+  const out = await run(`SELECT public.shops_talk_view($1) AS v`, [talkId]);
+  await db.exec(`RESET ROLE;`);
+  return out;
+};
+const talkId = b1.rows[0].id;
+let v = await view(BUYER, talkId);
+check(!v.err && v.rows[0].v.open === true && v.rows[0].v.shop_off === false, "an open chat: open, not shop_off", v.err ?? JSON.stringify(v.rows[0].v));
+await db.query(`UPDATE public.shops SET hidden = true WHERE id = $1`, [SHOP]);
+v = await view(BUYER, talkId);
+check(!v.err && v.rows[0].v.open === false && v.rows[0].v.shop_off === true, "a hidden shop's chat says why (shop_off)", v.err ?? JSON.stringify(v.rows[0].v));
+await db.query(`UPDATE public.shops SET hidden = false WHERE id = $1`, [SHOP]);
+await db.query(`INSERT INTO public.shop_talks (shop_id, buyer_id) VALUES ($1, $2)`, [SHOP, BLOCKED]);
+const bt = (await db.query(`SELECT id FROM public.shop_talks WHERE buyer_id = $1`, [BLOCKED])).rows[0].id;
+v = await view(BLOCKED, bt);
+check(!v.err && v.rows[0].v.open === false && v.rows[0].v.shop_off === false, "a block is never named: closed, not shop_off", v.err ?? JSON.stringify(v.rows[0].v));
 
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");
 process.exit(failures ? 1 : 0);

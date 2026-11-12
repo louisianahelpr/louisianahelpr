@@ -36,6 +36,8 @@ export interface ShopTalkView {
   other_label: string;
   /** False while the shop is hidden or either side has blocked the other. */
   open: boolean;
+  /** S2-026: the chat is closed because of the shop's own state (never set for a block). Absent on an older server. */
+  shop_off?: boolean;
   messages: ShopTalkMessage[];
 }
 

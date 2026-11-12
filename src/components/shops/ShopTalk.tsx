@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { talkTime } from "@/lib/declutter/talkTime";
 import { shopsErrorMessage } from "@/lib/shops/errors";
-import { fetchMyShopTalks, fetchShopTalk, markShopTalkRead, MY_SHOP_TALKS_KEY, openShopOrderTalk, openShopRequestTalk, openShopTalk, sendShopTalkMessage } from "@/lib/shops/talk";
+import { fetchMyShopTalks, fetchShopTalk, markShopTalkRead, MY_SHOP_TALKS_KEY, openShopOrderTalk, openShopRequestTalk, openShopTalk, sendShopTalkMessage, type ShopTalkView } from "@/lib/shops/talk";
 import { focusSheetItself } from "@/components/declutter/focusSheetItself";
 import { ShopCard } from "./ShopProfile";
 
@@ -40,6 +40,17 @@ function useTalkParam() {
     setParams(next, { replace: !id });
   };
   return [talkId && UUID.test(talkId) ? talkId : null, set] as const;
+}
+
+/**
+ * S2-026 (Shops audit 2): a closed chat says why when the shop's own state closed it (shops_talk_view.shop_off:
+ * hidden, off Helpr, the owner's standing) and keeps the plain line for a block, which is never named.
+ */
+export function closedChatText(t: Pick<ShopTalkView, "side" | "shop_off">): string {
+  if (!t.shop_off) return "This chat is closed. You can still read it.";
+  return t.side === "buyer"
+    ? "This shop isn't on Helpr right now, so the chat is closed. You can still read it."
+    : "Your shop isn't showing on Helpr right now, so the chat is closed. You can still read it.";
 }
 
 /** A member's "Message" button on a shop's page: opens (or makes) their thread with the shop. */
@@ -186,7 +197,7 @@ function ShopTalkSheet({ talkId, onClose, initialDraft = "" }: { talkId: string;
             </p>
             {!open && (
               <p className="rounded-xl border border-border bg-card px-3 py-2 text-ds-13 text-foreground" data-shop-talk-closed="">
-                This chat is closed. You can still read it.
+                {closedChatText(t)}
               </p>
             )}
             <p className="sr-only" aria-live="polite" data-shop-talk-live="">{announce}</p>

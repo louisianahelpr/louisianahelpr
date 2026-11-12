@@ -39,7 +39,7 @@ import {
 } from "@/lib/shops/handover";
 import { addDays, preorderReadyFrom, shortDate } from "@/lib/shops/preorders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
-import { handoverIntro, handoverWords, isServiceOrder } from "@/lib/shops/handoverWords";
+import { buyerHandoverSafety, handoverIntro, handoverWords, isServiceOrder } from "@/lib/shops/handoverWords";
 
 const NOTE_MAX = 500;
 
@@ -211,6 +211,9 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
         {h?.ready_at ? (side === "buyer" ? "The shop marked it ready." : "You marked it ready.") : ""}
         {side === "buyer" && h?.shop_confirmed_at ? w.buyerShopSaysDone : ""}
       </p>
+      {side === "buyer" && buyerHandoverSafety(order, h) && (
+        <p className="text-xs text-muted-foreground" data-testid="shop-handover-safety">{buyerHandoverSafety(order, h)}</p>
+      )}
       {side === "shop" && tooEarly && readyFrom ? (
         <p className="text-xs text-muted-foreground" data-testid="shop-preorder-ready-from">
           {order.preorder_item_id

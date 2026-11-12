@@ -345,7 +345,7 @@ describe("ShopItemEditor", () => {
   it("Q1961: the editor says new items are checked by an admin for 30 days after a rejection", async () => {
     renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft" })} onCreated={() => {}} onDone={() => {}} />);
     expect(await screen.findByText(/After a rejection, new items are checked by an admin for 30 days\./)).toBeTruthy();
-    expect(screen.getByText(/Changing only the price or stock of a live item keeps it live\./)).toBeTruthy();
+    expect(screen.getByText(/Edits to a live item keep it live, unless you change what kind of item it is or its type\./)).toBeTruthy();
   });
 
   it("F11: the price check reads a price the way the save does (\"$1,200\" is a price)", () => {

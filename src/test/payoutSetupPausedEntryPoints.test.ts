@@ -93,6 +93,7 @@ const NOT_AN_ENTRY_POINT: Readonly<Record<string, string>> = {
   // Server refusal words of sections that are on for testers only (feature_switches read on prod
   // 2026-10-23: declutter, shops, rentals = testers). A static map holds no hook; if a section opens to
   // members while setup is still paused, these words need the paused state (reported to the lead).
+  "src/lib/i18n/enDeclErrors.ts": "F260q: Declutter's refusal words by code (de.*), drawn only by errors.ts' declutterErrorMessage (the `declutter` switch is testers-only)",
   "src/lib/declutter/errors.ts": "Declutter's refusal words (the `declutter` switch is testers-only)",
   "src/lib/shops/errors.ts": "Shops' refusal words (the `shops` switch is testers-only; Shops is on hold)",
   // Owner 2026-10-25: the "You're hired" prompt's words; HiredPayoutSetupDialog and PayoutSetupJobNotice show them and both call usePayoutSetupPaused().

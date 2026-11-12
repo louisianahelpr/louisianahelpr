@@ -64,6 +64,7 @@ const NOT_GATED: Readonly<Record<string, string>> = {
   "src/components/shops/shopsUi.tsx": "the 'ID checked' shop badge, drawn only when shop_badges says the owner really verified",
   "src/components/declutter/DeclutterGuest.tsx": "F227/F319: the guest seller card's 'ID checked' badge, drawn only when declutter_guest_seller_card says the seller really verified (a fact, not a prompt)",
   "src/lib/shops/errors.ts": "Shops refusal words (Shops is testers-only and on hold)",
+  "src/lib/i18n/enDeclErrors.ts": "F260q: errors.ts' refusal words by code (de.*); drawn only by declutterErrorMessage for identity_required_to_buy/list, which the server raises only while the switch is on (s2)",
   "src/lib/declutter/errors.ts": "words for identity_required_to_buy/list, which the server raises only while the switch is on (s2)",
   "src/lib/quotes/errors.ts": "words for identity_required_to_post, which the server raises only while the switch is on (s2)",
   "src/lib/helprTasks/errorCopy.ts": "words for helper_identity_unverified, which the server raises only while the switch is on (s2)",

@@ -26,7 +26,7 @@ const row = vi.hoisted(() => ({ cancel_policy: "until_accept", ready_tap_cancel:
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: row, error: null }) }) }) }), rpc: vi.fn() },
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 
 import CancelPolicyPicker from "@/components/shops/ShopCancelPolicyPicker";
 import ReadyTapCancelPicker from "@/components/shops/ShopReadyTapCancelPicker";

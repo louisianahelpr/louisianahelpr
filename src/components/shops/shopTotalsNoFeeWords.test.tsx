@@ -19,7 +19,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     from: () => ({ select: () => ({ in: async () => ({ data: [], error: null }), eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }),
   },
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("./ShopTalk", () => ({ ShopOrderMessageButton: () => null }));
 vi.mock("./ShopReviews", () => ({ ShopOrderReview: () => null }));
 

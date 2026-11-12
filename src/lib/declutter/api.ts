@@ -1381,6 +1381,8 @@ export interface CartLine {
   source?: "buy" | "offer" | "swap" | null;
   /** DC-18 (20261030131715): when an ended line ended (null while in the cart). Absent before that deploy. */
   closed_at?: string | null;
+  /** F372 (20261112054500): the item's first photo (storage path); null once it is gone. Absent before that deploy. */
+  photo_path?: string | null;
 }
 
 export async function makeOffer(itemId: string, amountCents: number): Promise<string> {

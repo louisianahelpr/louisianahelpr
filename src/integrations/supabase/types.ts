@@ -18651,6 +18651,7 @@ export type Database = {
           my_side: string
           order_id: string | null
           order_status: string | null
+          photo_path: string | null
           porch_ok: boolean
           handovers: string[] | null
           premium_cents: number | null

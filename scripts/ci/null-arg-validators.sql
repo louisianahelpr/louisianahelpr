@@ -173,6 +173,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('helpr_task_vehicle_fits',       'allow',    'TRUE = this Helpr''s vehicle can carry this size (row 41; 20261017055505)'),
   ('declutter_link_setup_job',      'action',   'VOLATILE: links the caller''s own open, not-yet-paid job (any category) to their own paid Declutter order and reports whether it did; a NULL job matches no job and raises not your open job, a NULL order matches no order and answers FALSE ("Add a Helpr"; 20261017073146)'),
   ('declutter_seller_out',          'deny',     'TRUE = the seller cannot sell now (out, under 18, business-like): refused (20261014210518)'),
+  ('shop_order_is_service',         'classify', 'S017 (20261112081213): TRUE = the order has a service or at-home line, so its notices say done instead of handed over / picked up; a NULL order matches no line (FALSE: the goods words)'),
   ('shop_cottage_would_reach',      'deny',     'S033 follow-up (20261112080238): TRUE = this amount would bring the owner''s home-food year to the limit, so the custom price or order is refused; a NULL owner or amount is TRUE (fails safe)'),
   ('shop_cottage_cap_reached',      'deny',     'Shops slice 2 (20261017061157): TRUE = the owner is at the yearly home-food limit, so new home-food listings (and orders) are refused; a NULL owner is TRUE (fails safe)'),
   ('is_helper_shadowbanned',        'deny',     'TRUE hides the helper'),

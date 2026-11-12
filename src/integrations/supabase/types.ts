@@ -18015,6 +18015,7 @@ export type Database = {
         Args: { p_order_id: string; p_start: string }
         Returns: boolean
       }
+      shop_order_is_service: { Args: { p_order_id: string }; Returns: boolean }
       shop_order_refunds_recorded_cents: {
         Args: { p_order_id: string }
         Returns: number

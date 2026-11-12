@@ -8,6 +8,9 @@
  *        and at a preorder's hold (20261112075702, proof src/test/pglite/shopsCottageLimitStrict.pglite.mjs).
  *   S033 follow-up: a custom home-food price counts its own amount (and accepted, not-yet-charged orders) when the shop
  *        sends it and when the buyer orders it (20261112080238, proof src/test/pglite/shopsCustomCottageLimit.pglite.mjs).
+ *   S011 the shop's payout notice names the amount really sent (setup fee out of the first payout) and "Verify your ID"
+ *        while the payout waits for it; S017 ready / handed over / problem / done notices say "done" for a service and
+ *        "delivered" for a delivery (20261112081213, proof src/test/pglite/shopsNoticeWords.pglite.mjs).
  *   S016 the needs-you reminder sweep reminds the shop about an order waiting on its answer (20261112075428, proof
  *        src/test/pglite/shopsAcceptReminders.pglite.mjs).
  *
@@ -20,6 +23,9 @@
  * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql |     WHEN p_type = 'new_offers' AND p_title IN ('Answer the new order', 'Order drops soon') THEN 'needs_you' |     WHEN false THEN 'needs_you'
  * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql | n.type IN ('declutter_offers', 'declutter_refunds', 'new_offers') THEN | n.type IN ('declutter_offers', 'declutter_refunds') THEN
  * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql | WHERE so.id = s.ref_id AND so.status = 'held' AND so.accept_by = s.deadline | WHERE so.id = s.ref_id AND so.accept_by = s.deadline
+ * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql |     v_setup_fee := COALESCE(public.declutter_setup_fee_from_payout_cents(o.seller_id), 0); |     v_setup_fee := 0;
+ * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql |       WHEN public.payout_waits_on_identity(o.seller_id) THEN |       WHEN false THEN
+ * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql | (l.kind = 'service' OR COALESCE(l.at_buyer, false)) | (l.kind = 'service')
  * @mutate src/components/shops/ShopMyOrdersView.tsx |   if (o.status === "accepted") return "accepted"; |   if (o.status === "accepted" \|\| o.status === "handed_over") return "accepted";
  * @mutate src/components/shops/ShopOrderCard.tsx |           {CANCEL_RULE_VISIBLE.has(order.status) && !order.handed_over_at | {true
  * @mutate src/components/shops/ShopHandoverActions.tsx |           {!porch && !byHelpr && due && !h?.shop_confirmed_at && ( |           {!porch && due && !h?.shop_confirmed_at && (
@@ -82,5 +88,19 @@ describe("Shops audit 11-12 Mediums", () => {
     const claim = body("sms_claim_due");
     expect(claim).toContain("n.type IN ('declutter_offers', 'declutter_refunds', 'new_offers') THEN");
     expect(claim).toContain("WHEN 'shop_order' THEN EXISTS ( SELECT 1 FROM public.shop_orders so WHERE so.id = s.ref_id AND so.status = 'held' AND so.accept_by = s.deadline AND so.seller_id = s.user_id)");
+  });
+  it("S011: the payout notice names what is really sent, and the ID wait", () => {
+    const b = body("shop_complete_handover");
+    expect(b).toContain("v_setup_fee := COALESCE(public.declutter_setup_fee_from_payout_cents(o.seller_id), 0);");
+    expect(b).toContain("IF v_setup_fee <= 0 OR v_send - v_setup_fee < 100");
+    expect(b).toContain("WHEN public.payout_waits_on_identity(o.seller_id) THEN format('Verify your ID in Settings to get your $%s.");
+    expect(b).not.toContain("format('$%s is on its way to your payout account ($%s card cost you owed was taken out).'");
+  });
+  it("S017: notices say done for a service and delivered for a delivery", () => {
+    expect(body("shop_order_is_service")).toContain("(l.kind = 'service' OR COALESCE(l.at_buyer, false))");
+    expect(body("shops_mark_ready")).toContain("WHEN public.shop_order_is_service(o.id) THEN format('The shop is ready for your order for %s.");
+    expect(body("shops_mark_handed_over")).toContain("CASE WHEN public.shop_order_is_service(o.id) THEN 'The shop says the work is done'");
+    expect(body("shops_report_not_received")).toContain("WHEN o.fulfillment IN ('shop_delivers', 'helpr_delivers') THEN 'Delivery problem reported'");
+    expect(body("shop_complete_handover")).toContain("WHEN public.shop_order_is_service(o.id) THEN 'The work is done and the order is final.");
   });
 });

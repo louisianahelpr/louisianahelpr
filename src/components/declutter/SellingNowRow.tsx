@@ -20,6 +20,8 @@ import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { FallbackImg } from "./FallbackImg";
 import { Button } from "@/components/ui/button";
+import "@/lib/i18n/enSellingNow";
+import { t } from "@/lib/i18n/language";
 
 /** fetchSellerItems leaves one item out (the item page's own); none here, so the nil id. */
 const NO_ITEM = "00000000-0000-0000-0000-000000000000";
@@ -44,11 +46,11 @@ export function SellingNowRow({ sellerId }: { sellerId: string }) {
     <section aria-labelledby="selling-now-title" data-testid="selling-now" className="space-y-2">
       <div className="flex items-center justify-between gap-3">
         <h2 id="selling-now-title" className="font-sans uppercase tracking-wider text-ds-11 font-semibold" style={{ color: "hsl(var(--olivewood) / 0.75)", letterSpacing: "0.14em" }}>
-          Selling now · {rest.length}
+          {t("sn.title", { n: rest.length })}
         </h2>
         {rest.length > SELLING_NOW_FIRST && (
           <Button type="button" variant="ghost" size="sm" className="px-1 text-ds-13 font-semibold" onClick={() => setAll((v) => !v)}>
-            {all ? "Show fewer" : "See all"}
+            {all ? t("sn.fewer") : t("sn.all")}
           </Button>
         )}
       </div>

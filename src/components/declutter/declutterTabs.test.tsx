@@ -13,7 +13,7 @@
  * and are stood in for here by one marker per order, so this file checks only
  * which tab each order lands on.
  *
- * @mutate src/components/declutter/DeclutterMineViews.tsx |   const only = asked && t.counts[asked] > 0 ? asked : null; |   const only = asked;
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |   const only = asked && trk.counts[asked] > 0 ? asked : null; |   const only = asked;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}> |             <SectionActionPill className="mt-3 hidden" aria-hidden onClick={() => navigate(sectionByKey("declutter").add.path)}>
  * @mutate src/components/declutter/DeclutterHomeView.tsx | {view === "buying" ? <><BoughtWhatNext /><Suspense fallback={<DeclutterTabBones />}><BuyingDash todo={todo} /></Suspense></> | {view === "buying" ? <WantedView />
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />} |       {show("offers") && null}
@@ -634,8 +634,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // Lead 2026-10-28 (Buying, calmer; shot round2/buying-paid-375-light.png): "Your cart is empty." and "You haven't
   // made any offers." sat above a purchase. Under "All" an empty list is left out; with nothing at all the tab says so
   // ONCE; a chosen chip still shows its own list's empty state.
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const showCart = t.ready && (only === null \|\| only === "needs_you") && (t.checkouts > 0 \|\| settling.settling); |   const showCart = t.ready;
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {t.ready && !orders && offers.has === false && !settling.settling && freeAsks.data?.length === 0 && !buyerTrades.isLoading | {false && !buyerTrades.isLoading
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const showCart = trk.ready && (only === null \|\| only === "needs_you") && (trk.checkouts > 0 \|\| settling.settling); |   const showCart = trk.ready;
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {trk.ready && !orders && offers.has === false && !settling.settling && freeAsks.data?.length === 0 && !buyerTrades.isLoading | {false && !buyerTrades.isLoading
   it("lead 10-28: Buying shows no empty list beside a purchase, and one empty state when there is nothing at all", async () => {
     state.cart = [{ ...LINE, line_id: "l3", item_id: "i10", item_title: "Vase", status: "paid", order_id: "ord-bought", order_status: "paid", handover: "pickup_home" }];
     // ?status=done with nothing done (a group that just emptied): every order shows, never a blank tab.
@@ -697,7 +697,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // @mutate src/components/declutter/BuyingOrders.tsx |     const bucket: OrderBucket = needsYouOrders.has(o.orderId) ? "needs_you" : | const bucket: OrderBucket = false ? "needs_you" :
   // @mutate src/components/declutter/BuyingOrders.tsx |   counts.cancelled += ended.length; |   counts.cancelled += 0;
   // @mutate src/components/declutter/BuyingOrders.tsx |   return ORDER_BUCKETS.filter((b) => counts[b.key] > 0).map( |   return ORDER_BUCKETS.map(
-  // @mutate src/components/declutter/DeclutterMineViews.tsx | scope={(id) => !refunded(id)} show={(id) => only === null \|\| t.views.get(id)?.bucket === only} /> | scope={(id) => !refunded(id)} />
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | scope={(id) => !refunded(id)} show={(id) => only === null \|\| trk.views.get(id)?.bucket === only} /> | scope={(id) => !refunded(id)} />
   // Audit DB-6 (2026-10-30): a seller's counter to answer sat under every order, below the fold. It now comes before
   // the orders; offers that wait on the seller stay below them.
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {offers.has && offers.toAnswer && <OffersSection side="buyer" only={only} />}\n |
@@ -768,7 +768,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // Q2630 (audit 1102c R5): a paid order refunded in full sat under Your orders as if still in progress. It is filed
   // under Ended now, beside the checkouts that ran out, and drawn once.
   // @mutate src/components/declutter/DeclutterMineViews.tsx | scope={(id) => !refunded(id)} show= | show=
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |           {endedOrders > 0 && <PaidOrders side="buyer" views={t.views} scope={refunded} ended />} |
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |           {endedOrders > 0 && <PaidOrders side="buyer" views={trk.views} scope={refunded} ended />} |
   // @mutate src/components/declutter/DeclutterTabParts.tsx | (l) => l.my_side === side && (!scope \|\| !l.order_id \|\| scope(l.order_id)) | (l) => l.my_side === side
   it("Q2630: a refunded order is filed under Ended, not under Your orders", async () => {
     state.cart = [

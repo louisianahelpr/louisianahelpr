@@ -6,7 +6,7 @@
  * out ran out. Nothing was charged."), which are false for a sale being refunded. Each kind now says what happened.
  *
  * @mutate src/components/declutter/BuyingOrders.tsx |   const closedAfterPaying = !!line.order_id && line.order_status === "refunded"; |   const closedAfterPaying = false;
- * @mutate src/components/declutter/DeclutterMineViews.tsx |           <SectionHeading title="Ended" /> |           <SectionHeading title="Ended before paying" />
+ * @mutate src/lib/i18n/enDeclutter.ts | "decl.mv.ended": "Ended", | "decl.mv.ended": "Ended before paying",
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -50,7 +50,8 @@ describe("Ended on Buying: every kind of ended order says what happened (A2-4)",
 
   it("the section is headed \"Ended\", not \"Ended before paying\"", () => {
     const src = blankComments(readFileSync("src/components/declutter/DeclutterMineViews.tsx", "utf8"));
-    expect(src).toContain('<SectionHeading title="Ended" />');
+    expect(src).toContain('<SectionHeading title={t("decl.mv.ended")} />');
     expect(src).not.toContain("Ended before paying");
+    expect(readFileSync("src/lib/i18n/enDeclutter.ts", "utf8")).toContain('"decl.mv.ended": "Ended",');
   });
 });

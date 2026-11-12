@@ -5,7 +5,7 @@
  * @mutate src/lib/jobSystemEvents.ts |       label: helpr ? t("ce.onWay", { name: helpr }) : t("ce.youOnWay"), |       label: helpr ? `${helpr} is on the way.` : t("ce.youOnWay"),
  * @mutate src/lib/jobSystemEvents.ts |     const label = t.tipper_id === viewerId ? tr("ce.youTipped", { amount }) | const label = t.tipper_id === viewerId ? `You tipped ${amount}`
  * @mutate src/lib/jobSystemEvents.ts | label: tr("ce.receipt"), money: true, receipt: | label: "Receipt", money: true, receipt:
- * @mutate src/components/messages/chatView/ChatReceiptCard.tsx | text-foreground">{t("ce.total")}</dt> | text-foreground">Total</dt>
+ * @mutate src/components/messages/chatView/ChatReceiptCard.tsx | text-muted-foreground">{t("ce.receipt")}</h3> | text-muted-foreground">Receipt</h3>
  * @mutate src/components/messages/chatView/SystemEventRow.tsx | aria-label={t("ce.update", { label })} | aria-label={`System update: ${label}`}
  */
 import { afterEach, describe, expect, it } from "vitest";
@@ -73,6 +73,7 @@ describe("the deal room's notes follow the member's language (F260q)", () => {
     expect(money[1].receipt!.lines.map((l) => l.label)).toEqual(["Trabajo", "Impuesto", "Propina"]);
     render(<ChatReceiptCard receipt={money[1].receipt!} />);
     expect(screen.getByRole("region", { name: "Recibo" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Recibo" })).toBeTruthy();
     render(<SystemEventRow icon={Info} label="Ana va en camino." />);
     expect(screen.getByRole("note", { name: "Actualización del sistema: Ana va en camino." })).toBeTruthy();
   });

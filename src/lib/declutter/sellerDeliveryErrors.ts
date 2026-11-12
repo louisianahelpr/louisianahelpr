@@ -14,6 +14,8 @@
  *     to read its copy through this file's `rpcErrorMessage("<rpc>", e)`.
  */
 import { DECLUTTER_ERROR_COPY as DC, declutterErrorMessage } from "./errors";
+import type { MsgKey } from "@/lib/i18n/en";
+import { getLang, t } from "@/lib/i18n/language";
 
 /** Server codes only the seller-delivery RPCs raise. */
 export const SELLER_DELIVERY_ERROR_COPY: Record<string, string> = {
@@ -46,6 +48,11 @@ const D = {
   wrong_side_not_delivered: "Only the buyer can say it wasn't delivered.",
   wrong_side_accept: "The other side accepts the time you asked for.",
   reschedule_used: "You can't ask for another new time on this order.",
+  // Anti-lying #1 (20261028235709): the photo is taken at the buyer's door.
+  location_required_buyer: "Turn on location so we can confirm you're at the buyer's address.",
+  not_at_dropoff_buyer: "Take the photo at the buyer's address.",
+  handoff_delivered: "The seller already marked it delivered, so this can't be changed now.",
+  handoff_wrong_side: "Only the buyer chooses how the delivery is handed over.",
 };
 const S = SELLER_DELIVERY_ERROR_COPY;
 
@@ -104,10 +111,9 @@ export const SELLER_DELIVERY_RPC_ERROR_COPY = {
     account_restricted: DC.account_restricted,
     before_delivery_time: S.before_delivery_time,
     item_not_found: DC.item_not_found,
-    // Anti-lying #1 (20261028235709): the photo is taken at the buyer's door.
-    location_required: "Turn on location so we can confirm you're at the buyer's address.",
+    location_required: D.location_required_buyer,
     not_a_seller_delivery: S.not_a_seller_delivery,
-    not_at_dropoff: "Take the photo at the buyer's address.",
+    not_at_dropoff: D.not_at_dropoff_buyer,
     not_authenticated: DC.not_authenticated,
     not_booked_yet: D.not_booked_yet,
     photo_not_uploaded: DC.photo_not_uploaded,
@@ -132,8 +138,8 @@ export const SELLER_DELIVERY_RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_a_seller_delivery: S.not_a_seller_delivery,
     not_authenticated: DC.not_authenticated,
-    not_reschedulable: "The seller already marked it delivered, so this can't be changed now.",
-    wrong_side: "Only the buyer chooses how the delivery is handed over.",
+    not_reschedulable: D.handoff_delivered,
+    wrong_side: D.handoff_wrong_side,
   },
   declutter_propose_delivery_time: {
     account_restricted: DC.account_restricted,
@@ -159,6 +165,20 @@ export const SELLER_DELIVERY_RPC_ERROR_COPY = {
 export type SellerDeliveryRpc = keyof typeof SELLER_DELIVERY_RPC_ERROR_COPY;
 
 /**
+ * F260q: a seller-delivery refusal in the member's language, by its CODE: sd.<code> (this file's own table), sd.d.<name>
+ * (the delivery wording D), else de.<code> (the shared Declutter table). Spanish rides es.ts only (esSellerDeliveryErrors,
+ * esDeclErrors); English readers and a Spanish reader whose Spanish has not loaded get the English given.
+ * Guard: src/test/sellerDeliveryErrorsInSpanish.test.ts.
+ */
+function deliveryInLang(code: string, english: string): string {
+  if (getLang() !== "es") return english;
+  const dName = (Object.keys(D) as (keyof typeof D)[]).find((n) => D[n] === english);
+  const key = dName ? `sd.d.${dName}` : S[code] === english ? `sd.${code}` : `de.${code}`;
+  const w = t(key as MsgKey);
+  return w === key ? english : w;
+}
+
+/**
  * Words for an error a seller-delivery RPC returned, or null when it is not a
  * code we have words for (matched as a whole token, as lifecycleErrors does).
  */
@@ -168,7 +188,7 @@ export function rpcErrorMessage(rpc: SellerDeliveryRpc, error: unknown): string 
   if (!raw) return null;
   const table: Record<string, string> = SELLER_DELIVERY_RPC_ERROR_COPY[rpc];
   for (const code of Object.keys(table)) {
-    if (new RegExp(`(^|[^a-z0-9_])${code}($|[^a-z0-9_])`).test(raw)) return table[code];
+    if (new RegExp(`(^|[^a-z0-9_])${code}($|[^a-z0-9_])`).test(raw)) return deliveryInLang(code, table[code]);
   }
   return null;
 }
@@ -178,6 +198,6 @@ export function sellerDeliveryErrorMessage(err: unknown): string {
   const e = err as { message?: unknown; userMessage?: unknown } | null;
   if (typeof e?.userMessage === "string" && e.userMessage) return e.userMessage;
   const message = typeof e?.message === "string" ? e.message.trim() : "";
-  if (message && Object.prototype.hasOwnProperty.call(SELLER_DELIVERY_ERROR_COPY, message)) return SELLER_DELIVERY_ERROR_COPY[message];
+  if (message && Object.prototype.hasOwnProperty.call(SELLER_DELIVERY_ERROR_COPY, message)) return deliveryInLang(message, SELLER_DELIVERY_ERROR_COPY[message]);
   return declutterErrorMessage(err);
 }

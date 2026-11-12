@@ -72,6 +72,7 @@ const fromItem = (i: ShopItem | null): Draft => ({
   stock: i?.stock_count != null ? String(i.stock_count) : "",
 });
 
+const STOCK_HINT = "Every order still comes to you to accept.";
 const cents = (s: string) => Math.round(Number(s.replace(/[$,\s]/g, "")) * 100);
 /**
  * A whole number typed in a box, or the server's refusal code when the box is
@@ -370,11 +371,19 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
       {!digital && (
       <div className="space-y-2">
         {hasOptions ? (
-          <p className="text-sm text-muted-foreground" data-testid="item-stock-per-option">How many are ready is set for each option below.</p>
+          <>
+            <p className="text-sm text-muted-foreground" data-testid="item-stock-per-option">How many are ready is set for each option below.</p>
+            <p className="text-xs text-muted-foreground">{STOCK_HINT}</p>
+          </>
         ) : (
-        <div className="flex items-start gap-2">
-          <Checkbox id="item-ready" checked={d.readyNow} onCheckedChange={(v) => set("readyNow", v === true)} />
-          <Label htmlFor="item-ready" className="block min-h-11 flex-1 font-normal leading-snug">I have some ready now</Label>
+        // The hint is the label's second line, so the label keeps its 44px tap height with no dead band under one
+        // line of text (11-10 shot: 44px from "I have some ready now" to the hint below it).
+        <div className="flex items-center gap-2" data-testid="item-ready-row">
+          <Checkbox id="item-ready" checked={d.readyNow} onCheckedChange={(v) => set("readyNow", v === true)} aria-describedby="item-ready-hint" />
+          <Label htmlFor="item-ready" className="flex min-h-11 flex-1 flex-col justify-center font-normal leading-snug">
+            <span>I have some ready now</span>
+            <span id="item-ready-hint" className="text-xs text-muted-foreground">{STOCK_HINT}</span>
+          </Label>
         </div>
         )}
         {d.readyNow && !hasOptions && (
@@ -383,7 +392,6 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
             <Input id="item-stock" type="number" min={0} max={9999} value={d.stock} onChange={(e) => set("stock", e.target.value)} />
           </div>
         )}
-        <p className="text-xs text-muted-foreground">Every order still comes to you to accept.</p>
       </div>
       )}
       {d.kind === "home_food" && (

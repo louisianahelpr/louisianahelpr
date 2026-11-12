@@ -22,6 +22,8 @@ import { SellerAddressField } from "./SellerAddressField";
 import { NO_CITY_IN_ADDRESS } from "./sellForm";
 import { useExactAddressPoint } from "./useExactAddressPoint";
 import { PLACE_CARD_EDGE } from "./SellPorchPlaces";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 type Draft = { name: string; address: string; area: string; windows: MeetupWindow[]; point?: { lat: number; lng: number; address: string } };
 const START_HOURS: MeetupWindow[] = [{ weekday: 6, starts: "09:00", ends: "12:00" }];
@@ -41,7 +43,7 @@ function SpotForm({ initial, onDone }: { initial: Draft; onDone: () => void }) {
       return saveMyMeetupSpot({ id: null, name: d.name.trim(), address, area: d.area.trim(), lat: point.lat, lng: point.lng, windows: d.windows });
     },
     onMutate: () => setProblem(null),
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: MY_MEETUP_SPOTS_KEY }); toast("Meet spot saved."); onDone(); },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: MY_MEETUP_SPOTS_KEY }); toast(t("lp.ms.saved")); onDone(); },
     onError: (err) => {
       const code = err instanceof Error ? err.message : "";
       if (code === "address_not_exact") return;
@@ -53,25 +55,25 @@ function SpotForm({ initial, onDone }: { initial: Draft; onDone: () => void }) {
   return (
     <div className={`space-y-3 rounded-[16px] border border-border bg-card p-4 ${PLACE_CARD_EDGE}`} data-meetup-spot-form="">
       <div className="space-y-1.5">
-        <label htmlFor={`${uid}-name`} className="block text-ds-14 font-semibold text-foreground">Name</label>
-        <Input id={`${uid}-name`} maxLength={80} value={d.name} onChange={(e) => setD((x) => ({ ...x, name: e.target.value }))} placeholder="e.g. the bank parking lot on Main St" />
+        <label htmlFor={`${uid}-name`} className="block text-ds-14 font-semibold text-foreground">{t("lp.f.name")}</label>
+        <Input id={`${uid}-name`} maxLength={80} value={d.name} onChange={(e) => setD((x) => ({ ...x, name: e.target.value }))} placeholder={t("lp.ms.namePh")} />
       </div>
       <div className="space-y-1.5">
-        <label htmlFor={`${uid}-address`} className="block text-ds-14 font-semibold text-foreground">Address</label>
-        <SellerAddressField id={`${uid}-address`} ariaLabel="Address" value={d.address} place={place}
+        <label htmlFor={`${uid}-address`} className="block text-ds-14 font-semibold text-foreground">{t("lp.f.address")}</label>
+        <SellerAddressField id={`${uid}-address`} ariaLabel={t("lp.f.address")} value={d.address} place={place}
           onChange={(address, area) => { setD((x) => ({ ...x, address, area: x.point && x.point.address.trim() === address.trim() ? x.area : area })); setProblem(null); }} />
-        <p className="text-ds-13 text-muted-foreground">Use a busy public place. Buyers see this address before they pay.</p>
+        <p className="text-ds-13 text-muted-foreground">{t("lp.ms.addrNote")}</p>
       </div>
-      <div className="space-y-1.5" role="group" aria-label="Days and times you'll meet here">
-        <p className="text-ds-14 font-semibold text-foreground">Days and times you'll meet here</p>
+      <div className="space-y-1.5" role="group" aria-label={t("lp.ms.hoursHead")}>
+        <p className="text-ds-14 font-semibold text-foreground">{t("lp.ms.hoursHead")}</p>
         <PickupTimesEditor windows={d.windows} setWindows={(f) => setD((x) => ({ ...x, windows: f(x.windows) }))} />
       </div>
       {problem && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink">{problem}</p>}
       {/* App-wide rule (owner 11-01): in a side-by-side pair the primary sits on the right. */}
       <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="outline" className="rounded-full" disabled={save.isPending} onClick={onDone}>Cancel</Button>
+        <Button type="button" variant="outline" className="rounded-full" disabled={save.isPending} onClick={onDone}>{t("lp.f.cancel")}</Button>
         <Button type="button" className="rounded-full" disabled={!ready || save.isPending} onClick={() => save.mutate()}>
-          {save.isPending ? "Saving…" : "Save spot"}
+          {save.isPending ? t("lp.f.saving") : t("lp.ms.save")}
         </Button>
       </div>
     </div>
@@ -92,7 +94,7 @@ function SpotRow({ spot }: { spot: MyMeetupSpot }) {
         <p className="text-ds-13 text-muted-foreground">{spot.address}</p>
         {spot.windows && spot.windows.length > 0 && <p className="text-ds-13 text-muted-foreground">{placeHoursLine(spot.windows, [])}</p>}
       </div>
-      <Button type="button" variant="ghost" size="iconCompact" aria-label={`Remove ${spot.name}`} disabled={remove.isPending} onClick={() => remove.mutate()}
+      <Button type="button" variant="ghost" size="iconCompact" aria-label={t("lp.pp.remove", { name: spot.name })} disabled={remove.isPending} onClick={() => remove.mutate()}
         className="text-muted-foreground">
         <Trash2 className="h-4 w-4" aria-hidden="true" />
       </Button>
@@ -112,24 +114,24 @@ export function SellMeetupSpots() {
   return (
     <section className="space-y-3 rounded-[20px] border border-border bg-card p-4" aria-labelledby="meet-spots-title" data-testid="sell-meetup-spots">
       <div className="space-y-1">
-        <h2 id="meet-spots-title" className="text-base font-semibold text-foreground">Meet spots</h2>
+        <h2 id="meet-spots-title" className="text-base font-semibold text-foreground">{t("lp.ms.title")}</h2>
         <p className="text-ds-13 text-muted-foreground">
           {/* Q2570 (audit 1102a): "Meet up" was a third name for the way the tile beside it calls Safe meeting spot. */}
-          Public places where you'll meet a buyer, with the days and times. Buyers choosing a safe meeting spot pick one and a time.
+          {t("lp.ms.body")}
         </p>
       </div>
-      {q.isError && <ErrorState variant="inline" title="We couldn't load your meet spots." body={declutterErrorMessage(q.error)} onRetry={() => void q.refetch()} />}
+      {q.isError && <ErrorState variant="inline" title={t("lp.ms.loadFail")} body={declutterErrorMessage(q.error)} onRetry={() => void q.refetch()} />}
       {spots.length > 0 && <ul className="space-y-2">{spots.map((s) => <SpotRow key={s.id} spot={s} />)}</ul>}
       {draft ? (
         <SpotForm initial={draft} onDone={() => setDraft(null)} />
       ) : spots.length < MAX_MY_MEETUP_SPOTS && (
         <div className="space-y-3">
           <Button type="button" variant="outline" className="rounded-full" onClick={() => setDraft({ name: "", address: "", area: "", windows: START_HOURS })}>
-            Add a meet spot
+            {t("lp.ms.add")}
           </Button>
           {suggestions.length > 0 && (
             <div className="space-y-1.5" data-meetup-suggestions="">
-              <p className="text-ds-13 font-semibold text-foreground">Or start from a police safe exchange spot</p>
+              <p className="text-ds-13 font-semibold text-foreground">{t("lp.ms.police")}</p>
               <div className="flex flex-wrap gap-2">
                 {suggestions.map((s) => (
                   <Button key={s.id} type="button" variant="outline" size="sm" onClick={() => setDraft(fromSuggestion(s))}

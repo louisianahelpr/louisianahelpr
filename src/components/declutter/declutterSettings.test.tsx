@@ -12,10 +12,10 @@
  * @mutate src/components/declutter/SellerDeliverySettings.tsx |   const [enabled, setEnabled] = useState(embedded ? true : current.enabled); |   const [enabled, setEnabled] = useState(current.enabled);
  * Audit 11-10 F344: with no place saved, the card says which area and times new listings use now.
  * @mutate src/components/declutter/SellPorchPlaces.tsx |   const noPlaces = card && Array.isArray(mine.data) && mine.data.length === 0; |   const noPlaces = false;
- * @mutate src/components/declutter/SellPorchPlaces.tsx | `New listings now use ${lastArea}, from your last listing, with pickup ${placeHoursLine(usual, null)}.` | `New listings now use your last listing's area.`
+ * @mutate src/components/declutter/SellPorchPlaces.tsx | t("lp.pp.nowLast", { area: lastArea, hours: placeHoursLine(usual, null) }) | t("lp.pp.nowEach", { hours: placeHoursLine(usual, null) })
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <SellPorchPlaces card />\n |
- * @mutate src/components/declutter/SellPorchPlaces.tsx |     return card ? inCard(<><span className="block text-sm font-semibold">Pickup places</span><span className="block text-xs text-muted-foreground">Loading…</span></>) : null; |     return null;
- * @mutate src/components/declutter/SellPorchPlaces.tsx | (card\n    ? <section className="rounded-2xl border border-border bg-card px-4 py-3" aria-label="Pickup places" data-porch-places-card="">{body}</section>\n    : body) | body
+ * @mutate src/components/declutter/SellPorchPlaces.tsx |     return card ? inCard(<><span className="block text-sm font-semibold">{t("lp.pp.title")}</span><span className="block text-xs text-muted-foreground">{t("lp.f.loading")}</span></>) : null; |     return null;
+ * @mutate src/components/declutter/SellPorchPlaces.tsx | (card\n    ? <section className="rounded-2xl border border-border bg-card px-4 py-3" aria-label={t("lp.pp.title")} data-porch-places-card="">{body}</section>\n    : body) | body
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             to="/profile?tab=notifications&show=declutter"\n |             to="/profile?tab=notifications"\n
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | setWays={(w) => change({ handovers: w })} onSettingsPage /> | setWays={(w) => change({ handovers: w })} />
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |   if (saved.isError) return <ErrorState variant="inline" title="We couldn't load your listing defaults." body={declutterErrorMessage(saved.error)} onRetry={() => void saved.refetch()} />;\n |

@@ -5,8 +5,12 @@
  * DeclutterPickupTimes re-exports them for the editor's other readers.
  */
 import type { PickupWindow } from "@/lib/declutter/api";
+import { getLang } from "@/lib/i18n/language";
 
-const SHORT_DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const SHORT_DAY_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+// F260q: day words in the viewer's language, as pickupSlots (the clock stays "9:00 AM", as US Spanish writes it).
+const SHORT_DAY_ES = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const shortDayNames = () => (getLang() === "es" ? SHORT_DAY_ES : SHORT_DAY_EN);
 
 /** "09:00" -> "9:00 AM", "17:30" -> "5:30 PM". */
 export function timeLabel(hhmm: string): string {
@@ -27,7 +31,7 @@ export function sameHoursEveryDay(windows: PickupWindow[]): boolean {
 export function shortDays(days: readonly number[] | null | undefined): string {
   // A row missing its days (an older server, a mocked read) shows nothing rather than blanking the page (review 2026-10-31).
   if (!Array.isArray(days)) return "";
-  return [...days].sort((a, b) => a - b).map((d) => SHORT_DAY[d]).filter(Boolean).join(", ");
+  return [...days].sort((a, b) => a - b).map((d) => shortDayNames()[d]).filter(Boolean).join(", ");
 }
 
 export const byDayThenStart = (a: PickupWindow, b: PickupWindow) => a.weekday - b.weekday || a.starts.localeCompare(b.starts);
@@ -42,9 +46,9 @@ export function placeHoursLine(windows: PickupWindow[] | null | undefined, weekd
   const range = (w: PickupWindow) => `${timeLabel(w.starts)}–${timeLabel(w.ends)}`;
   if (sameHoursEveryDay(ws)) {
     const days = [...new Set(ws.map((w) => w.weekday))];
-    return `${days.length === 7 ? "Every day" : shortDays(days)} ${range(ws[0])}`;
+    return `${days.length === 7 ? (getLang() === "es" ? "Todos los días" : "Every day") : shortDays(days)} ${range(ws[0])}`;
   }
   const byDay = new Map<number, PickupWindow[]>();
   for (const w of [...ws].sort(byDayThenStart)) byDay.set(w.weekday, [...(byDay.get(w.weekday) ?? []), w]);
-  return [...byDay.entries()].map(([d, list]) => `${SHORT_DAY[d]} ${list.map(range).join(", ")}`).join("; ");
+  return [...byDay.entries()].map(([d, list]) => `${shortDayNames()[d]} ${list.map(range).join(", ")}`).join("; ");
 }

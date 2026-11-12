@@ -18,6 +18,8 @@ import { fetchMyPorchDays, saveMyPorchDays, PORCH_DAYS_NOT_DEPLOYED } from "@/li
 import { fetchMyPorchPlaces, MY_PORCH_PLACES_KEY } from "@/lib/declutter/porchPlaces";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DayChip, shortDays } from "./DeclutterPickupTimes";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 const KEY = ["declutter", "my-porch-days"] as const;
 
@@ -43,8 +45,8 @@ export function SellPorchDays({ pickupDays }: { pickupDays?: number[] }) {
   });
   if (mine.data === PORCH_DAYS_NOT_DEPLOYED || mine.isLoading) return null;
   if (Array.isArray(places.data) && places.data.length > 0) return null;
-  if (mine.isError) return <ErrorState variant="inline" title="We couldn't load your porch days." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
-  if (pickupDays === undefined && saved.isError) return <ErrorState variant="inline" title="We couldn't load your pickup days." body={declutterErrorMessage(saved.error)} onRetry={() => void saved.refetch()} />;
+  if (mine.isError) return <ErrorState variant="inline" title={t("lp.pd.loadFail")} body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
+  if (pickupDays === undefined && saved.isError) return <ErrorState variant="inline" title={t("lp.pd.pickupFail")} body={declutterErrorMessage(saved.error)} onRetry={() => void saved.refetch()} />;
   if (pickupDays === undefined && !saved.isSuccess) return null;
   const picked = mine.data ?? [];
   const pickup = [...new Set(pickupDays ?? (saved.data ?? []).map((w) => w.weekday))].sort((a, b) => a - b);
@@ -59,22 +61,22 @@ export function SellPorchDays({ pickupDays }: { pickupDays?: number[] }) {
   };
   return (
     <div className="space-y-2" data-porch-days="">
-      {pickup.length > 0 && <p className="text-ds-13 text-muted-foreground" data-porch-pickup-days="">Your pickup days: {shortDays(pickup)}.</p>}
+      {pickup.length > 0 && <p className="text-ds-13 text-muted-foreground" data-porch-pickup-days="">{t("lp.pd.yourDays", { days: shortDays(pickup) })}</p>}
       <div className="flex items-start gap-3 text-ds-14">
         <Checkbox id="sell-porch-only" className="mt-0.5" checked={only} disabled={save.isPending} onCheckedChange={(v) => choose(v === true)} />
-        <label htmlFor="sell-porch-only" className="min-h-11 flex-1 font-semibold text-foreground">Porch only on some of these days?</label>
+        <label htmlFor="sell-porch-only" className="min-h-11 flex-1 font-semibold text-foreground">{t("lp.pd.onlyQ")}</label>
       </div>
       {only && (
-        <div className="space-y-2 pl-8" role="group" aria-label="Porch days">
+        <div className="space-y-2 pl-8" role="group" aria-label={t("lp.pd.aria")}>
           <div className="flex flex-wrap gap-2">
             {offered.map((d) => <DayChip key={d} day={d} on={picked.includes(d)} disabled={save.isPending} onToggle={() => toggleDay(d)} />)}
           </div>
           <p className="text-ds-13 text-muted-foreground">
-            {picked.length ? `Porch pickup only on ${shortDays(picked)}. This applies to all your listings.` : "Tap the days you put things out."}
+            {picked.length ? t("lp.pd.onlyOn", { days: shortDays(picked) }) : t("lp.pd.tap")}
           </p>
         </div>
       )}
-      {!only && <p className="text-ds-13 text-muted-foreground">Buyers can pick any of your pickup days for porch pickup.</p>}
+      {!only && <p className="text-ds-13 text-muted-foreground">{t("lp.pd.any")}</p>}
       {save.isError && <p role="alert" className="text-ds-13 text-foreground">{declutterErrorMessage(save.error)}</p>}
     </div>
   );

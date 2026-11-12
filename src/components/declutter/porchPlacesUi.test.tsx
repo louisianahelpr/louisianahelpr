@@ -20,7 +20,7 @@
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | places={porchPlaces.places} free refused | places={porchPlaces.places} refused
  * @mutate src/components/declutter/SellHandoverChoices.tsx |       <SellPorchPlaces free={free} helprOnly={!free && !ways.includes("porch")} />\n |
  * @mutate src/components/declutter/SellFormParts.tsx | {hasPlaces ? (form.free ? PICKUP_TIMES_FREE_WITH_PLACES() : PICKUP_TIMES_WITH_PLACES()) : t("sf.wy.times")} | {t("sf.wy.times")}
- * @mutate src/components/declutter/SellPorchPlaces.tsx |       {places.length > 0 && <p className="text-ds-13 text-muted-foreground" data-place-days-rule="">{PLACE_DAYS_RULE}</p>}\n |
+ * @mutate src/components/declutter/SellPorchPlaces.tsx |       {places.length > 0 && <p className="text-ds-13 text-muted-foreground" data-place-days-rule="">{t("lp.pp.daysRule")}</p>}\n |
  * @mutate src/components/declutter/SellPorchPlaces.tsx | export const PLACE_CARD_EDGE = "dark:!border-border"; | export const PLACE_CARD_EDGE = "";
  * @mutate src/components/declutter/SellPorchPlaces.tsx |             <Pencil className="h-[18px] w-[18px]" aria-hidden="true" /> |             Edit
  * @mutate src/components/declutter/SellPorchPlaces.tsx | variant="ghost" size="iconCompact" className={PLACE_ICON_BUTTON} onClick={onEdit} | variant="ghost" size="sm" className={PLACE_ICON_BUTTON} onClick={onEdit}
@@ -120,7 +120,7 @@ describe("the seller's pickup places", () => {
   // F410b (audit 11-10): Save place was grey with no reason beside it. The first thing missing is said, and the
   // button points at it; once everything is in, the line goes.
   // @mutate src/components/declutter/SellPorchPlaces.tsx | {!ready && notReady && <p id= | {false && <p id=
-  // @mutate src/components/declutter/SellPorchPlaces.tsx | const notReady = d.label.trim().length === 0 ? "Add a name to save this place." | const notReady = d.label.trim().length === 0 ? null
+  // @mutate src/components/declutter/SellPorchPlaces.tsx | const notReady = d.label.trim().length === 0 ? t("lp.pp.needName") | const notReady = d.label.trim().length === 0 ? null
   it("a grey Save place says what is missing (F410b)", async () => {
     answers({ declutter_my_porch_places: [] });
     wrap(<SellPorchPlaces />);

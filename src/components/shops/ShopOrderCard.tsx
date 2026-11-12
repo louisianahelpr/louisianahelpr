@@ -14,7 +14,7 @@ import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { MapPin } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
-import { buyerPaidCents, cancelPolicyText, formatCents, orderStatusLabel, payOrderRest, setupFeeChargedCents, SHOP_SERVICE_FEE_INCLUDED, type ShopOrder } from "@/lib/shops/orders";
+import { buyerPaidCents, formatCents, orderCancelLine, orderStatusLabel, payOrderRest, setupFeeChargedCents, SHOP_SERVICE_FEE_INCLUDED, type ShopOrder } from "@/lib/shops/orders";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { fetchOrderPickupAddress, fetchOrderServiceAddress } from "@/lib/shops/pickupAddress";
 import { fetchOrderDeliveryAddress, fetchOrderHelprTask, formatDeliveryAddress, reportHelprNoShow } from "@/lib/shops/delivery";
@@ -251,8 +251,9 @@ export function ShopOrderCard({
           {` ${SHOP_SERVICE_FEE_INCLUDED}`}
           {/* S013 (Shops audit 11-12): the cancel rule only while the buyer can still cancel (waiting or accepted, not
               yet handed over); on a finished or closed order it read as if they still could. */}
-          {CANCEL_RULE_VISIBLE.has(order.status) && !order.handed_over_at
-            ? ` ${order.preorder_item_id ? "You can cancel until the shop marks it ready" : cancelPolicyText(order.cancel_policy, order.ready_tap_cancel).label}.`
+          {/* S2-044: an accepted order whose window already closed says so (orderCancelLine). */}
+          {CANCEL_RULE_VISIBLE.has(order.status) && !order.handed_over_at && orderCancelLine(order)
+            ? ` ${orderCancelLine(order)}`
             : ""}
         </p>
       ) : (

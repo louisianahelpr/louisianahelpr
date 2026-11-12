@@ -31,6 +31,8 @@ vi.mock("@/components/DatePickerField", () => ({
     <input id={id} aria-label="Ready date" value={value} onChange={(e) => onChange(e.target.value)} />
   ),
 }));
+const setup = vi.hoisted(() => ({ cents: 0, known: true }));
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => setup.cents, useFirstPayoutFeeKnown: () => setup.known }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));
 
@@ -57,6 +59,30 @@ beforeEach(() => {
   db.invoke.mockResolvedValue({ data: { url: "https://checkout.stripe.com/c/pay/cs_test_1" }, error: null });
   opened.urls = [];
   toast.error.mockClear();
+  setup.cents = 0; setup.known = true;
+});
+
+describe("S2-015: the custom-order total includes a first-time setup fee", () => {
+  it("shows the setup fee line and counts it in You pay before tax", async () => {
+    setup.cents = 200;
+    show();
+    expect((await screen.findByTestId("shop-custom-order-setup-fee")).textContent).toBe("$2.00");
+    expect(screen.getByTestId("shop-custom-order-total").textContent).toBe("$44.70");
+  });
+  it("no setup line when none is owed; an unknown fee is named in words", async () => {
+    setup.known = false;
+    show();
+    expect((await screen.findByTestId("shop-custom-order-total")).textContent).toBe("$42.70");
+    expect(screen.queryByTestId("shop-custom-order-setup-fee")).toBeNull();
+    expect(screen.getByText(/one-time setup fee are added on the payment page/)).toBeTruthy();
+  });
+  it("the download Buy box counts the setup fee too", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const src = readFileSync(resolve(__dirname, "ShopDigitalBuy.tsx"), "utf8");
+    expect(src).toMatch(/You pay \$\{formatCents\(picked\.price_cents \+ buyerFeeCents\(picked\.price_cents\) \+ setupFeeCents\)\}/);
+    expect(src).toMatch(/useFirstPayoutFeeKnown\(\)/);
+  });
 });
 
 describe("ordering a shop's price", () => {

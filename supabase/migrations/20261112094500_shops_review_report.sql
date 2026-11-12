@@ -357,7 +357,7 @@ BEGIN
   END IF;
   SELECT * INTO r FROM public.shop_reviews WHERE id = p_review_id FOR UPDATE;
   IF NOT FOUND OR r.removed_at IS NOT NULL THEN
-    RAISE EXCEPTION 'review_not_found' USING ERRCODE = 'P0002';
+    RAISE EXCEPTION 'review_not_found' USING ERRCODE = 'PT404';
   END IF;
   IF r.reviewer_id = v_uid OR r.reviewee_id = v_uid THEN
     RAISE EXCEPTION 'own_review' USING ERRCODE = '42501';

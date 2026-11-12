@@ -26,6 +26,8 @@ import { ShopOrderReview } from "./ShopReviews";
 import ShopDigitalOrder from "./ShopDigitalOrder";
 
 /** The order statuses in which the buyer may read the shop's pickup address (shops_order_pickup_address). */
+/** S013: the statuses where the buyer can still cancel, so the card shows the cancel rule. */
+const CANCEL_RULE_VISIBLE = new Set(["held", "accepted"]);
 const PICKUP_VISIBLE = new Set(["accepted"]);
 
 function PickupAddress({ orderId }: { orderId: string }) {
@@ -227,7 +229,12 @@ export function ShopOrderCard({
           Items {formatCents(order.items_cents)} + service fee {formatCents(order.premium_cents)}
           {delivered ? ` + delivery ${deliveryCents > 0 ? formatCents(deliveryCents) : "(free)"}` : ""}
           {byHelpr ? ` + Helpr delivery ${formatCents(deliveryCents)}` : ""}
-          {order.tax_cents > 0 ? ` + tax ${formatCents(order.tax_cents)}` : ""}. {order.preorder_item_id ? "You can cancel until the shop marks it ready" : cancelPolicyText(order.cancel_policy, order.ready_tap_cancel).label}.
+          {order.tax_cents > 0 ? ` + tax ${formatCents(order.tax_cents)}` : ""}.
+          {/* S013 (Shops audit 11-12): the cancel rule only while the buyer can still cancel (waiting or accepted, not
+              yet handed over); on a finished or closed order it read as if they still could. */}
+          {CANCEL_RULE_VISIBLE.has(order.status) && !order.handed_over_at
+            ? ` ${order.preorder_item_id ? "You can cancel until the shop marks it ready" : cancelPolicyText(order.cancel_policy, order.ready_tap_cancel).label}.`
+            : ""}
         </p>
       ) : (
         <p className="text-xs text-muted-foreground">

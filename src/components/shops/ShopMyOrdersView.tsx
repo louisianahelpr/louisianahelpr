@@ -32,7 +32,8 @@ const BUYER_GROUP_LABEL: Record<BuyerGroup, string> = { waiting: "Waiting", acce
 const BUYER_GROUP_TITLE: Record<BuyerGroup, string> = { waiting: "Waiting for the shop", accepted: "Accepted", done: "Done" };
 function buyerGroup(o: Pick<ShopOrder, "status">): BuyerGroup {
   if (o.status === "held") return "waiting";
-  if (o.status === "accepted" || o.status === "handed_over") return "accepted";
+  // S012 (Shops audit 11-12): a handed-over order is final (picked up, closed_at set), so it is Done, not Accepted.
+  if (o.status === "accepted") return "accepted";
   return "done";
 }
 

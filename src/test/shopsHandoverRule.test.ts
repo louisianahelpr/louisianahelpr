@@ -20,7 +20,7 @@
  * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |               problem_at = COALESCE(problem_at, now()), | problem_at = problem_at,
  * @mutate supabase/migrations/20261105190034_shops_handover_notes.sql |tap "I didn''t get it" by %s; after that the shop is paid.', | %s',
  * @mutate supabase/migrations/20261105190034_shops_handover_notes.sql |                  to_char((greatest(now(), (o.ready_date::timestamp AT TIME ZONE 'America/Chicago')) + interval '48 hours') | to_char((now() + interval '48 hours')
- * @mutate src/components/shops/ShopHandoverActions.tsx |           {!porch && due && !h?.shop_confirmed_at && ( |           {false && (
+ * @mutate src/components/shops/ShopHandoverActions.tsx |           {!porch && !byHelpr && due && !h?.shop_confirmed_at && ( |           {false && (
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -78,7 +78,7 @@ describe("Shops H5: the handover follows Declutter's 10-30 rule", () => {
     expect(tap).toContain("public.is_caller_banned()");
     expect(tap).toContain("public.shop_local_today() < o.ready_date");
     const ui = ws(blankComments(readFileSync(resolve(root, "src/components/shops/ShopHandoverActions.tsx"), "utf8")));
-    expect(ui).toContain("{!porch && due && !h?.shop_confirmed_at && (");
+    expect(ui).toContain("{!porch && !byHelpr && due && !h?.shop_confirmed_at && (");
     expect(ui).toContain("markHandedOver(order.id)");
   });
 });

@@ -148,6 +148,9 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
   const porch = order.handover_mode === "porch";
   const today = louisianaToday();
   const due = today >= order.ready_date;
+  // S015 (Shops audit 11-12): a Helpr-delivered order finishes on the Helpr's drop-off, so the shop has no
+  // "Handed over" tap (the server refuses it: helpr_delivers_handover), unless it fell back to pickup.
+  const byHelpr = order.fulfillment === "helpr_delivers" && !order.helpr_unfilled_at;
   // Preorders (money review 11-08): the ready tap counts only from 14 days before ready-by (the server refuses earlier).
   const readyFrom = order.preorder_item_id && !h?.ready_at ? preorderReadyFrom(order.ready_date) : null;
   const tooEarly = readyFrom !== null && today < readyFrom;
@@ -215,7 +218,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
           {!porch && !h?.ready_at && (
             <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => ready.mutate(null)}>Mark ready</Button>
           )}
-          {!porch && due && !h?.shop_confirmed_at && (
+          {!porch && !byHelpr && due && !h?.shop_confirmed_at && (
             <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setHandingOver(true)}>
               {service ? "Mark complete" : "Handed over"}
             </Button>

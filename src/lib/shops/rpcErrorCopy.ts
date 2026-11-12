@@ -561,6 +561,7 @@ export const SHOPS_RPC_ERROR_COPY = {
   // H5 (20261105182903): the shop says it handed the order over; the buyer has 48 hours.
   shops_mark_handed_over: {
     account_restricted: SC.account_restricted,
+    helpr_delivers_handover: SC.helpr_delivers_handover,
     not_authenticated: SC.not_authenticated,
     not_ready_date_yet: SC.not_ready_date_yet,
     order_not_charged_yet: SC.order_not_charged_yet,

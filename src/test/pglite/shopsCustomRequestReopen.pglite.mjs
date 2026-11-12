@@ -34,13 +34,31 @@ await db.exec(`
 CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
 CREATE TABLE public.shop_orders (id uuid PRIMARY KEY, status text NOT NULL);
 CREATE TABLE public.shop_order_lines (order_id uuid, custom_request_id uuid);
-CREATE TABLE public.shop_custom_requests (id uuid PRIMARY KEY, status text NOT NULL, quote_cents integer, quoted_at timestamptz,
+CREATE TABLE public.shop_custom_requests (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), status text NOT NULL DEFAULT 'requested', quote_cents integer, quoted_at timestamptz,
   expires_at timestamptz, closed_at timestamptz, order_id uuid, updated_at timestamptz,
+  shop_id uuid, buyer_id uuid, description text, wanted_date date, payment_plan text, created_at timestamptz DEFAULT now(),
   CONSTRAINT shop_custom_requests_quote_shape CHECK (
     (status = 'requested' AND quote_cents IS NULL AND quoted_at IS NULL AND expires_at IS NULL)
     OR (status IN ('quoted', 'expired', 'accepted') AND quote_cents IS NOT NULL AND quoted_at IS NOT NULL
         AND expires_at = quoted_at + interval '7 days')
     OR status IN ('declined', 'withdrawn', 'lapsed')));
+`);
+// S2-021: what shops_send_custom_request reads, stubbed (it is restated in this migration, words only).
+await db.exec(`
+CREATE SCHEMA auth;
+CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT NULLIF(current_setting('t.uid', true), '')::uuid $$;
+CREATE FUNCTION public.require_feature(k text) RETURNS void LANGUAGE sql AS $$ SELECT $$;
+CREATE FUNCTION public.is_caller_banned() RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
+CREATE FUNCTION public.shop_active_strike_count(u uuid) RETURNS integer LANGUAGE sql AS $$ SELECT 0 $$;
+CREATE FUNCTION public.member_under_18(u uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
+CREATE FUNCTION public.shop_visible_to(s uuid, u uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
+CREATE FUNCTION public.are_users_blocked(a uuid, b uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
+CREATE FUNCTION public.shop_owner_sell_block_reason(u uuid) RETURNS text LANGUAGE sql AS $$ SELECT NULL::text $$;
+CREATE FUNCTION public.contact_leak_reason(t text) RETURNS text LANGUAGE sql AS $$ SELECT NULL::text $$;
+CREATE TABLE public.shops (id uuid PRIMARY KEY, owner_id uuid, name text DEFAULT 'TEST shop', paused boolean DEFAULT false, custom_orders text DEFAULT 'full_hold', offers_selling boolean DEFAULT true);
+CREATE TABLE public.notices (user_id uuid, type text, title text, message text, link text);
+CREATE FUNCTION public.declutter_notify(u uuid, t text, ti text, m text, l text, a uuid DEFAULT NULL) RETURNS void LANGUAGE sql AS
+  $$ INSERT INTO public.notices VALUES (u, t, ti, m, l) $$;
 `);
 await db.exec(fnFrom("20261106205852_shops_custom_order_accept.sql", "shop_orders_custom_request_accepted"));
 await db.exec(`CREATE TRIGGER trg_shop_orders_custom_request_accepted AFTER UPDATE OF status ON public.shop_orders
@@ -53,13 +71,14 @@ if (!skip) {
     check(!err, `migration applies (run ${k})`, err ?? "");
   }
 }
+await db.query(`INSERT INTO public.shops (id, owner_id) VALUES ($1, $2)`, [U(400), U(401)]);
 // One request per case: quoted 1 day ago (good) or 8 days ago (past its 7 days), ordered (awaiting_hold -> held).
 const make = async (n, daysAgo) => {
   const o = U(100 + n), r = U(200 + n);
   await db.query(`INSERT INTO public.shop_orders VALUES ($1, 'awaiting_hold')`, [o]);
   await db.query(`INSERT INTO public.shop_order_lines VALUES ($1, $2)`, [o, r]);
-  await db.query(`INSERT INTO public.shop_custom_requests (id, status, quote_cents, quoted_at, expires_at, order_id)
-    VALUES ($1, 'quoted', 2500, now() - make_interval(days => $2), now() - make_interval(days => $2) + interval '7 days', $3)`, [r, daysAgo, o]);
+  await db.query(`INSERT INTO public.shop_custom_requests (id, status, quote_cents, quoted_at, expires_at, order_id, shop_id, buyer_id)
+    VALUES ($1, 'quoted', 2500, now() - make_interval(days => $2), now() - make_interval(days => $2) + interval '7 days', $3, $4, $5)`, [r, daysAgo, o, U(400), U(402)]);
   await db.query(`UPDATE public.shop_orders SET status = 'held' WHERE id = $1`, [o]);
   return { o, r };
 };
@@ -82,6 +101,8 @@ e = await close(d.o, "declined");
 x = await req(d.r);
 check(!e && x.status === "expired" && x.order_id === null && x.closed_at !== null && new Date(x.closed_at).getTime() === new Date(x.expires_at).getTime(),
   "past its 7 days: it reads the price expired (closed at the expiry)", e ?? JSON.stringify(x));
+const dn = (await db.query(`SELECT * FROM public.notices WHERE title = 'Custom order price ended'`)).rows;
+check(dn.length === 1 && dn[0].link === "/shops/orders" && dn[0].message.startsWith("The price from TEST shop"), "and the buyer is told the price ended (once)", JSON.stringify(dn));
 const f = await make(5, 1);
 await close(f.o, "accepted");
 e = await close(f.o, "cancelled");
@@ -96,6 +117,20 @@ const h = await make(7, 1);
 await db.query(`UPDATE public.shop_custom_requests SET status = 'withdrawn' WHERE id = $1`, [h.r]);
 await close(h.o, "declined");
 check((await req(h.r)).status === "withdrawn", "a request closed another way stays closed");
+// ---- S2-021: the shop's notice names the day to answer by.
+const today = (await db.query(`SELECT (now() AT TIME ZONE 'America/Chicago')::date AS d`)).rows[0].d;
+const fmt = async (sql) => (await db.query(`SELECT to_char(${sql}, 'FMMonth FMDD') AS t`)).rows[0].t;
+await db.exec(`SET t.uid = '${U(403)}';`);
+let sr = null;
+try { await db.query(`SELECT public.shops_send_custom_request($1, 'A cake', NULL)`, [U(400)]); } catch (err) { sr = err.message; }
+let nt = (await db.query(`SELECT message FROM public.notices ORDER BY ctid DESC LIMIT 1`)).rows[0]?.message;
+const in7 = await fmt(`(now() AT TIME ZONE 'America/Chicago')::date + 7`);
+check(!sr && nt === `A buyer asked for a custom order. Send a price or decline it by ${in7}.`, "no wanted date: answer within 7 days, named", sr ?? nt);
+try { await db.query(`SELECT public.shops_send_custom_request($1, 'A pie', (now() AT TIME ZONE 'America/Chicago')::date + 3)`, [U(400)]); } catch (err) { sr = err.message; }
+nt = (await db.query(`SELECT message FROM public.notices ORDER BY ctid DESC LIMIT 1`)).rows[0]?.message;
+const in3 = await fmt(`(now() AT TIME ZONE 'America/Chicago')::date + 3`);
+check(!sr && nt === `A buyer asked for a custom order by ${in3}. Send a price or decline it by ${in3}.`, "a wanted date sooner than 7 days is the answer-by day", sr ?? nt);
+void today;
 await db.exec(`SET ROLE authenticated;`);
 let r = null;
 try { await db.query(`SELECT public.shop_orders_custom_request_reopen()`); } catch (err) { r = err.message; }

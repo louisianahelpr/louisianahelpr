@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-12T08:17:28.446Z",
-  "guards": 3987,
-  "registered": 3986,
+  "generated": "2026-11-12T10:22:40.494Z",
+  "guards": 3993,
+  "registered": 3992,
   "unregistered": [
     "src/lib/shops/preorders.test.ts"
   ],
@@ -21,6 +21,7 @@
     "src/test/jobShareLine.test.ts",
     "src/test/needsYouCountsEachOrderOnce.test.ts",
     "src/test/sellerProblemIsBuyersNeedsYou.test.ts",
+    "src/test/shopsAuditHighs.test.ts",
     "src/test/unavailableProfileDoesNotSayTheyLeft.test.ts"
   ],
   "classD_selfReferential": [

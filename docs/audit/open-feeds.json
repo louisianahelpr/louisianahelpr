@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-12T20:51Z",
+  "measured_at": "2026-11-12T21:31Z",
   "issues": {
     "readable": true,
     "open": [
@@ -85,7 +85,7 @@
         "number": 4222,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43225844091",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43307131074",
         "runTruncated": false
       },
       {
@@ -139,7 +139,7 @@
         "number": 4453,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43303830000",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43309767743",
         "runTruncated": false
       }
     ]
@@ -252,6 +252,14 @@
         "issue": 3454
       },
       {
+        "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: schedule-heartbeat",
+        "issue": 4451
+      },
+      {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -265,7 +273,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: main: sensitive review record",
-        "issue": null
+        "issue": 4453
       },
       {
         "fingerprint": "0bebf0385b3e217facd52bb36536de1f",
@@ -330,6 +338,14 @@
         "status": "open",
         "title": "error: error screen shown: we couldn't load jobs.",
         "issue": null
+      },
+      {
+        "fingerprint": "8a2e802edbe7bd772cfe6fec1ea6488b",
+        "source_kind": "nightly_red",
+        "source": "schedule-stalled",
+        "status": "open",
+        "title": "🔴 # scheduled workflow(s) have stopped running",
+        "issue": 4450
       },
       {
         "fingerprint": "acf4ea2ff2836a53bb404727997b217a",
@@ -452,19 +468,19 @@
         "issue": null
       },
       {
-        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: declutter-money returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "aeedd249577285330a97e04195cee7d8",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: refund-request-sweep returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: declutter-money returned 502",
         "issue": null
       },
       {
@@ -587,6 +603,7 @@
     "ledger 41f88aeb227f": "Q1777",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4840f1c5d1e7": "Q2779",
+    "ledger 4aa239aefeb6": "Q1816",
     "ledger 4fa3a43d27c0": "Q2798",
     "ledger 5a28db44e912": "Q2410",
     "ledger 5be6011a46f6": "Q1816",
@@ -600,6 +617,7 @@
     "ledger 8018e82cb167": "Q1816",
     "ledger 88b4addefbcd": "Q2503",
     "ledger 88ecf6e765df": "Q1816",
+    "ledger 8a2e802edbe7": "Q2800",
     "ledger 8b1b5ac42f94": "Q2782",
     "ledger 8f6eb3360000": "Q2507",
     "ledger 9078a39b3304": "Q1615",

@@ -74,3 +74,23 @@ describe("S2-029: option lists show their names", () => {
     expect(screen.getByRole("combobox", { name: "Scent for Soy candle" }).closest("label")?.textContent).toContain("Scent");
   });
 });
+
+describe("S2-030: a cancel rule that keeps the card processing cost never says Free", async () => {
+  const { CANCEL_POLICIES, READY_TAP_CANCELS, cancelPolicyText } = await import("@/lib/shops/orders");
+  it("every buyer label whose detail keeps a cost reads as a refund, not free", () => {
+    const all = CANCEL_POLICIES.flatMap((p) => READY_TAP_CANCELS.map((t) => cancelPolicyText(p, t)));
+    for (const { label, detail } of all) {
+      if (/isn't refunded/.test(detail)) expect(label, label).not.toMatch(/free/i);
+      expect(detail, detail).not.toMatch(/free cancel/i);
+    }
+    expect(cancelPolicyText("until_accept", null).label).toBe("Free to cancel until the shop accepts");
+  });
+});
+
+describe("S2-032: the item card title clamps on a span, not on the button", () => {
+  it("no <button> carries line-clamp in ShopProfile", () => {
+    const src = readFileSync(resolve(__dirname, "ShopProfile.tsx"), "utf8");
+    expect(src).not.toMatch(/<button[^>]*className="[^"]*line-clamp/);
+    expect(src).toMatch(/<span className="line-clamp-2" data-item-title="">\{item\.title\}<\/span>/);
+  });
+});

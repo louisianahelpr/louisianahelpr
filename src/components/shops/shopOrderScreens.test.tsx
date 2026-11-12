@@ -334,12 +334,12 @@ describe("the order sheet", () => {
   it("words the shop's ready-tap choice before the buyer pays (owner 2026-10-19)", async () => {
     orders.fetchOrderTerms.mockResolvedValue({ ...TERMS, cancel_policy: "until_handover", ready_tap_cancel: "ends_at_tap" });
     const { unmount } = renderAt("/shops/s1", "/shops/:id", <ShopPage />);
-    expect(await screen.findByText("Free to cancel until the shop marks it ready")).toBeTruthy();
-    expect(screen.getByText(/If the shop marks your order ready sooner, free cancel ends then\./)).toBeTruthy();
+    expect(await screen.findByText("Cancel for a refund until the shop marks it ready")).toBeTruthy();
+    expect(screen.getByText(/If the shop marks your order ready sooner, the refund ends then\./)).toBeTruthy();
     unmount();
     orders.fetchOrderTerms.mockResolvedValue({ ...TERMS, cancel_policy: "until_handover", ready_tap_cancel: "never_shortens" });
     renderAt("/shops/s1", "/shops/:id", <ShopPage />);
-    expect(await screen.findByText("Free to cancel until your ready date")).toBeTruthy();
+    expect(await screen.findByText("Cancel for a refund until your ready date")).toBeTruthy();
     expect(screen.getByText(/until your ready date begins, even if the shop marks your order ready sooner\./)).toBeTruthy();
     expect(screen.queryByText(/never before the day before/)).toBeNull();
   });

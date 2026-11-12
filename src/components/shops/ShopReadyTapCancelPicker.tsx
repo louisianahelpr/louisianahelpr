@@ -1,7 +1,7 @@
 /**
  * What an early "ready" tap does to the buyer's free cancel (owner 2026-10-19:
  * "LET THE SHOPS DECIDE THIS."; Q2155). Shown under the cancel rule while the
- * shop uses "Free to cancel until your order is ready", the one preset a ready
+ * shop uses "Cancel for a refund until your order is ready", the one preset a ready
  * tap affects. Its own file and query so it loads on its own.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 494,
-      "template": 107,
-      "dynamic": 682,
+      "literal": 490,
+      "template": 105,
+      "dynamic": 688,
       "jsx": 0
     }
   },
@@ -7061,7 +7061,7 @@
     },
     {
       "file": "src/components/declutter/SellPorchPlaces.tsx",
-      "line": 165,
+      "line": 167,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7404,8 +7404,25 @@
       "line": 312,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Set a price between $1 and $1,000."
+        "form": "dynamic",
+        "text": "tr(\"sf.t.priceRange\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
@@ -7414,8 +7431,25 @@
       "line": 339,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Saved."
+        "form": "dynamic",
+        "text": "tr(\"sf.t.saved\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
@@ -7425,7 +7459,7 @@
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "String(posted.userMessage ?? \"Already posted.\")"
+        "text": "String(posted.userMessage ?? tr(\"sf.t.alreadyPosted\"))"
       },
       "renders": true
     },
@@ -7454,8 +7488,25 @@
       "line": 452,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "A listing can have up to 12 photos."
+        "form": "dynamic",
+        "text": "tr(\"sf.t.maxPhotos\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
@@ -7475,45 +7526,7 @@
       "kind": "toast.error",
       "title": {
         "form": "template",
-        "text": "${declutterErrorMessage(err)} ${where}",
-        "holes": {
-          "where": [
-            {
-              "form": "dynamic",
-              "text": "setting === \"keepUp\" ? 'You can turn on \"Keep it up\" from Manage listing.' : setting === \"offers\" ? \"You can turn offers off from Manage listing.\" : setting === \"trades\" ? \"You can turn trades on from Manage listing.\" : \"You can choose when it becomes free from Manage listing.\"",
-              "branches": [
-                {
-                  "form": "literal",
-                  "text": "You can turn on \"Keep it up\" from Manage listing."
-                },
-                {
-                  "form": "dynamic",
-                  "text": "setting === \"offers\" ? \"You can turn offers off from Manage listing.\" : setting === \"trades\" ? \"You can turn trades on from Manage listing.\" : \"You can choose when it becomes free from Manage listing.\"",
-                  "branches": [
-                    {
-                      "form": "literal",
-                      "text": "You can turn offers off from Manage listing."
-                    },
-                    {
-                      "form": "dynamic",
-                      "text": "setting === \"trades\" ? \"You can turn trades on from Manage listing.\" : \"You can choose when it becomes free from Manage listing.\"",
-                      "branches": [
-                        {
-                          "form": "literal",
-                          "text": "You can turn trades on from Manage listing."
-                        },
-                        {
-                          "form": "literal",
-                          "text": "You can choose when it becomes free from Manage listing."
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
+        "text": "${declutterErrorMessage(err)} ${where}"
       },
       "renders": true
     },
@@ -7522,8 +7535,25 @@
       "line": 508,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Tick the box about this item before you list it."
+        "form": "dynamic",
+        "text": "tr(\"sf.tickBox\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
@@ -7532,8 +7562,25 @@
       "line": 562,
       "kind": "toast",
       "title": {
-        "form": "template",
-        "text": "Listed and sent at ${formatPrice(out.cents)}. They have 48 hours to accept."
+        "form": "dynamic",
+        "text": "tr(\"sf.t.sentAt\", { price: formatPrice(out.cents) })",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
@@ -7543,15 +7590,49 @@
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "out.kind === \"checking\" ? \"Listed. We're checking it first; answer their Wanted from Wanted near you once it's live.\" : \"Listed for free. A free listing can't answer a Wanted; they can find it in Browse.\"",
+        "text": "out.kind === \"checking\" ? tr(\"sf.t.checking\") : tr(\"sf.t.freeNoWanted\")",
         "branches": [
           {
-            "form": "literal",
-            "text": "Listed. We're checking it first; answer their Wanted from Wanted near you once it's live."
+            "form": "dynamic",
+            "text": "tr(\"sf.t.checking\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
           },
           {
-            "form": "literal",
-            "text": "Listed for free. A free listing can't answer a Wanted; they can find it in Browse."
+            "form": "dynamic",
+            "text": "tr(\"sf.t.freeNoWanted\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -7562,8 +7643,25 @@
       "line": 571,
       "kind": "toast.error",
       "title": {
-        "form": "template",
-        "text": "Listed, but the answer wasn't sent: ${declutterErrorMessage(err)}"
+        "form": "dynamic",
+        "text": "tr(\"sf.t.answerFailed\", { why: declutterErrorMessage(err) })",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },

@@ -21,7 +21,7 @@ const CASES: Array<[file: string, label: RegExp]> = [
   ["src/components/declutter/DeclutterQuestions.tsx", /dq\.makeOffer/],
   ["src/components/declutter/DeclutterTabParts.tsx", /data-done-sales-toggle/],
   // 11-05 night: the price sheet's "Also set lowest to $X" (was a hand-made 44px-tall text button on its own line).
-  ["src/components/declutter/DeclutterManageListing.tsx", /Also set lowest to/],
+  ["src/components/declutter/DeclutterManageListing.tsx", /lp\.m\.alsoSet/],
 ];
 
 describe("Declutter's in-sentence actions are the shared InlineTextButton (Q2709)", () => {

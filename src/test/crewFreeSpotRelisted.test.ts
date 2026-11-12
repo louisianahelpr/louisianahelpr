@@ -65,6 +65,8 @@ const MAP_AREA_PIN = "20261110210539_map_pins_ungeocoded_jobs.sql";
 const DATE_WINDOW = "20261104080753_map_and_ranked_read_date_window.sql";
 // Q2408 part 4 restates the apply gate and the landing teaser (window's-last-day cutoff), crew rule untouched.
 const DATE_WINDOW_APPLY = "20261104084501_apply_and_notices_read_date_window.sql";
+// F268a (owner 11-12): open_jobs_browse and get_ranked_open_jobs restated to hand a guest the masked description.
+const GUEST_DESCRIPTION = "20261112202620_guests_read_masked_job_description.sql";
 // A2-B6 restates the browse view verbatim + scope_video_url (the poster's scope video).
 const SCOPE_VIDEO = "20261029194021_browse_carries_scope_video.sql";
 const RELISTED = "(j.status = 'open' OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0))";
@@ -91,7 +93,7 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   });
 
   it.each(Object.entries(TAKES_APPLICANTS))("%s reads crew_spots_open", (fn, rule) => {
-    expect([THIS, RESTATED, SEED_SWITCH, LISTING_START, UNDER_18, FEE_STAMP, MEMBERSHIPS, FEE_PERCENT, CARD_HOLD, DATE_WINDOW, DATE_WINDOW_APPLY, PRIVATE_COLUMNS, MAP_AREA_PIN], `${fn} is not the Q1409 definition or its Q1411/Q552/Q1401/Q1586/Q1839/Q1848/Q2400/Q2399/Q2408/Q2742/map-area-pin restatement`).toContain(EFFECTIVE.get(fn)?.file);
+    expect([THIS, RESTATED, SEED_SWITCH, LISTING_START, UNDER_18, FEE_STAMP, MEMBERSHIPS, FEE_PERCENT, CARD_HOLD, DATE_WINDOW, DATE_WINDOW_APPLY, PRIVATE_COLUMNS, MAP_AREA_PIN, GUEST_DESCRIPTION], `${fn} is not the Q1409 definition or its Q1411/Q552/Q1401/Q1586/Q1839/Q1848/Q2400/Q2399/Q2408/Q2742/map-area-pin/F268a restatement`).toContain(EFFECTIVE.get(fn)?.file);
     expect(body(fn).replace(/\s+/g, " ")).toContain(rule.replace(/\s+/g, " "));
   });
 
@@ -122,7 +124,7 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   it("open_jobs_browse lists the re-listed spot, counts it INLINE (the same rule), and stays a definer view", () => {
     const newestView = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()
       .filter((f) => /CREATE OR REPLACE VIEW public\.open_jobs_browse/.test(blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8")))).pop();
-    expect([PRIVATE, RESTATED, SEED_SWITCH, "20261007062739_open_jobs_browse_seed_switch_plus_materials_note.sql", BLOCK_FEE, LISTING_START, "20261015034054_open_jobs_browse_fee_stamp.sql", FEE_PERCENT, CARD_HOLD, SCOPE_VIDEO, "20261031000945_guests_get_no_poster_id_or_street.sql", "20261104074500_browse_reads_date_window.sql"]).toContain(newestView);
+    expect([PRIVATE, RESTATED, SEED_SWITCH, "20261007062739_open_jobs_browse_seed_switch_plus_materials_note.sql", BLOCK_FEE, LISTING_START, "20261015034054_open_jobs_browse_fee_stamp.sql", FEE_PERCENT, CARD_HOLD, SCOPE_VIDEO, "20261031000945_guests_get_no_poster_id_or_street.sql", "20261104074500_browse_reads_date_window.sql", GUEST_DESCRIPTION]).toContain(newestView);
     const sql = readFileSync(resolve(MIGRATIONS, newestView as string), "utf8");
     const at = sql.indexOf("CREATE OR REPLACE VIEW public.open_jobs_browse");
     // The view statement only: up to its `$v$;` (a DO-wrapped restatement) or its own `;` (a plain one, which may

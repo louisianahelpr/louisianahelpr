@@ -17,7 +17,7 @@
 //
 // (Q2400, 2026-10-25: the stamp's PERCENT, helper_fee_percent, now follows it as the last column;
 // src/test/browseCarriesFeePercent.test.ts owns that half.)
-// @mutate supabase/migrations/20261104080753_map_and_ranked_read_date_window.sql | pricing_mode text, distance_band text, helper_fee_flat_cents integer, helper_fee_percent numeric, | pricing_mode text, distance_band text, helper_fee_percent numeric,
+// @mutate supabase/migrations/20261112202620_guests_read_masked_job_description.sql | pricing_mode text, distance_band text, helper_fee_flat_cents integer, helper_fee_percent numeric, | pricing_mode text, distance_band text, helper_fee_percent numeric,
 // @mutate supabase/migrations/20261110210539_map_pins_ungeocoded_jobs.sql |     j.helper_fee_flat_cents,\n |     NULL::integer AS helper_fee_flat_cents,\n
 // @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql | GRANT EXECUTE ON FUNCTION public.get_open_jobs_for_map() TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.get_open_jobs_for_map() TO authenticated, service_role;
 // @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql | COMMENT ON FUNCTION public.get_ranked_open_jobs(integer, integer, boolean, numeric, numeric, numeric) IS | SELECT 1 AS
@@ -94,7 +94,8 @@ describe("browse RPCs carry the jobs fee-model stamp (Q1839)", () => {
       // Q2399 (card hold) restates both after Q2400, same header, adding only the 'held' listing.
       // Q2408 restates both (DROP + CREATE, same header) to add date_window_end and the window's-last-day filter.
       // Owner bug 2026-11-10 restates the map (DROP + CREATE, same header) to pin a job that never geocoded at its ZIP/parish centroid.
-      expect(["20261025235701_browse_carries_helper_fee_percent.sql", "20261027185146_card_hold_at_post.sql", "20261104080753_map_and_ranked_read_date_window.sql", "20261110210539_map_pins_ungeocoded_jobs.sql"]).toContain(def.file);
+      // F268a (owner 11-12) restates the ranked feed (CREATE OR REPLACE, same header) to hand a no-session caller the guest copy of the description.
+      expect(["20261025235701_browse_carries_helper_fee_percent.sql", "20261027185146_card_hold_at_post.sql", "20261104080753_map_and_ranked_read_date_window.sql", "20261110210539_map_pins_ungeocoded_jobs.sql", "20261112202620_guests_read_masked_job_description.sql"]).toContain(def.file);
       const head = def.stmt.slice(0, def.stmt.indexOf("$function$"));
       expect(head).toMatch(/LANGUAGE sql\s+STABLE SECURITY DEFINER\s+SET search_path TO 'public'\s+SET "TimeZone" TO 'America\/Chicago'/);
       const fn = `public.${name}(${args})`.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

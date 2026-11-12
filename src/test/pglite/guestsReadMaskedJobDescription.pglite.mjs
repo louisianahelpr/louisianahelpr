@@ -3,7 +3,8 @@
  * PGlite proof for 20261112202620_guests_read_masked_job_description.sql (F268a, owner 11-12: a guest's shared job page
  * shows the description; still no poster, address or coordinates). A guest's copy of the description comes out of
  * open_jobs_browse with phone numbers and numbered street addresses masked; a member reads the text as before; the
- * same rows and columns for every caller; still a definer view; grants unchanged.
+ * same rows and columns for every caller; still a definer view; grants unchanged. The same holds for the anon-callable
+ * ranked feed RPC get_ranked_open_jobs (part 3), whose "before" is 20261104080753.
  *
  *   node src/test/pglite/guestsReadMaskedJobDescription.pglite.mjs                    # AFTER: applied 3x
  *   NEW_MIGRATION=skip node src/test/pglite/guestsReadMaskedJobDescription.pglite.mjs # RED: the state before it
@@ -81,6 +82,37 @@ $function$;
 await db.exec(cutView("20261104074500_browse_reads_date_window.sql"));
 await db.exec(`REVOKE ALL ON public.open_jobs_browse FROM PUBLIC, anon, authenticated; GRANT SELECT ON public.open_jobs_browse TO anon, authenticated;`);
 
+// get_ranked_open_jobs (part 3): its newest definition, grants and COMMENT (20261104080753) as the "before".
+// job_offer_cutoff is its real definition (20261005184940); the other helpers are stubbed permissive.
+function cutFn(file, start) {
+  const sql = read(MIGDIR + file);
+  const st = sql.lastIndexOf(start);
+  const tag = sql.slice(st).match(/AS\s+(\$[A-Za-z_]*\$)/)[1];
+  const bodyStart = sql.indexOf(tag, st) + tag.length;
+  return sql.slice(st, sql.indexOf(tag, bodyStart) + tag.length) + ";";
+}
+await db.exec(`
+CREATE TABLE public.profiles (user_id uuid, parish text, latitude numeric, longitude numeric, subscription_tier text, subscription_expires_at timestamptz);
+CREATE FUNCTION public.get_user_credential_tier(u uuid) RETURNS integer LANGUAGE sql AS $$ SELECT 0 $$;
+CREATE FUNCTION public.crew_spots_open(j uuid) RETURNS integer LANGUAGE sql AS $$ SELECT 1 $$;
+CREATE FUNCTION public.miles_between(a numeric, b numeric, c numeric, d numeric) RETURNS numeric LANGUAGE sql AS $$ SELECT NULL::numeric $$;
+CREATE FUNCTION public.feature_enabled_for_user(k text, u uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
+`);
+await db.exec(cutFn("20261005184940_offer_deadline_before_start.sql", "CREATE OR REPLACE FUNCTION public.job_offer_cutoff("));
+{
+  const RANKED = "20261104080753_map_and_ranked_read_date_window.sql";
+  await db.exec(cutFn(RANKED, "CREATE FUNCTION public.get_ranked_open_jobs("));
+  const g = read(MIGDIR + RANKED);
+  const sig = "get_ranked_open_jobs(integer, integer, boolean, numeric, numeric, numeric)";
+  const r = g.indexOf(`REVOKE ALL ON FUNCTION public.${sig}`);
+  const gr = g.indexOf(`GRANT EXECUTE ON FUNCTION public.${sig}`);
+  await db.exec(g.slice(r, g.indexOf(";", r) + 1) + g.slice(gr, g.indexOf(";", gr) + 1));
+  const at = g.indexOf("COMMENT ON FUNCTION public.get_ranked_open_jobs(");
+  await db.exec(g.slice(at, g.indexOf("never a number.';", at) + "never a number.';".length));
+}
+const rankedShape = async () => (await db.query(`SELECT p.oid::regprocedure::text sig, p.proacl::text acl, p.prosecdef, p.provolatile, p.proconfig::text cfg,
+  pg_get_function_result(p.oid) res, obj_description(p.oid, 'pg_proc') cmt FROM pg_proc p WHERE p.proname = 'get_ranked_open_jobs'`)).rows;
+
 const P = "71c56dfb-b326-4010-b960-b18dd3966e7f";
 const J1 = "10000000-0000-4000-8000-000000000001";
 const TEXT = "Mow the front yard. Call me at (337) 555-0142 or text 337.555.0199. Gate code at 9816 Lake Peigneur Rd, by the shed.";
@@ -97,7 +129,10 @@ async function as(role, sql, sub = "") {
   try { return (await db.query(sql)).rows; } finally { await db.exec("RESET ROLE; SELECT set_config('request.jwt.claim.sub', '', false);"); }
 }
 const ROWS = "SELECT id, title, location, budget, customer_id FROM public.open_jobs_browse ORDER BY id";
-const before = { cols: await cols(), anon: JSON.stringify(await as("anon", ROWS)), auth: JSON.stringify(await as("authenticated", ROWS, P)) };
+// rank_score has a recency term (it moves with the clock between the two reads), so it is not compared.
+const RANKED_ROWS = "SELECT id, title, location, budget, parish_match, distance_band FROM public.get_ranked_open_jobs() ORDER BY id";
+const before = { cols: await cols(), anon: JSON.stringify(await as("anon", ROWS)), auth: JSON.stringify(await as("authenticated", ROWS, P)),
+  ranked: JSON.stringify(await rankedShape()), rankedAnon: JSON.stringify(await as("anon", RANKED_ROWS)), rankedAuth: JSON.stringify(await as("authenticated", RANKED_ROWS, P)) };
 
 let applied = 0;
 if (!MODE) for (let i = 0; i < 3; i++) { await db.exec(NEW); applied++; }
@@ -117,6 +152,14 @@ const memberText = (await as("authenticated", `SELECT description FROM public.op
 check("a member reads the description unmasked", memberText === TEXT, memberText);
 const guestFilter = await as("anon", `SELECT id FROM public.open_jobs_browse WHERE description ILIKE '%555%'`);
 check("a guest cannot find the hidden number by filtering on it", guestFilter.length === 0, `${guestFilter.length} rows`);
+
+// Part 3: the ranked feed RPC (anon EXECUTE) hands a guest the same masked copy; a member the text; nothing else moves.
+const rankedGuest = (await as("anon", `SELECT description FROM public.get_ranked_open_jobs() WHERE id = '${J1}'`))[0]?.description ?? "";
+check("get_ranked_open_jobs: a guest's description has no phone number or street", !/555|Peigneur/.test(rankedGuest) && rankedGuest.includes("[phone hidden]"), rankedGuest);
+const rankedMember = (await as("authenticated", `SELECT description FROM public.get_ranked_open_jobs() WHERE id = '${J1}'`, "20000000-0000-4000-8000-000000000009"))[0]?.description;
+check("get_ranked_open_jobs: a member reads the description unmasked", rankedMember === TEXT, rankedMember);
+check("get_ranked_open_jobs: same signature, result, grants, SECURITY DEFINER, config and COMMENT", JSON.stringify(await rankedShape()) === before.ranked, JSON.stringify(await rankedShape()).slice(0, 120));
+check("get_ranked_open_jobs: same rows for a guest and for a member", JSON.stringify(await as("anon", RANKED_ROWS)) === before.rankedAnon && JSON.stringify(await as("authenticated", RANKED_ROWS, P)) === before.rankedAuth && JSON.parse(before.rankedAnon).length >= 2, before.rankedAnon.slice(0, 80));
 
 const mask = async (t) => (MODE ? t : (await db.query(`SELECT public.mask_guest_contact($1) m`, [t])).rows[0].m);
 for (const [input, want] of [

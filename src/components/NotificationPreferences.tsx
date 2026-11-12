@@ -17,10 +17,11 @@ import { promotionsEmailOn } from "@/lib/promotionsEmail";
 import { SwitchSlot } from "./notificationPreferences/SwitchSlot";
 import { QuoteRemindersRow } from "./notificationPreferences/QuoteRemindersRow";
 import { MessagePreviewRow } from "./notificationPreferences/MessagePreviewRow";
-import { ALL_PRESENT, columnsPresentIn, declutterColumnsPresent, shopsColumnsPresent, stripMissingColumns, type ColumnPresence } from "./notificationPreferences/deployLagColumns";
+import { ALL_PRESENT, columnsPresentIn, declutterColumnsPresent, shopsColumnsPresent, adminActivityColumnsPresent, stripMissingColumns, type ColumnPresence } from "./notificationPreferences/deployLagColumns";
 import { CategoryRow } from "./notificationPreferences/CategoryRow";
 import { DeclutterNotificationGroup } from "./notificationPreferences/DeclutterNotificationGroup";
 import { ShopsNotificationGroup } from "./notificationPreferences/ShopsNotificationGroup";
+import { AdminActivityNotificationGroup } from "./notificationPreferences/AdminActivityNotificationGroup";
 import { JobRemindersGroup } from "./notificationPreferences/JobRemindersGroup";
 import { NotificationPrefsLoadFailed } from "./notificationPreferences/NotificationPrefsLoadFailed";
 import { PushDeviceHint } from "./notificationPreferences/PushDeviceHint";
@@ -511,6 +512,8 @@ const NotificationPreferences = () => {
       {declutterColumnsPresent(columns) && <DeclutterNotificationGroup renderRow={renderRow} />}
       {/* The Shops group (shops audit 11-08 #6): once its columns are deployed, like Declutter's. */}
       {shopsColumnsPresent(columns) && <ShopsNotificationGroup renderRow={renderRow} />}
+      {/* Admins only (owner 11-12): the bell's member-activity notices; push and email off by default. */}
+      {adminActivityColumnsPresent(columns) && <AdminActivityNotificationGroup renderRow={renderRow} />}
 
       {/* Send a test (notificationPreferences/TestSendCard.tsx + useSendTestPush.ts): push, email and the in-app bell. */}
       <TestSendCard loaded={loaded} sendingTest={sendingTest} sendTestPush={sendTestPush} pushTokenCount={pushTokenCount} />

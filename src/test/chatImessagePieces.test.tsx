@@ -3,7 +3,7 @@
 // thread with helper-e2e, read-only, shots ~/.lh-shots/b1-q2044: the photo message, the reader's avatar as the
 // "seen" receipt). This is the item's own check: each piece, mounted or wired, fails if it is dropped.
 //
-// @mutate src/components/QuickReplies.tsx |   { label: "On my way", icon: Car, message: "🚗 On my way!", mode: "send" }, |   { label: "Omw", icon: Car, message: "🚗 On my way!", mode: "send" },
+// @mutate src/lib/i18n/enMessages.ts | "msg.qr.onMyWay": "On my way", | "msg.qr.onMyWay": "Omw",
 // @mutate src/components/ChatPresence.tsx |     typing…\n  </div> |     \n  </div>
 // @mutate src/components/messages/chatView/ChatTimeline.tsx |       {isOtherTyping && <TypingIndicator />} |       {false && <TypingIndicator />}
 // @mutate src/components/messages/chatView/ChatComposer.tsx |         onTyping={broadcastTyping} |         onTyping={() => {}}

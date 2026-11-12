@@ -91,13 +91,10 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
           <ShopItemsGrid items={shop.items} reportable={signedIn} />
         </ShopCard>
       )}
-      {shop.offers_quotes && (
-        <ShopCard id="shop-quotes" title="Quotes">
-          <p className="text-sm text-muted-foreground">
-            {signedIn ? "This shop gives quotes. Asking for one here opens soon." : "This shop gives quotes. Sign in to ask for one when quotes open here."}
-          </p>
-        </ShopCard>
-      )}
+      {/* S030 follow-up (Shops audit 11-12): the "Quotes" card promised "Asking for one here opens soon." (a dead end;
+          lead 11-06: quotes ARE the custom-order request sheet). This page can't tell whether the shop takes custom
+          orders (shops_public_shop doesn't return custom_orders), so, like S030's "otherwise drop the line", the card
+          is gone; the hero's "Sign up to order or message" is the way in. */}
       <ShopHoursCard hours={shop.hours} />
       {shop.parishes_served.length > 0 && (
         <ShopCard id="shop-parishes" title="Parishes served">

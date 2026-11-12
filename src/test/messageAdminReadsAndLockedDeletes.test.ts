@@ -16,8 +16,8 @@
  * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |   IF public.message_delete_locked(OLD.id, OLD.job_id) THEN |   IF false THEN
  * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |     AND NOT public.message_attachment_locked(name) |     AND true
  * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |             OR EXISTS (SELECT 1 FROM public.disputes d WHERE d.job_id = p_job_id) |             OR false
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql |      AND NEW.reporter_id IS DISTINCT FROM m.receiver_id THEN |      AND false THEN
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql |     NULLIF(m.content, ''), |     NULL,
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql |      AND NEW.reporter_id IS DISTINCT FROM m.receiver_id THEN |      AND false THEN
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql |     NULLIF(m.content, ''), |     NULL,
  * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |   BEFORE UPDATE OF content ON public.messages |   AFTER UPDATE OF read ON public.messages
  * @mutate supabase/migrations/20261103203202_helpr_delivery_talk_refuses_objectionable.sql |   IF public.objectionable_reason(NEW.body) IS NOT NULL THEN |   IF false THEN
  * @mutate src/pages/messages/Messages.tsx | toast.error(error && /message_locked/.test(error.message) ? | toast.error(false ?

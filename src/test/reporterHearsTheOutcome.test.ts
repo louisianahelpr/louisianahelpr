@@ -5,9 +5,9 @@
  * party or typed words in the notice, drop the test-account skip, or merge the two outcomes; and the Report sheet
  * says the reporter will hear back.
  *
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql |        OR public.is_test_subject(NEW.reporter_id)\n | \n
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql | THEN 'We looked into it and took action.' | THEN 'We looked into it and didn''t find a rule broken.'
- * @mutate supabase/migrations/20261106191100_homes_talk_report_and_export.sql | 'Thanks for your report about ' \|\| v_noun | 'Thanks for your report about ' \|\| coalesce(NEW.description, '')
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql |        OR public.is_test_subject(NEW.reporter_id)\n | \n
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql | THEN 'We looked into it and took action.' | THEN 'We looked into it and didn''t find a rule broken.'
+ * @mutate supabase/migrations/20261112094500_shops_review_report.sql | 'Thanks for your report about ' \|\| v_noun | 'Thanks for your report about ' \|\| coalesce(NEW.description, '')
  * @mutate supabase/migrations/20261102015348_reporter_hears_the_outcome.sql |   AFTER UPDATE OF status ON public.reports |   AFTER INSERT ON public.reports
  * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql | SET status = CASE WHEN reporter_id IS NULL THEN 'resolved' ELSE 'dismissed' END | SET status = 'resolved'
  * @mutate src/components/ReportDialog.tsx | We&apos;ll send you a notice when we&apos;ve looked into it | There&apos;s no automatic status update

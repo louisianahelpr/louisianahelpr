@@ -25,7 +25,7 @@
  * @mutate supabase/migrations/20261108200421_shops_services_in_person.sql |     AND NOT (OLD.handover_mode = 'porch' AND NEW.handover_mode = 'in_person' AND OLD.status = 'awaiting_hold' |     AND NOT (OLD.handover_mode = 'porch' AND NEW.handover_mode = 'in_person'
  * @mutate supabase/migrations/20261111000957_shops_notice_kinds_reconcile.sql |     WHEN p_link LIKE '/shops%' THEN | WHEN p_link LIKE '/shopz%' THEN
  * @mutate src/components/notificationPreferences/constants.tsx |   { key: "shops_orders", emailKey: "email_shops_orders", label: "Orders", |   { key: "new_offers", emailKey: "email_new_offers", label: "Orders",
- * @mutate supabase/migrations/20261108201655_shops_order_emails.sql |         (NEW.title IN ('New order', 'Payment sent') AND NEW.link LIKE '/shops/dashboard%') |         (NEW.title IN ('Payment sent') AND NEW.link LIKE '/shops/dashboard%')
+ * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |         (NEW.title IN ('New order', 'Payment sent') AND NEW.link LIKE '/shops/dashboard%') |         (NEW.title IN ('Payment sent') AND NEW.link LIKE '/shops/dashboard%')
  * @mutate supabase/migrations/20261108201655_shops_order_emails.sql |   WHEN (NEW.status = 'succeeded' AND OLD.status IS DISTINCT FROM 'succeeded') |   WHEN (NEW.status = 'failed')
  */
 import { readFileSync } from "node:fs";

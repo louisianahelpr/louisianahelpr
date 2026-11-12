@@ -187,11 +187,12 @@ export function ShopItemsGrid({ items, reportable = false, withOptions, preorder
                 {onOpen ? (
                   <button
                     type="button"
-                    className="line-clamp-2 w-full text-left text-sm font-semibold leading-snug [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="block w-full text-left text-sm font-semibold leading-snug [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-haspopup="dialog"
                     onClick={() => onOpen(item.id)}
                   >
-                    {item.title}
+                    {/* S2-032: the clamp sits on a plain span; on the <button> itself a third line leaked through. */}
+                    <span className="line-clamp-2" data-item-title="">{item.title}</span>
                   </button>
                 ) : (
                   <p className="line-clamp-2 text-sm font-semibold leading-snug [overflow-wrap:anywhere]">{item.title}</p>

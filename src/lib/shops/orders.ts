@@ -18,11 +18,13 @@ import { openShopsIdentityCheckFor } from "./errors";
 
 export type CancelPolicy = "until_24h_before_ready" | "until_accept" | "until_handover";
 
-/** The three presets a shop picks from (O2): `label`/`detail` are the words a buyer reads before paying; `shop` is
+/** The three presets a shop picks from (O2). S2-030 (Shops audit 2): a rule whose cancel keeps the small card
+ * processing cost is worded "Cancel for a refund until ...", never "Free to cancel"; only until_accept is free
+ * (the card is only held).  `label`/`detail` are the words a buyer reads before paying; `shop` is
  * the shop's own settings words (S022, Shops audit 11-12: the picker spoke to the buyer, "your order"). */
 export const CANCEL_POLICY_TEXT: Record<CancelPolicy, { label: string; detail: string; shop: { label: string; hint: string } }> = {
   until_24h_before_ready: {
-    label: "Free to cancel until 24 hours before the ready date",
+    label: "Cancel for a refund until 24 hours before the ready date",
     detail: "After the shop accepts, you can cancel for a refund of the price until 24 hours before the ready date. A small card processing cost isn't refunded.",
     shop: {
       label: "Free cancel until 24 hours before the ready date",
@@ -41,7 +43,7 @@ export const CANCEL_POLICY_TEXT: Record<CancelPolicy, { label: string; detail: s
   // marks the order ready, never at pickup. What an early ready tap does is the SHOP's choice (owner 2026-10-19:
   // "LET THE SHOPS DECIDE THIS."): READY_TAP_CANCEL_TEXT, and cancelPolicyText for the buyer's exact words.
   until_handover: {
-    label: "Free to cancel until your order is ready",
+    label: "Cancel for a refund until your order is ready",
     detail: "After the shop accepts, you can cancel for a refund of the price until your ready date begins, or until the shop marks your order ready if its rule says so. A small card processing cost isn't refunded.",
     shop: {
       label: "Free cancel until the order is ready",
@@ -59,12 +61,12 @@ export const READY_TAP_CANCEL_TEXT: Record<ReadyTapCancel, { label: string; hint
   ends_at_tap: {
     label: "Marking it ready ends free cancel",
     hint: "Buyers can cancel for free until you mark the order ready, or until the ready date begins if that comes first.",
-    buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready sooner, free cancel ends then. A small card processing cost isn't refunded.",
+    buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready sooner, the refund ends then. A small card processing cost isn't refunded.",
   },
   from_day_before: {
     label: "Marking it ready counts from the day before (default)",
     hint: "If you mark an order ready early, buyers can still cancel for free until the day before the ready date begins.",
-    buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready, free cancel ends then, but never before the day before your ready date. A small card processing cost isn't refunded.",
+    buyer: "After the shop accepts, you can cancel for a refund of the price until your ready date begins. If the shop marks your order ready, the refund ends then, but never before the day before your ready date. A small card processing cost isn't refunded.",
   },
   never_shortens: {
     label: "Marking it ready never ends free cancel early",
@@ -96,8 +98,8 @@ export function cancelPolicyText(policy: CancelPolicy, readyTap: ReadyTapCancel 
   if (policy !== "until_handover") return CANCEL_POLICY_TEXT[policy];
   const tap = readyTap ?? "from_day_before";
   return {
-    label: tap === "never_shortens" ? "Free to cancel until your ready date"
-      : tap === "ends_at_tap" ? "Free to cancel until the shop marks it ready" : CANCEL_POLICY_TEXT.until_handover.label,
+    label: tap === "never_shortens" ? "Cancel for a refund until your ready date"
+      : tap === "ends_at_tap" ? "Cancel for a refund until the shop marks it ready" : CANCEL_POLICY_TEXT.until_handover.label,
     detail: READY_TAP_CANCEL_TEXT[tap].buyer,
   };
 }

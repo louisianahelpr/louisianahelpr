@@ -1,5 +1,5 @@
 /**
- * S024 (Shops audit 11-12, shops-...a001-MOCK-H-1440-light.png): a shop's items grid was 2 columns at every width,
+ * S024 (Shops audit 2026-11-12, shops-...a001-MOCK-H-1440-light.png): a shop's items grid was 2 columns at every width,
  * so at 1440 each card was ~760px wide with a huge photo. It now uses Declutter's breakpoints: 2 columns on a phone,
  * 3 from sm, 4 from lg; the loading skeleton has the same columns, so the cards land where it stood.
  * (jsdom has no layout, so this reads the grid's column classes; Tailwind compiles each one.)

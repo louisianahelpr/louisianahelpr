@@ -21,6 +21,7 @@
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | text-foreground">{t("lp.ld.tradesTitle")}</span> | text-foreground">Open to trades</span>
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |         {t("lp.ld.intro")}\n |         Your next listing starts with these.\n
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | text-foreground">{t("lp.ld.waysHead")}</p> | text-foreground">How buyers can get it</p>
+ * @mutate src/components/declutter/DeclutterConfirmSheet.tsx | disabled={pending}>{cancelLabel ?? t("core.notNow")}</SheetSecondaryAction> | disabled={pending}>{cancelLabel ?? "Not now"}</SheetSecondaryAction>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -127,5 +128,17 @@ describe("listing settings rows, Sell a bunch and Listing defaults follow the me
     expect(screen.getByText(esListingParts["lp.ld.waysHead"])).toBeTruthy();
     expect(SELLER_DEFAULTS).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/From your settings|Price drops|Make it free|each evening|Keep it up|List 2 items|Takes about|usual pickup times|Free items are claimed|Accept offers|Open to trades|Your next listing|How buyers can get/);
+  });
+
+  it("the shared confirm sheet's default way out is Spanish too (core.notNow, boot words)", async () => {
+    const { ConfirmSheet } = await import("@/components/declutter/DeclutterConfirmSheet");
+    const sheet = () => render(<ConfirmSheet open title="T" confirmLabel="OK" onConfirm={() => {}} onClose={() => {}}>x</ConfirmSheet>);
+    sheet();
+    expect(screen.getByRole("button", { name: "Not now" })).toBeTruthy();
+    cleanup();
+    setLang("es");
+    await ensureLangLoaded();
+    sheet();
+    expect(screen.getByRole("button", { name: "Ahora no" })).toBeTruthy();
   });
 });

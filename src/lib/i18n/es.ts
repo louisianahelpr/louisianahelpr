@@ -368,6 +368,7 @@ export const es: Record<MsgKey, string> = {
   "soon.short": "Pronto",
   "soon.full": "Muy pronto",
   "next.lead": "Siguiente: {step}",
+  "core.notNow": "Ahora no",
 
   // Post a job (A3-3 part 2, 11-01). Money wording stays English (enPostJob.ts).
   "postJob.progress": "Progreso de publicar un trabajo",

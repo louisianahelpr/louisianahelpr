@@ -22,7 +22,8 @@ import { trackedFiles } from "./helpers/trackedFiles";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "..", "..");
-const FAILURE = /couldn['’]?t|could not|can['’]?t|cannot|failed|went wrong|error|unavailable|isn['’]t working|not load/i;
+// "fail" alone too: a Spanish-ready title is a dictionary key that names the failure (lp.ld.loadFail, F260q).
+const FAILURE = /couldn['’]?t|could not|can['’]?t|cannot|fail(?:ed)?|went wrong|error|unavailable|isn['’]t working|not load/i;
 
 /** The value of the `title=` prop inside one JSX opening tag, or null when absent. */
 export function titleProp(tag: string): string | null {

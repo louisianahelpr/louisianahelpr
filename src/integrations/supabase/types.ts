@@ -14509,6 +14509,27 @@ export type Database = {
           },
         ]
       }
+      shop_photo_byte_checks: {
+        Row: {
+          checked_at: string
+          object_id: string
+          owner_id: string
+          storage_path: string
+        }
+        Insert: {
+          checked_at?: string
+          object_id: string
+          owner_id: string
+          storage_path: string
+        }
+        Update: {
+          checked_at?: string
+          object_id?: string
+          owner_id?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
       shop_photos: {
         Row: {
           created_at: string
@@ -23067,6 +23088,14 @@ export type Database = {
       }
       shop_handover_photo_access: {
         Args: { p_name: string; p_write: boolean }
+        Returns: boolean
+      }
+      shop_photo_object_id: {
+        Args: { p_owner: string; p_path: string }
+        Returns: string
+      }
+      shop_photo_stamp: {
+        Args: { p_object_id: string; p_owner: string; p_path: string }
         Returns: boolean
       }
       shop_problem_photo_unattached: { Args: { p_name: string }; Returns: boolean }

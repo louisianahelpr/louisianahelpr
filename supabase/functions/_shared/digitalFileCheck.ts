@@ -47,6 +47,21 @@ export function bytesMatchExt(ext: DigitalExt, head: Uint8Array): boolean {
   return SIGNATURES[ext].some((sig) => head.length >= sig.length && sig.every((b, i) => head[i] === b));
 }
 
+export type PhotoKind = "png" | "jpg" | "webp";
+
+/**
+ * Q1956: what a shop photo really is, from its first bytes (shop-photo-check reads them; the uploaded mimetype is only what
+ * the browser said). PNG and JPEG use the download signatures above; WebP is "RIFF" + 4 size bytes + "WEBP".
+ */
+export function imageKindFromBytes(head: Uint8Array): PhotoKind | null {
+  if (bytesMatchExt("png", head)) return "png";
+  if (bytesMatchExt("jpg", head)) return "jpg";
+  const riff = [0x52, 0x49, 0x46, 0x46];
+  const webp = [0x57, 0x45, 0x42, 0x50];
+  if (head.length >= 12 && riff.every((b, i) => head[i] === b) && webp.every((b, i) => head[8 + i] === b)) return "webp";
+  return null;
+}
+
 // Entry names a ZIP may not carry: programs, installers, scripts and disk images on Windows, Mac, Linux and Android.
 const EXECUTABLE_EXT = new Set([
   "exe", "com", "scr", "msi", "msp", "bat", "cmd", "ps1", "vbs", "vbe", "js", "jse", "wsf", "wsh", "hta", "cpl",

@@ -81,6 +81,8 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   invalid_paused: "Choose whether the shop is open or paused.",
   invalid_photo_kind: "Choose where the photo goes: logo, cover, or gallery.",
   photo_not_uploaded: "That photo didn't finish uploading. Try adding it again.",
+  // Q1956: shop-photo-check read the file's own bytes and they are not a picture.
+  photo_not_an_image: "That file isn't a photo. Choose a JPG, PNG or WebP picture.",
   too_many_photos: "A shop can have up to 12 gallery photos.",
   photo_already_attached: "That photo is already on your shop.",
   photo_not_found: "That photo was already removed.",

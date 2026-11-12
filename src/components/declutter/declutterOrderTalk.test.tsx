@@ -71,7 +71,8 @@ vi.mock("@/lib/declutter/orderTalk", () => ({
     ],
   }),
   fetchMyOrderTalks: async () => [{ order_id: ORDER, side: state.side, title: state.title, photo_path: state.photoPath, last_at: "2026-10-29T10:05:00Z", last_mine: false, open: state.open }],
-  orderTalkPhotoUrl: (r: { photo_path?: string | null }) => (r.photo_path ? `https://photos.test/${r.photo_path}` : null),
+  // A same-origin path: FallbackImg (safePhotoSrc) draws only our own photo URLs.
+  orderTalkPhotoUrl: (r: { photo_path?: string | null }) => (r.photo_path ? `/photos-test/${r.photo_path}` : null),
   sendOrderMessage: async (_id: string, body: string) => {
     if (state.sendError) throw state.sendError;
     state.sent.push(body);
@@ -225,14 +226,14 @@ describe("D2-1: the paid-order chat", () => {
 
   // Audit 11-10 F360e: "Pin a mini order header in the chat (photo, title, status, See the order)". The photo was the
   // missing part (declutter_my_order_talks had none until 20261111155616); it shows beside the title, never a broken box.
-  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | {itemPhoto && <img | {false && <img
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx | {itemPhoto && <FallbackImg | {false && <FallbackImg
   // @mutate src/components/declutter/DeclutterOrderTalk.tsx | const itemPhoto = itemRow ? orderTalkPhotoUrl(itemRow) : null; | const itemPhoto = itemRow ? null : null;
   it("F360e: the chat's head shows the item photo beside its title; none without a photo", async () => {
     state.photoPath = "items/oak/1.jpg";
     const a = renderAt(`/declutter?order_talk=${ORDER}`, <OrderTalkFromLink />);
     await screen.findByText(/About “Oak rocking chair”/);
     const img = await waitFor(() => { const el = document.querySelector("[data-order-talk-photo]"); expect(el).not.toBeNull(); return el as HTMLImageElement; });
-    expect(img.getAttribute("src")).toBe("https://photos.test/items/oak/1.jpg");
+    expect(img.getAttribute("src")).toBe("/photos-test/items/oak/1.jpg");
     expect(img.closest("[data-order-talk-head]")?.textContent).toContain("Oak rocking chair");
     a.unmount();
     state.photoPath = null;

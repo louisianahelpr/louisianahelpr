@@ -27,6 +27,11 @@ export interface PayoutLineContext {
    * puts the row off (declutter-money "no_account"), so no day is promised. Absent counts as ready.
    */
   payoutReady?: boolean;
+  /**
+   * usePayoutSetupPaused() from the caller: while payout setup is not offered (paused, or not open to this member),
+   * the line never tells the seller to set up payouts; it says the payout waits for the account. Absent counts as paused.
+   */
+  setupPaused?: boolean;
   /** A refund request the seller declined: declutter_sale_final waits for the later of handover + 24 h and declined_at + 24 h. */
   declinedAt?: string | null;
   /**
@@ -72,7 +77,7 @@ export function payoutLine(payout: MyPayout, problemOpen: boolean, ctx: PayoutLi
   if (problemOpen && payout.status === "pending") return `${gets}. ${PAYOUT_HELD}`;
   if (payout.status !== "pending" || (payout.attempts ?? 0) >= PAYOUT_TRIES) return `${gets}. ${payoutStatusWords(payout)}`;
   if (ctx.refundOpen) return `${gets}. It waits until the refund request is settled.`;
-  if (ctx.payoutReady === false) return `${gets} once you set up payouts in Settings.`;
+  if (ctx.payoutReady === false) return ctx.setupPaused === false ? `${gets} once you set up payouts in Settings.` : `${gets} once your payout account is ready.`;
   // declutter_payouts_due holds while the part refund is pending, failed or held for review (20261111211749; unknown:
   // not promised); succeeded and settled_by_hand do not hold it, so it goes in the next run.
   // Scope: this reads only the AGREED request's own refund. A refund of another reason held on the same payment also

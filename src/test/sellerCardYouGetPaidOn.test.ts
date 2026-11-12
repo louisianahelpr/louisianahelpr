@@ -123,7 +123,10 @@ describe("F360b: the seller card's one money line", () => {
   });
 
   it("no ready payout account: no day; a declined refund request moves the day to its own 24 hours", () => {
-    expect(payoutLine(row(), false, { handedOverAt: HANDED, now: NOW, payoutReady: false })).toBe("You get $45 once you set up payouts in Settings.");
+    expect(payoutLine(row(), false, { handedOverAt: HANDED, now: NOW, payoutReady: false, setupPaused: false })).toBe("You get $45 once you set up payouts in Settings.");
+    // While payout setup is not offered (usePayoutSetupPaused), the line never sends the seller to set it up.
+    expect(payoutLine(row(), false, { handedOverAt: HANDED, now: NOW, payoutReady: false, setupPaused: true })).toBe("You get $45 once your payout account is ready.");
+    expect(payoutLine(row(), false, { handedOverAt: HANDED, now: NOW, payoutReady: false })).toBe("You get $45 once your payout account is ready.");
     const declined = "2026-11-11T19:30:00Z"; // after the handover: final at 2026-11-12T19:30Z
     expect(payoutLine(row(), false, { handedOverAt: HANDED, now: NOW, declinedAt: declined }))
       .toBe(`You get $45, paid on ${payoutDay("2026-11-12T19:30:00.000Z")} unless the buyer asks Louisiana Helpr to look.`);
@@ -149,13 +152,13 @@ describe("F360b: the seller card's one money line", () => {
       expect(payoutLine(part, false, { handedOverAt: HANDED, now: NOW, refundAgreed: st })).toBe("You get $25 after the $20 refund. The sale is final, so we send it next.");
     }
     // No payout account still says so first; a sent payout still says its day.
-    expect(payoutLine(part, false, { handedOverAt: HANDED, now: NOW, refundAgreed: "succeeded", payoutReady: false })).toBe("You get $25 after the $20 refund once you set up payouts in Settings.");
+    expect(payoutLine(part, false, { handedOverAt: HANDED, now: NOW, refundAgreed: "succeeded", payoutReady: false, setupPaused: false })).toBe("You get $25 after the $20 refund once you set up payouts in Settings.");
     expect(payoutLine({ ...part, status: "succeeded", executed_at: HANDED }, false, { refundAgreed: "pending" })).toMatch(/, paid on /);
   });
 
   it("the card passes the handover time, the refund state and the setup fee; the open sale uses the same parts", () => {
     const views = code("src/components/declutter/DeclutterHandoverViews.tsx");
-    expect(views).toMatch(/payoutLine\(payout, !!problem, \{\s*handedOverAt: handoverRow\.data\?\.confirmed_at \?\? null, refundOpen: refundIsOpen\(refundStatus\), setupFeeAhead, payoutReady,\s*declinedAt: refundStatus === "declined" \? refund\.data\?\.request\?\.declined_at \?\? null : null,\s*refundAgreed: refundStatus === "agreed" \? refund\.data\?\.request\?\.refund_status \?\? "unknown" : null, saleDecided, \}\)/);
+    expect(views).toMatch(/payoutLine\(payout, !!problem, \{\s*handedOverAt: handoverRow\.data\?\.confirmed_at \?\? null, refundOpen: refundIsOpen\(refundStatus\), setupFeeAhead, payoutReady, setupPaused,\s*declinedAt: refundStatus === "declined" \? refund\.data\?\.request\?\.declined_at \?\? null : null,\s*refundAgreed: refundStatus === "agreed" \? refund\.data\?\.request\?\.refund_status \?\? "unknown" : null, saleDecided, \}\)/);
     // A hold read not answered yet (fee inputs, open problems, the refund request): unsent rows show no line rather than
     // a figure too high by the fee or a day the server will not keep (lh-money-escrow re-review 11-11).
     expect(views).toContain("const feeUnknown = setupFee.unknown;");
@@ -192,7 +195,7 @@ describe("F360b: the seller card's one money line", () => {
     expect(payoutLine(p, false, { handedOverAt: HANDED, now: NOW, saleDecided: true })).toBe("You get $45. The sale is final, so we send it next.");
     expect(payoutLine(p, false, { handedOverAt: HANDED, now: NOW, saleDecided: false })).toMatch(/^You get \$45, paid on /);
     // Holds still come first: no payout account, an open problem, a sent payout's own day.
-    expect(payoutLine(p, false, { handedOverAt: HANDED, now: NOW, saleDecided: true, payoutReady: false })).toBe("You get $45 once you set up payouts in Settings.");
+    expect(payoutLine(p, false, { handedOverAt: HANDED, now: NOW, saleDecided: true, payoutReady: false, setupPaused: false })).toBe("You get $45 once you set up payouts in Settings.");
     expect(payoutLine(p, true, { handedOverAt: HANDED, now: NOW, saleDecided: true })).toMatch(/held while Louisiana Helpr looks/);
     expect(payoutLine({ ...p, status: "succeeded", executed_at: HANDED }, false, { saleDecided: true })).toMatch(/, paid on /);
     // The card reads both: the last problem (the decided-problem panel's own key) and the handover's confirmed_by.

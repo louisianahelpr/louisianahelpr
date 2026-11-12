@@ -43,7 +43,7 @@ const st = vi.hoisted(() => ({
 }));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useStripeConnectStatus", () => ({ useStripeConnectStatus: () => ({ payoutPrompt: { kind: st.prompt }, refetchStatus: () => {} }) }));
-vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupBlock: () => null }));
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupBlock: () => null, usePayoutSetupPaused: () => false }));
 vi.mock("@/lib/declutter/managerMode", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/managerMode")>()),
   useMyManagerGrants: () => ({ data: st.grants }),

@@ -52,7 +52,9 @@ describe("S009: photos on a live item", () => {
     renderWith(<ShopItemEditor ownerId="u1" item={item()} onCreated={() => {}} onDone={() => {}} />);
     expect(screen.getByText("Photos (3 to 12)")).toBeTruthy();
     expect(screen.getByText("Add a photo", { selector: "span[aria-hidden]" })).toBeTruthy();
-    expect(screen.getAllByRole("button", { name: "Remove" })).toHaveLength(4);
+    expect(screen.getAllByRole("button", { name: /^Remove photo \d+$/ })).toHaveLength(4);
+    // S2-012: each Remove names its photo, so a screen reader does not hear "Remove, Remove, Remove".
+    expect(screen.getByRole("button", { name: "Remove photo 4" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Suggest details from my photos" })).toBeNull();
     expect(screen.getByText(/New photos get our quick photo check/)).toBeTruthy();
   });
@@ -61,7 +63,7 @@ describe("S009: photos on a live item", () => {
     api.removeShopItemPhoto.mockResolvedValue(undefined);
     api.requestShopItemAiCheck.mockResolvedValue({ checked: true, flagged: true });
     renderWith(<ShopItemEditor ownerId="u1" item={item()} onCreated={() => {}} onDone={() => {}} />);
-    fireEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /^Remove photo \d+$/ })[0]);
     await waitFor(() => expect(api.requestShopItemAiCheck).toHaveBeenCalledWith("it1"));
     expect(api.removeShopItemPhoto).toHaveBeenCalledWith("p0");
     await waitFor(() => expect(toast.warning).toHaveBeenCalledWith("Our checks flagged a photo. The item is off your shop until our team looks at it."));
@@ -71,7 +73,7 @@ describe("S009: photos on a live item", () => {
     api.removeShopItemPhoto.mockResolvedValue(undefined);
     api.requestShopItemAiCheck.mockRejectedValue(new Error("ai_unavailable"));
     renderWith(<ShopItemEditor ownerId="u1" item={item()} onCreated={() => {}} onDone={() => {}} />);
-    fireEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /^Remove photo \d+$/ })[0]);
     await waitFor(() => expect(api.requestShopItemAiCheck).toHaveBeenCalled());
     expect(toast.error).not.toHaveBeenCalled();
     expect(toast.warning).not.toHaveBeenCalled();
@@ -79,7 +81,7 @@ describe("S009: photos on a live item", () => {
 
   it("a live item with 3 photos cannot drop one", () => {
     renderWith(<ShopItemEditor ownerId="u1" item={item({ photos: photos(3) } as Partial<ShopItem>)} onCreated={() => {}} onDone={() => {}} />);
-    for (const b of screen.getAllByRole("button", { name: "Remove" })) expect((b as HTMLButtonElement).disabled).toBe(true);
+    for (const b of screen.getAllByRole("button", { name: /^Remove photo \d+$/ })) expect((b as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("an item waiting for an admin shows no photo section", () => {
@@ -90,7 +92,7 @@ describe("S009: photos on a live item", () => {
   it("a draft's photo change runs no check (Publish does)", async () => {
     api.removeShopItemPhoto.mockResolvedValue(undefined);
     renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft", photos: photos(2) } as Partial<ShopItem>)} onCreated={() => {}} onDone={() => {}} />);
-    fireEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /^Remove photo \d+$/ })[0]);
     await waitFor(() => expect(api.removeShopItemPhoto).toHaveBeenCalled());
     expect(api.requestShopItemAiCheck).not.toHaveBeenCalled();
   });

@@ -13,6 +13,7 @@ import { shopsErrorMessage } from "@/lib/shops/errors";
 import {
   DIGITAL_FILE_ACCEPT,
   DIGITAL_MAX_FILES,
+  confirmDigitalFile,
   digitalDownloadUrl,
   fetchMyDigitalFiles,
   fileSizeLabel,
@@ -37,14 +38,22 @@ export default function ShopDigitalFiles({ itemId }: { itemId: string }) {
     onError: (err) => toast.error(shopsErrorMessage(err)),
     onSettled: refresh,
   });
+  // S2-005: a file whose upload was cut off before its check stays waiting and blocks Publish; it is shown, with
+  // "Try again" (check it again) and Remove, instead of hidden.
+  const retry = useMutation({
+    mutationFn: (fileId: string) => confirmDigitalFile(fileId),
+    onSuccess: () => toast("File added."),
+    onError: (err) => toast.error(shopsErrorMessage(err)),
+    onSettled: refresh,
+  });
   const open = useMutation({
     mutationFn: (fileId: string) => digitalDownloadUrl(fileId),
     onSuccess: (url) => window.open(url, "_blank", "noopener"),
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
 
-  const list = (files.data ?? []).filter((f) => f.checked_at);
-  const busy = add.isPending || remove.isPending;
+  const list = files.data ?? [];
+  const busy = add.isPending || remove.isPending || retry.isPending;
   const full = (files.data ?? []).length >= DIGITAL_MAX_FILES;
 
   return (
@@ -67,10 +76,21 @@ export default function ShopDigitalFiles({ itemId }: { itemId: string }) {
             <li key={f.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-border px-3 py-2">
               <FileDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
               <span className="min-w-0 flex-1 truncate text-sm">{f.file_name}</span>
-              <span className="text-xs text-muted-foreground">{fileSizeLabel(f.byte_size)}</span>
-              <Button type="button" size="sm" variant="ghost" disabled={open.isPending} onClick={() => open.mutate(f.id)}>
-                Open
-              </Button>
+              {f.checked_at ? (
+                <>
+                  <span className="text-xs text-muted-foreground">{fileSizeLabel(f.byte_size)}</span>
+                  <Button type="button" size="sm" variant="ghost" disabled={open.isPending} onClick={() => open.mutate(f.id)}>
+                    Open
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span className="text-xs text-muted-foreground" data-testid="shop-digital-file-waiting">Still checking</span>
+                  <Button type="button" size="sm" variant="ghost" disabled={busy} aria-label={`Try ${f.file_name} again`} onClick={() => retry.mutate(f.id)}>
+                    Try again
+                  </Button>
+                </>
+              )}
               <Button type="button" size="sm" variant="outline" disabled={busy} aria-label={`Remove ${f.file_name}`} onClick={() => remove.mutate(f.id)}>
                 Remove
               </Button>

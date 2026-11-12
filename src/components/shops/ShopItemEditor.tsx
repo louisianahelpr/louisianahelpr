@@ -111,6 +111,8 @@ export function publishBlockers(x: {
   photos: number; title: string; price: string; unticked: number; cottageNeedsTick: boolean; cottageUnknown: boolean;
   /** A download's file count (S041): 0 blocks Publish (files_required); undefined/null while unknown or not a download. */
   digitalFiles?: number | null;
+  /** S2-005: files whose upload never finished its check; any one blocks Publish (files_required). */
+  digitalWaiting?: number;
 }): string[] {
   const out: string[] = [];
   if (x.photos < 3) out.push(`Add ${3 - x.photos} more photo${3 - x.photos === 1 ? "" : "s"} (3 to 12).`);
@@ -124,7 +126,8 @@ export function publishBlockers(x: {
   else if (Math.round(Number(price) * 100) < 100 || Math.round(Number(price) * 100) > SHOP_ITEM_MAX_PRICE_CENTS) {
     out.push(`Set a price from $1 to $${(SHOP_ITEM_MAX_PRICE_CENTS / 100).toLocaleString("en-US")}.`);
   }
-  if (x.digitalFiles === 0) out.push("Add 1 to 5 files for buyers to download.");
+  if (x.digitalWaiting) out.push(`${x.digitalWaiting === 1 ? "A file is" : `${x.digitalWaiting} files are`} still checking. Try again or remove ${x.digitalWaiting === 1 ? "it" : "them"} below.`);
+  else if (x.digitalFiles === 0) out.push("Add 1 to 5 files for buyers to download.");
   if (x.unticked > 0) out.push(`Tick ${x.unticked === 1 ? "the confirmation" : `the ${x.unticked} confirmations`} above.`);
   if (x.cottageNeedsTick) out.push("Confirm this year's home-kitchen sales above.");
   if (x.cottageUnknown) out.push("Wait for this year's home-kitchen limit to load.");
@@ -377,7 +380,9 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
     enabled: !!id && digital && item?.kind === "digital" && status === "draft",
   });
   const blockers = publishBlockers({
-    digitalFiles: digital && digitalFiles.isSuccess ? digitalFiles.data.length : null,
+    // S2-005: only checked files count (the server's own rule); a waiting one is named on its own.
+    digitalFiles: digital && digitalFiles.isSuccess ? digitalFiles.data.filter((f) => f.checked_at).length : null,
+    digitalWaiting: digital && digitalFiles.isSuccess ? digitalFiles.data.filter((f) => !f.checked_at).length : 0,
     photos: shown.length,
     title: d.title,
     price: d.price,
@@ -623,7 +628,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
                   if (f) addPhoto.mutate(f);
                 }}
               />
-              <span className={`inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${shown.length >= 12 ? "opacity-60" : "cursor-pointer"}`} aria-hidden>
+              <span className={`inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${shown.length >= 12 ? "cursor-not-allowed text-muted-foreground" : "cursor-pointer"}`} aria-hidden>
                 {shown.length >= 12 ? "12 photos (the most)" : "Add a photo"}
               </span>
             </label>

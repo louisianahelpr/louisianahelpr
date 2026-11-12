@@ -17971,6 +17971,8 @@ export type Database = {
       }
       shop_preorder_sweep: { Args: never; Returns: Json }
       shop_custom_request_sweep: { Args: never; Returns: Json }
+      setup_fee_other_payout_first: { Args: { p_user: string; p_except: string; p_fee: number }; Returns: boolean }
+      setup_fee_later_words: { Args: { p_fee: number }; Returns: string }
       shop_preorder_units: {
         Args: { p_item_id: string; p_paid_only: boolean }
         Returns: number

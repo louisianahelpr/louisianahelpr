@@ -25,8 +25,8 @@
  * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql |     WHEN p_type = 'new_offers' AND p_title IN ('Answer the new order', 'Order drops soon') THEN 'needs_you' |     WHEN false THEN 'needs_you'
  * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql | n.type IN ('declutter_offers', 'declutter_refunds', 'new_offers') THEN | n.type IN ('declutter_offers', 'declutter_refunds') THEN
  * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql | WHERE so.id = s.ref_id AND so.status = 'held' AND so.accept_by = s.deadline | WHERE so.id = s.ref_id AND so.accept_by = s.deadline
- * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql |     v_setup_fee := COALESCE(public.declutter_setup_fee_from_payout_cents(o.seller_id), 0); |     v_setup_fee := 0;
- * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql |       WHEN public.payout_waits_on_identity(o.seller_id) THEN |       WHEN false THEN
+ * @mutate supabase/migrations/20261112093000_shops_setup_fee_notice_exact.sql |     v_setup_fee := COALESCE(public.declutter_setup_fee_from_payout_cents(o.seller_id), 0); |     v_setup_fee := 0;
+ * @mutate supabase/migrations/20261112093000_shops_setup_fee_notice_exact.sql |       WHEN public.payout_waits_on_identity(o.seller_id) THEN |       WHEN false THEN
  * @mutate supabase/migrations/20261112081213_shops_notice_words_s011_s017.sql | (l.kind = 'service' OR COALESCE(l.at_buyer, false)) | (l.kind = 'service')
  * @mutate supabase/migrations/20261112082518_shops_setup_fee_refund.sql | CASE WHEN o.policy IN ('full_shop_pays_fee', 'full_platform_absorbs') THEN o.setup_fee ELSE 0 END | o.setup_fee
  * @mutate supabase/migrations/20261112082518_shops_setup_fee_refund.sql | CASE WHEN so.setup_fee_state = 'claimed' THEN so.setup_fee_cents ELSE 0 END | so.setup_fee_cents

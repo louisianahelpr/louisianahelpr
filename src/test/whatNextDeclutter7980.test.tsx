@@ -12,7 +12,12 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <section ref={panel} tabIndex={-1} className | <section ref={panel} className
  * @mutate src/components/declutter/ListedWhatNext.tsx |   const drop = live ? nextPriceDrop(it) : null; |   const drop = live ? { at: new Date(), lowestCents: 1 } : null;
  * @mutate src/components/declutter/useSellFlowState.ts |       navigate("/declutter?tab=selling", { state: { justListed: { itemId: id, status } } }); |       navigate("/declutter?tab=selling");
- * @mutate src/components/declutter/ListedWhatNext.tsx | never below your lowest price</>, state: "later" as const }] | never below your lowest price</>, state: "now" as const }]
+ * @mutate src/components/declutter/ListedWhatNext.tsx | pct: drop.pct }), state: "later" as const }] | pct: drop.pct }), state: "now" as const }]
+ * F260q: board 80's sheet in the member's language (enDeclutter decl.lwn.*).
+ * @mutate src/components/declutter/ListedWhatNext.tsx | title={live ? (free ? t("decl.lwn.titleFree") : t("decl.lwn.titleLive")) : t("decl.lwn.sent")} | title={live ? (free ? "Your free listing is live" : "Your listing is live") : "Sent for a review"}
+ * @mutate src/components/declutter/ListedWhatNext.tsx | detail: t("decl.lwn.dropDetail", { less: formatPrice(it.current_price_cents - drop.lowestCents), pct: drop.pct }), | detail: `That's ${formatPrice(it.current_price_cents - drop.lowestCents)} less.`,
+ * @mutate src/components/declutter/ListedWhatNext.tsx | const askOrGet = free ? t("decl.lwn.askFree") : t("decl.lwn.askPaid"); | const askOrGet = free ? t("decl.lwn.askFree") : "Buyers ask questions or buy";
+ * @mutate src/components/declutter/ListedWhatNext.tsx | primary={{ label: t("decl.lwn.preview"), onClick: | primary={{ label: "Preview", onClick:
  */
 import { useRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -162,5 +167,28 @@ describe("board 80: after listing", () => {
     renderListed("c", "pending_review");
     expect(await screen.findByRole("heading", { name: "Sent for a review" })).toBeTruthy();
     expect(code("src/components/declutter/useSellFlowState.ts")).toMatch(/state: \{ justListed: \{ itemId: id, status \} \}/);
+  });
+});
+
+describe("board 80 in Spanish (F260q)", () => {
+  it("the after-listing sheet reads Spanish: title, steps, lead and buttons", async () => {
+    const { setLang, ensureLangLoaded, __resetLangForTests } = await import("@/lib/i18n/language");
+    setLang("es");
+    await ensureLangLoaded();
+    try {
+      items.s = { id: "s", title: "Lámpara", status: "live", sale_mode: "offers", current_price_cents: 4000, live_at: new Date(Date.now() - 60e3).toISOString(), last_price_drop_on: null };
+      renderListed("s", "live");
+      expect(await screen.findByRole("heading", { name: "Su publicación está activa" })).toBeTruthy();
+      const text = screen.getByTestId("what-next-sheet").textContent ?? "";
+      expect(text).toContain("Publicado a $40");
+      expect(text).toContain("El precio puede bajar a $38");
+      expect(text).toContain("Son $2 menos.");
+      expect(text).toContain("Los compradores preguntan o compran");
+      expect(text).toContain("Lámpara ya está a la venta.");
+      expect(screen.getByRole("button", { name: "Vista previa" })).toBeTruthy();
+      expect(text).not.toMatch(/Listed at|Price can drop|That's|Buyers ask|We'll tell you|When it sells|is up for sale|Preview/);
+    } finally {
+      __resetLangForTests();
+    }
   });
 });

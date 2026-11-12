@@ -339,6 +339,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
       <PageScaffold
         animate
         tightGutter
+        tightPanelGap
         panelElevation="raised"
         // Full-bleed app bar: web-desktop ONLY (on phone it would stack a second sticky header).
         // SAME FRAME AS THE LOADED DESKTOP PAGE (Q169): no title card, feed + map columns, so the
@@ -401,6 +402,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
     <PageScaffold
       animate
       tightGutter
+      tightPanelGap
       panelElevation="raised"
       // The section's top bar + tabs (+ the compact search row on phone). On the desktop website the search +
       // filter controls live INSIDE the panel, directly above the job cards (the feed strip below), so the screen

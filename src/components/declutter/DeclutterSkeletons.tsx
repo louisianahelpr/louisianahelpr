@@ -27,6 +27,7 @@ import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
 import { DeclutterNotice } from "./declutterUi";
 import { ITEM_PHOTO_ASPECT, ITEM_PHOTO_FRAME_BASE } from "./itemPhotoFrame";
 import { useScreenfulBelow } from "@/hooks/useScreenfulBelow";
+import { CHIPS_ROW_PAD } from "@/components/sections/browseHeaderSpacing";
 
 /**
  * /declutter: the section shell (top bar), the tab row and the first cards.
@@ -92,7 +93,7 @@ function DeclutterPhoneTabBones() {
  */
 export function DeclutterChipBones() {
   return (
-    <div className="pb-2" aria-hidden data-declutter-chip-bones="">
+    <div className={CHIPS_ROW_PAD} aria-hidden data-declutter-chip-bones="">
       <div className="flex gap-2 overflow-hidden pb-1">
         <Skeleton className="h-10 w-14 shrink-0 rounded-full" />
         <Skeleton className="h-10 w-32 shrink-0 rounded-full" />

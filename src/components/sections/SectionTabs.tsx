@@ -1,6 +1,5 @@
-import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
 import { BROWSE } from "./sectionsConfig";
@@ -89,113 +88,22 @@ export function SectionTabs<T extends string>({
   const dense = options.length >= DENSE_TAB_COUNT;
   const denser = options.length >= DENSER_TAB_COUNT;
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  // A row that still does not fit (Declutter's six tabs with search, filters and gear beside them; owner 10-30: "Wanted"
-  // was clipped) scrolls sideways. A tab the row's edge would cut waits unpainted until it is whole, so no word is ever
-  // cut, and a chevron says there is more and brings the next tab in. The row keeps the selected tab whole by itself (on
-  // load, on a new tab, when a search opens or closes, when the chevron narrows the track) until the member moves the
-  // row; from then the selected tab follows the same rule as the others, whole or not painted (tester T10, 10-30:
-  // "Wantec" on load, a lone "e" after a chevron).
+  // OWNER 11-12 (iPhone screenshot, Declutter "3 more >"): no "N more" pill and no chevrons. A row that does not fit is
+  // ONE sideways strip of every tab: swipeable, no visible scrollbar (no-scrollbar), every tab painted (a tab the edge
+  // cuts shows it scrolls), keyboard reachable (arrow keys, Home, End; roving tabindex), and the selected tab is kept in
+  // view on load, on a new tab and when a search opens or closes. Guard: sectionTabsOneScrollStrip.
   const listRef = useRef<HTMLDivElement>(null);
-  const [more, setMore] = useState(false);
-  // Moved along, the row also has a way back, so a selected tab off the start is one tap away (T12, 10-30).
-  const [less, setLess] = useState(false);
-  // A3-97 (audit 7, 11-01): at 375 Declutter shows Browse and Buying only, so a seller's to-do count on Selling sat off
-  // screen behind a bare chevron. The chevrons carry the to-do counts of the tabs they hide.
-  const [aheadCount, setAheadCount] = useState(0);
-  // Q2563: how many tabs the end of the row hides, for the "N more" pill.
-  const [aheadTabs, setAheadTabs] = useState(0);
-  const [behindCount, setBehindCount] = useState(0);
-  // SENIOR MODE AT 320 (prod-audit 11-05, re-measured 11-07 ~/.lh-shots/b5-senior): Browse Posted Working at 16px are
-  // 206px in a 192px track, so the chevron (44px) and the "1 more" pill (90px) both came in and left a 46px track for
-  // the 57px selected tab: it read "osted". When the selected tab cannot be whole beside the worded pill, the pill drops
-  // its words (chevron and to-do count stay; its spoken name still says how many tabs it hides), and takes them back
-  // once the track would hold the selected tab with them.
-  const [compactMore, setCompactMore] = useState(false);
-  const compactRef = useRef(false);
-  const moreRef = useRef<HTMLButtonElement>(null);
-  const fullMoreW = useRef(0);
-  const memberMoved = useRef(false);
   useLayoutEffect(() => {
     const list = listRef.current;
     if (!list) return;
-    memberMoved.current = false;
-    const update = () => {
-      const selected = list.querySelector('[role="tab"][aria-selected="true"]');
-      if (selected && !memberMoved.current) {
-        const box = list.getBoundingClientRect();
-        const t = selected.getBoundingClientRect();
-        if (t.right > box.right) list.scrollLeft += t.right - box.right;
-        else if (t.left < box.left) list.scrollLeft -= box.left - t.left;
-      }
-      const hasMore = list.scrollWidth - list.clientWidth - list.scrollLeft > 2;
-      setMore(hasMore);
-      setLess(list.scrollLeft > 2);
-      const moreBtn = moreRef.current;
-      if (selected && moreBtn && !memberMoved.current) {
-        const selW = selected.getBoundingClientRect().width;
-        const btnW = moreBtn.getBoundingClientRect().width;
-        let compact = compactRef.current;
-        if (!compact) {
-          fullMoreW.current = btnW;
-          compact = list.clientWidth + 1 < selW;
-        } else if (list.clientWidth - (fullMoreW.current - btnW) >= selW) {
-          compact = false;
-        }
-        if (compact !== compactRef.current) { compactRef.current = compact; setCompactMore(compact); }
-      } else if (!hasMore && compactRef.current && !moreBtn) {
-        compactRef.current = false;
-        setCompactMore(false);
-      }
-      const box = list.getBoundingClientRect();
-      let ahead = 0;
-      let behind = 0;
-      let hiddenAhead = 0;
-      for (const tab of Array.from(list.children)) {
-        const t = tab.getBoundingClientRect();
-        const cut = t.width > 0 && (t.left < box.left - 1 || t.right > box.right + 1);
-        // Wider than the row itself (nothing can make it whole), the selected tab still shows until the member moves on.
-        tab.toggleAttribute("data-tab-cut", cut && (tab !== selected || memberMoved.current));
-        if (t.width > 0 && t.right > box.right + 1) hiddenAhead++;
-        const n = Number(tab.getAttribute("data-tab-count")) || 0;
-        if (n > 0 && t.right > box.right + 1) ahead += n;
-        else if (n > 0 && t.left < box.left - 1) behind += n;
-      }
-      setAheadCount(ahead);
-      setAheadTabs(hiddenAhead);
-      setBehindCount(behind);
-    };
-    update();
-    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
-    ro?.observe(list);
-    for (const tab of Array.from(list.children)) ro?.observe(tab);
-    list.addEventListener("scroll", update, { passive: true });
-    return () => {
-      ro?.disconnect();
-      list.removeEventListener("scroll", update);
-    };
+    const selected = list.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+    if (!selected) return;
+    const box = list.getBoundingClientRect();
+    const t = selected.getBoundingClientRect();
+    // 16px of the next tab stays visible past the selected one, so the strip still reads as one that scrolls.
+    if (t.right > box.right) list.scrollLeft += t.right - box.right + 16;
+    else if (t.left < box.left) list.scrollLeft -= box.left - t.left + 16;
   }, [options.length, value, onlySelected]);
-  /**
-   * The row moves on a page: the first tab the end hides goes to the start, so every tab after it that fits comes in
-   * whole. Audit 11-10 F320: bringing in only that first tab's cut-off end moved the row a few pixels per tap (the cut
-   * tab is invisible), so "3 more" took 4 taps to show Deliver, Wanted and Free.
-   */
-  const showNext = () => {
-    const list = listRef.current;
-    if (!list) return;
-    memberMoved.current = true;
-    const box = list.getBoundingClientRect();
-    const next = Array.from(list.children).find((tab) => tab.getBoundingClientRect().right > box.right + 1);
-    if (next) list.scrollLeft += next.getBoundingClientRect().left - box.left;
-  };
-  /** A page back, the mirror of showNext: the last tab the start hides goes to the end, with the tabs before it that fit. */
-  const showPrevious = () => {
-    const list = listRef.current;
-    if (!list) return;
-    memberMoved.current = true;
-    const box = list.getBoundingClientRect();
-    const previous = Array.from(list.children).reverse().find((tab) => tab.getBoundingClientRect().left < box.left - 1);
-    list.scrollLeft = previous ? Math.max(0, list.scrollLeft - (box.right - previous.getBoundingClientRect().right)) : 0;
-  };
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
     const at = options.findIndex((o) => o.value === value);
@@ -206,7 +114,6 @@ export function SectionTabs<T extends string>({
     if (next < 0) return;
     e.preventDefault();
     if (options[next].value !== value) { hapticLight(); onChange(options[next].value); }
-    refs.current[next]?.removeAttribute("data-tab-cut");
     refs.current[next]?.focus();
   };
   return (
@@ -225,15 +132,7 @@ export function SectionTabs<T extends string>({
           (measured in WebKit: scrollTop 0 -> 1 on a wheel over the row) and on iOS rubber-banded them out of the clip,
           leaving the border and the icons beside it. overflow-y:hidden makes it a sideways-only scroller.
           Guard: e2e/sectionTabsStayPut.spec.ts (WebKit 375 + 1440). */}
-      {less && !onlySelected && (
-        <button type="button" aria-label={behindCount > 0 ? tr("tabs.lessToDo", { n: behindCount }) : tr("tabs.less")} data-tabs-less-button="" onClick={showPrevious}
-          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-0.5 text-muted-foreground">
-          <ChevronLeft className="h-4 w-4" aria-hidden />
-          {behindCount > 0 && <span data-testid="tabs-less-count" aria-hidden className="segmented-count-attention tabular-nums text-ds-11 font-bold rounded-full px-1.5 min-w-[1.25rem] leading-5 text-center">{behindCount}</span>}
-        </button>
-      )}
-      <div ref={listRef} role="tablist" aria-label={label} onKeyDown={onKeyDown} data-tabs-more={more ? "" : undefined}
-        onPointerDown={() => { memberMoved.current = true; }} onWheel={() => { memberMoved.current = true; }}
+      <div ref={listRef} role="tablist" aria-label={label} onKeyDown={onKeyDown} data-tabs-strip=""
         className={cn("flex min-w-0 items-end overflow-x-auto overflow-y-hidden no-scrollbar", onlySelected ? "flex-none" : "flex-1", end ? "gap-2 min-[420px]:gap-5" : denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : dense ? "gap-3 min-[420px]:gap-5" : "gap-5", dense && "section-tabs-dense", denser && "section-tabs-denser")}>
         {options.map((o, i) => {
           const active = o.value === value;
@@ -250,7 +149,7 @@ export function SectionTabs<T extends string>({
               data-tab-count={o.count && o.count > 0 ? o.count : undefined}
               onClick={() => { if (!active) { hapticLight(); onChange(o.value); } }}
               className={cn(
-                "section-tab relative inline-flex h-11 min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap font-sans text-ds-13 min-[420px]:text-ds-15 font-semibold data-[tab-cut]:invisible",
+                "section-tab relative inline-flex h-11 min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap font-sans text-ds-13 min-[420px]:text-ds-15 font-semibold",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] rounded-sm",
                 active ? "text-foreground section-tab-selected" : "text-muted-foreground",
               )}
@@ -275,18 +174,6 @@ export function SectionTabs<T extends string>({
           );
         })}
       </div>
-      {/* Q2563 (owner 11-02): the bare chevron read as decoration, so a buyer never saw Free or Wanted. It is a
-          labelled pill, "4 more ›", naming how many tabs it hides (its spoken name starts with the same words). */}
-      {more && !onlySelected && (
-        <button type="button" aria-label={aheadCount > 0 ? tr("tabs.nMoreToDo", { n: aheadTabs, m: aheadCount }) : tr("tabs.nMoreTabs", { n: aheadTabs })} ref={moreRef} data-tabs-more-compact={compactMore ? "" : undefined} data-tabs-more-button="" onClick={showNext}
-          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center">
-          <span data-tabs-more-pill="" className="inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-full bg-muted pl-2.5 pr-1.5 text-ds-13 font-semibold text-foreground">
-            {aheadCount > 0 && <span data-testid="tabs-more-count" aria-hidden className="segmented-count-attention tabular-nums text-ds-11 font-bold rounded-full px-1.5 min-w-[1.25rem] leading-5 text-center">{aheadCount}</span>}
-            <span data-testid="tabs-more-label" aria-hidden>{tr("tabs.nMore", { n: aheadTabs })}</span>
-            <ChevronRight className="h-4 w-4" aria-hidden />
-          </span>
-        </button>
-      )}
       {end}
     </div>
   );

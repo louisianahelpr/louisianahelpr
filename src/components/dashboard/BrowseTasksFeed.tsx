@@ -31,6 +31,7 @@ import { MainFeedSection } from "@/components/dashboard/MainFeedSection";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { EmptyFeedActions } from "@/components/dashboard/EmptyFeedActions";
 import { OwnOpenJobsNote } from "@/components/dashboard/OwnOpenJobsNote";
+import { BROWSE_EMPTY_SLOT } from "@/components/sections/browseHeaderSpacing";
 
 type PullToRefresh = ReturnType<typeof usePullToRefresh>;
 
@@ -416,7 +417,7 @@ export function BrowseTasksFeed({
         const filtered = browseFilteredEmptyCopy({ searchQuery: filters.searchQuery, activeFilterCount: filters.activeFilterCount, nearbyActive, currentMiles, nextMiles });
         return (
       // The shared Browse empty state (owner, 2026-10-19: Homes' style, in the same place as every section's).
-      <div className="px-0 lg:px-4 pt-1 lg:pt-3 flex-1 min-h-0 flex">
+      <div className={BROWSE_EMPTY_SLOT} data-browse-empty-slot="">
         <BrowseEmptyState
           icon={Search}
           title={

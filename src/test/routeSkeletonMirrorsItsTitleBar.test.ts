@@ -66,8 +66,8 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(bar).toContain('<HelprMark size="sm" emblemOnly to="/home" />');
     expect(skeleton).toMatch(/app-top-bar[^>]*>\s*<Skeleton className="h-8 w-8 rounded-ds-md" \/>/);
     expect(home).toContain("<SectionScreen search={<SectionSearchBar");
-    expect(bar).toContain('{search && <div data-testid="app-top-bar-search" className="pb-2 min-w-0">{search}</div>}');
-    expect(skeleton).toMatch(/<div className="pb-2 min-w-0">\s*<Skeleton className="h-11 w-full rounded-full" \/>\s*<\/div>/);
+    expect(bar).toContain('{search && <div data-testid="app-top-bar-search" className={`${SEARCH_BAR_PAD} min-w-0`}>{search}</div>}');
+    expect(skeleton).toMatch(/<div className=\{`\$\{SEARCH_BAR_PAD\} min-w-0`\}>\s*<Skeleton className="h-11 w-full rounded-full" \/>\s*<\/div>/);
     // The right cluster: the bar's gap and two 44px controls, the bell and the avatar ("+ Create" floats over the page).
     expect(bar).toContain('<div className="flex items-center shrink-0 gap-1">');
     const cluster = skeleton.slice(skeleton.indexOf('className="flex items-center gap-1 shrink-0"'));

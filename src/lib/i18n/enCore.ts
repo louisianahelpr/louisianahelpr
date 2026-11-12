@@ -41,11 +41,6 @@ export const enCore = {
   "zip.unknown": "We don't recognise that as a Louisiana ZIP code. Jobs are matched by parish, so double-check it — otherwise nearby work won't reach you.",
   // Jobs browse (the section tabs)
   "tabs.browse": "Browse",
-  "tabs.less": "Earlier tabs",
-  "tabs.lessToDo": "Earlier tabs, {n} to do",
-  "tabs.nMore": "{n} more",
-  "tabs.nMoreTabs": "{n} more tabs",
-  "tabs.nMoreToDo": "{n} more tabs, {m} to do",
   "tabs.nToDo": "{n} to do",
   "jobs.tabPosted": "Posted",
   "jobs.tabWorking": "Working",

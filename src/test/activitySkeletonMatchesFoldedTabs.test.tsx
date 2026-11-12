@@ -92,7 +92,7 @@ describe("the placeholder's header is the loaded header's shape", () => {
     expect(bar!.firstElementChild?.nextElementSibling?.className, "the title's bone first").toMatch(/\bh-7\b/);
     expect(bar!.lastElementChild?.children.length, "the bell, the photo").toBe(2);
     const row = bar!.nextElementSibling;
-    expect(row?.className, "the search row under the bar, 8px under it").toBe("pb-2 min-w-0");
+    expect(row?.className, "the search row under the bar, 2px under it (owner 11-12, browseHeaderSpacing)").toBe("pb-0.5 min-w-0");
     expect(row!.querySelectorAll(".h-11.w-full.rounded-full"), "the search bar's bone").toHaveLength(1);
     expect(container.querySelectorAll(".h-11.w-full.rounded-ds-md"), "the tabs row on a phone").toHaveLength(1);
     expect(row!.nextElementSibling?.className, "the tabs row right under the search").toContain("h-11 w-full rounded-ds-md");

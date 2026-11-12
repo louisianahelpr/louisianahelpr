@@ -25,7 +25,7 @@
  * @mutate src/components/mobileNav/dockItems.ts |     { path: youItem.path, icon: youItem.icon, label: youItem.label },\n | \n
  * @mutate src/components/mobileNav/dockItems.ts | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = true; | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = false;
  * @mutate src/components/MobileNav.tsx | <span data-dock-label className={`relative z-10 text-ds-10 leading-none whitespace-nowrap ${isActive ? "font-bold" : "font-medium"}`}>{shown}</span> | <span data-dock-label className="relative z-10 text-ds-10 leading-none whitespace-nowrap font-medium">{shown}</span>
- * @mutate src/components/sections/AppTopBar.tsx |         {search && <div data-testid="app-top-bar-search" className="pb-2 min-w-0">{search}</div>} |
+ * @mutate src/components/sections/AppTopBar.tsx |         {search && <div data-testid="app-top-bar-search" className={`${SEARCH_BAR_PAD} min-w-0`}>{search}</div>} |
  * @mutate src/components/sections/SectionCreateFab.tsx |   const go = () => { hapticMedium(); if (add) navigate(add.path); else setCreateSheetOpen((o) => !o); }; |   const go = () => { hapticMedium(); navigate(add?.path ?? "/post-job"); };
  * @mutate src/components/sections/SectionCreateFab.tsx |       onClick={isPost ? gate.gate("post", go) : go} |       onClick={go}
  * @mutate src/components/sections/SectionCreateFab.tsx |       {...(add ? {} : { "aria-haspopup": "dialog" as const, "aria-expanded": sheetOpen })} |       {...(add ? {} : { "aria-haspopup": "dialog" as const })}

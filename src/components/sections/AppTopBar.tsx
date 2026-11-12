@@ -14,6 +14,7 @@ import { sectionByKey, type SectionAdd, type SectionKey } from "./sectionsConfig
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import { avatarButtonLabel } from "@/lib/avatarImage";
+import { SEARCH_BAR_PAD } from "@/components/sections/browseHeaderSpacing";
 
 // "My Declutter" (etc.) loads on the photo's first tap, never on the first screen.
 const MySectionSheet = lazy(() => import("./MySectionSheet"));
@@ -170,7 +171,7 @@ export function AppTopBar({
             <Suspense fallback={null}><MySectionSheet menu={mine} open={mineOpen} onOpenChange={setMineOpen} /></Suspense>
           )}
         </header>
-        {search && <div data-testid="app-top-bar-search" className="pb-2 min-w-0">{search}</div>}
+        {search && <div data-testid="app-top-bar-search" className={`${SEARCH_BAR_PAD} min-w-0`}>{search}</div>}
         </>
       }
     />

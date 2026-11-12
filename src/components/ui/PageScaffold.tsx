@@ -78,6 +78,8 @@ interface PageScaffoldProps {
   /** Phone: 16px page gutters instead of 20px, so a section screen built on the scaffold (Jobs) lines up with the
    *  SectionScreen ones under the Vinted header, whose bar holds the section's search (owner 11-08). */
   tightGutter?: boolean;
+  /** Owner 11-12: a Browse's chip row sits 4px over its list on a phone (browseHeaderSpacing), not the shell's 12px. */
+  tightPanelGap?: boolean;
 }
 
 // `page-panel` is a styling HOOK, not a look: `panelSurfaceStyle` zeroes the
@@ -102,6 +104,7 @@ export function PageScaffold({
   oneBlur = false,
   flushRight = false,
   tightGutter = false,
+  tightPanelGap = false,
 }: PageScaffoldProps) {
   const titleCardClass = titleCardClassName
     ? `${TITLE_CARD_CLASS} ${titleCardClassName}`
@@ -194,7 +197,7 @@ export function PageScaffold({
           bar (a signed-out desktop page) it keeps its 20px. */}
       <div data-scaffold-container="" className={`container mx-auto ${tightGutter ? "px-4" : "px-5"} lg:px-6 xl:px-6${flushRight ? " lg:pr-0 xl:pr-0" : ""} pt-[var(--shell-gap)] ${headerInBar ? "lg:pt-3" : "lg:pt-5"} pb-0 flex-1 min-h-0 flex flex-col overflow-hidden`}>
         <div
-          className={`w-full ${columnWidth} mx-auto flex-1 min-h-0 flex flex-col gap-[var(--shell-gap)] lg:gap-4 overflow-hidden`}
+          className={`w-full ${columnWidth} mx-auto flex-1 min-h-0 flex flex-col ${tightPanelGap ? "gap-1 lg:gap-4" : "gap-[var(--shell-gap)] lg:gap-4"} overflow-hidden`}
         >
           {aboveTitle}
           {titleEl}

@@ -131,9 +131,9 @@ describe("the sell screen follows the member's language (F260q)", () => {
 
   it("the sell screen writes none of its dictionary's English in its source", () => {
     const code = (f: string) => blankComments(readFileSync(f, "utf8"));
-    // SellFormParts also holds the saved draft's step form (not converted yet: "Give it away free"), so only its sell
-    // screen parts' words are checked there.
-    const parts = ["sf.youGet", "sf.lower", "sf.raise", "sf.freeNote", "sf.offersOn", "sf.offersOff", "sf.taxHead", "sf.taxLine"] as const;
+    // SellFormParts: the sell screen's parts and the saved draft's step parts (free box, drops card, ways words); the
+    // words it shares with other screens (FieldLabel callers, DROPS_SWITCH_LABEL) are not in this list.
+    const parts = ["sf.youGet", "sf.lower", "sf.raise", "sf.freeNote", "sf.offersOn", "sf.offersOff", "sf.taxHead", "sf.taxLine", "sf.ds.giveFree", "sf.dr.tooLow", "sf.dr.off", "sf.dr.howMuch", "sf.dr.onlyYou", "sf.wy.privFreePlaces", "sf.wy.privPlaces", "sf.wy.privFree", "sf.wy.priv", "sf.wy.timesHead", "sf.wy.timesPlaces", "sf.wy.timesFreePlaces", "sf.wy.times"] as const;
     const files: [string, readonly string[]][] = [
       ["src/components/declutter/SellOneScreen.tsx", Object.values(enSellForm)],
       ["src/components/declutter/SellTradesRow.tsx", Object.values(enSellForm)],

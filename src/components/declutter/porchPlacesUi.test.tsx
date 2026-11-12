@@ -19,7 +19,7 @@
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx |       setRefused(true);\n      // The server has no pick for this cart: the one place is sent again.\n      sent.current = null; |       setRefused(true);
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | places={porchPlaces.places} free refused | places={porchPlaces.places} refused
  * @mutate src/components/declutter/SellHandoverChoices.tsx |       <SellPorchPlaces free={free} helprOnly={!free && !ways.includes("porch")} />\n |
- * @mutate src/components/declutter/SellFormParts.tsx | {hasPlaces ? (form.free ? PICKUP_TIMES_FREE_WITH_PLACES : PICKUP_TIMES_WITH_PLACES) : "Buyers pick one of these times. They apply to all your listings."} | {"Buyers pick one of these times. They apply to all your listings."}
+ * @mutate src/components/declutter/SellFormParts.tsx | {hasPlaces ? (form.free ? PICKUP_TIMES_FREE_WITH_PLACES() : PICKUP_TIMES_WITH_PLACES()) : t("sf.wy.times")} | {t("sf.wy.times")}
  * @mutate src/components/declutter/SellPorchPlaces.tsx |       {places.length > 0 && <p className="text-ds-13 text-muted-foreground" data-place-days-rule="">{PLACE_DAYS_RULE}</p>}\n |
  * @mutate src/components/declutter/SellPorchPlaces.tsx | export const PLACE_CARD_EDGE = "dark:!border-border"; | export const PLACE_CARD_EDGE = "";
  * @mutate src/components/declutter/SellPorchPlaces.tsx |             <Pencil className="h-[18px] w-[18px]" aria-hidden="true" /> |             Edit

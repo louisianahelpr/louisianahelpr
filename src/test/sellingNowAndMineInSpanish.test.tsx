@@ -74,7 +74,7 @@ describe("Selling now and the Buying/Selling chips follow the member's language 
     expect(src.split('t("decl.hv.settings")').length - 1).toBe(2);
     expect(src.split('t("decl.hv.view")').length - 1).toBe(3);
     const hv = (Object.keys(enDeclutter) as (keyof typeof enDeclutter)[]).filter((k) => k.startsWith("decl.hv."));
-    expect(hv.length).toBe(5);
+    expect(hv.length).toBe(11); // 5 here + 6 in sellingPanelsInSpanish
     for (const k of hv) {
       expect(es[k], k).toBe(esDeclutter[k]);
       expect(esDeclutter[k], `${k} still English`).not.toBe(enDeclutter[k]);

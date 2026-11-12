@@ -60,6 +60,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useMyTrades } from "./useMyTrades";
 import "@/lib/i18n/enDeclutter";
 import { t } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 
 const BUCKET_KEYS = ORDER_BUCKETS.map((b) => b.key);
 
@@ -87,7 +88,7 @@ function useBuyerOffers(): { has: boolean | null; toAnswer: boolean } {
 export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
   const [asked, toggle] = useStatusFilter(BUCKET_KEYS);
   const trk = useBuyingTracker();
-  const chips = bucketChips(trk.counts);
+  const chips = bucketChips(trk.counts).map((c) => ({ ...c, label: t(`decl.mv.bk.${c.key}` as MsgKey) }));
   // A chip with nothing in it is not shown, so a stale ?status= for an empty group shows every order.
   const only = asked && trk.counts[asked] > 0 ? asked : null;
   const offers = useBuyerOffers();

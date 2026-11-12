@@ -4463,7 +4463,7 @@
     },
     {
       "file": "src/components/declutter/AutoFreeRow.tsx",
-      "line": 48,
+      "line": 50,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4472,15 +4472,49 @@
         "branches": [
           {
             "form": "dynamic",
-            "text": "days === null ? \"It won't become free on its own.\" : `If it hasn't sold by day ${days}, it becomes free.`",
+            "text": "days === null ? t(\"lp.afNever\") : t(\"lp.afSaved\", { n: days })",
             "branches": [
               {
-                "form": "literal",
-                "text": "It won't become free on its own."
+                "form": "dynamic",
+                "text": "t(\"lp.afNever\")",
+                "from": "src/lib/i18n/language.ts",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                    "branches": [
+                      {
+                        "form": "dynamic",
+                        "text": "s"
+                      },
+                      {
+                        "form": "dynamic",
+                        "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                      }
+                    ]
+                  }
+                ]
               },
               {
-                "form": "template",
-                "text": "If it hasn't sold by day ${days}, it becomes free."
+                "form": "dynamic",
+                "text": "t(\"lp.afSaved\", { n: days })",
+                "from": "src/lib/i18n/language.ts",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                    "branches": [
+                      {
+                        "form": "dynamic",
+                        "text": "s"
+                      },
+                      {
+                        "form": "dynamic",
+                        "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }
@@ -4490,7 +4524,7 @@
     },
     {
       "file": "src/components/declutter/AutoFreeRow.tsx",
-      "line": 51,
+      "line": 53,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6572,19 +6606,53 @@
     },
     {
       "file": "src/components/declutter/KeepUpRow.tsx",
-      "line": 40,
+      "line": 41,
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "on ? \"It renews every 30 days until it sells.\" : \"It's up for 30 days at a time again, up to 4 times.\"",
+        "text": "on ? t(\"lp.keepUpToastOn\") : t(\"lp.keepUpToastOff\")",
         "branches": [
           {
-            "form": "literal",
-            "text": "It renews every 30 days until it sells."
+            "form": "dynamic",
+            "text": "t(\"lp.keepUpToastOn\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
           },
           {
-            "form": "literal",
-            "text": "It's up for 30 days at a time again, up to 4 times."
+            "form": "dynamic",
+            "text": "t(\"lp.keepUpToastOff\")",
+            "from": "src/lib/i18n/language.ts",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+                "branches": [
+                  {
+                    "form": "dynamic",
+                    "text": "s"
+                  },
+                  {
+                    "form": "dynamic",
+                    "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
@@ -6592,7 +6660,7 @@
     },
     {
       "file": "src/components/declutter/KeepUpRow.tsx",
-      "line": 43,
+      "line": 44,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -416,7 +416,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
                 type="file"
                 accept="image/*"
                 multiple
-                className="sr-only"
+                className="peer sr-only"
                 disabled={busy || held.length >= 12}
                 onChange={(e) => {
                   const files = Array.from(e.target.files ?? []);
@@ -427,7 +427,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
                   setHeld((h) => [...h, ...files].slice(0, 12));
                 }}
               />
-              <span className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm" aria-hidden>
+              <span className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring" aria-hidden>
                 Add photos
               </span>
             </label>
@@ -442,6 +442,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
                 <li key={`${f.name}-${i}`} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
                   <HeldPhoto file={f} />
                   <Button type="button" size="sm" variant="outline" className="absolute bottom-1 right-1 px-2 text-xs" disabled={busy}
+                    aria-label={`Remove photo ${i + 1}`}
                     onClick={() => setHeld((h) => h.filter((_, j) => j !== i))}>
                     Remove
                   </Button>
@@ -614,7 +615,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
               <input
                 type="file"
                 accept="image/*"
-                className="sr-only"
+                className="peer sr-only"
                 disabled={busy || shown.length >= 12}
                 onChange={(e) => {
                   const f = e.target.files?.[0];
@@ -622,7 +623,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
                   if (f) addPhoto.mutate(f);
                 }}
               />
-              <span className={`inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm ${shown.length >= 12 ? "opacity-60" : "cursor-pointer"}`} aria-hidden>
+              <span className={`inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${shown.length >= 12 ? "opacity-60" : "cursor-pointer"}`} aria-hidden>
                 {shown.length >= 12 ? "12 photos (the most)" : "Add a photo"}
               </span>
             </label>
@@ -636,7 +637,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
           {!draft && <p className="text-xs text-muted-foreground">New photos get our quick photo check. The item stays on your shop unless it flags one.</p>}
           {shown.length > 0 && (
             <ul className="grid grid-cols-3 gap-2">
-              {shown.map((p) => (
+              {shown.map((p, i) => (
                 <li key={p.id} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
                   <img src={itemPhotoUrl(p.storage_path)} alt="" className="h-full w-full object-cover" />
                   <Button
@@ -646,6 +647,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
                     className="absolute bottom-1 right-1 px-2 text-xs"
                     // S009: a live item keeps 3 photos (the server says so too).
                     disabled={busy || (!draft && shown.length <= 3)}
+                    aria-label={`Remove photo ${i + 1}`}
                     onClick={() => removePhoto.mutate(p.id)}
                   >
                     Remove

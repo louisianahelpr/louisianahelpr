@@ -514,7 +514,7 @@ const CLOSE_WORDS: Record<string, { buyer: string; shop: string }> = {
   // A refund Louisiana Helpr made by hand in Stripe (the shop is not paid until an admin decides).
   refunded_by_hand: { buyer: "Refunded by Louisiana Helpr", shop: "Refunded to the buyer by Louisiana Helpr" },
   // Preorders (20261108184654).
-  preorder_cancelled: { buyer: "Preorder cancelled by you (refunded, less a small card processing cost)", shop: "Preorder cancelled by the buyer" },
+  preorder_cancelled: { buyer: "Preorder cancelled by you (refunded in full)", shop: "Preorder cancelled by the buyer" },
   preorder_date_moved: { buyer: "Preorder cancelled after the date moved (refunded in full)", shop: "Cancelled after you moved the date (buyer refunded in full)" },
   preorder_goal_missed: { buyer: "Preorder didn't reach its goal (refunded in full)", shop: "Goal not reached (buyer refunded in full)" },
   preorder_shop_late: { buyer: "Not ready in time (refunded in full)", shop: "Not marked ready in time (buyer refunded in full)" },

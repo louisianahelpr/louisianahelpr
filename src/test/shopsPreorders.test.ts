@@ -20,14 +20,14 @@
  * Behaviour (red/green, 3x replay): src/test/pglite/shopsPreorders.pglite.mjs (61 checks, measured 2026-11-08; red without the migration).
  *
  * @mutate supabase/migrations/20261108184654_shops_preorders.sql |   preorder_ready_by IS NULL OR preorder_ready_by - preorder_set_on <= 150); |   preorder_ready_by IS NULL OR preorder_ready_by - preorder_set_on <= 200);
- * @mutate supabase/migrations/20261108184654_shops_preorders.sql |     WHEN p_reason IN ('preorder_shop_late', 'preorder_date_moved', 'preorder_goal_missed') THEN 'full_shop_pays_fee' |     WHEN p_reason IN ('preorder_shop_late', 'preorder_date_moved', 'preorder_goal_missed') THEN 'keep_card_fee'
+ * @mutate supabase/migrations/20261112160014_shops_preorder_buyer_cancel_full_refund.sql |     WHEN p_reason IN ('preorder_shop_late', 'preorder_date_moved', 'preorder_goal_missed', 'preorder_buyer_cancelled') THEN 'full_shop_pays_fee' |     WHEN p_reason IN ('preorder_shop_late', 'preorder_date_moved', 'preorder_goal_missed') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |       AND NOT EXISTS (SELECT 1 FROM public.shop_refunds x WHERE x.order_id = so.id)\n     ORDER BY so.id LIMIT 200\n  LOOP\n    BEGIN\n      o := public.shop_lock_open_charged_order(c.id, false);\n      UPDATE public.shop_orders SET status = 'refunded', close_reason = 'preorder_goal_missed' |       AND NOT EXISTS (SELECT 1 FROM public.shop_refunds x WHERE x.order_id = so.id)\n     ORDER BY so.id LIMIT 200\n  LOOP\n    BEGIN\n      UPDATE public.shop_orders SET status = 'refunded', close_reason = 'preorder_goal_missed'
  * @mutate supabase/functions/shop-checkout/index.ts |   const { data, error } = await asBuyer.rpc("shops_cancel_preorder", { p_order_id: orderId });\n  if (error) return rpcRefusal(error);\n  const d = data as { refund_id?: string; refund_cents?: number } \| null;\n  const refund = await sendRefundNow(admin, orderId, d?.refund_id); |   const refund = await sendRefundNow(admin, orderId, null);\n  const { data, error } = await asBuyer.rpc("shops_cancel_preorder", { p_order_id: orderId });\n  if (error) return rpcRefusal(error);\n  const d = data as { refund_id?: string; refund_cents?: number } \| null;
  * @mutate supabase/functions/stripe-webhook/handlers/shopCheckout.ts |         const done = await captureShopHold(stripe, supabase, answer.order_id, piId, 0); |         const done = "skipped";
  * @mutate supabase/migrations/20261108184654_shops_preorders.sql |   IF v_ready IS NOT NULL AND public.shop_local_today() < v_ready - 14 THEN | IF v_ready IS NOT NULL AND public.shop_local_today() < v_ready - 140 THEN
  * @mutate supabase/migrations/20261108184654_shops_preorders.sql |     AND NOT EXISTS (SELECT 1 FROM public.shop_orders o WHERE o.id = NEW.order_id AND o.preorder_item_id = NEW.item_id) THEN |     AND NOT EXISTS (SELECT 1 FROM public.shop_orders o WHERE o.id = NEW.order_id) THEN
- * @mutate supabase/migrations/20261108184654_shops_preorders.sql |     WHEN ((o.ready_date + 8)::timestamp AT TIME ZONE 'America/Chicago') <= now() THEN 'preorder_shop_late'\n | \n
- * @mutate supabase/migrations/20261108184654_shops_preorders.sql |       THEN 'preorder_goal_missed'\n    WHEN ((o.ready_date + 8) |       THEN 'buyer_cancelled'\n    WHEN ((o.ready_date + 8)
+ * @mutate supabase/migrations/20261112160014_shops_preorder_buyer_cancel_full_refund.sql |     WHEN ((o.ready_date + 8)::timestamp AT TIME ZONE 'America/Chicago') <= now() THEN 'preorder_shop_late'\n | \n
+ * @mutate supabase/migrations/20261112160014_shops_preorder_buyer_cancel_full_refund.sql |       THEN 'preorder_goal_missed'\n    WHEN ((o.ready_date + 8) |       THEN 'buyer_cancelled'\n    WHEN ((o.ready_date + 8)
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -86,13 +86,14 @@ describe("Shops preorders: card age, fee policy, row locks, auto-accept", () => 
 
   it("who carries the card fee, by preorder reason", () => {
     const policy = body("shop_refund_fee_policy");
-    expect(policy).toMatch(/WHEN p_reason IN \('preorder_shop_late', 'preorder_date_moved', 'preorder_goal_missed'\) THEN 'full_shop_pays_fee'/);
+    expect(policy).toMatch(/WHEN p_reason IN \('preorder_shop_late', 'preorder_date_moved', 'preorder_goal_missed', 'preorder_buyer_cancelled'\) THEN 'full_shop_pays_fee'/);
     expect(policy).not.toMatch(/preorder_[a-z_]+'\)? THEN 'full_platform_absorbs'/);
     const cancel = flat(body("shops_cancel_preorder"));
     // Money review 11-08 (3): the sweep's own triggers first (the shop pays), then a pushed date, then the buyer's own.
     expect(cancel).toContain("v_reason := CASE WHEN EXISTS (SELECT 1 FROM public.shop_items i WHERE i.id = o.preorder_item_id AND i.preorder_goal_missed_at IS NOT NULL) THEN 'preorder_goal_missed' "
       + "WHEN ((o.ready_date + 8)::timestamp AT TIME ZONE 'America/Chicago') <= now() THEN 'preorder_shop_late' "
-      + "WHEN o.preorder_moved_at IS NOT NULL THEN 'preorder_date_moved' ELSE 'buyer_cancelled' END;");
+      + "WHEN o.preorder_moved_at IS NOT NULL THEN 'preorder_date_moved' ELSE 'preorder_buyer_cancelled' END;");
+    // S2-019 (owner-approved): the buyer's own preorder cancel is a full refund; the shop carries the card fee.
     // The late time is the sweep's own (ready-by + 7, end of day).
     expect(flat(body("shop_preorder_sweep"))).toContain("AND ((so.ready_date + 8)::timestamp AT TIME ZONE 'America/Chicago') <= now()");
   });

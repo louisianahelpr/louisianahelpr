@@ -103,6 +103,8 @@ const NOT_AN_ENTRY_POINT: Readonly<Record<string, string>> = {
   // Help's Declutter answers (6bd086d8a0) say WHEN setup happens ("at your first paid sale", "after you take your first
   // delivery"); a static answer holds no hook, and no link or control in Help sends anyone to the setup screen.
   "src/pages/info/helpCenter/helpCenterContent.ts": "Help answers that say when payout setup happens; nothing in Help sends anyone to setup",
+  "src/lib/i18n/enMoneyTiles.ts": "the money tiles' words (F260q); HomeMoneyTiles, which shows them, reads usePayoutSetupPaused() and says mt.kept instead while setup is paused",
+  "src/lib/i18n/enHome.ts": "the first-job checklist's step words (F260q); FirstJobHome, which shows them, reads usePayoutSetupPaused() and drops the step while setup is paused",
   "src/lib/payoutSetupPaused.ts": "the notices' own words (\"You'll set up payouts when you're hired\"): they replace setup, they send nobody to it",
 };
 

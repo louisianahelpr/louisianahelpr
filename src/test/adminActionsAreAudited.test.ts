@@ -82,6 +82,8 @@ export function sqlAudits(fn: SqlFn): boolean {
 /** Admin-gated writing functions that are not admin actions. Two-way. */
 // @two-way src/test/adminActionsAreAudited.test.ts:stale SQL exemption
 const SQL_EXEMPT: Readonly<Record<string, string>> = {
+  admin_activity_notice:
+    "not an admin action: the admin bell's notice helper, called only from AFTER triggers on member writes (20261112061000); has_role(p_actor, 'admin') only skips an admin's own activity.",
   notify_on_job_update:
     "not an admin action: the jobs AFTER UPDATE notice trigger; has_role(NEW.cancelled_by, 'admin') only picks the wording 'by our team' in the Job cancelled notice (F176, 20261109231855).",
   prevent_self_escalation:

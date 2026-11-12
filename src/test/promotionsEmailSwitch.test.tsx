@@ -35,6 +35,8 @@ let writes: Record<string, unknown>[];
 // file is about the jobs-and-master switches, so Declutter is off here (its
 // group has its own test in notificationPrefsScreen.test.tsx).
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
+// The admins-only Member activity group (owner 11-12) asks useCurrentUser; these members are not admins.
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ isAdmin: false }) }));
 
 vi.mock("@/hooks/useAuthReady", () => ({
   useAuthReady: () => ({ user: { id: "u1" }, isReady: true }),

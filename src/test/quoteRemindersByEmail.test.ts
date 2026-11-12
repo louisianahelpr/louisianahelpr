@@ -30,7 +30,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 import { resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
-import { declutterRows, rows, shopsRows } from "@/components/notificationPreferences/constants";
+import { declutterRows, rows, shopsRows, adminActivityRows } from "@/components/notificationPreferences/constants";
 
 const root = resolve(__dirname, "../..");
 const DIR = resolve(root, "supabase/migrations");
@@ -91,7 +91,9 @@ function visibleEmailSwitches(): Set<string> {
   const declutter = declutterRows.map((r) => r.emailKey as string);
   // The Shops group (ShopsNotificationGroup, 20261108201153) renders shopsRows the same way.
   const shops = shopsRows.map((r) => r.emailKey as string);
-  return new Set<string>([...rows.map((r) => r.emailKey as string), ...declutter, ...shops, ...standalone]);
+  // The admins-only Member activity group (AdminActivityNotificationGroup, 20261112061000) renders adminActivityRows.
+  const admin = adminActivityRows.map((r) => r.emailKey as string);
+  return new Set<string>([...rows.map((r) => r.emailKey as string), ...declutter, ...shops, ...admin, ...standalone]);
 }
 
 describe("Q2120 quote reminders by email, with their own switch", () => {

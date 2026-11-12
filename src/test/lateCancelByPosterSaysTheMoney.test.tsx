@@ -7,7 +7,7 @@
  *    was cancelled and the dollars they get: the server's own share (cancellationHelperShare, the cancel dialog's quote:
  *    the fee less the flat 5% + 70c, rounded down to the whole dollar, as void-cancelled-payments sends it).
  *
- * @mutate src/components/tracker/jobProgressState.ts |   const kept = poster && posterDid && fee > 0 ? `$${formatPrice(fee)} was kept for ${other}'s time` : null; |   const kept = null;
+ * @mutate src/components/tracker/jobProgressState.ts |   const kept = poster && posterDid && fee > 0 ? t("jl.cx.kept", { amount: formatPrice(fee), name: other }) : null; |   const kept = null;
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     const share = cancellationHelperShare(fee, job); |     const share = { helperPayout: fee, noFee: true };
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | `${lateBy(job)}, so you get ${share.noFee \|\| isFlatFeeJob(job) ? "" : "at least "}$${share.helperPayout} for your time.` | `${lateBy(job)}, so you get a share of the late-cancel fee.`
  */
@@ -55,7 +55,7 @@ describe("a poster's late cancel says the money on both sides (Q2701, Q2696)", (
   });
 
   // Q2701 (owner 11-03 "YES"): the poster's line shows the dollar amount refunded, from the refund ledger.
-  // @mutate src/components/tracker/jobProgressState.ts |   const refund = refunded ? (back ?? (kept ? "The rest was refunded" : REFUND_SENT)) : null; |   const refund = refunded ? (kept ? "The rest was refunded" : REFUND_SENT) : null;
+  // @mutate src/components/tracker/jobProgressState.ts |   const refund = refunded ? (back ?? (kept ? t("jl.cx.rest") : t("jl.cx.refundSent"))) : null; |   const refund = refunded ? (kept ? t("jl.cx.rest") : t("jl.cx.refundSent")) : null;
   // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     crewMember,\n    refundedCents,\n    refundKeptCents: | crewMember,\n    refundKeptCents:
   // @mutate src/pages/jobs/jobPage/JobPageParts.tsx | side === "poster" && job.status === "cancelled" && job.payment_status === "refunded" | false
   it("the poster's line names the dollars refunded when the ledger is read (Q2701)", () => {

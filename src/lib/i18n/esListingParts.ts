@@ -8,7 +8,7 @@ export const esListingParts: Record<keyof typeof enListingParts, string> = {
   "lp.keepUpOff": "Apagado. Está publicado 30 días a la vez, hasta 4 veces (unos 4 meses). Le avisaremos antes de que termine cada ronda.",
   "lp.keepUpToastOn": "Se renueva cada 30 días hasta que se venda.",
   "lp.keepUpToastOff": "Vuelve a estar publicado 30 días a la vez, hasta 4 veces.",
-  "lp.loadFail": "No pudimos cargar este ajuste.",
+  "lp.loadFailed": "No pudimos cargar este ajuste.",
   "lp.afLabel": "Si no se vende, hacerlo gratis después de",
   "lp.afNeverOption": "Nunca hacerlo gratis",
   "lp.afDays": "{n} días",

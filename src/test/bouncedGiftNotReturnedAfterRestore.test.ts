@@ -24,6 +24,8 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 const RESERVED_ONLY: Record<string, string> = {
   redeem_gift_card_for_declutter_order: "a gift set aside for the same order by a page that never opened goes back before the new one is applied",
   declutter_order_gift_follows_status: "an order that ends unpaid (expired / superseded) releases its reserved gift",
+  redeem_gift_card_for_shop_order: "Shops (Q2105, 20261111015126): a gift set aside for the same Shops order by a page that never opened goes back before the new one is applied",
+  shop_order_gift_follows_status: "Shops (Q2105, 20261111015126): a Shops order that ends uncharged releases its reserved gift",
 };
 
 describe("Q2077: a job's gift is given back once", () => {

@@ -562,7 +562,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined;
   } catch (e) {
     console.error(`[shop-checkout] ${caughtMessage(e)}`);
-    await closeFrozen("the Stripe customer read failed");
+    await closeFrozen("the saved card read failed");
     return json({ error: TRY_AGAIN }, 503);
   }
 

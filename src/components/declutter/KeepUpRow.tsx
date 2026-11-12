@@ -53,7 +53,7 @@ export function KeepUpSwitch({ keep, rowClassName, as = "li" }: { keep: KeepUp; 
   const { itemId, state, flip, on } = keep;
   const Row = as;
   if (!itemId || state.data === "not_deployed") return null;
-  if (state.isError) return <Row className={rowClassName}><ErrorState variant="inline" title={t("lp.loadFail")} body={declutterErrorMessage(state.error)} onRetry={() => void state.refetch()} /></Row>;
+  if (state.isError) return <Row className={rowClassName}><ErrorState variant="inline" title={t("lp.loadFailed")} body={declutterErrorMessage(state.error)} onRetry={() => void state.refetch()} /></Row>;
   return (
     <Row className={rowClassName} data-keep-up={on ? "on" : "off"}>
       <span className="flex-1 min-w-0">

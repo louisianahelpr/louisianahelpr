@@ -55,7 +55,7 @@ export function AutoFreeRow({ itemId, rowClassName, as = "li" }: { itemId: strin
   const Row = as;
   if (state.data === "not_deployed") return null;
   if (state.isError) {
-    return <Row className={rowClassName}><ErrorState variant="inline" title={t("lp.loadFail")} body={declutterErrorMessage(state.error)} onRetry={() => void state.refetch()} /></Row>;
+    return <Row className={rowClassName}><ErrorState variant="inline" title={t("lp.loadFailed")} body={declutterErrorMessage(state.error)} onRetry={() => void state.refetch()} /></Row>;
   }
   if (state.isLoading) return null;
   const days = pick.isPending ? (pick.variables ?? null) : (state.data ?? null);

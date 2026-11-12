@@ -15,7 +15,7 @@ export const enListingParts = {
   "lp.keepUpOff": "Off. It's up for 30 days at a time, up to 4 times (about 4 months). We'll remind you before each round ends.",
   "lp.keepUpToastOn": "It renews every 30 days until it sells.",
   "lp.keepUpToastOff": "It's up for 30 days at a time again, up to 4 times.",
-  "lp.loadFail": "We couldn't load this setting.",
+  "lp.loadFailed": "We couldn't load this setting.",
   "lp.afLabel": "If it doesn't sell, make it free after",
   "lp.afNeverOption": "Never make it free",
   "lp.afDays": "{n} days",

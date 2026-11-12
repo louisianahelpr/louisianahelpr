@@ -106,7 +106,8 @@ export default function ShopView() {
   const shareable = { id: s.id, name: s.name, category_label: catLabel, area_label: s.area_label };
   // S030 (Shops audit 11-12; lead 11-06: quotes ARE the custom-order request sheet): "gives quotes" shows only while
   // the shop takes custom orders, and then points at that sheet. The old "Quotes open here soon." promise is gone.
-  const takesCustom = s.offers_quotes && !!customOrders.data && customOrders.data !== "off";
+  // S2-034 (Shops audit 2): the custom-order picker is the one switch (the server's request check reads only it).
+  const takesCustom = !!customOrders.data && customOrders.data !== "off";
   const offersLine = s.offers_selling && takesCustom ? "Sells items and takes custom orders."
     : s.offers_selling ? "Sells items." : takesCustom ? "Takes custom orders." : null;
   const ownerEmpty = s.mine && s.offers_selling && ownItems.isSuccess && !ownItems.data.some((i) => i.status === "live");

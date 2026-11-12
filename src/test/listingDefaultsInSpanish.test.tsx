@@ -30,8 +30,6 @@ import { MemoryRouter } from "react-router-dom";
 import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
 import { enListingParts } from "@/lib/i18n/enListingParts";
 import { esListingParts } from "@/lib/i18n/esListingParts";
-import { offersSettingLine, OFFERS_TITLE } from "@/lib/declutter/offersOnPost";
-import { tradesSettingLine, TRADES_TITLE } from "@/lib/declutter/trades";
 import { SELLER_DEFAULTS } from "@/lib/declutter/sellerDefaults";
 
 vi.mock("@/components/declutter/SellPorchPlaces", async (orig) => ({ ...(await orig<object>()), SellPorchPlaces: () => null }));
@@ -77,12 +75,12 @@ describe("listing settings rows, Sell a bunch and Listing defaults follow the me
   });
 
   it("English reads the old words, word for word", async () => {
-    expect(enListingParts["lp.ld.offersTitle"]).toBe(OFFERS_TITLE);
-    expect(enListingParts["lp.ld.offersOn"]).toBe(offersSettingLine(true));
-    expect(enListingParts["lp.ld.offersOff"]).toBe(offersSettingLine(false));
-    expect(enListingParts["lp.ld.tradesTitle"]).toBe(TRADES_TITLE);
-    expect(enListingParts["lp.ld.tradesOn"]).toBe(tradesSettingLine(true));
-    expect(enListingParts["lp.ld.tradesOff"]).toBe(tradesSettingLine(false));
+    expect(enListingParts["lp.ld.offersTitle"]).toBe("Accept offers");
+    expect(enListingParts["lp.ld.offersOn"]).toBe("Buyers can offer a lower price, and you say yes or no.");
+    expect(enListingParts["lp.ld.offersOff"]).toBe("Off. Buyers pay your price with Buy now; no offers.");
+    expect(enListingParts["lp.ld.tradesTitle"]).toBe("Open to trades");
+    expect(enListingParts["lp.ld.tradesOn"]).toBe("Buyers can offer one of their listings in trade. No money changes hands.");
+    expect(enListingParts["lp.ld.tradesOff"]).toBe("Off. Buyers can't offer a trade.");
     expect(dayWords([6, 0])).toBe("Sundays and Saturdays");
     expect(dayWords([1, 3, 5])).toBe("Mondays, Wednesdays and Fridays");
     expect(makeFreeValue(null)).toBe("Never");

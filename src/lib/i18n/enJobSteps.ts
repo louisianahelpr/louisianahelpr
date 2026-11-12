@@ -34,6 +34,21 @@ export const enJobSteps = {
   "js.aria.them": "waiting on the other person",
   "js.aria.done": "Done: {steps}.",
   "js.aria.later": "Still to come: {steps}.",
+  "js.l.dispute": "Dispute",
+  "js.l.expired": "Expired",
+  "js.l.fix": "Fix",
+  "js.l.noShow": "No-show",
+  "js.l.noShowQ": "No-show?",
+  "js.l.overdue": "Overdue",
+  "js.l.refunded": "Refunded",
+  "js.l.withdrawn": "Withdrawn",
+  "js.l.runningLate": "Running late",
+  "js.l.closed": "Closed",
+  "js.l.late": "Late",
+  "js.l.issue": "Issue",
+  "js.w.underReview": "Under review",
+  "js.w.filled": "Filled",
+  "js.w.notPicked": "Not picked",
 } as const;
 
 addEnglish(enJobSteps);

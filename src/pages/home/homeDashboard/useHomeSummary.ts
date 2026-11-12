@@ -19,7 +19,7 @@ const handoverApi = () => loadModule(() => import("@/lib/declutter/handover"));
 // The section cards' live counts load after Home has painted (owner request 2026-11-01): their module and reads.
 const nearCountsApi = () => loadModule(() => import("./sectionNearCounts"));
 import { whenPageSettled } from "@/lib/routePrefetch";
-import { useFeature } from "@/hooks/useFeature";
+import { useFeature, useFeatureStatus } from "@/hooks/useFeature";
 import { useHomeDerive, useNeedsYouTodos } from "./useNeedsYouTodos";
 import { deriveComingUp, type ComingUpItem } from "./comingUp";
 import { inProgressJobIds, useContinueDays } from "@/hooks/useContinueDays";
@@ -89,7 +89,7 @@ export function hasBookedJob(postedJobs: readonly { status: string; helper_id?: 
 export function useHomeSummary(user: SupaUser | null) {
   const posted = useActivityData(user, "posted");
   const applied = useActivityData(user, "applied");
-  const declutterOn = useFeature("declutter");
+  const { on: declutterOn, settled: declutterSettled } = useFeatureStatus("declutter");
   const shopsOn = useFeature("shops");
   const homesOn = useFeature("rentals");
   const uid = user?.id ?? "";
@@ -172,6 +172,13 @@ export function useHomeSummary(user: SupaUser | null) {
       hasBookedJob: hasBookedJob(pj, aa),
       // A3-82 (audit 11-01): a member who sells or buys on Declutter is not new to the app: never the Jobs checklist.
       usesDeclutter: items.length > 0 || (cart.data ?? []).length > 0,
+      // F259p (whole-app audit 11-10, measured B3g 11-12): until the Declutter reads answer, usesDeclutter is not known.
+      // Home showed the new member's welcome card for ~300 ms and then swapped it for Needs you once the member's
+      // Declutter items arrived (a 174 -> 244 -> 157 px card swap, most of /home's 0.24 cold-load shift).
+      // The Declutter switch counts too: while it is unanswered the item read has not even started.
+      // The cart usually arrives seeded by the badge's one read (its own query idles meanwhile), so it is pending until
+      // it holds data or failed, whichever call answers it.
+      declutterPending: !declutterSettled || declutter.isLoading || (declutterOn && cart.data === undefined && !cart.isError),
       // You tab's activity tiles (board 18): real counts, 0 = no number shown.
       counts: {
         posted: postedLive.length,
@@ -200,5 +207,5 @@ export function useHomeSummary(user: SupaUser | null) {
         homes: countLine([[props.length, "property", "properties"]]),
       },
     };
-  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.helperNames, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, orders.data, orders.isError, todos, todosLoading, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError, jobsNear.data, declutterNear.data, continueDays, derive]);
+  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.helperNames, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, declutter.isLoading, declutterSettled, orders.data, orders.isError, todos, todosLoading, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError, jobsNear.data, declutterNear.data, continueDays, derive]);
 }

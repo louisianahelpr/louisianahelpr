@@ -17,12 +17,14 @@ import type { SellerHandover } from "@/lib/declutter/api";
 import { SellDeliveryOffNotice } from "./SellDeliveryOffNotice";
 import { SellPorchDays } from "./SellPorchDays";
 import { PLACE_CARD_EDGE, SellPorchPlaces } from "./SellPorchPlaces";
+import { enListingParts } from "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 export const HANDOVER_CHOICE: Record<SellerHandover, { title: string; words: string; icon: ComponentType<{ className?: string }> }> = {
-  porch: { title: "Porch pickup", words: "You leave it out and the buyer picks it up. You don't have to meet.", icon: DoorOpen },
-  seller_delivery: { title: "I'll deliver", words: "You bring it to the buyer for your delivery price, at a time they pick. Set your price and times under it in Declutter settings.", icon: Truck },
-  meetup: { title: "Safe meeting spot", words: "Meet at a public spot near you, like a police station lobby. Your address stays private.", icon: Users },
-  delivery: { title: "Helpr delivery", words: "A local Helpr picks it up and brings it to the buyer, who pays for it.", icon: MapPin },
+  porch: { title: enListingParts["lp.way.porch"], words: enListingParts["lp.way.porch.words"], icon: DoorOpen },
+  seller_delivery: { title: enListingParts["lp.way.seller_delivery"], words: enListingParts["lp.way.seller_delivery.words"], icon: Truck },
+  meetup: { title: enListingParts["lp.way.meetup"], words: enListingParts["lp.way.meetup.words"], icon: Users },
+  delivery: { title: enListingParts["lp.way.delivery"], words: enListingParts["lp.way.delivery.words"], icon: MapPin },
 };
 
 /**
@@ -32,16 +34,17 @@ export const HANDOVER_CHOICE: Record<SellerHandover, { title: string; words: str
  */
 export const SELLER_WAYS: SellerHandover[] = (Object.keys(HANDOVER_CHOICE) as SellerHandover[]).filter((w) => w !== "delivery");
 
-/** Said once under the ways, plainly, instead of a tick. */
-const HELPR_DELIVERY_ALWAYS = "Buyers can also choose Helpr delivery: a local Helpr picks it up from you and brings it to them, and the buyer pays for it.";
 
 /** The ways in a set, in the form's order, as words for the review step ("Porch pickup, Safe meeting spot"). */
 export function handoverSummary(ways: SellerHandover[]): string {
-  return SELLER_WAYS.filter((w) => ways.includes(w)).map((w) => HANDOVER_CHOICE[w].title).join(", ");
+  return SELLER_WAYS.filter((w) => ways.includes(w)).map((w) => wayTitle(w)).join(", ");
 }
 
 /** On Declutter settings the price and times open under this tile once it is ticked (LEAD-DELIVER-TWICE), so no pointer. */
-const DELIVER_WORDS_ON_SETTINGS = "You bring it to the buyer for your delivery price, at a time they pick.";
+const DELIVER_WORDS_ON_SETTINGS = () => t("lp.deliverOnSettings");
+
+/** A way's name in the member's language (F260q); HANDOVER_CHOICE keeps the English. */
+export const wayTitle = (w: SellerHandover): string => t(`lp.way.${w}`);
 
 /**
  * The tick tiles themselves, shared by this step and the listing defaults in Declutter settings. `fixed`: ticked and
@@ -65,11 +68,11 @@ export function SellWayTiles({ shown, ways, setWays, fixed = false, onSettingsPa
                 <Icon className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-ds-15 font-semibold text-foreground">{c.title}</span>
-                <span className="block text-ds-13 text-muted-foreground">{onSettingsPage && w === "seller_delivery" ? DELIVER_WORDS_ON_SETTINGS : c.words}</span>
+                <span className="block text-ds-15 font-semibold text-foreground">{wayTitle(w)}</span>
+                <span className="block text-ds-13 text-muted-foreground">{onSettingsPage && w === "seller_delivery" ? DELIVER_WORDS_ON_SETTINGS() : t(`lp.way.${w}.words`)}</span>
               </span>
               <Checkbox id={`sell-way-${w}`} className="mt-1" checked={on} disabled={fixed}
-                onCheckedChange={(v) => toggle(w, v === true)} aria-label={c.title} />
+                onCheckedChange={(v) => toggle(w, v === true)} aria-label={wayTitle(w)} />
             </label>
           </li>
         );
@@ -89,10 +92,10 @@ export function SellHandoverChoices({ ways, setWays, free, sellerDeliveryOpen, p
   const shown = SELLER_WAYS.filter((w) => (free ? w === "porch" : w !== "seller_delivery" || sellerDeliveryOpen));
   return (
     <div className="space-y-2" role="group" aria-labelledby="sell-ways">
-      <p id="sell-ways" className="text-ds-14 font-semibold text-foreground">{free ? "How it's picked up" : "Tick every way that works for you"}</p>
+      <p id="sell-ways" className="text-ds-14 font-semibold text-foreground">{free ? t("lp.waysHeadFree") : t("lp.waysHead")}</p>
       <SellWayTiles shown={shown} ways={ways} setWays={setWays} fixed={free} />
-      {free && <p className="text-ds-13 text-muted-foreground" data-free-ways="">A free item is picked up from your porch.</p>}
-      {!free && <p className="text-ds-13 text-muted-foreground" data-helpr-delivery-always="">{HELPR_DELIVERY_ALWAYS}</p>}
+      {free && <p className="text-ds-13 text-muted-foreground" data-free-ways="">{t("lp.freeWays")}</p>}
+      {!free && <p className="text-ds-13 text-muted-foreground" data-helpr-delivery-always="">{t("lp.helprAlways")}</p>}
       {!free && sellerDeliveryOpen && <SellDeliveryOffNotice ticked={ways.includes("seller_delivery")} />}
       {(free || ways.includes("porch")) && <SellPorchDays pickupDays={pickupDays} />}
       {/* Not tied to the porch tick: declutter_start_checkout hands over at the buyer's pick for Helpr delivery too, and buyers can always choose that. */}

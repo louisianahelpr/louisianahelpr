@@ -38,7 +38,7 @@ import { pickupWindowsProblem } from "./DeclutterPickupTimes";
 import PriceHint from "./DeclutterPriceHint";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { SellAiDraftPanel } from "./SellAiDraft";
-import { HANDOVER_CHOICE, handoverSummary } from "./SellHandoverChoices";
+import { handoverSummary, wayTitle } from "./SellHandoverChoices";
 import { sellStepProblem } from "./sellForm";
 import { FieldLabel, SELL_INPUT, SellDropsCard, SellFreeToggle, SellPriceInput, SellTaxBox, SellWaysFields, SellYouGet } from "./SellFormParts";
 import { SellOneScreen } from "./SellOneScreen";
@@ -197,7 +197,7 @@ function SellSteps({ itemId }: { itemId: string }) {
               {[CONDITION_LABEL[form.conditionStars], CATEGORY_LABEL[form.category], form.areaLabel.trim()].filter(Boolean).join(" · ")}
             </p>
             <ul className="flex flex-wrap gap-2 pt-1" aria-label={tr("sf.ds.howGet")}>
-              {savedWays.map((w) => <li key={w} className="rounded-full border border-border px-3 py-1 text-ds-13 font-medium">{HANDOVER_CHOICE[w].title}</li>)}
+              {savedWays.map((w) => <li key={w} className="rounded-full border border-border px-3 py-1 text-ds-13 font-medium">{wayTitle(w)}</li>)}
             </ul>
           </div>
           <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">

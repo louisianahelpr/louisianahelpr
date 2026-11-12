@@ -47,6 +47,6 @@ describe("DC-4: Helpr delivery is always a buyer's choice for what they buy", ()
   it("the sell form never offers it as a tick, and says plainly that buyers can choose it", () => {
     expect(SELLER_WAYS).not.toContain("delivery");
     expect(SELLER_WAYS.length).toBeGreaterThan(2);
-    expect(code("src/components/declutter/SellHandoverChoices.tsx")).toContain("{!free && <p className=\"text-ds-13 text-muted-foreground\" data-helpr-delivery-always=\"\">{HELPR_DELIVERY_ALWAYS}</p>}");
+    expect(code("src/components/declutter/SellHandoverChoices.tsx")).toContain("{!free && <p className=\"text-ds-13 text-muted-foreground\" data-helpr-delivery-always=\"\">{t(\"lp.helprAlways\")}</p>}");
   });
 });

@@ -967,7 +967,7 @@ describe("photo-first selling, one screen", () => {
   // @mutate src/components/declutter/SellOneScreen.tsx |   if (s.savedWays.length === 0 && !out.some((p) => p.at === "settings")) out.push( |   if (false) out.push(
   // DC-4 (owner 2026-10-29): buyers can always choose Helpr delivery, so it is said plainly, never offered as a tick.
   // @mutate src/components/declutter/SellHandoverChoices.tsx | (Object.keys(HANDOVER_CHOICE) as SellerHandover[]).filter((w) => w !== "delivery"); | (Object.keys(HANDOVER_CHOICE) as SellerHandover[]);
-  // @mutate src/components/declutter/SellHandoverChoices.tsx |       {!free && <p className="text-ds-13 text-muted-foreground" data-helpr-delivery-always="">{HELPR_DELIVERY_ALWAYS}</p>} |
+  // @mutate src/components/declutter/SellHandoverChoices.tsx |       {!free && <p className="text-ds-13 text-muted-foreground" data-helpr-delivery-always="">{t("lp.helprAlways")}</p>} |
   it("the ways come from the seller's settings, and the choices never offer door pickup or a Helpr delivery tick", async () => {
     vi.mocked(api.setHandovers).mockClear();
     savedRow.value = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["delivery"], acceptsOffers: true };

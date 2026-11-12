@@ -30,6 +30,19 @@ export const enListingParts = {
   "lp.dsEach": "{pct}% less each evening, {time}",
   "lp.dsAria": "The lowest it could be each evening",
   "lp.dsFoot": "The first drop comes after it has been up 12 hours. It never goes below {floor}, and may stop sooner.",
+  "lp.way.porch": "Porch pickup",
+  "lp.way.porch.words": "You leave it out and the buyer picks it up. You don't have to meet.",
+  "lp.way.seller_delivery": "I'll deliver",
+  "lp.way.seller_delivery.words": "You bring it to the buyer for your delivery price, at a time they pick. Set your price and times under it in Declutter settings.",
+  "lp.way.meetup": "Safe meeting spot",
+  "lp.way.meetup.words": "Meet at a public spot near you, like a police station lobby. Your address stays private.",
+  "lp.way.delivery": "Helpr delivery",
+  "lp.way.delivery.words": "A local Helpr picks it up and brings it to the buyer, who pays for it.",
+  "lp.helprAlways": "Buyers can also choose Helpr delivery: a local Helpr picks it up from you and brings it to them, and the buyer pays for it.",
+  "lp.deliverOnSettings": "You bring it to the buyer for your delivery price, at a time they pick.",
+  "lp.waysHead": "Tick every way that works for you",
+  "lp.waysHeadFree": "How it's picked up",
+  "lp.freeWays": "A free item is picked up from your porch.",
 } as const;
 
 addEnglish(enListingParts);

@@ -2,7 +2,8 @@
  * F260q (owner 11-11 "Spanish EVERYTHING now"): the listing-setting parts the saved draft's step form shares with
  * Manage listing and Declutter settings, in the member's language: "Keep it up until it sells" (KeepUpRow), "make it
  * free after __ days" (AutoFreeRow / autoFree.ts), how long it stays up (the draft's review row), the price-drops
- * switch's name on the sell form and the "If it doesn't sell" strip (DropSchedule). Words: enListingParts.ts /
+ * switch's name on the sell form, the "If it doesn't sell" strip (DropSchedule) and the ways buyers can get it
+ * (SellHandoverChoices / SellWayTiles, also on Declutter settings). Words: enListingParts.ts /
  * esListingParts.ts (its own small chunk). An English member reads the old words, word for word (the exported English
  * constants read the same dictionary).
  *
@@ -14,10 +15,16 @@
  * @mutate src/lib/declutter/autoFree.ts |   return t("lp.afExplainer", { n: days }); |   return `If it hasn't sold by day ${days}, it becomes free and anyone nearby can claim it.`;
  * @mutate src/components/declutter/DeclutterSellSteps.tsx | >{t("lp.dsHead")}</p> | >If it doesn't sell</p>
  * @mutate src/components/declutter/DeclutterSellSteps.tsx |         {t("lp.dsFoot", { floor: formatPrice(floorCents) })} |         The first drop comes after it has been up 12 hours.
+ * @mutate src/components/declutter/KeepUpRow.tsx | >{t("lp.keepUpExplainer")}</span> | >{KEEP_UP_EXPLAINER}</span>
+ * @mutate src/components/declutter/SellHandoverChoices.tsx | export const wayTitle = (w: SellerHandover): string => t(`lp.way.${w}`); | export const wayTitle = (w: SellerHandover): string => HANDOVER_CHOICE[w].title;
+ * @mutate src/components/declutter/SellHandoverChoices.tsx | : t(`lp.way.${w}.words`)} | : c.words}
+ * @mutate src/components/declutter/SellHandoverChoices.tsx | {free ? t("lp.waysHeadFree") : t("lp.waysHead")} | {free ? "How it's picked up" : "Tick every way that works for you"}
+ * @mutate src/components/declutter/SellHandoverChoices.tsx | data-helpr-delivery-always="">{t("lp.helprAlways")}</p> | data-helpr-delivery-always="">Buyers can also choose Helpr delivery.</p>
  * @mutate src/components/declutter/SellFormParts.tsx | <span className="block text-ds-15 font-semibold text-foreground">{t("lp.dropsSwitch")}</span> | <span className="block text-ds-15 font-semibold text-foreground">Lower the price over time</span>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
 import { es } from "@/lib/i18n/es";
 import { enListingParts } from "@/lib/i18n/enListingParts";
@@ -25,10 +32,15 @@ import { esListingParts } from "@/lib/i18n/esListingParts";
 import { autoFreeExplainer, autoFreeSaved } from "@/lib/declutter/autoFree";
 import { KEEP_UP_TITLE, keepUpSettingLine } from "@/components/declutter/KeepUpRow";
 import { DROPS_SWITCH_LABEL } from "@/components/declutter/sellForm";
+import { handoverSummary } from "@/components/declutter/SellHandoverChoices";
 
+vi.mock("@/components/declutter/SellPorchPlaces", async (orig) => ({ ...(await orig<object>()), SellPorchPlaces: () => null }));
+vi.mock("@/components/declutter/SellPorchDays", () => ({ SellPorchDays: () => null }));
 vi.mock("@/components/declutter/useSellerSetupFee", () => ({ useSellerSetupFee: () => ({ unknown: false, server: false, orderId: null, cents: 0 }) }));
 
 const { AutoFreeChoice } = await import("@/components/declutter/AutoFreeRow");
+const { KeepUpSwitch } = await import("@/components/declutter/KeepUpRow");
+const { SellHandoverChoices } = await import("@/components/declutter/SellHandoverChoices");
 const { DropSchedule } = await import("@/components/declutter/DeclutterSellSteps");
 const { SellDropsCard } = await import("@/components/declutter/SellFormParts");
 
@@ -42,11 +54,13 @@ const flow = () => ({
 }) as unknown as S;
 
 const show = () => render(
-  <div>
+  <QueryClientProvider client={new QueryClient()}><div>
     <AutoFreeChoice days={14} onChange={() => {}} />
     <DropSchedule priceCents={4000} floorCents={2000} pct={10} />
     <SellDropsCard s={flow()} />
-  </div>,
+    <KeepUpSwitch as="div" rowClassName="" keep={{ itemId: "i1", on: false, state: { data: false, isError: false, isLoading: false }, flip: { isPending: false, mutate: vi.fn() } } as unknown as Parameters<typeof KeepUpSwitch>[0]["keep"]} />
+    <SellHandoverChoices ways={["porch", "meetup"]} setWays={() => {}} free={false} sellerDeliveryOpen={false} />
+  </div></QueryClientProvider>,
 );
 
 describe("the listing-setting parts follow the member's language (F260q)", () => {
@@ -75,6 +89,9 @@ describe("the listing-setting parts follow the member's language (F260q)", () =>
     expect(screen.getByText("If it doesn't sell, make it free after")).toBeTruthy();
     expect(screen.getByRole("option", { name: "14 days" })).toBeTruthy();
     expect(screen.getAllByText("If it doesn't sell").length).toBeGreaterThan(0);
+    expect(screen.getByText("Keep it up until it sells")).toBeTruthy();
+    expect(screen.getByText("Tick every way that works for you")).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: "Porch pickup" })).toBeTruthy();
     expect(screen.getByText("Lower the price over time")).toBeTruthy();
   });
 
@@ -93,6 +110,13 @@ describe("the listing-setting parts follow the member's language (F260q)", () =>
     expect(screen.getAllByText("Si no se vende").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/La primera bajada llega cuando lleva 12 horas publicado\. Nunca baja de \$20/).length).toBeGreaterThan(0);
     expect(screen.getByText("Bajar el precio con el tiempo")).toBeTruthy();
-    expect(document.body.textContent).not.toMatch(/If it doesn't sell|make it free after|Lower the price over time|first drop comes/);
+    expect(screen.getByText("Mantenerlo publicado hasta que se venda")).toBeTruthy();
+    expect(screen.getByText(esListingParts["lp.keepUpExplainer"])).toBeTruthy();
+    expect(screen.getByText("Marque cada forma que le sirva")).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: "Recoger en el porche" })).toBeTruthy();
+    expect(screen.getByText(esListingParts["lp.way.meetup.words"])).toBeTruthy();
+    expect(screen.getByText(esListingParts["lp.helprAlways"])).toBeTruthy();
+    expect(handoverSummary(["meetup", "porch"])).toBe("Recoger en el porche, Lugar de encuentro seguro");
+    expect(document.body.textContent).not.toMatch(/If it doesn't sell|make it free after|Lower the price over time|first drop comes|Keep it up|Tick every way|Porch pickup|Safe meeting spot|Buyers can also choose/);
   });
 });

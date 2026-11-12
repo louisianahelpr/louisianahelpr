@@ -340,6 +340,10 @@ Each question: options, **recommended first**, one line why. The owner answers b
   (a) **Same as Declutter: maker types the buyer's 4-digit code (no QR: owner 2026-10-17) or buyer taps "I got it"; auto-done 24 h
   after the date unless the buyer reports a problem** — one handover system. (b) Photo of the handover. (c) Buyer
   confirm only.
+  **AS BUILT (lead decision 11-12, S034): auto-done is 48 h, not 24 h.** In person: 48 h after the shop taps
+  "Handed over" / "Mark complete". Left out (porch): 48 h after the later of the ready photo and the ready date.
+  Downloads: 72 h after the charge. Code: shop_complete_handover sweep (20261112073633); the buyer's notices and
+  ShopHandoverActions say the same 48 h. Do not flip this back to 24 h in an audit.
 - **L24. Delivery?**
   (a) **Pickup, maker delivers (maker sets the fee), or Helpr delivery with Declutter's pricing** — reuses Declutter
   slice 5. (b) Pickup only at launch. (c) Helpr delivery only.
@@ -404,6 +408,7 @@ Each question: options, **recommended first**, one line why. The owner answers b
   (b) Shop pays it. (c) Split.
 - **L40. When does the shop get paid?**
   (a) **At handover (QR / "I got it" / auto after 24 h), like Declutter** — the buyer is protected until they have it.
+  **AS BUILT (11-12, S034): the auto step is 48 h (see L23).**
   (b) When the maker accepts. (c) Weekly.
 
 ### Round 11: Cancels and refunds
@@ -424,6 +429,9 @@ Each question: options, **recommended first**, one line why. The owner answers b
 - **L45. Strikes?**
   (a) **One marketplace strike count shared with Declutter (3 = out of both, each expires after 1 year)** — someone
   struck in one shouldn't move to the other. (b) Separate counts. (c) Shops get 5 strikes.
+  **AS BUILT (owner 10-18 via the lead, S056): strikes are PER SECTION.** Shops has its own count (shop_strikes,
+  shop_active_strike_count, 20261018164444); a Declutter strike never counts in Shops and a Shops strike never counts
+  in Declutter. Whole-account bans (fraud, scams, harassment, safety) still cover both.
 - **L46. Reviews?**
   (a) **Both ways after handover, on the same star rating as jobs (hidden until both review or 14 days)** — one
   reputation per person. (b) A separate shop rating. (c) Buyers review shops only.
@@ -702,7 +710,7 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 | L20 | "Ready now" items with a stock count; buying still goes to the maker to accept |
 | L21 | Ready dates: per-item lead time + shop's open days; buyer picks an open date |
 | L22 | Maker sets a max orders per day; full days grey out |
-| L23 | Handover same as Declutter: QR (4-digit backup) or buyer "I got it"; auto-done 24 h after the date unless the buyer reports a problem |
+| L23 | Handover same as Declutter: QR (4-digit backup) or buyer "I got it"; auto-done 48 h (as built, 11-12 S034) after the shop's tap or the ready photo unless the buyer reports a problem |
 | L24 | Delivery: pickup, maker delivers (maker's fee), or Helpr delivery with Declutter's per-mile pricing once built |
 | L25 | Anything not on the banned list can be rented out (banned list still excludes vehicles, boats, firearms, etc.) |
 | L26 | Inflatables (bounce houses): only with State Fire Marshal registration, current inspection and insurance certificate, admin-checked, even for one |
@@ -718,12 +726,12 @@ both Declutter and Local call, so money code exists once. Do this after Declutte
 | L37 | Earnings: 15% BUYER fee like Declutter (min $1), card fee INSIDE the 15% (clarified by pop-up); the shop keeps 100% of its price |
 | L38 | Pro for shops: BOTH free boost days each month + "Pro" badge AND a lower buyer fee at Pro shops (e.g. 10% instead of 15%; exact % to confirm when building) |
 | L39 | Card fee: inside the buyer's one total (never absorbed beyond the premium, as Declutter) |
-| L40 | Shop paid at handover (QR / "I got it" / auto after 24 h) |
+| L40 | Shop paid at handover (QR / "I got it" / auto after 48 h, as built 11-12) |
 | L41 | Buyer cancels after accept: the MAKER sets their own cancellation policy (shown before ordering) |
 | L42 | Maker cancels after accepting: buyer full refund, card fee charged to the maker, maker strike |
 | L43 | Problem with an order: buyer reports at handover or within 24 h with a photo; admin decides; refund of the price, card fee kept unless our mistake |
 | L44 | Equipment rental cancellation: the OWNER sets their own policy (shown before booking) |
-| L45 | One marketplace strike count shared with Declutter (3 = out of both; each expires after 1 year) |
+| L45 | Per-section strike counts (owner 10-18; Shops has its own, 3 = out of Shops; each expires after 1 year) |
 | L46 | Reviews both ways after handover, on the one shared star rating with a "shop" breakdown |
 | L47 | Badges: "ID checked", "Permit on file", "Insured", "Licensed", each admin-checked via the credentials queue |
 | L48 | Private messages ANY time (incl. before ordering), still through the contact-leak filter (blocks phones/emails/payment apps) |

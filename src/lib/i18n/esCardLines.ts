@@ -2,6 +2,8 @@
 import type { enCardLines } from "./enCardLines";
 
 export const esCardLines: Record<keyof typeof enCardLines, string> = {
+  "cl.todayAnyTime": "Hoy, a cualquier hora: toque Voy en camino cuando salga",
+  "cl.crewToday": "Es la hora: toque Ver los pasos de su equipo para salir",
   "cl.p.in_review": "Estamos revisando esta publicación",
   "cl.p.applicants": "Hay postulantes esperando",
   "cl.p.listing_expired": "La publicación venció",

@@ -21,7 +21,7 @@ import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { SellItForMeEntry } from "./SellItForMe";
 import { SellAiDraftPanel } from "./SellAiDraft";
 import { DeclutterNotice } from "./declutterUi";
-import { formProblem } from "./sellForm";
+import { formProblemCode, formProblemWords, problemRow } from "./sellForm";
 import { dropsValue, makeFreeValue, SellingSettingsRows, usePickupLines } from "./SellingSettingsRows";
 import { SellFreeNote, SellOffersToggle, SellTaxBox } from "./SellFormParts";
 import { SellProgress, postStepOf } from "./SellProgress";
@@ -46,9 +46,10 @@ function postProblems(s: SellFlow): { message: string; at: Where }[] {
   const writing = s.ai.state.status === "busy";
   // formProblem says the first thing wrong; each answered in turn, so all of them are marked at once (audit posting 1030 #19).
   let probe = writing ? { ...s.form, title: s.form.title.trim() || "Being written", price: s.form.price || "100", floor: s.form.floor || "1" } : s.form;
-  for (let f = formProblem(probe); f; f = formProblem(probe)) {
-    const at: Where = /name/i.test(f) ? "title" : /price|lowest|drops/i.test(f) ? "price" : "settings";
-    out.push({ message: f, at });
+  for (let code = formProblemCode(probe); code; code = formProblemCode(probe)) {
+    // The row keys off the code, never the words (F260q: Spanish words would all land on Settings).
+    const at: Where = problemRow(code);
+    out.push({ message: formProblemWords(code), at });
     if (at === "settings") break;
     probe = at === "title" ? { ...probe, title: "Answered" } : { ...probe, price: "100", floor: "1", dropPct: DEFAULT_DROP_PCT };
   }

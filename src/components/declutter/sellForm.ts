@@ -6,10 +6,12 @@
  */
 import type { DeliverySize } from "@/lib/declutter/api";
 import { dollarsToCents } from "@/lib/declutter/money";
-import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
+import { DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/photoRules";
 import { DEFAULT_DROP_PCT, DROP_PCT_CHOICES } from "@/lib/declutter/priceDrop";
 import { parseUsAddress } from "../../../supabase/functions/_shared/addressMatch";
 import { WRITER_WARNING_RE } from "@/lib/declutter/writerWarning";
+import type { MsgKey } from "@/lib/i18n/en";
+import { t as tr } from "@/lib/i18n/language";
 
 /**
  * The ONE name of the price-drops switch, on the sell form and in Manage listing (audit DC-5: Manage said "Stop
@@ -90,37 +92,53 @@ export function areaFromAddress(address: string): string {
   return /\d/.test(city) || AREA_ADDRESS_RE.test(city) ? "" : city;
 }
 
-/** F326: said under the title when it still reads as a note about the photos, not the item. */
-const WRITER_WARNING_TITLE = "That title is a note about the photo, not the item's name. Type what the item is.";
-
 /** An address with no city in it: said at Save, since there is no box to ask in. */
 export const NO_CITY_IN_ADDRESS = "We couldn't tell the city from that address. Pick it from the list, or type it as street, city, ZIP.";
 
-/** What is wrong with the form, in plain words, or null. Mirrors the server's checks. */
-export function formProblem(f: FormState): string | null {
-  if (f.title.trim().length < 3) return "Give the item a name of at least 3 characters.";
+/**
+ * What is wrong with the form, as a code, or null. Mirrors the server's checks. The row that gets marked keys off the
+ * code (F260q: SellOneScreen used to match English words, which a Spanish message would never hit).
+ */
+export type FormProblemCode = "name" | "writerNote" | "price" | "floor" | "dropPct" | "address" | "city";
+
+export function formProblemCode(f: FormState): FormProblemCode | null {
+  if (f.title.trim().length < 3) return "name";
   // Audit 11-10 F326: a title that is the photo writer's note ("Item photo unclear - please retake photos") never posts.
-  // Client-only (the server has no such rule); "name" routes it to the title row (SellOneScreen postProblems).
-  if (WRITER_WARNING_RE.test(f.title)) return WRITER_WARNING_TITLE;
+  // Client-only (the server has no such rule); it routes to the title row (SellOneScreen postProblems).
+  if (WRITER_WARNING_RE.test(f.title)) return "writerNote";
   const price = dollarsToCents(f.price);
   const floor = dollarsToCents(f.floor);
-  if (!f.free && (price === null || price < 100 || price > 100_000)) return "Set a price between $1 and $1,000.";
+  if (!f.free && (price === null || price < 100 || price > 100_000)) return "price";
   const dropsApply = f.drops && !priceTooLowForDrops(f.price);
-  if (!f.free && dropsApply && (price === null || floor === null || floor < 100 || floor >= price)) {
-    return "Set your lowest price: at least $1 and below your price. Or turn price drops off.";
-  }
-  if (!f.free && dropsApply && !(DROP_PCT_CHOICES as readonly number[]).includes(f.dropPct)) return "Pick how much the price drops each evening.";
-  if (f.pickupAddress.trim().length < 5) return "Add the pickup address. Buyers only see it after they pay.";
-  if (f.areaLabel.trim().length < 2 || AREA_ADDRESS_RE.test(f.areaLabel)) return NO_CITY_IN_ADDRESS;
+  if (!f.free && dropsApply && (price === null || floor === null || floor < 100 || floor >= price)) return "floor";
+  if (!f.free && dropsApply && !(DROP_PCT_CHOICES as readonly number[]).includes(f.dropPct)) return "dropPct";
+  if (f.pickupAddress.trim().length < 5) return "address";
+  if (f.areaLabel.trim().length < 2 || AREA_ADDRESS_RE.test(f.areaLabel)) return "city";
   return null;
+}
+
+/** The row a problem belongs to (the title, the price, or Settings for the address and city), by code. */
+export function problemRow(code: FormProblemCode): "title" | "price" | "settings" {
+  if (code === "name" || code === "writerNote") return "title";
+  if (code === "price" || code === "floor" || code === "dropPct") return "price";
+  return "settings";
+}
+
+/** A problem code in the member's words (enSellForm "sf.fp.*"; the Sell page loads that dictionary). */
+export const formProblemWords = (code: FormProblemCode): string => tr(`sf.fp.${code}` as MsgKey);
+
+/** What is wrong with the form, in the member's words, or null. */
+export function formProblem(f: FormState): string | null {
+  const code = formProblemCode(f);
+  return code ? formProblemWords(code) : null;
 }
 
 /** What blocks leaving a step, in the same words as formProblem (the server's checks). */
 export function sellStepProblem(step: number, f: FormState, photoTotal: number): string | null {
-  if (step === 1) return photoTotal < DECLUTTER_MIN_PHOTOS ? `Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}.` : null;
-  if (step === 2) return f.title.trim().length < 3 ? "Give the item a name of at least 3 characters." : null;
-  const all = formProblem(f);
-  if (step === 3) return all && /price/i.test(all) ? all : null;
-  if (step === 4) return all;
+  if (step === 1) return photoTotal < DECLUTTER_MIN_PHOTOS ? (DECLUTTER_MIN_PHOTOS === 1 ? tr("sf.addPhotoOne") : tr("sf.addPhotos", { n: DECLUTTER_MIN_PHOTOS })) : null;
+  if (step === 2) return f.title.trim().length < 3 ? formProblemWords("name") : null;
+  const code = formProblemCode(f);
+  if (step === 3) return code && problemRow(code) === "price" ? formProblemWords(code) : null;
+  if (step === 4) return code ? formProblemWords(code) : null;
   return null;
 }

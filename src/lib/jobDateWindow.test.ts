@@ -5,7 +5,7 @@
  * @mutate src/lib/jobDateWindow.ts |   return hasDateWindow(job) ? job.date_window_end! : job.date_needed; |   return job.date_needed;
  * @mutate src/lib/jobDateWindow.ts | export const DATE_WINDOW_EXTRA_DAYS = 6; | export const DATE_WINDOW_EXTRA_DAYS = 7;
  * @mutate src/components/dashboard/JobCard.tsx | {jobDayLabel(job)} | {formatJobDate(job.date_needed)}
- * @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql | ((COALESCE(date_window_end, date_needed) + 1)::timestamp | ((date_needed + 1)::timestamp
+ * @mutate supabase/migrations/20261112202620_guests_read_masked_job_description.sql | ((COALESCE(date_window_end, date_needed) + 1)::timestamp | ((date_needed + 1)::timestamp
  * @mutate src/lib/jobColumns.ts | "tax_kind", "date_window_end"] as const; | "tax_kind"] as const;
  * @mutate src/components/job-card/MineJobFace.tsx |     job.date_needed ? jobDayLabel(job) : null, |     job.date_needed ? formatJobDate(job.date_needed) : null,
  */

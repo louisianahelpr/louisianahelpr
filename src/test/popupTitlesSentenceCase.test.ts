@@ -184,7 +184,8 @@ describe("every pop-up title is sentence case", () => {
     // 235: +1 "Change your pickup time" (FreeAskSheet's change mode, the asker moves an open free ask, audit 11-10 F359c).
     // 236: +1 "Your review" (YourReviewDialog, the poster reads the review they left, audit 11-10 F278).
     // 237: Messages' batch hide title is two dictionary branches (one / n conversations), F260q 11-11.
-    expect(all.length).toBe(237);
+    // 238: +1 "Discard your changes?" (ProfileEditForm, leaving Edit profile with unsaved edits, audit 11-10 F261a).
+    expect(all.length).toBe(238);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

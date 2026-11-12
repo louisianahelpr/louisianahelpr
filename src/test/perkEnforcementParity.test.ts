@@ -370,7 +370,7 @@ describe("VN-44 owner decision, stated once", () => {
 // @mutate supabase/migrations/20261017085012_helper_advanced_analytics.sql |          AND public.feature_enabled_for_user('memberships', p_user_id) |          AND true
 // @mutate supabase/functions/instant-job-match/index.ts |         if (await featureEnabledForUser(supabase, "memberships", { id })) tierCounts.add(id); |         tierCounts.add(id);
 // @mutate supabase/migrations/20261110202142_notice_titles_by_outcome_plain_words.sql |           AND public.feature_enabled_for_user('memberships', p_helper)) |           AND true)
-// @mutate supabase/migrations/20261104080753_map_and_ranked_read_date_window.sql |             WHEN NOT public.feature_enabled_for_user('memberships', j.customer_id) THEN 0 |             WHEN false THEN 0
+// @mutate supabase/migrations/20261112202620_guests_read_masked_job_description.sql |             WHEN NOT public.feature_enabled_for_user('memberships', j.customer_id) THEN 0 |             WHEN false THEN 0
 // @mutate supabase/migrations/20261021062609_memberships_off_paid_perks.sql |         WHEN NOT public.feature_enabled_for_user('memberships', r.reporter_id) THEN 'free' |         WHEN false THEN 'free'
 // @mutate supabase/functions/weekly-helper-report/index.ts |       if (await featureEnabledForUser(supabase, "memberships", { id: h.user_id })) activeHelpers.push(h); |       activeHelpers.push(h);
 // @mutate supabase/functions/check-pro-subscription/index.ts | if (hasPerk(tier, "referralUpgradeBonus") && (await featureEnabledForUser(supabaseAdmin, "memberships", { id: user.id }))) { | if (hasPerk(tier, "referralUpgradeBonus")) {

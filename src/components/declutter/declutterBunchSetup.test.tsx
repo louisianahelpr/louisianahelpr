@@ -40,6 +40,12 @@ vi.mock("@/components/declutter/BunchDraftsSection", () => ({ BunchDraftsSection
 vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<object>()), fetchMyPickupWindows: async () => [] }));
 
 import BunchFlow from "./DeclutterBunchView";
+import { useSavedPickup } from "./useSavedPickup";
+
+/** As SellerSetupGate: the page mounts once the saved pickup reads have settled. */
+function AfterSavedPickup({ children }: { children: React.ReactNode }) {
+  return useSavedPickup("u1", () => {}).settled ? <>{children}</> : null;
+}
 
 const LAST: LastSetup = {
   itemId: "i0", ways: ["porch"], areaLabel: "Mid-City", dropPct: null,
@@ -59,7 +65,8 @@ afterEach(cleanup);
 describe("Sell a bunch: where buyers pick up starts from the last listing", () => {
   it("a saved address asks nothing, with its saved point: nothing is looked up, and the steps start at the photos", async () => {
     state.last = LAST;
-    renderFlow();
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={qc}><MemoryRouter><AfterSavedPickup><BunchFlow /></AfterSavedPickup></MemoryRouter></QueryClientProvider>);
     await screen.findByRole("heading", { name: "1. Add photos" });
     expect(screen.queryByLabelText("Pickup address")).toBeNull();
     expect(screen.queryByLabelText("Area buyers see")).toBeNull();
@@ -85,6 +92,55 @@ describe("Sell a bunch: where buyers pick up starts from the last listing", () =
     renderFlow();
     await settle();
     expect(box("Pickup address").value).toBe("");
+  });
+});
+
+/**
+ * F342 (whole-app audit 11-10, /declutter/move layout shift; measured B3g 11-12: "Where buyers pick up" drew open,
+ * then folded away and every step under it jumped up 246px). Lead 11-12: keep "type before the read answers" and keep
+ * the step's place instead of hiding it. So: behind the setup gate (reads settled) the step never draws at all, not
+ * even for the one frame before the saved pickup is applied; drawn open before the reads answer, it stays open,
+ * filled in, and the photo step under it never moves.
+ * @mutate src/components/declutter/bunchWhereFold.ts |   const address = (pickupAddress.trim() ? pickupAddress : saved.address).trim(); |   const address = pickupAddress.trim();
+ * @mutate src/components/declutter/bunchWhereFold.ts |   return foldable && !drawnOpen.current; |   return foldable;
+ */
+describe("F342 bunchWhereNeverFolds: the Where step draws once and never folds away", () => {
+  it("behind the gate, with a saved address, the address box is never put on the page, not for one frame", async () => {
+    state.last = LAST;
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    // The gate's own wait, then the page: the reads are settled when BunchFlow mounts, as in the app.
+    const gate = render(<QueryClientProvider client={qc}><MemoryRouter><AfterSavedPickup><span data-gate-open="" /></AfterSavedPickup></MemoryRouter></QueryClientProvider>);
+    await waitFor(() => expect(document.querySelector("[data-gate-open]")).not.toBeNull());
+    const container = document.body.appendChild(document.createElement("div"));
+    const records: MutationRecord[] = [];
+    const seen = new MutationObserver((rs) => { records.push(...rs); });
+    seen.observe(container, { childList: true, subtree: true });
+    render(<QueryClientProvider client={qc}><MemoryRouter><AfterSavedPickup><BunchFlow /></AfterSavedPickup></MemoryRouter></QueryClientProvider>, { container });
+    await screen.findByRole("heading", { name: "1. Add photos" });
+    await settle();
+    records.push(...seen.takeRecords());
+    seen.disconnect();
+    // An added node is read as it is now, so a box drawn and then folded away shows up as a REMOVED node.
+    const nodes = (pick: (r: MutationRecord) => NodeList) => records.flatMap((r) => [...pick(r)]).filter((n): n is Element => n instanceof Element);
+    const holdsBox = (n: Element) => n.id === "bunch-address" || !!n.querySelector("#bunch-address");
+    expect(nodes((r) => r.addedNodes).length).toBeGreaterThan(0);
+    expect(nodes((r) => r.removedNodes).some(holdsBox)).toBe(false);
+    expect(nodes((r) => r.addedNodes).some(holdsBox)).toBe(false);
+    gate.unmount();
+  });
+
+  it("drawn open before the reads answer, it stays open, filled in, and the photo step keeps its number", async () => {
+    let answer: () => void = () => {};
+    state.gate = new Promise<void>((r) => { answer = r; });
+    state.last = LAST;
+    renderFlow();
+    expect(box("Pickup address").value).toBe("");
+    expect(screen.getByRole("heading", { name: "2. Add photos" })).toBeTruthy();
+    answer();
+    await waitFor(() => expect(box("Pickup address").value).toBe("1 Main St, Baton Rouge"));
+    await settle();
+    expect(screen.getByLabelText("Pickup address")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "2. Add photos" })).toBeTruthy();
   });
 });
 

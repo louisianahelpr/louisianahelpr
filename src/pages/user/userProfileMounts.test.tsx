@@ -4,8 +4,8 @@
  * AtAGlanceCard, Recent work, the reviews list, the loading masthead). The profile's own data hook and every
  * read are stubbed (no network); the sections render for real.
  *
- * @mutate src/pages/user/UserProfile.tsx |           <MovingSaleBanner sellerId={userId!} /> |
- * @mutate src/pages/user/UserProfile.tsx | <MovingSaleBanner sellerId={userId!} /> | <MovingSaleBanner sellerId={currentUserId!} />
+ * @mutate src/pages/user/ProfileDeclutterSections.tsx |       <MovingSaleBanner sellerId={userId} /> |
+ * @mutate src/pages/user/ProfileDeclutterSections.tsx | <MovingSaleBanner sellerId={userId} /> | <MovingSaleBanner sellerId="someone-else" />
  * @mutate src/pages/user/ProfileHeaderCard.tsx |         {recognition && <div className="mt-4">{recognition}</div>} |
  * @mutate src/pages/user/ProfileHeaderCard.tsx |           {atAGlance} |
  * @mutate src/pages/user/UserProfile.tsx |             {showReviews && (\n              <ReviewsSection |             {false && (\n              <ReviewsSection
@@ -15,10 +15,18 @@
  * skills, and the bottom bar "Invite to a job" on everyone else's profile, a new member's too (app audit
  * A3-C9, 2026-10-29: it needed work on record; it was the ... menu's "Offer a job directly"; no Message
  * button, owner).
- * @mutate src/pages/user/UserProfile.tsx |           <SellingNowRow sellerId={userId!} /> |
+ * @mutate src/pages/user/ProfileDeclutterSections.tsx |       <SellingNowRow sellerId={userId} /> |
  * @mutate src/components/declutter/SellingNowRow.tsx | const SELLING_NOW_FIRST = 2; | const SELLING_NOW_FIRST = 12;
  * @mutate src/pages/user/UserProfile.tsx |         {!isOwnProfile && currentUserId && <InviteToJobBar userId={userId!} />} |
  * @mutate src/pages/user/UserProfile.tsx |         {!isOwnProfile && currentUserId && <InviteToJobBar userId={userId!} />} |         {!isOwnProfile && currentUserId && workedJobs.length > 0 && <InviteToJobBar userId={userId!} />}
+ * F359i (owner 11-12): opened from a Declutter listing (?from=declutter), the seller's Declutter (moving sale, Selling
+ * now, Declutter reviews) sits ABOVE the masthead; from anywhere else it stays below it. The item page's seller card,
+ * the reserve sheet and the moving-sale note link with ?from=declutter; the job page's poster/Helpr card does not.
+ * @mutate src/pages/user/UserProfile.tsx |           {declutterFirst && <ProfileDeclutterSections userId={userId!} />} | 
+ * @mutate src/pages/user/UserProfile.tsx |           {!declutterFirst && <ProfileDeclutterSections userId={userId!} />} |           {<ProfileDeclutterSections userId={userId!} />}
+ * @mutate src/pages/user/UserProfile.tsx |   const declutterFirst = searchParams.get(PROFILE_FROM_PARAM) === PROFILE_FROM_DECLUTTER; |   const declutterFirst = false;
+ * @mutate src/components/declutter/DeclutterSellerCard.tsx | noun === "seller" ? { from: PROFILE_FROM_DECLUTTER } : undefined | undefined
+ * @mutate src/lib/profileLink/memberProfilePath.ts | opts?.from ? `/user/${userId}?${PROFILE_FROM_PARAM}=${opts.from}` : | false ? "" :
  * @mutate src/pages/user/InviteToJobBar.tsx |         onClick={() => navigate(`/post-job?offerTo=${userId}`)} |         onClick={() => navigate(`/post-job`)}
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -26,6 +34,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AT_A_GLANCE_GRID } from "./AtAGlanceCard";
+import { readFileSync } from "node:fs";
+import { blankComments } from "@/test/helpers/blankNonCode";
+import { memberProfilePath, PROFILE_FROM_DECLUTTER, PROFILE_FROM_PARAM } from "@/lib/profileLink/memberProfilePath";
 
 const saleReads = vi.hoisted(() => [] as string[]);
 const page = vi.hoisted(() => ({ loading: false, worked: [] as unknown[] }));
@@ -139,11 +150,11 @@ function Where() {
   return null;
 }
 
-function renderProfile() {
+function renderProfile(path = "/user/s1") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={["/user/s1"]}>
+      <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/user/:userId" element={<UserProfile />} />
           <Route path="/post-job" element={<Where />} />
@@ -218,5 +229,37 @@ describe("the public profile mounts its sections", () => {
     const { container } = renderProfile();
     expect(screen.queryByText("Sam S.")).toBeNull();
     expect([...container.querySelectorAll("div")].filter((d) => d.className === AT_A_GLANCE_GRID)).toHaveLength(1); // ProfileHeroSkeleton
+  });
+});
+
+describe("F359i: from a Declutter listing the seller's Declutter comes first", () => {
+  /** Document order: does `a` come before `b`? */
+  const before = (a: Element, b: Element) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+  it("?from=declutter: the moving sale and Selling now sit above the masthead", async () => {
+    renderProfile(`/user/s1?${PROFILE_FROM_PARAM}=${PROFILE_FROM_DECLUTTER}`);
+    const selling = await screen.findByText("Selling now · 3");
+    const sale = await screen.findByText("Moving to Lafayette");
+    const glance = screen.getByRole("region", { name: "At a glance" });
+    expect(before(selling, glance)).toBe(true);
+    expect(before(sale, glance)).toBe(true);
+    expect(sellerReads).toEqual(["s1"]);
+  });
+
+  it("from anywhere else the order is unchanged: the masthead first, Declutter under it", async () => {
+    renderProfile();
+    const selling = await screen.findByText("Selling now · 3");
+    const glance = screen.getByRole("region", { name: "At a glance" });
+    expect(before(glance, selling)).toBe(true);
+  });
+
+  it("the listing's links carry the origin; a plain profile link does not", () => {
+    expect(memberProfilePath("s1", { from: PROFILE_FROM_DECLUTTER })).toBe("/user/s1?from=declutter");
+    expect(memberProfilePath("s1")).toBe("/user/s1");
+    const read = (f: string) => blankComments(readFileSync(f, "utf8"));
+    expect(read("src/components/declutter/DeclutterSellerCard.tsx")).toContain('memberProfilePath(sellerId, noun === "seller" ? { from: PROFILE_FROM_DECLUTTER } : undefined)');
+    for (const f of ["src/components/declutter/DeclutterReserveSheet.tsx", "src/components/declutter/DeclutterMovingSaleNote.tsx"]) {
+      expect(read(f), f).toContain("memberProfilePath(sellerId, { from: PROFILE_FROM_DECLUTTER })");
+    }
   });
 });

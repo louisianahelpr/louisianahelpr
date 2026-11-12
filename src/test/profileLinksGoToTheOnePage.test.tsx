@@ -16,7 +16,7 @@
  * @mutate src/pages/u/PublicProfilePage.tsx | const memberActions = user && q.data && ctaReady && !isMe | const memberActions = user && q.data && ctaReady
  * @mutate src/components/profile/publicProfile/PublicProfileMemberActions.tsx |       {showBlock && ( |       {false && (
  * @mutate src/components/profile/publicProfile/PublicProfileMemberActions.tsx |       {showReport && ( |       {false && (
- * @mutate src/components/declutter/DeclutterSellerCard.tsx | to={memberProfilePath(sellerId)} | to={`/user/${sellerId}`}
+ * @mutate src/components/declutter/DeclutterSellerCard.tsx | to={memberProfilePath(sellerId, noun === "seller" ? { from: PROFILE_FROM_DECLUTTER } : undefined)} | to={`/user/${sellerId}`}
  * (The member forward itself is guarded in src/test/profileLinkForwards.test.tsx.)
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";

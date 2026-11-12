@@ -541,6 +541,17 @@ const App = () => (
             </Suspense>
           </SignedInOnly>
           <SidePanelProvider>
+          {/* F276a / F359p (audit 11-10): the desktop top bar (which holds the page's own Back, Share and menu,
+              portalled into it by PageTitleBar) and the rail mount BEFORE <main>, so a keyboard reaches them in the
+              order they are seen: top bar, rail, then the page. After <main> they came last, after the whole page.
+              Both are position:fixed, so the DOM order moves nothing on screen. Phones never fetch their chunks (B86).
+              Guard: src/test/desktopChromeBeforeMain.test.ts. */}
+          <SignedInChrome>
+            <WebDesktopOnly>
+              <Suspense fallback={null}><DesktopTopNav /></Suspense>
+              <Suspense fallback={null}><DesktopSidebarNav /></Suspense>
+            </WebDesktopOnly>
+          </SignedInChrome>
           <main
             id="main-content"
             className="w-full max-w-full no-scrollbar"
@@ -558,11 +569,6 @@ const App = () => (
           <SignedInChrome>
             <Suspense fallback={null}><MobileNav /></Suspense>
             <Suspense fallback={null}><NeedsYouMount /></Suspense>
-            {/* Phones never fetch the desktop rail's chunks (B86). */}
-            <WebDesktopOnly>
-              <Suspense fallback={null}><DesktopSidebarNav /></Suspense>
-              <Suspense fallback={null}><DesktopTopNav /></Suspense>
-            </WebDesktopOnly>
             <Suspense fallback={null}><DeliveryOnlinePill /></Suspense>
             <Suspense fallback={null}><TermsReconsentMount /></Suspense>
             <Suspense fallback={null}><IdentityCheckMount /></Suspense>

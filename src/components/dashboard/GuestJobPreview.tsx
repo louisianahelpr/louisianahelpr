@@ -57,6 +57,9 @@ export type GuestJob = FlatFeeStamp & {
   is_flexible_schedule?: boolean | null;
   /** The view's parish stem, read only for the share line (jobShareLine.mjs, F269a); the sheet derives its own. */
   parish?: string | null;
+  /** F268a (owner 11-12): the shared-link page only (GuestJobPage). The view's guest copy, masked on the server
+   *  (mask_guest_contact). The Browse sheet never prints it. */
+  description?: string | null;
 };
 
 /** The pay label: the same words on the sheet for every paid job, so it never reads as a second figure (F217). */

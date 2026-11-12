@@ -239,7 +239,10 @@ function stepStamps(j: ProgressJob): readonly (string | null)[] {
 export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState {
   if (o.continueDay && job.status === "in_progress") {
     const step = continueDayNextStep(o.continueDay, { side: o.viewer, otherFirst: o.otherFirst });
-    const base = jobProgress(jobOnContinueDay(job, o.continueDay), { ...o, continueDay: null });
+    // Q2791: a caller that read the tracking row (the chat's job card, the job page) passes it, so the new day's rail
+    // drops day 1's On the way / Arrived until that day's own check-ins; a caller that never reads it leaves it out.
+    const newDay = o.tracking === undefined ? undefined : o.tracking?.status ?? null;
+    const base = jobProgress(jobOnContinueDay(job, o.continueDay, newDay), { ...o, continueDay: null });
     if (step) return { ...base, next: nextStepWords(step), waitingOnYou: step.who === "you" };
   }
   const base = { ...lineRules(job, o), stamps: stepStamps(job) };

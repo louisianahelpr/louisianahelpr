@@ -138,7 +138,7 @@ function HomeDashboardScreen() {
   const next = summary.todos[at];
   // Design audit A D3 (owner approved 11-08): a new member with nothing to do sees ONE welcome card (WelcomeCard) in
   // place of "You're all caught up" and an empty "Coming up". Same "new" rule as the first-job checklist below.
-  const welcome = !!firstJob?.isNew && !summary.usesDeclutter && !next && !summary.todosLoading && !summary.waiting;
+  const welcome = !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && !next && !summary.todosLoading && !summary.waiting;
   const rest = Math.max(0, todoCount - 1);
   // Q2706 (B98): while their reads are out, Next up and the money strip hold the height they had last time on this
   // device (reservedHeight.ts), so the blocks below them do not move when they land.
@@ -271,7 +271,7 @@ function HomeDashboardScreen() {
                     </div>
                   </div>
                 </>
-              ) : summary.todosLoading || money.pending ? (
+              ) : summary.todosLoading || money.pending || (!!firstJob?.isNew && summary.declutterPending) ? (
                 /* Q2706 (B98): the to-dos are still loading. Never "all caught up" before the reads answer; hold the
                    to-do card's own size (title, meta, the 44px action row) so nothing moves when it lands. */
                 <>
@@ -411,7 +411,7 @@ function HomeDashboardScreen() {
             {/* Design audit A D2 (owner approved 11-08): "Needs you" comes first, the first-week checklist after it as one
                 progress line. Board 189: before a member's first job, the first-job checklist and jobs near them.
                 A3-82: not for a member who came to sell or buy on Declutter. */}
-            {firstJob?.isNew && !summary.usesDeclutter && <FirstJobHome profile={profile} alertsOff={firstJob.alertsOff} />}
+            {firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && <FirstJobHome profile={profile} alertsOff={firstJob.alertsOff} />}
             {/* UX-5: the poster's first week (posted, hired, approved) until a posted job is finished. */}
             {firstJob && !firstJob.isNew && <PosterFirstJobCard userId={user?.id} />}
             </>}

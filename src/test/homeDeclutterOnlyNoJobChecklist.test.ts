@@ -5,7 +5,7 @@
  * first-job checklist only to a member new to the app on BOTH counts.
  * Also (lead 11-01, the owner's "Remove you take home"): the Helpr delivery view's figure stands alone.
  *
- * @mutate src/pages/home/HomeDashboard.tsx | {firstJob?.isNew && !summary.usesDeclutter && <FirstJobHome | {firstJob?.isNew && <FirstJobHome
+ * @mutate src/pages/home/HomeDashboard.tsx | {firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && <FirstJobHome | {firstJob?.isNew && !summary.declutterPending && <FirstJobHome
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       usesDeclutter: items.length > 0 \|\| (cart.data ?? []).length > 0, |       usesDeclutter: false,
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |           <span className="sr-only">Your pay</span> |           <span className="text-ds-15 font-semibold">You take home</span>
  */
@@ -21,7 +21,7 @@ describe("a Declutter-only member never gets the Jobs first-job checklist (A3-82
     const home = read("src/pages/home/HomeDashboard.tsx");
     const gates = home.match(/<FirstJobHome\b/g) ?? [];
     expect(gates.length).toBe(1);
-    expect(home).toContain("{firstJob?.isNew && !summary.usesDeclutter && <FirstJobHome");
+    expect(home).toContain("{firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && <FirstJobHome");
   });
 
   it("usesDeclutter reads the member's listings and cart, the reads Home already makes", () => {

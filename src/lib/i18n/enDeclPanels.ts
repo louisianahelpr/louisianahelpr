@@ -33,23 +33,6 @@ export const enDeclPanels = {
   "dp.aboutMile": "About 1 mile · {price}",
   "dp.aboutMiles": "About {n} miles · {price}",
 
-  "dp.tradeSent": "Trade offer sent. The seller has 48 hours to answer.",
-  "dp.youOffered": "You offered your {title} in trade",
-  "dp.yourListing": "listing",
-  "dp.waitingSeller": "Waiting on the seller.",
-  "dp.seeInBuying": "See it in Buying",
-  "dp.offerTrade": "Offer a trade",
-  "dp.tradeWhat": "Swap one of your listings for this. No money changes hands, and each of you picks up the other's item.",
-  "dp.tradePick": "Pick one of your listings to trade for \"{title}\". No money changes hands. The seller has 48 hours to answer.",
-  "dp.loadingListings": "Loading your listings…",
-  "dp.noListings": "You have no listings up to trade.",
-  "dp.listAnItem": "List an item",
-  "dp.first": "first.",
-  "dp.tradeListLabel": "Your listing to trade",
-  "dp.cancel": "Cancel",
-  "dp.sending": "Sending…",
-  "dp.sendTrade": "Send trade offer",
-
   // Handover ways (handoverCopy.ts HANDOVER_TITLE / HANDOVER_WORDS, word for word; declutterPanelsInSpanish checks).
   "ho.title.porch": "Porch pickup",
   "ho.title.pickup_home": "Meet at the seller's home",
@@ -81,14 +64,6 @@ export const enDeclPanels = {
   "pb.timesError": "We couldn't load the pickup times.",
 
   // The Sell form's summary card (SellSummaryCard.tsx).
-  "sell.yourListing": "Your listing",
-  "sell.writing": "We're writing it from your photos.",
-  "sell.wrote": "We wrote this from your photos. Change anything.",
-  "sell.addPhotos": "Add photos and we'll write it for you, or fill it in yourself.",
-  "sell.filling": "We're filling this in…",
-  "sell.done": "Done",
-  "sell.add": "Add",
-  "sell.edit": "Edit",
   "sell.field.title": "title",
   "sell.field.price": "price",
   "sell.field.category": "category",
@@ -101,19 +76,6 @@ export const enDeclPanels = {
   "sell.addField.condition": "Add a condition",
   "sell.addField.size": "Add a size",
   "sell.addField.description": "Add details",
-  "sell.title": "Title",
-  "sell.titlePlaceholder": "e.g. Oak rocking chair",
-  "sell.limit": " · That's the limit.",
-  "sell.price": "Price",
-  "sell.free": "Free",
-  "sell.chargeForIt": "Charge for it",
-  "sell.category": "Category",
-  "sell.condition": "Condition",
-  "sell.size": "Size",
-  "sell.details": "Details",
-  "sell.anythingElse": "Anything else?",
-  "sell.optional": "(optional)",
-  "sell.detailsPlaceholder": "e.g. Works great. Small scuff on the base.",
 } as const;
 
 addEnglish(enDeclPanels);

@@ -16,14 +16,18 @@ import { enPublic } from "./enPublic";
 import { enLanding } from "./enLanding";
 import { enNotifications } from "./enNotifications";
 import { enDeclutter } from "./enDeclutter";
+import { enSections } from "./enSections";
+import { enDeclBrowse } from "./enDeclBrowse";
 import { enHome } from "./enHome";
 import { enMessages } from "./enMessages";
 import { enOffer } from "./enOffer";
 import { enFree } from "./enFree";
 import { enQuestions } from "./enQuestions";
 import { enDeclPanels } from "./enDeclPanels";
+import { enSellSummary } from "./enSellSummary";
+import { enOfferTrade } from "./enOfferTrade";
 
 /** The whole dictionary (boot words + screen words). Tests and es.ts's type read it; app code calls t(). */
-export const en = { ...enCore, ...enScreens, ...enPostJob, ...enJobs, ...enJobCard, ...enPublic, ...enLanding, ...enNotifications, ...enDeclutter, ...enHome, ...enSettings, ...enMessages, ...enOffer, ...enFree, ...enQuestions, ...enDeclPanels } as const;
+export const en = { ...enCore, ...enScreens, ...enPostJob, ...enJobs, ...enJobCard, ...enPublic, ...enLanding, ...enNotifications, ...enDeclutter, ...enHome, ...enSettings, ...enMessages, ...enOffer, ...enFree, ...enQuestions, ...enDeclPanels, ...enSections, ...enDeclBrowse, ...enSellSummary, ...enOfferTrade } as const;
 
 export type MsgKey = keyof typeof en;

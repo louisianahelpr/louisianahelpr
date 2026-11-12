@@ -1,7 +1,9 @@
 /** Spanish for enDeclutter.ts (F260q): Declutter's browse words and the shared section bar's. "Declutter" stays. */
 import type { enDeclutter } from "./enDeclutter";
+import type { enSections } from "./enSections";
+import type { enDeclBrowse } from "./enDeclBrowse";
 
-export const esDeclutter: Record<keyof typeof enDeclutter, string> = {
+export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSections | keyof typeof enDeclBrowse, string> = {
   "section.search": "Buscar",
   "section.noun.jobs": "trabajos",
   "section.noun.jobsAndItems": "trabajos y artículos",

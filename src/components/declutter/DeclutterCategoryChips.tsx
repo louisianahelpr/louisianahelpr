@@ -26,6 +26,7 @@ import { CATEGORIES, CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclutter";
+import "@/lib/i18n/enDeclBrowse";
 
 export function DeclutterCategoryChips({ items, value, onChange, free = false, onFree }: {
   items: readonly { category: string; current_price_cents?: number }[];

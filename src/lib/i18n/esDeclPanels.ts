@@ -1,7 +1,9 @@
 /** Spanish for enDeclPanels.ts (F260q). "Declutter" and "Helpr" stay as they are. */
 import type { enDeclPanels } from "./enDeclPanels";
+import type { enSellSummary } from "./enSellSummary";
+import type { enOfferTrade } from "./enOfferTrade";
 
-export const esDeclPanels: Record<keyof typeof enDeclPanels, string> = {
+export const esDeclPanels: Record<keyof typeof enDeclPanels | keyof typeof enSellSummary | keyof typeof enOfferTrade, string> = {
   "dp.timeUp": "se acabó el tiempo",
   "dp.daysLeft": "quedan {n} días",
   "dp.hourLeft": "queda 1 hora",

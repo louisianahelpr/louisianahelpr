@@ -21,6 +21,7 @@ import { offerAsk, type OriginAsk } from "./DeclutterBrowseBar";
 import { t } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclutter";
+import "@/lib/i18n/enDeclBrowse";
 
 // F260q (owner 11-11): the sheet's words come from the dictionary (enDeclutter.ts / esDeclutter.ts). The caller
 // (DeclutterBrowse) re-renders on a language change through useLanguage().

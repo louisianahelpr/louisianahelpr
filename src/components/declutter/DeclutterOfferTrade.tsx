@@ -25,6 +25,7 @@ import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 import { timeLeft } from "@/lib/declutter/timeLeft";
 import { useMyTrades } from "./useMyTrades";
 import "@/lib/i18n/enDeclPanels";
+import "@/lib/i18n/enOfferTrade";
 import { useLanguage } from "@/lib/i18n/language";
 
 export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "id" | "title" | "accepts_trades">; userId: string }) {

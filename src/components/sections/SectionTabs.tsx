@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
 import { BROWSE } from "./sectionsConfig";
 import { useLanguage } from "@/lib/i18n/language";
-import "@/lib/i18n/enDeclutter";
 import type { MsgKey } from "@/lib/i18n/en";
 
 export interface SectionTabDef<T extends string> {

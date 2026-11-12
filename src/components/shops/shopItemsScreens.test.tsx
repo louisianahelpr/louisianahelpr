@@ -492,6 +492,20 @@ describe("ShopItemEditor", () => {
     expect((screen.getByLabelText("Description") as HTMLTextAreaElement).value).toBe("Soy wax.");
   });
 
+  it("S2-010: at 12 photos Add a photo stops, and the 13th refusal speaks of the item", async () => {
+    const photos = Array.from({ length: 12 }, (_, k) => ({ id: `p${k}`, storage_path: `u1/shop-items/it1/${k}.jpg`, position: k })) as ShopItem["photos"];
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "live", photos })} onCreated={() => {}} onDone={() => {}} />);
+    expect(screen.getByText("12 photos (the most)")).toBeTruthy();
+    expect((screen.getByText("12 photos (the most)").closest("label")?.querySelector('input[type="file"]') as HTMLInputElement).disabled).toBe(true);
+    const { rpcErrorMessage } = await import("@/lib/shops/rpcErrorCopy");
+    expect(rpcErrorMessage("shops_add_item_photo", { message: "too_many_photos" } as never)).toBe("An item can have up to 12 photos.");
+  });
+
+  it("S2-013: a saved price reopens as 18.50, not 18.5", () => {
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft", price_cents: 1850 })} onCreated={() => {}} onDone={() => {}} />);
+    expect((screen.getByLabelText("Price (dollars)") as HTMLInputElement).value).toBe("18.50");
+  });
+
   it("S2-007: Cancel with typed changes asks first; with nothing changed it just closes", async () => {
     const done = vi.fn();
     const { unmount } = renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft" })} onCreated={() => {}} onDone={done} />);

@@ -5,7 +5,7 @@
  * Stripe page opens. A refusal stays on the form in plain words.
  *
  * @mutate src/components/shops/ShopCustomOrderForm.tsx |  const canSend = !!readyDate && dateProblem === null && !opening && price > 0; |  const canSend = !!readyDate && !opening && price > 0;
- * @mutate src/components/shops/ShopCustomOrderForm.tsx |      <p className="text-xs text-muted-foreground">{CUSTOM_ORDER_PAY_TEXT[request.payment_plan]}</p> |      <p className="text-xs text-muted-foreground">{CUSTOM_ORDER_PAY_TEXT.full_hold}</p>
+ * @mutate src/components/shops/ShopCustomOrderForm.tsx |      <p className="text-ds-11 text-muted-foreground">{CUSTOM_ORDER_PAY_TEXT[request.payment_plan]}</p> |      <p className="text-ds-11 text-muted-foreground">{CUSTOM_ORDER_PAY_TEXT.full_hold}</p>
  * @mutate src/lib/shops/orders.ts |    action: "order", shop_id: args.shopId, custom_request_id: args.requestId, ready_date: args.readyDate, note: args.note, |    action: "order", shop_id: args.shopId, ready_date: args.readyDate, note: args.note,
  * @mutate src/components/shops/ShopCustomOrderForm.tsx |      toast.error(shopsErrorMessage(err)); |
  */

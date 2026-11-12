@@ -69,23 +69,23 @@ function ItemSheetBody({ item, options, preorder, orderable, preorders, onDone }
         )}
         <div className="space-y-0.5">
           <p className="text-base font-bold">{options ? `From ${formatItemPrice(item.price_cents)}` : formatItemPrice(item.price_cents)}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             {SHOP_ITEM_TYPE_LABEL[item.subtype] ?? "Item"} · {preorder ? preorderLabel(preorder) : readinessLabel(item)}
           </p>
         </div>
-        {item.description.trim() && <p className="whitespace-pre-line break-words text-sm">{item.description}</p>}
+        {item.description.trim() && <p className="whitespace-pre-line break-words text-ds-13">{item.description}</p>}
         {item.home_kitchen && (
-          <p className="flex gap-1.5 text-xs text-muted-foreground">
+          <p className="flex gap-1.5 text-ds-11 text-muted-foreground">
             <House className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
             <span>{HOME_KITCHEN_NOTICE}</span>
           </p>
         )}
         {!canOrder ? (
-          <p className="text-sm text-muted-foreground" data-testid="shop-item-sheet-cant">
+          <p className="text-ds-13 text-muted-foreground" data-testid="shop-item-sheet-cant">
             {item.kind === "digital" ? "Buy this download below." : preorder && preorder.open === false ? "Preorders for this are closed." : "Sold out."}
           </p>
         ) : locked ? (
-          <p className="text-sm text-muted-foreground" data-testid="shop-item-sheet-locked">
+          <p className="text-ds-13 text-muted-foreground" data-testid="shop-item-sheet-locked">
             {preorder ? "Preorders are ordered on their own." : "Order this separately from your preorder."}
           </p>
         ) : options ? (
@@ -95,7 +95,7 @@ function ItemSheetBody({ item, options, preorder, orderable, preorders, onDone }
           </ul>
         ) : (
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold">How many</p>
+            <p className="text-ds-13 font-semibold">How many</p>
             <QuantityStepper label={item.title} max={preorder ? preorderMax(preorder) : maxFor(item)} value={draft[item.id] ?? 0}
               onChange={(n) => setDraft((d) => ({ ...d, [item.id]: n }))} />
           </div>

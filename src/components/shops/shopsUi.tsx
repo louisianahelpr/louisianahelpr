@@ -64,7 +64,7 @@ export function ShopBadgeList({ badges, compact = false }: { badges: ShopBadges 
       {earned.map(({ key, label, icon: Icon }) => (
         <li
           key={key}
-          className={`inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 text-foreground ${compact ? "px-2 py-0.5 text-ds-11" : "px-2.5 py-1 text-xs"}`}
+          className={`inline-flex items-center gap-1 rounded-full border border-border bg-muted/60 text-foreground ${compact ? "px-2 py-0.5 text-ds-11" : "px-2.5 py-1 text-ds-11"}`}
         >
           <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
           {label}
@@ -76,11 +76,11 @@ export function ShopBadgeList({ badges, compact = false }: { badges: ShopBadges 
 
 /** The owner's one star rating (G11), or "No reviews yet". */
 export function ShopRating({ rating, count }: { rating: number | null; count: number }) {
-  if (!count) return <span className="text-xs text-muted-foreground">No reviews yet</span>;
+  if (!count) return <span className="text-ds-11 text-muted-foreground">No reviews yet</span>;
   // Shops H9: the shop's rating shows only at 3 or more reviews (the server returns no average below that).
-  if (rating == null) return <span className="text-xs text-muted-foreground">Not rated yet ({count} {count === 1 ? "review" : "reviews"})</span>;
+  if (rating == null) return <span className="text-ds-11 text-muted-foreground">Not rated yet ({count} {count === 1 ? "review" : "reviews"})</span>;
   return (
-    <span className="inline-flex items-center gap-1 text-xs">
+    <span className="inline-flex items-center gap-1 text-ds-11">
       <Star className="h-3.5 w-3.5 text-amber-500" fill="currentColor" aria-hidden />
       <span className="font-semibold" aria-hidden>{Number(rating).toFixed(1)}</span>
       <span className="text-muted-foreground" aria-hidden>({count})</span>
@@ -99,7 +99,7 @@ export function ShopsNotice({ title, children, tone = "info" }: { title: string;
   return (
     <div
       role={tone === "warn" ? "alert" : "status"}
-      className="rounded-[20px] border border-border bg-card p-4 text-sm text-foreground"
+      className="rounded-[20px] border border-border bg-card p-4 text-ds-13 text-foreground"
     >
       <p className="font-semibold" style={tone === "warn" ? { color: "hsl(var(--alert-ink))" } : undefined}>{title}</p>
       {children && <div className="mt-1 text-muted-foreground">{children}</div>}
@@ -176,7 +176,7 @@ export function OrderGroup({ title, count, empty, children }: { title: string; c
         {title}
         <span className="ml-1.5 text-foreground/70">{count}</span>
       </h2>
-      {count === 0 ? <p className="px-1 text-sm text-muted-foreground">{empty}</p> : <ul className="space-y-3">{children}</ul>}
+      {count === 0 ? <p className="px-1 text-ds-13 text-muted-foreground">{empty}</p> : <ul className="space-y-3">{children}</ul>}
     </section>
   );
 }

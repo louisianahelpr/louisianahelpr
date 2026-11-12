@@ -79,14 +79,14 @@ export default function ShopDigitalBuy({ shopId }: { shopId: string }) {
 
   return (
     <section className="space-y-3" aria-labelledby={headId} data-testid="shop-digital-buy">
-      <h2 id={headId} className="text-sm font-semibold">Downloads</h2>
+      <h2 id={headId} className="text-ds-13 font-semibold">Downloads</h2>
       <ul className="space-y-2">
         {downloads.map((d) => (
           <li key={d.id} className="flex flex-wrap items-center gap-2 rounded-2xl border border-border p-3">
             <FileDown className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{d.title}</p>
-              <p className="text-xs text-muted-foreground">Digital download · yours to keep</p>
+              <p className="truncate text-ds-13 font-medium">{d.title}</p>
+              <p className="text-ds-11 text-muted-foreground">Digital download · yours to keep</p>
             </div>
             <Button type="button" className="btn-grad-primary" onClick={() => tapBuy(d)} disabled={opening}>
               Buy · {formatItemPrice(d.price_cents)}
@@ -96,8 +96,8 @@ export default function ShopDigitalBuy({ shopId }: { shopId: string }) {
       </ul>
       {picked && !isNativePlatform && (
         <div className="space-y-3 rounded-2xl border border-border p-4" data-testid="shop-digital-billing">
-          <p className="text-sm font-medium">{picked.title}</p>
-          <p className="text-sm">
+          <p className="text-ds-13 font-medium">{picked.title}</p>
+          <p className="text-ds-13">
             {`You pay ${formatCents(picked.price_cents + buyerFeeCents(picked.price_cents) + setupFeeCents)}${setupFeeCents > 0 ? `, including a one-time ${formatCents(setupFeeCents)} account setup fee,` : ""} plus sales tax where you live${setupFeeKnown ? "" : " and any one-time account setup fee"}. ${SHOP_SERVICE_FEE_INCLUDED}`} You can download it in Shops &gt; My orders as soon as you pay.
           </p>
           <div className="space-y-1.5">

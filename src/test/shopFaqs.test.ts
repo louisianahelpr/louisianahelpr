@@ -13,7 +13,7 @@
 // @mutate src/lib/shops/errors.ts |   shop_hidden: "This shop is hidden by Louisiana Helpr right now, so it can't be changed. Contact support.", |   shop_hidden: "Louisiana Helpr hid your shop, so it can't be closed here. Contact support.",
 // @mutate src/components/shops/PublicShopView.tsx |       <ShopFaqs shopId={shop.id} />\n |
 // @mutate src/components/shops/ShopView.tsx |         <ShopFaqs shopId={s.id} />\n |
-// @mutate src/components/shops/ShopOrderSheet.tsx |           <p className="text-xs text-muted-foreground">{ORDER_HOLD_TEXT}</p> |         <p className="text-xs text-muted-foreground">Your card is held, not charged. The shop has 24 hours to accept; your card is charged only if it does.</p>
+// @mutate src/components/shops/ShopOrderSheet.tsx |           <p className="text-ds-11 text-muted-foreground">{ORDER_HOLD_TEXT}</p> |         <p className="text-ds-11 text-muted-foreground">Your card is held, not charged. The shop has 24 hours to accept; your card is charged only if it does.</p>
 // @mutate src/lib/shops/faqs.ts |     { key: "cancel", label: "Cancelling", text: cancelPolicyText(p.cancel_policy, p.ready_tap_cancel).label }, |     { key: "cancel", label: "Cancelling", text: "Free to cancel until the shop accepts" },
 // @mutate src/components/shops/PublicShopView.tsx |       {shop.offers_selling && <ShopPolicies shopId={shop.id} />}\n |
 // @mutate src/components/shops/ShopDashboardView.tsx |         <ShopPayoutRow />\n |

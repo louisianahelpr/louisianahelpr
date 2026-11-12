@@ -39,7 +39,7 @@ function OpenNowPill({ hours }: { hours: ShopHour[] }) {
   if (!s) return null;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-ds-11 font-semibold ${
         s.open ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100" : "bg-muted text-muted-foreground"
       }`}
       data-testid="shop-open-status"
@@ -97,8 +97,8 @@ export function ShopHero(props: {
         <p className="font-sans text-xl font-bold not-italic leading-tight text-foreground [overflow-wrap:anywhere]" data-testid="shop-hero-name">
           {props.name}
         </p>
-        <p className="mt-0.5 text-sm font-medium text-primary">{props.categoryLabel}</p>
-        <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+        <p className="mt-0.5 text-ds-13 font-medium text-primary">{props.categoryLabel}</p>
+        <p className="mt-1 flex items-center gap-1 text-ds-13 text-muted-foreground">
           <MapPin className="h-4 w-4 shrink-0" aria-hidden />
           <span className="min-w-0 break-words">{props.areaLabel}{props.storefront ? " · Storefront" : ""}</span>
         </p>
@@ -120,7 +120,7 @@ export function ShopHoursCard({ hours }: { hours: ShopHour[] }) {
   const today = louisianaNow(new Date()).weekday;
   return (
     <ShopCard id="shop-hours" title="Hours" action={<Clock className="h-4 w-4 text-muted-foreground" aria-hidden />}>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-ds-13">
         {WEEKDAYS.map((day, i) => {
           const slots = hours.filter((h) => h.weekday === i);
           const isToday = i === today;
@@ -157,7 +157,7 @@ export function ShopItemsGrid({ items, reportable = false, withOptions, preorder
   /** Preorder items (20261108184654), keyed by id: the card says "Preorder · ready by ..." and its goal progress. */
   preorders?: ReadonlyMap<string, ItemPreorder>;
 }) {
-  if (items.length === 0) return <p className="text-sm text-muted-foreground">No items listed yet.</p>;
+  if (items.length === 0) return <p className="text-ds-13 text-muted-foreground">No items listed yet.</p>;
   const anyHomeKitchen = items.some((i) => i.home_kitchen);
   return (
     <>
@@ -188,7 +188,7 @@ export function ShopItemsGrid({ items, reportable = false, withOptions, preorder
               <div className="space-y-0.5 p-2.5">
                 {onOpen ? (
                   <InlineTextButton
-                    className="block w-full text-left text-sm font-semibold leading-snug [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="block w-full text-left text-ds-13 font-semibold leading-snug [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-haspopup="dialog"
                     title={item.title}
                     onClick={() => onOpen(item.id)}
@@ -197,9 +197,9 @@ export function ShopItemsGrid({ items, reportable = false, withOptions, preorder
                     <span className="line-clamp-2" data-item-title="">{item.title}</span>
                   </InlineTextButton>
                 ) : (
-                  <p className="line-clamp-2 text-sm font-semibold leading-snug [overflow-wrap:anywhere]">{item.title}</p>
+                  <p className="line-clamp-2 text-ds-13 font-semibold leading-snug [overflow-wrap:anywhere]">{item.title}</p>
                 )}
-                <p className="text-sm font-bold text-foreground">{withOptions?.has(item.id) ? `From ${formatItemPrice(item.price_cents)}` : formatItemPrice(item.price_cents)}</p>
+                <p className="text-ds-13 font-bold text-foreground">{withOptions?.has(item.id) ? `From ${formatItemPrice(item.price_cents)}` : formatItemPrice(item.price_cents)}</p>
                 {preorders?.get(item.id) ? (
                   <>
                     <p className="text-ds-11 text-muted-foreground">{SHOP_ITEM_TYPE_LABEL[item.subtype] ?? "Item"}</p>
@@ -221,7 +221,7 @@ export function ShopItemsGrid({ items, reportable = false, withOptions, preorder
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="mt-1.5 w-full text-sm font-semibold"
+                    className="mt-1.5 w-full text-ds-13 font-semibold"
                     aria-label={`Order ${item.title}`}
                     onClick={() => onOrder(item.id)}
                   >

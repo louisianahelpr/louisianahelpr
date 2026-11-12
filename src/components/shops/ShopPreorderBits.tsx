@@ -36,8 +36,8 @@ export function PreorderChargeBox({ preorder }: { preorder: ItemPreorder }) {
   const [first, ...rest] = preorderChargeText(preorder);
   return (
     <div className="space-y-1 rounded-xl bg-muted/60 p-3" data-testid="shop-order-preorder-terms">
-      <p className="text-sm font-semibold">{first}</p>
-      {rest.map((line) => <p key={line} className="text-xs text-muted-foreground">{line}</p>)}
+      <p className="text-ds-13 font-semibold">{first}</p>
+      {rest.map((line) => <p key={line} className="text-ds-11 text-muted-foreground">{line}</p>)}
     </div>
   );
 }

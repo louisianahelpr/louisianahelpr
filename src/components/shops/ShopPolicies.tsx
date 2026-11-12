@@ -29,7 +29,7 @@ export default function ShopPolicies({ shopId }: { shopId: string }) {
     <ShopCard id={headId} title="Shop policies">
       <ul className="space-y-2">
         {shopPolicyLines(policies.data).map((l) => (
-          <li key={l.key} className="flex gap-2.5 text-sm" data-testid={`shop-policy-${l.key}`}>
+          <li key={l.key} className="flex gap-2.5 text-ds-13" data-testid={`shop-policy-${l.key}`}>
             {l.key === "cancel" ? <CalendarX2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden /> : <CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}
             <p className="min-w-0"><span className="font-semibold">{l.label}:</span> <span className="text-muted-foreground">{l.text}</span></p>
           </li>

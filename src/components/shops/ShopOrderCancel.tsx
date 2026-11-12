@@ -133,7 +133,7 @@ export function BuyerCancelOrder({ order }: { order: ShopOrder }) {
         secondaryLabel="Keep it"
       >
         {changed && (
-          <p className="text-sm font-semibold" role="alert" data-testid="shop-cancel-terms-changed">
+          <p className="text-ds-13 font-semibold" role="alert" data-testid="shop-cancel-terms-changed">
             The free-cancel time for this order changed while you were looking. Here's what happens now.
           </p>
         )}

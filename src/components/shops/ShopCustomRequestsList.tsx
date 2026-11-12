@@ -65,8 +65,8 @@ export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop
   if (list.isError) {
     return (
       <section className="space-y-2" role="alert" aria-labelledby={`shop-custom-requests-${side}`} data-testid="shop-custom-requests-error">
-        <h2 id={`shop-custom-requests-${side}`} className="text-sm font-semibold">Custom requests</h2>
-        <p className="text-sm text-destructive-ink">We couldn't load your custom requests.</p>
+        <h2 id={`shop-custom-requests-${side}`} className="text-ds-13 font-semibold">Custom requests</h2>
+        <p className="text-ds-13 text-destructive-ink">We couldn't load your custom requests.</p>
         <Button type="button" size="sm" variant="outline" onClick={() => void list.refetch()}>Try again</Button>
       </section>
     );
@@ -76,16 +76,16 @@ export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop
     <li key={r.id} className="space-y-1 rounded-2xl border border-border bg-card p-4" data-testid="shop-custom-request">
       <div className="flex items-start justify-between gap-2">
         <p className="min-w-0 font-semibold [overflow-wrap:anywhere]">{side === "buyer" ? (r.shop_name ?? "A shop") : "A buyer's request"}</p>
-        {r.quote_cents !== null && <p className="shrink-0 text-sm font-semibold">{formatCents(r.quote_cents)}</p>}
+        {r.quote_cents !== null && <p className="shrink-0 text-ds-13 font-semibold">{formatCents(r.quote_cents)}</p>}
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-ds-11 text-muted-foreground">
         {STATUS_WORDS[r.status][side]}
         {r.status === "quoted" && r.expires_at ? `, good until ${dayText(r.expires_at)}` : ""}
         {r.status === "requested" ? answerByText(r.created_at, side) : ""}
       </p>
-      <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{r.description}</p>
-      {r.wanted_date && <p className="text-sm">Wanted by {dayText(r.wanted_date)}</p>}
-      {r.quote_note && <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">Shop's note: {r.quote_note}</p>}
+      <p className="text-ds-13 whitespace-pre-line [overflow-wrap:anywhere]">{r.description}</p>
+      {r.wanted_date && <p className="text-ds-13">Wanted by {dayText(r.wanted_date)}</p>}
+      {r.quote_note && <p className="text-ds-13 whitespace-pre-line [overflow-wrap:anywhere]">Shop's note: {r.quote_note}</p>}
       {openId === r.id && side === "shop" && r.status === "requested" && (
         <ShopCustomQuoteForm requestId={r.id} onDone={() => setOpenId(null)} />
       )}
@@ -109,11 +109,11 @@ export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop
   );
   return (
     <section className="space-y-2" aria-labelledby={`shop-custom-requests-${side}`}>
-      <h2 id={`shop-custom-requests-${side}`} className="text-sm font-semibold">Custom requests</h2>
+      <h2 id={`shop-custom-requests-${side}`} className="text-ds-13 font-semibold">Custom requests</h2>
       {open.length > 0 && <ul className="space-y-3">{open.map(card)}</ul>}
       {earlier.length > 0 && (
         <details className="space-y-3" open={open.length === 0} data-testid="shop-custom-requests-earlier">
-          <summary className="cursor-pointer text-sm text-muted-foreground">Earlier ({earlier.length})</summary>
+          <summary className="cursor-pointer text-ds-13 text-muted-foreground">Earlier ({earlier.length})</summary>
           <ul className="mt-3 space-y-3">{earlier.map(card)}</ul>
         </details>
       )}

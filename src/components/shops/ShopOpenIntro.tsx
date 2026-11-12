@@ -18,7 +18,7 @@ export default function ShopOpenIntro() {
   const { profile } = useCurrentUser();
   const feeOwed = profile?.onboarding_fee_paid !== true;
   return (
-    <p className="text-sm text-muted-foreground">
+    <p className="text-ds-13 text-muted-foreground">
       Opening a shop is free, and it is also your business profile. You need to be 18 or older.
       {idCheck.on ? " Before your first item goes live you verify your ID once (about 2 minutes)." : ""}
       {" "}Payouts come later, when you make your first sale

@@ -31,7 +31,7 @@
  * @mutate src/components/shops/shopCart.tsx | i.kind !== "digital" && (i.stock_count == null \|\| i.stock_count > 0) | i.kind !== "digital"
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const leadDays = chosen.reduce((m, l) => Math.max(m, l.item.lead_time_days), 0); |   const leadDays = 0;
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const feeCents = itemsCents > 0 ? buyerFeeCents(itemsCents) : 0; |   const feeCents = 0;
- * @mutate src/components/shops/ShopOrderSheet.tsx |         <p className="text-sm font-semibold">{policy.label}</p> |         <p className="text-sm font-semibold"></p>
+ * @mutate src/components/shops/ShopOrderSheet.tsx |         <p className="text-ds-13 font-semibold">{policy.label}</p> |         <p className="text-ds-13 font-semibold"></p>
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const policy = cancelPolicyText(t.cancel_policy, t.ready_tap_cancel); |   const policy = cancelPolicyText(t.cancel_policy, undefined);
  * @mutate src/components/shops/ShopCancelPolicyPicker.tsx |       {policy.data === "until_handover" && <ReadyTapCancelPicker shopId={shopId} />} |       {false && <ReadyTapCancelPicker shopId={shopId} />}
  * @mutate src/components/shops/ShopCancelPolicyPicker.tsx |       {policy.data === "until_handover" && <ReadyTapCancelPicker shopId={shopId} />} |       <ReadyTapCancelPicker shopId={shopId} />

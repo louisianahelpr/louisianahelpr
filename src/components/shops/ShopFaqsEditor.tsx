@@ -45,7 +45,7 @@ export default function ShopFaqsEditor({ shopId }: { shopId: string }) {
     <section className="space-y-3 rounded-2xl border border-border bg-card p-4" aria-labelledby="shop-faqs-heading" data-testid="shop-faqs-editor">
       <div className="space-y-1">
         <h2 id="shop-faqs-heading" className="text-base font-semibold">Questions buyers ask</h2>
-        <p className="text-sm text-muted-foreground">Answer them once, on your shop page. No phone numbers, emails or links: buyers message you in the app.</p>
+        <p className="text-ds-13 text-muted-foreground">Answer them once, on your shop page. No phone numbers, emails or links: buyers message you in the app.</p>
       </div>
       {current.isError && !current.data ? (
         <ErrorState variant="inline" title="We couldn't load your questions." body={shopsErrorMessage(current.error)} onRetry={() => void current.refetch()} />
@@ -63,7 +63,7 @@ export default function ShopFaqsEditor({ shopId }: { shopId: string }) {
             save.mutate();
           }}
         >
-          {rows.length === 0 && <p className="text-sm text-muted-foreground">No questions yet.</p>}
+          {rows.length === 0 && <p className="text-ds-13 text-muted-foreground">No questions yet.</p>}
           {rows.map((row, i) => (
             <fieldset key={i} className="space-y-2 rounded-xl border border-border p-3">
               <legend className="sr-only">Question {i + 1}</legend>

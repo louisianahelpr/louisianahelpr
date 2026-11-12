@@ -101,22 +101,22 @@ export default function ShopItemPreorderEditor({ shopId, item, hasOptions }: { s
     <section className="space-y-3 rounded-2xl border border-border p-4" aria-labelledby={headId} data-testid="shop-item-preorder">
       <div className="space-y-1">
         <h3 id={headId} className="text-base font-semibold">Preorder</h3>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-ds-11 text-muted-foreground">
           Sell it before it's made. Buyers pay in full when they order, and you make it by your ready-by date.
         </p>
       </div>
       {preorders.isLoading ? (
-        <p className="text-sm text-muted-foreground" role="status">Loading…</p>
+        <p className="text-ds-13 text-muted-foreground" role="status">Loading…</p>
       ) : preorders.isError ? (
         <div role="alert" className="space-y-2">
-          <p className="text-sm">{shopsErrorMessage(preorders.error)}</p>
+          <p className="text-ds-13">{shopsErrorMessage(preorders.error)}</p>
           <Button type="button" size="sm" variant="outline" onClick={() => void preorders.refetch()}>Try again</Button>
         </div>
       ) : current && !editing ? (
         <div className="space-y-2">
-          <p className="text-sm font-semibold">{preorderLabel(current)}</p>
-          {goalProgressText(current) && <p className="text-sm">{goalProgressText(current)}</p>}
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-13 font-semibold">{preorderLabel(current)}</p>
+          {goalProgressText(current) && <p className="text-ds-13">{goalProgressText(current)}</p>}
+          <p className="text-ds-11 text-muted-foreground">
             {current.cap != null ? `Limit: ${current.cap}. ` : ""}{`${current.ordered} ordered so far.`}
             {current.moved ? " You moved the date once already." : ""}
           </p>
@@ -126,7 +126,7 @@ export default function ShopItemPreorderEditor({ shopId, item, hasOptions }: { s
             </Button>
             <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => save.mutate(true)}>Turn off</Button>
           </div>
-          <p className="text-xs text-muted-foreground">You can change or turn off a preorder only while nobody has an open order for it.</p>
+          <p className="text-ds-11 text-muted-foreground">You can change or turn off a preorder only while nobody has an open order for it.</p>
           {!current.moved && !current.goal_missed && current.ordered > 0 && (
             <div className="space-y-1.5 border-t border-border pt-3">
               <Label htmlFor={`${headId}-push`}>Need more time? Move ready-by once</Label>
@@ -138,7 +138,7 @@ export default function ShopItemPreorderEditor({ shopId, item, hasOptions }: { s
                 isDateDisabled={(iso) => iso > addDays(current.ready_by, PREORDER_MAX_PUSH_DAYS)}
                 placeholder="Pick the new date"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-ds-11 text-muted-foreground">
                 {`Up to ${PREORDER_MAX_PUSH_DAYS} days later, once. Every buyer is told and can cancel for a full refund, and what the card company keeps on those refunds comes out of your next payout.`}
               </p>
               <Button type="button" size="sm" variant="outline" disabled={busy || !pushTo} onClick={() => setConfirmPush(true)}>
@@ -148,7 +148,7 @@ export default function ShopItemPreorderEditor({ shopId, item, hasOptions }: { s
           )}
         </div>
       ) : blocked && !current ? (
-        <p className="text-sm text-muted-foreground" data-testid="shop-item-preorder-blocked">{blocked}</p>
+        <p className="text-ds-13 text-muted-foreground" data-testid="shop-item-preorder-blocked">{blocked}</p>
       ) : !editing ? (
         <Button type="button" size="sm" variant="outline" onClick={() => { setF(formFrom(null)); setEditing(true); }}>
           Sell as a preorder
@@ -165,7 +165,7 @@ export default function ShopItemPreorderEditor({ shopId, item, hasOptions }: { s
               isDateDisabled={(iso) => iso > addDays(today, PREORDER_MAX_DAYS)}
               placeholder="Pick the day it will be ready"
             />
-            <p className="text-xs text-muted-foreground">{`Up to ${PREORDER_MAX_DAYS} days out.`}</p>
+            <p className="text-ds-11 text-muted-foreground">{`Up to ${PREORDER_MAX_DAYS} days out.`}</p>
           </div>
           <Label htmlFor={`${headId}-goal-on`} className="flex min-h-11 items-start gap-2 font-normal leading-snug">
             <Checkbox id={`${headId}-goal-on`} checked={f.withGoal} onCheckedChange={(v) => set("withGoal", v === true)} />
@@ -202,7 +202,7 @@ export default function ShopItemPreorderEditor({ shopId, item, hasOptions }: { s
                 placeholder="30" onChange={(e) => set("cap", e.target.value)} />
             </div>
           )}
-          <div className="space-y-1 rounded-xl bg-muted/60 p-3 text-xs text-muted-foreground" data-testid="shop-item-preorder-rules">
+          <div className="space-y-1 rounded-xl bg-muted/60 p-3 text-ds-11 text-muted-foreground" data-testid="shop-item-preorder-rules">
             <p>Buyers are charged in full when they order.</p>
             {f.withGoal && <p>If the goal isn't reached by its date, every buyer gets a full refund automatically, and you don't make it.</p>}
             <p>{`Mark each order ready by ${PREORDER_LATE_DAYS} days after ready-by, or that buyer gets a full refund automatically.`}</p>

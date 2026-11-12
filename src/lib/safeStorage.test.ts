@@ -17,7 +17,11 @@ vi.mock("@capacitor/preferences", () => ({
   },
 }));
 
-import { safeStorage, hydrate, trackKey } from "./safeStorage";
+// src/test/setup.ts loads the refusal words (lifecycleErrorCopy -> declutter/errors -> i18n/language), which
+// already imported the real safeStorage before this file's mock was registered. Drop that cached copy so this
+// import builds safeStorage against the mocked Preferences.
+vi.resetModules();
+const { safeStorage, hydrate, trackKey } = await import("./safeStorage");
 
 describe("safeStorage", () => {
   beforeEach(() => {

@@ -306,7 +306,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | textarea×1 |  | 1000 |  |
 | `src/pages/jobs/appliedJobCard/DisputedSection.tsx` | textarea×1 |  | 500 |  |
 | `src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx` | textarea×1 |  |  | Edit your message · Remove attachment |
-| `src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx` | input×5, textarea×1 | file, text | 80, 2000 | Same as price |
+| `src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx` | input×5, textarea×1 | file, text | 80, 2000 |  |
 | `src/pages/jobs/AppliedJobsTab.tsx` | textarea×1 |  |  | Withdraw reason — other |
 | `src/pages/posts/EditJobDialog.tsx` | input×3, textarea×3, select×1, checkbox/switch/radio×2, date/calendar×1 | text, date | 500 | Job title · Description · Category · category-applicants-lock-hint · category-tax-lock-hint · Location · edit-week-window · edit-flexible-schedule |
 | `src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx` | input×1 | checkbox |  |  |

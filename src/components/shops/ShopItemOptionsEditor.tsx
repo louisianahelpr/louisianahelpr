@@ -175,7 +175,7 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
                   <Label htmlFor={`combo-price-${key}`} className="text-xs">Price ($)</Label>
                   <Input id={`combo-price-${key}`} inputMode="decimal" value={r.price} onChange={(e) => setRow(values, { price: e.target.value })}
                     aria-invalid={priceProblem ? true : undefined} aria-describedby={priceProblem ? `combo-price-err-${key}` : undefined} />
-                  {priceProblem && <p id={`combo-price-err-${key}`} className="text-xs text-destructive">{priceProblem}</p>}
+                  {priceProblem && <p id={`combo-price-err-${key}`} className="text-xs text-destructive-ink">{priceProblem}</p>}
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor={`combo-stock-${key}`} className="text-xs">Stock</Label>

@@ -31,7 +31,7 @@ export function shopTalkRowLine(row: Pick<ShopTalkRow, "side" | "last_mine">): s
   return row.side === "buyer" ? "The shop wrote last" : "The shopper wrote last";
 }
 
-export function ShopTalkRows({ empty }: { empty: ReactNode }) {
+export function ShopTalkRows({ empty, onlyUnread = false }: { empty: ReactNode; onlyUnread?: boolean }) {
   const talks = useQuery({ queryKey: MY_SHOP_TALKS_KEY, queryFn: fetchMyShopTalks, staleTime: 30_000 });
   const [params, setParams] = useSearchParams();
   const openTalk = (talkId: string) => {
@@ -47,7 +47,8 @@ export function ShopTalkRows({ empty }: { empty: ReactNode }) {
     );
   }
   if (talks.isPending) return null;
-  const rows = talks.data;
+  // S2-016: Messages -> Unread lists only the chats with an unread message.
+  const rows = onlyUnread ? talks.data.filter((r) => r.unread) : talks.data;
   if (rows.length === 0) return <>{empty}</>;
   return (
     // In the empty-threads branch the pane has no padding of its own (ConversationList), so the list brings it.

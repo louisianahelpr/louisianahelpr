@@ -64,4 +64,6 @@ export interface ConversationListProps {
   mainEmptyBody?: string;
   /** F420: the member's Declutter order chats, drawn as rows among the threads (newest first); null/absent = none here. */
   orderTalks?: OrderTalkInbox | null;
+  /** S2-016: the member's shop chats, above the threads under All / Unread (SectionEmpty's Lead shape); null = none. */
+  inboxLead?: SectionEmpty["Lead"] | null;
 }

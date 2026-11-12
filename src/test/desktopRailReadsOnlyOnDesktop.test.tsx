@@ -25,6 +25,8 @@ vi.mock("@/components/sections/useSectionPrefs", async (orig) => {
   return { ...(await orig<object>()), useSectionPrefs: () => ({ prefs: { order: SECTIONS.map((s) => s.key), hidden: [] }, visible: SECTIONS, setHidden: vi.fn(() => true), move: vi.fn(), putFirst: vi.fn() }) };
 });
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => calls.desktop }));
+// S2-016: the navs read the member's unread shop chats for the badge; none here.
+vi.mock("@/lib/shops/talkUnread", () => ({ SHOP_TALKS_SUMMARY_KEY: ["shops", "my-talks", "summary"], SHOP_TALKS_UNREAD_EVENT: "lh-shop-talks-unread", fetchShopTalkSummary: async () => ({ total: 0, unread: 0 }) }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: (key: string) => {
     calls.feature.push(key);

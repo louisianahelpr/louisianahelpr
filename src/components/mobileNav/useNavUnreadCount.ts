@@ -38,13 +38,26 @@ import { stores, notifyUnreadWatchers, type UnreadListener, type UnreadStore } f
 // `stores` lives in navUnreadStore.ts, so the top bar's Messages button reads it without this module.
 
 function openStore(userId: string): UnreadStore {
+  // S2-016: the badge is unread message threads plus unread shop chats; the cache holds the message part only.
+  let shop = 0;
+  const emit = () => {
+    store.count = store.messages + shop;
+    store.listeners.forEach((l) => l(store.count));
+    notifyUnreadWatchers();
+  };
+  const seeded = readCachedUnread(userId);
   const store: UnreadStore = {
-    count: readCachedUnread(userId),
+    count: seeded,
+    messages: seeded,
     listeners: new Set(),
     publish: (n) => {
-      store.count = n;
-      store.listeners.forEach((l) => l(n));
-      notifyUnreadWatchers();
+      store.messages = n;
+      emit();
+    },
+    setShop: (n) => {
+      if (n === shop) return;
+      shop = n;
+      emit();
     },
     close: () => {},
   };
@@ -176,7 +189,8 @@ export function useNavUnreadCount(user: User | null | undefined) {
   // update predicate the inbox uses.
   const markAllRead = useCallback(async () => {
     if (!user) return;
-    const prevCount = unreadCount;
+    // The message part only: mark-all-read never touches shop chats (S2-016).
+    const prevCount = stores.get(user.id)?.messages ?? unreadCount;
     setSharedCount(0);
     writeCachedUnread(user.id, 0);
     const { error } = await supabase

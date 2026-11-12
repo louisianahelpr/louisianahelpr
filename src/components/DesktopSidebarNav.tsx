@@ -13,6 +13,7 @@ import {
 import HelprMark from "@/components/HelprMark";
 import { useDockSheetsLoader } from "@/components/mobileNav/useDockSheets";
 import { leftItems, rightItems, exploreItem, youItem } from "@/components/mobileNav/mobileNavHelpers";
+import { useShopTalksInBadge } from "@/components/mobileNav/useShopTalksInBadge";
 import { useSectionTabs, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import type { DockItem } from "@/components/mobileNav/dockItems";
 import { announceTabReselect } from "@/components/mobileNav/tabReselect";
@@ -127,6 +128,7 @@ const DesktopSidebarRail = () => {
   // The SAME shared store MobileNav reads (Q103): one unread query and one
   // realtime channel per user, however many navs are mounted.
   const { unreadCount } = useNavUnreadCount(user);
+  useShopTalksInBadge(user); // S2-016: unread shop chats join the badge
   const messages = rightItems.find((i) => i.path === "/messages")!;
   const navItems: NavRow[] = [
     leftItems[0],

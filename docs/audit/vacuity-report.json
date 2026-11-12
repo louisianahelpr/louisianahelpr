@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-12T11:53:28.090Z",
-  "guards": 4013,
-  "registered": 4012,
+  "generated": "2026-11-12T13:01:22.400Z",
+  "guards": 4024,
+  "registered": 4023,
   "unregistered": [
     "src/lib/shops/preorders.test.ts"
   ],
@@ -21,6 +21,7 @@
     "src/test/jobShareLine.test.ts",
     "src/test/needsYouCountsEachOrderOnce.test.ts",
     "src/test/sellerProblemIsBuyersNeedsYou.test.ts",
+    "src/test/sellingPanelsInSpanish.test.tsx",
     "src/test/shopsAuditHighs.test.ts",
     "src/test/unavailableProfileDoesNotSayTheyLeft.test.ts"
   ],

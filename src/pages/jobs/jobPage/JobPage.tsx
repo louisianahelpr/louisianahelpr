@@ -400,7 +400,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       titleActions={<>{share}{!isPoster && <ReportJobControl jobId={job.id} posterId={job.customer_id ?? null} posterFirst={posterFirst} />}<span ref={setMenuHost} data-job-menu-host="" className="contents" /></>}
     >
       <div data-job-page="" data-layout="v2" className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-x-6 lg:gap-y-5">
-        <section aria-label={t("jobPage.summary")} data-job-head="" className="space-y-2 lg:col-span-2">
+        {/* F274a (audit 11-10): at 1440 the facts rows ran the full page width ("When" ~1,100px from its value). The head
+            keeps to the left column's width (the grid's 7fr of 7fr+5fr, less the 1.5rem gap); the price stays in its row. */}
+        <section aria-label={t("jobPage.summary")} data-job-head="" className="space-y-2 lg:col-span-2 lg:max-w-[calc((100%_-_1.5rem)*7/12)]">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-1">
               {/* Owner 11-01: the category on its own line (semibold primary); the day, time and place are the facts

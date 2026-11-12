@@ -10,7 +10,7 @@
  * @mutate src/components/declutter/DeclutterBookingPanel.tsx | {booked && timeLine(order.handover === "meetup" ? "Meeting" : "Pickup")} | {booked && timeLine("Pickup")}
  * BUY-18: a free item has no payment, and a porch claim picks a day.
  * @mutate src/components/declutter/DeclutterBundleRow.tsx | {b.free ? "Get them together: one pickup." : b.pickup ? | {b.pickup ?
- * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {confirm.isPending ? "Confirming…" : "Confirm and pick a time"} | {confirm.isPending ? "Confirming…" : chosen === "porch" ? "Confirm and pick a day" : "Confirm and pick a time"}
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {confirm.isPending ? t("free.confirming") : t("free.confirmPick")} | {confirm.isPending ? t("free.confirming") : chosen === "porch" ? "Confirm and pick a day" : t("free.confirmPick")}
  * BUY-19: Make an offer opens the box ready to type.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   useEffect(() => { if (open) offerBox.current?.focus(); }, [open]);\n |
  * BUY-20: a failed delivery check never blames the payment page.
@@ -36,6 +36,7 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 import { DECLUTTER_CLIENT_ERROR_COPY } from "@/lib/declutter/errors";
 import { payoutStatusWords } from "@/lib/declutter/payoutWords";
 import { rowSummary, type SavedSearch } from "@/lib/savedSearches";
+import { en } from "@/lib/i18n/en";
 
 const code = (f: string) => blankComments(readFileSync(join(process.cwd(), f), "utf8"));
 const D = "src/components/declutter/";
@@ -56,7 +57,9 @@ describe("the buying audit's small findings", () => {
   // LEAD-PLACE-TIMES (owner 2026-10-31): a porch claim now picks a time inside the place's hours, as a door claim does.
   it("BUY-18: a free item is never told about a payment, and every claim picks a time", () => {
     expect(code(`${D}DeclutterBundleRow.tsx`)).toContain('{b.free ? "Get them together: one pickup."');
-    expect(code(`${D}DeclutterFreeClaim.tsx`)).toContain('{confirm.isPending ? "Confirming…" : "Confirm and pick a time"}');
+    // F260q: the words are enFree.ts's (free.confirmPick); one label for every way.
+    expect(code(`${D}DeclutterFreeClaim.tsx`)).toContain('{confirm.isPending ? t("free.confirming") : t("free.confirmPick")}');
+    expect(en["free.confirmPick"]).toBe("Confirm and pick a time");
     expect(code(`${D}DeclutterFreeClaim.tsx`)).not.toContain("pick a day");
   });
 

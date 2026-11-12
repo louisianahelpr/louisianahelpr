@@ -27,6 +27,8 @@
  * @mutate src/pages/messages/useMessageSections.tsx | aria-label={t("msg.filterAria")} | aria-label="Filter messages"
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <dt className="font-bold text-foreground">{t("offer.youPayIfYes")}</dt> | <dt className="font-bold text-foreground">You pay if the seller says yes</dt>
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |           {t("free.takeBack")}\n |           Take back my ask\n
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | >{t("free.requests", { n: rows.length })}</h2> | >Requests ({rows.length})</h2>
+ * @mutate src/components/declutter/FreeAskSheet.tsx | text-base font-semibold">{t("fask.when")}</h2> | text-base font-semibold">When can you pick it up?</h2>
  * @mutate src/components/declutter/DeclutterQuestions.tsx | text-muted-foreground">{t("dq.none")}</p> | text-muted-foreground">No questions yet.</p>
  * @mutate src/components/declutter/DeclutterOfferTrade.tsx | label={t("dp.tradeListLabel")} | label="Your listing to trade"
  * @mutate src/components/declutter/SellSummaryCard.tsx | placeholder={t("sell.detailsPlaceholder")} | placeholder="e.g. Works great. Small scuff on the base."
@@ -89,6 +91,10 @@ const CONVERTED = [
   "src/components/declutter/ItemPickupBlock.tsx",
   // F260q: the Sell form's summary card (sell.* in enDeclPanels.ts).
   "src/components/declutter/SellSummaryCard.tsx",
+  // F260q: the whole free-item file (asker's panel, rules sentence, giver's list, Buying's asks, free checkout; enFree.ts)
+  // and the Ask for it sheet (enFreeAsk.ts).
+  "src/components/declutter/DeclutterFreeClaim.tsx",
+  "src/components/declutter/FreeAskSheet.tsx",
 ];
 
 /** Exact literals that are not member-facing words, per file. */
@@ -111,6 +117,9 @@ const ALLOWED: Record<string, string[]> = {
   "src/components/sections/SectionTabs.tsx": ["ArrowRight", "ArrowLeft", "Home", "End"],
   "src/components/sections/SectionSearchBar.tsx": ["Escape"],
   // itemTimesPlan's plan.usual values, compared as identifiers (never rendered by ItemPickupBlock).
+  // The time zone the dates are read in (Intl), not words.
+  "src/components/declutter/DeclutterFreeClaim.tsx": ["America/Chicago", "America/Chicago"],
+  "src/components/declutter/FreeAskSheet.tsx": ["America/Chicago"],
   "src/components/declutter/ItemPickupBlock.tsx": ["Pickup times", "Pickup and meetup times", "Meetup times", "Pickup and meetup times"],
 };
 
@@ -154,28 +163,6 @@ describe("converted screens take every word from the dictionary", () => {
   it("ALLOWED names only converted files", () => {
     expect(Object.keys(ALLOWED).filter((f) => !CONVERTED.includes(f))).toEqual([]);
   });
-});
-
-/** Converted FUNCTIONS inside a file that is only partly converted (F260q): the function's own body, start to the next
- *  top-level export/function. DeclutterFreeClaim.tsx: the asker's panel is done; the giver's list and checkout not yet. */
-const CONVERTED_FUNCTIONS: [string, string, string[]][] = [
-  ["src/components/declutter/DeclutterFreeClaim.tsx", "export function FreeClaimPanel(", ["The giver"]],
-];
-describe("converted functions take every word from the dictionary", () => {
-  for (const [file, start, allowed] of CONVERTED_FUNCTIONS) {
-    it(`${file} ${start} has no written-in words`, () => {
-      const src = readFileSync(join(ROOT, file), "utf8");
-      const at = src.indexOf(start);
-      expect(at).toBeGreaterThan(-1);
-      const rest = src.slice(at + start.length);
-      const end = rest.search(/\n(?:export )?(?:function|const) [A-Za-z]/);
-      const body = end < 0 ? rest : rest.slice(0, end);
-      expect(body.length).toBeGreaterThan(1000);
-      const found = findRawStrings(body);
-      expect(found.filter((x) => !allowed.includes(x)), file).toEqual([]);
-      expect(allowed.filter((x) => !found.includes(x)), `${file} stale allowed`).toEqual([]);
-    });
-  }
 });
 
 describe("the detector itself", () => {

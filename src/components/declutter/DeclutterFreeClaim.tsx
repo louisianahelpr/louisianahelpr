@@ -37,7 +37,8 @@ import { HoldChecking, myHoldOn, ReservedForYou } from "./DeclutterYourOffer";
 import { cn, formatName } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { NativeRadio } from "@/components/ui/NativeRadio";
-import { useLanguage } from "@/lib/i18n/language";
+import { getLang, t as tr, useLanguage } from "@/lib/i18n/language";
+import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enFree";
 
 // Owner 11-01 (Mockup 3): the "Ask for it" sheet loads when the button is pressed, never with the item page.
@@ -49,11 +50,13 @@ const NoWayWorks = lazy(() => import("./DeclutterHandoverTalk").then((m) => ({ d
 /** "Today 3 PM" for a time the asker picked (the sheet's own words), without loading the sheet. */
 function pickedTimeLabel(iso: string): string {
   const zone = "America/Chicago";
+  // F260q: day and clock words in the viewer's language.
+  const locale = getLang() === "es" ? "es-US" : "en-US";
   const d = new Date(iso);
   const day = (x: Date) => new Intl.DateTimeFormat("en-US", { timeZone: zone, year: "numeric", month: "numeric", day: "numeric" }).format(x);
-  const time = new Intl.DateTimeFormat("en-US", { timeZone: zone, hour: "numeric", minute: "2-digit" }).format(d).replace(":00", "");
-  if (day(d) === day(new Date())) return `Today ${time}`;
-  return `${new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "short", month: "numeric", day: "numeric" }).format(d)}, ${time}`;
+  const time = new Intl.DateTimeFormat(locale, { timeZone: zone, hour: "numeric", minute: "2-digit" }).format(d).replace(":00", "");
+  if (day(d) === day(new Date())) return tr("free.today", { time });
+  return `${new Intl.DateTimeFormat(locale, { timeZone: zone, weekday: "short", month: "numeric", day: "numeric" }).format(d)}, ${time}`;
 }
 
 
@@ -72,17 +75,17 @@ function freeWaysOffered(porchOk: boolean, ways: Handover[] | null): FreeHandove
  */
 function freeAskLine(offered: FreeHandover[] | undefined, oneTimeCheckAhead = false): string {
   const how = offered === undefined ? ""
-    : offered.length === 2 ? " to pick it up at their home or from their porch"
-    : offered[0] === "porch" ? " to collect it from their porch"
-    : offered[0] === "pickup_home" ? " to pick it up at their home"
-    : "; agree with them how you'll get it";
+    : offered.length === 2 ? tr("free.howBoth")
+    : offered[0] === "porch" ? tr("free.howPorch")
+    : offered[0] === "pickup_home" ? tr("free.howHome")
+    : tr("free.howAgree");
   // Asking is free (owner 2026-10-30). "Nothing is charged" would overpromise to a member whose first pick carries the one-time ID check.
   // Owner 11-01 (Mockup 3): the asker picks the pickup time when they ask, and the giver's pick books it
   // (declutter_pick_free_request, 20261101181129). That booking happens only for a member already verified: a
   // first-timer the giver picks gets the item held instead, does the one-time ID check, then chooses the time, so
   // "that time is already set" was false for them (11-07 free-claim trace).
-  const ifYou = oneTimeCheckAhead ? `${firstPickSteps()}${how}` : `that time is already set and you'll get the address${how}`;
-  return `${oneTimeCheckAhead ? "Asking is free." : "Free, nothing is charged."} When you ask, you pick a pickup time from the giver's times. The giver picks who gets it; if it's you, ${ifYou}. You can ask for up to 3 free items at a time.`;
+  const ifYou = oneTimeCheckAhead ? `${firstPickSteps()}${how}` : tr("free.ifSet", { how });
+  return tr("free.rulesLine", { lead: oneTimeCheckAhead ? tr("free.askingFree") : tr("free.freeNothing"), ifYou });
 }
 
 export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
@@ -156,7 +159,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
         )}
         {changing && (
           <Suspense fallback={null}>
-            <FreeAskSheet item={item} giverFirstName={giverFirstName ?? "The giver"} open={changing} onClose={() => setChanging(false)} oneTimeCheckAhead={oneTimeCheckAhead} change />
+            <FreeAskSheet item={item} giverFirstName={giverFirstName ?? t("free.theGiver")} open={changing} onClose={() => setChanging(false)} oneTimeCheckAhead={oneTimeCheckAhead} change />
           </Suspense>
         )}
         {/* The shared next-step line (owner 11-01 12:02 PM): nothing is the asker's to do; it waits on the giver. */}
@@ -203,7 +206,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
       </p>
       {asking && (
         <Suspense fallback={null}>
-          <FreeAskSheet item={item} giverFirstName={giverFirstName ?? "The giver"} open={asking} onClose={() => setAsking(false)} oneTimeCheckAhead={oneTimeCheckAhead} />
+          <FreeAskSheet item={item} giverFirstName={giverFirstName ?? t("free.theGiver")} open={asking} onClose={() => setAsking(false)} oneTimeCheckAhead={oneTimeCheckAhead} />
         </Suspense>
       )}
       {/* The long rules sit behind the link (owner mockup 11-01). */}
@@ -225,30 +228,31 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
  */
 export function FreeRequestsForGiver({ item }: { item: DeclutterItem }) {
   const qc = useQueryClient();
+  const { t } = useLanguage();
   const asks = useQuery({ queryKey: ["declutter", "free-requests", item.id], queryFn: () => fetchFreeRequestsForItem(item.id) });
   const pick = useMutation({
     mutationFn: (requestId: string) => pickFreeRequest(requestId),
     onSuccess: () => {
       // The server books their asked time when it can, else gives them 48 hours (20261101181129): say only what is sure.
-      toast("Picked. We've told them.");
+      toast(t("free.picked"));
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   if (asks.isError) {
-    return <ErrorState variant="inline" title="We couldn't load who asked." body={declutterErrorMessage(asks.error)} onRetry={() => void asks.refetch()} />;
+    return <ErrorState variant="inline" title={t("free.whoAskedFailed")} body={declutterErrorMessage(asks.error)} onRetry={() => void asks.refetch()} />;
   }
   if (asks.isLoading) return null;
   const rows = asks.data ?? [];
   return (
-    <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="Who asked for this item" data-free-requests="">
-      <h2 className="text-base font-semibold">Requests ({rows.length})</h2>
+    <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label={t("free.whoAskedAria")} data-free-requests="">
+      <h2 className="text-base font-semibold">{t("free.requests", { n: rows.length })}</h2>
       {/* The shared next-step line (owner 11-01 12:02 PM): with asks in, picking one is the giver's move. */}
       {rows.length === 0 ? (
-        <NextStep className="!text-sm" value={{ who: "info", text: "Nobody has asked yet. It stays up until you pick someone." }} />
+        <NextStep className="!text-sm" value={{ who: "info", text: t("free.nobodyYet") }} />
       ) : (
         // A3-25 (audit 11-01): with how many asked. The server sets the giver no deadline, so no "by".
-        <NextStep className="!text-sm" value={{ who: "you", text: "Pick who gets it", by: `${rows.length} asked` }} />
+        <NextStep className="!text-sm" value={{ who: "you", text: t("free.pickWho"), by: t("free.nAsked", { n: rows.length }) }} />
       )}
       {rows.length === 0 ? null : (
         <ul className="space-y-2">
@@ -263,16 +267,16 @@ export function FreeRequestsForGiver({ item }: { item: DeclutterItem }) {
                 {/* Owner 11-01: each asker's chosen pickup time (null for an ask made before times were asked). */}
                 {r.pickup_at && (
                   <span className={cn("block text-ds-13 font-semibold", passed ? "text-muted-foreground" : "text-foreground")} data-free-ask-time="">
-                    Pickup {pickedTimeLabel(r.pickup_at)}{passed ? " · time passed" : ""}
+                    {t("free.pickup", { time: pickedTimeLabel(r.pickup_at) })}{passed ? t("free.timePassed") : ""}
                   </span>
                 )}
                 <span className="block text-xs text-muted-foreground">
-                  {r.review_count ? `${Number(r.avg_rating ?? 0).toFixed(1)} stars, ${r.review_count} ${r.review_count === 1 ? "review" : "reviews"}` : "No reviews yet"}
+                  {r.review_count ? t(r.review_count === 1 ? "free.starsOne" : "free.stars", { rating: Number(r.avg_rating ?? 0).toFixed(1), n: r.review_count }) : t("free.noReviews")}
                 </span>
               </span>
               {passed ? null : (
                 <Button type="button" size="sm" className="shrink-0 rounded-full" disabled={pick.isPending} onClick={() => pick.mutate(r.request_id)}>
-                  Pick
+                  {t("free.pick")}
                 </Button>
               )}
             </li>
@@ -297,20 +301,21 @@ export function useMyFreeAsks() {
 /** Buying: the member's open asks for free items (Q2487), "You asked for <item>", each opening its item page. */
 export function MyFreeAsks() {
   const asks = useMyFreeAsks();
+  const { t } = useLanguage();
   if (asks.isError) {
-    return <ErrorState variant="inline" title="We couldn't load your asks for free items." body={declutterErrorMessage(asks.error)} onRetry={() => void asks.refetch()} />;
+    return <ErrorState variant="inline" title={t("free.myAsksFailed")} body={declutterErrorMessage(asks.error)} onRetry={() => void asks.refetch()} />;
   }
   const rows = asks.data ?? [];
   if (rows.length === 0) return null;
   return (
-    <section className="space-y-2" aria-label="Free items you asked for" data-my-free-asks="">
-      <h2 className="text-base font-semibold">Free items you asked for</h2>
+    <section className="space-y-2" aria-label={t("free.myAsksTitle")} data-my-free-asks="">
+      <h2 className="text-base font-semibold">{t("free.myAsksTitle")}</h2>
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
         {rows.map((r) => (
           <li key={r.id}>
             <Link to={`/declutter/item/${r.item_id}`} className="block px-4 py-3 min-h-11">
-              <span className="block truncate text-ds-15 font-semibold" title={`You asked for ${r.declutter_items?.title ?? "a free item"}`}>You asked for {r.declutter_items?.title ?? "a free item"}</span>
-              <span className="block text-ds-13 text-muted-foreground">The giver picks who gets it. We'll tell you either way.</span>
+              <span className="block truncate text-ds-15 font-semibold" title={t("free.youAskedFor", { title: r.declutter_items?.title ?? t("free.aFreeItem") })}>{t("free.youAskedFor", { title: r.declutter_items?.title ?? t("free.aFreeItem") })}</span>
+              <span className="block text-ds-13 text-muted-foreground">{t("free.giverPicks")}</span>
             </Link>
           </li>
         ))}
@@ -322,29 +327,31 @@ export function MyFreeAsks() {
 /** The Buying line while a missed free pickup pauses free asks (Q2487): "You can ask for free items again on <date>." */
 export function FreePauseLine() {
   const pause = useQuery({ queryKey: ["declutter", "my-free-pause"], queryFn: fetchMyFreePause });
+  const { lang, t } = useLanguage();
   if (!pause.data) return null;
-  const on = new Date(pause.data).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Chicago" });
+  const on = new Date(pause.data).toLocaleDateString(lang === "es" ? "es-US" : "en-US", { month: "long", day: "numeric", timeZone: "America/Chicago" });
   return (
-    <DeclutterNotice tone="warn" title={`You can ask for free items again on ${on}.`}>
-      You missed a free pickup, so free items are paused for 30 days.
+    <DeclutterNotice tone="warn" title={t("free.pausedUntil", { date: on })}>
+      {t("free.pausedBody")}
     </DeclutterNotice>
   );
 }
 
 type FreeHandover = "porch" | "pickup_home";
-const FREE_HANDOVER: Record<FreeHandover, { title: string; words: string }> = {
-  porch: { title: "Porch pickup", words: "The giver leaves it out for you, no need to meet. Address once you confirm." },
-  pickup_home: { title: "Meet at the giver's home", words: "Pick it up at their door. Address once you confirm." },
+// F260q: dictionary keys (enFree.ts), read with t() where drawn.
+const FREE_HANDOVER: Record<FreeHandover, { title: MsgKey; words: MsgKey }> = {
+  porch: { title: "free.porchTitle", words: "free.porchWords" },
+  pickup_home: { title: "free.homeTitle", words: "free.homeWords" },
 };
 /** Audit 11-10 F362: an accepted trade in the cart is worded as a trade, never as a free item from a "giver". */
-const TRADE_HANDOVER: Record<FreeHandover, { title: string; words: string }> = {
-  porch: { title: "Porch pickup", words: "The other trader leaves it out for you, no need to meet. Address once you confirm." },
-  pickup_home: { title: "Meet at their home", words: "Pick it up at their door. Address once you confirm." },
+const TRADE_HANDOVER: Record<FreeHandover, { title: MsgKey; words: MsgKey }> = {
+  porch: { title: "free.porchTitle", words: "free.tradePorchWords" },
+  pickup_home: { title: "free.tradeHomeTitle", words: "free.homeWords" },
 };
-const TRADE_CHECKOUT_LINE = "Trades are pickup only. No money changes hands.";
+const TRADE_CHECKOUT_LINE: MsgKey = "free.tradeLine";
 
-const FREE_CHECKOUT_LINE = "Free items are picked up only. Nothing is charged.";
-const FREE_CHECKOUT_FIRST_LINE = "Free items are picked up only. The item stays free. Your first claim has a one-time ID check next, and we'll show you the cost first.";
+const FREE_CHECKOUT_LINE: MsgKey = "free.checkoutLine";
+const FREE_CHECKOUT_FIRST_LINE: MsgKey = "free.checkoutFirstLine";
 
 /**
  * The cart for a seller whose waiting items are ALL free: no payment page and no fee. The buyer picks
@@ -360,6 +367,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone, 
   ways?: Handover[] | null;
 }) {
   const qc = useQueryClient();
+  const { t } = useLanguage();
   // Same reading as the ask line: a first-timer's Confirm is one tap from the one-time fee, so "nothing is charged" would be false.
   const { profile } = useCurrentUser();
   const idCheckOn = useIdentityCheckOnStore();
@@ -380,7 +388,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone, 
       return checkoutFree(sellerId, chosen);
     },
     onSuccess: () => {
-      toast("It's set. Next: choose your pickup time.");
+      toast(t("free.setNext"));
       void qc.invalidateQueries({ queryKey: ["declutter"] });
       onDone();
     },
@@ -394,26 +402,26 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone, 
   return (
     <div className="space-y-3" data-free-checkout="">
       <fieldset className="space-y-2">
-        <legend className="text-sm font-semibold">How you'll get it</legend>
+        <legend className="text-sm font-semibold">{t("free.howGet")}</legend>
         {offered.map((h) => (
           <label key={h} className="flex items-start gap-3 rounded-xl border border-border p-3 text-sm">
             <NativeRadio className="mt-1" name={`free-handover-${sellerId}`} value={h}
               checked={chosen === h} onChange={() => setHandover(h)} />
             <span className="min-w-0">
-              <span className="block font-semibold">{(trade ? TRADE_HANDOVER : FREE_HANDOVER)[h].title}</span>
-              <span className="block text-muted-foreground">{(trade ? TRADE_HANDOVER : FREE_HANDOVER)[h].words}</span>
+              <span className="block font-semibold">{t((trade ? TRADE_HANDOVER : FREE_HANDOVER)[h].title)}</span>
+              <span className="block text-muted-foreground">{t((trade ? TRADE_HANDOVER : FREE_HANDOVER)[h].words)}</span>
             </span>
           </label>
         ))}
-        {!porchOk && ways === null && <p className="text-xs text-muted-foreground">The giver asked to meet at their home for this item, so porch pickup isn't available.</p>}
+        {!porchOk && ways === null && <p className="text-xs text-muted-foreground">{t("free.homeOnly")}</p>}
         {offered.length === 0 && <Suspense fallback={null}><NoWayWorks sellerId={sellerId} who="giver" /></Suspense>}
       </fieldset>
       {atPlace && <PorchPlacePicker sellerId={sellerId} cartKey={0} places={porchPlaces.places} free refused={porchPlaces.refused} loadError={porchPlaces.query.error}
         onRetry={() => void porchPlaces.reread()} />}
       <Button type="button" size="wrap" className="w-full rounded-full" disabled={confirm.isPending || offered.length === 0 || !placeReady} onClick={() => confirm.mutate()}>
-        {confirm.isPending ? "Confirming…" : "Confirm and pick a time"}
+        {confirm.isPending ? t("free.confirming") : t("free.confirmPick")}
       </Button>
-      <p className="text-xs text-muted-foreground">{trade ? TRADE_CHECKOUT_LINE : oneTimeCheckAhead ? FREE_CHECKOUT_FIRST_LINE : FREE_CHECKOUT_LINE}</p>
+      <p className="text-xs text-muted-foreground">{t(trade ? TRADE_CHECKOUT_LINE : oneTimeCheckAhead ? FREE_CHECKOUT_FIRST_LINE : FREE_CHECKOUT_LINE)}</p>
     </div>
   );
 }

@@ -9,7 +9,7 @@
  * @mutate src/components/declutter/DeclutterSalesWaiting.tsx | by: kind === "paid" ? byClock(l.checkout_by) : timeLeft(l.checkout_by) | by: timeLeft(l.checkout_by)
  * @mutate src/components/declutter/DeclutterSalesWaiting.tsx |     line: "Waiting on the buyer to pay", |     line: "Waiting for the buyer to pay",
  * @mutate src/lib/declutter/timeLeft.ts |   return t("dp.byTime", { time: sameDay | return ((o: { time: string }) => o.time)({ time: sameDay
- * @mutate src/components/declutter/DeclutterFreeClaim.tsx | text: "Pick who gets it", by: `${rows.length} asked` | text: "Pick who gets it"
+ * @mutate src/components/declutter/DeclutterFreeClaim.tsx | text: t("free.pickWho"), by: t("free.nAsked", { n: rows.length }) | text: t("free.pickWho")
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {(t.side === "buyer" \|\| t.side === "seller") && <Suspense | {false && <Suspense
  * @mutate src/components/declutter/OrderTalkStep.tsx |   return `/declutter?tab=${side === "buyer" ? "buying" : "selling"}&order=${orderId}`; |   return `/declutter?tab=${side === "buyer" ? "buying" : "selling"}`;
  * @mutate src/components/declutter/OrderTalkStep.tsx | action={step.who === "you" ? "See the order" : null} | action={null}

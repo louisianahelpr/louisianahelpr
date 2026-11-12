@@ -7,10 +7,16 @@
  * window's weekday (0 = Sunday); and declutter_book_pickup's: in the future, ending by the 7-day deadline.
  * Pure (no React, no network), so the picker and its tests share one rule.
  */
+import { getLang } from "@/lib/i18n/language";
+
 export type SellerWindow = { weekday: number; starts: string; ends: string };
 
 const ZONE = "America/Chicago";
-const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+// F260q: day words in the viewer's language (the clock stays "5 PM", as US Spanish writes it).
+const DAY_ES = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+const dayNames = () => (getLang() === "es" ? DAY_ES : DAY_EN);
+const locale = () => (getLang() === "es" ? "es-US" : "en-US");
 const SLOT_MIN = 30;
 
 const minutes = (hhmm: string) => {
@@ -41,6 +47,7 @@ function timeChipLabel(min: number): string {
 
 /** Weekdays as runs: [1,2,3,4,5] -> "Mon–Fri", [0,6] -> "Sun, Sat", [1,3] -> "Mon, Wed". */
 function dayRuns(days: number[]): string {
+  const DAY = dayNames();
   const sorted = [...new Set(days)].sort((x, y) => x - y);
   const runs: string[] = [];
   for (let i = 0; i < sorted.length; ) {
@@ -120,7 +127,7 @@ export function pickupDays(windows: readonly SellerWindow[], nowMs: number, dead
       .map(({ m, at }) => ({ iso: new Date(at).toISOString(), label: timeChipLabel(m) }));
     if (slots.length === 0) continue;
     const date = new Date(chicagoInstant(ymd, 12 * 60));
-    const label = new Intl.DateTimeFormat("en-US", { timeZone: ZONE, weekday: "short", month: "short", day: "numeric" }).format(date);
+    const label = new Intl.DateTimeFormat(locale(), { timeZone: ZONE, weekday: "short", month: "short", day: "numeric" }).format(date);
     out.push({ ymd, label, slots });
   }
   return out;
@@ -162,7 +169,7 @@ export function porchWindowDays(windows: readonly SellerWindow[], nowMs: number,
       .map(({ m, e, at }) => ({ iso: new Date(at).toISOString(), label: rangeLabel(hhmm(m), hhmm(e)) }));
     if (slots.length === 0) continue;
     const date = new Date(chicagoInstant(ymd, 12 * 60));
-    const label = new Intl.DateTimeFormat("en-US", { timeZone: ZONE, weekday: "short", month: "short", day: "numeric" }).format(date);
+    const label = new Intl.DateTimeFormat(locale(), { timeZone: ZONE, weekday: "short", month: "short", day: "numeric" }).format(date);
     out.push({ ymd, label, slots });
   }
   return out;
@@ -172,7 +179,7 @@ const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:
 
 /** Today's weekday in Louisiana (0 = Sun). */
 function chicagoWeekday(now: Date = new Date()): number {
-  return DAY.indexOf(new Intl.DateTimeFormat("en-US", { timeZone: ZONE, weekday: "short" }).format(now));
+  return DAY_EN.indexOf(new Intl.DateTimeFormat("en-US", { timeZone: ZONE, weekday: "short" }).format(now));
 }
 
 /**
@@ -183,22 +190,25 @@ function chicagoWeekday(now: Date = new Date()): number {
 export function weekHoursLine(windows: readonly SellerWindow[] | null | undefined, weekdays: readonly number[] | null | undefined = null,
   today: number = chicagoWeekday()): string {
   const ws = (windows ?? []).filter((w) => w && typeof w.starts === "string" && typeof w.ends === "string");
+  const DAY = dayNames();
+  const es = getLang() === "es";
+  const everyDay = es ? "Todos los días" : "Every day";
   const fromToday = (d: number) => (d - today + 7) % 7;
   if (ws.length === 0) {
     const days = [...new Set(weekdays ?? [])];
-    return days.length === 7 ? "Every day" : days.sort((a, b) => fromToday(a) - fromToday(b)).map((d) => DAY[d]).join(", ");
+    return days.length === 7 ? everyDay : days.sort((a, b) => fromToday(a) - fromToday(b)).map((d) => DAY[d]).join(", ");
   }
   const key = (w: SellerWindow) => `${w.starts.slice(0, 5)}|${w.ends.slice(0, 5)}`;
   const ranges = new Set(ws.map(key));
   if (ranges.size === 1) {
     const days = [...new Set(ws.map((w) => w.weekday))];
-    return `${days.length === 7 ? "Every day" : dayRuns(days)} ${rangeLabel(ws[0].starts.slice(0, 5), ws[0].ends.slice(0, 5))}`;
+    return `${days.length === 7 ? everyDay : dayRuns(days)} ${rangeLabel(ws[0].starts.slice(0, 5), ws[0].ends.slice(0, 5))}`;
   }
   const byDay = new Map<number, SellerWindow[]>();
   for (const w of [...ws].sort((x, y) => fromToday(x.weekday) - fromToday(y.weekday) || minutes(x.starts) - minutes(y.starts))) {
     byDay.set(w.weekday, [...(byDay.get(w.weekday) ?? []), w]);
   }
   return [...byDay.entries()]
-    .map(([d, list]) => `${DAY[d]} ${list.map((w) => rangeLabel(w.starts.slice(0, 5), w.ends.slice(0, 5))).join(" and ")}`)
+    .map(([d, list]) => `${DAY[d]} ${list.map((w) => rangeLabel(w.starts.slice(0, 5), w.ends.slice(0, 5))).join(es ? " y " : " and ")}`)
     .join(", ");
 }

@@ -1,0 +1,31 @@
+/** Spanish for enFreeAsk.ts (F260q): the "Ask for it" sheet of a free item. */
+import type { enFreeAsk } from "./enFreeAsk";
+
+export const esFreeAsk: Record<keyof typeof enFreeAsk, string> = {
+  "fask.today": "Hoy",
+  "fask.todayAt": "Hoy {time}",
+  "fask.tomorrowAt": "Mañana {time}",
+  "fask.changed": "Hora cambiada. Quien lo regala ve su nueva hora.",
+  "fask.asked": "Listo, lo pidió. {name} elige quién se lo lleva, y le avisaremos.",
+  "fask.changeTitle": "Cambiar su hora de recogida",
+  "fask.title": "Pedirlo",
+  "fask.free": "Gratis",
+  "fask.when": "¿Cuándo puede recogerlo?",
+  "fask.fromGiver": "Del horario de recogida de quien lo regala · {where}",
+  "fask.fromName": "Del horario de recogida de {name} · {where}",
+  "fask.or": " o ",
+  "fask.loadFailed": "No pudimos cargar los horarios de recogida.",
+  "fask.loading": "Cargando los horarios de recogida…",
+  "fask.noTimes": "{name} no tiene horarios de recogida libres la próxima semana, así que este artículo no se puede pedir por ahora.",
+  "fask.dayAria": "Día de recogida",
+  "fask.timeAria": "Hora de recogida el {day}",
+  "fask.noteFirst": "Pedirlo es gratis. {name} elige quién se lo lleva. Si es usted, {steps}.",
+  "fask.noteLead": "Gratis, no se cobra nada. {name} elige quién se lo lleva. Si es usted, ",
+  "fask.theTimeYouPick": "la hora que elija",
+  "fask.noteTail": " ya queda fijada, y recibirá la dirección.",
+  "fask.changeTo": "Cambiar a {time}",
+  "fask.askAt": "Pedirlo · {time}",
+  "fask.pickNew": "Elija una nueva hora",
+  "fask.pickToAsk": "Elija una hora para pedirlo",
+  "fask.upTo3": "Puede pedir hasta 3 artículos gratis a la vez.",
+};

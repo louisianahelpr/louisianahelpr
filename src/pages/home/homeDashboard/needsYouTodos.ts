@@ -11,6 +11,8 @@ import { jobStartTarget } from "@/components/job-card/CountdownRows";
 import { jobProgress } from "@/components/tracker/jobProgressState";
 import { jobNextStep } from "@/components/tracker/jobNextStep";
 import { continueDayNextStep, continueDayWords, type ContinueDay } from "@/lib/continueDayWords";
+import "@/lib/i18n/enTodos";
+import { t as tr, getLang } from "@/lib/i18n/language";
 
 export interface TodoItem {
   id: string;
@@ -62,23 +64,20 @@ function withBackout<J extends { id: string; status?: string | null }>(j: J, bac
   return open && backoutNoticeApplies(open.backout_kind, j.status) ? { ...j, backout_notice: open } : j;
 }
 
-/** JA-39: the on-the-way Helpr's Next up task. */
-export const ON_THE_WAY_TASK = "Tap I've arrived when you get there";
-/** JA-39: its button, the Working card's own step label (helperFaceAction.ts: key "arrived"). */
-export const ARRIVED_ACTION = "I've arrived";
+// JA-39: the on-the-way Helpr's Next up task is todo.onTheWayTask; its button, todo.arrived, is the Working card's own
+// step label (helperFaceAction.ts: key "arrived"). F260q: every word here is in enTodos / esTodos.
 /**
  * JA-39: which side of the job the Helpr is on, by where the job stands (never "working" before they arrive).
  * A3-84 (audit 11-01): hired, offered, confirmed and confirm-due read "You're hired" (the confirm-due Home row said
  * "Confirm you'll be at the job · You're working"); "You're working" only from arrival.
  */
 function helprSide(job: Job, lineId: string): string {
-  if (!job.helper_id) return "You applied";
-  if (lineId === "on_the_way") return "You're on the way";
-  return (job as { helper_arrived_at?: string | null }).helper_arrived_at ? "You're working" : "You're hired";
+  if (!job.helper_id) return tr("todo.youApplied");
+  if (lineId === "on_the_way") return tr("todo.onTheWay");
+  return (job as { helper_arrived_at?: string | null }).helper_arrived_at ? tr("todo.working") : tr("todo.hired");
 }
 const HOUR = 3_600_000;
-/** A3-83: the poster's step when the Helpr marked it done (or fixed what was asked): its Next up button. */
-export const REVIEW_WORK_ACTION = "Review work";
+/** A3-83: the poster's step when the Helpr marked it done (or fixed what was asked): its Next up button is todo.reviewWork. */
 const POSTER_REVIEW_STEPS = new Set(["approve", "revision_fixed"]);
 
 /** Spec v2 §5.2 tier 2: someone is waiting on the member (applicants, an offer, an order, a finished job). */
@@ -108,10 +107,10 @@ export function withTodoBy(task: string, line: Pick<JobStatusLine, "deadline">, 
   if (!Number.isFinite(at) || at < now || / by (Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/.test(task)) return task;
   if (line.deadline!.source === "auto_complete") {
     const mins = Math.floor((at - now) / 60_000);
-    return `${task} · ${mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`} left`;
+    return tr("todo.left", { task, time: mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m` });
   }
-  const day = new Date(at).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
-  return `${task} · by ${day.replace(",", "")}`;
+  const day = new Date(at).toLocaleString(getLang() === "es" ? "es-US" : "en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
+  return tr("todo.by", { task, day: day.replace(",", "") });
 }
 
 /**
@@ -185,10 +184,10 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
       item: {
         id: `s-${o.id}`,
         section: "shops",
-        title: `Answer an order for ${o.shop_order_lines?.[0]?.title ?? "your shop"}`,
-        meta: "Your shop · waiting for your answer",
+        title: o.shop_order_lines?.[0]?.title ? tr("todo.answerOrderFor", { title: o.shop_order_lines[0].title }) : tr("todo.answerOrder"),
+        meta: tr("todo.shopMeta"),
         to: "/shops/dashboard",
-        action: "Answer order",
+        action: tr("todo.answerOrderAction"),
         money: formatCents(o.total_cents),
       },
     });
@@ -219,13 +218,13 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
       item: {
         id: `p-${j.id}`,
         section: "jobs",
-        title: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : continueDayWords(cd[j.id], { side: "poster", otherFirst: null }) ?? todoTask(j, "poster", line, now, { pendingApplicants: n }),
-        meta: `${j.helper_id ? "You hired" : "You posted"} · ${j.title}`,
+        title: n > 0 ? (n === 1 ? tr("todo.reviewOne") : tr("todo.reviewN", { n })) : continueDayWords(cd[j.id], { side: "poster", otherFirst: null }) ?? todoTask(j, "poster", line, now, { pendingApplicants: n }),
+        meta: `${j.helper_id ? tr("todo.youHired") : tr("todo.youPosted")} · ${j.title}`,
         // "Open job" opens THE job (audit #12, 2026-10-21); the applicant
         // review still lands on the Posted list where applicants are handled.
         to: n > 0 ? `/jobs?tab=posted&filter=needs_you` : `/jobs/${j.id}`,
         // A3-83: the approve step is named on its button ("Review work", the job page's approve section).
-        action: n > 0 ? "See applicants" : POSTER_REVIEW_STEPS.has(line.id) ? REVIEW_WORK_ACTION : "Open job",
+        action: n > 0 ? tr("todo.seeApplicants") : POSTER_REVIEW_STEPS.has(line.id) ? tr("todo.reviewWork") : tr("todo.openJob"),
       },
     });
   }
@@ -240,13 +239,13 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
         section: "jobs",
         // JA-39 (Jobs audit 11-01): on the way is not working yet. The task is the arrival tap, and the side word
         // says where they are ("You're on the way · Haul off..."), never "You're working" before they arrive.
-        title: continueDayWords(cd[a.job!.id], { side: "helpr", otherFirst: helprOther(a) }) ?? (line.id === "on_the_way" ? ON_THE_WAY_TASK : todoTask(a.job!, "helpr", line, now, { application: a.status })),
+        title: continueDayWords(cd[a.job!.id], { side: "helpr", otherFirst: helprOther(a) }) ?? (line.id === "on_the_way" ? tr("todo.onTheWayTask") : todoTask(a.job!, "helpr", line, now, { application: a.status })),
         meta: `${helprSide(a.job!, line.id)} · ${a.job!.title}`,
         // JA-39: the button IS the arrival step ("I've arrived"), run by the Working card's tracker (not a crew: a
         // member's steps are on the roster), instead of "Open job" and a second tap on the page.
         ...(line.id === "on_the_way" && !a.job!.is_group_job && !cd[a.job!.id]
-          ? { to: `/jobs?tab=working&job=${encodeURIComponent(a.job!.id)}&open=1`, action: ARRIVED_ACTION, helperStep: { jobId: a.job!.id, key: "arrived" as const } }
-          : { to: `/jobs/${a.job!.id}`, action: "Open job" }),
+          ? { to: `/jobs?tab=working&job=${encodeURIComponent(a.job!.id)}&open=1`, action: tr("todo.arrived"), helperStep: { jobId: a.job!.id, key: "arrived" as const } }
+          : { to: `/jobs/${a.job!.id}`, action: tr("todo.openJob") }),
       },
     });
   }

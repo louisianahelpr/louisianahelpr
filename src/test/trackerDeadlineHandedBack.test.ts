@@ -61,9 +61,11 @@ describe("F260q: the tracker hands its deadline back beside the line", () => {
   it("the tracker keeps the card's deadline when its line is the card's", () => {
     const next = "Waiting on Yusef to confirm by Sun 8:00 AM";
     const card = { line: { id: "confirmed", eyebrow: "Waiting", detail: next, tone: "them", owesConfirmation: false, detailBy: { line: next, text: "Waiting on Yusef to confirm", by: "by Sun 8:00 AM" } } };
-    const p = jobProgress(job({ status: "in_progress", helper_on_the_way_at: "2054-11-07T21:00:00Z", poster_confirmed_at: "2054-11-07T20:00:00Z", helper_dayof_confirmed_at: "2054-11-07T20:00:00Z" } as Partial<Job>),
+    // The poster still owes their own confirm (the tracker's line), while the card's bar sits on the Helpr's: the card's line shows.
+    const p = jobProgress(job(),
       { viewer: "poster", otherFirst: "Yusef", now: NOW, card: card as never });
-    if (p.next === next) expect(p.nextBy?.by).toBe("by Sun 8:00 AM");
+    expect(p.next).toBe(next);
+    expect(p.nextBy?.by).toBe("by Sun 8:00 AM");
   });
 
   it("jobNextStep never reads a deadline out of the words", () => {

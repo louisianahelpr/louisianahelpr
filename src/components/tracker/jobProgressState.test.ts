@@ -18,10 +18,10 @@
 // @mutate src/components/tracker/jobProgressState.ts |   if (isExpiredListing(job)) return { ...base, stage: 0 | if (false) return { ...base, stage: 0
 // @mutate src/components/tracker/jobProgressState.ts | const wait = poster ? `You both confirm on ${day}, the day before, that the job is still on` | const wait = poster ? `${other} confirms on ${day}, the day before, that they can still come`
 // JA-4 (audit 11-01): the line named a button ("I'm still on") the job page calls "Confirm it's still on"; it now says the step.
-// @mutate src/components/tracker/jobProgressState.ts | !posterIn ? `Confirm the job is still on by ${posterBy}` : | !posterIn ? "Tap I'm still on to confirm" :
+// @mutate src/components/tracker/jobProgressState.ts | atBy(3, mine, "Confirmed", "Confirm the job is still on", `by ${posterBy}`, held); | atBy(3, mine, "Confirmed", "Tap I'm still on to confirm", `by ${posterBy}`, held);
 // A3-9 (audit 11-01): both confirm lines say by when; the poster's closes at the start (posterConfirmClosesMs).
-// @mutate src/components/tracker/jobProgressState.ts | !posterIn ? `Confirm the job is still on by ${posterBy}` : | !posterIn ? "Confirm the job is still on" :
-// @mutate src/components/tracker/jobProgressState.ts | `Waiting on ${otherLow} to confirm by ${posterBy}` | `Waiting on ${otherLow} to confirm`
+// @mutate src/components/tracker/jobProgressState.ts | atBy(3, mine, "Confirmed", "Confirm the job is still on", `by ${posterBy}`, held); | at(3, mine, "Confirmed", "Confirm the job is still on", held);
+// @mutate src/components/tracker/jobProgressState.ts |   return atBy(3, mine, "Confirmed", `Waiting on ${otherLow} to confirm`, `by ${posterBy}`, held); |   return at(3, mine, "Confirmed", `Waiting on ${otherLow} to confirm`, held);
 // @mutate src/components/tracker/jobProgressState.ts | const posterBy = when(posterConfirmClosesMs(job.date_needed, job.start_time)); | const posterBy = when(due);
 // @mutate src/pages/jobs/jobPage/useJobPage.ts | has_active_dispute, dispute_deadline, cancellation_reason, cancelled_by, | has_active_dispute, dispute_deadline,
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";

@@ -12,11 +12,8 @@
  */
 import { setOfferRules } from "@/lib/declutter/api";
 
-export const OFFERS_TITLE = "Accept offers";
-
-/** What "Accept offers" means, on or off (Settings, the one-item form and Sell a bunch say it the same way). */
-export const offersSettingLine = (on: boolean) =>
-  on ? "Buyers can offer a lower price, and you say yes or no." : "Off. Buyers pay your price with Buy now; no offers.";
+// "Accept offers" and what it means on or off are dictionary words now (F260q): enListingParts lp.ld.offers* (Settings,
+// Sell a bunch, Manage listing) and enSellForm sf.offers* (the one-item form), guarded equal in sellFormInSpanish.
 
 type SetRules = (id: string, accepts: boolean, auto: boolean) => Promise<void>;
 

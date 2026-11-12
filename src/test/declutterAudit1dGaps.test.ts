@@ -15,7 +15,8 @@
  * @mutate src/pages/post-job/useJobFormEffects.ts |     const p = buildMovingDayPrefill(raw, todayYmd()); |     const p = buildMovingDayPrefill(raw, todayYmd()); return;
  * @mutate src/pages/post-job/FormStep.tsx |           {form.haulAwayItemIds && form.haulAwayItemIds.length > 0 && ( |           {false && (
  * @mutate src/lib/declutter/movingDayJob.ts |   const date = YMD.test(param) && param >= today ? param : null; |   const date = YMD.test(param) ? param : null;
- * @mutate src/components/declutter/DeclutterBunchCard.tsx | onChange={(e) => onChange({ price: e.target.value })} placeholder="Set a price" /> | onChange={(e) => onChange({ price: e.target.value })} placeholder="40" />
+ * @mutate src/lib/i18n/enListingParts.ts |   "lp.bc.pricePh": "Set a price", |   "lp.bc.pricePh": "40",
+ * @mutate src/components/declutter/DeclutterBunchCard.tsx | placeholder={t("lp.bc.pricePh")} | placeholder="40"
  * @mutate src/components/declutter/DeclutterBunchRow.tsx | <span id={nameId} className="block break-words text-ds-14 font-semibold">{name}</span> | <span id={nameId} className="block truncate text-ds-14 font-semibold">{name}</span>
  * @mutate src/lib/declutter/errors.ts |   if (deviceOffline()) return DECLUTTER_OFFLINE_COPY; |   if (false) return DECLUTTER_OFFLINE_COPY;
  * @mutate src/lib/declutter/errors.ts |   if (isNetworkFailure(err)) return CONNECTION_TROUBLE_COPY; |   if (false) return CONNECTION_TROUBLE_COPY;
@@ -26,6 +27,8 @@ import { setConnectivity } from "@/lib/connectivity";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
+import { enListingParts } from "@/lib/i18n/enListingParts";
+import { esListingParts } from "@/lib/i18n/esListingParts";
 import { trackedFiles } from "./helpers/trackedFiles";
 import { buildMovingDayPrefill, movingDayPostJobPath, MOVING_DAY_PARAM } from "@/lib/declutter/movingDayJob";
 import { prefillOpensDetails } from "@/pages/post-job/usePrefillOpensDetails";
@@ -96,9 +99,9 @@ describe("D4-13: Sell a bunch never shows a number where no price was set, and t
     const src = code("src/components/declutter/DeclutterBunchCard.tsx");
     const price = src.split("\n").find((l) => l.includes("<input id={`price-${id}`}")) ?? "";
     expect(price).not.toBe("");
-    const ph = price.match(/placeholder="([^"]*)"/)?.[1];
-    expect(ph).toBeDefined();
-    expect(ph).not.toMatch(/\d/);
+    // F260q: the placeholder is a dictionary word (lp.bc.pricePh): neither language's words hold a digit.
+    expect(price).toContain('placeholder={t("lp.bc.pricePh")}');
+    for (const ph of [enListingParts["lp.bc.pricePh"], esListingParts["lp.bc.pricePh"]]) expect(ph).not.toMatch(/\d/);
     // The row is what says the name now.
     const name = code("src/components/declutter/DeclutterBunchRow.tsx").match(/<span id=\{nameId\} className="[^"]*">\{name\}<\/span>/)?.[0] ?? "";
     expect(name).not.toBe("");

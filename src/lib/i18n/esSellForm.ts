@@ -40,7 +40,7 @@ export const esSellForm: Record<keyof typeof enSellForm, string> = {
   "sf.freeNote": "Los artículos gratis se piden, no se compran: sin ofertas y sin bajadas de precio. Quien lo pide lo recoge en su porche, y no se cobra nada.",
   "sf.offersTitle": "Aceptar ofertas",
   "sf.offersOn": "Los compradores pueden ofrecer un precio más bajo, y usted dice sí o no.",
-  "sf.offersOff": "Desactivado. Los compradores pagan su precio con Comprar ahora; sin ofertas.",
+  "sf.offersOff": "Apagado. Los compradores pagan su precio con Comprar ahora; sin ofertas.",
   "sf.taxHead": "Confirme sobre este artículo",
   "sf.taxLine": "Luisiana no cobra impuesto sobre las ventas en ventas ocasionales de sus propias cosas.",
   "sf.group.home": "Hogar",

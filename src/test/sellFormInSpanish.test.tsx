@@ -33,7 +33,8 @@ import { setLang, ensureLangLoaded, __resetLangForTests, t as tr } from "@/lib/i
 import { es } from "@/lib/i18n/es";
 import { enSellForm } from "@/lib/i18n/enSellForm";
 import { esSellForm } from "@/lib/i18n/esSellForm";
-import { OFFERS_TITLE, offersSettingLine } from "@/lib/declutter/offersOnPost";
+import { enListingParts } from "@/lib/i18n/enListingParts";
+import { esListingParts } from "@/lib/i18n/esListingParts";
 import { fireEvent } from "@testing-library/react";
 import { CATEGORY_GROUPS } from "@/lib/declutter/categoryIcons";
 import { formProblem, formProblemCode, problemRow, sellStepProblem, type FormState } from "@/components/declutter/sellForm";
@@ -82,10 +83,11 @@ describe("the sell screen follows the member's language (F260q)", () => {
       expect(esSellForm[k], `${k} still English`).not.toBe(enSellForm[k]);
       expect([...esSellForm[k].matchAll(/\{\w+\}/g)].map((m) => m[0]).sort(), k).toEqual([...enSellForm[k].matchAll(/\{\w+\}/g)].map((m) => m[0]).sort());
     }
-    // Settings and Sell a bunch still say it from offersOnPost: the sell form says it the same way.
-    expect(enSellForm["sf.offersTitle"]).toBe(OFFERS_TITLE);
-    expect(enSellForm["sf.offersOn"]).toBe(offersSettingLine(true));
-    expect(enSellForm["sf.offersOff"]).toBe(offersSettingLine(false));
+    // Settings, Sell a bunch and Manage listing say it from enListingParts: the sell form says it the same way.
+    for (const [sf, lp] of [["sf.offersTitle", "lp.ld.offersTitle"], ["sf.offersOn", "lp.ld.offersOn"], ["sf.offersOff", "lp.ld.offersOff"]] as const) {
+      expect(enSellForm[sf], sf).toBe(enListingParts[lp]);
+      expect(esSellForm[sf], sf).toBe(esListingParts[lp]);
+    }
   });
 
   it("English: the old words", () => {

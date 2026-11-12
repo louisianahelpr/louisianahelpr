@@ -15,11 +15,7 @@ import { assertNever } from "@/lib/assertNever";
 import { rpcData } from "@/lib/declutter/api";
 import { rpcErrorMessage } from "@/lib/declutter/tradeErrors";
 
-export const TRADES_TITLE = "Open to trades";
-
-/** What "Open to trades" means, on or off (Settings and Manage listing say it the same way). */
-export const tradesSettingLine = (on: boolean) =>
-  on ? "Buyers can offer one of their listings in trade. No money changes hands." : "Off. Buyers can't offer a trade.";
+// "Open to trades" and what it means on or off are dictionary words now (F260q): enListingParts lp.ld.trades*.
 
 /** The column is not on this database yet (a table read: PostgREST never answers it with PGRST202). */
 const notDeployed = (e: { code?: string; message?: string } | null) =>

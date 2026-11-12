@@ -142,6 +142,7 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/declutter/DeclutterHandoverViews.tsx": { bucket: "declutter-handover" },
   // Audit 1b D2-7: problem and refund photos go up through uploadProblemPhoto (cleaned to JPEG), the handover bucket's problem folder.
   "src/components/declutter/DeclutterProblemPhotos.tsx": { bucket: "declutter-handover" },
+  "src/components/declutter/OrderTalkPhotoParts.tsx": { bucket: "declutter-handover" },
   // Seller delivery (20261027153244): the drop-off photo goes up through uploadHandoverPhoto, the handover bucket.
   // Declutter returns (Q2486): the return photo goes up through uploadReturnPhoto, the handover bucket.
   "src/components/declutter/DeclutterRefundReturn.tsx": { bucket: "declutter-handover" },

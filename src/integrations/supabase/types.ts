@@ -32,6 +32,27 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_activity_last: {
+        Row: {
+          actor_id: string
+          kind: string
+          n: number
+          sent_at: string
+        }
+        Insert: {
+          actor_id: string
+          kind: string
+          n?: number
+          sent_at: string
+        }
+        Update: {
+          actor_id?: string
+          kind?: string
+          n?: number
+          sent_at?: string
+        }
+        Relationships: []
+      }
       admin_audit_log: {
         Row: {
           action: string
@@ -3143,6 +3164,7 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          photo_path: string | null
           sender_id: string | null
           sender_side: string
           talk_id: string
@@ -3151,6 +3173,7 @@ export type Database = {
           body: string
           created_at?: string
           id?: string
+          photo_path?: string | null
           sender_id?: string | null
           sender_side: string
           talk_id: string
@@ -3159,6 +3182,7 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          photo_path?: string | null
           sender_id?: string | null
           sender_side?: string
           talk_id?: string

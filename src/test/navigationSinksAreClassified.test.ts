@@ -144,6 +144,7 @@ const CLASSIFIED: Record<string, string> = {
   // --- app-built URLs, no stored value in the scheme position ---
   "components/job-card/JobCardMetaRow.tsx::mapHref": MAPS,
   // Q2425: a fixed https://maps.apple.com/?ll=<number>,<number>&q=<encodeURIComponent(name)> for an admin-curated public spot.
+  "components/declutter/OrderTalkPhotoParts.tsx::url.data": STORAGE_SIGNED + " (F389: handoverPhotoUrl(path) on the order-chat photo, isStorageObjectPath-gated createSignedUrl on declutter-handover, else null and no link)",
   "components/declutter/DeclutterProblemSides.tsx::u": STORAGE_SIGNED + " (handoverPhotoUrl(): isStorageObjectPath-gated createSignedUrl on declutter-handover, else null and no link)",
   "components/declutter/DeclutterMeetup.tsx::meetupMapUrl(m)": "meetupMapUrl(): a fixed https://maps.apple.com prefix + Number() coordinates + encodeURIComponent(spot name)",
   "components/declutter/DeclutterRefundReturn.tsx::meetupMapUrl({ spot_lat: r.return_lat, spot_lng: r.return_lng, spot_name: r.return_address })": "meetupMapUrl(): a fixed https://maps.apple.com prefix + Number() coordinates + encodeURIComponent(return address) (returns, Q2486)",

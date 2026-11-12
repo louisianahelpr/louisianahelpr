@@ -98,7 +98,10 @@ describe("Declutter's offer cards follow the language (F260q)", () => {
     expect(await screen.findByText("¿Decir que no a $6?")).toBeTruthy();
     expect(screen.getByText("\"Blue enamel mug\": esta oferta termina y se le avisa al comprador que dijo que no.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Ahora no" }));
-    await waitFor(() => expect(screen.queryByText("¿Decir que no a $6?")).toBeNull());
+    await waitFor(() => {
+      expect(screen.queryByText("¿Decir que no a $6?")).toBeNull();
+      expect(screen.getByRole("button", { name: "Mostrar 1 oferta cerrada de los últimos 30 días" })).toBeTruthy();
+    });
     fireEvent.click(screen.getByRole("button", { name: "Mostrar 1 oferta cerrada de los últimos 30 días" }));
     expect(screen.getByText("Rechazada")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/Offers on|to answer|From Ann|Price now|their offer|you keep|Say no|Not now|Declined|closed offer/);

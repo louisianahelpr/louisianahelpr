@@ -362,7 +362,7 @@ describe("the photo-first Declutter item page", () => {
   });
 
   // Audit 11-10 F359d: the giver of a free item reads who sees the address in giver words, not "buyers ... picked".
-  // @mutate src/components/declutter/ItemPickupBlock.tsx | "they'll see your exact address only once you pick them" | "buyers see your exact address only once they're picked"
+  // @mutate src/components/declutter/ItemPickupBlock.tsx | free ? t("pb.noteFreeSeller") : t("pb.noteSeller") | free ? t("pb.noteSeller") : t("pb.noteSeller")
   it("F359d: the giver's own free item says they'll see the address once you pick them", async () => {
     state.item = { ...ITEM, seller_id: "u1", price_cents: 0, current_price_cents: 0 };
     open();
@@ -1035,7 +1035,7 @@ describe("the photo-first Declutter item page", () => {
 
   // F049 (UI audit 11-09): a free item said "Sold by Lexi" and "Exact address if the giver picks you".
   // @mutate src/components/declutter/DeclutterGuest.tsx | {free ? "Given by" : "Sold by"} | {"Sold by"}
-  // @mutate src/components/declutter/ItemPickupBlock.tsx | `You'll get the exact address if ${giver ?? "the giver"} picks you.` | "exact address if the giver picks you"
+  // @mutate src/components/declutter/ItemPickupBlock.tsx | t("pb.noteFree", { giver: giver ?? t("pb.theGiver") }) | "exact address if the giver picks you"
   it("F049: a guest on a free item reads 'Given by Dana R.' and 'You'll get the exact address if Dana picks you.'", async () => {
     guest.on = true;
     state.handovers = ["porch"];

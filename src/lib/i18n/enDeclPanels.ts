@@ -49,6 +49,36 @@ export const enDeclPanels = {
   "dp.cancel": "Cancel",
   "dp.sending": "Sending…",
   "dp.sendTrade": "Send trade offer",
+
+  // Handover ways (handoverCopy.ts HANDOVER_TITLE / HANDOVER_WORDS, word for word; declutterPanelsInSpanish checks).
+  "ho.title.porch": "Porch pickup",
+  "ho.title.pickup_home": "Meet at the seller's home",
+  "ho.title.seller_delivery": "Seller delivers",
+  "ho.title.delivery": "Helpr delivery",
+  "ho.title.meetup": "Meet at a safe spot",
+  "ho.title.ship": "Ship it to me",
+  "ho.words.porch": "The seller leaves it on their porch or another safe place, no need to meet. Address after you pay.",
+  "ho.words.pickup_home": "Pick it up at the seller's door. Address after you pay.",
+  "ho.words.seller_delivery": "The seller brings it to you at a time you pick.",
+  "ho.words.delivery": "A local Helpr picks it up and brings it to you. Best for big items.",
+  "ho.words.meetup": "Meet at a public place: the seller's own spot, or a police safe exchange spot Louisiana Helpr checked. No home address is shared.",
+  "ho.words.ship": "The seller mails it to your Louisiana address. You pay the postage shown.",
+
+  // The item page's pickup block (ItemPickupBlock.tsx).
+  "pb.delivery": "Delivery",
+  "pb.meetup": "Meetup",
+  "pb.pickup": "Pickup",
+  "pb.noteFreeSeller": "they'll see your exact address only once you pick them",
+  "pb.noteSeller": "buyers see your exact address only after they pay",
+  "pb.noteFree": "You'll get the exact address if {giver} picks you.",
+  "pb.theGiver": "the giver",
+  "pb.noteBuyer": "exact address after you pay",
+  "pb.or": "or",
+  "pb.also": "also",
+  "pb.pickSpot": "you pick the spot at checkout",
+  "pb.noWays": "The seller hasn't said how buyers can get it yet.",
+  "pb.placesError": "We couldn't load the pickup places.",
+  "pb.timesError": "We couldn't load the pickup times.",
 } as const;
 
 addEnglish(enDeclPanels);

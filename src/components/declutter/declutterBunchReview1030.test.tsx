@@ -34,7 +34,7 @@
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | aria-label={t("lp.bc.dropAria", { name })} | aria-label="Don't sell this"
  * Size only when the tool didn't answer (lead 10-30):
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |         {item.sizeUnknown && ( |         {true && (
- * @mutate src/lib/declutter/bunch.ts |   return it.sizeUnknown ? BUNCH_SIZE_PROBLEM : null; |   return null;
+ * @mutate src/lib/declutter/bunch.ts |   return it.sizeUnknown ? "size" : null; |   return null;
  * The moving sale:
  * @mutate src/lib/declutter/bunch.ts |           id = choices.moveOutOn\n            ? await deps.createMoveDraft(choices.moveOutOn, place, fields)\n            : await deps.createDraft(fields, appId); |           id = await deps.createDraft(fields, appId);
  * @mutate src/components/declutter/DeclutterBunchView.tsx | { ...choices.choices, moveOutOn: moveDate \|\| null }, | choices.choices,

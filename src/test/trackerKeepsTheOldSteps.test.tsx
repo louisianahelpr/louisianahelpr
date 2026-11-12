@@ -101,7 +101,7 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
 
   it("every step action the old rail's button offered is still a step action", () => {
     expect(oldRail().map((s) => s.action).filter(Boolean)).toEqual(["I've accepted", "Confirm this job", "I'm on my way", "I've arrived", "Start working", "Mark it done"]);
-    expect(code("src/components/JobTrackingView.tsx")).toContain('label={arrivalRefusedHere ? "Try my location again" : (nextStatus.action ?? nextStatus.label)}');
+    expect(code("src/components/JobTrackingView.tsx")).toContain('label={arrivalRefusedHere ? t("trk.retryLocation") : nextStatus.action ? stepAction(nextStatus.key) : nextStatus.label}');
   });
 
   it("a done step shows when it happened on tap or hover; a click never hides what the hover showed", () => {

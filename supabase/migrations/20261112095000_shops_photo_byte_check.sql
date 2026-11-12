@@ -33,6 +33,14 @@ COMMENT ON TABLE public.shop_photo_byte_checks IS
 ALTER TABLE public.shop_photo_byte_checks ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.shop_photo_byte_checks FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.shop_photo_byte_checks TO service_role;
+-- Every public table keeps the unconfirmed-email gate (db-smoke; lander, train 1112-e).
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gate$;
 
 -- The object now at a shop photo path, uploaded by this owner (the edge function asks BEFORE it reads the bytes).
 CREATE OR REPLACE FUNCTION public.shop_photo_object_id(p_path text, p_owner uuid)

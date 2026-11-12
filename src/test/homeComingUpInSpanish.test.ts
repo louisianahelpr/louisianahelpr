@@ -31,7 +31,7 @@ const order = { id: "so", buyer_id: "me", seller_id: "s", shop_id: "sh", status:
 const inputs: Inputs = {
   postedJobs: [], appliedApps: [], myOrders: [], shopOrders: [order],
   cart: [line({}), line({ line_id: "l2", item_title: "Lamp" }), line({ line_id: "l3", order_id: "o2", my_side: "seller", handover: "porch", item_title: "Rug" })],
-  bookings: [{ order_id: "o1", slot_start: at(20, 15) }, { order_id: "o2", slot_start: at(21, 9) }] as Inputs["bookings"],
+  bookings: [{ order_id: "o1", slot_start: at(20, 15) }, { order_id: "o2", slot_start: at(21, 9) }] as unknown as Inputs["bookings"],
 };
 const rows = () => deriveComingUp(inputs, NOW).map((r) => `${r.title} | ${r.day} | ${r.time ?? ""}`);
 

@@ -1,5 +1,5 @@
 /**
- * F260q (owner 11-11 "Spanish EVERYTHING now"): the offer box's last English words in the member's language: the
+ * F260q (owner 11-11 "Spanish EVERYTHING now"; written 2026-11-12): the offer box's last English words in the member's language: the
  * "At most, <with pickup>" ceiling line, the no-delivery total phrases (pickupWords.ts: "with porch pickup", "for a
  * safe meetup", "before delivery") and the "Offer sent" what-next sheet. Same amounts; English reads the old words.
  * Not yet: DeclutterOffersSection (Buying/Selling's offer rows and accept sheets).

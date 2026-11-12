@@ -8,12 +8,18 @@
  *        and at a preorder's hold (20261112075702, proof src/test/pglite/shopsCottageLimitStrict.pglite.mjs).
  *   S033 follow-up: a custom home-food price counts its own amount (and accepted, not-yet-charged orders) when the shop
  *        sends it and when the buyer orders it (20261112080238, proof src/test/pglite/shopsCustomCottageLimit.pglite.mjs).
+ *   S016 the needs-you reminder sweep reminds the shop about an order waiting on its answer (20261112075428, proof
+ *        src/test/pglite/shopsAcceptReminders.pglite.mjs).
  *
  * @mutate supabase/migrations/20261112080238_shops_custom_order_cottage_limit.sql |     IF public.shop_cottage_would_reach(v_uid, p_quote_cents) THEN |     IF public.shop_cottage_cap_reached(v_uid) THEN
  * @mutate supabase/migrations/20261112080238_shops_custom_order_cottage_limit.sql | public.shop_cottage_would_reach(s.owner_id, r.quote_cents) THEN | public.shop_cottage_cap_reached(s.owner_id) THEN
  * @mutate supabase/migrations/20261112080238_shops_custom_order_cottage_limit.sql |                           + p_add_cents >= c.cap_cents |                           + p_add_cents > c.cap_cents
  * @mutate supabase/migrations/20261112075702_shops_cottage_limit_strict.sql |          + v_home_food >= v_cottage_cap THEN |          + v_home_food > v_cottage_cap THEN
  * @mutate supabase/migrations/20261112075702_shops_cottage_limit_strict.sql |                 + v_pre_home_food >= (SELECT c.cap_cents |                 + v_pre_home_food > (SELECT c.cap_cents *
+ * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql |      WHERE so.status = 'held' AND so.accept_by IS NOT NULL |      WHERE false AND so.accept_by IS NOT NULL *
+ * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql |     WHEN p_type = 'new_offers' AND p_title IN ('Answer the new order', 'Order drops soon') THEN 'needs_you' |     WHEN false THEN 'needs_you'
+ * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql | n.type IN ('declutter_offers', 'declutter_refunds', 'new_offers') THEN | n.type IN ('declutter_offers', 'declutter_refunds') THEN
+ * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql | WHERE so.id = s.ref_id AND so.status = 'held' AND so.accept_by = s.deadline | WHERE so.id = s.ref_id AND so.accept_by = s.deadline
  * @mutate src/components/shops/ShopMyOrdersView.tsx |   if (o.status === "accepted") return "accepted"; |   if (o.status === "accepted" \|\| o.status === "handed_over") return "accepted";
  * @mutate src/components/shops/ShopOrderCard.tsx |           {CANCEL_RULE_VISIBLE.has(order.status) && !order.handed_over_at | {true
  * @mutate src/components/shops/ShopHandoverActions.tsx |           {!porch && !byHelpr && due && !h?.shop_confirmed_at && ( |           {!porch && due && !h?.shop_confirmed_at && (
@@ -63,5 +69,18 @@ describe("Shops audit 11-12 Mediums", () => {
     const h = body("shop_cottage_would_reach");
     expect(h).toContain("x.status = 'accepted' AND x.captured_at IS NULL");
     expect(h).toContain("+ p_add_cents >= c.cap_cents");
+  });
+  it("S016: the shop is reminded before a waiting order drops", () => {
+    const b = body("sweep_needs_you_reminders");
+    expect(b).toContain("SELECT 'shop_order', so.id, so.accept_by, so.seller_id, so.buyer_id, 'seller',");
+    expect(b).toContain("WHERE so.status = 'held' AND so.accept_by IS NOT NULL AND so.accept_by > p_now AND so.accept_by <= p_now + interval '12 hours' AND COALESCE(so.is_seed, false) = false");
+    expect(b).toContain("PERFORM public.declutter_notify_strict(r.to_id, 'new_offers', v_title, v_body, '/shops/dashboard', r.other_id);");
+    // Texted as needs-you (ahead of the job-offer row on the same type), and dropped at claim once answered.
+    const kind = body("sms_kind_for");
+    expect(kind).toContain("WHEN p_type = 'new_offers' AND p_title IN ('Answer the new order', 'Order drops soon') THEN 'needs_you'");
+    expect(kind.indexOf("'Answer the new order'")).toBeLessThan(kind.indexOf("'New job offer'"));
+    const claim = body("sms_claim_due");
+    expect(claim).toContain("n.type IN ('declutter_offers', 'declutter_refunds', 'new_offers') THEN");
+    expect(claim).toContain("WHEN 'shop_order' THEN EXISTS ( SELECT 1 FROM public.shop_orders so WHERE so.id = s.ref_id AND so.status = 'held' AND so.accept_by = s.deadline AND so.seller_id = s.user_id)");
   });
 });

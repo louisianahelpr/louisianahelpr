@@ -83,7 +83,7 @@ describe("needs-you deadline reminders (A3-85)", () => {
     // Every title the sweep writes is one the classifier texts.
     const sweep = newestFunctionBody("sweep_needs_you_reminders");
     const titles = [...sweep.matchAll(/THEN '([A-Z][^']+)' ELSE '([A-Z][^']+)' END;/g)].flatMap((m) => [m[1], m[2]]);
-    expect(titles.length).toBe(6);
+    expect(titles.length).toBe(8);
     for (const t of titles) expect(kind, t).toContain(`'${t}'`);
     const trg = newestTrigger("notifications_fan_out_to_sms");
     for (const t of ["declutter_offers", "declutter_refunds", "declutter_pickups", "payment", "warning"]) expect(trg).toContain(`'${t}'`);
@@ -107,8 +107,8 @@ describe("needs-you deadline reminders (A3-85)", () => {
     // Every title the sweep writes maps to its step here.
     const sweep = newestFunctionBody("sweep_needs_you_reminders");
     const titles = [...sweep.matchAll(/THEN '([A-Z][^']+)' ELSE '([A-Z][^']+)' END;/g)].flatMap((m) => [m[1], m[2]]);
-    expect(titles.length).toBe(6);
-    for (const t of titles) expect(claim, t).toMatch(new RegExp(`WHEN '${t}' THEN '(offer|refund_answer|refund_offer)'`));
+    expect(titles.length).toBe(8);
+    for (const t of titles) expect(claim, t).toMatch(new RegExp(`WHEN '${t}' THEN '(offer|refund_answer|refund_offer|shop_order)'`));
   });
 
   // @mutate supabase/functions/_shared/smsPolicy.ts |   if (kind === "needs_you") return "/declutter"; |   if (kind === "needs_you") return "/jobs";

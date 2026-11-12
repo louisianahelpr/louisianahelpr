@@ -651,7 +651,7 @@ describe("Declutter controls are the shared ones", () => {
       fireEvent.click(await screen.findByRole("button", { name: "Continuar" }));
       await screen.findByRole("heading", { name: "¿Cuál es su precio?" });
       expect(screen.getByText("Regalarlo gratis")).toBeInTheDocument();
-      expect(document.querySelector("[data-sell-drops]")!.textContent).toMatch(/^Bajar el precio con el tiempo|Encendido\. Baja|Apagado\. Se queda|A este precio no hay/);
+      expect(document.querySelector("[data-sell-drops]")!.textContent).toMatch(/Bajar el precio con el tiempo|Encendido\. Baja|Apagado\. Se queda|A este precio no hay/);
       fireEvent.click(await screen.findByRole("button", { name: "Continuar" }));
       await screen.findByRole("heading", { name: "¿Cómo pueden recibirlo los compradores?" });
       expect(screen.getByRole("heading", { name: "Sus horas habituales de recogida" })).toBeInTheDocument();

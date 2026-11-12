@@ -32,17 +32,17 @@
 // @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |     WHEN v_text_flag IS NOT NULL THEN 'pending_review'\n | \n
 // @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |     WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'\n | \n
 // @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |     WHEN v_recent_rejection THEN 'pending_review'\n | \n
-// @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql | jsonb_build_object('note', v_note, 'owner_id', v_owner, 'shop_id', v_shop)); | jsonb_build_object('note', v_note));
-// @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |            rj.created_at, rj.details->>'note' |            NULL::timestamptz, NULL::text
+// @mutate supabase/migrations/20261112194629_shops_owner_review_notices.sql | jsonb_build_object('note', v_note, 'owner_id', v_owner, 'shop_id', v_shop)); | jsonb_build_object('note', v_note));
+// @mutate supabase/migrations/20261112194629_shops_owner_review_notices.sql |            rj.created_at, rj.details->>'note', |            NULL::timestamptz, NULL::text,
 // @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |     IF public.shop_cottage_cap_reached(v_uid) THEN | IF false THEN
 // @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |   IF v_photos < 3 OR v_photos > 12 THEN | IF v_photos < 1 OR v_photos > 12 THEN
 // @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |     WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish', 'label_says_home_kitchen', | WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish',
 // @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql |   IF p_kind IS NULL OR p_kind NOT IN ('made', 'home_food', 'farm', 'service', 'rental', 'digital') THEN |   IF p_kind IS NULL OR p_kind NOT IN ('made', 'home_food', 'farm', 'service', 'digital') THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261112081700_shops_export_rest.sql |   v_out := v_out \|\| jsonb_build_object('shop_items', | v_out := v_out \|\| jsonb_build_object('shop_items_gone',
-// @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |   IF v_submitted IS DISTINCT FROM p_submitted_at THEN | IF false THEN
+// @mutate supabase/migrations/20261112194629_shops_owner_review_notices.sql |   IF v_submitted IS DISTINCT FROM p_submitted_at THEN | IF false THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql |      SET admin_approved_at = NULL\n   WHERE id = (CASE | SET updated_at = updated_at\n   WHERE id = (CASE
-// @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |   SELECT owner_id, shop_id, kind, submitted_at INTO | SELECT owner_id, shop_id, kind, p_submitted_at INTO
+// @mutate supabase/migrations/20261112194629_shops_owner_review_notices.sql |   SELECT owner_id, shop_id, kind, submitted_at, title INTO | SELECT owner_id, shop_id, kind, p_submitted_at, title INTO
 // @mutate supabase/functions/declutter-ai-draft/shopItemSanitize.ts |   const flagged = r.possibly_banned !== false; |   const flagged = r.possibly_banned === true;
 // @mutate supabase/functions/declutter-ai-draft/index.ts |   const refused = await requireFeature(admin, shopItem ? "shops" : "declutter", authData.user, corsHeaders); |   const refused = await requireFeature(admin, "declutter", authData.user, corsHeaders);
 // @mutate src/lib/shops/items.ts |   if (subtype === "eggs") return ["own_hens", "kept_cold", "no_cracked_dirty", "not_banned"]; |   if (subtype === "eggs") return ["own_hens", "kept_cold", "not_banned"];
@@ -269,7 +269,7 @@ describe("Shops slice 2: items, hidden and gated (20261017061157)", () => {
     expect(flat(body("shops_admin_pending_items"))).toMatch(/submitted_at timestamptz,[\s\S]*i\.submitted_at, p\.ai_checked_at/);
     const r = flat(body("shops_admin_review_item"));
     expect(r).toMatch(/shops_admin_review_item\(p_item_id uuid, p_approve boolean, p_note text, p_submitted_at timestamptz\)/);
-    expect(r).toContain("SELECT owner_id, shop_id, kind, submitted_at INTO v_owner, v_shop, v_kind, v_submitted FROM public.shop_items WHERE id = p_item_id AND status = 'pending_review' FOR UPDATE");
+    expect(r).toContain("SELECT owner_id, shop_id, kind, submitted_at, title INTO v_owner, v_shop, v_kind, v_submitted, v_title FROM public.shop_items WHERE id = p_item_id AND status = 'pending_review' FOR UPDATE");
     expect(r).toContain("IF v_submitted IS DISTINCT FROM p_submitted_at THEN RAISE EXCEPTION 'item_changed'");
     // N3: new or removed photos drop the approval, as a word edit does.
     expect(flat(body("shop_item_photos_void_ai_check"))).toMatch(/UPDATE public\.shop_items SET admin_approved_at = NULL WHERE id = \(CASE WHEN TG_OP = 'DELETE' THEN OLD\.item_id ELSE NEW\.item_id END\)/);

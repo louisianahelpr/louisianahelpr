@@ -14,6 +14,7 @@ import {
 } from "@/lib/shops/items";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { AdminCard } from "../AdminViewShell";
+import { withoutTestRows } from "../seedRows";
 import { Input } from "@/components/ui/input";
 
 /**
@@ -93,9 +94,14 @@ function PendingItem({ row }: { row: PendingShopItem }) {
   );
 }
 
+// S007: test data never shows to the owner (owner 10-25 / 10-27); the server marks test items, shops and owners.
+async function loadPendingItems(): Promise<PendingShopItem[]> {
+  return withoutTestRows(await fetchPendingShopItems());
+}
+
 export function ShopItemsReviewCard() {
   const on = useFeature("shops");
-  const pending = useQuery({ queryKey: ["shops", "admin-pending-items"], queryFn: fetchPendingShopItems, enabled: on });
+  const pending = useQuery({ queryKey: ["shops", "admin-pending-items"], queryFn: loadPendingItems, enabled: on });
   if (!on) return null;
   return (
     <AdminCard title="Shops: items to review" subtitle="New shops' first 3 items and anything the photo or word check flagged.">

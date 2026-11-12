@@ -122,6 +122,9 @@ export interface JobStatusLine {
    * Rendered by the shared `DeadlineCountdown` in its `compact` form.
    */
   deadline?: StatusDeadline | null;
+  /** F260q: the detail's step and deadline handed back separately ("Waiting on Yusef to confirm" + "by Wed 9:00 AM"),
+   *  paired with the exact detail, so the tracker's "· by" part never splits English words. */
+  detailBy?: { line: string; text: string; by: string };
 }
 
 /** One countdown on the collapsed line. */
@@ -686,10 +689,13 @@ export function posterStatusLine(
   // Expired is not cancelled (owner 10-31, src/lib/expiredListing.ts): the poster's
   // own card says "Expired", never "Cancelled", and keeps its Post again.
   const expired = id === "cancelled" && isExpiredListing(job);
+  const detail = expired ? EXPIRED_LISTING_DETAIL : named ?? (atTheJob ? "Your Helpr is at the job" : copy.detail);
+  const detailBy = id === "confirmed" && helperName ? confirmWaitBy(helperName, job, detail) : null;
   return {
     id,
     eyebrow: expired ? EXPIRED_WORD : copy.eyebrow ?? BUCKET_LABEL[bucket],
-    detail: expired ? EXPIRED_LISTING_DETAIL : named ?? (atTheJob ? "Your Helpr is at the job" : copy.detail),
+    detail,
+    ...(detailBy ? { detailBy } : {}),
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_arrival",
     suffix: id === "cancelled" ? cancelledSuffix(job, progress?.refund) : null,
@@ -1148,6 +1154,13 @@ export function confirmWindowPassedLine(
 function offerAnswerByMs(job: Job): number | null {
   const at = Date.parse((job.response_deadline ?? job.direct_offer_expires_at ?? "") as string);
   return Number.isFinite(at) && at > Date.now() ? at : null;
+}
+/** The confirmed line's "Waiting on <name> to confirm" and "by <when>", when the detail shown is exactly that line. */
+function confirmWaitBy(name: string, job: Job, detail: string): { line: string; text: string; by: string } | null {
+  if (!job.date_needed) return null;
+  const text = `Waiting on ${firstName(name)} to confirm`;
+  const by = `by ${dayTime(confirmDeadlineMs(job.date_needed, job.start_time ?? null))}`;
+  return detail === `${text} ${by}` ? { line: detail, text, by } : null;
 }
 const POSTER_NAMED: Partial<Record<PosterWait, (name: string, job: Job) => string>> = {
   // Audit 11-01 JA-49: the name AND the answer-by time ("Yusef has until Mon 6:00 AM to answer").

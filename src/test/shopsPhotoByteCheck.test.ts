@@ -8,7 +8,7 @@
  * @mutate supabase/migrations/20261112095000_shops_photo_byte_check.sql |         WHERE o.id = p_object_id AND o.bucket_id = 'job-photos' AND o.name = p_path |         WHERE o.bucket_id = 'job-photos' AND o.name = p_path
  * @mutate supabase/migrations/20261112095000_shops_photo_byte_check.sql | REVOKE ALL ON TABLE public.shop_photo_byte_checks FROM PUBLIC, anon, authenticated; | REVOKE ALL ON TABLE public.shop_photo_byte_checks FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261112095000_shops_photo_byte_check.sql |   IF public.shop_photos_held(v_shop) THEN\n |   IF false THEN\n
- * @mutate supabase/migrations/20261112095000_shops_photo_byte_check.sql |   IF public.shop_photos_held(v_item.shop_id) THEN\n |   IF false THEN\n
+ * @mutate supabase/migrations/20261112204756_shops_live_item_photos.sql |   IF public.shop_photos_held(v_item.shop_id) THEN\n |   IF false THEN\n
  * @mutate supabase/functions/_shared/digitalFileCheck.ts |   if (bytesMatchExt("jpg", head)) return "jpg"; |   if (head.length > 0) return "jpg";
  * @mutate supabase/functions/shop-photo-check/index.ts |     if (!imageKindFromBytes(head)) { |     if (!head) {
  * @mutate supabase/functions/shop-photo-check/index.ts |   return !!owner && owner === userId; |   return !!owner;

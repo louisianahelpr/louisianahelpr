@@ -109,6 +109,7 @@ const CONVERTED = [
   "src/components/declutter/DeclutterTradeRules.tsx",
   "src/components/declutter/ShipItRow.tsx",
   "src/components/declutter/DeclutterBunchCard.tsx",
+  "src/components/declutter/DeclutterBunchView.tsx",
   // F260q: Home's money strip and the head of You › Money (enMoneyTiles.ts).
   "src/pages/home/homeDashboard/HomeMoneyTiles.tsx",
   // F260q: the deal room's receipt card and system rows (enChatEvents.ts, built by jobSystemEvents.ts).

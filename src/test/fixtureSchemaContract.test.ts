@@ -168,7 +168,7 @@ describe("the constraint reader really read the constraints", () => {
 
     // Replacement semantics: notifications.type was defined inline with 7
     // values, later re-added with 18, with 25 by 20261028162048, 26 by 20261030170443 and 29 by 20261108201153 (the
-    // seven declutter_* kinds) and 30 by 20261112061000 (admin_activity). Only the newest one may survive.
+    // seven declutter_* kinds) 30 by 20261112061000 (admin_activity) and 31 by 20261112070000 (shops_following). Only the newest one may survive.
     const notifType = constraints.get("notifications")!.get("notifications_type_check") as {
       values: string[];
     };
@@ -176,7 +176,8 @@ describe("the constraint reader really read the constraints", () => {
     expect(notifType.values).toContain("declutter_wanted");
     expect(notifType.values).toContain("shops_orders");
     expect(notifType.values).toContain("admin_activity");
-    expect(notifType.values.length).toBe(30);
+    expect(notifType.values).toContain("shops_following");
+    expect(notifType.values.length).toBe(31);
 
     // Defined inline on a continuation line inside CREATE TABLE, and via
     // `ALTER TABLE … ADD COLUMN … CHECK` respectively — two shapes an earlier

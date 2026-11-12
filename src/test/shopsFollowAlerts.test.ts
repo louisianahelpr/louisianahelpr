@@ -11,7 +11,7 @@
  *      defaults OFF (no email sender) and the settings row says so.
  *
  * @mutate supabase/migrations/20261112070000_shops_follow_alerts.sql |   IF NEW.status IS DISTINCT FROM 'live' OR NEW.followers_told_at IS NOT NULL THEN |   IF NEW.status IS DISTINCT FROM 'live' THEN
- * @mutate supabase/migrations/20261112070000_shops_follow_alerts.sql |        AND NOT public.are_users_blocked(f.user_id, v_shop.owner_id)\n |
+ * @mutate supabase/migrations/20261112070000_shops_follow_alerts.sql |      WHERE f.shop_id = v_shop.id\n       AND f.user_id <> v_shop.owner_id\n       AND NOT public.are_users_blocked(f.user_id, v_shop.owner_id)\n |      WHERE f.shop_id = v_shop.id\n       AND f.user_id <> v_shop.owner_id\n
  * @mutate supabase/migrations/20261112070000_shops_follow_alerts.sql |   IF coalesce(NEW.is_seed, false) THEN\n    RETURN NEW;\n  END IF;\n |
  * @mutate supabase/migrations/20261112070000_shops_follow_alerts.sql |   EXCEPTION WHEN OTHERS THEN\n    RAISE WARNING 'shop_items_tell_followers: %', SQLERRM;\n |
  * @mutate supabase/migrations/20261112070000_shops_follow_alerts.sql |   BEFORE INSERT OR UPDATE OF status ON public.shop_items | AFTER DELETE ON public.shop_items

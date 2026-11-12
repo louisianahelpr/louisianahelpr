@@ -73,6 +73,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   admin_activity_on_declutter_wanted: "alerts", // admin bell (20261112061000): a seed row never rings the admins
   admin_activity_on_job: "alerts", // admin bell (20261112061000): a seed row never rings the admins
   admin_activity_on_shop_order: "alerts", // admin bell (20261112061000): a seed row never rings the admins
+  shop_items_tell_followers: "alerts", // L92 follow alerts (20261112070000): a seed item or seed shop never tells a follower
   admin_booking_sources: "hides", // B66 Book me (20261030013347): a test Helpr or test poster never counts in the admin tally
   declutter_item_sold_visible: "hides", // F061 (20261109194234): a test item's sold card is never shown publicly (seed_hidden_in_discovery)
   get_helprs_near_me: "hides", // Q2008 (20261104062747): a test member is never shown in Helprs near you (seed_hidden_in_discovery)

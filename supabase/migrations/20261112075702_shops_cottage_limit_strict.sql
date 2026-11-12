@@ -131,6 +131,8 @@ BEGIN
   RETURN jsonb_build_object('result', 'accepted', 'order_id', o.id, 'captured', false);
 END;
 $fn$;
+REVOKE ALL ON FUNCTION public.shops_accept_order(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.shops_accept_order(uuid) TO authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.shop_mark_order_held(p_session_id text, p_payment_intent_id text,
   p_amount_total integer, p_tax_cents integer, p_livemode boolean)
@@ -324,3 +326,6 @@ BEGIN
   RETURN jsonb_build_object('result', 'held', 'order_id', o.id);
 END;
 $fn$;
+-- Grants restated by role name (lander, train 1112-d; the same as 20261111025213).
+REVOKE ALL ON FUNCTION public.shop_mark_order_held(text, text, integer, integer, boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.shop_mark_order_held(text, text, integer, integer, boolean) TO service_role;

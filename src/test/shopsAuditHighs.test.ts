@@ -12,9 +12,9 @@
  *        and closes every waiting one, on every hide; the admin's dialog says so (migration 20261112074135, proof
  *        src/test/pglite/shopsHideRefunds.pglite.mjs).
  *
- * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |   IF o.fulfillment = 'helpr_delivers' AND o.helpr_unfilled_at IS NULL THEN | IF false THEN
+ * @mutate supabase/migrations/20261112075006_shops_audit_mediums.sql | can be one.\n  IF o.fulfillment = 'helpr_delivers' AND o.helpr_unfilled_at IS NULL THEN | can be one.\n  IF false THEN
  * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |      AND public.shop_local_today() < o.ready_date\n |      AND false\n
- * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |        OR public.shop_owner_sell_block_reason(o.seller_id) IS NOT NULL\n |
+ * @mutate supabase/migrations/20261112075702_shops_cottage_limit_strict.sql |        OR public.shop_owner_sell_block_reason(o.seller_id) IS NOT NULL\n |
  * @mutate supabase/migrations/20261112075702_shops_cottage_limit_strict.sql |                 + v_pre_home_food >= (SELECT c.cap_cents |                 >= (SELECT c.cap_cents
  * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |          AND (NEW.message ILIKE '%refund%' OR NEW.message ILIKE '%back to your card%' OR NEW.message ILIKE '%coming back%')))) |          AND false))
  * @mutate supabase/migrations/20261112074135_shops_hide_refunds_open_orders.sql |       r := public.shop_write_refund(o.id, 'shop_removed', left(btrim(p_reason), 500)); |       r := NULL;

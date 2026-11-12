@@ -74,7 +74,6 @@ export const enLanding = {
   "landing.shell.declutterLine": "Pick it up, meet up, or have a Helpr deliver it.",
   "landing.shell.noJobsTitle": "New on Declutter near you",
   "landing.shell.noJobsLine": "Every job is taken right now. Here’s what neighbors are selling.",
-  "landing.shell.serviceArea": "Serving New Iberia, Lafayette, Abbeville and nearby.",
   "landing.live.getQuotes": "Get quotes",
   "landing.live.namePrice": "Name a price",
   "landing.live.parish": "{parish} Parish",

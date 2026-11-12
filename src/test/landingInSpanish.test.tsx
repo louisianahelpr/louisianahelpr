@@ -34,7 +34,7 @@ import { enLanding } from "@/lib/i18n/enLanding";
 import { esLanding } from "@/lib/i18n/esLanding";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import { HIRE_STEPS } from "@/components/landing/hireSteps";
-import { LandingBrowseShell, JOBS_SHELL, DECLUTTER_SHELL, NO_JOBS_DECLUTTER_SHELL, SERVICE_AREA_LINE } from "@/components/landing/LandingBrowseShell";
+import { LandingBrowseShell, JOBS_SHELL, DECLUTTER_SHELL, NO_JOBS_DECLUTTER_SHELL } from "@/components/landing/LandingBrowseShell";
 import { LandingProof, proofLine } from "@/components/landing/LandingProof";
 import { liveJobDate } from "@/components/landing/LiveJobsSection";
 
@@ -127,10 +127,10 @@ describe("F260q: the browse block under the hero speaks the visitor's language",
   it("every shell sentence (and both proof lines) has its English in enLanding", () => {
     const english = new Set<string>(Object.values(enLanding));
     for (const sh of shells) for (const wd of [sh.title, sh.line, sh.seeAll.label]) expect(english.has(wd), wd).toBe(true);
-    for (const wd of [proofLine(true), proofLine(false), SERVICE_AREA_LINE]) expect(english.has(wd), wd).toBe(true);
+    for (const wd of [proofLine(true), proofLine(false)]) expect(english.has(wd), wd).toBe(true);
   });
 
-  it("Spanish saved: each shell's title, line, link and the service area are Spanish; the proof card too", async () => {
+  it("Spanish saved: each shell's title, line and link are Spanish; the proof card too", async () => {
     window.localStorage.setItem("helpr_lang", "es");
     render(
       <MemoryRouter>
@@ -144,7 +144,6 @@ describe("F260q: the browse block under the hero speaks the visitor's language",
     const text = document.body.textContent ?? "";
     for (const sh of shells) for (const wd of [sh.title, sh.seeAll.label]) expect(text, wd).not.toContain(wd);
     expect(text).not.toContain(proofLine(true));
-    expect(text).not.toContain(SERVICE_AREA_LINE);
     expect(text).toContain(esLanding["landing.shell.jobsLineId"]);
     expect(text).toContain(esLanding["landing.proof.justFinished"]);
     expect(text).not.toContain("Just finished");

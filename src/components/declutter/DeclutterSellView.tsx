@@ -47,6 +47,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import "@/lib/i18n/enSellForm";
 import "@/lib/i18n/enListingParts";
+import "@/lib/i18n/enDeclutter";
+import type { MsgKey } from "@/lib/i18n/en";
 import { t as tr, useLanguage } from "@/lib/i18n/language";
 
 export default function SellFlow() {
@@ -149,8 +151,8 @@ function SellSteps({ itemId }: { itemId: string }) {
           <CategoryDrillDown label={tr("sf.ds.category")} groups={CATEGORY_GROUPS} value={form.category} onChange={(v) => set("category", v)} />
           {/* I1 (Q1836 a): same link as the one-screen form (SellSummaryCard). */}
           <SuggestCategory area="declutter" />
-          <ChipGroup label={tr("sf.ds.condition")} options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />
-          <ChipGroup label={tr("sf.ds.size")} options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: SIZE_LABEL[k] }))} value={form.deliverySize} onChange={(v) => set("deliverySize", v as DeliverySize)} />
+          <ChipGroup label={tr("sf.ds.condition")} options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: tr(`decl.cond.${n}` as MsgKey) }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />
+          <ChipGroup label={tr("sf.ds.size")} options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: tr(`decl.size.${k}`) }))} value={form.deliverySize} onChange={(v) => set("deliverySize", v as DeliverySize)} />
           <div className="space-y-2">
             <FieldLabel htmlFor="sell-desc" text={tr("sf.ds.anythingElse")} extra={tr("sf.ds.optional")} />
             <Textarea id="sell-desc" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder={tr("sf.ds.descPh")} />
@@ -194,7 +196,7 @@ function SellSteps({ itemId }: { itemId: string }) {
               {(form.free || priceCents) && <p className="shrink-0 text-ds-17 font-bold text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(form.free ? 0 : (priceCents as number))}</p>}
             </div>
             <p className="text-ds-13 text-muted-foreground">
-              {[CONDITION_LABEL[form.conditionStars], CATEGORY_LABEL[form.category], form.areaLabel.trim()].filter(Boolean).join(" · ")}
+              {[CONDITION_LABEL[form.conditionStars] ? tr(`decl.cond.${form.conditionStars}` as MsgKey) : "", CATEGORY_LABEL[form.category] ? tr(`decl.cat.${form.category}` as MsgKey) : "", form.areaLabel.trim()].filter(Boolean).join(" · ")}
             </p>
             <ul className="flex flex-wrap gap-2 pt-1" aria-label={tr("sf.ds.howGet")}>
               {savedWays.map((w) => <li key={w} className="rounded-full border border-border px-3 py-1 text-ds-13 font-medium">{wayTitle(w)}</li>)}

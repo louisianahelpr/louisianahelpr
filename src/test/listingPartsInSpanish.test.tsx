@@ -20,6 +20,11 @@
  * @mutate src/components/declutter/SellHandoverChoices.tsx | : t(`lp.way.${w}.words`)} | : c.words}
  * @mutate src/components/declutter/SellHandoverChoices.tsx | {free ? t("lp.waysHeadFree") : t("lp.waysHead")} | {free ? "How it's picked up" : "Tick every way that works for you"}
  * @mutate src/components/declutter/SellHandoverChoices.tsx | data-helpr-delivery-always="">{t("lp.helprAlways")}</p> | data-helpr-delivery-always="">Buyers can also choose Helpr delivery.</p>
+ * @mutate src/components/declutter/DeclutterPickupTimes.tsx | const dayWord = (d: number) => t(`lp.day.${d}` as MsgKey); | const dayWord = (d: number) => ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d];
+ * @mutate src/components/declutter/DeclutterPickupTimes.tsx | const dayShort = (d: number) => t(`lp.dayShort.${d}` as MsgKey); | const dayShort = (d: number) => SHORT[d];
+ * @mutate src/components/declutter/DeclutterPickupTimes.tsx | text-foreground">{t("lp.pt.days")}</legend> | text-foreground">Days</legend>
+ * @mutate src/components/declutter/DeclutterPickupTimes.tsx | {t("lp.pt.addOn", { day: dayWord(d) })} | Add another time on {dayWord(d)}
+ * @mutate src/components/declutter/DeclutterPickupTimes.tsx | if (windows.length === 0) return t("lp.pt.needOne"); | if (windows.length === 0) return "Pick at least one day and time buyers can come.";
  * @mutate src/components/declutter/SellFormParts.tsx | <span className="block text-ds-15 font-semibold text-foreground">{t("lp.dropsSwitch")}</span> | <span className="block text-ds-15 font-semibold text-foreground">Lower the price over time</span>
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -41,6 +46,7 @@ vi.mock("@/components/declutter/useSellerSetupFee", () => ({ useSellerSetupFee: 
 const { AutoFreeChoice } = await import("@/components/declutter/AutoFreeRow");
 const { KeepUpSwitch } = await import("@/components/declutter/KeepUpRow");
 const { SellHandoverChoices } = await import("@/components/declutter/SellHandoverChoices");
+const { PickupTimesEditor, pickupWindowsProblem } = await import("@/components/declutter/DeclutterPickupTimes");
 const { DropSchedule } = await import("@/components/declutter/DeclutterSellSteps");
 const { SellDropsCard } = await import("@/components/declutter/SellFormParts");
 
@@ -60,6 +66,7 @@ const show = () => render(
     <SellDropsCard s={flow()} />
     <KeepUpSwitch as="div" rowClassName="" keep={{ itemId: "i1", on: false, state: { data: false, isError: false, isLoading: false }, flip: { isPending: false, mutate: vi.fn() } } as unknown as Parameters<typeof KeepUpSwitch>[0]["keep"]} />
     <SellHandoverChoices ways={["porch", "meetup"]} setWays={() => {}} free={false} sellerDeliveryOpen={false} />
+    <PickupTimesEditor windows={[{ weekday: 1, starts: "09:00", ends: "12:00" }, { weekday: 3, starts: "17:00", ends: "19:00" }]} setWindows={() => {}} />
   </div></QueryClientProvider>,
 );
 
@@ -92,6 +99,10 @@ describe("the listing-setting parts follow the member's language (F260q)", () =>
     expect(screen.getByText("Keep it up until it sells")).toBeTruthy();
     expect(screen.getByText("Tick every way that works for you")).toBeTruthy();
     expect(screen.getByRole("checkbox", { name: "Porch pickup" })).toBeTruthy();
+    expect(screen.getByText("Days")).toBeTruthy();
+    expect(screen.getAllByText("Monday").length).toBeGreaterThan(0);
+    expect(screen.getByText("Add another time on Monday")).toBeTruthy();
+    expect(pickupWindowsProblem([])).toBe("Pick at least one day and time buyers can come.");
     expect(screen.getByText("Lower the price over time")).toBeTruthy();
   });
 
@@ -116,7 +127,15 @@ describe("the listing-setting parts follow the member's language (F260q)", () =>
     expect(screen.getByRole("checkbox", { name: "Recoger en el porche" })).toBeTruthy();
     expect(screen.getByText(esListingParts["lp.way.meetup.words"])).toBeTruthy();
     expect(screen.getByText(esListingParts["lp.helprAlways"])).toBeTruthy();
+    expect(screen.getByText("Días")).toBeTruthy();
+    expect(screen.getAllByText("lunes").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("mié").length).toBeGreaterThan(0);
+    expect(screen.getByText("Agregar otra hora el lunes")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Quitar lunes de 9:00 AM a 12:00 PM" })).toBeTruthy();
+    expect(screen.getAllByText("Desde").length).toBeGreaterThan(0);
+    expect(pickupWindowsProblem([])).toBe(esListingParts["lp.pt.needOne"]);
+    expect(pickupWindowsProblem([{ weekday: 1, starts: "12:00", ends: "09:00" }])).toBe(esListingParts["lp.pt.endAfter"]);
     expect(handoverSummary(["meetup", "porch"])).toBe("Recoger en el porche, Lugar de encuentro seguro");
-    expect(document.body.textContent).not.toMatch(/If it doesn't sell|make it free after|Lower the price over time|first drop comes|Keep it up|Tick every way|Porch pickup|Safe meeting spot|Buyers can also choose/);
+    expect(document.body.textContent).not.toMatch(/If it doesn't sell|make it free after|Lower the price over time|first drop comes|Keep it up|Tick every way|Porch pickup|Safe meeting spot|Buyers can also choose|Add another time|Monday|Wednesday/);
   });
 });

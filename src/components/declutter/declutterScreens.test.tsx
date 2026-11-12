@@ -625,8 +625,8 @@ describe("Declutter controls are the shared ones", () => {
   });
 
   // F260q (owner 11-11 "Spanish EVERYTHING now"): the saved draft's step form in Spanish: the progress, each step's
-  // head, the buttons, the review rows, the free box, the drops card and the ways step's address and times words. (KeepUpSwitch, the listing lifetime, handover choices and the condition/size
-  // chips are still English.)
+  // head, the buttons, the review rows, the free box, the drops card and the ways step's address and times words, the condition/size chips, the ways buyers get it and
+  // how long it stays up (enListingParts).
   // @mutate src/components/declutter/DeclutterSellView.tsx | text-muted-foreground">{tr("sf.ds.stepOf", { step, total: 5 })}</span> | text-muted-foreground">{step} of 5</span>
   // @mutate src/components/declutter/DeclutterSellView.tsx | : tr("sf.ds.saveContinue")) : tr("sf.ds.continue")} | : tr("sf.ds.saveContinue")) : "Continue"}
   // @mutate src/components/declutter/DeclutterSellView.tsx | <StepHead title={tr("sf.ds.readyQ")} sub={tr("sf.ds.readySub")} /> | <StepHead title="Ready to list?" sub={tr("sf.ds.readySub")} />
@@ -634,6 +634,8 @@ describe("Declutter controls are the shared ones", () => {
   // @mutate src/components/declutter/SellFormParts.tsx |       {t("sf.ds.giveFree")}\n |       Give it away free\n
   // @mutate src/components/declutter/SellFormParts.tsx | text-foreground">{t("sf.wy.timesHead")}</h3> | text-foreground">Your usual pickup times</h3>
   // @mutate src/components/declutter/SellFormParts.tsx |           : (form.free ? t("sf.wy.privFree") : t("sf.wy.priv"))} |           : (form.free ? t("sf.wy.privFree") : "Private. Only the buyer who pays sees it.")}
+  // @mutate src/components/declutter/DeclutterSellView.tsx | label: tr(`decl.cond.${n}` as MsgKey) })) | label: CONDITION_LABEL[n] }))
+  // @mutate src/components/declutter/DeclutterSellView.tsx | ({ value: k, label: tr(`decl.size.${k}`) })) | ({ value: k, label: SIZE_LABEL[k] }))
   it("F260q: a Spanish member's saved draft reads its steps in Spanish", async () => {
     setLang("es");
     await ensureLangLoaded();
@@ -644,6 +646,8 @@ describe("Declutter controls are the shared ones", () => {
       await screen.findByRole("heading", { name: "Muéstrelo" });
       expect(screen.getByText("1 de 5")).toBeInTheDocument();
       fireEvent.click(await screen.findByRole("button", { name: "Continuar" }));
+      expect(await screen.findByRole("radio", { name: "Como nuevo" })).toBeInTheDocument();
+      expect(screen.getByRole("radio", { name: "Pequeño: cabe en un carro" })).toBeInTheDocument();
       fireEvent.click(await screen.findByRole("button", { name: "Continuar" }));
       await screen.findByRole("heading", { name: "¿Cuál es su precio?" });
       expect(screen.getByText("Regalarlo gratis")).toBeInTheDocument();
@@ -655,7 +659,7 @@ describe("Declutter controls are the shared ones", () => {
       fireEvent.click(await screen.findByRole("button", { name: "Guardar y continuar" }));
       await screen.findByRole("heading", { name: "¿Listo para anunciar?" });
       expect(document.querySelector('[data-review-row="Fotos"]')!.textContent).toMatch(/1 foto · la primera es la portada/);
-      expect(document.querySelector('[data-review-row="Cuánto tiempo sigue anunciado"]')).not.toBeNull();
+      expect(document.querySelector('[data-review-row="Cuánto tiempo sigue anunciado"]')!.textContent).toMatch(/30 días\. Si no se ha vendido/);
       expect(screen.getByRole("button", { name: "Anunciarlo" })).toBeInTheDocument();
       expect(document.body.textContent).not.toMatch(/Ready to list|of 5|Save and continue|the first is the cover/);
     } finally {

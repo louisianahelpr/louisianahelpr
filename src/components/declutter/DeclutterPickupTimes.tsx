@@ -17,8 +17,10 @@ import { ToggleChip } from "@/components/ui/ToggleChip";
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { type PickupWindow } from "@/lib/declutter/api";
-import { WEEKDAYS } from "./declutterUi";
 import { NativeSelect } from "@/components/ui/select";
+import "@/lib/i18n/enListingParts";
+import type { MsgKey } from "@/lib/i18n/en";
+import { t } from "@/lib/i18n/language";
 import { byDayThenStart, placeHoursLine, sameHoursEveryDay, shortDays, timeLabel } from "@/lib/declutter/pickupTimesText";
 
 // The text helpers live in lib/declutter/pickupTimesText (the item page reads them without this editor).
@@ -28,6 +30,9 @@ export { placeHoursLine, sameHoursEveryDay, shortDays, timeLabel };
 const MAX_WINDOWS = 21;
 const DEFAULT_RANGE = { starts: "09:00", ends: "12:00" };
 const SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+/** A weekday in the member's language (F260q; WEEKDAYS keeps the English for other screens). */
+const dayWord = (d: number) => t(`lp.day.${d}` as MsgKey);
+const dayShort = (d: number) => t(`lp.dayShort.${d}` as MsgKey);
 
 /** Half-hour steps from 6:00 AM to 10:00 PM, as "HH:MM". */
 export const TIME_STEPS: string[] = Array.from({ length: 33 }, (_, i) => {
@@ -45,8 +50,8 @@ export function DayChip({ day, on, onToggle, disabled }: { day: number; on: bool
     // Named by content, not aria-label (WCAG 2.5.3, axe 4.14 label-content-name-mismatch, lead 11-04): the drawn
     // "Sat" is aria-hidden and the hidden "Saturday" is the name, as the job tracker's step tips do.
     <ToggleChip pressed={on} disabled={disabled} onClick={onToggle} data-day-chip="" className="min-w-[3.25rem] justify-center px-3">
-      <span aria-hidden="true">{SHORT[day]}</span>
-      <span className="sr-only">{WEEKDAYS[day]}</span>
+      <span aria-hidden="true">{dayShort(day)}</span>
+      <span className="sr-only">{dayWord(day)}</span>
     </ToggleChip>
   );
 }
@@ -75,9 +80,9 @@ function RangeRow({ idBase, w, onChange, onRemove, removeLabel }: {
   return (
     <div className="space-y-1">
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] items-center gap-1.5">
-        <TimeSelect id={`${idBase}-from`} label="From" value={w.starts} onChange={(v) => onChange({ ...w, starts: v })} />
-        <span className="text-ds-13 text-muted-foreground" aria-hidden>to</span>
-        <TimeSelect id={`${idBase}-to`} label="Until" value={w.ends} onChange={(v) => onChange({ ...w, ends: v })} />
+        <TimeSelect id={`${idBase}-from`} label={t("lp.pt.from")} value={w.starts} onChange={(v) => onChange({ ...w, starts: v })} />
+        <span className="text-ds-13 text-muted-foreground" aria-hidden>{t("lp.pt.to")}</span>
+        <TimeSelect id={`${idBase}-to`} label={t("lp.pt.until")} value={w.ends} onChange={(v) => onChange({ ...w, ends: v })} />
         {onRemove ? (
           // The shared compact ghost icon (44 tap, 40 wash), not a hand-made button. The 16px X stays: a remove
           // mark beside two time fields, smaller than a toolbar icon (B47 10-31).
@@ -87,7 +92,7 @@ function RangeRow({ idBase, w, onChange, onRemove, removeLabel }: {
           </Button>
         ) : <span className="w-11" aria-hidden />}
       </div>
-      {bad && <p className="text-ds-13 font-semibold text-destructive-ink" data-window-problem="">The end time must be after the start.</p>}
+      {bad && <p className="text-ds-13 font-semibold text-destructive-ink" data-window-problem="">{t("lp.pt.endAfterStart")}</p>}
     </div>
   );
 }
@@ -117,20 +122,20 @@ export function PickupTimesEditor({ windows, setWindows }: { windows: PickupWind
   return (
     <div className="space-y-4" data-pickup-times="">
       <fieldset className="space-y-2">
-        <legend className="text-ds-13 font-semibold text-foreground">Days</legend>
+        <legend className="text-ds-13 font-semibold text-foreground">{t("lp.pt.days")}</legend>
         <div className="flex flex-wrap gap-2">
           {SHORT.map((label, d) => <DayChip key={label} day={d} on={days.includes(d)} onToggle={() => toggleDay(d)} />)}
         </div>
       </fieldset>
 
       {days.length === 0 ? (
-        <p className="text-ds-13 text-muted-foreground" data-no-days="">Pick at least one day buyers can come.</p>
+        <p className="text-ds-13 text-muted-foreground" data-no-days="">{t("lp.pt.noDays")}</p>
       ) : (
         <>
           {/* The shared glossy control (segmentedControlInvariant), not a hand-painted pair. */}
           <SegmentedControl
-            ariaLabel="Hours"
-            options={[{ value: "same" as const, label: "Same hours every day" }, { value: "each" as const, label: "Different each day" }]}
+            ariaLabel={t("lp.pt.hours")}
+            options={[{ value: "same" as const, label: t("lp.pt.same") }, { value: "each" as const, label: t("lp.pt.each") }]}
             value={perDay ? "each" : "same"}
             onChange={(v) => (v === "each" ? setPerDay(true) : chooseSameHours())}
           />
@@ -146,17 +151,17 @@ export function PickupTimesEditor({ windows, setWindows }: { windows: PickupWind
                 const mine = windows.map((w, i) => ({ w, i })).filter((x) => x.w.weekday === d);
                 return (
                   <li key={d} className="space-y-2 rounded-[14px] border border-border bg-card p-3">
-                    <p className="text-ds-14 font-semibold text-foreground">{WEEKDAYS[d]}</p>
+                    <p className="text-ds-14 font-semibold text-foreground">{dayWord(d)}</p>
                     {mine.map(({ w, i }, k) => (
                       <RangeRow key={i} idBase={`pw-${d}-${k}`} w={w}
                         onChange={(r) => setWindows((ws) => ws.map((x, j) => (j === i ? { ...x, starts: r.starts, ends: r.ends } : x)))}
                         onRemove={() => setWindows((ws) => ws.filter((_, j) => j !== i))}
-                        removeLabel={`Remove ${WEEKDAYS[d]} ${timeLabel(w.starts)} to ${timeLabel(w.ends)}`} />
+                        removeLabel={t("lp.pt.remove", { day: dayWord(d), from: timeLabel(w.starts), to: timeLabel(w.ends) })} />
                     ))}
                     {windows.length < MAX_WINDOWS && (
                       <InlineTextButton className="inline-flex items-center gap-1 text-ds-13 font-semibold text-[hsl(var(--sage-ink))]" data-add-time-on={d}
                         onClick={() => setWindows((ws) => [...ws, { weekday: d, starts: "17:00", ends: "19:00" }].sort(byDayThenStart))}>
-                        <Plus className="h-4 w-4" aria-hidden />Add another time on {WEEKDAYS[d]}
+                        <Plus className="h-4 w-4" aria-hidden />{t("lp.pt.addOn", { day: dayWord(d) })}
                       </InlineTextButton>
                     )}
                   </li>
@@ -172,9 +177,9 @@ export function PickupTimesEditor({ windows, setWindows }: { windows: PickupWind
 
 /** What is wrong with the windows, in plain words, or null (mirrors declutter_set_pickup_windows). */
 export function pickupWindowsProblem(windows: PickupWindow[]): string | null {
-  if (windows.length === 0) return "Pick at least one day and time buyers can come.";
-  if (windows.length > MAX_WINDOWS) return `Choose at most ${MAX_WINDOWS} pickup times.`;
-  if (windows.some((w) => w.ends <= w.starts)) return "Each pickup time must end after it starts.";
+  if (windows.length === 0) return t("lp.pt.needOne");
+  if (windows.length > MAX_WINDOWS) return t("lp.pt.atMost", { n: MAX_WINDOWS });
+  if (windows.some((w) => w.ends <= w.starts)) return t("lp.pt.endAfter");
   return null;
 }
 

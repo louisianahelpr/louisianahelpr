@@ -4,7 +4,10 @@
  *   S013 the order card shows the cancel rule only while the buyer can still cancel (held / accepted, not handed over).
  *   S015 the shop has no "Handed over" on a Helpr-delivered order (server refuses; button hidden), unless it fell back.
  *   S019 the buyer's missed-delivery notice reads the right way round.
+ *   S016 the needs-you reminder sweep reminds the shop about an order waiting on its answer (20261112075428, proof
+ *        src/test/pglite/shopsAcceptReminders.pglite.mjs).
  *
+ * @mutate supabase/migrations/20261112075428_shops_accept_reminders.sql |      WHERE so.status = 'held' AND so.accept_by IS NOT NULL |      WHERE false AND so.accept_by IS NOT NULL *
  * @mutate src/components/shops/ShopMyOrdersView.tsx |   if (o.status === "accepted") return "accepted"; |   if (o.status === "accepted" \|\| o.status === "handed_over") return "accepted";
  * @mutate src/components/shops/ShopOrderCard.tsx |           {CANCEL_RULE_VISIBLE.has(order.status) && !order.handed_over_at | {true
  * @mutate src/components/shops/ShopHandoverActions.tsx |           {!porch && !byHelpr && due && !h?.shop_confirmed_at && ( |           {!porch && due && !h?.shop_confirmed_at && (
@@ -43,5 +46,11 @@ describe("Shops audit 11-12 Mediums", () => {
     const b = body("shops_report_no_show");
     expect(b).toContain("The shop says you weren''t there for the delivery");
     expect(b).not.toContain("didn''t receive the delivery");
+  });
+  it("S016: the shop is reminded before a waiting order drops", () => {
+    const b = body("sweep_needs_you_reminders");
+    expect(b).toContain("SELECT 'shop_order', so.id, so.accept_by, so.seller_id, so.buyer_id, 'seller',");
+    expect(b).toContain("WHERE so.status = 'held' AND so.accept_by IS NOT NULL AND so.accept_by > p_now AND so.accept_by <= p_now + interval '12 hours' AND COALESCE(so.is_seed, false) = false");
+    expect(b).toContain("PERFORM public.declutter_notify_strict(r.to_id, 'new_offers', v_title, v_body, '/shops/dashboard', r.other_id);");
   });
 });

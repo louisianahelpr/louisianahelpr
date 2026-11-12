@@ -5,7 +5,7 @@
  *
  *  1. /shops/orders: "Cancel order" shows only on an accepted, CHARGED order
  *     with no open problem; the dialog reads shops_order_cancel_quote and says
- *     free (the refund, less a small card processing cost and its tax) or late
+ *     free (the exact NET refund the quote returns, no cost words; 11-12) or late
  *     (nothing back, the shop is paid); the tap sends what was shown
  *     (expect 'free' / 'late'); cancel_terms_changed re-reads the quote and
  *     says so instead of cancelling.
@@ -133,12 +133,13 @@ describe("the buyer's Cancel order (M3)", () => {
     expect(screen.queryByRole("button", { name: "Cancel order" })).toBeNull();
   });
 
-  it("free: says the refund less the card cost and its tax, and sends expect 'free'", async () => {
+  it("free: says the exact net refund with no cost words, and sends expect 'free'", async () => {
     orders.fetchMyOrders.mockResolvedValue([order({})]);
     renderAt("/shops/orders", <ShopOrdersPage />);
     fireEvent.click(await screen.findByRole("button", { name: "Cancel order" }));
     const dialog = await screen.findByRole("dialog", { name: "Cancel this order?" });
-    await within(dialog).findByText(/You get \$22\.50 back, less a small card processing cost and the sales tax on it/);
+    // 11-12: the quote's refund_cents is already the net refund, so the dialog says exactly that and nothing about costs.
+    await within(dialog).findByText("You're inside the shop's free-cancel time. You get $22.50 back. The shop is told not to make it.");
     fireEvent.click(within(dialog).getByRole("button", { name: "confirm Cancel order" }));
     await waitFor(() => expect(invoke).toHaveBeenCalled());
     expect(bodies()[0]).toMatchObject({ action: "buyer_cancel", order_id: "o1", expect: "free" });
@@ -154,6 +155,20 @@ describe("the buyer's Cancel order (M3)", () => {
     const dialog = await screen.findByRole("dialog", { name: "Cancel this order?" });
     await within(dialog).findByText(/free-cancel time is over\. If you cancel now, nothing is refunded and the shop is paid\./);
     fireEvent.click(within(dialog).getByRole("button", { name: "confirm Cancel without a refund" }));
+    await waitFor(() => expect(invoke).toHaveBeenCalled());
+    expect(bodies()[0]).toMatchObject({ action: "buyer_cancel", expect: "late" });
+  });
+
+  it("late with a Helpr delivery not picked up: says the delivery comes back, and the button isn't 'without a refund'", async () => {
+    rpc.mockResolvedValue({ data: { can_cancel: true, free: false, refund_cents: 600, kept_cents: 2370 }, error: null });
+    invoke.mockResolvedValue({ data: { cancelled: true, refund_cents: 600 }, error: null });
+    orders.fetchMyOrders.mockResolvedValue([order({})]);
+    renderAt("/shops/orders", <ShopOrdersPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel order" }));
+    const dialog = await screen.findByRole("dialog", { name: "Cancel this order?" });
+    await within(dialog).findByText(/If you cancel now, you get \$6\.00 back for the delivery and the shop is paid for the order\./);
+    expect(within(dialog).queryByRole("button", { name: "confirm Cancel without a refund" })).toBeNull();
+    fireEvent.click(within(dialog).getByRole("button", { name: "confirm Cancel order" }));
     await waitFor(() => expect(invoke).toHaveBeenCalled());
     expect(bodies()[0]).toMatchObject({ action: "buyer_cancel", expect: "late" });
   });

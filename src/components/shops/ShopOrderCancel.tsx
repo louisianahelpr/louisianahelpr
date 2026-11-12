@@ -51,8 +51,13 @@ function cancelQuoteText(q: CancelQuote): string {
   if (q.unavailable) return "Cancelling a paid order isn't available yet. Please try again in a few minutes.";
   if (!q.can_cancel) return "This order can't be cancelled any more.";
   if (q.free) {
-    return `You're inside the shop's free-cancel time. You get ${formatCents(q.refund_cents ?? 0)} back, `
-      + "less a small card processing cost and the sales tax on it. The shop is told not to make it.";
+    // Builder 1 lane (11-12): shops_order_cancel_quote's refund_cents is shop_refund_amounts' NET refund (after the card
+    // cost and its tax), exactly what shop_write_refund writes, so the screen says that exact amount and no cost words.
+    return `You're inside the shop's free-cancel time. You get ${formatCents(q.refund_cents ?? 0)} back. The shop is told not to make it.`;
+  }
+  // A late cancel of a Helpr delivery no Helpr has picked up yet gives the delivery back (refund_cents > 0).
+  if ((q.refund_cents ?? 0) > 0) {
+    return `The shop's free-cancel time is over. If you cancel now, you get ${formatCents(q.refund_cents ?? 0)} back for the delivery and the shop is paid for the order.`;
   }
   return "The shop's free-cancel time is over. If you cancel now, nothing is refunded and the shop is paid.";
 }
@@ -114,7 +119,7 @@ export function BuyerCancelOrder({ order }: { order: ShopOrder }) {
         onOpenChange={(o) => { if (!o) setAsking(false); }}
         title="Cancel this order?"
         description={quote.isLoading || !q ? (quote.isError ? shopsErrorMessage(quote.error) : "Checking the shop's cancel terms…") : cancelQuoteText(q)}
-        primaryLabel={cancel.isPending ? "Cancelling…" : q?.can_cancel && !q.free ? "Cancel without a refund" : "Cancel order"}
+        primaryLabel={cancel.isPending ? "Cancelling…" : q?.can_cancel && !q.free && !(q.refund_cents ?? 0) ? "Cancel without a refund" : "Cancel order"}
         primaryDisabled={cancel.isPending || !q?.can_cancel || quote.isFetching}
         onPrimary={(e) => {
           e.preventDefault();

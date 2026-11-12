@@ -24,6 +24,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { SaveBar } from "@/components/profile/profileEditForm/SaveBar";
 import { isProfileEditDirty } from "@/components/profile/profileEditForm/isProfileEditDirty";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { TAB_TITLES } from "@/pages/profile/types";
 import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
@@ -138,6 +139,19 @@ export function ProfileEditForm({
 
   // Dirty check against the saved profile — see isProfileEditDirty.
   const dirty = isProfileEditDirty({ phone, location, zipCode, bio, skills }, profile);
+  // F261a (audit 11-10): leaving with unsaved edits asks first (the save bar shows only once something changed, VN-40).
+  // Discard puts the five fields back to the saved profile, so the edits do not wait in the form for the next visit.
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const backOrAsk = () => (dirty ? setConfirmDiscard(true) : onBack());
+  const discard = () => {
+    setConfirmDiscard(false);
+    setPhone(profile?.phone ?? "");
+    setLocation(profile?.location ?? "");
+    setZipCode(profile?.zip_code ?? "");
+    setBio(profile?.bio ?? "");
+    setSkills(profile?.skills ?? "");
+    onBack();
+  };
 
   // Resolve parish from ZIP to validate it (the check mark and the unknown-ZIP
   // warning). The parish itself is NOT shown here any more (owner, 2026-09-14,
@@ -209,7 +223,7 @@ export function ProfileEditForm({
     <ProfileTabBody bottomClearance="calc(var(--safe-area-bottom, 0px) + 6.5rem)">
       <ProfileTabHeader
         title={TAB_TITLES.profile}
-        onBack={onBack}
+        onBack={backOrAsk}
         // Board 41: "Preview" opens the profile as neighbors see it.
         rightSlot={profile?.user_id ? (
           <Button
@@ -495,8 +509,9 @@ export function ProfileEditForm({
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
           {/* F099 (owner UI audit 11-09): the two save behaviours are said as plainly as possible, in one sentence. */}
+          {/* F261a: the Save changes bar shows only once something changed (VN-40), so the sentence says so. */}
           Photos save as soon as you add them. Everything else saves when you press{" "}
-          <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Save changes</span> below.
+          <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Save changes</span>, which shows at the bottom once you change something.
         </p>
       </form>
 
@@ -510,8 +525,19 @@ export function ProfileEditForm({
         reason={saveBlockedReason}
         saving={saving}
         justSaved={justSaved}
-        onBack={onBack}
+        onBack={backOrAsk}
         onSave={submit}
+      />
+      <BrandConfirmDialog
+        open={confirmDiscard}
+        onOpenChange={(open) => { if (!open) setConfirmDiscard(false); }}
+        title="Discard your changes?"
+        description="Your edits haven't been saved. Discarding keeps your profile as it was."
+        primaryLabel="Discard"
+        primaryTone="bark"
+        primaryHaptic="warning"
+        onPrimary={discard}
+        secondaryLabel="Keep editing"
       />
     </ProfileTabBody>
   );

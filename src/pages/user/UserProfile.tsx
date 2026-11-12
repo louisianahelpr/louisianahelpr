@@ -14,9 +14,8 @@ import BackgroundCheckCard from "@/components/profile/BackgroundCheckCard";
 import { RatingBreakdown } from "./RatingBreakdown";
 import { ReviewsSection } from "./ReviewsSection";
 import { JobsList } from "./JobsList";
-import { MovingSaleBanner } from "@/components/declutter/MovingSaleBanner";
-import { SellingNowRow } from "@/components/declutter/SellingNowRow";
-import { DeclutterProfileSection } from "@/components/declutter/DeclutterProfileSection";
+import { ProfileDeclutterSections } from "./ProfileDeclutterSections";
+import { PROFILE_FROM_DECLUTTER, PROFILE_FROM_PARAM } from "@/lib/profileLink/memberProfilePath";
 import { useDeclutterReviewCount } from "./useDeclutterReviewCount";
 import { InviteToJobBar } from "./InviteToJobBar";
 import { OwnProfileActions } from "./BookMeShareButton";
@@ -53,6 +52,8 @@ const UserProfile = () => {
   const { unblocking, handleUnblock } = useUnblock(currentUserId, userId, blockedByMeKey);
 
   const [showReviews, setShowReviews] = useState(searchParams.get("tab") === "reviews");
+  // F359i (owner 11-12): opened from a Declutter listing, the seller's Declutter sits above the masthead.
+  const declutterFirst = searchParams.get(PROFILE_FROM_PARAM) === PROFILE_FROM_DECLUTTER;
 
   // Handle Stripe subscription checkout return. The confirmation used to be
   // a toast on the suppressed channel, so completing (or cancelling) checkout
@@ -391,6 +392,7 @@ const UserProfile = () => {
             reading cap. That is how a single column fills a 1440 frame without
             reintroducing a layout the owner has already rejected. */}
         <div className="flex flex-col gap-section items-stretch">
+          {declutterFirst && <ProfileDeclutterSections userId={userId!} />}
           <UserProfileMasthead
             profile={profile} userId={userId} displayName={displayName} initials={initials} isOwnProfile={isOwnProfile}
             isIdVerified={isIdVerified} badgeStats={badgeStats} data={data} credentialTier={credentialTier} tierProfile={tierProfile}
@@ -400,9 +402,7 @@ const UserProfile = () => {
             mutualJobsCount={mutualJobsCount} showReviews={showReviews} showPostedJobs={showPostedJobs} showWorkedJobs={showWorkedJobs}
             setShowReviews={setShowReviews} setShowPostedJobs={setShowPostedJobs} setShowWorkedJobs={setShowWorkedJobs}
           />
-          <MovingSaleBanner sellerId={userId!} />
-          <SellingNowRow sellerId={userId!} />
-          <DeclutterProfileSection userId={userId!} />
+          {!declutterFirst && <ProfileDeclutterSections userId={userId!} />}
 
           {/* "No disputes on record" USED TO RENDER HERE, in green, as the
               positive half of the Track Record card. It is gone, and its

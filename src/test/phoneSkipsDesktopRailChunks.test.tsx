@@ -10,7 +10,7 @@
  * components/Desktop* file is mounted only inside a WebDesktopOnly gate.
  *
  * @mutate src/components/WebDesktopOnly.tsx | return useIsWebDesktop() ? <>{children}</> : null; | return <>{children}</>;
- * @mutate src/App.tsx | <WebDesktopOnly>\n              <Suspense fallback={null}><DesktopSidebarNav /></Suspense> | <Suspense fallback={null}><DesktopSidebarNav /></Suspense><WebDesktopOnly>
+ * @mutate src/App.tsx | <WebDesktopOnly>\n              <Suspense fallback={null}><DesktopTopNav /></Suspense> | <Suspense fallback={null}><DesktopTopNav /></Suspense><WebDesktopOnly>
  */
 import { Suspense, lazy } from "react";
 import { readFileSync } from "node:fs";

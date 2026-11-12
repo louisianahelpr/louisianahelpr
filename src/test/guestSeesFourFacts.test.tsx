@@ -4,7 +4,12 @@
  * The figure is the guest Browse card's own ("You'd earn after fees $74"), never "Budget $85" beside a card that said $74
  * (lead 10-31, b49's finding); the sheet has its X and no drag bar (owner 10-31 14:22).
  * The 10-30 jobs audit: on guest Browse, tapping a card went straight to the sign-up form with no job shown first.
- * Holds, for both guest surfaces (the Browse tap and a shared /jobs/:id link, guestOpensSharedJobLink covers the link):
+ * RE-POINTED 2026-11-12 (F268a, owner decision in OWNER-DECISIONS): a shared /jobs/:id link opened signed out is now the
+ * job's own read-only page with the description (GuestJobPage; guarded by guestOpensSharedJobLink.test.tsx and the
+ * server-side mask by guestsReadMaskedJobDescription.pglite.mjs). This guard now holds the guest BROWSE sheet only,
+ * which keeps the four facts and no description. The JobDetail @mutate below still checks that the shared page's
+ * read carries the day and time the facts print.
+ * Holds, for the guest Browse tap:
  *  - the preview prints exactly the four facts and the title, nothing from the description, poster or address;
  *  - "Sign up to apply" carries the job's id; the X closes;
  *  - the take-home equals the guest card's JobPrice chip for the same row (flat stamp, crew split, rush fee);

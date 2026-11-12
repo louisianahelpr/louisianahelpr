@@ -6,7 +6,7 @@
  * reviews: it says "No job reviews yet".
  *
  * @mutate src/pages/user/AtAGlanceCard.tsx | label: declutterReviewCount > 0 ? "No job reviews yet" : "No reviews yet" | label: "No reviews yet"
- * @mutate src/pages/user/UserProfile.tsx |           <DeclutterProfileSection userId={userId!} />\n |
+ * @mutate src/pages/user/ProfileDeclutterSections.tsx |       <DeclutterProfileSection userId={userId} />\n |
  * @mutate src/pages/user/UserProfile.tsx |                 declutterReviewCount={declutterReviewCount} |
  */
 import { describe, expect, it } from "vitest";
@@ -61,7 +61,10 @@ describe("the profile hero and Declutter reviews (#28)", () => {
 
   it("UserProfile mounts the Declutter section right under SellingNowRow and feeds the tile its count", () => {
     const src = blankComments(readFileSync(join(process.cwd(), "src/pages/user/UserProfile.tsx"), "utf8"));
-    expect(src).toMatch(/<SellingNowRow sellerId=\{userId!\} \/>\s*<DeclutterProfileSection userId=\{userId!\} \/>/);
+    // F359i: the three Declutter sections are one group (ProfileDeclutterSections), mounted once either side of the masthead.
+    const group = blankComments(readFileSync(join(process.cwd(), "src/pages/user/ProfileDeclutterSections.tsx"), "utf8"));
+    expect(group).toMatch(/<SellingNowRow sellerId=\{userId\} \/>\s*<DeclutterProfileSection userId=\{userId\} \/>/);
+    expect(src.match(/<ProfileDeclutterSections userId=\{userId!\} \/>/g)?.length).toBe(2);
     expect(src).toMatch(/declutterReviewCount=\{declutterReviewCount\}/);
   });
 });

@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchSellerCard, fetchSellerPickupCount, fetchSellerRating, fetchSellerReviewTags, pickupsLabel } from "@/lib/declutter/api";
 import { topReviewTags } from "@/lib/declutter/reviewTags";
 import { formatName } from "@/lib/utils";
-import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
+import { memberProfilePath, PROFILE_FROM_DECLUTTER } from "@/lib/profileLink/memberProfilePath";
 
 /** "Joined March 2025" from an ISO date; null when there is no usable date. */
 function joinedLabel(iso: string | null | undefined): string | null {
@@ -58,7 +58,8 @@ export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null, a
   // DA-18: the rating is in the link's name: the card's words read "4.0 stars from 1 review" (the sr-only words below).
   const link = (
     <Link
-      to={memberProfilePath(sellerId)}
+      // F359i: from a listing, the seller's profile leads with their Declutter (the job page's poster/Helpr cards do not).
+      to={memberProfilePath(sellerId, noun === "seller" ? { from: PROFILE_FROM_DECLUTTER } : undefined)}
       data-seller-card=""
       // Loaded, the card's own words are its name ("See the Helpr, " is read before them), so the visible text is in
       // the accessible name (axe label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491). The skeleton has no words.

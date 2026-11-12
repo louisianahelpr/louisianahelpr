@@ -16,14 +16,13 @@ import { hasStartTime } from "@/lib/anyTimeThatDay";
 import { jobIsUnfundedDraft, workIsBackWithHelper } from "@/components/job-card/activityFilters";
 import { JOB_STATUS_LABELS } from "@/lib/statusLabels";
 import { formatPrice, formatPriceExact } from "@/lib/format";
-import { EXPIRED_LISTING_DETAIL, autoCompleteAt, confirmWindowPassedLine, helperStatusLine, sanitizeCancellationReason, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
+import { autoCompleteAt, confirmWindowPassedLine, helperStatusLine, sanitizeCancellationReason, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { cardBar, type CardFace, type Stage, type StepTone } from "@/components/tracker/jobStepFromWait";
 import { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";
 import { helperFaceNextStep } from "@/pages/jobs/appliedJobCard/helperFaceAction";
 import { HELPR_NOT_STARTED, workHasBegun } from "@/components/tracker/workHasBegun";
 import { isExpiredListing } from "@/lib/expiredListing";
-import { CARD_COST_NOT_REFUNDED, REFUND_SENT } from "@/lib/refundWords";
 
 export type { Stage, StepTone } from "@/components/tracker/jobStepFromWait";
 
@@ -406,22 +405,23 @@ function cancelledLine(job: ProgressJob, poster: boolean, other: string, refunde
   const posterDid = !!by && by === job.customer_id;
   const helprDid = !!by && !!job.helper_id && by === job.helper_id;
   const atMs = Date.parse(job.cancelled_at ?? "");
-  const stamp = Number.isNaN(atMs) ? "" : ` ${when(atMs)}`;
-  const who = posterDid ? (poster ? `You cancelled${stamp}` : `${other} cancelled${stamp}`)
-    : helprDid ? (poster ? `${other} cancelled${stamp}` : `You cancelled${stamp}`)
-    : "This job was cancelled";
+  const stamp = Number.isNaN(atMs) ? null : when(atMs);
+  const youDid = (posterDid && poster) || (helprDid && !poster);
+  const who = posterDid || helprDid
+    ? (youDid ? (stamp ? t("jl.cx.youAt", { when: stamp }) : t("jl.cx.you")) : (stamp ? t("jl.cx.otherAt", { name: other, when: stamp }) : t("jl.cx.other", { name: other })))
+    : t("jl.cx.job");
   const reason = sanitizeCancellationReason(job.cancellation_reason);
   // Q2701 (audit 1102e row 3): a late cancel kept part of the payment for the Helpr's time (the cancel sheet's amount),
   // so the line never reads like a full refund. Guard: src/test/lateCancelByPosterSaysTheMoney.test.tsx.
   const fee = Number(job.cancellation_fee ?? 0);
-  const kept = poster && posterDid && fee > 0 ? `$${formatPrice(fee)} was kept for ${other}'s time` : null;
+  const kept = poster && posterDid && fee > 0 ? t("jl.cx.kept", { amount: formatPrice(fee), name: other }) : null;
   const refunded = poster && job.payment_status === "refunded";
   // Q2701 (owner 11-03): the dollars that came back, from the refund ledger, when the surface read them.
-  const back = typeof refundedCents === "number" && refundedCents > 0 ? `$${formatPriceExact(refundedCents / 100)} was refunded` : null;
+  const back = typeof refundedCents === "number" && refundedCents > 0 ? t("jl.cx.back", { amount: formatPriceExact(refundedCents / 100) }) : null;
   // F105 (owner UI audit 2026-11-09): never "Your payment was refunded" (it read as whole on a part refund); the card
   // kept part only for the card processing cost when nobody was owed for their time (the Receipts numbers).
-  const refund = refunded ? (back ?? (kept ? "The rest was refunded" : REFUND_SENT)) : null;
-  const cardCost = refunded && back && !kept && !(fee > 0) && (refundKeptCents ?? 0) > 0 ? CARD_COST_NOT_REFUNDED : null;
+  const refund = refunded ? (back ?? (kept ? t("jl.cx.rest") : t("jl.cx.refundSent"))) : null;
+  const cardCost = refunded && back && !kept && !(fee > 0) && (refundKeptCents ?? 0) > 0 ? t("jl.cx.cardCost") : null;
   return [who, reason, kept, refund, cardCost].filter(Boolean).join(" · ");
 }
 
@@ -435,7 +435,7 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
 
   // JA-23: expired is not cancelled (owner 10-31, src/lib/expiredListing.ts). The poster reads "Expired · No Helpr was
   // hired in time" (the card's own line); anyone else "Closed · No longer open". Never "Cancelled".
-  if (isExpiredListing(job)) return at(null, false, poster ? EXPIRED_WORD : "Closed", poster ? EXPIRED_LISTING_DETAIL : t("jl.noLongerOpen"), held);
+  if (isExpiredListing(job)) return at(null, false, poster ? EXPIRED_WORD : "Closed", poster ? t("jl.expiredDetail") : t("jl.noLongerOpen"), held);
   if (status === "cancelled" || status === "expired") return at(null, false, "Cancelled", cancelledLine(job, poster, other, o.refundedCents, o.refundKeptCents), held);
   if (job.has_active_dispute || status === "disputed") {
     // JA-30 (Jobs audit 11-01): say WHEN they hear back (the dispute's own deadline, after which support decides) and

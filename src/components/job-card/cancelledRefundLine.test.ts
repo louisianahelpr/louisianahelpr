@@ -10,7 +10,7 @@
  * @mutate src/components/job-card/jobStatusLine.ts |     suffix: id === "cancelled" ? cancelledSuffix(job, progress?.refund) : null, |     suffix: id === "cancelled" ? sanitizeCancellationReason(job.cancellation_reason) : null,
  * @mutate src/components/job-card/jobStatusLine.ts |   const words = refundedWords(refund, Number(job.cancellation_fee ?? 0) > 0); |   const words = "Your payment was refunded";
  * @mutate src/lib/refundWords.ts |   return refund.keptCents > 0 && !lateFeeKept ? `${back} · ${CARD_COST_NOT_REFUNDED}` : back; |   return back;
- * @mutate src/components/tracker/jobProgressState.ts |   const refund = refunded ? (back ?? (kept ? "The rest was refunded" : REFUND_SENT)) : null; |   const refund = refunded ? (back ?? (kept ? "The rest was refunded" : "Your payment was refunded")) : null;
+ * @mutate src/components/tracker/jobProgressState.ts |   const refund = refunded ? (back ?? (kept ? t("jl.cx.rest") : t("jl.cx.refundSent"))) : null; |   const refund = refunded ? (back ?? (kept ? t("jl.cx.rest") : "Your payment was refunded")) : null;
  *
  * Money review (F105): the kept charge is called the card processing cost ONLY when nothing else could be in it: not
  * with a kept setup fee, a cancellation fee (poster late cancel or seller fault), or a crew block fee.

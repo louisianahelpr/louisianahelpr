@@ -32,6 +32,7 @@
  * @mutate supabase/migrations/20261112082518_shops_setup_fee_refund.sql | CASE WHEN so.setup_fee_state = 'claimed' THEN so.setup_fee_cents ELSE 0 END | so.setup_fee_cents
  * @mutate supabase/migrations/20261112082518_shops_setup_fee_refund.sql |     UPDATE public.profiles SET onboarding_fee_paid = false, onboarding_fee_charged_at = NULL WHERE user_id = o.buyer_id; | 
  * @mutate src/components/shops/ShopDashboardView.tsx | formatCents(accepting.items_cents + (accepting.fulfillment === "shop_delivers" ? accepting.delivery_cents ?? 0 : 0)) | formatCents(accepting.items_cents)
+ * @mutate supabase/migrations/20261112084138_shops_service_no_show.sql |   IF NOT public.shop_order_is_service(o.id)\n |   IF true\n
  * @mutate src/components/shops/ShopMyOrdersView.tsx |   if (o.status === "accepted") return "accepted"; |   if (o.status === "accepted" \|\| o.status === "handed_over") return "accepted";
  * @mutate src/components/shops/ShopOrderCard.tsx |           {CANCEL_RULE_VISIBLE.has(order.status) && !order.handed_over_at | {true
  * @mutate src/components/shops/ShopHandoverActions.tsx |           {!porch && !byHelpr && due && !h?.shop_confirmed_at && ( |           {!porch && due && !h?.shop_confirmed_at && (
@@ -120,5 +121,10 @@ describe("Shops audit 11-12 Mediums", () => {
   it("S047: the accept dialog's amount includes the shop's own delivery fee", () => {
     const src = read("src/components/shops/ShopDashboardView.tsx");
     expect(src).toContain('formatCents(accepting.items_cents + (accepting.fulfillment === "shop_delivers" ? accepting.delivery_cents ?? 0 : 0))');
+  });
+  it("S049: an at-home service's no-show needs no ready mark (server)", () => {
+    const b = body("shops_report_no_show");
+    expect(b).toContain("IF NOT public.shop_order_is_service(o.id) AND NOT EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.ready_at IS NOT NULL) THEN");
+    expect(b).toContain("CASE WHEN public.shop_order_is_service(o.id) THEN 'Missed appointment'");
   });
 });

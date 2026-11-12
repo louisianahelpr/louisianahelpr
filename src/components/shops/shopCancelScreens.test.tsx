@@ -1,4 +1,5 @@
 /**
+ * @mutate src/components/shops/ShopOrderCancel.tsx | (markedReady \|\| isServiceOrder(order)) | markedReady
  * Shops M3 screens (migration 20261019071055_shops_refunds_cancels_strikes),
  * rendered through the route pages the router mounts:
  *
@@ -20,8 +21,8 @@
  * @mutate src/components/shops/ShopOrderCancel.tsx |   return { cancellable: open && !handover.data?.problem_at && !handover.isLoading, | return { cancellable: open && !handover.isLoading,
  * @mutate src/components/shops/ShopOrderCancel.tsx |           if (q?.can_cancel) cancel.mutate(q.free ? "free" : "late"); |           if (q?.can_cancel) cancel.mutate("free");
  * @mutate src/components/shops/ShopOrderCancel.tsx |         setChanged(true);\n        void quote.refetch();\n        return; |         setChanged(true);
- * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && !helprDelivers && markedReady && louisianaToday() > order.ready_date; |   const noShowOpen = true;
- * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && !helprDelivers && markedReady && louisianaToday() > order.ready_date; |   const noShowOpen = order.handover_mode === "in_person" && !helprDelivers && louisianaToday() > order.ready_date;
+ * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && !helprDelivers && (markedReady \|\| isServiceOrder(order)) && louisianaToday() > order.ready_date; |   const noShowOpen = true;
+ * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && !helprDelivers && (markedReady \|\| isServiceOrder(order)) && louisianaToday() > order.ready_date; |   const noShowOpen = order.handover_mode === "in_person" && !helprDelivers && louisianaToday() > order.ready_date;
  * @mutate src/lib/shops/orders.ts |   if (error && isMissingRpcNamed(error, "shops_order_cancel_quote")) return { can_cancel: false, unavailable: true }; |
  * @mutate src/lib/shops/orders.ts |   if (closed && o.status === "partially_refunded") { |   if (false) {
  * @mutate src/components/shops/ShopOrderCancel.tsx |     mutationFn: (what: "cancel" \| "no_show") => (what === "cancel" ? shopCancelOrder(order.id, reason) : reportNoShow(order.id)), |     mutationFn: (what: "cancel" \| "no_show") => (what === "cancel" ? shopCancelOrder(order.id, "") : reportNoShow(order.id)),
@@ -203,6 +204,17 @@ describe("the shop's Cancel order and Buyer didn't show (M3)", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "confirm Cancel and refund" }));
     await waitFor(() => expect(invoke).toHaveBeenCalled());
     expect(bodies()[0]).toMatchObject({ action: "shop_cancel", order_id: "o1", reason: "Oven broke" });
+  });
+
+  it("S049: an at-home service's Buyer didn't show needs no ready mark, only the day over", async () => {
+    orders.fetchShopOrders.mockResolvedValue([
+      order({ id: "svc", ready_date: "2020-01-02", shop_order_lines: [{ id: "l1", item_id: "i1", title: "Carpet cleaning", kind: "service", unit_cents: 5000, quantity: 1, line_cents: 5000, at_buyer: true }] as ShopOrder["shop_order_lines"] }),
+    ]);
+    handover.fetchHandovers.mockImplementation((async () => new Map()) as never);
+    renderAt("/shops/dashboard", <ShopDashboardPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Buyer didn't show" }));
+    const dialog = await screen.findByRole("dialog", { name: "The buyer didn't come?" });
+    expect(within(dialog).getByText(/^A missed appointment counts as a late cancel/)).toBeTruthy();
   });
 
   it("Buyer didn't show: only in person, only marked ready, only after the ready date", async () => {

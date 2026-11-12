@@ -19,7 +19,7 @@
  * @mutate supabase/migrations/20261112073633_shops_audit_highs.sql |          AND (NEW.message ILIKE '%refund%' OR NEW.message ILIKE '%back to your card%' OR NEW.message ILIKE '%coming back%')))) |          AND false))
  * @mutate supabase/migrations/20261112074135_shops_hide_refunds_open_orders.sql |       r := public.shop_write_refund(o.id, 'shop_removed', left(btrim(p_reason), 500)); |       r := NULL;
  * @mutate supabase/migrations/20261112074135_shops_hide_refunds_open_orders.sql |               WHERE so.shop_id = p_shop_id AND so.status IN ('held', 'awaiting_hold') ORDER BY so.id FOR UPDATE |               WHERE false
- * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && !helprDelivers && markedReady | const noShowOpen = order.handover_mode === "in_person" && markedReady
+ * @mutate src/components/shops/ShopOrderCancel.tsx |   const noShowOpen = order.handover_mode === "in_person" && !helprDelivers && (markedReady \|\| isServiceOrder(order)) | const noShowOpen = order.handover_mode === "in_person" && (markedReady \|\| isServiceOrder(order))
  * @mutate src/components/shops/ShopHandoverActions.tsx |           {(due \|\| !!h?.ready_at \|\| !!h?.shop_confirmed_at) && (\n            <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setConfirming(true)}> |           {true && (\n            <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setConfirming(true)}>
  */
 import { describe, expect, it } from "vitest";
@@ -40,7 +40,7 @@ const read = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 describe("Shops audit 11-12 Highs", () => {
   it("S004: a Helpr-delivered order is never the buyer's no-show (server and button)", () => {
     expect(body("shops_report_no_show")).toContain("IF o.fulfillment = 'helpr_delivers' AND o.helpr_unfilled_at IS NULL THEN RAISE EXCEPTION 'helpr_delivery_no_show'");
-    expect(read("src/components/shops/ShopOrderCancel.tsx")).toMatch(/const helprDelivers = order\.fulfillment === "helpr_delivers" && !order\.helpr_unfilled_at;\s+const noShowOpen = order\.handover_mode === "in_person" && !helprDelivers && markedReady/);
+    expect(read("src/components/shops/ShopOrderCancel.tsx")).toMatch(/const helprDelivers = order\.fulfillment === "helpr_delivers" && !order\.helpr_unfilled_at;\s+const noShowOpen = order\.handover_mode === "in_person" && !helprDelivers && \(markedReady \|\| isServiceOrder\(order\)\)/);
   });
 
   it("S002: \"I got it\" waits for the ready day, a ready mark or the shop's handover (server and button)", () => {

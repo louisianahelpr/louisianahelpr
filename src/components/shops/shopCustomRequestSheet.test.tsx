@@ -5,11 +5,12 @@
  *
  * @mutate src/components/shops/ShopCustomRequestSheet.tsx |   if (!mode.data \|\| mode.data === "off") return null; |   if (!mode.data) return null;
  * @mutate src/lib/shops/customRequests.ts |     p_shop_id: shopId, p_description: description.trim(), p_wanted_date: wantedDate \|\| null, |     p_shop_id: shopId, p_description: description, p_wanted_date: wantedDate \|\| null,
- * @mutate src/components/shops/ShopCustomRequestSheet.tsx |           <Button type="button" className="btn-grad-primary w-full" disabled={!trimmed \|\| send.isPending} onClick={() => send.mutate()}> |           <Button type="button" className="btn-grad-primary w-full" disabled={send.isPending} onClick={() => send.mutate()}>
+ * @mutate src/components/shops/ShopCustomRequestSheet.tsx | disabled={!trimmed \|\| send.isPending \|\| | disabled={send.isPending \|\|
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 
 const db = vi.hoisted(() => ({ row: { custom_orders: "full_hold" } as Record<string, unknown> | null, rpc: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({
@@ -25,7 +26,8 @@ import ShopCustomRequestSheet from "./ShopCustomRequestSheet";
 
 function show() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}><ShopCustomRequestSheet shopId="sh1" /></QueryClientProvider>);
+  // S2-021: the confirmation links to My orders, so the sheet sits in a router.
+  return render(<MemoryRouter><QueryClientProvider client={qc}><ShopCustomRequestSheet shopId="sh1" /></QueryClientProvider></MemoryRouter>);
 }
 
 beforeEach(() => {
@@ -51,7 +53,7 @@ describe("asking a shop for a custom order", () => {
     expect((send as HTMLButtonElement).disabled).toBe(true);
     fireEvent.change(box, { target: { value: "  A blue birthday cake for 12  " } });
     fireEvent.click(send);
-    await screen.findByText("Sent. The shop will answer with a price, and you can order it from there.");
+    await screen.findByText((_, el) => el?.tagName === "P" && el.textContent === "Sent. The shop will answer with a price in My orders, and you can order it from there.");
     expect(db.rpc.mock.calls).toEqual([["shops_send_custom_request", { p_shop_id: "sh1", p_description: "A blue birthday cake for 12", p_wanted_date: null }]]);
   });
 

@@ -78,9 +78,8 @@ import { DeclutterHomeSkeleton, DeclutterTabBones, ListingsSkeleton, TabSkeleton
 import { ListingThumb } from "./ListingThumb";
 import { myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQuery";
 import { useOpenProblems } from "./useOpenProblems";
-import { TAKE_DOWN_WORDS } from "./takeDownWords";
 import { loadModule, untilReload } from "@/lib/loadModule";
-import { useLanguage } from "@/lib/i18n/language";
+import { t, useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enDeclutter";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
@@ -190,7 +189,7 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
       return lib.cancelHaulAway(row.item_id);
     },
     onSuccess: (status) => {
-      toast(status === "live" ? "Back on sale." : "Haul-away cancelled. The item is off sale.");
+      toast(status === "live" ? t("decl.sl.backOnSale") : t("decl.sl.haulCancelled"));
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -213,28 +212,28 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
     mutationFn: (itemId: string) => withdrawItem(itemId),
     onSettled: () => setAsking(null),
     onSuccess: () => {
-      toast("Taken down.");
+      toast(t("decl.sl.takenDown"));
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
 
   if (mine.isError) {
-    return <ErrorState variant="inline" title="We couldn't load your listings." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
+    return <ErrorState variant="inline" title={t("decl.sl.loadFail")} body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   }
   if (mine.isLoading) return <ListingsSkeleton />;
   const list = (mine.data ?? []).filter((i) => !PAST_LISTING.has(i.status));
   if (list.length === 0) {
     return (
-      <section className="space-y-2" aria-label="Your listings">
-        <SectionHeading title="Your listings" />
+      <section className="space-y-2" aria-label={t("decl.sl.yours")}>
+        <SectionHeading title={t("decl.sl.yours")} />
         {/* D3 (Cowork audit 2026-10-20): the copy said 'Tap "Sell an item"' with no
             such button on screen (only the top bar's "+"). The action is here, as
             the section's own pill, to the same path as the "+". */}
         {/* Q2639 (audit 1102c R14): the same dashed, iconed empty card as "No offers yet" and "Nothing sold yet". */}
-        <DeclutterEmptyCard icon={Tags} title="You haven't listed anything yet." data-seller-empty=""
+        <DeclutterEmptyCard icon={Tags} title={t("decl.sl.empty")} data-seller-empty=""
           action={<><HideSectionCreateFab /><SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}>{sectionByKey("declutter").add.label}</SectionActionPill></>}>
-          Take a few photos and set your price. Listing is free.
+          {t("decl.sl.emptyBody")}
         </DeclutterEmptyCard>
         {/* Q2667: a donation that took the last item still shows its receipt (HaulAwayCard, below, is not drawn here). */}
         {haulOn && <DonationReceipts />}
@@ -242,16 +241,16 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
     );
   }
   return (
-    <section className="space-y-3" aria-label="Your listings">
-      <SectionHeading title="Your listings" />
+    <section className="space-y-3" aria-label={t("decl.sl.yours")}>
+      <SectionHeading title={t("decl.sl.yours")} />
       {list.filter((i) => i.status === "draft").length > 1 && (
-        <p className="text-ds-13"><Link className="underline" to="/declutter/sell?mode=bunch" data-list-all-drafts="">List all my drafts</Link></p>
+        <p className="text-ds-13"><Link className="underline" to="/declutter/sell?mode=bunch" data-list-all-drafts="">{t("decl.sl.allDrafts")}</Link></p>
       )}
       {haulOn && !haul.isError && (
         <HaulAwayCard group={haul.data?.trip ?? []} pausedCount={list.filter((i) => i.status === "paused").length} />
       )}
     {haulOn && haul.isError && (
-      <ErrorState variant="inline" title="We couldn't check your haul-aways." body={declutterErrorMessage(haul.error)} onRetry={() => void haul.refetch()} />
+      <ErrorState variant="inline" title={t("decl.sl.haulFail")} body={declutterErrorMessage(haul.error)} onRetry={() => void haul.refetch()} />
     )}
       {haulOn && !haul.isError && <HaulAwayTooSoonTip rows={haul.data?.rows ?? []} isFree={(id) => freeIds.has(id)} />}
       {/* Board 26: one card of rows; each row = thumb (the Browse card's photo or category icon), title, ONE status
@@ -287,23 +286,23 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
               </Link>
               <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end" data-listing-actions="">
                 {item.status === "draft" ? (
-                  <Button type="button" size="sm" aria-label={`Finish listing ${item.title}`} onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
-                    Finish listing
+                  <Button type="button" size="sm" aria-label={t("decl.sl.finishAria", { title: item.title })} onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
+                    {t("decl.sl.finish")}
                   </Button>
                 ) : item.status === "live" && item.current_price_cents === 0 && freeAsks.data && (freeAsks.data.get(item.id) ?? 0) > 0 ? (
                   <Button asChild variant="outline" size="sm">
-                    <Link to={`/declutter/item/${item.id}`} data-free-request-count="">Requests ({freeAsks.data.get(item.id) ?? 0})</Link>
+                    <Link to={`/declutter/item/${item.id}`} data-free-request-count="">{t("decl.sl.requests", { n: freeAsks.data.get(item.id) ?? 0 })}</Link>
                   </Button>
                 ) : null}
                 {/* LEAD-ONE-PREVIEW (owner 10-31): View and "See what buyers see" are one action, Preview: the listing as buyers read it. */}
                 {item.status !== "draft" && (
                   <Button asChild variant="outline" size="sm" data-listing-preview="">
-                    <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={`Preview ${item.title}`}>Preview</Link>
+                    <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={t("decl.sl.previewAria", { title: item.title })}>{t("decl.sl.preview")}</Link>
                   </Button>
                 )}
                 {(item.status === "live" || item.status === "paused") && (
-                  <Button type="button" variant="outline" size="sm" aria-label={`Manage ${item.title}`} onClick={() => { setSuggestDrop(false); setManagingId(item.id); }}>
-                    Manage
+                  <Button type="button" variant="outline" size="sm" aria-label={t("decl.sl.manageAria", { title: item.title })} onClick={() => { setSuggestDrop(false); setManagingId(item.id); }}>
+                    {t("decl.sl.manage")}
                   </Button>
                 )}
                 {/* Owner request 11-05: each item for sale shares its own page (never a paused or unreviewed one). */}
@@ -314,10 +313,10 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
                     variant="outline"
                     size="sm"
                     disabled={takeDown.isPending}
-                    aria-label={`${item.status === "draft" ? "Delete" : "Take down"} ${item.title}`}
+                    aria-label={t(item.status === "draft" ? "decl.sl.deleteAria" : "decl.sl.takeDownAria", { title: item.title })}
                     onClick={() => setAsking(item)}
                   >
-                    {item.status === "draft" ? "Delete" : "Take down"}
+                    {item.status === "draft" ? t("decl.sl.delete") : t("decl.sl.takeDown")}
                   </Button>
                 )}
                 {haulOn && (
@@ -337,10 +336,10 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
         })}
       </ul>
       <StillAvailableSheet items={mine.data} />
-      <ConfirmSheet open={!!asking} title={asking?.status === "draft" ? "Delete this unfinished listing?" : "Take this item off sale?"}
-        confirmLabel={asking?.status === "draft" ? "Delete" : "Take down"} pending={takeDown.isPending} testId="declutter-take-down"
+      <ConfirmSheet open={!!asking} title={asking?.status === "draft" ? t("decl.sl.deleteQ") : t("decl.sl.takeDownQ")}
+        confirmLabel={asking?.status === "draft" ? t("decl.sl.delete") : t("decl.sl.takeDown")} pending={takeDown.isPending} testId="declutter-take-down"
         onConfirm={() => asking && takeDown.mutate(asking.id)} onClose={() => setAsking(null)}>
-        {asking?.status === "draft" ? "Its photos are removed and it moves to your selling history." : TAKE_DOWN_WORDS}
+        {asking?.status === "draft" ? t("decl.sl.draftWords") : t("decl.sl.takeDownWords")}
       </ConfirmSheet>
       {managing && (
         <Suspense fallback={null}>

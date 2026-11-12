@@ -359,5 +359,6 @@ export const esListingParts: Record<keyof typeof enListingParts, string> = {
   "lp.bv.removedLast": "Se quitó {name}: era su última foto.",
   "lp.bv.photoRemoved": "Foto quitada.",
   "lp.bv.removed": "Se quitó {name}.",
+  "lp.m.takeDownWords": "Sus fotos se borran y las ofertas abiertas se cierran. No se cobra nada. Puede volver a publicarlo desde Historial, pero necesitará fotos nuevas.",
   "lp.sh.line": "Los compradores en Luisiana pueden pedir que se lo envíen por correo. Elija la caja en la que cabe. Menos de 4 oz es lo más barato.",
 };

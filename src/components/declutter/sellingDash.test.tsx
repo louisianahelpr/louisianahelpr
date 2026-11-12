@@ -422,7 +422,7 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
   // Q2639 (audit 1102c R14): with no listing left, "Your listings" was a solid card with a primary button and no icon,
   // beside the dashed, iconed "No offers yet" and "Nothing sold yet". It is the same DeclutterEmptyCard now, its one
   // action still the sell path; and a Selling history title wraps instead of being cut ("Oak rocking chair (sa…").
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | <DeclutterEmptyCard icon={Tags} title="You haven't listed anything yet." data-seller-empty="" | <DeclutterEmptyCard icon={Tags} title="You haven't listed anything yet."
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <DeclutterEmptyCard icon={Tags} title={t("decl.sl.empty")} data-seller-empty="" | <DeclutterEmptyCard icon={Tags} title={t("decl.sl.empty")}
   // @mutate src/components/declutter/DeclutterEmptyCard.tsx |         {action} |
   // @mutate src/components/declutter/DeclutterTakenDown.tsx | <p className="line-clamp-2 break-words text-ds-15 font-semibold text-muted-foreground" title={item.title}> | <p className="truncate text-ds-15 font-semibold text-muted-foreground" title={item.title}>
   // @mutate src/components/declutter/DeclutterEndedSales.tsx | <p className="line-clamp-2 break-words text-ds-15 font-semibold text-muted-foreground" title={l.item_title}> | <p className="truncate text-ds-15 font-semibold text-muted-foreground" title={l.item_title}>
@@ -597,7 +597,7 @@ describe("Selling tab: Taken down, with Relist", () => {
   // the item (a draft's opens Finish listing). LEAD-ONE-PREVIEW (owner 2026-10-31): View and See what buyers see are
   // one button, Preview (the listing as buyers read it), on every listed row and at every width; a draft has none.
   // @mutate src/components/declutter/DeclutterHomeView.tsx | <p className="line-clamp-2 break-words text-ds-15 font-semibold" title={item.title}> | <p className="truncate text-ds-15 font-semibold" title={item.title}>
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={`Preview ${item.title}`}>Preview</Link> | <Link to={`/declutter/item/${item.id}`} aria-label={`View ${item.title}`}>View</Link>
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={t("decl.sl.previewAria", { title: item.title })}>{t("decl.sl.preview")}</Link> | <Link to={`/declutter/item/${item.id}`} aria-label={`View ${item.title}`}>View</Link>
   // @mutate src/components/declutter/DeclutterHomeView.tsx | {item.status !== "draft" && ( | {item.status === "live" && (
   // @mutate src/components/declutter/DeclutterHomeView.tsx | to={item.status === "draft" ? `/declutter/sell?item=${item.id}` : `/declutter/item/${item.id}`} | to="/declutter"
   it("a listing row: the title takes two lines, the row opens the item, one Preview (Sellinglist-4, LEAD-ONE-PREVIEW)", async () => {
@@ -728,7 +728,7 @@ describe("#18: taking a listing down asks in the app", () => {
     state.cart = [];
     at("/declutter?tab=selling");
     // D4-12: the row's button names its item.
-    // @mutate src/components/declutter/DeclutterHomeView.tsx |                     aria-label={`${item.status === "draft" ? "Delete" : "Take down"} ${item.title}`} |                     aria-label="Take down"
+    // @mutate src/components/declutter/DeclutterHomeView.tsx |                     aria-label={t(item.status === "draft" ? "decl.sl.deleteAria" : "decl.sl.takeDownAria", { title: item.title })} |                     aria-label="Take down"
     fireEvent.click(await screen.findByRole("button", { name: "Take down Wicker chair" }));
     const sheet = await screen.findByRole("dialog");
     expect(within(sheet).getByText("Take this item off sale?")).toBeInTheDocument();

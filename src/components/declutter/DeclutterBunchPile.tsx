@@ -6,6 +6,8 @@
 import { Button } from "@/components/ui/button";
 import { DECLUTTER_MAX_PHOTOS } from "@/lib/declutter/photoRules";
 import type { BunchItem } from "@/lib/declutter/bunch";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 interface BunchPileCardProps {
   item: BunchItem;
@@ -19,7 +21,7 @@ interface BunchPileCardProps {
 
 export function BunchPileCard({ item, urls, busy, onSortAgain, onOneItem, onDrop }: BunchPileCardProps) {
   const n = item.photoKeys.length;
-  const heading = n === 1 ? "1 photo not sorted yet" : `${n} photos not sorted yet`;
+  const heading = n === 1 ? t("lp.bp.pile1") : t("lp.bp.pileN", { n });
   return (
     <li className="space-y-3 rounded-[20px] border border-border bg-card p-4" data-bunch-item="" data-bunch-not-sorted="">
       <h3 className="min-w-0 break-words text-ds-15 font-semibold">{heading}</h3>
@@ -29,17 +31,17 @@ export function BunchPileCard({ item, urls, busy, onSortAgain, onOneItem, onDrop
           const url = urls.get(k);
           return (
             <li key={k} className="block aspect-square w-full overflow-hidden rounded-xl bg-photo-empty">
-              {url?.startsWith("blob:") && <img loading="lazy" src={url} alt={`Not sorted, photo ${i + 1}`} decoding="async" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb="" />}
+              {url?.startsWith("blob:") && <img loading="lazy" src={url} alt={t("lp.bp.pileAlt", { n: i + 1 })} decoding="async" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb="" />}
             </li>
           );
         })}
       </ul>
       <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
-        <Button type="button" size="sm" className="rounded-full" disabled={busy} onClick={onSortAgain}>Sort again</Button>
+        <Button type="button" size="sm" className="rounded-full" disabled={busy} onClick={onSortAgain}>{t("lp.bp.sortAgain")}</Button>
         {n <= DECLUTTER_MAX_PHOTOS && (
-          <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={busy} onClick={onOneItem}>{n === 1 ? "This is one item" : "These are one item"}</Button>
+          <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={busy} onClick={onOneItem}>{n === 1 ? t("lp.bp.oneItem1") : t("lp.bp.oneItemN")}</Button>
         )}
-        <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={busy} onClick={onDrop}>Don't sell {n === 1 ? "this" : "these"}</Button>
+        <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={busy} onClick={onDrop}>{n === 1 ? t("lp.bc.drop") : t("lp.bp.dropN")}</Button>
       </div>
     </li>
   );

@@ -12,7 +12,9 @@ import { Share2 } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMemo, useState } from "react";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
+import PublicShopItemSheet from "./PublicShopItemSheet";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { fetchPublicShop, isPausedShop, isShopId, shareShop, shopLink, type PausedPublicShop, type PublicShop } from "@/lib/shops/publicShop";
@@ -37,6 +39,11 @@ function ShopMeta({ shop, id }: { shop: PublicShop | PausedPublicShop | null | u
 
 function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolean }) {
   const back = encodeURIComponent(`/shops/${shop.id}`);
+  // S2-038 (Shops audit 2): "From $18" for an item with options, as members read it; signed out, an item opens a
+  // read-only sheet with "Sign up to order" (signed in without Shops, the cards stay as they were).
+  const withOptions = useMemo(() => new Map(shop.items.filter((i) => i.has_options).map((i) => [i.id, true])), [shop.items]);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const opened = shop.items.find((i) => i.id === openId) ?? null;
   return (
     // S2-039 (Shops audit 2): at 1440 the page ran edge to edge (a 1,358px sign-up bar); it keeps a readable width.
     <div className="mx-auto w-full max-w-5xl space-y-4 pb-8" data-public-shop-body="">
@@ -90,7 +97,7 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
       )}
       {shop.offers_selling && (
         <ShopCard id="shop-items" title="Items">
-          <ShopItemsGrid items={shop.items} reportable={signedIn} />
+          <ShopItemsGrid items={shop.items} reportable={signedIn} withOptions={withOptions} onOpen={signedIn ? undefined : setOpenId} />
         </ShopCard>
       )}
       {/* S030 follow-up (Shops audit 11-12): the "Quotes" card promised "Asking for one here opens soon." (a dead end;
@@ -111,6 +118,7 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
       {shop.offers_selling && <ShopPolicies shopId={shop.id} />}
       <ShopFaqs shopId={shop.id} />
       <ShopReportShop shopId={shop.id} signedIn={signedIn} />
+      {!signedIn && <PublicShopItemSheet item={opened} signupTo={`/signup?redirect=${back}`} onClose={() => setOpenId(null)} />}
     </div>
   );
 }

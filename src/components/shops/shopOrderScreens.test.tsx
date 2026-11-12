@@ -403,7 +403,7 @@ describe("/shops/dashboard", () => {
     fireEvent.change(screen.getByLabelText("Reason for the buyer (optional)"), { target: { value: "Booked up" } });
     fireEvent.click(screen.getByRole("button", { name: "confirm Decline order" }));
     await waitFor(() => expect(orders.declineOrder).toHaveBeenCalledWith("o2", "Booked up"));
-    expect(await screen.findByRole("button", { name: /Free to cancel until the shop accepts/ })).toBeTruthy();
+    expect(await screen.findByRole("radio", { name: /Free to cancel until the shop accepts/ })).toBeTruthy();
   });
 
   it("says who ordered: the buyer's first name on each order, and the plain heading when the server gives none (Q2104)", async () => {
@@ -426,14 +426,14 @@ describe("/shops/dashboard", () => {
     orders.setReadyTapCancel.mockResolvedValue("ends_at_tap");
     orders.fetchShopOrders.mockResolvedValue([]);
     renderAt("/shops/dashboard", "/shops/dashboard", <ShopDashboardPage />);
-    const group = await screen.findByRole("group", { name: "If you mark an order ready early" });
-    const choices = within(group).getAllByRole("button");
+    const group = await screen.findByRole("radiogroup", { name: "If you mark an order ready early" });
+    const choices = within(group).getAllByRole("radio");
     expect(choices.map((b) => b.textContent?.split("Buyers")[0].split("If you")[0])).toEqual([
       "Marking it ready ends free cancel",
       "Marking it ready counts from the day before (default)",
       "Marking it ready never ends free cancel early",
     ]);
-    expect(choices.map((b) => b.getAttribute("aria-pressed"))).toEqual(["false", "false", "true"]);
+    expect(choices.map((b) => b.getAttribute("aria-checked"))).toEqual(["false", "false", "true"]);
     expect(group.textContent).toContain("Buyers can cancel for free until the ready date begins, however early you mark the order ready.");
     fireEvent.click(choices[0]);
     await waitFor(() => expect(orders.setReadyTapCancel).toHaveBeenCalledWith("ends_at_tap"));
@@ -445,8 +445,8 @@ describe("/shops/dashboard", () => {
     orders.fetchCancelPolicy.mockResolvedValue("until_accept");
     orders.fetchShopOrders.mockResolvedValue([]);
     renderAt("/shops/dashboard", "/shops/dashboard", <ShopDashboardPage />);
-    expect(await screen.findByRole("button", { name: /Free to cancel until the shop accepts/ })).toBeTruthy();
-    expect(screen.queryByRole("group", { name: "If you mark an order ready early" })).toBeNull();
+    expect(await screen.findByRole("radio", { name: /Free to cancel until the shop accepts/ })).toBeTruthy();
+    expect(screen.queryByRole("radiogroup", { name: "If you mark an order ready early" })).toBeNull();
     expect(orders.fetchReadyTapCancel).not.toHaveBeenCalled();
   });
 

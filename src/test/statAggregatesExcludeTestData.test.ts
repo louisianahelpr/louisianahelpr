@@ -47,6 +47,7 @@ const REVIEW = "REVIEW: a displayed number that still counts test data (b62 phas
 
 // @two-way src/test/statAggregatesExcludeTestData.test.ts:Object.keys(ALLOWED).filter((n) => !inventory.has(n)
 const ALLOWED: Record<string, string> = {
+  shop_cottage_would_reach: "Shops S033 follow-up (20261112*): sums ONE shop's own home-food sales toward its legal yearly limit (La. R.S. 40:4.9); a test shop's orders are its own, never another member's, and nothing is shown to anyone else",
   // 25 Days sponsor admin (20261109162829): counts the visits to each invite link for the owner's admin page. Visits carry
   // no account, and sponsor_log_visit never records a signed-in test account's visit (is_test_member), so no test row is in it.
   sponsor_admin_overview: "counts visits per invite link on the admin page; a visit holds no account, and sponsor_log_visit never records a test account's visit, so the count holds no test data",

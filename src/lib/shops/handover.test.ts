@@ -11,7 +11,7 @@
  * @mutate src/lib/shops/handover.ts |   return ((row as { handover_mode?: HandoverMode } \| null)?.handover_mode ?? "in_person"); |   return ((row as { handover_mode?: HandoverMode } \| null)?.handover_mode ?? "porch");
  * @mutate src/lib/shops/handover.ts |     ...(cardDebt > 0 ? [ |     ...(cardDebt > 1e9 ? [
  * @mutate src/lib/shops/handover.ts |   if (!isStorageObjectPath(path)) return null; |   void isStorageObjectPath;
- * @mutate src/lib/shops/handover.ts |   const { error } = await supabase.rpc("shops_report_not_received", { p_order_id: orderId, p_note: note.trim() }); |   const { error } = await supabase.rpc("shops_report_not_received", { p_order_id: orderId, p_note: note });
+ * @mutate src/lib/shops/handover.ts |     p_note: note.trim(), |     p_note: note,
  * @mutate src/lib/shops/handover.ts |     upsert: false, |     upsert: true,
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";

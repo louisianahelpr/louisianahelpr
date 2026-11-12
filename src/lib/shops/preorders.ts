@@ -143,7 +143,7 @@ export function preorderChargeText(p: Pick<ItemPreorder, "ready_by" | "goal" | "
 }
 
 /** The buyer's order: what Cancel preorder gives back now (the server files the refund; this says the same).
- * S2-019 (20261112160014, owner-approved): every preorder cancel before ready is a full refund, the one-time setup
+ * S2-019 (20261112220952, owner-approved): every preorder cancel before ready is a full refund, the one-time setup
  * fee the charge carried included (shop_write_refund's full_shop_pays_fee rule). */
 export function preorderCancelText(
   order: { total_cents: number; ready_date: string; preorder_moved_at?: string | null } & Partial<Pick<ShopOrder, "setup_fee_cents" | "setup_fee_state">>,

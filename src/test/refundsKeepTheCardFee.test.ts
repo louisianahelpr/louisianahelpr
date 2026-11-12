@@ -1032,9 +1032,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
   shop_refund_amounts: {
     // Custom orders slice 2b (20261106221300, money review owed): + unpaid_close_tax (keep_card_fee), the reason check
     // restated there. Preorders (20261108184654, money review owed): + the three preorder reasons, all full_shop_pays_fee.
-    // S2-019 (20261112160014, owner-approved preorder rule): + preorder_buyer_cancelled, full_shop_pays_fee (the buyer's
+    // S2-019 (20261112220952, owner-approved preorder rule): + preorder_buyer_cancelled, full_shop_pays_fee (the buyer's
     // own preorder cancel before ready gets every cent; the shop carries the card fee as seller fee debt).
-    migration: "20261112160014_shops_preorder_buyer_cancel_full_refund.sql",
+    migration: "20261112220952_shops_preorder_buyer_cancel_full_refund.sql",
     // Helpr delivery (money review owed): restated to leave out the delivery already refunded or earned.
     // Custom orders slice 2a (money review owed): restated so "paid" is the deposit while a deposit order's rest is unpaid.
     // 11-07 (20261107162454): both charges' card fees once a deposit order's rest is paid.
@@ -1044,7 +1044,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     reasonCheck: "shop_refunds_reason_check",
     policySources: [
       { where: "shop_refund_fee_policy", kind: "function", name: "shop_refund_fee_policy", pattern: /\bSELECT\s+(CASE\b.*?\bEND)\s*;/i, subject: "p_reason",
-        migration: "20261112160014_shops_preorder_buyer_cancel_full_refund.sql" },
+        migration: "20261112220952_shops_preorder_buyer_cancel_full_refund.sql" },
     ],
     reasons: {
       buyer_cancelled: "keep_card_fee",
@@ -1107,13 +1107,13 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_orders_two_charge_hold_refunds: "20261107162454_shops_custom_two_charge_payout.sql 4efec5d23992ab63",
       shop_refund_amounts: "20261112082518_shops_setup_fee_refund.sql 6ee7c41d5e3a04f4", // S035 (20261112082518, lh-money-escrow): + the setup fee back on full_shop_pays_fee / full_platform_absorbs when the charge carried it (never keep_card_fee). Before that: Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left). Custom orders slice 2a (20261106212437, money review owed): "paid" is the deposit while a deposit order's rest is unpaid; the fee policy per reason is unchanged. 11-07 (20261107162454, money review change 1): once the rest is paid the card fee is BOTH charges' fees (more kept, never less)
       shop_refund_executed: "20261103111244_money_webhooks_not_found_is_404.sql e33914e554c0bfea", // Q2390 p25: ERRCODE-only restatement (md5-verified); records Stripe's answer, writes no amount
-      shop_refund_fee_policy: "20261112160014_shops_preorder_buyer_cancel_full_refund.sql 65c6d12ecddcccb2", // S2-019: + preorder_buyer_cancelled under full_shop_pays_fee (PGlite shopsPreorderBuyerCancelFull). Before: orders 2b: + unpaid_close_tax under keep_card_fee. Preorders (money review owed): + preorder_shop_late / preorder_date_moved / preorder_goal_missed under full_shop_pays_fee; every other reason unchanged
+      shop_refund_fee_policy: "20261112220952_shops_preorder_buyer_cancel_full_refund.sql 65c6d12ecddcccb2", // S2-019: + preorder_buyer_cancelled under full_shop_pays_fee (PGlite shopsPreorderBuyerCancelFull). Before: orders 2b: + unpaid_close_tax under keep_card_fee. Preorders (money review owed): + preorder_shop_late / preorder_date_moved / preorder_goal_missed under full_shop_pays_fee; every other reason unchanged
       // Preorders (money review owed): goal missed / 7 days late -> shop_write_refund under full_shop_pays_fee, each order under its lock.
       // Part 3 F197/F198/F193 (20261109224952, Builder 6, 11-09): notice wording only, md5 == LIVE before; no amount (PGlite S1).
       shop_preorder_sweep: "20261109224952_notices_card_fee_and_our_team.sql d34ec3fa67846652",
       // Preorders: the buyer's cancel -> buyer_cancelled (keep_card_fee); preorder_goal_missed / preorder_shop_late / preorder_date_moved (the shop pays) after the sweep's own trigger or a push (money review 11-08).
-      // S2-019 (20261112160014): the buyer's own cancel files preorder_buyer_cancelled (full refund, the shop pays the card fee).
-      shops_cancel_preorder: "20261112160014_shops_preorder_buyer_cancel_full_refund.sql e1676c8e825d5855", // + the shop notice names the card cost (money review should-fix 1)
+      // S2-019 (20261112220952): the buyer's own cancel files preorder_buyer_cancelled (full refund, the shop pays the card fee).
+      shops_cancel_preorder: "20261112220952_shops_preorder_buyer_cancel_full_refund.sql e1676c8e825d5855", // + the shop notice names the card cost (money review should-fix 1)
       // Custom orders 2b (money review owed): writes the deposit's tax back as the order's unpaid_close_tax row (keep_card_fee, card fee 0: the
       // deposit's whole card fee is already kept), once, after Stripe Tax's full reversal.
       // 11-07 (20261107170121, money review owed): + the deposit's half of a shop-delivers order's delivery (LEAD 11-07); still
@@ -1153,7 +1153,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       "shop_refunds 20261108184654_shops_preorders.sql": ["f816e6c9fcdfc078", "6b9b9fc692b9413b"],
       // S035: the setup-fee column, its CHECK (0 on keep_card_fee) and the amount CHECK restated with it.
       // S2-019: the reason check restated with preorder_buyer_cancelled (its fee policy is the one function's).
-      "shop_refunds 20261112160014_shops_preorder_buyer_cancel_full_refund.sql": ["f816e6c9fcdfc078", "2f92b9bd67fe141a"],
+      "shop_refunds 20261112220952_shops_preorder_buyer_cancel_full_refund.sql": ["f816e6c9fcdfc078", "2f92b9bd67fe141a"],
       "shop_refunds 20261112082518_shops_setup_fee_refund.sql": ["d838aa9dd7062ad9", "06d12bf1c0a366c1", "511ff99ac8b7eaee", "56b26d17a3ee08b8", "8660e79976dde420"],
     },
     bodies: {

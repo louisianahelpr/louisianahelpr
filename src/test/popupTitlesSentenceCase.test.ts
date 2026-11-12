@@ -185,7 +185,9 @@ describe("every pop-up title is sentence case", () => {
     // 236: +1 "Your review" (YourReviewDialog, the poster reads the review they left, audit 11-10 F278).
     // 237: Messages' batch hide title is two dictionary branches (one / n conversations), F260q 11-11.
     // 238: +1 "Discard your changes?" (ProfileEditForm, leaving Edit profile with unsaved edits, audit 11-10 F261a).
-    expect(all.length).toBe(238);
+    // 239: +1 "Leave without saving?" (ShopItemEditor asks before leaving unsaved work, Shops audit 2 S2-007, 0410bba4ad).
+    // 240: +1 "Leave without saving?" (ShopEditView's back arrow asks before unsaved edits are lost, lead 11-12).
+    expect(all.length).toBe(240);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

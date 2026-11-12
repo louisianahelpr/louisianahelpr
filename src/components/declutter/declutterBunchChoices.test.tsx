@@ -80,6 +80,7 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
 });
 
 import BunchFlow from "./DeclutterBunchView";
+import { useSavedPickup } from "./useSavedPickup";
 
 beforeAll(() => {
   let n = 0;
@@ -89,12 +90,19 @@ beforeAll(() => {
 beforeEach(() => { state.saved = null; state.remembered = []; state.windows = []; state.windowWrites = 0; state.listed = []; state.feeDue = null; state.places = []; geocodeCalls.n = 0; });
 afterEach(cleanup);
 
-async function open() {
+/** As SellerSetupGate: the page mounts once the saved pickup reads have settled (F342: the Where step folds only then). */
+function AfterSavedPickup({ children }: { children: React.ReactNode }) {
+  return useSavedPickup("u1", () => {}).settled ? <>{children}</> : null;
+}
+
+async function open({ behindGate = false } = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  render(<QueryClientProvider client={qc}><MemoryRouter><BunchFlow /></MemoryRouter></QueryClientProvider>);
+  const flow = behindGate ? <AfterSavedPickup><BunchFlow /></AfterSavedPickup> : <BunchFlow />;
+  render(<QueryClientProvider client={qc}><MemoryRouter>{flow}</MemoryRouter></QueryClientProvider>);
+  if (behindGate) await screen.findByRole("heading", { name: /^\d\. Add photos/ });
   const files = ["a", "b"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" }));
   fireEvent.change(document.getElementById("bunch-files")!, { target: { files } });
-  await screen.findByRole("heading", { name: /^3\. Check each item/ });
+  await screen.findByRole("heading", { name: /^\d\. Check each item/ });
   await screen.findByRole("heading", { name: /^\d\. List/ });
 }
 const openRows = () => document.querySelectorAll<HTMLElement>('[data-bunch-expand][aria-expanded="false"]').forEach((b) => fireEvent.click(b));
@@ -214,7 +222,7 @@ describe("Sell a bunch: listing choices", () => {
       { id: "p1", position: 1, label: "Home", address: "1 Main St, Baton Rouge, LA", area: "Mid-City", lat: 30.45123, lng: -91.15456, weekdays: [0] },
     ];
     state.saved = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
-    await open();
+    await open({ behindGate: true });
     // Each place on its own line under the ways, in the seller's order (owner 2026-11-01: no separate "Pickup at" line).
     const where = await waitFor(() => { const el = document.querySelector('[data-settings-row="pickup"] [data-settings-value]') as HTMLElement; expect(el).not.toBeNull(); return el; });
     expect([...where.querySelectorAll("p")].map((p) => p.textContent)).toEqual(["Porch", "Home, Mid-City · Sundays", "Mom's house, Garden District · Saturdays"]);

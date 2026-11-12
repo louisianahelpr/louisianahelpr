@@ -42,6 +42,7 @@ import { louisianaToday, moveDateProblem } from "@/lib/declutter/moves";
 import { DeclutterNotice } from "./declutterUi";
 import { SellerAddressField } from "./SellerAddressField";
 import { AREA_ADDRESS_RE, NO_CITY_IN_ADDRESS } from "./sellForm";
+import { useWhereFolded } from "./bunchWhereFold";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { BunchCard, bunchItemName } from "./DeclutterBunchCard";
 import { bunchOthers, bunchRowStartsOpen, focusBunchFilesNextPaint, focusBunchListStep } from "./bunchFlowHelpers";
@@ -166,6 +167,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   }, [savedWindows.data, savedWindows.isSuccess]);
 
   const savedSetup = useBunchStartingPlace(user?.id, setAreaLabel, setPickupAddress, place.setPoint);
+  const whereFolded = useWhereFolded(savedSetup, pickupAddress, areaLabel, !!user && !underAge && !(results && items.length === 0)); // F342
 
   if (!user) return null;
   if (underAge) {
@@ -181,10 +183,8 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   const placeProblem = pickupAddress.trim().length < 5 ? t("lp.bv.addAddress")
       : areaLabel.trim().length < 2 || AREA_ADDRESS_RE.test(areaLabel) ? NO_CITY_IN_ADDRESS
         : null;
-  // The setup gate (SellerSetup) has them save it first; the boxes are only for a saved address that stopped reading.
   // A3-69: a finished bunch (results shown, nothing left on the list) shows only its result until List more.
   const allListed = !!results && items.length === 0;
-  const whereFolded = !!savedSetup.pickup && !placeProblem && pickupAddress.trim() === savedSetup.pickup.address;
   const firstStep = whereFolded ? 1 : 2;
   // While the setup fee is due only free items can go (the server asks no fee at price 0); priced ones stay on the list.
   const ready = bunchListable(items, feeDue != null);

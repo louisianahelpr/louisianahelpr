@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 490,
+      "literal": 489,
       "template": 104,
-      "dynamic": 689,
+      "dynamic": 690,
       "jsx": 0
     }
   },
@@ -7026,17 +7026,34 @@
     },
     {
       "file": "src/components/declutter/SellMeetupSpots.tsx",
-      "line": 44,
+      "line": 46,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Meet spot saved."
+        "form": "dynamic",
+        "text": "t(\"lp.ms.saved\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/declutter/SellMeetupSpots.tsx",
-      "line": 86,
+      "line": 88,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7061,7 +7078,7 @@
     },
     {
       "file": "src/components/declutter/SellPorchPlaces.tsx",
-      "line": 167,
+      "line": 154,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

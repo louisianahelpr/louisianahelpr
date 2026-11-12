@@ -38,7 +38,7 @@ function hslHex(h: number, s: number, l: number) {
 }
 
 describe("the light ground is warm near-white #FCFBF8 (owner 11-12) everywhere the canvas is painted", () => {
-  it("--parchment (light) is #F4F2EE and the light --page-gradient is warm", () => {
+  it("--parchment (light) is #FCFBF8 and the light --page-gradient is warm", () => {
     const parch = [...css.matchAll(/--parchment:\s*([\d.]+) ([\d.]+)% ([\d.]+)%;/g)];
     expect(parch.length).toBeGreaterThan(1);
     const [, h, s, l] = parch[0];

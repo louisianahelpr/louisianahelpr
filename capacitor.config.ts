@@ -130,7 +130,7 @@ const config: CapacitorConfig = {
       // src/lib/splashSafetyNet.ts as the backstop.
       launchShowDuration: 500,
       launchAutoHide: false,
-      backgroundColor: '#FCFBF8', // WARM ground (spec v2 §2, 2026-10-20) — the exact hex of hsl(40 21% 94.5%), i.e. --parchment in index.css. Matches StatusBar (below) and index.html's theme-color. The #root/#boot-loader shell and the app's page ground both paint the diagonal champagne gradient (#F7F5F1 -> #F0EDE7); this flat value sits between those two endpoints, so the splash-to-WebView handoff stays within a couple of RGB units instead of flashing a different surface.
+      backgroundColor: '#FCFBF8', // WARM near-white ground (owner 11-12; was #F4F2EE, spec v2 §2) — the exact hex of hsl(45 40% 98%), i.e. --parchment in index.css. Matches StatusBar (below) and index.html's theme-color. The #root/#boot-loader shell and the app's page ground both paint the diagonal gradient (#FDFCFA -> #FAF8F4, --page-gradient); this flat value sits between those two endpoints, so the splash-to-WebView handoff stays within a couple of RGB units instead of flashing a different surface.
       //
       // This comment used to read "Warm parchment (hsl(36 16% 91%))" while the
       // value beside it was already cool. That is how P2 happened the first

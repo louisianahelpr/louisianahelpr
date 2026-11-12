@@ -157,10 +157,46 @@ export async function confirmPickup(orderId: string): Promise<void> {
   if (error) rpcFail(error, rpcErrorMessage("shops_confirm_pickup", error));
 }
 
-/** The buyer did not get it: no automatic finish and no payout until Louisiana Helpr decides. */
-export async function reportNotReceived(orderId: string, note: string): Promise<void> {
-  const { error } = await supabase.rpc("shops_report_not_received", { p_order_id: orderId, p_note: note.trim() });
-  if (error) rpcFail(error, rpcErrorMessage("shops_report_not_received", error));
+/**
+ * S018 (Shops audit 11-12): the buyer's optional problem photo, cleaned like every listing photo (metadata/GPS
+ * stripped), into `<uid>/shops/problem/<order>/<file>` of the same PRIVATE bucket (20261112090512). Only the buyer and
+ * an admin can read it; the shop never does.
+ */
+async function uploadProblemPhoto(userId: string, orderId: string, file: File): Promise<string> {
+  const cleaned = await cleanListingPhoto(file);
+  if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");
+  const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
+  const path = `${userId}/shops/problem/${orderId}/${nonce}.jpg`;
+  // Never overwrites (upsert off), as the ready photo.
+  const options = { contentType: "image/jpeg", upsert: false as const, cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL };
+  const { error } = await supabase.storage.from(SHOP_HANDOVER_BUCKET).upload(path, cleaned, options);
+  if (error) throw Object.assign(new Error("photo_not_uploaded"), { userMessage: "That photo didn't finish uploading. Try again." });
+  return path;
+}
+
+/** True for a buyer's problem photo path (shop-handover bucket); a Helpr's answer photo lives in helpr-tasks. */
+export function isShopProblemPhotoPath(path: string | null | undefined): boolean {
+  return typeof path === "string" && path.split("/")[1] === "shops" && path.split("/")[2] === "problem";
+}
+
+/**
+ * The buyer did not get it: no automatic finish and no payout until Louisiana Helpr decides. With a photo, the photo
+ * is uploaded first; a refused report removes its unsent upload (the server's DELETE policy allows only that).
+ */
+export async function reportNotReceived(orderId: string, note: string, photo?: { userId: string; file: File } | null): Promise<void> {
+  const photoPath = photo ? await uploadProblemPhoto(photo.userId, orderId, photo.file) : null;
+  const { error } = await supabase.rpc("shops_report_not_received", {
+    p_order_id: orderId,
+    p_note: note.trim(),
+    ...(photoPath ? { p_photo_path: photoPath } : {}),
+  });
+  if (error) {
+    if (photoPath) {
+      const removed = await supabase.storage.from(SHOP_HANDOVER_BUCKET).remove([photoPath]);
+      if (removed.error) console.warn("[shops] unsent problem photo not removed", removed.error.message);
+    }
+    rpcFail(error, rpcErrorMessage("shops_report_not_received", error));
+  }
 }
 
 /** The payout line under a handed-over order, in the shop's words. */

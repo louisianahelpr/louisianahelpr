@@ -48,12 +48,16 @@ import { usePayoutHolds } from "./adminPayoutBatches/usePayoutHolds";
 import { adminRecordHandRefund, adminRefundOrder, formatCents, type AdminRefundReason } from "@/lib/shops/orders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { HelprPhoto } from "./settings/DeclutterProblemCase";
+import { isShopProblemPhotoPath, readyPhotoUrl } from "@/lib/shops/handover";
 import ShopsPaperworkCard from "./ShopsPaperworkCard";
 
 interface Problem {
   order_id: string; seller_id: string | null; shop_name: string | null; ready_date: string; total_cents: number;
   card_fee_cents: number | null; handover_mode: string; problem_at: string; problem_note: string; ready_at: string | null; is_seed: boolean;
-  /** The Helpr's answer photo (helpr-tasks bucket) when the Helpr answered a shop's "didn't come" with one (20261107035259). */
+  /**
+   * The Helpr's answer photo (helpr-tasks bucket) when the Helpr answered a shop's "didn't come" with one (20261107035259),
+   * or S018 (20261112090512) the buyer's own problem photo (shop-handover bucket, `<buyer>/shops/problem/<order>/<file>`).
+   */
   problem_photo_path?: string | null;
 }
 interface RefundRow {
@@ -257,7 +261,9 @@ export default function AdminShopsOrders() {
                 <p className="text-sm [overflow-wrap:anywhere]">"{p.problem_note}"</p>
                 {p.problem_photo_path && (
                   <div data-testid="admin-shops-problem-photo">
-                    <HelprPhoto path={p.problem_photo_path} alt="The Helpr's photo with their answer" />
+                    {isShopProblemPhotoPath(p.problem_photo_path)
+                      ? <BuyerProblemPhoto path={p.problem_photo_path} />
+                      : <HelprPhoto path={p.problem_photo_path} alt="The Helpr's photo with their answer" />}
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground">
@@ -361,4 +367,12 @@ export default function AdminShopsOrders() {
       </BrandConfirmDialog>
     </AdminViewShell>
   );
+}
+
+/** S018: the buyer's problem photo (private shop-handover bucket; an admin reads it with a 10-minute link). */
+function BuyerProblemPhoto({ path }: { path: string }) {
+  const url = useQuery({ queryKey: ["shops", "problem-photo", path], queryFn: () => readyPhotoUrl(path), staleTime: 5 * 60_000 });
+  if (url.isError || url.data === null) return <p className="text-xs" role="alert">The buyer's photo couldn't load.</p>;
+  if (!url.data) return null;
+  return <img loading="lazy" src={url.data} alt="The buyer's photo with their report" className="h-32 w-32 rounded-lg object-cover" />;
 }

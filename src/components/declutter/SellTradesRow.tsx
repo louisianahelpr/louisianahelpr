@@ -6,6 +6,8 @@
  */
 import { Switch } from "@/components/ui/switch";
 import type { SellFlow } from "./useSellFlowState";
+import "@/lib/i18n/enSellForm";
+import { t } from "@/lib/i18n/language";
 
 export function SellTradesRow({ s }: { s: Pick<SellFlow, "form" | "tradesWanted" | "setTradesWanted"> }) {
   const { form, tradesWanted, setTradesWanted } = s;
@@ -13,8 +15,8 @@ export function SellTradesRow({ s }: { s: Pick<SellFlow, "form" | "tradesWanted"
   return (
     <li className="flex items-center gap-3 px-4 py-3.5" data-sell-trades={tradesWanted ? "on" : "off"}>
       <label htmlFor="sell-trades" className="min-w-0 flex-1">
-        <span className="block text-ds-13 font-semibold text-muted-foreground">Open to trades?</span>
-        <span className="block text-ds-14 text-foreground">Buyers can offer one of their listings instead of cash</span>
+        <span className="block text-ds-13 font-semibold text-muted-foreground">{t("sf.tradesTitle")}</span>
+        <span className="block text-ds-14 text-foreground">{t("sf.tradesLine")}</span>
       </label>
       <Switch id="sell-trades" checked={tradesWanted} onCheckedChange={(v) => setTradesWanted(v === true)} />
     </li>

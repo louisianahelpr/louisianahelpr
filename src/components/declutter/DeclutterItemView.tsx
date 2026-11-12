@@ -35,7 +35,9 @@ import {
   STATUS_HELP,
   sellerStatusLabel,
 } from "./declutterUi";
-import { FreeClaimPanel, FreeRequestsForGiver, isFreeItem } from "./DeclutterFreeClaim";
+import { isFreeItem } from "./freeItem";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { DeclutterItem } from "@/lib/declutter/api";
 import { OfferPanel } from "./DeclutterOfferPanel";
 import PriceHint from "./DeclutterPriceHint";
 import { DeclutterGallery } from "./DeclutterGallery";
@@ -73,6 +75,20 @@ const SellerListingPanel = lazy(() => import("./DeclutterManageListing").then((m
 // "open to trades" read answers, so loading its chunk alongside that read adds no visible wait.
 const ItemTradeOffers = lazy(() => import("./DeclutterTradeOffers").then((m) => ({ default: m.ItemTradeOffers })));
 const OfferTradeButton = lazy(() => import("./DeclutterOfferTrade").then((m) => ({ default: m.OfferTradeButton })));
+// Q178 (Builder 2, 11-11): the free-item panels (DeclutterFreeClaim.tsx, 26 KB source) load only on a free listing, not on
+// every paid item page. The claim panel holds its place with a bone of its own height while its chunk arrives.
+const FreeClaimPanelLazy = lazy(() => import("./DeclutterFreeClaim").then((m) => ({ default: m.FreeClaimPanel })));
+const FreeRequestsForGiverLazy = lazy(() => import("./DeclutterFreeClaim").then((m) => ({ default: m.FreeRequestsForGiver })));
+function FreeClaimPanel({ item }: { item: DeclutterItem }) {
+  return (
+    <Suspense fallback={<div className="rounded-2xl border border-border bg-card p-4 space-y-2" aria-hidden="true"><Skeleton className="h-11 w-full rounded-full" /><Skeleton className="h-4 w-2/3" /></div>}>
+      <FreeClaimPanelLazy item={item} />
+    </Suspense>
+  );
+}
+function FreeRequestsForGiver({ item }: { item: DeclutterItem }) {
+  return <Suspense fallback={null}><FreeRequestsForGiverLazy item={item} /></Suspense>;
+}
 
 /** What a pressed Buy or Offer says in the seller's own preview. */
 const PREVIEW_ACTION_NOTE = "This is your listing. Buyers can press this; you can't buy your own.";

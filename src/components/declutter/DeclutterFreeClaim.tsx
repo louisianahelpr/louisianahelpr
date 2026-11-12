@@ -56,10 +56,6 @@ function pickedTimeLabel(iso: string): string {
   return `${new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "short", month: "numeric", day: "numeric" }).format(d)}, ${time}`;
 }
 
-/** Is this listing free? (price and current price are both 0, a CHECK keeps them together). */
-export function isFreeItem(item: Pick<DeclutterItem, "current_price_cents">): boolean {
-  return item.current_price_cents === 0;
-}
 
 /**
  * The ways a free item can be collected (porch pickup, or at the giver's home): porch only when porch is on, and of

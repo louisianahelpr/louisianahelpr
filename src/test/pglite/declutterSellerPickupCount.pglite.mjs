@@ -74,13 +74,16 @@ await db.exec(`
   CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS
     $f$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $f$;
   GRANT USAGE ON SCHEMA auth, public TO authenticated, anon;
+  -- The one identity rule, its real body (identity_is_verified, newest definition 20261021081258), as the guest card reads it.
+  CREATE FUNCTION public.identity_is_verified(p_idv_status text, p_stripe_identity_verified boolean) RETURNS boolean
+    LANGUAGE sql IMMUTABLE AS $f$ SELECT p_idv_status IS NOT DISTINCT FROM 'verified' AND p_stripe_identity_verified IS NOT NULL $f$;
   CREATE FUNCTION public.declutter_open_to_guests() RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT true $f$;
   GRANT EXECUTE ON FUNCTION public.declutter_open_to_guests() TO anon, authenticated;
   CREATE FUNCTION public.normalize_phone_for_ban(p text) RETURNS text LANGUAGE sql IMMUTABLE AS
     $f$ SELECT regexp_replace(coalesce(p, ''), '[^0-9]', '', 'g') $f$;
   CREATE TABLE public.profiles (
     id uuid DEFAULT gen_random_uuid(), user_id uuid PRIMARY KEY, full_name text, email text, phone text, avatar_url text,
-    idv_status text, email_verified boolean NOT NULL DEFAULT true, ban_status text, anonymized_at timestamptz,
+    idv_status text, stripe_identity_verified boolean NOT NULL DEFAULT false, email_verified boolean NOT NULL DEFAULT true, ban_status text, anonymized_at timestamptz,
     is_seed boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now());
   ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
   REVOKE ALL ON public.profiles FROM PUBLIC, anon, authenticated;

@@ -269,6 +269,25 @@ export const NOTICE_SHAPES: readonly Shape[] = [
   ['{amount} from "{q}" is ready, but your payout account isn\'t set up yet. Add it in Profile → Payments.', '{amount} de "{q}" ya están listos, pero su cuenta de pagos todavía no está configurada. Agréguela en Perfil → Pagos.'],
   ['Someone is checking out "{q}" for {amount}. It\'s held for them for 30 minutes. We\'ll tell you when they pay.', 'Alguien está pagando "{q}" por {amount}. Se le reserva por 30 minutos. Le avisaremos cuando pague.'],
   ['"{q}" and "{q2}" overlap on {any}. Please get one of them rescheduled: open either job and tap "{name}".', '"{q}" y "{q2}" coinciden el {any}. Cambie la fecha de uno de ellos: abra cualquiera de los dos y toque "{name}".'],
+  // Builder 1's b1d (lead 11-11, HANDOFF-B1.md): the Declutter seller notices name the buyer ("Ann S. offered $40.00
+  // on ...") and say "send a different price". After the literal "The buyer ..." / "Someone ..." shapes above, so those
+  // stay reachable; the old "counter within 48 hours" shapes stay as fallbacks. The fallback words the server puts in
+  // the {name} slot (the buyer, A buyer, Someone, A former member) are re-written by NAME_WORDS below.
+  ['{name} offered {amount} on "{q}". Accept, decline or send a different price within 48 hours.', '{name} ofreció {amount} por "{q}". Acepte, rechace o envíe otro precio en menos de 48 horas.'],
+  ['You got a {amount} offer on "{q}". Accept, decline or send a different price within 48 hours.', 'Recibió una oferta de {amount} por "{q}". Acepte, rechace o envíe otro precio en menos de 48 horas.'],
+  ['{name} sent a {amount} counteroffer on "{q}". Accept, decline or send a different price within 48 hours.', '{name} envió una contraoferta de {amount} por "{q}". Acepte, rechace o envíe otro precio en menos de 48 horas.'],
+  ['You got a {amount} counteroffer on "{q}". Accept, decline or send a different price within 48 hours.', 'Recibió una contraoferta de {amount} por "{q}". Acepte, rechace o envíe otro precio en menos de 48 horas.'],
+  ['{name} offered {amount} on "{q}". You answered automatically with your lowest price, {amount2}.', '{name} ofreció {amount} por "{q}". Usted respondió automáticamente con su precio más bajo, {amount2}.'],
+  ["{name}'s {amount} offer on \"{q}\" was accepted automatically (at or above your lowest price).", 'La oferta de {amount} de {name} por "{q}" se aceptó automáticamente (igual o mayor que su precio más bajo).'],
+  ['{name} took back their offer on "{q}".', '{name} retiró su oferta por "{q}".'],
+  ['{name} said no to your {amount} price on "{q}". Your listing is still up.', '{name} rechazó su precio de {amount} por "{q}". Su anuncio sigue publicado.'],
+  ['{name} said no to your {amount} price on "{q}".', '{name} rechazó su precio de {amount} por "{q}".'],
+  ['{name} wants {n} of your items ({amount} in all). Accept all or pick some within 48 hours.', '{name} quiere {n} de sus artículos ({amount} en total). Acepte todos o elija algunos en menos de 48 horas.'],
+  ['{name} did not answer your counteroffer on "{q}" within 48 hours, so it closed.', '{name} no respondió a su contraoferta por "{q}" en 48 horas, así que se cerró.'],
+  ["You did not answer {name}'s offer on \"{q}\" within 48 hours, so it closed.", 'Usted no respondió a la oferta de {name} por "{q}" en 48 horas, así que se cerró.'],
+  ['{name} claimed "{q}". They have 48 hours to choose a pickup.', '{name} pidió "{q}". Tiene 48 horas para elegir cómo recogerlo.'],
+  ['{name} is checking out "{q}" for {amount}. It\'s held for them for 30 minutes. We\'ll tell you when they pay.', '{name} está pagando "{q}" por {amount}. Se le reserva por 30 minutos. Le avisaremos cuando pague.'],
+  ['"{q}" is held for {name} at {amount}. They have 24 hours to check out and pay. We\'ll tell you when they pay.', '"{q}" está reservado para {name} por {amount}. Tiene 24 horas para pagar. Le avisaremos cuando pague.'],
 ];
 
 const MONTHS: Record<string, string> = {
@@ -289,6 +308,14 @@ export function dateInSpanish(d: string): string {
   const m = d.match(/^(\w{3}),? (\w{3}) (\d{1,2})$/);
   return m ? `${DAYS[m[1]] ?? m[1]} ${m[3]} ${MONTHS[m[2]] ?? m[2]}` : d;
 }
+
+/** The words the server writes in a person's place when it has no name to show (b1d's seller notices, scrubbed members). */
+const NAME_WORDS: Record<string, string> = {
+  "the buyer": "el comprador",
+  "a buyer": "un comprador",
+  "someone": "alguien",
+  "a former member": "un exmiembro",
+};
 
 type Compiled = { re: RegExp; tokens: string[]; spanish: string };
 let compiled: Compiled[] | null = null;
@@ -322,7 +349,16 @@ export function noticeInSpanish(text: string): string {
     tokens.forEach((tok, i) => {
       vals[tok] = tok === "date" ? dateInSpanish(m[i + 1]) : m[i + 1];
     });
-    return spanish.replace(/\{([a-z0-9]+)\}/g, (all, tok: string) => vals[tok] ?? all);
+    const out = spanish.replace(/\{([a-z0-9]+)\}/g, (all, tok: string, at: number) => {
+      const v = vals[tok];
+      if (v === undefined) return all;
+      // A fallback word in a person's slot is English too: re-write it, capitalised only at the start.
+      const word = (tok === "name" || tok === "name2") ? NAME_WORDS[v.toLowerCase()] : undefined;
+      if (!word) return v;
+      return at === 0 ? word[0].toUpperCase() + word.slice(1) : word;
+    });
+    // "de el comprador" -> "del comprador", "a el" -> "al" (only ever from a re-written fallback word).
+    return out.replace(/\bde el (comprador|vendedor)\b/g, "del $1").replace(/\ba el (comprador|vendedor)\b/g, "al $1");
   }
   return text;
 }

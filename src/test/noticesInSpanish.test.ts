@@ -10,6 +10,8 @@
  * @mutate supabase/functions/_shared/noticeEs.ts |       vals[tok] = tok === "date" ? dateInSpanish(m[i + 1]) : m[i + 1]; |       vals[tok] = m[i + 1];
  * @mutate supabase/functions/_shared/noticeEs.ts |     return { re: new RegExp(`^${body}$`), tokens, spanish }; |     return { re: new RegExp(body), tokens, spanish };
  * @mutate src/lib/nativePush.ts |           toast(say(notification.title) \|\| t("notif.toastNew"), { |           toast(notification.title \|\| t("notif.toastNew"), {
+ * @mutate supabase/functions/_shared/noticeEs.ts |       const word = (tok === "name" \|\| tok === "name2") ? NAME_WORDS[v.toLowerCase()] : undefined; |       const word = undefined as string \| undefined;
+ * @mutate supabase/functions/_shared/noticeEs.ts |   ['{name} said no to your {amount} price on "{q}".', | ['{name} said NO to your {amount} price on "{q}".',
  * @mutate src/hooks/useRealtimePush.ts | showLocalNotification(noticeInSpanish(notification.title), noticeInSpanish(notification.message), notification.link) | showLocalNotification(notification.title, notification.message, notification.link)
  */
 import { readFileSync } from "node:fs";
@@ -43,6 +45,26 @@ describe("F260q: server-written notices in Spanish", () => {
       expect(noticeInSpanish(fill(english, SAMPLE)), english).toBe(want);
       expect(want, english).not.toMatch(/\{[a-z0-9]+\}/);
     }
+  });
+
+  it("b1d's seller notices name the buyer, or a fallback word that is re-written too (lead 11-11)", () => {
+    expect(noticeInSpanish('Ann S. offered $40.00 on "Oak lamp". Accept, decline or send a different price within 48 hours.'))
+      .toBe('Ann S. ofreció $40.00 por "Oak lamp". Acepte, rechace o envíe otro precio en menos de 48 horas.');
+    expect(noticeInSpanish('The buyer said no to your $40.00 price on "Oak lamp".')).toBe('El comprador rechazó su precio de $40.00 por "Oak lamp".');
+    expect(noticeInSpanish('the buyer said no to your $40.00 price on "Oak lamp". Your listing is still up.'))
+      .toBe('El comprador rechazó su precio de $40.00 por "Oak lamp". Su anuncio sigue publicado.');
+    expect(noticeInSpanish('A buyer wants 3 of your items ($60.00 in all). Accept all or pick some within 48 hours.'))
+      .toBe('Un comprador quiere 3 de sus artículos ($60.00 en total). Acepte todos o elija algunos en menos de 48 horas.');
+    expect(noticeInSpanish('"Oak lamp" is held for the buyer at $40.00. They have 24 hours to check out and pay. We\'ll tell you when they pay.'))
+      .toBe('"Oak lamp" está reservado para el comprador por $40.00. Tiene 24 horas para pagar. Le avisaremos cuando pague.');
+    expect(noticeInSpanish('You did not answer the buyer\'s offer on "Oak lamp" within 48 hours, so it closed.'))
+      .toBe('Usted no respondió a la oferta del comprador por "Oak lamp" en 48 horas, así que se cerró.');
+    expect(noticeInSpanish('A former member took back their offer on "Oak lamp".')).toBe('Un exmiembro retiró su oferta por "Oak lamp".');
+    // The literal shapes written before b1d still win over the {name} ones.
+    expect(noticeInSpanish('The buyer took back their offer on "Oak lamp".')).toBe('El comprador retiró su oferta por "Oak lamp".');
+    // The old wording stays a fallback.
+    expect(noticeInSpanish('You got a $40.00 offer on "Oak lamp". Accept, decline or counter within 48 hours.'))
+      .toBe('Recibió una oferta de $40.00 por "Oak lamp". Acepte, rechace o haga una contraoferta en menos de 48 horas.');
   });
 
   it("an unknown notice, or one with extra words, stays as written", () => {

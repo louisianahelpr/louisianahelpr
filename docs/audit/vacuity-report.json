@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-12T00:02:01.490Z",
-  "guards": 3942,
-  "registered": 3941,
+  "generated": "2026-11-12T09:32:42.697Z",
+  "guards": 3977,
+  "registered": 3976,
   "unregistered": [
     "src/lib/shops/preorders.test.ts"
   ],
@@ -40,13 +40,20 @@
       "why": [
         "rows (literal declared in this file) is both input and oracle"
       ]
+    },
+    {
+      "file": "src/test/sellerCardYouGetPaidOn.test.ts",
+      "why": [
+        "lines (literal declared in this file) is both input and oracle"
+      ]
     }
   ],
   "classB_mountWiring": [
     {
       "module": "src/components/declutter/SellTradesRow.tsx",
       "tests": [
-        "src/test/declutterTradesPrompt.test.tsx"
+        "src/test/declutterTradesPrompt.test.tsx",
+        "src/test/sellFormInSpanish.test.tsx"
       ],
       "parents": [
         "src/components/declutter/SellSummaryCard.tsx"
@@ -78,6 +85,15 @@
       ],
       "parents": [
         "src/pages/sponsor/SponsorPage.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/info/legal/LegalTabBar.tsx",
+      "tests": [
+        "src/test/publicPagesInSpanish.test.tsx"
+      ],
+      "parents": [
+        "src/pages/info/Legal.tsx"
       ]
     },
     {

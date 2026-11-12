@@ -8,7 +8,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { fetchAcceptsTrades, setTradeRules, TRADES_TITLE, tradesSettingLine } from "@/lib/declutter/trades";
+import { fetchAcceptsTrades, setTradeRules } from "@/lib/declutter/trades";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 const tradesKey = (itemId: string) => ["declutter", "accepts-trades", itemId] as const;
 
@@ -19,7 +21,7 @@ export function DeclutterTradeRules({ itemId, rowClassName }: { itemId: string; 
   const rules = useMutation({
     mutationFn: (v: boolean) => setTradeRules(itemId, v),
     onSuccess: (_d, v) => {
-      toast(v ? "Trades are on for this listing." : "Trades are off. Open trade offers on it are closed.");
+      toast(v ? t("lp.tr.on") : t("lp.tr.off"));
       qc.setQueryData(tradesKey(itemId), v);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
@@ -28,8 +30,8 @@ export function DeclutterTradeRules({ itemId, rowClassName }: { itemId: string; 
   return (
     <li className={rowClassName} data-trade-rules="">
       <span className="flex-1 min-w-0">
-        <span id={`trades-on-${itemId}`} className="block text-ds-15 font-semibold">{TRADES_TITLE}</span>
-        <span className="block text-ds-13 text-muted-foreground">{tradesSettingLine(on)}</span>
+        <span id={`trades-on-${itemId}`} className="block text-ds-15 font-semibold">{t("lp.ld.tradesTitle")}</span>
+        <span className="block text-ds-13 text-muted-foreground">{on ? t("lp.ld.tradesOn") : t("lp.ld.tradesOff")}</span>
       </span>
       <Switch aria-labelledby={`trades-on-${itemId}`} checked={on} disabled={!state.isSuccess || rules.isPending} onCheckedChange={(v) => rules.mutate(v === true)} />
     </li>

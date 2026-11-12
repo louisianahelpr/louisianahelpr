@@ -20,8 +20,9 @@ const tags = [...src.matchAll(/<InlineTextButton\b[^>]*>[\s\S]*?<\/InlineTextBut
 describe("the offer-rules row's word actions are the shared InlineTextButton (Q2709)", () => {
   it("'Suggest one' and 'Use $X' are InlineTextButtons that keep their busy guard", () => {
     expect(tags.length).toBeGreaterThan(1);
-    const suggestOne = tags.find((t) => t.includes('"Suggest one"'));
-    const useIt = tags.find((t) => /Use \{formatPrice\(suggestion\.floorCents\)\}/.test(t));
+    // F260q: the words read enListingParts (lp.or.suggest, lp.or.use).
+    const suggestOne = tags.find((t) => t.includes('t("lp.or.suggest")'));
+    const useIt = tags.find((t) => /t\("lp\.or\.use", \{ price: formatPrice\(suggestion\.floorCents\) \}\)/.test(t));
     expect(suggestOne, "'Suggest one' is not an InlineTextButton").toBeDefined();
     expect(useIt, "'Use $X' is not an InlineTextButton").toBeDefined();
     expect(suggestOne!).toContain("disabled={suggest.isPending || busy}");

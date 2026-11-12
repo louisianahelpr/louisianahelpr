@@ -38,6 +38,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { dayOffAllowed, dayOffBounds, dayOffLabel } from "@/lib/declutter/daysOff";
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 import { Input } from "@/components/ui/input";
+import "@/lib/i18n/enListingParts";
+import { t } from "@/lib/i18n/language";
 
 const KEY = ["declutter", "my-seller-delivery"] as const;
 const FIRST_WINDOW: DeliveryWindow = { weekday: 6, starts: "09:00", ends: "12:00" };
@@ -283,7 +285,7 @@ export function ItemDeliveryRow({ itemId, rowClassName }: { itemId: string; rowC
   const set = useMutation({
     mutationFn: (deliver: boolean) => setItemSellerDelivery(itemId, deliver),
     onSuccess: (deliver) => {
-      toast(deliver ? "You'll offer delivery for this item." : "No delivery for this item.");
+      toast(deliver ? t("lp.dl.on") : t("lp.dl.off"));
       void qc.invalidateQueries({ queryKey: KEY });
     },
     onError: (err) => toast.error(sellerDeliveryErrorMessage(err)),
@@ -293,8 +295,8 @@ export function ItemDeliveryRow({ itemId, rowClassName }: { itemId: string; rowC
   return (
     <li className={rowClassName}>
       <span className="min-w-0 flex-1" id={`sd-item-${itemId}`}>
-        <span className="block text-sm font-semibold">Deliver this item</span>
-        <span className="block text-xs text-muted-foreground">{deliverable ? "Buyers can choose your delivery" : "Pickup only for this item"}</span>
+        <span className="block text-sm font-semibold">{t("lp.dl.title")}</span>
+        <span className="block text-xs text-muted-foreground">{deliverable ? t("lp.dl.onLine") : t("lp.dl.offLine")}</span>
       </span>
       <Switch aria-labelledby={`sd-item-${itemId}`} checked={deliverable} disabled={set.isPending} onCheckedChange={(v) => set.mutate(v)} />
     </li>

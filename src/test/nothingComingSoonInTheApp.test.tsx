@@ -155,7 +155,8 @@ describe("(c) every soon mark reads the helper", () => {
       e.isDirectory() ? walk(`${dir}/${e.name}`) : /\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name) ? [`${dir}/${e.name}`] : [],
     );
   // Files that draw a soon mark for a section or a disabled quote button.
-  const MARK = /<SoonPill\b|<PreviewPill\b|>\s*Coming soon\s*</;
+  // F260q: a landing mark can read its Spanish from the dictionary: {w("landing.comingSoon", "Coming soon")}.
+  const MARK = /<SoonPill\b|<PreviewPill\b|>\s*Coming soon\s*<|>\s*\{w\("[\w.]+", "Coming soon"\)\}\s*</;
   // Reads the helper, or the `listed` answer it feeds (useSectionTabs / useSectionIsListed).
   const READS = /hideUnopenedInApp\(|\.listed\b|useSectionIsListed\(|isListed\(/;
   // Web-only pages: the marketing landing (the app opens on sign-in, never the landing). Exact both ways.

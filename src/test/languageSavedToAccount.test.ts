@@ -20,12 +20,15 @@ const ROOT = resolve(__dirname, "..", "..");
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
 const MIG_DIR = join(ROOT, "supabase", "migrations");
 
-/** The newest migration that names profiles.language (comments ignored). */
+/**
+ * The newest migration that defines profiles.language's rules: its CHECK or its column grant (comments ignored).
+ * 20261111221745_profile_language_from_signup.sql also names the column (handle_new_user writes it) but sets no rule.
+ */
 function newestLanguageMigration(): string {
   const files = readdirSync(MIG_DIR).filter((f) => f.endsWith(".sql")).sort();
-  const hits = files.filter((f) => /public\.profiles[\s\S]*\blanguage\b/.test(blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8"))) && /\(language\)|language text/.test(readFileSync(join(MIG_DIR, f), "utf8")));
+  const hits = files.filter((f) => /public\.profiles[\s\S]*\blanguage\b/.test(blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8"))) && /profiles_language_check|GRANT UPDATE \(language\)/.test(blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8"))));
   expect(hits.length).toBeGreaterThan(0);
-  return blankSqlComments(readFileSync(join(MIG_DIR, hits.at(-1)!), "utf8"));
+  return blankSqlComments(readFileSync(join(MIG_DIR, hits[hits.length - 1]), "utf8"));
 }
 
 describe("the member's language is saved to the account (F260q)", () => {

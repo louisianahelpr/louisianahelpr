@@ -165,8 +165,9 @@ export function notSortedPile(photoKeys: string[], sortReason: string): BunchIte
   return { ...blankItem(photoKeys), notSorted: true, sortReason };
 }
 
-const PILE_NOT_PLACED = "We couldn't tell which item these belong to.";
-export const PILE_PAGE_CLOSED = "The page closed before these were sorted.";
+/** Why a pile isn't sorted, in the member's language when it is made (the pile is kept on the device in those words). */
+const pileNotPlaced = () => t("lp.bq.pileNotPlaced");
+export const pilePageClosed = () => t("lp.bq.pilePageClosed");
 
 /** The screen's list with a batch's items added: everything not sorted is one pile, first, where the seller sees it. */
 export function addSorted(items: BunchItem[], made: BunchItem[]): BunchItem[] {
@@ -195,7 +196,7 @@ export function itemsFromAnswer(answer: GroupAnswer, batch: BunchPhoto[]): Bunch
     out.push({ ...blankItem(photoKeys), title: it.title, description: it.description, category: it.category, deliverySize: it.deliverySize, conditionStars: it.conditionStars, flagged: it.flagged !== false, price, aiPrice: price || undefined, sizeUnknown: false });
   }
   const unplaced = batch.filter((_, i) => !placed.has(i)).map((p) => p.key);
-  if (unplaced.length > 0) out.push(notSortedPile(unplaced, PILE_NOT_PLACED));
+  if (unplaced.length > 0) out.push(notSortedPile(unplaced, pileNotPlaced()));
   return out;
 }
 
@@ -303,8 +304,8 @@ export async function groupPhotos(
   const giveUp = (part: BunchPhoto[], cleaned: File[], error: unknown): BunchItem[] => {
     failed.push({ photos: part.length, error });
     report(error, { severity: "warning", tags: { source: "declutter.bunch.sort" }, context: { photos: part.length, bytes: cleaned.reduce((n, f) => n + f.size, 0), hidden: typeof document !== "undefined" && document.visibilityState === "hidden" } });
-    const count = part.length === 1 ? "this photo" : `these ${part.length} photos`;
-    return [notSortedPile(part.map((p) => p.key), `We couldn't sort ${count} yet: ${declutterErrorMessage(error)}`)];
+    const why = declutterErrorMessage(error);
+    return [notSortedPile(part.map((p) => p.key), part.length === 1 ? t("lp.bq.couldNot1", { why }) : t("lp.bq.couldNotN", { n: part.length, why }))];
   };
   // The previous batch's small copies, for the check across a boundary.
   let lastCleaned = new Map<string, File>();

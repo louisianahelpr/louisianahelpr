@@ -17,8 +17,11 @@ export function daysBetween(from: string, to: string): number {
   return Math.round((b - a) / 86_400_000);
 }
 
-/** "Saturday, Nov 14" for a YYYY-MM-DD date (read as a calendar day, no time zone shift). */
-export function formatMoveDate(date: string): string {
+/**
+ * "Saturday, Nov 14" for a YYYY-MM-DD date (read as a calendar day, no time zone shift). `spanish` gives "sábado, 14 nov"
+ * for a converted screen; the moving-sale banner's sentence is still English, so its date stays English too.
+ */
+export function formatMoveDate(date: string, spanish = false): string {
   const [y, m, d] = date.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, d)));
+  return new Intl.DateTimeFormat(spanish ? "es-US" : "en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, d)));
 }

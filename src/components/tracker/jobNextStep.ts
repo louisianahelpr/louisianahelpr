@@ -7,12 +7,9 @@
  */
 import type { NextStepValue } from "@/components/ui/NextStep";
 import type { JobProgressState } from "./jobProgressState";
-import { nextLineCode } from "./nextLineCode";
+import { nextLineBy, nextLineCode } from "./nextLineCode";
 import "@/lib/i18n/enNextStep";
 import { getLang, t } from "@/lib/i18n/language";
-
-/** "Confirm you'll be at the job by Wed 9:00 AM" -> the step and "by Wed 9:00 AM". */
-const BY_DAY = /^(.*\S) (by (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b.*)$/;
 
 /** "Mon 6:00 AM" in Louisiana time (the tracker's own format, jobProgressState `when`). */
 function laTime(ms: number): string {
@@ -67,12 +64,13 @@ export function jobNextStep(
     const untilMs = Date.parse(o.offerUntil ?? "");
     return { who: "you", text: other ? t("ns.answerName", { name: other }) : t("ns.answer"), by: Number.isNaN(untilMs) || untilMs <= Date.now() ? null : t("ns.by", { when: laTime(untilMs) }) };
   }
-  const m = BY_DAY.exec(line);
+  // The deadline comes from where the line was made (JobProgressState.nextBy), never read back out of the words.
+  const split = nextLineBy(progress);
   const who = progress.waitingOnYou ? "you" : "them";
   // Q2590 (Jobs audit 1102b row 4): "Next: lexi offered you this job" lost the name's capital; a line that starts
   // with the other person's name keeps it.
   const keepCase = !!other && (line === other || line.startsWith(`${other} `) || line.startsWith(`${other}'`));
-  const v: NextStepValue = m ? { who, text: m[1], by: m[2] } : { who, text: line };
+  const v: NextStepValue = split ? { who, text: split.text, by: split.by } : { who, text: line };
   // Q2600: the line's explanation (a dispute's "who decides and when") is body text under it, never in the bold line.
   if (progress.body) v.body = progress.body;
   return keepCase ? { ...v, keepCase } : v;

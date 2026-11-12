@@ -31,7 +31,7 @@ export type { Stage, StepTone } from "@/components/tracker/jobStepFromWait";
 // file's derivation (B51).
 export { JOB_PROGRESS_DRAWN, JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressSteps";
 import { JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressSteps";
-import type { NextLineId } from "@/components/tracker/nextLineCode";
+import type { NextBy, NextLineId } from "@/components/tracker/nextLineCode";
 
 export type ProgressJob = {
   status: string | null;
@@ -121,6 +121,11 @@ export type JobProgressState = {
    * line, a continue day, a late line) leaves a code that no longer matches, read as none (nextLineCode).
    */
   nextCode?: { id: NextLineId; line: string };
+  /**
+   * THE LINE'S DEADLINE, HANDED BACK SEPARATELY (F260q): "Confirm you'll be at the job" and "by Wed 9:00 AM", for
+   * jobNextStep's "· by" part, so it never splits English words. Paired with the exact `next` (nextLineBy).
+   */
+  nextBy?: NextBy;
 };
 
 /** A state whose line carries its code. */
@@ -130,6 +135,12 @@ const withCode = (p: JobProgressState, id: NextLineId): JobProgressState => ({ .
 const CARD_LINE_CODE: Partial<Record<string, NextLineId>> = { working: "working", offer: "offered_you", confirm_booking: "offered_you" };
 
 const at = (stage: Stage | null, waitingOnYou: boolean, word: string, next: string, held: boolean): JobProgressState => ({ stage, waitingOnYou, tone: "progress", word, next, held });
+
+/** A line with a deadline: `next` is "<text> <by>", and the two parts ride beside it (nextBy). */
+function atBy(stage: Stage | null, waitingOnYou: boolean, word: string, text: string, by: string, held: boolean): JobProgressState {
+  const p = at(stage, waitingOnYou, word, `${text} ${by}`, held);
+  return { ...p, nextBy: { line: p.next, text, by } };
+}
 
 /** Statuses the card's rule knows (every job_status, derived from the exhaustive label record): anything else keeps the line's own answer. */
 const CARD_STATUSES = new Set<string>(Object.keys(JOB_STATUS_LABELS));
@@ -273,12 +284,13 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
     // Owner 11-01 (job 7b1da54b): after photos in, not marked done: the base's line says so, unless the card owes the
     // poster a step first (confirm the arrival) or the Helpr is waiting on one.
     next: helprLateBy ? `You're ${helprLateBy} late. Tap I'm on my way or message ${o.otherFirst || "them"}` : helprBothIn ? base.next : ((/after photos/.test(base.next) && bar.stage === 6 && bar.waitingOnYou === (o.viewer !== "poster")) || posterLate || noApplicantsYet || ((sameStep || offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail),
-  }, card.line.detail, fromCard), job, card.line.id, o.workUnderway);
+  }, card.line.detail, fromCard, card.line.detailBy), job, card.line.id, o.workUnderway);
 }
 
 /** The card's line keeps its code when the line shown IS the card's (a base line keeps its own code, matched by its words). */
-function withCardCode(p: JobProgressState, cardLine: string, id: NextLineId | undefined): JobProgressState {
-  return id && p.next === cardLine ? { ...p, nextCode: { id, line: cardLine } } : p;
+function withCardCode(p: JobProgressState, cardLine: string, id: NextLineId | undefined, by?: NextBy): JobProgressState {
+  const coded = id && p.next === cardLine ? { ...p, nextCode: { id, line: cardLine } } : p;
+  return by && by.line === p.next ? { ...coded, nextBy: by } : coded;
 }
 
 /**
@@ -369,8 +381,8 @@ function revisionLine(job: ProgressJob, poster: boolean, other: string, held: bo
   if (workIsBackWithHelper(job)) {
     const dueMs = Date.parse(job.revision_deadline ?? "");
     const due = Number.isNaN(dueMs) ? null : dueMs;
-    if (poster) return at(6, false, "Working", due === null ? `Waiting on ${other}'s fix` : `Waiting on ${other}'s fix by ${when(due)}`, held);
-    return at(6, true, "Working", due === null ? "Fix it and mark it done" : `Fix it and mark it done by ${when(dueMs)}`, held);
+    const text = poster ? `Waiting on ${other}'s fix` : "Fix it and mark it done";
+    return due === null ? at(6, !poster, "Working", text, held) : atBy(6, !poster, "Working", text, `by ${when(due)}`, held);
   }
   const checkMs = Date.parse(job.revision_acceptance_deadline ?? "");
   if (poster) return at(7, true, "Done", `${other} sent the fix. Check it and approve`, held);
@@ -533,9 +545,11 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
       // what happens next only where the repost sweep keeps it (confirmWindowPassedLine).
       const helprLate = !helprIn && !Number.isNaN(due) && now >= due;
       if (poster) {
-        return at(3, mine, "Confirmed", !posterIn ? `Confirm the job is still on by ${posterBy}` : helprLate ? confirmWindowPassedLine(other, job) : `Waiting on ${otherLow} to confirm by ${when(due)}`, held);
+        if (!posterIn) return atBy(3, mine, "Confirmed", "Confirm the job is still on", `by ${posterBy}`, held);
+        return helprLate ? at(3, mine, "Confirmed", confirmWindowPassedLine(other, job), held) : atBy(3, mine, "Confirmed", `Waiting on ${otherLow} to confirm`, `by ${when(due)}`, held);
       }
-      return at(3, mine, "Confirmed", !helprIn ? (helprLate ? confirmWindowPassedLine(null, job) : `Confirm you'll be at the job by ${when(due)}`) : `Waiting on ${otherLow} to confirm by ${posterBy}`, held);
+      if (!helprIn) return helprLate ? at(3, mine, "Confirmed", confirmWindowPassedLine(null, job), held) : atBy(3, mine, "Confirmed", "Confirm you'll be at the job", `by ${when(due)}`, held);
+      return atBy(3, mine, "Confirmed", `Waiting on ${otherLow} to confirm`, `by ${posterBy}`, held);
     }
   }
   // Both confirmed: setting out is the Helpr's move. AUD31-76: once the start has passed (or auto_start_due_jobs has

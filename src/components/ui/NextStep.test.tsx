@@ -1,7 +1,7 @@
 /**
  * The shared next-step line (owner 2026-11-01 12:05 PM) and the job's mapping onto it (jobNextStep).
  * @mutate src/components/ui/NextStep.tsx |   const lead = value.who === "you" ? t("next.lead", { step: value.keepCase ? value.text : lowerFirst(value.text) }) : value.text; |   const lead = value.text;
- * @mutate src/components/tracker/jobNextStep.ts |   const v: NextStepValue = m ? { who, text: m[1], by: m[2] } : { who, text: line }; |   const v: NextStepValue = { who, text: line };
+ * @mutate src/components/tracker/jobNextStep.ts |   const v: NextStepValue = split ? { who, text: split.text, by: split.by } : { who, text: line }; |   const v: NextStepValue = { who, text: line };
  * @mutate src/components/tracker/jobNextStep.ts |   return keepCase ? { ...v, keepCase } : v; |   return v;
  * @mutate src/components/ui/NextStep.tsx | { step: value.keepCase ? value.text : lowerFirst(value.text) } | { step: lowerFirst(value.text) }
  * @mutate src/lib/nextStepWords.ts | { step: v.keepCase ? v.text : lowerFirst(v.text) } | { step: lowerFirst(v.text) }
@@ -29,8 +29,15 @@ describe("NextStep", () => {
 
 describe("jobNextStep", () => {
   it("splits the deadline out of the tracker's line", () => {
-    expect(jobNextStep(p({ waitingOnYou: true, next: "Confirm you'll be at the job by Wed 9:00 AM" }), { side: "helpr" }))
+    const next = "Confirm you'll be at the job by Wed 9:00 AM";
+    expect(jobNextStep(p({ waitingOnYou: true, next, nextBy: { line: next, text: "Confirm you'll be at the job", by: "by Wed 9:00 AM" } }), { side: "helpr" }))
       .toEqual({ who: "you", text: "Confirm you'll be at the job", by: "by Wed 9:00 AM" });
+    // F260q: the deadline is handed back where the line is made, never read out of the words (any language).
+    expect(jobNextStep(p({ waitingOnYou: true, next: "Confirme antes del mié 9:00 a. m.", nextBy: { line: "Confirme antes del mié 9:00 a. m.", text: "Confirme", by: "antes del mié 9:00 a. m." } }), { side: "helpr" }))
+      .toEqual({ who: "you", text: "Confirme", by: "antes del mié 9:00 a. m." });
+    // A line replaced after it was made keeps no stale deadline.
+    expect(jobNextStep(p({ waitingOnYou: true, next: "Something else by Wed 9:00 AM", nextBy: { line: next, text: "Confirm you'll be at the job", by: "by Wed 9:00 AM" } }), { side: "helpr" }))
+      .toEqual({ who: "you", text: "Something else by Wed 9:00 AM" });
   });
   it("applicants waiting: 'Next: choose a Helpr · 2 applied'", () => {
     const v = jobNextStep(p({ stage: 0, waitingOnYou: true, next: "Pick your Helpr" }), { side: "poster", pendingApplicants: 2 });

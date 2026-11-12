@@ -580,6 +580,8 @@ export const SHOPS_RPC_ERROR_COPY = {
     problem_open: SC.problem_open,
     // A download's 'buyer' finish is refused first (digital_no_pickup), so the 72-hour check never answers here.
     too_soon: SC.digital_no_pickup,
+    // S002 (20261112073633): "I got it" waits for the ready day, a ready mark or the shop's handover.
+    not_ready_yet: SC.not_ready_yet,
   },
   // M3 (20261019071055): what a buyer's cancel would do now (read only).
   shops_order_cancel_quote: {

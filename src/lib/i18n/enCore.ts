@@ -56,4 +56,6 @@ export const enCore = {
   "soon.full": "Coming soon",
   // The shared next-step line (nextStepWords): every screen with a NextStep shows it.
   "next.lead": "Next: {step}",
+  // The shared confirm sheet's default way out (DeclutterConfirmSheet), on every Declutter screen.
+  "core.notNow": "Not now",
 } as const;

@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 497,
+      "literal": 495,
       "template": 107,
-      "dynamic": 679,
+      "dynamic": 681,
       "jsx": 0
     }
   },
@@ -4814,7 +4814,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 126,
+      "line": 129,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4824,7 +4824,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 129,
+      "line": 132,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4834,17 +4834,17 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 233,
+      "line": 237,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Picked. We've told them."
+        "form": "dynamic",
+        "text": "t(\"free.picked\")"
       },
       "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 236,
+      "line": 240,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4854,17 +4854,17 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 383,
+      "line": 391,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "It's set. Next: choose your pickup time."
+        "form": "dynamic",
+        "text": "t(\"free.setNext\")"
       },
       "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 389,
+      "line": 397,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6502,19 +6502,19 @@
     },
     {
       "file": "src/components/declutter/FreeAskSheet.tsx",
-      "line": 76,
+      "line": 87,
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "change ? \"Time changed. The giver sees your new time.\" : `Asked. ${giverFirstName} picks who gets it, and we'll tell you.`",
+        "text": "change ? t(\"fask.changed\") : t(\"fask.asked\", { name: giverFirstName })",
         "branches": [
           {
-            "form": "literal",
-            "text": "Time changed. The giver sees your new time."
+            "form": "dynamic",
+            "text": "t(\"fask.changed\")"
           },
           {
-            "form": "template",
-            "text": "Asked. ${giverFirstName} picks who gets it, and we'll tell you."
+            "form": "dynamic",
+            "text": "t(\"fask.asked\", { name: giverFirstName })"
           }
         ]
       },
@@ -6522,7 +6522,7 @@
     },
     {
       "file": "src/components/declutter/FreeAskSheet.tsx",
-      "line": 80,
+      "line": 91,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

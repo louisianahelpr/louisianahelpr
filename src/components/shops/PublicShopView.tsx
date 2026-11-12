@@ -38,7 +38,8 @@ function ShopMeta({ shop, id }: { shop: PublicShop | PausedPublicShop | null | u
 function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolean }) {
   const back = encodeURIComponent(`/shops/${shop.id}`);
   return (
-    <div className="space-y-4 pb-8">
+    // S2-039 (Shops audit 2): at 1440 the page ran edge to edge (a 1,358px sign-up bar); it keeps a readable width.
+    <div className="mx-auto w-full max-w-5xl space-y-4 pb-8" data-public-shop-body="">
       <ShopHero
         name={shop.name}
         categoryLabel={shop.category_label ?? "Local shop"}
@@ -67,13 +68,14 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
               Ordering from shops opens to everyone soon.
             </p>
           ) : (
-            <div className="w-full space-y-2.5">
-              <Button asChild className="btn-grad-primary w-full rounded-full">
+            // S2-039: sized like other primaries from sm up (not a full-width bar); the text link has a 44px tap area.
+            <div className="w-full space-y-1 sm:w-auto">
+              <Button asChild className="btn-grad-primary min-h-11 w-full rounded-full sm:w-auto sm:px-8">
                 <Link to={`/signup?redirect=${back}`}>Sign up to order or message</Link>
               </Button>
               <p className="text-center text-sm text-muted-foreground">
                 Already a member?{" "}
-                <Link className="link-standard font-semibold" to={`/login?redirect=${back}`}>
+                <Link className="link-standard inline-flex min-h-11 items-center px-1 font-semibold" to={`/login?redirect=${back}`}>
                   Sign in
                 </Link>
               </p>
@@ -120,7 +122,8 @@ export default function PublicShopView() {
   // it is a link to no shop, so it gets "isn't available", not a retry.
   const shop = useQuery({ queryKey: ["shops", "public", id], queryFn: () => fetchPublicShop(id), enabled: isShopId(id) });
   return (
-    <AppPage title={shop.data?.name ?? "Shop"} backTo={user ? "/home" : "/"}>
+    // S2-039: the header says "Shop"; the card under it names the shop once (as the member page, S029).
+    <AppPage title="Shop" backTo={user ? "/home" : "/"}>
       <ShopMeta shop={shop.data} id={id} />
       {!isShopId(id) ? (
         <ShopUnavailable />

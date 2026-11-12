@@ -21,7 +21,7 @@ export function ShopReportShop({ shopId, signedIn = true }: { shopId: string; si
     return (
       <p className="pt-2 text-center text-sm text-muted-foreground" data-report-shop="">
         Something wrong with this shop?{" "}
-        <Link className="link-standard font-semibold" to={`/login?redirect=${back}`}>Sign in to report it</Link>
+        <Link className="link-standard inline-flex min-h-11 items-center px-1 font-semibold" to={`/login?redirect=${back}`}>Sign in to report it</Link>
       </p>
     );
   }

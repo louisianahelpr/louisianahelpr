@@ -31,11 +31,11 @@ export default function ShopFaqs({ shopId }: { shopId: string }) {
         {list.map((f, i) => (
           <li key={i}>
             <details className="group py-2">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-ds-13 font-semibold [&::-webkit-details-marker]:hidden">
                 <span className="[overflow-wrap:anywhere]">{f.question}</span>
                 <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
               </summary>
-              <p className="pb-1 text-sm text-muted-foreground whitespace-pre-line [overflow-wrap:anywhere]">{f.answer}</p>
+              <p className="pb-1 text-ds-13 text-muted-foreground whitespace-pre-line [overflow-wrap:anywhere]">{f.answer}</p>
             </details>
           </li>
         ))}

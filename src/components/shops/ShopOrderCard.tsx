@@ -36,19 +36,19 @@ function PickupAddress({ orderId }: { orderId: string }) {
     queryFn: () => fetchOrderPickupAddress(orderId),
     staleTime: 5 * 60_000,
   });
-  if (q.isLoading) return <p className="text-sm text-muted-foreground">Loading the pickup address…</p>;
+  if (q.isLoading) return <p className="text-ds-13 text-muted-foreground">Loading the pickup address…</p>;
   if (q.isError) {
     return (
-      <p className="text-sm">
+      <p className="text-ds-13">
         We couldn't load the pickup address.{" "}
         <InlineTextButton className="underline" onClick={() => void q.refetch()}>Try again</InlineTextButton>
       </p>
     );
   }
   const a = q.data;
-  if (!a) return <p className="text-sm text-muted-foreground">The pickup address isn't available right now. Refresh the page in a minute.</p>;
+  if (!a) return <p className="text-ds-13 text-muted-foreground">The pickup address isn't available right now. Refresh the page in a minute.</p>;
   return (
-    <div className="flex items-start gap-2 rounded-xl bg-muted/60 p-3 text-sm" data-testid="shop-order-pickup-address">
+    <div className="flex items-start gap-2 rounded-xl bg-muted/60 p-3 text-ds-13" data-testid="shop-order-pickup-address">
       <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
       <p className="min-w-0 [overflow-wrap:anywhere]">
         <span className="font-semibold">Pick up at</span>
@@ -71,10 +71,10 @@ function ServiceAddress({ orderId }: { orderId: string }) {
     queryFn: () => fetchOrderServiceAddress(orderId),
     staleTime: 5 * 60_000,
   });
-  if (q.isLoading) return <p className="text-sm text-muted-foreground">Loading the work address…</p>;
+  if (q.isLoading) return <p className="text-ds-13 text-muted-foreground">Loading the work address…</p>;
   if (q.isError) {
     return (
-      <p className="text-sm">
+      <p className="text-ds-13">
         We couldn't load the work address.{" "}
         <InlineTextButton className="underline" onClick={() => void q.refetch()}>Try again</InlineTextButton>
       </p>
@@ -83,7 +83,7 @@ function ServiceAddress({ orderId }: { orderId: string }) {
   const a = q.data;
   if (!a) return null;
   return (
-    <div className="flex items-start gap-2 rounded-xl bg-muted/60 p-3 text-sm" data-testid="shop-order-service-address">
+    <div className="flex items-start gap-2 rounded-xl bg-muted/60 p-3 text-ds-13" data-testid="shop-order-service-address">
       <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
       <p className="min-w-0 [overflow-wrap:anywhere]">
         <span className="font-semibold">Work done at</span>
@@ -102,10 +102,10 @@ function DeliveryAddress({ orderId, side }: { orderId: string; side: "buyer" | "
     queryFn: () => fetchOrderDeliveryAddress(orderId),
     staleTime: 5 * 60_000,
   });
-  if (q.isLoading) return <p className="text-sm text-muted-foreground">Loading the delivery address…</p>;
+  if (q.isLoading) return <p className="text-ds-13 text-muted-foreground">Loading the delivery address…</p>;
   if (q.isError) {
     return (
-      <p className="text-sm">
+      <p className="text-ds-13">
         We couldn't load the delivery address.{" "}
         <InlineTextButton onClick={() => void q.refetch()} className="underline">Try again</InlineTextButton>
       </p>
@@ -113,7 +113,7 @@ function DeliveryAddress({ orderId, side }: { orderId: string; side: "buyer" | "
   }
   if (!q.data) return null;
   return (
-    <div className="flex items-start gap-2 rounded-xl bg-muted/60 p-3 text-sm" data-testid="shop-order-delivery-address">
+    <div className="flex items-start gap-2 rounded-xl bg-muted/60 p-3 text-ds-13" data-testid="shop-order-delivery-address">
       <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
       <p className="min-w-0 [overflow-wrap:anywhere]">
         <span className="font-semibold">{side === "shop" ? "Deliver to" : "Delivering to"}</span>
@@ -150,7 +150,7 @@ function DepositRest({ order, side }: { order: ShopOrder; side: "buyer" | "shop"
   // never added up to its own price. The shop's box says the halves in words; its price is the card's own line.
   if (side === "shop") {
     return (
-      <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-sm" data-testid="shop-order-deposit">
+      <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-ds-13" data-testid="shop-order-deposit">
         <p>
           Half was charged to the buyer&apos;s card when you accepted.{" "}
           {paid
@@ -163,7 +163,7 @@ function DepositRest({ order, side }: { order: ShopOrder; side: "buyer" | "shop"
     );
   }
   return (
-    <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-sm" data-testid="shop-order-deposit">
+    <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-ds-13" data-testid="shop-order-deposit">
       <p>
         {side === "buyer" ? "Paid when the shop accepted" : "The buyer paid when you accepted"}: {formatCents(order.deposit_cents ?? 0)}.{" "}
         {paid
@@ -216,24 +216,24 @@ export function ShopOrderCard({
     <li className="space-y-2 rounded-2xl border border-border bg-card p-4" data-testid="shop-order-card">
       <div className="flex items-start justify-between gap-2">
         <p className="min-w-0 font-semibold [overflow-wrap:anywhere]">{heading}</p>
-        <p className="shrink-0 text-sm font-semibold">{formatCents(side === "buyer" ? buyerPaidCents(order) : shopGets)}</p>
+        <p className="shrink-0 text-ds-13 font-semibold">{formatCents(side === "buyer" ? buyerPaidCents(order) : shopGets)}</p>
       </div>
-      <p className="text-xs text-muted-foreground">{orderStatusLabel(order, side)}</p>
-      <p className="text-sm">{order.preorder_item_id ? "Preorder, ready by" : "Ready"} {readyDateText(order.ready_date)}</p>
+      <p className="text-ds-11 text-muted-foreground">{orderStatusLabel(order, side)}</p>
+      <p className="text-ds-13">{order.preorder_item_id ? "Preorder, ready by" : "Ready"} {readyDateText(order.ready_date)}</p>
       {order.preorder_item_id && order.preorder_moved_at && order.status === "accepted" && (
-        <p className="text-xs font-semibold" data-testid="shop-preorder-moved">
+        <p className="text-ds-11 font-semibold" data-testid="shop-preorder-moved">
           {side === "buyer" ? "The shop moved the date. If it doesn't work for you, cancel for a full refund." : "You moved this date. The buyer can cancel for a full refund."}
         </p>
       )}
-      <ul className="text-sm text-muted-foreground">
+      <ul className="text-ds-13 text-muted-foreground">
         {order.shop_order_lines.map((l) => (
           <li key={l.id} className="[overflow-wrap:anywhere]">
             {l.quantity} × {l.title} ({formatCents(l.line_cents)})
           </li>
         ))}
       </ul>
-      {order.note && <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">Note: {order.note}</p>}
-      {order.decline_reason && <p className="text-sm [overflow-wrap:anywhere]">Shop's reason: {order.decline_reason}</p>}
+      {order.note && <p className="text-ds-13 whitespace-pre-line [overflow-wrap:anywhere]">Note: {order.note}</p>}
+      {order.decline_reason && <p className="text-ds-13 [overflow-wrap:anywhere]">Shop's reason: {order.decline_reason}</p>}
       {side === "buyer" && !delivered && !byHelpr && !atBuyer && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />}
       {order.shop_order_lines.some((l) => l.at_buyer) && (side === "buyer" || SERVICE_VISIBLE_TO_SHOP.has(order.status)) && (
         <ServiceAddress orderId={order.id} />
@@ -241,7 +241,7 @@ export function ShopOrderCard({
       {delivered && (side === "buyer" || order.status === "accepted") && <DeliveryAddress orderId={order.id} side={side} />}
       {byHelpr && side === "buyer" && <DeliveryAddress orderId={order.id} side={side} />}
       {side === "buyer" ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-ds-11 text-muted-foreground">
           {/* S010: no fee name or number (10-25 rule); S036: the one-time setup fee the card carried is its own part. */}
           Items {formatCents(order.items_cents)}
           {delivered ? ` + delivery ${deliveryCents > 0 ? formatCents(deliveryCents) : "(free)"}` : ""}
@@ -260,7 +260,7 @@ export function ShopOrderCard({
         // S037 (Shops audit 11-12, copy only): "You get the item price in full" promised an amount that a card-cost debt
         // or the first-payout setup fee can lower. The line says the shop's own price; what is paid out (the payout's
         // own numbers, owner 11-11 F360b) needs the payout read on this card (money lane).
-        <p className="text-xs text-muted-foreground" data-testid="shop-order-your-price">
+        <p className="text-ds-11 text-muted-foreground" data-testid="shop-order-your-price">
           {delivered && deliveryCents > 0
             ? `Your price plus what the buyer paid for delivery: ${formatCents(shopGets)}. You deliver this order.`
             : delivered
@@ -290,10 +290,10 @@ function DigitalOrderCard({ order, heading, side }: { order: ShopOrder; heading:
     <li className="space-y-2 rounded-2xl border border-border bg-card p-4" data-testid="shop-order-card">
       <div className="flex items-start justify-between gap-2">
         <p className="min-w-0 font-semibold [overflow-wrap:anywhere]">{heading}</p>
-        <p className="shrink-0 text-sm font-semibold">{formatCents(side === "buyer" ? buyerPaidCents(order) : order.items_cents)}</p>
+        <p className="shrink-0 text-ds-13 font-semibold">{formatCents(side === "buyer" ? buyerPaidCents(order) : order.items_cents)}</p>
       </div>
-      <p className="text-xs text-muted-foreground">{orderStatusLabel(order, side)}</p>
-      <ul className="text-sm text-muted-foreground">
+      <p className="text-ds-11 text-muted-foreground">{orderStatusLabel(order, side)}</p>
+      <ul className="text-ds-13 text-muted-foreground">
         {order.shop_order_lines.map((l) => (
           <li key={l.id} className="[overflow-wrap:anywhere]">{l.title} (download, {formatCents(l.line_cents)})</li>
         ))}
@@ -336,7 +336,7 @@ function HelprPickup({ orderId }: { orderId: string }) {
   }, [opensAt, now]);
   if (task.isError || view.isError) {
     return (
-      <p className="text-sm">
+      <p className="text-ds-13">
         We couldn't load the Helpr's pickup time.{" "}
         <InlineTextButton className="underline" onClick={() => { void task.refetch(); if (taskId) void view.refetch(); }}>Try again</InlineTextButton>
       </p>
@@ -344,12 +344,12 @@ function HelprPickup({ orderId }: { orderId: string }) {
   }
   const v = view.data;
   if (!taskId || !v) return null;
-  if (v.status === "open") return <p className="text-sm" data-testid="shop-helpr-pickup">No Helpr has taken this delivery yet.</p>;
+  if (v.status === "open") return <p className="text-ds-13" data-testid="shop-helpr-pickup">No Helpr has taken this delivery yet.</p>;
   if (!slot) return null;
   const canReport = opensAt !== null && now >= opensAt && !v.problem_open && !v.handed_over_at;
   return (
     <>
-      <p className="text-sm" data-testid="shop-helpr-pickup">{v.helpr_first_name ?? "Your Helpr"} picks it up {pickupWhen(slot)}.</p>
+      <p className="text-ds-13" data-testid="shop-helpr-pickup">{v.helpr_first_name ?? "Your Helpr"} picks it up {pickupWhen(slot)}.</p>
       {canReport && <HelprNoShowButton orderId={orderId} />}
     </>
   );
@@ -379,7 +379,7 @@ function HelprNoShowButton({ orderId }: { orderId: string }) {
   }
   return (
     <div className="space-y-2 rounded-xl bg-muted/60 p-3" role="group" aria-label="The Helpr didn't come">
-      <p className="text-sm">Tell us the Helpr didn't come for the pickup? They get 24 hours to answer.</p>
+      <p className="text-ds-13">Tell us the Helpr didn't come for the pickup? They get 24 hours to answer.</p>
       <div className="flex gap-2">
         <Button type="button" size="sm" variant="outline" disabled={report.isPending} onClick={() => report.mutate()}>
           {report.isPending ? "Sending…" : "Yes, tell them"}

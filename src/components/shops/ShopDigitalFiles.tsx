@@ -58,15 +58,15 @@ export default function ShopDigitalFiles({ itemId }: { itemId: string }) {
 
   return (
     <section className="space-y-2" aria-labelledby="item-digital-files" data-testid="shop-digital-files">
-      <h4 id="item-digital-files" className="text-sm font-medium">Files buyers download (1 to {DIGITAL_MAX_FILES})</h4>
-      <p className="text-xs text-muted-foreground">
+      <h4 id="item-digital-files" className="text-ds-13 font-medium">Files buyers download (1 to {DIGITAL_MAX_FILES})</h4>
+      <p className="text-ds-11 text-muted-foreground">
         PDF, ZIP, PNG or JPG, up to 100 MB each. Buyers can download them as soon as they pay, for as long as they have
         an account. Your photos above are the preview; the files stay private.
       </p>
       {files.isError && (
         <div role="alert" className="space-y-1">
           <ReportErrorScreen source="ShopDigitalFiles.list" title="We couldn't load your files." />
-          <p className="text-sm text-destructive-ink">We couldn't load your files.</p>
+          <p className="text-ds-13 text-destructive-ink">We couldn't load your files.</p>
           <Button type="button" size="sm" variant="outline" onClick={() => void files.refetch()}>Try again</Button>
         </div>
       )}
@@ -75,17 +75,17 @@ export default function ShopDigitalFiles({ itemId }: { itemId: string }) {
           {list.map((f) => (
             <li key={f.id} className="flex flex-wrap items-center gap-2 rounded-xl border border-border px-3 py-2">
               <FileDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-              <span className="min-w-0 flex-1 truncate text-sm">{f.file_name}</span>
+              <span className="min-w-0 flex-1 truncate text-ds-13">{f.file_name}</span>
               {f.checked_at ? (
                 <>
-                  <span className="text-xs text-muted-foreground">{fileSizeLabel(f.byte_size)}</span>
+                  <span className="text-ds-11 text-muted-foreground">{fileSizeLabel(f.byte_size)}</span>
                   <Button type="button" size="sm" variant="ghost" disabled={open.isPending} onClick={() => open.mutate(f.id)}>
                     Open
                   </Button>
                 </>
               ) : (
                 <>
-                  <span className="text-xs text-muted-foreground" data-testid="shop-digital-file-waiting">Still checking</span>
+                  <span className="text-ds-11 text-muted-foreground" data-testid="shop-digital-file-waiting">Still checking</span>
                   <Button type="button" size="sm" variant="ghost" disabled={busy} aria-label={`Try ${f.file_name} again`} onClick={() => retry.mutate(f.id)}>
                     Try again
                   </Button>
@@ -110,7 +110,7 @@ export default function ShopDigitalFiles({ itemId }: { itemId: string }) {
               if (f) add.mutate(f);
             }}
           />
-          <span className="inline-flex h-11 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm" aria-hidden>
+          <span className="inline-flex h-11 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-ds-13" aria-hidden>
             {add.isPending ? "Uploading…" : "Add a file"}
           </span>
         </label>

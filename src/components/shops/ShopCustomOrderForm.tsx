@@ -52,11 +52,11 @@ export default function ShopCustomOrderForm({ request, onDone }: { request: Cust
   const setupFeeKnown = useFirstPayoutFeeKnown();
   const id = (s: string) => `custom-order-${request.id}-${s}`;
 
-  if (terms.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading the shop's days…</p>;
+  if (terms.isLoading) return <p className="text-ds-13 text-muted-foreground" role="status">Loading the shop's days…</p>;
   if (terms.isError || !t) {
     return (
       <div className="space-y-2" role="alert">
-        <p className="text-sm">{shopsErrorMessage(terms.error)}</p>
+        <p className="text-ds-13">{shopsErrorMessage(terms.error)}</p>
         <Button type="button" size="sm" variant="outline" disabled={terms.isFetching} onClick={() => void terms.refetch()}>Try again</Button>
       </div>
     );
@@ -101,7 +101,7 @@ export default function ShopCustomOrderForm({ request, onDone }: { request: Cust
           aria-invalid={dateProblem !== null}
           aria-describedby={id("date-help")}
         />
-        <p id={id("date-help")} className="text-xs text-muted-foreground">
+        <p id={id("date-help")} className="text-ds-11 text-muted-foreground">
           {dateProblem === "too_soon"
             ? "Pick a day from tomorrow on."
             : dateProblem === "closed"
@@ -113,17 +113,17 @@ export default function ShopCustomOrderForm({ request, onDone }: { request: Cust
                   : "Greyed-out days are closed or full."}
         </p>
       </div>
-      <dl className="space-y-1 text-sm">
+      <dl className="space-y-1 text-ds-13">
         <div className="flex justify-between gap-2"><dt>Price</dt><dd>{formatCents(price)}</dd></div>
         {setupFeeCents > 0 ? <div className="flex justify-between gap-2"><dt>One-time account setup fee</dt><dd data-testid="shop-custom-order-setup-fee">{formatCents(setupFeeCents)}</dd></div> : null}
         <div className="flex justify-between gap-2 font-semibold"><dt>You pay before tax</dt><dd data-testid="shop-custom-order-total">{formatCents(price + buyerFeeCents(price) + setupFeeCents)}</dd></div>
-        <p className="text-xs text-muted-foreground">{`${SHOP_SERVICE_FEE_INCLUDED} ${setupFeeKnown ? "Any sales tax is added on the payment page." : "Any sales tax and one-time setup fee are added on the payment page."}`}</p>
+        <p className="text-ds-11 text-muted-foreground">{`${SHOP_SERVICE_FEE_INCLUDED} ${setupFeeKnown ? "Any sales tax is added on the payment page." : "Any sales tax and one-time setup fee are added on the payment page."}`}</p>
       </dl>
       <div className="space-y-1">
-        <p className="text-sm font-semibold">{`Cancel rule: ${policy.label}`}</p>
-        <p className="text-xs text-muted-foreground">{policy.detail}</p>
+        <p className="text-ds-13 font-semibold">{`Cancel rule: ${policy.label}`}</p>
+        <p className="text-ds-11 text-muted-foreground">{policy.detail}</p>
       </div>
-      <p className="text-xs text-muted-foreground">{CUSTOM_ORDER_PAY_TEXT[request.payment_plan]}</p>
+      <p className="text-ds-11 text-muted-foreground">{CUSTOM_ORDER_PAY_TEXT[request.payment_plan]}</p>
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" disabled={opening} onClick={onDone}>Cancel</Button>
         <Button type="button" className="btn-grad-primary" disabled={!canSend} onClick={() => void send()}>

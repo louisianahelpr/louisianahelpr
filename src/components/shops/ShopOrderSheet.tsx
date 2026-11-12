@@ -108,7 +108,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   if (items.isLoading || terms.isLoading || options.isLoading || preorders.isLoading) {
     return (
       <section className="space-y-2" aria-labelledby={headId} role="status" aria-label="Loading ordering">
-        <h2 id={headId} className="text-sm font-semibold">Order</h2>
+        <h2 id={headId} className="text-ds-13 font-semibold">Order</h2>
         <Skeleton className="h-32 w-full rounded-2xl" />
       </section>
     );
@@ -116,9 +116,9 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   if (terms.isError || !t || options.isError || preorders.isError) {
     return (
       <section className="space-y-2" aria-labelledby={headId}>
-        <h2 id={headId} className="text-sm font-semibold">Order</h2>
+        <h2 id={headId} className="text-ds-13 font-semibold">Order</h2>
         <div role="alert" className="space-y-2">
-          <p className="text-sm">{shopsErrorMessage(terms.error ?? options.error ?? preorders.error)}</p>
+          <p className="text-ds-13">{shopsErrorMessage(terms.error ?? options.error ?? preorders.error)}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => { void terms.refetch(); void options.refetch(); void preorders.refetch(); }} disabled={terms.isFetching || options.isFetching || preorders.isFetching}>
             Try again
           </Button>
@@ -211,9 +211,9 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   return (
     <section id="shop-order-sheet" className="scroll-mt-20 space-y-4 rounded-2xl border border-border bg-card p-4" aria-labelledby={headId}>
       <div className="space-y-1">
-        <h2 id={headId} className="text-sm font-semibold">Order</h2>
-        {preorder ? <p className="text-xs text-muted-foreground">This is a preorder: you pay in full now.</p> : (
-          <p className="text-xs text-muted-foreground">{ORDER_HOLD_TEXT}</p>
+        <h2 id={headId} className="text-ds-13 font-semibold">Order</h2>
+        {preorder ? <p className="text-ds-11 text-muted-foreground">This is a preorder: you pay in full now.</p> : (
+          <p className="text-ds-11 text-muted-foreground">{ORDER_HOLD_TEXT}</p>
         )}
       </div>
       {/* Q2110: a buyer with Shops strikes sees them here, and at the strike limit the day Shops opens again. */}
@@ -234,9 +234,9 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
           return (
             <li key={i.id} className="flex items-center justify-between gap-3" data-order-item={i.id}>
               <div className="min-w-0">
-                <p className="text-sm font-semibold [overflow-wrap:anywhere]">{i.title}</p>
-                <p className="text-xs text-muted-foreground">{formatItemPrice(i.price_cents)} each{pre ? ` · ${preorderLabel(pre)}` : ""}</p>
-                {locked && <p className="text-xs text-muted-foreground">{pre ? "Preorders are ordered on their own." : "Order this separately from your preorder."}</p>}
+                <p className="text-ds-13 font-semibold [overflow-wrap:anywhere]">{i.title}</p>
+                <p className="text-ds-11 text-muted-foreground">{formatItemPrice(i.price_cents)} each{pre ? ` · ${preorderLabel(pre)}` : ""}</p>
+                {locked && <p className="text-ds-11 text-muted-foreground">{pre ? "Preorders are ordered on their own." : "Order this separately from your preorder."}</p>}
               </div>
               <QuantityStepper label={i.title} max={locked ? 0 : pre ? preorderMax(pre) : maxFor(i)} value={qty[i.id] ?? 0}
                 onChange={(n) => setQty((q) => ({ ...q, [i.id]: n }))} />
@@ -258,7 +258,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
           aria-invalid={dateProblem !== null}
           aria-describedby="shop-order-date-help"
         />
-        <p id="shop-order-date-help" className="text-xs text-muted-foreground">
+        <p id="shop-order-date-help" className="text-ds-11 text-muted-foreground">
           {dateProblem === "too_soon"
             ? "That's too soon for what you picked. Pick a later day."
             : dateProblem === "closed"
@@ -274,9 +274,9 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
 
       {atHome && (
         <fieldset className="space-y-2" data-testid="shop-order-service-address">
-          <legend className="text-sm font-semibold">Where the work will be done</legend>
+          <legend className="text-ds-13 font-semibold">Where the work will be done</legend>
           {atHomeMixed && (
-            <p className="text-xs text-destructive-ink">Work done at your place is ordered on its own. Order the other items separately.</p>
+            <p className="text-ds-11 text-destructive-ink">Work done at your place is ordered on its own. Order the other items separately.</p>
           )}
           <div className="space-y-1">
             <Label htmlFor="shop-order-svc-line1">Street address</Label>
@@ -295,7 +295,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
                 onChange={(e) => setSvc((a) => ({ ...a, postal_code: e.target.value }))} />
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">Louisiana only. Sales tax is figured for this address. The shop sees it only after it accepts your order.</p>
+          <p className="text-ds-11 text-muted-foreground">Louisiana only. Sales tax is figured for this address. The shop sees it only after it accepts your order.</p>
         </fieldset>
       )}
 
@@ -308,12 +308,12 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
           onChange={(e) => setNote(e.target.value)}
           placeholder="Flavors, names on a cake, pickup time you'd like"
         />
-        <p className="text-xs text-muted-foreground">{note.length}/{NOTE_MAX}. No phone numbers, emails or links.</p>
+        <p className="text-ds-11 text-muted-foreground">{note.length}/{NOTE_MAX}. No phone numbers, emails or links.</p>
       </div>
 
       {delivers || helprOffered ? (
         <div className="space-y-2" data-testid="shop-order-delivery">
-          <p className="text-sm font-semibold">How you'll get it</p>
+          <p className="text-ds-13 font-semibold">How you'll get it</p>
           <div className={`grid gap-2 ${delivers && helprOffered ? "grid-cols-3" : "grid-cols-2"}`} role="group" aria-label="How you'll get it">
             <Button type="button" variant={!wantsDelivery && !wantsHelpr ? "default" : "outline"}
               className={`${!wantsDelivery && !wantsHelpr ? "btn-grad-primary " : ""}h-auto whitespace-normal py-2`}
@@ -337,7 +337,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
           </div>
           {delivering || helpring ? (
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-ds-11 text-muted-foreground">
                 {helpring
                   ? "A Helpr picks it up at the shop and brings it to you: $6 plus $1.50 a mile, within 50 miles. The shop and the Helpr see your address only after the shop accepts."
                   : `The shop delivers within ${offer.data?.radius_miles} miles. It sees your address only after it accepts the order.`}
@@ -362,11 +362,11 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
                 </div>
               </div>
               {addrProblem && (addr.line1 || addr.city || addr.postal_code) ? (
-                <p className="text-xs text-muted-foreground">{addrProblem}</p>
+                <p className="text-ds-11 text-muted-foreground">{addrProblem}</p>
               ) : null}
               {helpring ? (
                 <div className="flex items-center justify-between gap-2" data-testid="shop-order-helpr-price">
-                  <p className="text-sm" aria-live="polite">
+                  <p className="text-ds-13" aria-live="polite">
                     {helprCents !== null && quote
                       ? `Helpr delivery: ${formatCents(helprCents)} for ${quote.q.delivery_miles} ${quote.q.delivery_miles === 1 ? "mile" : "miles"}`
                       : "See the price for this address before you send the order."}
@@ -385,12 +385,12 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
       {delivering || helpring ? null : <HandoverModeNote shopId={shopId} />}
       {preorder ? <PreorderChargeBox preorder={preorder} /> : (
         <div className="space-y-1 rounded-xl bg-muted/60 p-3" data-testid="shop-order-cancel-policy">
-          <p className="text-sm font-semibold">{policy.label}</p>
-          <p className="text-xs text-muted-foreground">{policy.detail}</p>
+          <p className="text-ds-13 font-semibold">{policy.label}</p>
+          <p className="text-ds-11 text-muted-foreground">{policy.detail}</p>
         </div>
       )}
 
-      <dl className="space-y-1 text-sm">
+      <dl className="space-y-1 text-ds-13">
         <div className="flex justify-between"><dt>Items</dt><dd>{formatCents(itemsCents)}</dd></div>
         {delivering ? <div className="flex justify-between"><dt>Shop delivery</dt><dd>{deliveryCents > 0 ? formatCents(deliveryCents) : "Free"}</dd></div> : null}
         {helpring && helprCents !== null ? <div className="flex justify-between"><dt>Helpr delivery</dt><dd>{formatCents(helprCents)}</dd></div> : null}
@@ -398,7 +398,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
         {setupFeeCents > 0 ? <div className="flex justify-between"><dt>One-time account setup fee</dt><dd data-testid="shop-order-setup-fee">{formatCents(setupFeeCents)}</dd></div> : null}
         <div className="flex justify-between font-semibold"><dt>Total before tax</dt><dd data-testid="shop-order-total">{formatCents(itemsCents + feeCents + deliveryCents + (helprCents ?? 0) + setupFeeCents)}</dd></div>
         {/* S010 (Shops audit 11-12): no fee row or formula (10-25 rule); the total says in words a service fee is in it. */}
-        <p className="text-xs text-muted-foreground" data-testid="shop-order-fee-words">{`${SHOP_SERVICE_FEE_INCLUDED} ${setupFeeKnown ? "Sales tax is added at checkout." : "Sales tax and any one-time setup fee are added at checkout."}`}</p>
+        <p className="text-ds-11 text-muted-foreground" data-testid="shop-order-fee-words">{`${SHOP_SERVICE_FEE_INCLUDED} ${setupFeeKnown ? "Sales tax is added at checkout." : "Sales tax and any one-time setup fee are added at checkout."}`}</p>
       </dl>
 
       <Button type="button" className="btn-grad-primary w-full" disabled={!canSend} onClick={() => void send()}>

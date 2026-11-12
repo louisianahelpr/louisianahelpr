@@ -41,7 +41,7 @@ function ItemRow({ item, onEdit, onTakeDown, busy }: { item: ShopItem; onEdit: (
     <li className="flex flex-col gap-2 rounded-xl border border-border p-3 sm:flex-row sm:items-center">
       <div className="min-w-0 flex-1">
         <p className="font-semibold [overflow-wrap:anywhere]">{item.title}</p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-ds-11 text-muted-foreground">
           {STATUS_LABEL[item.status]} · {formatItemPrice(item.price_cents)} · {SHOP_ITEM_TYPE_LABEL[item.subtype] ?? "Item"} · {readinessLabel(item)}
         </p>
       </div>
@@ -109,7 +109,7 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false,
         // keeps the list, and an open editor stays mounted with its unsaved
         // words (lh-silent-failure re-review).
         <div className="space-y-2" role="alert">
-          <p className="text-sm">{shopsErrorMessage(items.error)}</p>
+          <p className="text-ds-13">{shopsErrorMessage(items.error)}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => void items.refetch()} disabled={items.isFetching}>
             Try again
           </Button>
@@ -125,7 +125,7 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false,
           // new item: say the list could not load, never "isn't available"
           // for an item that exists (lh-silent-failure re-review, finding 1).
           <div className="space-y-2" role="alert">
-            <p className="text-sm">{shopsErrorMessage(items.error)}</p>
+            <p className="text-ds-13">{shopsErrorMessage(items.error)}</p>
             <div className="flex gap-2">
               <Button type="button" variant="outline" size="sm" onClick={() => void items.refetch()}>
                 Try again
@@ -135,7 +135,7 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false,
           </div>
         ) : (
           <div className="space-y-2" role="status">
-            <p className="text-sm">This item isn't available any more.</p>
+            <p className="text-ds-13">This item isn't available any more.</p>
             <Button type="button" variant="outline" onClick={stopEditing}>Back to your items</Button>
           </div>
         )
@@ -162,14 +162,14 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false,
             // The list on screen is the last one that loaded; a failed reload
             // says so (lh-silent-failure re-review, finding 2).
             <div className="flex items-center gap-2" role="alert">
-              <p className="text-sm text-muted-foreground">Couldn't refresh your items.</p>
+              <p className="text-ds-13 text-muted-foreground">Couldn't refresh your items.</p>
               <Button type="button" size="sm" variant="outline" onClick={() => void items.refetch()} disabled={items.isFetching}>
                 Try again
               </Button>
             </div>
           ) : null}
           {list.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No items yet. Add the things you make, bake or grow.</p>
+            <p className="text-ds-13 text-muted-foreground">No items yet. Add the things you make, bake or grow.</p>
           ) : (
             <ul className="space-y-2">
               {list.map((i) => (

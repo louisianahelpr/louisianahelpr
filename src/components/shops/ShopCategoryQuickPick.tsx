@@ -34,14 +34,14 @@ export function ShopCategoryQuickPick({ id, value, onChange, groups, invalid, de
           const on = value === c.slug;
           return (
             <button key={c.slug} type="button" role="radio" aria-checked={on}
-              className={cn("min-h-11 rounded-full border px-4 text-sm", on ? "btn-grad-primary border-transparent" : "border-border bg-card text-foreground")}
+              className={cn("min-h-11 rounded-full border px-4 text-ds-13", on ? "btn-grad-primary border-transparent" : "border-border bg-card text-foreground")}
               onClick={() => { setMore(false); onChange(c.slug); }}>
               {c.label}
             </button>
           );
         })}
         <button type="button" aria-expanded={showMore}
-          className={cn("min-h-11 rounded-full border px-4 text-sm", showMore ? "border-primary text-foreground" : "border-border bg-card text-foreground")}
+          className={cn("min-h-11 rounded-full border px-4 text-ds-13", showMore ? "border-primary text-foreground" : "border-border bg-card text-foreground")}
           onClick={() => setMore((m) => !m)}>
           More
         </button>

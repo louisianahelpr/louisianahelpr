@@ -111,13 +111,13 @@ export default function ShopCustomQuoteForm({ requestId, onDone }: { requestId: 
             <option key={t} value={t}>{SHOP_ITEM_TYPE_LABEL[t] ?? t}</option>
           ))}
         </NativeSelect>
-        {serviceTypeHint(kind, subtype) && <p className="text-xs text-muted-foreground">{serviceTypeHint(kind, subtype)}</p>}
+        {serviceTypeHint(kind, subtype) && <p className="text-ds-11 text-muted-foreground">{serviceTypeHint(kind, subtype)}</p>}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor={id("price")}>Price (dollars)</Label>
         <Input id={id("price")} inputMode="decimal" value={price} placeholder="40" onChange={(e) => setPrice(e.target.value)}
           aria-invalid={price !== "" && !priceOk} aria-describedby={id("price-help")} />
-        <p id={id("price-help")} className="text-xs text-muted-foreground">
+        <p id={id("price-help")} className="text-ds-11 text-muted-foreground">
           {`From $1 to ${dollars(SHOP_ITEM_MAX_PRICE_CENTS)}. The buyer's total adds any sales tax.`}
         </p>
       </div>
@@ -125,10 +125,10 @@ export default function ShopCustomQuoteForm({ requestId, onDone }: { requestId: 
         <Label htmlFor={id("note")}>Note for the buyer (optional)</Label>
         <Textarea id={id("note")} value={note} maxLength={NOTE_MAX} onChange={(e) => setNote(e.target.value)}
           placeholder="What's included, and how long it takes" />
-        <p className="text-xs text-muted-foreground">{note.length}/{NOTE_MAX}. No phone numbers, emails or links.</p>
+        <p className="text-ds-11 text-muted-foreground">{note.length}/{NOTE_MAX}. No phone numbers, emails or links.</p>
       </div>
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium">Before you send a price, confirm</legend>
+        <legend className="text-ds-13 font-medium">Before you send a price, confirm</legend>
         {need.map((k) => (
           <div key={k} className="flex items-start gap-2">
             <Checkbox
@@ -148,10 +148,10 @@ export default function ShopCustomQuoteForm({ requestId, onDone }: { requestId: 
           </div>
         )}
         {cottageReached && (
-          <p className="text-xs text-destructive-ink">You've reached this year's home-kitchen limit. Home-kitchen prices can be sent again in January.</p>
+          <p className="text-ds-11 text-destructive-ink">You've reached this year's home-kitchen limit. Home-kitchen prices can be sent again in January.</p>
         )}
         {kind === "home_food" && cottage.isError && (
-          <p className="text-xs text-destructive-ink">{shopsErrorMessage(cottage.error)}</p>
+          <p className="text-ds-11 text-destructive-ink">{shopsErrorMessage(cottage.error)}</p>
         )}
       </fieldset>
       <div className="flex flex-wrap gap-2">

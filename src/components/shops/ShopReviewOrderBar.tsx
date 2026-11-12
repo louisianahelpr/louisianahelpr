@@ -39,7 +39,7 @@ export default function ShopReviewOrderBar({ shopId }: { shopId: string }) {
       <Button
         type="button"
         size="md"
-        className="btn-grad-primary flex w-full items-center justify-between gap-3 rounded-full px-5 text-sm font-semibold text-primary-foreground shadow-md"
+        className="btn-grad-primary flex w-full items-center justify-between gap-3 rounded-full px-5 text-ds-13 font-semibold text-primary-foreground shadow-md"
         onClick={() => document.getElementById("shop-order-sheet")?.scrollIntoView({ behavior: "smooth", block: "start" })}
       >
         <span className="inline-flex items-center gap-2">

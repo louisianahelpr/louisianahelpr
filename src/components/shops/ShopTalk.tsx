@@ -85,15 +85,15 @@ export function ShopTalksCard() {
       {talks.isError ? (
         <ErrorState variant="inline" title="We couldn't load your messages." body={shopsErrorMessage(talks.error)} onRetry={() => void talks.refetch()} />
       ) : talks.isPending ? (
-        <p className="text-sm text-muted-foreground" role="status">Loading…</p>
+        <p className="text-ds-13 text-muted-foreground" role="status">Loading…</p>
       ) : mine.length === 0 ? (
-        <p className="text-sm text-muted-foreground">When a shopper messages your shop, the chat shows up here.</p>
+        <p className="text-ds-13 text-muted-foreground">When a shopper messages your shop, the chat shows up here.</p>
       ) : (
         <ul className="divide-y divide-border" data-shop-talks="">
           {mine.map((t) => (
             <li key={t.talk_id}>
               <ListRow onClick={() => setTalk(t.talk_id)} trailing={<span className="shrink-0 text-ds-12 text-muted-foreground">{talkTime(t.last_at)}</span>}>
-                <span className={`truncate text-sm ${t.unread ? "font-bold" : ""}`} title={t.other_label}>{t.other_label}{t.unread ? " · New" : ""}</span>
+                <span className={`truncate text-ds-13 ${t.unread ? "font-bold" : ""}`} title={t.other_label}>{t.other_label}{t.unread ? " · New" : ""}</span>
               </ListRow>
             </li>
           ))}

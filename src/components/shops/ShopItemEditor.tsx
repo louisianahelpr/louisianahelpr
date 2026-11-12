@@ -174,7 +174,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
     "aria-describedby": fieldError?.field === f ? `item-${f}-error` : undefined,
   });
   const fieldErrorLine = (f: ItemField) =>
-    fieldError?.field === f ? <p id={`item-${f}-error`} className="text-sm text-destructive-ink" role="alert">{fieldError.msg}</p> : null;
+    fieldError?.field === f ? <p id={`item-${f}-error`} className="text-ds-13 text-destructive-ink" role="alert">{fieldError.msg}</p> : null;
   const digital = d.kind === "digital";
   const refresh = () => void qc.invalidateQueries({ queryKey: ["shops", "items"] });
 
@@ -364,12 +364,12 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
       )}
       {/* S2-008 (Shops audit 2): the live line only on a live item; a waiting item is told what Save draft does. */}
       {id && status === "live" && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-ds-13 text-muted-foreground">
           Changes stay on your shop right away. Changing what kind of item it is, or its type, takes it off until you publish it again.
         </p>
       )}
       {id && status === "pending_review" && (
-        <p className="text-sm text-muted-foreground" data-testid="item-waiting-save-note">
+        <p className="text-ds-13 text-muted-foreground" data-testid="item-waiting-save-note">
           This item is waiting for review. Saving takes it out of review; publish it again after.
         </p>
       )}
@@ -409,10 +409,10 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
           ))}
         </NativeSelect>
         {serviceTypeHint(d.kind, d.subtype) && (
-          <p className="text-xs text-muted-foreground">{serviceTypeHint(d.kind, d.subtype)}</p>
+          <p className="text-ds-11 text-muted-foreground">{serviceTypeHint(d.kind, d.subtype)}</p>
         )}
         {d.kind === "home_food" && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             Only foods Louisiana allows from a home kitchen, with no meat or fish. Plate lunches and other foods that need a health permit can't be listed yet.
           </p>
         )}
@@ -429,7 +429,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
             <option value="shop">At my place (they bring it to me)</option>
             <option value="buyer">At the buyer's place</option>
           </NativeSelect>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-ds-11 text-muted-foreground">
             At the buyer's place, they give the address when they order, and sales tax is figured there. It is ordered on its own.
           </p>
         </div>
@@ -438,27 +438,27 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
         <Label htmlFor="item-title">Title</Label>
         <Input id="item-title" value={d.title} maxLength={80} onChange={(e) => set("title", e.target.value)}
           aria-invalid={fieldError?.field === "title" || undefined} aria-describedby={fieldError?.field === "title" ? "item-title-error" : undefined} />
-        {fieldError?.field === "title" && <p id="item-title-error" className="text-sm text-destructive-ink" role="alert">{fieldError.msg}</p>}
+        {fieldError?.field === "title" && <p id="item-title-error" className="text-ds-13 text-destructive-ink" role="alert">{fieldError.msg}</p>}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="item-description">Description</Label>
         <Textarea id="item-description" value={d.description} maxLength={2000} rows={4} onChange={(e) => set("description", e.target.value)} />
-        <p className="text-xs text-muted-foreground">No phone numbers, emails or websites: Shops does not allow contact details.</p>
+        <p className="text-ds-11 text-muted-foreground">No phone numbers, emails or websites: Shops does not allow contact details.</p>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {hasOptions && item ? (
           // S2-004: with options the price is each option's own; the item's price is the lowest of them (the server's
           // rollup), so an editable box here only snapped back after Save.
           <div className="space-y-1.5" data-testid="item-price-per-option">
-            <p className="text-sm font-medium">Price</p>
-            <p className="text-sm text-muted-foreground">From {formatItemPrice(item.price_cents)}, set per option below.</p>
+            <p className="text-ds-13 font-medium">Price</p>
+            <p className="text-ds-13 text-muted-foreground">From {formatItemPrice(item.price_cents)}, set per option below.</p>
           </div>
         ) : (
         <div className="space-y-1.5">
           <Label htmlFor="item-price">Price (dollars)</Label>
           <Input id="item-price" inputMode="decimal" value={d.price} placeholder="e.g. 18" onChange={(e) => set("price", e.target.value)}
             aria-invalid={fieldError?.field === "price" || undefined} aria-describedby={fieldError?.field === "price" ? "item-price-error" : undefined} />
-          {fieldError?.field === "price" && <p id="item-price-error" className="text-sm text-destructive-ink" role="alert">{fieldError.msg}</p>}
+          {fieldError?.field === "price" && <p id="item-price-error" className="text-ds-13 text-destructive-ink" role="alert">{fieldError.msg}</p>}
         </div>
         )}
         {!digital && (
@@ -473,8 +473,8 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
       <div className="space-y-2">
         {hasOptions ? (
           <>
-            <p className="text-sm text-muted-foreground" data-testid="item-stock-per-option">How many are ready is set for each option below.</p>
-            <p className="text-xs text-muted-foreground">{STOCK_HINT}</p>
+            <p className="text-ds-13 text-muted-foreground" data-testid="item-stock-per-option">How many are ready is set for each option below.</p>
+            <p className="text-ds-11 text-muted-foreground">{STOCK_HINT}</p>
           </>
         ) : (
         // The hint is the label's second line, so the label keeps its 44px tap height with no dead band under one
@@ -483,7 +483,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
           <Checkbox id="item-ready" checked={d.readyNow} onCheckedChange={(v) => set("readyNow", v === true)} aria-describedby="item-ready-hint" />
           <Label htmlFor="item-ready" className="flex min-h-11 flex-1 flex-col justify-center font-normal leading-snug">
             <span>I have some ready now</span>
-            <span id="item-ready-hint" className="text-xs text-muted-foreground">{STOCK_HINT}</span>
+            <span id="item-ready-hint" className="text-ds-11 text-muted-foreground">{STOCK_HINT}</span>
           </Label>
         </div>
         )}
@@ -497,12 +497,12 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
       </div>
       )}
       {d.kind === "home_food" && (
-        <p className="rounded-lg bg-muted/70 px-3 py-2 text-xs">Shown on this item: “{HOME_KITCHEN_NOTICE}”</p>
+        <p className="rounded-lg bg-muted/70 px-3 py-2 text-ds-11">Shown on this item: “{HOME_KITCHEN_NOTICE}”</p>
       )}
       {/* S2-035 (Shops audit 2): a new item's first screen had only an outline "Save draft", which read as the end.
           Its main button now says what comes next, and a line names the steps before Publish. */}
       {!id && (
-        <p className="text-sm text-muted-foreground" data-testid="item-new-next-steps">
+        <p className="text-ds-13 text-muted-foreground" data-testid="item-new-next-steps">
           Saves it as a draft. Next: 3 or more photos, then Publish.
         </p>
       )}
@@ -529,7 +529,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
 
       {id && photosEditable && (
         <section className="space-y-2" aria-labelledby="item-photos">
-          <h4 id="item-photos" className="text-sm font-medium">Photos (3 to 12)</h4>
+          <h4 id="item-photos" className="text-ds-13 font-medium">Photos (3 to 12)</h4>
           <div className="flex flex-wrap gap-2">
             <label className="inline-flex">
               <span className="sr-only">Add a photo</span>
@@ -545,7 +545,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
                   if (f) addPhoto.mutate(f);
                 }}
               />
-              <span className={`inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${shown.length >= 12 ? "cursor-not-allowed text-muted-foreground" : "cursor-pointer"}`} aria-hidden>
+              <span className={`inline-flex h-9 items-center rounded-md border border-input bg-background px-3 text-ds-13 peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${shown.length >= 12 ? "cursor-not-allowed text-muted-foreground" : "cursor-pointer"}`} aria-hidden>
                 {shown.length >= 12 ? "12 photos (the most)" : "Add a photo"}
               </span>
             </label>
@@ -556,7 +556,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
               </Button>
             )}
           </div>
-          {!draft && <p className="text-xs text-muted-foreground">New photos get our quick photo check. The item stays on your shop unless it flags one.</p>}
+          {!draft && <p className="text-ds-11 text-muted-foreground">New photos get our quick photo check. The item stays on your shop unless it flags one.</p>}
           {shown.length > 0 && (
             <ul className="grid grid-cols-3 gap-2">
               {shown.map((p, i) => (
@@ -566,7 +566,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="absolute bottom-1 right-1 px-2 text-xs"
+                    className="absolute bottom-1 right-1 px-2 text-ds-11"
                     // S009: a live item keeps 3 photos (the server says so too).
                     disabled={busy || (!draft && shown.length <= 3)}
                     aria-label={`Remove photo ${i + 1}`}
@@ -585,7 +585,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
 
       {id && draft && (
         <fieldset className="space-y-2">
-          <legend className="text-sm font-medium">Before you publish, confirm</legend>
+          <legend className="text-ds-13 font-medium">Before you publish, confirm</legend>
           {need.map((k) => (
             <div key={k} className="flex items-start gap-2">
               <Checkbox
@@ -624,7 +624,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
             </div>
           )}
           {blockers.length > 0 && (
-            <div className="rounded-lg bg-muted/70 px-3 py-2 text-sm" data-testid="item-publish-blockers" aria-live="polite">
+            <div className="rounded-lg bg-muted/70 px-3 py-2 text-ds-13" data-testid="item-publish-blockers" aria-live="polite">
               <p className="font-medium">To publish:</p>
               <ul className="list-disc pl-5">
                 {blockers.map((b) => <li key={b}>{b}</li>)}
@@ -639,7 +639,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
           >
             {publish.isPending ? "Publishing…" : "Publish"}
           </Button>
-          <p className="text-xs text-muted-foreground">Your item shows on your shop right away. Anything our checks flag gets a quick review first. After a rejection, new items are checked by an admin for 30 days. Edits to a live item keep it live, unless you change what kind of item it is or its type.</p>
+          <p className="text-ds-11 text-muted-foreground">Your item shows on your shop right away. Anything our checks flag gets a quick review first. After a rejection, new items are checked by an admin for 30 days. Edits to a live item keep it live, unless you change what kind of item it is or its type.</p>
         </fieldset>
       )}
     </section>

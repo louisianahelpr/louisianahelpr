@@ -38,8 +38,8 @@ export default function ShopItemStartPhotos({ held, setHeld, busy, suggesting, o
 }) {
   return (
     <section className="space-y-2" aria-labelledby="item-start-photos" data-testid="item-start-photos">
-      <h4 id="item-start-photos" className="text-sm font-medium">Start with photos</h4>
-      <p className="text-xs text-muted-foreground">Add photos and we'll suggest the details. They go on the item when you save it.</p>
+      <h4 id="item-start-photos" className="text-ds-13 font-medium">Start with photos</h4>
+      <p className="text-ds-11 text-muted-foreground">Add photos and we'll suggest the details. They go on the item when you save it.</p>
       <div className="flex flex-wrap gap-2">
         <label className="inline-flex">
           <span className="sr-only">Add photos</span>
@@ -57,7 +57,7 @@ export default function ShopItemStartPhotos({ held, setHeld, busy, suggesting, o
               setHeld((h) => [...h, ...files].slice(0, MAX_HELD));
             }}
           />
-          <span className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ring" aria-hidden>
+          <span className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-ds-13 peer-focus-visible:ring-2 peer-focus-visible:ring-ring" aria-hidden>
             Add photos
           </span>
         </label>
@@ -71,7 +71,7 @@ export default function ShopItemStartPhotos({ held, setHeld, busy, suggesting, o
           {held.map((f, i) => (
             <li key={`${f.name}-${i}`} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
               <HeldPhoto file={f} />
-              <Button type="button" size="sm" variant="outline" className="absolute bottom-1 right-1 px-2 text-xs" disabled={busy}
+              <Button type="button" size="sm" variant="outline" className="absolute bottom-1 right-1 px-2 text-ds-11" disabled={busy}
                 aria-label={`Remove photo ${i + 1}`}
                 onClick={() => setHeld((h) => h.filter((_, j) => j !== i))}>
                 Remove

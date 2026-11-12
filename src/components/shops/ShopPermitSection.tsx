@@ -61,7 +61,7 @@ export default function ShopPermitSection({ userId }: { userId: string }) {
     <section className="space-y-3 rounded-2xl border border-border bg-card p-4" aria-labelledby="shop-permit-heading" data-testid="shop-permit">
       <div className="space-y-1">
         <h2 id="shop-permit-heading" className="text-base font-semibold">Permit on file (optional)</h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-ds-13 text-muted-foreground">
           Have a food permit or an inflatable (bounce house) registration? Send a copy. Once we check it, your shop shows "Permit on file" until it expires. Only our team sees the copy.
         </p>
       </div>
@@ -74,7 +74,7 @@ export default function ShopPermitSection({ userId }: { userId: string }) {
           {(current.data ?? []).length > 0 && (
             <ul className="space-y-2">
               {(current.data ?? []).map((p) => (
-                <li key={p.kind} className="text-sm" data-testid="shop-permit-row">
+                <li key={p.kind} className="text-ds-13" data-testid="shop-permit-row">
                   <span className="font-medium">{PERMIT_KIND_LABEL[p.kind]}:</span> {statusLine(p)}
                 </li>
               ))}
@@ -83,7 +83,7 @@ export default function ShopPermitSection({ userId }: { userId: string }) {
           <form className="space-y-3" onSubmit={onSubmit} noValidate>
             <div className="space-y-1.5">
               <Label htmlFor={ids.kind}>Type</Label>
-              <select id={ids.kind} className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-sm" value={kind}
+              <select id={ids.kind} className="flex h-11 w-full rounded-md border border-input bg-background px-3 text-ds-13" value={kind}
                 onChange={(e) => setKind(e.target.value as PermitKind)}>
                 {(Object.keys(PERMIT_KIND_LABEL) as PermitKind[]).map((k) => <option key={k} value={k}>{PERMIT_KIND_LABEL[k]}</option>)}
               </select>
@@ -97,7 +97,7 @@ export default function ShopPermitSection({ userId }: { userId: string }) {
               <Label htmlFor={ids.date}>Expires on</Label>
               <Input id={ids.date} type="date" className="min-w-0" value={expires} onChange={(e) => setExpires(e.target.value)} />
             </div>
-            {problem && <p className="text-sm text-destructive-ink" role="alert">{problem}</p>}
+            {problem && <p className="text-ds-13 text-destructive-ink" role="alert">{problem}</p>}
             <Button type="submit" className="w-full" variant="outline" disabled={send.isPending}>
               {send.isPending ? "Sending…" : "Send for a check"}
             </Button>

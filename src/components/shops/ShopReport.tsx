@@ -19,7 +19,7 @@ export function ShopReportShop({ shopId, signedIn = true }: { shopId: string; si
   if (!signedIn) {
     const back = encodeURIComponent(`/shops/${shopId}`);
     return (
-      <p className="pt-2 text-center text-sm text-muted-foreground" data-report-shop="">
+      <p className="pt-2 text-center text-ds-13 text-muted-foreground" data-report-shop="">
         Something wrong with this shop?{" "}
         <Link className="link-standard inline-flex min-h-11 items-center px-1 font-semibold" to={`/login?redirect=${back}`}>Sign in to report it</Link>
       </p>

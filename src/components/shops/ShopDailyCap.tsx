@@ -66,12 +66,12 @@ export default function ShopDailyCap({ shopId }: { shopId: string }) {
         </Button>
       </div>
       {cap.isError && (
-        <p className="text-sm" role="alert">
+        <p className="text-ds-13" role="alert">
           {shopsErrorMessage(cap.error)}{" "}
           <InlineTextButton className="underline" onClick={() => void cap.refetch()}>Try again</InlineTextButton>
         </p>
       )}
-      <p className="text-xs text-muted-foreground">Once a day is full, buyers can't pick it. Your order days are your open days above.</p>
+      <p className="text-ds-11 text-muted-foreground">Once a day is full, buyers can't pick it. Your order days are your open days above.</p>
     </div>
   );
 }

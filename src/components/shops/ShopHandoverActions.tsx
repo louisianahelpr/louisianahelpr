@@ -158,7 +158,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
           }}
         />
         {problemPhoto ? (
-          <p className="flex items-center gap-2 text-xs">
+          <p className="flex items-center gap-2 text-ds-11">
             <span className="truncate" data-testid="shop-problem-photo-name">Photo added: {problemPhoto.name}</span>
             <Button type="button" size="sm" variant="ghost" disabled={report.isPending} onClick={() => setProblemPhoto(null)}>Remove</Button>
           </p>
@@ -167,7 +167,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
             <label htmlFor={`${fileId}-problem-photo`}>Add a photo (optional)</label>
           </Button>
         )}
-        <p className="text-xs text-muted-foreground">Only Louisiana Helpr sees the photo, not the shop.</p>
+        <p className="text-ds-11 text-muted-foreground">Only Louisiana Helpr sees the photo, not the shop.</p>
       </div>
     </BrandConfirmDialog>
   );
@@ -189,14 +189,14 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
 
   if (side === "shop" && order.status === "handed_over") {
     const p = (payouts.data ?? []).find((x) => x.order_id === order.id);
-    if (h?.problem_at) return <p className="text-xs font-semibold" data-testid="shop-handover-problem">The buyer reported a problem. Louisiana Helpr looks at it before anyone is paid.</p>;
-    return p ? <p className="text-xs font-semibold" data-testid="shop-payout-line">{payoutText(p)}</p> : null;
+    if (h?.problem_at) return <p className="text-ds-11 font-semibold" data-testid="shop-handover-problem">The buyer reported a problem. Louisiana Helpr looks at it before anyone is paid.</p>;
+    return p ? <p className="text-ds-11 font-semibold" data-testid="shop-payout-line">{payoutText(p)}</p> : null;
   }
   if (!open) return null;
 
   if (h?.problem_at) {
     return (
-      <p className="text-xs font-semibold" data-testid="shop-handover-problem">
+      <p className="text-ds-11 font-semibold" data-testid="shop-handover-problem">
         {side === "buyer"
           ? "You reported a problem. Louisiana Helpr looks at it before anyone is paid."
           : "The buyer reported a problem. Louisiana Helpr looks at it before anyone is paid."}
@@ -206,16 +206,16 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
 
   return (
     <div className="space-y-2" data-testid="shop-handover-actions">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-ds-11 text-muted-foreground">
         {handoverIntro(order)}{" "}
         {h?.ready_at ? (side === "buyer" ? "The shop marked it ready." : "You marked it ready.") : ""}
         {side === "buyer" && h?.shop_confirmed_at ? w.buyerShopSaysDone : ""}
       </p>
       {side === "buyer" && buyerHandoverSafety(order, h) && (
-        <p className="text-xs text-muted-foreground" data-testid="shop-handover-safety">{buyerHandoverSafety(order, h)}</p>
+        <p className="text-ds-11 text-muted-foreground" data-testid="shop-handover-safety">{buyerHandoverSafety(order, h)}</p>
       )}
       {side === "shop" && tooEarly && readyFrom ? (
-        <p className="text-xs text-muted-foreground" data-testid="shop-preorder-ready-from">
+        <p className="text-ds-11 text-muted-foreground" data-testid="shop-preorder-ready-from">
           {order.preorder_item_id
             ? `This is a preorder. You can mark it ready from ${shortDate(readyFrom)}.`
             : `You can mark it ready from ${shortDate(readyFrom)}, the day before it's due.`}
@@ -227,7 +227,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
               {service ? "Mark complete" : "Handed over"}
             </Button>
           )}
-          <p className="w-full text-xs text-muted-foreground" data-testid="shop-handover-wait">
+          <p className="w-full text-ds-11 text-muted-foreground" data-testid="shop-handover-wait">
             {h?.shop_confirmed_at ? w.shopMarkedWait : w.shopOpenWait}
           </p>
         </div>
@@ -260,7 +260,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
               {service ? "Mark complete" : "Handed over"}
             </Button>
           )}
-          <p className="w-full text-xs text-muted-foreground" data-testid="shop-handover-wait">
+          <p className="w-full text-ds-11 text-muted-foreground" data-testid="shop-handover-wait">
             {porch
               ? "The buyer taps \"I got it\". With your photo in, you're paid 48 hours after it (or after the ready day starts, if that is later) unless the buyer reports a problem."
               : h?.shop_confirmed_at

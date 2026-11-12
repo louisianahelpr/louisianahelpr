@@ -8,7 +8,9 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
-const EDITOR = readFileSync("src/components/shops/ShopItemEditor.tsx", "utf8");
+// The editor's two photo pickers live in its split-out parts (train 1112-j): Start with photos and the item's own photos.
+const EDITOR = ["src/components/shops/ShopItemEditor.tsx", "src/components/shops/ShopItemStartPhotos.tsx", "src/components/shops/ShopItemPhotosSection.tsx"]
+  .map((f) => readFileSync(f, "utf8")).join("\n");
 const FILES = readFileSync("src/components/shops/ShopDigitalFiles.tsx", "utf8");
 const tags = (s: string) => s.split("<HiddenFileInput").slice(1).map((t) => t.slice(0, t.indexOf("/>")));
 

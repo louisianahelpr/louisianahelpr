@@ -14,7 +14,8 @@ const src = blankComments(readFileSync(resolve(__dirname, "../components/message
 
 describe("the chat deal card's date + parish line wraps instead of cutting the parish (Q955)", () => {
   it("builds the line from the date and the parish", () => {
-    expect(src).toMatch(/job\.parish \? `\$\{job\.parish\} Parish` : null/);
+    // F260q: the parish words come from the dictionary (msg.dc.parish: "{parish} Parish").
+    expect(src).toMatch(/job\.parish \? t\("msg\.dc\.parish", \{ parish: job\.parish \}\) : null/);
     expect(src.length).toBeGreaterThan(2000);
   });
 

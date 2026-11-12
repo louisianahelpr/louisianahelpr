@@ -27,6 +27,8 @@ export const defaultPrefs: Prefs = {
   declutter_questions: true, email_declutter_questions: true,
   shops_orders: true, email_shops_orders: true, shops_messages: true, email_shops_messages: true,
   shops_updates: true, email_shops_updates: true,
+  // Admin bell activity (20261112061000): the notices are always in an admin's bell; push and email default OFF.
+  admin_activity: false, email_admin_activity: false,
   declutter_sales: true, email_declutter_sales: true,
   declutter_pickups: true, email_declutter_pickups: true,
   declutter_refunds: true, email_declutter_refunds: true,
@@ -148,6 +150,13 @@ export const declutterRows: Row[] = [
   { key: "declutter_refunds", emailKey: "email_declutter_refunds", label: "Refunds", description: "Refund requests, reported problems and strikes. Refund receipts are always emailed.", icon: <Undo2 className="w-3.5 h-3.5" /> },
   { key: "declutter_price_drops", emailKey: "email_declutter_price_drops", label: "Price drops", description: "An item you watch got cheaper or free.", icon: <TrendingDown className="w-3.5 h-3.5" /> },
   { key: "declutter_wanted", emailKey: "email_declutter_wanted", label: "Wanted matches", description: "Your Wanted posts and saved Declutter searches.", icon: <Search className="w-3.5 h-3.5" /> },
+];
+
+// ── The "Member activity" group, admins only (owner 11-12, 20261112061000) ──
+// The admin bell's notice for every real member activity (listings, offers, sales, jobs, Shops orders). Always in the
+// bell; push and email are OFF until the admin turns them on (they would be one push or email per activity).
+export const adminActivityRows: Row[] = [
+  { key: "admin_activity", emailKey: "email_admin_activity", label: "Member activity", description: "Listings, offers, sales, jobs and Shops orders by members. Always in the bell; push and email are off unless you turn them on.", icon: <Info className="w-3.5 h-3.5" /> },
 ];
 
 // ── The "Shops" group (shops audit 11-08 #6, 20261108201153) ──

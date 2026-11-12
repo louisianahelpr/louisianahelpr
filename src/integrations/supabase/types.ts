@@ -9378,6 +9378,8 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
+          admin_activity: boolean
+          email_admin_activity: boolean
           created_at: string
           declutter_listings: boolean
           declutter_offers: boolean
@@ -9446,6 +9448,8 @@ export type Database = {
           work_status: boolean
         }
         Insert: {
+          admin_activity?: boolean
+          email_admin_activity?: boolean
           created_at?: string
           declutter_listings?: boolean
           declutter_offers?: boolean
@@ -9514,6 +9518,8 @@ export type Database = {
           work_status?: boolean
         }
         Update: {
+          admin_activity?: boolean
+          email_admin_activity?: boolean
           created_at?: string
           declutter_listings?: boolean
           declutter_offers?: boolean

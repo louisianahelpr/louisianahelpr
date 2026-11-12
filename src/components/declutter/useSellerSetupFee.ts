@@ -12,13 +12,39 @@
  * `unknown` is true while any input that could add the fee is not in yet: a money figure then shows nothing rather
  * than a figure too high by the fee (lh-money-escrow reviews 11-11). `enabled` false skips the reads.
  */
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useOnboardingFeeQuery } from "@/hooks/useOnboardingFee";
-import { useIdentityCheckLastAnswerStore } from "@/lib/identityCheckSwitch";
 import { fetchMySetupFee } from "@/lib/declutter/mySetupFee";
 
 const SETUP_FEE_CAP_CENTS = 10_000;
+
+// Q178 (critical path): the pre-deploy fallback's two inputs (the ID-check switch's last answer and the platform's
+// onboarding fee) live in modules the chunker puts in signed-in-pages; imported statically they put that whole chunk
+// on the Declutter Selling route. They load only when the fallback is in use (the server function not deployed).
+
+/** The switch's last real answer, read through a lazily loaded identityCheckSwitch; null until it loads or answers. */
+function useLazyIdentityCheckLastAnswer(active: boolean): boolean | null {
+  const [answer, setAnswer] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!active) return;
+    let alive = true;
+    let off: (() => void) | undefined;
+    import("@/lib/identityCheckSwitch")
+      .then((m) => {
+        if (!alive) return;
+        setAnswer(m.identityCheckLastAnswer());
+        off = m.subscribeIdentityCheckLastAnswer(() => setAnswer(m.identityCheckLastAnswer()));
+      })
+      // A failed chunk load leaves the answer null: "not known", so no fee figure shows (never a guess).
+      .catch((err) => console.warn("[declutter] identity check switch did not load", err));
+    return () => {
+      alive = false;
+      off?.();
+    };
+  }, [active]);
+  return answer;
+}
 
 export interface SellerSetupFee {
   cents: number;
@@ -40,13 +66,20 @@ export function useSellerSetupFee(enabled = true): SellerSetupFee {
   // PGRST202 only: the function is not deployed yet, so the client's own reading stands in.
   const fallback = mine.isSuccess && mine.data === null;
   // The switch's last real answer: null = not known (loading, or no read has ever succeeded); a failed refetch keeps it.
-  const idAnswer = useIdentityCheckLastAnswerStore();
+  const idAnswer = useLazyIdentityCheckLastAnswer(fallback);
   const idSettled = idAnswer !== null;
   const idOn = idAnswer === true;
   // The seller has not paid it (profiles.onboarding_fee_paid, the SQL's own test) and is not a seeded test account.
   const possible = fallback && !!profile && profile.onboarding_fee_paid !== true && profile.is_seed !== true && adminStatus !== "admin";
   const applies = possible && idSettled && idOn && adminStatus === "not_admin";
-  const fee = useOnboardingFeeQuery(applies);
+  // The same query (key, staleTime, reportsItself) as useOnboardingFeeQuery, its module loaded only when read.
+  const fee = useQuery({
+    queryKey: ["platform-settings", "onboarding-fee-cents"],
+    enabled: applies,
+    meta: { reportsItself: true },
+    staleTime: 10 * 60_000,
+    queryFn: async () => (await import("@/hooks/useOnboardingFee")).fetchOnboardingFeeCents(),
+  });
   if (!enabled || !uid) return { cents: 0, unknown: false, server: false };
   if (mine.data) {
     return { cents: Math.min(mine.data.feeCents, SETUP_FEE_CAP_CENTS), unknown: false, server: true, orderId: mine.data.orderId };

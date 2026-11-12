@@ -444,6 +444,10 @@ const DYNAMIC_REMOVERS: Record<string, { why: string; check?: (src: Source) => s
         ? null
         : "preVerificationWipeSweep no longer takes its object list from pre_verification_wipe_objects (the unchanged-since-the-wipe filter)",
   },
+  "supabase/functions/_shared/shopPhotoHolds.ts": {
+    why: "Q1957: moves hidden or banned shops' photos between job-photos and shop-photos-held only (its BUCKETS set); a stray copy it removes is in one of those two; never the avatars bucket",
+    check: (src) => (/["']avatars["']/.test(src.text) ? "shopPhotoHolds now names the avatars bucket" : null),
+  },
   "src/lib/storageCleanup.ts": {
     why: "chat attachments and job photos of a row being deleted; never the avatars bucket",
     check: (src) => (/["']avatars["']/.test(src.text) ? "storageCleanup now names the avatars bucket" : null),

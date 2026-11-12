@@ -38,8 +38,17 @@ describe("a read that takes attempts = 0 as an untouched payout rules out an adm
     expect(readers.map((r) => r.fn)).toContain("declutter_payout_unsent");
   });
 
+  // Not an "untouched" read, each with why. Two-way: an entry no reader matches fails.
+  // @two-way src/test/untouchedPayoutRulesOutRelease.test.ts:stale untouched-read exemption
+  const NOT_UNTOUCHED: Record<string, string> = {
+    setup_fee_other_payout_first: "S011 note (20261112093000): words a notice only (whether another payout could still take the one-time setup fee), as the *_payout_take_setup_fee could-take rule; it moves no money and rebooks nothing, so a released payout only changes which sentence the notice uses",
+  };
+  it("the untouched-read exemptions are all still readers", () => {
+    for (const fn of Object.keys(NOT_UNTOUCHED)) expect(readers.some((r) => r.fn === fn), `stale untouched-read exemption ${fn}`).toBe(true);
+  });
+
   it("each one checks admin_audit_log for that kind's admin_payout_release row", () => {
-    const bad = readers.filter((r) => {
+    const bad = readers.filter((r) => !(r.fn in NOT_UNTOUCHED)).filter((r) => {
       const kind = KIND[r.table];
       return !(/admin_audit_log/i.test(r.code) && /'admin_payout_release'/.test(r.code) && new RegExp(`target_type\\s*=\\s*'${kind}'`).test(r.code));
     }).map((r) => `${r.fn} (${r.table})`);

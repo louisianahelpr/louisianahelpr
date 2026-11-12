@@ -76,7 +76,9 @@ function titles(src: string): string[] {
     const raw0 = titleValue(attrs);
     if (!raw0) continue;
     // A title from the dictionary (Spanish option, 2026-10-29) is judged by its English words.
-    const v = raw0.replace(/\b(?:t|tr)\(\s*"([\w.]+)"[^)]*\)/g, (m, k: string) => (k in en ? JSON.stringify(en[k as keyof typeof en]) : m));
+    const v = raw0.replace(/\b(?:t|tr)\(\s*"([\w.]+)"[^)]*\)/g, (m, k: string) => (k in en ? JSON.stringify(en[k as keyof typeof en]) : m))
+      // t(cond ? "a.key" : "b.key"): each key in the choice is judged by its English words too.
+      .replace(/"([a-z][\w]*\.[\w.]+)"/g, (m, k: string) => (k in en ? JSON.stringify(en[k as keyof typeof en]) : m));
     const lit = /^"([^"]*)"$/.exec(v) ?? /^\{"([^"]*)"\}$/.exec(v) ?? /^\{`([^`]*)`\}$/.exec(v);
     const parts = lit
       ? [lit[1]]

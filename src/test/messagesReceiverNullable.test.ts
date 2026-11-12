@@ -50,6 +50,7 @@ import { join, relative } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { threadPairFilter } from "@/lib/deletedCounterparty";
 import { readdirSync } from "./helpers/trackedFiles";
+import { en } from "@/lib/i18n/en";
 
 const ROOT = join(__dirname, "..", "..");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
@@ -236,15 +237,25 @@ describe("a deleted-account thread can be archived, never pinned (Q335, owner 20
     const page = blankComments(read("src/pages/messages/Messages.tsx"));
     // Every place the page says a thread "comes back" on a new message must
     // sit under a branch that has already ruled out a deleted account.
-    const promises = [...page.matchAll(/send(?:s)? you a new message/g)].map((m) => m.index!);
+    // F260q: the words live in the dictionary (enMessages.ts); the page picks the key. The keys that promise a thread
+    // comes back on a new message, in English and Spanish, and the keys that must not.
+    const PROMISE = /send(?:s)? you a new message|le envía un mensaje nuevo/;
+    const promiseKeys = (["msg.hideBody", "msg.batchMixed", "msg.batchBody"] as const);
+    for (const k of promiseKeys) expect(en[k], k).toMatch(PROMISE);
+    for (const k of ["msg.hideDeletedBody", "msg.batchDeleted"] as const) {
+      expect(en[k], k).not.toMatch(PROMISE);
+      expect(en[k], k).toMatch(/Recently Deleted/);
+    }
+    const promises = [...page.matchAll(/t\("msg\.(?:hideBody|batchMixed|batchBody)"/g)].map((m) => m.index!);
     expect(promises.length).toBeGreaterThan(1);
     for (const at of promises) {
       const before = page.slice(Math.max(0, at - 700), at);
       expect(before, `a "new message" promise at offset ${at} is not behind an otherUserId === null branch`).toMatch(/otherUserId === null\)?\s*\?/);
     }
-    expect(page).toMatch(/batchArchiveConfirm\?\.every\(\(c\) => c\.otherUserId === null\)\s*\?\s*"[^"]*Recently Deleted/);
+    expect(page).toMatch(/batchArchiveConfirm\?\.every\(\(c\) => c\.otherUserId === null\)\s*\?\s*t\("msg\.batchDeleted"\)/);
     // A mixed selection names both outcomes, never only the "new message" one.
-    expect(page).toMatch(/:\s*batchArchiveConfirm\?\.some\(\(c\) => c\.otherUserId === null\)\s*\?\s*"[^"]*deleted account stays in Recently Deleted/);
+    expect(page).toMatch(/:\s*batchArchiveConfirm\?\.some\(\(c\) => c\.otherUserId === null\)\s*\?\s*t\("msg\.batchMixed"\)/);
+    expect(en["msg.batchMixed"]).toMatch(/deleted account stays in Recently Deleted/);
   });
 
   it("no archive path skips a deleted-account thread", () => {

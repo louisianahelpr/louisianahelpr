@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n/language";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -342,7 +343,7 @@ const Messages = () => {
       }
       hapticError();
       // Messages audit M2: a closed, reported or disputed conversation keeps its messages.
-      toast.error(error && /message_locked/.test(error.message) ? "This message can't be deleted now. The conversation has ended or is being reviewed." : "Couldn't delete that one — give it another try?");
+      toast.error(error && /message_locked/.test(error.message) ? t("msg.lockedDelete") : t("msg.deleteFailed"));
     } else {
       const remaining = messages.filter((m) => m.id !== messageId);
       setMessages(remaining);
@@ -538,19 +539,19 @@ const Messages = () => {
       <BrandConfirmDialog
         open={!!deleteConvoConfirm}
         onOpenChange={(o) => { if (!o) setDeleteConvoConfirm(null); }}
-        title="Hide this conversation?"
+        title={t("msg.hideConvoTitle")}
         description={
           // Q335: a deleted account can never send again, so "it'll come back
           // if they send you a new message" would be false for that thread.
           deleteConvoConfirm?.otherUserId === null
-            ? "This removes the conversation with a deleted account from your inbox. No messages are deleted, and you can restore it from Recently Deleted."
-            : `This removes the conversation with ${deleteConvoConfirm?.otherUserName ?? "this person"} from your inbox. No messages are deleted, and it'll come back if they send you a new message.`
+            ? t("msg.hideDeletedBody")
+            : t("msg.hideBody", { name: deleteConvoConfirm?.otherUserName ?? t("msg.thisPerson") })
         }
-        primaryLabel="Hide"
+        primaryLabel={t("msg.hide")}
         primaryTone="sienna"
         primaryHaptic="warning"
         onPrimary={() => deleteConvoConfirm && archiveConversationLocal(deleteConvoConfirm)}
-        secondaryLabel="Cancel"
+        secondaryLabel={t("msg.cancel")}
       />
 
       {/* Batch "hide conversations" confirmation — the multi-select
@@ -560,7 +561,7 @@ const Messages = () => {
       <BrandConfirmDialog
         open={!!batchArchiveConfirm}
         onOpenChange={(o) => { if (!o) setBatchArchiveConfirm(null); }}
-        title={`Hide ${batchArchiveConfirm?.length ?? 0} conversation${(batchArchiveConfirm?.length ?? 0) === 1 ? "" : "s"}?`}
+        title={(batchArchiveConfirm?.length ?? 0) === 1 ? t("msg.hideOneTitle") : t("msg.hideNTitle", { n: batchArchiveConfirm?.length ?? 0 })}
         description={
           // Q335: a deleted account can never send again, so "comes back if
           // that person sends you a new message" was false for its thread
@@ -568,29 +569,29 @@ const Messages = () => {
           // "Former member" thread; the single-hide dialog already said
           // Recently Deleted).
           batchArchiveConfirm?.every((c) => c.otherUserId === null)
-            ? "This removes the selected conversations from your inbox. No messages are deleted, and you can restore them from Recently Deleted."
+            ? t("msg.batchDeleted")
             : batchArchiveConfirm?.some((c) => c.otherUserId === null)
-              ? "This removes the selected conversations from your inbox. No messages are deleted. A thread comes back if that person sends you a new message; one with a deleted account stays in Recently Deleted until you restore it."
-              : "This removes the selected conversations from your inbox. No messages are deleted, and a thread comes back if that person sends you a new message."
+              ? t("msg.batchMixed")
+              : t("msg.batchBody")
         }
-        primaryLabel="Hide"
+        primaryLabel={t("msg.hide")}
         primaryTone="sienna"
         primaryHaptic="warning"
         onPrimary={confirmBatchArchive}
-        secondaryLabel="Cancel"
+        secondaryLabel={t("msg.cancel")}
       />
 
       {/* Delete message confirmation */}
       <BrandConfirmDialog
         open={!!deleteMessageConfirm}
         onOpenChange={(o) => { if (!o) setDeleteMessageConfirm(null); }}
-        title="Delete message?"
-        description="This message will be permanently deleted. This can't be undone."
-        primaryLabel="Delete"
+        title={t("msg.deleteTitle")}
+        description={t("msg.deleteBody")}
+        primaryLabel={t("msg.delete")}
         primaryTone="sienna"
         primaryHaptic="warning"
         onPrimary={() => deleteMessageConfirm && deleteMessage(deleteMessageConfirm)}
-        secondaryLabel="Cancel"
+        secondaryLabel={t("msg.cancel")}
       />
     </>
   );

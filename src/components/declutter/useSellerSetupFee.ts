@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { fetchMySetupFee } from "@/lib/declutter/mySetupFee";
+import { loadModule } from "@/lib/loadModule";
 
 const SETUP_FEE_CAP_CENTS = 10_000;
 
@@ -30,9 +31,10 @@ function useLazyIdentityCheckLastAnswer(active: boolean): boolean | null {
     if (!active) return;
     let alive = true;
     let off: (() => void) | undefined;
-    import("@/lib/identityCheckSwitch")
+    loadModule(() => import("@/lib/identityCheckSwitch"))
       .then((m) => {
-        if (!alive) return;
+        // null: a prevented preload while the page reloads (loadModule); the answer stays "not known".
+        if (!alive || !m) return;
         setAnswer(m.identityCheckLastAnswer());
         off = m.subscribeIdentityCheckLastAnswer(() => setAnswer(m.identityCheckLastAnswer()));
       })
@@ -78,7 +80,12 @@ export function useSellerSetupFee(enabled = true): SellerSetupFee {
     enabled: applies,
     meta: { reportsItself: true },
     staleTime: 10 * 60_000,
-    queryFn: async () => (await import("@/hooks/useOnboardingFee")).fetchOnboardingFeeCents(),
+    queryFn: async () => {
+      const m = await loadModule(() => import("@/hooks/useOnboardingFee"));
+      // A prevented preload (the page is reloading): an error, so the fee stays "not known" and no figure shows.
+      if (!m) throw new Error("onboarding fee module did not load");
+      return m.fetchOnboardingFeeCents();
+    },
   });
   if (!enabled || !uid) return { cents: 0, unknown: false, server: false };
   if (mine.data) {

@@ -22,6 +22,7 @@ import { useManagerLabels } from "@/lib/declutter/managerMode";
 import { fetchMyOrderTalks, fetchOrderTalk, MY_ORDER_TALKS_KEY, orderTalkPhotoUrl, sendOrderMessage } from "@/lib/declutter/orderTalk";
 import { talkTime } from "@/lib/declutter/talkTime";
 import { dateDividerLabel } from "@/components/messages/chatView/chatViewHelpers";
+import { FallbackImg } from "./FallbackImg";
 import { focusSheetItself } from "./focusSheetItself";
 import { useMarkTalkRead } from "./useMarkTalkRead";
 import { Textarea } from "@/components/ui/textarea";
@@ -114,7 +115,7 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
         <SheetHero title={!t ? "Order chat" : open ? `Message the ${other}` : `Your chat with the ${other}`} />
         {(itemTitle || itemPhoto) && (
           <div className="mt-1 flex items-center gap-3" data-order-talk-head="">
-            {itemPhoto && <img src={itemPhoto} alt="" className="h-11 w-11 shrink-0 rounded-xl bg-photo-empty object-cover" data-order-talk-photo="" />}
+            {itemPhoto && <FallbackImg src={itemPhoto} alt="" className="h-11 w-11 shrink-0 rounded-xl bg-photo-empty object-cover" data-order-talk-photo="" />}
             {itemTitle && <p className="min-w-0 truncate text-ds-14 text-muted-foreground" data-order-talk-item="">About &ldquo;{itemTitle}&rdquo;</p>}
           </div>
         )}

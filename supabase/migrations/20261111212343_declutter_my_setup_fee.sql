@@ -58,6 +58,10 @@ BEGIN
    WHERE p.seller_id = v_uid
      AND p.status IN ('pending', 'failed') AND p.setup_fee_cents = 0 AND p.attempts = 0 AND NOT p.send_tried
      AND NOT EXISTS (SELECT 1 FROM public.payout_send_marks m WHERE m.payout_kind = 'declutter' AND m.payout_id = p.id)
+     -- A payout an admin released (admin_payout_release puts attempts back to 0) is not untouched either
+     -- (untouchedPayoutRulesOutRelease; a release follows a tried send, so send_tried already rules it out).
+     AND NOT EXISTS (SELECT 1 FROM public.admin_audit_log a
+                      WHERE a.action = 'admin_payout_release' AND a.target_type = 'declutter' AND a.target_id = p.id::text)
      AND p.amount_cents - v_fee >= 100
    ORDER BY
      -- Due now: declutter_payouts_due's WHERE (20261111211749), restated.

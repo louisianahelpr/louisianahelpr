@@ -3,7 +3,7 @@
  * had no idea when the money comes. Now the status says when it was handed over and the money line names the payout
  * day: 24 hours after the handover (checkWindowEnds), unless the buyer reports a problem before then.
  *
- * @mutate src/components/declutter/DeclutterPorchHandover.tsx |        ? sellerPaidWhen(sellerCents, handedOverAt, refunded \|\| problemOpen, payoutReady) |        ? null
+ * @mutate src/components/declutter/DeclutterPorchHandover.tsx |        ? sellerPaidWhen(sellerCents, handedOverAt, refunded \|\| problemOpen, payoutReady, setupPaused) |        ? null
  * F360b (lh-money-escrow review): no ready payout account, no day (the run puts the payout off); the day is a date only.
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx |   if (!payoutReady) return | if (false) return
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx |  const handedOverAt = done ? h.data?.confirmed_at ?? null : null; |  const handedOverAt = null;
@@ -27,7 +27,9 @@ vi.mock("@/lib/declutter/handover", () => ({
   fetchMyHandover: async () => ({ set_out_at: null, picked_up_at: HANDED, confirmed_at: HANDED, status: "handed_over" }),
   handoverPhotoUrl: async () => null,
 }));
-const me = vi.hoisted(() => ({ profile: { stripe_account_id: "acct_x", stripe_payouts_enabled: true } as Record<string, unknown> }));
+const me = vi.hoisted(() => ({ profile: { stripe_account_id: "acct_x", stripe_payouts_enabled: true } as Record<string, unknown>, setupPaused: false }));
+// usePayoutSetupPaused(): while payout setup is not offered, the line never sends the seller to set it up.
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => me.setupPaused }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "me" }, profile: me.profile, isAdmin: false }) }));
 vi.mock("./useMyPaidCents", () => ({ useMyPaidCents: () => new Map() }));
 
@@ -54,8 +56,13 @@ describe("the seller's handed-over card says when it was handed over and when th
 
   it("with no ready payout account it promises no day", async () => {
     me.profile = { stripe_account_id: null, stripe_payouts_enabled: false };
-    wrap(<PickupStatus orderId="o1" handover="pickup_home" side="seller" slot={null} itemsCents={3000} />);
+    const { unmount } = wrap(<PickupStatus orderId="o1" handover="pickup_home" side="seller" slot={null} itemsCents={3000} />);
     expect(await screen.findByText((_, el) => el?.textContent === "You get $30 once you set up payouts in Settings." && el.tagName === "P")).toBeInTheDocument();
+    unmount();
+    me.setupPaused = true;
+    wrap(<PickupStatus orderId="o1" handover="pickup_home" side="seller" slot={null} itemsCents={3000} />);
+    expect(await screen.findByText((_, el) => el?.textContent === "You get $30 once your payout account is ready." && el.tagName === "P")).toBeInTheDocument();
+    me.setupPaused = false;
     me.profile = { stripe_account_id: "acct_x", stripe_payouts_enabled: true };
   });
 

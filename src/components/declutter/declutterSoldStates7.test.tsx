@@ -27,7 +27,7 @@ vi.mock("@/lib/declutter/mySetupFee", () => ({ fetchMySetupFee: async () => null
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "me" } }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "declutter_refund_requests", useFeatureStatus: () => ({ on: false, settled: true, lastAnswer: false }) }));
-vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupBlock: () => null }));
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupBlock: () => null, usePayoutSetupPaused: () => false }));
 vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart, fetchMyOffers: async () => [] }));
 vi.mock("@/lib/declutter/paidCents", () => ({ fetchMyPaidCents: async () => new Map() }));
 vi.mock("@/lib/declutter/refundRequests", async (orig) => ({

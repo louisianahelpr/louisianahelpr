@@ -7,8 +7,8 @@
 --                 never the full name;
 --   avg_rating    the seller's public star average, NULL while they have no public review;
 --   review_count  how many public reviews it is from;
---   id_checked    the "ID checked" badge: Stripe Identity verified (idv_status = 'verified'), the expression
---                 get_public_profile_stats.is_id_verified and get_safe_profiles use. A badge, never a gate.
+--   id_checked    the "ID checked" badge: Stripe Identity verified, through the one rule identity_is_verified
+--                 (identityOneRule; idv_status = 'verified' on a real profile row). A badge, never a gate.
 -- The rating is get_public_profile_stats' own (newest 20261105171508): the same public reviews a member sees on the
 -- seller card (published, past the blind rule, no test data, no same-person review). Nothing else leaves: no user id,
 -- no photo, no join date, no profile link, no email or phone.
@@ -37,7 +37,7 @@ AS $fn$
   SELECT public.member_display_name(p.full_name, NULL)::text AS display_name,
          CASE WHEN COALESCE(s.review_count, 0) > 0 THEN s.avg_rating END AS avg_rating,
          COALESCE(s.review_count, 0)::integer AS review_count,
-         (p.idv_status IS NOT DISTINCT FROM 'verified') AS id_checked
+         public.identity_is_verified(p.idv_status, p.stripe_identity_verified) AS id_checked
     FROM public.declutter_items i
     JOIN public.profiles p ON p.user_id = i.seller_id
     LEFT JOIN LATERAL (

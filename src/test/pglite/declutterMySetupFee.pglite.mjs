@@ -40,6 +40,7 @@ await db.exec(`
   CREATE TABLE public.declutter_payouts (id uuid PRIMARY KEY, order_id uuid, seller_id uuid, amount_cents integer, attempts integer DEFAULT 0,
     status text DEFAULT 'pending', next_attempt_at timestamptz NOT NULL DEFAULT now(), setup_fee_cents integer DEFAULT 0, send_tried boolean DEFAULT false);
   CREATE TABLE public.payout_send_marks (payout_kind text, payout_id uuid);
+  CREATE TABLE public.admin_audit_log (action text, target_type text, target_id text);
   CREATE TABLE public.declutter_problems (order_id uuid, status text);
   CREATE TABLE public.declutter_refunds (order_id uuid, stripe_payment_intent_id text, reason text, status text);
 `);
@@ -97,7 +98,7 @@ check(r.order_id === u(12), "a seller delivery's rate counts, as the payout row 
 await db.query(`UPDATE public.declutter_orders SET handover = 'porch', delivery_cents = 0 WHERE id = $1`, [u(12)]);
 
 // Handed over: payout rows. Order 20 (held by an open problem, older next_attempt_at) and order 21 (due now).
-for (const n of [20, 21, 22, 23, 24, 25]) await order(n, S, "handed_over", 4000, 40);
+for (const n of [20, 21, 22, 23, 24, 25, 26]) await order(n, S, "handed_over", 4000, 40);
 await payout(120, 20, S, 4000, 30);
 await payout(121, 21, S, 4000, 2);
 await db.query(`INSERT INTO public.declutter_problems VALUES ($1, 'open')`, [u(20)]);
@@ -137,8 +138,11 @@ await payout(123, 23, S, 4000, 50, { sendTried: true });
 await payout(124, 24, S, 4000, 50);
 await db.query(`INSERT INTO public.payout_send_marks VALUES ('declutter', $1)`, [u(124)]);
 await payout(125, 25, S, 250, 50);
+// A row an admin released (attempts back to 0, no send_tried in this fixture) is not untouched either.
+await payout(126, 26, S, 4000, 50);
+await db.query(`INSERT INTO public.admin_audit_log VALUES ('admin_payout_release', 'declutter', $1)`, [u(126)]);
 r = await mine(S);
-check(r.order_id === u(11), "rows with a try, a send tried, a send mark or under $1 left never take it", JSON.stringify(r));
+check(r.order_id === u(11), "rows with a try, a send tried, a send mark, an admin release or under $1 left never take it", JSON.stringify(r));
 
 // Another seller sees only their own sale.
 r = await mine(OTHER);

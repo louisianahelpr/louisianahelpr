@@ -32,7 +32,7 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingThumb path={thumb} category={item.category} />\n |
  * @mutate src/components/declutter/DeclutterTabParts.tsx | data-seller-empty="">{children}</DeclutterEmptyCard> | data-plain="">{children}</DeclutterEmptyCard>
  * @mutate src/components/declutter/SellChooserEntry.tsx |       data-sell-chooser-entry=""\n      className="flex min-h-14 | data-sell-chooser-entry=""\n      className="rounded-full flex min-h-14
- * @mutate src/components/declutter/DeclutterHomeView.tsx |             <MyListingsView userId={userId} haulOn={haulOn} />\n |             <MyListingsView userId={userId} haulOn={haulOn} />\n            <SellingSettingsEntry />\n
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |             <MyListingsView userId={userId} haulOn={haulOn} search={search} onClearSearch={onClearSearch} />\n |             <MyListingsView userId={userId} haulOn={haulOn} search={search} onClearSearch={onClearSearch} />\n            <SellingSettingsEntry />\n
  * @mutate src/components/declutter/DeclutterHomeView.tsx |           <SellingSettingsEntry />\n |
  * @mutate src/components/declutter/DeclutterHomeView.tsx | end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>} | end={browse?.end}
  * @mutate src/components/declutter/DeclutterHomeView.tsx | end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>} | end={<><SectionSettingsButton settings={DECLUTTER_SETTINGS} />{browse?.end}</>}

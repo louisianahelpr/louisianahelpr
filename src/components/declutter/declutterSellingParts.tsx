@@ -7,6 +7,7 @@ import { ChevronRight, Settings } from "lucide-react";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { t } from "@/lib/i18n/language";
+import "@/lib/i18n/enDeclutter";
 
 export const SOLD = new Set<DeclutterItem["status"]>(["sold", "completed"]);
 

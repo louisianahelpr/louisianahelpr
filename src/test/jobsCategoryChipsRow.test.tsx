@@ -1,6 +1,6 @@
 /**
  * Design audit A J1 (owner approved 11-08, change 2 of 5): Jobs Browse gets the category chips row under the search
- * bar, the same pattern as Declutter. Owner 11-13 ("Where are the other categories from post a job?") replaced the
+ * bar, the same pattern as Declutter. Owner 2026-11-13 ("Where are the other categories from post a job?") replaced the
  * old "only groups with a job, busiest first, never opens an empty list" rule: "All" first, then ALL 8 Post a job
  * groups in JOB_CATEGORY_GROUPS order, always, as one scroll row, even with an empty feed. The row reads no jobs, so
  * the viewer's own (Browse-hidden) jobs cannot count toward it. A group alone on an empty list gets its own empty

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-13T19:52Z",
+  "measured_at": "2026-11-13T22:53Z",
   "issues": {
     "readable": true,
     "open": [
@@ -120,7 +120,7 @@
         "number": 4415,
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43303761610",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43501863989",
         "runTruncated": false
       },
       {

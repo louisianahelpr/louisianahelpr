@@ -320,9 +320,10 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
       filter={<BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />} />
   );
 
-  /* Phone row 2 (design audit A J1, owner 11-08): the category chips, from the feed in hand (no read of their own). */
+  /* Phone row 2 (design audit A J1, owner 11-08): the category chips. Owner 11-13: all 8 Post a job groups, always;
+     they read no jobs, so the viewer's own (hidden) jobs never count toward them. */
   const phoneBrowseChips = isWebDesktop ? undefined : (
-    <JobCategoryChips jobs={allJobs} value={filters.selectedCategory} onChange={filters.setSelectedCategory}
+    <JobCategoryChips value={filters.selectedCategory} onChange={filters.setSelectedCategory}
       saved={{ on: savedOnly, count: savedJobIds.size, onToggle: toggleSavedOnly }} />
   );
 

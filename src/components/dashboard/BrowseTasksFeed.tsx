@@ -1,6 +1,7 @@
 import { BrowseEmptyState } from "@/components/ui/BrowseEmptyState";
 import { Suspense, useCallback, useMemo, useRef, useEffect, useState } from "react";
-import { browseFilteredEmptyCopy } from "@/lib/browseEmptyCopy";
+import { browseFilteredEmptyCopy, browseGroupEmptyTitle } from "@/lib/browseEmptyCopy";
+import { JOB_CATEGORY_GROUPS, groupTileLabel } from "@/lib/jobCategoryGroups";
 import type { Dispatch, Ref, SetStateAction } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { Search } from "lucide-react";
@@ -415,18 +416,23 @@ export function BrowseTasksFeed({
         const nextMiles = currentMiles < 5 ? 10 : currentMiles < 10 ? 25 : currentMiles < 25 ? 50 : 100;
         // J10: a search is named as a search (browseEmptyCopy.ts).
         const filtered = browseFilteredEmptyCopy({ searchQuery: filters.searchQuery, activeFilterCount: filters.activeFilterCount, nearbyActive, currentMiles, nextMiles });
+        // Owner 11-13: a category chip alone on an empty group gets the group's own empty state, not "Clear filters".
+        const chipGroup = JOB_CATEGORY_GROUPS.find((g) => g.id === filters.selectedCategory);
+        const groupTitle = browseGroupEmptyTitle({ groupLabel: !chipGroup ? null : chipGroup.id === "other" ? "other" : groupTileLabel(chipGroup), activeFilterCount: filters.activeFilterCount, searchQuery: filters.searchQuery });
+        const narrowed = filters.hasFilters && !groupTitle;
         return (
       // The shared Browse empty state (owner, 2026-10-19: Homes' style, in the same place as every section's).
       <div className={BROWSE_EMPTY_SLOT} data-browse-empty-slot="">
         <BrowseEmptyState
           icon={Search}
           title={
-            filters.hasFilters
-              ? filtered.title
-              : "No jobs near you yet."
+            groupTitle
+              ?? (filters.hasFilters
+                ? filtered.title
+                : "No jobs near you yet.")
           }
           body={
-            filters.hasFilters
+            narrowed
               ? filters.boostedOnly
                 ? "No boosted jobs right now. Clear the filter to see all open work."
                 : filtered.body
@@ -444,7 +450,7 @@ export function BrowseTasksFeed({
             // side of the marketplace right here (Post your first task)
             // OR opt in to be pinged when a match lands (Notify me),
             // instead of dead-ending on body copy.
-            filters.hasFilters ? (
+            narrowed ? (
               nearbyActive ? (
                 <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
                   <BarkPillButton onClick={() => filters.setLocationFilter(`nearby:${nextMiles}`)}>

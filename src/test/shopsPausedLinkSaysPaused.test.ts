@@ -4,8 +4,8 @@
  * src/test/pglite/shopsPausedLinkSaysPaused.pglite.mjs (3x; skip red; planted defects red; "AND paused" is an
  * equivalent mutant while shop_link_visible refuses only paused shops past these checks, kept as defence).
  *
- * @mutate supabase/migrations/20261112195345_shops_paused_link_says_paused.sql | RETURN jsonb_build_object('id', v_s.id, 'name', v_s.name, 'paused', true); | RETURN jsonb_build_object('id', v_s.id, 'name', v_s.name);
- * @mutate supabase/migrations/20261112195345_shops_paused_link_says_paused.sql |        AND public.shop_state_ok(p_shop_id) THEN |        THEN
+ * @mutate supabase/migrations/20261112210500_shops_public_items_from_price.sql | RETURN jsonb_build_object('id', v_s.id, 'name', v_s.name, 'paused', true); | RETURN jsonb_build_object('id', v_s.id, 'name', v_s.name);
+ * @mutate supabase/migrations/20261112210500_shops_public_items_from_price.sql |        AND public.shop_state_ok(p_shop_id) THEN |        THEN
  * @mutate src/components/shops/PublicShopView.tsx |       ) : isPausedShop(shop.data) ? ( |       ) : false ? (
  */
 import { describe, expect, it } from "vitest";

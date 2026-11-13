@@ -18,9 +18,9 @@
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |      AND public.shop_state_ok(p_shop_id)\n     AND COALESCE | AND COALESCE
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |      AND public.shop_state_ok(p_shop_id)\n     AND COALESCE | AND public.feature_enabled_for_user('shops', (SELECT owner_id FROM public.shops WHERE id = p_shop_id)) AND public.shop_state_ok(p_shop_id) AND COALESCE
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |   SELECT public.feature_enabled_for('shops')\n     AND public.shop_state_ok(p_shop_id); |   SELECT public.feature_enabled_for('shops');
-// @mutate supabase/migrations/20261112195345_shops_paused_link_says_paused.sql |     'rating', (SELECT rr.rating FROM public.shop_review_rating(v_s.id) rr), |     'rating', (SELECT r.rating FROM public.shop_owner_rating(v_s.owner_id) r),
+// @mutate supabase/migrations/20261112210500_shops_public_items_from_price.sql |     'rating', (SELECT rr.rating FROM public.shop_review_rating(v_s.id) rr), |     'rating', (SELECT r.rating FROM public.shop_owner_rating(v_s.owner_id) r),
 // @mutate supabase/migrations/20261105230819_shops_reviews_and_rating.sql | CASE WHEN count(*) >= 3 THEN round(avg(r.stars)::numeric, 1) END | round(avg(r.stars)::numeric, 1)
-// @mutate supabase/migrations/20261112195345_shops_paused_link_says_paused.sql | 'review_count', (SELECT CASE WHEN rr.rating IS NULL THEN 0 ELSE rr.review_count END FROM | 'review_count', (SELECT rr.review_count FROM
+// @mutate supabase/migrations/20261112210500_shops_public_items_from_price.sql | 'review_count', (SELECT CASE WHEN rr.rating IS NULL THEN 0 ELSE rr.review_count END FROM | 'review_count', (SELECT rr.review_count FROM
 // @mutate supabase/functions/shop-photo/index.ts |   const rl = await checkRateLimit(req, | const rl = { allowed: true, retryAfter: 0 }; void (req,
 // @mutate supabase/functions/shop-photo/index.ts |       if (og) {\n | if (false) {\n
 // @mutate supabase/functions/shop-photo/index.ts | !(length > 0 && length <= FALLBACK_MAX_BYTES) | false
@@ -35,12 +35,12 @@
 // @mutate src/pages/shops/ShopPage.tsx |   const { settled, lastAnswer } = useFeatureStatus("shops"); |   const { lastAnswer } = useFeatureStatus("shops"); const settled = true;
 // @mutate src/pages/shops/ShopPage.tsx |   if (lastAnswer === true) return <ShopView />; |   if (useFeatureStatus("shops").on) return <ShopView />;
 // @mutate supabase/migrations/20261105230819_shops_reviews_and_rating.sql | GRANT EXECUTE ON FUNCTION public.shops_public_shop(uuid) TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.shops_public_shop(uuid) TO authenticated, service_role;
-// @mutate supabase/migrations/20261112195345_shops_paused_link_says_paused.sql |     'area_label', v_s.area_label, |     'area_label', v_s.area_label, 'owner_id', v_s.owner_id,
+// @mutate supabase/migrations/20261112210500_shops_public_items_from_price.sql |     'area_label', v_s.area_label, |     'area_label', v_s.area_label, 'owner_id', v_s.owner_id,
 // @mutate api/share.ts |     robots: SHOP_ROBOTS,\n    image: shopImage(shop), |     image: shopImage(shop),
 // @mutate vercel.json | "source": "/shops/(.*)",\n      "headers": [\n        {\n          "key": "X-Robots-Tag",\n          "value": "noindex" | "source": "/shops/(.*)",\n      "headers": [\n        {\n          "key": "X-Robots-Tag",\n          "value": "index"
 // @mutate public/robots.txt | Allow: /shops/ | Allow: /shopz/
 // @mutate src/lib/shops/publicShop.ts |     url: shopLink(shop.id), |     url: SHOP_LINK_ORIGIN,
-// @mutate supabase/migrations/20261112195345_shops_paused_link_says_paused.sql |                  'id', ph.id, 'kind', ph.photo_kind, 'position', ph.position) |                  'id', ph.id, 'kind', ph.photo_kind, 'storage_path', ph.storage_path, 'position', ph.position)
+// @mutate supabase/migrations/20261112210500_shops_public_items_from_price.sql |                  'id', ph.id, 'kind', ph.photo_kind, 'position', ph.position) |                  'id', ph.id, 'kind', ph.photo_kind, 'storage_path', ph.storage_path, 'position', ph.position)
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |        WHERE ph.id = p_photo_id AND public.shop_link_visible(ph.shop_id)) |        WHERE ph.id = p_photo_id)
 // @mutate api/share.ts | return respond(page, meta.cdnCache, 200, meta.noindexHeader === true); | return respond(page, undefined, 200, meta.noindexHeader === true);
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";

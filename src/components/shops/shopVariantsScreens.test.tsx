@@ -178,7 +178,7 @@ describe("the owner's Options section", () => {
     fireEvent.click(remove);
     expect(await screen.findByText("Remove all options?")).toBeTruthy();
     expect(variants.saveItemOptions).not.toHaveBeenCalled();
-    fireEvent.click(screen.getAllByRole("button", { name: "Remove all options" }).at(-1)!);
+    fireEvent.click(screen.getAllByRole("button", { name: "Remove all options" }).slice(-1)[0]);
     await waitFor(() => expect(variants.saveItemOptions).toHaveBeenCalled());
   });
 

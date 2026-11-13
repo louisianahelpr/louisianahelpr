@@ -5,7 +5,8 @@
  * (identical at the normal size), so all of its words grow. This guard keeps a new text-xs / text-sm out.
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, resolve } from "node:path";
 
 const ROOT = resolve(__dirname, "../..");

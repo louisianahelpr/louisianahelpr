@@ -131,7 +131,7 @@ describe("row 1: the title, the bell and the photo; the search is the row under 
   it("the bell's badge is notifications + messages unread, and its name says both", () => {
     setNotificationUser("u-v");
     setUnreadTotal(5);
-    stores.set("u-v", { count: 3, listeners: new Set(), publish: () => {}, close: () => {} });
+    stores.set("u-v", { count: 3, messages: 3, listeners: new Set(), publish: () => {}, setShop: () => {}, close: () => {} });
     notifyUnreadWatchers();
     render(<MemoryRouter><NotificationBell withMessages /></MemoryRouter>);
     expect(screen.getByRole("button", { name: "Notifications and messages, 8 unread" }).textContent).toBe("8");

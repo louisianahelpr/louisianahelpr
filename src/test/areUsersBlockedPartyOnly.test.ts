@@ -209,6 +209,7 @@ const EXPECTED_CALLERS = [
   "shop_custom_request_sweep", // S045 (20261112091830): the cron; (the request's buyer, its shop's owner), two parties, service_role
   "shop_items_tell_followers", // L92 follow alerts (20261112070000): a trigger; (the follower, the shop's owner), two parties
   "shop_mark_order_held",
+  "shop_orders_custom_request_reopen", // S2-020 (20261112224850): a trigger; (the request's buyer, its shop's owner), two parties
   "shops_accept_order",
   // Shops custom orders (20261106202917, 20261106205852): send/quote/order pass v_uid := auth.uid() vs the
   // shop's owner or the request's buyer; decline and my_custom_requests pass (the request's buyer, its shop's
@@ -219,6 +220,9 @@ const EXPECTED_CALLERS = [
   // Q1947 (20261105225245): open_order_talk passes (the order's buyer, the shop's owner) only after refusing a caller
   // who is neither (order_not_found), so the caller is always one of the two.
   "shops_open_order_talk",
+  // S2-018 (20261112223654): open_request_talk passes (the request's buyer, the shop's owner) after refusing a caller who
+  // is neither (request_not_found), so the caller is always one of the two.
+  "shops_open_request_talk",
   // Shops H1 (20261105185006): open_talk passes v_uid := auth.uid() vs the shop's owner; talk_view and
   // send_talk_message pass (the talk's buyer, the shop's owner) only after shop_talk_side(talk, auth.uid())
   // refused a caller who is neither, so the caller is always one of the two.

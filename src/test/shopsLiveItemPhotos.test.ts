@@ -3,7 +3,7 @@
  * database is src/test/pglite/shopsLiveItemPhotos.pglite.mjs (3x; skip red; 12 planted defects red).
  *
  * @mutate supabase/migrations/20261112204756_shops_live_item_photos.sql | IF v_item.status = 'live' AND (SELECT count(*) FROM public.shop_item_photos WHERE item_id = v_item_id) <= 3 THEN | IF false THEN
- * @mutate supabase/migrations/20261112204756_shops_live_item_photos.sql |   IF v_item.status = 'live' AND v_flag IS NOT NULL THEN |   IF false THEN
+ * @mutate supabase/migrations/20261112222000_shops_item_rules_s2.sql |   IF v_item.status = 'live' AND (v_flag IS NOT NULL OR v_recent_reject) THEN |   IF false THEN
  * @mutate supabase/functions/declutter-ai-draft/index.ts | .in("status", mode === "check" ? ["draft", "live"] : ["draft"]) | .in("status", ["draft"])
  */
 import { describe, expect, it } from "vitest";

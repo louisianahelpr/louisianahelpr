@@ -1061,6 +1061,9 @@ describe("Popup grammar — footer", () => {
     // Opt-out prompts, not confirms. Adding a name here is a deliberate
     // statement that the surface is an invitation being declined.
     const DECLINE_LABELS = new Set([
+      // S2-003 (ShopItemOptionsEditor, 2026-11-12): "Remove all options?" on switching an item to a download; "Keep them" keeps the
+      // option lists (the switch is not made), which "Cancel" would not say.
+      "Keep them",
       // F261a (ProfileEditForm, eda6b23bce): the unsaved-edits prompt's dismiss keeps the member in the form; "Keep editing" says so, "Cancel" would read as cancel the edits.
       "Keep editing",
       // "It's gone" answers the still-available ask: it ends the listing as gone elsewhere (an answer, not a dismissal).

@@ -10,7 +10,7 @@
 // @mutate supabase/migrations/20261112052501_names_hidden_wanted_listed_shop_talk.sql | 'seller_name', CASE WHEN public.declutter_names_hidden(v_uid, o.seller_id) THEN | 'seller_name', CASE WHEN false THEN
 // @mutate supabase/migrations/20261112052501_names_hidden_wanted_listed_shop_talk.sql | CASE WHEN public.declutter_names_hidden(l.seller_id, l.helpr_id) THEN '' | CASE WHEN false THEN ''
 // @mutate supabase/migrations/20261112052501_names_hidden_wanted_listed_shop_talk.sql |                     WHEN public.declutter_names_hidden(s.owner_id, t.buyer_id) THEN 'A shopper'\n                    ELSE |                     WHEN false THEN 'A shopper'\n                    ELSE
-// @mutate supabase/migrations/20261112052501_names_hidden_wanted_listed_shop_talk.sql |                         WHEN public.declutter_names_hidden(s.owner_id, t.buyer_id) THEN 'A shopper'\n                        ELSE |                         WHEN false THEN 'A shopper'\n                        ELSE
+// @mutate supabase/migrations/20261112223654_shops_check_sweep_request_talk.sql |                         WHEN public.declutter_names_hidden(s.owner_id, t.buyer_id) THEN 'A shopper'\n                        ELSE |                         WHEN false THEN 'A shopper'\n                        ELSE
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -22,8 +22,10 @@ const MIG = /20261112052501_names_hidden_wanted_listed_shop_talk\.sql$/;
 
 describe("no name across a block or a ban: My Wanted, Listed for you, Shops chat", () => {
   it("reads the newest definitions (floor)", () => {
+    // shops_talk_view was restated by S2-018/S2-026 (20261112223654: the closed-chat flag); the name rule below still reads it.
+    const NEWER: Record<string, RegExp> = { shops_talk_view: /20261112223654_shops_check_sweep_request_talk\.sql$/ };
     for (const fn of ["declutter_my_wanted", "declutter_listed_for_me", "shops_my_talks", "shops_talk_view"]) {
-      expect(defs.get(fn)?.file, fn).toMatch(MIG);
+      expect(defs.get(fn)?.file, fn).toMatch(NEWER[fn] ?? MIG);
       expect(body(fn).length, fn).toBeGreaterThan(600);
     }
   });

@@ -2,10 +2,9 @@
  * S2-038 (Shops audit 2): a signed-out visitor taps an item on a shared shop page and reads it (photos, price, what it
  * is, description) with one way in: "Sign up to order". Read-only; ordering is the member page's item sheet.
  */
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { House, ShoppingBag } from "lucide-react";
-import { Sheet, SheetContent, SheetFooter, SheetHero } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { focusSheetItself } from "@/components/declutter/focusSheetItself";
 import { formatItemPrice, HOME_KITCHEN_NOTICE, readinessLabel, SHOP_ITEM_TYPE_LABEL } from "@/lib/shops/items";
 import { publicPhotoUrl, type PublicShop } from "@/lib/shops/publicShop";
@@ -13,6 +12,7 @@ import { publicPhotoUrl, type PublicShop } from "@/lib/shops/publicShop";
 type PublicItem = PublicShop["items"][number];
 
 export default function PublicShopItemSheet({ item, signupTo, onClose }: { item: PublicItem | null; signupTo: string; onClose: () => void }) {
+  const navigate = useNavigate();
   return (
     <Sheet open={item !== null} onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-public-item-sheet="">
@@ -46,9 +46,7 @@ export default function PublicShopItemSheet({ item, signupTo, onClose }: { item:
               )}
             </div>
             <SheetFooter>
-              <Button asChild className="btn-grad-primary w-full rounded-full">
-                <Link to={signupTo}>Sign up to order</Link>
-              </Button>
+              <SheetPrimaryAction type="button" onClick={() => navigate(signupTo)}>Sign up to order</SheetPrimaryAction>
             </SheetFooter>
           </>
         )}

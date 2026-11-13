@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { fetchMyCustomRequests, type CustomRequest } from "@/lib/shops/customRequests";
 import { closeCustomRequest, formatCents } from "@/lib/shops/orders";
@@ -68,6 +69,7 @@ export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop
       <section className="space-y-2" role="alert" aria-labelledby={`shop-custom-requests-${side}`} data-testid="shop-custom-requests-error">
         <h2 id={`shop-custom-requests-${side}`} className="text-ds-13 font-semibold">Custom requests</h2>
         <p className="text-ds-13 text-destructive-ink">We couldn't load your custom requests.</p>
+        <ReportErrorScreen source="ShopCustomRequestsList.load" title="We couldn't load your custom requests." />
         <Button type="button" size="sm" variant="outline" onClick={() => void list.refetch()}>Try again</Button>
       </section>
     );

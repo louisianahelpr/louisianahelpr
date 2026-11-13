@@ -70,7 +70,7 @@ export default function ShopCustomRequestSheet({ shopId }: { shopId: string }) {
           />
           <p className="text-ds-11 text-muted-foreground">{text.length}/{CUSTOM_REQUEST_MAX}. No phone numbers, emails or links.</p>
           <Label htmlFor="shop-custom-request-need-by">Need it by (optional)</Label>
-          <Input id="shop-custom-request-need-by" type="date" value={needBy} min={bounds.min} max={bounds.max}
+          <Input id="shop-custom-request-need-by" type="date" className="min-w-0" value={needBy} min={bounds.min} max={bounds.max}
             onChange={(e) => setNeedBy(e.target.value)} aria-describedby="shop-custom-request-need-by-hint" />
           <p id="shop-custom-request-need-by-hint" className="text-ds-11 text-muted-foreground">
             If the shop hasn&apos;t answered by then, the request ends.

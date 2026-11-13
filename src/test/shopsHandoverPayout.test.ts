@@ -268,8 +268,11 @@ describe("Shops M2: the handover and the shop's payout keep their gates (2026101
     }
     const sheet = blankComments(readFileSync(join(ROOT, "src/components/shops/ShopOrderSheet.tsx"), "utf8"));
     expect(sheet).toMatch(/cancelPolicyText\(t\.cancel_policy,\s*t\.ready_tap_cancel\)/);
+    // S2-044 (2026-11-12): the card reads orderCancelLine(order), which falls back to the order's frozen rule words.
     const card = blankComments(readFileSync(join(ROOT, "src/components/shops/ShopOrderCard.tsx"), "utf8"));
-    expect(card).toMatch(/cancelPolicyText\(order\.cancel_policy,\s*order\.ready_tap_cancel\)/);
+    expect(card).toMatch(/orderCancelLine\(order\)/);
+    const orders = blankComments(readFileSync(join(ROOT, "src/lib/shops/orders.ts"), "utf8"));
+    expect(orders).toMatch(/cancelPolicyText\(order\.cancel_policy,\s*order\.ready_tap_cancel\)/);
   });
 
   it("5. no code anywhere in the Shops handover (owner 2026-10-18)", () => {

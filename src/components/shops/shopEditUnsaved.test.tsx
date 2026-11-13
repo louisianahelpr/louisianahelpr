@@ -123,7 +123,8 @@ describe("the back arrow asks before leaving unsaved edits", () => {
     fireEvent.click(screen.getByRole("button", { name: "Go back" }));
     expect(await screen.findByText("Leave without saving?")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
-    await waitFor(() => expect(screen.queryByText("Leave without saving?")).toBeNull());
+    // Keep editing closes the prompt at once (it was on screen just above), so no wait is needed or vacuous.
+    expect(screen.queryByText("Leave without saving?")).toBeNull();
     expect(screen.queryByText("Shops home")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Go back" }));
     fireEvent.click(await screen.findByRole("button", { name: "Leave" }));

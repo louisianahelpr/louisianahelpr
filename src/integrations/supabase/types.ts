@@ -13835,6 +13835,8 @@ export type Database = {
       shop_item_private: {
         Row: {
           admin_rejected_at: string | null
+          ai_check_attempts: number
+          ai_check_last_try_at: string | null
           ai_checked_at: string | null
           ai_flag_reason: string | null
           item_id: string
@@ -13845,6 +13847,8 @@ export type Database = {
         }
         Insert: {
           admin_rejected_at?: string | null
+          ai_check_attempts?: number
+          ai_check_last_try_at?: string | null
           ai_checked_at?: string | null
           ai_flag_reason?: string | null
           item_id: string
@@ -13855,6 +13859,8 @@ export type Database = {
         }
         Update: {
           admin_rejected_at?: string | null
+          ai_check_attempts?: number
+          ai_check_last_try_at?: string | null
           ai_checked_at?: string | null
           ai_flag_reason?: string | null
           item_id?: string
@@ -23415,6 +23421,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      shops_check_sweep_claim: {
+        Args: { p_limit?: number }
+        Returns: {
+          sweep_attempt: number
+          sweep_item_id: string
+          sweep_owner_id: string
+        }[]
+      }
+      shops_check_sweep_give_back: { Args: { p_item_id: string }; Returns: number }
       shops_clear_pickup_address_refused: {
         Args: { p_address_updated_at: string; p_shop_id: string }
         Returns: boolean

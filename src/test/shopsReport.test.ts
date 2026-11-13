@@ -79,7 +79,7 @@ describe("a shop or shop item can be reported (Shops H2)", () => {
     expect(view).toContain("<ShopItemsList shopId={s.id} reportable={!s.mine} orderable=");
     const pub = src("src/components/shops/PublicShopView.tsx");
     expect(pub).toContain("<ShopReportShop shopId={shop.id} signedIn={signedIn} />");
-    expect(pub).toContain("<ShopItemsGrid items={shop.items} reportable={signedIn} />");
+    expect(pub).toContain("<ShopItemsGrid items={shop.items} reportable={signedIn} "); // S2-038 adds From prices and the read-only sheet
     const report = src("src/components/shops/ShopReport.tsx");
     expect(report).toContain('reportedType="shop"');
     expect(report).toContain('reportedType="shop_item"');

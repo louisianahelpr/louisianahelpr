@@ -9,9 +9,11 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
  * given the empty state to show in its place only when it has nothing either. Declutter's order chats were a Lead
  * until F420 (audit 11-10); they are now rows in the list itself (ConversationListBody, OrderTalkRow).
  */
+/** A panel that leads a section's inbox (S2-016: the shop chats), given the empty box to show when it has nothing. */
+export type InboxLeadPanel = ComponentType<{ empty: ReactNode }>;
 export type SectionEmpty = {
   icon: LucideIcon; title: string; body: string; action?: { label: string; to: string };
-  Lead?: ComponentType<{ empty: ReactNode }>;
+  Lead?: InboxLeadPanel;
 };
 
 /** The same EmptyState box as the Jobs inbox's, with the section's own icon and words. */

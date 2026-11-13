@@ -6,6 +6,7 @@
  * reading a chat) refreshes the badge too.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 
 /** Messages' query (its chips and "Unread · n"); under MY_SHOP_TALKS_KEY, so reading or sending a chat refreshes it. */
 export const SHOP_TALKS_SUMMARY_KEY = ["shops", "my-talks", "summary"] as const;
@@ -22,9 +23,15 @@ export interface ShopTalkSummary {
 
 /** Throws on a failed read (the badge then keeps what it had). */
 export async function fetchShopTalkSummary(): Promise<ShopTalkSummary> {
-  const { data, error } = await supabase.rpc("shops_my_talks");
-  if (error) throw error;
-  return summarizeShopTalks(data as unknown);
+  const res = await supabase.rpc("shops_my_talks");
+  if (res.error) {
+    // The Shops words load only on a failed read, so the badge every signed-in page mounts carries no error table;
+    // unwrap() then throws with those words, the code and the HTTP status kept.
+    const { rpcErrorMessage } = await import("./rpcErrorCopy");
+    const words = rpcErrorMessage("shops_my_talks", res.error);
+    return summarizeShopTalks(unwrap({ ...res, error: words ? { ...res.error, message: words } : res.error }) as unknown);
+  }
+  return summarizeShopTalks(unwrap(res) as unknown);
 }
 
 export function summarizeShopTalks(rows: unknown): ShopTalkSummary {

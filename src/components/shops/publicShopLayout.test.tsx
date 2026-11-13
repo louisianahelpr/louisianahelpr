@@ -7,7 +7,7 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
@@ -43,10 +43,15 @@ function mount() {
   render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[`/s/${ID}`]}>
-        <Routes><Route path="/s/:id" element={<PublicShopView />} /></Routes>
+        <Routes><Route path="/s/:id" element={<PublicShopView />} /><Route path="/signup" element={<SignupProbe />} /></Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
+}
+/** Where "Sign up to order" lands (the sheet's footer action navigates, as every sheet primary does). */
+function SignupProbe() {
+  const loc = useLocation();
+  return <p data-testid="signup-at">{loc.pathname + loc.search}</p>;
 }
 
 describe("S2-039: the signed-out shop page layout", () => {
@@ -80,8 +85,8 @@ describe("S2-038: signed-out items", () => {
     fireEvent.click(screen.getByRole("button", { name: "Soy candle" }));
     const sheet = await screen.findByText("About Soy candle");
     expect(sheet).toBeTruthy();
-    const signup = screen.getByRole("link", { name: "Sign up to order" });
-    expect(signup.getAttribute("href")).toBe(`/signup?redirect=${encodeURIComponent(`/shops/${ID}`)}`);
     expect(screen.queryByRole("button", { name: /Add to order/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Sign up to order" }));
+    expect((await screen.findByTestId("signup-at")).textContent).toBe(`/signup?redirect=${encodeURIComponent(`/shops/${ID}`)}`);
   });
 });

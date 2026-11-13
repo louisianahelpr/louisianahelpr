@@ -577,7 +577,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - nightly-live-smoke: issue #4270, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43150645008. feed: issue #4270 · feed: ledger feb363ff214a
   - main: Vitest: issue #4302, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43453286241. feed: issue #4302 · feed: ledger f22e3275d50d
   - e2e-abuse-notifications: issue #4340, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42860928141. feed: issue #4340 · feed: ledger 5be6011a46f6
-  - db-drift-detect: issue #4415, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43303761610. feed: issue #4415 · feed: ledger 8018e82cb167
+  - db-drift-detect: issue #4415, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43501863989. feed: issue #4415 · feed: ledger 8018e82cb167
   - schedule-heartbeat: issue #4451, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43483871157. feed: issue #4451 · feed: ledger 4aa239aefeb6
   - main: Sensitive review record: issue #4453, newest red run: see the issue's latest comment. feed: issue #4453 · feed: ledger e41c806b9175
   - prod-errors: issue #4554, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43479537941. feed: issue #4554

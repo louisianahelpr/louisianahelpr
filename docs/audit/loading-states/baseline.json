@@ -3,30 +3,6 @@
   "generated": "2026-11-07T00:57:09.247Z",
   "allow": [
     {
-      "key": "helper /complete-profile #0",
-      "kind": "jump",
-      "path": "div[data-testid=\"home-dashboard\"] > section",
-      "was": "row 22px → 132px (+110px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
-      "key": "helper /complete-profile #0",
-      "kind": "rows",
-      "path": "div[data-testid=\"home-dashboard\"] > section",
-      "was": "4 placeholder row(s) → 2 real row(s), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
-      "key": "helper /home #0",
-      "kind": "jump",
-      "path": "div[data-testid=\"home-dashboard\"] > section",
-      "was": "row 22px → 132px (+110px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
-      "key": "helper /home #0",
-      "kind": "rows",
-      "path": "div[data-testid=\"home-dashboard\"] > section",
-      "was": "4 placeholder row(s) → 2 real row(s), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
       "key": "customer /profile?tab=earnings #0",
       "kind": "jump",
       "path": "main#main-content > div > div > div",
@@ -61,30 +37,6 @@
       "kind": "jump",
       "path": "main#main-content > div > div > div",
       "was": "row 744px → 695px (-49px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
-      "key": "customer /profile?tab=availability #0",
-      "kind": "jump",
-      "path": "main#main-content > div > div > div",
-      "was": "row 85px → 102px (+17px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
-      "key": "customer /profile?tab=availability #0",
-      "kind": "rows",
-      "path": "main#main-content > div > div > div",
-      "was": "3 placeholder row(s) → 4 real row(s), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
-      "key": "helper /profile?tab=availability #0",
-      "kind": "jump",
-      "path": "main#main-content > div > div > div",
-      "was": "row 85px → 102px (+17px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
-      "key": "helper /profile?tab=availability #0",
-      "kind": "rows",
-      "path": "main#main-content > div > div > div",
-      "was": "3 placeholder row(s) → 4 real row(s), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
     },
     {
       "key": "customer /profile?tab=payment #0",
@@ -160,21 +112,9 @@
     },
     {
       "key": "customer /profile?tab=notifications #0",
-      "kind": "rows",
-      "path": "main#main-content > div > div > div",
-      "was": "2 placeholder row(s) → 3 real row(s), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
-      "key": "customer /profile?tab=notifications #0",
       "kind": "media",
       "path": "main#main-content > div > div > div",
       "was": "17 avatar/media bone(s) → 40 real, loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
-      "key": "helper /profile?tab=notifications #0",
-      "kind": "rows",
-      "path": "main#main-content > div > div > div",
-      "was": "2 placeholder row(s) → 3 real row(s), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
     },
     {
       "key": "helper /profile?tab=notifications #0",
@@ -207,12 +147,6 @@
       "was": "row 288px → 241px (-47px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
     },
     {
-      "key": "customer /profile?tab=payout_history #0",
-      "kind": "rows",
-      "path": "main#main-content > div > div > div",
-      "was": "2 placeholder row(s) → 3 real row(s), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
       "key": "customer /profile?tab=receipts #0",
       "kind": "jump",
       "path": "main#main-content > div > div > div",
@@ -223,24 +157,6 @@
       "kind": "media",
       "path": "main#main-content > div > div > div",
       "was": "1 avatar/media bone(s) → 5 real, loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
-      "key": "helper /posts #0",
-      "kind": "jump",
-      "path": "main#main-content > div > div > div",
-      "was": "row 625px → 687px (+62px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
-      "key": "customer /user/7b923b19-aba5-44cb-8730-8c33ba2b9321 #0",
-      "kind": "jump",
-      "path": "div[data-testid=\"user-profile-forward-wait\"] > div:nth-of-type(2) > div > div > div:nth-of-type(1) > div:nth-of-type(1)",
-      "was": "row 121px → 103px (-18px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
-      "key": "customer /messages #0",
-      "kind": "jump",
-      "path": "main#main-content > div > div > div > div > section > div > div > div > div:nth-of-type(1)",
-      "was": "row 82px → 60px (-22px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
     },
     {
       "key": "customer /shops/mine #0",

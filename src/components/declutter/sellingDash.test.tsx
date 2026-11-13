@@ -20,7 +20,7 @@
  * Owner 11-13: Selling's bar searches the seller's own listings in place (a field, never the Browse link).
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   const sellingBar = view === "selling" |   const sellingBar = view === "never"
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   const list = searching ? all.filter((i) => matchesListingSearch(i, search)) : all; |   const list = all;
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   const hay = fold(`${item.title ?? ""} ${item.description ?? ""}`); |   const hay = fold(item.title ?? "");
+ * @mutate src/components/declutter/declutterSellingParts.tsx |   const hay = fold(`${item.title ?? ""} ${item.description ?? ""}`); |   const hay = fold(item.title ?? "");
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   const sellingQ = mineSearch.tab === view ? mineSearch.q : ""; |   const sellingQ = mineSearch.q;
  * @mutate src/components/declutter/DeclutterHomeView.tsx | : <ExploreSearchEntry variant="icon" /> } | : <ExploreSearchEntry /> }
  * @mutate src/components/declutter/DeclutterHomeView.tsx | : <ExploreSearchEntry variant="icon" /> } | : undefined }
@@ -36,15 +36,15 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |           <SellingSettingsEntry />\n |
  * @mutate src/components/declutter/DeclutterHomeView.tsx | end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>} | end={browse?.end}
  * @mutate src/components/declutter/DeclutterHomeView.tsx | end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>} | end={<><SectionSettingsButton settings={DECLUTTER_SETTINGS} />{browse?.end}</>}
- * @mutate src/components/declutter/DeclutterHomeView.tsx | path: "/declutter/settings" } as const; | path: "/declutter" } as const;
+ * @mutate src/components/declutter/declutterSellingParts.tsx | path: "/declutter/settings" } as const; | path: "/declutter" } as const;
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("taken") && <TakenDownSection items={takenDown} ended={ended} />} |
  * @mutate src/components/declutter/DeclutterMineViews.tsx | (i) => i.status === "withdrawn" \|\| i.status === "sold_elsewhere") | (i) => i.status === "never" \|\| i.status === "sold_elsewhere")
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "sold") return tr("decl.st.claimedWaiting"); |   void 0;
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "reserved") return tr("decl.st.claimed"); |   void 0;
  * @mutate src/components/declutter/DeclutterItemView.tsx | title={t("decl.yourListing", { status: sellerStatusLabel(it, tradedFor.get(it.id) ?? null) })} | title={t("decl.yourListing", { status: t(`decl.st.${it.status}` as MsgKey) })}
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   const cents = SOLD.has(item.status) ? sold : item.current_price_cents; |   const cents = item.current_price_cents;
+ * @mutate src/components/declutter/declutterSellingParts.tsx |   const cents = SOLD.has(item.status) ? sold : item.current_price_cents; |   const cents = item.current_price_cents;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} /> |                 <ListingPrice item={item} sold={item.current_price_cents} />
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   if (cents === undefined) return null; |   if (cents === undefined) return <span data-listing-price="">{itemPriceLabel(item.current_price_cents)}</span>;
+ * @mutate src/components/declutter/declutterSellingParts.tsx |   if (cents === undefined) return null; |   if (cents === undefined) return <span data-listing-price="">{itemPriceLabel(item.current_price_cents)}</span>;
  * @mutate src/components/declutter/listingStatusLine.ts |   return paid ? `${base} · ${paid}` : base; |   return base;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |     return orderId ? (payouts.data ?? []).find((p) => p.order_id === orderId) ?? null : null; |     return (payouts.data ?? [])[0] ?? null;
  * @mutate src/lib/declutter/soldPayout.ts |   if (saleCents === undefined \|\| saleCents === 0) return null; |   if (saleCents === undefined) return null;

@@ -134,7 +134,7 @@ describe("Sell it for me: the entry", () => {
     const home = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/DeclutterHomeView.tsx"), "utf8"));
     // Owner 2026-10-30: under the listings, "More ways to sell" is ONE row to the sell chooser (so the empty state shows
     // it too), whose "Have a Helpr list it for me" is this option A (src/components/declutter/declutterSellChooser.test.tsx).
-    expect(home).toMatch(/<MyListingsView userId=\{userId\} haulOn=\{haulOn\} \/>[\s\S]{0,600}?<SellChooserEntry movingOutOn=\{movingOutOn\} \/>/);
+    expect(home).toMatch(/<MyListingsView userId=\{userId\} haulOn=\{haulOn\} search=\{search\} onClearSearch=\{onClearSearch\} \/>[\s\S]{0,600}?<SellChooserEntry movingOutOn=\{movingOutOn\} \/>/);
     // A NEW listing is the one screen (owner 2026-10-29); a saved draft keeps the step form, without the entry.
     const sell = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/SellOneScreen.tsx"), "utf8"));
     expect(sell).toMatch(/<SellItForMeEntry \/>/);

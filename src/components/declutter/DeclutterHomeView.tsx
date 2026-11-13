@@ -25,10 +25,9 @@ import { ManagerPanelGate } from "./ManagerPanelGate";
 import { BoughtWhatNext } from "./BoughtWhatNext";
 import { fetchMySales, fetchOpenFreeRequestCounts, fetchPhotos, fetchDropStates, photoPublicUrl, withdrawItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchMyPayouts } from "@/lib/declutter/handover";
 import { listingNextStep, listingRowLine } from "./listingStatusLine";
-import { ChevronRight, Settings, Tags } from "lucide-react";
+import { Tags } from "lucide-react";
 import { ListingShareButton } from "./DeclutterShareCard";
 import { SellChooserEntry } from "./SellChooserEntry";
 import { useTradedFor } from "./useMyTrades";
@@ -80,6 +79,7 @@ import { myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQu
 import { useOpenProblems } from "./useOpenProblems";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { t, useLanguage } from "@/lib/i18n/language";
+import { DECLUTTER_SETTINGS, ListingPrice, matchesListingSearch, SellingSettingsEntry, SOLD } from "./declutterSellingParts";
 import "@/lib/i18n/enDeclutter";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
@@ -96,35 +96,6 @@ const WantedView = lazy(() => import("./DeclutterWantedViews").then((m) => ({ de
 // Opened from a listing's Manage button (or a price-drop notice), never part of the first screen.
 const ManageListingSheet = lazy(() => import("./DeclutterManageListing").then((m) => ({ default: m.ManageListingSheet })));
 const FreeView = lazy(() => import("./DeclutterFreeView").then((m) => ({ default: m.FreeView })));
-const SOLD = new Set<DeclutterItem["status"]>(["sold", "completed"]);
-
-/**
- * A listing row's price. A sold one shows what it sold for (deep audit SE-5: $40 listed, sold for $32), and nothing
- * while that is unknown, never the list price in its place.
- */
-function ListingPrice({ item, sold }: { item: DeclutterItem; sold: number | undefined }) {
-  const cents = SOLD.has(item.status) ? sold : item.current_price_cents;
-  if (cents === undefined) return null;
-  return (
-    <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]" data-listing-price="">
-      {itemPriceLabel(cents)}
-    </span>
-  );
-}
-
-/**
- * Owner 11-13 ("I'm trying to look in my items I'm selling"): Selling's search bar filters the seller's own rows in
- * place, by title and description, case and accents ignored. The whole list is already loaded (fetchMyItems reads
- * every listing), so this is a plain filter on the device, never a server round.
- */
-const fold = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-export function matchesListingSearch(item: Pick<DeclutterItem, "title" | "description">, q: string): boolean {
-  const words = fold(q).split(/\s+/).filter(Boolean);
-  if (words.length === 0) return true;
-  const hay = fold(`${item.title ?? ""} ${item.description ?? ""}`);
-  return words.every((w) => hay.includes(w));
-}
-
 /** Exported for the admin Declutter stage preview (Q2585), which draws Selling on sample data. */
 export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: { userId: string; haulOn: boolean; search?: string; onClearSearch?: () => void }) {
   const qc = useQueryClient();
@@ -437,26 +408,6 @@ function SellingView({ userId, haulOn, movingOutOn, todo, search, onClearSearch 
     </div>
   );
 }
-
-/** Selling's one row to the seller's settings, in the same row look as "Deliver for pay" under it. */
-function SellingSettingsEntry() {
-  return (
-    <Link
-      to={DECLUTTER_SETTINGS.path}
-      data-selling-settings=""
-      className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <Settings className="h-5 w-5 shrink-0" aria-hidden />
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold">{t("decl.hv.settings")}</span>
-        <span className="block text-xs text-muted-foreground">{t("decl.hv.settingsSub")}</span>
-      </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-    </Link>
-  );
-}
-
-const DECLUTTER_SETTINGS = { get label() { return t("decl.hv.settings"); }, path: "/declutter/settings" } as const;
 
 const MINE_TABS = ["buying", "selling", "deliver"] as const; // Deliver tab: owner 2026-10-28
 // The Wanted tab (owner 2026-10-28, "Both": the tab AND Browse's bottom link), only while 'declutter_wanted' is on.

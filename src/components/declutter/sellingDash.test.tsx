@@ -17,9 +17,13 @@
  * @mutate src/components/ui/ToggleChip.tsx | : "border border-foreground/25 bg-background text-foreground", | : "btn-grad-primary",
  * @mutate src/components/declutter/DeclutterHomeView.tsx | title="Declutter" globalSearch={false} search={head.search} | title="Declutter" globalSearch={view === "deliver"} search={head.search}
  * LEAD-SEARCH-ALL-TABS (owner 2026-10-31): the icon is on Buying and Selling too, matching Jobs.
- * @mutate src/components/declutter/DeclutterHomeView.tsx | const head = chrome(desktop ? { end: <ExploreSearchEntry variant="icon" /> } : undefined); | const head = chrome(desktop \&\& view !== "buying" \&\& view !== "selling" ? { end: <ExploreSearchEntry variant="icon" /> } : desktop ? {} : undefined);
- * @mutate src/components/declutter/DeclutterHomeView.tsx | { end: <ExploreSearchEntry variant="icon" /> } | { end: <ExploreSearchEntry /> }
- * @mutate src/components/declutter/DeclutterHomeView.tsx | { end: <ExploreSearchEntry variant="icon" /> } | undefined
+ * Owner 11-13: Selling's bar searches the seller's own listings in place (a field, never the Browse link).
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |   const sellingBar = view === "selling" |   const sellingBar = view === "never"
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |   const list = searching ? all.filter((i) => matchesListingSearch(i, search)) : all; |   const list = all;
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |   const hay = fold(`${item.title ?? ""} ${item.description ?? ""}`); |   const hay = fold(item.title ?? "");
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |   const sellingQ = mineSearch.tab === view ? mineSearch.q : ""; |   const sellingQ = mineSearch.q;
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | : <ExploreSearchEntry variant="icon" /> } | : <ExploreSearchEntry /> }
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | : <ExploreSearchEntry variant="icon" /> } | : undefined }
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | <SectionScreen section="declutter" title="Declutter" globalSearch={false} | <SectionScreen section="declutter" title="Declutter"
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                   <p data-listing-status={item.status} title={statusLine}\n |                   <p data-listing-status={item.status}>{sellerStatusLabel(item)}</p><p data-listing-status={item.status} title={statusLine}\n
  * @mutate src/components/declutter/DeclutterMineViews.tsx | pb-1 pl-3 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] | pb-1 px-3
@@ -138,10 +142,11 @@ vi.mock("@/hooks/useUserLocation", () => ({
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/components/sections/SectionScreen", () => ({
   // The real SectionScreen draws Explore's "Search all sections" field when globalSearch is on (its default).
-  SectionScreen: ({ title, children, tabs, globalSearch = true }: { title: string; children: React.ReactNode; tabs?: React.ReactNode; globalSearch?: boolean }) => (
+  SectionScreen: ({ title, children, tabs, search, globalSearch = true }: { title: string; children: React.ReactNode; tabs?: React.ReactNode; search?: React.ReactNode; globalSearch?: boolean }) => (
     <main>
       <h1>{title}</h1>
       {globalSearch && <button type="button">Search all sections</button>}
+      {search}
       {tabs}
       {children}
     </main>
@@ -294,8 +299,9 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
 
   // LEAD-DECL-SEARCHBAR (owner 2026-10-31): the field (the mock's button) is on no tab; the search is the icon link
   // right before the gear. LEAD-SEARCH-ALL-TABS (owner 2026-10-31): on every tab, Buying and Selling included.
+  // Owner 11-13: Selling's own field takes the icon's place there (the next describe).
   it.each([
-    ["buying", true], ["selling", true], ["deliver", true], ["wanted", true], ["free", true],
+    ["buying", true], ["deliver", true], ["wanted", true], ["free", true],
   ] as const)("the %s tab: no search bar, and the search icon by the gear: %s", async (tab, icon) => {
     const view = at(`/declutter?tab=${tab}`);
     const gear = await screen.findByTestId("section-settings");
@@ -1029,5 +1035,74 @@ describe("haul-away put back during a prevented preload (B68)", () => {
     await waitFor(() => expect(haul.deleted.length + toastErr.mock.calls.length).toBeGreaterThan(0));
     await new Promise((r) => setTimeout(r, 50));
     expect(haul.cancelled).toEqual(haul.deleted.length ? ["i1"] : []);
+  });
+});
+
+/**
+ * Owner 11-13 (phone): "In declutter when I'm in the sell tab and go to search my listing it moved the tab to browse
+ * but I'm trying to look in my items I'm selling." On Selling the bar is a field over the seller's OWN listings (every
+ * status shown there, title and description): it stays on Selling, an empty result says so with Clear, and switching
+ * tabs clears it. Red on c0757273e3: Selling's phone bar was a link to Browse, and the desktop had no field at all.
+ */
+describe("Selling's search finds the seller's own listings in place (owner 11-13)", () => {
+  beforeEach(() => {
+    state.mine = [...EVERY_STATUS, { ...ITEM, id: "i6", title: "Bookshelf", description: "Solid walnut, five shelves" }];
+    state.offers = [];
+    state.cart = [];
+  });
+  const rows = () => [...document.querySelectorAll("[data-listing-row] [data-listing-open] p[title]:not([data-listing-status])")].map((p) => p.getAttribute("title"));
+
+  it.each([["phone", false], ["desktop", true]] as const)("%s: typing filters Your listings and never leaves Selling", async (_n, desktop) => {
+    screenMode.desktop = desktop;
+    try {
+      const view = at("/declutter?tab=selling");
+      await screen.findByRole("heading", { name: /^Your listings/ });
+      const field = screen.getByRole("searchbox", { name: "Search your listings" });
+      expect(rows()).toHaveLength(6);
+      fireEvent.change(field, { target: { value: "rug" } });
+      // Still Selling: its heading and rows, never Browse.
+      expect(screen.getByRole("heading", { name: /^Your listings/ })).toBeInTheDocument();
+      expect(rows()).toEqual(["Rug"]);
+      // A draft matches too (every status on the list), and the description counts, accents and case ignored.
+      fireEvent.change(field, { target: { value: "DESK" } });
+      expect(rows()).toEqual(["Desk"]);
+      fireEvent.change(field, { target: { value: "wálnut" } });
+      expect(rows()).toEqual(["Bookshelf"]);
+      view.unmount();
+    } finally {
+      screenMode.desktop = true;
+    }
+  });
+
+  it("desktop: the field sits right before the gear, where the other tabs keep the search icon", async () => {
+    at("/declutter?tab=selling");
+    const gear = await screen.findByTestId("section-settings");
+    expect(screen.queryByRole("link", { name: "Search all sections" })).toBeNull();
+    const field = screen.getByRole("searchbox", { name: "Search your listings" });
+    expect(field.closest("[data-selling-search]")?.nextElementSibling).toBe(gear);
+  });
+
+  it("no match says so with Clear (never Browse); Clear brings every listing back", async () => {
+    at("/declutter?tab=selling");
+    await screen.findByRole("heading", { name: /^Your listings/ });
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search your listings" }), { target: { value: "zzz" } });
+    expect(screen.getByText("No listings match \u201czzz\u201d")).toBeInTheDocument();
+    expect(rows()).toHaveLength(0);
+    fireEvent.click(document.querySelector("[data-selling-search-clear]") as HTMLElement);
+    expect(rows()).toHaveLength(6);
+    expect(screen.getByRole("searchbox", { name: "Search your listings" })).toHaveValue("");
+  });
+
+  it("switching tabs clears the search (OWNER-DECISIONS 11-13)", async () => {
+    at("/declutter?tab=selling");
+    await screen.findByRole("heading", { name: /^Your listings/ });
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search your listings" }), { target: { value: "rug" } });
+    expect(rows()).toEqual(["Rug"]);
+    fireEvent.click(screen.getByRole("tab", { name: /^Buying/ }));
+    expect(screen.queryByRole("searchbox", { name: "Search your listings" })).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: /^Selling/ }));
+    await screen.findByRole("heading", { name: /^Your listings/ });
+    expect(screen.getByRole("searchbox", { name: "Search your listings" })).toHaveValue("");
+    expect(rows()).toHaveLength(6);
   });
 });

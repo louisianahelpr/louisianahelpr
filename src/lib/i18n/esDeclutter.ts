@@ -13,6 +13,8 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "section.noun.shops": "tiendas",
   "section.noun.declutter": "en Declutter",
   "section.clearSearch": "Borrar búsqueda",
+  "section.chipAll": "Todo",
+  "section.chipSaved": "Guardados",
 
   "decl.tab.buying": "Comprando",
   "decl.tab.selling": "Vendiendo",

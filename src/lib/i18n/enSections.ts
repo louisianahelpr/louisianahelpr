@@ -15,6 +15,9 @@ export const enSections = {
   "section.noun.shops": "shops",
   "section.noun.declutter": "Declutter",
   "section.clearSearch": "Clear search",
+  // Jobs Browse's category chips row (JobCategoryChips): the first chip and F107's Saved chip.
+  "section.chipAll": "All",
+  "section.chipSaved": "Saved",
 } as const;
 
 addEnglish(enSections);

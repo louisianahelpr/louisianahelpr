@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-13T09:59Z",
+  "measured_at": "2026-11-13T10:09Z",
   "issues": {
     "readable": true,
     "open": [
@@ -85,7 +85,7 @@
         "number": 4222,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43350123812",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43405957403",
         "runTruncated": false
       },
       {
@@ -139,7 +139,7 @@
         "number": 4453,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43405480038",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43406857985",
         "runTruncated": false
       }
     ]
@@ -562,6 +562,14 @@
         "status": "open",
         "title": "cron http failure: stuck-payment-check returned 520",
         "issue": null
+      },
+      {
+        "fingerprint": "227a345181980df60a2aed15f86dd3b0",
+        "source_kind": "sentry",
+        "source": "sentry:assets/NotFound",
+        "status": "open",
+        "title": "error: 404 — non-existent route: /sponsor.",
+        "issue": null
       }
     ]
   },
@@ -594,6 +602,7 @@
     "ledger 15cc2d7f63f3": "Q2347",
     "ledger 16e6e91f6701": "Q1816",
     "ledger 18539240a894": "Q1816",
+    "ledger 227a34518198": "Q2801",
     "ledger 2e4f3e726722": "Q1816",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 3712b62a9839": "Q2510",

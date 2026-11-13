@@ -47,7 +47,7 @@ const GROUP_ICON: Record<JobCategoryGroupId, LucideIcon> = {
  * enPostJob.ts, a chunk Browse does not load, so until they are registered t() hands back the key and the chip uses the
  * same English groupTileLabel gives (identical words, "Moving & errands").
  */
-export function jobGroupChipLabel(g: { id: JobCategoryGroupId; label: string }, t: (k: MsgKey) => string): string {
+function jobGroupChipLabel(g: { id: JobCategoryGroupId; label: string }, t: (k: MsgKey) => string): string {
   const key = `postJob.group.${g.id}` as MsgKey;
   const w = t(key);
   return w && w !== key ? w : groupTileLabel(g);

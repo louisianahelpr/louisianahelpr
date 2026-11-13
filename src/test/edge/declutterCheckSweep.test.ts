@@ -16,11 +16,11 @@
  * @mutate supabase/functions/declutter-ai-draft/index.ts |     verify: verifyCronSecret, |     verify: () => null,
  * @mutate supabase/functions/declutter-ai-draft/checkSweep.ts |     if (refused) return refused; |     if (false) return refused;
  * @mutate supabase/functions/declutter-ai-draft/checkSweep.ts |     return deps.fail("sweep_claim_failed"); |     return deps.answer({ claimed: 0 }, { count: 0 });
- * @mutate supabase/functions/declutter-ai-draft/index.ts |     return "defect";\n  }\n  const answer | return "failed";\n  }\n  const answer
+ * @mutate supabase/functions/declutter-ai-draft/index.ts |     return "defect";\n  }\n  const answer = await askModel(\n    ANTHROPIC_API_KEY,\n    ITEM_SYSTEM_PROMPT, | return "failed";\n  }\n  const answer = await askModel(\n    ANTHROPIC_API_KEY,\n    ITEM_SYSTEM_PROMPT,
  * @mutate supabase/functions/declutter-ai-draft/index.ts |     p_seller_id: claim.sellerId, |     p_seller_id: claim.itemId,
  * @mutate supabase/functions/declutter-ai-draft/checkSweep.ts |       if (outcome === "defect" \|\| outcome === "stale" \|\| outcome === "busy") { |       if (outcome === "defect" \|\| outcome === "stale") {
  * @mutate supabase/functions/declutter-ai-draft/checkSweep.ts |       if (outcome === "defect" \|\| outcome === "stale" \|\| outcome === "busy") { |       if (false) {
- * @mutate supabase/functions/declutter-ai-draft/index.ts |     return answer.status === 429 \|\| answer.status >= 500 ? "busy" : "defect"; |     return answer.status === 429 \|\| answer.status >= 500 ? "failed" : "defect";
+ * @mutate supabase/functions/declutter-ai-draft/index.ts | is ours.\n    return answer.status === 429 \|\| answer.status >= 500 ? "busy" : "defect"; | is ours.\n    return answer.status === 429 \|\| answer.status >= 500 ? "failed" : "defect";
  * @mutate supabase/functions/declutter-ai-draft/checkSweep.ts |   if (at(0) === 0x89 && ascii(1, 4) === "PNG") return "image/png"; |   if (at(0) === 0x89 && ascii(1, 4) === "PNG") return "image/jpeg";
  * @mutate supabase/migrations/20261109224952_notices_card_fee_and_our_team.sql |                       AND ((pv.ai_checked_at IS NULL AND pv.ai_check_attempts >= 3) OR pv.ai_flag_reason IS NOT NULL)) |                       AND (pv.ai_checked_at IS NULL OR pv.ai_flag_reason IS NOT NULL))
  * @mutate supabase/migrations/20261101031241_declutter_check_sweep.sql |        AND NOT public.is_test_subject(i.seller_id) |        AND true

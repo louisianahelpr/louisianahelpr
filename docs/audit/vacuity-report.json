@@ -1,13 +1,25 @@
 {
-  "generated": "2026-11-12T23:29:15.908Z",
-  "guards": 4052,
-  "registered": 4051,
+  "generated": "2026-11-13T13:54:03.000Z",
+  "guards": 4068,
+  "registered": 4057,
   "unregistered": [
-    "src/lib/shops/preorders.test.ts"
+    "src/components/shops/publicShopLayout.test.tsx",
+    "src/components/shops/shopBrowseCardName.test.tsx",
+    "src/components/shops/shopVisitorAudit2.test.tsx",
+    "src/lib/shops/preorders.test.ts",
+    "src/test/shopCustomRequestSheetS2.test.tsx",
+    "src/test/shopCustomRequestsListS2.test.tsx",
+    "src/test/shopDigitalFilesWaiting.test.tsx",
+    "src/test/shopItemOptionsErrorsS2.test.tsx",
+    "src/test/shopsCustomRequestReopen.test.ts",
+    "src/test/shopsItemRulesS2.test.ts",
+    "src/test/shopsTextGrowsWithBiggerText.test.ts"
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/declutter/orderTalkPhotos.test.tsx",
+    "src/components/shops/shopCustomOrderForm.test.tsx",
+    "src/components/shops/shopVisitorAudit2.test.tsx",
     "src/pages/jobs/jobPage/expiredRepost.test.tsx",
     "src/test/adminActivityBell.test.ts",
     "src/test/audit1110BellRepostOnlyForPoster.test.tsx",

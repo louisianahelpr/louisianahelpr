@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-13T17:39Z",
+  "measured_at": "2026-11-13T19:52Z",
   "issues": {
     "readable": true,
     "open": [
@@ -36,7 +36,7 @@
         "number": 2375,
         "title": "nightly-red: a11y-webkit-prod",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42830683448",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43470000763",
         "runTruncated": false
       },
       {
@@ -71,7 +71,7 @@
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43285490093",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43484159959",
         "runTruncated": false
       },
       {
@@ -125,14 +125,14 @@
       },
       {
         "number": 4450,
-        "title": "🔴 1 scheduled workflow(s) have stopped running",
+        "title": "🔴 2 scheduled workflow(s) have stopped running",
         "label": "schedule-stalled"
       },
       {
         "number": 4451,
         "title": "nightly-red: schedule-heartbeat",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43285271257",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43483871157",
         "runTruncated": false
       },
       {
@@ -141,6 +141,18 @@
         "label": "nightly-red",
         "run": null,
         "runTruncated": true
+      },
+      {
+        "number": 4553,
+        "title": "prod-errors: real users are hitting error screens",
+        "label": "prod-errors"
+      },
+      {
+        "number": 4554,
+        "title": "nightly-red: prod-errors",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43479537941",
+        "runTruncated": false
       }
     ]
   },
@@ -305,7 +317,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
+        "issue": 4222
       },
       {
         "fingerprint": "5be6011a46f6328f224c01fc99b85e95",
@@ -594,6 +606,8 @@
     "issue #4450": "Q2800",
     "issue #4451": "Q1816",
     "issue #4453": "Q1816",
+    "issue #4553": "Q2802",
+    "issue #4554": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",

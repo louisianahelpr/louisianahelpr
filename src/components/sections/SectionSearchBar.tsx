@@ -19,7 +19,7 @@ const FOCUS_SEARCH_STATE = { focusSectionSearch: true } as const;
 const NOUN_KEY: Record<string, MsgKey> = {
   jobs: "section.noun.jobs", "jobs and items": "section.noun.jobsAndItems", "posted jobs": "section.noun.postedJobs",
   "jobs you're working": "section.noun.jobsWorking", homes: "section.noun.homes", shops: "section.noun.shops",
-  Declutter: "section.noun.declutter",
+  Declutter: "section.noun.declutter", "your listings": "section.noun.yourListings",
 };
 function useNoun(noun: string): { search: string; noun: string } {
   const { t } = useLanguage();

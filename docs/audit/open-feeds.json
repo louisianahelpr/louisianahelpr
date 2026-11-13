@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-13T14:23Z",
+  "measured_at": "2026-11-13T14:35Z",
   "issues": {
     "readable": true,
     "open": [
@@ -43,7 +43,7 @@
         "number": 2436,
         "title": "nightly-red: e2e-journeys",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43271351952",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43430382667",
         "runTruncated": false
       },
       {

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-13T02:04Z",
+  "measured_at": "2026-11-13T02:18Z",
   "issues": {
     "readable": true,
     "open": [
@@ -85,7 +85,7 @@
         "number": 4222,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43307131074",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43350123812",
         "runTruncated": false
       },
       {
@@ -139,7 +139,7 @@
         "number": 4453,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43349328517",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43350992446",
         "runTruncated": false
       }
     ]

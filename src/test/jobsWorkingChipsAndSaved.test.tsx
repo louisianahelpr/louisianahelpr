@@ -74,16 +74,15 @@ describe("F107: Working's chips and Browse's Saved chip", () => {
   });
 
   it("Browse: a Saved chip after All once a job is saved; it toggles the saved-only filter; All clears it", () => {
-    const jobs = [{ category: "yard_work" }, { category: "moving" }];
     const onToggle = vi.fn();
-    const { rerender } = render(<JobCategoryChips jobs={jobs} value={null} onChange={() => {}} saved={{ on: false, count: 0, onToggle }} />);
+    const { rerender } = render(<JobCategoryChips value={null} onChange={() => {}} saved={{ on: false, count: 0, onToggle }} />);
     expect(screen.queryByRole("button", { name: "Saved" })).toBeNull();
-    rerender(<JobCategoryChips jobs={jobs} value={null} onChange={() => {}} saved={{ on: false, count: 2, onToggle }} />);
+    rerender(<JobCategoryChips value={null} onChange={() => {}} saved={{ on: false, count: 2, onToggle }} />);
     const names = screen.getAllByRole("button").map((b) => b.getAttribute("data-category-chip"));
     expect(names.slice(0, 2)).toEqual(["all", "saved"]);
     fireEvent.click(screen.getByRole("button", { name: "Saved" }));
     expect(onToggle).toHaveBeenCalledTimes(1);
-    rerender(<JobCategoryChips jobs={jobs} value={null} onChange={() => {}} saved={{ on: true, count: 2, onToggle }} />);
+    rerender(<JobCategoryChips value={null} onChange={() => {}} saved={{ on: true, count: 2, onToggle }} />);
     expect(screen.getByRole("button", { name: "Saved" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("button", { name: "All" }).getAttribute("aria-pressed")).toBe("false");
     fireEvent.click(screen.getByRole("button", { name: "All" }));

@@ -47,3 +47,15 @@ export function browseFilteredEmptyCopy(i: BrowseEmptyInputs): BrowseEmptyCopy {
     clearLabel: "Clear filters",
   };
 }
+
+/**
+ * Owner 11-13: Jobs Browse's chips row shows all 8 Post a job groups, so a chip can name a group with no open job in
+ * it. When that group is the ONLY thing narrowing the feed (no search, no other filter), the empty state reads like
+ * the unfiltered one, for that group ("No Yard jobs near you yet." with Post a job + Notify me), not "No jobs match
+ * your filters." with a Clear button. Returns null when anything else narrows the feed (then the filtered copy above).
+ * Guard: src/test/jobsCategoryChipsRow.test.tsx.
+ */
+export function browseGroupEmptyTitle(i: { groupLabel: string | null; activeFilterCount: number; searchQuery: string }): string | null {
+  if (!i.groupLabel || i.activeFilterCount !== 1 || i.searchQuery.trim()) return null;
+  return `No ${i.groupLabel} jobs near you yet.`;
+}

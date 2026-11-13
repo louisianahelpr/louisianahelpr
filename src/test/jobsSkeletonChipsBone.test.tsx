@@ -2,10 +2,11 @@
  * Design audit A J1 follow-up (11-08): Jobs Browse's category chips row arrived after the loading frame, so the list
  * moved down ~44 px. The skeleton now draws a chips bone the chips' own height (40 px chips + 4 px pad, like
  * JobCategoryChips) whenever the last loaded Browse drew the row; JobCategoryChips records that (jobChipsSeen.ts).
- * With no record (first visit, or a feed with under two groups) there is no bone, so a bone never vanishes either.
+ * With no record (first visit) there is no bone, so a bone never vanishes either. Owner 11-13: the row now always
+ * draws (all 8 groups), so after any Browse the bone is drawn.
  *
  * @mutate src/components/JobsSectionSkeleton.tsx | <BrowseFrame header={<JobsHeaderBones chips={jobChipsRowSeen()} />} /> | <BrowseFrame header={<JobsHeaderBones />} />
- * @mutate src/components/dashboard/JobCategoryChips.tsx |   useEffect(() => { noteJobChipsRow(rowShown); }, [rowShown]); |   useEffect(() => {}, [rowShown]);
+ * @mutate src/components/dashboard/JobCategoryChips.tsx |   useEffect(() => { noteJobChipsRow(true); }, []); |   useEffect(() => {}, []);
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
@@ -37,7 +38,7 @@ describe("the Jobs loading frame reserves the chips row the feed will draw", () 
   });
 
   it("after a Browse that drew the chips, the phone skeleton has a 44 px chips bone", () => {
-    render(<JobCategoryChips jobs={[{ category: "moving" }, { category: "lawn_care" }, { category: "cleaning" }]} value={null} onChange={() => {}} />);
+    render(<JobCategoryChips value={null} onChange={() => {}} />);
     cleanup();
     const bone = skeleton().querySelector<HTMLElement>("[data-chips-bone]");
     expect(bone).not.toBeNull();
@@ -47,11 +48,7 @@ describe("the Jobs loading frame reserves the chips row the feed will draw", () 
     for (const b of bones) expect(b.className).toContain("h-10");
   });
 
-  it("with no chips last time (one group, or first visit), no bone", () => {
-    expect(skeleton().querySelector("[data-chips-bone]")).toBeNull();
-    cleanup();
-    render(<JobCategoryChips jobs={[{ category: "moving" }]} value={null} onChange={() => {}} />);
-    cleanup();
+  it("with no chips last time (first visit), no bone", () => {
     expect(skeleton().querySelector("[data-chips-bone]")).toBeNull();
   });
 });

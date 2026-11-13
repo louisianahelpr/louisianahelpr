@@ -112,8 +112,21 @@ function ListingPrice({ item, sold }: { item: DeclutterItem; sold: number | unde
   );
 }
 
+/**
+ * Owner 11-13 ("I'm trying to look in my items I'm selling"): Selling's search bar filters the seller's own rows in
+ * place, by title and description, case and accents ignored. The whole list is already loaded (fetchMyItems reads
+ * every listing), so this is a plain filter on the device, never a server round.
+ */
+const fold = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+export function matchesListingSearch(item: Pick<DeclutterItem, "title" | "description">, q: string): boolean {
+  const words = fold(q).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return true;
+  const hay = fold(`${item.title ?? ""} ${item.description ?? ""}`);
+  return words.every((w) => hay.includes(w));
+}
+
 /** Exported for the admin Declutter stage preview (Q2585), which draws Selling on sample data. */
-export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean }) {
+export function MyListingsView({ userId, haulOn, search = "", onClearSearch }: { userId: string; haulOn: boolean; search?: string; onClearSearch?: () => void }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   useLanguage(); // the rows' status words follow the member's language (F260q)
@@ -222,8 +235,10 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
     return <ErrorState variant="inline" title={t("decl.sl.loadFail")} body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   }
   if (mine.isLoading) return <ListingsSkeleton />;
-  const list = (mine.data ?? []).filter((i) => !PAST_LISTING.has(i.status));
-  if (list.length === 0) {
+  const all = (mine.data ?? []).filter((i) => !PAST_LISTING.has(i.status));
+  const searching = search.trim().length > 0;
+  const list = searching ? all.filter((i) => matchesListingSearch(i, search)) : all;
+  if (all.length === 0) {
     return (
       <section className="space-y-2" aria-label={t("decl.sl.yours")}>
         <SectionHeading title={t("decl.sl.yours")} />
@@ -240,13 +255,29 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
       </section>
     );
   }
+  // Owner 11-13: a search that finds none of the seller's own listings says so here, with Clear; it never opens Browse.
+  if (searching && list.length === 0) {
+    return (
+      <section className="space-y-2" aria-label={t("decl.sl.yours")} data-selling-search-empty="">
+        <SectionHeading title={t("decl.sl.yours")} />
+        <div className="rounded-[20px] border border-dashed border-border bg-card px-4 py-6 text-center">
+          <p className="break-words text-ds-15 font-semibold">{t("decl.sl.noMatch", { q: search.trim() })}</p>
+          {onClearSearch && (
+            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={onClearSearch} data-selling-search-clear="">
+              {t("decl.sl.clear")}
+            </Button>
+          )}
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="space-y-3" aria-label={t("decl.sl.yours")}>
       <SectionHeading title={t("decl.sl.yours")} />
-      {list.filter((i) => i.status === "draft").length > 1 && (
+      {!searching && list.filter((i) => i.status === "draft").length > 1 && (
         <p className="text-ds-13"><Link className="underline" to="/declutter/sell?mode=bunch" data-list-all-drafts="">{t("decl.sl.allDrafts")}</Link></p>
       )}
-      {haulOn && !haul.isError && (
+      {haulOn && !haul.isError && !searching && (
         <HaulAwayCard group={haul.data?.trip ?? []} pausedCount={list.filter((i) => i.status === "paused").length} />
       )}
     {haulOn && haul.isError && (
@@ -366,7 +397,7 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
  * handover, payout), under SellingDash's status boxes.
  */
 // Board 80: opens once after a publish (router state from DeclutterSellView).
-function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; haulOn: boolean; movingOutOn: boolean; todo: DeclutterTodo | null }) {
+function SellingView({ userId, haulOn, movingOutOn, todo, search, onClearSearch }: { userId: string; haulOn: boolean; movingOutOn: boolean; todo: DeclutterTodo | null; search: string; onClearSearch: () => void }) {
   return (
     // Q2562: a flex gap, not space-y-6 (space-y gave the child after the display:none Sell row a 24px margin).
     <div className="flex flex-col gap-6">
@@ -384,7 +415,7 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
         userId={userId}
         listings={
           <div className="space-y-6">
-            <MyListingsView userId={userId} haulOn={haulOn} />
+            <MyListingsView userId={userId} haulOn={haulOn} search={search} onClearSearch={onClearSearch} />
             {/* Owner 2026-10-30: "More ways to sell" is ONE row that opens "What do you want to sell?" (the chooser holds
                 every way: a bunch, a moving out sale, free, a Helpr lists it, a Wanted), never a second list of them. */}
             <section aria-label={t("decl.hv.moreWays")} data-sell-more="">
@@ -514,6 +545,13 @@ function DeclutterMemberHome() {
   }, [fromView, tabsReady, setParams, location.state]);
   useWarmMineViews(view === "buying" || view === "selling");
   const { t: tr } = useLanguage();
+  // Owner 11-13: on Selling the bar searches the seller's own listings in place (it used to open Browse and search
+  // everyone's). The words belong to the tab they were typed on, so switching tabs clears them (OWNER-DECISIONS 11-13).
+  // Kept with the tab it was typed on, and reset the moment the tab changes (the tab row, My Declutter or a link).
+  const [mineSearch, setMineSearch] = useState<{ tab: DeclutterTab; q: string }>({ tab: view, q: "" });
+  if (mineSearch.tab !== view) setMineSearch({ tab: view, q: "" });
+  const sellingQ = mineSearch.tab === view ? mineSearch.q : "";
+  const setSellingQ = (q: string) => setMineSearch({ tab: view, q });
   if (!user) return null;
   if (!tabsReady) return <DeclutterHomeSkeleton />;
   const goTab = (v: string) =>
@@ -576,7 +614,13 @@ function DeclutterMemberHome() {
   const fab = desktop || ownMainButton ? undefined : <SectionCreateFab section="declutter" text={t("decl.hv.sell")} />;
   // Browse draws its own section screen, so its header can carry its search, filters, chips, map toggle and count.
   if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} chrome={chrome} top={<StrikeCount userId={user.id} />} fab={fab} /></Suspense>;
-  const head = chrome(desktop ? { end: <ExploreSearchEntry variant="icon" /> } : undefined);
+  // Owner 11-13: Selling's bar is a field over the seller's own listings (desktop: the same field before the gear).
+  const sellingBar = view === "selling"
+    ? <SectionSearchBar noun="your listings" home="/declutter" value={sellingQ} onChange={setSellingQ} />
+    : undefined;
+  const head = chrome(desktop
+    ? { end: sellingBar ? <div className="w-[260px]" data-selling-search="">{sellingBar}</div> : <ExploreSearchEntry variant="icon" /> }
+    : sellingBar ? { search: sellingBar } : undefined);
   return (
     // LEAD-DECL-SEARCHBAR / LEAD-SEARCH-ALL-TABS (owner 2026-10-31): no "Search all sections" bar on any tab. Desktop:
     // Jobs' 40px search square right before the gear. Phone (owner 11-08): the "Search Declutter" bar, which opens
@@ -588,7 +632,7 @@ function DeclutterMemberHome() {
       {(view === "buying" || view === "selling") && <OrdersUpdating />}
       <Suspense fallback={<TabSkeleton />}>
       {view === "buying" ? <><BoughtWhatNext /><Suspense fallback={<DeclutterTabBones />}><BuyingDash todo={todo} /></Suspense></>
-          : view === "selling" ? <SellingView userId={user.id} haulOn={haulAway.on} movingOutOn={movingOut.on} todo={todo} />
+          : view === "selling" ? <SellingView userId={user.id} haulOn={haulAway.on} movingOutOn={movingOut.on} todo={todo} search={sellingQ} onClearSearch={() => setSellingQ("")} />
             : view === "deliver" ? <Suspense fallback={<HelprSpinner />}><DeliverView /></Suspense>
               : view === "free" ? <FreeView userId={user.id} />
                 : <WantedView />}

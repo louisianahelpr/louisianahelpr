@@ -14,6 +14,8 @@ export const enSections = {
   "section.noun.homes": "homes",
   "section.noun.shops": "shops",
   "section.noun.declutter": "Declutter",
+  // Owner 11-13: on Selling the bar searches the seller's own listings in place ("Search your listings").
+  "section.noun.yourListings": "your listings",
   "section.clearSearch": "Clear search",
 } as const;
 

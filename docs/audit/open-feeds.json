@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-14T16:58Z",
+  "measured_at": "2026-11-14T23:02Z",
   "issues": {
     "readable": true,
     "open": [
@@ -71,28 +71,28 @@
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43484159959",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43619847734",
         "runTruncated": false
       },
       {
         "number": 3813,
         "title": "nightly-red: e2e-real-backend",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43413800116",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43619551118",
         "runTruncated": false
       },
       {
         "number": 4222,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43569282727",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43632402707",
         "runTruncated": false
       },
       {
         "number": 4253,
         "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43521028123",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43643232719",
         "runTruncated": false
       },
       {
@@ -106,7 +106,7 @@
         "number": 4302,
         "title": "nightly-red: main: Vitest",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43613660706",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43641716016",
         "runTruncated": false
       },
       {
@@ -120,19 +120,19 @@
         "number": 4415,
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43501863989",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43628190189",
         "runTruncated": false
       },
       {
         "number": 4450,
-        "title": "🔴 2 scheduled workflow(s) have stopped running",
+        "title": "🔴 1 scheduled workflow(s) have stopped running",
         "label": "schedule-stalled"
       },
       {
         "number": 4451,
         "title": "nightly-red: schedule-heartbeat",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43483871157",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43619724192",
         "runTruncated": false
       },
       {
@@ -305,7 +305,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": 4222
+        "issue": null
       },
       {
         "fingerprint": "5be6011a46f6328f224c01fc99b85e95",
@@ -577,14 +577,6 @@
         "source": "sentry:assets/NotFound",
         "status": "open",
         "title": "error: 404 — non-existent route: /sponsor.",
-        "issue": null
-      },
-      {
-        "fingerprint": "bbc40712688e865f047278c32c6d05c3",
-        "source_kind": "error_logs",
-        "source": "db-statement-timeouts",
-        "status": "open",
-        "title": "database statement timeouts",
         "issue": null
       }
     ]

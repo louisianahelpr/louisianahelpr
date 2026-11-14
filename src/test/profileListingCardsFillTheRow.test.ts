@@ -9,7 +9,7 @@
  * PublicProfilePage on /u/<handle>).
  *
  * @mutate src/components/declutter/SellingNowRow.tsx | className="flex h-full items-center gap-2.5 rounded-2xl liquid-glass p-3 | className="flex items-center gap-2.5 rounded-2xl liquid-glass p-3
- * @mutate src/pages/u/PublicProfilePage.tsx | className="block h-full overflow-hidden rounded-xl border | className="block overflow-hidden rounded-xl border
+ * @mutate src/pages/u/PublicProfilePage.tsx | className="relative block h-full overflow-hidden bg-background | className="relative block overflow-hidden bg-background
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

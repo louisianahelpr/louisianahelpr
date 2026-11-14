@@ -4917,6 +4917,16 @@ html.web-desktop .explore-switcher-bone { display: none; }
   box-shadow: none !important;
 }
 :root[data-theme="dark"] .page-panel { background-color: transparent !important; }
+/* Owner 11-14 (Depop/Vinted review item 10): below lg (900px) the public profile's header and its tab panels are plain
+   on the page, not cards. T2 above paints every .bg-card's shadow (and its dark fill) with !important at :where()
+   specificity, so a max-lg:shadow-none class cannot take it off; this rule outranks both (0,2,1 > 0,2,0).
+   From lg they are the cards they were. Guard: src/test/publicProfilePhoneLayout.test.tsx. */
+@media not all and (min-width: 900px) {
+  html:root [data-pp-plain] {
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+}
 
 /* T3 — simpler job cards: price is bold money ink (HELPR-DESIGN-SPEC v2 §1.1: rust is for money;
    guard src/test/jobPriceIsMoneyInk.test.tsx), the category an icon + label. */

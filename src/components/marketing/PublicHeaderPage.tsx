@@ -37,6 +37,8 @@ interface PublicHeaderPageProps {
   footer?: boolean;
   /** A top-level page (guest /browse, F019 owner UI audit 11-09): no back arrow; there is nowhere "back" to go. */
   hideBack?: boolean;
+  /** Forwarded to PageHeader: on a phone keep the h1 for screen readers only (the page paints the name itself; /u). */
+  phoneHidesTitle?: boolean;
   children: ReactNode;
 }
 
@@ -65,6 +67,7 @@ export function PublicHeaderPage({
   wrapTitle = false,
   footer = true,
   hideBack = false,
+  phoneHidesTitle = false,
   children,
 }: PublicHeaderPageProps) {
   const header = (
@@ -72,6 +75,7 @@ export function PublicHeaderPage({
       title={title}
       backTo={backTo}
       hideBack={hideBack}
+      phoneHidesTitle={phoneHidesTitle}
       width={width}
       topInsetHandled
       titleActions={titleActions}

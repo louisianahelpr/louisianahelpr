@@ -150,6 +150,20 @@ export const setNotFoundPathname = (pathname: string | null) => {
   reapplyShellClasses?.();
 };
 
+/**
+ * Routes whose page wears the public shell for a guest and AppPage for a member: /u/<handle> (F066, owner UI audit
+ * 11-09: a guest gets PublicHeaderPage, a member keeps AppPage). On the web a guest's page scrolls the document, so the
+ * lock comes off for a guest only (a member's AppPage needs it). Owner 11-14 (Depop review item 10), measured on
+ * www.louisianahelpr.com/u/lexi-l at 390 in Chromium as a guest: html.app-shell { overflow: hidden } held the page at
+ * scrollY 0 (body 5018px tall, nothing scrolled), so a guest could never reach the listings below the header.
+ * On native PublicLayout renders AppShell for everyone, so the lock stays (not listed there).
+ * Guard: src/test/publicProfileGuestScrolls.test.ts.
+ */
+const GUEST_DOCUMENT_SCROLL_ROUTES = ["/u"];
+
+export const isGuestDocumentScrollRoute = (pathname: string) =>
+  !isNativePlatform && GUEST_DOCUMENT_SCROLL_ROUTES.some((route) => pathname.startsWith(`${route}/`));
+
 export const isDocumentScrollRoute = (pathname: string) => {
   // The 404 catch-all is document-scroll — see setNotFoundPathname above.
   if (notFoundPathname === pathname) return true;
@@ -236,11 +250,13 @@ export const useAppShellViewport = () => {
    * past the answer arriving.
    */
   const railUserPresent = isReady ? !!user : !!user || hasPersistedAuthToken();
+  /** A definite guest: the same test PublicProfilePage uses to pick the public shell (guestShell). */
+  const definiteGuest = isReady && !user;
 
   useLayoutEffect(() => {
     const apply = () => {
       const html = document.documentElement;
-      if (isDocumentScrollRoute(pathname)) {
+      if (isDocumentScrollRoute(pathname) || (definiteGuest && isGuestDocumentScrollRoute(pathname))) {
         html.classList.remove("app-shell");
       } else {
         html.classList.add("app-shell");
@@ -277,7 +293,7 @@ export const useAppShellViewport = () => {
       // them correctly. Only the re-apply hook is released.
       if (reapplyShellClasses === apply) reapplyShellClasses = null;
     };
-  }, [pathname, railUserPresent]);
+  }, [pathname, railUserPresent, definiteGuest]);
 
   // Web-desktop detection. Independent of route (the chrome/layout applies on
   // every signed-in fixed-shell page), so it lives in its own effect that runs

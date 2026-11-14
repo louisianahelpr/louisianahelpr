@@ -17,6 +17,7 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { bookAgainLabel, bookAgainLink } from "@/lib/bookAgain";
 import SaveHelperButton from "@/components/SaveHelperButton";
 import { paidWaitsOnBankLine, useHelprPayoutWaitsOnBank } from "@/hooks/useHelprTakesTips";
+import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
 
 /**
  * The top of the Job done screen (boards 35 poster / 36 Helpr), under the
@@ -135,9 +136,8 @@ export function JobDoneSummary({
       {photos.length > 0 && (
         <div className={`grid gap-2 ${photos.length === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
           {photos.map((p, i) => (
-            <button
+            <PhotoOpenButton
               key={p.label}
-              type="button"
               data-job-done-photo=""
               disabled={!p.src}
               onClick={() => openPhoto(i)}
@@ -152,7 +152,7 @@ export function JobDoneSummary({
               >
                 {p.label}
               </span>
-            </button>
+            </PhotoOpenButton>
           ))}
         </div>
       )}

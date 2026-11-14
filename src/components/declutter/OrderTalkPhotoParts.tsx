@@ -17,6 +17,7 @@ import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { handoverPhotoUrl } from "@/lib/declutter/handover";
 import { FallbackImg } from "./FallbackImg";
 import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
+import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
 
 export function OrderTalkPhotoPicker({ file, onChange, disabled = false }: { file: File | null; onChange: (file: File | null) => void; disabled?: boolean }) {
   const id = useId();
@@ -55,9 +56,9 @@ export function OrderTalkMessagePhoto({ path }: { path: string }) {
   if (!url.data) return <div className="mt-1 h-40 w-40 rounded-xl bg-photo-empty" aria-hidden data-order-talk-msg-photo="" />;
   return (
     <>
-      <button type="button" onClick={() => open(0)} className="mt-1 block w-40 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Open the photo" data-order-talk-msg-photo="">
+      <PhotoOpenButton onClick={() => open(0)} className="mt-1 block w-40 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Open the photo" data-order-talk-msg-photo="">
         <FallbackImg src={url.data} alt="Photo" className="h-40 w-40 rounded-xl bg-photo-empty object-cover" />
-      </button>
+      </PhotoOpenButton>
       {viewer}
     </>
   );

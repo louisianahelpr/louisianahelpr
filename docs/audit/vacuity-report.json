@@ -1,12 +1,13 @@
 {
-  "generated": "2026-11-13T13:54:03.000Z",
-  "guards": 4068,
+  "generated": "2026-11-14T03:29:10.905Z",
+  "guards": 4069,
   "registered": 4057,
   "unregistered": [
     "src/components/shops/publicShopLayout.test.tsx",
     "src/components/shops/shopBrowseCardName.test.tsx",
     "src/components/shops/shopVisitorAudit2.test.tsx",
     "src/lib/shops/preorders.test.ts",
+    "src/test/navigationSinksAreClassified.test.ts",
     "src/test/shopCustomRequestSheetS2.test.tsx",
     "src/test/shopCustomRequestsListS2.test.tsx",
     "src/test/shopDigitalFilesWaiting.test.tsx",

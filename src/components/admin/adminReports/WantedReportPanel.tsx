@@ -20,6 +20,7 @@ import { FallbackImg } from "@/components/declutter/FallbackImg";
 import { photoPublicUrl, releaseWantedPhotos, takeDownWanted, type ReportedWanted } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
+import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
 
 export function WantedReportPanel({ post, reportId, open, onDone }: {
   post: ReportedWanted;
@@ -53,9 +54,9 @@ export function WantedReportPanel({ post, reportId, open, onDone }: {
         <ul className="flex flex-wrap gap-2" aria-label="Photos on this post">
           {post.photo_paths.map((p, i) => (
             <li key={p} className="w-20 space-y-1">
-              <button type="button" onClick={() => openPhoto(i)} aria-label={`Open photo ${i + 1}`} className="block h-20 w-20 overflow-hidden rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <PhotoOpenButton onClick={() => openPhoto(i)} aria-label={`Open photo ${i + 1}`} className="block h-20 w-20 overflow-hidden rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <FallbackImg src={photoPublicUrl(p)} alt="" className="h-full w-full bg-photo-empty object-cover" />
-              </button>
+              </PhotoOpenButton>
               {post.photos_held.includes(p) && <p className="font-semibold text-destructive-ink">Hidden from members</p>}
             </li>
           ))}

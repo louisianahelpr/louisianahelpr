@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { useProofPhotoUrls } from "@/hooks/useProofPhotoUrls";
 import { ProofPhotoImg } from "@/components/ProofPhotoImg";
 import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
+import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
 
 /* ── The full before/after gallery, on its own ──────────────────────────────
  *
@@ -47,9 +48,9 @@ export const PhotoProofDialog = ({
               <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
               <div className="grid grid-cols-3 gap-2">
                 {beforeUrls.map((url, i) => (
-                  <button key={url ?? i} type="button" className={tile} disabled={!beforeSrcs[i]} aria-label={`Open before photo ${i + 1}`} data-proof-photo-open="" onClick={() => openPhoto(i)}>
+                  <PhotoOpenButton key={url ?? i} className={tile} disabled={!beforeSrcs[i]} aria-label={`Open before photo ${i + 1}`} data-proof-photo-open="" onClick={() => openPhoto(i)}>
                     <ProofPhotoImg insideControl src={beforeSrcs[i]} alt={`Before ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                  </button>
+                  </PhotoOpenButton>
                 ))}
               </div>
             </div>
@@ -59,9 +60,9 @@ export const PhotoProofDialog = ({
               <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">After</p>
               <div className="grid grid-cols-3 gap-2">
                 {afterUrls.map((url, i) => (
-                  <button key={url ?? i} type="button" className={tile} disabled={!afterSrcs[i]} aria-label={`Open after photo ${i + 1}`} data-proof-photo-open="" onClick={() => openPhoto(beforeUrls.length + i)}>
+                  <PhotoOpenButton key={url ?? i} className={tile} disabled={!afterSrcs[i]} aria-label={`Open after photo ${i + 1}`} data-proof-photo-open="" onClick={() => openPhoto(beforeUrls.length + i)}>
                     <ProofPhotoImg insideControl src={afterSrcs[i]} alt={`After ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                  </button>
+                  </PhotoOpenButton>
                 ))}
               </div>
             </div>

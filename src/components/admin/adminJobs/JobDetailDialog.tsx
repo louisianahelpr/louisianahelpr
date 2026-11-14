@@ -15,6 +15,7 @@ import { EndSeriesSection } from "./EndSeriesSection";
 import { BillHelprFaultButton } from "../helprFault/BillHelprFaultButton";
 import { CancelHeldJobButton } from "./CancelHeldJobButton";
 import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
+import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
 
 interface JobDetailDialogProps {
   detailJob: Job | null;
@@ -110,9 +111,9 @@ export const JobDetailDialog = ({
             {(detailJob.photos || []).length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {(detailJob.photos || []).map((url, i) => (
-                  <button key={i} type="button" onClick={() => openJobPhoto(i)} aria-label={`Open job photo ${i + 1}`} className="flex-shrink-0 rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <PhotoOpenButton key={i} onClick={() => openJobPhoto(i)} aria-label={`Open job photo ${i + 1}`} className="flex-shrink-0 rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <img loading="lazy" decoding="async" src={url} alt={`Photo ${i + 1}`} className="w-32 h-24 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                  </button>
+                  </PhotoOpenButton>
                 ))}
                 {jobPhotoViewer}
               </div>

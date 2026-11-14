@@ -131,17 +131,17 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     expect(document.querySelector("[data-section-list-back]")).toBeNull();
   });
 
-  it("on a phone the bar is the title 'Jobs', the bell and the photo, with 'Search jobs' as the row under it (F148, owner audit 11-09); '+ Post a job' floats; Posted, Working and Jobs settings are in My Jobs", async () => {
+  it("on a phone the bar is ONE row: 'Search jobs', the bell and the photo, 'Jobs' a hidden h1 (the compact top, owner 11-14); '+ Post a job' floats; Posted, Working and Jobs settings are in My Jobs", async () => {
     open("/jobs");
     const bar = screen.getByTestId("app-top-bar");
     const h1 = within(bar).getByRole("heading", { level: 1 });
     expect(h1.textContent).toBe("Jobs");
-    expect(h1.className.split(/\s+/)).not.toContain("sr-only");
+    expect(h1.className.split(/\s+/)).toContain("sr-only");
     const search = within(screen.getByTestId("app-top-bar-search")).getByRole("button", { name: "Search jobs" });
     expect(search.hasAttribute("data-section-search-bar")).toBe(true);
-    expect(bar.contains(search)).toBe(false);
+    expect(bar.contains(search)).toBe(true);
     const buttons = within(bar).getAllByRole("button");
-    expect(buttons.map((b) => b.getAttribute("data-testid") ?? b.getAttribute("aria-label"))).toEqual([expect.stringMatching(/^Notifications/), "top-bar-profile"]);
+    expect(buttons.map((b) => b.getAttribute("data-testid") ?? b.getAttribute("aria-label"))).toEqual(["Search jobs", expect.stringMatching(/^Notifications/), "top-bar-profile"]);
     expect(within(bar).queryByTestId("top-bar-messages")).toBeNull();
     expect(within(bar).queryByTestId("top-bar-create")).toBeNull();
     expect(within(bar).queryByTestId("explore-switcher")).toBeNull();

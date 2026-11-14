@@ -1,4 +1,4 @@
-// @mutate src/components/sections/browseHeaderSpacing.ts | export const SEARCH_BAR_PAD = "pb-0.5"; | export const SEARCH_BAR_PAD = "pb-2";
+// @mutate src/components/sections/browseHeaderSpacing.ts | export const COMPACT_TOP_ROW = "app-top-bar flex items-center gap-1 pt-2 pb-0.5"; | export const COMPACT_TOP_ROW = "app-top-bar flex items-center gap-1 pt-2 pb-2";
 // @mutate src/components/declutter/DeclutterBrowseView.tsx | <div className={BROWSE_EMPTY_SLOT} data-browse-empty-slot=""> | <div data-browse-empty-slot="">
 // @mutate src/components/declutter/DeclutterCategoryChips.tsx | items.length === 0 ? CATEGORIES.slice(0, 3).map((c) => c.key) : | false ? [] :
 /**
@@ -7,6 +7,7 @@
  *    sale), then the shared empty state (BrowseEmptyState) in the same slot (BROWSE_EMPTY_SLOT), with the same icon
  *    circle, title, subline, primary pill and quiet link (EmptyStateActions; browseEmptyActionsOneLayout).
  * 2. Tighter header rhythm, shared: search -> tabs 6px, tabs -> chips 4px, chips -> content 8px (browseHeaderSpacing).
+ *    Since the compact top (owner 11-14) the search row is the top bar itself (COMPACT_TOP_ROW, its 2px under-pad).
  * 3. The Declutter tabs have no "N more" pill: one sideways strip (sectionTabsNeverCutAWord).
  * 4. The light app background is near-white #FCFBF8 (lightGroundIsWarm).
  */
@@ -31,10 +32,10 @@ describe("owner 11-12: Jobs and Declutter Browse share one layout", () => {
   });
   it("the header gaps come from one file, used by the real bar and its skeletons", () => {
     const sp = read("src/components/sections/browseHeaderSpacing.ts");
-    expect(sp).toContain('export const SEARCH_BAR_PAD = "pb-0.5";');
+    expect(sp).toContain('export const COMPACT_TOP_ROW = "app-top-bar flex items-center gap-1 pt-2 pb-0.5";');
     expect(sp).toContain('export const CHIPS_ROW_PAD = "pb-0";');
     for (const f of ["src/components/sections/AppTopBar.tsx", "src/components/DashboardRouteSkeleton.tsx", "src/components/JobsSectionSkeleton.tsx"]) {
-      expect({ f, pad: read(f).includes("${SEARCH_BAR_PAD} min-w-0") }).toEqual({ f, pad: true });
+      expect({ f, pad: read(f).includes("className={COMPACT_TOP_ROW}") }).toEqual({ f, pad: true });
     }
     expect(read("src/components/declutter/DeclutterBrowseView.tsx")).toContain('<div data-declutter-chips-row="" className={CHIPS_ROW_PAD}>');
     expect(read("src/components/declutter/DeclutterSkeletons.tsx")).toContain("<div className={CHIPS_ROW_PAD} aria-hidden data-declutter-chip-bones=\"\">");

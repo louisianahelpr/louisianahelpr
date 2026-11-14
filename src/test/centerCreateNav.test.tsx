@@ -4,8 +4,9 @@
  * - The phone bottom bar is Home (the /home Dashboard), Jobs, Declutter, Messages (its unread badge), You: five tabs, no center "+"
  *   (F146; Shops and Homes left it until they open). Each tab shows its NAME under its icon, bold olive on the
  *   current section (F147).
- * - The top bar is one pattern (F148): the page title on the left (the logo on Dashboard), the bell and You on the
- *   right; a section's search is its own row under the bar. Creating is the floating pill (SectionCreateFab): on
+ * - The top bar (F148, compacted by the owner 11-14 after Depop / Vinted): a page with a search draws ONE row, the
+ *   search with the bell and You inline on its right, the page's name a hidden h1; a page without one (You) keeps
+ *   its visible title with the bell. Creating is the floating pill (SectionCreateFab): on
  *   Dashboard it opens the Create sheet ("What are we doing?"), on a section it is that section's own create (Jobs:
  *   Post a job, under the under-18 gate; Declutter: Sell an item; Shops / Homes: their add).
  * - The Create sheet (mock-up 20): ONE ROW PER SECTION in Customize order, each with ONE main button (owner 10-31,
@@ -25,7 +26,7 @@
  * @mutate src/components/mobileNav/dockItems.ts |     { path: youItem.path, icon: youItem.icon, label: youItem.label },\n | \n
  * @mutate src/components/mobileNav/dockItems.ts | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = true; | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = false;
  * @mutate src/components/MobileNav.tsx | <span data-dock-label className={`relative z-10 text-ds-10 leading-none whitespace-nowrap ${isActive ? "font-bold" : "font-medium"}`}>{shown}</span> | <span data-dock-label className="relative z-10 text-ds-10 leading-none whitespace-nowrap font-medium">{shown}</span>
- * @mutate src/components/sections/AppTopBar.tsx |         {search && <div data-testid="app-top-bar-search" className={`${SEARCH_BAR_PAD} min-w-0`}>{search}</div>} |
+ * @mutate src/components/sections/AppTopBar.tsx |             <div data-testid="app-top-bar-search" className="min-w-0 flex-1">{search}</div> |
  * @mutate src/components/sections/SectionCreateFab.tsx |   const go = () => { hapticMedium(); if (add) navigate(add.path); else setCreateSheetOpen((o) => !o); }; |   const go = () => { hapticMedium(); navigate(add?.path ?? "/post-job"); };
  * @mutate src/components/sections/SectionCreateFab.tsx |       onClick={isPost ? gate.gate("post", go) : go} |       onClick={go}
  * @mutate src/components/sections/SectionCreateFab.tsx |       {...(add ? {} : { "aria-haspopup": "dialog" as const, "aria-expanded": sheetOpen })} |       {...(add ? {} : { "aria-haspopup": "dialog" as const })}
@@ -207,12 +208,12 @@ describe("the phone top bar (F148, owner audit 2026-11-09)", () => {
     expect(where()).toBe("/profile");
   });
 
-  it("a section's search is its own row under the bar, not the bar itself; the title stays visible", () => {
+  it("a section's search IS the bar's row, the bell and You inline on its right; the title is a hidden h1 (owner 11-14)", () => {
     renderAt(<AppTopBar title="Jobs" search={<input aria-label="Search jobs" />} />, "/jobs");
     const bar = screen.getByTestId("app-top-bar");
     expect(bar.querySelector("h1")?.textContent).toBe("Jobs");
-    expect(bar.querySelector("h1")?.className.split(/\s+/)).not.toContain("sr-only");
-    expect(bar.querySelector('input[aria-label="Search jobs"]')).toBeNull();
+    expect(bar.querySelector("h1")?.className.split(/\s+/)).toContain("sr-only");
+    expect(bar.contains(screen.getByTestId("app-top-bar-search"))).toBe(true);
     expect(screen.getByTestId("app-top-bar-search").querySelector('input[aria-label="Search jobs"]')).toBeTruthy();
   });
 

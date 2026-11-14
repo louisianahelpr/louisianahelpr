@@ -45,7 +45,7 @@ import { ConversationList } from "@/components/messages/ConversationList";
 // The phone header is the shared AppTopBar since Q2231; its bell and avatar
 // need the app's providers, and this file tests the list, not the bar.
 vi.mock("@/components/sections/AppTopBar", () => ({
-  AppTopBar: ({ title }: { title?: string }) => <header data-testid="app-top-bar"><h1>{title}</h1></header>,
+  AppTopBar: ({ title, search }: { title?: string; search?: import("react").ReactNode }) => <header data-testid="app-top-bar"><h1>{title}</h1>{search}</header>,
 }));
 
 

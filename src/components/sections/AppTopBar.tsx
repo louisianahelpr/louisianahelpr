@@ -14,7 +14,7 @@ import { sectionByKey, type SectionAdd, type SectionKey } from "./sectionsConfig
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import { avatarButtonLabel } from "@/lib/avatarImage";
-import { SEARCH_BAR_PAD } from "@/components/sections/browseHeaderSpacing";
+import { COMPACT_TOP_ROW, TITLE_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
 
 // "My Declutter" (etc.) loads on the photo's first tap, never on the first screen.
 const MySectionSheet = lazy(() => import("./MySectionSheet"));
@@ -149,30 +149,44 @@ export function AppTopBar({
       )}
     </>
   );
+  const mineSheet = mine && mineAsked && (
+    <Suspense fallback={null}><MySectionSheet menu={mine} open={mineOpen} onOpenChange={setMineOpen} /></Suspense>
+  );
   // ONE header row (owner 2026-10-21): on the desktop website the title goes into
   // the global top bar beside the bell and photo.
+  // THE COMPACT TOP (owner 11-14, Depop / Vinted iPhone screenshots: "make our top part more like theirs so we can
+  // have more space"): on a phone a page with a search draws ONE row, the search (flex-1) with the bell and the photo
+  // inline on its right, 8px under the safe area; the page's name stays as a visually hidden h1 (the bottom bar already
+  // says which tab you are on). A page with no search (You, a closed section) keeps its visible title row, 56px.
+  // Guard: src/test/compactTopRow.test.tsx.
   return (
     <PageTitleBar
       title={title ?? ""}
       actions={actions}
       desktopGap={desktopGap}
       phone={
-        <>
-        <header className="app-top-bar flex items-center justify-between gap-2 h-16" data-testid="app-top-bar">
-          {title ? (
-            <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1>
-          ) : (
-            <HelprMark size="sm" emblemOnly to="/home" />
-          )}
-          <div className="flex items-center shrink-0 gap-1">
-            {personal}
-          </div>
-          {mine && mineAsked && (
-            <Suspense fallback={null}><MySectionSheet menu={mine} open={mineOpen} onOpenChange={setMineOpen} /></Suspense>
-          )}
-        </header>
-        {search && <div data-testid="app-top-bar-search" className={`${SEARCH_BAR_PAD} min-w-0`}>{search}</div>}
-        </>
+        search ? (
+          <header className={COMPACT_TOP_ROW} data-testid="app-top-bar" data-compact-top="">
+            {title && <h1 className="sr-only">{title}</h1>}
+            <div data-testid="app-top-bar-search" className="min-w-0 flex-1">{search}</div>
+            <div className="flex items-center shrink-0">
+              {personal}
+            </div>
+            {mineSheet}
+          </header>
+        ) : (
+          <header className={TITLE_TOP_ROW} data-testid="app-top-bar">
+            {title ? (
+              <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1>
+            ) : (
+              <HelprMark size="sm" emblemOnly to="/home" />
+            )}
+            <div className="flex items-center shrink-0 gap-1">
+              {personal}
+            </div>
+            {mineSheet}
+          </header>
+        )
       }
     />
   );

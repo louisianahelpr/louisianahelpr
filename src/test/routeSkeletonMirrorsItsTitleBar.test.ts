@@ -41,7 +41,6 @@ const call = (src: string, tag: string) => {
   expect(i, `expected a <${tag}> in the file`).toBeGreaterThan(-1);
   return src.slice(i, src.indexOf(">", i) + 1).replace(/\s+/g, " ");
 };
-const classOf = (el: string) => el.match(/className="([^"]*)"/)?.[1] ?? "";
 
 describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
   it("is not vacuous: every file was read", () => {
@@ -59,18 +58,17 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(skeleton).toContain('<div className="flex min-h-full flex-col gap-4 pt-1 pb-6">');
   });
 
-  it("draws Dashboard's top bar: the same box, the logo (no title), the bell and the avatar, then the search row (F148)", () => {
-    expect(classOf(call(skeleton, "div className=\"app-top-bar"))).toBe(classOf(call(bar, "header")));
-    // One pattern (owner UI audit F148, 11-09): the bar is the page's title (on Dashboard, which has none, the h-8
-    // emblem), the bell and the avatar; the search is its own 44px row under the bar, 8px above the page.
-    expect(bar).toContain('<HelprMark size="sm" emblemOnly to="/home" />');
-    expect(skeleton).toMatch(/app-top-bar[^>]*>\s*<Skeleton className="h-8 w-8 rounded-ds-md" \/>/);
+  it("draws Dashboard's top bar: the compact top's one row (owner 11-14), the search with the bell and the avatar inline", () => {
+    // The compact top (owner 11-14, after Depop / Vinted): no logo row; the search is the bar's one row, the bell and
+    // the avatar inline on its right (src/test/compactTopRow.test.tsx). Both draw COMPACT_TOP_ROW.
+    expect(bar).toMatch(/<header className=\{COMPACT_TOP_ROW\}/);
+    expect(skeleton).toMatch(/<div className=\{COMPACT_TOP_ROW\}>\s*<div className="min-w-0 flex-1">\s*<Skeleton className="h-11 w-full rounded-full" \/>\s*<\/div>/);
+    expect(bar).toContain('<div data-testid="app-top-bar-search" className="min-w-0 flex-1">{search}</div>');
+    expect(skeleton).not.toMatch(/<Skeleton className="h-8 w-8 rounded-ds-md" \/>/);
     expect(home).toContain("<SectionScreen search={<SectionSearchBar");
-    expect(bar).toContain('{search && <div data-testid="app-top-bar-search" className={`${SEARCH_BAR_PAD} min-w-0`}>{search}</div>}');
-    expect(skeleton).toMatch(/<div className=\{`\$\{SEARCH_BAR_PAD\} min-w-0`\}>\s*<Skeleton className="h-11 w-full rounded-full" \/>\s*<\/div>/);
-    // The right cluster: the bar's gap and two 44px controls, the bell and the avatar ("+ Create" floats over the page).
-    expect(bar).toContain('<div className="flex items-center shrink-0 gap-1">');
-    const cluster = skeleton.slice(skeleton.indexOf('className="flex items-center gap-1 shrink-0"'));
+    // The right cluster: two 44px controls, the bell and the avatar ("+ Create" floats over the page).
+    expect(bar).toContain('<div className="flex items-center shrink-0">');
+    const cluster = skeleton.slice(skeleton.indexOf('className="flex items-center shrink-0"'));
     expect(cluster.length).toBeGreaterThan(100);
     const right = cluster.slice(0, cluster.indexOf("</div>"));
     const boxes = right.match(/<span className="h-1[01] w-1[01]|<Skeleton className="h-11 w-11 shrink-0 rounded-full" \/>/g) ?? [];
@@ -110,11 +108,11 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
 });
 
 // Proof this is able to fail: each restores a real way the two drift.
-// @mutate src/components/DashboardRouteSkeleton.tsx | <Skeleton className="h-8 w-8 rounded-ds-md" /> | <Skeleton className="h-11 min-w-0 flex-1 rounded-full" />
+// @mutate src/components/DashboardRouteSkeleton.tsx |           <div className={COMPACT_TOP_ROW}>\n            <div className="min-w-0 flex-1"> |           <div className={COMPACT_TOP_ROW}>\n            <Skeleton className="h-8 w-8 rounded-ds-md" />\n            <div className="min-w-0 flex-1">
 // @mutate src/components/DashboardRouteSkeleton.tsx | data-skeleton-part="next-up"> | data-skeleton-part="stats">
 // @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="h-11 w-36 mt-2 rounded-full" /> |
 // @mutate src/components/DashboardRouteSkeleton.tsx |               <span className="h-11 w-11 flex items-center justify-center">\n                <Skeleton className="h-6 w-6 rounded-full" />\n              </span>\n |
-// @mutate src/components/DashboardRouteSkeleton.tsx |             <div className="flex items-center gap-1 shrink-0"> |             <div className="flex items-center gap-0.5 shrink-0">
+// @mutate src/components/DashboardRouteSkeleton.tsx |             <div className="flex items-center shrink-0"> |             <div className="flex items-center gap-0.5 shrink-0">
 // @mutate src/components/sections/SectionScreen.tsx | ${barSearch ? "px-4" : "px-5"} | ${barSearch !== undefined ? "px-4" : "px-5"}
 // @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="w-9 h-9 rounded-full" />\n              </span> |                 <Skeleton className="w-9 h-9 rounded-full" />\n              </span>\n              <span className="h-10 w-10" />
 // @mutate src/components/DashboardRouteSkeleton.tsx |     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top"> |     <AppShell scrollable={false} className="bg-premium-page pt-safe-top">

@@ -53,6 +53,8 @@ import { PublicProfileSkeleton } from "@/components/profile/publicProfile/Public
 import { PublicProfileMemberActions } from "@/components/profile/publicProfile/PublicProfileMemberActions";
 import { PublicProfileMovingSale } from "@/components/profile/publicProfile/PublicProfileMovingSale";
 import { MyJobPhotosPicker, PublicJobPhotos } from "@/components/profile/publicProfile/PublicJobPhotos";
+import { PublicProfileBio } from "@/components/profile/publicProfile/PublicProfileBio";
+import { PublicProfileTabs, activeTab, paneHiddenClass, profileTabs, type ProfileTabKey } from "@/components/profile/publicProfile/PublicProfileTabs";
 
 const ROBOTS = "noindex, follow";
 /** L7 (owner 11-05): search engines index a page only when its member turned "Show my profile in search engines" on. */
@@ -89,10 +91,14 @@ function Meta({ p, handle }: { p: PublicProfile | null | undefined; handle: stri
   return null;
 }
 
+/** Owner 11-14 (Depop review item 10): below lg a section is a tab's plain panel (no card) and its tab names it, so the
+ *  heading is for screen readers only there; from lg it is the card it always was. */
+const PHONE_PLAIN = "max-lg:rounded-none max-lg:border-0 max-lg:p-0";
+
 function Section({ id, title, icon: Icon, children }: { id: string; title: string; icon: typeof Star; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm" aria-labelledby={id}>
-      <h2 id={id} className="mb-3 flex items-center gap-2 text-ds-16 font-semibold text-foreground">
+    <section className={`rounded-2xl border border-border bg-card p-4 shadow-sm ${PHONE_PLAIN}`} aria-labelledby={id} data-pp-plain="">
+      <h2 id={id} className="mb-3 flex items-center gap-2 text-ds-16 font-semibold text-foreground max-lg:sr-only">
         <Icon className="h-4 w-4 text-muted-foreground" aria-hidden />
         {title}
       </h2>
@@ -108,8 +114,8 @@ function Section({ id, title, icon: Icon, children }: { id: string; title: strin
 /** F067: the support account's one action: the support form (a person reads every message). Profiles have no Message button. */
 function MessageSupportButton() {
   return (
-    <div className="mt-4" data-testid="pp-message-support">
-      <Button asChild className="btn-grad-primary w-full rounded-full">
+    <div className="mt-4 max-lg:contents" data-testid="pp-message-support">
+      <Button asChild size="phoneSm" className="btn-grad-primary w-full rounded-full max-lg:order-1 max-lg:w-auto max-lg:flex-1">
         <Link to="/support?topic=message"><MessageSquare className="mr-2 h-4 w-4" aria-hidden />Message support</Link>
       </Button>
     </div>
@@ -140,24 +146,24 @@ function HireMeButton({ handle, signedIn }: { handle: string; signedIn: boolean 
   }, [resume]);
   const label = (<><Handshake className="mr-2 h-4 w-4" aria-hidden />Hire me</>);
   return (
-    <div className="mt-4" data-testid="pp-hire">
+    <div className="mt-4 max-lg:contents" data-testid="pp-hire">
       {signedIn ? (
-        <Button type="button" className="btn-grad-primary w-full rounded-full" disabled={busy} onClick={() => void hire()}>
+        <Button type="button" size="phoneSm" className="btn-grad-primary w-full rounded-full max-lg:order-1 max-lg:w-auto max-lg:flex-1" disabled={busy} onClick={() => void hire()}>
           {label}
         </Button>
       ) : (
-        <Button asChild className="btn-grad-primary w-full rounded-full">
+        <Button asChild size="phoneSm" className="btn-grad-primary w-full rounded-full max-lg:order-1 max-lg:w-auto max-lg:flex-1">
           <Link to={hireGuestHref(handle)}>{label}</Link>
         </Button>
       )}
       {/* F231 (audit 11-10): a guest asked what Hire me costs: free to look, pay only when you hire. */}
-      <p className="mt-2 text-ds-13 text-muted-foreground">
+      <p className="mt-2 text-ds-13 text-muted-foreground max-lg:order-3 max-lg:mt-0 max-lg:w-full max-lg:text-ds-12">
         {signedIn ? "Offer a job directly. Your payment is held safely until the work is done." : "Free to look. You pay only when you hire, and your payment is held safely until the work is done."}
       </p>
       {/* Audit L3 (11-05): a guest who already has an account was sent to sign-up only. F068 (owner UI audit 11-09): and
           a new guest had no plain way to sign up, so both are offered: "New here? Join free · Have an account? Log in". */}
       {!signedIn && (
-        <p className="mt-1 text-ds-13 text-muted-foreground" data-testid="pp-hire-join">
+        <p className="mt-1 text-ds-13 text-muted-foreground max-lg:order-4 max-lg:mt-0 max-lg:w-full max-lg:text-ds-12" data-testid="pp-hire-join">
           {/* F230 (audit 11-10): Join free measured 58x16 and Log in 36x14; tap-44 gives each a 44px hit area in place. */}
           New here? <Link to={hireGuestHref(handle)} className="tap-44 font-semibold text-foreground underline underline-offset-2">Join free</Link>
           <span aria-hidden="true"> · </span>
@@ -179,7 +185,18 @@ const PROFILE_WIDE = "min-[900px]:max-w-3xl";
 /** How many listings show before "Show all N" (the rest load lazily from the same read). */
 export const LISTINGS_FIRST = 24;
 
-function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null }: { p: PublicProfile; signedIn: boolean; isMe: boolean; ctaReady: boolean; viewerId?: string | null }) {
+/** Owner 11-14 (Depop review item 10): where the phone tab bar pins, per shell. AppPage: under the 44px compact title
+ *  bar (index.css .compact-title-bar), bleeding to its scroller's edges (px-3). Public header: under the fixed Navbar
+ *  (PublicLayout's spacer height), bleeding over PublicHeaderPage's body padding. */
+const TABS_STICKY_APP = "top-11 -mx-3 px-3";
+const TABS_STICKY_PUBLIC = "top-[calc(max(var(--safe-area-top,0px),0.25rem)+var(--public-nav-h))] -mx-5 px-5 sm:-mx-8 sm:px-8";
+
+/** One tab's part of the page: hidden on a phone while another tab shows; empty (an async part with nothing) takes no gap. */
+function Pane({ hidden, children }: { hidden: string; children: React.ReactNode }) {
+  return <div className={`empty:hidden ${hidden}`}>{children}</div>;
+}
+
+function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null, guestShell = false }: { p: PublicProfile; signedIn: boolean; isMe: boolean; ctaReady: boolean; viewerId?: string | null; guestShell?: boolean }) {
   const first = p.name.split(/\s+/)[0] || "this member";
   const skills = skillChips(p.skills);
   const work = p.portfolio_urls ?? [];
@@ -190,180 +207,223 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null }: { p: Publ
   const team = isHelprTeam(p.handle);
   const since = memberSinceLabel(p.member_since);
   const nothing = p.listings.length + p.jobs.length + p.wanted.length + p.helpr.reviews.length + (p.helpr.jobs_done ?? 0) + work.length + skills.length + (p.bio ? 1 : 0) === 0;
+  const tabs = profileTabs(p, { isMe: ctaReady && isMe, skillCount: skills.length });
+  const [chosen, setChosen] = useState<ProfileTabKey | null>(null);
+  const active = activeTab(tabs, chosen);
+  const hide = (key: ProfileTabKey) => paneHiddenClass(tabs, active, key);
   return (
     // M5 (audit 11-05): from 900px the column widens so the shop and work grids are 4 across, not ~100 rows of 2.
     <div className={`${PUBLIC_LINK_COLUMN} ${PROFILE_WIDE} space-y-4 pb-8`} data-public-profile={p.handle}>
       {/* F069 (owner UI audit 11-09): the name showed twice at the top (the page title and again in this card). It is
-          the page title (the one h1, the shell's title row); the card names itself to a screen reader instead. */}
-      <section className="rounded-2xl border border-border bg-card p-5 text-center shadow-sm" aria-label={p.name} data-pp-card="">
-        <UserAvatar userId={p.handle} src={p.photo_url} name={p.name} pixelSize={96} className="mx-auto h-24 w-24" />
-        {p.business_name && <p className="text-ds-14 font-medium text-foreground" data-testid="pp-business">{p.business_name}</p>}
-        <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-          {p.town && (
-            <span className="inline-flex items-center gap-1" data-testid="pp-town"><MapPin className="h-3.5 w-3.5" aria-hidden />{p.town}</span>
-          )}
-          {since && <span>Member since {since}</span>}
-          {p.stats.is_id_verified && (
-            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={ID_VERIFIED_PILL_STYLE}>
-              <IdVerifiedShield className="h-3.5 w-3.5" />
-              {ID_VERIFIED_LABEL}
-            </span>
-          )}
-          {p.licensed && <span className="inline-flex items-center gap-1" data-testid="pp-licensed"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />Licensed</span>}
-          {p.insured && <span className="inline-flex items-center gap-1" data-testid="pp-insured"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />Insured</span>}
+          the page title (the one h1, the shell's title row); the card names itself to a screen reader instead.
+          Owner 11-14 (Depop review item 10): below lg this is a compact header, no card: a 64px photo beside the
+          name, trust and town lines, the bio clamped to two lines, and the actions in one row. On a phone (below sm)
+          the h1 is kept for screen readers only (phoneHidesTitle) and the name is painted here beside the photo. */}
+      <section className="rounded-2xl border border-border bg-card p-5 text-center shadow-sm max-lg:rounded-none max-lg:border-0 max-lg:p-0 max-lg:text-left" aria-label={p.name} data-pp-card="" data-pp-plain="">
+        <div className="max-lg:flex max-lg:items-center max-lg:gap-3">
+          <UserAvatar userId={p.handle} src={p.photo_url} name={p.name} pixelSize={96} className="mx-auto h-24 w-24 max-lg:mx-0 max-lg:h-16 max-lg:w-16 max-lg:shrink-0" />
+          <div className="max-lg:flex max-lg:min-w-0 max-lg:flex-1 max-lg:flex-wrap max-lg:items-center max-lg:gap-x-2 max-lg:gap-y-0.5 max-lg:text-ds-13">
+            <p className="hidden truncate text-ds-18 font-semibold leading-tight text-foreground max-sm:order-first max-sm:block max-sm:w-full" aria-hidden="true" data-testid="pp-name-phone">{p.name}</p>
+            {p.business_name && <p className="text-ds-14 font-medium text-foreground max-lg:-order-3 max-lg:w-full max-lg:truncate max-lg:text-ds-13" data-testid="pp-business">{p.business_name}</p>}
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-muted-foreground max-lg:contents">
+              {p.town && (
+                <span className="inline-flex items-center gap-1" data-testid="pp-town"><MapPin className="h-3.5 w-3.5" aria-hidden />{p.town}</span>
+              )}
+              {since && <span>Member since {since}</span>}
+              {p.stats.is_id_verified && (
+                <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 max-lg:-order-1 max-lg:px-1.5 max-lg:py-0" style={ID_VERIFIED_PILL_STYLE}>
+                  <IdVerifiedShield className="h-3.5 w-3.5" />
+                  {ID_VERIFIED_LABEL}
+                </span>
+              )}
+              {p.licensed && <span className="inline-flex items-center gap-1" data-testid="pp-licensed"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />Licensed</span>}
+              {p.insured && <span className="inline-flex items-center gap-1" data-testid="pp-insured"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />Insured</span>}
+            </div>
+            {/* F067 (owner UI audit 11-09): the official support account says what it is, never "New on Helpr". */}
+            {team ? (
+              <p className="mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-semibold max-lg:-order-2 max-lg:mt-0 max-lg:px-2" data-testid="pp-team"
+                style={{ color: "hsl(var(--bark))", backgroundColor: "hsl(var(--bark) / 0.1)" }}>
+                <BadgeCheck className="h-3.5 w-3.5" aria-hidden />Louisiana Helpr team
+              </p>
+            ) : (
+              <p className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-foreground max-lg:-order-2 max-lg:mt-0" data-testid="pp-trust">
+                {trust ? (<><Star className="h-3.5 w-3.5" aria-hidden />{trust}</>) : "New on Helpr"}
+              </p>
+            )}
+          </div>
         </div>
-        {/* F067 (owner UI audit 11-09): the official support account says what it is, never "New on Helpr". */}
-        {team ? (
-          <p className="mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-semibold" data-testid="pp-team"
-            style={{ color: "hsl(var(--bark))", backgroundColor: "hsl(var(--bark) / 0.1)" }}>
-            <BadgeCheck className="h-3.5 w-3.5" aria-hidden />Louisiana Helpr team
-          </p>
-        ) : (
-          <p className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-foreground" data-testid="pp-trust">
-            {trust ? (<><Star className="h-3.5 w-3.5" aria-hidden />{trust}</>) : "New on Helpr"}
-          </p>
-        )}
-        {p.bio && <p className="mt-3 whitespace-pre-line text-left text-ds-15 text-foreground [overflow-wrap:anywhere]" data-testid="pp-bio">{p.bio}</p>}
+        {p.bio && <PublicProfileBio bio={p.bio} />}
+        {/* Below lg the skills move into the Work tab (pp-skills-phone), keeping the header short. */}
         {skills.length > 0 && (
-          <ul className="mt-3 flex flex-wrap justify-center gap-1.5" aria-label="Skills" data-testid="pp-skills">
+          <ul className="mt-3 flex flex-wrap justify-center gap-1.5 max-lg:hidden" aria-label="Skills" data-testid="pp-skills">
             {skills.map((s) => (
               <li key={s} className="rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs">{s}</li>
             ))}
           </ul>
         )}
-        {/* M3 (audit 11-05): your own page never flashes Hire me while your profile row loads. */}
-        {ctaReady && !isMe && (team ? <MessageSupportButton /> : <HireMeButton handle={p.handle} signedIn={signedIn} />)}
-        {ctaReady && <div className={isMe ? "mt-4" : "mt-2"}>
-          <Button type="button" variant={isMe ? "default" : "outline"} className={isMe ? "btn-grad-primary w-full rounded-full" : "w-full rounded-full"}
-            onClick={() => void shareMyProfile(p.handle, isMe ? null : p.name)}>
-            <Share2 className="mr-2 h-4 w-4" aria-hidden />
-            {isMe ? "Share my profile" : `Share ${first}'s profile`}
-          </Button>
-        </div>}
+        {/* Below lg: one row, the main action beside Share, its note under the row. */}
+        <div className="max-lg:mt-3 max-lg:flex max-lg:flex-wrap max-lg:items-center max-lg:gap-x-2 max-lg:gap-y-1.5" data-testid="pp-actions">
+          {/* M3 (audit 11-05): your own page never flashes Hire me while your profile row loads. */}
+          {ctaReady && !isMe && (team ? <MessageSupportButton /> : <HireMeButton handle={p.handle} signedIn={signedIn} />)}
+          {ctaReady && <div className={isMe ? "mt-4 max-lg:mt-0 max-lg:w-full" : "mt-2 max-lg:order-2 max-lg:mt-0"}>
+            <Button type="button" size="phoneSm" variant={isMe ? "default" : "outline"} className={isMe ? "btn-grad-primary w-full rounded-full" : "w-full rounded-full max-lg:w-auto"}
+              aria-label={isMe ? undefined : `Share ${first}'s profile`}
+              onClick={() => void shareMyProfile(p.handle, isMe ? null : p.name)}>
+              <Share2 className="mr-2 h-4 w-4" aria-hidden />
+              {isMe ? "Share my profile" : (<><span className="max-lg:hidden">{`Share ${first}'s profile`}</span><span className="lg:hidden">Share</span></>)}
+            </Button>
+          </div>}
+        </div>
       </section>
 
       {/* M3 (audit 11-05): your own view says what it is and what is still empty. */}
       {ctaReady && isMe && <PublicProfileOwnerSteps p={p} />}
 
-      {work.length > 0 ? (
-        <section className="rounded-2xl border border-border bg-card p-4 shadow-sm" aria-label="Recent work" data-testid="pp-work">
-          <HelperWorkPhotos urls={work} />
-        </section>
-      ) : isMe ? (
-        <section className="rounded-2xl border border-dashed border-border bg-card p-4 text-center" aria-label="Recent work" data-testid="pp-work-empty">
-          <ImageIcon className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden />
-          <p className="mt-2 text-ds-14 text-muted-foreground">Add photos of your work so people can see what you do.</p>
-          <Button asChild variant="outline" size="sm" className="mt-3 rounded-full">
-            <Link to="/profile?tab=profile">Add work photos</Link>
-          </Button>
-        </section>
-      ) : null}
+      {/* Owner 11-14 (Depop review item 10): a phone shows one section at a time under tabs that pin to the top. */}
+      <PublicProfileTabs tabs={tabs} active={active} onSelect={setChosen} stickyClassName={guestShell ? TABS_STICKY_PUBLIC : TABS_STICKY_APP} />
+
+      {skills.length > 0 && (
+        <Pane hidden={hide("work")}>
+          <p className="mb-1.5 text-ds-13 font-medium text-muted-foreground lg:hidden" aria-hidden="true">Skills</p>
+          <ul className="flex flex-wrap gap-1.5 lg:hidden" aria-label="Skills" data-testid="pp-skills-phone">
+            {skills.map((s) => (
+              <li key={s} className="rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs">{s}</li>
+            ))}
+          </ul>
+        </Pane>
+      )}
+
+      <Pane hidden={hide("work")}>
+        {work.length > 0 ? (
+          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm" aria-label="Recent work" data-testid="pp-work">
+            <HelperWorkPhotos urls={work} />
+          </section>
+        ) : isMe ? (
+          <section className="rounded-2xl border border-dashed border-border bg-card p-4 text-center" aria-label="Recent work" data-testid="pp-work-empty">
+            <ImageIcon className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden />
+            <p className="mt-2 text-ds-14 text-muted-foreground">Add photos of your work so people can see what you do.</p>
+            <Button asChild variant="outline" size="sm" className="mt-3 rounded-full">
+              <Link to="/profile?tab=profile">Add work photos</Link>
+            </Button>
+          </section>
+        ) : null}
+      </Pane>
 
       {/* H4 (owner 11-05): job after photos the Helpr picked, only while everyone on the job allows sharing. */}
-      <PublicJobPhotos handle={p.handle} />
-      {ctaReady && isMe && <MyJobPhotosPicker handle={p.handle} />}
+      <Pane hidden={hide("work")}><PublicJobPhotos handle={p.handle} /></Pane>
+      {ctaReady && isMe && <Pane hidden={hide("work")}><MyJobPhotosPicker handle={p.handle} /></Pane>}
 
       {nothing && (
         <p className="text-center text-ds-14 text-muted-foreground">{first} hasn&apos;t posted anything yet.</p>
       )}
 
       {/* Profile leftovers 11-05: "See the whole sale" lands here now; the same moving-sale banner /user draws. */}
-      <PublicProfileMovingSale handle={p.handle} currentUserId={viewerId} isMe={isMe} />
+      <Pane hidden={hide("sale")}><PublicProfileMovingSale handle={p.handle} currentUserId={viewerId} isMe={isMe} /></Pane>
 
       {p.listings.length > 0 && (
-        <Section id="pp-listings" title={`For sale · ${listingTotal}`} icon={ShoppingBag}>
-          <ul className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-4" data-testid="pp-listings-grid">
-            {listingsShown.map((l) => (
-              <li key={l.id}>
-                {/* Guests may open an item (BUY-16); buying there asks them to sign up. */}
-                <Link to={`/declutter/item/${l.id}`} className="block h-full overflow-hidden rounded-xl border border-border bg-background">
-                  <div className="flex aspect-square w-full items-center justify-center bg-muted">
-                    {l.photo_id ? (
-                      <img loading="lazy" decoding="async" src={listingPhotoUrl(l.photo_id, 320)} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <ShoppingBag className="h-8 w-8 text-muted-foreground" aria-hidden />
-                    )}
-                  </div>
-                  <div className="p-2">
-                    <p className="truncate text-ds-14 font-semibold text-foreground" title={l.title}>{l.title}</p>
-                    {/* Owner 11-09 (10:35 PM): the list price is the bold one; "$X.XX incl. fee" small under it. */}
-                    <p className="text-ds-13 text-muted-foreground">
-                      <span data-pp-list-price="" className="text-ds-14 font-bold tabular-nums text-foreground">{itemPriceLabel(l.current_price_cents)}</span>{l.area_label ? ` · ${l.area_label}` : ""}
-                    </p>
-                    <PriceInclFee priceCents={l.current_price_cents} />
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          {!allListings && p.listings.length > LISTINGS_FIRST && (
-            <Button type="button" variant="outline" className="mt-3 w-full rounded-full" data-testid="pp-listings-all" onClick={() => setAllListings(true)}>
-              Show all {listingTotal}
-            </Button>
-          )}
-        </Section>
+        <Pane hidden={hide("sale")}>
+          <Section id="pp-listings" title={`For sale · ${listingTotal}`} icon={ShoppingBag}>
+            {/* Owner 11-14 (Depop review item 10): below lg a 3-across grid of square photos, 2px apart, the price on
+                the photo; from lg the cards as before. */}
+            <ul className="grid grid-cols-3 gap-0.5 lg:grid-cols-4 lg:gap-3" data-testid="pp-listings-grid">
+              {listingsShown.map((l) => (
+                <li key={l.id}>
+                  {/* Guests may open an item (BUY-16); buying there asks them to sign up. */}
+                  <Link to={`/declutter/item/${l.id}`} className="relative block h-full overflow-hidden bg-background lg:rounded-xl lg:border lg:border-border">
+                    <div className="flex aspect-square w-full items-center justify-center bg-muted">
+                      {l.photo_id ? (
+                        <img loading="lazy" decoding="async" src={listingPhotoUrl(l.photo_id, 320)} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <ShoppingBag className="h-8 w-8 text-muted-foreground" aria-hidden />
+                      )}
+                    </div>
+                    <div className="p-2 max-lg:pointer-events-none max-lg:absolute max-lg:inset-x-0 max-lg:bottom-0 max-lg:bg-gradient-to-t max-lg:from-black/75 max-lg:to-transparent max-lg:px-1 max-lg:pb-1 max-lg:pt-5" data-pp-tile-text="">
+                      <p className="truncate text-ds-14 font-semibold text-foreground max-lg:sr-only" title={l.title}>{l.title}</p>
+                      {/* Owner 11-09 (10:35 PM): the list price is the bold one; "$X.XX incl. fee" small under it. */}
+                      <p className="text-ds-13 text-muted-foreground max-lg:leading-tight">
+                        <span data-pp-list-price="" className="text-ds-14 font-bold tabular-nums text-foreground max-lg:text-white">{itemPriceLabel(l.current_price_cents)}</span><span className="max-lg:hidden">{l.area_label ? ` · ${l.area_label}` : ""}</span>
+                      </p>
+                      <PriceInclFee priceCents={l.current_price_cents} className="block text-ds-12 font-medium leading-snug tabular-nums text-muted-foreground max-lg:leading-tight max-lg:text-white/90" />
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {!allListings && p.listings.length > LISTINGS_FIRST && (
+              <Button type="button" variant="outline" className="mt-3 w-full rounded-full" data-testid="pp-listings-all" onClick={() => setAllListings(true)}>
+                Show all {listingTotal}
+              </Button>
+            )}
+          </Section>
+        </Pane>
       )}
 
       {p.jobs.length > 0 && (
-        <Section id="pp-jobs" title="Open jobs" icon={Briefcase}>
-          <ul className="flex flex-col gap-2">
-            {p.jobs.map((j) => (
-              <li key={j.id} className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-ds-15 font-semibold text-foreground">{j.title}</p>
-                  <p className="text-ds-13 text-muted-foreground">
-                    {[jobCategoryLabel(j.category), j.town, `$${Math.round(Number(j.budget))}`].filter(Boolean).join(" · ")}
-                  </p>
-                </div>
-                <Button asChild size="sm" className="rounded-full shrink-0">
-                  <Link to={guestAware(`/jobs?job=${j.id}`, signedIn)}>{signedIn ? "View" : "Apply"}</Link>
-                </Button>
-              </li>
-            ))}
-          </ul>
-          {!signedIn && <p className="mt-2 text-ds-13 text-muted-foreground">Free to sign up. We bring you right back.</p>}
-        </Section>
+        <Pane hidden={hide("jobs")}>
+          <Section id="pp-jobs" title="Open jobs" icon={Briefcase}>
+            <ul className="flex flex-col gap-2">
+              {p.jobs.map((j) => (
+                <li key={j.id} className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-2 text-ds-15 font-semibold text-foreground">{j.title}</p>
+                    <p className="text-ds-13 text-muted-foreground">
+                      {[jobCategoryLabel(j.category), j.town, `$${Math.round(Number(j.budget))}`].filter(Boolean).join(" · ")}
+                    </p>
+                  </div>
+                  <Button asChild size="sm" className="rounded-full shrink-0">
+                    <Link to={guestAware(`/jobs?job=${j.id}`, signedIn)}>{signedIn ? "View" : "Apply"}</Link>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            {!signedIn && <p className="mt-2 text-ds-13 text-muted-foreground">Free to sign up. We bring you right back.</p>}
+          </Section>
+        </Pane>
       )}
 
       {((p.helpr.jobs_done ?? 0) > 0 || p.helpr.reviews.length > 0) && (
-        <Section id="pp-helpr" title="Helpr work" icon={Star}>
-          <p className="text-ds-14 text-foreground">
-            {(p.helpr.jobs_done ?? 0)} job{p.helpr.jobs_done === 1 ? "" : "s"} done
-          </p>
-          {p.helpr.categories.length > 0 && (
-            <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Kinds of work">
-              {p.helpr.categories.map((c) => (
-                <li key={c} className="rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs">{jobCategoryLabel(c)}</li>
-              ))}
-            </ul>
-          )}
-          {/* M2 (audit 11-05): count, kind of work, month, the reply, and See all. */}
-          <PublicProfileReviews reviews={p.helpr.reviews} total={reviewTotal(p)} first={first} />
-        </Section>
+        <Pane hidden={hide("work")}>
+          <Section id="pp-helpr" title="Helpr work" icon={Star}>
+            <p className="text-ds-14 text-foreground">
+              {(p.helpr.jobs_done ?? 0)} job{p.helpr.jobs_done === 1 ? "" : "s"} done
+            </p>
+            {p.helpr.categories.length > 0 && (
+              <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Kinds of work">
+                {p.helpr.categories.map((c) => (
+                  <li key={c} className="rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs">{jobCategoryLabel(c)}</li>
+                ))}
+              </ul>
+            )}
+            {/* M2 (audit 11-05): count, kind of work, month, the reply, and See all. */}
+            <PublicProfileReviews reviews={p.helpr.reviews} total={reviewTotal(p)} first={first} />
+          </Section>
+        </Pane>
       )}
 
       {p.wanted.length > 0 && (
-        <Section id="pp-wanted" title="Looking for" icon={Search}>
-          <ul className="flex flex-col gap-2">
-            {p.wanted.map((w) => (
-              <li key={w.id} className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-ds-15 text-foreground">{w.what}</p>
-                  <p className="text-ds-13 text-muted-foreground">up to {itemPriceLabel(w.max_price_cents)}</p>
-                </div>
-                {/* Audit L8 (11-05): "Sign up to reply" went to /declutter, not back to the post. Each post's own
-                    reply (the Wanted quick-list, which answers THIS post once listed); a guest signs up first and
-                    comes back to it. Never on your own page. */}
-                {!isMe && (
-                  <Button asChild variant="outline" size="sm" className="shrink-0 rounded-full">
-                    <Link to={guestAware(quickListHref(w), signedIn)} data-testid="pp-wanted-reply">I have this</Link>
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-          {!signedIn && !isMe && <p className="mt-2 text-ds-13 text-muted-foreground">Free to sign up. We bring you right back to this post.</p>}
-        </Section>
+        <Pane hidden={hide("wanted")}>
+          <Section id="pp-wanted" title="Looking for" icon={Search}>
+            <ul className="flex flex-col gap-2">
+              {p.wanted.map((w) => (
+                <li key={w.id} className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-ds-15 text-foreground">{w.what}</p>
+                    <p className="text-ds-13 text-muted-foreground">up to {itemPriceLabel(w.max_price_cents)}</p>
+                  </div>
+                  {/* Audit L8 (11-05): "Sign up to reply" went to /declutter, not back to the post. Each post's own
+                      reply (the Wanted quick-list, which answers THIS post once listed); a guest signs up first and
+                      comes back to it. Never on your own page. */}
+                  {!isMe && (
+                    <Button asChild variant="outline" size="sm" className="shrink-0 rounded-full">
+                      <Link to={guestAware(quickListHref(w), signedIn)} data-testid="pp-wanted-reply">I have this</Link>
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {!signedIn && !isMe && <p className="mt-2 text-ds-13 text-muted-foreground">Free to sign up. We bring you right back to this post.</p>}
+          </Section>
+        </Pane>
       )}
     </div>
   );
@@ -443,12 +503,14 @@ export default function PublicProfilePage() {
       ) : !q.data ? (
         unavailable
       ) : (
-        <ProfileBody p={q.data} signedIn={!!user} isMe={isMe} ctaReady={ctaReady} viewerId={user?.id ?? null} />
+        <ProfileBody p={q.data} signedIn={!!user} isMe={isMe} ctaReady={ctaReady} viewerId={user?.id ?? null} guestShell={guestShell} />
       )}
     </>
   );
+  // Owner 11-14 (Depop review item 10): on a phone the name is painted beside the photo in the header (pp-name-phone),
+  // so the title row keeps the h1 for screen readers only (phoneHidesTitle), once there is a profile to name.
   return guestShell ? (
-    <PublicHeaderPage title={title} backTo="/" titleActions={memberActions} bottomPaddingClassName="pb-12 md:pb-16">
+    <PublicHeaderPage title={title} backTo="/" titleActions={memberActions} phoneHidesTitle={!!q.data} bottomPaddingClassName="pb-12 md:pb-16">
       {/* F253 (whole-app audit 11-10, measured B3g 11-12): /u/nobody shifted 0.405 when the skeleton gave way to the
           shorter "isn't available" card and the site footer slid up into the first screen. The body holds at least a
           screen's height in every state, so the footer starts below the fold and never moves into view on load
@@ -456,7 +518,7 @@ export default function PublicProfilePage() {
       <div className="min-h-[100dvh]" data-testid="pp-body">{body}</div>
     </PublicHeaderPage>
   ) : (
-    <AppPage title={title} backTo={user ? "/home" : "/"} titleActions={memberActions}>
+    <AppPage title={title} backTo={user ? "/home" : "/"} titleActions={memberActions} phoneHidesTitle={!!q.data}>
       {body}
     </AppPage>
   );

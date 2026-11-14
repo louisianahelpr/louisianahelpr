@@ -8,8 +8,8 @@
  *
  * @mutate src/lib/hireMe.ts |   return `/login?redirect=${encodeURIComponent(`/u/${encodeURIComponent(handle)}?${HIRE_PARAM}=1`)}`; |   return "/login";
  * @mutate src/pages/u/PublicProfilePage.tsx | <Link to={guestAware(quickListHref(w), signedIn)} data-testid="pp-wanted-reply"> | <Link to={guestAware("/declutter", signedIn)} data-testid="pp-wanted-reply">
- * @mutate src/pages/u/PublicProfilePage.tsx |                 {!isMe && (\n                  <Button asChild variant="outline" size="sm" className="shrink-0 rounded-full"> |                 {(\n                  <Button asChild variant="outline" size="sm" className="shrink-0 rounded-full">
- * @mutate src/pages/u/PublicProfilePage.tsx |       {!signedIn && (\n        <p className="mt-1 text-ds-13 text-muted-foreground" data-testid="pp-hire-join"> |       {false && (\n        <p className="mt-1 text-ds-13 text-muted-foreground" data-testid="pp-hire-join">
+ * @mutate src/pages/u/PublicProfilePage.tsx |                   {!isMe && (\n                    <Button asChild variant="outline" size="sm" className="shrink-0 rounded-full"> |                   {(\n                    <Button asChild variant="outline" size="sm" className="shrink-0 rounded-full">
+ * @mutate src/pages/u/PublicProfilePage.tsx |       {!signedIn && (\n        <p className="mt-1 text-ds-13 text-muted-foreground max-lg:order-4 max-lg:mt-0 max-lg:w-full max-lg:text-ds-12" data-testid="pp-hire-join"> |       {false && (\n        <p className="mt-1 text-ds-13 text-muted-foreground" data-testid="pp-hire-join">
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

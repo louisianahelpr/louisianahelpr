@@ -163,6 +163,10 @@ const buttonVariants = cva(
         // 48px: between `sm` (44) and `default` (56), for a full-width secondary pill such as You's "Log out"
         // (lead decision 11-01, B91). A named size so no call site hand-sets h-12 (no-button-height-override).
         md: "h-12 px-5 text-ds-16",
+        // `default` from lg (900px) up, `sm` below it: the public profile's phone action row (Hire me | Share, owner
+        // 11-14 Depop review item 10) is 44px on a phone and stays the 56px desktop button. A named size so no call site
+        // hand-sets max-lg:h-11 (no-button-height-override).
+        phoneSm: "h-14 px-6 py-2 text-ds-16 max-lg:h-11 max-lg:px-4 max-lg:py-0 max-lg:text-ds-14",
         lg: "h-[60px] px-8 text-ds-17",
         xl: "h-16 px-10 text-ds-18",
         icon: "h-14 w-14",

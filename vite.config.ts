@@ -432,11 +432,14 @@ export default defineConfig(({ mode, command }) => ({
     // even ran. Disabling in dev removes that whole class of bug.
     mode === "production" && !isCapacitorBuild && VitePWA({
       registerType: "autoUpdate",
-      // Defer the SW registration script so it doesn't block FCP.
-      // Lighthouse flagged /registerSW.js as a ~150ms render-blocking request
-      // in the critical chain. "script-defer" emits the same script tag with
-      // `defer` so the browser can paint before fetching/parsing it.
-      injectRegister: "script-defer",
+      // No injected /registerSW.js: src/main.tsx registers /sw.js itself, on
+      // load, and CATCHES a refused registration. The plugin's script did not:
+      // `navigator.serviceWorker.register('/sw.js')` with no catch, so every
+      // refusal (a crawler that stubs register() to reject, a proxy's 403, an
+      // Opera policy) was an unhandled rejection: 29 "Rejected" + 6 "Failed to
+      // register a ServiceWorker" error_logs rows on /sponsor in the 8 days to
+      // 2026-11-14 (stack: registerSW.js:1:98). One fewer request too.
+      injectRegister: false,
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
       workbox: {
         // Web push (owner approved 2026-10-29): the push and notificationclick

@@ -297,7 +297,7 @@ export async function backgroundImport<T>(load: () => Promise<T>, name: string =
     settle();
   }, BACKGROUND_IMPORT_GATE_TIMEOUT_MS);
   try {
-    return await load();
+    return await loadWithOneRetry(load, () => !late);
   } catch (err) {
     // Vite rethrows the very object it put on the vite:preloadError event, so
     // this marks exactly the event this import raised.
@@ -317,6 +317,25 @@ export async function backgroundImport<T>(load: () => Promise<T>, name: string =
     clearTimeout(gateTimer);
     settle();
     if (late) lateBackgroundImports = Math.max(0, lateBackgroundImports - 1);
+  }
+}
+
+/**
+ * prod error_logs 2026-11-14: ~35 "background import failed" rows in 8 days (sentry, posthog, boot-*,
+ * signout-watch), each one chunk that failed once. Ask a second time before counting it: a browser that
+ * keeps no failed module fetch loads it on the retry, and one that does fails at once, as before. Only a
+ * failure inside the gate timeout is retried. The
+ * first failure is marked background-owned at once, so its vite:preloadError never reloads the page.
+ */
+async function loadWithOneRetry<T>(load: () => Promise<T>, mayRetry: () => boolean): Promise<T> {
+  try {
+    return await load();
+  } catch (first) {
+    // A load that already ran past the gate timeout is not asked again: a second slow wait would hold the
+    // late count (and so defer every recovery decision) for twice as long.
+    if (!mayRetry()) throw first;
+    if (first !== null && (typeof first === "object" || typeof first === "function")) backgroundOwnedErrors.add(first);
+    return await load();
   }
 }
 

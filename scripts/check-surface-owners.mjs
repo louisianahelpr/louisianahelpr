@@ -63,6 +63,8 @@ const OWNERS = {
   "/help": ["lh-copy-content"],
   // F471/F415 (audit 11-10): a redirect to /help (the name people type and old emails use).
   "/helpdesk": ["lh-copy-content"],
+  // prod error_logs 11-09: a redirect to /rentals (the nav calls that section Homes).
+  "/homes": ["lh-long-tail-features"],
   "/hire/:service/:town": ["lh-seo-web", "lh-copy-content"],
   "/sms-opt-in": ["lh-copy-content"],
   "/fees": ["lh-copy-content"],

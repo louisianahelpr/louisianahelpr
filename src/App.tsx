@@ -279,6 +279,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           center (Contact us stays /support); /settings and /profile/security open the matching Profile tab (a guest
           gets the Log in page and comes straight back, as ProtectedRoute does for every /profile link). */}
       <Route path="/helpdesk" element={<Navigate to="/help" replace />} />
+      {/* prod error_logs 11-09: /homes was a 404; the nav calls the section Homes and it lives at /rentals. */}
+      <Route path="/homes" element={<Navigate to="/rentals" replace />} />
       <Route path="/settings" element={<Navigate to="/profile?tab=settings" replace />} />
       <Route path="/profile/security" element={<Navigate to="/profile?tab=security" replace />} />
       <Route path="/declutter/settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSettingsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />

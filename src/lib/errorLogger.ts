@@ -18,6 +18,8 @@ import { onModuleUnavailable } from "@/lib/loadModule";
 import { isAutomatedBrowser } from "@/lib/automatedBrowser";
 import { announcePermissionDenied, holdDenial, isPermissionDenied, isSessionLossNoise, isSignedInNoise, isSignedOutNoise, releaseHeldDenials } from "@/lib/permissionDenied";
 import { redactInviteToken } from "@/lib/redactInviteToken";
+import { isEnvironmentNoiseMessage } from "@/lib/clientNoise";
+import { isNetworkFailure } from "@/lib/networkFailure";
 
 // ── Tunables ─────────────────────────────────────────────────────────
 const MESSAGE_MAX_CHARS = 1000;
@@ -366,6 +368,9 @@ function describeUnknownError(err: unknown): string {
 }
 
 export function report(err: unknown, opts: ReportOptions = {}) {
+  // prod error_logs 2026-11-14: a crawler's, host app's or browser's own error
+  // (src/lib/clientNoise.ts) ran no line of ours; it is not logged anywhere.
+  if (isEnvironmentNoiseMessage(describeUnknownError(err))) return;
   // A 42501 is what an out-of-date bundle gets for a withheld column: send the
   // user down the update path (src/lib/permissionDenied.ts), then log as usual.
   announcePermissionDenied(err);
@@ -385,7 +390,36 @@ export function report(err: unknown, opts: ReportOptions = {}) {
   reportNow(err, opts);
 }
 
-function reportNow(err: unknown, opts: ReportOptions) {
+/** How long one dropped connection's transport failures count as one row. */
+const TRANSPORT_BURST_MS = 3_000;
+let lastTransportRowAt = Number.NEGATIVE_INFINITY;
+
+/** Test-only: forget the last transport-failure row. */
+export function _resetTransportBurstForTests() {
+  lastTransportRowAt = Number.NEGATIVE_INFINITY;
+}
+
+/**
+ * prod error_logs 2026-11-14: "TypeError: Load failed" (WebKit's dropped
+ * connection) logged as an ERROR once per read that was in flight: one phone
+ * resuming on /messages wrote 8 rows in the same second from 8 callers. The
+ * request never reached us; the reads retry or show their own connection
+ * copy. A transport failure is a warning, one per burst, and never goes to
+ * Sentry (whose beforeSend dropped "Load failed" already). The query cache
+ * does the same for its own reads (queryClient.ts noteNetworkBurst).
+ */
+function quietTransportFailure(err: unknown, opts: ReportOptions): ReportOptions | null {
+  if (!isNetworkFailure(err)) return opts;
+  const now = Date.now();
+  if (now - lastTransportRowAt < TRANSPORT_BURST_MS) return null;
+  lastTransportRowAt = now;
+  const severity = opts.severity === "info" ? "info" : "warning";
+  return { ...opts, severity, localOnly: true };
+}
+
+function reportNow(err: unknown, rawOpts: ReportOptions) {
+  const opts = quietTransportFailure(err, rawOpts);
+  if (!opts) return;
   const isError = err instanceof Error;
   const rawMessage = describeUnknownError(err);
   const rawStack = isError ? err.stack : null;

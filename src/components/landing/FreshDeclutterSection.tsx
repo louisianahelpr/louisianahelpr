@@ -104,7 +104,10 @@ export function FreshDeclutterSection({ shell = DECLUTTER_SHELL }: { shell?: Bro
     if (!el || typeof IntersectionObserver === "undefined" || keptItems()) return;
     let cancelled = false;
     const load = async (attempt = 0): Promise<void> => {
-      void import("./FreshDeclutterStrip");
+      // A warm-up only: the lazy() render below asks for the chunk again, and a stale chunk there throws into the
+      // boundary's shared recovery. Uncaught, a deploy that removed the old hash was an unhandled rejection
+      // (prod error_logs 2026-11-09: "Failed to fetch dynamically imported module: .../FreshDeclutterStrip-B8h5bSe-.js").
+      import("./FreshDeclutterStrip").catch(() => { /* warm-up only; the render's own load reports a real failure */ });
       try {
         const { supabase } = await import("@/integrations/supabase/client");
         const { unwrap } = await import("@/lib/supabaseResult");

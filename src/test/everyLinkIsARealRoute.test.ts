@@ -68,6 +68,8 @@ const OWNER_REDIRECT_ROUTES: Record<string, string> = {
     "owner 2026-11-09 (UI audit F130, the owner-approved fix list: \"Route it to the Wanted composer (or redirect to /declutter?tab=wanted)\"): the obvious address for a new Wanted post opens the composer (wantedAskHref(\"\")) instead of the 404",
   "/helpdesk":
     "owner's whole-app audit 11-10, findings F471/F415/F234 (fix list the owner sent to Builder 2): \"Redirect /helpdesk to /help\" — people told to go to 'helpdesk' landed on the 404",
+  "/homes":
+    "owner 2026-11-14 (\"Fix them all now\", Sentry weekly report; lead brief item 8: \"make /homes route to the Homes coming-soon page\"): the nav calls the section Homes, it lives at /rentals, and /homes was a 404 in prod error_logs 11-09",
   "/settings":
     "owner's whole-app audit 11-10, finding F415 (fix list the owner sent to Builder 2): \"Redirect ... /settings to ... /profile?tab=settings\" — the address people type for their settings was a 404",
   "/profile/security":

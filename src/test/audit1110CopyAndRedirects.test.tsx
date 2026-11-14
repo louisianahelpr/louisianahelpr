@@ -9,6 +9,7 @@
  *   F458 "I can help with" had nothing saying it is for Helprs: one line under it does.
  *
  * @mutate src/App.tsx |       <Route path="/helpdesk" element={<Navigate to="/help" replace />} />\n |
+ * @mutate src/App.tsx |       <Route path="/homes" element={<Navigate to="/rentals" replace />} />\n |
  * @mutate src/App.tsx |       <Route path="/settings" element={<Navigate to="/profile?tab=settings" replace />} />\n |
  * @mutate src/App.tsx |       <Route path="/profile/security" element={<Navigate to="/profile?tab=security" replace />} />\n |
  * @mutate src/pages/info/NotFound.tsx |   if (/^\/messages\/[^/]+/.test(pathname)) { |   if (false) {
@@ -52,6 +53,7 @@ describe("audit 11-10: typed and old addresses forward (F471/F415/F234, F455)", 
     ["/helpdesk", "/help"],
     ["/settings", "/profile?tab=settings"],
     ["/profile/security", "/profile?tab=security"],
+    ["/homes", "/rentals"],
   ])("%s forwards to %s", (from, to) => {
     expect(app).toContain(`<Route path="${from}" element={<Navigate to="${to}" replace />} />`);
   });

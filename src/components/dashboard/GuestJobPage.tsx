@@ -5,9 +5,9 @@
  * (GuestJobPreview) on /jobs/:id only; a tap on the guest Browse list still opens that sheet.
  *
  * What it prints: the title (JobDetail's h1), the facts the sheet prints (category, town, parish, day and time, the
- * guest card's own take-home: guestJobFacts), and the description. The description is the public view's GUEST copy:
- * open_jobs_browse masks phone numbers and numbered street addresses for anon on the server (mask_guest_contact,
- * 20261112202620), so nothing here filters it again. No poster, no address, no coordinates, no photos.
+ * guest card's own take-home: guestJobFacts), and the description. The title and description are the public view's
+ * GUEST copy: open_jobs_browse masks phone numbers, numbered street addresses and email addresses for anon on the
+ * server (mask_guest_contact, 20261112202620 + 20261114234033), so nothing here filters them again. No poster, no address, no coordinates, no photos.
  *
  * Guards: src/test/guestOpensSharedJobLink.test.tsx (the page, its reads, its ways on),
  * src/test/pglite/guestsReadMaskedJobDescription.pglite.mjs (the server-side mask).

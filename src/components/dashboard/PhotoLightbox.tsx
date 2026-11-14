@@ -16,6 +16,9 @@ interface PhotoLightboxProps {
    *  internal mode state to "grid" on change. Null/undefined → open
    *  in single-photo mode. */
   openInGridNonce?: number;
+  /** Per-photo alt text, same order as `photos` (owner 11-13: job photos open here, not in Safari). Missing or empty
+   *  falls back to "Photo N". */
+  alts?: readonly string[];
 }
 
 type Mode = "single" | "grid";
@@ -40,7 +43,8 @@ const DOUBLE_TAP_MS = 280;
  *     a thumbnail wall. Tapping a thumb returns to single-image mode at
  *     that index.
  */
-export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInGridNonce }: PhotoLightboxProps) {
+export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInGridNonce, alts }: PhotoLightboxProps) {
+  const altFor = (i: number) => alts?.[i]?.trim() || `Photo ${i + 1}`;
   const [mode, setMode] = useState<Mode>("single");
   // When the caller requests a grid open (nonce changes), flip into
   // grid mode for the current lightbox session.
@@ -405,7 +409,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
           <img
             decoding="async"
             src={photoUrl}
-            alt={`Photo ${lightboxIndex + 1}`}
+            alt={altFor(lightboxIndex)}
             className="max-h-[88vh] max-w-[92vw] object-contain rounded-ds-sm select-none"
             style={{
               boxShadow: "0 20px 60px -10px rgba(0, 0, 0, 0.5)",
@@ -460,7 +464,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
                   key={url}
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
-                  aria-label={`Photo ${i + 1}`}
+                  aria-label={altFor(i)}
                   className={`shrink-0 w-10 h-10 rounded-md overflow-hidden transition-all ${i === lightboxIndex ? "ring-2 ring-white scale-105" : "opacity-60 hover:opacity-100"}`}
                 >
                   <img loading="lazy" decoding="async" src={url} alt="" aria-hidden="true" className="w-full h-full object-cover" />
@@ -487,7 +491,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
                   setLightboxIndex(i);
                   setMode("single");
                 }}
-                aria-label={`Open photo ${i + 1}`}
+                aria-label={`Open ${altFor(i)}`}
                 className={`group relative aspect-square rounded-ds-md overflow-hidden transition-transform active:scale-[0.97] ${i === lightboxIndex ? "ring-2 ring-white" : "ring-0"}`}
                 style={{
                   border: "0.5px solid rgba(255, 255, 255, 0.18)",
@@ -497,7 +501,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
                   loading="lazy"
                   decoding="async"
                   src={url}
-                  alt={`Photo ${i + 1}`}
+                  alt={altFor(i)}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
                 />
                 <span

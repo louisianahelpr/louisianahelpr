@@ -49,6 +49,7 @@ import { userFacingError } from "@/lib/userFacingError";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
+import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
 
 interface DisputeRow {
   id: string;
@@ -350,6 +351,8 @@ export const DisputeTimelineDialog = ({
   // length and order as `evidenceUrls`, so the two zip; a legacy full URL
   // still resolves through extractProofPhotoPath.
   const evidenceSrcs = useProofPhotoUrls(evidenceUrls);
+  // Owner 11-13: evidence opens in the app's own viewer, never Safari.
+  const { open: openEvidence, viewer: evidenceViewer } = useInAppPhotoViewer(evidenceSrcs, evidenceSrcs.map((_, i) => `Evidence photo ${i + 1}`));
   // "Decided" means an outcome: a WITHDRAWN dispute also stamps decided_at
   // (rpc_withdraw_dispute), so it gets its own state, never "Decision".
   const withdrawn = dispute?.status === "withdrawn";
@@ -491,17 +494,14 @@ export const DisputeTimelineDialog = ({
                   {evidenceUrls.map((_, i) => {
                     const src = evidenceSrcs[i];
                     return (
-                      <a
-                        key={i}
-                        href={src ?? undefined}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block w-16 h-16 rounded-ds-sm overflow-hidden border border-border hover:border-primary transition-colors"
+                      <button key={i} type="button" disabled={!src} aria-label={`Open evidence photo ${i + 1}`} onClick={() => openEvidence(i)}
+                        className="block w-16 h-16 rounded-ds-sm overflow-hidden border border-border hover:border-primary transition-colors disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <ProofPhotoImg insideControl src={src} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
-                      </a>
+                      </button>
                     );
                   })}
+                  {evidenceViewer}
                 </div>
               )}
             </div>

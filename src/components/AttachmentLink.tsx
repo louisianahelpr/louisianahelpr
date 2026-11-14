@@ -4,6 +4,7 @@ import { FileText, ExternalLink as ExternalLinkIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { getAttachmentSignedUrl, getAttachmentFilename, extractAttachmentPath } from "@/lib/applicationAttachments";
+import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
 
 interface AttachmentLinkProps {
   /** Either a storage path or a legacy public URL stored in applications.attachment_urls */
@@ -23,6 +24,9 @@ export function AttachmentLink({ url, index = 0, variant = "chip", className }: 
   const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(path);
   const [loading, setLoading] = useState(false);
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
+  // Owner 11-13: an image attachment opens in the app's own viewer, never the signed URL in Safari. A file (PDF, doc)
+  // still opens in the system viewer: the app has no document viewer of its own.
+  const { open: openPhoto, viewer } = useInAppPhotoViewer([thumbUrl], [`Attachment ${index + 1}`]);
 
   // Lazy-load image thumbnails using a signed URL the first time they render
   if (isImage && variant === "thumb" && !thumbUrl && !loading) {
@@ -46,9 +50,11 @@ export function AttachmentLink({ url, index = 0, variant = "chip", className }: 
 
   if (isImage && variant === "thumb") {
     return (
+      <>
       <button
         type="button"
-        onClick={handleOpen}
+        disabled={!thumbUrl}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); openPhoto(0); }}
         className={`flex-shrink-0 ${className ?? ""}`}
         aria-label={`Open ${filename}`}
       >
@@ -62,6 +68,8 @@ export function AttachmentLink({ url, index = 0, variant = "chip", className }: 
           <Skeleton className="w-20 h-14 rounded-ds-sm" />
         )}
       </button>
+      {viewer}
+      </>
     );
   }
 

@@ -1,10 +1,11 @@
 /**
  * Design audit A D3 (owner approved 11-08): a new member's Dashboard is ONE welcome card ("What brings you here?":
- * Post a job / Find work near me / Sell something) in place of "You're all caught up" and an empty "Coming up";
+ * Find work / Sell something as two big tiles, Post a job under them; owner 11-14) in place of "You're all caught up" and an empty "Coming up";
  * the jobs near them follow from FirstJobHome's existing read. "Post a job" goes through the age gate, like the
  * Create pill; "Sell something" only while Declutter is live.
  *
  * @mutate src/pages/home/homeDashboard/WelcomeCard.tsx |           onClick={gate.gate("post", post)} |           onClick={post}
+ * @mutate src/pages/home/homeDashboard/WelcomeCard.tsx | t("home.wc.postMeta"), gate.gate("post", post))} | t("home.wc.postMeta"), post)}
  * @mutate src/pages/home/HomeDashboard.tsx | ) : welcome && summary.upcoming.length === 0 ? null : ( | ) : (
  * @mutate src/pages/home/HomeDashboard.tsx |   const welcome = !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && !next | const welcome = false && !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && !next
  */
@@ -49,7 +50,7 @@ describe("a new member's Dashboard is one welcome card (design audit A D3)", () 
   it("three starting actions, each going where it says", () => {
     draw(true);
     expect(screen.getByText("What brings you here?")).toBeTruthy();
-    fireEvent.click(screen.getByText("Find work near me"));
+    fireEvent.click(screen.getByText("Find work"));
     expect(screen.getByTestId("where").textContent).toBe("/jobs");
     fireEvent.click(screen.getByText("Post a job"));
     expect(screen.getByTestId("where").textContent).toBe("/post-job");
@@ -66,9 +67,19 @@ describe("a new member's Dashboard is one welcome card (design audit A D3)", () 
     expect(screen.queryByText("Sell something")).toBeNull();
   });
 
+  it("with Declutter live, the Post a job row under the tiles goes through the age gate too", () => {
+    ageGate.underAge = true;
+    draw(true);
+    fireEvent.click(screen.getByText("Post a job"));
+    expect(ageGate.explain).toHaveBeenCalledWith("post");
+    expect(screen.getByTestId("where").textContent).toBe("/home");
+  });
+
   it("the Dashboard swaps it in for the empty Next up and hides an empty Coming up, for a new member only", () => {
     expect(home).toContain("const welcome = !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && !next && !summary.todosLoading && !summary.waiting;");
-    expect(home).toMatch(/\{welcome \? <WelcomeCard sell=\{visible\.filter\(isLive\)\.some\(\(v\) => v\.key === "declutter"\)\} \/> : \(\s*<section ref=\{nextUpRef\} data-testid="next-up"/);
+    // Owner 11-14: the welcome card now opens NewMemberHome (src/test/newMemberHome1114.test.tsx).
+    expect(home).toContain('const sellOpen = visible.filter(isLive).some((v) => v.key === "declutter");');
+    expect(home).toMatch(/\{welcome \? <NewMemberHome userId=\{user\?\.id\} sell=\{sellOpen\} guide=\{guide\(true\)\} \/> : \(\s*(\/\/[^\n]*\n\s*)?<section ref=\{nextUpRef\} data-testid="next-up"/);
     expect(home).toContain(') : welcome && summary.upcoming.length === 0 ? null : (');
     // The jobs near them still follow (FirstJobHome's read), no new request.
     expect(home).toContain("{firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && <FirstJobHome");

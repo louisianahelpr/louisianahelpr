@@ -314,6 +314,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       <TabButton
         key={path}
         onTap={handleClick}
+        dockPath={path}
         onPrefetch={() => !locked && prefetchRoute(effectivePath)}
         // WCAG 2.5.3 (axe label-content-name-mismatch, Q1816): the name starts with the only visible text, the badge's
         // count ("3 Jobs"); the tabs are icons only since 2026-11-06, so the word lives in the name alone.

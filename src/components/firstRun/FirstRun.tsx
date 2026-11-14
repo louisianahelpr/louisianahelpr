@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import type { SectionKey } from "@/components/sections/sectionsConfig";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { saveFirstRunPicks, useFirstRunPicks, type FirstRunPick } from "./firstRunPicks";
 
 /**
  * FIRST RUN (board 53) + THE SHORT TOUR (owner 2026-10-20; replaces the old
@@ -13,15 +15,15 @@ import type { SectionKey } from "@/components/sections/sectionsConfig";
  * 1. "What brings you to Helpr?": multi-select cards covering both sides. The
  *    picks ONLY reorder Home's sections (useSectionPrefs.putFirst); nothing is
  *    locked, and Skip is always top right. Only open sections are offered.
- * 2. Three or four coach marks on the REAL chrome (the bottom bar on a phone,
- *    the sidebar on desktop), worded for the picks: one line, dots, Skip and
+ * 2. Four or five coach marks on the REAL chrome (the dock and the top row's
+ *    Messages on a phone, the sidebar on desktop; owner 11-14), worded for the picks: one line, dots, Skip and
  *    Next, "Done" on the last. Olive actions, sentence case, no rust.
  * Seen state: firstRunGate (the old tour's account column + device key), held by
  * ./FirstRunHost, which loads these screens only when the gate opens.
  * Replay: /home?tour=1 (Help's "Take the tour again") runs step 2 again.
  */
 
-type Pick = "hire" | "earn" | "sell" | "deal";
+type Pick = FirstRunPick;
 export const FIRST_RUN_OPTIONS: { id: Pick; title: string; sub: string; section: SectionKey }[] = [
   { id: "hire", title: "Get help with a job", sub: "Yard, cleaning, moving, assembly and more", section: "jobs" },
   { id: "earn", title: "Earn by helping neighbors", sub: "Pick up jobs near you", section: "jobs" },
@@ -29,38 +31,65 @@ export const FIRST_RUN_OPTIONS: { id: Pick; title: string; sub: string; section:
   { id: "deal", title: "Find a good deal", sub: "Local items from your neighbors", section: "declutter" },
 ];
 
-/** Where each coach mark points: the phone first, then the desktop sidebar. Since F146/F148 (owner audit 11-09) the
- *  phone's Messages is a bottom-bar tab and its create is Dashboard's floating "+ Create" pill; the sections are
- *  bottom-bar tabs (Explore's mark points at Jobs there; a badge makes a name "3 Jobs", hence the suffix matches). */
-const TARGETS = {
-  home: ['nav[aria-label="Bottom navigation"] button[aria-label="Home"]', '[data-sidebar-item="/home"]'],
+/** Where each coach mark points: the phone first, then the desktop sidebar (owner 11-14: the phone dock is Home, Jobs,
+ *  Declutter, Shops, Homes and Messages is the top row's chat button). Dock tabs and rail rows are found by their path
+ *  (`data-dock-tab` / `data-sidebar-item`), never by their words, so a mark finds its tab in Spanish and with a count
+ *  badge. Create is Home's floating "+ Create" pill on a phone and the rail's Create button on desktop.
+ *  Guard: src/test/newMemberHome1114.test.tsx. */
+export const TARGETS = {
+  home: ['[data-dock-tab="/home"]', '[data-sidebar-item="/home"]'],
+  jobs: ['[data-dock-tab="/jobs"]', '[data-sidebar-item="/jobs"]'],
+  declutter: ['[data-dock-tab="/declutter"]', '[data-sidebar-item="/declutter"]'],
   create: ['[data-testid="section-create-fab"]', '[data-testid="sidebar-create"]'],
-  explore: ['nav[aria-label="Bottom navigation"] button[aria-label$="Jobs"]', '[data-sidebar-item="/explore"]'],
-  messages: ['nav[aria-label="Bottom navigation"] button[aria-label$="Messages"]', '[data-sidebar-item="/messages"]'],
+  messages: ['[data-testid="top-bar-messages"]', '[data-sidebar-item="/messages"]'],
 } as const;
 type Target = keyof typeof TARGETS;
 
-export function tourSteps(picks: Pick[], declutterOpen: boolean): { target: Target; text: string }[] {
+export function tourSteps(picks: Pick[], declutterOpen: boolean, desktop = false): { target: Target; text: string }[] {
   const sells = declutterOpen;
-  const explore =
-    picks.includes("earn") && picks.includes("deal") && declutterOpen ? "Find jobs and deals near you"
-    : picks.includes("earn") ? "Find jobs near you"
-    : picks.includes("deal") && declutterOpen ? "Find deals near you"
-    : sells ? "Browse jobs and deals near you" : "Browse jobs near you";
+  const earn = picks.includes("earn");
+  const hire = picks.includes("hire");
+  const jobs =
+    earn && hire ? "Find work near you, or follow the jobs you post, in Jobs"
+    : earn ? "Find jobs near you and apply here"
+    : hire ? "The jobs you post and the Helprs who apply live in Jobs"
+    : "Find work near you, or follow the jobs you post, in Jobs";
+  const sell = picks.includes("sell");
+  const deal = picks.includes("deal");
+  const declutter =
+    sell && deal ? "Sell what you don't need and find deals here"
+    : sell ? "Sell what you don't need here"
+    : deal ? "Find deals from your neighbors here"
+    : "Buy and sell with your neighbors here";
   // A3-I2: someone who came only to earn or to shop still has Create (every
   // account posts; never role-based), but "Post a job" read as if they had
   // picked hiring. With picks and none of them hire/sell, word it for themselves.
-  const cameToPost = picks.length === 0 || picks.includes("hire") || picks.includes("sell");
+  const cameToPost = picks.length === 0 || hire || sell;
   const create = cameToPost
     ? (sells ? "Post a job or sell an item" : "Post a job")
     : (sells ? "Need a hand, or selling something? Start here" : "Need a hand yourself? Post a job here");
+  // The step for the section they came for comes first (owner 11-14: point new members at Jobs or Declutter by their picks).
+  const declutterFirst = sells && (sell || deal) && !earn && !hire;
+  const sections: { target: Target; text: string }[] = [{ target: "jobs", text: jobs }];
+  if (sells) sections[declutterFirst ? "unshift" : "push"]({ target: "declutter", text: declutter });
   return [
-    { target: "home", text: "Dashboard shows what needs you" },
+    { target: "home", text: "Home shows what needs you, and what's new near you" },
+    ...sections,
     { target: "create", text: create },
-    { target: "explore", text: explore },
-    { target: "messages", text: "Chats live here. Money and settings are under You" },
+    { target: "messages", text: desktop ? "Chats live here. Money and settings are under You" : "Chats live up here. Money and settings are under your photo" },
   ];
 }
+
+/** Where the coach card goes for a target's box (exported for the guard). */
+export function coachCardPosition(rect: Pick4 | null, vw: number, vh: number): React.CSSProperties {
+  const w = Math.min(340, vw - 32);
+  if (!rect) return { left: 16, right: 16, bottom: 120 };
+  const centred = Math.max(16, Math.min(vw - w - 16, rect.left + rect.width / 2 - w / 2));
+  if (rect.top > vh / 2) return { left: centred, width: w, bottom: vh - rect.top + 16 };
+  if (rect.right + 16 + 320 <= vw - 16) return { left: rect.right + 16, top: Math.max(16, rect.top + rect.height / 2 - 60), width: 320 };
+  return { left: centred, width: w, top: rect.top + rect.height + 16 };
+}
+type Pick4 = { top: number; left: number; right: number; width: number; height: number };
 
 function findTarget(t: Target): HTMLElement | null {
   for (const sel of TARGETS[t]) {
@@ -73,14 +102,19 @@ function findTarget(t: Target): HTMLElement | null {
 }
 
 /** The first run's screens. Loaded only when the gate opens (./FirstRunHost holds the gate). */
-export default function FirstRunScreens({ startInTour, onDone, onPicks }: {
+export default function FirstRunScreens({ startInTour, onDone, onPicks, userId }: {
   startInTour: boolean;
+  /** Whose picks to keep for Home's Get started guide (./firstRunPicks); none in the admin preview. */
+  userId?: string;
   onDone: () => void;
   /** Q2664 (b): the admin onboarding preview takes the picks itself, so its Continue never reorders the admin's own Home. */
   onPicks?: (sections: SectionKey[]) => void;
 }) {
   const [phase, setPhase] = useState<"pick" | "tour">(startInTour ? "tour" : "pick");
   const [picks, setPicks] = useState<Pick[]>([]);
+  // A replay ("Take the tour again") is worded for the picks made on the first run.
+  const storedPicks = useFirstRunPicks(userId);
+  const desktop = useIsWebDesktop();
   const live = useSectionTabs();
   const { putFirst } = useSectionPrefs();
   const declutterOpen = !!live.find((t) => t.path === "/declutter")?.on;
@@ -95,13 +129,16 @@ export default function FirstRunScreens({ startInTour, onDone, onPicks }: {
         onSkip={() => setPhase("tour")}
         onContinue={() => {
           if (onPicks) onPicks(FIRST_RUN_OPTIONS.filter((o) => picks.includes(o.id)).map((o) => o.section));
-          else putFirst(FIRST_RUN_OPTIONS.filter((o) => picks.includes(o.id)).map((o) => o.section));
+          else {
+            putFirst(FIRST_RUN_OPTIONS.filter((o) => picks.includes(o.id)).map((o) => o.section));
+            if (userId) saveFirstRunPicks(userId, picks);
+          }
           setPhase("tour");
         }}
       />
     );
   }
-  return <CoachMarks steps={tourSteps(picks, declutterOpen)} onDone={onDone} />;
+  return <CoachMarks steps={tourSteps(picks.length ? picks : storedPicks, declutterOpen, desktop)} onDone={onDone} />;
 }
 
 function FirstRunPicker({ options, picks, onToggle, onSkip, onContinue }: {
@@ -180,17 +217,9 @@ function CoachMarks({ steps, onDone }: { steps: { target: Target; text: string }
   }, [step.target]);
   useEffect(() => { nextRef.current?.focus(); }, [i]);
 
-  // The card sits above a bottom-dock target and beside a sidebar target.
-  const pos = useMemo(() => {
-    if (!rect) return { left: 16, right: 16, bottom: 120 } as React.CSSProperties;
-    const vw = window.innerWidth;
-    if (rect.top > window.innerHeight / 2) {
-      const w = Math.min(340, vw - 32);
-      const left = Math.max(16, Math.min(vw - w - 16, rect.left + rect.width / 2 - w / 2));
-      return { left, width: w, bottom: window.innerHeight - rect.top + 16 } as React.CSSProperties;
-    }
-    return { left: rect.right + 16, top: Math.max(16, rect.top + rect.height / 2 - 60), width: 320 } as React.CSSProperties;
-  }, [rect]);
+  // The card sits above a bottom-dock target, beside a sidebar target, and below a top-row target (the phone's
+  // Messages button), always inside the screen with a 16px gutter.
+  const pos = useMemo(() => coachCardPosition(rect, window.innerWidth, window.innerHeight), [rect]);
 
   return createPortal(
     <div role="dialog" aria-modal="true" aria-label="Quick tour" data-first-run="tour" className="fixed inset-0 z-[70]">

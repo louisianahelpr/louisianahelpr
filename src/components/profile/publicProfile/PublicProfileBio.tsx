@@ -37,7 +37,7 @@ export function PublicProfileBio({ bio }: { bio: string }) {
           type="button"
           variant="ghost"
           size="inline"
-          className="absolute bottom-0 right-0 text-ds-14 font-semibold tracking-normal text-foreground hover:bg-transparent before:absolute before:-inset-y-3 before:inset-x-0 before:content-[''] lg:hidden"
+          className="absolute bottom-0 right-0 text-ds-14 font-semibold tracking-normal text-foreground before:absolute before:-inset-y-3 before:inset-x-0 before:content-[''] lg:hidden"
           aria-expanded={false}
           aria-controls="pp-bio"
           data-testid="pp-bio-more"
@@ -51,7 +51,7 @@ export function PublicProfileBio({ bio }: { bio: string }) {
           type="button"
           variant="ghost"
           size="inline"
-          className="tap-44 text-ds-13 font-semibold tracking-normal text-foreground underline underline-offset-2 hover:bg-transparent lg:hidden"
+          className="tap-44 text-ds-13 font-semibold tracking-normal text-foreground underline underline-offset-2 lg:hidden"
           aria-expanded
           aria-controls="pp-bio"
           data-testid="pp-bio-more"

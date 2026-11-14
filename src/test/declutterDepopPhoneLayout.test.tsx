@@ -16,7 +16,7 @@
 // @mutate src/components/declutter/DeclutterBrowseView.tsx |   const phoneResults = !desktop && q !== "" | const phoneResults = false && q !== ""
 // @mutate src/components/declutter/DeclutterBrowseView.tsx | <DeclutterResultsBar filterCount={filterCount} onFilters={() => setFiltersOpen(true)} | <DeclutterResultsBar filterCount={filterCount} onFilters={() => undefined}
 // @mutate src/components/declutter/DeclutterResultsBar.tsx | {`“${query.trim()}”`} | {null}
-// @mutate src/components/declutter/DeclutterResultsBar.tsx | const loadSortMenu = () => import("./DeclutterSortMenu"); | import "@/components/ui/dropdown-menu"; const loadSortMenu = () => import("./DeclutterSortMenu");
+// @mutate src/components/declutter/DeclutterResultsBar.tsx | const loadSortMenu = () => loadModule(() => import("./DeclutterSortMenu")); | import "@/components/ui/dropdown-menu"; const loadSortMenu = () => loadModule(() => import("./DeclutterSortMenu"));
 // @mutate src/components/declutter/DeclutterItemView.tsx |       phoneBleed\n | \n
 // @mutate src/components/declutter/DeclutterItemView.tsx | <div className={ITEM_PHOTO_BLEED} data-item-photo-bleed=""> | <div data-item-photo-bleed="">
 // @mutate src/components/AppPage.tsx | data-phone-bleed={phoneBleed ? "" : undefined} | data-phone-bleed={undefined}

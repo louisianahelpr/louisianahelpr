@@ -149,16 +149,16 @@ describe("Jobs: the search is an icon, never an expanded field", () => {
     });
   }
 
-  // On a phone the tab's search is the rounded field ("Search posted jobs", owner 11-08), in its own row right under
-  // the top bar since F148 (owner audit 11-09: "search inside the page"), with the tabs row under it (F152); no icon,
-  // and still nothing searches from the chip row or the tabs row.
+  // On a phone the tab's search is the rounded field ("Search posted jobs", owner 11-08), the top bar's one row since
+  // the compact top (owner 11-14; F148 had put it in its own row under the bar), with the tabs row under it (F152); no
+  // icon, and still nothing searches from the chip row or the tabs row.
   for (const tab of ["posted", "working"] as const) {
-    it(`phone, ${tab}: the search is the field under the top bar, never an icon, never in the status chip row (owner 11-08, F148)`, async () => {
+    it(`phone, ${tab}: the search is the field in the top bar, never an icon, never in the status chip row (owner 11-08, F148)`, async () => {
       desktop.on = false;
       const { container } = wrap(<JobsSection />, `/jobs?tab=${tab}`);
       await waitFor(() => expect(container.querySelector("[data-jobs-toolbar]")).not.toBeNull());
       const row = within(container).getByTestId("app-top-bar-search");
-      expect(within(container).getByTestId("app-top-bar").nextElementSibling, "right under the bar").toBe(row);
+      expect(within(container).getByTestId("app-top-bar").contains(row), "the top bar's own row").toBe(true);
       const field = row.querySelector<HTMLElement>("[data-section-search-bar]");
       expect(field, "the bar's search").not.toBeNull();
       const label = tab === "posted" ? "Search posted jobs" : "Search jobs you're working";

@@ -3,9 +3,10 @@
  * the phone, title · notifications · profile at the far right, by wearing the
  * SAME AppTopBar every section does (no "+"). Search, the options menu and the
  * Active/All filter live in ONE slim search row under the section tabs, with
- * a single "more" menu, never as icons in the top bar.
+ * a single "more" menu, never as icons in the top bar. Since the compact top (owner 11-14) that slim search row IS
+ * the phone top bar's one row, the bell and the photo inline on its right (src/test/compactTopRow.test.tsx).
  *
- * @mutate src/components/messages/ConversationList.tsx | <div className="shrink-0 -mt-1"><AppTopBar title={t("msg.title")} desktopGap={false} /></div> | <div className="shrink-0 -mt-1"><AppTopBar title={t("msg.title")} desktopGap={false} add={{ label: "New message", path: "/messages" }} /></div>
+ * @mutate src/components/messages/ConversationList.tsx | <div className="shrink-0"><AppTopBar title={t("msg.title")} desktopGap={false} search={isWebDesktop ? undefined : phoneSearchRow} /></div> | <div className="shrink-0"><AppTopBar title={t("msg.title")} desktopGap={false} search={isWebDesktop ? undefined : phoneSearchRow} add={{ label: "New message", path: "/messages" }} /></div>
  * @mutate src/components/messages/ConversationList.tsx |   const headerEl = phoneTopBar && !selectMode ? ( |   const headerEl = false ? (
  */
 import { describe, it, expect } from "vitest";
@@ -25,11 +26,11 @@ describe("Messages top bar = the global top bar (Q2231)", () => {
     expect(list).toMatch(/const headerEl = phoneTopBar && !selectMode \? \(/);
     const bars = list.match(/<AppTopBar[^>]*\/>/g) ?? [];
     // desktopGap={false}: the list pane pads itself (one header row, 2026-10-21).
-    expect(bars).toEqual(['<AppTopBar title={t("msg.title")} desktopGap={false} />']);
+    expect(bars).toEqual(['<AppTopBar title={t("msg.title")} desktopGap={false} search={isWebDesktop ? undefined : phoneSearchRow} />']);
   });
   it("search, Active/All and the options live in the slim search row's one more menu", () => {
     const row = list.slice(list.indexOf("const phoneSearchRow"), list.indexOf("const headerEl ="));
-    expect(row).toContain("<MessagesSearchRow value={searchQuery} onChange={setSearchQuery} moreMenu={moreMenu} />");
+    expect(row).toContain("<MessagesSearchRow value={searchQuery} onChange={setSearchQuery} moreMenu={moreMenu} inBar={!isWebDesktop} />");
     // The row itself lives in MessagesSearchRow.tsx (out of ConversationList for its size baseline, Q806).
     expect(searchRow).toContain('aria-label={t("chat.search")}');
     expect(searchRow).toContain("{moreMenu}");

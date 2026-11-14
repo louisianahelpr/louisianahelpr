@@ -8,7 +8,7 @@
  * @mutate src/components/sections/AppTopBar.tsx |             {title && <h1 className="sr-only">{title}</h1>} |             {title && <h1 className="text-page-title">{title}</h1>}
  * @mutate src/components/sections/AppTopBar.tsx |         search ? ( |         false ? (
  * @mutate src/components/sections/browseHeaderSpacing.ts | export const COMPACT_TOP_ROW = "app-top-bar flex items-center gap-1 pt-2 pb-0.5"; | export const COMPACT_TOP_ROW = "app-top-bar flex items-center gap-1 pt-4 pb-0.5";
- * @mutate src/components/messages/ConversationList.tsx | <AppTopBar title={t("msg.title")} desktopGap={false} search={phoneSearchRow} /> | <AppTopBar title={t("msg.title")} desktopGap={false} />
+ * @mutate src/components/messages/ConversationList.tsx | <AppTopBar title={t("msg.title")} desktopGap={false} search={isWebDesktop ? undefined : phoneSearchRow} /> | <AppTopBar title={t("msg.title")} desktopGap={false} />
  * @mutate src/components/JobsSectionSkeleton.tsx |             <div className={COMPACT_TOP_ROW}> |             <div className="app-top-bar flex items-center justify-between gap-2 h-16">
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -71,7 +71,12 @@ describe("the compact top (owner 11-14)", () => {
   });
 
   it("Messages hands its search to the bar, and every hand-drawn loading frame draws the same row", () => {
-    expect(code("src/components/messages/ConversationList.tsx")).toContain("<AppTopBar title={t(\"msg.title\")} desktopGap={false} search={phoneSearchRow} />");
+    const list = code("src/components/messages/ConversationList.tsx");
+    expect(list).toContain("<AppTopBar title={t(\"msg.title\")} desktopGap={false} search={isWebDesktop ? undefined : phoneSearchRow} />");
+    // Beside the bell and the photo the field's words shorten to "Search" below 360px, never cut mid-word.
+    expect(code("src/components/messages/MessagesSearchRow.tsx")).toContain('{t("chat.searchShort")}<span className="max-[359px]:hidden"> {t("chat.searchNoun")}</span>');
+    // The desktop two-pane list keeps its search as a row of its own (its title sits in the desktop bar).
+    expect(list).toContain("{isWebDesktop && phoneSearchRow}");
     const frames = ["src/components/JobsSectionSkeleton.tsx", "src/components/DashboardRouteSkeleton.tsx", "src/components/MessagesRouteSkeleton.tsx"];
     expect(frames.length).toBeGreaterThan(2); // vacuity floor
     for (const f of frames) {

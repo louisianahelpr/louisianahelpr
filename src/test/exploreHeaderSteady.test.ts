@@ -3,6 +3,8 @@
  * did not collapse, a 3px header nudge on scroll; 2026-10-23: "this was about the top nav not scrolling well").
  * The header is: the section chips on ONE row with the bell and the photo (no "Explore" title), the section's thin
  * underline tabs, then the search, and it is STEADY: nothing in it hides, shrinks or moves while the list scrolls.
+ * One exception since owner 11-14 (Depop/Vinted audit item 5): on a phone's Jobs and Declutter Browse the tabs and chips
+ * rows slide up behind the top bar while the list scrolls down (the top bar itself stays): src/test/scrollAwayRows.test.tsx.
  *
  *  1. The nudge's cause: html.page-scrolled turned the title card holding the header into a compact blurred bar
  *     (2.4px of padding, a border, a centred shrinking h1). A title card holding the Explore header keeps its

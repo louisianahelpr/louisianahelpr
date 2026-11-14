@@ -3,9 +3,8 @@
  * have those 2 listed as coming soon."
  *  - The phone bottom bar is Home, Jobs, Declutter, Shops, Homes. On the website Shops and Homes wear a small "Soon"
  *    tag while they are not open to everyone (closed to the viewer, or a tester's preview) and drop it the day they
- *    open. In the store app a closed or tester-only section has NO tab at all (App Review 2.1 flags a tab that opens a
- *    coming-soon screen: hideUnopenedInApp / sectionListedHere, DOCK_LISTS_CLOSED_SECTIONS_IN_APP false, lead 11-14);
- *    once open to that member it is listed, with no tag.
+ *    open. In the store app both tabs are listed with NO tag, closed or not, and open their coming-soon screens
+ *    (owner 11-06: DOCK_LISTS_CLOSED_SECTIONS_IN_APP true; hideUnopenedInApp, owner 10-31: no "Soon" in the app).
  *    A tap opens the section's route, whose gate (ShopsGate / RentalsGate) is the coming-soon screen for anyone it is
  *    closed to; Shops is never opened by the bar. A closed section carries no to-do count.
  *  - Messages is the top row's chat button (44px), between the search and the bell, with the unread badge the old
@@ -13,7 +12,7 @@
  *  - Messages and You light no bottom tab.
  *
  * @mutate src/components/mobileNav/dockItems.ts |     { path: homes.path, icon: homes.icon, label: homes.label, comingSoon: true },\n | \n
- * @mutate src/components/mobileNav/dockItems.ts | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = false; | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = true;
+ * @mutate src/components/mobileNav/dockItems.ts | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = true; | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = false;
  * @mutate src/components/MobileNav.tsx |       const soon = !!item.comingSoon && !!t && (!t.on \|\| t.preview) && !hideUnopenedInApp(); |       const soon = !!item.comingSoon && !!t && !t.on;
  * @mutate src/components/mobileNav/dockItems.ts | label: homes.label, comingSoon: true }, | label: homes.label },
  * @mutate src/components/MobileNav.tsx |     const badgeCount = isGuest \|\| closed ? 0 : dockBadgeCount(badgeKey, unreadCount, todo); |     const badgeCount = isGuest ? 0 : dockBadgeCount(badgeKey, unreadCount, todo);
@@ -133,22 +132,19 @@ describe("the phone bottom bar (owner 11-14)", () => {
     expect(tab("Declutter").getAttribute("aria-label")).toBe("Declutter");
   });
 
-  it("the store app has NO Shops or Homes tab while they are closed to the member (App Review 2.1)", () => {
+  it("the store app lists Shops and Homes while closed to the member, with NO Soon tag (owner 11-06)", () => {
     native.on = true;
     renderPhone();
-    expect(names()).toEqual(["Home", "Jobs", "Declutter"]);
+    expect(names()).toEqual(["Home", "Jobs", "Declutter", "Shops", "Homes"]);
     expect(soonOn()).toEqual([]);
+    expect(tab("Shops").getAttribute("aria-label")).toBe("Shops");
   });
 
-  it("the store app: a tester-only preview has no tab either; open to everyone, listed with no tag", () => {
+  it("the store app: a tester-only preview is listed too, with no tag", () => {
     native.on = true;
     switches.on = new Set(["declutter", "shops", "rentals"]);
     renderPhone();
-    expect(names()).toEqual(["Home", "Jobs", "Declutter"]);
-    cleanup();
-    openAll.set = new Set(["declutter", "shops"]);
-    renderPhone();
-    expect(names()).toEqual(["Home", "Jobs", "Declutter", "Shops"]);
+    expect(names()).toEqual(["Home", "Jobs", "Declutter", "Shops", "Homes"]);
     expect(soonOn()).toEqual([]);
   });
 

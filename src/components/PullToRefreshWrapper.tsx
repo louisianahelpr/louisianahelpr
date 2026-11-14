@@ -14,6 +14,8 @@ interface PullToRefreshWrapperProps {
    *  (custom safe-area padding on the inner scroll, for example). */
   style?: React.CSSProperties;
   children: React.ReactNode;
+  /** Drawn first, above the pull indicator (Jobs Browse: ScrollAwaySpacer, so the indicator shows under the tabs). */
+  top?: React.ReactNode;
   /** Measurement hook. The inbox marks whichever of its three thread-area
    *  branches is live (`data-thread-area`) so a guard can measure the ONE
    *  box whose `y` must not move between the empty and populated inbox —
@@ -31,6 +33,7 @@ const PullToRefreshWrapper = forwardRef<HTMLDivElement, PullToRefreshWrapperProp
       className = "",
       style,
       children,
+      top,
       "data-thread-area": threadArea,
     },
     ref,
@@ -41,6 +44,7 @@ const PullToRefreshWrapper = forwardRef<HTMLDivElement, PullToRefreshWrapperProp
       style={style}
       data-thread-area={threadArea}
     >
+      {top}
       {(isPulling || refreshing) && (
         <div
           // Height tracks `pullDistance`, which is written once per rAF frame

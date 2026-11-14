@@ -1,6 +1,7 @@
 import AppShell from "@/components/AppShell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { COMPACT_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 
 /**
  * Suspense / auth-pending fallback for the `/home` route, which is the Home
@@ -10,7 +11,7 @@ import { COMPACT_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
  * mirrors Jobs (Q2214): the same SectionScreen frame (AppShell, the container,
  * the page-measure scroll column), the same top bar on Home (AppTopBar: the
  * search bar on the left, the bell, the profile avatar at the far right; no "+"),
- * then the one-line greeting, the Next up card, Coming up and the "Your
+ * then (desktop website only) the greeting line, the Next up card, Coming up and the "Your
  * sections" chips, so a cold /home goes bones -> content with nothing moving. The
  * old version drew the retired feed's title bar (emblem + search, filters,
  * bell), so a cold /home showed one shape and then another.
@@ -23,7 +24,9 @@ import { COMPACT_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
  * and as MarketingRedirect's fallback on `/` and `/browse` (a signed-in visitor
  * there is on the way to Home).
  */
-const DashboardRouteSkeleton = () => (
+const DashboardRouteSkeleton = () => {
+  const desktop = useIsWebDesktop();
+  return (
   <div role="status" aria-live="polite" aria-busy="true" data-testid="dashboard-route-skeleton">
     <span className="sr-only">Loading…</span>
     {/* SectionScreen's frame, class for class. */}
@@ -50,11 +53,13 @@ const DashboardRouteSkeleton = () => (
           </div>
           <div className="flex min-h-full flex-col gap-4 pt-1 pb-6">
             <div className="flex flex-col gap-section">
-              {/* The one-line greeting (20px, leading-tight: 25px). On a cold signed-in phone /home, index.html's inline
-                  script draws the real greeting into this slot of the HTML copy (#lh-home-shell; homeGreetingShell.mjs). */}
-              <div data-skeleton-part="greeting">
-                <Skeleton className="h-[25px] w-56 max-w-full rounded-ds-md" />
-              </div>
+              {/* The desktop website's greeting line. A phone has none (owner 11-14, Depop/Vinted audit item 6), so its
+                  copy here and in index.html (#lh-home-shell) opens on the Next up card. */}
+              {desktop && (
+                <div data-skeleton-part="greeting">
+                  <Skeleton className="h-[25px] w-56 max-w-full rounded-ds-md" />
+                </div>
+              )}
               {/* The Next up card: label, title, one line, the action pill. */}
               <div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton-part="next-up">
                 <Skeleton className="h-3.5 w-16 rounded-ds-md" />
@@ -97,6 +102,7 @@ const DashboardRouteSkeleton = () => (
       </div>
     </AppShell>
   </div>
-);
+  );
+};
 
 export default DashboardRouteSkeleton;

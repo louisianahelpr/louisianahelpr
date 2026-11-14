@@ -5,6 +5,7 @@ import AppShell from "@/components/AppShell";
 import { AppTopBar } from "./AppTopBar";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { ExploreSearchEntry } from "./ExploreSearchEntry";
+import { ScrollAwayScope, ScrollAwaySpacer } from "./ScrollAway";
 import type { SectionAdd, SectionKey } from "./sectionsConfig";
 import type { SectionMineMenu } from "./sectionMine";
 
@@ -18,6 +19,10 @@ import type { SectionMineMenu } from "./sectionMine";
  * outside its scroll panel). No "early preview" banner over the content (owner, 2026-10-28: "remove coming soon
  * early preview. the bottom stuff already says that"): the chips' "Coming soon" and Browse's "Opens soon" say it.
  * Guard: src/test/exploreHeaderSteady.test.ts.
+ *
+ * EXCEPT ON A PHONE'S BROWSE (owner 11-14, Depop/Vinted audit item 5): a page that wraps its tabs and chips in
+ * ScrollAwayRows lets them slide up behind the top bar while the list scrolls down (the top bar stays). The spacer that
+ * makes room for them sits first in the scroll column, drawn only when a page opted in (ScrollAway.tsx).
  */
 export function SectionScreen({
   title,
@@ -76,6 +81,7 @@ export function SectionScreen({
   const slotted = searchSlot && search === undefined && !desktop;
   const barSearch = slotted ? <div ref={setSlotEl} data-header-search-slot="" className="min-w-0" /> : search;
   return (
+    <ScrollAwayScope>
     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top">
       {/* A bar holding its section's search (the Vinted header, owner 11-08) sits on 16px gutters; every other screen
           keeps 20px, Dashboard's searchless `search={null}` bar included (DashboardRouteSkeleton draws px-5). */}
@@ -89,6 +95,7 @@ export function SectionScreen({
           </div>
         )}
         <div data-app-page-scroll="" className="page-measure w-[calc(100%+1.5rem)] flex-1 min-h-0 overflow-y-auto px-3 -mx-3 pb-safe-nav">
+          <ScrollAwaySpacer />
           {!section && <AppTopBar title={title} search={search} mine={mine} />}
           <div className={`flex min-h-full flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>
             <HeaderSearchSlot.Provider value={slotted ? slotEl : null}>{children}</HeaderSearchSlot.Provider>
@@ -97,5 +104,6 @@ export function SectionScreen({
         </div>
       </div>
     </AppShell>
+    </ScrollAwayScope>
   );
 }

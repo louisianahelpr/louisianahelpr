@@ -1,15 +1,16 @@
 /**
  * BOARD 53 + THE SHORT TOUR (owner 2026-10-20). "What brings you to Helpr?"
- * (skippable; the picks only reorder Home), then 3-4 coach marks on the real
- * chrome, worded for the picks, replayable from Help. It replaced the 7-step
+ * (skippable; the picks reorder Home and word its Get started guide), then 4-5
+ * coach marks on the real chrome (owner 11-14: the dock, the top row's Messages,
+ * Create; src/test/newMemberHome1114.test.tsx), worded for the picks, replayable from Help. It replaced the 7-step
  * OnboardingTour, which only opened on /home from the Jobs feed component and
  * so never showed after Home moved to HomeDashboard.
  *
- * @mutate src/components/firstRun/FirstRun.tsx |     : picks.includes("earn") ? "Find jobs near you" |     : picks.includes("earn") ? "Browse jobs near you"
+ * @mutate src/components/firstRun/FirstRun.tsx |     : earn ? "Find jobs near you and apply here" |     : earn ? "Browse jobs near you"
  * @mutate src/components/firstRun/FirstRun.tsx |   const options = FIRST_RUN_OPTIONS.filter((o) => o.section === "jobs" \|\| declutterOpen); |   const options = FIRST_RUN_OPTIONS;
  * @mutate src/pages/home/HomeDashboard.tsx |       <FirstRun userId={user?.id} onActiveChange={setFirstRunActive} /> |       {null}
  * @mutate src/components/firstRun/firstRunGate.ts | export const firstRunStorageKey = (userId: string) => `${LEGACY_KEY}_${userId}`; | export const firstRunStorageKey = (userId: string) => `helpr_first_run_${userId}`;
- * @mutate src/components/firstRun/FirstRun.tsx |   const cameToPost = picks.length === 0 \|\| picks.includes("hire") \|\| picks.includes("sell"); |   const cameToPost = true;
+ * @mutate src/components/firstRun/FirstRun.tsx |   const cameToPost = picks.length === 0 \|\| hire \|\| sell; |   const cameToPost = true;
  */
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
@@ -30,16 +31,17 @@ describe("first run (board 53) and the short tour", () => {
     expect(src).toContain('FIRST_RUN_OPTIONS.filter((o) => o.section === "jobs" || declutterOpen)');
   });
 
-  it("the tour is four one-line steps, worded for the picks, never offering a closed section", () => {
+  it("the tour is one-line steps, worded for the picks, never offering a closed section", () => {
     const base = tourSteps([], false);
-    expect(base.map((s) => s.target)).toEqual(["home", "create", "explore", "messages"]);
-    expect(base[1].text).toBe("Post a job");
-    expect(base[2].text).toBe("Browse jobs near you");
-    expect(tourSteps(["earn"], true)[2].text).toBe("Find jobs near you");
-    expect(tourSteps(["deal"], true)[2].text).toBe("Find deals near you");
-    expect(tourSteps(["deal"], false)[2].text).toBe("Browse jobs near you");
-    expect(tourSteps(["earn", "deal"], true)[2].text).toBe("Find jobs and deals near you");
-    expect(tourSteps([], true)[1].text).toBe("Post a job or sell an item");
+    const text = (steps: ReturnType<typeof tourSteps>, t: string) => steps.find((s) => s.target === t)?.text;
+    expect(base.map((s) => s.target)).toEqual(["home", "jobs", "create", "messages"]);
+    expect(text(base, "create")).toBe("Post a job");
+    expect(text(base, "jobs")).toBe("Find work near you, or follow the jobs you post, in Jobs");
+    expect(text(tourSteps(["earn"], true), "jobs")).toBe("Find jobs near you and apply here");
+    expect(text(tourSteps(["deal"], true), "declutter")).toBe("Find deals from your neighbors here");
+    expect(text(tourSteps(["deal"], false), "declutter")).toBeUndefined();
+    expect(text(tourSteps(["earn", "deal"], true), "declutter")).toBe("Find deals from your neighbors here");
+    expect(text(tourSteps([], true), "create")).toBe("Post a job or sell an item");
   });
 
   // A3-I2 (app audit 2026-10-28): after picking only "Earn by helping
@@ -56,7 +58,7 @@ describe("first run (board 53) and the short tour", () => {
       [["earn", "sell"], true, "Post a job or sell an item"],
     ];
     expect(CASES.length).toBeGreaterThan(3);
-    for (const [picks, open, text] of CASES) expect(tourSteps(picks, open)[1].text, picks.join("+")).toBe(text);
+    for (const [picks, open, text] of CASES) expect(tourSteps(picks, open).find((s) => s.target === "create")?.text, picks.join("+")).toBe(text);
   });
 
   it("picks only reorder Home: putFirst puts them first and keeps the rest in order", () => {

@@ -16,6 +16,7 @@ export const TabButton = ({
   onTap,
   onPrefetch,
   ariaLabel,
+  dockPath,
   ariaCurrent,
   ariaDisabled,
   className,
@@ -39,6 +40,7 @@ export const TabButton = ({
     onMouseUp={longPress?.onMouseUp}
     onMouseLeave={longPress?.onMouseLeave}
     aria-label={ariaLabel}
+    data-dock-tab={dockPath}
     aria-current={ariaCurrent}
     aria-disabled={ariaDisabled ? true : undefined}
     className={className}

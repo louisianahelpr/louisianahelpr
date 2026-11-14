@@ -1,11 +1,10 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { removeShellOncePainted } from "@/components/landing/landingShell";
 import { HOME_SHELL_ID } from "@/components/landing/homeShell";
 import { greetingDate, greetingFor, readGreetingName, saveGreetingName } from "@/lib/homeGreetingShell.mjs";
 import { YourPageLink } from "@/components/profile/YourPageLink";
 import { FirstRun } from "@/components/firstRun/FirstRunHost";
 import { useQueryClient } from "@tanstack/react-query";
-import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/button";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SectionScreen } from "@/components/sections/SectionScreen";
@@ -33,17 +32,32 @@ import { JobProgress } from "@/components/tracker/JobProgress";
 import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
 import { FirstJobHome, useFirstJobState } from "./homeDashboard/FirstJobHome";
 import { PosterFirstJobCard } from "./homeDashboard/PosterFirstJobCard";
-import { WelcomeCard } from "./homeDashboard/WelcomeCard";
 import { HelprsNearYou } from "./homeDashboard/HelprsNearYou";
 import { useHomeTopSettled, useHoldWhileFirstVisitReads } from "./homeDashboard/homeTopSettled";
 import { HeldBlocksSkeleton } from "./homeDashboard/HeldBlocksSkeleton";
 import { optionalLazy } from "@/lib/optionalLazy";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import { useLanguage, getLang, t as tNow } from "@/lib/i18n/language";
 import { navKey } from "@/lib/i18n/navLabels";
 import "@/lib/i18n/enHome";
 // Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
+// Drawn only when a Coming up read fails, so the error card (and EmptyState under it) loads on its own and never rides
+// Home's first load (/home's critical-path budget, 2026-11-14).
+const ErrorState = lazy(() => loadModule(() => import("@/components/ui/ErrorState")).then((m) => (m ? { default: m.ErrorState } : untilReload())));
 const SmsPhonePrompt = optionalLazy(() => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })), "SmsPhonePrompt");
+// The new-member blocks (owner 11-14): their own chunks, so they never weigh on Home's first load for every other
+// member (/home's critical-path budget, scripts/perf/critical-path-budget.json). One chunk for both (NewMemberHome.tsx
+// re-exports the guide), requested on Home's first render: the guide is drawn for every member (it draws nothing once
+// done or past its days), so the chunk is on its way while Home's reads decide whether the new-member block shows.
+type NewMemberBlocks = typeof import("./homeDashboard/NewMemberHome");
+function newMemberBlock<P extends object>(pick: (m: NewMemberBlocks) => ComponentType<P>) {
+  const Block = lazy(() => loadModule(() => import("./homeDashboard/NewMemberHome")).then((m) => (m ? { default: pick(m) } : untilReload())));
+  const Drawn = Block as unknown as ComponentType<P>;
+  return (props: P) => <Suspense fallback={null}><Drawn {...props} /></Suspense>;
+}
+const NewMemberHome = newMemberBlock((m) => m.NewMemberHome);
+const GetStartedGuide = newMemberBlock((m) => m.GetStartedGuide);
 
 // The desktop website's greeting: the hours rule and the date line (homeGreetingShell.mjs).
 const greeting = () => greetingFor(new Date(), getLang());
@@ -139,6 +153,11 @@ function HomeDashboardScreen() {
   // Design audit A D3 (owner approved 11-08): a new member with nothing to do sees ONE welcome card (WelcomeCard) in
   // place of "You're all caught up" and an empty "Coming up". Same "new" rule as the first-job checklist below.
   const welcome = !!firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && !next && !summary.todosLoading && !summary.waiting;
+  const sellOpen = visible.filter(isLive).some((v) => v.key === "declutter");
+  // Get started (owner 11-14): starts on the new-member block and stays, while steps are left, once the member acts.
+  const guide = (fresh: boolean) => (
+    <GetStartedGuide userId={user?.id} fresh={fresh} declutterOpen={sellOpen} hasPhoto={!!profile?.avatar_url} alertsOff={firstJob ? firstJob.alertsOff : null} />
+  );
   const rest = Math.max(0, todoCount - 1);
   // Q2706 (B98): while their reads are out, Next up and the money strip hold the height they had last time on this
   // device (reservedHeight.ts), so the blocks below them do not move when they land.
@@ -190,7 +209,9 @@ function HomeDashboardScreen() {
                 to-do from every section and both sides, with its one action. Replaces the three
                 stat boxes. Nothing invented: no to-do, no task; the money line only when the
                 to-do carries a real amount. "See all" is the ONE control for the full list. */}
-            {welcome ? <WelcomeCard sell={visible.filter(isLive).some((v) => v.key === "declutter")} /> : (
+            {/* Owner 11-14: a new member's Home leads with the starting actions, the Get started guide and the real jobs
+                and items near them (NewMemberHome), not an empty "Nothing booked yet". */}
+            {welcome ? <NewMemberHome userId={user?.id} sell={sellOpen} guide={guide(true)} /> : (
             // F083 (owner UI audit 11-09): the card is named "Needs you" here as everywhere else (it was "Next up").
             <section ref={nextUpRef} data-testid="next-up" aria-label={t(NEEDS_YOU_KEY)} className="liquid-glass p-card flex flex-col gap-1.5" style={summary.todosLoading && nextUpReserve ? { minHeight: nextUpReserve } : undefined}>
               <div className="flex items-center justify-between gap-3">
@@ -302,6 +323,7 @@ function HomeDashboardScreen() {
               )}
             </section>
             )}
+            {!welcome && guide(false)}
 
             {todoOpen && (
               <div data-testid="todo-list" id="home-todo-list">
@@ -350,12 +372,14 @@ function HomeDashboardScreen() {
             {summary.upcoming.length === 0 && summary.upcomingFailed ? (
               /* A failed read is not "Nothing booked yet" (spec v2 §1.5): the shared error card, with a retry
                  of every read that failed on this screen. */
-              <ErrorState
-                variant="inline"
-                title={t("home.comingUpFailed")}
-                body={t("home.comingUpFailedBody")}
-                onRetry={() => void queryClient.refetchQueries({ type: "active", predicate: (q) => q.state.status === "error" })}
-              />
+              <Suspense fallback={null}>
+                <ErrorState
+                  variant="inline"
+                  title={t("home.comingUpFailed")}
+                  body={t("home.comingUpFailedBody")}
+                  onRetry={() => void queryClient.refetchQueries({ type: "active", predicate: (q) => q.state.status === "error" })}
+                />
+              </Suspense>
             ) : welcome && summary.upcoming.length === 0 ? null : (
             <GroupSection title={t("home.comingUp")}>
               {summary.upcoming.length === 0 ? (
@@ -407,7 +431,7 @@ function HomeDashboardScreen() {
             {/* Design audit A D2 (owner approved 11-08): "Needs you" comes first, the first-week checklist after it as one
                 progress line. Board 189: before a member's first job, the first-job checklist and jobs near them.
                 A3-82: not for a member who came to sell or buy on Declutter. */}
-            {firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && <FirstJobHome profile={profile} alertsOff={firstJob.alertsOff} />}
+            {firstJob?.isNew && !summary.usesDeclutter && !summary.declutterPending && <FirstJobHome profile={profile} alertsOff={firstJob.alertsOff} withGuide={welcome} />}
             {/* UX-5: the poster's first week (posted, hired, approved) until a posted job is finished. */}
             {firstJob && !firstJob.isNew && <PosterFirstJobCard userId={user?.id} />}
             </>}

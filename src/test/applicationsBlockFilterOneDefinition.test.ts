@@ -123,6 +123,8 @@ describe("Q341: applicant list and counters share ONE blocked filter", () => {
         "src/components/job-card/activityActions/useApplicantsState.ts",
         "src/components/job-card/activityActions/useOfferHandlers.ts",
         "src/pages/home/useApplyFlow.ts",
+        // Owner 11-14 Get started guide: a head-only count of the member's OWN applications (helper_id = self), to tick "Apply to a job".
+        "src/pages/home/homeDashboard/GetStartedGuide.tsx",
         // Board 2's pinned deal card: ONE row, the thread's Helpr's own status on
         // this job (the poster's own job or the Helpr's own row; RLS decides).
         "src/components/messages/chatView/DealCard.tsx",

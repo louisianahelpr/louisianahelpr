@@ -1,0 +1,46 @@
+/**
+ * A NEW MEMBER'S HOME (owner 11-14). Measured on prod over 14 days: of 37 new members, 18 saw /home once and left,
+ * 5 opened Jobs (all 5 applied), 2 opened Declutter, none posted a job. So a member with nothing yet (HomeDashboard's
+ * `welcome`: no job history, no Declutter use, nothing to do) gets, in order:
+ *   1. the big starting actions: "Find work" and "Sell something", "Post a job" under them (WelcomeCard);
+ *   2. the Get started guide, worded from their first-run picks (GetStartedGuide);
+ *   3. "Jobs near you": real open jobs, nearest first, each opening its job page to apply (FirstJobHome's read);
+ *   4. "For sale near you": real Declutter listings in a sideways row (ForSaleNearYou, loaded on its own).
+ * An empty strip is simply not drawn; the actions always are.
+ * Guard: src/test/newMemberHome1114.test.tsx.
+ */
+import { lazy, Suspense, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { WelcomeCard } from "./WelcomeCard";
+import { JobsNearYouList, useJobsNearYou } from "./FirstJobHome";
+import "@/lib/i18n/enHome";
+import "@/lib/i18n/enNewMember";
+import { useLanguage } from "@/lib/i18n/language";
+
+// The guide rides this chunk too: HomeDashboard loads both with one request, off Home's first load.
+export { GetStartedGuide } from "./GetStartedGuide";
+
+// Its own chunk: the listings' photo and price modules never ride Home's first load (/home's critical-path budget).
+const ForSaleNearYou = lazy(() => import("./ForSaleNearYou"));
+
+export function NewMemberHome({ userId, sell, guide }: { userId: string | undefined; sell: boolean; guide: ReactNode }) {
+  const navigate = useNavigate();
+  const { t } = useLanguage();
+  const near = useJobsNearYou();
+  return (
+    <div data-testid="new-member-home" className="flex flex-col gap-section">
+      <WelcomeCard sell={sell} />
+      {guide}
+      <JobsNearYouList
+        jobs={near.data ?? []}
+        seeAll={
+          <Button type="button" variant="link" size="sm" onClick={() => navigate("/jobs")} className="px-1 -my-2 text-ds-13 font-bold text-primary">
+            {t("home.ns.seeAll")}
+          </Button>
+        }
+      />
+      {sell && <Suspense fallback={null}><ForSaleNearYou userId={userId} /></Suspense>}
+    </div>
+  );
+}

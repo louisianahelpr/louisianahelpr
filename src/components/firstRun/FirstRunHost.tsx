@@ -35,7 +35,7 @@ export function FirstRun({ userId, onActiveChange }: { userId?: string; onActive
   if (!gate.open) return null;
   return (
     <Suspense fallback={null}>
-      <FirstRunScreens key={replays} startInTour={replays > 0} onDone={gate.finish} />
+      <FirstRunScreens key={replays} startInTour={replays > 0} onDone={gate.finish} userId={userId} />
     </Suspense>
   );
 }

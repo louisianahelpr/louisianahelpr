@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-14T22:46:10.423Z",
-  "guards": 4075,
-  "registered": 4063,
+  "generated": "2026-11-14T23:40:33.743Z",
+  "guards": 4081,
+  "registered": 4069,
   "unregistered": [
     "src/components/shops/publicShopLayout.test.tsx",
     "src/components/shops/shopBrowseCardName.test.tsx",

@@ -1,7 +1,7 @@
 {
  "appliedMigrations": {
-  "count": 1978,
-  "latest": "20261112084138",
+  "count": 1997,
+  "latest": "20261112224850",
   "versions": [
    "20260311000404",
    "20260311001514",
@@ -1980,7 +1980,26 @@
    "20261112081700",
    "20261112082518",
    "20261112083051",
-   "20261112084138"
+   "20261112084138",
+   "20261112090512",
+   "20261112091830",
+   "20261112093000",
+   "20261112094500",
+   "20261112095000",
+   "20261112095500",
+   "20261112100000",
+   "20261112194629",
+   "20261112195345",
+   "20261112200351",
+   "20261112201612",
+   "20261112202620",
+   "20261112203620",
+   "20261112204756",
+   "20261112210500",
+   "20261112220952",
+   "20261112222000",
+   "20261112223654",
+   "20261112224850"
   ]
  },
  "functions": {
@@ -14305,6 +14324,17 @@
     "nargs": 1
    }
   ],
+  "mask_guest_contact": [
+   {
+    "anon": true,
+    "args": [
+     "t"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "mask_job_location": [
    {
     "anon": true,
@@ -19038,6 +19068,30 @@
     "nargs": 0
    }
   ],
+  "setup_fee_later_words": [
+   {
+    "anon": false,
+    "args": [
+     "p_fee"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "setup_fee_other_payout_first": [
+   {
+    "anon": false,
+    "args": [
+     "p_user",
+     "p_except",
+     "p_fee"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
   "shipments_from_order": [
    {
     "anon": false,
@@ -19248,6 +19302,15 @@
    }
   ],
   "shop_cottage_year": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "shop_custom_request_sweep": [
    {
     "anon": false,
     "args": [],
@@ -19665,6 +19728,15 @@
     "nargs": 0
    }
   ],
+  "shop_item_private_check_tries_reset": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "shop_item_required_statements": [
    {
     "anon": false,
@@ -19690,6 +19762,15 @@
     "nargs": 3
    }
   ],
+  "shop_item_variants_not_on_downloads": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "shop_item_variants_seed_from_item": [
    {
     "anon": false,
@@ -19700,6 +19781,15 @@
    }
   ],
   "shop_item_variants_touch_item": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "shop_items_download_has_no_options": [
    {
     "anon": false,
     "args": [],
@@ -20032,6 +20122,15 @@
     "nargs": 0
    }
   ],
+  "shop_orders_custom_request_reopen": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "shop_orders_delivery_frozen": [
    {
     "anon": false,
@@ -20241,6 +20340,53 @@
     "nargs": 1
    }
   ],
+  "shop_photo_object_id": [
+   {
+    "anon": false,
+    "args": [
+     "p_path",
+     "p_owner"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "shop_photo_stamp": [
+   {
+    "anon": false,
+    "args": [
+     "p_path",
+     "p_owner",
+     "p_object_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
+  "shop_photos_held": [
+   {
+    "anon": false,
+    "args": [
+     "p_shop_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "shop_photos_to_move": [
+   {
+    "anon": false,
+    "args": [
+     "p_limit"
+    ],
+    "authenticated": false,
+    "nargdefaults": 1,
+    "nargs": 1
+   }
+  ],
   "shop_pickup_addresses_clear_point": [
    {
     "anon": false,
@@ -20278,6 +20424,17 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 2
+   }
+  ],
+  "shop_problem_photo_unattached": [
+   {
+    "anon": false,
+    "args": [
+     "p_name"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "shop_publicly_visible": [
@@ -20689,6 +20846,19 @@
     "nargs": 3
    }
   ],
+  "shops_admin_remove_review": [
+   {
+    "anon": false,
+    "args": [
+     "p_review_id",
+     "p_note",
+     "p_report_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
   "shops_admin_remove_strike": [
    {
     "anon": false,
@@ -20706,6 +20876,17 @@
     "anon": false,
     "args": [
      "p_ids"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "shops_admin_reported_reviews": [
+   {
+    "anon": false,
+    "args": [
+     "p_review_ids"
     ],
     "authenticated": true,
     "nargdefaults": 0,
@@ -20822,11 +21003,12 @@
      "p_category",
      "p_group",
      "p_limit",
-     "p_offset"
+     "p_offset",
+     "p_query"
     ],
     "authenticated": true,
-    "nargdefaults": 4,
-    "nargs": 6
+    "nargdefaults": 5,
+    "nargs": 7
    }
   ],
   "shops_buyer_cancel_order": [
@@ -20878,6 +21060,28 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 7
+   }
+  ],
+  "shops_check_sweep_claim": [
+   {
+    "anon": false,
+    "args": [
+     "p_limit"
+    ],
+    "authenticated": false,
+    "nargdefaults": 1,
+    "nargs": 1
+   }
+  ],
+  "shops_check_sweep_give_back": [
+   {
+    "anon": false,
+    "args": [
+     "p_item_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "shops_clear_pickup_address_refused": [
@@ -21207,6 +21411,17 @@
     "nargs": 1
    }
   ],
+  "shops_open_request_talk": [
+   {
+    "anon": false,
+    "args": [
+     "p_request_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "shops_open_talk": [
    {
     "anon": false,
@@ -21437,11 +21652,12 @@
     "anon": false,
     "args": [
      "p_order_id",
-     "p_note"
+     "p_note",
+     "p_photo_path"
     ],
     "authenticated": true,
-    "nargdefaults": 0,
-    "nargs": 2
+    "nargdefaults": 1,
+    "nargs": 3
    }
   ],
   "shops_request_digital_order": [
@@ -51479,7 +51695,7 @@
   },
   "reports": {
    "checks": [
-    "CHECK ((reported_type = ANY (ARRAY['job'::text, 'message'::text, 'user'::text, 'support'::text, 'review'::text, 'application'::text, 'declutter_item'::text, 'declutter_wanted'::text, 'declutter_question'::text, 'declutter_answer'::text, 'declutter_review'::text, 'shop'::text, 'shop_item'::text, 'shop_talk_message'::text, 'home_listing'::text, 'home_talk_message'::text])))",
+    "CHECK ((reported_type = ANY (ARRAY['job'::text, 'message'::text, 'user'::text, 'support'::text, 'review'::text, 'application'::text, 'declutter_item'::text, 'declutter_wanted'::text, 'declutter_question'::text, 'declutter_answer'::text, 'declutter_review'::text, 'shop'::text, 'shop_item'::text, 'shop_talk_message'::text, 'home_listing'::text, 'home_talk_message'::text, 'shop_review'::text])))",
     "CHECK ((status = ANY (ARRAY['pending'::text, 'new'::text, 'investigating'::text, 'reviewed'::text, 'resolved'::text, 'dismissed'::text])))"
    ],
    "columnGrants": {},
@@ -53674,8 +53890,8 @@
     "CHECK ((payment_plan = ANY (ARRAY['full_hold'::text, 'deposit_50'::text])))",
     "CHECK (((quote_cents IS NULL) OR ((quote_cents >= 100) AND (quote_cents <= 500000))))",
     "CHECK (((quote_note IS NULL) OR (char_length(quote_note) <= 500)))",
-    "CHECK ((((status = 'requested'::text) AND (quote_cents IS NULL) AND (quoted_at IS NULL) AND (expires_at IS NULL)) OR ((status = ANY (ARRAY['quoted'::text, 'expired'::text, 'accepted'::text])) AND (quote_cents IS NOT NULL) AND (quoted_at IS NOT NULL) AND (expires_at = (quoted_at + '7 days'::interval))) OR (status = ANY (ARRAY['declined'::text, 'withdrawn'::text]))))",
-    "CHECK ((status = ANY (ARRAY['requested'::text, 'quoted'::text, 'declined'::text, 'withdrawn'::text, 'expired'::text, 'accepted'::text])))"
+    "CHECK ((((status = 'requested'::text) AND (quote_cents IS NULL) AND (quoted_at IS NULL) AND (expires_at IS NULL)) OR ((status = ANY (ARRAY['quoted'::text, 'expired'::text, 'accepted'::text])) AND (quote_cents IS NOT NULL) AND (quoted_at IS NOT NULL) AND (expires_at = (quoted_at + '7 days'::interval))) OR (status = ANY (ARRAY['declined'::text, 'withdrawn'::text, 'lapsed'::text]))))",
+    "CHECK ((status = ANY (ARRAY['requested'::text, 'quoted'::text, 'declined'::text, 'withdrawn'::text, 'expired'::text, 'accepted'::text, 'lapsed'::text])))"
    ],
    "columnGrants": {},
    "columns": {
@@ -54622,6 +54838,20 @@
      "notNull": false,
      "type": "timestamp with time zone"
     },
+    "ai_check_attempts": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "integer"
+    },
+    "ai_check_last_try_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
     "ai_checked_at": {
      "enum": null,
      "generated": false,
@@ -54677,7 +54907,8 @@
    "policies": [],
    "rls": true,
    "triggers": [
-    "before:insert|update|delete"
+    "before:insert|update|delete",
+    "before:update"
    ]
   },
   "shop_item_subtypes": {
@@ -54834,6 +55065,7 @@
    "triggers": [
     "after:insert|update|delete",
     "before:insert",
+    "before:insert|update",
     "before:insert|update|delete"
    ]
   },
@@ -56265,6 +56497,47 @@
     "before:insert|update|delete"
    ]
   },
+  "shop_photo_byte_checks": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "checked_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "object_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "owner_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "storage_path": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
   "shop_photos": {
    "checks": [
     "CHECK (((photo_kind = 'gallery'::text) OR (\"position\" = 0)))",
@@ -56499,7 +56772,7 @@
     "CHECK (((note IS NULL) OR (char_length(note) <= 500)))",
     "CHECK ((paid_cents > 0))",
     "CHECK ((fee_policy = shop_refund_fee_policy(reason)))",
-    "CHECK ((reason = ANY (ARRAY['buyer_cancelled'::text, 'shop_cancelled'::text, 'no_ready_photo'::text, 'shop_removed'::text, 'problem_shop_fault'::text, 'problem_no_fault'::text, 'problem_our_mistake'::text, 'unpaid_close_tax'::text, 'preorder_goal_missed'::text, 'preorder_shop_late'::text, 'preorder_date_moved'::text])))",
+    "CHECK ((reason = ANY (ARRAY['buyer_cancelled'::text, 'shop_cancelled'::text, 'no_ready_photo'::text, 'shop_removed'::text, 'problem_shop_fault'::text, 'problem_no_fault'::text, 'problem_our_mistake'::text, 'unpaid_close_tax'::text, 'preorder_goal_missed'::text, 'preorder_shop_late'::text, 'preorder_date_moved'::text, 'preorder_buyer_cancelled'::text])))",
     "CHECK (((reversals >= 0) AND (reversals <= 100)))",
     "CHECK (((review_reason IS NULL) OR (char_length(review_reason) <= 300)))",
     "CHECK (((settled_by_hand_cents IS NULL) OR (settled_by_hand_cents = refund_cents)))",

@@ -102,17 +102,12 @@ interface NearJob {
   helper_fee_percent: number | null;
 }
 
-/**
- * The first-job Home (board 189): a five-step checklist from the member's real
- * profile, the open jobs nearest them (the Browse ranking, priced by the ONE
- * money component), an alerts card only while job alerts are off, and a plain
- * "How you get paid" from the shared payout constants.
- */
-export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; alertsOff: boolean }) {
-  const navigate = useNavigate();
+/** The open jobs nearest the member (the Browse ranking): one read shared by FirstJobHome and Home's new-member block. */
+export function useJobsNearYou(enabled = true) {
   const loc = getCachedUserLocation();
-  const near = useQuery({
+  return useQuery({
     queryKey: ["home", "jobs-near-you", loc?.lat ?? null, loc?.lng ?? null],
+    enabled,
     queryFn: async () =>
       unwrap(await supabase.rpc("get_ranked_open_jobs", {
         p_limit: NEAR_CAP,
@@ -120,38 +115,20 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
         ...(loc ? { p_lat: loc.lat, p_lng: loc.lng } : {}),
       })) as unknown as NearJob[],
   });
+}
 
-  const skills = (profile?.skills ?? "").trim();
-  // Owner ruling 2026-10-23: payout setup is paused while Stripe reviews our
-  // account. An unfinished payout step leaves the checklist and the paused
-  // notice sits under it instead.
-  const setupPaused = usePayoutSetupPaused();
-  const payoutsDone = profile?.stripe_payouts_enabled === true;
-  // Not while the profile is still loading (null is not "not set up").
-  const payoutStepPaused = setupPaused && !!profile && !payoutsDone;
-  // AUD31-65: no ID step. Owner rule: the ID check happens once, at hire or first payout, never at sign-up, post,
-  // buy or list (the hire and payout doors ask for it themselves).
-  const allSteps = [
-    { key: "skills", label: skills ? tr("home.fj.skillsWith", { skills }) : tr("home.fj.skills"), done: !!skills, go: () => navigate(SKILLS_FOCUS_PATH) },
-    { key: "about", label: tr("home.fj.about"), done: !!profile?.avatar_url && !!(profile?.bio ?? "").trim(), go: () => navigate("/profile?tab=profile") },
-    { key: "payouts", label: tr("home.fj.payouts"), done: payoutsDone, go: () => navigate("/profile?tab=payment") },
-    { key: "apply", label: tr("home.fj.apply"), done: false, go: () => navigate("/jobs") },
-  ];
-  const steps = allSteps.filter((st) => st.key !== "payouts" || !payoutStepPaused);
-  const jobs = near.data ?? [];
-
+/** "Jobs near you · 12": the three nearest open jobs, each opening its job page (Apply is there), priced by JobPrice. */
+export function JobsNearYouList({ jobs, seeAll }: { jobs: NearJob[]; seeAll?: React.ReactNode }) {
+  const navigate = useNavigate();
+  if (!Array.isArray(jobs) || jobs.length === 0) return null;
   return (
-    <div className="flex flex-col gap-section" data-testid="first-job-home">
-      <section aria-label={tr("home.fj.title")} className="flex flex-col gap-1 px-1">
-        <ChecklistProgress title={tr("home.fj.title")} steps={steps} />
-        {payoutStepPaused && <PayoutSetupPausedNotice compact className="mt-2" />}
-      </section>
-
-      {jobs.length > 0 && (
-        <section aria-label={tr("home.fj.near")} className="flex flex-col gap-2">
-          <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            {tr("home.fj.near")} · {jobs.length >= NEAR_CAP ? `${NEAR_CAP}+` : jobs.length}
-          </h2>
+        <section aria-label={tr("home.fj.near")} data-home-jobs-near="" className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              {tr("home.fj.near")} · {jobs.length >= NEAR_CAP ? `${NEAR_CAP}+` : jobs.length}
+            </h2>
+            {seeAll}
+          </div>
           <div className="liquid-glass flex flex-col divide-y divide-border/60">
             {jobs.slice(0, NEAR_SHOWN).map((j) => (
               <ListRow key={j.id} title={j.title} onClick={() => navigate(`/jobs/${j.id}`)} className="min-h-11 flex items-center gap-3 px-card py-3 text-left">
@@ -176,9 +153,54 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
             ))}
           </div>
         </section>
-      )}
+  );
+}
 
-      {alertsOff && (
+/**
+ * The first-job Home (board 189): a five-step checklist from the member's real
+ * profile, the open jobs nearest them (the Browse ranking, priced by the ONE
+ * money component), an alerts card only while job alerts are off, and a plain
+ * "How you get paid" from the shared payout constants.
+ */
+export function FirstJobHome({ profile, alertsOff, withGuide = false }: {
+  profile: Profile | null;
+  alertsOff: boolean;
+  /** Home's new-member block is on screen (owner 11-14): it shows the jobs near them and its Get started guide holds
+   *  steps (one checklist, never two), so this card keeps only "How you get paid". */
+  withGuide?: boolean;
+}) {
+  const navigate = useNavigate();
+  const near = useJobsNearYou(!withGuide);
+
+  const skills = (profile?.skills ?? "").trim();
+  // Owner ruling 2026-10-23: payout setup is paused while Stripe reviews our
+  // account. An unfinished payout step leaves the checklist and the paused
+  // notice sits under it instead.
+  const setupPaused = usePayoutSetupPaused();
+  const payoutsDone = profile?.stripe_payouts_enabled === true;
+  // Not while the profile is still loading (null is not "not set up").
+  const payoutStepPaused = setupPaused && !!profile && !payoutsDone;
+  // AUD31-65: no ID step. Owner rule: the ID check happens once, at hire or first payout, never at sign-up, post,
+  // buy or list (the hire and payout doors ask for it themselves).
+  const allSteps = [
+    { key: "skills", label: skills ? tr("home.fj.skillsWith", { skills }) : tr("home.fj.skills"), done: !!skills, go: () => navigate(SKILLS_FOCUS_PATH) },
+    { key: "about", label: tr("home.fj.about"), done: !!profile?.avatar_url && !!(profile?.bio ?? "").trim(), go: () => navigate("/profile?tab=profile") },
+    { key: "payouts", label: tr("home.fj.payouts"), done: payoutsDone, go: () => navigate("/profile?tab=payment") },
+    { key: "apply", label: tr("home.fj.apply"), done: false, go: () => navigate("/jobs") },
+  ];
+  const steps = allSteps.filter((st) => st.key !== "payouts" || !payoutStepPaused);
+  const jobs = near.data ?? [];
+
+  return (
+    <div className="flex flex-col gap-section" data-testid="first-job-home">
+      {!withGuide && <section aria-label={tr("home.fj.title")} className="flex flex-col gap-1 px-1">
+        <ChecklistProgress title={tr("home.fj.title")} steps={steps} />
+        {payoutStepPaused && <PayoutSetupPausedNotice compact className="mt-2" />}
+      </section>}
+
+      {!withGuide && <JobsNearYouList jobs={jobs} />}
+
+      {alertsOff && !withGuide && (
         <section aria-label={tr("home.fj.alertsAria")} className="liquid-glass p-card flex items-center gap-3">
           <span className="flex-1 min-w-0">
             <span className="block text-ds-15 font-semibold text-foreground">{tr("home.fj.alertsTitle")}</span>
@@ -212,7 +234,15 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
  * done. Shared by the first-job card and the poster's first-job card (UX-5) so the two look alike.
  * Guards: src/test/posterFirstJobCard.test.tsx, src/test/homeChecklistOneLine.test.tsx.
  */
-export function ChecklistProgress({ title, steps }: { title: string; steps: { key: string; label: string; done: boolean; go: () => void }[] }) {
+export function ChecklistProgress({ title, steps, rows, trailing }: {
+  title: string;
+  steps: { key: string; label: string; done: boolean; go: () => void }[];
+  /** Drawn in place of the one "Next:" line: Home's Get started guide lists every step as its own row (owner 11-14,
+   *  GetStartedGuide.tsx draws them, so their code loads with the guide and not with Home's first screen). */
+  rows?: React.ReactNode;
+  /** Beside the count, at the end of the title line (the guide's "Hide"). */
+  trailing?: React.ReactNode;
+}) {
   const doneCount = steps.filter((s) => s.done).length;
   const next = steps.find((s) => !s.done);
   return (
@@ -220,18 +250,19 @@ export function ChecklistProgress({ title, steps }: { title: string; steps: { ke
       <div className="flex items-baseline gap-1.5">
         <h2 className="text-ds-15 font-semibold text-foreground">{title}</h2>
         <span className="text-ds-13 text-muted-foreground">· {tr("home.ck.count", { done: doneCount, total: steps.length })}</span>
+        {trailing && <span className="ml-auto">{trailing}</span>}
       </div>
       <div role="progressbar" aria-label={tr("home.ck.aria", { title, done: doneCount, total: steps.length })} aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={doneCount} className="mt-2 flex gap-1">
         {steps.map((s) => (
           <span key={s.key} data-step={s.key} data-done={s.done ? "" : undefined} className={`h-1.5 flex-1 rounded-full ${s.done ? "bg-primary" : "bg-border"}`} />
         ))}
       </div>
-      {next && (
+      {rows ?? (next && (
         <button type="button" onClick={next.go} data-checklist-next={next.key} className="min-h-11 w-full flex items-center gap-1.5 text-left text-ds-13 text-muted-foreground">
           <span className="min-w-0 flex-1">{tr("home.ck.next")} <span className="font-semibold text-foreground">{next.label}</span></span>
           <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
         </button>
-      )}
+      ))}
     </div>
   );
 }

@@ -85,4 +85,12 @@ describe("the first-job Home card follows the language (F260q)", () => {
     expect(document.body.textContent).toContain("llega a su cuenta de Helpr 3 días después de que se aprueba el trabajo, y a su banco en 2 días hábiles");
     expect(document.body.textContent).not.toMatch(/Get your first|Pick what you do|Get told|How you get paid|Read more|Turn on/);
   });
+
+  it("Spanish: the photo-and-bio step, once skills are set, is the Next line in Spanish", async () => {
+    setLang("es");
+    await ensureLangLoaded();
+    render(<MemoryRouter><FirstJobHome profile={{ skills: "Yard work" } as never} alertsOff /></MemoryRouter>);
+    expect(screen.getByRole("button", { name: /^Siguiente: Agregue una foto y una línea sobre usted/ })).toBeTruthy();
+    expect(document.body.textContent).not.toContain("Add a photo");
+  });
 });

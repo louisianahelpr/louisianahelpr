@@ -12,7 +12,7 @@
  * @mutate src/lib/i18n/enHome.ts | it reaches your Helpr account {days} days after the job is approved | it reaches your Helpr account {days} days after approval
  * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx | const payoutsDone = profile?.stripe_payouts_enabled === true; | const payoutsDone = !!profile?.stripe_account_id;
  * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx | feeStamp={{ helper_fee_flat_cents: j.helper_fee_flat_cents, helper_fee_percent: j.helper_fee_percent }} | feeStamp={null}
- * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx |       {alertsOff && ( |       {true && (
+ * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx |       {alertsOff && !withGuide && ( |       {true && (
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -45,7 +45,7 @@ describe("board 189: the first-job Home says only what is true", () => {
   it("steps read the real profile, and the alerts card waits for alerts to be off", () => {
     expect(src).not.toMatch(/Verify your ID|openIdentityCheck|hasIdBadge/);
     expect(src).toMatch(/const payoutsDone = profile\?\.stripe_payouts_enabled === true;[\s\S]*?done: payoutsDone/);
-    expect(src).toMatch(/\{alertsOff && \(/);
+    expect(src).toMatch(/\{alertsOff && !withGuide && \(/);
     expect(src).toMatch(/prefs\.job_matches === false && prefs\.email_job_matches === false/);
   });
 

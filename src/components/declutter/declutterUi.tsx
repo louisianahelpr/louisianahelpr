@@ -9,14 +9,18 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { definitelyGuest } from "@/lib/persistedAuthToken";
 import { featureSwitchSettled } from "@/lib/featureSwitchQuery";
-import NotFound from "@/pages/info/NotFound";
 import { DeclutterGuestGate } from "./DeclutterGuest";
 import { fetchHasAgreedSales, type DeclutterStatus, type DeliverySize } from "@/lib/declutter/api";
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
 import { t as tr, useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclutter";
+
+// Drawn only when Declutter is not open to this member (rare since it opened to everyone, 10-30), so the Not found page
+// loads on its own and never rides every Declutter page's first load (/declutter/item's critical-path budget, 11-14).
+const NotFound = lazy(() => loadModule(() => import("@/pages/info/NotFound")).then((m) => m ?? untilReload()));
 
 /** A listing's status words (F260q: decl.st.<status> in the member's language). */
 const statusLabel = (status: DeclutterStatus) => tr(`decl.st.${status}` as MsgKey);
@@ -173,5 +177,5 @@ export function DeclutterGate({ children, skeleton, agreedSales }: { children: R
     if (agreed.isLoading) return <>{skeleton}</>;
     if (agreed.data === true) return <>{agreedSales}</>;
   }
-  return <NotFound />;
+  return <Suspense fallback={skeleton}><NotFound /></Suspense>;
 }

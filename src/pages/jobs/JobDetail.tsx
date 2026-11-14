@@ -68,8 +68,8 @@ const JobDetail = () => {
   // Guests fetch the single job from the RLS-public masked view. We skip
   // the fetch entirely for authed users: they get the job page below.
   // This column list is the guest's whole view of a job (F268a, owner 2026-11-12, replacing the lead's 10-31
-  // four-facts sheet here; still the owner's 9-2 rule): title, the description (the view's guest copy, phone numbers
-  // and street addresses masked on the server: mask_guest_contact, 20261112202620), category, parish (from the
+  // four-facts sheet here; still the owner's 9-2 rule): title and description (the view's guest copy, phone numbers,
+  // street addresses and emails masked on the server: mask_guest_contact, 20261112202620 + 20261114234033), category, parish (from the
   // view's town), day and time, and the take-home (budget, rush fee, crew split, fee stamp: the guest card's own
   // figure), plus status and expiry to know it is still open. No poster, no address, no coordinates, no photos.
   // Guards: src/test/guestOpensSharedJobLink.test.tsx, src/test/guestSeesFourFacts.test.tsx (the Browse sheet).

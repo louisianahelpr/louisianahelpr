@@ -10,7 +10,7 @@ export const enHome = {
   "home.morning": "Good morning",
   "home.afternoon": "Good afternoon",
   "home.evening": "Good evening",
-  "home.h1": "Dashboard",
+  "home.h1": "Home",
   "home.searchNoun": "jobs and items",
   "home.loadingAria": "Loading your Dashboard",
   "home.loadingSr": "Loading your Home",

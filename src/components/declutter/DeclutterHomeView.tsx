@@ -58,6 +58,7 @@ import { ExploreSearchEntry } from "@/components/sections/ExploreSearchEntry";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
+import { ScrollAwayRows } from "@/components/sections/ScrollAway";
 import {
   OLD_DECLUTTER_VIEWS,
   oldDeclutterView,
@@ -439,7 +440,7 @@ function DeclutterGuestHome() {
         tabs={[]}
       />
     ),
-  } : { search: browse.search, tabs: browse.chips };
+  } : { search: browse.search, tabs: <ScrollAwayRows>{browse.chips}</ScrollAwayRows> };
   return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={null} chrome={chrome} top={<DeclutterGuestBrowseJoin />} /></Suspense>;
 }
 
@@ -550,11 +551,12 @@ function DeclutterMemberHome() {
     // F153 (owner UI audit 11-09: "Buying / Selling / Deliver / Wanted / Free tabs aren't visible. Show them (scrollable)
     // under the search bar"): the section's tabs, one sideways row under the search, then Browse's category chips.
     // The row is the desktop's SectionTabs (it scrolls and never cuts a word); the gear stays in My Declutter.
+    // Owner 11-14 (Depop/Vinted item 5): on Browse both rows slide away while the grid scrolls down (ScrollAway.tsx).
     tabs: (
-      <>
+      <ScrollAwayRows off={!browse}>
         <SectionTabs label={t("decl.hv.view")} value={view} onChange={goTab} tabs={tabDefs} />
         {browse?.chips}
-      </>
+      </ScrollAwayRows>
     ),
   };
   // Owner pick 4 (11-08, design audit B #12): no "+ Sell" pill on a screen with its own main button (Wanted's "Post what

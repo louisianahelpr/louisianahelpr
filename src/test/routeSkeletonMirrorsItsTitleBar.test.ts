@@ -81,7 +81,7 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(bar).toContain(' : tr("nav.profile"), profile?.full_name)}');
   });
 
-  it("then Home's body: greeting, the Next up card, Coming up, the section chips (board 7; design audit A D4)", () => {
+  it("then Home's body: the Next up card, Coming up, the section chips (board 7; design audit A D4; no phone greeting, owner 11-14)", () => {
     // Home: the Next up card (2026-10-20, it replaced the three stat boxes); the skeleton draws the same card.
     // The card measures and holds its own height while to-dos load (ref + a reserved minHeight style), so match
     // the tag's shell classes, not the whole tag.

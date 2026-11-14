@@ -409,7 +409,9 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
       // filter controls live INSIDE the panel, directly above the job cards (the feed strip below), so the screen
       // reads as one box.
       titleCard={embeddedTitle}
-      titleCardClassName=""
+      // Phone: the tabs and chips overlay the feed's top and slide away on scroll (owner 11-14; ScrollAway.tsx), so the
+      // card must not clip them and must sit above the panel.
+      titleCardClassName={isWebDesktop ? "" : "!overflow-visible z-10"}
       beforePanel={
         <>
           {/* The "Your Helprs" quick-rebook strip used to render here,

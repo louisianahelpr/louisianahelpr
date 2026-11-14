@@ -45,7 +45,7 @@ import "@/lib/i18n/enHome";
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
 const SmsPhonePrompt = optionalLazy(() => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })), "SmsPhonePrompt");
 
-// The hours rule and the date line are shared with index.html's HTML-drawn greeting (homeGreetingShell.mjs, Q1158).
+// The desktop website's greeting: the hours rule and the date line (homeGreetingShell.mjs).
 const greeting = () => greetingFor(new Date(), getLang());
 
 /** "Sat, Oct 24 2:00 PM": when, for a phone Coming up row (board 7). */
@@ -82,7 +82,7 @@ const NEXT_UP_MAX_DOTS = 5;
 
 function HomeDashboardScreen() {
   const { t, lang } = useLanguage();
-  // Q2705 B: index.html drew this page's skeleton first (#lh-home-shell); take it away once the greeting is painted.
+  // Q2705 B: index.html drew this page's skeleton first (#lh-home-shell); take it away once this page is painted.
   useEffect(() => removeShellOncePainted(HOME_SHELL_ID), []);
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
@@ -123,8 +123,8 @@ function HomeDashboardScreen() {
     if (!open && params.has("customize")) setParams((p) => { const n = new URLSearchParams(p); n.delete("customize"); return n; }, { replace: true });
   };
   const profileFirst = profile ? profile.full_name?.split(" ")[0] ?? "" : null;
-  // Q1158: until the profile is read, the name this device kept for THIS account (the one index.html's greeting drew),
-  // so the greeting never drops the name and grows it back; once read, the profile's name is kept for the next cold load.
+  // Q1158: until the profile is read, the name this device kept for THIS account, so the desktop website's greeting
+  // never drops the name and grows it back; once read, the profile's name is kept for the next cold load.
   const first = profileFirst ?? readGreetingName(user?.id);
   useEffect(() => {
     if (user?.id && profileFirst !== null) saveGreetingName(user.id, profileFirst);
@@ -159,14 +159,10 @@ function HomeDashboardScreen() {
           moment
           desktopGap={false}
           title={first ? `${greeting()}, ${first}` : greeting()}
-          phone={
-            <div>
-              {/* Design audit A D1 (owner 11-08): one 20px line under the search bar; the date line is gone. The bar is
-                  the Vinted header, so the page's name is a hidden h1 like every section's (one page-title size, Q236e). */}
-              <h1 className="sr-only">{t("home.h1")}</h1>
-              <p data-home-greeting="" className="text-ds-20 font-bold leading-tight text-foreground">{first ? `${greeting()}, ${first}` : greeting()}</p>
-            </div>
-          }
+          // Phone: no greeting (owner 11-14, Depop/Vinted audit item 6: the page opens straight on Next up under the
+          // search bar). The page's name is a hidden h1 like every section's (one page-title size, Q236e); index.html's
+          // copy of this page (#lh-home-shell) draws no greeting either. Guard: src/test/homeGreetingShell.test.tsx.
+          phone={<h1 className="sr-only">{t("home.h1")}</h1>}
         />
         {isWebDesktop && <p className="text-ds-14 text-muted-foreground pt-5 -mb-2" data-home-date="">{today}</p>}
 

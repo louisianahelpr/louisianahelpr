@@ -309,7 +309,7 @@ void hydrateStorage();
             backgroundImport(() => import("./lib/queryPersister"), "boot-teardown-persister"),
           ]);
         supabase.auth.onAuthStateChange((event, session) => {
-          // Q1158: the cached first name the HTML-drawn Dashboard greeting reads (homeGreetingShell.mjs) belongs to one
+          // Q1158: the cached first name the desktop Home greeting reads (homeGreetingShell.mjs) belongs to one
           // account: gone on any sign-out (expiry, another tab), and on a sign-in kept only if it is that account's.
           if (event === "SIGNED_OUT") clearGreetingName();
           else if (event === "SIGNED_IN" && session?.user) clearGreetingName(session.user.id);

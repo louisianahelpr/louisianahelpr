@@ -22,6 +22,7 @@ import { JOBS_SHELL_ID } from "@/components/landing/homeShell";
 import { manageLinkOpensJobPage } from "@/components/job-card/manageLinkOpensJobPage";
 import { AppTopBar, SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
+import { ScrollAwayRows, ScrollAwayScope } from "@/components/sections/ScrollAway";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
@@ -146,9 +147,13 @@ const JobsSection = () => {
         <>
           <AppTopBar title={tr(navKey(section.path, section.label) ?? "nav.jobs")} explore section="jobs" desktopGap={false}
             search={browse?.search ?? <SectionSearchBar noun="jobs" home="/jobs" />} mine={mine} />
-          <SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} />
-          {/* Browse's category chips under the tabs (design audit A J1, owner 11-08; JobCategoryChips). */}
-          {tab === "browse" && browse?.chips}
+          {/* Browse's category chips under the tabs (design audit A J1, owner 11-08; JobCategoryChips). Owner 11-14
+              (Depop/Vinted audit item 5): on Browse both rows slide up behind the top bar while the feed scrolls down
+              and come back on the way up (ScrollAway.tsx; the feed draws the spacer). */}
+          <ScrollAwayRows>
+            <SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} />
+            {tab === "browse" && browse?.chips}
+          </ScrollAwayRows>
         </>
       )}
       {/* ONE search per screen (owner 2026-10-21). Desktop: every tab's search is an ICON at the end of the tabs row,
@@ -175,7 +180,7 @@ const JobsSection = () => {
       </>
     );
   }
-  return <><Dashboard embeddedHeader={makeHeader} />{fab}</>;
+  return <><ScrollAwayScope><Dashboard embeddedHeader={makeHeader} /></ScrollAwayScope>{fab}</>;
 };
 
 export default JobsSection;

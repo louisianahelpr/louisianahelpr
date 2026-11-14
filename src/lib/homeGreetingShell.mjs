@@ -1,34 +1,21 @@
 /**
- * Q1158 (lead 11-06; owner rule: every page under 2 s). A signed-in phone's /home LCP is the Dashboard greeting h1, and
- * it waited on the whole app: live 11-06, 375 px, Slow 4G + 4x, LCP 4704 / 4836 ms, "Good afternoon" [20,68 335x31].
- * index.html now draws the greeting text into #lh-home-shell's greeting slot (data-skeleton-part="greeting") with an
- * inline script, so the h1 paints with the HTML.
+ * Home's greeting on the desktop website: the hours rule, the date line and the member's first name kept on this device.
+ * A phone draws no greeting (owner 11-14, Depop/Vinted audit item 6), so index.html no longer draws one into
+ * #lh-home-shell (Q1158 had it paint the phone greeting with the HTML).
  *
  * The member's first name. Lead decision (11-06, logged): it may be cached on the member's OWN device in localStorage,
- * keyed to their user id, cleared on sign-out and on an account switch, and never shown to another account. With no
- * cached name for the stored session's user, the greeting is drawn without a name (as HomeDashboard does before the
- * profile loads).
+ * keyed to their user id, cleared on sign-out and on an account switch, and never shown to another account. Until the
+ * profile is read, HomeDashboard's desktop greeting uses it so the name never drops out and grows back.
  *
- * Shared by HomeDashboard (the React greeting: same classes, same text rules), index.html's inline script (literal
- * copies; src/test/homeGreetingShell.test.tsx holds them equal), scripts/inline-shell-css.mjs (the classes' CSS is
- * inlined) and the sign-out paths (src/lib/authSignOut.ts, src/main.tsx).
+ * Shared by HomeDashboard and the sign-out paths (src/lib/authSignOut.ts, src/main.tsx).
+ * Guard: src/test/homeGreetingShell.test.tsx.
  */
 
 /** localStorage key: JSON {"u": <user id>, "n": <first name>}. One entry, so an account switch overwrites it. */
 export const GREETING_NAME_KEY = "helpr_greeting_name";
 
-/**
- * HomeDashboard's phone greeting (a <p>; the page's h1 is hidden, as on every Vinted-header screen): ONE 20px line under the search bar (design audit A D1, owner 11-08: the big Bodoni
- * greeting and its date line gave way to the Vinted header). The desktop website still shows the date (greetingDate).
- */
-export const GREETING_TITLE_CLASS = "text-ds-20 font-bold leading-tight text-foreground";
-
-/** The markup the inline script draws (empty text), for the CSS inliner's first-frame inventory. */
-export const GREETING_SHELL_MARKUP = `<div><p class="${GREETING_TITLE_CLASS}"></p></div>`;
-
 /** "Good morning" before noon, "Good afternoon" before 5 PM, else "Good evening" (local time). F260q: Spanish
- *  ("es") reads Buenos días / Buenas tardes / Buenas noches; index.html's script picks the same language
- *  (saved "helpr_lang", else the browser's) so the first paint never flips. */
+ *  ("es") reads Buenos días / Buenas tardes / Buenas noches. */
 export function greetingFor(d = new Date(), lang = "en") {
   const h = d.getHours();
   if (lang === "es") return h < 12 ? "Buenos días" : h < 17 ? "Buenas tardes" : "Buenas noches";
@@ -70,7 +57,7 @@ export function saveGreetingName(userId, first) {
     if (first) s.setItem(GREETING_NAME_KEY, JSON.stringify({ u: userId, n: first }));
     else s.removeItem(GREETING_NAME_KEY);
   } catch {
-    // Quota or blocked storage: the HTML greeting just has no name next time.
+    // Quota or blocked storage: the greeting just has no name until the profile loads next time.
   }
 }
 

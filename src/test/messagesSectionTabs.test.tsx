@@ -27,7 +27,7 @@
  * @mutate src/components/messages/messageSections.ts | c.jobStatus && JOB_OVER_STATUSES.includes(c.jobStatus) ? null : "You're working"; | false ? null : "You're working";
  * @mutate src/pages/messages/useMessageSections.tsx | label: unread > 0 ? t("msg.filterUnreadN", { n: unread }) : t("msg.filterUnread") }, | label: t("msg.filterUnreadN", { n: unread }) },
  * @mutate src/pages/messages/Messages.tsx |       conversations={inbox.conversations} |       conversations={conversations}
- * @mutate src/components/messages/ConversationList.tsx |       {phoneSearchRow}\n      {sectionTabs && ( |       {phoneSearchRow}\n      {false && (
+ * @mutate src/components/messages/ConversationList.tsx |       {isWebDesktop && phoneSearchRow}\n      {sectionTabs && ( |       {isWebDesktop && phoneSearchRow}\n      {false && (
  * @mutate src/pages/messages/useMessageSections.tsx |     mainEmptyBody: mainInboxEmptyBody(live.declutter), |     mainEmptyBody: mainInboxEmptyBody(false),
  * @mutate src/components/messages/ConversationListBody.tsx |                 body={mainEmptyBody} |                 body={mainInboxEmptyBody(false)}
  * @mutate src/pages/messages/useMessageSections.tsx | data-more={more ? "" : undefined} | data-more=""
@@ -102,7 +102,7 @@ import { ConversationRow } from "@/components/messages/ConversationRow";
 // The phone header is the shared AppTopBar since Q2231; its bell and avatar
 // need the app's providers, and this file tests the list, not the bar.
 vi.mock("@/components/sections/AppTopBar", () => ({
-  AppTopBar: ({ title }: { title?: string }) => <header data-testid="app-top-bar"><h1>{title}</h1></header>,
+  AppTopBar: ({ title, search }: { title?: string; search?: import("react").ReactNode }) => <header data-testid="app-top-bar"><h1>{title}</h1>{search}</header>,
 }));
 
 

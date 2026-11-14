@@ -61,7 +61,7 @@ vi.mock("@/lib/haptics", () => ({
   hapticMedium: vi.fn(), hapticSelection: vi.fn(), hapticWarning: vi.fn(), hapticHeavy: vi.fn(),
 }));
 vi.mock("@/components/sections/AppTopBar", () => ({
-  AppTopBar: ({ title }: { title?: string }) => <header data-testid="app-top-bar"><h1>{title}</h1></header>,
+  AppTopBar: ({ title, search }: { title?: string; search?: import("react").ReactNode }) => <header data-testid="app-top-bar"><h1>{title}</h1>{search}</header>,
 }));
 // The chat sheet itself is DeclutterOrderTalk's (declutterOrderTalk.test.tsx); here, only that it opens for the row.
 vi.mock("@/components/declutter/DeclutterOrderTalk", () => ({

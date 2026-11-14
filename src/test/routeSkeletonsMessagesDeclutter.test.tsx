@@ -41,6 +41,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: 
 
 import MessagesRouteSkeleton, { MESSAGES_SKELETON_HEADER_PADDING } from "@/components/MessagesRouteSkeleton";
 import DeclutterRouteSkeleton from "@/components/DeclutterRouteSkeleton";
+import { COMPACT_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
 
 const ROOT = resolve(__dirname, "../..");
 const code = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"));
@@ -82,12 +83,13 @@ describe("/messages and /declutter route skeletons (Q2705 B)", () => {
     const body = code("src/components/messages/ConversationListBody.tsx");
     expect(body).toContain('className="flex-1 min-h-0 px-3 py-3"');
     expect(body).toMatch(/\[1, 2, 3, 4, 5, 6\]\.map\(\(i\) => \(\s*<MessageThreadSkeleton/);
-    // The phone header's rows: AppTopBar's h-16 bar, the h-11 search pill in pb-1.5, the chips in pt-1 pb-1.5.
-    expect(code("src/components/sections/AppTopBar.tsx")).toContain('className="app-top-bar flex items-center justify-between gap-2 h-16"');
+    // The phone header's rows (the compact top, owner 11-14): AppTopBar's one COMPACT_TOP_ROW holding the h-11 search
+    // pill (inBar: no padding of its own) with the bell and the photo, then the chips in pt-1 pb-1.5.
+    expect(code("src/components/sections/AppTopBar.tsx")).toContain("<header className={COMPACT_TOP_ROW}");
     // The search row moved to MessagesSearchRow.tsx (Q806); ConversationList mounts it.
     const searchRow = code("src/components/messages/MessagesSearchRow.tsx");
     expect(list).toContain("<MessagesSearchRow ");
-    expect(searchRow).toContain('data-testid="messages-search-row" className="shrink-0 pb-1.5"');
+    expect(searchRow).toContain('data-testid="messages-search-row" className={inBar ? "shrink-0 min-w-0" : "shrink-0 pb-1.5"}');
     expect(searchRow).toContain('className="flex h-11 items-center gap-1 rounded-full');
     expect(list).toContain('className="shrink-0 pt-1 pb-1.5" data-testid="messages-section-tabs"');
   });
@@ -97,8 +99,9 @@ describe("/messages and /declutter route skeletons (Q2705 B)", () => {
     const root = getByTestId("messages-route-skeleton");
     expect(root.getAttribute("aria-busy")).toBe("true");
     expect(container.querySelector("h1")?.textContent).toBe("Messages");
-    expect(container.querySelector("header.app-top-bar.h-16")).toBeTruthy();
-    expect(getByTestId("messages-skeleton-search").className).toBe("shrink-0 pb-1.5");
+    expect(container.querySelector("header.app-top-bar")?.className).toBe(COMPACT_TOP_ROW);
+    expect(getByTestId("messages-skeleton-search").className).toBe("min-w-0 flex-1");
+    expect(container.querySelector("header.app-top-bar")?.contains(getByTestId("messages-skeleton-search"))).toBe(true);
     expect(getByTestId("messages-skeleton-search").firstElementChild?.className).toMatch(/\bh-11\b/);
     expect(getByTestId("messages-skeleton-chips").className).toBe("shrink-0 pt-1 pb-1.5");
     const rows = getByTestId("messages-skeleton-rows");

@@ -13,8 +13,10 @@
  * F146/F148 (owner UI audit 11-09) changed row 1 for every section: the page's title shows on the left with the bell
  * and the photo on the right, and the search is its own full-width row right under the bar; Messages is a bottom-bar
  * tab, so it left the bell. The rest (My Declutter, the chips, the + Sell pill) stands.
+ * THE COMPACT TOP (owner 11-14, Depop / Vinted): row 1 is the search again, the bell and the photo inline on its right,
+ * the title a visually hidden h1 (src/test/compactTopRow.test.tsx).
  *
- * @mutate src/components/sections/AppTopBar.tsx |         {search && <div data-testid="app-top-bar-search" className={`${SEARCH_BAR_PAD} min-w-0`}>{search}</div>} | {null}
+ * @mutate src/components/sections/AppTopBar.tsx |             <div data-testid="app-top-bar-search" className="min-w-0 flex-1">{search}</div> | {null}
  * @mutate src/components/sections/AppTopBar.tsx | <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> | <h1 className="sr-only">{title}</h1>
  * @mutate src/components/sections/AppTopBar.tsx |           onClick={() => { if (mine) { setMineAsked(true); setMineOpen(true); } else navigate("/profile"); }} |           onClick={() => navigate("/profile")}
  * @mutate src/components/sections/AppTopBar.tsx |           {mineToDo > 0 && <span data-top-bar-badge="mine" | {false && <span data-top-bar-badge="mine"
@@ -81,15 +83,14 @@ const MINE: SectionMineMenu = {
   settings: { label: "Declutter settings", to: "/declutter/settings" },
 };
 
-describe("row 1: the title, the bell and the photo; the search is the row under it (F148)", () => {
-  it("the bar shows the title; the search sits right under it; no Messages button and no '+'", () => {
+describe("row 1: the search with the bell and the photo inline on its right (the compact top, owner 11-14)", () => {
+  it("the bar is the search row; the title is a hidden h1; no Messages button and no '+'", () => {
     render(<MemoryRouter><AppTopBar title="Declutter" explore section="declutter" search={<input aria-label="Search Declutter" />} mine={MINE} /></MemoryRouter>);
     const bar = screen.getByTestId("app-top-bar");
-    expect(screen.getByRole("heading", { level: 1, name: "Declutter" }).className).not.toContain("sr-only");
+    expect(screen.getByRole("heading", { level: 1, name: "Declutter" }).className).toContain("sr-only");
     const row = screen.getByTestId("app-top-bar-search");
     expect(row.contains(screen.getByRole("textbox", { name: "Search Declutter" }))).toBe(true);
-    expect(bar.contains(row)).toBe(false);
-    expect(bar.nextElementSibling).toBe(row);
+    expect(bar.contains(row)).toBe(true);
     expect(screen.queryByTestId("top-bar-messages")).toBeNull();
     expect(screen.queryByTestId("top-bar-create")).toBeNull();
     // The bar's buttons, in order: the bell, then the photo. Nothing else.

@@ -12,7 +12,7 @@
  * bell keeps its 44px size. Before 2026-10-19 the phone "+" was a filled olive circle; this file was
  * topBarAddMatchesBell.test.ts.
  *
- * @mutate src/components/sections/AppTopBar.tsx |             {personal}\n | {section && <button type="button" data-testid="section-add" />}{personal}\n
+ * @mutate src/components/sections/AppTopBar.tsx | shrink-0 gap-1">\n              {personal}\n | shrink-0 gap-1">\n              {section && <button type="button" data-testid="section-add" />}{personal}\n
  * @mutate src/components/sections/AppTopBar.tsx |       {add.cta ?? add.label} |       {add.label}
  * @mutate src/components/sections/AppTopBar.tsx |       variant="ghost"\n      size="sm"\n      aria-label={add.label} |       variant="primary"\n      size="sm"\n      aria-label={add.label}
  * @mutate src/components/sections/AppTopBar.tsx |       onClick={isPost ? gate.gate("post", go) : go} |       onClick={go}

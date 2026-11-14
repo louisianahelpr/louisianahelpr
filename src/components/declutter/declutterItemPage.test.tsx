@@ -28,7 +28,7 @@
  * @mutate src/components/PageHeader.tsx | phoneHidesTitle ? " max-sm:sr-only" : ""} | phoneHidesTitle ? "" : ""}
  * @mutate src/components/AppPage.tsx | rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} hidesTitle={hidesTitle} | rightSlot={titleActions} hidesTitle={hidesTitle}
  * DA-9 (Declutter audit 2026-10-30): back, share and heart stay pinned on the item page while it scrolls.
- * @mutate src/components/declutter/DeclutterItemView.tsx |       stickyHeader\n    > |     >
+ * @mutate src/components/declutter/DeclutterItemView.tsx |       stickyHeader\n      // Owner 11-14 |       // Owner 11-14
  * @mutate src/components/AppPage.tsx | data-own-title-row={stickyHeader ? "" : undefined} | data-own-title-row={undefined}
  * @mutate src/components/AppPage.tsx | hidesTitle={hidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} /> | hidesTitle={hidesTitle} wrapTitle={wrapTitle} />
  * @mutate src/components/profile/ProfileTabHeader.tsx | "sticky-title-row sticky top-[calc(-1*var(--shell-gap))] z-40 -mx-3 px-3 -mb-[var(--section-gap)]" | "sticky-title-row -mx-3 px-3 -mb-[var(--section-gap)]"

@@ -106,7 +106,8 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
       data-item-card=""
       className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <span className="relative block aspect-[4/5] overflow-hidden rounded-xl bg-photo-empty">
+      {/* Owner 11-14 (Depop/Vinted audit item 8): a 3:4 photo on a phone and tablet; from lg the 4:5 tile as before. */}
+      <span className="relative block aspect-[3/4] overflow-hidden rounded-xl bg-photo-empty lg:aspect-[4/5]">
         {/* The category icon is ALWAYS the tile's ground (audit #32, 2026-10-21: a blank
             sand tile read as a failed load). A real photo covers it; a photo still
             loading, one that fails, or one with nothing opaque in it (prod's E2E
@@ -148,14 +149,15 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
           </PhotoTagStack>
         )}
       </span>
-      {/* Owner pick 4 (11-08): THREE text lines. The title; "condition · distance"; the price. The town line is gone
-          (the distance says how far), and porch pickup is a photo tag. */}
+      {/* Owner 11-14 (Depop/Vinted audit item 8): TWO text lines under the photo below lg: the title, then the bold
+          price (with "$X incl. fee" beside it, the 11-07 rule). "Condition · distance" shows from lg only (owner pick 4,
+          11-08, still the desktop card). Porch pickup stays a photo tag at every width. */}
       <span className="block min-w-0 px-0.5 pt-2">
         <span data-card-title className="block truncate text-ds-13 font-semibold leading-snug" title={item.title}>{item.title}</span>
         {(condition || away) && (
           // "Like new · 16 mi" on ONE line. #45 (deep audit 2026-10-28): the distance always shows whole (it never
           // shrinks); the condition gives way first.
-          <span data-card-place="" className="flex min-w-0 text-ds-11 text-muted-foreground" title={[condition, away].filter(Boolean).join(" · ")}>
+          <span data-card-place="" className="hidden min-w-0 text-ds-11 text-muted-foreground lg:flex" title={[condition, away].filter(Boolean).join(" · ")}>
             {condition && <span data-card-condition={item.condition_stars} title={condition} className="min-w-0 truncate">{condition}</span>}
             {condition && away && <span data-card-sep="" className="shrink-0 whitespace-pre"> · </span>}
             {away && <span data-card-away className="shrink-0 whitespace-nowrap">{away}</span>}
@@ -163,7 +165,8 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
         )}
         {/* Owner 11-09 (10:35 PM, reverses pick 2 of 11-08): the LIST price is the big bold one, and "$X.XX incl. fee"
             sits under it, smaller (11-07 rule: the card keeps both numbers). Free stays in burnt sienna. */}
-        <span data-card-price="" className="mt-0.5 flex min-w-0 flex-col leading-tight">
+        {/* Below lg the price and "incl. fee" share the second line (wrapping only on a card too narrow for both). */}
+        <span data-card-price="" className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-1.5 leading-tight lg:flex-col lg:items-start lg:gap-x-0">
           {item.current_price_cents > 0 ? (
             <>
               <span data-card-base-price="" className={`text-ds-16 ${PRICE_PAID}`}>

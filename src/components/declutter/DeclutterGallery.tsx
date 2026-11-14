@@ -71,7 +71,9 @@ export function DeclutterGallery({ urls, display, category, title, icon, shape =
               <FallbackImg
                 src={display?.[i]?.src ?? url}
                 srcSet={display?.[i]?.srcSet}
-                // The frame is the page column: 20px gutters on a phone (measured 335 px at 375), at most the 680px app-shell frame.
+                // The frame is the page column, at most the 680px app-shell frame. Owner 11-14: on a phone the item photo is
+                // full-bleed now (40px wider); the sizes stay as the entry's preload copy (boot/declutterItemPrefetch.ts) says,
+                // so the preload still answers the photo's request and no larger file is fetched.
                 sizes={display?.[i] ? "(min-width: 640px) 680px, calc(100vw - 40px)" : undefined}
                 // Item page speed (11-09): a phone's square frame gets the square crop (pagePhoto.ts).
                 phone={display?.[i]?.phoneSrcSet ? { media: PHONE_PHOTO_MEDIA, srcSet: display[i]!.phoneSrcSet!, sizes: PHONE_PHOTO_SIZES } : undefined}

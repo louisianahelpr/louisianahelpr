@@ -339,7 +339,7 @@ describe("Declutter location ask", () => {
     expect(screen.queryByText(/About \d+ mi away/)).toBeNull();
   });
 
-  it("a Browse card (board 25, spec v2 §3; owner pick 4, 11-08): 4:5 photo or the category tint, THREE text lines (title, condition · distance, price), the incl.-fee price bold in ink, NO stars, and real tags only", async () => {
+  it("a Browse card (board 25, spec v2 §3; owner pick 4, 11-08; owner 11-14 Depop/Vinted item 8): 3:4 photo on a phone (4:5 from lg) or the category tint, TWO text lines on a phone (title, price; condition · distance from lg), the incl.-fee price bold in ink, NO stars, and real tags only", async () => {
     const card = (id: string, title: string, extra: Record<string, unknown> = {}) => ({
       id, seller_id: "u2", status: "live", title, category: "furniture", condition_stars: 4, delivery_size: "small",
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
@@ -365,10 +365,11 @@ describe("Declutter location ask", () => {
     expect(incl.className).not.toMatch(/\bfont-bold\b/);
     // The list price comes first, the incl.-fee line after it.
     expect(list.compareDocumentPosition(incl) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // Three text lines under the photo: title, the meta line, the price.
+    // Owner 11-14: the meta line is there from lg only; a phone shows the title and the price.
     expect(first.querySelectorAll("[data-card-title], [data-card-place], [data-card-price]")).toHaveLength(3);
-    // 4:5 photo (Vinted's taller tile), never square.
-    expect(first.querySelector(".aspect-\\[4\\/5\\]")).not.toBeNull();
+    expect(first.querySelector("[data-card-place]")!.className).toMatch(/(^|\s)hidden(\s|$)/);
+    // 3:4 photo on a phone (Depop/Vinted), 4:5 from lg, never square.
+    expect(first.querySelector(".aspect-\\[3\\/4\\].lg\\:aspect-\\[4\\/5\\]")).not.toBeNull();
     // No photo: the category's icon on a tint, never an empty grey box (PhotoPlaceholder).
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" /> | {null}
     expect(first.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
@@ -569,8 +570,8 @@ describe("Declutter location ask", () => {
     }
   });
 
-  it("DA-16: how you get it shows the same at every width: no breakpoint hides the distance or the porch tag", async () => {
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-place="" className="flex min-w-0 text-ds-11 | <span data-card-place="" className="hidden lg:flex min-w-0 text-ds-11
+  it("DA-16: how you get it (the porch tag) shows at every width; owner 11-14: the condition · distance line shows from lg only", async () => {
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-place="" className="hidden min-w-0 text-ds-11 text-muted-foreground lg:flex" | <span data-card-place="" className="hidden min-w-0 text-ds-11 text-muted-foreground"
     // @mutate src/components/declutter/DeclutterItemCard.tsx | {item.porch_ok && <PhotoTag data-card-porch="">{t("decl.card.porch")}</PhotoTag>} | {null}
     const { ItemCard } = await import("./DeclutterItemCard");
     const item = {
@@ -582,7 +583,9 @@ describe("Declutter location ask", () => {
     const porch = r.container.querySelector("[data-card-porch]")!;
     expect(how.textContent).toBe("Lightly used · 5 mi");
     expect(porch.textContent).toBe("Porch pickup");
-    for (const el of [how, porch, porch.closest("[data-photo-tags]")!]) expect(el.className).not.toMatch(/(^|\s)(hidden|lg:|sm:|md:)/);
+    for (const el of [porch, porch.closest("[data-photo-tags]")!]) expect(el.className).not.toMatch(/(^|\s)(hidden|lg:|sm:|md:)/);
+    // Owner 11-14 (Depop/Vinted item 8): two text lines on a phone, so the meta line is hidden below lg and shown from it.
+    expect(how.className.split(/\s+/)).toEqual(expect.arrayContaining(["hidden", "lg:flex"]));
     r.unmount();
   });
 

@@ -57,6 +57,7 @@ import { isAutomatedBrowser } from "./automatedBrowser";
 import { attachColdLaunchSink } from "./coldLaunchPhases";
 import { redactInviteToken } from "./redactInviteToken";
 import { loadModule } from "@/lib/loadModule";
+import { isEnvironmentNoiseMessage } from "@/lib/clientNoise";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
@@ -198,6 +199,8 @@ function isBenignEvent(event: MinimalEvent | null | undefined): boolean {
   if (typeof firstException?.value === "string") candidates.push(firstException.value);
 
   for (const text of candidates) {
+    // A crawler's, host app's or browser's own error (src/lib/clientNoise.ts).
+    if (isEnvironmentNoiseMessage(text)) return true;
     for (const pattern of BENIGN_MESSAGE_PATTERNS) {
       if (pattern.test(text)) return true;
     }

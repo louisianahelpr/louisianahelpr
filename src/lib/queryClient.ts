@@ -48,6 +48,10 @@ export function reportCacheError(kind: "QueryCache" | "MutationCache", error: un
   if (isConfirmedOffline()) return;
   // Q1882: a designed refusal (src/lib/declutter/api.ts rpcData: a code with plain words) is not a defect.
   if ((error as { designedRefusal?: unknown } | null)?.designedRefusal === true) return;
+  // prod error_logs 2026-11-10: a deleted or hidden shop's link logged "shop_not_found — code=PT404" from every read on its
+  // page. PT404 is the not-found SQLSTATE an RPC raises on purpose (PostgREST answers 404); the screen shows its own
+  // "isn't available" page (ShopView ShopUnavailable). An answer, not a defect.
+  if ((error as { code?: unknown } | null)?.code === "PT404") return;
   const head = Array.isArray(key) ? key[0] : key;
   const keyName = typeof head === "string" ? head : String(head ?? "");
   if (kind === "QueryCache" && isNetworkFailure(error)) return noteNetworkBurst(error, kind, keyName);

@@ -330,12 +330,13 @@ export function ConversationList({
       onTab={setInboxFilter}
     />
   );
-  const phoneSearchRow = <MessagesSearchRow value={searchQuery} onChange={setSearchQuery} moreMenu={moreMenu} />;
+  const phoneSearchRow = <MessagesSearchRow value={searchQuery} onChange={setSearchQuery} moreMenu={moreMenu} inBar />;
 
+  // The compact top (owner 11-14): the search IS the top row, the bell and the photo inline on its right; "Messages"
+  // stays a visually hidden h1. Guard: src/test/compactTopRow.test.tsx.
   const headerEl = phoneTopBar && !selectMode ? (
     <>
-      <div className="shrink-0 -mt-1"><AppTopBar title={t("msg.title")} desktopGap={false} /></div>
-      {phoneSearchRow}
+      <div className="shrink-0"><AppTopBar title={t("msg.title")} desktopGap={false} search={phoneSearchRow} /></div>
       {sectionTabs && (
         <div className="shrink-0 pt-1 pb-1.5" data-testid="messages-section-tabs">
           {sectionTabs}

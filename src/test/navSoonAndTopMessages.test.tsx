@@ -3,7 +3,9 @@
  * have those 2 listed as coming soon."
  *  - The phone bottom bar is Home, Jobs, Declutter, Shops, Homes. On the website Shops and Homes wear a small "Soon"
  *    tag while they are not open to everyone (closed to the viewer, or a tester's preview) and drop it the day they
- *    open. In the store app the tabs are listed with NO tag (owner 10-31 + 11-06, App Review 2.1: hideUnopenedInApp).
+ *    open. In the store app a closed or tester-only section has NO tab at all (App Review 2.1 flags a tab that opens a
+ *    coming-soon screen: hideUnopenedInApp / sectionListedHere, DOCK_LISTS_CLOSED_SECTIONS_IN_APP false, lead 11-14);
+ *    once open to that member it is listed, with no tag.
  *    A tap opens the section's route, whose gate (ShopsGate / RentalsGate) is the coming-soon screen for anyone it is
  *    closed to; Shops is never opened by the bar. A closed section carries no to-do count.
  *  - Messages is the top row's chat button (44px), between the search and the bell, with the unread badge the old
@@ -11,13 +13,14 @@
  *  - Messages and You light no bottom tab.
  *
  * @mutate src/components/mobileNav/dockItems.ts |     { path: homes.path, icon: homes.icon, label: homes.label, comingSoon: true },\n | \n
+ * @mutate src/components/mobileNav/dockItems.ts | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = false; | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = true;
  * @mutate src/components/MobileNav.tsx |       const soon = !!item.comingSoon && !!t && (!t.on \|\| t.preview) && !hideUnopenedInApp(); |       const soon = !!item.comingSoon && !!t && !t.on;
  * @mutate src/components/mobileNav/dockItems.ts | label: homes.label, comingSoon: true }, | label: homes.label },
  * @mutate src/components/MobileNav.tsx |     const badgeCount = isGuest \|\| closed ? 0 : dockBadgeCount(badgeKey, unreadCount, todo); |     const badgeCount = isGuest ? 0 : dockBadgeCount(badgeKey, unreadCount, todo);
  * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <PhoneMessagesButton />}\n | \n
  * @mutate src/components/sections/AppTopBar.tsx |       {unreadCount > 0 && ( |       {false && (
- * @mutate src/components/sections/SectionSearchBar.tsx | full.length <= 22 ? "max-[409px]:hidden" | full.length <= 22 ? "max-[359px]:hidden"
- * @mutate src/components/messages/MessagesSearchRow.tsx | <span className="max-[439px]:hidden"> | <span className="max-[359px]:hidden">
+ * @mutate src/components/sections/SectionSearchBar.tsx | full.length <= 22 ? "max-[429px]:hidden" | full.length <= 22 ? "max-[409px]:hidden"
+ * @mutate src/components/messages/MessagesSearchRow.tsx | <span className="max-[459px]:hidden"> | <span className="max-[439px]:hidden">
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -31,7 +34,11 @@ const todo = vi.hoisted(() => ({ total: 0, jobs: 0, shops: 0, declutter: 0 }));
 const native = vi.hoisted(() => ({ on: false }));
 
 vi.mock("@/integrations/supabase/client", async () => (await import("./helpers/emptySupabaseClient")).emptySupabaseModule());
-vi.mock("@/lib/hideUnopenedInApp", async (orig) => ({ ...(await orig<object>()), hideUnopenedInApp: () => native.on }));
+// The store app is native.on; sectionListedHere is the real rule read through the same answer.
+vi.mock("@/lib/hideUnopenedInApp", () => ({
+  hideUnopenedInApp: () => native.on,
+  sectionListedHere: (tab: { on: boolean; preview: boolean } | undefined) => !tab || !native.on || (tab.on && !tab.preview),
+}));
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => openAll.set }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: (key: string) => switches.on.has(key),
@@ -126,10 +133,22 @@ describe("the phone bottom bar (owner 11-14)", () => {
     expect(tab("Declutter").getAttribute("aria-label")).toBe("Declutter");
   });
 
-  it("the store app lists Shops and Homes with no Soon tag (App Review 2.1)", () => {
+  it("the store app has NO Shops or Homes tab while they are closed to the member (App Review 2.1)", () => {
     native.on = true;
     renderPhone();
-    expect(names()).toEqual(["Home", "Jobs", "Declutter", "Shops", "Homes"]);
+    expect(names()).toEqual(["Home", "Jobs", "Declutter"]);
+    expect(soonOn()).toEqual([]);
+  });
+
+  it("the store app: a tester-only preview has no tab either; open to everyone, listed with no tag", () => {
+    native.on = true;
+    switches.on = new Set(["declutter", "shops", "rentals"]);
+    renderPhone();
+    expect(names()).toEqual(["Home", "Jobs", "Declutter"]);
+    cleanup();
+    openAll.set = new Set(["declutter", "shops"]);
+    renderPhone();
+    expect(names()).toEqual(["Home", "Jobs", "Declutter", "Shops"]);
     expect(soonOn()).toEqual([]);
   });
 
@@ -195,15 +214,16 @@ describe("Messages on the top row (owner 11-14)", () => {
 // The row lost 44px to Messages, so a search's words drop their noun (never cut) where they no longer fit. Measured
 // in Chromium at 320/360/375/390/414/430 (English and Spanish), ~/.lh-shots/nav-soon-1114/fit-*.txt.
 describe("the search words still fit beside Messages, the bell and the photo", () => {
-  it("short words keep their noun from 360, longer ones from 410, the longest from 450", () => {
+  it("short words keep their noun from 360, longer ones from 410 / 430, the longest from 450", () => {
     expect(nounHideClass("Search jobs")).toBe("max-[359px]:hidden");
     expect(nounHideClass("Search Declutter")).toBe("max-[409px]:hidden");
-    expect(nounHideClass("Search jobs and items")).toBe("max-[409px]:hidden");
+    expect(nounHideClass("Buscar en Declutter")).toBe("max-[429px]:hidden");
+    expect(nounHideClass("Search jobs and items")).toBe("max-[429px]:hidden");
     expect(nounHideClass("Buscar trabajos y artículos")).toBe("max-[449px]:hidden");
   });
 
-  it("Messages' 'Search conversations' drops its noun below 440px", () => {
+  it("Messages' 'Search conversations' drops its noun below 460px", () => {
     const row = readFileSync(resolve(__dirname, "../components/messages/MessagesSearchRow.tsx"), "utf8");
-    expect(row).toContain('{t("chat.searchShort")}<span className="max-[439px]:hidden"> {t("chat.searchNoun")}</span>');
+    expect(row).toContain('{t("chat.searchShort")}<span className="max-[459px]:hidden"> {t("chat.searchNoun")}</span>');
   });
 });

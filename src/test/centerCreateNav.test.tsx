@@ -24,7 +24,6 @@
  *
  * @mutate src/components/mobileNav/dockItems.ts |     { path: shops.path, icon: shops.icon, label: shops.label, badgeKey: "todoShops", comingSoon: true },\n | \n
  * @mutate src/components/mobileNav/dockItems.ts |     { path: declutter.path, icon: declutter.icon, label: declutter.label, badgeKey: "todoDeclutter" },\n | \n
- * @mutate src/components/mobileNav/dockItems.ts | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = true; | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = false;
  * @mutate src/components/MobileNav.tsx | <span data-dock-label className={`relative z-10 text-ds-10 leading-none whitespace-nowrap ${isActive ? "font-bold" : "font-medium"}`}>{shown}</span> | <span data-dock-label className="relative z-10 text-ds-10 leading-none whitespace-nowrap font-medium">{shown}</span>
  * @mutate src/components/sections/AppTopBar.tsx |             <div data-testid="app-top-bar-search" className="min-w-0 flex-1">{search}</div> |
  * @mutate src/components/sections/SectionCreateFab.tsx |   const go = () => { hapticMedium(); if (add) navigate(add.path); else setCreateSheetOpen((o) => !o); }; |   const go = () => { hapticMedium(); navigate(add?.path ?? "/post-job"); };

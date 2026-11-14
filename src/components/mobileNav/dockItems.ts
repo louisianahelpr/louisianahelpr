@@ -2,12 +2,15 @@ import type { LucideIcon } from "lucide-react";
 import { leftItems, rightItems, sectionItems } from "@/components/mobileNav/mobileNavHelpers";
 
 /**
- * THE ONE FLAG for closed sections in the NATIVE app's dock. True (owner, 11-06 11:35 AM, told of the App Review
- * risk: "remove that from the tabs, the screen says it is coming"): a section tab is listed in the iPhone/Android
- * dock as on the web, with no "Soon" mark, and opens its own coming-soon screen. False brings back the 10-31 rule
- * (left out of the app's dock until it opens). One-line flip. Since F146 (11-09) the only section tab is Declutter.
+ * THE ONE FLAG for closed sections in the NATIVE app's dock. FALSE since 11-14 (lead, with Shops and Homes back in the
+ * dock): the 10-31 rule (hideUnopenedInApp, App Review 2.1): a section tab is in the iPhone/Android dock only once it
+ * is open to that member and not a tester-only preview (sectionListedHere), so the store app never shows a tab that
+ * opens a coming-soon screen; there the dock is Home, Jobs, Declutter (plus Shops / Homes once open), and Messages and
+ * You are on the top row. True was the owner's 11-06 choice ("remove that from the tabs, the screen says it is
+ * coming") for the then Dashboard/Jobs/Declutter/Shops/Homes dock: listed in the app with no mark. One-line flip.
+ * Guard: src/test/navSoonAndTopMessages.test.tsx.
  */
-export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = true;
+export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = false;
 
 export type DockItem = { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "todo" | "todoJobs" | "todoShops" | "todoDeclutter"; comingSoon?: boolean };
 

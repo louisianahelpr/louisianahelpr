@@ -83,8 +83,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // THE PHONE BOTTOM BAR (owner 11-14): Home, Jobs, Declutter, Shops, Homes, no center "+"; Messages and You are on
   // the top row (AppTopBar). Shops and Homes, while not open to everyone, wear a small "Soon" tag on the website ("just
   // have those 2 listed as coming soon"); a tap opens the section, which for anyone it is closed to is its own
-  // coming-soon screen (ShopsGate, RentalsGate). The store app lists the tab with no tag (DOCK_LISTS_CLOSED_SECTIONS_IN_APP,
-  // owner 11-06; hideUnopenedInApp, owner 10-31: App Review 2.1). The Create sheet still mounts here (createSheetStore).
+  // coming-soon screen (ShopsGate, RentalsGate). The store app has no tab for a section until it is open to that member
+  // (DOCK_LISTS_CLOSED_SECTIONS_IN_APP false; hideUnopenedInApp, App Review 2.1). The Create sheet still mounts here.
   const sectionTabs = useSectionTabs();
   const dock = phoneDockItems()
     .map((item) => {

@@ -29,11 +29,12 @@ function useNoun(noun: string): { search: string; noun: string } {
 
 /**
  * The noun drops (never cut) below the width where it no longer fits beside the top row's Messages, bell and photo
- * (owner 11-14 put Messages on the row). Measured at 320/360/375/390/414/430 in Chromium: "Search jobs" fits from
- * 360, "Search Declutter" and "Search jobs and items" from 414 (not at 390). Guard: src/test/navSoonAndTopMessages.test.tsx.
+ * (owner 11-14 put Messages on the row). Measured in Chromium at 320-450, English and Spanish: "Search jobs" fits
+ * from 360, "Search Declutter" / "Buscar trabajos" from 410, "Buscar en Declutter" from 430 (not 414), "Buscar trabajos
+ * y artículos" at 450. Guard: src/test/navSoonAndTopMessages.test.tsx.
  */
 export function nounHideClass(full: string): string {
-  return full.length <= 12 ? "max-[359px]:hidden" : full.length <= 22 ? "max-[409px]:hidden" : "max-[449px]:hidden";
+  return full.length <= 12 ? "max-[359px]:hidden" : full.length <= 16 ? "max-[409px]:hidden" : full.length <= 22 ? "max-[429px]:hidden" : "max-[449px]:hidden";
 }
 
 function Words({ noun }: { noun: string }) {

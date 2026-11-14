@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { COMPACT_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { ScreenHeaderRow, COMPACT_HEADER_ROW_MIN_HEIGHT } from "@/components/ui/ScreenHeaderRow";
 import { PageTitleBar, useHeaderInDesktopBar } from "@/components/header/PageTitleBar";
@@ -12,8 +13,8 @@ import { MESSAGES_LIST_PANE_PX, useMessagesTwoPane } from "@/pages/messages/useT
  * downloads. It used to be the generic RouteSuspenseFallback, so the screen went blank -> inbox frame -> rows.
  *
  * It is the inbox's OWN loading frame (ConversationList with `loading`), in each of its three layouts:
- *   - phone and native: PageScaffold's title card holding the AppTopBar row (h-16: "Messages", help, bell, photo),
- *     the slim search row (h-11 pill, pb-1.5) and the filter chips (36px, pt-1 pb-1.5); the panel holds six
+ *   - phone and native: PageScaffold's title card holding the AppTopBar's compact row (owner 11-14: the h-11 search
+ *     pill with the bell and the photo inline, "Messages" a hidden h1) and the filter chips (36px, pt-1 pb-1.5); six
  *     MessageThreadSkeleton rows (ConversationListBody's own loading branch);
  *   - the desktop website below the two-pane width: ONE panel whose first row is the compact ScreenHeaderRow
  *     (34px, 28px icons) under a hairline, then the chips, then the rows;
@@ -66,24 +67,24 @@ function ControlBone({ round }: { round?: boolean }) {
 function PhoneHeaderBones() {
   return (
     <>
-      <div className="shrink-0 -mt-1">
+      <div className="shrink-0">
         <PageTitleBar
           title="Messages"
           desktopGap={false}
           phone={
-            <header className="app-top-bar flex items-center justify-between gap-2 h-16" aria-hidden>
-              <span className="min-w-0 truncate text-page-title text-foreground">Messages</span>
-              {/* The bell and the photo (one pattern, owner UI audit F148 11-09). */}
-              <div className="flex items-center gap-1 shrink-0">
+            // The compact top (owner 11-14): ONE row, the search with the bell and the photo inline on its right.
+            <header className={COMPACT_TOP_ROW} aria-hidden>
+              <span className="sr-only">Messages</span>
+              <div className="min-w-0 flex-1" data-testid="messages-skeleton-search">
+                <Skeleton className="h-11 w-full rounded-full" />
+              </div>
+              <div className="flex items-center shrink-0">
                 <ControlBone />
                 <ControlBone round />
               </div>
             </header>
           }
         />
-      </div>
-      <div className="shrink-0 pb-1.5" data-testid="messages-skeleton-search" aria-hidden>
-        <Skeleton className="h-11 w-full rounded-full" />
       </div>
       <ChipBones />
     </>

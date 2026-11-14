@@ -14,6 +14,7 @@ import { AdminGuaranteeNote } from "@/components/guarantee/AdminGuaranteeNote";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 import { EarlierDisputes } from "./EarlierDisputes";
+import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
 
 /**
  * The split readout is ONE money column — net, gross and deduction stacked.
@@ -118,6 +119,7 @@ export const DisputeCard = ({
   // for the ten minutes this card is open. Same length and order as
   // `evidence.trusted`, so the two zip. A legacy full URL still resolves.
   const evidenceSrcs = useProofPhotoUrls(evidence.trusted);
+  const { open: openEvidence, viewer: evidenceViewer } = useInAppPhotoViewer(evidenceSrcs, evidenceSrcs.map((_, i) => `Evidence photo ${i + 1}`));
   // A decision on record whose money never moved. The card MUST say so: the
   // green DECIDED badge alone told an admin the case was closed while $180 of
   // a poster's escrow sat unmoved with no id, no reason and no retry anywhere
@@ -224,11 +226,12 @@ export const DisputeCard = ({
               {evidence.trusted.map((_, i) => {
                 const src = evidenceSrcs[i];
                 return (
-                  <a key={i} href={src ?? undefined} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-ds-sm overflow-hidden border border-border hover:border-primary transition-colors">
+                  <button key={i} type="button" disabled={!src} aria-label={`Open evidence photo ${i + 1}`} onClick={() => openEvidence(i)} className="block w-20 h-20 rounded-ds-sm overflow-hidden border border-border hover:border-primary transition-colors disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <img loading="lazy" decoding="async" src={src ?? PENDING_PHOTO_SRC} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
-                  </a>
+                  </button>
                 );
               })}
+              {evidenceViewer}
             </div>
           </div>
         )}

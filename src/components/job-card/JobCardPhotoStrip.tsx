@@ -1,5 +1,5 @@
 import { OptimizedImage } from "@/components/ui/optimized-image";
-import { openableDocumentUrl } from "@/lib/storagePath";
+import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
 
 interface JobCardPhotoStripProps {
   urls: string[];
@@ -26,20 +26,21 @@ export function JobCardPhotoStrip({
   size = "md",
   stopPropagation = false,
 }: JobCardPhotoStripProps) {
+  // Owner 11-13: a photo opens in the app's own viewer, never in Safari over the app.
+  const { open, viewer } = useInAppPhotoViewer(urls, urls.map((_, i) => `Job photo ${i + 1}`));
   if (urls.length === 0) return null;
   const dims = SIZES[size];
   return (
     <div className="flex gap-2 overflow-x-auto pb-1">
       {urls.map((url, i) => (
-        <a
+        <button
           key={i}
-          // jobs.photos is writable by the job's poster (no shape CHECK) and
-          // this strip renders on OTHER people's Applied cards: never raw.
-          href={openableDocumentUrl(url) ?? undefined}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-shrink-0"
-          onClick={stopPropagation ? (e) => e.stopPropagation() : undefined}
+          type="button"
+          // jobs.photos is writable by the job's poster (no shape CHECK): it is only ever an <img src> now (a src never
+          // runs a script), never a link.
+          aria-label={`Open job photo ${i + 1}`}
+          className="flex-shrink-0 rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={(e) => { if (stopPropagation) e.stopPropagation(); open(i); }}
         >
           <OptimizedImage
             src={url}
@@ -49,8 +50,10 @@ export function JobCardPhotoStrip({
             fadeIn
             className={`${dims.cls} rounded-ds-sm object-cover border border-border hover:border-primary transition-colors`}
           />
-        </a>
+        </button>
       ))}
+      {/* The viewer's clicks bubble through React's portal to this strip's parents; stop them like the tiles do. */}
+      {stopPropagation ? <span className="contents" onClick={(e) => e.stopPropagation()}>{viewer}</span> : viewer}
     </div>
   );
 }

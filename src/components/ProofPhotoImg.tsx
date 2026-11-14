@@ -2,7 +2,7 @@ import { useState } from "react";
 import { PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
 
 /**
- * A proof photo, or, when this browser can't draw it, a labelled way to open it (Tester 6, 10-30: a stored HEIC shows
+ * A proof photo, or, when this browser can't draw it, a labelled stand-in (Tester 6, 10-30: a stored HEIC shows
  * as a broken image in Chromium). A photo is never just a broken box, because a poster decides on pay from these.
  *
  * `insideControl`: the caller already wraps this in a link or button, so the fallback is words only (a link inside a
@@ -26,7 +26,9 @@ export function ProofPhotoImg({
     const box = `${className ?? ""} flex items-center justify-center bg-muted p-1 text-center text-ds-12 font-semibold text-foreground`;
     return insideControl
       ? <span data-proof-photo-fallback="" className={box}>Open photo</span>
-      : <a data-proof-photo-fallback="" href={src} target="_blank" rel="noopener noreferrer" className={`${box} underline`} aria-label={alt ? `Open photo: ${alt}` : "Open photo"}>Open photo</a>;
+      // Never a link to the signed URL (owner 11-13: a photo link opened Safari over the app). A photo this browser
+      // can't draw can't be drawn by the app's viewer either, so with no control around it this is words only.
+      : <span data-proof-photo-fallback="" role="img" aria-label={alt ? `Photo can't show here: ${alt}` : "Photo can't show here"} className={box}>Photo can't show here</span>;
   }
   return (
     <img

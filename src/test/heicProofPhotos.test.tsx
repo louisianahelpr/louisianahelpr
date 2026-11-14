@@ -186,21 +186,23 @@ describe("cleanProofPhoto takes the EXIF out, GPS included", () => {
 });
 
 describe("a stored photo that won't draw", () => {
-  it("becomes a labelled link to the photo", () => {
+  // Owner 11-13: never a link to the signed URL (it opened Safari over the app). On its own it is a labelled stand-in.
+  it("becomes a labelled stand-in, never a link to the signed URL", () => {
     render(<ProofPhotoImg src="https://signed.example/a.heic" alt="After 1" className="w-14" />);
     fireEvent.error(screen.getByAltText("After 1"));
-    const link = screen.getByRole("link", { name: "Open photo: After 1" });
-    expect(link.getAttribute("href")).toBe("https://signed.example/a.heic");
-    expect(link.textContent).toBe("Open photo");
+    const words = screen.getByRole("img", { name: "Photo can't show here: After 1" });
+    expect(words.textContent).toBe("Photo can't show here");
+    expect(screen.queryAllByRole("link")).toEqual([]);
     expect(screen.queryByAltText("After 1")).toBeNull();
   });
 
-  it("inside the gallery's own link it's the words alone, with no link inside a link", () => {
+  it("inside the gallery's own control it's the words alone, inside the button that opens the in-app viewer", () => {
     render(<PhotoProofDialog open onOpenChange={() => {}} beforeUrls={[]} afterUrls={["j/a.heic"]} />);
     fireEvent.error(screen.getByAltText("After 1"));
     const words = screen.getByText("Open photo");
     expect(words.tagName).toBe("SPAN");
-    expect(words.closest("a")?.getAttribute("href")).toBe("https://signed.example/j/a.heic");
+    expect(words.closest("button")?.getAttribute("aria-label")).toBe("Open after photo 1");
+    expect(words.closest("a")).toBeNull();
   });
 
   it("a fresh ticket gets its own try; a photo still loading is not a failure", () => {

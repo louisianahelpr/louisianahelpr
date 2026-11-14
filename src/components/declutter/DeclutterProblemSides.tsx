@@ -21,6 +21,7 @@ import { FallbackImg } from "./FallbackImg";
 import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhotos";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { Textarea } from "@/components/ui/textarea";
+import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
 
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
@@ -31,12 +32,16 @@ export function ProblemPhotos({ paths }: { paths: string[] }) {
     enabled: paths.length > 0,
     staleTime: 5 * 60_000,
   });
+  const srcs = urls.data ?? [];
+  // Owner 11-13: a problem photo opens in the app's own viewer, never the signed URL in Safari.
+  const { open, viewer } = useInAppPhotoViewer(srcs, srcs.map((_, i) => `Problem photo ${i + 1}`));
   if (paths.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2" data-problem-photos="">
       {(urls.data ?? []).map((u, i) => u
-        ? <a key={paths[i]} href={u} target="_blank" rel="noreferrer"><FallbackImg src={u} alt={`Problem photo ${i + 1}`} className="h-16 w-16 rounded-lg object-cover bg-photo-empty" /></a>
+        ? <button key={paths[i]} type="button" onClick={() => open(i)} aria-label={`Open problem photo ${i + 1}`} className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><FallbackImg src={u} alt={`Problem photo ${i + 1}`} className="h-16 w-16 rounded-lg object-cover bg-photo-empty" /></button>
         : null)}
+      {viewer}
     </div>
   );
 }

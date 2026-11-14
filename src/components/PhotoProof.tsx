@@ -35,6 +35,7 @@ import { JOB_ACTION_CHIP_CLASS, JOB_ROW_LABEL_CLASS, JobStepPrimaryButton, jobAc
 import { useProofPhotoUrls } from "@/hooks/useProofPhotoUrls";
 import { photoPrimaryLabel } from "@/components/job-card/photoPrimaryLabel";
 import { proofPhotoLinkName } from "./proofPhotoLinkName";
+import { useInAppPhotoViewer } from "./useInAppPhotoViewer";
 
 type PhotoProofProps = {
   jobId: string;
@@ -424,6 +425,13 @@ export const PhotoProofGroup = ({
   // rest are behind "View all", which signs its own.
   const beforeSrcs = useProofPhotoUrls(beforeUrls.slice(0, 3));
   const afterSrcs = useProofPhotoUrls(afterUrls.slice(0, 3));
+  // Owner 11-13: a thumbnail opens the app's own photo viewer, never the signed URL in Safari.
+  const thumbAlts = [
+    ...beforeSrcs.map((_, i) => proofPhotoLinkName("before", i, beforeUrls.length)),
+    ...afterSrcs.map((_, i) => proofPhotoLinkName("after", i, afterUrls.length)),
+  ];
+  const { open: openPhoto, viewer } = useInAppPhotoViewer([...beforeSrcs, ...afterSrcs], thumbAlts);
+  const thumbBtn = "rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default";
 
   // If no photos at all and can't upload, show a minimal empty state
   if (!hasBefore && !hasAfter && !showBeforeUpload && !showAfterUpload) {
@@ -465,9 +473,9 @@ export const PhotoProofGroup = ({
             {hasBefore ? (
               <div className="flex gap-1.5 flex-wrap">
                 {beforeUrls.slice(0, 3).map((url, i) => (
-                  <a key={url ?? i} href={beforeSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer" aria-label={proofPhotoLinkName("before", i, beforeUrls.length)}>
+                  <button key={url ?? i} type="button" className={thumbBtn} disabled={!beforeSrcs[i]} data-proof-photo-open="" onClick={() => openPhoto(i)} aria-label={proofPhotoLinkName("before", i, beforeUrls.length)}>
                     <ProofPhotoImg insideControl src={beforeSrcs[i]} alt="" className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                  </a>
+                  </button>
                 ))}
                 {beforeUrls.length > 3 && (
                   <div className="w-14 h-14 rounded-ds-sm bg-muted flex items-center justify-center text-ds-11 text-muted-foreground font-medium">
@@ -489,9 +497,9 @@ export const PhotoProofGroup = ({
             {hasAfter ? (
               <div className="flex gap-1.5 flex-wrap">
                 {afterUrls.slice(0, 3).map((url, i) => (
-                  <a key={url ?? i} href={afterSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer" aria-label={proofPhotoLinkName("after", i, afterUrls.length)}>
+                  <button key={url ?? i} type="button" className={thumbBtn} disabled={!afterSrcs[i]} data-proof-photo-open="" onClick={() => openPhoto(beforeSrcs.length + i)} aria-label={proofPhotoLinkName("after", i, afterUrls.length)}>
                     <ProofPhotoImg insideControl src={afterSrcs[i]} alt="" className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                  </a>
+                  </button>
                 ))}
                 {afterUrls.length > 3 && (
                   <div className="w-14 h-14 rounded-ds-sm bg-muted flex items-center justify-center text-ds-11 text-muted-foreground font-medium">
@@ -531,6 +539,7 @@ export const PhotoProofGroup = ({
           pictures" is a button on the same row as the other action buttons,
           not a second card above them. Same dialog, two hosts. */}
       <PhotoProofDialog open={viewOpen} onOpenChange={setViewOpen} beforeUrls={beforeUrls} afterUrls={afterUrls} />
+      {viewer}
     </CardSubPanel>
   );
 };

@@ -230,9 +230,12 @@ describe("phone / native (<900px): the same, at phone width", () => {
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
 
-  it("Messages too", async () => {
+  // THE COMPACT TOP (owner 11-14, Depop / Vinted): the phone inbox's search IS the top row, so "Messages" is a
+  // visually hidden h1 (the bottom bar and the row say where you are), still the screen's one h1, empty or full.
+  it("Messages: the compact top row hides the name (sr-only h1), still exactly one h1", async () => {
     setWebDesktop(false);
     renderInbox();
-    expect((await heading("Messages")).className).not.toContain("sr-only");
+    expect((await heading("Messages")).className.split(/\s+/)).toContain("sr-only");
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   });
 });

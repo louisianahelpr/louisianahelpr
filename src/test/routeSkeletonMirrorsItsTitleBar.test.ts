@@ -41,7 +41,6 @@ const call = (src: string, tag: string) => {
   expect(i, `expected a <${tag}> in the file`).toBeGreaterThan(-1);
   return src.slice(i, src.indexOf(">", i) + 1).replace(/\s+/g, " ");
 };
-const classOf = (el: string) => el.match(/className="([^"]*)"/)?.[1] ?? "";
 
 describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
   it("is not vacuous: every file was read", () => {

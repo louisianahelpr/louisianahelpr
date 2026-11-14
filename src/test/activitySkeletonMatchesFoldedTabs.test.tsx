@@ -93,7 +93,7 @@ describe("the placeholder's header is the loaded header's shape", () => {
     expect(bar!.querySelectorAll(".h-7"), "no title bone").toHaveLength(0);
     const kids = [...bar!.children].filter((c) => !c.classList.contains("sr-only"));
     expect(kids[0].querySelectorAll(".h-11.w-full.rounded-full"), "the search bar's bone first").toHaveLength(1);
-    expect(kids[1]?.children.length, "the bell, the photo").toBe(2);
+    expect(kids[1]?.children.length, "Messages (owner 11-14), the bell, the photo").toBe(3);
     const row = bar!;
     expect(container.querySelectorAll(".h-11.w-full.rounded-ds-md"), "the tabs row on a phone").toHaveLength(1);
     expect(row.nextElementSibling?.className, "the tabs row right under the top row").toContain("h-11 w-full rounded-ds-md");

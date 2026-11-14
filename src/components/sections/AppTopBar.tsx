@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, type ReactNode } from "react";
-import { Plus, Settings } from "lucide-react";
+import { MessageSquare, Plus, Settings } from "lucide-react";
 import { mineToDoCount, type SectionMineMenu } from "./sectionMine";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/notificationPanel/NotificationBell";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -15,6 +15,7 @@ import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import { avatarButtonLabel } from "@/lib/avatarImage";
 import { COMPACT_TOP_ROW, TITLE_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
+import { useSharedUnreadCount } from "@/components/mobileNav/navUnreadStore";
 
 // "My Declutter" (etc.) loads on the photo's first tap, never on the first screen.
 const MySectionSheet = lazy(() => import("./MySectionSheet"));
@@ -56,10 +57,51 @@ export function SectionAddButton({ section, add: own }: { section: SectionKey; a
 }
 
 /**
+ * MESSAGES on the phone top row (owner 11-14: "Messages and You are already at the top, so replace those with Shops
+ * and Homes"): a 44px chat button between the search and the bell, with the unread badge the bottom bar's Messages tab
+ * wore. READ ONLY: MobileNav (mounted on every phone page with this bar) fills the shared store; this never opens one.
+ * Guard: src/test/navSoonAndTopMessages.test.tsx.
+ */
+function PhoneMessagesButton() {
+  const navigate = useNavigate();
+  const { user } = useCurrentUser();
+  const unreadCount = useSharedUnreadCount(user?.id);
+  const { t: tr } = useLanguage();
+  const n = unreadCount > 9 ? "9+" : String(unreadCount);
+  // On Messages itself the button is the "you are here" mark the bottom tab used to be: olive, aria-current.
+  const here = useLocation().pathname === "/messages";
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="iconCompact"
+      // WCAG 2.5.3: the visible count first, then the word, as the dock's badge did ("3 Messages").
+      aria-label={unreadCount > 0 ? `${n} ${tr("nav.messages")}` : tr("nav.messages")}
+      data-testid="top-bar-messages"
+      aria-current={here ? "page" : undefined}
+      onClick={() => navigate("/messages")}
+      className={`relative shrink-0 hover:text-foreground [&>svg]:w-[22px] [&>svg]:h-[22px] ${here ? "text-[hsl(var(--bark))]" : "text-muted-foreground"}`}
+    >
+      <MessageSquare aria-hidden fill={here ? "currentColor" : "none"} />
+      {unreadCount > 0 && (
+        <span
+          data-top-bar-badge="messages"
+          aria-hidden
+          className="absolute top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full text-ds-10 flex items-center justify-center font-bold px-1"
+          // Count badges are --alert, never rust (spec v2 §1.1), as the dock's were.
+          style={{ background: "hsl(var(--alert))", color: "#fff" }}
+        >
+          {n}
+        </span>
+      )}
+    </Button>
+  );
+}
+
+/**
  * The phone top bar, ONE pattern on every signed-in page (owner UI audit F148, 2026-11-09): the page title on the left
- * (the logo on Dashboard), the NOTIFICATIONS bell and the PROFILE avatar (You) on the right, and a section's search
- * INSIDE the page, as its own row under the bar. Messages and You are bottom-bar tabs since F146, and creating is the
- * floating pill (SectionCreateFab), so the bar's Messages button and "+" left with the 11-08 search-in-the-bar header.
+ * (the logo on Dashboard), MESSAGES (owner 11-14, off the bottom bar again), the NOTIFICATIONS bell and the PROFILE
+ * avatar (You) on the right. Creating is the floating pill (SectionCreateFab), so the bar has no "+".
  * Help is inside You, not on the bar. Guard: src/test/centerCreateNav.test.tsx.
  *
  * The desktop website's section bar carries the section's soft "+ Post a job" / "+ Sell an
@@ -122,9 +164,10 @@ export function AppTopBar({
   const title = sectionTitle;
   if (isWebDesktop && !title) return null;
   const actions = isWebDesktop && showAdd && section && sectionByKey(section).add ? <SectionAddButton section={section} add={add} /> : undefined;
-  // The phone bar's right side (F148): the bell, then You. Help is INTO You (You > Help, one tap).
+  // The phone bar's right side: Messages (owner 11-14), the bell, then You. Help is INTO You (You > Help, one tap).
   const personal = (
     <>
+      {user && !isWebDesktop && <PhoneMessagesButton />}
       {/* AUD31-74: a guest (Declutter Browse is open to them) has no notifications: no bell, as no photo. */}
       {user && !isWebDesktop && (
       <span data-testid="top-bar-bell">

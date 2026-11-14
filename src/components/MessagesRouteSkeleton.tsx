@@ -79,6 +79,8 @@ function PhoneHeaderBones() {
                 <Skeleton className="h-11 w-full rounded-full" />
               </div>
               <div className="flex items-center shrink-0">
+                {/* Messages, the bell (owner 11-14), then the photo. */}
+                <ControlBone />
                 <ControlBone />
                 <ControlBone round />
               </div>

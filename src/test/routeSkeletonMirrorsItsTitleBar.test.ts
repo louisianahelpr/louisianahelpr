@@ -66,15 +66,15 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(bar).toContain('<div data-testid="app-top-bar-search" className="min-w-0 flex-1">{search}</div>');
     expect(skeleton).not.toMatch(/<Skeleton className="h-8 w-8 rounded-ds-md" \/>/);
     expect(home).toContain("<SectionScreen search={<SectionSearchBar");
-    // The right cluster: two 44px controls, the bell and the avatar ("+ Create" floats over the page).
+    // The right cluster: three 44px controls, Messages (owner 11-14), the bell and the avatar ("+ Create" floats over the page).
     expect(bar).toContain('<div className="flex items-center shrink-0">');
     const cluster = skeleton.slice(skeleton.indexOf('className="flex items-center shrink-0"'));
     expect(cluster.length).toBeGreaterThan(100);
     const right = cluster.slice(0, cluster.indexOf("</div>"));
     const boxes = right.match(/<span className="h-1[01] w-1[01]|<Skeleton className="h-11 w-11 shrink-0 rounded-full" \/>/g) ?? [];
-    expect(boxes).toEqual(['<span className="h-11 w-11', '<span className="h-11 w-11']);
+    expect(boxes).toEqual(['<span className="h-11 w-11', '<span className="h-11 w-11', '<span className="h-11 w-11']);
     expect(bar).toMatch(/NotificationPanel triggerClassName="h-11 w-11/);
-    expect(bar.match(/size="iconCompact"/g)?.length, "the avatar: 44px iconCompact").toBe(1);
+    expect(bar.match(/size="iconCompact"/g)?.length, "Messages and the avatar: 44px iconCompact").toBe(2);
     // A screen with no "My …" menu (Dashboard) names the avatar after the profile, as before.
     // The initials the bare photo shows stay in its name either way (axe label-content-name-mismatch, WCAG 2.5.3).
     expect(bar).toMatch(/variant="ghost"\s+size="iconCompact"\s+(?:\/\/[^\n]*\s+)?aria-label=\{avatarButtonLabel\(mine \? /);
@@ -111,7 +111,7 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
 // @mutate src/components/DashboardRouteSkeleton.tsx |           <div className={COMPACT_TOP_ROW}>\n            <div className="min-w-0 flex-1"> |           <div className={COMPACT_TOP_ROW}>\n            <Skeleton className="h-8 w-8 rounded-ds-md" />\n            <div className="min-w-0 flex-1">
 // @mutate src/components/DashboardRouteSkeleton.tsx | data-skeleton-part="next-up"> | data-skeleton-part="stats">
 // @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="h-11 w-36 mt-2 rounded-full" /> |
-// @mutate src/components/DashboardRouteSkeleton.tsx |               <span className="h-11 w-11 flex items-center justify-center">\n                <Skeleton className="h-6 w-6 rounded-full" />\n              </span>\n |
+// @mutate src/components/DashboardRouteSkeleton.tsx |             <div className="flex items-center shrink-0">\n              <span className="h-11 w-11 flex items-center justify-center">\n                <Skeleton className="h-6 w-6 rounded-full" />\n              </span>\n |             <div className="flex items-center shrink-0">\n
 // @mutate src/components/DashboardRouteSkeleton.tsx |             <div className="flex items-center shrink-0"> |             <div className="flex items-center gap-0.5 shrink-0">
 // @mutate src/components/sections/SectionScreen.tsx | ${barSearch ? "px-4" : "px-5"} | ${barSearch !== undefined ? "px-4" : "px-5"}
 // @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="w-9 h-9 rounded-full" />\n              </span> |                 <Skeleton className="w-9 h-9 rounded-full" />\n              </span>\n              <span className="h-10 w-10" />

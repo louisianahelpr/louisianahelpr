@@ -9,7 +9,7 @@
  * @mutate src/components/MobileNav.tsx | text-ds-10 leading-none whitespace-nowrap | text-ds-10 leading-none truncate
  * @mutate src/index.css | html.senior-mode .text-ds-10[data-dock-label] { font-size: 11px | html.senior-mode .text-ds-10[data-dock-label] { font-size: 13px
  * @mutate src/index.css | html.senior-mode .text-ds-10[data-dock-label] | html.senior-mode .text-ds-10[data-dock-labels]
- * @mutate src/components/MobileNav.tsx | ariaLabel={locked ? `${shown} — locked until your account is approved` : showBadge ? `${dockBadgeText(badgeCount)} ${shown}` : shown} | ariaLabel={locked ? `${label} — locked until your account is approved` : showBadge ? `${dockBadgeText(badgeCount)} ${label}` : label}
+ * @mutate src/components/MobileNav.tsx | ariaLabel={locked ? `${shown} — locked until your account is approved` : showBadge ? `${dockBadgeText(badgeCount)} ${shown}` : soon ? `${shown}, ${tr("soon.short")}` : shown} | ariaLabel={locked ? `${label} — locked until your account is approved` : showBadge ? `${dockBadgeText(badgeCount)} ${label}` : soon ? `${label}, Soon` : label}
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

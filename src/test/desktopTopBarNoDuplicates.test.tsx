@@ -34,13 +34,13 @@ const draw = (el: JSX.Element) =>
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter>{el}</MemoryRouter></QueryClientProvider>);
 
 describe("the section top bar never repeats the desktop header (Q2221)", () => {
-  it("phone: a section and Dashboard both show the bell and the avatar, nothing else (Dashboard: the logo too; F148)", () => {
+  it("phone: a section and Dashboard both show Messages (owner 11-14), the bell and the avatar, nothing else (Dashboard: the logo too; F148)", () => {
     draw(<AppTopBar title="Jobs" />);
-    expect(labels()).toEqual(["Notifications", "Profile, TP"]);
+    expect(labels()).toEqual(["Messages", "Notifications", "Profile, TP"]);
     cleanup();
     draw(<AppTopBar />);
     expect(screen.getByTestId("app-top-bar")).toBeTruthy();
-    expect(labels()).toEqual(["Notifications", "Profile, TP"]);
+    expect(labels()).toEqual(["Messages", "Notifications", "Profile, TP"]);
   });
 
   it("desktop: a section keeps its title and its soft '+ Post a job' (no second bell, no avatar)", () => {

@@ -36,6 +36,7 @@ import { DockCurtain } from "@/components/mobileNav/DockCurtain";
 import { useDockScrollState } from "@/components/mobileNav/useDockScrollState";
 import { useLanguage } from "@/lib/i18n/language";
 import { navKey } from "@/lib/i18n/navLabels";
+import { hideUnopenedInApp } from "@/lib/hideUnopenedInApp";
 
 const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const { t: tr } = useLanguage(); // Spanish option (2026-10-29): the dock's words come from the dictionary.
@@ -79,16 +80,17 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // lazily-mounted NeedsYouBridge. This file reads only the tiny store, never
   // the activity reads (MobileNav is a first-screen root).
   const todo = useNeedsYouCounts(user?.id);
-  // THE PHONE BOTTOM BAR (owner, nav redesign 2026-11-06, final 11:35 AM): Dashboard, Jobs, Declutter, Shops,
-  // Homes, no center "+". A section not open to this viewer carries NO "Soon" mark on its tab: the tab opens the
-  // section's own coming-soon screen (owner: "the screen says it is coming"). It is listed on the web and in the
-  // native app alike (DOCK_LISTS_CLOSED_SECTIONS_IN_APP). The Create sheet still mounts here; the top bar's "+"
-  // opens it (createSheetStore).
+  // THE PHONE BOTTOM BAR (owner 11-14): Home, Jobs, Declutter, Shops, Homes, no center "+"; Messages and You are on
+  // the top row (AppTopBar). Shops and Homes, while not open to everyone, wear a small "Soon" tag on the website ("just
+  // have those 2 listed as coming soon"); a tap opens the section, which for anyone it is closed to is its own
+  // coming-soon screen (ShopsGate, RentalsGate). The store app lists the tab with no tag (DOCK_LISTS_CLOSED_SECTIONS_IN_APP,
+  // owner 11-06; hideUnopenedInApp, owner 10-31: App Review 2.1). The Create sheet still mounts here (createSheetStore).
   const sectionTabs = useSectionTabs();
   const dock = phoneDockItems()
     .map((item) => {
       const t = sectionTabs.find((x) => x.path === item.path);
-      return { ...item, listed: t ? DOCK_LISTS_CLOSED_SECTIONS_IN_APP || t.listed : true };
+      const soon = !!item.comingSoon && !!t && (!t.on || t.preview) && !hideUnopenedInApp();
+      return { ...item, soon, closed: !!t && !t.on, listed: t ? DOCK_LISTS_CLOSED_SECTIONS_IN_APP || t.listed : true };
     })
     .filter((item) => item.listed);
   const createOpen = useCreateSheetOpen();
@@ -122,7 +124,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     return () => document.documentElement.classList.remove("no-bottom-nav");
   }, [dockHidden]);
 
-  useWarmTabChunks(dockHidden, dock.map((i) => i.path));
+  // The open tabs plus the top row's Messages and You (owner 11-14); a closed section's chunk is never warmed.
+  useWarmTabChunks(dockHidden, [...dock.filter((i) => !i.closed).map((i) => i.path), "/messages", "/profile"]);
 
   useWarmPostedJobs(!dockHidden, user?.id);
 
@@ -233,7 +236,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     setGateOpen(true);
   };
 
-  const renderItem = ({ path, icon: Icon, label, badgeKey }: { path: string; icon: LucideIcon; label: string; badgeKey?: DockItem["badgeKey"] }) => {
+  const renderItem = ({ path, icon: Icon, label, badgeKey, soon = false, closed = false }: { path: string; icon: LucideIcon; label: string; badgeKey?: DockItem["badgeKey"]; soon?: boolean; closed?: boolean }) => {
     // Guest-mode tab remap: Home -> /browse (the read-only home dashboard
     // that mirrors the real /home), Profile -> /login. Other tabs stay
     // visually present but show a lock + open the signup sheet.
@@ -250,7 +253,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     const inStack = !isGuest && isInStack(path);
     // Guests never carry a badge (nothing to count). Messages → unread
     // chats; Explore → the To-do count (the same list Home shows).
-    const badgeCount = isGuest ? 0 : dockBadgeCount(badgeKey, unreadCount, todo);
+    // A section closed to the viewer has nothing to count (as on the rail).
+    const badgeCount = isGuest || closed ? 0 : dockBadgeCount(badgeKey, unreadCount, todo);
     const showBadge = badgeCount > 0;
 
     const handleClick = () => {
@@ -313,7 +317,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         onPrefetch={() => !locked && prefetchRoute(effectivePath)}
         // WCAG 2.5.3 (axe label-content-name-mismatch, Q1816): the name starts with the only visible text, the badge's
         // count ("3 Jobs"); the tabs are icons only since 2026-11-06, so the word lives in the name alone.
-        ariaLabel={locked ? `${shown} — locked until your account is approved` : showBadge ? `${dockBadgeText(badgeCount)} ${shown}` : shown}
+        // A "Soon" tab's name is its visible words in DOM order, the name then the tag ("Shops, Soon").
+        ariaLabel={locked ? `${shown} — locked until your account is approved` : showBadge ? `${dockBadgeText(badgeCount)} ${shown}` : soon ? `${shown}, ${tr("soon.short")}` : shown}
         ariaCurrent={isActive ? "page" : undefined}
         className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""}`}
         style={{ color: isActive ? "hsl(var(--bark))" : "hsl(var(--muted-foreground))" }}
@@ -395,6 +400,14 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             visible text in DOM order (the badge's count, a space, then the name: WCAG 2.5.3). Guard: centerCreateNav. */}
         {" "}
         <span data-dock-label className={`relative z-10 text-ds-10 leading-none whitespace-nowrap ${isActive ? "font-bold" : "font-medium"}`}>{shown}</span>
+        {/* Owner 11-14: Shops and Homes "listed as coming soon". The count badge's shape (16px pill, 10px bold) in the
+            muted SoonPill colours, at the tab's top-right; after the name in DOM order (WCAG 2.5.3). */}
+        {soon && " "}
+        {soon && (
+          <span data-dock-soon={path} aria-hidden className="absolute z-20 top-0.5 right-0.5 h-4 rounded-full border border-border bg-card px-1 text-ds-10 font-bold leading-none text-muted-foreground flex items-center whitespace-nowrap">
+            {tr("soon.short")}
+          </span>
+        )}
       </TabButton>
       {path === "/posts" && dockMotion && (
         <dockMotion.NavQuickMenu open={quickMenuTab === "posts"} onClose={closeQuickMenu} title="Quick filter">

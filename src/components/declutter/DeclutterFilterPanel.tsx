@@ -26,6 +26,13 @@ import "@/lib/i18n/enDeclBrowse";
 // F260q (owner 11-11): the sheet's words come from the dictionary (enDeclutter.ts / esDeclutter.ts). The caller
 // (DeclutterBrowse) re-renders on a language change through useLanguage().
 
+/** The sort choices (Closest first only once we know where you are) and the one in effect: the sheet's Sort row and
+ * the phone results bar's Sort menu (DeclutterResultsBar) offer the same ones. */
+export function sortChoices(located: boolean, sort: DeclutterSort): { sorts: DeclutterSort[]; sortNow: DeclutterSort } {
+  const sorts: DeclutterSort[] = located ? ["closest", "newest", "price_low", "price_high"] : ["newest", "price_low", "price_high"];
+  return { sorts, sortNow: !located && sort === "closest" ? "newest" : sort };
+}
+
 /** Declutter's one choice chip: the filter sheet's, and Wanted's "Within" (the same distances, the same look). */
 export function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
   // The shared toggle chip (Q2709): 44px, aria-pressed, the firm unselected edge that shows on Wanted's card in dark.
@@ -98,8 +105,7 @@ export function declutterFilterSections({
   const toggleWay = (w: OtherWay) =>
     onChange({ ...filters, ways: filters.ways.includes(w) ? filters.ways.filter((x) => x !== w) : [...filters.ways, w] });
   const located = ask.origin.status === "ready";
-  const sorts: DeclutterSort[] = located ? ["closest", "newest", "price_low", "price_high"] : ["newest", "price_low", "price_high"];
-  const sortNow: DeclutterSort = !located && filters.sort === "closest" ? "newest" : filters.sort;
+  const { sorts, sortNow } = sortChoices(located, filters.sort);
   const words = originWords(ask);
   const sections: FilterSheetSection[] = [
     {

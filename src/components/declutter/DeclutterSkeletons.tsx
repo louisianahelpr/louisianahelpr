@@ -16,7 +16,7 @@
  */
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import AppPage from "@/components/AppPage";
+import AppPage, { APP_PAGE_PHONE_BLEED } from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -123,8 +123,9 @@ export function DeclutterTabBones() {
   );
 }
 
-/** The Browse grid: 2 across on a phone, 3 on a small tablet, 4 on very wide screens (owner, 2026-10-19 14:55Z). */
-export const DECLUTTER_GRID = "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 2xl:grid-cols-4";
+/** The Browse grid: 2 across on a phone, 3 on a small tablet, 4 on very wide screens (owner, 2026-10-19 14:55Z).
+ * Owner 11-14 (Depop/Vinted audit item 8): 8px between the two phone columns (16px between rows, under the text). */
+export const DECLUTTER_GRID = "grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3 sm:gap-x-3 sm:gap-y-5 2xl:grid-cols-4";
 /** The same grid across the whole panel (desktop, map hidden): 4 across, 5 on wide screens, so a card stays card-sized. */
 export const DECLUTTER_GRID_FULL = `${DECLUTTER_GRID} lg:grid-cols-4 xl:grid-cols-5`;
 /** How many cards the grids above put in their first row at this width (sm 640, lg 900, xl 1280, 2xl 1536). */
@@ -142,7 +143,9 @@ export function declutterFirstRowCount(full: boolean, width: number): number {
  * is about 250 px (CARD_PHOTO_SIZES).
  */
 const GRID_TOP_PX = 338;
-const CARD_BELOW_PHOTO_PX = 99;
+/** Owner 11-14 (Depop/Vinted audit item 8): a phone card's two text lines (52px) and the 16px row gap, measured at 390x844
+ * on the dev server (photo 175x233, text 52, next row 16px below). */
+const CARD_BELOW_PHOTO_PX = 68;
 /** At most this many rows count as above the fold, so a very tall window never starts a screenful of photos at once. */
 const MAX_FOLD_ROWS = 4;
 
@@ -153,7 +156,8 @@ const MAX_FOLD_ROWS = 4;
  * row was the largest paint, at 10.9 s on Slow 4G); 375x667: 2.
  */
 export function declutterAboveFoldCount(full: boolean, width: number, height: number): number {
-  const photo = width < 640 ? (width - 52) / 2 : 250;
+  // A phone card's photo: half the width less the 16px gutters and the 8px gap, 3:4 (owner 11-14).
+  const photo = width < 640 ? ((width - 40) / 2) * (4 / 3) : 250;
   let rows = 1;
   while (rows < MAX_FOLD_ROWS && GRID_TOP_PX + rows * (photo + CARD_BELOW_PHOTO_PX) + photo / 2 < height) rows++;
   return declutterFirstRowCount(full, width) * rows;
@@ -170,10 +174,10 @@ export function DeclutterBrowseBones({ map = false, full = false }: { map?: bool
     <ul className={full ? DECLUTTER_GRID_FULL : DECLUTTER_GRID} aria-hidden>
       {[0, 1, 2, 3].map((i) => (
         <li key={i} className="min-w-0">
-          <Skeleton className="aspect-square w-full rounded-2xl bg-photo-empty" />
-          {/* The card's text block is 110px at 375 (DeclutterItemCard: price, fee, title, condition, town, how), so the
-              second row lands where Browse's does (Q2705, 11-09). */}
-          <div className="h-[110px] space-y-1.5 px-0.5 pt-2">
+          <Skeleton className="aspect-[3/4] w-full rounded-2xl bg-photo-empty lg:aspect-square" />
+          {/* The card's text block: two lines below lg (52px measured at 390, owner 11-14: title, price), 110px wider, so
+              the second row lands where Browse's does (Q2705, 11-09). */}
+          <div className="h-[52px] space-y-1.5 px-0.5 pt-2 lg:h-[110px]">
             <Skeleton className="h-4 w-14" />
             <Skeleton className="h-3.5 w-4/5" />
             <Skeleton className="h-3 w-3/5" />
@@ -201,9 +205,9 @@ export function DeclutterItemSkeleton() {
   // BELOW"); the real column is taller and grows below the fold.
   const { ref: columnRef, reserve } = useScreenfulBelow();
   return (
-    <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle stickyHeader>
+    <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle stickyHeader phoneBleed>
       <div className="lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8" role="status" aria-label="Loading the item">
-        <div>
+        <div className={APP_PAGE_PHONE_BLEED}>
           <Skeleton className={`${ITEM_PHOTO_FRAME_BASE} ${ITEM_PHOTO_ASPECT.item}`} />
         </div>
         <div ref={columnRef} className="mt-4 lg:mt-0 min-w-0 space-y-5">

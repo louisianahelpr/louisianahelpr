@@ -10,7 +10,7 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Heart, MessageCircle, Share2 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import AppPage from "@/components/AppPage";
+import AppPage, { APP_PAGE_PHONE_BLEED } from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
@@ -263,9 +263,11 @@ export default function ItemView({ itemId }: { itemId: string }) {
       phoneHidesTitle
       hidesTitle
       stickyHeader
+      // Owner 11-14 (Depop/Vinted audit item 9): the photo runs edge to edge on a phone.
+      phoneBleed
     >
       <div className="lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8">
-        <div>
+        <div className={APP_PAGE_PHONE_BLEED} data-item-photo-bleed="">
           <DeclutterGallery urls={urls} display={display} category={it.category} title={it.title} />
         </div>
 

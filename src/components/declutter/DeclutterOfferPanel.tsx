@@ -363,9 +363,10 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
           Message moved to the seller row (DeclutterItemView). Offers off: Buy now alone; an offer already sent: "Your
           offer" in Make offer's place. */}
       {/* F119 (UI audit 11-09): on a computer the pair stays pinned while the description and questions scroll. */}
+      {/* Owner 11-14 (Depop/Vinted audit item 9): 44px buttons in the phone bar (max-sm:min-h-11), 56px wider. */}
       <StickyActionBar label={t("decl.buy.bar")} data-declutter-buybar="" spacer={false} pinWide>
         {myOffer ? (
-          <Button type="button" variant="outline" size="wrap" className="whitespace-nowrap rounded-full px-3 font-semibold"
+          <Button type="button" variant="outline" size="wrap" className="whitespace-nowrap rounded-full px-3 font-semibold max-sm:min-h-11 max-sm:py-1"
             onClick={() => panel.current?.querySelector("[data-your-offer]")?.scrollIntoView({ behavior: "smooth", block: "center" })}>
             {t("decl.buy.yourOffer")}
           </Button>
@@ -374,7 +375,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
             type="button"
             variant="outline"
             size="wrap"
-            className="whitespace-nowrap rounded-full px-3 font-semibold"
+            className="whitespace-nowrap rounded-full px-3 font-semibold max-sm:min-h-11 max-sm:py-1"
             aria-expanded={open}
             disabled={offers.isLoading}
             onClick={() => (open ? setOpen(false) : tap("offer"))}
@@ -388,7 +389,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
           type="button"
           size="wrap"
           variant={showCardStep ? "outline" : undefined}
-          className="rounded-full px-3"
+          className="rounded-full px-3 max-sm:min-h-11 max-sm:py-1"
           disabled={buy.isPending}
           onClick={() => tap("buy")}
         >

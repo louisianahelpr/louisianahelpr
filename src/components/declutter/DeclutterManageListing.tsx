@@ -18,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { ShareListingRow } from "./DeclutterShareCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -425,22 +426,25 @@ export function SellerListingPanel({ item, coverUrl, onDeleted }: { item: Declut
               : free ? t("lp.m.lineFree") : t("lp.m.linePaid")}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        {/* Owner 11-14 (Depop/Vinted audit item 9): the owner's own actions ride the item page's bottom bar on a phone
+            (fixed, safe-area aware; the dock yields, as on a buyer's Make offer / Buy now), in the card wider. The one
+            primary is on the right (owner 11-01 app-wide rule). */}
+        <StickyActionBar label={t("lp.m.yours")} data-seller-bar="" spacer={false}>
           {paused ? (
             <>
-              <Button type="button" size="sm" onClick={() => relist.mutate(undefined)} disabled={relist.isPending}>
-                {relist.isPending ? t("lp.m.relisting") : t("lp.m.relist")}
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => setOpen("price")} disabled={relist.isPending}>
+              <Button type="button" variant="outline" size="sm" className="rounded-full max-sm:h-11" onClick={() => setOpen("price")} disabled={relist.isPending}>
                 {t("lp.m.relistNew")}
+              </Button>
+              <Button type="button" size="sm" className="rounded-full max-sm:h-11" onClick={() => relist.mutate(undefined)} disabled={relist.isPending}>
+                {relist.isPending ? t("lp.m.relisting") : t("lp.m.relist")}
               </Button>
             </>
           ) : (
-            <Button type="button" variant="outline" size="sm" onClick={() => setOpen("menu")}>
+            <Button type="button" variant="outline" size="sm" className="rounded-full max-sm:h-11" onClick={() => setOpen("menu")}>
               {t("lp.m.tMenu")}
             </Button>
           )}
-        </div>
+        </StickyActionBar>
         {/* Q2426: share only a listing buyers can open now, never a paused one. */}
         {!paused && (
           <div className="border-t border-border pt-3 space-y-2">

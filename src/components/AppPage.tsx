@@ -74,11 +74,19 @@ interface AppPageProps {
   stickyHeader?: boolean;
   /** Phone: a long title wraps onto a second line instead of ending in "..." (PageHeader's `wrapTitle`). */
   wrapTitle?: boolean;
+  /**
+   * Phone (under 640px): the scroll area reaches the screen's edges (same 20px gutter, now its own padding), so a
+   * child wearing APP_PAGE_PHONE_BLEED runs edge to edge (owner 11-14: the Declutter item photo, as on Depop).
+   */
+  phoneBleed?: boolean;
   /** Page content. */
   children: ReactNode;
 }
 
-function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTitle, stickyHeader, wrapTitle, children }: AppPageProps) {
+/** A child of a `phoneBleed` AppPage that runs edge to edge on a phone (cancels the 20px gutter). */
+export const APP_PAGE_PHONE_BLEED = "max-sm:-mx-5";
+
+function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTitle, stickyHeader, wrapTitle, phoneBleed, children }: AppPageProps) {
   // D12 (Cowork audit 2026-10-20): the browser tab names the page (an item, Sell an
   // item, ...), not the landing page. A page's own usePageTitle / usePageMeta wins.
   usePageTitle(`${title} — Helpr`);
@@ -88,7 +96,7 @@ function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTi
       contentClassName="overflow-hidden"
       className="bg-premium-page pt-safe-top"
     >
-      <div className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+      <div className={`container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden${phoneBleed ? " max-sm:px-0" : ""}`}>
         {/* NO `mx-auto` here, and that is the whole point of this line.
             `.page-measure` already centres itself (`margin-inline: auto`, one
             definition in index.css), so the utility was redundant — and it was
@@ -110,7 +118,7 @@ function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTi
             `px-3` stays and is now genuinely cancelled: the padding is what
             keeps a card's focus ring and shadow off this scroll container's
             `overflow` clip. */}
-        <div data-app-page-scroll="" className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-safe-nav" data-own-title-row={stickyHeader ? "" : undefined}>
+        <div data-app-page-scroll="" className={`page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-safe-nav${phoneBleed ? " max-sm:mx-0 max-sm:w-full max-sm:px-5" : ""}`} data-own-title-row={stickyHeader ? "" : undefined}>
           <div>
             {/* The shared tab shell — literally the same component every
                 Profile tab renders through, not a copy of its class string.

@@ -44,7 +44,8 @@ import { MapToggleButton } from "@/components/dashboard/browseTasksToolbar/MapTo
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 import { DeclutterMilesFrom } from "./DeclutterMilesFrom";
 import { DeclutterActiveFilters } from "./DeclutterActiveFilters";
-import { declutterFilterSections } from "./DeclutterFilterPanel";
+import { declutterFilterSections, sortChoices } from "./DeclutterFilterPanel";
+import { DeclutterResultsBar, DeclutterResultsHead } from "./DeclutterResultsBar";
 import { DeclutterFilterSheet } from "./DeclutterBrowseBar";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
@@ -369,8 +370,12 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
     if (!read?.counts) return null;
     return shownSaves(read.counts.get(id) ?? 0, read.mine.has(id), watching.data?.has(id) ?? false);
   };
+  const { sorts: resultsSorts, sortNow } = sortChoices(origin.status === "ready", filters.sort);
+  const resultsSort = { sorts: resultsSorts, sort: sortNow };
   // Offline with nothing loaded is never "Nothing for sale yet" (Q571).
   const itemsPhase = useFeedPhase(items);
+  // Owner 11-14 (Depop/Vinted audit item 7): a phone search shows the query and a Filter | Sort bar over the grid.
+  const phoneResults = !desktop && q !== "" && itemsPhase !== "offline-empty";
   const ask = { origin, asked, asking, canAskAgain, deviceNote, askDevice, zip, guest: !member };
 
   // Owner 11-07 (Vinted review; replaces 10-21's "no chip row"): the category chips; on a phone (owner 11-08) they
@@ -456,6 +461,8 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
         {/* Owner 11-07 (Vinted review; replaces 10-21's "no chip row"): the category chips at the top of the list. Porch
             pickup, price drops and the rest stay in the filter sheet. Guard: src/test/declutterBrowseChipsAndSaves.test.tsx. */}
         {desktop && chipRow}
+        {/* Owner 11-14 (Depop/Vinted audit item 7): a phone search shows the query and a Filter | Sort bar over the grid. */}
+        {phoneResults && <DeclutterResultsHead query={query} count={preview ? null : rows.length} />}
         {/* F055 (UI audit 11-09): what is filtered, each removable. */}
         <DeclutterActiveFilters filters={filters} maxMiles={maxMiles} onChange={(next) => { setFilters(next.filters); setMaxMiles(next.maxMiles); }} />
         {/* The filters a saved search keeps: words, category, price, distance and (BUY-13) Free, porch pickup, price
@@ -474,6 +481,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
         {wordlessSearch && rows.length > 0 && (
           <p className="text-ds-13 text-muted-foreground" role="status" data-search-wordless="">{t("decl.wordless")}</p>
         )}
+        {phoneResults && <DeclutterResultsBar filterCount={filterCount} onFilters={() => setFiltersOpen(true)} {...resultsSort} onSort={(sort) => setFilters((f) => ({ ...f, sort }))} />}
         {itemsPhase === "offline-empty" ? (
           <OfflineEmptyState body={t("decl.offline")} onRetry={() => void items.refetch()} />
         ) : rows.length === 0 ? (

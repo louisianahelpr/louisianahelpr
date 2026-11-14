@@ -11,4 +11,6 @@ export const ITEM_PHOTO_FRAME_BASE = "relative w-full overflow-hidden rounded-2x
 // F079 (UI audit 11-09): at 200% zoom (720x450) the 4:3 photo filled the whole screen and hid the title, price and
 // actions. From sm it is capped too, at the larger of 55% of the screen and the screen less 400px: no cap on a normal
 // desktop window (900 tall: 500px, above the photo's own height), about half of a short one (450 tall: 248px).
-export const ITEM_PHOTO_ASPECT = { item: "aspect-square max-h-[52dvh] sm:max-h-[max(55dvh,calc(100dvh-400px))] sm:aspect-[4/3] bg-photo-empty", banner: "aspect-[16/9] bg-photo-empty" } as const;
+// Owner 11-14 (Depop/Vinted audit item 9): on a phone the item photo is full-bleed, square-cornered, edge to edge (the
+// item page and its skeleton wrap it in APP_PAGE_PHONE_BLEED on a `phoneBleed` AppPage).
+export const ITEM_PHOTO_ASPECT = { item: "aspect-square max-h-[52dvh] max-sm:rounded-none sm:max-h-[max(55dvh,calc(100dvh-400px))] sm:aspect-[4/3] bg-photo-empty", banner: "aspect-[16/9] bg-photo-empty" } as const;

@@ -5,7 +5,7 @@ import AppShell from "@/components/AppShell";
 import { AppTopBar } from "./AppTopBar";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { ExploreSearchEntry } from "./ExploreSearchEntry";
-import { ScrollAwayScope, ScrollAwaySpacer } from "./ScrollAway";
+import { ScrollAwayScope, ScrollAwaySpacer } from "./ScrollAwayScope";
 import type { SectionAdd, SectionKey } from "./sectionsConfig";
 import type { SectionMineMenu } from "./sectionMine";
 

@@ -23,7 +23,7 @@
  * @mutate src/components/sections/ScrollAway.tsx |       onFocusCapture={() => setHidden(false)} |
  * @mutate src/components/sections/ScrollAway.tsx |   if (desktop) return <>{children}</>; |
  * @mutate src/components/declutter/DeclutterHomeView.tsx |       <ScrollAwayRows off={!browse}> |       <ScrollAwayRows>
- * @mutate src/components/sections/ScrollAway.tsx |   if (!scope?.rows) return null; |   if (!scope) return null;
+ * @mutate src/components/sections/ScrollAwayScope.tsx |   if (!scope?.rows) return null; |   if (!scope) return null;
  * @mutate src/components/sections/SectionScreen.tsx |           <ScrollAwaySpacer />\n |\n
  * @mutate src/components/dashboard/BrowseTasksFeed.tsx |         top={view === "map" ? undefined : <ScrollAwaySpacer />} |
  * @mutate src/pages/jobs/JobsSection.tsx |   return <><ScrollAwayScope><Dashboard embeddedHeader={makeHeader} /></ScrollAwayScope>{fab}</>; |   return <><Dashboard embeddedHeader={makeHeader} />{fab}</>;

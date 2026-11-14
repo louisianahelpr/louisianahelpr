@@ -33,7 +33,7 @@ import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { EmptyFeedActions } from "@/components/dashboard/EmptyFeedActions";
 import { OwnOpenJobsNote } from "@/components/dashboard/OwnOpenJobsNote";
 import { BROWSE_EMPTY_SLOT } from "@/components/sections/browseHeaderSpacing";
-import { ScrollAwaySpacer } from "@/components/sections/ScrollAway";
+import { ScrollAwaySpacer } from "@/components/sections/ScrollAwayScope";
 
 type PullToRefresh = ReturnType<typeof usePullToRefresh>;
 

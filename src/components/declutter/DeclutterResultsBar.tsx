@@ -5,14 +5,12 @@
  * choices as the sheet's Sort row (sortChoices). Nothing new is filtered. Desktop keeps its own header row.
  * Guard: src/test/declutterDepopPhoneLayout.test.tsx.
  */
-import type { Ref } from "react";
-import { ArrowUpDown, Check, SlidersHorizontal } from "lucide-react";
+import { lazy, Suspense, useEffect, useState, type Ref } from "react";
+import { ArrowUpDown, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { TYPE } from "@/components/ui/designScale";
 import type { DeclutterSort } from "@/lib/declutter/browseFilters";
 import { useLanguage } from "@/lib/i18n/language";
-import type { MsgKey } from "@/lib/i18n/en";
 import "@/lib/i18n/enDeclutter";
 import "@/lib/i18n/enDeclBrowse";
 
@@ -31,6 +29,9 @@ export function DeclutterResultsHead({ query, count }: { query: string; count: n
   );
 }
 
+const loadSortMenu = () => import("./DeclutterSortMenu");
+const DeclutterSortMenu = lazy(loadSortMenu);
+
 /** The compact Filter | Sort bar right above the results grid. */
 export function DeclutterResultsBar({ filterCount, onFilters, sorts, sort, onSort, filtersRef }: {
   filterCount: number;
@@ -42,6 +43,8 @@ export function DeclutterResultsBar({ filterCount, onFilters, sorts, sort, onSor
   filtersRef?: Ref<HTMLButtonElement>;
 }) {
   const { t } = useLanguage();
+  const [wantOpen, setWantOpen] = useState(false);
+  useEffect(() => { void loadSortMenu(); }, []);
   return (
     <div className="flex h-11 items-stretch divide-x divide-border border-y border-border" data-results-bar="">
       <Button ref={filtersRef} type="button" variant="ghost" size="sm" className="flex-1 gap-2 font-semibold" onClick={onFilters}
@@ -50,22 +53,16 @@ export function DeclutterResultsBar({ filterCount, onFilters, sorts, sort, onSor
         {t("decl.filters")}
         {filterCount > 0 && <span aria-hidden className="rounded-full bg-primary px-1.5 text-ds-11 font-bold text-primary-foreground">{filterCount}</span>}
       </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button type="button" variant="ghost" size="sm" className="flex-1 gap-2 font-semibold" data-results-sort="">
-            <ArrowUpDown className="h-4 w-4" aria-hidden />
-            {t("decl.sheet.sort")}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="min-w-[12rem]">
-          {sorts.map((s) => (
-            <DropdownMenuItem key={s} className="min-h-11 gap-2" data-sort-choice={s} aria-checked={s === sort} role="menuitemradio" onSelect={() => onSort(s)}>
-              <Check className={`h-4 w-4 ${s === sort ? "" : "invisible"}`} aria-hidden />
-              {t(`decl.sort.${s}` as MsgKey)}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* The menu's chunk is fetched as the bar mounts; until it is in, the same button stands in and a tap on it opens
+          the menu once it arrives. */}
+      <Suspense fallback={
+        <Button type="button" variant="ghost" size="sm" className="flex-1 gap-2 font-semibold" data-results-sort="" onClick={() => setWantOpen(true)}>
+          <ArrowUpDown className="h-4 w-4" aria-hidden />
+          {t("decl.sheet.sort")}
+        </Button>
+      }>
+        <DeclutterSortMenu sorts={sorts} sort={sort} onSort={onSort} defaultOpen={wantOpen} />
+      </Suspense>
     </div>
   );
 }

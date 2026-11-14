@@ -16,6 +16,7 @@
 // @mutate src/components/declutter/DeclutterBrowseView.tsx |   const phoneResults = !desktop && q !== "" | const phoneResults = false && q !== ""
 // @mutate src/components/declutter/DeclutterBrowseView.tsx | <DeclutterResultsBar filterCount={filterCount} onFilters={() => setFiltersOpen(true)} | <DeclutterResultsBar filterCount={filterCount} onFilters={() => undefined}
 // @mutate src/components/declutter/DeclutterResultsBar.tsx | {`“${query.trim()}”`} | {null}
+// @mutate src/components/declutter/DeclutterResultsBar.tsx | const loadSortMenu = () => import("./DeclutterSortMenu"); | import "@/components/ui/dropdown-menu"; const loadSortMenu = () => import("./DeclutterSortMenu");
 // @mutate src/components/declutter/DeclutterItemView.tsx |       phoneBleed\n | \n
 // @mutate src/components/declutter/DeclutterItemView.tsx | <div className={ITEM_PHOTO_BLEED} data-item-photo-bleed=""> | <div data-item-photo-bleed="">
 // @mutate src/components/AppPage.tsx | data-phone-bleed={phoneBleed ? "" : undefined} | data-phone-bleed={undefined}
@@ -25,7 +26,7 @@
 // @mutate src/components/declutter/DeclutterOfferPanel.tsx |           size="wrapBar"\n          variant={showCardStep ? "outline" : undefined} |           size="wrap"\n          variant={showCardStep ? "outline" : undefined}
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { ItemCard } from "@/components/declutter/DeclutterItemCard";
@@ -106,6 +107,9 @@ describe("B. The phone search results page (Depop/Vinted item 7)", () => {
     for (const b of bar.querySelectorAll("button")) expect(b.className).toMatch(/\bh-11\b/);
     fireEvent.click(screen.getByRole("button", { name: "Filters (2)" }));
     expect(onFilters).toHaveBeenCalledTimes(1);
+    // The Sort menu is its own chunk (Radix stays off Declutter's first screen, Q178): wait for it to be drawn.
+    expect(code("src/components/declutter/DeclutterResultsBar.tsx")).not.toContain("@/components/ui/dropdown-menu");
+    await waitFor(() => expect(container.querySelector("[data-results-sort][data-sort-ready]")).not.toBeNull());
     const sortButton = container.querySelector("[data-results-sort]") as HTMLElement;
     await act(async () => { fireEvent.keyDown(sortButton, { key: "Enter" }); });
     const choices = document.querySelectorAll("[data-sort-choice]");

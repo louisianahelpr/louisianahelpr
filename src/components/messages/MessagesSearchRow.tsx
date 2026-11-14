@@ -13,14 +13,15 @@ export function MessagesSearchRow({ value, onChange, moreMenu, inBar = false }: 
   // no padding of its own under it.
   return (
     <div data-testid="messages-search-row" className={inBar ? "shrink-0 min-w-0" : "shrink-0 pb-1.5"}>
-      <div role="search" className="flex h-11 items-center gap-1 rounded-full border border-border bg-card pl-3.5 pr-1">
+      <div role="search" className="flex h-11 items-center gap-1 rounded-full border border-border bg-card pl-3.5 max-[359px]:pl-2.5 pr-1">
         <Search className="h-[18px] w-[18px] shrink-0 text-muted-foreground" aria-hidden />
         <span className="relative flex min-w-0 flex-1 items-center">
-        {/* The field's words, never cut: "Search conversations", or "Search" alone below 360px, where the bell and the
-            photo beside the field leave it too little room (SectionSearchBar's Words, same rule). */}
+        {/* The field's words, never cut: "Search conversations", or "Search" alone below 440px, where Messages, the bell
+            and the photo beside the field leave it too little room (measured: the full words need a 262px pill, owner
+            11-14 put Messages on the row; SectionSearchBar's nounHideClass, same rule). */}
         {!value && (
           <span aria-hidden data-search-words="" className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 whitespace-nowrap text-ds-15 text-muted-foreground">
-            {t("chat.searchShort")}<span className="max-[359px]:hidden"> {t("chat.searchNoun")}</span>
+            {t("chat.searchShort")}<span className="max-[439px]:hidden"> {t("chat.searchNoun")}</span>
           </span>
         )}
         <input

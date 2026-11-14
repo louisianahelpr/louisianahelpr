@@ -36,13 +36,16 @@ export function JobProofPhotos({
 
   const card = variant === "card";
   const body = (
+    // Q2792 (WCAG 2.5.3 Label in Name): no aria-label over the tiles' own words. axe's label-content-name-mismatch
+    // failed the page tiles ("Before", "After" drawn, named "See the before and after photos"). The drawn words are
+    // the name, with an sr-only lead-in first, as DeclutterSellerCard does. Guard: src/test/jobProofPhotosNameHoldsText.test.tsx.
     <button
       type="button"
       data-job-proof-open=""
-      aria-label="See the before and after photos"
       onClick={() => setOpen(true)}
       className={`rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${card ? "flex min-h-11 items-center gap-2 text-left" : `grid w-full gap-2 ${tiles.length === 2 ? "grid-cols-2" : "grid-cols-1"}`}`}
     >
+      <span className="sr-only">See the photos: </span>
       {tiles.map((t, i) => (
         <span
           key={t.label}

@@ -162,6 +162,10 @@ const buttonVariants = cva(
         wrapBar: "h-auto min-h-11 px-6 py-1 text-ds-16 whitespace-normal text-center sm:min-h-14 sm:py-2",
         // 48px: between `sm` (44) and `default` (56), for a full-width secondary pill such as You's "Log out"
         // (lead decision 11-01, B91). A named size so no call site hand-sets h-12 (no-button-height-override).
+        // Text-sized: a "more" / "less" toggle that sits inside a line of copy (the phone profile bio, owner 11-14 Depop
+        // profile). No height floor and no padding, so the line keeps its height; the call site gives the 44px hit area
+        // (a ::before or .tap-44), as .link-standard does.
+        inline: "h-auto min-h-0 min-w-0 p-0",
         md: "h-12 px-5 text-ds-16",
         // `default` from lg (900px) up, `sm` below it: the public profile's phone action row (Hire me | Share, owner
         // 11-14 Depop review item 10) is 44px on a phone and stays the 56px desktop button. A named size so no call site

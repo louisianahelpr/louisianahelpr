@@ -1,12 +1,12 @@
 /**
  * THE PHONE NAV (owner nav redesign 2026-11-06, revised by the owner's UI audit 2026-11-09: F146, F147, F148).
  *
- * - The phone bottom bar is Home (the /home Dashboard), Jobs, Declutter, Messages (its unread badge), You: five tabs, no center "+"
- *   (F146; Shops and Homes left it until they open). Each tab shows its NAME under its icon, bold olive on the
- *   current section (F147).
+ * - The phone bottom bar is Home (the /home Dashboard), Jobs, Declutter, Shops, Homes: five tabs, no center "+" (owner
+ *   11-14, replacing F146's Messages and You; the Soon tags are src/test/navSoonAndTopMessages.test.tsx). Each tab
+ *   shows its NAME under its icon, bold olive on the current section (F147).
  * - The top bar (F148, compacted by the owner 11-14 after Depop / Vinted): a page with a search draws ONE row, the
- *   search with the bell and You inline on its right, the page's name a hidden h1; a page without one (You) keeps
- *   its visible title with the bell. Creating is the floating pill (SectionCreateFab): on
+ *   search with Messages, the bell and You inline on its right, the page's name a hidden h1; a page without one (You)
+ *   keeps its visible title with Messages and the bell. Creating is the floating pill (SectionCreateFab): on
  *   Dashboard it opens the Create sheet ("What are we doing?"), on a section it is that section's own create (Jobs:
  *   Post a job, under the under-18 gate; Declutter: Sell an item; Shops / Homes: their add).
  * - The Create sheet (mock-up 20): ONE ROW PER SECTION in Customize order, each with ONE main button (owner 10-31,
@@ -22,8 +22,8 @@
  * The dock, the top bar and the sheet are RENDERED (network hooks stubbed); each @mutate line breaks one sentence and
  * this file must go red.
  *
- * @mutate src/components/mobileNav/dockItems.ts |     { path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" },\n | \n
- * @mutate src/components/mobileNav/dockItems.ts |     { path: youItem.path, icon: youItem.icon, label: youItem.label },\n | \n
+ * @mutate src/components/mobileNav/dockItems.ts |     { path: shops.path, icon: shops.icon, label: shops.label, badgeKey: "todoShops", comingSoon: true },\n | \n
+ * @mutate src/components/mobileNav/dockItems.ts |     { path: declutter.path, icon: declutter.icon, label: declutter.label, badgeKey: "todoDeclutter" },\n | \n
  * @mutate src/components/mobileNav/dockItems.ts | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = true; | export const DOCK_LISTS_CLOSED_SECTIONS_IN_APP = false;
  * @mutate src/components/MobileNav.tsx | <span data-dock-label className={`relative z-10 text-ds-10 leading-none whitespace-nowrap ${isActive ? "font-bold" : "font-medium"}`}>{shown}</span> | <span data-dock-label className="relative z-10 text-ds-10 leading-none whitespace-nowrap font-medium">{shown}</span>
  * @mutate src/components/sections/AppTopBar.tsx |             <div data-testid="app-top-bar-search" className="min-w-0 flex-1">{search}</div> |
@@ -148,15 +148,15 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-describe("the phone bottom bar (F146, owner audit 2026-11-09)", () => {
-  it("is Home, Jobs, Declutter, Messages, You: five tabs, no center +, no Shops or Homes", () => {
+describe("the phone bottom bar (owner 11-14)", () => {
+  it("is Home, Jobs, Declutter, Shops, Homes: five tabs, no center +, no Messages or You", () => {
     renderDock();
-    expect(dockLabels()).toEqual(["Home", "Jobs", "Declutter", "Messages", "You"]);
+    expect(dockLabels()).toEqual(["Home", "Jobs", "Declutter", "Shops", "Homes"]);
     expect(document.querySelector('[data-testid="dock-create"]')).toBeNull();
   });
 
   it("F147: each tab paints its icon and its name under it; the current tab's name is bold", () => {
-    renderDock("/messages");
+    renderDock("/shops");
     const tabs = [...document.querySelectorAll(`${DOCK} button[aria-label]`)];
     expect(tabs.length).toBe(5); // vacuity floor
     for (const t of tabs) {
@@ -166,21 +166,20 @@ describe("the phone bottom bar (F146, owner audit 2026-11-09)", () => {
       expect(label?.textContent, name).toBe(name);
       expect(label?.className.split(/\s+/), name).toContain(t.getAttribute("aria-current") === "page" ? "font-bold" : "font-medium");
     }
-    expect(dockTab("Messages").getAttribute("aria-current")).toBe("page");
+    expect(dockTab("Shops").getAttribute("aria-current")).toBe("page");
   });
 
-  it("Shops and Homes are off the dock even when open to the viewer", () => {
+  it("Messages and You are off the dock (they are on the top row)", () => {
     renderDock();
     const text = document.querySelector(DOCK)?.textContent ?? "";
-    expect(text).not.toMatch(/Shops|Homes/);
-    expect(text).not.toMatch(/soon/i);
+    expect(text).not.toMatch(/Messages|You/);
   });
 
   it.each([
     ["Jobs", "/jobs"],
     ["Declutter", "/declutter"],
-    ["Messages", "/messages"],
-    ["You", "/profile"],
+    ["Shops", "/shops"],
+    ["Homes", "/rentals"],
   ])("%s navigates to %s and is lit there", (name, path) => {
     renderDock();
     fireEvent.click(dockTab(name));
@@ -196,9 +195,9 @@ describe("the phone top bar (F148, owner audit 2026-11-09)", () => {
   const order = () =>
     [...screen.getByTestId("app-top-bar").querySelectorAll("button")].map((b) => b.getAttribute("data-testid") ?? b.getAttribute("aria-label"));
 
-  it("right side is the bell, then You; no Messages, + or Help on the bar", () => {
+  it("right side is Messages, the bell, then You (owner 11-14); no + or Help on the bar", () => {
     renderDock();
-    expect(order()).toEqual(["Notifications", "top-bar-profile"]);
+    expect(order()).toEqual(["top-bar-messages", "Notifications", "top-bar-profile"]);
     expect(screen.getByTestId("app-top-bar").querySelector('[aria-label="Help"]')).toBeNull();
   });
 
@@ -423,7 +422,7 @@ describe("Explore", () => {
     for (const f of screens) expect(code(f), f).toMatch(/<SectionScreen section="(declutter|shops|homes)"/);
     expect(code("src/pages/jobs/JobsSection.tsx")).toMatch(/<AppTopBar [^>]*\bexplore section="jobs"/);
     expect(code("src/components/sections/SectionScreen.tsx")).toContain("<AppTopBar title={title} explore section={section} search={barSearch} mine={mine} showAdd={showAdd} add={add} />");
-    expect(code("src/components/sections/AppTopBar.tsx")).not.toMatch(/PhoneMessagesButton|PhoneCreateButton/);
+    expect(code("src/components/sections/AppTopBar.tsx")).not.toMatch(/PhoneCreateButton/);
     expect(code("src/components/sections/AppTopBar.tsx")).not.toContain("<ExploreSwitcher");
   });
 });
@@ -451,7 +450,7 @@ describe("moment titles match page titles (owner 2026-10-25: one consistent font
 });
 
 describe("a section's phone top bar (F148)", () => {
-  it("shows the section's own title (no Explore, no chips), then the bell and You; no Messages, + or gear", () => {
+  it("shows the section's own title (no Explore, no chips), then Messages, the bell and You; no + or gear", () => {
     renderAt(<AppTopBar title="Declutter" explore section="declutter" />, "/declutter");
     const bar = screen.getByTestId("app-top-bar");
     const h1 = bar.querySelector("h1");
@@ -461,7 +460,7 @@ describe("a section's phone top bar (F148)", () => {
     expect(bar.querySelector('[data-testid="section-add"]')).toBeNull();
     expect(bar.querySelector('[data-testid="section-settings"]')).toBeNull();
     expect(bar.querySelector('[data-testid="top-bar-bell"]')).toBeTruthy();
-    expect(bar.querySelector('[data-testid="top-bar-messages"]')).toBeNull();
+    expect(bar.querySelector('[data-testid="top-bar-messages"]')).toBeTruthy();
     expect(bar.querySelector('[data-testid="top-bar-create"]')).toBeNull();
     expect(bar.querySelector('[data-testid="top-bar-profile"]')).toBeTruthy();
   });

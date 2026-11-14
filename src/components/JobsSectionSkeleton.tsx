@@ -57,6 +57,9 @@ function JobsHeaderBones({ chips = false }: { chips?: boolean }) {
                   <Skeleton className="h-6 w-6 rounded-full" />
                 </span>
                 <span className="h-11 w-11 shrink-0 flex items-center justify-center">
+                  <Skeleton className="h-6 w-6 rounded-full" />
+                </span>
+                <span className="h-11 w-11 shrink-0 flex items-center justify-center">
                   <Skeleton className="w-9 h-9 rounded-full" />
                 </span>
               </div>

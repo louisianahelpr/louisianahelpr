@@ -13,7 +13,7 @@
  * real Home (only the network is faked): badge == to-dos == "See all (n)".
  *
  * @mutate src/components/mobileNav/dockBadgeCount.ts |     : badgeKey === "todoShops"\n          ? todo.shops |     : badgeKey === "todoShops"\n          ? todo.total
- * @mutate src/components/mobileNav/dockItems.ts |     { path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" }, |     { path: "/shops", icon: messages.icon, label: "Shops", badgeKey: "todoShops" },\n    { path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" },
+ * @mutate src/components/mobileNav/dockItems.ts | label: shops.label, badgeKey: "todoShops", comingSoon: true }, | label: shops.label, comingSoon: true },
  * @mutate src/components/NeedsYouBridge.tsx | publishNeedsYou(uid, { total: jobs + shops + declutter, jobs, shops, declutter, declutterBuying, declutterSelling, jobsPosted, jobsWorking }); | publishNeedsYou(uid, { total: jobs, jobs, shops, declutter, declutterBuying, declutterSelling, jobsPosted, jobsWorking });
  * @mutate src/components/DesktopSidebarNav.tsx |     if (key === "todoShops") return todo.shops; |     if (key === "todoShops") return 0;
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |   const { todos, loading: todosLoading, onOldCall } = useNeedsYouTodos(user); |   const { loading: todosLoading, onOldCall } = useNeedsYouTodos(user); const todos = useNeedsYouTodos(user).todos.slice(1);
@@ -142,11 +142,11 @@ describe("badge = To-do (owner, 2026-10-20)", () => {
     // Home: the to-do list is one per job / order.
     expect(screen.getByTestId("next-up-label").textContent).toBe("Needs you · 1 of 2");
     expect(screen.getByTestId("next-up-see-all").textContent).toBe("See all (2)");
-    // The phone dock (F146, 11-09: Home, Jobs, Declutter, Messages, You): each section tab carries its share, as the
-    // sidebar does (never "9+" from 21 applicants); Home carries none (it would double-count). Shops left the dock
-    // until it opens, so its share shows on Home's Next up and the desktop rail only.
+    // The phone dock (owner 11-14: Home, Jobs, Declutter, Shops, Homes): each section tab carries its share, as the
+    // sidebar does (never "9+" from 21 applicants); Home carries none (it would double-count). Shops is open to this
+    // viewer here, so its tab carries its share (a closed one carries none: navSoonAndTopMessages.test.tsx).
     expect(document.querySelector('[data-dock-badge="/jobs"]')?.textContent).toBe("1");
-    expect(document.querySelector('[data-dock-badge="/shops"]')).toBeNull();
+    expect(document.querySelector('[data-dock-badge="/shops"]')?.textContent).toBe("1");
     expect(document.querySelector('[data-dock-badge="/declutter"]')).toBeNull();
     expect(document.querySelector('[data-dock-badge="/home"]')).toBeNull();
     // Desktop sidebar: Explore = total, Jobs and Shops = their share.

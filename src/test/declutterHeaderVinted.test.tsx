@@ -84,17 +84,16 @@ const MINE: SectionMineMenu = {
 };
 
 describe("row 1: the search with the bell and the photo inline on its right (the compact top, owner 11-14)", () => {
-  it("the bar is the search row; the title is a hidden h1; no Messages button and no '+'", () => {
+  it("the bar is the search row; the title is a hidden h1; Messages (owner 11-14) but no '+'", () => {
     render(<MemoryRouter><AppTopBar title="Declutter" explore section="declutter" search={<input aria-label="Search Declutter" />} mine={MINE} /></MemoryRouter>);
     const bar = screen.getByTestId("app-top-bar");
     expect(screen.getByRole("heading", { level: 1, name: "Declutter" }).className).toContain("sr-only");
     const row = screen.getByTestId("app-top-bar-search");
     expect(row.contains(screen.getByRole("textbox", { name: "Search Declutter" }))).toBe(true);
     expect(bar.contains(row)).toBe(true);
-    expect(screen.queryByTestId("top-bar-messages")).toBeNull();
     expect(screen.queryByTestId("top-bar-create")).toBeNull();
-    // The bar's buttons, in order: the bell, then the photo. Nothing else.
-    expect(Array.from(bar.querySelectorAll("button")).map((b) => b.getAttribute("data-testid") ?? b.getAttribute("aria-label"))).toEqual(["Notifications", "top-bar-profile"]);
+    // The bar's buttons, in order: Messages (owner 11-14), the bell, then the photo. Nothing else.
+    expect(Array.from(bar.querySelectorAll("button")).map((b) => b.getAttribute("data-testid") ?? b.getAttribute("aria-label"))).toEqual(["top-bar-messages", "Notifications", "top-bar-profile"]);
   });
 
   it("the photo opens My Declutter: every list with its to-do count, the settings and the profile; a dot while any has a count", async () => {
@@ -120,10 +119,10 @@ describe("row 1: the search with the bell and the photo inline on its right (the
     expect(photo.querySelector('[data-top-bar-badge="mine"]')).toBeNull();
   });
 
-  it("every other bar is the same one pattern: visible title, the bell, the photo, no search row without a search (F148)", () => {
+  it("every other bar is the same one pattern: visible title, Messages, the bell, the photo, no search row without a search (F148)", () => {
     render(<MemoryRouter><AppTopBar title="Jobs" explore section="jobs" /></MemoryRouter>);
     expect(screen.getByRole("heading", { level: 1, name: "Jobs" }).className).not.toContain("sr-only");
-    expect(screen.queryByTestId("top-bar-messages")).toBeNull();
+    expect(screen.getByTestId("top-bar-messages")).toBeInTheDocument();
     expect(screen.queryByTestId("top-bar-create")).toBeNull();
     expect(screen.queryByTestId("app-top-bar-search")).toBeNull();
     expect(screen.getByRole("button", { name: /^Notifications$/ })).toBeInTheDocument();

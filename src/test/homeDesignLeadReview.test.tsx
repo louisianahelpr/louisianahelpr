@@ -31,7 +31,7 @@
  *    lays nothing out, so this cannot see visibility; the e2e axe sweeps do).
  * @mutate src/lib/avatarImage.ts |   return initials ? `${word}, ${initials}` : word; |   return word;
  * @mutate src/components/notificationPanel/NotificationTrigger.tsx |   return count > 0 ? `${name}, ${formatUnreadBadge(count)} unread` : name; |   return name;
- * @mutate src/components/MobileNav.tsx | : showBadge ? `${dockBadgeText(badgeCount)} ${shown}` : shown} | : shown}
+ * @mutate src/components/MobileNav.tsx | : showBadge ? `${dockBadgeText(badgeCount)} ${shown}` : soon | : soon
  * @mutate src/components/MobileNav.tsx |         {" "}\n        <span data-dock-label |         <span data-dock-label
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -64,6 +64,8 @@ vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "u-review", email_confirmed_at: "2026-01-01T00:00:00Z" }, profile: { avatar_url: null, full_name: "Test Person" }, isLoading: false, isAdmin: false }),
 }));
 vi.mock("@/components/mobileNav/useNavUnreadCount", () => ({ useNavUnreadCount: () => ({ unreadCount: unread.n, markAllRead: () => {} }) }));
+// The top row's Messages button reads the shared store MobileNav fills (owner 11-14); answered from the same number.
+vi.mock("@/components/mobileNav/navUnreadStore", async (orig) => ({ ...(await orig<object>()), useSharedUnreadCount: () => unread.n }));
 vi.mock("@/lib/needsYouStore", () => ({ useNeedsYouCounts: () => ({ total: todo.jobs, jobs: todo.jobs, shops: 0, declutter: 0 }) }));
 vi.mock("@/hooks/useRecentPostedJobs", () => ({ prefetchRecentPostedJobs: () => {} }));
 vi.mock("@/lib/routePrefetch", () => ({ prefetchRoute: () => {}, prefetchRoutesWhenIdle: () => () => {} }));
@@ -120,13 +122,13 @@ describe("1. Home section cards never show a 0 (spec v2 §1.5/§5.5, board 19)",
 });
 
 describe("2. phone Home keeps the H logo (owner 2026-10-20 08:30Z), never the wordmark", () => {
-  it("phone: H emblem left; the bell and the avatar right (F148, owner audit 11-09; Help is in You)", () => {
+  it("phone: H emblem left; Messages, the bell and the avatar right (F148; Messages back on the top row, owner 11-14; Help is in You)", () => {
     render(<MemoryRouter><AppTopBar /></MemoryRouter>);
     const bar = screen.getByTestId("app-top-bar");
     const logo = bar.firstElementChild as HTMLElement;
     expect(logo.querySelector("img")).not.toBeNull();
     expect(logo.textContent ?? "").not.toMatch(/Helpr/);
-    expect([...bar.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Notifications", "Profile, TP"]); // the avatar's initials are in its name (WCAG 2.5.3, Q1816)
+    expect([...bar.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Messages", "Notifications", "Profile, TP"]); // the avatar's initials are in its name (WCAG 2.5.3, Q1816)
   });
 
   it("desktop Home: no bar (the left sidebar carries the H logo)", () => {
@@ -167,12 +169,12 @@ describe("3 + 4. the bottom bar: You is a person icon; olive active, --alert bad
     expect(badge!.getAttribute("style")).toContain("hsl(var(--alert))");
   });
 
-  it("the dock's Messages count badge is --alert with white text, and its name starts with the count (F146)", () => {
+  it("the top row's Messages count badge is --alert with white text, and its name starts with the count (owner 11-14)", () => {
     unread.n = 12;
     try {
-      renderDock("/home");
+      render(<MemoryRouter><AppTopBar /></MemoryRouter>);
       const msgs = screen.getByRole("button", { name: "9+ Messages" });
-      const badge = msgs.querySelector('[data-dock-badge="/messages"]');
+      const badge = msgs.querySelector('[data-top-bar-badge="messages"]');
       expect(badge?.textContent).toBe("9+");
       expect(badge?.getAttribute("style")).toContain("hsl(var(--alert))");
       expect(nameHoldsVisibleText(msgs), msgs.getAttribute("aria-label") ?? "").toBe(true);

@@ -6,7 +6,7 @@ Items for areas that have not launched (Homes / Rentals, Quotes, Shops) live in 
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 47** (28 to do, 19 fixed with protection pending; 2224 done). Feeds mirrored in: 33 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 19 red overnight checks), 0 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 48** (29 to do, 19 fixed with protection pending; 2224 done). Feeds mirrored in: 34 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 19 red overnight checks), 0 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 0 left of 34** (0 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 16 red, 13 stale, 3 unknown, 49 green of 81 — [SCOREBOARD](SCOREBOARD.md). _(2026-11-14T00:20Z)_
@@ -105,7 +105,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 2271 items — 2224 done, 19 partly done (fixed, protection pending), 28 open.**
+**Queue: 2272 items — 2224 done, 19 partly done (fixed, protection pending), 29 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -563,7 +563,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
 - [ ] **Q1816 MEDIUM Fix the test robots: 19 overnight checks red.** One item for every red overnight check (owner 2026-10-14: "All failing robot checks roll into ONE 'fix the test robots' item instead of 18"); each one below still gets a root cause, a fix and a green re-run of its own workflow. Rewritten by `scripts/open-sync-trackers.mjs` on every sync; it is ticked when no check is red. Guard src/test/openRobotsRollup.test.ts. rollup: nightly-red
   - nightly-red-age: issue #2244, newest red run: see the issue's latest comment. notes: Q1275. feed: issue #2244 · feed: ledger ab6fdbe8c882
   - prod-audit: issue #2245, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43181792847. notes: Q785. feed: issue #2245 · feed: ledger 16e6e91f6701
-  - press-every-control: issue #2353, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43007456468. notes: Q1374. feed: issue #2353 · feed: ledger 7e141f206640
+  - press-every-control: issue #2353, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43584967592. notes: Q1374. feed: issue #2353 · feed: ledger 7e141f206640
   - branch-prune: issue #2366, newest red run: see the issue's latest comment. notes: Q1376. feed: issue #2366 · feed: ledger 7f88b9cc45df
   - a11y-webkit-prod: issue #2375, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43470000763. notes: Q593. feed: issue #2375 · feed: ledger 6205197429d4
   - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/43430382667. notes: Q1429, Q2150. feed: issue #2436 · feed: ledger 43d77e26f272
@@ -606,6 +606,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
 - [ ] **Q2800 MEDIUM schedule-stalled: 1 scheduled workflow(s) have stopped running.** Mirrored 2026-11-12 from schedule-stalled issue #4450 by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #4450. done-when: issue #4450 closed feed: ledger 8a2e802edbe7. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '8a2e802edbe7bd772cfe6fec1ea6488b'` => closed
 - [ ] **Q2801 MEDIUM error: 404 — non-existent route: /sponsor.** Mirrored 2026-11-13 from alert-ledger row 227a34518198 (sentry: sentry:assets/NotFound; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 227a34518198. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '227a345181980df60a2aed15f86dd3b0'` => closed
 - [ ] **Q2802 MEDIUM prod-errors: real users are hitting error screens.** Mirrored 2026-11-13 from prod-errors issue #4553 by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: issue #4553. done-when: issue #4553 closed **Seen again 2026-11-14** (alert-ledger row fad6897fcfae (nightly_red: prod-errors; `node scripts/ops-alert-ledger.mjs list`)). feed: ledger fad6897fcfae. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'fad6897fcfae4dbab07ce7af920ad671'` => closed
+- [ ] **Q2803 MEDIUM database statement timeouts.** Mirrored 2026-11-14 from alert-ledger row bbc40712688e (error_logs: db-statement-timeouts; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger bbc40712688e. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'bbc40712688e865f047278c32c6d05c3'` => closed
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

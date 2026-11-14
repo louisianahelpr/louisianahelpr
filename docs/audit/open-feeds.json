@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-14T10:42Z",
+  "measured_at": "2026-11-14T16:10Z",
   "issues": {
     "readable": true,
     "open": [
@@ -22,7 +22,7 @@
         "number": 2353,
         "title": "nightly-red: press-every-control",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43007456468",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43584967592",
         "runTruncated": false
       },
       {
@@ -305,7 +305,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
+        "issue": 4222
       },
       {
         "fingerprint": "5be6011a46f6328f224c01fc99b85e95",
@@ -578,6 +578,14 @@
         "status": "open",
         "title": "error: 404 — non-existent route: /sponsor.",
         "issue": null
+      },
+      {
+        "fingerprint": "bbc40712688e865f047278c32c6d05c3",
+        "source_kind": "error_logs",
+        "source": "db-statement-timeouts",
+        "status": "open",
+        "title": "database statement timeouts",
+        "issue": null
       }
     ]
   },
@@ -649,6 +657,7 @@
     "ledger b757f9393658": "Q2790",
     "ledger b8b42cf124da": "Q2506",
     "ledger ba04c0f07725": "Q2532",
+    "ledger bbc40712688e": "Q2803",
     "ledger bbdaee370c35": "Q1631",
     "ledger c540527c8265": "Q2517",
     "ledger c5d2aafd1f77": "Q2410",

@@ -89,6 +89,8 @@ export const enDeclBrowse = {
   "decl.sort.newest": "Newest",
   "decl.sort.price_low": "Lowest price",
   "decl.sort.price_high": "Highest price",
+  "decl.results.one": "1 item",
+  "decl.results.many": "{n} items",
   "decl.group.Home": "Home",
   "decl.group.Outdoors": "Outdoors",
   "decl.group.Family": "Family",

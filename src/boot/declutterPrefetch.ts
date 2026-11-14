@@ -131,9 +131,9 @@ export function bootFirstRowCount(width: number): number {
   return width < 640 ? 2 : width < 1536 ? 3 : 4;
 }
 export function bootAboveFoldCount(width: number, height: number): number {
-  const photo = width < 640 ? (width - 52) / 2 : 250;
+  const photo = width < 640 ? ((width - 40) / 2) * (4 / 3) : 250;
   let rows = 1;
-  while (rows < 4 && 338 + rows * (photo + 99) + photo / 2 < height) rows++;
+  while (rows < 4 && 338 + rows * (photo + 68) + photo / 2 < height) rows++;
   return bootFirstRowCount(width) * rows;
 }
 

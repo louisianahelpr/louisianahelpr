@@ -41,6 +41,7 @@ import type { DeclutterItem } from "@/lib/declutter/api";
 import { OfferPanel } from "./DeclutterOfferPanel";
 import PriceHint from "./DeclutterPriceHint";
 import { DeclutterGallery } from "./DeclutterGallery";
+import { ITEM_PHOTO_BLEED } from "./itemPhotoFrame";
 import { DeclutterSellerCard } from "./DeclutterSellerCard";
 import { DeclutterMovingSaleNote } from "./DeclutterMovingSaleNote";
 import { DeclutterItemRows, NewestItemsRow, SoldItemCard } from "./DeclutterItemRows";
@@ -263,9 +264,11 @@ export default function ItemView({ itemId }: { itemId: string }) {
       phoneHidesTitle
       hidesTitle
       stickyHeader
+      // Owner 11-14 (Depop/Vinted audit item 9): the photo runs edge to edge on a phone.
+      phoneBleed
     >
       <div className="lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8">
-        <div>
+        <div className={ITEM_PHOTO_BLEED} data-item-photo-bleed="">
           <DeclutterGallery urls={urls} display={display} category={it.category} title={it.title} />
         </div>
 

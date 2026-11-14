@@ -150,6 +150,8 @@ export const esDeclutter: Record<keyof typeof enDeclutter | keyof typeof enSecti
   "decl.sort.newest": "Más nuevos",
   "decl.sort.price_low": "Precio más bajo",
   "decl.sort.price_high": "Precio más alto",
+  "decl.results.one": "1 artículo",
+  "decl.results.many": "{n} artículos",
   "decl.group.Home": "Casa",
   "decl.group.Outdoors": "Exterior",
   "decl.group.Family": "Familia",

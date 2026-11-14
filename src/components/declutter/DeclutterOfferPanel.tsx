@@ -363,9 +363,10 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
           Message moved to the seller row (DeclutterItemView). Offers off: Buy now alone; an offer already sent: "Your
           offer" in Make offer's place. */}
       {/* F119 (UI audit 11-09): on a computer the pair stays pinned while the description and questions scroll. */}
+      {/* Owner 11-14 (Depop/Vinted audit item 9): 44px buttons in the phone bar (size wrapBar), 56px wider. */}
       <StickyActionBar label={t("decl.buy.bar")} data-declutter-buybar="" spacer={false} pinWide>
         {myOffer ? (
-          <Button type="button" variant="outline" size="wrap" className="whitespace-nowrap rounded-full px-3 font-semibold"
+          <Button type="button" variant="outline" size="wrapBar" className="whitespace-nowrap rounded-full px-3 font-semibold"
             onClick={() => panel.current?.querySelector("[data-your-offer]")?.scrollIntoView({ behavior: "smooth", block: "center" })}>
             {t("decl.buy.yourOffer")}
           </Button>
@@ -373,7 +374,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
           <Button
             type="button"
             variant="outline"
-            size="wrap"
+            size="wrapBar"
             className="whitespace-nowrap rounded-full px-3 font-semibold"
             aria-expanded={open}
             disabled={offers.isLoading}
@@ -386,7 +387,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
             and Buy now steps back to an outline. */}
         <Button
           type="button"
-          size="wrap"
+          size="wrapBar"
           variant={showCardStep ? "outline" : undefined}
           className="rounded-full px-3"
           disabled={buy.isPending}

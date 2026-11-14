@@ -44,7 +44,7 @@ export function DeclutterResultsBar({ filterCount, onFilters, sorts, sort, onSor
   const { t } = useLanguage();
   return (
     <div className="flex h-11 items-stretch divide-x divide-border border-y border-border" data-results-bar="">
-      <Button ref={filtersRef} type="button" variant="ghost" size="sm" className="flex-1 gap-2 rounded-none font-semibold" onClick={onFilters}
+      <Button ref={filtersRef} type="button" variant="ghost" size="sm" className="flex-1 gap-2 font-semibold" onClick={onFilters}
         aria-label={filterCount > 0 ? `${t("decl.filters")} (${filterCount})` : t("decl.filters")} data-results-filter="">
         <SlidersHorizontal className="h-4 w-4" aria-hidden />
         {t("decl.filters")}
@@ -52,7 +52,7 @@ export function DeclutterResultsBar({ filterCount, onFilters, sorts, sort, onSor
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button type="button" variant="ghost" size="sm" className="flex-1 gap-2 rounded-none font-semibold" data-results-sort="">
+          <Button type="button" variant="ghost" size="sm" className="flex-1 gap-2 font-semibold" data-results-sort="">
             <ArrowUpDown className="h-4 w-4" aria-hidden />
             {t("decl.sheet.sort")}
           </Button>

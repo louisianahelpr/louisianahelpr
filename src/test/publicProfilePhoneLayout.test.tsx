@@ -27,6 +27,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { ReactNode } from "react";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const rpc = vi.fn();
 const auth = vi.hoisted(() => ({ user: { id: "viewer" } as { id: string } | null, isReady: true }));
@@ -54,7 +55,7 @@ const PAGE = {
     { id: "i1", title: "Oak dresser", price_cents: 500, area_label: "Mid City", photo_id: "p1", live_at: "2026-10-30T00:00:00Z" },
     { id: "i2", title: "Free lamp", price_cents: 0, area_label: null, photo_id: null, live_at: "2026-10-29T00:00:00Z" },
   ],
-  jobs: [{ id: "j1", title: "Mow my yard", category: "yard_work", town: "Lafayette", budget: 40, date_needed: "2026-11-20" }],
+  jobs: [{ id: "j1", title: "Mow my yard", category: "yard_work", town: "Lafayette", budget: 40, date_needed: jobLocalDateISO(6) }],
   helpr: { jobs_done: 3, categories: ["yard_work"], reviews: [{ rating: 5, feedback: "Great", created_at: "2026-10-01T00:00:00Z", reviewer_name: "Ann", job_category: "yard_work", response_text: null, response_at: null }] },
   wanted: [{ id: "w1", what: "Ladder", category: "tools", max_price_cents: 2000, created_at: "2026-10-01T00:00:00Z" }],
 };

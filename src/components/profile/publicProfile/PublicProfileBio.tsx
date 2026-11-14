@@ -3,6 +3,7 @@
  * with "more" to open it, so the compact header stays short; from lg it shows in full, as before.
  */
 import { useLayoutEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export function PublicProfileBio({ bio }: { bio: string }) {
   const ref = useRef<HTMLParagraphElement>(null);
@@ -29,31 +30,35 @@ export function PublicProfileBio({ bio }: { bio: string }) {
         {bio}
       </p>
       {/* "more" sits at the end of the second line, over a fade into the page; "less" under the open bio. min-h-0
-          drops the 44px button floor so the line keeps its height; its ::before keeps a 44px-tall hit area (.tap-44 would
+          (size="inline") drops the 44px button floor so the line keeps its height; its ::before keeps a 44px-tall hit area (.tap-44 would
           set position: relative and undo the absolute). */}
       {clamped && !open && (
-        <button
+        <Button
           type="button"
-          className="absolute bottom-0 right-0 min-h-0 min-w-0 before:absolute before:-inset-y-3 before:inset-x-0 before:content-[''] bg-gradient-to-r from-transparent to-[hsl(var(--background))] to-[1.5rem] pl-7 text-ds-14 font-semibold text-foreground lg:hidden"
+          variant="ghost"
+          size="inline"
+          className="absolute bottom-0 right-0 text-ds-14 font-semibold tracking-normal text-foreground hover:bg-transparent before:absolute before:-inset-y-3 before:inset-x-0 before:content-[''] lg:hidden"
           aria-expanded={false}
           aria-controls="pp-bio"
           data-testid="pp-bio-more"
           onClick={() => setOpen(true)}
         >
-          more
-        </button>
+          <span className="bg-gradient-to-r from-transparent to-[hsl(var(--background))] to-[1.5rem] pl-7">more</span>
+        </Button>
       )}
       {open && (
-        <button
+        <Button
           type="button"
-          className="tap-44 min-h-0 min-w-0 text-ds-13 font-semibold text-foreground underline underline-offset-2 lg:hidden"
+          variant="ghost"
+          size="inline"
+          className="tap-44 text-ds-13 font-semibold tracking-normal text-foreground underline underline-offset-2 hover:bg-transparent lg:hidden"
           aria-expanded
           aria-controls="pp-bio"
           data-testid="pp-bio-more"
           onClick={() => setOpen(false)}
         >
           less
-        </button>
+        </Button>
       )}
     </div>
   );

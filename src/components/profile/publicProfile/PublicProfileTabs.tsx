@@ -8,6 +8,7 @@
  * offers "Add work photos"), Looking for (Wanted posts). A section with no tab of its own keeps showing.
  */
 import { useRef } from "react";
+import { Button } from "@/components/ui/button";
 import type { PublicProfile } from "@/lib/profileLink/api";
 
 export type ProfileTabKey = "sale" | "jobs" | "work" | "wanted";
@@ -86,18 +87,20 @@ export function PublicProfileTabs({
       {tabs.map((t) => {
         const on = t.key === active;
         return (
-          <button
+          <Button
             key={t.key}
             type="button"
+            variant="ghost"
+            size="sm"
             role="tab"
             aria-selected={on}
             data-pp-tab={t.key}
             onClick={() => select(t.key)}
-            className={`flex h-11 shrink-0 items-center gap-1 whitespace-nowrap text-ds-15 ${on ? "font-semibold text-foreground shadow-[inset_0_-2px_0_hsl(var(--foreground))]" : "text-muted-foreground"}`}
+            className={`relative shrink-0 gap-1 px-0 text-ds-15 tracking-normal hover:bg-transparent ${on ? "font-semibold text-foreground after:absolute after:inset-x-0 after:bottom-0 after:border-b-2 after:border-foreground after:content-['']" : "font-normal text-muted-foreground"}`}
           >
             {t.label}
-            {t.count != null && <span className="tabular-nums text-muted-foreground">{t.count}</span>}
-          </button>
+            {t.count != null && <span className="tabular-nums font-normal text-muted-foreground">{t.count}</span>}
+          </Button>
         );
       })}
     </div>

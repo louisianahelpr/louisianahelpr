@@ -88,6 +88,7 @@ const ALLOWED: Record<string, { n: number; why: string }> = {
   "src/components/NotificationPreferences.tsx": { n: 2, why: "gap between the per-channel toggle columns of a row (horizontal)" },
   "src/components/notificationPreferences/SavedHelprNudgeCard.tsx": { n: 1, why: "gap between the nudge card's toggle columns (horizontal; moved out of NotificationPreferences, Q806)" },
   "src/components/notificationPreferences/QuietHoursCard.tsx": { n: 1, why: "gap between the Quiet hours toggle columns (horizontal; moved out of NotificationPreferences, Q806)" },
+  "src/components/profile/publicProfile/PublicProfileTabs.tsx": { n: 1, why: "gap between the phone profile's section tabs in one scrolling row (horizontal; owner 11-14 Depop profile)" },
   "src/pages/info/HelpCenter.tsx": { n: 1, why: "gap between an FAQ question and its chevron (horizontal)" },
   "src/pages/home/HomeDashboard.tsx": { n: 1, why: "board 11's two-column gutter at xl (one grid row, so horizontal)" },
   "src/pages/jobs/jobPage/JobPage.tsx": { n: 1, why: "lg:gap-y-6 — the job page's desktop two-column grid (boards 15/168) row gap, beside its lg:gap-x-8; the phone stack uses gap-4" },

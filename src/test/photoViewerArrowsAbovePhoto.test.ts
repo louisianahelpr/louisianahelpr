@@ -27,7 +27,7 @@ describe("photo viewer arrows paint above the photo (NIGHT-BUYINGpresse-1)", () 
     // Floor: the real viewer, not a stub.
     expect(src.length).toBeGreaterThan(2000);
     const prev = src.indexOf('aria-label="Previous photo"');
-    const img = src.indexOf("alt={`Photo ${lightboxIndex + 1}`}");
+    const img = src.indexOf("alt={altFor(lightboxIndex)}"); // owner 2026-11-13: per-photo alt text, "Photo N" when none
     const next = src.indexOf('aria-label="Next photo"');
     expect(prev).toBeGreaterThan(0);
     expect(img).toBeGreaterThan(prev);

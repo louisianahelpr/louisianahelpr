@@ -29,7 +29,7 @@ import {
 // @mutate src/lib/declutter/bootPrefetch.ts |   if (!defaultView) return false; |
 // @mutate src/lib/declutter/bootPrefetch.ts |   return known?.zip === zip && known.parish ? known.parish : null; |   return known?.parish ?? null;
 // @mutate src/boot/signedInPrefetch.ts |   startDeclutterPrefetch(pathname); |
-// @mutate src/boot/declutterPrefetch.ts |   while (rows < 4 && 338 + rows * (photo + 99) + photo / 2 < height) rows++; |
+// @mutate src/boot/declutterPrefetch.ts |   while (rows < 4 && 338 + rows * (photo + 68) + photo / 2 < height) rows++; |
 // @mutate src/boot/declutterPrefetch.ts |     if (p.high) link.setAttribute("fetchpriority", "high"); |     link.setAttribute("fetchpriority", "high");
 // @mutate src/boot/declutterPrefetch.ts |     const at = slot++; |     const at = slot;
 

@@ -74,11 +74,17 @@ interface AppPageProps {
   stickyHeader?: boolean;
   /** Phone: a long title wraps onto a second line instead of ending in "..." (PageHeader's `wrapTitle`). */
   wrapTitle?: boolean;
+  /**
+   * Phone (under 640px): the scroll area reaches the screen's edges (same 20px gutter, now its own padding), so a
+   * child wearing `max-sm:-mx-5` (ITEM_PHOTO_BLEED) runs edge to edge (owner 11-14: the Declutter item photo, as on Depop). The rule
+   * is `[data-phone-bleed]` in src/index.css, so the shared wrapper's class string stays Profile's (profileTabScroll).
+   */
+  phoneBleed?: boolean;
   /** Page content. */
   children: ReactNode;
 }
 
-function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTitle, stickyHeader, wrapTitle, children }: AppPageProps) {
+function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTitle, stickyHeader, wrapTitle, phoneBleed, children }: AppPageProps) {
   // D12 (Cowork audit 2026-10-20): the browser tab names the page (an item, Sell an
   // item, ...), not the landing page. A page's own usePageTitle / usePageMeta wins.
   usePageTitle(`${title} — Helpr`);
@@ -88,7 +94,7 @@ function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTi
       contentClassName="overflow-hidden"
       className="bg-premium-page pt-safe-top"
     >
-      <div className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+      <div className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden" data-phone-bleed={phoneBleed ? "" : undefined}>
         {/* NO `mx-auto` here, and that is the whole point of this line.
             `.page-measure` already centres itself (`margin-inline: auto`, one
             definition in index.css), so the utility was redundant — and it was

@@ -5386,3 +5386,22 @@ html.page-scrolled .page-title-card:has(.explore-header),
 /* F150 (owner UI audit 11-09): while a floating create pill shows (SectionCreateFab adds `has-section-fab`), a list
    scrolling under it ends this much higher: the pill's 48px (Button md) + its 16px gap over the dock. */
 html.has-section-fab { --section-fab-clearance: 4rem; }
+
+/* Owner 11-14 (Depop/Vinted audit item 9): an AppPage with `phoneBleed` (the Declutter item page) lets one child run
+   edge to edge on a phone. The container drops its 20px gutter and the scroll area spans the screen and carries the
+   gutter itself as padding, so ITEM_PHOTO_BLEED (-mx-5) reaches both edges without a sideways scroll. The shared
+   wrapper's class string is untouched (profileTabScroll holds it equal to Profile's). Guard:
+   src/test/declutterDepopPhoneLayout.test.tsx. */
+@media (max-width: 639px) {
+  .container[data-phone-bleed] {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .container[data-phone-bleed] > [data-app-page-scroll] {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}

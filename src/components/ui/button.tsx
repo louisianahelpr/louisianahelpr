@@ -157,6 +157,9 @@ const buttonVariants = cva(
         // `sm` that grows instead of clipping: a row-like pill whose label carries user text (Handover's "Add porch
         // pickup to {title}", Q2709 11-05) wraps to a second line at 375 instead of running past the edge.
         wrapSm: "h-auto min-h-11 px-4 py-2 text-ds-14 whitespace-normal",
+        // `wrap` that is 44px on a phone (under 640) and 56px wider: the Declutter item page's fixed bottom bar (owner 11-14,
+        // Depop/Vinted audit item 9: "44px buttons"), so the bar stays slim on a phone.
+        wrapBar: "h-auto min-h-11 px-6 py-1 text-ds-16 whitespace-normal text-center sm:min-h-14 sm:py-2",
         // 48px: between `sm` (44) and `default` (56), for a full-width secondary pill such as You's "Log out"
         // (lead decision 11-01, B91). A named size so no call site hand-sets h-12 (no-button-height-override).
         md: "h-12 px-5 text-ds-16",

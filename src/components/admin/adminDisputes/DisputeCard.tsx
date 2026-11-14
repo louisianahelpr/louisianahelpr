@@ -15,6 +15,7 @@ import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls"
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 import { EarlierDisputes } from "./EarlierDisputes";
 import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
+import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
 
 /**
  * The split readout is ONE money column — net, gross and deduction stacked.
@@ -226,9 +227,9 @@ export const DisputeCard = ({
               {evidence.trusted.map((_, i) => {
                 const src = evidenceSrcs[i];
                 return (
-                  <button key={i} type="button" disabled={!src} aria-label={`Open evidence photo ${i + 1}`} onClick={() => openEvidence(i)} className="block w-20 h-20 rounded-ds-sm overflow-hidden border border-border hover:border-primary transition-colors disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <PhotoOpenButton key={i} disabled={!src} aria-label={`Open evidence photo ${i + 1}`} onClick={() => openEvidence(i)} className="block w-20 h-20 rounded-ds-sm overflow-hidden border border-border hover:border-primary transition-colors disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <img loading="lazy" decoding="async" src={src ?? PENDING_PHOTO_SRC} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" />
-                  </button>
+                  </PhotoOpenButton>
                 );
               })}
               {evidenceViewer}

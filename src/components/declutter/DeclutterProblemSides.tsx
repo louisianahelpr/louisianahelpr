@@ -22,6 +22,7 @@ import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhoto
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { Textarea } from "@/components/ui/textarea";
 import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
+import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
 
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
@@ -39,7 +40,7 @@ export function ProblemPhotos({ paths }: { paths: string[] }) {
   return (
     <div className="flex flex-wrap gap-2" data-problem-photos="">
       {(urls.data ?? []).map((u, i) => u
-        ? <button key={paths[i]} type="button" onClick={() => open(i)} aria-label={`Open problem photo ${i + 1}`} className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><FallbackImg src={u} alt={`Problem photo ${i + 1}`} className="h-16 w-16 rounded-lg object-cover bg-photo-empty" /></button>
+        ? <PhotoOpenButton key={paths[i]} onClick={() => open(i)} aria-label={`Open problem photo ${i + 1}`} className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><FallbackImg src={u} alt={`Problem photo ${i + 1}`} className="h-16 w-16 rounded-lg object-cover bg-photo-empty" /></PhotoOpenButton>
         : null)}
       {viewer}
     </div>

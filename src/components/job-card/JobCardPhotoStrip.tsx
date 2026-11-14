@@ -1,5 +1,6 @@
 import { OptimizedImage } from "@/components/ui/optimized-image";
 import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
+import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
 
 interface JobCardPhotoStripProps {
   urls: string[];
@@ -33,9 +34,8 @@ export function JobCardPhotoStrip({
   return (
     <div className="flex gap-2 overflow-x-auto pb-1">
       {urls.map((url, i) => (
-        <button
+        <PhotoOpenButton
           key={i}
-          type="button"
           // jobs.photos is writable by the job's poster (no shape CHECK): it is only ever an <img src> now (a src never
           // runs a script), never a link.
           aria-label={`Open job photo ${i + 1}`}
@@ -50,7 +50,7 @@ export function JobCardPhotoStrip({
             fadeIn
             className={`${dims.cls} rounded-ds-sm object-cover border border-border hover:border-primary transition-colors`}
           />
-        </button>
+        </PhotoOpenButton>
       ))}
       {/* The viewer's clicks bubble through React's portal to this strip's parents; stop them like the tiles do. */}
       {stopPropagation ? <span className="contents" onClick={(e) => e.stopPropagation()}>{viewer}</span> : viewer}

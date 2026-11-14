@@ -36,6 +36,7 @@ import { useProofPhotoUrls } from "@/hooks/useProofPhotoUrls";
 import { photoPrimaryLabel } from "@/components/job-card/photoPrimaryLabel";
 import { proofPhotoLinkName } from "./proofPhotoLinkName";
 import { useInAppPhotoViewer } from "./useInAppPhotoViewer";
+import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
 
 type PhotoProofProps = {
   jobId: string;
@@ -473,9 +474,9 @@ export const PhotoProofGroup = ({
             {hasBefore ? (
               <div className="flex gap-1.5 flex-wrap">
                 {beforeUrls.slice(0, 3).map((url, i) => (
-                  <button key={url ?? i} type="button" className={thumbBtn} disabled={!beforeSrcs[i]} data-proof-photo-open="" onClick={() => openPhoto(i)} aria-label={proofPhotoLinkName("before", i, beforeUrls.length)}>
+                  <PhotoOpenButton key={url ?? i} className={thumbBtn} disabled={!beforeSrcs[i]} data-proof-photo-open="" onClick={() => openPhoto(i)} aria-label={proofPhotoLinkName("before", i, beforeUrls.length)}>
                     <ProofPhotoImg insideControl src={beforeSrcs[i]} alt="" className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                  </button>
+                  </PhotoOpenButton>
                 ))}
                 {beforeUrls.length > 3 && (
                   <div className="w-14 h-14 rounded-ds-sm bg-muted flex items-center justify-center text-ds-11 text-muted-foreground font-medium">
@@ -497,9 +498,9 @@ export const PhotoProofGroup = ({
             {hasAfter ? (
               <div className="flex gap-1.5 flex-wrap">
                 {afterUrls.slice(0, 3).map((url, i) => (
-                  <button key={url ?? i} type="button" className={thumbBtn} disabled={!afterSrcs[i]} data-proof-photo-open="" onClick={() => openPhoto(beforeSrcs.length + i)} aria-label={proofPhotoLinkName("after", i, afterUrls.length)}>
+                  <PhotoOpenButton key={url ?? i} className={thumbBtn} disabled={!afterSrcs[i]} data-proof-photo-open="" onClick={() => openPhoto(beforeSrcs.length + i)} aria-label={proofPhotoLinkName("after", i, afterUrls.length)}>
                     <ProofPhotoImg insideControl src={afterSrcs[i]} alt="" className="w-14 h-14 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                  </button>
+                  </PhotoOpenButton>
                 ))}
                 {afterUrls.length > 3 && (
                   <div className="w-14 h-14 rounded-ds-sm bg-muted flex items-center justify-center text-ds-11 text-muted-foreground font-medium">

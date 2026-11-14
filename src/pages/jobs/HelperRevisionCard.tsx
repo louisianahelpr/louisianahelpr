@@ -31,6 +31,7 @@ import { report } from "@/lib/errorLogger";
 import { JobStepPrimaryButton } from "../../components/job-card/JobActionRow";
 import { JobStepRowSlot, useInJobStepRow } from "../../components/job-card/jobStepRow";
 import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
+import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
 
 interface HelperRevisionCardProps {
   jobId: string;
@@ -250,15 +251,14 @@ export function HelperRevisionCard({
               );
             }
             return (
-              <button
+              <PhotoOpenButton
                 key={i}
-                type="button"
                 aria-label={`Open revision photo ${i + 1}`}
                 onClick={(e) => { e.stopPropagation(); openPhoto(i); }}
                 className="w-14 h-14 rounded-ds-sm overflow-hidden border border-border/40 active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <img src={url} alt={`Revision photo ${i + 1}`} className="w-full h-full object-cover" />
-              </button>
+              </PhotoOpenButton>
             );
           })}
           <span className="contents" onClick={(e) => e.stopPropagation()}>{photoViewer}</span>

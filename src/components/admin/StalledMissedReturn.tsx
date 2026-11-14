@@ -5,6 +5,7 @@ import { useProofPhotoUrls } from "@/hooks/useProofPhotoUrls";
 import { formatTimestamp } from "@/lib/format";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
+import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
 
 type MissedReport = { reporter_side: "poster" | "helpr"; note: string | null; photos: string[]; created_at: string; resolved_at: string | null };
 
@@ -48,9 +49,9 @@ export function StalledMissedReturn({ jobId }: { jobId: string }) {
         <div className="flex flex-wrap gap-2">
           {r.photos.map((p, i) => (
             urls[i] ? (
-              <button key={p} type="button" onClick={() => openPhoto(i)} className="min-h-11 font-semibold text-foreground underline underline-offset-2">
+              <PhotoOpenButton key={p} onClick={() => openPhoto(i)} className="min-h-11 font-semibold text-foreground underline underline-offset-2">
                 Photo {i + 1}
-              </button>
+              </PhotoOpenButton>
             ) : (
               <span key={p} className="text-muted-foreground">Photo {i + 1} (loading)</span>
             )

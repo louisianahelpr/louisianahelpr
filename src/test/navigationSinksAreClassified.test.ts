@@ -1,4 +1,3 @@
-// @mutate src/components/job-card/JobCardPhotoStrip.tsx | href={openableDocumentUrl(url) ?? undefined} | href={url}
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -101,7 +100,6 @@ function safeByConstruction(expr: string): boolean {
  */
 const STRIPE_EDGE_URL = "a Stripe/checkout URL returned by our own edge function (server-built, not a user-writable column)";
 const STORAGE_SIGNED = "supabase.storage createSignedUrl() output: always https on this project's own origin";
-const PROOF_SIGNED = "useProofPhotoUrls(): a signed proof-photos URL, or the stored value only when it matches ^https?:// (signProofPhotoUrls), else null";
 const OBJECT_URL = "URL.createObjectURL() of a Blob the app built itself (blob: on our own origin)";
 const MAPS = "mapsSearchUrl(): a fixed https://maps.apple.com / maps:// / geo: prefix + encodeURIComponent(address)";
 
@@ -119,16 +117,6 @@ const CLASSIFIED: Record<string, string> = {
   // --- stored values, sanitized upstream of the sink ---
   "components/AttachmentLink.tsx::signed": "getAttachmentSignedUrl(): isStorageObjectPath-gated createSignedUrl output, else null",
   "components/MessageAttachment.tsx::url": "thumbUrl / getMessageAttachmentSignedUrl(): isStorageObjectPath-gated createSignedUrl output, else null",
-  "components/DisputeTimelineDialog.tsx::src ?? undefined": `${PROOF_SIGNED}; input is partitionEvidenceUrls().trusted`,
-  "components/admin/adminDisputes/DisputeCard.tsx::src ?? undefined": `${PROOF_SIGNED}; input is partitionEvidenceUrls().trusted`,
-  "components/admin/adminReports/WantedReportPanel.tsx::photoPublicUrl(p)": "photoPublicUrl(): our storage client's own https public URL for a stored path",
-  "components/ProofPhotoImg.tsx::src": `${PROOF_SIGNED}; every caller passes useProofPhotoUrls() output`,
-  "components/PhotoProof.tsx::beforeSrcs[i] ?? undefined": PROOF_SIGNED,
-  "components/PhotoProof.tsx::afterSrcs[i] ?? undefined": PROOF_SIGNED,
-  // The read-only gallery, split out of PhotoProof.tsx on 2026-10-23: the same signed proof links.
-  "components/PhotoProofDialog.tsx::beforeSrcs[i] ?? undefined": PROOF_SIGNED,
-  "components/PhotoProofDialog.tsx::afterSrcs[i] ?? undefined": PROOF_SIGNED,
-  "pages/jobs/HelperRevisionCard.tsx::url": PROOF_SIGNED,
   "components/admin/AdminCredentialQueue.tsx::signedUrl": "SignedOpenLink state: safeDocumentUrl(path) or createSignedUrl output, nothing else is ever set",
   "components/admin/AdminCredentialQueue.tsx::safe": "const safe = openableDocumentUrl(path) above (safeDocumentUrl output, or a blob: of its data: image)",
   "components/admin/AdminCredentialQueue.tsx::url": "SignedOpenLink's open() for openSignedDocument (Q295): only ever called with \"\" (the blank tab opened inside the click)",
@@ -139,13 +127,10 @@ const CLASSIFIED: Record<string, string> = {
   "lib/openSignedDocument.ts::url": STORAGE_SIGNED + " (Q295: deps.sign() is SignedOpenLink's createSignedUrl behind isStorageObjectPath; null closes the tab)",
   "components/profile/CredentialsTab.tsx::safe": "const safe = openableDocumentUrl(path) above (safeDocumentUrl output, or a blob: of its data: image)",
   "components/profile/CredentialsTab.tsx::signed.signedUrl": STORAGE_SIGNED,
-  "components/admin/StalledMissedReturn.tsx::urls[i]!": `${PROOF_SIGNED} (the missed-return report's photos; a null URL renders text, not a link)`,
   "components/messages/MessageBubble.tsx::url": "isSafeHttpsUrl(url) (new URL(url).protocol === 'https:') returns inert text first",
   // --- app-built URLs, no stored value in the scheme position ---
   "components/job-card/JobCardMetaRow.tsx::mapHref": MAPS,
   // Q2425: a fixed https://maps.apple.com/?ll=<number>,<number>&q=<encodeURIComponent(name)> for an admin-curated public spot.
-  "components/declutter/OrderTalkPhotoParts.tsx::url.data": STORAGE_SIGNED + " (F389: handoverPhotoUrl(path) on the order-chat photo, isStorageObjectPath-gated createSignedUrl on declutter-handover, else null and no link)",
-  "components/declutter/DeclutterProblemSides.tsx::u": STORAGE_SIGNED + " (handoverPhotoUrl(): isStorageObjectPath-gated createSignedUrl on declutter-handover, else null and no link)",
   "components/declutter/DeclutterMeetup.tsx::meetupMapUrl(m)": "meetupMapUrl(): a fixed https://maps.apple.com prefix + Number() coordinates + encodeURIComponent(spot name)",
   "components/declutter/DeclutterRefundReturn.tsx::meetupMapUrl({ spot_lat: r.return_lat, spot_lng: r.return_lng, spot_name: r.return_address })": "meetupMapUrl(): a fixed https://maps.apple.com prefix + Number() coordinates + encodeURIComponent(return address) (returns, Q2486)",
   "pages/jobs/appliedJobCard/DirectionsButton.tsx::href": MAPS,

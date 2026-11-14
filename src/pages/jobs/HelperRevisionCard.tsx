@@ -30,6 +30,7 @@ import { notifyJobParty } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { JobStepPrimaryButton } from "../../components/job-card/JobActionRow";
 import { JobStepRowSlot, useInJobStepRow } from "../../components/job-card/jobStepRow";
+import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
 
 interface HelperRevisionCardProps {
   jobId: string;
@@ -83,6 +84,8 @@ export function HelperRevisionCard({
    * URLs still resolve, so any row written before this shipped renders too.
    */
   const photoUrls = useProofPhotoUrls(revision?.photos ?? EMPTY_PHOTOS);
+  // Owner 11-13: a revision photo opens in the app's own viewer, never the signed URL in Safari.
+  const { open: openPhoto, viewer: photoViewer } = useInAppPhotoViewer(photoUrls, photoUrls.map((_, i) => `Revision photo ${i + 1}`));
 
   useEffect(() => {
     // Try to load from the formal table; fall back to the legacy note.
@@ -247,18 +250,18 @@ export function HelperRevisionCard({
               );
             }
             return (
-              <a
+              <button
                 key={i}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="w-14 h-14 rounded-ds-sm overflow-hidden border border-border/40 active:opacity-70"
+                type="button"
+                aria-label={`Open revision photo ${i + 1}`}
+                onClick={(e) => { e.stopPropagation(); openPhoto(i); }}
+                className="w-14 h-14 rounded-ds-sm overflow-hidden border border-border/40 active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <img src={url} alt={`Revision photo ${i + 1}`} className="w-full h-full object-cover" />
-              </a>
+              </button>
             );
           })}
+          <span className="contents" onClick={(e) => e.stopPropagation()}>{photoViewer}</span>
         </div>
       )}
 

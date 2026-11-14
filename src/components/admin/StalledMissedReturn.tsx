@@ -4,6 +4,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { useProofPhotoUrls } from "@/hooks/useProofPhotoUrls";
 import { formatTimestamp } from "@/lib/format";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
+import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
 
 type MissedReport = { reporter_side: "poster" | "helpr"; note: string | null; photos: string[]; created_at: string; resolved_at: string | null };
 
@@ -25,6 +26,7 @@ export function StalledMissedReturn({ jobId }: { jobId: string }) {
   });
   // The poster's photos, signed in the shared batch (proofPhotoStorage.ts); an unsigned one shows as text, not a link.
   const urls = useProofPhotoUrls(q.data?.photos ?? []);
+  const { open: openPhoto, viewer } = useInAppPhotoViewer(urls, urls.map((_, i) => `Missed-day photo ${i + 1}`));
   if (q.isError) {
     return (
       <>
@@ -46,13 +48,14 @@ export function StalledMissedReturn({ jobId }: { jobId: string }) {
         <div className="flex flex-wrap gap-2">
           {r.photos.map((p, i) => (
             urls[i] ? (
-              <a key={p} href={urls[i]!} target="_blank" rel="noopener noreferrer" className="font-semibold text-foreground underline underline-offset-2">
+              <button key={p} type="button" onClick={() => openPhoto(i)} className="min-h-11 font-semibold text-foreground underline underline-offset-2">
                 Photo {i + 1}
-              </a>
+              </button>
             ) : (
               <span key={p} className="text-muted-foreground">Photo {i + 1} (loading)</span>
             )
           ))}
+          {viewer}
         </div>
       )}
       <p className="text-muted-foreground">Nothing moved. Decide the split with Refund or change status in Jobs.</p>

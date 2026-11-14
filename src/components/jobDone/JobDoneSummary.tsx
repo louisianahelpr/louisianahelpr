@@ -9,6 +9,7 @@ import { formatPriceExact } from "@/lib/format";
 import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
 import { useProofPhotoUrls } from "@/hooks/useProofPhotoUrls";
 import { ProofPhotoImg } from "@/components/ProofPhotoImg";
+import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
 import { queryKeys } from "@/lib/queryKeys";
 import { fetchPayoutStatus, payoutStatusQueryOptions } from "@/lib/payoutSetupQueries";
 import { transferredCents, type TransferRow } from "@/lib/jobDonePay";
@@ -108,6 +109,9 @@ export function JobDoneSummary({
   const before = job?.proof_before_urls?.[0] ?? "";
   const after = job?.proof_after_urls?.[0] ?? "";
   const [beforeSrc, afterSrc] = useProofPhotoUrls([before, after]);
+  // Owner 11-13 (Yusef's "Mow and Weed Eat" review): a tap opens the photo in the app's own viewer, not Safari.
+  const viewerItems = [before ? { src: beforeSrc, alt: `Before photo of ${job?.title ?? "the job"}` } : null, after ? { src: afterSrc, alt: `After photo of ${job?.title ?? "the job"}` } : null].filter((x) => x !== null);
+  const { open: openPhoto, viewer } = useInAppPhotoViewer(viewerItems.map((x) => x.src), viewerItems.map((x) => x.alt));
   // F108: a released job whose Helpr has no bank yet never says "on its way to their bank".
   const waitsOnBank = useHelprPayoutWaitsOnBank(
     side === "poster" && job?.payment_status === "released" && !job.is_group_job ? job.helper_id : null,
@@ -130,19 +134,29 @@ export function JobDoneSummary({
 
       {photos.length > 0 && (
         <div className={`grid gap-2 ${photos.length === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
-          {photos.map((p) => (
-            <div key={p.label} className="relative aspect-[16/10] rounded-ds-lg overflow-hidden" style={{ background: "hsl(var(--photo-empty, 40 23% 82%))" }}>
-              <ProofPhotoImg src={p.src} alt={`${p.label} photo of ${job.title}`} className="w-full h-full object-cover" />
+          {photos.map((p, i) => (
+            <button
+              key={p.label}
+              type="button"
+              data-job-done-photo=""
+              disabled={!p.src}
+              onClick={() => openPhoto(i)}
+              aria-label={`Open the ${p.label.toLowerCase()} photo`}
+              className="relative block w-full aspect-[16/10] rounded-ds-lg overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
+              style={{ background: "hsl(var(--photo-empty, 40 23% 82%))" }}
+            >
+              <ProofPhotoImg insideControl src={p.src} alt={`${p.label} photo of ${job.title}`} className="w-full h-full object-cover" />
               <span
                 className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full font-sans font-bold text-ds-11"
                 style={{ background: "hsl(var(--card))", color: "hsl(var(--ink-deep))" }}
               >
                 {p.label}
               </span>
-            </div>
+            </button>
           ))}
         </div>
       )}
+      {viewer}
 
       {side === "poster" && released && !job.disputed_at && !job.dispute_status && (
         // Only an undisputed job: a dispute split or a crew refund pays out

@@ -19,6 +19,7 @@ import {
 import { FallbackImg } from "@/components/declutter/FallbackImg";
 import { photoPublicUrl, releaseWantedPhotos, takeDownWanted, type ReportedWanted } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
 
 export function WantedReportPanel({ post, reportId, open, onDone }: {
   post: ReportedWanted;
@@ -30,6 +31,7 @@ export function WantedReportPanel({ post, reportId, open, onDone }: {
   const [asking, setAsking] = useState(false);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const { open: openPhoto, viewer } = useInAppPhotoViewer(post.photo_paths.map((p) => photoPublicUrl(p)), post.photo_paths.map((_, i) => `Wanted post photo ${i + 1}`));
   const run = async (work: () => Promise<unknown>, done: string) => {
     setBusy(true);
     try {
@@ -51,12 +53,13 @@ export function WantedReportPanel({ post, reportId, open, onDone }: {
         <ul className="flex flex-wrap gap-2" aria-label="Photos on this post">
           {post.photo_paths.map((p, i) => (
             <li key={p} className="w-20 space-y-1">
-              <a href={photoPublicUrl(p)} target="_blank" rel="noreferrer" aria-label={`Open photo ${i + 1}`} className="block h-20 w-20 overflow-hidden rounded-ds-sm">
+              <button type="button" onClick={() => openPhoto(i)} aria-label={`Open photo ${i + 1}`} className="block h-20 w-20 overflow-hidden rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <FallbackImg src={photoPublicUrl(p)} alt="" className="h-full w-full bg-photo-empty object-cover" />
-              </a>
+              </button>
               {post.photos_held.includes(p) && <p className="font-semibold text-destructive-ink">Hidden from members</p>}
             </li>
           ))}
+          {viewer}
         </ul>
       )}
       {open && !post.removed && (

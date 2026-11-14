@@ -9,12 +9,12 @@ import { formatJobDate } from "@/lib/dateUtils";
 import { jobDayLabel } from "@/lib/jobDateWindow";
 import { formatTimestamp, formatCategory, formatPrice } from "@/lib/format";
 import { jobStartTimeLabel } from "@/lib/jobDate";
-import { openableDocumentUrl } from "@/lib/storagePath";
 import { JobNotes } from "@/components/job-card/JobNotes";
 import { useJobAccessNote } from "@/hooks/useJobAccessNote";
 import { EndSeriesSection } from "./EndSeriesSection";
 import { BillHelprFaultButton } from "../helprFault/BillHelprFaultButton";
 import { CancelHeldJobButton } from "./CancelHeldJobButton";
+import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
 
 interface JobDetailDialogProps {
   detailJob: Job | null;
@@ -53,6 +53,7 @@ export const JobDetailDialog = ({
 }: JobDetailDialogProps) => {
   // Owner answer 2 (2026-10-06): admins read the Access & Parking notes
   // ("Admins read access notes" policy), e.g. for a "couldn't get in" dispute.
+  const { open: openJobPhoto, viewer: jobPhotoViewer } = useInAppPhotoViewer(detailJob?.photos ?? [], (detailJob?.photos ?? []).map((_, i) => `Job photo ${i + 1}`));
   const accessNote = useJobAccessNote(detailJob?.id, !!detailJob && !deleteOpen);
   return (
     <Dialog open={!!detailJob && !deleteOpen} onOpenChange={onClose}>
@@ -109,10 +110,11 @@ export const JobDetailDialog = ({
             {(detailJob.photos || []).length > 0 && (
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {(detailJob.photos || []).map((url, i) => (
-                  <a key={i} href={openableDocumentUrl(url) ?? undefined} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                  <button key={i} type="button" onClick={() => openJobPhoto(i)} aria-label={`Open job photo ${i + 1}`} className="flex-shrink-0 rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <img loading="lazy" decoding="async" src={url} alt={`Photo ${i + 1}`} className="w-32 h-24 rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                  </a>
+                  </button>
                 ))}
+                {jobPhotoViewer}
               </div>
             )}
 

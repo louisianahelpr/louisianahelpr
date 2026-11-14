@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHero } from "@/components/ui/dialog";
 import { useProofPhotoUrls } from "@/hooks/useProofPhotoUrls";
 import { ProofPhotoImg } from "@/components/ProofPhotoImg";
+import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
 
 /* ── The full before/after gallery, on its own ──────────────────────────────
  *
@@ -29,6 +30,11 @@ export const PhotoProofDialog = ({
   const hasAfter = afterUrls.length > 0;
   const beforeSrcs = useProofPhotoUrls(beforeUrls);
   const afterSrcs = useProofPhotoUrls(afterUrls);
+  // Owner 11-13: a tap opens the photo in the app's own viewer, never the signed URL in Safari. One viewer for both
+  // sides, so a swipe goes from the last before photo to the first after photo.
+  const alts = [...beforeUrls.map((_, i) => `Before photo ${i + 1}`), ...afterUrls.map((_, i) => `After photo ${i + 1}`)];
+  const { open: openPhoto, viewer } = useInAppPhotoViewer([...beforeSrcs, ...afterSrcs], alts);
+  const tile = "block w-full rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default";
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -41,9 +47,9 @@ export const PhotoProofDialog = ({
               <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
               <div className="grid grid-cols-3 gap-2">
                 {beforeUrls.map((url, i) => (
-                  <a key={url ?? i} href={beforeSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer">
+                  <button key={url ?? i} type="button" className={tile} disabled={!beforeSrcs[i]} aria-label={`Open before photo ${i + 1}`} data-proof-photo-open="" onClick={() => openPhoto(i)}>
                     <ProofPhotoImg insideControl src={beforeSrcs[i]} alt={`Before ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                  </a>
+                  </button>
                 ))}
               </div>
             </div>
@@ -53,9 +59,9 @@ export const PhotoProofDialog = ({
               <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">After</p>
               <div className="grid grid-cols-3 gap-2">
                 {afterUrls.map((url, i) => (
-                  <a key={url ?? i} href={afterSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer">
+                  <button key={url ?? i} type="button" className={tile} disabled={!afterSrcs[i]} aria-label={`Open after photo ${i + 1}`} data-proof-photo-open="" onClick={() => openPhoto(beforeUrls.length + i)}>
                     <ProofPhotoImg insideControl src={afterSrcs[i]} alt={`After ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                  </a>
+                  </button>
                 ))}
               </div>
             </div>
@@ -64,6 +70,7 @@ export const PhotoProofDialog = ({
             <p className="text-ds-11 text-muted-foreground text-center py-6">No photos uploaded yet.</p>
           )}
         </div>
+        {viewer}
       </DialogContent>
     </Dialog>
   );

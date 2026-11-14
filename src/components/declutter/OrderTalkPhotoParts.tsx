@@ -16,6 +16,7 @@ import { AddPhotoTile } from "@/components/ui/AddPhotoTile";
 import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { handoverPhotoUrl } from "@/lib/declutter/handover";
 import { FallbackImg } from "./FallbackImg";
+import { useInAppPhotoViewer } from "@/components/useInAppPhotoViewer";
 
 export function OrderTalkPhotoPicker({ file, onChange, disabled = false }: { file: File | null; onChange: (file: File | null) => void; disabled?: boolean }) {
   const id = useId();
@@ -48,11 +49,16 @@ export function OrderTalkPhotoPicker({ file, onChange, disabled = false }: { fil
 
 export function OrderTalkMessagePhoto({ path }: { path: string }) {
   const url = useQuery({ queryKey: ["declutter", "order-talk-photo", path], queryFn: () => handoverPhotoUrl(path), staleTime: 8 * 60_000 });
+  // Owner 11-13: the photo opens in the app's own viewer, never the signed URL in Safari.
+  const { open, viewer } = useInAppPhotoViewer([url.data], ["Photo in this chat"]);
   // A fixed box, so the bubble does not jump when the photo arrives.
   if (!url.data) return <div className="mt-1 h-40 w-40 rounded-xl bg-photo-empty" aria-hidden data-order-talk-msg-photo="" />;
   return (
-    <a href={url.data} target="_blank" rel="noopener noreferrer" className="mt-1 block w-40" aria-label="Open the photo" data-order-talk-msg-photo="">
-      <FallbackImg src={url.data} alt="Photo" className="h-40 w-40 rounded-xl bg-photo-empty object-cover" />
-    </a>
+    <>
+      <button type="button" onClick={() => open(0)} className="mt-1 block w-40 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Open the photo" data-order-talk-msg-photo="">
+        <FallbackImg src={url.data} alt="Photo" className="h-40 w-40 rounded-xl bg-photo-empty object-cover" />
+      </button>
+      {viewer}
+    </>
   );
 }

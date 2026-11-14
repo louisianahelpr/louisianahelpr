@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-13T22:53Z",
+  "measured_at": "2026-11-14T00:24Z",
   "issues": {
     "readable": true,
     "open": [
@@ -85,14 +85,14 @@
         "number": 4222,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43405957403",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43530564455",
         "runTruncated": false
       },
       {
         "number": 4253,
         "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43322735351",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43521028123",
         "runTruncated": false
       },
       {
@@ -141,18 +141,6 @@
         "label": "nightly-red",
         "run": null,
         "runTruncated": true
-      },
-      {
-        "number": 4553,
-        "title": "prod-errors: real users are hitting error screens",
-        "label": "prod-errors"
-      },
-      {
-        "number": 4554,
-        "title": "nightly-red: prod-errors",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43479537941",
-        "runTruncated": false
       }
     ]
   },
@@ -264,6 +252,14 @@
         "issue": 3454
       },
       {
+        "fingerprint": "1ef4b10bb74a3a15e67e4fbd811e7a0c",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: prod-errors",
+        "issue": 4554
+      },
+      {
         "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -317,7 +313,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": 4222
+        "issue": null
       },
       {
         "fingerprint": "5be6011a46f6328f224c01fc99b85e95",
@@ -366,6 +362,14 @@
         "status": "open",
         "title": "stripe-connect cleared unusable payout account <id>",
         "issue": null
+      },
+      {
+        "fingerprint": "fad6897fcfae4dbab07ce7af920ad671",
+        "source_kind": "nightly_red",
+        "source": "prod-errors",
+        "status": "open",
+        "title": "prod-errors: real users are hitting error screens",
+        "issue": 4553
       },
       {
         "fingerprint": "b8b42cf124da685c1fe0087a97455b48",
@@ -480,19 +484,19 @@
         "issue": null
       },
       {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: declutter-money returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
         "issue": null
       },
       {
@@ -607,7 +611,6 @@
     "issue #4451": "Q1816",
     "issue #4453": "Q1816",
     "issue #4553": "Q2802",
-    "issue #4554": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",
@@ -616,6 +619,7 @@
     "ledger 15cc2d7f63f3": "Q2347",
     "ledger 16e6e91f6701": "Q1816",
     "ledger 18539240a894": "Q1816",
+    "ledger 1ef4b10bb74a": "Q1816",
     "ledger 227a34518198": "Q2801",
     "ledger 2e4f3e726722": "Q1816",
     "ledger 36bcfb8c2391": "Q1696",
@@ -665,6 +669,7 @@
     "ledger e41c806b9175": "Q1816",
     "ledger f1bfed973a2a": "Q2734",
     "ledger f22e3275d50d": "Q1816",
+    "ledger fad6897fcfae": "Q2802",
     "ledger feb363ff214a": "Q1816"
   }
 }

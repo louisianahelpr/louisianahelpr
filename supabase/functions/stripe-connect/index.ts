@@ -14,7 +14,7 @@ import { payoutSetupHireAllowed, payoutSetupNeedsHireResponse } from "../_shared
 import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { isRejectedAccount, isRejectedAccountError } from "../_shared/livePayoutGate.ts";
-import { recordConnectChange } from "../_shared/connectRecord.ts";
+import { recordConnectChange, recordConnectFailure } from "../_shared/connectRecord.ts";
 import { connectBusinessFrom, type ConnectBusiness } from "../_shared/connectBusinessType.ts";
 
 /** Q863: clears recorded in the last hour before stripe-connect stops clearing. */
@@ -96,6 +96,9 @@ serve(async (req) => {
   // without re-deriving either (Q859).
   let callerId: string | null = null;
   let stripeClient: Stripe | null = null;
+  // Hoisted for the catch's error_logs row (which action failed, and whether a test account hit it).
+  let failedAction: string | null = null;
+  let callerTestMode = false;
 
   /**
    * Q859 (5) — only an ACCOUNT-SCOPED answer may clear a payout account.
@@ -273,18 +276,43 @@ serve(async (req) => {
     if (unconfirmedEmail) return unconfirmedEmail;
 
     callerId = user.id;
+    const body = await req.json();
+    const { action } = body;
+    failedAction = typeof action === "string" ? action.slice(0, 40) : null;
+
+    // prod error_logs 2026-11-11 and 11-13: two members with NO payout account got the generic 500 from `status` and
+    // `list_payout_methods`. Nothing on that path needs Stripe: answer the empty state from the caller's own row BEFORE
+    // the Stripe mode lookup and the Stripe client, so no lookup that only matters for an account can fail it. A
+    // missing profile row is no account too (it was `.single()`'s PGRST116 -> 500). A failed READ still fails: then
+    // we cannot know there is no account, and "not connected" would tell a connected Helpr to connect again.
+    if (action === "status" || action === "list_payout_methods") {
+      const { data: own, error: ownErr } = await supabaseAdmin
+        .from("profiles")
+        .select("stripe_account_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (ownErr) throw new Error(`Could not load your profile — please try again (${ownErr.code ?? "no code"})`);
+      if (!own?.stripe_account_id) {
+        const empty = action === "status"
+          ? { connected: false, details_submitted: false, payouts_enabled: false }
+          : { methods: [] };
+        return new Response(JSON.stringify(empty), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+    }
+
     // Stripe mode (owner 2026-10-12): a test account runs on the TEST key, everyone
     // else on the live key; decided from the caller's own row, never the body.
     const callerMode = await stripeModeForParties(supabaseAdmin, [user.id]);
+    callerTestMode = callerMode === "test";
     // TEST mode is exactly "the caller is an enrolled is_seed test account".
     const callerIsTestSeat = callerMode === "test" && !APP_REVIEW_ACCOUNT_IDS.has(user.id);
     const stripe = new Stripe(stripeSecretKeyFor(callerMode), {
       apiVersion: "2025-08-27.basil",
     });
     stripeClient = stripe;
-
-    const body = await req.json();
-    const { action } = body;
 
     // Payout setup pause (owner ruling 2026-10-23: Stripe closed the platform
     // account). Every action that creates a Connect account or an Account Link
@@ -1125,6 +1153,10 @@ serve(async (req) => {
       // below is the true answer.
     }
 
+    // The console line above outlives nothing: edge logs age out (the 11-11 and 11-13 status/list_payout_methods
+    // 500s could not be read back on 11-14). Keep the cause where it can be read later. A failed insert is logged,
+    // never thrown: the member still gets the answer below. After the stale-account branch: a cleared account is a 409 with its own record.
+    await recordConnectFailure(supabaseAdmin, { userId: callerId, action: failedAction, test: callerTestMode, err });
     // Client-safe generic message — the raw Stripe/PostgREST detail is already
     // in the console.error above. Returning err.message here handed schema and
     // integration internals to the caller (EF-5, hole hunt 2026-09-15).

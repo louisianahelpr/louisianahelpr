@@ -86,6 +86,13 @@ export interface SlackAlertInput {
    * src/test/informationalAlertsNeverReachTheLedger.test.ts holds that one.
    */
   ledger?: boolean
+  /**
+   * The Stripe object this alert is about is a TEST-mode one (`livemode === false`): muted exactly as an alert
+   * raised inside stripe-webhook's test-mode scope is (logged as test; no Slack, ledger or digest row). For the
+   * callers that hold the Stripe object themselves rather than running in that scope (the Shops hold and refund
+   * crons). Owner rule 11-04: test data never reaches the owner.
+   */
+  stripeTestMode?: boolean
 }
 
 type ErrorLogRow = { id: string }
@@ -316,7 +323,7 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<boolean
 
     // A Stripe TEST-mode event (stripe-webhook's scope, _shared/stripeTestMode.ts): logged as test, nothing else.
     // No Slack, no ledger, no digest row: test data never reaches the owner (lead 11-04, run 41930346999).
-    if (inStripeTestMode()) {
+    if (inStripeTestMode() || input.stripeTestMode === true) {
       console.log(JSON.stringify({ event: 'ops_alert_stripe_test_mode', kind: input.kind, title: input.title }))
       return true
     }

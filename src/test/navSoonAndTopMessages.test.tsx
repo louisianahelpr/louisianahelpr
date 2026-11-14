@@ -16,6 +16,8 @@
  * @mutate src/components/MobileNav.tsx |     const badgeCount = isGuest \|\| closed ? 0 : dockBadgeCount(badgeKey, unreadCount, todo); |     const badgeCount = isGuest ? 0 : dockBadgeCount(badgeKey, unreadCount, todo);
  * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <PhoneMessagesButton />}\n | \n
  * @mutate src/components/sections/AppTopBar.tsx |       {unreadCount > 0 && ( |       {false && (
+ * @mutate src/components/sections/SectionSearchBar.tsx | full.length <= 22 ? "max-[409px]:hidden" | full.length <= 22 ? "max-[359px]:hidden"
+ * @mutate src/components/messages/MessagesSearchRow.tsx | <span className="max-[439px]:hidden"> | <span className="max-[359px]:hidden">
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -53,6 +55,9 @@ vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false, exp
 
 import MobileNav from "@/components/MobileNav";
 import { AppTopBar } from "@/components/sections/AppTopBar";
+import { nounHideClass } from "@/components/sections/SectionSearchBar";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 function Where() {
   const l = useLocation();
@@ -184,5 +189,21 @@ describe("Messages on the top row (owner 11-14)", () => {
   it("You's title row (no search) has it too", () => {
     renderPhone("/profile", false);
     expect(screen.getByTestId("app-top-bar").querySelector('[data-testid="top-bar-messages"]')).not.toBeNull();
+  });
+});
+
+// The row lost 44px to Messages, so a search's words drop their noun (never cut) where they no longer fit. Measured
+// in Chromium at 320/360/375/390/414/430 (English and Spanish), ~/.lh-shots/nav-soon-1114/fit-*.txt.
+describe("the search words still fit beside Messages, the bell and the photo", () => {
+  it("short words keep their noun from 360, longer ones from 410, the longest from 450", () => {
+    expect(nounHideClass("Search jobs")).toBe("max-[359px]:hidden");
+    expect(nounHideClass("Search Declutter")).toBe("max-[409px]:hidden");
+    expect(nounHideClass("Search jobs and items")).toBe("max-[409px]:hidden");
+    expect(nounHideClass("Buscar trabajos y artículos")).toBe("max-[449px]:hidden");
+  });
+
+  it("Messages' 'Search conversations' drops its noun below 440px", () => {
+    const row = readFileSync(resolve(__dirname, "../components/messages/MessagesSearchRow.tsx"), "utf8");
+    expect(row).toContain('{t("chat.searchShort")}<span className="max-[439px]:hidden"> {t("chat.searchNoun")}</span>');
   });
 });

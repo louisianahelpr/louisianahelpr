@@ -73,8 +73,8 @@ describe("the compact top (owner 11-14)", () => {
   it("Messages hands its search to the bar, and every hand-drawn loading frame draws the same row", () => {
     const list = code("src/components/messages/ConversationList.tsx");
     expect(list).toContain("<AppTopBar title={t(\"msg.title\")} desktopGap={false} search={isWebDesktop ? undefined : phoneSearchRow} />");
-    // Beside the bell and the photo the field's words shorten to "Search" below 360px, never cut mid-word.
-    expect(code("src/components/messages/MessagesSearchRow.tsx")).toContain('{t("chat.searchShort")}<span className="max-[359px]:hidden"> {t("chat.searchNoun")}</span>');
+    // Beside Messages, the bell and the photo (owner 11-14) the words shorten to "Search" below 440px, never cut mid-word.
+    expect(code("src/components/messages/MessagesSearchRow.tsx")).toContain('{t("chat.searchShort")}<span className="max-[439px]:hidden"> {t("chat.searchNoun")}</span>');
     // The desktop two-pane list keeps its search as a row of its own (its title sits in the desktop bar).
     expect(list).toContain("{isWebDesktop && phoneSearchRow}");
     const frames = ["src/components/JobsSectionSkeleton.tsx", "src/components/DashboardRouteSkeleton.tsx", "src/components/MessagesRouteSkeleton.tsx"];

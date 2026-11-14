@@ -27,9 +27,18 @@ function useNoun(noun: string): { search: string; noun: string } {
   return { search: t("section.search"), noun: key ? t(key) : noun };
 }
 
+/**
+ * The noun drops (never cut) below the width where it no longer fits beside the top row's Messages, bell and photo
+ * (owner 11-14 put Messages on the row). Measured at 320/360/375/390/414/430 in Chromium: "Search jobs" fits from
+ * 360, "Search Declutter" and "Search jobs and items" from 414 (not at 390). Guard: src/test/navSoonAndTopMessages.test.tsx.
+ */
+export function nounHideClass(full: string): string {
+  return full.length <= 12 ? "max-[359px]:hidden" : full.length <= 22 ? "max-[409px]:hidden" : "max-[449px]:hidden";
+}
+
 function Words({ noun }: { noun: string }) {
   const w = useNoun(noun);
-  return <>{w.search}<span className="max-[359px]:hidden"> {w.noun}</span></>;
+  return <>{w.search}<span className={nounHideClass(`${w.search} ${w.noun}`)}> {w.noun}</span></>;
 }
 
 const BAR = "flex h-11 w-full min-w-0 items-center gap-2 rounded-full border border-border bg-card pl-4 pr-1";

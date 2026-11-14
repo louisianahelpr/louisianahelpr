@@ -115,7 +115,7 @@ serve(async (req) => {
     // Find disputed jobs past their 72-hour deadline
     const { data: expiredDisputes, error: fetchErr } = await supabase
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, dispute_reason, disputed_at, dispute_deadline, dispute_status, payment_status, stripe_payment_intent_id, stripe_session_id, disputed_by, is_group_job")
+      .select("id, title, helper_id, customer_id, budget, dispute_reason, disputed_at, dispute_deadline, dispute_status, payment_status, stripe_payment_intent_id, stripe_session_id, disputed_by, is_group_job, is_seed")
       .eq("status", "disputed")
       .not("dispute_deadline", "is", null)
       .lte("dispute_deadline", new Date().toISOString());
@@ -252,7 +252,10 @@ serve(async (req) => {
         // empty list, which remindAdmins treats as "nobody to tell" and the run
         // reports 2xx with the overdue dispute unwatched.
         if (!escalatedAdminsOk) defects.record(`admin lookup failed for escalation reminder job ${job.id}`);
-        await remindAdmins(
+        // A test fixture's dispute never reminds an admin (owner rule: test data never shows to the owner). The
+        // seed boundary dropped the notification already, but logged an "Escalated dispute overdue" row for it every
+        // run: 16 in the 8 days to 2026-11-14, all on is_seed jobs ("Prod audit dispute fixture", "SEED Regrout ...").
+        if (job.is_seed !== true) await remindAdmins(
           escalatedAdminIds,
           ESCALATED_TITLE,
           `"${job.title}" dispute was escalated and is past its 72h deadline. Please resolve ASAP.`,
@@ -343,7 +346,8 @@ serve(async (req) => {
       }
       const { ok: expiredAdminsOk, ids: expiredAdminIds } = await loadAdminIds(supabase, "auto-resolve-disputes.expired");
       if (!expiredAdminsOk) defects.record(`admin lookup failed for expired-dispute escalation job ${job.id}`);
-      await remindAdmins(
+      // A test fixture's escalation still happens (above); only the admin reminder is skipped, as for an escalated one.
+      if (job.is_seed !== true) await remindAdmins(
         expiredAdminIds,
         ESCALATED_TITLE,
         `"${job.title}" was disputed by ${helprSideFiled ? "the Helpr" : "the person who posted it"} and nobody settled it within 72 hours. ` +

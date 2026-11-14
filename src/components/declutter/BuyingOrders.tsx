@@ -318,7 +318,8 @@ export function useBuyingTracker(): BuyingTracker {
   useQueries({ queries: helpr.map((o) => deliveryRaiseQuery(o.orderId)) });
   const hasHelpr = helpr.length > 0;
   useEffect(() => {
-    if (hasHelpr) void import("./DeclutterDeliveryViews");
+    // A warm-up only: Details' own lazy load asks again and recovers a stale chunk (uncaught, it was an unhandled rejection).
+    if (hasHelpr) import("./DeclutterDeliveryViews").catch(() => { /* warm-up only; Details' own load reports a real failure */ });
   }, [hasHelpr]);
   // Owner 11-11 (F363, option b): Needs you is exactly the Home To-do list's Buying rows (declutterBuyingTodos, the
   // badges' rule), from the same reads and keys Home uses: an order is under Needs you when it has such a row (a paid

@@ -28,6 +28,8 @@ const ACCT = "acct_q2368_old";
 const records = () =>
   scenario.writes
     .filter((w) => w.table === "error_logs" && w.op === "insert")
+    // The generic 500's own cause row (kind connect-500, prod-errors 11-14) is not a change record.
+    .filter((w) => (w.payload as { tags?: { kind?: string } }).tags?.kind !== "connect-500")
     .map((w) => w.payload as { severity: string; user_id: string; tags: Record<string, unknown>; context: Record<string, unknown> })
     .filter((p) => p.tags?.source === "stripe-connect" && String(p.tags?.kind ?? "").startsWith("connect-"));
 

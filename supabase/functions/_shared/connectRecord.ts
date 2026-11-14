@@ -30,3 +30,41 @@ export async function recordConnectChange(
   });
   if (error) console.error(`[connect-record] could not record ${r.kind} for ${r.userId}: ${error.message}`);
 }
+
+/** Anything that looks like a secret or a card number never reaches the row. */
+function scrub(text: string): string {
+  return text
+    .replace(/\b(?:sk|rk|pk)_(?:live|test)_[A-Za-z0-9]+/g, "<key>")
+    .replace(/\bwhsec_[A-Za-z0-9]+/g, "<key>")
+    .replace(/\beyJ[A-Za-z0-9._-]{20,}/g, "<jwt>")
+    .replace(/\b\d{12,19}\b/g, "<number>");
+}
+
+/**
+ * stripe-connect's generic 500 (owner 11-14, prod-errors item 9): the cause, durably. The 11-11 and 11-13
+ * status / list_payout_methods 500s left only a console line, and edge logs had aged out by the time anyone looked.
+ * One severity-error row: tags.source 'stripe-connect', tags.kind 'connect-500', tags.action; the message is
+ * "stripe-connect 500 (<action>) — <name>: <message>" (the alert title is the part before " — ", so one action is one
+ * alert); context carries the Stripe type/code/status. No body, no card data, no keys (scrub above). A test
+ * account's row is tagged seed (the digest, never a page). A failed insert is logged, never thrown.
+ */
+export async function recordConnectFailure(
+  db: Db,
+  r: { userId: string | null; action: string | null; test: boolean; err: Error & { type?: string; code?: string; statusCode?: number } },
+): Promise<void> {
+  const name = r.err?.name || "Error";
+  const what = scrub(String(r.err?.message ?? "(no message)")).slice(0, 300);
+  const { error } = await db.from("error_logs").insert({
+    user_id: r.userId,
+    severity: "error",
+    message: `stripe-connect 500 (${r.action ?? "unknown action"}) — ${name}: ${what}`,
+    tags: { source: "stripe-connect", kind: "connect-500", action: r.action ?? "unknown", ...(r.test ? { seed: true } : {}) },
+    context: {
+      error_name: name,
+      stripe_type: r.err?.type ?? null,
+      stripe_code: r.err?.code ?? null,
+      stripe_status: typeof r.err?.statusCode === "number" ? r.err.statusCode : null,
+    },
+  });
+  if (error) console.error(`[connect-record] could not record a stripe-connect 500 (${r.action}): ${error.message}`);
+}

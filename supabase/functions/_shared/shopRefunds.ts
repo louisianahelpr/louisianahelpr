@@ -1,5 +1,7 @@
-// seed-policy: pages for seed/test Shops refunds too, on purpose: the one alert here is a
-// buyer's refund that Stripe kept refusing, which is money owed whoever owns it.
+// seed-policy: pages for seed Shops refunds too, on purpose (10-19 note): the one alert here is a buyer's refund
+// that Stripe kept refusing, which is money owed whoever owns it. EXCEPT an order paid in TEST mode
+// (row.livemode === false): no real money is owed, and the owner rule of 11-04 ("test data never shows to the
+// owner") supersedes the 10-19 note for it, so that alert is muted as stripe-webhook mutes a test-mode event.
 //
 // shopRefunds — the one Stripe move of a Shops refund (Shops M3, migration
 // 20261019071055_shops_refunds_cancels_strikes). One copy, used by shop-checkout
@@ -114,6 +116,7 @@ export async function sendShopRefund(stripe: Stripe, admin: Db, row: ShopRefundR
       title: "Shops: a buyer's refund gave up",
       message: `Stripe refused this Shops refund ${SHOP_REFUND_MAX_ATTEMPTS} times. Refund the buyer by hand in Stripe, then record it. Last reason: ${(why || "unknown").slice(0, 200)}.`,
       fields: { Refund: row.refund_id, Order: row.order_id, Cents: String(row.refund_cents) },
+      stripeTestMode: row.livemode === false,
     });
   }
   return "failed";

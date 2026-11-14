@@ -1,5 +1,7 @@
-// seed-policy: pages for seed/test Shops orders too, on purpose: the one alert here is a
-// payment Stripe captured for an order that ended, which is money that moved whoever owns it.
+// seed-policy: pages for seed Shops orders too, on purpose (10-17 note): the one alert here is a payment Stripe
+// captured for an order that ended, which is money that moved whoever owns it. EXCEPT a TEST-mode payment
+// (pi.livemode === false): no real money moved, and the owner rule of 11-04 ("test data never shows to the
+// owner") supersedes the 10-17 note for it, so that alert is muted as stripe-webhook mutes a test-mode event.
 //
 // shopHolds — the two Stripe moves of a Shops order's card hold (Shops M1,
 // migration 20261018164442_shops_orders_checkout; docs/specs/local-shops-prep.md
@@ -148,7 +150,8 @@ export type ReleaseOutcome = "released" | "already_gone" | "captured_needs_refun
  * Cancel the hold of an order that ended unpaid (declined, no answer, withdrawn,
  * superseded) and record it. A payment Stripe shows as CAPTURED on a closed
  * order is never marked released: it is money taken for an order that ended,
- * so it pages ops (seed or not: money moved) and waits for a refund (M3).
+ * so it pages ops (seed or not: money moved) and waits for a refund (M3). A TEST-mode payment's page is muted
+ * (owner 11-04: test data never shows to the owner); it is still counted and still waits.
  */
 export async function releaseShopHold(stripe: Stripe, admin: Db, row: ShopHoldRow): Promise<ReleaseOutcome> {
   if (!row.payment_intent_id) return "already_gone";
@@ -164,6 +167,7 @@ export async function releaseShopHold(stripe: Stripe, admin: Db, row: ShopHoldRo
         title: "Shops: a closed order's payment was captured",
         message: "A Shops order ended without being accepted, but Stripe shows its payment captured. It needs a refund by hand until the Shops refunds slice lands.",
         fields: { Order: row.order_id, PaymentIntent: piId },
+        stripeTestMode: pi.livemode === false,
       });
       // Never marked released; counted, so it waits behind the cancels that can still happen.
       await recordReleaseFailure(admin, row.order_id, "payment captured on a closed order");

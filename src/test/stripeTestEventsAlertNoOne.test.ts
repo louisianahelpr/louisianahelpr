@@ -7,7 +7,7 @@
  *
  * @mutate supabase/functions/stripe-webhook/index.ts | await runForStripeMode(event.livemode === false, async () => { await handler(event, ctx); }); | await handler(event, ctx);
  * @mutate supabase/functions/stripe-webhook/index.ts | await runForStripeMode(event?.livemode === false, () => postSlackOpsAlert({ | await runForStripeMode(false, () => postSlackOpsAlert({
- * @mutate supabase/functions/_shared/slack-alerts.ts |     if (inStripeTestMode()) { |     if (false) {
+ * @mutate supabase/functions/_shared/slack-alerts.ts |     if (inStripeTestMode() \|\| input.stripeTestMode === true) { |     if (input.stripeTestMode === true) {
  * @mutate supabase/functions/_shared/adminIds.ts |   if (inStripeTestMode()) { |   if (false) {
  * @mutate supabase/functions/_shared/stripeTestMode.ts |   return typeof read === "function" && (read as () => boolean)() === true; |   return false;
  * @mutate supabase/functions/stripe-webhook/testModeScope.ts | registerStripeTestModeReader(() => scope.getStore() === true); | registerStripeTestModeReader(() => false);
@@ -53,7 +53,8 @@ describe("Stripe TEST-mode events alert and notify no one", () => {
   it("postSlackOpsAlert logs a TEST-mode alert first, before seed rows, the ledger or Slack", () => {
     const fn = body(read("supabase/functions/_shared/slack-alerts.ts"), "export async function postSlackOpsAlert(");
     expect(fn.length).toBeGreaterThan(2000);
-    const test = fn.indexOf("if (inStripeTestMode()) {");
+    // prod-errors 11-14: the same check also mutes an alert whose caller holds a TEST-mode Stripe object.
+    const test = fn.indexOf("if (inStripeTestMode() || input.stripeTestMode === true) {");
     expect(test).toBeGreaterThan(0);
     for (const later of ["if (input.seed)", "recordOpsAlertLedger(", "recordAlertRow("]) {
       expect(fn.indexOf(later), later).toBeGreaterThan(test);

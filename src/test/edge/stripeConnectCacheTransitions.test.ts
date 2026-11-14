@@ -71,7 +71,9 @@ const accountGone = (id: string) =>
 const profileUpdates = () => scenario.writes.filter((w) => w.table === "profiles" && w.op === "update");
 const clears = () =>
   profileUpdates().filter((w) => (w.payload as Record<string, unknown>)?.stripe_account_id === null);
-const staleClearLogs = () => scenario.writes.filter((w) => w.table === "error_logs" && w.op === "insert");
+// The generic 500's own cause row (kind connect-500, prod-errors 11-14) is not a clear record.
+const staleClearLogs = () =>
+  scenario.writes.filter((w) => w.table === "error_logs" && w.op === "insert" && (w.payload as { tags?: { kind?: string } }).tags?.kind !== "connect-500");
 const noticeTitles = () =>
   scenario.writes
     .filter((w) => w.table === "notifications" && w.op === "insert")

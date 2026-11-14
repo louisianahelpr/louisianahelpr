@@ -8,6 +8,7 @@
 import { lazy, Suspense, useEffect, useState, type Ref } from "react";
 import { ArrowUpDown, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import { TYPE } from "@/components/ui/designScale";
 import type { DeclutterSort } from "@/lib/declutter/browseFilters";
 import { useLanguage } from "@/lib/i18n/language";
@@ -29,8 +30,8 @@ export function DeclutterResultsHead({ query, count }: { query: string; count: n
   );
 }
 
-const loadSortMenu = () => import("./DeclutterSortMenu");
-const DeclutterSortMenu = lazy(loadSortMenu);
+const loadSortMenu = () => loadModule(() => import("./DeclutterSortMenu"));
+const DeclutterSortMenu = lazy(async () => (await loadSortMenu()) ?? untilReload());
 
 /** The compact Filter | Sort bar right above the results grid. */
 export function DeclutterResultsBar({ filterCount, onFilters, sorts, sort, onSort, filtersRef }: {

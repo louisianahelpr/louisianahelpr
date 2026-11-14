@@ -96,7 +96,7 @@ export function PublicProfileTabs({
             aria-selected={on}
             data-pp-tab={t.key}
             onClick={() => select(t.key)}
-            className={`relative shrink-0 gap-1 px-0 text-ds-15 tracking-normal hover:bg-transparent ${on ? "font-semibold text-foreground after:absolute after:inset-x-0 after:bottom-0 after:border-b-2 after:border-foreground after:content-['']" : "font-normal text-muted-foreground"}`}
+            className={`relative shrink-0 gap-1 px-0 text-ds-15 tracking-normal ${on ? "font-semibold text-foreground after:absolute after:inset-x-0 after:bottom-0 after:border-b-2 after:border-foreground after:content-['']" : "font-normal text-muted-foreground"}`}
           >
             {t.label}
             {t.count != null && <span className="tabular-nums font-normal text-muted-foreground">{t.count}</span>}

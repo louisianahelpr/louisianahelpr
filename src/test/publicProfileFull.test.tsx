@@ -12,14 +12,14 @@
  *
  * @mutate src/pages/u/PublicProfilePage.tsx | const listingsShown = allListings ? p.listings : p.listings.slice(0, LISTINGS_FIRST); | const listingsShown = p.listings.slice(0, LISTINGS_FIRST);
  * @mutate src/pages/u/PublicProfilePage.tsx | title={`For sale · ${listingTotal}`} | title="For sale"
- * @mutate src/pages/u/PublicProfilePage.tsx | {p.bio && <p | {false && <p
+ * @mutate src/pages/u/PublicProfilePage.tsx | {p.bio && <PublicProfileBio | {false && <PublicProfileBio
  * @mutate src/pages/u/PublicProfilePage.tsx | <HelperWorkPhotos urls={work} /> | {null}
  * @mutate src/pages/u/PublicProfilePage.tsx | {ctaReady && !isMe && (team ? <MessageSupportButton | {!isMe && (team ? <MessageSupportButton
  * @mutate src/pages/u/PublicProfilePage.tsx | const ctaReady = !user \|\| !meLoading; | const ctaReady = true;
  * @mutate supabase/migrations/20261105165059_public_profile_full.sql | GRANT UPDATE (show_in_search) ON public.profiles TO authenticated; | SELECT 1;
  * @mutate src/pages/u/PublicProfilePage.tsx | const PROFILE_WIDE = "min-[900px]:max-w-3xl"; | const PROFILE_WIDE = "";
  * @mutate supabase/migrations/20261105165059_public_profile_full.sql |      AND NOT public.profile_review_same_person(rt.reviewer_id, rt.reviewee_id); |      ;
- * @mutate src/pages/u/PublicProfilePage.tsx | grid grid-cols-2 gap-3 min-[900px]:grid-cols-4 | grid grid-cols-2 gap-3
+ * @mutate src/pages/u/PublicProfilePage.tsx | grid grid-cols-3 gap-0.5 lg:grid-cols-4 lg:gap-3 | grid grid-cols-3 gap-0.5 lg:gap-3
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -126,11 +126,12 @@ describe("the shareable profile shows everything (owner requests 11-05)", () => 
     expect(screen.getByRole("link", { name: "Add work photos" }).getAttribute("href")).toBe("/profile?tab=profile");
   });
 
+  // Owner 11-14 (Depop review item 10): below lg (900px) the grid is 3 across with 2px gaps; from lg 4 across, as M5 set.
   it("from 900px the column widens and the shop grid is 4 across (audit M5)", async () => {
     rpc.mockResolvedValue({ data: PAGE, error: null });
     const { container } = show();
     const grid = await screen.findByTestId("pp-listings-grid");
-    expect(grid.className.split(" ")).toEqual(expect.arrayContaining(["grid-cols-2", "min-[900px]:grid-cols-4"]));
+    expect(grid.className.split(" ")).toEqual(expect.arrayContaining(["grid-cols-3", "gap-0.5", "lg:grid-cols-4", "lg:gap-3"]));
     const body = container.querySelector("[data-public-profile]") as HTMLElement;
     expect(body.className.split(" ")).toEqual(expect.arrayContaining(["max-w-md", "min-[900px]:max-w-3xl"]));
   });

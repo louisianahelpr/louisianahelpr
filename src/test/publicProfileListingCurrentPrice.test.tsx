@@ -9,7 +9,7 @@
  * (src/test/declutterPriceInclFee.test.tsx, which keys on `.current_price_cents`) sees this row too.
  *
  * @mutate src/lib/profileLink/api.ts | ({ ...l, current_price_cents: price_cents }) | ({ ...l, current_price_cents: 0, price_cents })
- * @mutate src/pages/u/PublicProfilePage.tsx |                     <PriceInclFee priceCents={l.current_price_cents} /> | {null}
+ * @mutate src/pages/u/PublicProfilePage.tsx | <PriceInclFee priceCents={l.current_price_cents} className="block text-ds-12 | {null && <PriceInclFee priceCents={l.current_price_cents} className="block text-ds-12
  */
 import { describe, expect, it, vi } from "vitest";
 import { resolve } from "node:path";

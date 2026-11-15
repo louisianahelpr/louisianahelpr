@@ -11461,7 +11461,7 @@
     },
     {
       "file": "src/components/shops/ShopCancelPolicyPicker.tsx",
-      "line": 21,
+      "line": 23,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11471,7 +11471,7 @@
     },
     {
       "file": "src/components/shops/ShopCancelPolicyPicker.tsx",
-      "line": 24,
+      "line": 26,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

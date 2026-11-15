@@ -323,6 +323,10 @@ export function ConversationList({
      row's right edge. Select mode still takes the row over; desktop keeps its in-panel row. Guard: messagesTopBarGlobalRule. */
   const phoneTopBar = embedded || !isWebDesktop; // Board 38: the desktop list pane wears the phone header too.
   const inboxSwitch = useInboxTabsSlot();
+  // Inside the Inbox (owner 11-15, "Polish, then launch"): the Notifications tab's header, the visible title "Inbox" then
+  // the tabs; the search row moves under the tabs instead of being the top row above them.
+  const inInbox = inboxSwitch != null;
+  const listTitle = inInbox ? t("inbox.title") : t("msg.title");
   const moreMenu = (
     <MessagesMoreMenu
       {...inboxViewItems}
@@ -335,13 +339,14 @@ export function ConversationList({
   // The compact top (owner 11-14): on a phone the search IS the top row, the bell and the photo inline on its right;
   // "Messages" stays a visually hidden h1. The desktop two-pane list (board 38) has its title in the desktop bar, so its
   // search row stays a row of its own under it. Guard: src/test/compactTopRow.test.tsx.
-  const phoneSearchRow = <MessagesSearchRow value={searchQuery} onChange={setSearchQuery} moreMenu={moreMenu} inBar={!isWebDesktop} />;
+  const phoneSearchRow = <MessagesSearchRow value={searchQuery} onChange={setSearchQuery} moreMenu={moreMenu} inBar={!isWebDesktop && !inInbox} />;
 
   const headerEl = phoneTopBar && !selectMode ? (
     <>
-      <div className="shrink-0"><AppTopBar title={t("msg.title")} desktopGap={false} search={isWebDesktop ? undefined : phoneSearchRow} /></div>
-      {isWebDesktop && phoneSearchRow}
+      <div className="shrink-0"><AppTopBar title={listTitle} desktopGap={false} search={isWebDesktop || inInbox ? undefined : phoneSearchRow} /></div>
+      {isWebDesktop && !inInbox && phoneSearchRow}
       {inboxSwitch /* The Inbox's Messages / Notifications tabs (owner 11-15), above this list's own section chips. */}
+      {inInbox && <div className="shrink-0 pt-2">{phoneSearchRow}</div>}
       {sectionTabs && (
         <div className="shrink-0 pt-1 pb-1.5" data-testid="messages-section-tabs">
           {sectionTabs}
@@ -366,7 +371,7 @@ export function ConversationList({
                it kept its title, and the page had ZERO h1 so a screen reader
                landed on an unnamed screen. Only the Search / disclosure actions
                are gated: those genuinely have nothing to act on. */
-            title={t("msg.title")}
+            title={listTitle}
             /* On the desktop website the page name is deleted from this row
                (owner) — the app bar and the side panel both already say where
                you are, so a third "Messages" three rows apart is chrome

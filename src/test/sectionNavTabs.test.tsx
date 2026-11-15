@@ -234,7 +234,7 @@ describe("the section tabs (owner 2026-10-18)", () => {
     expect(rail).not.toMatch(/Post a job/);
     // F084 (owner UI audit 11-09): an open section's row is a real link; an off one stays a button that says Coming soon.
     expect(rail).toContain("<ListRow variant=\"flush\" {...rowProps} onClick={() => sayComingSoon(label)} aria-disabled aria-label={tr(\"nav.comingSoon\", { label: shown })}>");
-    expect(rail).toMatch(/<ListRowLink variant="flush" \{\.\.\.rowProps\} to=\{path\}\s+onClick=\{\(\) => \{ if \(location\.pathname === path\) announceTabReselect\(path\); \}\}/);
+    expect(rail).toMatch(/<ListRowLink variant="flush" \{\.\.\.rowProps\} to=\{item\.to \?\? path\}\s+onClick=\{\(\) => \{ if \(location\.pathname === path\) announceTabReselect\(path\); \}\}/);
   });
 
   it("the Profile landing has no Declutter, Shops or Homes row", () => {

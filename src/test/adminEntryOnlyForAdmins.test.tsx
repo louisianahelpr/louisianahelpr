@@ -105,7 +105,7 @@ describe("the Admin entry is for confirmed admins only, from the shared role sig
     const sections = [...document.querySelectorAll("#side-panel-admin-sections a")] as HTMLAnchorElement[];
     expect(sections.find((x) => x.textContent === "Dashboard")?.getAttribute("href")).toBe("/admin?view=home");
     // The main rows too: each open destination is an <a href> (F084).
-    // @mutate src/components/DesktopSidebarNav.tsx | <ListRowLink variant="flush" {...rowProps} to={path} | <ListRowLink variant="flush" {...rowProps} to="/"
+    // @mutate src/components/DesktopSidebarNav.tsx | <ListRowLink variant="flush" {...rowProps} to={item.to ?? path} | <ListRowLink variant="flush" {...rowProps} to="/"
     for (const p of ["/home", "/messages", "/profile"]) {
       const el = document.querySelector(`[data-sidebar-item="${p}"]`);
       expect(el?.tagName, p).toBe("A");

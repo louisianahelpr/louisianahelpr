@@ -25,7 +25,9 @@
   --field-line: #9a9079;
   --radius: 2px;
   --shadow: 0 1px 2px rgba(42, 42, 36, 0.05);
-  --head: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, "Times New Roman", serif;
+  /* The app's size-matched Bodoni fallbacks (index.css) come straight after Bodoni, as in tailwind's font-display, so the
+     swap does not re-wrap the hero (prod-audit 11-15: h1 83 -> 140px at 375). Guard: sponsorHeroFontDoesNotShift.test.ts. */
+  --head: "Bodoni Moda", "Bodoni Moda Fallback", "Bodoni Moda Fallback Liberation", "Didot", "Bodoni 72", Georgia, "Times New Roman", serif;
   --body: Georgia, "Times New Roman", Times, serif;
   --plaid: repeating-linear-gradient(90deg, rgba(31, 58, 43, .55) 0 10px, transparent 10px 22px, rgba(176, 141, 87, .5) 22px 24px, transparent 24px 36px),
     repeating-linear-gradient(0deg, rgba(31, 58, 43, .55) 0 10px, transparent 10px 22px, rgba(176, 141, 87, .5) 22px 24px, transparent 24px 36px);

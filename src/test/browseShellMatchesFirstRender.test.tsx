@@ -55,7 +55,7 @@ describe("the shell's cards are in the app's first-render order", () => {
     const rank = new Map(sortJobsSmart(withIds as never[], null, NOW).map((j: { id: string }, i) => [j.id, i]));
     const boosted = (j: { boost_expires_at: string | null }) => !!j.boost_expires_at && Date.parse(j.boost_expires_at) > NOW;
     const app = [...withIds].sort((a, b) => Number(boosted(b)) - Number(boosted(a)) || rank.get(a.id)! - rank.get(b.id)!).map((j) => j.title);
-    expect(selectShellJobs(rows, NOW).map((j: { title: string }) => j.title)).toEqual(app.slice(0, 4));
+    expect(selectShellJobs(rows, NOW).map((j) => j.title)).toEqual(app.slice(0, 4));
     expect(app[0]).toBe("Boosted");
     expect(app).not.toEqual(["Urgent old", ...app.filter((t) => t !== "Urgent old")]);
   });

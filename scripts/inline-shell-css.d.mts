@@ -14,3 +14,6 @@ export function inlineShellCss(html: string, css: string): { html: string; bytes
 export const DECLUTTER_PHOTO_MARKUP: string;
 export const DECLUTTER_GUEST_JOIN_RULE: string;
 export const DECLUTTER_GUEST_NO_TABS_RULE: string;
+export const BROWSE_CSS_FILE: string;
+export const MAX_BROWSE_INLINE_BYTES: number;
+export function browseShellCriticalCss(css: string): string;

@@ -4,7 +4,7 @@
  * What a card may carry is pinned by browseShellCards.test.tsx; this pins the handler's read and placement.
  *
  * @mutate src/lib/browseShellCards.mjs |   u.searchParams.set("payment_status", "neq.abandoned"); |   u.searchParams.set("status", "neq.cancelled");
- * @mutate api/share.ts |       if (isBrowsePage(url)) return respond(withBrowseShell(page, await fetchBrowseShellRows()), BROWSE_SHELL_CDN_CACHE); |       if (isBrowsePage(url)) return respond(page, BROWSE_SHELL_CDN_CACHE);
+ * @mutate api/share.ts |       if (isBrowsePage(url)) return respond(withBrowseShell(page, await fetchBrowseShellRows(), Date.now(), BROWSE_SHELL_CSS), BROWSE_SHELL_CDN_CACHE); |       if (isBrowsePage(url)) return respond(page, BROWSE_SHELL_CDN_CACHE);
  * @mutate api/share.ts |   return !!route && route.kind === "page" && route.id === "browse"; |   return !!route && route.kind === "page";
  * @mutate api/share.ts |     return shellRowsWhenSeedsHidden(Array.isArray(rows) ? rows : null, seedsHidden); |     return Array.isArray(rows) ? rows : null;
  * @mutate src/lib/browseShellCards.mjs |   return seedsHidden === true && Array.isArray(rows) ? rows : null; |   return Array.isArray(rows) ? rows : null;

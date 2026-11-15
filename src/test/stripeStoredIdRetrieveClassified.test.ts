@@ -268,6 +268,10 @@ const EXEMPT: Record<string, string> = {
   // their own account and key); a test-mode, foreign or stale id is Stripe's resource_missing, which stripe-payouts'
   // detailErr catch answers as 404 "not found", and an unusable account goes through isUnusableConnectAccountError there.
   "stripe-payouts/payoutDetail.ts::stripe.payouts.retrieve(payoutId)": "a payout id from the member's own payout list, read on their own account; resource_missing answers 404 not found (detailErr catch), never a 500",
+  // F267a: a transfer id Stripe itself listed in that payout's balance transactions, read on the platform to name a tip.
+  // resource_missing is caught in nameTips and keeps its plain "Payment" line (logged); any other error throws to
+  // stripe-payouts' detailErr handling, so a wrong key or a rate limit is never hidden behind a plain label.
+  "stripe-payouts/payoutDetail.ts::stripe.transfers.retrieve(id)": "a tr_ id Stripe listed in the member's own payout, read on the platform with the member's own mode key; resource_missing keeps the line as Payment (logged), anything else throws",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(intent.id)": FRESH,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)": OUTER,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)#2": OUTER,

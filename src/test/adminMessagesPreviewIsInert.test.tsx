@@ -37,6 +37,13 @@ vi.mock("sonner", async (orig) => {
   });
   return { ...real, toast: t };
 });
+// Product analytics are the admin's own events, not a write the preview makes. Pressing every button queues them and
+// the real module flushes 1.5 s later, often after this test has restored fetch, so prodNetworkGuard refused the
+// analytics_events POST at random (#4578 and #4582 shard 4, 2026-11-14). track() records here and never sends.
+vi.mock("@/lib/analytics", async (orig) => {
+  const real = await orig<typeof import("@/lib/analytics")>();
+  return { ...real, track: vi.fn() };
+});
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "11111111-1111-4111-8111-111111111111" }, isLoading: false, isAdmin: true, adminStatus: "admin", profile: null, profileQuery: { status: "success", fetchStatus: "idle" }, refresh: async () => undefined }),
 }));

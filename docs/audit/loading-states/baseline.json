@@ -528,6 +528,34 @@
       "growsBelow": true,
       "was": "row 68px -> 275px (+207px), loading-states-refresh 43643232719 on main 391ec43df8, 2026-11-14",
       "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". A money record is as long as the member's history, and the two test accounts differ (loading-states-refresh 43643232719 on main 391ec43df8, 2026-11-14). Payout history draws poster-e2e's one 68px set-up row exactly (customer: 68 -> 68); helper-e2e's four payouts grow below it. Builder 3, 2026-11-15 (Q2784 follow-up, lead's loading-states item): growsBelow, any growth of this element, never a shrink."
+    },
+    {
+      "key": "customer /declutter #1",
+      "kind": "rows",
+      "path": "main#main-content > div > div > div > div:nth-of-type(2) > div > div > div > ul",
+      "was": "4 placeholder row(s) -> 246 real row(s), loading-states-refresh 43643232719 on main 391ec43df8, 2026-11-14",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\", applied to the Browse feed's rows by the lead 2026-11-15 (Builder 3, Q2784 follow-up): the grid's bones draw the first screenful's tiles (4) and the feed, as long as what is for sale near the member, grows below. Its first screen matches: the tile's real-vs-bone height was 291 vs 276px on the measured build (391ec43df8, before e350beebaa's new cards and bones); on this branch measured 11-15 on local vite at 375 270.0 vs 269.9px and at 1440 359.8 vs 359.8px. Covers the ROWS kind only."
+    },
+    {
+      "key": "customer /declutter #1",
+      "kind": "media",
+      "path": "main#main-content > div > div > div > div:nth-of-type(2) > div > div > div > ul",
+      "was": "0 avatar/media bone(s) -> 491 real, loading-states-refresh 43643232719 on main 391ec43df8, 2026-11-14",
+      "ruling": "Lead decision 2026-11-02 (Q1695, Builder 165), on the anon /browse precedent (owner Q722), the same feed: the MEDIA check counts every listing photo in the Browse feed, whose length varies with what is for sale near the member, so no placeholder count can match it within 1. The 11-14 refresh measured the feed at the grid (#1, this path) as well as its column (#0). Covers the MEDIA kind only."
+    },
+    {
+      "key": "anon /declutter #1",
+      "kind": "rows",
+      "path": "main#main-content > div > div > div > div:nth-of-type(2) > div > div > div > ul",
+      "was": "4 placeholder row(s) -> 241 real row(s), loading-states-refresh 43643232719 on main 391ec43df8, 2026-11-14",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\", applied to the Browse feed's rows by the lead 2026-11-15 (Builder 3, Q2784 follow-up): the grid's bones draw the first screenful's tiles (4) and the feed, as long as what is for sale near the member, grows below. Its first screen matches: the tile's real-vs-bone height was 291 vs 276px on the measured build (391ec43df8, before e350beebaa's new cards and bones); on this branch measured 11-15 on local vite at 375 270.0 vs 269.9px and at 1440 359.8 vs 359.8px. Covers the ROWS kind only."
+    },
+    {
+      "key": "anon /declutter #1",
+      "kind": "media",
+      "path": "main#main-content > div > div > div > div:nth-of-type(2) > div > div > div > ul",
+      "was": "0 avatar/media bone(s) -> 481 real, loading-states-refresh 43643232719 on main 391ec43df8, 2026-11-14",
+      "ruling": "Lead decision 2026-11-02 (Q1695, Builder 165), on the anon /browse precedent (owner Q722), the same feed: the MEDIA check counts every listing photo in the Browse feed, whose length varies with what is for sale near the member, so no placeholder count can match it within 1. The 11-14 refresh measured the feed at the grid (#1, this path) as well as its column (#0). Covers the MEDIA kind only."
     }
   ],
   "byDesignNote": "NOT DEBT. These are suppressed because a decision was MADE, not because nobody has got to them. Unlike `allow`, an entry here that stops breaching is not a failure: a tab whose content happens to fit one screenful simply does not jump, and that is no evidence the ruling was abandoned. Every entry must carry a `ruling`. Do not add to this list to silence a breach — that is what `allow` is for, and `allow` is the one that shrinks."

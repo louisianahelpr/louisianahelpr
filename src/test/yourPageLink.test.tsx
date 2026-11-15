@@ -8,7 +8,7 @@
  *  - Copy copies, and Share shares, the full https URL;
  *  - the migration's insert trigger, backfill and grants as the newest definitions.
  *
- * @mutate src/components/profile/ProfileLanding.tsx | <YourPageLink name={displayName?.trim().split(/\s+/)[0] ?? null} /> | {null}
+ * @mutate src/components/profile/ProfileLanding.tsx | <YourPageLink name={displayName?.trim().split(/\s+/)[0] ?? null} knownHandle={profile?.handle} /> | {null}
  * @mutate src/components/declutter/DeclutterHomeView.tsx |       <YourPageLink slim /> |       <YourPageLink forSale={1} />
  * @mutate src/components/profile/YourPageLink.tsx |   if (slim) { |   if (slim && forSale < 0) {
  * @mutate src/components/profile/YourPageLink.tsx | if (await copyToClipboard(profileLinkUrl(handle))) | if (await copyToClipboard(handle))

@@ -17,7 +17,7 @@
 // @mutate src/components/profile/EarningsTab.tsx | payoutHireSettled && (!showConnect \|\| connectSettled) && streakState.settled | payoutHireSettled && streakState.settled
 // @mutate src/components/profile/EarningsTab.tsx | <div id="earnings-bank-connect" hidden={!connectSettled \|\| holdBody}> | <div id="earnings-bank-connect" hidden={!connectSettled}>
 // @mutate src/components/profile/EarningsTab.tsx | const settled = !!profile && !holdBody && | const settled = !!profile &&
-// @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx |       <EarningsPayoutSetupSkeleton /> |       <EarningsPayoutSetupSkeleton hireAllowed />
+// @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx | <EarningsPayoutSetupSkeleton hireAllowed={false} /> | <EarningsPayoutSetupSkeleton hireAllowed />
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";

@@ -33,7 +33,7 @@ describe("Dashboard: Needs you first, the checklist as one line (design audit A 
     expect(screen.getByText("· 1 of 3")).toBeTruthy();
     const bar = screen.getByRole("progressbar");
     expect(bar.getAttribute("aria-valuenow")).toBe("1");
-    expect(bar.querySelectorAll("[data-step]")).toHaveLength(3);
+    expect(bar.querySelectorAll("[data-segment]")).toHaveLength(3);
     // One button only: the next step (the old list made every step a 44px row).
     const buttons = screen.getAllByRole("button");
     expect(buttons).toHaveLength(1);

@@ -150,7 +150,7 @@ describe("the connect slot's bones are the shape that is coming (Q2708)", () => 
 
   it("EarningsTab feeds the slot the same hire answer PayoutSetupForm reads (no new read)", () => {
     const tab = read("src/components/profile/EarningsTab.tsx");
-    expect(tab).toContain("const payoutHireAllowed = usePayoutSetupHireAllowed();");
+    expect(tab).toContain("const { allowed: payoutHireAllowed, settled: payoutHireSettled } = usePayoutSetupHireStatus();");
     expect(tab).toContain("<EarningsPayoutSetupSkeleton hireAllowed={payoutHireAllowed} />");
     const uses = [...tab.matchAll(/<EarningsPayoutSetupSkeleton\b/g)].length;
     expect(uses).toBeGreaterThan(0);

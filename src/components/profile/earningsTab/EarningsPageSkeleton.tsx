@@ -52,28 +52,52 @@ export function EarningsPageSkeleton({ withHeader = true }: { withHeader?: boole
           wait leaves its slot to EarningsTab, which draws it there. */}
       {withHeader && wallet && <EarningsWalletBones testId="earnings-wallet-skeleton" />}
       {withHeader && <Skeleton className="h-[50px] w-full rounded-full" />}
-      <section className="space-y-3">
-        <div className="rounded-2xl liquid-glass p-card space-y-4">
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="h-9 w-9 rounded-full" />
-            <Skeleton className="h-5 w-24 rounded" />
-          </div>
-          <Skeleton className="h-11 w-full rounded-full" />
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-32 rounded" />
-              <Skeleton className="h-3 w-28 rounded" />
-            </div>
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-24 rounded" />
-              <Skeleton className="h-3 w-20 rounded" />
-            </div>
-          </div>
-          <Skeleton className="h-10 w-full rounded-md" />
-          <Skeleton className="h-10 w-full rounded-md" />
-        </div>
-      </section>
+      <EarningsSummaryBones />
     </ProfileTabBody>
+  );
+}
+
+/** The Earned summary card's bones (the Earned half's first card), shared by the page skeleton and the no-account hold. */
+function EarningsSummaryBones() {
+  return (
+    <section className="space-y-3">
+      <div className="rounded-2xl liquid-glass p-card space-y-4">
+        <div className="flex items-center gap-2.5">
+          <Skeleton className="h-9 w-9 rounded-full" />
+          <Skeleton className="h-5 w-24 rounded" />
+        </div>
+        <Skeleton className="h-11 w-full rounded-full" />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-32 rounded" />
+            <Skeleton className="h-3 w-28 rounded" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-24 rounded" />
+            <Skeleton className="h-3 w-20 rounded" />
+          </div>
+        </div>
+        <Skeleton className="h-10 w-full rounded-md" />
+        <Skeleton className="h-10 w-full rounded-md" />
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Q1816 / Q169: the ONE skeleton EarningsTab draws below the money tiles for a member with no payout account, until
+ * the Stripe status, the hire answer and PaymentTab's reads are all in. Fixed shape on purpose: it reads none of those
+ * answers, so nothing inside it moves while they land, and the loaded body replaces it in one commit. The same
+ * silhouette as the route's skeleton (the note's bones, the switcher's 50px, the Earned card), so the hand-off from
+ * the route skeleton to the tab draws nothing new.
+ */
+export function EarningsNoAccountHold() {
+  return (
+    <div aria-hidden data-testid="earnings-no-account-hold" className="space-y-section">
+      <EarningsPayoutSetupSkeleton />
+      <Skeleton className="h-[50px] w-full rounded-full" />
+      <EarningsSummaryBones />
+    </div>
   );
 }
 

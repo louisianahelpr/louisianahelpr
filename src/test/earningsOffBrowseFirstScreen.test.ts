@@ -9,7 +9,7 @@
  * item 461 -> 433. Each page below may not reach a browse-only module the browse group would capture.
  *
  * @mutate vite.config.ts | const DIALOG_PRIMITIVES = /[\\/]src[\\/]components[\\/]ui[\\/](dialog\.tsx | const DIALOG_PRIMITIVES = /[\\/]src[\\/]components[\\/]ui[\\/](dialogNever\.tsx
- * @mutate vite.config.ts | hooks[\\/](useMembershipsOn\|useArrivalGate)\.ts | hooks[\\/](useMembershipsOn)\.ts
+ * @mutate vite.config.ts | hooks[\\/](useMembershipsOn\|useArrivalGate\|usePullToRefresh)\.ts | hooks[\\/](useMembershipsOn\|usePullToRefresh)\.ts
  * @mutate vite.config.ts | test: (id: string) => DIALOG_PRIMITIVES.test(id) \|\| DECLUTTER_CATEGORY_ICONS.test(id), | test: (id: string) => DIALOG_PRIMITIVES.test(id),
  * @mutate vite.config.ts | test: (id: string) => DIALOG_PRIMITIVES.test(id) \|\| DECLUTTER_CATEGORY_ICONS.test(id), | test: (id: string) => DECLUTTER_CATEGORY_ICONS.test(id),
  */

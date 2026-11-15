@@ -1142,7 +1142,7 @@ export const GAPS: Record<string, string> = {
   "src/components/EarningsExport.tsx": "selects + date pickers, constrained",
   "src/pages/post-job/DirectOfferBanner.tsx": "select only",
   "src/components/TimeRangeField.tsx": "time input, constrained by the browser",
-  "src/components/profile/AvatarCropDialog.tsx": "file input / zoom slider — no typed text",
+  "src/components/profile/AvatarCropDialogView.tsx": "file input / zoom slider — no typed text",
   "src/components/dashboard/filterSheet/PayRangeSlider.tsx": "two range inputs (0-300, step 5), clamped in the browser and in onChange — no typed text",
   "src/components/PhotoProof.tsx": "file input only",
   "src/components/postjob/detailsSection/PhotoUpload.tsx": "file inputs only",

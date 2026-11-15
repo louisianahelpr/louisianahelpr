@@ -521,6 +521,20 @@ async function probeWriteBlock(ctx, blocked, supabaseUrl = "https://fncmgoasalhd
 }
 
 /**
+ * The lab's write block for a caller outside this CLI (e2e/web-vitals/first-screens.spec.ts, Builder 2 11-14): installs
+ * the block on `ctx` (every non-GET to Supabase or Stripe aborted unless `reads` allows it; every *.sentry.io request
+ * aborted) and proves it live with the probe before returning. Open every page with newBlockedPage(ctx).
+ */
+export async function installLabWriteBlock(ctx, { reads = null, browserName = "chromium", clock = () => 0 } = {}) {
+  const allowed = [];
+  const blocked = await installWriteBlock(ctx, clock, reads, allowed, browserName);
+  // Throws unless every way a page can write is refused (and Sentry too) before the caller opens a page.
+  const proof = probeWriteBlock(ctx, blocked);
+  await proof;
+  return { blocked, allowed };
+}
+
+/**
  * Apply the profile's network and CPU throttling to `page` (Chromium only; no
  * CDP in WebKit). `cpuRate` is the calibrated rate (calibratedCpuRate) when the
  * caller measured one, else the profile's nominal rate.

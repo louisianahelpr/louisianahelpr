@@ -16,6 +16,7 @@
 // @mutate scripts/stranded-work.mjs |         try { git(["fetch", "-q", "origin", spec(n)]); } catch { /* deleted fork head: judged stranded by the caller */ } |         void n;
 
 import { describe, it, expect } from "vitest";
+// @ts-expect-error -- plain .mjs module, no declaration file (as strandedWork.test.ts)
 import { remoteInventory, fetchPullHeads, PULL_FETCH_BATCH, setMainRef } from "../../scripts/stranded-work.mjs";
 
 type Argv = string[];

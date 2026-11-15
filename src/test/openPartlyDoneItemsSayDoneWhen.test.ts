@@ -72,6 +72,7 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // a live look or an owner decision, which no marker kind reads (a marker that held early would auto-tick them).
 // 2026-11-07 (Builder 2, ready/b2-tick-sweep-1107): the owner confirmed every [~] item was already reviewed; all 48 listed here were ticked, so the list is empty.
 const MARKERLESS_PARTLY_DONE: Record<string, string> = {
+  Q2811: "three consecutive main Vitest runs passing Coverage shard 4/4 and Coverage floor (a CI history, which no sql/test/issue/pr/bus marker can read)",
 };
 
 describe("[~] items say when they are done", () => {

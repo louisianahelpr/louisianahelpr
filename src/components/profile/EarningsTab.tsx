@@ -6,15 +6,12 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TAB_TITLES } from "@/pages/profile/types";
 import { instantPayoutFeeLabel, instantPayoutMinLabel } from "@/lib/instantPayoutFee";
-import {
-  FORM_1099K_GROSS_THRESHOLD_DOLLARS,
-} from "@/lib/moneyLimits";
 import { helperTakeHomeDollars, sumHelperTipDollars } from "@/lib/helperEarnings";
 import { tierFeePercent, profileHasPerk } from "@/lib/subscriptionTiers";
 import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import ProUpgradeSheet from "@/components/ProUpgradeSheet";
-import { safeStorage } from "@/lib/safeStorage";
+import { use1099kBanner } from "@/components/profile/earningsTab/use1099kBanner";
 import { hasPayoutToCelebrate } from "@/components/wallet/payoutCelebrationGate";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
 import { EarningsNoAccountHold, EarningsPageSkeleton, EarningsPayoutSetupSkeleton, EarningsWalletBones } from "@/components/profile/earningsTab/EarningsPageSkeleton";
@@ -221,40 +218,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // Tips land in full: the poster pays the card fee on top (ME-006).
   const rangeTips = sumHelperTipDollars(rangeTipRows);
 
-  // ─── 1099-K threshold awareness ───────────────────────────────
-  // Once YTD payouts cross the FEDERAL gross threshold we surface a quiet,
-  // dismissible banner pointing at the tax-export tool. Dismissal is
-  // persisted per-user per-year via safeStorage so it doesn't nag once
-  // acknowledged.
-  //
-  // The threshold is $20,000 (with 200+ transactions), from moneyLimits —
-  // NOT the $600 this comment and the banner used to claim. That step-down
-  // was repealed before it took effect, and the tax note at the bottom of
-  // THIS SAME TAB, plus both Legal pages, always said $20,000. Gating on
-  // gross alone is deliberate: it is the half of the AND we can measure from
-  // payouts, and the banner only ever says a 1099-K "may" be coming.
-  const ytdYear = new Date().getFullYear();
-  const ytdPayoutsCents = (stripeData?.payouts ?? [])
-    .filter((p) => new Date(p.arrival_date * 1000).getFullYear() === ytdYear)
-    .reduce((sum, p) => sum + p.amount, 0);
-  const ytdPayoutsDollars = ytdPayoutsCents / 100;
-  const banner1099Threshold = FORM_1099K_GROSS_THRESHOLD_DOLLARS;
-  const bannerKey = `helpr_1099k_banner_dismissed_${helperId}_${ytdYear}`;
-  const [banner1099Dismissed, setBanner1099Dismissed] = useState<boolean>(() => {
-    try {
-      return safeStorage.getItem(bannerKey) === "1";
-    } catch {
-      return false;
-    }
-  });
-  const show1099Banner =
-    ytdPayoutsDollars >= banner1099Threshold && !banner1099Dismissed;
-  const dismiss1099Banner = () => {
-    setBanner1099Dismissed(true);
-    try {
-      safeStorage.setItem(bannerKey, "1");
-    } catch { /* best-effort */ }
-  };
+  // 1099-K banner: shown once YTD payouts cross the federal gross threshold, dismissible per user per year.
+  const { ytdYear, show1099Banner, dismiss1099Banner } = use1099kBanner(helperId, stripeData?.payouts);
 
   /* Which half is on screen: Earned (default) or Spent. `?view=spent` opens
      on Spent, read once at mount and never written back (MoneyViewSwitcher). */

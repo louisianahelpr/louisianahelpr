@@ -16,6 +16,7 @@
 import { test, expect, getSession, rest, sessionsAvailable, SUPABASE_URL, E2E_TITLE_MARKER, announceUncovered } from "../fixtures";
 import { fitJobTitle, runTag } from "../../../scripts/lib/jobTextBounds.mjs";
 import type { APIRequestContext } from "@playwright/test";
+import { crossAccountApplicationRows } from "./crossAccountRows";
 
 /**
  * BAD ACTORS — IDOR and authorization (terminal 7).
@@ -143,8 +144,16 @@ test.describe("bad actors: IDOR & authz", () => {
 
     // Applications the poster owns as a helper must not be visible to the helper
     // account (and vice versa) unless they are a party.
-    const helperSeesPosterApps = await selectAs(request, helperHeaders, `applications?helper_id=eq.${posterId}&select=id`);
-    expect(helperSeesPosterApps, "SECURITY: helper read the poster's own applications via IDOR").toEqual([]);
+    // A party read is allowed: the helper account owns seed jobs the poster
+    // applied to (7f02689d, 2026-11-09), and a job owner sees its applicants.
+    // crossAccountApplicationRows leaves out only rows on jobs the helper's
+    // OWN jobs read returns; every other row is a leak.
+    const helperOwnJobs = (await selectAs(request, helperHeaders, `jobs?customer_id=eq.${helperId}&select=id`)) as Array<{ id: string }>;
+    const helperSeesPosterApps = (await selectAs(request, helperHeaders, `applications?helper_id=eq.${posterId}&select=id,job_id`)) as Array<{ id: string; job_id: string | null }>;
+    expect(
+      crossAccountApplicationRows(helperSeesPosterApps, helperOwnJobs.map((j) => j.id)),
+      "SECURITY: helper read the poster's own applications on a job it does not own via IDOR",
+    ).toEqual([]);
 
     // Messages the poster sent that the helper is not the receiver of.
     const helperSeesPosterSent = await selectAs(request, helperHeaders, `messages?sender_id=eq.${posterId}&receiver_id=neq.${helperId}&select=id,content&limit=1`);

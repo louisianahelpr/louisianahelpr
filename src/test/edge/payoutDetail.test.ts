@@ -18,6 +18,11 @@
  * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | const PAYOUT_ID = /^po_[A-Za-z0-9]{6,64}$/; | const PAYOUT_ID = /^po_/;
  * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | admin.from("payout_transfers").select("stripe_transfer_id, job_id, jobs(title)").eq("helper_id", userId) | admin.from("payout_transfers").select("stripe_transfer_id, job_id, jobs(title)")
  * @mutate supabase/functions/stripe-payouts/index.ts |     if (!isPayoutId(payoutId)) { | if (false) {
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |   for (const [tr, lines] of await nameTips(stripe, admin, userId, ids.filter((id) => !named.has(id)))) named.set(tr, lines); |
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | admin.from("tips").select("stripe_payment_intent_id, job_id, jobs(title)").eq("helper_id", userId) | admin.from("tips").select("stripe_payment_intent_id, job_id, jobs(title)")
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | const GROUP_PI = /^group_(pi_[A-Za-z0-9]{6,64})$/; | const GROUP_PI = /^(pi_[A-Za-z0-9]{6,64})$/;
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |         if (!isMissing(e)) throw e; |
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | const isMissing = (e: unknown) => !!e && typeof e === "object" && (e as { code?: unknown }).code === "resource_missing"; | const isMissing = (_e: unknown) => false;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -137,12 +142,13 @@ describe("payoutDetail reads the caller's own account and ledgers", () => {
     expect(stripeCalls.map((c) => c[0])).toEqual(["payouts.retrieve", "balanceTransactions.list"]);
     expect(stripeCalls.length).toBeGreaterThan(1);
     for (const c of stripeCalls) expect(c[2]).toEqual({ stripeAccount: "acct_mine" });
-    // Six ledgers plus the sale's line titles: every read is recorded.
+    // Seven ledgers (F267a: delivery tips) plus the sale's line titles: every read is recorded.
     expect(reads.length).toBeGreaterThan(5);
     expect(stripeCalls.find((c) => c[0] === "balanceTransactions.list")?.[1]).toMatchObject({ payout: "po_1aaaaaaaa", expand: ["data.source"] });
     for (const [table, col] of [
       ["payout_transfers", "helper_id"], ["cancellation_fee_transfers", "helper_id"], ["declutter_payouts", "seller_id"],
       ["shop_payouts", "shop_orders.seller_id"], ["helpr_task_payouts", "helpr_id"], ["referral_credits", "user_id"],
+      ["helpr_task_tips", "helpr_id"],
     ]) expect(reads, table).toContainEqual([table, col, "user-1"]);
   });
 
@@ -174,6 +180,80 @@ describe("payoutDetail reads the caller's own account and ledgers", () => {
     };
     // deno-lint-ignore no-explicit-any
     await expect(payoutDetail(stripe as any, admin, "user-1", "acct_mine", "po_1aaaaaaaa")).rejects.toBeTruthy();
+  });
+});
+
+describe("F267a: a tip (a destination charge) is named from the caller's own tips row", () => {
+  function fakeAdmin(rows: Record<string, unknown[]>, reads: [string, string, unknown][]) {
+    return {
+      from: (table: string) => {
+        const b: Record<string, unknown> = {};
+        b.select = () => b;
+        b.eq = (col: string, v: unknown) => { reads.push([table, col, v]); return b; };
+        b.in = () => b;
+        b.then = (resolve: (v: unknown) => unknown) => Promise.resolve({ data: rows[table] ?? [], error: null }).then(resolve);
+        return b;
+      },
+    };
+  }
+  it("reads the platform transfer's group, matches the PaymentIntent on the caller's tips, and keeps the sum", async () => {
+    const transferCalls: unknown[][] = [];
+    const stripe = {
+      payouts: { retrieve: () => Promise.resolve({ id: "po_1", amount: 900, currency: "usd", status: "paid", arrival_date: 1, created: 0, destination: null }) },
+      balanceTransactions: { list: () => ({ autoPagingToArray: () => Promise.resolve([payment("tr_tip1", 300), payment("tr_tip2", 300), payment("tr_gone", 300)]) }) },
+      transfers: {
+        retrieve: (...args: unknown[]) => {
+          transferCalls.push(args);
+          const id = args[0] as string;
+          if (id === "tr_gone") return Promise.reject(Object.assign(new Error("No such transfer"), { code: "resource_missing" }));
+          return Promise.resolve({ id, transfer_group: id === "tr_tip1" ? "group_pi_3Ub2A5Kp2H4b7tEC1H8U3KLn" : "group_pi_3Ua9DVKp2H4b7tEC0ALPo8As" });
+        },
+      },
+    };
+    const reads: [string, string, unknown][] = [];
+    const admin = fakeAdmin({
+      tips: [
+        { stripe_payment_intent_id: "pi_3Ub2A5Kp2H4b7tEC1H8U3KLn", job_id: "j1", jobs: { title: "Trim the hedges" } },
+        { stripe_payment_intent_id: "pi_3Ua9DVKp2H4b7tEC0ALPo8As", job_id: "j2", jobs: null },
+      ],
+    }, reads);
+    // deno-lint-ignore no-explicit-any
+    const d = await payoutDetail(stripe as any, admin, "user-1", "acct_mine", "po_1aaaaaaaa");
+    expect(d.lines).toEqual([
+      { kind: "tip", label: "Tip: Trim the hedges", amount_cents: 300, href: "/jobs/j1" },
+      { kind: "tip", label: "Tip: a job", amount_cents: 300, href: "/jobs/j2" },
+      { kind: "other", label: "Payment", amount_cents: 300, href: null },
+    ]);
+    expect(d.lines.reduce((sum, l) => sum + l.amount_cents, 0)).toBe(900);
+    // One platform read per unnamed transfer, with NO stripeAccount (the transfer lives on the platform).
+    expect(transferCalls.map((c) => c[0]).sort()).toEqual(["tr_gone", "tr_tip1", "tr_tip2"]);
+    for (const c of transferCalls) expect(c.length).toBe(1);
+    expect(reads).toContainEqual(["tips", "helper_id", "user-1"]);
+    expect(reads).toContainEqual(["helpr_task_tips", "helpr_id", "user-1"]);
+  });
+
+  it("any Stripe error but a missing transfer throws (the screen says it couldn't load), never a quiet Payment", async () => {
+    const stripe = {
+      payouts: { retrieve: () => Promise.resolve({ id: "po_1", amount: 300, currency: "usd", status: "paid", arrival_date: 1, created: 0, destination: null }) },
+      balanceTransactions: { list: () => ({ autoPagingToArray: () => Promise.resolve([payment("tr_x", 300)]) }) },
+      transfers: { retrieve: () => Promise.reject(Object.assign(new Error("Too many requests"), { code: "rate_limit" })) },
+    };
+    // deno-lint-ignore no-explicit-any
+    await expect(payoutDetail(stripe as any, fakeAdmin({}, []), "user-1", "acct_mine", "po_1aaaaaaaa")).rejects.toThrow("Too many requests");
+  });
+
+  it("a transfer already named by a ledger is never looked up, and a group that is not a PaymentIntent names nothing", async () => {
+    const looked: string[] = [];
+    const stripe = {
+      payouts: { retrieve: () => Promise.resolve({ id: "po_1", amount: 800, currency: "usd", status: "paid", arrival_date: 1, created: 0, destination: null }) },
+      balanceTransactions: { list: () => ({ autoPagingToArray: () => Promise.resolve([payment("tr_job", 500), payment("tr_other", 300)]) }) },
+      transfers: { retrieve: (id: string) => { looked.push(id); return Promise.resolve({ id, transfer_group: "order_123" }); } },
+    };
+    const admin = fakeAdmin({ payout_transfers: [{ stripe_transfer_id: "tr_job", job_id: "j1", jobs: { title: "Mow" } }] }, []);
+    // deno-lint-ignore no-explicit-any
+    const d = await payoutDetail(stripe as any, admin, "user-1", "acct_mine", "po_1aaaaaaaa");
+    expect(looked).toEqual(["tr_other"]);
+    expect(d.lines.map((l) => l.label)).toEqual(["Mow", "Payment"]);
   });
 });
 

@@ -147,6 +147,6 @@ describe("branch-prune reports no duplicate stranded work (once: opened no dupli
 
   it("main() passes the open-PR content check", () => {
     const src = readFileSync(resolve(__dirname, "../../scripts/prune-stale-branches.mjs"), "utf8");
-    expect(src).toMatch(/findStranded\(git, branches, openHeads, readAcceptedTips\(\), contentStrandedOf, contentInOpenPrOf\)/);
+    expect(src).toMatch(/findStranded\(cherryGit, branches, openHeads, readAcceptedTips\(\), contentStrandedOf, contentInOpenPrOf\)/);
   });
 });

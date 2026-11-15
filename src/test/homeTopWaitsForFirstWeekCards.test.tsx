@@ -23,7 +23,7 @@
  * @mutate src/pages/home/HomeDashboard.tsx | useHoldWhileFirstVisitReads(firstVisit && (summary.todosLoading \|\| !!money.pending)) | useHoldWhileFirstVisitReads(false)
  * @mutate src/pages/home/HomeDashboard.tsx |             {!holdBelowNextUp && <>\n            {/* LIVE NOW |             {<>\n            {/* LIVE NOW
  * @mutate src/pages/home/HomeDashboard.tsx |             {!holdBelowNextUp && <>\n            <HomeMoneyTiles money={money} placement="side" /> |             {<>\n            <HomeMoneyTiles money={money} placement="side" />
- * @mutate src/pages/home/homeDashboard/useNeedsYouTodos.ts | loading: !derive \|\| posted.isPending \|\| applied.isPending, | loading: !derive \|\| (posted.data === undefined && applied.data === undefined),
+ * @mutate src/pages/home/homeDashboard/useNeedsYouTodos.ts | const jobsLoading = !derive \|\| posted.isPending \|\| applied.isPending; | const jobsLoading = !derive \|\| (posted.data === undefined && applied.data === undefined);
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -152,7 +152,7 @@ describe("Home's columns wait for the first-week cards' reads (Q2706/Q2708)", ()
     expect(home).toContain("{topSettled && <div data-home-columns");
     expect(home).toContain('{!topSettled && (');
     const todos = code("src/pages/home/homeDashboard/useNeedsYouTodos.ts");
-    expect(todos).toContain("loading: !derive || posted.isPending || applied.isPending,");
+    expect(todos).toContain("const jobsLoading = !derive || posted.isPending || applied.isPending;");
     // Inventory floor: the gate covers both first-week cards.
     const gate = code("src/pages/home/homeDashboard/homeTopSettled.ts");
     const keys = gate.match(/"first-job-state"|usePosterFirstJob\(/g) ?? [];

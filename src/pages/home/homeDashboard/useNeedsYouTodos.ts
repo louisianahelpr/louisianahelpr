@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { fetchPostedActivity, fetchAppliedActivity, CORE_STALE } from "@/hooks/useActivityData";
@@ -15,6 +15,7 @@ import { loadModule, untilReload } from "@/lib/loadModule";
 import { inProgressJobIds, useContinueDays } from "@/hooks/useContinueDays";
 import type { TodoItem } from "./needsYouTodos";
 import { buyerProblemOrderIds } from "@/lib/declutter/buyingTodo";
+import { ARRIVAL_CAP_MS } from "@/hooks/useArrivalGate";
 
 /**
  * HOME'S DERIVATIONS LOAD BESIDE THE DATA, NOT WITH THE FIRST DRAW (B51, 11-03, Q1158).
@@ -276,5 +277,35 @@ export function useNeedsYouTodos(
   // Loading until BOTH sides' reads have answered (data or error): with either one alone, Home said "You're all caught
   // up" at 106 px and then grew to "Next up · 1 of 9" when the other side's to-dos landed (live lab 11-04, helper
   // persona, Fast 4G: 0.03 + 0.10 of /home's 0.38 layout shift). A failed read is not loading (isPending is false).
-  return { todos, loading: !derive || posted.isPending || applied.isPending, onOldCall: fallback };
+  const jobsLoading = !derive || posted.isPending || applied.isPending;
+  // Page settle /home at 375 (builder3g-1115 handoff §4, shift 1): with only the jobs reads above, Needs you painted
+  // "1 of 1" and then grew 51px (the dots row and the wrapped action row) when a Declutter to-do landed. Every other
+  // source the list is built from is now waited on too: the switches, the one badge read, and each on section's own
+  // answer (seeded by the badge read, or its old single call). A failed read is an answer. Capped at ARRIVAL_CAP_MS
+  // after the jobs reads answer, so a slow Declutter or Shops read never holds the card; and latched per member once
+  // settled, so a later key change (a new problem id) never puts the loading card back.
+  const answered = (q: { data: unknown; isError: boolean }) => q.data !== undefined || q.isError;
+  const othersPending = !!uid && (
+    !switchesSettled
+    || (badge.isPending && !badge.isError && badge.fetchStatus !== "idle")
+    || (declutterOn && (!answered(dCart) || !answered(dOffers) || !answered(dFreeAsks)))
+    || (declutterOn && refundsOn && !answered(dRefunds))
+    || (shopsOn && !answered(shopOrders))
+    || (declutterOn && hasPaidSale && !answered(dIdWait))
+    || (declutterOn && problemIds.length > 0 && !answered(dProblems))
+    || problemDetails.some((q) => !answered(q))
+  );
+  const [cappedFor, setCappedFor] = useState("");
+  const [settledFor, setSettledFor] = useState("");
+  const capped = !!uid && cappedFor === uid;
+  useEffect(() => {
+    if (!uid || jobsLoading || !othersPending || capped) return;
+    const t = setTimeout(() => setCappedFor(uid), ARRIVAL_CAP_MS);
+    return () => clearTimeout(t);
+  }, [uid, jobsLoading, othersPending, capped]);
+  const loading = jobsLoading || (settledFor !== uid && othersPending && !capped);
+  useEffect(() => {
+    if (uid && !loading && settledFor !== uid) setSettledFor(uid);
+  }, [uid, loading, settledFor]);
+  return { todos, loading, onOldCall: fallback };
 }

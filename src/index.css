@@ -2201,6 +2201,28 @@ body[data-scroll-locked] .preview-dock {
     display: block !important;
   }
 }
+/* Q2784 (11-15): a guest's /declutter wears the public frame (the fixed public header, its 20px gutters, the section
+   header 8px under it, the sign-up line without the H: GuestPublicFrame), so the guest's copy of the AppShell-shaped
+   skeleton sits where that page draws: below the header's height, on the frame's gutters. Before, the page moved down
+   68px at handover (measured 11-15 at 375 on local vite: the search bar at 8px in the shell, 76px on the page; the first card at 244px, 295px). Phone only, like the shell.
+   scripts/inline-shell-css.mjs inlines the same rule (DECLUTTER_GUEST_FRAME_RULE). Guard:
+   src/test/guestDeclutterShellWearsPublicFrame.test.ts. */
+@media (max-width: 899px) {
+  [data-lh-declutter-guest] #lh-declutter-shell .app-shell-frame {
+    top: calc(max(env(safe-area-inset-top, 0px), 0.25rem) + 3.5rem) !important;
+    padding-top: 0.5rem !important;
+  }
+  [data-lh-declutter-guest] #lh-declutter-shell .container {
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
+  }
+  [data-lh-declutter-guest] #lh-declutter-shell [data-app-page-scroll] {
+    padding-top: 0.5rem !important;
+  }
+  [data-lh-declutter-guest] #lh-declutter-shell [data-guest-brand] {
+    display: none !important;
+  }
+}
 /* F153 (11-09): a member phone has the section tabs under the search; a guest has none, so the skeleton row hides. */
 [data-lh-declutter-guest] #lh-declutter-shell [data-lh-member-tabs] {
   display: none !important;

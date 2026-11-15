@@ -5,8 +5,8 @@
  * <main>, so both came last in the tab order. They are position:fixed, so the DOM order is free: App.tsx now mounts the
  * top bar, then the rail, before <main>.
  *
- * @mutate src/App.tsx |           <SignedInChrome>\n            <WebDesktopOnly>\n              <Suspense fallback={null}><DesktopTopNav /></Suspense>\n              <Suspense fallback={null}><DesktopSidebarNav /></Suspense>\n            </WebDesktopOnly>\n          </SignedInChrome>\n          <main |           <main
- * @mutate src/App.tsx |               <Suspense fallback={null}><DesktopTopNav /></Suspense>\n              <Suspense fallback={null}><DesktopSidebarNav /></Suspense> |               <Suspense fallback={null}><DesktopSidebarNav /></Suspense>\n              <Suspense fallback={null}><DesktopTopNav /></Suspense>
+ * @mutate src/App.tsx |           <SignedInChrome>\n            <WebDesktopOnly>\n              <Suspense fallback={<DesktopTopBarPending />}><DesktopTopNav /></Suspense>\n              <Suspense fallback={null}><DesktopSidebarNav /></Suspense>\n            </WebDesktopOnly>\n          </SignedInChrome>\n          <main |           <main
+ * @mutate src/App.tsx |               <Suspense fallback={<DesktopTopBarPending />}><DesktopTopNav /></Suspense>\n              <Suspense fallback={null}><DesktopSidebarNav /></Suspense> |               <Suspense fallback={null}><DesktopSidebarNav /></Suspense>\n              <Suspense fallback={<DesktopTopBarPending />}><DesktopTopNav /></Suspense>
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

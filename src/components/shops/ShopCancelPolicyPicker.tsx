@@ -12,6 +12,8 @@ import { CANCEL_POLICIES, CANCEL_POLICY_TEXT, fetchCancelPolicy, setCancelPolicy
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import ReadyTapCancelPicker from "./ShopReadyTapCancelPicker";
 
+const policyOptions = () => CANCEL_POLICIES.map((p) => ({ value: p, label: CANCEL_POLICY_TEXT[p].shop.label, sub: CANCEL_POLICY_TEXT[p].shop.hint }));
+
 export default function CancelPolicyPicker({ shopId }: { shopId: string }) {
   const qc = useQueryClient();
   const policy = useQuery({ queryKey: ["shops", "cancel-policy", shopId], queryFn: () => fetchCancelPolicy(shopId) });
@@ -28,13 +30,21 @@ export default function CancelPolicyPicker({ shopId }: { shopId: string }) {
       <h2 id="shop-cancel-rule" className="text-ds-13 font-semibold">Your cancel rule</h2>
       <p className="text-ds-11 text-muted-foreground">Buyers read it before they pay. Orders already placed keep the rule they were placed under.</p>
       {policy.isLoading ? (
-        <Skeleton className="h-24 w-full rounded-2xl" />
+        // Q1816 (prod-audit run 43691657529, /shops/dashboard at 375, page-settle 0.051): a 96px bone stood in for the
+        // ~290px list, so the section under it moved down 195px when the rule arrived. The placeholder IS the list,
+        // invisible under one bone (the dashboard's own pattern, Q2558), so it is the list's height at every width.
+        <div className="relative" data-cancel-rule-loading="">
+          <div className="invisible" aria-hidden>
+            <RadioCardList label="Cancel rule" options={policyOptions()} value="" onChange={() => {}} />
+          </div>
+          <Skeleton className="absolute inset-0 rounded-2xl" />
+        </div>
       ) : policy.isError ? (
         <ErrorState variant="inline" title="We couldn't load your cancel rule." body={shopsErrorMessage(policy.error)} onRetry={() => void policy.refetch()} />
       ) : (
         <RadioCardList
           label="Cancel rule"
-          options={CANCEL_POLICIES.map((p) => ({ value: p, label: CANCEL_POLICY_TEXT[p].shop.label, sub: CANCEL_POLICY_TEXT[p].shop.hint }))}
+          options={policyOptions()}
           value={policy.data ?? ""}
           onChange={(p) => { if (p !== policy.data && !save.isPending) save.mutate(p as CancelPolicy); }}
         />

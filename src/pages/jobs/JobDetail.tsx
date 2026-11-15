@@ -11,6 +11,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePendingSaveConsumer } from "@/hooks/usePendingSaveConsumer";
 import { useJobRef } from "@/hooks/useJobRef";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useFooterAfterContent } from "@/hooks/useFooterAfterContent";
 import { queryKeys } from "@/lib/queryKeys";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { signedOutOnPurposeRecently } from "@/lib/unexpectedSignOut";
@@ -54,6 +55,10 @@ const JobDetail = () => {
   // have been filled, expired, or removed." The job was fine. Remember that this page had a user; when the user goes
   // away without the app's own Sign out, say so and offer Log in back to this job.
   const hadUser = useRef(false);
+  // The public footer waits for the job (useFooterAfterContent): painted under the loading state it jumped down when
+  // the job arrived (CLS 0.11 at 1280, 11-15).
+  const contentRef = useRef<HTMLDivElement>(null);
+  const footerReady = useFooterAfterContent(contentRef);
   if (user) hadUser.current = true;
   const sessionLost = !authLoading && !user && hadUser.current && !signedOutOnPurposeRecently();
   // Q571: a signed-in visitor waits on their profile before the redirect below.
@@ -159,8 +164,8 @@ const JobDetail = () => {
   // can reuse it without a hook landing after an early return.)
 
   return (
-    <PublicLayout noNavSpacer>
-      <div className="pt-20 pb-safe-nav px-5">
+    <PublicLayout noNavSpacer footer={footerReady}>
+      <div ref={contentRef} className="pt-20 pb-safe-nav px-5">
         <div className="container mx-auto max-w-lg">
           {/* F268a: on the job's own page the title is the visible heading; every other branch keeps it for readers. */}
           <h1 data-job-detail-title="" className={showsGuestPage ? "mb-4 text-page-title leading-tight break-words" : "sr-only"}>{headingText}</h1>

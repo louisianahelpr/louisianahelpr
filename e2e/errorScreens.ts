@@ -26,8 +26,14 @@ export const ERROR_SCREEN_PATTERNS: { name: string; re: RegExp }[] = [
    * not currently paint — a third party or an edge-function body — and it only
    * needs to fire when the phrase IS the message, not when it is the tail of
    * someone's sentence.
+   *
+   * And never when it is a QUESTION (Q1816, a11y-webkit-prod run 43470000763):
+   * the help center's Trust & Safety card reads "Something went wrong with a
+   * job? Disputes, reporting, and ID checks." on its own line, and /help was
+   * reported as an error screen in every sweep variant. An error message
+   * states the failure; a "?" before the sentence ends means a help heading.
    */
-  { name: "generic failure copy", re: /(?:^|[.!?]\s+|\n\s*)Something went wrong/ },
+  { name: "generic failure copy", re: /(?:^|[.!?]\s+|\n\s*)Something went wrong(?![^.!\n]{0,80}\?)/ },
   { name: "retired 'Update ready' screen", re: /Update ready|A newer version of the app/i },
   { name: "boot watchdog failure", re: /Helpr couldn't load/i },
   { name: "account load failure (ProtectedRoute)", re: /We couldn't load your account/i },

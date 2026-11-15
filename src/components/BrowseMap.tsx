@@ -86,7 +86,9 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
       // dismissed, outside "Only saved". One shared predicate, so the map
       // cannot fall behind the list the next time a cull is added. The map row
       // carries no `customer_id`, so the blocked-poster field of the same
-      // object is a documented no-op here (see the prop's comment).
+      // object is a documented no-op here (see the prop's comment); the
+      // server drops pins across a block instead (get_open_jobs_for_map,
+      // 20261115063613).
       if (!exclusions) return filtered;
       return filtered.filter((j) => !isJobExcludedForViewer(j, exclusions));
     },

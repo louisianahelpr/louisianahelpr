@@ -81,7 +81,9 @@ const chain = (g: Map<string, string | null>, f: string) => {
 
 describe("/declutter's first screen loads the order views on demand", () => {
   it("no order, offer or handover view is in DeclutterPage's static import graph", () => {
-    const g = graph(resolve(SRC, "pages/declutter/DeclutterPage.tsx"));
+    // The page and a member's home view: DeclutterHomeEntry loads the view apart from the page (Q2705, 11-14), and
+    // src/boot/declutterRoute.ts starts it beside the page for a member, so both are a member's first screen.
+    const g = new Map([...graph(resolve(SRC, "components/declutter/DeclutterHomeView.tsx")), ...graph(resolve(SRC, "pages/declutter/DeclutterPage.tsx"))]);
     // Inventory floor: the walk really reads the page's graph (the home view, the tab heads, the shared skeletons).
     // Browse is lazy since B77 (src/boot/declutterTabsLoadAlone.test.ts), so it is no longer a static edge.
     expect(g.size).toBeGreaterThan(60);

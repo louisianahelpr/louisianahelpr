@@ -52,7 +52,7 @@ import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 import type { DeclutterBrowseHeader, DeclutterChrome } from "./DeclutterBrowseView";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
-import { DeclutterGuestBrowseJoin } from "./DeclutterGuest";
+import { DeclutterGuestHome } from "./DeclutterGuestHome";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { ExploreSearchEntry } from "@/components/sections/ExploreSearchEntry";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
@@ -417,31 +417,14 @@ const MINE_TABS_FREE = [...MINE_TABS, "free"] as const;
 const MINE_TABS_WITH_WANTED = [...MINE_TABS, "wanted", "free"] as const;
 
 /**
- * BUY-16: a signed-out visitor (DeclutterGate lets one in only while Declutter is open to everyone) gets Browse alone:
- * Buying, Selling, Deliver, Wanted and Free and the settings gear are a member's own, and a sign-up line sits on top.
+ * BUY-16: a signed-out visitor (DeclutterGate lets one in only while Declutter is open to everyone) gets Browse alone
+ * (DeclutterGuestHome). DeclutterPage draws DeclutterHomeEntry, which loads this file for a member only (Q2705).
  */
 export default function DeclutterHome() {
   const { user, isLoading } = useCurrentUser();
   if (user) return <DeclutterMemberHome />;
   if (isLoading) return <DeclutterHomeSkeleton />;
   return <DeclutterGuestHome />;
-}
-
-function DeclutterGuestHome() {
-  const desktop = useIsWebDesktop();
-  const chrome = (browse: DeclutterBrowseHeader): DeclutterChrome => desktop ? {
-    tabs: (
-      <SectionTabs<DeclutterTab>
-        label={t("decl.hv.view")}
-        browseCount={browse.count}
-        end={browse.end}
-        value="browse"
-        onChange={() => undefined}
-        tabs={[]}
-      />
-    ),
-  } : { search: browse.search, tabs: <ScrollAwayRows>{browse.chips}</ScrollAwayRows> };
-  return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={null} chrome={chrome} top={<DeclutterGuestBrowseJoin />} /></Suspense>;
 }
 
 function DeclutterMemberHome() {

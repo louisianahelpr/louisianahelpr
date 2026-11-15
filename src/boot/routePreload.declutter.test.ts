@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // @mutate src/boot/routePreload.ts | guest: [declutterRoute, supabaseClient], | guest: [declutterRoute, supabaseClient, protectedRoute],
 // @mutate src/boot/routePreload.ts | guest: [declutterRoute, supabaseClient], | guest: [declutterRoute],
 // @mutate src/boot/declutterRoute.ts | import("@/components/declutter/DeclutterGuestRoute").catch(() => { | Promise.resolve().catch(() => {
+// @mutate src/boot/declutterRoute.ts | if (hasSessionToken()) import("@/components/declutter/DeclutterHomeView") | if (true) import("@/components/declutter/DeclutterHomeView")
+// @mutate src/boot/declutterRoute.ts | if (hasSessionToken()) import("@/components/declutter/DeclutterHomeView") | if (false) import("@/components/declutter/DeclutterHomeView")
 
 const loaded: string[] = [];
 // vi.doMock in each test (after resetModules), so each test's imports run the factories again and record what loaded.
@@ -17,6 +19,7 @@ function mockPages() {
   vi.doMock("@/pages/declutter/DeclutterPage", page("DeclutterPage"));
   vi.doMock("@/components/declutter/DeclutterGuestRoute", page("DeclutterGuestRoute"));
   vi.doMock("@/components/declutter/DeclutterBrowseView", page("DeclutterBrowseView"));
+  vi.doMock("@/components/declutter/DeclutterHomeView", page("DeclutterHomeView"));
   vi.doMock("@/pages/auth/Login", page("Login"));
   vi.doMock("@/components/ProtectedRoute", page("ProtectedRoute"));
   vi.doMock("@/integrations/supabase/client", page("SupabaseClient"));
@@ -72,5 +75,26 @@ describe("/declutter's page starts on the first network round", () => {
     const { preloadEntryRoute } = await import("./routePreload");
     preloadEntryRoute("/declutter");
     await vi.waitFor(() => expect(loaded).toEqual(expect.arrayContaining([...PAGE, "ProtectedRoute"])));
+  });
+
+  // Q2705 (2026-11-14): DeclutterHomeView (a member's tabs and their sheets, the What next cards, My listings) loads
+  // apart from the page (DeclutterHomeEntry), so a guest's first round no longer carries it; a member starts it here,
+  // beside the page, and waits no extra round. Static side: src/boot/declutterGuestSkipsMemberCode.test.ts.
+  it("a member starts the member home beside the page; a guest never fetches it", async () => {
+    localStorage.setItem("sb-test-auth-token", "{}");
+    mockPages();
+    const member = await import("./routePreload");
+    member.preloadEntryRoute("/declutter");
+    await vi.waitFor(() => expect(loaded).toEqual(expect.arrayContaining([...PAGE, "DeclutterHomeView"])));
+
+    localStorage.clear();
+    loaded.length = 0;
+    vi.resetModules();
+    mockPages();
+    const guest = await import("./routePreload");
+    guest.preloadEntryRoute("/declutter");
+    await vi.waitFor(() => expect(loaded).toEqual(expect.arrayContaining(PAGE)));
+    await settle();
+    expect(loaded).not.toContain("DeclutterHomeView");
   });
 });

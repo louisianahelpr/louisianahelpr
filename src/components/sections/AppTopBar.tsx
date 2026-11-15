@@ -3,7 +3,6 @@ import { MessageSquare, Plus, Settings } from "lucide-react";
 import { mineToDoCount, type SectionMineMenu } from "./sectionMine";
 import { useLocation, useNavigate } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
-import NotificationPanel from "@/components/notificationPanel/NotificationBell";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
@@ -16,9 +15,35 @@ import type { MsgKey } from "@/lib/i18n/en";
 import { avatarButtonLabel } from "@/lib/avatarImage";
 import { COMPACT_TOP_ROW, TITLE_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
 import { useSharedUnreadCount } from "@/components/mobileNav/navUnreadStore";
+import { loadModule, untilReload } from "@/lib/loadModule";
+import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
 
 // "My Declutter" (etc.) loads on the photo's first tap, never on the first screen.
 const MySectionSheet = lazy(() => import("./MySectionSheet"));
+
+/**
+ * THE BELL LOADS ON ITS OWN (Q2705, 2026-11-14). A guest (Declutter Browse is open to them) never sees it (AUD31-74),
+ * yet its code (the bell, the notification feed, the messages-unread read) rode in every guest /declutter's first
+ * round, beside the HTML-drawn first photos that are the LCP. A visitor with a stored session starts it the moment
+ * this file runs, and a 44px square holds its place until it draws, so the bar never moves.
+ * Guard: src/boot/declutterGuestSkipsMemberCode.test.ts.
+ */
+type Bell = typeof import("@/components/notificationPanel/NotificationBell").default;
+let bellLoaded: Bell | null = null;
+const loadBell = () => loadModule(() => import("@/components/notificationPanel/NotificationBell")).then((m) => (m ? (bellLoaded = m.default) : null));
+const LazyBell = lazy(() => loadBell().then((b) => (b ? { default: b } : untilReload())));
+if (hasPersistedAuthToken()) void loadBell().catch(() => {
+  // A failed warm-up is not an error: the bell's own lazy load tries again, and reports, when the bar draws it.
+});
+
+function TopBarBell({ triggerClassName }: { triggerClassName: string }) {
+  const [Impl] = useState(() => bellLoaded ?? LazyBell);
+  return (
+    <Suspense fallback={<span aria-hidden className="inline-block h-11 w-11" data-bell-placeholder="" />}>
+      <Impl triggerClassName={triggerClassName} />
+    </Suspense>
+  );
+}
 
 /** The tabs row's icon controls (search, filters, map, gear): 40px ghost squares with a 20px glyph, centred on the 44px tabs. */
 const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center btn-press text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&>svg]:w-5 [&>svg]:h-5";
@@ -171,7 +196,7 @@ export function AppTopBar({
       {/* AUD31-74: a guest (Declutter Browse is open to them) has no notifications: no bell, as no photo. */}
       {user && !isWebDesktop && (
       <span data-testid="top-bar-bell">
-        <NotificationPanel triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" />
+        <TopBarBell triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" />
       </span>
       )}
       {user && !isWebDesktop && showProfile && (

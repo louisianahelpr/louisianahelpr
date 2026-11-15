@@ -14,8 +14,8 @@
 // @mutate src/pages/home/HomeDashboard.tsx | import { todoTarget } from "./homeDashboard/useNeedsYouTodos"; | import { todoTarget } from "./homeDashboard/needsYouTodos";
 // @mutate src/pages/home/homeDashboard/useNeedsYouTodos.ts | const homeDeriveApi = () => loadModule(() => import("./homeDerive")); | import * as eagerDerive from "./homeDerive";\nconst homeDeriveApi = () => Promise.resolve(eagerDerive);
 // @mutate src/pages/home/homeDashboard/useNeedsYouTodos.ts | void loadHomeDerive();\n | 
-// @mutate scripts/perf/bootReach.mjs | toPosix(path.join(root, HOME_DERIVE_ROOT)), ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), ...DECLUTTER_ROOTS | ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), ...DECLUTTER_ROOTS
-// @mutate scripts/perf/bootReach.mjs | ...roots, path.join(root, HOME_DERIVE_ROOT), ...EVERY_PAGE_ROOTS | ...roots, ...EVERY_PAGE_ROOTS
+// @mutate scripts/perf/bootReach.mjs | toPosix(path.join(root, HOME_DERIVE_ROOT)), toPosix(path.join(root, TOP_BAR_BELL_ROOT)), ...EVERY_PAGE_ROOTS | toPosix(path.join(root, TOP_BAR_BELL_ROOT)), ...EVERY_PAGE_ROOTS
+// @mutate scripts/perf/bootReach.mjs | ...roots, path.join(root, HOME_DERIVE_ROOT), path.join(root, TOP_BAR_BELL_ROOT), ...EVERY_PAGE_ROOTS | ...roots, path.join(root, TOP_BAR_BELL_ROOT), ...EVERY_PAGE_ROOTS
 // @mutate vite.config.ts | && bootIcons.has(id.split | && homeIcons.has(id.split
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

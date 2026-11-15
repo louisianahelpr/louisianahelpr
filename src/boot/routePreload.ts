@@ -67,6 +67,8 @@ const declutterRoute = () => import("@/boot/declutterRoute");
 // Q2705 (11-06): a Declutter item page, Help center and the /hire town pages, matched by PATH_PAGE_PATH below;
 // pathPageRoute.ts picks the page by path and keeps their preload lists out of the entry.
 const pathPageRoute = () => import("@/boot/pathPageRoute");
+// The Supabase client a guest's /declutter cards wait on (useAuthReady loads it lazily; see the /declutter row).
+const supabaseClient = () => import("@/integrations/supabase/client");
 
 /** Path -> the chunks that route cannot paint without. Exported for tests. */
 export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unknown>>; signedIn: Array<() => Promise<unknown>> }> = {
@@ -123,8 +125,13 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
   // the same page as a guest (DeclutterGuestRoute, BUY-16), so it starts the same chunks (Q2705, 11-07: a guest's
   // page chunks started only once App.tsx had rendered the route, at 4.0 s, and Browse's a round later, at 6.5 s,
   // while the entry fetched Login, a page the guest never saw).
+  // A guest's first round carries the Supabase client only, not ProtectedRoute's closure (Q2705, 11-14): its other ~15
+  // files (auth shell, footer, logo, icons) shared the throttled link with the HTML-drawn first photos, the LCP, and
+  // the page reaches them anyway through DeclutterGuestRoute's own preload list. The client stays here because the
+  // first cards wait on it (dropping it too: LCP 3044 -> 2720 ms but the cards 5234 -> 5584 ms). Measured (cwv-lab,
+  // guest, 375, Slow 4G + 4x, local build vs prod, 3 runs each): LCP 3044 -> 2928 ms, cards 5234 -> 5206 ms.
   "/declutter": {
-    guest: [declutterRoute, protectedRoute],
+    guest: [declutterRoute, supabaseClient],
     signedIn: [declutterRoute, protectedRoute],
   },
 };

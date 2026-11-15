@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 // @mutate src/boot/routePreload.ts | signedIn: [declutterRoute, protectedRoute], | signedIn: [protectedRoute],
 // @mutate src/boot/declutterRoute.ts | import("@/pages/declutter/DeclutterPage").catch(() => { | Promise.resolve().catch(() => {
-// @mutate src/boot/routePreload.ts | guest: [declutterRoute, protectedRoute], | guest: [login, protectedRoute],
+// @mutate src/boot/routePreload.ts | guest: [declutterRoute, supabaseClient], | guest: [login, supabaseClient],
+// @mutate src/boot/routePreload.ts | guest: [declutterRoute, supabaseClient], | guest: [declutterRoute, supabaseClient, protectedRoute],
+// @mutate src/boot/routePreload.ts | guest: [declutterRoute, supabaseClient], | guest: [declutterRoute],
 // @mutate src/boot/declutterRoute.ts | import("@/components/declutter/DeclutterGuestRoute").catch(() => { | Promise.resolve().catch(() => {
 
 const loaded: string[] = [];
@@ -17,6 +19,7 @@ function mockPages() {
   vi.doMock("@/components/declutter/DeclutterBrowseView", page("DeclutterBrowseView"));
   vi.doMock("@/pages/auth/Login", page("Login"));
   vi.doMock("@/components/ProtectedRoute", page("ProtectedRoute"));
+  vi.doMock("@/integrations/supabase/client", page("SupabaseClient"));
 }
 
 afterEach(() => {
@@ -48,5 +51,26 @@ describe("/declutter's page starts on the first network round", () => {
     await vi.waitFor(() => expect(loaded).toEqual(expect.arrayContaining(PAGE)));
     await settle();
     expect(loaded).not.toContain("Login");
+  });
+
+  // Q2705 (11-14): a guest's first round is the page and the Supabase client its first cards wait on, NOT
+  // ProtectedRoute's closure: those ~15 files shared the throttled link with the HTML-drawn first photos (the LCP), and
+  // DeclutterGuestRoute's own preload list brings them a round later. Measured (cwv-lab, guest, 375, Slow 4G + 4x,
+  // 3 runs each): LCP 3048 -> 2932 ms, first cards 5245 -> 5231 ms. Dropping the client too drew the cards 350 ms later.
+  it("a guest starts the Supabase client but not ProtectedRoute's closure on the first round", async () => {
+    mockPages();
+    const { preloadEntryRoute } = await import("./routePreload");
+    preloadEntryRoute("/declutter");
+    await vi.waitFor(() => expect(loaded).toEqual(expect.arrayContaining([...PAGE, "SupabaseClient"])));
+    await settle();
+    expect(loaded).not.toContain("ProtectedRoute");
+  });
+
+  it("a member still starts ProtectedRoute beside the page", async () => {
+    localStorage.setItem("sb-test-auth-token", "{}");
+    mockPages();
+    const { preloadEntryRoute } = await import("./routePreload");
+    preloadEntryRoute("/declutter");
+    await vi.waitFor(() => expect(loaded).toEqual(expect.arrayContaining([...PAGE, "ProtectedRoute"])));
   });
 });

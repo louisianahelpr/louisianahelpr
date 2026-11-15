@@ -139,12 +139,14 @@ function popupFiles(): string[] {
 /**
  * shadcn/ui PRIMITIVES that wrap a popup for a different purpose and are not
  * product popups. `command.tsx` is the ⌘K palette shell; `sidebar.tsx` is the
- * mobile nav drawer. Neither shows a titled product dialog, so neither wears a
+ * mobile nav drawer, whose sheet now lives in `sidebarMobileSheet.tsx` (loaded on
+ * the first phone open, Q2705). Neither shows a titled product dialog, so neither wears a
  * Hero. Everything else in `src/components/ui` that opens a popup DOES.
  */
 const PRIMITIVE_WRAPPERS = new Set([
   "src/components/ui/command.tsx",
   "src/components/ui/sidebar.tsx",
+  "src/components/ui/sidebarMobileSheet.tsx",
 ]);
 
 // ---------------------------------------------------------------------------

@@ -54,7 +54,7 @@ export default function SponsorRulesPage() {
     meta: { persist: false },
   });
 
-  // Q169 (page-settle @1440, prod-audit 43691657529: CLS 0.1417): React reuses this div for the rules column, and the
+  // Q169 (page-settle @1440, prod-audit 43691657529 on 2026-11-15: CLS 0.1417): React reuses this div for the rules column, and the
   // full-width spinner box (1440 wide, 60vh tall) became the 760px centred column, so its left edge jumped 340px
   // (impact 0.60 x distance 0.236). The spinner and the error now sit IN the rules column (lh25-rules), so the box
   // keeps its place and only its contents change. Guard: src/pages/sponsor/sponsorRulesLoadingInColumn.test.tsx.

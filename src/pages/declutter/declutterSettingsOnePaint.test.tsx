@@ -1,5 +1,5 @@
 /**
- * /declutter/settings ARRIVES IN ONE PAINT (Q169; prod-audit 43691657529 page-settle: CLS 0.38 at 375, 0.25 at 1440).
+ * /declutter/settings ARRIVES IN ONE PAINT (Q169; prod-audit 43691657529 on 2026-11-15 page-settle: CLS 0.38 at 375, 0.25 at 1440).
  *
  * Each card read its own data and grew when it landed: pickup places went from a "Loading" row to the full card and
  * pushed Meet spots down 281px, then the police-spot suggestions, the meetup-times card and listing defaults landed

@@ -1,5 +1,5 @@
 /**
- * /25days/rules KEEPS ITS COLUMN FROM SPINNER TO RULES (Q169; prod-audit 43691657529 page-settle @1440: CLS 0.1417).
+ * /25days/rules KEEPS ITS COLUMN FROM SPINNER TO RULES (Q169; prod-audit 43691657529 on 2026-11-15 page-settle @1440: CLS 0.1417).
  *
  * React reuses the page's second box for every state (loading, error, rules). The spinner box was full width
  * (lh25-loading alone: 1440 wide, 60vh tall) and the rules box is the 760px centred column (lh25-rules), so at 1440 the

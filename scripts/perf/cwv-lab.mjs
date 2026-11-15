@@ -585,7 +585,9 @@ async function browseShellPage(distDir) {
       fetch(browseShellSeedsHiddenUrl(base), { headers, signal: AbortSignal.timeout(5000) }),
     ]);
     const rows = res.ok && seeds.ok ? shellRowsWhenSeedsHidden(await res.json(), await seeds.json()) : null;
-    const page = withBrowseShell(html, rows);
+    // /browse's own inlined block, as api/share.ts serves it (scripts/inline-shell-css.mjs writes it beside the build).
+    const cssFile = join(distDir, "lh-browse-shell-css.txt");
+    const page = withBrowseShell(html, rows, Date.now(), existsSync(cssFile) ? readFileSync(cssFile, "utf8") : null);
     return page === html ? null : Buffer.from(page);
   } catch (e) {
     console.warn(`cwv-lab: /browse served without its HTML cards (${e?.message ?? e})`);

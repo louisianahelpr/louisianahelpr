@@ -353,11 +353,30 @@ export function browseShellHtml(rows, now = Date.now(), emblem = null) {
  * must never sit under a card overlay, and React's first commit removes #boot-loader, so main.tsx moves the overlay
  * to <body> first (src/boot/browseShellHandoff.ts). Unchanged when there is nothing to draw or no anchor.
  */
-export function withBrowseShell(html, rows, now = Date.now()) {
+export function withBrowseShell(html, rows, now = Date.now(), criticalCss = null) {
   const preload = html.match(/<link\s+id="emblem-preload"[^>]*>/)?.[0] ?? "";
   const src = preload.match(/\shref="(\/assets\/[^"]+)"/)?.[1];
   const srcset = preload.match(/\simagesrcset="([^"]+)"/)?.[1];
   const shell = browseShellHtml(rows, now, src && srcset ? { src, srcset } : null);
   if (!shell) return html;
-  return html.replace(/<div\s+id="boot-loader"[^>]*>/, (open) => `${open}${shell}`);
+  const page = html.replace(/<div\s+id="boot-loader"[^>]*>/, (open) => `${open}${shell}`);
+  return withBrowseShellCss(page, criticalCss);
+}
+
+/** The show rule the inlined block carries for the overlay (src/index.css repeats it for the app sheet). */
+export const BROWSE_SHELL_SHOW_RULE = `#${BROWSE_SHELL_ID}{visibility:visible!important}`;
+
+/**
+ * prod-audit 43650083979 (11-14): mobile /browse LCP 3492 ms against its 1966 ceiling. Measured live (cwv-lab, www,
+ * guest, Slow 4G + 4x, 375): the cards were in the HTML but the overlay stayed `visibility:hidden` until the app's
+ * async stylesheet arrived (~4 s, sharing the link with the boot JavaScript), so the first screen was the boot loader
+ * and the LCP the app's own footer emblem at 3.97 s. The overlay's own rules (its subset of the app sheet, built by
+ * scripts/inline-shell-css.mjs into dist/lh-browse-shell-css.txt with BROWSE_SHELL_SHOW_RULE) now go into THIS page's
+ * inlined block (<style id="lh-shell-css">), in place of the other HTML-drawn screens' rules: none of those is drawn
+ * on /browse (each is keyed to its own path), and the block stays before the app sheet, which repeats every rule.
+ * Every other page's head, and the cap on it, are unchanged. No CSS, or no block: the page as it was.
+ */
+export function withBrowseShellCss(page, criticalCss) {
+  if (typeof criticalCss !== "string" || !criticalCss.includes(BROWSE_SHELL_SHOW_RULE)) return page;
+  return page.replace(/<style id="lh-shell-css">[\s\S]*?<\/style>/, () => `<style id="lh-shell-css">${criticalCss}</style>`);
 }

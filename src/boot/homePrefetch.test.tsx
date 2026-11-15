@@ -124,11 +124,12 @@ describe("Home's first-card reads start from the entry (B78)", () => {
     for (const p of ["/browse", "/jobs", "/home/x", "/declutter", "/x/"]) startHomePrefetch(p);
     expect(f, "other routes").not.toHaveBeenCalled();
     startHomePrefetch("/home/");
-    // The three first-card reads, and the profile and admin-role rows (Q2705, src/boot/homeOwnPagePrefetch.test.ts).
-    expect(f).toHaveBeenCalledTimes(5);
+    // The three first-card reads, the profile and admin-role rows (Q2705, src/boot/homeOwnPagePrefetch.test.ts) and the
+    // poster first-job rows (Builder 2 11-15, src/boot/signedInPrefetchFromHead.test.ts).
+    expect(f).toHaveBeenCalledTimes(6);
     // B79: `/` sends a member on to /home (MarketingRedirect on the web, NativeRedirect in the app), so it starts too.
     startHomePrefetch("/");
-    expect(f, "a member on /").toHaveBeenCalledTimes(10);
+    expect(f, "a member on /").toHaveBeenCalledTimes(12);
     const calls = f.mock.calls as unknown as [string, RequestInit][];
     for (const [, init] of calls) expect((init.headers as Record<string, string>).Authorization).toBe("Bearer tok");
     expect(calls.filter(([, i]) => i.method === "HEAD").every(([, i]) => (i.headers as Record<string, string>).Prefer === "count=exact")).toBe(true);

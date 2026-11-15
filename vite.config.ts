@@ -331,6 +331,24 @@ export default defineConfig(({ mode, command }) => ({
         );
       },
     } satisfies Plugin,
+    // Builder 2 (11-15): index.html's head starts a member's first-screen reads (see the script beside
+    // <meta name="lh-signed-in-prefetch">). Its hashed inline script cannot name the chunk (the file name changes every
+    // build, and so would the CSP hash), so the build writes the URL into the meta. No chunk, no build: a silent miss
+    // would put the reads back at 2.9 s. Guard: src/boot/signedInPrefetchFromHead.test.ts.
+    {
+      name: "lh-signed-in-prefetch-url",
+      apply: "build",
+      enforce: "post",
+      transformIndexHtml(html: string, ctx) {
+        const chunk = Object.values(ctx.bundle ?? {}).find(
+          (c) => c.type === "chunk" && norm(c.facadeModuleId ?? "").endsWith("/src/boot/signedInPrefetch.ts"),
+        );
+        if (!chunk) throw new Error("lh-signed-in-prefetch-url: no chunk for src/boot/signedInPrefetch.ts");
+        const meta = '<meta name="lh-signed-in-prefetch" content="" />';
+        if (!html.includes(meta)) throw new Error("lh-signed-in-prefetch-url: index.html has no empty lh-signed-in-prefetch meta");
+        return html.replace(meta, `<meta name="lh-signed-in-prefetch" content="/${chunk.fileName}" />`);
+      },
+    } satisfies Plugin,
     // Q2705 (11-09): index.html's history comments ship to no one: 29% of the built page's brotli bytes, all ahead
     // of the first frame on Slow 4G. Script and style blocks are left byte-identical (CSP hashes). See the module.
     {

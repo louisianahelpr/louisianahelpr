@@ -35,6 +35,27 @@ export async function takeHomeFirstJobPrefetch(userId: string, now: number = Dat
   return usable(await s.answer);
 }
 
+/** Same string as HOME_POSTER_PREFETCH_KEY in the boot module (the test pins it). */
+const POSTER_KEY = "__lhHomePosterPrefetch";
+type PosterSlot = { at: number; userId: string; rows: Promise<unknown> };
+
+/**
+ * usePosterFirstJob's rows (the member's own posted jobs, at most 50), read by the entry. Null when the entry has none
+ * for this member, it is old, or the answer is not a list: the query then reads for itself. Handed out once.
+ * No slot is a plain null, not a promise, so the query's own read still goes out in the same tick.
+ */
+export function takeHomePosterFirstJobPrefetch(userId: string, now: number = Date.now()): Promise<Record<string, unknown>[] | null> | null {
+  const w = window as unknown as Record<string, PosterSlot | undefined>;
+  const s = w[POSTER_KEY];
+  w[POSTER_KEY] = undefined;
+  if (!s || s.userId !== userId) return null;
+  if (now - s.at > HOME_PREFETCH_MAX_AGE_MS) return null;
+  return s.rows.then(
+    (rows) => (Array.isArray(rows) ? (rows as Record<string, unknown>[]) : null),
+    () => null,
+  );
+}
+
 /** Same string as HOME_PAGE_PREFETCH_KEY in the boot module (the test pins it). */
 const PAGE_KEY = "__lhHomePagePrefetch";
 type PageSlot = { at: number; userId: string; page: Promise<{ handle?: unknown; data?: unknown } | null> };

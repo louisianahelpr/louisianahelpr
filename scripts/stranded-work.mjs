@@ -131,10 +131,10 @@ export function remoteInventory(git, mainIndex, gh = defaultGh, { now = Date.now
     const fresh = tipHours < STRANDED_AFTER_HOURS || waitingForTrain(name.replace(/^origin\//, ""), tipHours);
     out.push({ kind: "remote-branch", id: `remote:${name}`, sha: git(["rev-parse", name]).trim(), missing: r.missing, removedStill: r.removedStill, files: r.files.map((f) => f.file), ...(fresh ? { fresh: true } : {}) });
   }
-  const closed = closedPullRequests(gh);
-  for (const pr of closed.filter((p) => !p.mergedAt && p.closedAt >= SINCE && !/dependabot/i.test(p.author?.login ?? ""))) {
+  const closed = closedPullRequests(gh).filter((p) => !p.mergedAt && p.closedAt >= SINCE && !/dependabot/i.test(p.author?.login ?? ""));
+  fetchPullHeads(git, closed.map((pr) => pr.number));
+  for (const pr of closed) {
     const ref = `refs/stranded/pr/${pr.number}`;
-    try { git(["fetch", "-q", "origin", `+refs/pull/${pr.number}/head:${ref}`]); } catch { /* deleted fork head: checked below */ }
     let r;
     try { r = unlandedContent(git, ref, MAIN_REF(), mainIndex); } catch { r = { stranded: true, missing: -1, removedStill: 0, files: [] }; }
     if (!r.stranded) continue;
@@ -154,6 +154,31 @@ export function remoteInventory(git, mainIndex, gh = defaultGh, { now = Date.now
     }
   }
   return out;
+}
+
+/**
+ * Fetch every closed PR's head into refs/stranded/pr/<n>, PULL_FETCH_BATCH
+ * refspecs per `git fetch` (Q1816, nightly-red #2366). One fetch per PR was
+ * ~1.2 s each (measured 2026-11-15 from a local clone), and 462 closed-unmerged
+ * PRs since 2026-10-03 made that ~9 min of the stranded job's 15-min timeout:
+ * every branch-prune run since 2026-11-13 was cancelled at the timeout. One
+ * missing head (a deleted fork) fails a whole batched fetch, so a failed batch
+ * falls back to one fetch per PR, and a head that still cannot be fetched is
+ * judged stranded below, as before.
+ */
+export const PULL_FETCH_BATCH = 100;
+export function fetchPullHeads(git, numbers) {
+  const spec = (n) => `+refs/pull/${n}/head:refs/stranded/pr/${n}`;
+  for (let i = 0; i < numbers.length; i += PULL_FETCH_BATCH) {
+    const chunk = numbers.slice(i, i + PULL_FETCH_BATCH);
+    try {
+      git(["fetch", "-q", "origin", ...chunk.map(spec)]);
+    } catch {
+      for (const n of chunk) {
+        try { git(["fetch", "-q", "origin", spec(n)]); } catch { /* deleted fork head: judged stranded by the caller */ }
+      }
+    }
+  }
 }
 
 /**

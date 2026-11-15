@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-15T11:51:33.331Z",
-  "guards": 4113,
-  "registered": 4101,
+  "generated": "2026-11-15T19:42:40.225Z",
+  "guards": 4123,
+  "registered": 4111,
   "unregistered": [
     "src/components/shops/publicShopLayout.test.tsx",
     "src/components/shops/shopBrowseCardName.test.tsx",
@@ -31,6 +31,7 @@
     "src/test/declutterTradesClient.test.tsx",
     "src/test/fabClearsLastRow.test.tsx",
     "src/test/feeAmountsFromCheckout.test.tsx",
+    "src/test/homeReadsLeanPosted.test.ts",
     "src/test/jobShareLine.test.ts",
     "src/test/needsYouCountsEachOrderOnce.test.ts",
     "src/test/sellerProblemIsBuyersNeedsYou.test.ts",
@@ -124,7 +125,8 @@
       "module": "src/pages/home/homeDashboard/WelcomeCard.tsx",
       "tests": [
         "src/test/homeCardsInSpanish.test.tsx",
-        "src/test/homeWelcomeCard.test.tsx"
+        "src/test/homeWelcomeCard.test.tsx",
+        "src/test/newMemberHomeCreateNotCovering.test.tsx"
       ],
       "parents": [
         "src/pages/home/homeDashboard/NewMemberHome.tsx"

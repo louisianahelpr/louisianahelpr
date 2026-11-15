@@ -12,12 +12,22 @@
  * frame. So (1) the helper finds the frame, opens Card, fills both variants by `name`, picks the State, unticks Link
  * and presses the frame's submit, driven below against a fake page per variant; (2) no e2e driver builds a Stripe
  * field or submit locator itself: they call fillStripeCardFields / clickStripeSubmit / pressStripePay.
+ *
+ * Q?embedmjs (2026-11-15): the same holds for the standalone `node` scripts that pay a TEST-mode Checkout Session
+ * (mint-funded-seed-jobs, declutterPayoutProof, stripe-tax-probe). Each kept its own page-level copy of the selectors
+ * because it could not import the .ts; the logic now lives in e2e/stripeCheckoutForm.mjs, which they import, and (3)
+ * no script under scripts/ (nor any other e2e .mjs) names a Stripe field, method or submit selector itself.
  */
-// @mutate e2e/stripeCheckoutCard.ts |   if (frames > 0) return { root: page.frameLocator(STRIPE_EMBEDDED_FORM_FRAME).first(), embedded: true }; |   if (false) return { root: page.frameLocator(STRIPE_EMBEDDED_FORM_FRAME).first(), embedded: true };
-// @mutate e2e/stripeCheckoutCard.ts |   if (embedded) { |   if (false) {
-// @mutate e2e/stripeCheckoutCard.ts | embedded ? "payment-form-submit-button" : "hosted-payment-submit-button" | "hosted-payment-submit-button"
-// @mutate e2e/stripeCheckoutCard.ts | const STRIPE_LINK_OPT_IN = '#enableStripePass, input[name="linkOptIn"]'; | const STRIPE_LINK_OPT_IN = "#enableStripePass";
+// @mutate e2e/stripeCheckoutForm.mjs |   if (frames > 0) return { root: page.frameLocator(STRIPE_EMBEDDED_FORM_FRAME).first(), embedded: true }; |   if (false) return { root: page.frameLocator(STRIPE_EMBEDDED_FORM_FRAME).first(), embedded: true };
+// @mutate e2e/stripeCheckoutForm.mjs |   const state = root.locator(embedded ? EMBEDDED_STATE_SELECT : PAGE_STATE_SELECT).first(); |   const state = root.locator(PAGE_STATE_SELECT).first();
+// @mutate e2e/stripeCheckoutForm.mjs | embedded ? "payment-form-submit-button" : "hosted-payment-submit-button" | "hosted-payment-submit-button"
+// @mutate e2e/stripeCheckoutForm.mjs | const STRIPE_LINK_OPT_IN = '#enableStripePass, input[name="linkOptIn"]'; | const STRIPE_LINK_OPT_IN = "#enableStripePass";
 // @mutate e2e/journeys/fixtures.ts |   await fillStripeCardFields(page, TEST_CARD); |   await page.locator("#cardNumber").fill(TEST_CARD.number);
+// @mutate scripts/probes/mint-funded-seed-jobs.prod.mjs |       await fillStripeCardFields(page, PROBE_CARD); |       await page.locator("#cardNumber").fill(PROBE_CARD.number);
+// @mutate scripts/e2e/declutterPayoutProof.mjs |       await clickStripeSubmit(page); |       await page.getByTestId("hosted-payment-submit-button").click();
+// @mutate scripts/stripe-tax-probe.mjs |     await fillStripeCardFields(page, { |     await page.locator("#cardNumber").fill(cardNumber); await fillStripeCardFields(page, {
+// @mutate e2e/stripeCheckoutForm.mjs |   if (card.email) { |   if (false) {
+// @mutate e2e/stripeCheckoutForm.mjs |       ? [root.locator(FIELDS.embedded.card), root.getByRole("button", { name: /^Card/ }), root.getByTestId("payment-form-submit-button")] |       ? pageControls
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -30,11 +40,13 @@ import {
   fillStripeCardFields,
   openCardFields,
   untickStripeLink,
+  waitForStripeFormDrawn,
   waitForStripePaymentMethods,
 } from "../../e2e/stripeCheckoutCard";
 
 const ROOT = join(__dirname, "..", "..");
 const HELPER = "e2e/stripeCheckoutCard.ts";
+const HELPER_MJS = "e2e/stripeCheckoutForm.mjs";
 
 type Variant = "5a" | "5b";
 
@@ -130,6 +142,8 @@ describe("the embedded Checkout form is driven inside its iframe (layout 5)", ()
     it(`${variant}: waits, opens Card, fills every field by name, and presses the frame's submit`, async () => {
       const f = fakeEmbeddedPage(variant);
       await waitForStripePaymentMethods(f.page, 50);
+      // The standalone scripts' wait: on layout 5 it must see the frame's own controls, not the page's.
+      await waitForStripeFormDrawn(f.page, 50, 1);
       await openCardFields(f.page);
       await fillStripeCardFields(f.page, CARD);
       await untickStripeLink(f.page);
@@ -149,6 +163,41 @@ describe("the embedded Checkout form is driven inside its iframe (layout 5)", ()
       expect(f.linkChecked()).toBe(false);
     });
   }
+});
+
+/** Layouts 1-4 (the hosted page itself holds the form), with the State select and receipt email the tax probe fills. */
+function fakeHostedPage() {
+  const filled: Record<string, string> = {};
+  let state = "";
+  const loc = (sel: string) => {
+    const present = sel !== STRIPE_EMBEDDED_FORM_FRAME;
+    const l: Record<string, unknown> = {
+      isVisible: async () => present,
+      isEditable: async () => present,
+      count: async () => (present ? 1 : 0),
+      fill: async (v: string) => {
+        filled[sel] = v;
+      },
+      selectOption: async (v: string) => {
+        state = `${sel}=${v}`;
+      },
+      first: () => l,
+    };
+    return l;
+  };
+  const page = { locator: loc, keyboard: { press: async () => undefined } };
+  return { page: page as unknown as Page, filled, state: () => state };
+}
+
+describe("on the hosted page (layouts 1-4) the helper also fills the State and the receipt email", () => {
+  it("picks LA in #billingAdministrativeArea and types the email when one is given", async () => {
+    const f = fakeHostedPage();
+    await fillStripeCardFields(f.page, { ...CARD, email: "probe@example.com" });
+    expect(f.filled["#cardNumber"]).toBe(CARD.number);
+    expect(f.filled["#billingLocality"]).toBe(CARD.city);
+    expect(f.filled["#email"]).toBe("probe@example.com");
+    expect(f.state()).toBe("#billingAdministrativeArea=LA");
+  });
 });
 
 function e2eFiles(dir = join(ROOT, "e2e")): string[] {
@@ -184,5 +233,60 @@ describe("no e2e driver builds a Stripe field or submit locator itself", () => {
   it("each takes Stripe's fields from the helper, never from the page", () => {
     const offenders = files.flatMap((f) => STRIPE_FIELD_SELECTORS.filter((s) => f.code.includes(s)).map((s) => `${f.rel}: ${s}`));
     expect(offenders, "use fillStripeCardFields / clickStripeSubmit (e2e/stripeCheckoutCard.ts): Stripe can draw the form in an iframe").toEqual([]);
+  });
+});
+
+function scriptFiles(dir = join(ROOT, "scripts")): string[] {
+  return readdirSync(dir).flatMap((n) => {
+    const p = join(dir, n);
+    if (statSync(p).isDirectory()) return n === "node_modules" ? [] : scriptFiles(p);
+    return /\.(mjs|js|cjs|ts)$/.test(n) ? [p] : [];
+  });
+}
+
+describe("no standalone script builds a Stripe field, method or submit locator itself (Q?embedmjs)", () => {
+  // The page-level ids, the Card method controls and the Link opt-in: each is a locator that only works while Stripe
+  // draws the form on the page itself.
+  const STRIPE_SELECTORS = [
+    '"#cardNumber"',
+    '"#cardExpiry"',
+    '"#cardCvc"',
+    '"#billingName"',
+    '"#billingAddressLine1"',
+    '"#billingLocality"',
+    '"#billingPostalCode"',
+    '"#billingAdministrativeArea"',
+    '"#enableStripePass"',
+    '"card-accordion-item-button"',
+    '"card-accordion-item"',
+    '"hosted-payment-submit-button"',
+    '"payment-form-submit-button"',
+  ];
+  const e2eMjs = readdirSync(join(ROOT, "e2e"))
+    .filter((n) => /\.mjs$/.test(n))
+    .map((n) => join(ROOT, "e2e", n));
+  const files = [...scriptFiles(), ...e2eMjs]
+    .map((p) => ({ rel: p.slice(ROOT.length + 1), code: blankComments(readFileSync(p, "utf8")) }))
+    .filter((f) => f.rel !== HELPER_MJS);
+  const PAYERS = ["scripts/e2e/declutterPayoutProof.mjs", "scripts/probes/mint-funded-seed-jobs.prod.mjs", "scripts/stripe-tax-probe.mjs"];
+
+  it("finds the scripts that pay a Checkout Session (inventory floor)", () => {
+    expect(files.length).toBeGreaterThan(200);
+    const payers = files.filter((f) => /\bfillStripeCardFields\(page\b/.test(f.code)).map((f) => f.rel).sort();
+    expect(payers).toEqual(PAYERS);
+  });
+
+  it("each imports the shared helper and presses Pay through clickStripeSubmit", () => {
+    for (const rel of PAYERS) {
+      const code = files.find((f) => f.rel === rel)!.code;
+      expect(code, rel).toMatch(/from "(\.\.\/)+e2e\/stripeCheckoutForm\.mjs"/);
+      expect(code, rel).toContain("await openCardFields(page)");
+      expect(code, rel).toContain("await clickStripeSubmit(page)");
+    }
+  });
+
+  it("none names a Stripe selector itself", () => {
+    const offenders = files.flatMap((f) => STRIPE_SELECTORS.filter((sel) => f.code.includes(sel)).map((sel) => `${f.rel}: ${sel}`));
+    expect(offenders, "use e2e/stripeCheckoutForm.mjs (fillStripeCardFields / clickStripeSubmit): Stripe can draw the form in an iframe").toEqual([]);
   });
 });

@@ -72,6 +72,10 @@ import { rest, session, invoke } from "./lib/prodEnv.mjs";
 import { fitJobTitle } from "../lib/jobTextBounds.mjs";
 import { ACCOUNTS } from "../test-signin-link.mjs";
 import { assertFreshCheckout } from "../lib/freshCheckout.mjs";
+import { clickStripeSubmit, fillStripeCardFields, openCardFields, untickStripeLink, waitForStripeFormDrawn } from "../../e2e/stripeCheckoutForm.mjs";
+
+/** Stripe's documented TEST card and the billing details its Checkout may ask for. */
+const PROBE_CARD = { number: "4242 4242 4242 4242", expiry: "12 / 34", cvc: "123", name: "Race Probe", line1: "100 Audit Way", city: "Baton Rouge", zip: "70801" };
 
 // Refuse to write prod from a stale checkout (Q?stale-shared-checkout-writes).
 assertFreshCheckout(import.meta.url);
@@ -236,48 +240,15 @@ try {
     });
     try {
       await page.goto(url, { waitUntil: "domcontentloaded" });
-      // Same three layouts e2e/stripeCheckoutCard.ts knows (this .mjs cannot
-      // import that .ts): open card fields, the Card method BUTTON (Stripe
-      // Sandbox since 2026-10-13: the radio is a decorative aria-hidden span),
-      // or the older radio accordion.
-      const card = page.locator("#cardNumber");
-      const cardButton = page.getByTestId("card-accordion-item-button");
-      const radio = page.getByRole("radio").first();
-      const cardItem = page.getByTestId("card-accordion-item");
-      const submit = page.getByTestId("hosted-payment-submit-button");
-      // Q2238: NOT `a.or(b).first().waitFor(visible)`. `.first()` is the first match in DOM order, and with the
-      // Card item already open that is the card-accordion-item-button OVERLAY, a zero-size click area that never
-      // reads visible (Declutter payout proof run 39342447913 sat 60 s on it with the card fields drawn). Poll
-      // until any one of them is visible, as scripts/e2e/declutterPayoutProof.mjs does.
-      const drawnBy = Date.now() + 60_000;
-      for (;;) {
-        let drawn = false;
-        for (const l of [card, cardButton, cardItem, radio, submit]) {
-          if (await l.first().isVisible().catch(() => false)) { drawn = true; break; }
-        }
-        if (drawn) break;
-        if (Date.now() > drawnBy) throw new Error("Stripe's payment form drew no card field, Card item, radio or Pay button in 60 s");
-        await page.waitForTimeout(500);
-      }
-      if (!(await card.isVisible().catch(() => false))) {
-        // Item first: the button is a zero-size overlay a forced click can call "outside of the viewport".
-        if (await cardItem.count()) await cardItem.first().click({ force: true });
-        else if (await cardButton.count()) await cardButton.first().dispatchEvent("click");
-        else await radio.click({ force: true });
-      }
-      await card.waitFor({ state: "visible", timeout: 30_000 });
-      await card.fill("4242 4242 4242 4242");
-      await page.locator("#cardExpiry").fill("12 / 34");
-      await page.locator("#cardCvc").fill("123");
-      for (const [id, v] of [["#billingName", "Race Probe"], ["#billingAddressLine1", "100 Audit Way"], ["#billingLocality", "Baton Rouge"], ["#billingPostalCode", "70801"]]) {
-        const f = page.locator(id);
-        if ((await f.count()) && (await f.isVisible().catch(() => false))) { await f.fill(v).catch(() => {}); await page.keyboard.press("Escape").catch(() => {}); }
-      }
-      // Stripe draws the ticked Link box after the address; let it appear, then untick.
-      await page.waitForTimeout(2_000);
-      const link = page.locator("#enableStripePass");
-      if ((await link.count()) && (await link.isChecked().catch(() => false))) await link.uncheck({ force: true }).catch(() => {});
-      await page.getByTestId("hosted-payment-submit-button").click();
+      // Every layout Stripe draws, the embedded-iframe form included, through the shared helper
+      // (e2e/stripeCheckoutForm.mjs): it waits by polling each control (Q2238), opens Card, types the card and every
+      // billing field it renders, unticks Link and presses Pay inside whichever root holds the form.
+      await waitForStripeFormDrawn(page);
+      await openCardFields(page);
+      await fillStripeCardFields(page, PROBE_CARD);
+      // Stripe draws the ticked Link box after the address; untickStripeLink waits for it, then unticks.
+      await untickStripeLink(page);
+      await clickStripeSubmit(page);
       await page.waitForURL((u) => u.hostname.toLowerCase() !== "checkout.stripe.com", { timeout: 120_000 });
     } catch (e) {
       // The webhook, not the redirect, is the authority — poll below decides.

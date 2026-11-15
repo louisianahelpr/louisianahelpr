@@ -17,13 +17,13 @@
  * scripts/probes .mjs copy that cannot import the helper), and the helper opens
  * the card fields on every layout, driven below against a fake page per layout.
  */
-// @mutate e2e/stripeCheckoutCard.ts |  for (let i = 0; i < attempts; i++) { | for (let i = 0; i < 1; i++) {
+// @mutate e2e/stripeCheckoutForm.mjs |  for (let i = 0; i < attempts; i++) { | for (let i = 0; i < 1; i++) {
 // @mutate e2e/prod-audit/fundedOpenJob.ts |     await openCardFields(page); |     if (!(await card.isVisible().catch(() => false))) await radio.click({ force: true });
-// @mutate e2e/stripeCheckoutCard.ts |     if ((await cardButton.count().catch(() => 0)) > 0) { |     if (false) {
-// @mutate e2e/stripeCheckoutCard.ts |     if ((await savedChange.count().catch(() => 0)) > 0) { |     if (false) {
+// @mutate e2e/stripeCheckoutForm.mjs |     if ((await cardButton.count().catch(() => 0)) > 0) { |     if (false) {
+// @mutate e2e/stripeCheckoutForm.mjs |     if ((await savedChange.count().catch(() => 0)) > 0) { |     if (false) {
 // @mutate e2e/journeys/fixtures.ts |   const paymentField = stripePaymentMethodControl(page); |   const paymentField = page.locator("#cardNumber").or(page.getByRole("radio").first());
-// @mutate scripts/probes/mint-funded-seed-jobs.prod.mjs |         for (const l of [card, cardButton, cardItem, radio, submit]) { |         for (const l of [card, cardButton, radio]) {
-// @mutate scripts/probes/mint-funded-seed-jobs.prod.mjs |       const drawnBy = Date.now() + 60_000; |       await card.or(cardButton).or(radio).first().waitFor({ state: "visible", timeout: 60_000 }); const drawnBy = 0;
+// @mutate e2e/stripeCheckoutForm.mjs |     page.getByTestId(STRIPE_CARD_METHOD_ITEM), |     page.getByTestId(STRIPE_CARD_FIELD),
+// @mutate scripts/probes/mint-funded-seed-jobs.prod.mjs |       await waitForStripeFormDrawn(page); |       await page.locator("#cardNumber").or(page.getByRole("radio")).first().waitFor({ state: "visible", timeout: 60_000 });
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -34,6 +34,9 @@ import { openCardFields } from "../../e2e/stripeCheckoutCard";
 
 const ROOT = join(__dirname, "..", "..");
 const HELPER = "e2e/stripeCheckoutCard.ts";
+/** Where the helper's locator logic lives since Q?embedmjs (plain JS, so the standalone scripts import it too). */
+const HELPER_MJS = "e2e/stripeCheckoutForm.mjs";
+const isHelper = (rel: string) => rel === HELPER || rel === HELPER_MJS;
 
 function e2eFiles(dir = join(ROOT, "e2e")): string[] {
   return readdirSync(dir).flatMap((n) => {
@@ -47,7 +50,7 @@ describe("Stripe Checkout card fields open through the shared helper", () => {
   const drivers = e2eFiles()
     .map((p) => ({ rel: p.slice(ROOT.length + 1), src: readFileSync(p, "utf8") }))
     // Since the embedded-form layout (2026-11-15) the drivers type the card through fillStripeCardFields (the helper owns every Stripe selector).
-    .filter((f) => f.rel !== HELPER && (f.src.includes('"#cardNumber"') || f.src.includes("fillStripeCardFields(page")) && /4242|TEST_CARD/.test(f.src));
+    .filter((f) => !isHelper(f.rel) && (f.src.includes('"#cardNumber"') || f.src.includes("fillStripeCardFields(page")) && /4242|TEST_CARD/.test(f.src));
 
   it("finds the files that pay a Checkout Session (the inventory is not empty)", () => {
     expect(drivers.length).toBeGreaterThan(2);
@@ -65,7 +68,7 @@ describe("Stripe Checkout card fields open through the shared helper", () => {
   });
 
   it("the helper repeats the click more than once before giving up", () => {
-    const src = readFileSync(join(ROOT, HELPER), "utf8");
+    const src = readFileSync(join(ROOT, HELPER_MJS), "utf8");
     const m = /for \(let i = 0; i < (\w+); i\+\+\)/.exec(src);
     expect(m, "openCardFields has no retry loop").not.toBeNull();
     const bound = m![1] === "attempts" ? Number(/attempts = (\d+)/.exec(src)?.[1]) : Number(m![1]);
@@ -82,7 +85,7 @@ const STRIPE_CHECKOUT_HOST_TEXT = ["checkout", "stripe", "com"].join(".");
 describe("no driver waits on a payment-method radio alone (Stripe's button accordion has none)", () => {
   const files = [...e2eFiles(), ...e2eFiles(join(ROOT, "scripts"))]
     .map((p) => ({ rel: p.slice(ROOT.length + 1), code: blankComments(readFileSync(p, "utf8")) }))
-    .filter((f) => f.rel !== HELPER && (f.code.includes('"#cardNumber"') || f.code.includes("stripeCheckoutCard") || f.code.includes(STRIPE_CHECKOUT_HOST_TEXT)));
+    .filter((f) => !isHelper(f.rel) && (f.code.includes('"#cardNumber"') || f.code.includes("stripeCheckoutCard") || f.code.includes(STRIPE_CHECKOUT_HOST_TEXT)));
 
   it("finds every file that drives Stripe's card field (the inventory is not empty)", () => {
     expect(files.length).toBeGreaterThan(4);
@@ -116,17 +119,29 @@ describe("no driver waits on a payment-method radio alone (Stripe's button accor
    * helper poll until ANY of card field / Card item / radio / Pay is visible.
    */
   it("no driver waits on a radio or an .or(...).first() chain; the probe polls until any control is visible", () => {
-    const waits = files.flatMap((f) =>
+    // The shared helper's own waits count too: since Q?embedmjs most of the waits live in it.
+    const helperMjs = { rel: HELPER_MJS, code: blankComments(readFileSync(join(ROOT, HELPER_MJS), "utf8")) };
+    const waits = [...files, helperMjs].flatMap((f) =>
       [...f.code.matchAll(/await\s+([^;\n]*)\.waitFor\(/g)].map((m) => ({ rel: f.rel, expr: m[1] })),
     );
-    // Floor: the scan reads real waits (the drivers wait on #cardNumber and more).
+    // Floor: the scan reads real waits (the helper waits on the card field and the embedded controls, and more).
     expect(waits.length).toBeGreaterThan(2);
     const bad = waits.filter((w) => /\bradio\b|getByRole\(["']radio["']\)/.test(w.expr) || /\.or\([\s\S]*\.first\(\)\s*$/.test(w.expr));
     expect(bad.map((w) => `${w.rel}: ${w.expr}`)).toEqual([]);
-    const probe = files.find((f) => f.rel === "scripts/probes/mint-funded-seed-jobs.prod.mjs");
-    expect(probe, "the probe is in the inventory").toBeTruthy();
-    expect(probe!.code).toContain('getByTestId("card-accordion-item")');
-    expect(probe!.code).toMatch(/for \(const l of \[[^\]]*\bcardItem\b[^\]]*\bsubmit\b[^\]]*\]\)/);
+    // Since Q?embedmjs the standalone scripts wait through the shared waitForStripeFormDrawn, which polls the Card
+    // item and Pay among the other controls (and the embedded form frame's own controls on layout 5).
+    for (const rel of ["scripts/probes/mint-funded-seed-jobs.prod.mjs", "scripts/e2e/declutterPayoutProof.mjs", "scripts/stripe-tax-probe.mjs"]) {
+      const script = files.find((f) => f.rel === rel);
+      expect(script, `${rel} is in the inventory`).toBeTruthy();
+      expect(script!.code, `${rel} waits through waitForStripeFormDrawn`).toContain("await waitForStripeFormDrawn(page)");
+    }
+    const helper = blankComments(readFileSync(join(ROOT, HELPER_MJS), "utf8"));
+    const drawn = /export async function waitForStripeFormDrawn[\s\S]*?\n\}/.exec(helper)?.[0] ?? "";
+    expect(drawn, "waitForStripeFormDrawn exists").not.toBe("");
+    expect(drawn).toContain("page.getByTestId(STRIPE_CARD_METHOD_ITEM)");
+    expect(drawn).toContain('page.getByTestId("hosted-payment-submit-button")');
+    expect(drawn).toMatch(/for \(const l of controls\) if \(await l\.first\(\)\.isVisible\(\)/);
+    expect(drawn).not.toMatch(/\.or\(/);
   });
 });
 

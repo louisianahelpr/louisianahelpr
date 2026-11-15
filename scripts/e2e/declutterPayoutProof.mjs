@@ -66,6 +66,7 @@ import { mintAdminSession, PUBLIC_ANON_KEY } from "../lib/adminSession.mjs";
 import { acceptCurrentTerms } from "../lib/acceptCurrentTerms.mjs";
 import { ensureTestAccountsEnrolled } from "../lib/testAccountEnrolment.mjs";
 import { RESET_FIELDS } from "./seatStripeAccounts.mjs";
+import { clickStripeSubmit, fillStripeCardFields, openCardFields, untickStripeLink, waitForStripeFormDrawn } from "../../e2e/stripeCheckoutForm.mjs";
 
 assertFreshCheckout(import.meta.url);
 
@@ -399,53 +400,36 @@ async function payCheckout(browser, url, label) {
   });
   try {
     await page.goto(url, { waitUntil: "domcontentloaded" });
-    // Same three layouts e2e/stripeCheckoutCard.ts knows: open card fields,
-    // the Card method button (Stripe Sandbox since 2026-10-13), or the radio accordion.
-    const card = page.locator("#cardNumber");
-    const cardButton = page.getByTestId("card-accordion-item-button");
-    const radio = page.getByRole("radio").first();
-    const cardItem = page.getByTestId("card-accordion-item");
-    const submit = page.getByTestId("hosted-payment-submit-button");
-    // NOT `a.or(b).first().waitFor(visible)`: `.first()` is the first match in DOM order, and
-    // with the Card item already open that is the card-accordion-item-button OVERLAY, a
-    // zero-size click area that never reads visible (run 39342447913 sat 60 s on it with the
-    // card fields drawn; reproduced locally on the same cs_test_ page). Any one visible is enough.
-    const drawn = async () => {
-      for (const l of [card, cardItem, radio, submit]) if (await l.first().isVisible().catch(() => false)) return true;
+    // Every layout Stripe draws, the embedded-iframe form included, through the shared helper
+    // (e2e/stripeCheckoutForm.mjs): it waits by polling each control (Q2238: never an `.or(...).first()` wait on the
+    // zero-size card-accordion-item-button overlay, run 39342447913), opens Card, and types inside whichever root holds
+    // the form.
+    await waitForStripeFormDrawn(page);
+    // A buyer with a saved test card may be shown that card and no card fields (openCardFields presses its "Change"
+    // first): when the fields still never open, Pay charges the saved 4242 (it can only be a test card: cs_test_ page).
+    const opened = await openCardFields(page).then(() => true, (err) => {
+      log(`${label}: no card fields on the page (${String(err.message).split("\n")[0].slice(0, 120)}); paying with the saved test card`);
       return false;
-    };
-    await poll("Stripe's payment form", drawn, { every: 500, timeoutMs: 60_000 });
-    if (!(await card.isVisible().catch(() => false))) {
-      // Item first: the button is a zero-size overlay a forced click can call "outside of the viewport".
-      if (await cardItem.count()) await cardItem.first().click({ force: true });
-      else if (await cardButton.count()) await cardButton.first().dispatchEvent("click");
-      else if (await radio.count()) await radio.click({ force: true });
-    }
-    // A buyer with a saved test card may be shown that card and no card fields:
-    // then Pay charges the saved 4242 (it can only be a test card: cs_test_ page).
-    if (await card.waitFor({ state: "visible", timeout: 15_000 }).then(() => true, () => false)) {
-      await card.fill("4242 4242 4242 4242");
-      await page.locator("#cardExpiry").fill("12 / 34");
-      await page.locator("#cardCvc").fill("123");
-    } else {
-      log(`${label}: no card fields on the page; paying with the saved test card`);
-    }
-    for (const [id, v] of [["#email", "payout-proof@mailinator.com"], ["#billingName", "Payout Proof"], ["#billingAddressLine1", "100 Audit Way"], ["#billingLocality", "Baton Rouge"], ["#billingPostalCode", "70801"]]) {
-      const f = page.locator(id);
-      if ((await f.count()) && (await f.isVisible().catch(() => false)) && (await f.isEditable().catch(() => false))) {
-        await f.fill(v).catch(() => {});
-        await page.keyboard.press("Escape").catch(() => {});
-      }
+    });
+    if (opened) {
+      await fillStripeCardFields(page, {
+        number: "4242 4242 4242 4242",
+        expiry: "12 / 34",
+        cvc: "123",
+        name: "Payout Proof",
+        line1: "100 Audit Way",
+        city: "Baton Rouge",
+        zip: "70801",
+        email: "payout-proof@mailinator.com",
+      });
     }
     // Stripe draws the ticked Link box (with a required phone) AFTER the address, so it is
     // unticked right before EVERY press: left ticked, Pay does nothing and says nothing.
-    const link = page.locator("#enableStripePass");
     let left = false;
     for (let press = 1; press <= 3 && !left; press++) {
-      await page.waitForTimeout(2_000);
-      if ((await link.count()) && (await link.isChecked().catch(() => false))) await link.uncheck({ force: true });
+      await untickStripeLink(page);
       await page.getByRole("heading", { name: /^Pay |^Set up|^Save/ }).first().click().catch(() => undefined);
-      await submit.click();
+      await clickStripeSubmit(page);
       left = await page.waitForURL((u) => u.hostname.toLowerCase() !== "checkout.stripe.com", { timeout: 40_000 }).then(() => true, () => false);
       if (!left) log(`${label}: press ${press} did not leave Stripe's page`);
     }

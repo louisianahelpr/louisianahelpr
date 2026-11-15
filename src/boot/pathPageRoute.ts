@@ -30,6 +30,28 @@ if (path.startsWith("/declutter/item/")) {
   import("@/pages/declutter/DeclutterItemPage").catch(() => {
     /* App.tsx's lazy import of the same module owns the failure */
   });
+} else if (/^\/jobs\/[0-9a-f-]{36}$/i.test(path)) {
+  // F288a (audit 11-10: job pages took 2.4-2.5 s to their largest paint on a phone). Measured 11-14 on a local build
+  // against prod (390, 3x CPU, cold cache): JobDetail ran only after App.tsx, then asked for JobPage, and only then the
+  // job's own read started (JobPage chunk at 2.67 s, read 2.74-2.96 s, LCP 3.02 s). Both chunks start here, beside the
+  // app. JobPage is a member's page; a guest gets JobDetail's own guest page, so it is started only with a session.
+  import("@/pages/jobs/JobDetail").catch(() => {
+    /* App.tsx's lazy import of the same module owns the failure */
+  });
+  let member = false;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) member = true;
+    }
+  } catch {
+    /* storage blocked: treat as signed out, as routePreload's hasToken does */
+  }
+  if (member) {
+    import("@/pages/jobs/jobPage/JobPage").catch(() => {
+      /* JobDetail's lazy import of the same module owns the failure */
+    });
+  }
 } else if (path === "/help") {
   import("@/pages/info/HelpCenter").catch(() => {
     /* App.tsx's lazy import of the same module owns the failure */

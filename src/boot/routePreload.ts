@@ -137,9 +137,11 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
  *   a support reply; their page chunk waited for App.tsx (/help: frame 3.1 s, topic list 4.9 s live, Slow 4G + 4x).
  *   Not the policy pages (/legal, /rules, ...): measured, Legal already drew with the app (2.8 s), and starting it
  *   here drew it at 3.7 s.
+ * - every /jobs/<uuid> (F288a, 11-14): a job link from an email, a push or a share starts the job page beside the app
+ *   instead of after it (pathPageRoute.ts).
  * One pattern and one loader: separate rows and loaders put the entry chunk +69 B gz, over its band (lander l108).
  */
-const PATH_PAGE_PATH = /^\/(?:declutter\/item\/[^/]+|help|hire\/[^/]+\/[^/]+)$/;
+const PATH_PAGE_PATH = /^\/(?:declutter\/item\/[^/]+|help|hire\/[^/]+\/[^/]+|jobs\/[0-9a-f-]{36})$/i;
 
 /** Set on every <link rel="modulepreload"> the page preload adds; index.html's watchdog skips them. */
 const PAGE_PRELOAD_ATTR = "data-lh-page-preload";

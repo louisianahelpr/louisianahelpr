@@ -36,6 +36,8 @@
 // @mutate supabase/functions/engagement-automations/index.ts |       .eq('is_seed', false)\n      .is('anonymized_at', null)\n      .eq('ban_status', 'active'),\n    ) |     )
 // @mutate supabase/functions/engagement-automations/index.ts |         .eq('is_seed', false)\n        .is('anonymized_at', null)\n        .eq('ban_status', 'active'),\n    ) |     )
 // @mutate supabase/functions/engagement-automations/index.ts |       if (!(daysSinceSignup <= WELCOME_DRIP_MAX_DAYS)) continue | 
+// @mutate supabase/functions/engagement-automations/index.ts |       if ((user.drip_step ?? 0) < 3 && daysSinceSignup >= 7) targetStep = 3 |       if ((user.drip_step ?? 0) < 3 && daysSinceSignup >= 1) targetStep = 3
+// @mutate supabase/functions/engagement-automations/index.ts |       if ((user.drip_step ?? 0) < 3 && daysSinceSignup >= 7) targetStep = 3 |       if (user.drip_step === 2 && daysSinceSignup >= 7) targetStep = 3
 // @mutate supabase/functions/engagement-automations/index.ts |       if (!(daysSinceSignup <= WELCOME_DRIP_MAX_DAYS)) continue |       if (!(daysSinceSignup <= WELCOME_DRIP_MAX_DAYS + 1)) continue
 // @mutate supabase/functions/engagement-automations/index.ts |         .gte('created_at', welcomeWindowStart) | 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -73,7 +75,7 @@ async function body(res: Response): Promise<Record<string, unknown>> {
   return JSON.parse(await res.text());
 }
 
-const TWO_DAYS_AGO = new Date(Date.now() - 2 * 86_400_000).toISOString();
+const EIGHT_DAYS_AGO = new Date(Date.now() - 8 * 86_400_000).toISOString();
 
 /**
  * One consenting, verified, approved profile due drip step 1, with both
@@ -101,7 +103,8 @@ function seedOneDripRecipient(dripCount?: number) {
               email: "dana@example.com",
               drip_step: 0,
               last_drip_at: null,
-              created_at: TWO_DAYS_AGO,
+              // Day 8: the day 7 tips email is due (day 1 and day 3 moved to welcome-emails, owner 2026-11-14).
+              created_at: EIGHT_DAYS_AGO,
             },
           ],
           ...(dripCount === undefined ? {} : { count: dripCount }),
@@ -146,9 +149,9 @@ describe("engagement-automations edge function", () => {
     expect(res.status).toBe(200);
     expect(b.drip).toBe(1);
     expect(queued()).toHaveLength(1);
-    // The right step was selected — day 2 since signup with `drip_step: 0`
-    // is step 1, not 2 or 3.
-    expect((emailRenders[0] as { type: { name: string } }).type.name).toBe("WelcomeDripStep1Email");
+    // The right step was selected: day 8 since signup with `drip_step: 0` is the day 7 tips email (step 3; 2026-11-14).
+    // Day 1 and day 3 are welcome-emails' since 11-14, so this cron never sends steps 1 or 2 on its own.
+    expect((emailRenders[0] as { type: { name: string } }).type.name).toBe("WelcomeDripStep3Email");
   });
 
   it("ABORTS 503 when the suppression list cannot be READ — nothing is mailed", async () => {
@@ -856,7 +859,22 @@ describe("engagement-automations edge function", () => {
     it("a member who joined 13 days ago still gets the step that is due", async () => {
       seedSignup(13 * DAY);
       expect(await dripsSent()).toBe(1);
-      expect((emailRenders[0] as { type: { name: string } }).type.name).toBe("WelcomeDripStep1Email");
+      expect((emailRenders[0] as { type: { name: string } }).type.name).toBe("WelcomeDripStep3Email");
+    });
+
+    it("day 1 and day 3 are welcome-emails' now (owner 11-14): a day-2 or day-4 member gets nothing from this cron", async () => {
+      seedSignup(2 * DAY);
+      expect(await dripsSent()).toBe(0);
+      resetSupabaseMock();
+      resetEmailMocks();
+      seedQuietDay();
+      seedSignup(4 * DAY, 1);
+      expect(await dripsSent()).toBe(0);
+      resetSupabaseMock();
+      resetEmailMocks();
+      seedQuietDay();
+      seedSignup(6.9 * DAY, 2);
+      expect(await dripsSent()).toBe(0);
     });
 
     it("a member who joined 15 days ago gets no welcome step at all", async () => {

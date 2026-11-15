@@ -22,6 +22,8 @@
  * @mutate src/pages/auth/Signup.tsx |             onSkip={() => finishStep2(true)} |             onSkip={() => finishStep2(false)}
  * @mutate src/pages/auth/Signup.tsx |         referralCode: (skipped ? linkReferralCode : referralCode.trim().toUpperCase()) \|\| null, |         referralCode: referralCode.trim().toUpperCase() \|\| null,
  * @mutate src/components/ProtectedRoute.tsx |   if (!signupFinished(profile)) return false; |
+ * @mutate src/components/ProtectedRoute.tsx | const signupFinished = (profile: GateProfile): boolean => filled(profile.accepted_terms_at) \|\| filled(profile.terms_accepted_at); | const signupFinished = (profile: GateProfile): boolean => filled(profile.location) \|\| filled(profile.accepted_terms_at) \|\| filled(profile.terms_accepted_at);
+ * @mutate src/components/ProtectedRoute.tsx |   if (user?.app_metadata?.provider === "email" && filled(profile.accepted_terms_at)) return true; |   if (user?.app_metadata?.provider === "email") return true;
  * @mutate src/pages/auth/signup/SignupStep2.tsx |         onClick={onSkip} |         onClick={onContinue}
  * @mutate src/pages/auth/signup/SignupStep2.tsx |         {t("signup.skip")}\n |         Skip for now\n
  * @mutate src/components/ProtectedRoute.tsx |   { key: "full_name", label: "Full name" }, |   { key: "full_name", label: "Full name" }, { key: "location", label: "City" },
@@ -159,8 +161,15 @@ describe("the gate lets a skipped city through", () => {
   it("an email sign-up with a name, no city and a finished sign-up is complete", () => {
     // accepted_terms_at: written only by complete-signup and Complete Profile.
     expect(isProfileComplete({ ...base!, accepted_terms_at: "2026-10-27T00:00:00Z" } as Parameters<typeof isProfileComplete>[0], email)).toBe(true);
-    // A city also marks a finished sign-up (the accounts from before 2026-09-01).
-    expect(isProfileComplete({ ...base!, location: "Lafayette, LA" }, email)).toBe(true);
+    // A city alone no longer does (owner rule 11-14: nobody gets in without Terms + 18+; review finding 6).
+    expect(isProfileComplete({ ...base!, location: "Lafayette, LA" }, email)).toBe(false);
+    expect(isProfileComplete({ ...base!, location: "Lafayette, LA", age_attested_at: "2026-10-27T00:00:00Z" } as Parameters<typeof isProfileComplete>[0], google)).toBe(false);
+    // The current version's Terms stamp counts as a Terms record; an email account with only that stamp still needs
+    // an 18+ record of its own (complete-signup's accepted_terms_at is the email path's 18+ proof).
+    const versionOnly = { ...base!, terms_accepted_at: "2026-10-27T00:00:00Z" } as Parameters<typeof isProfileComplete>[0];
+    expect(isProfileComplete({ ...versionOnly!, age_attested_at: "2026-10-27T00:00:00Z" } as Parameters<typeof isProfileComplete>[0], google)).toBe(true);
+    expect(isProfileComplete(versionOnly, email)).toBe(false);
+    expect(isProfileComplete({ ...versionOnly!, age_attested_at: "2026-10-27T00:00:00Z" } as Parameters<typeof isProfileComplete>[0], email)).toBe(true);
   });
 
   it("a sign-up whose completion never ran (name from signUp, no city, no consent) still goes to Complete Profile", () => {

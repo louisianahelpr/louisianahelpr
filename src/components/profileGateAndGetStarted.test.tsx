@@ -34,6 +34,7 @@ describe("profile photo and phone are optional", () => {
         date_of_birth: null,
         phone: null,
         location: "Lafayette",
+        accepted_terms_at: "2026-11-01T00:00:00Z",
         is_legacy_user: false,
       } as Parameters<typeof isProfileComplete>[0], { app_metadata: { provider: "email" } }),
     ).toBe(true);

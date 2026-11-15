@@ -1,7 +1,7 @@
 // @mutate src/components/ui/checkbox.tsx | "peer h-[18px] w-[18px] shrink-0 rounded-sm", | "peer h-5 w-5 shrink-0 rounded-sm",
 // @mutate src/components/ui/checkbox.tsx | <Check className="h-3 w-3 stroke-[2.5]" /> | <Check className="h-3.5 w-3.5 stroke-[2.5]" />
 // @mutate src/pages/auth/signup/SignupStep1.tsx | setMarketingConsent(checked === true)}\n          className="mt-px shrink-0" | setMarketingConsent(checked === true)}\n          className="h-5 w-5 mt-px shrink-0 [&_svg]:h-4 [&_svg]:w-4"
-// @mutate src/pages/auth/CompleteProfile.tsx | setAgeConfirmed(v === true)}\n                  className="mt-px shrink-0" | setAgeConfirmed(v === true)}\n                  className="h-3.5 w-3.5 mt-px shrink-0"
+// @mutate src/pages/auth/completeProfile/ConsentStep.tsx | onCheckedChange={(v) => setAdult(v === true)} className="mt-px shrink-0" | onCheckedChange={(v) => setAdult(v === true)} className="h-3.5 w-3.5 mt-px shrink-0"
 // @mutate src/components/admin/AdminExceptionQueue.tsx | className="h-[18px] w-[18px] min-h-0 min-w-0 accent-[hsl(var(--primary))]" | className="h-4 w-4 min-h-0 min-w-0 accent-[hsl(var(--primary))]"
 // @mutate src/components/messages/ConversationRow.tsx | className="w-[18px] h-[18px] rounded-full | className="w-6 h-6 rounded-full
 // @mutate src/components/firstRun/FirstRun.tsx | className="shrink-0 w-[18px] h-[18px] rounded-full | className="shrink-0 w-7 h-7 rounded-full

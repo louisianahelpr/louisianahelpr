@@ -29,7 +29,7 @@ import { PERMISSION_DENIED_EVENT } from "@/lib/permissionDenied";
 
 const signedIn = {
   user: { id: "u1", email_confirmed_at: "2026-08-01T00:00:00Z" },
-  profile: { full_name: "A B", avatar_url: "x", date_of_birth: "1990-01-01", phone: "1", location: "Rayne" },
+  profile: { full_name: "A B", avatar_url: "x", date_of_birth: "1990-01-01", phone: "1", location: "Rayne", accepted_terms_at: "2026-09-01T00:00:00Z" },
   isLoading: false,
   isError: false,
   refresh: vi.fn(),

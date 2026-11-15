@@ -15,7 +15,7 @@ import ts from "typescript";
 // @mutate src/components/create/CreateSheet.tsx | const shopsApi = () => loadModule(() => import("@/lib/shops/api")); | import { fetchMyShopId } from "@/lib/shops/api";\nconst shopsApi = async () => ({ fetchMyShopId });
 // @mutate src/hooks/useActivityData.ts | const scheduleChangeApi = () => loadModule(() => import("@/lib/scheduleChange")); | import * as scheduleChangeNow from "@/lib/scheduleChange";\nconst scheduleChangeApi = async () => scheduleChangeNow;
 // @mutate src/pages/home/HomeDashboard.tsx | const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet }))); | import { CustomizeSheet } from "@/components/sections/CustomizeSheet";
-// @mutate src/components/sections/AppTopBar.tsx | loadModule(() => import("@/components/notificationPanel/NotificationBell")) | loadModule(() => import("@/components/NotificationPanel"))
+// @mutate src/components/sections/AppTopBar.tsx | loadModule(() => import("@/components/inbox/InboxButton")) | loadModule(() => import("@/components/NotificationPanel"))
 // @mutate src/components/notificationPanel/NotificationBell.tsx |     const mod = await loadModule(() => import("@/components/NotificationPanel")); |     const mod = await Promise.resolve(NotificationPanelNow);
 // @mutate src/components/firstRun/FirstRunHost.tsx | const FirstRunScreens = lazy(() => import("./FirstRun")); | import FirstRunScreens from "./FirstRun";
 // @mutate src/pages/home/HomeDashboard.tsx | import { FirstRun } from "@/components/firstRun/FirstRunHost"; | import { FirstRun } from "@/components/firstRun/FirstRun";
@@ -88,7 +88,9 @@ describe("Home loads section data code lazily", () => {
       const src = readFileSync(resolve(__dirname, "../..", f), "utf8");
       if (f === "src/components/dashboard/DashboardTitleBar.tsx") expect(src, f).toContain('lazy(() => import("@/components/NotificationPanel"))');
       // The section bar loads the bell itself on its own (Q2705, 11-14): a guest's Declutter Browse never draws it.
-      else if (f === "src/components/sections/AppTopBar.tsx") expect(src, f).toContain('loadModule(() => import("@/components/notificationPanel/NotificationBell"))');
+      // The Inbox icon (owner 11-15) replaced the section bar's and the desktop bar's bell; it never imports the panel.
+      else if (f === "src/components/sections/AppTopBar.tsx") expect(src, f).toContain('loadModule(() => import("@/components/inbox/InboxButton"))');
+      else if (f === "src/components/DesktopTopNav.tsx") expect(src, f).toContain('from "@/components/inbox/InboxButton"');
       else expect(src, f).toContain('from "@/components/notificationPanel/NotificationBell"');
     }
     const bell = "src/components/notificationPanel/NotificationBell.tsx";

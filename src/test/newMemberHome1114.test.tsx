@@ -6,7 +6,7 @@
  *   3. the first-run tour points at today's chrome (dock Home/Jobs/Declutter, the top row's Messages, Create), finds
  *      each mark by path, never by words, and says "Home", never "Dashboard".
  *
- * @mutate src/components/firstRun/FirstRun.tsx |   messages: ['[data-testid="top-bar-messages"]', '[data-sidebar-item="/messages"]'], |   messages: ['nav[aria-label="Bottom navigation"] button[aria-label$="Messages"]', '[data-sidebar-item="/messages"]'],
+ * @mutate src/components/firstRun/FirstRun.tsx |   messages: ['[data-testid="top-bar-inbox"]', '[data-sidebar-item="/messages"]'], |   messages: ['nav[aria-label="Bottom navigation"] button[aria-label$="Messages"]', '[data-sidebar-item="/messages"]'],
  * @mutate src/components/firstRun/FirstRun.tsx |     { target: "home", text: "Home shows what needs you, and what's new near you" }, |     { target: "home", text: "Dashboard shows what needs you" },
  * @mutate src/components/firstRun/FirstRun.tsx |   const declutterFirst = sells && (sell \|\| deal) && !earn && !hire; |   const declutterFirst = false;
  * @mutate src/components/firstRun/FirstRun.tsx |   return { left: centred, width: w, top: rect.top + rect.height + 16 }; |   return { left: rect.right + 16, top: rect.top, width: 320 };
@@ -88,12 +88,13 @@ describe("3. the first-run tour points at today's chrome (owner 11-14)", () => {
     const all = Object.values(TARGETS).flat();
     expect(all.length).toBeGreaterThan(8);
     for (const sel of all) expect(sel, sel).not.toMatch(/aria-label/);
-    expect(TARGETS.messages[0]).toBe('[data-testid="top-bar-messages"]');
+    expect(TARGETS.messages[0]).toBe('[data-testid="top-bar-inbox"]'); // the Inbox icon (owner 11-15)
     expect(TARGETS.home[0]).toBe('[data-dock-tab="/home"]');
     expect(TARGETS.jobs[0]).toBe('[data-dock-tab="/jobs"]');
     expect(TARGETS.declutter[0]).toBe('[data-dock-tab="/declutter"]');
     // The chrome really carries those hooks.
-    expect(src("src/components/sections/AppTopBar.tsx")).toContain('data-testid="top-bar-messages"');
+    expect(src("src/components/sections/AppTopBar.tsx")).toContain("<TopBarInbox />");
+    expect(src("src/components/inbox/InboxButton.tsx")).toContain('data-testid="top-bar-inbox"');
     expect(src("src/components/MobileNav.tsx")).toContain("dockPath={path}");
     expect(src("src/components/DesktopSidebarNav.tsx")).toContain('"data-sidebar-item": path');
     render(<nav><TabButton onTap={() => {}} onPrefetch={() => {}} ariaLabel="Trabajos" dockPath="/jobs" ariaCurrent={undefined} className="">x</TabButton></nav>);

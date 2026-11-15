@@ -1,5 +1,5 @@
 /**
- * THE TOP BAR'S BELL NEVER SUSPENDS (Builder 2, 11-15; signed-in /jobs LCP).
+ * THE TOP BAR'S BELL, NOW THE INBOX ICON (owner 11-15), NEVER SUSPENDS (Builder 2, 11-15; signed-in /jobs LCP).
  *
  * The bell loads on its own chunk (AppTopBar.tsx, Q2705). It was drawn through lazy() inside its own <Suspense>, and
  * the page that mounted the bar had its whole first commit held until that chunk came: cwv-lab signed-in /jobs (Slow
@@ -10,9 +10,9 @@
  * THE CHECK, read from source (comments blanked): TopBarBell's body holds no lazy() and no <Suspense>, starts from the
  * warmed module (bellLoaded) and draws the placeholder square when it has none.
  *
- * @mutate src/components/sections/AppTopBar.tsx | const [Impl, setImpl] = useState<Bell \| null>(() => bellLoaded); | const [Impl, setImpl] = useState<Bell \| null>(() => bellLoaded); const Lz = lazy(() => loadBell().then((b) => ({ default: b as Bell }))); if (!Impl) return <Suspense fallback={null}><Lz triggerClassName={triggerClassName} /></Suspense>;
- * @mutate src/components/sections/AppTopBar.tsx | const [Impl, setImpl] = useState<Bell \| null>(() => bellLoaded); | const [Impl, setImpl] = useState<Bell \| null>(() => null);
- * @mutate src/components/sections/AppTopBar.tsx | return Impl ? <Impl triggerClassName={triggerClassName} /> : <span aria-hidden className="inline-block h-11 w-11" data-bell-placeholder="" />; | return Impl ? <Impl triggerClassName={triggerClassName} /> : null;
+ * @mutate src/components/sections/AppTopBar.tsx | const [Impl, setImpl] = useState<InboxIcon \| null>(() => inboxLoaded); | const [Impl, setImpl] = useState<InboxIcon \| null>(() => inboxLoaded); const Lz = lazy(() => loadInbox().then((b) => ({ default: b as InboxIcon }))); if (!Impl) return <Suspense fallback={null}><Lz /></Suspense>;
+ * @mutate src/components/sections/AppTopBar.tsx | const [Impl, setImpl] = useState<InboxIcon \| null>(() => inboxLoaded); | const [Impl, setImpl] = useState<InboxIcon \| null>(() => null);
+ * @mutate src/components/sections/AppTopBar.tsx | return Impl ? <Impl /> : <span aria-hidden className="inline-block h-11 w-11" data-inbox-placeholder="" />; | return Impl ? <Impl /> : null;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -21,10 +21,10 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
 
-/** TopBarBell's body: from its signature to the next top-level declaration. */
+/** TopBarInbox's body (TopBarBell until owner 11-15): from its signature to the next top-level declaration. */
 function topBarBellBody(): string {
   const src = blankComments(readFileSync(resolve(ROOT, "src/components/sections/AppTopBar.tsx"), "utf8"));
-  const start = src.indexOf("function TopBarBell(");
+  const start = src.indexOf("function TopBarInbox(");
   expect(start).toBeGreaterThan(-1);
   const rest = src.slice(start);
   const end = rest.search(/\n(?:export |const |function |let |type )/);
@@ -32,7 +32,7 @@ function topBarBellBody(): string {
 }
 
 describe("the top bar's bell never holds the page's first commit", () => {
-  it("TopBarBell draws without lazy() or Suspense", () => {
+  it("TopBarInbox draws without lazy() or Suspense", () => {
     const body = topBarBellBody();
     // Inventory floor: the slice really is the component (signature, state, effect, both draws).
     expect(body.split("\n").length).toBeGreaterThan(8);
@@ -42,8 +42,8 @@ describe("the top bar's bell never holds the page's first commit", () => {
 
   it("starts from the warmed module and holds the bell's square until it draws", () => {
     const body = topBarBellBody();
-    expect(body).toMatch(/useState<Bell \| null>\(\(\) => bellLoaded\)/);
-    expect(body).toMatch(/loadBell\(\)\.then\(/);
-    expect(body).toMatch(/: <span aria-hidden className="inline-block h-11 w-11" data-bell-placeholder="" \/>/);
+    expect(body).toMatch(/useState<InboxIcon \| null>\(\(\) => inboxLoaded\)/);
+    expect(body).toMatch(/loadInbox\(\)\.then\(/);
+    expect(body).toMatch(/: <span aria-hidden className="inline-block h-11 w-11" data-inbox-placeholder="" \/>/);
   });
 });

@@ -33,7 +33,8 @@ const LOAD_TIMEOUT_MS = 15_000;
 const withLoadTimeout = <T,>(pending: PromiseLike<T>): Promise<T> =>
   raceVisibleDeadline(pending, LOAD_TIMEOUT_MS, "Loading notifications timed out");
 
-function useNotificationPanelModel({ triggerClassName, defaultOpen = false, withMessages = false }: { triggerClassName?: string; defaultOpen?: boolean; withMessages?: boolean } = {}) { // sizes the bell (Home: 44px); defaultOpen: NotificationBell swapped this in on a tap
+// inline: the Inbox's Notifications tab (owner 11-15) draws the same list on its page, always "open", with no bell.
+function useNotificationPanelModel({ triggerClassName, defaultOpen = false, withMessages = false, inline = false }: { triggerClassName?: string; defaultOpen?: boolean; withMessages?: boolean; inline?: boolean } = {}) { // sizes the bell (Home: 44px); defaultOpen: NotificationBell swapped this in on a tap
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
   const titleId = useId();
@@ -55,7 +56,7 @@ function useNotificationPanelModel({ triggerClassName, defaultOpen = false, with
      reality, and did so WORSE the more someone used the app. The most engaged
      users saw the least accurate number.
      It rides on the unread read (`count: "exact"`, Q104): no extra request. */
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(defaultOpen || inline);
   const [openFolds, setOpenFolds] = useState<ReadonlySet<string>>(() => new Set()); // Q2037: lead rows whose job fold is open
   /* framer-motion is fetched when the panel first opens, never on page load —
      see useFramerMotion for the measured chain this breaks. `null` until the
@@ -95,7 +96,7 @@ function useNotificationPanelModel({ triggerClassName, defaultOpen = false, with
      `useScreenPanelBand` the element whose header bar decides where the
      panel's top edge lands. */
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const { anchorRef, band } = useScreenPanelBand(open, triggerRef);
+  const { anchorRef, band } = useScreenPanelBand(open && !inline, triggerRef);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
   /* UNREAD BY DEFAULT — but only when there IS unread (owner). A notification
@@ -234,7 +235,8 @@ function useNotificationPanelModel({ triggerClassName, defaultOpen = false, with
       if (err) failLoad(err);
       else setLoadError(false);
     });
-    const off = onNotificationArrival(alertNotificationArrival);
+    // Inline, the Inbox icon on the same page already holds the chime (inboxArrivalAlerts): one arrival, one chime.
+    const off = inline ? () => {} : onNotificationArrival(alertNotificationArrival);
 
     return () => {
       off();
@@ -400,7 +402,7 @@ function useNotificationPanelModel({ triggerClassName, defaultOpen = false, with
       // same tick as the route change reads as one jarring instant unmount
       // stacked on top of the page transition.
       navigate(to);
-      requestAnimationFrame(() => setOpen(false));
+      if (!inline) requestAnimationFrame(() => setOpen(false));
     }
   };
 
@@ -446,6 +448,7 @@ function useNotificationPanelModel({ triggerClassName, defaultOpen = false, with
     unreadTotal,
     visibleNotifications,
     withMessages,
+    inline,
   };
 }
 

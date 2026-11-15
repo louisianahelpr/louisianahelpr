@@ -117,9 +117,9 @@ describe("the section's soft '+' in its top bar, desktop website only (owner 202
     }
   });
 
-  it("the bell keeps its 44px size and 22px glyph", () => {
-    const bar = blankComments(readFileSync(resolve(__dirname, "../components/sections/AppTopBar.tsx"), "utf8"));
-    const bell = bar.match(/<TopBarBell triggerClassName="([^"]+)"/)?.[1] ?? "";
-    expect(bell.startsWith("h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px]"), `bell "${bell}"`).toBe(true);
+  it("the Inbox icon (the bell until owner 11-15) keeps the bell's 44px size and 22px glyph", () => {
+    const icon = blankComments(readFileSync(resolve(__dirname, "../components/inbox/InboxButton.tsx"), "utf8"));
+    expect(icon).toMatch(/size="iconCompact"/); // h-11 w-11 (src/test/iconCompactButton.test.ts)
+    expect(icon).toContain("[&>svg]:w-[22px] [&>svg]:h-[22px]");
   });
 });

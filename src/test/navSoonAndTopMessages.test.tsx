@@ -7,8 +7,9 @@
  *    (owner 11-06: DOCK_LISTS_CLOSED_SECTIONS_IN_APP true; hideUnopenedInApp, owner 10-31: no "Soon" in the app).
  *    A tap opens the section's route, whose gate (ShopsGate / RentalsGate) is the coming-soon screen for anyone it is
  *    closed to; Shops is never opened by the bar. A closed section carries no to-do count.
- *  - Messages is the top row's chat button (44px), between the search and the bell, with the unread badge the old
- *    Messages tab wore; on /messages it is the lit "you are here" mark. The photo still opens You.
+ *  - Messages is on the top row: since owner 11-15 inside the ONE Inbox icon (44px), between the search and the photo,
+ *    whose badge holds the unread the old Messages tab wore; on /messages it is the lit "you are here" mark. The photo
+ *    still opens You. (The tabs and the combined badge: src/test/inboxOneIconTwoTabs.test.tsx.)
  *  - Messages and You light no bottom tab.
  *
  * @mutate src/components/mobileNav/dockItems.ts |     { path: homes.path, icon: homes.icon, label: homes.label, comingSoon: true },\n | \n
@@ -16,8 +17,8 @@
  * @mutate src/components/MobileNav.tsx |       const soon = !!item.comingSoon && !!t && (!t.on \|\| t.preview) && !hideUnopenedInApp(); |       const soon = !!item.comingSoon && !!t && !t.on;
  * @mutate src/components/mobileNav/dockItems.ts | label: homes.label, comingSoon: true }, | label: homes.label },
  * @mutate src/components/MobileNav.tsx |     const badgeCount = isGuest \|\| closed ? 0 : dockBadgeCount(badgeKey, unreadCount, todo); |     const badgeCount = isGuest ? 0 : dockBadgeCount(badgeKey, unreadCount, todo);
- * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <PhoneMessagesButton />}\n | \n
- * @mutate src/components/sections/AppTopBar.tsx |       {unreadCount > 0 && ( |       {false && (
+ * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <TopBarInbox />} |
+ * @mutate src/components/inbox/InboxButton.tsx |       {total > 0 && ( |       {false && (
  * @mutate src/components/sections/SectionSearchBar.tsx | full.length <= 22 ? "max-[429px]:hidden" | full.length <= 22 ? "max-[409px]:hidden"
  * @mutate src/components/messages/MessagesSearchRow.tsx | <span className="max-[459px]:hidden"> | <span className="max-[439px]:hidden">
  */
@@ -169,41 +170,41 @@ describe("the phone bottom bar (owner 11-14)", () => {
   });
 });
 
-describe("Messages on the top row (owner 11-14)", () => {
+describe("Messages on the top row, inside the Inbox icon (owner 11-14, merged with the bell 11-15)", () => {
   const order = () =>
     [...screen.getByTestId("app-top-bar").querySelectorAll("button")].map((b) => b.getAttribute("data-testid") ?? b.getAttribute("aria-label"));
 
-  it("sits between the search and the bell, a 44px button; the photo still opens You", () => {
+  it("sits between the search and the photo, a 44px button; the photo still opens You", async () => {
     renderPhone();
-    expect(order()).toEqual(["top-bar-messages", "Notifications", "top-bar-profile"]);
-    const msg = screen.getByTestId("top-bar-messages");
-    expect(msg.className).toMatch(/\bh-11\b/);
-    expect(msg.className).toMatch(/\bw-11\b/);
+    const inbox = await screen.findByTestId("top-bar-inbox");
+    expect(order()).toEqual(["top-bar-inbox", "top-bar-profile"]);
+    expect(inbox.className).toMatch(/\bh-11\b/);
+    expect(inbox.className).toMatch(/\bw-11\b/);
     fireEvent.click(screen.getByTestId("top-bar-profile"));
     expect(screen.getByTestId("where").textContent).toBe("/profile");
   });
 
-  it("carries the unread badge the Messages tab wore, and opens Messages", () => {
+  it("carries the unread badge the Messages tab wore, and opens the Inbox", async () => {
     unread.n = 12;
     renderPhone();
-    const msg = screen.getByTestId("top-bar-messages");
-    expect(msg.querySelector('[data-top-bar-badge="messages"]')?.textContent).toBe("9+");
-    expect(msg.getAttribute("aria-label")).toBe("9+ Messages");
-    fireEvent.click(msg);
+    const inbox = await screen.findByTestId("top-bar-inbox");
+    expect(inbox.querySelector('[data-top-bar-badge="inbox"]')?.textContent).toBe("12");
+    expect(inbox.getAttribute("aria-label")).toBe("Inbox, 12 unread");
+    fireEvent.click(inbox);
     expect(screen.getByTestId("where").textContent).toBe("/messages");
   });
 
-  it("no badge at 0; lit (aria-current) on Messages itself", () => {
+  it("no badge at 0; lit (aria-current) on the Inbox itself", async () => {
     renderPhone("/messages");
-    const msg = screen.getByTestId("top-bar-messages");
-    expect(msg.querySelector("[data-top-bar-badge]")).toBeNull();
-    expect(msg.getAttribute("aria-label")).toBe("Messages");
-    expect(msg.getAttribute("aria-current")).toBe("page");
+    const inbox = await screen.findByTestId("top-bar-inbox");
+    expect(inbox.querySelector("[data-top-bar-badge]")).toBeNull();
+    expect(inbox.getAttribute("aria-label")).toBe("Inbox");
+    expect(inbox.getAttribute("aria-current")).toBe("page");
   });
 
-  it("You's title row (no search) has it too", () => {
+  it("You's title row (no search) has it too", async () => {
     renderPhone("/profile", false);
-    expect(screen.getByTestId("app-top-bar").querySelector('[data-testid="top-bar-messages"]')).not.toBeNull();
+    expect(screen.getByTestId("app-top-bar").contains(await screen.findByTestId("top-bar-inbox"))).toBe(true);
   });
 });
 

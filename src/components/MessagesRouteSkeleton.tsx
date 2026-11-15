@@ -79,14 +79,18 @@ function PhoneHeaderBones() {
                 <Skeleton className="h-11 w-full rounded-full" />
               </div>
               <div className="flex items-center shrink-0">
-                {/* Messages, the bell (owner 11-14), then the photo. */}
-                <ControlBone />
+                {/* The Inbox icon (messages + notifications, owner 11-15), then the photo. */}
                 <ControlBone />
                 <ControlBone round />
               </div>
             </header>
           }
         />
+      </div>
+      {/* The Inbox's Messages | Notifications tabs (owner 11-15): one 44px row, as InboxTabs draws it. */}
+      <div className="shrink-0 h-11 flex border-b border-[hsl(var(--olivewood)/0.12)]" data-testid="messages-skeleton-inbox-tabs" aria-hidden>
+        <span className="flex-1 flex items-center justify-center"><Skeleton className="h-3.5 w-20 rounded-full" /></span>
+        <span className="flex-1 flex items-center justify-center"><Skeleton className="h-3.5 w-24 rounded-full" /></span>
       </div>
       <ChipBones />
     </>

@@ -172,6 +172,15 @@ const Safety = lazyWithPreload(() => import("./pages/info/Safety"));
 const LegalFullText = lazyWithPreload(() => import("./pages/info/LegalFullText"));
 const Support = lazyWithPreload(() => import("./pages/info/Support"));
 
+/**
+ * A cold load's own page starts its import HERE, as this file runs, so the import has answered before the first render
+ * and lazyWithPreload draws the page as itself: no route fallback, no retry for React to hold 500 ms (Builder 2,
+ * 11-15; cwv-lab signed-in /jobs, Slow 4G + 4x, 375). The entry has already downloaded the chunk (routePreload.ts), so
+ * this only takes the module. Only routes measured faster are listed. Guard: src/lib/lazyWithPreload.test.tsx.
+ */
+const COLD_ROUTE_PAGES: Record<string, { preload: () => void }> = { "/jobs": JobsPage };
+if (typeof window !== "undefined") COLD_ROUTE_PAGES[window.location.pathname.replace(/(.)\/+$/, "$1")]?.preload();
+
 // Lazy load less-critical global components
 const StrikeBanner = optionalLazy(() => import("./components/StrikeBanner"), "StrikeBanner");
 

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { MessageSquare, Plus, Settings } from "lucide-react";
 import { mineToDoCount, type SectionMineMenu } from "./sectionMine";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -15,7 +15,8 @@ import type { MsgKey } from "@/lib/i18n/en";
 import { avatarButtonLabel } from "@/lib/avatarImage";
 import { COMPACT_TOP_ROW, TITLE_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
 import { useSharedUnreadCount } from "@/components/mobileNav/navUnreadStore";
-import { loadModule, untilReload } from "@/lib/loadModule";
+import { loadModule } from "@/lib/loadModule";
+import { report } from "@/lib/errorLogger";
 import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
 
 // "My Declutter" (etc.) loads on the photo's first tap, never on the first screen.
@@ -31,18 +32,27 @@ const MySectionSheet = lazy(() => import("./MySectionSheet"));
 type Bell = typeof import("@/components/notificationPanel/NotificationBell").default;
 let bellLoaded: Bell | null = null;
 const loadBell = () => loadModule(() => import("@/components/notificationPanel/NotificationBell")).then((m) => (m ? (bellLoaded = m.default) : null));
-const LazyBell = lazy(() => loadBell().then((b) => (b ? { default: b } : untilReload())));
 if (hasPersistedAuthToken()) void loadBell().catch(() => {
   // A failed warm-up is not an error: the bell's own lazy load tries again, and reports, when the bar draws it.
 });
 
 function TopBarBell({ triggerClassName }: { triggerClassName: string }) {
-  const [Impl] = useState(() => bellLoaded ?? LazyBell);
-  return (
-    <Suspense fallback={<span aria-hidden className="inline-block h-11 w-11" data-bell-placeholder="" />}>
-      <Impl triggerClassName={triggerClassName} />
-    </Suspense>
-  );
+  // NEVER SUSPENDS (Builder 2, 11-15). Drawn through lazy() + Suspense, a page that mounted this bar before the bell's
+  // chunk was in hand had its whole first commit held until the chunk came: signed-in /jobs (cwv-lab, Slow 4G + 4x,
+  // 375) rendered its cards at 4.37 s with every read answered and committed them at 4.84 s, the moment the bell's
+  // three chunks finished. The square holds the bell's place until it draws, exactly as the Suspense fallback did.
+  // Guard: src/test/topBarBellNeverSuspends.test.tsx.
+  const [Impl, setImpl] = useState<Bell | null>(() => bellLoaded);
+  useEffect(() => {
+    if (Impl) return;
+    let live = true;
+    loadBell().then(
+      (b) => { if (live && b) setImpl(() => b); },
+      (err: unknown) => report(err, { severity: "warning", tags: { area: "chunk", op: "topBarBell" } }),
+    );
+    return () => { live = false; };
+  }, [Impl]);
+  return Impl ? <Impl triggerClassName={triggerClassName} /> : <span aria-hidden className="inline-block h-11 w-11" data-bell-placeholder="" />;
 }
 
 /** The tabs row's icon controls (search, filters, map, gear): 40px ghost squares with a 20px glyph, centred on the 44px tabs. */

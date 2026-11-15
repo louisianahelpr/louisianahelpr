@@ -45,3 +45,12 @@ export declare function calibratedCpuRate(target: number, benchMs: number | null
 export declare function applyThrottle(ctx: unknown, page: unknown, profile: LabProfile, browserName: string, cpuRate?: number): Promise<boolean>;
 export declare function localCert(): { key: Buffer; cert: Buffer; spki: string };
 export declare function startDistServer(distDir: string, port: number, tls?: { key: Buffer; cert: Buffer; spki: string }): Promise<{ close: () => void }>;
+/** The read allowance (scripts/perf/readAllowance.mjs): STABLE/IMMUTABLE RPC names, and whether an expired session may refresh. */
+export interface LabReads { rpcs: Set<string>; refresh: boolean }
+/** Installs the write and Sentry block on `ctx` and proves it live (throws otherwise). Open pages with newBlockedPage. */
+export declare function installLabWriteBlock(
+  ctx: unknown,
+  opts?: { reads?: LabReads | null; browserName?: string; clock?: () => number },
+): Promise<{ blocked: { method: string; path: string; at: number }[]; allowed: { read: string; at: number }[] }>;
+/** A new page in `ctx` with the block on it before anything loads (installLabWriteBlock first). */
+export declare function newBlockedPage<P = import("@playwright/test").Page>(ctx: unknown): Promise<P>;

@@ -145,8 +145,9 @@ export async function fetchRequestJobState(requestId: string): Promise<RequestJo
 export async function signedFileUrl(path: string): Promise<string> {
   // Only a storage path is ever signed (a stored URL is not one): signedUrlOnlyForStoragePaths.
   if (!isStorageObjectPath(path)) throw new Error("not_a_storage_path");
-  const { data, error } = await supabase.storage.from(RENTALS_BUCKET).createSignedUrl(path, 600);
-  if (error) throw error;
+  // unwrap: this is reachable from the admin ownership queue's queryFn, so it throws through the retry policy's path.
+  const data = unwrap(await supabase.storage.from(RENTALS_BUCKET).createSignedUrl(path, 600));
+  if (!data?.signedUrl) throw new Error("signed_url_missing");
   return data.signedUrl;
 }
 /** Admin queue: properties waiting for an ownership check (admin RLS). */

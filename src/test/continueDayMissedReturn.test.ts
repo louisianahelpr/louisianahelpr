@@ -27,9 +27,11 @@ const rpc = flat(defs.get("report_continue_day_missed")?.stmt ?? "");
 
 describe("a missed continue day goes to the admin queue (owner #4, 11-08)", () => {
   it("the newest RPC, triggers and queue are this migration's", () => {
-    for (const fn of ["report_continue_day_missed", "refuse_continue_day_while_missed_open", "resolve_missed_return_on_review", "resolve_missed_return_on_job_change", "admin_stalled_job_queue"]) {
+    for (const fn of ["report_continue_day_missed", "refuse_continue_day_while_missed_open", "resolve_missed_return_on_review", "resolve_missed_return_on_job_change"]) {
       expect(defs.get(fn)?.file, fn).toMatch(/^20261108214605_/);
     }
+    // Q2789 restated the queue once more (20261115185124_stalled_queue_drops_finished_jobs.sql): the open list holds only jobs still in the trap.
+    expect(defs.get("admin_stalled_job_queue")?.file).toMatch(/^20261115185124_/);
   });
   it("the RPC: end users only, a lapsed SET day, the real queue row, test data pages nobody", () => {
     expect(rpc).toContain("IF v_uid IS NULL THEN RAISE EXCEPTION 'not_authenticated'");

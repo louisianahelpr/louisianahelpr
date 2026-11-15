@@ -6,10 +6,10 @@
  *   - sweep_no_show_alerts' CREW branch skips a crew job with an open SET day.
  * Behaviour: src/test/pglite/continuingJobServerDates.pglite.mjs (16 checks and 5 FAILs on prod bodies, measured 2026-11-03).
  */
-// @mutate supabase/migrations/20261108214605_continue_day_missed_return.sql |     coalesce(c.new_date, j.date_needed), |     j.date_needed,
+// @mutate supabase/migrations/20261115185124_stalled_queue_drops_finished_jobs.sql |     coalesce(c.new_date, j.date_needed), |     j.date_needed,
 // @mutate supabase/migrations/20261103214229_continuing_job_admin_stalled_and_crew_no_show.sql |       AND NOT EXISTS (SELECT 1 FROM public.job_continue_days d | AND EXISTS (SELECT 1 FROM public.job_continue_days d
-// @mutate supabase/migrations/20261108214605_continue_day_missed_return.sql |       AND ((d.status = 'set' AND d.closed_at IS NULL) OR d.status = 'lapsed') |       AND (d.status = 'set' OR d.status = 'lapsed')
-// @mutate supabase/migrations/20261108214605_continue_day_missed_return.sql |     AND NOT (c.status = 'set' AND c.new_date IS NOT NULL AND c.new_date >= (now() AT TIME ZONE 'America/Chicago')::date) |     AND true
+// @mutate supabase/migrations/20261115185124_stalled_queue_drops_finished_jobs.sql |       AND ((d.status = 'set' AND d.closed_at IS NULL) OR d.status = 'lapsed') |       AND (d.status = 'set' OR d.status = 'lapsed')
+// @mutate supabase/migrations/20261115185124_stalled_queue_drops_finished_jobs.sql |     AND NOT (c.status = 'set' AND c.new_date IS NOT NULL AND c.new_date >= (now() AT TIME ZONE 'America/Chicago')::date) |     AND true
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -21,8 +21,9 @@ const flat = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "").repl
 describe("the server dates a continuing job by its open continue day (owner bug 11-03)", () => {
   it("reads the newest definitions (inventory floor)", () => {
     expect(defs.size).toBeGreaterThan(100);
-    // Restated by 20261108214605 (owner #4): a day closed 'lapsed' by a missed-return report also dates the row.
-    expect(defs.get("admin_stalled_job_queue")?.file).toBe("20261108214605_continue_day_missed_return.sql");
+    // Restated by 20261108214605 (owner #4): a day closed 'lapsed' by a missed-return report also dates the row;
+    // restated again by 20261115185124_stalled_queue_drops_finished_jobs.sql (Q2789): the open list holds only jobs still in the trap.
+    expect(defs.get("admin_stalled_job_queue")?.file).toBe("20261115185124_stalled_queue_drops_finished_jobs.sql");
     expect(defs.get("sweep_no_show_alerts")?.file).toBe("20261103214229_continuing_job_admin_stalled_and_crew_no_show.sql");
   });
 

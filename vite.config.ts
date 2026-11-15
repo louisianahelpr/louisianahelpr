@@ -236,7 +236,11 @@ const HOME_DERIVE_LEAVES = /[\\/]src[\\/](pages[\\/]home[\\/]homeDashboard[\\/]u
 // Builder 1, 11-11: and BrowseViewToggle (the filter sheet's List/Map control): Declutter's browse bar imports it, and in
 // browse-first-screen that one 0.4 KB module put the whole 20.6 KB gz guest-browse chunk on /declutter (481 -> 456 KB gz
 // with feedPhase.ts in feed-phase). It rides alone.
-const BROWSE_GROUP_SKIPS = /[\\/]src[\\/](components[\\/]ui[\\/]skeleton\.tsx|hooks[\\/](useMembershipsOn|useArrivalGate)\.ts|components[\\/]dashboard[\\/]browseTasksToolbar[\\/]BrowseViewToggle\.tsx)$/;
+// Builder 2, 11-14: and pull-to-refresh (usePullToRefresh, PullToRefreshWrapper): the You landing uses both, and in
+// browse-first-screen they put that whole 20.3 KB gz guest-browse chunk (and the parish tables under it) on /profile's
+// critical path. They ride outside it. Guard: src/test/avatarCropDialogLazy.test.ts.
+const PULL_TO_REFRESH = /[\\/]src[\\/](hooks[\\/]usePullToRefresh\.ts|components[\\/]PullToRefreshWrapper\.tsx)$/;
+const BROWSE_GROUP_SKIPS = /[\\/]src[\\/](components[\\/]ui[\\/]skeleton\.tsx|hooks[\\/](useMembershipsOn|useArrivalGate|usePullToRefresh)\.ts|components[\\/]dashboard[\\/]browseTasksToolbar[\\/]BrowseViewToggle\.tsx|components[\\/]PullToRefreshWrapper\.tsx)$/;
 // Builder 3, 11-04: the dialog primitives guest /browse shares with Money (EarningsTab) and other signed-in screens. In
 // browse-first-screen, Money's static import of them put that whole 28.9 KB gz guest-browse chunk on its critical path.
 const DECLUTTER_CATEGORY_ICONS = /[\\/]src[\\/]lib[\\/]declutter[\\/]categoryIcons\.ts$/;
@@ -1457,6 +1461,15 @@ export default defineConfig(({ mode, command }) => ({
               priority: 13,
               minSize: 0,
               includeDependenciesRecursively: false /* the primitives alone */,
+            },
+            // Builder 2, 11-14: pull-to-refresh (see BROWSE_GROUP_SKIPS). In shared-late the hook put 0.3 KB gz on `/`'s
+            // critical path (207 KB against 206.9); alone it reaches only the screens that pull.
+            {
+              name: "pull-to-refresh",
+              test: PULL_TO_REFRESH,
+              priority: 13,
+              minSize: 0,
+              includeDependenciesRecursively: false /* the two modules alone */,
             },
             {
               name: "browse-first-screen",

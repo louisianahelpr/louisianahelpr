@@ -45,7 +45,9 @@ async function load(): Promise<EdgeHarness> {
     SUPABASE_SERVICE_ROLE_KEY: "service-key",
     STRIPE_SECRET_KEY: "sk_test_abc123",
   });
-  return loadEdgeFunction("create-payment");
+  // Q2811: one evaluation per file (create-payment holds no module state; src/test/edgeHarnessReuseIsStateless.test.ts).
+  // 214 fresh copies crashed the coverage worker: V8's block coverage keeps every evaluated script alive.
+  return loadEdgeFunction("create-payment", { reuseModule: true });
 }
 
 /** Convenience: parse a JSON Response body. */

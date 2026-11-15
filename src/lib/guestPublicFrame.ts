@@ -11,14 +11,20 @@ import { definitelyGuest } from "@/lib/persistedAuthToken";
  * AppPage and SectionScreen; /hire is PublicHeaderPage already) and scrolls the document (useAppShellViewport lifts the
  * html lock). A member, and the native app, keep AppShell exactly as before.
  *
+ * /jobs/<id> (the job's share-link page) already drew PublicLayout for a guest, but under the html lock it did not
+ * scroll (measured 11-15 at 375: body 1542px, window.scrollY stuck at 0).
+ *
  * Exact paths match only themselves; an entry ending in "/" matches the pages under it. /declutter/sell,
  * /declutter/move and the other member-only pages under /declutter are not here: a guest is sent to log in there.
  * Guard: src/test/guestPagesWearPublicFrame.test.tsx.
  */
-export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search"] as const;
+export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search", "/jobs/"] as const;
+/** Member-only pages under a prefix above (a guest is sent to log in there). */
+const NOT_GUEST_PAGES = ["/jobs/settings"];
 
 export const isGuestPublicFrameRoute = (pathname: string): boolean =>
   !isNativePlatform &&
+  !NOT_GUEST_PAGES.includes(pathname) &&
   GUEST_PUBLIC_FRAME_ROUTES.some((route) =>
     route.endsWith("/") ? pathname.startsWith(route) && pathname.length > route.length : pathname === route,
   );

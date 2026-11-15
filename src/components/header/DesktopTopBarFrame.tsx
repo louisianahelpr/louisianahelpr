@@ -11,7 +11,7 @@ import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
  * (classes, blur, top padding and banner offset copied from DesktopTopNav's <header>) with the page-title slot on the
  * left; the bell, Help and photo arrive with the chunk.
  *
- * Why the pending frame (Q169, prod-audit 43691657529 page-settle @1440): a page that rendered before the bar's
+ * Why the pending frame (Q169, prod-audit 43691657529 on 2026-11-15 page-settle @1440): a page that rendered before the bar's
  * chunk found no slot, drew its phone title row (about 81px), then dropped it when the bar mounted, and the whole
  * body jumped up. Every Profile tab measured 0.034-0.044 that way, /post-job 0.038. With the slot there from the
  * first paint, the page's title goes straight into the bar and the body never moves.

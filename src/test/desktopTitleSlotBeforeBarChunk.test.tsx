@@ -1,5 +1,5 @@
 /**
- * THE DESKTOP TITLE SLOT IS THERE BEFORE THE BAR'S CHUNK (Q169; prod-audit 43691657529 page-settle @1440).
+ * THE DESKTOP TITLE SLOT IS THERE BEFORE THE BAR'S CHUNK (Q169; prod-audit 43691657529 on 2026-11-15 page-settle @1440).
  *
  * DesktopTopNav is its own lazy chunk, and its Suspense fallback was null. A signed-in page whose chunk arrived first
  * found no title slot, drew its PHONE title row (about 81px tall), then dropped it to the 8px desktop gap when the bar

@@ -28,7 +28,7 @@ import { fetchMySellerDelivery } from "@/lib/declutter/sellerDelivery";
 const SETTINGS_INDEX = ["Pickup places", "Listing defaults", "Notifications"] as const;
 
 /**
- * ONE SETTLED PAINT (Q169; prod-audit 43691657529 page-settle): each card read its own data and grew when it landed
+ * ONE SETTLED PAINT (Q169; prod-audit 43691657529 on 2026-11-15 page-settle): each card read its own data and grew when it landed
  * (pickup places from a "Loading" row to 342px, then the police-spot suggestions, the meetup-times card and listing
  * defaults), so the page jumped twice: CLS 0.38 at 375 and 0.25 at 1440. The page now observes the same queries (same
  * keys and functions, so no extra request) and shows its bones until every one has answered (an error is an answer

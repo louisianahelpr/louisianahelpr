@@ -75,11 +75,11 @@ function whenPart(meta: Element | null) {
 
 describe("each shell card carries the real card's date and time group", () => {
   const cases: Record<string, Record<string, unknown>> = {
-    "one day": { date_needed: "2026-11-29" },
-    "one day and a time": { date_needed: "2026-11-29", start_time: "09:00:00" },
-    "a time and Flexible": { date_needed: "2026-12-05", start_time: "13:00", is_flexible_schedule: true },
-    "a window across months": { date_needed: "2026-11-28", date_window_end: "2026-12-03" },
-    "a window in one month": { date_needed: "2026-12-04", date_window_end: "2026-12-10" },
+    "one day": { date_needed: "2032-11-29" },
+    "one day and a time": { date_needed: "2032-11-29", start_time: "09:00:00" },
+    "a time and Flexible": { date_needed: "2032-12-05", start_time: "13:00", is_flexible_schedule: true },
+    "a window across months": { date_needed: "2032-11-28", date_window_end: "2032-12-03" },
+    "a window in one month": { date_needed: "2032-12-04", date_window_end: "2032-12-10" },
     "only Flexible": { is_flexible_schedule: true },
     "nothing set": {},
   };

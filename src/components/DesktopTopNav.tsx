@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
-import NotificationPanel from "@/components/notificationPanel/NotificationBell";
+import InboxButton from "@/components/inbox/InboxButton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
@@ -88,7 +88,9 @@ const DesktopTopNav = () => {
           <DeliveryOnlinePill placement="header" />
           {/* UX-6: the one Help entry, left of the bell. */}
           <HelpEntry />
-          <NotificationPanel />
+          {/* The INBOX (owner 11-15: "Merge messages and notifications into one, like Vinted does"): one icon, one
+              badge, where the bell was. */}
+          <InboxButton />
           {/* Board 11: bell, then the member's photo. F086 (owner UI audit 11-09): it opens a small menu (Profile,
               Settings, Log out) instead of going straight to You, so a photo that is a logo (the admin account's) no
               longer reads as a home button. No photo: UserAvatar draws the initials. */}

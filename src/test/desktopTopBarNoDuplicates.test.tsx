@@ -9,7 +9,7 @@
  * Messages is a bottom-bar tab and the create is the floating pill (F146/F148), so neither is on the bar.
  *
  * @mutate src/components/sections/AppTopBar.tsx |   if (isWebDesktop && !title) return null; |
- * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && (\n      <span data-testid="top-bar-bell"> |       {user && true && (\n      <span data-testid="top-bar-bell">
+ * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <TopBarInbox />} |       {user && true && <TopBarInbox />}
  * @mutate src/components/sections/AppTopBar.tsx |         {user && !isWebDesktop && showProfile && ( |         {user && showProfile && (
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -35,15 +35,15 @@ const draw = (el: JSX.Element) =>
 
 describe("the section top bar never repeats the desktop header (Q2221)", () => {
   // The bell loads on its own (Q2705, 11-14: a guest never sees it), so the bar draws it a moment after the rest.
-  it("phone: a section and Dashboard both show Messages (owner 11-14), the bell and the avatar, nothing else (Dashboard: the logo too; F148)", async () => {
+  it("phone: a section and Dashboard both show the Inbox (owner 11-15) and the avatar, nothing else (Dashboard: the logo too; F148)", async () => {
     draw(<AppTopBar title="Jobs" />);
-    await screen.findByRole("button", { name: "Notifications" });
-    expect(labels()).toEqual(["Messages", "Notifications", "Profile, TP"]);
+    await screen.findByRole("button", { name: "Inbox" });
+    expect(labels()).toEqual(["Inbox", "Profile, TP"]);
     cleanup();
     draw(<AppTopBar />);
     expect(screen.getByTestId("app-top-bar")).toBeTruthy();
-    await screen.findByRole("button", { name: "Notifications" });
-    expect(labels()).toEqual(["Messages", "Notifications", "Profile, TP"]);
+    await screen.findByRole("button", { name: "Inbox" });
+    expect(labels()).toEqual(["Inbox", "Profile, TP"]);
   });
 
   it("desktop: a section keeps its title and its soft '+ Post a job' (no second bell, no avatar)", () => {

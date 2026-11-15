@@ -39,7 +39,7 @@ function JobsHeaderBones({ chips = false }: { chips?: boolean }) {
       {/* The section header's top row. On the DESKTOP WEBSITE it is the settled bar itself: the real "Jobs" title in
           the global top bar with its soft "+ Post a job", no back arrow (owner 2026-10-28: the loading frame draws exactly the settled
           header; src/test/sectionLoadingHeaderIsSettled.test.tsx), then the tabs row. On a phone (the Vinted header,
-          owner 11-08; the compact top, owner 11-14): ONE row, the 44px search with the bell and the photo inline on its
+          owner 11-08; the compact top, owner 11-14): ONE row, the 44px search with the Inbox icon and the photo inline on its
           right, as bones (AppTopBar's COMPACT_TOP_ROW). */}
       <PageTitleBar
         title="Jobs"
@@ -53,9 +53,6 @@ function JobsHeaderBones({ chips = false }: { chips?: boolean }) {
                 <Skeleton className="h-11 w-full rounded-full" />
               </div>
               <div className="flex items-center shrink-0">
-                <span className="h-11 w-11 shrink-0 flex items-center justify-center">
-                  <Skeleton className="h-6 w-6 rounded-full" />
-                </span>
                 <span className="h-11 w-11 shrink-0 flex items-center justify-center">
                   <Skeleton className="h-6 w-6 rounded-full" />
                 </span>

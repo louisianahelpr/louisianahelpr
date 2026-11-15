@@ -125,12 +125,12 @@ describe("2. phone Home keeps the H logo (owner 2026-10-20 08:30Z), never the wo
   it("phone: H emblem left; Messages, the bell and the avatar right (F148; Messages back on the top row, owner 11-14; Help is in You)", async () => {
     render(<MemoryRouter><AppTopBar /></MemoryRouter>);
     // The bell loads on its own (Q2705, 11-14), a moment after the rest of the bar.
-    await screen.findByRole("button", { name: /Notifications/ });
+    await screen.findByRole("button", { name: /^Inbox/ });
     const bar = screen.getByTestId("app-top-bar");
     const logo = bar.firstElementChild as HTMLElement;
     expect(logo.querySelector("img")).not.toBeNull();
     expect(logo.textContent ?? "").not.toMatch(/Helpr/);
-    expect([...bar.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Messages", "Notifications", "Profile, TP"]); // the avatar's initials are in its name (WCAG 2.5.3, Q1816)
+    expect([...bar.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Inbox", "Profile, TP"]); // the Inbox (owner 11-15); the avatar's initials are in its name (WCAG 2.5.3, Q1816)
   });
 
   it("desktop Home: no bar (the left sidebar carries the H logo)", () => {
@@ -171,13 +171,13 @@ describe("3 + 4. the bottom bar: You is a person icon; olive active, --alert bad
     expect(badge!.getAttribute("style")).toContain("hsl(var(--alert))");
   });
 
-  it("the top row's Messages count badge is --alert with white text, and its name starts with the count (owner 11-14)", () => {
+  it("the top row's Inbox count badge is --alert with white text, and its name holds the count (owner 11-15)", async () => {
     unread.n = 12;
     try {
       render(<MemoryRouter><AppTopBar /></MemoryRouter>);
-      const msgs = screen.getByRole("button", { name: "9+ Messages" });
-      const badge = msgs.querySelector('[data-top-bar-badge="messages"]');
-      expect(badge?.textContent).toBe("9+");
+      const msgs = await screen.findByRole("button", { name: "Inbox, 12 unread" });
+      const badge = msgs.querySelector('[data-top-bar-badge="inbox"]');
+      expect(badge?.textContent).toBe("12");
       expect(badge?.getAttribute("style")).toContain("hsl(var(--alert))");
       expect(nameHoldsVisibleText(msgs), msgs.getAttribute("aria-label") ?? "").toBe(true);
     } finally {

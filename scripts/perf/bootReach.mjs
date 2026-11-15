@@ -192,12 +192,12 @@ export const EVERY_PAGE_ROOTS = [
 ];
 
 /**
- * The section top bar's bell (Q2705, 2026-11-14): AppTopBar loads it on its own (a guest never sees it) and starts it
+ * The section top bar's bell, the Inbox icon since owner 11-15 (Q2705, 2026-11-14): AppTopBar loads it on its own (a guest never sees it) and starts it
  * the moment the bar's file runs for a visitor with a session, so it is part of every signed-in first screen, as it was
  * when the bar imported it. Named so its code and icons stay grouped as they were (left out, its Bell icon fell into
  * icons-declutter and /admin fetched ~1.1 KB gz more icons, measured).
  */
-export const TOP_BAR_BELL_ROOT = "src/components/notificationPanel/NotificationBell.tsx";
+export const TOP_BAR_BELL_ROOT = "src/components/inbox/InboxButton.tsx";
 
 /** Every first screen: each page in ENTRY_ROUTE_CHUNKS (guest and signed in), protectedRoute, EVERY_PAGE_ROOTS. */
 export function firstScreenRoots(root) {

@@ -66,15 +66,16 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(bar).toContain('<div data-testid="app-top-bar-search" className="min-w-0 flex-1">{search}</div>');
     expect(skeleton).not.toMatch(/<Skeleton className="h-8 w-8 rounded-ds-md" \/>/);
     expect(home).toContain("<SectionScreen search={<SectionSearchBar");
-    // The right cluster: three 44px controls, Messages (owner 11-14), the bell and the avatar ("+ Create" floats over the page).
+    // The right cluster: two 44px controls, the Inbox icon (messages + notifications, owner 11-15) and the avatar ("+ Create" floats over the page).
     expect(bar).toContain('<div className="flex items-center shrink-0">');
     const cluster = skeleton.slice(skeleton.indexOf('className="flex items-center shrink-0"'));
     expect(cluster.length).toBeGreaterThan(100);
     const right = cluster.slice(0, cluster.indexOf("</div>"));
     const boxes = right.match(/<span className="h-1[01] w-1[01]|<Skeleton className="h-11 w-11 shrink-0 rounded-full" \/>/g) ?? [];
-    expect(boxes).toEqual(['<span className="h-11 w-11', '<span className="h-11 w-11', '<span className="h-11 w-11']);
-    expect(bar).toMatch(/TopBarBell triggerClassName="h-11 w-11/);
-    expect(bar.match(/size="iconCompact"/g)?.length, "Messages and the avatar: 44px iconCompact").toBe(2);
+    expect(boxes).toEqual(['<span className="h-11 w-11', '<span className="h-11 w-11']);
+    expect(bar).toMatch(/<TopBarInbox \/>/);
+    expect(bar.match(/size="iconCompact"/g)?.length, "the avatar: 44px iconCompact (the Inbox icon is its own file)").toBe(1);
+    expect(read("src/components/inbox/InboxButton.tsx")).toMatch(/size="iconCompact"/);
     // A screen with no "My …" menu (Dashboard) names the avatar after the profile, as before.
     // The initials the bare photo shows stay in its name either way (axe label-content-name-mismatch, WCAG 2.5.3).
     expect(bar).toMatch(/variant="ghost"\s+size="iconCompact"\s+(?:\/\/[^\n]*\s+)?aria-label=\{avatarButtonLabel\(mine \? /);

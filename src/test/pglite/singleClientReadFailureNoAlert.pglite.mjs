@@ -84,7 +84,7 @@ const items = async (like) => (await db.query(`SELECT title, count FROM public.o
 const FP = "ca3e81cf15b5d841f71c5e907aa4d12d";
 const NEWEST = "Couldn't load the newest jobs.";
 await db.exec(`INSERT INTO public.error_logs (message, tags, created_at) VALUES
-  ('Error screen shown: ${NEWEST.replace("'", "''")}', '{"kind":"user-error-screen","origin":"client","screen":"/","source":"LiveJobsSection","guest_fp":"${FP}"}', now() - interval '5 days')`);
+  ('Error screen shown: ${NEWEST.replaceAll("'", "''")}', '{"kind":"user-error-screen","origin":"client","screen":"/","source":"LiveJobsSection","guest_fp":"${FP}"}', now() - interval '5 days')`);
 await shown({ fp: FP, message: NEWEST });
 await shown({ fp: FP, message: NEWEST });
 check("two guest rows of the landing's live-jobs read in 24 hours open no item", (await items("%newest jobs%")).length === 0, JSON.stringify(await items("%newest jobs%")));

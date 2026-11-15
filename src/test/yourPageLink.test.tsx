@@ -16,7 +16,7 @@
  * @mutate src/components/declutter/DeclutterShareCard.tsx | data-listing-share="" onClick={() => shareListing(item)} | data-listing-share="" onClick={() => undefined}
  * @mutate src/components/profile/YourPageLink.tsx |     enabled: !knownHandle, |     enabled: true,
  * @mutate src/components/profile/YourPageLink.tsx |   if (publicPage === null) { |   if (publicPage === undefined && false) {
- * @mutate src/components/profile/YourPageLink.tsx |     queryFn: () => fetchPublicProfile(handle as string), |     queryFn: async () => fetchPublicProfile(handle as string).catch(() => null),
+ * @mutate src/components/profile/YourPageLink.tsx |   queryFn: () => fetchPublicProfile(handle), |   queryFn: async () => fetchPublicProfile(handle).catch(() => null),
  * @mutate src/pages/home/HomeDashboard.tsx | {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" />} | {null}
  * @mutate src/pages/home/HomeDashboard.tsx | className="mb-2" />}\n            <HomeMoneyTiles money={money} placement="side" /> | className="mb-2" />}\n            {null}
  * @mutate supabase/migrations/20261104142602_profile_handle_at_signup.sql |   BEFORE INSERT ON public.profiles\n  FOR EACH ROW EXECUTE FUNCTION public.profile_handle_default_on_insert(); |   BEFORE UPDATE OF bio ON public.profiles\n  FOR EACH ROW EXECUTE FUNCTION public.profile_handle_default_on_insert();

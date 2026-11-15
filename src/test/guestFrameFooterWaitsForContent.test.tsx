@@ -14,6 +14,7 @@
  * @mutate src/pages/jobs/JobDetail.tsx | <PublicLayout noNavSpacer footer={footerReady}> | <PublicLayout noNavSpacer>
  * @mutate src/hooks/useFooterAfterContent.ts |       if (fills()) return setReady(true); |       if (fills()) return;
  * @mutate src/hooks/useFooterAfterContent.ts |       if ((client?.isFetching() ?? 0) === 0) idleTimer | if (true) idleTimer
+ * @mutate src/hooks/useFooterAfterContent.ts |     const capTimer = setTimeout(() => setReady(true), FOOTER_MAX_WAIT_MS); |     const capTimer = undefined;
  * @mutate src/hooks/useFooterAfterContent.ts |     const unsubscribe = client?.getQueryCache().subscribe(settle); |     const unsubscribe = undefined as (() => void) \| undefined;
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -31,7 +32,7 @@ vi.mock("@/components/marketing/PublicLayout", () => ({
 }));
 
 const { GuestPublicFrame } = await import("@/components/marketing/GuestPublicFrame");
-const { FOOTER_IDLE_MS } = await import("@/hooks/useFooterAfterContent");
+const { FOOTER_IDLE_MS, FOOTER_MAX_WAIT_MS } = await import("@/hooks/useFooterAfterContent");
 
 const footerOf = (c: HTMLElement) => c.querySelector("[data-frame]")?.getAttribute("data-footer");
 let contentBottom = 300;
@@ -66,6 +67,7 @@ describe("the guest public frame's footer waits for the content (no high footer 
     expect(footerOf(container)).toBe("false");
     await act(async () => { vi.advanceTimersByTime(FOOTER_IDLE_MS * 4); });
     expect(footerOf(container)).toBe("false");
+    expect(FOOTER_IDLE_MS * 4).toBeLessThan(FOOTER_MAX_WAIT_MS);
     await act(async () => { finish(); await Promise.resolve(); });
     await act(async () => { vi.advanceTimersByTime(FOOTER_IDLE_MS + 10); });
     expect(footerOf(container)).toBe("true");
@@ -78,6 +80,17 @@ describe("the guest public frame's footer waits for the content (no high footer 
       <QueryClientProvider client={client}><GuestPublicFrame><div>grid</div></GuestPublicFrame></QueryClientProvider>,
     );
     await act(async () => { await Promise.resolve(); });
+    expect(footerOf(container)).toBe("true");
+  });
+
+  it("never leaves a page without its footer: a read that never settles still gets one after FOOTER_MAX_WAIT_MS", async () => {
+    const { client } = withPendingRead();
+    const { container } = render(
+      <QueryClientProvider client={client}><GuestPublicFrame><div>stuck</div></GuestPublicFrame></QueryClientProvider>,
+    );
+    await act(async () => { vi.advanceTimersByTime(FOOTER_MAX_WAIT_MS - 50); });
+    expect(footerOf(container)).toBe("false");
+    await act(async () => { vi.advanceTimersByTime(100); });
     expect(footerOf(container)).toBe("true");
   });
 

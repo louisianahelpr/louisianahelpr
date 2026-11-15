@@ -24,7 +24,7 @@
  * production change this file does not justify on its own.
  */
 
-// @mutate src/lib/routePrefetch.ts | .sort((a, b) => b.length - a.length) | .sort(() => 0)
+// @mutate src/lib/routePrefetchTable.ts | .sort((a, b) => b.length - a.length) | .sort(() => 0)
 import { describe, it, expect, vi } from "vitest";
 
 const PAGES: [string, string][] = [
@@ -71,8 +71,8 @@ async function loadFresh() {
   return await import("./routePrefetch");
 }
 
-/** Prefetch is fire-and-forget; let the dynamic import settle. */
-const settle = () => new Promise((r) => setTimeout(r, 0));
+/** Prefetch is fire-and-forget; let the table's dynamic import, then the page's, settle. */
+const settle = () => new Promise((r) => setTimeout(r, 30));
 
 describe("prefetchRoute — which chunk it warms", () => {
   // The Jobs tab is /jobs and the public job page is /jobs/<id>. A bare
@@ -183,4 +183,4 @@ describe("prefetchRoute — never breaks the interaction it is attached to", () 
 // carrying an id warms nothing at all, and the chunk waterfall this module
 // exists to remove is paid in full at the tap. The old suite, being entirely
 // `not.toThrow()`, was green for that.
-// @mutate src/lib/routePrefetch.ts | : Object.keys(prefetchers).sort((a, b) => b.length - a.length).find((p) => path.startsWith(p)); | : undefined;
+// @mutate src/lib/routePrefetchTable.ts | : Object.keys(prefetchers).sort((a, b) => b.length - a.length).find((p) => path.startsWith(p)); | : undefined;

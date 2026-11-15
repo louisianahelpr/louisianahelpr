@@ -14,11 +14,19 @@
 import { useEffect } from "react";
 import { safeStorage } from "@/lib/safeStorage";
 import { track } from "@/lib/analytics";
-import { explainPermission } from "@/hooks/usePermissionRationale";
+import { loadModule } from "@/lib/loadModule";
 import { readPushPermission, waitForNoModal } from "@/lib/pushPermissionNudge";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { hasWebPushApis, isIosOutsideHomeScreen, subscribeWebPushOnUse } from "@/lib/webPushSupport";
 import { JOB_ACTION_EVENT } from "@/hooks/useNotificationPermissionPrompt";
+
+/**
+ * The explainer sheet's module, loaded at the ask (Builder 2, 11-15). SessionManager mounts this hook on every page,
+ * so a static import put usePermissionRationale (its copy for every permission) in app-shared, the chunk every page
+ * boots with, for an ask that comes after a job action at the earliest. Null when the load came back empty (a
+ * recovery reload is under way): the ask is skipped, and comes again after the next job action.
+ */
+const loadExplainer = () => loadModule(() => import("@/hooks/usePermissionRationale")).then((m) => m?.explainPermission ?? null);
 
 export const WEB_PUSH_ASKED_KEY = "web-push-asked-at";
 /** One ask per 14 days, like the Activity nudges (pushPermissionNudge.ts). */
@@ -67,6 +75,8 @@ async function askNativeOnce(): Promise<void> {
   if ((await readPushPermission()) !== "prompt") return;
   const { requestPushPermission } = await import("@/lib/nativePush");
   if (!(await waitForNoModal(60_000))) return;
+  const explainPermission = await loadExplainer();
+  if (!explainPermission) return;
   const agreed = await explainPermission(
     "notifications",
     async () => {
@@ -90,6 +100,8 @@ function markAskShown(kind: "ask" | "home_screen" | "native"): void {
 async function askOnce(kind: "ask" | "home_screen"): Promise<void> {
   // Never over the job's own confirmation dialog; skip (and ask next time) if one stays open.
   if (!(await waitForNoModal(60_000))) return;
+  const explainPermission = await loadExplainer();
+  if (!explainPermission) return;
   // PUSH-REACH: the ask's funnel is recorded, so "2 web subscriptions" can be told apart into never asked,
   // asked and said no, said yes but the save failed, or an iPhone outside the Home Screen.
   const onShown = () => markAskShown(kind);

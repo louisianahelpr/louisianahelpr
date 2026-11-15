@@ -20,10 +20,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation, useNavigationType } from "react-router-dom";
 import type { ReactNode } from "react";
-import { useCppVariantRouter, getActiveCppVariant } from "./cppRouting";
+import { useCppVariantRouter, getActiveCppVariant, hasPpoMarker } from "./cppRouting";
 
 const trackMock = vi.fn();
 vi.mock("@/lib/analytics", () => ({
@@ -109,8 +109,8 @@ function renderWithRouter(initialUrl: string) {
 describe("useCppVariantRouter — query parsing", () => {
   it("does nothing on empty query (no track, no persist, no redirect)", () => {
     renderWithRouter("/");
-    // recordPpoAttribution always runs — it is a separate funnel from cpp.
-    expect(recordPpoMock).toHaveBeenCalledOnce();
+    // No PPO marker: the PPO module is not even loaded (it stays off the boot chunk).
+    expect(recordPpoMock).not.toHaveBeenCalled();
     expect(trackMock).not.toHaveBeenCalled();
     expect(sessionStorage.getItem("helpr_cpp_variant")).toBeNull();
     expect(locationSnapshot?.pathname).toBe("/");
@@ -207,15 +207,25 @@ describe("useCppVariantRouter — storage failure", () => {
 });
 
 describe("useCppVariantRouter — PPO recording", () => {
-  it("always calls recordPpoAttribution with the search string (CPP and PPO are independent funnels)", () => {
-    renderWithRouter("/?utm_source=fb");
-    expect(recordPpoMock).toHaveBeenCalledOnce();
-    expect(recordPpoMock).toHaveBeenCalledWith("?utm_source=fb");
+  // @mutate src/lib/cppRouting.ts |     if (hasPpoMarker(location.search)) { |     if (false) {
+  it("loads the PPO module and records with the search string when the URL names a PPO treatment", async () => {
+    renderWithRouter("/?ppt=abc123&utm_source=fb");
+    await waitFor(() => expect(recordPpoMock).toHaveBeenCalledOnce());
+    expect(recordPpoMock).toHaveBeenCalledWith("?ppt=abc123&utm_source=fb");
   });
 
-  it("records PPO even when ?cpp= is present (both can coexist)", () => {
+  it("skips the PPO module when the URL names no PPO treatment (readPpoFromQuery would return null)", async () => {
+    renderWithRouter("/?utm_source=fb");
+    await new Promise((r) => setTimeout(r, 0));
+    expect(recordPpoMock).not.toHaveBeenCalled();
+    expect(hasPpoMarker("?ppo_test=trust&ppo_arm=treatment")).toBe(true);
+    expect(hasPpoMarker("?ppt=x")).toBe(true);
+    expect(hasPpoMarker("?utm_source=fb&cpp=poster")).toBe(false);
+  });
+
+  it("records PPO even when ?cpp= is present (both can coexist)", async () => {
     renderWithRouter("/?cpp=poster&ppo_test=trust&ppo_arm=treatment");
-    expect(recordPpoMock).toHaveBeenCalledOnce();
+    await waitFor(() => expect(recordPpoMock).toHaveBeenCalledOnce());
     expect(trackMock).toHaveBeenCalledOnce();
     expect(sessionStorage.getItem("helpr_cpp_variant")).toBe("poster");
   });

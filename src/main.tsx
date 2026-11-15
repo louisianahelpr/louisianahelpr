@@ -7,8 +7,9 @@ import "./lib/splashSafetyNet";
 import "./lib/oauthRedirectError";
 // THIRD, on purpose (Q1596): records whether the landing URL carried a sign-in
 // token (never the token) before the Supabase client detects and strips it, so
-// a later session-loss report can say so. See src/lib/authDiagnostics.ts.
-import { landingAuthHint, noteAuthEventForDiagnostics, authDiagnostics } from "./lib/authDiagnostics";
+// a later session-loss report can say so. See src/lib/authLanding.ts (the report
+// itself, src/lib/authDiagnostics.ts, loads with the sign-out watch below).
+import { landingAuthHint, noteAuthEventForDiagnostics } from "./lib/authLanding";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
@@ -434,11 +435,12 @@ void hydrateStorage();
     signOutWatchStarted = true;
     void (async () => {
       try {
-        const [{ supabase }, { noteAuthEvent }, { hasPersistedAuthToken }, { report }] = await Promise.all([
+        const [{ supabase }, { noteAuthEvent }, { hasPersistedAuthToken }, { report }, { authDiagnostics }] = await Promise.all([
           backgroundImport(() => import("./integrations/supabase/client"), "signout-watch-client"),
           backgroundImport(() => import("./lib/unexpectedSignOut"), "signout-watch"),
           backgroundImport(() => import("./lib/persistedAuthToken"), "signout-watch-token-probe"),
           backgroundImport(() => import("./lib/errorLogger"), "signout-watch-logger"),
+          backgroundImport(() => import("./lib/authDiagnostics"), "signout-watch-diagnostics"),
         ]);
         const state = { lastEvent: null as string | null, signedInAt: null as number | null };
         supabase.auth.onAuthStateChange((event) => {

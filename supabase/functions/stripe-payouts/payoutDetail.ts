@@ -123,7 +123,7 @@ async function nameTransfers(admin: Admin, userId: string, ids: string[]): Promi
     return (r.data ?? []) as T;
   };
 
-  const [jobs, cancels, sales, shops, deliveries, referrals, deliveryTips] = await Promise.all([
+  const [jobs, cancels, sales, shops, deliveries, referrals, deliveryTips, heldTips, clawbackRepays] = await Promise.all([
     admin.from("payout_transfers").select("stripe_transfer_id, job_id, jobs(title)").eq("helper_id", userId).in("stripe_transfer_id", ids),
     admin.from("cancellation_fee_transfers").select("stripe_transfer_id, job_id, jobs(title)").eq("helper_id", userId).in("stripe_transfer_id", ids),
     admin.from("declutter_payouts").select("stripe_transfer_id, order_id, items_cents, debt_cents, setup_fee_cents, amount_cents").eq("seller_id", userId).in("stripe_transfer_id", ids),
@@ -132,6 +132,12 @@ async function nameTransfers(admin: Admin, userId: string, ids: string[]): Promi
     admin.from("referral_credits").select("stripe_transfer_id").eq("user_id", userId).in("stripe_transfer_id", ids),
     // A delivery tip is paid out by its own platform transfer (payout_transfer_id), F267a.
     admin.from("helpr_task_tips").select("payout_transfer_id, helpr_tasks(title)").eq("helpr_id", userId).in("payout_transfer_id", ids),
+    // A tip held back during a payout hold and re-paid once it lifted (heldTipRepay.ts) is a NEW platform transfer
+    // in the group tip_<tip id>, stamped only here (repay_transfer_id); the tip itself names the job or delivery.
+    admin.from("tip_hold_redrives").select("repay_transfer_id, tip_source, tips(job_id, jobs(title)), helpr_task_tips(helpr_tasks(title))").eq("helper_id", userId).in("repay_transfer_id", ids),
+    // A job payout a chargeback took back and re-paid when the dispute was won (chargebackClawback.ts): its
+    // payout_transfers row names it already; this names it when that upsert failed (which pages ops).
+    admin.from("chargeback_clawbacks").select("repay_transfer_id, job_id, jobs(title)").eq("helper_id", userId).in("repay_transfer_id", ids),
   ]).then((rs) => rs.map(must) as unknown[][]);
 
   for (const r of jobs as { stripe_transfer_id: string; job_id: string; jobs: { title?: string } | null }[]) {
@@ -179,6 +185,19 @@ async function nameTransfers(admin: Admin, userId: string, ids: string[]): Promi
   }
   for (const r of deliveryTips as { payout_transfer_id: string; helpr_tasks: { title?: string } | null }[]) {
     out.set(r.payout_transfer_id, [{ kind: "tip", label: `Tip: ${titleOr(r.helpr_tasks?.title, "a delivery")}`, amount_cents: 0, href: "/declutter?view=deliver" }]);
+  }
+  for (const r of heldTips as {
+    repay_transfer_id: string;
+    tip_source: string;
+    tips: { job_id?: string | null; jobs: { title?: string } | null } | null;
+    helpr_task_tips: { helpr_tasks: { title?: string } | null } | null;
+  }[]) {
+    out.set(r.repay_transfer_id, [r.tip_source === "delivery"
+      ? { kind: "tip", label: `Tip: ${titleOr(r.helpr_task_tips?.helpr_tasks?.title, "a delivery")}`, amount_cents: 0, href: "/declutter?view=deliver" }
+      : { kind: "tip", label: `Tip: ${titleOr(r.tips?.jobs?.title, "a job")}`, amount_cents: 0, href: r.tips?.job_id ? `/jobs/${r.tips.job_id}` : null }]);
+  }
+  for (const r of clawbackRepays as { repay_transfer_id: string; job_id: string; jobs: { title?: string } | null }[]) {
+    out.set(r.repay_transfer_id, [{ kind: "job", label: titleOr(r.jobs?.title, "A job"), amount_cents: 0, href: `/jobs/${r.job_id}` }]);
   }
   return out;
 }

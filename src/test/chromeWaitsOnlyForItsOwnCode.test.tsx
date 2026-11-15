@@ -78,11 +78,14 @@ describe("App.tsx: every chrome piece has its own Suspense", () => {
     // F276a (11-12): the desktop top bar and rail sit in their own SignedInChrome block BEFORE <main> (tab order);
     // every block is read, so a piece in either one still needs its own boundary.
     const block = [...app.matchAll(/<SignedInChrome>([\s\S]*?)<\/SignedInChrome>/g)].map((m) => m[1]).join("\n");
-    const pieces = [...block.matchAll(/<([A-Z]\w*)\s*\/>/g)].map((m) => m[1]);
+    // Q169 (page-settle @1440): the desktop top bar's fallback is its pending frame (the title slot with no chunk of its
+    // own, src/components/header/DesktopTopBarFrame.tsx), not null; it is a fallback, not a piece.
+    const FALLBACKS: Record<string, string> = { DesktopTopNav: "<DesktopTopBarPending />" };
+    const pieces = [...block.matchAll(/<([A-Z]\w*)\s*\/>/g)].map((m) => m[1]).filter((p) => p !== "DesktopTopBarPending");
     // Floor: the dock and the six pieces beside it.
     expect(pieces.length).toBeGreaterThan(6);
     expect(pieces).toContain("MobileNav");
-    for (const p of pieces) expect(block, p).toMatch(new RegExp(`<Suspense fallback=\\{null\\}><${p} /></Suspense>`));
+    for (const p of pieces) expect(block, p).toMatch(new RegExp(`<Suspense fallback=\\{${FALLBACKS[p] ?? "null"}\\}><${p} /></Suspense>`));
     expect(block.match(/<Suspense\b/g)?.length).toBe(pieces.length);
     expect(app).not.toMatch(/<TermsReconsentDialog\s*\/>|<IdentityCheckHost\s*\/>/);
   });

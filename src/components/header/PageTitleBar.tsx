@@ -2,6 +2,7 @@ import { useId, useLayoutEffect, useSyncExternalStore, type ReactNode } from "re
 import { createPortal } from "react-dom";
 import BackButton from "@/components/BackButton";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { useDesktopTitleSlot } from "./desktopTitleSlot";
 
 /**
  * THE ONE PAGE HEADER ROW (owner, 2026-10-21): back arrow, page title, page
@@ -18,15 +19,7 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
  * no slot (phone, native, a route without the desktop bar) the row renders in
  * place, so nothing is ever lost.
  */
-let slot: HTMLElement | null = null;
-const listeners = new Set<() => void>();
-
-/** DesktopTopNav's ref callback for its left area. */
-export function registerDesktopTitleSlot(el: HTMLElement | null): void {
-  if (slot === el) return;
-  slot = el;
-  listeners.forEach((l) => l());
-}
+export { registerDesktopTitleSlot } from "./desktopTitleSlot";
 
 /*
  * Only the FIRST mounted title bar goes up into the desktop bar. A screen opened
@@ -54,17 +47,6 @@ function useIsFirstTitleBar(id: string): boolean {
     },
     () => mounted.length === 0 || mounted[0] === id,
     () => true,
-  );
-}
-
-function useDesktopTitleSlot(): HTMLElement | null {
-  return useSyncExternalStore(
-    (l) => {
-      listeners.add(l);
-      return () => listeners.delete(l);
-    },
-    () => slot,
-    () => null,
   );
 }
 

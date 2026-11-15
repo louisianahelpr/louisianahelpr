@@ -44,6 +44,7 @@ import { ForceUpdateGate } from "@/components/ForceUpdateGate";
 import { SessionManager } from "@/components/SessionManager";
 import { SignedInChrome, SignedInOnly } from "@/components/SignedInChrome";
 import { WebDesktopOnly } from "@/components/WebDesktopOnly";
+import { DesktopTopBarPending } from "@/components/header/DesktopTopBarFrame";
 
 // The route wrapper (the iPhone edge swipe-back, never suspending its page) lives in
 // src/components/RoutePageTransition.tsx; its gesture chunk loads once the page has settled, here.
@@ -548,7 +549,7 @@ const App = () => (
               Guard: src/test/desktopChromeBeforeMain.test.ts. */}
           <SignedInChrome>
             <WebDesktopOnly>
-              <Suspense fallback={null}><DesktopTopNav /></Suspense>
+              <Suspense fallback={<DesktopTopBarPending />}><DesktopTopNav /></Suspense>
               <Suspense fallback={null}><DesktopSidebarNav /></Suspense>
             </WebDesktopOnly>
           </SignedInChrome>

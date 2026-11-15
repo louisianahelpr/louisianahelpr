@@ -285,7 +285,7 @@
     "src/components/postjob/detailsSection/VideoScope.tsx": {
       "button": 1
     },
-    "src/components/profile/AvatarCropDialog.tsx": {
+    "src/components/profile/AvatarCropDialogView.tsx": {
       "input": 1
     },
     "src/components/profile/DeleteAccountReauth.tsx": {

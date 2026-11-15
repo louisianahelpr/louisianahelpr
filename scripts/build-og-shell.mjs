@@ -121,13 +121,23 @@ async function main() {
     process.exit(1);
   }
 
+  // /browse's inlined block (scripts/inline-shell-css.mjs wrote it beside the build; withBrowseShellCss): null when this
+  // build has none, and /browse then keeps the page's block.
+  let browseCss = null;
+  try {
+    browseCss = await readFile(path.join(path.dirname(indexHtmlPath), "lh-browse-shell-css.txt"), "utf8");
+  } catch {
+    console.warn("! no dist/lh-browse-shell-css.txt: /browse keeps the shared inlined block");
+  }
+
   await mkdir(path.dirname(outPath), { recursive: true });
   const body =
     "/* eslint-disable */\n" +
     "// GENERATED FILE — do not edit, do not commit.\n" +
     "// Written by scripts/build-og-shell.mjs from dist/index.html during `npm run build`.\n" +
     `// Source bytes: ${Buffer.byteLength(html)}\n` +
-    `export const SHELL_HTML = ${JSON.stringify(html)};\n`;
+    `export const SHELL_HTML = ${JSON.stringify(html)};\n` +
+    `export const BROWSE_SHELL_CSS = ${JSON.stringify(browseCss)};\n`;
   await writeFile(outPath, body, "utf8");
 
   console.log(

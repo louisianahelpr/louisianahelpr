@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-14T23:02Z",
+  "measured_at": "2026-11-15T00:06Z",
   "issues": {
     "readable": true,
     "open": [
@@ -106,7 +106,7 @@
         "number": 4302,
         "title": "nightly-red: main: Vitest",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43641716016",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43649566817",
         "runTruncated": false
       },
       {
@@ -305,7 +305,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
+        "issue": 4222
       },
       {
         "fingerprint": "5be6011a46f6328f224c01fc99b85e95",
@@ -578,6 +578,14 @@
         "status": "open",
         "title": "error: 404 — non-existent route: /sponsor.",
         "issue": null
+      },
+      {
+        "fingerprint": "308b390594da5a46ef298d0dcdcaaf87",
+        "source_kind": "sentry",
+        "source": "sentry:assets/NotificationBell",
+        "status": "open",
+        "title": "typeerror: undefined is not an object (evaluating '(await p(()=>import(`./notificationpanel-digijvix.js`),__vite__mapdeps([#...",
+        "issue": null
       }
     ]
   },
@@ -613,6 +621,7 @@
     "ledger 18539240a894": "Q1816",
     "ledger 227a34518198": "Q2801",
     "ledger 2e4f3e726722": "Q1816",
+    "ledger 308b390594da": "Q2804",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 3712b62a9839": "Q2510",
     "ledger 3a3460b71be7": "Q1816",

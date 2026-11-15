@@ -5,7 +5,7 @@
  *
  * Plain JS on purpose (Q?embedmjs): the standalone `node` scripts that pay a TEST-mode Checkout Session
  * (scripts/probes/mint-funded-seed-jobs.prod.mjs, scripts/e2e/declutterPayoutProof.mjs, scripts/stripe-tax-probe.mjs)
- * run on Node 22 with no type stripping, so they cannot import the .ts. Before this file each kept its own copy of the
+ * run under plain `node` with no TypeScript type stripping, so they cannot import the .ts. Before this file each kept its own copy of the
  * page-level selectors (#cardNumber, hosted-payment-submit-button, ...), and every copy broke on Stripe's embedded
  * form, where the page itself holds no payment control. Types: ./stripeCheckoutForm.d.mts.
  *

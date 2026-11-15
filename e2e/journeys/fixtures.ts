@@ -12,7 +12,14 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { readLiveCache, sessionAlive, writeCache } from "../liveSession";
-import { openCardFields, stripeLayoutReport, stripePaymentMethodControl, untickStripeLink } from "../stripeCheckoutCard";
+import {
+  clickStripeSubmit,
+  fillStripeCardFields,
+  openCardFields,
+  stripeLayoutReport,
+  stripePaymentMethodControl,
+  untickStripeLink,
+} from "../stripeCheckoutCard";
 import { detectStuckOrBlank, findErrorScreen, readScreenText } from "../errorScreens";
 import { deviceProfile, type Rotation } from "./scenarios";
 import { payInChromium, payInPageAnsweringReturn } from "./stripeInChromium";
@@ -457,7 +464,6 @@ export const TEST_CARD = {
 
 /** Fill and submit Stripe's hosted Checkout the way prod-lifecycle learned it behaves. */
 export async function payOnStripeCheckout(page: Page) {
-  const cardNumber = page.locator("#cardNumber");
   /**
    * Stripe's own page can fail to come up, and it says so in its own words:
    * "Something went wrong — You might be having a network connection problem,
@@ -541,28 +547,15 @@ export async function payOnStripeCheckout(page: Page) {
   await paymentField.waitFor({ state: "visible", timeout: 30_000 }).catch(async () => {
     throw new Error(`Stripe Checkout never rendered a payment field. ${await stripeLayoutReport(page)}`);
   });
+  // Card fields and billing, on whichever layout Stripe drew (layout 5 is an iframe).
   await openCardFields(page);
-  await cardNumber.fill(TEST_CARD.number);
-  await page.locator("#cardExpiry").fill(TEST_CARD.expiry);
-  await page.locator("#cardCvc").fill(TEST_CARD.cvc);
-  for (const [id, value] of [
-    ["#billingName", TEST_CARD.name],
-    ["#billingAddressLine1", TEST_CARD.line1],
-    ["#billingLocality", TEST_CARD.city],
-    ["#billingPostalCode", TEST_CARD.zip],
-  ] as const) {
-    const field = page.locator(id);
-    if ((await field.count()) && (await field.isVisible().catch(() => false))) {
-      await field.fill(value).catch(() => {});
-      await page.keyboard.press("Escape").catch(() => {});
-    }
-  }
+  await fillStripeCardFields(page, TEST_CARD);
   // The billing-address autocomplete can swallow the first Pay tap, so blur,
   // tap, and tap again if still on Stripe, naming any inline error it shows.
   for (let attempt = 1; attempt <= 3; attempt++) {
     await untickStripeLink(page);
     await page.getByRole("heading", { name: /^Pay / }).first().click().catch(() => {});
-    await page.getByTestId("hosted-payment-submit-button").click();
+    await clickStripeSubmit(page);
     const left = await page
       .waitForURL((url) => url.hostname.toLowerCase() !== "checkout.stripe.com", { timeout: 40_000 })
       .then(() => true)

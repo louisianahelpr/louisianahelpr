@@ -2,7 +2,7 @@ import { test, expect, type APIRequestContext, type Page, type Locator } from ".
 import { captureHeldCard } from "./cardHold";
 import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { openCardFields, pressStripePay, waitForStripePaymentMethods } from "./stripeCheckoutCard";
+import { fillStripeCardFields, openCardFields, pressStripePay, untickStripeLink, waitForStripePaymentMethods } from "./stripeCheckoutCard";
 import { answerStripeReturn } from "./stripeReturn";
 import { skipLivePay } from "./prod-audit/fundedOpenJob";
 import { ageJobPastEarlyAccess } from "./ageJobPastEarlyAccess";
@@ -807,30 +807,12 @@ test.describe("full money loop against production", () => {
       // the page's buttons if none does.
       await waitForStripePaymentMethods(page);
       await openCardFields(page);
-      await page.locator("#cardNumber").fill(TEST_CARD.number);
-      await page.locator("#cardExpiry").fill(TEST_CARD.expiry);
-      await page.locator("#cardCvc").fill(TEST_CARD.cvc);
-      /* Fill EVERY billing field Stripe renders, not just name and postcode.
-         Which ones appear depends on the account's address-collection setting,
-         and a blank required one makes Pay a no-op with an inline message the
-         test never sees. Line 1 also triggers a Google autocomplete dropdown
-         that covers the fields below it, so dismiss it before moving on. */
-      for (const [id, value] of [
-        ["#billingName", TEST_CARD.name],
-        ["#billingAddressLine1", TEST_CARD.line1],
-        ["#billingLocality", TEST_CARD.city],
-        ["#billingPostalCode", TEST_CARD.zip],
-      ] as const) {
-        const field = page.locator(id);
-        if ((await field.count()) && (await field.isVisible().catch(() => false))) {
-          await field.fill(value).catch(() => {});
-          await page.keyboard.press("Escape").catch(() => {});
-        }
-      }
-      const linkOptIn = page.locator("#enableStripePass");
-      if ((await linkOptIn.count()) && (await linkOptIn.isChecked().catch(() => false))) {
-        await linkOptIn.uncheck({ force: true }).catch(() => {});
-      }
+      /* Fill EVERY billing field Stripe renders, not just name and postcode
+         (fillStripeCardFields: a blank required one makes Pay a no-op, and
+         line 1's Google autocomplete is dismissed after each fill), on
+         whichever layout Stripe drew, the embedded-form iframe included. */
+      await fillStripeCardFields(page, TEST_CARD);
+      await untickStripeLink(page);
       // Pressed until Stripe sends /confirm: an open address autocomplete eats
       // the first press (run 39039797666, see pressStripePay).
       await pressStripePay(page);

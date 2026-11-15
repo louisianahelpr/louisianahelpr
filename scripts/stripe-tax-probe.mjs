@@ -22,6 +22,7 @@
  * Never prints the key.
  */
 import { appendFileSync } from "node:fs";
+import { clickStripeSubmit, fillStripeCardFields, openCardFields, stripeForm, untickStripeLink, waitForStripeFormDrawn } from "../e2e/stripeCheckoutForm.mjs";
 
 const API = "https://api.stripe.com";
 const key = process.env.STRIPE_TEST_SECRET_KEY ?? "";
@@ -186,56 +187,39 @@ async function payCheckout(browser, url, cardNumber, label) {
   });
   try {
     await page.goto(url, { waitUntil: "domcontentloaded" });
-    const card = page.locator("#cardNumber");
-    const cardButton = page.getByTestId("card-accordion-item-button");
-    const radio = page.getByRole("radio").first();
-    const cardItem = page.getByTestId("card-accordion-item");
-    const submit = page.getByTestId("hosted-payment-submit-button");
-    await poll(
-      "Stripe's payment form",
-      async () => {
-        for (const l of [card, cardItem, radio, submit]) if (await l.first().isVisible().catch(() => false)) return true;
-        return false;
-      },
-      500,
-      60_000,
-    );
-    if (!(await card.isVisible().catch(() => false))) {
-      if (await cardItem.count()) await cardItem.first().click({ force: true });
-      else if (await cardButton.count()) await cardButton.first().dispatchEvent("click");
-      else if (await radio.count()) await radio.click({ force: true });
-    }
-    await card.waitFor({ state: "visible", timeout: 15_000 });
-    await card.fill(cardNumber);
-    await page.locator("#cardExpiry").fill("12 / 34");
-    await page.locator("#cardCvc").fill("123");
-    for (const [id, v] of [["#email", "tax-probe@mailinator.com"], ["#billingName", "Tax Probe"], ["#billingAddressLine1", "100 Audit Way"], ["#billingLocality", "Lafayette"], ["#billingPostalCode", "70506"]]) {
-      const f = page.locator(id);
-      if ((await f.count()) && (await f.isVisible().catch(() => false)) && (await f.isEditable().catch(() => false))) {
-        await f.fill(v).catch(() => {});
-        await page.keyboard.press("Escape").catch(() => {});
-      }
-    }
-    const state = page.locator("#billingAdministrativeArea");
-    if ((await state.count()) && (await state.isVisible().catch(() => false))) await state.selectOption("LA").catch(() => {});
-    const link = page.locator("#enableStripePass");
+    // Every layout Stripe draws, the embedded-iframe form included, through the shared helper
+    // (e2e/stripeCheckoutForm.mjs): it polls each control (Q2238), opens Card, types the card, every billing field,
+    // the receipt email and the State (LA: the Lafayette address), and presses Pay inside whichever root holds the form.
+    await waitForStripeFormDrawn(page);
+    await openCardFields(page);
+    await fillStripeCardFields(page, {
+      number: cardNumber,
+      expiry: "12 / 34",
+      cvc: "123",
+      name: "Tax Probe",
+      line1: "100 Audit Way",
+      city: "Lafayette",
+      zip: "70506",
+      email: "tax-probe@mailinator.com",
+    });
     let left = false;
     for (let press = 1; press <= 3 && !left; press++) {
-      await page.waitForTimeout(2_000);
-      if ((await link.count()) && (await link.isChecked().catch(() => false))) await link.uncheck({ force: true });
+      await untickStripeLink(page);
       await page.getByRole("heading", { name: /^Pay |^Set up|^Save/ }).first().click().catch(() => undefined);
-      await submit.click();
+      await clickStripeSubmit(page);
       left = await page.waitForURL((u) => u.hostname.toLowerCase() !== "checkout.stripe.com", { timeout: 40_000 }).then(() => true, () => false);
       if (!left) console.log(`${label}: press ${press} did not leave Stripe's page`);
     }
     if (!left) {
-      // What the page still wants: every visible empty or invalid field, and any error text.
-      const want = await page.locator("input, select").evaluateAll((els) =>
+      // What the form still wants (inside the embedded form frame on layout 5): every visible empty or invalid field,
+      // and any error text.
+      const { root } = await stripeForm(page);
+      const want = await root.locator("input, select").evaluateAll((els) =>
         els
           .filter((e) => e.offsetParent !== null && (!e.value || e.getAttribute("aria-invalid") === "true"))
           .map((e) => `${e.id || e.name}${e.getAttribute("aria-invalid") === "true" ? "(invalid)" : "(empty)"}`),
       ).catch(() => []);
-      const errs = await page.locator("[role=alert], .FieldError, .ErrorText").allInnerTexts().catch(() => []);
+      const errs = await root.locator("[role=alert], .FieldError, .ErrorText").allInnerTexts().catch(() => []);
       throw new Error(`${label}: Stripe's page never submitted after 3 presses; fields ${JSON.stringify(want)}; errors ${JSON.stringify(errs)}`);
     }
   } finally {

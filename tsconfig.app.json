@@ -76,6 +76,8 @@
     "e2e/giftCardLedger.ts",
     // src/test/stripeCheckoutCardOpener.test.ts drives openCardFields on each Stripe layout.
     "e2e/stripeCheckoutCard.ts",
+    // Q?embedmjs: its locator logic, plain JS so the standalone scripts import it too (types in the .d.mts).
+    "e2e/stripeCheckoutForm.d.mts",
     "e2e/stripeReturn.ts",
     // src/test/stateMatrixPendingApprovalUnreachable.test.ts (Q251) imports the
     // manifest enumerator to assert pending_approval cells are unreachable.

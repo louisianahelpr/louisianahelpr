@@ -9,10 +9,11 @@
  *
  *  1. Rendered: a loading child with a spacer swapped for a loaded child with its own spacer; the rows' overlay margin
  *     is on in the loading frame and on at the loaded child's commit (no frame without it).
- *  2. Wired: Dashboard's phone loading branch draws ScrollAwaySpacer before DashboardSkeleton, and its title card
- *     class lets the rows overflow the card as the loaded page's does.
+ *  2. Wired: Dashboard's phone loading branch (DashboardLoadingBody.tsx since 11-15) draws ScrollAwaySpacer before
+ *     DashboardSkeleton, and its title card class lets the rows overflow the card as the loaded page's does.
  *
- * @mutate src/pages/home/Dashboard.tsx |             <ScrollAwaySpacer />\n            <DashboardSkeleton /> |             <DashboardSkeleton />
+ * @mutate src/pages/home/DashboardLoadingBody.tsx |           <ScrollAwaySpacer />\n          <DashboardSkeleton /> |           <DashboardSkeleton />
+ * @mutate src/pages/home/Dashboard.tsx |         <DashboardLoadingBody isWebDesktop={isWebDesktop} mapVisible={mapVisible} /> |         <DashboardLoadingBody isWebDesktop={true} mapVisible={mapVisible} />
  * @mutate src/pages/home/Dashboard.tsx |         titleCardClassName={!isWebDesktop ? "!overflow-visible z-10" : ""} |         titleCardClassName=""
  */
 import { readFileSync } from "node:fs";
@@ -70,9 +71,13 @@ describe("1. the overlay holds from the loading frame through the feed's arrival
 describe("2. Dashboard's loading frame is wired the same way", () => {
   const src = blankComments(readFileSync(join(ROOT, "src/pages/home/Dashboard.tsx"), "utf8"));
   const loadingBranch = src.slice(src.indexOf("if (loading) {"), src.indexOf("const rawName"));
+  const body = blankComments(readFileSync(join(ROOT, "src/pages/home/DashboardLoadingBody.tsx"), "utf8"));
   it("draws the spacer before the skeleton on a phone", () => {
     expect(loadingBranch.length).toBeGreaterThan(200);
-    expect(loadingBranch).toMatch(/<ScrollAwaySpacer \/>\s*<DashboardSkeleton \/>/);
+    expect(loadingBranch).toContain("<DashboardLoadingBody isWebDesktop={isWebDesktop} mapVisible={mapVisible} />");
+    const phone = body.slice(body.indexOf(") : ("));
+    expect(phone.length).toBeGreaterThan(20);
+    expect(phone).toMatch(/<ScrollAwaySpacer \/>\s*<DashboardSkeleton \/>/);
   });
   it("lets the rows overflow the title card, as the loaded page does", () => {
     expect(loadingBranch).toContain('titleCardClassName={!isWebDesktop ? "!overflow-visible z-10" : ""}');

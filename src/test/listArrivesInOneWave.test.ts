@@ -280,7 +280,9 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     // 2026-10-19: Jobs > Browse embeds this page under the section's own header (embeddedTitle), the SAME title
     // card in the loading and the loaded frame; the standalone (non-embedded) frames left with Q2205.
     expect(src.match(/titleCard=\{embeddedTitle\}/g)?.length).toBe(2);
-    expect(src).toMatch(/data-testid="dashboard-desktop-loading"/);
+    // The loading frame's body lives in DashboardLoadingBody.tsx since 11-15 (componentSizeRatchet).
+    expect(src).toContain("<DashboardLoadingBody isWebDesktop={isWebDesktop} mapVisible={mapVisible} />");
+    expect(read("pages/home/DashboardLoadingBody.tsx")).toMatch(/data-testid="dashboard-desktop-loading"/);
   });
 
   it("the job card skeleton reserves the price chip's own box, not a fixed 36px bone", () => {

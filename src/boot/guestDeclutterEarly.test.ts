@@ -26,7 +26,9 @@
 // @mutate src/boot/guestDeclutterPrefetch.ts |   if (!e \|\| typeof e.at !== "number" \|\| now - e.at > EARLY_MAX_AGE_MS) return null; |   if (!e \|\| typeof e.at !== "number") return null;
 // @mutate src/boot/guestDeclutterPrefetch.ts |     if (document.documentElement.getAttribute("data-lh-app-shell") === "declutter") return; |
 // @mutate src/lib/declutterFirstPhotos.mjs |   return typeof path === "string" && path.indexOf("/") > 0 && !path.includes("..") && PATH_RE.test(path); |   return typeof path === "string";
-// @mutate src/lib/declutterFirstPhotos.mjs |     .slice(0, FIRST_ROW) |     .slice(0, 4)
+// @mutate src/lib/declutterFirstPhotos.mjs |     .slice(0, FIRST_ROW * 2) |     .slice(0, FIRST_ROW)
+// @mutate src/lib/declutterFirstPhotos.mjs |     .slice(0, FIRST_ROW * 2) |     .slice(0, 6)
+// @mutate src/lib/declutterFirstPhotos.mjs |       const media = slot < FIRST_ROW ? "(max-width: 899px)" : `(max-width: 899px) and (min-height: ${SECOND_ROW_MIN_HEIGHT}px)`; |       const media = "(max-width: 899px)";
 // @mutate src/lib/declutterFirstPhotos.mjs |   const url = (px) => `${root}${path}?width=${px}&height=${px}&resize=cover&quality=55`; |   const url = (px) => `${root}${path}?width=${px}&height=${px}&resize=cover`;
 // @mutate api/share.ts |         return respond(page, DECLUTTER_PAGE_CDN_CACHE, 200, meta.noindexHeader === true, preload ? { Link: preload } : {}); |         return respond(page, DECLUTTER_PAGE_CDN_CACHE, 200, meta.noindexHeader === true);
 // @mutate api/share.ts | const DECLUTTER_PAGE_CDN_CACHE = "public, s-maxage=60, stale-while-revalidate=3600"; | const DECLUTTER_PAGE_CDN_CACHE = "public, s-maxage=300, stale-while-revalidate=86400";
@@ -38,7 +40,7 @@ import { resolve } from "node:path";
 import { firstCardPhotoPreloads } from "./declutterPrefetch";
 import { GUEST_DECLUTTER_EARLY_KEY, GUEST_DECLUTTER_PREFETCH_KEY, startGuestDeclutterPrefetch, takeEarlyGuestReads } from "./guestDeclutterPrefetch";
 import { CARD_SIZES as BOOT_CARD_SIZES } from "./declutterPrefetch";
-import { CARD_SIZES, cardPhotoUrls, declutterPhotoPreloadHeader, firstPhotoPaths, usablePhotoPath } from "@/lib/declutterFirstPhotos.mjs";
+import { CARD_SIZES, SECOND_ROW_MIN_HEIGHT, cardPhotoUrls, declutterPhotoPreloadHeader, firstPhotoPaths, usablePhotoPath } from "@/lib/declutterFirstPhotos.mjs";
 import { DECLUTTER_PHOTO_MARKUP } from "../../scripts/inline-shell-css.mjs";
 
 const INDEX = readFileSync("index.html", "utf8");
@@ -293,7 +295,7 @@ describe("the entry takes the HTML's answers (guestDeclutterPrefetch.ts)", () =>
 });
 
 describe("the server's first-row preload (src/lib/declutterFirstPhotos.mjs, api/share.ts)", () => {
-  it("preloads only the first row's plain storage paths, with the card's own URLs, on phones only", () => {
+  it("preloads the first screen's plain storage paths (the second row on a tall phone), with the card's own URLs, on phones only", () => {
     expect(usablePhotoPath("u/declutter/i/a.jpg")).toBe(true);
     for (const bad of ["", "a.jpg", "/abs/a.jpg", "u/../x.jpg", 'u/a" onload="x', "u/a.jpg?x=1", "u/a b.jpg", "u/a>.jpg", null, 7]) expect(usablePhotoPath(bad), String(bad)).toBe(false);
     expect(firstPhotoPaths(null)).toBeNull();
@@ -306,12 +308,18 @@ describe("the server's first-row preload (src/lib/declutterFirstPhotos.mjs, api/
     expect(CARD_SIZES).toBe(BOOT_CARD_SIZES);
     const header = declutterPhotoPreloadHeader(BASE, paths)!;
     const links = header.split(/, (?=<)/);
-    expect(links).toHaveLength(2);
+    // Slots 1, 2 and 4 have a photo (slot 3 has none): the first row on every phone, the second row's on a tall one
+    // (prod-audit 43650083979: a second-row photo asked for late was /declutter's largest paint at 5.1 s).
+    expect(links).toHaveLength(3);
+    expect(SECOND_ROW_MIN_HEIGHT).toBe(700);
     links.forEach((l, i) => {
-      expect(l).toBe(`<${want[i].href}>; rel=preload; as=image; imagesrcset="${want[i].srcset}"; imagesizes="${CARD_SIZES}"; media="(max-width: 899px)"`);
+      const media = i < 2 ? "(max-width: 899px)" : `(max-width: 899px) and (min-height: ${SECOND_ROW_MIN_HEIGHT}px)`;
+      expect(l).toBe(`<${want[i].href}>; rel=preload; as=image; imagesrcset="${want[i].srcset}"; imagesizes="${CARD_SIZES}"; media="${media}"`);
     });
     expect(declutterPhotoPreloadHeader(BASE, ["-", "u/a.jpg"])!.split(/, (?=<)/)).toHaveLength(1);
-    expect(declutterPhotoPreloadHeader(BASE, ["-", "-", "u/a.jpg"])).toBeNull();
+    expect(declutterPhotoPreloadHeader(BASE, ["-", "-", "u/a.jpg"])).toContain(`media="(max-width: 899px) and (min-height: ${SECOND_ROW_MIN_HEIGHT}px)"`);
+    // Nothing past the first screen's four slots.
+    expect(declutterPhotoPreloadHeader(BASE, ["-", "-", "-", "-", "u/a.jpg"])).toBeNull();
     expect(declutterPhotoPreloadHeader(BASE, null)).toBeNull();
   });
 

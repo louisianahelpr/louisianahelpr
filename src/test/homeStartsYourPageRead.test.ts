@@ -9,7 +9,7 @@
  * painted 6-10 ms after the read answered (LCP 1300 ms median); after, the read answers at about 0.5 s and the line
  * paints with the columns (LCP 1020 ms median).
  *
- * @mutate src/pages/home/HomeDashboard.tsx |     if (myHandle) void queryClient.prefetchQuery(publicPageQuery(myHandle)); |
+ * @mutate src/pages/home/HomeDashboard.tsx |     void queryClient.prefetchQuery({ |     void ({
  * @mutate src/components/profile/YourPageLink.tsx |   const { data: publicPage } = useQuery({ ...publicPageQuery(handle ?? ""), enabled: !!handle }); |   const { data: publicPage } = useQuery({ queryKey: ["public-page", handle], queryFn: () => fetchPublicProfile(handle as string), enabled: !!handle });
  */
 import { readFileSync } from "node:fs";
@@ -22,7 +22,8 @@ const card = blankComments(readFileSync("src/components/profile/YourPageLink.tsx
 
 describe("Home starts the Your page read before the card mounts (home LCP)", () => {
   it("Home prefetches the card's own query as soon as the profile names the handle, outside the topSettled gate", () => {
-    const at = home.indexOf("void queryClient.prefetchQuery(publicPageQuery(myHandle))");
+    // Q2705 (11-15): the same query, whose queryFn first takes the entry's answer (src/boot/homeOwnPagePrefetch.test.ts).
+    const at = home.indexOf("void queryClient.prefetchQuery({\n      ...publicPageQuery(myHandle),");
     expect(at).toBeGreaterThan(-1);
     expect(home).toMatch(/const myHandle = profile\?\.handle \?\? null;/);
     // Hooks run before the JSX; the topSettled-gated columns are in the JSX.

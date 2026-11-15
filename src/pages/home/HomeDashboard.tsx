@@ -3,6 +3,8 @@ import { removeShellOncePainted } from "@/components/landing/landingShell";
 import { HOME_SHELL_ID } from "@/components/landing/homeShell";
 import { greetingDate, greetingFor, readGreetingName, saveGreetingName } from "@/lib/homeGreetingShell.mjs";
 import { YourPageLink, publicPageQuery } from "@/components/profile/YourPageLink";
+import { fetchPublicProfile } from "@/lib/profileLink/api";
+import { takeHomeOwnPagePrefetch } from "./homeDashboard/homePrefetchTake";
 import { FirstRun } from "@/components/firstRun/FirstRunHost";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -118,10 +120,16 @@ function HomeDashboardScreen() {
   // Home LCP (prod-audit 43650083979, 11-14): the Your page card mounts only once the top cards settle, and it then
   // asked whether the page opens, so on a phone its line was /home's largest paint at 9.8 s. Ask as soon as the
   // profile names the handle, beside the top cards' reads; the card then draws from the cache when it mounts.
+  // Q2705 (11-15): on a cold load the entry has usually read it already (homePrefetch.ts); that answer is taken once.
   const myHandle = profile?.handle ?? null;
+  const myId = user?.id ?? null;
   useEffect(() => {
-    if (myHandle) void queryClient.prefetchQuery(publicPageQuery(myHandle));
-  }, [myHandle, queryClient]);
+    if (!myHandle) return;
+    void queryClient.prefetchQuery({
+      ...publicPageQuery(myHandle),
+      queryFn: async () => fetchPublicProfile(myHandle, myId ? await takeHomeOwnPagePrefetch(myId, myHandle) : null),
+    });
+  }, [myHandle, myId, queryClient]);
   const { visible } = useSectionPrefs();
   const live = useSectionTabs();
   const isLive = (s: (typeof visible)[number]) => s.feature === null || !!live.find((tab) => tab.path === s.path)?.on;

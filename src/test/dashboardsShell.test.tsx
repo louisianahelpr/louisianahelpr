@@ -49,7 +49,7 @@
  */
 import { saveReservedHeight } from "@/pages/home/homeDashboard/reservedHeight";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent, act } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, act, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { readFileSync } from "node:fs";
@@ -451,17 +451,21 @@ describe("Home", () => {
     expect(screen.queryByTestId("todo-list")).toBeNull();
   });
 
-  it("shows the member's sections as boxes and Customize hides one from Home too", () => {
+  it("shows the member's sections as boxes and Customize hides one from Home too", async () => {
     // A returning visitor (Next up's height saved on this device). On a FIRST visit the blocks below Next up wait for
     // the to-dos and money reads (homeTopSettled.ts useHoldWhileFirstVisitReads; guard homeTopWaitsForFirstWeekCards).
     saveReservedHeight("next-up:u-shell", 120);
+    // The chips wait for their "near you" counts (never asked here: whenPageSettled is mocked), so they paint at the
+    // ARRIVAL_CAP_MS cap (homeChipsWaitForNearCounts.test.tsx).
     const { unmount } = wrap(<HomeDashboard />);
-    expect([...document.querySelectorAll("[data-section-tile]")].map((e) => e.getAttribute("data-section-tile"))).toEqual(["jobs", "declutter", "shops", "homes"]);
+    expect(document.querySelector("[data-section-chips-held]")).toBeTruthy();
+    expect(document.querySelectorAll("[data-section-tile]")).toHaveLength(0);
+    await waitFor(() => expect([...document.querySelectorAll("[data-section-tile]")].map((e) => e.getAttribute("data-section-tile"))).toEqual(["jobs", "declutter", "shops", "homes"]), { timeout: 3000 });
     unmount();
     localStorage.setItem(PREFS, JSON.stringify({ hidden: ["shops"] }));
     wrap(<HomeDashboard />);
-    expect([...document.querySelectorAll("[data-section-tile]")].map((e) => e.getAttribute("data-section-tile"))).toEqual(["jobs", "declutter", "homes"]);
-  });
+    await waitFor(() => expect([...document.querySelectorAll("[data-section-tile]")].map((e) => e.getAttribute("data-section-tile"))).toEqual(["jobs", "declutter", "homes"]), { timeout: 3000 });
+  }, 10_000);
 });
 
 function TabsProbe() {

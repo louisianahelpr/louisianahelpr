@@ -169,6 +169,11 @@ export function useHomeSummary(user: SupaUser | null) {
       // state that then jumped to "Next up · 1 of 9", half of /home's layout shift). A failed read is not loading.
       todosLoading: todosLoading && !(posted.loadError || applied.loadError),
       todos,
+      // Page settle /home at 375 (builder3g-1115 handoff, shift 2): the section chips' "near you" counts are asked after
+      // the page settles, so they land late and a longer line wrapped a chip onto a new row. True until each count the
+      // chips would show has answered (data or error); HomeDashboard holds the chips row on it, capped.
+      tilesPending: (jobTodos === 0 && jobsNear.data === undefined && !jobsNear.isError)
+        || (declutterOn && declutterNear.data === undefined && !declutterNear.isError),
       liveNow,
       waiting: todos.length || !derive ? null : derive.deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null, posted.helperNames ?? {}, continueDays),
       thisWeek,
@@ -214,5 +219,5 @@ export function useHomeSummary(user: SupaUser | null) {
         homes: countLine([[props.length, "property", "properties"]]),
       },
     };
-  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.helperNames, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, declutter.isLoading, declutterSettled, orders.data, orders.isError, todos, todosLoading, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError, jobsNear.data, declutterNear.data, continueDays, derive, wordsKey]);
+  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.helperNames, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, declutter.isLoading, declutterSettled, orders.data, orders.isError, todos, todosLoading, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError, jobsNear.data, jobsNear.isError, declutterNear.data, declutterNear.isError, continueDays, derive, wordsKey]);
 }

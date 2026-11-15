@@ -27,6 +27,7 @@ import { useOnTabReselect } from "@/components/mobileNav/tabReselect";
 import { feedLinkTarget } from "./homeDashboard/feedLinkForward";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { PageTitleBar } from "@/components/header/PageTitleBar";
 import { JobProgress } from "@/components/tracker/JobProgress";
 import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
@@ -114,6 +115,10 @@ function HomeDashboardScreen() {
   // the greeting, so a card arriving above Next up never pushes the page down (homeTopSettled.ts).
   const topSettled = useHomeTopSettled(user?.id, firstJob);
   const holdBelowNextUp = useHoldWhileFirstVisitReads(firstVisit && (summary.todosLoading || !!money.pending));
+  // Page settle (builder3g-1115 handoff, shift 2): the section chips are the last blocks on the page, so they wait for
+  // their late "near you" counts (capped at ARRIVAL_CAP_MS from when they would first show) and then paint once; a count
+  // arriving after the chips painted wrapped "Declutter · N items near you" onto a new row and moved Shops with it.
+  const chipsReady = useArrivalGate(!holdBelowNextUp, !summary.tilesPending);
   const queryClient = useQueryClient();
   // Home LCP (prod-audit 43650083979, 11-14): the Your page card mounts only once the top cards settle, and it then
   // asked whether the page opens, so on a phone its line was /home's largest paint at 9.8 s. Ask as soon as the
@@ -465,6 +470,7 @@ function HomeDashboardScreen() {
             {/* Design audit A D4 (owner approved 11-08): the member's OPEN sections as one row of chips, each with its real
                 count line when there is one ("Jobs · 1 needs you"); the bottom bar already holds every section, so the
                 old 2x2 boxes repeated it. The rest share ONE compact line (owner, 2026-10-21: no "Opening soon" cards). */}
+            {chipsReady ? <>
             <div data-section-chips="" className="flex flex-wrap gap-2">
               {visible.filter(isLive).map((s) => {
                 // Only a real line (spec v2 §1.5: never a "0"); with none the chip is the section's name alone.
@@ -490,6 +496,7 @@ function HomeDashboardScreen() {
               })}
             </div>
             {soonLine && <p data-testid="sections-opening-soon" className="px-1 text-ds-13 text-muted-foreground">{soonLine}</p>}
+            </> : <div data-section-chips-held="" aria-hidden className="h-9" />}
             </>}
           </section>
         </div>}

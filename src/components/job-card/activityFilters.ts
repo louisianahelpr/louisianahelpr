@@ -413,6 +413,18 @@ export function postedActivityBucket(
 }
 
 /**
+ * F260a (audit 11-10, You tab): the Posted tile counts every LIVE post, "waiting for applicants or booked". An open job
+ * with applicants to answer is still live, but its bucket is Needs you (the applicants), so it fell out of the count
+ * ("Posted · 1 live" for a poster with two funded open jobs, one with an applicant). Live = Waiting or Booked, or a job
+ * whose ONLY Needs-you reason is its pending applicants (with none it would be Waiting: funded, listed, not overdue).
+ */
+export function postedJobIsLive(j: Parameters<typeof postedActivityBucket>[0], pendingApplicantCount = 0, now: Date = new Date()): boolean {
+  const bucket = postedActivityBucket(j, pendingApplicantCount, now);
+  if (bucket === "waiting" || bucket === "scheduled") return true;
+  return pendingApplicantCount > 0 && j.status === "open" && postedActivityBucket(j, 0, now) === "waiting";
+}
+
+/**
  * F107: which Working chip a job I applied to sits under (activityBuckets.WORKING_CHIPS), or null (not picked: All
  * only). From the bucket, so a chip never disagrees with the card's own "whose move" line: Needs you as is; Done is
  * Completed; Waiting / Booked split on whether I am hired (an application or an offer still open is Applied; booked

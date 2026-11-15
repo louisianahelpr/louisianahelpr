@@ -17,8 +17,25 @@ import { scopeShellIds } from "../../scripts/shell-ids.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const html = readFileSync(join(ROOT, "index.html"), "utf8");
+/**
+ * Cut every `open ... close` span out of `s`, matching case-insensitively, and repeat until none is left. The close tag
+ * may carry attributes or spaces before its `>` (`</script >`). A span with no close runs to the end of the string.
+ * This uses indexOf, not a regex replace: CodeQL (js/bad-tag-filter, js/incomplete-multi-character-sanitization)
+ * flags a single-pass regex tag filter.
+ */
+function cutSpans(s: string, open: string, close: string, closeEndsAt: string): string {
+  let out = s;
+  for (;;) {
+    const lower = out.toLowerCase();
+    const start = lower.indexOf(open);
+    if (start < 0) return out;
+    const closeAt = lower.indexOf(close, start + open.length);
+    const end = closeAt < 0 ? -1 : lower.indexOf(closeEndsAt, closeAt + close.length - closeEndsAt.length);
+    out = out.slice(0, start) + (end < 0 ? "" : out.slice(end + closeEndsAt.length));
+  }
+}
 /** The HTML a crawler reads as markup: scripts and comments blanked (an H1 inside a script string is not a heading). */
-const markup = html.replace(/<script\b[\s\S]*?<\/script>/gi, "").replace(/<!--[\s\S]*?-->/g, "");
+const markup = cutSpans(cutSpans(html, "<script", "</script", ">"), "<!--", "-->", "-->");
 
 describe("Q2786: the pre-JS HTML carries exactly one H1, the landing hero's", () => {
   it("index.html has one <h1> outside scripts, and it is the hero's", () => {

@@ -16,7 +16,7 @@ import ts from "typescript";
 // @mutate src/hooks/useActivityData.ts | const scheduleChangeApi = () => loadModule(() => import("@/lib/scheduleChange")); | import * as scheduleChangeNow from "@/lib/scheduleChange";\nconst scheduleChangeApi = async () => scheduleChangeNow;
 // @mutate src/pages/home/HomeDashboard.tsx | const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet }))); | import { CustomizeSheet } from "@/components/sections/CustomizeSheet";
 // @mutate src/components/sections/AppTopBar.tsx | import NotificationPanel from "@/components/notificationPanel/NotificationBell"; | import NotificationPanel from "@/components/NotificationPanel";
-// @mutate src/components/notificationPanel/NotificationBell.tsx |     const mod = await import("@/components/NotificationPanel"); |     const mod = await Promise.resolve(NotificationPanelNow);
+// @mutate src/components/notificationPanel/NotificationBell.tsx |     const mod = await loadModule(() => import("@/components/NotificationPanel")); |     const mod = await Promise.resolve(NotificationPanelNow);
 // @mutate src/components/firstRun/FirstRunHost.tsx | const FirstRunScreens = lazy(() => import("./FirstRun")); | import FirstRunScreens from "./FirstRun";
 // @mutate src/pages/home/HomeDashboard.tsx | import { FirstRun } from "@/components/firstRun/FirstRunHost"; | import { FirstRun } from "@/components/firstRun/FirstRun";
 // @mutate src/pages/home/homeDashboard/useHomeSummary.ts | const declutterApi = () => loadModule(() => import("@/lib/declutter/myReads")); | import * as declutterApiNow from "@/lib/declutter/myReads";\nconst declutterApi = async () => declutterApiNow;
@@ -91,7 +91,7 @@ describe("Home loads section data code lazily", () => {
     }
     const bell = "src/components/notificationPanel/NotificationBell.tsx";
     expect(staticValueImports(bell, ["@/components/NotificationPanel"])).toEqual([]);
-    expect(readFileSync(resolve(__dirname, "../..", bell), "utf8")).toContain('await import("@/components/NotificationPanel")');
+    expect(readFileSync(resolve(__dirname, "../..", bell), "utf8")).toContain('loadModule(() => import("@/components/NotificationPanel"))');
     const host = "src/components/firstRun/FirstRunHost.tsx";
     expect(staticValueImports(host, ["./FirstRun"])).toEqual([]);
     expect(readFileSync(resolve(__dirname, "../..", host), "utf8")).toContain('lazy(() => import("./FirstRun"))');

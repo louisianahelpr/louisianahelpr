@@ -41,7 +41,9 @@ export const isChunkLoadError = (err: unknown): boolean => {
     // 2026-10-25 22:13Z showed "Something went sideways" on /messages during
     // the 3caabd851f deploy and left "Try Again" re-throwing the dead lazy.
     // WebKit, V8 and Gecko wordings of the same read.
-    /undefined is not an object \(evaluating '[\w$.]*\.default'\)/i.test(msg) ||
+    // WebKit quotes the whole expression, so a bare `(await import(...)).default` reads with parens and backticks in
+    // it: Vite's `(await p(()=>import(`./X.js`),__vite__mapDeps([...]))).default` (Sentry JAVASCRIPT-5K, Q2804).
+    /undefined is not an object \(evaluating '[^']*\.default'\)/i.test(msg) ||
     /Cannot read propert(y|ies) of undefined \(reading 'default'\)/i.test(msg) ||
     /can't access property "default", [\w$.]+ is undefined/i.test(msg) ||
     /[\w$]+\._result is undefined/i.test(msg) ||

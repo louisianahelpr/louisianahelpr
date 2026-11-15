@@ -8,11 +8,16 @@
  * PGlite: src/test/pglite/connectRecordOnlyRowsNeverPage.pglite.mjs (ALL PASS; RECORD_ONLY_REMOVED=1: 4 FAILED).
  * Edge: src/test/edge/connectChangesLeaveARecord.test.ts.
  *
+ * Q2794 (20261115040732): a server 'stale-clear' row tagged money_history exactly false is record-only too (a clear for
+ * a member with no money history); untagged, true, or client-written still pages.
+ * Edge: src/test/edge/stripeConnectStaleClearMoneyHistory.test.ts.
+ *
  * @mutate supabase/migrations/20261103203658_connect_record_only_rows_never_page.sql |   IF public.error_log_is_record_only(NEW.tags) THEN\n    RETURN NEW;\n  END IF; |
  * @mutate supabase/migrations/20261103203658_connect_record_only_rows_never_page.sql |   IF public.error_log_is_record_only(v_tags) THEN\n    RETURN NULL;\n  END IF; |
  * @mutate supabase/migrations/20261103203658_connect_record_only_rows_never_page.sql |     AND NOT public.error_log_is_record_only(e.tags)\n | \n
- * @mutate supabase/migrations/20261103203658_connect_record_only_rows_never_page.sql |      AND coalesce(p_tags ->> 'origin', '') = 'server'\n | \n
- * @mutate supabase/migrations/20261103203658_connect_record_only_rows_never_page.sql | IN ('connect-reset', 'connect-dead-account-close'); | IN ('connect-reset');
+ * @mutate supabase/migrations/20261115040732_stale_clear_pages_only_with_money_history.sql |      AND coalesce(p_tags ->> 'origin', '') = 'server'\n | \n
+ * @mutate supabase/migrations/20261115040732_stale_clear_pages_only_with_money_history.sql | IN ('connect-reset', 'connect-dead-account-close')); | IN ('connect-reset'));
+ * @mutate supabase/migrations/20261115040732_stale_clear_pages_only_with_money_history.sql |        (coalesce(p_tags ->> 'kind', '') = 'stale-clear' AND coalesce(p_tags ->> 'money_history', '') = 'false') |        (coalesce(p_tags ->> 'kind', '') = 'stale-clear')
  * @mutate supabase/functions/_shared/connectRecord.ts | export type ConnectRecordKind = "connect-reset" \| "connect-dead-account-close"; | export type ConnectRecordKind = "connect-reset" \| "connect-dead-account-close" \| "connect-other";
  */
 import { describe, it, expect } from "vitest";
@@ -34,12 +39,24 @@ describe("Q2368: record-only connect rows never page and never open a ledger ite
     const { sql } = body("error_log_is_record_only");
     expect(sql).toContain("coalesce(p_tags ->> 'origin', '') = 'server'");
     expect(sql).toContain("coalesce(p_tags ->> 'source', '') = 'stripe-connect'");
-    const sqlKinds = (/IN \(([^)]*)\);/.exec(sql)?.[1] ?? "").match(/'[^']+'/g)?.map((k) => k.slice(1, -1)).sort() ?? [];
+    const sqlKinds = (/IN \(([^)]*)\)\)?;/.exec(sql)?.[1] ?? "").match(/'[^']+'/g)?.map((k) => k.slice(1, -1)).sort() ?? [];
     const ts = blankComments(readFileSync(join(ROOT, "supabase/functions/_shared/connectRecord.ts"), "utf8"));
     const tsKinds = (/export type ConnectRecordKind = ([^;]+);/.exec(ts)?.[1] ?? "").match(/"[^"]+"/g)?.map((k) => k.slice(1, -1)).sort() ?? [];
     expect(tsKinds.length).toBeGreaterThan(1);
     expect(sqlKinds).toEqual(tsKinds);
     expect(ts).toContain('source: "stripe-connect", kind: r.kind');
+  });
+
+  it("Q2794: a stale-clear is record-only only when tagged money_history false", () => {
+    const { file, sql } = body("error_log_is_record_only");
+    expect(file).toBe("20261115040732_stale_clear_pages_only_with_money_history.sql");
+    expect(sql.replace(/\s+/g, " ")).toContain(
+      "AND ( (coalesce(p_tags ->> 'kind', '') = 'stale-clear' AND coalesce(p_tags ->> 'money_history', '') = 'false') OR coalesce(p_tags ->> 'kind', '') IN ('connect-reset', 'connect-dead-account-close'));",
+    );
+    // The writer tags every clear; the breaker's source/kind stay the same.
+    const fn = blankComments(readFileSync(join(ROOT, "supabase/functions/stripe-connect/index.ts"), "utf8"));
+    expect(fn).toContain('tags: { source: "stripe-connect", kind: STALE_CLEAR_KIND, money_history: moneyHistory,');
+    expect(fn).toContain("const moneyHistory = await memberHasMoneyHistory(supabaseAdmin, userId);");
   });
 
   it("the newest Slack trigger returns before posting and leaves them out of its throttle", () => {

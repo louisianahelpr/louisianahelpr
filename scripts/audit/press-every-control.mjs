@@ -70,6 +70,7 @@ import { LOADING_SEL, LOADING_TEXT_RX_SOURCE, SELF_HEAL_MS, SELF_HEAL_SEL, await
 import {
   CHROME_SKIP, FOREIGN_FIXTURE_SKIP, LANDING_QUIET_MS, PACE_HEADROOM, cycleBurstEstimate, landingSettled, NOT_REACHED_STATUS, ceilingWaitMs, chromeDisposition, chromeKey,
   claimRow, drainedQueueShard, classifyConsoleError, classifyFailedResponse, clickFailureReason, queuedRowAction, releaseRow, isForeignSweepFixture, overTimeBudget, refusalIsDeath, rowDetailLines, tokenNeedsRefresh,
+  pressNeedsReload, pressTargetStillAt, rotatedRowOrder,
 } from "./pressFailureClass.mjs";
 import { budgetFor } from "../e2e/request-budget.mjs";
 import { recordRouteProbePasses, routeProbePasses } from "./pressRouteProbe.mjs";
@@ -1419,7 +1420,11 @@ async function main() {
 
   let queueStopped = false;
   let claimedElsewhere = 0;
-  for (const [routeIdx, route] of routeSet.entries()) {
+  // Backstop: a queued run starts at a different row each run (see rotatedRowOrder).
+  const rowOrder = rotatedRowOrder({ length: routeSet.length, rotate: QUEUE_DIR ? process.env.PRESS_ROTATE : "" });
+  if (rowOrder[0]) console.log(`row order rotated: starting at row ${rowOrder[0]} of ${routeSet.length} (PRESS_ROTATE=${process.env.PRESS_ROTATE})`);
+  for (const routeIdx of rowOrder) {
+    const route = routeSet[routeIdx];
     if (queueStopped) break;
     if (route.redirect) {
       if (QUEUE_DIR && !claimRow({ dir: QUEUE_DIR, key: `${String(routeIdx).padStart(3, "0")}-redirect` })) { claimedElsewhere += 1; continue; }
@@ -1883,6 +1888,11 @@ async function main() {
         const mutatedRows = new Set();
         let idx = 0;
         let pageDirty = false; // a press changed the resting page; reload before the next one
+        // A press changed the page IN PLACE only (see pressNeedsReload): no reload, but
+        // the next page-level press checks its path still holds the same control.
+        let changedInPlace = false;
+        rec.reloadsSaved = 0;
+        rec.reloadReasons = {};
 
         while (idx < queue.length) {
           if (overTimeBudget({ startedAt: runStart, budgetMs: TIME_BUDGET_MS })) {
@@ -1961,7 +1971,12 @@ async function main() {
           }
 
           // Baseline: the resting page with the opener chain replayed.
+          // If the page-level branch below reloads, this is why: the previous press dirtied
+          // the page, the URL drifted, we are on another screen, or an overlay is still open.
+          const reloadWhy = pageDirty ? "dirty" : !atRest() ? "url" : sameScreen(page.url()) ? "overlay" : "screen";
           if (chain.length) {
+            // An opener is replayed on a clean screen, never on one an earlier press changed in place.
+            if (changedInPlace) { await load(); changedInPlace = false; }
             if (!(await replay(chain))) {
               // Once more from a clean load before giving up on it.
               await load();
@@ -2000,7 +2015,22 @@ async function main() {
             !sameScreen(page.url())
           ) {
             await load();
+            // Why this press paid for a reload, counted per row so the next run's log
+            // says where the time went (read before the load, below).
+            rec.reloadReasons[reloadWhy] = (rec.reloadReasons[reloadWhy] ?? 0) + 1;
             pageDirty = false;
+            changedInPlace = false;
+          } else if (changedInPlace) {
+            // Kept the page after an in-place press: press on it only while this
+            // control's queued path still holds the control enumerated there, or
+            // the control is found again by its signature; otherwise reload.
+            const now = await enumerate(item.step.scope);
+            const stillAt = pressTargetStillAt({ now, path: item.step.path, sig: meta.sig });
+            const again = stillAt ? null : reAddress(now, meta);
+            if (stillAt) rec.reloadsSaved++;
+            else if (again && again.sig === meta.sig) { item.step.path = again.path; entry.relocated = true; rec.reloadsSaved++; }
+            else { rec.reloadReasons.moved = (rec.reloadReasons.moved ?? 0) + 1; await load(); }
+            changedInPlace = false;
           }
 
           let target = locate(item.step);
@@ -2424,8 +2454,17 @@ async function main() {
             await page.keyboard.press("Escape").catch(() => {});
             await page.waitForTimeout(300);
             if ((await page.locator(OPEN_OVERLAY).count()) > before.overlays) pageDirty = true;
-          } else if (after.url !== before.url || after.overlays !== before.overlays || after.inputs !== before.inputs || after.state !== before.state || after.hash !== before.hash) {
+          } else if (pressNeedsReload({
+            navigated: after.url !== before.url || !atRest(),
+            wrote: writes.length > writes0,
+            overlaysChanged: after.overlays !== before.overlays,
+            failed: entry.result === "FAIL",
+            mutating: !!entry.mutating,
+            inChain: chain.length > 0,
+          })) {
             pageDirty = true;
+          } else if (after.inputs !== before.inputs || after.state !== before.state || after.hash !== before.hash) {
+            changedInPlace = true;
           }
           if (chain.length) pageDirty = true;
         }
@@ -2456,7 +2495,7 @@ async function main() {
       // PublicObjectCache's effect, per row: answered from memory vs fetched.
       rec.objectCache = { served: objectCache.served, filled: objectCache.filled };
       if (objectCache.served) console.log(`[${route.url} ${persona}] public-object cache: served=${objectCache.served} filled=${objectCache.filled}`);
-      console.log(`[${route.url} ${persona}] found=${rec.found} pressed=${rec.pressed} pass=${rec.passed} fail=${rec.failed} skip=${rec.skipped} undocumented=${unpressed}`);
+      console.log(`[${route.url} ${persona}] found=${rec.found} pressed=${rec.pressed} pass=${rec.passed} fail=${rec.failed} skip=${rec.skipped} undocumented=${unpressed} reloads-saved=${rec.reloadsSaved ?? 0} reloads=${JSON.stringify(rec.reloadReasons ?? {})} minutes=${((Date.now() - rec.startedAt) / 60_000).toFixed(1)}`);
       // Every failure and every undocumented skip, one line each (#1582: the
       // artifacts are not readable where the red is triaged; see rowDetailLines).
       for (const l of rowDetailLines({ route: route.url, persona, controls: rec.controls, documented: DOCUMENTED_SKIPS })) console.log(l);

@@ -25,7 +25,12 @@
  * @mutate supabase/migrations/20261115063613_ranked_jobs_hide_blocked_keep_guest_mask.sql | )\n          OR (b.blocker_id = j.customer_id AND b.blocked_id = (SELECT auth.uid()))\n    ) | )\n    )
  * @mutate supabase/migrations/20261115063613_ranked_jobs_hide_blocked_keep_guest_mask.sql | SELECT 1 FROM public.user_blocks b\n       WHERE | SELECT 1 FROM public.ban_settlement_queue b\n       WHERE false AND
  * @mutate supabase/migrations/20261115064940_teaser_profile_instant_match_hide_blocked.sql | OR (b.blocker_id = j.customer_id AND b.blocked_id = (SELECT auth.uid()))\n    )\n  ORDER BY | )\n  ORDER BY
- * @mutate supabase/migrations/20261115064940_teaser_profile_instant_match_hide_blocked.sql | OR (b.blocker_id = j.customer_id AND b.blocked_id = (SELECT auth.uid()))\n         )\n       ORDER BY j.date_needed | )\n       ORDER BY j.date_needed
+ * @mutate supabase/migrations/20261115073802_public_profile_hides_items_and_wanted_across_block.sql | OR (b.blocker_id = j.customer_id AND b.blocked_id = (SELECT auth.uid()))\n         )\n       ORDER BY j.date_needed | )\n       ORDER BY j.date_needed
+ *   Q2809 (20261115073802): the public page's items list, listing_count and Wanted list carry the same rule.
+ * @mutate supabase/migrations/20261115073802_public_profile_hides_items_and_wanted_across_block.sql | OR (b.blocker_id = i.seller_id AND b.blocked_id = (SELECT auth.uid()))\n         )\n       ORDER BY coalesce | )\n       ORDER BY coalesce
+ * @mutate supabase/migrations/20261115073802_public_profile_hides_items_and_wanted_across_block.sql | OR (b.blocker_id = i.seller_id AND b.blocked_id = (SELECT auth.uid()))\n     ); | );
+ * @mutate supabase/migrations/20261115073802_public_profile_hides_items_and_wanted_across_block.sql | OR (b.blocker_id = w.user_id AND b.blocked_id = (SELECT auth.uid()))\n         )\n       ORDER BY w.created_at | )\n       ORDER BY w.created_at
+ * @mutate supabase/migrations/20261115073802_public_profile_hides_items_and_wanted_across_block.sql | WHERE (b.blocker_id = (SELECT auth.uid()) AND b.blocked_id = w.user_id) | WHERE (false)
  * @mutate supabase/migrations/20261115064940_teaser_profile_instant_match_hide_blocked.sql | OR (b.blocker_id = v_uid AND b.blocked_id = v_job.customer_id) | OR false
  * @mutate supabase/migrations/20261115064940_teaser_profile_instant_match_hide_blocked.sql | CONTINUE WHEN EXISTS ( | CONTINUE WHEN false AND EXISTS (
  * @mutate supabase/functions/welcome-emails/index.ts |           .from("user_blocks") |           .from("user_profiles")
@@ -46,15 +51,36 @@ describe("the job-browse RPCs with no poster id hide jobs across a block, both d
     const def = defs.get(fn);
     expect(def, `${fn} has a definition`).toBeTruthy();
     const body = squash(blankSqlComments(def!.stmt));
-    const at = body.search(/AND NOT EXISTS \( SELECT 1 FROM public\.user_blocks \w+ WHERE /);
-    expect(at, `${def!.file}: an AND NOT EXISTS (SELECT 1 FROM public.user_blocks … ) condition`).toBeGreaterThan(-1);
-    const clause = body.slice(at, at + 260);
-    const b = /user_blocks (\w+) WHERE/.exec(clause)![1];
-    const me = "\\(SELECT auth\\.uid\\(\\)\\)";
-    expect(clause).toMatch(new RegExp(`${b}\\.blocker_id = ${me} AND ${b}\\.blocked_id = j\\.customer_id`));
-    expect(clause).toMatch(new RegExp(`${b}\\.blocker_id = j\\.customer_id AND ${b}\\.blocked_id = ${me}`));
+    expect(blockClauses(body).length, `${def!.file}: an AND NOT EXISTS (SELECT 1 FROM public.user_blocks … ) condition`).toBeGreaterThan(0);
+    expect(twoWay(body, "j\\.customer_id"), `${def!.file}: both directions against j.customer_id`).toBe(1);
+  });
+
+  // Q2809 (20261115073802): one rule for the whole public page. The items list, listing_count and the Wanted list
+  // carry the same two-way filter as the jobs list. Behaviour proven in
+  // src/test/pglite/publicProfileWholePageHidesBlocked.pglite.mjs (2026-11-15: NEW_MIGRATION=skip: 4 FAIL; applied 3x:
+  // ALL PASS).
+  it("public_profile_by_handle: the items list, its count and the Wanted list use the jobs list's block rule", () => {
+    const def = defs.get("public_profile_by_handle")!;
+    const body = squash(blankSqlComments(def.stmt));
+    expect(blockClauses(body).length, def.file).toBe(4);
+    expect(twoWay(body, "i\\.seller_id"), `${def.file}: the items list and listing_count`).toBe(2);
+    expect(twoWay(body, "w\\.user_id"), `${def.file}: the Wanted list`).toBe(1);
   });
 });
+
+/** Every `AND NOT EXISTS (SELECT 1 FROM public.user_blocks <b> WHERE …)` clause in a squashed body (260 chars each). */
+function blockClauses(body: string): string[] {
+  return [...body.matchAll(/AND NOT EXISTS \( SELECT 1 FROM public\.user_blocks \w+ WHERE /g)].map((m) => body.slice(m.index!, m.index! + 260));
+}
+/** How many of those clauses block auth.uid() and `col` in BOTH directions. */
+function twoWay(body: string, col: string): number {
+  const me = "\\(SELECT auth\\.uid\\(\\)\\)";
+  return blockClauses(body).filter((clause) => {
+    const b = /user_blocks (\w+) WHERE/.exec(clause)![1];
+    return new RegExp(`${b}\\.blocker_id = ${me} AND ${b}\\.blocked_id = ${col}\\)`).test(clause)
+      && new RegExp(`${b}\\.blocker_id = ${col} AND ${b}\\.blocked_id = ${me}`).test(clause);
+  }).length;
+}
 
 describe("enqueue_instant_job_match never queues a member in a block with the poster (Q2807)", () => {
   const defs = effectiveDefs(resolve(REPO, "supabase/migrations"));

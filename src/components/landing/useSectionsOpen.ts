@@ -4,6 +4,7 @@ import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { report } from "@/lib/errorLogger";
 import { shouldRetryQuery } from "@/lib/queryRetry";
 import { takeGuestSectionsOpen } from "@/lib/declutter/guestBootPrefetch";
+import { takeProfileSectionsOpen } from "@/lib/profileBootPrefetch";
 
 /**
  * Which section switches are open to EVERYONE (owner, 2026-10-19: the landing
@@ -53,7 +54,8 @@ async function fetchSectionsOpen(): Promise<string[] | null> {
   try {
     // Q2705: a guest's cold /declutter asked this from the entry (src/boot/guestDeclutterPrefetch.ts); taken once,
     // before the Supabase chunk is even imported.
-    const fromBoot = await takeGuestSectionsOpen();
+    // A cold You landing asked it from the entry too (src/boot/profilePrefetch.ts).
+    const fromBoot = (await takeGuestSectionsOpen()) ?? (await takeProfileSectionsOpen());
     if (fromBoot) return fromBoot;
     const { supabase } = await import("@/integrations/supabase/client");
     const res = await supabase.rpc("features_open_to_everyone");

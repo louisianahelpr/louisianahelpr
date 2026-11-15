@@ -5,7 +5,7 @@
  *
  * A guest has no per-client id (guest_fp is md5 of message and path, 20261012145240), so the newest
  * ops_alert_record_user_error_screen gates ONLY the public low-stakes read surfaces (LiveJobsSection, BootWatchdog):
- * a NEW item opens on 3 rows in 24 hours or 2 distinct members. Every other surface (money, disputes, admin queues,
+ * a NEW item opens on 3 rows in 24 hours or 2 distinct members (the rule as set 2026-11-14). Every other surface (money, disputes, admin queues,
  * crashes) still opens on first sight. Behaviour proven in PGlite (src/test/pglite/singleClientReadFailureNoAlert.pglite.mjs);
  * this guard keeps the newest definition carrying exactly that gate.
  *

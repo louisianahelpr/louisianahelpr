@@ -3,7 +3,7 @@ import { liveListingCount } from "@/lib/declutter/liveListingCount";
 import { useQuery } from "@tanstack/react-query";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { useActivityData } from "@/hooks/useActivityData";
-import { postedActivityBucket, appliedActivityBucket } from "@/components/job-card/activityFilters";
+import { postedActivityBucket, postedJobIsLive, appliedActivityBucket } from "@/components/job-card/activityFilters";
 import { loadModule, untilReload } from "@/lib/loadModule";
 // Declutter / Shops / Rentals reads load with their query, not with Home (AUD31-60/66, the /home cut B84 measured):
 // a section that is off, or a member with nothing there, never downloads that section's data code.
@@ -136,8 +136,9 @@ export function useHomeSummary(user: SupaUser | null) {
     const pj = posted.postedJobs ?? [];
     const aa = applied.appliedApps ?? [];
     const postedUpcoming = pj.filter((j) => postedActivityBucket(j, posted.pendingApplicantCounts?.[j.id] ?? 0) === "scheduled");
-    // You tab's Posted tile (board 18) counts every live post: waiting for applicants or booked.
-    const postedLive = pj.filter((j) => ["waiting", "scheduled"].includes(postedActivityBucket(j, posted.pendingApplicantCounts?.[j.id] ?? 0)));
+    // You tab's Posted tile (board 18) counts every live post: waiting for applicants, with applicants to answer
+    // (F260a), or booked.
+    const postedLive = pj.filter((j) => postedJobIsLive(j, posted.pendingApplicantCounts?.[j.id] ?? 0));
     const appliedLive = aa.filter((a) => a.job && appliedActivityBucket(a) === "scheduled");
     const jobTodos = todos.filter((t) => t.section === "jobs").length;
     const shopTodos = todos.filter((t) => t.section === "shops").length;

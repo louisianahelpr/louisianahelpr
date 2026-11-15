@@ -45,7 +45,7 @@ describe("lazyWithPreload", () => {
   it("App.tsx starts the cold /jobs page's import as the file runs", () => {
     const app = blankComments(readFileSync(resolve(__dirname, "../App.tsx"), "utf8"));
     const lazies = app.match(/= lazyWithPreload\(/g) ?? [];
-    // Inventory floor: the file really is the router (57 lazy pages on 11-15).
+    // Inventory floor: the file really is the router (57 lazy pages on 2026-11-15).
     expect(lazies.length).toBeGreaterThan(40);
     expect(app).toMatch(/const COLD_ROUTE_PAGES: Record<string, \{ preload: \(\) => void \}> = \{ "\/jobs": JobsPage \};/);
     expect(app).toMatch(/COLD_ROUTE_PAGES\[window\.location\.pathname\.replace\([^\n]*\)\]\?\.preload\(\);/);

@@ -35,8 +35,14 @@
  * @mutate supabase/functions/welcome-emails/index.ts | .or(`blocker_id.eq.${m.user_id},blocked_id.eq.${m.user_id}`) | .or(`blocker_id.eq.${m.user_id}`)
  * @mutate supabase/functions/welcome-emails/index.ts |       .is("message_id", null)\n |
  * @mutate supabase/functions/welcome-emails/index.ts |             .update({ message_id: SKIPPED_TEST }) |             .update({})
+ * @mutate supabase/functions/welcome-emails/index.ts | j.id && j.title && !maskedForGuest(j.title) | j.id && j.title
+ * @mutate supabase/functions/welcome-emails/index.ts | "[email hidden]", "[phone hidden]", "[address hidden]" | "[email hidden]", "[address hidden]"
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { blankComments, blankSqlComments } from "@/test/helpers/blankNonCode";
+import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
 import { loadEdgeFunction } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
@@ -287,6 +293,48 @@ describe("welcome-emails: claimed first, one email per claim, real listings near
     expect(rpcs("get_ranked_open_jobs")).toEqual([]);
     expect(releases()).toHaveLength(1);
     expect(JSON.stringify(await res.json())).toMatch(/blocks read failed for member u-1 step 1: blocks down/);
+  });
+
+  // Q2808 (decided by recommendation 2026-11-15): the service role reads the GUEST copy of a job's title. The email
+  // keeps the masked read (no contact details ever go into an email) and leaves out a job whose title came back
+  // masked, so it never prints "[phone hidden]"; the next job fills the slot.
+  it("a job whose title came back guest-masked is left out of the email, never printed with the placeholder", async () => {
+    scenario.rpc.claim_welcome_emails = (a?: unknown) => ((a as { p_step: number }).p_step === 1 ? [DAY1[0]] : []);
+    scenario.rpc.get_ranked_open_jobs = [
+      { id: "j-phone", title: "Move a couch, call [phone hidden]", location: "Baton Rouge", parish: null, distance_band: "Under 5 mi" },
+      { id: "j-mail", title: "Paint fence, write [email hidden]", location: "Baton Rouge", parish: null, distance_band: "Under 5 mi" },
+      { id: "j-addr", title: "Haul from [address hidden]", location: "Baton Rouge", parish: null, distance_band: "Under 5 mi" },
+      ...JOBS,
+      { id: "j-4", title: "Mow the lawn", location: "Baton Rouge", parish: null, distance_band: "5-15 mi" },
+      { id: "j-5", title: "Wash the car", location: "Baton Rouge", parish: null, distance_band: "5-15 mi" },
+      { id: "j-6", title: "Fourth clean job", location: "Baton Rouge", parish: null, distance_band: "15-30 mi" },
+    ];
+    scenario.reads.jobs = {
+      rows: [
+        ...POSTERS,
+        ...["j-phone", "j-mail", "j-addr", "j-4", "j-5", "j-6"].map((id) => ({ id, customer_id: "p-1" })),
+      ],
+    };
+    const res = await cron();
+    expect(res.status).toBe(200);
+    // Only the three masked titles are skipped; the next clean jobs backfill, so the email still shows 3 titles.
+    const jobs = renders()[0].props.jobs as { title: string }[];
+    expect(jobs.map((j) => j.title)).toEqual(["Rake leaves", "Mow the lawn", "Wash the car"]);
+    expect(JSON.stringify(renders()[0].props)).not.toMatch(/hidden\]/);
+  });
+
+  it("the sender's placeholder list is exactly the one the newest mask_guest_contact writes", () => {
+    const repo = resolve(__dirname, "..", "..", "..");
+    const def = effectiveDefs(resolve(repo, "supabase/migrations")).get("mask_guest_contact");
+    expect(def, "mask_guest_contact has a definition").toBeTruthy();
+    const sqlPlaceholders = [...blankSqlComments(def!.stmt).matchAll(/'(\[[a-z ]+ hidden\])'/g)].map((m) => m[1]).sort();
+    expect(sqlPlaceholders.length).toBeGreaterThan(2);
+    const src = blankComments(readFileSync(resolve(repo, "supabase/functions/welcome-emails/index.ts"), "utf8"));
+    const at = src.indexOf("GUEST_MASK_PLACEHOLDERS = [");
+    expect(at, "GUEST_MASK_PLACEHOLDERS in welcome-emails").toBeGreaterThan(-1);
+    const list = src.slice(at, src.indexOf("as const", at));
+    const tsPlaceholders = [...list.matchAll(/"(\[[a-z ]+ hidden\])"/g)].map((m) => m[1]).sort();
+    expect(tsPlaceholders).toEqual(sqlPlaceholders);
   });
 
   it("a claim left without queued_at for 2+ hours is reported as a defect", async () => {

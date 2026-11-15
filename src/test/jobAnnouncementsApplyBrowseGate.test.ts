@@ -31,7 +31,7 @@
  * Behaviour is proven in PGlite: src/test/pglite/jobMatchesWaitForEarlyAccess.pglite.mjs
  * (RED on the previous definitions with NEW_MIGRATION=skip).
  *
- * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |     CONTINUE WHEN v_uid IS NULL OR NOT public.job_announceable_to(v_job, v_uid); |     CONTINUE WHEN v_uid IS NULL;
+ * @mutate supabase/migrations/20261115064940_teaser_profile_instant_match_hide_blocked.sql |     CONTINUE WHEN v_uid IS NULL OR NOT public.job_announceable_to(v_job, v_uid); |     CONTINUE WHEN v_uid IS NULL;
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF v_reason IS NULL AND public.early_access_visible_at(r.user_id, v_job.created_at) > now() THEN | IF false THEN
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |         AND public.early_access_visible_at(p.user_id, nj.created_at) <= now()\n |
  * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |     AND p_job.customer_id IS NOT NULL\n |

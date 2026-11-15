@@ -34,7 +34,7 @@
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF NEW.status <> 'open' THEN |   IF NEW.parish IS NULL OR NEW.status <> 'open' THEN
  * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |   v_title TEXT := 'New job posted'; |   v_title TEXT := 'New job in your parish';
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |       ARRAY_AGG(s.id)                                   AS matched_search_ids\n    FROM |       ARRAY_AGG(s.id)                                   AS matched_search_ids,\n      COALESCE(BOOL_OR(np.match_digest_mode), false)    AS digest_mode\n    FROM
- * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |            m->>'title', m->>'message', m->>'link', true) |            m->>'title', m->>'message', m->>'link', false)
+ * @mutate supabase/migrations/20261115064940_teaser_profile_instant_match_hide_blocked.sql |            m->>'title', m->>'message', m->>'link', true) |            m->>'title', m->>'message', m->>'link', false)
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";

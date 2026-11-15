@@ -18,7 +18,7 @@
  * @mutate src/pages/u/PublicProfilePage.tsx | const ctaReady = !user \|\| !meLoading; | const ctaReady = true;
  * @mutate supabase/migrations/20261105165059_public_profile_full.sql | GRANT UPDATE (show_in_search) ON public.profiles TO authenticated; | SELECT 1;
  * @mutate src/pages/u/PublicProfilePage.tsx | const PROFILE_WIDE = "min-[900px]:max-w-3xl"; | const PROFILE_WIDE = "";
- * @mutate supabase/migrations/20261114234033_guests_read_masked_job_text.sql |      AND NOT public.profile_review_same_person(rt.reviewer_id, rt.reviewee_id); |      ;
+ * @mutate supabase/migrations/20261115064940_teaser_profile_instant_match_hide_blocked.sql |      AND NOT public.profile_review_same_person(rt.reviewer_id, rt.reviewee_id); |      ;
  * @mutate src/pages/u/PublicProfilePage.tsx | grid grid-cols-3 gap-0.5 lg:grid-cols-4 lg:gap-3 | grid grid-cols-3 gap-0.5 lg:gap-3
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -30,6 +30,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 const rpc = vi.fn();
 let signedIn: { id: string } | null = null;
@@ -153,13 +154,18 @@ describe("the shareable profile shows everything (owner requests 11-05)", () => 
     expect(sql).toMatch(/GRANT UPDATE \(show_in_search\) ON public\.profiles TO authenticated;/);
     expect(sql).toContain("'show_in_search', coalesce(v_p.show_in_search, false),");
     // L4 (owner 11-05): a review between one person's own accounts never shows and never counts; M2: the true total.
-    const reviews = sql.slice(sql.indexOf("INTO v_reviews"), sql.indexOf("INTO v_review_total"));
+    // The review rules are read from the definition the database runs (later migrations restate the function:
+    // 20261114234033, 20261115064940), not from the first file, so a restatement that drops them goes red.
+    const live = effectiveDefs(dir).get("public_profile_by_handle");
+    expect(live, "public_profile_by_handle has a definition").toBeTruthy();
+    const fn = blankSqlComments(live!.stmt);
+    const reviews = fn.slice(fn.indexOf("INTO v_reviews"), fn.indexOf("INTO v_review_total"));
     expect(reviews).toContain("AND NOT public.profile_review_same_person(rv.reviewer_id, rv.reviewee_id)");
     expect(reviews).toMatch(/LIMIT 100/);
-    const total = sql.slice(sql.indexOf("INTO v_review_total"), sql.indexOf("INTO v_wanted"));
+    const total = fn.slice(fn.indexOf("INTO v_review_total"), fn.indexOf("INTO v_wanted"));
     expect(total).toContain("AND NOT public.profile_review_same_person(rt.reviewer_id, rt.reviewee_id);");
-    expect(sql).toContain("'review_total', coalesce(v_review_total, 0)),");
-    expect(sql).toMatch(/\|\| jsonb_build_object\('review_count', coalesce\(v_review_total, 0\), 'avg_rating', v_review_avg\)/);
+    expect(fn).toContain("'review_total', coalesce(v_review_total, 0)),");
+    expect(fn).toMatch(/\|\| jsonb_build_object\('review_count', coalesce\(v_review_total, 0\), 'avg_rating', v_review_avg\)/);
     // The page reads the fields it renders.
     const page = blankComments(readFileSync(resolve(ROOT, "src/pages/u/PublicProfilePage.tsx"), "utf8"));
     for (const f of ["p.bio", "p.town", "p.skills", "p.portfolio_urls", "p.licensed", "p.business_name", "p.listing_count"]) expect(page).toContain(f);

@@ -8,7 +8,7 @@
  *  - Copy copies, and Share shares, the full https URL;
  *  - the migration's insert trigger, backfill and grants as the newest definitions.
  *
- * @mutate src/components/profile/ProfileLanding.tsx | <YourPageLink name={displayName?.trim().split(/\s+/)[0] ?? null} /> | {null}
+ * @mutate src/components/profile/ProfileLanding.tsx | <YourPageLink knownHandle={profile?.handle ?? null} name={displayName?.trim().split(/\s+/)[0] ?? null} /> | {null}
  * @mutate src/components/declutter/DeclutterHomeView.tsx |       <YourPageLink slim /> |       <YourPageLink forSale={1} />
  * @mutate src/components/profile/YourPageLink.tsx |   if (slim) { |   if (slim && forSale < 0) {
  * @mutate src/components/profile/YourPageLink.tsx | if (await copyToClipboard(profileLinkUrl(handle))) | if (await copyToClipboard(handle))
@@ -18,7 +18,7 @@
  * @mutate src/components/profile/YourPageLink.tsx |   if (publicPage === null) { |   if (publicPage === undefined && false) {
  * @mutate src/components/profile/YourPageLink.tsx |   queryFn: () => fetchPublicProfile(handle), |   queryFn: async () => fetchPublicProfile(handle).catch(() => null),
  * @mutate src/pages/home/HomeDashboard.tsx | {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" />} | {null}
- * @mutate src/pages/home/HomeDashboard.tsx | className="mb-2" />}\n            <HomeMoneyTiles money={money} placement="side" /> | className="mb-2" />}\n            {null}
+ * @mutate src/pages/home/HomeDashboard.tsx | <HomeMoneyTiles money={money} placement="side" /> | {null}
  * @mutate supabase/migrations/20261104142602_profile_handle_at_signup.sql |   BEFORE INSERT ON public.profiles\n  FOR EACH ROW EXECUTE FUNCTION public.profile_handle_default_on_insert(); |   BEFORE UPDATE OF bio ON public.profiles\n  FOR EACH ROW EXECUTE FUNCTION public.profile_handle_default_on_insert();
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -177,7 +177,7 @@ describe("Your page link (made at sign-up, easy to find)", () => {
   });
 
   it("is on the member's own profile and on Declutter's Selling tab", () => {
-    expect(code("src/components/profile/ProfileLanding.tsx")).toMatch(/<YourPageLink name=\{displayName/);
+    expect(code("src/components/profile/ProfileLanding.tsx")).toMatch(/<YourPageLink knownHandle=\{profile\?\.handle \?\? null\} name=\{displayName/);
     const home = code("src/components/declutter/DeclutterHomeView.tsx");
     const selling = home.slice(home.indexOf("function SellingView"), home.indexOf("<SellingDash", home.indexOf("function SellingView")));
     // F127 (UI audit 11-09; owner 11-05 placements; lead 11-09): Selling's is the slim one-line link.

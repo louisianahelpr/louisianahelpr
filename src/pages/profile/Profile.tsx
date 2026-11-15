@@ -30,6 +30,7 @@ import { useProfileTabQueries } from "./useProfileTabQueries";
 // dialogs are code-split so the Profile route chunk stays small — each is fetched the first time it shows. The full
 // non-landing tab router (and its lazy panel imports) lives in <ProfileTabPanels />; only the landing hero + delete dialog here.
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
+import { publicPageQuery } from "@/components/profile/YourPageLink";
 import SectionBoundary from "@/components/SectionBoundary";
 import { ProfileTabPanels } from "./ProfileTabPanels";
 import type { Profile, Tab } from "./types";
@@ -63,6 +64,14 @@ const ProfilePage = () => {
   const rentalsSwitch = useFeatureStatus("rentals");
   const landingReady = useArrivalGate(!loading, declutterSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled);
   const showSkeleton = tab === "landing" ? !landingReady : loading;
+  // /profile LCP (lead 11-15): the Your page card's line is this page's largest paint, and the card mounts only once
+  // the landing's skeleton lifts (the switches above, ~1 s after the profile row on Slow 4G). Ask whether the page
+  // opens as soon as the profile names the handle, with the card's own query options, as Home does; the card then
+  // draws from the cache. Guard: src/test/homeYourPageNotHeld.test.ts.
+  const myHandle = cachedProfile?.handle ?? null;
+  useEffect(() => {
+    if (myHandle) void queryClient.prefetchQuery(publicPageQuery(myHandle));
+  }, [myHandle, queryClient]);
 
   // Fall back to the id useAuthReady already holds. The local `user` state is
   // only populated once `authLoading` flips false — i.e. after the profiles +

@@ -61,8 +61,11 @@ export function ProfileLanding({
           (useSectionTabs, 2026-10-18); Quotes moved into Post a Job
           (2026-10-19), so its row left too. */}
 
-      {/* Owner 2026-11-04: every member's page link, made at sign-up, easy to find. */}
-      <YourPageLink name={displayName?.trim().split(/\s+/)[0] ?? null} />
+      {/* Owner 2026-11-04: every member's page link, made at sign-up, easy to find. The profile row this page already
+          has names the handle (made at sign-up), so the card skips rpc_ensure_my_handle and asks whether the page opens
+          at once; only a profile with no handle yet asks the RPC (lead 11-15, /profile LCP: profile, then the handle
+          RPC, then the page read ran one after another, 6.8 s on Slow 4G + 4x). Guard: src/test/homeYourPageNotHeld.test.ts. */}
+      <YourPageLink knownHandle={profile?.handle ?? null} name={displayName?.trim().split(/\s+/)[0] ?? null} />
 
       {/* Board 18: both sides of every section, right under who you are. */}
       <YourActivity />

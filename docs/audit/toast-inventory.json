@@ -15922,7 +15922,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 180,
+      "line": 189,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -15932,7 +15932,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 204,
+      "line": 213,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15942,7 +15942,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 212,
+      "line": 221,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15955,7 +15955,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 227,
+      "line": 236,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15965,7 +15965,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 305,
+      "line": 314,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -15985,7 +15985,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 320,
+      "line": 329,
       "kind": "toast.error",
       "title": {
         "form": "literal",

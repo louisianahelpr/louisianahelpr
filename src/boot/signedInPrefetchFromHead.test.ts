@@ -43,7 +43,7 @@ const w = window as unknown as Record<string, unknown>;
 /** The head script that reads the meta (index.html), as written. */
 function headScript(): string {
   const html = raw("index.html");
-  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+  const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)].map((m) => m[1]);
   const mine = scripts.filter((s) => s.includes('meta[name="lh-signed-in-prefetch"]'));
   expect(mine).toHaveLength(1);
   return mine[0];

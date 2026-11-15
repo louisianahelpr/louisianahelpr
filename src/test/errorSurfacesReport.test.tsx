@@ -365,7 +365,8 @@ const EXCUSED_INLINE: Record<string, string> = {
   "components/rentals/DepositPanel.tsx": "one line inside a home's card where its deposit record goes (the Homes screen and the card loaded)",
   "components/admin/settings/SmsStatusCard.tsx": "one admin-only <p role=alert> inside the Text alerts card on Admin Settings (the settings page loaded); the failed admin_sms_status read is reported by the QueryCache hook",
   "components/notificationPreferences/SmsAlertsCard.tsx": "one line with a Try again button inside the Text alerts card of the Notifications tab (the Profile and the tab loaded); the failed get_my_sms_consent read is reported by the QueryCache hook",
-  "components/rentals/LeasePanel.tsx": "one line inside a home's card where its lease goes (the Homes screen and the card loaded)",
+  "components/useInAppPhotoViewer.tsx": "the PHOTO_SIGN_FAILED string useSinglePhotoViewer hands to its caller's onFail; every caller shows it as a toast (photo-viewer, owner 11-15); not a screen",
+  "components/rentals/LeasePanel.tsx":"one line inside a home's card where its lease goes (the Homes screen and the card loaded)",
 };
 
 const tsxFiles = walk(SRC).filter((f) => f.endsWith(".tsx"));

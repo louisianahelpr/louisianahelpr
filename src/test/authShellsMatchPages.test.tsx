@@ -42,8 +42,8 @@ import { scopeShellIds, SHELL_ID_PREFIX } from "../../scripts/shell-ids.mjs";
 const ROOT = join(__dirname, "..", "..");
 const INDEX = join(ROOT, "index.html");
 const PAGES: { page: "login" | "signup"; path: string; Page: ComponentType; words: string }[] = [
-  { page: "login", path: "/login", Page: Login, words: ">Log in</h1>" },
-  { page: "signup", path: "/signup", Page: Signup, words: "</h1>" },
+  { page: "login", path: "/login", Page: Login, words: ">Log in</div>" },
+  { page: "signup", path: "/signup", Page: Signup, words: ">Create your account</div>" }, // Q2786: a shell draws its heading as a div (shell-ids.mjs)
 ];
 const start = (page: string) => `<div id="lh-${page}-shell" aria-hidden="true" inert data-lh-shell="start">`;
 

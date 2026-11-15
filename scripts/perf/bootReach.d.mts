@@ -46,3 +46,4 @@ export const SUPABASE_CLIENT: string;
 export function clientReachers(root: string): Set<string>;
 export const ADMIN_ROOT: string;
 export function adminIconFiles(root: string): Set<string>;
+export const TOP_BAR_BELL_ROOT: string;

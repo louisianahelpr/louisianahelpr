@@ -28,7 +28,7 @@
  * @mutate src/components/dashboard/BrowseTasksFeed.tsx |         top={view === "map" ? undefined : <ScrollAwaySpacer />} |
  * @mutate src/pages/jobs/JobsSection.tsx |   return <><ScrollAwayScope><Dashboard embeddedHeader={makeHeader} /></ScrollAwayScope>{fab}</>; |   return <><Dashboard embeddedHeader={makeHeader} />{fab}</>;
  * @mutate src/pages/home/Dashboard.tsx |       titleCardClassName={isWebDesktop ? "" : "!overflow-visible z-10"} |       titleCardClassName=""
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   } : { search: browse.search, tabs: <ScrollAwayRows>{browse.chips}</ScrollAwayRows> }; |   } : { search: browse.search, tabs: browse.chips };
+ * @mutate src/components/declutter/DeclutterGuestHome.tsx |   } : { search: browse.search, tabs: <ScrollAwayRows>{browse.chips}</ScrollAwayRows> }; |   } : { search: browse.search, tabs: browse.chips };
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -189,7 +189,8 @@ describe("3. wired into Jobs Browse and Declutter Browse", () => {
 
   it("Declutter: the phone Browse chrome wraps tabs and chips (member and guest), SectionScreen draws the spacer first in its scroll column", () => {
     const decl = code("src/components/declutter/DeclutterHomeView.tsx");
-    expect(decl).toContain("tabs: <ScrollAwayRows>{browse.chips}</ScrollAwayRows>");
+    // A guest's Browse chrome lives in its own file since Q2705 (11-14).
+    expect(code("src/components/declutter/DeclutterGuestHome.tsx")).toContain("tabs: <ScrollAwayRows>{browse.chips}</ScrollAwayRows>");
     expect(decl).toMatch(/tabs: \(\s*<ScrollAwayRows off=\{!browse\}>\s*<SectionTabs [^>]*\/>\s*\{browse\?\.chips\}\s*<\/ScrollAwayRows>/);
     const screenSrc = code("src/components/sections/SectionScreen.tsx");
     expect(screenSrc).toMatch(/data-app-page-scroll=""[^>]*>\s*<ScrollAwaySpacer \/>/);

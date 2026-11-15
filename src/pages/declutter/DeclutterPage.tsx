@@ -1,6 +1,6 @@
 import { DeclutterGate } from "@/components/declutter/declutterUi";
 import { DeclutterHomeSkeleton } from "@/components/declutter/DeclutterSkeletons";
-import DeclutterHome from "@/components/declutter/DeclutterHomeView";
+import DeclutterHome from "@/components/declutter/DeclutterHomeEntry";
 import { lazy, Suspense, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useFeatureStatus } from "@/hooks/useFeature";

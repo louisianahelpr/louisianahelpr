@@ -34,12 +34,15 @@ const draw = (el: JSX.Element) =>
   render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter>{el}</MemoryRouter></QueryClientProvider>);
 
 describe("the section top bar never repeats the desktop header (Q2221)", () => {
-  it("phone: a section and Dashboard both show Messages (owner 11-14), the bell and the avatar, nothing else (Dashboard: the logo too; F148)", () => {
+  // The bell loads on its own (Q2705, 11-14: a guest never sees it), so the bar draws it a moment after the rest.
+  it("phone: a section and Dashboard both show Messages (owner 11-14), the bell and the avatar, nothing else (Dashboard: the logo too; F148)", async () => {
     draw(<AppTopBar title="Jobs" />);
+    await screen.findByRole("button", { name: "Notifications" });
     expect(labels()).toEqual(["Messages", "Notifications", "Profile, TP"]);
     cleanup();
     draw(<AppTopBar />);
     expect(screen.getByTestId("app-top-bar")).toBeTruthy();
+    await screen.findByRole("button", { name: "Notifications" });
     expect(labels()).toEqual(["Messages", "Notifications", "Profile, TP"]);
   });
 

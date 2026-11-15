@@ -84,7 +84,7 @@ const MINE: SectionMineMenu = {
 };
 
 describe("row 1: the search with the bell and the photo inline on its right (the compact top, owner 11-14)", () => {
-  it("the bar is the search row; the title is a hidden h1; Messages (owner 11-14) but no '+'", () => {
+  it("the bar is the search row; the title is a hidden h1; Messages (owner 11-14) but no '+'", async () => {
     render(<MemoryRouter><AppTopBar title="Declutter" explore section="declutter" search={<input aria-label="Search Declutter" />} mine={MINE} /></MemoryRouter>);
     const bar = screen.getByTestId("app-top-bar");
     expect(screen.getByRole("heading", { level: 1, name: "Declutter" }).className).toContain("sr-only");
@@ -92,7 +92,9 @@ describe("row 1: the search with the bell and the photo inline on its right (the
     expect(row.contains(screen.getByRole("textbox", { name: "Search Declutter" }))).toBe(true);
     expect(bar.contains(row)).toBe(true);
     expect(screen.queryByTestId("top-bar-create")).toBeNull();
-    // The bar's buttons, in order: Messages (owner 11-14), the bell, then the photo. Nothing else.
+    // The bar's buttons, in order: Messages (owner 11-14), the bell, then the photo. Nothing else. (The bell loads on
+    // its own, Q2705 11-14, so it draws a moment after the rest.)
+    await screen.findByRole("button", { name: /Notifications/ });
     expect(Array.from(bar.querySelectorAll("button")).map((b) => b.getAttribute("data-testid") ?? b.getAttribute("aria-label"))).toEqual(["top-bar-messages", "Notifications", "top-bar-profile"]);
   });
 

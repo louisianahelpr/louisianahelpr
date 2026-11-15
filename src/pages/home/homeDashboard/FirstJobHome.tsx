@@ -253,8 +253,10 @@ export function ChecklistProgress({ title, steps, rows, trailing }: {
         {trailing && <span className="ml-auto">{trailing}</span>}
       </div>
       <div role="progressbar" aria-label={tr("home.ck.aria", { title, done: doneCount, total: steps.length })} aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={doneCount} className="mt-2 flex gap-1">
-        {steps.map((s) => (
-          <span key={s.key} data-step={s.key} data-done={s.done ? "" : undefined} className={`h-1.5 flex-1 rounded-full ${s.done ? "bg-primary" : "bg-border"}`} />
+        {/* Filled left to right by the count (coordinator 11-15: "2 of 4" lit segments 3 and 4 when the two done steps
+            were listed last). The bar is a count, not a map of which step is done; the rows say that. */}
+        {steps.map((s, i) => (
+          <span key={s.key} data-segment={i} data-filled={i < doneCount ? "" : undefined} className={`h-1.5 flex-1 rounded-full ${i < doneCount ? "bg-primary" : "bg-border"}`} />
         ))}
       </div>
       {rows ?? (next && (

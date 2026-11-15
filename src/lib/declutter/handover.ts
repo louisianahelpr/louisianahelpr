@@ -11,6 +11,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { orderCardPart } from "@/lib/declutter/orderCards";
 import { isStorageObjectPath } from "@/lib/storagePath";
 import { unwrap } from "@/lib/supabaseResult";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
@@ -256,6 +257,11 @@ export interface MyHandover {
 }
 
 export async function fetchMyHandover(orderId: string): Promise<MyHandover> {
+  // One batched read for every order card asked in the same tick (orderCards; builder4b-1115 1b); alone when it has no answer.
+  return orderCardPart(orderId, "handover", () => fetchMyHandoverAlone(orderId));
+}
+
+async function fetchMyHandoverAlone(orderId: string): Promise<MyHandover> {
   const res = await supabase.rpc("declutter_my_handover", { p_order_id: orderId });
   if (res.error) {
     const words = rpcErrorMessage("declutter_my_handover", res.error);
@@ -351,6 +357,11 @@ export interface OrderProblem {
  * card shows the report without the other side's words, instead of nothing.
  */
 export async function fetchOrderProblem(orderId: string): Promise<OrderProblem | null> {
+  // One batched read for every order card asked in the same tick (orderCards); alone for an order not the caller's (admins).
+  return orderCardPart(orderId, "problem", () => fetchOrderProblemAlone(orderId));
+}
+
+async function fetchOrderProblemAlone(orderId: string): Promise<OrderProblem | null> {
   const res = await supabase.rpc("declutter_order_problem", { p_order_id: orderId });
   if (res.error && isMissingRpcNamed(res.error, "declutter_order_problem")) {
     const rows = unwrap(

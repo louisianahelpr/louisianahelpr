@@ -1,5 +1,5 @@
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Signpost } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -64,6 +64,34 @@ export function withoutTrailingPunctuation(pathname: string): string | null {
   return clean || "/";
 }
 
+/**
+ * 2026-11-15 (error_logs 18:26Z): "404 — non-existent route: /sponsor&source=gmail&ust=1794853458143000&sa=E". Gmail
+ * wraps links as google.com/url?q=<link>&source=gmail&..., and a bad decode glues its own parameters onto the path;
+ * other mail clients leave the link's own "?" encoded (/sponsor%3Fref%3Dx). A real route never has "&" or an encoded
+ * "?"/"&" in its path, and this only runs when no route matched, so the path is cut at the first one, then any
+ * trailing punctuation is dropped. The sponsor's ref code is the one parameter worth keeping from the junk: a
+ * "ref=<code>" in it (encoded or not) becomes ?ref=<code>, unless the real query already names a ref.
+ * @returns where the link meant to go, or null when the path is already clean.
+ */
+export function mangledLinkTarget(pathname: string, search: string): { pathname: string; search: string } | null {
+  const cut = pathname.search(/&|%3f|%26/iu);
+  const head = cut === -1 ? pathname : pathname.slice(0, cut);
+  const junk = cut === -1 ? "" : pathname.slice(cut);
+  const clean = withoutTrailingPunctuation(head) ?? (head || "/");
+  if (clean === pathname) return null;
+  const params = new URLSearchParams(search);
+  let decoded = junk;
+  try {
+    decoded = decodeURIComponent(junk);
+  } catch {
+    // A lone "%" in the junk: read it undecoded; "ref=" written plainly still matches.
+  }
+  const ref = /(?:^|[^a-z0-9_])ref=([a-z0-9_-]+)/iu.exec(decoded)?.[1];
+  if (ref && !params.has("ref")) params.set("ref", ref);
+  const query = params.toString();
+  return { pathname: clean, search: query ? `?${query}` : "" };
+}
+
 const NotFound = () => {
   // The SPA serves unknown paths with a 200 status, so the 404 page must
   // be explicitly non-indexable to keep junk URLs out of search results.
@@ -76,18 +104,18 @@ const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const copy = notFoundCopy(location.pathname);
-  const punctuationFree = withoutTrailingPunctuation(location.pathname);
+  const meant = useMemo(() => mangledLinkTarget(location.pathname, location.search), [location.pathname, location.search]);
 
   useEffect(() => {
-    if (punctuationFree !== null) {
-      navigate({ pathname: punctuationFree, search: location.search, hash: location.hash }, { replace: true });
+    if (meant !== null) {
+      navigate({ pathname: meant.pathname, search: meant.search, hash: location.hash }, { replace: true });
       return;
     }
     report(new Error(`404 — non-existent route: ${location.pathname}`), {
       severity: "info",
       tags: { source: "NotFound", route: location.pathname },
     });
-  }, [location.pathname, location.search, location.hash, punctuationFree, navigate]);
+  }, [location.pathname, location.hash, meant, navigate]);
 
   // Tell useAppShellViewport that THIS pathname is the catch-all, so it drops
   // the `html.app-shell` 100dvh/overflow:hidden lock. Without it the nav +

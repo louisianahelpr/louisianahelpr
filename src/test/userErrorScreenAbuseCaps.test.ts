@@ -1,6 +1,6 @@
-// @mutate supabase/migrations/20260923092838_user_error_screen_repeat_cap_and_client_seed_tag.sql | IF v_repeats > v_repeat_cap THEN\n      RETURN NULL; | IF false THEN\n      RETURN NULL;
-// @mutate supabase/migrations/20260923092838_user_error_screen_repeat_cap_and_client_seed_tag.sql | v_repeat_cap := CASE WHEN p_user_id IS NULL THEN 20 ELSE 5 END; | v_repeat_cap := CASE WHEN p_user_id IS NULL THEN 2000 ELSE 500 END;
-// @mutate supabase/migrations/20260923092838_user_error_screen_repeat_cap_and_client_seed_tag.sql | = v_norm\n         LIMIT v_repeat_cap + 1) x;\n    END IF;\n    IF v_repeats | IS NOT NULL\n         LIMIT v_repeat_cap + 1) x;\n    END IF;\n    IF v_repeats
+// @mutate supabase/migrations/20261115001106_single_client_read_failure_no_alert.sql | IF v_repeats > v_repeat_cap THEN\n      RETURN NULL; | IF false THEN\n      RETURN NULL;
+// @mutate supabase/migrations/20261115001106_single_client_read_failure_no_alert.sql | v_repeat_cap := CASE WHEN p_user_id IS NULL THEN 20 ELSE 5 END; | v_repeat_cap := CASE WHEN p_user_id IS NULL THEN 2000 ELSE 500 END;
+// @mutate supabase/migrations/20261115001106_single_client_read_failure_no_alert.sql | = v_norm\n         LIMIT v_repeat_cap + 1) x;\n    END IF;\n    IF v_repeats | IS NOT NULL\n         LIMIT v_repeat_cap + 1) x;\n    END IF;\n    IF v_repeats
 // @mutate supabase/migrations/20260923092838_user_error_screen_repeat_cap_and_client_seed_tag.sql | \n                   AND coalesce(p_tags ->> 'origin', '') <> 'client' THEN |  THEN
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

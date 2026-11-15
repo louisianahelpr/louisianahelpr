@@ -16,7 +16,7 @@
  * @mutate src/lib/declutter/refundRequests.ts | return orderCardPart(orderId, "refund", () => fetchRefundRequestViewAlone(orderId)); | return fetchRefundRequestViewAlone(orderId);
  * @mutate src/lib/declutter/reviews.ts | return orderCardPart(orderId, "other", () => fetchOrderOtherPersonAlone(orderId, myId)); | return fetchOrderOtherPersonAlone(orderId, myId);
  * @mutate src/lib/declutter/orderCards.ts | if (part == null && kind !== "problem") return direct(); | if (part == null) return direct();
- * @mutate src/lib/declutter/orderCards.ts | if (isMissingRpcNamed(res.error, BATCH_RPC)) notDeployed = true; | if (isMissingRpcNamed(res.error, BATCH_RPC)) void BATCH_RPC;
+ * @mutate src/lib/declutter/orderCards.ts | if (isMissingRpcNamed(res.error, "declutter_my_order_cards")) notDeployed = true; | if (isMissingRpcNamed(res.error, "declutter_my_order_cards")) void 0;
  */
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";

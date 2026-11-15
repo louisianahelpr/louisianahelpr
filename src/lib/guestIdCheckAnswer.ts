@@ -29,11 +29,17 @@ async function askGuestIdCheck(): Promise<void> {
   }
 }
 
+/** Once per page session; the flag lives here, not in the effect, so a guest flag that turns on later still asks once. */
+function askGuestIdCheckOnce(): void {
+  if (guestIdCheckAsked) return;
+  guestIdCheckAsked = true;
+  void askGuestIdCheck();
+}
+
 export function useGuestIdCheckAnswer(guest: boolean): boolean | null {
+  // No cleanup, nothing captured but `guest`: the dep only waits for a guest page, the once lives in the helper.
   useEffect(() => {
-    if (!guest || guestIdCheckAsked) return;
-    guestIdCheckAsked = true;
-    void askGuestIdCheck();
+    if (guest) askGuestIdCheckOnce();
   }, [guest]);
   return useSyncExternalStore(
     (l) => {

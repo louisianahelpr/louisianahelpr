@@ -169,6 +169,7 @@ describe("Apply and Post ask for no photo, phone or birthday (owner, 2026-10-14)
 const ROOT = process.cwd();
 const ENTRIES = ["src/components/dashboard/ApplyConfirmDialog.tsx", "src/pages/post-job/PostJob.tsx"];
 const EXTS = ["", ".ts", ".tsx", "/index.ts", "/index.tsx"];
+const PREFETCH_ONLY = new Set(["src/lib/routePrefetchTable.ts"]);
 
 function resolveImport(fromFile: string, spec: string): string | null {
   let base: string;
@@ -192,6 +193,10 @@ function reachable(entries: string[]): Map<string, string> {
     if (seen.has(file) || /\.test\.tsx?$/.test(file)) continue;
     const code = blankComments(fs.readFileSync(path.join(ROOT, file), "utf8"));
     seen.set(file, code);
+    // Chunk prefetch only (as under18CannotApplyOrPost classes it): the route table import()s every page's chunk to
+    // warm it, which renders nothing in this flow. Since the guest public frame (Q2784/Q2785) put Navbar under
+    // AppPage, following it would count /profile's own phone field as the Post flow asking for one.
+    if (PREFETCH_ONLY.has(file)) continue;
     const specs = [
       ...code.matchAll(/\bfrom\s+["']([^"']+)["']/g),
       ...code.matchAll(/\bimport\s*\(\s*["']([^"']+)["']\s*\)/g),

@@ -316,8 +316,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       <HomeMoneyTiles
         money={money}
         placement="money"
-        // The tile for the half already open is not a control (Coming on Earned, Held on Spent); Coming still scrolls
-        // to the payout account while there is none.
+        // The open half's tile is not a control; Coming still scrolls to the payout account while there is none.
         openKind={view === "spent" ? "held" : money.coming && !money.coming.hasPayoutAccount ? undefined : "coming"}
         onOpen={(kind) => {
           if (kind === "held") setView("spent");

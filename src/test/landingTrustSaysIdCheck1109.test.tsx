@@ -5,7 +5,7 @@
  * protection is the ID check. Both now read the switch for THIS viewer (useIdCheckOnForViewer): a guest reads whether
  * nothing: a guest is told the ID rule (identity_check is on for everyone; a guest cannot read the switch).
  *
- * @mutate src/lib/useIdCheckOnForViewer.ts |   if (!isReady \|\| !user) return ID_CHECK_BEFORE_ANSWER; |   if (!isReady \|\| !user) return false;
+ * @mutate src/lib/useIdCheckOnForViewer.ts |   if (!user) return guestAnswer ?? ID_CHECK_BEFORE_ANSWER; |   if (!user) return false;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";

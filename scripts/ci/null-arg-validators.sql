@@ -143,6 +143,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('record_my_signup_source',       'action',   'VOLATILE: a new member (account under 2 days old) records their own sign-up source once (writes; TRUE = a row was added); a NULL source is stored as direct, a NULL campaign as none; no access decision (20261031220447)'),
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
   ('declutter_open_to_guests',      'noarg',    'no argument: is the declutter switch''s audience everyone (BUY-16 anon read policies, 20261031060656)'),
+  ('identity_check_on_for_everyone', 'noarg',  'no argument: is the identity_check switch''s audience everyone, for the public ID wording (Q2788, 20261115181414)'),
   ('declutter_set_auto_free',       'action',   'VOLATILE: the seller turns "free on day 12" on/off on their own listing and gets the stored value back; a NULL choice raises invalid_choice (Q2430; 20261027205327)'),
   ('declutter_auto_free_state',     'classify', 'reads the seller''s own "free on day 12" switch for one own listing (Q2430; 20261027205327)'),
   ('declutter_set_keep_up',         'action',   'VOLATILE: the seller turns "keep it up until it sells" on/off on their own listing and gets the stored value back; a NULL choice raises invalid_choice, a NULL item item_not_found (20261029154323)'),

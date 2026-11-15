@@ -1,16 +1,16 @@
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
+import { useGuestIdCheckAnswer } from "@/lib/guestIdCheckAnswer";
 
 /**
  * What a SIGNED-OUT visitor (and the build-time prerender of /legal, and any first paint before the session is known)
  * is told about the ID check: ON. identity_check is set to everyone on prod (read 11-09; owner turned ID checks on
  * 11-01), so the static HTML and a guest's page say what is true today (lead, 11-09).
  *
- * A guest cannot read the switch itself: features_open_to_everyone answers only the three section switches
- * (declutter, shops, rentals; lead review 2026-10-19: other rollouts stay private), and useIdentityCheckOnStore is the
- * member's own answer, false signed out. Measured 11-10 on the built page: a guest still read "ID, if you choose to
- * verify it" when the guest answer was read from features_open_to_everyone. If identity_check is ever turned off for
- * everyone, this constant changes with it (Q2788).
+ * Q2788: this is now only the answer BEFORE the server's. A guest asks identity_check_on_for_everyone() (migration
+ * 20261115181414: one boolean, granted to anon; features_open_to_everyone still answers only the section switches), so
+ * if the owner turns ID checks off for everyone, a guest reads that once the answer is in. Until then, and when the
+ * read fails or the function is not deployed yet, a guest reads this.
  */
 export const ID_CHECK_BEFORE_ANSWER = true;
 
@@ -24,7 +24,9 @@ export const ID_CHECK_BEFORE_ANSWER = true;
 export function useIdCheckOnForViewer(): boolean {
   const member = useIdentityCheckOnStore();
   const { user, isReady } = useAuthReady();
-  if (!isReady || !user) return ID_CHECK_BEFORE_ANSWER;
+  const guestAnswer = useGuestIdCheckAnswer(isReady && !user);
+  if (!isReady) return ID_CHECK_BEFORE_ANSWER;
+  if (!user) return guestAnswer ?? ID_CHECK_BEFORE_ANSWER;
   return member;
 }
 

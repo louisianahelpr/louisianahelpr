@@ -17,6 +17,7 @@ import type { User } from "@supabase/supabase-js";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
+import { useLandingLateReadsSettled } from "./useLandingLateReads";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { sumHelperTakeHomeDollars } from "@/lib/helperEarnings";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -61,7 +62,9 @@ const ProfilePage = () => {
   const declutterSwitch = useFeatureStatus("declutter");
   const shopsSwitch = useFeatureStatus("shops");
   const rentalsSwitch = useFeatureStatus("rentals");
-  const landingReady = useArrivalGate(!loading, declutterSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled);
+  // F260a: the Your page answer and the preview marks' answer join the same wait (useLandingLateReads.ts).
+  const lateReadsSettled = useLandingLateReadsSettled((profile ?? cachedProfile)?.handle, shopsSwitch.on || rentalsSwitch.on);
+  const landingReady = useArrivalGate(!loading, declutterSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled && lateReadsSettled);
   const showSkeleton = tab === "landing" ? !landingReady : loading;
 
   // Fall back to the id useAuthReady already holds. The local `user` state is

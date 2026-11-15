@@ -21,8 +21,8 @@
  * @mutate src/pages/home/homeDashboard/homeTopSettled.ts |   if (!pending \|\| timedOut) released.current = true; |   if (!pending) released.current = true;
  * @mutate src/pages/home/homeDashboard/homeTopSettled.ts |   return !released.current; |   return pending && !timedOut;
  * @mutate src/pages/home/HomeDashboard.tsx | useHoldWhileFirstVisitReads(firstVisit && (summary.todosLoading \|\| !!money.pending)) | useHoldWhileFirstVisitReads(false)
- * @mutate src/pages/home/HomeDashboard.tsx |             {!holdBelowNextUp && <> |             {<>
- * @mutate src/pages/home/HomeDashboard.tsx |           {!holdBelowNextUp && <section data-home-side |           {<section data-home-side
+ * @mutate src/pages/home/HomeDashboard.tsx |             {!holdBelowNextUp && <>\n            {/* LIVE NOW |             {<>\n            {/* LIVE NOW
+ * @mutate src/pages/home/HomeDashboard.tsx |             {!holdBelowNextUp && <>\n            <HomeMoneyTiles money={money} placement="side" /> |             {<>\n            <HomeMoneyTiles money={money} placement="side" />
  * @mutate src/pages/home/homeDashboard/useNeedsYouTodos.ts | loading: !derive \|\| posted.isPending \|\| applied.isPending, | loading: !derive \|\| (posted.data === undefined && applied.data === undefined),
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -136,7 +136,14 @@ describe("Home's columns wait for the first-week cards' reads (Q2706/Q2708)", ()
     expect(held).toBeGreaterThan(nextUp);
     expect(money).toBeGreaterThan(held);
     expect(coming).toBeGreaterThan(money);
-    expect(home).toContain("{!holdBelowNextUp && <section data-home-side");
+    // The side column's money tile and section chips are held; the Your page card above them is not (home LCP, lead
+    // 11-15: src/test/homeYourPageNotHeld.test.ts).
+    const side = home.indexOf("<section data-home-side");
+    const sideHeld = home.indexOf("{!holdBelowNextUp && <>", side);
+    expect(side).toBeGreaterThan(coming);
+    expect(sideHeld).toBeGreaterThan(side);
+    expect(home.indexOf('<HomeMoneyTiles money={money} placement="side" />')).toBeGreaterThan(sideHeld);
+    expect(home.indexOf('data-section-chips=""')).toBeGreaterThan(sideHeld);
   });
 
   it("Home draws its columns only once settled, and the to-dos load until both activity reads answer", () => {

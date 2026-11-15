@@ -444,12 +444,17 @@ function HomeDashboardScreen() {
             </>}
           </div>
 
-          {holdBelowNextUp && <HeldBlocksSkeleton side />}
-          {!holdBelowNextUp && <section data-home-side className="flex flex-col gap-2 min-w-0" aria-label={t("home.yourSections")}>
+          <section data-home-side className="flex flex-col gap-2 min-w-0" aria-label={t("home.yourSections")}>
             {/* Owner request 11-05: "add their URL to the home page somewhere so they can easily find it to share". The
                 handle comes from the profile row Home already has, so this makes no request; outline buttons only, so
-                Home keeps its one primary action. Owner 11-10: the card sits at the TOP of the right column. */}
+                Home keeps its one primary action. Owner 11-10: the card sits at the TOP of the right column.
+                Home LCP (lead 11-15, cwv-lab Slow 4G + 4x 375, test poster): the card is /home's largest paint, and it
+                was held with the blocks below Next up until the activity read answered (8.1 s for an 831-job poster)
+                although its own read had answered at 5.5 s. It is drawn as soon as the handle is known; only the
+                blocks that wait on the activity read are held. Guard: src/test/homeYourPageNotHeld.test.ts. */}
             {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" />}
+            {holdBelowNextUp && <HeldBlocksSkeleton side />}
+            {!holdBelowNextUp && <>
             <HomeMoneyTiles money={money} placement="side" />
             <div className="flex items-baseline justify-between px-1">
               <h2 className="text-ds-15 font-semibold text-foreground">{t("home.yourSections")}</h2>
@@ -485,7 +490,8 @@ function HomeDashboardScreen() {
               })}
             </div>
             {soonLine && <p data-testid="sections-opening-soon" className="px-1 text-ds-13 text-muted-foreground">{soonLine}</p>}
-          </section>}
+            </>}
+          </section>
         </div>}
 
       </div>

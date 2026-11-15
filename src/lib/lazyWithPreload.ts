@@ -1,4 +1,4 @@
-import { lazy, type ComponentType, type LazyExoticComponent } from "react";
+import { createElement, lazy, useState, type ComponentProps, type ComponentType, type LazyExoticComponent } from "react";
 import { markChunkLoadSucceeded } from "./chunkReload";
 
  
@@ -49,16 +49,32 @@ export function lazyWithPreload<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>,
 ): PreloadableComponent<T> {
   let started: Promise<{ default: T }> | null = null;
+  // The page itself once its import has answered (see below).
+  let loaded: T | null = null;
   const load = () => {
     if (!started) {
       started = factory().then((mod) => {
         markChunkLoadSucceeded();
+        loaded = mod.default;
         return mod;
       });
     }
     return started;
   };
-  const Component = lazy(load) as PreloadableComponent<T>;
+  const Lazy = lazy(load);
+  /**
+   * A page whose import has already answered renders AS ITSELF, never through `lazy()` (Builder 2, 11-15). `lazy()`
+   * suspends on its first render even for a module already in hand (its promise answers a tick later), so the route's
+   * Suspense drew its fallback and the page came back as a RETRY. React holds a retry's commit until 500 ms after the
+   * last fallback it showed (FALLBACK_THROTTLE_MS) whenever any boundary inside the new page is still waiting (the
+   * bell, a sheet): measured on signed-in /jobs (cwv-lab, Slow 4G + 4x, 375), the page rendered at 4.45 s with every
+   * read in hand and committed at 4.86 s. The choice is made once per mount (useState), so a mounted page never swaps
+   * component (that would remount it). Guard: src/lib/lazyWithPreload.test.tsx.
+   */
+  const Component = ((props: ComponentProps<T>) => {
+    const [Page] = useState<T | LazyExoticComponent<T>>(() => loaded ?? Lazy);
+    return createElement(Page as ComponentType<ComponentProps<T>>, props);
+  }) as unknown as PreloadableComponent<T>;
   Component.preload = () => {
     void load().catch(() => {
       // Let the render path own the failure: reset so `lazy()` re-attempts.

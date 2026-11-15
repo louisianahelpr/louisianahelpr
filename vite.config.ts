@@ -8,7 +8,7 @@ import { execSync } from "node:child_process";
 import { readdirSync } from "node:fs";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, clientReachers, bootIconFiles, declutterItemSplit, guestIconSplit, guestBrowseSplit, sellingIconFiles, homeIconFiles, homePageRoots, itemIconFiles, jobsBrowseFirstScreenModules, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
+import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, adminIconFiles, bootModules, clientReachers, bootIconFiles, declutterItemSplit, guestIconSplit, guestBrowseSplit, sellingIconFiles, homeIconFiles, homePageRoots, itemIconFiles, jobsBrowseFirstScreenModules, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 /** The register-on-import English screen dictionaries (src/lib/i18n/en*.ts minus enCore/enRegistry and the en.ts type). */
@@ -204,6 +204,8 @@ const jobsBrowseFirstScreen = jobsBrowseFirstScreenModules(process.cwd(), { home
 const homeIcons = homeIconFiles(process.cwd());
 const bootIcons = bootIconFiles(process.cwd());
 const itemIcons = itemIconFiles(process.cwd());
+// Admin's own icons (bootReach.mjs adminIconFiles): pinned so the entriesAware merge cannot regroup them onto /admin.
+const adminIcons = adminIconFiles(process.cwd());
 const { own: guestIcons, shared: guestSharedIcons, declutter: declutterIcons } = guestIconSplit(process.cwd());
 const sellingIcons = sellingIconFiles(process.cwd());
 const bootSet = bootModules(process.cwd());
@@ -937,6 +939,15 @@ export default defineConfig(({ mode, command }) => ({
               name: "icons-item",
               test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && itemIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
               priority: 90.5,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            // Q2705 follow-up (lead 11-14): Admin's own icons (bootReach.mjs adminIconFiles), pinned so a change to the
+            // entry's imports elsewhere cannot regroup the merged chunks below onto /admin's critical path.
+            {
+              name: "icons-admin",
+              test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && adminIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
+              priority: 90.4,
               minSize: 0,
               includeDependenciesRecursively: false
             },

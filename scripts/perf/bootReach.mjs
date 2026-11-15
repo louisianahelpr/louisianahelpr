@@ -505,6 +505,39 @@ export function bootIconFiles(root) {
  * Money icons into an icon chunk the item page loads (item route 460 -> 465 KB gz). Pinned, the item page's icons
  * are what it draws.
  */
+/** Admin's page (the dashboard every admin visit lands on). */
+export const ADMIN_ROOT = "src/pages/admin/Admin.tsx";
+
+/**
+ * The icons Admin's page draws that no earlier pin takes (Q2705 follow-up, lead 11-14), pinned as `icons-admin`. Left
+ * to the entriesAware merge, /admin's icons rode in whichever merged chunks the rest of the app's entry points made,
+ * so an unrelated change to the entry's imports (the guest /declutter Supabase client preload) regrouped them and put
+ * ~0.9 KB gz more icons on /admin's critical path (324 -> 325 KB gz, CI-env build, measured). Pinned, /admin fetches
+ * its own icons whatever the other entries do.
+ */
+export function adminIconFiles(root) {
+  const index = fs.readFileSync(path.join(root, "node_modules/lucide-react/dist/esm/lucide-react.mjs"), "utf8");
+  const fileOf = new Map();
+  for (const m of index.matchAll(/export \{([^}]*)\} from '\.\/icons\/([^']+)\.mjs'/g)) {
+    for (const n of m[1].matchAll(/default as (\w+)/g)) fileOf.set(n[1], m[2]);
+  }
+  if (fileOf.size < 1000) throw new Error(`bootReach: read ${fileOf.size} lucide icon names from lucide-react.mjs. Fix the scan.`);
+  const out = new Set();
+  for (const f of staticReach(root, [path.join(root, ADMIN_ROOT)])) {
+    if (!/\.(tsx?|mjs)$/.test(f)) continue;
+    const src = stripComments(fs.readFileSync(f, "utf8"));
+    for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
+      for (const n of x[1].split(",")) {
+        const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
+        if (fileOf.has(name)) out.add(fileOf.get(name));
+      }
+    }
+  }
+  const { own, shared, declutter } = guestIconSplit(root);
+  const taken = new Set([...bootIconFiles(root), ...homeIconFiles(root), ...itemIconFiles(root), ...own, ...shared, ...declutter, ...sellingIconFiles(root)]);
+  return new Set([...out].filter((i) => !taken.has(i)));
+}
+
 export function itemIconFiles(root) {
   const index = fs.readFileSync(path.join(root, "node_modules/lucide-react/dist/esm/lucide-react.mjs"), "utf8");
   const fileOf = new Map();

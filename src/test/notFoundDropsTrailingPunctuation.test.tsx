@@ -5,7 +5,7 @@
  * page and reports nothing; an unknown path still renders the 404 and reports it.
  *
  * @mutate src/pages/info/NotFound.tsx |   const clean = pathname.replace(/[.,;:!)\]'"’”]+$/u, ""); |   const clean = pathname;
- * @mutate src/pages/info/NotFound.tsx |     if (punctuationFree !== null) { |     if (false) {
+ * @mutate src/pages/info/NotFound.tsx |     if (meant !== null) { |     if (false) {
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";

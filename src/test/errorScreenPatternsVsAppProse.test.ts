@@ -24,7 +24,7 @@
  *
  * @mutate e2e/errorScreens.ts | "generic failure copy", re: | "generic failure copy", re: /went wrong/i, wasAnchored:
  * @mutate e2e/errorScreens.ts | typeof screen === "string" ? screen : textOutsideQuotedLogs(screen.text, screen.quoted); | typeof screen === "string" ? screen : screen.text;
- * @mutate e2e/errorScreens.ts | Something went wrong(?![^.!\n]{0,80}\?)/ | Something went wrong/
+ * @mutate e2e/errorScreens.ts | Something went wrong(?![^.! | Something went wrong(?!$never[^.!
  */
 import { describe, it, expect } from "vitest";
 import { ERROR_SCREEN_PATTERNS, findErrorScreen, readScreenText, textOutsideQuotedLogs } from "../../e2e/errorScreens";

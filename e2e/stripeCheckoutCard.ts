@@ -24,14 +24,26 @@
  *
  *  4. Saved-card summary (e2e-journeys 41585440777): Card selected, fields folded
  *     behind "Pay with Visa •••• 4242" and a "Change" button (STRIPE_SAVED_INFO_CHANGE).
+ *  5. EMBEDDED FORM (Stripe's "checkout_guacamole" Checkout, first red 2026-11-13:
+ *     e2e-journeys 43430382667, a11y-webkit-prod 43470000763). The whole payment
+ *     form is drawn INSIDE an iframe, `iframe[title="Secure embedded form frame"]`
+ *     (js.stripe.com elements-inner-habanero, componentName=paymentForm). The
+ *     page itself then has no button, radio or card field at all, so every
+ *     driver read "#cardNumber x0, role=radio x0, buttons []" on a fully drawn
+ *     form. Inside the frame the markup is the Payment Element's: Card is a
+ *     `div[role=button]` named "Card", the billing ids are `billingAddress-*`,
+ *     and Pay/Save is data-testid `payment-form-submit-button`. Every locator
+ *     here is therefore taken from `stripeForm(page)`: the page on layouts 1-4,
+ *     a frameLocator on layout 5. Drivers never build a Stripe field locator
+ *     themselves (fillStripeCardFields, clickStripeSubmit).
  *
- * When Stripe changes the picker a fifth way, the failure says so and lists
+ * When Stripe changes the picker a sixth way, the failure says so and lists
  * the buttons the page DID render (stripeLayoutReport), instead of a bare
  * "element(s) not found" on a locator nobody can read.
  *
  * Guard: src/test/stripeCheckoutCardOpener.test.ts.
  */
-import type { Locator, Page } from "@playwright/test";
+import type { FrameLocator, Locator, Page } from "@playwright/test";
 import { answerStripeReturn } from "./stripeReturn";
 
 /** Stripe's card-number input, present once the Card method is open. */
@@ -50,6 +62,70 @@ export const STRIPE_CARD_METHOD_ITEM = "card-accordion-item";
 export const STRIPE_SAVED_INFO_CHANGE = ".SavedInfoSummary button.ReadOnlyFormField-actionButton";
 
 /**
+ * Layout 5: the iframe Stripe's embedded Checkout draws the whole payment form in (trace of a11y-webkit-prod
+ * 43470000763: name __privateStripeFrameNNNN changes per load, the title is the stable handle).
+ */
+export const STRIPE_EMBEDDED_FORM_FRAME = 'iframe[title="Secure embedded form frame"]';
+
+/** Where Stripe's payment form lives: the page (layouts 1-4) or the embedded form frame (layout 5). */
+export type StripeFormRoot = Pick<Page | FrameLocator, "locator" | "getByTestId" | "getByRole">;
+
+/**
+ * The form's fields, by layout. Layout 5 comes in two variants, and both were measured:
+ *  5a (trace of a11y-webkit-prod 43470000763, 2026-11-13): billing in a separate "Billing details" block,
+ *     ids `billingAddress-nameInput`, `billingAddress-addressLine1Input`, ...
+ *  5b (card-hold run 2026-11-15, ~/.lh-shots/builder4d-1115/run1.log): billing inside the Card section ("Name on
+ *     card", "Billing information"), ids `payment-nameInput`, `payment-localityInput`, ..., a REQUIRED State select
+ *     (`payment-administrativeAreaInput`) and a pre-ticked Link opt-in (`payment-linkOptInInput`).
+ * Ids differ, `name` attributes do not (name, addressLine1, locality, postalCode, administrativeArea), so layout 5
+ * is keyed on those. Card number/expiry/cvc are `payment-numberInput` etc., name=number/expiry/cvc, in both.
+ */
+const FIELDS = {
+  page: {
+    card: STRIPE_CARD_FIELD,
+    expiry: "#cardExpiry",
+    cvc: "#cardCvc",
+    name: "#billingName",
+    line1: "#billingAddressLine1",
+    locality: "#billingLocality",
+    postal: "#billingPostalCode",
+  },
+  embedded: {
+    card: 'input[name="number"]',
+    expiry: 'input[name="expiry"]',
+    cvc: 'input[name="cvc"]',
+    name: 'input[name="name"]',
+    line1: 'input[name="addressLine1"]',
+    locality: 'input[name="locality"]',
+    postal: 'input[name="postalCode"]',
+  },
+} as const;
+
+/** Layout 5b's required State select; the test address is in Baton Rouge. */
+const EMBEDDED_STATE_SELECT = 'select[name="administrativeArea"]';
+
+/** "Save my information with Link": #enableStripePass on layouts 1-4, name=linkOptIn inside layout 5b. */
+const STRIPE_LINK_OPT_IN = '#enableStripePass, input[name="linkOptIn"]';
+
+/**
+ * The root every Stripe locator is taken from. The embedded form frame wins whenever the page holds one: on that
+ * layout the page's own DOM has no payment control at all.
+ */
+export async function stripeForm(page: Page): Promise<{ root: StripeFormRoot; embedded: boolean }> {
+  const frames = await page.locator(STRIPE_EMBEDDED_FORM_FRAME).count().catch(() => 0);
+  if (frames > 0) return { root: page.frameLocator(STRIPE_EMBEDDED_FORM_FRAME).first(), embedded: true };
+  return { root: page, embedded: false };
+}
+
+/** Layout 5's controls: the open card field, the Card accordion button, or Pay/Save. */
+function embeddedControl(root: StripeFormRoot): Locator {
+  return root
+    .locator(FIELDS.embedded.card)
+    .or(root.getByRole("button", { name: /^Card/ }))
+    .or(root.getByTestId("payment-form-submit-button"));
+}
+
+/**
  * Whatever Stripe renders first that this helper can drive: the open card
  * fields, the Card method button, or a payment-method radio. Wait on THIS,
  * never on `getByRole("radio")` alone.
@@ -57,11 +133,14 @@ export const STRIPE_SAVED_INFO_CHANGE = ".SavedInfoSummary button.ReadOnlyFormFi
 export function stripePaymentMethodControl(page: Page): Locator {
   // The item container too: the button is an overlay click area, and a
   // zero-size overlay would read as hidden while the item is plainly drawn.
+  // Layout 5: the embedded form frame itself (its controls live in another
+  // frame, which a page locator cannot .or() with); openCardFields waits on them.
   return page
     .locator(STRIPE_CARD_FIELD)
     .or(page.getByTestId(STRIPE_CARD_METHOD_BUTTON))
     .or(page.getByTestId(STRIPE_CARD_METHOD_ITEM))
     .or(page.getByRole("radio"))
+    .or(page.locator(STRIPE_EMBEDDED_FORM_FRAME))
     .first();
 }
 
@@ -82,11 +161,29 @@ export async function stripeLayoutReport(page: Page): Promise<string> {
     .catch(() => [] as string[]);
   const radios = await page.getByRole("radio").count().catch(() => -1);
   const fields = await page.locator(STRIPE_CARD_FIELD).count().catch(() => -1);
+  let embedded = "";
+  if ((await page.locator(STRIPE_EMBEDDED_FORM_FRAME).count().catch(() => 0)) > 0) {
+    const inner = await page
+      .frameLocator(STRIPE_EMBEDDED_FORM_FRAME)
+      .first()
+      .locator("button, [role=button], input")
+      .evaluateAll((els) =>
+        els
+          .map((e) => {
+            const id = e.getAttribute("data-testid") || e.id || e.getAttribute("name") || e.getAttribute("aria-label") || (e.textContent ?? "").trim().slice(0, 24);
+            return `${e.tagName.toLowerCase()}:${id}`;
+          })
+          .filter((t) => !t.endsWith(":"))
+          .slice(0, 30),
+      )
+      .catch((err: unknown) => [`unreadable: ${String(err).split("\n")[0].slice(0, 80)}`]);
+    embedded = ` Embedded form frame (${STRIPE_EMBEDDED_FORM_FRAME}) holds [${inner.join(" | ")}].`;
+  }
   return (
     `Stripe Checkout's payment-method picker is not one e2e/stripeCheckoutCard.ts knows ` +
     `(open ${STRIPE_CARD_FIELD}, button[data-testid=${STRIPE_CARD_METHOD_BUTTON}], role=radio, or ${STRIPE_SAVED_INFO_CHANGE}). ` +
     `On ${page.url().slice(0, 60)}: ${STRIPE_CARD_FIELD} x${fields}, role=radio x${radios}, ` +
-    `buttons [${buttons.join(" | ")}]. Stripe changed its DOM: teach the helper the new layout.`
+    `buttons [${buttons.join(" | ")}].${embedded} Stripe changed its DOM: teach the helper the new layout.`
   );
 }
 
@@ -99,9 +196,18 @@ export async function waitForStripePaymentMethods(page: Page, timeout = 60_000):
     .waitFor({ state: "visible", timeout })
     .then(() => null, (err: unknown) => String(err).split("\n")[0].slice(0, 120));
   if (waited !== null) throw new Error(`${await stripeLayoutReport(page)} (${waited})`);
+  const { root, embedded } = await stripeForm(page);
+  if (!embedded) return;
+  const inner = await embeddedControl(root)
+    .first()
+    .waitFor({ state: "visible", timeout })
+    .then(() => null, (err: unknown) => String(err).split("\n")[0].slice(0, 120));
+  if (inner !== null) throw new Error(`${await stripeLayoutReport(page)} (embedded form: ${inner})`);
 }
 
 export async function openCardFields(page: Page, attempts = 3): Promise<Locator> {
+  const form = await stripeForm(page);
+  if (form.embedded) return openEmbeddedCardFields(page, form.root, attempts);
   const card = page.locator(STRIPE_CARD_FIELD);
   const cardButton = page.getByTestId(STRIPE_CARD_METHOD_BUTTON);
   const cardItem = page.getByTestId(STRIPE_CARD_METHOD_ITEM);
@@ -131,6 +237,77 @@ export async function openCardFields(page: Page, attempts = 3): Promise<Locator>
   throw new Error(`card fields never opened after ${attempts} clicks. ${await stripeLayoutReport(page)}`);
 }
 
+/**
+ * Layout 5: press the "Card" accordion button inside the embedded form frame until the card number field shows.
+ * Choosing a method submits nothing, so a repeated press is not a second payment.
+ */
+async function openEmbeddedCardFields(page: Page, root: StripeFormRoot, attempts: number): Promise<Locator> {
+  const card = root.locator(FIELDS.embedded.card).first();
+  const cardMethod = root.getByRole("button", { name: /^Card/ }).first();
+  await embeddedControl(root).first().waitFor({ state: "visible", timeout: 30_000 }).catch(() => undefined);
+  for (let press = 0; press < attempts; press++) {
+    if (await card.isVisible().catch(() => false)) return card;
+    await cardMethod.click().catch(() => undefined);
+    await card.waitFor({ state: "visible", timeout: 10_000 }).catch(() => undefined);
+  }
+  if (await card.isVisible().catch(() => false)) return card;
+  throw new Error(`card fields never opened in the embedded form after ${attempts} presses of Card. ${await stripeLayoutReport(page)}`);
+}
+
+/** A test card and the billing details Stripe may ask for. */
+export interface StripeTestCard {
+  number: string;
+  expiry: string;
+  cvc: string;
+  name: string;
+  line1: string;
+  city: string;
+  zip: string;
+}
+
+/**
+ * Type the card and EVERY billing field Stripe renders (which ones appear depends on the account's address setting;
+ * a blank required one makes Pay a silent no-op), on whichever layout the page is. Call openCardFields first.
+ * Line 1 opens Google's address autocomplete, which covers the fields below it, so each fill ends with Escape.
+ */
+export async function fillStripeCardFields(page: Page, card: StripeTestCard): Promise<void> {
+  const { root, embedded } = await stripeForm(page);
+  const f = embedded ? FIELDS.embedded : FIELDS.page;
+  await root.locator(f.card).first().fill(card.number);
+  await root.locator(f.expiry).first().fill(card.expiry);
+  await root.locator(f.cvc).first().fill(card.cvc);
+  for (const [sel, value] of [
+    [f.name, card.name],
+    [f.line1, card.line1],
+    [f.locality, card.city],
+    [f.postal, card.zip],
+  ] as const) {
+    const field = root.locator(sel).first();
+    if ((await field.count()) && (await field.isVisible().catch(() => false))) {
+      // An optional billing field that will not take a value is reported by
+      // Stripe inline on submit; the caller's webhook poll is the verdict.
+      await field.fill(value).catch(() => undefined);
+      await page.keyboard.press("Escape").catch(() => undefined);
+    }
+  }
+  if (embedded) {
+    // 5b refuses the press with "Enter your address" until a State is chosen.
+    const state = root.locator(EMBEDDED_STATE_SELECT).first();
+    if ((await state.count()) && (await state.isVisible().catch(() => false))) {
+      await state.selectOption("LA").catch(() => state.selectOption({ label: "Louisiana" })).catch(() => undefined);
+    }
+  }
+}
+
+/**
+ * Press Stripe's Pay (or, for a card hold, Save) button on whichever layout the page is. Selecting nothing else:
+ * the caller decides when a press counts (pressStripePay waits for the /confirm request).
+ */
+export async function clickStripeSubmit(page: Page): Promise<void> {
+  const { root, embedded } = await stripeForm(page);
+  await root.getByTestId(embedded ? "payment-form-submit-button" : "hosted-payment-submit-button").click();
+}
+
 
 const STRIPE_CHECKOUT_HOST = "checkout.stripe.com";
 
@@ -148,7 +325,8 @@ const STRIPE_CONFIRM_REQUEST = /api\.stripe\.com\/v1\/payment_pages\/[^/?]+\/con
  */
 export async function untickStripeLink(page: Page): Promise<void> {
   await page.waitForTimeout(2_000);
-  const link = page.locator("#enableStripePass");
+  const { root } = await stripeForm(page);
+  const link = root.locator(STRIPE_LINK_OPT_IN).first();
   if ((await link.count()) && (await link.isChecked().catch(() => false))) {
     await link.uncheck({ force: true }).catch(() => undefined);
   }
@@ -175,7 +353,7 @@ export async function pressStripePay(page: Page, presses = 3): Promise<void> {
     // Blur first, as journeys/fixtures.ts and prod-audit/fundedOpenJob.ts
     // already do: a click on the "Pay <merchant>" heading closes the dropdown.
     await page.getByRole("heading", { name: /^Pay / }).first().click().catch(() => undefined);
-    await page.getByTestId("hosted-payment-submit-button").click();
+    await clickStripeSubmit(page);
     if (await confirm) return;
     if (new URL(page.url()).hostname !== STRIPE_CHECKOUT_HOST) return; // left Stripe: the press went through
     console.log(`::warning title=Stripe Pay did not submit::press ${i}/${presses} sent no /confirm request; pressing again`);
@@ -217,30 +395,18 @@ export async function payWithTestCard(page: Page, checkoutUrl: string): Promise<
 
 async function submitTestCard(page: Page, checkoutUrl: string): Promise<void> {
   await page.goto(checkoutUrl, { waitUntil: "domcontentloaded" });
-  const cardNumber = page.locator(STRIPE_CARD_FIELD);
   await waitForStripePaymentMethods(page);
   await openCardFields(page);
-  await cardNumber.fill("4242 4242 4242 4242");
-  await page.locator("#cardExpiry").fill("12 / 34");
-  await page.locator("#cardCvc").fill("123");
-  for (const [id, value] of [
-    ["#billingName", "Gift Card Journey Test"],
-    ["#billingAddressLine1", "100 Audit Way"],
-    ["#billingLocality", "Baton Rouge"],
-    ["#billingPostalCode", "70801"],
-  ] as const) {
-    const field = page.locator(id);
-    if ((await field.count()) && (await field.isVisible().catch(() => false))) {
-      // An optional billing field that will not take a value is reported by
-      // Stripe inline on submit; the webhook poll after this is the verdict.
-      await field.fill(value).catch(() => undefined);
-      await page.keyboard.press("Escape").catch(() => undefined);
-    }
-  }
-  const linkOptIn = page.locator("#enableStripePass");
-  if ((await linkOptIn.count()) && (await linkOptIn.isChecked().catch(() => false))) {
-    await linkOptIn.uncheck({ force: true }).catch(() => undefined);
-  }
+  await fillStripeCardFields(page, {
+    number: "4242 4242 4242 4242",
+    expiry: "12 / 34",
+    cvc: "123",
+    name: "Gift Card Journey Test",
+    line1: "100 Audit Way",
+    city: "Baton Rouge",
+    zip: "70801",
+  });
+  await untickStripeLink(page);
   await pressStripePay(page);
   await page.waitForURL((url) => url.hostname !== STRIPE_CHECKOUT_HOST, { timeout: 120_000 }).catch(async (err) => {
     const complaints = await page

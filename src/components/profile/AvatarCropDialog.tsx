@@ -1,16 +1,11 @@
-import { useCallback, useRef, useState } from "react";
-import Cropper, { type Area } from "react-easy-crop";
-import { ZoomIn, ZoomOut } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHero,
-  DialogFooter,
-  DialogPrimaryAction,
-  DialogSecondaryAction,
-} from "@/components/ui/dialog";
+import { Suspense, lazy, useCallback, useRef, useState } from "react";
+import type { Area } from "react-easy-crop";
 import { cropImageToFile } from "@/lib/cropImage";
 import { report } from "@/lib/errorLogger";
+
+/** The dialog's own chunk (react-easy-crop, the dialog primitives): fetched when a photo is picked, never on the first screen. */
+const loadView = () => import("./AvatarCropDialogView");
+const AvatarCropDialogView = lazy(loadView);
 
 /**
  * POSITION AND ZOOM A PROFILE PHOTO BEFORE IT IS SAVED.
@@ -24,6 +19,8 @@ import { report } from "@/lib/errorLogger";
  * Profile call `requestCrop(file)` between the file picker and their existing
  * upload logic, and get back an already-framed square JPEG (or null if the
  * member cancelled). Drag to move, pinch or use the slider to zoom.
+ *
+ * The dialog itself is AvatarCropDialogView, loaded only once a photo is picked (it sat on /profile's first screen).
  */
 export function useAvatarCrop() {
   const [src, setSrc] = useState<string | null>(null);
@@ -49,6 +46,9 @@ export function useAvatarCrop() {
   );
 
   const requestCrop = useCallback((file: File) => {
+    // Start the dialog's chunk at once. A failed fetch here is not handled: the lazy render below owns it (the
+    // route's error boundary shows it), so this only warms the same request.
+    void loadView().catch(() => undefined);
     // A second pick while the dialog is open supersedes the first.
     resolver.current?.(null);
     setName(file.name || "avatar.jpg");
@@ -75,59 +75,24 @@ export function useAvatarCrop() {
     }
   };
 
-  const dialog = (
-    <Dialog open={!!src} onOpenChange={(open) => !open && !saving && finish(null)}>
-      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogHero title="Position your photo" />
-        <div className="relative w-full aspect-square overflow-hidden rounded-ds-md bg-[hsl(var(--ink-deep)/0.9)]">
-          {src && (
-            <Cropper
-              image={src}
-              crop={crop}
-              zoom={zoom}
-              minZoom={1}
-              maxZoom={4}
-              aspect={1}
-              cropShape="round"
-              showGrid={false}
-              objectFit="cover"
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onCropComplete={(_, pixels) => setArea(pixels)}
-            />
-          )}
-        </div>
-        <p className="text-ds-12 text-muted-foreground text-center">Drag to move · pinch or slide to zoom</p>
-        <div className="flex items-center gap-3 px-1">
-          <ZoomOut className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden />
-          <input
-            type="range"
-            min={1}
-            max={4}
-            step={0.01}
-            value={zoom}
-            onChange={(e) => setZoom(Number(e.target.value))}
-            aria-label="Zoom"
-            className="w-full h-11 rounded-full accent-[hsl(var(--bark))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood)/0.3)]"
-          />
-          <ZoomIn className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden />
-        </div>
-        {error && (
-          <p role="alert" className="text-ds-12 text-[hsl(var(--destructive-ink))]">
-            {error}
-          </p>
-        )}
-        <DialogFooter>
-          <DialogSecondaryAction onClick={() => finish(null)} disabled={saving}>
-            Cancel
-          </DialogSecondaryAction>
-          <DialogPrimaryAction onClick={save} disabled={saving || !area}>
-            {saving ? "Saving…" : "Use photo"}
-          </DialogPrimaryAction>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+  // Nothing is drawn, and nothing fetched, until a photo is picked.
+  const dialog = src ? (
+    <Suspense fallback={null}>
+      <AvatarCropDialogView
+        src={src}
+        crop={crop}
+        zoom={zoom}
+        area={area}
+        saving={saving}
+        error={error}
+        onCropChange={setCrop}
+        onZoomChange={setZoom}
+        onArea={setArea}
+        onCancel={() => finish(null)}
+        onSave={() => void save()}
+      />
+    </Suspense>
+  ) : null;
 
   return { requestCrop, dialog };
 }

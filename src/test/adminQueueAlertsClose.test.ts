@@ -46,7 +46,7 @@
  * @mutate supabase/migrations/20261101042045_declutter_check_sweep_followups.sql |         ('cancellation fee transfer failed', 'manual') |         ('cancellation fee transfer failure', 'manual')
  * @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql | 'dismiss_message_ban_review') | 'dismiss_message_ban_reviewed')
  * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |   AFTER INSERT ON public.notifications |   AFTER UPDATE ON public.notifications
- * @mutate supabase/migrations/20261012072223_stuck_payment_close_needs_money_moved.sql |   ELSIF p_source = 'ops-alert:custom' |   ELSIF p_source = 'ops-alert:customx'
+ * @mutate supabase/migrations/20261115073221_user_error_screen_close_matches_open_gate.sql |   ELSIF p_source = 'ops-alert:custom' |   ELSIF p_source = 'ops-alert:customx'
  * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |       ('new support message',                       'support-ticket') |       ('new support note',                          'support-ticket')
  * @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql |   ELSIF p_rule = 'support-ticket' THEN |   ELSIF p_rule = 'support-tickets' THEN
  * @mutate supabase/functions/stripe-idv-webhook/index.ts | title: "Identity verification needs review", | title: "Identity check needs review",

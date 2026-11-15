@@ -34,8 +34,8 @@
  * @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |     ORDER BY (c.money_moved IS TRUE) DESC, (c.checked_at IS NULL) DESC, j.created_at\n | \n
  * @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |                  AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = j.customer_id)) AS seed, |                  AND true) AS seed,
  * @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |            AND e.tags ->> 'job_id' = rec.id::text\n           AND e.message = 'Stuck payment detected — webhook noop' |            AND e.message = 'Stuck payment detected — webhook noop'
- * @mutate supabase/migrations/20261012072223_stuck_payment_close_needs_money_moved.sql |                                OR c.session_status IN ('expired', 'missing')), false) |                                OR c.session_status IN ('expired', 'missing')), true)
- * @mutate supabase/migrations/20261012072223_stuck_payment_close_needs_money_moved.sql |          AND NOT coalesce(c.money_moved IS NOT TRUE |          AND NOT coalesce(true
+ * @mutate supabase/migrations/20261115073221_user_error_screen_close_matches_open_gate.sql |                                OR c.session_status IN ('expired', 'missing')), false) |                                OR c.session_status IN ('expired', 'missing')), true)
+ * @mutate supabase/migrations/20261115073221_user_error_screen_close_matches_open_gate.sql |          AND NOT coalesce(c.money_moved IS NOT TRUE |          AND NOT coalesce(true
  * @mutate supabase/config.toml |   [functions.stuck-payment-check]\n    verify_jwt = false |   [functions.stuck-payment-check]\n    verify_jwt = true
  */
 import { describe, it, expect } from "vitest";

@@ -17,7 +17,7 @@ import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
  * first paint, the page's title goes straight into the bar and the body never moves.
  * Guard: src/test/desktopTitleSlotBeforeBarChunk.test.tsx.
  */
-export function DesktopTopBarFrame({ children }: { children?: ReactNode }) {
+function DesktopTopBarFrame({ children }: { children?: ReactNode }) {
   // The fixed OfflineBanner sat OVER this bar at 1440 and clipped the page title (B44 10-31): the bar moves down by
   // the banner's offset (0 while the banner is hidden). Guard: src/test/offlineBannerOverDesktopBar.test.ts.
   const bannerOffset = useOfflineBannerOffset();

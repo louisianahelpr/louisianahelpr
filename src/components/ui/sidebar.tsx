@@ -4,8 +4,14 @@ import { VariantProps, cva } from "class-variance-authority";
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// The phone sheet loads on the first open (Q2705, lead 11-14): statically it put the sheet's code on /admin's critical
+// path, which a desktop visit never opens. Guard: src/test/adminSidebarSheetLazy.test.ts.
+const SidebarMobileSheet = React.lazy(() =>
+  loadModule(() => import("@/components/ui/sidebarMobileSheet")).then((m) => (m ? { default: m.SidebarMobileSheet } : untilReload())),
+);
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -132,6 +138,9 @@ const Sidebar = React.forwardRef<
   }
 >(({ side = "left", variant = "sidebar", collapsible = "offcanvas", className, children, ...props }, ref) => {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+  // Mounted from the first open on, so it closes with its animation and opens at once the next time.
+  const [sheetAsked, setSheetAsked] = React.useState(openMobile);
+  if (openMobile && !sheetAsked) setSheetAsked(true);
 
   if (collapsible === "none") {
     return (
@@ -146,27 +155,13 @@ const Sidebar = React.forwardRef<
   }
 
   if (isMobile) {
+    if (!sheetAsked) return null;
     return (
-      <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
-        <SheetContent
-          data-sidebar="sidebar"
-          data-mobile="true"
-          className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
-          style={
-            {
-              "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-            } as React.CSSProperties
-          }
-          side={side}
-        >
-          {/* Radix points `aria-labelledby` at a SheetTitle that has to exist.
-              Without one it referenced a missing id and the whole admin
-              sidebar announced as bare "dialog". Visually hidden because the
-              sheet's own content is the visible heading. */}
-          <SheetTitle className="sr-only">Sidebar navigation</SheetTitle>
-          <div className="flex h-full w-full flex-col">{children}</div>
-        </SheetContent>
-      </Sheet>
+      <React.Suspense fallback={null}>
+        <SidebarMobileSheet open={openMobile} onOpenChange={setOpenMobile} side={side} width={SIDEBAR_WIDTH_MOBILE}>
+          {children}
+        </SidebarMobileSheet>
+      </React.Suspense>
     );
   }
 

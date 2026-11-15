@@ -22,7 +22,13 @@
  *     function (payOnStripeCheckout, submitTestCard).
  * Scanned over the TypeScript AST, so a comment naming the button is not a
  * press and a comment naming the helper is not an answer.
+ *
+ * Q?embedmjs (2026-11-15): the standalone .mjs payers no longer name the button; they press it through
+ * e2e/stripeCheckoutForm.mjs's clickStripeSubmit (the button lives in Stripe's embedded-form iframe on layout 5). So a
+ * CALL of clickStripeSubmit / pressStripePay is a press site too, checked by the same rule, and a reference at a
+ * module's top level (mint-funded-seed-jobs' loop) is answered when a block around it answers inline.
  */
+// @mutate scripts/probes/mint-funded-seed-jobs.prod.mjs |       if (req.isNavigationRequest() && !req.frame().parentFrame() && !stripe) { |       if (false) {
 // @mutate e2e/prod-audit/fundedOpenJob.ts |   const answer = await answerStripeReturn(page); |   const answer = { stop: async () => {} };
 // @mutate e2e/stripeCheckoutCard.ts |   const stripeReturn = await answerStripeReturn(page); |   const stripeReturn = { stop: async () => {} };
 import { describe, expect, it } from "vitest";
@@ -34,6 +40,8 @@ const ROOT = path.resolve(__dirname, "../..");
 const SUBMIT = "hosted-payment-submit-button";
 const WRAPPERS = new Set(["payInPageAnsweringReturn", "payInChromium"]);
 const ANSWERS = new Set([...WRAPPERS, "answerStripeReturn"]);
+/** The helpers that press Pay for their caller (e2e/stripeCheckoutForm.mjs). */
+const PRESSERS = new Set(["clickStripeSubmit", "pressStripePay"]);
 
 function walk(dir: string, out: string[] = []): string[] {
   if (!fs.existsSync(dir)) return out;
@@ -119,6 +127,13 @@ function referencesTo(name: string, sources: Source[]): ts.Identifier[] {
   return out;
 }
 
+/** The blocks and functions around a node, innermost first (a top-level press has only blocks). */
+function blocksAround(n: ts.Node): ts.Node[] {
+  const blocks: ts.Node[] = [];
+  for (let p = n.parent; p && !ts.isSourceFile(p); p = p.parent) if (ts.isBlock(p) || isFn(p)) blocks.push(p);
+  return blocks;
+}
+
 function answered(fn: Fn, sources: Source[], seen = new Set<Fn>()): boolean {
   if (seen.has(fn)) return false;
   seen.add(fn);
@@ -132,7 +147,8 @@ function answered(fn: Fn, sources: Source[], seen = new Set<Fn>()): boolean {
     const p = ref.parent;
     if (ts.isCallExpression(p) && p.arguments.includes(ref as ts.Expression) && WRAPPERS.has(calleeName(p))) return true;
     const around = enclosingFns(ref);
-    return around.length > 0 && around.some((outer) => answered(outer, sources, seen));
+    if (!around.length) return blocksAround(ref).some((b) => answersDirectly(b));
+    return around.some((outer) => answered(outer, sources, seen));
   });
 }
 
@@ -141,13 +157,13 @@ export function unansweredPayers(sources: Source[]): { sites: string[]; unanswer
   const unanswered: string[] = [];
   for (const { rel, sf } of sources) {
     const v = (x: ts.Node) => {
-      if ((ts.isStringLiteral(x) || ts.isNoSubstitutionTemplateLiteral(x)) && x.text === SUBMIT) {
+      const literal = (ts.isStringLiteral(x) || ts.isNoSubstitutionTemplateLiteral(x)) && x.text === SUBMIT;
+      if (literal || (ts.isCallExpression(x) && PRESSERS.has(calleeName(x)))) {
         const at = `${rel}:${sf.getLineAndCharacterOfPosition(x.getStart(sf)).line + 1}`;
         sites.push(at);
         // A press at module top level (an .mjs probe's top-level await) has
         // no function around it: the blocks around it are its scope.
-        const blocks: ts.Node[] = [];
-        for (let p = x.parent; p && !ts.isSourceFile(p); p = p.parent) if (ts.isBlock(p) || isFn(p)) blocks.push(p);
+        const blocks = blocksAround(x);
         const fn = enclosingFns(x)[0];
         const ok = blocks.some((b) => answersDirectly(b)) || (!!fn && answered(fn, sources));
         if (!ok) unanswered.push(at);
@@ -172,8 +188,15 @@ describe("Q1255 — a Stripe payer never loads the deployed site on the return",
   it("found the Pay presses (inventory floor)", () => {
     // fixtures.ts, stripeCheckoutCard.ts (pressStripePay, which prod-lifecycle.spec.ts
     // now calls instead of its own press), fundedOpenJob.ts and
-    // mint-funded-seed-jobs.prod.mjs on 2026-10-18.
-    expect(sites.length).toBeGreaterThan(3);
+    // mint-funded-seed-jobs.prod.mjs on 2026-10-18. Since Q?embedmjs (2026-11-15) the helper's presses live in
+    // e2e/stripeCheckoutForm.mjs and each clickStripeSubmit / pressStripePay call is a site: 10 measured.
+    expect(sites.length).toBeGreaterThan(9);
+    const files = sites.map((s) => s.replace(/:\d+$/, ""));
+    expect(files).toEqual(expect.arrayContaining([
+      "scripts/probes/mint-funded-seed-jobs.prod.mjs",
+      "scripts/e2e/declutterPayoutProof.mjs",
+      "scripts/stripe-tax-probe.mjs",
+    ]));
   });
 
   it("every press of Stripe's Pay button has the return answered", () => {
@@ -189,8 +212,9 @@ describe("the check is able to fail", () => {
       { rel: "a.ts", text: `export async function pay(page) { await page.goto(u); ${press} }` },
       { rel: "b.ts", text: `async function inner(page) { ${press} }\nexport async function outer(page) { await inner(page); }` },
       { rel: "top.mjs", text: `for (const u of us) { await page.goto(u); ${press} }` },
+      { rel: "call.mjs", text: `for (const u of us) { await page.goto(u); await clickStripeSubmit(page); }` },
     ]);
-    expect(unansweredPayers(world).unanswered).toEqual(["a.ts:1", "b.ts:1", "top.mjs:1"]);
+    expect(unansweredPayers(world).unanswered).toEqual(["a.ts:1", "b.ts:1", "top.mjs:1", "call.mjs:1"]);
   });
 
   it("green for each answered shape", () => {
@@ -200,10 +224,11 @@ describe("the check is able to fail", () => {
       { rel: "caller.ts", text: `async function submit(page) { ${press} }\nexport async function pay(page) { const a = await answerStripeReturn(page); await submit(page); }` },
       { rel: "inline.mjs", text: `async function pay(page) { await page.route("**/*", async (r) => { if (r.request().isNavigationRequest()) return r.fulfill({}); }); ${press} }` },
       { rel: "top-inline.mjs", text: `for (const u of us) { await page.route("**/*", (r) => r.request().isNavigationRequest() ? r.fulfill({}) : r.fallback()); ${press} }` },
+      { rel: "top-call.mjs", text: `for (const u of us) { await page.route("**/*", (r) => r.request().isNavigationRequest() ? r.fulfill({}) : r.fallback()); await clickStripeSubmit(page); }` },
       { rel: "comment.ts", text: `// "${SUBMIT}" in a comment is not a press` },
     ]);
     expect(unansweredPayers(world)).toEqual({
-      sites: ["direct.ts:1", "passed.ts:1", "caller.ts:1", "inline.mjs:1", "top-inline.mjs:1"],
+      sites: ["direct.ts:1", "passed.ts:1", "caller.ts:1", "inline.mjs:1", "top-inline.mjs:1", "top-call.mjs:1"],
       unanswered: [],
     });
   });

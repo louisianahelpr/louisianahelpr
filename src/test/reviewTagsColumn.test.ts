@@ -15,7 +15,7 @@
  * @mutate src/components/reviewPanel/ReviewForm.tsx | insertReviewWithTags(feedback, (fields) => | ((fields) =>
  * @mutate src/hooks/useProfileTabData.ts | .select("id, rating, feedback, tags, created_at, reviewer_id, job_id, jobs!inner(status)") | .select("id, rating, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
  * @mutate src/components/reviewPanel/ReviewList.tsx | feedback: reviewText(r.feedback, r.tags), | feedback: r.feedback,
- * @mutate supabase/migrations/20261115064940_teaser_profile_instant_match_hide_blocked.sql | public.review_text(rv.feedback, rv.tags) AS feedback | rv.feedback
+ * @mutate supabase/migrations/20261115073802_public_profile_hides_items_and_wanted_across_block.sql | public.review_text(rv.feedback, rv.tags) AS feedback | rv.feedback
  */
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";

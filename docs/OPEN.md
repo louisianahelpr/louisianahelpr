@@ -105,7 +105,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 2276 items — 2227 done, 19 partly done (fixed, protection pending), 30 open.**
+**Queue: 2276 items — 2228 done, 19 partly done (fixed, protection pending), 29 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -119,7 +119,7 @@ sure someone hears it and closes it.
 
 
 ## QUEUE (cont.) — added 2026-09-23 late
-- [ ] **Q2809 LOW A member's public page (/u/<handle>) still lists their Declutter items and Wanted posts to someone in a block with them, while its open jobs are now hidden.** public_profile_by_handle's open-jobs list skips a viewer in a block with the page's owner, either direction (20261115064940, Q2807), but its listings and wanted lists do not, so one page applies two rules. Decide one rule: the same two-way user_blocks filter on both lists (as the jobs list), or record that items and Wanted stay visible on purpose (the page is public: signed out, anyone sees all of it). Extend src/test/pglite/teaserProfileMatchHideBlocked.pglite.mjs and src/test/rankedJobsHideBlocked.test.ts to cover the choice. finding: lh-authz-rls@c783cef790#2
+- [x] **Q2809 LOW A member's public page (/u/<handle>) still lists their Declutter items and Wanted posts to someone in a block with them, while its open jobs are now hidden.** public_profile_by_handle's open-jobs list skips a viewer in a block with the page's owner, either direction (20261115064940, Q2807), but its listings and wanted lists do not, so one page applies two rules. Decide one rule: the same two-way user_blocks filter on both lists (as the jobs list), or record that items and Wanted stay visible on purpose (the page is public: signed out, anyone sees all of it). Extend src/test/pglite/teaserProfileMatchHideBlocked.pglite.mjs and src/test/rankedJobsHideBlocked.test.ts to cover the choice. finding: lh-authz-rls@c783cef790#2 **FIXED 2026-11-15 (Builder 2, lead decision: one rule for the whole page):** migration 20261115073802 gives public_profile_by_handle's items list, listing_count and Wanted list the jobs list's two-way user_blocks filter; a guest and an unrelated member see everything as before. Proof src/test/pglite/publicProfileWholePageHidesBlocked.pglite.mjs (applied 3x ALL PASS; NEW_MIGRATION=skip 4 FAIL). Guard: src/test/rankedJobsHideBlocked.test.ts.
 
 
 

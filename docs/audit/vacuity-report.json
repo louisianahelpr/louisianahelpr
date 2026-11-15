@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-15T00:13:19.989Z",
-  "guards": 4082,
-  "registered": 4070,
+  "generated": "2026-11-15T11:51:33.331Z",
+  "guards": 4113,
+  "registered": 4101,
   "unregistered": [
     "src/components/shops/publicShopLayout.test.tsx",
     "src/components/shops/shopBrowseCardName.test.tsx",
@@ -45,6 +45,12 @@
       "why": [
         "blocked (literal declared in this file) is both input and oracle",
         "all (literal declared in this file) is both input and oracle"
+      ]
+    },
+    {
+      "file": "src/test/edge/payoutDetail.test.ts",
+      "why": [
+        "transferCalls (literal declared in this file) is both input and oracle"
       ]
     },
     {
@@ -103,6 +109,25 @@
       ],
       "parents": [
         "src/pages/sponsor/SponsorPage.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/home/homeDashboard/ForSaleNearYou.tsx",
+      "tests": [
+        "src/test/newMemberHome1114.test.tsx"
+      ],
+      "parents": [
+        "src/pages/home/homeDashboard/NewMemberHome.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/home/homeDashboard/WelcomeCard.tsx",
+      "tests": [
+        "src/test/homeCardsInSpanish.test.tsx",
+        "src/test/homeWelcomeCard.test.tsx"
+      ],
+      "parents": [
+        "src/pages/home/homeDashboard/NewMemberHome.tsx"
       ]
     },
     {

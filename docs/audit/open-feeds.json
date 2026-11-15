@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-15T01:19Z",
+  "measured_at": "2026-11-15T11:50Z",
   "issues": {
     "readable": true,
     "open": [
@@ -15,7 +15,7 @@
         "number": 2245,
         "title": "nightly-red: prod-audit",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43181792847",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43691657529",
         "runTruncated": false
       },
       {
@@ -85,7 +85,7 @@
         "number": 4222,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43632402707",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43670920754",
         "runTruncated": false
       },
       {
@@ -106,7 +106,7 @@
         "number": 4302,
         "title": "nightly-red: main: Vitest",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43656800492",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/43704524898",
         "runTruncated": false
       },
       {
@@ -468,19 +468,19 @@
         "issue": null
       },
       {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: declutter-money returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
         "issue": null
       },
       {
@@ -530,6 +530,14 @@
         "status": "open",
         "title": "typeerror: undefined is not an object (evaluating '(await p(()=>import(`./notificationpanel-digijvix.js`),__vite__mapdeps([#...",
         "issue": null
+      },
+      {
+        "fingerprint": "428558972dc48df3a0bc1dba2a24d1b1",
+        "source_kind": "workflow",
+        "source": "analytics-freshness",
+        "status": "open",
+        "title": "analytics: review_left stopped recording (real users acted, zero events)",
+        "issue": null
       }
     ]
   },
@@ -572,15 +580,13 @@
     "ledger 3c0d6b003e08": "Q1810",
     "ledger 3c528ace98fd": "Q2350",
     "ledger 41f88aeb227f": "Q1777",
+    "ledger 428558972dc4": "Q2815",
     "ledger 43d77e26f272": "Q1816",
-    "ledger 4840f1c5d1e7": "Q2779",
     "ledger 4aa239aefeb6": "Q1816",
     "ledger 4fa3a43d27c0": "Q2798",
     "ledger 5a28db44e912": "Q2410",
     "ledger 5be6011a46f6": "Q1816",
-    "ledger 5d3f8521e785": "Q2797",
     "ledger 60298a019ea3": "Q1776",
-    "ledger 60dd730d868e": "Q2781",
     "ledger 6205197429d4": "Q1816",
     "ledger 6389f98a9f66": "Q1816",
     "ledger 7e141f206640": "Q1816",
@@ -589,17 +595,14 @@
     "ledger 88b4addefbcd": "Q2503",
     "ledger 88ecf6e765df": "Q1816",
     "ledger 8a2e802edbe7": "Q2800",
-    "ledger 8b1b5ac42f94": "Q2782",
     "ledger 8f6eb3360000": "Q2507",
     "ledger 9078a39b3304": "Q1615",
-    "ledger 932d4bee3b08": "Q2781",
     "ledger 99390a68ded7": "Q1615",
     "ledger a0597e872e21": "Q2789",
     "ledger a8ceee56bbd5": "Q1816",
     "ledger ab6fdbe8c882": "Q1816",
     "ledger acf4ea2ff283": "Q2794",
     "ledger aeedd2495772": "Q2409",
-    "ledger b757f9393658": "Q2790",
     "ledger b8b42cf124da": "Q2506",
     "ledger ba04c0f07725": "Q2532",
     "ledger bbdaee370c35": "Q1631",
@@ -609,7 +612,6 @@
     "ledger d1f8391b44ec": "Q1631",
     "ledger db0fb15c4ec3": "Q1816",
     "ledger dd2ccbc600ce": "Q2780",
-    "ledger e19cffc1cc66": "Q2783",
     "ledger e41c806b9175": "Q1816",
     "ledger f1bfed973a2a": "Q2734",
     "ledger f22e3275d50d": "Q1816",

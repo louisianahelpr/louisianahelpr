@@ -69,7 +69,10 @@ export function YourActivity() {
   return (
     <section aria-label="Your activity" className="flex flex-col gap-2" data-testid="you-activity">
       <h2 className="px-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Your activity</h2>
-      <div className="grid grid-cols-2 gap-2.5">
+      {/* Every row is one height (auto-rows-fr): a tester's preview row (count room + Coming soon mark) stood 115.9 px
+          beside 89.9 px count rows and 91.9 px Homes rows at 360-390 (b2-tiles-1115). A member, who has no preview
+          tiles, keeps 89.9 px rows. */}
+      <div className="grid grid-cols-2 auto-rows-fr gap-2.5">
         {open.flatMap((s) =>
           ACTIVITY_TILES[s.key].map((t) => {
             const n = t.count ? summary.counts[t.count] ?? 0 : 0;
@@ -94,7 +97,9 @@ export function YourActivity() {
                     (cwv-lab 375: 0.0114 of /profile's 0.1518). A tile that can carry a count keeps room for two lines
                     on a phone (2 x line-height 1.5 = 3em); from sm up the longest one fits on one line. A preview's
                     Coming soon mark sits at the tile's foot (mt-auto), so a row's two marks stay level when only one
-                    tile keeps that room (Shops: Orders counts, My shop does not). */}
+                    tile keeps that room (Shops: Orders counts, My shop does not). A preview count tile keeps it too:
+                    without it "Orders · 9 open" wrapped at 360 and, rows being one height, grew every row 91.9 -> 115.9
+                    px when the count came in (b2-tiles-1115). */}
                 <span className={`text-ds-15 font-bold text-foreground break-words${t.count ? " min-h-[3em] sm:min-h-0" : ""}${preview ? " mb-1" : ""}`}>
                   {t.label}
                   {n > 0 && <><span aria-hidden="true"> ·</span> {n} {word}</>}

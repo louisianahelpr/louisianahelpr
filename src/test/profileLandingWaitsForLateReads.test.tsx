@@ -15,6 +15,12 @@
  * @mutate src/components/profile/profileLanding/YourActivity.tsx | t.count ? " min-h-[3em] sm:min-h-0" : "" | ""
  * @mutate src/pages/profile/useLandingLateReads.ts |   const pageSettled = !handle \|\| !page.isPending; |   const pageSettled = true;
  * @mutate src/pages/profile/useLandingLateReads.ts |   const openSettled = !previewPossible \|\| open.settled; |   const openSettled = true;
+ *
+ * Every Your activity tile is one height (b2-tiles-1115, 11-15): at 360/375/390 a tester's tiles stood at three
+ * heights (count rows 89.9, Shops preview 115.9, Homes preview 91.9 px). The grid's rows are one height, and a preview
+ * count tile keeps its count room (without it "Orders · 9 open" wrapped and grew every row 91.9 -> 115.9 px).
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx | grid grid-cols-2 auto-rows-fr gap-2.5 | grid grid-cols-2 gap-2.5
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx | t.count ? " min-h-[3em] sm:min-h-0" : "" | t.count && !preview ? " min-h-[3em] sm:min-h-0" : ""
  */
 import { readFileSync } from "node:fs";
 import type { ReactNode } from "react";
@@ -86,6 +92,9 @@ describe("the You landing waits for its late answers (F260a)", () => {
     const tiles = blankComments(readFileSync("src/components/profile/profileLanding/YourActivity.tsx", "utf8"));
     expect(tiles).toContain('t.count ? " min-h-[3em] sm:min-h-0" : ""');
     expect(tiles).toContain('<PreviewPill className="self-start mt-auto" />');
+    // One height for every tile, preview or not, with or without a count (b2-tiles-1115).
+    expect(tiles).toMatch(/<div className="grid grid-cols-2 auto-rows-fr gap-2\.5">/);
+    expect(tiles).not.toMatch(/t\.count && !preview \?/);
     // Inventory floor: the tiles that carry a count (Posted, Working, Buying, Selling, Orders when this landed).
     const counted = tiles.match(/count: "\w+" \}/g) ?? [];
     expect(counted.length).toBeGreaterThan(4);

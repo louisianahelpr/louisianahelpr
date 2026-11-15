@@ -45,7 +45,7 @@ function ForSaleTile({ item, photoPath }: { item: DeclutterItem; photoPath: stri
     <Link to={`/declutter/item/${item.id}`} data-for-sale-tile="" className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
       <span className="relative block aspect-[3/4] overflow-hidden rounded-xl bg-photo-empty">
         {!failed && (
-          <img src={photoCardUrl(photoPath)} alt={item.title} loading="lazy" decoding="async" onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
+          <img loading="lazy" decoding="async" src={photoCardUrl(photoPath)} alt={item.title} onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
         )}
       </span>
       <span className={`mt-1.5 block text-ds-15 ${PRICE_PAID}`}>{item.current_price_cents === 0 ? t("home.ns.free") : formatPrice(item.current_price_cents)}</span>

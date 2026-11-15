@@ -55,12 +55,16 @@ export function HomeMoneyTiles({
   money,
   placement,
   onOpen,
+  openKind,
 }: {
   money: HomeMoney;
   /** "main"/"side": Home's phone flow and desktop column. "money": the head of You › Money (board 51), every width. */
   placement: "main" | "side" | "money";
   /** You › Money opens its own halves instead of navigating to itself. */
   onOpen?: (kind: "coming" | "held") => void;
+  /** You › Money: the tile whose half is already on screen. It would open what the member is looking at, so it is
+   *  not a control there (press-every-control 43007456468 / 43584967592: "On its way" on Earned changed nothing). */
+  openKind?: "coming" | "held";
 }) {
   const navigate = useNavigate();
   useLanguage();
@@ -80,6 +84,7 @@ export function HomeMoneyTiles({
     return (
       <div data-home-money="money" className="grid grid-cols-2 gap-3">
         <MoneyTile kind="coming" span="col-span-2" label={comingLabel} cents={0} caption={t("mt.nothingYet")}
+          disabled={!!onOpen && openKind === "coming"}
           onClick={() => (onOpen ? onOpen("coming") : navigate("/profile?tab=earnings"))} />
       </div>
     );
@@ -103,6 +108,7 @@ export function HomeMoneyTiles({
           cents={money.coming?.cents ?? 0}
           caption={money.coming ? comingCaption(money.coming, setupPaused) : t("mt.nothingYet")}
           stack={stack}
+          disabled={!!onOpen && openKind === "coming"}
           // No payout account: open the screen that sets one up (the cron's own notification links there),
           // or, while setup is paused, You › Money (the pay is kept there).
           onClick={() => (onOpen ? onOpen("coming") : navigate(!money.coming || money.coming.hasPayoutAccount || setupPaused ? "/profile?tab=earnings" : "/profile?tab=payment"))}
@@ -115,6 +121,7 @@ export function HomeMoneyTiles({
           label={heldWords(money.held).label}
           cents={money.held.cents}
           caption={heldWords(money.held).caption}
+          disabled={!!onOpen && openKind === "held"}
           onClick={() => (onOpen ? onOpen("held") : navigate("/profile?tab=earnings&view=spent"))}
         />
       )}
@@ -122,10 +129,12 @@ export function HomeMoneyTiles({
   );
 }
 
-function MoneyTile({ kind, span, label, cents, caption, stack, onClick }: {
+function MoneyTile({ kind, span, label, cents, caption, stack, disabled = false, onClick }: {
   kind: string; span: string; label: string; cents: number; caption: string;
   /** F266a: the rest of the Helpr's stack on You > Money; a row only when it holds money. */
   stack?: { waitingCents: number; disputeCents: number } | null;
+  /** The half this tile opens is already on screen (openKind): drawn the same, not pressable. */
+  disabled?: boolean;
   onClick: () => void;
 }) {
   const amount = formatCents(cents);
@@ -135,6 +144,7 @@ function MoneyTile({ kind, span, label, cents, caption, stack, onClick }: {
       // No aria-label: the tile's own text (label, amount, caption) is its name, so a screen reader and a
       // voice user say the same words (axe label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491).
       onClick={onClick}
+      disabled={disabled}
       className={`p-card lg:p-4 gap-0.5 ${span}`}
     >
       <span className="text-ds-13 text-muted-foreground">{label}</span>

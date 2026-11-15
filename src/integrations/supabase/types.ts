@@ -16363,6 +16363,30 @@ export type Database = {
           },
         ]
       }
+      welcome_email_sends: {
+        Row: {
+          claimed_at: string
+          email_step: number
+          message_id: string | null
+          queued_at: string | null
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          email_step: number
+          message_id?: string | null
+          queued_at?: string | null
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          email_step?: number
+          message_id?: string | null
+          queued_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       analytics_events_real: {
@@ -19983,6 +20007,17 @@ export type Database = {
         Returns: {
           email: string
           full_name: string
+          user_id: string
+        }[]
+      }
+      claim_welcome_emails: {
+        Args: { p_limit?: number; p_step: number }
+        Returns: {
+          email: string
+          full_name: string
+          language: string
+          latitude: number
+          longitude: number
           user_id: string
         }[]
       }

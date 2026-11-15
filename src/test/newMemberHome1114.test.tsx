@@ -163,13 +163,18 @@ describe("2. Get started guide (owner 11-14)", () => {
     cleanup();
     // Hidden stays hidden, even on the new-member block.
     render(wrap(<GetStartedGuide userId="u1" fresh declutterOpen hasPhoto={false} alertsOff={false} />));
-    await waitFor(() => expect(screen.queryByTestId("get-started")).toBeNull());
+    // Settle past the reads (a waitFor on absence passes on the first paint and proves nothing).
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByTestId("get-started")).toBeNull();
   });
 
   it("goes when every step is done, and never shows for a member who never had the new-member block", async () => {
     db.counts = { applications: 1, jobs: 1, declutter_items: 1, declutter_watchlist: 1 };
     const { container } = render(wrap(<GetStartedGuide userId="u2" fresh declutterOpen hasPhoto alertsOff={false} />));
-    await waitFor(() => expect(container.querySelector("[data-get-started-loading]")).toBeNull());
+    // Wait for the DATA (the last count read is made), then let it settle, then assert the absence.
+    await waitFor(() => expect(db.calls.some((c) => c.table === "declutter_watchlist" && c.args[1] === "u2")).toBe(true));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(container.querySelector("[data-get-started-loading]")).toBeNull();
     expect(screen.queryByTestId("get-started")).toBeNull();
     cleanup();
     db.counts = {};

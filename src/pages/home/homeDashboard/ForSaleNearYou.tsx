@@ -49,8 +49,8 @@ function ForSaleTile({ item, photoPath }: { item: DeclutterItem; photoPath: stri
         )}
       </span>
       <span className={`mt-1.5 block text-ds-15 ${PRICE_PAID}`}>{item.current_price_cents === 0 ? t("home.ns.free") : formatPrice(item.current_price_cents)}</span>
-      <span className="block truncate text-ds-13 text-foreground">{item.title}</span>
-      {item.area_label && <span className="block truncate text-ds-12 text-muted-foreground">{item.area_label}</span>}
+      <span className="block truncate text-ds-13 text-foreground" title={item.title}>{item.title}</span>
+      {item.area_label && <span className="block truncate text-ds-12 text-muted-foreground" title={item.area_label}>{item.area_label}</span>}
     </Link>
   );
 }

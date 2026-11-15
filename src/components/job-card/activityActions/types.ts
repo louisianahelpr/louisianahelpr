@@ -26,6 +26,8 @@ export interface UseActivityActionsArgs {
  */
 export interface ActivitySnapshot {
   posted: PostedActivity | undefined;
+  /** Q2812: Home's lean posted core (queryKeys.activity.postedLean), patched and restored with the whole one. */
+  postedLean?: PostedActivity | undefined;
   applied: AppliedActivity | undefined;
 }
 

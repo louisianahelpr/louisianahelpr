@@ -29,12 +29,17 @@ export function useOptimisticJobCache(user: SupaUser | null): OptimisticJobCache
       if (!user) return undefined;
       const postedKey = queryKeys.activity.posted(user.id);
       const appliedKey = queryKeys.activity.applied(user.id);
+      // Q2812: Home and the nav badge read the LEAN posted core under its own key; patch it too, or a to-do the
+      // poster just answered on the job page stays on Home until the refetch.
+      const postedLeanKey = queryKeys.activity.postedLean(user.id);
       const posted = queryClient.getQueryData<PostedActivity>(postedKey);
+      const postedLean = queryClient.getQueryData<PostedActivity>(postedLeanKey);
       const applied = queryClient.getQueryData<AppliedActivity>(appliedKey);
-      if (!posted && !applied) return undefined;
+      if (!posted && !postedLean && !applied) return undefined;
 
-      if (posted) {
-        queryClient.setQueryData<PostedActivity>(postedKey, (prev) =>
+      for (const [key, had] of [[postedKey, posted], [postedLeanKey, postedLean]] as const) {
+        if (!had) continue;
+        queryClient.setQueryData<PostedActivity>(key, (prev) =>
           prev
             ? { ...prev, postedJobs: prev.postedJobs.map((j) => (j.id === jobId ? { ...j, ...patch } : j)) }
             : prev,
@@ -52,7 +57,7 @@ export function useOptimisticJobCache(user: SupaUser | null): OptimisticJobCache
             : prev,
         );
       }
-      return { posted, applied };
+      return { posted, postedLean, applied };
     },
     [user, queryClient],
   );
@@ -63,6 +68,9 @@ export function useOptimisticJobCache(user: SupaUser | null): OptimisticJobCache
       if (!user || !snapshot) return;
       if (snapshot.posted) {
         queryClient.setQueryData<PostedActivity>(queryKeys.activity.posted(user.id), snapshot.posted);
+      }
+      if (snapshot.postedLean) {
+        queryClient.setQueryData<PostedActivity>(queryKeys.activity.postedLean(user.id), snapshot.postedLean);
       }
       if (snapshot.applied) {
         queryClient.setQueryData<AppliedActivity>(queryKeys.activity.applied(user.id), snapshot.applied);

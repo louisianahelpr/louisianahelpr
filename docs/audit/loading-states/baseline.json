@@ -213,12 +213,6 @@
       "was": "2 placeholder row(s) → 3 real row(s), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
     },
     {
-      "key": "customer /profile?tab=receipts #0",
-      "kind": "jump",
-      "path": "main#main-content > div > div > div",
-      "was": "row 137px → 22771px (+22634px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
       "key": "helper /jobs #0",
       "kind": "media",
       "path": "main#main-content > div > div > div",
@@ -510,6 +504,30 @@
       "path": "main#main-content > div > div > div",
       "was": "0 avatar/media bone(s) → 194 real",
       "ruling": "Lead decision 2026-11-02 (Q1695, Builder 165), on the anon /browse precedent (owner Q722): the /declutter cluster is the whole Browse feed, and the MEDIA check counts every listing photo in it (the 2026-11-02 01:07Z refresh: 386 for the customer account, 194 for a guest, over a ~25,000px feed). The feed's length varies with what is for sale near the member, so no placeholder count can match it within 1: the bones draw the first screen's photo tiles and the rest of the feed grows below. Covers the MEDIA kind only; the /declutter JUMP is not decided here and still reports."
+    },
+    {
+      "key": "customer /profile?tab=receipts #0",
+      "kind": "jump",
+      "path": "main#main-content > div > div > div",
+      "growsBelow": true,
+      "was": "row 137px -> 27215px (+27078px), loading-states-refresh 43643232719 on main 391ec43df8, 2026-11-14 (was allow debt from 42302309191)",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". A money record is as long as the member's history, and the two test accounts differ (loading-states-refresh 43643232719 on main 391ec43df8, 2026-11-14). Receipts now reserves one screenful (TAB_SHAPES receipts: fill) and poster-e2e's long list grows below it. Builder 3, 2026-11-15 (Q2784 follow-up, lead's loading-states item): growsBelow, any growth of this element, never a shrink."
+    },
+    {
+      "key": "helper /profile?tab=receipts #0",
+      "kind": "jump",
+      "path": "main#main-content > div > div > div",
+      "growsBelow": true,
+      "was": "row 137px -> 857px (+720px), loading-states-refresh 43643232719 on main 391ec43df8, 2026-11-14",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". A money record is as long as the member's history, and the two test accounts differ (loading-states-refresh 43643232719 on main 391ec43df8, 2026-11-14). Receipts now reserves one screenful (TAB_SHAPES receipts: fill) and helper-e2e's list grows below it. Builder 3, 2026-11-15 (Q2784 follow-up, lead's loading-states item): growsBelow, any growth of this element, never a shrink."
+    },
+    {
+      "key": "helper /profile?tab=payout_history #0",
+      "kind": "jump",
+      "path": "main#main-content > div > div > div",
+      "growsBelow": true,
+      "was": "row 68px -> 275px (+207px), loading-states-refresh 43643232719 on main 391ec43df8, 2026-11-14",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". A money record is as long as the member's history, and the two test accounts differ (loading-states-refresh 43643232719 on main 391ec43df8, 2026-11-14). Payout history draws poster-e2e's one 68px set-up row exactly (customer: 68 -> 68); helper-e2e's four payouts grow below it. Builder 3, 2026-11-15 (Q2784 follow-up, lead's loading-states item): growsBelow, any growth of this element, never a shrink."
     }
   ],
   "byDesignNote": "NOT DEBT. These are suppressed because a decision was MADE, not because nobody has got to them. Unlike `allow`, an entry here that stops breaching is not a failure: a tab whose content happens to fit one screenful simply does not jump, and that is no evidence the ruling was abandoned. Every entry must carry a `ruling`. Do not add to this list to silence a breach — that is what `allow` is for, and `allow` is the one that shrinks."

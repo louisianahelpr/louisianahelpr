@@ -132,18 +132,26 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   // three icons). Heights from the gaps between the cards' <h2> landmarks (88.3, 189.6, 272.1, 370, 610.9) less
   // the 12px section gap; the last is the rest of rowRect.h 856.9. It read 74/74/74/224/196 (row 74 -> 86, media
   // 6 -> 7).
+  // Loading-states refresh 2026-11-14 21:31Z (run 43643232719, main 391ec43df8, 375, both test accounts): the
+  // cards' <h2> landmarks at 100.6, 199.5, 282.5, 398.3, 640.3 (two-step's heading now wraps to two lines, 40px),
+  // so email 87, password 71, two-step 104, sign-in methods 230, active sessions 267 (helper-e2e: rowRect.h 887.2
+  // less the first card's top, 80.3; poster-e2e's longer session list, 333, grows below). It read
+  // 89/71/86/229/261: "row 89px -> 104px".
   security: [
-    { h: 89, media: 1 },
+    { h: 87, media: 1 },
     { h: 71, media: 1 },
-    { h: 86, media: 1 },
-    ...(SOCIAL_SIGN_IN_ENABLED ? [{ h: 229, media: 1 }] : []),
-    { h: 261, media: 3 },
+    { h: 104, media: 1 },
+    ...(SOCIAL_SIGN_IN_ENABLED ? [{ h: 230, media: 1 }] : []),
+    { h: 267, media: 3 },
   ],
   // Q2773: memberships are hidden in this app (MEMBERSHIPS_HIDDEN_IN_THIS_APP), so the tab arrives as the one
   // "not available" line (testid memberships-unavailable at y 68, rowRect.h 86.8: 19px; run 42302309191, both test
   // accounts). It drew the four-block plans table: "5 placeholder rows -> 2 real". A member who may still be billed
   // gets the plans and grows below the line.
-  subscription: MEMBERSHIPS_HIDDEN_IN_THIS_APP ? [{ h: 19 }] : [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }],
+  // Refresh 2026-11-14 (run 43643232719, both test accounts): the line (testid memberships-unavailable, y 68, 18.8px)
+  // and, 12px under it, its "Back to You" button (testid memberships-back-to-you, y 98.8, 44px): "2 placeholder rows
+  // -> 3", "row 68px -> 44px".
+  subscription: MEMBERSHIPS_HIDDEN_IN_THIS_APP ? [{ h: 19 }, { h: 44 }] : [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }],
   // + "Take the tour again" (2026-10-20, FirstRun replay).
   support: [{ h: 469 }, { h: 43 }, { h: 43 }],
   warnings: [{ h: 243, media: 1 }],
@@ -172,8 +180,13 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   analytics: [{ h: 370 }],
   // Board 177 (375, helper-e2e, 2026-10-21): Payout history's one body row (no payout account: the set-up line;
   // a list grows below), and Receipts' one column (nothing paid yet, the tax-form card).
+  // Refresh 2026-11-14 (run 43643232719): poster-e2e's Payout history is still the one 68px set-up row; helper-e2e's
+  // four payouts (275px) grow below it (the 09-19 screenful ruling, byDesign growsBelow).
   payout_history: [{ h: 68 }],
-  receipts: [{ h: 137 }],
+  // Refresh 2026-11-14 (run 43643232719): both test accounts now have receipts (helper-e2e 857px, poster-e2e
+  // 27215px), so the one-column "nothing paid yet" block (137px) jumped 720px. A receipt list is as long as the
+  // member's history: the block reserves one screenful and a longer list grows below it (owner 09-19 ruling).
+  receipts: [{ h: "fill" }],
   // Q2013: the real card is `w-full max-w-[420px]` centred, so at 1440 the bone is too (it drew the full column).
   wrapped: [{ h: 333, maxW: 420 }],
   // You › Settings (board 52): Look, Your sections, Updates, Your account, More, Log out. Q1695: re-sized from the
@@ -305,7 +318,7 @@ const ShapeBlock = ({ block, first }: { block: Block; first: boolean }) => {
  * mean (the card is 1251-1323px with 17 rows plus the label strip; Quiet Hours
  * and the digest row run taller, the toggles-only rows shorter).
  */
-export const NOTIFICATION_ROWS = 39;
+export const NOTIFICATION_ROWS = 43;
 /**
  * Q2773 (loading-states refresh 2026-11-07 00:57Z, run 42302309191, 375, both test accounts): the tab is now TWO
  * cards: Text alerts first (owner 11-01; testid sms-alerts-card at y 68, push-device-hint at 436: 355px with one
@@ -315,7 +328,12 @@ export const NOTIFICATION_ROWS = 39;
  * over its 39 rows), so the row count, the median row and the icons all match.
  */
 export const SMS_CARD_RESERVE_PX = 355;
-export const NOTIFICATION_ROW_PX = 99;
+/**
+ * Refresh 2026-11-14 (run 43643232719, main 391ec43df8, 375, both test accounts): 44 icons in all (the Text alerts
+ * card's one, then 43 in the switches card, which now holds the Declutter and Shops groups too), the switches card
+ * from y 436 to 5041.6 (rowRect.h): 4605.6px over 43 rows, 107px each. It drew 39 rows: "40 media -> 44".
+ */
+export const NOTIFICATION_ROW_PX = 107;
 /**
  * Reviews' placeholder (owner, 2026-11-02, superseding Q722 for loading): one neutral review row, the shape of a
  * review in the list (stars, a date, two lines), not the "No reviews yet" card, so the loading frame claims

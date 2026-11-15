@@ -5,10 +5,12 @@
  */
 /** `desktopOnly`: the tab row is the desktop website's only. Since the Vinted header (owner 11-08) no phone section
  *  header draws one: each section's lists open from the photo's "My …" sheet (src/test/declutterHeaderVinted.test.tsx,
- *  src/test/jobsSectionTabs.test.tsx). */
-export const SECTION_TAB_SCREENS: readonly { name: string; file: string; path: string; desktopOnly?: boolean }[] = [
+ *  src/test/jobsSectionTabs.test.tsx).
+ *  `guest`: the screen is a signed-out visitor's (DeclutterGuestHome, BUY-16), so it is opened with no session. */
+export const SECTION_TAB_SCREENS: readonly { name: string; file: string; path: string; desktopOnly?: boolean; guest?: boolean }[] = [
   { name: "Jobs", file: "src/pages/jobs/JobsSection.tsx", path: "/jobs", desktopOnly: true },
   { name: "Declutter", file: "src/components/declutter/DeclutterHomeView.tsx", path: "/declutter", desktopOnly: true },
+  { name: "Declutter (guest)", file: "src/components/declutter/DeclutterGuestHome.tsx", path: "/declutter", desktopOnly: true, guest: true },
   { name: "Shops", file: "src/components/shops/ShopsHomeView.tsx", path: "/shops", desktopOnly: true },
   { name: "Homes", file: "src/components/rentals/RentalsHomeView.tsx", path: "/rentals", desktopOnly: true },
 ];

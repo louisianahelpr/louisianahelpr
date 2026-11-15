@@ -57,7 +57,8 @@ export const ROUTES = [
   // starts beside the page (`with`: walked from the same round), so each row is the page plus the tab it opens on.
   // Browse is the default tab; Buying and Selling share DeclutterMineViews.
   { path: "/declutter", chunk: "DeclutterPage", with: ["DeclutterBrowseView"], withHost: "declutterRoute" },
-  { path: "/declutter?tab=selling", chunk: "DeclutterPage", with: ["DeclutterMineViews"], withHost: "declutterRoute" },
+  // A member's tabs (DeclutterHomeView) load apart from the page (Q2705, 11-14); declutterRoute.ts starts them beside it.
+  { path: "/declutter?tab=selling", chunk: "DeclutterPage", with: ["DeclutterMineViews", "DeclutterHomeView"], withHost: "declutterRoute" },
 ];
 
 function die(msg) {

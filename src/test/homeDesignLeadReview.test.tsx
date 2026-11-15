@@ -122,8 +122,10 @@ describe("1. Home section cards never show a 0 (spec v2 §1.5/§5.5, board 19)",
 });
 
 describe("2. phone Home keeps the H logo (owner 2026-10-20 08:30Z), never the wordmark", () => {
-  it("phone: H emblem left; Messages, the bell and the avatar right (F148; Messages back on the top row, owner 11-14; Help is in You)", () => {
+  it("phone: H emblem left; Messages, the bell and the avatar right (F148; Messages back on the top row, owner 11-14; Help is in You)", async () => {
     render(<MemoryRouter><AppTopBar /></MemoryRouter>);
+    // The bell loads on its own (Q2705, 11-14), a moment after the rest of the bar.
+    await screen.findByRole("button", { name: /Notifications/ });
     const bar = screen.getByTestId("app-top-bar");
     const logo = bar.firstElementChild as HTMLElement;
     expect(logo.querySelector("img")).not.toBeNull();

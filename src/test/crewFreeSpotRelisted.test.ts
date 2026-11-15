@@ -70,6 +70,8 @@ const GUEST_DESCRIPTION = "20261112202620_guests_read_masked_job_description.sql
 const GUEST_TEXT = "20261114234033_guests_read_masked_job_text.sql"; // F268a follow-up: title, special requirements and materials note masked for a guest too
 // Blocks hide jobs on the ranked feed and the map (CREATE OR REPLACE both from GUEST_TEXT's bodies, one added condition).
 const HIDE_BLOCKED = "20261115063613_ranked_jobs_hide_blocked_keep_guest_mask.sql";
+// Blocks also hide jobs on the landing teaser, a member's public page and the instant job match (get_public_open_jobs restated, one added condition).
+const HIDE_BLOCKED_MORE = "20261115064940_teaser_profile_instant_match_hide_blocked.sql";
 // A2-B6 restates the browse view verbatim + scope_video_url (the poster's scope video).
 const SCOPE_VIDEO = "20261029194021_browse_carries_scope_video.sql";
 const RELISTED = "(j.status = 'open' OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0))";
@@ -96,7 +98,7 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   });
 
   it.each(Object.entries(TAKES_APPLICANTS))("%s reads crew_spots_open", (fn, rule) => {
-    expect([THIS, RESTATED, SEED_SWITCH, LISTING_START, UNDER_18, FEE_STAMP, MEMBERSHIPS, FEE_PERCENT, CARD_HOLD, DATE_WINDOW, DATE_WINDOW_APPLY, PRIVATE_COLUMNS, MAP_AREA_PIN, GUEST_DESCRIPTION, GUEST_TEXT, HIDE_BLOCKED], `${fn} is not the Q1409 definition or its Q1411/Q552/Q1401/Q1586/Q1839/Q1848/Q2400/Q2399/Q2408/Q2742/map-area-pin/F268a/F268a-text/hide-blocked restatement`).toContain(EFFECTIVE.get(fn)?.file);
+    expect([THIS, RESTATED, SEED_SWITCH, LISTING_START, UNDER_18, FEE_STAMP, MEMBERSHIPS, FEE_PERCENT, CARD_HOLD, DATE_WINDOW, DATE_WINDOW_APPLY, PRIVATE_COLUMNS, MAP_AREA_PIN, GUEST_DESCRIPTION, GUEST_TEXT, HIDE_BLOCKED, HIDE_BLOCKED_MORE], `${fn} is not the Q1409 definition or its Q1411/Q552/Q1401/Q1586/Q1839/Q1848/Q2400/Q2399/Q2408/Q2742/map-area-pin/F268a/F268a-text/hide-blocked restatement`).toContain(EFFECTIVE.get(fn)?.file);
     expect(body(fn).replace(/\s+/g, " ")).toContain(rule.replace(/\s+/g, " "));
   });
 

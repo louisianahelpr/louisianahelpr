@@ -19,6 +19,7 @@
  * @mutate e2e/a11y-prod/a11y-prod.spec.ts | await abortProdWrites(ctx, SUPABASE_URL, OUTPUT_DIR); |
  * @mutate e2e/a11y-prod/abortProdWrites.ts | if (m === "POST" && /^\/storage\/v1\/object\/sign\/[^/?#]+/.test(path)) return null; |
  * @mutate e2e/a11y-prod/abortProdWrites.ts | /^\/storage\/v1\/object\/sign\/[^/?#]+/ | /^\/storage\/v1\/object\/(upload\/)?sign\b/
+ * @mutate e2e/a11y-prod/abortProdWrites.ts |   await ctx.route(SENTRY_INGEST, (route) => route.abort("blockedbyclient")); |
  * @mutate e2e/a11y-prod/readOnlyRpcs.ts | return m ? (m[1].toLowerCase() as Volatility) : "volatile"; | return m ? (m[1].toLowerCase() as Volatility) : "stable";
  */
 import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -26,7 +27,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
-import { READ_ONLY_FUNCTIONS, writeVerdict } from "../../e2e/a11y-prod/abortProdWrites";
+import { READ_ONLY_FUNCTIONS, SENTRY_INGEST, writeVerdict } from "../../e2e/a11y-prod/abortProdWrites";
 import { readOnlyRpcNames, rpcVolatility, volatilityOf } from "../../e2e/a11y-prod/readOnlyRpcs";
 
 const DIR = join(process.cwd(), "e2e", "a11y-prod");
@@ -55,6 +56,19 @@ describe("every a11y-prod browser context aborts prod writes", () => {
 
   it.each(specs)("%s: never uses Playwright's own (unrouted) page or context fixture", (f) => {
     expect(code(f)).not.toMatch(/async\s*\(\s*\{[^}]*\b(page|context)\b[^}]*\}/);
+  });
+});
+
+describe("a swept page never reports to Sentry (lead 11-14)", () => {
+  it("abortProdWrites aborts every Sentry ingest host", () => {
+    const src = blankComments(readFileSync(join(DIR, "abortProdWrites.ts"), "utf8"));
+    expect(src).toMatch(/await ctx\.route\(SENTRY_INGEST, \(route\) => route\.abort\("blockedbyclient"\)\);/);
+    for (const u of ["https://o4511265714601984.ingest.us.sentry.io/api/4511270677250048/envelope/", "https://o1.ingest.sentry.io/api/1/store/", "https://sentry.io/x"]) {
+      expect(SENTRY_INGEST.test(u), u).toBe(true);
+    }
+    for (const u of ["https://fncmgoasalhdgfwzhsqa.supabase.co/rest/v1/jobs", "https://notsentry.io.example.com/", "https://www.louisianahelpr.com/sentry.io/"]) {
+      expect(SENTRY_INGEST.test(u), u).toBe(false);
+    }
   });
 });
 

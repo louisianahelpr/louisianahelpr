@@ -31,7 +31,9 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { blankComments } from "@/test/helpers/blankNonCode";
+// @ts-expect-error - plain .mjs tool script, no types
 import { pressWriteKind, PRESS_PASS_THROUGH_RPCS } from "../../scripts/audit/pressProdSafety.mjs";
+// @ts-expect-error - plain .mjs tool script, no types
 import { SETTLED_MOUNT_MS } from "../../scripts/audit/press-every-control.mjs";
 import { HomeMoneyTiles } from "@/pages/home/homeDashboard/HomeMoneyTiles";
 import type { HomeMoney } from "@/pages/home/homeDashboard/homeMoney";

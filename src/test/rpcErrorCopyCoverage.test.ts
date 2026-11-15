@@ -82,6 +82,10 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // Declutter order cards in one read (20261115185143, builder4b-1115 1b): sendBatch (src/lib/declutter/orderCards.ts)
+  // never shows a batch error; any refusal falls back to the per-order read, whose own code and copy stand.
+  declutter_my_order_cards: Object.fromEntries(["feature_disabled", "item_not_found", "not_authenticated", "problem_not_found", "too_many_orders"]
+    .map((code) => [code, { reason: "orderCards never shows a batch error: it asks the per-order read instead, whose own code and copy stand (and sends at most 200 ids a call)" }])),
   // The seller's setup fee read (20261111212343, owner 11-11): useSellerSetupFee runs it only with a signed-in user
   // (enabled: !!uid), and any failure leaves the fee "not known" so no figure shows (useSellerSetupFee): no words to show.
   declutter_my_setup_fee: { not_authenticated: { reason: "read only with a signed-in user; a failed read shows no fee figure, never words" } },

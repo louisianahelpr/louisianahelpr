@@ -46,7 +46,7 @@ export const ProfilePageSkeleton = () => {
         <p className="px-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Your activity</p>
         <div className="grid grid-cols-2 gap-2.5">
           {Array.from({ length: 8 }, (_, i) => (
-            <Skeleton key={i} className="h-[62px] rounded-ds-lg" />
+            <Skeleton key={i} className="h-[62px] max-sm:h-[90px] rounded-ds-lg" />
           ))}
         </div>
       </div>

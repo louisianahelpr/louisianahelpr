@@ -69,7 +69,10 @@ export function YourActivity() {
   return (
     <section aria-label="Your activity" className="flex flex-col gap-2" data-testid="you-activity">
       <h2 className="px-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Your activity</h2>
-      <div className="grid grid-cols-2 gap-2.5">
+      {/* Every tile in the grid is one height (auto-rows-fr), so a tile whose count line wraps ("Buying · 6 in
+          progress" at 360-390) never stands taller than the tiles above and below it (pre-push a11y sweep, button
+          geometry: "Jobs Working" 65.9px vs "Declutter Selling · 4 live" 89.9px, stacked). */}
+      <div className="grid grid-cols-2 auto-rows-fr gap-2.5">
         {open.flatMap((s) =>
           ACTIVITY_TILES[s.key].map((t) => {
             const n = t.count ? summary.counts[t.count] ?? 0 : 0;
@@ -89,8 +92,11 @@ export function YourActivity() {
                     label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491). The space keeps the two lines two words;
                     whitespace between flex items draws nothing. */}
                 <span className="text-ds-12 text-muted-foreground">{s.label}</span>{" "}
-                {/* F449 (audit 11-10): at 375 "Buying · 1 in progress" was cut to "Buying · 1 in ..." by truncate; it wraps. */}
-                <span className="text-ds-15 font-bold text-foreground break-words">
+                {/* F449 (audit 11-10): at 375 "Buying · 1 in progress" was cut to "Buying · 1 in ..." by truncate; it wraps.
+                    On phones a count tile's line keeps room for two lines (3em = 2 x the 16px/1.5 line), so the grid
+                    does not grow when the counts arrive and one of them wraps. A preview tile's Coming soon badge
+                    is already that second line, so it reserves none (it would make every tile a line taller). */}
+                <span className={`text-ds-15 font-bold text-foreground break-words${t.count && !preview ? " max-sm:min-h-[3em]" : ""}`}>
                   {t.label}
                   {n > 0 && <><span aria-hidden="true"> ·</span> {n} {word}</>}
                 </span>

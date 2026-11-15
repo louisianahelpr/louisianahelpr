@@ -20,7 +20,14 @@
  * @mutate src/components/profile/profileLanding/YourActivity.tsx | style={preview ? { opacity: 0.75 } : undefined} | style={undefined}
  *
  * F449 (audit 11-10): at 375 the tile's count line read "Buying · 1 in ..." (truncate); the words wrap instead.
- * @mutate src/components/profile/profileLanding/YourActivity.tsx | text-foreground break-words"> | text-foreground truncate">
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx | text-foreground break-words${ | text-foreground truncate${
+ *
+ * Tile heights (pre-push a11y sweep 11-15, button geometry): with "Buying · 6 in progress" wrapping at 360-390, the
+ * Declutter tiles stood 89.9px under 65.9px Jobs tiles. Every tile in the grid is one height, and on phones a count
+ * tile's line reserves two lines (the earlier decision: count tiles reserve two lines on phones), so counts arriving
+ * and wrapping never grow the grid. Measured live at 360/375/390: 65.9/89.9/91.9 -> all 91.9 (~/.lh-shots/b2-small-1115).
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx | grid grid-cols-2 auto-rows-fr gap-2.5 | grid grid-cols-2 gap-2.5
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx | t.count && !preview ? " max-sm:min-h-[3em]" | false ? " max-sm:min-h-[3em]"
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -114,6 +121,23 @@ describe("You matches board 18", () => {
     expect(line.textContent).toBe("Buying · 3 in progress");
     expect(line.className.split(/\s+/)).not.toContain("truncate");
     expect(line.className.split(/\s+/)).toContain("break-words");
+  });
+  it("every tile in the grid is one height, and a count tile reserves two lines on phones", () => {
+    const { container } = render(<MemoryRouter><YourActivity /><Where /></MemoryRouter>);
+    const grid = container.querySelector('[data-activity-tile="jobs:Posted"]')?.parentElement as HTMLElement;
+    expect(grid.className.split(/\s+/)).toEqual(expect.arrayContaining(["grid", "grid-cols-2", "auto-rows-fr"]));
+    const tiles = [...container.querySelectorAll<HTMLElement>("[data-activity-tile]")];
+    expect(tiles.length).toBeGreaterThan(3);
+    const countLabels = new Set(Object.values(ACTIVITY_TILES).flat().filter((t) => t.count).map((t) => t.label));
+    let reserved = 0;
+    for (const tile of tiles) {
+      const line = tile.querySelectorAll(":scope > span")[1] as HTMLElement;
+      const label = tile.getAttribute("data-activity-tile")!.split(":")[1];
+      const wants = countLabels.has(label) && tile.getAttribute("data-preview") !== "true";
+      expect(line.className.split(/\s+/).includes("max-sm:min-h-[3em]"), label).toBe(wants);
+      if (wants) reserved++;
+    }
+    expect(reserved).toBeGreaterThan(3);
   });
   it("the line names every closed section, in one sentence", () => {
     expect(openingSoonLine([])).toBeNull();

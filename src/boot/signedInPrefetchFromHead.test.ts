@@ -12,13 +12,16 @@
  */
 // @mutate index.html | m.startSignedInPrefetch(path); |
 // @mutate index.html |             if (live.expires_at - Date.now() / 1000 <= 60) return; |
-// @mutate index.html | if (!src \|\| !/^\/(home\|jobs)?\/?$/.test(path)) return; | if (!src) return;
-// @mutate index.html | if (!src \|\| !/^\/(home\|jobs)?\/?$/.test(path)) return; | if (!src \|\| !/^\/home\/?$/.test(path)) return;
-// @mutate index.html | if (!src \|\| !/^\/(home\|jobs)?\/?$/.test(path)) return; | if (!src \|\| !/^\/(home)?\/?$/.test(path)) return;
+// @mutate index.html | if (!src \|\| !/^\/(home\|jobs\|profile)?\/?$/.test(path)) return; | if (!src) return;
+// @mutate index.html | if (!src \|\| !/^\/(home\|jobs\|profile)?\/?$/.test(path)) return; | if (!src \|\| !/^\/home\/?$/.test(path)) return;
+// @mutate index.html | if (!src \|\| !/^\/(home\|jobs\|profile)?\/?$/.test(path)) return; | if (!src \|\| !/^\/(home\|jobs)?\/?$/.test(path)) return;
+// @mutate index.html | if (psrc) import(psrc).catch( | if (false) import(psrc).catch(
+// @mutate index.html | var psrc = /^\/profile\/?$/.test(location.pathname) && pmeta | var psrc = pmeta
+// @mutate vite.config.ts |           .replace(profileMeta, `<meta name="lh-profile-route" content="/${profile.fileName}" />`); |           .replace(profileMeta, profileMeta);
 // @mutate index.html | if (!live \|\| typeof live.access_token !== "string" | if (!live \|\| typeof live.refresh_token !== "string"
 // @mutate src/boot/signedInPrefetch.ts |   if (w[SIGNED_IN_PREFETCH_STARTED_KEY]) return; |
 // @mutate vite.config.ts |         if (!chunk) throw new Error("lh-signed-in-prefetch-url: no chunk for src/boot/signedInPrefetch.ts"); |
-// @mutate vite.config.ts |         return html.replace(meta, `<meta name="lh-signed-in-prefetch" content="/${chunk.fileName}" />`); |         return html;
+// @mutate vite.config.ts |           .replace(meta, `<meta name="lh-signed-in-prefetch" content="/${chunk.fileName}" />`) |           .replace(meta, meta)
 // @mutate src/boot/homePrefetch.ts |   w[HOME_POSTER_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, rows: poster }; |
 // @mutate src/boot/homePrefetch.ts |   u.searchParams.set("limit", "50"); |
 // @mutate src/pages/home/homeDashboard/homePrefetchTake.ts |   w[POSTER_KEY] = undefined; |
@@ -39,6 +42,7 @@ const ROOT = resolve(__dirname, "../..");
 const raw = (p: string) => readFileSync(resolve(ROOT, p), "utf8");
 const code = (p: string) => blankComments(raw(p));
 const UID = "11111111-2222-4333-8444-555555555555";
+const PROFILE_CHUNK = "/assets/profileRoute-x.js";
 const w = window as unknown as Record<string, unknown>;
 
 /** The head script that reads the meta (index.html), as written. */
@@ -52,7 +56,8 @@ function headScript(): string {
 
 /** Runs the head script with `import()` swapped for a spy; resolves once its promise chain has run. */
 async function runHead(o: { path: string; meta?: string; session?: unknown }): Promise<{ imported: string[]; started: string[] }> {
-  document.head.innerHTML = `<meta name="lh-signed-in-prefetch" content="${o.meta ?? "/assets/signedInPrefetch-x.js"}" />`;
+  document.head.innerHTML = `<meta name="lh-signed-in-prefetch" content="${o.meta ?? "/assets/signedInPrefetch-x.js"}" />`
+    + `<meta name="lh-profile-route" content="${PROFILE_CHUNK}" />`;
   window.history.replaceState(null, "", o.path);
   localStorage.clear();
   if (o.session !== undefined) localStorage.setItem("sb-proj-auth-token", JSON.stringify(o.session));
@@ -60,10 +65,11 @@ async function runHead(o: { path: string; meta?: string; session?: unknown }): P
   const started: string[] = [];
   const body = headScript();
   expect(body).toContain("import(src)");
-  const fn = new Function("__import", body.replace("import(src)", "__import(src)"));
+  expect(body).toContain("import(psrc)");
+  const fn = new Function("__import", body.replace("import(src)", "__import(src)").replace("import(psrc)", "__import(psrc)"));
   fn((src: string) => {
     imported.push(src);
-    return Promise.resolve({ startSignedInPrefetch: (p: string) => started.push(p) });
+    return Promise.resolve(src === PROFILE_CHUNK ? {} : { startSignedInPrefetch: (p: string) => started.push(p) });
   });
   await new Promise((r) => setTimeout(r, 0));
   return { imported, started };
@@ -88,12 +94,26 @@ describe("index.html's head starts a member's first-screen reads (Builder 2, 11-
     }
   });
 
+  it("on /profile it also starts the page's boot chunk (Profile's chunk tree) first, and nowhere else", async () => {
+    for (const path of ["/profile", "/profile/", "/profile?tab=earnings"]) {
+      const r = await runHead({ path, session: live() });
+      expect(r.imported, path).toEqual([PROFILE_CHUNK, "/assets/signedInPrefetch-x.js"]);
+      expect(r.started, path).toEqual([path.replace(/\?.*$/, "")]);
+    }
+    expect((await runHead({ path: "/profile" })).imported).toEqual([]);
+    expect((await runHead({ path: "/profile", session: live(30) })).imported).toEqual([]);
+    expect(raw("index.html")).toContain('<meta name="lh-profile-route" content="" />');
+    const vite = code("vite.config.ts");
+    expect(vite).toContain('norm(c.facadeModuleId ?? "").endsWith("/src/boot/profileRoute.ts")');
+    expect(vite).toContain('.replace(profileMeta, `<meta name="lh-profile-route" content="/${profile.fileName}" />`);');
+  });
+
   it("does nothing for a guest, an expiring or malformed session, another route, or a build that wrote no URL", async () => {
     expect((await runHead({ path: "/home" })).imported).toEqual([]);
     expect((await runHead({ path: "/home", session: live(30) })).imported).toEqual([]);
     expect((await runHead({ path: "/home", session: { refresh_token: "r", expires_at: 9e9, user: { id: UID } } })).imported).toEqual([]);
     expect((await runHead({ path: "/home", session: { access_token: "t", expires_at: 9e9 } })).imported).toEqual([]);
-    for (const path of ["/messages", "/profile", "/posts", "/declutter", "/declutter/item/abc-1", "/home/x", "/jobs/x"]) {
+    for (const path of ["/messages", "/posts", "/declutter", "/declutter/item/abc-1", "/home/x", "/jobs/x"]) {
       expect((await runHead({ path, session: live() })).imported, path).toEqual([]);
     }
     expect((await runHead({ path: "/home", session: live(), meta: "" })).imported).toEqual([]);
@@ -112,7 +132,7 @@ describe("index.html's head starts a member's first-screen reads (Builder 2, 11-
     expect(vite).toContain('name: "lh-signed-in-prefetch-url"');
     expect(vite).toContain('norm(c.facadeModuleId ?? "").endsWith("/src/boot/signedInPrefetch.ts")');
     expect(vite).toMatch(/if \(!chunk\) throw new Error\(/);
-    expect(vite).toContain('return html.replace(meta, `<meta name="lh-signed-in-prefetch" content="/${chunk.fileName}" />`);');
+    expect(vite).toContain(".replace(meta, `<meta name=\"lh-signed-in-prefetch\" content=\"/${chunk.fileName}\" />`)");
   });
 
   it("starts once: the entry's later call asks nothing again", () => {

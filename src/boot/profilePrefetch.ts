@@ -18,6 +18,7 @@
  */
 import { storedSession } from "./storedSession";
 import { FIRST_SCREEN_SWITCH_KEYS } from "./declutterPrefetch";
+import { JOBS_PREFETCH_KEY, currentUserUrls } from "./jobsPrefetch";
 
 /** Same string as the take module's KEY (the test pins it). */
 export const PROFILE_PREFETCH_KEY = "__lhProfilePrefetch";
@@ -50,7 +51,15 @@ export function startProfilePrefetch(pathname: string, search: string): void {
     })
     // A failed prefetch is not an error: the card reads for itself.
     .catch(() => null);
-  (window as unknown as Record<string, unknown>)[PROFILE_PREFETCH_KEY] = {
+  // Builder 2 (11-15): useCurrentUser's two reads (the member's profile row and admin-role row), which the landing also
+  // waits on, taken once through jobsPrefetchTake.ts ("me") as on /home and /jobs. Beside the handle read, not instead
+  // of it: the whole profile row is bigger, and the page chained off it answered ~0.4 s later in cwv-lab.
+  const mine = currentUserUrls(base, session.userId);
+  const rows = (url: string) => json(fetch(url, { headers })).then((x) => (Array.isArray(x) ? x : null));
+  const me = Promise.all([rows(mine.profile), rows(mine.admin)]).then(([profile, admin]) => (profile && admin ? { profile, admin } : null));
+  const w = window as unknown as Record<string, unknown>;
+  w[JOBS_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, me };
+  w[PROFILE_PREFETCH_KEY] = {
     at: Date.now(),
     userId: session.userId,
     keys: FIRST_SCREEN_SWITCH_KEYS.join(","),

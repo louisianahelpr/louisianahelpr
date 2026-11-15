@@ -7,6 +7,8 @@
  */
 // @mutate src/boot/profilePrefetch.ts | if (path !== "/profile" \|\| new URLSearchParams(search).get("tab") \|\| typeof fetch !== "function") return; | if (path !== "/profile" \|\| typeof fetch !== "function") return;
 // @mutate src/boot/profilePrefetch.ts |       if (!r.ok) return null; |
+// @mutate src/boot/profilePrefetch.ts |   w[JOBS_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, me }; |
+// @mutate src/boot/profilePrefetch.ts | (profile && admin ? { profile, admin } : null) | (profile ? { profile, admin: [] } : null)
 // @mutate src/boot/profilePrefetch.ts | profiles?select=handle&user_id=eq. | profiles?select=handle&id=eq.
 // @mutate src/lib/profileBootPrefetch.ts |   if (!userId \|\| !s \|\| s.userId !== userId \|\| s.keys !== FEATURE_SWITCH_KEYS.join(",") \|\| !claim(s, "switches")) return null; |   if (!userId \|\| !s \|\| !claim(s, "switches")) return null;
 // @mutate src/lib/profileBootPrefetch.ts |   if (!a \|\| a.handle !== handle \|\| !claim(s, "page")) return null; |   if (!a \|\| !claim(s, "page")) return null;
@@ -28,6 +30,7 @@ import { PROFILE_PREFETCH_KEY, startProfilePrefetch } from "./profilePrefetch";
 import { FIRST_SCREEN_SWITCH_KEYS } from "./declutterPrefetch";
 import { PROFILE_PREFETCH_MAX_AGE_MS, takeProfilePage, takeProfileSectionsOpen, takeProfileSwitches } from "@/lib/profileBootPrefetch";
 import { blankComments } from "@/test/helpers/blankNonCode";
+import { takeJobsMePrefetch } from "@/hooks/jobsPrefetchTake";
 import { staticReach } from "../../scripts/perf/bootReach.mjs";
 
 const ROOT = resolve(__dirname, "../..");
@@ -65,6 +68,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   delete (window as unknown as Record<string, unknown>)[PROFILE_PREFETCH_KEY];
+  delete (window as unknown as Record<string, unknown>).__lhJobsPrefetch;
   localStorage.clear();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
@@ -93,13 +97,29 @@ describe("the entry asks the You landing's gated reads at once", () => {
       "rpc/feature_switches_for_me",
       "rpc/features_open_to_everyone",
       `profiles?select=handle&user_id=eq.${UID}`,
+      `profiles?select=*&user_id=eq.${UID}`,
+      `user_roles?select=role&user_id=eq.${UID}&role=eq.admin`,
     ]);
     expect(JSON.parse(String(calls[0].init?.body))).toEqual({ p_keys: FIRST_SCREEN_SWITCH_KEYS });
     expect((calls[0].init?.headers as Record<string, string>).Authorization).toBe("Bearer tok");
     await flush();
     await flush();
-    expect(calls[3].url).toBe("https://x.supabase.co/rest/v1/rpc/public_profile_by_handle");
-    expect(JSON.parse(String(calls[3].init?.body))).toEqual({ p_handle: "pat" });
+    expect(calls[5].url).toBe("https://x.supabase.co/rest/v1/rpc/public_profile_by_handle");
+    expect(JSON.parse(String(calls[5].init?.body))).toEqual({ p_handle: "pat" });
+  });
+
+  it("also asks useCurrentUser's two rows and hands them over once, to the same member (Builder 2, 11-15)", async () => {
+    const row = { user_id: UID, handle: "pat" };
+    stubFetch((u) => (u.includes("select=*") ? ok([row]) : u.includes("user_roles") ? ok([]) : happy(u)));
+    startProfilePrefetch("/profile", "");
+    expect(await takeJobsMePrefetch("someone-else")).toBeNull();
+    startProfilePrefetch("/profile", "");
+    expect(await takeJobsMePrefetch(UID)).toEqual({ profile: row, isAdmin: false });
+    expect(await takeJobsMePrefetch(UID)).toBeNull();
+    // A failed admin read hands nothing over: useCurrentUser reads (and fails closed) as before.
+    stubFetch((u) => (u.includes("select=*") ? ok([row]) : happy(u)));
+    startProfilePrefetch("/profile", "");
+    expect(await takeJobsMePrefetch(UID)).toBeNull();
   });
 
   it("hands each answer over once, to the same member, the same handle, while fresh", async () => {
@@ -181,6 +201,7 @@ describe("the entry asks the You landing's gated reads at once", () => {
     // No slot: the door answers null and loads nothing.
     const take = await import("@/lib/profileBootTake");
     delete (window as unknown as Record<string, unknown>)[PROFILE_PREFETCH_KEY];
+  delete (window as unknown as Record<string, unknown>).__lhJobsPrefetch;
     stubFetch(happy);
     expect(await take.takeProfileSwitches(UID)).toBeNull();
     expect(await take.takeProfileSectionsOpen()).toBeNull();
@@ -204,6 +225,7 @@ describe("the entry asks the You landing's gated reads at once", () => {
       return { takeProfileSwitches: async () => null, takeProfileSectionsOpen: async () => null, takeProfilePage: async () => null };
     });
     delete (window as unknown as Record<string, unknown>)[PROFILE_PREFETCH_KEY];
+  delete (window as unknown as Record<string, unknown>).__lhJobsPrefetch;
     const take = await import("@/lib/profileBootTake");
     expect(await take.takeProfileSwitches(UID)).toBeNull();
     expect(await take.takeProfileSectionsOpen()).toBeNull();
@@ -214,6 +236,7 @@ describe("the entry asks the You landing's gated reads at once", () => {
     await take.takeProfileSectionsOpen();
     expect(loads).toEqual(["hand-over"]);
     delete (window as unknown as Record<string, unknown>)[PROFILE_PREFETCH_KEY];
+  delete (window as unknown as Record<string, unknown>).__lhJobsPrefetch;
     vi.doUnmock("@/lib/profileBootPrefetch");
   });
 });

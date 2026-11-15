@@ -346,7 +346,17 @@ export default defineConfig(({ mode, command }) => ({
         if (!chunk) throw new Error("lh-signed-in-prefetch-url: no chunk for src/boot/signedInPrefetch.ts");
         const meta = '<meta name="lh-signed-in-prefetch" content="" />';
         if (!html.includes(meta)) throw new Error("lh-signed-in-prefetch-url: index.html has no empty lh-signed-in-prefetch meta");
-        return html.replace(meta, `<meta name="lh-signed-in-prefetch" content="/${chunk.fileName}" />`);
+        // Same for /profile's page boot chunk (src/boot/profileRoute.ts): the head starts Profile's chunk tree for a
+        // member, a round before the entry would have asked for it (see the script beside the meta).
+        const profile = Object.values(ctx.bundle ?? {}).find(
+          (c) => c.type === "chunk" && norm(c.facadeModuleId ?? "").endsWith("/src/boot/profileRoute.ts"),
+        );
+        if (!profile) throw new Error("lh-signed-in-prefetch-url: no chunk for src/boot/profileRoute.ts");
+        const profileMeta = '<meta name="lh-profile-route" content="" />';
+        if (!html.includes(profileMeta)) throw new Error("lh-signed-in-prefetch-url: index.html has no empty lh-profile-route meta");
+        return html
+          .replace(meta, `<meta name="lh-signed-in-prefetch" content="/${chunk.fileName}" />`)
+          .replace(profileMeta, `<meta name="lh-profile-route" content="/${profile.fileName}" />`);
       },
     } satisfies Plugin,
     // Q2705 (11-09): index.html's history comments ship to no one: 29% of the built page's brotli bytes, all ahead

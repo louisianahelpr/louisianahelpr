@@ -130,8 +130,9 @@ describe("signed-in /jobs' first reads start from the entry (B43, Q1158)", () =>
       .filter((f) => !/\.test\.tsx?$/.test(f))
       .filter((f) => /(from ["']|import\(["'])(@\/boot|\.\/boot|\.\.?\/)[^"']*jobsPrefetch["']/.test(code(f.replace(ROOT + "/", ""))))
       .map((f) => f.replace(ROOT + "/", ""));
-    // homePrefetch.ts (Q2705, 11-15) borrows the account-read URLs and the "me" slot; it is itself entry-only.
-    expect(importers).toEqual(["src/boot/homePrefetch.ts", "src/boot/signedInPrefetch.ts"]);
+    // homePrefetch.ts (Q2705, 11-15) and profilePrefetch.ts (Builder 2, 11-15) borrow the account-read URLs and the "me"
+    // slot; both are themselves entry-only.
+    expect(importers).toEqual(["src/boot/homePrefetch.ts", "src/boot/profilePrefetch.ts", "src/boot/signedInPrefetch.ts"]);
     // The feed query takes the first page only, and the context its four reads.
     const dash = code("src/hooks/useDashboardData.ts");
     expect(dash).toContain("feedPre = offset === 0 && user ? await takeJobsFeedPrefetch(user.id) : null;");

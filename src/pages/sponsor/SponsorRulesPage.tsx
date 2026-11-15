@@ -54,13 +54,17 @@ export default function SponsorRulesPage() {
     meta: { persist: false },
   });
 
+  // Q169 (page-settle @1440, prod-audit 43691657529: CLS 0.1417): React reuses this div for the rules column, and the
+  // full-width spinner box (1440 wide, 60vh tall) became the 760px centred column, so its left edge jumped 340px
+  // (impact 0.60 x distance 0.236). The spinner and the error now sit IN the rules column (lh25-rules), so the box
+  // keeps its place and only its contents change. Guard: src/pages/sponsor/sponsorRulesLoadingInColumn.test.tsx.
   if (!backend || q.isPending) {
-    return <div className="lh25 min-h-screen bg-premium-page"><SponsorChrome /><div className="lh25-loading" role="status"><span className="lh25-spinner" aria-hidden="true" /> Loading…</div></div>;
+    return <div className="lh25 min-h-screen bg-premium-page"><SponsorChrome /><div className="lh25-rules lh25-loading" role="status"><span className="lh25-spinner" aria-hidden="true" /> Loading…</div></div>;
   }
   if (q.isError) {
     return (
       <div className="lh25 min-h-screen bg-premium-page"><SponsorChrome />
-        <div className="lh25-loading" role="alert">
+        <div className="lh25-rules lh25-loading" role="alert">
           <ReportErrorScreen source="SponsorRulesPage" title="We couldn't load the rules" />
           <p>We couldn't load the rules. Check your connection and try again.</p>
           <Button type="button" variant="ghost" className="lh25-btn lh25-btn-primary" onClick={() => void q.refetch()}>Try again</Button>

@@ -13,14 +13,16 @@
  *
  * The route-table walk: every route in src/App.tsx that a signed-out visitor can open (no ProtectedRoute, or
  * ProtectedRoute allowGuest, or DeclutterGuestOrMember) is a document-scroll public page, a guest-scroll route, a
- * guest public-frame route, a redirect, or one of the exact NOT_YET_FRAMED routes below (each measured, each still
- * open under Q2784).
+ * guest public-frame route, a redirect, or one of the exact NOT_YET_FRAMED routes below (empty since 11-15, when
+ * /shops/:id and /book/:userId joined the frame; a new unframed guest route fails here).
  *
  * @mutate src/components/AppPage.tsx |   const guestFrame = useGuestPublicFrame(); |   const guestFrame = false;
  * @mutate src/components/sections/SectionScreen.tsx |   const guestFrame = useGuestPublicFrame(); |   const guestFrame = false;
  * @mutate src/components/sections/SectionScreen.tsx |             className="sticky z-30 -mx-5 | className="z-30 -mx-5
  * @mutate src/hooks/useAppShellViewport.ts | \|\| (framedGuest && isGuestPublicFrameRoute(pathname))) { | ) {
- * @mutate src/lib/guestPublicFrame.ts | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search", "/jobs/"] as const; | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/helprs", "/search", "/jobs/"] as const;
+ * @mutate src/lib/guestPublicFrame.ts | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search", "/jobs/", "/shops/", "/book/"] as const; | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/helprs", "/search", "/jobs/", "/shops/", "/book/"] as const;
+ * @mutate src/lib/guestPublicFrame.ts | "/jobs/", "/shops/", "/book/"] as const; | "/jobs/"] as const;
+ * @mutate src/lib/guestPublicFrame.ts | const NOT_GUEST_PAGES = ["/jobs/settings", "/shops/mine", "/shops/orders", "/shops/dashboard"]; | const NOT_GUEST_PAGES = ["/jobs/settings"];
  * @mutate src/lib/guestPublicFrame.ts |   !NOT_GUEST_PAGES.includes(pathname) && |
  * @mutate src/lib/guestPublicFrame.ts | export const isGuestViewer = (user: unknown, isReady: boolean): boolean => (isReady ? !user : definitelyGuest()); | export const isGuestViewer = (user: unknown, isReady: boolean): boolean => !user;
  */
@@ -65,8 +67,8 @@ beforeEach(() => {
   document.documentElement.classList.add("app-shell");
 });
 
-/** Guest-reachable routes that still wear AppShell or no public frame for a guest; open under Q2784. Exact. */
-const NOT_YET_FRAMED = ["/shops/:id", "/book/:userId"];
+/** Guest-reachable routes that still wear AppShell or no public frame for a guest. Exact; empty since 11-15 (Q2784). */
+const NOT_YET_FRAMED: string[] = [];
 /** A route pattern with each :param filled, to ask the matchers. */
 const sample = (path: string) => path.replace(/:[A-Za-z]+/g, "x1");
 
@@ -86,7 +88,7 @@ describe("signed-out pages wear the public frame and scroll the document (Q2784,
       })
       .map(({ path }) => path);
     expect([...new Set(unframed)].sort()).toEqual([...NOT_YET_FRAMED].sort());
-    for (const p of ["/declutter", "/declutter/item/:id", "/hire/:service/:town", "/helprs", "/search", "/jobs/:id"]) {
+    for (const p of ["/declutter", "/declutter/item/:id", "/hire/:service/:town", "/helprs", "/search", "/jobs/:id", "/shops/:id", "/book/:userId"]) {
       expect(isGuestPublicFrameRoute(sample(p)), p).toBe(true);
     }
     // A member-only page under /declutter stays off: the guest is sent to log in there.
@@ -94,11 +96,12 @@ describe("signed-out pages wear the public frame and scroll the document (Q2784,
     expect(isGuestPublicFrameRoute("/declutter/item/")).toBe(false);
     expect(isGuestPublicFrameRoute("/jobs/settings")).toBe(false);
     expect(isGuestPublicFrameRoute("/jobs")).toBe(false);
-    expect(GUEST_PUBLIC_FRAME_ROUTES.length).toBe(6);
+    for (const p of ["/shops", "/shops/mine", "/shops/orders", "/shops/dashboard", "/book/"]) expect(isGuestPublicFrameRoute(p), p).toBe(false);
+    expect(GUEST_PUBLIC_FRAME_ROUTES.length).toBe(8);
   });
 
   it("guest: AppPage (item page, /helprs, /search) draws the public header and footer, not AppShell", () => {
-    for (const path of ["/helprs", "/search", "/declutter/item/abc"]) {
+    for (const path of ["/helprs", "/search", "/declutter/item/abc", "/shops/abc", "/book/abc"]) {
       const { container, unmount } = render(<AppPage title="T">body</AppPage>, { wrapper: at(path) });
       expect(frameOf(container), path).toBe("public");
       expect(container.querySelector("nav[aria-label=Primary]"), path).not.toBeNull();
@@ -143,7 +146,7 @@ describe("signed-out pages wear the public frame and scroll the document (Q2784,
   });
 
   it("the html lock comes off for a guest on each page (the window scrolls), and stays for a member", () => {
-    for (const path of ["/declutter", "/declutter/item/abc", "/hire/assembly/baton-rouge", "/helprs", "/search", "/jobs/abc"]) {
+    for (const path of ["/declutter", "/declutter/item/abc", "/hire/assembly/baton-rouge", "/helprs", "/search", "/jobs/abc", "/shops/abc", "/book/abc"]) {
       document.documentElement.classList.add("app-shell");
       const { unmount } = renderHook(() => useAppShellViewport(), { wrapper: at(path) });
       expect(locked(), path).toBe(false);

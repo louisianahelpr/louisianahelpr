@@ -28,3 +28,7 @@ export const NEVER_STRANDED_PREFIXES: string[];
 export const READY_QUEUE_PREFIX: string;
 export const READY_QUEUE_GRACE_HOURS: number;
 export function waitingForTrain(name: string, ageHours: number): boolean;
+export function parsePatchIds(out: string): Map<string, string>;
+export function cherryFromIndex(commits: { sha: string; subject: string }[], branchIds: Map<string, string>, mainIds: Set<string>, verbose?: boolean): string;
+export function patchIdsOf(range: string, cwd?: string): Map<string, string>;
+export function cherryIndexedGit(gitFn: (args: string[]) => string, idsOf?: (range: string) => Map<string, string>): (args: string[]) => string;

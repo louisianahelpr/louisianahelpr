@@ -18,14 +18,19 @@
  * with the migration applied 3x; 5 FAIL on main). This guard pins, from the
  * NEWEST definition, that the grace stays narrow.
  *
- * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |            (resp.status_code IN (502, 503)\n |           (resp.status_code >= 500\n
- * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |             AND tag.jobname = ANY (ARRAY['declutter-money', 'refund-request-sweep'])\n |            AND true\n
- * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |             AND resp.headers IS NOT NULL\n |            AND true\n
- * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |                          WHERE lower(h.key) = 'content-type' AND lower(h.value) LIKE 'text/html%') |                         WHERE true)
- * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |             AND NOT EXISTS (SELECT 1 FROM jsonb_each_text(resp.headers) h\n                             WHERE lower(h.key) IN ('x-served-by', 'x-deno-execution-id'))) AS gateway_5xx, |            AND true) AS gateway_5xx,
- * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |       IF r.gateway_5xx AND r.later_success THEN | IF r.gateway_5xx THEN
- * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |       ELSIF r.gateway_5xx AND r.created > now() - interval '30 minutes' THEN |       ELSIF r.gateway_5xx THEN
- * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |                             'gateway_5xx_skipped', v_gw, |                             'gateway_5xx_skipped_x', v_gw,
+ * Q2798 (20261115032241): a Cloudflare 520 page (error_logs e0add5d4, 2026-11-11 18:30Z, stuck-payment-check) is the
+ * same gateway blip, and stuck-payment-check is a catch-up sweep (each run reads every unpaid job aged 5 min to 24 h),
+ * so 520 joins 502/503 and the job joins the list; proof src/test/pglite/cronGateway520StuckPaymentCheck.pglite.mjs
+ * (14 PASS applied 3x, 6 FAIL on main).
+ *
+ * @mutate supabase/migrations/20261115032241_cron_gateway_520_stuck_payment_check.sql |            (resp.status_code IN (502, 503, 520)\n |           (resp.status_code >= 500\n
+ * @mutate supabase/migrations/20261115032241_cron_gateway_520_stuck_payment_check.sql |             AND tag.jobname = ANY (ARRAY['declutter-money', 'refund-request-sweep', 'stuck-payment-check'])\n |            AND true\n
+ * @mutate supabase/migrations/20261115032241_cron_gateway_520_stuck_payment_check.sql |             AND resp.headers IS NOT NULL\n |            AND true\n
+ * @mutate supabase/migrations/20261115032241_cron_gateway_520_stuck_payment_check.sql |                          WHERE lower(h.key) = 'content-type' AND lower(h.value) LIKE 'text/html%') |                         WHERE true)
+ * @mutate supabase/migrations/20261115032241_cron_gateway_520_stuck_payment_check.sql |             AND NOT EXISTS (SELECT 1 FROM jsonb_each_text(resp.headers) h\n                             WHERE lower(h.key) IN ('x-served-by', 'x-deno-execution-id'))) AS gateway_5xx, |            AND true) AS gateway_5xx,
+ * @mutate supabase/migrations/20261115032241_cron_gateway_520_stuck_payment_check.sql |       IF r.gateway_5xx AND r.later_success THEN | IF r.gateway_5xx THEN
+ * @mutate supabase/migrations/20261115032241_cron_gateway_520_stuck_payment_check.sql |       ELSIF r.gateway_5xx AND r.created > now() - interval '30 minutes' THEN |       ELSIF r.gateway_5xx THEN
+ * @mutate supabase/migrations/20261115032241_cron_gateway_520_stuck_payment_check.sql |                             'gateway_5xx_skipped', v_gw, |                             'gateway_5xx_skipped_x', v_gw,
  */
 import { describe, it, expect } from "vitest";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -39,16 +44,16 @@ const body = () => blankSqlComments(defs.get("sweep_cron_http_failures")!.stmt).
 describe("a gateway 5xx that never reached the function needs a repeat to page", () => {
   it("reads the real, newest definition (floor)", () => {
     expect(defs.size).toBeGreaterThan(400);
-    expect(defs.get("sweep_cron_http_failures")?.file).toBe("20261027141932_cron_gateway_5xx_needs_a_repeat.sql");
+    expect(defs.get("sweep_cron_http_failures")?.file).toBe("20261115032241_cron_gateway_520_stuck_payment_check.sql");
   });
 
-  it("the candidate is a text/html 502/503 WITHOUT the edge runtime's stamp, on a listed catch-up sweep, and nothing wider", () => {
+  it("the candidate is a text/html 502/503/520 WITHOUT the edge runtime's stamp, on a listed catch-up sweep, and nothing wider", () => {
     expect(body()).toContain(
-      "(resp.status_code IN (502, 503) AND tag.jobname = ANY (ARRAY['declutter-money', 'refund-request-sweep']) AND resp.headers IS NOT NULL AND EXISTS (SELECT 1 FROM jsonb_each_text(resp.headers) h WHERE lower(h.key) = 'content-type' AND lower(h.value) LIKE 'text/html%') AND NOT EXISTS (SELECT 1 FROM jsonb_each_text(resp.headers) h WHERE lower(h.key) IN ('x-served-by', 'x-deno-execution-id'))) AS gateway_5xx",
+      "(resp.status_code IN (502, 503, 520) AND tag.jobname = ANY (ARRAY['declutter-money', 'refund-request-sweep', 'stuck-payment-check']) AND resp.headers IS NOT NULL AND EXISTS (SELECT 1 FROM jsonb_each_text(resp.headers) h WHERE lower(h.key) = 'content-type' AND lower(h.value) LIKE 'text/html%') AND NOT EXISTS (SELECT 1 FROM jsonb_each_text(resp.headers) h WHERE lower(h.key) IN ('x-served-by', 'x-deno-execution-id'))) AS gateway_5xx",
     );
-    // Exactly the two jobs measured as catch-up sweeps (every RPC they call is a *_due / *_sweep reader).
+    // Exactly the jobs measured as catch-up sweeps (every RPC they call is a *_due / *_sweep reader; stuck-payment-check reads every unpaid job aged 5 min to 24 h).
     const list = /tag\.jobname = ANY \(ARRAY\[([^\]]*)\]\)/.exec(body())?.[1] ?? "";
-    expect(list.split(",").map((x) => x.trim())).toEqual(["'declutter-money'", "'refund-request-sweep'"]);
+    expect(list.split(",").map((x) => x.trim())).toEqual(["'declutter-money'", "'refund-request-sweep'", "'stuck-payment-check'"]);
   });
 
   it("skipped only after a later success; young ones wait 30 minutes; the rest are filed", () => {

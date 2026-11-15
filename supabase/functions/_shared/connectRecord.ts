@@ -68,3 +68,56 @@ export async function recordConnectFailure(
   });
   if (error) console.error(`[connect-record] could not record a stripe-connect 500 (${r.action}): ${error.message}`);
 }
+
+/**
+ * Q2794 (lead + owner 2026-11-14; lh-money-escrow): every place a member can be owed money, or have been paid, keyed
+ * by that member. A stale payout-account clear pages ops only when one of these holds a row for the member; otherwise
+ * the clear is a record (tags.money_history false is record-only in public.error_log_is_record_only). Columns read on
+ * prod 2026-11-14 (information_schema). `in` narrows a source to the states that mean money, `neq` drops the one that
+ * does not; a source with neither counts every row.
+ * A new money table belongs here: src/test/edge/stripeConnectStaleClearMoneyHistory.test.ts holds the list.
+ */
+export const MONEY_HISTORY_SOURCES: ReadonlyArray<{ table: string; member: string; in?: { column: string; values: string[] }; neq?: { column: string; value: string } }> = [
+  { table: "payout_transfers", member: "helper_id" },
+  { table: "payout_payee_waits", member: "payee_id" },
+  { table: "payout_holds", member: "helper_id" },
+  { table: "instant_payouts", member: "helper_id" },
+  // Every jobs.payment_status the CHECK allows that can mean money for the Helpr (cancelling: a fee may be owed).
+  { table: "jobs", member: "helper_id", in: { column: "payment_status", values: ["escrow", "held", "payout_pending", "released", "cancelling", "chargeback"] } },
+  // Every tip but a failed one (prod 2026-11-14: paid 16, failed 3, pending 1); an unknown future state still counts.
+  { table: "tips", member: "helper_id", neq: { column: "payment_status", value: "failed" } },
+  { table: "helpr_task_tips", member: "helpr_id" },
+  { table: "cancellation_fee_transfers", member: "helper_id" },
+  { table: "crew_cancellation_fee_shares", member: "helper_id" },
+  { table: "referral_credits", member: "user_id" },
+  { table: "declutter_orders", member: "seller_id", in: { column: "status", values: ["paid", "handed_over"] } },
+  { table: "declutter_payouts", member: "seller_id" },
+  { table: "declutter_manager_payouts", member: "manager_id" },
+  { table: "shipping_claim_payouts", member: "seller_id" },
+  { table: "shop_orders", member: "seller_id" },
+  { table: "helpr_task_payouts", member: "helpr_id" },
+  { table: "provider_payouts", member: "payee_user_id" },
+];
+
+/**
+ * Has this member any money history (MONEY_HISTORY_SOURCES)? Any read that errors, answers oddly or throws (even
+ * while the queries are being built) answers true, so a doubt still pages.
+ */
+export async function memberHasMoneyHistory(db: Db, userId: string): Promise<boolean> {
+  try {
+    const reads = await Promise.all(MONEY_HISTORY_SOURCES.map((src) => {
+      let q = db.from(src.table).select(src.member).eq(src.member, userId);
+      if (src.in) q = q.in(src.in.column, src.in.values);
+      if (src.neq) q = q.neq(src.neq.column, src.neq.value);
+      return q.limit(1);
+    }));
+    for (const r of reads as { data: unknown[] | null; error: unknown }[]) {
+      if (r.error || !Array.isArray(r.data)) return true;
+      if (r.data.length > 0) return true;
+    }
+    return false;
+  } catch {
+    // A doubt pages: the caller tags the clear money_history true.
+    return true;
+  }
+}

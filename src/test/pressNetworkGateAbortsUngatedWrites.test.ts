@@ -160,8 +160,9 @@ describe("the press sweep's network gate aborts every write an ungated press set
       if (!isReadRpcPath(path) && !isDeclaredReadRpcPath(path) && !(path in safety.PRESS_PASS_THROUGH_RPCS) && kind("POST", path) === "read") leaks.push(`rpc ${name}`);
     }
     expect(leaks).toEqual([]);
-    // Exact: the one pass-through RPC (run 42362289081, 2026-11-07). A new entry needs its own measured reason.
-    expect(Object.keys(safety.PRESS_PASS_THROUGH_RPCS)).toEqual(["/rest/v1/rpc/rpc_ensure_my_handle"]);
+    // Exact: the pass-through RPCs (run 42362289081, 2026-11-07; shops_my_custom_requests, runs 43007456468 and
+    // 43584967592, 2026-11-14). A new entry needs its own measured reason.
+    expect(Object.keys(safety.PRESS_PASS_THROUGH_RPCS)).toEqual(["/rest/v1/rpc/rpc_ensure_my_handle", "/rest/v1/rpc/shops_my_custom_requests"]);
   });
 
   it("the exception lists are exact: each names something the app really calls", () => {

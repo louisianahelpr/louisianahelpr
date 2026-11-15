@@ -316,6 +316,8 @@ export const SENTRY_PROBE_RX = /uncaught:\s*Sentry uncaught test\b/i;
  */
 /** The `why` prefix of a press the network gate caught writing ungated (networkGate). */
 export const GATE_MISS = "GATE MISS";
+/** How long a missing control may take to mount after a reload: whenPageSettled's 10 s cap plus 1 s (see its use). */
+export const SETTLED_MOUNT_MS = 11_000;
 /**
  * THE NETWORK GATE (lead, 2026-10-17): the guarantee under the words.
  * `handler` goes on the browser context with ctx.route(PRESS_WRITE_SURFACE_RX);
@@ -1164,6 +1166,7 @@ export const SNAPSHOT = ({ overlaySel }) => {
     body: (document.body.innerText || "").length,
     overlays: document.querySelectorAll(overlaySel).length,
     toasts: document.querySelectorAll("[data-sonner-toast]").length,
+    prints: window.__lhPrints || 0,
     errorToasts: [...document.querySelectorAll('[data-sonner-toast][data-type="error"]')].map((t) => (t.innerText || "").trim().slice(0, 120)),
     inputs: document.querySelectorAll("input, textarea, select").length,
     state: [...document.querySelectorAll('[role="switch"], [aria-checked], [aria-expanded], [aria-selected], [aria-pressed], input, select, textarea, details')]
@@ -1456,6 +1459,13 @@ async function main() {
         serviceWorkers: "block",
       });
       await ctx.addInitScript((t) => { try { localStorage.setItem("helpr-theme", t); localStorage.setItem("helpr_welcomed", "1"); } catch { /* blocked */ } }, THEME);
+      /**
+       * THE PRINT DIALOG IS AN OUTCOME (press-every-control 43007456468 / 43584967592: Work record's "Print" scored
+       * "no observable change"). The button called window.print(), which a headless browser answers with nothing, the
+       * way the OS file chooser is browser chrome the DOM never sees. Each call is counted (SNAPSHOT.prints) instead of
+       * opening anything; a Print button that never calls it still fails.
+       */
+      await ctx.addInitScript(() => { window.print = () => { window.__lhPrints = (window.__lhPrints || 0) + 1; }; });
       if (session) {
         await ctx.addInitScript(([k, v]) => {
           try {
@@ -2027,6 +2037,16 @@ async function main() {
             }
           }
           if (!(await target.count())) {
+            /**
+             * A CONTROL THE PAGE ADDS ONCE IT HAS SETTLED. press-every-control 43007456468 and 43584967592, / (anon):
+             * "Continue with Apple" FAILED "control not found" on the reload. The landing fetches that button only
+             * once the page has settled (SectionsShowcase TrustAndJoin -> whenPageSettled, src/lib/routePrefetch.ts:
+             * 1 s without a new resource, at most 10 s after load), later than settle() returns. Wait that long for
+             * it before calling it gone; a control that never comes back still fails below.
+             */
+            await target.first().waitFor({ state: "attached", timeout: SETTLED_MOUNT_MS }).catch(() => {});
+          }
+          if (!(await target.count())) {
             entry.result = "FAIL"; entry.why = "control not found on a freshly loaded page (transient or non-deterministic DOM)";
             // What the reloaded screen DID hold, so the log alone can tell a
             // virtualized row that is not mounted from a row that is gone
@@ -2354,6 +2374,7 @@ async function main() {
             popups.length > pop0 ? `opened a new tab (${popups[pop0]})` :
             downloads.length > dl0 ? `started a download (${downloads[dl0]})` :
             fileChoosers.length > fc0 ? "opened the OS file chooser" :
+            (after.prints ?? 0) > (before.prints ?? 0) ? "opened the print dialog" :
             after.overlays > before.overlays ? "opened an overlay" :
             after.overlays < before.overlays ? "closed the overlay" :
             after.toasts > before.toasts ? "showed a toast" :

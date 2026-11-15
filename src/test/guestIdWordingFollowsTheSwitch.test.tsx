@@ -23,7 +23,7 @@ const rpc = vi.hoisted(() => vi.fn());
 const memberOn = vi.hoisted(() => ({ on: false }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => auth }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a) } }));
-vi.mock("@/lib/identityCheckSwitch", () => ({ useIdentityCheckOnStore: () => memberOn.on }));
+vi.mock("@/lib/identityCheckSwitch", () => ({ useIdentityCheckLastAnswerStore: () => memberOn.on }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.unmock("@/lib/guestIdCheckAnswer"); // src/test/setup.ts answers null for every other test
 

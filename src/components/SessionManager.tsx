@@ -12,7 +12,7 @@ import { useAppLifecycle } from "@/lib/appLifecycle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { loadModule, untilReload } from "@/lib/loadModule";
-import { whenPageSettled } from "@/lib/routePrefetch";
+import { whenPageSettled } from "@/lib/pageSettled";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).

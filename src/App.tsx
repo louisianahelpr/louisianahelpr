@@ -5,7 +5,7 @@ import { RoutedBoundary } from "@/components/RoutedBoundary";
 import { lazyWithPreload } from "@/lib/lazyWithPreload";
 // Q1816: every lazy piece mounted beside the routes (outside RoutedBoundary) fails quietly; guard chromeLaziesFailQuietly.
 import { optionalLazy } from "@/lib/optionalLazy";
-import { whenPageSettled } from "@/lib/routePrefetch";
+import { whenPageSettled } from "@/lib/pageSettled";
 import { loadAnimatedPageTransition, RoutePageTransition } from "@/components/RoutePageTransition";
 import { HomeShellLeaves } from "@/components/landing/HomeShellLeaves";
 

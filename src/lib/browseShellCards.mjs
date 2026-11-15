@@ -60,7 +60,7 @@ export const SHELL_CATEGORY_LABELS = {
 
 /** The columns api/share.ts selects. Nothing else is read, so nothing else can reach the markup. */
 export const SHELL_JOB_COLUMNS =
-  "title,category,budget,location,status,expires_at,boost_expires_at,boosted_at,created_at,is_urgent,urgent_fee,is_group_job,helpers_needed,helper_fee_flat_cents,helper_fee_percent";
+  "title,category,budget,location,status,expires_at,boost_expires_at,boosted_at,created_at,is_urgent,urgent_fee,is_group_job,helpers_needed,helper_fee_flat_cents,helper_fee_percent,date_needed,date_window_end,start_time,is_flexible_schedule";
 
 /**
  * The anon REST read api/share.ts (and the lab's dist server, scripts/perf/cwv-lab.mjs) makes: the masked
@@ -166,8 +166,23 @@ export function shellTitleProblem(title) {
   return null;
 }
 
+/** COPY of src/lib/smartSort.ts's recency half-life (4 days); src/test/browseShellMatchesFirstRender.test.tsx pins the order equal. */
+const RECENCY_HALFLIFE_MS = 4 * 24 * 60 * 60 * 1000;
+
 /**
- * The rows the HTML may draw, in the feed's own lead order (urgent, then a live boost, then newest), at most
+ * The guest feed's default "smart" score (smartScore in src/lib/smartSort.ts) for a guest: recency (4-day half-life)
+ * plus log10(budget + 1). A guest has no location (no proximity bonus) and the view carries no poster tier (no
+ * placement bonus), so those two terms are 0 here as they are in the app.
+ */
+export function shellSmartScore(job, now = Date.now()) {
+  const ts = Date.parse(job.created_at);
+  const recency = Number.isFinite(ts) ? Math.pow(0.5, Math.max(0, now - ts) / RECENCY_HALFLIFE_MS) : 0;
+  const budget = typeof job.budget === "number" ? job.budget : Number(job.budget);
+  return recency + (Number.isFinite(budget) && budget > 0 ? Math.log10(budget + 1) : 0);
+}
+
+/**
+ * The rows the HTML may draw, in the feed's own first-render order, at most
  * SHELL_CARD_COUNT. Open only (an accepted crew with spots left is left to the app), not expired, a clean title,
  * a known category and town, a take-home. `is_seed` is not in the view: open_jobs_browse already hides seed jobs
  * from discovery (seed_hidden_in_discovery), and a seed row that still carries the flag is dropped here too.
@@ -184,14 +199,15 @@ export function selectShellJobs(rows, now = Date.now()) {
     shellTitleProblem(j.title) === null &&
     shellTakeHomeDollars(j) !== null,
   );
+  // The app's default sort (useDashboardFilters, "smart"): a live boost pins to the top, then the smart score, ties in
+  // the read's order. Urgent is a badge, not a queue-jump (owner 2026-08-29). The shell used to lead with urgent and
+  // then newest, so the cards reordered under the reader when the app took over (lead 11-14).
   const boosted = (j) => !!j.boost_expires_at && Date.parse(j.boost_expires_at) > now;
-  const created = (j) => Date.parse(j.created_at) || 0;
   return live
-    .map((j, i) => ({ j, i }))
+    .map((j, i) => ({ j, i, score: shellSmartScore(j, now) }))
     .sort((a, b) =>
-      Number(!!b.j.is_urgent) - Number(!!a.j.is_urgent) ||
       Number(boosted(b.j)) - Number(boosted(a.j)) ||
-      created(b.j) - created(a.j) ||
+      b.score - a.score ||
       a.i - b.i)
     .slice(0, SHELL_CARD_COUNT)
     .map(({ j }) => j);
@@ -244,6 +260,64 @@ export const SHELL_CARD_CLASSES = {
   face: "mt-1 flex h-5 items-center gap-1.5 min-w-0 text-ds-11 text-muted-foreground",
 };
 
+const CAL_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar w-2.5 h-2.5 shrink-0" aria-hidden="true"><path d="M8 2v3"></path><path d="M16 2v3"></path><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18"></path></svg>';
+const CLOCK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock w-2.5 h-2.5 shrink-0" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>';
+const YMD = /^\d{4}-\d{2}-\d{2}$/;
+const utcDay = (ymd, opts) => {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", { ...opts, timeZone: "UTC" });
+};
+
+/** jobDayLabel (src/lib/jobDateWindow.ts): "Sun, Nov 29", or "Any day Nov 4-10" for a window; "" with no usable day. */
+export function shellDayLabel(job) {
+  const first = typeof job.date_needed === "string" ? job.date_needed.slice(0, 10) : "";
+  if (!YMD.test(first)) return "";
+  const end = typeof job.date_window_end === "string" ? job.date_window_end.slice(0, 10) : "";
+  if (!YMD.test(end) || end <= first) return utcDay(first, { weekday: "short", month: "short", day: "numeric" });
+  const a = utcDay(first, { month: "short", day: "numeric" });
+  const b = utcDay(end, { month: "short", day: "numeric" });
+  return `Any day ${a}-${a.split(" ")[0] === b.split(" ")[0] ? b.split(" ")[1] : b}`;
+}
+
+/** jobStartTimeLabel (src/lib/jobDate.ts): "9:00 AM", "Flexible", "9:00 AM · Flexible", or null. */
+export function shellTimeLabel(startTime, isFlexible) {
+  const raw = typeof startTime === "string" ? startTime.trim() : "";
+  const flexible = raw.toLowerCase() === "flexible" || !!isFlexible;
+  if (!raw || raw.toLowerCase() === "flexible") return flexible ? "Flexible" : null;
+  const m = /^(\d{1,2}):(\d{2})/.exec(raw);
+  if (!m) return flexible ? "Flexible" : null;
+  const hour = Number(m[1]);
+  const minute = Number(m[2]);
+  if (hour > 23 || minute > 59) return flexible ? "Flexible" : null;
+  const clock = `${hour % 12 === 0 ? 12 : hour % 12}:${String(minute).padStart(2, "0")} ${hour >= 12 ? "PM" : "AM"}`;
+  return isFlexible ? `${clock} · Flexible` : clock;
+}
+
+/**
+ * The guest JobCard's "when" group (date · time, or Flexible), with the line break it takes below 360 px: without
+ * it the shell's cards were a line shorter than the app's, so the list and the footer jumped when the app took over
+ * (lead 11-14). src/test/browseShellMatchesFirstRender.test.tsx renders the real card for each case and requires the
+ * same text and the same element classes.
+ */
+export function shellWhenHtml(job) {
+  const day = shellDayLabel(job);
+  const time = shellTimeLabel(job.start_time, job.is_flexible_schedule);
+  const dayHtml = (label) => `<span class="flex items-center gap-1">${CAL_SVG}<span class="font-sans whitespace-nowrap">${escapeShellText(label)}</span></span>`;
+  let inner;
+  // JobCard's own test: no date_needed and no start_time (raw), whatever the Flexible tick says.
+  if (!job.date_needed && !job.start_time) inner = `<span class="flex items-center gap-1">${CAL_SVG}<span class="font-sans">Flexible</span></span>`;
+  else {
+    inner = day ? dayHtml(day) : "";
+    if (day && time) inner += '<span class="shrink-0 opacity-30">·</span>';
+    if (time) inner += `<span data-meta-time="true" class="shrink-0 flex items-center gap-1">${CLOCK_SVG}<span class="font-sans whitespace-nowrap">${escapeShellText(time)}</span></span>`;
+  }
+  return (
+    '<span aria-hidden="true" data-meta-break="true" class="hidden max-[359px]:block basis-full h-0.5"></span>' +
+    '<span class="shrink-0 opacity-30 max-[359px]:hidden">·</span>' +
+    `<span class="inline-flex shrink-0 items-center gap-x-2">${inner}</span>`
+  );
+}
+
 function cardHtml(job) {
   const c = SHELL_CARD_CLASSES;
   const label = escapeShellText(SHELL_CATEGORY_LABELS[job.category]);
@@ -258,7 +332,7 @@ function cardHtml(job) {
     `<h2 class="${c.title}" style="color:hsl(var(--ink-deep));letter-spacing:-0.02em">${title}</h2>` +
     `<div class="${c.chip}" style="background:hsl(var(--bark) / 0.1);border:0.5px solid hsl(var(--bark) / 0.28)">` +
     `<span class="${c.amount}" style="font-weight:800;color:hsl(var(--bark));letter-spacing:-0.02em"><span style="font-size:0.82em;vertical-align:0.02em;margin-right:0.5px">$</span>${net}</span></div>` +
-    `</div><div class="${c.metaWrap}"><div class="${c.metaRow}"><span class="${c.catLabel}"><span aria-hidden="true" class="w-3.5 h-3.5 shrink-0"></span><span class="font-sans truncate">${label}</span></span><span class="shrink-0 opacity-30">·</span><span class="flex items-center gap-1 min-w-[3.625rem] overflow-hidden"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-2.5 h-2.5 shrink-0" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg><span class="truncate font-sans min-w-[2.75rem]">${town}</span></span></div><div aria-hidden="true" class="${c.face}"></div></div>` +
+    `</div><div class="${c.metaWrap}"><div class="${c.metaRow}"><span class="${c.catLabel}"><span aria-hidden="true" class="w-3.5 h-3.5 shrink-0"></span><span class="font-sans truncate">${label}</span></span><span class="shrink-0 opacity-30">·</span><span class="flex items-center gap-1 min-w-[3.625rem] overflow-hidden"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-2.5 h-2.5 shrink-0" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg><span class="truncate font-sans min-w-[2.75rem]">${town}</span></span>${shellWhenHtml(job)}</div><div aria-hidden="true" class="${c.face}"></div></div>` +
     `</div></div></div></div></div>`
   );
 }

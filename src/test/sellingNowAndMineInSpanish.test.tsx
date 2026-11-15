@@ -68,7 +68,8 @@ describe("Selling now and the Buying/Selling chips follow the member's language 
 
   it("Declutter home's settings row, Sell pill, tab row name and More ways to sell read the dictionary", () => {
     // Selling's settings row and DECLUTTER_SETTINGS moved to declutterSellingParts.tsx (componentSizeRatchet, 2026-11-13).
-    const src = ["src/components/declutter/DeclutterHomeView.tsx", "src/components/declutter/declutterSellingParts.tsx"]
+    // A guest's Browse (its tab row name) moved to DeclutterGuestHome.tsx (Q2705, 2026-11-14).
+    const src = ["src/components/declutter/DeclutterHomeView.tsx", "src/components/declutter/declutterSellingParts.tsx", "src/components/declutter/DeclutterGuestHome.tsx"]
       .map((f) => blankComments(readFileSync(f, "utf8"))).join("\n");
     for (const k of ["decl.hv.moreWays", "decl.hv.settings", "decl.hv.settingsSub", "decl.hv.view", "decl.hv.sell"]) expect(src, k).toContain(`t("${k}")`);
     expect(src).not.toMatch(/"Declutter settings"|"Declutter view"|text="Sell"|"More ways to sell"|>Listing defaults/);

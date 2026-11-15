@@ -353,8 +353,9 @@ function specifierFor(src: ts.SourceFile, name: string): { spec: string; importe
         if (ts.isCallExpression(init)) {
           const text = init.getText();
           const m = /import\(\s*["']([^"']+)["']\s*\)/.exec(text);
-          // `lazy(() => import("./X").then((m) => ({ default: m.Named })))` loads the NAMED export.
-          const named = /\.then\(\s*\(?\s*(\w+)\s*\)?\s*=>\s*\(\s*\{\s*default:\s*\1\.(\w+)\s*\}\s*\)\s*\)/.exec(text);
+          // `lazy(() => import("./X").then((m) => ({ default: m.Named })))` loads the NAMED export, and so does the
+          // loadModule form `lazy(() => loadModule(() => import("./X")).then((m) => (m ? { default: m.Named } : untilReload())))`.
+          const named = /\.then\(\s*\(?\s*(\w+)\s*\)?\s*=>\s*\(\s*(?:\1\s*\?\s*)?\{\s*default:\s*\1\.(\w+)\s*\}/.exec(text);
           if (m) return { spec: m[1], imported: named ? named[2] : "default" };
         }
       }

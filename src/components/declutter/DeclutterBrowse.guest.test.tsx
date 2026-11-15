@@ -5,7 +5,7 @@
  * chips, the map's pins), nor Buying / Selling / Deliver / Wanted / Free or the settings gear.
  *
  * @mutate src/App.tsx | routeEl(<DeclutterGuestOrMember fallback={<DeclutterRouteSkeleton />}><DeclutterPage /></DeclutterGuestOrMember>, | routeEl(<ProtectedRoute fallback={<DeclutterRouteSkeleton />}><DeclutterPage /></ProtectedRoute>,
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   if (isLoading) return <DeclutterHomeSkeleton />;\n  return <DeclutterGuestHome />; |   return null;
+ * @mutate src/components/declutter/DeclutterHomeEntry.tsx |   if (isLoading) return <DeclutterHomeSkeleton />;\n  return <DeclutterGuestHome />; |   return null;
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | queryFn: () => fetchWatching(userId ?? ""), enabled: member }); | queryFn: () => fetchWatching(userId ?? "") });
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                   save={member ? { |                   save={true ? {
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |   const mapVisible = member && mapChoice; |   const mapVisible = mapChoice;
@@ -63,7 +63,7 @@ vi.mock("@/components/sections/SectionScreen", () => ({
 vi.mock("@/components/sections/BrowseEndCard", () => ({ BrowseEndCard: () => <p>end of the list</p> }));
 vi.mock("./DeclutterMap", () => ({ default: () => <p>THE MAP</p> }));
 
-import DeclutterHome from "./DeclutterHomeView";
+import DeclutterHome from "./DeclutterHomeEntry";
 import { DeclutterBrowse } from "./DeclutterBrowseView";
 
 function show(node: React.ReactNode) {

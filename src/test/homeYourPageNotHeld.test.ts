@@ -13,7 +13,8 @@
  *   card's read as soon as the profile names the handle, as Home does.
  *
  * @mutate src/pages/home/HomeDashboard.tsx |             {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" />}\n            {holdBelowNextUp && <HeldBlocksSkeleton side />}\n            {!holdBelowNextUp && <>\n | {holdBelowNextUp && <HeldBlocksSkeleton side />}\n            {!holdBelowNextUp && <>\n            {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mb-2" />}\n
- * @mutate src/pages/profile/Profile.tsx |     if (myHandle) void queryClient.prefetchQuery(publicPageQuery(myHandle)); |
+ * @mutate src/pages/profile/useProfileEarlyReads.ts |     if (myHandle) void queryClient.prefetchQuery(publicPageQuery(myHandle)); |
+ * @mutate src/pages/profile/Profile.tsx |   useProfileEarlyReads(myHandle, tab, userId); |
  * @mutate src/components/profile/ProfileLanding.tsx | <YourPageLink name={displayName?.trim().split(/\s+/)[0] ?? null} knownHandle={profile?.handle} /> | <YourPageLink name={displayName?.trim().split(/\s+/)[0] ?? null} />
  */
 import { readFileSync } from "node:fs";
@@ -23,6 +24,7 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 const home = blankComments(readFileSync("src/pages/home/HomeDashboard.tsx", "utf8"));
 const landing = blankComments(readFileSync("src/components/profile/ProfileLanding.tsx", "utf8"));
 const profilePage = blankComments(readFileSync("src/pages/profile/Profile.tsx", "utf8"));
+const earlyReads = blankComments(readFileSync("src/pages/profile/useProfileEarlyReads.ts", "utf8"));
 
 /** The first-visit hold's flag as Home declares it (so a rename cannot make the guard vacuous). */
 const HOLD = "holdBelowNextUp";
@@ -53,7 +55,9 @@ describe("the Your page card is never held behind the activity read (home and /p
   });
 
   it("/profile starts the card's read as soon as the profile names the handle, before the landing's skeleton lifts", () => {
-    const at = profilePage.indexOf("void queryClient.prefetchQuery(publicPageQuery(myHandle))");
+    // The read lives in useProfileEarlyReads (Profile.tsx stays under the 600-line component threshold).
+    expect(earlyReads).toContain("if (myHandle) void queryClient.prefetchQuery(publicPageQuery(myHandle));");
+    const at = profilePage.indexOf("useProfileEarlyReads(myHandle, tab, userId);");
     expect(at).toBeGreaterThan(-1);
     expect(profilePage).toMatch(/const myHandle = cachedProfile\?\.handle \?\? null;/);
     // Hooks run before the JSX; the landing (and the card in it) renders only once the skeleton lifts.

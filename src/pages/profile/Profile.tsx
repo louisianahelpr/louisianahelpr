@@ -31,7 +31,7 @@ import { useProfileTabQueries } from "./useProfileTabQueries";
 // dialogs are code-split so the Profile route chunk stays small — each is fetched the first time it shows. The full
 // non-landing tab router (and its lazy panel imports) lives in <ProfileTabPanels />; only the landing hero + delete dialog here.
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
-import { publicPageQuery } from "@/components/profile/YourPageLink";
+import { useProfileEarlyReads } from "./useProfileEarlyReads";
 import SectionBoundary from "@/components/SectionBoundary";
 import { ProfileTabPanels } from "./ProfileTabPanels";
 import type { Profile, Tab } from "./types";
@@ -41,7 +41,6 @@ import { ProfileLoadingShell } from "./ProfileLoadingShell";
 import { PAGE_COLUMN } from "@/lib/pageColumn";
 import { isEarnedJob } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { queryKeys } from "@/lib/queryKeys";
-import { fetchSmsConsent, smsConsentQueryKey } from "@/lib/smsConsentQuery";
 import { joinName } from "@/lib/splitName";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 
@@ -67,14 +66,7 @@ const ProfilePage = () => {
   const lateReadsSettled = useLandingLateReadsSettled((profile ?? cachedProfile)?.handle, shopsSwitch.on || rentalsSwitch.on);
   const landingReady = useArrivalGate(!loading, declutterSwitch.settled && shopsSwitch.settled && rentalsSwitch.settled && lateReadsSettled);
   const showSkeleton = tab === "landing" ? !landingReady : loading;
-  // /profile LCP (lead 11-15): the Your page card's line is this page's largest paint, and the card mounts only once
-  // the landing's skeleton lifts (the switches above, ~1 s after the profile row on Slow 4G). Ask whether the page
-  // opens as soon as the profile names the handle, with the card's own query options, as Home does; the card then
-  // draws from the cache. Guard: src/test/homeYourPageNotHeld.test.ts.
   const myHandle = cachedProfile?.handle ?? null;
-  useEffect(() => {
-    if (myHandle) void queryClient.prefetchQuery(publicPageQuery(myHandle));
-  }, [myHandle, queryClient]);
 
   // Fall back to the id useAuthReady already holds. The local `user` state is
   // only populated once `authLoading` flips false — i.e. after the profiles +
@@ -86,13 +78,8 @@ const ProfilePage = () => {
   // The page skeleton still waits on `loading`, so nothing renders half-
   // populated; the requests are simply already in flight when it clears.
   const userId = user?.id ?? cachedUser?.id;
-  // Q2706 (11-05): Notifications' largest paint waited on the text-alerts consent read, which the card only started
-  // after the tab's chunks loaded. Start it here, as soon as the member and the tab are known; the card mounts with
-  // its answer (src/lib/smsConsentQuery.ts, src/test/notificationsConsentReadStartsEarly.test.ts).
-  useEffect(() => {
-    if (tab !== "notifications" || !userId) return;
-    void queryClient.prefetchQuery({ queryKey: smsConsentQueryKey(userId), queryFn: fetchSmsConsent });
-  }, [tab, userId, queryClient]);
+  // The Your page card's read (/profile LCP) and Notifications' consent read (Q2706) start before their cards mount.
+  useProfileEarlyReads(myHandle, tab, userId);
 
   const {
     statsQuery,

@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { shareNative, type ShareOutcome } from "@/lib/nativeShare";
 import { rpcErrorMessage } from "./errorCopy";
+import { takeProfilePage } from "@/lib/profileBootPrefetch";
 
 /** What a caller shows when a call fails: the code's words, or a plain fallback. */
 type HandleResult = { handle: string; error?: undefined } | { handle?: undefined; error: string };
@@ -136,10 +137,16 @@ type WireListing = Omit<PublicListing, "current_price_cents"> & { price_cents: n
 
 /** The page for a handle, or null when there is none to show (unknown, hidden or a test member). Throws on a network fault. */
 export async function fetchPublicProfile(handle: string): Promise<PublicProfile | null> {
-  const { data, error } = await supabase.rpc("public_profile_by_handle", { p_handle: handle });
-  if (error) {
-    if (isMissingRpcNamed(error, "public_profile_by_handle")) return null;
-    throw new Error(GENERIC);
+  // A cold You landing asked for the member's own page from the entry (src/boot/profilePrefetch.ts); taken once.
+  const boot = await takeProfilePage(handle);
+  let data: unknown = boot?.data;
+  if (!boot) {
+    const res = await supabase.rpc("public_profile_by_handle", { p_handle: handle });
+    if (res.error) {
+      if (isMissingRpcNamed(res.error, "public_profile_by_handle")) return null;
+      throw new Error(GENERIC);
+    }
+    data = res.data;
   }
   const raw = (data as unknown as (Omit<PublicProfile, "listings"> & { listings?: WireListing[] | null }) | null) ?? null;
   if (!raw) return null;

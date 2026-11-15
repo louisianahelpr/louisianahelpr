@@ -9,6 +9,7 @@ import {
 import { whenPageSettled } from "@/lib/routePrefetch";
 import { prefetchNotificationList, prefetchOnIntent } from "./notificationFeed";
 import { report } from "@/lib/errorLogger";
+import { loadModule } from "@/lib/loadModule";
 import { useBellMessagesUnread } from "./useBellMessagesUnread";
 
 /**
@@ -32,7 +33,15 @@ let pending: Promise<Panel | null> | null = null;
 
 async function importPanel(): Promise<Panel | null> {
   try {
-    const mod = await import("@/components/NotificationPanel");
+    // Q2804 (Sentry JAVASCRIPT-5K, 2026-11-14, release 391ec43df8, /home): this was a bare import(). When main.tsx's
+    // vite:preloadError handler starts a recovery reload it calls preventDefault(), Vite then resolves the import with
+    // `undefined`, and `mod.default` threw a TypeError that was reported as a member error while the page reloaded.
+    // loadModule answers null for that (and for a stale chunk it hands to the shared recovery).
+    const mod = await loadModule(() => import("@/components/NotificationPanel"));
+    if (mod == null) {
+      pending = null;
+      return null;
+    }
     loaded = mod.default;
     return loaded;
   } catch (err) {

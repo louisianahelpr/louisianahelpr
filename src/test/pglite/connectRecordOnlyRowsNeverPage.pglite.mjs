@@ -38,8 +38,10 @@ CREATE FUNCTION public.ops_alert_record(p_kind text, p_source text, p_title text
 `);
 
 const MIGRATION = "20261103203658_connect_record_only_rows_never_page.sql";
+// Q2794: the predicate's newest definition adds the money-history stale-clear branch.
+const PREDICATE_MIGRATION = "20261115040732_stale_clear_pages_only_with_money_history.sql";
 const fns = ["error_log_is_record_only", "notify_slack_on_error_log", "ops_alert_ledger_from_error_log"].map((n) => ({ n, ...newestFunction(n) }));
-for (const f of fns) check(`the newest ${f.n} is this migration's`, f.file === MIGRATION, f.file);
+for (const f of fns) check(`the newest ${f.n} is its migration's`, f.file === (f.n === "error_log_is_record_only" ? PREDICATE_MIGRATION : MIGRATION), f.file);
 for (let i = 0; i < 3; i++) {
   for (const f of fns) {
     let sql = f.stmt;
@@ -65,11 +67,23 @@ check("the two record-only kinds post nothing to Slack", (await n("posted")) ===
 check("the two record-only kinds record no ledger item", (await n("recorded")) === 0, String(await n("recorded")));
 check("both rows stay in error_logs", (await n("error_logs")) === 2, String(await n("error_logs")));
 
-// The stale-clear row (another stripe-connect kind) is unchanged: it still posts and records.
+// Q2794: a stale-clear for a member with NO money history is a record (money_history exactly false).
+await db.exec(`INSERT INTO public.error_logs (message, severity, tags) VALUES ('stripe-connect cleared unusable payout account acct_quiet', 'info',
+  jsonb_build_object('source', 'stripe-connect', 'kind', 'stale-clear', 'origin', 'server', 'money_history', false))`);
+check("a stale-clear with no money history posts nothing", (await n("posted")) === 0, String(await n("posted")));
+check("a stale-clear with no money history records no ledger item", (await n("recorded")) === 0, String(await n("recorded")));
+
+// A stale-clear WITH money history, or without the tag (an older function), still posts and records.
 await db.exec(`INSERT INTO public.error_logs (message, severity, tags) VALUES ('stripe-connect cleared unusable payout account acct_x', 'info',
-  jsonb_build_object('source', 'stripe-connect', 'kind', 'stale-clear', 'origin', 'server'))`);
-check("another stripe-connect kind still records a ledger item", (await n("recorded")) === 1, String(await n("recorded")));
-check("another stripe-connect kind still posts", (await n("posted")) === 1, String(await n("posted")));
+  jsonb_build_object('source', 'stripe-connect', 'kind', 'stale-clear', 'origin', 'server', 'money_history', true))`);
+check("a stale-clear with money history still records a ledger item", (await n("recorded")) === 1, String(await n("recorded")));
+check("a stale-clear with money history still posts", (await n("posted")) === 1, String(await n("posted")));
+const untagged = (await db.query(`SELECT public.error_log_is_record_only('{"source":"stripe-connect","kind":"stale-clear","origin":"server"}'::jsonb) a,
+  public.error_log_is_record_only('{"source":"stripe-connect","kind":"stale-clear","origin":"client","money_history":false}'::jsonb) b,
+  public.error_log_is_record_only('{"source":"stripe-connect","kind":"stale-clear","origin":"server","money_history":"no"}'::jsonb) c`)).rows[0];
+check("an untagged, client-written or oddly tagged stale-clear still pages", untagged.a === false && untagged.b === false && untagged.c === false, JSON.stringify(untagged));
+const asString = (await db.query(`SELECT public.error_log_is_record_only('{"source":"stripe-connect","kind":"stale-clear","origin":"server","money_history":"false"}'::jsonb) a`)).rows[0];
+check("a server stale-clear tagged with the string 'false' reads the same as the boolean (->> is text)", asString.a === true, JSON.stringify(asString));
 
 await db.exec(`INSERT INTO public.error_logs (message, severity, tags) VALUES ('payout failed — x', 'error', jsonb_build_object('source', 'release-payout', 'origin', 'server'))`);
 check("an ordinary server error still posts and records", (await n("posted")) === 2 && (await n("recorded")) === 2);

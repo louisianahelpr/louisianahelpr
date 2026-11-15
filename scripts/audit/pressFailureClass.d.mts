@@ -37,3 +37,6 @@ export declare function claimRow(a: { dir: string; key: string }): boolean;
 export declare function releaseRow(a: { dir: string; key: string }): void;
 export declare function queuedRowAction(a: { overBudget: boolean; lastWave: boolean }): "walk" | "stop" | "not-reached";
 export declare function drainedQueueShard(a: { queueDir: string; rowsWalked: number; claimedElsewhere: number; stopped: boolean }): boolean;
+export declare function pressNeedsReload(a: { navigated: boolean; wrote: boolean; overlaysChanged: boolean; failed: boolean; mutating: boolean; inChain: boolean }): boolean;
+export declare function pressTargetStillAt(a: { now: readonly { path: string; sig: string }[] | null | undefined; path: string; sig: string }): boolean;
+export declare function rotatedRowOrder(a: { length: number; rotate: string | number | null | undefined }): number[];

@@ -14,7 +14,7 @@ import { payoutSetupHireAllowed, payoutSetupNeedsHireResponse } from "../_shared
 import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { isRejectedAccount, isRejectedAccountError } from "../_shared/livePayoutGate.ts";
-import { recordConnectChange, recordConnectFailure } from "../_shared/connectRecord.ts";
+import { memberHasMoneyHistory, recordConnectChange, recordConnectFailure } from "../_shared/connectRecord.ts";
 import { connectBusinessFrom, type ConnectBusiness } from "../_shared/connectBusinessType.ts";
 
 /** Q863: clears recorded in the last hour before stripe-connect stops clearing. */
@@ -244,11 +244,15 @@ serve(async (req) => {
     // by test-mode lanes. Source and kind are unchanged, so the breaker
     // above still counts it.
     const isSeed = (clearedRows?.[0] as { is_seed?: boolean } | undefined)?.is_seed === true;
+    // Q2794 (lead + owner 2026-11-14): a clear pages ops only when the member has money history; otherwise it is a
+    // record (money_history false is record-only in public.error_log_is_record_only). Source and kind are unchanged,
+    // so the breaker above still counts every clear.
+    const moneyHistory = await memberHasMoneyHistory(supabaseAdmin, userId);
     const { error: logErr } = await supabaseAdmin.from("error_logs").insert({
       user_id: userId,
       severity: "info",
       message: `stripe-connect cleared unusable payout account ${accountId}`,
-      tags: { source: "stripe-connect", kind: STALE_CLEAR_KIND, ...(isSeed ? { seed: true } : {}) },
+      tags: { source: "stripe-connect", kind: STALE_CLEAR_KIND, money_history: moneyHistory, ...(isSeed ? { seed: true } : {}) },
       context: { account_id: accountId },
     });
     if (logErr) {

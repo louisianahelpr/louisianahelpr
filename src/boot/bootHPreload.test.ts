@@ -82,14 +82,14 @@ describe("the boot H is preloaded at high priority where it is the largest paint
     expect(PRELOAD).toHaveLength(1);
   });
 
-  const drawn = [
+  const drawn: { name: string; attrs: Record<string, string>; dark: boolean }[] = [
     { name: "signed-in /messages, light", attrs: { "data-theme": "light", "data-lh-app-shell": "messages" }, dark: false },
     { name: "signed-in /messages, dark", attrs: { "data-theme": "dark", "data-lh-app-shell": "messages" }, dark: true },
     { name: "signed-in /home", attrs: { "data-theme": "light", "data-lh-app-shell": "home" }, dark: false },
     { name: "a route with no shell", attrs: { "data-theme": "light" }, dark: false },
     { name: "a route with no shell, dark", attrs: { "data-theme": "dark" }, dark: true },
   ];
-  const skipped = [
+  const skipped: { name: string; attrs: Record<string, string> }[] = [
     { name: "the /declutter skeleton (the H has no background there)", attrs: { "data-theme": "light", "data-lh-app-shell": "declutter" } },
     { name: "the guest landing shell", attrs: { "data-theme": "light", "data-lh-landing-shell": "" } },
     { name: "the /login shell", attrs: { "data-theme": "light", "data-lh-auth-shell": "login" } },

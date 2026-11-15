@@ -837,6 +837,7 @@ export const FORMS: FormSpec[] = [
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
   // Shops paperwork queue (20261110195956, lead train 11-10): not swept yet (new 11-10).
+  "src/pages/auth/completeProfile/ConsentStep.tsx": "no typed text: two checkboxes (Terms, 18+) and Continue / Sign out buttons; the Terms + 18+ record is written server-side by complete-signup (welcome-email-1114).",
   "src/components/shops/ShopPermitSection.tsx": "no typed text: a fixed permit-kind list, a file picker gated to pdf/png/jpg/webp/heic (PERMIT_DOC_EXT_BY_TYPE) and a date; shops_submit_permit refuses any kind outside its list and any path outside <uid>/shop-permits/.",
   "src/components/admin/ShopsPaperworkCard.tsx": "admin-only (Admin -> Shops paperwork); a sweep account is not an admin. Only Approve / Turn down / Registered / Not found buttons; shops_admin_review_permit and shops_admin_check_registration check the admin role.",
   // 25 Days sponsor page (20261109162829, 2026-11-09): created behind the sponsor_25days switch, OFF, so the sweep cannot reach it yet.

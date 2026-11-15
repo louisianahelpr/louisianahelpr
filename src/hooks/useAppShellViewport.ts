@@ -4,6 +4,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { isGuestPublicFrameRoute, isGuestViewer } from "@/lib/guestPublicFrame";
 
 /**
  * Routes that use document-scroll (long-form content, SEO landing pages).
@@ -252,11 +253,13 @@ export const useAppShellViewport = () => {
   const railUserPresent = isReady ? !!user : !!user || hasPersistedAuthToken();
   /** A definite guest: the same test PublicProfilePage uses to pick the public shell (guestShell). */
   const definiteGuest = isReady && !user;
+  /** Q2784/Q2785: the guest the public frame is drawn for (useGuestPublicFrame), known before auth settles. */
+  const framedGuest = isGuestViewer(user, isReady);
 
   useLayoutEffect(() => {
     const apply = () => {
       const html = document.documentElement;
-      if (isDocumentScrollRoute(pathname) || (definiteGuest && isGuestDocumentScrollRoute(pathname))) {
+      if (isDocumentScrollRoute(pathname) || (definiteGuest && isGuestDocumentScrollRoute(pathname)) || (framedGuest && isGuestPublicFrameRoute(pathname))) {
         html.classList.remove("app-shell");
       } else {
         html.classList.add("app-shell");
@@ -293,7 +296,7 @@ export const useAppShellViewport = () => {
       // them correctly. Only the re-apply hook is released.
       if (reapplyShellClasses === apply) reapplyShellClasses = null;
     };
-  }, [pathname, railUserPresent, definiteGuest]);
+  }, [pathname, railUserPresent, definiteGuest, framedGuest]);
 
   // Web-desktop detection. Independent of route (the chrome/layout applies on
   // every signed-in fixed-shell page), so it lives in its own effect that runs

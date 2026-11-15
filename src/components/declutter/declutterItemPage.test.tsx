@@ -101,6 +101,9 @@ const shared: unknown[] = [];
 // BUY-16: `guest.on` signs the visitor out (useFeature is false signed out, as the real hook); `guest.open` is the
 // landing's features_open_to_everyone answer (null = still loading).
 const guest = { on: false, open: ["declutter"] as string[] | null };
+// Q2784: this file covers a guest page inside AppShell (what the native app draws). On the web a guest now gets the public frame
+// instead (useGuestPublicFrame), covered by src/test/guestPagesWearPublicFrame.test.tsx.
+vi.mock("@/hooks/useGuestPublicFrame", () => ({ useGuestPublicFrame: () => false }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => !guest.on, useFeatureStatus: () => ({ on: !guest.on, settled: true }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: guest.on ? null : { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: guest.on ? null : { id: "u1" }, profile: {}, isLoading: false }) }));

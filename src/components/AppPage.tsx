@@ -3,6 +3,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import AppShell from "@/components/AppShell";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { GuestPublicFrame } from "@/components/marketing/GuestPublicFrame";
+import { useGuestPublicFrame } from "@/hooks/useGuestPublicFrame";
 
 /**
  * AppPage — the shell every signed-in sub-screen wears.
@@ -84,10 +86,22 @@ interface AppPageProps {
   children: ReactNode;
 }
 
-function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTitle, stickyHeader, wrapTitle, phoneBleed, children }: AppPageProps) {
+function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTitle, stickyHeader: stickyAsked, wrapTitle, phoneBleed, children }: AppPageProps) {
   // D12 (Cowork audit 2026-10-20): the browser tab names the page (an item, Sell an
   // item, ...), not the landing page. A page's own usePageTitle / usePageMeta wins.
   usePageTitle(`${title} — Helpr`);
+  // Q2784 + Q2785: a guest on the web (the item page, /helprs, /search) gets the public header and footer and scrolls
+  // the document (useGuestPublicFrame); the title row is not pinned there (the fixed public header owns the top of the
+  // window).
+  const guestFrame = useGuestPublicFrame();
+  const stickyHeader = stickyAsked && !guestFrame;
+  const body = (
+            <ProfileTabBody>
+              <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} hidesTitle={hidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} />
+              {children}
+            </ProfileTabBody>
+  );
+  if (guestFrame) return <GuestPublicFrame>{body}</GuestPublicFrame>;
   return (
     <AppShell
       scrollable={false}
@@ -124,10 +138,7 @@ function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTi
                 byte-for-byte"; byte-for-byte is what `space-y-4 px-3` passed
                 on 2026-09-19. ProfileTabHeader's `-mb-4` is keyed to
                 PROFILE_TAB_BODY_CLASS's 16px. */}
-            <ProfileTabBody>
-              <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} hidesTitle={hidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} />
-              {children}
-            </ProfileTabBody>
+            {body}
           </div>
         </div>
       </div>

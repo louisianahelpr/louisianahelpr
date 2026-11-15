@@ -22,6 +22,9 @@ import { render } from "@testing-library/react";
 
 let desktop = true;
 let session = true;
+// Q2784: this file covers a guest page inside AppShell (what the native app draws). On the web a guest now gets the public frame
+// instead (useGuestPublicFrame), covered by src/test/guestPagesWearPublicFrame.test.tsx.
+vi.mock("@/hooks/useGuestPublicFrame", () => ({ useGuestPublicFrame: () => false }));
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => desktop }));
 vi.mock("@/hooks/useStoredSessionHint", () => ({ useStoredSessionHint: () => session }));
 vi.mock("@/components/landing/useSectionsOpen", () => ({

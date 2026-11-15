@@ -16,11 +16,11 @@
  *
  * F087 (owner UI audit 11-09): a tester's preview sections (Shops, Homes: on for them, not open to everyone) showed
  * live-looking tiles. They carry the Coming soon badge inside, slightly dimmed (owner 11-09 badge rule).
- * @mutate src/components/profile/profileLanding/YourActivity.tsx |                 {preview && <>{" "}<PreviewPill className="self-start mt-1" /></>} |
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |                 {preview && <>{" "}<PreviewPill className="self-start mt-auto" /></>} |
  * @mutate src/components/profile/profileLanding/YourActivity.tsx | style={preview ? { opacity: 0.75 } : undefined} | style={undefined}
  *
  * F449 (audit 11-10): at 375 the tile's count line read "Buying · 1 in ..." (truncate); the words wrap instead.
- * @mutate src/components/profile/profileLanding/YourActivity.tsx | text-foreground break-words"> | text-foreground truncate">
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx | text-foreground break-words${ | text-foreground truncate${
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";

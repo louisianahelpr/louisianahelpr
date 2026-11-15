@@ -94,7 +94,7 @@ function EarningsSummaryBones() {
 export function EarningsNoAccountHold() {
   return (
     <div aria-hidden data-testid="earnings-no-account-hold" className="space-y-section">
-      <EarningsPayoutSetupSkeleton />
+      <EarningsPayoutSetupSkeleton hireAllowed={false} />
       <Skeleton className="h-[50px] w-full rounded-full" />
       <EarningsSummaryBones />
     </div>

@@ -52,8 +52,9 @@ import { join } from "node:path";
 import { getSession, AUTH_STORAGE_KEY, type Session } from "../journeys/fixtures";
 import {
   PROFILES, GOOD, CWV_INIT, readCwv, settle, sessionInit, cpuBenchmarkMs, calibratedCpuRate,
-  applyThrottle, startDistServer, clsOf, type LabProfile, type CwvReading,
+  applyThrottle, startDistServer, clsOf, installLabWriteBlock, newBlockedPage, type LabProfile, type CwvReading,
 } from "../../scripts/perf/cwv-lab.mjs";
+import { declaredReadRpcSet } from "../../scripts/audit/declaredReadRpcs.mjs";
 
 // Playwright runs from the repo root (as every prod-audit spec assumes).
 const ROOT = process.cwd();
@@ -176,8 +177,16 @@ async function labContext(browser: Browser, profile: LabProfile, session: Sessio
   });
   await ctx.addInitScript(CWV_INIT);
   if (session) await ctx.addInitScript(...sessionInit({ key: AUTH_STORAGE_KEY, value: JSON.stringify(session) }));
+  // Owner rule (test data never reaches the owner; Builder 2 11-14): these loads run against PROD as the shared poster,
+  // so every context gets the lab's write block before any page opens: every non-GET to Supabase or Stripe is aborted
+  // except reads (an RPC the migrations declare STABLE or IMMUTABLE, stripe-connect's status read), and every
+  // *.sentry.io request is aborted, proven live by the lab's probe. Pages are opened with newBlockedPage only.
+  await installLabWriteBlock(ctx, { reads: LAB_READS, browserName: browser.browserType().name() });
   return ctx;
 }
+
+/** The reads a measured screen may still make through the block: the migrations' STABLE/IMMUTABLE functions. */
+const LAB_READS = { rpcs: declaredReadRpcSet(), refresh: false };
 
 let server: { close: () => void } | null = null;
 
@@ -210,7 +219,7 @@ test("every first screen: FCP/LCP in the GOOD band (or its KNOWN ceiling), CLS <
       const runs: (CwvReading & { landed: string })[] = [];
       for (let i = 0; i < RUNS; i++) {
         const ctx = await labContext(browser, profile, screen.signedIn ? session : null);
-        const page = await ctx.newPage();
+        const page = await newBlockedPage(ctx);
         await applyThrottle(ctx, page, profile, "chromium", profileName === "mobile" ? rate : 1);
         await page.goto(BASE + screen.path, { waitUntil: "domcontentloaded", timeout: 60_000 });
         await settle(page, profileName === "mobile" ? { quietMs: 4000, maxMs: 45_000 } : { quietMs: 2500, maxMs: 20_000 });
@@ -309,7 +318,7 @@ test("a returning visitor (expired token): signed-in first screens' LCP as fast 
       for (const kind of (reused ? ["expired"] : ["fresh", "expired"]) as ("fresh" | "expired")[]) {
         const ctx = await labContext(browser, profile, null);
         await ctx.addInitScript(...sessionInit({ key: AUTH_STORAGE_KEY, value: JSON.stringify(session), expired: kind === "expired" }));
-        const page = await ctx.newPage();
+        const page = await newBlockedPage(ctx);
         await applyThrottle(ctx, page, profile, "chromium", rate);
         await page.goto(BASE + screen.path, { waitUntil: "domcontentloaded", timeout: 60_000 });
         await settle(page, { quietMs: 4000, maxMs: 45_000 });
@@ -343,7 +352,7 @@ test("a tap never leads to a jump: walk the dock / rail, per-tap CLS < 0.02, ses
     // layout fact, not a speed, and this keeps the walk short.
     const profile: LabProfile = { ...PROFILES.desktop, ...(width < 900 ? { viewport: PROFILES.mobile.viewport, deviceScaleFactor: 2, isMobile: true, hasTouch: true } : {}) };
     const ctx = await labContext(browser, profile, session);
-    const page = await ctx.newPage();
+    const page = await newBlockedPage(ctx);
     await applyThrottle(ctx, page, profile, "chromium", 1);
     await page.goto(`${BASE}/home`, { waitUntil: "domcontentloaded", timeout: 60_000 });
     await settle(page, { quietMs: 2500, maxMs: 20_000 });

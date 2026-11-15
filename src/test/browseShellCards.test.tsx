@@ -139,7 +139,9 @@ describe("which rows are drawn, and what reaches the markup", () => {
       row({ title: "Newest", created_at: "2026-11-01T11:00:00Z" }),
       row({ title: "Second", created_at: "2026-10-30T00:00:00Z" }),
     ];
-    expect(selectShellJobs(rows, NOW).map((j) => j.title)).toEqual(["Urgent", "Boosted", "Newest", "Second"]);
+    // The app's default order (lead 11-14): a live boost first, then the smart score (recency + pay); urgent is a badge,
+    // not a queue-jump. src/test/browseShellMatchesFirstRender.test.tsx pins it to src/lib/smartSort.ts.
+    expect(selectShellJobs(rows, NOW).map((j) => j.title)).toEqual(["Boosted", "Newest", "Second", "Old one"]);
     expect(SHELL_CARD_COUNT).toBe(4);
     expect(browseShellHtml(null, NOW)).toBe("");
     // A live crew is not drawn as a card, and the feed is not empty either: no shell (browseShellEmptyState.test.tsx

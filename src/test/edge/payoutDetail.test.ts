@@ -23,6 +23,10 @@
  * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | const GROUP_PI = /^group_(pi_[A-Za-z0-9]{6,64})$/; | const GROUP_PI = /^(pi_[A-Za-z0-9]{6,64})$/;
  * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |         if (!isMissing(e)) throw e; |
  * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | const isMissing = (e: unknown) => !!e && typeof e === "object" && (e as { code?: unknown }).code === "resource_missing"; | const isMissing = (_e: unknown) => false;
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | helpr_task_tips(helpr_tasks(title))").eq("helper_id", userId) | helpr_task_tips(helpr_tasks(title))")
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | admin.from("chargeback_clawbacks").select("repay_transfer_id, job_id, jobs(title)").eq("helper_id", userId) | admin.from("chargeback_clawbacks").select("repay_transfer_id, job_id, jobs(title)")
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |     out.set(r.repay_transfer_id, [r.tip_source === "delivery" |     out.set(r.repay_transfer_id, [r.tip_source !== "delivery"
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |   for (const r of clawbackRepays as | for (const r of [] as
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -254,6 +258,60 @@ describe("F267a: a tip (a destination charge) is named from the caller's own tip
     const d = await payoutDetail(stripe as any, admin, "user-1", "acct_mine", "po_1aaaaaaaa");
     expect(looked).toEqual(["tr_other"]);
     expect(d.lines.map((l) => l.label)).toEqual(["Mow", "Payment"]);
+  });
+
+  // F267a follow-up: a tip held back during a payout hold is re-paid by a NEW platform transfer (heldTipRepay.ts,
+  // group tip_<id>, not group_<pi>), stamped only on tip_hold_redrives.repay_transfer_id, and read "Payment" before. A
+  // payout a chargeback took back is re-paid when the dispute is won (chargebackClawback.ts): its payout_transfers row
+  // names it, and chargeback_clawbacks.repay_transfer_id names it too when that row's upsert failed (which pages ops).
+  it("a held tip re-paid after its hold, and a won chargeback's re-pay, are named from their ledgers, never looked up", async () => {
+    const looked: string[] = [];
+    const stripe = {
+      payouts: { retrieve: () => Promise.resolve({ id: "po_1", amount: 1200, currency: "usd", status: "paid", arrival_date: 1, created: 0, destination: null }) },
+      balanceTransactions: { list: () => ({ autoPagingToArray: () => Promise.resolve([payment("tr_repay_job", 300), payment("tr_repay_del", 200), payment("tr_cb", 700)]) }) },
+      transfers: { retrieve: (id: string) => { looked.push(id); return Promise.resolve({ id, transfer_group: `tip_${id}` }); } },
+    };
+    const reads: [string, string, unknown][] = [];
+    const admin = fakeAdmin({
+      tip_hold_redrives: [
+        { repay_transfer_id: "tr_repay_job", tip_source: "job", tips: { job_id: "j1", jobs: { title: "Trim the hedges" } }, helpr_task_tips: null },
+        { repay_transfer_id: "tr_repay_del", tip_source: "delivery", tips: null, helpr_task_tips: { helpr_tasks: { title: "Couch to Lafayette" } } },
+      ],
+      chargeback_clawbacks: [{ repay_transfer_id: "tr_cb", job_id: "j3", jobs: { title: "Mow the lawn" } }],
+    }, reads);
+    // deno-lint-ignore no-explicit-any
+    const d = await payoutDetail(stripe as any, admin, "user-1", "acct_mine", "po_1aaaaaaaa");
+    expect(d.lines).toEqual([
+      { kind: "tip", label: "Tip: Trim the hedges", amount_cents: 300, href: "/jobs/j1" },
+      { kind: "tip", label: "Tip: Couch to Lafayette", amount_cents: 200, href: "/declutter?view=deliver" },
+      { kind: "job", label: "Mow the lawn", amount_cents: 700, href: "/jobs/j3" },
+    ]);
+    expect(d.lines.reduce((sum, l) => sum + l.amount_cents, 0)).toBe(1200);
+    // Named by the ledgers, so no Stripe read is spent on them.
+    expect(looked).toEqual([]);
+    // Each read is scoped to the caller as the payee.
+    expect(reads).toContainEqual(["tip_hold_redrives", "helper_id", "user-1"]);
+    expect(reads).toContainEqual(["chargeback_clawbacks", "helper_id", "user-1"]);
+  });
+
+  it("a re-paid tip with no title left still says what it was", async () => {
+    const stripe = {
+      payouts: { retrieve: () => Promise.resolve({ id: "po_1", amount: 500, currency: "usd", status: "paid", arrival_date: 1, created: 0, destination: null }) },
+      balanceTransactions: { list: () => ({ autoPagingToArray: () => Promise.resolve([payment("tr_a", 200), payment("tr_b", 300)]) }) },
+      transfers: { retrieve: (id: string) => Promise.resolve({ id, transfer_group: null }) },
+    };
+    const admin = fakeAdmin({
+      tip_hold_redrives: [
+        { repay_transfer_id: "tr_a", tip_source: "job", tips: null, helpr_task_tips: null },
+        { repay_transfer_id: "tr_b", tip_source: "delivery", tips: null, helpr_task_tips: null },
+      ],
+    }, []);
+    // deno-lint-ignore no-explicit-any
+    const d = await payoutDetail(stripe as any, admin, "user-1", "acct_mine", "po_1aaaaaaaa");
+    expect(d.lines).toEqual([
+      { kind: "tip", label: "Tip: a job", amount_cents: 200, href: null },
+      { kind: "tip", label: "Tip: a delivery", amount_cents: 300, href: "/declutter?view=deliver" },
+    ]);
   });
 });
 

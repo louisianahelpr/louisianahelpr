@@ -46,8 +46,10 @@ export const PER_DOCUMENT: Record<string, number | null> = {
   "user_blocks": 2, // 3 before the shared read (run 36212848613), 2 after (run 36213595709)
   "profiles select=*": 2,
   "user_roles": 2,
-  "profiles terms_version_accepted": 1,
-  "/auth/v1/user": 1,
+  // 1 -> 0: the Terms mount reads the version from useCurrentUser's profile row (b517098ecf, 11-01) and boot reads
+  // the session locally. Measured 0 and 0 in prod-audit runs 43181792847 (11-12) and 43691657529 (11-15).
+  "profiles terms_version_accepted": 0,
+  "/auth/v1/user": 0,
 };
 
 async function clientNav(page: Page, path: string) {

@@ -44,7 +44,8 @@ const w = window as unknown as Record<string, unknown>;
 /** The head script that reads the meta (index.html), as written. */
 function headScript(): string {
   const html = raw("index.html");
-  const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)].map((m) => m[1]);
+  // Parsed, not regex-matched: the browser's own HTML parser finds every <script> however it is spelled (CodeQL js/bad-tag-filter).
+  const scripts = [...new DOMParser().parseFromString(html, "text/html").querySelectorAll("script")].map((el) => el.textContent ?? "");
   const mine = scripts.filter((s) => s.includes('meta[name="lh-signed-in-prefetch"]'));
   expect(mine).toHaveLength(1);
   return mine[0];

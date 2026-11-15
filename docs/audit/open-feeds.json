@@ -444,14 +444,6 @@
         "issue": null
       },
       {
-        "fingerprint": "4840f1c5d1e74cf39f68000b5c6580da",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/ · boot stalled #s on the startup screen (boot scripts unfinished: #)",
-        "issue": null
-      },
-      {
         "fingerprint": "c540527c8265b56e664f823f4805b1ec",
         "source_kind": "sentry",
         "source": "sentry:assets/supabase",
@@ -514,54 +506,6 @@
         "status": "open",
         "title": "nightly-red: nightly-live-smoke",
         "issue": 4270
-      },
-      {
-        "fingerprint": "60dd730d868e59e9782f8c988b69c446",
-        "source_kind": "sentry",
-        "source": "sentry:https://www.louisianahelpr.com/",
-        "status": "open",
-        "title": "unhandledrejection: non-error promise rejection captured with value: object not found matching id:#, methodname:update, paramcount:#",
-        "issue": null
-      },
-      {
-        "fingerprint": "8b1b5ac42f94df73b646456ff83c9e69",
-        "source_kind": "sentry",
-        "source": "sentry:unknown",
-        "status": "open",
-        "title": "ms",
-        "issue": null
-      },
-      {
-        "fingerprint": "e19cffc1cc66f118da45230c04ed11b8",
-        "source_kind": "sentry",
-        "source": "sentry:assets/NotFound",
-        "status": "open",
-        "title": "error: 404 — non-existent route: /homes",
-        "issue": null
-      },
-      {
-        "fingerprint": "b757f9393658386f1d245a1055db0291",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/sponsor · boot stalled #s on the startup screen (boot scripts unfinished: #)",
-        "issue": null
-      },
-      {
-        "fingerprint": "932d4bee3b0872e826941e289c5c149f",
-        "source_kind": "sentry",
-        "source": "sentry:https://www.louisianahelpr.com/sponsor",
-        "status": "open",
-        "title": "unhandledrejection: non-error promise rejection captured with value: object not found matching id:#, methodname:update, paramcount:#",
-        "issue": null
-      },
-      {
-        "fingerprint": "5d3f8521e785f288481d68f8027786cd",
-        "source_kind": "sentry",
-        "source": "sentry:unknown",
-        "status": "open",
-        "title": "p",
-        "issue": null
       },
       {
         "fingerprint": "4fa3a43d27c008020ff0b5e36d711915",

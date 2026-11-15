@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { takeFirstScreenSwitches } from "@/lib/declutter/bootPrefetch";
+import { takeProfileSwitches } from "@/lib/profileBootPrefetch";
 import { featureSwitchBatchKey, featureSwitchSingleKey } from "@/lib/featureSwitchQuery";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { FEATURE_SWITCH_KEYS, type FeatureKey } from "@/config/featureSwitches";
@@ -32,7 +33,8 @@ const SWITCH_QUERY_META = { persist: false } as const;
  */
 async function fetchAllSwitches(uid: string | null): Promise<Record<string, boolean> | null> {
   // A cold /declutter already asked, in one read with its first screen (src/boot/declutterPrefetch.ts); taken once.
-  let data: unknown = await takeFirstScreenSwitches(uid);
+  // A cold You landing asked from the entry too (src/boot/profilePrefetch.ts).
+  let data: unknown = (await takeFirstScreenSwitches(uid)) ?? (await takeProfileSwitches(uid));
   if (!data) {
     const res = await supabase.rpc("feature_switches_for_me", { p_keys: [...FEATURE_SWITCH_KEYS] });
     if (res.error && isMissingRpcNamed(res.error, "feature_switches_for_me")) return null;

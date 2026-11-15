@@ -99,13 +99,15 @@ type Metric = "fcp" | "lcp";
 // (the footer's H emblem while few jobs are open) paints from the HTML. cwv-lab, Slow 4G + 4x CPU, 5 cold runs each,
 // same build: before 4024-4132 (median 4052), after 1800-1824 (median 1820), CLS 0
 // (~/.lh-shots/b71-1031/perf before.log / after2.log).
+// 2026-11-14: "mobile /posts lcp" RENAMED "mobile /jobs?tab=posted lcp", ceiling kept (never raised): /posts forwards
+// there (LANDS_ON), so the same screen is now measured under the address it lands on.
 const KNOWN: Record<string, { ceiling: number; measured: number }> = {
   "mobile / lcp": { ceiling: 4110, measured: 3804 },
   "mobile /browse lcp": { ceiling: 1966, measured: 1820 },
   "mobile /signup lcp": { ceiling: 4400, measured: 4072 },
   "mobile /home lcp": { ceiling: 6630, measured: 6136 },
   "mobile /jobs lcp": { ceiling: 5410, measured: 5008 },
-  "mobile /posts lcp": { ceiling: 6100, measured: 5640 },
+  "mobile /jobs?tab=posted lcp": { ceiling: 6100, measured: 5640 },
   "mobile /post-job lcp": { ceiling: 5970, measured: 5520 },
   "mobile /profile lcp": { ceiling: 6510, measured: 6024 },
 };
@@ -114,18 +116,41 @@ const CEILING_STALE = 0.8;
 
 interface Screen { path: string; signedIn: boolean }
 
+/**
+ * An entry that sends the measuring account somewhere else is measured WHERE IT LANDS (prod-audit 43650083979, 11-14:
+ * "/posts: landed on /jobs" and "/admin: landed on /home" measured another page under the entry's name). The landed
+ * check below proves each destination on every run, so a stale row here fails at once.
+ *  - /posts: PostsPage forwards to the Jobs section's Posted tab (Q2205, the old Posts screen retired).
+ *  - /admin: AdminRoute sends a non-admin to /home; the poster is not an admin, and /home is already measured.
+ */
+const LANDS_ON: Record<string, string> = {
+  "/posts": "/jobs?tab=posted",
+  "/admin": "/home",
+};
+
+/** The path a screen must land on: its URL without the query. */
+const landsOnPath = (path: string) => path.split("?")[0];
+
 /** The first screens: ENTRY_ROUTE_CHUNKS' keys; public when its guest list starts a page chunk. */
 function firstScreens(): Screen[] {
   const src = readFileSync(join(ROOT, "src/boot/routePreload.ts"), "utf8");
   const block = src.slice(src.indexOf("export const ENTRY_ROUTE_CHUNKS"));
   const out: Screen[] = [];
+  const entries: string[] = [];
   // A row keyed by a route PATTERN ("/declutter/item/:id", Q2708 11-05) has no URL to load here (an item id is live
   // data); `[^":]` skips it. The item page's speed is measured on a live item by cwv-lab (Q2708's done-when).
   for (const m of block.matchAll(/^ {2}"(\/[^":]*)": \{\n\s*guest: \[([^\]]*)\]/gm)) {
+    entries.push(m[1]);
+    const path = LANDS_ON[m[1]] ?? m[1];
+    // A destination that is itself a first screen is measured once.
+    if (out.some((s) => s.path === path)) continue;
     // Signed in when the guest list only starts the sign-in gate; a page there (inline, or a shared loader such as
     // `login`) makes the screen public.
-    out.push({ path: m[1], signedIn: m[2].trim() === "protectedRoute" });
+    out.push({ path, signedIn: m[2].trim() === "protectedRoute" });
   }
+  // Two-way: a LANDS_ON row whose entry is gone is stale.
+  const stale = Object.keys(LANDS_ON).filter((k) => !entries.includes(k));
+  if (stale.length) throw new Error(`LANDS_ON rows with no ENTRY_ROUTE_CHUNKS entry: ${stale.join(", ")}`);
   return out;
 }
 
@@ -213,7 +238,7 @@ test("every first screen: FCP/LCP in the GOOD band (or its KNOWN ceiling), CLS <
   for (const [key, r] of Object.entries(results)) {
     const path = key.split(" ")[1];
     // A load that landed elsewhere measured a different page.
-    if (r.landed.length !== 1 || r.landed[0] !== path) fails.push(`${key}: landed on ${r.landed.join(", ")}, not ${path}`);
+    if (r.landed.length !== 1 || r.landed[0] !== landsOnPath(path)) fails.push(`${key}: landed on ${r.landed.join(", ")}, not ${landsOnPath(path)}`);
     if (r.cls > GOOD.cls) fails.push(`${key}: CLS ${r.cls} > ${GOOD.cls}`);
     const bars: Record<Metric, number> = { fcp: GOOD.fcp, lcp: GOOD.lcp };
     for (const metric of ["fcp", "lcp"] as Metric[]) {
@@ -286,7 +311,7 @@ test("a returning visitor (expired token): signed-in first screens' LCP as fast 
         await page.goto(BASE + screen.path, { waitUntil: "domcontentloaded", timeout: 60_000 });
         await settle(page, { quietMs: 4000, maxMs: 45_000 });
         const landed = new URL(page.url()).pathname;
-        if (landed !== screen.path) fails.push(`${screen.path} (${kind}): landed on ${landed}`);
+        if (landed !== landsOnPath(screen.path)) fails.push(`${screen.path} (${kind}): landed on ${landed}`);
         lcp[kind].push((await readCwv(page)).lcp);
         await ctx.close();
       }

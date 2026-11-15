@@ -9,8 +9,8 @@
  *   - the browse radius measures it from its parish's centre (jobAreaPoint), with slack.
  * Executable proof: src/test/pglite/mapPinsUngeocodedJobs.pglite.mjs (ALL PASS 3x; NEW_MIGRATION=skip 4 FAILED).
  *
- * @mutate supabase/migrations/20261110210539_map_pins_ungeocoded_jobs.sql |     AND ((j.latitude IS NOT NULL AND j.longitude IS NOT NULL) OR (area.latitude IS NOT NULL AND area.longitude IS NOT NULL)) |     AND j.latitude IS NOT NULL AND j.longitude IS NOT NULL
- * @mutate supabase/migrations/20261110210539_map_pins_ungeocoded_jobs.sql |     ROUND(CASE WHEN j.latitude IS NOT NULL AND j.longitude IS NOT NULL THEN j.latitude ELSE area.latitude END, 2) AS latitude, |     ROUND(j.latitude, 2) AS latitude,
+ * @mutate supabase/migrations/20261115023248_ranked_jobs_hide_blocked.sql |     AND ((j.latitude IS NOT NULL AND j.longitude IS NOT NULL) OR (area.latitude IS NOT NULL AND area.longitude IS NOT NULL)) |     AND j.latitude IS NOT NULL AND j.longitude IS NOT NULL
+ * @mutate supabase/migrations/20261115023248_ranked_jobs_hide_blocked.sql |     ROUND(CASE WHEN j.latitude IS NOT NULL AND j.longitude IS NOT NULL THEN j.latitude ELSE area.latitude END, 2) AS latitude, |     ROUND(j.latitude, 2) AS latitude,
  * @mutate src/lib/jobAreaPoint.ts |   const area = getParishCentroid(job.parish) ?? getCentroidFromLocation(job.location); |   const area = null as { lat: number; lng: number } \| null;
  * @mutate src/hooks/useDashboardFilters.ts |         const jPoint = jobAreaPoint(job); |         const jPoint = typeof job.latitude === "number" && typeof job.longitude === "number" ? { lat: job.latitude, lng: job.longitude, approximate: false } : null;
  */
@@ -27,7 +27,8 @@ const code = blankSqlComments(map?.stmt ?? "").replace(/\s+/g, " ");
 
 describe("a job whose address never geocoded still shows on the map and in radius lists", () => {
   it("reads the newest map definition (floor)", () => {
-    expect(map?.file).toBe("20261110210539_map_pins_ungeocoded_jobs.sql");
+    // 20261115023248 restated it verbatim plus the block condition.
+    expect(map?.file).toBe("20261115023248_ranked_jobs_hide_blocked.sql");
     expect(code.length).toBeGreaterThan(2000);
   });
 

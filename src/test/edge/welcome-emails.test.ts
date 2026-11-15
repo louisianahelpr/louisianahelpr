@@ -26,8 +26,13 @@
  * @mutate supabase/functions/welcome-emails/index.ts | ${jobsErr.message}`);\n          await release(m.user_id, step); | ${jobsErr.message}`);
  * @mutate supabase/functions/welcome-emails/index.ts |     if (itemsErr) { |     if (false) {
  * @mutate supabase/functions/welcome-emails/index.ts |       for (const r of rows) { |       for (const r of []) {
- * @mutate supabase/functions/welcome-emails/index.ts |             return !!poster && poster !== m.user_id && !testSet.has(poster); |             return !!poster;
- * @mutate supabase/functions/welcome-emails/index.ts |             return !!poster && poster !== m.user_id && !testSet.has(poster); |             return !!poster && !testSet.has(poster);
+ * @mutate supabase/functions/welcome-emails/index.ts |             return !!poster && poster !== m.user_id && !testSet.has(poster) && !blockedWith.has(poster); |             return !!poster;
+ * @mutate supabase/functions/welcome-emails/index.ts |             return !!poster && poster !== m.user_id && !testSet.has(poster) && !blockedWith.has(poster); |             return !!poster && !testSet.has(poster) && !blockedWith.has(poster);
+ * @mutate supabase/functions/welcome-emails/index.ts |  && !testSet.has(poster) && !blockedWith.has(poster); |  && !testSet.has(poster);
+ * @mutate supabase/functions/welcome-emails/index.ts | itemsNear(items.filter((i) => !blockedWith.has(i.seller_id)), m, | itemsNear(items, m,
+ * @mutate supabase/functions/welcome-emails/index.ts |           else if (b.blocked_id === m.user_id) blockedWith.add(b.blocker_id); |
+ * @mutate supabase/functions/welcome-emails/index.ts | ${blocksErr.message}`);\n          await release(m.user_id, step);\n          continue; | ${blocksErr.message}`);
+ * @mutate supabase/functions/welcome-emails/index.ts | .or(`blocker_id.eq.${m.user_id},blocked_id.eq.${m.user_id}`) | .or(`blocker_id.eq.${m.user_id}`)
  * @mutate supabase/functions/welcome-emails/index.ts |       .is("message_id", null)\n |
  * @mutate supabase/functions/welcome-emails/index.ts |             .update({ message_id: SKIPPED_TEST }) |             .update({})
  */
@@ -125,9 +130,9 @@ describe("welcome-emails: claimed first, one email per claim, real listings near
     await cron();
     const calls = rpcs("get_ranked_open_jobs").map((c) => c.args);
     expect(calls).toHaveLength(3);
-    expect(calls[0]).toEqual({ p_limit: 3, p_offset: 0, p_include_seed: false, p_lat: 30.45, p_lng: -91.15 });
+    expect(calls[0]).toEqual({ p_limit: 12, p_offset: 0, p_include_seed: false, p_lat: 30.45, p_lng: -91.15 });
     // No saved position: the feed's own order, no coordinates sent.
-    expect(calls[1]).toEqual({ p_limit: 3, p_offset: 0, p_include_seed: false });
+    expect(calls[1]).toEqual({ p_limit: 12, p_offset: 0, p_include_seed: false });
     // The member's own job and a test account's job are dropped.
     const jobs = renders()[0].props.jobs as { title: string; detail: string; url: string }[];
     expect(jobs).toEqual([{ title: "Rake leaves", detail: "Baton Rouge · Under 5 mi", url: expect.stringMatching(/\/jobs\/j-1$/) }]);
@@ -244,6 +249,44 @@ describe("welcome-emails: claimed first, one email per claim, real listings near
     res = await cron();
     expect(res.status).toBe(500);
     expect(releases()).toEqual([]);
+  });
+
+  it("blocks, either direction: no job or item from someone the member blocked or who blocked them", async () => {
+    scenario.rpc.claim_welcome_emails = (a?: unknown) => ((a as { p_step: number }).p_step === 1 ? [DAY1[0]] : DAY3);
+    scenario.rpc.get_ranked_open_jobs = [...JOBS, { id: "j-blocker", title: "Blocker's job", location: "Baton Rouge", parish: null, distance_band: "Under 5 mi" }];
+    scenario.reads.jobs = { rows: [...POSTERS, { id: "j-blocker", customer_id: "p-blocker" }] };
+    scenario.reads.user_blocks = {
+      rows: [
+        { blocker_id: "p-blocker", blocked_id: "u-1" }, // p-blocker blocked Pat
+        { blocker_id: "u-1", blocked_id: "s-2" }, // Pat blocked the rocking chair's seller
+        { blocker_id: "x-9", blocked_id: "p-1" }, // a block between two OTHER members hides nothing
+      ],
+    };
+    const res = await cron();
+    expect(res.status).toBe(200);
+    // The read asks for the member's own blocks, both directions.
+    const reads = (scenario.readQueries ?? []).filter((q) => q.table === "user_blocks");
+    expect(reads.map((q) => q.filters)).toEqual([
+      [{ op: "or", column: "", value: "blocker_id.eq.u-1,blocked_id.eq.u-1" }],
+      [{ op: "or", column: "", value: "blocker_id.eq.u-9,blocked_id.eq.u-9" }],
+    ]);
+    const [pat, lee] = renders();
+    expect((pat.props.jobs as { title: string }[]).map((j) => j.title)).toEqual(["Rake leaves"]);
+    expect((pat.props.items as { title: string }[]).map((i) => i.title)).toEqual(["Free firewood", "Bike", "Shreveport desk"]);
+    // Lee is in no block: the blocker's job and the rocking chair both reach Lee.
+    expect((lee.props.jobs as { title: string }[]).map((j) => j.title)).toEqual(["Rake leaves", "My own job", "Blocker's job"]);
+    expect((lee.props.items as { title: string }[]).map((i) => i.title)).toContain("Oak rocking chair");
+  });
+
+  it("a failed blocks read fails closed: that member is not mailed and the claim is released", async () => {
+    scenario.rpc.claim_welcome_emails = (a?: unknown) => ((a as { p_step: number }).p_step === 1 ? [DAY1[0]] : []);
+    scenario.reads.user_blocks = { error: { message: "blocks down" } };
+    const res = await cron();
+    expect(res.status).toBe(500);
+    expect(sent()).toEqual([]);
+    expect(rpcs("get_ranked_open_jobs")).toEqual([]);
+    expect(releases()).toHaveLength(1);
+    expect(JSON.stringify(await res.json())).toMatch(/blocks read failed for member u-1 step 1: blocks down/);
   });
 
   it("a claim left without queued_at for 2+ hours is reported as a defect", async () => {

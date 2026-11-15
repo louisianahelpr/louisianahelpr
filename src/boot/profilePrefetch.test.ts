@@ -17,6 +17,10 @@
 // @mutate src/lib/profileLink/api.ts |   const boot = await takeProfilePage(handle); |   const boot = null as { data: unknown } \| null;
 // @mutate src/boot/signedInPrefetch.ts |   startProfilePrefetch(pathname, location.search); |
 // @mutate src/entry.ts | \|posts\|profile)?\/?$/.test(window.location.pathname) | \|posts)?\/?$/.test(window.location.pathname)
+// @mutate src/hooks/useFeature.ts | import { takeProfileSwitches } from "@/lib/profileBootTake"; | import { takeProfileSwitches } from "@/lib/profileBootPrefetch";
+// @mutate src/lib/profileLink/api.ts | import { takeProfilePage } from "@/lib/profileBootTake"; | import { takeProfilePage } from "@/lib/profileBootPrefetch";
+// @mutate src/lib/profileBootTake.ts |   if (typeof window === "undefined" \|\| !(window as unknown as Record<string, unknown>)[KEY]) return null; |   if (typeof window === "undefined") return null;
+// @mutate src/boot/profileRoute.ts |   const landing = new URLSearchParams(search).get("tab") ? [] : [() => import("@/lib/profileBootPrefetch")]; |   const landing: Array<() => Promise<unknown>> = [];
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -24,6 +28,7 @@ import { PROFILE_PREFETCH_KEY, startProfilePrefetch } from "./profilePrefetch";
 import { FIRST_SCREEN_SWITCH_KEYS } from "./declutterPrefetch";
 import { PROFILE_PREFETCH_MAX_AGE_MS, takeProfilePage, takeProfileSectionsOpen, takeProfileSwitches } from "@/lib/profileBootPrefetch";
 import { blankComments } from "@/test/helpers/blankNonCode";
+import { staticReach } from "../../scripts/perf/bootReach.mjs";
 
 const ROOT = resolve(__dirname, "../..");
 const code = (p: string) => blankComments(readFileSync(resolve(ROOT, p), "utf8"));
@@ -156,5 +161,59 @@ describe("the entry asks the You landing's gated reads at once", () => {
     const re = new Function(`return ${gate}`)() as RegExp;
     expect(re.test("/profile")).toBe(true);
     expect(re.test("/profile/")).toBe(true);
+  });
+
+  // Lead 11-14 (perf2 train, critical-path budget): imported statically by useFeature, the hand-over rode in every
+  // route's boot graph. The readers take through profileBootTake.ts, which loads it only when the entry left a slot;
+  // profileRoute.ts starts it beside the You landing.
+  it("the hand-over is in no first screen's static graph, loads only when the entry asked, and starts beside the landing", async () => {
+    // The boot graph and the three first screens whose budgets it broke (/home, /admin, a Declutter item).
+    const roots = ["src/main.tsx", "src/pages/home/HomeDashboard.tsx", "src/pages/admin/Admin.tsx", "src/pages/declutter/DeclutterItemPage.tsx"];
+    const boot = [...staticReach(ROOT, roots.map((r) => resolve(ROOT, r)))].map((f) => f.replace(`${ROOT}/`, ""));
+    expect(boot.length).toBeGreaterThan(100);
+    expect(boot).toContain("src/hooks/useFeature.ts");
+    expect(boot).toContain("src/lib/profileBootTake.ts");
+    expect(boot).not.toContain("src/lib/profileBootPrefetch.ts");
+    for (const f of ["src/hooks/useFeature.ts", "src/components/landing/useSectionsOpen.ts", "src/lib/profileLink/api.ts"]) {
+      expect(code(f), f).not.toContain("@/lib/profileBootPrefetch");
+      expect(code(f), f).toContain("@/lib/profileBootTake");
+    }
+    // No slot: the door answers null and loads nothing.
+    const take = await import("@/lib/profileBootTake");
+    delete (window as unknown as Record<string, unknown>)[PROFILE_PREFETCH_KEY];
+    stubFetch(happy);
+    expect(await take.takeProfileSwitches(UID)).toBeNull();
+    expect(await take.takeProfileSectionsOpen()).toBeNull();
+    expect(await take.takeProfilePage("pat")).toBeNull();
+    // With the entry's slot: the hand-over's own answers, once.
+    startProfilePrefetch("/profile", "");
+    expect(await take.takeProfileSwitches(UID)).toEqual({ declutter: true, shops: false });
+    expect(await take.takeProfileSwitches(UID)).toBeNull();
+    expect(await take.takeProfileSectionsOpen()).toEqual(["declutter"]);
+    expect(await take.takeProfilePage("pat")).toEqual({ data: PAGE });
+    const route = code("src/boot/profileRoute.ts");
+    expect(route).toMatch(/const landing = new URLSearchParams\(search\)\.get\("tab"\) \? \[\] : \[\(\) => import\("@\/lib\/profileBootPrefetch"\)\];/);
+    expect(route).toContain("...landing,");
+  });
+
+  it("with no slot from the entry, the door never even loads the hand-over", async () => {
+    vi.resetModules();
+    const loads: string[] = [];
+    vi.doMock("@/lib/profileBootPrefetch", () => {
+      loads.push("hand-over");
+      return { takeProfileSwitches: async () => null, takeProfileSectionsOpen: async () => null, takeProfilePage: async () => null };
+    });
+    delete (window as unknown as Record<string, unknown>)[PROFILE_PREFETCH_KEY];
+    const take = await import("@/lib/profileBootTake");
+    expect(await take.takeProfileSwitches(UID)).toBeNull();
+    expect(await take.takeProfileSectionsOpen()).toBeNull();
+    expect(await take.takeProfilePage("pat")).toBeNull();
+    expect(loads).toEqual([]);
+    // The control: with a slot, it loads (so the empty list above is not a mock that never runs).
+    (window as unknown as Record<string, unknown>)[PROFILE_PREFETCH_KEY] = { at: Date.now() };
+    await take.takeProfileSectionsOpen();
+    expect(loads).toEqual(["hand-over"]);
+    delete (window as unknown as Record<string, unknown>)[PROFILE_PREFETCH_KEY];
+    vi.doUnmock("@/lib/profileBootPrefetch");
   });
 });

@@ -35,7 +35,10 @@ export function accountPageChunksFor(pathname: string, search: string): Array<()
   if (path === "/admin") return [() => import("@/components/AdminRoute"), () => import("@/pages/admin/Admin")];
   // /messages (11-10): its 103-file preload list left the entry for this chunk (routePreload.ts), the same trade as /admin.
   if (path === "/messages") return [() => import("@/pages/messages/Messages")];
-  return [() => import("@/pages/profile/Profile"), ...profileTabChunksFor(search)];
+  // The You landing's hand-over from the entry's reads (src/boot/profilePrefetch.ts): it loads only on this route now
+  // (src/lib/profileBootTake.ts, lead 11-14), so it starts here beside the page and the landing waits no extra round.
+  const landing = new URLSearchParams(search).get("tab") ? [] : [() => import("@/lib/profileBootPrefetch")];
+  return [() => import("@/pages/profile/Profile"), ...landing, ...profileTabChunksFor(search)];
 }
 
 /** The chunks a /profile URL's first tab draws with (exported for its test). Same specifiers as ProfileTabPanels. */

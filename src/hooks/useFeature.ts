@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { takeFirstScreenSwitches } from "@/lib/declutter/bootPrefetch";
-import { takeProfileSwitches } from "@/lib/profileBootPrefetch";
+import { takeProfileSwitches } from "@/lib/profileBootTake";
 import { featureSwitchBatchKey, featureSwitchSingleKey } from "@/lib/featureSwitchQuery";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { FEATURE_SWITCH_KEYS, type FeatureKey } from "@/config/featureSwitches";

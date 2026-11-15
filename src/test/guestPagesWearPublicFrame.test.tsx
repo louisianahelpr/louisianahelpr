@@ -4,7 +4,7 @@
  * workers blocked) at 375 and 1440: /declutter, its item page, /helprs and /search had html.app-shell (overflow hidden)
  * with the page scrolling in AppShell's inner column, no public footer, and no public header (/helprs and /search no
  * logo either); /hire/<service>/<town> wore the public header and footer but under the html lock it did not scroll AT
- * ALL (body 2044px tall at 375, window.scrollY stuck at 0). After: html unlocked, the window scrolls 400px on every one,
+ * ALL (body 2044px tall at 375, window.scrollY stuck at 0), and /jobs/<id> the same (body 1542px). After: html unlocked, the window scrolls 400px on every one,
  * the public header and footer drawn on each.
  *
  * A guest on the web on a GUEST_PUBLIC_FRAME_ROUTES page (src/lib/guestPublicFrame.ts) gets PublicLayout from AppPage
@@ -20,7 +20,8 @@
  * @mutate src/components/sections/SectionScreen.tsx |   const guestFrame = useGuestPublicFrame(); |   const guestFrame = false;
  * @mutate src/components/sections/SectionScreen.tsx |             className="sticky z-30 -mx-5 | className="z-30 -mx-5
  * @mutate src/hooks/useAppShellViewport.ts | \|\| (framedGuest && isGuestPublicFrameRoute(pathname))) { | ) {
- * @mutate src/lib/guestPublicFrame.ts | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search"] as const; | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/helprs", "/search"] as const;
+ * @mutate src/lib/guestPublicFrame.ts | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search", "/jobs/"] as const; | export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/helprs", "/search", "/jobs/"] as const;
+ * @mutate src/lib/guestPublicFrame.ts |   !NOT_GUEST_PAGES.includes(pathname) && |
  * @mutate src/lib/guestPublicFrame.ts | export const isGuestViewer = (user: unknown, isReady: boolean): boolean => (isReady ? !user : definitelyGuest()); | export const isGuestViewer = (user: unknown, isReady: boolean): boolean => !user;
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -65,7 +66,7 @@ beforeEach(() => {
 });
 
 /** Guest-reachable routes that still wear AppShell or no public frame for a guest; open under Q2784. Exact. */
-const NOT_YET_FRAMED = ["/jobs/:id", "/shops/:id", "/book/:userId"];
+const NOT_YET_FRAMED = ["/shops/:id", "/book/:userId"];
 /** A route pattern with each :param filled, to ask the matchers. */
 const sample = (path: string) => path.replace(/:[A-Za-z]+/g, "x1");
 
@@ -85,13 +86,15 @@ describe("signed-out pages wear the public frame and scroll the document (Q2784,
       })
       .map(({ path }) => path);
     expect([...new Set(unframed)].sort()).toEqual([...NOT_YET_FRAMED].sort());
-    for (const p of ["/declutter", "/declutter/item/:id", "/hire/:service/:town", "/helprs", "/search"]) {
+    for (const p of ["/declutter", "/declutter/item/:id", "/hire/:service/:town", "/helprs", "/search", "/jobs/:id"]) {
       expect(isGuestPublicFrameRoute(sample(p)), p).toBe(true);
     }
     // A member-only page under /declutter stays off: the guest is sent to log in there.
     expect(isGuestPublicFrameRoute("/declutter/sell")).toBe(false);
     expect(isGuestPublicFrameRoute("/declutter/item/")).toBe(false);
-    expect(GUEST_PUBLIC_FRAME_ROUTES.length).toBe(5);
+    expect(isGuestPublicFrameRoute("/jobs/settings")).toBe(false);
+    expect(isGuestPublicFrameRoute("/jobs")).toBe(false);
+    expect(GUEST_PUBLIC_FRAME_ROUTES.length).toBe(6);
   });
 
   it("guest: AppPage (item page, /helprs, /search) draws the public header and footer, not AppShell", () => {
@@ -140,7 +143,7 @@ describe("signed-out pages wear the public frame and scroll the document (Q2784,
   });
 
   it("the html lock comes off for a guest on each page (the window scrolls), and stays for a member", () => {
-    for (const path of ["/declutter", "/declutter/item/abc", "/hire/assembly/baton-rouge", "/helprs", "/search"]) {
+    for (const path of ["/declutter", "/declutter/item/abc", "/hire/assembly/baton-rouge", "/helprs", "/search", "/jobs/abc"]) {
       document.documentElement.classList.add("app-shell");
       const { unmount } = renderHook(() => useAppShellViewport(), { wrapper: at(path) });
       expect(locked(), path).toBe(false);

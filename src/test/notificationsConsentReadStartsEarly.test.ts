@@ -1,5 +1,5 @@
-// @mutate src/pages/profile/Profile.tsx |     void queryClient.prefetchQuery({ queryKey: smsConsentQueryKey(userId), queryFn: fetchSmsConsent }); |     void 0;
-// @mutate src/pages/profile/Profile.tsx |     if (tab !== "notifications" \|\| !userId) return; |     if (tab !== "security" \|\| !userId) return;
+// @mutate src/pages/profile/useProfileEarlyReads.ts |     void queryClient.prefetchQuery({ queryKey: smsConsentQueryKey(userId), queryFn: fetchSmsConsent }); |     void 0;
+// @mutate src/pages/profile/useProfileEarlyReads.ts |     if (tab !== "notifications" \|\| !userId) return; |     if (tab !== "security" \|\| !userId) return;
 // @mutate src/components/notificationPreferences/SmsAlertsCard.tsx |     queryKey: smsConsentQueryKey(user?.id), |     queryKey: ["sms-consent-card", user?.id],
 /**
  * Q2706 (2026-11-05, live lab on prod, helper, 375, Fast 4G + 4x, ~/.lh-shots/b3-errlogs/live-0150.json): You >
@@ -12,7 +12,9 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 
-const profile = blankComments(readFileSync("src/pages/profile/Profile.tsx", "utf8"));
+// The prefetch lives in useProfileEarlyReads, which Profile.tsx calls with the tab and the member id.
+const profilePage = blankComments(readFileSync("src/pages/profile/Profile.tsx", "utf8"));
+const profile = blankComments(readFileSync("src/pages/profile/useProfileEarlyReads.ts", "utf8"));
 const card = blankComments(readFileSync("src/components/notificationPreferences/SmsAlertsCard.tsx", "utf8"));
 const shared = blankComments(readFileSync("src/lib/smsConsentQuery.ts", "utf8"));
 
@@ -21,6 +23,7 @@ describe("Notifications starts the text-alerts read before its card mounts", () 
     const at = profile.indexOf("prefetchQuery({ queryKey: smsConsentQueryKey(userId), queryFn: fetchSmsConsent })");
     expect(at).toBeGreaterThan(0);
     expect(profile.slice(Math.max(0, at - 160), at)).toContain('if (tab !== "notifications" || !userId) return;');
+    expect(profilePage).toContain("useProfileEarlyReads(myHandle, tab, userId);");
   });
 
   it("the card reads the same key with the same function", () => {

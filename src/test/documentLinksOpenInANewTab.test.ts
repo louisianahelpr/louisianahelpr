@@ -75,7 +75,8 @@ describe("Q295: an opened document never goes to a data: URL", () => {
       for (const m of src.matchAll(/const (\w+) = safeDocumentUrl\([^)]*\);[\s\S]{0,240}?window\.open\(\s*\1\b/g)) offenders.push(`${rel}@${m.index}: window.open(${m[1]}) of a safeDocumentUrl value`);
       for (const m of src.matchAll(/window\.open\(\s*safeDocumentUrl\(/g)) offenders.push(`${rel}@${m.index}: window.open(safeDocumentUrl(…))`);
     }
-    expect(sinks, "found almost no document-opening sinks — the scan is broken").toBeGreaterThan(8);
+    // 7 on 2026-11-15 (three photo links became in-app viewer buttons, photosOpenInApp.test.tsx).
+    expect(sinks, "found almost no document-opening sinks — the scan is broken").toBeGreaterThan(6);
     expect(offenders.join("\n")).toBe("");
   });
 });

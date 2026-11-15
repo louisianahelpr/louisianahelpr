@@ -1,32 +1,42 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1236,
+    "calls": 1245,
     "files": 358,
-    "rendering": 1155,
+    "rendering": 1164,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 10,
       "successToast": 2,
       "toast": 247,
-      "toast.error": 828,
+      "toast.error": 837,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 27
     },
     "copyPiecesByForm": {
-      "literal": 485,
+      "literal": 489,
       "template": 105,
-      "dynamic": 700,
+      "dynamic": 705,
       "jsx": 0
     }
   },
   "toasts": [
     {
       "file": "src/components/AttachmentLink.tsx",
-      "line": 45,
+      "line": 47,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't open that — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/AttachmentLink.tsx",
+      "line": 52,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1397,7 +1407,7 @@
     },
     {
       "file": "src/components/admin/AdminCredentialQueue.tsx",
-      "line": 132,
+      "line": 134,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1407,7 +1417,7 @@
     },
     {
       "file": "src/components/admin/AdminCredentialQueue.tsx",
-      "line": 181,
+      "line": 183,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -1417,7 +1427,7 @@
     },
     {
       "file": "src/components/admin/AdminCredentialQueue.tsx",
-      "line": 182,
+      "line": 184,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1427,7 +1437,7 @@
     },
     {
       "file": "src/components/admin/AdminCredentialQueue.tsx",
-      "line": 183,
+      "line": 185,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -1437,7 +1447,7 @@
     },
     {
       "file": "src/components/admin/AdminCredentialQueue.tsx",
-      "line": 456,
+      "line": 468,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1448,6 +1458,26 @@
     {
       "file": "src/components/admin/AdminCredentialQueue.tsx",
       "line": 472,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminCredentialQueue.tsx",
+      "line": 481,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This document link isn't one we can open."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminCredentialQueue.tsx",
+      "line": 490,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2449,7 +2479,7 @@
     },
     {
       "file": "src/components/admin/AdminSupport.tsx",
-      "line": 363,
+      "line": 364,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2459,7 +2489,17 @@
     },
     {
       "file": "src/components/admin/AdminSupport.tsx",
-      "line": 580,
+      "line": 582,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminSupport.tsx",
+      "line": 583,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2719,7 +2759,7 @@
     },
     {
       "file": "src/components/admin/ShopsPaperworkCard.tsx",
-      "line": 63,
+      "line": 65,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -2739,7 +2779,7 @@
     },
     {
       "file": "src/components/admin/ShopsPaperworkCard.tsx",
-      "line": 68,
+      "line": 70,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2749,7 +2789,7 @@
     },
     {
       "file": "src/components/admin/ShopsPaperworkCard.tsx",
-      "line": 73,
+      "line": 75,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -2769,7 +2809,7 @@
     },
     {
       "file": "src/components/admin/ShopsPaperworkCard.tsx",
-      "line": 76,
+      "line": 78,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2779,7 +2819,17 @@
     },
     {
       "file": "src/components/admin/ShopsPaperworkCard.tsx",
-      "line": 82,
+      "line": 84,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/ShopsPaperworkCard.tsx",
+      "line": 90,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4163,7 +4213,7 @@
     },
     {
       "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
-      "line": 48,
+      "line": 45,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4173,7 +4223,17 @@
     },
     {
       "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
-      "line": 68,
+      "line": 50,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
+      "line": 74,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4194,7 +4254,7 @@
     },
     {
       "file": "src/components/admin/settings/RentalsOwnershipCard.tsx",
-      "line": 142,
+      "line": 148,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4285,7 +4345,17 @@
     },
     {
       "file": "src/components/admin/userDetail/DocumentsTab.tsx",
-      "line": 41,
+      "line": 43,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/userDetail/DocumentsTab.tsx",
+      "line": 44,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9333,7 +9403,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 85,
+      "line": 87,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9343,7 +9413,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 144,
+      "line": 146,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -9353,7 +9423,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 148,
+      "line": 150,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -9363,7 +9433,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 257,
+      "line": 259,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9373,7 +9443,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 278,
+      "line": 281,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9383,7 +9453,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 285,
+      "line": 287,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9393,7 +9463,27 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 322,
+      "line": 295,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "This document link isn't one we can open."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/CredentialsTab.tsx",
+      "line": 302,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't generate a view link."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/CredentialsTab.tsx",
+      "line": 339,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9403,7 +9493,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 383,
+      "line": 400,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9413,7 +9503,7 @@
     },
     {
       "file": "src/components/profile/CredentialsTab.tsx",
-      "line": 394,
+      "line": 411,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",

@@ -33,6 +33,8 @@ import {
   type PendingPermit,
 } from "@/lib/shops/permits";
 import { AdminCard } from "./AdminViewShell";
+import { isBrowserImagePath } from "@/lib/storagePath";
+import { useSinglePhotoViewer } from "@/components/useInAppPhotoViewer";
 import { withoutTestRows } from "./seedRows";
 
 const KEY = ["admin-shops-paperwork"] as const;
@@ -75,7 +77,13 @@ export default function ShopsPaperworkCard() {
     },
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
+  const photoViewer = useSinglePhotoViewer();
   const view = async (path: string) => {
+    // Owner 2026-11-15: a photo of the permit opens in the app's own viewer, never a new tab on the storage URL.
+    if (isBrowserImagePath(path)) {
+      await photoViewer.showSigned(() => permitDocumentUrl(path), "Permit document", (msg) => toast.error(msg));
+      return;
+    }
     try {
       window.open(await permitDocumentUrl(path), "_blank", "noopener,noreferrer");
     } catch (err) {
@@ -145,6 +153,7 @@ export default function ShopsPaperworkCard() {
   return (
     <AdminCard title="Shop paperwork" subtitle={'Permits and Secretary of State numbers. A checked permit shows "Permit on file" until it expires.'}>
       {body}
+      {photoViewer.viewer}
       <BrandConfirmDialog
         open={!!turningDown}
         onOpenChange={(o) => { if (!o && !decide.isPending) setTurningDown(null); }}

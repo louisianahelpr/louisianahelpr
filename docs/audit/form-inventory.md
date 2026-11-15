@@ -16,7 +16,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/admin/AdminBanReview.tsx` | textarea×2 |  |  | Ban reason · Dismissal note |
-| `src/components/admin/AdminCredentialQueue.tsx` | input×2, textarea×1 | checkbox |  | Credential rejection reason |
+| `src/components/admin/AdminCredentialQueue.tsx` | input×2, textarea×1 | checkbox |  | Credential rejection reason · Open credential document |
 | `src/components/admin/adminDisputes/DisputeCard.tsx` | input×1, textarea×4 | range | 500, 1000 | e.g. the job was never paid for · Helpr |
 | `src/components/admin/AdminExceptionQueue.tsx` | input×1, textarea×2 | checkbox |  | Resolution note |
 | `src/components/admin/AdminFraudDashboard.tsx` | select×1 |  |  | Flag type |

@@ -19,7 +19,8 @@ import { TIER_PERKS, toSubscriptionTier, type SubscriptionTier } from "@/lib/sub
 import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 import { splitSupportScreenshot } from "@/lib/supportScreenshot";
 import { splitSupportGuest, supportTicketRef } from "../../../supabase/functions/_shared/supportGuest";
-import { isStorageObjectPath } from "@/lib/storagePath";
+import { isBrowserImagePath, isStorageObjectPath } from "@/lib/storagePath";
+import { useSinglePhotoViewer } from "@/components/useInAppPhotoViewer";
 import { openSignedDocument } from "@/lib/openSignedDocument";
 import { SupportReplyComposer, SupportThread } from "@/components/admin/SupportReply";
 import { useSupportReplies } from "@/components/admin/useSupportReplies";
@@ -565,24 +566,26 @@ const AdminSupport = () => {
  */
 function ViewScreenshotButton({ path }: { path: string }) {
   const [busy, setBusy] = useState(false);
+  const { showSigned, viewer } = useSinglePhotoViewer();
+  const sign = async () => {
+    if (!isStorageObjectPath(path)) return null;
+    const { data, error } = await supabase.storage
+      .from("user-documents")
+      .createSignedUrl(path, 300);
+    if (error) report(error, { tags: { source: "AdminSupport.ViewScreenshot" } });
+    return error || !data ? null : data.signedUrl;
+  };
   const open = async () => {
     setBusy(true);
-    await openSignedDocument({
-      open: (url, target) => window.open(url, target),
-      sign: async () => {
-        if (!isStorageObjectPath(path)) return null;
-        const { data, error } = await supabase.storage
-          .from("user-documents")
-          .createSignedUrl(path, 300);
-        if (error) report(error, { tags: { source: "AdminSupport.ViewScreenshot" } });
-        return error || !data ? null : data.signedUrl;
-      },
-      toastError: (msg) => toast.error(msg),
-    });
+    // Owner 2026-11-15: the screenshot opens in the app's own photo viewer, never a new tab on the storage URL. Only a
+    // file a browser cannot draw (a HEIC screenshot) still opens in a tab.
+    if (isBrowserImagePath(path)) await showSigned(sign, "Screenshot the member attached", (msg) => toast.error(msg));
+    else await openSignedDocument({ open: (url, target) => window.open(url, target), sign, toastError: (msg) => toast.error(msg) });
     setBusy(false);
   };
   return (
     <div>
+      {viewer}
       <Button size="sm" variant="outline" onClick={open} disabled={busy}>
         {busy ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <ImageIcon className="w-3.5 h-3.5 mr-1" />}
         View screenshot

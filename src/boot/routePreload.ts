@@ -125,7 +125,7 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
   // the same page as a guest (DeclutterGuestRoute, BUY-16), so it starts the same chunks (Q2705, 11-07: a guest's
   // page chunks started only once App.tsx had rendered the route, at 4.0 s, and Browse's a round later, at 6.5 s,
   // while the entry fetched Login, a page the guest never saw).
-  // A guest's first round carries the Supabase client only, not ProtectedRoute's closure (Q2705, 11-14): its other ~15
+  // A guest's first round carries the Supabase client only, not ProtectedRoute's closure (Q2705, 2026-11-14): its other ~15
   // files (auth shell, footer, logo, icons) shared the throttled link with the HTML-drawn first photos, the LCP, and
   // the page reaches them anyway through DeclutterGuestRoute's own preload list. The client stays here because the
   // first cards wait on it (dropping it too: LCP 3044 -> 2720 ms but the cards 5234 -> 5584 ms). Measured (cwv-lab,

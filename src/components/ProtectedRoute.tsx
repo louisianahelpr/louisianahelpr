@@ -44,6 +44,13 @@ interface ProtectedRouteProps {
    * under it must have its own guest branch reading public data only.
    */
   allowGuest?: boolean;
+  /**
+   * Owner 11-14: the full profile (a name) is asked only on a commitment route, where a member posts, lists, sells,
+   * quotes or messages someone. App.tsx passes this on exactly the routes src/lib/profileGateRoutes.ts names
+   * (src/test/deferredCompleteProfile.test.tsx holds the two equal). A prop, not a path list read here: this file rides
+   * every page's first load, and the list does not need to (critical-path budget, 2026-11-14).
+   */
+  fullProfile?: boolean;
 }
 
 // Routes a half-onboarded user is allowed to visit without being bounced
@@ -92,6 +99,7 @@ type GateProfile = {
   phone?: string | null;
   location?: string | null;
   accepted_terms_at?: string | null;
+  terms_accepted_at?: string | null;
   is_legacy_user?: boolean | null;
 };
 
@@ -173,24 +181,40 @@ const filled = (v: string | null | undefined): boolean => typeof v === "string" 
  * sign-up whose completion failed (10 of 296 sign-ups, 2026-09-27..10-27,
  * error_logs Signup.completeProfile) has a name from the signUp metadata and
  * would skip /complete-profile, losing its referral and marketing choice.
- * Measured on prod 2026-10-27: of 299 non-legacy profiles with a name, this
- * changes the answer for none (62 with a city and no accepted_terms_at stay
- * complete; the 1 with neither stays incomplete).
+ * A saved city no longer counts (owner rule 11-14: nobody gets in without Terms + 18+). A city could be saved
+ * with no Terms on record, and that let a Google/Apple account past the Terms half of the gate (review finding 6).
+ * A Terms record is the only proof: accepted_terms_at (the first acceptance) or terms_accepted_at (the current
+ * version's, written by every acceptance including re-consent). Measured on prod 2026-11-14 (read-only): 0 real
+ * non-legacy profiles have a city and no accepted_terms_at, so no member is sent back by this change; the 72 that do
+ * are all enrolled is_seed test accounts, each with terms_accepted_at and an 18+ record, and they stay in.
  */
-const signupFinished = (profile: GateProfile): boolean => filled(profile.location) || filled(profile.accepted_terms_at);
+const signupFinished = (profile: GateProfile): boolean => filled(profile.accepted_terms_at) || filled(profile.terms_accepted_at);
 
+/**
+ * Owner 11-14: the part of the gate asked before ANYONE reaches the app: the Terms (the sign-up was finished) and
+ * the 18+ box. A Google/Apple sign-up answers both on one short step (/complete-profile's consent step).
+ */
+export const isConsentComplete = (profile: GateProfile | null, user: GateUser): boolean => {
+  if (!profile) return false;
+  if (!signupFinished(profile)) return false;
+  // An email sign-up's 18+ record is complete-signup's first acceptance: it writes accepted_terms_at only after it
+  // refuses a sign-up without the step-1 18+ box (or a birthday). Any other account needs its own 18+ record.
+  if (user?.app_metadata?.provider === "email" && filled(profile.accepted_terms_at)) return true;
+  return filled(profile.age_attested_at) || filled(profile.date_of_birth);
+};
+
+/** The whole gate: consent plus the name. The name is asked only on a commitment route (src/lib/profileGateRoutes.ts). */
 export const isProfileComplete = (profile: GateProfile | null, user: GateUser): boolean => {
   if (!profile) return false;
   if (!PROFILE_GATE_FIELDS.every((f) => (f.key === "full_name" && isAppleAccount(user)) || isFieldComplete(profile, f.key))) return false;
-  if (!signupFinished(profile)) return false;
-  if (user?.app_metadata?.provider === "email") return true;
-  return filled(profile.age_attested_at) || filled(profile.date_of_birth);
+  return isConsentComplete(profile, user);
 };
 
 const ProtectedRoute = ({
   children,
   fallback = <RouteSuspenseFallback />,
   allowGuest = false,
+  fullProfile = false,
 }: ProtectedRouteProps) => {
   const { user, profile, isLoading, isError, refresh } = useCurrentUser();
   // F260p (audit 11-10): this screen had a signed-in user earlier in its life. When that user goes away without the
@@ -523,10 +547,13 @@ const ProtectedRoute = ({
     // bounce, trapping half-onboarded users on a review screen for a review
     // that did not exist. That bounce and its screen are gone — Q193.)
     const isLegacy = profile.is_legacy_user === true;
+    // Owner 11-14: the Terms and 18+ boxes are asked before any screen; the rest of the profile only on a
+    // commitment route (posting, listing, booking, messaging), never right after sign-up.
+    const gateNeeded = !isConsentComplete(profile, user) || (fullProfile && !isProfileComplete(profile, user));
     if (
       !isLegacy &&
       user.email_confirmed_at &&
-      !isProfileComplete(profile, user) &&
+      gateNeeded &&
       !isProfileGateAllowed(location.pathname, location.search)
     ) {
       if (DEBUG_AUTH) console.log("[auth] ProtectedRoute redirect", { path: location.pathname, to: "/complete-profile", reason: "profile-incomplete" });

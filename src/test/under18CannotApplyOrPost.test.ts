@@ -83,6 +83,7 @@ const NOT_AN_ENTRY: Record<string, string> = {
   "src/lib/nativeLaunchRoute.ts": "cold-launch route restore; lands on the gated form",
   // Moved out of MobileNav.tsx with the dock warmups (componentSizeRatchet, 424064faba).
   "src/components/mobileNav/useDockWarmups.ts": "idle chunk prefetch only: the dock's center + opens CreateSheet, whose Post a job reads useAgeGate and greys it",
+  "src/pages/admin/preview/OnboardingPreviewPage.tsx": "the admin onboarding preview draws Complete Profile as a member headed to /post-job would see it; every navigation stays on the preview page (InertNavigation)",
   "src/lib/shakeToReport.ts": "a route list of screens where a shake never opens a report (FORM_ROUTES); it sends no one to /post-job",
   "src/lib/declutter/sellForMe.ts": "data only: Sell it for me's Post a job path; the buttons that open it (SellItForMe.tsx) read useAgeGate and grey it",
   "src/components/sections/sectionsConfig.ts": "data only: the Jobs section's add path; the desktop top bar's soft \"+ Post a job\" that reads it (AppTopBar) reads useAgeGate and greys it (owner 2026-10-28)",

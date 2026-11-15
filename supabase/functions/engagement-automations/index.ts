@@ -43,7 +43,9 @@ const corsHeaders = {
 // The templates live in `_shared/email-templates/`; this file only supplies
 // the data and decides who gets what.
 //
-// COMMERCIAL — welcome drip steps 1/2/3 and the "New jobs are open in your
+// COMMERCIAL — welcome drip step 3 (day 7; steps 1 and 2, day 1 and day 3,
+// moved to welcome-emails on 11-14, and only the dead-lettered re-send in
+// block 0 still sends them) and the "New jobs are open in your
 // area." win-back (`drip.tsx`). Deleted in fa6a7898 when the business chose
 // not to publish a postal address; RESTORED 2026-08-31 by owner decision with
 // that gap knowingly open (see the constant note in `_shared/resend.ts`).
@@ -655,6 +657,18 @@ serve(async (_req) => {
           const hoursSince = (now.getTime() - new Date(person.last_drip_at).getTime()) / (1000 * 60 * 60)
           if (hoursSince < 20) { skip('drip_email_in_20h'); continue }
         }
+        // Since 11-14 welcome-emails sends day 1 and day 3 (its steps 1 and 3): a member who already has that
+        // welcome email never gets the old drip's copy of the same day re-sent.
+        if (stepNo !== 3) {
+          const { data: welcomed, error: welcomeErr } = await supabase
+            .from('welcome_email_sends')
+            .select('user_id')
+            .eq('user_id', person.user_id)
+            .eq('email_step', stepNo === 1 ? 1 : 3)
+            .limit(1)
+          if (welcomeErr) { resend.errors.push(`welcome-email check for ${dead.message_id}: ${welcomeErr.message}`); continue }
+          if ((welcomed ?? []).length > 0) { skip('welcome_email_sent'); continue }
+        }
 
         const step = DRIP_STEPS[stepNo]
         const failure = await queueCommercial(
@@ -756,11 +770,13 @@ serve(async (_req) => {
       // step at all (Q2303). An unreadable sign-up date is out too.
       if (!(daysSinceSignup <= WELCOME_DRIP_MAX_DAYS)) continue
 
-      // Which step is due, from days since signup.
-      let targetStep: 1 | 2 | 3 | -1 = -1
-      if (user.drip_step === 0 && daysSinceSignup >= 1) targetStep = 1
-      else if (user.drip_step === 1 && daysSinceSignup >= 3) targetStep = 2
-      else if (user.drip_step === 2 && daysSinceSignup >= 7) targetStep = 3
+      // Which step is due, from days since signup. Day 1 and day 3 are sent by
+      // welcome-emails since 11-14 (owner: "Yes do that"; jobs and items near
+      // the member, claim table welcome_email_sends); this loop sends only the
+      // day 7 tips email, to every member still below step 3 once they reach
+      // day 7, whether or not the old drip sent its day 1 or day 3.
+      let targetStep: 3 | -1 = -1
+      if ((user.drip_step ?? 0) < 3 && daysSinceSignup >= 7) targetStep = 3
 
       if (targetStep === -1) continue
 

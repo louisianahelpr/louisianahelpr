@@ -16,7 +16,9 @@ import { AlertCircle, Check, Loader2, ShieldCheck, Trash2, X } from "lucide-reac
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
 import { cn } from "@/lib/utils";
-import { isAppleAccount, isProfileComplete } from "@/components/ProtectedRoute";
+import { isAppleAccount, isConsentComplete, isProfileComplete } from "@/components/ProtectedRoute";
+import { isCommitmentPath } from "@/lib/profileGateRoutes";
+import { ConsentStep, saveConsent } from "./completeProfile/ConsentStep";
 import { splitName } from "@/lib/splitName";
 import { isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
@@ -40,7 +42,11 @@ const DeleteAccountDialog = lazy(() =>
   import("@/components/profile/DeleteAccountDialog").then((m) => ({ default: m.DeleteAccountDialog })),
 );
 
-const CompleteProfile = () => {
+/**
+ * `next`: where the member goes after this page, in place of the URL's ?next= (the admin onboarding preview draws the
+ * full form as a member headed to /post-job would see it; OnboardingPreviewPage.tsx). The app's route passes nothing.
+ */
+const CompleteProfile = ({ next }: { next?: string } = {}) => {
   const { lang, t } = useLanguage();
   usePageTitle(t("profileGate.pageTitle"));
   const navigate = useNavigate();
@@ -67,24 +73,19 @@ const CompleteProfile = () => {
   // and `safeInternalRedirect` rejects protocol-relative, scheme-bearing,
   // control-character and auth-screen targets. Anything it refuses falls
   // back to the dashboard.
-  const nextDestination = safeInternalRedirect(searchParams.get("next")) ?? "/home";
+  const nextDestination = safeInternalRedirect(next ?? searchParams.get("next")) ?? "/home";
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   // Apple/Google: the name is asked only when the provider gave no full name
   // (owner 2026-10-26). Set once, from the profile the sign-in created.
   const [providerGaveName, setProviderGaveName] = useState(false);
-  // The 18+ box, the same one sign-up step 1 shows an email sign-up (owner,
-  // 2026-10-14 ~3 PM CT): a Google/Apple sign-up never sees step 1, so it ticks
-  // it here, and this screen asks no birthday and no phone. UNCHECKED by
-  // default; hydrated from profiles.age_attested_at. An email sign-up ticked it
-  // on step 1 (complete-signup refuses it otherwise), so it is not asked twice:
-  // the same rule as ProtectedRoute's isProfileComplete.
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  // The 18+ box (owner, 2026-10-14): a Google/Apple sign-up never sees sign-up step 1, so it ticks it on the
+  // consent step (completeProfile/ConsentStep.tsx, owner 11-14), which comes before this form; no birthday, no
+  // phone. An email sign-up ticked it on step 1, so it is not asked twice (ProtectedRoute's isConsentComplete).
   const ageBoxShown = user?.app_metadata?.provider !== "email";
   // App Store 4 (11-11): never ask an Apple sign-in for a name (socialAuth saves Apple's; Profile can add one).
   const nameAsked = !isAppleAccount(user);
-  const ageDone = ageConfirmed || !ageBoxShown;
   const [location, setLocation] = useState("");
   // Optional — mirrors the same field on Signup.tsx's email path (S-001).
   const [zipCode, setZipCode] = useState("");
@@ -128,7 +129,6 @@ const CompleteProfile = () => {
     if (parsedFirst && !firstName) setFirstName(parsedFirst);
     if (parsedLast && !lastName) setLastName(parsedLast);
     if (parsedFirst && parsedLast) setProviderGaveName(true);
-    if (profile.age_attested_at) setAgeConfirmed(true);
     if (profile.location && !location) setLocation(profile.location);
     if (profile.zip_code && !zipCode) setZipCode(profile.zip_code);
     if (profile.bio && !bio) setBio(profile.bio);
@@ -156,7 +156,7 @@ const CompleteProfile = () => {
 
 
 
-  // Live checklist: name, the 18+ box (Google/Apple) and the policies. City
+  // Live checklist: name and the policies (the 18+ box is on ConsentStep, before this form). City
   // and ZIP are optional here and on sign-up step 2 (owner 2026-10-26), so
   // neither is in this list or in ProtectedRoute's gate. Never add one to the
   // gate while the form lets it be skipped: that is the redirect loop
@@ -167,7 +167,6 @@ const CompleteProfile = () => {
   const checklist = useMemo(() => {
     return [
       ...(nameAsked ? [{ label: t("profileGate.needName"), step: t("profileGate.stepName"), done: firstName.trim().length > 0 && lastName.trim().length > 0 }] : []),
-      ...(ageBoxShown ? [{ label: t("profileGate.needAge"), step: t("profileGate.stepAge"), done: ageConfirmed }] : []),
       // City and ZIP left the checklist (owner 2026-10-26: optional, as on
       // sign-up step 2); a typed ZIP is still checked on submit.
       // Government-issued ID is intentionally NOT in the required checklist:
@@ -180,8 +179,6 @@ const CompleteProfile = () => {
   }, [
     lang, t,
     firstName, lastName, nameAsked,
-    ageBoxShown,
-    ageConfirmed,
     acceptedPolicies,
   ]);
 
@@ -205,7 +202,10 @@ const CompleteProfile = () => {
   // F455 (audit 11-10): a finished profile that opens this page (an old link, a back button) is sent on to /home below;
   // it used to go with no word. One toast says why. Not after a save made here: the cache turns complete a render
   // before navigate() runs, and that member just finished, nothing was "already" done.
-  const alreadyComplete = !!profile && (profile.is_legacy_user === true || isProfileComplete(profile, user));
+  // Owner 11-14: the full form is only for a commitment route (?next= posting, listing, messaging...); a member who
+  // has agreed and is headed anywhere else is done here.
+  const consentDone = !!profile && isConsentComplete(profile, user);
+  const alreadyComplete = !!profile && (profile.is_legacy_user === true || isProfileComplete(profile, user) || (consentDone && !isCommitmentPath(nextDestination)));
   const savedHereRef = useRef(false);
   const toldAlreadyCompleteRef = useRef(false);
   useEffect(() => {
@@ -223,8 +223,6 @@ const CompleteProfile = () => {
 
     const fail = (msg: string) => { hapticError(); toast.error(msg); };
     if (nameAsked && (!firstName.trim() || !lastName.trim())) return fail(t("profileGate.nameToast"));
-    // The same words Signup.tsx says when step 1's 18+ box is left empty.
-    if (!ageDone) return fail(t("signup.ageToast"));
     // City and ZIP are optional (owner 2026-10-26); a typed ZIP is five digits.
     { const zip = zipCode.replace(/\D/g, ""); if (zip && zip.length !== 5) return fail(t("profileGate.zipToast")); }
     // Government-issued ID is no longer required here — it's optional at
@@ -289,36 +287,48 @@ const CompleteProfile = () => {
   // checklist they can't dismiss.
   // See the divergence note on `checklist` above before touching this gate.
   if (alreadyComplete) {
-    return <Navigate to="/home" replace />;
+    return <Navigate to={nextDestination} replace />;
   }
 
-  // Migrated from a bespoke wrapper to the shared AuthShell so this screen
-  // reads as a sibling of Login / Signup / ForgotPassword / ResetPassword
-  // (same wordmark, eyebrow, parchment surface, spacing rhythm). Back is
-  // hidden because CompleteProfile is a required post-signup gate — the
-  // way out is either Finish or the "Sign out" link at the bottom of the
-  // form, not a browser-back that would strand a half-provisioned account.
-  // Shell derived from Login.tsx, the canonical focused-auth sibling, rather
-  // than assembled here — three defects came out of this one call.
+  // Owner 11-14: Terms + 18+ only, then straight on (completeProfile/ConsentStep.tsx).
+  if (profile && user && !consentDone) {
+    const deleteLink = (
+      <Button type="button" variant="ghost" size="sm" onClick={deleteAccount.requestDelete} className="w-full text-destructive-ink hover:text-destructive-ink">
+        <Trash2 className="w-4 h-4 mr-1" /> {t("profileGate.deleteAccount")}
+      </Button>
+    );
+    // The 18+ box is also asked of an email sign-up whose sign-up never finished (no Terms and no 18+ on record:
+    // complete-signup failed, so its step-1 box never reached the server). This step is the only gate before Home.
+    const consentAgeBox = ageBoxShown || (!profile.accepted_terms_at && !profile.age_attested_at && !profile.date_of_birth);
+    return (
+      <>
+        <ConsentStep
+          signingOut={signingOut}
+          lang={lang}
+          t={t}
+          ageBoxShown={consentAgeBox}
+          initiallyAgreed={!!(profile.accepted_terms_at || profile.terms_accepted_at)}
+          initiallyAdult={!!profile.age_attested_at}
+          onSave={async () => {
+            await saveConsent({ user, ageBoxShown: consentAgeBox, profile, t, queryClient });
+            savedHereRef.current = true;
+            navigate(nextDestination, { replace: true });
+          }}
+          onSignOut={() => { void signOut({ after: () => navigate("/login", { replace: true }) }); }}
+          footer={deleteLink}
+        />
+        {deleteDialog}
+      </>
+    );
+  }
+
+  // The shared AuthShell, derived from Login.tsx (Back hidden: the way out is Finish or Sign out). Three defects
+  // came out of this one call:
   //
-  //  • `noWebChrome` — the marketing Navbar renders a "Dashboard →" pill for
-  //    anyone holding a session, and on THIS screen the holder is by
-  //    definition half-provisioned: signed in, profile incomplete, sitting in
-  //    a required gate. Offering them the dashboard advertises a way around
-  //    the gate (owner: "once they sign in it should not reference the
-  //    dashboard until they are fully signed up"). It drops the Footer too,
-  //    which is right for the same reason Login drops it — this is a flow, not
-  //    a landing page.
-  //  • `hideHeader` — removes the "Helpr · LA" wordmark and the
-  //    "Louisiana's Local Job Partner" eyebrow. The page already has its own
-  //    "Almost there." heading, so the brand block was a second, competing
-  //    title on a screen whose whole job is one form (owner).
-  //  • `centerColumn` + the wider measure — `align` defaults to "start", so
-  //    `items-start` pinned the max-w-md (448px) column against the left edge:
-  //    at 1534 the content ran 48→496 with 1038px dead to the right, centre
-  //    272 against a viewport centre of 767. CLAUDE.md calls that a hard
-  //    failure ("a page that floats in a lopsided column with blank bands has
-  //    failed the audit"), and it is what the owner was pointing at.
+  //  • `noWebChrome`: no "Dashboard →" pill or Footer for a half-provisioned account (owner: no dashboard until
+  //    fully signed up).
+  //  • `hideHeader`: the page has its own heading, so the brand block competed with it (owner).
+  //  • `centerColumn` + the wider measure: `items-start` pinned the 448px column to the left edge at 1534.
   return (
     <AuthShell hideBack hideHeader centerColumn maxWidth="lg" noWebChrome>
       <div className="pb-12">
@@ -501,23 +511,6 @@ const CompleteProfile = () => {
               </span>
             </label>
 
-            {/* The 18+ box: the same sentence sign-up step 1 shows an email
-                sign-up (owner, 2026-10-14), laid out like the consent row
-                above it. Required, UNCHECKED by default. */}
-            {ageBoxShown && (
-              <label htmlFor="age-confirm" className="flex min-h-11 items-start gap-2.5 text-ds-11 cursor-pointer -mt-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                <Checkbox
-                  id="age-confirm"
-                  aria-labelledby="age-confirm-label"
-                  checked={ageConfirmed}
-                  onCheckedChange={(v) => setAgeConfirmed(v === true)}
-                  className="mt-px shrink-0"
-                />
-                <span id="age-confirm-label" className="leading-relaxed">
-                  {t("profileGate.ageConfirm")} <span style={{ color: "hsl(var(--sienna-ink))" }}>*</span>
-                </span>
-              </label>
-            )}
 
             <StillNeededList checklist={checklist} allComplete={allComplete} t={t} />
 
@@ -526,21 +519,8 @@ const CompleteProfile = () => {
               size="lg"
               className={cn(
                 "w-full",
-                // The label is clipped at 320px without this. `size="lg"` is
-                // `h-[60px] px-8` and `Button`'s base class is
-                // `whitespace-nowrap`, so at a 320px viewport the button box is
-                // 230px, 64px of that is padding, and "Complete Required
-                // Fields" needs 226px in 166px of room — measured
-                // scrollWidth 245 vs clientWidth 230, i.e. the primary action
-                // on the one screen a blocked user cannot leave was running off
-                // its own button. Narrow padding plus a permitted wrap fixes it
-                // without touching the shared `Button` variants: the label
-                // wraps to two lines under `sm`, and `h-auto`/`min-h-[60px]`
-                // keeps the tap target at its full size instead of clipping.
-                //
-                // `!min-h-[60px]`, not `min-h-[60px]`: index.css's bare
-                // `button { min-height: 44px }` is unlayered, so it beat the
-                // utility and this rendered 49.5px beside a 60px Sign Out.
+                // Fits 320px: narrow padding + a permitted wrap; `!min-h-[60px]` beats index.css's bare
+                // `button { min-height: 44px }` (unlayered), which otherwise rendered 49.5px beside Sign Out.
                 "h-auto !min-h-[60px] whitespace-normal min-[360px]:whitespace-nowrap text-balance px-4 py-3 sm:px-8 sm:py-0",
                 allComplete && !submitting && "btn-grad-primary",
               )}
@@ -573,15 +553,7 @@ const CompleteProfile = () => {
               <Trash2 className="w-4 h-4 mr-1" /> {t("profileGate.deleteAccount")}
             </Button>
 
-            {/* The only route to a human from inside the gate. ProtectedRoute's
-                PROFILE_GATE_ALLOWED set lets a half-onboarded user reach
-                /support, /terms, /rules, /privacy and /profile?tab=legal — but
-                until now this screen linked to four of those five and never to
-                support, so the escape hatch existed and was invisible. Someone
-                stuck on a field they cannot satisfy (a phone number the format
-                rejects, a city not in the list) had "Sign out" as their only
-                other affordance. /help is NOT on the allowed list, so link
-                /support, which is. */}
+            {/* The only route to a human from inside the gate: /support is on PROFILE_GATE_ALLOWED (/help is not). */}
             <p className="text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {t("profileGate.stuck")}{" "}
               <a href="/support" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>

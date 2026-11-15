@@ -302,6 +302,7 @@ const EMAIL_SENDERS: Record<string, string> = {
   "supabase/functions/send-account-status-email/index.ts": "own account status",
   "supabase/functions/send-marketing-blast/index.ts": "admin-authored marketing",
   "supabase/functions/come-back-emails/index.ts": "own-account nudge about the member's own sign-up; names no other person, and is_seed members and test accounts are never claimed",
+  "supabase/functions/welcome-emails/index.ts": "own-account welcome after the member's own sign-up; lists open jobs and items by title and area only (no person named), is_seed members and test accounts are never claimed, and seed jobs and seed or test-account items are never listed",
   "supabase/functions/confirm-reminders/index.ts": "own-account nudge to confirm the member's own email address; names no other person, and is_seed, test, fixture and suppressed addresses are never claimed",
   "supabase/functions/signup-lead-reminders/index.ts": "a sign-up lead with no account (so no seed subject): fixture, reserved and profiled addresses are never claimed",
   "supabase/functions/sponsor-25days/index.ts": "a brand's own 25 Days sign-up confirmation to the address it typed, and the same details to admin@; no account (so no seed subject), and a test address gets neither (isTestRecipient before each send)",

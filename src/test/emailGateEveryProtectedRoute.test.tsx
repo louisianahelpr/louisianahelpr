@@ -101,6 +101,7 @@ const completeApproved = {
   date_of_birth: "1990-01-01",
   phone: "(504) 555-0100",
   location: "New Orleans",
+  accepted_terms_at: "2026-09-01T00:00:00Z", // owner 11-14: the Terms record is the finished sign-up (a city alone no longer is)
   is_legacy_user: false,
 };
 
@@ -159,7 +160,12 @@ describe("Q180: the email gate covers EVERY protected route", () => {
     // accounts still go to verify-email (the it.each below renders /jobs/:id with this prop and proves it).
     // F071 (owner 11-09): guests may VIEW /explore and /search too; only their actions are gated.
     const GUEST_EXCEPTIONS = ["/explore: allowGuest", "/search: allowGuest", "/helprs: allowGuest", "/jobs/:id: allowGuest"];
-    expect(protectedRoutes.filter((r) => Object.keys(r.props).length > 0).map((r) => `${r.path}: ${Object.keys(r.props).join(",")}`)).toEqual(GUEST_EXCEPTIONS);
+    // Owner 11-14: fullProfile ADDS a gate (the full profile on a commitment route, src/lib/profileGateRoutes.ts); it
+    // never lets anyone past one. Its routes are held equal to isCommitmentPath in src/test/deferredCompleteProfile.test.tsx.
+    const FULL_PROFILE = ["/declutter/move", "/declutter/sell", "/messages", "/post-job", "/quotes/send/:id", "/rentals/listings/:id/edit", "/rentals/listings/new", "/shops/dashboard", "/shops/mine"];
+    const withProps = protectedRoutes.filter((r) => Object.keys(r.props).length > 0);
+    expect(withProps.filter((r) => !("fullProfile" in r.props)).map((r) => `${r.path}: ${Object.keys(r.props).join(",")}`)).toEqual(GUEST_EXCEPTIONS);
+    expect(withProps.filter((r) => "fullProfile" in r.props).map((r) => `${r.path}: ${Object.keys(r.props).join(",")}`).sort()).toEqual(FULL_PROFILE.map((p) => `${p}: fullProfile`));
   });
 
   it("the guest exception's route is mounted with its prop, and an unverified account there still goes to verify-email", () => {

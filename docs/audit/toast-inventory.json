@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1233,
-    "files": 357,
-    "rendering": 1152,
+    "calls": 1236,
+    "files": 358,
+    "rendering": 1155,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 10,
       "successToast": 2,
       "toast": 247,
-      "toast.error": 825,
+      "toast.error": 828,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 485,
       "template": 105,
-      "dynamic": 697,
+      "dynamic": 700,
       "jsx": 0
     }
   },
@@ -1197,7 +1197,7 @@
     },
     {
       "file": "src/components/TermsReconsentDialog.tsx",
-      "line": 170,
+      "line": 172,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13582,7 +13582,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 256,
+      "line": 254,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13817,6 +13817,36 @@
       "title": {
         "form": "dynamic",
         "text": "t(problem, { label })"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/completeProfile/ConsentStep.tsx",
+      "line": 104,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "t(\"profileGate.policiesToast\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/completeProfile/ConsentStep.tsx",
+      "line": 105,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "t(\"signup.ageToast\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/completeProfile/ConsentStep.tsx",
+      "line": 112,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, userFacingError(err, t(\"profileGate.saveFailed\")))"
       },
       "renders": true
     },

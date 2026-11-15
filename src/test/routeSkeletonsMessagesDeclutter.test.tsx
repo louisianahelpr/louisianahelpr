@@ -10,7 +10,7 @@
  * (e2e/prod-audit/skeleton-shape.spec.ts), whose inventory (routeSkeletonRoutes, read from App.tsx) now holds both
  * routes; this file holds the wiring and the shared geometry without a browser.
  *
- * @mutate src/App.tsx | {routeEl(<ProtectedRoute fallback={<MessagesRouteSkeleton />}><Messages /></ProtectedRoute>, <MessagesRouteSkeleton />)} | {routeEl(<ProtectedRoute><Messages /></ProtectedRoute>)}
+ * @mutate src/App.tsx | {routeEl(<ProtectedRoute fullProfile fallback={<MessagesRouteSkeleton />}><Messages /></ProtectedRoute>, <MessagesRouteSkeleton />)} | {routeEl(<ProtectedRoute fullProfile><Messages /></ProtectedRoute>)}
  * @mutate src/App.tsx | <DeclutterGuestOrMember fallback={<DeclutterRouteSkeleton />}> | <DeclutterGuestOrMember>
  * @mutate src/components/declutter/DeclutterGuestRoute.tsx | return <ProtectedRoute fallback={fallback}>{children}</ProtectedRoute>; | return <ProtectedRoute>{children}</ProtectedRoute>;
  * @mutate src/components/MessagesRouteSkeleton.tsx | export const MESSAGES_SKELETON_HEADER_PADDING = "!py-1.5 lg:!py-2"; | export const MESSAGES_SKELETON_HEADER_PADDING = "!py-2 lg:!py-2";
@@ -68,7 +68,7 @@ describe("/messages and /declutter route skeletons (Q2705 B)", () => {
     expect(inv.find((r) => r.path === "/messages")).toMatchObject({ page: "Messages", skeleton: "MessagesRouteSkeleton" });
     expect(inv.find((r) => r.path === "/declutter")).toMatchObject({ page: "DeclutterPage", skeleton: "DeclutterRouteSkeleton" });
     const line = (p: string) => stripComments(APP).split("\n").find((l) => l.includes(`<Route path="${p}" `)) ?? "";
-    expect(line("/messages")).toContain("<ProtectedRoute fallback={<MessagesRouteSkeleton />}>");
+    expect(line("/messages")).toContain("<ProtectedRoute fullProfile fallback={<MessagesRouteSkeleton />}>");
     expect(line("/declutter")).toContain("<DeclutterGuestOrMember fallback={<DeclutterRouteSkeleton />}>");
     // DeclutterGuestOrMember hands it to ProtectedRoute (its wait is the member's and the guest's first frame).
     expect(code("src/components/declutter/DeclutterGuestRoute.tsx")).toMatch(/<ProtectedRoute fallback=\{fallback\}>\{children\}<\/ProtectedRoute>/);

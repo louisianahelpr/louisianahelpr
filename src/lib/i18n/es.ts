@@ -269,7 +269,6 @@ export const es: Record<MsgKey, string> = {
   "profileGate.fileSize": "{label} pesa más de 5 MB. Pruebe con un archivo más pequeño.",
   "profileGate.photoLabel": "Foto de perfil",
   "profileGate.needName": "Nombre completo",
-  "profileGate.needAge": "Confirme que tiene 18 años o más",
   "profileGate.needPolicies": "Aceptar las reglas de la plataforma, los términos y la privacidad",
   "profileGate.nameToast": "Escriba su nombre y apellido.",
   "profileGate.zipToast": "Escriba un código postal de 5 dígitos, o déjelo en blanco.",
@@ -291,7 +290,6 @@ export const es: Record<MsgKey, string> = {
   "profileGate.ageConfirm": "Confirmo que tengo 18 años o más.",
   "profileGate.stillNeeded": "Todavía falta",
   "profileGate.stepName": "agregue su nombre completo",
-  "profileGate.stepAge": "confirme que tiene 18 años o más",
   "profileGate.stepPolicies": "acepte las reglas, los términos y la privacidad",
   "profileGate.nextStep": "Siguiente: {step} · paso {n} de {total}",
   "profileGate.saving": "Guardando…",
@@ -301,6 +299,9 @@ export const es: Record<MsgKey, string> = {
   "profileGate.stuck": "¿Se le complicó algo?",
   "profileGate.contactSupport": "Contactar a soporte",
   "profileGate.intro": "Necesitamos algunos datos antes de que pueda usar Helpr. Así la comunidad se mantiene segura.",
+  "profileGate.consentTitle": "Un paso rápido.",
+  "profileGate.consentIntro": "Acepte las reglas y confirme su edad, y listo.",
+  "profileGate.continue": "Continuar",
   "profileGate.wiped": "Por su seguridad, se borraron los datos que escribió antes de confirmar su correo electrónico. Por favor, agréguelos otra vez.",
 
   // Shared on Log in and Sign up: the "or" rule and the Apple / Google buttons

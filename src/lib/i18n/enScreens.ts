@@ -187,7 +187,6 @@ export const enScreens = {
   "profileGate.fileSize": "{label} is over 5 MB — try a smaller file.",
   "profileGate.photoLabel": "Profile picture",
   "profileGate.needName": "Full name",
-  "profileGate.needAge": "Confirm you're 18 or older",
   "profileGate.needPolicies": "Accept platform rules, terms & privacy",
   "profileGate.nameToast": "Add your first and last name.",
   "profileGate.zipToast": "Enter a 5-digit ZIP code, or leave it blank.",
@@ -209,7 +208,6 @@ export const enScreens = {
   "profileGate.ageConfirm": "I confirm I am 18 years of age or older.",
   "profileGate.stillNeeded": "Still needed",
   "profileGate.stepName": "add your full name",
-  "profileGate.stepAge": "confirm you're 18 or older",
   "profileGate.stepPolicies": "accept the rules, terms and privacy",
   "profileGate.nextStep": "Next: {step} · step {n} of {total}",
   "profileGate.saving": "Saving…",
@@ -219,6 +217,9 @@ export const enScreens = {
   "profileGate.stuck": "Stuck on something?",
   "profileGate.contactSupport": "Contact support",
   "profileGate.intro": "We need a few details before you can use Helpr. This keeps the community safe.",
+  "profileGate.consentTitle": "One quick step.",
+  "profileGate.consentIntro": "Agree to the rules and confirm your age, then you're in.",
+  "profileGate.continue": "Continue",
   "profileGate.wiped": "For your security, details entered before your email was confirmed were cleared. Please add them again.",
 
   // Shared on Log in and Sign up: the "or" rule and the Apple / Google buttons

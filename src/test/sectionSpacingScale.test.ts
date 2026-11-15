@@ -103,6 +103,7 @@ const ALLOWED: Record<string, { n: number; why: string }> = {
   "src/pages/auth/Unsubscribe.tsx": { n: 1, why: "AuthShell card rhythm (the public /unsubscribe card, the same liquid-glass card as AccountBanned)" },
   "src/pages/auth/AccountBanned.tsx": { n: 2, why: "AuthShell card rhythm (the member card and, since 11-10, the signed-out guest card)" },
   "src/pages/auth/CompleteProfile.tsx": { n: 1, why: "the profile-completion card's own field rhythm" },
+  "src/pages/auth/completeProfile/ConsentStep.tsx": { n: 1, why: "the Terms + 18+ card's own field rhythm, the same card as CompleteProfile's (owner 11-14)" },
   // Centred compositions with no title row (NOT_A_TITLE_ROW in shell-spacing.spec).
   "src/pages/post-job/PaymentSuccess.tsx": { n: 1, why: "centred payment-return composition" },
   "src/pages/posts/EditJobDialog.tsx": { n: 1, why: "space-y-5 between a dialog's own form fields, not a page section" },

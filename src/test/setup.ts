@@ -15,6 +15,11 @@ import { resetConnectivityForTests } from "@/lib/connectivity";
 // (src/test/edge/stripeConnectNeedsHire.test.ts, payoutAfterHire.pglite.mjs).
 vi.mock("@/hooks/usePayoutSetupHireAllowed", () => ({ usePayoutSetupHireAllowed: () => true, usePayoutSetupHireStatus: () => ({ allowed: true, settled: true }) }));
 
+// Q2788: a guest's ID wording asks identity_check_on_for_everyone() once (src/lib/guestIdCheckAnswer.ts). Tests not
+// ABOUT that read get "no answer yet" (null: the page keeps ID_CHECK_BEFORE_ANSWER), so the landing, legal and safety
+// tests never reach Supabase. The read itself: src/test/guestIdWordingFollowsTheSwitch.test.tsx unmocks it.
+vi.mock("@/lib/guestIdCheckAnswer", () => ({ useGuestIdCheckAnswer: () => null }));
+
 // Unmount every render after every test, in every file. RTL only registers its
 // own auto-cleanup when a test file imports it statically; a file that loads it
 // with `await import(...)` left its renders mounted, and a React update fired

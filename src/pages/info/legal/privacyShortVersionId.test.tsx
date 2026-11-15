@@ -11,7 +11,7 @@
  * says the same (src/test/legalIdOncePerAccount.test.tsx).
  *
  * @mutate src/pages/info/legal/PrivacySection.tsx | usage data, and ${idCheckOn ? ID_ONCE_PER_ACCOUNT : "ID, if you choose to verify it"}. | usage data, and ID, if you choose to verify it.
- * @mutate src/lib/useIdCheckOnForViewer.ts |   if (!isReady \|\| !user) return ID_CHECK_BEFORE_ANSWER; |   if (!isReady) return ID_CHECK_BEFORE_ANSWER;
+ * @mutate src/lib/useIdCheckOnForViewer.ts |   if (!user) return guestAnswer ?? ID_CHECK_BEFORE_ANSWER; |   if (!user) return member;
  */
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";

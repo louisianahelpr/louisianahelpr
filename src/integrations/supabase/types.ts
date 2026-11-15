@@ -21115,6 +21115,7 @@ export type Database = {
         }[]
       }
       hook_one_account_per_person: { Args: { event: Json }; Returns: Json }
+      identity_check_on_for_everyone: { Args: never; Returns: boolean }
       identity_notify_posters_before_start: {
         Args: { p_limit?: number }
         Returns: number

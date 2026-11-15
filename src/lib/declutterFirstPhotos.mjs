@@ -69,15 +69,27 @@ export function cardPhotoUrls(supabaseUrl, path) {
   return { href: url(CARD_PX), srcset: `${url(SMALL_PX)} ${SMALL_PX}w, ${url(CARD_PX)} ${CARD_PX}w` };
 }
 
-/** The Link header value preloading the first row's photos on a phone; null with none. */
+/**
+ * The second row's photos are on a phone's first screen too once it is tall enough (bootAboveFoldCount: two rows at
+ * 375x812 from about 740 px). prod-audit 43650083979 (11-14): guest /declutter LCP 5072 ms at 375x812, and the live lab
+ * (cwv-lab, www, guest, Slow 4G + 4x) named it: the first row painted at 2.1-2.4 s from this header, but a second-row
+ * photo, asked for only after the first row and the app's 550 KB of JavaScript, landed at 5.7 s, and its tile is a
+ * fraction of a pixel larger on screen (37407 against 37352 px), so it became the largest paint. Asked for here too,
+ * with the HTML (~60 KB for all four), on a phone at least SECOND_ROW_MIN_HEIGHT tall.
+ */
+export const SECOND_ROW_MIN_HEIGHT = 700;
+
+/** The Link header value preloading the first screen's photos on a phone (two rows when tall enough); null with none. */
 export function declutterPhotoPreloadHeader(supabaseUrl, paths) {
   if (!Array.isArray(paths)) return null;
   const links = paths
-    .slice(0, FIRST_ROW)
-    .filter(usablePhotoPath)
-    .map((p) => {
+    .slice(0, FIRST_ROW * 2)
+    .map((p, slot) => ({ p, slot }))
+    .filter(({ p }) => usablePhotoPath(p))
+    .map(({ p, slot }) => {
       const { href, srcset } = cardPhotoUrls(supabaseUrl, p);
-      return `<${href}>; rel=preload; as=image; imagesrcset="${srcset}"; imagesizes="${CARD_SIZES}"; media="(max-width: 899px)"`;
+      const media = slot < FIRST_ROW ? "(max-width: 899px)" : `(max-width: 899px) and (min-height: ${SECOND_ROW_MIN_HEIGHT}px)`;
+      return `<${href}>; rel=preload; as=image; imagesrcset="${srcset}"; imagesizes="${CARD_SIZES}"; media="${media}"`;
     });
   return links.length ? links.join(", ") : null;
 }

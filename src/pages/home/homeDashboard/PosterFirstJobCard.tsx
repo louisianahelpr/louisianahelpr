@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { ChecklistProgress } from "./FirstJobHome";
+import { takeHomePosterFirstJobPrefetch } from "./homePrefetchTake";
 import "@/lib/i18n/enHome";
 import { useLanguage } from "@/lib/i18n/language";
 
@@ -38,12 +39,17 @@ export function usePosterFirstJob(userId: string | undefined, enabled = true) {
     queryKey: ["home", "poster-first-job", userId],
     enabled: !!userId && enabled,
     staleTime: 60_000,
-    queryFn: async () =>
-      posterFirstJobState(
+    // Builder 2 (11-15): a cold /home's entry asked these rows already (src/boot/homePrefetch.ts); taken once.
+    queryFn: async () => {
+      const slot = takeHomePosterFirstJobPrefetch(userId!);
+      const pre = slot ? ((await slot) as Parameters<typeof posterFirstJobState>[0] | null) : null;
+      if (pre) return posterFirstJobState(pre);
+      return posterFirstJobState(
         unwrap(
           await supabase.from("jobs").select("helper_id, status, poster_completed_at").eq("customer_id", userId!).limit(50),
         ) ?? [],
-      ),
+      );
+    },
   });
 }
 

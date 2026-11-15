@@ -1109,6 +1109,11 @@ export const PRESS_SIDE_EFFECT_WRITES = {
  */
 export const PRESS_PASS_THROUGH_RPCS = {
   "/rest/v1/rpc/rpc_ensure_my_handle": "returns the member's handle; writes only when it is NULL (0 of 347 profiles on prod, 2026-11-07); src/lib/profileLink/api.ts",
+  // press-every-control 43007456468 (11-11) and 43584967592 (11-14): /profile's Shops "Orders" / "My shop" tiles
+  // open /shops, which lists the member's custom-order asks; that read first marks the caller's own quotes past their
+  // 7 days as expired (20261106202917). Read-only SQL on prod 2026-11-14: shop_custom_requests holds 0 rows, so the
+  // UPDATE matches nothing; and a lapsed quote it did match would be the test account's own.
+  "/rest/v1/rpc/shops_my_custom_requests": "lists the member's custom-order asks; writes only a quote of theirs past its 7 days (0 rows in shop_custom_requests on prod, 2026-11-14)",
 };
 
 /**

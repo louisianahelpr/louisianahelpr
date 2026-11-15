@@ -30,6 +30,9 @@ export function LanguageToggle({ className = "" }: { className?: string }) {
             size="sm"
             lang={l}
             aria-pressed={lang === l}
+            // A signed-in member's pick is saved to profiles.language (saveLanguage.ts): an account setting, so the
+            // press sweep gates it like any other (press-every-control 43584967592: 6 GATE MISSes on this button).
+            data-account-setting
             onClick={() => {
               if (l === lang) return;
               setLang(l);

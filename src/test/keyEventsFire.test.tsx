@@ -432,7 +432,7 @@ describe("review_left fires from the post-Done review prompt too (Q2815)", () =>
     render(
       <QueryClientProvider client={qc}>
         <MemoryRouter>
-          <CompletionPrompts jobId={JOB} revieweeId="helper-1" revieweeName="Hallie H." userId={h.USER_ID} onDone={vi.fn()} isHelper />
+          <CompletionPrompts jobId={JOB} jobTitle="Mow the yard" revieweeId="helper-1" revieweeName="Hallie H." userId={h.USER_ID} onDone={vi.fn()} isHelper />
         </MemoryRouter>
       </QueryClientProvider>,
     );

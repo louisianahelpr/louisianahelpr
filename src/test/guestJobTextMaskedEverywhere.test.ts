@@ -10,7 +10,7 @@
  * this red. The definer view open_jobs_browse is checked field by field. The PGlite proof
  * src/test/pglite/guestsReadMaskedJobText.pglite.mjs runs the masks themselves.
  *
- * @mutate supabase/migrations/20261114234033_guests_read_masked_job_text.sql | 'title', CASE WHEN (SELECT auth.uid()) IS NULL THEN public.mask_guest_contact(j.title) ELSE j.title END, | 'title', j.title,
+ * @mutate supabase/migrations/20261115064940_teaser_profile_instant_match_hide_blocked.sql | 'title', CASE WHEN (SELECT auth.uid()) IS NULL THEN public.mask_guest_contact(j.title) ELSE j.title END, | 'title', j.title,
  * @mutate supabase/migrations/20261114234033_guests_read_masked_job_text.sql |     CASE WHEN CURRENT_USER = 'anon'::name THEN public.mask_guest_contact(materials_note) ELSE materials_note END AS materials_note, |     materials_note,
  * @mutate supabase/migrations/20261114234033_guests_read_masked_job_text.sql |           '[email hidden]', 'g'), |           '', 'g'),
  */

@@ -80,8 +80,8 @@ const STEPS: WelcomeStep[] = [1, 3];
 /** Shown per list. */
 const SHOWN = 3;
 /**
- * Jobs read per member. More than SHOWN because the member's own jobs, test accounts' jobs and jobs across a block
- * are dropped after the read (the service role has no session, so get_ranked_open_jobs cannot drop them itself).
+ * Jobs read per member. More than SHOWN because the member's own jobs, test accounts' jobs, jobs across a block and
+ * jobs whose title came back guest-masked (Q2808) are dropped after the read (the service role has no session, so get_ranked_open_jobs cannot drop them itself).
  */
 const JOBS_READ = 12;
 /** The newest live items read once per run; the nearest SHOWN of them go in each email. */
@@ -133,8 +133,19 @@ function itemsNear(items: Item[], m: Member, lang: WelcomeLang, appUrl: string):
   }));
 }
 
+/**
+ * The placeholders public.mask_guest_contact (20261114234033) writes over a phone number, an email address or a
+ * street address. The service role has no session, so get_ranked_open_jobs hands this sender the GUEST copy of a
+ * title. Q2808, decided by recommendation (owner rule go-with-recommendations, 2026-11-15): keep reading the masked
+ * copy (no contact details are ever written into an email) and leave out a job whose title came back masked, so the
+ * email never prints "[phone hidden]". The title is the only free text of a job this email prints. Kept in step with
+ * the SQL by src/test/edge/welcome-emails.test.ts.
+ */
+const GUEST_MASK_PLACEHOLDERS = ["[email hidden]", "[phone hidden]", "[address hidden]"] as const;
+const maskedForGuest = (t: string) => GUEST_MASK_PLACEHOLDERS.some((p) => t.includes(p));
+
 function jobRows(jobs: Job[], lang: WelcomeLang, appUrl: string): WelcomeListing[] {
-  return jobs.filter((j) => j.id && j.title).slice(0, SHOWN).map((j) => {
+  return jobs.filter((j) => j.id && j.title && !maskedForGuest(j.title)).slice(0, SHOWN).map((j) => {
     const band = j.distance_band ? (lang === "es" ? BAND_ES[j.distance_band] ?? j.distance_band : j.distance_band) : null;
     return {
       title: j.title as string,

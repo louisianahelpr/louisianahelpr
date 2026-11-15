@@ -33,7 +33,7 @@ import { type APIRequestContext, type Browser } from "@playwright/test";
 import { test } from "../prodTest";
 import { ANON, SUPABASE_URL, stripeModeFromCheckoutUrl, type Session } from "../journeys/fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
-import { openCardFields, untickStripeLink, waitForStripePaymentMethods } from "../stripeCheckoutCard";
+import { clickStripeSubmit, fillStripeCardFields, openCardFields, untickStripeLink, waitForStripePaymentMethods } from "../stripeCheckoutCard";
 import { answerStripeReturn } from "../stripeReturn";
 import { captureHeldCard } from "../cardHold";
 import {
@@ -218,7 +218,8 @@ export async function createFixtureRow(api: APIRequestContext, poster: Session, 
 /** Pay a Checkout Session on Stripe's hosted page. Throws; never skips. */
 async function payCheckout(browser: Browser, url: string): Promise<void> {
   if (!/\/cs_test_[A-Za-z0-9]+/.test(url)) throw new Error(`funded fixture: refusing to pay ${url.slice(0, 80)} — not a cs_test_ session`);
-  const ctx = await browser.newContext();
+  // No service worker: nothing this context opens may register one (Stripe's page, the answered return).
+  const ctx = await browser.newContext({ serviceWorkers: "block" });
   const page = await ctx.newPage();
   // Q1255: Stripe's return goes to create-payment's APP_URL, the DEPLOYED
   // site. Answered locally, never loaded from Vercel; the webhook below is
@@ -226,23 +227,16 @@ async function payCheckout(browser: Browser, url: string): Promise<void> {
   const answer = await answerStripeReturn(page);
   try {
     await page.goto(url, { waitUntil: "domcontentloaded" });
-    const card = page.locator("#cardNumber");
     await waitForStripePaymentMethods(page);
     await openCardFields(page);
-    await card.fill("4242 4242 4242 4242");
-    await page.locator("#cardExpiry").fill("12 / 34");
-    await page.locator("#cardCvc").fill("123");
-    for (const [id, v] of [["#billingName", "Prod Audit"], ["#billingAddressLine1", "100 Audit Way"], ["#billingLocality", "Baton Rouge"], ["#billingPostalCode", "70801"]] as const) {
-      const f = page.locator(id);
-      if ((await f.count()) && (await f.isVisible().catch(() => false))) {
-        await f.fill(v).catch(() => {});
-        await page.keyboard.press("Escape").catch(() => {});
-      }
-    }
+    await fillStripeCardFields(page, {
+      number: "4242 4242 4242 4242", expiry: "12 / 34", cvc: "123",
+      name: "Prod Audit", line1: "100 Audit Way", city: "Baton Rouge", zip: "70801",
+    });
     for (let attempt = 1; attempt <= 3; attempt++) {
       await untickStripeLink(page);
       await page.getByRole("heading", { name: /^Pay / }).first().click().catch(() => {});
-      await page.getByTestId("hosted-payment-submit-button").click();
+      await clickStripeSubmit(page);
       const left = await page
         .waitForURL((u) => u.hostname !== "checkout.stripe.com", { timeout: 40_000 })
         .then(() => true)

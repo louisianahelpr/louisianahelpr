@@ -5,6 +5,7 @@ import "@/lib/i18n/enScreens";
 import { mainInboxEmptyBody } from "./messageSections";
 import { ChevronDown, Search, X } from "lucide-react";
 import { AppTopBar } from "@/components/sections/AppTopBar";
+import { useInboxTabsSlot } from "@/components/inbox/InboxTabs";
 import { hapticLight } from "@/lib/haptics";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { InboxOptionsMenu, MessagesMoreMenu } from "./InboxMenus";
@@ -321,6 +322,7 @@ export function ConversationList({
      search, options and Active/All fold into ONE slim search row under the section tabs, its "more" menu at the
      row's right edge. Select mode still takes the row over; desktop keeps its in-panel row. Guard: messagesTopBarGlobalRule. */
   const phoneTopBar = embedded || !isWebDesktop; // Board 38: the desktop list pane wears the phone header too.
+  const inboxSwitch = useInboxTabsSlot();
   const moreMenu = (
     <MessagesMoreMenu
       {...inboxViewItems}
@@ -339,6 +341,7 @@ export function ConversationList({
     <>
       <div className="shrink-0"><AppTopBar title={t("msg.title")} desktopGap={false} search={isWebDesktop ? undefined : phoneSearchRow} /></div>
       {isWebDesktop && phoneSearchRow}
+      {inboxSwitch /* The Inbox's Messages / Notifications tabs (owner 11-15), above this list's own section chips. */}
       {sectionTabs && (
         <div className="shrink-0 pt-1 pb-1.5" data-testid="messages-section-tabs">
           {sectionTabs}
@@ -572,6 +575,7 @@ export function ConversationList({
           {headerEl}
         </div>
       )}
+      {isWebDesktop && inboxSwitch}
       {listBody}
     </PageScaffold>
   );

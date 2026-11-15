@@ -33,16 +33,13 @@ const DashboardRouteSkeleton = () => {
     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top">
       <div className="container mx-auto px-4 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden" aria-hidden>
         <div className="page-measure w-[calc(100%+1.5rem)] h-full overflow-hidden px-3 -mx-3 pb-safe-nav">
-          {/* AppTopBar on Dashboard (the compact top, owner 11-14): ONE row, the 44px search with the bell and the avatar
+          {/* AppTopBar on Dashboard (the compact top, owner 11-14): ONE row, the 44px search with the Inbox icon and the avatar
               inline on its right, each a 44px control ("+ Create" floats over the page). */}
           <div className={COMPACT_TOP_ROW}>
             <div className="min-w-0 flex-1">
               <Skeleton className="h-11 w-full rounded-full" />
             </div>
             <div className="flex items-center shrink-0">
-              <span className="h-11 w-11 flex items-center justify-center">
-                <Skeleton className="h-6 w-6 rounded-full" />
-              </span>
               <span className="h-11 w-11 flex items-center justify-center">
                 <Skeleton className="h-6 w-6 rounded-full" />
               </span>

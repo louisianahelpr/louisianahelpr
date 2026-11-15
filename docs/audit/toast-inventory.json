@@ -665,7 +665,7 @@
     },
     {
       "file": "src/components/NotificationPanel.tsx",
-      "line": 177,
+      "line": 178,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -675,7 +675,7 @@
     },
     {
       "file": "src/components/NotificationPanel.tsx",
-      "line": 254,
+      "line": 256,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -695,7 +695,7 @@
     },
     {
       "file": "src/components/NotificationPanel.tsx",
-      "line": 365,
+      "line": 367,
       "kind": "toast.error",
       "title": {
         "form": "literal",

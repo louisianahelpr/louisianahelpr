@@ -92,10 +92,10 @@ describe("row 1: the search with the bell and the photo inline on its right (the
     expect(row.contains(screen.getByRole("textbox", { name: "Search Declutter" }))).toBe(true);
     expect(bar.contains(row)).toBe(true);
     expect(screen.queryByTestId("top-bar-create")).toBeNull();
-    // The bar's buttons, in order: Messages (owner 11-14), the bell, then the photo. Nothing else. (The bell loads on
-    // its own, Q2705 11-14, so it draws a moment after the rest.)
-    await screen.findByRole("button", { name: /Notifications/ });
-    expect(Array.from(bar.querySelectorAll("button")).map((b) => b.getAttribute("data-testid") ?? b.getAttribute("aria-label"))).toEqual(["top-bar-messages", "Notifications", "top-bar-profile"]);
+    // The bar's buttons, in order: the Inbox (messages + notifications, owner 11-15), then the photo. Nothing else. (The
+    // icon loads on its own, Q2705 11-14, so it draws a moment after the rest.)
+    await screen.findByTestId("top-bar-inbox");
+    expect(Array.from(bar.querySelectorAll("button")).map((b) => b.getAttribute("data-testid") ?? b.getAttribute("aria-label"))).toEqual(["top-bar-inbox", "top-bar-profile"]);
   });
 
   it("the photo opens My Declutter: every list with its to-do count, the settings and the profile; a dot while any has a count", async () => {
@@ -121,13 +121,14 @@ describe("row 1: the search with the bell and the photo inline on its right (the
     expect(photo.querySelector('[data-top-bar-badge="mine"]')).toBeNull();
   });
 
-  it("every other bar is the same one pattern: visible title, Messages, the bell, the photo, no search row without a search (F148)", () => {
+  it("every other bar is the same one pattern: visible title, the Inbox, the photo, no search row without a search (F148)", async () => {
     render(<MemoryRouter><AppTopBar title="Jobs" explore section="jobs" /></MemoryRouter>);
     expect(screen.getByRole("heading", { level: 1, name: "Jobs" }).className).not.toContain("sr-only");
-    expect(screen.getByTestId("top-bar-messages")).toBeInTheDocument();
+    expect(await screen.findByTestId("top-bar-inbox")).toBeInTheDocument();
+    expect(screen.queryByTestId("top-bar-messages")).toBeNull();
     expect(screen.queryByTestId("top-bar-create")).toBeNull();
     expect(screen.queryByTestId("app-top-bar-search")).toBeNull();
-    expect(screen.getByRole("button", { name: /^Notifications$/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Notifications$/ })).toBeNull();
   });
 
   it("the bell's badge is notifications + messages unread, and its name says both", () => {
@@ -147,7 +148,7 @@ describe("row 1: the search with the bell and the photo inline on its right (the
     const panel = code("src/components/NotificationPanelView.tsx");
     expect(panel).toContain("unreadCount={unreadCount + messagesUnread} withMessages={withMessages}");
     expect(panel).toMatch(/\{withMessages && \([\s\S]{0,200}data-testid="bell-messages-row"[\s\S]{0,200}navigate\("\/messages"\)/);
-    expect(code("src/components/NotificationPanel.tsx")).toMatch(/visibleNotifications,\s*withMessages,\s*\};/);
+    expect(code("src/components/NotificationPanel.tsx")).toMatch(/visibleNotifications,\s*withMessages,\s*inline,\s*\};/);
   });
 });
 

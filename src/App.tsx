@@ -281,6 +281,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/25days" element={<RouteErrorBoundary>{routeEl(<SponsorPage />)}</RouteErrorBoundary>} />
       <Route path="/25days/rules" element={<RouteErrorBoundary>{routeEl(<SponsorRulesPage />)}</RouteErrorBoundary>} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile fallback={<MessagesRouteSkeleton />}><Messages /></ProtectedRoute>, <MessagesRouteSkeleton />)}</RouteErrorBoundary>} />
+      <Route path="/notifications" element={<Navigate to="/messages?tab=notifications" replace />} />
       <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember fallback={<DeclutterRouteSkeleton />}><DeclutterPage /></DeclutterGuestOrMember>, <DeclutterRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/move" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile><DeclutterMovePage /></ProtectedRoute>)}</RouteErrorBoundary>} />

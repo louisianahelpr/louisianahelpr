@@ -41,7 +41,7 @@ export const TARGETS = {
   jobs: ['[data-dock-tab="/jobs"]', '[data-sidebar-item="/jobs"]'],
   declutter: ['[data-dock-tab="/declutter"]', '[data-sidebar-item="/declutter"]'],
   create: ['[data-testid="section-create-fab"]', '[data-testid="sidebar-create"]'],
-  messages: ['[data-testid="top-bar-messages"]', '[data-sidebar-item="/messages"]'],
+  messages: ['[data-testid="top-bar-inbox"]', '[data-sidebar-item="/messages"]'], // the Inbox icon (owner 11-15)
 } as const;
 type Target = keyof typeof TARGETS;
 

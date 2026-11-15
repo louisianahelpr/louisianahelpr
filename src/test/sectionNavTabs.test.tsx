@@ -42,7 +42,7 @@
  * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: soon ? tr("nav.comingSoon", { label: name }) : name, |       ariaLabel: name,
  * @mutate src/components/DesktopSidebarNav.tsx |     youItem,\n  ]; |     youItem,\n    { path: "/posts", icon: Plus, label: "Posts" },\n  ];
  * @mutate src/components/DesktopSidebarNav.tsx | {...rowProps} onClick={() => sayComingSoon(label)} aria-disabled | {...rowProps} onClick={() => undefined} aria-disabled
- * @mutate src/components/sections/AppTopBar.tsx |         <span data-testid="top-bar-bell"> |         <span data-testid="top-bar-bell-x">
+ * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <TopBarInbox />} |       {user && !isWebDesktop && <span />}
  * @mutate src/components/profile/ProfileLanding.tsx |       <YourActivity /> |       <Link to="/declutter">Declutter</Link>\n      <YourActivity />
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -216,9 +216,9 @@ describe("the section tabs (owner 2026-10-18)", () => {
   });
 
   // The desktop website's soft section "+" (owner 2026-10-28) is guarded in topBarAddMatchesBell.test.tsx.
-  it("the top bar's right side is the bell, then the Profile avatar at the far right", () => {
+  it("the top bar's right side is the Inbox icon (the bell until owner 11-15), then the Profile avatar at the far right", () => {
     const bar = code("src/components/sections/AppTopBar.tsx");
-    const bell = bar.indexOf('data-testid="top-bar-bell"');
+    const bell = bar.indexOf("<TopBarInbox />");
     const avatar = bar.indexOf('data-testid="top-bar-profile"');
     expect(bell).toBeGreaterThan(0);
     expect(avatar).toBeGreaterThan(bell);

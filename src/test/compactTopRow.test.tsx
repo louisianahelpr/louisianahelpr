@@ -34,15 +34,15 @@ const code = (rel: string) => blankComments(readFileSync(resolve(__dirname, "../
 afterEach(cleanup);
 
 describe("the compact top (owner 11-14)", () => {
-  it.each(["Jobs", "Declutter", "Messages"])("%s: no visible title row; the search, the bell and the photo share ONE row; the h1 stays for readers", (title) => {
+  it.each(["Jobs", "Declutter", "Messages"])("%s: no visible title row; the search, the Inbox icon and the photo share ONE row; the h1 stays for readers", async (title) => {
     render(<MemoryRouter><AppTopBar title={title} search={<input aria-label={`Search ${title}`} />} /></MemoryRouter>);
     const bar = screen.getByTestId("app-top-bar");
     const h1 = screen.getByRole("heading", { level: 1, name: title });
     expect(h1.className.split(/\s+/)).toContain("sr-only");
     expect(document.querySelectorAll("h1")).toHaveLength(1);
-    // The search, the bell and the photo are all inside the one header row.
+    // The search, the Inbox icon (owner 11-15) and the photo are all inside the one header row.
     expect(bar.contains(screen.getByRole("textbox", { name: `Search ${title}` }))).toBe(true);
-    expect(bar.querySelector('[data-testid="top-bar-bell"]')).not.toBeNull();
+    expect(bar.contains(await screen.findByTestId("top-bar-inbox"))).toBe(true);
     expect(bar.querySelector('[data-testid="top-bar-profile"]')).not.toBeNull();
     // Search first (flex-1), then the bell, then the photo.
     const kids = [...bar.children].filter((c) => !c.classList.contains("sr-only"));
@@ -58,11 +58,11 @@ describe("the compact top (owner 11-14)", () => {
     expect(bar.querySelector('a[href="/home"]')).toBeNull();
   });
 
-  it("You (no search) keeps its visible title row with the bell", () => {
+  it("You (no search) keeps its visible title row with the Inbox icon", async () => {
     render(<MemoryRouter><AppTopBar title="You" showProfile={false} /></MemoryRouter>);
     const h1 = screen.getByRole("heading", { level: 1, name: "You" });
     expect(h1.className.split(/\s+/)).not.toContain("sr-only");
-    expect(screen.getByTestId("app-top-bar").querySelector('[data-testid="top-bar-bell"]')).not.toBeNull();
+    expect(screen.getByTestId("app-top-bar").contains(await screen.findByTestId("top-bar-inbox"))).toBe(true);
   });
 
   it("the row starts 8px under the safe area and adds no fixed height over its 44px controls", () => {

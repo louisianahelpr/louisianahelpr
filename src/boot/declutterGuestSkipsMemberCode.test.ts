@@ -15,7 +15,7 @@
  * src/boot/routePreload.declutter.test.ts.
  *
  * @mutate src/pages/declutter/DeclutterPage.tsx | import DeclutterHome from "@/components/declutter/DeclutterHomeEntry"; | import DeclutterHome from "@/components/declutter/DeclutterHomeView";
- * @mutate src/components/sections/AppTopBar.tsx | import { hasPersistedAuthToken } from "@/lib/persistedAuthToken"; | import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";\nimport "@/components/notificationPanel/NotificationBell";
+ * @mutate src/components/sections/AppTopBar.tsx | import { hasPersistedAuthToken } from "@/lib/persistedAuthToken"; | import { hasPersistedAuthToken } from "@/lib/persistedAuthToken";\nimport "@/components/inbox/InboxButton";
  * @mutate src/components/savedSearches/SaveSearchButton.tsx | import { whenPageSettled } from "@/lib/routePrefetch"; | import { whenPageSettled } from "@/lib/routePrefetch";\nimport "./SaveSearchSheet";
  * @mutate src/components/declutter/DeclutterGuestHome.tsx | import "@/lib/i18n/enDeclutter"; | import "@/lib/i18n/enDeclutter";\nimport "./ListedWhatNext";
  * @mutate src/components/declutter/DeclutterHomeEntry.tsx | const DeclutterMemberHome = lazy(() => loadModule(() => import("./DeclutterHomeView")) | const DeclutterMemberHome = lazy(() => (() => import("./DeclutterHomeView"))()
@@ -39,6 +39,7 @@ const MEMBER_ONLY = [
   "src/components/declutter/DeclutterStillAvailable.tsx",
   "src/components/declutter/DeclutterConfirmSheet.tsx",
   "src/components/notificationPanel/NotificationBell.tsx",
+  "src/components/inbox/InboxButton.tsx",
   "src/components/notificationPanel/notificationFeed.ts",
   "src/components/notificationPanel/useBellMessagesUnread.ts",
   "src/components/savedSearches/SaveSearchSheet.tsx",
@@ -57,13 +58,13 @@ describe("a guest's /declutter first round carries no signed-in chrome", () => {
     expect(files.filter((f) => MEMBER_ONLY.includes(f))).toEqual([]);
   });
 
-  it("each lazy piece loads through loadModule, and a member's bell starts as soon as the bar's file runs", () => {
+  it("each lazy piece loads through loadModule, and a member's Inbox icon (the bell until owner 11-15) starts as soon as the bar's file runs", () => {
     const src = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"));
     expect(src("src/components/declutter/DeclutterHomeEntry.tsx")).toMatch(/lazy\(\(\) => loadModule\(\(\) => import\("\.\/DeclutterHomeView"\)\)/);
     expect(src("src/components/declutter/DeclutterGuestHome.tsx")).toMatch(/lazy\(\(\) => loadModule\(\(\) => import\("\.\/DeclutterBrowseView"\)\)/);
     const bar = src("src/components/sections/AppTopBar.tsx");
-    expect(bar).toMatch(/loadModule\(\(\) => import\("@\/components\/notificationPanel\/NotificationBell"\)\)/);
-    expect(bar).toMatch(/if \(hasPersistedAuthToken\(\)\) void loadBell\(\)/);
+    expect(bar).toMatch(/loadModule\(\(\) => import\("@\/components\/inbox\/InboxButton"\)\)/);
+    expect(bar).toMatch(/if \(hasPersistedAuthToken\(\)\) void loadInbox\(\)/);
     expect(src("src/components/savedSearches/SaveSearchButton.tsx")).toMatch(/loadModule\(\(\) => import\("\.\/SaveSearchSheet"\)\)/);
   });
 });

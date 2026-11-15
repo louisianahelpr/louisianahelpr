@@ -194,9 +194,10 @@ describe("the phone top bar (F148, owner audit 2026-11-09)", () => {
   const order = () =>
     [...screen.getByTestId("app-top-bar").querySelectorAll("button")].map((b) => b.getAttribute("data-testid") ?? b.getAttribute("aria-label"));
 
-  it("right side is Messages, the bell, then You (owner 11-14); no + or Help on the bar", () => {
+  it("right side is the Inbox (messages + notifications, owner 11-15), then You; no + or Help on the bar", async () => {
     renderDock();
-    expect(order()).toEqual(["top-bar-messages", "Notifications", "top-bar-profile"]);
+    await screen.findByTestId("top-bar-inbox");
+    expect(order()).toEqual(["top-bar-inbox", "top-bar-profile"]);
     expect(screen.getByTestId("app-top-bar").querySelector('[aria-label="Help"]')).toBeNull();
   });
 
@@ -449,8 +450,9 @@ describe("moment titles match page titles (owner 2026-10-25: one consistent font
 });
 
 describe("a section's phone top bar (F148)", () => {
-  it("shows the section's own title (no Explore, no chips), then Messages, the bell and You; no + or gear", () => {
+  it("shows the section's own title (no Explore, no chips), then the Inbox and You; no + or gear", async () => {
     renderAt(<AppTopBar title="Declutter" explore section="declutter" />, "/declutter");
+    await screen.findByTestId("top-bar-inbox");
     const bar = screen.getByTestId("app-top-bar");
     const h1 = bar.querySelector("h1");
     expect(h1?.textContent).toBe("Declutter");
@@ -458,23 +460,25 @@ describe("a section's phone top bar (F148)", () => {
     expect(bar.querySelector('[data-testid="explore-switcher"]')).toBeNull();
     expect(bar.querySelector('[data-testid="section-add"]')).toBeNull();
     expect(bar.querySelector('[data-testid="section-settings"]')).toBeNull();
-    expect(bar.querySelector('[data-testid="top-bar-bell"]')).toBeTruthy();
-    expect(bar.querySelector('[data-testid="top-bar-messages"]')).toBeTruthy();
+    expect(bar.querySelector('[data-testid="top-bar-inbox"]')).toBeTruthy();
+    expect(bar.querySelector('[data-testid="top-bar-bell"]')).toBeNull();
+    expect(bar.querySelector('[data-testid="top-bar-messages"]')).toBeNull();
     expect(bar.querySelector('[data-testid="top-bar-create"]')).toBeNull();
     expect(bar.querySelector('[data-testid="top-bar-profile"]')).toBeTruthy();
   });
 
   // AUD31-74 (Guests on Declutter): a guest on Declutter Browse tapped the bell and got a panel stuck on "Loading
   // notifications..." asking to turn on push. A guest has no notifications: no bell, as no photo (nor Messages or +).
-  // @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && (\n      <span data-testid="top-bar-bell"> |       {!isWebDesktop && (\n      <span data-testid="top-bar-bell">
-  // @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && showProfile && ( |       {!isWebDesktop && showProfile && user && (
+  // @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <TopBarInbox />} |       {!isWebDesktop && <TopBarInbox />}
+  // @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && showProfile && ( |       {!isWebDesktop && showProfile && (
   it("a guest on Declutter gets no bell, Messages, + or photo; the title stays", () => {
     who.guest = true;
     try {
       renderAt(<AppTopBar title="Declutter" explore section="declutter" />, "/declutter");
       const bar = screen.getByTestId("app-top-bar");
       expect(bar.querySelector("h1")?.textContent).toBe("Declutter");
-      for (const id of ["top-bar-bell", "top-bar-messages", "top-bar-create", "top-bar-profile"]) expect(bar.querySelector(`[data-testid="${id}"]`), id).toBeNull();
+      for (const id of ["top-bar-inbox", "top-bar-bell", "top-bar-messages", "top-bar-create", "top-bar-profile"]) expect(bar.querySelector(`[data-testid="${id}"]`), id).toBeNull();
+      expect(bar.querySelector("[data-inbox-placeholder]"), "the Inbox icon's placeholder square").toBeNull();
     } finally {
       who.guest = false;
     }

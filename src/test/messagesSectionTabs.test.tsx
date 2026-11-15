@@ -27,7 +27,7 @@
  * @mutate src/components/messages/messageSections.ts | c.jobStatus && JOB_OVER_STATUSES.includes(c.jobStatus) ? null : "You're working"; | false ? null : "You're working";
  * @mutate src/pages/messages/useMessageSections.tsx | label: unread > 0 ? t("msg.filterUnreadN", { n: unread }) : t("msg.filterUnread") }, | label: t("msg.filterUnreadN", { n: unread }) },
  * @mutate src/pages/messages/Messages.tsx |       conversations={inbox.conversations} |       conversations={conversations}
- * @mutate src/components/messages/ConversationList.tsx |       {isWebDesktop && phoneSearchRow}\n      {sectionTabs && ( |       {isWebDesktop && phoneSearchRow}\n      {false && (
+ * @mutate src/components/messages/ConversationList.tsx |       {sectionTabs && ( |       {false && (
  * @mutate src/pages/messages/useMessageSections.tsx |     mainEmptyBody: mainInboxEmptyBody(live.declutter), |     mainEmptyBody: mainInboxEmptyBody(false),
  * @mutate src/components/messages/ConversationListBody.tsx |                 body={mainEmptyBody} |                 body={mainInboxEmptyBody(false)}
  * @mutate src/pages/messages/useMessageSections.tsx | data-more={more ? "" : undefined} | data-more=""

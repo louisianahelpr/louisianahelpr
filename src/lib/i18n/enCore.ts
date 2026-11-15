@@ -21,6 +21,12 @@ export const enCore = {
   "nav.posts": "Posts",
   "nav.jobs": "Jobs",
   "nav.messages": "Messages",
+  // The Inbox (owner 11-15: "Merge messages and notifications into one, like Vinted does"): one top-bar icon, two tabs.
+  "inbox.title": "Inbox",
+  "inbox.tabs": "Inbox sections",
+  "inbox.messages": "Messages",
+  "inbox.notifications": "Notifications",
+  "inbox.unread": "{name}, {n} unread",
   "nav.profile": "Profile",
   "nav.you": "You",
   "nav.explore": "Explore",

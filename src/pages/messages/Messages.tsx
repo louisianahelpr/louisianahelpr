@@ -11,7 +11,7 @@ import ReportDialog from "@/components/ReportDialog";
 import { useChatPresence } from "@/hooks/useChatPresence";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
-
+import { withInbox } from "@/components/inbox/withInbox";
 import { archiveConversation } from "@/lib/archivedConversations";
 
 import type { Conversation } from "@/components/messages/types";
@@ -596,5 +596,5 @@ const Messages = () => {
     </>
   );
 };
-
-export default Messages;
+// /messages is the Inbox (owner 11-15): ?tab=notifications draws Notifications, anything else this page.
+export default withInbox(Messages);

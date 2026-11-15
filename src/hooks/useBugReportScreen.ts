@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import type { Location } from "react-router-dom";
-import { noteScreen } from "@/lib/bugReportContext";
+import { noteScreen } from "@/lib/bugReportTrail";
 
 /**
  * Remembers the last screen the person was on (its route and its title), so a

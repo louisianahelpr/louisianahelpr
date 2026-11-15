@@ -19,7 +19,7 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { track, AhaEvent } from "@/lib/analytics";
-import { recordPpoAttribution } from "@/lib/ppoAttribution";
+import { loadModule } from "@/lib/loadModule";
 
 export type CppVariant = "poster" | "helper";
 
@@ -67,7 +67,17 @@ export function useCppVariantRouter() {
   useEffect(() => {
     // Always check for PPO attribution first — a user can land on a PPO
     // treatment of either funnel, and we want both signals.
-    recordPpoAttribution(location.search);
+    // Builder 2, 11-15: the PPO module (its test tables and copy) loads only when the URL names a PPO treatment.
+    // SessionManager mounts this hook on every page, so a static import put it in app-shared, the chunk every page
+    // boots with, for a link almost nobody follows. readPpoFromQuery returns null without one of these two params.
+    if (hasPpoMarker(location.search)) {
+      const search = location.search;
+      void loadModule(() => import("@/lib/ppoAttribution"))
+        .then((m) => m?.recordPpoAttribution(search))
+        .catch(() => {
+          /* attribution is best-effort, as recordPpoAttribution's own storage write is */
+        });
+    }
 
     const variant = readVariantFromQuery(location.search);
     if (!variant) return;
@@ -90,6 +100,12 @@ export function useCppVariantRouter() {
     }
      
   }, []);
+}
+
+/** True when the URL carries a PPO treatment marker (`ppt`, or `ppo_test`), the only URLs readPpoFromQuery reads. */
+export function hasPpoMarker(search: string): boolean {
+  const params = new URLSearchParams(search);
+  return params.has("ppt") || params.has("ppo_test");
 }
 
 /** Last-seen CPP variant for this session (used to tag downstream events). */

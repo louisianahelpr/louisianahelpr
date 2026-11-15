@@ -226,7 +226,7 @@ describe("the next pages are warmed once the current one has loaded", () => {
     expect([...LIKELY_NEXT_ROUTES.signedIn]).toEqual(
       expect.arrayContaining(["/home", "/messages", "/jobs", "/post-job", "/profile"]),
     );
-    const prefetch = code("src/lib/routePrefetch.ts");
+    const prefetch = code("src/lib/routePrefetchTable.ts");
     const all = [...LIKELY_NEXT_ROUTES.guest, ...LIKELY_NEXT_ROUTES.signedIn];
     for (const p of all) expect(prefetch, `${p} has no chunk to prefetch`).toContain(`"${p}": () => import(`);
     expect(all.length).toBeGreaterThan(7);

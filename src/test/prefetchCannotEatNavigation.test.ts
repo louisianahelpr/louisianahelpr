@@ -49,11 +49,11 @@ import {
 // @mutate src/main.tsx | handleVitePreloadError(event); | void event;
 // The prefetch must actually REGISTER as speculative. Drop the registration
 // and the gate is permanently closed — the flag never goes true.
-// @mutate src/lib/routePrefetch.ts | const settle = beginSpeculativePrefetch(); | const settle = () => {};
+// @mutate src/lib/routePrefetchTable.ts | const settle = beginSpeculativePrefetch(); | const settle = () => {};
 // The count must settle on the REJECTION path too. `.finally` → `.then` leaks
 // a count on every failed prefetch, and a leaked count suppresses every
 // genuine recovery from then on — worse than the hole this closes.
-// @mutate src/lib/routePrefetch.ts | .finally(settle); | .then(settle);
+// @mutate src/lib/routePrefetchTable.ts | .finally(settle); | .then(settle);
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 
@@ -96,7 +96,7 @@ describe("a speculative prefetch cannot eat the user's navigation", () => {
   });
 
   it("routePrefetch registers every speculative import and settles it", () => {
-    const rp = read("src/lib/routePrefetch.ts");
+    const rp = read("src/lib/routePrefetchTable.ts");
     expect(
       /const settle = beginSpeculativePrefetch\(\);/.test(rp),
       "routePrefetch no longer registers its imports as speculative, so the gate can never engage",

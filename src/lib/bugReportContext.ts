@@ -11,19 +11,17 @@
  *   - errors   the last 10 client errors errorLogger reported, already
  *              redacted there (tokens, keys, emails), each cut to 200 chars
  *
- * The person sees every item before sending (BugReportAttachments). Nothing
- * here imports a module that is not already on the boot path: errorLogger
- * calls noteRecentError() on every report.
+ * The person sees every item before sending (BugReportAttachments). This file
+ * is the support screens' half; what boot writes on every page (errorLogger's
+ * noteRecentError, the route tracker's noteScreen) is in bugReportTrail.ts,
+ * so the report's text building stays off the boot chunk (Builder 2, 11-15).
  */
 
-export const MAX_RECENT_ERRORS = 10;
-const MAX_ERROR_CHARS = 200;
+import { MAX_RECENT_ERRORS, recentErrors, lastScreenNoted, resetBugReportTrail, type RecentError } from "@/lib/bugReportTrail";
 
-interface RecentError {
-  /** ISO time it was reported. */
-  at: string;
-  message: string;
-}
+// The boot half (what errorLogger and the route tracker write on every page) lives in bugReportTrail.ts; re-exported
+// so the support screens keep one import.
+export { MAX_RECENT_ERRORS, isSupportScreen, noteRecentError, noteScreen, routeLabel } from "@/lib/bugReportTrail";
 
 export interface BugReportContext {
   screen: string;
@@ -32,38 +30,6 @@ export interface BugReportContext {
   platform: string;
   build: string;
   errors: RecentError[];
-}
-
-const recent: RecentError[] = [];
-let lastScreen: { route: string; title: string } | null = null;
-
-/** Screens that ARE the bug report, never the screen being reported. */
-export function isSupportScreen(pathname: string, search = ""): boolean {
-  if (pathname === "/support" || pathname === "/help") return true;
-  return pathname === "/profile" && new URLSearchParams(search).get("tab") === "support";
-}
-
-/** The route with query VALUES dropped: `/profile?tab=security` keeps its tab, never an id or token. */
-export function routeLabel(pathname: string, search = ""): string {
-  const params = new URLSearchParams(search);
-  const keep = ["tab", "filter", "view"];
-  const shown = [...params.keys()].filter((k) => keep.includes(k)).map((k) => `${k}=${params.get(k)}`);
-  const other = [...params.keys()].filter((k) => !keep.includes(k));
-  return `${pathname}${shown.length ? `?${shown.join("&")}` : ""}${other.length ? ` (+${other.length} param${other.length > 1 ? "s" : ""})` : ""}`;
-}
-
-/** errorLogger calls this with the message it already redacted. */
-export function noteRecentError(message: string, now: Date = new Date()): void {
-  const text = message.trim().slice(0, MAX_ERROR_CHARS);
-  if (!text) return;
-  recent.push({ at: now.toISOString(), message: text });
-  while (recent.length > MAX_RECENT_ERRORS) recent.shift();
-}
-
-/** The route tracker calls this once a screen has settled (its title is set). */
-export function noteScreen(pathname: string, search: string, title: string): void {
-  if (isSupportScreen(pathname, search)) return;
-  lastScreen = { route: routeLabel(pathname, search), title: title.trim() };
 }
 
 function platformLabel(): string {
@@ -78,13 +44,14 @@ function platformLabel(): string {
 /** Everything a bug report attaches, read now. */
 export function bugReportContext(): BugReportContext {
   const w = typeof window !== "undefined" ? window : undefined;
+  const lastScreen = lastScreenNoted();
   return {
     screen: lastScreen?.title || "(no earlier screen in this visit)",
     route: lastScreen?.route ?? "(none)",
     viewport: w ? `${w.innerWidth} x ${w.innerHeight}` : "(unknown)",
     platform: platformLabel(),
     build: typeof __APP_COMMIT__ !== "undefined" ? __APP_COMMIT__ : "dev",
-    errors: [...recent],
+    errors: recentErrors(),
   };
 }
 
@@ -128,6 +95,5 @@ export function withBugReport(message: string, ctx: BugReportContext, max: numbe
 
 /** Test seam. */
 export function _resetBugReportContext(): void {
-  recent.length = 0;
-  lastScreen = null;
+  resetBugReportTrail();
 }

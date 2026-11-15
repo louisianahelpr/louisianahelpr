@@ -46,3 +46,7 @@ export const SHELL_LAYOUT_CLASS: string;
 export const SHELL_EMPTY_HTML: string;
 export function shellFeedIsEmpty(rows: unknown, now?: number): boolean;
 export function shellFooterHtml(emblem: { src: string; srcset: string }, now?: number): string;
+export function shellSmartScore(job: Record<string, unknown>, now?: number): number;
+export function shellDayLabel(job: Record<string, unknown>): string;
+export function shellTimeLabel(startTime: unknown, isFlexible: unknown): string | null;
+export function shellWhenHtml(job: Record<string, unknown>): string;

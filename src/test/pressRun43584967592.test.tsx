@@ -87,7 +87,7 @@ describe("press-every-control run 43584967592's reds (each class)", () => {
   });
 
   it("5. a missing control gets whenPageSettled's whole cap to mount before it fails", () => {
-    const cap = Number(/maxWaitMs = ([\d_]+)\)/.exec(readFileSync("src/lib/routePrefetch.ts", "utf8"))?.[1]?.replace(/_/g, "") ?? NaN);
+    const cap = Number(/maxWaitMs = ([\d_]+)\)/.exec(readFileSync("src/lib/pageSettled.ts", "utf8"))?.[1]?.replace(/_/g, "") ?? NaN);
     expect(cap).toBeGreaterThan(0);
     expect(SETTLED_MOUNT_MS).toBeGreaterThan(cap);
     const wait = press.indexOf('await target.first().waitFor({ state: "attached", timeout: SETTLED_MOUNT_MS })');

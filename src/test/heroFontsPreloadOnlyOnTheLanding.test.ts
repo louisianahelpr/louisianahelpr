@@ -8,11 +8,14 @@
  * The class: a hero-only font preload that starts on routes that do not draw it, or one the landing loses (Q371's
  * CLS rule: heroFontSwapDoesNotShift.test.ts keeps the preload links themselves).
  *   (a) each latin Bodoni preload is marked data-lh-hero-font and starts off (media="not all");
- *   (b) index.html's inline script turns them on for "/" only (run here on "/", "/home", "/declutter/");
+ *   (b) index.html's inline script turns them on for "/" and the two 25 Days hero pages, /sponsor and /25days, whose H1
+ *       sets both faces (page settle 11-15: the swap re-wrapped it, CLS 0.060 at 375; sponsorHeroFontDoesNotShift.test.ts),
+ *       and nowhere else (run here on "/", "/sponsor", "/25days/", "/25days/rules", "/home", "/declutter/");
  *   (c) the app warms them once the page has settled, so a later Bodoni heading finds them cached.
  *
  * @mutate index.html |       href="/fonts/bodoni-moda-italic-latin.woff2"\n      crossorigin\n      data-lh-hero-font\n      media="not all" |       href="/fonts/bodoni-moda-italic-latin.woff2"\n      crossorigin\n      data-lh-hero-font
- * @mutate index.html |         if ((location.pathname.replace(/\/+$/, "") \|\| "/") !== "/") { |         if (false) {
+ * @mutate index.html |         if (path !== "/") { |         if (false) {
+ * @mutate index.html |           if (path !== "/sponsor" && path !== "/25days") return; |           if (path !== "/sponsor") return;
  * @mutate src/App.tsx |     link.media = "all"; |     void link;
  */
 import { describe, expect, it } from "vitest";
@@ -56,9 +59,12 @@ describe("the landing hero's Bodoni preloads start only on the landing", () => {
     }
   });
 
-  it('(b) the inline script turns them on for "/" only', () => {
+  it('(b) the inline script turns them on for "/" and the 25 Days hero pages only', () => {
     expect(script).toBeDefined();
     expect(mediaAfter("/")).toEqual(["all", "all"]);
+    expect(mediaAfter("/sponsor")).toEqual(["all", "all"]);
+    expect(mediaAfter("/25days/")).toEqual(["all", "all"]);
+    expect(mediaAfter("/25days/rules")).toEqual(["not all", "not all"]);
     expect(mediaAfter("/home")).toEqual(["not all", "not all"]);
     expect(mediaAfter("/declutter/")).toEqual(["not all", "not all"]);
   });

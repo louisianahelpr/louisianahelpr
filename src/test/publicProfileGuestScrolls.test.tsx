@@ -10,7 +10,7 @@
  *
  * Inventory: every route whose page picks its shell by guest/member (GUEST_DOCUMENT_SCROLL_ROUTES); today /u.
  *
- * @mutate src/hooks/useAppShellViewport.ts | if (isDocumentScrollRoute(pathname) \|\| (definiteGuest && isGuestDocumentScrollRoute(pathname))) { | if (isDocumentScrollRoute(pathname)) {
+ * @mutate src/hooks/useAppShellViewport.ts | if (isDocumentScrollRoute(pathname) \|\| (definiteGuest && isGuestDocumentScrollRoute(pathname)) \|\| | if (isDocumentScrollRoute(pathname) \|\|
  * @mutate src/hooks/useAppShellViewport.ts | const definiteGuest = isReady && !user; | const definiteGuest = !user;
  * @mutate src/hooks/useAppShellViewport.ts | const GUEST_DOCUMENT_SCROLL_ROUTES = ["/u"]; | const GUEST_DOCUMENT_SCROLL_ROUTES: string[] = [];
  */

@@ -57,6 +57,9 @@ const start = (page: string) => `<div id="lh-${page}-shell" aria-hidden="true" i
 function rendered(path: string, el: ReactElement): string {
   // A phone on the bare route: the skeletons read the desktop queries and the URL on their first render.
   const mm = window.matchMedia;
+  // Q2784: the shell is shown only with a stored session (the show script), so render as that visitor: with no stored
+  // session a guest on /declutter gets the public frame (useGuestPublicFrame), not this AppShell skeleton.
+  localStorage.setItem("sb-test-auth-token", "{}");
   window.matchMedia = ((q: string) => ({ matches: false, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent: () => false })) as typeof window.matchMedia;
   window.history.replaceState(null, "", path);
   // The shell shows only before the app has asked anything, so its chips are drawn as they read while the feature
@@ -74,6 +77,7 @@ function rendered(path: string, el: ReactElement): string {
     );
   } finally {
     window.matchMedia = mm;
+    localStorage.removeItem("sb-test-auth-token");
     window.history.replaceState(null, "", "/");
   }
 }

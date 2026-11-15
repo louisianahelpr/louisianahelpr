@@ -19,6 +19,7 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 import { DESKTOP_BAR_PAD_TOP } from "@/lib/desktopBar";
 import { useMarkGuestTopBarOn } from "@/lib/guestTopBar";
+import { useGuestPublicFrame } from "@/hooks/useGuestPublicFrame";
 
 function here(location: { pathname: string; search: string }): string {
   return encodeURIComponent(location.pathname + location.search);
@@ -64,6 +65,9 @@ export function DeclutterGuestGate({ children, skeleton }: { children: ReactNode
  * Louisiana Helpr. The H mark, a link to the landing page, sits in each guest join panel (Browse and item).
  */
 function GuestBrand() {
+  // Q2784: inside the public frame (useGuestPublicFrame) the public header already carries the logo.
+  const publicFrame = useGuestPublicFrame();
+  if (publicFrame) return null;
   return (
     <span data-guest-brand="" className="inline-flex shrink-0">
       {/* The H alone, as everywhere else (owner 2026-11-03, Q2042 option 1). */}
@@ -81,7 +85,9 @@ function GuestBrand() {
  * Guard: src/components/declutter/declutterGuestTopBar.test.tsx.
  */
 function DeclutterGuestTopBar() {
-  const isWebDesktop = useIsWebDesktop();
+  // Q2784: on the web a guest page wears the public header (useGuestPublicFrame), so this bar steps aside there.
+  const publicFrame = useGuestPublicFrame();
+  const isWebDesktop = useIsWebDesktop() && !publicFrame;
   const location = useLocation();
   const bannerOffset = useOfflineBannerOffset();
   // F047: AppShell keeps this bar's room while it is drawn, so the page's header sits below it, never under it.
@@ -120,6 +126,9 @@ export function DeclutterGuestJoin({ free, offers = true, trades = false }: { fr
   // AUD31-67 follow-up (lead 10-31): at desktop width the guest top bar already carries the logo, so the brand shows
   // only on a phone.
   const barShown = useIsWebDesktop();
+  // Q2784: the public header (useGuestPublicFrame) carries Log in at every width, so the item panel does not repeat it.
+  const publicFrame = useGuestPublicFrame();
+  const loginShown = barShown || publicFrame;
   const label = free ? "Ask for this item" : offers ? "Buy or make an offer" : "Buy this item";
   const signup = `/signup?redirect=${here(location)}`;
   return (
@@ -141,7 +150,7 @@ export function DeclutterGuestJoin({ free, offers = true, trades = false }: { fr
         </p>
         {/* The desktop guest bar already has Log in (AUD31-67 follow-up): only a phone gets it here. Audit 1110 F318: as
             an inline underlined word it measured 36x14px; it is a 44px (h-11) outline pill now, like the Browse card's. */}
-        {!barShown && (
+        {!loginShown && (
           <div className="flex shrink-0 items-center gap-2" data-guest-login="">
             <Button asChild size="sm" variant="outline" className="rounded-full">
               <Link to={`/login?redirect=${here(location)}`}>Log in</Link>

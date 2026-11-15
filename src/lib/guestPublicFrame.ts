@@ -14,13 +14,16 @@ import { definitelyGuest } from "@/lib/persistedAuthToken";
  * /jobs/<id> (the job's share-link page) already drew PublicLayout for a guest, but under the html lock it did not
  * scroll (measured 11-15 at 375: body 1542px, window.scrollY stuck at 0).
  *
+ * /shops/<id> (a shop's share link, PublicShopView for a guest) and /book/<userId> (a Helpr's booking link) were the last
+ * two: both are AppPage pages, so they wear the frame the same way (Q2784 leftovers, 11-15).
+ *
  * Exact paths match only themselves; an entry ending in "/" matches the pages under it. /declutter/sell,
  * /declutter/move and the other member-only pages under /declutter are not here: a guest is sent to log in there.
  * Guard: src/test/guestPagesWearPublicFrame.test.tsx.
  */
-export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search", "/jobs/"] as const;
+export const GUEST_PUBLIC_FRAME_ROUTES = ["/declutter", "/declutter/item/", "/hire/", "/helprs", "/search", "/jobs/", "/shops/", "/book/"] as const;
 /** Member-only pages under a prefix above (a guest is sent to log in there). */
-const NOT_GUEST_PAGES = ["/jobs/settings"];
+const NOT_GUEST_PAGES = ["/jobs/settings", "/shops/mine", "/shops/orders", "/shops/dashboard"];
 
 export const isGuestPublicFrameRoute = (pathname: string): boolean =>
   !isNativePlatform &&

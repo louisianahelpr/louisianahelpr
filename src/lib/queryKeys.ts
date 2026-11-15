@@ -62,6 +62,11 @@ export const queryKeys = {
     /** Owner 2026-10-25: may the caller open a payout account yet (payout_setup_hire_allowed_for_me)? Under the activity prefix so a hire's realtime refresh re-asks. */
     payoutSetupHire: (userId: string | undefined | null) => ["activity", "payoutSetupHire", userId] as const,
     posted: (userId: string) => ["activity", "posted", userId] as const,
+    /**
+     * Q2812: Home's and the nav badge's LEAN posted core (only the posted jobs Home can act on; fetchLeanPostedCores).
+     * Under the posted key as a prefix, so every invalidation and setQueriesData of the posted core covers it too.
+     */
+    postedLean: (userId: string) => ["activity", "posted", userId, "lean"] as const,
     postedDetail: (userId: string, inputs: unknown) =>
       ["activity", "postedDetail", userId, inputs] as const,
     applied: (userId: string) => ["activity", "applied", userId] as const,

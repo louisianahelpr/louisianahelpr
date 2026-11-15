@@ -26,3 +26,19 @@ export function takeActivityCoresPrefetch(userId: string, now: number = Date.now
   w[KEY] = undefined;
   return { posted: s.posted, applied: s.applied };
 }
+
+/** Same string as POSTED_LEAN_PREFETCH_KEY in the boot module (the test pins it). */
+const LEAN_KEY = "__lhPostedLeanPrefetch";
+type LeanSlot = { at: number; userId: string; postedLean: Promise<unknown> };
+
+/**
+ * Q2812: the entry's /home read of the LEAN posted core (p_parts {posted_lean}), once, for `userId`, while fresh; null
+ * otherwise. Its own slot: it is never handed to the whole posted core (fetchActivityCores), only to fetchLeanPostedCores.
+ */
+export function takeLeanPostedPrefetch(userId: string, now: number = Date.now()): Promise<unknown> | null {
+  const w = window as unknown as Record<string, LeanSlot | undefined>;
+  const s = w[LEAN_KEY];
+  if (!s || s.userId !== userId || now - s.at > ACTIVITY_CORES_PREFETCH_MAX_AGE_MS) return null;
+  w[LEAN_KEY] = undefined;
+  return s.postedLean;
+}

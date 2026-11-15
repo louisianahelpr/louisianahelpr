@@ -89,7 +89,12 @@ export function startActivityCoresPrefetch(pathname: string, search: string = lo
     // A failed prefetch is not an error: the read asks for itself.
     .catch(() => null);
   let answers: { posted: Promise<unknown>; applied: Promise<unknown> };
-  if (opensOnPostedFirst(pathname, search)) {
+  if (isHomePath(pathname)) {
+    // Q2812: Home reads the LEAN posted core (fetchLeanPostedCores, its own slot) and the applied part; never the whole
+    // posted list. The whole-cores slot's posted answer is null, so a whole posted read (none on Home) asks for itself.
+    (window as unknown as Record<string, unknown>)[POSTED_LEAN_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, postedLean: read(["posted_lean"]) };
+    answers = { posted: Promise.resolve(null), applied: read(["applied"]) };
+  } else if (opensOnPostedFirst(pathname, search)) {
     // Q2706: two calls, posted first; neither carries the other's keys (20261105111750), so Posted paints without
     // waiting on application_jobs and a poster downloads posted_jobs once.
     answers = { posted: read(["posted"]), applied: read(["applied"]) };
@@ -100,7 +105,10 @@ export function startActivityCoresPrefetch(pathname: string, search: string = lo
   (window as unknown as Record<string, unknown>)[ACTIVITY_CORES_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, ...answers };
 }
 
-type CoresPart = "posted" | "applied";
+type CoresPart = "posted" | "applied" | "posted_lean";
+
+/** Q2812: the /home read of the lean posted core (src/lib/activityCoresTake.ts takeLeanPostedPrefetch reads it). */
+export const POSTED_LEAN_PREFETCH_KEY = "__lhPostedLeanPrefetch";
 
 /**
  * Q2706 (Builder 3 11-05): a cold link whose first paint is the Posted list: /posts (App.tsx sends it to

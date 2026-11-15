@@ -125,9 +125,10 @@ export function useNeedsYouTodos(
   // A section falls back to its old single call when the one read failed, is not deployed (null), or could not
   // read that section (false): the badge never goes blank because one section broke (lead).
   const fallback = (s: BadgeSection) => switchesSettled && (badge.isError || badge.data === null || (badge.data !== undefined && badge.data[s] === false));
+  // Q2812: the LEAN posted core (only the posted jobs a to-do can come from; fetchLeanPostedCores), on every page.
   const posted = useQuery({
-    queryKey: uid ? queryKeys.activity.posted(uid) : ["activity", "posted", "anon"],
-    queryFn: () => fetchPostedActivity(uid),
+    queryKey: uid ? queryKeys.activity.postedLean(uid) : ["activity", "posted", "anon"],
+    queryFn: () => fetchPostedActivity(uid, { lean: true }),
     enabled: !!uid,
     staleTime: CORE_STALE,
   });

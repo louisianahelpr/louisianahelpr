@@ -87,6 +87,7 @@
     "e2e/journeys/scenarios.ts",
     "e2e/journeys/notifications/producers.ts",
     "e2e/journeys/adminWritePaths.ts",
+    "e2e/journeys/abuse/crossAccountRows.ts",
     "supabase/functions/stripe-webhook-config-check/shape.ts",
     "supabase/functions/backfill-job-geocode/budget.ts",
     "supabase/functions/_shared/geocodeDropoff.ts",

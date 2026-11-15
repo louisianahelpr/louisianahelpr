@@ -215,11 +215,14 @@ const SAMPLE_EMBLEM = { src: "/assets/helpr-logo-256.webp", srcset: "/assets/hel
 const SAMPLE_ROW = {
   title: "Help move furniture", category: "moving", budget: 80, location: "Baton Rouge, LA", status: "open",
   created_at: new Date(SAMPLE_NOW - 3_600_000).toISOString(), expires_at: null, is_urgent: false, is_group_job: false, helpers_needed: 1,
+  date_needed: "2026-11-29", start_time: "09:00",
 };
+/** A second card with no day or time set: the "Flexible" form of the date group. */
+const SAMPLE_ROW_FLEXIBLE = { ...SAMPLE_ROW, title: "Wrap gifts", date_needed: null, start_time: null };
 
 /** The overlay's subset of the app sheet, plus its show rule. */
 export function browseShellCriticalCss(css) {
-  const cards = browseShellHtml([SAMPLE_ROW], SAMPLE_NOW, SAMPLE_EMBLEM);
+  const cards = browseShellHtml([SAMPLE_ROW, SAMPLE_ROW_FLEXIBLE], SAMPLE_NOW, SAMPLE_EMBLEM);
   const empty = browseShellHtml([], SAMPLE_NOW, SAMPLE_EMBLEM);
   if (!cards.includes("job-card-title") || !empty.includes("data-shell-empty")) throw new Error("inline-shell-css: the /browse sample markup drew no card or no empty feed");
   return shellCriticalCss([{ html: cards + empty, htmlAttr: "" }], css) + BROWSE_SHELL_SHOW_RULE;

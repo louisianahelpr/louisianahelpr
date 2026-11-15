@@ -12,8 +12,9 @@
  */
 // @mutate index.html | m.startSignedInPrefetch(path); |
 // @mutate index.html |             if (live.expires_at - Date.now() / 1000 <= 60) return; |
-// @mutate index.html | if (!src \|\| !/^\/(home)?\/?$/.test(path)) return; | if (!src) return;
-// @mutate index.html | if (!src \|\| !/^\/(home)?\/?$/.test(path)) return; | if (!src \|\| !/^\/home\/?$/.test(path)) return;
+// @mutate index.html | if (!src \|\| !/^\/(home\|jobs)?\/?$/.test(path)) return; | if (!src) return;
+// @mutate index.html | if (!src \|\| !/^\/(home\|jobs)?\/?$/.test(path)) return; | if (!src \|\| !/^\/home\/?$/.test(path)) return;
+// @mutate index.html | if (!src \|\| !/^\/(home\|jobs)?\/?$/.test(path)) return; | if (!src \|\| !/^\/(home)?\/?$/.test(path)) return;
 // @mutate index.html | if (!live \|\| typeof live.access_token !== "string" | if (!live \|\| typeof live.refresh_token !== "string"
 // @mutate src/boot/signedInPrefetch.ts |   if (w[SIGNED_IN_PREFETCH_STARTED_KEY]) return; |
 // @mutate vite.config.ts |         if (!chunk) throw new Error("lh-signed-in-prefetch-url: no chunk for src/boot/signedInPrefetch.ts"); |
@@ -80,7 +81,7 @@ afterEach(() => {
 
 describe("index.html's head starts a member's first-screen reads (Builder 2, 11-15)", () => {
   it("imports the chunk the meta names and starts it for this path, for a member with a live session", async () => {
-    for (const path of ["/home", "/home/", "/"]) {
+    for (const path of ["/home", "/home/", "/", "/jobs", "/jobs/"]) {
       const r = await runHead({ path, session: live() });
       expect(r.imported, path).toEqual(["/assets/signedInPrefetch-x.js"]);
       expect(r.started, path).toEqual([path]);
@@ -92,7 +93,7 @@ describe("index.html's head starts a member's first-screen reads (Builder 2, 11-
     expect((await runHead({ path: "/home", session: live(30) })).imported).toEqual([]);
     expect((await runHead({ path: "/home", session: { refresh_token: "r", expires_at: 9e9, user: { id: UID } } })).imported).toEqual([]);
     expect((await runHead({ path: "/home", session: { access_token: "t", expires_at: 9e9 } })).imported).toEqual([]);
-    for (const path of ["/messages", "/jobs", "/profile", "/posts", "/declutter", "/declutter/item/abc-1", "/home/x"]) {
+    for (const path of ["/messages", "/profile", "/posts", "/declutter", "/declutter/item/abc-1", "/home/x", "/jobs/x"]) {
       expect((await runHead({ path, session: live() })).imported, path).toEqual([]);
     }
     expect((await runHead({ path: "/home", session: live(), meta: "" })).imported).toEqual([]);
@@ -102,7 +103,7 @@ describe("index.html's head starts a member's first-screen reads (Builder 2, 11-
     const entryRe = /if \(hasToken\(\) && (\/\^.*?\/)\.test\(window\.location\.pathname\)\)/.exec(code("src/entry.ts"))?.[1];
     expect(entryRe).toBeTruthy();
     const entry = new Function(`return ${entryRe}`)() as RegExp;
-    for (const path of ["/home", "/home/", "/"]) expect(entry.test(path), path).toBe(true);
+    for (const path of ["/home", "/home/", "/", "/jobs", "/jobs/"]) expect(entry.test(path), path).toBe(true);
     expect(raw("index.html")).toContain('<meta name="lh-signed-in-prefetch" content="" />');
   });
 

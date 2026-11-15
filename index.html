@@ -74,7 +74,7 @@
          (scripts/check-csp-inline-scripts.mjs). Never add inline on*= handlers
          or javascript: URLs; use addEventListener. -->
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-gqGU6r9HbrUIpdPthhuPeXU+B2zcmZT1aAmpD4gchlU=' 'sha256-duvv7l/N2Dk2UPVHhqWrbfpf01OVN8op3f3mHhD90C4=' 'sha256-iM0f4+aBKl+E/kyF/rtYvwGr3DReX7pZBVOsJTHp8Hs=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-yUtNpiPXGeAc38WuKK8biiH5mrbfvvi5W7woqMMWHcA=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' 'sha256-WIQjlWbV2DXE/gFjy6a+TJ/kQgvCPvkC4u3+ie1Nos8=' 'sha256-4MuTiLIkqRi1pnJ8C/PEYCMacyyBNy6I6F+KF3qIo5k=' 'sha256-ldDEb7cz2Q5EmRdHpOg+df/dED81vDhVRuFf5p38GOM=' 'sha256-mTnxF+2o2IOA+O6CdKvNm9CyJlzgk3lwnFgCnXpeBq8=' 'sha256-zZ3fakfp1TyOKEd2M3pBXFDb2HpgNLWLtEYa1PPBeZg=' 'sha256-y6aFXodIjzQ1oBnBnfRU4A587k5dKqrsMiv3dZYq0Yk=' 'sha256-2WN2I9C6B2MD5iGcd+XSQN4VNI8QwuzAIi/CEZWVCvg=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-gqGU6r9HbrUIpdPthhuPeXU+B2zcmZT1aAmpD4gchlU=' 'sha256-duvv7l/N2Dk2UPVHhqWrbfpf01OVN8op3f3mHhD90C4=' 'sha256-iM0f4+aBKl+E/kyF/rtYvwGr3DReX7pZBVOsJTHp8Hs=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-yUtNpiPXGeAc38WuKK8biiH5mrbfvvi5W7woqMMWHcA=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' 'sha256-WIQjlWbV2DXE/gFjy6a+TJ/kQgvCPvkC4u3+ie1Nos8=' 'sha256-4MuTiLIkqRi1pnJ8C/PEYCMacyyBNy6I6F+KF3qIo5k=' 'sha256-ldDEb7cz2Q5EmRdHpOg+df/dED81vDhVRuFf5p38GOM=' 'sha256-mTnxF+2o2IOA+O6CdKvNm9CyJlzgk3lwnFgCnXpeBq8=' 'sha256-zZ3fakfp1TyOKEd2M3pBXFDb2HpgNLWLtEYa1PPBeZg=' 'sha256-y6aFXodIjzQ1oBnBnfRU4A587k5dKqrsMiv3dZYq0Yk=' 'sha256-CNL6CFgEbleCRr+8NMiY+WUFWOKxd+yxCbeOhrHTGYE=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -433,17 +433,18 @@
          entry ran (1.47 s) and, sharing the link with ~400 KB of app JS, arriving at 2.92 s: every read started at
          2.93 s. The build writes the chunk's URL into this meta (vite.config.ts, lh-signed-in-prefetch-url; the build
          fails if the chunk is gone). The script imports it only for a member with a live stored session, and only on
-         /home and / (a member there goes on to /home); the chunk imports nothing, and the entry's own later call is a
-         no-op (one start). Every other route still starts from the entry: in the same lab, starting from the head did
-         not help /jobs in 3 of 3 runs, and /profile came out slower in one round of 3 and faster in another, so they
-         were left as they were. It sits after the blocked-storage repair (blockedStorageBoot: no localStorage read before it). Guard: src/boot/signedInPrefetchFromHead.test.ts. -->
+         /home, / (a member there goes on to /home) and /jobs; the chunk imports nothing, and the entry's own later call
+         is a no-op (one start). /jobs (Builder 2, later 11-15): alone the head start did not help it, because the
+         cards' commit was also held until the top bar's bell chunk came (AppTopBar.tsx); with the bell no longer
+         suspending, the feed and its posters answer before the app draws and /jobs went 5080/5168/5272 to
+         4968/4936/4696. /profile came out slower in one round of 3 and faster in another, so it was left as it was. It sits after the blocked-storage repair (blockedStorageBoot: no localStorage read before it). Guard: src/boot/signedInPrefetchFromHead.test.ts. -->
     <meta name="lh-signed-in-prefetch" content="" />
     <script>
       (function () {
         var meta = document.querySelector('meta[name="lh-signed-in-prefetch"]');
         var src = meta && meta.getAttribute("content");
         var path = location.pathname;
-        if (!src || !/^\/(home)?\/?$/.test(path)) return;
+        if (!src || !/^\/(home|jobs)?\/?$/.test(path)) return;
         try {
           for (var i = 0; i < localStorage.length; i++) {
             var k = localStorage.key(i);

@@ -24,6 +24,13 @@
 // tr_3Ub2A5… transfer_group group_pi_3Ub2A5…, PaymentIntent metadata
 // type "tip", tips row "[E2E DO NOT ACCEPT] tipdub6zs".
 //
+// Q2810: three more kinds had no reader and read "Payment" or "Taken back": a crew block fee (the closed spot's fee,
+// crew_block_fees, paid by _shared/crewBlockFees.ts), a Declutter manager's share of a sale (declutter_manager_payouts,
+// declutter-money's separate transfer to the manager), and an instant cash-out's fee. That fee is a transfer FROM the
+// Helpr's account to the platform (instant-payout), so on the Helpr's account it is a `transfer` (the fee going out)
+// and, when no payout followed, a `transfer_refund` whose source is the reversal (the fee coming back,
+// _shared/instantPayoutFeeReturn.ts). Both are named from the caller's own instant_payouts.fee_transfer_id.
+//
 // A MANUAL payout (instant-payout's payouts.create, an instant cash-out)
 // cannot be reconciled this way: Stripe refuses to filter balance transactions
 // by it ("you control the timing and amount"). It answers one line, the
@@ -69,7 +76,7 @@ export interface PayoutReader {
 type Admin = any;
 
 export interface PayoutLine {
-  kind: "job" | "cancellation_fee" | "sale" | "shop_sale" | "delivery" | "referral" | "tip" | "fee_owed" | "reversal" | "other";
+  kind: "job" | "cancellation_fee" | "crew_block_fee" | "sale" | "manager_share" | "shop_sale" | "delivery" | "referral" | "tip" | "fee_owed" | "instant_fee" | "reversal" | "other";
   label: string;
   amount_cents: number;
   /** In-app path to the job or sale this line came from, when there is one. */
@@ -99,6 +106,23 @@ function transferIdOf(bt: PayoutBalanceTxn): string | null {
   return null;
 }
 
+/**
+ * The instant cash-out fee transfer a balance transaction moved, if it is one: the fee going out is a `transfer` whose
+ * source is the transfer itself; the fee coming back is a `transfer_refund` whose source is the reversal, which names
+ * the transfer it reversed. Only a candidate: the caller's own instant_payouts row decides (feeTransfers).
+ */
+export function feeTransferIdOf(bt: PayoutBalanceTxn): string | null {
+  const src = bt.source as unknown;
+  const idOf = (v: unknown): string | null =>
+    typeof v === "string" ? v : v && typeof v === "object" && typeof (v as { id?: unknown }).id === "string" ? (v as { id: string }).id : null;
+  if (bt.type === "transfer") {
+    const id = idOf(src);
+    return id && id.startsWith("tr_") ? id : null;
+  }
+  if (bt.type === "transfer_refund" && src && typeof src === "object") return idOf((src as { transfer?: unknown }).transfer);
+  return null;
+}
+
 function last4Of(dest: unknown): string | null {
   if (dest && typeof dest === "object") {
     const l4 = (dest as { last4?: unknown }).last4;
@@ -123,7 +147,7 @@ async function nameTransfers(admin: Admin, userId: string, ids: string[]): Promi
     return (r.data ?? []) as T;
   };
 
-  const [jobs, cancels, sales, shops, deliveries, referrals, deliveryTips, heldTips, clawbackRepays] = await Promise.all([
+  const [jobs, cancels, sales, shops, deliveries, referrals, deliveryTips, heldTips, clawbackRepays, crewBlockFees, managerShares] = await Promise.all([
     admin.from("payout_transfers").select("stripe_transfer_id, job_id, jobs(title)").eq("helper_id", userId).in("stripe_transfer_id", ids),
     admin.from("cancellation_fee_transfers").select("stripe_transfer_id, job_id, jobs(title)").eq("helper_id", userId).in("stripe_transfer_id", ids),
     admin.from("declutter_payouts").select("stripe_transfer_id, order_id, items_cents, debt_cents, setup_fee_cents, amount_cents").eq("seller_id", userId).in("stripe_transfer_id", ids),
@@ -138,6 +162,10 @@ async function nameTransfers(admin: Admin, userId: string, ids: string[]): Promi
     // A job payout a chargeback took back and re-paid when the dispute was won (chargebackClawback.ts): its
     // payout_transfers row names it already; this names it when that upsert failed (which pages ops).
     admin.from("chargeback_clawbacks").select("repay_transfer_id, job_id, jobs(title)").eq("helper_id", userId).in("repay_transfer_id", ids),
+    // Q2810: the fee for a crew spot a block closed, paid to that member (crew_block_fees, migration 20261007073145).
+    admin.from("crew_block_fees").select("stripe_transfer_id, job_id, jobs(title)").eq("helper_id", userId).in("stripe_transfer_id", ids),
+    // Q2810: a Declutter manager's share of a sale, sent to the manager's own account (migration 20261101230509).
+    admin.from("declutter_manager_payouts").select("stripe_transfer_id, order_id").eq("manager_id", userId).in("stripe_transfer_id", ids),
   ]).then((rs) => rs.map(must) as unknown[][]);
 
   for (const r of jobs as { stripe_transfer_id: string; job_id: string; jobs: { title?: string } | null }[]) {
@@ -149,7 +177,7 @@ async function nameTransfers(admin: Admin, userId: string, ids: string[]): Promi
 
   // A sale's transfer is its items less any fee it paid back (declutter_consume_fee_debt):
   // two lines, the sale and the fee (the payout rows' CHECK holds amount = items - debt).
-  const saleOrderIds = (sales as { order_id: string }[]).map((r) => r.order_id);
+  const saleOrderIds = [...(sales as { order_id: string }[]), ...(managerShares as { order_id: string }[])].map((r) => r.order_id);
   const titlesByOrder = new Map<string, string[]>();
   if (saleOrderIds.length > 0) {
     const lines = must(await admin.from("declutter_cart_items").select("order_id, declutter_items(title)").in("order_id", saleOrderIds)) as { order_id: string; declutter_items: { title?: string } | null }[];
@@ -173,6 +201,11 @@ async function nameTransfers(admin: Admin, userId: string, ids: string[]): Promi
     const titles = titlesByOrder.get(r.order_id) ?? [];
     const label = titles.length === 0 ? "A Declutter sale" : titles.length === 1 ? titles[0] : `${titles[0]} and ${titles.length - 1} more`;
     out.set(r.stripe_transfer_id, saleLines("sale", label, "/declutter?tab=selling", r));
+  }
+  for (const r of managerShares as { stripe_transfer_id: string; order_id: string }[]) {
+    const titles = titlesByOrder.get(r.order_id) ?? [];
+    const what = titles.length === 0 ? "a Declutter sale" : titles.length === 1 ? titles[0] : `${titles[0]} and ${titles.length - 1} more`;
+    out.set(r.stripe_transfer_id, [{ kind: "manager_share", label: `Your share: ${what}`, amount_cents: 0, href: "/declutter?tab=selling" }]);
   }
   for (const r of shops as { stripe_transfer_id: string; items_cents: number; debt_cents: number; amount_cents: number }[]) {
     out.set(r.stripe_transfer_id, saleLines("shop_sale", "A Shops order", "/declutter?tab=selling", r));
@@ -199,7 +232,21 @@ async function nameTransfers(admin: Admin, userId: string, ids: string[]): Promi
   for (const r of clawbackRepays as { repay_transfer_id: string; job_id: string; jobs: { title?: string } | null }[]) {
     out.set(r.repay_transfer_id, [{ kind: "job", label: titleOr(r.jobs?.title, "A job"), amount_cents: 0, href: `/jobs/${r.job_id}` }]);
   }
+  for (const r of crewBlockFees as { stripe_transfer_id: string; job_id: string; jobs: { title?: string } | null }[]) {
+    out.set(r.stripe_transfer_id, [{ kind: "crew_block_fee", label: `Closed crew spot: ${titleOr(r.jobs?.title, "a job")}`, amount_cents: 0, href: `/jobs/${r.job_id}` }]);
+  }
   return out;
+}
+
+/**
+ * Q2810: which candidate fee transfers are the caller's own instant cash-out fees (instant_payouts.fee_transfer_id,
+ * scoped to the caller as helper_id). A read error throws, like the ledgers.
+ */
+async function feeTransfers(admin: Admin, userId: string, ids: string[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set();
+  const r = await admin.from("instant_payouts").select("fee_transfer_id").eq("helper_id", userId).in("fee_transfer_id", ids);
+  if (r.error) throw r.error;
+  return new Set(((r.data ?? []) as { fee_transfer_id: string | null }[]).map((x) => x.fee_transfer_id).filter((x): x is string => !!x));
 }
 
 const GROUP_PI = /^group_(pi_[A-Za-z0-9]{6,64})$/;
@@ -260,10 +307,17 @@ async function nameTips(stripe: PayoutReader, admin: Admin, userId: string, ids:
 }
 
 /** The lines of one payout, in Stripe's order, summing to the payout. */
-export function linesFor(bts: PayoutBalanceTxn[], named: Map<string, PayoutLine[]>): PayoutLine[] {
+export function linesFor(bts: PayoutBalanceTxn[], named: Map<string, PayoutLine[]>, instantFees: Set<string> = new Set()): PayoutLine[] {
   const lines: PayoutLine[] = [];
   for (const bt of bts) {
     if (bt.type === "payout") continue;
+    const fee = feeTransferIdOf(bt);
+    if (fee && instantFees.has(fee)) {
+      // Q2810: the fee coming back is money returned, never "Taken back".
+      const back = bt.type === "transfer_refund";
+      lines.push({ kind: "instant_fee", label: back ? "Instant cash-out fee returned" : "Instant cash-out fee", amount_cents: bt.net, href: null });
+      continue;
+    }
     const tr = transferIdOf(bt);
     const mine = tr ? named.get(tr) : undefined;
     if (mine && mine.length > 0) {
@@ -305,6 +359,7 @@ export async function payoutDetail(stripe: PayoutReader, admin: Admin, userId: s
   const ids = [...new Set(bts.map(transferIdOf).filter((x): x is string => !!x))];
   const named = await nameTransfers(admin, userId, ids);
   for (const [tr, lines] of await nameTips(stripe, admin, userId, ids.filter((id) => !named.has(id)))) named.set(tr, lines);
+  const instantFees = await feeTransfers(admin, userId, [...new Set(bts.map(feeTransferIdOf).filter((x): x is string => !!x))]);
   return {
     id: payout.id,
     amount_cents: payout.amount,
@@ -313,6 +368,6 @@ export async function payoutDetail(stripe: PayoutReader, admin: Admin, userId: s
     arrival_date: payout.arrival_date,
     created: payout.created,
     bank_last4: last4Of(payout.destination),
-    lines: linesFor(bts, named),
+    lines: linesFor(bts, named, instantFees),
   };
 }

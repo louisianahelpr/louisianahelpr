@@ -346,7 +346,9 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
 
   it("owner 10-19 + 10-28 + 10-30: Browse | Buying | Selling | Deliver | Wanted | Free, one word each, Browse leftmost and the default", async () => {
     at("/declutter");
-    await screen.findByRole("tablist", { name: "Declutter view" });
+    // The file's first render pays the cold lazy imports (the Browse view chunk and its entry); on a loaded CI shard
+    // that ran past findByRole's default 1 s (PR #4585 Vitest shard 4/6, 11-15) while it passes locally in 41/41.
+    await screen.findByRole("tablist", { name: "Declutter view" }, { timeout: 10_000 });
     const tabs = screen.getAllByRole("tab");
     // Deliver is a tab again (owner 2026-10-28: Helprs couldn't find it under Selling); Wanted (owner 2026-10-28, "Both");
     // Free next to Wanted (OWN-FREE, owner via the lead 2026-10-30).

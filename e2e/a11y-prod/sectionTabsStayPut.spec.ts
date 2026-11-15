@@ -8,7 +8,7 @@
 // VERTICAL scroller: a wheel over it moved scrollTop 0 -> 1, and iOS rubber-banded the words out of the clip.
 // Fixed in src/components/sections/SectionTabs.tsx (overflow-y: hidden).
 //
-// THE CHECK, per SectionTabs screen (inventory: SECTION_TAB_SCREENS, the four files that render <SectionTabs>,
+// THE CHECK, per SectionTabs screen (inventory: SECTION_TAB_SCREENS, the files that render <SectionTabs>,
 // kept equal to source by src/test/sectionTabsStayPutCovers.test.tsx), at 375 and 1440, in Chromium AND WebKit
 // (this directory's two projects; .github/workflows/a11y-webkit-prod.yml runs the WebKit one):
 //   1. scroll with the pointer over the page content, then over the tab row itself;
@@ -30,11 +30,12 @@ const VIEWPORTS = [
   { tag: "1440", width: 1440, height: 900 },
 ] as const;
 
-async function open(browser: Browser, session: Session, viewport: { width: number; height: number }, path: string): Promise<Page> {
+async function open(browser: Browser, session: Session | null, viewport: { width: number; height: number }, path: string): Promise<Page> {
   const ctx = await browser.newContext({ serviceWorkers: "block", viewport });
   // Read-only by construction: every request that could write prod is aborted and logged.
   await abortProdWrites(ctx, SUPABASE_URL, OUTPUT_DIR);
-  await ctx.addInitScript(({ key, val }) => {
+  // A guest screen (SECTION_TAB_SCREENS `guest`) is opened with no session at all.
+  if (session) await ctx.addInitScript(({ key, val }) => {
     try { window.localStorage.setItem(key, val); } catch { /* storage blocked: the screen renders signed out and the tablist wait below fails loudly */ }
   }, { key: AUTH_STORAGE_KEY, val: JSON.stringify(session) });
   const page = await ctx.newPage();
@@ -105,8 +106,8 @@ test.describe("section tab rows stay put when the page scrolls (owner 2026-10-30
     // A desktop-only row (Declutter, owner 11-08: no tab row on a phone) is checked at desktop widths only.
     for (const v of VIEWPORTS.filter((w) => !screen.desktopOnly || w.width >= 900)) {
       test(`${screen.name} (${v.tag})`, async ({ browser }) => {
-        test.skip(!poster, "poster session unavailable (secrets not set)");
-        const page = await open(browser, poster!, v, screen.path);
+        test.skip(!screen.guest && !poster, "poster session unavailable (secrets not set)");
+        const page = await open(browser, screen.guest ? null : poster, v, screen.path);
         const before = await rowState(page);
         expect(before, "no tablist on the screen").not.toBeNull();
         // 1. over the content, 2. over the tab row itself (where an iPhone swipe moved the words).

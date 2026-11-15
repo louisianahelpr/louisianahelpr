@@ -10,6 +10,8 @@ import { JOB_CATEGORIES } from "@/lib/jobCategories";
 import { CATEGORIES } from "@/lib/declutter/categoryIcons";
 import { getRecentSearches } from "@/lib/searchHistory";
 import { SEARCH_PARAM } from "@/components/landing/heroSearch";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useArrivalGate } from "@/hooks/useArrivalGate";
 
 /** How many saved searches the first screen lists; the rest stay in You › Settings › Saved searches. */
 const START_SAVED_MAX = 5;
@@ -59,10 +61,19 @@ export function SearchStart({ userId, declutterOn, signedIn = true }: { userId: 
   ];
   // Read once per visit: the list only changes when a search is run, which leaves this screen.
   const [recent] = useState(getRecentSearches);
+  // ONE PAINT (Q1816 / Q169; prod-audit run 43691657529, /search at 375, page-settle 0.063 at ~380 ms): the category
+  // chips painted first and the saved searches (90px) then landed ABOVE them, moving them down 106px. The lists wait for
+  // the member's saved searches (and their "N new" counts when there are any), at most ARRIVAL_CAP_MS; a failed read
+  // counts as answered. Signed out there is nothing to wait for.
+  const savedSettled = !userId || saved.isFetched || saved.isError;
+  const countsSettled = rows.length === 0 || counts.isFetched || counts.isError;
+  const ready = useArrivalGate(true, savedSettled && countsSettled);
 
   return (
     <div className="space-y-4" data-testid="search-start">
       <p className="font-sans text-ds-13 text-muted-foreground px-1">Search every section at once.</p>
+      {!ready && <SearchStartBones groups={groups.length} />}
+      {ready && (<>
       {recent.length > 0 && (
         <section aria-label="Recent searches" className="space-y-2">
           <h2 className="font-sans font-bold text-ds-15 px-1" style={{ color: "hsl(var(--ink-deep))" }}>Recent searches</h2>
@@ -113,6 +124,24 @@ export function SearchStart({ userId, declutterOn, signedIn = true }: { userId: 
           </div>
         ))}
       </section>
+      </>)}
+    </div>
+  );
+}
+
+/** The category section's shape while the saved searches answer: its heading, then each group's title and chip row. */
+function SearchStartBones({ groups }: { groups: number }) {
+  return (
+    <div aria-hidden data-testid="search-start-loading" className="space-y-2">
+      <Skeleton className="h-5 w-40 rounded" />
+      {Array.from({ length: groups }, (_, g) => (
+        <div key={g} className="space-y-1.5">
+          <Skeleton className="h-4 w-20 rounded" />
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: START_CHIPS_PER_SECTION }, (_, i) => <Skeleton key={i} className="h-11 w-24 rounded-full" />)}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

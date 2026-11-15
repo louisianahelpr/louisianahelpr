@@ -2,10 +2,12 @@ import { Suspense, lazy, useCallback, useRef, useState } from "react";
 import type { Area } from "react-easy-crop";
 import { cropImageToFile } from "@/lib/cropImage";
 import { report } from "@/lib/errorLogger";
+import { loadModule, untilReload } from "@/lib/loadModule";
 
 /** The dialog's own chunk (react-easy-crop, the dialog primitives): fetched when a photo is picked, never on the first screen. */
-const loadView = () => import("./AvatarCropDialogView");
-const AvatarCropDialogView = lazy(loadView);
+// Through loadModule: a stale chunk after a deploy goes to the shared recovery reload instead of the error boundary.
+const loadView = () => loadModule(() => import("./AvatarCropDialogView"));
+const AvatarCropDialogView = lazy(async () => (await loadView()) ?? untilReload());
 
 /**
  * POSITION AND ZOOM A PROFILE PHOTO BEFORE IT IS SAVED.

@@ -168,38 +168,6 @@
     <!-- Preconnect to Supabase to shorten the longest network dependency chain (LCP/data fetches) -->
     <link rel="preconnect" href="https://fncmgoasalhdgfwzhsqa.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://fncmgoasalhdgfwzhsqa.supabase.co" />
-    <!-- Builder 2 (11-15): a member's first-screen reads (src/boot/signedInPrefetch.ts) start HERE, from the head,
-         instead of from the entry. cwv-lab (signed-in /home, Slow 4G + 4x, 375) had the chunk requested only once the
-         entry ran (1.47 s) and, sharing the link with ~400 KB of app JS, arriving at 2.92 s: every read started at
-         2.93 s. The build writes the chunk's URL into this meta (vite.config.ts, lh-signed-in-prefetch-url; the build
-         fails if the chunk is gone). The script imports it only for a member with a live stored session, and only on
-         /home and / (a member there goes on to /home); the chunk imports nothing, and the entry's own later call is a
-         no-op (one start). Every other route still starts from the entry: in the same lab, starting from the head did
-         not help /jobs in 3 of 3 runs, and /profile came out slower in one round of 3 and faster in another, so they
-         were left as they were. Guard: src/boot/signedInPrefetchFromHead.test.ts. -->
-    <meta name="lh-signed-in-prefetch" content="" />
-    <script>
-      (function () {
-        var meta = document.querySelector('meta[name="lh-signed-in-prefetch"]');
-        var src = meta && meta.getAttribute("content");
-        var path = location.pathname;
-        if (!src || !/^\/(home)?\/?$/.test(path)) return;
-        try {
-          for (var i = 0; i < localStorage.length; i++) {
-            var k = localStorage.key(i);
-            if (!k || k.indexOf("sb-") !== 0 || !/-auth-token$/.test(k)) continue;
-            var live = JSON.parse(localStorage.getItem(k) || "null");
-            if (!live || typeof live.access_token !== "string" || typeof live.expires_at !== "number" || !live.user || typeof live.user.id !== "string") return;
-            if (live.expires_at - Date.now() / 1000 <= 60) return;
-            import(src).then(function (m) { m.startSignedInPrefetch(path); }, function () { /* speculative: the entry starts it */ });
-            return;
-          }
-        } catch (e) {
-          /* storage blocked or unreadable: the entry starts the reads as before */
-        }
-      })();
-    </script>
-
     <!-- The header's H emblem (HelprMark: emblemOnly, 40px). Preloaded so it
          arrives with the page instead of after the header renders (owner,
          2026-09-25: "on the legal pages it was taking awhile for the h logo
@@ -457,6 +425,37 @@
             /* A browser that won't even let us redefine the property is
                beyond what this page can repair — nothing further to try. */
           }
+        }
+      })();
+    </script>
+    <!-- Builder 2 (11-15): a member's first-screen reads (src/boot/signedInPrefetch.ts) start HERE, from the head,
+         instead of from the entry. cwv-lab (signed-in /home, Slow 4G + 4x, 375) had the chunk requested only once the
+         entry ran (1.47 s) and, sharing the link with ~400 KB of app JS, arriving at 2.92 s: every read started at
+         2.93 s. The build writes the chunk's URL into this meta (vite.config.ts, lh-signed-in-prefetch-url; the build
+         fails if the chunk is gone). The script imports it only for a member with a live stored session, and only on
+         /home and / (a member there goes on to /home); the chunk imports nothing, and the entry's own later call is a
+         no-op (one start). Every other route still starts from the entry: in the same lab, starting from the head did
+         not help /jobs in 3 of 3 runs, and /profile came out slower in one round of 3 and faster in another, so they
+         were left as they were. It sits after the blocked-storage repair (blockedStorageBoot: no localStorage read before it). Guard: src/boot/signedInPrefetchFromHead.test.ts. -->
+    <meta name="lh-signed-in-prefetch" content="" />
+    <script>
+      (function () {
+        var meta = document.querySelector('meta[name="lh-signed-in-prefetch"]');
+        var src = meta && meta.getAttribute("content");
+        var path = location.pathname;
+        if (!src || !/^\/(home)?\/?$/.test(path)) return;
+        try {
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (!k || k.indexOf("sb-") !== 0 || !/-auth-token$/.test(k)) continue;
+            var live = JSON.parse(localStorage.getItem(k) || "null");
+            if (!live || typeof live.access_token !== "string" || typeof live.expires_at !== "number" || !live.user || typeof live.user.id !== "string") return;
+            if (live.expires_at - Date.now() / 1000 <= 60) return;
+            import(src).then(function (m) { m.startSignedInPrefetch(path); }, function () { /* speculative: the entry starts it */ });
+            return;
+          }
+        } catch (e) {
+          /* storage blocked or unreadable: the entry starts the reads as before */
         }
       })();
     </script>

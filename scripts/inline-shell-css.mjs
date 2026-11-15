@@ -24,6 +24,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
 import { JSDOM } from "jsdom";
+import { BROWSE_SHELL_SHOW_RULE, browseShellHtml } from "../src/lib/browseShellCards.mjs";
 
 export const SHELL_START = '<div id="lh-landing-shell"';
 export const SHELL_END = '<span data-lh-shell="end" hidden></span>';
@@ -200,6 +201,30 @@ export function inlineShellCss(html, css) {
   return { html: html.slice(0, at) + block + html.slice(at), bytes: block.length };
 }
 
+/**
+ * /browse's server-drawn overlay (api/share.ts, src/lib/browseShellCards.mjs) is not in index.html, so its rules are
+ * built here from its own markup (one card, and the empty feed, each with the footer) and written beside the build for
+ * api/share.ts (via scripts/build-og-shell.mjs) and the lab's dist server to put into /browse's inlined block
+ * (withBrowseShellCss). Measured 2026-11-14: about 5,450 B gz, against the 8,231 B every other page carries.
+ */
+export const BROWSE_CSS_FILE = "lh-browse-shell-css.txt";
+/** Ceiling on /browse's block, gzip bytes; the build fails above it (not to be raised). */
+export const MAX_BROWSE_INLINE_BYTES = 6_000;
+const SAMPLE_NOW = Date.UTC(2026, 10, 14, 18);
+const SAMPLE_EMBLEM = { src: "/assets/helpr-logo-256.webp", srcset: "/assets/helpr-logo-96.webp 96w, /assets/helpr-logo-256.webp 256w" };
+const SAMPLE_ROW = {
+  title: "Help move furniture", category: "moving", budget: 80, location: "Baton Rouge, LA", status: "open",
+  created_at: new Date(SAMPLE_NOW - 3_600_000).toISOString(), expires_at: null, is_urgent: false, is_group_job: false, helpers_needed: 1,
+};
+
+/** The overlay's subset of the app sheet, plus its show rule. */
+export function browseShellCriticalCss(css) {
+  const cards = browseShellHtml([SAMPLE_ROW], SAMPLE_NOW, SAMPLE_EMBLEM);
+  const empty = browseShellHtml([], SAMPLE_NOW, SAMPLE_EMBLEM);
+  if (!cards.includes("job-card-title") || !empty.includes("data-shell-empty")) throw new Error("inline-shell-css: the /browse sample markup drew no card or no empty feed");
+  return shellCriticalCss([{ html: cards + empty, htmlAttr: "" }], css) + BROWSE_SHELL_SHOW_RULE;
+}
+
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -216,4 +241,9 @@ if (isMain) {
   if (gz > MAX_INLINE_BYTES) throw new Error(`inline-shell-css: inlined block is ${gz} B gz, over ${MAX_INLINE_BYTES}`);
   writeFileSync(indexPath, out);
   console.log(`inline-shell-css: ${bytes} B (${gz} B gz) of the app sheet inlined for the HTML-drawn first screen`);
+  const browse = browseShellCriticalCss(css);
+  const browseGz = gzipSync(`<style id="${STYLE_ID}">${browse}</style>`).length;
+  if (browseGz > MAX_BROWSE_INLINE_BYTES) throw new Error(`inline-shell-css: /browse's block is ${browseGz} B gz, over ${MAX_BROWSE_INLINE_BYTES}`);
+  writeFileSync(path.join(dist, BROWSE_CSS_FILE), browse);
+  console.log(`inline-shell-css: /browse's overlay block ${browse.length} B (${browseGz} B gz) -> dist/${BROWSE_CSS_FILE}`);
 }

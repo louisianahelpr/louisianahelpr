@@ -36,7 +36,9 @@ export function shellTitleProblem(title: string | null | undefined): string | nu
 export function selectShellJobs(rows: unknown, now?: number): ShellJobRow[];
 export function escapeShellText(value: unknown): string;
 export function browseShellHtml(rows: unknown, now?: number, emblem?: { src: string; srcset: string } | null): string;
-export function withBrowseShell(html: string, rows: unknown, now?: number): string;
+export function withBrowseShell(html: string, rows: unknown, now?: number, criticalCss?: string | null): string;
+export const BROWSE_SHELL_SHOW_RULE: string;
+export function withBrowseShellCss(page: string, criticalCss: string | null | undefined): string;
 export function browseShellSeedsHiddenUrl(supabaseUrl: string): string;
 export function shellRowsWhenSeedsHidden(rows: unknown[] | null, seedsHidden: unknown): unknown[] | null;
 export const SHELL_FOOTER_HTML: string;

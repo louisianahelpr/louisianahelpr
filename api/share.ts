@@ -63,6 +63,7 @@
  */
 
 import { SHELL_HTML } from "../scripts/generated/og-shell.js";
+import * as ogShellModule from "../scripts/generated/og-shell.js";
 import { STATIC_PAGE_BODIES } from "../scripts/generated/static-pages.js";
 import { noindexPageMetaFor, publicPageMetaFor } from "../src/lib/publicPageMeta.mjs";
 import { OG_PROFILE_HEIGHT, OG_PROFILE_WIDTH, ogProfileImageUrl } from "../src/lib/ogProfileCard.mjs";
@@ -1231,6 +1232,16 @@ const BROWSE_SHELL_TIMEOUT_MS = 700;
 /** Shorter than the default: a filled job must leave the HTML within minutes (the app replaces the cards anyway). */
 const BROWSE_SHELL_CDN_CACHE = "public, s-maxage=120, stale-while-revalidate=600";
 
+/**
+ * /browse's own inlined block (the overlay's subset of the app sheet and its show rule; withBrowseShellCss), written by
+ * scripts/build-og-shell.mjs from the build. Read off the module namespace: a snapshot written without a build
+ * (src/test/helpers/ogShellSnapshot.ts) has none, and then /browse keeps the page's block as it was.
+ */
+const BROWSE_SHELL_CSS: string | null = (() => {
+  const css = (ogShellModule as Record<string, unknown>).BROWSE_SHELL_CSS;
+  return typeof css === "string" ? css : null;
+})();
+
 async function fetchBrowseShellRows(): Promise<unknown[] | null> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
   const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, Accept: "application/json" };
@@ -1326,7 +1337,7 @@ export default {
       // paused or closed must stop previewing (lh-authz-rls should-fix 2).
       // A Declutter item card likewise: sold or withdrawn stops previewing (Q2426).
       const page = withStaticBody(applyMeta(shell, meta), url);
-      if (isBrowsePage(url)) return respond(withBrowseShell(page, await fetchBrowseShellRows()), BROWSE_SHELL_CDN_CACHE);
+      if (isBrowsePage(url)) return respond(withBrowseShell(page, await fetchBrowseShellRows(), Date.now(), BROWSE_SHELL_CSS), BROWSE_SHELL_CDN_CACHE);
       if (isDeclutterPage(url)) {
         const preload = declutterPhotoPreloadHeader(SUPABASE_URL, await fetchDeclutterFirstPhotos());
         return respond(page, DECLUTTER_PAGE_CDN_CACHE, 200, meta.noindexHeader === true, preload ? { Link: preload } : {});

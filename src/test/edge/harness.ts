@@ -1368,15 +1368,39 @@ interface GenModule {
 }
 
 /**
+ * Handlers kept by `reuseModule` loads, per function, for the rest of this test FILE (Vitest gives every file its
+ * own module registry, so this map never crosses files).
+ */
+const reusedHandlers = new Map<string, ReturnType<typeof import("./mocks/deno-runtime.ts").__getHandler>>();
+
+/**
  * Load an edge function and return a harness to drive it.
  *
  * Follows the entry's LOCAL relative imports breadth-first, flattening the
  * whole module graph into sibling `.gen.ts` files so a multi-file function
  * (entry + `context.ts` + `constants.ts` + `handlers/*.ts`) is fully bundled.
  *
+ * `reuseModule` (Q2811): evaluate the graph ONCE per test file and hand every later load the same handler. Only for
+ * a function whose module graph holds no state of its own (no top-level `let`/`var`; every request reads env and
+ * mocks at call time), which src/test/edgeHarnessReuseIsStateless.test.ts checks for each caller. Why: under
+ * `--coverage` V8's precise (block-count) coverage keeps every evaluated script alive until the worker ends, and
+ * src/test/edge/create-payment.test.ts loaded create-payment (452 KB of source, plus the walked `_shared` modules)
+ * 214 times, one fresh copy per test. Coverage shard 4/4 died at the end of that file on every main run
+ * (43746742812, 43725796197: "Worker exited unexpectedly with exit code 1"), while the plain shards, which keep no
+ * script alive, ran it green.
+ *
  * @param fnName  Directory name under `supabase/functions/`.
  */
-export async function loadEdgeFunction(fnName: string): Promise<EdgeHarness> {
+export async function loadEdgeFunction(fnName: string, opts: { reuseModule?: boolean } = {}): Promise<EdgeHarness> {
+  if (opts.reuseModule) {
+    const kept = reusedHandlers.get(fnName);
+    if (kept) {
+      const deno = await import("./mocks/deno-runtime.ts");
+      (globalThis as { Deno?: unknown }).Deno = deno.__denoStub;
+      (await import("./mocks/shared.ts")).installNotificationEmailFetch();
+      return harnessFor(kept);
+    }
+  }
   const entryPath = join(FUNCTIONS_DIR, fnName, "index.ts");
   const runId = randomBytes(4).toString("hex");
 
@@ -1491,7 +1515,11 @@ export async function loadEdgeFunction(fnName: string): Promise<EdgeHarness> {
       `Edge function "${fnName}" did not call serve() — no handler captured`,
     );
   }
+  if (opts.reuseModule) reusedHandlers.set(fnName, handler);
+  return harnessFor(handler);
+}
 
+function harnessFor(handler: NonNullable<ReturnType<typeof import("./mocks/deno-runtime.ts").__getHandler>>): EdgeHarness {
   return {
     fetch: (req: Request) => Promise.resolve(handler(req)),
     request: (init = {}) => {

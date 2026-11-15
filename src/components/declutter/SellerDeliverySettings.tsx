@@ -41,7 +41,9 @@ import { Input } from "@/components/ui/input";
 import "@/lib/i18n/enListingParts";
 import { t } from "@/lib/i18n/language";
 
-const KEY = ["declutter", "my-seller-delivery"] as const;
+/** The seller's delivery read's key (Declutter settings waits on it too, so the page paints once). */
+export const MY_SELLER_DELIVERY_KEY = ["declutter", "my-seller-delivery"] as const;
+const KEY = MY_SELLER_DELIVERY_KEY;
 const FIRST_WINDOW: DeliveryWindow = { weekday: 6, starts: "09:00", ends: "12:00" };
 
 /** The seller's settings, read only while the switch is on for them. */

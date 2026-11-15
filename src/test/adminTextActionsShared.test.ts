@@ -10,7 +10,7 @@
  *
  * @mutate src/components/admin/AdminAnalyticsDrilldowns.tsx | <InlineTextButton\n        onClick={onBack} | <button type="button"\n        onClick={onBack}
  * @mutate src/components/admin/adminAnalytics/SignupLeadsCard.tsx | <InlineTextButton\n              onClick={() => setShowAll | <button type="button"\n              onClick={() => setShowAll
- * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx | <InlineTextButton\n      className="underline font-semibold" | <button type="button"\n      className="underline font-semibold"
+ * @mutate src/components/admin/settings/RentalsOwnershipCard.tsx | <InlineTextButton className="underline font-semibold" onClick={open}> | <button type="button" className="underline font-semibold" onClick={open}>
  * @mutate src/components/admin/userDetail/UserAuditLog.tsx | <InlineTextButton\n                      onClick={() => { setReversing(e); | <button type="button"\n                      onClick={() => { setReversing(e);
  */
 import { describe, expect, it } from "vitest";

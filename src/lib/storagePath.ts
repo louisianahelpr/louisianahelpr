@@ -112,3 +112,16 @@ export function openableDocumentUrl(value: string | null | undefined): string | 
   openableBlobUrls.set(safe, url);
   return url;
 }
+
+/**
+ * True when a stored file (a storage path, an https URL or a raster data: URL) is a picture every browser draws in an
+ * `<img>`, so it opens in the app's own photo viewer instead of a new tab (owner 2026-11-15: "when I click a picture it
+ * takes me out of the website into Supabase"). HEIC is left out on purpose: Chrome cannot draw it, so a HEIC document
+ * keeps opening in the system viewer. A PDF is never an image. Guard: src/test/photosOpenInApp.test.tsx.
+ */
+export function isBrowserImagePath(value: string | null | undefined): boolean {
+  if (typeof value !== "string") return false;
+  const v = value.trim();
+  if (/^data:image\/(png|jpe?g|gif|webp);/i.test(v)) return true;
+  return /\.(jpe?g|png|gif|webp|avif)(\?.*)?$/i.test(v.split("#")[0]);
+}

@@ -32,25 +32,31 @@ import {
 } from "@/lib/rentals/api";
 import { rentalsErrorMessage } from "@/lib/rentals/copy";
 import { openSignedDocument } from "@/lib/openSignedDocument";
+import { isBrowserImagePath } from "@/lib/storagePath";
+import { useSinglePhotoViewer } from "@/components/useInAppPhotoViewer";
 import { AdminCard } from "../AdminViewShell";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { Input } from "@/components/ui/input";
 
 function OpenFile({ path, label }: { path: string; label: string }) {
+  const { showSigned, viewer } = useSinglePhotoViewer();
+  const open = () => {
+    // Owner 2026-11-15: a photo (an ID, a deed photo) opens in the app's own viewer, never a new tab on the storage URL.
+    if (isBrowserImagePath(path)) { void showSigned(() => signedFileUrl(path), label, (msg) => toast.error(msg)); return; }
+    // A PDF: the tab opens inside the click, before any await, or WebKit blocks it silently (Q295).
+    void openSignedDocument({
+      open: (url, target) => window.open(url, target),
+      sign: () => signedFileUrl(path),
+      toastError: (msg) => toast.error(msg),
+    });
+  };
   return (
-    <InlineTextButton
-      className="underline font-semibold"
-      // The tab opens inside the click, before any await, or WebKit blocks it silently (Q295).
-      onClick={() =>
-        void openSignedDocument({
-          open: (url, target) => window.open(url, target),
-          sign: () => signedFileUrl(path),
-          toastError: (msg) => toast.error(msg),
-        })
-      }
-    >
-      {label}
-    </InlineTextButton>
+    <>
+      {viewer}
+      <InlineTextButton className="underline font-semibold" onClick={open}>
+        {label}
+      </InlineTextButton>
+    </>
   );
 }
 

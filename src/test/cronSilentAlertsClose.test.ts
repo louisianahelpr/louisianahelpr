@@ -17,7 +17,7 @@
  *   the same cron.job predicate the sweep files on.
  *
  * @mutate supabase/migrations/20260926035556_cron_silent_close_rule.sql |   IF p_rule = 'unrecorded' THEN |   IF p_rule = 'unrecorded-x' THEN
- * @mutate supabase/migrations/20261012072223_stuck_payment_close_needs_money_moved.sql |         AND public.cron_silent_rule(p_sample_ref) IN ('idle', 'unrecorded') THEN |         AND public.cron_silent_rule(p_sample_ref) IN ('idle') THEN
+ * @mutate supabase/migrations/20261115073221_user_error_screen_close_matches_open_gate.sql |         AND public.cron_silent_rule(p_sample_ref) IN ('idle', 'unrecorded') THEN |         AND public.cron_silent_rule(p_sample_ref) IN ('idle') THEN
  * @mutate supabase/migrations/20260926035556_cron_silent_close_rule.sql |          AND j.command NOT LIKE '%cron_record_work(%'); |          AND true);
  */
 import { describe, it, expect } from "vitest";

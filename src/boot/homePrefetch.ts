@@ -15,8 +15,11 @@
  * and src/boot/homePrefetch.test.ts holds them equal to the ones supabase-js builds.
  */
 import { storedSession } from "./storedSession";
+import { JOBS_PREFETCH_KEY, currentUserUrls } from "./jobsPrefetch";
 
 export const HOME_PREFETCH_KEY = "__lhHomePrefetch";
+/** The member's own "does my page open?" answer for Home's Your page card (homePrefetchTake.ts takes it). */
+export const HOME_PAGE_PREFETCH_KEY = "__lhHomePagePrefetch";
 
 /** The REST URLs supabase-js sends for useFirstJobState's three reads (see the test). */
 export function homeFirstJobUrls(supabaseUrl: string, userId: string): { applications: string; jobs: string; prefs: string } {
@@ -66,5 +69,37 @@ export function startHomePrefetch(pathname: string): void {
     })
     // A failed prefetch is not an error: the query reads for itself.
     .catch(() => null);
-  (window as unknown as Record<string, unknown>)[HOME_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, answer };
+  const w = window as unknown as Record<string, unknown>;
+  w[HOME_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, answer };
+  // Q2705 (Builder 2, 11-15; cwv-lab /home, helper persona, Slow 4G + 4x, 375): /home's largest paint was the Your page
+  // card's line, which waited on two reads in a row that started only once the app had drawn: the profile row
+  // (useCurrentUser, 3.6-4.5 s) and then public_profile_by_handle for its handle (4.5-5.2 s); the line painted at 5.2 s.
+  // So the entry asks both here as well, the page off the profile's handle (as profilePrefetch.ts does for /profile).
+  // useCurrentUser takes the profile and admin-role rows through the same hand-over /jobs fills (jobsPrefetchTake.ts,
+  // "me"); Home's card takes the page (homePrefetchTake.ts). Each is handed out once; anything odd reads as always.
+  const rest = `${base.replace(/\/$/, "")}/rest/v1/`;
+  const rows = (url: string) =>
+    fetch(url, { headers: { ...auth, Accept: "application/json" } })
+      .then((r) => (r.ok ? (r.json() as Promise<unknown>) : null))
+      .then((x) => (Array.isArray(x) ? (x as Record<string, unknown>[]) : null));
+  const mine = currentUserUrls(base, session.userId);
+  const profile = rows(mine.profile).catch(() => null);
+  const me = Promise.all([profile, rows(mine.admin).catch(() => null)])
+    .then(([p, admin]) => (p && admin ? { profile: p, admin } : null));
+  const page = profile
+    .then(async (p) => {
+      const handle = p && p.length === 1 ? p[0].handle : null;
+      if (typeof handle !== "string" || !handle) return null;
+      const r = await fetch(`${rest}rpc/public_profile_by_handle`, {
+        method: "POST",
+        headers: { ...auth, Accept: "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify({ p_handle: handle }),
+      });
+      // A refused or failed read hands nothing over (the card's own read decides); a 200 "null" is a real "no page".
+      return r.ok ? { handle, data: (await r.json()) as unknown } : null;
+    })
+    // A failed prefetch is not an error: the card reads for itself.
+    .catch(() => null);
+  w[JOBS_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, me };
+  w[HOME_PAGE_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, page };
 }

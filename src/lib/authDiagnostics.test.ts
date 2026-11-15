@@ -6,7 +6,7 @@
  *
  * @mutate src/main.tsx |   if (landingAuthHint().hadAuthToken \|\| tokenProbeAtBoot()) registerUnexpectedSignOutWatch(); |
  * @mutate src/components/ProtectedRoute.tsx | context: { path: location.pathname, ...authDiagnostics() }, | context: { path: location.pathname },
- * @mutate src/lib/authDiagnostics.ts |   if (has("access_token")) kind = "access_token"; |
+ * @mutate src/lib/authLanding.ts |   if (has("access_token")) kind = "access_token"; |
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -72,8 +72,8 @@ describe("authDiagnostics", () => {
 describe("wiring", () => {
   const main = read("main.tsx");
 
-  it("main.tsx imports authDiagnostics before App (before the Supabase client can strip the URL)", () => {
-    const diag = main.indexOf('from "./lib/authDiagnostics"');
+  it("main.tsx imports authLanding before App (before the Supabase client can strip the URL)", () => {
+    const diag = main.indexOf('from "./lib/authLanding"');
     const app = main.indexOf('from "./App.tsx"');
     expect(diag).toBeGreaterThan(0);
     expect(app).toBeGreaterThan(diag);

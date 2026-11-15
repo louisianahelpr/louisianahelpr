@@ -17,7 +17,7 @@
 // @mutate scripts/perf/bootReach.mjs | toPosix(path.join(root, MESSAGES_ROOT)), toPosix(path.join(root, JOB_LISTS_ROOT))]; | toPosix(path.join(root, MESSAGES_ROOT))];
 // @mutate src/pages/jobs/JobsSection.tsx | (onBrowse ? prefetchRoutesWhenIdle([JOB_LISTS_PREFETCH_KEY]) : undefined) | undefined
 // @mutate src/pages/posts/PostsPage.tsx | import("@/components/job-card/JobListPage").catch(() => { | Promise.resolve().catch(() => {
-// @mutate src/lib/routePrefetch.ts |   [JOB_LISTS_PREFETCH_KEY]: () => import("@/components/job-card/JobListPage"), |
+// @mutate src/lib/routePrefetchTable.ts |   [JOB_LISTS_PREFETCH_KEY]: () => import("@/components/job-card/JobListPage"), |
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -51,7 +51,7 @@ describe("the job lists load alone (B52)", () => {
   it("the boot chunk, JobsSection and the warm-up name the same module", () => {
     const spec = 'import("@/components/job-card/JobListPage")';
     // PostsPage: /posts' own chunk starts the list beside JobsSection after its redirect (B52, measured).
-    for (const rel of ["src/boot/jobsListRoute.ts", "src/pages/jobs/JobsSection.tsx", "src/lib/routePrefetch.ts", "src/pages/posts/PostsPage.tsx"]) expect(code(rel), rel).toContain(spec);
+    for (const rel of ["src/boot/jobsListRoute.ts", "src/pages/jobs/JobsSection.tsx", "src/lib/routePrefetchTable.ts", "src/pages/posts/PostsPage.tsx"]) expect(code(rel), rel).toContain(spec);
     // Same rules as routePreload.ts: no static imports, or the entry's chunk would drag app code in.
     expect(code("src/boot/jobsListRoute.ts")).not.toMatch(/^\s*import\s[^(]/m);
   });
@@ -65,7 +65,7 @@ describe("the job lists load alone (B52)", () => {
 
   it("Browse warms the lists' chunk once the page has settled", () => {
     expect(code("src/pages/jobs/JobsSection.tsx")).toMatch(/onBrowse \? prefetchRoutesWhenIdle\(\[JOB_LISTS_PREFETCH_KEY\]\)/);
-    expect(code("src/lib/routePrefetch.ts")).toMatch(/\[JOB_LISTS_PREFETCH_KEY\]: \(\) => import\("@\/components\/job-card\/JobListPage"\)/);
+    expect(code("src/lib/routePrefetchTable.ts")).toMatch(/\[JOB_LISTS_PREFETCH_KEY\]: \(\) => import\("@\/components\/job-card\/JobListPage"\)/);
   });
 });
 

@@ -3,7 +3,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 
 const noteScreen = vi.fn();
-vi.mock("@/lib/bugReportContext", () => ({ noteScreen: (...a: unknown[]) => noteScreen(...a) }));
+vi.mock("@/lib/bugReportTrail", () => ({ noteScreen: (...a: unknown[]) => noteScreen(...a) }));
 
 import { useBugReportScreen } from "./useBugReportScreen";
 

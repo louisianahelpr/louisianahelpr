@@ -1,6 +1,6 @@
-// @mutate src/lib/bugReportContext.ts |   while (recent.length > MAX_RECENT_ERRORS) recent.shift(); |   void 0;
-// @mutate src/lib/bugReportContext.ts |   if (isSupportScreen(pathname, search)) return; |   void 0;
-// @mutate src/lib/bugReportContext.ts |   const keep = ["tab", "filter", "view"]; |   const keep = [...new URLSearchParams(search).keys()];
+// @mutate src/lib/bugReportTrail.ts |   while (recent.length > MAX_RECENT_ERRORS) recent.shift(); |   void 0;
+// @mutate src/lib/bugReportTrail.ts |   if (isSupportScreen(pathname, search)) return; |   void 0;
+// @mutate src/lib/bugReportTrail.ts |   const keep = ["tab", "filter", "view"]; |   const keep = [...new URLSearchParams(search).keys()];
 // @mutate src/lib/bugReportContext.ts |   const room = Math.max(0, max - block.length - 2); |   const room = max;
 // @mutate src/lib/errorLogger.ts |   noteRecentError(message); |   void message;
 /*

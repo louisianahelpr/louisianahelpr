@@ -9,7 +9,7 @@
  * call Sentry.captureException(err, { extra }) and you're done.
  */
 
-import { noteRecentError } from "@/lib/bugReportContext";
+import { noteRecentError } from "@/lib/bugReportTrail";
 import { postRows } from "./restInsert";
 import { Capacitor } from "@capacitor/core";
 import type { Json } from "@/integrations/supabase/types";

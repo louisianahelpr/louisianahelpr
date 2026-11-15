@@ -372,3 +372,60 @@ export function queuedRowAction({ overBudget, lastWave }) {
   if (!overBudget) return "walk";
   return lastWave ? "not-reached" : "stop";
 }
+
+/**
+ * A PRESS THAT CHANGED THE SCREEN IN PLACE DOES NOT COST A RELOAD.
+ *
+ * Run 43584967592 (2026-11-14) left 312 of 479 rows unreached: the walk was
+ * about 2.5x over its legs. /profile?tab=receipts (customer) spent a whole
+ * 46.7-min leg on 277 presses, 275 of them a receipt row opening in place
+ * ("changed a toggle/field"), and each one was followed by a full-screen
+ * reload: ~190 requests (the routes turn Chromium's HTTP cache off), ~14 of
+ * them backend calls, and 33.4 of the 46.7 minutes were the request-ceiling
+ * pace wait those reloads ran up.
+ *
+ * So a page-level press reloads the screen before the next press only when
+ * it LEFT the screen (navigated), WROTE (a backend write finished, which can
+ * consume or reorder rows), left an overlay open or closed one it did not
+ * open, FAILED (an error state is never the next press's baseline), was a
+ * gate-approved write, or ran inside an opener chain. A press that only
+ * changed the screen in place (a row opened, a toggle flipped, a field
+ * appeared) keeps the page, and the next press first checks that its DOM
+ * path still holds the same control (pressTargetStillAt); any doubt reloads,
+ * exactly as before. Every control is still pressed.
+ */
+export function pressNeedsReload({ navigated, wrote, overlaysChanged, failed, mutating, inChain }) {
+  return !!(navigated || wrote || overlaysChanged || failed || mutating || inChain);
+}
+
+/**
+ * After an in-place press, may the next control be pressed without a reload?
+ * Only when the control now at its queued DOM path has the signature it was
+ * enumerated with. Anything else (gone, or another control now sits at that
+ * path) answers false and the caller reloads first.
+ */
+export function pressTargetStillAt({ now, path, sig }) {
+  const at = (now ?? []).find((c) => c.path === path);
+  return !!at && at.sig === sig;
+}
+
+/**
+ * THE CLAIM QUEUE STARTS AT A DIFFERENT ROW EACH RUN (backstop).
+ *
+ * Shards claim rows in route order, so a run that runs out of legs always
+ * leaves the SAME tail unwalked: run 43584967592 (2026-11-14) never reached 312 rows, and
+ * the next run would have started at row 0 again. The order is rotated by
+ * the workflow's run number (PRESS_ROTATE = github.run_number, identical for
+ * every leg and shard of one run, so every shard still agrees on the order),
+ * stepping by about 0.618 of the list (a Weyl sequence), so consecutive runs
+ * start far apart and every row reaches the front within a few runs. The
+ * row keys keep their original index, so claims stay unique. Without
+ * PRESS_ROTATE (a local run) the order is unchanged.
+ * @returns {number[]} every index 0..length-1 exactly once.
+ */
+export function rotatedRowOrder({ length, rotate }) {
+  const n = Math.max(0, Math.floor(Number(length) || 0));
+  const r = Number.parseInt(String(rotate ?? ""), 10);
+  const start = n && Number.isFinite(r) && r > 0 ? Math.floor(((r * 0.6180339887498949) % 1) * n) % n : 0;
+  return Array.from({ length: n }, (_, i) => (start + i) % n);
+}

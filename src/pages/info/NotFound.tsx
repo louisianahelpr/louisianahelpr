@@ -51,6 +51,19 @@ export function notFoundCopy(pathname: string): { title: string; body: string; p
   };
 }
 
+/**
+ * Q2801 (Sentry JAVASCRIPT-5J, 2026-11-13): "404 — non-existent route: /sponsor." A link written at the end of a
+ * sentence ("see louisianahelpr.com/sponsor.") carries the sentence's full stop, and mail link scanners and people
+ * copy it whole. A path that is only a real path plus trailing punctuation goes to that path; nothing is reported for
+ * the punctuated one (the clean path is judged on its own when it renders, so an unknown one still reports).
+ * @returns the path without its trailing punctuation, or null when there is none to drop.
+ */
+export function withoutTrailingPunctuation(pathname: string): string | null {
+  const clean = pathname.replace(/[.,;:!)\]'"’”]+$/u, "");
+  if (clean === pathname) return null;
+  return clean || "/";
+}
+
 const NotFound = () => {
   // The SPA serves unknown paths with a 200 status, so the 404 page must
   // be explicitly non-indexable to keep junk URLs out of search results.
@@ -63,13 +76,18 @@ const NotFound = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const copy = notFoundCopy(location.pathname);
+  const punctuationFree = withoutTrailingPunctuation(location.pathname);
 
   useEffect(() => {
+    if (punctuationFree !== null) {
+      navigate({ pathname: punctuationFree, search: location.search, hash: location.hash }, { replace: true });
+      return;
+    }
     report(new Error(`404 — non-existent route: ${location.pathname}`), {
       severity: "info",
       tags: { source: "NotFound", route: location.pathname },
     });
-  }, [location.pathname]);
+  }, [location.pathname, location.search, location.hash, punctuationFree, navigate]);
 
   // Tell useAppShellViewport that THIS pathname is the catch-all, so it drops
   // the `html.app-shell` 100dvh/overflow:hidden lock. Without it the nav +

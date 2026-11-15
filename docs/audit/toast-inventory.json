@@ -223,7 +223,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 144,
+      "line": 145,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -233,7 +233,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 168,
+      "line": 169,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -243,7 +243,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 202,
+      "line": 203,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -253,7 +253,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 203,
+      "line": 204,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -263,7 +263,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 204,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -273,7 +273,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 276,
+      "line": 280,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -283,7 +283,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 294,
+      "line": 298,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11302,7 +11302,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 274,
+      "line": 257,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -11312,7 +11312,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 276,
+      "line": 259,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",

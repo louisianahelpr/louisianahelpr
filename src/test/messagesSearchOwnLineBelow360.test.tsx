@@ -12,7 +12,7 @@
  * photo inline on its right; below 360 its words shorten to "Search" so they are never cut.
  */
 // @mutate src/components/messages/ConversationList.tsx |   const headerEl = phoneTopBar && !selectMode ? ( |   const headerEl = false ? (
-// @mutate src/components/messages/ConversationList.tsx | search={isWebDesktop ? undefined : phoneSearchRow} /> | />
+// @mutate src/components/messages/ConversationList.tsx | search={isWebDesktop \|\| inInbox ? undefined : phoneSearchRow} /> | />
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";

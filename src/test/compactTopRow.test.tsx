@@ -3,12 +3,14 @@
  * like theirs so we can have more space"). On a phone, a main tab page with a search (Jobs, Declutter, Messages, Home)
  * has NO visible page-title row: ONE row, the search (flex-1) with the bell and the photo inline on its right, 8px under
  * the safe area. The page's name stays a visually hidden h1. A page with no search (You) keeps its visible title.
- * Every loading frame that hand-draws the row (Jobs, Home, Messages) reads the same COMPACT_TOP_ROW.
+ * Every loading frame that hand-draws the row (Jobs, Home) reads the same COMPACT_TOP_ROW. Since 11-15 the Inbox
+ * (/messages, both tabs) is titled "Inbox" with its search under its tabs, as the owner chose; outside the Inbox the list
+ * still hands its search to the bar.
  *
  * @mutate src/components/sections/AppTopBar.tsx |             {title && <h1 className="sr-only">{title}</h1>} |             {title && <h1 className="text-page-title">{title}</h1>}
  * @mutate src/components/sections/AppTopBar.tsx |         search ? ( |         false ? (
  * @mutate src/components/sections/browseHeaderSpacing.ts | export const COMPACT_TOP_ROW = "app-top-bar flex items-center gap-1 pt-2 pb-0.5"; | export const COMPACT_TOP_ROW = "app-top-bar flex items-center gap-1 pt-4 pb-0.5";
- * @mutate src/components/messages/ConversationList.tsx | <AppTopBar title={t("msg.title")} desktopGap={false} search={isWebDesktop ? undefined : phoneSearchRow} /> | <AppTopBar title={t("msg.title")} desktopGap={false} />
+ * @mutate src/components/messages/ConversationList.tsx | <AppTopBar title={listTitle} desktopGap={false} search={isWebDesktop \|\| inInbox ? undefined : phoneSearchRow} /> | <AppTopBar title={listTitle} desktopGap={false} />
  * @mutate src/components/JobsSectionSkeleton.tsx |             <div className={COMPACT_TOP_ROW}> |             <div className="app-top-bar flex items-center justify-between gap-2 h-16">
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -72,13 +74,15 @@ describe("the compact top (owner 11-14)", () => {
 
   it("Messages hands its search to the bar, and every hand-drawn loading frame draws the same row", () => {
     const list = code("src/components/messages/ConversationList.tsx");
-    expect(list).toContain("<AppTopBar title={t(\"msg.title\")} desktopGap={false} search={isWebDesktop ? undefined : phoneSearchRow} />");
+    expect(list).toContain("<AppTopBar title={listTitle} desktopGap={false} search={isWebDesktop || inInbox ? undefined : phoneSearchRow} />");
     // Beside Messages, the bell and the photo (owner 11-14) the words shorten to "Search" below 460px, never cut mid-word.
     expect(code("src/components/messages/MessagesSearchRow.tsx")).toContain('{t("chat.searchShort")}<span className="max-[459px]:hidden"> {t("chat.searchNoun")}</span>');
     // The desktop two-pane list keeps its search as a row of its own (its title sits in the desktop bar).
-    expect(list).toContain("{isWebDesktop && phoneSearchRow}");
-    const frames = ["src/components/JobsSectionSkeleton.tsx", "src/components/DashboardRouteSkeleton.tsx", "src/components/MessagesRouteSkeleton.tsx"];
-    expect(frames.length).toBeGreaterThan(2); // vacuity floor
+    expect(list).toContain("{isWebDesktop && !inInbox && phoneSearchRow}");
+    // Messages left this list on 11-15: the Inbox wears a visible "Inbox" title row with the search under its tabs
+    // (its frame: src/test/inboxOneIconTwoTabs.test.tsx).
+    const frames = ["src/components/JobsSectionSkeleton.tsx", "src/components/DashboardRouteSkeleton.tsx"];
+    expect(frames.length).toBeGreaterThan(1); // vacuity floor
     for (const f of frames) {
       expect(code(f), f).toMatch(/className=\{COMPACT_TOP_ROW\}/);
       expect(code(f), f).not.toMatch(/app-top-bar flex items-center justify-between gap-2 h-16/);

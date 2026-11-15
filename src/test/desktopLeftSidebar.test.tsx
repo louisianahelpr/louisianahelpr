@@ -3,7 +3,7 @@
  * 2026-10-19; board 11; HELPR-DESIGN-SPEC v2 §4.4). It replaced the RIGHT rail
  * and its hamburger. Top to bottom: the H logo (never the "Helpr" wordmark,
  * owner 2026-10-20 08:30Z), an olive "Create" pill that opens the create sheet,
- * Home, Explore with the member's sections nested under it, Messages, You.
+ * Home, Explore with the member's sections nested under it, Inbox (Messages until 11-15), You.
  * Count badges are --alert. The shared insets move the page RIGHT of it:
  * `.app-shell-frame { left }`, `#root { padding-left }`, `[data-rail-inset] { left }`.
  *
@@ -16,8 +16,12 @@
  * @mutate src/components/DesktopTopNav.tsx |       data-rail-inset="" |       data-rail-off=""
  * @mutate src/components/DesktopTopNav.tsx |                 aria-label={avatarButtonLabel("Profile", profile?.full_name)}\n                data-testid="desktop-top-profile" |                 aria-label="Settings"\n                data-testid="desktop-top-profile"
  * @mutate src/index.css |     padding-left: var(--desktop-sidebar-w); |     padding-right: var(--desktop-sidebar-w);
+ * @mutate src/components/DesktopSidebarNav.tsx | to: inboxPath(lastInboxTab()), icon: Inbox, label: "Inbox", | icon: Inbox, label: "Inbox",
+ * @mutate src/components/DesktopSidebarNav.tsx |     if (key === "messages") return inbox.total; |     if (key === "messages") return inbox.messages;
+ * @mutate src/lib/i18n/navLabels.ts |   if (path === "/messages" && label === "Inbox") return "inbox.title";\n | \n
+ * @mutate src/components/DesktopSidebarNav.tsx | icon: Inbox, label: "Inbox", badgeKey: "messages" | icon: messages.icon, label: messages.label, badgeKey: "messages"
  */
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 // The account's Customize row (useSectionPrefs, Q2199) is data, not what this spec measures: answered locally
@@ -30,7 +34,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 
-const state = vi.hoisted(() => ({ jobs: 2, unread: 12, sheetOpened: 0 }));
+const state = vi.hoisted(() => ({ jobs: 2, unread: 12, shared: 0, sheetOpened: 0 }));
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => true }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
@@ -41,6 +45,8 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: 
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false, gate: (_k: string, fn: () => void) => fn, gatedProps: () => ({}) }) }));
 vi.mock("@/lib/needsYouStore", () => ({ useNeedsYouCounts: () => ({ total: state.jobs, jobs: state.jobs, shops: 0 }) }));
 vi.mock("@/components/mobileNav/useNavUnreadCount", () => ({ useNavUnreadCount: () => ({ unreadCount: state.unread }) }));
+// The rail's Inbox row reads the shared stores (owner 11-15): this messages count, no notifications.
+vi.mock("@/components/mobileNav/navUnreadStore", async (orig) => ({ ...(await orig<object>()), useSharedUnreadCount: () => state.shared }));
 vi.mock("@/components/admin/adminBadgeStore", () => ({ useAdminBadges: () => ({}) }));
 vi.mock("@/lib/routePrefetch", () => ({ prefetchRoute: () => {} }));
 vi.mock("@/components/mobileNav/useDockSheets", async () => { const m = await import("@/components/mobileNav/dockSheets"); return { useDockSheetsLoader: () => m }; }); // sheets at once: their lazy load is dockSheetsLoadOnTap.test.tsx
@@ -56,6 +62,8 @@ vi.mock("@/components/create/CreateSheet", () => ({
 
 import DesktopSidebarNav from "@/components/DesktopSidebarNav";
 import { readSidePanelOpen } from "@/components/sidePanelOpen";
+import { rememberInboxTab } from "@/components/inbox/inboxTab";
+import { __resetNotificationStore, setNotificationUser, setUnreadTotal } from "@/components/notificationPanel/notificationStore";
 // The "Online for deliveries" pill (Q2440) reads the member's own row with React Query; it has its own test (goOnline.test.tsx).
 vi.mock("@/components/declutter/DeliveryOnlinePill", () => ({ DeliveryOnlinePill: () => null }));
 import DesktopTopNav from "@/components/DesktopTopNav";
@@ -63,7 +71,7 @@ import DesktopTopNav from "@/components/DesktopTopNav";
 const ROOT = resolve(__dirname, "../..");
 const code = (rel: string) => blankComments(readFileSync(resolve(ROOT, rel), "utf8"));
 const mount = (at = "/home") => render(<MemoryRouter initialEntries={[at]}><DesktopSidebarNav /></MemoryRouter>);
-afterEach(() => { cleanup(); state.sheetOpened = 0; });
+afterEach(() => { cleanup(); state.sheetOpened = 0; state.shared = 0; });
 
 describe("the LEFT sidebar (board 11)", () => {
   it("is pinned to the LEFT edge, full height", () => {
@@ -104,11 +112,33 @@ describe("the LEFT sidebar (board 11)", () => {
   });
 
   it("count badges are --alert, never rust", () => {
+    state.shared = 12; // the Inbox row reads the shared store (owner 11-15)
     mount();
     const badges = [...document.querySelectorAll("[data-sidebar-badge]")];
     expect(badges.length).toBeGreaterThan(1);
     for (const b of badges) expect(b.getAttribute("style")).toContain("hsl(var(--alert))");
     expect(document.querySelector('[data-sidebar-item="/messages"] [data-sidebar-badge]')?.textContent).toBe("9+");
+  });
+
+  it("the Messages row is Inbox (owner 11-15): the last tab viewed, the icon's combined badge", () => {
+    state.shared = 2;
+    act(() => { setNotificationUser("u1"); setUnreadTotal(3); });
+    try {
+      mount();
+      const row = document.querySelector('[data-sidebar-item="/messages"]') as HTMLAnchorElement;
+      expect(row.textContent).toContain("Inbox");
+      expect(row.textContent).not.toContain("Messages");
+      expect(row.querySelector("[data-sidebar-badge]")?.textContent).toBe("5"); // 2 threads + 3 notifications
+      expect(row.getAttribute("href")).toBe("/messages"); // Messages, the default
+      cleanup();
+      rememberInboxTab("notifications");
+      mount();
+      expect(document.querySelector('[data-sidebar-item="/messages"]')?.getAttribute("href")).toBe("/messages?tab=notifications");
+    } finally {
+      state.shared = 0;
+      localStorage.removeItem("lh.inbox.lastTab");
+      __resetNotificationStore();
+    }
   });
 
   it("is always open: a stored 'closed' from the old hamburger is ignored", () => {

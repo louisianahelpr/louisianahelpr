@@ -200,6 +200,8 @@ const READERS: Record<string, string> = {
   "src/boot/routePreload.ts": "preload hint: a wrong guess fetches the other route's chunk",
   "src/boot/pathPageRoute.ts": "preload hint (F288a): its auth-token key probe only picks whether JobPage's chunk starts with JobDetail; a wrong guess fetches one chunk",
   "src/boot/guestJobsPrefetch.ts": "prefetch hint: a wrong guess fetches the guest job list once",
+  "src/boot/declutterRoute.ts": "preload hint (Q2705): a stored session starts the member's DeclutterHomeView chunk beside the page; a wrong guess fetches or skips that chunk, and DeclutterHomeEntry loads it for itself",
+  "src/components/sections/AppTopBar.tsx": "preload hint: a stored session warms the bell's chunk; a wrong guess fetches or skips it, and the bar's own lazy bell loads it when drawn",
   "src/boot/storedSession.ts": "prefetch hint (declutterPrefetch, homePrefetch): no usable stored token starts no read, and the page reads for itself",
   "src/components/declutter/DeclutterSkeletons.tsx": "skeleton hint (F153): a wrong guess in the native restore window only draws or skips the phone tab-row bones until the page draws its own row",
   "src/entry.ts": "prefetch hint: hasToken() picks whether to start Declutter's or Home's first-screen reads",

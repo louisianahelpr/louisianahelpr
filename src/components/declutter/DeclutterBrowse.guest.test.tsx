@@ -33,6 +33,9 @@ const item = (n: number) => ({
 const reads: string[] = [];
 const state = { desktop: true, items: [item(1), item(2)] };
 
+// Q2784: this file covers a guest page inside AppShell (what the native app draws). On the web a guest now gets the public frame
+// instead (useGuestPublicFrame), covered by src/test/guestPagesWearPublicFrame.test.tsx.
+vi.mock("@/hooks/useGuestPublicFrame", () => ({ useGuestPublicFrame: () => false }));
 vi.mock("@/lib/declutter/saveCounts", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/saveCounts")>()), fetchSaveCounts: async () => new Map<string, number>() }));
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/api")>()),

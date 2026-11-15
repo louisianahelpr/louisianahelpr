@@ -14,7 +14,7 @@
  * panel). At desktop width the item panel keeps only its item-specific message; phone widths are unchanged.
  * @mutate src/components/declutter/DeclutterGuest.tsx |   // only on a phone.\n  const barShown = useIsWebDesktop(); |   // only on a phone.\n  const barShown = false;
  * @mutate src/components/declutter/DeclutterGuest.tsx |               <Link to={`/login?redirect=${here(location)}`}>Log in</Link>\n            </Button> |               <Link to={`/login?redirect=${here(location)}`}>Log in</Link>\n            </Button><Link to="/signup">Sign up</Link>
- * @mutate src/components/declutter/DeclutterGuest.tsx |         {!barShown && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login=""> |         {barShown && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login="">
+ * @mutate src/components/declutter/DeclutterGuest.tsx |         {!loginShown && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login=""> |         {loginShown && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login="">
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -22,6 +22,9 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { DESKTOP_BAR_H, DESKTOP_BAR_PAD_TOP } from "@/lib/desktopBar";
 
 const state = { desktop: true, open: true };
+// Q2784: this file covers a guest page inside AppShell (what the native app draws). On the web a guest now gets the public frame
+// instead (useGuestPublicFrame), covered by src/test/guestPagesWearPublicFrame.test.tsx.
+vi.mock("@/hooks/useGuestPublicFrame", () => ({ useGuestPublicFrame: () => false }));
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => state.desktop }));
 vi.mock("@/components/landing/useSectionsOpen", () => ({
   useSectionsOpen: () => ({ open: new Set(state.open ? ["declutter"] : []), settled: true }),
@@ -103,7 +106,7 @@ describe("the item's join panel does not repeat the bar at desktop width (lead 1
 
   // Owner pick 1 (11-08): the panel's own links are the item's real Make offer / Buy now (to sign up and back). What the
   // bar already carries (the logo, Log in, Sign up) is not repeated at desktop width.
-  // @mutate src/components/declutter/DeclutterGuest.tsx |         {!barShown && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login=""> |         {true && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login="">
+  // @mutate src/components/declutter/DeclutterGuest.tsx |         {!loginShown && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login=""> |         {true && (\n          <div className="flex shrink-0 items-center gap-2" data-guest-login="">
   it("desktop: the item's Make offer / Buy now stay; no logo, no Sign up, no Log in in the panel", () => {
     const join = panel();
     expect(join).toHaveTextContent("Signing up is free. We'll bring you back to this item.");

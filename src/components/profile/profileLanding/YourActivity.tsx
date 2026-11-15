@@ -89,12 +89,17 @@ export function YourActivity() {
                     label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491). The space keeps the two lines two words;
                     whitespace between flex items draws nothing. */}
                 <span className="text-ds-12 text-muted-foreground">{s.label}</span>{" "}
-                {/* F449 (audit 11-10): at 375 "Buying · 1 in progress" was cut to "Buying · 1 in ..." by truncate; it wraps. */}
-                <span className="text-ds-15 font-bold text-foreground break-words">
+                {/* F449 (audit 11-10): at 375 "Buying · 1 in progress" was cut to "Buying · 1 in ..." by truncate; it wraps.
+                    F260a (11-14): wrapped once its count came in, it grew its row 24 px under the reader at 360-390
+                    (cwv-lab 375: 0.0114 of /profile's 0.1518). A tile that can carry a count keeps room for two lines
+                    on a phone (2 x line-height 1.5 = 3em); from sm up the longest one fits on one line. A preview's
+                    Coming soon mark sits at the tile's foot (mt-auto), so a row's two marks stay level when only one
+                    tile keeps that room (Shops: Orders counts, My shop does not). */}
+                <span className={`text-ds-15 font-bold text-foreground break-words${t.count ? " min-h-[3em] sm:min-h-0" : ""}${preview ? " mb-1" : ""}`}>
                   {t.label}
                   {n > 0 && <><span aria-hidden="true"> ·</span> {n} {word}</>}
                 </span>
-                {preview && <>{" "}<PreviewPill className="self-start mt-1" /></>}
+                {preview && <>{" "}<PreviewPill className="self-start mt-auto" /></>}
               </GlassTileButton>
             );
           }),

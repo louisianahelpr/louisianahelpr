@@ -26,6 +26,10 @@ type Kind =
   | { kind: "not-user-data"; why: string };
 
 const CLASSIFIED: Record<string, Kind> = {
+  "src/components/mobileNav/useShopTalksInBadge.ts:reads": { kind: "keyed-by-user-id" },
+  "src/components/mobileNav/useShopTalksInBadge.ts:frontSubs": { kind: "not-user-data", why: "subscriber callbacks for 'the app came back to the front' (shared shop chat badge read, 11-15): a counter of visibility changes, nothing about the account" },
+  "src/components/header/desktopTitleSlot.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks for the desktop top bar's title-slot DOM node (page settle, 11-15): which element hosts the title row, nothing about the account" },
+  "src/lib/guestIdCheckAnswer.ts:guestIdCheckListeners": { kind: "not-user-data", why: "subscriber callbacks for the guest's answer to the site-wide identity_check switch (Q2788, 11-15): one boolean for every visitor, nothing about an account" },
   "src/components/landing/landingMode.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the landing's Jobs | Declutter choice (F012, 2026-11-10): which tab is picked, nothing about the account" },
   "src/lib/guestTopBar.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks for 'is the guest top bar drawn' (F047, 2026-11-09): a yes or no about layout, nothing about the account" },
   "src/components/declutter/firstRowPhotoGate.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the per-page 'first row of photos is in' gate (B77, 2026-11-01); a yes or no about loading, nothing about the account" },
@@ -52,7 +56,6 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/components/job-card/photoCaptureRequest.ts:pending":{ kind: "not-user-data", why: "a one-shot tap request (job id + before/after) that expires after 10 s and is cleared when its photo control draws; holds no photo and nothing to leak to the next account" },
   "src/components/job-card/helperStepRequest.ts:pending": { kind: "not-user-data",why: "a one-shot tap request (job id + step name) that expires after 10 s and is cleared the first time the tracker draws; nothing to leak to the next account" },
   "src/lib/pinnedConversations.ts:loadGen": { kind: "keyed-by-user-id" },
-  "src/components/header/PageTitleBar.tsx:listeners": { kind: "not-user-data", why: "subscriber callbacks for the desktop top bar's title slot (a DOM element portal target); no account data" },
   "src/components/header/PageTitleBar.tsx:stackListeners": { kind: "not-user-data", why: "subscriber callbacks for which mounted title bar is first (overlay rows go under the desktop bar, 2026-10-28); mount ids only, no account data" },
   "src/lib/payoutAfterHireSwitch.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the payout_after_hire switch answer (owner 2026-10-25); IdentityCheckMount republishes the answer for whoever is signed in (signed out reads off)" },
   "src/lib/identityCheckSwitch.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the identity_check switch answer; IdentityCheckMount republishes the answer for whoever is signed in (signed out reads off)" },

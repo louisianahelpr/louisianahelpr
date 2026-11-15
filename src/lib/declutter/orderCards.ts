@@ -33,7 +33,6 @@ export interface OrderCardRow {
 
 export type OrderCardKind = "handover" | "problem" | "refund" | "other";
 
-const BATCH_RPC = "declutter_my_order_cards";
 /** The server's cap (too_many_orders above it). */
 const ORDER_CARDS_MAX_IDS = 200;
 
@@ -46,7 +45,7 @@ async function sendBatch(ids: string[]): Promise<Map<string, OrderCardRow> | und
   try {
     const res = await supabase.rpc("declutter_my_order_cards", { p_order_ids: ids });
     if (res?.error) {
-      if (isMissingRpcNamed(res.error, BATCH_RPC)) notDeployed = true;
+      if (isMissingRpcNamed(res.error, "declutter_my_order_cards")) notDeployed = true;
       else console.warn("[declutter] order cards read failed; asking per order", res.error.message);
       return undefined;
     }

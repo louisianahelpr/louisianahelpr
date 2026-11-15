@@ -46,7 +46,8 @@ function e2eFiles(dir = join(ROOT, "e2e")): string[] {
 describe("Stripe Checkout card fields open through the shared helper", () => {
   const drivers = e2eFiles()
     .map((p) => ({ rel: p.slice(ROOT.length + 1), src: readFileSync(p, "utf8") }))
-    .filter((f) => f.rel !== HELPER && f.src.includes('"#cardNumber"') && /4242|TEST_CARD/.test(f.src));
+    // Since the embedded-form layout (2026-11-15) the drivers type the card through fillStripeCardFields (the helper owns every Stripe selector).
+    .filter((f) => f.rel !== HELPER && (f.src.includes('"#cardNumber"') || f.src.includes("fillStripeCardFields(page")) && /4242|TEST_CARD/.test(f.src));
 
   it("finds the files that pay a Checkout Session (the inventory is not empty)", () => {
     expect(drivers.length).toBeGreaterThan(2);
@@ -164,7 +165,9 @@ function fakeStripePage(layout: Layout) {
     locator: (sel: string) =>
       sel === "#cardNumber"
         ? loc("#cardNumber", () => open)
-        : sel.includes("SavedInfoSummary")
+        : sel.includes("Secure embedded form frame")
+          ? loc(sel, () => false) // layouts 1-4: no embedded form frame (layout 5: stripeEmbeddedCheckoutForm.test.ts)
+          : sel.includes("SavedInfoSummary")
           ? loc("saved-info-change", () => layout === "saved" && !open, () => { open = true; })
           : loc(sel, () => true),
     getByTestId: (id: string) => loc(id, () => layout === "button" && id === "card-accordion-item-button", () => { open = true; }),

@@ -4,7 +4,7 @@ import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { report } from "@/lib/errorLogger";
 import { shouldRetryQuery } from "@/lib/queryRetry";
 import { takeGuestSectionsOpen } from "@/lib/declutter/guestBootPrefetch";
-import { takeProfileSectionsOpen } from "@/lib/profileBootPrefetch";
+import { takeProfileSectionsOpen } from "@/lib/profileBootTake";
 
 /**
  * Which section switches are open to EVERYONE (owner, 2026-10-19: the landing

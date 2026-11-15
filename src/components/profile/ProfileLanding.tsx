@@ -62,7 +62,9 @@ export function ProfileLanding({
           (2026-10-19), so its row left too. */}
 
       {/* Owner 2026-11-04: every member's page link, made at sign-up, easy to find. */}
-      <YourPageLink name={displayName?.trim().split(/\s+/)[0] ?? null} />
+      {/* F260a: the handle from the profile row the page already has, so the card draws with the page instead of
+          after a handle read (Profile's arrival gate waits for its "does my page open?" answer). */}
+      <YourPageLink name={displayName?.trim().split(/\s+/)[0] ?? null} knownHandle={profile?.handle} />
 
       {/* Board 18: both sides of every section, right under who you are. */}
       <YourActivity />

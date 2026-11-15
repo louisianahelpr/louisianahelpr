@@ -12,7 +12,7 @@
  *
  * @mutate scripts/perf/cwv-lab.mjs |   if (m === "GET" \|\| m === "HEAD" \|\| m === "OPTIONS") return "go"; |   return "go";
  * @mutate scripts/perf/cwv-lab.mjs |             await probeWriteBlock(ctx, blocked); |             void blocked;
- * @mutate scripts/perf/cwv-lab.mjs | const WRITE_BLOCK_HOSTS = /(^\|\.)supabase\.co$\|(^\|\.)stripe\.com$/; | const WRITE_BLOCK_HOSTS = /(^\|\.)stripe\.com$/;
+ * @mutate scripts/perf/cwv-lab.mjs | const WRITE_BLOCK_HOSTS = /(^\|\.)supabase\.co$\|(^\|\.)stripe\.com$\|(^\|\.)sentry\.io$/; | const WRITE_BLOCK_HOSTS = /(^\|\.)stripe\.com$\|(^\|\.)sentry\.io$/;
  *
  * The READ ALLOWANCE (`--allow-reads`, 2026-10-13, Q1170/Q1172/Q1173): with the
  * block alone a signed-in screen measured its error state (supabase.rpc reads
@@ -47,13 +47,22 @@
  * @mutate scripts/perf/cwv-lab.mjs |         : cdp.send("Fetch.failRequest", { requestId: e.requestId, errorReason: "BlockedByClient" }); |         : cdp.send("Fetch.continueRequest", { requestId: e.requestId });
  * @mutate scripts/perf/cwv-lab.mjs | await newBlockedPage(ctx); // the measured load | await ctx.newPage(); // the measured load
  * @mutate scripts/perf/cwv-lab.mjs |   if (!state.cdp) return page; |   return page;
- * @mutate scripts/perf/cwv-lab.mjs | export const PROBE_KINDS = ["fetch", "xhr", "beacon", "worker", "form", "frame"]; | export const PROBE_KINDS = ["fetch", "xhr", "beacon", "worker", "form"];
+ * @mutate scripts/perf/cwv-lab.mjs | export const PROBE_KINDS = ["fetch", "xhr", "beacon", "worker", "form", "frame", "sentry"]; | export const PROBE_KINDS = ["fetch", "xhr", "beacon", "worker", "form", "sentry"];
  * @mutate scripts/perf/cwv-lab.mjs |       navigator.sendBeacon(`${u}_beacon`, "{}"); |       void u;
  * @mutate scripts/perf/cwv-lab.mjs |               colorScheme: arg("scheme", "light"), serviceWorkers: "block", |               colorScheme: arg("scheme", "light"),
  * @mutate scripts/perf/cwv-lab.mjs |             const ctx = await browser.newContext({ |             const spare = await browser.newContext(); void spare;\n            const ctx = await browser.newContext({
  * @mutate scripts/perf/cwv-lab.mjs |             const ctx = await browser.newContext({ |             void (await browser.newPage());\n            const ctx = await browser.newContext({
  * @mutate scripts/perf/cwv-lab.mjs |     await page.goto("about:blank"); |     await page.goto(process.argv[2] ?? "about:blank");
  * @mutate scripts/perf/cwv-lab.mjs |   const state = { reads, allowed, blocked, clock, cdp: browserName === "chromium", strays: [] }; |   const state = { reads, allowed, blocked, clock, cdp: false, strays: [] };
+ *
+ * SENTRY (owner rule, 11-14: test data never reaches the owner; prod browser runs abort *.sentry.io): a lab run's
+ * blocked writes and throttled loads raise errors the app reports to Sentry, each one an issue in the owner's inbox.
+ * Every request to a sentry.io host is aborted, whatever its method, and the probe proves it before each run.
+ *
+ * @mutate scripts/perf/cwv-lab.mjs | const WRITE_BLOCK_HOSTS = /(^\|\.)supabase\.co$\|(^\|\.)stripe\.com$\|(^\|\.)sentry\.io$/; | const WRITE_BLOCK_HOSTS = /(^\|\.)supabase\.co$\|(^\|\.)stripe\.com$/;
+ * @mutate scripts/perf/cwv-lab.mjs |   if (SENTRY_HOST.test(u.hostname)) { |   if (false) {
+ * @mutate scripts/perf/cwv-lab.mjs | , { urlPattern: "*sentry.io/*", requestStage: "Request" }] }); | ] });
+ * @mutate scripts/perf/cwv-lab.mjs |     outcome.sentry = await page.evaluate( |     outcome.sentry = "failed"; void (
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -71,6 +80,7 @@ describe("cwv-lab blocks every prod write before it measures", () => {
     const re = new RegExp(hosts.slice(1, -1));
     expect(re.test("fncmgoasalhdgfwzhsqa.supabase.co")).toBe(true);
     expect(re.test("api.stripe.com")).toBe(true);
+    expect(re.test("o4511265714601984.ingest.us.sentry.io")).toBe(true);
     expect(re.test("www.louisianahelpr.com")).toBe(false);
     expect(src).toMatch(/if \(m === "GET" \|\| m === "HEAD" \|\| m === "OPTIONS"\) return "go";\s*\n[\s\S]*?return "abort";/);
     // Both ways of applying it obey that decision: abort means abort.
@@ -111,9 +121,19 @@ describe("cwv-lab blocks every prod write before it measures", () => {
     const uses = [...src.matchAll(/await newBlockedPage\(ctx\)/g)];
     expect(uses.length).toBeGreaterThan(1);
     // The block is on before the page can load anything, and a popup fails the run.
-    expect(src).toMatch(/if \(!state\.cdp\) return page;[\s\S]*?await cdp\.send\("Fetch\.enable", \{ patterns: \[\{ urlPattern: "\*\.supabase\.co\/\*", requestStage: "Request" \}, \{ urlPattern: "\*stripe\.com\/\*", requestStage: "Request" \}\] \}\);\s*\n\s*return page;/);
+    expect(src).toMatch(/if \(!state\.cdp\) return page;[\s\S]*?await cdp\.send\("Fetch\.enable", \{ patterns: \[\{ urlPattern: "\*\.supabase\.co\/\*", requestStage: "Request" \}, \{ urlPattern: "\*stripe\.com\/\*", requestStage: "Request" \}, \{ urlPattern: "\*sentry\.io\/\*", requestStage: "Request" \}\] \}\);\s*\n\s*return page;/);
     expect(src).toMatch(/page\.on\("popup", \(p\) => \{ state\.strays\.push\(p\.url\(\)\); p\.close\(\)/);
     expect(src).toMatch(/\} catch \(e\) \{ error = String\(e\)\.slice\(0, 160\); \}\s*\n\s*assertNoStrayPages\(ctx\);/);
+  });
+
+  it("every sentry.io request is aborted whatever its method, before the GET pass", () => {
+    const decide = src.slice(src.indexOf("function writeBlockDecision("), src.indexOf("const BLOCKS = new WeakMap();"));
+    const sentry = decide.indexOf("if (SENTRY_HOST.test(u.hostname)) {");
+    const gets = decide.indexOf('if (m === "GET"');
+    expect(sentry).toBeGreaterThan(-1);
+    expect(gets).toBeGreaterThan(sentry);
+    expect(decide.slice(sentry, gets)).toMatch(/blocked\.push\([\s\S]*?return "abort";\s*\n\s*\}/);
+    expect(src).toContain("const SENTRY_HOST = /(^|\\.)sentry\\.io$/;");
   });
 
   it("the probe throws unless its POST failed AND was recorded as blocked", () => {
@@ -122,7 +142,7 @@ describe("cwv-lab blocks every prod write before it measures", () => {
 
   it("the probe sends by every route a page has: fetch, XHR, sendBeacon, a worker, a form post and a cross-site frame (lead 11-04)", () => {
     const kinds = /export const PROBE_KINDS = (\[[^\]]*\]);/.exec(src)?.[1] ?? "[]";
-    expect((JSON.parse(kinds) as string[]).sort()).toEqual(["beacon", "fetch", "form", "frame", "worker", "xhr"]);
+    expect((JSON.parse(kinds) as string[]).sort()).toEqual(["beacon", "fetch", "form", "frame", "sentry", "worker", "xhr"]);
     const body = src.slice(src.indexOf("async function probeWriteBlock("), src.indexOf("export async function applyThrottle("));
     expect(body).toContain('fetch(`${u}_fetch`, { method: "POST"');
     expect(body).toContain('x.open("POST", `${u}_xhr`)');
@@ -131,6 +151,9 @@ describe("cwv-lab blocks every prod write before it measures", () => {
     expect(body).toMatch(/form\.method = "POST"; form\.action = `\$\{u\}_form`;[\s\S]*?form\.submit\(\);/);
     expect(body).toContain('xf.src = "https://example.com/"');
     expect(body).toContain("fetch(`${u}_frame`, { method: \"POST\"");
+    // Sentry: a POST to the app's own ingest host, which must fail and be recorded like the others.
+    expect(body).toMatch(/outcome\.sentry = await page\.evaluate\(async \(u\) => \{ try \{ await fetch\(u, \{ method: "POST"[\s\S]*?\}, SENTRY_PROBE_URL\);/);
+    expect(src).toMatch(/const SENTRY_PROBE_URL = "https:\/\/[a-z0-9.]+\.sentry\.io\/[^"]*__cwv_write_block_probe";/);
     // Service workers stay blocked on every measured context.
     const contexts = [...src.matchAll(/const ctx = await browser\.newContext\(\{[\s\S]*?\}\);/g)];
     expect(contexts.length).toBeGreaterThan(0);

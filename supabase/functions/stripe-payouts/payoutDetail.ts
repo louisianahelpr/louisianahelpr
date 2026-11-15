@@ -185,7 +185,7 @@ async function nameTransfers(admin: Admin, userId: string, ids: string[]): Promi
 
 const GROUP_PI = /^group_(pi_[A-Za-z0-9]{6,64})$/;
 /** At most this many unnamed transfers are looked up per payout (one Stripe read each). */
-export const TIP_LOOKUP_CAP = 50;
+const TIP_LOOKUP_CAP = 50;
 /** Stripe reads in flight at once (Stripe's test-mode read limit is about 25 a second; money review N2). */
 const TIP_LOOKUP_PARALLEL = 5;
 

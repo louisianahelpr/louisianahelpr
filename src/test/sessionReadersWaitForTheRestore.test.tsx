@@ -198,6 +198,7 @@ const READERS: Record<string, string> = {
   "src/boot/entryAuthRefresh.ts": "web only: isNativeShell() returns first",
   // A hint whose wrong guess costs a chunk download, nothing a person sees:
   "src/boot/routePreload.ts": "preload hint: a wrong guess fetches the other route's chunk",
+  "src/boot/pathPageRoute.ts": "preload hint (F288a): its auth-token key probe only picks whether JobPage's chunk starts with JobDetail; a wrong guess fetches one chunk",
   "src/boot/guestJobsPrefetch.ts": "prefetch hint: a wrong guess fetches the guest job list once",
   "src/boot/storedSession.ts": "prefetch hint (declutterPrefetch, homePrefetch): no usable stored token starts no read, and the page reads for itself",
   "src/components/declutter/DeclutterSkeletons.tsx": "skeleton hint (F153): a wrong guess in the native restore window only draws or skips the phone tab-row bones until the page draws its own row",

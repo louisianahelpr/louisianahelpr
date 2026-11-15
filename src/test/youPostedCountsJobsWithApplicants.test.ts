@@ -12,10 +12,11 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { postedJobIsLive } from "@/components/job-card/activityFilters";
 import { blankComments } from "@/test/helpers/blankNonCode";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const NOW = new Date("2026-11-14T18:00:00Z");
 const open = (over: Record<string, unknown> = {}) => ({
-  status: "open", payment_status: "escrow", date_needed: "2026-11-20", start_time: "09:00:00", expires_at: "2026-11-21T00:00:00Z", helper_id: null, ...over,
+  status: "open", payment_status: "escrow", date_needed: jobLocalDateISO(6, NOW), start_time: "09:00:00", expires_at: "2026-11-21T00:00:00Z", helper_id: null, ...over,
 });
 
 describe("F260a: the You tab's Posted tile counts every live post", () => {

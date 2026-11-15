@@ -527,7 +527,7 @@ describe("job page: the Helpr's before and after photos, for the job's parties o
     state.party = true;
     renderPage();
     expect(imgs()).toEqual(["https://signed.example/j/b1.jpg", "https://signed.example/j/a1.jpg"]);
-    fireEvent.click(screen.getByRole("button", { name: "See the before and after photos" }));
+    fireEvent.click(screen.getByRole("button", { name: /^See the photos:\s*Before/ }));
     expect(screen.getByText("Photo proof")).toBeTruthy();
     expect(screen.queryByTestId("where")).toBeNull();
   });

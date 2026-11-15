@@ -74,7 +74,7 @@
          (scripts/check-csp-inline-scripts.mjs). Never add inline on*= handlers
          or javascript: URLs; use addEventListener. -->
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-duvv7l/N2Dk2UPVHhqWrbfpf01OVN8op3f3mHhD90C4=' 'sha256-iM0f4+aBKl+E/kyF/rtYvwGr3DReX7pZBVOsJTHp8Hs=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-yUtNpiPXGeAc38WuKK8biiH5mrbfvvi5W7woqMMWHcA=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' 'sha256-WIQjlWbV2DXE/gFjy6a+TJ/kQgvCPvkC4u3+ie1Nos8=' 'sha256-4MuTiLIkqRi1pnJ8C/PEYCMacyyBNy6I6F+KF3qIo5k=' 'sha256-ldDEb7cz2Q5EmRdHpOg+df/dED81vDhVRuFf5p38GOM=' 'sha256-mTnxF+2o2IOA+O6CdKvNm9CyJlzgk3lwnFgCnXpeBq8=' 'sha256-zZ3fakfp1TyOKEd2M3pBXFDb2HpgNLWLtEYa1PPBeZg=' 'sha256-y6aFXodIjzQ1oBnBnfRU4A587k5dKqrsMiv3dZYq0Yk=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-gqGU6r9HbrUIpdPthhuPeXU+B2zcmZT1aAmpD4gchlU=' 'sha256-duvv7l/N2Dk2UPVHhqWrbfpf01OVN8op3f3mHhD90C4=' 'sha256-iM0f4+aBKl+E/kyF/rtYvwGr3DReX7pZBVOsJTHp8Hs=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-yUtNpiPXGeAc38WuKK8biiH5mrbfvvi5W7woqMMWHcA=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' 'sha256-WIQjlWbV2DXE/gFjy6a+TJ/kQgvCPvkC4u3+ie1Nos8=' 'sha256-4MuTiLIkqRi1pnJ8C/PEYCMacyyBNy6I6F+KF3qIo5k=' 'sha256-ldDEb7cz2Q5EmRdHpOg+df/dED81vDhVRuFf5p38GOM=' 'sha256-mTnxF+2o2IOA+O6CdKvNm9CyJlzgk3lwnFgCnXpeBq8=' 'sha256-zZ3fakfp1TyOKEd2M3pBXFDb2HpgNLWLtEYa1PPBeZg=' 'sha256-y6aFXodIjzQ1oBnBnfRU4A587k5dKqrsMiv3dZYq0Yk=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -1104,6 +1104,28 @@
           setTimeout(rest, 3000);
           if (row.length || later.length) shell.setAttribute("data-lh-photos", "");
         });
+      })();
+    </script>
+    <!-- Q2787 (11-15): the boot loader's H (.boot-h below, a CSS background) is the largest paint of a signed-in phone's
+         cold /messages, and a CSS background is only asked for once the body is styled and laid out. This asks for the
+         SAME file the theme will draw (data-theme is stamped above), at high priority, from the head. Measured
+         (cwv-lab, mobile 375, Slow 4G + 4x, Chromium, 3 runs each, ~/.lh-shots/builder2c-1115): LCP 2016/2012/2020 ms
+         before, 1920/1920/1936 after; the request starts ~120 ms sooner (loadDelay ~744 -> ~627 ms), its load time and
+         the app's first draw are unchanged. Not where the H is never drawn or never the largest paint: the /declutter skeleton
+         ([data-lh-app-shell="declutter"] removes the background), the guest landing shell and the /login and /signup
+         shells (their own text is the largest paint, and 16 KB would share the slow link with its fonts).
+         Guard: src/boot/bootHPreload.test.ts. -->
+    <script>
+      (function () {
+        var html = document.documentElement;
+        if (html.getAttribute("data-lh-app-shell") === "declutter" || html.hasAttribute("data-lh-landing-shell") || html.hasAttribute("data-lh-auth-shell")) return;
+        var link = document.createElement("link");
+        link.rel = "preload";
+        link.as = "image";
+        link.setAttribute("fetchpriority", "high");
+        link.href = html.getAttribute("data-theme") === "dark" ? "/boot-h-dark.webp" : "/boot-h.webp";
+        link.setAttribute("data-lh-boot-h-preload", "");
+        document.head.appendChild(link);
       })();
     </script>
 

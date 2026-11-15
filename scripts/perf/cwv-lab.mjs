@@ -351,7 +351,13 @@ export function sessionInit({ key, value, expired }) {
  * Every other non-GET is still aborted, the probe (an RPC no list names) must
  * still be blocked, and each allowed request is recorded on its row.
  */
-const WRITE_BLOCK_HOSTS = /(^|\.)supabase\.co$|(^|\.)stripe\.com$/;
+const WRITE_BLOCK_HOSTS = /(^|\.)supabase\.co$|(^|\.)stripe\.com$|(^|\.)sentry\.io$/;
+/**
+ * Sentry ingest is ALWAYS aborted, whatever the method (owner rule: test data never reaches the owner; a lab run's
+ * blocked writes and throttled loads raise errors the app reports, each one a Sentry issue in the owner's inbox).
+ * Proven live before every run by probeWriteBlock's "sentry" kind.
+ */
+const SENTRY_HOST = /(^|\.)sentry\.io$/;
 
 /**
  * The block's decision for one request: "go" (a GET, HEAD or OPTIONS, an
@@ -363,6 +369,10 @@ function writeBlockDecision(state, m, url, postData) {
   let u;
   try { u = new URL(url); } catch { return "go"; }
   if (!WRITE_BLOCK_HOSTS.test(u.hostname)) return "go";
+  if (SENTRY_HOST.test(u.hostname)) {
+    blocked.push({ method: m, path: `sentry:${u.pathname}${u.search.includes("__cwv_write_block_probe") ? "__cwv_write_block_probe_sentry" : ""}`, at: clock() });
+    return "abort";
+  }
   if (m === "GET" || m === "HEAD" || m === "OPTIONS") return "go";
   const mock = mockedRead(reads, m, url, postData);
   if (mock) {
@@ -440,7 +450,7 @@ export async function newBlockedPage(ctx) {
     send.catch(() => { /* the page closed while the request was paused: nothing left to answer */ });
   });
   // Both patterns are re-checked against WRITE_BLOCK_HOSTS in writeBlockDecision.
-  await cdp.send("Fetch.enable", { patterns: [{ urlPattern: "*.supabase.co/*", requestStage: "Request" }, { urlPattern: "*stripe.com/*", requestStage: "Request" }] });
+  await cdp.send("Fetch.enable", { patterns: [{ urlPattern: "*.supabase.co/*", requestStage: "Request" }, { urlPattern: "*stripe.com/*", requestStage: "Request" }, { urlPattern: "*sentry.io/*", requestStage: "Request" }] });
   return page;
 }
 
@@ -461,7 +471,9 @@ function assertNoStrayPages(ctx) {
  * The cross-site frame is example.com (IANA's reserved domain, frameable); if
  * it cannot load, the probe fails and the run does not start.
  */
-export const PROBE_KINDS = ["fetch", "xhr", "beacon", "worker", "form", "frame"];
+export const PROBE_KINDS = ["fetch", "xhr", "beacon", "worker", "form", "frame", "sentry"];
+/** The probe's Sentry ingest target: the app's own ingest host (src/lib/sentry.ts), never a real envelope. */
+const SENTRY_PROBE_URL = "https://o4511265714601984.ingest.us.sentry.io/api/0/envelope/?__cwv_write_block_probe";
 async function probeWriteBlock(ctx, blocked, supabaseUrl = "https://fncmgoasalhdgfwzhsqa.supabase.co") {
   const page = await newBlockedPage(ctx);
   try {
@@ -482,6 +494,7 @@ async function probeWriteBlock(ctx, blocked, supabaseUrl = "https://fncmgoasalhd
       const xf = document.createElement("iframe"); xf.src = "https://example.com/"; document.body.appendChild(xf);
       return out;
     }, probe);
+    outcome.sentry = await page.evaluate(async (u) => { try { await fetch(u, { method: "POST", body: "{}", mode: "no-cors" }); return "reached"; } catch { return "failed"; } }, SENTRY_PROBE_URL);
     const frame = await (async () => {
       for (let i = 0; i < 100; i++) {
         const f = page.frames().find((x) => x.url().startsWith("https://example.com/"));

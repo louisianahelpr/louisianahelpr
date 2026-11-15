@@ -13,7 +13,7 @@
 // @mutate src/lib/activityCores.ts |       return part ? inFlight.parts[part] : inFlight.whole; |       return inFlight.whole;
 // @mutate src/boot/activityCoresPrefetch.ts |     answers = { posted: read(["posted"]), applied: read(["applied"]) }; |     answers = { posted: read(), applied: read() };
 // @mutate src/boot/activityCoresPrefetch.ts |   return path === "/posts" \|\| (path === "/jobs" && new URLSearchParams(search).get("tab") === "posted"); |   return path === "/posts";
-// @mutate src/entry.ts | \|jobs\|posts)? | \|jobs)?
+// @mutate src/entry.ts | \|jobs\|posts\|profile)? | \|jobs\|profile)?
 // @mutate src/boot/activityCoresPrefetch.ts |   if (path === "/home") return true; |
 // @mutate src/boot/activityCoresPrefetch.ts |   if (path === "/posts") return true; |
 // @mutate src/boot/activityCoresPrefetch.ts |   if (isHomePath(pathname) && !onFastLink()) return; |

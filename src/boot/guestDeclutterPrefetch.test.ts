@@ -30,7 +30,7 @@
 // @mutate src/lib/declutter/guestBootPrefetch.ts |   if (!itemIds.every((id) => covered.has(id))) return null; |
 // @mutate src/lib/declutter/api.ts |   const guest = await takeGuestItems(); |   const guest = null;
 // @mutate src/lib/declutter/api.ts |   const guest = await takeGuestPhotos(itemIds); |   const guest = null;
-// @mutate src/components/landing/useSectionsOpen.ts |     const fromBoot = await takeGuestSectionsOpen(); |     const fromBoot = null;
+// @mutate src/components/landing/useSectionsOpen.ts |     const fromBoot = (await takeGuestSectionsOpen()) ?? (await takeProfileSectionsOpen()); |     const fromBoot = await takeProfileSectionsOpen();
 // @mutate src/components/declutter/declutterUi.tsx |   if (!isReady && !definitelyGuest()) return <>{skeleton}</>; |   if (!isReady) return <>{skeleton}</>;
 // @mutate src/entry.ts | } else if (/^\/declutter(\/item\/[\w-]+)?\/?$/.test(window.location.pathname)) { | } else if (/^\/declutter\/item\/[\w-]+\/?$/.test(window.location.pathname)) {
 import { afterEach, describe, expect, it, vi } from "vitest";

@@ -19,7 +19,7 @@ import { REVIEW_PHOTO_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "
 import { maybeRequestInAppReview } from "@/lib/inAppReview";
 import { maybeCelebrate } from "@/lib/celebrate";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
-import { track, AhaEvent } from "@/lib/analytics";
+import { trackReviewLeft } from "@/lib/reviewLeftEvent";
 import { TipDialog } from "@/components/TipDialog";
 import { useHelprTakesTips } from "@/hooks/useHelprTakesTips";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -222,21 +222,9 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
       // Brand-tinted confetti for the first few reviews so the moment
       // feels worth doing again. After the limit it fades to silent.
       void maybeCelebrate("first_review");
-      // Aha-moment analytics + native review prompt. A 5-star review is the
-      // strongest signal of satisfaction we have. It no longer decides who is
-      // offered the App Store prompt — see the note further down.
-      track(AhaEvent.ReviewLeft, { job_id: jobId, rating });
-      // True first-review (any rating) — count this user's prior reviews
-      // before treating this submission as the first.
-      try {
-        const { count: priorReviews } = await supabase
-          .from("reviews")
-          .select("id", { count: "exact", head: true })
-          .eq("reviewer_id", user.id);
-        if ((priorReviews ?? 0) <= 1) {
-          track(AhaEvent.FirstReviewLeft, { job_id: jobId, rating });
-        }
-      } catch { /* analytics must never break the flow */ }
+      // Aha-moment analytics (review_left + its first-time and five-star
+      // variants): one helper for every review writer (Q2815).
+      trackReviewLeft(jobId, rating, user.id);
       // ASK EVERYONE, WHATEVER THEY RATED (owner, 2026-09-02: "anyone can rate it").
       //
       // This used to fire ONLY when rating === 5, so the App Store
@@ -251,11 +239,6 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
       // calling it unconditionally does not nag: submitting a review is a
       // sensible moment to ask, and now it is the SAME moment for every user.
       void maybeRequestInAppReview();
-      if (rating === 5) {
-        // Analytics only. The event still measures five-star reviews; what it
-        // no longer does is decide who gets asked to rate the app.
-        track(AhaEvent.FirstFiveStarReview, { job_id: jobId, rating: 5 });
-      }
       // F29: never offer a tip the server will refuse (payout setup not finished).
       if (rating === 5 && canTip && takesTips !== false) {
         // 5-star moment — show the tip prompt instead of closing immediately

@@ -174,6 +174,7 @@ import Signup from "@/pages/auth/Signup";
 import PaymentSuccess from "@/pages/post-job/PaymentSuccess";
 import { report } from "@/lib/errorLogger";
 import { ReviewForm } from "@/components/reviewPanel/ReviewForm";
+import { CompletionPrompts } from "@/components/CompletionPrompts";
 import { useJobSubmit, type UseJobSubmitParams } from "@/pages/post-job/useJobSubmit";
 import { useApplyFlow } from "@/pages/home/useApplyFlow";
 import { createSendHandlers } from "@/pages/messages/messagesData/sendHandlers";
@@ -419,6 +420,29 @@ describe("every KEY analytics event fires from its real code path (Q72)", () => 
   }
 });
 
+/**
+ * Q2815 (alert-ledger 428558972dc4, 2026-11-15): the review that opens right
+ * after Done (CompletionPrompts, Q2484) wrote the review row but never emitted
+ * review_left, so real reviews read as 0 events. Both writers are driven here.
+ */
+describe("review_left fires from the post-Done review prompt too (Q2815)", () => {
+  it("CompletionPrompts' Send review reaches analytics_events", async () => {
+    const JOB = "job-reviewed-after-done";
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <CompletionPrompts jobId={JOB} revieweeId="helper-1" revieweeName="Hallie H." userId={h.USER_ID} onDone={vi.fn()} isHelper />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(await screen.findByRole("radio", { name: "4 stars" }));
+    fireEvent.click(screen.getByRole("button", { name: /send review/i }));
+    await waitFor(() => expect(h.state.fromCalls.some((c) => c.table === "reviews" && c.ops.some((o) => o.m === "insert"))).toBe(true));
+    await expectSent("review_left", JOB);
+  }, 15_000);
+});
+
 describe("payment_made counts only the job's poster (Q1385/Q1386b)", () => {
   it("a different account opening the payment-success link emits no payment_made", async () => {
     h.state.fromHandler = (c, t) =>
@@ -628,6 +652,7 @@ describe("inventory", () => {
 // @mutate src/pages/post-job/firstPaymentCollected.ts |       .neq("id", jobId) |       .neq("id", "")
 // @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts | trackJobCompleted(jobId, data, "activity", user?.id); | void 0;
 // @mutate src/lib/jobCompletedEvent.ts | if (emitted.has(jobId)) return false; | void 0;
-// @mutate src/components/reviewPanel/ReviewForm.tsx | track(AhaEvent.ReviewLeft, { job_id: jobId, rating }); | void 0;
+// @mutate src/components/reviewPanel/ReviewForm.tsx | trackReviewLeft(jobId, rating, user.id); | void 0;
+// @mutate src/components/CompletionPrompts.tsx | trackReviewLeft(jobId, rating, userId); | void 0;
 // @mutate src/pages/messages/messagesData/sendHandlers.ts | if (!alreadyLanded) track("message_sent" | if (false) track("message_sent"
 // @mutate src/pages/messages/messagesData/sendHandlers.ts | if (!alreadyLanded) track("message_sent" | track("message_sent"

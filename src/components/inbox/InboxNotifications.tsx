@@ -18,7 +18,7 @@ import { INBOX_PANEL_ID, InboxTabs } from "./InboxTabs";
 export default function InboxNotifications() {
   const isWebDesktop = useIsWebDesktop();
   const { t } = useLanguage();
-  usePageTitle(`${t("inbox.notifications")} — Helpr`);
+  usePageTitle(`${t("inbox.title")} — Helpr`);
   // A cold /messages?tab=notifications: index.html drew the inbox loading frame first; take it away once painted.
   useEffect(() => removeShellOncePainted(MESSAGES_SHELL_ID), []);
   const tabs = <InboxTabs tab="notifications" />;

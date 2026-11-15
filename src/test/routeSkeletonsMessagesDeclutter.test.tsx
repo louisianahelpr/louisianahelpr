@@ -41,7 +41,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: 
 
 import MessagesRouteSkeleton, { MESSAGES_SKELETON_HEADER_PADDING } from "@/components/MessagesRouteSkeleton";
 import DeclutterRouteSkeleton from "@/components/DeclutterRouteSkeleton";
-import { COMPACT_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
+import { TITLE_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
 
 const ROOT = resolve(__dirname, "../..");
 const code = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"));
@@ -83,9 +83,10 @@ describe("/messages and /declutter route skeletons (Q2705 B)", () => {
     const body = code("src/components/messages/ConversationListBody.tsx");
     expect(body).toContain('className="flex-1 min-h-0 px-3 py-3"');
     expect(body).toMatch(/\[1, 2, 3, 4, 5, 6\]\.map\(\(i\) => \(\s*<MessageThreadSkeleton/);
-    // The phone header's rows (the compact top, owner 11-14): AppTopBar's one COMPACT_TOP_ROW holding the h-11 search
-    // pill (inBar: no padding of its own) with the bell and the photo, then the chips in pt-1 pb-1.5.
-    expect(code("src/components/sections/AppTopBar.tsx")).toContain("<header className={COMPACT_TOP_ROW}");
+    // The phone header's rows (the Inbox, owner 11-15): AppTopBar's visible-title TITLE_TOP_ROW with the Inbox icon and the
+    // photo, the Inbox tabs, the h-11 search row under them (pt-2, then its own pb-1.5), then the chips in pt-1 pb-1.5.
+    expect(code("src/components/sections/AppTopBar.tsx")).toContain("<header className={TITLE_TOP_ROW}");
+    expect(list).toContain('{inInbox && <div className="shrink-0 pt-2">{phoneSearchRow}</div>}');
     // The search row moved to MessagesSearchRow.tsx (Q806); ConversationList mounts it.
     const searchRow = code("src/components/messages/MessagesSearchRow.tsx");
     expect(list).toContain("<MessagesSearchRow ");
@@ -98,10 +99,10 @@ describe("/messages and /declutter route skeletons (Q2705 B)", () => {
     const { getByTestId, container } = draw(<MessagesRouteSkeleton />);
     const root = getByTestId("messages-route-skeleton");
     expect(root.getAttribute("aria-busy")).toBe("true");
-    expect(container.querySelector("h1")?.textContent).toBe("Messages");
-    expect(container.querySelector("header.app-top-bar")?.className).toBe(COMPACT_TOP_ROW);
-    expect(getByTestId("messages-skeleton-search").className).toBe("min-w-0 flex-1");
-    expect(container.querySelector("header.app-top-bar")?.contains(getByTestId("messages-skeleton-search"))).toBe(true);
+    expect(container.querySelector("h1")?.textContent).toBe("Inbox");
+    expect(container.querySelector("header.app-top-bar")?.className).toBe(TITLE_TOP_ROW);
+    expect(getByTestId("messages-skeleton-search").className).toBe("shrink-0 pt-2 pb-1.5");
+    expect(container.querySelector("header.app-top-bar")?.contains(getByTestId("messages-skeleton-search"))).toBe(false);
     expect(getByTestId("messages-skeleton-search").firstElementChild?.className).toMatch(/\bh-11\b/);
     expect(getByTestId("messages-skeleton-chips").className).toBe("shrink-0 pt-1 pb-1.5");
     const rows = getByTestId("messages-skeleton-rows");

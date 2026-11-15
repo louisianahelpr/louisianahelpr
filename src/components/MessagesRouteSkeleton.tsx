@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { COMPACT_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
+import { TITLE_TOP_ROW } from "@/components/sections/browseHeaderSpacing";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { ScreenHeaderRow, COMPACT_HEADER_ROW_MIN_HEIGHT } from "@/components/ui/ScreenHeaderRow";
 import { PageTitleBar, useHeaderInDesktopBar } from "@/components/header/PageTitleBar";
@@ -13,15 +13,15 @@ import { MESSAGES_LIST_PANE_PX, useMessagesTwoPane } from "@/pages/messages/useT
  * downloads. It used to be the generic RouteSuspenseFallback, so the screen went blank -> inbox frame -> rows.
  *
  * It is the inbox's OWN loading frame (ConversationList with `loading`), in each of its three layouts:
- *   - phone and native: PageScaffold's title card holding the AppTopBar's compact row (owner 11-14: the h-11 search
- *     pill with the bell and the photo inline, "Messages" a hidden h1) and the filter chips (36px, pt-1 pb-1.5); six
+ *   - phone and native: PageScaffold's title card holding the Inbox header (owner 11-15: AppTopBar's 56px title row,
+ *     the Inbox tabs, the h-11 search row under them) and the filter chips (36px, pt-1 pb-1.5); six
  *     MessageThreadSkeleton rows (ConversationListBody's own loading branch);
  *   - the desktop website below the two-pane width: ONE panel whose first row is the compact ScreenHeaderRow
  *     (34px, 28px icons) under a hairline, then the chips, then the rows;
  *   - the two-pane desktop (useMessagesTwoPane, >= 1140px): MessagesTwoPane's 360px list pane wearing the phone
  *     header, the chat pane empty.
  * Every height is the real component's: the row bones ARE MessageThreadSkeleton, the row frame is ScreenHeaderRow
- * itself, the top bar goes through PageTitleBar (on the desktop website the real "Messages" title lands in the global
+ * itself, the top bar goes through PageTitleBar (on the desktop website the real "Inbox" title lands in the global
  * bar exactly as AppTopBar puts it). Import-light on purpose: no Supabase, no NotificationPanel (bones stand in for
  * the bell and the photo). Guard: src/test/messagesRouteSkeletonMatchesInbox.test.tsx.
  */
@@ -63,22 +63,20 @@ function ControlBone({ round }: { round?: boolean }) {
   );
 }
 
-/** The phone header (also the two-pane list pane's): AppTopBar's row, the search row, the chips. */
+/** The phone header (also the two-pane list pane's): the Inbox's title row, its tabs, the search row, the chips. */
 function PhoneHeaderBones() {
   return (
     <>
       <div className="shrink-0">
         <PageTitleBar
-          title="Messages"
+          title="Inbox"
           desktopGap={false}
           phone={
-            // The compact top (owner 11-14): ONE row, the search with the bell and the photo inline on its right.
-            <header className={COMPACT_TOP_ROW} aria-hidden>
-              <span className="sr-only">Messages</span>
-              <div className="min-w-0 flex-1" data-testid="messages-skeleton-search">
-                <Skeleton className="h-11 w-full rounded-full" />
-              </div>
-              <div className="flex items-center shrink-0">
+            // The Inbox's header (owner 11-15, "Polish, then launch"): AppTopBar's visible-title row, as the
+            // Notifications tab draws it. The title is a bone (its word is English or Spanish), the row is 56px either way.
+            <header className={TITLE_TOP_ROW} aria-hidden>
+              <Skeleton className="h-7 w-24 rounded-full" data-testid="messages-skeleton-title" />
+              <div className="flex items-center shrink-0 gap-1">
                 {/* The Inbox icon (messages + notifications, owner 11-15), then the photo. */}
                 <ControlBone />
                 <ControlBone round />
@@ -92,6 +90,10 @@ function PhoneHeaderBones() {
         <span className="flex-1 flex items-center justify-center"><Skeleton className="h-3.5 w-20 rounded-full" /></span>
         <span className="flex-1 flex items-center justify-center"><Skeleton className="h-3.5 w-24 rounded-full" /></span>
       </div>
+      {/* The search row, under the tabs (ConversationList: pt-2, then MessagesSearchRow's h-11 pill and pb-1.5). */}
+      <div className="shrink-0 pt-2 pb-1.5" data-testid="messages-skeleton-search" aria-hidden>
+        <Skeleton className="h-11 w-full rounded-full" />
+      </div>
       <ChipBones />
     </>
   );
@@ -102,7 +104,7 @@ function DesktopHeaderBones() {
   return (
     <div className="shrink-0 px-5 py-1" style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.12)" }}>
       <ScreenHeaderRow
-        title="Messages"
+        title="Inbox"
         titleSrOnly
         className="shrink-0 max-[359px]:gap-2 [&>div:first-child]:!py-0"
         style={{ minHeight: COMPACT_HEADER_ROW_MIN_HEIGHT }}
@@ -126,7 +128,7 @@ function Frame({ children }: { children: ReactNode }) {
   const titleInBar = useHeaderInDesktopBar();
   return (
     <div role="status" aria-live="polite" aria-busy="true" data-testid="messages-route-skeleton">
-      {!titleInBar && <h1 className="sr-only">Messages</h1>}
+      {!titleInBar && <h1 className="sr-only">Inbox</h1>}
       <span className="sr-only">Loading messages…</span>
       {children}
     </div>

@@ -8,6 +8,10 @@
  *    aria-selected), each tab 44px. Messages is the default; ?tab=notifications opens Notifications, so links can
  *    target a tab; /notifications lands on that tab; /messages, /messages?chat= and every push link land as before.
  *  - The icon opens the tab the member last viewed.
+ *  - Both tabs wear ONE header (owner 11-15, "Polish, then launch"): the visible title "Inbox", then the tabs. On the
+ *    Messages tab the search row sits UNDER the tabs (never the top row above them), its section chips under it. The
+ *    browser tab says "Inbox — Helpr" on both tabs, in Spanish too. The loading frame draws the same order.
+ *  - The desktop rail's row is "Inbox" (src/test/desktopLeftSidebar.test.tsx presses it: last tab, combined badge).
  *
  * @mutate src/components/inbox/useInboxCounts.ts | return { messages, notifications, total: messages + notifications }; | return { messages, notifications, total: messages };
  * @mutate src/components/inbox/inboxTab.ts |   return params.get("tab") === "notifications" ? "notifications" : "messages"; |   return "messages";
@@ -16,6 +20,12 @@
  * @mutate src/components/inbox/InboxTabs.tsx |             role="tab"\n | \n
  * @mutate src/components/inbox/withInbox.tsx |   if (tab === "notifications") { |   if (false) {
  * @mutate src/components/inbox/InboxTabs.tsx |     rememberInboxTab(next);\n | \n
+ * @mutate src/components/messages/ConversationList.tsx |   const listTitle = inInbox ? t("inbox.title") : t("msg.title"); |   const listTitle = t("msg.title");
+ * @mutate src/components/messages/ConversationList.tsx | search={isWebDesktop \|\| inInbox ? undefined : phoneSearchRow} /> | search={isWebDesktop ? undefined : phoneSearchRow} />
+ * @mutate src/components/messages/ConversationList.tsx |       {inInbox && <div className="shrink-0 pt-2">{phoneSearchRow}</div>}\n | \n
+ * @mutate src/pages/messages/useMessagesPageSetup.ts |   usePageTitle(`${t("inbox.title")} — Helpr`); |   usePageTitle("Messages — Helpr");
+ * @mutate src/components/inbox/InboxNotifications.tsx |   usePageTitle(`${t("inbox.title")} — Helpr`); |   usePageTitle(`${t("inbox.notifications")} — Helpr`);
+ * @mutate src/components/MessagesRouteSkeleton.tsx |             <header className={TITLE_TOP_ROW} aria-hidden> |             <header className="app-top-bar flex items-center gap-1 pt-2 pb-0.5" aria-hidden>
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, act } from "@testing-library/react";
@@ -30,10 +40,22 @@ vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "u-inbox" }, profile: { avatar_url: null, full_name: "Test Person" }, isLoading: false, isAdmin: false }),
 }));
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
-vi.mock("@/lib/haptics", () => ({ hapticLight: () => {} }));
+vi.mock("@/lib/haptics", () => ({
+  hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn(),
+  hapticMedium: vi.fn(), hapticSelection: vi.fn(), hapticWarning: vi.fn(), hapticHeavy: vi.fn(),
+}));
+// The real conversation list under the Inbox (its thread stores offline; no backend).
+vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: vi.fn(), rpc: vi.fn() } }));
+vi.mock("@/lib/pinnedConversations", async (io) => (await import("@/test/helpers/threadStoresOffline")).pinnedConversationsOffline(io));
+vi.mock("@/lib/archivedConversations", async (io) => (await import("@/test/helpers/threadStoresOffline")).archivedConversationsOffline(io));
 // The tab bodies are the existing screens, drawn elsewhere: stubbed so this file checks the Inbox itself.
 vi.mock("@/components/NotificationPanel", () => ({ default: ({ inline }: { inline?: boolean }) => <div data-testid="bell-list" data-inline={inline ? "" : undefined} /> }));
-vi.mock("@/components/sections/AppTopBar", () => ({ AppTopBar: ({ title }: { title?: string }) => <header data-testid="app-top-bar">{title}</header> }));
+vi.mock("@/components/sections/AppTopBar", () => ({
+  AppTopBar: ({ title, search }: { title?: string; search?: import("react").ReactNode }) => (
+    <header data-testid="app-top-bar"><span data-testid="app-top-bar-title">{title}</span>{search}</header>
+  ),
+}));
 
 import InboxButton from "@/components/inbox/InboxButton";
 import { InboxTabs, useInboxTabsSlot } from "@/components/inbox/InboxTabs";
@@ -42,6 +64,9 @@ import InboxNotifications from "@/components/inbox/InboxNotifications";
 import { inboxPath, inboxTabFrom, lastInboxTab, rememberInboxTab } from "@/components/inbox/inboxTab";
 import { __resetNotificationStore, setNotificationUser, setUnreadTotal } from "@/components/notificationPanel/notificationStore";
 import { enCore } from "@/lib/i18n/enCore";
+import { ConversationList } from "@/components/messages/ConversationList";
+import { useMessagesPageSetup } from "@/pages/messages/useMessagesPageSetup";
+import { setLang, ensureLangLoaded, __resetLangForTests } from "@/lib/i18n/language";
 
 const ROOT = resolve(__dirname, "../..");
 const code = (rel: string) => blankComments(readFileSync(resolve(ROOT, rel), "utf8"));
@@ -151,7 +176,7 @@ describe("the Inbox page: two tabs, deep links by ?tab=", () => {
 
   it("the Notifications screen mounts the tabs and the inline list under the shared top bar named Inbox", () => {
     at("/messages?tab=notifications", <InboxNotifications />);
-    expect(screen.getByTestId("app-top-bar").textContent).toBe("Inbox");
+    expect(screen.getByTestId("app-top-bar-title").textContent).toBe("Inbox");
     expect(screen.getByRole("tablist", { name: "Inbox sections" })).toBeTruthy();
     expect(screen.getByTestId("bell-list").hasAttribute("data-inline")).toBe(true);
   });
@@ -180,5 +205,77 @@ describe("the Inbox page: two tabs, deep links by ?tab=", () => {
     expect(keys.length).toBeGreaterThan(4);
     const es = code("src/lib/i18n/es.ts");
     for (const k of keys) expect(es, k).toContain(`"${k}":`);
+  });
+});
+
+
+/** The real Messages list, as the Inbox draws it on a phone (one thread, the section chips present). */
+function RealMessages() {
+  return (
+    <ConversationList
+      conversations={[{ otherUserId: "u2", otherUserName: "Perry P.", jobTitle: "Fix a faucet", jobId: "job-1", viewerIsPoster: true, lastMessage: "On my way", lastAt: new Date().toISOString(), unread: 1 }]}
+      loading={false}
+      loadError={false}
+      retryInbox={vi.fn()}
+      userId="u-inbox"
+      loadConversations={vi.fn(async () => {})}
+      openConvo={vi.fn()}
+      setDeleteConvoConfirm={vi.fn()}
+      onBatchArchive={vi.fn()}
+      sectionTabs={<div>SECTION CHIPS</div>}
+    />
+  );
+}
+const before = (a: Element, b: Element) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+
+describe("both tabs share one header (owner 11-15, Polish, then launch)", () => {
+  afterEach(() => __resetLangForTests());
+
+  it("the Messages tab is titled Inbox, its search row sits under the tabs (never in the top row), the chips under it", () => {
+    at("/messages", <InboxPage Messages={RealMessages} />);
+    const bar = screen.getByTestId("app-top-bar");
+    expect(screen.getByTestId("app-top-bar-title").textContent).toBe("Inbox");
+    const search = screen.getByTestId("messages-search-row");
+    expect(bar.contains(search), "no search in the top row").toBe(false);
+    const tabs = screen.getByRole("tablist", { name: "Inbox sections" });
+    const chips = screen.getByTestId("messages-section-tabs");
+    expect(before(bar, tabs) && before(tabs, search) && before(search, chips)).toBe(true);
+  });
+
+  it("outside the Inbox (no tabs) the list keeps its own Messages header with the search in the bar", () => {
+    at("/admin", <RealMessages />);
+    expect(screen.getByTestId("app-top-bar-title").textContent).toBe("Messages");
+    expect(screen.getByTestId("app-top-bar").contains(screen.getByTestId("messages-search-row"))).toBe(true);
+  });
+
+  it("the browser tab says Inbox on both tabs, and Bandeja de entrada in Spanish", async () => {
+    function MessagesTitle() {
+      useMessagesPageSetup();
+      return null;
+    }
+    at("/messages", <MessagesTitle />);
+    expect(document.title).toBe("Inbox — Helpr");
+    cleanup();
+    document.title = "";
+    at("/messages?tab=notifications", <InboxNotifications />);
+    expect(document.title).toBe("Inbox — Helpr");
+    cleanup();
+    await act(async () => { setLang("es"); await ensureLangLoaded(); });
+    at("/messages", <MessagesTitle />);
+    expect(document.title).toBe("Bandeja de entrada — Helpr");
+    cleanup();
+    document.title = "";
+    at("/messages?tab=notifications", <InboxNotifications />);
+    expect(document.title).toBe("Bandeja de entrada — Helpr");
+  });
+
+  it("the loading frame draws the same order: the visible-title row, the tabs, the search, the chips", () => {
+    const sk = code("src/components/MessagesRouteSkeleton.tsx");
+    const phone = sk.slice(sk.indexOf("function PhoneHeaderBones"), sk.indexOf("function DesktopHeaderBones"));
+    expect(phone).toContain("<header className={TITLE_TOP_ROW} aria-hidden>");
+    expect(phone).not.toContain("COMPACT_TOP_ROW");
+    const order = ["<header className={TITLE_TOP_ROW}", 'data-testid="messages-skeleton-inbox-tabs"', 'data-testid="messages-skeleton-search"', "<ChipBones />"].map((x) => phone.indexOf(x));
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 });

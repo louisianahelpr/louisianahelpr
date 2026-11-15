@@ -8,6 +8,7 @@ import {
   ShieldAlert,
   ChevronDown,
   Plus,
+  Inbox,
   type LucideIcon,
 } from "lucide-react";
 import HelprMark from "@/components/HelprMark";
@@ -31,6 +32,8 @@ import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
 import { useLanguage } from "@/lib/i18n/language";
 import { navKey } from "@/lib/i18n/navLabels";
+import { useInboxCounts } from "@/components/inbox/useInboxCounts";
+import { inboxPath, lastInboxTab } from "@/components/inbox/inboxTab";
 
 /**
  * DesktopSidebarNav — the persistent LEFT sidebar (owner 2026-10-19: left and
@@ -57,7 +60,7 @@ import { navKey } from "@/lib/i18n/navLabels";
 /** This device's remembered open/closed choice for the Admin group ("0" = the admin collapsed it). */
 const ADMIN_NAV_OPEN_KEY = "helpr_admin_nav_open";
 
-type NavRow = { path: string; icon: LucideIcon; label: string; badgeKey?: DockItem["badgeKey"]; comingSoon?: boolean; preview?: boolean; nested?: boolean };
+type NavRow = { path: string; to?: string; icon: LucideIcon; label: string; badgeKey?: DockItem["badgeKey"]; comingSoon?: boolean; preview?: boolean; nested?: boolean };
 
 /**
  * Admin — the SAME five destinations for everyone, plus one expandable group
@@ -127,8 +130,12 @@ const DesktopSidebarRail = () => {
   const todo = useNeedsYouCounts(user?.id);
   // The SAME shared store MobileNav reads (Q103): one unread query and one
   // realtime channel per user, however many navs are mounted.
-  const { unreadCount } = useNavUnreadCount(user);
+  useNavUnreadCount(user);
   useShopTalksInBadge(user); // S2-016: unread shop chats join the badge
+  // THE INBOX ROW (owner 11-15, "Polish, then launch"): the rail's "Messages" row is "Inbox". It opens the tab the member
+  // last viewed (Messages by default), as the top-bar icon does, and wears the icon's combined badge (unread threads +
+  // unread notifications, read from the same two shared stores). Guard: src/test/inboxOneIconTwoTabs.test.tsx.
+  const inbox = useInboxCounts(user?.id);
   const messages = rightItems.find((i) => i.path === "/messages")!;
   const navItems: NavRow[] = [
     leftItems[0],
@@ -139,7 +146,7 @@ const DesktopSidebarRail = () => {
       const badgeKey = sec.key === "jobs" ? ("todoJobs" as const) : sec.key === "shops" ? ("todoShops" as const) : sec.key === "declutter" ? ("todoDeclutter" as const) : undefined;
       return { path: sec.path, icon: sec.icon, label: sec.label, nested: true, comingSoon: t ? !t.on : false, preview: t ? t.preview : false, badgeKey };
     }),
-    { path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" },
+    { path: messages.path, to: inboxPath(lastInboxTab()), icon: Inbox, label: "Inbox", badgeKey: "messages" },
     youItem,
   ];
 
@@ -168,7 +175,7 @@ const DesktopSidebarRail = () => {
   // of "smoother". `aria-hidden` and `inert` keep it out of reach mid-flight.
 
   const badgeFor = (key?: DockItem["badgeKey"]) => {
-    if (key === "messages") return unreadCount;
+    if (key === "messages") return inbox.total;
     if (key === "todo") return todo.total;
     if (key === "todoJobs") return todo.jobs;
     if (key === "todoShops") return todo.shops;
@@ -284,7 +291,7 @@ const DesktopSidebarRail = () => {
                   {inner}
                 </ListRow>
               ) : (
-                <ListRowLink variant="flush" {...rowProps} to={path}
+                <ListRowLink variant="flush" {...rowProps} to={item.to ?? path}
                   onClick={() => { if (location.pathname === path) announceTabReselect(path); }}
                   onMouseEnter={() => prefetchRoute(path)}>
                   {inner}

@@ -114,9 +114,11 @@ describe("L004: a signed-out visitor's Jobs chips open the public board", () => 
     expect(hrefs.some((h) => h.startsWith("/declutter?cat="))).toBe(true);
   });
 
-  it("signed in, the chips still open Jobs > Browse", () => {
+  it("signed in, the chips still open Jobs > Browse", async () => {
     state.signedIn = true;
     mount("/search");
+    // Signed in, the lists wait (at most ARRIVAL_CAP_MS) for the saved searches (SearchStart's one paint).
+    await screen.findByRole("region", { name: "Browse by category" });
     const hrefs = screen.getAllByRole("link").map((a) => a.getAttribute("href") ?? "");
     expect(hrefs.filter((h) => h.startsWith("/jobs?tab=browse&cat=")).length).toBeGreaterThan(0);
     expect(hrefs.some((h) => h.startsWith("/browse?cat="))).toBe(false);

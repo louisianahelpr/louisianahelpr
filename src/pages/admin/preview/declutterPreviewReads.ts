@@ -20,7 +20,7 @@ export const DECLUTTER_PREVIEW_READ_RPCS: ReadonlySet<string> = new Set([
   "declutter_manager_message_labels", "declutter_map_pins", "declutter_meetup_spot_suggestions",
   "declutter_meetup_spots_near", "declutter_my_cart", "declutter_my_donations", "declutter_my_free_pause",
   "declutter_my_handover", "declutter_my_item_review", "declutter_my_item_view_counts", "declutter_my_manager_grants", "declutter_my_meetup_spots",
-  "declutter_my_move_out_date", "declutter_my_moving_sale", "declutter_my_offers", "declutter_my_order_talks",
+  "declutter_my_move_out_date", "declutter_my_moving_sale", "declutter_my_offers", "declutter_my_order_cards", "declutter_my_order_talks",
   "declutter_my_paid_cents", "declutter_my_porch_days", "declutter_my_porch_places", "declutter_my_question_ids",
   "declutter_my_refund_todos", "declutter_my_refunded_cents", "declutter_my_reply_listings", "declutter_my_return_label",
   "declutter_my_seller_delivery", "declutter_my_trade_buyer_names", "declutter_my_setup_fee", "declutter_my_ship_label", "declutter_my_ship_tracking", "declutter_my_wanted",

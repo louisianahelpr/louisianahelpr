@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { orderCardPart } from "@/lib/declutter/orderCards";
 
 export type RefundReason = "not_as_described" | "damaged" | "not_received";
 type RefundRequestStatus = "open" | "offered" | "returning" | "agreed" | "declined" | "to_admin" | "withdrawn";
@@ -155,6 +156,11 @@ export async function fetchMyRefundTodos(): Promise<MyRefundTodo[]> {
 }
 
 export async function fetchRefundRequestView(orderId: string): Promise<RefundRequestView> {
+  // One batched read for every order card asked in the same tick (orderCards); alone when it has no answer (switch off).
+  return orderCardPart(orderId, "refund", () => fetchRefundRequestViewAlone(orderId));
+}
+
+async function fetchRefundRequestViewAlone(orderId: string): Promise<RefundRequestView> {
   return rpcData(
     await supabase.rpc("declutter_refund_request_view", { p_order_id: orderId }),
     (e) => rpcErrorMessage("declutter_refund_request_view", e),

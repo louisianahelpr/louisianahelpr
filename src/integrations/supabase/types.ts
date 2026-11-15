@@ -18806,6 +18806,7 @@ export type Database = {
         Returns: string[]
       }
       declutter_my_handover: { Args: { p_order_id: string }; Returns: Json }
+      declutter_my_order_cards: { Args: { p_order_ids: string[] }; Returns: Json }
       declutter_my_item_review: {
         Args: { p_item_id: string }
         Returns: {

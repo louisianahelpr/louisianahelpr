@@ -7,9 +7,15 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { orderCardPart } from "@/lib/declutter/orderCards";
 
 /** The other person on the order, or null when the order is not readable (or their account is gone). */
 export async function fetchOrderOtherPerson(orderId: string, myId: string): Promise<string | null> {
+  // One batched read for every order card asked in the same tick (orderCards); the order row alone when it has no answer.
+  return orderCardPart(orderId, "other", () => fetchOrderOtherPersonAlone(orderId, myId));
+}
+
+async function fetchOrderOtherPersonAlone(orderId: string, myId: string): Promise<string | null> {
   const row = unwrap(
     await supabase.from("declutter_orders").select("buyer_id, seller_id").eq("id", orderId).maybeSingle(),
   ) as { buyer_id: string | null; seller_id: string | null } | null;

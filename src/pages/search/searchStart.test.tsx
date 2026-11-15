@@ -93,7 +93,7 @@ describe("search with nothing typed starts somewhere (Q2645)", () => {
 
   it("offers a few categories of each open section, each opening that Browse", async () => {
     mount("/search");
-    const cats = screen.getByRole("region", { name: "Browse by category" });
+    const cats = await screen.findByRole("region", { name: "Browse by category" });
     const links = within(cats).getAllByRole("link");
     expect(links.length).toBeGreaterThan(5);
     expect(within(cats).getByRole("link", { name: "Cleaning" })).toHaveAttribute("href", "/jobs?tab=browse&cat=cleaning");
@@ -105,7 +105,7 @@ describe("search with nothing typed starts somewhere (Q2645)", () => {
     mount("/search");
     const saved = await screen.findByRole("region", { name: "Your saved searches" });
     expect(within(saved).queryByRole("link", { name: /Couches/ })).toBeNull();
-    const cats = screen.getByRole("region", { name: "Browse by category" });
+    const cats = await screen.findByRole("region", { name: "Browse by category" });
     expect(within(cats).queryByRole("link", { name: "Furniture" })).toBeNull();
     expect(within(cats).getByRole("link", { name: "Cleaning" })).toBeInTheDocument();
   });
@@ -113,9 +113,9 @@ describe("search with nothing typed starts somewhere (Q2645)", () => {
   // F223 (audit 11-10): the Jobs chips stopped before Errands (Browse offers it), and the chips were 40px tall.
   // @mutate src/pages/search/SearchStart.tsx | const START_CHIPS_PER_SECTION = 5; | const START_CHIPS_PER_SECTION = 4;
   // @mutate src/pages/search/SearchStart.tsx | rounded-full px-4 min-h-11 border | rounded-full px-4 min-h-[40px] border
-  it("the Jobs chips include Errands, and every chip is a 44px target (F223)", () => {
+  it("the Jobs chips include Errands, and every chip is a 44px target (F223)", async () => {
     mount("/search");
-    const cats = screen.getByRole("region", { name: "Browse by category" });
+    const cats = await screen.findByRole("region", { name: "Browse by category" });
     expect(within(cats).getByRole("link", { name: "Errands" })).toHaveAttribute("href", "/jobs?tab=browse&cat=errands");
     const chips = within(cats).getAllByRole("link");
     expect(chips.length).toBeGreaterThan(5);
@@ -130,16 +130,16 @@ describe("search with nothing typed starts somewhere (Q2645)", () => {
   // F142 (owner UI audit 11-09): chips grouped under "Jobs" and "Declutter"; recent searches shown.
   // @mutate src/pages/search/SearchStart.tsx |       {recent.length > 0 && ( |       {false && (
   // @mutate src/pages/search/SearchPage.tsx |     if (next) pushRecentSearch(next); |
-  it("groups the category chips under Jobs and Declutter (F142)", () => {
+  it("groups the category chips under Jobs and Declutter (F142)", async () => {
     mount("/search");
-    const cats = screen.getByRole("region", { name: "Browse by category" });
+    const cats = await screen.findByRole("region", { name: "Browse by category" });
     const groups = [...cats.querySelectorAll("[data-category-group]")];
     expect(groups.map((g) => g.querySelector("h3")?.textContent)).toEqual(["Jobs", "Declutter"]);
     expect(within(groups[0] as HTMLElement).getByRole("link", { name: "Cleaning" })).toBeInTheDocument();
     expect(within(groups[1] as HTMLElement).getByRole("link", { name: "Furniture" })).toBeInTheDocument();
   });
 
-  it("lists recent searches first, each running again, and a search run here joins them (F142)", () => {
+  it("lists recent searches first, each running again, and a search run here joins them (F142)", async () => {
     localStorage.removeItem("helpr:search-history");
     const first = mount("/search");
     expect(screen.queryByRole("region", { name: "Recent searches" })).toBeNull();
@@ -147,7 +147,7 @@ describe("search with nothing typed starts somewhere (Q2645)", () => {
     fireEvent.submit(screen.getByRole("search", { name: "Search Helpr" }));
     first.unmount();
     mount("/search");
-    const recent = screen.getByRole("region", { name: "Recent searches" });
+    const recent = await screen.findByRole("region", { name: "Recent searches" });
     expect(within(recent).getByRole("link", { name: "porch swing" })).toHaveAttribute("href", "/search?q=porch%20swing");
     expect(screen.getByTestId("search-start").firstElementChild?.nextElementSibling).toBe(recent);
     localStorage.removeItem("helpr:search-history");

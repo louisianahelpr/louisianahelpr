@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { shareNative, type ShareOutcome } from "@/lib/nativeShare";
 import { rpcErrorMessage } from "./errorCopy";
-import { takeProfilePage } from "@/lib/profileBootPrefetch";
+import { takeProfilePage } from "@/lib/profileBootTake";
 
 /** What a caller shows when a call fails: the code's words, or a plain fallback. */
 type HandleResult = { handle: string; error?: undefined } | { handle?: undefined; error: string };

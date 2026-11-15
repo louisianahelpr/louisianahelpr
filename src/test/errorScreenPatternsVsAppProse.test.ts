@@ -24,9 +24,11 @@
  *
  * @mutate e2e/errorScreens.ts | "generic failure copy", re: | "generic failure copy", re: /went wrong/i, wasAnchored:
  * @mutate e2e/errorScreens.ts | typeof screen === "string" ? screen : textOutsideQuotedLogs(screen.text, screen.quoted); | typeof screen === "string" ? screen : screen.text;
+ * @mutate e2e/errorScreens.ts | Something went wrong(?![^.!\n]{0,80}\?)/ | Something went wrong/
  */
 import { describe, it, expect } from "vitest";
 import { ERROR_SCREEN_PATTERNS, findErrorScreen, readScreenText, textOutsideQuotedLogs } from "../../e2e/errorScreens";
+import { TOPICS, COMMON_PROBLEMS, FAQ_SECTIONS } from "@/pages/info/helpCenter/helpCenterContent";
 
 /**
  * Real text from surfaces that are WORKING. Nothing here may be reported as an
@@ -72,6 +74,37 @@ describe("error-screen patterns vs the app's own prose", () => {
     for (const c of REAL_ERROR_COPY) {
       expect(findErrorScreen(c.text)?.name, c.text).toBe(c.expect);
     }
+  });
+});
+
+/**
+ * Q1816 (a11y-webkit-prod run 43470000763, 2026-11-13): /help was reported as an
+ * error screen in all four sweep variants because the Trust & Safety topic card
+ * reads "Trust & Safety" then, in its own element, "Something went wrong with a
+ * job? Disputes, reporting, and ID checks." The page text puts a line break
+ * between them, so the anchored pattern's line-start branch fired. Every string
+ * the help center renders is read from its source module here, each also
+ * preceded by a line break the way the sweeps read it, so new help copy is
+ * covered too.
+ */
+describe("the help center's own copy is not an error screen", () => {
+  const strings = [
+    ...TOPICS.flatMap((t) => [t.label, t.desc]),
+    ...COMMON_PROBLEMS.flatMap((p) => [p.title, ...p.steps]),
+    ...FAQ_SECTIONS.flatMap((s) => [s.topic, ...s.items.flatMap((i) => [i.q, i.a])]),
+  ];
+
+  it("reads the help center's strings (inventory floor)", () => {
+    expect(strings.length).toBeGreaterThan(40);
+  });
+
+  it("no pattern fires on any of them, alone or after a line break", () => {
+    const wrong = strings
+      .flatMap((t) => [t, `Help\n${t}`])
+      .map((t) => ({ t, hit: findErrorScreen(t) }))
+      .filter((r) => r.hit)
+      .map((r) => `${r.hit!.name} fired on: ${JSON.stringify(r.t).slice(0, 120)}`);
+    expect(wrong).toEqual([]);
   });
 });
 

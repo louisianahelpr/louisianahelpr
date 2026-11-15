@@ -78,6 +78,8 @@ const h = vi.hoisted(() => {
 });
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: h.supabase }));
+// These cases pin each per-order read itself; the batch in front of it has its own guard (declutterOrderListBatchRead).
+vi.mock("@/lib/declutter/orderCards", () => ({ orderCardPart: (_id: string, _kind: string, direct: () => Promise<unknown>) => direct() }));
 vi.mock("@/lib/declutter/photos", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/declutter/photos")>()),
   cleanListingPhoto: h.clean,

@@ -108,6 +108,7 @@ const CLASSIFIED: Record<string, string> = {
   // Shops paperwork queue (lead train 11-10): the permit document link, gated by isStorageObjectPath in permitDocumentUrl.
   "components/admin/ShopsPaperworkCard.tsx::await permitDocumentUrl(path)": STORAGE_SIGNED,
   "pages/admin/sponsors/AdminSponsorsPage.tsx::url": `${OBJECT_URL}: the CSV export, and the logo file the admin-only sponsor-25days function sent back (logoDownloadUrl)`,
+  "pages/auth/completeProfile/ConsentStep.tsx::href": "link()'s prop: its only callers pass the fixed in-app paths \"/terms\", \"/rules\" and \"/privacy\"",
   "components/sponsor/ClaimSection.tsx::href": "a data:text/calendar URL of an .ics file the page builds itself (buildIcs + encodeURIComponent)",
   "components/sponsor/Sections.tsx::href": "ExternalButton's prop: every caller passes C.links.* (our content file constants) or filledUrl() output (^https?:// only)",
   "components/sponsor/Sections.tsx::group": "filledUrl(C.links.facebookGroup): our content file value, only when it matches ^https?:// with no placeholder",

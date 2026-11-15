@@ -423,7 +423,10 @@ if (deepWanted.size < 30 || !deepCarriers.length) {
 const routeFound = [];
 for (const { label, name } of ROUTE_ROOTS) {
   const re = new RegExp(`^${name}-[\\w-]{6,}\\.js$`);
-  const rootChunk = all.find((f) => re.test(f));
+  // A root that is not a page has no chunk of its own: the Supabase client a guest's /declutter starts on the first
+  // round (Q2705, 11-14) sits in a shared chunk. Its closure starts from the chunk whose sourcemap lists the module.
+  const rootChunk = all.find((f) => re.test(f)) ??
+    all.find((f) => sourcesIn(f)?.has(`src/${label}.ts`) || sourcesIn(f)?.has(`src/${label}.tsx`));
   if (!rootChunk) fail(`no built chunk for first-screen root ${label} (expected ${name}-<hash>.js). Fix this scan; do not drop the root.`);
   const par = new Map([[rootChunk, null]]);
   const queue = [rootChunk];

@@ -146,6 +146,9 @@ export function publicRoots(root) {
  */
 const DECLUTTER_ROOTS = [
   "src/pages/declutter/DeclutterPage.tsx",
+  // A member's tabs: DeclutterHomeEntry loads this lazily, and src/boot/declutterRoute.ts starts it beside the page for a
+  // visitor with a session (Q2705, 2026-11-14), so it is a first screen's code, as it was when the page imported it.
+  "src/components/declutter/DeclutterHomeView.tsx",
   "src/components/declutter/DeclutterMineViews.tsx",
   "src/components/declutter/DeclutterBrowseView.tsx",
 ];
@@ -188,6 +191,14 @@ export const EVERY_PAGE_ROOTS = [
   "src/components/identity/IdentityCheckMount.tsx",
 ];
 
+/**
+ * The section top bar's bell (Q2705, 2026-11-14): AppTopBar loads it on its own (a guest never sees it) and starts it
+ * the moment the bar's file runs for a visitor with a session, so it is part of every signed-in first screen, as it was
+ * when the bar imported it. Named so its code and icons stay grouped as they were (left out, its Bell icon fell into
+ * icons-declutter and /admin fetched ~1.1 KB gz more icons, measured).
+ */
+export const TOP_BAR_BELL_ROOT = "src/components/notificationPanel/NotificationBell.tsx";
+
 /** Every first screen: each page in ENTRY_ROUTE_CHUNKS (guest and signed in), protectedRoute, EVERY_PAGE_ROOTS. */
 export function firstScreenRoots(root) {
   const src = stripComments(fs.readFileSync(path.join(root, "src/boot/routePreload.ts"), "utf8"));
@@ -208,7 +219,7 @@ export function firstScreenRoots(root) {
   // the walk does not follow, so each page itself is named.
   // HOME_DERIVE_ROOT (B51): Home's derivations, a dynamic import Home's chunk starts; see homeFirstScreenRoots.
   // JOB_LISTS_ROOT (B52): the Posted / Working lists, which src/boot/jobsListRoute.ts starts on a list link.
-  return [...roots, toPosix(path.join(root, HOME_DERIVE_ROOT)), ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), ...DECLUTTER_ROOTS.map((r) => toPosix(path.join(root, r))), toPosix(path.join(root, PROFILE_ROOT)), toPosix(path.join(root, POST_JOB_ROOT)), toPosix(path.join(root, MESSAGES_ROOT)), toPosix(path.join(root, JOB_LISTS_ROOT))];
+  return [...roots, toPosix(path.join(root, HOME_DERIVE_ROOT)), toPosix(path.join(root, TOP_BAR_BELL_ROOT)), ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), ...DECLUTTER_ROOTS.map((r) => toPosix(path.join(root, r))), toPosix(path.join(root, PROFILE_ROOT)), toPosix(path.join(root, POST_JOB_ROOT)), toPosix(path.join(root, MESSAGES_ROOT)), toPosix(path.join(root, JOB_LISTS_ROOT))];
 }
 
 /**
@@ -361,7 +372,7 @@ export function homeFirstScreenRoots(root) {
   // dynamic import this walk does not follow. Named here so their shared code is grouped as Home's, as before: left
   // out, it fell into shared-late, signed-in-deep and the other screens' chunks, and that lazy chunk then pulled
   // ~150 KB gz of other screens' code right after Home's draw (lab js 367 -> 524 KB).
-  return [path.join(root, "src/main.tsx"), ...roots, path.join(root, HOME_DERIVE_ROOT), ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r)))];
+  return [path.join(root, "src/main.tsx"), ...roots, path.join(root, HOME_DERIVE_ROOT), path.join(root, TOP_BAR_BELL_ROOT), ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r)))];
 }
 
 /** Home's lazily loaded derivations (B51): a Home root the static walk cannot see. */
@@ -626,7 +637,10 @@ export function sellingIconFiles(root) {
   return new Set([...drawn].filter((i) => !taken.has(i)));
 }
 
-export const DECLUTTER_FIRST_SCREEN_ROOTS = ["src/pages/declutter/DeclutterPage.tsx", "src/components/declutter/DeclutterBrowseView.tsx"];
+// DeclutterHomeView (a member's tabs) loads apart from the page since Q2705 (11-14) but is still a member's first screen
+// (declutterRoute.ts starts it beside the page). Left out, its icons (Tags, ...) fell out of icons-declutter into the
+// merged icon chunks, which regrouped and put another icons chunk on /admin's critical path (measured).
+export const DECLUTTER_FIRST_SCREEN_ROOTS = ["src/pages/declutter/DeclutterPage.tsx", "src/components/declutter/DeclutterBrowseView.tsx", "src/components/declutter/DeclutterHomeView.tsx"];
 
 /**
  * guestIconFiles split in two (Q2707/Q2708, Builder 3 11-05): `shared` = the guest icons the Declutter first screen

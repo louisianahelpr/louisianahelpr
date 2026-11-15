@@ -21,6 +21,12 @@ import("@/pages/declutter/DeclutterPage").catch(() => {
 import("@/components/declutter/DeclutterGuestRoute").catch(() => {
   /* App.tsx's lazy import of the same module owns the failure */
 });
+// A member's tabs (Q2705, 2026-11-14): DeclutterHomeEntry loads DeclutterHomeView for a member only, so a guest's first
+// round no longer carries the member screens. A visitor with a session starts it here, beside the page, as before.
+// Same probe as routePreload.ts's hasToken(), copied (this chunk imports nothing statically).
+if (hasSessionToken()) import("@/components/declutter/DeclutterHomeView").catch(() => {
+  /* DeclutterHomeEntry's lazy import of the same module owns the failure */
+});
 // B77 (2026-11-01): each tab's code is its own chunk (DeclutterHomeView's lazy tabs), so the URL's tab starts here,
 // beside the page, instead of a round later when the page has run. Same reading of the URL as DeclutterHomeView
 // (?tab=, then the old ?view= links); Deliver loads its own screen. DeclutterHomeView's lazy import owns any failure.
@@ -45,4 +51,17 @@ export function declutterTabChunkFor(search: string): (() => Promise<unknown>) |
     return () => import("@/components/declutter/DeclutterMineViews");
   }
   return () => import("@/components/declutter/DeclutterBrowseView");
+}
+
+/** routePreload.ts's hasToken(), copied: a Supabase session in storage. Storage blocked reads as signed out. */
+function hasSessionToken(): boolean {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) return true;
+    }
+  } catch {
+    /* storage blocked: treat as signed out, as routePreload.ts does */
+  }
+  return false;
 }

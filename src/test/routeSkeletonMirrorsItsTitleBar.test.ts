@@ -73,7 +73,7 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     const right = cluster.slice(0, cluster.indexOf("</div>"));
     const boxes = right.match(/<span className="h-1[01] w-1[01]|<Skeleton className="h-11 w-11 shrink-0 rounded-full" \/>/g) ?? [];
     expect(boxes).toEqual(['<span className="h-11 w-11', '<span className="h-11 w-11', '<span className="h-11 w-11']);
-    expect(bar).toMatch(/NotificationPanel triggerClassName="h-11 w-11/);
+    expect(bar).toMatch(/TopBarBell triggerClassName="h-11 w-11/);
     expect(bar.match(/size="iconCompact"/g)?.length, "Messages and the avatar: 44px iconCompact").toBe(2);
     // A screen with no "My …" menu (Dashboard) names the avatar after the profile, as before.
     // The initials the bare photo shows stay in its name either way (axe label-content-name-mismatch, WCAG 2.5.3).

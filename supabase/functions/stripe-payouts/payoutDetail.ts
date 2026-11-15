@@ -12,6 +12,18 @@
 // A line no ledger claims keeps Stripe's figure under a plain label, so the
 // lines always add up to what reached the bank.
 //
+// A TIP (F267a, audit 11-10: a payout read "Payment $3.00" nine times) is not
+// a transfer our ledgers stamp: create-payment and auto-tip-charge charge the
+// poster with transfer_data.destination (a destination charge), so its tr_ id
+// is Stripe's, and only the PaymentIntent id is on the tips row. For a
+// transfer no ledger named, the platform's own transfer is read (no
+// stripeAccount: the transfer lives on the platform) and its transfer_group
+// (group_<pi>, Stripe's default for a destination charge) names the
+// PaymentIntent; the caller's own tips row (helper_id = caller) names the job.
+// Measured 11-14 on the test Helpr's account (Stripe test mode, read-only):
+// tr_3Ub2A5… transfer_group group_pi_3Ub2A5…, PaymentIntent metadata
+// type "tip", tips row "[E2E DO NOT ACCEPT] tipdub6zs".
+//
 // A MANUAL payout (instant-payout's payouts.create, an instant cash-out)
 // cannot be reconciled this way: Stripe refuses to filter balance transactions
 // by it ("you control the timing and amount"). It answers one line, the
@@ -33,8 +45,16 @@ interface PayoutObject {
   /** false for a manual payout (an instant cash-out). */
   automatic?: boolean;
 }
-/** The two Stripe reads payoutDetail makes; the real Stripe client satisfies it. */
+/** The fields read from a platform Transfer: its destination charge's group names the PaymentIntent. */
+interface TransferObject {
+  id: string;
+  transfer_group?: string | null;
+}
+/** The Stripe reads payoutDetail makes; the real Stripe client satisfies it. */
 export interface PayoutReader {
+  transfers: {
+    retrieve(id: string): Promise<TransferObject>;
+  };
   payouts: {
     retrieve(id: string, params: { expand: string[] }, opts: { stripeAccount: string }): Promise<PayoutObject>;
   };
@@ -49,7 +69,7 @@ export interface PayoutReader {
 type Admin = any;
 
 export interface PayoutLine {
-  kind: "job" | "cancellation_fee" | "sale" | "shop_sale" | "delivery" | "referral" | "fee_owed" | "reversal" | "other";
+  kind: "job" | "cancellation_fee" | "sale" | "shop_sale" | "delivery" | "referral" | "tip" | "fee_owed" | "reversal" | "other";
   label: string;
   amount_cents: number;
   /** In-app path to the job or sale this line came from, when there is one. */
@@ -103,13 +123,15 @@ async function nameTransfers(admin: Admin, userId: string, ids: string[]): Promi
     return (r.data ?? []) as T;
   };
 
-  const [jobs, cancels, sales, shops, deliveries, referrals] = await Promise.all([
+  const [jobs, cancels, sales, shops, deliveries, referrals, deliveryTips] = await Promise.all([
     admin.from("payout_transfers").select("stripe_transfer_id, job_id, jobs(title)").eq("helper_id", userId).in("stripe_transfer_id", ids),
     admin.from("cancellation_fee_transfers").select("stripe_transfer_id, job_id, jobs(title)").eq("helper_id", userId).in("stripe_transfer_id", ids),
     admin.from("declutter_payouts").select("stripe_transfer_id, order_id, items_cents, debt_cents, setup_fee_cents, amount_cents").eq("seller_id", userId).in("stripe_transfer_id", ids),
     admin.from("shop_payouts").select("stripe_transfer_id, order_id, items_cents, debt_cents, amount_cents, shop_orders!inner(seller_id)").eq("shop_orders.seller_id", userId).in("stripe_transfer_id", ids),
     admin.from("helpr_task_payouts").select("stripe_transfer_id, task_id, helpr_tasks(title)").eq("helpr_id", userId).in("stripe_transfer_id", ids),
     admin.from("referral_credits").select("stripe_transfer_id").eq("user_id", userId).in("stripe_transfer_id", ids),
+    // A delivery tip is paid out by its own platform transfer (payout_transfer_id), F267a.
+    admin.from("helpr_task_tips").select("payout_transfer_id, helpr_tasks(title)").eq("helpr_id", userId).in("payout_transfer_id", ids),
   ]).then((rs) => rs.map(must) as unknown[][]);
 
   for (const r of jobs as { stripe_transfer_id: string; job_id: string; jobs: { title?: string } | null }[]) {
@@ -154,6 +176,66 @@ async function nameTransfers(admin: Admin, userId: string, ids: string[]): Promi
   }
   for (const r of referrals as { stripe_transfer_id: string }[]) {
     out.set(r.stripe_transfer_id, [{ kind: "referral", label: "Referral credit", amount_cents: 0, href: null }]);
+  }
+  for (const r of deliveryTips as { payout_transfer_id: string; helpr_tasks: { title?: string } | null }[]) {
+    out.set(r.payout_transfer_id, [{ kind: "tip", label: `Tip: ${titleOr(r.helpr_tasks?.title, "a delivery")}`, amount_cents: 0, href: "/declutter?view=deliver" }]);
+  }
+  return out;
+}
+
+const GROUP_PI = /^group_(pi_[A-Za-z0-9]{6,64})$/;
+/** At most this many unnamed transfers are looked up per payout (one Stripe read each). */
+export const TIP_LOOKUP_CAP = 50;
+/** Stripe reads in flight at once (Stripe's test-mode read limit is about 25 a second; money review N2). */
+const TIP_LOOKUP_PARALLEL = 5;
+
+const isMissing = (e: unknown) => !!e && typeof e === "object" && (e as { code?: unknown }).code === "resource_missing";
+
+/**
+ * Names the tips among the transfers no ledger claimed (F267a). A tip is a destination charge, so its transfer's
+ * group names the PaymentIntent the caller's own tips row (a job tip) or helpr_task_tips row (a delivery tip charged
+ * straight to the Helpr) holds. A transfer Stripe says does not exist keeps its plain "Payment" line (it still adds
+ * up; logged). Any other Stripe error, and a tips read error, throws, like the ledgers: the screen says it couldn't
+ * load rather than hiding a misconfigured key or a rate limit behind a plain label (lh-money-escrow review N1).
+ */
+async function nameTips(stripe: PayoutReader, admin: Admin, userId: string, ids: string[]): Promise<Map<string, PayoutLine[]>> {
+  const out = new Map<string, PayoutLine[]>();
+  if (ids.length === 0) return out;
+  if (ids.length > TIP_LOOKUP_CAP) {
+    console.warn(`[stripe-payouts] ${ids.length} unnamed transfers in one payout; only the first ${TIP_LOOKUP_CAP} are looked up, the rest stay "Payment"`);
+  }
+  const piByTransfer = new Map<string, string>();
+  const todo = ids.slice(0, TIP_LOOKUP_CAP);
+  for (let i = 0; i < todo.length; i += TIP_LOOKUP_PARALLEL) {
+    await Promise.all(todo.slice(i, i + TIP_LOOKUP_PARALLEL).map(async (id) => {
+      try {
+        const tr = await stripe.transfers.retrieve(id);
+        const pi = GROUP_PI.exec(tr.transfer_group ?? "")?.[1];
+        if (pi) piByTransfer.set(id, pi);
+      } catch (e) {
+        if (!isMissing(e)) throw e;
+        console.warn(`[stripe-payouts] transfer ${id} does not exist on this key; its line stays "Payment"`);
+      }
+    }));
+  }
+  if (piByTransfer.size === 0) return out;
+  const pis = [...new Set(piByTransfer.values())];
+  const [jobTips, taskTips] = await Promise.all([
+    admin.from("tips").select("stripe_payment_intent_id, job_id, jobs(title)").eq("helper_id", userId).in("stripe_payment_intent_id", pis),
+    admin.from("helpr_task_tips").select("stripe_payment_intent_id, helpr_tasks(title)").eq("helpr_id", userId).in("stripe_payment_intent_id", pis),
+  ]);
+  if (jobTips.error) throw jobTips.error;
+  if (taskTips.error) throw taskTips.error;
+  const byPi = new Map<string, PayoutLine>();
+  for (const t of (jobTips.data ?? []) as { stripe_payment_intent_id: string; job_id: string | null; jobs: { title?: string } | null }[]) {
+    byPi.set(t.stripe_payment_intent_id, { kind: "tip", label: `Tip: ${titleOr(t.jobs?.title, "a job")}`, amount_cents: 0, href: t.job_id ? `/jobs/${t.job_id}` : null });
+  }
+  for (const t of (taskTips.data ?? []) as { stripe_payment_intent_id: string; helpr_tasks: { title?: string } | null }[]) {
+    byPi.set(t.stripe_payment_intent_id, { kind: "tip", label: `Tip: ${titleOr(t.helpr_tasks?.title, "a delivery")}`, amount_cents: 0, href: "/declutter?view=deliver" });
+  }
+  for (const [tr, pi] of piByTransfer) {
+    const line = byPi.get(pi);
+    if (line) out.set(tr, [line]);
   }
   return out;
 }
@@ -203,6 +285,7 @@ export async function payoutDetail(stripe: PayoutReader, admin: Admin, userId: s
     .autoPagingToArray({ limit: 500 });
   const ids = [...new Set(bts.map(transferIdOf).filter((x): x is string => !!x))];
   const named = await nameTransfers(admin, userId, ids);
+  for (const [tr, lines] of await nameTips(stripe, admin, userId, ids.filter((id) => !named.has(id)))) named.set(tr, lines);
   return {
     id: payout.id,
     amount_cents: payout.amount,

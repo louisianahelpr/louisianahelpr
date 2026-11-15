@@ -53,7 +53,7 @@ describe("/declutter's page starts on the first network round", () => {
     expect(loaded).not.toContain("Login");
   });
 
-  // Q2705 (11-14): a guest's first round is the page and the Supabase client its first cards wait on, NOT
+  // Q2705 (2026-11-14): a guest's first round is the page and the Supabase client its first cards wait on, NOT
   // ProtectedRoute's closure: those ~15 files shared the throttled link with the HTML-drawn first photos (the LCP), and
   // DeclutterGuestRoute's own preload list brings them a round later. Measured (cwv-lab, guest, 375, Slow 4G + 4x,
   // 3 runs each): LCP 3048 -> 2932 ms, first cards 5245 -> 5231 ms. Dropping the client too drew the cards 350 ms later.

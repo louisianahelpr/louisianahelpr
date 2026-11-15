@@ -70,6 +70,11 @@ export const ROLE_COPY_ALLOWLIST: readonly RoleCopyException[] = [
     reason: "the Gemini system prompt forbidding the word; the model reads it, no user ever does, and the rule it states is the role-neutral one.",
   },
   {
+    file: "supabase/functions/welcome-emails/index.ts",
+    text: "job poster read failed",
+    reason: "a defect line in the cron run's own result (cronResult, read by ops and the liveness check); no member ever sees it.",
+  },
+  {
     file: "supabase/functions/arrival-confirm-reminder/index.ts",
     text: "the poster hasn't confirmed",
     reason: "the 24h admin_alert notification sent only to user_roles admins, who triage by side of the job.",

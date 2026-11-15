@@ -88,7 +88,7 @@ describe("You › Money: every loading frame is the height of what arrives (Q270
 
   it("MoneyHelp draws only once the open half has settled (profile, tiles, Stripe, the Earned section)", () => {
     const tab = read("components/profile/EarningsTab.tsx");
-    expect(tab).toContain("const settled = !!profile && !money.pending && !stripeLoading && (view === \"spent\" || (pageReady && (!showConnect || connectSettled)));");
+    expect(tab).toContain("const settled = !!profile && !holdBody && !money.pending && !stripeLoading && (view === \"spent\" || (pageReady && (!showConnect || connectSettled)));");
     expect(tab).toContain("useEffect(() => { onSettled?.(settled); }, [settled, onSettled]);");
     const panels = read("pages/profile/ProfileTabPanels.tsx");
     expect(panels).toContain("onSettled={setMoneySettled}");

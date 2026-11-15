@@ -19,8 +19,8 @@
  * @mutate src/hooks/useContinueDays.ts |     initialDataUpdatedAt: first?.at, |     initialDataUpdatedAt: Date.now(),
  * @mutate src/lib/activityCoreContinueDays.ts |     if (!k) return undefined; |     if (!k) continue;
  * @mutate src/lib/activityCoreContinueDays.ts |   if (!Array.isArray(rows)) {\n    kept.delete(part); |   if (!Array.isArray(rows)) {\n    kept.set(part, { userId, at: Date.now(), covered: new Set(coveredJobIds as string[]), byJob: new Map() });
- * @mutate supabase/migrations/20261106054856_activity_cores_carry_active_continue_days.sql |     'active_continue_days', ( |     'active_days', (
- * @mutate supabase/migrations/20261106054856_activity_cores_carry_active_continue_days.sql |        WHERE d.status IN ('proposed', 'set') |        WHERE d.status IS NOT NULL
+ * @mutate supabase/migrations/20261115173740_activity_cores_posted_lean.sql |     'active_continue_days', ( |     'active_days', (
+ * @mutate supabase/migrations/20261115173740_activity_cores_posted_lean.sql |        WHERE d.status IN ('proposed', 'set') |        WHERE d.status IS NOT NULL
  */
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";

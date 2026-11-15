@@ -5,7 +5,7 @@
  */
 // @mutate src/boot/signedInPrefetch.ts |   startActivityCoresPrefetch(pathname); |
 // @mutate src/lib/activityCoresTake.ts |   w[KEY] = undefined; |
-// @mutate src/lib/activityCoresTake.ts | if (!s \|\| s.userId !== userId \|\| | if (!s \|\|
+// @mutate src/lib/activityCoresTake.ts | if (!s \|\| s.userId !== userId \|\| now - s.at > ACTIVITY_CORES_PREFETCH_MAX_AGE_MS) return null;\n  w[KEY] = undefined; | if (!s \|\| now - s.at > ACTIVITY_CORES_PREFETCH_MAX_AGE_MS) return null;\n  w[KEY] = undefined;
 // @mutate src/lib/activityCores.ts |   const boot = takeActivityCoresPrefetch(userId); |   const boot = null as ReturnType<typeof takeActivityCoresPrefetch>;
 // @mutate src/lib/activityCores.ts |     return hasKeys(early, PART_KEYS[which]) ? early : readWhole(); |     return early ? (early as ActivityCoresPayload) : readWhole();
 // @mutate src/lib/activityCores.ts |     return hasKeys(early, PART_KEYS[which]) ? early : readWhole(); |     return isPayload(early) ? early : readWhole();
@@ -130,7 +130,10 @@ describe("the Posted / Working lists' read starts from the entry (B100)", () => 
       expect(f).toHaveBeenCalledTimes(2);
       link({ downlink: 8.1, rtt: 175 });
       startActivityCoresPrefetch("/home", "");
-      expect(f).toHaveBeenCalledTimes(3);
+      // Q2812: Home's two part calls, the LEAN posted core and the applied part; never the whole posted list.
+      expect(f).toHaveBeenCalledTimes(4);
+      const parts = f.mock.calls.slice(2).map((c) => JSON.parse(String((c[1] as RequestInit).body)).p_parts);
+      expect(parts).toEqual([["posted_lean"], ["applied"]]);
     } finally {
       link(undefined);
     }

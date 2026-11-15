@@ -89,8 +89,9 @@ export function hasBookedJob(postedJobs: readonly { status: string; helper_id?: 
 }
 
 export function useHomeSummary(user: SupaUser | null) {
-  const posted = useActivityData(user, "posted");
-  const applied = useActivityData(user, "applied");
+  // Q2812: the LEAN posted core (only the posted jobs Home can act on), never every job the member ever posted.
+  const posted = useActivityData(user, "posted", { lean: true });
+  const applied = useActivityData(user, "applied", { lean: true });
   const { on: declutterOn, settled: declutterSettled } = useFeatureStatus("declutter");
   const shopsOn = useFeature("shops");
   const homesOn = useFeature("rentals");

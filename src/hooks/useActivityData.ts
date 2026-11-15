@@ -16,7 +16,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { JOB_READABLE_COLUMNS, readJobsAheadOfDb, readableJobRows } from "@/lib/jobColumns";
 import { readApplicationRows, readableApplicationRows } from "@/lib/applicationColumns";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
-import { fetchActivityCores, offerTargetMap } from "@/lib/activityCores";
+import { fetchActivityCores, fetchLeanPostedCores, offerTargetMap } from "@/lib/activityCores";
 import { fetchJobSeriesState } from "@/lib/jobSeriesState";
 import { fetchClosedJobLabels } from "@/lib/closedJobLabels";
 import { fetchMyOpenContinueDays, openContinueDaysFrom, type OpenContinueDay } from "@/lib/continueDayReads";
@@ -191,7 +191,7 @@ const isActiveStatus = (s: string | null | undefined) =>
  * server-side-join pattern is the same one useActivityBadgeCounts has used
  * against production since the nav badges shipped.
  */
-export async function fetchPostedActivity(userId: string): Promise<PostedActivity> {
+export async function fetchPostedActivity(userId: string, opts: { lean?: boolean } = {}): Promise<PostedActivity> {
   // The third read here used to be `job_checkins WHERE type = 'start_request'`,
   // feeding a `startRequestedJobIds` set that gated the poster's "Confirm
   // Start" button. Nothing in this app has ever inserted a job_checkins row
@@ -201,7 +201,9 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
   // Null: the three reads below, as before.
   // Owner bug 11-03: the open continue days come in the cores payload (20261103231310), so a continuing job is never
   // "Late" and Activity stays ONE request; an older database or a failed cores read sends their own read.
-  const cores = await fetchActivityCores(userId, "posted");
+  // Q2812: Home and the nav badge ask for the LEAN posted core (only the jobs Home can act on; fetchLeanPostedCores).
+  // Without it (an older database, any failure) they read the whole posted core, as before.
+  const cores = (opts.lean ? await fetchLeanPostedCores(userId) : null) ?? await fetchActivityCores(userId, "posted");
   // Home's first continue-days answer for the jobs I posted (20261106054856; src/lib/activityCoreContinueDays.ts).
   if (cores) keepActiveContinueDays(userId, "posted", (cores.posted_jobs as { id?: string }[]).map((j) => j?.id), cores.active_continue_days);
   const continueDays = openContinueDaysFrom(cores?.open_continue_days) ?? await fetchMyOpenContinueDays(userId, "posted");
@@ -914,14 +916,16 @@ export function prefetchActivityCores(queryClient: QueryClient, userId: string) 
  *        first paint; the other tab's core is warmed on idle so switching
  *        still comes out of cache.
  */
-export function useActivityData(user: SupaUser | null, tab: "posted" | "applied" = "posted") {
+export function useActivityData(user: SupaUser | null, tab: "posted" | "applied" = "posted", opts: { lean?: boolean } = {}) {
   const queryClient = useQueryClient();
   const userId = user?.id;
   const isPosted = tab === "posted";
+  // Q2812: Home reads the LEAN posted core (its own key; fetchPostedActivity's lean read). Activity reads the whole one.
+  const lean = !!opts.lean;
 
   const postedCore = useQuery({
-    queryKey: userId ? queryKeys.activity.posted(userId) : ["activity", "posted", "anon"],
-    queryFn: () => fetchPostedActivity(userId!),
+    queryKey: userId ? (lean ? queryKeys.activity.postedLean(userId) : queryKeys.activity.posted(userId)) : ["activity", "posted", "anon"],
+    queryFn: () => fetchPostedActivity(userId!, { lean }),
     enabled: !!userId && isPosted,
     staleTime: CORE_STALE,
     refetchOnMount: ACTIVITY_REFETCH_ON_MOUNT,
@@ -975,9 +979,10 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
           staleTime: CORE_STALE,
         });
       } else {
+        // Q2812: Home warms its LEAN posted core, never the whole list.
         queryClient.prefetchQuery({
-          queryKey: queryKeys.activity.posted(userId),
-          queryFn: () => fetchPostedActivity(userId),
+          queryKey: lean ? queryKeys.activity.postedLean(userId) : queryKeys.activity.posted(userId),
+          queryFn: () => fetchPostedActivity(userId, { lean }),
           staleTime: CORE_STALE,
         });
       }
@@ -994,7 +999,7 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
     }
     const t = setTimeout(run, 1200);
     return () => clearTimeout(t);
-  }, [userId, activeCoreSettled, isPosted, queryClient]);
+  }, [userId, activeCoreSettled, isPosted, lean, queryClient]);
 
   // Realtime: invalidate the whole activity cache — both tabs' cores AND their
   // details, via the ["activity"] prefix — so React Query refetches in the

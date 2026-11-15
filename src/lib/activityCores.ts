@@ -18,7 +18,7 @@ import { JOB_PRIVATE_COLUMNS, JOB_READABLE_COLUMN_LIST, JOB_SERIES_STATE_COLUMNS
 import { APPLICATION_READABLE_COLUMN_LIST } from "@/lib/applicationColumns";
 import { isNetworkFailure } from "@/lib/networkFailure";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
-import { takeActivityCoresPrefetch } from "@/lib/activityCoresTake";
+import { takeActivityCoresPrefetch, takeLeanPostedPrefetch } from "@/lib/activityCoresTake";
 
 /**
  * Readable job columns that NO reader of the posted rows names (Q2706, Builder 3 11-05). The posted core feeds
@@ -209,4 +209,52 @@ export function offerTargetMap(rows: ActivityCoresPayload["offer_targets"]): Map
   const out = new Map<string, string>();
   for (const row of rows) if (row?.job_id && row?.offered_to_helper_id) out.set(row.job_id, row.offered_to_helper_id);
   return out;
+}
+
+/** A posted-part answer that says it is the lean set (get_my_activity_cores p_parts {posted_lean}). */
+const isLeanPosted = (v: unknown): v is ActivityCoresPayload =>
+  hasKeys(v, PART_KEYS.posted) && (v as { posted_lean?: unknown }).posted_lean === true;
+
+/**
+ * Q2812 (Builder 2, 2026-11-15): Home's LEAN posted core. Home's to-dos, Next up, Coming up and counts, and the nav badge
+ * on every signed-in page, act only on a posted job that can still need someone; the whole posted core carried every
+ * job the member ever posted (the cwv-lab poster: 831 jobs, 176,572 bytes gzip). get_my_activity_cores p_parts
+ * {posted_lean} (20261115173740) returns the posted keys for exactly those jobs: not completed or cancelled, or a
+ * finished one that still files under Needs you (a chargeback, a failed payment on a job not cancelled, an open
+ * back-out notice to me). Activity's Posted tab keeps the whole list (fetchActivityCores).
+ *
+ * Its own read, never shared with the whole one (a lean answer must never stand in for the whole list). Taken from the
+ * entry's /home read when one was sent (src/boot/activityCoresPrefetch.ts). Null on any failure, an older database
+ * (bad_parts, 22023, before the migration) included: the caller then reads the whole posted core as before.
+ */
+export function fetchLeanPostedCores(userId: string): Promise<ActivityCoresPayload | null> {
+  const boot = takeLeanPostedPrefetch(userId);
+  return (async () => {
+    if (boot) {
+      const early = await boot.catch(() => null);
+      if (isLeanPosted(early)) return early;
+    }
+    try {
+      const res = await supabase.rpc("get_my_activity_cores", {
+        p_job_columns: [...POSTED_JOB_COLUMNS],
+        p_application_columns: [...APPLICATION_READABLE_COLUMN_LIST],
+        // The lean part computes no applied keys, so it sends no applied-job columns.
+        p_parts: ["posted_lean"],
+      });
+      if (res?.error) {
+        const code = String((res.error as { code?: string }).code ?? "");
+        // 22023 bad_parts: a database without the lean part yet (before db-deploy). Expected; the whole read answers.
+        const quiet = isMissingRpcNamed(res.error, "get_my_activity_cores") || QUIET_COLUMN_CODES.has(code) || code === "22023";
+        if (!quiet && !isNetworkFailure(res.error)) {
+          report(res.error, { severity: "warning", tags: { source: "activityCores.fetchLean" } });
+        }
+        return null;
+      }
+      return isLeanPosted(res?.data) ? res.data : null;
+    } catch (e) {
+      // A thrown call (a dropped connection inside supabase-js): the whole read answers, with its own retries.
+      if (!isNetworkFailure(e)) report(e, { severity: "warning", tags: { source: "activityCores.fetchLean" } });
+      return null;
+    }
+  })();
 }

@@ -12,6 +12,7 @@
 import { Briefcase, Search, Sofa } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { GroupRow } from "@/components/sections/StatusBoxes";
+import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 import { ListRow } from "@/components/ui/ListRow";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { hapticMedium } from "@/lib/haptics";
@@ -39,6 +40,10 @@ export function WelcomeCard({ sell }: { sell: boolean }) {
   );
   return (
     <section data-testid="home-welcome" aria-labelledby="home-welcome-title" className="flex flex-col gap-2">
+      {/* Coordinator 11-15 (new-member Home at 390, ~/.lh-shots/newmember-1115/home-390.png): the floating "+ Create" sat
+          on the second job's price at rest. This card IS the create (Post a job, Sell something), so the pill steps
+          aside while it is on screen, as it does beside an empty state's own create (owner 11-08: never twice). */}
+      <HideSectionCreateFab />
       <h2 id="home-welcome-title" className="font-moment text-ds-22 leading-tight text-foreground px-1">{t("home.wc.title")}</h2>
       <div className="grid grid-cols-2 gap-2">
         {tile("find", Search, t("home.wc.find"), t("home.wc.findMeta"), () => navigate("/jobs"))}

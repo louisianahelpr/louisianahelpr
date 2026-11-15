@@ -132,7 +132,7 @@ describe("the Posted / Working lists' read starts from the entry (B100)", () => 
       startActivityCoresPrefetch("/home", "");
       // Q2812: Home's two part calls, the LEAN posted core and the applied part; never the whole posted list.
       expect(f).toHaveBeenCalledTimes(4);
-      const parts = f.mock.calls.slice(2).map((c) => JSON.parse(String((c[1] as RequestInit).body)).p_parts);
+      const parts = f.mock.calls.slice(2).map((c) => JSON.parse(String((c as unknown as [string, RequestInit])[1].body)).p_parts);
       expect(parts).toEqual([["posted_lean"], ["applied"]]);
     } finally {
       link(undefined);

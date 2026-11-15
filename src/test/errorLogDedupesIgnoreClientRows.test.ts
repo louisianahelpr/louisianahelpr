@@ -30,7 +30,7 @@ const MIG_DIR = join(process.cwd(), "supabase/migrations");
 
 // @two-way src/test/errorLogDedupesIgnoreClientRows.test.ts:stale unfiltered entry
 // function -> number of error_logs reads WITHOUT an origin predicate, and why that is accepted.
-//   ops_alert_record_user_error_screen 4 (Q2780 20261115001106: the distinct-client count), ops_alert_condition 2: read CLIENT rows by design
+//   ops_alert_record_user_error_screen 4 (Q2780 20261115001106: the distinct-client count), ops_alert_condition 3 (Q2806 20261115073221: the close rule counts the open gate's rows and members): read CLIENT rows by design
 //     (user-error-screen rows are client rows; their caps are per account / per fingerprint).
 //   sweep_old_error_logs 2, cleanup_observability_tables 1: retention deletes, not a throttle.
 //   (export_my_data left this list in 20261029145604, A3-I6: Download My Data no longer
@@ -45,7 +45,7 @@ const MIG_DIR = join(process.cwd(), "supabase/migrations");
 // @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |              AND coalesce(e.tags ->> 'origin', '') <> 'client'\n             AND e.tags ->> 'source' = 'detect_stuck_payments-seed' |              AND e.tags ->> 'source' = 'detect_stuck_payments-seed'
 const KNOWN_UNFILTERED: Record<string, number> = {
   cleanup_observability_tables: 1,
-  ops_alert_condition: 2,
+  ops_alert_condition: 3,
   ops_alert_record_user_error_screen: 4,
   prevent_self_escalation: 1,
   send_ops_daily_digest: 2,

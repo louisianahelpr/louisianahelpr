@@ -27,6 +27,14 @@
  * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | admin.from("chargeback_clawbacks").select("repay_transfer_id, job_id, jobs(title)").eq("helper_id", userId) | admin.from("chargeback_clawbacks").select("repay_transfer_id, job_id, jobs(title)")
  * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |     out.set(r.repay_transfer_id, [r.tip_source === "delivery" |     out.set(r.repay_transfer_id, [r.tip_source !== "delivery"
  * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |   for (const r of clawbackRepays as | for (const r of [] as
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |   for (const r of crewBlockFees as | for (const r of [] as
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |   for (const r of managerShares as | for (const r of [] as
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | admin.from("crew_block_fees").select("stripe_transfer_id, job_id, jobs(title)").eq("helper_id", userId) | admin.from("crew_block_fees").select("stripe_transfer_id, job_id, jobs(title)")
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | admin.from("declutter_manager_payouts").select("stripe_transfer_id, order_id").eq("manager_id", userId) | admin.from("declutter_manager_payouts").select("stripe_transfer_id, order_id")
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |     if (fee && instantFees.has(fee)) { |     if (false) {
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |       const back = bt.type === "transfer_refund"; |       const back = false;
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts | admin.from("instant_payouts").select("fee_transfer_id").eq("helper_id", userId) | admin.from("instant_payouts").select("fee_transfer_id")
+ * @mutate supabase/functions/stripe-payouts/payoutDetail.ts |   if (bt.type === "transfer_refund" && src && typeof src === "object") return idOf((src as { transfer?: unknown }).transfer); |
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -312,6 +320,73 @@ describe("F267a: a tip (a destination charge) is named from the caller's own tip
       { kind: "tip", label: "Tip: a job", amount_cents: 200, href: null },
       { kind: "tip", label: "Tip: a delivery", amount_cents: 300, href: "/declutter?view=deliver" },
     ]);
+  });
+});
+
+// Q2810 (lead 11-14, Builder 2): a crew block fee, a Declutter manager's share and an instant cash-out fee coming back
+// read "Payment" / "Taken back". Each is named from the caller's own ledger row now.
+describe("Q2810: a crew block fee, a manager's share and the instant cash-out fee each get their own line", () => {
+  function fakeAdmin(rows: Record<string, unknown[]>, reads: [string, string, unknown][]) {
+    return {
+      from: (table: string) => {
+        const b: Record<string, unknown> = {};
+        b.select = () => b;
+        b.eq = (col: string, v: unknown) => { reads.push([table, col, v]); return b; };
+        b.in = () => b;
+        b.then = (resolve: (v: unknown) => unknown) => Promise.resolve({ data: rows[table] ?? [], error: null }).then(resolve);
+        return b;
+      },
+    };
+  }
+  const stripeWith = (bts: unknown[], amount: number) => ({
+    payouts: { retrieve: () => Promise.resolve({ id: "po_1", amount, currency: "usd", status: "paid", arrival_date: 1, created: 0, destination: null }) },
+    balanceTransactions: { list: () => ({ autoPagingToArray: () => Promise.resolve(bts) }) },
+    transfers: { retrieve: (id: string) => Promise.resolve({ id, transfer_group: null }) },
+  });
+
+  it("names the crew block fee and the manager's share from their ledgers, with links, scoped to the caller", async () => {
+    const reads: [string, string, unknown][] = [];
+    const admin = fakeAdmin({
+      crew_block_fees: [{ stripe_transfer_id: "tr_block", job_id: "j7", jobs: { title: "Move a piano" } }],
+      declutter_manager_payouts: [{ stripe_transfer_id: "tr_mgr", order_id: "o9" }],
+      declutter_cart_items: [{ order_id: "o9", declutter_items: { title: "Oak dresser" } }, { order_id: "o9", declutter_items: { title: "Lamp" } }],
+    }, reads);
+    // deno-lint-ignore no-explicit-any
+    const d = await payoutDetail(stripeWith([payment("tr_block", 1500), payment("tr_mgr", 800)], 2300) as any, admin, "user-1", "acct_mine", "po_1aaaaaaaa");
+    expect(d.lines).toEqual([
+      { kind: "crew_block_fee", label: "Closed crew spot: Move a piano", amount_cents: 1500, href: "/jobs/j7" },
+      { kind: "manager_share", label: "Your share: Oak dresser and 1 more", amount_cents: 800, href: "/declutter?tab=selling" },
+    ]);
+    expect(d.lines.reduce((s, l) => s + l.amount_cents, 0)).toBe(2300);
+    expect(reads).toContainEqual(["crew_block_fees", "helper_id", "user-1"]);
+    expect(reads).toContainEqual(["declutter_manager_payouts", "manager_id", "user-1"]);
+  });
+
+  it("the instant cash-out fee going out and coming back are named from the caller's instant_payouts row, never 'Taken back'", async () => {
+    const reads: [string, string, unknown][] = [];
+    const admin = fakeAdmin({ instant_payouts: [{ fee_transfer_id: "tr_fee1" }] }, reads);
+    const bts = [
+      bt({ type: "transfer", net: -90, source: { id: "tr_fee1", object: "transfer" } }),
+      bt({ type: "transfer_refund", net: 90, source: { id: "trr_1", object: "transfer_reversal", transfer: "tr_fee1" } }),
+      // A reversal of a transfer that is not the caller's fee keeps its plain label.
+      bt({ type: "transfer_refund", net: 40, source: { id: "trr_2", object: "transfer_reversal", transfer: "tr_other" } }),
+      payment("tr_x", 500),
+    ];
+    // deno-lint-ignore no-explicit-any
+    const d = await payoutDetail(stripeWith(bts, 540) as any, admin, "user-1", "acct_mine", "po_1aaaaaaaa");
+    expect(d.lines.map((l) => [l.kind, l.label, l.amount_cents, l.href])).toEqual([
+      ["instant_fee", "Instant cash-out fee", -90, null],
+      ["instant_fee", "Instant cash-out fee returned", 90, null],
+      ["reversal", "Taken back", 40, null],
+      ["other", "Payment", 500, null],
+    ]);
+    expect(d.lines.reduce((s, l) => s + l.amount_cents, 0)).toBe(540);
+    expect(reads).toContainEqual(["instant_payouts", "helper_id", "user-1"]);
+  });
+
+  it("reads an expanded reversal transfer object as well as an id", () => {
+    const lines = linesFor([bt({ type: "transfer_refund", net: 75, source: { id: "trr_3", transfer: { id: "tr_fee2" } } })], new Map(), new Set(["tr_fee2"]));
+    expect(lines).toEqual([{ kind: "instant_fee", label: "Instant cash-out fee returned", amount_cents: 75, href: null }]);
   });
 });
 

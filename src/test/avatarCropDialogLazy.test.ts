@@ -13,7 +13,7 @@
  * itself is checked by land.sh's critical-path budget.
  */
 // @mutate src/components/profile/AvatarCropDialog.tsx | import type { Area } from "react-easy-crop"; | import type { Area } from "react-easy-crop";\nimport "./AvatarCropDialogView";
-// @mutate src/components/profile/AvatarCropDialog.tsx | const loadView = () => import("./AvatarCropDialogView"); | import * as viewModule from "./AvatarCropDialogView";\nconst loadView = async () => viewModule;
+// @mutate src/components/profile/AvatarCropDialog.tsx | const loadView = () => loadModule(() => import("./AvatarCropDialogView")); | import * as viewModule from "./AvatarCropDialogView";\nconst loadView = async () => viewModule;
 // @mutate src/components/profile/AvatarCropDialog.tsx |   const dialog = src ? ( |   const dialog = true ? (
 // @mutate vite.config.ts | hooks[\\/](useMembershipsOn\|useArrivalGate\|usePullToRefresh)\.ts | hooks[\\/](useMembershipsOn\|useArrivalGate)\.ts
 // @mutate vite.config.ts |               test: PULL_TO_REFRESH, |               test: /^$/,
@@ -34,8 +34,8 @@ describe("the You landing does not download what it does not draw", () => {
     expect(imports).not.toContain("./AvatarCropDialogView");
     expect(imports).not.toContain("react-easy-crop");
     expect(imports).not.toContain("@/components/ui/dialog");
-    expect(hook).toMatch(/const loadView = \(\) => import\("\.\/AvatarCropDialogView"\);/);
-    expect(hook).toMatch(/lazy\(loadView\)/);
+    expect(hook).toMatch(/const loadView = \(\) => loadModule\(\(\) => import\("\.\/AvatarCropDialogView"\)\);/);
+    expect(hook).toMatch(/lazy\(async \(\) => \(await loadView\(\)\) \?\? untilReload\(\)\)/);
     expect(hook).toMatch(/const dialog = src \? \(/);
     // The view owns the heavy parts.
     const view = staticImports(code("src/components/profile/AvatarCropDialogView.tsx"));

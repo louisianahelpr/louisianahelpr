@@ -2,7 +2,7 @@
 /**
  * PGlite proof for 20261115001106_single_client_read_failure_no_alert.sql (Q2780, lead 11-14, by recommendation):
  * on the public low-stakes read surfaces (LiveJobsSection, BootWatchdog) a NEW ledger item opens only on a pattern,
- * 3 rows in 24 hours or 2 distinct members. Guests share one guest_fp per message and path on prod, so the guest cases
+ * 3 rows in 24 hours or 2 distinct members (the rule as set 2026-11-14). Guests share one guest_fp per message and path on prod, so the guest cases
  * here all use ONE fingerprint. Money, dispute and crash screens still open on first sight; repeats of an open item
  * and the grants are unchanged.
  *

@@ -1,5 +1,5 @@
 /**
- * Q2792 (check:changed a11y-prod sweep, 11-10 and again 11-14 on Builder 2's push): screen 010 job-detail-completed
+ * Q2792 (check:changed a11y-prod sweep, 2026-11-10 and again 2026-11-14 on Builder 2's push): screen 010 job-detail-completed
  * failed axe-core 4.14's label-content-name-mismatch (WCAG 2.5.3, "Label in Name"), target `.grid-cols-2`. That is
  * JobProofPhotos' page-variant button: it draws the "Before" and "After" tiles and was named by an aria-label, "See
  * the before and after photos", which does not hold the drawn words in order. The button now has no aria-label: its

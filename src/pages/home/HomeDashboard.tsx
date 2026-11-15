@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ComponentTyp
 import { removeShellOncePainted } from "@/components/landing/landingShell";
 import { HOME_SHELL_ID } from "@/components/landing/homeShell";
 import { greetingDate, greetingFor, readGreetingName, saveGreetingName } from "@/lib/homeGreetingShell.mjs";
-import { YourPageLink } from "@/components/profile/YourPageLink";
+import { YourPageLink, publicPageQuery } from "@/components/profile/YourPageLink";
 import { FirstRun } from "@/components/firstRun/FirstRunHost";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -115,6 +115,13 @@ function HomeDashboardScreen() {
   const topSettled = useHomeTopSettled(user?.id, firstJob);
   const holdBelowNextUp = useHoldWhileFirstVisitReads(firstVisit && (summary.todosLoading || !!money.pending));
   const queryClient = useQueryClient();
+  // Home LCP (prod-audit 43650083979, 11-14): the Your page card mounts only once the top cards settle, and it then
+  // asked whether the page opens, so on a phone its line was /home's largest paint at 9.8 s. Ask as soon as the
+  // profile names the handle, beside the top cards' reads; the card then draws from the cache when it mounts.
+  const myHandle = profile?.handle ?? null;
+  useEffect(() => {
+    if (myHandle) void queryClient.prefetchQuery(publicPageQuery(myHandle));
+  }, [myHandle, queryClient]);
   const { visible } = useSectionPrefs();
   const live = useSectionTabs();
   const isLive = (s: (typeof visible)[number]) => s.feature === null || !!live.find((tab) => tab.path === s.path)?.on;

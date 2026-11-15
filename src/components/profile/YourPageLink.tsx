@@ -17,6 +17,18 @@ import { t } from "@/lib/i18n/language";
  * makes one for the rare member the sign-up trigger could not name). Changing it once stays in Settings
  * (ProfileLinkRow). Renders nothing until the handle is known, and nothing on a failed read.
  */
+/**
+ * The "does my page open?" read (public_profile_by_handle, the /u page's own read and cache key). Shared so Home can
+ * start it the moment the handle is known instead of when this card mounts (home LCP, prod-audit 43650083979 11-14:
+ * on a phone the card's line was /home's largest paint at 9.8 s, mounted only after the top cards settled and only
+ * then asking). Guard: src/test/homeStartsYourPageRead.test.ts.
+ */
+export const publicPageQuery = (handle: string) => ({
+  queryKey: ["public-profile", handle] as const,
+  queryFn: () => fetchPublicProfile(handle),
+  staleTime: 10 * 60_000,
+});
+
 export function YourPageLink({ name, className = "", forSale = 0, knownHandle, slim = false }: { name?: string | null; className?: string; forSale?: number; knownHandle?: string | null; slim?: boolean }) {
   // A caller that already has the member's profile row (Home) passes its handle: no read at all.
   const { data: readHandle } = useQuery({
@@ -34,12 +46,7 @@ export function YourPageLink({ name, className = "", forSale = 0, knownHandle, s
   // available" (public_profile_by_handle answers nothing for a hidden, restricted or test account). Ask the same read
   // the page uses (same cache key, so opening the page is instant); when it answers "no page", say so and offer no link
   // to share. A failed read keeps the card: a network blip must not hide a working link.
-  const { data: publicPage } = useQuery({
-    enabled: !!handle,
-    queryKey: ["public-profile", handle],
-    queryFn: () => fetchPublicProfile(handle as string),
-    staleTime: 10 * 60_000,
-  });
+  const { data: publicPage } = useQuery({ ...publicPageQuery(handle ?? ""), enabled: !!handle });
   if (!handle) return null;
   if (publicPage === null) {
     return (

@@ -677,7 +677,12 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     }
     const openMorning = ct(dayBefore, "09:00");
     const dayOf = ct(date, "07:00");
-    await helperAt(CT, new Date(ct(dayBefore, "00:00").getTime() - 4 * 3_600_000), /4h 0m until you can confirm/, false, "before-open"); // the clock panel since Q1399 (#2609)
+    // F270 (owner 11-11, confirmationOpensClock.ts confirmOpensWords): the opening is plain words naming the day
+    // and time in Central ("Confirm opens Thu at 12:00 AM."), no longer a running "4h 0m until you can confirm".
+    // The weekday is computed here from the fixture's own date, not read from the app. toLocaleTimeString may put
+    // a narrow no-break space before "AM", hence \s.
+    const opensDay = new Intl.DateTimeFormat("en-US", { timeZone: CT, weekday: "short" }).format(ct(dayBefore, "12:00"));
+    await helperAt(CT, new Date(ct(dayBefore, "00:00").getTime() - 4 * 3_600_000), new RegExp(`Confirm opens ${opensDay} at 12:00\\sAM\\.`), false, "before-open"); // the clock panel since Q1399 (#2609)
     await helperAt(CT, openMorning, new RegExp(`Confirm by .* 8:00 AM \\(${hoursLeft(openMorning)}h left\\)`), true, "open-morning");
     await helperAt(CT, dayOf, new RegExp(`Confirm by .* 8:00 AM \\(${hoursLeft(dayOf)}h left\\)`), true, "day-of");
     await helperAt(CT, ct(date, "08:30"), /Confirmation is past due/, true, "past-deadline");

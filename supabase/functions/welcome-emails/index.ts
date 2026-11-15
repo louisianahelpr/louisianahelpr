@@ -4,7 +4,8 @@
 // refuses test recipients again at send time. The listings shown are real
 // ones only: seed jobs are left out (get_ranked_open_jobs p_include_seed
 // false), so are jobs posted by enrolled test accounts, seed items and items
-// of enrolled test accounts, and never the member's own. A defect
+// of enrolled test accounts, never the member's own, and never one from
+// someone in a block with the member, either direction (fails closed). A defect
 // answers 500 and sweep_cron_http_failures reports it.
 //
 // welcome-emails (owner 11-14, "Yes do that"): two emails to a new member,
@@ -78,6 +79,11 @@ const CAP = 25;
 const STEPS: WelcomeStep[] = [1, 3];
 /** Shown per list. */
 const SHOWN = 3;
+/**
+ * Jobs read per member. More than SHOWN because the member's own jobs, test accounts' jobs and jobs across a block
+ * are dropped after the read (the service role has no session, so get_ranked_open_jobs cannot drop them itself).
+ */
+const JOBS_READ = 12;
 /** The newest live items read once per run; the nearest SHOWN of them go in each email. */
 const ITEMS_READ = 60;
 const HOUR = 60 * 60 * 1000;
@@ -226,8 +232,25 @@ serve(async (req) => {
           continue;
         }
         const lang = welcomeLang(m.language);
+        // Blocks, either direction: never a job or an item from someone the member blocked or who blocked them. The
+        // service role reads user_blocks for this member only. FAIL CLOSED: if the read fails, nothing is mailed and
+        // the claim is released for a retry (a list that might show a blocked person is never sent).
+        const { data: blockRows, error: blocksErr } = await supabase
+          .from("user_blocks")
+          .select("blocker_id, blocked_id")
+          .or(`blocker_id.eq.${m.user_id},blocked_id.eq.${m.user_id}`);
+        if (blocksErr) {
+          defects.push(`blocks read failed for member ${m.user_id} step ${step}: ${blocksErr.message}`);
+          await release(m.user_id, step);
+          continue;
+        }
+        const blockedWith = new Set<string>();
+        for (const b of (blockRows ?? []) as { blocker_id: string; blocked_id: string }[]) {
+          if (b.blocker_id === m.user_id) blockedWith.add(b.blocked_id);
+          else if (b.blocked_id === m.user_id) blockedWith.add(b.blocker_id);
+        }
         const { data: jobData, error: jobsErr } = await supabase.rpc("get_ranked_open_jobs", {
-          p_limit: SHOWN,
+          p_limit: JOBS_READ,
           p_offset: 0,
           p_include_seed: false,
           ...(m.latitude != null && m.longitude != null ? { p_lat: m.latitude, p_lng: m.longitude } : {}),
@@ -238,7 +261,7 @@ serve(async (req) => {
           continue;
         }
         // get_ranked_open_jobs leaves out is_seed jobs; under the service role it cannot know the member, and it does
-        // not return the poster. Drop the member's own jobs and jobs posted by an enrolled test account.
+        // not return the poster. Drop the member's own jobs, jobs posted by an enrolled test account, and jobs across a block.
         let jobs = (jobData ?? []) as Job[];
         const jobIds = jobs.map((j) => j.id).filter(Boolean);
         if (jobIds.length > 0) {
@@ -257,7 +280,7 @@ serve(async (req) => {
           const posterOf = new Map(posterRows.map((p) => [p.id, p.customer_id]));
           jobs = jobs.filter((j) => {
             const poster = posterOf.get(j.id);
-            return !!poster && poster !== m.user_id && !testSet.has(poster);
+            return !!poster && poster !== m.user_id && !testSet.has(poster) && !blockedWith.has(poster);
           });
         }
         let html: string;
@@ -276,7 +299,7 @@ serve(async (req) => {
               lang,
               fullName: m.full_name,
               jobs: jobRows(jobs, lang, appUrl),
-              items: itemsNear(items, m, lang, appUrl),
+              items: itemsNear(items.filter((i) => !blockedWith.has(i.seller_id)), m, lang, appUrl),
               appUrl: `${appUrl}/home`,
               unsubscribeUrl,
             }),

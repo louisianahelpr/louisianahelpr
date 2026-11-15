@@ -106,7 +106,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 2273 items — 2225 done, 19 partly done (fixed, protection pending), 29 open.**
+**Queue: 2275 items — 2225 done, 19 partly done (fixed, protection pending), 31 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -120,6 +120,8 @@ sure someone hears it and closes it.
 
 
 ## QUEUE (cont.) — added 2026-09-23 late
+- [ ] **Q2807 LOW Three more job reads with no poster id never check blocks: the landing teaser, a member's public profile and the instant job match.** Found by the lh-authz-rls review of 20261115063613 (ranked feed + map now hide jobs across a block, either direction). Still unfiltered: `get_public_open_jobs` (signed-in members can call it), `public_profile_by_handle` (lists the owner's open jobs to someone the owner blocked; may be by design for a public page, decide), `enqueue_instant_job_match` (SQL never checks; confirm the instant-job-match edge function's own user_blocks read covers it). Fix: the same two-way NOT EXISTS in each newest definition, or record why not; extend src/test/rankedJobsHideBlocked.test.ts to cover them. finding: lh-authz-rls@e493efe530#6
+- [ ] **Q2808 LOW Welcome emails show a member the guest copy of job text ("[phone hidden]").** welcome-emails calls get_ranked_open_jobs as the service role, which has no session, so since 20261114234033 the title, description and special requirements come back masked as for a guest. Safe (it hides more), but the email can read oddly. Decide: keep, or give the sender an unmasked read scoped to the member. finding: lh-authz-rls@e493efe530#7
 
 
 

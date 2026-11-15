@@ -38,7 +38,7 @@
 // @mutate src/components/profile/EarningsTab.tsx | useArrivalGate(!loading, streakState.settled && !ledgerPending) | useArrivalGate(!loading, true)
 // @mutate src/components/profile/EarningsTab.tsx | streakState.settled && !ledgerPending) | streakState.settled)
 // @mutate src/components/profile/ReviewsTab.tsx | {!loading && reviewCount > 0 && avgRating != null && ( | {reviewCount > 0 && avgRating != null && (
-// @mutate src/pages/home/Dashboard.tsx |         titleCard={embeddedTitle}\n        titleCardClassName="" |         titleCard={undefined}\n        titleCardClassName=""
+// @mutate src/pages/home/Dashboard.tsx |         titleCard={embeddedTitle}\n        // Phone: the loaded page's title card |         titleCard={undefined}\n        // Phone: the loaded page's title card
 // @mutate src/components/ui/skeletons/JobCardSkeleton.tsx | invisible font-sans leading-none tabular-nums text-ds-17 | invisible h-9 w-16
 // @mutate src/pages/home/DashboardGuest.tsx | const FEED_GRID_CLASS = GUEST_FEED_GRID_CLASS; | const FEED_GRID_CLASS = "grid grid-cols-1 gap-3";
 // @mutate src/pages/home/DashboardGuest.tsx | footer={feedSettled} | footer={true}

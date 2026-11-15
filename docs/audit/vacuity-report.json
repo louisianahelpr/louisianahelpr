@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-15T19:42:40.225Z",
-  "guards": 4123,
-  "registered": 4111,
+  "generated": "2026-11-15T22:20:42.311Z",
+  "guards": 4149,
+  "registered": 4137,
   "unregistered": [
     "src/components/shops/publicShopLayout.test.tsx",
     "src/components/shops/shopBrowseCardName.test.tsx",
@@ -19,6 +19,7 @@
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/declutter/orderTalkPhotos.test.tsx",
+    "src/components/profile/earningsNoAccountOnePaint.test.tsx",
     "src/components/shops/shopCustomOrderForm.test.tsx",
     "src/components/shops/shopVisitorAudit2.test.tsx",
     "src/pages/jobs/jobPage/expiredRepost.test.tsx",
@@ -92,24 +93,6 @@
       "parents": [
         "src/components/rentals/listings/ListingView.tsx",
         "src/components/messages/HomeTalkInbox.tsx"
-      ]
-    },
-    {
-      "module": "src/components/sponsor/ClaimSection.tsx",
-      "tests": [
-        "src/test/sponsor25days.test.tsx"
-      ],
-      "parents": [
-        "src/pages/sponsor/SponsorPage.tsx"
-      ]
-    },
-    {
-      "module": "src/components/sponsor/Sections.tsx",
-      "tests": [
-        "src/test/sponsor25days.test.tsx"
-      ],
-      "parents": [
-        "src/pages/sponsor/SponsorPage.tsx"
       ]
     },
     {

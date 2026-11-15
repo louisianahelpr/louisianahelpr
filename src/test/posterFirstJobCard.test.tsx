@@ -52,15 +52,15 @@ describe("the poster's first-week checklist on Home (UX-5)", () => {
     rows = [open];
     renderCard();
     expect(await screen.findByRole("heading", { name: "Your first job posted" })).toBeTruthy();
-    const steps = [...document.querySelectorAll("[data-step]")].map((b) => `${b.getAttribute("data-step")}:${b.hasAttribute("data-done")}`);
-    expect(steps).toEqual(["post:true", "hire:false", "approve:false"]);
+    const steps = [...document.querySelectorAll("[data-segment]")].map((b) => b.hasAttribute("data-filled"));
+    expect(steps).toEqual([true, false, false]);
   });
 
   it("someone hired: Hire is ticked", async () => {
     rows = [open, hired];
     renderCard();
     await screen.findByRole("heading", { name: "Your first job posted" });
-    expect(document.querySelector('[data-step="hire"]')?.hasAttribute("data-done")).toBe(true);
+    expect([...document.querySelectorAll("[data-segment]")].map((b) => b.hasAttribute("data-filled"))).toEqual([true, true, false]);
   });
 
   it("gone once a posted job is finished, and never before a first post", async () => {

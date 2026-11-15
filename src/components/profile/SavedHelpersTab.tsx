@@ -128,7 +128,6 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
         title="Saved Helprs"
         onBack={onBack}
         rightSlot={
-          helpers.length > 0 ? (
             /* THE MAGNIFIER OPENS; THE ✕ IN THE FIELD CLOSES (owner,
                2026-09-19: "the magnifier should move to the left and the x
                stay").
@@ -142,10 +141,12 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                on every other screen, and while the field is up this slot is
                held OPEN rather than filled with a different control — so the
                header does not shift and nothing tappable is standing where the
-               magnifier is about to come back. */
-            searchOpen ? (
-              <SearchTriggerSlot />
-            ) : (
+               magnifier is about to come back.
+
+               Held open too while the list loads and when it is empty (prod-audit run 43691657529, page-settle
+               0.032 at 375): with no slot the title had the row to itself, and when the saved Helprs arrived the
+               magnifier took 44px, the title wrapped to a second line (34 -> 65px) and the list moved down 29px. */
+          helpers.length > 0 && !searchOpen ? (
             <button
               ref={searchTriggerRef}
               type="button"
@@ -158,8 +159,9 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
             >
               <Search className="w-5 h-5" />
             </button>
-            )
-          ) : undefined
+          ) : (
+            <SearchTriggerSlot />
+          )
         }
       />
 

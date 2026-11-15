@@ -34,3 +34,21 @@ export async function takeHomeFirstJobPrefetch(userId: string, now: number = Dat
   if (!s || now - s.at > HOME_PREFETCH_MAX_AGE_MS || s.userId !== userId) return null;
   return usable(await s.answer);
 }
+
+/** Same string as HOME_PAGE_PREFETCH_KEY in the boot module (the test pins it). */
+const PAGE_KEY = "__lhHomePagePrefetch";
+type PageSlot = { at: number; userId: string; page: Promise<{ handle?: unknown; data?: unknown } | null> };
+
+/**
+ * public_profile_by_handle's raw answer for the member's own handle, read by the entry beside the app's download
+ * (`data` may be null: no page to show). Null when the entry has none for this member and handle, or it is old: the
+ * card then reads for itself. Handed out once.
+ */
+export async function takeHomeOwnPagePrefetch(userId: string, handle: string, now: number = Date.now()): Promise<{ data: unknown } | null> {
+  const w = window as unknown as Record<string, PageSlot | undefined>;
+  const s = w[PAGE_KEY];
+  w[PAGE_KEY] = undefined;
+  if (!s || s.userId !== userId || now - s.at > HOME_PREFETCH_MAX_AGE_MS) return null;
+  const a = await s.page.catch(() => null);
+  return a && a.handle === handle && "data" in a ? { data: a.data } : null;
+}

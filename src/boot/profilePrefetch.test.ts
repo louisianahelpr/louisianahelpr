@@ -14,7 +14,7 @@
 // @mutate src/lib/profileBootPrefetch.ts |   return s && now - s.at <= PROFILE_PREFETCH_MAX_AGE_MS ? s : null; |   return s ?? null;
 // @mutate src/hooks/useFeature.ts | (await takeFirstScreenSwitches(uid)) ?? (await takeProfileSwitches(uid)) | await takeFirstScreenSwitches(uid)
 // @mutate src/components/landing/useSectionsOpen.ts | (await takeGuestSectionsOpen()) ?? (await takeProfileSectionsOpen()) | await takeGuestSectionsOpen()
-// @mutate src/lib/profileLink/api.ts |   const boot = await takeProfilePage(handle); |   const boot = null as { data: unknown } \| null;
+// @mutate src/lib/profileLink/api.ts |   const boot = given ?? (await takeProfilePage(handle)); |   const boot = given ?? (null as { data: unknown } \| null);
 // @mutate src/boot/signedInPrefetch.ts |   startProfilePrefetch(pathname, location.search); |
 // @mutate src/entry.ts | \|posts\|profile)?\/?$/.test(window.location.pathname) | \|posts)?\/?$/.test(window.location.pathname)
 // @mutate src/hooks/useFeature.ts | import { takeProfileSwitches } from "@/lib/profileBootTake"; | import { takeProfileSwitches } from "@/lib/profileBootPrefetch";
@@ -153,7 +153,7 @@ describe("the entry asks the You landing's gated reads at once", () => {
     expect(code("src/hooks/useFeature.ts")).toMatch(/\(await takeFirstScreenSwitches\(uid\)\) \?\? \(await takeProfileSwitches\(uid\)\)/);
     expect(code("src/components/landing/useSectionsOpen.ts")).toMatch(/\(await takeGuestSectionsOpen\(\)\) \?\? \(await takeProfileSectionsOpen\(\)\)/);
     const api = code("src/lib/profileLink/api.ts");
-    expect(api).toMatch(/const boot = await takeProfilePage\(handle\);/);
+    expect(api).toMatch(/const boot = given \?\? \(await takeProfilePage\(handle\)\);/);
     expect(api).toMatch(/if \(!boot\) \{\s*const res = await supabase\.rpc\("public_profile_by_handle"/);
     expect(code("src/boot/signedInPrefetch.ts")).toMatch(/startProfilePrefetch\(pathname, location\.search\);/);
     const gate = /hasToken\(\) && (\/.*\/)\.test\(window\.location\.pathname\)/.exec(code("src/entry.ts"))?.[1];

@@ -118,7 +118,13 @@ export async function abortProdWrites(ctx: BrowserContext, supabaseUrl: string, 
     }
     return route.abort("blockedbyclient");
   });
+  // Test noise never reaches the owner (lead 11-14: a prod run whose reads were cut sent Sentry events
+  // JAVASCRIPT-2E/2F/2G). Every Sentry ingest request from a swept page is aborted too; nothing is recorded.
+  await ctx.route(SENTRY_INGEST, (route) => route.abort("blockedbyclient"));
 }
+
+/** Sentry's ingest hosts (the app's DSN is o<org>.ingest.us.sentry.io). Exported for its guard. */
+export const SENTRY_INGEST = /^https:\/\/([a-z0-9-]+\.)*sentry\.io\//i;
 
 function safePageUrl(req: Request): string {
   try {

@@ -111,7 +111,16 @@ async function open(page: Page, screen: (typeof SCREENS)[number], tag: string) {
     await page.getByRole("button", { name: screen.sheet }).first().click();
     const dialog = page.getByRole("dialog").last();
     await expect(dialog, `${tag}: the sheet opened`).toBeVisible();
-    await expect(dialog.getByRole("heading").first(), `${tag}: the sheet carries its title`).toBeVisible();
+    if ((page.viewportSize()?.width ?? 0) >= 900) {
+      // The desktop website opens the small drop-down under the button (FilterDropdown, owner 2026-10-28: "filters
+      // should be a small drop down like this"): no title row by design, named for assistive tech instead. Its
+      // section titles and chips are what the upright check reads. Failed every night since (runs 43181792847,
+      // 43691657529: "the sheet carries its title" found no heading).
+      await expect(dialog, `${tag}: the desktop drop-down opened`).toHaveAttribute("data-filter-dropdown", "");
+      await expect(dialog, `${tag}: the drop-down carries its name`).toHaveAccessibleName(/^Filter jobs$/);
+    } else {
+      await expect(dialog.getByRole("heading").first(), `${tag}: the sheet carries its title`).toBeVisible();
+    }
   }
   await page.waitForTimeout(700);
 }

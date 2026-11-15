@@ -3,7 +3,9 @@ import { FileText, Loader2 } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import { TabsContent } from "@/components/ui/tabs";
 import type { Profile } from "../adminUserHelpers";
-import { isStorageObjectPath, openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
+import { isBrowserImagePath, isStorageObjectPath, openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
+import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
+import { useInAppPhotoViewer, useSinglePhotoViewer } from "@/components/useInAppPhotoViewer";
 import { openSignedDocument } from "@/lib/openSignedDocument";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
@@ -26,23 +28,25 @@ interface DocumentsTabProps {
  */
 function SignedPortfolioTile({ path, fileName }: { path: string; fileName: string }) {
   const [busy, setBusy] = useState(false);
+  const { showSigned, viewer } = useSinglePhotoViewer();
+  const sign = async () => {
+    if (!isStorageObjectPath(path)) return null;
+    const { data, error } = await supabase.storage
+      .from("user-documents")
+      .createSignedUrl(path, 300);
+    if (error) report(error, { tags: { source: "DocumentsTab.SignedPortfolioTile" } });
+    return error || !data ? null : data.signedUrl;
+  };
   const open = async () => {
     setBusy(true);
-    await openSignedDocument({
-      open: (url, target) => window.open(url, target),
-      sign: async () => {
-        if (!isStorageObjectPath(path)) return null;
-        const { data, error } = await supabase.storage
-          .from("user-documents")
-          .createSignedUrl(path, 300);
-        if (error) report(error, { tags: { source: "DocumentsTab.SignedPortfolioTile" } });
-        return error || !data ? null : data.signedUrl;
-      },
-      toastError: (msg) => toast.error(msg),
-    });
+    // A photo opens in the app's own viewer (owner 2026-11-15); only a document (PDF) opens a new tab.
+    if (isBrowserImagePath(path)) await showSigned(sign, fileName, (msg) => toast.error(msg));
+    else await openSignedDocument({ open: (url, target) => window.open(url, target), sign, toastError: (msg) => toast.error(msg) });
     setBusy(false);
   };
   return (
+    <>
+    {viewer}
     <button
       type="button"
       onClick={open}
@@ -52,12 +56,23 @@ function SignedPortfolioTile({ path, fileName }: { path: string; fileName: strin
       {busy ? <Loader2 className="w-6 h-6 text-muted-foreground mb-1 animate-spin" /> : <FileText className="w-6 h-6 text-muted-foreground mb-1" />}
       <p title={fileName} className="text-muted-foreground text-ds-11 text-center truncate w-full">{fileName}</p>
     </button>
+    </>
   );
 }
 
 export function DocumentsTab({ viewProfile }: DocumentsTabProps) {
+  const portfolio: string[] = viewProfile.portfolio_urls || [];
+  const avatarSrc = safeDocumentUrl(viewProfile.avatar_url);
+  // Owner 2026-11-15: a photo opens in the app's own viewer, never a new tab on its storage URL.
+  const avatarViewer = useSinglePhotoViewer();
+  const { open: openPortfolioPhoto, viewer: portfolioViewer } = useInAppPhotoViewer(
+    portfolio.map((u) => (isBrowserImagePath(u) ? safeDocumentUrl(u) : null)),
+    portfolio.map((_, i) => `Portfolio item ${i + 1}`),
+  );
   return (
     <TabsContent value="documents" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
+      {avatarViewer.viewer}
+      {portfolioViewer}
       {/* Profile Picture */}
       <div className="space-y-2">
         <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide">Profile Picture</h4>
@@ -71,9 +86,9 @@ export function DocumentsTab({ viewProfile }: DocumentsTabProps) {
              blank block the fix exists to remove; showing only a monogram
              would have hidden the artifact under review. So both ship: the
              guarded avatar identifies the account at a glance, and the
-             "Open original ↗" link below it — the same affordance the
-             credential documents below use — always reaches
-             the unaltered object. The monogram appearing here is itself
+             "Open original" button below it always shows the unaltered
+             upload full size, in the app's own photo viewer (owner
+             2026-11-15: never a new tab on the storage URL). The monogram appearing here is itself
              informative: it means the upload carries no image content, which
              is a fact worth an admin's attention. */
           <div className="space-y-1.5">
@@ -88,15 +103,13 @@ export function DocumentsTab({ viewProfile }: DocumentsTabProps) {
             />
             {/* avatar_url is the member's own column (no shape CHECK): the raw
                 value is never an href. A refused one says so. */}
-            {safeDocumentUrl(viewProfile.avatar_url) ? (
-              <a
-                href={openableDocumentUrl(viewProfile.avatar_url) ?? undefined}
-                target="_blank"
-                rel="noopener noreferrer"
+            {avatarSrc ? (
+              <PhotoOpenButton
+                onClick={() => avatarViewer.show(avatarSrc, "Profile picture, original upload")}
                 className="block text-ds-11 text-primary underline"
               >
-                Open original ↗
-              </a>
+                Open original
+              </PhotoOpenButton>
             ) : (
               <p className="text-ds-11 text-muted-foreground">Original not openable (not an https link)</p>
             )}
@@ -114,7 +127,7 @@ export function DocumentsTab({ viewProfile }: DocumentsTabProps) {
         {(viewProfile.portfolio_urls || []).length > 0 ? (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
             {(viewProfile.portfolio_urls || []).map((url: string, i: number) => {
-              const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+              const isImage = isBrowserImagePath(url);
               const fileName = url.split("/").pop() || "Document";
               // portfolio_urls is the member's own column (no shape CHECK):
               // anything but https / a raster data: image is shown, not linked
@@ -132,10 +145,11 @@ export function DocumentsTab({ viewProfile }: DocumentsTabProps) {
                 );
               }
               return isImage ? (
-                <a key={i} href={openableDocumentUrl(url) ?? undefined} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md overflow-hidden border border-border hover:border-primary transition-colors block group">
-                  <img loading="lazy" decoding="async" src={url} alt={`Portfolio item ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                </a>
+                <PhotoOpenButton key={i} onClick={() => openPortfolioPhoto(i)} aria-label={`Open portfolio item ${i + 1}`} className="aspect-square rounded-ds-md overflow-hidden border border-border hover:border-primary transition-colors block group">
+                  <img loading="lazy" decoding="async" src={safeDocumentUrl(url) ?? undefined} alt={`Portfolio item ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                </PhotoOpenButton>
               ) : (
+                // A document (PDF, Word file): the app has no document viewer, so it still opens in the browser's own.
                 <a key={i} href={openableDocumentUrl(url) ?? undefined} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-ds-md border border-border flex flex-col items-center justify-center bg-secondary/30 px-2 hover:border-primary transition-colors">
                   <FileText className="w-6 h-6 text-muted-foreground mb-1" />
                   <p title={fileName} className="text-muted-foreground text-ds-11 text-center truncate w-full">{fileName}</p>

@@ -1,7 +1,9 @@
 import { Pencil } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import { Badge } from "@/components/ui/badge";
-import { openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
+import { safeDocumentUrl } from "@/lib/storagePath";
+import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
+import { useSinglePhotoViewer } from "@/components/useInAppPhotoViewer";
 import { type Profile, adminFullName, statusBadge, stripeBadge } from "../adminUserHelpers";
 
 // The "Move to Pending" / "Resend denial email" row for denied accounts was
@@ -15,29 +17,24 @@ export function DetailHeader({
   viewProfile,
   setEditEmailProfile,
 }: DetailHeaderProps) {
+  const avatarSrc = safeDocumentUrl(viewProfile.avatar_url);
+  const { show, viewer } = useSinglePhotoViewer();
   return (
     <div className="flex gap-3 sm:gap-4">
-      {/* Migrated onto the shared `<UserAvatar>` (2026-08-31), with the link
-          to the ORIGINAL file kept. This is a moderation surface, so the two
-          requirements pull against each other: the admin must not be shown a
-          blank coloured block in place of a person (the defect), and must
-          still be able to inspect exactly what the member uploaded (the
-          evidence). Rendering the guarded avatar inside the existing
-          `<a href={avatar_url}>` satisfies both — the header identifies the
-          account, and one click opens the raw object at full fidelity.
-          `rounded-ds-md`, not the avatar squircle: this frame is deliberately
-          document-shaped on the admin screens.
-
-          The bare `<img>` this replaces had no error path, and its fallback (a
-          flat `bg-secondary` square with ONE letter) only rendered when
-          `avatar_url` was null. See `src/lib/avatarImage.ts`. */}
-      {safeDocumentUrl(viewProfile.avatar_url) ? (
-        <a
-          href={openableDocumentUrl(viewProfile.avatar_url) ?? undefined}
-          target="_blank"
-          rel="noopener noreferrer"
+      {viewer}
+      {/* The shared `<UserAvatar>` (2026-08-31), so the admin is never shown a
+          blank block in place of a person. Tapping it opens the member's
+          ORIGINAL upload full size in the app's own photo viewer (owner
+          2026-11-15: "when I click a picture it takes me out of the website
+          into Supabase"), so the evidence stays inspectable without a new tab
+          on the raw storage URL. `rounded-ds-md`, not the avatar squircle: this
+          frame is deliberately document-shaped on the admin screens.
+          Guard: src/test/photosOpenInApp.test.tsx. */}
+      {avatarSrc ? (
+        <PhotoOpenButton
+          onClick={() => show(avatarSrc, `${adminFullName(viewProfile.full_name, "This user")}'s profile photo`)}
           className="flex-shrink-0"
-          aria-label={`Open ${adminFullName(viewProfile.full_name, "this user")}'s profile photo file`}
+          aria-label={`Open ${adminFullName(viewProfile.full_name, "this user")}'s profile photo`}
         >
           <UserAvatar
             userId={viewProfile.user_id}
@@ -48,7 +45,7 @@ export function DetailHeader({
             className="w-20 h-20 sm:w-24 sm:h-24 rounded-ds-md border-2 border-border hover:border-primary transition-colors cursor-pointer"
             fallbackClassName="rounded-ds-md text-ds-24 ring-0"
           />
-        </a>
+        </PhotoOpenButton>
       ) : (
         <UserAvatar
           userId={viewProfile.user_id}

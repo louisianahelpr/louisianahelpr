@@ -2,7 +2,8 @@ import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { isStorageObjectPath, openableDocumentUrl } from "@/lib/storagePath";
+import { isBrowserImagePath, isStorageObjectPath, openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
+import { useSinglePhotoViewer } from "@/components/useInAppPhotoViewer";
 import { unwrapMutationRow, mutationErrorMessage } from "@/lib/mutationResult";
 import { unwrap } from "@/lib/supabaseResult";
 import { Label } from "@/components/ui/label";
@@ -60,6 +61,7 @@ const EMPTY: CredentialFields = {
 
 export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () => void }) {
   const qc = useQueryClient();
+  const photoViewer = useSinglePhotoViewer();
   const [removing, setRemoving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   // Documents picked on this device and not yet sent.
@@ -270,6 +272,21 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
   // they already sent. Bucket is private; clients can't construct the URL
   // themselves. RLS lets owners read their own paths.
   const openDoc = async (path: string) => {
+    // A photo of the document opens in the app's own viewer (owner 2026-11-15: "when I click a picture it takes me out
+    // of the website into Supabase"); only a PDF still opens in the phone's document viewer.
+    if (isBrowserImagePath(path)) {
+      if (!isStorageObjectPath(path)) {
+        const safe = safeDocumentUrl(path);
+        if (safe) photoViewer.show(safe, "Your document");
+        else toast.error("This document link isn't one we can open.");
+        return;
+      }
+      await photoViewer.showSigned(async () => {
+        const { data, error } = await supabase.storage.from("user-documents").createSignedUrl(path, 300);
+        return error || !data ? null : data.signedUrl;
+      }, "Your document", () => toast.error("Couldn't generate a view link."));
+      return;
+    }
     // Only a storage path is signed; any other value opens only if it passes
     // safeDocumentUrl, and a data: document opens as blob: (Q295).
     if (!isStorageObjectPath(path)) {
@@ -406,6 +423,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           second ownership model for the same element, which is why the tabs
           read as differently built. */}
       <ProfileTabHeader title="Licensed &amp; Insured" onBack={onBack} />
+      {photoViewer.viewer}
 
       <BrandConfirmDialog
         open={pullBack !== null}

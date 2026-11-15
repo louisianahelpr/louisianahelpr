@@ -118,7 +118,6 @@ const CLASSIFIED: Record<string, string> = {
   // --- stored values, sanitized upstream of the sink ---
   "components/AttachmentLink.tsx::signed": "getAttachmentSignedUrl(): isStorageObjectPath-gated createSignedUrl output, else null",
   "components/MessageAttachment.tsx::url": "thumbUrl / getMessageAttachmentSignedUrl(): isStorageObjectPath-gated createSignedUrl output, else null",
-  "components/admin/AdminCredentialQueue.tsx::signedUrl": "SignedOpenLink state: safeDocumentUrl(path) or createSignedUrl output, nothing else is ever set",
   "components/admin/AdminCredentialQueue.tsx::safe": "const safe = openableDocumentUrl(path) above (safeDocumentUrl output, or a blob: of its data: image)",
   "components/admin/AdminCredentialQueue.tsx::url": "SignedOpenLink's open() for openSignedDocument (Q295): only ever called with \"\" (the blank tab opened inside the click)",
   "components/admin/settings/RentalsOwnershipCard.tsx::url": "the ownership-proof button's open() for openSignedDocument (Q295): only ever called with \"\" (the blank tab opened inside the click)",

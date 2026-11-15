@@ -3,7 +3,9 @@ import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { isStorageObjectPath, openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
+import { isBrowserImagePath, isStorageObjectPath, openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
+import { PhotoOpenButton } from "@/components/ui/PhotoOpenButton";
+import { useSinglePhotoViewer } from "@/components/useInAppPhotoViewer";
 import { openSignedDocument } from "@/lib/openSignedDocument";
 import { report } from "@/lib/errorLogger";
 import UserAvatar from "@/components/UserAvatar";
@@ -447,7 +449,30 @@ const AdminCredentialQueue = () => {
 // via has_role('admin') in the bucket SELECT policy.
 function SignedOpenLink({ path }: { path: string }) {
   const [busy, setBusy] = useState(false);
+  const { show, showSigned, viewer } = useSinglePhotoViewer();
+  const sign = async () => {
+    if (!isStorageObjectPath(path)) return null;
+    const { data, error } = await supabase.storage
+      .from("user-documents")
+      .createSignedUrl(path, 300);
+    if (error) report(error, { tags: { source: "AdminCredentialQueue.SignedOpenLink" } });
+    return error || !data ? null : data.signedUrl;
+  };
   const open = async () => {
+    // A photo of the document opens in the app's own viewer (owner 2026-11-15:
+    // never a new tab on the storage URL); only a PDF opens a tab.
+    if (isBrowserImagePath(path)) {
+      if (!isStorageObjectPath(path)) {
+        const safe = safeDocumentUrl(path);
+        if (safe) show(safe, "Credential document");
+        else toast.error("This document link isn't one we can open.");
+        return;
+      }
+      setBusy(true);
+      await showSigned(sign, "Credential document", (msg) => toast.error(msg));
+      setBusy(false);
+      return;
+    }
     // A value that is already a URL opens as-is ONLY if it is an https: or
     // raster data: URL (safeDocumentUrl); only a storage path is signed.
     if (!isStorageObjectPath(path)) {
@@ -461,26 +486,22 @@ function SignedOpenLink({ path }: { path: string }) {
     setBusy(true);
     await openSignedDocument({
       open: (url, target) => window.open(url, target),
-      sign: async () => {
-        if (!isStorageObjectPath(path)) return null;
-        const { data, error } = await supabase.storage
-          .from("user-documents")
-          .createSignedUrl(path, 300);
-        if (error) report(error, { tags: { source: "AdminCredentialQueue.SignedOpenLink" } });
-        return error || !data ? null : data.signedUrl;
-      },
+      sign,
       toastError: (msg) => toast.error(msg),
     });
     setBusy(false);
   };
   return (
+    <>
+    {viewer}
     <InlineTextButton
       onClick={open}
       disabled={busy}
       className="inline-flex items-center gap-1 text-ds-11 text-primary disabled:opacity-50"
     >
-      {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <>Open <ExternalLink className="w-3 h-3" /></>}
+      {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <>Open {isBrowserImagePath(path) ? null : <ExternalLink className="w-3 h-3" />}</>}
     </InlineTextButton>
+    </>
   );
 }
 
@@ -490,6 +511,7 @@ function SignedOpenLink({ path }: { path: string }) {
 function DocPreview({ path }: { path: string }) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
+  const { show, viewer } = useSinglePhotoViewer();
 
   useEffect(() => {
     let cancelled = false;
@@ -540,14 +562,19 @@ function DocPreview({ path }: { path: string }) {
     );
   }
 
+  // Owner 2026-11-15: tapping the preview opens it full size in the app's own
+  // photo viewer, never a new tab on the signed storage URL.
   return (
-    <a href={signedUrl} target="_blank" rel="noopener noreferrer" className="block">
-      <img loading="lazy" decoding="async"
-        src={signedUrl}
-        alt="Credential document"
-        className="w-full max-h-48 object-contain rounded-ds-sm bg-background/60"
-      />
-    </a>
+    <>
+      <PhotoOpenButton onClick={() => show(signedUrl, "Credential document")} aria-label="Open credential document" className="block w-full">
+        <img loading="lazy" decoding="async"
+          src={signedUrl}
+          alt="Credential document"
+          className="w-full max-h-48 object-contain rounded-ds-sm bg-background/60"
+        />
+      </PhotoOpenButton>
+      {viewer}
+    </>
   );
 }
 

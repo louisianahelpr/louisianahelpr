@@ -17,7 +17,7 @@ import ProUpgradeSheet from "@/components/ProUpgradeSheet";
 import { safeStorage } from "@/lib/safeStorage";
 import { hasPayoutToCelebrate } from "@/components/wallet/payoutCelebrationGate";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
-import { EarningsPageSkeleton, EarningsPayoutSetupSkeleton, EarningsWalletBones } from "@/components/profile/earningsTab/EarningsPageSkeleton";
+import { EarningsNoAccountHold, EarningsPageSkeleton, EarningsPayoutSetupSkeleton, EarningsWalletBones } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { HelperStreakBadge, streakShows, useHelperStreak } from "@/components/profile/HelperStreakBadge";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
@@ -54,7 +54,7 @@ import { MoneyRecordRows } from "@/components/profile/earningsTab/MoneyRecordRow
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { FeesOwedLine } from "@/components/money/FeesOwedLine";
 import { SectionRule } from "./SectionRule";
-import { usePayoutSetupHireAllowed } from "@/hooks/usePayoutSetupHireAllowed";
+import { usePayoutSetupHireStatus } from "@/hooks/usePayoutSetupHireAllowed";
 // MERGED IN 2026-08-19 (owner request, stated three times): "My earnings",
 // "Earnings & Analytics" (/analytics) and "Payout & Payments" were three
 // separate Profile entry points onto three screens about the same subject —
@@ -144,9 +144,21 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const hasStripeAccount = !!profile?.stripe_account_id;
   // Q2708: which shape the connect slot's bones take (the connect card, or the not-hired-yet note). The same query
   // PayoutSetupForm reads, so starting it here adds no request and the answer is usually in before the bones paint.
-  const payoutHireAllowed = usePayoutSetupHireAllowed();
+  const { allowed: payoutHireAllowed, settled: payoutHireSettled } = usePayoutSetupHireStatus();
   const stripeAnswered = !stripeLoading && !stripeError;
   const showConnect = stripeAnswered && !stripeData?.connected;
+  // Q1816 / Q169: with no payout account, everything below the money tiles waits on ONE skeleton until the Stripe
+  // status, the hire answer and (when the connect card is coming) PaymentTab's own reads are all in, then paints in
+  // one commit. Before, the slot's bones took the note's shape, grew to the connect card's when the hire answer
+  // landed (Earned | Spent moved 158px), then the real card (386px) replaced the 252px bones (134px more): page-settle
+  // 0.12 + 0.07 at 375 (prod-audit run 43691657529). Only the earnings rows are primary; Stripe, the hire answer and
+  // PaymentTab are capped at ARRIVAL_CAP_MS ("Don't wait for Stripe", owner 2026-10-04): past the cap each slot
+  // falls back to its own bones, as before.
+  const noAccountBodyReady = useArrivalGate(
+    !loading,
+    !stripeLoading && payoutHireSettled && (!showConnect || connectSettled) && streakState.settled && !ledgerPending,
+  );
+  const holdBody = !hasStripeAccount && !noAccountBodyReady;
 
   const { handleExportCSV } = usePayoutsCsvExport(stripeData?.payouts);
 
@@ -265,7 +277,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
      2026-10-03): without one there is no wallet and no bank payouts. */
   const stripeBones = stripeLoading && hasStripeAccount;
   // Q2708: every part of the open half is in, so what ProfileTabPanels draws under it (MoneyHelp) cannot be pushed.
-  const settled = !!profile && !money.pending && !stripeLoading && (view === "spent" || (pageReady && (!showConnect || connectSettled)));
+  const settled = !!profile && !holdBody && !money.pending && !stripeLoading && (view === "spent" || (pageReady && (!showConnect || connectSettled)));
   useEffect(() => { onSettled?.(settled); }, [settled, onSettled]);
   useEffect(() => () => onSettled?.(false), [onSettled]);
 
@@ -332,12 +344,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           until then, with no Stripe account on the profile row, its
           data-aware bones hold the slot (owner, 2026-10-03). */}
       {showConnect && (
-        <div id="earnings-bank-connect" hidden={!connectSettled}>
+        <div id="earnings-bank-connect" hidden={!connectSettled || holdBody}>
           <Suspense fallback={null}>
             <PaymentTab onSettled={markConnectSettled} />
           </Suspense>
         </div>
       )}
+      {/* PaymentTab above stays mounted (hidden) through the hold, so its reads run and it reports settled. */}
+      {holdBody && <EarningsNoAccountHold />}
+      {!holdBody && (<>
       {!hasStripeAccount && (stripeLoading || (showConnect && !connectSettled)) && <EarningsPayoutSetupSkeleton hireAllowed={payoutHireAllowed} />}
 
       {/* 1099-K banner — appears once YTD payouts cross the federal gross
@@ -562,6 +577,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           </p>
         </section>
       )}
+      </>)}
 
       {membershipsOn && <ProUpgradeSheet
         open={upgradeOpen}

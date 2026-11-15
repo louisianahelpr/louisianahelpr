@@ -253,7 +253,10 @@ describe("Money: wallet, then Earned | Spent, no payouts list (owner, 2026-10-08
   it("without a Stripe account, the connect card's bones hold the top slot while Stripe answers", async () => {
     profileRow = { ...profileRow, stripe_account_id: null };
     earningsData = { ...earningsData, stripeData: undefined, stripeLoading: true };
+    // Q1816: the no-account hold waits on Stripe at most ARRIVAL_CAP_MS (earningsNoAccountOnePaint.test.tsx); past
+    // it the body paints and the connect slot keeps its own bones until Stripe answers.
     await renderTab();
+    expect(screen.queryByTestId("earnings-no-account-hold")).toBeNull();
     expect(screen.getByTestId("earnings-payout-setup-skeleton")).toBeTruthy();
     expect(screen.queryByTestId("earnings-wallet-loading")).toBeNull();
     expect(screen.getByText(/\$264\.00/)).toBeTruthy();

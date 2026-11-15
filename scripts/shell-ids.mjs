@@ -27,11 +27,22 @@ function lazyShellImages(html) {
   return html.replace(EAGER_IMG, '<img loading="lazy"');
 }
 
+// ONE H1 IN THE HTML (Q2786, landing audit L026): every shell sits in every route's HTML, so a crawler reading it before
+// JavaScript saw six H1s (the landing hero's, login, signup, jobs, messages, home). The landing's hero keeps its H1
+// (byte-locked to the hero, landingShellMatchesHero); every other shell's heading is drawn as a <div> with the same
+// classes. The shells are aria-hidden and inert, so no reader ever met them as headings, and preflight gives an h1 and
+// a div the same inherited type, so nothing moves on screen. Guard: src/test/preJsHtmlHasOneH1.test.ts.
+const HEADING_KEEPS_H1 = new Set(["landing"]);
+function demoteShellH1(html, shell) {
+  if (HEADING_KEEPS_H1.has(shell)) return html;
+  return html.replace(/<h1(?=[\s>])/g, "<div").replace(/<\/h1>/g, "</div>");
+}
+
 /** The markup with every id (and every reference to one) given the shell's own prefix, lh-shell-<shell>-, and its images lazy. */
 export function scopeShellIds(html, shell) {
   if (!/^[a-z]+$/.test(shell)) throw new Error(`scopeShellIds: shell name "${shell}"`);
   const p = `${SHELL_ID_PREFIX}${shell}-`;
-  return lazyShellImages(html)
+  return demoteShellH1(lazyShellImages(html), shell)
     .replace(ONE, (_, sp, attr, v) => `${sp}${attr}="${p}${v}"`)
     .replace(LIST, (_, sp, attr, v) => `${sp}${attr}="${v.split(/\s+/).filter(Boolean).map((x) => p + x).join(" ")}"`);
 }

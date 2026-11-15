@@ -10,7 +10,7 @@
  * part is a value (a member's name, a job title, a count) and is skipped. A
  * word after ". ? ! :" starts a new sentence ("Loved it? Share Helpr").
  *
- * @mutate src/components/profile/AvatarCropDialog.tsx | "Position your photo" | "Position Your Photo"
+ * @mutate src/components/profile/AvatarCropDialogView.tsx | "Position your photo" | "Position Your Photo"
  * @mutate src/components/PhotoProof.tsx | "After"} photos`} | "After"} Photos`}
  * @mutate src/lib/i18n/enMessages.ts | "msg.editTitle": "Edit message", | "msg.editTitle": "Edit Message",
  * @mutate src/components/profile/EarningsTab.tsx | "Unlock instant cash out" | "Unlock Instant Cash out"

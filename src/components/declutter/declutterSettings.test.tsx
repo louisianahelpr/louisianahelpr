@@ -36,6 +36,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
 import type { SellerDefaults } from "@/lib/declutter/sellerDefaults";
 import DeclutterSettingsPage from "@/pages/declutter/DeclutterSettingsPage";
+import { SellPorchPlaces } from "@/components/declutter/SellPorchPlaces";
 
 const state = {
   saved: null as SellerDefaults | null,
@@ -266,12 +267,21 @@ describe("Declutter settings", () => {
     expect(document.querySelector("[data-pickup-now]")).toBeNull();
   });
 
-  it("while the places read, their row holds the spot like its neighbours", async () => {
+  it("while the places read, the card's row holds its spot, and the page keeps its bones (one paint, Q169)", async () => {
     state.places = new Promise(() => undefined) as unknown as unknown[];
+    // The page waits for the places with every other card (declutterSettingsOnePaint.test.tsx): no card shows yet.
     open();
+    await screen.findByText("Loading your settings");
+    expect(screen.queryByRole("region", { name: "Meet spots" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Pickup places" })).toBeNull();
+    // The card on its own still brings its row while it reads.
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <SellPorchPlaces card />
+      </QueryClientProvider>,
+    );
     const card = await screen.findByRole("region", { name: "Pickup places" });
     expect(card.textContent).toBe("Pickup placesLoading…");
-    expect(card.nextElementSibling).toBe(await screen.findByRole("region", { name: "Meet spots" }));
   });
 
   it("no card at all before the places are on the server", async () => {

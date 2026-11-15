@@ -44,3 +44,5 @@ export function namedLoaders(src: string): Map<string, string>;
 export function loaderSpecs(text: string, loaders: Map<string, string>): string[];
 export const SUPABASE_CLIENT: string;
 export function clientReachers(root: string): Set<string>;
+export const ADMIN_ROOT: string;
+export function adminIconFiles(root: string): Set<string>;

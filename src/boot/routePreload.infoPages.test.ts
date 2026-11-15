@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * run: live /help (www, Slow 4G + 4x, 375, guest) drew its frame at ~3.1 s and its LCP topic list at 4.9-5.0 s.
  *
  * @mutate src/boot/routePreload.ts | PATH_PAGE_PATH.test(path) ? { guest: [pathPageRoute], | PATH_PAGE_PATH.test(path) ? { guest: [],
- * @mutate src/boot/routePreload.ts | \|help\|hire\/[^/]+\/[^/]+)$/; | \|helpx\|hire\/[^/]+\/[^/]+)$/;
+ * @mutate src/boot/routePreload.ts | \|help\|hire\/[^/]+\/[^/]+\|jobs | \|helpx\|hire\/[^/]+\/[^/]+\|jobs
  * @mutate src/boot/pathPageRoute.ts | } else if (path === "/help") { | } else if (path === "/helps") {
  * @mutate src/boot/pathPageRoute.ts | } else if (path.startsWith("/hire/")) { | } else if (path.startsWith("/hirex/")) {
  */

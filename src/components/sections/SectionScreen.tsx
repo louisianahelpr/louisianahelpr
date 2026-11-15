@@ -110,7 +110,19 @@ export function SectionScreen({
   if (guestFrame) {
     return (
       <ScrollAwayScope>
-        <GuestPublicFrame><div className="pt-2">{header}</div>{content}</GuestPublicFrame>
+        <GuestPublicFrame>
+          {/* The section's header stays put under the fixed public header while the window scrolls (owner 2026-10-30,
+              e2e/a11y-prod/sectionTabsStayPut.spec.ts), on the page's own paper (bg-premium-page is fixed-attached,
+              so it reads as the page behind it), across the frame's gutters. */}
+          <div
+            data-guest-explore-sticky=""
+            className="sticky z-30 -mx-5 px-5 sm:-mx-8 sm:px-8 lg:-mx-12 lg:px-12 pt-2 pb-1 bg-premium-page"
+            style={{ top: "calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))" }}
+          >
+            {header}
+          </div>
+          <ScrollAwaySpacer />{content}
+        </GuestPublicFrame>
       </ScrollAwayScope>
     );
   }

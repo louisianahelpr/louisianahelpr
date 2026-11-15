@@ -11,7 +11,7 @@
  * says the same (src/test/legalIdOncePerAccount.test.tsx).
  *
  * @mutate src/pages/info/legal/PrivacySection.tsx | usage data, and ${idCheckOn ? ID_ONCE_PER_ACCOUNT : "ID, if you choose to verify it"}. | usage data, and ID, if you choose to verify it.
- * @mutate src/lib/useIdCheckOnForViewer.ts |   if (!isReady \|\| !user) return ID_CHECK_BEFORE_ANSWER; |   if (!isReady) return ID_CHECK_BEFORE_ANSWER;
+ * @mutate src/lib/useIdCheckOnForViewer.ts |   if (!isReady \|\| !user) return ID_CHECK_BEFORE_ANSWER; |   if (!isReady) return ID_CHECK_BEFORE_ANSWER; if (!user) return memberAnswer ?? false;
  */
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -27,7 +27,7 @@ vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: vi.fn() } }));
 
 import { PrivacyContent } from "./PrivacySection";
-import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
+import { setIdentityCheckLastAnswer, setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 
 function collectLine(): string {
   render(
@@ -50,12 +50,16 @@ describe("Privacy short version: the ID line says the real rule for whoever read
   afterEach(() => {
     cleanup();
     setIdentityCheckOn(false);
+    setIdentityCheckLastAnswer(null);
     state.signedIn = false;
     state.open = new Set();
   });
 
   it("switch off (member): ID only if you choose to verify it", () => {
     state.signedIn = true;
+    // The member's real answer is in (IdentityCheckMount publishes both); before it, the line holds the pre-session
+    // wording (page settle 11-15, src/pages/info/legal/termsIdLineHoldsUntilAnswer.test.tsx).
+    setIdentityCheckLastAnswer(false);
     const collect = collectLine();
     expect(collect).toMatch(/\bID, if you choose to verify it\b/);
     expect(collect).not.toMatch(RULE);
@@ -66,6 +70,7 @@ describe("Privacy short version: the ID line says the real rule for whoever read
   it("switch on (member): one photo ID check per account, and when", () => {
     state.signedIn = true;
     setIdentityCheckOn(true);
+    setIdentityCheckLastAnswer(true);
     const collect = collectLine();
     expect(collect).toMatch(RULE);
     expect(collect).not.toMatch(/choose to verify/);

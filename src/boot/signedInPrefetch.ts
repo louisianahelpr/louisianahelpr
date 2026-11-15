@@ -12,7 +12,17 @@ import { startDeclutterItemPrefetch } from "./declutterItemPrefetch";
 import { startActivityCoresPrefetch } from "./activityCoresPrefetch";
 import { startProfilePrefetch } from "./profilePrefetch";
 
+/**
+ * Set once the reads have started. index.html's head starts this chunk for a member with a live session (Builder 2, 11-15,
+ * see the script beside <meta name="lh-signed-in-prefetch">), and the entry still calls it too (a guest's item page, a
+ * build without the head script): the second call must not ask every read again.
+ */
+export const SIGNED_IN_PREFETCH_STARTED_KEY = "__lhSignedInPrefetchStarted";
+
 export function startSignedInPrefetch(pathname: string): void {
+  const w = window as unknown as Record<string, unknown>;
+  if (w[SIGNED_IN_PREFETCH_STARTED_KEY]) return;
+  w[SIGNED_IN_PREFETCH_STARTED_KEY] = true;
   startDeclutterPrefetch(pathname);
   startHomePrefetch(pathname);
   startJobsPrefetch(pathname);

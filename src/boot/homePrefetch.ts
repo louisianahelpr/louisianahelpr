@@ -20,6 +20,8 @@ import { JOBS_PREFETCH_KEY, currentUserUrls } from "./jobsPrefetch";
 export const HOME_PREFETCH_KEY = "__lhHomePrefetch";
 /** The member's own "does my page open?" answer for Home's Your page card (homePrefetchTake.ts takes it). */
 export const HOME_PAGE_PREFETCH_KEY = "__lhHomePagePrefetch";
+/** The member's own posted jobs for Home's poster first-job read (homePrefetchTake.ts takes it). */
+export const HOME_POSTER_PREFETCH_KEY = "__lhHomePosterPrefetch";
 
 /** The REST URLs supabase-js sends for useFirstJobState's three reads (see the test). */
 export function homeFirstJobUrls(supabaseUrl: string, userId: string): { applications: string; jobs: string; prefs: string } {
@@ -34,6 +36,15 @@ export function homeFirstJobUrls(supabaseUrl: string, userId: string): { applica
   prefs.searchParams.set("select", "job_matches,email_job_matches");
   prefs.searchParams.set("user_id", `eq.${userId}`);
   return { applications: applications.toString(), jobs: jobs.toString(), prefs: prefs.toString() };
+}
+
+/** The REST URL supabase-js sends for usePosterFirstJob's read (PosterFirstJobCard.tsx; see the test). */
+export function homePosterFirstJobUrl(supabaseUrl: string, userId: string): string {
+  const u = new URL(`${supabaseUrl.replace(/\/$/, "")}/rest/v1/jobs`);
+  u.searchParams.set("select", "helper_id,status,poster_completed_at");
+  u.searchParams.set("customer_id", `eq.${userId}`);
+  u.searchParams.set("limit", "50");
+  return u.toString();
 }
 
 /** A head-only count read's total, as supabase-js reads it off Content-Range; null when there is none. */
@@ -102,4 +113,10 @@ export function startHomePrefetch(pathname: string): void {
     .catch(() => null);
   w[JOBS_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, me };
   w[HOME_PAGE_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, page };
+  // Builder 2 (11-15; cwv-lab /home, helper persona): Home's sections (the Your page card among them) mount at
+  // topSettled, which for a member past their first job waits on usePosterFirstJob's read. That read started only once
+  // the first-job counts had answered in the app (4.1-4.8 s). Asked here beside the counts; PosterFirstJobCard.tsx
+  // takes it once (homePrefetchTake.ts). A brand-new member, who never needs it, costs one small empty read.
+  const poster = rows(homePosterFirstJobUrl(base, session.userId)).catch(() => null);
+  w[HOME_POSTER_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, rows: poster };
 }

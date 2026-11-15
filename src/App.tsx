@@ -254,7 +254,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           /signup-pending on every protected route (Q180, Q193) — see ProtectedRoute. */}
       <Route path="/home" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<DashboardRouteSkeleton />}><HomeDashboard /></ProtectedRoute>, <DashboardRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/profile" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<ProfileRouteSkeleton />}><Profile /></ProtectedRoute>, <ProfileRouteSkeleton />)}</RouteErrorBoundary>} />
-      <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/post-job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile><PostJob /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/jobs" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<JobsSectionSkeleton />}><JobsPage /></ProtectedRoute>, <JobsSectionSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/explore" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute allowGuest><ExploreRedirect /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<JobsSectionSkeleton />}><PostsPage /></ProtectedRoute>, <JobsSectionSkeleton />)}</RouteErrorBoundary>} />
@@ -270,10 +270,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/sponsor" element={<RouteErrorBoundary>{routeEl(<SponsorPage />)}</RouteErrorBoundary>} />
       <Route path="/25days" element={<RouteErrorBoundary>{routeEl(<SponsorPage />)}</RouteErrorBoundary>} />
       <Route path="/25days/rules" element={<RouteErrorBoundary>{routeEl(<SponsorRulesPage />)}</RouteErrorBoundary>} />
-      <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<MessagesRouteSkeleton />}><Messages /></ProtectedRoute>, <MessagesRouteSkeleton />)}</RouteErrorBoundary>} />
+      <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile fallback={<MessagesRouteSkeleton />}><Messages /></ProtectedRoute>, <MessagesRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember fallback={<DeclutterRouteSkeleton />}><DeclutterPage /></DeclutterGuestOrMember>, <DeclutterRouteSkeleton />)}</RouteErrorBoundary>} />
-      <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/declutter/move" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterMovePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/declutter/move" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile><DeclutterMovePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/wanted/new" element={<Navigate to="/declutter?tab=wanted&post=1" replace />} />{/* F130: was a 404; = wantedAskHref("") */}
       {/* F471/F415/F234 + F455 (audit 11-10): names people type or old emails use were 404s. /helpdesk is the Help
           center (Contact us stays /support); /settings and /profile/security open the matching Profile tab (a guest
@@ -286,11 +286,11 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/quotes" element={routeEl(<QuotesHubRedirect />)} />
       <Route path="/quotes/request/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><QuoteRequestPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/tips/:tipId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><TipMoment /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/quotes/send/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><SendQuotePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/quotes/send/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile><SendQuotePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/shops" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/shops/mine" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopEditPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/shops/mine" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile><ShopEditPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/shops/orders" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopOrdersPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/shops/dashboard" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopDashboardPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/shops/dashboard" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile><ShopDashboardPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* SH2b (owner 2026-10-19): a shop page is open to anyone with the link;
           ShopPage picks the full or the public view. noindex via api/share.ts. */}
       <Route path="/shops/:id" element={<RouteErrorBoundary>{routeEl(<ShopPage />)}</RouteErrorBoundary>} />
@@ -301,9 +301,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/rentals" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><RentalsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/rentals/invite/:token" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><RentalsInvitePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/rentals/requests/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><MaintenanceRequestPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/rentals/listings/new" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ListingEditPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/rentals/listings/new" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile><ListingEditPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/rentals/listings/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ListingPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/rentals/listings/:id/edit" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ListingEditPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/rentals/listings/:id/edit" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fullProfile><ListingEditPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* /support is linked from PolicyFooter (the card that closes the legal
           policy tabs AND the Help Center), and the account-banned screen, so it must resolve WITHOUT auth — a suspended or
           not-yet-approved account has no other route to a human. NOT from

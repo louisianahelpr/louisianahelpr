@@ -1,13 +1,15 @@
 /**
- * /admin/preview/onboarding — the two onboarding screens no test account can reach without a write (Q2664 (b),
- * audit 1102d): the unfinished Complete your profile form (a finished account is sent to /home) and the first-run
- * picker "What brings you to Helpr?" (shown once per account, stamped on every shared seat). Admin only (the route).
+ * /admin/preview/onboarding — the onboarding screens no test account can reach without a write (Q2664 (b),
+ * audit 1102d): the Terms + 18+ step every new member sees before Home (owner 11-14, completeProfile/ConsentStep.tsx),
+ * the unfinished Complete your profile form (since 11-14 asked only on the way to a commitment route such as
+ * /post-job, src/lib/profileGateRoutes.ts; a finished account is sent to /home) and the first-run picker "What brings
+ * you to Helpr?" (shown once per account, stamped on every shared seat). Admin only (the route).
  *
  * It draws the REAL screens: pages/auth/CompleteProfile.tsx (what /complete-profile draws) and the first run's own
  * screens (components/firstRun/FirstRun.tsx, what FirstRunHost loads), so a change to them shows here with no change
  * to this file. What they are fed is made up:
- *  - the form reads a blank, unfinished profile from the preview's own query cache (the admin's real profile, in the
- *    app's cache, is never touched);
+ *  - the form reads a made-up, unfinished profile from the preview's own query cache (the admin's real profile, in the
+ *    app's cache, is never touched): blank for the Terms + 18+ step, Terms and 18+ already agreed for the full form;
  *  - every Supabase request is answered by the Messages preview's backend (messagesPreviewBackend.ts) and never sent:
  *    reads from the sample, every write, RPC and function answered "done" with a "Preview: this would ..." note;
  *  - the picker's Continue never reorders the admin's own Home (onPicks), and Done starts it again;
@@ -30,20 +32,28 @@ const CompleteProfile = lazy(() => import("@/pages/auth/CompleteProfile"));
 const FirstRunScreens = lazy(() => import("@/components/firstRun/FirstRun"));
 
 const ONBOARDING_PREVIEW_STAGES = [
+  { key: "consent", label: "Terms + 18+" },
   { key: "profile", label: "Finish your profile" },
   { key: "picker", label: "What brings you" },
 ] as const;
 export type OnboardingPreviewStage = (typeof ONBOARDING_PREVIEW_STAGES)[number]["key"];
 const isStage = (v: string | null): v is OnboardingPreviewStage => ONBOARDING_PREVIEW_STAGES.some((s) => s.key === v);
 
-/** A sign-up that stopped after step 2: no name, no city, no terms ticked, no photo. Made up. */
-function onboardingSampleProfile(userId: string): Record<string, unknown> {
+/**
+ * A sign-up that stopped after step 2: no name, no city, no photo. Made up. For the Terms + 18+ step nothing is ticked;
+ * for the full form both were agreed (that step comes first), so the form itself is what draws.
+ */
+function onboardingSampleProfile(userId: string, agreed: boolean): Record<string, unknown> {
+  const at = agreed ? new Date().toISOString() : null;
   return {
     id: userId, user_id: userId, first_name: null, last_name: null, full_name: null, location: null, zip_code: null,
-    bio: null, avatar_url: null, accepted_terms_at: null, age_attested_at: null, date_of_birth: null,
+    bio: null, avatar_url: null, accepted_terms_at: at, age_attested_at: at, date_of_birth: null,
     is_legacy_user: false, onboarding_tour_completed_at: null, created_at: new Date().toISOString(),
   };
 }
+
+/** The full form is asked on the way to a commitment route (profileGateRoutes.ts); the preview shows it as for /post-job. */
+const FULL_FORM_NEXT = "/post-job";
 
 /** Never stale: the form's own refetch (focus, mount) would otherwise read the admin's real, finished profile. */
 const NEVER_STALE = 1000 * 60 * 60 * 24 * 365 * 100;
@@ -127,13 +137,13 @@ export default function OnboardingPreviewPage() {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
   const stageParam = params.get("stage");
-  const stage: OnboardingPreviewStage = isStage(stageParam) ? stageParam : "profile";
+  const stage: OnboardingPreviewStage = isStage(stageParam) ? stageParam : "consent";
   const me = user?.id ?? "";
   // Its own cache per stage: the form's profile read is the sample, never the admin's own.
   const client = useMemo(() => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
     if (me) {
-      qc.setQueryData(queryKeys.currentUser.byId(me), { profile: onboardingSampleProfile(me), isAdmin: true, adminCheckFailed: false }, { updatedAt: Date.now() + NEVER_STALE });
+      qc.setQueryData(queryKeys.currentUser.byId(me), { profile: onboardingSampleProfile(me, stage === "profile"), isAdmin: true, adminCheckFailed: false }, { updatedAt: Date.now() + NEVER_STALE });
     }
     return qc;
   }, [me, stage]);
@@ -145,7 +155,7 @@ export default function OnboardingPreviewPage() {
             <div data-preview-view={stage}>
               {me && (
                 <Suspense fallback={<div role="status" aria-busy="true" aria-label="Loading the preview" />}>
-                  {stage === "picker" ? <PickerStage /> : <CompleteProfile />}
+                  {stage === "picker" ? <PickerStage /> : stage === "profile" ? <CompleteProfile next={FULL_FORM_NEXT} /> : <CompleteProfile />}
                 </Suspense>
               )}
             </div>

@@ -28,7 +28,9 @@ import { noteTermsDialogShown, settleTermsRequest, termsRequestPending } from "@
 // is mounted app-wide, so without this it covers the very page it asks the
 // user to read.
 // @two-way src/test/termsReconsentOnBump.test.tsx:exempt path is no longer a route
-export const RECONSENT_EXEMPT_PATHS = ["/legal", "/terms", "/privacy", "/terms/full", "/privacy/full"];
+// /complete-profile (owner 11-14): its consent step IS the agreement, with the 18+ box; the "material update"
+// dialog over it asked the same thing twice in the wrong words.
+export const RECONSENT_EXEMPT_PATHS = ["/legal", "/terms", "/privacy", "/terms/full", "/privacy/full", "/complete-profile"];
 
 /**
  * `requestSeq` changes each time the server refused a commitment for stale

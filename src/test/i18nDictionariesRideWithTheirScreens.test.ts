@@ -54,6 +54,7 @@ const RELY_ON_PARENT = [
   "src/pages/auth/Signup.tsx enScreens",
   "src/pages/auth/completeProfile/CheckingProfileCard.tsx enScreens",
   "src/pages/auth/completeProfile/CompleteProfileAvatar.tsx enScreens",
+  "src/pages/auth/completeProfile/ConsentStep.tsx enScreens",
   "src/pages/auth/completeProfile/ProfileNextStep.tsx enScreens",
   "src/pages/auth/completeProfile/StillNeededList.tsx enScreens",
   "src/pages/auth/completeProfile/saveCompletedProfile.ts enScreens",

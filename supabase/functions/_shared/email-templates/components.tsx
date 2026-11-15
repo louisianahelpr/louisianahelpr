@@ -224,10 +224,13 @@ export const TransactionalFooter = ({ children }: { children: React.ReactNode })
 export const MarketingFooter = ({
   reasonLine,
   unsubscribeUrl,
+  unsubscribeLabel,
 }: {
   reasonLine?: string
   /** The recipient's signed one-click URL. See note 1 above — always pass it. */
   unsubscribeUrl?: string
+  /** The link's words in the email's language (welcome.tsx passes Spanish for 'es'); English when omitted. */
+  unsubscribeLabel?: string
 }) => {
   const unsubUrl = unsubscribeUrl ?? `${getAppUrl()}/profile?tab=notifications`
   const reason =
@@ -237,7 +240,7 @@ export const MarketingFooter = ({
       {reason}
       <br />
       <Link href={unsubUrl} className="e-footer" style={{ color: brand.footerOlive, textDecoration: 'underline' }}>
-        Unsubscribe from these emails
+        {unsubscribeLabel ?? 'Unsubscribe from these emails'}
       </Link>
       {POSTAL_ADDRESS ? (
         <>

@@ -1,6 +1,7 @@
 /**
  * Q2664 (b) (audit 1102d, 2026-11-04): the sign-up screens after step 2 that no test account can reach without a write (the
- * unfinished Complete your profile form, the first-run picker) are drawn by /admin/preview/onboarding, inertly:
+ * Terms + 18+ step every new member sees first (owner 11-14), the unfinished Complete your profile form (since 11-14 asked
+ * on the way to a commitment route such as /post-job), the first-run picker) are drawn by /admin/preview/onboarding, inertly:
  *  - the form draws on a blank sample profile held in the preview's own cache, never the admin's real (finished)
  *    one, which would send the page to /home; the app's own cache entry is never changed;
  *  - the picker's Continue never reorders the admin's own Home (no helpr_section_prefs write), and the coach marks
@@ -10,6 +11,9 @@
  * @mutate src/components/firstRun/FirstRun.tsx |           if (onPicks) onPicks( |           if (onPicks) putFirst(
  * @mutate src/pages/admin/preview/OnboardingPreviewPage.tsx |     if (me) { |     if (!me) {
  * @mutate src/pages/admin/preview/OnboardingPreviewPage.tsx | { updatedAt: Date.now() + NEVER_STALE } | { updatedAt: 0 }
+ * @mutate src/pages/admin/preview/OnboardingPreviewPage.tsx | onboardingSampleProfile(me, stage === "profile") | onboardingSampleProfile(me, false)
+ * @mutate src/pages/admin/preview/OnboardingPreviewPage.tsx | <CompleteProfile next={FULL_FORM_NEXT} /> | <CompleteProfile />
+ * @mutate src/pages/admin/preview/OnboardingPreviewPage.tsx |   { key: "consent", label: "Terms + 18+" },\n |
  * @mutate src/pages/admin/preview/messagesPreviewBackend.ts | (OWN_ROW_TABLES.has(table) \|\| o.ownRowTables?.includes(table)) | (OWN_ROW_TABLES.has(table) \|\| !!o.ownRowTables)
  * @mutate src/pages/admin/preview/messagesPreviewBackend.ts |     if (!base \|\| !url.startsWith(base)) return o.realFetch(input, init); |     if (base) return o.realFetch(input, init);
  */
@@ -82,6 +86,17 @@ describe("admin onboarding preview (Q2664 b)", () => {
     expect(supabaseCalls()).toEqual([]);
     unmount();
     expect(globalThis.fetch).toBe(spy);
+  });
+
+  it("draws the Terms + 18+ step on the blank sample: the Terms box and Continue, no name fields", async () => {
+    renderAt("consent");
+    expect(await screen.findByRole("region", { name: "Onboarding preview controls" })).toBeInTheDocument();
+    expect(screen.getByText("Terms + 18+")).toBeInTheDocument();
+    await waitFor(() => expect(document.getElementById("accept-policies")).not.toBeNull(), { timeout: 5000 });
+    expect(screen.getByRole("button", { name: "Continue" })).toBeInTheDocument();
+    expect(document.querySelectorAll("input[type=text], input:not([type])").length).toBe(0);
+    expect(screen.queryByText("Real home page")).toBeNull();
+    expect(supabaseCalls()).toEqual([]);
   });
 
   it("draws the first-run picker; Continue leaves the admin's Home order alone and the coach marks follow", async () => {

@@ -43,12 +43,27 @@ const walk = (d: string): string[] =>
     return statSync(p).isDirectory() ? walk(p) : [p];
   });
 
-/** Page modules (src/pages/**) that render <AuthShell, as "pages/auth/Login". */
+/**
+ * Page modules (src/pages/**) that render <AuthShell, as "pages/auth/Login". A step of a page that lives in that
+ * page's own folder (pages/auth/completeProfile/ConsentStep.tsx, owner 11-14) counts as the page it is drawn by
+ * (pages/auth/CompleteProfile): App.tsx mounts the page, never the step.
+ */
 function authShellPages(): string[] {
-  return walk(join(ROOT, "src", "pages"))
+  const pages = walk(join(ROOT, "src", "pages"))
     .filter((f) => /\.tsx$/.test(f) && !/\.test\./.test(f))
     .filter((f) => /<AuthShell\b/.test(readFileSync(f, "utf8")))
-    .map((f) => relative(join(ROOT, "src"), f).replace(/\.tsx$/, ""));
+    .map((f) => relative(join(ROOT, "src"), f).replace(/\.tsx$/, ""))
+    .map((p) => {
+      const m = /^(.*)\/([a-z]\w*)\/[^/]+$/.exec(p);
+      if (!m) return p;
+      const parent = `${m[1]}/${m[2][0].toUpperCase()}${m[2].slice(1)}`;
+      try {
+        return statSync(join(ROOT, "src", `${parent}.tsx`)).isFile() ? parent : p;
+      } catch {
+        return p; // no page of that name: the file is a page of its own
+      }
+    });
+  return [...new Set(pages)];
 }
 
 /** Route paths App.tsx mounts on the given page modules. */

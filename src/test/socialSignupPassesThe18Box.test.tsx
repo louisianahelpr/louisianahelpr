@@ -15,7 +15,8 @@
  *      sign-up passes on its provider (complete-signup refuses it without
  *      step 1's box); a pre-2026-10-14 social account that gave a birthday
  *      is not sent back;
- *   2. Complete Profile, the one screen a social sign-up completes on, shows
+ *   2. Complete Profile's consent step (owner 11-14: the one short step a
+ *      social sign-up sees before Home, completeProfile/ConsentStep.tsx) shows
  *      the box unticked, no birthday and no phone field, cannot be finished
  *      without the box, and saves the box (age_attested_at) with no phone and
  *      no birthday in the write;
@@ -23,9 +24,9 @@
  *      below, so a second writer cannot appear without being named here.
  *
  * @mutate src/components/ProtectedRoute.tsx |   return filled(profile.age_attested_at) \|\| filled(profile.date_of_birth); |   return true;
- * @mutate src/pages/auth/CompleteProfile.tsx |       ...(ageBoxShown ? [{ label: t("profileGate.needAge"), step: t("profileGate.stepAge"), done: ageConfirmed }] : []), |
- * @mutate src/pages/auth/completeProfile/saveCompletedProfile.ts |     ...(ageBoxShown && !profile?.age_attested_at ? { age_attested_at: nowIso } : {}), |
- * @mutate src/pages/auth/CompleteProfile.tsx |                   {t("profileGate.ageConfirm")} <span | <span
+ * @mutate src/pages/auth/completeProfile/ConsentStep.tsx |   const ready = agreed && (adult \|\| !ageBoxShown); |   const ready = agreed;
+ * @mutate src/pages/auth/completeProfile/ConsentStep.tsx |             ...(ageBoxShown && !profile?.age_attested_at ? { age_attested_at: nowIso } : {}), |
+ * @mutate src/pages/auth/completeProfile/ConsentStep.tsx | <span id="age-confirm-label" className="leading-relaxed">{t("profileGate.ageConfirm")}</span> | <span id="age-confirm-label" className="leading-relaxed"></span>
  * @mutate src/pages/auth/CompleteProfile.tsx |   const ageBoxShown = user?.app_metadata?.provider !== "email"; |   const ageBoxShown = false;
  * @mutate src/pages/auth/CompleteProfile.tsx |   const ageBoxShown = user?.app_metadata?.provider !== "email"; |   const ageBoxShown = true;
  * @mutate src/components/postjob/CityAutocomplete.tsx |         required={required} |         required
@@ -57,6 +58,8 @@ const filledIn = {
   age_attested_at: null,
   phone: null,
   location: "Abbeville",
+  // The Terms record (owner 11-14: a city alone no longer counts as a finished sign-up; review finding 6).
+  accepted_terms_at: "2026-10-14T19:00:00Z",
   is_legacy_user: false,
 } as GateProfile;
 
@@ -86,6 +89,8 @@ describe("the gate: a social sign-up gets in only through the 18+ box", () => {
 
   it("an email sign-up passes on its provider (step 1's box, enforced by complete-signup)", () => {
     expect(isProfileComplete(filledIn, { app_metadata: { provider: "email" } })).toBe(true);
+    // ... but only with the Terms record complete-signup writes; a city alone is not it.
+    expect(isProfileComplete({ ...filledIn!, accepted_terms_at: null }, { app_metadata: { provider: "email" } })).toBe(false);
   });
 });
 
@@ -149,11 +154,13 @@ vi.mock("@/integrations/supabase/client", () => {
 
 import CompleteProfile from "@/pages/auth/CompleteProfile";
 
-function renderPage() {
+/** Owner 11-14: the full form is drawn only on the way to a commitment route, once the consent step is done. */
+const TO_POST_JOB = "/complete-profile?next=%2Fpost-job";
+function renderPage(entry = "/complete-profile") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[entry]}>
         <CompleteProfile />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -175,11 +182,10 @@ describe("Complete Profile: the 18+ box, no birthday, no phone", () => {
   it("cannot be finished without the box, and saves it with no phone and no birthday", async () => {
     updates.length = 0;
     renderPage();
-    expect(screen.getByText("Confirm you're 18 or older")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Complete required fields/ })).toBeDisabled();
+    const enter = screen.getByRole("button", { name: /Continue/ });
+    expect(enter).toBeDisabled();
 
     fireEvent.click(screen.getByRole("checkbox", { name: /I confirm I am 18 years of age or older/ }));
-    const enter = screen.getByRole("button", { name: /Enter App/ });
     expect(enter).toBeEnabled();
     fireEvent.click(enter);
 
@@ -198,10 +204,10 @@ describe("Complete Profile: the 18+ box, no birthday, no phone", () => {
     const name = socialProfile.full_name;
     socialProfile.full_name = "";
     try {
-      renderPage();
+      renderPage(TO_POST_JOB);
       expect(screen.getByRole("button", { name: /Complete required fields/ })).toBeDisabled(); // the page, not a redirect
       expect(screen.queryByRole("checkbox", { name: /18 years of age or older/ })).toBeNull();
-      expect(screen.queryByText("Confirm you're 18 or older")).toBeNull();
+      expect(screen.queryByTestId("complete-profile-consent-step")).toBeNull();
     } finally {
       socialUser.app_metadata.provider = "google";
       socialProfile.full_name = name;
@@ -214,22 +220,27 @@ describe("Complete Profile: the 18+ box, no birthday, no phone", () => {
 describe("Complete Profile: an empty optional City never blocks Enter App", () => {
   it("the City box is not required, and the form is valid and saves with City empty", async () => {
     updates.length = 0;
-    const was = { location: socialProfile.location, zip: socialProfile.zip_code };
+    const was = { location: socialProfile.location, zip: socialProfile.zip_code, age: socialProfile.age_attested_at, name: socialProfile.full_name };
+    socialProfile.full_name = ""; // the full form is drawn for the missing name, on the way to posting
     socialProfile.location = "";
     socialProfile.zip_code = "";
+    socialProfile.age_attested_at = "2026-10-14T20:00:00Z" as never; // the consent step is done (owner 11-14)
     try {
-      const { container } = renderPage();
+      const { container } = renderPage(TO_POST_JOB);
       const city = container.querySelector<HTMLInputElement>("#city");
       expect(city).not.toBeNull();
       expect(city!.required).toBe(false);
       expect(city!.validity.valueMissing).toBe(false);
       expect(container.querySelector("form")!.checkValidity()).toBe(true);
-      fireEvent.click(screen.getByRole("checkbox", { name: /I confirm I am 18 years of age or older/ }));
+      fireEvent.change(container.querySelector("#firstName")!, { target: { value: "Gee" } });
+      fireEvent.change(container.querySelector("#lastName")!, { target: { value: "O" } });
       fireEvent.click(screen.getByRole("button", { name: /Enter App/ }));
       await waitFor(() => expect(updates).toHaveLength(1));
     } finally {
       socialProfile.location = was.location;
       socialProfile.zip_code = was.zip;
+      socialProfile.age_attested_at = was.age;
+      socialProfile.full_name = was.name;
     }
   });
 });
@@ -238,8 +249,9 @@ describe("Complete Profile: an empty optional City never blocks Enter App", () =
 // The exact list of code that touches the record.
 // ---------------------------------------------------------------------------
 const TOUCHES_AGE_ATTESTED_AT: Record<string, string> = {
-  "src/pages/auth/CompleteProfile.tsx": "the box: reads it to pre-tick the 18+ box",
-  "src/pages/auth/completeProfile/saveCompletedProfile.ts": "the box: the only writer (CompleteProfile's save path, Q806)",
+  "src/pages/auth/CompleteProfile.tsx": "the box: reads it to pre-tick the consent step's 18+ box",
+  "src/pages/auth/completeProfile/ConsentStep.tsx": "the box: the writer (the consent step, owner 11-14)",
+  "src/pages/auth/completeProfile/saveCompletedProfile.ts": "the box: kept on the full form's save (Q806) for a profile that reaches it unattested",
   "src/pages/auth/completeProfile/types.ts": "Complete Profile's update type",
   "src/components/ProtectedRoute.tsx": "the gate: the only reader that lets an account in",
   "src/integrations/supabase/types.ts": "generated column types",

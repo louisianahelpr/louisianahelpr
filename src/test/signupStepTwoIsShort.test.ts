@@ -8,7 +8,7 @@
  * src/test/socialSignupPassesThe18Box.test.tsx).
  *
  * @mutate src/pages/auth/Signup.tsx |         ageAttested: ageConfirmed, |         ageAttested: false,
- * @mutate src/pages/auth/CompleteProfile.tsx |     if (!ageDone) return fail( |     if (false) return fail(
+ * @mutate src/pages/auth/completeProfile/ConsentStep.tsx |     if (ageBoxShown && !adult) { |     if (false) {
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -18,10 +18,13 @@ const step2 = blankComments(readFileSync("src/pages/auth/signup/SignupStep2.tsx"
 const signup = blankComments(readFileSync("src/pages/auth/Signup.tsx", "utf8"));
 
 const completeProfile = blankComments(readFileSync("src/pages/auth/CompleteProfile.tsx", "utf8"));
+// Owner 11-14: the 18+ box moved to Complete Profile's consent step, asked before anything else.
+const consentStep = blankComments(readFileSync("src/pages/auth/completeProfile/ConsentStep.tsx", "utf8"));
 
 describe("sign-up step 2 is short and optional", () => {
   it("Complete Profile (Google/Apple sign-ups) requires the 18+ box, not a birthday", () => {
-    expect(completeProfile).toMatch(/if \(!ageDone\) return fail\(/);
+    expect(consentStep).toMatch(/if \(ageBoxShown && !adult\) \{ hapticError\(\); toast\.error\(t\("signup\.ageToast"\)\); return; \}/);
+    expect(consentStep).not.toMatch(/id="dob"/);
     expect(completeProfile).not.toMatch(/id="dob"/);
     expect(completeProfile).not.toMatch(/id="phone"/);
   });

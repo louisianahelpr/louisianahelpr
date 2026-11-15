@@ -107,6 +107,12 @@ export const AdminActionEmail = inert("AdminActionEmail");
  * @public
  */
 export const ComeBackEmail = inert("ComeBackEmail");
+/**
+ * welcome-emails' template. Reached only through the harness's template
+ * rewrite (harness.ts), which knip cannot follow.
+ * @public
+ */
+export const WelcomeEmail = inert("WelcomeEmail");
 
 /** Every direct `sendWithResend(key, message)` call, in order (send-notification-email's fallback). */
 export const sendWithResend = vi.fn(async (_key: string, _message: unknown) => ({ id: "resend-mock-id" }));

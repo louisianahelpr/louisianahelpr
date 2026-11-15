@@ -419,7 +419,9 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
  * So /complete-profile itself must offer deletion (Apple 5.1.1(v), GDPR Art.
  * 17), through the same hook and dialog as every other entry point.
  */
-// @mutate src/pages/auth/CompleteProfile.tsx | onClick={deleteAccount.requestDelete} | onClick={() => {}}
+// Owner 11-14: this account (Terms ticked by the re-consent path only, no city) lands on /complete-profile's consent
+// step (ProtectedRoute's isConsentComplete), whose Delete account button is the one pressed here.
+// @mutate src/pages/auth/CompleteProfile.tsx | onClick={deleteAccount.requestDelete} className="w-full text-destructive-ink | onClick={() => {}} className="w-full text-destructive-ink
 const INCOMPLETE_TAG = `${RUN_TAG.slice(0, 13)}inc`;
 const INCOMPLETE_EMAIL = disposableEmail(INCOMPLETE_TAG);
 

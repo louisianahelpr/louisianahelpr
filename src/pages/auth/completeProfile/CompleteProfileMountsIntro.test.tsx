@@ -20,7 +20,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import CompleteProfile from "../CompleteProfile";
 
 const user = { id: "u-1", email: "member@example.com", app_metadata: {}, user_metadata: {} };
-const profile = { user_id: "u-1", full_name: "", phone: null, date_of_birth: null, location: null, zip_code: null, bio: null, avatar_url: null, is_legacy_user: false };
+// Owner 11-14: the full form is drawn for a member who has agreed (Terms + 18+) and is headed to a commitment route.
+const profile = { user_id: "u-1", full_name: "", phone: null, date_of_birth: null, location: null, zip_code: null, bio: null, avatar_url: null, is_legacy_user: false, accepted_terms_at: "2026-11-01T00:00:00Z", age_attested_at: "2026-11-01T00:00:00Z" };
+const AT_POST = ["/complete-profile?next=%2Fpost-job"];
 
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user, profile, isLoading: false, refresh: async () => {} }),
@@ -49,7 +51,7 @@ describe("Finish your profile mounts its intro", () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={qc}>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={AT_POST}>
           <CompleteProfile />
         </MemoryRouter>
       </QueryClientProvider>,
@@ -60,8 +62,8 @@ describe("Finish your profile mounts its intro", () => {
 
   it("A3-30: it names the next step and how far along it is", async () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(<QueryClientProvider client={qc}><MemoryRouter><CompleteProfile /></MemoryRouter></QueryClientProvider>);
-    expect((await screen.findByText(/^Next: /)).textContent).toMatch(/^Next: add your full name · step 1 of [23]$/);
+    render(<QueryClientProvider client={qc}><MemoryRouter initialEntries={AT_POST}><CompleteProfile /></MemoryRouter></QueryClientProvider>);
+    expect((await screen.findByText(/^Next: /)).textContent).toMatch(/^Next: add your full name · step 2 of 2$/);
   });
 });
 

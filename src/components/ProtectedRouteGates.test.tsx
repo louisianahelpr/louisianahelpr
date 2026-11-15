@@ -35,6 +35,7 @@ const completeProfile = {
   date_of_birth: "1990-01-01",
   phone: "(504) 555-0100",
   location: "New Orleans",
+  accepted_terms_at: "2026-09-01T00:00:00Z", // owner 11-14: the Terms record is the finished sign-up (a city alone no longer is)
 };
 const emptyProfile = {
   full_name: null,

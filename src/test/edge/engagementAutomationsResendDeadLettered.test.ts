@@ -22,6 +22,8 @@
 // @mutate supabase/functions/engagement-automations/index.ts | if (person.marketing_consent !== true) { skip('no_marketing_consent'); continue } | if (person.marketing_consent === null) { skip('no_marketing_consent'); continue }
 // @mutate supabase/functions/engagement-automations/index.ts | if (person.is_seed !== false) { skip('seed'); continue } | if (person.is_seed === null) { skip('seed'); continue }
 // @mutate supabase/functions/engagement-automations/index.ts | if (suppressedSet.has(address)) { skip('suppressed'); continue } | if (false && suppressedSet.has(address)) { skip('suppressed'); continue }
+// @mutate supabase/functions/engagement-automations/index.ts | if ((welcomed ?? []).length > 0) { skip('welcome_email_sent'); continue } | if (false) { skip('welcome_email_sent'); continue }
+// @mutate supabase/functions/engagement-automations/index.ts |             .eq('email_step', stepNo === 1 ? 1 : 3) |             .eq('email_step', 2)
 // @mutate supabase/functions/engagement-automations/index.ts |           { last_drip_at: now.toISOString() },\n          'drip re-send', |           { drip_step: stepNo, last_drip_at: now.toISOString() },\n          'drip re-send',
 // @mutate supabase/functions/engagement-automations/index.ts |           { resend_of: dead.message_id }, |           undefined,
 // @mutate supabase/functions/engagement-automations/index.ts |     if (resendIds !== null) { |     if (false) {
@@ -164,6 +166,22 @@ describe("engagement-automations: re-send of dead-lettered welcome-drip steps", 
     // The daily drip cohort (the read that selects drip_step) never ran.
     const cohortReads = scenario.readQueries.filter((q) => q.table === "profiles" && q.cols.includes("drip_step"));
     expect(cohortReads).toHaveLength(0);
+  });
+
+  it("a member who already got the new welcome email for that day (welcome-emails, owner 11-14) is skipped", async () => {
+    const fn = await loadConfigured();
+    seed();
+    // The lost row is the old day 3 (welcome_drip_step_2); welcome-emails' day 3 is its step 3.
+    scenario.reads.welcome_email_sends = { rows: [{ user_id: "user-1" }] };
+    const res = await fn.fetch(resendRequest(fn));
+    const b = await body(res);
+    expect(b.skipped).toEqual({ welcome_email_sent: 1 });
+    expect(queued()).toHaveLength(0);
+    const check = scenario.readQueries.find((q) => q.table === "welcome_email_sends");
+    expect(check?.filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ op: "eq", column: "user_id", value: "user-1" }),
+      expect.objectContaining({ op: "eq", column: "email_step", value: 3 }),
+    ]));
   });
 
   it("sends nothing twice: a later row for the same step skips the member", async () => {
